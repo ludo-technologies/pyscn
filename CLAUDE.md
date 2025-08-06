@@ -133,6 +133,37 @@ Before committing code, ensure:
 - [ ] Documentation updated
 - [ ] Meaningful commit message
 
+## Commit Messages
+
+**Keep it simple!** Use this format:
+```
+<type>: <description>
+```
+
+Types (only 8):
+- `feat:` - new feature
+- `fix:` - bug fix
+- `docs:` - documentation
+- `style:` - formatting
+- `refactor:` - code restructuring
+- `test:` - tests
+- `perf:` - performance
+- `chore:` - maintenance
+
+Examples:
+```bash
+git commit -m "feat: add tree-sitter parser"
+git commit -m "fix: handle nil input"
+git commit -m "test: add parser tests"
+git commit -m "docs: update readme"
+```
+
+Rules:
+- Max 50 characters
+- Start with lowercase
+- No period at end
+- No scope needed (no `feat(parser):`)
+
 ## Common Commands
 
 ```bash
@@ -151,7 +182,7 @@ go build ./cmd/pyqol             # Build binary
 
 # Git workflow
 git checkout -b feature/issue-N  # Create feature branch
-git commit -m "feat: ..."        # Conventional commit
+git commit -m "feat: ..."        # Simple commit
 gh pr create                     # Create pull request
 ```
 
