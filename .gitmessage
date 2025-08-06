@@ -1,0 +1,14 @@
+# <type>: <description>
+# 
+# Types: feat, fix, docs, style, refactor, test, perf, chore
+# 
+# Examples:
+# feat: add tree-sitter parser
+# fix: handle nil input  
+# test: add parser tests
+# 
+# Rules:
+# - Max 50 chars
+# - Start with lowercase
+# - No period at end
+# - No scope (no "feat(parser):")
