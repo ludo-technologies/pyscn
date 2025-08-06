@@ -78,16 +78,20 @@ pyqol/
 
 ### 2. Create a Feature Branch
 
+Follow our branching strategy (see [BRANCHING.md](BRANCHING.md)):
+
 ```bash
 # Create branch from main
 git checkout main
 git pull origin main
-git checkout -b feature/issue-1-tree-sitter
+git checkout -b feature/issue-1-tree-sitter-integration
 
-# Branch naming convention:
-# feature/issue-<number>-<short-description>
-# fix/issue-<number>-<short-description>
-# refactor/<description>
+# Branch naming patterns:
+# feature/issue-{number}-{description}  # New features
+# fix/issue-{number}-{description}      # Bug fixes
+# docs/{description}                    # Documentation
+# refactor/{description}                # Code improvements
+# chore/{description}                   # Maintenance
 ```
 
 ### 3. Implement the Feature
@@ -277,7 +281,7 @@ func TestFunctionName(t *testing.T) {
 
 ### Commit Messages
 
-Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification (detailed in [BRANCHING.md](BRANCHING.md)):
 
 ```
 <type>(<scope>): <subject>

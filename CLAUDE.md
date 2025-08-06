@@ -10,6 +10,7 @@ For detailed information, reference these documents using @:
 - `@docs/CODING_STANDARDS.md` - Go coding conventions
 - `@docs/TESTING.md` - Testing strategies and patterns
 - `@docs/ROADMAP.md` - Development roadmap and milestones
+- `@docs/BRANCHING.md` - Git branching strategy and rules
 
 ## Project Overview
 
