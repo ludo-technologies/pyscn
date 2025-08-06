@@ -1,0 +1,69 @@
+{
+  "protection_rules": {
+    "main": {
+      "required_status_checks": {
+        "strict": true,
+        "contexts": [
+          "test (1.22)",
+          "test (1.23)",
+          "build",
+          "lint"
+        ]
+      },
+      "enforce_admins": false,
+      "required_pull_request_reviews": {
+        "required_approving_review_count": 1,
+        "dismiss_stale_reviews": true,
+        "require_code_owner_reviews": false
+      },
+      "restrictions": null,
+      "allow_force_pushes": false,
+      "allow_deletions": false,
+      "required_conversation_resolution": true,
+      "lock_branch": false,
+      "allow_auto_merge": true,
+      "delete_branch_on_merge": true
+    }
+  },
+  "branch_naming_rules": [
+    {
+      "pattern": "^main$",
+      "type": "protected"
+    },
+    {
+      "pattern": "^feature/issue-\\d+-[a-z-]+$",
+      "type": "feature",
+      "example": "feature/issue-1-tree-sitter-integration"
+    },
+    {
+      "pattern": "^fix/issue-\\d+-[a-z-]+$",
+      "type": "bugfix",
+      "example": "fix/issue-42-parser-panic"
+    },
+    {
+      "pattern": "^hotfix/v\\d+\\.\\d+\\.\\d+-[a-z-]+$",
+      "type": "hotfix",
+      "example": "hotfix/v0.1.1-critical-crash"
+    },
+    {
+      "pattern": "^docs/[a-z-]+$",
+      "type": "documentation",
+      "example": "docs/api-reference"
+    },
+    {
+      "pattern": "^refactor/[a-z-]+$",
+      "type": "refactor",
+      "example": "refactor/parser-performance"
+    },
+    {
+      "pattern": "^chore/[a-z-]+$",
+      "type": "chore",
+      "example": "chore/update-dependencies"
+    },
+    {
+      "pattern": "^experiment/[a-z-]+$",
+      "type": "experimental",
+      "example": "experiment/llm-integration"
+    }
+  ]
+}
