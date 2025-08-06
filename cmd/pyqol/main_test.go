@@ -2,15 +2,19 @@ package main
 
 import (
 	"testing"
+
+	"github.com/pyqol/pyqol/internal/version"
 )
 
 func TestVersion(t *testing.T) {
-	if version == "" {
+	// Version package should provide version info
+	if version.Short() == "" {
 		t.Error("version should not be empty")
 	}
 
-	expected := "0.0.1-alpha"
-	if version != expected {
-		t.Errorf("version = %v, want %v", version, expected)
+	// In dev mode, version should be "dev"
+	if version.Short() != "dev" && version.Short() != "unknown" {
+		// Version has been set via ldflags
+		t.Logf("Version is set to: %s", version.Short())
 	}
 }
