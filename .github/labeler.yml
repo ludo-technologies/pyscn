@@ -1,0 +1,28 @@
+# Configuration for GitHub labeler action
+documentation:
+  - '**/*.md'
+  - 'docs/**/*'
+
+ci:
+  - '.github/workflows/**'
+  - '.github/actions/**'
+
+parser:
+  - 'internal/parser/**'
+  - 'pkg/parser/**'
+
+analyzer:
+  - 'internal/analyzer/**'
+  - 'pkg/analyzer/**'
+
+cli:
+  - 'cmd/**'
+  - 'internal/config/**'
+
+tests:
+  - '**/*_test.go'
+  - 'testdata/**'
+
+dependencies:
+  - 'go.mod'
+  - 'go.sum'
