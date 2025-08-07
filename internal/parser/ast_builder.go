@@ -20,6 +20,25 @@ func NewASTBuilder(source []byte) *ASTBuilder {
 	}
 }
 
+// Helper to extract body from block and set parent references
+func (b *ASTBuilder) extractBlockBody(blockNode *Node, parent *Node) []*Node {
+	if blockNode == nil {
+		return nil
+	}
+	if blockNode.Type == "block" {
+		// Update parent references when extracting from block
+		for _, stmt := range blockNode.Body {
+			if stmt != nil {
+				stmt.Parent = parent
+			}
+		}
+		return blockNode.Body
+	}
+	// Not a block, return as single element
+	blockNode.Parent = parent
+	return []*Node{blockNode}
+}
+
 // Build converts a tree-sitter tree to internal AST
 func (b *ASTBuilder) Build(tree *sitter.Tree) (*Node, error) {
 	if tree == nil {
@@ -31,7 +50,10 @@ func (b *ASTBuilder) Build(tree *sitter.Tree) (*Node, error) {
 		return nil, fmt.Errorf("root node is nil")
 	}
 	
-	return b.buildNode(rootNode), nil
+	ast := b.buildNode(rootNode)
+	// Fix any missing parent references
+	FixParentReferences(ast)
+	return ast, nil
 }
 
 // buildNode recursively builds AST nodes from tree-sitter nodes
@@ -201,16 +223,18 @@ func (b *ASTBuilder) buildFunctionDef(tsNode *sitter.Node) *Node {
 	// Get parameters
 	if paramsNode := b.getChildByFieldName(tsNode, "parameters"); paramsNode != nil {
 		node.Args = b.buildParameters(paramsNode)
+		// Set parent for args
+		for _, arg := range node.Args {
+			if arg != nil {
+				arg.Parent = node
+			}
+		}
 	}
 	
 	// Get body
 	if bodyNode := b.getChildByFieldName(tsNode, "body"); bodyNode != nil {
 		if body := b.buildNode(bodyNode); body != nil {
-			if body.Type == "block" {
-				node.Body = body.Body
-			} else {
-				node.AddToBody(body)
-			}
+			node.Body = b.extractBlockBody(body, node)
 		}
 	}
 	
@@ -1576,3 +1600,4 @@ func (b *ASTBuilder) isComparisonOperator(tsNode *sitter.Node) bool {
 	}
 	return false
 }
+
