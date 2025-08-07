@@ -51,9 +51,74 @@
 
 ## 📦 Installation
 
+### From Source
+
 ```bash
-# Coming soon!
+# Clone the repository
+git clone https://github.com/pyqol/pyqol.git
+cd pyqol
+
+# Build with Make
+make build
+
+# Or install directly with Go
 go install github.com/pyqol/pyqol/cmd/pyqol@latest
+```
+
+## 🔨 Development
+
+### Prerequisites
+
+- Go 1.22+ (recommended: 1.24)
+- Make (optional but recommended)
+
+### Quick Start
+
+```bash
+# Build the project
+make build
+
+# Run tests
+make test
+
+# Run with hot reload (requires air)
+make dev
+
+# See all available commands
+make help
+```
+
+### Common Make Commands
+
+| Command | Description |
+|---------|-------------|
+| `make build` | Build the binary |
+| `make test` | Run tests with race detection |
+| `make bench` | Run benchmarks |
+| `make coverage` | Generate coverage report |
+| `make fmt` | Format code |
+| `make lint` | Run linters |
+| `make clean` | Clean build artifacts |
+| `make install` | Install the binary |
+| `make version` | Show version information |
+| `make build-all` | Build for all platforms |
+| `make release VERSION=v0.1.0` | Create a new release |
+
+### Building from Source
+
+```bash
+# Simple build
+make build
+
+# Build with specific version
+make build VERSION=v0.1.0
+
+# Build for all platforms
+make build-all
+
+# Manual build with version info
+go build -ldflags "-X github.com/pyqol/pyqol/internal/version.Version=v0.1.0" \
+         -o pyqol ./cmd/pyqol
 ```
 
 ## 🤝 Contributing
