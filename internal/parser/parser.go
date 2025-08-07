@@ -28,6 +28,7 @@ type ParseResult struct {
 	Tree       *sitter.Tree
 	RootNode   *sitter.Node
 	SourceCode []byte
+	AST        *Node // Internal AST representation
 }
 
 // Parse parses Python source code and returns the AST
@@ -42,10 +43,18 @@ func (p *Parser) Parse(ctx context.Context, source []byte) (*ParseResult, error)
 		return nil, fmt.Errorf("syntax errors found in source code")
 	}
 
+	// Build internal AST representation
+	builder := NewASTBuilder(source)
+	ast, err := builder.Build(tree)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build AST: %w", err)
+	}
+
 	return &ParseResult{
 		Tree:       tree,
 		RootNode:   rootNode,
 		SourceCode: source,
+		AST:        ast,
 	}, nil
 }
 
