@@ -51,8 +51,6 @@ func (b *ASTBuilder) Build(tree *sitter.Tree) (*Node, error) {
 	}
 	
 	ast := b.buildNode(rootNode)
-	// Fix any missing parent references
-	FixParentReferences(ast)
 	return ast, nil
 }
 
@@ -265,11 +263,7 @@ func (b *ASTBuilder) buildClassDef(tsNode *sitter.Node) *Node {
 	// Get body
 	if bodyNode := b.getChildByFieldName(tsNode, "body"); bodyNode != nil {
 		if body := b.buildNode(bodyNode); body != nil {
-			if body.Type == "block" {
-				node.Body = body.Body
-			} else {
-				node.AddToBody(body)
-			}
+			node.Body = b.extractBlockBody(body, node)
 		}
 	}
 	
@@ -289,11 +283,7 @@ func (b *ASTBuilder) buildIfStatement(tsNode *sitter.Node) *Node {
 	// Get consequence
 	if consequence := b.getChildByFieldName(tsNode, "consequence"); consequence != nil {
 		if body := b.buildNode(consequence); body != nil {
-			if body.Type == "block" {
-				node.Body = body.Body
-			} else {
-				node.AddToBody(body)
-			}
+			node.Body = b.extractBlockBody(body, node)
 		}
 	}
 	
@@ -303,11 +293,9 @@ func (b *ASTBuilder) buildIfStatement(tsNode *sitter.Node) *Node {
 			if alt.Type == NodeIf {
 				// elif case
 				node.Orelse = []*Node{alt}
-			} else if alt.Type == "block" {
-				// else case
-				node.Orelse = alt.Body
 			} else {
-				node.Orelse = []*Node{alt}
+				// else case - use extractBlockBody to handle blocks
+				node.Orelse = b.extractBlockBody(alt, node)
 			}
 		}
 	}
@@ -341,22 +329,14 @@ func (b *ASTBuilder) buildForStatement(tsNode *sitter.Node) *Node {
 	// Get body
 	if bodyNode := b.getChildByFieldName(tsNode, "body"); bodyNode != nil {
 		if body := b.buildNode(bodyNode); body != nil {
-			if body.Type == "block" {
-				node.Body = body.Body
-			} else {
-				node.AddToBody(body)
-			}
+			node.Body = b.extractBlockBody(body, node)
 		}
 	}
 	
 	// Get else clause if present
 	if alternative := b.getChildByFieldName(tsNode, "alternative"); alternative != nil {
 		if alt := b.buildNode(alternative); alt != nil {
-			if alt.Type == "block" {
-				node.Orelse = alt.Body
-			} else {
-				node.Orelse = []*Node{alt}
-			}
+			node.Orelse = b.extractBlockBody(alt, node)
 		}
 	}
 	
@@ -376,22 +356,14 @@ func (b *ASTBuilder) buildWhileStatement(tsNode *sitter.Node) *Node {
 	// Get body
 	if bodyNode := b.getChildByFieldName(tsNode, "body"); bodyNode != nil {
 		if body := b.buildNode(bodyNode); body != nil {
-			if body.Type == "block" {
-				node.Body = body.Body
-			} else {
-				node.AddToBody(body)
-			}
+			node.Body = b.extractBlockBody(body, node)
 		}
 	}
 	
 	// Get else clause if present
 	if alternative := b.getChildByFieldName(tsNode, "alternative"); alternative != nil {
 		if alt := b.buildNode(alternative); alt != nil {
-			if alt.Type == "block" {
-				node.Orelse = alt.Body
-			} else {
-				node.Orelse = []*Node{alt}
-			}
+			node.Orelse = b.extractBlockBody(alt, node)
 		}
 	}
 	
@@ -422,11 +394,7 @@ func (b *ASTBuilder) buildWithStatement(tsNode *sitter.Node) *Node {
 	// Get body
 	if bodyNode := b.getChildByFieldName(tsNode, "body"); bodyNode != nil {
 		if body := b.buildNode(bodyNode); body != nil {
-			if body.Type == "block" {
-				node.Body = body.Body
-			} else {
-				node.AddToBody(body)
-			}
+			node.Body = b.extractBlockBody(body, node)
 		}
 	}
 	
@@ -441,11 +409,7 @@ func (b *ASTBuilder) buildTryStatement(tsNode *sitter.Node) *Node {
 	// Get body
 	if bodyNode := b.getChildByFieldName(tsNode, "body"); bodyNode != nil {
 		if body := b.buildNode(bodyNode); body != nil {
-			if body.Type == "block" {
-				node.Body = body.Body
-			} else {
-				node.AddToBody(body)
-			}
+			node.Body = b.extractBlockBody(body, node)
 		}
 	}
 	
@@ -466,11 +430,7 @@ func (b *ASTBuilder) buildTryStatement(tsNode *sitter.Node) *Node {
 		if child != nil && child.Type() == "else_clause" {
 			if bodyNode := b.getChildByFieldName(child, "body"); bodyNode != nil {
 				if body := b.buildNode(bodyNode); body != nil {
-					if body.Type == "block" {
-						node.Orelse = body.Body
-					} else {
-						node.Orelse = []*Node{body}
-					}
+					node.Orelse = b.extractBlockBody(body, node)
 				}
 			}
 		}
@@ -482,11 +442,7 @@ func (b *ASTBuilder) buildTryStatement(tsNode *sitter.Node) *Node {
 		if child != nil && child.Type() == "finally_clause" {
 			if bodyNode := b.getChildByFieldName(child, "body"); bodyNode != nil {
 				if body := b.buildNode(bodyNode); body != nil {
-					if body.Type == "block" {
-						node.Finalbody = body.Body
-					} else {
-						node.Finalbody = []*Node{body}
-					}
+					node.Finalbody = b.extractBlockBody(body, node)
 				}
 			}
 		}
@@ -1443,7 +1399,7 @@ func (b *ASTBuilder) buildExceptHandler(tsNode *sitter.Node) *Node {
 			case "block":
 				// Handler body
 				if body := b.buildNode(child); body != nil {
-					node.Body = body.Body
+					node.Body = b.extractBlockBody(body, node)
 				}
 			default:
 				if child.Type() != "except" && child.Type() != ":" {
@@ -1473,11 +1429,7 @@ func (b *ASTBuilder) buildMatchCase(tsNode *sitter.Node) *Node {
 	
 	if consequence := b.getChildByFieldName(tsNode, "consequence"); consequence != nil {
 		if body := b.buildNode(consequence); body != nil {
-			if body.Type == "block" {
-				node.Body = body.Body
-			} else {
-				node.AddToBody(body)
-			}
+			node.Body = b.extractBlockBody(body, node)
 		}
 	}
 	
