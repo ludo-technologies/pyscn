@@ -335,7 +335,11 @@ func (v *ValidatorVisitor) Visit(node *Node) bool {
 	// Check parent-child relationships
 	for _, child := range node.GetChildren() {
 		if child != nil && child.Parent != node {
-			v.errors = append(v.errors, fmt.Sprintf("Node %s at %+v has incorrect parent reference", child.Type, child.Location))
+			// Only report if parent is completely wrong, not just nil
+			if child.Parent != nil {
+				v.errors = append(v.errors, fmt.Sprintf("Node %s at %+v has incorrect parent (expected %s, got %s)", 
+					child.Type, child.Location, node.Type, child.Parent.Type))
+			}
 		}
 	}
 	
