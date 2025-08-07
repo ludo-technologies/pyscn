@@ -1,23 +1,5 @@
 package parser
 
-// Helper function to safely set parent references
-func setParent(parent *Node, children ...*Node) {
-	for _, child := range children {
-		if child != nil && child.Parent == nil {
-			child.Parent = parent
-		}
-	}
-}
-
-// Helper function to safely set parent for slice of nodes
-func setParentForSlice(parent *Node, children []*Node) {
-	for _, child := range children {
-		if child != nil && child.Parent == nil {
-			child.Parent = parent
-		}
-	}
-}
-
 // FixParentReferences traverses the AST and fixes any missing parent references
 func FixParentReferences(node *Node) {
 	if node == nil {
