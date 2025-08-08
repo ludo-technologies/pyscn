@@ -2,7 +2,19 @@ package analyzer
 
 import (
 	"fmt"
+	"log"
+	"strings"
 	"github.com/pyqol/pyqol/internal/parser"
+)
+
+// Block label constants to avoid magic strings
+const (
+	LabelFunctionBody   = "func_body"
+	LabelClassBody      = "class_body"
+	LabelUnreachable    = "unreachable"
+	LabelMainModule     = "main"
+	LabelEntry          = "ENTRY"
+	LabelExit           = "EXIT"
 )
 
 // CFGBuilder builds control flow graphs from AST nodes
@@ -20,7 +32,10 @@ type CFGBuilder struct {
 	functionCFGs map[string]*CFG
 	
 	// blockCounter for generating unique block names
-	blockCounter int
+	blockCounter uint
+	
+	// logger for error reporting (optional)
+	logger *log.Logger
 }
 
 // NewCFGBuilder creates a new CFG builder
@@ -29,6 +44,19 @@ func NewCFGBuilder() *CFGBuilder {
 		scopeStack:   []string{},
 		functionCFGs: make(map[string]*CFG),
 		blockCounter: 0,
+		logger:       nil, // Can be set via SetLogger if needed
+	}
+}
+
+// SetLogger sets an optional logger for error reporting
+func (b *CFGBuilder) SetLogger(logger *log.Logger) {
+	b.logger = logger
+}
+
+// logError logs an error if a logger is set
+func (b *CFGBuilder) logError(format string, args ...interface{}) {
+	if b.logger != nil {
+		b.logger.Printf("CFGBuilder: "+format, args...)
 	}
 }
 
@@ -39,7 +67,7 @@ func (b *CFGBuilder) Build(node *parser.Node) (*CFG, error) {
 	}
 	
 	// Initialize CFG based on node type
-	cfgName := "main"
+	cfgName := LabelMainModule
 	if node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef {
 		cfgName = node.Name
 	} else if node.Type == parser.NodeClassDef {
@@ -129,7 +157,7 @@ func (b *CFGBuilder) buildFunction(node *parser.Node) {
 	defer b.exitScope()
 	
 	// Create a new block for function body
-	bodyBlock := b.createBlock("func_body")
+	bodyBlock := b.createBlock(LabelFunctionBody)
 	b.cfg.ConnectBlocks(b.currentBlock, bodyBlock, EdgeNormal)
 	b.currentBlock = bodyBlock
 	
@@ -140,7 +168,9 @@ func (b *CFGBuilder) buildFunction(node *parser.Node) {
 	for _, stmt := range node.Body {
 		// Check for nested functions and build their CFGs
 		if stmt.Type == parser.NodeFunctionDef || stmt.Type == parser.NodeAsyncFunctionDef {
-			b.buildNestedFunction(stmt)
+			if err := b.buildNestedFunction(stmt); err != nil {
+				b.logError("error in nested function: %v", err)
+			}
 		} else {
 			b.processStatement(stmt)
 		}
@@ -154,7 +184,7 @@ func (b *CFGBuilder) buildClass(node *parser.Node) {
 	defer b.exitScope()
 	
 	// Create a new block for class body
-	bodyBlock := b.createBlock("class_body")
+	bodyBlock := b.createBlock(LabelClassBody)
 	b.cfg.ConnectBlocks(b.currentBlock, bodyBlock, EdgeNormal)
 	b.currentBlock = bodyBlock
 	
@@ -165,7 +195,9 @@ func (b *CFGBuilder) buildClass(node *parser.Node) {
 	for _, stmt := range node.Body {
 		if stmt.Type == parser.NodeFunctionDef || stmt.Type == parser.NodeAsyncFunctionDef {
 			// Build separate CFG for methods
-			b.buildNestedFunction(stmt)
+			if err := b.buildNestedFunction(stmt); err != nil {
+				b.logError("error building CFG for method %s: %v", stmt.Name, err)
+			}
 		} else {
 			// Process other statements (assignments, etc.)
 			b.processStatement(stmt)
@@ -174,21 +206,34 @@ func (b *CFGBuilder) buildClass(node *parser.Node) {
 }
 
 // buildNestedFunction builds a separate CFG for a nested function
-func (b *CFGBuilder) buildNestedFunction(node *parser.Node) {
+func (b *CFGBuilder) buildNestedFunction(node *parser.Node) error {
 	// Create a new builder for the nested function
 	nestedBuilder := NewCFGBuilder()
-	nestedBuilder.scopeStack = append([]string{}, b.scopeStack...)
+	
+	// Efficiently copy scope stack
+	nestedBuilder.scopeStack = make([]string, len(b.scopeStack))
+	copy(nestedBuilder.scopeStack, b.scopeStack)
+	
+	// Copy logger if set
+	nestedBuilder.logger = b.logger
 	
 	// Build CFG for the nested function
 	funcCFG, err := nestedBuilder.Build(node)
-	if err == nil {
-		// Store the function CFG
-		fullName := b.getFullScopeName(node.Name)
-		b.functionCFGs[fullName] = funcCFG
+	if err != nil {
+		// Log error but don't fail the entire build
+		b.logError("failed to build CFG for nested function %s: %v", node.Name, err)
+		// Still add the function definition to current block
+		b.currentBlock.AddStatement(node)
+		return fmt.Errorf("failed to build nested function %s: %w", node.Name, err)
 	}
+	
+	// Store the function CFG
+	fullName := b.getFullScopeName(node.Name)
+	b.functionCFGs[fullName] = funcCFG
 	
 	// Add function definition to current block
 	b.currentBlock.AddStatement(node)
+	return nil
 }
 
 // processStatement processes a single statement
@@ -200,7 +245,9 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 	switch stmt.Type {
 	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
 		// Build separate CFG for nested functions
-		b.buildNestedFunction(stmt)
+		if err := b.buildNestedFunction(stmt); err != nil {
+			b.logError("error in nested function: %v", err)
+		}
 		
 	case parser.NodeClassDef:
 		// Build separate scope for nested classes
@@ -210,8 +257,10 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 		// Add return statement and connect to exit
 		b.currentBlock.AddStatement(stmt)
 		b.cfg.ConnectBlocks(b.currentBlock, b.cfg.Exit, EdgeReturn)
-		// Create unreachable block for any following code
-		unreachableBlock := b.createBlock("unreachable")
+		// Create unreachable block for any code following the return statement.
+		// This block will not be connected to the exit, making it truly unreachable
+		// in the CFG, which helps with dead code detection in later analysis phases.
+		unreachableBlock := b.createBlock(LabelUnreachable)
 		b.currentBlock = unreachableBlock
 		
 	case parser.NodePass:
@@ -275,19 +324,12 @@ func (b *CFGBuilder) getFullScopeName(name string) string {
 		return name
 	}
 	
-	fullName := ""
-	for _, scope := range b.scopeStack {
-		if fullName == "" {
-			fullName = scope
-		} else {
-			fullName = fullName + "." + scope
-		}
-	}
-	
-	if fullName == "" {
+	// Use strings.Join for efficient concatenation
+	scopePath := strings.Join(b.scopeStack, ".")
+	if scopePath == "" {
 		return name
 	}
-	return fullName + "." + name
+	return scopePath + "." + name
 }
 
 // hasSuccessor checks if a block has a specific successor

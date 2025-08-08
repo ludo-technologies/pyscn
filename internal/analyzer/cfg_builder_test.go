@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"github.com/pyqol/pyqol/internal/parser"
 )
@@ -116,7 +117,7 @@ class Calculator:
 		hasClassBody := false
 		cfg.Walk(&testVisitor{
 			onBlock: func(b *BasicBlock) bool {
-				if b.Label != "" && contains(b.Label, "class_body") {
+				if b.Label != "" && strings.Contains(b.Label, "class_body") {
 					hasClassBody = true
 				}
 				return true
@@ -200,7 +201,7 @@ def outer():
 		// Check for outer function
 		hasOuter := false
 		for name := range allCFGs {
-			if name == "outer" || contains(name, "outer") {
+			if name == "outer" || strings.Contains(name, "outer") {
 				hasOuter = true
 				break
 			}
@@ -429,17 +430,4 @@ func countStatements(cfg *CFG) int {
 	return count
 }
 
-func contains(str, substr string) bool {
-	return len(str) >= len(substr) && str[:len(substr)] == substr || 
-	       len(str) >= len(substr) && str[len(str)-len(substr):] == substr ||
-	       (len(str) > len(substr) && findSubstring(str, substr))
-}
-
-func findSubstring(str, substr string) bool {
-	for i := 0; i <= len(str)-len(substr); i++ {
-		if str[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
+// Removed custom contains function - now using strings.Contains from stdlib
