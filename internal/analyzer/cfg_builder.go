@@ -291,12 +291,154 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 		// Assert statements (for now, treat as sequential)
 		b.currentBlock.AddStatement(stmt)
 		
+	case parser.NodeIf:
+		// Handle if/elif/else statements
+		b.processIfStatement(stmt)
+		
+	case parser.NodeIfExp:
+		// Handle conditional expressions (ternary operators)
+		// For now, treat as a simple expression
+		b.currentBlock.AddStatement(stmt)
+		
 	default:
-		// For control flow statements (if, for, while, etc.)
+		// For control flow statements (for, while, etc.)
 		// These will be handled in the next issues
 		// For now, just add them as statements
 		b.currentBlock.AddStatement(stmt)
 	}
+}
+
+// processIfStatement handles if/elif/else statements
+func (b *CFGBuilder) processIfStatement(stmt *parser.Node) {
+	// Save the condition block (current block where the test happens)
+	conditionBlock := b.currentBlock
+	
+	// Add the test condition to the current block
+	conditionBlock.AddStatement(stmt)
+	
+	// Create blocks for the then branch
+	thenBlock := b.createBlock("if_then")
+	
+	// Create merge block only for the outermost if
+	// elif chains will share the same final merge block
+	mergeBlock := b.createBlock("if_merge")
+	
+	// Connect condition block to then block (true branch)
+	b.cfg.ConnectBlocks(conditionBlock, thenBlock, EdgeCondTrue)
+	
+	// Process the then branch
+	b.currentBlock = thenBlock
+	for _, bodyStmt := range stmt.Body {
+		b.processStatement(bodyStmt)
+	}
+	
+	// Save the end of then branch
+	thenEndBlock := b.currentBlock
+	
+	// Process else/elif branches
+	if len(stmt.Orelse) > 0 {
+		// Check if the else clause is another if (elif)
+		if len(stmt.Orelse) == 1 && stmt.Orelse[0].Type == parser.NodeIf {
+			// This is an elif - handle it specially
+			elifBlock := b.createBlock("elif")
+			b.cfg.ConnectBlocks(conditionBlock, elifBlock, EdgeCondFalse)
+			b.currentBlock = elifBlock
+			
+			// Process elif recursively - it will create its own test, then, and possibly else
+			b.processIfStatementElif(stmt.Orelse[0], mergeBlock)
+			
+			// Connect then branch to merge if not already connected to exit
+			if !b.hasSuccessor(thenEndBlock, b.cfg.Exit) {
+				b.cfg.ConnectBlocks(thenEndBlock, mergeBlock, EdgeNormal)
+			}
+		} else {
+			// This is a regular else clause
+			elseBlock := b.createBlock("if_else")
+			b.cfg.ConnectBlocks(conditionBlock, elseBlock, EdgeCondFalse)
+			
+			// Process else branch
+			b.currentBlock = elseBlock
+			for _, elseStmt := range stmt.Orelse {
+				b.processStatement(elseStmt)
+			}
+			
+			// Connect both branches to merge if not already connected to exit
+			if !b.hasSuccessor(thenEndBlock, b.cfg.Exit) {
+				b.cfg.ConnectBlocks(thenEndBlock, mergeBlock, EdgeNormal)
+			}
+			if !b.hasSuccessor(b.currentBlock, b.cfg.Exit) {
+				b.cfg.ConnectBlocks(b.currentBlock, mergeBlock, EdgeNormal)
+			}
+		}
+	} else {
+		// No else clause - connect false branch directly to merge
+		b.cfg.ConnectBlocks(conditionBlock, mergeBlock, EdgeCondFalse)
+		
+		// Connect then branch to merge if not already connected to exit
+		if !b.hasSuccessor(thenEndBlock, b.cfg.Exit) {
+			b.cfg.ConnectBlocks(thenEndBlock, mergeBlock, EdgeNormal)
+		}
+	}
+	
+	// Continue with merge block
+	b.currentBlock = mergeBlock
+}
+
+// processIfStatementElif handles elif chains specially to maintain proper structure
+func (b *CFGBuilder) processIfStatementElif(stmt *parser.Node, finalMerge *BasicBlock) {
+	// Current block is the elif block
+	conditionBlock := b.currentBlock
+	
+	// Add the test condition
+	conditionBlock.AddStatement(stmt)
+	
+	// Create then block for this elif
+	thenBlock := b.createBlock("elif_then")
+	b.cfg.ConnectBlocks(conditionBlock, thenBlock, EdgeCondTrue)
+	
+	// Process the then branch
+	b.currentBlock = thenBlock
+	for _, bodyStmt := range stmt.Body {
+		b.processStatement(bodyStmt)
+	}
+	thenEndBlock := b.currentBlock
+	
+	// Process else/elif branches
+	if len(stmt.Orelse) > 0 {
+		// Check if this is another elif
+		if len(stmt.Orelse) == 1 && stmt.Orelse[0].Type == parser.NodeIf {
+			// Another elif - recurse
+			elifBlock := b.createBlock("elif")
+			b.cfg.ConnectBlocks(conditionBlock, elifBlock, EdgeCondFalse)
+			b.currentBlock = elifBlock
+			b.processIfStatementElif(stmt.Orelse[0], finalMerge)
+		} else {
+			// Final else clause
+			elseBlock := b.createBlock("elif_else")
+			b.cfg.ConnectBlocks(conditionBlock, elseBlock, EdgeCondFalse)
+			
+			b.currentBlock = elseBlock
+			for _, elseStmt := range stmt.Orelse {
+				b.processStatement(elseStmt)
+			}
+			
+			// Connect else to final merge
+			if !b.hasSuccessor(b.currentBlock, b.cfg.Exit) {
+				b.cfg.ConnectBlocks(b.currentBlock, finalMerge, EdgeNormal)
+			}
+		}
+	} else {
+		// No more elif/else - connect false branch to final merge
+		b.cfg.ConnectBlocks(conditionBlock, finalMerge, EdgeCondFalse)
+	}
+	
+	// Connect then branch to final merge
+	if !b.hasSuccessor(thenEndBlock, b.cfg.Exit) {
+		b.cfg.ConnectBlocks(thenEndBlock, finalMerge, EdgeNormal)
+	}
+	
+	// Set current to final merge for any subsequent processing
+	b.currentBlock = finalMerge
 }
 
 // createBlock creates a new basic block
