@@ -2,10 +2,10 @@ package analyzer
 
 import (
 	"context"
+	"github.com/pyqol/pyqol/internal/parser"
 	"strings"
 	"testing"
 	"time"
-	"github.com/pyqol/pyqol/internal/parser"
 )
 
 func TestReachabilityAnalyzer(t *testing.T) {
@@ -13,7 +13,7 @@ func TestReachabilityAnalyzer(t *testing.T) {
 		cfg := NewCFG("empty")
 		// Connect entry to exit for a minimal valid CFG
 		cfg.Entry.AddSuccessor(cfg.Exit, EdgeNormal)
-		
+
 		analyzer := NewReachabilityAnalyzer(cfg)
 		result := analyzer.AnalyzeReachability()
 
@@ -32,11 +32,11 @@ func TestReachabilityAnalyzer(t *testing.T) {
 
 	t.Run("LinearFlow", func(t *testing.T) {
 		cfg := NewCFG("linear")
-		
+
 		// Create linear flow: entry -> block1 -> block2 -> exit
 		block1 := cfg.CreateBlock("block1")
 		block2 := cfg.CreateBlock("block2")
-		
+
 		cfg.Entry.AddSuccessor(block1, EdgeNormal)
 		block1.AddSuccessor(block2, EdgeNormal)
 		block2.AddSuccessor(cfg.Exit, EdgeNormal)
@@ -67,23 +67,23 @@ func TestReachabilityAnalyzer(t *testing.T) {
 
 	t.Run("UnreachableCode", func(t *testing.T) {
 		cfg := NewCFG("unreachable")
-		
+
 		// Create flow with unreachable code: entry -> block1 -> exit
 		// block2 and block3 are disconnected (unreachable)
 		block1 := cfg.CreateBlock("reachable")
 		block2 := cfg.CreateBlock("unreachable1")
 		block3 := cfg.CreateBlock("unreachable2")
-		
+
 		// Add statements to make blocks meaningful
 		dummyNode := &parser.Node{Type: "ExpressionStatement"}
 		block1.AddStatement(dummyNode)
 		block2.AddStatement(dummyNode)
 		block3.AddStatement(dummyNode)
-		
+
 		// Connect only reachable path
 		cfg.Entry.AddSuccessor(block1, EdgeNormal)
 		block1.AddSuccessor(cfg.Exit, EdgeNormal)
-		
+
 		// Leave block2 and block3 disconnected
 		block2.AddSuccessor(block3, EdgeNormal)
 
@@ -134,13 +134,13 @@ func TestReachabilityAnalyzer(t *testing.T) {
 
 	t.Run("ConditionalFlow", func(t *testing.T) {
 		cfg := NewCFG("conditional")
-		
+
 		// Create conditional flow: entry -> condition -> (true_branch | false_branch) -> merge -> exit
 		condition := cfg.CreateBlock("condition")
 		trueBranch := cfg.CreateBlock("true_branch")
-		falseBranch := cfg.CreateBlock("false_branch") 
+		falseBranch := cfg.CreateBlock("false_branch")
 		merge := cfg.CreateBlock("merge")
-		
+
 		cfg.Entry.AddSuccessor(condition, EdgeNormal)
 		condition.AddSuccessor(trueBranch, EdgeCondTrue)
 		condition.AddSuccessor(falseBranch, EdgeCondFalse)
@@ -162,11 +162,11 @@ func TestReachabilityAnalyzer(t *testing.T) {
 
 	t.Run("LoopFlow", func(t *testing.T) {
 		cfg := NewCFG("loop")
-		
+
 		// Create loop flow: entry -> header -> (body -> header | exit)
 		header := cfg.CreateBlock("loop_header")
 		body := cfg.CreateBlock("loop_body")
-		
+
 		cfg.Entry.AddSuccessor(header, EdgeNormal)
 		header.AddSuccessor(body, EdgeCondTrue)
 		header.AddSuccessor(cfg.Exit, EdgeCondFalse)
@@ -187,23 +187,23 @@ func TestReachabilityAnalyzer(t *testing.T) {
 	t.Run("ComplexFlow", func(t *testing.T) {
 		// Create a complex CFG with mixed reachable and unreachable blocks
 		cfg := NewCFG("complex")
-		
+
 		// Main reachable path
 		mainBlock := cfg.CreateBlock("main")
 		conditionalBlock := cfg.CreateBlock("conditional")
 		truePath := cfg.CreateBlock("true_path")
 		falsePath := cfg.CreateBlock("false_path")
 		mergeBlock := cfg.CreateBlock("merge")
-		
+
 		// Unreachable isolated blocks
 		isolatedBlock1 := cfg.CreateBlock("isolated1")
 		isolatedBlock2 := cfg.CreateBlock("isolated2")
-		
+
 		// Add statements to isolated blocks
 		dummyNode := &parser.Node{Type: "ExpressionStatement"}
 		isolatedBlock1.AddStatement(dummyNode)
 		isolatedBlock2.AddStatement(dummyNode)
-		
+
 		// Connect main reachable path
 		cfg.Entry.AddSuccessor(mainBlock, EdgeNormal)
 		mainBlock.AddSuccessor(conditionalBlock, EdgeNormal)
@@ -212,7 +212,7 @@ func TestReachabilityAnalyzer(t *testing.T) {
 		truePath.AddSuccessor(mergeBlock, EdgeNormal)
 		falsePath.AddSuccessor(mergeBlock, EdgeNormal)
 		mergeBlock.AddSuccessor(cfg.Exit, EdgeNormal)
-		
+
 		// Leave isolated blocks disconnected
 		isolatedBlock1.AddSuccessor(isolatedBlock2, EdgeNormal)
 
@@ -243,11 +243,11 @@ func TestReachabilityAnalyzer(t *testing.T) {
 
 	t.Run("AnalyzeReachabilityFrom", func(t *testing.T) {
 		cfg := NewCFG("custom_start")
-		
+
 		block1 := cfg.CreateBlock("block1")
 		block2 := cfg.CreateBlock("block2")
 		block3 := cfg.CreateBlock("block3")
-		
+
 		// Create path: entry -> block1 -> block2
 		// block3 is only reachable from block2
 		cfg.Entry.AddSuccessor(block1, EdgeNormal)
@@ -256,7 +256,7 @@ func TestReachabilityAnalyzer(t *testing.T) {
 		block3.AddSuccessor(cfg.Exit, EdgeNormal)
 
 		analyzer := NewReachabilityAnalyzer(cfg)
-		
+
 		// Analyze from block2 - should only reach block3 and exit
 		result := analyzer.AnalyzeReachabilityFrom(block2)
 
@@ -289,16 +289,16 @@ func TestReachabilityAnalyzer(t *testing.T) {
 
 	t.Run("EmptyBlocksNotConsideredUnreachableCode", func(t *testing.T) {
 		cfg := NewCFG("empty_blocks")
-		
+
 		reachableBlock := cfg.CreateBlock("reachable")
 		unreachableBlock := cfg.CreateBlock("unreachable")
-		
+
 		// Add statement only to reachable block
 		dummyNode := &parser.Node{Type: "ExpressionStatement"}
 		reachableBlock.AddStatement(dummyNode)
 		// unreachableBlock remains empty
 		_ = unreachableBlock // Suppress unused variable warning
-		
+
 		cfg.Entry.AddSuccessor(reachableBlock, EdgeNormal)
 		reachableBlock.AddSuccessor(cfg.Exit, EdgeNormal)
 		// unreachableBlock is disconnected
@@ -323,7 +323,7 @@ func TestReachabilityAnalyzer(t *testing.T) {
 
 	t.Run("PerformanceTracking", func(t *testing.T) {
 		cfg := NewCFG("performance")
-		
+
 		// Create a simple chain of blocks
 		prev := cfg.Entry
 		for i := 0; i < 100; i++ {
@@ -358,7 +358,7 @@ def simple_function(x):
 `
 		ast := parseSourceForReachability(t, source)
 		funcNode := ast.Body[0]
-		
+
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(funcNode)
 		if err != nil {
@@ -390,7 +390,7 @@ def function_with_dead_code(x):
 `
 		ast := parseSourceForReachability(t, source)
 		funcNode := ast.Body[0]
-		
+
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(funcNode)
 		if err != nil {
@@ -416,7 +416,7 @@ def function_with_real_dead_code(x):
 `
 		ast := parseSourceForReachability(t, source)
 		funcNode := ast.Body[0]
-		
+
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(funcNode)
 		if err != nil {
@@ -447,7 +447,7 @@ func TestReachabilityEdgeCases(t *testing.T) {
 		analyzer := NewReachabilityAnalyzer(nil)
 		// Should not panic
 		result := analyzer.AnalyzeReachability()
-		
+
 		if result.TotalBlocks != 0 {
 			t.Errorf("Expected 0 blocks for nil CFG, got %d", result.TotalBlocks)
 		}
@@ -459,10 +459,10 @@ func TestReachabilityEdgeCases(t *testing.T) {
 			Exit:   nil,
 			Blocks: make(map[string]*BasicBlock),
 		}
-		
+
 		analyzer := NewReachabilityAnalyzer(cfg)
 		result := analyzer.AnalyzeReachability()
-		
+
 		if result.ReachableCount != 0 {
 			t.Errorf("Expected 0 reachable blocks with nil entry, got %d", result.ReachableCount)
 		}
@@ -471,9 +471,9 @@ func TestReachabilityEdgeCases(t *testing.T) {
 	t.Run("AnalyzeFromNilBlock", func(t *testing.T) {
 		cfg := NewCFG("test")
 		analyzer := NewReachabilityAnalyzer(cfg)
-		
+
 		result := analyzer.AnalyzeReachabilityFrom(nil)
-		
+
 		if result.ReachableCount != 0 {
 			t.Errorf("Expected 0 reachable blocks from nil, got %d", result.ReachableCount)
 		}
@@ -505,12 +505,12 @@ func TestReachabilityEdgeCases(t *testing.T) {
 func parseSourceForReachability(t *testing.T, source string) *parser.Node {
 	p := parser.New()
 	ctx := context.Background()
-	
+
 	result, err := p.Parse(ctx, []byte(source))
 	if err != nil {
 		t.Fatalf("Failed to parse source: %v", err)
 	}
-	
+
 	return result.AST
 }
 
@@ -523,3 +523,4 @@ func containsString(slice []string, str string) bool {
 	}
 	return false
 }
+
