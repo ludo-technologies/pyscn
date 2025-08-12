@@ -1,10 +1,8 @@
 package analyzer
 
 import (
-	"context"
 	"strings"
 	"testing"
-	"github.com/pyqol/pyqol/internal/parser"
 )
 
 func TestCFGBuilderConditionalFlow(t *testing.T) {
@@ -14,7 +12,7 @@ if x > 0:
     print("positive")
 print("done")
 `
-		ast := parseTestSource(t, source)
+		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
 		
@@ -75,7 +73,7 @@ else:
     print("non-positive")
 print("done")
 `
-		ast := parseTestSource(t, source)
+		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
 		
@@ -117,7 +115,7 @@ else:
     print("less than 10")
 print("done")
 `
-		ast := parseTestSource(t, source)
+		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
 		
@@ -166,7 +164,7 @@ else:
     print("5 or less")
 print("done")
 `
-		ast := parseTestSource(t, source)
+		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
 		
@@ -203,7 +201,7 @@ def check(x):
         return True
     return False
 `
-		ast := parseTestSource(t, source)
+		ast := parseSource(t, source)
 		funcNode := ast.Body[0]
 		
 		builder := NewCFGBuilder()
@@ -248,7 +246,7 @@ elif x > 0:
 else:
     print("non-positive")
 `
-		ast := parseTestSource(t, source)
+		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
 		
@@ -283,7 +281,7 @@ else:
 result = "positive" if x > 0 else "non-positive"
 print(result)
 `
-		ast := parseTestSource(t, source)
+		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
 		
@@ -305,7 +303,7 @@ if x > 0:
 else:
     pass
 `
-		ast := parseTestSource(t, source)
+		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
 		
@@ -366,7 +364,7 @@ def complex_conditionals(x, y):
     return "normal"
 `
 	
-	ast := parseTestSource(t, source)
+	ast := parseSource(t, source)
 	funcNode := ast.Body[0]
 	
 	builder := NewCFGBuilder()
@@ -403,19 +401,3 @@ def complex_conditionals(x, y):
 	}
 }
 
-// Helper function to parse source code for tests
-func parseTestSource(t *testing.T, source string) *parser.Node {
-	p := parser.New()
-	ctx := context.Background()
-	
-	result, err := p.Parse(ctx, []byte(source))
-	if err != nil {
-		t.Fatalf("Failed to parse source: %v", err)
-	}
-	
-	if result.AST == nil {
-		t.Fatal("Parsed AST is nil")
-	}
-	
-	return result.AST
-}
