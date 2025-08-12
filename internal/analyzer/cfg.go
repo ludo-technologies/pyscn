@@ -62,22 +62,22 @@ type Edge struct {
 type BasicBlock struct {
 	// ID is the unique identifier for this block
 	ID string
-	
+
 	// Statements contains the AST nodes in this block
 	Statements []*parser.Node
-	
+
 	// Predecessors are blocks that can flow into this block
 	Predecessors []*Edge
-	
+
 	// Successors are blocks that this block can flow to
 	Successors []*Edge
-	
+
 	// Label is an optional human-readable label
 	Label string
-	
+
 	// IsEntry indicates if this is an entry block
 	IsEntry bool
-	
+
 	// IsExit indicates if this is an exit block
 	IsExit bool
 }
@@ -121,7 +121,7 @@ func (bb *BasicBlock) RemoveSuccessor(to *BasicBlock) {
 		}
 	}
 	bb.Successors = newSuccessors
-	
+
 	// Remove from target's predecessors
 	newPredecessors := []*Edge{}
 	for _, edge := range to.Predecessors {
@@ -143,14 +143,14 @@ func (bb *BasicBlock) String() string {
 	if label == "" {
 		label = bb.ID
 	}
-	
+
 	if bb.IsEntry {
 		return fmt.Sprintf("[ENTRY: %s]", label)
 	}
 	if bb.IsExit {
 		return fmt.Sprintf("[EXIT: %s]", label)
 	}
-	
+
 	return fmt.Sprintf("[%s: %d stmts]", label, len(bb.Statements))
 }
 
@@ -158,16 +158,16 @@ func (bb *BasicBlock) String() string {
 type CFG struct {
 	// Entry is the entry point of the graph
 	Entry *BasicBlock
-	
+
 	// Exit is the exit point of the graph
 	Exit *BasicBlock
-	
+
 	// Blocks contains all blocks in the graph, indexed by ID
 	Blocks map[string]*BasicBlock
-	
+
 	// Name is the name of the CFG (e.g., function name)
 	Name string
-	
+
 	// nextBlockID is used to generate unique block IDs
 	nextBlockID int
 }
@@ -179,16 +179,16 @@ func NewCFG(name string) *CFG {
 		Blocks:      make(map[string]*BasicBlock),
 		nextBlockID: 0,
 	}
-	
+
 	// Create entry and exit blocks
 	cfg.Entry = cfg.CreateBlock("entry")
 	cfg.Entry.IsEntry = true
 	cfg.Entry.Label = "ENTRY"
-	
+
 	cfg.Exit = cfg.CreateBlock("exit")
 	cfg.Exit.IsExit = true
 	cfg.Exit.Label = "EXIT"
-	
+
 	return cfg
 }
 
@@ -196,12 +196,12 @@ func NewCFG(name string) *CFG {
 func (cfg *CFG) CreateBlock(label string) *BasicBlock {
 	id := fmt.Sprintf("bb%d", cfg.nextBlockID)
 	cfg.nextBlockID++
-	
+
 	block := NewBasicBlock(id)
 	if label != "" {
 		block.Label = label
 	}
-	
+
 	cfg.Blocks[id] = block
 	return block
 }
@@ -218,7 +218,7 @@ func (cfg *CFG) RemoveBlock(block *BasicBlock) {
 	if block == nil || block.IsEntry || block.IsExit {
 		return
 	}
-	
+
 	// Remove all edges to and from this block
 	for _, pred := range block.Predecessors {
 		pred.From.RemoveSuccessor(block)
@@ -226,7 +226,7 @@ func (cfg *CFG) RemoveBlock(block *BasicBlock) {
 	for _, succ := range block.Successors {
 		block.RemoveSuccessor(succ.To)
 	}
-	
+
 	// Remove from blocks map
 	delete(cfg.Blocks, block.ID)
 }
@@ -254,7 +254,7 @@ type CFGVisitor interface {
 	// VisitBlock is called for each basic block
 	// Returns false to stop traversal
 	VisitBlock(block *BasicBlock) bool
-	
+
 	// VisitEdge is called for each edge
 	// Returns false to stop traversal
 	VisitEdge(edge *Edge) bool
@@ -265,7 +265,7 @@ func (cfg *CFG) Walk(visitor CFGVisitor) {
 	if cfg.Entry == nil {
 		return
 	}
-	
+
 	visited := make(map[string]bool)
 	cfg.walkBlock(cfg.Entry, visitor, visited)
 }
@@ -275,14 +275,14 @@ func (cfg *CFG) walkBlock(block *BasicBlock, visitor CFGVisitor, visited map[str
 	if block == nil || visited[block.ID] {
 		return
 	}
-	
+
 	visited[block.ID] = true
-	
+
 	// Visit the block
 	if !visitor.VisitBlock(block) {
 		return
 	}
-	
+
 	// Visit edges and successors
 	for _, edge := range block.Successors {
 		if !visitor.VisitEdge(edge) {
@@ -297,24 +297,24 @@ func (cfg *CFG) BreadthFirstWalk(visitor CFGVisitor) {
 	if cfg.Entry == nil {
 		return
 	}
-	
+
 	visited := make(map[string]bool)
 	queue := []*BasicBlock{cfg.Entry}
-	
+
 	for len(queue) > 0 {
 		block := queue[0]
 		queue = queue[1:]
-		
+
 		if visited[block.ID] {
 			continue
 		}
 		visited[block.ID] = true
-		
+
 		// Visit the block
 		if !visitor.VisitBlock(block) {
 			return
 		}
-		
+
 		// Visit edges and add successors to queue
 		for _, edge := range block.Successors {
 			if !visitor.VisitEdge(edge) {
