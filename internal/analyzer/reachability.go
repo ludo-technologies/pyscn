@@ -8,19 +8,19 @@ import (
 type ReachabilityResult struct {
 	// ReachableBlocks contains blocks that can be reached from entry
 	ReachableBlocks map[string]*BasicBlock
-	
+
 	// UnreachableBlocks contains blocks that cannot be reached from entry
 	UnreachableBlocks map[string]*BasicBlock
-	
+
 	// TotalBlocks is the total number of blocks analyzed
 	TotalBlocks int
-	
+
 	// ReachableCount is the number of reachable blocks
 	ReachableCount int
-	
+
 	// UnreachableCount is the number of unreachable blocks
 	UnreachableCount int
-	
+
 	// AnalysisTime is the time taken to perform the analysis
 	AnalysisTime time.Duration
 }
@@ -40,89 +40,89 @@ func NewReachabilityAnalyzer(cfg *CFG) *ReachabilityAnalyzer {
 // AnalyzeReachability performs reachability analysis starting from the entry block
 func (ra *ReachabilityAnalyzer) AnalyzeReachability() *ReachabilityResult {
 	startTime := time.Now()
-	
+
 	result := &ReachabilityResult{
 		ReachableBlocks:   make(map[string]*BasicBlock),
 		UnreachableBlocks: make(map[string]*BasicBlock),
 		TotalBlocks:       0,
 	}
-	
+
 	// Handle nil CFG or empty CFG
 	if ra.cfg == nil || ra.cfg.Entry == nil || ra.cfg.Blocks == nil {
 		result.AnalysisTime = time.Since(startTime)
 		return result
 	}
-	
+
 	result.TotalBlocks = len(ra.cfg.Blocks)
-	
+
 	// Handle empty blocks map
 	if len(ra.cfg.Blocks) == 0 {
 		result.AnalysisTime = time.Since(startTime)
 		return result
 	}
-	
+
 	// Use the existing CFG Walk method to identify reachable blocks
 	visitor := &reachabilityVisitor{
 		reachableBlocks: result.ReachableBlocks,
 	}
-	
+
 	ra.cfg.Walk(visitor)
-	
+
 	// Identify unreachable blocks by comparing against all blocks
 	for id, block := range ra.cfg.Blocks {
 		if _, isReachable := result.ReachableBlocks[id]; !isReachable {
 			result.UnreachableBlocks[id] = block
 		}
 	}
-	
+
 	// Update counts
 	result.ReachableCount = len(result.ReachableBlocks)
 	result.UnreachableCount = len(result.UnreachableBlocks)
 	result.AnalysisTime = time.Since(startTime)
-	
+
 	return result
 }
 
 // AnalyzeReachabilityFrom performs reachability analysis from a specific starting block
 func (ra *ReachabilityAnalyzer) AnalyzeReachabilityFrom(startBlock *BasicBlock) *ReachabilityResult {
 	startTime := time.Now()
-	
+
 	result := &ReachabilityResult{
 		ReachableBlocks:   make(map[string]*BasicBlock),
 		UnreachableBlocks: make(map[string]*BasicBlock),
 		TotalBlocks:       0,
 	}
-	
+
 	// Handle nil CFG or nil start block
 	if ra.cfg == nil || ra.cfg.Blocks == nil || startBlock == nil {
 		result.AnalysisTime = time.Since(startTime)
 		return result
 	}
-	
+
 	result.TotalBlocks = len(ra.cfg.Blocks)
-	
+
 	// Handle empty blocks
 	if len(ra.cfg.Blocks) == 0 {
 		result.AnalysisTime = time.Since(startTime)
 		return result
 	}
-	
+
 	// Perform DFS traversal from the start block
 	visited := make(map[string]bool)
 	ra.traverseFrom(startBlock, visited, result.ReachableBlocks)
-	
+
 	// Identify unreachable blocks
 	for id, block := range ra.cfg.Blocks {
 		if _, isReachable := result.ReachableBlocks[id]; !isReachable {
 			result.UnreachableBlocks[id] = block
 		}
 	}
-	
+
 	// Update counts
 	result.ReachableCount = len(result.ReachableBlocks)
 	result.UnreachableCount = len(result.UnreachableBlocks)
 	result.AnalysisTime = time.Since(startTime)
-	
+
 	return result
 }
 
@@ -131,10 +131,10 @@ func (ra *ReachabilityAnalyzer) traverseFrom(block *BasicBlock, visited map[stri
 	if block == nil || visited[block.ID] {
 		return
 	}
-	
+
 	visited[block.ID] = true
 	reachable[block.ID] = block
-	
+
 	// Visit all successors
 	for _, edge := range block.Successors {
 		ra.traverseFrom(edge.To, visited, reachable)
@@ -144,13 +144,13 @@ func (ra *ReachabilityAnalyzer) traverseFrom(block *BasicBlock, visited map[stri
 // GetUnreachableBlocksWithStatements returns unreachable blocks that contain statements
 func (result *ReachabilityResult) GetUnreachableBlocksWithStatements() map[string]*BasicBlock {
 	blocksWithStatements := make(map[string]*BasicBlock)
-	
+
 	for id, block := range result.UnreachableBlocks {
 		if !block.IsEmpty() {
 			blocksWithStatements[id] = block
 		}
 	}
-	
+
 	return blocksWithStatements
 }
 
@@ -189,3 +189,4 @@ func (rv *reachabilityVisitor) VisitBlock(block *BasicBlock) bool {
 func (rv *reachabilityVisitor) VisitEdge(edge *Edge) bool {
 	return true // Continue traversal
 }
+
