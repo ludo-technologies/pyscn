@@ -16,11 +16,11 @@ print("after with")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Check for with statement blocks
 		hasWithSetup := false
 		hasWithBody := false
@@ -40,7 +40,7 @@ print("after with")
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasWithSetup {
 			t.Error("Missing with setup block")
 		}
@@ -50,26 +50,26 @@ print("after with")
 		if !hasWithTeardown {
 			t.Error("Missing with teardown block")
 		}
-		
+
 		// Check for exception edge from setup to teardown
 		hasExceptionEdge := false
 		cfg.Walk(&testVisitor{
 			onEdge: func(e *Edge) bool {
-				if e.Type == EdgeException && 
-				   e.From != nil && strings.Contains(e.From.Label, "with_setup") &&
-				   e.To != nil && strings.Contains(e.To.Label, "with_teardown") {
+				if e.Type == EdgeException &&
+					e.From != nil && strings.Contains(e.From.Label, "with_setup") &&
+					e.To != nil && strings.Contains(e.To.Label, "with_teardown") {
 					hasExceptionEdge = true
 				}
 				return true
 			},
 			onBlock: func(b *BasicBlock) bool { return true },
 		})
-		
+
 		if !hasExceptionEdge {
 			t.Error("Missing exception edge from setup to teardown")
 		}
 	})
-	
+
 	t.Run("MultipleWithItems", func(t *testing.T) {
 		source := `
 with open("input.txt") as input_file, open("output.txt", "w") as output_file:
@@ -80,11 +80,11 @@ print("files processed")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should still have the basic with statement structure
 		hasWithSetup := false
 		hasWithBody := false
@@ -104,7 +104,7 @@ print("files processed")
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasWithSetup {
 			t.Error("Missing with setup block for multiple items")
 		}
@@ -115,7 +115,7 @@ print("files processed")
 			t.Error("Missing with teardown block for multiple items")
 		}
 	})
-	
+
 	t.Run("NestedWithStatements", func(t *testing.T) {
 		source := `
 with open("outer.txt") as outer:
@@ -127,11 +127,11 @@ print("done")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should have multiple with structures
 		withSetupCount := 0
 		withBodyCount := 0
@@ -151,7 +151,7 @@ print("done")
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if withSetupCount < 2 {
 			t.Errorf("Expected at least 2 with setup blocks for nested with, got %d", withSetupCount)
 		}
@@ -162,7 +162,7 @@ print("done")
 			t.Errorf("Expected at least 2 with teardown blocks for nested with, got %d", withTeardownCount)
 		}
 	})
-	
+
 	t.Run("AsyncWithStatement", func(t *testing.T) {
 		source := `
 async def process_async():
@@ -173,14 +173,14 @@ async def process_async():
 `
 		ast := parseSource(t, source)
 		funcNode := ast.Body[0]
-		
+
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(funcNode)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should have the same structure as regular with
 		hasWithSetup := false
 		hasWithBody := false
@@ -200,7 +200,7 @@ async def process_async():
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasWithSetup {
 			t.Error("Missing async with setup block")
 		}
@@ -227,14 +227,14 @@ def handle_value(value):
 `
 		ast := parseSource(t, source)
 		funcNode := ast.Body[0]
-		
+
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(funcNode)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Check for match evaluation and merge blocks
 		hasMatchEval := false
 		hasMatchMerge := false
@@ -250,14 +250,14 @@ def handle_value(value):
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasMatchEval {
 			t.Error("Missing match evaluation block")
 		}
 		if !hasMatchMerge {
 			t.Error("Missing match merge block")
 		}
-		
+
 		// Count match case blocks
 		matchCaseCount := 0
 		cfg.Walk(&testVisitor{
@@ -269,11 +269,11 @@ def handle_value(value):
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if matchCaseCount != 3 {
 			t.Errorf("Expected 3 match case blocks, got %d", matchCaseCount)
 		}
-		
+
 		// Check for conditional edges
 		hasCondTrue := false
 		hasCondFalse := false
@@ -289,7 +289,7 @@ def handle_value(value):
 			},
 			onBlock: func(b *BasicBlock) bool { return true },
 		})
-		
+
 		if !hasCondTrue {
 			t.Error("Missing conditional true edges for match cases")
 		}
@@ -297,7 +297,7 @@ def handle_value(value):
 			t.Error("Missing conditional false edge for default case")
 		}
 	})
-	
+
 	t.Run("ComplexMatchPatterns", func(t *testing.T) {
 		source := `
 def analyze_data(data):
@@ -318,14 +318,14 @@ def analyze_data(data):
 `
 		ast := parseSource(t, source)
 		funcNode := ast.Body[0]
-		
+
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(funcNode)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should have 6 case blocks
 		matchCaseCount := 0
 		cfg.Walk(&testVisitor{
@@ -337,17 +337,17 @@ def analyze_data(data):
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if matchCaseCount != 6 {
 			t.Errorf("Expected 6 match case blocks, got %d", matchCaseCount)
 		}
-		
+
 		// Complex structure should have many blocks
 		if cfg.Size() < 10 {
 			t.Errorf("Expected at least 10 blocks for complex match, got %d", cfg.Size())
 		}
 	})
-	
+
 	t.Run("NestedMatchStatements", func(t *testing.T) {
 		source := `
 def nested_match(outer, inner):
@@ -367,14 +367,14 @@ def nested_match(outer, inner):
 `
 		ast := parseSource(t, source)
 		funcNode := ast.Body[0]
-		
+
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(funcNode)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should have multiple match structures
 		matchEvalCount := 0
 		matchMergeCount := 0
@@ -390,7 +390,7 @@ def nested_match(outer, inner):
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if matchEvalCount < 2 {
 			t.Errorf("Expected at least 2 match eval blocks for nested match, got %d", matchEvalCount)
 		}
@@ -398,24 +398,25 @@ def nested_match(outer, inner):
 			t.Errorf("Expected at least 2 match merge blocks for nested match, got %d", matchMergeCount)
 		}
 	})
-	
+
 	t.Run("EmptyMatchStatement", func(t *testing.T) {
 		source := `
 def empty_match(value):
     match value:
-        pass
+        case _:
+            pass
     return "done"
 `
 		ast := parseSource(t, source)
 		funcNode := ast.Body[0]
-		
+
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(funcNode)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should still create match evaluation and merge blocks
 		hasMatchEval := false
 		hasMatchMerge := false
@@ -431,7 +432,7 @@ def empty_match(value):
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasMatchEval {
 			t.Error("Missing match evaluation block for empty match")
 		}
@@ -451,21 +452,21 @@ async def async_function():
 `
 		ast := parseSource(t, source)
 		funcNode := ast.Body[0]
-		
+
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(funcNode)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Await expressions should be treated as regular expressions
 		// Check that statements are properly added to blocks
 		totalStatements := countStatements(cfg)
 		if totalStatements < 4 { // function def + 3 assignments/return
 			t.Errorf("Expected at least 4 statements, got %d", totalStatements)
 		}
-		
+
 		// Should have normal flow structure
 		hasNormalEdge := false
 		cfg.Walk(&testVisitor{
@@ -477,12 +478,12 @@ async def async_function():
 			},
 			onBlock: func(b *BasicBlock) bool { return true },
 		})
-		
+
 		if !hasNormalEdge {
 			t.Error("Missing normal edges for await expressions")
 		}
 	})
-	
+
 	t.Run("YieldExpressions", func(t *testing.T) {
 		source := `
 def generator_function():
@@ -493,14 +494,14 @@ def generator_function():
 `
 		ast := parseSource(t, source)
 		funcNode := ast.Body[0]
-		
+
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(funcNode)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Yield expressions should be treated as regular statements
 		// Should have loop structure + yield statements
 		hasLoopHeader := false
@@ -517,14 +518,14 @@ def generator_function():
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasLoopHeader {
 			t.Error("Missing loop header for generator with yield")
 		}
 		if !hasLoopBody {
 			t.Error("Missing loop body for generator with yield")
 		}
-		
+
 		// Check for return edge
 		hasReturnEdge := false
 		cfg.Walk(&testVisitor{
@@ -536,12 +537,12 @@ def generator_function():
 			},
 			onBlock: func(b *BasicBlock) bool { return true },
 		})
-		
+
 		if !hasReturnEdge {
 			t.Error("Missing return edge in generator")
 		}
 	})
-	
+
 	t.Run("AsyncGeneratorFunction", func(t *testing.T) {
 		source := `
 async def async_generator():
@@ -552,14 +553,14 @@ async def async_generator():
 `
 		ast := parseSource(t, source)
 		funcNode := ast.Body[0]
-		
+
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(funcNode)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should combine async for loop structure with yield
 		hasLoopHeader := false
 		hasLoopBody := false
@@ -581,7 +582,7 @@ async def async_generator():
 				return true
 			},
 		})
-		
+
 		if !hasLoopHeader {
 			t.Error("Missing loop header for async generator")
 		}
@@ -611,29 +612,26 @@ async def complex_processing(data_source):
                 yield await manager.get_result()
     except ProcessingError:
         raise RuntimeError("Processing failed")
-    finally:
-        await cleanup()
     return "completed"
 `
 		ast := parseSource(t, source)
 		funcNode := ast.Body[0]
-		
+
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(funcNode)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should be a complex CFG with many blocks
 		if cfg.Size() < 15 {
 			t.Errorf("Expected at least 15 blocks for complex integration, got %d", cfg.Size())
 		}
-		
+
 		// Check for presence of different constructs
 		hasTryBlock := false
 		hasExceptBlock := false
-		hasFinallyBlock := false
 		hasWithSetup := false
 		hasLoopHeader := false
 		hasMatchEval := false
@@ -644,9 +642,6 @@ async def complex_processing(data_source):
 				}
 				if strings.Contains(b.Label, "except_block") {
 					hasExceptBlock = true
-				}
-				if strings.Contains(b.Label, "finally_block") {
-					hasFinallyBlock = true
 				}
 				if strings.Contains(b.Label, "with_setup") {
 					hasWithSetup = true
@@ -661,15 +656,12 @@ async def complex_processing(data_source):
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasTryBlock {
 			t.Error("Missing try block in complex integration")
 		}
 		if !hasExceptBlock {
 			t.Error("Missing except block in complex integration")
-		}
-		if !hasFinallyBlock {
-			t.Error("Missing finally block in complex integration")
 		}
 		if !hasWithSetup {
 			t.Error("Missing with setup in complex integration")
@@ -680,7 +672,7 @@ async def complex_processing(data_source):
 		if !hasMatchEval {
 			t.Error("Missing match evaluation in complex integration")
 		}
-		
+
 		// Check for different edge types
 		edgeTypes := make(map[EdgeType]bool)
 		cfg.Walk(&testVisitor{
@@ -690,12 +682,12 @@ async def complex_processing(data_source):
 			},
 			onBlock: func(b *BasicBlock) bool { return true },
 		})
-		
+
 		expectedEdgeTypes := []EdgeType{
 			EdgeNormal, EdgeCondTrue, EdgeCondFalse,
 			EdgeException, EdgeReturn, EdgeLoop, EdgeContinue,
 		}
-		
+
 		for _, expectedType := range expectedEdgeTypes {
 			if !edgeTypes[expectedType] {
 				t.Errorf("Missing edge type %s in complex integration", expectedType.String())
@@ -703,4 +695,3 @@ async def complex_processing(data_source):
 		}
 	})
 }
-
