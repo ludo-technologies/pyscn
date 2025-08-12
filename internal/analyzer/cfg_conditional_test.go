@@ -15,16 +15,16 @@ print("done")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should have at least entry, exit, then block, merge block
 		if cfg.Size() < 4 {
 			t.Errorf("Expected at least 4 blocks, got %d", cfg.Size())
 		}
-		
+
 		// Check for true and false edges
 		hasCondTrue := false
 		hasCondFalse := false
@@ -40,14 +40,14 @@ print("done")
 			},
 			onBlock: func(b *BasicBlock) bool { return true },
 		})
-		
+
 		if !hasCondTrue {
 			t.Error("Missing true branch edge")
 		}
 		if !hasCondFalse {
 			t.Error("Missing false branch edge")
 		}
-		
+
 		// Check for merge block
 		hasMerge := false
 		cfg.Walk(&testVisitor{
@@ -59,12 +59,12 @@ print("done")
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasMerge {
 			t.Error("Missing merge block")
 		}
 	})
-	
+
 	t.Run("IfElse", func(t *testing.T) {
 		source := `
 if x > 0:
@@ -76,11 +76,11 @@ print("done")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Check for then and else blocks
 		hasThen := false
 		hasElse := false
@@ -96,7 +96,7 @@ print("done")
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasThen {
 			t.Error("Missing then block")
 		}
@@ -104,7 +104,7 @@ print("done")
 			t.Error("Missing else block")
 		}
 	})
-	
+
 	t.Run("IfElifElse", func(t *testing.T) {
 		source := `
 if x > 10:
@@ -118,16 +118,16 @@ print("done")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should have blocks for branches and merges
 		if cfg.Size() < 5 {
 			t.Errorf("Expected at least 5 blocks for if/elif/else, got %d", cfg.Size())
 		}
-		
+
 		// Count conditional edges
 		condTrueCount := 0
 		condFalseCount := 0
@@ -143,7 +143,7 @@ print("done")
 			},
 			onBlock: func(b *BasicBlock) bool { return true },
 		})
-		
+
 		// Should have at least one true and false edge
 		if condTrueCount < 1 {
 			t.Errorf("Expected at least 1 true edge, got %d", condTrueCount)
@@ -152,7 +152,7 @@ print("done")
 			t.Errorf("Expected at least 1 false edge, got %d", condFalseCount)
 		}
 	})
-	
+
 	t.Run("NestedIf", func(t *testing.T) {
 		source := `
 if x > 5:
@@ -167,16 +167,16 @@ print("done")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should have many blocks for nested structure
 		if cfg.Size() < 8 {
 			t.Errorf("Expected at least 8 blocks for nested if, got %d", cfg.Size())
 		}
-		
+
 		// Should have multiple merge blocks
 		mergeCount := 0
 		cfg.Walk(&testVisitor{
@@ -188,12 +188,12 @@ print("done")
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if mergeCount < 2 {
 			t.Errorf("Expected at least 2 merge blocks for nested if, got %d", mergeCount)
 		}
 	})
-	
+
 	t.Run("IfWithReturn", func(t *testing.T) {
 		source := `
 def check(x):
@@ -203,14 +203,14 @@ def check(x):
 `
 		ast := parseSource(t, source)
 		funcNode := ast.Body[0]
-		
+
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(funcNode)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Check that then branch connects to exit
 		hasReturnFromThen := false
 		cfg.Walk(&testVisitor{
@@ -227,12 +227,12 @@ def check(x):
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasReturnFromThen {
 			t.Error("Then branch should have return edge to exit")
 		}
 	})
-	
+
 	t.Run("MultipleElif", func(t *testing.T) {
 		source := `
 if x > 100:
@@ -249,16 +249,16 @@ else:
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should have multiple blocks for the complex structure
 		if cfg.Size() < 5 {
 			t.Errorf("Expected at least 5 blocks for multiple elif, got %d", cfg.Size())
 		}
-		
+
 		// Check that we have conditional edges
 		hasCondEdges := false
 		cfg.Walk(&testVisitor{
@@ -270,12 +270,12 @@ else:
 			},
 			onBlock: func(b *BasicBlock) bool { return true },
 		})
-		
+
 		if !hasCondEdges {
 			t.Error("Missing conditional edges")
 		}
 	})
-	
+
 	t.Run("ConditionalExpression", func(t *testing.T) {
 		source := `
 result = "positive" if x > 0 else "non-positive"
@@ -284,18 +284,18 @@ print(result)
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// For now, conditional expressions are treated as simple expressions
 		// Just verify the CFG builds successfully
 		if cfg.Entry == nil || cfg.Exit == nil {
 			t.Error("CFG missing entry or exit")
 		}
 	})
-	
+
 	t.Run("EmptyBranches", func(t *testing.T) {
 		source := `
 if x > 0:
@@ -306,11 +306,11 @@ else:
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should still create blocks for empty branches
 		hasThen := false
 		hasElse := false
@@ -326,7 +326,7 @@ else:
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasThen {
 			t.Error("Missing then block for empty branch")
 		}
@@ -363,22 +363,22 @@ def complex_conditionals(x, y):
     
     return "normal"
 `
-	
+
 	ast := parseSource(t, source)
 	funcNode := ast.Body[0]
-	
+
 	builder := NewCFGBuilder()
 	cfg, err := builder.Build(funcNode)
-	
+
 	if err != nil {
 		t.Fatalf("Failed to build CFG: %v", err)
 	}
-	
+
 	// Verify complex structure has many blocks
 	if cfg.Size() < 10 {
 		t.Errorf("Expected at least 10 blocks for complex conditionals, got %d", cfg.Size())
 	}
-	
+
 	// Count different edge types
 	edgeCounts := make(map[EdgeType]int)
 	cfg.Walk(&testVisitor{
@@ -388,7 +388,7 @@ def complex_conditionals(x, y):
 		},
 		onBlock: func(b *BasicBlock) bool { return true },
 	})
-	
+
 	// Check for presence of different edge types
 	if edgeCounts[EdgeCondTrue] < 2 {
 		t.Errorf("Expected multiple true edges, got %d", edgeCounts[EdgeCondTrue])
@@ -400,4 +400,3 @@ def complex_conditionals(x, y):
 		t.Errorf("Expected at least one return edge, got %d", edgeCounts[EdgeReturn])
 	}
 }
-

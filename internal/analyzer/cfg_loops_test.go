@@ -15,16 +15,16 @@ print("done")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should have at least entry, exit, header, body, and exit blocks
 		if cfg.Size() < 5 {
 			t.Errorf("Expected at least 5 blocks, got %d", cfg.Size())
 		}
-		
+
 		// Check for loop header and body blocks
 		hasLoopHeader := false
 		hasLoopBody := false
@@ -44,7 +44,7 @@ print("done")
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasLoopHeader {
 			t.Error("Missing loop header block")
 		}
@@ -54,7 +54,7 @@ print("done")
 		if !hasLoopExit {
 			t.Error("Missing loop exit block")
 		}
-		
+
 		// Check for loop edges
 		hasCondTrue := false
 		hasCondFalse := false
@@ -74,7 +74,7 @@ print("done")
 			},
 			onBlock: func(b *BasicBlock) bool { return true },
 		})
-		
+
 		if !hasCondTrue {
 			t.Error("Missing conditional true edge")
 		}
@@ -85,7 +85,7 @@ print("done")
 			t.Error("Missing loop back edge")
 		}
 	})
-	
+
 	t.Run("ForLoopWithElse", func(t *testing.T) {
 		source := `
 for i in range(5):
@@ -99,11 +99,11 @@ print("end")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Check for else block
 		hasLoopElse := false
 		cfg.Walk(&testVisitor{
@@ -115,11 +115,11 @@ print("end")
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasLoopElse {
 			t.Error("Missing loop else block")
 		}
-		
+
 		// Check for break edge
 		hasBreakEdge := false
 		cfg.Walk(&testVisitor{
@@ -131,12 +131,12 @@ print("end")
 			},
 			onBlock: func(b *BasicBlock) bool { return true },
 		})
-		
+
 		if !hasBreakEdge {
 			t.Error("Missing break edge")
 		}
 	})
-	
+
 	t.Run("SimpleWhileLoop", func(t *testing.T) {
 		source := `
 count = 0
@@ -148,11 +148,11 @@ print("finished")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Check for while loop structure
 		hasLoopHeader := false
 		hasLoopBody := false
@@ -168,14 +168,14 @@ print("finished")
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasLoopHeader {
 			t.Error("Missing while loop header block")
 		}
 		if !hasLoopBody {
 			t.Error("Missing while loop body block")
 		}
-		
+
 		// Check for loop back edge
 		hasLoopBack := false
 		cfg.Walk(&testVisitor{
@@ -187,12 +187,12 @@ print("finished")
 			},
 			onBlock: func(b *BasicBlock) bool { return true },
 		})
-		
+
 		if !hasLoopBack {
 			t.Error("Missing loop back edge")
 		}
 	})
-	
+
 	t.Run("WhileLoopWithElse", func(t *testing.T) {
 		source := `
 i = 0
@@ -206,11 +206,11 @@ print("done")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Check for else block
 		hasLoopElse := false
 		cfg.Walk(&testVisitor{
@@ -222,12 +222,12 @@ print("done")
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasLoopElse {
 			t.Error("Missing while loop else block")
 		}
 	})
-	
+
 	t.Run("BreakStatement", func(t *testing.T) {
 		source := `
 for i in range(10):
@@ -239,11 +239,11 @@ print("after loop")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Check for break edge
 		hasBreakEdge := false
 		cfg.Walk(&testVisitor{
@@ -255,28 +255,25 @@ print("after loop")
 			},
 			onBlock: func(b *BasicBlock) bool { return true },
 		})
-		
+
 		if !hasBreakEdge {
 			t.Error("Missing break edge")
 		}
-		
-		// Check for unreachable block after break
+
+		// Check for unreachable block after break (check CFG blocks directly)
 		hasUnreachable := false
-		cfg.Walk(&testVisitor{
-			onBlock: func(b *BasicBlock) bool {
-				if strings.Contains(b.Label, "unreachable") {
-					hasUnreachable = true
-				}
-				return true
-			},
-			onEdge: func(e *Edge) bool { return true },
-		})
-		
+		for _, block := range cfg.Blocks {
+			if strings.Contains(block.Label, "unreachable") {
+				hasUnreachable = true
+				break
+			}
+		}
+
 		if !hasUnreachable {
 			t.Error("Missing unreachable block after break")
 		}
 	})
-	
+
 	t.Run("ContinueStatement", func(t *testing.T) {
 		source := `
 for i in range(10):
@@ -288,11 +285,11 @@ print("done")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Check for continue edge
 		hasContinueEdge := false
 		cfg.Walk(&testVisitor{
@@ -304,12 +301,12 @@ print("done")
 			},
 			onBlock: func(b *BasicBlock) bool { return true },
 		})
-		
+
 		if !hasContinueEdge {
 			t.Error("Missing continue edge")
 		}
 	})
-	
+
 	t.Run("NestedLoops", func(t *testing.T) {
 		source := `
 for i in range(3):
@@ -325,16 +322,16 @@ print("all done")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should have complex structure for nested loops
 		if cfg.Size() < 10 {
 			t.Errorf("Expected at least 10 blocks for nested loops, got %d", cfg.Size())
 		}
-		
+
 		// Check for multiple loop structures
 		loopHeaderCount := 0
 		loopBodyCount := 0
@@ -350,14 +347,14 @@ print("all done")
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if loopHeaderCount < 2 {
 			t.Errorf("Expected at least 2 loop headers for nested loops, got %d", loopHeaderCount)
 		}
 		if loopBodyCount < 2 {
 			t.Errorf("Expected at least 2 loop bodies for nested loops, got %d", loopBodyCount)
 		}
-		
+
 		// Check for both continue and break edges
 		hasContinueEdge := false
 		hasBreakEdge := false
@@ -373,7 +370,7 @@ print("all done")
 			},
 			onBlock: func(b *BasicBlock) bool { return true },
 		})
-		
+
 		if !hasContinueEdge {
 			t.Error("Missing continue edge in nested loops")
 		}
@@ -381,7 +378,7 @@ print("all done")
 			t.Error("Missing break edge in nested loops")
 		}
 	})
-	
+
 	t.Run("AsyncForLoop", func(t *testing.T) {
 		source := `
 async def process():
@@ -391,14 +388,14 @@ async def process():
 `
 		ast := parseSource(t, source)
 		funcNode := ast.Body[0]
-		
+
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(funcNode)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Check for async for loop structure (should be same as regular for loop)
 		hasLoopHeader := false
 		hasLoopBody := false
@@ -414,7 +411,7 @@ async def process():
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if !hasLoopHeader {
 			t.Error("Missing async for loop header block")
 		}
@@ -422,7 +419,7 @@ async def process():
 			t.Error("Missing async for loop body block")
 		}
 	})
-	
+
 	t.Run("EmptyLoops", func(t *testing.T) {
 		source := `
 for i in range(5):
@@ -434,11 +431,11 @@ while True:
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Even empty loops should create proper structure
 		loopHeaderCount := 0
 		cfg.Walk(&testVisitor{
@@ -450,7 +447,7 @@ while True:
 			},
 			onEdge: func(e *Edge) bool { return true },
 		})
-		
+
 		if loopHeaderCount < 2 {
 			t.Errorf("Expected 2 loop headers, got %d", loopHeaderCount)
 		}
@@ -466,21 +463,21 @@ print("after")
 `
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
-		
+
 		// Use a logger to capture the error
 		// For now, just ensure it doesn't crash
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should still create a valid CFG
 		if cfg.Size() < 2 {
 			t.Errorf("Expected at least 2 blocks, got %d", cfg.Size())
 		}
 	})
-	
+
 	t.Run("ContinueOutsideLoop", func(t *testing.T) {
 		source := `
 print("before")
@@ -490,17 +487,17 @@ print("after")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Should still create a valid CFG
 		if cfg.Size() < 2 {
 			t.Errorf("Expected at least 2 blocks, got %d", cfg.Size())
 		}
 	})
-	
+
 	t.Run("MultipleBreaksAndContinues", func(t *testing.T) {
 		source := `
 for i in range(10):
@@ -516,11 +513,11 @@ print("done")
 		ast := parseSource(t, source)
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
-		
+
 		if err != nil {
 			t.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		// Count break and continue edges
 		breakCount := 0
 		continueCount := 0
@@ -536,7 +533,7 @@ print("done")
 			},
 			onBlock: func(b *BasicBlock) bool { return true },
 		})
-		
+
 		if breakCount != 1 {
 			t.Errorf("Expected 1 break edge, got %d", breakCount)
 		}
@@ -545,4 +542,3 @@ print("done")
 		}
 	})
 }
-
