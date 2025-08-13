@@ -3,8 +3,8 @@ package analyzer
 import (
 	"context"
 	"fmt"
-	"testing"
 	"github.com/pyqol/pyqol/internal/parser"
+	"testing"
 )
 
 // DemoReachabilityAnalyzer demonstrates the complete workflow from source code to reachability analysis
@@ -66,10 +66,10 @@ def example_function(x):
 // TestReachabilityIntegration demonstrates integration with the full CFG pipeline
 func TestReachabilityIntegration(t *testing.T) {
 	testCases := []struct {
-		name           string
-		source         string
+		name            string
+		source          string
 		expectReachable bool
-		expectDead     bool
+		expectDead      bool
 	}{
 		{
 			name: "FullyReachableFunction",
@@ -80,7 +80,7 @@ def reachable_function(x):
     return "non-positive"
 `,
 			expectReachable: false, // CFGBuilder may create helper blocks
-			expectDead:     false,  // But no dead code with actual statements
+			expectDead:      false, // But no dead code with actual statements
 		},
 		{
 			name: "FunctionWithDeadCode",
@@ -91,7 +91,7 @@ def dead_code_function(x):
     x = x * 2
 `,
 			expectReachable: false,
-			expectDead:     true,
+			expectDead:      true,
 		},
 		{
 			name: "ComplexControlFlow",
@@ -109,7 +109,7 @@ def complex_function(x, y):
             return -x - y
 `,
 			expectReachable: false, // CFGBuilder may create helper blocks
-			expectDead:     false,  // But no dead code with actual statements
+			expectDead:      false, // But no dead code with actual statements
 		},
 	}
 
@@ -137,7 +137,7 @@ def complex_function(x, y):
 			// Validate expectations
 			allReachable := reachResult.GetReachabilityRatio() == 1.0
 			if allReachable != tc.expectReachable {
-				t.Errorf("Expected all reachable: %t, got: %t (ratio: %.2f)", 
+				t.Errorf("Expected all reachable: %t, got: %t (ratio: %.2f)",
 					tc.expectReachable, allReachable, reachResult.GetReachabilityRatio())
 			}
 
@@ -153,7 +153,7 @@ def complex_function(x, y):
 
 			// Log detailed results for debugging
 			t.Logf("Results for %s:", tc.name)
-			t.Logf("  Total: %d, Reachable: %d, Unreachable: %d", 
+			t.Logf("  Total: %d, Reachable: %d, Unreachable: %d",
 				reachResult.TotalBlocks, reachResult.ReachableCount, reachResult.UnreachableCount)
 			t.Logf("  Reachability ratio: %.2f", reachResult.GetReachabilityRatio())
 			t.Logf("  Dead code blocks: %d", len(reachResult.GetUnreachableBlocksWithStatements()))
@@ -203,11 +203,11 @@ def function_with_mixed_code(x):
 	// Demonstrate Dead Code Detection API usage
 	if result_analysis.HasUnreachableCode() {
 		deadBlocks := result_analysis.GetUnreachableBlocksWithStatements()
-		
+
 		// This is the API that Dead Code Detection (#23) will use
 		for blockID, block := range deadBlocks {
 			t.Logf("Found dead code in block %s (%s):", blockID, block.Label)
-			
+
 			// Each block contains AST nodes that represent dead code
 			for i, stmt := range block.Statements {
 				t.Logf("  Statement %d: %s", i, stmt.Type)
@@ -217,7 +217,7 @@ def function_with_mixed_code(x):
 				// 3. Generate user-friendly error messages
 			}
 		}
-		
+
 		if len(deadBlocks) == 0 {
 			t.Error("Expected to find dead code blocks")
 		}
@@ -229,11 +229,11 @@ def function_with_mixed_code(x):
 	if result_analysis.TotalBlocks <= 0 {
 		t.Error("Expected positive total blocks")
 	}
-	
+
 	if result_analysis.ReachableCount <= 0 {
 		t.Error("Expected positive reachable count")
 	}
-	
+
 	if result_analysis.GetReachabilityRatio() <= 0 || result_analysis.GetReachabilityRatio() > 1.0 {
 		t.Errorf("Invalid reachability ratio: %f", result_analysis.GetReachabilityRatio())
 	}

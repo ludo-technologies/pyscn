@@ -189,4 +189,3 @@ func (rv *reachabilityVisitor) VisitBlock(block *BasicBlock) bool {
 func (rv *reachabilityVisitor) VisitEdge(edge *Edge) bool {
 	return true // Continue traversal
 }
-
