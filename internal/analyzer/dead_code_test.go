@@ -323,7 +323,7 @@ def function_with_dead_code():
 	builder := NewCFGBuilder()
 	cfgs, err := builder.BuildAll(ast)
 	require.NoError(t, err)
-	
+
 	// Get the function CFG
 	cfg, exists := cfgs["function_with_dead_code"]
 	require.True(t, exists, "Failed to find function_with_dead_code CFG")
@@ -558,7 +558,7 @@ class MyClass:
 					break
 				}
 			}
-			
+
 			// If no function CFG found, use the module CFG (for empty/comments-only tests)
 			if cfg == nil {
 				cfg = cfgs["__main__"]
@@ -605,7 +605,7 @@ def complex_function():
 	builder := NewCFGBuilder()
 	cfgs, err := builder.BuildAll(ast)
 	require.NoError(t, err)
-	
+
 	// Get the complex_function CFG
 	cfg, exists := cfgs["complex_function"]
 	require.True(t, exists, "Failed to find complex_function CFG")

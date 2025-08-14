@@ -111,7 +111,7 @@ func TestCFGIntegrationWithRealFiles(t *testing.T) {
 			} else {
 				require.NoError(t, err, "Failed to build CFGs for %s: %s", tc.file, tc.description)
 			}
-			
+
 			// Get the main module CFG for validation
 			cfg := cfgs["__main__"]
 			require.NotNil(t, cfg, "Failed to find main CFG for %s", tc.file)
@@ -360,7 +360,7 @@ def exception_handler():
 			builder := NewCFGBuilder()
 			cfgs, err := builder.BuildAll(ast)
 			require.NoError(t, err, "Failed to build CFGs")
-			
+
 			// Get the appropriate CFG (module or function)
 			var cfg *CFG
 			if tc.name == "SimpleFunction" || tc.name == "IfElseStatement" || tc.name == "ForLoop" || tc.name == "TryExcept" {

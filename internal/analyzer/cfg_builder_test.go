@@ -512,7 +512,7 @@ def test_elif():
 	if err != nil {
 		t.Fatalf("Failed to build CFGs: %v", err)
 	}
-	
+
 	// Get the test_elif function CFG
 	cfg, exists := cfgs["test_elif"]
 	if !exists {
@@ -667,7 +667,7 @@ def elif_with_return(x):
 					break
 				}
 			}
-			
+
 			if cfg == nil {
 				t.Fatal("No function CFG found")
 			}

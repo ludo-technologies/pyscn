@@ -291,7 +291,7 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 		}
 		return
 	}
-	
+
 	if stmt.Type == parser.NodeElifClause {
 		// Log this as unexpected but try to handle gracefully
 		b.logError("unexpected elif_clause as standalone statement")
@@ -300,7 +300,6 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 		b.processIfStatement(ifNode)
 		return
 	}
-	
 
 	switch stmt.Type {
 	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
@@ -516,13 +515,13 @@ func (b *CFGBuilder) processIfStatementElif(stmt *parser.Node, finalMerge *Basic
 			elifBlock := b.createBlock("elif")
 			b.cfg.ConnectBlocks(conditionBlock, elifBlock, EdgeCondFalse)
 			b.currentBlock = elifBlock
-			
+
 			// Convert elif_clause to If node if needed
 			elifStmt := stmt.Orelse[0]
 			if elifStmt.Type == parser.NodeElifClause {
 				elifStmt = b.convertElifClauseToIf(elifStmt)
 			}
-			
+
 			b.processIfStatementElif(elifStmt, finalMerge)
 		} else {
 			// Final else clause
@@ -1062,7 +1061,7 @@ func (b *CFGBuilder) convertElifClauseToIf(elifNode *parser.Node) *parser.Node {
 		Body:   []*parser.Node{},
 		Orelse: []*parser.Node{},
 	}
-	
+
 	// Find the condition and block in Children
 	for _, child := range elifNode.Children {
 		if child != nil {
@@ -1075,9 +1074,9 @@ func (b *CFGBuilder) convertElifClauseToIf(elifNode *parser.Node) *parser.Node {
 			}
 		}
 	}
-	
+
 	// Check if there's a continuation in Orelse (another elif or else)
 	ifNode.Orelse = elifNode.Orelse
-	
+
 	return ifNode
 }
