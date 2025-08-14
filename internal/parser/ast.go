@@ -90,6 +90,9 @@ const (
 	NodeDecorator     NodeType = "Decorator"
 	NodeWithItem      NodeType = "WithItem"
 	NodeMatchCase     NodeType = "MatchCase"
+	NodeElseClause    NodeType = "else_clause" // Structural marker from parser
+	NodeElifClause    NodeType = "elif_clause" // Structural marker from parser
+	NodeBlock         NodeType = "block"       // Block of statements from parser
 )
 
 // Location represents the position of a node in the source code
