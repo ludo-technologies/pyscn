@@ -3,7 +3,6 @@ package analyzer
 import (
 	"context"
 	"github.com/pyqol/pyqol/internal/parser"
-	"strings"
 	"testing"
 	"time"
 )
@@ -514,12 +513,3 @@ func parseSourceForReachability(t *testing.T, source string) *parser.Node {
 	return result.AST
 }
 
-// Helper to compare strings in error messages
-func containsString(slice []string, str string) bool {
-	for _, s := range slice {
-		if strings.Contains(s, str) {
-			return true
-		}
-	}
-	return false
-}
