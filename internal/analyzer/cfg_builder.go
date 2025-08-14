@@ -1003,6 +1003,9 @@ func (b *CFGBuilder) getFullScopeName(name string) string {
 
 // hasSuccessor checks if a block has a specific successor
 func (b *CFGBuilder) hasSuccessor(from, to *BasicBlock) bool {
+	if from == nil || to == nil {
+		return false
+	}
 	for _, edge := range from.Successors {
 		if edge.To == to {
 			return true
