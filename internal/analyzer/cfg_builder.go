@@ -204,19 +204,9 @@ func (b *CFGBuilder) buildFunction(node *parser.Node) {
 	b.cfg.ConnectBlocks(b.currentBlock, bodyBlock, EdgeNormal)
 	b.currentBlock = bodyBlock
 
-	// Add function definition as a statement
-	b.currentBlock.AddStatement(node)
-
-	// Process function body
+	// Process all statements in the function body
 	for _, stmt := range node.Body {
-		// Check for nested functions and build their CFGs
-		if stmt.Type == parser.NodeFunctionDef || stmt.Type == parser.NodeAsyncFunctionDef {
-			if err := b.buildNestedFunction(stmt); err != nil {
-				b.logError("error in nested function: %v", err)
-			}
-		} else {
-			b.processStatement(stmt)
-		}
+		b.processStatement(stmt)
 	}
 }
 

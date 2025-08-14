@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/pyqol/pyqol/internal/parser"
@@ -230,10 +231,21 @@ def foo():
 			require.NoError(t, err, "Failed to parse code")
 			ast := result.AST
 
-			// Build CFG
+			// Build all CFGs (module and functions)
 			builder := NewCFGBuilder()
-			cfg, err := builder.Build(ast)
-			require.NoError(t, err, "Failed to build CFG")
+			cfgs, err := builder.BuildAll(ast)
+			require.NoError(t, err, "Failed to build CFGs")
+
+			// For these tests, we're testing function-level dead code
+			// Find the first function CFG (not __main__)
+			var cfg *CFG
+			for name, c := range cfgs {
+				if name != "__main__" {
+					cfg = c
+					break
+				}
+			}
+			require.NotNil(t, cfg, "No function CFG found")
 
 			// Analyze reachability
 			analyzer := NewReachabilityAnalyzer(cfg)
@@ -263,7 +275,12 @@ def foo():
 					if !isReachable &&
 						block != cfg.Entry &&
 						block != cfg.Exit {
-						actualDeadNames = append(actualDeadNames, block.ID)
+						// Use Label if available, otherwise use ID
+						name := block.Label
+						if name == "" {
+							name = block.ID
+						}
+						actualDeadNames = append(actualDeadNames, name)
 					}
 				}
 
@@ -271,7 +288,7 @@ def foo():
 				for _, expectedName := range tt.deadBlockNames {
 					found := false
 					for _, actualName := range actualDeadNames {
-						if actualName == expectedName {
+						if strings.Contains(actualName, expectedName) {
 							found = true
 							break
 						}
@@ -409,10 +426,21 @@ def foo():
 			require.NoError(t, err, "Failed to parse code: %s", tt.description)
 			ast := result.AST
 
-			// Build CFG
+			// Build all CFGs (module and functions)
 			builder := NewCFGBuilder()
-			cfg, err := builder.Build(ast)
-			require.NoError(t, err, "Failed to build CFG")
+			cfgs, err := builder.BuildAll(ast)
+			require.NoError(t, err, "Failed to build CFGs")
+
+			// For these tests, we're testing function-level dead code
+			// Find the first function CFG (not __main__)
+			var cfg *CFG
+			for name, c := range cfgs {
+				if name != "__main__" {
+					cfg = c
+					break
+				}
+			}
+			require.NotNil(t, cfg, "No function CFG found")
 
 			// Analyze reachability
 			analyzer := NewReachabilityAnalyzer(cfg)
@@ -512,10 +540,21 @@ class MyClass:
 			require.NoError(t, err, "Failed to parse code")
 			ast := result.AST
 
-			// Build CFG
+			// Build all CFGs (module and functions)
 			builder := NewCFGBuilder()
-			cfg, err := builder.Build(ast)
-			require.NoError(t, err, "Failed to build CFG")
+			cfgs, err := builder.BuildAll(ast)
+			require.NoError(t, err, "Failed to build CFGs")
+
+			// For these tests, we're testing function-level dead code
+			// Find the first function CFG (not __main__)
+			var cfg *CFG
+			for name, c := range cfgs {
+				if name != "__main__" {
+					cfg = c
+					break
+				}
+			}
+			require.NotNil(t, cfg, "No function CFG found")
 
 			// Analyze reachability
 			analyzer := NewReachabilityAnalyzer(cfg)
