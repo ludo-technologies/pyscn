@@ -492,10 +492,27 @@ def nested_returns():
 			require.NoError(t, err)
 			ast := result.AST
 
-			// Build CFG
+			// Build all CFGs
 			builder := NewCFGBuilder()
-			cfg, err := builder.Build(ast)
+			cfgs, err := builder.BuildAll(ast)
 			require.NoError(t, err)
+			
+			// Get appropriate CFG based on test case
+			var cfg *CFG
+			if tc.name == "OnlyReturns" || tc.name == "NestedReturns" {
+				// These tests define functions, get the function CFG
+				for name, c := range cfgs {
+					if name != "__main__" {
+						cfg = c
+						break
+					}
+				}
+				require.NotNil(t, cfg, "Failed to find function CFG")
+			} else {
+				// Module-level tests
+				cfg = cfgs["__main__"]
+				require.NotNil(t, cfg, "Failed to find main CFG")
+			}
 
 			// Run specific checks
 			tc.checkFunc(t, cfg)
