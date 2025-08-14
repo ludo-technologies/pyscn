@@ -499,7 +499,7 @@ def nested_returns():
 			builder := NewCFGBuilder()
 			cfgs, err := builder.BuildAll(ast)
 			require.NoError(t, err)
-			
+
 			// Get appropriate CFG based on test case
 			var cfg *CFG
 			if tc.name == "OnlyReturns" || tc.name == "NestedReturns" {
