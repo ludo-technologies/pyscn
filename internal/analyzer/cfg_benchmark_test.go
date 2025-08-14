@@ -148,7 +148,7 @@ def simple():
 			setupCFG: func() *CFG {
 				// Create a CFG with many blocks
 				cfg := NewCFG("many_blocks")
-				
+
 				// Create 1000 blocks in a linear chain
 				prev := cfg.Entry
 				for i := 0; i < 1000; i++ {
@@ -157,7 +157,7 @@ def simple():
 					prev = block
 				}
 				cfg.ConnectBlocks(prev, cfg.Exit, EdgeNormal)
-				
+
 				return cfg
 			},
 		},
@@ -166,14 +166,14 @@ def simple():
 			setupCFG: func() *CFG {
 				// Create a CFG with wide branching
 				cfg := NewCFG("wide_branches")
-				
+
 				// Create many branches from entry
 				for i := 0; i < 100; i++ {
 					block := cfg.CreateBlock("branch_" + string(rune('0'+i%10)))
 					cfg.ConnectBlocks(cfg.Entry, block, EdgeNormal)
 					cfg.ConnectBlocks(block, cfg.Exit, EdgeNormal)
 				}
-				
+
 				return cfg
 			},
 		},
@@ -182,7 +182,7 @@ def simple():
 	for _, tc := range testCases {
 		b.Run(tc.name, func(b *testing.B) {
 			cfg := tc.setupCFG()
-			
+
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				analyzer := NewReachabilityAnalyzer(cfg)
@@ -199,13 +199,13 @@ def simple():
 func BenchmarkCFGOperations(b *testing.B) {
 	// Setup a medium-sized CFG
 	cfg := NewCFG("benchmark_cfg")
-	
+
 	// Create 100 blocks
 	blocks := make([]*BasicBlock, 100)
 	for i := 0; i < 100; i++ {
 		blocks[i] = cfg.CreateBlock("block_" + string(rune('A'+i%26)))
 	}
-	
+
 	// Connect them in a complex pattern
 	for i := 0; i < 99; i++ {
 		cfg.ConnectBlocks(blocks[i], blocks[i+1], EdgeNormal)
@@ -213,7 +213,7 @@ func BenchmarkCFGOperations(b *testing.B) {
 			cfg.ConnectBlocks(blocks[i], blocks[i+10], EdgeCondTrue)
 		}
 	}
-	
+
 	b.Run("CFGSize", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			size := cfg.Size()
@@ -222,18 +222,18 @@ func BenchmarkCFGOperations(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("CFGWalk", func(b *testing.B) {
 		visitor := &testVisitor{
 			onBlock: func(b *BasicBlock) bool { return true },
 			onEdge:  func(e *Edge) bool { return true },
 		}
-		
+
 		for i := 0; i < b.N; i++ {
 			cfg.Walk(visitor)
 		}
 	})
-	
+
 	b.Run("CFGString", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			str := cfg.String()
@@ -254,7 +254,7 @@ func BenchmarkCFGMemoryUsage(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("MediumCFG", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			cfg := NewCFG("medium")
@@ -263,7 +263,7 @@ func BenchmarkCFGMemoryUsage(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("LargeCFG", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			cfg := NewCFG("large")
@@ -277,11 +277,11 @@ func BenchmarkCFGMemoryUsage(b *testing.B) {
 // BenchmarkCFGBuilderScalability tests scalability with different code sizes
 func BenchmarkCFGBuilderScalability(b *testing.B) {
 	sizes := []int{10, 50, 100, 200, 500}
-	
+
 	for _, size := range sizes {
 		b.Run("LinearCode_"+string(rune('0'+size/100)), func(b *testing.B) {
 			code := generateLargeLinearFunction(size)
-			
+
 			// Parse once
 			p := parser.New()
 			ctx := context.Background()
@@ -290,7 +290,7 @@ func BenchmarkCFGBuilderScalability(b *testing.B) {
 				b.Fatalf("Failed to parse: %v", err)
 			}
 			ast := result.AST
-			
+
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				builder := NewCFGBuilder()
@@ -303,10 +303,10 @@ func BenchmarkCFGBuilderScalability(b *testing.B) {
 				}
 			}
 		})
-		
+
 		b.Run("ComplexCode_"+string(rune('0'+size/100)), func(b *testing.B) {
 			code := generateComplexFunction(size)
-			
+
 			// Parse once
 			p := parser.New()
 			ctx := context.Background()
@@ -315,7 +315,7 @@ func BenchmarkCFGBuilderScalability(b *testing.B) {
 				b.Fatalf("Failed to parse: %v", err)
 			}
 			ast := result.AST
-			
+
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				builder := NewCFGBuilder()
@@ -341,24 +341,24 @@ func buildCFGFromCode(b *testing.B, code string) *CFG {
 		b.Fatalf("Failed to parse: %v", err)
 	}
 	ast := result.AST
-	
+
 	builder := NewCFGBuilder()
 	cfg, err := builder.Build(ast)
 	if err != nil {
 		b.Fatalf("Failed to build CFG: %v", err)
 	}
-	
+
 	return cfg
 }
 
 func generateComplexFunction(statements int) string {
 	var builder strings.Builder
 	builder.WriteString("def complex_function(x):\n")
-	
+
 	// Add some initialization
 	builder.WriteString("    result = 0\n")
 	builder.WriteString("    temp = x\n")
-	
+
 	// Add nested control structures
 	for i := 0; i < statements/10; i++ {
 		builder.WriteString("    if temp > ")
@@ -375,7 +375,7 @@ func generateComplexFunction(statements int) string {
 		builder.WriteString("    else:\n")
 		builder.WriteString("        result += temp\n")
 	}
-	
+
 	// Add some linear statements
 	for i := 0; i < statements%10; i++ {
 		builder.WriteString("    var")
@@ -384,7 +384,7 @@ func generateComplexFunction(statements int) string {
 		builder.WriteString(string(rune('0' + i)))
 		builder.WriteString("\n")
 	}
-	
+
 	builder.WriteString("    return result\n")
 	return builder.String()
 }
@@ -392,7 +392,7 @@ func generateComplexFunction(statements int) string {
 func generateLargeLinearFunction(statements int) string {
 	var builder strings.Builder
 	builder.WriteString("def large_linear_function():\n")
-	
+
 	for i := 0; i < statements; i++ {
 		builder.WriteString("    var")
 		builder.WriteString(string(rune('a' + i%26)))
@@ -400,7 +400,7 @@ func generateLargeLinearFunction(statements int) string {
 		builder.WriteString(string(rune('0' + i%10)))
 		builder.WriteString("\n")
 	}
-	
+
 	builder.WriteString("    return var")
 	builder.WriteString(string(rune('a' + (statements-1)%26)))
 	builder.WriteString("\n")
@@ -503,7 +503,7 @@ def log_errors(errors):
 			}
 		}
 	})
-	
+
 	b.Run("RealWorldCFGBuild", func(b *testing.B) {
 		// Parse once
 		p := parser.New()
@@ -513,7 +513,7 @@ def log_errors(errors):
 			b.Fatalf("Failed to parse: %v", err)
 		}
 		ast := result.AST
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			builder := NewCFGBuilder()
@@ -526,7 +526,7 @@ def log_errors(errors):
 			}
 		}
 	})
-	
+
 	b.Run("RealWorldReachability", func(b *testing.B) {
 		// Parse and build once
 		p := parser.New()
@@ -536,13 +536,13 @@ def log_errors(errors):
 			b.Fatalf("Failed to parse: %v", err)
 		}
 		ast := result.AST
-		
+
 		builder := NewCFGBuilder()
 		cfg, err := builder.Build(ast)
 		if err != nil {
 			b.Fatalf("Failed to build CFG: %v", err)
 		}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			analyzer := NewReachabilityAnalyzer(cfg)

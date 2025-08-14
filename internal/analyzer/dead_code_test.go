@@ -243,16 +243,16 @@ def foo():
 			deadCount := 0
 			for _, block := range cfg.Blocks {
 				_, isReachable := reachResult.ReachableBlocks[block.ID]
-				if !isReachable && 
-				   block != cfg.Entry && 
-				   block != cfg.Exit &&
-				   len(block.Statements) > 0 {
+				if !isReachable &&
+					block != cfg.Entry &&
+					block != cfg.Exit &&
+					len(block.Statements) > 0 {
 					deadCount++
 				}
 			}
 
 			// Check dead code count
-			assert.Equal(t, tt.expectedDead, deadCount, 
+			assert.Equal(t, tt.expectedDead, deadCount,
 				"Expected %d dead blocks, got %d", tt.expectedDead, deadCount)
 
 			// If specific block names are expected, verify them
@@ -260,13 +260,13 @@ def foo():
 				var actualDeadNames []string
 				for _, block := range cfg.Blocks {
 					_, isReachable := reachResult.ReachableBlocks[block.ID]
-					if !isReachable && 
-					   block != cfg.Entry && 
-					   block != cfg.Exit {
+					if !isReachable &&
+						block != cfg.Entry &&
+						block != cfg.Exit {
 						actualDeadNames = append(actualDeadNames, block.ID)
 					}
 				}
-				
+
 				// Check that expected dead blocks are present
 				for _, expectedName := range tt.deadBlockNames {
 					found := false
@@ -313,22 +313,22 @@ def function_with_dead_code():
 
 	// Get unreachable blocks with statements
 	unreachableBlocks := reachResult.GetUnreachableBlocksWithStatements()
-	
+
 	// Should have at least 2 unreachable blocks with statements
-	assert.GreaterOrEqual(t, len(unreachableBlocks), 2, 
+	assert.GreaterOrEqual(t, len(unreachableBlocks), 2,
 		"Expected at least 2 unreachable blocks with statements")
 
 	// Check that HasUnreachableCode returns true
-	assert.True(t, reachResult.HasUnreachableCode(), 
+	assert.True(t, reachResult.HasUnreachableCode(),
 		"HasUnreachableCode should return true for code with dead blocks")
 }
 
 func TestDeadCodeInExceptionHandling(t *testing.T) {
 	tests := []struct {
-		name         string
-		code         string
-		expectDead   bool
-		description  string
+		name        string
+		code        string
+		expectDead  bool
+		description string
 	}{
 		{
 			name: "DeadAfterReturnInTry",
@@ -432,8 +432,8 @@ func TestDeadCodeEdgeCases(t *testing.T) {
 		shouldPass bool
 	}{
 		{
-			name: "EmptyModule",
-			code: ``,
+			name:       "EmptyModule",
+			code:       ``,
 			shouldPass: true,
 		},
 		{
@@ -503,12 +503,12 @@ class MyClass:
 			p := parser.New()
 			ctx := context.Background()
 			result, err := p.Parse(ctx, []byte(tt.code))
-			
+
 			if !tt.shouldPass {
 				assert.Error(t, err, "Expected parsing to fail")
 				return
 			}
-			
+
 			require.NoError(t, err, "Failed to parse code")
 			ast := result.AST
 
@@ -520,7 +520,7 @@ class MyClass:
 			// Analyze reachability
 			analyzer := NewReachabilityAnalyzer(cfg)
 			reachResult := analyzer.AnalyzeReachability()
-			
+
 			// Just ensure analysis completes without panic
 			_ = reachResult.HasUnreachableCode()
 		})
