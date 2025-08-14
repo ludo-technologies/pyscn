@@ -225,7 +225,7 @@ func createComplexCFG(size int) *CFG {
 		return cfg
 	}
 
-	rand.Seed(42) // Consistent random generation
+	rng := rand.New(rand.NewSource(42)) // Consistent random generation
 	blocks := make([]*BasicBlock, 0, size)
 
 	// Create blocks
@@ -243,7 +243,7 @@ func createComplexCFG(size int) *CFG {
 
 	// Create complex connections
 	for i, block := range blocks {
-		numSuccessors := rand.Intn(3) + 1 // 1-3 successors
+		numSuccessors := rng.Intn(3) + 1 // 1-3 successors
 
 		for j := 0; j < numSuccessors && j < 3; j++ {
 			var target *BasicBlock
@@ -255,7 +255,7 @@ func createComplexCFG(size int) *CFG {
 				// Random forward connection (avoid creating too many cycles)
 				maxTarget := min(i+10, len(blocks)-1)
 				if maxTarget > i {
-					targetIdx := i + 1 + rand.Intn(maxTarget-i)
+					targetIdx := i + 1 + rng.Intn(maxTarget-i)
 					target = blocks[targetIdx]
 				} else {
 					target = cfg.Exit
@@ -286,8 +286,8 @@ func createComplexCFG(size int) *CFG {
 		}
 
 		// Occasionally create a loop back
-		if i > 5 && rand.Float64() < 0.1 {
-			backTarget := blocks[rand.Intn(i)]
+		if i > 5 && rng.Float64() < 0.1 {
+			backTarget := blocks[rng.Intn(i)]
 			// Check if back edge already exists
 			exists := false
 			for _, existingEdge := range block.Successors {
