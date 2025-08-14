@@ -19,14 +19,14 @@ func TestCFGEdgeCases(t *testing.T) {
 		description string
 	}{
 		{
-			name: "NilInput",
-			code: "",
+			name:        "NilInput",
+			code:        "",
 			expectError: false,
 			description: "Empty input should be handled gracefully",
 		},
 		{
-			name: "OnlyWhitespace",
-			code: "   \n\t  \n   ",
+			name:        "OnlyWhitespace",
+			code:        "   \n\t  \n   ",
 			expectError: false,
 			description: "Whitespace-only input should be handled",
 		},
@@ -41,14 +41,14 @@ func TestCFGEdgeCases(t *testing.T) {
 			description: "Comment-only files should be handled",
 		},
 		{
-			name: "SinglePass",
-			code: "pass",
+			name:        "SinglePass",
+			code:        "pass",
 			expectError: false,
 			description: "Single pass statement should work",
 		},
 		{
-			name: "SingleReturn",
-			code: "return 42",
+			name:        "SingleReturn",
+			code:        "return 42",
 			expectError: false,
 			description: "Single return statement should work",
 		},
@@ -92,14 +92,14 @@ def deeply_nested():
 			description: "Deeply nested structures should not cause stack overflow",
 		},
 		{
-			name: "LargeNumberOfVariables",
-			code: generateLargeVariableCode(100),
+			name:        "LargeNumberOfVariables",
+			code:        generateLargeVariableCode(100),
 			expectError: false,
 			description: "Large number of variables should be handled",
 		},
 		{
-			name: "ManySequentialStatements",
-			code: generateSequentialStatements(100),
+			name:        "ManySequentialStatements",
+			code:        generateSequentialStatements(100),
 			expectError: false,
 			description: "Many sequential statements should be handled",
 		},
@@ -185,24 +185,24 @@ def this_is_a_very_long_function_name_that_exceeds_normal_length_limits_and_shou
 			p := parser.New()
 			ctx := context.Background()
 			result, err := p.Parse(ctx, []byte(tc.code))
-			
+
 			if tc.expectError {
 				assert.Error(t, err, tc.description)
 				return
 			}
-			
+
 			require.NoError(t, err, "Parse failed: %s", tc.description)
 			ast := result.AST
 
 			// Build CFG
 			builder := NewCFGBuilder()
 			cfg, err := builder.Build(ast)
-			
+
 			if tc.expectError {
 				assert.Error(t, err, tc.description)
 				return
 			}
-			
+
 			require.NoError(t, err, "CFG build failed: %s", tc.description)
 
 			// Basic validation
@@ -214,11 +214,11 @@ def this_is_a_very_long_function_name_that_exceeds_normal_length_limits_and_shou
 			// Test reachability analysis
 			analyzer := NewReachabilityAnalyzer(cfg)
 			reachResult := analyzer.AnalyzeReachability()
-			
+
 			// Entry should always be reachable
 			_, entryReachable := reachResult.ReachableBlocks[cfg.Entry.ID]
 			assert.True(t, entryReachable, "Entry should be reachable")
-			
+
 			// Reachability ratio should be valid
 			ratio := reachResult.GetReachabilityRatio()
 			assert.GreaterOrEqual(t, ratio, 0.0, "Ratio should be >= 0")
@@ -247,7 +247,7 @@ func TestCFGErrorRecovery(t *testing.T) {
 			name: "MultipleBuilds",
 			setupFunc: func() (*CFGBuilder, error) {
 				builder := NewCFGBuilder()
-				
+
 				// Parse simple code
 				p := parser.New()
 				ctx := context.Background()
@@ -256,20 +256,20 @@ func TestCFGErrorRecovery(t *testing.T) {
 					return builder, err
 				}
 				ast1 := result1.AST
-				
+
 				// Build first CFG
 				_, err = builder.Build(ast1)
 				if err != nil {
 					return builder, err
 				}
-				
+
 				// Build second CFG with same builder
 				result2, err := p.Parse(ctx, []byte("y = 2"))
 				if err != nil {
 					return builder, err
 				}
 				ast2 := result2.AST
-				
+
 				_, err = builder.Build(ast2)
 				return builder, err
 			},
@@ -280,14 +280,14 @@ func TestCFGErrorRecovery(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			builder, err := tc.setupFunc()
-			
+
 			// For error recovery tests, we expect some to fail gracefully
 			if tc.name == "BuilderWithNilAST" {
 				assert.Error(t, err, tc.description)
 			} else {
 				assert.NoError(t, err, tc.description)
 			}
-			
+
 			assert.NotNil(t, builder, "Builder should not be nil")
 		})
 	}
@@ -322,7 +322,7 @@ def memory_test():
 
 	// Verify CFG structure is reasonable
 	assert.LessOrEqual(t, cfg.Size(), 20, "CFG should not have excessive blocks")
-	
+
 	// Verify no circular references in basic structure
 	visited := make(map[*BasicBlock]bool)
 	var checkCircular func(*BasicBlock, map[*BasicBlock]bool) bool
@@ -333,20 +333,20 @@ def memory_test():
 		if visited[block] {
 			return false // Already checked this path
 		}
-		
+
 		visited[block] = true
 		path[block] = true
-		
+
 		for _, edge := range block.Successors {
 			if checkCircular(edge.To, path) {
 				return true
 			}
 		}
-		
+
 		delete(path, block)
 		return false
 	}
-	
+
 	// Note: Cycles are expected in CFGs (loops), so this test is more about
 	// ensuring we don't have infinite recursion in our data structures
 	checkCircular(cfg.Entry, make(map[*BasicBlock]bool))
@@ -380,10 +380,10 @@ def concurrent_test():
 	// Note: This is a basic test - proper concurrency testing would need more sophisticated setup
 	analyzer1 := NewReachabilityAnalyzer(cfg)
 	analyzer2 := NewReachabilityAnalyzer(cfg)
-	
+
 	result1 := analyzer1.AnalyzeReachability()
 	result2 := analyzer2.AnalyzeReachability()
-	
+
 	// Results should be the same
 	assert.Equal(t, len(result1.ReachableBlocks), len(result2.ReachableBlocks),
 		"Concurrent analysis should produce same results")
@@ -394,7 +394,7 @@ def concurrent_test():
 func generateLargeVariableCode(count int) string {
 	var builder strings.Builder
 	builder.WriteString("def large_vars():\n")
-	
+
 	for i := 0; i < count; i++ {
 		builder.WriteString("    var")
 		builder.WriteString(strings.Repeat("_", i%10))
@@ -402,7 +402,7 @@ func generateLargeVariableCode(count int) string {
 		builder.WriteString(string(rune('0' + (i % 10))))
 		builder.WriteString("\n")
 	}
-	
+
 	builder.WriteString("    return var0\n")
 	return builder.String()
 }
@@ -410,13 +410,13 @@ func generateLargeVariableCode(count int) string {
 func generateSequentialStatements(count int) string {
 	var builder strings.Builder
 	builder.WriteString("def sequential():\n")
-	
+
 	for i := 0; i < count; i++ {
 		builder.WriteString("    x = ")
 		builder.WriteString(string(rune('0' + (i % 10))))
 		builder.WriteString("\n")
 	}
-	
+
 	builder.WriteString("    return x\n")
 	return builder.String()
 }
@@ -424,8 +424,8 @@ func generateSequentialStatements(count int) string {
 // TestCFGBoundaryConditions tests specific boundary conditions
 func TestCFGBoundaryConditions(t *testing.T) {
 	testCases := []struct {
-		name string
-		code string
+		name      string
+		code      string
 		checkFunc func(t *testing.T, cfg *CFG)
 	}{
 		{

@@ -8,77 +8,77 @@ type NodeType string
 // Python AST node types
 const (
 	// Module and structure
-	NodeModule     NodeType = "Module"
+	NodeModule      NodeType = "Module"
 	NodeInteractive NodeType = "Interactive"
-	NodeExpression NodeType = "Expression"
-	NodeSuite      NodeType = "Suite"
+	NodeExpression  NodeType = "Expression"
+	NodeSuite       NodeType = "Suite"
 
 	// Statements
-	NodeFunctionDef    NodeType = "FunctionDef"
+	NodeFunctionDef      NodeType = "FunctionDef"
 	NodeAsyncFunctionDef NodeType = "AsyncFunctionDef"
-	NodeClassDef       NodeType = "ClassDef"
-	NodeReturn         NodeType = "Return"
-	NodeDelete         NodeType = "Delete"
-	NodeAssign         NodeType = "Assign"
-	NodeAugAssign      NodeType = "AugAssign"
-	NodeAnnAssign      NodeType = "AnnAssign"
-	NodeFor            NodeType = "For"
-	NodeAsyncFor       NodeType = "AsyncFor"
-	NodeWhile          NodeType = "While"
-	NodeIf             NodeType = "If"
-	NodeWith           NodeType = "With"
-	NodeAsyncWith      NodeType = "AsyncWith"
-	NodeMatch          NodeType = "Match"
-	NodeRaise          NodeType = "Raise"
-	NodeTry            NodeType = "Try"
-	NodeAssert         NodeType = "Assert"
-	NodeImport         NodeType = "Import"
-	NodeImportFrom     NodeType = "ImportFrom"
-	NodeGlobal         NodeType = "Global"
-	NodeNonlocal       NodeType = "Nonlocal"
-	NodeExpr           NodeType = "Expr"
-	NodePass           NodeType = "Pass"
-	NodeBreak          NodeType = "Break"
-	NodeContinue       NodeType = "Continue"
+	NodeClassDef         NodeType = "ClassDef"
+	NodeReturn           NodeType = "Return"
+	NodeDelete           NodeType = "Delete"
+	NodeAssign           NodeType = "Assign"
+	NodeAugAssign        NodeType = "AugAssign"
+	NodeAnnAssign        NodeType = "AnnAssign"
+	NodeFor              NodeType = "For"
+	NodeAsyncFor         NodeType = "AsyncFor"
+	NodeWhile            NodeType = "While"
+	NodeIf               NodeType = "If"
+	NodeWith             NodeType = "With"
+	NodeAsyncWith        NodeType = "AsyncWith"
+	NodeMatch            NodeType = "Match"
+	NodeRaise            NodeType = "Raise"
+	NodeTry              NodeType = "Try"
+	NodeAssert           NodeType = "Assert"
+	NodeImport           NodeType = "Import"
+	NodeImportFrom       NodeType = "ImportFrom"
+	NodeGlobal           NodeType = "Global"
+	NodeNonlocal         NodeType = "Nonlocal"
+	NodeExpr             NodeType = "Expr"
+	NodePass             NodeType = "Pass"
+	NodeBreak            NodeType = "Break"
+	NodeContinue         NodeType = "Continue"
 
 	// Expressions
-	NodeBoolOp        NodeType = "BoolOp"
-	NodeNamedExpr     NodeType = "NamedExpr"
-	NodeBinOp         NodeType = "BinOp"
-	NodeUnaryOp       NodeType = "UnaryOp"
-	NodeLambda        NodeType = "Lambda"
-	NodeIfExp         NodeType = "IfExp"
-	NodeDict          NodeType = "Dict"
-	NodeSet           NodeType = "Set"
-	NodeListComp      NodeType = "ListComp"
-	NodeSetComp       NodeType = "SetComp"
-	NodeDictComp      NodeType = "DictComp"
-	NodeGeneratorExp  NodeType = "GeneratorExp"
-	NodeAwait         NodeType = "Await"
-	NodeYield         NodeType = "Yield"
-	NodeYieldFrom     NodeType = "YieldFrom"
-	NodeCompare       NodeType = "Compare"
-	NodeCall          NodeType = "Call"
+	NodeBoolOp         NodeType = "BoolOp"
+	NodeNamedExpr      NodeType = "NamedExpr"
+	NodeBinOp          NodeType = "BinOp"
+	NodeUnaryOp        NodeType = "UnaryOp"
+	NodeLambda         NodeType = "Lambda"
+	NodeIfExp          NodeType = "IfExp"
+	NodeDict           NodeType = "Dict"
+	NodeSet            NodeType = "Set"
+	NodeListComp       NodeType = "ListComp"
+	NodeSetComp        NodeType = "SetComp"
+	NodeDictComp       NodeType = "DictComp"
+	NodeGeneratorExp   NodeType = "GeneratorExp"
+	NodeAwait          NodeType = "Await"
+	NodeYield          NodeType = "Yield"
+	NodeYieldFrom      NodeType = "YieldFrom"
+	NodeCompare        NodeType = "Compare"
+	NodeCall           NodeType = "Call"
 	NodeFormattedValue NodeType = "FormattedValue"
-	NodeJoinedStr     NodeType = "JoinedStr"
-	NodeConstant      NodeType = "Constant"
-	NodeAttribute     NodeType = "Attribute"
-	NodeSubscript     NodeType = "Subscript"
-	NodeStarred       NodeType = "Starred"
-	NodeName          NodeType = "Name"
-	NodeList          NodeType = "List"
-	NodeTuple         NodeType = "Tuple"
-	NodeSlice         NodeType = "Slice"
+	NodeJoinedStr      NodeType = "JoinedStr"
+	NodeConstant       NodeType = "Constant"
+	NodeAttribute      NodeType = "Attribute"
+	NodeSubscript      NodeType = "Subscript"
+	NodeStarred        NodeType = "Starred"
+	NodeName           NodeType = "Name"
+	NodeList           NodeType = "List"
+	NodeTuple          NodeType = "Tuple"
+	NodeSlice          NodeType = "Slice"
 
 	// Patterns (for match statements)
-	NodeMatchValue    NodeType = "MatchValue"
+	NodeMatchValue     NodeType = "MatchValue"
 	NodeMatchSingleton NodeType = "MatchSingleton"
-	NodeMatchSequence NodeType = "MatchSequence"
-	NodeMatchMapping  NodeType = "MatchMapping"
-	NodeMatchClass    NodeType = "MatchClass"
-	NodeMatchStar     NodeType = "MatchStar"
-	NodeMatchAs       NodeType = "MatchAs"
-	NodeMatchOr       NodeType = "MatchOr"
+	NodeMatchSequence  NodeType = "MatchSequence"
+	NodeMatchMapping   NodeType = "MatchMapping"
+	NodeMatchClass     NodeType = "MatchClass"
+	NodeMatchStar      NodeType = "MatchStar"
+	NodeMatchAs        NodeType = "MatchAs"
+	NodeMatchOr        NodeType = "MatchOr"
 
 	// Other
 	NodeAlias         NodeType = "Alias"
@@ -110,24 +110,24 @@ type Node struct {
 	Parent   *Node
 
 	// Additional fields for specific node types
-	Name       string   // For function/class definitions, variables
-	Targets    []*Node  // For assignments
-	Body       []*Node  // For compound statements
-	Orelse     []*Node  // For if/for/while/try statements
-	Finalbody  []*Node  // For try statements
-	Handlers   []*Node  // For try statements
-	Test       *Node    // For if/while statements
-	Iter       *Node    // For for loops
-	Args       []*Node  // For function calls
-	Keywords   []*Node  // For function calls
-	Decorator  []*Node  // For decorated functions/classes
-	Bases      []*Node  // For class definitions
-	Left       *Node    // For binary operations
-	Right      *Node    // For binary operations
-	Op         string   // For operations
-	Module     string   // For imports
-	Names      []string // For imports
-	Level      int      // For relative imports
+	Name      string   // For function/class definitions, variables
+	Targets   []*Node  // For assignments
+	Body      []*Node  // For compound statements
+	Orelse    []*Node  // For if/for/while/try statements
+	Finalbody []*Node  // For try statements
+	Handlers  []*Node  // For try statements
+	Test      *Node    // For if/while statements
+	Iter      *Node    // For for loops
+	Args      []*Node  // For function calls
+	Keywords  []*Node  // For function calls
+	Decorator []*Node  // For decorated functions/classes
+	Bases     []*Node  // For class definitions
+	Left      *Node    // For binary operations
+	Right     *Node    // For binary operations
+	Op        string   // For operations
+	Module    string   // For imports
+	Names     []string // For imports
+	Level     int      // For relative imports
 }
 
 // NewNode creates a new AST node
@@ -167,7 +167,7 @@ func (n *Node) GetChildren() []*Node {
 	allChildren = append(allChildren, n.Orelse...)
 	allChildren = append(allChildren, n.Finalbody...)
 	allChildren = append(allChildren, n.Handlers...)
-	
+
 	if n.Test != nil {
 		allChildren = append(allChildren, n.Test)
 	}
@@ -180,13 +180,13 @@ func (n *Node) GetChildren() []*Node {
 	if n.Right != nil {
 		allChildren = append(allChildren, n.Right)
 	}
-	
+
 	allChildren = append(allChildren, n.Targets...)
 	allChildren = append(allChildren, n.Args...)
 	allChildren = append(allChildren, n.Keywords...)
 	allChildren = append(allChildren, n.Decorator...)
 	allChildren = append(allChildren, n.Bases...)
-	
+
 	return allChildren
 }
 
@@ -246,7 +246,7 @@ func (n *Node) Walk(visitor func(*Node) bool) {
 	if !visitor(n) {
 		return
 	}
-	
+
 	for _, child := range n.GetChildren() {
 		if child != nil {
 			child.Walk(visitor)
@@ -290,7 +290,7 @@ func (n *Node) Copy() *Node {
 	if n == nil {
 		return nil
 	}
-	
+
 	copied := &Node{
 		Type:     n.Type,
 		Value:    n.Value,
@@ -301,7 +301,7 @@ func (n *Node) Copy() *Node {
 		Names:    append([]string{}, n.Names...),
 		Level:    n.Level,
 	}
-	
+
 	// Copy children
 	for _, child := range n.Children {
 		if child != nil {
@@ -310,7 +310,7 @@ func (n *Node) Copy() *Node {
 			copied.Children = append(copied.Children, copiedChild)
 		}
 	}
-	
+
 	// Copy body
 	for _, node := range n.Body {
 		if node != nil {
@@ -319,7 +319,7 @@ func (n *Node) Copy() *Node {
 			copied.Body = append(copied.Body, copiedNode)
 		}
 	}
-	
+
 	// Copy other fields
 	for _, node := range n.Orelse {
 		if node != nil {
@@ -328,7 +328,7 @@ func (n *Node) Copy() *Node {
 			copied.Orelse = append(copied.Orelse, copiedNode)
 		}
 	}
-	
+
 	for _, node := range n.Finalbody {
 		if node != nil {
 			copiedNode := node.Copy()
@@ -336,7 +336,7 @@ func (n *Node) Copy() *Node {
 			copied.Finalbody = append(copied.Finalbody, copiedNode)
 		}
 	}
-	
+
 	for _, node := range n.Handlers {
 		if node != nil {
 			copiedNode := node.Copy()
@@ -344,27 +344,27 @@ func (n *Node) Copy() *Node {
 			copied.Handlers = append(copied.Handlers, copiedNode)
 		}
 	}
-	
+
 	if n.Test != nil {
 		copied.Test = n.Test.Copy()
 		copied.Test.Parent = copied
 	}
-	
+
 	if n.Iter != nil {
 		copied.Iter = n.Iter.Copy()
 		copied.Iter.Parent = copied
 	}
-	
+
 	if n.Left != nil {
 		copied.Left = n.Left.Copy()
 		copied.Left.Parent = copied
 	}
-	
+
 	if n.Right != nil {
 		copied.Right = n.Right.Copy()
 		copied.Right.Parent = copied
 	}
-	
+
 	for _, node := range n.Targets {
 		if node != nil {
 			copiedNode := node.Copy()
@@ -372,7 +372,7 @@ func (n *Node) Copy() *Node {
 			copied.Targets = append(copied.Targets, copiedNode)
 		}
 	}
-	
+
 	for _, node := range n.Args {
 		if node != nil {
 			copiedNode := node.Copy()
@@ -380,7 +380,7 @@ func (n *Node) Copy() *Node {
 			copied.Args = append(copied.Args, copiedNode)
 		}
 	}
-	
+
 	for _, node := range n.Keywords {
 		if node != nil {
 			copiedNode := node.Copy()
@@ -388,7 +388,7 @@ func (n *Node) Copy() *Node {
 			copied.Keywords = append(copied.Keywords, copiedNode)
 		}
 	}
-	
+
 	for _, node := range n.Decorator {
 		if node != nil {
 			copiedNode := node.Copy()
@@ -396,7 +396,7 @@ func (n *Node) Copy() *Node {
 			copied.Decorator = append(copied.Decorator, copiedNode)
 		}
 	}
-	
+
 	for _, node := range n.Bases {
 		if node != nil {
 			copiedNode := node.Copy()
@@ -404,6 +404,6 @@ func (n *Node) Copy() *Node {
 			copied.Bases = append(copied.Bases, copiedNode)
 		}
 	}
-	
+
 	return copied
 }

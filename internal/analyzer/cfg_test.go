@@ -3,7 +3,7 @@ package analyzer
 import (
 	"strings"
 	"testing"
-	
+
 	"github.com/pyqol/pyqol/internal/parser"
 )
 
@@ -505,18 +505,18 @@ func TestCFGString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := NewCFG(tt.cfgName)
-			
+
 			// Add blocks
 			for i := 0; i < tt.blocks; i++ {
 				cfg.CreateBlock(string(rune('A' + i)))
 			}
-			
+
 			// Test String() method
 			result := cfg.String()
 			if result != tt.expected {
 				t.Errorf("String() = %q, want %q", result, tt.expected)
 			}
-			
+
 			// Verify it contains the name and block count
 			if !strings.Contains(result, tt.cfgName) {
 				t.Errorf("String() should contain CFG name %q", tt.cfgName)

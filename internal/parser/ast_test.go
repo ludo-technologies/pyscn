@@ -172,17 +172,17 @@ from collections import defaultdict`,
 func TestNodeMethods(t *testing.T) {
 	// Create a simple AST structure for testing
 	module := NewNode(NodeModule)
-	
+
 	funcDef := NewNode(NodeFunctionDef)
 	funcDef.Name = "test_func"
 	module.AddToBody(funcDef)
-	
+
 	ifStmt := NewNode(NodeIf)
 	funcDef.AddToBody(ifStmt)
-	
+
 	returnStmt := NewNode(NodeReturn)
 	ifStmt.AddToBody(returnStmt)
-	
+
 	// Test IsStatement
 	if !funcDef.IsStatement() {
 		t.Error("FunctionDef should be a statement")
@@ -190,7 +190,7 @@ func TestNodeMethods(t *testing.T) {
 	if module.IsStatement() {
 		t.Error("Module should not be a statement")
 	}
-	
+
 	// Test IsControlFlow
 	if !ifStmt.IsControlFlow() {
 		t.Error("If should be control flow")
@@ -198,24 +198,24 @@ func TestNodeMethods(t *testing.T) {
 	if funcDef.IsControlFlow() {
 		t.Error("FunctionDef should not be control flow")
 	}
-	
+
 	// Test FindByType
 	functions := module.FindByType(NodeFunctionDef)
 	if len(functions) != 1 {
 		t.Errorf("Expected 1 function, found %d", len(functions))
 	}
-	
+
 	returns := module.FindByType(NodeReturn)
 	if len(returns) != 1 {
 		t.Errorf("Expected 1 return statement, found %d", len(returns))
 	}
-	
+
 	// Test GetParentOfType
 	parent := returnStmt.GetParentOfType(NodeFunctionDef)
 	if parent != funcDef {
 		t.Error("Expected to find parent FunctionDef")
 	}
-	
+
 	// Test Walk
 	nodeCount := 0
 	module.Walk(func(n *Node) bool {
@@ -225,7 +225,7 @@ func TestNodeMethods(t *testing.T) {
 	if nodeCount != 4 { // module, funcDef, ifStmt, returnStmt
 		t.Errorf("Expected 4 nodes in walk, got %d", nodeCount)
 	}
-	
+
 	// Test Copy
 	copied := module.Copy()
 	if copied == module {
@@ -283,49 +283,49 @@ if __name__ == "__main__":
 
 	parser := New()
 	ctx := context.Background()
-	
+
 	result, err := parser.Parse(ctx, []byte(source))
 	if err != nil {
 		t.Fatalf("Failed to parse complex code: %v", err)
 	}
-	
+
 	if result.AST == nil {
 		t.Fatal("AST is nil")
 	}
-	
+
 	// Check module structure
 	if result.AST.Type != NodeModule {
 		t.Errorf("Expected Module, got %s", result.AST.Type)
 	}
-	
+
 	// Find all function definitions
 	functions := result.AST.FindByType(NodeFunctionDef)
 	asyncFunctions := result.AST.FindByType(NodeAsyncFunctionDef)
 	totalFunctions := len(functions) + len(asyncFunctions)
-	
+
 	if totalFunctions < 3 { // __init__, add, multiply, fibonacci, fetch_data
 		t.Errorf("Expected at least 3 functions, found %d", totalFunctions)
 	}
-	
+
 	// Find class definitions
 	classes := result.AST.FindByType(NodeClassDef)
 	if len(classes) != 1 {
 		t.Errorf("Expected 1 class, found %d", len(classes))
 	}
-	
+
 	// Find import statements
 	imports := result.AST.FindByType(NodeImport)
 	importFroms := result.AST.FindByType(NodeImportFrom)
 	if len(imports)+len(importFroms) < 2 {
 		t.Errorf("Expected at least 2 import statements, found %d", len(imports)+len(importFroms))
 	}
-	
+
 	// Find if statements
 	ifStmts := result.AST.FindByType(NodeIf)
 	if len(ifStmts) < 2 { // One in fibonacci, one for __main__
 		t.Errorf("Expected at least 2 if statements, found %d", len(ifStmts))
 	}
-	
+
 	// Find for loops
 	forLoops := result.AST.FindByType(NodeFor)
 	if len(forLoops) < 1 {

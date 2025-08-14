@@ -14,7 +14,7 @@ import (
 // TestCFGIntegrationWithRealFiles tests CFG construction with real Python files
 func TestCFGIntegrationWithRealFiles(t *testing.T) {
 	testdataPath := filepath.Join("..", "..", "testdata", "python")
-	
+
 	// Check if testdata directory exists
 	if _, err := os.Stat(testdataPath); os.IsNotExist(err) {
 		t.Skip("Testdata directory not found, skipping integration tests")
@@ -73,7 +73,7 @@ func TestCFGIntegrationWithRealFiles(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.file, func(t *testing.T) {
 			filePath := filepath.Join(testdataPath, tc.file)
-			
+
 			// Read the file
 			content, err := os.ReadFile(filePath)
 			if err != nil {
@@ -97,12 +97,11 @@ func TestCFGIntegrationWithRealFiles(t *testing.T) {
 				return
 			}
 			ast := result.AST
-			
 
 			// Build CFG
 			builder := NewCFGBuilder()
 			cfg, err := builder.Build(ast)
-			
+
 			if !tc.shouldPass {
 				// For negative tests, CFG building might also fail
 				if err != nil {
@@ -117,24 +116,24 @@ func TestCFGIntegrationWithRealFiles(t *testing.T) {
 			assert.NotNil(t, cfg, "CFG should not be nil")
 			assert.NotNil(t, cfg.Entry, "CFG should have entry block")
 			assert.NotNil(t, cfg.Exit, "CFG should have exit block")
-			
+
 			if tc.minBlocks > 0 {
-				assert.GreaterOrEqual(t, cfg.Size(), tc.minBlocks, 
+				assert.GreaterOrEqual(t, cfg.Size(), tc.minBlocks,
 					"CFG should have at least %d blocks for %s", tc.minBlocks, tc.file)
 			}
 
 			// Test reachability analysis
 			analyzer := NewReachabilityAnalyzer(cfg)
 			reachResult := analyzer.AnalyzeReachability()
-			
+
 			// Entry block should always be reachable
 			_, entryReachable := reachResult.ReachableBlocks[cfg.Entry.ID]
-			assert.True(t, entryReachable, 
+			assert.True(t, entryReachable,
 				"Entry block should be reachable in %s", tc.file)
-			
+
 			// Exit block should be reachable if there are any paths to it
 			// Note: Exit might not be reachable if all paths end with return/raise
-			
+
 			// Reachability ratio should be valid
 			ratio := reachResult.GetReachabilityRatio()
 			assert.GreaterOrEqual(t, ratio, 0.0, "Reachability ratio should be >= 0")
@@ -145,7 +144,7 @@ func TestCFGIntegrationWithRealFiles(t *testing.T) {
 
 func TestCFGPerformanceWithRealFiles(t *testing.T) {
 	testdataPath := filepath.Join("..", "..", "testdata", "python")
-	
+
 	// Check if testdata directory exists
 	if _, err := os.Stat(testdataPath); os.IsNotExist(err) {
 		t.Skip("Testdata directory not found, skipping performance tests")
@@ -201,13 +200,13 @@ func TestCFGPerformanceWithRealFiles(t *testing.T) {
 			// Basic performance checks
 			// For files under 50KB, CFG should build quickly
 			assert.NotNil(t, cfg, "CFG should be built for %s", file)
-			
+
 			// Verify CFG is reasonable size (not exponentially large)
 			lineCount := len(content) / 50 // Rough estimate of lines
 			if lineCount > 0 {
 				blocksPerLine := float64(cfg.Size()) / float64(lineCount)
-				assert.Less(t, blocksPerLine, 10.0, 
-					"CFG should not have excessive blocks per line for %s (%.2f blocks/line)", 
+				assert.Less(t, blocksPerLine, 10.0,
+					"CFG should not have excessive blocks per line for %s (%.2f blocks/line)",
 					file, blocksPerLine)
 			}
 		})
@@ -230,7 +229,7 @@ def hello_world():
 			checkFunc: func(t *testing.T, cfg *CFG) {
 				// Should have at least: entry, function body, exit
 				assert.GreaterOrEqual(t, cfg.Size(), 3)
-				
+
 				// Should have some statements
 				stmtCount := 0
 				cfg.Walk(&testVisitor{
@@ -256,7 +255,7 @@ def conditional(x):
 			checkFunc: func(t *testing.T, cfg *CFG) {
 				// Should have multiple blocks for if/else
 				assert.GreaterOrEqual(t, cfg.Size(), 5)
-				
+
 				// Should have conditional edges
 				hasCondTrue := false
 				hasCondFalse := false
@@ -290,7 +289,7 @@ def loop_function():
 			checkFunc: func(t *testing.T, cfg *CFG) {
 				// Should have multiple blocks for loop structure
 				assert.GreaterOrEqual(t, cfg.Size(), 6)
-				
+
 				// Should have back edges for loop
 				hasBackEdge := false
 				cfg.Walk(&testVisitor{
@@ -298,8 +297,8 @@ def loop_function():
 					onEdge: func(e *Edge) bool {
 						// Simple heuristic: if target block ID is "smaller" than source
 						// This is not perfect but gives us some indication
-						if e.From != nil && e.To != nil && 
-						   e.From.ID > e.To.ID {
+						if e.From != nil && e.To != nil &&
+							e.From.ID > e.To.ID {
 							hasBackEdge = true
 						}
 						return true
@@ -325,7 +324,7 @@ def exception_handler():
 			checkFunc: func(t *testing.T, cfg *CFG) {
 				// Exception handling creates complex CFG structure
 				assert.GreaterOrEqual(t, cfg.Size(), 5)
-				
+
 				// Should have exception-related edges
 				hasExceptionEdge := false
 				cfg.Walk(&testVisitor{
@@ -364,7 +363,7 @@ def exception_handler():
 			// Common checks for all test cases
 			assert.NotNil(t, cfg.Entry, "CFG should have entry block")
 			assert.NotNil(t, cfg.Exit, "CFG should have exit block")
-			
+
 			// Test reachability
 			analyzer := NewReachabilityAnalyzer(cfg)
 			reachResult := analyzer.AnalyzeReachability()
@@ -381,7 +380,7 @@ func TestCFGIntegrationErrorHandling(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "EmptyFile",
+			name:        "EmptyFile",
 			fileContent: ``,
 			expectError: false, // Empty file should be handled gracefully
 		},
@@ -394,7 +393,7 @@ func TestCFGIntegrationErrorHandling(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "ValidButMinimal",
+			name:        "ValidButMinimal",
 			fileContent: `pass`,
 			expectError: false,
 		},
@@ -426,12 +425,12 @@ def incomplete_function():
 			// Build CFG
 			builder := NewCFGBuilder()
 			cfg, err := builder.Build(ast)
-			
+
 			if tc.expectError && err != nil {
 				t.Logf("Expected CFG build error: %v", err)
 				return
 			}
-			
+
 			if !tc.expectError {
 				require.NoError(t, err, "Should build CFG without error")
 				assert.NotNil(t, cfg, "CFG should not be nil")

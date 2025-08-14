@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 	"testing"
-	
+
 	"github.com/pyqol/pyqol/internal/parser"
 )
 
@@ -439,41 +439,41 @@ func countStatements(cfg *CFG) int {
 func TestCFGBuilderLogger(t *testing.T) {
 	t.Run("SetLogger", func(t *testing.T) {
 		builder := NewCFGBuilder()
-		
+
 		// Create a buffer to capture log output
 		var buf bytes.Buffer
 		logger := log.New(&buf, "TEST: ", 0)
-		
+
 		// Set the logger
 		builder.SetLogger(logger)
-		
+
 		// Trigger an error that would log
 		builder.logError("test error: %s", "something went wrong")
-		
+
 		// Check that the error was logged
 		logOutput := buf.String()
 		if !strings.Contains(logOutput, "CFGBuilder: test error: something went wrong") {
 			t.Errorf("Expected error log not found. Got: %s", logOutput)
 		}
 	})
-	
+
 	t.Run("LogErrorWithoutLogger", func(t *testing.T) {
 		builder := NewCFGBuilder()
-		
+
 		// This should not panic even without a logger
 		builder.logError("test error without logger")
-		
+
 		// If we get here without panic, the test passes
 	})
-	
+
 	t.Run("LogErrorWithFormat", func(t *testing.T) {
 		builder := NewCFGBuilder()
 		var buf bytes.Buffer
 		logger := log.New(&buf, "", 0)
 		builder.SetLogger(logger)
-		
+
 		builder.logError("error %d: %s", 42, "test message")
-		
+
 		logOutput := buf.String()
 		if !strings.Contains(logOutput, "CFGBuilder: error 42: test message") {
 			t.Errorf("Formatted error not logged correctly. Got: %s", logOutput)
@@ -496,7 +496,7 @@ def test_elif():
         d = 4
     return x
 `
-	
+
 	// Parse the code
 	p := parser.New()
 	ctx := context.Background()
@@ -505,24 +505,24 @@ def test_elif():
 		t.Fatalf("Failed to parse code: %v", err)
 	}
 	ast := result.AST
-	
+
 	// Build CFG
 	builder := NewCFGBuilder()
 	cfg, err := builder.Build(ast)
 	if err != nil {
 		t.Fatalf("Failed to build CFG: %v", err)
 	}
-	
+
 	// Verify the CFG has the expected structure for elif chains
-	// Should have blocks for: entry, initial assignment, if condition, 
+	// Should have blocks for: entry, initial assignment, if condition,
 	// then block, elif1 condition, elif1 then, elif2 condition, elif2 then,
 	// else block, return, exit
 	minExpectedBlocks := 10
 	if cfg.Size() < minExpectedBlocks {
-		t.Errorf("Expected at least %d blocks for elif chain, got %d", 
+		t.Errorf("Expected at least %d blocks for elif chain, got %d",
 			minExpectedBlocks, cfg.Size())
 	}
-	
+
 	// Check that elif blocks are created
 	elifBlockFound := false
 	cfg.Walk(&testVisitor{
@@ -534,7 +534,7 @@ def test_elif():
 		},
 		onEdge: func(e *Edge) bool { return true },
 	})
-	
+
 	if !elifBlockFound {
 		t.Error("No elif blocks found in CFG")
 	}
@@ -543,43 +543,43 @@ def test_elif():
 // TestHasSuccessor tests the hasSuccessor helper method
 func TestHasSuccessor(t *testing.T) {
 	builder := NewCFGBuilder()
-	
+
 	// Create a simple CFG
 	cfg := NewCFG("test")
 	builder.cfg = cfg
-	
+
 	block1 := cfg.CreateBlock("block1")
 	block2 := cfg.CreateBlock("block2")
 	block3 := cfg.CreateBlock("block3")
-	
+
 	// Connect block1 -> block2
 	cfg.ConnectBlocks(block1, block2, EdgeNormal)
-	
+
 	// Test hasSuccessor
 	if !builder.hasSuccessor(block1, block2) {
 		t.Error("Expected block1 to have block2 as successor")
 	}
-	
+
 	if builder.hasSuccessor(block1, block3) {
 		t.Error("Expected block1 to NOT have block3 as successor")
 	}
-	
+
 	if builder.hasSuccessor(block2, block1) {
 		t.Error("Expected block2 to NOT have block1 as successor")
 	}
-	
+
 	// Test with multiple successors
 	cfg.ConnectBlocks(block1, block3, EdgeCondTrue)
-	
+
 	if !builder.hasSuccessor(block1, block3) {
 		t.Error("Expected block1 to have block3 as successor after connection")
 	}
-	
+
 	// Test with nil blocks
 	if builder.hasSuccessor(nil, block1) {
 		t.Error("hasSuccessor should return false for nil from block")
 	}
-	
+
 	if builder.hasSuccessor(block1, nil) {
 		t.Error("hasSuccessor should return false for nil to block")
 	}
@@ -635,7 +635,7 @@ def elif_with_return(x):
 `,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Parse the code
@@ -646,14 +646,14 @@ def elif_with_return(x):
 				t.Fatalf("Failed to parse code: %v", err)
 			}
 			ast := result.AST
-			
+
 			// Build CFG
 			builder := NewCFGBuilder()
 			cfg, err := builder.Build(ast)
 			if err != nil {
 				t.Fatalf("Failed to build CFG: %v", err)
 			}
-			
+
 			// Just verify that the CFG builds successfully
 			if cfg.Size() < 3 { // At minimum: entry, some block, exit
 				t.Errorf("CFG seems too small: %d blocks", cfg.Size())
