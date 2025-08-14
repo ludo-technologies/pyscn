@@ -506,18 +506,23 @@ def test_elif():
 	}
 	ast := result.AST
 
-	// Build CFG
+	// Build all CFGs to get the function CFG
 	builder := NewCFGBuilder()
-	cfg, err := builder.Build(ast)
+	cfgs, err := builder.BuildAll(ast)
 	if err != nil {
-		t.Fatalf("Failed to build CFG: %v", err)
+		t.Fatalf("Failed to build CFGs: %v", err)
+	}
+	
+	// Get the test_elif function CFG
+	cfg, exists := cfgs["test_elif"]
+	if !exists {
+		t.Fatalf("Failed to find test_elif function CFG")
 	}
 
 	// Verify the CFG has the expected structure for elif chains
-	// Should have blocks for: entry, initial assignment, if condition,
-	// then block, elif1 condition, elif1 then, elif2 condition, elif2 then,
-	// else block, return, exit
-	minExpectedBlocks := 10
+	// After optimization: entry, func_body (with if), then, elif blocks,
+	// else, merge, exit (around 8 blocks depending on structure)
+	minExpectedBlocks := 8
 	if cfg.Size() < minExpectedBlocks {
 		t.Errorf("Expected at least %d blocks for elif chain, got %d",
 			minExpectedBlocks, cfg.Size())

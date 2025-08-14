@@ -275,6 +275,33 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 		return
 	}
 
+	// Handle structural markers that aren't actual executable statements
+	// Note: else_clause and elif_clause should only appear in Orelse of if statements,
+	// not as standalone statements. If they appear here, it's likely an error in the AST.
+	if stmt.Type == parser.NodeElseClause {
+		// Log this as unexpected but try to handle gracefully
+		b.logError("unexpected else_clause as standalone statement")
+		// Try to process the block contents if they exist
+		for _, child := range stmt.Children {
+			if child != nil && child.Type == parser.NodeBlock {
+				for _, blockStmt := range child.Body {
+					b.processStatement(blockStmt)
+				}
+			}
+		}
+		return
+	}
+	
+	if stmt.Type == parser.NodeElifClause {
+		// Log this as unexpected but try to handle gracefully
+		b.logError("unexpected elif_clause as standalone statement")
+		// elif_clause should be converted to an if statement
+		ifNode := b.convertElifClauseToIf(stmt)
+		b.processIfStatement(ifNode)
+		return
+	}
+	
+
 	switch stmt.Type {
 	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
 		// Build separate CFG for nested functions
@@ -408,15 +435,22 @@ func (b *CFGBuilder) processIfStatement(stmt *parser.Node) {
 
 	// Process else/elif branches
 	if len(stmt.Orelse) > 0 {
-		// Check if the else clause is another if (elif)
-		if len(stmt.Orelse) == 1 && stmt.Orelse[0].Type == parser.NodeIf {
+		// Check if the else clause is another if (elif) or an elif_clause node
+		if len(stmt.Orelse) == 1 && (stmt.Orelse[0].Type == parser.NodeIf || stmt.Orelse[0].Type == parser.NodeElifClause) {
 			// This is an elif - handle it specially
 			elifBlock := b.createBlock("elif")
 			b.cfg.ConnectBlocks(conditionBlock, elifBlock, EdgeCondFalse)
 			b.currentBlock = elifBlock
 
+			// Convert elif_clause to If node if needed
+			elifStmt := stmt.Orelse[0]
+			if elifStmt.Type == parser.NodeElifClause {
+				// Create an If node from elif_clause
+				elifStmt = b.convertElifClauseToIf(elifStmt)
+			}
+
 			// Process elif recursively - it will create its own test, then, and possibly else
-			b.processIfStatementElif(stmt.Orelse[0], mergeBlock)
+			b.processIfStatementElif(elifStmt, mergeBlock)
 
 			// Connect then branch to merge if not already connected to exit
 			if !b.hasSuccessor(thenEndBlock, b.cfg.Exit) {
@@ -477,12 +511,19 @@ func (b *CFGBuilder) processIfStatementElif(stmt *parser.Node, finalMerge *Basic
 	// Process else/elif branches
 	if len(stmt.Orelse) > 0 {
 		// Check if this is another elif
-		if len(stmt.Orelse) == 1 && stmt.Orelse[0].Type == parser.NodeIf {
+		if len(stmt.Orelse) == 1 && (stmt.Orelse[0].Type == parser.NodeIf || stmt.Orelse[0].Type == parser.NodeElifClause) {
 			// Another elif - recurse
 			elifBlock := b.createBlock("elif")
 			b.cfg.ConnectBlocks(conditionBlock, elifBlock, EdgeCondFalse)
 			b.currentBlock = elifBlock
-			b.processIfStatementElif(stmt.Orelse[0], finalMerge)
+			
+			// Convert elif_clause to If node if needed
+			elifStmt := stmt.Orelse[0]
+			if elifStmt.Type == parser.NodeElifClause {
+				elifStmt = b.convertElifClauseToIf(elifStmt)
+			}
+			
+			b.processIfStatementElif(elifStmt, finalMerge)
 		} else {
 			// Final else clause
 			elseBlock := b.createBlock("elif_else")
@@ -1010,4 +1051,33 @@ func (b *CFGBuilder) getCurrentScope() string {
 		return ""
 	}
 	return b.scopeStack[len(b.scopeStack)-1]
+}
+
+// convertElifClauseToIf converts an elif_clause node to an If node
+func (b *CFGBuilder) convertElifClauseToIf(elifNode *parser.Node) *parser.Node {
+	// Create an If node from elif_clause
+	// The elif_clause has: elif keyword, condition, :, and block in Children
+	ifNode := &parser.Node{
+		Type:   parser.NodeIf,
+		Body:   []*parser.Node{},
+		Orelse: []*parser.Node{},
+	}
+	
+	// Find the condition and block in Children
+	for _, child := range elifNode.Children {
+		if child != nil {
+			if child.Type == parser.NodeBlock {
+				// Extract statements from block
+				ifNode.Body = child.Body
+			} else if child.Type != "elif" && child.Type != ":" {
+				// This should be the condition
+				ifNode.Test = child
+			}
+		}
+	}
+	
+	// Check if there's a continuation in Orelse (another elif or else)
+	ifNode.Orelse = elifNode.Orelse
+	
+	return ifNode
 }
