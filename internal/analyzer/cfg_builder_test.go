@@ -532,7 +532,7 @@ def test_elif():
 	elifBlockFound := false
 	cfg.Walk(&testVisitor{
 		onBlock: func(b *BasicBlock) bool {
-			if strings.Contains(b.ID, "elif") {
+			if strings.Contains(b.Label, "elif") {
 				elifBlockFound = true
 			}
 			return true
@@ -652,11 +652,24 @@ def elif_with_return(x):
 			}
 			ast := result.AST
 
-			// Build CFG
+			// Build all CFGs to get function CFGs
 			builder := NewCFGBuilder()
-			cfg, err := builder.Build(ast)
+			cfgs, err := builder.BuildAll(ast)
 			if err != nil {
-				t.Fatalf("Failed to build CFG: %v", err)
+				t.Fatalf("Failed to build CFGs: %v", err)
+			}
+
+			// Get the function CFG (not __main__)
+			var cfg *CFG
+			for name, c := range cfgs {
+				if name != "__main__" {
+					cfg = c
+					break
+				}
+			}
+			
+			if cfg == nil {
+				t.Fatal("No function CFG found")
 			}
 
 			// Just verify that the CFG builds successfully
