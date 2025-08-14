@@ -558,7 +558,12 @@ class MyClass:
 					break
 				}
 			}
-			require.NotNil(t, cfg, "No function CFG found")
+			
+			// If no function CFG found, use the module CFG (for empty/comments-only tests)
+			if cfg == nil {
+				cfg = cfgs["__main__"]
+				require.NotNil(t, cfg, "No CFG found at all")
+			}
 
 			// Analyze reachability
 			analyzer := NewReachabilityAnalyzer(cfg)
@@ -596,10 +601,14 @@ def complex_function():
 	require.NoError(t, err)
 	ast := result.AST
 
-	// Build CFG
+	// Build all CFGs to get the function CFG
 	builder := NewCFGBuilder()
-	cfg, err := builder.Build(ast)
+	cfgs, err := builder.BuildAll(ast)
 	require.NoError(t, err)
+	
+	// Get the complex_function CFG
+	cfg, exists := cfgs["complex_function"]
+	require.True(t, exists, "Failed to find complex_function CFG")
 
 	// Analyze reachability
 	analyzer := NewReachabilityAnalyzer(cfg)

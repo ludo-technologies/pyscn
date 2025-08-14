@@ -470,15 +470,18 @@ def nested_returns():
     if True:
         if True:
             return 1
-        return 2  # unreachable
-    return 3  # unreachable
+            x = 1  # unreachable
+        return 2  # reachable (CFG doesn't know True is always true)
+        y = 2  # unreachable
+    return 3  # reachable (CFG doesn't know True is always true)
+    z = 3  # unreachable
 `,
 			checkFunc: func(t *testing.T, cfg *CFG) {
-				// Should detect multiple levels of unreachable code
+				// Should detect unreachable code after return statements
 				analyzer := NewReachabilityAnalyzer(cfg)
 				result := analyzer.AnalyzeReachability()
 				unreachable := result.GetUnreachableBlocksWithStatements()
-				assert.Greater(t, len(unreachable), 0)
+				assert.GreaterOrEqual(t, len(unreachable), 3) // At least 3 unreachable blocks with statements
 			},
 		},
 	}

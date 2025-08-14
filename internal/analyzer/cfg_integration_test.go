@@ -29,7 +29,7 @@ func TestCFGIntegrationWithRealFiles(t *testing.T) {
 		{
 			file:        "simple/functions.py",
 			description: "Simple functions should build valid CFGs",
-			minBlocks:   3, // entry, function body, exit
+			minBlocks:   2, // entry and exit (functions.py has only function defs and lambdas)
 			shouldPass:  true,
 		},
 		{
