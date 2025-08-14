@@ -98,9 +98,9 @@ func TestCFGIntegrationWithRealFiles(t *testing.T) {
 			}
 			ast := result.AST
 
-			// Build CFG
+			// Build all CFGs
 			builder := NewCFGBuilder()
-			cfg, err := builder.Build(ast)
+			cfgs, err := builder.BuildAll(ast)
 
 			if !tc.shouldPass {
 				// For negative tests, CFG building might also fail
@@ -109,8 +109,12 @@ func TestCFGIntegrationWithRealFiles(t *testing.T) {
 					return
 				}
 			} else {
-				require.NoError(t, err, "Failed to build CFG for %s: %s", tc.file, tc.description)
+				require.NoError(t, err, "Failed to build CFGs for %s: %s", tc.file, tc.description)
 			}
+			
+			// Get the main module CFG for validation
+			cfg := cfgs["__main__"]
+			require.NotNil(t, cfg, "Failed to find main CFG for %s", tc.file)
 
 			// Validate basic CFG properties
 			assert.NotNil(t, cfg, "CFG should not be nil")
@@ -227,7 +231,7 @@ def hello_world():
     return "World"
 `,
 			checkFunc: func(t *testing.T, cfg *CFG) {
-				// Should have at least: entry, function body, exit
+				// Function CFG should have at least: entry, function body, exit
 				assert.GreaterOrEqual(t, cfg.Size(), 3)
 
 				// Should have some statements
@@ -352,10 +356,27 @@ def exception_handler():
 			require.NoError(t, err, "Failed to parse test code")
 			ast := result.AST
 
-			// Build CFG
+			// Build all CFGs
 			builder := NewCFGBuilder()
-			cfg, err := builder.Build(ast)
-			require.NoError(t, err, "Failed to build CFG")
+			cfgs, err := builder.BuildAll(ast)
+			require.NoError(t, err, "Failed to build CFGs")
+			
+			// Get the appropriate CFG (module or function)
+			var cfg *CFG
+			if tc.name == "SimpleFunction" || tc.name == "IfElseStatement" || tc.name == "ForLoop" || tc.name == "TryExcept" {
+				// These are function definitions, get the function CFG
+				for name, c := range cfgs {
+					if name != "__main__" {
+						cfg = c
+						break
+					}
+				}
+				require.NotNil(t, cfg, "Failed to find function CFG")
+			} else {
+				// Module-level code
+				cfg = cfgs["__main__"]
+				require.NotNil(t, cfg, "Failed to find module CFG")
+			}
 
 			// Run specific checks
 			tc.checkFunc(t, cfg)

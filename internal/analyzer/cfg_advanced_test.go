@@ -463,8 +463,8 @@ async def async_function():
 		// Await expressions should be treated as regular expressions
 		// Check that statements are properly added to blocks
 		totalStatements := countStatements(cfg)
-		if totalStatements < 4 { // function def + 3 assignments/return
-			t.Errorf("Expected at least 4 statements, got %d", totalStatements)
+		if totalStatements < 3 { // 3 assignments/return (function def not counted as statement when building directly)
+			t.Errorf("Expected at least 3 statements, got %d", totalStatements)
 		}
 
 		// Should have normal flow structure

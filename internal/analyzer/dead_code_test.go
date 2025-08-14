@@ -319,10 +319,14 @@ def function_with_dead_code():
 	require.NoError(t, err)
 	ast := result.AST
 
-	// Build CFG
+	// Build all CFGs and get the function CFG
 	builder := NewCFGBuilder()
-	cfg, err := builder.Build(ast)
+	cfgs, err := builder.BuildAll(ast)
 	require.NoError(t, err)
+	
+	// Get the function CFG
+	cfg, exists := cfgs["function_with_dead_code"]
+	require.True(t, exists, "Failed to find function_with_dead_code CFG")
 
 	// Analyze reachability
 	analyzer := NewReachabilityAnalyzer(cfg)
