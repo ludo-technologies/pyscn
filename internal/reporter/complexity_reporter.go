@@ -276,63 +276,61 @@ func (r *ComplexityReporter) generateSummaryFromSerializable(results []Serializa
 
 // generateWarnings creates warnings based on thresholds and configuration
 func (r *ComplexityReporter) generateWarnings(results []ComplexityResult) []ReportWarning {
-	var warnings []ReportWarning
-	
-	for _, result := range results {
-		complexity := result.GetComplexity()
-		functionName := result.GetFunctionName()
-		riskLevel := result.GetRiskLevel()
-		
-		// Check if function exceeds maximum allowed complexity
-		if r.config.Complexity.ExceedsMaxComplexity(complexity) {
-			warnings = append(warnings, ReportWarning{
-				Type:         "max_complexity_exceeded",
-				Message:      fmt.Sprintf("Function complexity %d exceeds maximum allowed %d", complexity, r.config.Complexity.MaxComplexity),
-				FunctionName: functionName,
-				Complexity:   complexity,
-			})
-		}
-		
-		// Check high complexity threshold
-		if riskLevel == "high" {
-			warnings = append(warnings, ReportWarning{
-				Type:         "high_complexity",
-				Message:      fmt.Sprintf("Function has high complexity (%d > %d)", complexity, r.config.Complexity.MediumThreshold),
-				FunctionName: functionName,
-				Complexity:   complexity,
-			})
+	// Convert interface results to common format for warning generation
+	warningData := make([]warningInfo, len(results))
+	for i, result := range results {
+		warningData[i] = warningInfo{
+			complexity:   result.GetComplexity(),
+			functionName: result.GetFunctionName(),
+			riskLevel:    result.GetRiskLevel(),
 		}
 	}
-	
-	return warnings
+	return r.generateWarningsCommon(warningData)
 }
 
 // generateWarningsFromSerializable creates warnings based on thresholds and configuration
 func (r *ComplexityReporter) generateWarningsFromSerializable(results []SerializableComplexityResult) []ReportWarning {
+	// Convert serializable results to common format for warning generation
+	warningData := make([]warningInfo, len(results))
+	for i, result := range results {
+		warningData[i] = warningInfo{
+			complexity:   result.Complexity,
+			functionName: result.FunctionName,
+			riskLevel:    result.RiskLevel,
+		}
+	}
+	return r.generateWarningsCommon(warningData)
+}
+
+// warningInfo holds the essential data needed for warning generation
+type warningInfo struct {
+	complexity   int
+	functionName string
+	riskLevel    string
+}
+
+// generateWarningsCommon contains the shared warning generation logic
+func (r *ComplexityReporter) generateWarningsCommon(data []warningInfo) []ReportWarning {
 	var warnings []ReportWarning
 	
-	for _, result := range results {
-		complexity := result.Complexity
-		functionName := result.FunctionName
-		riskLevel := result.RiskLevel
-		
+	for _, info := range data {
 		// Check if function exceeds maximum allowed complexity
-		if r.config.Complexity.ExceedsMaxComplexity(complexity) {
+		if r.config.Complexity.ExceedsMaxComplexity(info.complexity) {
 			warnings = append(warnings, ReportWarning{
 				Type:         "max_complexity_exceeded",
-				Message:      fmt.Sprintf("Function complexity %d exceeds maximum allowed %d", complexity, r.config.Complexity.MaxComplexity),
-				FunctionName: functionName,
-				Complexity:   complexity,
+				Message:      fmt.Sprintf("Function complexity %d exceeds maximum allowed %d", info.complexity, r.config.Complexity.MaxComplexity),
+				FunctionName: info.functionName,
+				Complexity:   info.complexity,
 			})
 		}
 		
 		// Check high complexity threshold
-		if riskLevel == "high" {
+		if info.riskLevel == "high" {
 			warnings = append(warnings, ReportWarning{
 				Type:         "high_complexity",
-				Message:      fmt.Sprintf("Function has high complexity (%d > %d)", complexity, r.config.Complexity.MediumThreshold),
-				FunctionName: functionName,
-				Complexity:   complexity,
+				Message:      fmt.Sprintf("Function has high complexity (%d > %d)", info.complexity, r.config.Complexity.MediumThreshold),
+				FunctionName: info.functionName,
+				Complexity:   info.complexity,
 			})
 		}
 	}
