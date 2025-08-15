@@ -191,17 +191,6 @@ func countDecisionPoints(visitor *complexityVisitor) int {
 	return conditionalDecisions + visitor.exceptionHandlers + visitor.switchCases
 }
 
-// assessRiskLevel determines risk level based on default complexity thresholds
-// Deprecated: Use config.ComplexityConfig.AssessRiskLevel instead
-func assessRiskLevel(complexity int) string {
-	if complexity <= 9 {
-		return "low"
-	} else if complexity <= 19 {
-		return "medium"
-	}
-	return "high"
-}
-
 // CalculateFileComplexity calculates complexity for all functions in a collection of CFGs
 func CalculateFileComplexity(cfgs []*CFG) []*ComplexityResult {
 	defaultConfig := config.DefaultConfig()

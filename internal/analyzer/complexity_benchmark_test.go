@@ -2,6 +2,8 @@ package analyzer
 
 import (
 	"testing"
+
+	"github.com/pyqol/pyqol/internal/config"
 )
 
 // BenchmarkComplexityCalculation benchmarks the complexity calculation performance
@@ -135,13 +137,14 @@ func BenchmarkFileComplexityCalculation(b *testing.B) {
 // BenchmarkAggregateComplexityCalculation benchmarks aggregate metrics calculation
 func BenchmarkAggregateComplexityCalculation(b *testing.B) {
 	// Create complexity results
+	defaultConfig := config.DefaultConfig()
 	results := make([]*ComplexityResult, 100)
 	for i := 0; i < 100; i++ {
 		complexity := (i % 25) + 1 // 1-25 complexity range
 		results[i] = &ComplexityResult{
 			Complexity:   complexity,
 			FunctionName: "test_function",
-			RiskLevel:    assessRiskLevel(complexity),
+			RiskLevel:    defaultConfig.Complexity.AssessRiskLevel(complexity),
 		}
 	}
 
