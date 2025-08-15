@@ -44,12 +44,12 @@ func (b *ASTBuilder) Build(tree *sitter.Tree) (*Node, error) {
 	if tree == nil {
 		return nil, fmt.Errorf("tree is nil")
 	}
-	
+
 	rootNode := tree.RootNode()
 	if rootNode == nil {
 		return nil, fmt.Errorf("root node is nil")
 	}
-	
+
 	ast := b.buildNode(rootNode)
 	return ast, nil
 }
@@ -59,9 +59,9 @@ func (b *ASTBuilder) buildNode(tsNode *sitter.Node) *Node {
 	if tsNode == nil {
 		return nil
 	}
-	
+
 	nodeType := tsNode.Type()
-	
+
 	// Create appropriate AST node based on tree-sitter node type
 	switch nodeType {
 	case "module":
@@ -112,7 +112,7 @@ func (b *ASTBuilder) buildNode(tsNode *sitter.Node) *Node {
 		return b.buildContinueStatement(tsNode)
 	case "decorated_definition":
 		return b.buildDecoratedDefinition(tsNode)
-	
+
 	// Expressions
 	case "binary_operator":
 		return b.buildBinaryOp(tsNode)
@@ -162,16 +162,16 @@ func (b *ASTBuilder) buildNode(tsNode *sitter.Node) *Node {
 		return b.buildConstant(tsNode)
 	case "formatted_string", "interpolation":
 		return b.buildFormattedString(tsNode)
-	
+
 	// Handle compound statements
 	case "block":
 		return b.buildBlock(tsNode)
-	
+
 	default:
 		// For unhandled types, create a generic node with children
 		node := NewNode(NodeType(nodeType))
 		node.Location = b.getLocation(tsNode)
-		
+
 		childCount := int(tsNode.ChildCount())
 		for i := 0; i < childCount; i++ {
 			child := tsNode.Child(i)
@@ -189,7 +189,7 @@ func (b *ASTBuilder) buildNode(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildModule(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeModule)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -199,7 +199,7 @@ func (b *ASTBuilder) buildModule(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return node
 }
 
@@ -207,17 +207,17 @@ func (b *ASTBuilder) buildModule(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildFunctionDef(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeFunctionDef)
 	node.Location = b.getLocation(tsNode)
-	
+
 	// Check if it's async
 	if b.hasChildOfType(tsNode, "async") {
 		node.Type = NodeAsyncFunctionDef
 	}
-	
+
 	// Get function name
 	if nameNode := b.getChildByFieldName(tsNode, "name"); nameNode != nil {
 		node.Name = b.getNodeText(nameNode)
 	}
-	
+
 	// Get parameters
 	if paramsNode := b.getChildByFieldName(tsNode, "parameters"); paramsNode != nil {
 		node.Args = b.buildParameters(paramsNode)
@@ -228,20 +228,20 @@ func (b *ASTBuilder) buildFunctionDef(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	// Get body
 	if bodyNode := b.getChildByFieldName(tsNode, "body"); bodyNode != nil {
 		if body := b.buildNode(bodyNode); body != nil {
 			node.Body = b.extractBlockBody(body, node)
 		}
 	}
-	
+
 	// Get return type annotation if present
 	if returnType := b.getChildByFieldName(tsNode, "return_type"); returnType != nil {
 		// Store return type in Value field
 		node.Value = b.getNodeText(returnType)
 	}
-	
+
 	return node
 }
 
@@ -249,24 +249,24 @@ func (b *ASTBuilder) buildFunctionDef(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildClassDef(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeClassDef)
 	node.Location = b.getLocation(tsNode)
-	
+
 	// Get class name
 	if nameNode := b.getChildByFieldName(tsNode, "name"); nameNode != nil {
 		node.Name = b.getNodeText(nameNode)
 	}
-	
+
 	// Get base classes
 	if superclasses := b.getChildByFieldName(tsNode, "superclasses"); superclasses != nil {
 		node.Bases = b.buildArgumentList(superclasses)
 	}
-	
+
 	// Get body
 	if bodyNode := b.getChildByFieldName(tsNode, "body"); bodyNode != nil {
 		if body := b.buildNode(bodyNode); body != nil {
 			node.Body = b.extractBlockBody(body, node)
 		}
 	}
-	
+
 	return node
 }
 
@@ -274,19 +274,19 @@ func (b *ASTBuilder) buildClassDef(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildIfStatement(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeIf)
 	node.Location = b.getLocation(tsNode)
-	
+
 	// Get condition
 	if condition := b.getChildByFieldName(tsNode, "condition"); condition != nil {
 		node.Test = b.buildNode(condition)
 	}
-	
+
 	// Get consequence
 	if consequence := b.getChildByFieldName(tsNode, "consequence"); consequence != nil {
 		if body := b.buildNode(consequence); body != nil {
 			node.Body = b.extractBlockBody(body, node)
 		}
 	}
-	
+
 	// Get alternative (else/elif)
 	if alternative := b.getChildByFieldName(tsNode, "alternative"); alternative != nil {
 		if alt := b.buildNode(alternative); alt != nil {
@@ -299,7 +299,7 @@ func (b *ASTBuilder) buildIfStatement(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return node
 }
 
@@ -307,12 +307,12 @@ func (b *ASTBuilder) buildIfStatement(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildForStatement(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeFor)
 	node.Location = b.getLocation(tsNode)
-	
+
 	// Check if it's async
 	if b.hasChildOfType(tsNode, "async") {
 		node.Type = NodeAsyncFor
 	}
-	
+
 	// Get target variable
 	if left := b.getChildByFieldName(tsNode, "left"); left != nil {
 		target := b.buildNode(left)
@@ -320,26 +320,26 @@ func (b *ASTBuilder) buildForStatement(tsNode *sitter.Node) *Node {
 			node.Targets = []*Node{target}
 		}
 	}
-	
+
 	// Get iterator
 	if right := b.getChildByFieldName(tsNode, "right"); right != nil {
 		node.Iter = b.buildNode(right)
 	}
-	
+
 	// Get body
 	if bodyNode := b.getChildByFieldName(tsNode, "body"); bodyNode != nil {
 		if body := b.buildNode(bodyNode); body != nil {
 			node.Body = b.extractBlockBody(body, node)
 		}
 	}
-	
+
 	// Get else clause if present
 	if alternative := b.getChildByFieldName(tsNode, "alternative"); alternative != nil {
 		if alt := b.buildNode(alternative); alt != nil {
 			node.Orelse = b.extractBlockBody(alt, node)
 		}
 	}
-	
+
 	return node
 }
 
@@ -347,26 +347,26 @@ func (b *ASTBuilder) buildForStatement(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildWhileStatement(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeWhile)
 	node.Location = b.getLocation(tsNode)
-	
+
 	// Get condition
 	if condition := b.getChildByFieldName(tsNode, "condition"); condition != nil {
 		node.Test = b.buildNode(condition)
 	}
-	
+
 	// Get body
 	if bodyNode := b.getChildByFieldName(tsNode, "body"); bodyNode != nil {
 		if body := b.buildNode(bodyNode); body != nil {
 			node.Body = b.extractBlockBody(body, node)
 		}
 	}
-	
+
 	// Get else clause if present
 	if alternative := b.getChildByFieldName(tsNode, "alternative"); alternative != nil {
 		if alt := b.buildNode(alternative); alt != nil {
 			node.Orelse = b.extractBlockBody(alt, node)
 		}
 	}
-	
+
 	return node
 }
 
@@ -374,12 +374,12 @@ func (b *ASTBuilder) buildWhileStatement(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildWithStatement(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeWith)
 	node.Location = b.getLocation(tsNode)
-	
+
 	// Check if it's async
 	if b.hasChildOfType(tsNode, "async") {
 		node.Type = NodeAsyncWith
 	}
-	
+
 	// Get with items
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
@@ -390,14 +390,14 @@ func (b *ASTBuilder) buildWithStatement(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	// Get body
 	if bodyNode := b.getChildByFieldName(tsNode, "body"); bodyNode != nil {
 		if body := b.buildNode(bodyNode); body != nil {
 			node.Body = b.extractBlockBody(body, node)
 		}
 	}
-	
+
 	return node
 }
 
@@ -405,14 +405,14 @@ func (b *ASTBuilder) buildWithStatement(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildTryStatement(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeTry)
 	node.Location = b.getLocation(tsNode)
-	
+
 	// Get body
 	if bodyNode := b.getChildByFieldName(tsNode, "body"); bodyNode != nil {
 		if body := b.buildNode(bodyNode); body != nil {
 			node.Body = b.extractBlockBody(body, node)
 		}
 	}
-	
+
 	// Get except handlers
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
@@ -423,7 +423,7 @@ func (b *ASTBuilder) buildTryStatement(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	// Get else clause
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -435,7 +435,7 @@ func (b *ASTBuilder) buildTryStatement(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	// Get finally clause
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -447,7 +447,7 @@ func (b *ASTBuilder) buildTryStatement(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return node
 }
 
@@ -455,12 +455,12 @@ func (b *ASTBuilder) buildTryStatement(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildMatchStatement(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeMatch)
 	node.Location = b.getLocation(tsNode)
-	
+
 	// Get subject
 	if subject := b.getChildByFieldName(tsNode, "subject"); subject != nil {
 		node.Test = b.buildNode(subject)
 	}
-	
+
 	// Get cases
 	if body := b.getChildByFieldName(tsNode, "body"); body != nil {
 		childCount := int(body.ChildCount())
@@ -473,7 +473,7 @@ func (b *ASTBuilder) buildMatchStatement(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return node
 }
 
@@ -483,7 +483,7 @@ func (b *ASTBuilder) buildMatchStatement(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildReturnStatement(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeReturn)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -492,7 +492,7 @@ func (b *ASTBuilder) buildReturnStatement(tsNode *sitter.Node) *Node {
 			break
 		}
 	}
-	
+
 	return node
 }
 
@@ -500,7 +500,7 @@ func (b *ASTBuilder) buildReturnStatement(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildDeleteStatement(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeDelete)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -510,7 +510,7 @@ func (b *ASTBuilder) buildDeleteStatement(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return node
 }
 
@@ -518,7 +518,7 @@ func (b *ASTBuilder) buildDeleteStatement(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildRaiseStatement(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeRaise)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -532,7 +532,7 @@ func (b *ASTBuilder) buildRaiseStatement(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return node
 }
 
@@ -540,7 +540,7 @@ func (b *ASTBuilder) buildRaiseStatement(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildAssertStatement(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeAssert)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	argCount := 0
 	for i := 0; i < childCount; i++ {
@@ -554,7 +554,7 @@ func (b *ASTBuilder) buildAssertStatement(tsNode *sitter.Node) *Node {
 			argCount++
 		}
 	}
-	
+
 	return node
 }
 
@@ -562,7 +562,7 @@ func (b *ASTBuilder) buildAssertStatement(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildImportStatement(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeImport)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -575,7 +575,7 @@ func (b *ASTBuilder) buildImportStatement(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return node
 }
 
@@ -583,7 +583,7 @@ func (b *ASTBuilder) buildImportStatement(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildImportFromStatement(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeImportFrom)
 	node.Location = b.getLocation(tsNode)
-	
+
 	// Count leading dots for relative imports
 	text := b.getNodeText(tsNode)
 	if strings.HasPrefix(text, "from") {
@@ -591,12 +591,12 @@ func (b *ASTBuilder) buildImportFromStatement(tsNode *sitter.Node) *Node {
 		trimmed := strings.TrimLeft(afterFrom, " ")
 		node.Level = len(trimmed) - len(strings.TrimLeft(trimmed, "."))
 	}
-	
+
 	// Get module name
 	if moduleNode := b.getChildByFieldName(tsNode, "module_name"); moduleNode != nil {
 		node.Module = b.getNodeText(moduleNode)
 	}
-	
+
 	// Get imported names
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
@@ -610,7 +610,7 @@ func (b *ASTBuilder) buildImportFromStatement(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return node
 }
 
@@ -618,7 +618,7 @@ func (b *ASTBuilder) buildImportFromStatement(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildGlobalStatement(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeGlobal)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -626,7 +626,7 @@ func (b *ASTBuilder) buildGlobalStatement(tsNode *sitter.Node) *Node {
 			node.Names = append(node.Names, b.getNodeText(child))
 		}
 	}
-	
+
 	return node
 }
 
@@ -634,7 +634,7 @@ func (b *ASTBuilder) buildGlobalStatement(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildNonlocalStatement(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeNonlocal)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -642,7 +642,7 @@ func (b *ASTBuilder) buildNonlocalStatement(tsNode *sitter.Node) *Node {
 			node.Names = append(node.Names, b.getNodeText(child))
 		}
 	}
-	
+
 	return node
 }
 
@@ -655,7 +655,7 @@ func (b *ASTBuilder) buildExpressionStatement(tsNode *sitter.Node) *Node {
 			return b.buildNode(child)
 		}
 	}
-	
+
 	node := NewNode(NodeExpr)
 	node.Location = b.getLocation(tsNode)
 	return node
@@ -665,26 +665,26 @@ func (b *ASTBuilder) buildExpressionStatement(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildAssignment(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeAssign)
 	node.Location = b.getLocation(tsNode)
-	
+
 	// Get left-hand side (targets)
 	if left := b.getChildByFieldName(tsNode, "left"); left != nil {
 		if target := b.buildNode(left); target != nil {
 			node.Targets = []*Node{target}
 		}
 	}
-	
+
 	// Get right-hand side (value)
 	if right := b.getChildByFieldName(tsNode, "right"); right != nil {
 		node.Value = b.buildNode(right)
 	}
-	
+
 	// Check if it's an annotated assignment
 	if typeNode := b.getChildByFieldName(tsNode, "type"); typeNode != nil {
 		node.Type = NodeAnnAssign
 		// Store type annotation in the first child
 		node.AddChild(b.buildNode(typeNode))
 	}
-	
+
 	return node
 }
 
@@ -692,24 +692,24 @@ func (b *ASTBuilder) buildAssignment(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildAugmentedAssignment(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeAugAssign)
 	node.Location = b.getLocation(tsNode)
-	
+
 	// Get target
 	if left := b.getChildByFieldName(tsNode, "left"); left != nil {
 		if target := b.buildNode(left); target != nil {
 			node.Targets = []*Node{target}
 		}
 	}
-	
+
 	// Get operator
 	if operator := b.getChildByFieldName(tsNode, "operator"); operator != nil {
 		node.Op = strings.TrimSuffix(b.getNodeText(operator), "=")
 	}
-	
+
 	// Get value
 	if right := b.getChildByFieldName(tsNode, "right"); right != nil {
 		node.Value = b.buildNode(right)
 	}
-	
+
 	return node
 }
 
@@ -737,7 +737,7 @@ func (b *ASTBuilder) buildContinueStatement(tsNode *sitter.Node) *Node {
 // buildDecoratedDefinition builds a decorated function or class
 func (b *ASTBuilder) buildDecoratedDefinition(tsNode *sitter.Node) *Node {
 	var defNode *Node
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -753,7 +753,7 @@ func (b *ASTBuilder) buildDecoratedDefinition(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return defNode
 }
 
@@ -763,19 +763,19 @@ func (b *ASTBuilder) buildDecoratedDefinition(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildBinaryOp(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeBinOp)
 	node.Location = b.getLocation(tsNode)
-	
+
 	if left := b.getChildByFieldName(tsNode, "left"); left != nil {
 		node.Left = b.buildNode(left)
 	}
-	
+
 	if operator := b.getChildByFieldName(tsNode, "operator"); operator != nil {
 		node.Op = b.getNodeText(operator)
 	}
-	
+
 	if right := b.getChildByFieldName(tsNode, "right"); right != nil {
 		node.Right = b.buildNode(right)
 	}
-	
+
 	return node
 }
 
@@ -783,15 +783,15 @@ func (b *ASTBuilder) buildBinaryOp(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildUnaryOp(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeUnaryOp)
 	node.Location = b.getLocation(tsNode)
-	
+
 	if operator := b.getChildByFieldName(tsNode, "operator"); operator != nil {
 		node.Op = b.getNodeText(operator)
 	}
-	
+
 	if operand := b.getChildByFieldName(tsNode, "operand"); operand != nil {
 		node.Value = b.buildNode(operand)
 	}
-	
+
 	return node
 }
 
@@ -799,19 +799,19 @@ func (b *ASTBuilder) buildUnaryOp(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildBoolOp(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeBoolOp)
 	node.Location = b.getLocation(tsNode)
-	
+
 	if operator := b.getChildByFieldName(tsNode, "operator"); operator != nil {
 		node.Op = b.getNodeText(operator)
 	}
-	
+
 	if left := b.getChildByFieldName(tsNode, "left"); left != nil {
 		node.AddChild(b.buildNode(left))
 	}
-	
+
 	if right := b.getChildByFieldName(tsNode, "right"); right != nil {
 		node.AddChild(b.buildNode(right))
 	}
-	
+
 	return node
 }
 
@@ -819,7 +819,7 @@ func (b *ASTBuilder) buildBoolOp(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildCompare(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeCompare)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -833,7 +833,7 @@ func (b *ASTBuilder) buildCompare(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return node
 }
 
@@ -841,10 +841,10 @@ func (b *ASTBuilder) buildCompare(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildIfExp(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeIfExp)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	stage := 0 // 0: body, 1: test, 2: orelse
-	
+
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
 		if child != nil {
@@ -865,7 +865,7 @@ func (b *ASTBuilder) buildIfExp(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return node
 }
 
@@ -873,15 +873,15 @@ func (b *ASTBuilder) buildIfExp(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildLambda(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeLambda)
 	node.Location = b.getLocation(tsNode)
-	
+
 	if params := b.getChildByFieldName(tsNode, "parameters"); params != nil {
 		node.Args = b.buildParameters(params)
 	}
-	
+
 	if body := b.getChildByFieldName(tsNode, "body"); body != nil {
 		node.AddToBody(b.buildNode(body))
 	}
-	
+
 	return node
 }
 
@@ -889,15 +889,15 @@ func (b *ASTBuilder) buildLambda(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildCall(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeCall)
 	node.Location = b.getLocation(tsNode)
-	
+
 	if function := b.getChildByFieldName(tsNode, "function"); function != nil {
 		node.Value = b.buildNode(function)
 	}
-	
+
 	if arguments := b.getChildByFieldName(tsNode, "arguments"); arguments != nil {
 		node.Args, node.Keywords = b.buildCallArguments(arguments)
 	}
-	
+
 	return node
 }
 
@@ -905,15 +905,15 @@ func (b *ASTBuilder) buildCall(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildAttribute(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeAttribute)
 	node.Location = b.getLocation(tsNode)
-	
+
 	if object := b.getChildByFieldName(tsNode, "object"); object != nil {
 		node.Value = b.buildNode(object)
 	}
-	
+
 	if attr := b.getChildByFieldName(tsNode, "attribute"); attr != nil {
 		node.Name = b.getNodeText(attr)
 	}
-	
+
 	return node
 }
 
@@ -921,15 +921,15 @@ func (b *ASTBuilder) buildAttribute(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildSubscript(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeSubscript)
 	node.Location = b.getLocation(tsNode)
-	
+
 	if value := b.getChildByFieldName(tsNode, "object"); value != nil {
 		node.Value = b.buildNode(value)
 	}
-	
+
 	if subscript := b.getChildByFieldName(tsNode, "subscript"); subscript != nil {
 		node.AddChild(b.buildNode(subscript))
 	}
-	
+
 	return node
 }
 
@@ -937,11 +937,11 @@ func (b *ASTBuilder) buildSubscript(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildSlice(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeSlice)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	sliceArgs := []*Node{nil, nil, nil} // lower, upper, step
 	argIndex := 0
-	
+
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
 		if child != nil {
@@ -952,7 +952,7 @@ func (b *ASTBuilder) buildSlice(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	// Store slice components
 	if sliceArgs[0] != nil {
 		node.AddChild(sliceArgs[0]) // lower
@@ -963,7 +963,7 @@ func (b *ASTBuilder) buildSlice(tsNode *sitter.Node) *Node {
 	if sliceArgs[2] != nil {
 		node.AddChild(sliceArgs[2]) // step
 	}
-	
+
 	return node
 }
 
@@ -973,7 +973,7 @@ func (b *ASTBuilder) buildSlice(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildList(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeList)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -981,7 +981,7 @@ func (b *ASTBuilder) buildList(tsNode *sitter.Node) *Node {
 			node.AddChild(b.buildNode(child))
 		}
 	}
-	
+
 	return node
 }
 
@@ -989,7 +989,7 @@ func (b *ASTBuilder) buildList(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildTuple(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeTuple)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -997,7 +997,7 @@ func (b *ASTBuilder) buildTuple(tsNode *sitter.Node) *Node {
 			node.AddChild(b.buildNode(child))
 		}
 	}
-	
+
 	return node
 }
 
@@ -1005,7 +1005,7 @@ func (b *ASTBuilder) buildTuple(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildDict(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeDict)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -1018,7 +1018,7 @@ func (b *ASTBuilder) buildDict(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return node
 }
 
@@ -1026,7 +1026,7 @@ func (b *ASTBuilder) buildDict(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildSet(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeSet)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -1034,7 +1034,7 @@ func (b *ASTBuilder) buildSet(tsNode *sitter.Node) *Node {
 			node.AddChild(b.buildNode(child))
 		}
 	}
-	
+
 	return node
 }
 
@@ -1077,21 +1077,21 @@ func (b *ASTBuilder) buildComprehension(tsNode *sitter.Node, node *Node) {
 	if body := b.getChildByFieldName(tsNode, "body"); body != nil {
 		node.Value = b.buildNode(body)
 	}
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
 		if child != nil && child.Type() == "for_in_clause" {
 			comp := NewNode(NodeComprehension)
-			
+
 			if left := b.getChildByFieldName(child, "left"); left != nil {
 				comp.Targets = []*Node{b.buildNode(left)}
 			}
-			
+
 			if right := b.getChildByFieldName(child, "right"); right != nil {
 				comp.Iter = b.buildNode(right)
 			}
-			
+
 			// Look for if clauses
 			for j := 0; j < int(child.ChildCount()); j++ {
 				grandChild := child.Child(j)
@@ -1101,7 +1101,7 @@ func (b *ASTBuilder) buildComprehension(tsNode *sitter.Node, node *Node) {
 					}
 				}
 			}
-			
+
 			node.AddChild(comp)
 		}
 	}
@@ -1113,7 +1113,7 @@ func (b *ASTBuilder) buildComprehension(tsNode *sitter.Node, node *Node) {
 func (b *ASTBuilder) buildYield(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeYield)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -1122,7 +1122,7 @@ func (b *ASTBuilder) buildYield(tsNode *sitter.Node) *Node {
 			break
 		}
 	}
-	
+
 	return node
 }
 
@@ -1130,7 +1130,7 @@ func (b *ASTBuilder) buildYield(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildYieldFrom(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeYieldFrom)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -1139,7 +1139,7 @@ func (b *ASTBuilder) buildYieldFrom(tsNode *sitter.Node) *Node {
 			break
 		}
 	}
-	
+
 	return node
 }
 
@@ -1147,7 +1147,7 @@ func (b *ASTBuilder) buildYieldFrom(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildAwait(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeAwait)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -1156,7 +1156,7 @@ func (b *ASTBuilder) buildAwait(tsNode *sitter.Node) *Node {
 			break
 		}
 	}
-	
+
 	return node
 }
 
@@ -1174,10 +1174,10 @@ func (b *ASTBuilder) buildName(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildConstant(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeConstant)
 	node.Location = b.getLocation(tsNode)
-	
+
 	text := b.getNodeText(tsNode)
 	nodeType := tsNode.Type()
-	
+
 	switch nodeType {
 	case "integer":
 		if val, err := strconv.ParseInt(text, 0, 64); err == nil {
@@ -1207,7 +1207,7 @@ func (b *ASTBuilder) buildConstant(tsNode *sitter.Node) *Node {
 	default:
 		node.Value = text
 	}
-	
+
 	return node
 }
 
@@ -1215,7 +1215,7 @@ func (b *ASTBuilder) buildConstant(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildFormattedString(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeJoinedStr)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -1240,7 +1240,7 @@ func (b *ASTBuilder) buildFormattedString(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return node
 }
 
@@ -1248,7 +1248,7 @@ func (b *ASTBuilder) buildFormattedString(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildBlock(tsNode *sitter.Node) *Node {
 	node := NewNode("block")
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -1258,7 +1258,7 @@ func (b *ASTBuilder) buildBlock(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return node
 }
 
@@ -1267,7 +1267,7 @@ func (b *ASTBuilder) buildBlock(tsNode *sitter.Node) *Node {
 // buildParameters builds function parameters
 func (b *ASTBuilder) buildParameters(tsNode *sitter.Node) []*Node {
 	var params []*Node
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -1307,14 +1307,14 @@ func (b *ASTBuilder) buildParameters(tsNode *sitter.Node) []*Node {
 			}
 		}
 	}
-	
+
 	return params
 }
 
 // buildArgumentList builds a list of arguments (for base classes, etc.)
 func (b *ASTBuilder) buildArgumentList(tsNode *sitter.Node) []*Node {
 	var args []*Node
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -1322,7 +1322,7 @@ func (b *ASTBuilder) buildArgumentList(tsNode *sitter.Node) []*Node {
 			args = append(args, b.buildNode(child))
 		}
 	}
-	
+
 	return args
 }
 
@@ -1330,7 +1330,7 @@ func (b *ASTBuilder) buildArgumentList(tsNode *sitter.Node) []*Node {
 func (b *ASTBuilder) buildCallArguments(tsNode *sitter.Node) ([]*Node, []*Node) {
 	var args []*Node
 	var keywords []*Node
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -1352,7 +1352,7 @@ func (b *ASTBuilder) buildCallArguments(tsNode *sitter.Node) ([]*Node, []*Node) 
 			}
 		}
 	}
-	
+
 	return args, keywords
 }
 
@@ -1360,11 +1360,11 @@ func (b *ASTBuilder) buildCallArguments(tsNode *sitter.Node) ([]*Node, []*Node) 
 func (b *ASTBuilder) buildWithItem(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeWithItem)
 	node.Location = b.getLocation(tsNode)
-	
+
 	if item := b.getChildByFieldName(tsNode, "item"); item != nil {
 		node.Value = b.buildNode(item)
 	}
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -1374,7 +1374,7 @@ func (b *ASTBuilder) buildWithItem(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return node
 }
 
@@ -1382,7 +1382,7 @@ func (b *ASTBuilder) buildWithItem(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildExceptHandler(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeExceptHandler)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -1409,7 +1409,7 @@ func (b *ASTBuilder) buildExceptHandler(tsNode *sitter.Node) *Node {
 			}
 		}
 	}
-	
+
 	return node
 }
 
@@ -1417,22 +1417,22 @@ func (b *ASTBuilder) buildExceptHandler(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildMatchCase(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeMatchCase)
 	node.Location = b.getLocation(tsNode)
-	
+
 	if pattern := b.getChildByFieldName(tsNode, "pattern"); pattern != nil {
 		node.Test = b.buildNode(pattern)
 	}
-	
+
 	if guard := b.getChildByFieldName(tsNode, "guard"); guard != nil {
 		// Store guard in Value field
 		node.Value = b.buildNode(guard)
 	}
-	
+
 	if consequence := b.getChildByFieldName(tsNode, "consequence"); consequence != nil {
 		if body := b.buildNode(consequence); body != nil {
 			node.Body = b.extractBlockBody(body, node)
 		}
 	}
-	
+
 	return node
 }
 
@@ -1440,7 +1440,7 @@ func (b *ASTBuilder) buildMatchCase(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildDecorator(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeDecorator)
 	node.Location = b.getLocation(tsNode)
-	
+
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
@@ -1449,7 +1449,7 @@ func (b *ASTBuilder) buildDecorator(tsNode *sitter.Node) *Node {
 			break
 		}
 	}
-	
+
 	return node
 }
 
@@ -1457,7 +1457,7 @@ func (b *ASTBuilder) buildDecorator(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildAlias(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeAlias)
 	node.Location = b.getLocation(tsNode)
-	
+
 	if tsNode.Type() == "aliased_import" {
 		if nameNode := b.getChildByFieldName(tsNode, "name"); nameNode != nil {
 			node.Name = b.getNodeText(nameNode)
@@ -1468,7 +1468,7 @@ func (b *ASTBuilder) buildAlias(tsNode *sitter.Node) *Node {
 	} else {
 		node.Name = b.getNodeText(tsNode)
 	}
-	
+
 	return node
 }
 
@@ -1498,7 +1498,7 @@ func (b *ASTBuilder) extractImportNames(tsNode *sitter.Node, importNode *Node) {
 func (b *ASTBuilder) getLocation(tsNode *sitter.Node) Location {
 	startPoint := tsNode.StartPoint()
 	endPoint := tsNode.EndPoint()
-	
+
 	return Location{
 		StartLine: int(startPoint.Row) + 1,
 		StartCol:  int(startPoint.Column),
@@ -1552,4 +1552,3 @@ func (b *ASTBuilder) isComparisonOperator(tsNode *sitter.Node) bool {
 	}
 	return false
 }
-

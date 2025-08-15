@@ -1,8 +1,10 @@
 package analyzer
 
 import (
-	"github.com/pyqol/pyqol/internal/parser"
+	"strings"
 	"testing"
+
+	"github.com/pyqol/pyqol/internal/parser"
 )
 
 func TestBasicBlock(t *testing.T) {
@@ -470,4 +472,58 @@ func indexOf(slice []string, item string) int {
 		}
 	}
 	return -1
+}
+
+// TestCFGString tests the String() method of CFG
+func TestCFGString(t *testing.T) {
+	tests := []struct {
+		name     string
+		cfgName  string
+		blocks   int
+		expected string
+	}{
+		{
+			name:     "EmptyCFG",
+			cfgName:  "empty",
+			blocks:   0,
+			expected: "CFG(empty): 2 blocks", // Entry and Exit always exist
+		},
+		{
+			name:     "SimpleFunction",
+			cfgName:  "main",
+			blocks:   3,
+			expected: "CFG(main): 5 blocks", // Entry, Exit + 3 custom blocks
+		},
+		{
+			name:     "ComplexFunction",
+			cfgName:  "process_data",
+			blocks:   10,
+			expected: "CFG(process_data): 12 blocks",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := NewCFG(tt.cfgName)
+
+			// Add blocks
+			for i := 0; i < tt.blocks; i++ {
+				cfg.CreateBlock(string(rune('A' + i)))
+			}
+
+			// Test String() method
+			result := cfg.String()
+			if result != tt.expected {
+				t.Errorf("String() = %q, want %q", result, tt.expected)
+			}
+
+			// Verify it contains the name and block count
+			if !strings.Contains(result, tt.cfgName) {
+				t.Errorf("String() should contain CFG name %q", tt.cfgName)
+			}
+			if !strings.Contains(result, "blocks") {
+				t.Error("String() should contain 'blocks'")
+			}
+		})
+	}
 }

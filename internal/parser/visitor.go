@@ -18,11 +18,11 @@ func (n *Node) Accept(visitor Visitor) {
 	if n == nil {
 		return
 	}
-	
+
 	if !visitor.Visit(n) {
 		return
 	}
-	
+
 	// Visit all children
 	for _, child := range n.GetChildren() {
 		if child != nil {
@@ -93,7 +93,7 @@ func NewPrinterVisitor(w io.Writer) *PrinterVisitor {
 func (v *PrinterVisitor) Visit(node *Node) bool {
 	// Print indentation
 	fmt.Fprint(v.writer, strings.Repeat(v.prefix, v.indent))
-	
+
 	// Print node information
 	switch {
 	case node.Name != "":
@@ -105,20 +105,20 @@ func (v *PrinterVisitor) Visit(node *Node) bool {
 	default:
 		fmt.Fprintf(v.writer, "%s\n", node.Type)
 	}
-	
+
 	// Increase indent for children
 	v.indent++
-	
+
 	// Visit children manually to control indentation
 	for _, child := range node.GetChildren() {
 		if child != nil {
 			child.Accept(v)
 		}
 	}
-	
+
 	// Restore indent
 	v.indent--
-	
+
 	return false // We handle children manually
 }
 
@@ -138,7 +138,7 @@ func NewTransformVisitor(transformer func(*Node) *Node) *TransformVisitor {
 func (v *TransformVisitor) Visit(node *Node) bool {
 	// Transform current node
 	transformed := v.transformer(node)
-	
+
 	// If transformation returned a different node, replace fields
 	if transformed != node && transformed != nil {
 		node.Type = transformed.Type
@@ -147,7 +147,7 @@ func (v *TransformVisitor) Visit(node *Node) bool {
 		node.Op = transformed.Op
 		// Note: Not replacing children/body to avoid breaking structure
 	}
-	
+
 	return true
 }
 
@@ -173,19 +173,19 @@ func NewStatisticsVisitor() *StatisticsVisitor {
 func (v *StatisticsVisitor) Visit(node *Node) bool {
 	v.TotalNodes++
 	v.NodeCounts[node.Type]++
-	
+
 	v.curDepth++
 	if v.curDepth > v.MaxDepth {
 		v.MaxDepth = v.curDepth
 	}
-	
+
 	// Visit children
 	for _, child := range node.GetChildren() {
 		if child != nil {
 			child.Accept(v)
 		}
 	}
-	
+
 	v.curDepth--
 	return false // We handle children manually
 }
@@ -208,10 +208,10 @@ func NewPathVisitor(visitor func(node *Node, path []*Node) bool) *PathVisitor {
 func (v *PathVisitor) Visit(node *Node) bool {
 	// Add current node to path
 	v.path = append(v.path, node)
-	
+
 	// Call the visitor function with current path
 	shouldContinue := v.visitor(node, v.path)
-	
+
 	if shouldContinue {
 		// Visit children
 		for _, child := range node.GetChildren() {
@@ -220,10 +220,10 @@ func (v *PathVisitor) Visit(node *Node) bool {
 			}
 		}
 	}
-	
+
 	// Remove current node from path
 	v.path = v.path[:len(v.path)-1]
-	
+
 	return false // We handle children manually
 }
 
@@ -249,19 +249,19 @@ func (v *DepthFirstVisitor) Visit(node *Node) bool {
 			return false
 		}
 	}
-	
+
 	// Visit children
 	for _, child := range node.GetChildren() {
 		if child != nil {
 			child.Accept(v)
 		}
 	}
-	
+
 	// Post-order visit
 	if v.postOrder != nil {
 		v.postOrder(node)
 	}
-	
+
 	return false // We handle children manually
 }
 
@@ -288,12 +288,12 @@ func (v *ValidatorVisitor) Visit(node *Node) bool {
 		if len(node.Body) == 0 {
 			v.errors = append(v.errors, fmt.Sprintf("Function '%s' at %+v has empty body", node.Name, node.Location))
 		}
-		
+
 	case NodeClassDef:
 		if node.Name == "" {
 			v.errors = append(v.errors, fmt.Sprintf("Class at %+v missing name", node.Location))
 		}
-		
+
 	case NodeIf:
 		if node.Test == nil {
 			v.errors = append(v.errors, fmt.Sprintf("If statement at %+v missing condition", node.Location))
@@ -301,7 +301,7 @@ func (v *ValidatorVisitor) Visit(node *Node) bool {
 		if len(node.Body) == 0 {
 			v.errors = append(v.errors, fmt.Sprintf("If statement at %+v has empty body", node.Location))
 		}
-		
+
 	case NodeFor, NodeAsyncFor:
 		if len(node.Targets) == 0 {
 			v.errors = append(v.errors, fmt.Sprintf("For loop at %+v missing target", node.Location))
@@ -309,12 +309,12 @@ func (v *ValidatorVisitor) Visit(node *Node) bool {
 		if node.Iter == nil {
 			v.errors = append(v.errors, fmt.Sprintf("For loop at %+v missing iterator", node.Location))
 		}
-		
+
 	case NodeWhile:
 		if node.Test == nil {
 			v.errors = append(v.errors, fmt.Sprintf("While loop at %+v missing condition", node.Location))
 		}
-		
+
 	case NodeBinOp:
 		if node.Left == nil || node.Right == nil {
 			v.errors = append(v.errors, fmt.Sprintf("Binary operation at %+v missing operand", node.Location))
@@ -322,7 +322,7 @@ func (v *ValidatorVisitor) Visit(node *Node) bool {
 		if node.Op == "" {
 			v.errors = append(v.errors, fmt.Sprintf("Binary operation at %+v missing operator", node.Location))
 		}
-		
+
 	case NodeUnaryOp:
 		if node.Value == nil {
 			v.errors = append(v.errors, fmt.Sprintf("Unary operation at %+v missing operand", node.Location))
@@ -331,18 +331,18 @@ func (v *ValidatorVisitor) Visit(node *Node) bool {
 			v.errors = append(v.errors, fmt.Sprintf("Unary operation at %+v missing operator", node.Location))
 		}
 	}
-	
+
 	// Check parent-child relationships
 	for _, child := range node.GetChildren() {
 		if child != nil && child.Parent != node {
 			// Only report if parent is completely wrong, not just nil
 			if child.Parent != nil {
-				v.errors = append(v.errors, fmt.Sprintf("Node %s at %+v has incorrect parent (expected %s, got %s)", 
+				v.errors = append(v.errors, fmt.Sprintf("Node %s at %+v has incorrect parent (expected %s, got %s)",
 					child.Type, child.Location, node.Type, child.Parent.Type))
 			}
 		}
 	}
-	
+
 	return true
 }
 
@@ -384,7 +384,7 @@ func (v *SimplifierVisitor) Visit(node *Node) bool {
 			}
 		}
 	}
-	
+
 	// Remove pass statements from bodies
 	if len(node.Body) > 0 {
 		filtered := []*Node{}
@@ -398,7 +398,7 @@ func (v *SimplifierVisitor) Visit(node *Node) bool {
 			v.simplified = true
 		}
 	}
-	
+
 	return true
 }
 

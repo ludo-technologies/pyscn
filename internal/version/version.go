@@ -9,13 +9,13 @@ import (
 var (
 	// Version is the semantic version (e.g., v0.1.0)
 	Version = "dev"
-	
+
 	// Commit is the git commit hash
 	Commit = "unknown"
-	
+
 	// Date is the build date
 	Date = "unknown"
-	
+
 	// BuiltBy indicates who built the binary
 	BuiltBy = "unknown"
 )
