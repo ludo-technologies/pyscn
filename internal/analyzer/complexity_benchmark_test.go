@@ -27,13 +27,13 @@ func BenchmarkComplexityCalculation(b *testing.B) {
 				condBlock := cfg.CreateBlock("condition")
 				thenBlock := cfg.CreateBlock("then")
 				elseBlock := cfg.CreateBlock("else")
-				
+
 				cfg.ConnectBlocks(cfg.Entry, condBlock, EdgeNormal)
 				cfg.ConnectBlocks(condBlock, thenBlock, EdgeCondTrue)
 				cfg.ConnectBlocks(condBlock, elseBlock, EdgeCondFalse)
 				cfg.ConnectBlocks(thenBlock, cfg.Exit, EdgeNormal)
 				cfg.ConnectBlocks(elseBlock, cfg.Exit, EdgeNormal)
-				
+
 				return cfg
 			},
 		},
@@ -41,23 +41,23 @@ func BenchmarkComplexityCalculation(b *testing.B) {
 			name: "ComplexCFG",
 			setupCFG: func() *CFG {
 				cfg := NewCFG("complex_function")
-				
+
 				// Create 10 decision points for medium complexity
 				current := cfg.Entry
 				for i := 0; i < 10; i++ {
 					condBlock := cfg.CreateBlock("condition")
 					thenBlock := cfg.CreateBlock("then")
 					elseBlock := cfg.CreateBlock("else")
-					
+
 					cfg.ConnectBlocks(current, condBlock, EdgeNormal)
 					cfg.ConnectBlocks(condBlock, thenBlock, EdgeCondTrue)
 					cfg.ConnectBlocks(condBlock, elseBlock, EdgeCondFalse)
 					cfg.ConnectBlocks(thenBlock, elseBlock, EdgeNormal)
-					
+
 					current = elseBlock
 				}
 				cfg.ConnectBlocks(current, cfg.Exit, EdgeNormal)
-				
+
 				return cfg
 			},
 		},
@@ -65,23 +65,23 @@ func BenchmarkComplexityCalculation(b *testing.B) {
 			name: "HighComplexityCFG",
 			setupCFG: func() *CFG {
 				cfg := NewCFG("high_complexity_function")
-				
+
 				// Create 50 decision points for high complexity
 				current := cfg.Entry
 				for i := 0; i < 50; i++ {
 					condBlock := cfg.CreateBlock("condition")
 					thenBlock := cfg.CreateBlock("then")
 					elseBlock := cfg.CreateBlock("else")
-					
+
 					cfg.ConnectBlocks(current, condBlock, EdgeNormal)
 					cfg.ConnectBlocks(condBlock, thenBlock, EdgeCondTrue)
 					cfg.ConnectBlocks(condBlock, elseBlock, EdgeCondFalse)
 					cfg.ConnectBlocks(thenBlock, elseBlock, EdgeNormal)
-					
+
 					current = elseBlock
 				}
 				cfg.ConnectBlocks(current, cfg.Exit, EdgeNormal)
-				
+
 				return cfg
 			},
 		},
@@ -104,25 +104,25 @@ func BenchmarkFileComplexityCalculation(b *testing.B) {
 	cfgs := make([]*CFG, 20)
 	for i := 0; i < 20; i++ {
 		cfg := NewCFG("function")
-		
+
 		// Create varying complexity functions
 		numDecisions := (i % 5) + 1 // 1-5 decision points
 		current := cfg.Entry
-		
+
 		for j := 0; j < numDecisions; j++ {
 			condBlock := cfg.CreateBlock("condition")
 			thenBlock := cfg.CreateBlock("then")
 			elseBlock := cfg.CreateBlock("else")
-			
+
 			cfg.ConnectBlocks(current, condBlock, EdgeNormal)
 			cfg.ConnectBlocks(condBlock, thenBlock, EdgeCondTrue)
 			cfg.ConnectBlocks(condBlock, elseBlock, EdgeCondFalse)
 			cfg.ConnectBlocks(thenBlock, elseBlock, EdgeNormal)
-			
+
 			current = elseBlock
 		}
 		cfg.ConnectBlocks(current, cfg.Exit, EdgeNormal)
-		
+
 		cfgs[i] = cfg
 	}
 
@@ -169,7 +169,7 @@ func BenchmarkComplexityMemoryUsage(b *testing.B) {
 			cfgs := make([]*CFG, tc.cfgCount)
 			for i := 0; i < tc.cfgCount; i++ {
 				cfg := NewCFG("function")
-				
+
 				// Create CFG with specified number of nodes
 				current := cfg.Entry
 				for j := 0; j < tc.avgNodes; j++ {
@@ -178,7 +178,7 @@ func BenchmarkComplexityMemoryUsage(b *testing.B) {
 					current = block
 				}
 				cfg.ConnectBlocks(current, cfg.Exit, EdgeNormal)
-				
+
 				cfgs[i] = cfg
 			}
 

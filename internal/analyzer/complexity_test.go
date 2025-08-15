@@ -1,8 +1,8 @@
 package analyzer
 
 import (
-	"testing"
 	"github.com/pyqol/pyqol/internal/config"
+	"testing"
 )
 
 func TestComplexityResult(t *testing.T) {
@@ -59,17 +59,17 @@ func TestCalculateComplexity(t *testing.T) {
 			setupCFG: func() *CFG {
 				// if x > 0: return True else: return False
 				cfg := NewCFG("if_function")
-				
+
 				condBlock := cfg.CreateBlock("condition")
 				thenBlock := cfg.CreateBlock("then")
 				elseBlock := cfg.CreateBlock("else")
-				
+
 				cfg.ConnectBlocks(cfg.Entry, condBlock, EdgeNormal)
 				cfg.ConnectBlocks(condBlock, thenBlock, EdgeCondTrue)
 				cfg.ConnectBlocks(condBlock, elseBlock, EdgeCondFalse)
 				cfg.ConnectBlocks(thenBlock, cfg.Exit, EdgeNormal)
 				cfg.ConnectBlocks(elseBlock, cfg.Exit, EdgeNormal)
-				
+
 				return cfg
 			},
 			expectedComplexity: 2,
@@ -82,13 +82,13 @@ func TestCalculateComplexity(t *testing.T) {
 			setupCFG: func() *CFG {
 				// if x > 0: if y > 0: return 1 else: return 2 else: return 3
 				cfg := NewCFG("nested_if_function")
-				
+
 				cond1 := cfg.CreateBlock("condition1")
 				cond2 := cfg.CreateBlock("condition2")
 				then1 := cfg.CreateBlock("then1")
 				else1 := cfg.CreateBlock("else1")
 				else2 := cfg.CreateBlock("else2")
-				
+
 				cfg.ConnectBlocks(cfg.Entry, cond1, EdgeNormal)
 				cfg.ConnectBlocks(cond1, cond2, EdgeCondTrue)
 				cfg.ConnectBlocks(cond1, else2, EdgeCondFalse)
@@ -97,7 +97,7 @@ func TestCalculateComplexity(t *testing.T) {
 				cfg.ConnectBlocks(then1, cfg.Exit, EdgeNormal)
 				cfg.ConnectBlocks(else1, cfg.Exit, EdgeNormal)
 				cfg.ConnectBlocks(else2, cfg.Exit, EdgeNormal)
-				
+
 				return cfg
 			},
 			expectedComplexity: 3,
@@ -110,15 +110,15 @@ func TestCalculateComplexity(t *testing.T) {
 			setupCFG: func() *CFG {
 				// while x > 0: x -= 1
 				cfg := NewCFG("loop_function")
-				
+
 				loopHeader := cfg.CreateBlock("loop_header")
 				loopBody := cfg.CreateBlock("loop_body")
-				
+
 				cfg.ConnectBlocks(cfg.Entry, loopHeader, EdgeNormal)
 				cfg.ConnectBlocks(loopHeader, loopBody, EdgeCondTrue)
 				cfg.ConnectBlocks(loopHeader, cfg.Exit, EdgeCondFalse)
 				cfg.ConnectBlocks(loopBody, loopHeader, EdgeLoop)
-				
+
 				return cfg
 			},
 			expectedComplexity: 2,
@@ -131,12 +131,12 @@ func TestCalculateComplexity(t *testing.T) {
 			setupCFG: func() *CFG {
 				// Complex function with multiple decision points
 				cfg := NewCFG("complex_function")
-				
+
 				blocks := make([]*BasicBlock, 10)
 				for i := 0; i < 10; i++ {
 					blocks[i] = cfg.CreateBlock("")
 				}
-				
+
 				// Create a complex control flow with multiple paths
 				cfg.ConnectBlocks(cfg.Entry, blocks[0], EdgeNormal)
 				cfg.ConnectBlocks(blocks[0], blocks[1], EdgeCondTrue)
@@ -151,7 +151,7 @@ func TestCalculateComplexity(t *testing.T) {
 				cfg.ConnectBlocks(blocks[5], cfg.Exit, EdgeNormal)
 				cfg.ConnectBlocks(blocks[6], cfg.Exit, EdgeNormal)
 				cfg.ConnectBlocks(blocks[8], cfg.Exit, EdgeNormal)
-				
+
 				return cfg
 			},
 			expectedComplexity: 3, // Multiple decision points
@@ -164,23 +164,23 @@ func TestCalculateComplexity(t *testing.T) {
 			setupCFG: func() *CFG {
 				// Create a high complexity function (>20)
 				cfg := NewCFG("high_complexity_function")
-				
+
 				// Create 25 decision points to exceed high threshold
 				current := cfg.Entry
 				for i := 0; i < 25; i++ {
 					condBlock := cfg.CreateBlock("")
 					thenBlock := cfg.CreateBlock("")
 					elseBlock := cfg.CreateBlock("")
-					
+
 					cfg.ConnectBlocks(current, condBlock, EdgeNormal)
 					cfg.ConnectBlocks(condBlock, thenBlock, EdgeCondTrue)
 					cfg.ConnectBlocks(condBlock, elseBlock, EdgeCondFalse)
 					cfg.ConnectBlocks(thenBlock, elseBlock, EdgeNormal)
-					
+
 					current = elseBlock
 				}
 				cfg.ConnectBlocks(current, cfg.Exit, EdgeNormal)
-				
+
 				return cfg
 			},
 			expectedComplexity: 26, // Should be > 20 for high risk
@@ -415,7 +415,7 @@ func TestCalculateComplexityWithConfig(t *testing.T) {
 	condBlock := cfg.CreateBlock("condition")
 	thenBlock := cfg.CreateBlock("then")
 	elseBlock := cfg.CreateBlock("else")
-	
+
 	cfg.ConnectBlocks(cfg.Entry, condBlock, EdgeNormal)
 	cfg.ConnectBlocks(condBlock, thenBlock, EdgeCondTrue)
 	cfg.ConnectBlocks(condBlock, elseBlock, EdgeCondFalse)
@@ -445,17 +445,17 @@ func TestCalculateComplexityWithConfig(t *testing.T) {
 	t.Run("DefaultConfig", func(t *testing.T) {
 		// Test that CalculateComplexity uses default config
 		result1 := CalculateComplexity(cfg)
-		
+
 		defaultConfig := config.DefaultConfig()
 		result2 := CalculateComplexityWithConfig(cfg, &defaultConfig.Complexity)
 
 		if result1.Complexity != result2.Complexity {
-			t.Errorf("Default and explicit config should give same complexity: %d vs %d", 
+			t.Errorf("Default and explicit config should give same complexity: %d vs %d",
 				result1.Complexity, result2.Complexity)
 		}
 
 		if result1.RiskLevel != result2.RiskLevel {
-			t.Errorf("Default and explicit config should give same risk level: %s vs %s", 
+			t.Errorf("Default and explicit config should give same risk level: %s vs %s",
 				result1.RiskLevel, result2.RiskLevel)
 		}
 	})
@@ -533,12 +533,12 @@ func TestCalculateFileComplexityWithConfig(t *testing.T) {
 	t.Run("BackwardCompatibility", func(t *testing.T) {
 		// Test that old function works the same as new with default config
 		results1 := CalculateFileComplexity(cfgs)
-		
+
 		defaultConfig := config.DefaultConfig()
 		results2 := CalculateFileComplexityWithConfig(cfgs, &defaultConfig.Complexity)
 
 		if len(results1) != len(results2) {
-			t.Errorf("Backward compatibility broken: %d vs %d results", 
+			t.Errorf("Backward compatibility broken: %d vs %d results",
 				len(results1), len(results2))
 		}
 
@@ -560,12 +560,12 @@ func TestComplexityConfigIntegration(t *testing.T) {
 		condBlock := cfg.CreateBlock("condition")
 		thenBlock := cfg.CreateBlock("then")
 		elseBlock := cfg.CreateBlock("else")
-		
+
 		cfg.ConnectBlocks(current, condBlock, EdgeNormal)
 		cfg.ConnectBlocks(condBlock, thenBlock, EdgeCondTrue)
 		cfg.ConnectBlocks(condBlock, elseBlock, EdgeCondFalse)
 		cfg.ConnectBlocks(thenBlock, elseBlock, EdgeNormal)
-		
+
 		current = elseBlock
 	}
 	cfg.ConnectBlocks(current, cfg.Exit, EdgeNormal)
@@ -593,7 +593,7 @@ func TestComplexityConfigIntegration(t *testing.T) {
 				result := CalculateComplexityWithConfig(cfg, customConfig)
 
 				if result.RiskLevel != tc.expectedRisk {
-					t.Errorf("With thresholds low=%d, medium=%d, expected risk %s, got %s", 
+					t.Errorf("With thresholds low=%d, medium=%d, expected risk %s, got %s",
 						tc.lowThreshold, tc.mediumThreshold, tc.expectedRisk, result.RiskLevel)
 				}
 			})

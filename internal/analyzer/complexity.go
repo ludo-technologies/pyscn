@@ -11,8 +11,8 @@ type ComplexityResult struct {
 	Complexity int
 
 	// Raw CFG metrics
-	Edges int
-	Nodes int
+	Edges               int
+	Nodes               int
 	ConnectedComponents int
 
 	// Function/method information
@@ -70,7 +70,7 @@ func (cr *ComplexityResult) GetSwitchCases() int {
 
 // String returns a human-readable representation of the complexity result
 func (cr *ComplexityResult) String() string {
-	return fmt.Sprintf("Function: %s, Complexity: %d, Risk: %s", 
+	return fmt.Sprintf("Function: %s, Complexity: %d, Risk: %s",
 		cr.FunctionName, cr.Complexity, cr.RiskLevel)
 }
 
@@ -149,15 +149,15 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 
 	result := &ComplexityResult{
 		Complexity:          complexity,
-		Edges:              visitor.edgeCount,
-		Nodes:              visitor.nodeCount,
+		Edges:               visitor.edgeCount,
+		Nodes:               visitor.nodeCount,
 		ConnectedComponents: 1,
-		FunctionName:       cfg.Name,
-		IfStatements:       visitor.ifStatements / 2, // Divide by 2 since true/false edges are counted separately
-		LoopStatements:     visitor.loopStatements,
-		ExceptionHandlers:  visitor.exceptionHandlers,
-		SwitchCases:        visitor.switchCases,
-		RiskLevel:          complexityConfig.AssessRiskLevel(complexity),
+		FunctionName:        cfg.Name,
+		IfStatements:        visitor.ifStatements / 2, // Divide by 2 since true/false edges are counted separately
+		LoopStatements:      visitor.loopStatements,
+		ExceptionHandlers:   visitor.exceptionHandlers,
+		SwitchCases:         visitor.switchCases,
+		RiskLevel:           complexityConfig.AssessRiskLevel(complexity),
 	}
 
 	return result
@@ -167,10 +167,10 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 func countDecisionPoints(visitor *complexityVisitor) int {
 	// Decision points are nodes that have multiple outgoing edges
 	// For McCabe complexity, each decision point adds 1 to complexity
-	
+
 	// Count conditional pairs (if/else) as one decision point each
 	conditionalDecisions := visitor.ifStatements / 2
-	
+
 	// Add other decision types
 	// Note: loops without conditions are just jumps, not decisions
 	// But loops with conditions are already counted in conditionals
@@ -201,7 +201,7 @@ func CalculateFileComplexityWithConfig(cfgs []*CFG, complexityConfig *config.Com
 	for _, cfg := range cfgs {
 		if cfg != nil {
 			result := CalculateComplexityWithConfig(cfg, complexityConfig)
-			
+
 			// Only include results that should be reported according to config
 			if complexityConfig.ShouldReport(result.Complexity) {
 				results = append(results, result)
@@ -214,13 +214,13 @@ func CalculateFileComplexityWithConfig(cfgs []*CFG, complexityConfig *config.Com
 
 // AggregateComplexity calculates aggregate metrics for multiple functions
 type AggregateComplexity struct {
-	TotalFunctions   int
+	TotalFunctions    int
 	AverageComplexity float64
-	MaxComplexity    int
-	MinComplexity    int
-	HighRiskCount    int
-	MediumRiskCount  int
-	LowRiskCount     int
+	MaxComplexity     int
+	MinComplexity     int
+	HighRiskCount     int
+	MediumRiskCount   int
+	LowRiskCount      int
 }
 
 // CalculateAggregateComplexity computes aggregate complexity metrics
