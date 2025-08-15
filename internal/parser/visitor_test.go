@@ -69,7 +69,7 @@ for i in range(5):
 	t.Run("StatisticsVisitor", func(t *testing.T) {
 		stats := NewStatisticsVisitor()
 		result.AST.Accept(stats)
-		
+
 		if stats.TotalNodes == 0 {
 			t.Error("No nodes counted")
 		}
@@ -87,7 +87,7 @@ for i in range(5):
 	t.Run("ValidatorVisitor", func(t *testing.T) {
 		validator := NewValidatorVisitor()
 		result.AST.Accept(validator)
-		
+
 		if !validator.IsValid() {
 			t.Errorf("Validation failed with %d errors: %v", len(validator.GetErrors()), validator.GetErrors())
 		}
@@ -96,7 +96,7 @@ for i in range(5):
 	t.Run("PathVisitor", func(t *testing.T) {
 		var deepestPath []*Node
 		maxDepth := 0
-		
+
 		pathVisitor := NewPathVisitor(func(node *Node, path []*Node) bool {
 			if len(path) > maxDepth {
 				maxDepth = len(path)
@@ -105,9 +105,9 @@ for i in range(5):
 			}
 			return true
 		})
-		
+
 		result.AST.Accept(pathVisitor)
-		
+
 		if maxDepth == 0 {
 			t.Error("PathVisitor didn't track any paths")
 		}
@@ -119,7 +119,7 @@ for i in range(5):
 	t.Run("DepthFirstVisitor", func(t *testing.T) {
 		var preOrder []NodeType
 		var postOrder []NodeType
-		
+
 		dfVisitor := NewDepthFirstVisitor(
 			func(node *Node) bool {
 				preOrder = append(preOrder, node.Type)
@@ -129,9 +129,9 @@ for i in range(5):
 				postOrder = append(postOrder, node.Type)
 			},
 		)
-		
+
 		result.AST.Accept(dfVisitor)
-		
+
 		if len(preOrder) == 0 {
 			t.Error("No pre-order traversal")
 		}
@@ -161,7 +161,7 @@ y = 3 + 4
 	if binOpsBefore == 0 {
 		t.Skip("No binary operations found in parsed code")
 	}
-	
+
 	// Transform binary operations to constants
 	transformed := 0
 	transformer := NewTransformVisitor(func(node *Node) *Node {
@@ -176,12 +176,12 @@ y = 3 + 4
 		}
 		return node
 	})
-	
+
 	result.AST.Accept(transformer)
-	
+
 	// Check that transformations occurred
 	binOpsAfter := len(result.AST.FindByType(NodeBinOp))
-	
+
 	if transformed == 0 {
 		t.Log("Warning: No transformations occurred - AST structure may differ from expected")
 	}
@@ -193,7 +193,7 @@ y = 3 + 4
 func TestSimplifierVisitor(t *testing.T) {
 	// Create an AST with simplifiable constructs
 	module := NewNode(NodeModule)
-	
+
 	// Add a function with pass statements
 	funcDef := NewNode(NodeFunctionDef)
 	funcDef.Name = "test"
@@ -201,7 +201,7 @@ func TestSimplifierVisitor(t *testing.T) {
 	funcDef.AddToBody(NewNode(NodeReturn))
 	funcDef.AddToBody(NewNode(NodePass))
 	module.AddToBody(funcDef)
-	
+
 	// Add a constant binary operation
 	binOp := NewNode(NodeBinOp)
 	binOp.Op = "+"
@@ -210,15 +210,15 @@ func TestSimplifierVisitor(t *testing.T) {
 	binOp.Right = NewNode(NodeConstant)
 	binOp.Right.Value = int64(3)
 	module.AddToBody(binOp)
-	
+
 	// Run simplifier
 	simplifier := NewSimplifierVisitor()
 	module.Accept(simplifier)
-	
+
 	if !simplifier.WasSimplified() {
 		t.Error("No simplification performed")
 	}
-	
+
 	// Check that pass statements were removed
 	passCount := 0
 	for _, stmt := range funcDef.Body {
@@ -229,7 +229,7 @@ func TestSimplifierVisitor(t *testing.T) {
 	if passCount > 0 {
 		t.Errorf("Pass statements not removed, found %d", passCount)
 	}
-	
+
 	// Check that constant expression was simplified
 	if binOp.Type != NodeConstant {
 		t.Error("Binary operation not simplified to constant")
@@ -308,7 +308,7 @@ func TestValidatorVisitorErrors(t *testing.T) {
 			node := tt.buildNode()
 			validator := NewValidatorVisitor()
 			node.Accept(validator)
-			
+
 			hasError := !validator.IsValid()
 			if hasError != tt.wantError {
 				t.Errorf("Expected error: %v, got: %v", tt.wantError, hasError)
@@ -322,15 +322,15 @@ func TestValidatorVisitorErrors(t *testing.T) {
 
 func TestVisitorOnTestData(t *testing.T) {
 	testDataDir := "../../testdata/python"
-	
+
 	// Skip if testdata doesn't exist
 	if _, err := os.Stat(testDataDir); os.IsNotExist(err) {
 		t.Skip("Test data directory doesn't exist")
 	}
-	
+
 	parser := New()
 	ctx := context.Background()
-	
+
 	// Test files from simple directory
 	simpleFiles := []string{
 		"simple/functions.py",
@@ -338,7 +338,7 @@ func TestVisitorOnTestData(t *testing.T) {
 		"simple/control_flow.py",
 		"simple/imports.py",
 	}
-	
+
 	for _, file := range simpleFiles {
 		t.Run(file, func(t *testing.T) {
 			path := filepath.Join(testDataDir, file)
@@ -346,7 +346,7 @@ func TestVisitorOnTestData(t *testing.T) {
 			if err != nil {
 				t.Skipf("Could not read file: %v", err)
 			}
-			
+
 			result, err := parser.Parse(ctx, content)
 			if err != nil {
 				// Some files may have intentional errors
@@ -355,19 +355,19 @@ func TestVisitorOnTestData(t *testing.T) {
 				}
 				t.Fatalf("Failed to parse %s: %v", file, err)
 			}
-			
+
 			// Run statistics visitor
 			stats := NewStatisticsVisitor()
 			result.AST.Accept(stats)
-			
+
 			if stats.TotalNodes == 0 {
 				t.Errorf("No nodes found in %s", file)
 			}
-			
+
 			// Run validator
 			validator := NewValidatorVisitor()
 			result.AST.Accept(validator)
-			
+
 			if !validator.IsValid() {
 				t.Errorf("Validation failed in %s with %d errors: %v", file, len(validator.GetErrors()), validator.GetErrors())
 			}
@@ -381,38 +381,38 @@ func TestAcceptMethod(t *testing.T) {
 	funcDef := NewNode(NodeFunctionDef)
 	funcDef.Name = "test"
 	module.AddToBody(funcDef)
-	
+
 	visited := make(map[*Node]bool)
 	visitor := NewFuncVisitor(func(node *Node) bool {
 		visited[node] = true
 		return true
 	})
-	
+
 	module.Accept(visitor)
-	
+
 	if !visited[module] {
 		t.Error("Module not visited")
 	}
 	if !visited[funcDef] {
 		t.Error("Function not visited")
 	}
-	
+
 	// Test early termination
 	earlyStop := NewFuncVisitor(func(node *Node) bool {
 		return false // Stop immediately
 	})
-	
+
 	count := 0
 	countVisitor := NewFuncVisitor(func(node *Node) bool {
 		count++
 		return true
 	})
-	
+
 	// First visitor stops early
 	module.Accept(earlyStop)
 	// Count should still work
 	module.Accept(countVisitor)
-	
+
 	if count != 2 { // module and funcDef
 		t.Errorf("Expected 2 nodes visited, got %d", count)
 	}
@@ -445,7 +445,7 @@ for i in range(100):
 	parser := New()
 	ctx := context.Background()
 	result, _ := parser.Parse(ctx, []byte(source))
-	
+
 	b.Run("FuncVisitor", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			visitor := NewFuncVisitor(func(node *Node) bool {
@@ -454,7 +454,7 @@ for i in range(100):
 			result.AST.Accept(visitor)
 		}
 	})
-	
+
 	b.Run("CollectorVisitor", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			collector := NewCollectorVisitor(func(node *Node) bool {
@@ -463,14 +463,14 @@ for i in range(100):
 			result.AST.Accept(collector)
 		}
 	})
-	
+
 	b.Run("StatisticsVisitor", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			stats := NewStatisticsVisitor()
 			result.AST.Accept(stats)
 		}
 	})
-	
+
 	b.Run("ValidatorVisitor", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			validator := NewValidatorVisitor()
