@@ -78,7 +78,7 @@ func (cr *ComplexityResult) String() string {
 type complexityVisitor struct {
 	edgeCount         int
 	nodeCount         int
-	ifStatements      int
+	decisionPoints    map[*BasicBlock]int // Track decision points per block
 	loopStatements    int
 	exceptionHandlers int
 	switchCases       int
@@ -106,14 +106,23 @@ func (cv *complexityVisitor) VisitEdge(edge *Edge) bool {
 
 	cv.edgeCount++
 
-	// Count decision points by edge type
-	switch edge.Type {
-	case EdgeCondTrue, EdgeCondFalse:
-		cv.ifStatements++
-	case EdgeLoop:
-		cv.loopStatements++
-	case EdgeException:
-		cv.exceptionHandlers++
+	// Count decision points accurately by source block
+	// A decision point is a block with multiple outgoing edges
+	if edge.From != nil {
+		if cv.decisionPoints == nil {
+			cv.decisionPoints = make(map[*BasicBlock]int)
+		}
+		
+		switch edge.Type {
+		case EdgeCondTrue, EdgeCondFalse:
+			// Mark this block as having conditional edges
+			// We only count the block once, regardless of number of edges
+			cv.decisionPoints[edge.From] = 1
+		case EdgeLoop:
+			cv.loopStatements++
+		case EdgeException:
+			cv.exceptionHandlers++
+		}
 	}
 
 	return true
@@ -134,7 +143,9 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 		}
 	}
 
-	visitor := &complexityVisitor{}
+	visitor := &complexityVisitor{
+		decisionPoints: make(map[*BasicBlock]int),
+	}
 	cfg.Walk(visitor)
 
 	// Primary method: count decision points + 1
@@ -147,13 +158,16 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 		complexity = 1
 	}
 
+	// Count actual conditional decisions (blocks with conditional outgoing edges)
+	conditionalDecisions := len(visitor.decisionPoints)
+	
 	result := &ComplexityResult{
 		Complexity:          complexity,
 		Edges:               visitor.edgeCount,
 		Nodes:               visitor.nodeCount,
 		ConnectedComponents: 1,
 		FunctionName:        cfg.Name,
-		IfStatements:        visitor.ifStatements / 2, // Divide by 2 since true/false edges are counted separately
+		IfStatements:        conditionalDecisions, // Accurate count of decision points
 		LoopStatements:      visitor.loopStatements,
 		ExceptionHandlers:   visitor.exceptionHandlers,
 		SwitchCases:         visitor.switchCases,
@@ -168,8 +182,8 @@ func countDecisionPoints(visitor *complexityVisitor) int {
 	// Decision points are nodes that have multiple outgoing edges
 	// For McCabe complexity, each decision point adds 1 to complexity
 
-	// Count conditional pairs (if/else) as one decision point each
-	conditionalDecisions := visitor.ifStatements / 2
+	// Count actual conditional decisions (unique blocks with conditional edges)
+	conditionalDecisions := len(visitor.decisionPoints)
 
 	// Add other decision types
 	// Note: loops without conditions are just jumps, not decisions

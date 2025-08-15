@@ -154,7 +154,7 @@ func TestCalculateComplexity(t *testing.T) {
 
 				return cfg
 			},
-			expectedComplexity: 3, // Multiple decision points
+			expectedComplexity: 4, // Multiple decision points (3 conditional blocks + 1)
 			expectedRiskLevel:  "low",
 			expectedNodes:      9, // All blocks except entry/exit
 			expectedEdges:      13,
@@ -185,6 +185,37 @@ func TestCalculateComplexity(t *testing.T) {
 			},
 			expectedComplexity: 26, // Should be > 20 for high risk
 			expectedRiskLevel:  "high",
+		},
+		{
+			name: "ElifChainCFG",
+			setupCFG: func() *CFG {
+				// if x == 1: ... elif x == 2: ... elif x == 3: ... else: ...
+				cfg := NewCFG("elif_chain_function")
+
+				cond1 := cfg.CreateBlock("cond1") // if x == 1
+				cond2 := cfg.CreateBlock("cond2") // elif x == 2  
+				cond3 := cfg.CreateBlock("cond3") // elif x == 3
+				then1 := cfg.CreateBlock("then1")
+				then2 := cfg.CreateBlock("then2") 
+				then3 := cfg.CreateBlock("then3")
+				else_block := cfg.CreateBlock("else")
+
+				cfg.ConnectBlocks(cfg.Entry, cond1, EdgeNormal)
+				cfg.ConnectBlocks(cond1, then1, EdgeCondTrue)
+				cfg.ConnectBlocks(cond1, cond2, EdgeCondFalse)
+				cfg.ConnectBlocks(cond2, then2, EdgeCondTrue)
+				cfg.ConnectBlocks(cond2, cond3, EdgeCondFalse)
+				cfg.ConnectBlocks(cond3, then3, EdgeCondTrue)
+				cfg.ConnectBlocks(cond3, else_block, EdgeCondFalse)
+				cfg.ConnectBlocks(then1, cfg.Exit, EdgeNormal)
+				cfg.ConnectBlocks(then2, cfg.Exit, EdgeNormal)
+				cfg.ConnectBlocks(then3, cfg.Exit, EdgeNormal)
+				cfg.ConnectBlocks(else_block, cfg.Exit, EdgeNormal)
+
+				return cfg
+			},
+			expectedComplexity: 4, // 3 decision points (cond1, cond2, cond3) + 1
+			expectedRiskLevel:  "low",
 		},
 	}
 
@@ -362,7 +393,9 @@ func TestComplexityVisitor(t *testing.T) {
 	})
 
 	t.Run("VisitEdge", func(t *testing.T) {
-		visitor := &complexityVisitor{}
+		visitor := &complexityVisitor{
+			decisionPoints: make(map[*BasicBlock]int),
+		}
 		block1 := NewBasicBlock("b1")
 		block2 := NewBasicBlock("b2")
 
@@ -378,14 +411,15 @@ func TestComplexityVisitor(t *testing.T) {
 		// Test conditional edges
 		condTrueEdge := &Edge{From: block1, To: block2, Type: EdgeCondTrue}
 		visitor.VisitEdge(condTrueEdge)
-		if visitor.ifStatements != 1 {
-			t.Errorf("Expected if statement count 1, got %d", visitor.ifStatements)
+		if len(visitor.decisionPoints) != 1 {
+			t.Errorf("Expected decision point count 1, got %d", len(visitor.decisionPoints))
 		}
 
 		condFalseEdge := &Edge{From: block1, To: block2, Type: EdgeCondFalse}
 		visitor.VisitEdge(condFalseEdge)
-		if visitor.ifStatements != 2 {
-			t.Errorf("Expected if statement count 2, got %d", visitor.ifStatements)
+		// Should still be 1 since it's the same source block
+		if len(visitor.decisionPoints) != 1 {
+			t.Errorf("Expected decision point count 1 (same block), got %d", len(visitor.decisionPoints))
 		}
 
 		// Test loop edge
