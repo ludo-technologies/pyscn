@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/pyqol/pyqol/internal/parser"
 	"log"
+	"strconv"
 	"strings"
 )
 
@@ -764,10 +765,10 @@ func (b *CFGBuilder) processTryStatement(stmt *parser.Node) {
 	}
 
 	// Create handler blocks for each except clause
-	var handlers []*BasicBlock
+	handlers := make([]*BasicBlock, len(stmt.Handlers))
 	for i := range stmt.Handlers {
-		handlerBlock := b.createBlock(fmt.Sprintf("%s_%d", LabelExceptBlock, i+1))
-		handlers = append(handlers, handlerBlock)
+		handlerBlock := b.createBlock(LabelExceptBlock + "_" + strconv.Itoa(i+1))
+		handlers[i] = handlerBlock
 	}
 
 	// Create exception context
@@ -965,7 +966,7 @@ func (b *CFGBuilder) processMatchStatement(stmt *parser.Node) {
 	if len(stmt.Body) > 0 {
 		for i, caseNode := range stmt.Body {
 			// Create case block
-			caseBlock := b.createBlock(fmt.Sprintf("%s_%d", LabelMatchCase, i+1))
+			caseBlock := b.createBlock(LabelMatchCase + "_" + strconv.Itoa(i+1))
 
 			// Connect match evaluation to this case (conditional edge)
 			b.cfg.ConnectBlocks(matchBlock, caseBlock, EdgeCondTrue)
@@ -1001,7 +1002,7 @@ func (b *CFGBuilder) processMatchStatement(stmt *parser.Node) {
 // createBlock creates a new basic block
 func (b *CFGBuilder) createBlock(label string) *BasicBlock {
 	b.blockCounter++
-	blockLabel := fmt.Sprintf("%s_%d", label, b.blockCounter)
+	blockLabel := label + "_" + strconv.FormatUint(uint64(b.blockCounter), 10)
 	return b.cfg.CreateBlock(blockLabel)
 }
 
