@@ -1,0 +1,58 @@
+# pyqol Configuration File
+# This is an example configuration file showing all available options
+
+# Complexity analysis configuration
+complexity:
+  # Threshold for low complexity (inclusive)
+  # Functions with complexity <= low_threshold are considered low risk
+  low_threshold: 9
+  
+  # Threshold for medium complexity (inclusive)  
+  # Functions with complexity > low_threshold and <= medium_threshold are medium risk
+  # Functions with complexity > medium_threshold are high risk
+  medium_threshold: 19
+  
+  # Whether to enable complexity analysis
+  enabled: true
+  
+  # Whether to report functions with complexity = 1 (unchanged functions)
+  report_unchanged: true
+  
+  # Maximum allowed complexity before failing analysis (0 = no limit)
+  # If set > 0, analysis will fail if any function exceeds this value
+  max_complexity: 0
+
+# Output formatting configuration
+output:
+  # Output format: text, json, yaml, csv
+  format: text
+  
+  # Whether to show detailed breakdown of complexity metrics
+  show_details: false
+  
+  # How to sort results: name, complexity, risk
+  sort_by: name
+  
+  # Minimum complexity to report (filters out low-complexity functions)
+  min_complexity: 1
+
+# File analysis configuration
+analysis:
+  # File patterns to include in analysis
+  include_patterns:
+    - "*.py"
+  
+  # File patterns to exclude from analysis
+  exclude_patterns:
+    - "*test*.py"
+    - "*_test.py" 
+    - "test_*.py"
+    - "__pycache__/*"
+    - "build/*"
+    - "dist/*"
+  
+  # Whether to analyze directories recursively
+  recursive: true
+  
+  # Whether to follow symbolic links
+  follow_symlinks: false
