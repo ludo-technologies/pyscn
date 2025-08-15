@@ -44,28 +44,15 @@ func (cr *ComplexityResult) GetRiskLevel() string {
 	return cr.RiskLevel
 }
 
-func (cr *ComplexityResult) GetNodes() int {
-	return cr.Nodes
-}
-
-func (cr *ComplexityResult) GetEdges() int {
-	return cr.Edges
-}
-
-func (cr *ComplexityResult) GetIfStatements() int {
-	return cr.IfStatements
-}
-
-func (cr *ComplexityResult) GetLoopStatements() int {
-	return cr.LoopStatements
-}
-
-func (cr *ComplexityResult) GetExceptionHandlers() int {
-	return cr.ExceptionHandlers
-}
-
-func (cr *ComplexityResult) GetSwitchCases() int {
-	return cr.SwitchCases
+func (cr *ComplexityResult) GetDetailedMetrics() map[string]int {
+	return map[string]int{
+		"nodes":              cr.Nodes,
+		"edges":              cr.Edges,
+		"if_statements":      cr.IfStatements,
+		"loop_statements":    cr.LoopStatements,
+		"exception_handlers": cr.ExceptionHandlers,
+		"switch_cases":       cr.SwitchCases,
+	}
 }
 
 // String returns a human-readable representation of the complexity result

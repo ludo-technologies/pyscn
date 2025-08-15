@@ -25,15 +25,20 @@ type mockComplexityResult struct {
 	switchCases       int
 }
 
-func (m *mockComplexityResult) GetComplexity() int          { return m.complexity }
-func (m *mockComplexityResult) GetFunctionName() string    { return m.functionName }
-func (m *mockComplexityResult) GetRiskLevel() string       { return m.riskLevel }
-func (m *mockComplexityResult) GetNodes() int              { return m.nodes }
-func (m *mockComplexityResult) GetEdges() int              { return m.edges }
-func (m *mockComplexityResult) GetIfStatements() int       { return m.ifStatements }
-func (m *mockComplexityResult) GetLoopStatements() int     { return m.loopStatements }
-func (m *mockComplexityResult) GetExceptionHandlers() int  { return m.exceptionHandlers }
-func (m *mockComplexityResult) GetSwitchCases() int        { return m.switchCases }
+func (m *mockComplexityResult) GetComplexity() int     { return m.complexity }
+func (m *mockComplexityResult) GetFunctionName() string { return m.functionName }
+func (m *mockComplexityResult) GetRiskLevel() string    { return m.riskLevel }
+
+func (m *mockComplexityResult) GetDetailedMetrics() map[string]int {
+	return map[string]int{
+		"nodes":              m.nodes,
+		"edges":              m.edges,
+		"if_statements":      m.ifStatements,
+		"loop_statements":    m.loopStatements,
+		"exception_handlers": m.exceptionHandlers,
+		"switch_cases":       m.switchCases,
+	}
+}
 
 func createTestResults() []ComplexityResult {
 	return []ComplexityResult{

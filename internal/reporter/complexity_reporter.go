@@ -13,18 +13,17 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// ComplexityResult represents complexity metrics for a function (interface to avoid import cycle)
+// ComplexityResult represents essential complexity metrics for a function (interface to avoid import cycle)
 type ComplexityResult interface {
+	// Core metrics needed for filtering and warnings
 	GetComplexity() int
 	GetFunctionName() string
 	GetRiskLevel() string
-	GetNodes() int
-	GetEdges() int
-	GetIfStatements() int
-	GetLoopStatements() int
-	GetExceptionHandlers() int
-	GetSwitchCases() int
+	
+	// Detailed metrics for comprehensive reporting
+	GetDetailedMetrics() map[string]int
 }
+
 
 // SerializableComplexityResult is a concrete type for JSON/YAML serialization
 type SerializableComplexityResult struct {
@@ -138,16 +137,17 @@ func (r *ComplexityReporter) GenerateReport(results []ComplexityResult) *Complex
 	// Convert interface results to serializable results
 	serializableResults := make([]SerializableComplexityResult, len(filtered))
 	for i, result := range filtered {
+		detailed := result.GetDetailedMetrics()
 		serializableResults[i] = SerializableComplexityResult{
 			Complexity:        result.GetComplexity(),
 			FunctionName:      result.GetFunctionName(),
 			RiskLevel:         result.GetRiskLevel(),
-			Nodes:             result.GetNodes(),
-			Edges:             result.GetEdges(),
-			IfStatements:      result.GetIfStatements(),
-			LoopStatements:    result.GetLoopStatements(),
-			ExceptionHandlers: result.GetExceptionHandlers(),
-			SwitchCases:       result.GetSwitchCases(),
+			Nodes:             detailed["nodes"],
+			Edges:             detailed["edges"],
+			IfStatements:      detailed["if_statements"],
+			LoopStatements:    detailed["loop_statements"],
+			ExceptionHandlers: detailed["exception_handlers"],
+			SwitchCases:       detailed["switch_cases"],
 		}
 	}
 	
