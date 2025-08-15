@@ -5,11 +5,13 @@
 complexity:
   # Threshold for low complexity (inclusive)
   # Functions with complexity <= low_threshold are considered low risk
+  # Default: 9 (DefaultLowComplexityThreshold)
   low_threshold: 9
   
   # Threshold for medium complexity (inclusive)  
   # Functions with complexity > low_threshold and <= medium_threshold are medium risk
   # Functions with complexity > medium_threshold are high risk
+  # Default: 19 (DefaultMediumComplexityThreshold)
   medium_threshold: 19
   
   # Whether to enable complexity analysis
@@ -20,6 +22,7 @@ complexity:
   
   # Maximum allowed complexity before failing analysis (0 = no limit)
   # If set > 0, analysis will fail if any function exceeds this value
+  # Default: 0 (DefaultMaxComplexityLimit - no enforcement)
   max_complexity: 0
 
 # Output formatting configuration
@@ -34,6 +37,7 @@ output:
   sort_by: name
   
   # Minimum complexity to report (filters out low-complexity functions)
+  # Default: 1 (DefaultMinComplexityFilter - report all functions)
   min_complexity: 1
 
 # File analysis configuration

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,11 +12,11 @@ func TestDefaultConfig(t *testing.T) {
 	config := DefaultConfig()
 
 	// Test complexity defaults
-	if config.Complexity.LowThreshold != 9 {
-		t.Errorf("Expected low threshold 9, got %d", config.Complexity.LowThreshold)
+	if config.Complexity.LowThreshold != DefaultLowComplexityThreshold {
+		t.Errorf("Expected low threshold %d, got %d", DefaultLowComplexityThreshold, config.Complexity.LowThreshold)
 	}
-	if config.Complexity.MediumThreshold != 19 {
-		t.Errorf("Expected medium threshold 19, got %d", config.Complexity.MediumThreshold)
+	if config.Complexity.MediumThreshold != DefaultMediumComplexityThreshold {
+		t.Errorf("Expected medium threshold %d, got %d", DefaultMediumComplexityThreshold, config.Complexity.MediumThreshold)
 	}
 	if !config.Complexity.Enabled {
 		t.Error("Expected complexity analysis to be enabled by default")
@@ -99,10 +100,10 @@ func TestConfigValidation(t *testing.T) {
 			name: "MaxComplexityTooLow",
 			modifyConfig: func(c *Config) {
 				c.Complexity.MaxComplexity = 15
-				c.Complexity.MediumThreshold = 19
+				c.Complexity.MediumThreshold = DefaultMediumComplexityThreshold
 			},
 			expectError: true,
-			errorContains: "max_complexity (15) must be > medium_threshold (19)",
+			errorContains: fmt.Sprintf("max_complexity (15) must be > medium_threshold (%d)", DefaultMediumComplexityThreshold),
 		},
 		{
 			name: "InvalidOutputFormat",
@@ -170,11 +171,11 @@ func TestComplexityConfigMethods(t *testing.T) {
 		}{
 			{1, "low"},
 			{5, "low"},
-			{9, "low"},
-			{10, "medium"},
+			{DefaultLowComplexityThreshold, "low"},
+			{DefaultLowComplexityThreshold + 1, "medium"},
 			{15, "medium"},
-			{19, "medium"},
-			{20, "high"},
+			{DefaultMediumComplexityThreshold, "medium"},
+			{DefaultMediumComplexityThreshold + 1, "high"},
 			{50, "high"},
 		}
 
