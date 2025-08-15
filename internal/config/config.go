@@ -8,6 +8,25 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Default complexity thresholds based on McCabe complexity standards
+const (
+	// DefaultLowComplexityThreshold defines the upper bound for low complexity functions
+	// Functions with complexity <= 9 are considered low risk and easy to maintain
+	DefaultLowComplexityThreshold = 9
+
+	// DefaultMediumComplexityThreshold defines the upper bound for medium complexity functions
+	// Functions with complexity 10-19 are considered medium risk and may need refactoring
+	DefaultMediumComplexityThreshold = 19
+
+	// DefaultMinComplexityFilter defines the minimum complexity to report
+	// Functions with complexity >= 1 will be included in reports
+	DefaultMinComplexityFilter = 1
+
+	// DefaultMaxComplexityLimit defines no upper limit for complexity analysis
+	// Setting to 0 means no maximum complexity enforcement
+	DefaultMaxComplexityLimit = 0
+)
+
 // Config represents the main configuration structure
 type Config struct {
 	// Complexity holds complexity analysis configuration
@@ -74,17 +93,17 @@ type AnalysisConfig struct {
 func DefaultConfig() *Config {
 	return &Config{
 		Complexity: ComplexityConfig{
-			LowThreshold:    9,
-			MediumThreshold: 19,
+			LowThreshold:    DefaultLowComplexityThreshold,
+			MediumThreshold: DefaultMediumComplexityThreshold,
 			Enabled:         true,
-			ReportUnchanged: true, // Report all functions by default for backward compatibility
-			MaxComplexity:   0,    // No limit
+			ReportUnchanged: true,
+			MaxComplexity:   DefaultMaxComplexityLimit,
 		},
 		Output: OutputConfig{
 			Format:        "text",
 			ShowDetails:   false,
 			SortBy:        "name",
-			MinComplexity: 1,
+			MinComplexity: DefaultMinComplexityFilter,
 		},
 		Analysis: AnalysisConfig{
 			IncludePatterns: []string{"*.py"},

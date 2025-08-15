@@ -76,8 +76,8 @@ func TestNewComplexityAnalyzerWithDefaults(t *testing.T) {
 	}
 
 	// Verify it uses default configuration values
-	if analyzer.config.Complexity.LowThreshold != 9 {
-		t.Errorf("Expected default low threshold 9, got %d", analyzer.config.Complexity.LowThreshold)
+	if analyzer.config.Complexity.LowThreshold != config.DefaultLowComplexityThreshold {
+		t.Errorf("Expected default low threshold %d, got %d", config.DefaultLowComplexityThreshold, analyzer.config.Complexity.LowThreshold)
 	}
 }
 
