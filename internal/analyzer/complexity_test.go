@@ -244,6 +244,9 @@ func TestCalculateComplexity(t *testing.T) {
 }
 
 func TestAssessRiskLevel(t *testing.T) {
+	// Test using config.ComplexityConfig.AssessRiskLevel instead of deprecated function
+	defaultConfig := config.DefaultConfig()
+	
 	testCases := []struct {
 		complexity int
 		expected   string
@@ -261,7 +264,7 @@ func TestAssessRiskLevel(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run("", func(t *testing.T) {
-			result := assessRiskLevel(tc.complexity)
+			result := defaultConfig.Complexity.AssessRiskLevel(tc.complexity)
 			if result != tc.expected {
 				t.Errorf("For complexity %d, expected %q, got %q", tc.complexity, tc.expected, result)
 			}
