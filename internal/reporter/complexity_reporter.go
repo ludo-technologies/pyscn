@@ -118,11 +118,24 @@ type ComplexityReporter struct {
 }
 
 // NewComplexityReporter creates a new complexity reporter
-func NewComplexityReporter(cfg *config.Config, writer io.Writer) *ComplexityReporter {
+func NewComplexityReporter(cfg *config.Config, writer io.Writer) (*ComplexityReporter, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("configuration cannot be nil")
+	}
+	
+	if writer == nil {
+		return nil, fmt.Errorf("writer cannot be nil")
+	}
+	
+	// Validate configuration
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+	
 	return &ComplexityReporter{
 		config: cfg,
 		writer: writer,
-	}
+	}, nil
 }
 
 // GetWriter returns the writer used by this reporter

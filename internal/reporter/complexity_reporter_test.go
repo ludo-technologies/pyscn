@@ -86,26 +86,66 @@ func createTestResults() []ComplexityResult {
 }
 
 func TestNewComplexityReporter(t *testing.T) {
-	cfg := config.DefaultConfig()
-	var buffer bytes.Buffer
-	
-	reporter := NewComplexityReporter(cfg, &buffer)
-	
-	if reporter == nil {
-		t.Fatal("Expected reporter instance, got nil")
-	}
-	if reporter.config != cfg {
-		t.Error("Reporter config not set correctly")
-	}
-	if reporter.writer != &buffer {
-		t.Error("Reporter writer not set correctly")
-	}
+	t.Run("ValidConfiguration", func(t *testing.T) {
+		cfg := config.DefaultConfig()
+		var buffer bytes.Buffer
+		
+		reporter, err := NewComplexityReporter(cfg, &buffer)
+		if err != nil {
+			t.Fatalf("Failed to create reporter: %v", err)
+		}
+		
+		if reporter == nil {
+			t.Fatal("Expected reporter instance, got nil")
+		}
+		if reporter.config != cfg {
+			t.Error("Reporter config not set correctly")
+		}
+		if reporter.writer != &buffer {
+			t.Error("Reporter writer not set correctly")
+		}
+	})
+
+	t.Run("NilConfiguration", func(t *testing.T) {
+		var buffer bytes.Buffer
+		
+		reporter, err := NewComplexityReporter(nil, &buffer)
+		
+		if err == nil {
+			t.Fatal("Expected error for nil configuration, but got none")
+		}
+		if reporter != nil {
+			t.Error("Expected nil reporter for nil configuration")
+		}
+		if !strings.Contains(err.Error(), "configuration cannot be nil") {
+			t.Errorf("Expected nil config error, got: %v", err)
+		}
+	})
+
+	t.Run("NilWriter", func(t *testing.T) {
+		cfg := config.DefaultConfig()
+		
+		reporter, err := NewComplexityReporter(cfg, nil)
+		
+		if err == nil {
+			t.Fatal("Expected error for nil writer, but got none")
+		}
+		if reporter != nil {
+			t.Error("Expected nil reporter for nil writer")
+		}
+		if !strings.Contains(err.Error(), "writer cannot be nil") {
+			t.Errorf("Expected nil writer error, got: %v", err)
+		}
+	})
 }
 
 func TestGenerateReport(t *testing.T) {
 	cfg := config.DefaultConfig()
 	var buffer bytes.Buffer
-	reporter := NewComplexityReporter(cfg, &buffer)
+	reporter, err := NewComplexityReporter(cfg, &buffer)
+	if err != nil {
+		t.Fatalf("Failed to create reporter: %v", err)
+	}
 	
 	results := createTestResults()
 	report := reporter.GenerateReport(results)
@@ -174,7 +214,10 @@ func TestFilterAndSortResults(t *testing.T) {
 		cfg.Output.MinComplexity = 10 // Should filter out first two functions
 		
 		var buffer bytes.Buffer
-		reporter := NewComplexityReporter(cfg, &buffer)
+		reporter, err := NewComplexityReporter(cfg, &buffer)
+	if err != nil {
+		t.Fatalf("Failed to create reporter: %v", err)
+	}
 		
 		filtered := reporter.filterAndSortResults(results)
 		
@@ -194,7 +237,10 @@ func TestFilterAndSortResults(t *testing.T) {
 		cfg.Output.SortBy = "name"
 		
 		var buffer bytes.Buffer
-		reporter := NewComplexityReporter(cfg, &buffer)
+		reporter, err := NewComplexityReporter(cfg, &buffer)
+	if err != nil {
+		t.Fatalf("Failed to create reporter: %v", err)
+	}
 		
 		sorted := reporter.filterAndSortResults(results)
 		
@@ -212,7 +258,10 @@ func TestFilterAndSortResults(t *testing.T) {
 		cfg.Output.SortBy = "complexity"
 		
 		var buffer bytes.Buffer
-		reporter := NewComplexityReporter(cfg, &buffer)
+		reporter, err := NewComplexityReporter(cfg, &buffer)
+	if err != nil {
+		t.Fatalf("Failed to create reporter: %v", err)
+	}
 		
 		sorted := reporter.filterAndSortResults(results)
 		
@@ -230,7 +279,10 @@ func TestFilterAndSortResults(t *testing.T) {
 		cfg.Output.SortBy = "risk"
 		
 		var buffer bytes.Buffer
-		reporter := NewComplexityReporter(cfg, &buffer)
+		reporter, err := NewComplexityReporter(cfg, &buffer)
+	if err != nil {
+		t.Fatalf("Failed to create reporter: %v", err)
+	}
 		
 		sorted := reporter.filterAndSortResults(results)
 		
@@ -249,7 +301,10 @@ func TestGenerateWarnings(t *testing.T) {
 	t.Run("HighComplexityWarnings", func(t *testing.T) {
 		cfg := config.DefaultConfig()
 		var buffer bytes.Buffer
-		reporter := NewComplexityReporter(cfg, &buffer)
+		reporter, err := NewComplexityReporter(cfg, &buffer)
+	if err != nil {
+		t.Fatalf("Failed to create reporter: %v", err)
+	}
 		
 		results := createTestResults()
 		warnings := reporter.generateWarnings(results)
@@ -276,7 +331,10 @@ func TestGenerateWarnings(t *testing.T) {
 		cfg.Complexity.MaxComplexity = 20 // Should trigger warning for very_complex_function
 		
 		var buffer bytes.Buffer
-		reporter := NewComplexityReporter(cfg, &buffer)
+		reporter, err := NewComplexityReporter(cfg, &buffer)
+	if err != nil {
+		t.Fatalf("Failed to create reporter: %v", err)
+	}
 		
 		results := createTestResults()
 		warnings := reporter.generateWarnings(results)
@@ -303,10 +361,13 @@ func TestOutputJSON(t *testing.T) {
 	cfg.Output.Format = "json"
 	
 	var buffer bytes.Buffer
-	reporter := NewComplexityReporter(cfg, &buffer)
+	reporter, err := NewComplexityReporter(cfg, &buffer)
+	if err != nil {
+		t.Fatalf("Failed to create reporter: %v", err)
+	}
 	
 	results := createTestResults()
-	err := reporter.ReportComplexity(results)
+	err = reporter.ReportComplexity(results)
 	
 	if err != nil {
 		t.Fatalf("Failed to output JSON: %v", err)
@@ -333,10 +394,13 @@ func TestOutputYAML(t *testing.T) {
 	cfg.Output.Format = "yaml"
 	
 	var buffer bytes.Buffer
-	reporter := NewComplexityReporter(cfg, &buffer)
+	reporter, err := NewComplexityReporter(cfg, &buffer)
+	if err != nil {
+		t.Fatalf("Failed to create reporter: %v", err)
+	}
 	
 	results := createTestResults()
-	err := reporter.ReportComplexity(results)
+	err = reporter.ReportComplexity(results)
 	
 	if err != nil {
 		t.Fatalf("Failed to output YAML: %v", err)
@@ -363,10 +427,13 @@ func TestOutputCSV(t *testing.T) {
 	cfg.Output.Format = "csv"
 	
 	var buffer bytes.Buffer
-	reporter := NewComplexityReporter(cfg, &buffer)
+	reporter, err := NewComplexityReporter(cfg, &buffer)
+	if err != nil {
+		t.Fatalf("Failed to create reporter: %v", err)
+	}
 	
 	results := createTestResults()
-	err := reporter.ReportComplexity(results)
+	err = reporter.ReportComplexity(results)
 	
 	if err != nil {
 		t.Fatalf("Failed to output CSV: %v", err)
@@ -414,10 +481,13 @@ func TestOutputText(t *testing.T) {
 	cfg.Output.ShowDetails = true
 	
 	var buffer bytes.Buffer
-	reporter := NewComplexityReporter(cfg, &buffer)
+	reporter, err := NewComplexityReporter(cfg, &buffer)
+	if err != nil {
+		t.Fatalf("Failed to create reporter: %v", err)
+	}
 	
 	results := createTestResults()
-	err := reporter.ReportComplexity(results)
+	err = reporter.ReportComplexity(results)
 	
 	if err != nil {
 		t.Fatalf("Failed to output text: %v", err)
@@ -464,10 +534,13 @@ func TestOutputTextWithWarnings(t *testing.T) {
 	cfg.Complexity.MaxComplexity = 20 // Will trigger warning
 	
 	var buffer bytes.Buffer
-	reporter := NewComplexityReporter(cfg, &buffer)
+	reporter, err := NewComplexityReporter(cfg, &buffer)
+	if err != nil {
+		t.Fatalf("Failed to create reporter: %v", err)
+	}
 	
 	results := createTestResults()
-	err := reporter.ReportComplexity(results)
+	err = reporter.ReportComplexity(results)
 	
 	if err != nil {
 		t.Fatalf("Failed to output text with warnings: %v", err)
@@ -518,9 +591,12 @@ func TestComplexityReporterEdgeCases(t *testing.T) {
 	t.Run("EmptyResults", func(t *testing.T) {
 		cfg := config.DefaultConfig()
 		var buffer bytes.Buffer
-		reporter := NewComplexityReporter(cfg, &buffer)
+		reporter, err := NewComplexityReporter(cfg, &buffer)
+	if err != nil {
+		t.Fatalf("Failed to create reporter: %v", err)
+	}
 		
-		err := reporter.ReportComplexity([]ComplexityResult{})
+		err = reporter.ReportComplexity([]ComplexityResult{})
 		if err != nil {
 			t.Fatalf("Failed to handle empty results: %v", err)
 		}
@@ -537,27 +613,31 @@ func TestComplexityReporterEdgeCases(t *testing.T) {
 		cfg.Output.Format = "invalid"
 		
 		var buffer bytes.Buffer
-		reporter := NewComplexityReporter(cfg, &buffer)
+		reporter, err := NewComplexityReporter(cfg, &buffer)
 		
-		results := createTestResults()
-		err := reporter.ReportComplexity(results)
-		
-		// Should default to text format and succeed
-		if err != nil {
-			t.Fatalf("Failed to handle invalid format: %v", err)
+		// Should fail to create reporter with invalid configuration
+		if err == nil {
+			t.Fatal("Expected error for invalid output format, but got none")
 		}
 		
-		// Should have generated text output
-		output := buffer.String()
-		if !strings.Contains(output, "Complexity Analysis Report") {
-			t.Error("Should have defaulted to text format")
+		// Should contain validation error message
+		if !strings.Contains(err.Error(), "invalid output.format") {
+			t.Errorf("Expected validation error for invalid format, got: %v", err)
+		}
+		
+		// Reporter should be nil
+		if reporter != nil {
+			t.Error("Expected nil reporter for invalid configuration")
 		}
 	})
 	
 	t.Run("SingleFunction", func(t *testing.T) {
 		cfg := config.DefaultConfig()
 		var buffer bytes.Buffer
-		reporter := NewComplexityReporter(cfg, &buffer)
+		reporter, err := NewComplexityReporter(cfg, &buffer)
+	if err != nil {
+		t.Fatalf("Failed to create reporter: %v", err)
+	}
 		
 		singleResult := []ComplexityResult{
 			&mockComplexityResult{
