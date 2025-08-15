@@ -512,4 +512,3 @@ func parseSourceForReachability(t *testing.T, source string) *parser.Node {
 
 	return result.AST
 }
-

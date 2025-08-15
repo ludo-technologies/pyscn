@@ -19,7 +19,7 @@ func NewComplexityAnalyzer(cfg *config.Config, output io.Writer) *ComplexityAnal
 	if output == nil {
 		output = os.Stdout
 	}
-	
+
 	return &ComplexityAnalyzer{
 		config:   cfg,
 		reporter: reporter.NewComplexityReporter(cfg, output),
@@ -36,13 +36,13 @@ func NewComplexityAnalyzerWithDefaults(output io.Writer) *ComplexityAnalyzer {
 func (ca *ComplexityAnalyzer) AnalyzeAndReport(cfgs []*CFG) error {
 	// Calculate complexity with configuration
 	results := CalculateFileComplexityWithConfig(cfgs, &ca.config.Complexity)
-	
+
 	// Convert to interface slice for reporter
 	interfaceResults := make([]reporter.ComplexityResult, len(results))
 	for i, result := range results {
 		interfaceResults[i] = result
 	}
-	
+
 	// Generate and output report
 	return ca.reporter.ReportComplexity(interfaceResults)
 }
@@ -61,14 +61,14 @@ func (ca *ComplexityAnalyzer) AnalyzeFunctions(cfgs []*CFG) []*ComplexityResult 
 // Returns true if all functions are within limits, false otherwise
 func (ca *ComplexityAnalyzer) CheckComplexityLimits(cfgs []*CFG) (bool, []*ComplexityResult) {
 	results := CalculateFileComplexityWithConfig(cfgs, &ca.config.Complexity)
-	
+
 	var violations []*ComplexityResult
 	for _, result := range results {
 		if ca.config.Complexity.ExceedsMaxComplexity(result.Complexity) {
 			violations = append(violations, result)
 		}
 	}
-	
+
 	return len(violations) == 0, violations
 }
 
@@ -92,12 +92,12 @@ func (ca *ComplexityAnalyzer) SetOutput(output io.Writer) {
 // GenerateReport creates a comprehensive report without outputting it
 func (ca *ComplexityAnalyzer) GenerateReport(cfgs []*CFG) *reporter.ComplexityReport {
 	results := CalculateFileComplexityWithConfig(cfgs, &ca.config.Complexity)
-	
+
 	// Convert to interface slice for reporter
 	interfaceResults := make([]reporter.ComplexityResult, len(results))
 	for i, result := range results {
 		interfaceResults[i] = result
 	}
-	
+
 	return ca.reporter.GenerateReport(interfaceResults)
 }
