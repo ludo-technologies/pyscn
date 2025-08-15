@@ -218,60 +218,6 @@ func (r *ComplexityReporter) compareRiskLevel(risk1, risk2 string) bool {
 	return riskValue[risk1] > riskValue[risk2]
 }
 
-// generateSummary creates summary statistics from results
-func (r *ComplexityReporter) generateSummary(results []ComplexityResult) ReportSummary {
-	if len(results) == 0 {
-		return ReportSummary{}
-	}
-	
-	summary := ReportSummary{
-		TotalFunctions: len(results),
-		MinComplexity:  results[0].GetComplexity(),
-		MaxComplexity:  results[0].GetComplexity(),
-		ComplexityDistribution: make(map[string]int),
-	}
-	
-	totalComplexity := 0
-	for _, result := range results {
-		complexity := result.GetComplexity()
-		totalComplexity += complexity
-		
-		if complexity > summary.MaxComplexity {
-			summary.MaxComplexity = complexity
-		}
-		if complexity < summary.MinComplexity {
-			summary.MinComplexity = complexity
-		}
-		
-		// Count by risk level
-		switch result.GetRiskLevel() {
-		case "high":
-			summary.RiskDistribution.High++
-		case "medium":
-			summary.RiskDistribution.Medium++
-		case "low":
-			summary.RiskDistribution.Low++
-		}
-		
-		// Count by complexity ranges
-		switch {
-		case complexity == 1:
-			summary.ComplexityDistribution["1"]++
-		case complexity <= 5:
-			summary.ComplexityDistribution["2-5"]++
-		case complexity <= 10:
-			summary.ComplexityDistribution["6-10"]++
-		case complexity <= 20:
-			summary.ComplexityDistribution["11-20"]++
-		default:
-			summary.ComplexityDistribution["21+"]++
-		}
-	}
-	
-	summary.AverageComplexity = float64(totalComplexity) / float64(len(results))
-	
-	return summary
-}
 
 // generateSummaryFromSerializable creates summary statistics from serializable results
 func (r *ComplexityReporter) generateSummaryFromSerializable(results []SerializableComplexityResult) ReportSummary {

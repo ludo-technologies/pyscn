@@ -259,6 +259,7 @@ func TestLoadConfig(t *testing.T) {
 		}
 		if config == nil {
 			t.Error("Expected default config for empty path")
+			return
 		}
 
 		// Should return default config
@@ -398,11 +399,13 @@ func TestFindDefaultConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get working directory: %v", err)
 	}
-	defer os.Chdir(originalWd)
+	defer func() { _ = os.Chdir(originalWd) }()
 
 	t.Run("NoDefaultConfigFound", func(t *testing.T) {
 		tempDir := t.TempDir()
-		os.Chdir(tempDir)
+		if err := os.Chdir(tempDir); err != nil {
+			t.Fatalf("Failed to change to temp directory: %v", err)
+		}
 
 		result := findDefaultConfig()
 		if result != "" {
@@ -412,7 +415,9 @@ func TestFindDefaultConfig(t *testing.T) {
 
 	t.Run("FindDefaultConfigInCurrentDir", func(t *testing.T) {
 		tempDir := t.TempDir()
-		os.Chdir(tempDir)
+		if err := os.Chdir(tempDir); err != nil {
+			t.Fatalf("Failed to change to temp directory: %v", err)
+		}
 
 		// Create a default config file
 		configPath := filepath.Join(tempDir, "pyqol.yaml")
