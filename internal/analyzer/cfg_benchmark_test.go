@@ -16,7 +16,7 @@ import (
 // Target: >10,000 lines/second CFG construction
 // Actual: ~73,000 lines/second (7x better)
 //
-// Target: >100,000 blocks/second reachability analysis  
+// Target: >100,000 blocks/second reachability analysis
 // Actual: ~4.8M blocks/second (48x better)
 //
 // Target: <10x file size memory usage
@@ -24,7 +24,7 @@ import (
 //
 // Key Benchmarks:
 // - RealWorldCFGBuild: ~13,626 ns/op, 21,594 B/op, 606 allocs/op
-// - SimpleReachability: ~202 ns/op, 360 B/op, 5 allocs/op  
+// - SimpleReachability: ~202 ns/op, 360 B/op, 5 allocs/op
 // - CFG Construction: 845-9,702 ns/op depending on complexity
 //
 // These baselines should be maintained to prevent performance regressions.
