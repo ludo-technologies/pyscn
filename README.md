@@ -4,9 +4,17 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Pre--Alpha-orange.svg)](https://github.com/pyqol/pyqol)
 
-**pyqol** is a next-generation static analysis tool for Python that goes beyond traditional linters. By leveraging Control Flow Graph (CFG) analysis and tree edit distance algorithms (APTED), pyqol provides deep structural insights into your codebase.
+**pyqol is a static analysis tool focused on software design and architectural quality, going beyond traditional linting.**
 
-## 🚀 Features (Coming Soon)
+While generative AI excels at writing code, it can struggle with maintaining a clean architecture. `pyqol` acts as your AI-powered teammate, specifically designed to detect structural issues that linters often miss, such as:
+
+- **Low Cohesion & High Coupling:** Identifying classes and modules that are hard to maintain, test, and reuse (using metrics like LCOM4 and CBO).
+- **Architectural Principle Violations:** Detecting circular dependencies and deviations from principles like SOLID.
+- **Structural Duplication:** Finding structurally similar code blocks that could be refactored (using tree-edit distance algorithms).
+
+Instead of just checking for style, `pyqol` helps you build a more robust, maintainable, and scalable codebase.
+
+## 🚀 Features
 
 ### Core Technologies
 - **CFG-based Dead Code Detection**: Precisely identifies unreachable code using control flow analysis
