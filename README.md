@@ -14,12 +14,23 @@ While generative AI excels at writing code, it can struggle with maintaining a c
 
 Instead of just checking for style, `pyqol` helps you build a more robust, maintainable, and scalable codebase.
 
-## 🚀 Features
+## 🚀 Core Features
 
-### Core Technologies
-- **CFG-based Dead Code Detection**: Precisely identifies unreachable code using control flow analysis
-- **APTED Clone Detection**: Finds structurally similar code blocks using tree edit distance
-- **Complexity Metrics**: Calculates cyclomatic complexity and LCOM4 cohesion metrics
+`pyqol` analyzes code quality from three distinct, complementary perspectives:
+
+### 1. Architectural Design Analysis
+Evaluates the quality of your software design using key metrics.
+- **Cohesion (LCOM4):** Detects classes that have too many responsibilities and should be split.
+- **Coupling (CBO):** Finds classes that are too dependent on others, making them difficult to reuse and maintain.
+- **Dependency Analysis:** Identifies circular dependencies between modules.
+
+### 2. Structural Clone Detection
+Uses tree-edit distance algorithms (APTED) to find structurally similar code blocks that are candidates for refactoring, going beyond simple copy-paste detection.
+
+### 3. Control Flow Analysis
+Leverages Control Flow Graphs (CFG) to understand code execution paths, enabling:
+- **Precise Dead Code Detection:** Identifies truly unreachable code that other linters might miss.
+- **Complexity Analysis:** Calculates cyclomatic complexity to find overly complex functions.
 
 ### Why pyqol?
 

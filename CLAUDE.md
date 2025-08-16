@@ -18,13 +18,7 @@ pyqol is a next-generation Python static analysis tool that uses Control Flow Gr
 
 ## Development Language
 
-**ALL development must be conducted in English**, including:
-- Code comments
-- Commit messages
-- Documentation
-- Variable and function names
-- Test descriptions
-- Issue and PR descriptions
+**ALL development must be conducted in English**
 
 ## Project Goals
 
@@ -273,5 +267,5 @@ The goal is to create a tool that Python developers will love to use. Focus on a
 
 ---
 
-*Last updated: August 6, 2025*
+*Last updated: August 16, 2025*
 *Project deadline: September 6, 2025*
