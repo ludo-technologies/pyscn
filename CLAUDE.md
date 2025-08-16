@@ -128,7 +128,7 @@ Before committing code, ensure:
 - [ ] All tests pass: `go test ./...`
 - [ ] No race conditions: `go test -race ./...`
 - [ ] Code formatted: `go fmt ./...`
-- [ ] No vet issues: `go vet ./...`
+- [ ] No lint issues: `golangci-lint ./...`
 - [ ] Coverage >80%: `go test -cover ./...`
 - [ ] Documentation updated
 - [ ] Meaningful commit message
