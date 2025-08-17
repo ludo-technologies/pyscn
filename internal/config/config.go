@@ -27,10 +27,25 @@ const (
 	DefaultMaxComplexityLimit = 0
 )
 
+// Default dead code detection settings
+const (
+	// DefaultDeadCodeMinSeverity defines the minimum severity level to report
+	DefaultDeadCodeMinSeverity = "warning"
+
+	// DefaultDeadCodeContextLines defines the number of context lines to show
+	DefaultDeadCodeContextLines = 3
+
+	// DefaultDeadCodeSortBy defines the default sorting criteria
+	DefaultDeadCodeSortBy = "severity"
+)
+
 // Config represents the main configuration structure
 type Config struct {
 	// Complexity holds complexity analysis configuration
 	Complexity ComplexityConfig `mapstructure:"complexity" yaml:"complexity"`
+
+	// DeadCode holds dead code detection configuration
+	DeadCode DeadCodeConfig `mapstructure:"dead_code" yaml:"dead_code"`
 
 	// Output holds output formatting configuration
 	Output OutputConfig `mapstructure:"output" yaml:"output"`
@@ -74,6 +89,34 @@ type OutputConfig struct {
 	MinComplexity int `mapstructure:"min_complexity" yaml:"min_complexity"`
 }
 
+// DeadCodeConfig holds configuration for dead code detection
+type DeadCodeConfig struct {
+	// Enabled controls whether dead code detection is performed
+	Enabled bool `mapstructure:"enabled" yaml:"enabled"`
+
+	// MinSeverity is the minimum severity level to report
+	MinSeverity string `mapstructure:"min_severity" yaml:"min_severity"`
+
+	// ShowContext controls whether to show surrounding code context
+	ShowContext bool `mapstructure:"show_context" yaml:"show_context"`
+
+	// ContextLines is the number of context lines to show around dead code
+	ContextLines int `mapstructure:"context_lines" yaml:"context_lines"`
+
+	// SortBy specifies how to sort results: severity, line, file, function
+	SortBy string `mapstructure:"sort_by" yaml:"sort_by"`
+
+	// Detection options
+	DetectAfterReturn bool `mapstructure:"detect_after_return" yaml:"detect_after_return"`
+	DetectAfterBreak bool `mapstructure:"detect_after_break" yaml:"detect_after_break"`
+	DetectAfterContinue bool `mapstructure:"detect_after_continue" yaml:"detect_after_continue"`
+	DetectAfterRaise bool `mapstructure:"detect_after_raise" yaml:"detect_after_raise"`
+	DetectUnreachableBranches bool `mapstructure:"detect_unreachable_branches" yaml:"detect_unreachable_branches"`
+
+	// IgnorePatterns specifies patterns for code to ignore (e.g., comments, debug code)
+	IgnorePatterns []string `mapstructure:"ignore_patterns" yaml:"ignore_patterns"`
+}
+
 // AnalysisConfig holds general analysis configuration
 type AnalysisConfig struct {
 	// IncludePatterns specifies file patterns to include
@@ -98,6 +141,19 @@ func DefaultConfig() *Config {
 			Enabled:         true,
 			ReportUnchanged: true,
 			MaxComplexity:   DefaultMaxComplexityLimit,
+		},
+		DeadCode: DeadCodeConfig{
+			Enabled:                   true,
+			MinSeverity:               DefaultDeadCodeMinSeverity,
+			ShowContext:               false,
+			ContextLines:              DefaultDeadCodeContextLines,
+			SortBy:                    DefaultDeadCodeSortBy,
+			DetectAfterReturn:         true,
+			DetectAfterBreak:          true,
+			DetectAfterContinue:       true,
+			DetectAfterRaise:          true,
+			DetectUnreachableBranches: true,
+			IgnorePatterns:            []string{},
 		},
 		Output: OutputConfig{
 			Format:        "text",
@@ -232,6 +288,11 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("analysis.include_patterns cannot be empty")
 	}
 
+	// Validate dead code configuration
+	if err := c.validateDeadCodeConfig(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -270,8 +331,74 @@ func SaveConfig(config *Config, path string) error {
 
 	// Set all config values in viper
 	viper.Set("complexity", config.Complexity)
+	viper.Set("dead_code", config.DeadCode)
 	viper.Set("output", config.Output)
 	viper.Set("analysis", config.Analysis)
 
 	return viper.WriteConfig()
+}
+
+// validateDeadCodeConfig validates the dead code configuration
+func (c *Config) validateDeadCodeConfig() error {
+	// Validate severity level
+	validSeverities := map[string]bool{
+		"critical": true,
+		"warning":  true,
+		"info":     true,
+	}
+
+	if !validSeverities[c.DeadCode.MinSeverity] {
+		return fmt.Errorf("invalid dead_code.min_severity '%s', must be one of: critical, warning, info", c.DeadCode.MinSeverity)
+	}
+
+	// Validate context lines
+	if c.DeadCode.ContextLines < 0 {
+		return fmt.Errorf("dead_code.context_lines must be >= 0, got %d", c.DeadCode.ContextLines)
+	}
+
+	if c.DeadCode.ContextLines > 20 {
+		return fmt.Errorf("dead_code.context_lines cannot exceed 20, got %d", c.DeadCode.ContextLines)
+	}
+
+	// Validate sort criteria
+	validSortBy := map[string]bool{
+		"severity": true,
+		"line":     true,
+		"file":     true,
+		"function": true,
+	}
+
+	if !validSortBy[c.DeadCode.SortBy] {
+		return fmt.Errorf("invalid dead_code.sort_by '%s', must be one of: severity, line, file, function", c.DeadCode.SortBy)
+	}
+
+	return nil
+}
+
+// ShouldDetectDeadCode determines if dead code detection should be performed
+func (c *DeadCodeConfig) ShouldDetectDeadCode() bool {
+	return c.Enabled
+}
+
+// GetMinSeverityLevel returns the minimum severity level as an integer for comparison
+func (c *DeadCodeConfig) GetMinSeverityLevel() int {
+	switch c.MinSeverity {
+	case "info":
+		return 1
+	case "warning":
+		return 2
+	case "critical":
+		return 3
+	default:
+		return 2 // Default to warning
+	}
+}
+
+// HasAnyDetectionEnabled checks if any detection type is enabled
+func (c *DeadCodeConfig) HasAnyDetectionEnabled() bool {
+	return c.DetectAfterReturn ||
+		c.DetectAfterBreak ||
+		c.DetectAfterContinue ||
+		c.DetectAfterRaise ||
+		c.DetectUnreachableBranches
 }
