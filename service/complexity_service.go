@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/pyqol/pyqol/domain"
 	"github.com/pyqol/pyqol/internal/analyzer"
 	"github.com/pyqol/pyqol/internal/config"
 	"github.com/pyqol/pyqol/internal/parser"
+	"github.com/pyqol/pyqol/internal/version"
 )
 
 // ComplexityServiceImpl implements the ComplexityService interface
@@ -76,7 +78,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 		Warnings:    warnings,
 		Errors:      errors,
 		GeneratedAt: time.Now().Format(time.RFC3339),
-		Version:     "dev", // TODO: Get from version package
+		Version:     version.Version, // Get version from version package
 		Config:      s.buildConfigForResponse(req),
 	}, nil
 }
@@ -99,13 +101,14 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 	// Parse the file
 	content, err := s.readFile(filePath)
 	if err != nil {
-		errors = append(errors, fmt.Sprintf("failed to read file %s: %v", filePath, err))
+		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
 		return functions, warnings, errors
 	}
 
 	result, err := s.parser.Parse(ctx, content)
 	if err != nil {
-		errors = append(errors, fmt.Sprintf("failed to parse file %s: %v", filePath, err))
+		// Enhanced error context with file path
+		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", filePath, err))
 		return functions, warnings, errors
 	}
 
@@ -113,12 +116,13 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 	builder := analyzer.NewCFGBuilder()
 	cfgs, err := builder.BuildAll(result.AST)
 	if err != nil {
-		errors = append(errors, fmt.Sprintf("failed to build CFGs for %s: %v", filePath, err))
+		// Enhanced error context with file path
+		errors = append(errors, fmt.Sprintf("[%s] CFG construction failed: %v", filePath, err))
 		return functions, warnings, errors
 	}
 
 	if len(cfgs) == 0 {
-		warnings = append(warnings, fmt.Sprintf("no functions found in %s", filePath))
+		warnings = append(warnings, fmt.Sprintf("[%s] No functions found in file", filePath))
 		return functions, warnings, errors
 	}
 
@@ -128,7 +132,7 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 	for functionName, cfg := range cfgs {
 		result := analyzer.CalculateComplexityWithConfig(cfg, complexityConfig)
 		if result == nil {
-			warnings = append(warnings, fmt.Sprintf("failed to calculate complexity for function %s in %s", functionName, filePath))
+			warnings = append(warnings, fmt.Sprintf("[%s:%s] Failed to calculate complexity for function", filePath, functionName))
 			continue
 		}
 
@@ -194,44 +198,37 @@ func (s *ComplexityServiceImpl) sortFunctions(functions []domain.FunctionComplex
 	return sorted
 }
 
-// Helper methods for sorting
+// Helper methods for sorting - using efficient Go standard library sorting
 func (s *ComplexityServiceImpl) sortByComplexity(functions []domain.FunctionComplexity) {
-	// Sort by complexity (descending)
-	for i := 0; i < len(functions)-1; i++ {
-		for j := i + 1; j < len(functions); j++ {
-			if functions[i].Metrics.Complexity < functions[j].Metrics.Complexity {
-				functions[i], functions[j] = functions[j], functions[i]
-			}
-		}
-	}
+	// Sort by complexity (descending) - O(n log n) instead of O(n²)
+	sort.Slice(functions, func(i, j int) bool {
+		return functions[i].Metrics.Complexity > functions[j].Metrics.Complexity
+	})
 }
 
 func (s *ComplexityServiceImpl) sortByName(functions []domain.FunctionComplexity) {
-	// Sort by name (ascending)
-	for i := 0; i < len(functions)-1; i++ {
-		for j := i + 1; j < len(functions); j++ {
-			if functions[i].Name > functions[j].Name {
-				functions[i], functions[j] = functions[j], functions[i]
-			}
-		}
-	}
+	// Sort by name (ascending) - O(n log n) instead of O(n²)
+	sort.Slice(functions, func(i, j int) bool {
+		return functions[i].Name < functions[j].Name
+	})
 }
 
 func (s *ComplexityServiceImpl) sortByRisk(functions []domain.FunctionComplexity) {
-	// Sort by risk level (high to low)
+	// Sort by risk level (high to low) - O(n log n) instead of O(n²)
 	riskOrder := map[domain.RiskLevel]int{
 		domain.RiskLevelHigh:   3,
 		domain.RiskLevelMedium: 2,
 		domain.RiskLevelLow:    1,
 	}
 
-	for i := 0; i < len(functions)-1; i++ {
-		for j := i + 1; j < len(functions); j++ {
-			if riskOrder[functions[i].RiskLevel] < riskOrder[functions[j].RiskLevel] {
-				functions[i], functions[j] = functions[j], functions[i]
-			}
+	sort.Slice(functions, func(i, j int) bool {
+		// Primary sort by risk level (high to low)
+		if riskOrder[functions[i].RiskLevel] != riskOrder[functions[j].RiskLevel] {
+			return riskOrder[functions[i].RiskLevel] > riskOrder[functions[j].RiskLevel]
 		}
-	}
+		// Secondary sort by complexity within same risk level
+		return functions[i].Metrics.Complexity > functions[j].Metrics.Complexity
+	})
 }
 
 // generateSummary creates summary statistics

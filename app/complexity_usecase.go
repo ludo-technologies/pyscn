@@ -252,6 +252,16 @@ func (b *ComplexityUseCaseBuilder) Build() (*ComplexityUseCase, error) {
 		return nil, fmt.Errorf("output formatter is required")
 	}
 
+	// Provide sensible defaults for optional dependencies
+	if b.configLoader == nil {
+		// ConfigLoader is optional - will skip config loading if nil
+		b.configLoader = nil
+	}
+	if b.progress == nil {
+		// ProgressReporter is optional - will skip progress reporting if nil
+		b.progress = nil
+	}
+
 	return NewComplexityUseCase(
 		b.service,
 		b.fileReader,
@@ -260,6 +270,59 @@ func (b *ComplexityUseCaseBuilder) Build() (*ComplexityUseCase, error) {
 		b.progress,
 	), nil
 }
+
+// BuildWithDefaults creates the ComplexityUseCase with default implementations for optional dependencies
+func (b *ComplexityUseCaseBuilder) BuildWithDefaults() (*ComplexityUseCase, error) {
+	if b.service == nil {
+		return nil, fmt.Errorf("complexity service is required")
+	}
+	if b.fileReader == nil {
+		return nil, fmt.Errorf("file reader is required")
+	}
+	if b.formatter == nil {
+		return nil, fmt.Errorf("output formatter is required")
+	}
+
+	// Provide default implementations for optional dependencies
+	if b.configLoader == nil {
+		// Create a no-op config loader that returns nil
+		b.configLoader = &noOpConfigLoader{}
+	}
+	if b.progress == nil {
+		// Create a no-op progress reporter
+		b.progress = &noOpProgressReporter{}
+	}
+
+	return NewComplexityUseCase(
+		b.service,
+		b.fileReader,
+		b.formatter,
+		b.configLoader,
+		b.progress,
+	), nil
+}
+
+// noOpConfigLoader is a no-op implementation of ConfigurationLoader
+type noOpConfigLoader struct{}
+
+func (n *noOpConfigLoader) LoadConfig(path string) (*domain.ComplexityRequest, error) {
+	return nil, nil
+}
+
+func (n *noOpConfigLoader) LoadDefaultConfig() *domain.ComplexityRequest {
+	return nil
+}
+
+func (n *noOpConfigLoader) MergeConfig(base *domain.ComplexityRequest, override *domain.ComplexityRequest) *domain.ComplexityRequest {
+	return override
+}
+
+// noOpProgressReporter is a no-op implementation of ProgressReporter
+type noOpProgressReporter struct{}
+
+func (n *noOpProgressReporter) StartProgress(totalFiles int)                          {}
+func (n *noOpProgressReporter) UpdateProgress(currentFile string, processed, total int) {}
+func (n *noOpProgressReporter) FinishProgress()                                       {}
 
 // UseCaseOptions provides configuration options for the use case
 type UseCaseOptions struct {
