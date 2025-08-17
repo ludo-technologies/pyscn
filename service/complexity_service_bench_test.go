@@ -73,7 +73,8 @@ func BenchmarkSortByRisk(b *testing.B) {
 
 // generateRandomFunctions generates random test data
 func generateRandomFunctions(count int) []domain.FunctionComplexity {
-	rand.Seed(42) // Fixed seed for reproducible benchmarks
+	// Use local random generator for reproducible benchmarks (Go 1.20+)
+	rng := rand.New(rand.NewSource(42))
 	
 	functions := make([]domain.FunctionComplexity, count)
 	riskLevels := []domain.RiskLevel{
@@ -83,8 +84,8 @@ func generateRandomFunctions(count int) []domain.FunctionComplexity {
 	}
 
 	for i := 0; i < count; i++ {
-		complexity := rand.Intn(50) + 1
-		riskLevel := riskLevels[rand.Intn(3)]
+		complexity := rng.Intn(50) + 1
+		riskLevel := riskLevels[rng.Intn(3)]
 		
 		functions[i] = domain.FunctionComplexity{
 			Name:     fmt.Sprintf("function_%d", i),
@@ -93,9 +94,9 @@ func generateRandomFunctions(count int) []domain.FunctionComplexity {
 				Complexity:        complexity,
 				Nodes:            complexity * 2,
 				Edges:            complexity * 3,
-				IfStatements:     rand.Intn(complexity),
-				LoopStatements:   rand.Intn(5),
-				ExceptionHandlers: rand.Intn(3),
+				IfStatements:     rng.Intn(complexity),
+				LoopStatements:   rng.Intn(5),
+				ExceptionHandlers: rng.Intn(3),
 				SwitchCases:      0,
 			},
 			RiskLevel: riskLevel,
