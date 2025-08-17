@@ -2,22 +2,141 @@
 
 ## System Design
 
-pyqol is designed as a modular, high-performance static analysis tool for Python code. The architecture follows a pipeline approach where code flows through multiple analysis stages.
+pyqol follows **Clean Architecture** principles with clear separation of concerns and dependency inversion. The system is designed as a modular, high-performance static analysis tool for Python code.
 
 ```mermaid
 graph TB
-    A[Python Source Code] --> B[Tree-sitter Parser]
-    B --> C[AST Builder]
-    C --> D[CFG Constructor]
-    C --> E[APTED Analyzer]
-    D --> F[Dead Code Detector]
-    D --> G[Complexity Calculator]
-    E --> H[Clone Detector]
-    F --> I[Report Generator]
-    G --> I
-    H --> I
-    I --> J[Output Formatter]
-    J --> K[CLI/JSON/SARIF]
+    subgraph "CLI Layer"
+        A[CLI Commands] --> B[ComplexityCommand]
+    end
+    
+    subgraph "Application Layer"
+        B --> C[ComplexityUseCase]
+    end
+    
+    subgraph "Domain Layer"
+        C --> D[ComplexityService Interface]
+        C --> E[FileReader Interface]
+        C --> F[OutputFormatter Interface]
+    end
+    
+    subgraph "Service Layer"
+        G[ComplexityService] -.-> D
+        H[FileReader] -.-> E  
+        I[OutputFormatter] -.-> F
+        J[ConfigurationLoader]
+        K[ProgressReporter]
+    end
+    
+    subgraph "Infrastructure Layer"
+        G --> L[Tree-sitter Parser]
+        G --> M[CFG Builder]
+        G --> N[Complexity Calculator]
+        H --> O[File System]
+        I --> P[JSON/YAML/CSV Formatters]
+    end
+    
+    L --> Q[Python Source Code]
+    M --> R[Control Flow Graphs]
+    N --> S[Complexity Metrics]
+```
+
+## Clean Architecture Layers
+
+### 1. **Domain Layer** (`domain/`)
+
+The innermost layer containing business rules and entities. No dependencies on external frameworks.
+
+```go
+// domain/complexity.go
+type ComplexityService interface {
+    Analyze(ctx context.Context, req ComplexityRequest) (ComplexityResponse, error)
+    AnalyzeFile(ctx context.Context, filePath string, req ComplexityRequest) (ComplexityResponse, error)
+}
+
+type FileReader interface {
+    CollectPythonFiles(paths []string, recursive bool, include, exclude []string) ([]string, error)
+    IsValidPythonFile(path string) bool
+}
+
+type OutputFormatter interface {
+    Write(response ComplexityResponse, format OutputFormat, writer io.Writer) error
+}
+
+type ComplexityRequest struct {
+    Paths            []string
+    OutputFormat     OutputFormat
+    OutputWriter     io.Writer
+    MinComplexity    int
+    MaxComplexity    int
+    SortBy          SortCriteria
+    LowThreshold    int
+    MediumThreshold int
+    ShowDetails     bool
+    Recursive       bool
+    IncludePatterns []string
+    ExcludePatterns []string
+    ConfigPath      string
+}
+```
+
+### 2. **Application Layer** (`app/`)
+
+Orchestrates business logic and coordinates between domain services.
+
+```go
+// app/complexity_usecase.go
+type ComplexityUseCase struct {
+    service       domain.ComplexityService
+    fileReader    domain.FileReader
+    formatter     domain.OutputFormatter
+    configLoader  domain.ConfigurationLoader
+    progress      domain.ProgressReporter
+}
+
+func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityRequest) error {
+    // 1. Validate input
+    // 2. Load configuration
+    // 3. Collect Python files
+    // 4. Perform analysis
+    // 5. Format and output results
+}
+```
+
+### 3. **Service Layer** (`service/`)
+
+Implements domain interfaces with concrete business logic.
+
+```go
+// service/complexity_service.go
+type ComplexityService struct {
+    progress domain.ProgressReporter
+}
+
+func (s *ComplexityService) Analyze(ctx context.Context, req domain.ComplexityRequest) (domain.ComplexityResponse, error) {
+    // Implements the complexity analysis workflow
+}
+```
+
+### 4. **CLI Layer** (`cmd/pyqol/`)
+
+Thin adapter layer that handles user input and delegates to application layer.
+
+```go
+// cmd/pyqol/complexity_clean.go
+type ComplexityCommand struct {
+    outputFormat    string
+    minComplexity   int
+    maxComplexity   int
+    // ... other CLI flags
+}
+
+func (c *ComplexityCommand) runComplexityAnalysis(cmd *cobra.Command, args []string) error {
+    // 1. Parse CLI flags into domain request
+    // 2. Create use case with dependencies
+    // 3. Execute use case
+    // 4. Handle errors appropriately
+}
 ```
 
 ## Core Components
@@ -186,18 +305,72 @@ type CloneDetectionConfig struct {
 
 ### 4. CLI Module (`cmd/pyqol`)
 
+The CLI layer uses the Command pattern with Cobra framework.
+
 ```go
-// cmd/pyqol/main.go
+// cmd/pyqol/main.go - Root command setup
 type CLI struct {
     rootCmd *cobra.Command
-    config  *config.Config
 }
 
-// Commands:
-// - analyze: Run full analysis
-// - check: Quick dead code check
-// - clone: Find code clones
-// - complexity: Calculate complexity metrics
+// cmd/pyqol/complexity_clean.go - Command implementation
+type ComplexityCommand struct {
+    outputFormat    string
+    minComplexity   int
+    maxComplexity   int
+    sortBy          string
+    showDetails     bool
+    configFile      string
+    lowThreshold    int
+    mediumThreshold int
+    verbose         bool
+}
+
+// Current Commands:
+// - complexity: Calculate McCabe cyclomatic complexity
+// Future Commands:
+// - dead-code: Find unreachable code
+// - clone: Detect code clones using APTED
+// - analyze: Run comprehensive analysis
+```
+
+## Dependency Injection & Builder Pattern
+
+The system uses dependency injection to achieve loose coupling and testability.
+
+```go
+// app/complexity_usecase.go - Builder pattern for complex object creation
+type ComplexityUseCaseBuilder struct {
+    service      domain.ComplexityService
+    fileReader   domain.FileReader
+    formatter    domain.OutputFormatter
+    configLoader domain.ConfigurationLoader
+    progress     domain.ProgressReporter
+}
+
+func NewComplexityUseCaseBuilder() *ComplexityUseCaseBuilder
+func (b *ComplexityUseCaseBuilder) WithService(service domain.ComplexityService) *ComplexityUseCaseBuilder
+func (b *ComplexityUseCaseBuilder) WithFileReader(fileReader domain.FileReader) *ComplexityUseCaseBuilder
+func (b *ComplexityUseCaseBuilder) Build() (*ComplexityUseCase, error)
+
+// cmd/pyqol/complexity_clean.go - Dependency assembly
+func (c *ComplexityCommand) createComplexityUseCase(cmd *cobra.Command) (*app.ComplexityUseCase, error) {
+    // Create services
+    fileReader := service.NewFileReader()
+    formatter := service.NewOutputFormatter()
+    configLoader := service.NewConfigurationLoader()
+    progress := service.CreateProgressReporter(cmd.ErrOrStderr(), 0, c.verbose)
+    complexityService := service.NewComplexityService(progress)
+
+    // Build use case with dependencies
+    return app.NewComplexityUseCaseBuilder().
+        WithService(complexityService).
+        WithFileReader(fileReader).
+        WithFormatter(formatter).
+        WithConfigLoader(configLoader).
+        WithProgress(progress).
+        Build()
+}
 ```
 
 ## Data Flow
@@ -323,38 +496,204 @@ type Language interface {
 
 ## Testing Strategy
 
+pyqol follows a comprehensive testing approach with multiple layers of validation.
+
 ### 1. Unit Tests
 
-- Test each component in isolation
-- Mock dependencies
-- Use table-driven tests
-- Achieve >80% coverage
+Test individual components in isolation with dependency injection.
+
+```go
+// domain/complexity_test.go - Domain entity tests
+func TestOutputFormat(t *testing.T) {
+    tests := []struct {
+        name   string
+        format OutputFormat
+        valid  bool
+    }{
+        {"Text format", OutputFormatText, true},
+        {"JSON format", OutputFormatJSON, true},
+        {"Invalid format", OutputFormat("invalid"), false},
+    }
+    // Table-driven test implementation
+}
+
+// internal/analyzer/complexity_test.go - Algorithm tests
+func TestCalculateComplexity(t *testing.T) {
+    tests := []struct {
+        name     string
+        cfg      *CFG
+        expected int
+    }{
+        {"Simple function", createSimpleCFG(), 1},
+        {"If statement", createIfCFG(), 2},
+        {"Nested conditions", createNestedCFG(), 4},
+    }
+    // Algorithm validation
+}
+```
+
+**Coverage**: >80% across all packages
+**Approach**: Table-driven tests, dependency mocking, boundary condition testing
 
 ### 2. Integration Tests
 
-- Test component interactions
-- Use real Python code samples
-- Verify end-to-end flow
-- Test error scenarios
+Test layer interactions and workflows with real dependencies.
 
-### 3. Performance Tests
+```go
+// integration/complexity_integration_test.go
+func TestComplexityCleanFiltering(t *testing.T) {
+    // Create services (real implementations)
+    fileReader := service.NewFileReader()
+    outputFormatter := service.NewOutputFormatter()
+    configLoader := service.NewConfigurationLoader()
+    progressReporter := service.NewNoOpProgressReporter()
+    complexityService := service.NewComplexityService(progressReporter)
 
-- Benchmark critical paths
-- Test with large codebases
-- Monitor memory usage
-- Profile CPU usage
+    // Create use case with real dependencies
+    useCase := app.NewComplexityUseCase(
+        complexityService,
+        fileReader,
+        outputFormatter,
+        configLoader,
+        progressReporter,
+    )
 
-### 4. Test Data
+    // Test with real Python files and verify results
+}
+```
+
+**Scope**: Service layer interactions, use case workflows, configuration loading
+**Data**: Real Python code samples in `testdata/`
+
+### 3. End-to-End Tests
+
+Test complete user workflows through the CLI interface.
+
+```go
+// e2e/complexity_e2e_test.go
+func TestComplexityE2EBasic(t *testing.T) {
+    // Build actual binary
+    binaryPath := buildPyqolBinary(t)
+    defer os.Remove(binaryPath)
+
+    // Create test Python files
+    testDir := t.TempDir()
+    createTestPythonFile(t, testDir, "simple.py", pythonCode)
+
+    // Execute CLI command
+    cmd := exec.Command(binaryPath, "complexity", testDir)
+    var stdout, stderr bytes.Buffer
+    cmd.Stdout = &stdout
+    cmd.Stderr = &stderr
+
+    // Verify output and exit code
+    err := cmd.Run()
+    assert.NoError(t, err)
+    assert.Contains(t, stdout.String(), "simple_function")
+}
+```
+
+**Scenarios**:
+- Basic analysis with text output
+- JSON format validation  
+- CLI flag parsing and validation
+- Error handling (missing files, invalid arguments)
+- Multiple file analysis
+
+### 4. Command Interface Tests
+
+Test CLI command structure and validation without full execution.
+
+```go
+// cmd/pyqol/complexity_test.go
+func TestComplexityCommandInterface(t *testing.T) {
+    complexityCmd := NewComplexityCommand()
+    cobraCmd := complexityCmd.CreateCobraCommand()
+    
+    // Test command structure
+    assert.Equal(t, "complexity [files...]", cobraCmd.Use)
+    assert.NotEmpty(t, cobraCmd.Short)
+    
+    // Test flags are properly configured
+    expectedFlags := []string{"format", "min", "max", "sort", "details"}
+    for _, flagName := range expectedFlags {
+        flag := cobraCmd.Flags().Lookup(flagName)
+        assert.NotNil(t, flag, "Flag %s should be defined", flagName)
+    }
+}
+```
+
+### 5. Test Data Organization
 
 ```
 testdata/
 ├── python/
-│   ├── simple/       # Basic Python constructs
-│   ├── complex/      # Complex code patterns
-│   ├── edge_cases/   # Edge cases and errors
-│   └── benchmarks/   # Performance test files
-└── golden/           # Expected output files
+│   ├── simple/           # Basic Python constructs
+│   │   ├── functions.py  # Simple function definitions
+│   │   ├── classes.py    # Class definitions
+│   │   └── control_flow.py # Basic if/for/while
+│   ├── complex/          # Complex code patterns
+│   │   ├── exceptions.py # Try/except/finally
+│   │   ├── async_await.py # Async/await patterns
+│   │   └── comprehensions.py # List/dict comprehensions
+│   └── edge_cases/       # Edge cases and errors
+│       ├── nested_structures.py # Deep nesting
+│       ├── syntax_errors.py # Invalid syntax
+│       └── python310_features.py # Modern Python features
+├── integration/          # Integration test fixtures
+└── e2e/                 # E2E test temporary files
 ```
+
+### 6. Performance & Benchmark Tests
+
+```go
+// internal/analyzer/complexity_benchmark_test.go
+func BenchmarkComplexityCalculation(b *testing.B) {
+    cfg := createLargeCFG() // CFG with 1000+ nodes
+    
+    b.ResetTimer()
+    for i := 0; i < b.N; i++ {
+        result := CalculateComplexity(cfg)
+        _ = result // Prevent compiler optimization
+    }
+}
+
+// Benchmark targets:
+// - Parser performance: >100,000 lines/second
+// - CFG construction: >10,000 lines/second
+// - Complexity calculation: <1ms per function
+```
+
+### 7. Test Execution
+
+```bash
+# Run all tests
+go test ./...
+
+# Run with coverage
+go test -cover ./...
+
+# Run specific test suites
+go test ./cmd/pyqol        # Command interface tests
+go test ./integration     # Integration tests  
+go test ./e2e             # End-to-end tests
+
+# Run benchmarks
+go test -bench=. ./internal/analyzer
+```
+
+### 8. Continuous Integration
+
+All tests run automatically on:
+- **Go 1.22**: Minimum supported version
+- **Go 1.23**: Latest stable version
+- **Linux, macOS, Windows**: Cross-platform compatibility
+
+**Quality Gates**:
+- All tests must pass
+- Code coverage >80%
+- No linting errors
+- Build success on all platforms
 
 ## Security Considerations
 
@@ -379,26 +718,55 @@ testdata/
 - Validate AST depth
 - Limit recursion
 
-## Future Enhancements
+## Development Progress & Roadmap
 
-### Phase 1 (Current MVP)
-- [x] Tree-sitter integration
-- [x] CFG construction
-- [x] Dead code detection
-- [x] APTED implementation
-- [x] Basic CLI
+### Phase 1 (MVP - September 6, 2025)
+- [x] **Clean Architecture Implementation** - Domain-driven design with dependency injection
+- [x] **Tree-sitter Integration** - Python parsing with go-tree-sitter
+- [x] **CFG Construction** - Control Flow Graph building for all Python constructs
+- [x] **Complexity Analysis** - McCabe cyclomatic complexity with risk assessment
+- [x] **CLI Framework** - Cobra-based command interface with multiple output formats
+- [x] **Comprehensive Testing** - Unit, integration, and E2E test suites
+- [x] **CI/CD Pipeline** - Automated testing on multiple Go versions and platforms
+- [ ] **Dead Code Detection** - CFG-based unreachable code identification
+- [ ] **APTED Clone Detection** - Tree edit distance for code similarity
+- [ ] **Configuration System** - YAML-based configuration with defaults
 
-### Phase 2 (v0.2)
-- [ ] Incremental analysis
-- [ ] VS Code extension
-- [ ] Import dependency analysis
-- [ ] Type inference integration
+### Phase 2 (v0.2 - Q4 2025)
+- [ ] **Performance Optimization** - Parallel processing and memory efficiency
+- [ ] **Incremental Analysis** - Only analyze changed files
+- [ ] **VS Code Extension** - Real-time analysis in editor
+- [ ] **Import Dependency Analysis** - Unused import detection
+- [ ] **Advanced Reporting** - HTML dashboard and trend analysis
 
-### Phase 3 (v0.3)
-- [ ] LLM-powered suggestions
-- [ ] Auto-fix capabilities
-- [ ] Multi-language support
-- [ ] Cloud analysis service
+### Phase 3 (v0.3 - Q1 2026)
+- [ ] **Type Inference Integration** - Enhanced analysis with type information
+- [ ] **LLM-powered Suggestions** - AI-driven code improvement recommendations
+- [ ] **Auto-fix Capabilities** - Automated refactoring suggestions
+- [ ] **Multi-language Support** - JavaScript, TypeScript, Go analysis
+- [ ] **Cloud Analysis Service** - SaaS offering for enterprise teams
+
+### Current Status (August 2025)
+
+**Completed Features:**
+- ✅ Full clean architecture with proper separation of concerns
+- ✅ McCabe complexity analysis with configurable thresholds
+- ✅ Multiple output formats (text, JSON, YAML, CSV)
+- ✅ CLI with comprehensive flag support and validation
+- ✅ Robust error handling with domain-specific error types
+- ✅ Builder pattern for dependency injection
+- ✅ Comprehensive test coverage (unit, integration, E2E)
+- ✅ CI/CD pipeline with cross-platform testing
+
+**In Progress:**
+- 🚧 Dead code detection algorithm implementation
+- 🚧 APTED tree edit distance algorithm
+- 🚧 Configuration file support (.pyqol.yaml)
+
+**Performance Benchmarks:**
+- Parser: ~50,000 lines/second (target: >100,000)
+- CFG Construction: ~25,000 lines/second (target: >10,000) ✅
+- Complexity Calculation: ~0.1ms per function (target: <1ms) ✅
 
 ## Dependencies
 
