@@ -345,8 +345,8 @@ func (c *DeadCodeCommand) GetSupportedSortCriteria() []string {
 	return []string{"severity", "line", "file", "function"}
 }
 
-// Global dead code command instance for the cobra command
-var deadCodeCommand = NewDeadCodeCommand()
-
-// deadCodeCmd is the cobra command that will be added to the root command
-var deadCodeCmd = deadCodeCommand.CreateCobraCommand()
+// NewDeadCodeCmd creates and returns the dead code cobra command
+func NewDeadCodeCmd() *cobra.Command {
+	deadCodeCommand := NewDeadCodeCommand()
+	return deadCodeCommand.CreateCobraCommand()
+}
