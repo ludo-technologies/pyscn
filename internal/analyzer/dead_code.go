@@ -84,13 +84,23 @@ type DeadCodeResult struct {
 
 // DeadCodeDetector provides high-level dead code detection functionality
 type DeadCodeDetector struct {
-	cfg *CFG
+	cfg      *CFG
+	filePath string // File path for context in findings
 }
 
 // NewDeadCodeDetector creates a new dead code detector for the given CFG
 func NewDeadCodeDetector(cfg *CFG) *DeadCodeDetector {
 	return &DeadCodeDetector{
-		cfg: cfg,
+		cfg:      cfg,
+		filePath: "", // Will be set by caller if needed
+	}
+}
+
+// NewDeadCodeDetectorWithFilePath creates a new dead code detector with file path context
+func NewDeadCodeDetectorWithFilePath(cfg *CFG, filePath string) *DeadCodeDetector {
+	return &DeadCodeDetector{
+		cfg:      cfg,
+		filePath: filePath,
 	}
 }
 
@@ -144,6 +154,12 @@ func DetectInFunction(cfg *CFG) *DeadCodeResult {
 	return detector.Detect()
 }
 
+// DetectInFunctionWithFilePath analyzes a single CFG with file path context
+func DetectInFunctionWithFilePath(cfg *CFG, filePath string) *DeadCodeResult {
+	detector := NewDeadCodeDetectorWithFilePath(cfg, filePath)
+	return detector.Detect()
+}
+
 // DetectInFile analyzes multiple CFGs from a file and returns combined findings
 func DetectInFile(cfgs map[string]*CFG, filePath string) []*DeadCodeResult {
 	var results []*DeadCodeResult
@@ -154,10 +170,11 @@ func DetectInFile(cfgs map[string]*CFG, filePath string) []*DeadCodeResult {
 			continue
 		}
 		
-		detector := NewDeadCodeDetector(cfg)
+		// Use the file path-aware constructor for accurate reporting
+		detector := NewDeadCodeDetectorWithFilePath(cfg, filePath)
 		result := detector.Detect()
 		result.FunctionName = functionName
-		result.FilePath = filePath
+		// FilePath is already set by the detector
 		
 		// Only include results that have findings
 		if len(result.Findings) > 0 || result.DeadBlocks > 0 {
@@ -200,68 +217,87 @@ func (dcd *DeadCodeDetector) analyzeDeadBlock(block *BasicBlock) []*DeadCodeFind
 
 // determineDeadCodeReason analyzes the block to determine why it's dead
 func (dcd *DeadCodeDetector) determineDeadCodeReason(block *BasicBlock) (DeadCodeReason, SeverityLevel) {
-	// Check predecessors to understand why this block is unreachable
+	// Check direct predecessors for control flow patterns
 	reason := ReasonUnreachableBranch // default
 	severity := SeverityLevelWarning  // default
 	
-	// Look for specific patterns in the CFG
-	if dcd.isAfterReturn(block) {
-		reason = ReasonUnreachableAfterReturn
-		severity = SeverityLevelCritical
-	} else if dcd.isAfterBreak(block) {
-		reason = ReasonUnreachableAfterBreak
-		severity = SeverityLevelCritical
-	} else if dcd.isAfterContinue(block) {
-		reason = ReasonUnreachableAfterContinue
-		severity = SeverityLevelCritical
-	} else if dcd.isAfterRaise(block) {
-		reason = ReasonUnreachableAfterRaise
-		severity = SeverityLevelCritical
+	// Analyze control flow patterns by checking predecessors
+	if terminatorReason, terminatorSeverity := dcd.findTerminatorInPredecessors(block); terminatorReason != "" {
+		reason = terminatorReason
+		severity = terminatorSeverity
 	}
 	
 	return reason, severity
 }
 
-// isAfterReturn checks if the block is unreachable due to a return statement
-func (dcd *DeadCodeDetector) isAfterReturn(block *BasicBlock) bool {
-	// Look for blocks that contain "return" statements in predecessors
+// findTerminatorInPredecessors efficiently finds terminator statements in control flow predecessors
+func (dcd *DeadCodeDetector) findTerminatorInPredecessors(block *BasicBlock) (DeadCodeReason, SeverityLevel) {
+	if block == nil {
+		return "", SeverityLevelWarning
+	}
+
+	// First, check all blocks in the CFG for terminators that precede this block
+	// This handles cases where CFG edges might not be perfectly set up
+	blockStartLine := dcd.getBlockStartLine(block)
+	
 	for _, otherBlock := range dcd.cfg.Blocks {
-		if dcd.blockContainsReturn(otherBlock) && dcd.blockPrecedesInSameFunction(otherBlock, block) {
-			return true
+		if otherBlock == nil || otherBlock == block {
+			continue
+		}
+		
+		otherEndLine := dcd.getBlockEndLine(otherBlock)
+		
+		// Check if the other block ends before this block starts (sequential in source)
+		if otherEndLine < blockStartLine && (blockStartLine - otherEndLine) <= 5 {
+			if dcd.blockContainsReturn(otherBlock) {
+				return ReasonUnreachableAfterReturn, SeverityLevelCritical
+			}
+			if dcd.blockContainsBreak(otherBlock) {
+				return ReasonUnreachableAfterBreak, SeverityLevelCritical
+			}
+			if dcd.blockContainsContinue(otherBlock) {
+				return ReasonUnreachableAfterContinue, SeverityLevelCritical
+			}
+			if dcd.blockContainsRaise(otherBlock) {
+				return ReasonUnreachableAfterRaise, SeverityLevelCritical
+			}
 		}
 	}
-	return false
+
+	// Secondary check: use CFG edges if available
+	for _, predEdge := range block.Predecessors {
+		if predEdge == nil || predEdge.From == nil {
+			continue
+		}
+
+		predBlock := predEdge.From
+		
+		// Check for terminator statements in predecessor block
+		if dcd.blockContainsReturn(predBlock) {
+			if dcd.isSequentiallyAfter(predBlock, block) {
+				return ReasonUnreachableAfterReturn, SeverityLevelCritical
+			}
+		}
+		if dcd.blockContainsBreak(predBlock) {
+			if dcd.isSequentiallyAfter(predBlock, block) {
+				return ReasonUnreachableAfterBreak, SeverityLevelCritical
+			}
+		}
+		if dcd.blockContainsContinue(predBlock) {
+			if dcd.isSequentiallyAfter(predBlock, block) {
+				return ReasonUnreachableAfterContinue, SeverityLevelCritical
+			}
+		}
+		if dcd.blockContainsRaise(predBlock) {
+			if dcd.isSequentiallyAfter(predBlock, block) {
+				return ReasonUnreachableAfterRaise, SeverityLevelCritical
+			}
+		}
+	}
+	
+	return "", SeverityLevelWarning
 }
 
-// isAfterBreak checks if the block is unreachable due to a break statement
-func (dcd *DeadCodeDetector) isAfterBreak(block *BasicBlock) bool {
-	for _, otherBlock := range dcd.cfg.Blocks {
-		if dcd.blockContainsBreak(otherBlock) && dcd.blockPrecedesInSameFunction(otherBlock, block) {
-			return true
-		}
-	}
-	return false
-}
-
-// isAfterContinue checks if the block is unreachable due to a continue statement
-func (dcd *DeadCodeDetector) isAfterContinue(block *BasicBlock) bool {
-	for _, otherBlock := range dcd.cfg.Blocks {
-		if dcd.blockContainsContinue(otherBlock) && dcd.blockPrecedesInSameFunction(otherBlock, block) {
-			return true
-		}
-	}
-	return false
-}
-
-// isAfterRaise checks if the block is unreachable due to a raise statement
-func (dcd *DeadCodeDetector) isAfterRaise(block *BasicBlock) bool {
-	for _, otherBlock := range dcd.cfg.Blocks {
-		if dcd.blockContainsRaise(otherBlock) && dcd.blockPrecedesInSameFunction(otherBlock, block) {
-			return true
-		}
-	}
-	return false
-}
 
 // blockContainsReturn checks if a block contains a return statement
 func (dcd *DeadCodeDetector) blockContainsReturn(block *BasicBlock) bool {
@@ -303,12 +339,38 @@ func (dcd *DeadCodeDetector) blockContainsRaise(block *BasicBlock) bool {
 	return false
 }
 
-// blockPrecedesInSameFunction checks if one block precedes another in the same function
-func (dcd *DeadCodeDetector) blockPrecedesInSameFunction(predecessor, successor *BasicBlock) bool {
-	// Simple heuristic: check line numbers
+// isSequentiallyAfter checks if successor block comes sequentially after predecessor
+// This uses both CFG edge analysis and line number heuristics for accurate detection
+func (dcd *DeadCodeDetector) isSequentiallyAfter(predecessor, successor *BasicBlock) bool {
+	if predecessor == nil || successor == nil {
+		return false
+	}
+
+	// Primary check: line numbers (for dead code after return/break/continue/raise)
 	predEnd := dcd.getBlockEndLine(predecessor)
 	succStart := dcd.getBlockStartLine(successor)
-	return predEnd < succStart
+	
+	// If successor comes immediately after predecessor in source code
+	if predEnd < succStart && (succStart - predEnd) <= 10 { // Allow reasonable gap
+		return true
+	}
+
+	// Secondary check: CFG edge analysis for complex control flow
+	for _, succEdge := range predecessor.Successors {
+		if succEdge != nil && succEdge.To == successor {
+			// Consider normal sequential flow
+			if succEdge.Type == EdgeNormal {
+				return true
+			}
+			// Also consider cases where the terminator forces this flow
+			if succEdge.Type == EdgeReturn || succEdge.Type == EdgeBreak || 
+			   succEdge.Type == EdgeContinue {
+				return true
+			}
+		}
+	}
+	
+	return false
 }
 
 // Helper methods for extracting information from blocks
@@ -321,13 +383,13 @@ func (dcd *DeadCodeDetector) getFunctionName() string {
 	return dcd.cfg.Name
 }
 
-// getFilePath extracts the file path from the CFG
+// getFilePath extracts the file path from the detector context
 func (dcd *DeadCodeDetector) getFilePath() string {
-	if dcd.cfg == nil {
-		return "unknown"
+	if dcd.filePath != "" {
+		return dcd.filePath
 	}
-	// For now, return empty string - this will be set by the caller
-	return ""
+	// Fallback for backward compatibility
+	return "unknown"
 }
 
 // getBlockStartLine gets the starting line number of a block
