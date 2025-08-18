@@ -29,7 +29,7 @@ func init() {
 	
 	// Add subcommands
 	rootCmd.AddCommand(complexityCmd)
-	rootCmd.AddCommand(deadCodeCmd)
+	rootCmd.AddCommand(NewDeadCodeCmd())
 }
 
 func main() {
