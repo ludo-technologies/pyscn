@@ -317,7 +317,7 @@ func (b *DeadCodeUseCaseBuilder) BuildWithDefaults() (*DeadCodeUseCase, error) {
 	}
 	if b.progress == nil {
 		// Create a no-op progress reporter
-		b.progress = &noOpProgressReporter{}
+		b.progress = &deadCodeNoOpProgressReporter{}
 	}
 
 	return NewDeadCodeUseCase(
@@ -344,12 +344,12 @@ func (n *noOpDeadCodeConfigLoader) MergeConfig(base *domain.DeadCodeRequest, ove
 	return override
 }
 
-// noOpProgressReporter is a no-op implementation of ProgressReporter
-type noOpProgressReporter struct{}
+// deadCodeNoOpProgressReporter is a no-op implementation of ProgressReporter for dead code
+type deadCodeNoOpProgressReporter struct{}
 
-func (n *noOpProgressReporter) StartProgress(totalFiles int)                          {}
-func (n *noOpProgressReporter) UpdateProgress(currentFile string, processed, total int) {}
-func (n *noOpProgressReporter) FinishProgress()                                       {}
+func (n *deadCodeNoOpProgressReporter) StartProgress(totalFiles int)                          {}
+func (n *deadCodeNoOpProgressReporter) UpdateProgress(currentFile string, processed, total int) {}
+func (n *deadCodeNoOpProgressReporter) FinishProgress()                                       {}
 
 // DeadCodeUseCaseOptions provides configuration options for the dead code use case
 type DeadCodeUseCaseOptions struct {

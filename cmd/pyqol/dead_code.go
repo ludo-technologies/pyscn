@@ -189,8 +189,8 @@ func (c *DeadCodeCommand) buildDeadCodeRequest(cmd *cobra.Command, args []string
 func (c *DeadCodeCommand) createDeadCodeUseCase(cmd *cobra.Command) (*app.DeadCodeUseCase, error) {
 	// Create services
 	fileReader := service.NewFileReader()
-	formatter := service.NewDeadCodeFormatter() // TODO: This needs to be implemented
-	configLoader := service.NewDeadCodeConfigurationLoader() // TODO: This needs to be implemented
+	formatter := service.NewDeadCodeFormatter()
+	configLoader := service.NewDeadCodeConfigurationLoader()
 	
 	// Create progress reporter
 	progress := service.CreateProgressReporter(cmd.ErrOrStderr(), 0, c.verbose)

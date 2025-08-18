@@ -105,7 +105,8 @@ func (s *DeadCodeServiceImpl) AnalyzeFunction(ctx context.Context, functionCFG i
 		return nil, domain.NewAnalysisError("failed to analyze function", nil)
 	}
 
-	return s.convertToFunctionDeadCode(result, req), nil
+	funcResult := s.convertToFunctionDeadCode(result, req)
+	return &funcResult, nil
 }
 
 // analyzeFile performs dead code analysis on a single file

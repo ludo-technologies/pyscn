@@ -1,10 +1,11 @@
 package analyzer
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 	"time"
+	
+	"github.com/pyqol/pyqol/internal/parser"
 )
 
 // SeverityLevel represents the severity of a dead code finding
@@ -265,7 +266,7 @@ func (dcd *DeadCodeDetector) isAfterRaise(block *BasicBlock) bool {
 // blockContainsReturn checks if a block contains a return statement
 func (dcd *DeadCodeDetector) blockContainsReturn(block *BasicBlock) bool {
 	for _, stmt := range block.Statements {
-		if strings.Contains(strings.ToLower(stmt.Code), "return") {
+		if stmt.Type == parser.NodeReturn {
 			return true
 		}
 	}
@@ -275,7 +276,7 @@ func (dcd *DeadCodeDetector) blockContainsReturn(block *BasicBlock) bool {
 // blockContainsBreak checks if a block contains a break statement
 func (dcd *DeadCodeDetector) blockContainsBreak(block *BasicBlock) bool {
 	for _, stmt := range block.Statements {
-		if strings.Contains(stmt.Code, "break") {
+		if stmt.Type == parser.NodeBreak {
 			return true
 		}
 	}
@@ -285,7 +286,7 @@ func (dcd *DeadCodeDetector) blockContainsBreak(block *BasicBlock) bool {
 // blockContainsContinue checks if a block contains a continue statement
 func (dcd *DeadCodeDetector) blockContainsContinue(block *BasicBlock) bool {
 	for _, stmt := range block.Statements {
-		if strings.Contains(stmt.Code, "continue") {
+		if stmt.Type == parser.NodeContinue {
 			return true
 		}
 	}
@@ -295,7 +296,7 @@ func (dcd *DeadCodeDetector) blockContainsContinue(block *BasicBlock) bool {
 // blockContainsRaise checks if a block contains a raise statement
 func (dcd *DeadCodeDetector) blockContainsRaise(block *BasicBlock) bool {
 	for _, stmt := range block.Statements {
-		if strings.Contains(stmt.Code, "raise") {
+		if stmt.Type == parser.NodeRaise {
 			return true
 		}
 	}
@@ -334,7 +335,7 @@ func (dcd *DeadCodeDetector) getBlockStartLine(block *BasicBlock) int {
 	if block == nil || len(block.Statements) == 0 {
 		return 0
 	}
-	return block.Statements[0].Line
+	return block.Statements[0].Location.StartLine
 }
 
 // getBlockEndLine gets the ending line number of a block
@@ -342,7 +343,7 @@ func (dcd *DeadCodeDetector) getBlockEndLine(block *BasicBlock) int {
 	if block == nil || len(block.Statements) == 0 {
 		return 0
 	}
-	return block.Statements[len(block.Statements)-1].Line
+	return block.Statements[len(block.Statements)-1].Location.EndLine
 }
 
 // getBlockCode extracts the code from a block
@@ -353,10 +354,49 @@ func (dcd *DeadCodeDetector) getBlockCode(block *BasicBlock) string {
 	
 	var codes []string
 	for _, stmt := range block.Statements {
-		codes = append(codes, strings.TrimSpace(stmt.Code))
+		// Create a simple representation of the statement
+		nodeDesc := dcd.getNodeDescription(stmt)
+		codes = append(codes, strings.TrimSpace(nodeDesc))
 	}
 	
 	return strings.Join(codes, "\n")
+}
+
+// getNodeDescription creates a simple description of a parser node
+func (dcd *DeadCodeDetector) getNodeDescription(node *parser.Node) string {
+	if node == nil {
+		return ""
+	}
+	
+	switch node.Type {
+	case parser.NodeReturn:
+		return "return"
+	case parser.NodeBreak:
+		return "break"
+	case parser.NodeContinue:
+		return "continue"
+	case parser.NodeRaise:
+		return "raise"
+	case parser.NodeAssign:
+		if node.Name != "" {
+			return node.Name + " = ..."
+		}
+		return "assignment"
+	case parser.NodeExpr:
+		return "expression"
+	case parser.NodeIf:
+		return "if"
+	case parser.NodeFor:
+		return "for"
+	case parser.NodeWhile:
+		return "while"
+	case parser.NodeTry:
+		return "try"
+	case parser.NodePass:
+		return "pass"
+	default:
+		return string(node.Type)
+	}
 }
 
 // getBlockContext provides context around the dead code
