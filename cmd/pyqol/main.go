@@ -27,8 +27,9 @@ func init() {
 	// Global flags
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose output")
 	
-	// Add subcommands - use the new clean complexity command
+	// Add subcommands
 	rootCmd.AddCommand(complexityCmd)
+	rootCmd.AddCommand(NewDeadCodeCmd())
 }
 
 func main() {
