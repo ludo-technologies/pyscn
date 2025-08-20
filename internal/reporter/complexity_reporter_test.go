@@ -148,7 +148,7 @@ func TestGenerateReport(t *testing.T) {
 	}
 	
 	results := createTestResults()
-	report := reporter.GenerateReport(results)
+	report := reporter.GenerateReport(results, 2) // filesAnalyzed count
 	
 	// Test basic report structure
 	if report == nil {
@@ -602,7 +602,7 @@ func TestComplexityReporterEdgeCases(t *testing.T) {
 		}
 		
 		// Should generate valid output with zero functions
-		report := reporter.GenerateReport([]ComplexityResult{})
+		report := reporter.GenerateReport([]ComplexityResult{}, 0)
 		if report.Summary.TotalFunctions != 0 {
 			t.Errorf("Expected 0 total functions, got %d", report.Summary.TotalFunctions)
 		}
@@ -647,7 +647,7 @@ func TestComplexityReporterEdgeCases(t *testing.T) {
 			},
 		}
 		
-		report := reporter.GenerateReport(singleResult)
+		report := reporter.GenerateReport(singleResult, 1)
 		
 		if report.Summary.AverageComplexity != 10.0 {
 			t.Errorf("Expected average complexity 10.0, got %.1f", report.Summary.AverageComplexity)

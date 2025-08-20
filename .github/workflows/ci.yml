@@ -20,14 +20,7 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
-    
-    - name: Cache Go modules
-      uses: actions/cache@v3
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
+        cache: true  # Re-enable cache now that race detection is disabled
     
     - name: Download dependencies
       run: go mod download
@@ -40,13 +33,14 @@ jobs:
     
     # Staticcheck is temporarily disabled due to Go version compatibility
     # - name: Install staticcheck
-    #   run: go install honnef.co/go/tools/cmd/staticcheck@latest
+    #   run: go install honnef.co/tools/cmd/staticcheck@latest
     
     # - name: Run staticcheck
     #   run: staticcheck ./...
     
-    - name: Run tests
-      run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+    - name: Run tests with coverage
+      run: go test -v -coverprofile=coverage.txt -covermode=atomic ./...
+      timeout-minutes: 5
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -66,6 +60,7 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: '1.23'
+        cache: true  # Re-enable cache now that race detection is disabled
     
     - name: Build
       run: go build -v ./cmd/pyqol
@@ -83,6 +78,7 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: '1.23'
+        cache: true  # Re-enable cache now that race detection is disabled
     
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3

@@ -139,5 +139,5 @@ func (ca *ComplexityAnalyzer) GenerateReport(cfgs []*CFG) *reporter.ComplexityRe
 		interfaceResults[i] = result
 	}
 
-	return ca.reporter.GenerateReport(interfaceResults)
+	return ca.reporter.GenerateReport(interfaceResults, 1) // Default to 1 file when count unknown
 }
