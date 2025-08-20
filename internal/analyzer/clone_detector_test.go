@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/pyqol/pyqol/internal/constants"
 	"github.com/pyqol/pyqol/internal/parser"
 )
 
@@ -23,10 +24,10 @@ func TestCloneDetectorConfig_Defaults(t *testing.T) {
 
 	assert.Equal(t, 5, config.MinLines, "Default min lines should be 5")
 	assert.Equal(t, 10, config.MinNodes, "Default min nodes should be 10")
-	assert.Equal(t, 0.95, config.Type1Threshold, "Default Type-1 threshold should be 0.95")
-	assert.Equal(t, 0.85, config.Type2Threshold, "Default Type-2 threshold should be 0.85")
-	assert.Equal(t, 0.70, config.Type3Threshold, "Default Type-3 threshold should be 0.70")
-	assert.Equal(t, 0.60, config.Type4Threshold, "Default Type-4 threshold should be 0.60")
+	assert.Equal(t, constants.DefaultType1CloneThreshold, config.Type1Threshold, "Default Type-1 threshold should match constant")
+	assert.Equal(t, constants.DefaultType2CloneThreshold, config.Type2Threshold, "Default Type-2 threshold should match constant")
+	assert.Equal(t, constants.DefaultType3CloneThreshold, config.Type3Threshold, "Default Type-3 threshold should match constant")
+	assert.Equal(t, constants.DefaultType4CloneThreshold, config.Type4Threshold, "Default Type-4 threshold should match constant")
 	assert.Equal(t, 50.0, config.MaxEditDistance, "Default max edit distance should be 50.0")
 	assert.False(t, config.IgnoreLiterals, "Default ignore literals should be false")
 	assert.False(t, config.IgnoreIdentifiers, "Default ignore identifiers should be false")

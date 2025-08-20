@@ -19,6 +19,12 @@ type CloneService struct {
 
 // NewCloneService creates a new clone service
 func NewCloneService(progress domain.ProgressReporter) *CloneService {
+	// Allow nil progress reporter, but provide a no-op default if needed
+	if progress == nil {
+		// This is acceptable - the service can work without progress reporting
+		// The progress calls are commented out anyway
+	}
+	
 	return &CloneService{
 		progress: progress,
 	}
@@ -26,6 +32,17 @@ func NewCloneService(progress domain.ProgressReporter) *CloneService {
 
 // DetectClones performs clone detection on the given request
 func (s *CloneService) DetectClones(ctx context.Context, req *domain.CloneRequest) (*domain.CloneResponse, error) {
+	// Input validation
+	if ctx == nil {
+		return nil, fmt.Errorf("context cannot be nil")
+	}
+	if req == nil {
+		return nil, fmt.Errorf("clone request cannot be nil")
+	}
+	if err := req.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid clone request: %w", err)
+	}
+	
 	startTime := time.Now()
 	// s.progress.StartProgress(0)
 
@@ -54,6 +71,17 @@ func (s *CloneService) DetectClones(ctx context.Context, req *domain.CloneReques
 
 // DetectClonesInFiles performs clone detection on specific files
 func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []string, req *domain.CloneRequest) (*domain.CloneResponse, error) {
+	// Input validation
+	if ctx == nil {
+		return nil, fmt.Errorf("context cannot be nil")
+	}
+	if req == nil {
+		return nil, fmt.Errorf("clone request cannot be nil")
+	}
+	if len(filePaths) == 0 {
+		return nil, fmt.Errorf("file paths cannot be empty")
+	}
+	
 	startTime := time.Now()
 	
 	// s.progress.Info(fmt.Sprintf("Analyzing %d files for clones...", len(filePaths)))
@@ -83,6 +111,12 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 		parseResult, err := pyParser.Parse(ctx, content)
 		if err != nil {
 			// s.progress.Warning(fmt.Sprintf("Failed to parse file %s: %v", filePath, err))
+			continue
+		}
+		
+		// Validate parse result
+		if parseResult == nil || parseResult.AST == nil {
+			// s.progress.Warning(fmt.Sprintf("Skipping file %s: empty parse result", filePath))
 			continue
 		}
 
@@ -151,6 +185,21 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 
 // ComputeSimilarity computes similarity between two code fragments
 func (s *CloneService) ComputeSimilarity(ctx context.Context, fragment1, fragment2 string) (float64, error) {
+	// Input validation
+	if fragment1 == "" || fragment2 == "" {
+		return 0.0, fmt.Errorf("fragments cannot be empty")
+	}
+	
+	if ctx == nil {
+		return 0.0, fmt.Errorf("context cannot be nil")
+	}
+	
+	// Check for excessively large fragments to prevent resource exhaustion
+	const maxFragmentSize = 1024 * 1024 // 1MB limit
+	if len(fragment1) > maxFragmentSize || len(fragment2) > maxFragmentSize {
+		return 0.0, fmt.Errorf("fragment size exceeds maximum allowed size of %d bytes", maxFragmentSize)
+	}
+	
 	// Parse both fragments
 	pyParser := parser.New()
 	
@@ -158,10 +207,16 @@ func (s *CloneService) ComputeSimilarity(ctx context.Context, fragment1, fragmen
 	if err != nil {
 		return 0.0, fmt.Errorf("failed to parse fragment1: %w", err)
 	}
+	if result1 == nil || result1.AST == nil {
+		return 0.0, fmt.Errorf("fragment1 parsing returned nil result or AST")
+	}
 	
 	result2, err := pyParser.Parse(ctx, []byte(fragment2))
 	if err != nil {
 		return 0.0, fmt.Errorf("failed to parse fragment2: %w", err)
+	}
+	if result2 == nil || result2.AST == nil {
+		return 0.0, fmt.Errorf("fragment2 parsing returned nil result or AST")
 	}
 	
 	// Convert AST nodes to tree nodes for APTED

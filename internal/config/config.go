@@ -48,7 +48,11 @@ type Config struct {
 	DeadCode DeadCodeConfig `mapstructure:"dead_code" yaml:"dead_code"`
 
 	// CloneDetection holds clone detection configuration
+	// DEPRECATED: Use CloneConfig directly instead
 	CloneDetection CloneDetectionConfig `mapstructure:"clone_detection" yaml:"clone_detection"`
+
+	// Clones holds the unified clone detection configuration
+	Clones *CloneConfig `mapstructure:"clones" yaml:"clones"`
 
 	// Output holds output formatting configuration
 	Output OutputConfig `mapstructure:"output" yaml:"output"`
@@ -136,6 +140,7 @@ type AnalysisConfig struct {
 }
 
 // CloneDetectionConfig holds configuration for code clone detection
+// DEPRECATED: Use CloneConfig directly instead
 type CloneDetectionConfig struct {
 	// Enabled controls whether clone detection is performed
 	Enabled bool `mapstructure:"enabled" yaml:"enabled"`
@@ -172,7 +177,7 @@ type CloneDetectionConfig struct {
 
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
-	return &Config{
+	config := &Config{
 		Complexity: ComplexityConfig{
 			LowThreshold:    DefaultLowComplexityThreshold,
 			MediumThreshold: DefaultMediumComplexityThreshold,
@@ -193,26 +198,8 @@ func DefaultConfig() *Config {
 			DetectUnreachableBranches: true,
 			IgnorePatterns:            []string{},
 		},
-		CloneDetection: CloneDetectionConfig{
-			Enabled:             true,
-			MinLines:            5,
-			MinNodes:            10,
-			Type1Threshold:      0.95,
-			Type2Threshold:      0.85,
-			Type3Threshold:      0.70,
-			Type4Threshold:      0.60,
-			SimilarityThreshold: 0.80,
-			MaxEditDistance:     50.0,
-			CostModelType:       "python",
-			IgnoreLiterals:      false,
-			IgnoreIdentifiers:   false,
-			ShowContent:         false,
-			GroupClones:         true,
-			SortBy:              "similarity",
-			MinSimilarity:       0.0,
-			MaxSimilarity:       1.0,
-			CloneTypes:          []string{"type1", "type2", "type3", "type4"},
-		},
+		// Use unified clone configuration
+		Clones: DefaultCloneConfig(),
 		Output: OutputConfig{
 			Format:        "text",
 			ShowDetails:   false,
@@ -226,6 +213,11 @@ func DefaultConfig() *Config {
 			FollowSymlinks:  false,
 		},
 	}
+	
+	// For backward compatibility, populate legacy CloneDetection field
+	config.CloneDetection = config.Clones.ToCloneDetectionConfig()
+	
+	return config
 }
 
 // LoadConfig loads configuration from file or returns default config

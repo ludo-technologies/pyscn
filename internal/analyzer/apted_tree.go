@@ -50,22 +50,40 @@ func (t *TreeNode) IsLeaf() bool {
 
 // Size returns the size of the subtree rooted at this node
 func (t *TreeNode) Size() int {
+	return t.SizeWithDepthLimit(1000) // Default recursion limit
+}
+
+// SizeWithDepthLimit returns the size with maximum recursion depth limit
+func (t *TreeNode) SizeWithDepthLimit(maxDepth int) int {
+	if maxDepth <= 0 {
+		return 1 // Return 1 to avoid infinite loops, treat as leaf
+	}
+	
 	size := 1
 	for _, child := range t.Children {
-		size += child.Size()
+		size += child.SizeWithDepthLimit(maxDepth - 1)
 	}
 	return size
 }
 
 // Height returns the height of the subtree rooted at this node
 func (t *TreeNode) Height() int {
+	return t.HeightWithDepthLimit(1000) // Default recursion limit
+}
+
+// HeightWithDepthLimit returns the height with maximum recursion depth limit
+func (t *TreeNode) HeightWithDepthLimit(maxDepth int) int {
+	if maxDepth <= 0 {
+		return 0 // Treat as leaf when depth limit reached
+	}
+	
 	if t.IsLeaf() {
 		return 0
 	}
 	
 	maxHeight := 0
 	for _, child := range t.Children {
-		if h := child.Height(); h > maxHeight {
+		if h := child.HeightWithDepthLimit(maxDepth - 1); h > maxHeight {
 			maxHeight = h
 		}
 	}
@@ -192,7 +210,7 @@ func ComputeLeftMostLeaves(root *TreeNode) {
 
 // computeLeftMostLeavesRecursive recursively computes left-most leaf descendants
 func computeLeftMostLeavesRecursive(node *TreeNode) int {
-	if node.IsLeaf() {
+	if node.IsLeaf() || len(node.Children) == 0 {
 		node.LeftMostLeaf = node.PostOrderID
 		return node.LeftMostLeaf
 	}
@@ -281,13 +299,18 @@ func GetNodeByPostOrderID(root *TreeNode, postOrderID int) *TreeNode {
 
 // GetSubtreeNodes returns all nodes in the subtree rooted at the given node
 func GetSubtreeNodes(root *TreeNode) []*TreeNode {
-	if root == nil {
+	return GetSubtreeNodesWithDepthLimit(root, 1000) // Default recursion limit
+}
+
+// GetSubtreeNodesWithDepthLimit returns all nodes with maximum recursion depth limit
+func GetSubtreeNodesWithDepthLimit(root *TreeNode, maxDepth int) []*TreeNode {
+	if root == nil || maxDepth <= 0 {
 		return []*TreeNode{}
 	}
 
 	nodes := []*TreeNode{root}
 	for _, child := range root.Children {
-		nodes = append(nodes, GetSubtreeNodes(child)...)
+		nodes = append(nodes, GetSubtreeNodesWithDepthLimit(child, maxDepth-1)...)
 	}
 
 	return nodes
