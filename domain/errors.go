@@ -76,3 +76,8 @@ func NewOutputError(message string, cause error) error {
 func NewUnsupportedFormatError(format string) error {
 	return NewDomainError(ErrCodeUnsupportedFormat, fmt.Sprintf("unsupported format: %s", format), nil)
 }
+
+// NewValidationError creates a validation error
+func NewValidationError(message string) error {
+	return NewDomainError(ErrCodeInvalidInput, message, nil)
+}
