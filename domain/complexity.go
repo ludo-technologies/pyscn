@@ -19,9 +19,12 @@ const (
 type SortCriteria string
 
 const (
-	SortByComplexity SortCriteria = "complexity"
-	SortByName       SortCriteria = "name"
-	SortByRisk       SortCriteria = "risk"
+	SortByComplexity  SortCriteria = "complexity"
+	SortByName        SortCriteria = "name"
+	SortByRisk        SortCriteria = "risk"
+	SortBySimilarity  SortCriteria = "similarity"
+	SortBySize        SortCriteria = "size"
+	SortByLocation    SortCriteria = "location"
 )
 
 // RiskLevel represents the complexity risk level

@@ -47,6 +47,9 @@ type Config struct {
 	// DeadCode holds dead code detection configuration
 	DeadCode DeadCodeConfig `mapstructure:"dead_code" yaml:"dead_code"`
 
+	// CloneDetection holds clone detection configuration
+	CloneDetection CloneDetectionConfig `mapstructure:"clone_detection" yaml:"clone_detection"`
+
 	// Output holds output formatting configuration
 	Output OutputConfig `mapstructure:"output" yaml:"output"`
 
@@ -132,6 +135,41 @@ type AnalysisConfig struct {
 	FollowSymlinks bool `mapstructure:"follow_symlinks" yaml:"follow_symlinks"`
 }
 
+// CloneDetectionConfig holds configuration for code clone detection
+type CloneDetectionConfig struct {
+	// Enabled controls whether clone detection is performed
+	Enabled bool `mapstructure:"enabled" yaml:"enabled"`
+
+	// Minimum requirements for clone candidates
+	MinLines int `mapstructure:"min_lines" yaml:"min_lines"`
+	MinNodes int `mapstructure:"min_nodes" yaml:"min_nodes"`
+
+	// Similarity thresholds for different clone types
+	Type1Threshold float64 `mapstructure:"type1_threshold" yaml:"type1_threshold"` // Identical clones
+	Type2Threshold float64 `mapstructure:"type2_threshold" yaml:"type2_threshold"` // Renamed clones
+	Type3Threshold float64 `mapstructure:"type3_threshold" yaml:"type3_threshold"` // Near-miss clones
+	Type4Threshold float64 `mapstructure:"type4_threshold" yaml:"type4_threshold"` // Semantic clones
+
+	// General similarity threshold
+	SimilarityThreshold float64 `mapstructure:"similarity_threshold" yaml:"similarity_threshold"`
+	MaxEditDistance     float64 `mapstructure:"max_edit_distance" yaml:"max_edit_distance"`
+
+	// Cost model configuration
+	CostModelType     string `mapstructure:"cost_model_type" yaml:"cost_model_type"` // "default", "python", "weighted"
+	IgnoreLiterals    bool   `mapstructure:"ignore_literals" yaml:"ignore_literals"`
+	IgnoreIdentifiers bool   `mapstructure:"ignore_identifiers" yaml:"ignore_identifiers"`
+
+	// Output configuration
+	ShowContent bool   `mapstructure:"show_content" yaml:"show_content"`
+	GroupClones bool   `mapstructure:"group_clones" yaml:"group_clones"`
+	SortBy      string `mapstructure:"sort_by" yaml:"sort_by"` // "similarity", "size", "location", "type"
+
+	// Filtering
+	MinSimilarity float64  `mapstructure:"min_similarity" yaml:"min_similarity"`
+	MaxSimilarity float64  `mapstructure:"max_similarity" yaml:"max_similarity"`
+	CloneTypes    []string `mapstructure:"clone_types" yaml:"clone_types"` // ["type1", "type2", "type3", "type4"]
+}
+
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
 	return &Config{
@@ -154,6 +192,26 @@ func DefaultConfig() *Config {
 			DetectAfterRaise:          true,
 			DetectUnreachableBranches: true,
 			IgnorePatterns:            []string{},
+		},
+		CloneDetection: CloneDetectionConfig{
+			Enabled:             true,
+			MinLines:            5,
+			MinNodes:            10,
+			Type1Threshold:      0.95,
+			Type2Threshold:      0.85,
+			Type3Threshold:      0.70,
+			Type4Threshold:      0.60,
+			SimilarityThreshold: 0.80,
+			MaxEditDistance:     50.0,
+			CostModelType:       "python",
+			IgnoreLiterals:      false,
+			IgnoreIdentifiers:   false,
+			ShowContent:         false,
+			GroupClones:         true,
+			SortBy:              "similarity",
+			MinSimilarity:       0.0,
+			MaxSimilarity:       1.0,
+			CloneTypes:          []string{"type1", "type2", "type3", "type4"},
 		},
 		Output: OutputConfig{
 			Format:        "text",
@@ -293,6 +351,11 @@ func (c *Config) Validate() error {
 		return err
 	}
 
+	// Validate clone detection configuration
+	if err := c.validateCloneDetectionConfig(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -401,4 +464,132 @@ func (c *DeadCodeConfig) HasAnyDetectionEnabled() bool {
 		c.DetectAfterContinue ||
 		c.DetectAfterRaise ||
 		c.DetectUnreachableBranches
+}
+
+// validateCloneDetectionConfig validates the clone detection configuration
+func (c *Config) validateCloneDetectionConfig() error {
+	// Validate minimum requirements
+	if c.CloneDetection.MinLines < 1 {
+		return fmt.Errorf("clone_detection.min_lines must be >= 1, got %d", c.CloneDetection.MinLines)
+	}
+
+	if c.CloneDetection.MinNodes < 1 {
+		return fmt.Errorf("clone_detection.min_nodes must be >= 1, got %d", c.CloneDetection.MinNodes)
+	}
+
+	// Validate thresholds
+	if c.CloneDetection.Type1Threshold < 0.0 || c.CloneDetection.Type1Threshold > 1.0 {
+		return fmt.Errorf("clone_detection.type1_threshold must be between 0.0 and 1.0, got %f", c.CloneDetection.Type1Threshold)
+	}
+
+	if c.CloneDetection.Type2Threshold < 0.0 || c.CloneDetection.Type2Threshold > 1.0 {
+		return fmt.Errorf("clone_detection.type2_threshold must be between 0.0 and 1.0, got %f", c.CloneDetection.Type2Threshold)
+	}
+
+	if c.CloneDetection.Type3Threshold < 0.0 || c.CloneDetection.Type3Threshold > 1.0 {
+		return fmt.Errorf("clone_detection.type3_threshold must be between 0.0 and 1.0, got %f", c.CloneDetection.Type3Threshold)
+	}
+
+	if c.CloneDetection.Type4Threshold < 0.0 || c.CloneDetection.Type4Threshold > 1.0 {
+		return fmt.Errorf("clone_detection.type4_threshold must be between 0.0 and 1.0, got %f", c.CloneDetection.Type4Threshold)
+	}
+
+	// Validate threshold ordering (Type1 > Type2 > Type3 > Type4)
+	if c.CloneDetection.Type1Threshold <= c.CloneDetection.Type2Threshold {
+		return fmt.Errorf("clone_detection.type1_threshold (%f) should be > type2_threshold (%f)",
+			c.CloneDetection.Type1Threshold, c.CloneDetection.Type2Threshold)
+	}
+
+	if c.CloneDetection.Type2Threshold <= c.CloneDetection.Type3Threshold {
+		return fmt.Errorf("clone_detection.type2_threshold (%f) should be > type3_threshold (%f)",
+			c.CloneDetection.Type2Threshold, c.CloneDetection.Type3Threshold)
+	}
+
+	if c.CloneDetection.Type3Threshold <= c.CloneDetection.Type4Threshold {
+		return fmt.Errorf("clone_detection.type3_threshold (%f) should be > type4_threshold (%f)",
+			c.CloneDetection.Type3Threshold, c.CloneDetection.Type4Threshold)
+	}
+
+	// Validate similarity threshold
+	if c.CloneDetection.SimilarityThreshold < 0.0 || c.CloneDetection.SimilarityThreshold > 1.0 {
+		return fmt.Errorf("clone_detection.similarity_threshold must be between 0.0 and 1.0, got %f", c.CloneDetection.SimilarityThreshold)
+	}
+
+	// Validate max edit distance
+	if c.CloneDetection.MaxEditDistance < 0.0 {
+		return fmt.Errorf("clone_detection.max_edit_distance must be >= 0.0, got %f", c.CloneDetection.MaxEditDistance)
+	}
+
+	// Validate cost model type
+	validCostModels := map[string]bool{
+		"default": true,
+		"python":  true,
+		"weighted": true,
+	}
+
+	if !validCostModels[c.CloneDetection.CostModelType] {
+		return fmt.Errorf("invalid clone_detection.cost_model_type '%s', must be one of: default, python, weighted", c.CloneDetection.CostModelType)
+	}
+
+	// Validate sort criteria
+	validSortBy := map[string]bool{
+		"similarity": true,
+		"size":       true,
+		"location":   true,
+		"type":       true,
+	}
+
+	if !validSortBy[c.CloneDetection.SortBy] {
+		return fmt.Errorf("invalid clone_detection.sort_by '%s', must be one of: similarity, size, location, type", c.CloneDetection.SortBy)
+	}
+
+	// Validate similarity range
+	if c.CloneDetection.MinSimilarity < 0.0 || c.CloneDetection.MinSimilarity > 1.0 {
+		return fmt.Errorf("clone_detection.min_similarity must be between 0.0 and 1.0, got %f", c.CloneDetection.MinSimilarity)
+	}
+
+	if c.CloneDetection.MaxSimilarity < 0.0 || c.CloneDetection.MaxSimilarity > 1.0 {
+		return fmt.Errorf("clone_detection.max_similarity must be between 0.0 and 1.0, got %f", c.CloneDetection.MaxSimilarity)
+	}
+
+	if c.CloneDetection.MinSimilarity > c.CloneDetection.MaxSimilarity {
+		return fmt.Errorf("clone_detection.min_similarity (%f) cannot be greater than max_similarity (%f)",
+			c.CloneDetection.MinSimilarity, c.CloneDetection.MaxSimilarity)
+	}
+
+	// Validate clone types
+	validCloneTypes := map[string]bool{
+		"type1": true,
+		"type2": true,
+		"type3": true,
+		"type4": true,
+	}
+
+	for _, cloneType := range c.CloneDetection.CloneTypes {
+		if !validCloneTypes[cloneType] {
+			return fmt.Errorf("invalid clone type '%s' in clone_detection.clone_types, must be one of: type1, type2, type3, type4", cloneType)
+		}
+	}
+
+	return nil
+}
+
+// ShouldDetectClones determines if clone detection should be performed
+func (c *CloneDetectionConfig) ShouldDetectClones() bool {
+	return c.Enabled
+}
+
+// GetEnabledCloneTypes returns the enabled clone types as a slice
+func (c *CloneDetectionConfig) GetEnabledCloneTypes() []string {
+	return c.CloneTypes
+}
+
+// IsCloneTypeEnabled checks if a specific clone type is enabled
+func (c *CloneDetectionConfig) IsCloneTypeEnabled(cloneType string) bool {
+	for _, enabledType := range c.CloneTypes {
+		if enabledType == cloneType {
+			return true
+		}
+	}
+	return false
 }

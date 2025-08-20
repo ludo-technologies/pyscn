@@ -165,7 +165,7 @@ def foo(x):
         return "impossible"  # dead if x is numeric
     print("never")  # dead
 `,
-			expectedDead: 0, // TODO: Should be 1, but requires detecting all-paths-return
+			expectedDead: 0, // TODO: Should be 1, but all-paths-return detection needs refinement
 		},
 		{
 			name: "UnreachableInWith",

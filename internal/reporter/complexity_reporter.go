@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/pyqol/pyqol/internal/config"
+	"github.com/pyqol/pyqol/internal/version"
 	"gopkg.in/yaml.v3"
 )
 
@@ -144,7 +145,7 @@ func (r *ComplexityReporter) GetWriter() io.Writer {
 }
 
 // GenerateReport creates a comprehensive complexity report from results
-func (r *ComplexityReporter) GenerateReport(results []ComplexityResult) *ComplexityReport {
+func (r *ComplexityReporter) GenerateReport(results []ComplexityResult, filesAnalyzed int) *ComplexityReport {
 	filtered := r.filterAndSortResults(results)
 	
 	// Convert interface results to serializable results
@@ -168,9 +169,9 @@ func (r *ComplexityReporter) GenerateReport(results []ComplexityResult) *Complex
 		Results: serializableResults,
 		Metadata: ReportMetadata{
 			GeneratedAt:   time.Now(),
-			Version:       "dev", // TODO: Get from version package
+			Version:       version.Short(),
 			Configuration: r.config,
-			FilesAnalyzed: 1, // TODO: Track actual file count
+			FilesAnalyzed: filesAnalyzed,
 		},
 	}
 	
@@ -182,7 +183,25 @@ func (r *ComplexityReporter) GenerateReport(results []ComplexityResult) *Complex
 
 // ReportComplexity formats and outputs the complexity results
 func (r *ComplexityReporter) ReportComplexity(results []ComplexityResult) error {
-	report := r.GenerateReport(results)
+	report := r.GenerateReport(results, 1) // Default to 1 for backward compatibility
+	
+	switch strings.ToLower(r.config.Output.Format) {
+	case "json":
+		return r.outputJSON(report)
+	case "yaml":
+		return r.outputYAML(report)
+	case "csv":
+		return r.outputCSV(report)
+	case "text":
+		fallthrough
+	default:
+		return r.outputText(report)
+	}
+}
+
+// ReportComplexityWithFileCount formats and outputs the complexity results with file count
+func (r *ComplexityReporter) ReportComplexityWithFileCount(results []ComplexityResult, filesAnalyzed int) error {
+	report := r.GenerateReport(results, filesAnalyzed)
 	
 	switch strings.ToLower(r.config.Output.Format) {
 	case "json":
