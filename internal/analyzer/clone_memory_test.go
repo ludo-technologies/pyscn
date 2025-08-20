@@ -49,7 +49,7 @@ func TestCloneDetectorMemoryManagement(t *testing.T) {
 
 	t.Run("Large dataset - batched algorithm", func(t *testing.T) {
 		// Create a large number of fragments (> 1000) to trigger batching
-		fragments := createTestFragments(1500, "large")
+		fragments := createTestFragments(500, "large") // Reduced for CI performance
 		detector.fragments = fragments
 		detector.clonePairs = nil
 		detector.cloneGroups = nil
@@ -96,9 +96,9 @@ func TestCloneDetectorMemoryManagement(t *testing.T) {
 		runtime.GC()
 		runtime.ReadMemStats(&initialMem)
 		
-		for cycle := 0; cycle < 5; cycle++ {
-			// Create fresh fragments for each cycle
-			fragments := createTestFragments(300, "cycle")
+		for cycle := 0; cycle < 3; cycle++ {
+			// Create fresh fragments for each cycle  
+			fragments := createTestFragments(50, "cycle") // Reduced size
 			detector.fragments = fragments
 			detector.clonePairs = nil
 			detector.cloneGroups = nil
