@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/pyqol/pyqol/internal/constants"
 )
 
 func TestCloneType_String(t *testing.T) {
@@ -168,10 +169,10 @@ func TestCloneRequest_Validate(t *testing.T) {
 				MinNodes:            10,
 				SimilarityThreshold: 0.8,
 				MaxEditDistance:     50.0,
-				Type1Threshold:      0.95,
-				Type2Threshold:      0.85,
-				Type3Threshold:      0.70,
-				Type4Threshold:      0.60,
+				Type1Threshold:      constants.DefaultType1CloneThreshold,
+				Type2Threshold:      constants.DefaultType2CloneThreshold,
+				Type3Threshold:      constants.DefaultType3CloneThreshold,
+				Type4Threshold:      constants.DefaultType4CloneThreshold,
 			},
 			expectErr: false,
 		},
@@ -351,10 +352,10 @@ func TestDefaultCloneRequest(t *testing.T) {
 	assert.Equal(t, 50.0, request.MaxEditDistance, "Default max edit distance should be 50.0")
 	assert.False(t, request.IgnoreLiterals, "Default ignore literals should be false")
 	assert.False(t, request.IgnoreIdentifiers, "Default ignore identifiers should be false")
-	assert.Equal(t, 0.95, request.Type1Threshold, "Default Type-1 threshold should be 0.95")
-	assert.Equal(t, 0.85, request.Type2Threshold, "Default Type-2 threshold should be 0.85")
-	assert.Equal(t, 0.70, request.Type3Threshold, "Default Type-3 threshold should be 0.70")
-	assert.Equal(t, 0.60, request.Type4Threshold, "Default Type-4 threshold should be 0.60")
+	assert.Equal(t, constants.DefaultType1CloneThreshold, request.Type1Threshold, "Default Type-1 threshold should match constant")
+	assert.Equal(t, constants.DefaultType2CloneThreshold, request.Type2Threshold, "Default Type-2 threshold should match constant")
+	assert.Equal(t, constants.DefaultType3CloneThreshold, request.Type3Threshold, "Default Type-3 threshold should match constant")
+	assert.Equal(t, constants.DefaultType4CloneThreshold, request.Type4Threshold, "Default Type-4 threshold should match constant")
 	assert.Equal(t, OutputFormatText, request.OutputFormat, "Default output format should be text")
 	assert.False(t, request.ShowDetails, "Default show details should be false")
 	assert.False(t, request.ShowContent, "Default show content should be false")

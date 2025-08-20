@@ -10,6 +10,7 @@ import (
 
 	"github.com/pyqol/pyqol/domain"
 	"github.com/pyqol/pyqol/internal/config"
+	"github.com/pyqol/pyqol/internal/constants"
 )
 
 // CloneConfigurationLoader implements the domain.CloneConfigurationLoader interface
@@ -208,10 +209,10 @@ func (c *CloneConfigurationLoader) setViperDefaults() {
 	viper.SetDefault("clone_detection.enabled", true)
 	viper.SetDefault("clone_detection.min_lines", 5)
 	viper.SetDefault("clone_detection.min_nodes", 10)
-	viper.SetDefault("clone_detection.type1_threshold", 0.95)
-	viper.SetDefault("clone_detection.type2_threshold", 0.85)
-	viper.SetDefault("clone_detection.type3_threshold", 0.70)
-	viper.SetDefault("clone_detection.type4_threshold", 0.60)
+	viper.SetDefault("clone_detection.type1_threshold", constants.DefaultType1CloneThreshold)
+	viper.SetDefault("clone_detection.type2_threshold", constants.DefaultType2CloneThreshold)
+	viper.SetDefault("clone_detection.type3_threshold", constants.DefaultType3CloneThreshold)
+	viper.SetDefault("clone_detection.type4_threshold", constants.DefaultType4CloneThreshold)
 	viper.SetDefault("clone_detection.similarity_threshold", 0.80)
 	viper.SetDefault("clone_detection.max_edit_distance", 50.0)
 	viper.SetDefault("clone_detection.cost_model_type", "python")

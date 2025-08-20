@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+
+	"github.com/pyqol/pyqol/internal/constants"
 )
 
 // CloneType represents different types of code clones
@@ -308,10 +310,10 @@ func DefaultCloneRequest() *CloneRequest {
 		MaxEditDistance:     50.0,
 		IgnoreLiterals:      false,
 		IgnoreIdentifiers:   false,
-		Type1Threshold:      0.95,
-		Type2Threshold:      0.85,
-		Type3Threshold:      0.70,
-		Type4Threshold:      0.60,
+		Type1Threshold:      constants.DefaultType1CloneThreshold,
+		Type2Threshold:      constants.DefaultType2CloneThreshold,
+		Type3Threshold:      constants.DefaultType3CloneThreshold,
+		Type4Threshold:      constants.DefaultType4CloneThreshold,
 		OutputFormat:        OutputFormatText,
 		ShowDetails:         false,
 		ShowContent:         false,

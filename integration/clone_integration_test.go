@@ -11,6 +11,7 @@ import (
 
 	"github.com/pyqol/pyqol/app"
 	"github.com/pyqol/pyqol/domain"
+	"github.com/pyqol/pyqol/internal/constants"
 	"github.com/pyqol/pyqol/service"
 )
 
@@ -43,10 +44,10 @@ func TestCloneDetectionIntegration(t *testing.T) {
 		MinLines:            3,
 		MinNodes:            5,
 		SimilarityThreshold: 0.7,
-		Type1Threshold:      0.95,
-		Type2Threshold:      0.85,
-		Type3Threshold:      0.70,
-		Type4Threshold:      0.60,
+		Type1Threshold:      constants.DefaultType1CloneThreshold,
+		Type2Threshold:      constants.DefaultType2CloneThreshold,
+		Type3Threshold:      constants.DefaultType3CloneThreshold,
+		Type4Threshold:      constants.DefaultType4CloneThreshold,
 		OutputFormat:        domain.OutputFormatText,
 		OutputWriter:        &outputBuffer,
 		ShowDetails:         true,
@@ -184,7 +185,7 @@ func TestCloneOutputFormatterIntegration(t *testing.T) {
 		ID:         1,
 		Clone1:     clone1,
 		Clone2:     clone2,
-		Similarity: 0.95,
+		Similarity: constants.DefaultType1CloneThreshold,
 		Distance:   1.0,
 		Type:       domain.Type1Clone,
 		Confidence: 0.92,
@@ -285,10 +286,10 @@ func TestCloneConfigurationLoaderIntegration(t *testing.T) {
 		MinLines:     5,
 		MinNodes:     10,
 		SimilarityThreshold: 0.8,
-		Type1Threshold: 0.95,
-		Type2Threshold: 0.85,
-		Type3Threshold: 0.70,
-		Type4Threshold: 0.60,
+		Type1Threshold: constants.DefaultType1CloneThreshold,
+		Type2Threshold: constants.DefaultType2CloneThreshold,
+		Type3Threshold: constants.DefaultType3CloneThreshold,
+		Type4Threshold: constants.DefaultType4CloneThreshold,
 		MaxEditDistance: 50.0,
 		CloneTypes: []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone, domain.Type4Clone},
 	}
@@ -428,7 +429,7 @@ func TestCloneDetectionPerformance(t *testing.T) {
 		MinNodes:            20,
 		SimilarityThreshold: 0.9,                                  // Higher threshold for faster processing
 		Type1Threshold:      0.98,
-		Type2Threshold:      0.95,
+		Type2Threshold:      constants.DefaultType1CloneThreshold,
 		Type3Threshold:      0.90,
 		Type4Threshold:      0.85,
 		MaxEditDistance:     10.0,                                 // Lower distance for faster processing

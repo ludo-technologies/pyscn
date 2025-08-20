@@ -3,7 +3,11 @@ package analyzer
 import (
 	"fmt"
 	"math"
+	"runtime"
 	"sort"
+
+	"github.com/pyqol/pyqol/internal/config"
+	"github.com/pyqol/pyqol/internal/constants"
 	"github.com/pyqol/pyqol/internal/parser"
 )
 
@@ -137,6 +141,7 @@ func (cg *CloneGroup) AddFragment(fragment *CodeFragment) {
 }
 
 // CloneDetectorConfig holds configuration for clone detection
+// DEPRECATED: Use config.CloneConfig with adapter functions instead
 type CloneDetectorConfig struct {
 	// Minimum number of lines for a code fragment to be considered
 	MinLines int
@@ -145,10 +150,10 @@ type CloneDetectorConfig struct {
 	MinNodes int
 
 	// Similarity thresholds for different clone types
-	Type1Threshold float64 // Usually > 0.95
-	Type2Threshold float64 // Usually > 0.85
-	Type3Threshold float64 // Usually > 0.70
-	Type4Threshold float64 // Usually > 0.60
+	Type1Threshold float64 // Usually > constants.DefaultType1CloneThreshold
+	Type2Threshold float64 // Usually > constants.DefaultType2CloneThreshold
+	Type3Threshold float64 // Usually > constants.DefaultType3CloneThreshold
+	Type4Threshold float64 // Usually > constants.DefaultType4CloneThreshold
 
 	// Maximum edit distance allowed
 	MaxEditDistance float64
@@ -168,10 +173,10 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 	return &CloneDetectorConfig{
 		MinLines:          5,
 		MinNodes:          10,
-		Type1Threshold:    0.95,
-		Type2Threshold:    0.85,
-		Type3Threshold:    0.70,
-		Type4Threshold:    0.60,
+		Type1Threshold:    constants.DefaultType1CloneThreshold,
+		Type2Threshold:    constants.DefaultType2CloneThreshold,
+		Type3Threshold:    constants.DefaultType3CloneThreshold,
+		Type4Threshold:    constants.DefaultType4CloneThreshold,
 		MaxEditDistance:   50.0,
 		IgnoreLiterals:    false,
 		IgnoreIdentifiers: false,
@@ -189,7 +194,26 @@ type CloneDetector struct {
 	cloneGroups  []*CloneGroup
 }
 
+// NewCloneDetectorFromConfig creates a new clone detector from unified config
+func NewCloneDetectorFromConfig(cloneConfig *config.CloneConfig) *CloneDetector {
+	// Convert unified config to legacy config directly
+	legacyConfig := &CloneDetectorConfig{
+		MinLines:          cloneConfig.Analysis.MinLines,
+		MinNodes:          cloneConfig.Analysis.MinNodes,
+		Type1Threshold:    cloneConfig.Thresholds.Type1Threshold,
+		Type2Threshold:    cloneConfig.Thresholds.Type2Threshold,
+		Type3Threshold:    cloneConfig.Thresholds.Type3Threshold,
+		Type4Threshold:    cloneConfig.Thresholds.Type4Threshold,
+		MaxEditDistance:   cloneConfig.Analysis.MaxEditDistance,
+		IgnoreLiterals:    cloneConfig.Analysis.IgnoreLiterals,
+		IgnoreIdentifiers: cloneConfig.Analysis.IgnoreIdentifiers,
+		CostModelType:     cloneConfig.Analysis.CostModelType,
+	}
+	return NewCloneDetector(legacyConfig)
+}
+
 // NewCloneDetector creates a new clone detector with the given configuration
+// DEPRECATED: Use NewCloneDetectorFromConfig with unified config.CloneConfig instead
 func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 	// Create appropriate cost model based on configuration
 	var costModel CostModel
@@ -335,8 +359,36 @@ func (cd *CloneDetector) prepareFragments() {
 	}
 }
 
-// detectClonePairs detects pairs of similar code fragments
+// detectClonePairs detects pairs of similar code fragments with memory management
 func (cd *CloneDetector) detectClonePairs() {
+	n := len(cd.fragments)
+	
+	// Memory management constants
+	const (
+		maxClonePairs = 10000          // Maximum pairs to keep in memory
+		batchSize     = 1000           // Process fragments in batches
+		memoryLimit   = 100 * 1024 * 1024 // 100MB memory limit
+	)
+	
+	// Early return for small datasets
+	if n <= 1 {
+		return
+	}
+	
+	// Estimate memory usage and use batching if needed
+	estimatedPairs := (n * (n - 1)) / 2
+	if estimatedPairs > maxClonePairs || n > batchSize {
+		cd.detectClonePairsWithBatching(maxClonePairs, batchSize)
+	} else {
+		cd.detectClonePairsStandard()
+	}
+	
+	// Sort and limit final results
+	cd.limitAndSortClonePairs(maxClonePairs)
+}
+
+// detectClonePairsStandard uses the standard O(n²) approach for small datasets
+func (cd *CloneDetector) detectClonePairsStandard() {
 	n := len(cd.fragments)
 	
 	for i := 0; i < n; i++ {
@@ -356,11 +408,57 @@ func (cd *CloneDetector) detectClonePairs() {
 			}
 		}
 	}
+}
 
-	// Sort clone pairs by similarity (descending)
-	sort.Slice(cd.clonePairs, func(i, j int) bool {
-		return cd.clonePairs[i].Similarity > cd.clonePairs[j].Similarity
-	})
+// detectClonePairsWithBatching processes fragments in batches to manage memory
+func (cd *CloneDetector) detectClonePairsWithBatching(maxPairs, batchSize int) {
+	n := len(cd.fragments)
+	
+	// Priority queue to keep only the best pairs
+	topPairs := make([]*ClonePair, 0, maxPairs)
+	minSimilarity := cd.config.Type4Threshold // Use the lowest threshold as minimum
+	
+	// Process in batches to limit memory usage
+	for batchStart := 0; batchStart < n; batchStart += batchSize {
+		batchEnd := batchStart + batchSize
+		if batchEnd > n {
+			batchEnd = n
+		}
+		
+		// Process current batch against all previous and current fragments
+		for i := batchStart; i < batchEnd; i++ {
+			// Compare with fragments in current batch
+			for j := i + 1; j < batchEnd; j++ {
+				if pair := cd.tryCreateClonePair(i, j, minSimilarity); pair != nil {
+					topPairs = cd.addPairWithLimit(topPairs, pair, maxPairs)
+					// Update minimum similarity threshold
+					if len(topPairs) >= maxPairs {
+						minSimilarity = topPairs[len(topPairs)-1].Similarity
+					}
+				}
+			}
+			
+			// Compare with all previous fragments
+			for j := 0; j < batchStart; j++ {
+				if pair := cd.tryCreateClonePair(i, j, minSimilarity); pair != nil {
+					topPairs = cd.addPairWithLimit(topPairs, pair, maxPairs)
+					// Update minimum similarity threshold
+					if len(topPairs) >= maxPairs {
+						minSimilarity = topPairs[len(topPairs)-1].Similarity
+					}
+				}
+			}
+		}
+		
+		// Periodic garbage collection hint for large batches
+		if batchStart%5000 == 0 {
+			// Force garbage collection to prevent memory buildup
+			runtime.GC()
+		}
+	}
+	
+	// Replace clone pairs with the best ones found
+	cd.clonePairs = topPairs
 }
 
 // compareFragments compares two fragments and returns a clone pair if similar
@@ -572,4 +670,88 @@ func (cd *CloneDetector) GetStatistics() map[string]interface{} {
 	}
 	
 	return stats
+}
+
+// tryCreateClonePair attempts to create a clone pair if it meets similarity threshold
+func (cd *CloneDetector) tryCreateClonePair(i, j int, minSimilarity float64) *ClonePair {
+	fragment1 := cd.fragments[i]
+	fragment2 := cd.fragments[j]
+	
+	// Skip if both fragments are from the same location
+	if cd.isSameLocation(fragment1.Location, fragment2.Location) {
+		return nil
+	}
+	
+	// Quick similarity check before expensive computation
+	if fragment1.TreeNode == nil || fragment2.TreeNode == nil {
+		return nil
+	}
+	
+	// Early similarity estimation (fast)
+	sizeDiff := float64(abs(fragment1.Size - fragment2.Size))
+	maxSize := float64(max(fragment1.Size, fragment2.Size))
+	if maxSize > 0 && (sizeDiff/maxSize) > (1.0-minSimilarity) {
+		// Size difference too large for minimum similarity
+		return nil
+	}
+	
+	// Full similarity computation
+	pair := cd.compareFragments(fragment1, fragment2)
+	if pair != nil && cd.isSignificantClone(pair) && pair.Similarity >= minSimilarity {
+		return pair
+	}
+	return nil
+}
+
+// addPairWithLimit adds a pair to the collection while maintaining size limit
+func (cd *CloneDetector) addPairWithLimit(pairs []*ClonePair, newPair *ClonePair, maxPairs int) []*ClonePair {
+	// If under limit, just add
+	if len(pairs) < maxPairs {
+		pairs = append(pairs, newPair)
+		// Keep sorted by similarity (descending)
+		sort.Slice(pairs, func(i, j int) bool {
+			return pairs[i].Similarity > pairs[j].Similarity
+		})
+		return pairs
+	}
+	
+	// If at limit, check if new pair is better than the worst
+	if newPair.Similarity > pairs[len(pairs)-1].Similarity {
+		// Replace worst pair
+		pairs[len(pairs)-1] = newPair
+		// Re-sort to maintain order
+		sort.Slice(pairs, func(i, j int) bool {
+			return pairs[i].Similarity > pairs[j].Similarity
+		})
+	}
+	
+	return pairs
+}
+
+// limitAndSortClonePairs ensures final results are sorted and limited
+func (cd *CloneDetector) limitAndSortClonePairs(maxPairs int) {
+	// Sort clone pairs by similarity (descending)
+	sort.Slice(cd.clonePairs, func(i, j int) bool {
+		return cd.clonePairs[i].Similarity > cd.clonePairs[j].Similarity
+	})
+	
+	// Limit the number of pairs to prevent memory issues
+	if len(cd.clonePairs) > maxPairs {
+		cd.clonePairs = cd.clonePairs[:maxPairs]
+	}
+}
+
+// Helper functions
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

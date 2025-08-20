@@ -96,6 +96,17 @@ func (a *APTEDAnalyzer) computeDistanceOptimized(tree1, tree2 *TreeNode) float64
 
 // computeApproximateDistance computes an approximate distance for very large trees
 func (a *APTEDAnalyzer) computeApproximateDistance(tree1, tree2 *TreeNode) float64 {
+	// Handle nil cases
+	if tree1 == nil && tree2 == nil {
+		return 0.0
+	}
+	if tree1 == nil {
+		return float64(tree2.Size())
+	}
+	if tree2 == nil {
+		return float64(tree1.Size())
+	}
+	
 	// Use a simplified structural similarity measure
 	depth1, depth2 := tree1.Height(), tree2.Height()
 	size1, size2 := tree1.Size(), tree2.Size()
@@ -165,6 +176,11 @@ func (a *APTEDAnalyzer) apted(tree1, tree2 *TreeNode, keyRoots1, keyRoots2 []int
 
 // computeForestDistanceOptimized computes the distance between two forests with early termination
 func (a *APTEDAnalyzer) computeForestDistanceOptimized(nodes1, nodes2 []*TreeNode, i, j int, td [][]float64, maxDistance float64) {
+	// Bounds checking to prevent array access violations
+	if i < 0 || i >= len(nodes1) || j < 0 || j >= len(nodes2) {
+		return
+	}
+	
 	// Get left-most leaves for the subtrees
 	lml_i := nodes1[i].LeftMostLeaf
 	lml_j := nodes2[j].LeftMostLeaf
@@ -175,8 +191,12 @@ func (a *APTEDAnalyzer) computeForestDistanceOptimized(nodes1, nodes2 []*TreeNod
 		fd[k] = make([]float64, j+2)
 	}
 
-	// Base cases for forest distance
+	// Base cases for forest distance with bounds checking
 	for x := lml_i; x <= i; x++ {
+		// Ensure x is within bounds
+		if x < 0 || x >= len(nodes1) {
+			continue
+		}
 		fd[x+1][lml_j] = fd[x][lml_j] + a.costModel.Delete(nodes1[x])
 		// Early termination check
 		if fd[x+1][lml_j] > maxDistance {
@@ -185,6 +205,10 @@ func (a *APTEDAnalyzer) computeForestDistanceOptimized(nodes1, nodes2 []*TreeNod
 	}
 
 	for y := lml_j; y <= j; y++ {
+		// Ensure y is within bounds
+		if y < 0 || y >= len(nodes2) {
+			continue
+		}
 		fd[lml_i][y+1] = fd[lml_i][y] + a.costModel.Insert(nodes2[y])
 		// Early termination check
 		if fd[lml_i][y+1] > maxDistance {
@@ -192,9 +216,17 @@ func (a *APTEDAnalyzer) computeForestDistanceOptimized(nodes1, nodes2 []*TreeNod
 		}
 	}
 
-	// Main computation
+	// Main computation with bounds checking
 	for x := lml_i; x <= i; x++ {
+		// Ensure x is within bounds
+		if x < 0 || x >= len(nodes1) {
+			continue
+		}
 		for y := lml_j; y <= j; y++ {
+			// Ensure y is within bounds
+			if y < 0 || y >= len(nodes2) {
+				continue
+			}
 			lml_x := nodes1[x].LeftMostLeaf
 			lml_y := nodes2[y].LeftMostLeaf
 
@@ -233,6 +265,11 @@ func (a *APTEDAnalyzer) computeForestDistanceOptimized(nodes1, nodes2 []*TreeNod
 
 // computeForestDistance computes the distance between two forests
 func (a *APTEDAnalyzer) computeForestDistance(nodes1, nodes2 []*TreeNode, i, j int, td [][]float64) {
+	// Bounds checking to prevent array access violations
+	if i < 0 || i >= len(nodes1) || j < 0 || j >= len(nodes2) {
+		return
+	}
+	
 	// Get left-most leaves for the subtrees
 	lml_i := nodes1[i].LeftMostLeaf
 	lml_j := nodes2[j].LeftMostLeaf
@@ -243,18 +280,34 @@ func (a *APTEDAnalyzer) computeForestDistance(nodes1, nodes2 []*TreeNode, i, j i
 		fd[k] = make([]float64, j+2)
 	}
 
-	// Base cases for forest distance
+	// Base cases for forest distance with bounds checking
 	for x := lml_i; x <= i; x++ {
+		// Ensure x is within bounds
+		if x < 0 || x >= len(nodes1) {
+			continue
+		}
 		fd[x+1][lml_j] = fd[x][lml_j] + a.costModel.Delete(nodes1[x])
 	}
 
 	for y := lml_j; y <= j; y++ {
+		// Ensure y is within bounds
+		if y < 0 || y >= len(nodes2) {
+			continue
+		}
 		fd[lml_i][y+1] = fd[lml_i][y] + a.costModel.Insert(nodes2[y])
 	}
 
-	// Main computation
+	// Main computation with bounds checking
 	for x := lml_i; x <= i; x++ {
+		// Ensure x is within bounds
+		if x < 0 || x >= len(nodes1) {
+			continue
+		}
 		for y := lml_j; y <= j; y++ {
+			// Ensure y is within bounds
+			if y < 0 || y >= len(nodes2) {
+				continue
+			}
 			lml_x := nodes1[x].LeftMostLeaf
 			lml_y := nodes2[y].LeftMostLeaf
 
@@ -305,13 +358,18 @@ func (a *APTEDAnalyzer) getPostOrderNodes(root *TreeNode) []*TreeNode {
 
 // postOrderTraversal performs post-order traversal
 func (a *APTEDAnalyzer) postOrderTraversal(node *TreeNode, nodes *[]*TreeNode) {
-	if node == nil {
+	a.postOrderTraversalWithDepthLimit(node, nodes, 1000) // Default recursion limit
+}
+
+// postOrderTraversalWithDepthLimit performs post-order traversal with maximum recursion depth limit
+func (a *APTEDAnalyzer) postOrderTraversalWithDepthLimit(node *TreeNode, nodes *[]*TreeNode, maxDepth int) {
+	if node == nil || maxDepth <= 0 {
 		return
 	}
 
 	// Visit children first
 	for _, child := range node.Children {
-		a.postOrderTraversal(child, nodes)
+		a.postOrderTraversalWithDepthLimit(child, nodes, maxDepth-1)
 	}
 
 	// Then visit this node
@@ -320,13 +378,18 @@ func (a *APTEDAnalyzer) postOrderTraversal(node *TreeNode, nodes *[]*TreeNode) {
 
 // computeInsertCost computes the cost of inserting an entire subtree
 func (a *APTEDAnalyzer) computeInsertCost(root *TreeNode) float64 {
-	if root == nil {
+	return a.computeInsertCostWithDepthLimit(root, 1000) // Default recursion limit
+}
+
+// computeInsertCostWithDepthLimit computes insert cost with maximum recursion depth limit
+func (a *APTEDAnalyzer) computeInsertCostWithDepthLimit(root *TreeNode, maxDepth int) float64 {
+	if root == nil || maxDepth <= 0 {
 		return 0.0
 	}
 
 	cost := a.costModel.Insert(root)
 	for _, child := range root.Children {
-		cost += a.computeInsertCost(child)
+		cost += a.computeInsertCostWithDepthLimit(child, maxDepth-1)
 	}
 
 	return cost
@@ -334,13 +397,18 @@ func (a *APTEDAnalyzer) computeInsertCost(root *TreeNode) float64 {
 
 // computeDeleteCost computes the cost of deleting an entire subtree
 func (a *APTEDAnalyzer) computeDeleteCost(root *TreeNode) float64 {
-	if root == nil {
+	return a.computeDeleteCostWithDepthLimit(root, 1000) // Default recursion limit
+}
+
+// computeDeleteCostWithDepthLimit computes delete cost with maximum recursion depth limit
+func (a *APTEDAnalyzer) computeDeleteCostWithDepthLimit(root *TreeNode, maxDepth int) float64 {
+	if root == nil || maxDepth <= 0 {
 		return 0.0
 	}
 
 	cost := a.costModel.Delete(root)
 	for _, child := range root.Children {
-		cost += a.computeDeleteCost(child)
+		cost += a.computeDeleteCostWithDepthLimit(child, maxDepth-1)
 	}
 
 	return cost
@@ -348,6 +416,14 @@ func (a *APTEDAnalyzer) computeDeleteCost(root *TreeNode) float64 {
 
 // ComputeSimilarity computes similarity score between two trees (0.0 to 1.0)
 func (a *APTEDAnalyzer) ComputeSimilarity(tree1, tree2 *TreeNode) float64 {
+	// Handle nil cases
+	if tree1 == nil && tree2 == nil {
+		return 1.0 // Identical (both empty)
+	}
+	if tree1 == nil || tree2 == nil {
+		return 0.0 // Completely different (one empty)
+	}
+	
 	distance := a.ComputeDistance(tree1, tree2)
 	
 	// Normalize by the maximum possible distance

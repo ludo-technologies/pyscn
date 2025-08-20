@@ -10,6 +10,7 @@ import (
 
 	"github.com/pyqol/pyqol/app"
 	"github.com/pyqol/pyqol/domain"
+	"github.com/pyqol/pyqol/internal/constants"
 	"github.com/pyqol/pyqol/service"
 )
 
@@ -62,10 +63,10 @@ func NewCloneCommand() *CloneCommand {
 		maxEditDistance:     50.0,
 		ignoreLiterals:      false,
 		ignoreIdentifiers:   false,
-		type1Threshold:      0.95,
-		type2Threshold:      0.85,
-		type3Threshold:      0.70,
-		type4Threshold:      0.60,
+		type1Threshold:      constants.DefaultType1CloneThreshold,
+		type2Threshold:      constants.DefaultType2CloneThreshold,
+		type3Threshold:      constants.DefaultType3CloneThreshold,
+		type4Threshold:      constants.DefaultType4CloneThreshold,
 		outputFormat:        "text",
 		showDetails:         false,
 		showContent:         false,
