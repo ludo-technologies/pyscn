@@ -34,7 +34,7 @@ build:
 ## test: Run tests
 test:
 	@echo "$(GREEN)Running tests...$(NC)"
-	go test -race -cover ./...
+	go test -v ./...
 
 ## bench: Run benchmarks
 bench:
