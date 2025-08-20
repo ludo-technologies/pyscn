@@ -111,9 +111,8 @@ func (uc *CloneUseCase) ExecuteWithFiles(ctx context.Context, filePaths []string
 	for _, filePath := range filePaths {
 		if uc.fileReader.IsValidPythonFile(filePath) {
 			validFiles = append(validFiles, filePath)
-		} else {
-			// uc.progress.Warning(fmt.Sprintf("Skipping non-Python file: %s", filePath))
 		}
+		// Non-Python files are silently skipped
 	}
 
 	if len(validFiles) == 0 {

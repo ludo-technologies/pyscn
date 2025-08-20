@@ -18,13 +18,8 @@ type CloneService struct {
 }
 
 // NewCloneService creates a new clone service
+// progress can be nil - the service can work without progress reporting
 func NewCloneService(progress domain.ProgressReporter) *CloneService {
-	// Allow nil progress reporter, but provide a no-op default if needed
-	if progress == nil {
-		// This is acceptable - the service can work without progress reporting
-		// The progress calls are commented out anyway
-	}
-	
 	return &CloneService{
 		progress: progress,
 	}
