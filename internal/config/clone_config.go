@@ -126,7 +126,7 @@ func DefaultCloneConfig() *CloneConfig {
 			Type2Threshold:      constants.DefaultType2CloneThreshold,
 			Type3Threshold:      constants.DefaultType3CloneThreshold,
 			Type4Threshold:      constants.DefaultType4CloneThreshold,
-			SimilarityThreshold: constants.DefaultType4CloneThreshold, // Most permissive as minimum
+			SimilarityThreshold: 0.8, // General threshold for clone reporting
 		},
 		Filtering: FilteringConfig{
 			MinSimilarity:     0.0,

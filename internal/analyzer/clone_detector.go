@@ -544,11 +544,7 @@ func (cd *CloneDetector) isSignificantClone(pair *ClonePair) bool {
 	
 	// Additional filtering based on fragment characteristics
 	minSize := math.Min(float64(pair.Fragment1.Size), float64(pair.Fragment2.Size))
-	if minSize < float64(cd.config.MinNodes) {
-		return false
-	}
-	
-	return true
+	return minSize >= float64(cd.config.MinNodes)
 }
 
 // groupClones groups related clone pairs into clone groups

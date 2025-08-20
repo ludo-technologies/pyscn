@@ -24,6 +24,7 @@ func TestCloneService_ComputeSimilarity_Validation(t *testing.T) {
 	})
 
 	t.Run("Nil context", func(t *testing.T) {
+		//nolint:staticcheck // Testing nil context behavior
 		_, err := service.ComputeSimilarity(nil, "print('hello')", "print('world')")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "context cannot be nil")
@@ -57,6 +58,7 @@ func TestCloneService_DetectClones_Validation(t *testing.T) {
 
 	t.Run("Nil context", func(t *testing.T) {
 		req := &domain.CloneRequest{}
+		//nolint:staticcheck // Testing nil context behavior
 		_, err := service.DetectClones(nil, req)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "context cannot be nil")
@@ -75,6 +77,7 @@ func TestCloneService_DetectClonesInFiles_Validation(t *testing.T) {
 
 	t.Run("Nil context", func(t *testing.T) {
 		req := &domain.CloneRequest{}
+		//nolint:staticcheck // Testing nil context behavior
 		_, err := service.DetectClonesInFiles(nil, []string{"test.py"}, req)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "context cannot be nil")
