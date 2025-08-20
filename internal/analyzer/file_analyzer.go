@@ -85,7 +85,7 @@ func (fca *FileComplexityAnalyzer) AnalyzeFile(filename string) error {
 	}
 
 	// Generate and output report
-	return fca.reporter.ReportComplexity(interfaceResults)
+	return fca.reporter.ReportComplexityWithFileCount(interfaceResults, 1)
 }
 
 // AnalyzeFiles analyzes multiple Python files and outputs combined complexity results
@@ -135,5 +135,5 @@ func (fca *FileComplexityAnalyzer) AnalyzeFiles(filenames []string) error {
 	}
 
 	// Generate and output report
-	return fca.reporter.ReportComplexity(interfaceResults)
+	return fca.reporter.ReportComplexityWithFileCount(interfaceResults, len(filenames))
 }
