@@ -86,6 +86,52 @@ func (uc *DeadCodeUseCase) Execute(ctx context.Context, req domain.DeadCodeReque
 	return nil
 }
 
+// AnalyzeAndReturn performs dead code analysis and returns the response without formatting
+func (uc *DeadCodeUseCase) AnalyzeAndReturn(ctx context.Context, req domain.DeadCodeRequest) (*domain.DeadCodeResponse, error) {
+	// Validate input
+	if err := uc.validateRequest(req); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
+
+	// Load configuration if specified
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return nil, domain.NewConfigError("failed to load configuration", err)
+	}
+
+	// Collect Python files
+	files, err := uc.fileReader.CollectPythonFiles(
+		finalReq.Paths,
+		finalReq.Recursive,
+		finalReq.IncludePatterns,
+		finalReq.ExcludePatterns,
+	)
+	if err != nil {
+		return nil, domain.NewFileNotFoundError("failed to collect files", err)
+	}
+
+	if len(files) == 0 {
+		return nil, domain.NewInvalidInputError("no Python files found in the specified paths", nil)
+	}
+
+	// Start progress reporting
+	if uc.progress != nil {
+		uc.progress.StartProgress(len(files))
+		defer uc.progress.FinishProgress()
+	}
+
+	// Update request with collected files
+	finalReq.Paths = files
+
+	// Perform analysis and return the response
+	response, err := uc.service.Analyze(ctx, finalReq)
+	if err != nil {
+		return nil, domain.NewAnalysisError("dead code analysis failed", err)
+	}
+
+	return response, nil
+}
+
 // AnalyzeFile analyzes a single file for dead code
 func (uc *DeadCodeUseCase) AnalyzeFile(ctx context.Context, filePath string, req domain.DeadCodeRequest) error {
 	// Validate file
