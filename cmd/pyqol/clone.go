@@ -120,7 +120,7 @@ Examples:
 		"Path to configuration file")
 	cmd.Flags().StringSliceVar(&c.includePatterns, "include", []string{"*.py"},
 		"File patterns to include")
-	cmd.Flags().StringSliceVar(&c.excludePatterns, "exclude", []string{"*test*.py", "*_test.py", "test_*.py"},
+	cmd.Flags().StringSliceVar(&c.excludePatterns, "exclude", []string{"test_*.py", "*_test.py"},
 		"File patterns to exclude")
 
 	// Analysis configuration flags

@@ -138,7 +138,7 @@ func DefaultCloneConfig() *CloneConfig {
 			Paths:           []string{"."},
 			Recursive:       true,
 			IncludePatterns: []string{"*.py"},
-			ExcludePatterns: []string{"*test*.py", "*_test.py", "test_*.py"},
+			ExcludePatterns: []string{"test_*.py", "*_test.py"},
 		},
 		Output: CloneOutputConfig{
 			Format:      "text",

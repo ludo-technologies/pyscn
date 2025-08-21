@@ -148,7 +148,7 @@ func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []st
 		ConfigPath:      c.configFile,
 		Recursive:       true, // Always recursive for directories
 		IncludePatterns: []string{"*.py", "*.pyi"},
-		ExcludePatterns: []string{"*test*.py", "*_test.py", "test_*.py"},
+		ExcludePatterns: []string{"test_*.py", "*_test.py"},
 	}, nil
 }
 

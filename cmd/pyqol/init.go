@@ -79,9 +79,8 @@ clones:
     include_patterns:              # File patterns to include
       - "*.py"
     exclude_patterns:              # File patterns to exclude
-      - "*test*.py"
-      - "*_test.py"
       - "test_*.py"
+      - "*_test.py"
   
   output:
     format: "text"                 # Output format: text, json, yaml, csv
@@ -113,9 +112,8 @@ analysis:
   include_patterns:                # File patterns to include
     - "*.py"
   exclude_patterns:                # File patterns to exclude
-    - "*test*.py"
-    - "*_test.py"
     - "test_*.py"
+    - "*_test.py"
     - "__pycache__/**"
     - "*.pyc"
     - ".pytest_cache/**"
