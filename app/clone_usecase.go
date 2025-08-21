@@ -43,7 +43,7 @@ func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) er
 		return fmt.Errorf("validation failed: %w", err)
 	}
 
-	// Step 2: Load configuration if specified
+	// Step 2: Load configuration if specified or try default config
 	if req.ConfigPath != "" {
 		// uc.progress.Info(fmt.Sprintf("Loading configuration from %s", req.ConfigPath))
 		configReq, err := uc.configLoader.LoadCloneConfig(req.ConfigPath)
@@ -53,6 +53,13 @@ func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) er
 
 		// Merge configuration with request (request takes precedence)
 		req = uc.mergeConfiguration(*configReq, req)
+	} else if uc.configLoader != nil {
+		// Try to load default configuration (.pyqol.yaml in current directory)
+		defaultConfigReq := uc.configLoader.GetDefaultCloneConfig()
+		if defaultConfigReq != nil {
+			// Merge default configuration with request (request takes precedence)
+			req = uc.mergeConfiguration(*defaultConfigReq, req)
+		}
 	}
 
 	// Step 3: Collect files to analyze
@@ -95,6 +102,71 @@ func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) er
 	//	float64(response.Duration)/1000.0))
 
 	return nil
+}
+
+// ExecuteAndReturn performs clone detection and returns the response without formatting
+func (uc *CloneUseCase) ExecuteAndReturn(ctx context.Context, req domain.CloneRequest) (*domain.CloneResponse, error) {
+	startTime := time.Now()
+
+	// Step 1: Basic validation
+	if err := req.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid request: %w", err)
+	}
+
+	if len(req.Paths) == 0 {
+		return nil, fmt.Errorf("no paths specified for clone detection")
+	}
+
+	// Step 2: Load configuration if specified or try default config
+	if req.ConfigPath != "" {
+		configReq, err := uc.configLoader.LoadCloneConfig(req.ConfigPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load configuration: %w", err)
+		}
+
+		// Merge configuration with request (request takes precedence)
+		req = uc.mergeConfiguration(*configReq, req)
+	} else if uc.configLoader != nil {
+		// Try to load default configuration (.pyqol.yaml in current directory)
+		defaultConfigReq := uc.configLoader.GetDefaultCloneConfig()
+		if defaultConfigReq != nil {
+			// Merge default configuration with request (request takes precedence)
+			req = uc.mergeConfiguration(*defaultConfigReq, req)
+		}
+	}
+
+	// Step 3: Collect files to analyze
+	if uc.fileReader == nil {
+		return nil, fmt.Errorf("file reader not initialized")
+	}
+
+	files, err := uc.fileReader.CollectPythonFiles(
+		req.Paths,
+		req.Recursive,
+		req.IncludePatterns,
+		req.ExcludePatterns,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect files: %w", err)
+	}
+
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no Python files found in the specified paths")
+	}
+
+	// Step 3: Update request with discovered files
+	req.Paths = files
+
+	// Step 4: Perform clone detection
+	response, err := uc.service.DetectClones(ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("clone detection failed: %w", err)
+	}
+
+	// Step 5: Update response with timing information
+	response.Duration = time.Since(startTime).Milliseconds()
+
+	return response, nil
 }
 
 // ExecuteWithFiles executes clone detection on specific files

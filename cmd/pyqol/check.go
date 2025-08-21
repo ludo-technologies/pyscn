@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/pyqol/pyqol/service"
 )
 
 // CheckCommand represents a quick check command with sensible defaults
@@ -163,20 +162,22 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 		return 0, err
 	}
 
-	// Redirect output to discard for check command
+	// Redirect output to discard for check command (though we won't use it)
 	request.OutputWriter = io.Discard
 
-	// Create service directly to get analysis response
-	progress := service.CreateProgressReporter(io.Discard, 0, false) // Silent progress for check
-	complexityService := service.NewComplexityService(progress)
+	// Create use case (this enables config loading)
+	useCase, err := complexityCmd.createComplexityUseCase(cmd)
+	if err != nil {
+		return 0, err
+	}
 
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	// Call the service directly to get the response for counting
-	response, err := complexityService.Analyze(ctx, request)
+	// Use the new AnalyzeAndReturn method to get the response for counting
+	response, err := useCase.AnalyzeAndReturn(ctx, request)
 	if err != nil {
 		return 0, err
 	}
@@ -212,20 +213,22 @@ func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, er
 		return 0, err
 	}
 
-	// Redirect output to discard for check command
+	// Redirect output to discard for check command (though we won't use it)
 	request.OutputWriter = io.Discard
 
-	// Create service directly to get analysis response
-	progress := service.CreateProgressReporter(io.Discard, 0, false) // Silent progress for check
-	deadCodeService := service.NewDeadCodeService(progress)
+	// Create use case (this enables config loading)
+	useCase, err := deadCodeCmd.createDeadCodeUseCase(cmd)
+	if err != nil {
+		return 0, err
+	}
 
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	// Call the service directly to get the response for counting
-	response, err := deadCodeService.Analyze(ctx, request)
+	// Use the new AnalyzeAndReturn method to get the response for counting
+	response, err := useCase.AnalyzeAndReturn(ctx, request)
 	if err != nil {
 		return 0, err
 	}
@@ -260,20 +263,22 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 		return 0, fmt.Errorf("invalid clone request: %w", err)
 	}
 
-	// Redirect output to discard for check command
+	// Redirect output to discard for check command (though we won't use it)
 	request.OutputWriter = io.Discard
 
-	// Create service directly to get analysis response
-	progress := service.CreateProgressReporter(io.Discard, 0, false) // Silent progress for check
-	cloneService := service.NewCloneService(progress)
+	// Create use case (this enables config loading)
+	useCase, err := cloneCmd.createCloneUseCase(cmd)
+	if err != nil {
+		return 0, err
+	}
 
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	// Call the service directly to get the response for counting
-	response, err := cloneService.DetectClones(ctx, request)
+	// Use the new ExecuteAndReturn method to get the response for counting
+	response, err := useCase.ExecuteAndReturn(ctx, *request)
 	if err != nil {
 		return 0, err
 	}

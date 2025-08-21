@@ -30,8 +30,18 @@ func (cl *DeadCodeConfigurationLoaderImpl) LoadConfig(path string) (*domain.Dead
 	return cl.configToRequest(cfg), nil
 }
 
-// LoadDefaultConfig loads the default dead code configuration
+// LoadDefaultConfig loads the default dead code configuration, first checking for .pyqol.yaml
 func (cl *DeadCodeConfigurationLoaderImpl) LoadDefaultConfig() *domain.DeadCodeRequest {
+	// First, try to find and load a config file in the current directory
+	configFile := cl.FindDefaultConfigFile()
+	if configFile != "" {
+		if configReq, err := cl.LoadConfig(configFile); err == nil {
+			return configReq
+		}
+		// If loading failed, fall back to hardcoded defaults
+	}
+	
+	// Fall back to hardcoded default configuration
 	cfg := config.DefaultConfig()
 	return cl.configToRequest(cfg)
 }

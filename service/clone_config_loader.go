@@ -57,8 +57,18 @@ func (c *CloneConfigurationLoader) SaveCloneConfig(cloneConfig *domain.CloneRequ
 	return config.SaveConfig(cfg, configPath)
 }
 
-// GetDefaultCloneConfig returns default clone detection configuration
+// GetDefaultCloneConfig returns default clone detection configuration, first checking for .pyqol.yaml
 func (c *CloneConfigurationLoader) GetDefaultCloneConfig() *domain.CloneRequest {
+	// First, try to find and load a config file in the current directory
+	configFile := c.FindDefaultConfigFile()
+	if configFile != "" {
+		if configReq, err := c.LoadCloneConfig(configFile); err == nil {
+			return configReq
+		}
+		// If loading failed, fall back to hardcoded defaults
+	}
+	
+	// Fall back to hardcoded default configuration
 	defaultConfig := config.DefaultConfig()
 	return c.configToCloneRequest(&defaultConfig.CloneDetection)
 }
@@ -298,4 +308,17 @@ func (c *CloneConfigurationLoader) cloneTypesToStrings(types []domain.CloneType)
 		}
 	}
 	return strings
+}
+
+// FindDefaultConfigFile looks for .pyqol.yaml in the current directory
+func (c *CloneConfigurationLoader) FindDefaultConfigFile() string {
+	configFiles := []string{".pyqol.yaml", ".pyqol.yml", "pyqol.yaml"}
+	
+	for _, filename := range configFiles {
+		if _, err := os.Stat(filename); err == nil {
+			return filename
+		}
+	}
+	
+	return "" // No config file found
 }
