@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/pyqol/pyqol/app"
 	"github.com/pyqol/pyqol/domain"
 	"github.com/pyqol/pyqol/service"
+	"github.com/spf13/cobra"
 )
 
 // ComplexityCommand represents the complexity command
@@ -158,7 +158,7 @@ func (c *ComplexityCommand) createComplexityUseCase(cmd *cobra.Command) (*app.Co
 	fileReader := service.NewFileReader()
 	formatter := service.NewOutputFormatter()
 	configLoader := service.NewConfigurationLoader()
-	
+
 	// Create progress reporter
 	progress := service.CreateProgressReporter(cmd.ErrOrStderr(), 0, c.verbose)
 	complexityService := service.NewComplexityService(progress)
@@ -230,7 +230,7 @@ func (c *ComplexityCommand) validateThresholds() error {
 
 func (c *ComplexityCommand) expandAndValidatePaths(args []string) ([]string, error) {
 	var paths []string
-	
+
 	for _, arg := range args {
 		// Expand the path
 		expanded, err := filepath.Abs(arg)

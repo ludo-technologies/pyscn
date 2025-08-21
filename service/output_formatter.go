@@ -224,9 +224,9 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 
 	// Create metadata
 	metadata := map[string]interface{}{
-		"generated_at":    response.GeneratedAt,
-		"version":         response.Version,
-		"files_analyzed":  response.Summary.FilesAnalyzed,
+		"generated_at":   response.GeneratedAt,
+		"version":        response.Version,
+		"files_analyzed": response.Summary.FilesAnalyzed,
 	}
 
 	if response.Config != nil {
@@ -302,14 +302,14 @@ func (f *OutputFormatterImpl) formatSummaryText(response *domain.ComplexityRespo
 
 	if len(response.Summary.ComplexityDistribution) > 0 {
 		builder.WriteString("\nComplexity Distribution:\n")
-		
+
 		// Sort the keys for consistent output
 		var keys []string
 		for k := range response.Summary.ComplexityDistribution {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
-		
+
 		for _, k := range keys {
 			builder.WriteString(fmt.Sprintf("  %s: %d\n", k, response.Summary.ComplexityDistribution[k]))
 		}

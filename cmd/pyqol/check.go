@@ -13,11 +13,11 @@ type CheckCommand struct {
 	// Configuration
 	configFile string
 	quiet      bool
-	
+
 	// Quick override flags
-	maxComplexity   int
-	allowDeadCode   bool
-	skipClones      bool
+	maxComplexity int
+	allowDeadCode bool
+	skipClones    bool
 }
 
 // NewCheckCommand creates a new check command
@@ -25,7 +25,7 @@ func NewCheckCommand() *CheckCommand {
 	return &CheckCommand{
 		configFile:    "",
 		quiet:         false,
-		maxComplexity: 10, // Fail if complexity > 10
+		maxComplexity: 10,    // Fail if complexity > 10
 		allowDeadCode: false, // Fail on any dead code
 		skipClones:    false,
 	}
@@ -63,25 +63,19 @@ Examples:
 
   # Skip clone detection for faster analysis
   pyqol check --skip-clones src/`,
-		Args: func(cmd *cobra.Command, args []string) error {
-			// Default to current directory if no args provided
-			if len(args) == 0 {
-				args = append(args, ".")
-			}
-			return nil
-		},
+		Args: cobra.ArbitraryArgs,
 		RunE: c.runCheck,
 	}
 
 	// Configuration flags
 	cmd.Flags().StringVarP(&c.configFile, "config", "c", "", "Configuration file path")
 	cmd.Flags().BoolVarP(&c.quiet, "quiet", "q", false, "Suppress output unless issues found")
-	
+
 	// Override flags for quick adjustments
 	cmd.Flags().IntVar(&c.maxComplexity, "max-complexity", 10, "Maximum allowed complexity")
 	cmd.Flags().BoolVar(&c.allowDeadCode, "allow-dead-code", false, "Allow dead code (don't fail)")
 	cmd.Flags().BoolVar(&c.skipClones, "skip-clones", false, "Skip clone detection")
-	
+
 	return cmd
 }
 
@@ -95,12 +89,6 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	// Count issues found
 	var issueCount int
 	var hasErrors bool
-	
-	// Create context
-	ctx := cmd.Context()
-	if ctx == nil {
-		ctx = context.Background()
-	}
 
 	if !c.quiet {
 		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check...\n")
@@ -159,36 +147,36 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 // checkComplexity runs complexity analysis and returns issue count
 func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, error) {
 	complexityCmd := NewComplexityCommand()
-	
+
 	// Configure with stricter defaults for checking
 	complexityCmd.outputFormat = "text"
 	complexityCmd.minComplexity = c.maxComplexity + 1 // Only report issues above threshold
 	complexityCmd.maxComplexity = c.maxComplexity     // Set maximum allowed
 	complexityCmd.configFile = c.configFile
 	complexityCmd.verbose = false
-	
+
 	// Build request
 	request, err := complexityCmd.buildComplexityRequest(cmd, args)
 	if err != nil {
 		return 0, err
 	}
-	
+
 	// Create use case
 	useCase, err := complexityCmd.createComplexityUseCase(cmd)
 	if err != nil {
 		return 0, err
 	}
-	
+
 	// Execute analysis (this will output results)
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	
+
 	if err := useCase.Execute(ctx, request); err != nil {
 		return 0, err
 	}
-	
+
 	// For now, assume any output means issues were found
 	// In a more sophisticated version, we'd capture and count results
 	return 0, nil // Simplified - actual implementation would count issues
@@ -197,35 +185,35 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 // checkDeadCode runs dead code analysis and returns issue count
 func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, error) {
 	deadCodeCmd := NewDeadCodeCommand()
-	
+
 	// Configure for critical issues only
 	deadCodeCmd.outputFormat = "text"
 	deadCodeCmd.minSeverity = "critical"
 	deadCodeCmd.configFile = c.configFile
 	deadCodeCmd.verbose = false
-	
+
 	// Build request
 	request, err := deadCodeCmd.buildDeadCodeRequest(cmd, args)
 	if err != nil {
 		return 0, err
 	}
-	
+
 	// Create use case
 	useCase, err := deadCodeCmd.createDeadCodeUseCase(cmd)
 	if err != nil {
 		return 0, err
 	}
-	
+
 	// Execute analysis
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	
+
 	if err := useCase.Execute(ctx, request); err != nil {
 		return 0, err
 	}
-	
+
 	// Simplified - actual implementation would count issues
 	return 0, nil
 }
@@ -233,36 +221,36 @@ func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, er
 // checkClones runs clone detection and returns issue count
 func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, error) {
 	cloneCmd := NewCloneCommand()
-	
+
 	// Configure for informational reporting
 	cloneCmd.outputFormat = "text"
 	cloneCmd.similarityThreshold = 0.8
 	cloneCmd.configFile = c.configFile
 	cloneCmd.verbose = false
-	
+
 	// Create request
 	request, err := cloneCmd.createCloneRequest(args)
 	if err != nil {
 		return 0, err
 	}
-	
+
 	// Validate request
 	if err := request.Validate(); err != nil {
 		return 0, fmt.Errorf("invalid clone request: %w", err)
 	}
-	
+
 	// Create use case
 	useCase, err := cloneCmd.createCloneUseCase(cmd)
 	if err != nil {
 		return 0, err
 	}
-	
+
 	// Execute analysis
 	ctx := context.Background()
 	if err := useCase.Execute(ctx, *request); err != nil {
 		return 0, err
 	}
-	
+
 	// Simplified - actual implementation would count clones
 	return 0, nil
 }

@@ -37,7 +37,7 @@ func NewCloneUseCase(
 // Execute executes the clone detection use case
 func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) error {
 	startTime := time.Now()
-	
+
 	// Step 1: Validate the request
 	if err := req.Validate(); err != nil {
 		return fmt.Errorf("validation failed: %w", err)
@@ -50,7 +50,7 @@ func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) er
 		if err != nil {
 			return fmt.Errorf("failed to load configuration: %w", err)
 		}
-		
+
 		// Merge configuration with request (request takes precedence)
 		req = uc.mergeConfiguration(*configReq, req)
 	}
@@ -190,7 +190,7 @@ func (uc *CloneUseCase) mergeConfiguration(configReq, requestReq domain.CloneReq
 
 	// Override numeric values if they differ from defaults
 	defaultReq := domain.DefaultCloneRequest()
-	
+
 	if requestReq.MinLines != defaultReq.MinLines {
 		merged.MinLines = requestReq.MinLines
 	}

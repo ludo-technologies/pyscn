@@ -92,7 +92,7 @@ func (c *CloneThresholdConfig) GetThresholdForType(cloneType int) float64 {
 // CloneTypeNames provides human-readable names for clone types
 var CloneTypeNames = map[int]string{
 	1: "Type-1 (Identical)",
-	2: "Type-2 (Renamed)",  
+	2: "Type-2 (Renamed)",
 	3: "Type-3 (Near-Miss)",
 	4: "Type-4 (Semantic)",
 }

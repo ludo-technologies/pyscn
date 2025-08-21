@@ -11,11 +11,11 @@ import (
 
 // ComplexityUseCase orchestrates the complexity analysis workflow
 type ComplexityUseCase struct {
-	service       domain.ComplexityService
-	fileReader    domain.FileReader
-	formatter     domain.OutputFormatter
-	configLoader  domain.ConfigurationLoader
-	progress      domain.ProgressReporter
+	service      domain.ComplexityService
+	fileReader   domain.FileReader
+	formatter    domain.OutputFormatter
+	configLoader domain.ConfigurationLoader
+	progress     domain.ProgressReporter
 }
 
 // NewComplexityUseCase creates a new complexity use case
@@ -320,24 +320,24 @@ func (n *noOpConfigLoader) MergeConfig(base *domain.ComplexityRequest, override 
 // noOpProgressReporter is a no-op implementation of ProgressReporter
 type noOpProgressReporter struct{}
 
-func (n *noOpProgressReporter) StartProgress(totalFiles int)                          {}
+func (n *noOpProgressReporter) StartProgress(totalFiles int)                            {}
 func (n *noOpProgressReporter) UpdateProgress(currentFile string, processed, total int) {}
-func (n *noOpProgressReporter) FinishProgress()                                       {}
+func (n *noOpProgressReporter) FinishProgress()                                         {}
 
 // UseCaseOptions provides configuration options for the use case
 type UseCaseOptions struct {
-	EnableProgress    bool
-	ProgressInterval  time.Duration
-	MaxConcurrency    int
-	TimeoutPerFile    time.Duration
+	EnableProgress   bool
+	ProgressInterval time.Duration
+	MaxConcurrency   int
+	TimeoutPerFile   time.Duration
 }
 
 // DefaultUseCaseOptions returns default options
 func DefaultUseCaseOptions() UseCaseOptions {
 	return UseCaseOptions{
-		EnableProgress:    true,
-		ProgressInterval:  100 * time.Millisecond,
-		MaxConcurrency:    4,
-		TimeoutPerFile:    30 * time.Second,
+		EnableProgress:   true,
+		ProgressInterval: 100 * time.Millisecond,
+		MaxConcurrency:   4,
+		TimeoutPerFile:   30 * time.Second,
 	}
 }

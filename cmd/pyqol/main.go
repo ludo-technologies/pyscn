@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
 	"github.com/pyqol/pyqol/internal/version"
+	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
@@ -26,7 +26,7 @@ Features:
 func init() {
 	// Global flags
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose output")
-	
+
 	// Add subcommands
 	rootCmd.AddCommand(NewAnalyzeCmd())
 	rootCmd.AddCommand(NewCheckCmd())
