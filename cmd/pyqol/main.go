@@ -28,6 +28,10 @@ func init() {
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose output")
 	
 	// Add subcommands
+	rootCmd.AddCommand(NewAnalyzeCmd())
+	rootCmd.AddCommand(NewCheckCmd())
+	rootCmd.AddCommand(NewVersionCmd())
+	rootCmd.AddCommand(NewInitCmd())
 	rootCmd.AddCommand(complexityCmd)
 	rootCmd.AddCommand(NewDeadCodeCmd())
 	addCloneCommand(rootCmd)
