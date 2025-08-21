@@ -152,7 +152,9 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 	// Configure with stricter defaults for checking
 	complexityCmd.outputFormat = "text"
 	complexityCmd.minComplexity = 1                 // Analyze all functions
-	complexityCmd.maxComplexity = c.maxComplexity   // Use check command's threshold (default: 10)
+	complexityCmd.maxComplexity = 0                  // No filter - we want to see ALL functions
+	complexityCmd.lowThreshold = 5                  // Low: 1-5
+	complexityCmd.mediumThreshold = 9               // Medium: 6-9, High: 10+
 	complexityCmd.configFile = c.configFile
 	complexityCmd.verbose = false
 
