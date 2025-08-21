@@ -173,7 +173,7 @@ func (c *DeadCodeCommand) buildDeadCodeRequest(cmd *cobra.Command, args []string
 		ConfigPath:      c.configFile,
 		Recursive:       true, // Always recursive for directories
 		IncludePatterns: []string{"*.py", "*.pyi"},
-		ExcludePatterns: []string{"*test*.py", "*_test.py", "test_*.py"},
+		ExcludePatterns: []string{"test_*.py", "*_test.py"},
 		IgnorePatterns:  []string{},
 
 		// Dead code detection options

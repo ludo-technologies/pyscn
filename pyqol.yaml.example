@@ -48,9 +48,8 @@ analysis:
   
   # File patterns to exclude from analysis
   exclude_patterns:
-    - "*test*.py"
-    - "*_test.py" 
     - "test_*.py"
+    - "*_test.py"
     - "__pycache__/*"
     - "build/*"
     - "dist/*"

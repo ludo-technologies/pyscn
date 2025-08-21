@@ -127,7 +127,7 @@ func (c *CloneConfigurationLoader) configToCloneRequest(cfg *config.CloneDetecti
 		OutputFormat:        domain.OutputFormatText,                         // Default, overridden by CLI
 		Recursive:           true,                                            // Default, overridden by CLI
 		IncludePatterns:     []string{"*.py"},                                // Default, overridden by CLI
-		ExcludePatterns:     []string{"*test*.py", "*_test.py", "test_*.py"}, // Default
+		ExcludePatterns:     []string{"test_*.py", "*_test.py"}, // Default
 	}
 }
 

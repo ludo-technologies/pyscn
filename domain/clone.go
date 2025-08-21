@@ -303,7 +303,7 @@ func DefaultCloneRequest() *CloneRequest {
 		Paths:               []string{"."},
 		Recursive:           true,
 		IncludePatterns:     []string{"*.py"},
-		ExcludePatterns:     []string{"*test*.py", "*_test.py", "test_*.py"},
+		ExcludePatterns:     []string{"test_*.py", "*_test.py"},
 		MinLines:            5,
 		MinNodes:            10,
 		SimilarityThreshold: 0.8,

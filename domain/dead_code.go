@@ -206,7 +206,7 @@ func DefaultDeadCodeRequest() *DeadCodeRequest {
 		SortBy:          DeadCodeSortBySeverity,
 		Recursive:       true,
 		IncludePatterns: []string{"*.py"},
-		ExcludePatterns: []string{"*test*.py", "*_test.py", "test_*.py"},
+		ExcludePatterns: []string{"test_*.py", "*_test.py"},
 		IgnorePatterns:  []string{},
 
 		// Dead code detection options (all enabled by default)
