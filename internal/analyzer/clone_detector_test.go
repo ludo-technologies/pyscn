@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/pyqol/pyqol/internal/constants"
 	"github.com/pyqol/pyqol/internal/parser"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCloneDetector_Creation(t *testing.T) {
@@ -394,7 +394,7 @@ func TestCloneDetector_ExtractFragments_Integration(t *testing.T) {
 	fragments := detector.ExtractFragments(astNodes, "/test.py")
 
 	assert.Len(t, fragments, 2, "Should extract 2 fragments")
-	
+
 	for i, fragment := range fragments {
 		assert.NotNil(t, fragment.Location, "Fragment %d should have location", i)
 		assert.Equal(t, "/test.py", fragment.Location.FilePath, "Fragment %d should have correct file path", i)
@@ -434,14 +434,14 @@ func BenchmarkCloneDetector_CompareFragments(b *testing.B) {
 
 	// Create two similar fragments
 	fragment1 := &CodeFragment{
-		Location: &CodeLocation{FilePath: "/test1.py"},
-		Size:     20,
+		Location:  &CodeLocation{FilePath: "/test1.py"},
+		Size:      20,
 		LineCount: 10,
 	}
 
 	fragment2 := &CodeFragment{
-		Location: &CodeLocation{FilePath: "/test2.py"},
-		Size:     18,
+		Location:  &CodeLocation{FilePath: "/test2.py"},
+		Size:      18,
 		LineCount: 9,
 	}
 

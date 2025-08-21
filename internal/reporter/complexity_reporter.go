@@ -20,11 +20,10 @@ type ComplexityResult interface {
 	GetComplexity() int
 	GetFunctionName() string
 	GetRiskLevel() string
-	
+
 	// Detailed metrics for comprehensive reporting
 	GetDetailedMetrics() map[string]int
 }
-
 
 // SerializableComplexityResult is a concrete type for JSON/YAML serialization
 type SerializableComplexityResult struct {
@@ -43,13 +42,13 @@ type SerializableComplexityResult struct {
 type ComplexityReport struct {
 	// Summary contains aggregate statistics
 	Summary ReportSummary `json:"summary" yaml:"summary"`
-	
+
 	// Results contains individual function complexity results
 	Results []SerializableComplexityResult `json:"results" yaml:"results"`
-	
+
 	// Metadata contains report generation information
 	Metadata ReportMetadata `json:"metadata" yaml:"metadata"`
-	
+
 	// Warnings contains threshold violations and issues
 	Warnings []ReportWarning `json:"warnings,omitempty" yaml:"warnings,omitempty"`
 }
@@ -58,19 +57,19 @@ type ComplexityReport struct {
 type ReportSummary struct {
 	// TotalFunctions is the total number of functions analyzed
 	TotalFunctions int `json:"total_functions" yaml:"total_functions"`
-	
+
 	// AverageComplexity is the mean complexity across all functions
 	AverageComplexity float64 `json:"average_complexity" yaml:"average_complexity"`
-	
+
 	// MaxComplexity is the highest complexity found
 	MaxComplexity int `json:"max_complexity" yaml:"max_complexity"`
-	
-	// MinComplexity is the lowest complexity found  
+
+	// MinComplexity is the lowest complexity found
 	MinComplexity int `json:"min_complexity" yaml:"min_complexity"`
-	
+
 	// RiskDistribution shows count by risk level
 	RiskDistribution RiskDistribution `json:"risk_distribution" yaml:"risk_distribution"`
-	
+
 	// ComplexityDistribution shows count by complexity ranges
 	ComplexityDistribution map[string]int `json:"complexity_distribution" yaml:"complexity_distribution"`
 }
@@ -86,13 +85,13 @@ type RiskDistribution struct {
 type ReportMetadata struct {
 	// GeneratedAt is when the report was generated
 	GeneratedAt time.Time `json:"generated_at" yaml:"generated_at"`
-	
+
 	// Version is the pyqol version used
 	Version string `json:"version" yaml:"version"`
-	
+
 	// Configuration is the analysis configuration used
 	Configuration *config.Config `json:"configuration,omitempty" yaml:"configuration,omitempty"`
-	
+
 	// FilesAnalyzed is the number of files processed
 	FilesAnalyzed int `json:"files_analyzed" yaml:"files_analyzed"`
 }
@@ -101,13 +100,13 @@ type ReportMetadata struct {
 type ReportWarning struct {
 	// Type of warning (threshold_exceeded, max_complexity_exceeded, etc.)
 	Type string `json:"type" yaml:"type"`
-	
+
 	// Message describes the warning
 	Message string `json:"message" yaml:"message"`
-	
+
 	// FunctionName is the function that triggered the warning (if applicable)
 	FunctionName string `json:"function_name,omitempty" yaml:"function_name,omitempty"`
-	
+
 	// Complexity is the complexity value that triggered the warning
 	Complexity int `json:"complexity,omitempty" yaml:"complexity,omitempty"`
 }
@@ -123,16 +122,16 @@ func NewComplexityReporter(cfg *config.Config, writer io.Writer) (*ComplexityRep
 	if cfg == nil {
 		return nil, fmt.Errorf("configuration cannot be nil")
 	}
-	
+
 	if writer == nil {
 		return nil, fmt.Errorf("writer cannot be nil")
 	}
-	
+
 	// Validate configuration
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
-	
+
 	return &ComplexityReporter{
 		config: cfg,
 		writer: writer,
@@ -147,7 +146,7 @@ func (r *ComplexityReporter) GetWriter() io.Writer {
 // GenerateReport creates a comprehensive complexity report from results
 func (r *ComplexityReporter) GenerateReport(results []ComplexityResult, filesAnalyzed int) *ComplexityReport {
 	filtered := r.filterAndSortResults(results)
-	
+
 	// Convert interface results to serializable results
 	serializableResults := make([]SerializableComplexityResult, len(filtered))
 	for i, result := range filtered {
@@ -164,7 +163,7 @@ func (r *ComplexityReporter) GenerateReport(results []ComplexityResult, filesAna
 			SwitchCases:       detailed["switch_cases"],
 		}
 	}
-	
+
 	report := &ComplexityReport{
 		Results: serializableResults,
 		Metadata: ReportMetadata{
@@ -174,17 +173,17 @@ func (r *ComplexityReporter) GenerateReport(results []ComplexityResult, filesAna
 			FilesAnalyzed: filesAnalyzed,
 		},
 	}
-	
+
 	report.Summary = r.generateSummaryFromSerializable(report.Results)
 	report.Warnings = r.generateWarningsFromSerializable(report.Results)
-	
+
 	return report
 }
 
 // ReportComplexity formats and outputs the complexity results
 func (r *ComplexityReporter) ReportComplexity(results []ComplexityResult) error {
 	report := r.GenerateReport(results, 1) // Default to 1 for backward compatibility
-	
+
 	switch strings.ToLower(r.config.Output.Format) {
 	case "json":
 		return r.outputJSON(report)
@@ -202,7 +201,7 @@ func (r *ComplexityReporter) ReportComplexity(results []ComplexityResult) error 
 // ReportComplexityWithFileCount formats and outputs the complexity results with file count
 func (r *ComplexityReporter) ReportComplexityWithFileCount(results []ComplexityResult, filesAnalyzed int) error {
 	report := r.GenerateReport(results, filesAnalyzed)
-	
+
 	switch strings.ToLower(r.config.Output.Format) {
 	case "json":
 		return r.outputJSON(report)
@@ -226,7 +225,7 @@ func (r *ComplexityReporter) filterAndSortResults(results []ComplexityResult) []
 			filtered = append(filtered, result)
 		}
 	}
-	
+
 	// Sort results based on configuration
 	sort.Slice(filtered, func(i, j int) bool {
 		switch r.config.Output.SortBy {
@@ -240,7 +239,7 @@ func (r *ComplexityReporter) filterAndSortResults(results []ComplexityResult) []
 			return filtered[i].GetFunctionName() < filtered[j].GetFunctionName() // Ascending
 		}
 	})
-	
+
 	return filtered
 }
 
@@ -250,32 +249,31 @@ func (r *ComplexityReporter) compareRiskLevel(risk1, risk2 string) bool {
 	return riskValue[risk1] > riskValue[risk2]
 }
 
-
 // generateSummaryFromSerializable creates summary statistics from serializable results
 func (r *ComplexityReporter) generateSummaryFromSerializable(results []SerializableComplexityResult) ReportSummary {
 	if len(results) == 0 {
 		return ReportSummary{}
 	}
-	
+
 	summary := ReportSummary{
-		TotalFunctions: len(results),
-		MinComplexity:  results[0].Complexity,
-		MaxComplexity:  results[0].Complexity,
+		TotalFunctions:         len(results),
+		MinComplexity:          results[0].Complexity,
+		MaxComplexity:          results[0].Complexity,
 		ComplexityDistribution: make(map[string]int),
 	}
-	
+
 	totalComplexity := 0
 	for _, result := range results {
 		complexity := result.Complexity
 		totalComplexity += complexity
-		
+
 		if complexity > summary.MaxComplexity {
 			summary.MaxComplexity = complexity
 		}
 		if complexity < summary.MinComplexity {
 			summary.MinComplexity = complexity
 		}
-		
+
 		// Count by risk level
 		switch result.RiskLevel {
 		case "high":
@@ -285,7 +283,7 @@ func (r *ComplexityReporter) generateSummaryFromSerializable(results []Serializa
 		case "low":
 			summary.RiskDistribution.Low++
 		}
-		
+
 		// Count by complexity ranges
 		switch {
 		case complexity == 1:
@@ -300,9 +298,9 @@ func (r *ComplexityReporter) generateSummaryFromSerializable(results []Serializa
 			summary.ComplexityDistribution["21+"]++
 		}
 	}
-	
+
 	summary.AverageComplexity = float64(totalComplexity) / float64(len(results))
-	
+
 	return summary
 }
 
@@ -344,7 +342,7 @@ type warningInfo struct {
 // generateWarningsCommon contains the shared warning generation logic
 func (r *ComplexityReporter) generateWarningsCommon(data []warningInfo) []ReportWarning {
 	var warnings []ReportWarning
-	
+
 	for _, info := range data {
 		// Check if function exceeds maximum allowed complexity
 		if r.config.Complexity.ExceedsMaxComplexity(info.complexity) {
@@ -355,7 +353,7 @@ func (r *ComplexityReporter) generateWarningsCommon(data []warningInfo) []Report
 				Complexity:   info.complexity,
 			})
 		}
-		
+
 		// Check high complexity threshold
 		if info.riskLevel == "high" {
 			warnings = append(warnings, ReportWarning{
@@ -366,7 +364,7 @@ func (r *ComplexityReporter) generateWarningsCommon(data []warningInfo) []Report
 			})
 		}
 	}
-	
+
 	return warnings
 }
 
@@ -389,16 +387,16 @@ func (r *ComplexityReporter) outputYAML(report *ComplexityReport) error {
 func (r *ComplexityReporter) outputCSV(report *ComplexityReport) error {
 	writer := csv.NewWriter(r.writer)
 	defer writer.Flush()
-	
+
 	// Write header
 	header := []string{
-		"Function", "Complexity", "Risk", "Nodes", "Edges", 
+		"Function", "Complexity", "Risk", "Nodes", "Edges",
 		"If Statements", "Loop Statements", "Exception Handlers",
 	}
 	if err := writer.Write(header); err != nil {
 		return fmt.Errorf("failed to write CSV header: %w", err)
 	}
-	
+
 	// Write data rows
 	for _, result := range report.Results {
 		row := []string{
@@ -415,7 +413,7 @@ func (r *ComplexityReporter) outputCSV(report *ComplexityReport) error {
 			return fmt.Errorf("failed to write CSV row: %w", err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -424,18 +422,18 @@ func (r *ComplexityReporter) outputText(report *ComplexityReport) error {
 	// Write summary
 	fmt.Fprintf(r.writer, "Complexity Analysis Report\n")
 	fmt.Fprintf(r.writer, "==========================\n\n")
-	
+
 	fmt.Fprintf(r.writer, "Summary:\n")
 	fmt.Fprintf(r.writer, "  Total Functions: %d\n", report.Summary.TotalFunctions)
 	fmt.Fprintf(r.writer, "  Average Complexity: %.2f\n", report.Summary.AverageComplexity)
 	fmt.Fprintf(r.writer, "  Max Complexity: %d\n", report.Summary.MaxComplexity)
 	fmt.Fprintf(r.writer, "  Min Complexity: %d\n", report.Summary.MinComplexity)
-	
+
 	fmt.Fprintf(r.writer, "\nRisk Distribution:\n")
 	fmt.Fprintf(r.writer, "  High: %d\n", report.Summary.RiskDistribution.High)
 	fmt.Fprintf(r.writer, "  Medium: %d\n", report.Summary.RiskDistribution.Medium)
 	fmt.Fprintf(r.writer, "  Low: %d\n", report.Summary.RiskDistribution.Low)
-	
+
 	// Write warnings if any
 	if len(report.Warnings) > 0 {
 		fmt.Fprintf(r.writer, "\nWarnings:\n")
@@ -443,39 +441,39 @@ func (r *ComplexityReporter) outputText(report *ComplexityReport) error {
 			fmt.Fprintf(r.writer, "  [%s] %s\n", strings.ToUpper(warning.Type), warning.Message)
 		}
 	}
-	
+
 	// Write individual function results
 	if len(report.Results) > 0 {
 		fmt.Fprintf(r.writer, "\nFunction Details:\n")
 		fmt.Fprintf(r.writer, "%-30s %10s %8s", "Function", "Complexity", "Risk")
-		
+
 		if r.config.Output.ShowDetails {
 			fmt.Fprintf(r.writer, " %6s %6s %4s %4s %4s", "Nodes", "Edges", "Ifs", "Loops", "Excps")
 		}
 		fmt.Fprintf(r.writer, "\n")
-		
+
 		fmt.Fprint(r.writer, strings.Repeat("-", 30+10+8))
 		if r.config.Output.ShowDetails {
 			fmt.Fprint(r.writer, strings.Repeat("-", 6+6+4+4+4+5))
 		}
 		fmt.Fprintf(r.writer, "\n")
-		
+
 		for _, result := range report.Results {
 			riskColor := r.getRiskColor(result.RiskLevel)
-			fmt.Fprintf(r.writer, "%-30s %10d %s%8s%s", 
+			fmt.Fprintf(r.writer, "%-30s %10d %s%8s%s",
 				result.FunctionName, result.Complexity, riskColor, result.RiskLevel, "\033[0m")
-			
+
 			if r.config.Output.ShowDetails {
-				fmt.Fprintf(r.writer, " %6d %6d %4d %4d %4d", 
-					result.Nodes, result.Edges, result.IfStatements, 
+				fmt.Fprintf(r.writer, " %6d %6d %4d %4d %4d",
+					result.Nodes, result.Edges, result.IfStatements,
 					result.LoopStatements, result.ExceptionHandlers)
 			}
 			fmt.Fprintf(r.writer, "\n")
 		}
 	}
-	
+
 	fmt.Fprintf(r.writer, "\nGenerated at: %s\n", report.Metadata.GeneratedAt.Format(time.RFC3339))
-	
+
 	return nil
 }
 
@@ -489,7 +487,7 @@ func (r *ComplexityReporter) getRiskColor(riskLevel string) string {
 	case "low":
 		return "\033[32m" // Green
 	default:
-		return "\033[0m"  // Reset
+		return "\033[0m" // Reset
 	}
 }
 
@@ -498,27 +496,27 @@ func FormatComplexityBrief(results []ComplexityResult) string {
 	if len(results) == 0 {
 		return "No functions analyzed"
 	}
-	
+
 	// Calculate aggregate stats inline to avoid circular dependency
 	totalComplexity := 0
 	maxComplexity := 0
 	highRiskCount := 0
-	
+
 	for _, result := range results {
 		complexity := result.GetComplexity()
 		totalComplexity += complexity
-		
+
 		if complexity > maxComplexity {
 			maxComplexity = complexity
 		}
-		
+
 		if result.GetRiskLevel() == "high" {
 			highRiskCount++
 		}
 	}
-	
+
 	avgComplexity := float64(totalComplexity) / float64(len(results))
-	
-	return fmt.Sprintf("%d functions analyzed - Avg: %.1f, Max: %d, High Risk: %d", 
+
+	return fmt.Sprintf("%d functions analyzed - Avg: %.1f, Max: %d, High Risk: %d",
 		len(results), avgComplexity, maxComplexity, highRiskCount)
 }

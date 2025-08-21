@@ -11,11 +11,11 @@ import (
 
 // DeadCodeUseCase orchestrates the dead code analysis workflow
 type DeadCodeUseCase struct {
-	service       domain.DeadCodeService
-	fileReader    domain.FileReader
-	formatter     domain.DeadCodeFormatter
-	configLoader  domain.DeadCodeConfigurationLoader
-	progress      domain.ProgressReporter
+	service      domain.DeadCodeService
+	fileReader   domain.FileReader
+	formatter    domain.DeadCodeFormatter
+	configLoader domain.DeadCodeConfigurationLoader
+	progress     domain.ProgressReporter
 }
 
 // NewDeadCodeUseCase creates a new dead code use case
@@ -114,10 +114,10 @@ func (uc *DeadCodeUseCase) AnalyzeFile(ctx context.Context, filePath string, req
 	response := &domain.DeadCodeResponse{
 		Files: []domain.FileDeadCode{*fileResult},
 		Summary: domain.DeadCodeSummary{
-			TotalFiles:        1,
-			FilesWithDeadCode: 1,
-			TotalFindings:     fileResult.TotalFindings,
-			TotalFunctions:    fileResult.TotalFunctions,
+			TotalFiles:            1,
+			FilesWithDeadCode:     1,
+			TotalFindings:         fileResult.TotalFindings,
+			TotalFunctions:        fileResult.TotalFunctions,
 			FunctionsWithDeadCode: fileResult.AffectedFunctions,
 		},
 		GeneratedAt: time.Now().Format(time.RFC3339),
@@ -347,29 +347,29 @@ func (n *noOpDeadCodeConfigLoader) MergeConfig(base *domain.DeadCodeRequest, ove
 // deadCodeNoOpProgressReporter is a no-op implementation of ProgressReporter for dead code
 type deadCodeNoOpProgressReporter struct{}
 
-func (n *deadCodeNoOpProgressReporter) StartProgress(totalFiles int)                          {}
+func (n *deadCodeNoOpProgressReporter) StartProgress(totalFiles int)                            {}
 func (n *deadCodeNoOpProgressReporter) UpdateProgress(currentFile string, processed, total int) {}
-func (n *deadCodeNoOpProgressReporter) FinishProgress()                                       {}
+func (n *deadCodeNoOpProgressReporter) FinishProgress()                                         {}
 
 // DeadCodeUseCaseOptions provides configuration options for the dead code use case
 type DeadCodeUseCaseOptions struct {
-	EnableProgress    bool
-	ProgressInterval  time.Duration
-	MaxConcurrency    int
-	TimeoutPerFile    time.Duration
-	ShowContext       bool
-	ContextLines      int
+	EnableProgress   bool
+	ProgressInterval time.Duration
+	MaxConcurrency   int
+	TimeoutPerFile   time.Duration
+	ShowContext      bool
+	ContextLines     int
 }
 
 // DefaultDeadCodeUseCaseOptions returns default options
 func DefaultDeadCodeUseCaseOptions() DeadCodeUseCaseOptions {
 	return DeadCodeUseCaseOptions{
-		EnableProgress:    true,
-		ProgressInterval:  100 * time.Millisecond,
-		MaxConcurrency:    4,
-		TimeoutPerFile:    30 * time.Second,
-		ShowContext:       false,
-		ContextLines:      3,
+		EnableProgress:   true,
+		ProgressInterval: 100 * time.Millisecond,
+		MaxConcurrency:   4,
+		TimeoutPerFile:   30 * time.Second,
+		ShowContext:      false,
+		ContextLines:     3,
 	}
 }
 
@@ -403,7 +403,7 @@ func (uc *DeadCodeUseCase) QuickAnalysis(ctx context.Context, filePaths []string
 		IncludePatterns: []string{"*.py"},
 		ExcludePatterns: []string{},
 		IgnorePatterns:  []string{},
-		
+
 		// Enable all detection types
 		DetectAfterReturn:         true,
 		DetectAfterBreak:          true,

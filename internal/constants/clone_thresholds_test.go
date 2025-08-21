@@ -16,11 +16,11 @@ func TestDefaultCloneThresholds(t *testing.T) {
 	})
 
 	t.Run("Constants are in correct order", func(t *testing.T) {
-		assert.Greater(t, DefaultType1CloneThreshold, DefaultType2CloneThreshold, 
+		assert.Greater(t, DefaultType1CloneThreshold, DefaultType2CloneThreshold,
 			"Type1 threshold should be > Type2 threshold")
-		assert.Greater(t, DefaultType2CloneThreshold, DefaultType3CloneThreshold, 
+		assert.Greater(t, DefaultType2CloneThreshold, DefaultType3CloneThreshold,
 			"Type2 threshold should be > Type3 threshold")
-		assert.Greater(t, DefaultType3CloneThreshold, DefaultType4CloneThreshold, 
+		assert.Greater(t, DefaultType3CloneThreshold, DefaultType4CloneThreshold,
 			"Type3 threshold should be > Type4 threshold")
 	})
 
@@ -33,9 +33,9 @@ func TestDefaultCloneThresholds(t *testing.T) {
 		}
 
 		for i, threshold := range thresholds {
-			assert.GreaterOrEqual(t, threshold, 0.0, 
+			assert.GreaterOrEqual(t, threshold, 0.0,
 				"Threshold %d should be >= 0.0", i+1)
-			assert.LessOrEqual(t, threshold, 1.0, 
+			assert.LessOrEqual(t, threshold, 1.0,
 				"Threshold %d should be <= 1.0", i+1)
 		}
 	})
@@ -129,8 +129,8 @@ func TestGetThresholdForType(t *testing.T) {
 		{2, DefaultType2CloneThreshold},
 		{3, DefaultType3CloneThreshold},
 		{4, DefaultType4CloneThreshold},
-		{0, DefaultType4CloneThreshold}, // Default fallback
-		{5, DefaultType4CloneThreshold}, // Default fallback
+		{0, DefaultType4CloneThreshold},  // Default fallback
+		{5, DefaultType4CloneThreshold},  // Default fallback
 		{-1, DefaultType4CloneThreshold}, // Default fallback
 	}
 

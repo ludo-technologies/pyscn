@@ -93,12 +93,12 @@ func TestRiskLevel(t *testing.T) {
 func TestComplexityMetrics(t *testing.T) {
 	metrics := ComplexityMetrics{
 		Complexity:        5,
-		Nodes:            10,
-		Edges:            12,
-		IfStatements:     2,
-		LoopStatements:   1,
+		Nodes:             10,
+		Edges:             12,
+		IfStatements:      2,
+		LoopStatements:    1,
 		ExceptionHandlers: 1,
-		SwitchCases:      0,
+		SwitchCases:       0,
 	}
 
 	if metrics.Complexity != 5 {
@@ -120,8 +120,8 @@ func TestFunctionComplexity(t *testing.T) {
 		FilePath: "/path/to/test.py",
 		Metrics: ComplexityMetrics{
 			Complexity: 3,
-			Nodes:     5,
-			Edges:     6,
+			Nodes:      5,
+			Edges:      6,
 		},
 		RiskLevel: RiskLevelLow,
 	}
@@ -146,8 +146,8 @@ func TestComplexitySummary(t *testing.T) {
 		MediumRiskFunctions: 2,
 		HighRiskFunctions:   0,
 		ComplexityDistribution: map[string]int{
-			"1":   5,
-			"2-5": 4,
+			"1":    5,
+			"2-5":  4,
 			"6-10": 1,
 		},
 	}

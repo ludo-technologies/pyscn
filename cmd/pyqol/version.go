@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"github.com/pyqol/pyqol/internal/version"
+	"github.com/spf13/cobra"
 )
 
 // VersionCommand represents the version command

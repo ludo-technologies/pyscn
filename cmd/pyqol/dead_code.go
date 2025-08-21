@@ -7,28 +7,28 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/pyqol/pyqol/app"
 	"github.com/pyqol/pyqol/domain"
 	"github.com/pyqol/pyqol/service"
+	"github.com/spf13/cobra"
 )
 
 // DeadCodeCommand represents the dead code command
 type DeadCodeCommand struct {
 	// Command line flags
-	outputFormat    string
-	minSeverity     string
-	sortBy          string
-	showContext     bool
-	contextLines    int
-	configFile      string
-	verbose         bool
-	
+	outputFormat string
+	minSeverity  string
+	sortBy       string
+	showContext  bool
+	contextLines int
+	configFile   string
+	verbose      bool
+
 	// Dead code detection options
-	detectAfterReturn   bool
-	detectAfterBreak    bool
-	detectAfterContinue bool
-	detectAfterRaise    bool
+	detectAfterReturn         bool
+	detectAfterBreak          bool
+	detectAfterContinue       bool
+	detectAfterRaise          bool
 	detectUnreachableBranches bool
 }
 
@@ -175,7 +175,7 @@ func (c *DeadCodeCommand) buildDeadCodeRequest(cmd *cobra.Command, args []string
 		IncludePatterns: []string{"*.py", "*.pyi"},
 		ExcludePatterns: []string{"*test*.py", "*_test.py", "test_*.py"},
 		IgnorePatterns:  []string{},
-		
+
 		// Dead code detection options
 		DetectAfterReturn:         c.detectAfterReturn,
 		DetectAfterBreak:          c.detectAfterBreak,
@@ -191,7 +191,7 @@ func (c *DeadCodeCommand) createDeadCodeUseCase(cmd *cobra.Command) (*app.DeadCo
 	fileReader := service.NewFileReader()
 	formatter := service.NewDeadCodeFormatter()
 	configLoader := service.NewDeadCodeConfigurationLoader()
-	
+
 	// Create progress reporter
 	progress := service.CreateProgressReporter(cmd.ErrOrStderr(), 0, c.verbose)
 	deadCodeService := service.NewDeadCodeService(progress)
@@ -269,7 +269,7 @@ func (c *DeadCodeCommand) validateContextLines() error {
 
 func (c *DeadCodeCommand) expandAndValidatePaths(args []string) ([]string, error) {
 	var paths []string
-	
+
 	for _, arg := range args {
 		// Expand the path
 		expanded, err := filepath.Abs(arg)

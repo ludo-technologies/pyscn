@@ -3,9 +3,9 @@ package domain
 import (
 	"testing"
 
+	"github.com/pyqol/pyqol/internal/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/pyqol/pyqol/internal/constants"
 )
 
 func TestCloneType_String(t *testing.T) {
@@ -132,7 +132,7 @@ func TestCloneGroup_AddClone(t *testing.T) {
 	assert.Empty(t, group.Clones, "Initial clones should be empty")
 
 	clone := &Clone{
-		ID: 1,
+		ID:       1,
 		Location: &CloneLocation{FilePath: "/test.py"},
 	}
 
@@ -144,7 +144,7 @@ func TestCloneGroup_AddClone(t *testing.T) {
 
 	// Add another clone
 	clone2 := &Clone{
-		ID: 2,
+		ID:       2,
 		Location: &CloneLocation{FilePath: "/test2.py"},
 	}
 
@@ -300,7 +300,7 @@ func TestCloneRequest_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.request.Validate()
-			
+
 			if tt.expectErr {
 				assert.Error(t, err, "Expected validation error")
 				if tt.errMsg != "" {

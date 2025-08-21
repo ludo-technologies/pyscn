@@ -96,7 +96,7 @@ func (c *CloneConfigurationLoader) configToCloneRequest(cfg *config.CloneDetecti
 	}
 
 	return &domain.CloneRequest{
-		Paths:               []string{"."},          // Default to current directory
+		Paths:               []string{"."}, // Default to current directory
 		MinLines:            cfg.MinLines,
 		MinNodes:            cfg.MinNodes,
 		SimilarityThreshold: cfg.SimilarityThreshold,
@@ -114,9 +114,9 @@ func (c *CloneConfigurationLoader) configToCloneRequest(cfg *config.CloneDetecti
 		MinSimilarity:       cfg.MinSimilarity,
 		MaxSimilarity:       cfg.MaxSimilarity,
 		CloneTypes:          cloneTypes,
-		OutputFormat:        domain.OutputFormatText, // Default, overridden by CLI
-		Recursive:           true,                    // Default, overridden by CLI
-		IncludePatterns:     []string{"*.py"},       // Default, overridden by CLI
+		OutputFormat:        domain.OutputFormatText,                         // Default, overridden by CLI
+		Recursive:           true,                                            // Default, overridden by CLI
+		IncludePatterns:     []string{"*.py"},                                // Default, overridden by CLI
 		ExcludePatterns:     []string{"*test*.py", "*_test.py", "test_*.py"}, // Default
 	}
 }
@@ -186,10 +186,10 @@ func (c *CloneConfigurationLoader) updateConfigFromCloneRequest(cfg *config.Conf
 // LoadCloneConfigFromViper loads clone configuration using viper (for advanced config scenarios)
 func (c *CloneConfigurationLoader) LoadCloneConfigFromViper(configPath string) (*domain.CloneRequest, error) {
 	viper.SetConfigFile(configPath)
-	
+
 	// Set defaults
 	c.setViperDefaults()
-	
+
 	// Read config file
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)

@@ -31,26 +31,26 @@ type CloneCommand struct {
 	ignoreIdentifiers   bool
 
 	// Type-specific thresholds
-	type1Threshold      float64
-	type2Threshold      float64
-	type3Threshold      float64
-	type4Threshold      float64
+	type1Threshold float64
+	type2Threshold float64
+	type3Threshold float64
+	type4Threshold float64
 
 	// Output configuration
-	outputFormat        string
-	showDetails         bool
-	showContent         bool
-	sortBy              string
-	groupClones         bool
+	outputFormat string
+	showDetails  bool
+	showContent  bool
+	sortBy       string
+	groupClones  bool
 
 	// Filtering
-	minSimilarity       float64
-	maxSimilarity       float64
-	cloneTypes          []string
-	
+	minSimilarity float64
+	maxSimilarity float64
+	cloneTypes    []string
+
 	// Advanced options
-	costModelType       string
-	verbose             bool
+	costModelType string
+	verbose       bool
 }
 
 // NewCloneCommand creates a new clone detection command

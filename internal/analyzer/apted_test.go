@@ -152,7 +152,7 @@ func TestAPTEDAnalyzer_PrepareTreeForAPTED(t *testing.T) {
 	root := NewTreeNode(1, "A")
 	childB := NewTreeNode(2, "B")
 	childC := NewTreeNode(3, "C")
-	
+
 	root.AddChild(childB)
 	childB.AddChild(childC)
 
@@ -176,7 +176,7 @@ func TestAPTEDAnalyzer_PrepareTreeForAPTED(t *testing.T) {
 
 func TestTreeNode_BasicOperations(t *testing.T) {
 	node := NewTreeNode(1, "TestNode")
-	
+
 	assert.Equal(t, 1, node.ID, "ID should be set correctly")
 	assert.Equal(t, "TestNode", node.Label, "Label should be set correctly")
 	assert.Empty(t, node.Children, "Children should be empty initially")
@@ -215,7 +215,7 @@ func TestPythonCostModel(t *testing.T) {
 	// Test basic operations
 	node1 := NewTreeNode(1, "FunctionDef(test)")
 	node2 := NewTreeNode(2, "FunctionDef(test)")
-	
+
 	insertCost := costModel.Insert(node1)
 	deleteCost := costModel.Delete(node1)
 	renameCost := costModel.Rename(node1, node2)
@@ -239,7 +239,7 @@ func TestWeightedCostModel(t *testing.T) {
 	weightedModel := NewWeightedCostModel(2.0, 1.5, 0.5, baseCostModel)
 
 	node := NewTreeNode(1, "TestNode")
-	
+
 	baseCost := baseCostModel.Insert(node)
 	weightedCost := weightedModel.Insert(node)
 
@@ -253,7 +253,7 @@ func TestOptimizedAPTEDAnalyzer(t *testing.T) {
 
 	// Create trees with large size difference (should trigger early termination)
 	smallTree := NewTreeNode(1, "A")
-	
+
 	largeTree := NewTreeNode(1, "A")
 	for i := 0; i < 10; i++ {
 		child := NewTreeNode(i+2, fmt.Sprintf("Child%d", i))
@@ -288,7 +288,7 @@ func TestClusterSimilarTrees(t *testing.T) {
 	// Verify distance matrix is symmetric
 	for i := 0; i < len(result.Distances); i++ {
 		for j := 0; j < len(result.Distances[i]); j++ {
-			assert.Equal(t, result.Distances[i][j], result.Distances[j][i], 
+			assert.Equal(t, result.Distances[i][j], result.Distances[j][i],
 				"Distance matrix should be symmetric")
 		}
 	}

@@ -114,10 +114,10 @@ type DeadCodeConfig struct {
 	SortBy string `mapstructure:"sort_by" yaml:"sort_by"`
 
 	// Detection options
-	DetectAfterReturn bool `mapstructure:"detect_after_return" yaml:"detect_after_return"`
-	DetectAfterBreak bool `mapstructure:"detect_after_break" yaml:"detect_after_break"`
-	DetectAfterContinue bool `mapstructure:"detect_after_continue" yaml:"detect_after_continue"`
-	DetectAfterRaise bool `mapstructure:"detect_after_raise" yaml:"detect_after_raise"`
+	DetectAfterReturn         bool `mapstructure:"detect_after_return" yaml:"detect_after_return"`
+	DetectAfterBreak          bool `mapstructure:"detect_after_break" yaml:"detect_after_break"`
+	DetectAfterContinue       bool `mapstructure:"detect_after_continue" yaml:"detect_after_continue"`
+	DetectAfterRaise          bool `mapstructure:"detect_after_raise" yaml:"detect_after_raise"`
 	DetectUnreachableBranches bool `mapstructure:"detect_unreachable_branches" yaml:"detect_unreachable_branches"`
 
 	// IgnorePatterns specifies patterns for code to ignore (e.g., comments, debug code)
@@ -213,10 +213,10 @@ func DefaultConfig() *Config {
 			FollowSymlinks:  false,
 		},
 	}
-	
+
 	// For backward compatibility, populate legacy CloneDetection field
 	config.CloneDetection = config.Clones.ToCloneDetectionConfig()
-	
+
 	return config
 }
 
@@ -514,8 +514,8 @@ func (c *Config) validateCloneDetectionConfig() error {
 
 	// Validate cost model type
 	validCostModels := map[string]bool{
-		"default": true,
-		"python":  true,
+		"default":  true,
+		"python":   true,
 		"weighted": true,
 	}
 

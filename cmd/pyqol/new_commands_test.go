@@ -95,7 +95,7 @@ func TestVersionCommandInterface(t *testing.T) {
 	var output bytes.Buffer
 	cobraCmd.SetOut(&output)
 	cobraCmd.SetErr(&output)
-	
+
 	err := cobraCmd.Execute()
 	if err != nil {
 		t.Fatalf("Version command should not fail: %v", err)
@@ -144,34 +144,34 @@ func TestInitCommandExecution(t *testing.T) {
 	// Create temporary directory
 	tempDir := t.TempDir()
 	configFile := filepath.Join(tempDir, ".pyqol.yaml")
-	
+
 	initCmd := NewInitCommand()
 	cobraCmd := initCmd.CreateCobraCommand()
-	
+
 	var output bytes.Buffer
 	cobraCmd.SetOut(&output)
 	cobraCmd.SetErr(&output)
-	
+
 	// Set the args to specify the config file location
 	cobraCmd.SetArgs([]string{"--config", configFile})
-	
+
 	// Test successful creation
 	err := cobraCmd.Execute()
 	if err != nil {
 		t.Fatalf("Init command should not fail: %v", err)
 	}
-	
+
 	// Check if file was created
 	if _, err := os.Stat(configFile); err != nil {
 		t.Errorf("Configuration file should be created: %v", err)
 	}
-	
+
 	// Check file content
 	content, err := os.ReadFile(configFile)
 	if err != nil {
 		t.Fatalf("Should be able to read config file: %v", err)
 	}
-	
+
 	contentStr := string(content)
 	if !strings.Contains(contentStr, "complexity:") {
 		t.Error("Config file should contain complexity section")
@@ -189,27 +189,27 @@ func TestInitCommandFileExists(t *testing.T) {
 	// Create temporary directory with existing config file
 	tempDir := t.TempDir()
 	configFile := filepath.Join(tempDir, ".pyqol.yaml")
-	
+
 	// Create existing file
 	err := os.WriteFile(configFile, []byte("existing config"), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
-	
+
 	initCmd := NewInitCommand()
 	cobraCmd := initCmd.CreateCobraCommand()
-	
+
 	var output bytes.Buffer
 	cobraCmd.SetOut(&output)
 	cobraCmd.SetErr(&output)
-	
+
 	// Should fail without --force
 	cobraCmd.SetArgs([]string{"--config", configFile})
 	err = cobraCmd.Execute()
 	if err == nil {
 		t.Error("Init command should fail when file exists without --force")
 	}
-	
+
 	// Should succeed with --force
 	output.Reset()
 	cobraCmd.SetArgs([]string{"--config", configFile, "--force"})
@@ -217,13 +217,13 @@ func TestInitCommandFileExists(t *testing.T) {
 	if err != nil {
 		t.Errorf("Init command should succeed with --force: %v", err)
 	}
-	
+
 	// Check that file was overwritten
 	content, err := os.ReadFile(configFile)
 	if err != nil {
 		t.Fatalf("Should be able to read config file: %v", err)
 	}
-	
+
 	if strings.Contains(string(content), "existing config") {
 		t.Error("File should be overwritten with --force")
 	}
@@ -233,34 +233,34 @@ func TestInitCommandFileExists(t *testing.T) {
 func TestVersionCommandShortFlag(t *testing.T) {
 	versionCmd := NewVersionCommand()
 	cobraCmd := versionCmd.CreateCobraCommand()
-	
+
 	var output bytes.Buffer
 	cobraCmd.SetOut(&output)
 	cobraCmd.SetErr(&output)
-	
+
 	// Test with --short flag
 	cobraCmd.SetArgs([]string{"--short"})
-	
+
 	err := cobraCmd.Execute()
 	if err != nil {
 		t.Fatalf("Version command with --short should not fail: %v", err)
 	}
-	
+
 	result := strings.TrimSpace(output.String())
-	
+
 	if result == "" {
 		t.Error("Short version should not be empty")
 	}
-	
+
 	// Test without --short flag (full version)
 	output.Reset()
 	cobraCmd.SetArgs([]string{})
-	
+
 	err = cobraCmd.Execute()
 	if err != nil {
 		t.Fatalf("Version command should not fail: %v", err)
 	}
-	
+
 	fullResult := strings.TrimSpace(output.String())
 	if fullResult == "" {
 		t.Error("Full version should not be empty")
@@ -290,14 +290,14 @@ func TestAnalyzeCommandValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			analyzeCmd := NewAnalyzeCommand()
 			cobraCmd := analyzeCmd.CreateCobraCommand()
-			
+
 			var output bytes.Buffer
 			cobraCmd.SetOut(&output)
 			cobraCmd.SetErr(&output)
 			cobraCmd.SetArgs(tt.args)
-			
+
 			err := cobraCmd.Execute()
-			
+
 			if tt.expectError && err == nil {
 				t.Error("Expected validation error but none occurred")
 			} else if !tt.expectError && err != nil {
@@ -312,13 +312,13 @@ func TestCheckCommandValidation(t *testing.T) {
 	// Check command should default to current directory if no args
 	checkCmd := NewCheckCommand()
 	cobraCmd := checkCmd.CreateCobraCommand()
-	
+
 	// This shouldn't fail validation (though analysis might fail)
 	var output bytes.Buffer
 	cobraCmd.SetOut(&output)
 	cobraCmd.SetErr(&output)
 	cobraCmd.SetArgs([]string{}) // No args - should default to "."
-	
+
 	// We can't easily test full execution without proper setup,
 	// but we can test that validation passes
 	if cobraCmd.Args != nil {
@@ -344,28 +344,28 @@ func TestCommandHelpOutput(t *testing.T) {
 	for _, cmd := range commands {
 		t.Run(cmd.name, func(t *testing.T) {
 			cobraCmd := cmd.command()
-			
+
 			// Test help output
 			var output bytes.Buffer
 			cobraCmd.SetOut(&output)
 			cobraCmd.SetArgs([]string{"--help"})
-			
+
 			err := cobraCmd.Execute()
 			if err != nil {
 				t.Fatalf("Help command should not fail: %v", err)
 			}
-			
+
 			helpOutput := output.String()
-			
+
 			// Check that help contains essential elements
 			if !strings.Contains(helpOutput, "Usage:") {
 				t.Error("Help should contain Usage section")
 			}
-			
+
 			if !strings.Contains(helpOutput, "Examples:") {
 				t.Error("Help should contain Examples section")
 			}
-			
+
 			if !strings.Contains(helpOutput, "Flags:") {
 				t.Error("Help should contain Flags section")
 			}

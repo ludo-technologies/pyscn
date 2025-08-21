@@ -193,10 +193,10 @@ func TestCalculateComplexity(t *testing.T) {
 				cfg := NewCFG("elif_chain_function")
 
 				cond1 := cfg.CreateBlock("cond1") // if x == 1
-				cond2 := cfg.CreateBlock("cond2") // elif x == 2  
+				cond2 := cfg.CreateBlock("cond2") // elif x == 2
 				cond3 := cfg.CreateBlock("cond3") // elif x == 3
 				then1 := cfg.CreateBlock("then1")
-				then2 := cfg.CreateBlock("then2") 
+				then2 := cfg.CreateBlock("then2")
 				then3 := cfg.CreateBlock("then3")
 				else_block := cfg.CreateBlock("else")
 
@@ -246,7 +246,7 @@ func TestCalculateComplexity(t *testing.T) {
 func TestAssessRiskLevel(t *testing.T) {
 	// Test using config.ComplexityConfig.AssessRiskLevel instead of deprecated function
 	defaultConfig := config.DefaultConfig()
-	
+
 	testCases := []struct {
 		complexity int
 		expected   string

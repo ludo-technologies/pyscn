@@ -49,7 +49,7 @@ func (s *DeadCodeServiceImpl) Analyze(ctx context.Context, req domain.DeadCodeRe
 
 		// Analyze single file
 		fileResult, fileWarnings, fileErrors := s.analyzeFile(ctx, filePath, req)
-		
+
 		if len(fileErrors) > 0 {
 			errors = append(errors, fileErrors...)
 			continue // Skip this file but continue with others
@@ -59,7 +59,7 @@ func (s *DeadCodeServiceImpl) Analyze(ctx context.Context, req domain.DeadCodeRe
 		if fileResult != nil && (len(fileResult.Functions) > 0 || fileResult.TotalFindings > 0) {
 			allFiles = append(allFiles, *fileResult)
 		}
-		
+
 		warnings = append(warnings, fileWarnings...)
 		filesProcessed++
 	}
@@ -85,11 +85,11 @@ func (s *DeadCodeServiceImpl) Analyze(ctx context.Context, req domain.DeadCodeRe
 // AnalyzeFile analyzes a single Python file for dead code
 func (s *DeadCodeServiceImpl) AnalyzeFile(ctx context.Context, filePath string, req domain.DeadCodeRequest) (*domain.FileDeadCode, error) {
 	fileResult, _, fileErrors := s.analyzeFile(ctx, filePath, req)
-	
+
 	if len(fileErrors) > 0 {
 		return nil, domain.NewAnalysisError(fmt.Sprintf("failed to analyze file %s", filePath), fmt.Errorf("%v", fileErrors))
 	}
-	
+
 	return fileResult, nil
 }
 
@@ -326,11 +326,11 @@ func (s *DeadCodeServiceImpl) getHighestSeverityLevel(file domain.FileDeadCode) 
 // generateSummary generates aggregate statistics
 func (s *DeadCodeServiceImpl) generateSummary(files []domain.FileDeadCode, filesProcessed int, req domain.DeadCodeRequest) domain.DeadCodeSummary {
 	summary := domain.DeadCodeSummary{
-		TotalFiles:             filesProcessed,
-		FilesWithDeadCode:      len(files),
-		FindingsByReason:       make(map[string]int),
-		TotalBlocks:            0,
-		DeadBlocks:             0,
+		TotalFiles:        filesProcessed,
+		FilesWithDeadCode: len(files),
+		FindingsByReason:  make(map[string]int),
+		TotalBlocks:       0,
+		DeadBlocks:        0,
 	}
 
 	for _, file := range files {
@@ -377,17 +377,17 @@ func (s *DeadCodeServiceImpl) readFile(filePath string) ([]byte, error) {
 // buildConfigForResponse builds configuration for response metadata
 func (s *DeadCodeServiceImpl) buildConfigForResponse(req domain.DeadCodeRequest) interface{} {
 	return map[string]interface{}{
-		"min_severity":              req.MinSeverity,
-		"sort_by":                   req.SortBy,
-		"show_context":              req.ShowContext,
-		"context_lines":             req.ContextLines,
-		"detect_after_return":       req.DetectAfterReturn,
-		"detect_after_break":        req.DetectAfterBreak,
-		"detect_after_continue":     req.DetectAfterContinue,
-		"detect_after_raise":        req.DetectAfterRaise,
+		"min_severity":                req.MinSeverity,
+		"sort_by":                     req.SortBy,
+		"show_context":                req.ShowContext,
+		"context_lines":               req.ContextLines,
+		"detect_after_return":         req.DetectAfterReturn,
+		"detect_after_break":          req.DetectAfterBreak,
+		"detect_after_continue":       req.DetectAfterContinue,
+		"detect_after_raise":          req.DetectAfterRaise,
 		"detect_unreachable_branches": req.DetectUnreachableBranches,
-		"include_patterns":          req.IncludePatterns,
-		"exclude_patterns":          req.ExcludePatterns,
-		"ignore_patterns":           req.IgnorePatterns,
+		"include_patterns":            req.IncludePatterns,
+		"exclude_patterns":            req.ExcludePatterns,
+		"ignore_patterns":             req.IgnorePatterns,
 	}
 }

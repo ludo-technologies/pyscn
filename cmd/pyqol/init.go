@@ -247,7 +247,7 @@ func (i *InitCommand) runInit(cmd *cobra.Command, args []string) error {
 	fmt.Fprintf(cmd.OutOrStdout(), "  1. Edit %s\n", relPath)
 	fmt.Fprintf(cmd.OutOrStdout(), "  2. Uncomment and modify settings as needed\n")
 	fmt.Fprintf(cmd.OutOrStdout(), "  3. Run 'pyqol analyze .' to use your configuration\n")
-	
+
 	return nil
 }
 
