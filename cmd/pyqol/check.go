@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/pyqol/pyqol/service"
 )
 
 // CheckCommand represents a quick check command with sensible defaults
@@ -150,36 +152,48 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 
 	// Configure with stricter defaults for checking
 	complexityCmd.outputFormat = "text"
-	complexityCmd.minComplexity = c.maxComplexity + 1 // Only report issues above threshold
-	complexityCmd.maxComplexity = c.maxComplexity     // Set maximum allowed
+	complexityCmd.minComplexity = 1 // Analyze all functions
+	complexityCmd.maxComplexity = 0 // No upper limit for analysis
 	complexityCmd.configFile = c.configFile
 	complexityCmd.verbose = false
 
-	// Build request
+	// Build request but discard output (we only want to count issues)
 	request, err := complexityCmd.buildComplexityRequest(cmd, args)
 	if err != nil {
 		return 0, err
 	}
 
-	// Create use case
-	useCase, err := complexityCmd.createComplexityUseCase(cmd)
-	if err != nil {
-		return 0, err
-	}
+	// Redirect output to discard for check command
+	request.OutputWriter = io.Discard
 
-	// Execute analysis (this will output results)
+	// Create service directly to get analysis response
+	progress := service.CreateProgressReporter(io.Discard, 0, false) // Silent progress for check
+	complexityService := service.NewComplexityService(progress)
+
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	if err := useCase.Execute(ctx, request); err != nil {
+	// Call the service directly to get the response for counting
+	response, err := complexityService.Analyze(ctx, request)
+	if err != nil {
 		return 0, err
 	}
 
-	// For now, assume any output means issues were found
-	// In a more sophisticated version, we'd capture and count results
-	return 0, nil // Simplified - actual implementation would count issues
+	// Count functions that exceed the maximum complexity threshold
+	issueCount := 0
+	for _, function := range response.Functions {
+		if function.Metrics.Complexity > c.maxComplexity {
+			issueCount++
+			if !c.quiet {
+				fmt.Fprintf(cmd.ErrOrStderr(), "❌ High complexity in %s:%s (complexity: %d > %d)\n",
+					function.FilePath, function.Name, function.Metrics.Complexity, c.maxComplexity)
+			}
+		}
+	}
+
+	return issueCount, nil
 }
 
 // checkDeadCode runs dead code analysis and returns issue count
@@ -198,24 +212,31 @@ func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, er
 		return 0, err
 	}
 
-	// Create use case
-	useCase, err := deadCodeCmd.createDeadCodeUseCase(cmd)
-	if err != nil {
-		return 0, err
-	}
+	// Redirect output to discard for check command
+	request.OutputWriter = io.Discard
 
-	// Execute analysis
+	// Create service directly to get analysis response
+	progress := service.CreateProgressReporter(io.Discard, 0, false) // Silent progress for check
+	deadCodeService := service.NewDeadCodeService(progress)
+
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	if err := useCase.Execute(ctx, request); err != nil {
+	// Call the service directly to get the response for counting
+	response, err := deadCodeService.Analyze(ctx, request)
+	if err != nil {
 		return 0, err
 	}
 
-	// Simplified - actual implementation would count issues
-	return 0, nil
+	// Count critical dead code findings
+	issueCount := response.Summary.CriticalFindings
+	if issueCount > 0 && !c.quiet {
+		fmt.Fprintf(cmd.ErrOrStderr(), "❌ Found %d critical dead code issue(s)\n", issueCount)
+	}
+
+	return issueCount, nil
 }
 
 // checkClones runs clone detection and returns issue count
@@ -239,20 +260,32 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 		return 0, fmt.Errorf("invalid clone request: %w", err)
 	}
 
-	// Create use case
-	useCase, err := cloneCmd.createCloneUseCase(cmd)
+	// Redirect output to discard for check command
+	request.OutputWriter = io.Discard
+
+	// Create service directly to get analysis response
+	progress := service.CreateProgressReporter(io.Discard, 0, false) // Silent progress for check
+	cloneService := service.NewCloneService(progress)
+
+	ctx := cmd.Context()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	// Call the service directly to get the response for counting
+	response, err := cloneService.DetectClones(ctx, request)
 	if err != nil {
 		return 0, err
 	}
 
-	// Execute analysis
-	ctx := context.Background()
-	if err := useCase.Execute(ctx, *request); err != nil {
-		return 0, err
+	// Count clone pairs above the similarity threshold
+	issueCount := len(response.ClonePairs)
+	if issueCount > 0 && !c.quiet {
+		fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Found %d code clone pair(s) (similarity > %.1f)\n", 
+			issueCount, request.SimilarityThreshold)
 	}
 
-	// Simplified - actual implementation would count clones
-	return 0, nil
+	return issueCount, nil
 }
 
 // NewCheckCmd creates and returns the check cobra command
