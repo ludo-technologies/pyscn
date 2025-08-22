@@ -569,23 +569,33 @@ func (cd *CloneDetector) detectClonePairsWithBatchingContext(ctx context.Context
 	cd.clonePairs = topPairs
 }
 
+// shouldCompareFragments performs early filtering to determine if two fragments should be compared
+func (cd *CloneDetector) shouldCompareFragments(fragment1, fragment2 *CodeFragment) bool {
+	// Early filtering: Skip if size difference is too large (>50%)
+	sizeDiff := math.Abs(float64(fragment1.Size - fragment2.Size))
+	avgSize := float64(fragment1.Size + fragment2.Size) / 2.0
+	if avgSize > 0 && sizeDiff/avgSize > 0.5 {
+		return false // Too different in size to be clones
+	}
+
+	// Early filtering: Skip if line count difference is too large
+	lineDiff := math.Abs(float64(fragment1.LineCount - fragment2.LineCount))
+	if lineDiff > float64(fragment1.LineCount)*0.5 && lineDiff > float64(fragment2.LineCount)*0.5 {
+		return false // Too different in line count
+	}
+
+	return true
+}
+
 // compareFragments compares two fragments and returns a clone pair if similar
 func (cd *CloneDetector) compareFragments(fragment1, fragment2 *CodeFragment) *ClonePair {
 	if fragment1.TreeNode == nil || fragment2.TreeNode == nil {
 		return nil
 	}
 
-	// Early filtering: Skip if size difference is too large (>50%)
-	sizeDiff := math.Abs(float64(fragment1.Size - fragment2.Size))
-	avgSize := float64(fragment1.Size + fragment2.Size) / 2.0
-	if avgSize > 0 && sizeDiff/avgSize > 0.5 {
-		return nil // Too different in size to be clones
-	}
-
-	// Early filtering: Skip if line count difference is too large
-	lineDiff := math.Abs(float64(fragment1.LineCount - fragment2.LineCount))
-	if lineDiff > float64(fragment1.LineCount) * 0.5 && lineDiff > float64(fragment2.LineCount) * 0.5 {
-		return nil // Too different in line count
+	// Early filtering check
+	if !cd.shouldCompareFragments(fragment1, fragment2) {
+		return nil
 	}
 
 	// Compute edit distance and similarity
@@ -826,20 +836,13 @@ func (cd *CloneDetector) tryCreateClonePair(i, j int, minSimilarity float64) *Cl
 		return nil
 	}
 
-	// Early filtering: Skip if size difference is too large (>50%)
-	sizeDiff := math.Abs(float64(fragment1.Size - fragment2.Size))
-	avgSize := float64(fragment1.Size + fragment2.Size) / 2.0
-	if avgSize > 0 && sizeDiff/avgSize > 0.5 {
-		return nil // Too different in size to be clones
-	}
-
-	// Early filtering: Skip if line count difference is too large  
-	lineDiff := math.Abs(float64(fragment1.LineCount - fragment2.LineCount))
-	if lineDiff > float64(fragment1.LineCount) * 0.5 && lineDiff > float64(fragment2.LineCount) * 0.5 {
-		return nil // Too different in line count
+	// Early filtering check
+	if !cd.shouldCompareFragments(fragment1, fragment2) {
+		return nil
 	}
 
 	// Early similarity estimation (fast)
+	sizeDiff := math.Abs(float64(fragment1.Size - fragment2.Size))
 	maxSize := float64(max(fragment1.Size, fragment2.Size))
 	if maxSize > 0 && (sizeDiff/maxSize) > (1.0-minSimilarity) {
 		// Size difference too large for minimum similarity
