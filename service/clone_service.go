@@ -125,17 +125,20 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 		// Read file content
 		content, err := readFileContent(filePath)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to read file %s: %v\n", filePath, err)
 			continue // Skip files that cannot be read
 		}
 
 		// Parse Python file
 		parseResult, err := pyParser.Parse(ctx, content)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to parse file %s: %v\n", filePath, err)
 			continue // Skip files that cannot be parsed
 		}
 
 		// Validate parse result
 		if parseResult == nil || parseResult.AST == nil {
+			fmt.Fprintf(os.Stderr, "Warning: Invalid parse result for file %s\n", filePath)
 			continue // Skip files with invalid parse results
 		}
 
