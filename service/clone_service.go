@@ -114,7 +114,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 		// Check for context cancellation periodically
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, fmt.Errorf("clone analysis cancelled: %w", ctx.Err())
 		default:
 		}
 

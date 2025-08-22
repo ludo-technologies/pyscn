@@ -39,7 +39,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 		// Check context cancellation
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, fmt.Errorf("complexity analysis cancelled: %w", ctx.Err())
 		default:
 		}
 
