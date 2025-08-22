@@ -76,6 +76,9 @@ func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) er
 
 	// uc.progress.Info(fmt.Sprintf("Found %d Python files to analyze", len(files)))
 
+	// Update request with collected files for the service
+	req.Paths = files
+
 	// Step 4: Perform clone detection
 	// uc.progress.Update("Performing clone detection...", 0, 1)
 	response, err := uc.service.DetectClones(ctx, &req)
