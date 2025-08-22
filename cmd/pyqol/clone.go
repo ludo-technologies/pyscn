@@ -62,7 +62,7 @@ func NewCloneCommand() *CloneCommand {
 	return &CloneCommand{
 		recursive:           true,
 		minLines:            5,
-		minNodes:            10,
+		minNodes:            5,
 		similarityThreshold: 0.8,
 		maxEditDistance:     50.0,
 		ignoreLiterals:      false,
