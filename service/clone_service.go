@@ -38,35 +38,9 @@ func (s *CloneService) DetectClones(ctx context.Context, req *domain.CloneReques
 		return nil, fmt.Errorf("invalid clone request: %w", err)
 	}
 
-	startTime := time.Now()
-	if s.progress != nil {
-		s.progress.StartProgress(0)
-		defer s.progress.FinishProgress()
-	}
-
-	// Collect Python files
-	fileReader := NewFileReader()
-	files, err := fileReader.CollectPythonFiles(req.Paths, req.Recursive, req.IncludePatterns, req.ExcludePatterns)
-	if err != nil {
-		return nil, fmt.Errorf("failed to collect files: %w", err)
-	}
-
-	if len(files) == 0 {
-		if s.progress != nil {
-			s.progress.UpdateProgress("No Python files found", 0, 0)
-		}
-		return &domain.CloneResponse{
-			Clones:      []*domain.Clone{},
-			ClonePairs:  []*domain.ClonePair{},
-			CloneGroups: []*domain.CloneGroup{},
-			Statistics:  &domain.CloneStatistics{},
-			Request:     req,
-			Duration:    time.Since(startTime).Milliseconds(),
-			Success:     true,
-		}, nil
-	}
-
-	return s.DetectClonesInFiles(ctx, files, req)
+	// Use the files already collected by the usecase layer
+	// req.Paths now contains actual Python files to analyze
+	return s.DetectClonesInFiles(ctx, req.Paths, req)
 }
 
 // DetectClonesInFiles performs clone detection on specific files
