@@ -3,6 +3,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -70,19 +71,9 @@ def simple():
 
 	// Should handle cancellation gracefully - context cancellation can be wrapped in analysis error
 	if err != nil {
-		// Check if it's either direct context cancellation or wrapped in domain error
-		if err != context.Canceled {
-			if domainErr, ok := err.(domain.DomainError); ok {
-				if domainErr.Code != domain.ErrCodeAnalysisError {
-					t.Errorf("Expected analysis error with context cancellation, got: %v", err)
-				}
-				// Check if the underlying cause is context cancellation
-				if domainErr.Cause != context.Canceled {
-					t.Errorf("Expected underlying context.Canceled, got: %v", domainErr.Cause)
-				}
-			} else {
-				t.Errorf("Expected context.Canceled or domain error, got: %v", err)
-			}
+		// Check if the error chain contains context.Canceled
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("Expected context.Canceled in error chain, got: %v", err)
 		}
 	}
 }
