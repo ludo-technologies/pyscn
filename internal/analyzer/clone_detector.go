@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"runtime"
@@ -186,12 +187,15 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 
 // CloneDetector detects code clones using APTED algorithm
 type CloneDetector struct {
-	config      *CloneDetectorConfig
-	analyzer    *APTEDAnalyzer
-	converter   *TreeConverter
-	fragments   []*CodeFragment
-	clonePairs  []*ClonePair
-	cloneGroups []*CloneGroup
+	config         *CloneDetectorConfig
+	analyzer       *APTEDAnalyzer
+	converter      *TreeConverter
+	fragments      []*CodeFragment
+	clonePairs     []*ClonePair
+	cloneGroups    []*CloneGroup
+	maxComparisons int  // Maximum number of comparisons (0 = unlimited)
+	comparisonCount int  // Current number of comparisons made
+	fastMode       bool // Use approximate algorithm for faster analysis
 }
 
 // NewCloneDetectorFromConfig creates a new clone detector from unified config
@@ -331,15 +335,61 @@ func (cd *CloneDetector) shouldIncludeFragment(fragment *CodeFragment) bool {
 
 // DetectClones detects clones in the given code fragments
 func (cd *CloneDetector) DetectClones(fragments []*CodeFragment) ([]*ClonePair, []*CloneGroup) {
+	return cd.DetectClonesWithContext(context.Background(), fragments)
+}
+
+// SetMaxComparisons sets the maximum number of comparisons allowed
+func (cd *CloneDetector) SetMaxComparisons(max int) {
+	cd.maxComparisons = max
+}
+
+// SetFastMode enables or disables fast mode for approximate analysis
+func (cd *CloneDetector) SetFastMode(enabled bool) {
+	cd.fastMode = enabled
+	
+	// If fast mode is enabled, use optimized analyzer
+	if enabled && cd.analyzer != nil {
+		// Create optimized analyzer with early termination
+		cd.analyzer = &APTEDAnalyzer{
+			costModel: cd.analyzer.costModel,
+			cache:     make(map[string]float64),
+		}
+	}
+}
+
+// DetectClonesWithContext detects clones with context support for cancellation
+func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments []*CodeFragment) ([]*ClonePair, []*CloneGroup) {
 	cd.fragments = fragments
 	cd.clonePairs = []*ClonePair{}
 	cd.cloneGroups = []*CloneGroup{}
+	cd.comparisonCount = 0 // Reset comparison counter
+
+	// Check for cancellation before starting
+	select {
+	case <-ctx.Done():
+		return cd.clonePairs, cd.cloneGroups
+	default:
+	}
 
 	// Convert AST fragments to tree nodes
 	cd.prepareFragments()
 
-	// Detect clone pairs
-	cd.detectClonePairs()
+	// Check for cancellation after preparation
+	select {
+	case <-ctx.Done():
+		return cd.clonePairs, cd.cloneGroups
+	default:
+	}
+
+	// Detect clone pairs with context
+	cd.detectClonePairsWithContext(ctx)
+
+	// Check for cancellation before grouping
+	select {
+	case <-ctx.Done():
+		return cd.clonePairs, cd.cloneGroups
+	default:
+	}
 
 	// Group related clones
 	cd.groupClones()
@@ -361,13 +411,19 @@ func (cd *CloneDetector) prepareFragments() {
 
 // detectClonePairs detects pairs of similar code fragments with memory management
 func (cd *CloneDetector) detectClonePairs() {
+	cd.detectClonePairsWithContext(context.Background())
+}
+
+// detectClonePairsWithContext detects pairs with context support
+func (cd *CloneDetector) detectClonePairsWithContext(ctx context.Context) {
 	n := len(cd.fragments)
 
-	// Memory management constants
+	// Memory management constants - adjusted for better performance
 	const (
-		maxClonePairs = 10000             // Maximum pairs to keep in memory
-		batchSize     = 1000              // Process fragments in batches
-		memoryLimit   = 100 * 1024 * 1024 // 100MB memory limit
+		maxClonePairs      = 10000             // Maximum pairs to keep in memory
+		batchSizeSmall     = 50                // Force batching threshold for files
+		batchSizeLarge     = 100               // Process fragments in batches
+		memoryLimit        = 100 * 1024 * 1024 // 100MB memory limit
 	)
 
 	// Early return for small datasets
@@ -375,12 +431,18 @@ func (cd *CloneDetector) detectClonePairs() {
 		return
 	}
 
-	// Estimate memory usage and use batching if needed
+	// Force batching for projects with many fragments (common issue)
+	// This ensures we don't hang on medium-sized projects
 	estimatedPairs := (n * (n - 1)) / 2
-	if estimatedPairs > maxClonePairs || n > batchSize {
-		cd.detectClonePairsWithBatching(maxClonePairs, batchSize)
+	if n > batchSizeSmall || estimatedPairs > maxClonePairs {
+		// Use smaller batch size for better responsiveness
+		effectiveBatchSize := batchSizeLarge
+		if n > 500 {
+			effectiveBatchSize = 50 // Even smaller batches for large projects
+		}
+		cd.detectClonePairsWithBatchingContext(ctx, maxClonePairs, effectiveBatchSize)
 	} else {
-		cd.detectClonePairsStandard()
+		cd.detectClonePairsStandardWithContext(ctx)
 	}
 
 	// Sort and limit final results
@@ -389,10 +451,30 @@ func (cd *CloneDetector) detectClonePairs() {
 
 // detectClonePairsStandard uses the standard O(n²) approach for small datasets
 func (cd *CloneDetector) detectClonePairsStandard() {
+	cd.detectClonePairsStandardWithContext(context.Background())
+}
+
+// detectClonePairsStandardWithContext uses standard approach with context
+func (cd *CloneDetector) detectClonePairsStandardWithContext(ctx context.Context) {
 	n := len(cd.fragments)
+	const checkInterval = 10 // Check context every 10 comparisons
 
 	for i := 0; i < n; i++ {
 		for j := i + 1; j < n; j++ {
+			// Check for max comparisons limit
+			if cd.maxComparisons > 0 && cd.comparisonCount >= cd.maxComparisons {
+				return // Reached comparison limit
+			}
+
+			// Check for cancellation periodically
+			cd.comparisonCount++
+			if cd.comparisonCount%checkInterval == 0 {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+			}
 			fragment1 := cd.fragments[i]
 			fragment2 := cd.fragments[j]
 
@@ -412,6 +494,11 @@ func (cd *CloneDetector) detectClonePairsStandard() {
 
 // detectClonePairsWithBatching processes fragments in batches to manage memory
 func (cd *CloneDetector) detectClonePairsWithBatching(maxPairs, batchSize int) {
+	cd.detectClonePairsWithBatchingContext(context.Background(), maxPairs, batchSize)
+}
+
+// detectClonePairsWithBatchingContext processes batches with context support
+func (cd *CloneDetector) detectClonePairsWithBatchingContext(ctx context.Context, maxPairs, batchSize int) {
 	n := len(cd.fragments)
 
 	// Priority queue to keep only the best pairs
@@ -420,6 +507,13 @@ func (cd *CloneDetector) detectClonePairsWithBatching(maxPairs, batchSize int) {
 
 	// Process in batches to limit memory usage
 	for batchStart := 0; batchStart < n; batchStart += batchSize {
+		// Check for cancellation at batch start
+		select {
+		case <-ctx.Done():
+			cd.clonePairs = topPairs
+			return
+		default:
+		}
 		batchEnd := batchStart + batchSize
 		if batchEnd > n {
 			batchEnd = n
@@ -429,6 +523,13 @@ func (cd *CloneDetector) detectClonePairsWithBatching(maxPairs, batchSize int) {
 		for i := batchStart; i < batchEnd; i++ {
 			// Compare with fragments in current batch
 			for j := i + 1; j < batchEnd; j++ {
+				// Check for max comparisons limit
+				if cd.maxComparisons > 0 && cd.comparisonCount >= cd.maxComparisons {
+					cd.clonePairs = topPairs
+					return // Reached comparison limit
+				}
+				cd.comparisonCount++
+				
 				if pair := cd.tryCreateClonePair(i, j, minSimilarity); pair != nil {
 					topPairs = cd.addPairWithLimit(topPairs, pair, maxPairs)
 					// Update minimum similarity threshold
@@ -440,6 +541,13 @@ func (cd *CloneDetector) detectClonePairsWithBatching(maxPairs, batchSize int) {
 
 			// Compare with all previous fragments
 			for j := 0; j < batchStart; j++ {
+				// Check for max comparisons limit
+				if cd.maxComparisons > 0 && cd.comparisonCount >= cd.maxComparisons {
+					cd.clonePairs = topPairs
+					return // Reached comparison limit
+				}
+				cd.comparisonCount++
+				
 				if pair := cd.tryCreateClonePair(i, j, minSimilarity); pair != nil {
 					topPairs = cd.addPairWithLimit(topPairs, pair, maxPairs)
 					// Update minimum similarity threshold
@@ -467,9 +575,44 @@ func (cd *CloneDetector) compareFragments(fragment1, fragment2 *CodeFragment) *C
 		return nil
 	}
 
+	// Early filtering: Skip if size difference is too large (>50%)
+	sizeDiff := math.Abs(float64(fragment1.Size - fragment2.Size))
+	avgSize := float64(fragment1.Size + fragment2.Size) / 2.0
+	if avgSize > 0 && sizeDiff/avgSize > 0.5 {
+		return nil // Too different in size to be clones
+	}
+
+	// Early filtering: Skip if line count difference is too large
+	lineDiff := math.Abs(float64(fragment1.LineCount - fragment2.LineCount))
+	if lineDiff > float64(fragment1.LineCount) * 0.5 && lineDiff > float64(fragment2.LineCount) * 0.5 {
+		return nil // Too different in line count
+	}
+
 	// Compute edit distance and similarity
-	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
-	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
+	var distance float64
+	var similarity float64
+	
+	if cd.fastMode {
+		// Fast mode: Use approximate distance based on structural properties
+		depth1, depth2 := fragment1.TreeNode.Height(), fragment2.TreeNode.Height()
+		size1, size2 := fragment1.TreeNode.Size(), fragment2.TreeNode.Size()
+		
+		depthDiff := math.Abs(float64(depth1 - depth2))
+		sizeDiff := math.Abs(float64(size1 - size2))
+		
+		// Simple heuristic for fast approximation
+		distance = (depthDiff * 2.0) + (sizeDiff * 0.5)
+		maxSize := math.Max(float64(size1), float64(size2))
+		if maxSize > 0 {
+			similarity = 1.0 - (distance / maxSize)
+		} else {
+			similarity = 1.0
+		}
+	} else {
+		// Normal mode: Use full APTED algorithm
+		distance = cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
+		similarity = cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
+	}
 
 	// Determine clone type based on similarity
 	cloneType := cd.classifyCloneType(similarity, distance)
@@ -683,8 +826,20 @@ func (cd *CloneDetector) tryCreateClonePair(i, j int, minSimilarity float64) *Cl
 		return nil
 	}
 
+	// Early filtering: Skip if size difference is too large (>50%)
+	sizeDiff := math.Abs(float64(fragment1.Size - fragment2.Size))
+	avgSize := float64(fragment1.Size + fragment2.Size) / 2.0
+	if avgSize > 0 && sizeDiff/avgSize > 0.5 {
+		return nil // Too different in size to be clones
+	}
+
+	// Early filtering: Skip if line count difference is too large  
+	lineDiff := math.Abs(float64(fragment1.LineCount - fragment2.LineCount))
+	if lineDiff > float64(fragment1.LineCount) * 0.5 && lineDiff > float64(fragment2.LineCount) * 0.5 {
+		return nil // Too different in line count
+	}
+
 	// Early similarity estimation (fast)
-	sizeDiff := float64(abs(fragment1.Size - fragment2.Size))
 	maxSize := float64(max(fragment1.Size, fragment2.Size))
 	if maxSize > 0 && (sizeDiff/maxSize) > (1.0-minSimilarity) {
 		// Size difference too large for minimum similarity

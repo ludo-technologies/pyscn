@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/pyqol/pyqol/internal/constants"
 )
@@ -164,6 +165,11 @@ type CloneRequest struct {
 
 	// Configuration file
 	ConfigPath string `json:"config_path"`
+
+	// Performance configuration
+	Timeout      time.Duration `json:"timeout"`       // Maximum time for clone analysis (0 = no timeout)
+	MaxComparisons int        `json:"max_comparisons"` // Maximum number of comparisons (0 = unlimited)
+	FastMode       bool       `json:"fast_mode"`       // Use approximate algorithm for large projects
 }
 
 // CloneResponse represents the response from clone detection
