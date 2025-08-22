@@ -3,9 +3,9 @@ package domain
 import (
 	"testing"
 
+	"github.com/pyqol/pyqol/internal/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/pyqol/pyqol/internal/constants"
 )
 
 func TestCloneType_String(t *testing.T) {
@@ -132,7 +132,7 @@ func TestCloneGroup_AddClone(t *testing.T) {
 	assert.Empty(t, group.Clones, "Initial clones should be empty")
 
 	clone := &Clone{
-		ID: 1,
+		ID:       1,
 		Location: &CloneLocation{FilePath: "/test.py"},
 	}
 
@@ -144,7 +144,7 @@ func TestCloneGroup_AddClone(t *testing.T) {
 
 	// Add another clone
 	clone2 := &Clone{
-		ID: 2,
+		ID:       2,
 		Location: &CloneLocation{FilePath: "/test2.py"},
 	}
 
@@ -300,7 +300,7 @@ func TestCloneRequest_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.request.Validate()
-			
+
 			if tt.expectErr {
 				assert.Error(t, err, "Expected validation error")
 				if tt.errMsg != "" {
@@ -345,7 +345,8 @@ func TestDefaultCloneRequest(t *testing.T) {
 	assert.Equal(t, []string{"."}, request.Paths, "Default paths should be current directory")
 	assert.True(t, request.Recursive, "Default recursive should be true")
 	assert.Equal(t, []string{"*.py"}, request.IncludePatterns, "Default include patterns should be *.py")
-	assert.Contains(t, request.ExcludePatterns, "*test*.py", "Default exclude patterns should contain test files")
+	assert.Contains(t, request.ExcludePatterns, "test_*.py", "Default exclude patterns should contain test files")
+	assert.Contains(t, request.ExcludePatterns, "*_test.py", "Default exclude patterns should contain test files")
 	assert.Equal(t, 5, request.MinLines, "Default min lines should be 5")
 	assert.Equal(t, 10, request.MinNodes, "Default min nodes should be 10")
 	assert.Equal(t, 0.8, request.SimilarityThreshold, "Default similarity threshold should be 0.8")

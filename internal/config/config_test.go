@@ -46,8 +46,8 @@ func TestDefaultConfig(t *testing.T) {
 	if len(config.Analysis.IncludePatterns) != 1 || config.Analysis.IncludePatterns[0] != "*.py" {
 		t.Errorf("Expected include patterns ['*.py'], got %v", config.Analysis.IncludePatterns)
 	}
-	if len(config.Analysis.ExcludePatterns) != 3 {
-		t.Errorf("Expected 3 exclude patterns, got %d", len(config.Analysis.ExcludePatterns))
+	if len(config.Analysis.ExcludePatterns) != 2 {
+		t.Errorf("Expected 2 exclude patterns, got %d", len(config.Analysis.ExcludePatterns))
 	}
 	if !config.Analysis.Recursive {
 		t.Error("Expected recursive to be true by default")
@@ -59,9 +59,9 @@ func TestDefaultConfig(t *testing.T) {
 
 func TestConfigValidation(t *testing.T) {
 	testCases := []struct {
-		name        string
-		modifyConfig func(*Config)
-		expectError bool
+		name          string
+		modifyConfig  func(*Config)
+		expectError   bool
 		errorContains string
 	}{
 		{
@@ -76,7 +76,7 @@ func TestConfigValidation(t *testing.T) {
 			modifyConfig: func(c *Config) {
 				c.Complexity.LowThreshold = 0
 			},
-			expectError: true,
+			expectError:   true,
 			errorContains: "low_threshold must be >= 1",
 		},
 		{
@@ -85,7 +85,7 @@ func TestConfigValidation(t *testing.T) {
 				c.Complexity.LowThreshold = 10
 				c.Complexity.MediumThreshold = 10
 			},
-			expectError: true,
+			expectError:   true,
 			errorContains: "medium_threshold (10) must be > low_threshold (10)",
 		},
 		{
@@ -93,7 +93,7 @@ func TestConfigValidation(t *testing.T) {
 			modifyConfig: func(c *Config) {
 				c.Complexity.MaxComplexity = -1
 			},
-			expectError: true,
+			expectError:   true,
 			errorContains: "max_complexity must be >= 0",
 		},
 		{
@@ -102,7 +102,7 @@ func TestConfigValidation(t *testing.T) {
 				c.Complexity.MaxComplexity = 15
 				c.Complexity.MediumThreshold = DefaultMediumComplexityThreshold
 			},
-			expectError: true,
+			expectError:   true,
 			errorContains: fmt.Sprintf("max_complexity (15) must be > medium_threshold (%d)", DefaultMediumComplexityThreshold),
 		},
 		{
@@ -110,7 +110,7 @@ func TestConfigValidation(t *testing.T) {
 			modifyConfig: func(c *Config) {
 				c.Output.Format = "invalid"
 			},
-			expectError: true,
+			expectError:   true,
 			errorContains: "invalid output.format 'invalid'",
 		},
 		{
@@ -118,7 +118,7 @@ func TestConfigValidation(t *testing.T) {
 			modifyConfig: func(c *Config) {
 				c.Output.SortBy = "invalid"
 			},
-			expectError: true,
+			expectError:   true,
 			errorContains: "invalid output.sort_by 'invalid'",
 		},
 		{
@@ -126,7 +126,7 @@ func TestConfigValidation(t *testing.T) {
 			modifyConfig: func(c *Config) {
 				c.Output.MinComplexity = 0
 			},
-			expectError: true,
+			expectError:   true,
 			errorContains: "min_complexity must be >= 1",
 		},
 		{
@@ -134,7 +134,7 @@ func TestConfigValidation(t *testing.T) {
 			modifyConfig: func(c *Config) {
 				c.Analysis.IncludePatterns = []string{}
 			},
-			expectError: true,
+			expectError:   true,
 			errorContains: "include_patterns cannot be empty",
 		},
 	}
@@ -182,7 +182,7 @@ func TestComplexityConfigMethods(t *testing.T) {
 		for _, tc := range testCases {
 			result := config.Complexity.AssessRiskLevel(tc.complexity)
 			if result != tc.expected {
-				t.Errorf("For complexity %d, expected risk '%s', got '%s'", 
+				t.Errorf("For complexity %d, expected risk '%s', got '%s'",
 					tc.complexity, tc.expected, result)
 			}
 		}
@@ -190,11 +190,11 @@ func TestComplexityConfigMethods(t *testing.T) {
 
 	t.Run("ShouldReport", func(t *testing.T) {
 		testCases := []struct {
-			name           string
-			enabled        bool
+			name            string
+			enabled         bool
 			reportUnchanged bool
-			complexity     int
-			expected       bool
+			complexity      int
+			expected        bool
 		}{
 			{"DisabledAnalysis", false, false, 5, false},
 			{"EnabledAnalysis", true, false, 5, true},
@@ -218,10 +218,10 @@ func TestComplexityConfigMethods(t *testing.T) {
 
 	t.Run("ExceedsMaxComplexity", func(t *testing.T) {
 		testCases := []struct {
-			name         string
+			name          string
 			maxComplexity int
-			complexity   int
-			expected     bool
+			complexity    int
+			expected      bool
 		}{
 			{"NoLimit", 0, 100, false},
 			{"WithinLimit", 20, 15, false},
@@ -518,8 +518,8 @@ func TestConfigEdgeCases(t *testing.T) {
 
 // Helper function to check if a string contains a substring
 func containsString(str, substr string) bool {
-	return len(str) >= len(substr) && 
-		   (len(substr) == 0 || 
-		    (len(str) > 0 && 
-		     (str[:len(substr)] == substr || containsString(str[1:], substr))))
+	return len(str) >= len(substr) &&
+		(len(substr) == 0 ||
+			(len(str) > 0 &&
+				(str[:len(substr)] == substr || containsString(str[1:], substr))))
 }

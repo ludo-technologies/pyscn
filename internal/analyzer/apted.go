@@ -59,10 +59,10 @@ func (a *APTEDAnalyzer) computeDistanceOptimized(tree1, tree2 *TreeNode) float64
 	// Early termination based on size difference
 	size1, size2 := tree1.Size(), tree2.Size()
 	sizeDiff := math.Abs(float64(size1 - size2))
-	
+
 	// If size difference is too large, return early upper bound
 	maxDistance := math.Max(float64(size1), float64(size2))
-	if sizeDiff > maxDistance * 0.8 {
+	if sizeDiff > maxDistance*0.8 {
 		return sizeDiff // Conservative estimate
 	}
 
@@ -73,7 +73,7 @@ func (a *APTEDAnalyzer) computeDistanceOptimized(tree1, tree2 *TreeNode) float64
 
 	// Clear cache and use standard algorithm with optimizations
 	a.cache = make(map[string]float64)
-	
+
 	// Prepare both trees for APTED
 	keyRoots1 := PrepareTreeForAPTED(tree1)
 	keyRoots2 := PrepareTreeForAPTED(tree2)
@@ -91,7 +91,7 @@ func (a *APTEDAnalyzer) computeDistanceOptimized(tree1, tree2 *TreeNode) float64
 	sort.Sort(sort.Reverse(sort.IntSlice(keyRoots2)))
 
 	// Compute distance using optimized APTED algorithm
-	return a.aptedOptimized(tree1, tree2, keyRoots1, keyRoots2, maxDistance * 0.5)
+	return a.aptedOptimized(tree1, tree2, keyRoots1, keyRoots2, maxDistance*0.5)
 }
 
 // computeApproximateDistance computes an approximate distance for very large trees
@@ -106,15 +106,15 @@ func (a *APTEDAnalyzer) computeApproximateDistance(tree1, tree2 *TreeNode) float
 	if tree2 == nil {
 		return float64(tree1.Size())
 	}
-	
+
 	// Use a simplified structural similarity measure
 	depth1, depth2 := tree1.Height(), tree2.Height()
 	size1, size2 := tree1.Size(), tree2.Size()
-	
+
 	// Compute structural differences
 	depthDiff := math.Abs(float64(depth1 - depth2))
 	sizeDiff := math.Abs(float64(size1 - size2))
-	
+
 	// Simple heuristic based on structural properties
 	return (depthDiff * 2.0) + (sizeDiff * 0.5)
 }
@@ -138,7 +138,7 @@ func (a *APTEDAnalyzer) aptedOptimized(tree1, tree2 *TreeNode, keyRoots1, keyRoo
 	for _, i := range keyRoots1 {
 		for _, j := range keyRoots2 {
 			a.computeForestDistanceOptimized(nodes1, nodes2, i, j, td, maxDistance)
-			
+
 			// Early termination if distance exceeds threshold
 			if td[size1][size2] > maxDistance {
 				return td[size1][size2]
@@ -180,7 +180,7 @@ func (a *APTEDAnalyzer) computeForestDistanceOptimized(nodes1, nodes2 []*TreeNod
 	if i < 0 || i >= len(nodes1) || j < 0 || j >= len(nodes2) {
 		return
 	}
-	
+
 	// Get left-most leaves for the subtrees
 	lml_i := nodes1[i].LeftMostLeaf
 	lml_j := nodes2[j].LeftMostLeaf
@@ -269,7 +269,7 @@ func (a *APTEDAnalyzer) computeForestDistance(nodes1, nodes2 []*TreeNode, i, j i
 	if i < 0 || i >= len(nodes1) || j < 0 || j >= len(nodes2) {
 		return
 	}
-	
+
 	// Get left-most leaves for the subtrees
 	lml_i := nodes1[i].LeftMostLeaf
 	lml_j := nodes2[j].LeftMostLeaf
@@ -347,7 +347,7 @@ func (a *APTEDAnalyzer) getPostOrderNodes(root *TreeNode) []*TreeNode {
 
 	var nodes []*TreeNode
 	a.postOrderTraversal(root, &nodes)
-	
+
 	// Sort by post-order ID to ensure correct ordering
 	sort.Slice(nodes, func(i, j int) bool {
 		return nodes[i].PostOrderID < nodes[j].PostOrderID
@@ -423,9 +423,9 @@ func (a *APTEDAnalyzer) ComputeSimilarity(tree1, tree2 *TreeNode) float64 {
 	if tree1 == nil || tree2 == nil {
 		return 0.0 // Completely different (one empty)
 	}
-	
+
 	distance := a.ComputeDistance(tree1, tree2)
-	
+
 	// Normalize by the maximum possible distance
 	maxSize := float64(math.Max(float64(tree1.Size()), float64(tree2.Size())))
 	if maxSize == 0 {
@@ -516,9 +516,9 @@ func (a *APTEDAnalyzer) BatchComputeDistances(pairs [][2]*TreeNode) []float64 {
 
 // ClusterResult represents the result of tree clustering
 type ClusterResult struct {
-	Groups     [][]int     // Groups of tree indices that are similar
-	Distances  [][]float64 // Distance matrix between all trees
-	Threshold  float64     // Similarity threshold used
+	Groups    [][]int     // Groups of tree indices that are similar
+	Distances [][]float64 // Distance matrix between all trees
+	Threshold float64     // Similarity threshold used
 }
 
 // ClusterSimilarTrees clusters trees based on similarity threshold
@@ -561,7 +561,7 @@ func (a *APTEDAnalyzer) ClusterSimilarTrees(trees []*TreeNode, similarityThresho
 
 	n := len(validTrees)
 	distances := make([][]float64, n)
-	
+
 	// Initialize distance matrix with proper allocation
 	for i := 0; i < n; i++ {
 		distances[i] = make([]float64, n)

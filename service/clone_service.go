@@ -37,7 +37,7 @@ func (s *CloneService) DetectClones(ctx context.Context, req *domain.CloneReques
 	if err := req.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid clone request: %w", err)
 	}
-	
+
 	startTime := time.Now()
 	// s.progress.StartProgress(0)
 
@@ -76,9 +76,9 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	if len(filePaths) == 0 {
 		return nil, fmt.Errorf("file paths cannot be empty")
 	}
-	
+
 	startTime := time.Now()
-	
+
 	// s.progress.Info(fmt.Sprintf("Analyzing %d files for clones...", len(filePaths)))
 
 	// Create clone detector with configuration
@@ -87,11 +87,11 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 
 	// Create Python parser
 	pyParser := parser.New()
-	
+
 	// Parse files and extract fragments
 	var allFragments []*analyzer.CodeFragment
 	linesAnalyzed := 0
-	
+
 	for _, filePath := range filePaths {
 		// s.progress.Update(fmt.Sprintf("Processing file %d/%d: %s", i+1, len(filePaths), filePath), i, len(filePaths))
 
@@ -108,7 +108,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 			// s.progress.Warning(fmt.Sprintf("Failed to parse file %s: %v", filePath, err))
 			continue
 		}
-		
+
 		// Validate parse result
 		if parseResult == nil || parseResult.AST == nil {
 			// s.progress.Warning(fmt.Sprintf("Skipping file %s: empty parse result", filePath))
@@ -184,20 +184,20 @@ func (s *CloneService) ComputeSimilarity(ctx context.Context, fragment1, fragmen
 	if fragment1 == "" || fragment2 == "" {
 		return 0.0, fmt.Errorf("fragments cannot be empty")
 	}
-	
+
 	if ctx == nil {
 		return 0.0, fmt.Errorf("context cannot be nil")
 	}
-	
+
 	// Check for excessively large fragments to prevent resource exhaustion
 	const maxFragmentSize = 1024 * 1024 // 1MB limit
 	if len(fragment1) > maxFragmentSize || len(fragment2) > maxFragmentSize {
 		return 0.0, fmt.Errorf("fragment size exceeds maximum allowed size of %d bytes", maxFragmentSize)
 	}
-	
+
 	// Parse both fragments
 	pyParser := parser.New()
-	
+
 	result1, err := pyParser.Parse(ctx, []byte(fragment1))
 	if err != nil {
 		return 0.0, fmt.Errorf("failed to parse fragment1: %w", err)
@@ -205,7 +205,7 @@ func (s *CloneService) ComputeSimilarity(ctx context.Context, fragment1, fragmen
 	if result1 == nil || result1.AST == nil {
 		return 0.0, fmt.Errorf("fragment1 parsing returned nil result or AST")
 	}
-	
+
 	result2, err := pyParser.Parse(ctx, []byte(fragment2))
 	if err != nil {
 		return 0.0, fmt.Errorf("failed to parse fragment2: %w", err)
@@ -213,20 +213,20 @@ func (s *CloneService) ComputeSimilarity(ctx context.Context, fragment1, fragmen
 	if result2 == nil || result2.AST == nil {
 		return 0.0, fmt.Errorf("fragment2 parsing returned nil result or AST")
 	}
-	
+
 	// Convert AST nodes to tree nodes for APTED
 	converter := analyzer.NewTreeConverter()
 	tree1 := converter.ConvertAST(result1.AST)
 	tree2 := converter.ConvertAST(result2.AST)
-	
+
 	if tree1 == nil || tree2 == nil {
 		return 0.0, fmt.Errorf("failed to convert AST to tree nodes")
 	}
-	
+
 	// Use APTED to compute similarity
 	costModel := analyzer.NewPythonCostModel()
 	aptedAnalyzer := analyzer.NewAPTEDAnalyzer(costModel)
-	
+
 	similarity := aptedAnalyzer.ComputeSimilarity(tree1, tree2)
 	return similarity, nil
 }
@@ -234,16 +234,16 @@ func (s *CloneService) ComputeSimilarity(ctx context.Context, fragment1, fragmen
 // createDetectorConfig creates a clone detector configuration from the domain request
 func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.CloneDetectorConfig {
 	return &analyzer.CloneDetectorConfig{
-		MinLines:            req.MinLines,
-		MinNodes:            req.MinNodes,
-		Type1Threshold:      req.Type1Threshold,
-		Type2Threshold:      req.Type2Threshold,
-		Type3Threshold:      req.Type3Threshold,
-		Type4Threshold:      req.Type4Threshold,
-		MaxEditDistance:     req.MaxEditDistance,
-		IgnoreLiterals:      req.IgnoreLiterals,
-		IgnoreIdentifiers:   req.IgnoreIdentifiers,
-		CostModelType:       "python", // Default to Python cost model
+		MinLines:          req.MinLines,
+		MinNodes:          req.MinNodes,
+		Type1Threshold:    req.Type1Threshold,
+		Type2Threshold:    req.Type2Threshold,
+		Type3Threshold:    req.Type3Threshold,
+		Type4Threshold:    req.Type4Threshold,
+		MaxEditDistance:   req.MaxEditDistance,
+		IgnoreLiterals:    req.IgnoreLiterals,
+		IgnoreIdentifiers: req.IgnoreIdentifiers,
+		CostModelType:     "python", // Default to Python cost model
 	}
 }
 

@@ -11,11 +11,11 @@ import (
 
 // ComplexityUseCase orchestrates the complexity analysis workflow
 type ComplexityUseCase struct {
-	service       domain.ComplexityService
-	fileReader    domain.FileReader
-	formatter     domain.OutputFormatter
-	configLoader  domain.ConfigurationLoader
-	progress      domain.ProgressReporter
+	service      domain.ComplexityService
+	fileReader   domain.FileReader
+	formatter    domain.OutputFormatter
+	configLoader domain.ConfigurationLoader
+	progress     domain.ProgressReporter
 }
 
 // NewComplexityUseCase creates a new complexity use case
@@ -84,6 +84,52 @@ func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityR
 	}
 
 	return nil
+}
+
+// AnalyzeAndReturn performs complexity analysis and returns the response without formatting
+func (uc *ComplexityUseCase) AnalyzeAndReturn(ctx context.Context, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
+	// Validate input
+	if err := uc.validateRequest(req); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
+
+	// Load configuration if specified
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return nil, domain.NewConfigError("failed to load configuration", err)
+	}
+
+	// Collect Python files
+	files, err := uc.fileReader.CollectPythonFiles(
+		finalReq.Paths,
+		finalReq.Recursive,
+		finalReq.IncludePatterns,
+		finalReq.ExcludePatterns,
+	)
+	if err != nil {
+		return nil, domain.NewFileNotFoundError("failed to collect files", err)
+	}
+
+	if len(files) == 0 {
+		return nil, domain.NewInvalidInputError("no Python files found in the specified paths", nil)
+	}
+
+	// Start progress reporting
+	if uc.progress != nil {
+		uc.progress.StartProgress(len(files))
+		defer uc.progress.FinishProgress()
+	}
+
+	// Update request with collected files
+	finalReq.Paths = files
+
+	// Perform analysis and return the response
+	response, err := uc.service.Analyze(ctx, finalReq)
+	if err != nil {
+		return nil, domain.NewAnalysisError("complexity analysis failed", err)
+	}
+
+	return response, nil
 }
 
 // AnalyzeFile analyzes a single file
@@ -320,24 +366,24 @@ func (n *noOpConfigLoader) MergeConfig(base *domain.ComplexityRequest, override 
 // noOpProgressReporter is a no-op implementation of ProgressReporter
 type noOpProgressReporter struct{}
 
-func (n *noOpProgressReporter) StartProgress(totalFiles int)                          {}
+func (n *noOpProgressReporter) StartProgress(totalFiles int)                            {}
 func (n *noOpProgressReporter) UpdateProgress(currentFile string, processed, total int) {}
-func (n *noOpProgressReporter) FinishProgress()                                       {}
+func (n *noOpProgressReporter) FinishProgress()                                         {}
 
 // UseCaseOptions provides configuration options for the use case
 type UseCaseOptions struct {
-	EnableProgress    bool
-	ProgressInterval  time.Duration
-	MaxConcurrency    int
-	TimeoutPerFile    time.Duration
+	EnableProgress   bool
+	ProgressInterval time.Duration
+	MaxConcurrency   int
+	TimeoutPerFile   time.Duration
 }
 
 // DefaultUseCaseOptions returns default options
 func DefaultUseCaseOptions() UseCaseOptions {
 	return UseCaseOptions{
-		EnableProgress:    true,
-		ProgressInterval:  100 * time.Millisecond,
-		MaxConcurrency:    4,
-		TimeoutPerFile:    30 * time.Second,
+		EnableProgress:   true,
+		ProgressInterval: 100 * time.Millisecond,
+		MaxConcurrency:   4,
+		TimeoutPerFile:   30 * time.Second,
 	}
 }

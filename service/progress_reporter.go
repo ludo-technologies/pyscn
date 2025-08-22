@@ -98,9 +98,9 @@ func NewNoOpProgressReporter() *NoOpProgressReporter {
 	return &NoOpProgressReporter{}
 }
 
-func (n *NoOpProgressReporter) StartProgress(totalFiles int)                               {}
+func (n *NoOpProgressReporter) StartProgress(totalFiles int)                            {}
 func (n *NoOpProgressReporter) UpdateProgress(currentFile string, processed, total int) {}
-func (n *NoOpProgressReporter) FinishProgress()                                          {}
+func (n *NoOpProgressReporter) FinishProgress()                                         {}
 
 // SpinnerProgressReporter shows a simple spinner for single file analysis
 type SpinnerProgressReporter struct {
@@ -207,13 +207,13 @@ func (pb *ProgressBarReporter) UpdateProgress(currentFile string, processed, tot
 	}
 
 	pb.processed = processed + 1
-	
+
 	percentage := float64(pb.processed) / float64(pb.totalFiles)
 	filled := int(percentage * float64(pb.barWidth))
-	
+
 	bar := strings.Repeat("█", filled) + strings.Repeat("░", pb.barWidth-filled)
-	
-	fmt.Fprintf(pb.writer, "\r[%s] %3.0f%% (%d/%d) %s", 
+
+	fmt.Fprintf(pb.writer, "\r[%s] %3.0f%% (%d/%d) %s",
 		bar, percentage*100, pb.processed, pb.totalFiles, filepath.Base(currentFile))
 }
 

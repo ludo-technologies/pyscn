@@ -51,7 +51,7 @@ func (c *CloneConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 			cloneTypes = append(cloneTypes, domain.Type4Clone)
 		}
 	}
-	
+
 	// Convert output format
 	var outputFormat domain.OutputFormat
 	switch c.Output.Format {
@@ -64,7 +64,7 @@ func (c *CloneConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 	default:
 		outputFormat = domain.OutputFormatText
 	}
-	
+
 	// Convert sort criteria
 	var sortBy domain.SortCriteria
 	switch c.Output.SortBy {
@@ -77,14 +77,14 @@ func (c *CloneConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 	default:
 		sortBy = domain.SortBySimilarity
 	}
-	
+
 	return &domain.CloneRequest{
 		// Input parameters
 		Paths:           c.Input.Paths,
 		Recursive:       c.Input.Recursive,
 		IncludePatterns: c.Input.IncludePatterns,
 		ExcludePatterns: c.Input.ExcludePatterns,
-		
+
 		// Analysis configuration
 		MinLines:            c.Analysis.MinLines,
 		MinNodes:            c.Analysis.MinNodes,
@@ -92,13 +92,13 @@ func (c *CloneConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 		MaxEditDistance:     c.Analysis.MaxEditDistance,
 		IgnoreLiterals:      c.Analysis.IgnoreLiterals,
 		IgnoreIdentifiers:   c.Analysis.IgnoreIdentifiers,
-		
+
 		// Type-specific thresholds
 		Type1Threshold: c.Thresholds.Type1Threshold,
 		Type2Threshold: c.Thresholds.Type2Threshold,
 		Type3Threshold: c.Thresholds.Type3Threshold,
 		Type4Threshold: c.Thresholds.Type4Threshold,
-		
+
 		// Output configuration
 		OutputFormat: outputFormat,
 		OutputWriter: outputWriter,
@@ -106,7 +106,7 @@ func (c *CloneConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 		ShowContent:  c.Output.ShowContent,
 		SortBy:       sortBy,
 		GroupClones:  c.Output.GroupClones,
-		
+
 		// Filtering
 		MinSimilarity: c.Filtering.MinSimilarity,
 		MaxSimilarity: c.Filtering.MaxSimilarity,
@@ -120,7 +120,7 @@ func (c *CloneConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 // FromCloneDetectionConfig creates unified CloneConfig from config's CloneDetectionConfig
 func FromCloneDetectionConfig(detectionConfig CloneDetectionConfig) *CloneConfig {
 	config := DefaultCloneConfig()
-	
+
 	// Update with config-specific values
 	config.Analysis.MinLines = detectionConfig.MinLines
 	config.Analysis.MinNodes = detectionConfig.MinNodes
@@ -128,48 +128,48 @@ func FromCloneDetectionConfig(detectionConfig CloneDetectionConfig) *CloneConfig
 	config.Analysis.IgnoreLiterals = detectionConfig.IgnoreLiterals
 	config.Analysis.IgnoreIdentifiers = detectionConfig.IgnoreIdentifiers
 	config.Analysis.CostModelType = detectionConfig.CostModelType
-	
+
 	config.Thresholds.Type1Threshold = detectionConfig.Type1Threshold
 	config.Thresholds.Type2Threshold = detectionConfig.Type2Threshold
 	config.Thresholds.Type3Threshold = detectionConfig.Type3Threshold
 	config.Thresholds.Type4Threshold = detectionConfig.Type4Threshold
 	config.Thresholds.SimilarityThreshold = detectionConfig.SimilarityThreshold
-	
+
 	config.Output.ShowContent = detectionConfig.ShowContent
 	config.Output.GroupClones = detectionConfig.GroupClones
 	config.Output.SortBy = detectionConfig.SortBy
-	
+
 	config.Filtering.MinSimilarity = detectionConfig.MinSimilarity
 	config.Filtering.MaxSimilarity = detectionConfig.MaxSimilarity
 	config.Filtering.EnabledCloneTypes = detectionConfig.CloneTypes
-	
+
 	return config
 }
 
 // FromCloneRequest creates unified CloneConfig from domain's CloneRequest
 func FromCloneRequest(request *domain.CloneRequest) *CloneConfig {
 	config := DefaultCloneConfig()
-	
+
 	// Input parameters
 	config.Input.Paths = request.Paths
 	config.Input.Recursive = request.Recursive
 	config.Input.IncludePatterns = request.IncludePatterns
 	config.Input.ExcludePatterns = request.ExcludePatterns
-	
+
 	// Analysis configuration
 	config.Analysis.MinLines = request.MinLines
 	config.Analysis.MinNodes = request.MinNodes
 	config.Analysis.MaxEditDistance = request.MaxEditDistance
 	config.Analysis.IgnoreLiterals = request.IgnoreLiterals
 	config.Analysis.IgnoreIdentifiers = request.IgnoreIdentifiers
-	
+
 	// Thresholds
 	config.Thresholds.Type1Threshold = request.Type1Threshold
 	config.Thresholds.Type2Threshold = request.Type2Threshold
 	config.Thresholds.Type3Threshold = request.Type3Threshold
 	config.Thresholds.Type4Threshold = request.Type4Threshold
 	config.Thresholds.SimilarityThreshold = request.SimilarityThreshold
-	
+
 	// Output configuration
 	switch request.OutputFormat {
 	case domain.OutputFormatJSON:
@@ -181,12 +181,12 @@ func FromCloneRequest(request *domain.CloneRequest) *CloneConfig {
 	default:
 		config.Output.Format = "text"
 	}
-	
+
 	config.Output.ShowDetails = request.ShowDetails
 	config.Output.ShowContent = request.ShowContent
 	config.Output.GroupClones = request.GroupClones
 	config.Output.Writer = request.OutputWriter
-	
+
 	switch request.SortBy {
 	case domain.SortBySize:
 		config.Output.SortBy = "size"
@@ -197,11 +197,11 @@ func FromCloneRequest(request *domain.CloneRequest) *CloneConfig {
 	default:
 		config.Output.SortBy = "similarity"
 	}
-	
+
 	// Filtering
 	config.Filtering.MinSimilarity = request.MinSimilarity
 	config.Filtering.MaxSimilarity = request.MaxSimilarity
-	
+
 	// Convert clone types to strings
 	config.Filtering.EnabledCloneTypes = make([]string, 0, len(request.CloneTypes))
 	for _, cloneType := range request.CloneTypes {
@@ -216,8 +216,6 @@ func FromCloneRequest(request *domain.CloneRequest) *CloneConfig {
 			config.Filtering.EnabledCloneTypes = append(config.Filtering.EnabledCloneTypes, "type4")
 		}
 	}
-	
+
 	return config
 }
-
-

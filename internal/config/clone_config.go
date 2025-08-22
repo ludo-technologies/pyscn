@@ -12,19 +12,19 @@ import (
 type CloneConfig struct {
 	// Analysis Configuration
 	Analysis CloneAnalysisConfig `mapstructure:"analysis" yaml:"analysis" json:"analysis"`
-	
-	// Thresholds Configuration  
+
+	// Thresholds Configuration
 	Thresholds ThresholdConfig `mapstructure:"thresholds" yaml:"thresholds" json:"thresholds"`
-	
+
 	// Filtering Configuration
 	Filtering FilteringConfig `mapstructure:"filtering" yaml:"filtering" json:"filtering"`
-	
+
 	// Input Configuration
 	Input InputConfig `mapstructure:"input" yaml:"input" json:"input"`
-	
+
 	// Output Configuration
 	Output CloneOutputConfig `mapstructure:"output" yaml:"output" json:"output"`
-	
+
 	// Performance Configuration
 	Performance PerformanceConfig `mapstructure:"performance" yaml:"performance" json:"performance"`
 }
@@ -34,14 +34,14 @@ type CloneAnalysisConfig struct {
 	// Minimum requirements for clone candidates
 	MinLines int `mapstructure:"min_lines" yaml:"min_lines" json:"min_lines"`
 	MinNodes int `mapstructure:"min_nodes" yaml:"min_nodes" json:"min_nodes"`
-	
+
 	// Edit distance configuration
 	MaxEditDistance float64 `mapstructure:"max_edit_distance" yaml:"max_edit_distance" json:"max_edit_distance"`
-	
+
 	// Normalization options
 	IgnoreLiterals    bool `mapstructure:"ignore_literals" yaml:"ignore_literals" json:"ignore_literals"`
 	IgnoreIdentifiers bool `mapstructure:"ignore_identifiers" yaml:"ignore_identifiers" json:"ignore_identifiers"`
-	
+
 	// Cost model configuration
 	CostModelType string `mapstructure:"cost_model_type" yaml:"cost_model_type" json:"cost_model_type"`
 }
@@ -53,7 +53,7 @@ type ThresholdConfig struct {
 	Type2Threshold float64 `mapstructure:"type2_threshold" yaml:"type2_threshold" json:"type2_threshold"`
 	Type3Threshold float64 `mapstructure:"type3_threshold" yaml:"type3_threshold" json:"type3_threshold"`
 	Type4Threshold float64 `mapstructure:"type4_threshold" yaml:"type4_threshold" json:"type4_threshold"`
-	
+
 	// General similarity threshold (minimum for any clone to be reported)
 	SimilarityThreshold float64 `mapstructure:"similarity_threshold" yaml:"similarity_threshold" json:"similarity_threshold"`
 }
@@ -63,10 +63,10 @@ type FilteringConfig struct {
 	// Similarity range filtering
 	MinSimilarity float64 `mapstructure:"min_similarity" yaml:"min_similarity" json:"min_similarity"`
 	MaxSimilarity float64 `mapstructure:"max_similarity" yaml:"max_similarity" json:"max_similarity"`
-	
+
 	// Clone type filtering
 	EnabledCloneTypes []string `mapstructure:"enabled_clone_types" yaml:"enabled_clone_types" json:"enabled_clone_types"`
-	
+
 	// Result limiting
 	MaxResults int `mapstructure:"max_results" yaml:"max_results" json:"max_results"`
 }
@@ -87,11 +87,11 @@ type CloneOutputConfig struct {
 	Format      string `mapstructure:"format" yaml:"format" json:"format"`
 	ShowDetails bool   `mapstructure:"show_details" yaml:"show_details" json:"show_details"`
 	ShowContent bool   `mapstructure:"show_content" yaml:"show_content" json:"show_content"`
-	
+
 	// Sorting and grouping
 	SortBy      string `mapstructure:"sort_by" yaml:"sort_by" json:"sort_by"`
 	GroupClones bool   `mapstructure:"group_clones" yaml:"group_clones" json:"group_clones"`
-	
+
 	// Output destination (not serialized)
 	Writer io.Writer `json:"-" yaml:"-" mapstructure:"-"`
 }
@@ -99,13 +99,13 @@ type CloneOutputConfig struct {
 // PerformanceConfig holds performance-related settings
 type PerformanceConfig struct {
 	// Memory management
-	MaxMemoryMB     int  `mapstructure:"max_memory_mb" yaml:"max_memory_mb" json:"max_memory_mb"`
-	BatchSize       int  `mapstructure:"batch_size" yaml:"batch_size" json:"batch_size"`
-	EnableBatching  bool `mapstructure:"enable_batching" yaml:"enable_batching" json:"enable_batching"`
-	
+	MaxMemoryMB    int  `mapstructure:"max_memory_mb" yaml:"max_memory_mb" json:"max_memory_mb"`
+	BatchSize      int  `mapstructure:"batch_size" yaml:"batch_size" json:"batch_size"`
+	EnableBatching bool `mapstructure:"enable_batching" yaml:"enable_batching" json:"enable_batching"`
+
 	// Parallelization
 	MaxGoroutines int `mapstructure:"max_goroutines" yaml:"max_goroutines" json:"max_goroutines"`
-	
+
 	// Early termination
 	TimeoutSeconds int `mapstructure:"timeout_seconds" yaml:"timeout_seconds" json:"timeout_seconds"`
 }
@@ -138,7 +138,7 @@ func DefaultCloneConfig() *CloneConfig {
 			Paths:           []string{"."},
 			Recursive:       true,
 			IncludePatterns: []string{"*.py"},
-			ExcludePatterns: []string{"*test*.py", "*_test.py", "test_*.py"},
+			ExcludePatterns: []string{"test_*.py", "*_test.py"},
 		},
 		Output: CloneOutputConfig{
 			Format:      "text",
@@ -163,32 +163,32 @@ func (c *CloneConfig) Validate() error {
 	if err := c.Analysis.Validate(); err != nil {
 		return fmt.Errorf("analysis config invalid: %w", err)
 	}
-	
+
 	// Validate thresholds
 	if err := c.Thresholds.Validate(); err != nil {
 		return fmt.Errorf("thresholds config invalid: %w", err)
 	}
-	
+
 	// Validate filtering config
 	if err := c.Filtering.Validate(); err != nil {
 		return fmt.Errorf("filtering config invalid: %w", err)
 	}
-	
+
 	// Validate input config
 	if err := c.Input.Validate(); err != nil {
 		return fmt.Errorf("input config invalid: %w", err)
 	}
-	
+
 	// Validate output config
 	if err := c.Output.Validate(); err != nil {
 		return fmt.Errorf("output config invalid: %w", err)
 	}
-	
+
 	// Validate performance config
 	if err := c.Performance.Validate(); err != nil {
 		return fmt.Errorf("performance config invalid: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -203,7 +203,7 @@ func (a *CloneAnalysisConfig) Validate() error {
 	if a.MaxEditDistance < 0 {
 		return fmt.Errorf("max_edit_distance must be >= 0, got %f", a.MaxEditDistance)
 	}
-	
+
 	validCostModels := []string{"default", "python", "weighted"}
 	valid := false
 	for _, model := range validCostModels {
@@ -215,7 +215,7 @@ func (a *CloneAnalysisConfig) Validate() error {
 	if !valid {
 		return fmt.Errorf("cost_model_type must be one of %v, got %s", validCostModels, a.CostModelType)
 	}
-	
+
 	return nil
 }
 
@@ -228,16 +228,16 @@ func (t *ThresholdConfig) Validate() error {
 		Type3Threshold: t.Type3Threshold,
 		Type4Threshold: t.Type4Threshold,
 	}
-	
+
 	if err := thresholdConfig.ValidateThresholds(); err != nil {
 		return err
 	}
-	
+
 	// Validate general similarity threshold
 	if t.SimilarityThreshold < 0.0 || t.SimilarityThreshold > 1.0 {
 		return fmt.Errorf("similarity_threshold must be between 0.0 and 1.0, got %f", t.SimilarityThreshold)
 	}
-	
+
 	return nil
 }
 
@@ -255,7 +255,7 @@ func (f *FilteringConfig) Validate() error {
 	if f.MaxResults < 0 {
 		return fmt.Errorf("max_results must be >= 0, got %d", f.MaxResults)
 	}
-	
+
 	// Validate clone types
 	validTypes := []string{"type1", "type2", "type3", "type4"}
 	for _, cloneType := range f.EnabledCloneTypes {
@@ -270,7 +270,7 @@ func (f *FilteringConfig) Validate() error {
 			return fmt.Errorf("invalid clone type %s, must be one of %v", cloneType, validTypes)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -295,7 +295,7 @@ func (o *CloneOutputConfig) Validate() error {
 	if !valid {
 		return fmt.Errorf("format must be one of %v, got %s", validFormats, o.Format)
 	}
-	
+
 	validSortBy := []string{"similarity", "size", "location", "type"}
 	valid = false
 	for _, sort := range validSortBy {
@@ -307,7 +307,7 @@ func (o *CloneOutputConfig) Validate() error {
 	if !valid {
 		return fmt.Errorf("sort_by must be one of %v, got %s", validSortBy, o.SortBy)
 	}
-	
+
 	return nil
 }
 
@@ -325,6 +325,6 @@ func (p *PerformanceConfig) Validate() error {
 	if p.TimeoutSeconds <= 0 {
 		return fmt.Errorf("timeout_seconds must be > 0, got %d", p.TimeoutSeconds)
 	}
-	
+
 	return nil
 }

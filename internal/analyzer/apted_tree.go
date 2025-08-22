@@ -58,7 +58,7 @@ func (t *TreeNode) SizeWithDepthLimit(maxDepth int) int {
 	if maxDepth <= 0 {
 		return 1 // Return 1 to avoid infinite loops, treat as leaf
 	}
-	
+
 	size := 1
 	for _, child := range t.Children {
 		size += child.SizeWithDepthLimit(maxDepth - 1)
@@ -76,11 +76,11 @@ func (t *TreeNode) HeightWithDepthLimit(maxDepth int) int {
 	if maxDepth <= 0 {
 		return 0 // Treat as leaf when depth limit reached
 	}
-	
+
 	if t.IsLeaf() {
 		return 0
 	}
-	
+
 	maxHeight := 0
 	for _, child := range t.Children {
 		if h := child.HeightWithDepthLimit(maxDepth - 1); h > maxHeight {

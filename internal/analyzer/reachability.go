@@ -2,7 +2,7 @@ package analyzer
 
 import (
 	"time"
-	
+
 	"github.com/pyqol/pyqol/internal/parser"
 )
 
@@ -204,14 +204,14 @@ func (ra *ReachabilityAnalyzer) performEnhancedReachabilityAnalysis(result *Reac
 func (ra *ReachabilityAnalyzer) detectAllPathsReturnUnreachability(result *ReachabilityResult) {
 	// Track blocks that have all paths leading to returns
 	allPathsReturnBlocks := make(map[string]bool)
-	
+
 	// First pass: identify blocks where all successors eventually return
 	for _, block := range ra.cfg.Blocks {
 		if ra.allSuccessorsReturn(block, make(map[string]bool)) {
 			allPathsReturnBlocks[block.ID] = true
 		}
 	}
-	
+
 	// Second pass: mark successors of all-paths-return blocks as unreachable
 	// unless they are also part of an all-paths-return scenario
 	for blockID := range allPathsReturnBlocks {
@@ -225,40 +225,40 @@ func (ra *ReachabilityAnalyzer) allSuccessorsReturn(block *BasicBlock, visited m
 	if block == nil {
 		return false
 	}
-	
+
 	// Avoid infinite recursion
 	if visited[block.ID] {
 		return false
 	}
 	visited[block.ID] = true
-	
+
 	// If this block contains a return statement, it leads to return
 	if ra.blockContainsReturn(block) {
 		return true
 	}
-	
+
 	// If this is the exit block, it doesn't count as a return
 	if block == ra.cfg.Exit {
 		return false
 	}
-	
+
 	// If no successors, it's not a return path
 	if len(block.Successors) == 0 {
 		return false
 	}
-	
+
 	// All successors must lead to returns
 	for _, edge := range block.Successors {
 		// Skip return edges to exit as they represent actual returns
 		if edge.Type == EdgeReturn && edge.To == ra.cfg.Exit {
 			continue
 		}
-		
+
 		if !ra.allSuccessorsReturn(edge.To, copyVisited(visited)) {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -268,7 +268,7 @@ func (ra *ReachabilityAnalyzer) markSuccessorsUnreachableAfterReturn(block *Basi
 		return
 	}
 	visited[block.ID] = true
-	
+
 	// If this block contains a return, its fall-through successors are unreachable
 	if ra.blockContainsReturn(block) {
 		for _, edge := range block.Successors {
@@ -276,7 +276,7 @@ func (ra *ReachabilityAnalyzer) markSuccessorsUnreachableAfterReturn(block *Basi
 			if edge.Type == EdgeNormal {
 				// Remove from reachable blocks if it was marked as such
 				delete(result.ReachableBlocks, edge.To.ID)
-				
+
 				// Recursively mark successors as unreachable
 				ra.markSuccessorsUnreachableAfterReturn(edge.To, result, copyVisited(visited))
 			}
@@ -289,13 +289,13 @@ func (ra *ReachabilityAnalyzer) blockContainsReturn(block *BasicBlock) bool {
 	if block == nil {
 		return false
 	}
-	
+
 	for _, stmt := range block.Statements {
 		if stmt != nil && stmt.Type == parser.NodeReturn {
 			return true
 		}
 	}
-	
+
 	return false
 }
 

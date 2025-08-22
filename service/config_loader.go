@@ -25,8 +25,18 @@ func (c *ConfigurationLoaderImpl) LoadConfig(path string) (*domain.ComplexityReq
 	return c.convertToComplexityRequest(cfg), nil
 }
 
-// LoadDefaultConfig loads the default configuration
+// LoadDefaultConfig loads the default configuration, first checking for .pyqol.yaml
 func (c *ConfigurationLoaderImpl) LoadDefaultConfig() *domain.ComplexityRequest {
+	// First, try to find and load a config file in the current directory
+	configFile := c.FindDefaultConfigFile()
+	if configFile != "" {
+		if configReq, err := c.LoadConfig(configFile); err == nil {
+			return configReq
+		}
+		// If loading failed, fall back to hardcoded defaults
+	}
+
+	// Fall back to hardcoded default configuration
 	cfg := config.DefaultConfig()
 	return c.convertToComplexityRequest(cfg)
 }
@@ -166,4 +176,17 @@ func (c *ConfigurationLoaderImpl) GetDefaultThresholds() (low, medium int) {
 func (c *ConfigurationLoaderImpl) CreateConfigTemplate(path string) error {
 	cfg := config.DefaultConfig()
 	return config.SaveConfig(cfg, path)
+}
+
+// FindDefaultConfigFile looks for .pyqol.yaml in the current directory
+func (c *ConfigurationLoaderImpl) FindDefaultConfigFile() string {
+	configFiles := []string{".pyqol.yaml", ".pyqol.yml", "pyqol.yaml"}
+
+	for _, filename := range configFiles {
+		if _, err := os.Stat(filename); err == nil {
+			return filename
+		}
+	}
+
+	return "" // No config file found
 }
