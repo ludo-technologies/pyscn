@@ -101,15 +101,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	detectorConfig := s.createDetectorConfig(req)
 	detector := analyzer.NewCloneDetector(detectorConfig)
 	
-	// Set max comparisons if specified
-	if req.MaxComparisons > 0 {
-		detector.SetMaxComparisons(req.MaxComparisons)
-	}
-	
-	// Enable fast mode if requested
-	if req.FastMode {
-		detector.SetFastMode(true)
-	}
+	// Performance optimizations are built into the detector
 
 	// Create Python parser
 	pyParser := parser.New()
