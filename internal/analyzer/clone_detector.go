@@ -193,9 +193,7 @@ type CloneDetector struct {
 	fragments      []*CodeFragment
 	clonePairs     []*ClonePair
 	cloneGroups    []*CloneGroup
-	maxComparisons int  // Maximum number of comparisons (0 = unlimited)
 	comparisonCount int  // Current number of comparisons made
-	fastMode       bool // Use approximate algorithm for faster analysis
 }
 
 // NewCloneDetectorFromConfig creates a new clone detector from unified config
@@ -338,24 +336,6 @@ func (cd *CloneDetector) DetectClones(fragments []*CodeFragment) ([]*ClonePair, 
 	return cd.DetectClonesWithContext(context.Background(), fragments)
 }
 
-// SetMaxComparisons sets the maximum number of comparisons allowed
-func (cd *CloneDetector) SetMaxComparisons(max int) {
-	cd.maxComparisons = max
-}
-
-// SetFastMode enables or disables fast mode for approximate analysis
-func (cd *CloneDetector) SetFastMode(enabled bool) {
-	cd.fastMode = enabled
-	
-	// If fast mode is enabled, use optimized analyzer
-	if enabled && cd.analyzer != nil {
-		// Create optimized analyzer with early termination
-		cd.analyzer = &APTEDAnalyzer{
-			costModel: cd.analyzer.costModel,
-			cache:     make(map[string]float64),
-		}
-	}
-}
 
 // DetectClonesWithContext detects clones with context support for cancellation
 func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments []*CodeFragment) ([]*ClonePair, []*CloneGroup) {
@@ -461,10 +441,6 @@ func (cd *CloneDetector) detectClonePairsStandardWithContext(ctx context.Context
 
 	for i := 0; i < n; i++ {
 		for j := i + 1; j < n; j++ {
-			// Check for max comparisons limit
-			if cd.maxComparisons > 0 && cd.comparisonCount >= cd.maxComparisons {
-				return // Reached comparison limit
-			}
 
 			// Check for cancellation periodically
 			cd.comparisonCount++
@@ -523,11 +499,6 @@ func (cd *CloneDetector) detectClonePairsWithBatchingContext(ctx context.Context
 		for i := batchStart; i < batchEnd; i++ {
 			// Compare with fragments in current batch
 			for j := i + 1; j < batchEnd; j++ {
-				// Check for max comparisons limit
-				if cd.maxComparisons > 0 && cd.comparisonCount >= cd.maxComparisons {
-					cd.clonePairs = topPairs
-					return // Reached comparison limit
-				}
 				cd.comparisonCount++
 				
 				if pair := cd.tryCreateClonePair(i, j, minSimilarity); pair != nil {
@@ -541,11 +512,6 @@ func (cd *CloneDetector) detectClonePairsWithBatchingContext(ctx context.Context
 
 			// Compare with all previous fragments
 			for j := 0; j < batchStart; j++ {
-				// Check for max comparisons limit
-				if cd.maxComparisons > 0 && cd.comparisonCount >= cd.maxComparisons {
-					cd.clonePairs = topPairs
-					return // Reached comparison limit
-				}
 				cd.comparisonCount++
 				
 				if pair := cd.tryCreateClonePair(i, j, minSimilarity); pair != nil {
@@ -598,31 +564,9 @@ func (cd *CloneDetector) compareFragments(fragment1, fragment2 *CodeFragment) *C
 		return nil
 	}
 
-	// Compute edit distance and similarity
-	var distance float64
-	var similarity float64
-	
-	if cd.fastMode {
-		// Fast mode: Use approximate distance based on structural properties
-		depth1, depth2 := fragment1.TreeNode.Height(), fragment2.TreeNode.Height()
-		size1, size2 := fragment1.TreeNode.Size(), fragment2.TreeNode.Size()
-		
-		depthDiff := math.Abs(float64(depth1 - depth2))
-		sizeDiff := math.Abs(float64(size1 - size2))
-		
-		// Simple heuristic for fast approximation
-		distance = (depthDiff * 2.0) + (sizeDiff * 0.5)
-		maxSize := math.Max(float64(size1), float64(size2))
-		if maxSize > 0 {
-			similarity = 1.0 - (distance / maxSize)
-		} else {
-			similarity = 1.0
-		}
-	} else {
-		// Normal mode: Use full APTED algorithm
-		distance = cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
-		similarity = cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
-	}
+	// Compute edit distance and similarity using APTED algorithm
+	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
+	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
 
 	// Determine clone type based on similarity
 	cloneType := cd.classifyCloneType(similarity, distance)
