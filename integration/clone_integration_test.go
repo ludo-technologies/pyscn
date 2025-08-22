@@ -59,13 +59,13 @@ func TestCloneDetectionIntegration(t *testing.T) {
 	// Execute the use case
 	ctx := context.Background()
 	err = useCase.Execute(ctx, request)
-	
+
 	// The test might fail due to missing file reader implementation
 	// but we should test the structure and workflow
 	if err != nil {
 		// Check if it's an expected error (like file not found)
 		t.Logf("Expected error during integration test: %v", err)
-		
+
 		// Verify error handling
 		assert.Error(t, err, "Should handle errors gracefully")
 		return
@@ -74,7 +74,7 @@ func TestCloneDetectionIntegration(t *testing.T) {
 	// If successful, verify the output
 	output := outputBuffer.String()
 	assert.NotEmpty(t, output, "Should produce output")
-	
+
 	// Basic output validation
 	assert.Contains(t, output, "Clone Detection Results", "Should contain results header")
 }
@@ -214,7 +214,7 @@ func TestCloneOutputFormatterIntegration(t *testing.T) {
 	var textBuffer bytes.Buffer
 	err := formatter.FormatCloneResponse(response, domain.OutputFormatText, &textBuffer)
 	assert.NoError(t, err, "Should format as text without error")
-	
+
 	textOutput := textBuffer.String()
 	assert.Contains(t, textOutput, "Clone Detection Results", "Should contain header")
 	assert.Contains(t, textOutput, "Files analyzed: 2", "Should contain statistics")
@@ -226,7 +226,7 @@ func TestCloneOutputFormatterIntegration(t *testing.T) {
 	var jsonBuffer bytes.Buffer
 	err = formatter.FormatCloneResponse(response, domain.OutputFormatJSON, &jsonBuffer)
 	assert.NoError(t, err, "Should format as JSON without error")
-	
+
 	jsonOutput := jsonBuffer.String()
 	assert.Contains(t, jsonOutput, `"success": true`, "Should contain success field")
 	assert.Contains(t, jsonOutput, `"total_clones": 2`, "Should contain clone count")
@@ -236,7 +236,7 @@ func TestCloneOutputFormatterIntegration(t *testing.T) {
 	var yamlBuffer bytes.Buffer
 	err = formatter.FormatCloneResponse(response, domain.OutputFormatYAML, &yamlBuffer)
 	assert.NoError(t, err, "Should format as YAML without error")
-	
+
 	yamlOutput := yamlBuffer.String()
 	assert.Contains(t, yamlOutput, "success: true", "Should contain success field")
 	assert.Contains(t, yamlOutput, "total_clones: 2", "Should contain clone count")
@@ -245,11 +245,11 @@ func TestCloneOutputFormatterIntegration(t *testing.T) {
 	var csvBuffer bytes.Buffer
 	err = formatter.FormatCloneResponse(response, domain.OutputFormatCSV, &csvBuffer)
 	assert.NoError(t, err, "Should format as CSV without error")
-	
+
 	csvOutput := csvBuffer.String()
 	lines := strings.Split(csvOutput, "\n")
 	assert.GreaterOrEqual(t, len(lines), 2, "Should have header and data lines")
-	
+
 	// Check CSV header
 	header := lines[0]
 	assert.Contains(t, header, "pair_id", "Should contain pair_id column")
@@ -276,27 +276,27 @@ func TestCloneConfigurationLoaderIntegration(t *testing.T) {
 
 	// Test configuration merging in use case
 	useCase := createTestCloneUseCase(t)
-	
+
 	// Test with empty results handling
 	var outputBuffer bytes.Buffer
 	request := domain.CloneRequest{
-		Paths:        []string{"/nonexistent/path"},
-		OutputFormat: domain.OutputFormatText,
-		OutputWriter: &outputBuffer,
-		MinLines:     5,
-		MinNodes:     10,
+		Paths:               []string{"/nonexistent/path"},
+		OutputFormat:        domain.OutputFormatText,
+		OutputWriter:        &outputBuffer,
+		MinLines:            5,
+		MinNodes:            10,
 		SimilarityThreshold: 0.8,
-		Type1Threshold: constants.DefaultType1CloneThreshold,
-		Type2Threshold: constants.DefaultType2CloneThreshold,
-		Type3Threshold: constants.DefaultType3CloneThreshold,
-		Type4Threshold: constants.DefaultType4CloneThreshold,
-		MaxEditDistance: 50.0,
-		CloneTypes: []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone, domain.Type4Clone},
+		Type1Threshold:      constants.DefaultType1CloneThreshold,
+		Type2Threshold:      constants.DefaultType2CloneThreshold,
+		Type3Threshold:      constants.DefaultType3CloneThreshold,
+		Type4Threshold:      constants.DefaultType4CloneThreshold,
+		MaxEditDistance:     50.0,
+		CloneTypes:          []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone, domain.Type4Clone},
 	}
 
 	ctx := context.Background()
 	err = useCase.Execute(ctx, request)
-	
+
 	// Should handle nonexistent path gracefully
 	if err != nil {
 		assert.Contains(t, err.Error(), "collect files", "Should fail at file collection stage")
@@ -313,9 +313,9 @@ func TestCloneStatisticsIntegration(t *testing.T) {
 
 	// Create statistics
 	stats := &domain.CloneStatistics{
-		TotalClones:       10,
-		TotalClonePairs:   5,
-		TotalCloneGroups:  3,
+		TotalClones:      10,
+		TotalClonePairs:  5,
+		TotalCloneGroups: 3,
 		ClonesByType: map[string]int{
 			"Type-1": 2,
 			"Type-2": 2,
@@ -339,10 +339,10 @@ func TestCloneStatisticsIntegration(t *testing.T) {
 			var buffer bytes.Buffer
 			err := formatter.FormatCloneStatistics(stats, format, &buffer)
 			assert.NoError(t, err, "Should format statistics without error")
-			
+
 			output := buffer.String()
 			assert.NotEmpty(t, output, "Should produce output")
-			
+
 			// Common checks for all formats
 			switch format {
 			case domain.OutputFormatText:
@@ -423,21 +423,21 @@ func TestCloneDetectionPerformance(t *testing.T) {
 	var outputBuffer bytes.Buffer
 	request := domain.CloneRequest{
 		Paths:               []string{"../testdata/python/simple"}, // Small test dataset
-		OutputFormat:        domain.OutputFormatJSON,              // Efficient format
+		OutputFormat:        domain.OutputFormatJSON,               // Efficient format
 		OutputWriter:        &outputBuffer,
-		MinLines:            10,                                    // Higher threshold for faster processing
+		MinLines:            10, // Higher threshold for faster processing
 		MinNodes:            20,
-		SimilarityThreshold: 0.9,                                  // Higher threshold for faster processing
+		SimilarityThreshold: 0.9, // Higher threshold for faster processing
 		Type1Threshold:      0.98,
 		Type2Threshold:      constants.DefaultType1CloneThreshold,
 		Type3Threshold:      0.90,
 		Type4Threshold:      0.85,
-		MaxEditDistance:     10.0,                                 // Lower distance for faster processing
+		MaxEditDistance:     10.0,                                  // Lower distance for faster processing
 		CloneTypes:          []domain.CloneType{domain.Type1Clone}, // Only one type for speed
 	}
 
 	ctx := context.Background()
-	
+
 	// Measure execution time
 	// start := time.Now()
 	err := useCase.Execute(ctx, request)

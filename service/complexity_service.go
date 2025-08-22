@@ -50,7 +50,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 
 		// Analyze single file
 		functions, fileWarnings, fileErrors := s.analyzeFile(ctx, filePath, req)
-		
+
 		if len(fileErrors) > 0 {
 			errors = append(errors, fileErrors...)
 			continue // Skip this file but continue with others
@@ -128,7 +128,7 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 
 	// Calculate complexity for each function
 	complexityConfig := s.buildComplexityConfig(req)
-	
+
 	for functionName, cfg := range cfgs {
 		result := analyzer.CalculateComplexityWithConfig(cfg, complexityConfig)
 		if result == nil {
@@ -137,18 +137,18 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 		}
 
 		riskLevel := s.calculateRiskLevel(result.Complexity, req)
-		
+
 		function := domain.FunctionComplexity{
 			Name:     functionName,
 			FilePath: filePath,
 			Metrics: domain.ComplexityMetrics{
 				Complexity:        result.Complexity,
-				Nodes:            result.Nodes,
-				Edges:            result.Edges,
-				IfStatements:     result.IfStatements,
-				LoopStatements:   result.LoopStatements,
+				Nodes:             result.Nodes,
+				Edges:             result.Edges,
+				IfStatements:      result.IfStatements,
+				LoopStatements:    result.LoopStatements,
 				ExceptionHandlers: result.ExceptionHandlers,
-				SwitchCases:      result.SwitchCases,
+				SwitchCases:       result.SwitchCases,
 			},
 			RiskLevel: riskLevel,
 		}
@@ -323,11 +323,11 @@ func (s *ComplexityServiceImpl) buildComplexityConfig(req domain.ComplexityReque
 
 func (s *ComplexityServiceImpl) buildConfigForResponse(req domain.ComplexityRequest) interface{} {
 	return map[string]interface{}{
-		"output_format":     string(req.OutputFormat),
-		"min_complexity":    req.MinComplexity,
-		"max_complexity":    req.MaxComplexity,
-		"low_threshold":     req.LowThreshold,
-		"medium_threshold":  req.MediumThreshold,
+		"output_format":    string(req.OutputFormat),
+		"min_complexity":   req.MinComplexity,
+		"max_complexity":   req.MaxComplexity,
+		"low_threshold":    req.LowThreshold,
+		"medium_threshold": req.MediumThreshold,
 		"sort_by":          string(req.SortBy),
 		"show_details":     req.ShowDetails,
 		"recursive":        req.Recursive,

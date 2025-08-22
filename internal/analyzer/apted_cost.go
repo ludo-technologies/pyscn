@@ -124,7 +124,7 @@ func (c *PythonCostModel) Rename(node1, node2 *TreeNode) float64 {
 
 	// Check if both nodes are of similar types
 	similarity := c.calculateLabelSimilarity(node1.Label, node2.Label)
-	
+
 	// Scale rename cost based on similarity
 	return c.BaseRenameCost * (1.0 - similarity)
 }
@@ -305,9 +305,9 @@ func (c *PythonCostModel) areSameCategory(type1, type2 string) bool {
 
 // WeightedCostModel allows custom weights for different operation types
 type WeightedCostModel struct {
-	InsertWeight float64
-	DeleteWeight float64
-	RenameWeight float64
+	InsertWeight  float64
+	DeleteWeight  float64
+	RenameWeight  float64
 	BaseCostModel CostModel
 }
 

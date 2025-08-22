@@ -11,11 +11,11 @@ import (
 
 // DeadCodeUseCase orchestrates the dead code analysis workflow
 type DeadCodeUseCase struct {
-	service       domain.DeadCodeService
-	fileReader    domain.FileReader
-	formatter     domain.DeadCodeFormatter
-	configLoader  domain.DeadCodeConfigurationLoader
-	progress      domain.ProgressReporter
+	service      domain.DeadCodeService
+	fileReader   domain.FileReader
+	formatter    domain.DeadCodeFormatter
+	configLoader domain.DeadCodeConfigurationLoader
+	progress     domain.ProgressReporter
 }
 
 // NewDeadCodeUseCase creates a new dead code use case
@@ -86,6 +86,52 @@ func (uc *DeadCodeUseCase) Execute(ctx context.Context, req domain.DeadCodeReque
 	return nil
 }
 
+// AnalyzeAndReturn performs dead code analysis and returns the response without formatting
+func (uc *DeadCodeUseCase) AnalyzeAndReturn(ctx context.Context, req domain.DeadCodeRequest) (*domain.DeadCodeResponse, error) {
+	// Validate input
+	if err := uc.validateRequest(req); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
+
+	// Load configuration if specified
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return nil, domain.NewConfigError("failed to load configuration", err)
+	}
+
+	// Collect Python files
+	files, err := uc.fileReader.CollectPythonFiles(
+		finalReq.Paths,
+		finalReq.Recursive,
+		finalReq.IncludePatterns,
+		finalReq.ExcludePatterns,
+	)
+	if err != nil {
+		return nil, domain.NewFileNotFoundError("failed to collect files", err)
+	}
+
+	if len(files) == 0 {
+		return nil, domain.NewInvalidInputError("no Python files found in the specified paths", nil)
+	}
+
+	// Start progress reporting
+	if uc.progress != nil {
+		uc.progress.StartProgress(len(files))
+		defer uc.progress.FinishProgress()
+	}
+
+	// Update request with collected files
+	finalReq.Paths = files
+
+	// Perform analysis and return the response
+	response, err := uc.service.Analyze(ctx, finalReq)
+	if err != nil {
+		return nil, domain.NewAnalysisError("dead code analysis failed", err)
+	}
+
+	return response, nil
+}
+
 // AnalyzeFile analyzes a single file for dead code
 func (uc *DeadCodeUseCase) AnalyzeFile(ctx context.Context, filePath string, req domain.DeadCodeRequest) error {
 	// Validate file
@@ -114,10 +160,10 @@ func (uc *DeadCodeUseCase) AnalyzeFile(ctx context.Context, filePath string, req
 	response := &domain.DeadCodeResponse{
 		Files: []domain.FileDeadCode{*fileResult},
 		Summary: domain.DeadCodeSummary{
-			TotalFiles:        1,
-			FilesWithDeadCode: 1,
-			TotalFindings:     fileResult.TotalFindings,
-			TotalFunctions:    fileResult.TotalFunctions,
+			TotalFiles:            1,
+			FilesWithDeadCode:     1,
+			TotalFindings:         fileResult.TotalFindings,
+			TotalFunctions:        fileResult.TotalFunctions,
 			FunctionsWithDeadCode: fileResult.AffectedFunctions,
 		},
 		GeneratedAt: time.Now().Format(time.RFC3339),
@@ -347,29 +393,29 @@ func (n *noOpDeadCodeConfigLoader) MergeConfig(base *domain.DeadCodeRequest, ove
 // deadCodeNoOpProgressReporter is a no-op implementation of ProgressReporter for dead code
 type deadCodeNoOpProgressReporter struct{}
 
-func (n *deadCodeNoOpProgressReporter) StartProgress(totalFiles int)                          {}
+func (n *deadCodeNoOpProgressReporter) StartProgress(totalFiles int)                            {}
 func (n *deadCodeNoOpProgressReporter) UpdateProgress(currentFile string, processed, total int) {}
-func (n *deadCodeNoOpProgressReporter) FinishProgress()                                       {}
+func (n *deadCodeNoOpProgressReporter) FinishProgress()                                         {}
 
 // DeadCodeUseCaseOptions provides configuration options for the dead code use case
 type DeadCodeUseCaseOptions struct {
-	EnableProgress    bool
-	ProgressInterval  time.Duration
-	MaxConcurrency    int
-	TimeoutPerFile    time.Duration
-	ShowContext       bool
-	ContextLines      int
+	EnableProgress   bool
+	ProgressInterval time.Duration
+	MaxConcurrency   int
+	TimeoutPerFile   time.Duration
+	ShowContext      bool
+	ContextLines     int
 }
 
 // DefaultDeadCodeUseCaseOptions returns default options
 func DefaultDeadCodeUseCaseOptions() DeadCodeUseCaseOptions {
 	return DeadCodeUseCaseOptions{
-		EnableProgress:    true,
-		ProgressInterval:  100 * time.Millisecond,
-		MaxConcurrency:    4,
-		TimeoutPerFile:    30 * time.Second,
-		ShowContext:       false,
-		ContextLines:      3,
+		EnableProgress:   true,
+		ProgressInterval: 100 * time.Millisecond,
+		MaxConcurrency:   4,
+		TimeoutPerFile:   30 * time.Second,
+		ShowContext:      false,
+		ContextLines:     3,
 	}
 }
 
@@ -403,7 +449,7 @@ func (uc *DeadCodeUseCase) QuickAnalysis(ctx context.Context, filePaths []string
 		IncludePatterns: []string{"*.py"},
 		ExcludePatterns: []string{},
 		IgnorePatterns:  []string{},
-		
+
 		// Enable all detection types
 		DetectAfterReturn:         true,
 		DetectAfterBreak:          true,

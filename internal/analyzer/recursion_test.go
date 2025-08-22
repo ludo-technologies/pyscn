@@ -13,7 +13,7 @@ func TestRecursionDepthLimits(t *testing.T) {
 	// Create a deep linear tree that would cause stack overflow without depth limits
 	root := NewTreeNode(0, "root")
 	current := root
-	
+
 	// Create a tree with depth > 1000 to test our limits
 	const deepDepth = 1200
 	for i := 1; i < deepDepth; i++ {
@@ -55,10 +55,10 @@ func TestRecursionDepthLimits(t *testing.T) {
 
 		// APTED operations should not crash
 		analyzer := NewAPTEDAnalyzer(NewDefaultCostModel())
-		
+
 		distance := analyzer.ComputeDistance(root, root2)
 		assert.GreaterOrEqual(t, distance, 0.0, "Distance should be non-negative")
-		
+
 		similarity := analyzer.ComputeSimilarity(root, root2)
 		assert.GreaterOrEqual(t, similarity, 0.0, "Similarity should be non-negative")
 		assert.LessOrEqual(t, similarity, 1.0, "Similarity should not exceed 1.0")
@@ -74,9 +74,9 @@ func TestSizeWithDepthLimit(t *testing.T) {
 		expected int
 	}{
 		{"shallow tree within limit", 3, 10, 4}, // root + 3 children in chain
-		{"deep tree at limit", 5, 5, 6},        // root + 5 children in chain  
-		{"deep tree exceeds limit", 10, 3, 4},  // limited to depth 3
-		{"zero depth limit", 5, 0, 1},          // should return 1 (treat as leaf)
+		{"deep tree at limit", 5, 5, 6},         // root + 5 children in chain
+		{"deep tree exceeds limit", 10, 3, 4},   // limited to depth 3
+		{"zero depth limit", 5, 0, 1},           // should return 1 (treat as leaf)
 	}
 
 	for _, tt := range tests {
@@ -134,7 +134,7 @@ func TestGetSubtreeNodesWithDepthLimit(t *testing.T) {
 	child1 := NewTreeNode(1, "child1")
 	child2 := NewTreeNode(2, "child2")
 	grandchild := NewTreeNode(3, "grandchild")
-	
+
 	root.AddChild(child1)
 	root.AddChild(child2)
 	child1.AddChild(grandchild)
@@ -144,7 +144,7 @@ func TestGetSubtreeNodesWithDepthLimit(t *testing.T) {
 		maxDepth     int
 		expectedSize int
 	}{
-		{"full depth", 10, 4}, // All nodes
+		{"full depth", 10, 4},   // All nodes
 		{"limited depth", 2, 3}, // root + 2 children (grandchild excluded)
 		{"minimal depth", 1, 1}, // just root
 		{"zero depth", 0, 0},    // no nodes
@@ -170,7 +170,7 @@ func TestAPTEDRecursionProtection(t *testing.T) {
 		// This should not panic or crash
 		distance := analyzer.ComputeDistance(tree1, tree2)
 		assert.GreaterOrEqual(t, distance, 0.0, "Distance should be non-negative")
-		
+
 		// Should complete in reasonable time (not hang)
 		require.NotEqual(t, math.Inf(1), distance, "Distance should be finite")
 	})
@@ -187,32 +187,32 @@ func TestAPTEDRecursionProtection(t *testing.T) {
 func createDeepLinearTree(depth int, prefix string) *TreeNode {
 	root := NewTreeNode(0, prefix+"_root")
 	current := root
-	
+
 	for i := 1; i < depth; i++ {
 		child := NewTreeNode(i, prefix+"_node")
 		current.AddChild(child)
 		current = child
 	}
-	
+
 	return root
 }
 
 // Benchmark to ensure performance is reasonable with depth limits
 func BenchmarkRecursionProtection(b *testing.B) {
 	tree := createDeepLinearTree(1000, "bench")
-	
+
 	b.Run("Size", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_ = tree.Size()
 		}
 	})
-	
+
 	b.Run("Height", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_ = tree.Height()
 		}
 	})
-	
+
 	b.Run("GetSubtreeNodes", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_ = GetSubtreeNodes(tree)

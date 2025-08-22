@@ -57,8 +57,18 @@ func (c *CloneConfigurationLoader) SaveCloneConfig(cloneConfig *domain.CloneRequ
 	return config.SaveConfig(cfg, configPath)
 }
 
-// GetDefaultCloneConfig returns default clone detection configuration
+// GetDefaultCloneConfig returns default clone detection configuration, first checking for .pyqol.yaml
 func (c *CloneConfigurationLoader) GetDefaultCloneConfig() *domain.CloneRequest {
+	// First, try to find and load a config file in the current directory
+	configFile := c.FindDefaultConfigFile()
+	if configFile != "" {
+		if configReq, err := c.LoadCloneConfig(configFile); err == nil {
+			return configReq
+		}
+		// If loading failed, fall back to hardcoded defaults
+	}
+
+	// Fall back to hardcoded default configuration
 	defaultConfig := config.DefaultConfig()
 	return c.configToCloneRequest(&defaultConfig.CloneDetection)
 }
@@ -96,7 +106,7 @@ func (c *CloneConfigurationLoader) configToCloneRequest(cfg *config.CloneDetecti
 	}
 
 	return &domain.CloneRequest{
-		Paths:               []string{"."},          // Default to current directory
+		Paths:               []string{"."}, // Default to current directory
 		MinLines:            cfg.MinLines,
 		MinNodes:            cfg.MinNodes,
 		SimilarityThreshold: cfg.SimilarityThreshold,
@@ -114,10 +124,10 @@ func (c *CloneConfigurationLoader) configToCloneRequest(cfg *config.CloneDetecti
 		MinSimilarity:       cfg.MinSimilarity,
 		MaxSimilarity:       cfg.MaxSimilarity,
 		CloneTypes:          cloneTypes,
-		OutputFormat:        domain.OutputFormatText, // Default, overridden by CLI
-		Recursive:           true,                    // Default, overridden by CLI
-		IncludePatterns:     []string{"*.py"},       // Default, overridden by CLI
-		ExcludePatterns:     []string{"*test*.py", "*_test.py", "test_*.py"}, // Default
+		OutputFormat:        domain.OutputFormatText,            // Default, overridden by CLI
+		Recursive:           true,                               // Default, overridden by CLI
+		IncludePatterns:     []string{"*.py"},                   // Default, overridden by CLI
+		ExcludePatterns:     []string{"test_*.py", "*_test.py"}, // Default
 	}
 }
 
@@ -186,10 +196,10 @@ func (c *CloneConfigurationLoader) updateConfigFromCloneRequest(cfg *config.Conf
 // LoadCloneConfigFromViper loads clone configuration using viper (for advanced config scenarios)
 func (c *CloneConfigurationLoader) LoadCloneConfigFromViper(configPath string) (*domain.CloneRequest, error) {
 	viper.SetConfigFile(configPath)
-	
+
 	// Set defaults
 	c.setViperDefaults()
-	
+
 	// Read config file
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
@@ -298,4 +308,17 @@ func (c *CloneConfigurationLoader) cloneTypesToStrings(types []domain.CloneType)
 		}
 	}
 	return strings
+}
+
+// FindDefaultConfigFile looks for .pyqol.yaml in the current directory
+func (c *CloneConfigurationLoader) FindDefaultConfigFile() string {
+	configFiles := []string{".pyqol.yaml", ".pyqol.yml", "pyqol.yaml"}
+
+	for _, filename := range configFiles {
+		if _, err := os.Stat(filename); err == nil {
+			return filename
+		}
+	}
+
+	return "" // No config file found
 }

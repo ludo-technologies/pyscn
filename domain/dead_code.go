@@ -28,31 +28,31 @@ const (
 type DeadCodeRequest struct {
 	// Input files or directories to analyze
 	Paths []string
-	
+
 	// Output configuration
-	OutputFormat    OutputFormat
-	OutputWriter    io.Writer
-	ShowContext     bool
-	ContextLines    int // Number of lines to show around dead code
-	
+	OutputFormat OutputFormat
+	OutputWriter io.Writer
+	ShowContext  bool
+	ContextLines int // Number of lines to show around dead code
+
 	// Filtering and sorting
-	MinSeverity     DeadCodeSeverity
-	SortBy          DeadCodeSortCriteria
-	
+	MinSeverity DeadCodeSeverity
+	SortBy      DeadCodeSortCriteria
+
 	// Analysis options
 	Recursive       bool
 	IncludePatterns []string
 	ExcludePatterns []string
 	IgnorePatterns  []string // Patterns for code to ignore (e.g., comments, debug code)
-	
+
 	// Configuration
-	ConfigPath      string
-	
+	ConfigPath string
+
 	// Dead code specific options
-	DetectAfterReturn   bool // Detect code after return statements
-	DetectAfterBreak    bool // Detect code after break statements  
-	DetectAfterContinue bool // Detect code after continue statements
-	DetectAfterRaise    bool // Detect code after raise statements
+	DetectAfterReturn         bool // Detect code after return statements
+	DetectAfterBreak          bool // Detect code after break statements
+	DetectAfterContinue       bool // Detect code after continue statements
+	DetectAfterRaise          bool // Detect code after raise statements
 	DetectUnreachableBranches bool // Detect unreachable conditional branches
 }
 
@@ -68,22 +68,22 @@ type DeadCodeLocation struct {
 // DeadCodeFinding represents a single dead code detection result
 type DeadCodeFinding struct {
 	// Location information
-	Location    DeadCodeLocation `json:"location"`
-	
+	Location DeadCodeLocation `json:"location"`
+
 	// Function context
 	FunctionName string `json:"function_name"`
-	
+
 	// Dead code details
 	Code        string           `json:"code"`
 	Reason      string           `json:"reason"`
 	Severity    DeadCodeSeverity `json:"severity"`
 	Description string           `json:"description"`
-	
+
 	// Context information (surrounding code)
-	Context     []string         `json:"context,omitempty"`
-	
+	Context []string `json:"context,omitempty"`
+
 	// Metadata
-	BlockID     string           `json:"block_id,omitempty"`
+	BlockID string `json:"block_id,omitempty"`
 }
 
 // FunctionDeadCode represents dead code analysis result for a single function
@@ -91,15 +91,15 @@ type FunctionDeadCode struct {
 	// Function identification
 	Name     string `json:"name"`
 	FilePath string `json:"file_path"`
-	
+
 	// Dead code findings
-	Findings       []DeadCodeFinding `json:"findings"`
-	
+	Findings []DeadCodeFinding `json:"findings"`
+
 	// Function metrics
 	TotalBlocks    int     `json:"total_blocks"`
 	DeadBlocks     int     `json:"dead_blocks"`
 	ReachableRatio float64 `json:"reachable_ratio"`
-	
+
 	// Summary by severity
 	CriticalCount int `json:"critical_count"`
 	WarningCount  int `json:"warning_count"`
@@ -110,34 +110,34 @@ type FunctionDeadCode struct {
 type FileDeadCode struct {
 	// File identification
 	FilePath string `json:"file_path"`
-	
+
 	// Functions analyzed
 	Functions []FunctionDeadCode `json:"functions"`
-	
+
 	// File-level summary
-	TotalFindings   int     `json:"total_findings"`
-	TotalFunctions  int     `json:"total_functions"`
-	AffectedFunctions int   `json:"affected_functions"`
-	DeadCodeRatio   float64 `json:"dead_code_ratio"`
+	TotalFindings     int     `json:"total_findings"`
+	TotalFunctions    int     `json:"total_functions"`
+	AffectedFunctions int     `json:"affected_functions"`
+	DeadCodeRatio     float64 `json:"dead_code_ratio"`
 }
 
 // DeadCodeSummary represents aggregate statistics for dead code analysis
 type DeadCodeSummary struct {
 	// Overall metrics
-	TotalFiles      int `json:"total_files"`
-	TotalFunctions  int `json:"total_functions"`
-	TotalFindings   int `json:"total_findings"`
-	FilesWithDeadCode int `json:"files_with_dead_code"`
+	TotalFiles            int `json:"total_files"`
+	TotalFunctions        int `json:"total_functions"`
+	TotalFindings         int `json:"total_findings"`
+	FilesWithDeadCode     int `json:"files_with_dead_code"`
 	FunctionsWithDeadCode int `json:"functions_with_dead_code"`
-	
+
 	// Severity distribution
 	CriticalFindings int `json:"critical_findings"`
 	WarningFindings  int `json:"warning_findings"`
 	InfoFindings     int `json:"info_findings"`
-	
+
 	// Reason distribution
 	FindingsByReason map[string]int `json:"findings_by_reason"`
-	
+
 	// Coverage metrics
 	TotalBlocks      int     `json:"total_blocks"`
 	DeadBlocks       int     `json:"dead_blocks"`
@@ -149,11 +149,11 @@ type DeadCodeResponse struct {
 	// Analysis results
 	Files   []FileDeadCode  `json:"files"`
 	Summary DeadCodeSummary `json:"summary"`
-	
+
 	// Warnings and issues
 	Warnings []string `json:"warnings"`
 	Errors   []string `json:"errors"`
-	
+
 	// Metadata
 	GeneratedAt string      `json:"generated_at"`
 	Version     string      `json:"version"`
@@ -164,10 +164,10 @@ type DeadCodeResponse struct {
 type DeadCodeService interface {
 	// Analyze performs dead code analysis on the given request
 	Analyze(ctx context.Context, req DeadCodeRequest) (*DeadCodeResponse, error)
-	
+
 	// AnalyzeFile analyzes a single Python file for dead code
 	AnalyzeFile(ctx context.Context, filePath string, req DeadCodeRequest) (*FileDeadCode, error)
-	
+
 	// AnalyzeFunction analyzes a single function for dead code
 	AnalyzeFunction(ctx context.Context, functionCFG interface{}, req DeadCodeRequest) (*FunctionDeadCode, error)
 }
@@ -176,10 +176,10 @@ type DeadCodeService interface {
 type DeadCodeConfigurationLoader interface {
 	// LoadConfig loads dead code configuration from the specified path
 	LoadConfig(path string) (*DeadCodeRequest, error)
-	
+
 	// LoadDefaultConfig loads the default dead code configuration
 	LoadDefaultConfig() *DeadCodeRequest
-	
+
 	// MergeConfig merges CLI flags with configuration file
 	MergeConfig(base *DeadCodeRequest, override *DeadCodeRequest) *DeadCodeRequest
 }
@@ -188,10 +188,10 @@ type DeadCodeConfigurationLoader interface {
 type DeadCodeFormatter interface {
 	// Format formats the dead code analysis response according to the specified format
 	Format(response *DeadCodeResponse, format OutputFormat) (string, error)
-	
+
 	// Write writes the formatted dead code output to the writer
 	Write(response *DeadCodeResponse, format OutputFormat, writer io.Writer) error
-	
+
 	// FormatFinding formats a single dead code finding
 	FormatFinding(finding DeadCodeFinding, format OutputFormat) (string, error)
 }
@@ -206,9 +206,9 @@ func DefaultDeadCodeRequest() *DeadCodeRequest {
 		SortBy:          DeadCodeSortBySeverity,
 		Recursive:       true,
 		IncludePatterns: []string{"*.py"},
-		ExcludePatterns: []string{"*test*.py", "*_test.py", "test_*.py"},
+		ExcludePatterns: []string{"test_*.py", "*_test.py"},
 		IgnorePatterns:  []string{},
-		
+
 		// Dead code detection options (all enabled by default)
 		DetectAfterReturn:         true,
 		DetectAfterBreak:          true,
@@ -225,11 +225,11 @@ func (req *DeadCodeRequest) Validate() error {
 	if len(req.Paths) == 0 {
 		return NewInvalidInputError("at least one path must be specified", nil)
 	}
-	
+
 	if req.ContextLines < 0 {
 		return NewInvalidInputError("context lines must be >= 0", nil)
 	}
-	
+
 	// Validate output format
 	validFormats := map[OutputFormat]bool{
 		OutputFormatText: true,
@@ -237,22 +237,22 @@ func (req *DeadCodeRequest) Validate() error {
 		OutputFormatYAML: true,
 		OutputFormatCSV:  true,
 	}
-	
+
 	if !validFormats[req.OutputFormat] {
 		return NewInvalidInputError("invalid output format", nil)
 	}
-	
+
 	// Validate severity level
 	validSeverities := map[DeadCodeSeverity]bool{
 		DeadCodeSeverityCritical: true,
 		DeadCodeSeverityWarning:  true,
 		DeadCodeSeverityInfo:     true,
 	}
-	
+
 	if !validSeverities[req.MinSeverity] {
 		return NewInvalidInputError("invalid minimum severity level", nil)
 	}
-	
+
 	// Validate sort criteria
 	validSortBy := map[DeadCodeSortCriteria]bool{
 		DeadCodeSortBySeverity: true,
@@ -260,11 +260,11 @@ func (req *DeadCodeRequest) Validate() error {
 		DeadCodeSortByFile:     true,
 		DeadCodeSortByFunction: true,
 	}
-	
+
 	if !validSortBy[req.SortBy] {
 		return NewInvalidInputError("invalid sort criteria", nil)
 	}
-	
+
 	return nil
 }
 
@@ -296,7 +296,7 @@ func (fdc *FunctionDeadCode) CalculateSeverityCounts() {
 	fdc.CriticalCount = 0
 	fdc.WarningCount = 0
 	fdc.InfoCount = 0
-	
+
 	for _, finding := range fdc.Findings {
 		switch finding.Severity {
 		case DeadCodeSeverityCritical:

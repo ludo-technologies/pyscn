@@ -44,7 +44,7 @@ def complex_function(x):
 	}
 
 	output := stdout.String()
-	
+
 	// Verify output contains expected function names and complexity info
 	if !strings.Contains(output, "simple_function") {
 		t.Error("Output should contain 'simple_function'")
@@ -120,28 +120,28 @@ def medium_complexity(x):
 `)
 
 	tests := []struct {
-		name string
-		args []string
+		name       string
+		args       []string
 		shouldPass bool
 	}{
 		{
-			name: "min complexity filter",
-			args: []string{"complexity", "--min", "3", testDir},
+			name:       "min complexity filter",
+			args:       []string{"complexity", "--min", "3", testDir},
 			shouldPass: true,
 		},
 		{
-			name: "invalid format",
-			args: []string{"complexity", "--format", "invalid", testDir},
+			name:       "invalid format",
+			args:       []string{"complexity", "--format", "invalid", testDir},
 			shouldPass: false,
 		},
 		{
-			name: "help flag",
-			args: []string{"complexity", "--help"},
+			name:       "help flag",
+			args:       []string{"complexity", "--help"},
 			shouldPass: true,
 		},
 		{
-			name: "details flag",
-			args: []string{"complexity", "--details", testDir},
+			name:       "details flag",
+			args:       []string{"complexity", "--details", testDir},
 			shouldPass: true,
 		},
 	}
@@ -154,7 +154,7 @@ def medium_complexity(x):
 			cmd.Stderr = &stderr
 
 			err := cmd.Run()
-			
+
 			if tt.shouldPass && err != nil {
 				t.Errorf("Command should pass but failed: %v\nStderr: %s", err, stderr.String())
 			} else if !tt.shouldPass && err == nil {
@@ -214,13 +214,13 @@ func TestComplexityE2EMultipleFiles(t *testing.T) {
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
-	
+
 	// Create multiple Python files
 	createTestPythonFile(t, testDir, "file1.py", `
 def func1():
     return 1
 `)
-	
+
 	createTestPythonFile(t, testDir, "file2.py", `
 def func2(x):
     if x > 0:
@@ -240,7 +240,7 @@ def func2(x):
 	}
 
 	output := stdout.String()
-	
+
 	// Should contain functions from both files
 	if !strings.Contains(output, "func1") {
 		t.Error("Output should contain 'func1' from file1.py")
@@ -254,30 +254,30 @@ def func2(x):
 
 func buildPyqolBinary(t *testing.T) string {
 	t.Helper()
-	
+
 	// Create temporary binary
 	binaryPath := filepath.Join(t.TempDir(), "pyqol")
-	
+
 	// Build the binary from the project root (one level up from e2e directory)
 	cmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/pyqol")
-	
+
 	// Set working directory to project root
 	projectRoot, err := filepath.Abs("..")
 	if err != nil {
 		t.Fatalf("Failed to get project root: %v", err)
 	}
 	cmd.Dir = projectRoot
-	
+
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to build pyqol binary: %v", err)
 	}
-	
+
 	return binaryPath
 }
 
 func createTestPythonFile(t *testing.T, dir, filename, content string) {
 	t.Helper()
-	
+
 	filePath := filepath.Join(dir, filename)
 	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
 		t.Fatalf("Failed to create test file %s: %v", filename, err)

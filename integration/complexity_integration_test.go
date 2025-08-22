@@ -16,7 +16,7 @@ import (
 // TestComplexityCleanCancellation tests context cancellation with working pattern
 func TestComplexityCleanCancellation(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	// Create a test file - use exact same pattern as working test
 	testFile := filepath.Join(tempDir, "simple.py")
 	content := `
@@ -47,13 +47,13 @@ def simple():
 	// Use exact same configuration as working test
 	var outputBuffer bytes.Buffer
 	request := domain.ComplexityRequest{
-		Paths:            []string{tempDir},
-		OutputFormat:     domain.OutputFormatText,
-		OutputWriter:     &outputBuffer,
-		MinComplexity:    1,
-		MaxComplexity:    0,
-		LowThreshold:     3,
-		MediumThreshold:  7,
+		Paths:           []string{tempDir},
+		OutputFormat:    domain.OutputFormatText,
+		OutputWriter:    &outputBuffer,
+		MinComplexity:   1,
+		MaxComplexity:   0,
+		LowThreshold:    3,
+		MediumThreshold: 7,
 		SortBy:          domain.SortByName,
 		ShowDetails:     true,
 		Recursive:       true,
@@ -67,7 +67,7 @@ def simple():
 
 	// Execute the use case
 	err = useCase.Execute(ctx, request)
-	
+
 	// Should handle cancellation gracefully - context cancellation can be wrapped in analysis error
 	if err != nil {
 		// Check if it's either direct context cancellation or wrapped in domain error
@@ -90,7 +90,7 @@ def simple():
 // TestComplexityCleanFiltering tests complexity filtering with working pattern
 func TestComplexityCleanFiltering(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	// Create test file
 	testFile := filepath.Join(tempDir, "simple.py")
 	content := `
@@ -144,13 +144,13 @@ def complex_function(n):
 	// Use exact same configuration as working test
 	var outputBuffer bytes.Buffer
 	request := domain.ComplexityRequest{
-		Paths:            []string{tempDir},
-		OutputFormat:     domain.OutputFormatText,
-		OutputWriter:     &outputBuffer,
-		MinComplexity:    3, // Should filter out very simple functions
-		MaxComplexity:    0,
-		LowThreshold:     3,
-		MediumThreshold:  7,
+		Paths:           []string{tempDir},
+		OutputFormat:    domain.OutputFormatText,
+		OutputWriter:    &outputBuffer,
+		MinComplexity:   3, // Should filter out very simple functions
+		MaxComplexity:   0,
+		LowThreshold:    3,
+		MediumThreshold: 7,
 		SortBy:          domain.SortByName,
 		ShowDetails:     true,
 		Recursive:       true,
@@ -176,7 +176,7 @@ def complex_function(n):
 // TestComplexityCleanOutputFormats tests different output formats with working pattern
 func TestComplexityCleanOutputFormats(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	// Create test file
 	testFile := filepath.Join(tempDir, "simple.py")
 	content := `
@@ -219,13 +219,13 @@ def test_function(x):
 			// Use exact same configuration as working test, but vary format
 			var outputBuffer bytes.Buffer
 			request := domain.ComplexityRequest{
-				Paths:            []string{tempDir},
-				OutputFormat:     format, // This is the only variation
-				OutputWriter:     &outputBuffer,
-				MinComplexity:    1,
-				MaxComplexity:    0,
-				LowThreshold:     3,
-				MediumThreshold:  7,
+				Paths:           []string{tempDir},
+				OutputFormat:    format, // This is the only variation
+				OutputWriter:    &outputBuffer,
+				MinComplexity:   1,
+				MaxComplexity:   0,
+				LowThreshold:    3,
+				MediumThreshold: 7,
 				SortBy:          domain.SortByName,
 				ShowDetails:     true,
 				Recursive:       true,

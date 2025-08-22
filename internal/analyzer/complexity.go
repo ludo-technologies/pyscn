@@ -99,7 +99,7 @@ func (cv *complexityVisitor) VisitEdge(edge *Edge) bool {
 		if cv.decisionPoints == nil {
 			cv.decisionPoints = make(map[*BasicBlock]int)
 		}
-		
+
 		switch edge.Type {
 		case EdgeCondTrue, EdgeCondFalse:
 			// Mark this block as having conditional edges
@@ -147,7 +147,7 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 
 	// Count actual conditional decisions (blocks with conditional outgoing edges)
 	conditionalDecisions := len(visitor.decisionPoints)
-	
+
 	result := &ComplexityResult{
 		Complexity:          complexity,
 		Edges:               visitor.edgeCount,

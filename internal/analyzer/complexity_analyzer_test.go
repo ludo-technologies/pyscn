@@ -538,9 +538,9 @@ func TestComplexityAnalyzerErrorHandling(t *testing.T) {
 	t.Run("EmptyCFGList", func(t *testing.T) {
 		var buffer bytes.Buffer
 		analyzer, err := NewComplexityAnalyzerWithDefaults(&buffer)
-	if err != nil {
-		t.Fatalf("Failed to create analyzer: %v", err)
-	}
+		if err != nil {
+			t.Fatalf("Failed to create analyzer: %v", err)
+		}
 
 		err = analyzer.AnalyzeAndReport([]*CFG{})
 
@@ -558,9 +558,9 @@ func TestComplexityAnalyzerErrorHandling(t *testing.T) {
 	t.Run("NilCFGs", func(t *testing.T) {
 		var buffer bytes.Buffer
 		analyzer, err := NewComplexityAnalyzerWithDefaults(&buffer)
-	if err != nil {
-		t.Fatalf("Failed to create analyzer: %v", err)
-	}
+		if err != nil {
+			t.Fatalf("Failed to create analyzer: %v", err)
+		}
 
 		cfgs := []*CFG{nil, createTestCFGs()[0], nil}
 		results := analyzer.AnalyzeFunctions(cfgs)

@@ -70,11 +70,11 @@ func (f *CloneOutputFormatter) formatAsText(response *domain.CloneResponse, writ
 		fmt.Fprintf(writer, "  Lines analyzed: %d\n", response.Statistics.LinesAnalyzed)
 		fmt.Fprintf(writer, "  Clone pairs found: %d\n", response.Statistics.TotalClonePairs)
 		fmt.Fprintf(writer, "  Clone groups found: %d\n", response.Statistics.TotalCloneGroups)
-		
+
 		if response.Statistics.AverageSimilarity > 0 {
 			fmt.Fprintf(writer, "  Average similarity: %.3f\n", response.Statistics.AverageSimilarity)
 		}
-		
+
 		fmt.Fprintf(writer, "  Analysis duration: %dms\n\n", response.Duration)
 	}
 
@@ -96,19 +96,19 @@ func (f *CloneOutputFormatter) formatAsText(response *domain.CloneResponse, writ
 	if response.Request != nil && response.Request.GroupClones && len(response.CloneGroups) > 0 {
 		fmt.Fprintf(writer, "Clone Groups:\n")
 		fmt.Fprintf(writer, "=============\n\n")
-		
+
 		for _, group := range response.CloneGroups {
 			if group == nil {
 				continue
 			}
-			fmt.Fprintf(writer, "Group %d (%s, %d clones, similarity: %.3f):\n", 
+			fmt.Fprintf(writer, "Group %d (%s, %d clones, similarity: %.3f):\n",
 				group.ID, group.Type.String(), group.Size, group.Similarity)
-			
+
 			for i, clone := range group.Clones {
 				if clone == nil || clone.Location == nil {
 					continue
 				}
-				fmt.Fprintf(writer, "  %d. %s (%d lines, %d nodes)\n", 
+				fmt.Fprintf(writer, "  %d. %s (%d lines, %d nodes)\n",
 					i+1, clone.Location.String(), clone.LineCount, clone.Size)
 			}
 			fmt.Fprintf(writer, "\n")
@@ -116,24 +116,24 @@ func (f *CloneOutputFormatter) formatAsText(response *domain.CloneResponse, writ
 	} else {
 		fmt.Fprintf(writer, "Clone Pairs:\n")
 		fmt.Fprintf(writer, "============\n\n")
-		
+
 		for i, pair := range response.ClonePairs {
 			if pair == nil {
 				continue
 			}
-			fmt.Fprintf(writer, "%d. %s (similarity: %.3f, confidence: %.3f)\n", 
+			fmt.Fprintf(writer, "%d. %s (similarity: %.3f, confidence: %.3f)\n",
 				i+1, pair.Type.String(), pair.Similarity, pair.Confidence)
-			
+
 			if pair.Clone1 != nil && pair.Clone1.Location != nil {
-				fmt.Fprintf(writer, "   Clone 1: %s (%d lines, %d nodes)\n", 
+				fmt.Fprintf(writer, "   Clone 1: %s (%d lines, %d nodes)\n",
 					pair.Clone1.Location.String(), pair.Clone1.LineCount, pair.Clone1.Size)
 			}
-			
+
 			if pair.Clone2 != nil && pair.Clone2.Location != nil {
-				fmt.Fprintf(writer, "   Clone 2: %s (%d lines, %d nodes)\n", 
+				fmt.Fprintf(writer, "   Clone 2: %s (%d lines, %d nodes)\n",
 					pair.Clone2.Location.String(), pair.Clone2.LineCount, pair.Clone2.Size)
 			}
-			
+
 			if response.Request != nil && response.Request.ShowContent && pair.Clone1 != nil && pair.Clone1.Content != "" {
 				fmt.Fprintf(writer, "   Content preview:\n")
 				lines := strings.Split(pair.Clone1.Content, "\n")
@@ -145,7 +145,7 @@ func (f *CloneOutputFormatter) formatAsText(response *domain.CloneResponse, writ
 					fmt.Fprintf(writer, "     %s\n", line)
 				}
 			}
-			
+
 			fmt.Fprintf(writer, "\n")
 		}
 	}
@@ -218,18 +218,18 @@ func (f *CloneOutputFormatter) formatStatsAsText(stats *domain.CloneStatistics, 
 	fmt.Fprintf(writer, "Lines analyzed: %d\n", stats.LinesAnalyzed)
 	fmt.Fprintf(writer, "Clone pairs: %d\n", stats.TotalClonePairs)
 	fmt.Fprintf(writer, "Clone groups: %d\n", stats.TotalCloneGroups)
-	
+
 	if stats.AverageSimilarity > 0 {
 		fmt.Fprintf(writer, "Average similarity: %.3f\n", stats.AverageSimilarity)
 	}
-	
+
 	if len(stats.ClonesByType) > 0 {
 		fmt.Fprintf(writer, "\nClone types:\n")
 		for cloneType, count := range stats.ClonesByType {
 			fmt.Fprintf(writer, "  %s: %d\n", cloneType, count)
 		}
 	}
-	
+
 	return nil
 }
 

@@ -57,14 +57,14 @@ func (cl *CodeLocation) String() string {
 
 // CodeFragment represents a fragment of code
 type CodeFragment struct {
-	Location    *CodeLocation
-	ASTNode     *parser.Node
-	TreeNode    *TreeNode
-	Content     string // Original source code content
-	Hash        string // Hash for quick comparison
-	Size        int    // Number of AST nodes
-	LineCount   int    // Number of source lines
-	Complexity  int    // Cyclomatic complexity (if applicable)
+	Location   *CodeLocation
+	ASTNode    *parser.Node
+	TreeNode   *TreeNode
+	Content    string // Original source code content
+	Hash       string // Hash for quick comparison
+	Size       int    // Number of AST nodes
+	LineCount  int    // Number of source lines
+	Complexity int    // Cyclomatic complexity (if applicable)
 }
 
 // NewCodeFragment creates a new code fragment
@@ -83,7 +83,7 @@ func calculateASTSize(node *parser.Node) int {
 	if node == nil {
 		return 0
 	}
-	
+
 	size := 1
 	for _, child := range node.Children {
 		size += calculateASTSize(child)
@@ -94,18 +94,18 @@ func calculateASTSize(node *parser.Node) int {
 	for _, orelseNode := range node.Orelse {
 		size += calculateASTSize(orelseNode)
 	}
-	
+
 	return size
 }
 
 // ClonePair represents a pair of similar code fragments
 type ClonePair struct {
-	Fragment1    *CodeFragment
-	Fragment2    *CodeFragment
-	Similarity   float64   // Similarity score (0.0 to 1.0)
-	Distance     float64   // Edit distance
-	CloneType    CloneType // Type of clone detected
-	Confidence   float64   // Confidence in the detection (0.0 to 1.0)
+	Fragment1  *CodeFragment
+	Fragment2  *CodeFragment
+	Similarity float64   // Similarity score (0.0 to 1.0)
+	Distance   float64   // Edit distance
+	CloneType  CloneType // Type of clone detected
+	Confidence float64   // Confidence in the detection (0.0 to 1.0)
 }
 
 // String returns string representation of ClonePair
@@ -186,12 +186,12 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 
 // CloneDetector detects code clones using APTED algorithm
 type CloneDetector struct {
-	config       *CloneDetectorConfig
-	analyzer     *APTEDAnalyzer
-	converter    *TreeConverter
-	fragments    []*CodeFragment
-	clonePairs   []*ClonePair
-	cloneGroups  []*CloneGroup
+	config      *CloneDetectorConfig
+	analyzer    *APTEDAnalyzer
+	converter   *TreeConverter
+	fragments   []*CodeFragment
+	clonePairs  []*ClonePair
+	cloneGroups []*CloneGroup
 }
 
 // NewCloneDetectorFromConfig creates a new clone detector from unified config
@@ -230,7 +230,7 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 	}
 
 	analyzer := NewAPTEDAnalyzer(costModel)
-	
+
 	return &CloneDetector{
 		config:      config,
 		analyzer:    analyzer,
@@ -244,11 +244,11 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 // ExtractFragments extracts code fragments from AST nodes
 func (cd *CloneDetector) ExtractFragments(astNodes []*parser.Node, filePath string) []*CodeFragment {
 	var fragments []*CodeFragment
-	
+
 	for _, node := range astNodes {
 		cd.extractFragmentsRecursive(node, filePath, &fragments)
 	}
-	
+
 	return fragments
 }
 
@@ -269,7 +269,7 @@ func (cd *CloneDetector) extractFragmentsRecursive(node *parser.Node, filePath s
 		}
 
 		fragment := NewCodeFragment(location, node, "")
-		
+
 		// Filter fragments based on configuration
 		if cd.shouldIncludeFragment(fragment) {
 			*fragments = append(*fragments, fragment)
@@ -280,11 +280,11 @@ func (cd *CloneDetector) extractFragmentsRecursive(node *parser.Node, filePath s
 	for _, child := range node.Children {
 		cd.extractFragmentsRecursive(child, filePath, fragments)
 	}
-	
+
 	for _, bodyNode := range node.Body {
 		cd.extractFragmentsRecursive(bodyNode, filePath, fragments)
 	}
-	
+
 	for _, orelseNode := range node.Orelse {
 		cd.extractFragmentsRecursive(orelseNode, filePath, fragments)
 	}
@@ -321,7 +321,7 @@ func (cd *CloneDetector) shouldIncludeFragment(fragment *CodeFragment) bool {
 	if fragment.Size < cd.config.MinNodes {
 		return false
 	}
-	
+
 	if fragment.LineCount < cd.config.MinLines {
 		return false
 	}
@@ -362,19 +362,19 @@ func (cd *CloneDetector) prepareFragments() {
 // detectClonePairs detects pairs of similar code fragments with memory management
 func (cd *CloneDetector) detectClonePairs() {
 	n := len(cd.fragments)
-	
+
 	// Memory management constants
 	const (
-		maxClonePairs = 10000          // Maximum pairs to keep in memory
-		batchSize     = 1000           // Process fragments in batches
+		maxClonePairs = 10000             // Maximum pairs to keep in memory
+		batchSize     = 1000              // Process fragments in batches
 		memoryLimit   = 100 * 1024 * 1024 // 100MB memory limit
 	)
-	
+
 	// Early return for small datasets
 	if n <= 1 {
 		return
 	}
-	
+
 	// Estimate memory usage and use batching if needed
 	estimatedPairs := (n * (n - 1)) / 2
 	if estimatedPairs > maxClonePairs || n > batchSize {
@@ -382,7 +382,7 @@ func (cd *CloneDetector) detectClonePairs() {
 	} else {
 		cd.detectClonePairsStandard()
 	}
-	
+
 	// Sort and limit final results
 	cd.limitAndSortClonePairs(maxClonePairs)
 }
@@ -390,12 +390,12 @@ func (cd *CloneDetector) detectClonePairs() {
 // detectClonePairsStandard uses the standard O(n²) approach for small datasets
 func (cd *CloneDetector) detectClonePairsStandard() {
 	n := len(cd.fragments)
-	
+
 	for i := 0; i < n; i++ {
 		for j := i + 1; j < n; j++ {
 			fragment1 := cd.fragments[i]
 			fragment2 := cd.fragments[j]
-			
+
 			// Skip if both fragments are from the same location
 			if cd.isSameLocation(fragment1.Location, fragment2.Location) {
 				continue
@@ -413,18 +413,18 @@ func (cd *CloneDetector) detectClonePairsStandard() {
 // detectClonePairsWithBatching processes fragments in batches to manage memory
 func (cd *CloneDetector) detectClonePairsWithBatching(maxPairs, batchSize int) {
 	n := len(cd.fragments)
-	
+
 	// Priority queue to keep only the best pairs
 	topPairs := make([]*ClonePair, 0, maxPairs)
 	minSimilarity := cd.config.Type4Threshold // Use the lowest threshold as minimum
-	
+
 	// Process in batches to limit memory usage
 	for batchStart := 0; batchStart < n; batchStart += batchSize {
 		batchEnd := batchStart + batchSize
 		if batchEnd > n {
 			batchEnd = n
 		}
-		
+
 		// Process current batch against all previous and current fragments
 		for i := batchStart; i < batchEnd; i++ {
 			// Compare with fragments in current batch
@@ -437,7 +437,7 @@ func (cd *CloneDetector) detectClonePairsWithBatching(maxPairs, batchSize int) {
 					}
 				}
 			}
-			
+
 			// Compare with all previous fragments
 			for j := 0; j < batchStart; j++ {
 				if pair := cd.tryCreateClonePair(i, j, minSimilarity); pair != nil {
@@ -449,14 +449,14 @@ func (cd *CloneDetector) detectClonePairsWithBatching(maxPairs, batchSize int) {
 				}
 			}
 		}
-		
+
 		// Periodic garbage collection hint for large batches
 		if batchStart%5000 == 0 {
 			// Force garbage collection to prevent memory buildup
 			runtime.GC()
 		}
 	}
-	
+
 	// Replace clone pairs with the best ones found
 	cd.clonePairs = topPairs
 }
@@ -501,7 +501,7 @@ func (cd *CloneDetector) classifyCloneType(similarity, distance float64) CloneTy
 	} else if similarity >= cd.config.Type4Threshold {
 		return Type4Clone
 	}
-	
+
 	return 0 // Not a clone
 }
 
@@ -509,24 +509,24 @@ func (cd *CloneDetector) classifyCloneType(similarity, distance float64) CloneTy
 func (cd *CloneDetector) calculateConfidence(fragment1, fragment2 *CodeFragment, similarity float64) float64 {
 	// Base confidence on similarity
 	confidence := similarity
-	
+
 	// Increase confidence for larger fragments
 	avgSize := float64(fragment1.Size+fragment2.Size) / 2.0
 	sizeBonus := math.Min(avgSize/100.0, 0.2) // Up to 20% bonus for large fragments
 	confidence += sizeBonus
-	
+
 	// Increase confidence if both fragments have similar complexity
 	if fragment1.Complexity > 0 && fragment2.Complexity > 0 {
 		complexityRatio := float64(math.Min(float64(fragment1.Complexity), float64(fragment2.Complexity))) /
 			float64(math.Max(float64(fragment1.Complexity), float64(fragment2.Complexity)))
 		confidence += complexityRatio * 0.1 // Up to 10% bonus for similar complexity
 	}
-	
+
 	// Cap confidence at 1.0
 	if confidence > 1.0 {
 		confidence = 1.0
 	}
-	
+
 	return confidence
 }
 
@@ -536,12 +536,12 @@ func (cd *CloneDetector) isSignificantClone(pair *ClonePair) bool {
 	if pair.Similarity < cd.config.Type4Threshold {
 		return false
 	}
-	
+
 	// Check maximum distance threshold
 	if pair.Distance > cd.config.MaxEditDistance {
 		return false
 	}
-	
+
 	// Additional filtering based on fragment characteristics
 	minSize := math.Min(float64(pair.Fragment1.Size), float64(pair.Fragment2.Size))
 	return minSize >= float64(cd.config.MinNodes)
@@ -618,7 +618,7 @@ func (cd *CloneDetector) calculateGroupSimilarity(group *CloneGroup) {
 		for j := i + 1; j < group.Size; j++ {
 			fragment1 := group.Fragments[i]
 			fragment2 := group.Fragments[j]
-			
+
 			if fragment1.TreeNode != nil && fragment2.TreeNode != nil {
 				similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
 				totalSimilarity += similarity
@@ -644,18 +644,18 @@ func (cd *CloneDetector) isSameLocation(loc1, loc2 *CodeLocation) bool {
 // GetStatistics returns clone detection statistics
 func (cd *CloneDetector) GetStatistics() map[string]interface{} {
 	stats := make(map[string]interface{})
-	
+
 	stats["total_fragments"] = len(cd.fragments)
 	stats["total_clone_pairs"] = len(cd.clonePairs)
 	stats["total_clone_groups"] = len(cd.cloneGroups)
-	
+
 	// Count by clone type
 	typeCounts := make(map[string]int)
 	for _, pair := range cd.clonePairs {
 		typeCounts[pair.CloneType.String()]++
 	}
 	stats["clone_types"] = typeCounts
-	
+
 	// Average similarity
 	if len(cd.clonePairs) > 0 {
 		totalSim := 0.0
@@ -664,7 +664,7 @@ func (cd *CloneDetector) GetStatistics() map[string]interface{} {
 		}
 		stats["average_similarity"] = totalSim / float64(len(cd.clonePairs))
 	}
-	
+
 	return stats
 }
 
@@ -672,17 +672,17 @@ func (cd *CloneDetector) GetStatistics() map[string]interface{} {
 func (cd *CloneDetector) tryCreateClonePair(i, j int, minSimilarity float64) *ClonePair {
 	fragment1 := cd.fragments[i]
 	fragment2 := cd.fragments[j]
-	
+
 	// Skip if both fragments are from the same location
 	if cd.isSameLocation(fragment1.Location, fragment2.Location) {
 		return nil
 	}
-	
+
 	// Quick similarity check before expensive computation
 	if fragment1.TreeNode == nil || fragment2.TreeNode == nil {
 		return nil
 	}
-	
+
 	// Early similarity estimation (fast)
 	sizeDiff := float64(abs(fragment1.Size - fragment2.Size))
 	maxSize := float64(max(fragment1.Size, fragment2.Size))
@@ -690,7 +690,7 @@ func (cd *CloneDetector) tryCreateClonePair(i, j int, minSimilarity float64) *Cl
 		// Size difference too large for minimum similarity
 		return nil
 	}
-	
+
 	// Full similarity computation
 	pair := cd.compareFragments(fragment1, fragment2)
 	if pair != nil && cd.isSignificantClone(pair) && pair.Similarity >= minSimilarity {
@@ -710,7 +710,7 @@ func (cd *CloneDetector) addPairWithLimit(pairs []*ClonePair, newPair *ClonePair
 		})
 		return pairs
 	}
-	
+
 	// If at limit, check if new pair is better than the worst
 	if newPair.Similarity > pairs[len(pairs)-1].Similarity {
 		// Replace worst pair
@@ -720,7 +720,7 @@ func (cd *CloneDetector) addPairWithLimit(pairs []*ClonePair, newPair *ClonePair
 			return pairs[i].Similarity > pairs[j].Similarity
 		})
 	}
-	
+
 	return pairs
 }
 
@@ -730,7 +730,7 @@ func (cd *CloneDetector) limitAndSortClonePairs(maxPairs int) {
 	sort.Slice(cd.clonePairs, func(i, j int) bool {
 		return cd.clonePairs[i].Similarity > cd.clonePairs[j].Similarity
 	})
-	
+
 	// Limit the number of pairs to prevent memory issues
 	if len(cd.clonePairs) > maxPairs {
 		cd.clonePairs = cd.clonePairs[:maxPairs]
