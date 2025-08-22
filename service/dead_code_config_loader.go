@@ -40,7 +40,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) LoadDefaultConfig() *domain.DeadCodeR
 		}
 		// If loading failed, fall back to hardcoded defaults
 	}
-	
+
 	// Fall back to hardcoded default configuration
 	cfg := config.DefaultConfig()
 	return cl.configToRequest(cfg)

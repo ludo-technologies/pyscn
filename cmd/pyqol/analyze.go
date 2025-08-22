@@ -191,7 +191,7 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 
 	// Wait for all analyses to complete
 	wg.Wait()
-	
+
 	// Stop status monitoring
 	if c.verbose {
 		close(statusDone)
@@ -218,12 +218,12 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 type ErrorCategory string
 
 const (
-	ErrorCategoryInput       ErrorCategory = "Input Error"
-	ErrorCategoryConfig      ErrorCategory = "Configuration Error"  
-	ErrorCategoryProcessing  ErrorCategory = "Processing Error"
-	ErrorCategoryOutput      ErrorCategory = "Output Error"
-	ErrorCategoryTimeout     ErrorCategory = "Timeout Error"
-	ErrorCategoryUnknown     ErrorCategory = "Unknown Error"
+	ErrorCategoryInput      ErrorCategory = "Input Error"
+	ErrorCategoryConfig     ErrorCategory = "Configuration Error"
+	ErrorCategoryProcessing ErrorCategory = "Processing Error"
+	ErrorCategoryOutput     ErrorCategory = "Output Error"
+	ErrorCategoryTimeout    ErrorCategory = "Timeout Error"
+	ErrorCategoryUnknown    ErrorCategory = "Unknown Error"
 )
 
 // CategorizedError wraps an error with category information
@@ -242,9 +242,9 @@ func categorizeError(err error) *CategorizedError {
 	if err == nil {
 		return nil
 	}
-	
+
 	errMsg := err.Error()
-	
+
 	// Check for common error patterns
 	if containsAny(errMsg, []string{"invalid input", "no files found", "path", "directory"}) {
 		return &CategorizedError{
@@ -281,7 +281,7 @@ func categorizeError(err error) *CategorizedError {
 			Original: err,
 		}
 	}
-	
+
 	return &CategorizedError{
 		Category: ErrorCategoryUnknown,
 		Message:  errMsg,
@@ -336,7 +336,7 @@ func (c *AnalyzeCommand) printAnalysisPlan(cmd *cobra.Command, result *AnalysisR
 // calculateOverallStats calculates overall statistics from individual analysis statuses
 func (c *AnalyzeCommand) calculateOverallStats(result *AnalysisResult) {
 	analyses := []*AnalysisStatus{result.Complexity, result.DeadCode, result.Clones}
-	
+
 	for _, analysis := range analyses {
 		if analysis.Enabled {
 			if analysis.Success {
@@ -361,10 +361,10 @@ func (c *AnalyzeCommand) printStatusReport(cmd *cobra.Command, result *AnalysisR
 	for _, analysis := range analyses {
 		if analysis.Enabled {
 			if analysis.Success {
-				fmt.Fprintf(cmd.ErrOrStderr(), "✅ %s: SUCCESS (%v)\n", 
+				fmt.Fprintf(cmd.ErrOrStderr(), "✅ %s: SUCCESS (%v)\n",
 					analysis.Name, analysis.Duration.Round(time.Millisecond))
 			} else {
-				fmt.Fprintf(cmd.ErrOrStderr(), "❌ %s: FAILED (%v)\n", 
+				fmt.Fprintf(cmd.ErrOrStderr(), "❌ %s: FAILED (%v)\n",
 					analysis.Name, analysis.Duration.Round(time.Millisecond))
 				if c.verbose && analysis.Error != nil {
 					fmt.Fprintf(cmd.ErrOrStderr(), "   Error: %v\n", analysis.Error)
@@ -380,14 +380,14 @@ func (c *AnalyzeCommand) printStatusReport(cmd *cobra.Command, result *AnalysisR
 	if result.Overall.FailureCount > 0 {
 		fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Result: %d succeeded, %d failed, %d skipped\n",
 			result.Overall.SuccessCount, result.Overall.FailureCount, result.Overall.SkippedCount)
-		
+
 		// Print categorized error summary
 		errorCategories := make(map[ErrorCategory][]string)
 		for _, analysis := range analyses {
 			if analysis.Enabled && !analysis.Success && analysis.Error != nil {
 				if categorizedErr, ok := analysis.Error.(*CategorizedError); ok {
 					errorCategories[categorizedErr.Category] = append(
-						errorCategories[categorizedErr.Category], 
+						errorCategories[categorizedErr.Category],
 						fmt.Sprintf("%s: %s", analysis.Name, categorizedErr.Message))
 				} else {
 					errorCategories[ErrorCategoryUnknown] = append(
@@ -396,7 +396,7 @@ func (c *AnalyzeCommand) printStatusReport(cmd *cobra.Command, result *AnalysisR
 				}
 			}
 		}
-		
+
 		// Print errors grouped by category
 		fmt.Fprintf(cmd.ErrOrStderr(), "\nError Summary by Category:\n")
 		for category, errors := range errorCategories {
@@ -405,10 +405,10 @@ func (c *AnalyzeCommand) printStatusReport(cmd *cobra.Command, result *AnalysisR
 				fmt.Fprintf(cmd.ErrOrStderr(), "    • %s\n", err)
 			}
 		}
-		
+
 		// Print recovery suggestions
 		c.printRecoverySuggestions(cmd, errorCategories)
-		
+
 	} else {
 		fmt.Fprintf(cmd.ErrOrStderr(), "✅ Result: All %d enabled analysis type(s) completed successfully\n",
 			result.Overall.SuccessCount)
@@ -420,9 +420,9 @@ func (c *AnalyzeCommand) printRecoverySuggestions(cmd *cobra.Command, errorCateg
 	if len(errorCategories) == 0 {
 		return
 	}
-	
+
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n💡 Recovery Suggestions:\n")
-	
+
 	for category := range errorCategories {
 		switch category {
 		case ErrorCategoryInput:
@@ -445,7 +445,7 @@ func (c *AnalyzeCommand) printRecoverySuggestions(cmd *cobra.Command, errorCateg
 			fmt.Fprintf(cmd.ErrOrStderr(), "     Try: pyqol analyze . --verbose or check GitHub issues\n")
 		}
 	}
-	
+
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n  📖 For more help: pyqol --help or visit the documentation\n")
 }
 
@@ -461,26 +461,19 @@ func (c *AnalyzeCommand) monitorAnalysisProgress(cmd *cobra.Command, result *Ana
 		case <-ticker.C:
 			mutex.Lock()
 			analyses := []*AnalysisStatus{result.Complexity, result.DeadCode, result.Clones}
-			
+
 			var running []string
-			var completed []string
-			
+
 			for _, analysis := range analyses {
 				if analysis.Enabled {
 					if analysis.Started && !analysis.Completed {
 						elapsed := time.Since(analysis.StartTime)
 						running = append(running, fmt.Sprintf("%s (%v)", analysis.Name, elapsed.Round(time.Second)))
-					} else if analysis.Completed {
-						status := "✅"
-						if !analysis.Success {
-							status = "❌"
-						}
-						completed = append(completed, fmt.Sprintf("%s %s", status, analysis.Name))
 					}
 				}
 			}
 			mutex.Unlock()
-			
+
 			if len(running) > 0 {
 				fmt.Fprintf(cmd.ErrOrStderr(), "🔄 Running: %s\n", joinStrings(running, ", "))
 			}
@@ -496,27 +489,12 @@ func joinStrings(strs []string, delimiter string) string {
 	if len(strs) == 1 {
 		return strs[0]
 	}
-	
+
 	result := strs[0]
 	for i := 1; i < len(strs); i++ {
 		result += delimiter + strs[i]
 	}
 	return result
-}
-
-// getAnalysisTypeFromError attempts to identify which analysis type failed from error message
-func getAnalysisTypeFromError(err error) string {
-	errMsg := err.Error()
-	if containsAny(errMsg, []string{"complexity", "complex"}) {
-		return "Complexity Analysis"
-	}
-	if containsAny(errMsg, []string{"dead", "code"}) {
-		return "Dead Code Detection"
-	}
-	if containsAny(errMsg, []string{"clone", "similar"}) {
-		return "Clone Detection"
-	}
-	return "Unknown Analysis"
 }
 
 // containsAny checks if a string contains any of the given substrings
