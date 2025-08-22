@@ -151,10 +151,10 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 
 	// Configure with stricter defaults for checking
 	complexityCmd.outputFormat = "text"
-	complexityCmd.minComplexity = 1                 // Analyze all functions
-	complexityCmd.maxComplexity = 0                  // No filter - we want to see ALL functions
-	complexityCmd.lowThreshold = 5                  // Low: 1-5
-	complexityCmd.mediumThreshold = 9               // Medium: 6-9, High: 10+
+	complexityCmd.minComplexity = 1   // Analyze all functions
+	complexityCmd.maxComplexity = 0   // No filter - we want to see ALL functions
+	complexityCmd.lowThreshold = 5    // Low: 1-5
+	complexityCmd.mediumThreshold = 9 // Medium: 6-9, High: 10+
 	complexityCmd.configFile = c.configFile
 	complexityCmd.verbose = false
 
@@ -288,7 +288,7 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 	// Count clone pairs above the similarity threshold
 	issueCount := len(response.ClonePairs)
 	if issueCount > 0 && !c.quiet {
-		fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Found %d code clone pair(s) (similarity > %.1f)\n", 
+		fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Found %d code clone pair(s) (similarity > %.1f)\n",
 			issueCount, request.SimilarityThreshold)
 	}
 

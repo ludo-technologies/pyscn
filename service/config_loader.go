@@ -35,7 +35,7 @@ func (c *ConfigurationLoaderImpl) LoadDefaultConfig() *domain.ComplexityRequest 
 		}
 		// If loading failed, fall back to hardcoded defaults
 	}
-	
+
 	// Fall back to hardcoded default configuration
 	cfg := config.DefaultConfig()
 	return c.convertToComplexityRequest(cfg)
@@ -181,12 +181,12 @@ func (c *ConfigurationLoaderImpl) CreateConfigTemplate(path string) error {
 // FindDefaultConfigFile looks for .pyqol.yaml in the current directory
 func (c *ConfigurationLoaderImpl) FindDefaultConfigFile() string {
 	configFiles := []string{".pyqol.yaml", ".pyqol.yml", "pyqol.yaml"}
-	
+
 	for _, filename := range configFiles {
 		if _, err := os.Stat(filename); err == nil {
 			return filename
 		}
 	}
-	
+
 	return "" // No config file found
 }
