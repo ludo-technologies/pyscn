@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -51,6 +52,9 @@ type CloneCommand struct {
 	// Advanced options
 	costModelType string
 	verbose       bool
+
+	// Performance options
+	timeout time.Duration
 }
 
 // NewCloneCommand creates a new clone detection command
@@ -58,7 +62,7 @@ func NewCloneCommand() *CloneCommand {
 	return &CloneCommand{
 		recursive:           true,
 		minLines:            5,
-		minNodes:            10,
+		minNodes:            5,
 		similarityThreshold: 0.8,
 		maxEditDistance:     50.0,
 		ignoreLiterals:      false,
@@ -77,6 +81,7 @@ func NewCloneCommand() *CloneCommand {
 		cloneTypes:          []string{"type1", "type2", "type3", "type4"},
 		costModelType:       "python",
 		verbose:             false,
+		timeout: 5 * time.Minute,
 	}
 }
 
@@ -173,6 +178,10 @@ Examples:
 	cmd.Flags().BoolVarP(&c.verbose, "verbose", "v", c.verbose,
 		"Enable verbose output")
 
+	// Performance flags
+	cmd.Flags().DurationVar(&c.timeout, "clone-timeout", c.timeout,
+		"Maximum time for clone analysis (e.g., 5m, 30s)")
+
 	return cmd
 }
 
@@ -255,6 +264,7 @@ func (c *CloneCommand) createCloneRequest(paths []string) (*domain.CloneRequest,
 		MaxSimilarity:       c.maxSimilarity,
 		CloneTypes:          cloneTypes,
 		ConfigPath:          c.configFile,
+		Timeout:             c.timeout,
 	}
 
 	return request, nil

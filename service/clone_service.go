@@ -38,30 +38,9 @@ func (s *CloneService) DetectClones(ctx context.Context, req *domain.CloneReques
 		return nil, fmt.Errorf("invalid clone request: %w", err)
 	}
 
-	startTime := time.Now()
-	// s.progress.StartProgress(0)
-
-	// Collect Python files
-	fileReader := NewFileReader()
-	files, err := fileReader.CollectPythonFiles(req.Paths, req.Recursive, req.IncludePatterns, req.ExcludePatterns)
-	if err != nil {
-		return nil, fmt.Errorf("failed to collect files: %w", err)
-	}
-
-	if len(files) == 0 {
-		// s.progress.Info("No Python files found")
-		return &domain.CloneResponse{
-			Clones:      []*domain.Clone{},
-			ClonePairs:  []*domain.ClonePair{},
-			CloneGroups: []*domain.CloneGroup{},
-			Statistics:  &domain.CloneStatistics{},
-			Request:     req,
-			Duration:    time.Since(startTime).Milliseconds(),
-			Success:     true,
-		}, nil
-	}
-
-	return s.DetectClonesInFiles(ctx, files, req)
+	// Use the files already collected by the usecase layer
+	// req.Paths now contains actual Python files to analyze
+	return s.DetectClonesInFiles(ctx, req.Paths, req)
 }
 
 // DetectClonesInFiles performs clone detection on specific files
@@ -79,11 +58,24 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 
 	startTime := time.Now()
 
-	// s.progress.Info(fmt.Sprintf("Analyzing %d files for clones...", len(filePaths)))
+	// Apply timeout if specified
+	if req.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, req.Timeout)
+		defer cancel()
+	}
+
+	if s.progress != nil {
+		s.progress.StartProgress(len(filePaths))
+		defer s.progress.FinishProgress()
+		s.progress.UpdateProgress(fmt.Sprintf("Analyzing %d files for clones...", len(filePaths)), 0, len(filePaths))
+	}
 
 	// Create clone detector with configuration
 	detectorConfig := s.createDetectorConfig(req)
 	detector := analyzer.NewCloneDetector(detectorConfig)
+	
+	// Performance optimizations are built into the detector
 
 	// Create Python parser
 	pyParser := parser.New()
@@ -92,27 +84,36 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	var allFragments []*analyzer.CodeFragment
 	linesAnalyzed := 0
 
-	for _, filePath := range filePaths {
-		// s.progress.Update(fmt.Sprintf("Processing file %d/%d: %s", i+1, len(filePaths), filePath), i, len(filePaths))
+	for i, filePath := range filePaths {
+		// Check for context cancellation periodically
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("clone analysis cancelled: %w", ctx.Err())
+		default:
+		}
+
+		if s.progress != nil {
+			s.progress.UpdateProgress(fmt.Sprintf("Processing: %s", filePath), i+1, len(filePaths))
+		}
 
 		// Read file content
 		content, err := readFileContent(filePath)
 		if err != nil {
-			// s.progress.Warning(fmt.Sprintf("Failed to read file %s: %v", filePath, err))
-			continue
+			fmt.Fprintf(os.Stderr, "Warning: Failed to read file %s: %v\n", filePath, err)
+			continue // Skip files that cannot be read
 		}
 
 		// Parse Python file
 		parseResult, err := pyParser.Parse(ctx, content)
 		if err != nil {
-			// s.progress.Warning(fmt.Sprintf("Failed to parse file %s: %v", filePath, err))
-			continue
+			fmt.Fprintf(os.Stderr, "Warning: Failed to parse file %s: %v\n", filePath, err)
+			continue // Skip files that cannot be parsed
 		}
 
 		// Validate parse result
 		if parseResult == nil || parseResult.AST == nil {
-			// s.progress.Warning(fmt.Sprintf("Skipping file %s: empty parse result", filePath))
-			continue
+			fmt.Fprintf(os.Stderr, "Warning: Invalid parse result for file %s\n", filePath)
+			continue // Skip files with invalid parse results
 		}
 
 		// Count lines for statistics
@@ -128,7 +129,9 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	}
 
 	if len(allFragments) == 0 {
-		// s.progress.Info("No code fragments found for analysis")
+		if s.progress != nil {
+			s.progress.UpdateProgress("No code fragments found for analysis", len(filePaths), len(filePaths))
+		}
 		return &domain.CloneResponse{
 			Clones:      []*domain.Clone{},
 			ClonePairs:  []*domain.ClonePair{},
@@ -143,10 +146,12 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 		}, nil
 	}
 
-	// s.progress.Update(fmt.Sprintf("Found %d code fragments, detecting clones...", len(allFragments)), 0, 1)
+	if s.progress != nil {
+		s.progress.UpdateProgress(fmt.Sprintf("Found %d code fragments, detecting clones...", len(allFragments)), len(filePaths), len(filePaths))
+	}
 
-	// Detect clones
-	clonePairs, cloneGroups := detector.DetectClones(allFragments)
+	// Detect clones with context support for cancellation
+	clonePairs, cloneGroups := detector.DetectClonesWithContext(ctx, allFragments)
 
 	// Convert to domain objects
 	domainClones := s.convertFragmentsToDomainClones(allFragments)
