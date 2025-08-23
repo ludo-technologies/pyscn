@@ -38,7 +38,7 @@ func (s *DeadCodeServiceImpl) Analyze(ctx context.Context, req domain.DeadCodeRe
 		// Check context cancellation
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, fmt.Errorf("dead code analysis cancelled: %w", ctx.Err())
 		default:
 		}
 
