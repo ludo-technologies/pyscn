@@ -253,64 +253,99 @@ func (uc *CloneUseCase) mergeConfiguration(configReq, requestReq domain.CloneReq
 	// Start with configuration from file
 	merged := configReq
 
-	// Override with non-default request values
+	// Helper function to check if a flag was explicitly set
+	wasExplicitlySet := func(flagName string) bool {
+		if requestReq.ExplicitFlags == nil {
+			return false
+		}
+		return requestReq.ExplicitFlags[flagName]
+	}
+
+	// Always override paths as they come from command arguments
 	if len(requestReq.Paths) > 0 {
 		merged.Paths = requestReq.Paths
 	}
 
-	// Override boolean flags if explicitly set
-	merged.Recursive = requestReq.Recursive
-	merged.ShowDetails = requestReq.ShowDetails
-	merged.ShowContent = requestReq.ShowContent
-	merged.GroupClones = requestReq.GroupClones
+	// Override boolean flags only if explicitly set
+	if wasExplicitlySet("recursive") {
+		merged.Recursive = requestReq.Recursive
+	}
+	if wasExplicitlySet("show-details") {
+		merged.ShowDetails = requestReq.ShowDetails
+	}
+	if wasExplicitlySet("show-content") {
+		merged.ShowContent = requestReq.ShowContent
+	}
+	if wasExplicitlySet("group") {
+		merged.GroupClones = requestReq.GroupClones
+	}
+	if wasExplicitlySet("ignore-literals") {
+		merged.IgnoreLiterals = requestReq.IgnoreLiterals
+	}
+	if wasExplicitlySet("ignore-identifiers") {
+		merged.IgnoreIdentifiers = requestReq.IgnoreIdentifiers
+	}
 
-	// Override numeric values if they differ from defaults
-	defaultReq := domain.DefaultCloneRequest()
-
-	if requestReq.MinLines != defaultReq.MinLines {
+	// Override numeric values only if explicitly set
+	if wasExplicitlySet("min-lines") {
 		merged.MinLines = requestReq.MinLines
 	}
-	if requestReq.MinNodes != defaultReq.MinNodes {
+	if wasExplicitlySet("min-nodes") {
 		merged.MinNodes = requestReq.MinNodes
 	}
-	if requestReq.SimilarityThreshold != defaultReq.SimilarityThreshold {
+	if wasExplicitlySet("similarity") {
 		merged.SimilarityThreshold = requestReq.SimilarityThreshold
 	}
-	if requestReq.MaxEditDistance != defaultReq.MaxEditDistance {
+	if wasExplicitlySet("max-edit-distance") {
 		merged.MaxEditDistance = requestReq.MaxEditDistance
 	}
 
-	// Override threshold values if different from defaults
-	if requestReq.Type1Threshold != defaultReq.Type1Threshold {
+	// Override threshold values only if explicitly set
+	if wasExplicitlySet("type1-threshold") {
 		merged.Type1Threshold = requestReq.Type1Threshold
 	}
-	if requestReq.Type2Threshold != defaultReq.Type2Threshold {
+	if wasExplicitlySet("type2-threshold") {
 		merged.Type2Threshold = requestReq.Type2Threshold
 	}
-	if requestReq.Type3Threshold != defaultReq.Type3Threshold {
+	if wasExplicitlySet("type3-threshold") {
 		merged.Type3Threshold = requestReq.Type3Threshold
 	}
-	if requestReq.Type4Threshold != defaultReq.Type4Threshold {
+	if wasExplicitlySet("type4-threshold") {
 		merged.Type4Threshold = requestReq.Type4Threshold
 	}
 
-	// Always use request values for output settings
-	merged.OutputFormat = requestReq.OutputFormat
-	merged.OutputWriter = requestReq.OutputWriter
-	merged.SortBy = requestReq.SortBy
+	// Override output settings only if explicitly set
+	if wasExplicitlySet("format") {
+		merged.OutputFormat = requestReq.OutputFormat
+	}
+	merged.OutputWriter = requestReq.OutputWriter // Always use from request
+	if wasExplicitlySet("sort") {
+		merged.SortBy = requestReq.SortBy
+	}
 
-	// Override patterns if provided
-	if len(requestReq.IncludePatterns) > 0 {
+	// Override similarity filters only if explicitly set
+	if wasExplicitlySet("min-similarity") {
+		merged.MinSimilarity = requestReq.MinSimilarity
+	}
+	if wasExplicitlySet("max-similarity") {
+		merged.MaxSimilarity = requestReq.MaxSimilarity
+	}
+
+	// Override patterns only if explicitly set
+	if wasExplicitlySet("include") && len(requestReq.IncludePatterns) > 0 {
 		merged.IncludePatterns = requestReq.IncludePatterns
 	}
-	if len(requestReq.ExcludePatterns) > 0 {
+	if wasExplicitlySet("exclude") && len(requestReq.ExcludePatterns) > 0 {
 		merged.ExcludePatterns = requestReq.ExcludePatterns
 	}
 
-	// Override clone types if provided
-	if len(requestReq.CloneTypes) > 0 && len(requestReq.CloneTypes) != len(defaultReq.CloneTypes) {
+	// Override clone types only if explicitly set
+	if wasExplicitlySet("types") && len(requestReq.CloneTypes) > 0 {
 		merged.CloneTypes = requestReq.CloneTypes
 	}
+
+	// Preserve ExplicitFlags for downstream usage
+	merged.ExplicitFlags = requestReq.ExplicitFlags
 
 	return merged
 }

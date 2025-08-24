@@ -584,7 +584,7 @@ func (c *AnalyzeCommand) runCloneAnalysis(cmd *cobra.Command, args []string) err
 	cloneCmd.verbose = c.verbose
 
 	// Create clone request
-	request, err := cloneCmd.createCloneRequest(args)
+	request, err := cloneCmd.createCloneRequest(cmd, args)
 	if err != nil {
 		return err
 	}

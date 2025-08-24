@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/pyqol/pyqol/app"
 	"github.com/pyqol/pyqol/domain"
@@ -193,7 +194,7 @@ func (c *CloneCommand) runCloneDetection(cmd *cobra.Command, args []string) erro
 	}
 
 	// Create clone request from command flags
-	request, err := c.createCloneRequest(args)
+	request, err := c.createCloneRequest(cmd, args)
 	if err != nil {
 		return fmt.Errorf("failed to create clone request: %w", err)
 	}
@@ -220,7 +221,7 @@ func (c *CloneCommand) runCloneDetection(cmd *cobra.Command, args []string) erro
 }
 
 // createCloneRequest creates a clone request from command line flags
-func (c *CloneCommand) createCloneRequest(paths []string) (*domain.CloneRequest, error) {
+func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*domain.CloneRequest, error) {
 	// Parse output format
 	outputFormat, err := c.parseOutputFormat(c.outputFormat)
 	if err != nil {
@@ -238,6 +239,12 @@ func (c *CloneCommand) createCloneRequest(paths []string) (*domain.CloneRequest,
 	if err != nil {
 		return nil, err
 	}
+
+	// Track which flags were explicitly set by the user
+	explicitFlags := make(map[string]bool)
+	cmd.Flags().Visit(func(f *pflag.Flag) {
+		explicitFlags[f.Name] = true
+	})
 
 	request := &domain.CloneRequest{
 		Paths:               paths,
@@ -265,6 +272,7 @@ func (c *CloneCommand) createCloneRequest(paths []string) (*domain.CloneRequest,
 		CloneTypes:          cloneTypes,
 		ConfigPath:          c.configFile,
 		Timeout:             c.timeout,
+		ExplicitFlags:       explicitFlags,
 	}
 
 	return request, nil
