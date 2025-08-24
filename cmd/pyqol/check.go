@@ -255,7 +255,7 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 	cloneCmd.verbose = false
 
 	// Create request
-	request, err := cloneCmd.createCloneRequest(args)
+	request, err := cloneCmd.createCloneRequest(cmd, args)
 	if err != nil {
 		return 0, err
 	}

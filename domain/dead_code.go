@@ -54,6 +54,9 @@ type DeadCodeRequest struct {
 	DetectAfterContinue       bool // Detect code after continue statements
 	DetectAfterRaise          bool // Detect code after raise statements
 	DetectUnreachableBranches bool // Detect unreachable conditional branches
+
+	// Track which fields were explicitly set via CLI flags
+	ExplicitFlags map[string]bool
 }
 
 // DeadCodeLocation represents the location of dead code

@@ -11,6 +11,7 @@ import (
 	"github.com/pyqol/pyqol/domain"
 	"github.com/pyqol/pyqol/service"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // ComplexityCommand represents the complexity command
@@ -135,6 +136,12 @@ func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []st
 		return domain.ComplexityRequest{}, err
 	}
 
+	// Track which flags were explicitly set by the user
+	explicitFlags := make(map[string]bool)
+	cmd.Flags().Visit(func(f *pflag.Flag) {
+		explicitFlags[f.Name] = true
+	})
+
 	return domain.ComplexityRequest{
 		Paths:           paths,
 		OutputFormat:    outputFormat,
@@ -149,6 +156,7 @@ func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []st
 		Recursive:       true, // Always recursive for directories
 		IncludePatterns: []string{"*.py", "*.pyi"},
 		ExcludePatterns: []string{"test_*.py", "*_test.py"},
+		ExplicitFlags:   explicitFlags,
 	}, nil
 }
 

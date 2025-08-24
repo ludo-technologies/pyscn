@@ -46,12 +46,22 @@ func (c *ConfigurationLoaderImpl) MergeConfig(base *domain.ComplexityRequest, ov
 	// Start with base configuration
 	merged := *base
 
-	// Override with non-zero values from override
+	// Helper function to check if a flag was explicitly set
+	wasExplicitlySet := func(flagName string) bool {
+		if override.ExplicitFlags == nil {
+			return false
+		}
+		return override.ExplicitFlags[flagName]
+	}
+
+	// Override with values from override only if they were explicitly set
+	// Always override paths as they come from command arguments
 	if len(override.Paths) > 0 {
 		merged.Paths = override.Paths
 	}
 
-	if override.OutputFormat != "" {
+	// Output configuration
+	if wasExplicitlySet("format") || override.OutputFormat != "" {
 		merged.OutputFormat = override.OutputFormat
 	}
 
@@ -59,42 +69,48 @@ func (c *ConfigurationLoaderImpl) MergeConfig(base *domain.ComplexityRequest, ov
 		merged.OutputWriter = override.OutputWriter
 	}
 
-	// For boolean values, we need to be careful - we want to preserve explicit false values
-	// For now, we'll assume that the override takes precedence if it was explicitly set
-	merged.ShowDetails = override.ShowDetails
+	if wasExplicitlySet("details") {
+		merged.ShowDetails = override.ShowDetails
+	}
 
-	if override.MinComplexity > 0 {
+	// Filtering and sorting
+	if wasExplicitlySet("min") {
 		merged.MinComplexity = override.MinComplexity
 	}
 
-	if override.MaxComplexity > 0 {
+	if wasExplicitlySet("max") {
 		merged.MaxComplexity = override.MaxComplexity
 	}
 
-	if override.SortBy != "" {
+	if wasExplicitlySet("sort") {
 		merged.SortBy = override.SortBy
 	}
 
-	if override.LowThreshold > 0 {
+	// Complexity thresholds
+	if wasExplicitlySet("low-threshold") {
 		merged.LowThreshold = override.LowThreshold
 	}
 
-	if override.MediumThreshold > 0 {
+	if wasExplicitlySet("medium-threshold") {
 		merged.MediumThreshold = override.MediumThreshold
 	}
 
+	// Config path is always from override if provided
 	if override.ConfigPath != "" {
 		merged.ConfigPath = override.ConfigPath
 	}
 
-	// For recursive, we preserve the override value
-	merged.Recursive = override.Recursive
+	// For recursive, only override if explicitly set
+	if wasExplicitlySet("recursive") {
+		merged.Recursive = override.Recursive
+	}
 
-	if len(override.IncludePatterns) > 0 {
+	// Patterns
+	if wasExplicitlySet("include") && len(override.IncludePatterns) > 0 {
 		merged.IncludePatterns = override.IncludePatterns
 	}
 
-	if len(override.ExcludePatterns) > 0 {
+	if wasExplicitlySet("exclude") && len(override.ExcludePatterns) > 0 {
 		merged.ExcludePatterns = override.ExcludePatterns
 	}
 

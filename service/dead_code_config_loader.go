@@ -58,48 +58,77 @@ func (cl *DeadCodeConfigurationLoaderImpl) MergeConfig(base *domain.DeadCodeRequ
 	// Start with base config
 	merged := *base
 
-	// Override with CLI values (only if they're not default/empty)
+	// Helper function to check if a flag was explicitly set
+	wasExplicitlySet := func(flagName string) bool {
+		if override.ExplicitFlags == nil {
+			return false
+		}
+		return override.ExplicitFlags[flagName]
+	}
+
+	// Override with values from override only if they were explicitly set
+	// Always override paths as they come from command arguments
 	if len(override.Paths) > 0 {
 		merged.Paths = override.Paths
 	}
-	if override.OutputFormat != "" {
+
+	// Output configuration
+	if wasExplicitlySet("format") || override.OutputFormat != "" {
 		merged.OutputFormat = override.OutputFormat
 	}
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
-	if override.MinSeverity != "" {
+	if wasExplicitlySet("show-context") {
+		merged.ShowContext = override.ShowContext
+	}
+	if wasExplicitlySet("context-lines") {
+		merged.ContextLines = override.ContextLines
+	}
+
+	// Filtering and sorting
+	if wasExplicitlySet("min-severity") {
 		merged.MinSeverity = override.MinSeverity
 	}
-	if override.SortBy != "" {
+	if wasExplicitlySet("sort") {
 		merged.SortBy = override.SortBy
 	}
+
+	// Config path is always from override if provided
 	if override.ConfigPath != "" {
 		merged.ConfigPath = override.ConfigPath
 	}
 
-	// Boolean values - use override values
-	merged.ShowContext = override.ShowContext
-	merged.Recursive = override.Recursive
-	merged.DetectAfterReturn = override.DetectAfterReturn
-	merged.DetectAfterBreak = override.DetectAfterBreak
-	merged.DetectAfterContinue = override.DetectAfterContinue
-	merged.DetectAfterRaise = override.DetectAfterRaise
-	merged.DetectUnreachableBranches = override.DetectUnreachableBranches
-
-	// Integer values - use override if positive
-	if override.ContextLines >= 0 {
-		merged.ContextLines = override.ContextLines
+	// Dead code detection options
+	if wasExplicitlySet("detect-after-return") {
+		merged.DetectAfterReturn = override.DetectAfterReturn
+	}
+	if wasExplicitlySet("detect-after-break") {
+		merged.DetectAfterBreak = override.DetectAfterBreak
+	}
+	if wasExplicitlySet("detect-after-continue") {
+		merged.DetectAfterContinue = override.DetectAfterContinue
+	}
+	if wasExplicitlySet("detect-after-raise") {
+		merged.DetectAfterRaise = override.DetectAfterRaise
+	}
+	if wasExplicitlySet("detect-unreachable-branches") {
+		merged.DetectUnreachableBranches = override.DetectUnreachableBranches
 	}
 
-	// Array values - use override if not empty
-	if len(override.IncludePatterns) > 0 {
+	// For recursive, only override if explicitly set
+	if wasExplicitlySet("recursive") {
+		merged.Recursive = override.Recursive
+	}
+
+	// Patterns
+	if wasExplicitlySet("include") && len(override.IncludePatterns) > 0 {
 		merged.IncludePatterns = override.IncludePatterns
 	}
-	if len(override.ExcludePatterns) > 0 {
+	if wasExplicitlySet("exclude") && len(override.ExcludePatterns) > 0 {
 		merged.ExcludePatterns = override.ExcludePatterns
 	}
-	if len(override.IgnorePatterns) > 0 {
+	if wasExplicitlySet("ignore") && len(override.IgnorePatterns) > 0 {
 		merged.IgnorePatterns = override.IgnorePatterns
 	}
 
