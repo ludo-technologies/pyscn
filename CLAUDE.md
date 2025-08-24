@@ -37,12 +37,10 @@ pyqol is a next-generation Python static analysis tool that uses Control Flow Gr
 ## Development Workflow
 
 ### Task Management
-1. Check current tasks: `./scripts/tasks.sh list`
-2. Start a task: `./scripts/tasks.sh start <issue-number>`
-3. Create feature branch: `git checkout -b feature/issue-<number>-<description>`
-4. Implement with TDD approach
-5. Commit with conventional commits format
-6. Create PR and link to issue
+1. Create feature branch: `git checkout -b feature/issue-<number>-<description>`
+2. Implement with TDD approach
+3. Commit with conventional commits format
+4. Create PR and link to issue
 
 ### Code Style Requirements
 - Follow Go idioms and best practices
@@ -168,12 +166,6 @@ go test -cover ./...             # Check coverage
 go test -bench=. ./...           # Run benchmarks
 go build ./cmd/pyqol             # Build binary
 
-# Task management
-./scripts/tasks.sh list          # View all tasks
-./scripts/tasks.sh week 1        # View current week tasks
-./scripts/tasks.sh start N       # Start working on issue N
-./scripts/tasks.sh done N        # Complete issue N
-
 # Git workflow
 git checkout -b feature/issue-N  # Create feature branch
 git commit -m "feat: ..."        # Simple commit
@@ -236,14 +228,6 @@ gh pr create                     # Create pull request
 - Support Linux, macOS, Windows
 - Work with Python 3.8+
 
-## Success Metrics
-
-- Analysis speed: >10,000 lines/second
-- False positive rate: <5%
-- Memory usage: <10x file size
-- User satisfaction: High
-- Code quality: Excellent
-
 ## Remember
 
 1. **Quality over quantity** - Better to do fewer things well
@@ -267,5 +251,5 @@ The goal is to create a tool that Python developers will love to use. Focus on a
 
 ---
 
-*Last updated: August 16, 2025*
+*Last updated: August 24, 2025*
 *Project deadline: September 6, 2025*
