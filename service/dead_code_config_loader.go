@@ -58,77 +58,48 @@ func (cl *DeadCodeConfigurationLoaderImpl) MergeConfig(base *domain.DeadCodeRequ
 	// Start with base config
 	merged := *base
 
-	// Helper function to check if a flag was explicitly set
-	wasExplicitlySet := func(flagName string) bool {
-		if override.ExplicitFlags == nil {
-			return false
-		}
-		return override.ExplicitFlags[flagName]
-	}
-
-	// Override with values from override only if they were explicitly set
-	// Always override paths as they come from command arguments
+	// Override with CLI values (only if they're not default/empty)
 	if len(override.Paths) > 0 {
 		merged.Paths = override.Paths
 	}
-
-	// Output configuration
-	if wasExplicitlySet("format") || override.OutputFormat != "" {
+	if override.OutputFormat != "" {
 		merged.OutputFormat = override.OutputFormat
 	}
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
-	if wasExplicitlySet("show-context") {
-		merged.ShowContext = override.ShowContext
-	}
-	if wasExplicitlySet("context-lines") {
-		merged.ContextLines = override.ContextLines
-	}
-
-	// Filtering and sorting
-	if wasExplicitlySet("min-severity") {
+	if override.MinSeverity != "" {
 		merged.MinSeverity = override.MinSeverity
 	}
-	if wasExplicitlySet("sort") {
+	if override.SortBy != "" {
 		merged.SortBy = override.SortBy
 	}
-
-	// Config path is always from override if provided
 	if override.ConfigPath != "" {
 		merged.ConfigPath = override.ConfigPath
 	}
 
-	// Dead code detection options
-	if wasExplicitlySet("detect-after-return") {
-		merged.DetectAfterReturn = override.DetectAfterReturn
-	}
-	if wasExplicitlySet("detect-after-break") {
-		merged.DetectAfterBreak = override.DetectAfterBreak
-	}
-	if wasExplicitlySet("detect-after-continue") {
-		merged.DetectAfterContinue = override.DetectAfterContinue
-	}
-	if wasExplicitlySet("detect-after-raise") {
-		merged.DetectAfterRaise = override.DetectAfterRaise
-	}
-	if wasExplicitlySet("detect-unreachable-branches") {
-		merged.DetectUnreachableBranches = override.DetectUnreachableBranches
+	// Boolean values - use override values
+	merged.ShowContext = override.ShowContext
+	merged.Recursive = override.Recursive
+	merged.DetectAfterReturn = override.DetectAfterReturn
+	merged.DetectAfterBreak = override.DetectAfterBreak
+	merged.DetectAfterContinue = override.DetectAfterContinue
+	merged.DetectAfterRaise = override.DetectAfterRaise
+	merged.DetectUnreachableBranches = override.DetectUnreachableBranches
+
+	// Integer values - use override if positive
+	if override.ContextLines >= 0 {
+		merged.ContextLines = override.ContextLines
 	}
 
-	// For recursive, only override if explicitly set
-	if wasExplicitlySet("recursive") {
-		merged.Recursive = override.Recursive
-	}
-
-	// Patterns
-	if wasExplicitlySet("include") && len(override.IncludePatterns) > 0 {
+	// Array values - use override if not empty
+	if len(override.IncludePatterns) > 0 {
 		merged.IncludePatterns = override.IncludePatterns
 	}
-	if wasExplicitlySet("exclude") && len(override.ExcludePatterns) > 0 {
+	if len(override.ExcludePatterns) > 0 {
 		merged.ExcludePatterns = override.ExcludePatterns
 	}
-	if wasExplicitlySet("ignore") && len(override.IgnorePatterns) > 0 {
+	if len(override.IgnorePatterns) > 0 {
 		merged.IgnorePatterns = override.IgnorePatterns
 	}
 

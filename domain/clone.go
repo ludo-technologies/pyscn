@@ -168,9 +168,6 @@ type CloneRequest struct {
 
 	// Performance configuration
 	Timeout time.Duration `json:"timeout"` // Maximum time for clone analysis (0 = no timeout)
-
-	// Track which fields were explicitly set via CLI flags
-	ExplicitFlags map[string]bool `json:"-"`
 }
 
 // CloneResponse represents the response from clone detection

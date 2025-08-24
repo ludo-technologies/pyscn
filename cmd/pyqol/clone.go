@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	"github.com/pyqol/pyqol/app"
 	"github.com/pyqol/pyqol/domain"
@@ -240,12 +239,6 @@ func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*
 		return nil, err
 	}
 
-	// Track which flags were explicitly set by the user
-	explicitFlags := make(map[string]bool)
-	cmd.Flags().Visit(func(f *pflag.Flag) {
-		explicitFlags[f.Name] = true
-	})
-
 	request := &domain.CloneRequest{
 		Paths:               paths,
 		Recursive:           c.recursive,
@@ -272,7 +265,6 @@ func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*
 		CloneTypes:          cloneTypes,
 		ConfigPath:          c.configFile,
 		Timeout:             c.timeout,
-		ExplicitFlags:       explicitFlags,
 	}
 
 	return request, nil
