@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/pyqol/pyqol/domain"
+	"github.com/pyqol/pyqol/internal/config"
 )
 
 // ConfigurationLoaderWithFlags wraps configuration loading with explicit flag tracking
@@ -33,13 +34,6 @@ func (c *ConfigurationLoaderWithFlags) MergeConfig(base *domain.ComplexityReques
 	// Start with base configuration
 	merged := *base
 
-	// Helper function to check if a flag was explicitly set
-	wasExplicitlySet := func(flagName string) bool {
-		if c.explicitFlags == nil {
-			return false
-		}
-		return c.explicitFlags[flagName]
-	}
 
 	// Always override paths as they come from command arguments
 	if len(override.Paths) > 0 {
@@ -47,7 +41,7 @@ func (c *ConfigurationLoaderWithFlags) MergeConfig(base *domain.ComplexityReques
 	}
 
 	// Output configuration
-	if wasExplicitlySet("format") {
+	if config.WasExplicitlySet(c.explicitFlags, "format") {
 		merged.OutputFormat = override.OutputFormat
 	}
 
@@ -55,31 +49,19 @@ func (c *ConfigurationLoaderWithFlags) MergeConfig(base *domain.ComplexityReques
 		merged.OutputWriter = override.OutputWriter
 	}
 
-	if wasExplicitlySet("details") {
-		merged.ShowDetails = override.ShowDetails
-	}
+	merged.ShowDetails = config.MergeBool(merged.ShowDetails, override.ShowDetails, "details", c.explicitFlags)
 
 	// Filtering and sorting
-	if wasExplicitlySet("min") {
-		merged.MinComplexity = override.MinComplexity
-	}
+	merged.MinComplexity = config.MergeInt(merged.MinComplexity, override.MinComplexity, "min", c.explicitFlags)
+	merged.MaxComplexity = config.MergeInt(merged.MaxComplexity, override.MaxComplexity, "max", c.explicitFlags)
 
-	if wasExplicitlySet("max") {
-		merged.MaxComplexity = override.MaxComplexity
-	}
-
-	if wasExplicitlySet("sort") {
+	if config.WasExplicitlySet(c.explicitFlags, "sort") {
 		merged.SortBy = override.SortBy
 	}
 
 	// Complexity thresholds
-	if wasExplicitlySet("low-threshold") {
-		merged.LowThreshold = override.LowThreshold
-	}
-
-	if wasExplicitlySet("medium-threshold") {
-		merged.MediumThreshold = override.MediumThreshold
-	}
+	merged.LowThreshold = config.MergeInt(merged.LowThreshold, override.LowThreshold, "low-threshold", c.explicitFlags)
+	merged.MediumThreshold = config.MergeInt(merged.MediumThreshold, override.MediumThreshold, "medium-threshold", c.explicitFlags)
 
 	// Config path is always from override if provided
 	if override.ConfigPath != "" {
@@ -87,18 +69,11 @@ func (c *ConfigurationLoaderWithFlags) MergeConfig(base *domain.ComplexityReques
 	}
 
 	// For recursive, only override if explicitly set
-	if wasExplicitlySet("recursive") {
-		merged.Recursive = override.Recursive
-	}
+	merged.Recursive = config.MergeBool(merged.Recursive, override.Recursive, "recursive", c.explicitFlags)
 
 	// Patterns
-	if wasExplicitlySet("include") && len(override.IncludePatterns) > 0 {
-		merged.IncludePatterns = override.IncludePatterns
-	}
-
-	if wasExplicitlySet("exclude") && len(override.ExcludePatterns) > 0 {
-		merged.ExcludePatterns = override.ExcludePatterns
-	}
+	merged.IncludePatterns = config.MergeStringSlice(merged.IncludePatterns, override.IncludePatterns, "include", c.explicitFlags)
+	merged.ExcludePatterns = config.MergeStringSlice(merged.ExcludePatterns, override.ExcludePatterns, "exclude", c.explicitFlags)
 
 	return &merged
 }

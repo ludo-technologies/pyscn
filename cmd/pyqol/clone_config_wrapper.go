@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/pyqol/pyqol/domain"
+	"github.com/pyqol/pyqol/internal/config"
 	"github.com/pyqol/pyqol/service"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 // CloneConfigWrapper wraps clone configuration loading with explicit flag tracking
@@ -17,12 +17,7 @@ type CloneConfigWrapper struct {
 // NewCloneConfigWrapper creates a new clone configuration wrapper
 func NewCloneConfigWrapper(cmd *cobra.Command, request *domain.CloneRequest) *CloneConfigWrapper {
 	// Track which flags were explicitly set by the user
-	explicitFlags := make(map[string]bool)
-	if cmd != nil {
-		cmd.Flags().Visit(func(f *pflag.Flag) {
-			explicitFlags[f.Name] = true
-		})
-	}
+	explicitFlags := GetExplicitFlags(cmd)
 
 	return &CloneConfigWrapper{
 		loader:        service.NewCloneConfigurationLoader(),
@@ -57,13 +52,6 @@ func (w *CloneConfigWrapper) mergeConfiguration(configReq, requestReq domain.Clo
 	// Start with configuration from file
 	merged := configReq
 
-	// Helper function to check if a flag was explicitly set
-	wasExplicitlySet := func(flagName string) bool {
-		if w.explicitFlags == nil {
-			return false
-		}
-		return w.explicitFlags[flagName]
-	}
 
 	// Always override paths as they come from command arguments
 	if len(requestReq.Paths) > 0 {
@@ -71,80 +59,44 @@ func (w *CloneConfigWrapper) mergeConfiguration(configReq, requestReq domain.Clo
 	}
 
 	// Override boolean flags only if explicitly set
-	if wasExplicitlySet("recursive") {
-		merged.Recursive = requestReq.Recursive
-	}
-	if wasExplicitlySet("show-details") {
-		merged.ShowDetails = requestReq.ShowDetails
-	}
-	if wasExplicitlySet("show-content") {
-		merged.ShowContent = requestReq.ShowContent
-	}
-	if wasExplicitlySet("group") {
-		merged.GroupClones = requestReq.GroupClones
-	}
-	if wasExplicitlySet("ignore-literals") {
-		merged.IgnoreLiterals = requestReq.IgnoreLiterals
-	}
-	if wasExplicitlySet("ignore-identifiers") {
-		merged.IgnoreIdentifiers = requestReq.IgnoreIdentifiers
-	}
+	merged.Recursive = config.MergeBool(merged.Recursive, requestReq.Recursive, "recursive", w.explicitFlags)
+	merged.ShowDetails = config.MergeBool(merged.ShowDetails, requestReq.ShowDetails, "show-details", w.explicitFlags)
+	merged.ShowContent = config.MergeBool(merged.ShowContent, requestReq.ShowContent, "show-content", w.explicitFlags)
+	merged.GroupClones = config.MergeBool(merged.GroupClones, requestReq.GroupClones, "group", w.explicitFlags)
+	merged.IgnoreLiterals = config.MergeBool(merged.IgnoreLiterals, requestReq.IgnoreLiterals, "ignore-literals", w.explicitFlags)
+	merged.IgnoreIdentifiers = config.MergeBool(merged.IgnoreIdentifiers, requestReq.IgnoreIdentifiers, "ignore-identifiers", w.explicitFlags)
 
 	// Override numeric values only if explicitly set
-	if wasExplicitlySet("min-lines") {
-		merged.MinLines = requestReq.MinLines
-	}
-	if wasExplicitlySet("min-nodes") {
-		merged.MinNodes = requestReq.MinNodes
-	}
-	if wasExplicitlySet("similarity") {
-		merged.SimilarityThreshold = requestReq.SimilarityThreshold
-	}
-	if wasExplicitlySet("max-edit-distance") {
-		merged.MaxEditDistance = requestReq.MaxEditDistance
-	}
+	merged.MinLines = config.MergeInt(merged.MinLines, requestReq.MinLines, "min-lines", w.explicitFlags)
+	merged.MinNodes = config.MergeInt(merged.MinNodes, requestReq.MinNodes, "min-nodes", w.explicitFlags)
+	merged.SimilarityThreshold = config.MergeFloat64(merged.SimilarityThreshold, requestReq.SimilarityThreshold, "similarity", w.explicitFlags)
+	merged.MaxEditDistance = config.MergeFloat64(merged.MaxEditDistance, requestReq.MaxEditDistance, "max-edit-distance", w.explicitFlags)
 
 	// Override threshold values only if explicitly set
-	if wasExplicitlySet("type1-threshold") {
-		merged.Type1Threshold = requestReq.Type1Threshold
-	}
-	if wasExplicitlySet("type2-threshold") {
-		merged.Type2Threshold = requestReq.Type2Threshold
-	}
-	if wasExplicitlySet("type3-threshold") {
-		merged.Type3Threshold = requestReq.Type3Threshold
-	}
-	if wasExplicitlySet("type4-threshold") {
-		merged.Type4Threshold = requestReq.Type4Threshold
-	}
+	merged.Type1Threshold = config.MergeFloat64(merged.Type1Threshold, requestReq.Type1Threshold, "type1-threshold", w.explicitFlags)
+	merged.Type2Threshold = config.MergeFloat64(merged.Type2Threshold, requestReq.Type2Threshold, "type2-threshold", w.explicitFlags)
+	merged.Type3Threshold = config.MergeFloat64(merged.Type3Threshold, requestReq.Type3Threshold, "type3-threshold", w.explicitFlags)
+	merged.Type4Threshold = config.MergeFloat64(merged.Type4Threshold, requestReq.Type4Threshold, "type4-threshold", w.explicitFlags)
 
 	// Override output settings only if explicitly set
-	if wasExplicitlySet("format") {
+	if config.WasExplicitlySet(w.explicitFlags, "format") {
 		merged.OutputFormat = requestReq.OutputFormat
 	}
 	merged.OutputWriter = requestReq.OutputWriter // Always use from request
-	if wasExplicitlySet("sort") {
+	if config.WasExplicitlySet(w.explicitFlags, "sort") {
 		merged.SortBy = requestReq.SortBy
 	}
 
 	// Override similarity filters only if explicitly set
-	if wasExplicitlySet("min-similarity") {
-		merged.MinSimilarity = requestReq.MinSimilarity
-	}
-	if wasExplicitlySet("max-similarity") {
-		merged.MaxSimilarity = requestReq.MaxSimilarity
-	}
+	merged.MinSimilarity = config.MergeFloat64(merged.MinSimilarity, requestReq.MinSimilarity, "min-similarity", w.explicitFlags)
+	merged.MaxSimilarity = config.MergeFloat64(merged.MaxSimilarity, requestReq.MaxSimilarity, "max-similarity", w.explicitFlags)
 
 	// Override patterns only if explicitly set
-	if wasExplicitlySet("include") && len(requestReq.IncludePatterns) > 0 {
-		merged.IncludePatterns = requestReq.IncludePatterns
-	}
-	if wasExplicitlySet("exclude") && len(requestReq.ExcludePatterns) > 0 {
-		merged.ExcludePatterns = requestReq.ExcludePatterns
-	}
+	merged.IncludePatterns = config.MergeStringSlice(merged.IncludePatterns, requestReq.IncludePatterns, "include", w.explicitFlags)
+	merged.ExcludePatterns = config.MergeStringSlice(merged.ExcludePatterns, requestReq.ExcludePatterns, "exclude", w.explicitFlags)
 
 	// Override clone types only if explicitly set
-	if wasExplicitlySet("types") && len(requestReq.CloneTypes) > 0 {
+	if config.WasExplicitlySet(w.explicitFlags, "types") && len(requestReq.CloneTypes) > 0 {
 		merged.CloneTypes = requestReq.CloneTypes
 	}
 
