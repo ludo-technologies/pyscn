@@ -112,13 +112,12 @@ func (c *ComplexityCommand) runComplexityAnalysis(cmd *cobra.Command, args []str
 
 // buildComplexityRequest creates a domain request from CLI flags
 func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []string) (domain.ComplexityRequest, error) {
-	// Convert output format
+	// Parse format and sort - need these for validation
 	outputFormat, err := c.parseOutputFormat(c.outputFormat)
 	if err != nil {
 		return domain.ComplexityRequest{}, err
 	}
 
-	// Convert sort criteria
 	sortBy, err := c.parseSortCriteria(c.sortBy)
 	if err != nil {
 		return domain.ComplexityRequest{}, err
@@ -135,6 +134,7 @@ func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []st
 		return domain.ComplexityRequest{}, err
 	}
 
+	// Build request with all values - the merge will handle what to use based on explicit flags
 	return domain.ComplexityRequest{
 		Paths:           paths,
 		OutputFormat:    outputFormat,
