@@ -187,10 +187,13 @@ func (c *DeadCodeCommand) buildDeadCodeRequest(cmd *cobra.Command, args []string
 
 // createDeadCodeUseCase creates the use case with all dependencies
 func (c *DeadCodeCommand) createDeadCodeUseCase(cmd *cobra.Command) (*app.DeadCodeUseCase, error) {
+	// Track which flags were explicitly set by the user
+	explicitFlags := GetExplicitFlags(cmd)
+
 	// Create services
 	fileReader := service.NewFileReader()
 	formatter := service.NewDeadCodeFormatter()
-	configLoader := service.NewDeadCodeConfigurationLoader()
+	configLoader := service.NewDeadCodeConfigurationLoaderWithFlags(explicitFlags)
 
 	// Create progress reporter
 	progress := service.CreateProgressReporter(cmd.ErrOrStderr(), 0, c.verbose)

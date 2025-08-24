@@ -112,13 +112,12 @@ func (c *ComplexityCommand) runComplexityAnalysis(cmd *cobra.Command, args []str
 
 // buildComplexityRequest creates a domain request from CLI flags
 func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []string) (domain.ComplexityRequest, error) {
-	// Convert output format
+	// Parse format and sort - need these for validation
 	outputFormat, err := c.parseOutputFormat(c.outputFormat)
 	if err != nil {
 		return domain.ComplexityRequest{}, err
 	}
 
-	// Convert sort criteria
 	sortBy, err := c.parseSortCriteria(c.sortBy)
 	if err != nil {
 		return domain.ComplexityRequest{}, err
@@ -135,6 +134,7 @@ func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []st
 		return domain.ComplexityRequest{}, err
 	}
 
+	// Build request with all values - the merge will handle what to use based on explicit flags
 	return domain.ComplexityRequest{
 		Paths:           paths,
 		OutputFormat:    outputFormat,
@@ -154,10 +154,13 @@ func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []st
 
 // createComplexityUseCase creates the use case with all dependencies
 func (c *ComplexityCommand) createComplexityUseCase(cmd *cobra.Command) (*app.ComplexityUseCase, error) {
+	// Track which flags were explicitly set by the user
+	explicitFlags := GetExplicitFlags(cmd)
+
 	// Create services
 	fileReader := service.NewFileReader()
 	formatter := service.NewOutputFormatter()
-	configLoader := service.NewConfigurationLoader()
+	configLoader := service.NewConfigurationLoaderWithFlags(explicitFlags)
 
 	// Create progress reporter
 	progress := service.CreateProgressReporter(cmd.ErrOrStderr(), 0, c.verbose)
