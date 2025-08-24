@@ -11,7 +11,6 @@ import (
 	"github.com/pyqol/pyqol/domain"
 	"github.com/pyqol/pyqol/service"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 // DeadCodeCommand represents the dead code command
@@ -189,10 +188,7 @@ func (c *DeadCodeCommand) buildDeadCodeRequest(cmd *cobra.Command, args []string
 // createDeadCodeUseCase creates the use case with all dependencies
 func (c *DeadCodeCommand) createDeadCodeUseCase(cmd *cobra.Command) (*app.DeadCodeUseCase, error) {
 	// Track which flags were explicitly set by the user
-	explicitFlags := make(map[string]bool)
-	cmd.Flags().Visit(func(f *pflag.Flag) {
-		explicitFlags[f.Name] = true
-	})
+	explicitFlags := GetExplicitFlags(cmd)
 
 	// Create services
 	fileReader := service.NewFileReader()
