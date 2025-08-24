@@ -7,15 +7,15 @@ import (
 
 // ConfigurationLoaderWithFlags wraps configuration loading with explicit flag tracking
 type ConfigurationLoaderWithFlags struct {
-	loader        *ConfigurationLoaderImpl
-	explicitFlags map[string]bool
+	loader      *ConfigurationLoaderImpl
+	flagTracker *config.FlagTracker
 }
 
 // NewConfigurationLoaderWithFlags creates a new configuration loader that tracks explicit flags
 func NewConfigurationLoaderWithFlags(explicitFlags map[string]bool) *ConfigurationLoaderWithFlags {
 	return &ConfigurationLoaderWithFlags{
-		loader:        NewConfigurationLoader(),
-		explicitFlags: explicitFlags,
+		loader:      NewConfigurationLoader(),
+		flagTracker: config.NewFlagTrackerWithFlags(explicitFlags),
 	}
 }
 
@@ -31,17 +31,23 @@ func (c *ConfigurationLoaderWithFlags) LoadDefaultConfig() *domain.ComplexityReq
 
 // MergeConfig merges CLI flags with configuration file, respecting explicit flags
 func (c *ConfigurationLoaderWithFlags) MergeConfig(base *domain.ComplexityRequest, override *domain.ComplexityRequest) *domain.ComplexityRequest {
+	if base == nil {
+		return override
+	}
+	if override == nil {
+		return base
+	}
+	
 	// Start with base configuration
 	merged := *base
-
 
 	// Always override paths as they come from command arguments
 	if len(override.Paths) > 0 {
 		merged.Paths = override.Paths
 	}
 
-	// Output configuration
-	if config.WasExplicitlySet(c.explicitFlags, "format") {
+	// Output configuration - only override if explicitly set
+	if c.flagTracker.WasSet("format") {
 		merged.OutputFormat = override.OutputFormat
 	}
 
@@ -49,19 +55,20 @@ func (c *ConfigurationLoaderWithFlags) MergeConfig(base *domain.ComplexityReques
 		merged.OutputWriter = override.OutputWriter
 	}
 
-	merged.ShowDetails = config.MergeBool(merged.ShowDetails, override.ShowDetails, "details", c.explicitFlags)
+	merged.ShowDetails = c.flagTracker.MergeBool(merged.ShowDetails, override.ShowDetails, "details")
 
 	// Filtering and sorting
-	merged.MinComplexity = config.MergeInt(merged.MinComplexity, override.MinComplexity, "min", c.explicitFlags)
-	merged.MaxComplexity = config.MergeInt(merged.MaxComplexity, override.MaxComplexity, "max", c.explicitFlags)
+	merged.MinComplexity = c.flagTracker.MergeInt(merged.MinComplexity, override.MinComplexity, "min")
+	merged.MaxComplexity = c.flagTracker.MergeInt(merged.MaxComplexity, override.MaxComplexity, "max")
 
-	if config.WasExplicitlySet(c.explicitFlags, "sort") {
+	// Only override sort if explicitly set
+	if c.flagTracker.WasSet("sort") {
 		merged.SortBy = override.SortBy
 	}
 
 	// Complexity thresholds
-	merged.LowThreshold = config.MergeInt(merged.LowThreshold, override.LowThreshold, "low-threshold", c.explicitFlags)
-	merged.MediumThreshold = config.MergeInt(merged.MediumThreshold, override.MediumThreshold, "medium-threshold", c.explicitFlags)
+	merged.LowThreshold = c.flagTracker.MergeInt(merged.LowThreshold, override.LowThreshold, "low-threshold")
+	merged.MediumThreshold = c.flagTracker.MergeInt(merged.MediumThreshold, override.MediumThreshold, "medium-threshold")
 
 	// Config path is always from override if provided
 	if override.ConfigPath != "" {
@@ -69,11 +76,11 @@ func (c *ConfigurationLoaderWithFlags) MergeConfig(base *domain.ComplexityReques
 	}
 
 	// For recursive, only override if explicitly set
-	merged.Recursive = config.MergeBool(merged.Recursive, override.Recursive, "recursive", c.explicitFlags)
+	merged.Recursive = c.flagTracker.MergeBool(merged.Recursive, override.Recursive, "recursive")
 
 	// Patterns
-	merged.IncludePatterns = config.MergeStringSlice(merged.IncludePatterns, override.IncludePatterns, "include", c.explicitFlags)
-	merged.ExcludePatterns = config.MergeStringSlice(merged.ExcludePatterns, override.ExcludePatterns, "exclude", c.explicitFlags)
+	merged.IncludePatterns = c.flagTracker.MergeStringSlice(merged.IncludePatterns, override.IncludePatterns, "include")
+	merged.ExcludePatterns = c.flagTracker.MergeStringSlice(merged.ExcludePatterns, override.ExcludePatterns, "exclude")
 
 	return &merged
 }

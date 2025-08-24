@@ -7,15 +7,15 @@ import (
 
 // DeadCodeConfigurationLoaderWithFlags wraps dead code configuration loading with explicit flag tracking
 type DeadCodeConfigurationLoaderWithFlags struct {
-	loader        *DeadCodeConfigurationLoaderImpl
-	explicitFlags map[string]bool
+	loader      *DeadCodeConfigurationLoaderImpl
+	flagTracker *config.FlagTracker
 }
 
 // NewDeadCodeConfigurationLoaderWithFlags creates a new dead code configuration loader that tracks explicit flags
 func NewDeadCodeConfigurationLoaderWithFlags(explicitFlags map[string]bool) *DeadCodeConfigurationLoaderWithFlags {
 	return &DeadCodeConfigurationLoaderWithFlags{
-		loader:        NewDeadCodeConfigurationLoader(),
-		explicitFlags: explicitFlags,
+		loader:      NewDeadCodeConfigurationLoader(),
+		flagTracker: config.NewFlagTrackerWithFlags(explicitFlags),
 	}
 }
 
@@ -48,20 +48,20 @@ func (cl *DeadCodeConfigurationLoaderWithFlags) MergeConfig(base *domain.DeadCod
 	}
 
 	// Output configuration
-	if config.WasExplicitlySet(cl.explicitFlags, "format") {
+	if cl.flagTracker.WasSet("format") {
 		merged.OutputFormat = override.OutputFormat
 	}
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
-	merged.ShowContext = config.MergeBool(merged.ShowContext, override.ShowContext, "show-context", cl.explicitFlags)
-	merged.ContextLines = config.MergeInt(merged.ContextLines, override.ContextLines, "context-lines", cl.explicitFlags)
+	merged.ShowContext = cl.flagTracker.MergeBool(merged.ShowContext, override.ShowContext, "show-context")
+	merged.ContextLines = cl.flagTracker.MergeInt(merged.ContextLines, override.ContextLines, "context-lines")
 
 	// Filtering and sorting
-	if config.WasExplicitlySet(cl.explicitFlags, "min-severity") {
+	if cl.flagTracker.WasSet("min-severity") {
 		merged.MinSeverity = override.MinSeverity
 	}
-	if config.WasExplicitlySet(cl.explicitFlags, "sort") {
+	if cl.flagTracker.WasSet("sort") {
 		merged.SortBy = override.SortBy
 	}
 
@@ -71,19 +71,19 @@ func (cl *DeadCodeConfigurationLoaderWithFlags) MergeConfig(base *domain.DeadCod
 	}
 
 	// Dead code detection options
-	merged.DetectAfterReturn = config.MergeBool(merged.DetectAfterReturn, override.DetectAfterReturn, "detect-after-return", cl.explicitFlags)
-	merged.DetectAfterBreak = config.MergeBool(merged.DetectAfterBreak, override.DetectAfterBreak, "detect-after-break", cl.explicitFlags)
-	merged.DetectAfterContinue = config.MergeBool(merged.DetectAfterContinue, override.DetectAfterContinue, "detect-after-continue", cl.explicitFlags)
-	merged.DetectAfterRaise = config.MergeBool(merged.DetectAfterRaise, override.DetectAfterRaise, "detect-after-raise", cl.explicitFlags)
-	merged.DetectUnreachableBranches = config.MergeBool(merged.DetectUnreachableBranches, override.DetectUnreachableBranches, "detect-unreachable-branches", cl.explicitFlags)
+	merged.DetectAfterReturn = cl.flagTracker.MergeBool(merged.DetectAfterReturn, override.DetectAfterReturn, "detect-after-return")
+	merged.DetectAfterBreak = cl.flagTracker.MergeBool(merged.DetectAfterBreak, override.DetectAfterBreak, "detect-after-break")
+	merged.DetectAfterContinue = cl.flagTracker.MergeBool(merged.DetectAfterContinue, override.DetectAfterContinue, "detect-after-continue")
+	merged.DetectAfterRaise = cl.flagTracker.MergeBool(merged.DetectAfterRaise, override.DetectAfterRaise, "detect-after-raise")
+	merged.DetectUnreachableBranches = cl.flagTracker.MergeBool(merged.DetectUnreachableBranches, override.DetectUnreachableBranches, "detect-unreachable-branches")
 
 	// For recursive, only override if explicitly set
-	merged.Recursive = config.MergeBool(merged.Recursive, override.Recursive, "recursive", cl.explicitFlags)
+	merged.Recursive = cl.flagTracker.MergeBool(merged.Recursive, override.Recursive, "recursive")
 
 	// Patterns
-	merged.IncludePatterns = config.MergeStringSlice(merged.IncludePatterns, override.IncludePatterns, "include", cl.explicitFlags)
-	merged.ExcludePatterns = config.MergeStringSlice(merged.ExcludePatterns, override.ExcludePatterns, "exclude", cl.explicitFlags)
-	merged.IgnorePatterns = config.MergeStringSlice(merged.IgnorePatterns, override.IgnorePatterns, "ignore", cl.explicitFlags)
+	merged.IncludePatterns = cl.flagTracker.MergeStringSlice(merged.IncludePatterns, override.IncludePatterns, "include")
+	merged.ExcludePatterns = cl.flagTracker.MergeStringSlice(merged.ExcludePatterns, override.ExcludePatterns, "exclude")
+	merged.IgnorePatterns = cl.flagTracker.MergeStringSlice(merged.IgnorePatterns, override.IgnorePatterns, "ignore")
 
 	return &merged
 }
