@@ -62,9 +62,6 @@ type ComplexityRequest struct {
 	Recursive       bool
 	IncludePatterns []string
 	ExcludePatterns []string
-
-	// Track which fields were explicitly set via CLI flags
-	ExplicitFlags map[string]bool
 }
 
 // ComplexityMetrics represents detailed complexity metrics for a function

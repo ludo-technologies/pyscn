@@ -136,12 +136,6 @@ func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []st
 		return domain.ComplexityRequest{}, err
 	}
 
-	// Track which flags were explicitly set by the user
-	explicitFlags := make(map[string]bool)
-	cmd.Flags().Visit(func(f *pflag.Flag) {
-		explicitFlags[f.Name] = true
-	})
-
 	return domain.ComplexityRequest{
 		Paths:           paths,
 		OutputFormat:    outputFormat,
@@ -156,16 +150,21 @@ func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []st
 		Recursive:       true, // Always recursive for directories
 		IncludePatterns: []string{"*.py", "*.pyi"},
 		ExcludePatterns: []string{"test_*.py", "*_test.py"},
-		ExplicitFlags:   explicitFlags,
 	}, nil
 }
 
 // createComplexityUseCase creates the use case with all dependencies
 func (c *ComplexityCommand) createComplexityUseCase(cmd *cobra.Command) (*app.ComplexityUseCase, error) {
+	// Track which flags were explicitly set by the user
+	explicitFlags := make(map[string]bool)
+	cmd.Flags().Visit(func(f *pflag.Flag) {
+		explicitFlags[f.Name] = true
+	})
+
 	// Create services
 	fileReader := service.NewFileReader()
 	formatter := service.NewOutputFormatter()
-	configLoader := service.NewConfigurationLoader()
+	configLoader := service.NewConfigurationLoaderWithFlags(explicitFlags)
 
 	// Create progress reporter
 	progress := service.CreateProgressReporter(cmd.ErrOrStderr(), 0, c.verbose)
