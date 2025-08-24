@@ -193,7 +193,7 @@ func (c *CloneCommand) runCloneDetection(cmd *cobra.Command, args []string) erro
 	}
 
 	// Create clone request from command flags
-	request, err := c.createCloneRequest(args)
+	request, err := c.createCloneRequest(cmd, args)
 	if err != nil {
 		return fmt.Errorf("failed to create clone request: %w", err)
 	}
@@ -220,7 +220,7 @@ func (c *CloneCommand) runCloneDetection(cmd *cobra.Command, args []string) erro
 }
 
 // createCloneRequest creates a clone request from command line flags
-func (c *CloneCommand) createCloneRequest(paths []string) (*domain.CloneRequest, error) {
+func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*domain.CloneRequest, error) {
 	// Parse output format
 	outputFormat, err := c.parseOutputFormat(c.outputFormat)
 	if err != nil {

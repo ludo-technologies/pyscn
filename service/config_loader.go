@@ -47,10 +47,12 @@ func (c *ConfigurationLoaderImpl) MergeConfig(base *domain.ComplexityRequest, ov
 	merged := *base
 
 	// Override with non-zero values from override
+	// Always override paths as they come from command arguments
 	if len(override.Paths) > 0 {
 		merged.Paths = override.Paths
 	}
 
+	// Output configuration
 	if override.OutputFormat != "" {
 		merged.OutputFormat = override.OutputFormat
 	}
@@ -59,37 +61,42 @@ func (c *ConfigurationLoaderImpl) MergeConfig(base *domain.ComplexityRequest, ov
 		merged.OutputWriter = override.OutputWriter
 	}
 
-	// For boolean values, we need to be careful - we want to preserve explicit false values
-	// For now, we'll assume that the override takes precedence if it was explicitly set
-	merged.ShowDetails = override.ShowDetails
+	// Only override if values differ from defaults
+	if override.ShowDetails {
+		merged.ShowDetails = override.ShowDetails
+	}
 
-	if override.MinComplexity > 0 {
+	// Filtering and sorting - override if non-default
+	if override.MinComplexity != 1 {
 		merged.MinComplexity = override.MinComplexity
 	}
 
-	if override.MaxComplexity > 0 {
+	if override.MaxComplexity != 0 {
 		merged.MaxComplexity = override.MaxComplexity
 	}
 
-	if override.SortBy != "" {
+	if override.SortBy != "" && override.SortBy != "complexity" {
 		merged.SortBy = override.SortBy
 	}
 
-	if override.LowThreshold > 0 {
+	// Complexity thresholds - override if non-default
+	if override.LowThreshold != 9 && override.LowThreshold > 0 {
 		merged.LowThreshold = override.LowThreshold
 	}
 
-	if override.MediumThreshold > 0 {
+	if override.MediumThreshold != 19 && override.MediumThreshold > 0 {
 		merged.MediumThreshold = override.MediumThreshold
 	}
 
+	// Config path is always from override if provided
 	if override.ConfigPath != "" {
 		merged.ConfigPath = override.ConfigPath
 	}
 
-	// For recursive, we preserve the override value
+	// For recursive, preserve the override value
 	merged.Recursive = override.Recursive
 
+	// Patterns - override if provided and different from defaults
 	if len(override.IncludePatterns) > 0 {
 		merged.IncludePatterns = override.IncludePatterns
 	}
