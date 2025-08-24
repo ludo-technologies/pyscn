@@ -89,7 +89,7 @@ func TestFlagTracker_ConcurrentReadWrite(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			for j := 0; j < iterations; j++ {
-				flagName := "flag"
+				var flagName string
 				if j%2 == 0 {
 					flagName = "even"
 				} else {
