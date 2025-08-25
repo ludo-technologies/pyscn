@@ -655,7 +655,7 @@ func TestDeadCodeUseCase_AnalyzeFile(t *testing.T) {
 			filePath: "/test/file.py",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
 				fileReader.On("IsValidPythonFile", "/test/file.py").Return(true)
-				// File existence is checked with os.Stat which will fail for non-existent files
+				fileReader.On("FileExists", "/test/file.py").Return(false, nil)
 			},
 			expectError: true,
 			errorMsg:    "file not found: /test/file.py",
@@ -674,7 +674,7 @@ func TestDeadCodeUseCase_AnalyzeFile(t *testing.T) {
 			filePath: "/test/nonexistent.py", 
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
 				fileReader.On("IsValidPythonFile", "/test/nonexistent.py").Return(true)
-				// File existence check will fail first, so other mocks won't be called
+				fileReader.On("FileExists", "/test/nonexistent.py").Return(false, nil)
 			},
 			expectError: true,
 			errorMsg:    "file not found",
