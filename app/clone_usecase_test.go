@@ -450,7 +450,7 @@ func TestCloneUseCase_ExecuteAndReturn(t *testing.T) {
 				SimilarityThreshold: 0.8,
 			},
 			expectError: true,
-			errorMsg:    "no paths specified for clone detection",
+			errorMsg:    "paths cannot be empty",
 		},
 		{
 			name: "file reader not initialized",
@@ -460,7 +460,12 @@ func TestCloneUseCase_ExecuteAndReturn(t *testing.T) {
 			request: domain.CloneRequest{
 				Paths:               []string{"/test/file.py"},
 				MinLines:            5,
+				MinNodes:            10,
 				SimilarityThreshold: 0.8,
+				Type1Threshold:      0.95,
+				Type2Threshold:      0.85,
+				Type3Threshold:      0.75,
+				Type4Threshold:      0.65,
 			},
 			expectError: true,
 			errorMsg:    "file reader not initialized",
@@ -793,8 +798,8 @@ func TestCloneUseCase_mergeConfiguration(t *testing.T) {
 			},
 			expected: domain.CloneRequest{
 				Paths:               []string{"/test/file.py"}, // From request
-				MinLines:            5,                         // From request (overrides config)
-				SimilarityThreshold: 0.8,                      // From request (overrides config)
+				MinLines:            10,                        // From config (request matched default, didn't override)
+				SimilarityThreshold: 0.9,                      // From config (request matched default, didn't override)
 				ShowDetails:         false,                    // From request (overrides config)
 				CloneTypes:          []domain.CloneType{domain.Type1Clone}, // From config (not overridden)
 				OutputFormat:        domain.OutputFormatJSON,  // From request

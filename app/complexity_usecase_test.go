@@ -360,7 +360,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 			if tt.expectError {
 				assert.Error(t, err)
 				if tt.errorType != "" {
-					assert.IsType(t, err, &domain.DomainError{})
+					assert.IsType(t, domain.DomainError{}, err)
 				}
 				if tt.errorMsg != "" {
 					assert.Contains(t, err.Error(), tt.errorMsg)
