@@ -61,6 +61,18 @@ func (f *FileReaderImpl) IsValidPythonFile(path string) bool {
 	return ext == ".py" || ext == ".pyi"
 }
 
+// FileExists checks if a file exists
+func (f *FileReaderImpl) FileExists(path string) (bool, error) {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return !info.IsDir(), nil
+}
+
 // collectFromDirectory collects Python files from a directory
 func (f *FileReaderImpl) collectFromDirectory(dirPath string, recursive bool, includePatterns, excludePatterns []string) ([]string, error) {
 	var files []string

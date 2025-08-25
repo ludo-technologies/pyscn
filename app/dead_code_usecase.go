@@ -139,9 +139,13 @@ func (uc *DeadCodeUseCase) AnalyzeFile(ctx context.Context, filePath string, req
 		return domain.NewInvalidInputError(fmt.Sprintf("not a valid Python file: %s", filePath), nil)
 	}
 
-	// Check if file exists
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+	// Check if file exists through abstraction
+	exists, err := uc.fileReader.FileExists(filePath)
+	if err != nil {
 		return domain.NewFileNotFoundError(filePath, err)
+	}
+	if !exists {
+		return domain.NewFileNotFoundError(filePath, fmt.Errorf("file does not exist"))
 	}
 
 	// Load configuration if specified
