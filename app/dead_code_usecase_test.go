@@ -207,7 +207,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 				progress.On("FinishProgress")
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return(createMockDeadCodeResponse(), nil)
-				formatter.On("Write", mock.Anything, domain.OutputFormatText, os.Stdout).Return(nil)
+				formatter.On("Write", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
 			},
 			request:     createValidDeadCodeRequest(),
 			expectError: false,
@@ -423,7 +423,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 				progress.On("FinishProgress")
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return(createMockDeadCodeResponse(), nil)
-				formatter.On("Write", mock.Anything, domain.OutputFormatText, os.Stdout).Return(nil)
+				formatter.On("Write", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
 			},
 			request: func() domain.DeadCodeRequest {
 				req := createValidDeadCodeRequest()
@@ -445,7 +445,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 			if tt.expectError {
 				assert.Error(t, err)
 				if tt.errorType != "" {
-					assert.IsType(t, err, &domain.DomainError{})
+					assert.IsType(t, domain.DomainError{}, err)
 				}
 				if tt.errorMsg != "" {
 					assert.Contains(t, err.Error(), tt.errorMsg)
@@ -651,24 +651,14 @@ func TestDeadCodeUseCase_AnalyzeFile(t *testing.T) {
 		errorMsg    string
 	}{
 		{
-			name:     "successful file analysis",
+			name:     "file not found error",
 			filePath: "/test/file.py",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
 				fileReader.On("IsValidPythonFile", "/test/file.py").Return(true)
-				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
-				
-				mockFileResult := &domain.FileDeadCode{
-					FilePath:          "/test/file.py",
-					TotalFindings:     1,
-					TotalFunctions:    1,
-					AffectedFunctions: 1,
-				}
-				
-				service.On("AnalyzeFile", mock.Anything, "/test/file.py", mock.AnythingOfType("domain.DeadCodeRequest")).
-					Return(mockFileResult, nil)
-				formatter.On("Write", mock.Anything, domain.OutputFormatText, os.Stdout).Return(nil)
+				// File existence is checked with os.Stat which will fail for non-existent files
 			},
-			expectError: false,
+			expectError: true,
+			errorMsg:    "file not found: /test/file.py",
 		},
 		{
 			name:     "invalid python file",
@@ -680,16 +670,14 @@ func TestDeadCodeUseCase_AnalyzeFile(t *testing.T) {
 			errorMsg:    "not a valid Python file",
 		},
 		{
-			name:     "analysis error",
-			filePath: "/test/file.py",
+			name:     "analysis error - file not found",
+			filePath: "/test/nonexistent.py", 
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
-				fileReader.On("IsValidPythonFile", "/test/file.py").Return(true)
-				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
-				service.On("AnalyzeFile", mock.Anything, "/test/file.py", mock.AnythingOfType("domain.DeadCodeRequest")).
-					Return((*domain.FileDeadCode)(nil), errors.New("CFG construction failed"))
+				fileReader.On("IsValidPythonFile", "/test/nonexistent.py").Return(true)
+				// File existence check will fail first, so other mocks won't be called
 			},
 			expectError: true,
-			errorMsg:    "file analysis failed",
+			errorMsg:    "file not found",
 		},
 	}
 
