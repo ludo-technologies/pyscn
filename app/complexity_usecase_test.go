@@ -601,6 +601,7 @@ func TestComplexityUseCase_AnalyzeFile(t *testing.T) {
 			filePath: "/test/file.py",
 			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
 				fileReader.On("IsValidPythonFile", "/test/file.py").Return(true)
+				fileReader.On("FileExists", "/test/file.py").Return(true, nil)
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 				service.On("AnalyzeFile", mock.Anything, "/test/file.py", mock.AnythingOfType("domain.ComplexityRequest")).
 					Return(createMockComplexityResponse(), nil)

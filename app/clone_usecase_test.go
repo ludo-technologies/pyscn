@@ -58,6 +58,11 @@ func (m *mockFileReader) IsValidPythonFile(filePath string) bool {
 	return args.Bool(0)
 }
 
+func (m *mockFileReader) FileExists(path string) (bool, error) {
+	args := m.Called(path)
+	return args.Bool(0), args.Error(1)
+}
+
 type mockProgressReporter struct {
 	mock.Mock
 }

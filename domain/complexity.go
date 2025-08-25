@@ -145,6 +145,9 @@ type FileReader interface {
 
 	// IsValidPythonFile checks if a file is a valid Python file
 	IsValidPythonFile(path string) bool
+
+	// FileExists checks if a file exists and returns an error if not
+	FileExists(path string) (bool, error)
 }
 
 // OutputFormatter defines the interface for formatting analysis results
