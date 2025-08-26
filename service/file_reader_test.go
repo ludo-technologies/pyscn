@@ -58,7 +58,8 @@ func createTestDirectoryStructure(t *testing.T) string {
 	// Create hidden files and directories (should be skipped)
 	createTestFile(t, tmpDir, ".hidden.py", "# Hidden Python file")
 	hiddenDir := filepath.Join(tmpDir, ".hidden_dir")
-	os.MkdirAll(hiddenDir, 0755)
+	err := os.MkdirAll(hiddenDir, 0755)
+	assert.NoError(t, err)
 	createTestFile(t, tmpDir, ".hidden_dir/hidden_module.py", "# Hidden module")
 	
 	// Create directories that should be skipped
@@ -196,7 +197,8 @@ func TestFileReader_CollectPythonFiles(t *testing.T) {
 			setupFiles: func(t *testing.T) (string, []string) {
 				tmpDir := createTempDir(t)
 				emptyDir := filepath.Join(tmpDir, "empty")
-				os.MkdirAll(emptyDir, 0755)
+				err := os.MkdirAll(emptyDir, 0755)
+				assert.NoError(t, err)
 				return tmpDir, []string{emptyDir}
 			},
 			recursive:     true,
@@ -320,7 +322,8 @@ func TestFileReader_ReadFile(t *testing.T) {
 			setupFile: func(t *testing.T) string {
 				tmpDir := createTempDir(t)
 				dirPath := filepath.Join(tmpDir, "directory")
-				os.MkdirAll(dirPath, 0755)
+				err := os.MkdirAll(dirPath, 0755)
+	assert.NoError(t, err)
 				return dirPath
 			},
 			expectError: true, // Should fail when trying to read a directory
@@ -410,7 +413,8 @@ func TestFileReader_FileExists(t *testing.T) {
 			setupPath: func(t *testing.T) string {
 				tmpDir := createTempDir(t)
 				dirPath := filepath.Join(tmpDir, "subdir")
-				os.MkdirAll(dirPath, 0755)
+				err := os.MkdirAll(dirPath, 0755)
+	assert.NoError(t, err)
 				return dirPath
 			},
 			expectExists: false, // FileExists should return false for directories
@@ -586,7 +590,8 @@ func TestFileReader_PermissionHandling(t *testing.T) {
 	
 	// Restore permissions for cleanup
 	t.Cleanup(func() {
-		os.Chmod(filePath, 0644)
+		err = os.Chmod(filePath, 0644)
+		assert.NoError(t, err)
 	})
 	
 	reader := NewFileReader()
