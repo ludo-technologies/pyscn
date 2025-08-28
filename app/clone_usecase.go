@@ -3,9 +3,13 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pyqol/pyqol/domain"
+	"github.com/pyqol/pyqol/service"
 )
 
 // CloneUseCase orchestrates clone detection operations
@@ -91,12 +95,54 @@ func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) er
 	response.Duration = time.Since(startTime).Milliseconds()
 
 	// Step 6: Format and output results
-	if !req.HasValidOutputWriter() {
-		return fmt.Errorf("no valid output writer specified")
+	if !req.HasValidOutputWriter() && req.OutputPath == "" {
+		return fmt.Errorf("no valid output writer or output path specified")
 	}
 
-	if err := uc.formatter.FormatCloneResponse(response, req.OutputFormat, req.OutputWriter); err != nil {
-		return fmt.Errorf("failed to format output: %w", err)
+	// Handle file output if specified
+	if req.OutputPath != "" {
+		// Create or open the file
+		file, err := os.Create(req.OutputPath)
+		if err != nil {
+			return fmt.Errorf("failed to create output file %s: %w", req.OutputPath, err)
+		}
+		defer file.Close()
+
+		// Write content to file
+		if err := uc.formatter.FormatCloneResponse(response, req.OutputFormat, file); err != nil {
+			return fmt.Errorf("failed to write output: %w", err)
+		}
+
+		// Get absolute path for display
+		absPath, err := filepath.Abs(req.OutputPath)
+		if err != nil {
+			absPath = req.OutputPath
+		}
+
+		// Handle browser opening for HTML files
+		if req.OutputFormat == domain.OutputFormatHTML {
+			// Open in browser unless NoOpen flag is set
+			if !req.NoOpen {
+				fileURL := "file://" + absPath
+				if err := service.OpenBrowser(fileURL); err != nil {
+					// Log error but don't fail the operation
+					fmt.Fprintf(os.Stderr, "Warning: Could not open browser: %v\n", err)
+				} else {
+					fmt.Fprintf(os.Stderr, "HTML report generated and opened: %s\n", absPath)
+				}
+			} else {
+				fmt.Fprintf(os.Stderr, "HTML report generated: %s\n", absPath)
+			}
+		} else {
+			// For other formats, just confirm file creation
+			formatName := strings.ToUpper(string(req.OutputFormat))
+			fmt.Fprintf(os.Stderr, "%s report generated: %s\n", formatName, absPath)
+		}
+	} else {
+		// Normal output to writer (stdout for text format)
+		if err := uc.formatter.FormatCloneResponse(response, req.OutputFormat, req.OutputWriter); err != nil {
+			return fmt.Errorf("failed to format output: %w", err)
+		}
 	}
 
 	// Step 7: Log completion summary
@@ -208,8 +254,8 @@ func (uc *CloneUseCase) ExecuteWithFiles(ctx context.Context, filePaths []string
 	response.Duration = time.Since(startTime).Milliseconds()
 
 	// Format and output results
-	if !req.HasValidOutputWriter() {
-		return fmt.Errorf("no valid output writer specified")
+	if !req.HasValidOutputWriter() && req.OutputPath == "" {
+		return fmt.Errorf("no valid output writer or output path specified")
 	}
 
 	if err := uc.formatter.FormatCloneResponse(response, req.OutputFormat, req.OutputWriter); err != nil {
@@ -297,6 +343,8 @@ func (uc *CloneUseCase) mergeConfiguration(configReq, requestReq domain.CloneReq
 	// Always use request values for output settings
 	merged.OutputFormat = requestReq.OutputFormat
 	merged.OutputWriter = requestReq.OutputWriter
+	merged.OutputPath = requestReq.OutputPath
+	merged.NoOpen = requestReq.NoOpen
 	merged.SortBy = requestReq.SortBy
 
 	// Override patterns if provided

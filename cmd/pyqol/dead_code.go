@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,8 +16,14 @@ import (
 
 // DeadCodeCommand represents the dead code command
 type DeadCodeCommand struct {
-	// Command line flags
-	outputFormat string
+	// Output format flags (only one should be true)
+	html   bool
+	json   bool
+	csv    bool
+	yaml   bool
+	noOpen bool
+	
+	// Analysis flags
 	minSeverity  string
 	sortBy       string
 	showContext  bool
@@ -35,7 +42,11 @@ type DeadCodeCommand struct {
 // NewDeadCodeCommand creates a new dead code command
 func NewDeadCodeCommand() *DeadCodeCommand {
 	return &DeadCodeCommand{
-		outputFormat:              "text",
+		html:                      false,
+		json:                      false,
+		csv:                       false,
+		yaml:                      false,
+		noOpen:                    false,
 		minSeverity:               "warning",
 		sortBy:                    "severity",
 		showContext:               false,
@@ -81,8 +92,14 @@ Examples:
 		RunE: c.runDeadCodeAnalysis,
 	}
 
-	// Add flags
-	cmd.Flags().StringVarP(&c.outputFormat, "format", "f", "text", "Output format (text, json, yaml, csv)")
+	// Add output format flags
+	cmd.Flags().BoolVar(&c.html, "html", false, "Generate HTML report file")
+	cmd.Flags().BoolVar(&c.json, "json", false, "Generate JSON report file")
+	cmd.Flags().BoolVar(&c.csv, "csv", false, "Generate CSV report file")
+	cmd.Flags().BoolVar(&c.yaml, "yaml", false, "Generate YAML report file")
+	cmd.Flags().BoolVar(&c.noOpen, "no-open", false, "Don't auto-open HTML in browser")
+	
+	// Add analysis flags
 	cmd.Flags().StringVar(&c.minSeverity, "min-severity", "warning", "Minimum severity to report (critical, warning, info)")
 	cmd.Flags().StringVar(&c.sortBy, "sort", "severity", "Sort results by (severity, line, file, function)")
 	cmd.Flags().BoolVar(&c.showContext, "show-context", false, "Show surrounding code context")
@@ -131,10 +148,51 @@ func (c *DeadCodeCommand) runDeadCodeAnalysis(cmd *cobra.Command, args []string)
 	return nil
 }
 
+// determineOutputFormat determines the output format based on flags
+func (c *DeadCodeCommand) determineOutputFormat() (domain.OutputFormat, string, error) {
+	// Count how many format flags are set
+	formatCount := 0
+	var format domain.OutputFormat
+	var extension string
+	
+	if c.html {
+		formatCount++
+		format = domain.OutputFormatHTML
+		extension = "html"
+	}
+	if c.json {
+		formatCount++
+		format = domain.OutputFormatJSON
+		extension = "json"
+	}
+	if c.csv {
+		formatCount++
+		format = domain.OutputFormatCSV
+		extension = "csv"
+	}
+	if c.yaml {
+		formatCount++
+		format = domain.OutputFormatYAML
+		extension = "yaml"
+	}
+	
+	// Check for conflicting flags
+	if formatCount > 1 {
+		return "", "", fmt.Errorf("only one output format flag can be specified")
+	}
+	
+	// Default to text if no format specified
+	if formatCount == 0 {
+		return domain.OutputFormatText, "", nil
+	}
+	
+	return format, extension, nil
+}
+
 // buildDeadCodeRequest creates a domain request from CLI flags
 func (c *DeadCodeCommand) buildDeadCodeRequest(cmd *cobra.Command, args []string) (domain.DeadCodeRequest, error) {
-	// Convert output format
-	outputFormat, err := c.parseOutputFormat(c.outputFormat)
+	// Determine output format from flags
+	outputFormat, extension, err := c.determineOutputFormat()
 	if err != nil {
 		return domain.DeadCodeRequest{}, err
 	}
@@ -162,10 +220,24 @@ func (c *DeadCodeCommand) buildDeadCodeRequest(cmd *cobra.Command, args []string
 		return domain.DeadCodeRequest{}, err
 	}
 
+	// Determine output destination
+	var outputWriter io.Writer
+	var outputPath string
+	
+	if outputFormat == domain.OutputFormatText {
+		// Text format goes to stdout
+		outputWriter = cmd.OutOrStdout()
+	} else {
+		// Other formats generate a file
+		outputPath = generateFileName("deadcode", extension)
+	}
+
 	return domain.DeadCodeRequest{
 		Paths:           paths,
 		OutputFormat:    outputFormat,
-		OutputWriter:    cmd.OutOrStdout(),
+		OutputWriter:    outputWriter,
+		OutputPath:      outputPath,
+		NoOpen:          c.noOpen,
 		ShowContext:     c.showContext,
 		ContextLines:    c.contextLines,
 		MinSeverity:     minSeverity,
@@ -216,21 +288,6 @@ func (c *DeadCodeCommand) createDeadCodeUseCase(cmd *cobra.Command) (*app.DeadCo
 }
 
 // Helper methods for parsing and validation
-
-func (c *DeadCodeCommand) parseOutputFormat(format string) (domain.OutputFormat, error) {
-	switch strings.ToLower(format) {
-	case "text":
-		return domain.OutputFormatText, nil
-	case "json":
-		return domain.OutputFormatJSON, nil
-	case "yaml", "yml":
-		return domain.OutputFormatYAML, nil
-	case "csv":
-		return domain.OutputFormatCSV, nil
-	default:
-		return "", fmt.Errorf("unsupported output format: %s (supported: text, json, yaml, csv)", format)
-	}
-}
 
 func (c *DeadCodeCommand) parseSeverityLevel(severity string) (domain.DeadCodeSeverity, error) {
 	switch strings.ToLower(severity) {

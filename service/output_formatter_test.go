@@ -248,6 +248,25 @@ func TestOutputFormatter_Format(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name:     "format as HTML",
+			response: createTestComplexityResponse(),
+			format:   domain.OutputFormatHTML,
+			validateOutput: func(t *testing.T, output string) {
+				// Verify HTML structure
+				assert.Contains(t, output, "<!DOCTYPE html>", "Should contain HTML doctype")
+				assert.Contains(t, output, "<title>", "Should contain title tag")
+				assert.Contains(t, output, "PyQol Code Quality Report", "Should contain report title")
+				assert.Contains(t, output, "Overall Score", "Should contain overall score")
+				assert.Contains(t, output, "<style>", "Should contain embedded CSS")
+				assert.Contains(t, output, "Complexity Score", "Should contain complexity score")
+				
+				// Check for Lighthouse-style elements
+				assert.Contains(t, output, "score-circle", "Should have score circle element")
+				assert.Contains(t, output, "score-gauge", "Should have score gauge element")
+			},
+			expectError: false,
+		},
+		{
 			name:        "unsupported format error",
 			response:    createTestComplexityResponse(),
 			format:      domain.OutputFormat("invalid"),

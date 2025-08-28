@@ -33,7 +33,7 @@ func TestAnalyzeCommandInterface(t *testing.T) {
 
 	// Test that essential flags are present
 	flags := cobraCmd.Flags()
-	expectedFlags := []string{"format", "config", "skip-complexity", "skip-deadcode", "skip-clones"}
+	expectedFlags := []string{"html", "json", "csv", "yaml", "config", "skip-complexity", "skip-deadcode", "skip-clones"}
 	for _, flagName := range expectedFlags {
 		flag := flags.Lookup(flagName)
 		if flag == nil {

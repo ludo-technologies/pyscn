@@ -342,7 +342,7 @@ func TestCloneUseCase_Execute(t *testing.T) {
 				return req
 			}(),
 			expectError: true,
-			errorMsg:    "no valid output writer specified",
+			errorMsg:    "no valid output writer or output path specified",
 		},
 		{
 			name: "output formatting error",
@@ -617,7 +617,7 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 					Return(createMockCloneResponse(), nil)
 			},
 			expectError: true,
-			errorMsg:    "no valid output writer specified",
+			errorMsg:    "no valid output writer or output path specified",
 		},
 	}
 

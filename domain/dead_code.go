@@ -32,6 +32,8 @@ type DeadCodeRequest struct {
 	// Output configuration
 	OutputFormat OutputFormat
 	OutputWriter io.Writer
+	OutputPath   string // Path to save output file (for HTML format)
+	NoOpen       bool   // Don't auto-open HTML in browser
 	ShowContext  bool
 	ContextLines int // Number of lines to show around dead code
 
@@ -236,6 +238,7 @@ func (req *DeadCodeRequest) Validate() error {
 		OutputFormatJSON: true,
 		OutputFormatYAML: true,
 		OutputFormatCSV:  true,
+		OutputFormatHTML: true,
 	}
 
 	if !validFormats[req.OutputFormat] {

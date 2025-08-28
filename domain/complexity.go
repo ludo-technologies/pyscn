@@ -13,6 +13,7 @@ const (
 	OutputFormatJSON OutputFormat = "json"
 	OutputFormatYAML OutputFormat = "yaml"
 	OutputFormatCSV  OutputFormat = "csv"
+	OutputFormatHTML OutputFormat = "html"
 )
 
 // SortCriteria represents the criteria for sorting results
@@ -44,6 +45,8 @@ type ComplexityRequest struct {
 	// Output configuration
 	OutputFormat OutputFormat
 	OutputWriter io.Writer
+	OutputPath   string // Path to save output file (for HTML format)
+	NoOpen       bool   // Don't auto-open HTML in browser
 	ShowDetails  bool
 
 	// Filtering and sorting

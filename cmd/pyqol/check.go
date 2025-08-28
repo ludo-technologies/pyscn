@@ -150,7 +150,7 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 	complexityCmd := NewComplexityCommand()
 
 	// Configure with stricter defaults for checking
-	complexityCmd.outputFormat = "text"
+	// Default to text output for check command
 	complexityCmd.minComplexity = 1   // Analyze all functions
 	complexityCmd.maxComplexity = 0   // No filter - we want to see ALL functions
 	complexityCmd.lowThreshold = 5    // Low: 1-5
@@ -204,7 +204,7 @@ func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, er
 	deadCodeCmd := NewDeadCodeCommand()
 
 	// Configure for critical issues only
-	deadCodeCmd.outputFormat = "text"
+	// Default to text output for check command
 	deadCodeCmd.minSeverity = "critical"
 	deadCodeCmd.configFile = c.configFile
 	deadCodeCmd.verbose = false
@@ -249,7 +249,7 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 	cloneCmd := NewCloneCommand()
 
 	// Configure for informational reporting
-	cloneCmd.outputFormat = "text"
+	// Default to text output for check command
 	cloneCmd.similarityThreshold = 0.8
 	cloneCmd.configFile = c.configFile
 	cloneCmd.verbose = false

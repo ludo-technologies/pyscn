@@ -236,7 +236,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 			},
 			expectError: true,
 			errorType:   "*domain.DomainError",
-			errorMsg:    "output writer is required",
+			errorMsg:    "output writer or output path is required",
 		},
 		{
 			name: "validation error - negative context lines",
@@ -579,7 +579,7 @@ func TestDeadCodeUseCase_validateRequest(t *testing.T) {
 			request: domain.DeadCodeRequest{
 				Paths: []string{"/test/file.py"},
 			},
-			wantErr: "output writer is required",
+			wantErr: "output writer or output path is required",
 		},
 		{
 			name: "negative context lines",
