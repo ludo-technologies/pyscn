@@ -93,7 +93,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 		}
 
 		if s.progress != nil {
-			s.progress.UpdateProgress(fmt.Sprintf("Processing: %s", filePath), i+1, len(filePaths))
+			s.progress.UpdateProgress(fmt.Sprintf("Processing: %s", filePath), i, len(filePaths))
 		}
 
 		// Read file content
@@ -147,7 +147,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	}
 
 	if s.progress != nil {
-		s.progress.UpdateProgress(fmt.Sprintf("Found %d code fragments, detecting clones...", len(allFragments)), len(filePaths), len(filePaths))
+		s.progress.UpdateProgress(fmt.Sprintf("Found %d code fragments, detecting clones...", len(allFragments)), len(filePaths)-1, len(filePaths))
 	}
 
 	// Detect clones with context support for cancellation
@@ -249,6 +249,8 @@ func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.
 		IgnoreLiterals:    req.IgnoreLiterals,
 		IgnoreIdentifiers: req.IgnoreIdentifiers,
 		CostModelType:     "python", // Default to Python cost model
+		MaxClonePairs:      10000,    // Default max pairs
+		BatchSizeThreshold: 50,       // Default batch size threshold
 	}
 }
 
