@@ -153,6 +153,8 @@ type CloneRequest struct {
 	// Output configuration
 	OutputFormat OutputFormat `json:"output_format"`
 	OutputWriter io.Writer    `json:"-"`
+	OutputPath   string       `json:"output_path"`  // Path to save output file (for HTML format)
+	NoOpen       bool         `json:"no_open"`      // Don't auto-open HTML in browser
 	ShowDetails  bool         `json:"show_details"`
 	ShowContent  bool         `json:"show_content"`
 	SortBy       SortCriteria `json:"sort_by"`

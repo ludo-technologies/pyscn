@@ -253,6 +253,8 @@ func (a *APTEDAnalyzer) computeForestDistanceOptimized(nodes1, nodes2 []*TreeNod
 				}
 
 				fd[x+1][y+1] = math.Min(deleteCost, math.Min(insertCost, subtreeCost))
+				// Fix: Update td matrix in both branches
+				td[x+1][y+1] = fd[x+1][y+1]
 			}
 
 			// Early termination check
@@ -334,6 +336,8 @@ func (a *APTEDAnalyzer) computeForestDistance(nodes1, nodes2 []*TreeNode, i, j i
 				}
 
 				fd[x+1][y+1] = math.Min(deleteCost, math.Min(insertCost, subtreeCost))
+				// Fix: Update td matrix in both branches
+				td[x+1][y+1] = fd[x+1][y+1]
 			}
 		}
 	}
@@ -426,13 +430,30 @@ func (a *APTEDAnalyzer) ComputeSimilarity(tree1, tree2 *TreeNode) float64 {
 
 	distance := a.ComputeDistance(tree1, tree2)
 
-	// Normalize by the maximum possible distance
-	maxSize := float64(math.Max(float64(tree1.Size()), float64(tree2.Size())))
-	if maxSize == 0 {
+	// Get sizes of both trees
+	size1 := float64(tree1.Size())
+	size2 := float64(tree2.Size())
+	
+	// Use Jaccard-like similarity normalization
+	// This handles cases where distance might exceed individual tree sizes
+	maxPossibleDistance := size1 + size2
+	
+	if maxPossibleDistance == 0 {
 		return 1.0
 	}
 
-	return 1.0 - (distance / maxSize)
+	// Normalize distance to [0, 1] range
+	// Distance can theoretically be at most size1 + size2 (delete all, insert all)
+	// But we cap it at maxPossibleDistance to ensure normalized value stays valid
+	normalizedDistance := math.Min(distance, maxPossibleDistance) / maxPossibleDistance
+	
+	// Calculate similarity as inverse of normalized distance
+	similarity := 1.0 - normalizedDistance
+	
+	// Ensure similarity is in valid range [0, 1] (defensive programming)
+	similarity = math.Max(0.0, math.Min(1.0, similarity))
+
+	return similarity
 }
 
 // TreeEditResult holds the result of tree edit distance computation

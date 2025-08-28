@@ -70,8 +70,8 @@ def sample_function(x):
     return 0
 `)
 
-	// Run with JSON format
-	cmd := exec.Command(binaryPath, "complexity", "--format", "json", testDir)
+	// Run with JSON format (outputs to file)
+	cmd := exec.Command(binaryPath, "complexity", "--json", testDir)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -81,10 +81,25 @@ def sample_function(x):
 		t.Fatalf("Command failed: %v\nStderr: %s", err, stderr.String())
 	}
 
+	// Find the generated JSON file
+	files, err := filepath.Glob("complexity_*.json")
+	if err != nil || len(files) == 0 {
+		t.Fatalf("No JSON file generated")
+	}
+	
+	// Read and verify JSON file content
+	jsonContent, err := os.ReadFile(files[0])
+	if err != nil {
+		t.Fatalf("Failed to read JSON file: %v", err)
+	}
+	
+	// Clean up the generated file
+	defer os.Remove(files[0])
+
 	// Verify JSON output is valid
 	var result map[string]interface{}
-	if err := json.Unmarshal(stdout.Bytes(), &result); err != nil {
-		t.Fatalf("Invalid JSON output: %v\nOutput: %s", err, stdout.String())
+	if err := json.Unmarshal(jsonContent, &result); err != nil {
+		t.Fatalf("Invalid JSON output: %v\nContent: %s", err, string(jsonContent))
 	}
 
 	// Check that JSON contains expected structure
@@ -128,11 +143,6 @@ def medium_complexity(x):
 			name:       "min complexity filter",
 			args:       []string{"complexity", "--min", "3", testDir},
 			shouldPass: true,
-		},
-		{
-			name:       "invalid format",
-			args:       []string{"complexity", "--format", "invalid", testDir},
-			shouldPass: false,
 		},
 		{
 			name:       "help flag",
@@ -183,13 +193,22 @@ func TestComplexityE2EErrorHandling(t *testing.T) {
 		},
 		{
 			name: "directory with no Python files",
-			args: []string{"complexity", os.TempDir()},
+			args: []string{"complexity", "EMPTY_DIR_PLACEHOLDER"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command(binaryPath, tt.args...)
+			// Replace placeholder with actual empty directory
+			args := make([]string, len(tt.args))
+			copy(args, tt.args)
+			for i, arg := range args {
+				if arg == "EMPTY_DIR_PLACEHOLDER" {
+					args[i] = t.TempDir() // Create empty directory for this test
+				}
+			}
+			
+			cmd := exec.Command(binaryPath, args...)
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr

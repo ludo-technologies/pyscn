@@ -3,9 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/pyqol/pyqol/domain"
+	"github.com/pyqol/pyqol/service"
 	"github.com/spf13/cobra"
 )
 
@@ -34,14 +39,25 @@ type AnalysisResult struct {
 		FailureCount int
 		SkippedCount int
 	}
+	
+	// Store actual analysis responses for unified report
+	ComplexityResponse *domain.ComplexityResponse
+	DeadCodeResponse   *domain.DeadCodeResponse
+	CloneResponse      *domain.CloneResponse
 }
 
 // AnalyzeCommand represents the comprehensive analysis command
 type AnalyzeCommand struct {
-	// Output configuration
-	outputFormat string
-	configFile   string
-	verbose      bool
+	// Output format flags (only one should be true)
+	html   bool
+	json   bool
+	csv    bool
+	yaml   bool
+	noOpen bool
+	
+	// Configuration
+	configFile string
+	verbose    bool
 
 	// Analysis selection
 	skipComplexity bool
@@ -57,7 +73,11 @@ type AnalyzeCommand struct {
 // NewAnalyzeCommand creates a new analyze command
 func NewAnalyzeCommand() *AnalyzeCommand {
 	return &AnalyzeCommand{
-		outputFormat:    "text",
+		html:            false,
+		json:            false,
+		csv:             false,
+		yaml:            false,
+		noOpen:          false,
 		configFile:      "",
 		verbose:         false,
 		skipComplexity:  false,
@@ -98,7 +118,7 @@ Examples:
   pyqol analyze .
 
   # Analyze specific files with JSON output
-  pyqol analyze --format json src/myfile.py
+  pyqol analyze --json src/myfile.py
 
   # Skip clone detection, focus on complexity and dead code
   pyqol analyze --skip-clones src/
@@ -109,8 +129,12 @@ Examples:
 		RunE: c.runAnalyze,
 	}
 
-	// Output flags
-	cmd.Flags().StringVarP(&c.outputFormat, "format", "f", "text", "Output format (text, json, yaml, csv)")
+	// Output format flags
+	cmd.Flags().BoolVar(&c.html, "html", false, "Generate HTML report file")
+	cmd.Flags().BoolVar(&c.json, "json", false, "Generate JSON report file")
+	cmd.Flags().BoolVar(&c.csv, "csv", false, "Generate CSV report file")
+	cmd.Flags().BoolVar(&c.yaml, "yaml", false, "Generate YAML report file")
+	cmd.Flags().BoolVar(&c.noOpen, "no-open", false, "Don't auto-open HTML in browser")
 	cmd.Flags().StringVarP(&c.configFile, "config", "c", "", "Configuration file path")
 
 	// Analysis selection flags
@@ -124,6 +148,60 @@ Examples:
 	cmd.Flags().Float64Var(&c.cloneSimilarity, "clone-threshold", 0.8, "Minimum similarity for clone detection (0.0-1.0)")
 
 	return cmd
+}
+
+// determineOutputFormat determines the output format based on flags
+func (c *AnalyzeCommand) determineOutputFormat() (string, string, error) {
+	// Count how many format flags are set
+	formatCount := 0
+	var format string
+	var extension string
+	
+	if c.html {
+		formatCount++
+		format = "html"
+		extension = "html"
+	}
+	if c.json {
+		formatCount++
+		format = "json"
+		extension = "json"
+	}
+	if c.csv {
+		formatCount++
+		format = "csv"
+		extension = "csv"
+	}
+	if c.yaml {
+		formatCount++
+		format = "yaml"
+		extension = "yaml"
+	}
+	
+	// Check for conflicting flags
+	if formatCount > 1 {
+		return "", "", fmt.Errorf("only one output format flag can be specified")
+	}
+	
+	// Default to text if no format specified
+	if formatCount == 0 {
+		return "text", "", nil
+	}
+	
+	return format, extension, nil
+}
+
+// shouldGenerateUnifiedReport returns true if a unified report should be generated
+func (c *AnalyzeCommand) shouldGenerateUnifiedReport() bool {
+	// Generate unified report if any format flag is set
+	return c.html || c.json || c.csv || c.yaml
+}
+
+// outputComplexityReport outputs an individual complexity report (for backward compatibility)
+func (c *AnalyzeCommand) outputComplexityReport(cmd *cobra.Command, response *domain.ComplexityResponse) error {
+	// This is a placeholder for backward compatibility
+	// In unified mode, we don't generate individual reports
+	return nil
 }
 
 // runAnalyze executes the comprehensive analysis
@@ -162,6 +240,13 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 		go func() {
 			defer wg.Done()
 			c.runAnalysisWithStatus(result.Complexity, statusMutex, func() error {
+				if c.shouldGenerateUnifiedReport() {
+					response, err := c.runComplexityAnalysisWithResult(cmd, args)
+					if err == nil {
+						result.ComplexityResponse = response
+					}
+					return err
+				}
 				return c.runComplexityAnalysis(cmd, args)
 			})
 		}()
@@ -173,6 +258,13 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 		go func() {
 			defer wg.Done()
 			c.runAnalysisWithStatus(result.DeadCode, statusMutex, func() error {
+				if c.shouldGenerateUnifiedReport() {
+					response, err := c.runDeadCodeAnalysisWithResult(cmd, args)
+					if err == nil {
+						result.DeadCodeResponse = response
+					}
+					return err
+				}
 				return c.runDeadCodeAnalysis(cmd, args)
 			})
 		}()
@@ -184,6 +276,13 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 		go func() {
 			defer wg.Done()
 			c.runAnalysisWithStatus(result.Clones, statusMutex, func() error {
+				if c.shouldGenerateUnifiedReport() {
+					response, err := c.runCloneAnalysisWithResult(cmd, args)
+					if err == nil {
+						result.CloneResponse = response
+					}
+					return err
+				}
 				return c.runCloneAnalysis(cmd, args)
 			})
 		}()
@@ -201,6 +300,13 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 
 	// Calculate overall statistics
 	c.calculateOverallStats(result)
+
+	// Generate unified report if requested
+	if c.shouldGenerateUnifiedReport() {
+		if err := c.generateUnifiedReport(cmd, result); err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Failed to generate unified report: %v\n", err)
+		}
+	}
 
 	// Print comprehensive status report
 	c.printStatusReport(cmd, result)
@@ -513,96 +619,316 @@ func containsAny(str string, substrings []string) bool {
 
 // runComplexityAnalysis runs complexity analysis with configured parameters
 func (c *AnalyzeCommand) runComplexityAnalysis(cmd *cobra.Command, args []string) error {
+	response, err := c.runComplexityAnalysisWithResult(cmd, args)
+	if err != nil {
+		return err
+	}
+	
+	// For backward compatibility, still generate individual file if format is specified
+	// and we're not generating a unified report
+	if !c.shouldGenerateUnifiedReport() {
+		return c.outputComplexityReport(cmd, response)
+	}
+	
+	return nil
+}
+
+// runComplexityAnalysisWithResult runs complexity analysis and returns the result
+func (c *AnalyzeCommand) runComplexityAnalysisWithResult(cmd *cobra.Command, args []string) (*domain.ComplexityResponse, error) {
 	complexityCmd := NewComplexityCommand()
 
 	// Configure complexity command with analyze parameters
-	complexityCmd.outputFormat = c.outputFormat
 	complexityCmd.minComplexity = c.minComplexity
 	complexityCmd.configFile = c.configFile
 	complexityCmd.verbose = c.verbose
 
-	// Build complexity request
-	request, err := complexityCmd.buildComplexityRequest(cmd, args)
-	if err != nil {
-		return err
+	// Build complexity request - bypass validation since paths will be validated by use case
+	request := domain.ComplexityRequest{
+		Paths:           args,
+		OutputFormat:    domain.OutputFormatText,
+		OutputWriter:    os.Stdout, // Provide a dummy writer
+		MinComplexity:   complexityCmd.minComplexity,
+		MaxComplexity:   complexityCmd.maxComplexity,
+		LowThreshold:    complexityCmd.lowThreshold,
+		MediumThreshold: complexityCmd.mediumThreshold,
+		SortBy:          domain.SortByComplexity, // Default sort
+		ConfigPath:      complexityCmd.configFile,
+		Recursive:       true, // Always recursive for directories
+		IncludePatterns: []string{"*.py", "*.pyi"},
+		ExcludePatterns: []string{"test_*.py", "*_test.py"},
 	}
 
 	// Create use case
 	useCase, err := complexityCmd.createComplexityUseCase(cmd)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// Execute analysis
+	// Execute analysis and return result
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	return useCase.Execute(ctx, request)
+	return useCase.AnalyzeAndReturn(ctx, request)
 }
 
 // runDeadCodeAnalysis runs dead code analysis with configured parameters
 func (c *AnalyzeCommand) runDeadCodeAnalysis(cmd *cobra.Command, args []string) error {
+	response, err := c.runDeadCodeAnalysisWithResult(cmd, args)
+	if err != nil {
+		return err
+	}
+	
+	// For backward compatibility
+	if !c.shouldGenerateUnifiedReport() {
+		return c.outputDeadCodeReport(cmd, response)
+	}
+	
+	return nil
+}
+
+// runDeadCodeAnalysisWithResult runs dead code analysis and returns the result
+func (c *AnalyzeCommand) runDeadCodeAnalysisWithResult(cmd *cobra.Command, args []string) (*domain.DeadCodeResponse, error) {
 	deadCodeCmd := NewDeadCodeCommand()
 
 	// Configure dead code command with analyze parameters
-	deadCodeCmd.outputFormat = c.outputFormat
 	deadCodeCmd.minSeverity = c.minSeverity
 	deadCodeCmd.configFile = c.configFile
 	deadCodeCmd.verbose = c.verbose
 
-	// Build dead code request
-	request, err := deadCodeCmd.buildDeadCodeRequest(cmd, args)
-	if err != nil {
-		return err
+	// Parse severity
+	minSeverity := domain.DeadCodeSeverityWarning
+	switch c.minSeverity {
+	case "critical":
+		minSeverity = domain.DeadCodeSeverityCritical
+	case "warning":
+		minSeverity = domain.DeadCodeSeverityWarning
+	case "info":
+		minSeverity = domain.DeadCodeSeverityInfo
+	}
+
+	// Build dead code request - bypass validation since paths will be validated by use case
+	request := domain.DeadCodeRequest{
+		Paths:           args,
+		OutputFormat:    domain.OutputFormatText,
+		OutputWriter:    os.Stdout, // Provide a dummy writer
+		MinSeverity:     minSeverity,
+		ShowContext:     deadCodeCmd.showContext,
+		ContextLines:    3,
+		SortBy:          domain.DeadCodeSortBySeverity, // Default sort
+		ConfigPath:      deadCodeCmd.configFile,
+		Recursive:       true, // Always recursive for directories
+		IncludePatterns: []string{"*.py", "*.pyi"},
+		ExcludePatterns: []string{"test_*.py", "*_test.py"},
 	}
 
 	// Create use case
 	useCase, err := deadCodeCmd.createDeadCodeUseCase(cmd)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// Execute analysis
+	// Execute analysis and return result
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	return useCase.Execute(ctx, request)
+	return useCase.AnalyzeAndReturn(ctx, request)
+}
+
+// outputDeadCodeReport outputs an individual dead code report (for backward compatibility)
+func (c *AnalyzeCommand) outputDeadCodeReport(cmd *cobra.Command, response *domain.DeadCodeResponse) error {
+	// Placeholder for backward compatibility
+	return nil
 }
 
 // runCloneAnalysis runs clone detection with configured parameters
 func (c *AnalyzeCommand) runCloneAnalysis(cmd *cobra.Command, args []string) error {
+	response, err := c.runCloneAnalysisWithResult(cmd, args)
+	if err != nil {
+		return err
+	}
+	
+	// For backward compatibility
+	if !c.shouldGenerateUnifiedReport() {
+		return c.outputCloneReport(cmd, response)
+	}
+	
+	return nil
+}
+
+// runCloneAnalysisWithResult runs clone detection and returns the result
+func (c *AnalyzeCommand) runCloneAnalysisWithResult(cmd *cobra.Command, args []string) (*domain.CloneResponse, error) {
 	cloneCmd := NewCloneCommand()
 
 	// Configure clone command with analyze parameters
-	cloneCmd.outputFormat = c.outputFormat
 	cloneCmd.similarityThreshold = c.cloneSimilarity
 	cloneCmd.configFile = c.configFile
 	cloneCmd.verbose = c.verbose
 
-	// Create clone request
+	// Create clone request without output settings
 	request, err := cloneCmd.createCloneRequest(cmd, args)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	
+	// Clear output settings to prevent individual file generation
+	request.OutputPath = ""
+	request.OutputWriter = nil
 
 	// Validate request
 	if err := request.Validate(); err != nil {
-		return fmt.Errorf("invalid clone request: %w", err)
+		return nil, fmt.Errorf("invalid clone request: %w", err)
 	}
 
 	// Create use case
 	useCase, err := cloneCmd.createCloneUseCase(cmd)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// Execute analysis
+	// Execute analysis and return result
 	ctx := context.Background()
-	return useCase.Execute(ctx, *request)
+	return useCase.ExecuteAndReturn(ctx, *request)
+}
+
+// outputCloneReport outputs an individual clone report (for backward compatibility)
+func (c *AnalyzeCommand) outputCloneReport(cmd *cobra.Command, response *domain.CloneResponse) error {
+	// Placeholder for backward compatibility
+	return nil
+}
+
+// generateUnifiedReport generates a unified report from all analysis results
+func (c *AnalyzeCommand) generateUnifiedReport(cmd *cobra.Command, result *AnalysisResult) error {
+	// Determine output format
+	format, extension, err := c.determineOutputFormat()
+	if err != nil {
+		return err
+	}
+	
+	// Generate filename with timestamp
+	timestamp := time.Now().Format("20060102_150405")
+	filename := fmt.Sprintf("analyze_%s.%s", timestamp, extension)
+	
+	// Create the unified response
+	response := &domain.AnalyzeResponse{
+		Complexity:  result.ComplexityResponse,
+		DeadCode:    result.DeadCodeResponse,
+		Clone:       result.CloneResponse,
+		GeneratedAt: time.Now(),
+		Duration:    result.Overall.TotalTime.Milliseconds(),
+		Version:     "1.0.0", // TODO: Get from build info
+	}
+	
+	// Calculate summary statistics
+	summary := &response.Summary
+	
+	// File statistics
+	if result.ComplexityResponse != nil {
+		summary.TotalFiles = result.ComplexityResponse.Summary.FilesAnalyzed
+		summary.AnalyzedFiles = result.ComplexityResponse.Summary.FilesAnalyzed
+		summary.ComplexityEnabled = true
+		summary.TotalFunctions = len(result.ComplexityResponse.Functions)
+		summary.AverageComplexity = result.ComplexityResponse.Summary.AverageComplexity
+		
+		// Count high complexity functions
+		summary.HighComplexityCount = result.ComplexityResponse.Summary.HighRiskFunctions
+	}
+	
+	// Dead code statistics
+	if result.DeadCodeResponse != nil {
+		summary.DeadCodeEnabled = true
+		summary.DeadCodeCount = result.DeadCodeResponse.Summary.TotalFindings
+		summary.CriticalDeadCode = result.DeadCodeResponse.Summary.CriticalFindings
+	}
+	
+	// Clone statistics
+	if result.CloneResponse != nil {
+		summary.CloneEnabled = true
+		summary.ClonePairs = result.CloneResponse.Statistics.TotalClonePairs
+		summary.CloneGroups = result.CloneResponse.Statistics.TotalCloneGroups
+		
+		// Calculate code duplication percentage
+		if result.CloneResponse.Statistics.LinesAnalyzed > 0 {
+			// Track unique lines involved in clones to avoid double-counting
+			duplicatedLineSet := make(map[string]map[int]bool)
+			
+			for _, pair := range result.CloneResponse.ClonePairs {
+				// Add lines from Clone1
+				if pair.Clone1 != nil && pair.Clone1.Location != nil {
+					filePath := pair.Clone1.Location.FilePath
+					if duplicatedLineSet[filePath] == nil {
+						duplicatedLineSet[filePath] = make(map[int]bool)
+					}
+					for line := pair.Clone1.Location.StartLine; line <= pair.Clone1.Location.EndLine; line++ {
+						duplicatedLineSet[filePath][line] = true
+					}
+				}
+				// Add lines from Clone2
+				if pair.Clone2 != nil && pair.Clone2.Location != nil {
+					filePath := pair.Clone2.Location.FilePath
+					if duplicatedLineSet[filePath] == nil {
+						duplicatedLineSet[filePath] = make(map[int]bool)
+					}
+					for line := pair.Clone2.Location.StartLine; line <= pair.Clone2.Location.EndLine; line++ {
+						duplicatedLineSet[filePath][line] = true
+					}
+				}
+			}
+			
+			// Count unique duplicated lines
+			duplicatedLines := 0
+			for _, lines := range duplicatedLineSet {
+				duplicatedLines += len(lines)
+			}
+			
+			summary.CodeDuplication = (float64(duplicatedLines) / float64(result.CloneResponse.Statistics.LinesAnalyzed)) * 100
+		}
+	}
+	
+	// Calculate health score
+	summary.CalculateHealthScore()
+	
+	// Create formatter
+	formatter := service.NewAnalyzeFormatter()
+	
+	// Create output file
+	file, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("failed to create output file %s: %w", filename, err)
+	}
+	defer file.Close()
+	
+	// Write the unified report
+	formatType := domain.OutputFormat(format)
+	if err := formatter.Write(response, formatType, file); err != nil {
+		return fmt.Errorf("failed to write unified report: %w", err)
+	}
+	
+	// Get absolute path for display
+	absPath, err := filepath.Abs(filename)
+	if err != nil {
+		absPath = filename
+	}
+	
+	// Handle browser opening for HTML
+	if format == "html" && !c.noOpen {
+		fileURL := "file://" + absPath
+		if err := service.OpenBrowser(fileURL); err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Could not open browser: %v\n", err)
+		} else {
+			fmt.Fprintf(cmd.ErrOrStderr(), "📊 Unified HTML report generated and opened: %s\n", absPath)
+			return nil
+		}
+	}
+	
+	// Display success message
+	formatName := strings.ToUpper(format)
+	fmt.Fprintf(cmd.ErrOrStderr(), "📊 Unified %s report generated: %s\n", formatName, absPath)
+	
+	return nil
 }
 
 // NewAnalyzeCmd creates and returns the analyze cobra command

@@ -2,11 +2,14 @@ package e2e
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestCloneE2EBasic tests basic clone detection command
@@ -54,7 +57,7 @@ func TestCloneE2EJSONOutput(t *testing.T) {
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
-	createTestPythonFile(t, testDir, "test_clones.py", `
+	createTestPythonFile(t, testDir, "clones_example.py", `
 def function_a(param):
     value = param * 2
     return value
@@ -64,21 +67,78 @@ def function_b(arg):
     return result
 `)
 
-	// Run with JSON format
-	cmd := exec.Command(binaryPath, "clone", "--format", "json", testDir)
+	// Get absolute paths
+	absBinaryPath, err := filepath.Abs(binaryPath)
+	if err != nil {
+		t.Fatalf("Failed to get absolute path for binary: %v", err)
+	}
+	
+	// Run with JSON format (outputs to file)  
+	testFile := filepath.Join(testDir, "clones_example.py")
+	cmd := exec.Command(absBinaryPath, "clone", "--json", testFile)
+	cmd.Dir = testDir // Set working directory to testDir
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	err := cmd.Run()
+	// Add timeout to prevent hanging
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	
+	err = cmd.Start()
 	if err != nil {
-		t.Fatalf("Command failed: %v\nStderr: %s", err, stderr.String())
+		t.Fatalf("Command failed to start: %v", err)
 	}
+	
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+	
+	select {
+	case err = <-done:
+		if err != nil {
+			t.Fatalf("Command failed: %v\nStderr: %s", err, stderr.String())
+		}
+	case <-ctx.Done():
+		if err := cmd.Process.Kill(); err != nil {
+			t.Logf("Failed to kill process: %v", err)
+		}
+		t.Fatal("Command timed out after 10 seconds")
+	}
+	
+	// Debug: show command output
+	t.Logf("Command stdout: %s", stdout.String())
+	t.Logf("Command stderr: %s", stderr.String())
+	
+	// Find the generated JSON file in testDir
+	files, err := filepath.Glob(filepath.Join(testDir, "clone_*.json"))
+	if err != nil {
+		t.Fatalf("Glob error: %v", err)
+	}
+	if len(files) == 0 {
+		// List all files in testDir for debugging
+		allFiles, _ := os.ReadDir(testDir)
+		var fileNames []string
+		for _, f := range allFiles {
+			fileNames = append(fileNames, f.Name())
+		}
+		t.Fatalf("No JSON file generated in %s, files present: %v", testDir, fileNames)
+	}
+	
+	// Read and verify JSON file content
+	jsonContent, err := os.ReadFile(files[0])
+	if err != nil {
+		t.Fatalf("Failed to read JSON file: %v", err)
+	}
+	
+	// Clean up the generated file
+	defer os.Remove(files[0])
 
 	// Verify JSON output is valid
 	var result map[string]interface{}
-	if err := json.Unmarshal(stdout.Bytes(), &result); err != nil {
-		t.Fatalf("Invalid JSON output: %v\nOutput: %s", err, stdout.String())
+	if err := json.Unmarshal(jsonContent, &result); err != nil {
+		t.Fatalf("Invalid JSON output: %v\nContent: %s", err, string(jsonContent))
 	}
 
 	// Check that JSON contains expected structure
@@ -276,18 +336,13 @@ def sample_func2(arg):
 		},
 		{
 			name:       "csv format",
-			args:       []string{"clone", "--format", "csv", testDir},
+			args:       []string{"clone", "--csv", testDir},
 			shouldPass: true,
 		},
 		{
 			name:       "help flag",
 			args:       []string{"clone", "--help"},
 			shouldPass: true,
-		},
-		{
-			name:       "invalid format",
-			args:       []string{"clone", "--format", "invalid", testDir},
-			shouldPass: false,
 		},
 		{
 			name:       "invalid sort criteria",

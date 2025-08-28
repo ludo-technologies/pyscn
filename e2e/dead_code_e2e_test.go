@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -86,8 +87,8 @@ def simple_function():
     print("Dead code")  # This should be detected
 `)
 
-	// Run with JSON format
-	cmd := exec.Command(binaryPath, "deadcode", "--format", "json", testDir)
+	// Run with JSON format (outputs to file)
+	cmd := exec.Command(binaryPath, "deadcode", "--json", testDir)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -97,10 +98,25 @@ def simple_function():
 		t.Fatalf("Command failed: %v\nStderr: %s", err, stderr.String())
 	}
 
+	// Find the generated JSON file
+	files, err := filepath.Glob("deadcode_*.json")
+	if err != nil || len(files) == 0 {
+		t.Fatalf("No JSON file generated")
+	}
+	
+	// Read and verify JSON file content
+	jsonContent, err := os.ReadFile(files[0])
+	if err != nil {
+		t.Fatalf("Failed to read JSON file: %v", err)
+	}
+	
+	// Clean up the generated file
+	defer os.Remove(files[0])
+
 	// Verify JSON output is valid
 	var result map[string]interface{}
-	if err := json.Unmarshal(stdout.Bytes(), &result); err != nil {
-		t.Fatalf("Invalid JSON output: %v\nOutput: %s", err, stdout.String())
+	if err := json.Unmarshal(jsonContent, &result); err != nil {
+		t.Fatalf("Invalid JSON output: %v\nContent: %s", err, string(jsonContent))
 	}
 
 	// Check that JSON contains expected structure
@@ -160,23 +176,18 @@ def warning_dead_code(x):
 			shouldPass: true,
 		},
 		{
-			name:       "invalid format",
-			args:       []string{"deadcode", "--format", "invalid", testDir},
-			shouldPass: false,
-		},
-		{
 			name:       "help flag",
 			args:       []string{"deadcode", "--help"},
 			shouldPass: true,
 		},
 		{
 			name:       "yaml format",
-			args:       []string{"deadcode", "--format", "yaml", testDir},
+			args:       []string{"deadcode", "--yaml", testDir},
 			shouldPass: true,
 		},
 		{
 			name:       "csv format",
-			args:       []string{"deadcode", "--format", "csv", testDir},
+			args:       []string{"deadcode", "--csv", testDir},
 			shouldPass: true,
 		},
 		{
@@ -277,8 +288,8 @@ func TestDeadCodeE2EErrorHandling(t *testing.T) {
 			args: []string{"deadcode", "/nonexistent/file.py"},
 		},
 		{
-			name: "directory with no Python files",
-			args: []string{"deadcode", os.TempDir()},
+			name: "directory with no Python files", 
+			args: []string{"deadcode", "EMPTY_DIR_PLACEHOLDER"},
 		},
 		{
 			name: "invalid severity level",
@@ -292,7 +303,16 @@ func TestDeadCodeE2EErrorHandling(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command(binaryPath, tt.args...)
+			// Replace placeholder with actual empty directory
+			args := make([]string, len(tt.args))
+			copy(args, tt.args)
+			for i, arg := range args {
+				if arg == "EMPTY_DIR_PLACEHOLDER" {
+					args[i] = t.TempDir() // Create empty directory for this test
+				}
+			}
+			
+			cmd := exec.Command(binaryPath, args...)
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
