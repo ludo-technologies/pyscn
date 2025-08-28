@@ -312,10 +312,11 @@ func (c *Config) Validate() error {
 		"json": true,
 		"yaml": true,
 		"csv":  true,
+		"html": true,
 	}
 
 	if !validFormats[c.Output.Format] {
-		return fmt.Errorf("invalid output.format '%s', must be one of: text, json, yaml, csv", c.Output.Format)
+		return fmt.Errorf("invalid output.format '%s', must be one of: text, json, yaml, csv, html", c.Output.Format)
 	}
 
 	// Validate sort options

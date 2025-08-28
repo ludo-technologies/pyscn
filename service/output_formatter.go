@@ -32,6 +32,8 @@ func (f *OutputFormatterImpl) Format(response *domain.ComplexityResponse, format
 		return f.formatYAML(response)
 	case domain.OutputFormatCSV:
 		return f.formatCSV(response)
+	case domain.OutputFormatHTML:
+		return f.formatHTML(response)
 	default:
 		return "", domain.NewUnsupportedFormatError(string(format))
 	}
@@ -316,4 +318,11 @@ func (f *OutputFormatterImpl) formatSummaryText(response *domain.ComplexityRespo
 	}
 
 	return builder.String()
+}
+
+// formatHTML formats the response as Lighthouse-style HTML
+func (f *OutputFormatterImpl) formatHTML(response *domain.ComplexityResponse) (string, error) {
+	htmlFormatter := NewHTMLFormatter()
+	projectName := "Python Project" // Default project name, could be configurable
+	return htmlFormatter.FormatComplexityAsHTML(response, projectName)
 }

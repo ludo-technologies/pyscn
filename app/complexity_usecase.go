@@ -3,9 +3,13 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pyqol/pyqol/domain"
+	"github.com/pyqol/pyqol/service"
 )
 
 // ComplexityUseCase orchestrates the complexity analysis workflow
@@ -77,9 +81,50 @@ func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityR
 		return domain.NewAnalysisError("complexity analysis failed", err)
 	}
 
-	// Format and output results
-	if err := uc.formatter.Write(response, finalReq.OutputFormat, finalReq.OutputWriter); err != nil {
-		return domain.NewOutputError("failed to write output", err)
+	// Handle file output if specified
+	if finalReq.OutputPath != "" {
+		// Create or open the file
+		file, err := os.Create(finalReq.OutputPath)
+		if err != nil {
+			return domain.NewOutputError(fmt.Sprintf("failed to create output file: %s", finalReq.OutputPath), err)
+		}
+		defer file.Close()
+
+		// Write content to file
+		if err := uc.formatter.Write(response, finalReq.OutputFormat, file); err != nil {
+			return domain.NewOutputError("failed to write output", err)
+		}
+
+		// Get absolute path for display
+		absPath, err := filepath.Abs(finalReq.OutputPath)
+		if err != nil {
+			absPath = finalReq.OutputPath
+		}
+
+		// Handle browser opening for HTML files
+		if finalReq.OutputFormat == domain.OutputFormatHTML {
+			// Open in browser unless NoOpen flag is set
+			if !finalReq.NoOpen {
+				fileURL := "file://" + absPath
+				if err := service.OpenBrowser(fileURL); err != nil {
+					// Log error but don't fail the operation
+					fmt.Fprintf(os.Stderr, "Warning: Could not open browser: %v\n", err)
+				} else {
+					fmt.Fprintf(os.Stderr, "HTML report generated and opened: %s\n", absPath)
+				}
+			} else {
+				fmt.Fprintf(os.Stderr, "HTML report generated: %s\n", absPath)
+			}
+		} else {
+			// For other formats, just confirm file creation
+			formatName := strings.ToUpper(string(finalReq.OutputFormat))
+			fmt.Fprintf(os.Stderr, "%s report generated: %s\n", formatName, absPath)
+		}
+	} else {
+		// Normal output to writer (stdout for text format)
+		if err := uc.formatter.Write(response, finalReq.OutputFormat, finalReq.OutputWriter); err != nil {
+			return domain.NewOutputError("failed to write output", err)
+		}
 	}
 
 	return nil
@@ -159,9 +204,50 @@ func (uc *ComplexityUseCase) AnalyzeFile(ctx context.Context, filePath string, r
 		return domain.NewAnalysisError("file analysis failed", err)
 	}
 
-	// Format and output results
-	if err := uc.formatter.Write(response, finalReq.OutputFormat, finalReq.OutputWriter); err != nil {
-		return domain.NewOutputError("failed to write output", err)
+	// Handle file output if specified
+	if finalReq.OutputPath != "" {
+		// Create or open the file
+		file, err := os.Create(finalReq.OutputPath)
+		if err != nil {
+			return domain.NewOutputError(fmt.Sprintf("failed to create output file: %s", finalReq.OutputPath), err)
+		}
+		defer file.Close()
+
+		// Write content to file
+		if err := uc.formatter.Write(response, finalReq.OutputFormat, file); err != nil {
+			return domain.NewOutputError("failed to write output", err)
+		}
+
+		// Get absolute path for display
+		absPath, err := filepath.Abs(finalReq.OutputPath)
+		if err != nil {
+			absPath = finalReq.OutputPath
+		}
+
+		// Handle browser opening for HTML files
+		if finalReq.OutputFormat == domain.OutputFormatHTML {
+			// Open in browser unless NoOpen flag is set
+			if !finalReq.NoOpen {
+				fileURL := "file://" + absPath
+				if err := service.OpenBrowser(fileURL); err != nil {
+					// Log error but don't fail the operation
+					fmt.Fprintf(os.Stderr, "Warning: Could not open browser: %v\n", err)
+				} else {
+					fmt.Fprintf(os.Stderr, "HTML report generated and opened: %s\n", absPath)
+				}
+			} else {
+				fmt.Fprintf(os.Stderr, "HTML report generated: %s\n", absPath)
+			}
+		} else {
+			// For other formats, just confirm file creation
+			formatName := strings.ToUpper(string(finalReq.OutputFormat))
+			fmt.Fprintf(os.Stderr, "%s report generated: %s\n", formatName, absPath)
+		}
+	} else {
+		// Normal output to writer (stdout for text format)
+		if err := uc.formatter.Write(response, finalReq.OutputFormat, finalReq.OutputWriter); err != nil {
+			return domain.NewOutputError("failed to write output", err)
+		}
 	}
 
 	return nil
@@ -173,8 +259,8 @@ func (uc *ComplexityUseCase) validateRequest(req domain.ComplexityRequest) error
 		return fmt.Errorf("no input paths specified")
 	}
 
-	if req.OutputWriter == nil {
-		return fmt.Errorf("output writer is required")
+	if req.OutputWriter == nil && req.OutputPath == "" {
+		return fmt.Errorf("output writer or output path is required")
 	}
 
 	if req.MinComplexity < 0 {
@@ -199,7 +285,7 @@ func (uc *ComplexityUseCase) validateRequest(req domain.ComplexityRequest) error
 
 	// Validate output format
 	switch req.OutputFormat {
-	case domain.OutputFormatText, domain.OutputFormatJSON, domain.OutputFormatYAML, domain.OutputFormatCSV:
+	case domain.OutputFormatText, domain.OutputFormatJSON, domain.OutputFormatYAML, domain.OutputFormatCSV, domain.OutputFormatHTML:
 		// Valid formats
 	default:
 		return fmt.Errorf("unsupported output format: %s", req.OutputFormat)

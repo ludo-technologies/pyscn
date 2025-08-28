@@ -14,6 +14,7 @@ func TestOutputFormat(t *testing.T) {
 		{"JSON format", OutputFormatJSON, true},
 		{"YAML format", OutputFormatYAML, true},
 		{"CSV format", OutputFormatCSV, true},
+		{"HTML format", OutputFormatHTML, true},
 		{"Invalid format", OutputFormat("invalid"), false},
 	}
 
@@ -22,6 +23,7 @@ func TestOutputFormat(t *testing.T) {
 		OutputFormatJSON: true,
 		OutputFormatYAML: true,
 		OutputFormatCSV:  true,
+		OutputFormatHTML: true,
 	}
 
 	for _, tt := range tests {
