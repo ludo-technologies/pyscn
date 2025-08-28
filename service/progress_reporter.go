@@ -206,15 +206,28 @@ func (pb *ProgressBarReporter) UpdateProgress(currentFile string, processed, tot
 		return
 	}
 
-	pb.processed = processed + 1
+	// Use the actual processed count (1-based for display)
+	displayProcessed := processed + 1
+	// Use the actual total, not the initially set totalFiles
+	displayTotal := total
 
-	percentage := float64(pb.processed) / float64(pb.totalFiles)
+	percentage := float64(displayProcessed) / float64(displayTotal)
 	filled := int(percentage * float64(pb.barWidth))
+	
+	// Ensure filled doesn't exceed barWidth
+	if filled > pb.barWidth {
+		filled = pb.barWidth
+	}
+	
+	remaining := pb.barWidth - filled
+	if remaining < 0 {
+		remaining = 0
+	}
 
-	bar := strings.Repeat("█", filled) + strings.Repeat("░", pb.barWidth-filled)
+	bar := strings.Repeat("█", filled) + strings.Repeat("░", remaining)
 
 	fmt.Fprintf(pb.writer, "\r[%s] %3.0f%% (%d/%d) %s",
-		bar, percentage*100, pb.processed, pb.totalFiles, filepath.Base(currentFile))
+		bar, percentage*100, displayProcessed, displayTotal, filepath.Base(currentFile))
 }
 
 func (pb *ProgressBarReporter) FinishProgress() {
