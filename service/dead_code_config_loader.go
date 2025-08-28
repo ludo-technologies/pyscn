@@ -121,6 +121,8 @@ func (cl *DeadCodeConfigurationLoaderImpl) configToRequest(cfg *config.Config) *
 		outputFormat = domain.OutputFormatYAML
 	case "csv":
 		outputFormat = domain.OutputFormatCSV
+	case "html":
+		outputFormat = domain.OutputFormatHTML
 	default:
 		outputFormat = domain.OutputFormatText
 	}

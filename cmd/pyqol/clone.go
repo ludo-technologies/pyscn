@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -37,8 +38,14 @@ type CloneCommand struct {
 	type3Threshold float64
 	type4Threshold float64
 
-	// Output configuration
-	outputFormat string
+	// Output format flags (only one should be true)
+	html   bool
+	json   bool
+	csv    bool
+	yaml   bool
+	noOpen bool
+	
+	// Output options
 	showDetails  bool
 	showContent  bool
 	sortBy       string
@@ -71,7 +78,11 @@ func NewCloneCommand() *CloneCommand {
 		type2Threshold:      constants.DefaultType2CloneThreshold,
 		type3Threshold:      constants.DefaultType3CloneThreshold,
 		type4Threshold:      constants.DefaultType4CloneThreshold,
-		outputFormat:        "text",
+		html:                false,
+		json:                false,
+		csv:                 false,
+		yaml:                false,
+		noOpen:              false,
 		showDetails:         false,
 		showContent:         false,
 		sortBy:              "similarity",
@@ -81,7 +92,7 @@ func NewCloneCommand() *CloneCommand {
 		cloneTypes:          []string{"type1", "type2", "type3", "type4"},
 		costModelType:       "python",
 		verbose:             false,
-		timeout: 5 * time.Minute,
+		timeout:             5 * time.Minute,
 	}
 }
 
@@ -152,9 +163,14 @@ Examples:
 	cmd.Flags().Float64Var(&c.type4Threshold, "type4-threshold", c.type4Threshold,
 		"Similarity threshold for Type-4 clones (semantic)")
 
-	// Output configuration flags
-	cmd.Flags().StringVarP(&c.outputFormat, "format", "f", c.outputFormat,
-		"Output format: text, json, yaml, csv")
+	// Output format flags
+	cmd.Flags().BoolVar(&c.html, "html", false, "Generate HTML report file")
+	cmd.Flags().BoolVar(&c.json, "json", false, "Generate JSON report file")
+	cmd.Flags().BoolVar(&c.csv, "csv", false, "Generate CSV report file")
+	cmd.Flags().BoolVar(&c.yaml, "yaml", false, "Generate YAML report file")
+	cmd.Flags().BoolVar(&c.noOpen, "no-open", false, "Don't auto-open HTML in browser")
+	
+	// Output options
 	cmd.Flags().BoolVarP(&c.showDetails, "details", "d", c.showDetails,
 		"Show detailed clone information")
 	cmd.Flags().BoolVar(&c.showContent, "show-content", c.showContent,
@@ -219,10 +235,51 @@ func (c *CloneCommand) runCloneDetection(cmd *cobra.Command, args []string) erro
 	return nil
 }
 
+// determineOutputFormat determines the output format based on flags
+func (c *CloneCommand) determineOutputFormat() (domain.OutputFormat, string, error) {
+	// Count how many format flags are set
+	formatCount := 0
+	var format domain.OutputFormat
+	var extension string
+	
+	if c.html {
+		formatCount++
+		format = domain.OutputFormatHTML
+		extension = "html"
+	}
+	if c.json {
+		formatCount++
+		format = domain.OutputFormatJSON
+		extension = "json"
+	}
+	if c.csv {
+		formatCount++
+		format = domain.OutputFormatCSV
+		extension = "csv"
+	}
+	if c.yaml {
+		formatCount++
+		format = domain.OutputFormatYAML
+		extension = "yaml"
+	}
+	
+	// Check for conflicting flags
+	if formatCount > 1 {
+		return "", "", fmt.Errorf("only one output format flag can be specified")
+	}
+	
+	// Default to text if no format specified
+	if formatCount == 0 {
+		return domain.OutputFormatText, "", nil
+	}
+	
+	return format, extension, nil
+}
+
 // createCloneRequest creates a clone request from command line flags
 func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*domain.CloneRequest, error) {
-	// Parse output format
-	outputFormat, err := c.parseOutputFormat(c.outputFormat)
+	// Determine output format from flags
+	outputFormat, extension, err := c.determineOutputFormat()
 	if err != nil {
 		return nil, err
 	}
@@ -237,6 +294,18 @@ func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*
 	cloneTypes, err := c.parseCloneTypes()
 	if err != nil {
 		return nil, err
+	}
+
+	// Determine output destination
+	var outputWriter io.Writer
+	var outputPath string
+	
+	if outputFormat == domain.OutputFormatText {
+		// Text format goes to stdout
+		outputWriter = os.Stdout
+	} else {
+		// Other formats generate a file
+		outputPath = generateFileName("clone", extension)
 	}
 
 	request := &domain.CloneRequest{
@@ -255,7 +324,9 @@ func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*
 		Type3Threshold:      c.type3Threshold,
 		Type4Threshold:      c.type4Threshold,
 		OutputFormat:        outputFormat,
-		OutputWriter:        os.Stdout,
+		OutputWriter:        outputWriter,
+		OutputPath:          outputPath,
+		NoOpen:              c.noOpen,
 		ShowDetails:         c.showDetails,
 		ShowContent:         c.showContent,
 		SortBy:              sortBy,
@@ -299,10 +370,13 @@ func (c *CloneCommand) parseCloneTypes() ([]domain.CloneType, error) {
 
 // createCloneUseCase creates a clone use case with all dependencies
 func (c *CloneCommand) createCloneUseCase(cmd *cobra.Command) (*app.CloneUseCase, error) {
+	// Track which flags were explicitly set by the user
+	explicitFlags := GetExplicitFlags(cmd)
+	
 	// Create services
 	fileReader := service.NewFileReader()
 	formatter := service.NewCloneOutputFormatter()
-	configLoader := service.NewCloneConfigurationLoader()
+	configLoader := service.NewCloneConfigurationLoaderWithFlags(explicitFlags)
 	progress := service.CreateProgressReporter(cmd.ErrOrStderr(), 0, c.verbose)
 	cloneService := service.NewCloneService(progress)
 
@@ -314,22 +388,6 @@ func (c *CloneCommand) createCloneUseCase(cmd *cobra.Command) (*app.CloneUseCase
 		WithConfigLoader(configLoader).
 		WithProgress(progress).
 		Build()
-}
-
-// parseOutputFormat parses and validates the output format
-func (c *CloneCommand) parseOutputFormat(format string) (domain.OutputFormat, error) {
-	switch strings.ToLower(format) {
-	case "text":
-		return domain.OutputFormatText, nil
-	case "json":
-		return domain.OutputFormatJSON, nil
-	case "yaml", "yml":
-		return domain.OutputFormatYAML, nil
-	case "csv":
-		return domain.OutputFormatCSV, nil
-	default:
-		return "", fmt.Errorf("unsupported output format: %s (supported: text, json, yaml, csv)", format)
-	}
 }
 
 // parseSortCriteria parses and validates the sort criteria

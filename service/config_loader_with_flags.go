@@ -46,14 +46,31 @@ func (c *ConfigurationLoaderWithFlags) MergeConfig(base *domain.ComplexityReques
 		merged.Paths = override.Paths
 	}
 
-	// Output configuration - only override if explicitly set
-	if c.flagTracker.WasSet("format") {
-		merged.OutputFormat = override.OutputFormat
+	// Output configuration - always use override format when explicitly set
+	// Since we removed --format flag, check for individual format flags or non-text format
+	if override.OutputFormat != "" {
+		// If a specific format was set (not text), use it
+		if override.OutputFormat != domain.OutputFormatText {
+			merged.OutputFormat = override.OutputFormat
+		} else if c.flagTracker.WasSet("html") || c.flagTracker.WasSet("json") || 
+			c.flagTracker.WasSet("csv") || c.flagTracker.WasSet("yaml") {
+			// If any format flag was set, use the override format
+			merged.OutputFormat = override.OutputFormat
+		}
 	}
 
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
+
+	// Always preserve output path and no-open flag from override (command line)
+	// These are generated based on format flags, not set directly
+	if override.OutputPath != "" {
+		merged.OutputPath = override.OutputPath
+	}
+	
+	// Always preserve NoOpen from override if it's been set
+	merged.NoOpen = override.NoOpen
 
 	merged.ShowDetails = c.flagTracker.MergeBool(merged.ShowDetails, override.ShowDetails, "details")
 

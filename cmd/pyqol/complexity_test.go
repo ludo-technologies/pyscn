@@ -33,7 +33,7 @@ func TestComplexityCommandInterface(t *testing.T) {
 	// Test that flags are properly configured
 	flags := cobraCmd.Flags()
 
-	expectedFlags := []string{"format", "min", "max", "sort", "details", "config", "low-threshold", "medium-threshold"}
+	expectedFlags := []string{"html", "json", "csv", "yaml", "min", "max", "sort", "details", "config", "low-threshold", "medium-threshold"}
 	for _, flagName := range expectedFlags {
 		if !flags.HasFlags() {
 			t.Error("Command should have flags defined")
@@ -109,14 +109,14 @@ func TestComplexityCommandFlags(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Valid format flag",
-			args:    []string{"--format", "json", tempDir},
+			name:    "Valid json flag",
+			args:    []string{"--json", tempDir},
 			wantErr: false, // May still fail due to file discovery, but flag should parse
 		},
 		{
-			name:    "Invalid format flag",
-			args:    []string{"--format", "invalid", tempDir},
-			wantErr: true,
+			name:    "Valid html flag",
+			args:    []string{"--html", tempDir},
+			wantErr: false, // May still fail due to file discovery, but flag should parse
 		},
 		{
 			name:    "Valid min complexity",
@@ -177,8 +177,9 @@ func TestComplexityCommandFlags(t *testing.T) {
 func TestComplexityCommandDefaults(t *testing.T) {
 	cmd := NewComplexityCommand()
 
-	if cmd.outputFormat != "text" {
-		t.Errorf("Expected default outputFormat to be 'text', got '%s'", cmd.outputFormat)
+	// Default is no format flags set (text output)
+	if cmd.html || cmd.json || cmd.csv || cmd.yaml {
+		t.Errorf("Expected default format flags to be false")
 	}
 
 	if cmd.minComplexity != 1 {

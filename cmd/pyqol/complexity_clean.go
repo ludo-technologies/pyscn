@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,8 +16,14 @@ import (
 
 // ComplexityCommand represents the complexity command
 type ComplexityCommand struct {
-	// Command line flags
-	outputFormat    string
+	// Output format flags (only one should be true)
+	html   bool
+	json   bool
+	csv    bool
+	yaml   bool
+	noOpen bool
+
+	// Analysis flags
 	minComplexity   int
 	maxComplexity   int
 	sortBy          string
@@ -30,7 +37,11 @@ type ComplexityCommand struct {
 // NewComplexityCommand creates a new complexity command
 func NewComplexityCommand() *ComplexityCommand {
 	return &ComplexityCommand{
-		outputFormat:    "text",
+		html:            false,
+		json:            false,
+		csv:             false,
+		yaml:            false,
+		noOpen:          false,
 		minComplexity:   1,
 		maxComplexity:   0,
 		sortBy:          "complexity",
@@ -65,8 +76,14 @@ Examples:
 		RunE: c.runComplexityAnalysis,
 	}
 
-	// Add flags
-	cmd.Flags().StringVarP(&c.outputFormat, "format", "f", "text", "Output format (text, json, yaml, csv)")
+	// Add output format flags
+	cmd.Flags().BoolVar(&c.html, "html", false, "Generate HTML report file")
+	cmd.Flags().BoolVar(&c.json, "json", false, "Generate JSON report file")
+	cmd.Flags().BoolVar(&c.csv, "csv", false, "Generate CSV report file")
+	cmd.Flags().BoolVar(&c.yaml, "yaml", false, "Generate YAML report file")
+	cmd.Flags().BoolVar(&c.noOpen, "no-open", false, "Don't auto-open HTML in browser")
+	
+	// Add analysis flags
 	cmd.Flags().IntVar(&c.minComplexity, "min", 1, "Minimum complexity to report")
 	cmd.Flags().IntVar(&c.maxComplexity, "max", 0, "Maximum complexity limit (0 = no limit)")
 	cmd.Flags().StringVar(&c.sortBy, "sort", "complexity", "Sort results by (name, complexity, risk)")
@@ -110,14 +127,57 @@ func (c *ComplexityCommand) runComplexityAnalysis(cmd *cobra.Command, args []str
 	return nil
 }
 
+// determineOutputFormat determines the output format based on flags
+func (c *ComplexityCommand) determineOutputFormat() (domain.OutputFormat, string, error) {
+	// Count how many format flags are set
+	formatCount := 0
+	var format domain.OutputFormat
+	var extension string
+	
+	if c.html {
+		formatCount++
+		format = domain.OutputFormatHTML
+		extension = "html"
+	}
+	if c.json {
+		formatCount++
+		format = domain.OutputFormatJSON
+		extension = "json"
+	}
+	if c.csv {
+		formatCount++
+		format = domain.OutputFormatCSV
+		extension = "csv"
+	}
+	if c.yaml {
+		formatCount++
+		format = domain.OutputFormatYAML
+		extension = "yaml"
+	}
+	
+	// Check for conflicting flags
+	if formatCount > 1 {
+		return "", "", fmt.Errorf("only one output format flag can be specified")
+	}
+	
+	// Default to text if no format specified
+	if formatCount == 0 {
+		return domain.OutputFormatText, "", nil
+	}
+	
+	return format, extension, nil
+}
+
+
 // buildComplexityRequest creates a domain request from CLI flags
 func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []string) (domain.ComplexityRequest, error) {
-	// Parse format and sort - need these for validation
-	outputFormat, err := c.parseOutputFormat(c.outputFormat)
+	// Determine output format from flags
+	outputFormat, extension, err := c.determineOutputFormat()
 	if err != nil {
 		return domain.ComplexityRequest{}, err
 	}
 
+	// Parse sort criteria
 	sortBy, err := c.parseSortCriteria(c.sortBy)
 	if err != nil {
 		return domain.ComplexityRequest{}, err
@@ -134,11 +194,26 @@ func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []st
 		return domain.ComplexityRequest{}, err
 	}
 
-	// Build request with all values - the merge will handle what to use based on explicit flags
+	// Determine output destination
+	var outputWriter io.Writer
+	var outputPath string
+	
+	if outputFormat == domain.OutputFormatText {
+		// Text format goes to stdout
+		outputWriter = cmd.OutOrStdout()
+	} else {
+		// Other formats generate a file
+		outputPath = generateFileName("complexity", extension)
+	}
+
+	// Build request with all values
+	
 	return domain.ComplexityRequest{
 		Paths:           paths,
 		OutputFormat:    outputFormat,
-		OutputWriter:    cmd.OutOrStdout(),
+		OutputWriter:    outputWriter,
+		OutputPath:      outputPath,
+		NoOpen:          c.noOpen,
 		ShowDetails:     c.showDetails,
 		MinComplexity:   c.minComplexity,
 		MaxComplexity:   c.maxComplexity,
@@ -183,21 +258,6 @@ func (c *ComplexityCommand) createComplexityUseCase(cmd *cobra.Command) (*app.Co
 }
 
 // Helper methods for parsing and validation
-
-func (c *ComplexityCommand) parseOutputFormat(format string) (domain.OutputFormat, error) {
-	switch strings.ToLower(format) {
-	case "text":
-		return domain.OutputFormatText, nil
-	case "json":
-		return domain.OutputFormatJSON, nil
-	case "yaml", "yml":
-		return domain.OutputFormatYAML, nil
-	case "csv":
-		return domain.OutputFormatCSV, nil
-	default:
-		return "", fmt.Errorf("unsupported output format: %s (supported: text, json, yaml, csv)", format)
-	}
-}
 
 func (c *ComplexityCommand) parseSortCriteria(sort string) (domain.SortCriteria, error) {
 	switch strings.ToLower(sort) {

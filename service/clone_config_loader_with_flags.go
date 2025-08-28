@@ -66,13 +66,32 @@ func (cl *CloneConfigurationLoaderWithFlags) MergeConfig(base *domain.CloneReque
 	merged.Type3Threshold = cl.flagTracker.MergeFloat64(merged.Type3Threshold, override.Type3Threshold, "type3-threshold")
 	merged.Type4Threshold = cl.flagTracker.MergeFloat64(merged.Type4Threshold, override.Type4Threshold, "type4-threshold")
 
-	// Output settings
-	if cl.flagTracker.WasSet("format") {
-		merged.OutputFormat = override.OutputFormat
+	// Output settings - always use override format when explicitly set
+	// Since we removed --format flag, check for individual format flags or non-text format
+	if override.OutputFormat != "" {
+		// If a specific format was set (not text), use it
+		if override.OutputFormat != domain.OutputFormatText {
+			merged.OutputFormat = override.OutputFormat
+		} else if cl.flagTracker.WasSet("html") || cl.flagTracker.WasSet("json") || 
+			cl.flagTracker.WasSet("csv") || cl.flagTracker.WasSet("yaml") {
+			// If any format flag was set, use the override format
+			merged.OutputFormat = override.OutputFormat
+		}
 	}
+	
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
+	
+	// Always preserve output path and no-open flag from override (command line)
+	// These are generated based on format flags, not set directly
+	if override.OutputPath != "" {
+		merged.OutputPath = override.OutputPath
+	}
+	
+	// Always preserve NoOpen from override
+	merged.NoOpen = override.NoOpen
+	
 	if cl.flagTracker.WasSet("sort") {
 		merged.SortBy = override.SortBy
 	}
@@ -101,4 +120,9 @@ func (cl *CloneConfigurationLoaderWithFlags) MergeConfig(base *domain.CloneReque
 // FindDefaultConfigFile looks for .pyqol.yaml in the current directory
 func (cl *CloneConfigurationLoaderWithFlags) FindDefaultConfigFile() string {
 	return cl.loader.FindDefaultConfigFile()
+}
+
+// SaveCloneConfig saves clone configuration to the specified path
+func (cl *CloneConfigurationLoaderWithFlags) SaveCloneConfig(config *domain.CloneRequest, path string) error {
+	return cl.loader.SaveCloneConfig(config, path)
 }

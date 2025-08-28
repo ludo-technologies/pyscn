@@ -47,13 +47,31 @@ func (cl *DeadCodeConfigurationLoaderWithFlags) MergeConfig(base *domain.DeadCod
 		merged.Paths = override.Paths
 	}
 
-	// Output configuration
-	if cl.flagTracker.WasSet("format") {
-		merged.OutputFormat = override.OutputFormat
+	// Output configuration - always use override format when explicitly set
+	// Since we removed --format flag, check for individual format flags or non-text format
+	if override.OutputFormat != "" {
+		// If a specific format was set (not text), use it
+		if override.OutputFormat != domain.OutputFormatText {
+			merged.OutputFormat = override.OutputFormat
+		} else if cl.flagTracker.WasSet("html") || cl.flagTracker.WasSet("json") || 
+			cl.flagTracker.WasSet("csv") || cl.flagTracker.WasSet("yaml") {
+			// If any format flag was set, use the override format
+			merged.OutputFormat = override.OutputFormat
+		}
 	}
+	
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
+	
+	// Always preserve output path and no-open flag from override (command line)
+	// These are generated based on format flags, not set directly
+	if override.OutputPath != "" {
+		merged.OutputPath = override.OutputPath
+	}
+	
+	// Always preserve NoOpen from override
+	merged.NoOpen = override.NoOpen
 	merged.ShowContext = cl.flagTracker.MergeBool(merged.ShowContext, override.ShowContext, "show-context")
 	merged.ContextLines = cl.flagTracker.MergeInt(merged.ContextLines, override.ContextLines, "context-lines")
 
