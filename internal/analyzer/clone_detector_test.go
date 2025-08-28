@@ -403,6 +403,402 @@ func TestCloneDetector_ExtractFragments_Integration(t *testing.T) {
 	}
 }
 
+func TestCloneDetector_DetectClones(t *testing.T) {
+	tests := []struct {
+		name          string
+		config        *CloneDetectorConfig
+		fragments     []*CodeFragment
+		expectedPairs int
+		expectedGroups int
+		description   string
+	}{
+		{
+			name:   "identical functions",
+			config: &CloneDetectorConfig{
+				MinLines:        2,
+				MinNodes:        2,
+				Type1Threshold:  0.95,
+				Type2Threshold:  0.85,
+				Type3Threshold:  0.70,
+				Type4Threshold:  0.60,
+				MaxEditDistance: 50.0,
+				MaxClonePairs:   10000,
+				BatchSizeThreshold: 50,
+			},
+			fragments: func() []*CodeFragment {
+				// Create two identical code fragments
+				ast1 := &parser.Node{
+					Type:     parser.NodeFunctionDef,
+					Name:     "func1",
+					Location: parser.Location{StartLine: 1, EndLine: 5},
+					Children: []*parser.Node{
+						{Type: parser.NodeReturn, Children: []*parser.Node{
+							{Type: parser.NodeConstant, Value: "1"},
+						}},
+					},
+				}
+				ast2 := &parser.Node{
+					Type:     parser.NodeFunctionDef,
+					Name:     "func2",
+					Location: parser.Location{StartLine: 10, EndLine: 14},
+					Children: []*parser.Node{
+						{Type: parser.NodeReturn, Children: []*parser.Node{
+							{Type: parser.NodeConstant, Value: "1"},
+						}},
+					},
+				}
+				
+				loc1 := &CodeLocation{FilePath: "/test.py", StartLine: 1, EndLine: 5}
+				loc2 := &CodeLocation{FilePath: "/test.py", StartLine: 10, EndLine: 14}
+				
+				frag1 := NewCodeFragment(loc1, ast1, "def func1():\n    return 1")
+				frag2 := NewCodeFragment(loc2, ast2, "def func2():\n    return 1")
+				
+				// Convert to TreeNode for comparison
+				converter := NewTreeConverter()
+				frag1.TreeNode = converter.ConvertAST(ast1)
+				frag2.TreeNode = converter.ConvertAST(ast2)
+				
+				return []*CodeFragment{frag1, frag2}
+			}(),
+			expectedPairs:  1,
+			expectedGroups: 1,
+			description:   "Should detect Type-1 clone for identical functions",
+		},
+		{
+			name:   "different variable names",
+			config: &CloneDetectorConfig{
+				MinLines:        2,
+				MinNodes:        2,
+				Type1Threshold:  0.95,
+				Type2Threshold:  0.85,
+				Type3Threshold:  0.70,
+				Type4Threshold:  0.60,
+				MaxEditDistance: 50.0,
+				MaxClonePairs:   10000,
+				BatchSizeThreshold: 50,
+			},
+			fragments: func() []*CodeFragment {
+				// Create two similar fragments with different variable names
+				ast1 := &parser.Node{
+					Type:     parser.NodeFunctionDef,
+					Name:     "process_data",
+					Location: parser.Location{StartLine: 1, EndLine: 5},
+					Children: []*parser.Node{
+						{Type: parser.NodeAssign, Children: []*parser.Node{
+							{Type: parser.NodeName, Name: "x"},
+							{Type: parser.NodeBinOp, Op: "*", Children: []*parser.Node{
+								{Type: parser.NodeName, Name: "x"},
+								{Type: parser.NodeConstant, Value: "2"},
+							}},
+						}},
+					},
+				}
+				ast2 := &parser.Node{
+					Type:     parser.NodeFunctionDef,
+					Name:     "calculate",
+					Location: parser.Location{StartLine: 10, EndLine: 14},
+					Children: []*parser.Node{
+						{Type: parser.NodeAssign, Children: []*parser.Node{
+							{Type: parser.NodeName, Name: "y"},
+							{Type: parser.NodeBinOp, Op: "*", Children: []*parser.Node{
+								{Type: parser.NodeName, Name: "y"},
+								{Type: parser.NodeConstant, Value: "2"},
+							}},
+						}},
+					},
+				}
+				
+				loc1 := &CodeLocation{FilePath: "/test.py", StartLine: 1, EndLine: 5}
+				loc2 := &CodeLocation{FilePath: "/test.py", StartLine: 10, EndLine: 14}
+				
+				frag1 := NewCodeFragment(loc1, ast1, "def process_data(x):\n    x = x * 2")
+				frag2 := NewCodeFragment(loc2, ast2, "def calculate(y):\n    y = y * 2")
+				
+				converter := NewTreeConverter()
+				frag1.TreeNode = converter.ConvertAST(ast1)
+				frag2.TreeNode = converter.ConvertAST(ast2)
+				
+				return []*CodeFragment{frag1, frag2}
+			}(),
+			expectedPairs:  1,
+			expectedGroups: 1,
+			description:   "Should detect Type-2 clone for renamed variables",
+		},
+		{
+			name:   "no clones",
+			config: &CloneDetectorConfig{
+				MinLines:        2,
+				MinNodes:        2,
+				Type1Threshold:  0.95,
+				Type2Threshold:  0.85,
+				Type3Threshold:  0.70,
+				Type4Threshold:  0.60,
+				MaxEditDistance: 50.0,
+				MaxClonePairs:   10000,
+				BatchSizeThreshold: 50,
+			},
+			fragments: func() []*CodeFragment {
+				// Create completely different fragments
+				ast1 := &parser.Node{
+					Type:     parser.NodeFunctionDef,
+					Name:     "read_file",
+					Location: parser.Location{StartLine: 1, EndLine: 5},
+					Children: []*parser.Node{
+						{Type: parser.NodeCall, Name: "open"},
+					},
+				}
+				ast2 := &parser.Node{
+					Type:     parser.NodeClassDef,
+					Name:     "DataProcessor",
+					Location: parser.Location{StartLine: 10, EndLine: 20},
+					Children: []*parser.Node{
+						{Type: parser.NodeFunctionDef, Name: "__init__"},
+					},
+				}
+				
+				loc1 := &CodeLocation{FilePath: "/test.py", StartLine: 1, EndLine: 5}
+				loc2 := &CodeLocation{FilePath: "/test.py", StartLine: 10, EndLine: 20}
+				
+				frag1 := NewCodeFragment(loc1, ast1, "def read_file():\n    open()")
+				frag2 := NewCodeFragment(loc2, ast2, "class DataProcessor:\n    def __init__()")
+				
+				converter := NewTreeConverter()
+				frag1.TreeNode = converter.ConvertAST(ast1)
+				frag2.TreeNode = converter.ConvertAST(ast2)
+				
+				return []*CodeFragment{frag1, frag2}
+			}(),
+			expectedPairs:  0,
+			expectedGroups: 0,
+			description:   "Should not detect clones for completely different code",
+		},
+		{
+			name:   "multiple clones",
+			config: &CloneDetectorConfig{
+				MinLines:        1,
+				MinNodes:        1,
+				Type1Threshold:  0.95,
+				Type2Threshold:  0.85,
+				Type3Threshold:  0.70,
+				Type4Threshold:  0.60,
+				MaxEditDistance: 50.0,
+				MaxClonePairs:   10000,
+				BatchSizeThreshold: 50,
+			},
+			fragments: func() []*CodeFragment {
+				// Create three similar fragments
+				fragments := make([]*CodeFragment, 3)
+				converter := NewTreeConverter()
+				
+				for i := 0; i < 3; i++ {
+					ast := &parser.Node{
+						Type:     parser.NodeFunctionDef,
+						Name:     fmt.Sprintf("func%d", i),
+						Location: parser.Location{StartLine: i*10 + 1, EndLine: i*10 + 3},
+						Children: []*parser.Node{
+							{Type: parser.NodeReturn, Children: []*parser.Node{
+								{Type: parser.NodeConstant, Value: fmt.Sprintf("%d", i)},
+							}},
+						},
+					}
+					
+					loc := &CodeLocation{
+						FilePath:  "/test.py",
+						StartLine: i*10 + 1,
+						EndLine:   i*10 + 3,
+					}
+					
+					fragments[i] = NewCodeFragment(loc, ast, fmt.Sprintf("def func%d():\n    return %d", i, i))
+					fragments[i].TreeNode = converter.ConvertAST(ast)
+				}
+				
+				return fragments
+			}(),
+			expectedPairs:  3, // (0,1), (0,2), (1,2)
+			expectedGroups: 1, // All three in one group
+			description:   "Should detect all pairs and group them together",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			detector := NewCloneDetector(tt.config)
+			
+			// Detect clones
+			pairs, groups := detector.DetectClones(tt.fragments)
+			
+			assert.Len(t, pairs, tt.expectedPairs, tt.description + " - pairs count")
+			assert.Len(t, groups, tt.expectedGroups, tt.description + " - groups count")
+			
+			// Verify that all pairs have valid similarity scores
+			for _, pair := range pairs {
+				assert.GreaterOrEqual(t, pair.Similarity, 0.0, "Similarity should be >= 0")
+				assert.LessOrEqual(t, pair.Similarity, 1.0, "Similarity should be <= 1")
+				assert.NotNil(t, pair.Fragment1, "Fragment1 should not be nil")
+				assert.NotNil(t, pair.Fragment2, "Fragment2 should not be nil")
+				assert.Greater(t, pair.CloneType, CloneType(0), "CloneType should be valid")
+			}
+			
+			// Verify groups
+			for _, group := range groups {
+				assert.NotEmpty(t, group.Fragments, "Group should have fragments")
+				assert.GreaterOrEqual(t, group.Similarity, 0.0, "Group similarity should be >= 0")
+				assert.LessOrEqual(t, group.Similarity, 1.0, "Group similarity should be <= 1")
+			}
+		})
+	}
+}
+
+func TestCloneDetector_compareFragments(t *testing.T) {
+	config := &CloneDetectorConfig{
+		MinLines:        1,
+		MinNodes:        1,
+		Type1Threshold:  0.95,
+		Type2Threshold:  0.85,
+		Type3Threshold:  0.70,
+		Type4Threshold:  0.60,
+		MaxEditDistance: 50.0,
+	}
+	detector := NewCloneDetector(config)
+	converter := NewTreeConverter()
+
+	tests := []struct {
+		name         string
+		fragment1    *CodeFragment
+		fragment2    *CodeFragment
+		expectPair   bool
+		minSimilarity float64
+	}{
+		{
+			name: "identical fragments",
+			fragment1: func() *CodeFragment {
+				ast := &parser.Node{
+					Type: parser.NodeFunctionDef,
+					Name: "test",
+					Children: []*parser.Node{
+						{Type: parser.NodeReturn},
+					},
+				}
+				frag := NewCodeFragment(
+					&CodeLocation{FilePath: "/test.py", StartLine: 1, EndLine: 3},
+					ast, "def test():\n    return",
+				)
+				frag.TreeNode = converter.ConvertAST(ast)
+				return frag
+			}(),
+			fragment2: func() *CodeFragment {
+				ast := &parser.Node{
+					Type: parser.NodeFunctionDef,
+					Name: "test",
+					Children: []*parser.Node{
+						{Type: parser.NodeReturn},
+					},
+				}
+				frag := NewCodeFragment(
+					&CodeLocation{FilePath: "/test.py", StartLine: 5, EndLine: 7},
+					ast, "def test():\n    return",
+				)
+				frag.TreeNode = converter.ConvertAST(ast)
+				return frag
+			}(),
+			expectPair:    true,
+			minSimilarity: 0.95,
+		},
+		{
+			name: "nil tree nodes",
+			fragment1: NewCodeFragment(
+				&CodeLocation{FilePath: "/test.py", StartLine: 1, EndLine: 3},
+				nil, "def test():\n    return",
+			),
+			fragment2: NewCodeFragment(
+				&CodeLocation{FilePath: "/test.py", StartLine: 5, EndLine: 7},
+				nil, "def test():\n    return",
+			),
+			expectPair: false,
+		},
+		{
+			name: "same location",
+			fragment1: func() *CodeFragment {
+				ast := &parser.Node{Type: parser.NodeFunctionDef, Name: "test"}
+				frag := NewCodeFragment(
+					&CodeLocation{FilePath: "/test.py", StartLine: 1, EndLine: 3},
+					ast, "def test():",
+				)
+				frag.TreeNode = converter.ConvertAST(ast)
+				return frag
+			}(),
+			fragment2: func() *CodeFragment {
+				ast := &parser.Node{Type: parser.NodeFunctionDef, Name: "test"}
+				frag := NewCodeFragment(
+					&CodeLocation{FilePath: "/test.py", StartLine: 1, EndLine: 3},
+					ast, "def test():",
+				)
+				frag.TreeNode = converter.ConvertAST(ast)
+				return frag
+			}(),
+			expectPair: true, // compareFragments doesn't filter same location, that's done at higher level
+			minSimilarity: 0.95,
+		},
+		{
+			name: "low similarity",
+			fragment1: func() *CodeFragment {
+				ast := &parser.Node{
+					Type: parser.NodeFunctionDef,
+					Name: "read_file",
+					Children: []*parser.Node{
+						{Type: parser.NodeCall, Name: "open"},
+						{Type: parser.NodeCall, Name: "read"},
+						{Type: parser.NodeCall, Name: "close"},
+					},
+				}
+				frag := NewCodeFragment(
+					&CodeLocation{FilePath: "/test.py", StartLine: 1, EndLine: 5},
+					ast, "def read_file():\n    open()\n    read()\n    close()",
+				)
+				frag.TreeNode = converter.ConvertAST(ast)
+				return frag
+			}(),
+			fragment2: func() *CodeFragment {
+				ast := &parser.Node{
+					Type: parser.NodeClassDef,
+					Name: "Calculator",
+					Children: []*parser.Node{
+						{Type: parser.NodeFunctionDef, Name: "add"},
+						{Type: parser.NodeFunctionDef, Name: "subtract"},
+					},
+				}
+				frag := NewCodeFragment(
+					&CodeLocation{FilePath: "/test.py", StartLine: 10, EndLine: 15},
+					ast, "class Calculator:\n    def add()\n    def subtract()",
+				)
+				frag.TreeNode = converter.ConvertAST(ast)
+				return frag
+			}(),
+			expectPair:    true, // APTED finds structural similarity even with different node types
+			minSimilarity: 0.60, // They have similar structure but different node types
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pair := detector.compareFragments(tt.fragment1, tt.fragment2)
+			
+			if tt.expectPair {
+				assert.NotNil(t, pair, "Expected a clone pair")
+				if pair != nil {
+					assert.GreaterOrEqual(t, pair.Similarity, tt.minSimilarity, 
+						"Similarity should be at least %f", tt.minSimilarity)
+					assert.Equal(t, tt.fragment1, pair.Fragment1)
+					assert.Equal(t, tt.fragment2, pair.Fragment2)
+				}
+			} else {
+				assert.Nil(t, pair, "Expected no clone pair")
+			}
+		})
+	}
+}
+
 // Benchmark tests
 func BenchmarkCloneDetector_ExtractFragments(b *testing.B) {
 	config := DefaultCloneDetectorConfig()
