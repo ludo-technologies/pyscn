@@ -30,6 +30,8 @@ func (f *DeadCodeFormatterImpl) Format(response *domain.DeadCodeResponse, format
 		return f.formatYAML(response)
 	case domain.OutputFormatCSV:
 		return f.formatCSV(response)
+	case domain.OutputFormatHTML:
+		return f.formatHTML(response)
 	default:
 		return "", domain.NewUnsupportedFormatError(string(format))
 	}
@@ -61,6 +63,10 @@ func (f *DeadCodeFormatterImpl) FormatFinding(finding domain.DeadCodeFinding, fo
 	case domain.OutputFormatYAML:
 		data, err := yaml.Marshal(finding)
 		return string(data), err
+	case domain.OutputFormatHTML:
+		// HTML formatting for individual findings is not typically needed
+		// Fall back to text format for individual findings
+		return f.formatFindingText(finding), nil
 	default:
 		return "", domain.NewUnsupportedFormatError(string(format))
 	}
@@ -186,4 +192,11 @@ func (f *DeadCodeFormatterImpl) formatCSV(response *domain.DeadCodeResponse) (st
 	}
 
 	return output.String(), nil
+}
+
+// formatHTML formats the response as Lighthouse-style HTML
+func (f *DeadCodeFormatterImpl) formatHTML(response *domain.DeadCodeResponse) (string, error) {
+	htmlFormatter := NewHTMLFormatter()
+	projectName := "Python Project" // Default project name, could be configurable
+	return htmlFormatter.FormatDeadCodeAsHTML(response, projectName)
 }

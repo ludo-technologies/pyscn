@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/pyqol/pyqol/internal/parser"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -143,8 +144,157 @@ func TestAPTEDAnalyzer_ComputeDistance_ComplexTrees(t *testing.T) {
 	assert.Equal(t, 1.0, distance, "APTED algorithm computes optimal distance")
 
 	similarity := analyzer.ComputeSimilarity(tree1, tree2)
-	expectedSimilarity := 1.0 - (1.0 / 3.0) // 1.0 distance, 3 nodes in each tree
+	// With the new normalization: similarity = 1.0 - (distance / (size1 + size2))
+	// distance = 1.0, size1 = 3, size2 = 3
+	// similarity = 1.0 - (1.0 / 6.0) = 0.8333...
+	expectedSimilarity := 1.0 - (1.0 / 6.0) // 1.0 distance, 3 nodes in each tree, total 6
 	assert.InDelta(t, expectedSimilarity, similarity, 0.001, "Similarity should be calculated correctly")
+}
+
+func TestAPTEDAnalyzer_ComputeSimilarity(t *testing.T) {
+	costModel := NewDefaultCostModel()
+	analyzer := NewAPTEDAnalyzer(costModel)
+
+	tests := []struct {
+		name               string
+		tree1              *TreeNode
+		tree2              *TreeNode
+		expectedSimilarity float64
+		delta              float64
+	}{
+		{
+			name:               "both trees nil",
+			tree1:              nil,
+			tree2:              nil,
+			expectedSimilarity: 1.0,
+			delta:              0.001,
+		},
+		{
+			name:               "first tree nil",
+			tree1:              nil,
+			tree2:              NewTreeNode(1, "A"),
+			expectedSimilarity: 0.0,
+			delta:              0.001,
+		},
+		{
+			name:               "second tree nil",
+			tree1:              NewTreeNode(1, "A"),
+			tree2:              nil,
+			expectedSimilarity: 0.0,
+			delta:              0.001,
+		},
+		{
+			name: "identical single nodes",
+			tree1: NewTreeNode(1, "A"),
+			tree2: NewTreeNode(2, "A"),
+			expectedSimilarity: 1.0, // Same label, distance = 0
+			delta:              0.001,
+		},
+		{
+			name: "different single nodes",
+			tree1: NewTreeNode(1, "A"),
+			tree2: NewTreeNode(2, "B"),
+			expectedSimilarity: 0.5, // distance = 1 (rename), total size = 2
+			delta:              0.001,
+		},
+		{
+			name: "identical trees with children",
+			tree1: func() *TreeNode {
+				root := NewTreeNode(1, "A")
+				root.AddChild(NewTreeNode(2, "B"))
+				root.AddChild(NewTreeNode(3, "C"))
+				return root
+			}(),
+			tree2: func() *TreeNode {
+				root := NewTreeNode(1, "A")
+				root.AddChild(NewTreeNode(2, "B"))
+				root.AddChild(NewTreeNode(3, "C"))
+				return root
+			}(),
+			expectedSimilarity: 1.0, // Identical structure
+			delta:              0.001,
+		},
+		{
+			name: "similar trees with one different node",
+			tree1: func() *TreeNode {
+				root := NewTreeNode(1, "A")
+				root.AddChild(NewTreeNode(2, "B"))
+				return root
+			}(),
+			tree2: func() *TreeNode {
+				root := NewTreeNode(1, "A")
+				root.AddChild(NewTreeNode(2, "C"))
+				return root
+			}(),
+			expectedSimilarity: 0.75, // distance = 1 (rename), total size = 4
+			delta:              0.001,
+		},
+		{
+			name: "completely different trees",
+			tree1: func() *TreeNode {
+				root := NewTreeNode(1, "A")
+				root.AddChild(NewTreeNode(2, "B"))
+				root.AddChild(NewTreeNode(3, "C"))
+				return root
+			}(),
+			tree2: func() *TreeNode {
+				root := NewTreeNode(1, "X")
+				root.AddChild(NewTreeNode(2, "Y"))
+				root.AddChild(NewTreeNode(3, "Z"))
+				return root
+			}(),
+			expectedSimilarity: 0.6667, // APTED finds optimal distance of 2, total size = 6
+			delta:              0.001,
+		},
+		{
+			name: "trees with different structures",
+			tree1: func() *TreeNode {
+				root := NewTreeNode(1, "A")
+				child := NewTreeNode(2, "B")
+				child.AddChild(NewTreeNode(3, "C"))
+				root.AddChild(child)
+				return root
+			}(),
+			tree2: func() *TreeNode {
+				root := NewTreeNode(1, "A")
+				root.AddChild(NewTreeNode(2, "B"))
+				root.AddChild(NewTreeNode(3, "C"))
+				return root
+			}(),
+			expectedSimilarity: 0.6667, // APTED optimal distance = 2, total size = 6
+			delta:              0.001,
+		},
+		{
+			name: "trees with very different sizes",
+			tree1: NewTreeNode(1, "A"),
+			tree2: func() *TreeNode {
+				root := NewTreeNode(1, "A")
+				for i := 2; i <= 10; i++ {
+					root.AddChild(NewTreeNode(i, fmt.Sprintf("Node%d", i)))
+				}
+				return root
+			}(),
+			expectedSimilarity: 0.1818, // APTED optimal distance = 9, total size = 11
+			delta:              0.001,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			similarity := analyzer.ComputeSimilarity(tt.tree1, tt.tree2)
+			assert.InDelta(t, tt.expectedSimilarity, similarity, tt.delta, 
+				"Similarity should be %f but got %f", tt.expectedSimilarity, similarity)
+			
+			// Verify similarity is always in [0, 1] range
+			assert.GreaterOrEqual(t, similarity, 0.0, "Similarity should be >= 0")
+			assert.LessOrEqual(t, similarity, 1.0, "Similarity should be <= 1")
+			
+			// Verify symmetry: similarity(A, B) == similarity(B, A)
+			reverseSimilarity := analyzer.ComputeSimilarity(tt.tree2, tt.tree1)
+			assert.InDelta(t, similarity, reverseSimilarity, 0.001, 
+				"Similarity should be symmetric")
+		})
+	}
 }
 
 func TestAPTEDAnalyzer_PrepareTreeForAPTED(t *testing.T) {
@@ -193,20 +343,6 @@ func TestTreeNode_BasicOperations(t *testing.T) {
 	assert.False(t, node.IsLeaf(), "Node should not be a leaf after adding child")
 	assert.Equal(t, 2, node.Size(), "Size should be 2 after adding child")
 	assert.Equal(t, 1, node.Height(), "Height should be 1 after adding child")
-}
-
-func TestTreeConverter_ConvertAST(t *testing.T) {
-	converter := NewTreeConverter()
-
-	// Test with nil node
-	result := converter.ConvertAST(nil)
-	assert.Nil(t, result, "Converting nil AST should return nil")
-
-	// Test with simple AST node (mock parser.Node)
-	// Note: This would need actual parser.Node implementation
-	// For now, we'll test the converter structure
-	assert.NotNil(t, converter, "Converter should be created successfully")
-	assert.Equal(t, 0, converter.nextID, "Initial ID should be 0")
 }
 
 func TestPythonCostModel(t *testing.T) {
@@ -354,6 +490,202 @@ func BenchmarkTreePreparation(b *testing.B) {
 		// Reset tree state for each iteration
 		resetTreeState(tree)
 		PrepareTreeForAPTED(tree)
+	}
+}
+
+func TestTreeConverter_ConvertAST(t *testing.T) {
+	converter := NewTreeConverter()
+
+	tests := []struct {
+		name           string
+		astNode        *parser.Node
+		expectedLabel  string
+		expectedSize   int
+		checkStructure func(t *testing.T, tree *TreeNode)
+	}{
+		{
+			name:          "nil node",
+			astNode:       nil,
+			expectedLabel: "",
+			expectedSize:  0,
+		},
+		{
+			name: "simple function def",
+			astNode: &parser.Node{
+				Type: parser.NodeFunctionDef,
+				Name: "test_func",
+			},
+			expectedLabel: "FunctionDef(test_func)",
+			expectedSize:  1,
+		},
+		{
+			name: "function with body",
+			astNode: &parser.Node{
+				Type: parser.NodeFunctionDef,
+				Name: "calculate",
+				Body: []*parser.Node{
+					{Type: parser.NodeAssign},
+					{Type: parser.NodeReturn},
+				},
+			},
+			expectedLabel: "FunctionDef(calculate)",
+			expectedSize:  3,
+			checkStructure: func(t *testing.T, tree *TreeNode) {
+				assert.Len(t, tree.Children, 2, "Should have 2 children from body")
+			},
+		},
+		{
+			name: "class definition",
+			astNode: &parser.Node{
+				Type: parser.NodeClassDef,
+				Name: "TestClass",
+			},
+			expectedLabel: "ClassDef(TestClass)",
+			expectedSize:  1,
+		},
+		{
+			name: "binary operation",
+			astNode: &parser.Node{
+				Type: parser.NodeBinOp,
+				Op:   "+",
+				Children: []*parser.Node{
+					{Type: parser.NodeName, Name: "x"},
+					{Type: parser.NodeConstant, Value: "1"},
+				},
+			},
+			expectedLabel: "BinOp(+)",
+			expectedSize:  3,
+			checkStructure: func(t *testing.T, tree *TreeNode) {
+				assert.Len(t, tree.Children, 2, "BinOp should have 2 children")
+				assert.Equal(t, "Name(x)", tree.Children[0].Label)
+				assert.Equal(t, "Constant(1)", tree.Children[1].Label)
+			},
+		},
+		{
+			name: "if statement with orelse",
+			astNode: &parser.Node{
+				Type: parser.NodeIf,
+				Children: []*parser.Node{
+					{Type: parser.NodeCompare}, // condition
+				},
+				Body: []*parser.Node{
+					{Type: parser.NodeAssign},
+				},
+				Orelse: []*parser.Node{
+					{Type: parser.NodeReturn},
+				},
+			},
+			expectedLabel: "If",
+			expectedSize:  4,
+			checkStructure: func(t *testing.T, tree *TreeNode) {
+				assert.Len(t, tree.Children, 3, "If should have condition, body, and orelse")
+			},
+		},
+		{
+			name: "nested structure",
+			astNode: &parser.Node{
+				Type: parser.NodeFunctionDef,
+				Name: "outer",
+				Body: []*parser.Node{
+					{
+						Type: parser.NodeFunctionDef,
+						Name: "inner",
+						Body: []*parser.Node{
+							{Type: parser.NodeReturn},
+						},
+					},
+				},
+			},
+			expectedLabel: "FunctionDef(outer)",
+			expectedSize:  3,
+			checkStructure: func(t *testing.T, tree *TreeNode) {
+				assert.Len(t, tree.Children, 1, "Outer function should have 1 child")
+				innerFunc := tree.Children[0]
+				assert.Equal(t, "FunctionDef(inner)", innerFunc.Label)
+				assert.Len(t, innerFunc.Children, 1, "Inner function should have 1 child")
+			},
+		},
+		{
+			name: "constant value",
+			astNode: &parser.Node{
+				Type:  parser.NodeConstant,
+				Value: "42",
+			},
+			expectedLabel: "Constant(42)",
+			expectedSize:  1,
+		},
+		{
+			name: "name node",
+			astNode: &parser.Node{
+				Type: parser.NodeName,
+				Name: "variable_name",
+			},
+			expectedLabel: "Name(variable_name)",
+			expectedSize:  1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tree := converter.ConvertAST(tt.astNode)
+
+			if tt.astNode == nil {
+				assert.Nil(t, tree, "Should return nil for nil input")
+				return
+			}
+
+			assert.NotNil(t, tree, "Tree should not be nil")
+			assert.Equal(t, tt.expectedLabel, tree.Label, "Label should match")
+			assert.Equal(t, tt.expectedSize, tree.Size(), "Size should match")
+			assert.Equal(t, tt.astNode, tree.OriginalNode, "Original node should be preserved")
+
+			if tt.checkStructure != nil {
+				tt.checkStructure(t, tree)
+			}
+
+			// Verify tree properties
+			if tree.Size() > 1 {
+				assert.NotEmpty(t, tree.Children, "Non-leaf nodes should have children")
+			}
+		})
+	}
+}
+
+func TestTreeConverter_LabelGeneration(t *testing.T) {
+	converter := NewTreeConverter()
+
+	tests := []struct {
+		nodeType      parser.NodeType
+		nodeName      string
+		nodeOp        string
+		nodeValue     interface{}
+		expectedLabel string
+	}{
+		{parser.NodeFunctionDef, "test", "", nil, "FunctionDef(test)"},
+		{parser.NodeAsyncFunctionDef, "async_test", "", nil, "FunctionDef(async_test)"},
+		{parser.NodeClassDef, "MyClass", "", nil, "ClassDef(MyClass)"},
+		{parser.NodeName, "var", "", nil, "Name(var)"},
+		{parser.NodeConstant, "", "", "hello", "Constant(hello)"},
+		{parser.NodeBinOp, "", "+", nil, "BinOp(+)"},
+		{parser.NodeUnaryOp, "", "-", nil, "UnaryOp(-)"},
+		{parser.NodeBoolOp, "", "and", nil, "BoolOp(and)"},
+		{parser.NodeIf, "", "", nil, "If"},
+		{parser.NodeFor, "", "", nil, "For"},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.nodeType), func(t *testing.T) {
+			node := &parser.Node{
+				Type:  tt.nodeType,
+				Name:  tt.nodeName,
+				Op:    tt.nodeOp,
+				Value: tt.nodeValue,
+			}
+
+			tree := converter.ConvertAST(node)
+			assert.NotNil(t, tree)
+			assert.Equal(t, tt.expectedLabel, tree.Label)
+		})
 	}
 }
 

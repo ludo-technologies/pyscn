@@ -181,7 +181,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 			},
 			expectError: true,
 			errorType:   "*domain.DomainError",
-			errorMsg:    "output writer is required",
+			errorMsg:    "output writer or output path is required",
 		},
 		{
 			name: "validation error - negative min complexity",
@@ -495,7 +495,7 @@ func TestComplexityUseCase_validateRequest(t *testing.T) {
 			request: domain.ComplexityRequest{
 				Paths: []string{"/test/file.py"},
 			},
-			wantErr: "output writer is required",
+			wantErr: "output writer or output path is required",
 		},
 		{
 			name: "negative min complexity",

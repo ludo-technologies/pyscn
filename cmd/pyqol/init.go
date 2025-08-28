@@ -83,7 +83,7 @@ clones:
       - "*_test.py"
   
   output:
-    format: "text"                 # Output format: text, json, yaml, csv
+    format: "text"                 # Output format: text, json, yaml, csv, html
     show_details: false            # Show detailed clone information
     show_content: false            # Include source code content in output
     sort_by: "similarity"          # Sort by: similarity, size, location, type
@@ -98,7 +98,7 @@ clones:
 # OUTPUT CONFIGURATION
 # =============================================================================
 output:
-  format: "text"                   # Default output format: text, json, yaml, csv
+  format: "text"                   # Default output format: text, json, yaml, csv, html
   show_details: false              # Show detailed breakdown by default
   sort_by: "name"                  # Default sort: name, complexity, risk
   min_complexity: 1                # Minimum complexity to report
