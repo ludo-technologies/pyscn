@@ -31,6 +31,8 @@ func (f *CloneOutputFormatter) FormatCloneResponse(response *domain.CloneRespons
 		return f.formatAsYAML(response, writer)
 	case domain.OutputFormatCSV:
 		return f.formatAsCSV(response, writer)
+	case domain.OutputFormatHTML:
+		return f.formatAsHTML(response, writer)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
@@ -47,6 +49,8 @@ func (f *CloneOutputFormatter) FormatCloneStatistics(stats *domain.CloneStatisti
 		return f.formatStatsAsYAML(stats, writer)
 	case domain.OutputFormatCSV:
 		return f.formatStatsAsCSV(stats, writer)
+	case domain.OutputFormatHTML:
+		return f.formatStatsAsHTML(stats, writer)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
@@ -279,4 +283,30 @@ func (f *CloneOutputFormatter) formatStatsAsCSV(stats *domain.CloneStatistics, w
 	}
 
 	return nil
+}
+
+// formatAsHTML formats the response as Lighthouse-style HTML
+func (f *CloneOutputFormatter) formatAsHTML(response *domain.CloneResponse, writer io.Writer) error {
+	htmlFormatter := NewHTMLFormatter()
+	projectName := "Python Project" // Default project name, could be configurable
+	
+	htmlContent, err := htmlFormatter.FormatCloneAsHTML(response, projectName)
+	if err != nil {
+		return fmt.Errorf("failed to format as HTML: %w", err)
+	}
+	
+	_, err = writer.Write([]byte(htmlContent))
+	return err
+}
+
+// formatStatsAsHTML formats statistics as HTML
+func (f *CloneOutputFormatter) formatStatsAsHTML(stats *domain.CloneStatistics, writer io.Writer) error {
+	// Create a minimal clone response with only statistics for HTML formatting
+	response := &domain.CloneResponse{
+		Success:    true,
+		Statistics: stats,
+		ClonePairs: []*domain.ClonePair{}, // Empty pairs for stats-only view
+	}
+	
+	return f.formatAsHTML(response, writer)
 }
