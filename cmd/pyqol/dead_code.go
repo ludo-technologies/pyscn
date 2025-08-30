@@ -231,7 +231,11 @@ func (c *DeadCodeCommand) buildDeadCodeRequest(cmd *cobra.Command, args []string
 		// Other formats generate a file
 		// Use first path as target for config discovery
 		targetPath := getTargetPathFromArgs(args)
-		outputPath = generateOutputFilePath("deadcode", extension, targetPath)
+		var err error
+		outputPath, err = generateOutputFilePath("deadcode", extension, targetPath)
+		if err != nil {
+			return domain.DeadCodeRequest{}, fmt.Errorf("failed to generate output path: %w", err)
+		}
 	}
 
 	return domain.DeadCodeRequest{

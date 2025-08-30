@@ -307,7 +307,11 @@ func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*
 		// Other formats generate a file
 		// Use first path as target for config discovery
 		targetPath := getTargetPathFromArgs(paths)
-		outputPath = generateOutputFilePath("clone", extension, targetPath)
+		var err error
+		outputPath, err = generateOutputFilePath("clone", extension, targetPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate output path: %w", err)
+		}
 	}
 
 	request := &domain.CloneRequest{

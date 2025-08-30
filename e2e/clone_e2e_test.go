@@ -81,6 +81,7 @@ def function_b(arg):
 	createTestConfigFile(t, testDir, outputDir)
 	
 	cmd := exec.Command(absBinaryPath, "clone", "--json", testFile)
+	cmd.Dir = testDir // Set working directory to ensure config file discovery works
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -362,6 +363,7 @@ def sample_func2(arg):
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := exec.Command(binaryPath, tt.args...)
+			cmd.Dir = testDir // Set working directory to ensure config file discovery works
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr

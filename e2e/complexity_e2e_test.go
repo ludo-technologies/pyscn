@@ -77,6 +77,7 @@ def sample_function(x):
 	createTestConfigFile(t, testDir, outputDir)
 	
 	cmd := exec.Command(binaryPath, "complexity", "--json", testDir)
+	cmd.Dir = testDir // Set working directory to ensure config file discovery works
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
