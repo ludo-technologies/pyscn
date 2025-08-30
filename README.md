@@ -83,6 +83,36 @@ pyqol complexity --min 3 src/           # Only show complexity >= 3
 pyqol complexity --max 20 src/          # Only show complexity <= 20
 ```
 
+### 🔧 Configuration System
+
+pyqol uses a **Ruff-style hierarchical configuration system** for seamless project integration:
+
+```yaml
+# .pyqol.yaml
+output:
+  directory: "reports"          # Output directory for generated reports
+  
+complexity:
+  low_threshold: 9             # Low complexity threshold  
+  medium_threshold: 19         # Medium complexity threshold
+  
+# Future configuration options
+dead_code:
+  enabled: true
+  check_unused_imports: true
+  
+clone_detection:
+  similarity_threshold: 0.8
+  min_lines: 5
+```
+
+**Configuration Discovery** (searched in order):
+1. **Target Directory & Parents**: Starting from analysis target, search upward to filesystem root
+2. **XDG Config Directory**: `$XDG_CONFIG_HOME/pyqol/` or `~/.config/pyqol/`
+3. **Home Directory**: `~/.pyqol.yaml` (backward compatibility)
+
+**Supported formats**: `.pyqol.yaml`, `.pyqol.yml`, `pyqol.yaml`, `pyqol.yml`, and JSON variants
+
 ## 🏗️ Architecture & Design
 
 pyqol is built with **Clean Architecture** principles:
@@ -127,11 +157,11 @@ pyqol is built with **Clean Architecture** principles:
 - [x] **CLI Framework** - Full-featured command interface with multiple output formats
 - [x] **Comprehensive Testing** - Unit, integration, and E2E test coverage
 - [x] **CI/CD Pipeline** - Cross-platform automated testing
+- [x] **Configuration System** - Ruff-style hierarchical YAML configuration with discovery
 
 ### 🚧 Phase 2: Advanced Analysis (September 2025)
 - [ ] **Dead Code Detection** - CFG-based unreachable code identification
 - [ ] **APTED Clone Detection** - Tree edit distance for structural similarity
-- [ ] **Configuration System** - YAML-based configuration with defaults
 - [ ] **Performance Optimization** - Parallel processing and caching
 
 ### 🔮 Phase 3: Extended Features (Q4 2025)
@@ -229,6 +259,30 @@ pyqol complexity --low-threshold 3 --medium-threshold 7 src/
 
 # Detailed analysis with breakdown
 pyqol complexity --details --sort risk src/
+```
+
+### Configuration-Based Analysis
+
+Create a `.pyqol.yaml` file in your project root:
+
+```yaml
+# .pyqol.yaml
+output:
+  directory: "build/reports"   # All reports go to build/reports/
+  
+complexity:
+  low_threshold: 5
+  medium_threshold: 10
+```
+
+Then run analysis with automatic configuration discovery:
+
+```bash
+# Uses configuration from nearest .pyqol.yaml (searches upward)
+pyqol complexity src/
+
+# Configuration is found automatically - no flags needed!
+# Output files will be saved to build/reports/ directory
 ```
 
 ### CI/CD Integration

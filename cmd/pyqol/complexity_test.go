@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -101,6 +102,17 @@ func TestComplexityCommandFlags(t *testing.T) {
 	err := os.WriteFile(testFile, []byte("def test(): pass"), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	// Create a temporary output directory for test reports
+	outputDir := t.TempDir()
+	
+	// Create a config file to direct output to temp directory
+	configFile := filepath.Join(tempDir, ".pyqol.yaml")
+	configContent := fmt.Sprintf("output:\n  directory: \"%s\"\n", outputDir)
+	err = os.WriteFile(configFile, []byte(configContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create config file: %v", err)
 	}
 
 	flagTests := []struct {

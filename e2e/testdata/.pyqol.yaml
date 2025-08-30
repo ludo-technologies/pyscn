@@ -1,0 +1,19 @@
+# Test configuration for E2E tests
+# This configuration ensures test outputs go to a temporary directory
+
+output:
+  directory: "/tmp/pyqol-e2e-test"  # All test outputs will go here
+  format: "text"
+  show_details: false
+
+# Default settings for tests
+complexity:
+  min_complexity: 1
+  low_threshold: 10
+  medium_threshold: 20
+
+deadcode:
+  min_severity: "warning"
+
+clones:
+  similarity_threshold: 0.8

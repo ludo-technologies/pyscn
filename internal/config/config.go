@@ -94,6 +94,9 @@ type OutputConfig struct {
 
 	// MinComplexity is the minimum complexity to report (filters low values)
 	MinComplexity int `mapstructure:"min_complexity" yaml:"min_complexity"`
+
+	// Directory specifies the output directory for reports (empty = current directory)
+	Directory string `mapstructure:"directory" yaml:"directory"`
 }
 
 // DeadCodeConfig holds configuration for dead code detection
@@ -222,11 +225,16 @@ func DefaultConfig() *Config {
 
 // LoadConfig loads configuration from file or returns default config
 func LoadConfig(configPath string) (*Config, error) {
+	return LoadConfigWithTarget(configPath, "")
+}
+
+// LoadConfigWithTarget loads configuration from file with target path context
+func LoadConfigWithTarget(configPath string, targetPath string) (*Config, error) {
 	config := DefaultConfig()
 
 	// If no config path specified, try to find default config files
 	if configPath == "" {
-		configPath = findDefaultConfig()
+		configPath = findDefaultConfig(targetPath)
 	}
 
 	// If still no config found, return default
@@ -255,7 +263,8 @@ func LoadConfig(configPath string) (*Config, error) {
 }
 
 // findDefaultConfig looks for default configuration files in common locations
-func findDefaultConfig() string {
+// targetPath is the path being analyzed (e.g., the Python file or directory)
+func findDefaultConfig(targetPath string) string {
 	candidates := []string{
 		"pyqol.yaml",
 		"pyqol.yml",
@@ -265,15 +274,57 @@ func findDefaultConfig() string {
 		".pyqol.json",
 	}
 
-	// Check current directory first
+	// If targetPath is provided, search from there upward
+	if targetPath != "" {
+		// Convert to absolute path
+		absPath, err := filepath.Abs(targetPath)
+		if err == nil {
+			// If it's a file, start from its directory
+			info, err := os.Stat(absPath)
+			if err == nil && !info.IsDir() {
+				absPath = filepath.Dir(absPath)
+			}
+			
+			// Search from target directory up to root
+			for dir := absPath; dir != filepath.Dir(dir); dir = filepath.Dir(dir) {
+				for _, candidate := range candidates {
+					path := filepath.Join(dir, candidate)
+					if _, err := os.Stat(path); err == nil {
+						return path
+					}
+				}
+			}
+		}
+	}
+	
+	// Fallback to current directory
 	for _, candidate := range candidates {
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate
 		}
 	}
 
-	// Check home directory
+	// Check XDG config directory (Linux/Mac standard)
+	if xdgConfig := os.Getenv("XDG_CONFIG_HOME"); xdgConfig != "" {
+		for _, candidate := range candidates {
+			path := filepath.Join(xdgConfig, "pyqol", candidate)
+			if _, err := os.Stat(path); err == nil {
+				return path
+			}
+		}
+	}
+	
+	// Check ~/.config/pyqol/ (XDG default)
 	if home, err := os.UserHomeDir(); err == nil {
+		configDir := filepath.Join(home, ".config", "pyqol")
+		for _, candidate := range candidates {
+			path := filepath.Join(configDir, candidate)
+			if _, err := os.Stat(path); err == nil {
+				return path
+			}
+		}
+		
+		// Check home directory (backward compatibility)
 		for _, candidate := range candidates {
 			path := filepath.Join(home, candidate)
 			if _, err := os.Stat(path); err == nil {
