@@ -39,11 +39,11 @@ type CloneCommand struct {
 	type4Threshold float64
 
 	// Output format flags (only one should be true)
-	html   bool
-	json   bool
-	csv    bool
-	yaml   bool
-	noOpen bool
+	html      bool
+	json      bool
+	csv       bool
+	yaml      bool
+	noOpen    bool
 	
 	// Output options
 	showDetails  bool
@@ -305,7 +305,12 @@ func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*
 		outputWriter = os.Stdout
 	} else {
 		// Other formats generate a file
-		outputPath = generateFileName("clone", extension)
+		// Use first path as target for config discovery
+		targetPath := ""
+		if len(paths) > 0 {
+			targetPath = paths[0]
+		}
+		outputPath = generateFileNameWithTarget("clone", extension, targetPath)
 	}
 
 	request := &domain.CloneRequest{

@@ -153,6 +153,56 @@ gh issue comment 1 --body "Progress update: Completed AST implementation"
 gh issue close 1 --comment "Implemented in PR #10"
 ```
 
+## Configuration System
+
+### Configuration Files
+
+pyqol uses a hierarchical configuration system similar to Ruff. Configuration files are searched in the following order:
+
+1. **Target Directory**: Starting from the directory being analyzed
+2. **Parent Directories**: Searching upward to the filesystem root
+3. **XDG Config Directory**: `$XDG_CONFIG_HOME/pyqol/` or `~/.config/pyqol/`
+4. **Home Directory**: `~/.pyqol.yaml` (backward compatibility)
+
+### Configuration File Names
+
+Supported configuration file names (in order of precedence):
+- `pyqol.yaml`
+- `pyqol.yml`
+- `.pyqol.yaml`
+- `.pyqol.yml`
+- `pyqol.json`
+- `.pyqol.json`
+
+### Configuration Example
+
+```yaml
+# .pyqol.yaml
+output:
+  directory: "reports"  # Output directory for generated reports
+  
+complexity:
+  low_threshold: 9
+  medium_threshold: 19
+  
+clone_detection:
+  similarity_threshold: 0.8
+  min_lines: 5
+```
+
+### Using Configuration in Tests
+
+For E2E and integration tests, create temporary configuration files:
+
+```go
+// Create config file for test
+configFile := filepath.Join(testDir, ".pyqol.yaml")
+configContent := fmt.Sprintf("output:\n  directory: \"%s\"\n", outputDir)
+err := os.WriteFile(configFile, []byte(configContent), 0644)
+```
+
+This ensures test-generated files are placed in temporary directories, not in the project directory.
+
 ## Building and Testing
 
 ### Build Commands

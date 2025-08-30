@@ -408,7 +408,7 @@ func TestFindDefaultConfig(t *testing.T) {
 			t.Fatalf("Failed to change to temp directory: %v", err)
 		}
 
-		result := findDefaultConfig()
+		result := findDefaultConfig("")
 		if result != "" {
 			t.Errorf("Expected empty result for no config files, got %s", result)
 		}
@@ -427,7 +427,7 @@ func TestFindDefaultConfig(t *testing.T) {
 			t.Fatalf("Failed to create test config: %v", err)
 		}
 
-		result := findDefaultConfig()
+		result := findDefaultConfig("")
 		if result != "pyqol.yaml" {
 			t.Errorf("Expected to find pyqol.yaml, got %s", result)
 		}
