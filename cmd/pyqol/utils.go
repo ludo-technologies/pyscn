@@ -28,3 +28,11 @@ func generateFileNameWithTarget(command, extension string, targetPath string) st
 	return filename
 }
 
+// getTargetPathFromArgs extracts the first argument as target path, or returns empty string
+func getTargetPathFromArgs(args []string) string {
+	if len(args) > 0 {
+		return args[0]
+	}
+	return ""
+}
+

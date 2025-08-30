@@ -262,6 +262,17 @@ func LoadConfigWithTarget(configPath string, targetPath string) (*Config, error)
 	return config, nil
 }
 
+// searchConfigInDirectory searches for configuration files in a specific directory
+func searchConfigInDirectory(dir string, candidates []string) string {
+	for _, candidate := range candidates {
+		path := filepath.Join(dir, candidate)
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	return ""
+}
+
 // findDefaultConfig looks for default configuration files in common locations
 // targetPath is the path being analyzed (e.g., the Python file or directory)
 func findDefaultConfig(targetPath string) string {
@@ -287,49 +298,35 @@ func findDefaultConfig(targetPath string) string {
 			
 			// Search from target directory up to root
 			for dir := absPath; dir != filepath.Dir(dir); dir = filepath.Dir(dir) {
-				for _, candidate := range candidates {
-					path := filepath.Join(dir, candidate)
-					if _, err := os.Stat(path); err == nil {
-						return path
-					}
+				if config := searchConfigInDirectory(dir, candidates); config != "" {
+					return config
 				}
 			}
 		}
 	}
 	
 	// Fallback to current directory
-	for _, candidate := range candidates {
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
-		}
+	if config := searchConfigInDirectory(".", candidates); config != "" {
+		return config
 	}
 
 	// Check XDG config directory (Linux/Mac standard)
 	if xdgConfig := os.Getenv("XDG_CONFIG_HOME"); xdgConfig != "" {
-		for _, candidate := range candidates {
-			path := filepath.Join(xdgConfig, "pyqol", candidate)
-			if _, err := os.Stat(path); err == nil {
-				return path
-			}
+		if config := searchConfigInDirectory(filepath.Join(xdgConfig, "pyqol"), candidates); config != "" {
+			return config
 		}
 	}
 	
 	// Check ~/.config/pyqol/ (XDG default)
 	if home, err := os.UserHomeDir(); err == nil {
 		configDir := filepath.Join(home, ".config", "pyqol")
-		for _, candidate := range candidates {
-			path := filepath.Join(configDir, candidate)
-			if _, err := os.Stat(path); err == nil {
-				return path
-			}
+		if config := searchConfigInDirectory(configDir, candidates); config != "" {
+			return config
 		}
 		
 		// Check home directory (backward compatibility)
-		for _, candidate := range candidates {
-			path := filepath.Join(home, candidate)
-			if _, err := os.Stat(path); err == nil {
-				return path
-			}
+		if config := searchConfigInDirectory(home, candidates); config != "" {
+			return config
 		}
 	}
 

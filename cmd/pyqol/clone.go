@@ -306,10 +306,7 @@ func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*
 	} else {
 		// Other formats generate a file
 		// Use first path as target for config discovery
-		targetPath := ""
-		if len(paths) > 0 {
-			targetPath = paths[0]
-		}
+		targetPath := getTargetPathFromArgs(paths)
 		outputPath = generateFileNameWithTarget("clone", extension, targetPath)
 	}
 

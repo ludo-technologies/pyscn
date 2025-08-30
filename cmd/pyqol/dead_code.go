@@ -230,10 +230,7 @@ func (c *DeadCodeCommand) buildDeadCodeRequest(cmd *cobra.Command, args []string
 	} else {
 		// Other formats generate a file
 		// Use first path as target for config discovery
-		targetPath := ""
-		if len(args) > 0 {
-			targetPath = args[0]
-		}
+		targetPath := getTargetPathFromArgs(args)
 		outputPath = generateFileNameWithTarget("deadcode", extension, targetPath)
 	}
 

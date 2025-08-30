@@ -3,7 +3,6 @@ package e2e
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -75,11 +74,7 @@ def sample_function(x):
 	outputDir := t.TempDir() // Create separate temp directory for output
 	
 	// Create a temporary config file to specify output directory
-	configFile := filepath.Join(testDir, ".pyqol.yaml")
-	configContent := fmt.Sprintf("output:\n  directory: \"%s\"\n", outputDir)
-	if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
-		t.Fatalf("Failed to create config file: %v", err)
-	}
+	createTestConfigFile(t, testDir, outputDir)
 	
 	cmd := exec.Command(binaryPath, "complexity", "--json", testDir)
 	var stdout, stderr bytes.Buffer

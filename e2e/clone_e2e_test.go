@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -79,11 +78,7 @@ def function_b(arg):
 	outputDir := t.TempDir() // Create separate temp directory for output
 	
 	// Create a temporary config file to specify output directory
-	configFile := filepath.Join(testDir, ".pyqol.yaml")
-	configContent := fmt.Sprintf("output:\n  directory: \"%s\"\n", outputDir)
-	if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
-		t.Fatalf("Failed to create config file: %v", err)
-	}
+	createTestConfigFile(t, testDir, outputDir)
 	
 	cmd := exec.Command(absBinaryPath, "clone", "--json", testFile)
 	var stdout, stderr bytes.Buffer
@@ -300,11 +295,7 @@ func TestCloneE2EFlags(t *testing.T) {
 	outputDir := t.TempDir()
 	
 	// Create config file to control output directory
-	configFile := filepath.Join(testDir, ".pyqol.yaml")
-	configContent := fmt.Sprintf("output:\n  directory: \"%s\"\n", outputDir)
-	if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
-		t.Fatalf("Failed to create config file: %v", err)
-	}
+	createTestConfigFile(t, testDir, outputDir)
 	
 	createTestPythonFile(t, testDir, "flagtest.py", `
 def sample_func1(param):
