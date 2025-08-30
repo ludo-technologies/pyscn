@@ -228,20 +228,20 @@ func LoadConfig(configPath string) (*Config, error) {
 	return LoadConfigWithTarget(configPath, "")
 }
 
-// LoadConfigWithTarget loads configuration from file with target path context
-func LoadConfigWithTarget(configPath string, targetPath string) (*Config, error) {
+// discoverConfigFile finds the appropriate config file path
+// Single responsibility: configuration file discovery only
+func discoverConfigFile(targetPath string) string {
+	return findDefaultConfig(targetPath)
+}
+
+// loadConfigFromFile reads and parses a configuration file
+// Single responsibility: file loading and parsing only
+func loadConfigFromFile(configPath string) (*Config, error) {
+	if configPath == "" {
+		return DefaultConfig(), nil
+	}
+
 	config := DefaultConfig()
-
-	// If no config path specified, try to find default config files
-	if configPath == "" {
-		configPath = findDefaultConfig(targetPath)
-	}
-
-	// If still no config found, return default
-	if configPath == "" {
-		return config, nil
-	}
-
 	viper.SetConfigFile(configPath)
 
 	// Read config file
@@ -260,6 +260,18 @@ func LoadConfigWithTarget(configPath string, targetPath string) (*Config, error)
 	}
 
 	return config, nil
+}
+
+// LoadConfigWithTarget loads configuration with target path context
+// Orchestrates discovery and loading but delegates specific concerns
+func LoadConfigWithTarget(configPath string, targetPath string) (*Config, error) {
+	// If no config path specified, discover one
+	if configPath == "" {
+		configPath = discoverConfigFile(targetPath)
+	}
+
+	// Load the configuration from the determined path
+	return loadConfigFromFile(configPath)
 }
 
 // searchConfigInDirectory searches for configuration files in a specific directory

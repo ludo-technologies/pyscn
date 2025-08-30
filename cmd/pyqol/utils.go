@@ -9,22 +9,32 @@ import (
 )
 
 
-// generateFileNameWithTarget generates an automatic filename with target path context
-func generateFileNameWithTarget(command, extension string, targetPath string) string {
+// generateTimestampedFileName generates a filename with timestamp suffix
+// Single responsibility: filename generation only
+func generateTimestampedFileName(command, extension string) string {
 	timestamp := time.Now().Format("20060102_150405")
-	filename := fmt.Sprintf("%s_%s.%s", command, timestamp, extension)
-	
-	// Priority:
-	// 1. Config file output.directory setting (search from target path)
-	// 2. Current directory (default)
-	
-	// Try to load output directory from config file
+	return fmt.Sprintf("%s_%s.%s", command, timestamp, extension)
+}
+
+// resolveOutputDirectory determines the output directory from configuration
+// Single responsibility: directory resolution only
+func resolveOutputDirectory(targetPath string) string {
 	cfg, err := config.LoadConfigWithTarget("", targetPath)
 	if err == nil && cfg != nil && cfg.Output.Directory != "" {
-		return filepath.Join(cfg.Output.Directory, filename)
+		return cfg.Output.Directory
 	}
+	return "" // Empty means current directory
+}
+
+// generateOutputFilePath combines filename generation and directory resolution
+// Orchestrates the workflow but delegates specific concerns
+func generateOutputFilePath(command, extension, targetPath string) string {
+	filename := generateTimestampedFileName(command, extension)
+	outputDir := resolveOutputDirectory(targetPath)
 	
-	// Default to current directory
+	if outputDir != "" {
+		return filepath.Join(outputDir, filename)
+	}
 	return filename
 }
 
