@@ -811,7 +811,10 @@ func (c *AnalyzeCommand) generateUnifiedReport(cmd *cobra.Command, result *Analy
 	// Generate filename with timestamp
 	// Use first path as target for config discovery
 	targetPath := getTargetPathFromArgs(args)
-	filename := generateOutputFilePath("analyze", extension, targetPath)
+	filename, err := generateOutputFilePath("analyze", extension, targetPath)
+	if err != nil {
+		return fmt.Errorf("failed to generate output path: %w", err)
+	}
 	
 	// Create the unified response
 	response := &domain.AnalyzeResponse{

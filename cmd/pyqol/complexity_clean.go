@@ -205,7 +205,11 @@ func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []st
 		// Other formats generate a file
 		// Use first path as target for config discovery
 		targetPath := getTargetPathFromArgs(args)
-		outputPath = generateOutputFilePath("complexity", extension, targetPath)
+		var err error
+		outputPath, err = generateOutputFilePath("complexity", extension, targetPath)
+		if err != nil {
+			return domain.ComplexityRequest{}, fmt.Errorf("failed to generate output path: %w", err)
+		}
 	}
 
 	// Build request with all values

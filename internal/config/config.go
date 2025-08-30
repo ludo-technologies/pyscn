@@ -308,10 +308,20 @@ func findDefaultConfig(targetPath string) string {
 				absPath = filepath.Dir(absPath)
 			}
 			
-			// Search from target directory up to root
-			for dir := absPath; dir != filepath.Dir(dir); dir = filepath.Dir(dir) {
+			// Search from target directory up to root with robust termination
+			// Handle Windows edge cases: volume roots (C:\), UNC paths (\\server\share), long paths
+			volume := filepath.VolumeName(absPath)
+			for dir := absPath; ; dir = filepath.Dir(dir) {
 				if config := searchConfigInDirectory(dir, candidates); config != "" {
 					return config
+				}
+				
+				// Robust termination conditions for cross-platform compatibility
+				parent := filepath.Dir(dir)
+				if parent == dir || // Unix-style root reached (/), Windows UNC root (\\server)  
+					dir == volume || // Windows volume root reached (C:\)
+					(volume != "" && dir == volume+string(filepath.Separator)) { // Alternative volume root format
+					break
 				}
 			}
 		}

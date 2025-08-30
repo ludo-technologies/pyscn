@@ -18,24 +18,35 @@ func generateTimestampedFileName(command, extension string) string {
 
 // resolveOutputDirectory determines the output directory from configuration
 // Single responsibility: directory resolution only
-func resolveOutputDirectory(targetPath string) string {
+// Returns directory path and any error encountered during config loading
+func resolveOutputDirectory(targetPath string) (string, error) {
 	cfg, err := config.LoadConfigWithTarget("", targetPath)
-	if err == nil && cfg != nil && cfg.Output.Directory != "" {
-		return cfg.Output.Directory
+	if err != nil {
+		// Don't hide configuration errors - they should be visible to users
+		return "", fmt.Errorf("failed to load configuration: %w", err)
 	}
-	return "" // Empty means current directory
+	
+	if cfg != nil && cfg.Output.Directory != "" {
+		return cfg.Output.Directory, nil
+	}
+	
+	return "", nil // Empty means current directory
 }
 
 // generateOutputFilePath combines filename generation and directory resolution
 // Orchestrates the workflow but delegates specific concerns
-func generateOutputFilePath(command, extension, targetPath string) string {
+// Returns the full file path and any error encountered
+func generateOutputFilePath(command, extension, targetPath string) (string, error) {
 	filename := generateTimestampedFileName(command, extension)
-	outputDir := resolveOutputDirectory(targetPath)
+	outputDir, err := resolveOutputDirectory(targetPath)
+	if err != nil {
+		return "", err
+	}
 	
 	if outputDir != "" {
-		return filepath.Join(outputDir, filename)
+		return filepath.Join(outputDir, filename), nil
 	}
-	return filename
+	return filename, nil
 }
 
 // getTargetPathFromArgs extracts the first argument as target path, or returns empty string

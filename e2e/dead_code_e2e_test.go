@@ -94,6 +94,7 @@ def simple_function():
 	createTestConfigFile(t, testDir, outputDir)
 	
 	cmd := exec.Command(binaryPath, "deadcode", "--json", testDir)
+	cmd.Dir = testDir // Set working directory to ensure config file discovery works
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -214,7 +215,8 @@ def warning_dead_code(x):
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-				cmd := exec.Command(binaryPath, tt.args...)
+			cmd := exec.Command(binaryPath, tt.args...)
+			cmd.Dir = testDir // Set working directory to ensure config file discovery works
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
