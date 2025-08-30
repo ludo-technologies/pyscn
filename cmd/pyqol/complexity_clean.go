@@ -204,10 +204,7 @@ func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []st
 	} else {
 		// Other formats generate a file
 		// Use first path as target for config discovery
-		targetPath := ""
-		if len(args) > 0 {
-			targetPath = args[0]
-		}
+		targetPath := getTargetPathFromArgs(args)
 		outputPath = generateFileNameWithTarget("complexity", extension, targetPath)
 	}
 

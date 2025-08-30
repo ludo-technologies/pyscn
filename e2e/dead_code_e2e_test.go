@@ -3,7 +3,6 @@ package e2e
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -92,11 +91,7 @@ def simple_function():
 	outputDir := t.TempDir() // Create separate temp directory for output
 	
 	// Create a temporary config file to specify output directory
-	configFile := filepath.Join(testDir, ".pyqol.yaml")
-	configContent := fmt.Sprintf("output:\n  directory: \"%s\"\n", outputDir)
-	if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
-		t.Fatalf("Failed to create config file: %v", err)
-	}
+	createTestConfigFile(t, testDir, outputDir)
 	
 	cmd := exec.Command(binaryPath, "deadcode", "--json", testDir)
 	var stdout, stderr bytes.Buffer
@@ -164,11 +159,7 @@ func TestDeadCodeE2EFlags(t *testing.T) {
 	outputDir := t.TempDir()
 	
 	// Create config file to control output directory
-	configFile := filepath.Join(testDir, ".pyqol.yaml")
-	configContent := fmt.Sprintf("output:\n  directory: \"%s\"\n", outputDir)
-	if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
-		t.Fatalf("Failed to create config file: %v", err)
-	}
+	createTestConfigFile(t, testDir, outputDir)
 	
 	createTestPythonFile(t, testDir, "flagtest.py", `
 def critical_dead_code():
