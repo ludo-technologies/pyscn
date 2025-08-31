@@ -241,16 +241,18 @@ func loadConfigFromFile(configPath string) (*Config, error) {
 		return DefaultConfig(), nil
 	}
 
+	// Create a new viper instance to avoid race conditions
+	v := viper.New()
 	config := DefaultConfig()
-	viper.SetConfigFile(configPath)
+	v.SetConfigFile(configPath)
 
 	// Read config file
-	if err := viper.ReadInConfig(); err != nil {
+	if err := v.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config file %s: %w", configPath, err)
 	}
 
 	// Unmarshal into config struct
-	if err := viper.Unmarshal(config); err != nil {
+	if err := v.Unmarshal(config); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
@@ -452,16 +454,18 @@ func (c *ComplexityConfig) ExceedsMaxComplexity(complexity int) bool {
 
 // SaveConfig saves configuration to a YAML file
 func SaveConfig(config *Config, path string) error {
-	viper.SetConfigFile(path)
-	viper.SetConfigType("yaml")
+	// Create a new viper instance to avoid race conditions
+	v := viper.New()
+	v.SetConfigFile(path)
+	v.SetConfigType("yaml")
 
 	// Set all config values in viper
-	viper.Set("complexity", config.Complexity)
-	viper.Set("dead_code", config.DeadCode)
-	viper.Set("output", config.Output)
-	viper.Set("analysis", config.Analysis)
+	v.Set("complexity", config.Complexity)
+	v.Set("dead_code", config.DeadCode)
+	v.Set("output", config.Output)
+	v.Set("analysis", config.Analysis)
 
-	return viper.WriteConfig()
+	return v.WriteConfig()
 }
 
 // validateDeadCodeConfig validates the dead code configuration
