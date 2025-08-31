@@ -274,6 +274,8 @@ type CostModel interface {
 
 ### 3. Configuration Module (`internal/config`)
 
+The configuration system implements Ruff-style hierarchical configuration discovery with support for multiple formats and locations.
+
 ```go
 // internal/config/config.go
 type Config struct {
@@ -290,6 +292,15 @@ type Config struct {
     Exclude       []string            `yaml:"exclude"`
 }
 
+type OutputConfig struct {
+    Format        string `yaml:"format"`
+    Directory     string `yaml:"directory"`    // Output directory for reports
+    Verbose       bool   `yaml:"verbose"`
+    ShowDetails   bool   `yaml:"show_details"`
+    SortBy        string `yaml:"sort_by"`
+    MinComplexity int    `yaml:"min_complexity"`
+}
+
 type DeadCodeConfig struct {
     Enabled            bool `yaml:"enabled"`
     CheckUnusedImports bool `yaml:"check_unused_imports"`
@@ -302,6 +313,58 @@ type CloneDetectionConfig struct {
     SimilarityThreshold float64 `yaml:"similarity_threshold"`
 }
 ```
+
+#### Configuration Discovery Algorithm
+
+pyqol uses a hierarchical configuration discovery system inspired by Ruff and other modern tools:
+
+```go
+// LoadConfigWithTarget searches for configuration in this order:
+func LoadConfigWithTarget(configPath string, targetPath string) (*Config, error) {
+    // 1. Explicit config path (highest priority)
+    if configPath != "" {
+        return loadFromFile(configPath)
+    }
+    
+    // 2. Search from target directory upward
+    if targetPath != "" {
+        if config := searchUpward(targetPath); config != "" {
+            return loadFromFile(config)
+        }
+    }
+    
+    // 3. Current directory
+    if config := findInDirectory("."); config != "" {
+        return loadFromFile(config)
+    }
+    
+    // 4. XDG config directory
+    if config := findInXDGConfig(); config != "" {
+        return loadFromFile(config)
+    }
+    
+    // 5. Home directory (fallback)
+    if config := findInHomeDir(); config != "" {
+        return loadFromFile(config)
+    }
+    
+    // 6. Default configuration
+    return DefaultConfig(), nil
+}
+```
+
+**Configuration File Priority:**
+1. `pyqol.yaml`
+2. `pyqol.yml` 
+3. `.pyqol.yaml`
+4. `.pyqol.yml`
+5. `pyqol.json`
+6. `.pyqol.json`
+
+**Search Locations (in order):**
+1. **Target Directory & Parents**: Starting from the analysis target, search upward to filesystem root
+2. **XDG Config**: `$XDG_CONFIG_HOME/pyqol/` or `~/.config/pyqol/`
+3. **Home Directory**: `~/.pyqol.yaml` (backward compatibility)
 
 ### 4. CLI Module (`cmd/pyqol`)
 
@@ -761,7 +824,11 @@ All tests run automatically on:
 **In Progress:**
 - 🚧 Dead code detection algorithm implementation
 - 🚧 APTED tree edit distance algorithm
-- 🚧 Configuration file support (.pyqol.yaml)
+
+**Recently Completed:**
+- ✅ Configuration file support (.pyqol.yaml) with Ruff-style discovery
+- ✅ Hierarchical configuration search (target → upward → XDG → home)
+- ✅ Test environment improvements (no file generation in project directories)
 
 **Performance Benchmarks:**
 - Parser: ~50,000 lines/second (target: >100,000)

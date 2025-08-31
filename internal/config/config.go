@@ -94,6 +94,9 @@ type OutputConfig struct {
 
 	// MinComplexity is the minimum complexity to report (filters low values)
 	MinComplexity int `mapstructure:"min_complexity" yaml:"min_complexity"`
+
+	// Directory specifies the output directory for reports (empty = current directory)
+	Directory string `mapstructure:"directory" yaml:"directory"`
 }
 
 // DeadCodeConfig holds configuration for dead code detection
@@ -222,18 +225,23 @@ func DefaultConfig() *Config {
 
 // LoadConfig loads configuration from file or returns default config
 func LoadConfig(configPath string) (*Config, error) {
+	return LoadConfigWithTarget(configPath, "")
+}
+
+// discoverConfigFile finds the appropriate config file path
+// Single responsibility: configuration file discovery only
+func discoverConfigFile(targetPath string) string {
+	return findDefaultConfig(targetPath)
+}
+
+// loadConfigFromFile reads and parses a configuration file
+// Single responsibility: file loading and parsing only
+func loadConfigFromFile(configPath string) (*Config, error) {
+	if configPath == "" {
+		return DefaultConfig(), nil
+	}
+
 	config := DefaultConfig()
-
-	// If no config path specified, try to find default config files
-	if configPath == "" {
-		configPath = findDefaultConfig()
-	}
-
-	// If still no config found, return default
-	if configPath == "" {
-		return config, nil
-	}
-
 	viper.SetConfigFile(configPath)
 
 	// Read config file
@@ -254,8 +262,32 @@ func LoadConfig(configPath string) (*Config, error) {
 	return config, nil
 }
 
+// LoadConfigWithTarget loads configuration with target path context
+// Orchestrates discovery and loading but delegates specific concerns
+func LoadConfigWithTarget(configPath string, targetPath string) (*Config, error) {
+	// If no config path specified, discover one
+	if configPath == "" {
+		configPath = discoverConfigFile(targetPath)
+	}
+
+	// Load the configuration from the determined path
+	return loadConfigFromFile(configPath)
+}
+
+// searchConfigInDirectory searches for configuration files in a specific directory
+func searchConfigInDirectory(dir string, candidates []string) string {
+	for _, candidate := range candidates {
+		path := filepath.Join(dir, candidate)
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	return ""
+}
+
 // findDefaultConfig looks for default configuration files in common locations
-func findDefaultConfig() string {
+// targetPath is the path being analyzed (e.g., the Python file or directory)
+func findDefaultConfig(targetPath string) string {
 	candidates := []string{
 		"pyqol.yaml",
 		"pyqol.yml",
@@ -265,20 +297,58 @@ func findDefaultConfig() string {
 		".pyqol.json",
 	}
 
-	// Check current directory first
-	for _, candidate := range candidates {
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
+	// If targetPath is provided, search from there upward
+	if targetPath != "" {
+		// Convert to absolute path
+		absPath, err := filepath.Abs(targetPath)
+		if err == nil {
+			// If it's a file, start from its directory
+			info, err := os.Stat(absPath)
+			if err == nil && !info.IsDir() {
+				absPath = filepath.Dir(absPath)
+			}
+			
+			// Search from target directory up to root with robust termination
+			// Handle Windows edge cases: volume roots (C:\), UNC paths (\\server\share), long paths
+			volume := filepath.VolumeName(absPath)
+			for dir := absPath; ; dir = filepath.Dir(dir) {
+				if config := searchConfigInDirectory(dir, candidates); config != "" {
+					return config
+				}
+				
+				// Robust termination conditions for cross-platform compatibility
+				parent := filepath.Dir(dir)
+				if parent == dir || // Unix-style root reached (/), Windows UNC root (\\server)  
+					dir == volume || // Windows volume root reached (C:\)
+					(volume != "" && dir == volume+string(filepath.Separator)) { // Alternative volume root format
+					break
+				}
+			}
 		}
 	}
+	
+	// Fallback to current directory
+	if config := searchConfigInDirectory(".", candidates); config != "" {
+		return config
+	}
 
-	// Check home directory
+	// Check XDG config directory (Linux/Mac standard)
+	if xdgConfig := os.Getenv("XDG_CONFIG_HOME"); xdgConfig != "" {
+		if config := searchConfigInDirectory(filepath.Join(xdgConfig, "pyqol"), candidates); config != "" {
+			return config
+		}
+	}
+	
+	// Check ~/.config/pyqol/ (XDG default)
 	if home, err := os.UserHomeDir(); err == nil {
-		for _, candidate := range candidates {
-			path := filepath.Join(home, candidate)
-			if _, err := os.Stat(path); err == nil {
-				return path
-			}
+		configDir := filepath.Join(home, ".config", "pyqol")
+		if config := searchConfigInDirectory(configDir, candidates); config != "" {
+			return config
+		}
+		
+		// Check home directory (backward compatibility)
+		if config := searchConfigInDirectory(home, candidates); config != "" {
+			return config
 		}
 	}
 

@@ -70,8 +70,14 @@ def sample_function(x):
     return 0
 `)
 
-	// Run with JSON format (outputs to file)
+	// Run with JSON format (outputs to file in temp directory)
+	outputDir := t.TempDir() // Create separate temp directory for output
+	
+	// Create a temporary config file to specify output directory
+	createTestConfigFile(t, testDir, outputDir)
+	
 	cmd := exec.Command(binaryPath, "complexity", "--json", testDir)
+	cmd.Dir = testDir // Set working directory to ensure config file discovery works
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -81,10 +87,16 @@ def sample_function(x):
 		t.Fatalf("Command failed: %v\nStderr: %s", err, stderr.String())
 	}
 
-	// Find the generated JSON file
-	files, err := filepath.Glob("complexity_*.json")
+	// Find the generated JSON file in outputDir
+	files, err := filepath.Glob(filepath.Join(outputDir, "complexity_*.json"))
 	if err != nil || len(files) == 0 {
-		t.Fatalf("No JSON file generated")
+		// List all files in outputDir for debugging
+		allFiles, _ := os.ReadDir(outputDir)
+		var fileNames []string
+		for _, f := range allFiles {
+			fileNames = append(fileNames, f.Name())
+		}
+		t.Fatalf("No JSON file generated in %s, files present: %v", outputDir, fileNames)
 	}
 	
 	// Read and verify JSON file content
@@ -93,8 +105,7 @@ def sample_function(x):
 		t.Fatalf("Failed to read JSON file: %v", err)
 	}
 	
-	// Clean up the generated file
-	defer os.Remove(files[0])
+	// No need to clean up - t.TempDir() handles it automatically
 
 	// Verify JSON output is valid
 	var result map[string]interface{}
@@ -158,7 +169,7 @@ def medium_complexity(x):
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command(binaryPath, tt.args...)
+				cmd := exec.Command(binaryPath, tt.args...)
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr

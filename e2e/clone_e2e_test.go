@@ -73,10 +73,15 @@ def function_b(arg):
 		t.Fatalf("Failed to get absolute path for binary: %v", err)
 	}
 	
-	// Run with JSON format (outputs to file)  
+	// Run with JSON format (outputs to file in temp directory)
 	testFile := filepath.Join(testDir, "clones_example.py")
+	outputDir := t.TempDir() // Create separate temp directory for output
+	
+	// Create a temporary config file to specify output directory
+	createTestConfigFile(t, testDir, outputDir)
+	
 	cmd := exec.Command(absBinaryPath, "clone", "--json", testFile)
-	cmd.Dir = testDir // Set working directory to testDir
+	cmd.Dir = testDir // Set working directory to ensure config file discovery works
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -111,19 +116,19 @@ def function_b(arg):
 	t.Logf("Command stdout: %s", stdout.String())
 	t.Logf("Command stderr: %s", stderr.String())
 	
-	// Find the generated JSON file in testDir
-	files, err := filepath.Glob(filepath.Join(testDir, "clone_*.json"))
+	// Find the generated JSON file in outputDir
+	files, err := filepath.Glob(filepath.Join(outputDir, "clone_*.json"))
 	if err != nil {
 		t.Fatalf("Glob error: %v", err)
 	}
 	if len(files) == 0 {
-		// List all files in testDir for debugging
-		allFiles, _ := os.ReadDir(testDir)
+		// List all files in outputDir for debugging
+		allFiles, _ := os.ReadDir(outputDir)
 		var fileNames []string
 		for _, f := range allFiles {
 			fileNames = append(fileNames, f.Name())
 		}
-		t.Fatalf("No JSON file generated in %s, files present: %v", testDir, fileNames)
+		t.Fatalf("No JSON file generated in %s, files present: %v", outputDir, fileNames)
 	}
 	
 	// Read and verify JSON file content
@@ -132,8 +137,7 @@ def function_b(arg):
 		t.Fatalf("Failed to read JSON file: %v", err)
 	}
 	
-	// Clean up the generated file
-	defer os.Remove(files[0])
+	// No need to clean up - t.TempDir() handles it automatically
 
 	// Verify JSON output is valid
 	var result map[string]interface{}
@@ -289,6 +293,11 @@ func TestCloneE2EFlags(t *testing.T) {
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
+	outputDir := t.TempDir()
+	
+	// Create config file to control output directory
+	createTestConfigFile(t, testDir, outputDir)
+	
 	createTestPythonFile(t, testDir, "flagtest.py", `
 def sample_func1(param):
     result = param * 2
@@ -336,7 +345,7 @@ def sample_func2(arg):
 		},
 		{
 			name:       "csv format",
-			args:       []string{"clone", "--csv", testDir},
+			args:       []string{"clone", "--csv", "--no-open", testDir},
 			shouldPass: true,
 		},
 		{
@@ -354,6 +363,7 @@ def sample_func2(arg):
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := exec.Command(binaryPath, tt.args...)
+			cmd.Dir = testDir // Set working directory to ensure config file discovery works
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
@@ -551,3 +561,4 @@ def main_function():
 		t.Error("Should contain clone detection results header")
 	}
 }
+

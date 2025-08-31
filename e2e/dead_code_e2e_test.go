@@ -87,8 +87,14 @@ def simple_function():
     print("Dead code")  # This should be detected
 `)
 
-	// Run with JSON format (outputs to file)
+	// Run with JSON format (outputs to file in temp directory)
+	outputDir := t.TempDir() // Create separate temp directory for output
+	
+	// Create a temporary config file to specify output directory
+	createTestConfigFile(t, testDir, outputDir)
+	
 	cmd := exec.Command(binaryPath, "deadcode", "--json", testDir)
+	cmd.Dir = testDir // Set working directory to ensure config file discovery works
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -98,10 +104,16 @@ def simple_function():
 		t.Fatalf("Command failed: %v\nStderr: %s", err, stderr.String())
 	}
 
-	// Find the generated JSON file
-	files, err := filepath.Glob("deadcode_*.json")
+	// Find the generated JSON file in outputDir
+	files, err := filepath.Glob(filepath.Join(outputDir, "deadcode_*.json"))
 	if err != nil || len(files) == 0 {
-		t.Fatalf("No JSON file generated")
+		// List all files in outputDir for debugging
+		allFiles, _ := os.ReadDir(outputDir)
+		var fileNames []string
+		for _, f := range allFiles {
+			fileNames = append(fileNames, f.Name())
+		}
+		t.Fatalf("No JSON file generated in %s, files present: %v", outputDir, fileNames)
 	}
 	
 	// Read and verify JSON file content
@@ -110,8 +122,7 @@ def simple_function():
 		t.Fatalf("Failed to read JSON file: %v", err)
 	}
 	
-	// Clean up the generated file
-	defer os.Remove(files[0])
+	// No need to clean up - t.TempDir() handles it automatically
 
 	// Verify JSON output is valid
 	var result map[string]interface{}
@@ -146,6 +157,11 @@ func TestDeadCodeE2EFlags(t *testing.T) {
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
+	outputDir := t.TempDir()
+	
+	// Create config file to control output directory
+	createTestConfigFile(t, testDir, outputDir)
+	
 	createTestPythonFile(t, testDir, "flagtest.py", `
 def critical_dead_code():
     return "alive"
@@ -182,12 +198,12 @@ def warning_dead_code(x):
 		},
 		{
 			name:       "yaml format",
-			args:       []string{"deadcode", "--yaml", testDir},
+			args:       []string{"deadcode", "--yaml", "--no-open", testDir},
 			shouldPass: true,
 		},
 		{
 			name:       "csv format",
-			args:       []string{"deadcode", "--csv", testDir},
+			args:       []string{"deadcode", "--csv", "--no-open", testDir},
 			shouldPass: true,
 		},
 		{
@@ -200,6 +216,7 @@ def warning_dead_code(x):
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := exec.Command(binaryPath, tt.args...)
+			cmd.Dir = testDir // Set working directory to ensure config file discovery works
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
