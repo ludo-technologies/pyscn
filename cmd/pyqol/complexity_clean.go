@@ -17,11 +17,11 @@ import (
 // ComplexityCommand represents the complexity command
 type ComplexityCommand struct {
 	// Output format flags (only one should be true)
-	html   bool
-	json   bool
-	csv    bool
-	yaml   bool
-	noOpen bool
+	html      bool
+	json      bool
+	csv       bool
+	yaml      bool
+	noOpen    bool
 
 	// Analysis flags
 	minComplexity   int
@@ -203,7 +203,13 @@ func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []st
 		outputWriter = cmd.OutOrStdout()
 	} else {
 		// Other formats generate a file
-		outputPath = generateFileName("complexity", extension)
+		// Use first path as target for config discovery
+		targetPath := getTargetPathFromArgs(args)
+		var err error
+		outputPath, err = generateOutputFilePath("complexity", extension, targetPath)
+		if err != nil {
+			return domain.ComplexityRequest{}, fmt.Errorf("failed to generate output path: %w", err)
+		}
 	}
 
 	// Build request with all values

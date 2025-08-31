@@ -49,11 +49,11 @@ type AnalysisResult struct {
 // AnalyzeCommand represents the comprehensive analysis command
 type AnalyzeCommand struct {
 	// Output format flags (only one should be true)
-	html   bool
-	json   bool
-	csv    bool
-	yaml   bool
-	noOpen bool
+	html      bool
+	json      bool
+	csv       bool
+	yaml      bool
+	noOpen    bool
 	
 	// Configuration
 	configFile string
@@ -303,7 +303,7 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 
 	// Generate unified report if requested
 	if c.shouldGenerateUnifiedReport() {
-		if err := c.generateUnifiedReport(cmd, result); err != nil {
+		if err := c.generateUnifiedReport(cmd, result, args); err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Failed to generate unified report: %v\n", err)
 		}
 	}
@@ -801,7 +801,7 @@ func (c *AnalyzeCommand) outputCloneReport(cmd *cobra.Command, response *domain.
 }
 
 // generateUnifiedReport generates a unified report from all analysis results
-func (c *AnalyzeCommand) generateUnifiedReport(cmd *cobra.Command, result *AnalysisResult) error {
+func (c *AnalyzeCommand) generateUnifiedReport(cmd *cobra.Command, result *AnalysisResult, args []string) error {
 	// Determine output format
 	format, extension, err := c.determineOutputFormat()
 	if err != nil {
@@ -809,8 +809,12 @@ func (c *AnalyzeCommand) generateUnifiedReport(cmd *cobra.Command, result *Analy
 	}
 	
 	// Generate filename with timestamp
-	timestamp := time.Now().Format("20060102_150405")
-	filename := fmt.Sprintf("analyze_%s.%s", timestamp, extension)
+	// Use first path as target for config discovery
+	targetPath := getTargetPathFromArgs(args)
+	filename, err := generateOutputFilePath("analyze", extension, targetPath)
+	if err != nil {
+		return fmt.Errorf("failed to generate output path: %w", err)
+	}
 	
 	// Create the unified response
 	response := &domain.AnalyzeResponse{

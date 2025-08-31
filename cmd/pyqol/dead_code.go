@@ -17,11 +17,11 @@ import (
 // DeadCodeCommand represents the dead code command
 type DeadCodeCommand struct {
 	// Output format flags (only one should be true)
-	html   bool
-	json   bool
-	csv    bool
-	yaml   bool
-	noOpen bool
+	html      bool
+	json      bool
+	csv       bool
+	yaml      bool
+	noOpen    bool
 	
 	// Analysis flags
 	minSeverity  string
@@ -229,7 +229,13 @@ func (c *DeadCodeCommand) buildDeadCodeRequest(cmd *cobra.Command, args []string
 		outputWriter = cmd.OutOrStdout()
 	} else {
 		// Other formats generate a file
-		outputPath = generateFileName("deadcode", extension)
+		// Use first path as target for config discovery
+		targetPath := getTargetPathFromArgs(args)
+		var err error
+		outputPath, err = generateOutputFilePath("deadcode", extension, targetPath)
+		if err != nil {
+			return domain.DeadCodeRequest{}, fmt.Errorf("failed to generate output path: %w", err)
+		}
 	}
 
 	return domain.DeadCodeRequest{
