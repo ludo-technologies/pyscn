@@ -1,14 +1,13 @@
 package service
 
 import (
-	"encoding/csv"
-	"encoding/json"
-	"fmt"
-	"io"
-	"strings"
+    "encoding/csv"
+    "encoding/json"
+    "fmt"
+    "io"
+    "strings"
 
-	"github.com/pyqol/pyqol/domain"
-	"gopkg.in/yaml.v3"
+    "github.com/pyqol/pyqol/domain"
 )
 
 // DeadCodeFormatterImpl implements the DeadCodeFormatter interface
@@ -139,20 +138,12 @@ func (f *DeadCodeFormatterImpl) formatFindingText(finding domain.DeadCodeFinding
 
 // formatJSON formats the response as JSON
 func (f *DeadCodeFormatterImpl) formatJSON(response *domain.DeadCodeResponse) (string, error) {
-	data, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return "", domain.NewOutputError("failed to marshal JSON", err)
-	}
-	return string(data), nil
+    return EncodeJSON(response)
 }
 
 // formatYAML formats the response as YAML
 func (f *DeadCodeFormatterImpl) formatYAML(response *domain.DeadCodeResponse) (string, error) {
-	data, err := yaml.Marshal(response)
-	if err != nil {
-		return "", domain.NewOutputError("failed to marshal YAML", err)
-	}
-	return string(data), nil
+    return EncodeYAML(response)
 }
 
 // formatCSV formats the response as CSV

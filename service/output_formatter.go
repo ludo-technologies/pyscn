@@ -1,16 +1,14 @@
 package service
 
 import (
-	"encoding/csv"
-	"encoding/json"
-	"fmt"
-	"io"
-	"sort"
-	"strings"
-	"time"
+    "encoding/csv"
+    "fmt"
+    "io"
+    "sort"
+    "strings"
+    "time"
 
-	"github.com/pyqol/pyqol/domain"
-	"gopkg.in/yaml.v3"
+    "github.com/pyqol/pyqol/domain"
 )
 
 // OutputFormatterImpl implements the OutputFormatter interface
@@ -124,28 +122,16 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 
 // formatJSON formats the response as JSON
 func (f *OutputFormatterImpl) formatJSON(response *domain.ComplexityResponse) (string, error) {
-	// Create a JSON-friendly structure
-	jsonResponse := f.createJSONResponse(response)
-
-	data, err := json.MarshalIndent(jsonResponse, "", "  ")
-	if err != nil {
-		return "", domain.NewOutputError("failed to marshal JSON", err)
-	}
-
-	return string(data), nil
+    // Create a JSON-friendly structure
+    jsonResponse := f.createJSONResponse(response)
+    return EncodeJSON(jsonResponse)
 }
 
 // formatYAML formats the response as YAML
 func (f *OutputFormatterImpl) formatYAML(response *domain.ComplexityResponse) (string, error) {
-	// Create a YAML-friendly structure
-	yamlResponse := f.createJSONResponse(response) // Same structure works for YAML
-
-	data, err := yaml.Marshal(yamlResponse)
-	if err != nil {
-		return "", domain.NewOutputError("failed to marshal YAML", err)
-	}
-
-	return string(data), nil
+    // Create a YAML-friendly structure
+    yamlResponse := f.createJSONResponse(response) // Same structure works for YAML
+    return EncodeYAML(yamlResponse)
 }
 
 // formatCSV formats the response as CSV
@@ -268,21 +254,17 @@ func (f *OutputFormatterImpl) getRiskColor(riskLevel domain.RiskLevel) string {
 
 // FormatSummaryOnly formats only the summary information
 func (f *OutputFormatterImpl) FormatSummaryOnly(response *domain.ComplexityResponse, format domain.OutputFormat) (string, error) {
-	switch format {
-	case domain.OutputFormatText:
-		return f.formatSummaryText(response), nil
-	case domain.OutputFormatJSON:
-		summary := map[string]interface{}{
-			"summary": f.createJSONResponse(response)["summary"],
-		}
-		data, err := json.MarshalIndent(summary, "", "  ")
-		if err != nil {
-			return "", domain.NewOutputError("failed to marshal summary JSON", err)
-		}
-		return string(data), nil
-	default:
-		return f.Format(response, format)
-	}
+    switch format {
+    case domain.OutputFormatText:
+        return f.formatSummaryText(response), nil
+    case domain.OutputFormatJSON:
+        summary := map[string]interface{}{
+            "summary": f.createJSONResponse(response)["summary"],
+        }
+        return EncodeJSON(summary)
+    default:
+        return f.Format(response, format)
+    }
 }
 
 // formatSummaryText formats only the summary as text
