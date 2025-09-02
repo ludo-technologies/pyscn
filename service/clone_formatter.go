@@ -220,20 +220,7 @@ func (f *CloneOutputFormatter) formatStatsAsText(stats *domain.CloneStatistics, 
 	return nil
 }
 
-// formatStatsAsJSON formats statistics as JSON
-func (f *CloneOutputFormatter) formatStatsAsJSON(stats *domain.CloneStatistics, writer io.Writer) error {
-	encoder := json.NewEncoder(writer)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(stats)
-}
-
-// formatStatsAsYAML formats statistics as YAML
-func (f *CloneOutputFormatter) formatStatsAsYAML(stats *domain.CloneStatistics, writer io.Writer) error {
-	encoder := yaml.NewEncoder(writer)
-	defer encoder.Close()
-	encoder.SetIndent(2)
-	return encoder.Encode(stats)
-}
+// formatStatsAsJSON and formatStatsAsYAML were replaced by shared helpers in format_utils.go
 
 // formatStatsAsCSV formats statistics as CSV
 func (f *CloneOutputFormatter) formatStatsAsCSV(stats *domain.CloneStatistics, writer io.Writer) error {

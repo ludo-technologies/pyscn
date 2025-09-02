@@ -2,7 +2,6 @@ package service
 
 import (
     "encoding/csv"
-    "encoding/json"
     "fmt"
     "io"
     "strings"
@@ -53,20 +52,18 @@ func (f *DeadCodeFormatterImpl) Write(response *domain.DeadCodeResponse, format 
 
 // FormatFinding formats a single dead code finding
 func (f *DeadCodeFormatterImpl) FormatFinding(finding domain.DeadCodeFinding, format domain.OutputFormat) (string, error) {
-	switch format {
-	case domain.OutputFormatText:
-		return f.formatFindingText(finding), nil
-	case domain.OutputFormatJSON:
-		data, err := json.Marshal(finding)
-		return string(data), err
-	case domain.OutputFormatYAML:
-		data, err := yaml.Marshal(finding)
-		return string(data), err
-	case domain.OutputFormatHTML:
-		// HTML formatting for individual findings is not typically needed
-		// Fall back to text format for individual findings
-		return f.formatFindingText(finding), nil
-	default:
+    switch format {
+    case domain.OutputFormatText:
+        return f.formatFindingText(finding), nil
+    case domain.OutputFormatJSON:
+        return EncodeJSON(finding)
+    case domain.OutputFormatYAML:
+        return EncodeYAML(finding)
+    case domain.OutputFormatHTML:
+        // HTML formatting for individual findings is not typically needed
+        // Fall back to text format for individual findings
+        return f.formatFindingText(finding), nil
+    default:
 		return "", domain.NewUnsupportedFormatError(string(format))
 	}
 }
