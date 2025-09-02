@@ -220,8 +220,44 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 	result.DeadCode.Enabled = !c.skipDeadCode
 	result.Clones.Enabled = !c.skipClones
 
+	// Early validation: Check if there are any Python files to analyze
+	fileReader := service.NewFileReader()
+	pythonFiles, err := fileReader.CollectPythonFiles(
+		args,
+		true, // recursive
+		[]string{"*.py", "*.pyi"},
+		[]string{"test_*.py", "*_test.py"},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to collect Python files: %w", err)
+	}
+	
+	if len(pythonFiles) == 0 {
+		// Provide helpful error message with suggestions
+		fmt.Fprintf(cmd.ErrOrStderr(), "❌ No Python files found in the specified paths\n\n")
+		fmt.Fprintf(cmd.ErrOrStderr(), "Searched in:\n")
+		for _, arg := range args {
+			fmt.Fprintf(cmd.ErrOrStderr(), "  • %s\n", arg)
+		}
+		fmt.Fprintf(cmd.ErrOrStderr(), "\n💡 Suggestions:\n")
+		fmt.Fprintf(cmd.ErrOrStderr(), "  • Check that the path exists and contains Python files (*.py, *.pyi)\n")
+		fmt.Fprintf(cmd.ErrOrStderr(), "  • Try running from a directory containing Python code\n")
+		fmt.Fprintf(cmd.ErrOrStderr(), "  • Use 'pyqol analyze .' to analyze the current directory\n")
+		fmt.Fprintf(cmd.ErrOrStderr(), "  • Specify a valid Python file or directory path\n")
+		return fmt.Errorf("no Python files found to analyze")
+	}
+	
+	// Log file discovery if verbose
+	if c.verbose {
+		fmt.Fprintf(cmd.ErrOrStderr(), "📁 Found %d Python file(s) to analyze\n", len(pythonFiles))
+	}
+
 	// Print analysis plan
 	c.printAnalysisPlan(cmd, result)
+
+	// Create a context with timeout for the entire operation
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
 
 	// Run analyses concurrently with status tracking
 	var wg sync.WaitGroup
@@ -234,21 +270,39 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 		go c.monitorAnalysisProgress(cmd, result, statusMutex, statusDone)
 	}
 
+	// Ensure status monitoring is stopped on exit
+	defer func() {
+		if c.verbose && statusDone != nil {
+			select {
+			case <-statusDone:
+				// Already closed
+			default:
+				close(statusDone)
+			}
+		}
+	}()
+
 	// Run complexity analysis
 	if result.Complexity.Enabled {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			c.runAnalysisWithStatus(result.Complexity, statusMutex, func() error {
-				if c.shouldGenerateUnifiedReport() {
-					response, err := c.runComplexityAnalysisWithResult(cmd, args)
-					if err == nil {
-						result.ComplexityResponse = response
+			select {
+			case <-ctx.Done():
+				result.Complexity.Error = fmt.Errorf("analysis timed out")
+				return
+			default:
+				c.runAnalysisWithStatus(result.Complexity, statusMutex, func() error {
+					if c.shouldGenerateUnifiedReport() {
+						response, err := c.runComplexityAnalysisWithResult(cmd, args)
+						if err == nil {
+							result.ComplexityResponse = response
+						}
+						return err
 					}
-					return err
-				}
-				return c.runComplexityAnalysis(cmd, args)
-			})
+					return c.runComplexityAnalysis(cmd, args)
+				})
+			}
 		}()
 	}
 
@@ -257,16 +311,22 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			c.runAnalysisWithStatus(result.DeadCode, statusMutex, func() error {
-				if c.shouldGenerateUnifiedReport() {
-					response, err := c.runDeadCodeAnalysisWithResult(cmd, args)
-					if err == nil {
-						result.DeadCodeResponse = response
+			select {
+			case <-ctx.Done():
+				result.DeadCode.Error = fmt.Errorf("analysis timed out")
+				return
+			default:
+				c.runAnalysisWithStatus(result.DeadCode, statusMutex, func() error {
+					if c.shouldGenerateUnifiedReport() {
+						response, err := c.runDeadCodeAnalysisWithResult(cmd, args)
+						if err == nil {
+							result.DeadCodeResponse = response
+						}
+						return err
 					}
-					return err
-				}
-				return c.runDeadCodeAnalysis(cmd, args)
-			})
+					return c.runDeadCodeAnalysis(cmd, args)
+				})
+			}
 		}()
 	}
 
@@ -275,25 +335,48 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			c.runAnalysisWithStatus(result.Clones, statusMutex, func() error {
-				if c.shouldGenerateUnifiedReport() {
-					response, err := c.runCloneAnalysisWithResult(cmd, args)
-					if err == nil {
-						result.CloneResponse = response
+			select {
+			case <-ctx.Done():
+				result.Clones.Error = fmt.Errorf("analysis timed out")
+				return
+			default:
+				c.runAnalysisWithStatus(result.Clones, statusMutex, func() error {
+					if c.shouldGenerateUnifiedReport() {
+						response, err := c.runCloneAnalysisWithResult(cmd, args)
+						if err == nil {
+							result.CloneResponse = response
+						}
+						return err
 					}
-					return err
-				}
-				return c.runCloneAnalysis(cmd, args)
-			})
+					return c.runCloneAnalysis(cmd, args)
+				})
+			}
 		}()
 	}
 
-	// Wait for all analyses to complete
-	wg.Wait()
+	// Wait for all analyses to complete or timeout
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// All analyses completed
+	case <-ctx.Done():
+		// Timeout occurred
+		fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Analysis timed out after 10 minutes\n")
+	}
 
 	// Stop status monitoring
-	if c.verbose {
-		close(statusDone)
+	if c.verbose && statusDone != nil {
+		select {
+		case <-statusDone:
+			// Already closed
+		default:
+			close(statusDone)
+		}
 	}
 	result.Overall.EndTime = time.Now()
 	result.Overall.TotalTime = result.Overall.EndTime.Sub(result.Overall.StartTime)
@@ -559,10 +642,18 @@ func (c *AnalyzeCommand) printRecoverySuggestions(cmd *cobra.Command, errorCateg
 func (c *AnalyzeCommand) monitorAnalysisProgress(cmd *cobra.Command, result *AnalysisResult, mutex *sync.Mutex, done chan bool) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
+	
+	// Add a timeout to prevent infinite blocking
+	timeout := time.NewTimer(5 * time.Minute)
+	defer timeout.Stop()
 
 	for {
 		select {
 		case <-done:
+			return
+		case <-timeout.C:
+			// Timeout after 5 minutes to prevent infinite blocking
+			fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Progress monitoring timed out after 5 minutes\n")
 			return
 		case <-ticker.C:
 			mutex.Lock()
