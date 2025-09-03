@@ -1,15 +1,12 @@
 package service
 
 import (
-	"encoding/csv"
-	"encoding/json"
-	"fmt"
-	"io"
-	"strings"
+    "encoding/csv"
+    "fmt"
+    "io"
+    "strings"
 
-	"gopkg.in/yaml.v3"
-
-	"github.com/pyqol/pyqol/domain"
+    "github.com/pyqol/pyqol/domain"
 )
 
 // CloneOutputFormatter implements the domain.CloneOutputFormatter interface
@@ -22,38 +19,38 @@ func NewCloneOutputFormatter() *CloneOutputFormatter {
 
 // FormatCloneResponse formats a clone response according to the specified format
 func (f *CloneOutputFormatter) FormatCloneResponse(response *domain.CloneResponse, format domain.OutputFormat, writer io.Writer) error {
-	switch format {
-	case domain.OutputFormatText:
-		return f.formatAsText(response, writer)
-	case domain.OutputFormatJSON:
-		return f.formatAsJSON(response, writer)
-	case domain.OutputFormatYAML:
-		return f.formatAsYAML(response, writer)
-	case domain.OutputFormatCSV:
-		return f.formatAsCSV(response, writer)
-	case domain.OutputFormatHTML:
-		return f.formatAsHTML(response, writer)
-	default:
-		return fmt.Errorf("unsupported output format: %s", format)
-	}
+    switch format {
+    case domain.OutputFormatText:
+        return f.formatAsText(response, writer)
+    case domain.OutputFormatJSON:
+        return WriteJSON(writer, response)
+    case domain.OutputFormatYAML:
+        return WriteYAML(writer, response)
+    case domain.OutputFormatCSV:
+        return f.formatAsCSV(response, writer)
+    case domain.OutputFormatHTML:
+        return f.formatAsHTML(response, writer)
+    default:
+        return domain.NewUnsupportedFormatError(string(format))
+    }
 }
 
 // FormatCloneStatistics formats clone statistics
 func (f *CloneOutputFormatter) FormatCloneStatistics(stats *domain.CloneStatistics, format domain.OutputFormat, writer io.Writer) error {
-	switch format {
-	case domain.OutputFormatText:
-		return f.formatStatsAsText(stats, writer)
-	case domain.OutputFormatJSON:
-		return f.formatStatsAsJSON(stats, writer)
-	case domain.OutputFormatYAML:
-		return f.formatStatsAsYAML(stats, writer)
-	case domain.OutputFormatCSV:
-		return f.formatStatsAsCSV(stats, writer)
-	case domain.OutputFormatHTML:
-		return f.formatStatsAsHTML(stats, writer)
-	default:
-		return fmt.Errorf("unsupported output format: %s", format)
-	}
+    switch format {
+    case domain.OutputFormatText:
+        return f.formatStatsAsText(stats, writer)
+    case domain.OutputFormatJSON:
+        return WriteJSON(writer, stats)
+    case domain.OutputFormatYAML:
+        return WriteYAML(writer, stats)
+    case domain.OutputFormatCSV:
+        return f.formatStatsAsCSV(stats, writer)
+    case domain.OutputFormatHTML:
+        return f.formatStatsAsHTML(stats, writer)
+    default:
+        return domain.NewUnsupportedFormatError(string(format))
+    }
 }
 
 // formatAsText formats the response as human-readable text
@@ -158,20 +155,6 @@ func (f *CloneOutputFormatter) formatAsText(response *domain.CloneResponse, writ
 }
 
 // formatAsJSON formats the response as JSON
-func (f *CloneOutputFormatter) formatAsJSON(response *domain.CloneResponse, writer io.Writer) error {
-	encoder := json.NewEncoder(writer)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(response)
-}
-
-// formatAsYAML formats the response as YAML
-func (f *CloneOutputFormatter) formatAsYAML(response *domain.CloneResponse, writer io.Writer) error {
-	encoder := yaml.NewEncoder(writer)
-	defer encoder.Close()
-	encoder.SetIndent(2)
-	return encoder.Encode(response)
-}
-
 // formatAsCSV formats the response as CSV
 func (f *CloneOutputFormatter) formatAsCSV(response *domain.CloneResponse, writer io.Writer) error {
 	csvWriter := csv.NewWriter(writer)
@@ -237,20 +220,7 @@ func (f *CloneOutputFormatter) formatStatsAsText(stats *domain.CloneStatistics, 
 	return nil
 }
 
-// formatStatsAsJSON formats statistics as JSON
-func (f *CloneOutputFormatter) formatStatsAsJSON(stats *domain.CloneStatistics, writer io.Writer) error {
-	encoder := json.NewEncoder(writer)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(stats)
-}
-
-// formatStatsAsYAML formats statistics as YAML
-func (f *CloneOutputFormatter) formatStatsAsYAML(stats *domain.CloneStatistics, writer io.Writer) error {
-	encoder := yaml.NewEncoder(writer)
-	defer encoder.Close()
-	encoder.SetIndent(2)
-	return encoder.Encode(stats)
-}
+// formatStatsAsJSON and formatStatsAsYAML were replaced by shared helpers in format_utils.go
 
 // formatStatsAsCSV formats statistics as CSV
 func (f *CloneOutputFormatter) formatStatsAsCSV(stats *domain.CloneStatistics, writer io.Writer) error {

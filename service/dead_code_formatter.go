@@ -1,14 +1,12 @@
 package service
 
 import (
-	"encoding/csv"
-	"encoding/json"
-	"fmt"
-	"io"
-	"strings"
+    "encoding/csv"
+    "fmt"
+    "io"
+    "strings"
 
-	"github.com/pyqol/pyqol/domain"
-	"gopkg.in/yaml.v3"
+    "github.com/pyqol/pyqol/domain"
 )
 
 // DeadCodeFormatterImpl implements the DeadCodeFormatter interface
@@ -54,20 +52,18 @@ func (f *DeadCodeFormatterImpl) Write(response *domain.DeadCodeResponse, format 
 
 // FormatFinding formats a single dead code finding
 func (f *DeadCodeFormatterImpl) FormatFinding(finding domain.DeadCodeFinding, format domain.OutputFormat) (string, error) {
-	switch format {
-	case domain.OutputFormatText:
-		return f.formatFindingText(finding), nil
-	case domain.OutputFormatJSON:
-		data, err := json.Marshal(finding)
-		return string(data), err
-	case domain.OutputFormatYAML:
-		data, err := yaml.Marshal(finding)
-		return string(data), err
-	case domain.OutputFormatHTML:
-		// HTML formatting for individual findings is not typically needed
-		// Fall back to text format for individual findings
-		return f.formatFindingText(finding), nil
-	default:
+    switch format {
+    case domain.OutputFormatText:
+        return f.formatFindingText(finding), nil
+    case domain.OutputFormatJSON:
+        return EncodeJSON(finding)
+    case domain.OutputFormatYAML:
+        return EncodeYAML(finding)
+    case domain.OutputFormatHTML:
+        // HTML formatting for individual findings is not typically needed
+        // Fall back to text format for individual findings
+        return f.formatFindingText(finding), nil
+    default:
 		return "", domain.NewUnsupportedFormatError(string(format))
 	}
 }
@@ -139,20 +135,12 @@ func (f *DeadCodeFormatterImpl) formatFindingText(finding domain.DeadCodeFinding
 
 // formatJSON formats the response as JSON
 func (f *DeadCodeFormatterImpl) formatJSON(response *domain.DeadCodeResponse) (string, error) {
-	data, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return "", domain.NewOutputError("failed to marshal JSON", err)
-	}
-	return string(data), nil
+    return EncodeJSON(response)
 }
 
 // formatYAML formats the response as YAML
 func (f *DeadCodeFormatterImpl) formatYAML(response *domain.DeadCodeResponse) (string, error) {
-	data, err := yaml.Marshal(response)
-	if err != nil {
-		return "", domain.NewOutputError("failed to marshal YAML", err)
-	}
-	return string(data), nil
+    return EncodeYAML(response)
 }
 
 // formatCSV formats the response as CSV
