@@ -1,14 +1,12 @@
 package service
 
 import (
-	"encoding/json"
-	"fmt"
-	"html/template"
-	"io"
-	"time"
+    "fmt"
+    "html/template"
+    "io"
+    "time"
 
-	"github.com/pyqol/pyqol/domain"
-	"gopkg.in/yaml.v3"
+    "github.com/pyqol/pyqol/domain"
 )
 
 // AnalyzeFormatter handles formatting of unified analysis reports
@@ -29,20 +27,20 @@ func NewAnalyzeFormatter() *AnalyzeFormatter {
 
 // Write formats and writes the unified analysis response
 func (f *AnalyzeFormatter) Write(response *domain.AnalyzeResponse, format domain.OutputFormat, writer io.Writer) error {
-	switch format {
-	case domain.OutputFormatText:
-		return f.writeText(response, writer)
-	case domain.OutputFormatJSON:
-		return f.writeJSON(response, writer)
-	case domain.OutputFormatYAML:
-		return f.writeYAML(response, writer)
-	case domain.OutputFormatCSV:
-		return f.writeCSV(response, writer)
-	case domain.OutputFormatHTML:
-		return f.writeHTML(response, writer)
-	default:
-		return fmt.Errorf("unsupported output format: %s", format)
-	}
+    switch format {
+    case domain.OutputFormatText:
+        return f.writeText(response, writer)
+    case domain.OutputFormatJSON:
+        return WriteJSON(writer, response)
+    case domain.OutputFormatYAML:
+        return WriteYAML(writer, response)
+    case domain.OutputFormatCSV:
+        return f.writeCSV(response, writer)
+    case domain.OutputFormatHTML:
+        return f.writeHTML(response, writer)
+    default:
+        return domain.NewUnsupportedFormatError(string(format))
+    }
 }
 
 // writeText formats the response as plain text
@@ -105,18 +103,6 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 }
 
 // writeJSON formats the response as JSON
-func (f *AnalyzeFormatter) writeJSON(response *domain.AnalyzeResponse, writer io.Writer) error {
-	encoder := json.NewEncoder(writer)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(response)
-}
-
-// writeYAML formats the response as YAML
-func (f *AnalyzeFormatter) writeYAML(response *domain.AnalyzeResponse, writer io.Writer) error {
-	encoder := yaml.NewEncoder(writer)
-	return encoder.Encode(response)
-}
-
 // writeCSV formats the response as CSV (summary only)
 func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.Writer) error {
 	// Write header
