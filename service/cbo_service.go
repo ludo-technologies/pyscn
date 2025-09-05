@@ -61,7 +61,17 @@ func (s *CBOServiceImpl) Analyze(ctx context.Context, req domain.CBORequest) (*d
 	}
 
 	if len(allClasses) == 0 {
-		return nil, domain.NewAnalysisError("no classes found to analyze", nil)
+		warnings = append(warnings, "No classes found to analyze")
+		// Return empty but valid response instead of error
+		return &domain.CBOResponse{
+			Classes:     []domain.ClassCoupling{},
+			Summary:     s.generateSummary([]domain.ClassCoupling{}, filesProcessed, req),
+			Warnings:    warnings,
+			Errors:      errors,
+			GeneratedAt: time.Now().Format(time.RFC3339),
+			Version:     version.Version,
+			Config:      s.buildConfigForResponse(req),
+		}, nil
 	}
 
 	// Filter and sort results
@@ -138,7 +148,6 @@ func (s *CBOServiceImpl) analyzeFile(ctx context.Context, filePath string, req d
 				TypeHintDependencies:        cboResult.TypeHintDependencies,
 				InstantiationDependencies:   cboResult.InstantiationDependencies,
 				AttributeAccessDependencies: cboResult.AttributeAccessDependencies,
-				ImportDependencies:          cboResult.ImportDependencies,
 				DependentClasses:            cboResult.DependentClasses,
 			},
 			RiskLevel:    domain.RiskLevel(cboResult.RiskLevel),
