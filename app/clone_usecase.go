@@ -1,41 +1,49 @@
 package app
 
 import (
-	"context"
-	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
+    "context"
+    "fmt"
+    "io"
+    "os"
+    "time"
 
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/service"
+    "github.com/pyqol/pyqol/domain"
+    "github.com/pyqol/pyqol/service"
 )
 
 // CloneUseCase orchestrates clone detection operations
 type CloneUseCase struct {
-	service      domain.CloneService
-	fileReader   domain.FileReader
-	formatter    domain.CloneOutputFormatter
-	configLoader domain.CloneConfigurationLoader
-	progress     domain.ProgressReporter
+    service      domain.CloneService
+    fileReader   domain.FileReader
+    formatter    domain.CloneOutputFormatter
+    configLoader domain.CloneConfigurationLoader
+    progress     domain.ProgressReporter
+    output       domain.ReportWriter
 }
 
 // NewCloneUseCase creates a new clone use case with the given dependencies
 func NewCloneUseCase(
-	service domain.CloneService,
-	fileReader domain.FileReader,
-	formatter domain.CloneOutputFormatter,
-	configLoader domain.CloneConfigurationLoader,
-	progress domain.ProgressReporter,
+    service domain.CloneService,
+    fileReader domain.FileReader,
+    formatter domain.CloneOutputFormatter,
+    configLoader domain.CloneConfigurationLoader,
+    progress domain.ProgressReporter,
 ) *CloneUseCase {
-	return &CloneUseCase{
-		service:      service,
-		fileReader:   fileReader,
-		formatter:    formatter,
-		configLoader: configLoader,
-		progress:     progress,
-	}
+    return &CloneUseCase{
+        service:      service,
+        fileReader:   fileReader,
+        formatter:    formatter,
+        configLoader: configLoader,
+        progress:     progress,
+        // Fallback to default implementation if not set via builder
+        output:       service2DefaultReportWriter(),
+    }
+}
+
+// service2DefaultReportWriter provides a default report writer using stderr for status.
+// Separated to avoid import name clashes in constructor parameters.
+func service2DefaultReportWriter() domain.ReportWriter {
+    return service.NewFileOutputWriter(os.Stderr)
 }
 
 // Execute executes the clone detection use case
@@ -94,56 +102,24 @@ func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) er
 	// Step 5: Update response with timing information
 	response.Duration = time.Since(startTime).Milliseconds()
 
-	// Step 6: Format and output results
-	if !req.HasValidOutputWriter() && req.OutputPath == "" {
-		return fmt.Errorf("no valid output writer or output path specified")
-	}
+    // Step 6: Format and output results
+    if !req.HasValidOutputWriter() && req.OutputPath == "" {
+        return fmt.Errorf("no valid output writer or output path specified")
+    }
 
-	// Handle file output if specified
-	if req.OutputPath != "" {
-		// Create or open the file
-		file, err := os.Create(req.OutputPath)
-		if err != nil {
-			return fmt.Errorf("failed to create output file %s: %w", req.OutputPath, err)
-		}
-		defer file.Close()
-
-		// Write content to file
-		if err := uc.formatter.FormatCloneResponse(response, req.OutputFormat, file); err != nil {
-			return fmt.Errorf("failed to write output: %w", err)
-		}
-
-		// Get absolute path for display
-		absPath, err := filepath.Abs(req.OutputPath)
-		if err != nil {
-			absPath = req.OutputPath
-		}
-
-		// Handle browser opening for HTML files
-		if req.OutputFormat == domain.OutputFormatHTML {
-			// Open in browser unless NoOpen flag is set
-			if !req.NoOpen {
-				fileURL := "file://" + absPath
-				if err := service.OpenBrowser(fileURL); err != nil {
-					// Log error but don't fail the operation
-					fmt.Fprintf(os.Stderr, "Warning: Could not open browser: %v\n", err)
-				} else {
-					fmt.Fprintf(os.Stderr, "HTML report generated and opened: %s\n", absPath)
-				}
-			} else {
-				fmt.Fprintf(os.Stderr, "HTML report generated: %s\n", absPath)
-			}
-		} else {
-			// For other formats, just confirm file creation
-			formatName := strings.ToUpper(string(req.OutputFormat))
-			fmt.Fprintf(os.Stderr, "%s report generated: %s\n", formatName, absPath)
-		}
-	} else {
-		// Normal output to writer (stdout for text format)
-		if err := uc.formatter.FormatCloneResponse(response, req.OutputFormat, req.OutputWriter); err != nil {
-			return fmt.Errorf("failed to format output: %w", err)
-		}
-	}
+    // Delegate output handling to ReportWriter
+    var dst io.Writer
+    if req.OutputPath == "" {
+        dst = req.OutputWriter
+    }
+    if uc.output == nil {
+        uc.output = service2DefaultReportWriter()
+    }
+    if err := uc.output.Write(dst, req.OutputPath, req.OutputFormat, req.NoOpen, func(w io.Writer) error {
+        return uc.formatter.FormatCloneResponse(response, req.OutputFormat, w)
+    }); err != nil {
+        return fmt.Errorf("failed to format output: %w", err)
+    }
 
 	// Step 7: Log completion summary
 	// uc.progress.Complete(fmt.Sprintf("Clone detection completed. Found %d clone pairs in %d groups (%.2fs)",
@@ -392,11 +368,12 @@ func (uc *CloneUseCase) outputEmptyResults(req domain.CloneRequest) error {
 
 // CloneUseCaseBuilder helps build CloneUseCase with dependencies
 type CloneUseCaseBuilder struct {
-	service      domain.CloneService
-	fileReader   domain.FileReader
-	formatter    domain.CloneOutputFormatter
-	configLoader domain.CloneConfigurationLoader
-	progress     domain.ProgressReporter
+    service      domain.CloneService
+    fileReader   domain.FileReader
+    formatter    domain.CloneOutputFormatter
+    configLoader domain.CloneConfigurationLoader
+    progress     domain.ProgressReporter
+    output       domain.ReportWriter
 }
 
 // NewCloneUseCaseBuilder creates a new builder for CloneUseCase
@@ -430,8 +407,14 @@ func (b *CloneUseCaseBuilder) WithConfigLoader(configLoader domain.CloneConfigur
 
 // WithProgress sets the progress reporter
 func (b *CloneUseCaseBuilder) WithProgress(progress domain.ProgressReporter) *CloneUseCaseBuilder {
-	b.progress = progress
-	return b
+    b.progress = progress
+    return b
+}
+
+// WithOutputWriter sets the report writer
+func (b *CloneUseCaseBuilder) WithOutputWriter(output domain.ReportWriter) *CloneUseCaseBuilder {
+    b.output = output
+    return b
 }
 
 // Build creates the CloneUseCase with the configured dependencies
@@ -452,11 +435,15 @@ func (b *CloneUseCaseBuilder) Build() (*CloneUseCase, error) {
 		return nil, fmt.Errorf("progress reporter is required")
 	}
 
-	return NewCloneUseCase(
-		b.service,
-		b.fileReader,
-		b.formatter,
-		b.configLoader,
-		b.progress,
-	), nil
+    uc := NewCloneUseCase(
+        b.service,
+        b.fileReader,
+        b.formatter,
+        b.configLoader,
+        b.progress,
+    )
+    if b.output != nil {
+        uc.output = b.output
+    }
+    return uc, nil
 }

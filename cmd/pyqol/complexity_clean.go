@@ -129,43 +129,8 @@ func (c *ComplexityCommand) runComplexityAnalysis(cmd *cobra.Command, args []str
 
 // determineOutputFormat determines the output format based on flags
 func (c *ComplexityCommand) determineOutputFormat() (domain.OutputFormat, string, error) {
-	// Count how many format flags are set
-	formatCount := 0
-	var format domain.OutputFormat
-	var extension string
-	
-	if c.html {
-		formatCount++
-		format = domain.OutputFormatHTML
-		extension = "html"
-	}
-	if c.json {
-		formatCount++
-		format = domain.OutputFormatJSON
-		extension = "json"
-	}
-	if c.csv {
-		formatCount++
-		format = domain.OutputFormatCSV
-		extension = "csv"
-	}
-	if c.yaml {
-		formatCount++
-		format = domain.OutputFormatYAML
-		extension = "yaml"
-	}
-	
-	// Check for conflicting flags
-	if formatCount > 1 {
-		return "", "", fmt.Errorf("only one output format flag can be specified")
-	}
-	
-	// Default to text if no format specified
-	if formatCount == 0 {
-		return domain.OutputFormatText, "", nil
-	}
-	
-	return format, extension, nil
+    resolver := service.NewOutputFormatResolver()
+    return resolver.Determine(c.html, c.json, c.csv, c.yaml)
 }
 
 
@@ -247,14 +212,15 @@ func (c *ComplexityCommand) createComplexityUseCase(cmd *cobra.Command) (*app.Co
 	progress := service.CreateProgressReporter(cmd.ErrOrStderr(), 0, c.verbose)
 	complexityService := service.NewComplexityService(progress)
 
-	// Build use case
-	useCase, err := app.NewComplexityUseCaseBuilder().
-		WithService(complexityService).
-		WithFileReader(fileReader).
-		WithFormatter(formatter).
-		WithConfigLoader(configLoader).
-		WithProgress(progress).
-		Build()
+    // Build use case
+    useCase, err := app.NewComplexityUseCaseBuilder().
+        WithService(complexityService).
+        WithFileReader(fileReader).
+        WithFormatter(formatter).
+        WithConfigLoader(configLoader).
+        WithProgress(progress).
+        WithOutputWriter(service.NewFileOutputWriter(cmd.ErrOrStderr())).
+        Build()
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to build use case: %w", err)
