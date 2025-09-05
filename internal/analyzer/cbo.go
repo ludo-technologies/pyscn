@@ -311,76 +311,49 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 		switch node.Type {
 		case parser.NodeAssign:
 			// Assignment that might contain class instantiation: self.logger = Logger()
+			// Use structural AST analysis instead of string parsing
 			if node.Value != nil {
-				valueStr := fmt.Sprintf("%v", node.Value)
-				// Handle "Call(Name(Logger))" format
-				if strings.HasPrefix(valueStr, "Call(Name(") && strings.HasSuffix(valueStr, "))") {
-					// Extract "Logger" from "Call(Name(Logger))"
-					inner := strings.TrimSuffix(strings.TrimPrefix(valueStr, "Call(Name("), "))")
-					if inner != "" && a.shouldIncludeDependency(inner) {
-						dependencies[inner] = true
-						// Check if this is an imported dependency
-						if a.isImportedDependency(inner) {
-							result.ImportDependencies++
-						} else if _, isClass := allClasses[inner]; isClass {
-							// Known local class (instantiation)
-							result.InstantiationDependencies++
-						} else if a.builtinTypes[inner] {
-							// Builtin type
-							result.InstantiationDependencies++
-						} else {
-							// Other instantiation
-							result.InstantiationDependencies++
+				if valueNode, ok := node.Value.(*parser.Node); ok {
+					if valueNode.Type == parser.NodeCall {
+						className := a.extractClassNameFromCallNode(valueNode)
+						if className != "" && a.shouldIncludeDependency(className) {
+							// Check if this is an imported dependency
+							if a.isImportedDependency(className) {
+								dependencies[className] = true
+								result.ImportDependencies++
+							} else if _, isClass := allClasses[className]; isClass {
+								// Known local class (instantiation)
+								dependencies[className] = true
+								result.InstantiationDependencies++
+							} else if a.options.IncludeBuiltins && a.builtinTypes[className] {
+								// Builtin type (only if explicitly enabled)
+								dependencies[className] = true
+								result.InstantiationDependencies++
+							}
+							// Note: function calls are NOT added to dependencies
 						}
 					}
 				}
 			}
 		case parser.NodeCall:
 			// Function/class call - could be instantiation
-			var className string
-			
-			// Parse value field which contains the function/class name
-			if node.Value != nil {
-				valueStr := fmt.Sprintf("%v", node.Value)
-				// Handle "Name(Logger)" format
-				if strings.HasPrefix(valueStr, "Name(") && strings.HasSuffix(valueStr, ")") {
-					className = strings.TrimSuffix(strings.TrimPrefix(valueStr, "Name("), ")")
-				}
-				// Handle simple string values
-				if className == "" {
-					if str, ok := node.Value.(string); ok {
-						className = str
-					}
-				}
-			}
-			
-			// Fallback: Look for Name nodes in children
-			if className == "" {
-				for _, child := range node.Children {
-					if child != nil && child.Type == parser.NodeName {
-						className = child.Name
-						break
-					}
-				}
-			}
-			
-			// Fallback: try Left field
-			if className == "" && node.Left != nil {
-				className = a.extractClassName(node.Left)
-			}
-			
+			// Use structural AST analysis instead of string parsing
+			className := a.extractClassNameFromCallNode(node)
 			if className != "" && a.shouldIncludeDependency(className) {
-				dependencies[className] = true
 				// Check if this is an imported dependency
 				if a.isImportedDependency(className) {
+					dependencies[className] = true
 					result.ImportDependencies++
 				} else if _, isClass := allClasses[className]; isClass {
 					// Known local class (instantiation)
+					dependencies[className] = true
 					result.InstantiationDependencies++
-				} else {
-					// Other instantiation
+				} else if a.options.IncludeBuiltins && a.builtinTypes[className] {
+					// Builtin type (only if explicitly enabled)
+					dependencies[className] = true
 					result.InstantiationDependencies++
 				}
+				// Note: function calls are NOT added to dependencies
 			}
 		case parser.NodeAttribute:
 			// Attribute access: obj.method() or obj.attr
@@ -537,6 +510,71 @@ func (a *CBOAnalyzer) isBuiltinFunction(name string) bool {
 	return a.builtinFunctions[name]
 }
 
+// extractClassNameFromCallNode extracts class name from Call node using structural AST analysis
+func (a *CBOAnalyzer) extractClassNameFromCallNode(callNode *parser.Node) string {
+	if callNode == nil || callNode.Type != parser.NodeCall {
+		return ""
+	}
+	
+	// Method 1: Check direct Name nodes in immediate children (most common case)
+	// This handles simple calls like Logger(), MyClass()
+	for _, child := range callNode.Children {
+		if child != nil && child.Type == parser.NodeName && child.Name != "" {
+			return child.Name
+		}
+	}
+	
+	// Method 2: Check Left field for function being called
+	if callNode.Left != nil {
+		switch callNode.Left.Type {
+		case parser.NodeName:
+			// Simple function/class call: Logger()
+			return callNode.Left.Name
+		case parser.NodeAttribute:
+			// Attribute access: module.Class()
+			return a.extractClassNameFromAttribute(callNode.Left)
+		}
+	}
+	
+	// Method 3: Check Value field if it's a Node with Name type
+	if callNode.Value != nil {
+		if valueNode, ok := callNode.Value.(*parser.Node); ok {
+			if valueNode.Type == parser.NodeName && valueNode.Name != "" {
+				return valueNode.Name
+			}
+		}
+	}
+	
+	return ""
+}
+
+// extractClassNameFromAttribute extracts class name from Attribute node using direct AST access
+func (a *CBOAnalyzer) extractClassNameFromAttribute(attrNode *parser.Node) string {
+	if attrNode == nil || attrNode.Type != parser.NodeAttribute {
+		return ""
+	}
+	
+	// For module.Class pattern, we want the rightmost name (Class)
+	// but for full qualification, we might want module.Class
+	
+	// Get the rightmost part (the actual class name)
+	if attrNode.Right != nil && attrNode.Right.Type == parser.NodeName {
+		rightName := attrNode.Right.Name
+		
+		// Get the left part (module name) if needed
+		if attrNode.Left != nil && attrNode.Left.Type == parser.NodeName {
+			leftName := attrNode.Left.Name
+			// Return full qualification for better accuracy
+			return leftName + "." + rightName
+		}
+		
+		// Return just the class name if no module prefix
+		return rightName
+	}
+	
+	return ""
+}
+
 // isImportedDependency checks if a dependency comes from imports
 func (a *CBOAnalyzer) isImportedDependency(className string) bool {
 	// Check if the class name or its parts exist in importedNames
@@ -596,6 +634,17 @@ func (a *CBOAnalyzer) walkNode(node *parser.Node, visitor func(*parser.Node) boo
 	
 	for _, child := range node.Body {
 		a.walkNode(child, visitor)
+	}
+	
+	for _, child := range node.Args {
+		a.walkNode(child, visitor)
+	}
+	
+	// Also traverse Value field if it contains a Node
+	if node.Value != nil {
+		if valueNode, ok := node.Value.(*parser.Node); ok {
+			a.walkNode(valueNode, visitor)
+		}
 	}
 }
 
