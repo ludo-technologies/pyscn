@@ -150,43 +150,8 @@ func (c *DeadCodeCommand) runDeadCodeAnalysis(cmd *cobra.Command, args []string)
 
 // determineOutputFormat determines the output format based on flags
 func (c *DeadCodeCommand) determineOutputFormat() (domain.OutputFormat, string, error) {
-	// Count how many format flags are set
-	formatCount := 0
-	var format domain.OutputFormat
-	var extension string
-	
-	if c.html {
-		formatCount++
-		format = domain.OutputFormatHTML
-		extension = "html"
-	}
-	if c.json {
-		formatCount++
-		format = domain.OutputFormatJSON
-		extension = "json"
-	}
-	if c.csv {
-		formatCount++
-		format = domain.OutputFormatCSV
-		extension = "csv"
-	}
-	if c.yaml {
-		formatCount++
-		format = domain.OutputFormatYAML
-		extension = "yaml"
-	}
-	
-	// Check for conflicting flags
-	if formatCount > 1 {
-		return "", "", fmt.Errorf("only one output format flag can be specified")
-	}
-	
-	// Default to text if no format specified
-	if formatCount == 0 {
-		return domain.OutputFormatText, "", nil
-	}
-	
-	return format, extension, nil
+    resolver := service.NewOutputFormatResolver()
+    return resolver.Determine(c.html, c.json, c.csv, c.yaml)
 }
 
 // buildDeadCodeRequest creates a domain request from CLI flags
@@ -277,14 +242,15 @@ func (c *DeadCodeCommand) createDeadCodeUseCase(cmd *cobra.Command) (*app.DeadCo
 	progress := service.CreateProgressReporter(cmd.ErrOrStderr(), 0, c.verbose)
 	deadCodeService := service.NewDeadCodeService(progress)
 
-	// Build use case
-	useCase, err := app.NewDeadCodeUseCaseBuilder().
-		WithService(deadCodeService).
-		WithFileReader(fileReader).
-		WithFormatter(formatter).
-		WithConfigLoader(configLoader).
-		WithProgress(progress).
-		Build()
+    // Build use case
+    useCase, err := app.NewDeadCodeUseCaseBuilder().
+        WithService(deadCodeService).
+        WithFileReader(fileReader).
+        WithFormatter(formatter).
+        WithConfigLoader(configLoader).
+        WithProgress(progress).
+        WithOutputWriter(service.NewFileOutputWriter(cmd.ErrOrStderr())).
+        Build()
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to build use case: %w", err)

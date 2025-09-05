@@ -1,41 +1,41 @@
 package app
 
 import (
-	"context"
-	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
+    "context"
+    "fmt"
+    "io"
+    "time"
 
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/service"
+    "github.com/pyqol/pyqol/domain"
+    svc "github.com/pyqol/pyqol/service"
 )
 
 // ComplexityUseCase orchestrates the complexity analysis workflow
 type ComplexityUseCase struct {
-	service      domain.ComplexityService
-	fileReader   domain.FileReader
-	formatter    domain.OutputFormatter
-	configLoader domain.ConfigurationLoader
-	progress     domain.ProgressReporter
+    service      domain.ComplexityService
+    fileReader   domain.FileReader
+    formatter    domain.OutputFormatter
+    configLoader domain.ConfigurationLoader
+    progress     domain.ProgressReporter
+    output       domain.ReportWriter
 }
 
 // NewComplexityUseCase creates a new complexity use case
 func NewComplexityUseCase(
-	service domain.ComplexityService,
-	fileReader domain.FileReader,
-	formatter domain.OutputFormatter,
-	configLoader domain.ConfigurationLoader,
-	progress domain.ProgressReporter,
+    service domain.ComplexityService,
+    fileReader domain.FileReader,
+    formatter domain.OutputFormatter,
+    configLoader domain.ConfigurationLoader,
+    progress domain.ProgressReporter,
 ) *ComplexityUseCase {
-	return &ComplexityUseCase{
-		service:      service,
-		fileReader:   fileReader,
-		formatter:    formatter,
-		configLoader: configLoader,
-		progress:     progress,
-	}
+    return &ComplexityUseCase{
+        service:      service,
+        fileReader:   fileReader,
+        formatter:    formatter,
+        configLoader: configLoader,
+        progress:     progress,
+        output:       svc.NewFileOutputWriter(nil),
+    }
 }
 
 // Execute performs the complete complexity analysis workflow
@@ -81,51 +81,16 @@ func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityR
 		return domain.NewAnalysisError("complexity analysis failed", err)
 	}
 
-	// Handle file output if specified
-	if finalReq.OutputPath != "" {
-		// Create or open the file
-		file, err := os.Create(finalReq.OutputPath)
-		if err != nil {
-			return domain.NewOutputError(fmt.Sprintf("failed to create output file: %s", finalReq.OutputPath), err)
-		}
-		defer file.Close()
-
-		// Write content to file
-		if err := uc.formatter.Write(response, finalReq.OutputFormat, file); err != nil {
-			return domain.NewOutputError("failed to write output", err)
-		}
-
-		// Get absolute path for display
-		absPath, err := filepath.Abs(finalReq.OutputPath)
-		if err != nil {
-			absPath = finalReq.OutputPath
-		}
-
-		// Handle browser opening for HTML files
-		if finalReq.OutputFormat == domain.OutputFormatHTML {
-			// Open in browser unless NoOpen flag is set
-			if !finalReq.NoOpen {
-				fileURL := "file://" + absPath
-				if err := service.OpenBrowser(fileURL); err != nil {
-					// Log error but don't fail the operation
-					fmt.Fprintf(os.Stderr, "Warning: Could not open browser: %v\n", err)
-				} else {
-					fmt.Fprintf(os.Stderr, "HTML report generated and opened: %s\n", absPath)
-				}
-			} else {
-				fmt.Fprintf(os.Stderr, "HTML report generated: %s\n", absPath)
-			}
-		} else {
-			// For other formats, just confirm file creation
-			formatName := strings.ToUpper(string(finalReq.OutputFormat))
-			fmt.Fprintf(os.Stderr, "%s report generated: %s\n", formatName, absPath)
-		}
-	} else {
-		// Normal output to writer (stdout for text format)
-		if err := uc.formatter.Write(response, finalReq.OutputFormat, finalReq.OutputWriter); err != nil {
-			return domain.NewOutputError("failed to write output", err)
-		}
-	}
+    // Delegate output handling to ReportWriter
+    var out io.Writer
+    if finalReq.OutputPath == "" {
+        out = finalReq.OutputWriter
+    }
+    if err := uc.output.Write(out, finalReq.OutputPath, finalReq.OutputFormat, finalReq.NoOpen, func(w io.Writer) error {
+        return uc.formatter.Write(response, finalReq.OutputFormat, w)
+    }); err != nil {
+        return domain.NewOutputError("failed to write output", err)
+    }
 
 	return nil
 }
@@ -204,51 +169,16 @@ func (uc *ComplexityUseCase) AnalyzeFile(ctx context.Context, filePath string, r
 		return domain.NewAnalysisError("file analysis failed", err)
 	}
 
-	// Handle file output if specified
-	if finalReq.OutputPath != "" {
-		// Create or open the file
-		file, err := os.Create(finalReq.OutputPath)
-		if err != nil {
-			return domain.NewOutputError(fmt.Sprintf("failed to create output file: %s", finalReq.OutputPath), err)
-		}
-		defer file.Close()
-
-		// Write content to file
-		if err := uc.formatter.Write(response, finalReq.OutputFormat, file); err != nil {
-			return domain.NewOutputError("failed to write output", err)
-		}
-
-		// Get absolute path for display
-		absPath, err := filepath.Abs(finalReq.OutputPath)
-		if err != nil {
-			absPath = finalReq.OutputPath
-		}
-
-		// Handle browser opening for HTML files
-		if finalReq.OutputFormat == domain.OutputFormatHTML {
-			// Open in browser unless NoOpen flag is set
-			if !finalReq.NoOpen {
-				fileURL := "file://" + absPath
-				if err := service.OpenBrowser(fileURL); err != nil {
-					// Log error but don't fail the operation
-					fmt.Fprintf(os.Stderr, "Warning: Could not open browser: %v\n", err)
-				} else {
-					fmt.Fprintf(os.Stderr, "HTML report generated and opened: %s\n", absPath)
-				}
-			} else {
-				fmt.Fprintf(os.Stderr, "HTML report generated: %s\n", absPath)
-			}
-		} else {
-			// For other formats, just confirm file creation
-			formatName := strings.ToUpper(string(finalReq.OutputFormat))
-			fmt.Fprintf(os.Stderr, "%s report generated: %s\n", formatName, absPath)
-		}
-	} else {
-		// Normal output to writer (stdout for text format)
-		if err := uc.formatter.Write(response, finalReq.OutputFormat, finalReq.OutputWriter); err != nil {
-			return domain.NewOutputError("failed to write output", err)
-		}
-	}
+    // Delegate output handling to ReportWriter
+    var out2 io.Writer
+    if finalReq.OutputPath == "" {
+        out2 = finalReq.OutputWriter
+    }
+    if err := uc.output.Write(out2, finalReq.OutputPath, finalReq.OutputFormat, finalReq.NoOpen, func(w io.Writer) error {
+        return uc.formatter.Write(response, finalReq.OutputFormat, w)
+    }); err != nil {
+        return domain.NewOutputError("failed to write output", err)
+    }
 
 	return nil
 }
@@ -333,11 +263,12 @@ func (uc *ComplexityUseCase) loadAndMergeConfig(req domain.ComplexityRequest) (d
 
 // ComplexityUseCaseBuilder provides a builder pattern for creating ComplexityUseCase
 type ComplexityUseCaseBuilder struct {
-	service      domain.ComplexityService
-	fileReader   domain.FileReader
-	formatter    domain.OutputFormatter
-	configLoader domain.ConfigurationLoader
-	progress     domain.ProgressReporter
+    service      domain.ComplexityService
+    fileReader   domain.FileReader
+    formatter    domain.OutputFormatter
+    configLoader domain.ConfigurationLoader
+    progress     domain.ProgressReporter
+    output       domain.ReportWriter
 }
 
 // NewComplexityUseCaseBuilder creates a new builder
@@ -371,8 +302,14 @@ func (b *ComplexityUseCaseBuilder) WithConfigLoader(configLoader domain.Configur
 
 // WithProgress sets the progress reporter
 func (b *ComplexityUseCaseBuilder) WithProgress(progress domain.ProgressReporter) *ComplexityUseCaseBuilder {
-	b.progress = progress
-	return b
+    b.progress = progress
+    return b
+}
+
+// WithOutputWriter sets the report writer
+func (b *ComplexityUseCaseBuilder) WithOutputWriter(output domain.ReportWriter) *ComplexityUseCaseBuilder {
+    b.output = output
+    return b
 }
 
 // Build creates the ComplexityUseCase with the configured dependencies
@@ -397,13 +334,17 @@ func (b *ComplexityUseCaseBuilder) Build() (*ComplexityUseCase, error) {
 		b.progress = nil
 	}
 
-	return NewComplexityUseCase(
-		b.service,
-		b.fileReader,
-		b.formatter,
-		b.configLoader,
-		b.progress,
-	), nil
+    uc := NewComplexityUseCase(
+        b.service,
+        b.fileReader,
+        b.formatter,
+        b.configLoader,
+        b.progress,
+    )
+    if b.output != nil {
+        uc.output = b.output
+    }
+    return uc, nil
 }
 
 // BuildWithDefaults creates the ComplexityUseCase with default implementations for optional dependencies
@@ -428,13 +369,17 @@ func (b *ComplexityUseCaseBuilder) BuildWithDefaults() (*ComplexityUseCase, erro
 		b.progress = &noOpProgressReporter{}
 	}
 
-	return NewComplexityUseCase(
-		b.service,
-		b.fileReader,
-		b.formatter,
-		b.configLoader,
-		b.progress,
-	), nil
+    uc := NewComplexityUseCase(
+        b.service,
+        b.fileReader,
+        b.formatter,
+        b.configLoader,
+        b.progress,
+    )
+    if b.output != nil {
+        uc.output = b.output
+    }
+    return uc, nil
 }
 
 // noOpConfigLoader is a no-op implementation of ConfigurationLoader
