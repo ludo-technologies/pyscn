@@ -4,6 +4,7 @@ import (
     "fmt"
     "html/template"
     "io"
+    "strings"
     "time"
 
     "github.com/pyqol/pyqol/domain"
@@ -120,13 +121,21 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	fmt.Fprintf(writer, "Clone Pairs,%d\n", response.Summary.ClonePairs)
 	fmt.Fprintf(writer, "Clone Groups,%d\n", response.Summary.CloneGroups)
 	fmt.Fprintf(writer, "Code Duplication,%.2f\n", response.Summary.CodeDuplication)
+	fmt.Fprintf(writer, "Total Classes Analyzed,%d\n", response.Summary.CBOClasses)
+	fmt.Fprintf(writer, "High Dependency Classes,%d\n", response.Summary.HighCouplingClasses)
+	fmt.Fprintf(writer, "Average Dependencies,%.2f\n", response.Summary.AverageCoupling)
 	
 	return nil
 }
 
 // writeHTML formats the response as HTML
 func (f *AnalyzeFormatter) writeHTML(response *domain.AnalyzeResponse, writer io.Writer) error {
-	tmpl := template.Must(template.New("analyze").Parse(analyzeHTMLTemplate))
+	funcMap := template.FuncMap{
+		"join": func(elems []string, sep string) string {
+			return strings.Join(elems, sep)
+		},
+	}
+	tmpl := template.Must(template.New("analyze").Funcs(funcMap).Parse(analyzeHTMLTemplate))
 	return tmpl.Execute(writer, response)
 }
 
@@ -276,6 +285,9 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{if .Summary.CloneEnabled}}
                 <button class="tab-button" onclick="showTab('clone')">Clone Detection</button>
                 {{end}}
+                {{if .Summary.CBOEnabled}}
+                <button class="tab-button" onclick="showTab('cbo')">Dependency Analysis</button>
+                {{end}}
             </div>
 
             <div id="summary" class="tab-content active">
@@ -305,6 +317,20 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         <div class="metric-value">{{printf "%.1f%%" .Summary.CodeDuplication}}</div>
                         <div class="metric-label">Code Duplication</div>
                     </div>
+                    {{if .Summary.CBOEnabled}}
+                    <div class="metric-card">
+                        <div class="metric-value">{{.Summary.CBOClasses}}</div>
+                        <div class="metric-label">Total Classes</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.Summary.HighCouplingClasses}}</div>
+                        <div class="metric-label">High Dependencies</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{printf "%.2f" .Summary.AverageCoupling}}</div>
+                        <div class="metric-label">Avg Dependencies</div>
+                    </div>
+                    {{end}}
                 </div>
             </div>
 
@@ -394,6 +420,59 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         <div class="metric-label">Avg Similarity</div>
                     </div>
                 </div>
+                {{end}}
+            </div>
+            {{end}}
+
+            {{if .Summary.CBOEnabled}}
+            <div id="cbo" class="tab-content">
+                <h2>Dependency Analysis</h2>
+                <p style="margin-bottom: 20px; color: #666;">Class coupling metrics (CBO - Coupling Between Objects)</p>
+                {{if .CBO}}
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">{{.CBO.Summary.TotalClasses}}</div>
+                        <div class="metric-label">Total Classes</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.CBO.Summary.HighRiskClasses}}</div>
+                        <div class="metric-label">High Risk Classes</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{printf "%.2f" .CBO.Summary.AverageCBO}}</div>
+                        <div class="metric-label">Average Dependencies</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.CBO.Summary.MaxCBO}}</div>
+                        <div class="metric-label">Max Dependencies</div>
+                    </div>
+                </div>
+                
+                <h3>Most Dependent Classes</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Class</th>
+                            <th>File</th>
+                            <th>Dependencies</th>
+                            <th>Risk Level</th>
+                            <th>Dependent Classes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $i, $c := .CBO.Classes}}
+                        {{if lt $i 10}}
+                        <tr>
+                            <td>{{$c.Name}}</td>
+                            <td>{{$c.FilePath}}</td>
+                            <td>{{$c.Metrics.CouplingCount}}</td>
+                            <td class="risk-{{$c.RiskLevel}}">{{$c.RiskLevel}}</td>
+                            <td>{{join $c.Metrics.DependentClasses ", "}}</td>
+                        </tr>
+                        {{end}}
+                        {{end}}
+                    </tbody>
+                </table>
                 {{end}}
             </div>
             {{end}}
