@@ -4,11 +4,10 @@ import (
     "context"
     "fmt"
     "io"
-    "os"
     "time"
 
     "github.com/pyqol/pyqol/domain"
-    "github.com/pyqol/pyqol/service"
+    svc "github.com/pyqol/pyqol/service"
 )
 
 // CloneUseCase orchestrates clone detection operations
@@ -35,15 +34,9 @@ func NewCloneUseCase(
         formatter:    formatter,
         configLoader: configLoader,
         progress:     progress,
-        // Fallback to default implementation if not set via builder
-        output:       service2DefaultReportWriter(),
+        // Default implementation; CLI may override via builder
+        output:       svc.NewFileOutputWriter(nil),
     }
-}
-
-// service2DefaultReportWriter provides a default report writer using stderr for status.
-// Separated to avoid import name clashes in constructor parameters.
-func service2DefaultReportWriter() domain.ReportWriter {
-    return service.NewFileOutputWriter(os.Stderr)
 }
 
 // Execute executes the clone detection use case
@@ -108,14 +101,11 @@ func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) er
     }
 
     // Delegate output handling to ReportWriter
-    var dst io.Writer
+    var out io.Writer
     if req.OutputPath == "" {
-        dst = req.OutputWriter
+        out = req.OutputWriter
     }
-    if uc.output == nil {
-        uc.output = service2DefaultReportWriter()
-    }
-    if err := uc.output.Write(dst, req.OutputPath, req.OutputFormat, req.NoOpen, func(w io.Writer) error {
+    if err := uc.output.Write(out, req.OutputPath, req.OutputFormat, req.NoOpen, func(w io.Writer) error {
         return uc.formatter.FormatCloneResponse(response, req.OutputFormat, w)
     }); err != nil {
         return fmt.Errorf("failed to format output: %w", err)
