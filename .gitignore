@@ -58,3 +58,6 @@ __pycache__/
 # Project specific
 /testdata/temp/
 /testdata/output/
+
+# Claude Code setting
+.claude/
