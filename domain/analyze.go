@@ -10,6 +10,7 @@ type AnalyzeResponse struct {
 	Complexity *ComplexityResponse `json:"complexity,omitempty" yaml:"complexity,omitempty"`
 	DeadCode   *DeadCodeResponse   `json:"dead_code,omitempty" yaml:"dead_code,omitempty"`
 	Clone      *CloneResponse      `json:"clone,omitempty" yaml:"clone,omitempty"`
+	CBO        *CBOResponse        `json:"cbo,omitempty" yaml:"cbo,omitempty"`
 
 	// Overall summary
 	Summary AnalyzeSummary `json:"summary" yaml:"summary"`
@@ -31,6 +32,7 @@ type AnalyzeSummary struct {
 	ComplexityEnabled bool `json:"complexity_enabled" yaml:"complexity_enabled"`
 	DeadCodeEnabled   bool `json:"dead_code_enabled" yaml:"dead_code_enabled"`
 	CloneEnabled      bool `json:"clone_enabled" yaml:"clone_enabled"`
+	CBOEnabled        bool `json:"cbo_enabled" yaml:"cbo_enabled"`
 
 	// Key metrics
 	TotalFunctions      int     `json:"total_functions" yaml:"total_functions"`
@@ -43,6 +45,10 @@ type AnalyzeSummary struct {
 	ClonePairs          int     `json:"clone_pairs" yaml:"clone_pairs"`
 	CloneGroups         int     `json:"clone_groups" yaml:"clone_groups"`
 	CodeDuplication     float64 `json:"code_duplication_percentage" yaml:"code_duplication_percentage"`
+	
+	CBOClasses          int     `json:"cbo_classes" yaml:"cbo_classes"`
+	HighCouplingClasses int     `json:"high_coupling_classes" yaml:"high_coupling_classes"`
+	AverageCoupling     float64 `json:"average_coupling" yaml:"average_coupling"`
 
 	// Overall health score (0-100)
 	HealthScore int    `json:"health_score" yaml:"health_score"`
@@ -83,6 +89,18 @@ func (s *AnalyzeSummary) CalculateHealthScore() {
 		score -= 10
 	}
 
+	// Deduct points for high coupling
+	if s.CBOClasses > 0 {
+		couplingRatio := float64(s.HighCouplingClasses) / float64(s.CBOClasses)
+		if couplingRatio > 0.5 {
+			score -= 20
+		} else if couplingRatio > 0.3 {
+			score -= 15
+		} else if couplingRatio > 0.1 {
+			score -= 10
+		}
+	}
+
 	// Ensure score is within bounds
 	if score < 0 {
 		score = 0
@@ -112,5 +130,5 @@ func (s *AnalyzeSummary) IsHealthy() bool {
 
 // HasIssues returns true if any issues were found
 func (s *AnalyzeSummary) HasIssues() bool {
-	return s.HighComplexityCount > 0 || s.DeadCodeCount > 0 || s.ClonePairs > 0
+	return s.HighComplexityCount > 0 || s.DeadCodeCount > 0 || s.ClonePairs > 0 || s.HighCouplingClasses > 0
 }
