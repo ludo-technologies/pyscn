@@ -148,6 +148,7 @@ func (s *CBOServiceImpl) analyzeFile(ctx context.Context, filePath string, req d
 				TypeHintDependencies:        cboResult.TypeHintDependencies,
 				InstantiationDependencies:   cboResult.InstantiationDependencies,
 				AttributeAccessDependencies: cboResult.AttributeAccessDependencies,
+				ImportDependencies:          cboResult.ImportDependencies,
 				DependentClasses:            cboResult.DependentClasses,
 			},
 			RiskLevel:    domain.RiskLevel(cboResult.RiskLevel),

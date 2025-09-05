@@ -24,6 +24,7 @@ type CBOResult struct {
 	TypeHintDependencies       int
 	InstantiationDependencies  int
 	AttributeAccessDependencies int
+	ImportDependencies         int
 
 	// Detailed dependency list
 	DependentClasses []string
@@ -64,10 +65,12 @@ func DefaultCBOOptions() *CBOOptions {
 
 // CBOAnalyzer analyzes class coupling in Python code
 type CBOAnalyzer struct {
-	options       *CBOOptions
-	builtinTypes  map[string]bool
-	standardLibs  map[string]bool
-	importedNames map[string]string // alias -> module.name mapping
+	options         *CBOOptions
+	builtinTypes    map[string]bool
+	builtinFunctions map[string]bool
+	standardLibs    map[string]bool
+	importedNames   map[string]string // alias -> module.name mapping
+	regexCache      map[string]*regexp.Regexp // pattern -> compiled regex cache
 }
 
 // NewCBOAnalyzer creates a new CBO analyzer
@@ -77,10 +80,12 @@ func NewCBOAnalyzer(options *CBOOptions) *CBOAnalyzer {
 	}
 
 	analyzer := &CBOAnalyzer{
-		options:       options,
-		builtinTypes:  make(map[string]bool),
-		standardLibs:  make(map[string]bool),
-		importedNames: make(map[string]string),
+		options:         options,
+		builtinTypes:    make(map[string]bool),
+		builtinFunctions: make(map[string]bool),
+		standardLibs:    make(map[string]bool),
+		importedNames:   make(map[string]string),
+		regexCache:      make(map[string]*regexp.Regexp),
 	}
 
 	analyzer.initializeBuiltinTypes()
@@ -172,7 +177,12 @@ func (a *CBOAnalyzer) analyzeInheritance(classNode *parser.Node, dependencies ma
 			if baseName != "" && a.shouldIncludeDependency(baseName) {
 				dependencies[baseName] = true
 				result.BaseClasses = append(result.BaseClasses, baseName)
-				result.InheritanceDependencies++
+				// Check if this is an imported dependency
+				if a.isImportedDependency(baseName) {
+					result.ImportDependencies++
+				} else {
+					result.InheritanceDependencies++
+				}
 			}
 		}
 	}
@@ -216,7 +226,12 @@ func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, depen
 		// Simple type: User
 		if node.Name != "" && a.shouldIncludeDependency(node.Name) {
 			dependencies[node.Name] = true
-			result.TypeHintDependencies++
+			// Check if this is an imported dependency
+			if a.isImportedDependency(node.Name) {
+				result.ImportDependencies++
+			} else {
+				result.TypeHintDependencies++
+			}
 		}
 	case parser.NodeSubscript:
 		// Generic type: List[User], Dict[str, User]
@@ -231,7 +246,12 @@ func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, depen
 		typeName := a.extractClassName(node)
 		if typeName != "" && a.shouldIncludeDependency(typeName) {
 			dependencies[typeName] = true
-			result.TypeHintDependencies++
+			// Check if this is an imported dependency
+			if a.isImportedDependency(typeName) {
+				result.ImportDependencies++
+			} else {
+				result.TypeHintDependencies++
+			}
 		}
 	case parser.NodeTypeNode:
 		// Tree-sitter 'type' node - recurse into children
@@ -298,14 +318,18 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 					// Extract "Logger" from "Call(Name(Logger))"
 					inner := strings.TrimSuffix(strings.TrimPrefix(valueStr, "Call(Name("), "))")
 					if inner != "" && a.shouldIncludeDependency(inner) {
-						// Check if it's a known class (instantiation)
-						if _, isClass := allClasses[inner]; isClass {
-							dependencies[inner] = true
+						dependencies[inner] = true
+						// Check if this is an imported dependency
+						if a.isImportedDependency(inner) {
+							result.ImportDependencies++
+						} else if _, isClass := allClasses[inner]; isClass {
+							// Known local class (instantiation)
 							result.InstantiationDependencies++
-						}
-						// Also check if it's a builtin type
-						if a.builtinTypes[inner] {
-							dependencies[inner] = true
+						} else if a.builtinTypes[inner] {
+							// Builtin type
+							result.InstantiationDependencies++
+						} else {
+							// Other instantiation
 							result.InstantiationDependencies++
 						}
 					}
@@ -346,9 +370,15 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 			}
 			
 			if className != "" && a.shouldIncludeDependency(className) {
-				// Check if it's a known class (instantiation)
-				if _, isClass := allClasses[className]; isClass {
-					dependencies[className] = true
+				dependencies[className] = true
+				// Check if this is an imported dependency
+				if a.isImportedDependency(className) {
+					result.ImportDependencies++
+				} else if _, isClass := allClasses[className]; isClass {
+					// Known local class (instantiation)
+					result.InstantiationDependencies++
+				} else {
+					// Other instantiation
 					result.InstantiationDependencies++
 				}
 			}
@@ -358,7 +388,12 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 				objType := a.inferObjectType(objNode)
 				if objType != "" && a.shouldIncludeDependency(objType) {
 					dependencies[objType] = true
-					result.AttributeAccessDependencies++
+					// Check if this is an imported dependency
+					if a.isImportedDependency(objType) {
+						result.ImportDependencies++
+					} else {
+						result.AttributeAccessDependencies++
+					}
 				}
 			}
 		}
@@ -471,17 +506,57 @@ func (a *CBOAnalyzer) shouldIncludeDependency(className string) bool {
 		}
 	}
 	
-	// Skip built-in types if not included
+	// Skip built-in types if not included, but always skip built-in functions
+	if a.isBuiltinFunction(className) {
+		return false // Always exclude built-in functions regardless of IncludeBuiltins
+	}
 	if !a.options.IncludeBuiltins && a.builtinTypes[className] {
 		return false
 	}
 	
 	// Skip standard library if not included
-	if !a.options.IncludeImports && a.standardLibs[className] {
-		return false
+	if !a.options.IncludeImports {
+		// Check both direct match and root module for qualified names like json.JSONDecoder
+		if a.standardLibs[className] {
+			return false
+		}
+		// Check root module for fully qualified names
+		if strings.Contains(className, ".") {
+			rootModule := strings.SplitN(className, ".", 2)[0]
+			if a.standardLibs[rootModule] {
+				return false
+			}
+		}
 	}
 	
 	return true
+}
+
+// isBuiltinFunction checks if a name is a built-in function
+func (a *CBOAnalyzer) isBuiltinFunction(name string) bool {
+	return a.builtinFunctions[name]
+}
+
+// isImportedDependency checks if a dependency comes from imports
+func (a *CBOAnalyzer) isImportedDependency(className string) bool {
+	// Check if the class name or its parts exist in importedNames
+	if _, exists := a.importedNames[className]; exists {
+		return true
+	}
+	
+	// Check for qualified names like module.Class
+	if strings.Contains(className, ".") {
+		parts := strings.SplitN(className, ".", 2)
+		if len(parts) == 2 {
+			moduleName := parts[0]
+			// Check if the module part is imported
+			if _, exists := a.importedNames[moduleName]; exists {
+				return true
+			}
+		}
+	}
+	
+	return false
 }
 
 // shouldIncludeClass checks if a class should be included in results
@@ -565,14 +640,20 @@ func (a *CBOAnalyzer) matchesPattern(str, pattern string) bool {
 	}
 	
 	if strings.Contains(pattern, "*") {
-		// Convert glob pattern to regex pattern
-		regexPattern := "^" + strings.ReplaceAll(regexp.QuoteMeta(pattern), "\\*", ".*") + "$"
-		matched, err := regexp.MatchString(regexPattern, str)
-		if err != nil {
-			// Fallback to exact match if regex fails
-			return str == pattern
+		// Check cache first
+		regex, exists := a.regexCache[pattern]
+		if !exists {
+			// Convert glob pattern to regex pattern and cache it
+			regexPattern := "^" + strings.ReplaceAll(regexp.QuoteMeta(pattern), "\\*", ".*") + "$"
+			var err error
+			regex, err = regexp.Compile(regexPattern)
+			if err != nil {
+				// Fallback to exact match if regex compilation fails
+				return str == pattern
+			}
+			a.regexCache[pattern] = regex
 		}
-		return matched
+		return regex.MatchString(str)
 	}
 	
 	return str == pattern
@@ -587,18 +668,34 @@ func (a *CBOAnalyzer) mapToSlice(m map[string]bool) []string {
 	return result
 }
 
-// initializeBuiltinTypes initializes the built-in types set
+// initializeBuiltinTypes initializes the built-in types and functions set
 func (a *CBOAnalyzer) initializeBuiltinTypes() {
-	builtins := []string{
+	// Built-in types (can be dependencies when IncludeBuiltins=true)
+	builtinTypes := []string{
 		"bool", "int", "float", "complex", "str", "bytes", "bytearray",
 		"list", "tuple", "range", "dict", "set", "frozenset",
 		"object", "type", "super", "property", "classmethod", "staticmethod",
 		"Exception", "BaseException", "ValueError", "TypeError", "KeyError",
 		"IndexError", "AttributeError", "NameError", "RuntimeError",
+		"memoryview", "slice",
 	}
 	
-	for _, builtin := range builtins {
+	// Built-in functions (never counted as dependencies)
+	builtinFunctions := []string{
+		"print", "len", "max", "min", "sum", "abs", "round", "pow",
+		"sorted", "reversed", "enumerate", "zip", "map", "filter",
+		"any", "all", "iter", "next", "chr", "ord", "bin", "hex", "oct",
+		"hash", "id", "repr", "ascii", "format", "callable", "hasattr",
+		"getattr", "setattr", "delattr", "dir", "vars", "locals", "globals",
+		"isinstance", "issubclass", "open", "input", "eval", "exec", "compile",
+	}
+	
+	for _, builtin := range builtinTypes {
 		a.builtinTypes[builtin] = true
+	}
+	
+	for _, builtin := range builtinFunctions {
+		a.builtinFunctions[builtin] = true
 	}
 }
 
