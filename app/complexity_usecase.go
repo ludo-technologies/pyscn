@@ -7,7 +7,7 @@ import (
     "time"
 
     "github.com/pyqol/pyqol/domain"
-    "github.com/pyqol/pyqol/service"
+    svc "github.com/pyqol/pyqol/service"
 )
 
 // ComplexityUseCase orchestrates the complexity analysis workflow
@@ -34,13 +34,8 @@ func NewComplexityUseCase(
         formatter:    formatter,
         configLoader: configLoader,
         progress:     progress,
-        output:       complexityDefaultReportWriter(),
+        output:       svc.NewFileOutputWriter(nil),
     }
-}
-
-// complexityDefaultReportWriter provides a default domain.ReportWriter.
-func complexityDefaultReportWriter() domain.ReportWriter {
-    return service.NewFileOutputWriter(nil)
 }
 
 // Execute performs the complete complexity analysis workflow
@@ -87,14 +82,11 @@ func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityR
 	}
 
     // Delegate output handling to ReportWriter
-    var dst io.Writer
+    var out io.Writer
     if finalReq.OutputPath == "" {
-        dst = finalReq.OutputWriter
+        out = finalReq.OutputWriter
     }
-    if uc.output == nil {
-        uc.output = service.NewFileOutputWriter(nil)
-    }
-    if err := uc.output.Write(dst, finalReq.OutputPath, finalReq.OutputFormat, finalReq.NoOpen, func(w io.Writer) error {
+    if err := uc.output.Write(out, finalReq.OutputPath, finalReq.OutputFormat, finalReq.NoOpen, func(w io.Writer) error {
         return uc.formatter.Write(response, finalReq.OutputFormat, w)
     }); err != nil {
         return domain.NewOutputError("failed to write output", err)
@@ -178,14 +170,11 @@ func (uc *ComplexityUseCase) AnalyzeFile(ctx context.Context, filePath string, r
 	}
 
     // Delegate output handling to ReportWriter
-    var dst2 io.Writer
+    var out2 io.Writer
     if finalReq.OutputPath == "" {
-        dst2 = finalReq.OutputWriter
+        out2 = finalReq.OutputWriter
     }
-    if uc.output == nil {
-        uc.output = service.NewFileOutputWriter(nil)
-    }
-    if err := uc.output.Write(dst2, finalReq.OutputPath, finalReq.OutputFormat, finalReq.NoOpen, func(w io.Writer) error {
+    if err := uc.output.Write(out2, finalReq.OutputPath, finalReq.OutputFormat, finalReq.NoOpen, func(w io.Writer) error {
         return uc.formatter.Write(response, finalReq.OutputFormat, w)
     }); err != nil {
         return domain.NewOutputError("failed to write output", err)
