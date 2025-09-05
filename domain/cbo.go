@@ -150,9 +150,6 @@ type CBOAnalysisOptions struct {
 	// Include system and built-in dependencies
 	IncludeBuiltins bool
 
-	// Include third-party library dependencies
-	IncludeThirdParty bool
-
 	// Maximum depth for dependency resolution
 	MaxDependencyDepth int
 

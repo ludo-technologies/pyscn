@@ -318,7 +318,6 @@ func (s *CBOServiceImpl) buildCBOOptions(req domain.CBORequest) *analyzer.CBOOpt
 	return &analyzer.CBOOptions{
 		IncludeBuiltins:   req.IncludeBuiltins,
 		IncludeImports:    req.IncludeImports,
-		IncludeThirdParty: false, // For now, keep it simple
 		PublicClassesOnly: false, // Could add this to domain.CBORequest later
 		ExcludePatterns:   req.ExcludePatterns,
 		LowThreshold:      req.LowThreshold,

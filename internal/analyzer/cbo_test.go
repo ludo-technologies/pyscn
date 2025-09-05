@@ -23,7 +23,6 @@ func TestNewCBOAnalyzer(t *testing.T) {
 			expected: &CBOOptions{
 				IncludeBuiltins:   false,
 				IncludeImports:    true,
-				IncludeThirdParty: false,
 				PublicClassesOnly: false,
 				LowThreshold:      5,
 				MediumThreshold:   10,
