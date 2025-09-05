@@ -121,9 +121,9 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	fmt.Fprintf(writer, "Clone Pairs,%d\n", response.Summary.ClonePairs)
 	fmt.Fprintf(writer, "Clone Groups,%d\n", response.Summary.CloneGroups)
 	fmt.Fprintf(writer, "Code Duplication,%.2f\n", response.Summary.CodeDuplication)
-	fmt.Fprintf(writer, "CBO Classes,%d\n", response.Summary.CBOClasses)
-	fmt.Fprintf(writer, "High Coupling Classes,%d\n", response.Summary.HighCouplingClasses)
-	fmt.Fprintf(writer, "Average Coupling,%.2f\n", response.Summary.AverageCoupling)
+	fmt.Fprintf(writer, "Total Classes Analyzed,%d\n", response.Summary.CBOClasses)
+	fmt.Fprintf(writer, "High Dependency Classes,%d\n", response.Summary.HighCouplingClasses)
+	fmt.Fprintf(writer, "Average Dependencies,%.2f\n", response.Summary.AverageCoupling)
 	
 	return nil
 }
@@ -286,7 +286,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 <button class="tab-button" onclick="showTab('clone')">Clone Detection</button>
                 {{end}}
                 {{if .Summary.CBOEnabled}}
-                <button class="tab-button" onclick="showTab('cbo')">CBO Analysis</button>
+                <button class="tab-button" onclick="showTab('cbo')">Dependency Analysis</button>
                 {{end}}
             </div>
 
@@ -320,15 +320,15 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     {{if .Summary.CBOEnabled}}
                     <div class="metric-card">
                         <div class="metric-value">{{.Summary.CBOClasses}}</div>
-                        <div class="metric-label">CBO Classes</div>
+                        <div class="metric-label">Total Classes</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{.Summary.HighCouplingClasses}}</div>
-                        <div class="metric-label">High Coupling</div>
+                        <div class="metric-label">High Dependencies</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{printf "%.2f" .Summary.AverageCoupling}}</div>
-                        <div class="metric-label">Avg Coupling</div>
+                        <div class="metric-label">Avg Dependencies</div>
                     </div>
                     {{end}}
                 </div>
@@ -426,7 +426,8 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
 
             {{if .Summary.CBOEnabled}}
             <div id="cbo" class="tab-content">
-                <h2>CBO Analysis</h2>
+                <h2>Dependency Analysis</h2>
+                <p style="margin-bottom: 20px; color: #666;">Class coupling metrics (CBO - Coupling Between Objects)</p>
                 {{if .CBO}}
                 <div class="metric-grid">
                     <div class="metric-card">
@@ -439,23 +440,23 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{printf "%.2f" .CBO.Summary.AverageCBO}}</div>
-                        <div class="metric-label">Average CBO</div>
+                        <div class="metric-label">Average Dependencies</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{.CBO.Summary.MaxCBO}}</div>
-                        <div class="metric-label">Max CBO</div>
+                        <div class="metric-label">Max Dependencies</div>
                     </div>
                 </div>
                 
-                <h3>Top Coupled Classes</h3>
+                <h3>Most Dependent Classes</h3>
                 <table class="table">
                     <thead>
                         <tr>
                             <th>Class</th>
                             <th>File</th>
-                            <th>CBO Count</th>
-                            <th>Risk Level</th>
                             <th>Dependencies</th>
+                            <th>Risk Level</th>
+                            <th>Dependent Classes</th>
                         </tr>
                     </thead>
                     <tbody>
