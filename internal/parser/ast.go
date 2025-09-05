@@ -93,6 +93,11 @@ const (
 	NodeElseClause    NodeType = "else_clause" // Structural marker from parser
 	NodeElifClause    NodeType = "elif_clause" // Structural marker from parser
 	NodeBlock         NodeType = "block"       // Block of statements from parser
+
+	// Tree-sitter specific nodes
+	NodeGenericType   NodeType = "generic_type"
+	NodeTypeParameter NodeType = "type_parameter"
+	NodeTypeNode      NodeType = "type"
 )
 
 // Location represents the position of a node in the source code

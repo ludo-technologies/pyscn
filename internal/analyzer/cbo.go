@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/pyqol/pyqol/internal/parser"
@@ -23,7 +24,6 @@ type CBOResult struct {
 	TypeHintDependencies       int
 	InstantiationDependencies  int
 	AttributeAccessDependencies int
-	ImportDependencies         int
 
 	// Detailed dependency list
 	DependentClasses []string
@@ -185,11 +185,10 @@ func (a *CBOAnalyzer) analyzeTypeHints(classNode *parser.Node, dependencies map[
 		switch node.Type {
 		case parser.NodeAnnAssign:
 			// Variable with type annotation: x: SomeType = value
-			if annotation := a.findChildByType(node, parser.NodeName); annotation != nil {
-				typeName := a.extractClassName(annotation)
-				if typeName != "" && a.shouldIncludeDependency(typeName) {
-					dependencies[typeName] = true
-					result.TypeHintDependencies++
+			// Look for type annotation node - could be Name, Subscript, Attribute, etc.
+			for _, child := range node.Children {
+				if child != nil && a.isTypeAnnotation(child) {
+					a.extractTypeAnnotationDependencies(child, dependencies, result)
 				}
 			}
 		case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
@@ -198,6 +197,65 @@ func (a *CBOAnalyzer) analyzeTypeHints(classNode *parser.Node, dependencies map[
 		}
 		return true
 	})
+}
+
+// isTypeAnnotation checks if a node represents a type annotation
+func (a *CBOAnalyzer) isTypeAnnotation(node *parser.Node) bool {
+	return node.Type == parser.NodeName || 
+		   node.Type == parser.NodeSubscript || 
+		   node.Type == parser.NodeAttribute ||
+		   node.Type == parser.NodeTypeNode ||
+		   node.Type == parser.NodeGenericType ||
+		   node.Type == parser.NodeTypeParameter
+}
+
+// extractTypeAnnotationDependencies extracts class dependencies from type annotations
+func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, dependencies map[string]bool, result *CBOResult) {
+	switch node.Type {
+	case parser.NodeName:
+		// Simple type: User
+		if node.Name != "" && a.shouldIncludeDependency(node.Name) {
+			dependencies[node.Name] = true
+			result.TypeHintDependencies++
+		}
+	case parser.NodeSubscript:
+		// Generic type: List[User], Dict[str, User]
+		// For generics, we want to extract the type parameters, not the container
+		if node.Right != nil {
+			a.extractTypeAnnotationDependencies(node.Right, dependencies, result)
+		} else if len(node.Children) > 1 {
+			a.extractTypeAnnotationDependencies(node.Children[1], dependencies, result)
+		}
+	case parser.NodeAttribute:
+		// Module.Type: typing.List, mymodule.MyClass
+		typeName := a.extractClassName(node)
+		if typeName != "" && a.shouldIncludeDependency(typeName) {
+			dependencies[typeName] = true
+			result.TypeHintDependencies++
+		}
+	case parser.NodeTypeNode:
+		// Tree-sitter 'type' node - recurse into children
+		for _, child := range node.Children {
+			if child != nil && a.isTypeAnnotation(child) {
+				a.extractTypeAnnotationDependencies(child, dependencies, result)
+			}
+		}
+	case parser.NodeGenericType:
+		// Tree-sitter generic_type node (e.g., List[User])
+		// Look for type_parameter children to get the actual types we depend on
+		for _, child := range node.Children {
+			if child != nil && child.Type == parser.NodeTypeParameter {
+				a.extractTypeAnnotationDependencies(child, dependencies, result)
+			}
+		}
+	case parser.NodeTypeParameter:
+		// Tree-sitter type_parameter node - recurse into children
+		for _, child := range node.Children {
+			if child != nil && a.isTypeAnnotation(child) {
+				a.extractTypeAnnotationDependencies(child, dependencies, result)
+			}
+		}
+	}
 }
 
 // analyzeMethodTypeHints analyzes type hints in method signatures
@@ -209,35 +267,89 @@ func (a *CBOAnalyzer) analyzeMethodTypeHints(methodNode *parser.Node, dependenci
 	// Analyze parameter types
 	for _, arg := range methodNode.Args {
 		if arg != nil && arg.Type == parser.NodeArg {
-			// Look for type annotation in argument
-			if typeNode := a.findChildByType(arg, parser.NodeName); typeNode != nil {
-				typeName := a.extractClassName(typeNode)
-				if typeName != "" && a.shouldIncludeDependency(typeName) {
-					dependencies[typeName] = true
-					result.TypeHintDependencies++
+			// Look for type annotation in argument children
+			for _, child := range arg.Children {
+				if child != nil && a.isTypeAnnotation(child) {
+					a.extractTypeAnnotationDependencies(child, dependencies, result)
 				}
 			}
 		}
 	}
 
 	// Analyze return type annotation
-	// This would need tree-sitter specific parsing for return type annotations
+	// Look for return type annotations in function children
+	for _, child := range methodNode.Children {
+		if child != nil && a.isTypeAnnotation(child) {
+			a.extractTypeAnnotationDependencies(child, dependencies, result)
+		}
+	}
 }
 
 // analyzeInstantiationAndAccess analyzes object instantiation and attribute access
 func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, dependencies map[string]bool, result *CBOResult, allClasses map[string]*parser.Node) {
 	a.walkNode(classNode, func(node *parser.Node) bool {
 		switch node.Type {
+		case parser.NodeAssign:
+			// Assignment that might contain class instantiation: self.logger = Logger()
+			if node.Value != nil {
+				valueStr := fmt.Sprintf("%v", node.Value)
+				// Handle "Call(Name(Logger))" format
+				if strings.HasPrefix(valueStr, "Call(Name(") && strings.HasSuffix(valueStr, "))") {
+					// Extract "Logger" from "Call(Name(Logger))"
+					inner := strings.TrimSuffix(strings.TrimPrefix(valueStr, "Call(Name("), "))")
+					if inner != "" && a.shouldIncludeDependency(inner) {
+						// Check if it's a known class (instantiation)
+						if _, isClass := allClasses[inner]; isClass {
+							dependencies[inner] = true
+							result.InstantiationDependencies++
+						}
+						// Also check if it's a builtin type
+						if a.builtinTypes[inner] {
+							dependencies[inner] = true
+							result.InstantiationDependencies++
+						}
+					}
+				}
+			}
 		case parser.NodeCall:
 			// Function/class call - could be instantiation
-			if funcNode := node.Left; funcNode != nil {
-				className := a.extractClassName(funcNode)
-				if className != "" && a.shouldIncludeDependency(className) {
-					// Check if it's a known class (instantiation)
-					if _, isClass := allClasses[className]; isClass {
-						dependencies[className] = true
-						result.InstantiationDependencies++
+			var className string
+			
+			// Parse value field which contains the function/class name
+			if node.Value != nil {
+				valueStr := fmt.Sprintf("%v", node.Value)
+				// Handle "Name(Logger)" format
+				if strings.HasPrefix(valueStr, "Name(") && strings.HasSuffix(valueStr, ")") {
+					className = strings.TrimSuffix(strings.TrimPrefix(valueStr, "Name("), ")")
+				}
+				// Handle simple string values
+				if className == "" {
+					if str, ok := node.Value.(string); ok {
+						className = str
 					}
+				}
+			}
+			
+			// Fallback: Look for Name nodes in children
+			if className == "" {
+				for _, child := range node.Children {
+					if child != nil && child.Type == parser.NodeName {
+						className = child.Name
+						break
+					}
+				}
+			}
+			
+			// Fallback: try Left field
+			if className == "" && node.Left != nil {
+				className = a.extractClassName(node.Left)
+			}
+			
+			if className != "" && a.shouldIncludeDependency(className) {
+				// Check if it's a known class (instantiation)
+				if _, isClass := allClasses[className]; isClass {
+					dependencies[className] = true
+					result.InstantiationDependencies++
 				}
 			}
 		case parser.NodeAttribute:
@@ -330,6 +442,16 @@ func (a *CBOAnalyzer) extractClassName(node *parser.Node) string {
 				return left + "." + right
 			}
 		}
+	case parser.NodeSubscript:
+		// Handle generic types like List[User], Dict[str, User]
+		// For subscripts, the type parameter is typically in Right field or Children
+		if node.Right != nil {
+			return a.extractClassName(node.Right)
+		}
+		// Fallback to checking children for the subscript content
+		if len(node.Children) > 1 {
+			return a.extractClassName(node.Children[1])
+		}
 	}
 	
 	return ""
@@ -402,23 +524,6 @@ func (a *CBOAnalyzer) walkNode(node *parser.Node, visitor func(*parser.Node) boo
 	}
 }
 
-// findChildByType finds first child node of specified type
-func (a *CBOAnalyzer) findChildByType(node *parser.Node, nodeType parser.NodeType) *parser.Node {
-	if node == nil {
-		return nil
-	}
-	
-	for _, child := range node.Children {
-		if child.Type == nodeType {
-			return child
-		}
-		if found := a.findChildByType(child, nodeType); found != nil {
-			return found
-		}
-	}
-	
-	return nil
-}
 
 // inferObjectType tries to infer the type of an object from context
 func (a *CBOAnalyzer) inferObjectType(node *parser.Node) string {
@@ -460,12 +565,14 @@ func (a *CBOAnalyzer) matchesPattern(str, pattern string) bool {
 	}
 	
 	if strings.Contains(pattern, "*") {
-		// Simple wildcard matching
-		parts := strings.Split(pattern, "*")
-		if len(parts) == 2 {
-			prefix, suffix := parts[0], parts[1]
-			return strings.HasPrefix(str, prefix) && strings.HasSuffix(str, suffix)
+		// Convert glob pattern to regex pattern
+		regexPattern := "^" + strings.ReplaceAll(regexp.QuoteMeta(pattern), "\\*", ".*") + "$"
+		matched, err := regexp.MatchString(regexPattern, str)
+		if err != nil {
+			// Fallback to exact match if regex fails
+			return str == pattern
 		}
+		return matched
 	}
 	
 	return str == pattern
