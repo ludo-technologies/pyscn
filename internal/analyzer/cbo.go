@@ -43,7 +43,6 @@ type CBOResult struct {
 type CBOOptions struct {
 	IncludeBuiltins     bool
 	IncludeImports      bool
-	IncludeThirdParty   bool
 	PublicClassesOnly   bool
 	ExcludePatterns     []string
 	LowThreshold        int // Default: 5
@@ -55,7 +54,6 @@ func DefaultCBOOptions() *CBOOptions {
 	return &CBOOptions{
 		IncludeBuiltins:   false,
 		IncludeImports:    true,
-		IncludeThirdParty: false,
 		PublicClassesOnly: false,
 		ExcludePatterns:   []string{"test_*", "*_test", "__*__"},
 		LowThreshold:      5,
