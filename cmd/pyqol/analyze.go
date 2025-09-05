@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pyqol/pyqol/app"
 	"github.com/pyqol/pyqol/domain"
 	"github.com/pyqol/pyqol/service"
 	"github.com/spf13/cobra"
@@ -31,6 +32,7 @@ type AnalysisResult struct {
 	Complexity *AnalysisStatus
 	DeadCode   *AnalysisStatus
 	Clones     *AnalysisStatus
+	CBO        *AnalysisStatus
 	Overall    struct {
 		StartTime    time.Time
 		EndTime      time.Time
@@ -44,6 +46,7 @@ type AnalysisResult struct {
 	ComplexityResponse *domain.ComplexityResponse
 	DeadCodeResponse   *domain.DeadCodeResponse
 	CloneResponse      *domain.CloneResponse
+	CBOResponse        *domain.CBOResponse
 }
 
 // AnalyzeCommand represents the comprehensive analysis command
@@ -63,11 +66,13 @@ type AnalyzeCommand struct {
 	skipComplexity bool
 	skipDeadCode   bool
 	skipClones     bool
+	skipCBO        bool
 
 	// Quick filters
 	minComplexity   int
 	minSeverity     string
 	cloneSimilarity float64
+	minCBO          int
 }
 
 // NewAnalyzeCommand creates a new analyze command
@@ -83,9 +88,11 @@ func NewAnalyzeCommand() *AnalyzeCommand {
 		skipComplexity:  false,
 		skipDeadCode:    false,
 		skipClones:      false,
+		skipCBO:         false,
 		minComplexity:   5,
 		minSeverity:     "warning",
 		cloneSimilarity: 0.8,
+		minCBO:          0,
 	}
 }
 
@@ -95,6 +102,7 @@ func NewAnalysisResult() *AnalysisResult {
 		Complexity: &AnalysisStatus{Name: "Complexity Analysis", Enabled: false},
 		DeadCode:   &AnalysisStatus{Name: "Dead Code Detection", Enabled: false},
 		Clones:     &AnalysisStatus{Name: "Clone Detection", Enabled: false},
+		CBO:        &AnalysisStatus{Name: "CBO Analysis", Enabled: false},
 	}
 }
 
@@ -103,12 +111,13 @@ func (c *AnalyzeCommand) CreateCobraCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "analyze [files...]",
 		Short: "Run comprehensive analysis on Python files",
-		Long: `Run comprehensive analysis including complexity, dead code detection, and clone detection.
+		Long: `Run comprehensive analysis including complexity, dead code detection, clone detection, and CBO analysis.
 
 This command performs all available static analyses on Python code:
 • Cyclomatic complexity analysis
 • Dead code detection using CFG analysis
 • Code clone detection using APTED algorithm
+• CBO (Coupling Between Objects) analysis
 
 The analyses run concurrently for optimal performance. Results are combined
 and presented in a unified format.
@@ -120,11 +129,14 @@ Examples:
   # Analyze specific files with JSON output
   pyqol analyze --json src/myfile.py
 
-  # Skip clone detection, focus on complexity and dead code
+  # Skip clone detection, focus on complexity, dead code, and CBO
   pyqol analyze --skip-clones src/
 
   # Quick analysis with higher thresholds
-  pyqol analyze --min-complexity 10 --min-severity critical src/`,
+  pyqol analyze --min-complexity 10 --min-severity critical --min-cbo 5 src/
+
+  # Skip CBO analysis
+  pyqol analyze --skip-cbo src/`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: c.runAnalyze,
 	}
@@ -141,11 +153,13 @@ Examples:
 	cmd.Flags().BoolVar(&c.skipComplexity, "skip-complexity", false, "Skip complexity analysis")
 	cmd.Flags().BoolVar(&c.skipDeadCode, "skip-deadcode", false, "Skip dead code detection")
 	cmd.Flags().BoolVar(&c.skipClones, "skip-clones", false, "Skip clone detection")
+	cmd.Flags().BoolVar(&c.skipCBO, "skip-cbo", false, "Skip CBO analysis")
 
 	// Quick filter flags
 	cmd.Flags().IntVar(&c.minComplexity, "min-complexity", 5, "Minimum complexity to report")
 	cmd.Flags().StringVar(&c.minSeverity, "min-severity", "warning", "Minimum dead code severity (critical, warning, info)")
 	cmd.Flags().Float64Var(&c.cloneSimilarity, "clone-threshold", 0.8, "Minimum similarity for clone detection (0.0-1.0)")
+	cmd.Flags().IntVar(&c.minCBO, "min-cbo", 0, "Minimum CBO to report")
 
 	return cmd
 }
@@ -219,6 +233,7 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 	result.Complexity.Enabled = !c.skipComplexity
 	result.DeadCode.Enabled = !c.skipDeadCode
 	result.Clones.Enabled = !c.skipClones
+	result.CBO.Enabled = !c.skipCBO
 
 	// Early validation: Check if there are any Python files to analyze
 	fileReader := service.NewFileReader()
@@ -349,6 +364,30 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 						return err
 					}
 					return c.runCloneAnalysis(cmd, args)
+				})
+			}
+		}()
+	}
+
+	// Run CBO analysis
+	if result.CBO.Enabled {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			select {
+			case <-ctx.Done():
+				result.CBO.Error = fmt.Errorf("analysis timed out")
+				return
+			default:
+				c.runAnalysisWithStatus(result.CBO, statusMutex, func() error {
+					if c.shouldGenerateUnifiedReport() {
+						response, err := c.runCBOAnalysisWithResult(cmd, args)
+						if err == nil {
+							result.CBOResponse = response
+						}
+						return err
+					}
+					return c.runCBOAnalysis(cmd, args)
 				})
 			}
 		}()
@@ -518,13 +557,18 @@ func (c *AnalyzeCommand) printAnalysisPlan(cmd *cobra.Command, result *AnalysisR
 		} else {
 			fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ Clone Detection (skipped)\n")
 		}
+		if result.CBO.Enabled {
+			fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ CBO Analysis (min CBO: %d)\n", c.minCBO)
+		} else {
+			fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ CBO Analysis (skipped)\n")
+		}
 		fmt.Fprintf(cmd.ErrOrStderr(), "\n")
 	}
 }
 
 // calculateOverallStats calculates overall statistics from individual analysis statuses
 func (c *AnalyzeCommand) calculateOverallStats(result *AnalysisResult) {
-	analyses := []*AnalysisStatus{result.Complexity, result.DeadCode, result.Clones}
+	analyses := []*AnalysisStatus{result.Complexity, result.DeadCode, result.Clones, result.CBO}
 
 	for _, analysis := range analyses {
 		if analysis.Enabled {
@@ -546,7 +590,7 @@ func (c *AnalyzeCommand) printStatusReport(cmd *cobra.Command, result *AnalysisR
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n")
 
 	// Print individual analysis status
-	analyses := []*AnalysisStatus{result.Complexity, result.DeadCode, result.Clones}
+	analyses := []*AnalysisStatus{result.Complexity, result.DeadCode, result.Clones, result.CBO}
 	for _, analysis := range analyses {
 		if analysis.Enabled {
 			if analysis.Success {
@@ -912,6 +956,7 @@ func (c *AnalyzeCommand) generateUnifiedReport(cmd *cobra.Command, result *Analy
 		Complexity:  result.ComplexityResponse,
 		DeadCode:    result.DeadCodeResponse,
 		Clone:       result.CloneResponse,
+		CBO:         result.CBOResponse,
 		GeneratedAt: time.Now(),
 		Duration:    result.Overall.TotalTime.Milliseconds(),
 		Version:     "1.0.0", // TODO: Get from build info
@@ -983,6 +1028,14 @@ func (c *AnalyzeCommand) generateUnifiedReport(cmd *cobra.Command, result *Analy
 		}
 	}
 	
+	// CBO statistics
+	if result.CBOResponse != nil {
+		summary.CBOEnabled = true
+		summary.CBOClasses = result.CBOResponse.Summary.TotalClasses
+		summary.HighCouplingClasses = result.CBOResponse.Summary.HighRiskClasses
+		summary.AverageCoupling = result.CBOResponse.Summary.AverageCBO
+	}
+	
 	// Calculate health score
 	summary.CalculateHealthScore()
 	
@@ -1024,6 +1077,62 @@ func (c *AnalyzeCommand) generateUnifiedReport(cmd *cobra.Command, result *Analy
 	fmt.Fprintf(cmd.ErrOrStderr(), "📊 Unified %s report generated: %s\n", formatName, absPath)
 	
 	return nil
+}
+
+// runCBOAnalysis runs CBO analysis for the given arguments (but doesn't output in analyze mode)
+func (c *AnalyzeCommand) runCBOAnalysis(cmd *cobra.Command, args []string) error {
+	// In analyze mode, we don't output individual CBO reports to stdout
+	// The results will be included in the unified status report at the end
+	// This prevents CBO output from interfering with other analyses
+	
+	// Run analysis silently and just return success/failure for status tracking
+	_, err := c.runCBOAnalysisWithResult(cmd, args)
+	if err != nil {
+		// Add more context for debugging
+		return fmt.Errorf("CBO analysis failed: %w", err)
+	}
+	return nil
+}
+
+// runCBOAnalysisWithResult runs CBO analysis and returns the result for unified reporting
+func (c *AnalyzeCommand) runCBOAnalysisWithResult(cmd *cobra.Command, args []string) (*domain.CBOResponse, error) {
+	// Import CBO-related packages
+	progressReporter := service.NewProgressReporter(cmd.ErrOrStderr(), false, false) // Quiet for unified report
+	cboService := service.NewCBOService(progressReporter)
+	fileReader := service.NewFileReader()
+	formatter := service.NewCBOFormatter()
+
+	// Build CBO request
+	request := domain.CBORequest{
+		Paths:           args,
+		OutputFormat:    domain.OutputFormatJSON, // For unified report
+		OutputWriter:    cmd.OutOrStdout(),       // Required for validation
+		MinCBO:          c.minCBO,
+		MaxCBO:          0, // No limit
+		SortBy:          domain.SortByCoupling,
+		ShowZeros:       c.minCBO == 0,
+		LowThreshold:    5,
+		MediumThreshold: 10,
+		Recursive:       true,
+		IncludePatterns: []string{"*.py"},
+		ExcludePatterns: []string{},
+		IncludeBuiltins: false,
+		IncludeImports:  true,
+	}
+
+	// Create use case
+	cboUseCase, err := app.NewCBOUseCaseBuilder().
+		WithService(cboService).
+		WithFileReader(fileReader).
+		WithFormatter(formatter).
+		WithProgress(progressReporter).
+		Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create CBO use case: %w", err)
+	}
+
+	// Execute analysis and return result
+	return cboUseCase.AnalyzeAndReturn(cmd.Context(), request)
 }
 
 // NewAnalyzeCmd creates and returns the analyze cobra command
