@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/pyqol/pyqol/domain"
 	svc "github.com/pyqol/pyqol/service"
@@ -38,17 +37,17 @@ func NewCBOUseCase(
 	}
 }
 
-// Execute performs the complete CBO analysis workflow
-func (uc *CBOUseCase) Execute(ctx context.Context, req domain.CBORequest) error {
+// prepareAnalysis handles common preparation steps for analysis
+func (uc *CBOUseCase) prepareAnalysis(ctx context.Context, req domain.CBORequest) (domain.CBORequest, error) {
 	// Validate input
 	if err := uc.validateRequest(req); err != nil {
-		return domain.NewInvalidInputError("invalid request", err)
+		return req, domain.NewInvalidInputError("invalid request", err)
 	}
 
 	// Load configuration if specified
 	finalReq, err := uc.loadAndMergeConfig(req)
 	if err != nil {
-		return domain.NewConfigError("failed to load configuration", err)
+		return req, domain.NewConfigError("failed to load configuration", err)
 	}
 
 	// Collect Python files
@@ -59,21 +58,35 @@ func (uc *CBOUseCase) Execute(ctx context.Context, req domain.CBORequest) error 
 		finalReq.ExcludePatterns,
 	)
 	if err != nil {
-		return domain.NewFileNotFoundError("failed to collect files", err)
+		return req, domain.NewFileNotFoundError("failed to collect files", err)
 	}
 
 	if len(files) == 0 {
-		return domain.NewInvalidInputError("no Python files found in the specified paths", nil)
+		return req, domain.NewInvalidInputError("no Python files found in the specified paths", nil)
 	}
 
 	// Start progress reporting
 	if uc.progress != nil {
 		uc.progress.StartProgress(len(files))
-		defer uc.progress.FinishProgress()
 	}
 
 	// Update request with collected files
 	finalReq.Paths = files
+	return finalReq, nil
+}
+
+// Execute performs the complete CBO analysis workflow
+func (uc *CBOUseCase) Execute(ctx context.Context, req domain.CBORequest) error {
+	// Prepare for analysis
+	finalReq, err := uc.prepareAnalysis(ctx, req)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if uc.progress != nil {
+			uc.progress.FinishProgress()
+		}
+	}()
 
 	// Perform analysis
 	response, err := uc.service.Analyze(ctx, finalReq)
@@ -97,40 +110,16 @@ func (uc *CBOUseCase) Execute(ctx context.Context, req domain.CBORequest) error 
 
 // AnalyzeAndReturn performs CBO analysis and returns the response without formatting
 func (uc *CBOUseCase) AnalyzeAndReturn(ctx context.Context, req domain.CBORequest) (*domain.CBOResponse, error) {
-	// Validate input
-	if err := uc.validateRequest(req); err != nil {
-		return nil, domain.NewInvalidInputError("invalid request", err)
-	}
-
-	// Load configuration if specified
-	finalReq, err := uc.loadAndMergeConfig(req)
+	// Prepare for analysis
+	finalReq, err := uc.prepareAnalysis(ctx, req)
 	if err != nil {
-		return nil, domain.NewConfigError("failed to load configuration", err)
+		return nil, err
 	}
-
-	// Collect Python files
-	files, err := uc.fileReader.CollectPythonFiles(
-		finalReq.Paths,
-		finalReq.Recursive,
-		finalReq.IncludePatterns,
-		finalReq.ExcludePatterns,
-	)
-	if err != nil {
-		return nil, domain.NewFileNotFoundError("failed to collect files", err)
-	}
-
-	if len(files) == 0 {
-		return nil, domain.NewInvalidInputError("no Python files found in the specified paths", nil)
-	}
-
-	// Start progress reporting
-	if uc.progress != nil {
-		uc.progress.StartProgress(len(files))
-		defer uc.progress.FinishProgress()
-	}
-
-	// Update request with collected files
-	finalReq.Paths = files
+	defer func() {
+		if uc.progress != nil {
+			uc.progress.FinishProgress()
+		}
+	}()
 
 	// Perform analysis and return the response
 	response, err := uc.service.Analyze(ctx, finalReq)
@@ -183,16 +172,24 @@ func (uc *CBOUseCase) AnalyzeFile(ctx context.Context, filePath string, req doma
 	return nil
 }
 
-// validateRequest validates the CBO request
-func (uc *CBOUseCase) validateRequest(req domain.CBORequest) error {
+// validatePaths validates input paths
+func (uc *CBOUseCase) validatePaths(req domain.CBORequest) error {
 	if len(req.Paths) == 0 {
 		return fmt.Errorf("no input paths specified")
 	}
+	return nil
+}
 
+// validateOutput validates output configuration
+func (uc *CBOUseCase) validateOutput(req domain.CBORequest) error {
 	if req.OutputWriter == nil && req.OutputPath == "" {
 		return fmt.Errorf("output writer or output path is required")
 	}
+	return nil
+}
 
+// validateCBORange validates CBO range parameters
+func (uc *CBOUseCase) validateCBORange(req domain.CBORequest) error {
 	if req.MinCBO < 0 {
 		return fmt.Errorf("minimum CBO cannot be negative")
 	}
@@ -205,6 +202,11 @@ func (uc *CBOUseCase) validateRequest(req domain.CBORequest) error {
 		return fmt.Errorf("minimum CBO cannot be greater than maximum CBO")
 	}
 
+	return nil
+}
+
+// validateThresholds validates threshold parameters
+func (uc *CBOUseCase) validateThresholds(req domain.CBORequest) error {
 	if req.LowThreshold <= 0 {
 		return fmt.Errorf("low threshold must be positive")
 	}
@@ -213,6 +215,11 @@ func (uc *CBOUseCase) validateRequest(req domain.CBORequest) error {
 		return fmt.Errorf("medium threshold must be greater than low threshold")
 	}
 
+	return nil
+}
+
+// validateFormats validates output format and sort criteria
+func (uc *CBOUseCase) validateFormats(req domain.CBORequest) error {
 	// Validate output format
 	switch req.OutputFormat {
 	case domain.OutputFormatText, domain.OutputFormatJSON, domain.OutputFormatYAML, domain.OutputFormatCSV, domain.OutputFormatHTML:
@@ -227,6 +234,25 @@ func (uc *CBOUseCase) validateRequest(req domain.CBORequest) error {
 		// Valid criteria for CBO
 	default:
 		return fmt.Errorf("unsupported sort criteria: %s", req.SortBy)
+	}
+
+	return nil
+}
+
+// validateRequest validates the CBO request
+func (uc *CBOUseCase) validateRequest(req domain.CBORequest) error {
+	validators := []func(domain.CBORequest) error{
+		uc.validatePaths,
+		uc.validateOutput,
+		uc.validateCBORange,
+		uc.validateThresholds,
+		uc.validateFormats,
+	}
+
+	for _, validator := range validators {
+		if err := validator(req); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -404,20 +430,3 @@ func (n *noOpCBOProgressReporter) StartProgress(totalFiles int)                 
 func (n *noOpCBOProgressReporter) UpdateProgress(currentFile string, processed, total int) {}
 func (n *noOpCBOProgressReporter) FinishProgress()                                         {}
 
-// CBOUseCaseOptions provides configuration options for the use case
-type CBOUseCaseOptions struct {
-	EnableProgress   bool
-	ProgressInterval time.Duration
-	MaxConcurrency   int
-	TimeoutPerFile   time.Duration
-}
-
-// DefaultCBOUseCaseOptions returns default options
-func DefaultCBOUseCaseOptions() CBOUseCaseOptions {
-	return CBOUseCaseOptions{
-		EnableProgress:   true,
-		ProgressInterval: 100 * time.Millisecond,
-		MaxConcurrency:   4,
-		TimeoutPerFile:   30 * time.Second,
-	}
-}
