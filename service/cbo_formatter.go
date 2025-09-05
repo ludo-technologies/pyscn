@@ -171,6 +171,9 @@ func (f *CBOFormatterImpl) writeClassDetails(builder *strings.Builder, class dom
 		if class.Metrics.AttributeAccessDependencies > 0 {
 			builder.WriteString(fmt.Sprintf("    Attribute Access: %d\n", class.Metrics.AttributeAccessDependencies))
 		}
+		if class.Metrics.ImportDependencies > 0 {
+			builder.WriteString(fmt.Sprintf("    Imports: %d\n", class.Metrics.ImportDependencies))
+		}
 
 		// List dependent classes
 		if len(class.Metrics.DependentClasses) > 0 {
@@ -219,7 +222,7 @@ func (f *CBOFormatterImpl) formatCSV(response *domain.CBOResponse) (string, erro
 	// Write header
 	header := []string{
 		"ClassName", "FilePath", "StartLine", "EndLine", "CBO", "RiskLevel", "IsAbstract",
-		"InheritanceDeps", "TypeHintDeps", "InstantiationDeps", "AttributeAccessDeps",
+		"InheritanceDeps", "TypeHintDeps", "InstantiationDeps", "AttributeAccessDeps", "ImportDeps",
 		"BaseClasses", "DependentClasses",
 	}
 	if err := writer.Write(header); err != nil {
@@ -240,6 +243,7 @@ func (f *CBOFormatterImpl) formatCSV(response *domain.CBOResponse) (string, erro
 			strconv.Itoa(class.Metrics.TypeHintDependencies),
 			strconv.Itoa(class.Metrics.InstantiationDependencies),
 			strconv.Itoa(class.Metrics.AttributeAccessDependencies),
+			strconv.Itoa(class.Metrics.ImportDependencies),
 			strings.Join(class.BaseClasses, ";"),
 			strings.Join(class.Metrics.DependentClasses, ";"),
 		}

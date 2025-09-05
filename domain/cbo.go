@@ -50,6 +50,7 @@ type CBOMetrics struct {
 	TypeHintDependencies    int // Type annotations
 	InstantiationDependencies int // Object creation
 	AttributeAccessDependencies int // Method calls and attribute access
+	ImportDependencies int // Explicitly imported classes
 
 	// Dependency details
 	DependentClasses []string // List of class names this class depends on
