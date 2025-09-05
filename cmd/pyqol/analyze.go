@@ -102,7 +102,7 @@ func NewAnalysisResult() *AnalysisResult {
 		Complexity: &AnalysisStatus{Name: "Complexity Analysis", Enabled: false},
 		DeadCode:   &AnalysisStatus{Name: "Dead Code Detection", Enabled: false},
 		Clones:     &AnalysisStatus{Name: "Clone Detection", Enabled: false},
-		CBO:        &AnalysisStatus{Name: "CBO Analysis", Enabled: false},
+		CBO:        &AnalysisStatus{Name: "Dependency Analysis", Enabled: false},
 	}
 }
 
@@ -117,7 +117,7 @@ This command performs all available static analyses on Python code:
 • Cyclomatic complexity analysis
 • Dead code detection using CFG analysis
 • Code clone detection using APTED algorithm
-• CBO (Coupling Between Objects) analysis
+• Dependency analysis (class coupling)
 
 The analyses run concurrently for optimal performance. Results are combined
 and presented in a unified format.
@@ -129,13 +129,13 @@ Examples:
   # Analyze specific files with JSON output
   pyqol analyze --json src/myfile.py
 
-  # Skip clone detection, focus on complexity, dead code, and CBO
+  # Skip clone detection, focus on complexity, dead code, and dependencies
   pyqol analyze --skip-clones src/
 
-  # Quick analysis with higher thresholds
+  # Quick analysis with higher thresholds  
   pyqol analyze --min-complexity 10 --min-severity critical --min-cbo 5 src/
 
-  # Skip CBO analysis
+  # Skip dependency analysis
   pyqol analyze --skip-cbo src/`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: c.runAnalyze,
@@ -153,7 +153,7 @@ Examples:
 	cmd.Flags().BoolVar(&c.skipComplexity, "skip-complexity", false, "Skip complexity analysis")
 	cmd.Flags().BoolVar(&c.skipDeadCode, "skip-deadcode", false, "Skip dead code detection")
 	cmd.Flags().BoolVar(&c.skipClones, "skip-clones", false, "Skip clone detection")
-	cmd.Flags().BoolVar(&c.skipCBO, "skip-cbo", false, "Skip CBO analysis")
+	cmd.Flags().BoolVar(&c.skipCBO, "skip-cbo", false, "Skip dependency analysis")
 
 	// Quick filter flags
 	cmd.Flags().IntVar(&c.minComplexity, "min-complexity", 5, "Minimum complexity to report")
@@ -558,9 +558,9 @@ func (c *AnalyzeCommand) printAnalysisPlan(cmd *cobra.Command, result *AnalysisR
 			fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ Clone Detection (skipped)\n")
 		}
 		if result.CBO.Enabled {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ CBO Analysis (min CBO: %d)\n", c.minCBO)
+			fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ Dependency Analysis (min CBO: %d)\n", c.minCBO)
 		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ CBO Analysis (skipped)\n")
+			fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ Dependency Analysis (skipped)\n")
 		}
 		fmt.Fprintf(cmd.ErrOrStderr(), "\n")
 	}
