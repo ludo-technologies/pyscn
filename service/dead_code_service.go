@@ -15,15 +15,13 @@ import (
 
 // DeadCodeServiceImpl implements the DeadCodeService interface
 type DeadCodeServiceImpl struct {
-	parser   *parser.Parser
-	progress domain.ProgressReporter
+	parser *parser.Parser
 }
 
 // NewDeadCodeService creates a new dead code service implementation
-func NewDeadCodeService(progress domain.ProgressReporter) *DeadCodeServiceImpl {
+func NewDeadCodeService() *DeadCodeServiceImpl {
 	return &DeadCodeServiceImpl{
-		parser:   parser.New(),
-		progress: progress,
+		parser: parser.New(),
 	}
 }
 

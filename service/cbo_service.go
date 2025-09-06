@@ -15,15 +15,13 @@ import (
 
 // CBOServiceImpl implements the CBOService interface
 type CBOServiceImpl struct {
-	parser   *parser.Parser
-	progress domain.ProgressReporter
+	parser *parser.Parser
 }
 
 // NewCBOService creates a new CBO service implementation
-func NewCBOService(progress domain.ProgressReporter) *CBOServiceImpl {
+func NewCBOService() *CBOServiceImpl {
 	return &CBOServiceImpl{
-		parser:   parser.New(),
-		progress: progress,
+		parser: parser.New(),
 	}
 }
 

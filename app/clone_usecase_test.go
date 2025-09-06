@@ -63,21 +63,6 @@ func (m *mockFileReader) FileExists(path string) (bool, error) {
 	return args.Bool(0), args.Error(1)
 }
 
-type mockProgressReporter struct {
-	mock.Mock
-}
-
-func (m *mockProgressReporter) StartProgress(totalFiles int) {
-	m.Called(totalFiles)
-}
-
-func (m *mockProgressReporter) UpdateProgress(currentFile string, processed, total int) {
-	m.Called(currentFile, processed, total)
-}
-
-func (m *mockProgressReporter) FinishProgress() {
-	m.Called()
-}
 
 type mockCloneOutputFormatter struct {
 	mock.Mock
@@ -119,15 +104,14 @@ func (m *mockCloneConfigurationLoader) SaveCloneConfig(req *domain.CloneRequest,
 }
 
 // Helper functions for CloneUseCase tests
-func setupCloneUseCaseMocks() (*CloneUseCase, *mockCloneService, *mockFileReader, *mockCloneOutputFormatter, *mockCloneConfigurationLoader, *mockProgressReporter) {
+func setupCloneUseCaseMocks() (*CloneUseCase, *mockCloneService, *mockFileReader, *mockCloneOutputFormatter, *mockCloneConfigurationLoader) {
 	service := &mockCloneService{}
 	fileReader := &mockFileReader{}
 	formatter := &mockCloneOutputFormatter{}
 	configLoader := &mockCloneConfigurationLoader{}
-	progress := &mockProgressReporter{}
 
-	useCase := NewCloneUseCase(service, fileReader, formatter, configLoader, progress)
-	return useCase, service, fileReader, formatter, configLoader, progress
+	useCase := NewCloneUseCase(service, fileReader, formatter, configLoader)
+	return useCase, service, fileReader, formatter, configLoader
 }
 
 func createValidCloneRequest() domain.CloneRequest {
@@ -237,14 +221,14 @@ func createMockCloneResponse() *domain.CloneResponse {
 func TestCloneUseCase_Execute(t *testing.T) {
 	tests := []struct {
 		name        string
-		setupMocks  func(*mockCloneService, *mockFileReader, *mockCloneOutputFormatter, *mockCloneConfigurationLoader, *mockProgressReporter)
+		setupMocks  func(*mockCloneService, *mockFileReader, *mockCloneOutputFormatter, *mockCloneConfigurationLoader)
 		request     domain.CloneRequest
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name: "successful execution with valid request",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file1.py", "/test/file2.py"}, true, []string{"*.py"}, []string{"*test*"}).
 					Return([]string{"/test/file1.py", "/test/file2.py"}, nil)
@@ -257,7 +241,7 @@ func TestCloneUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "validation error - request validation fails",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.CloneRequest{
@@ -270,7 +254,7 @@ func TestCloneUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "configuration loading error",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("LoadCloneConfig", "/invalid/config.yaml").
 					Return((*domain.CloneRequest)(nil), errors.New("config file not found"))
 			},
@@ -284,7 +268,7 @@ func TestCloneUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "file collection error",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/invalid/path"}, true, []string{"*.py"}, []string{"*test*"}).
 					Return([]string{}, errors.New("path not found"))
@@ -299,7 +283,7 @@ func TestCloneUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "no files found - outputs empty results",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/empty/path"}, true, []string{"*.py"}, []string{"*test*"}).
 					Return([]string{}, nil)
@@ -316,7 +300,7 @@ func TestCloneUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "clone detection service error",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file1.py", "/test/file2.py"}, true, []string{"*.py"}, []string{"*test*"}).
 					Return([]string{"/test/file1.py", "/test/file2.py"}, nil)
@@ -329,7 +313,7 @@ func TestCloneUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "invalid output writer error",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file1.py", "/test/file2.py"}, true, []string{"*.py"}, []string{"*test*"}).
 					Return([]string{"/test/file1.py", "/test/file2.py"}, nil)
@@ -346,7 +330,7 @@ func TestCloneUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "output formatting error",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file1.py", "/test/file2.py"}, true, []string{"*.py"}, []string{"*test*"}).
 					Return([]string{"/test/file1.py", "/test/file2.py"}, nil)
@@ -361,7 +345,7 @@ func TestCloneUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "successful execution with config loading",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configReq := &domain.CloneRequest{
 					MinLines:            10,
 					SimilarityThreshold: 0.9,
@@ -386,9 +370,9 @@ func TestCloneUseCase_Execute(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			useCase, service, fileReader, formatter, configLoader, progress := setupCloneUseCaseMocks()
+			useCase, service, fileReader, formatter, configLoader := setupCloneUseCaseMocks()
 
-			tt.setupMocks(service, fileReader, formatter, configLoader, progress)
+			tt.setupMocks(service, fileReader, formatter, configLoader)
 
 			err := useCase.Execute(context.Background(), tt.request)
 
@@ -406,22 +390,21 @@ func TestCloneUseCase_Execute(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			progress.AssertExpectations(t)
-		})
+			})
 	}
 }
 
 func TestCloneUseCase_ExecuteAndReturn(t *testing.T) {
 	tests := []struct {
 		name        string
-		setupMocks  func(*mockCloneService, *mockFileReader, *mockCloneOutputFormatter, *mockCloneConfigurationLoader, *mockProgressReporter)
+		setupMocks  func(*mockCloneService, *mockFileReader, *mockCloneOutputFormatter, *mockCloneConfigurationLoader)
 		request     domain.CloneRequest
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name: "successful analysis without formatting",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file1.py", "/test/file2.py"}, true, []string{"*.py"}, []string{"*test*"}).
 					Return([]string{"/test/file1.py", "/test/file2.py"}, nil)
@@ -433,7 +416,7 @@ func TestCloneUseCase_ExecuteAndReturn(t *testing.T) {
 		},
 		{
 			name: "validation error in execute and return",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.CloneRequest{
@@ -446,7 +429,7 @@ func TestCloneUseCase_ExecuteAndReturn(t *testing.T) {
 		},
 		{
 			name: "empty paths error",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.CloneRequest{
@@ -459,7 +442,7 @@ func TestCloneUseCase_ExecuteAndReturn(t *testing.T) {
 		},
 		{
 			name: "file reader not initialized",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 			},
 			request: domain.CloneRequest{
@@ -477,7 +460,7 @@ func TestCloneUseCase_ExecuteAndReturn(t *testing.T) {
 		},
 		{
 			name: "no files found error",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/empty/path"}, true, []string{"*.py"}, []string{"*test*"}).
 					Return([]string{}, nil)
@@ -492,7 +475,7 @@ func TestCloneUseCase_ExecuteAndReturn(t *testing.T) {
 		},
 		{
 			name: "analysis error in execute and return",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file1.py", "/test/file2.py"}, true, []string{"*.py"}, []string{"*test*"}).
 					Return([]string{"/test/file1.py", "/test/file2.py"}, nil)
@@ -507,14 +490,14 @@ func TestCloneUseCase_ExecuteAndReturn(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			useCase, service, fileReader, formatter, configLoader, progress := setupCloneUseCaseMocks()
+			useCase, service, fileReader, formatter, configLoader := setupCloneUseCaseMocks()
 			
 			// Set fileReader to nil for the specific test case
 			if strings.Contains(tt.name, "file reader not initialized") {
 				useCase.fileReader = nil
 			}
 
-			tt.setupMocks(service, fileReader, formatter, configLoader, progress)
+			tt.setupMocks(service, fileReader, formatter, configLoader)
 
 			response, err := useCase.ExecuteAndReturn(context.Background(), tt.request)
 
@@ -539,8 +522,7 @@ func TestCloneUseCase_ExecuteAndReturn(t *testing.T) {
 			}
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			progress.AssertExpectations(t)
-		})
+			})
 	}
 }
 
@@ -548,14 +530,14 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 	tests := []struct {
 		name        string
 		filePaths   []string
-		setupMocks  func(*mockCloneService, *mockFileReader, *mockCloneOutputFormatter, *mockCloneConfigurationLoader, *mockProgressReporter)
+		setupMocks  func(*mockCloneService, *mockFileReader, *mockCloneOutputFormatter, *mockCloneConfigurationLoader)
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name:      "successful analysis with specific files",
 			filePaths: []string{"/test/file1.py", "/test/file2.py"},
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				fileReader.On("IsValidPythonFile", "/test/file1.py").Return(true)
 				fileReader.On("IsValidPythonFile", "/test/file2.py").Return(true)
 				service.On("DetectClonesInFiles", mock.Anything, []string{"/test/file1.py", "/test/file2.py"}, mock.AnythingOfType("*domain.CloneRequest")).
@@ -567,7 +549,7 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 		{
 			name:      "validation error in execute with files",
 			filePaths: []string{"/test/file.py"},
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			expectError: true,
@@ -576,7 +558,7 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 		{
 			name:      "no valid python files",
 			filePaths: []string{"/test/file.txt", "/test/file.java"},
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				fileReader.On("IsValidPythonFile", "/test/file.txt").Return(false)
 				fileReader.On("IsValidPythonFile", "/test/file.java").Return(false)
 				formatter.On("FormatCloneResponse", mock.MatchedBy(func(resp *domain.CloneResponse) bool {
@@ -588,7 +570,7 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 		{
 			name:      "mixed valid and invalid files",
 			filePaths: []string{"/test/file.py", "/test/file.txt"},
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				fileReader.On("IsValidPythonFile", "/test/file.py").Return(true)
 				fileReader.On("IsValidPythonFile", "/test/file.txt").Return(false)
 				service.On("DetectClonesInFiles", mock.Anything, []string{"/test/file.py"}, mock.AnythingOfType("*domain.CloneRequest")).
@@ -600,7 +582,7 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 		{
 			name:      "clone detection service error",
 			filePaths: []string{"/test/file.py"},
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				fileReader.On("IsValidPythonFile", "/test/file.py").Return(true)
 				service.On("DetectClonesInFiles", mock.Anything, []string{"/test/file.py"}, mock.AnythingOfType("*domain.CloneRequest")).
 					Return((*domain.CloneResponse)(nil), errors.New("tree comparison failed"))
@@ -611,7 +593,7 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 		{
 			name:      "invalid output writer error",
 			filePaths: []string{"/test/file.py"},
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				fileReader.On("IsValidPythonFile", "/test/file.py").Return(true)
 				service.On("DetectClonesInFiles", mock.Anything, []string{"/test/file.py"}, mock.AnythingOfType("*domain.CloneRequest")).
 					Return(createMockCloneResponse(), nil)
@@ -623,9 +605,9 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			useCase, service, fileReader, formatter, configLoader, progress := setupCloneUseCaseMocks()
+			useCase, service, fileReader, formatter, configLoader := setupCloneUseCaseMocks()
 
-			tt.setupMocks(service, fileReader, formatter, configLoader, progress)
+			tt.setupMocks(service, fileReader, formatter, configLoader)
 
 			req := createValidCloneRequest()
 			if strings.Contains(tt.name, "validation error") {
@@ -651,8 +633,7 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			progress.AssertExpectations(t)
-		})
+			})
 	}
 }
 
@@ -661,7 +642,7 @@ func TestCloneUseCase_ComputeFragmentSimilarity(t *testing.T) {
 		name        string
 		fragment1   string
 		fragment2   string
-		setupMocks  func(*mockCloneService, *mockFileReader, *mockCloneOutputFormatter, *mockCloneConfigurationLoader, *mockProgressReporter)
+		setupMocks  func(*mockCloneService, *mockFileReader, *mockCloneOutputFormatter, *mockCloneConfigurationLoader)
 		expectError bool
 		expectedSim float64
 		errorMsg    string
@@ -670,7 +651,7 @@ func TestCloneUseCase_ComputeFragmentSimilarity(t *testing.T) {
 			name:      "successful similarity computation",
 			fragment1: "def func1():\n    return x + y",
 			fragment2: "def func2():\n    return a + b",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				service.On("ComputeSimilarity", mock.Anything, "def func1():\n    return x + y", "def func2():\n    return a + b").
 					Return(0.75, nil)
 			},
@@ -681,7 +662,7 @@ func TestCloneUseCase_ComputeFragmentSimilarity(t *testing.T) {
 			name:      "similarity computation error",
 			fragment1: "def func1():\n    return x + y",
 			fragment2: "invalid syntax >>>",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				service.On("ComputeSimilarity", mock.Anything, "def func1():\n    return x + y", "invalid syntax >>>").
 					Return(0.0, errors.New("failed to parse fragment"))
 			},
@@ -693,9 +674,9 @@ func TestCloneUseCase_ComputeFragmentSimilarity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			useCase, service, fileReader, formatter, configLoader, progress := setupCloneUseCaseMocks()
+			useCase, service, fileReader, formatter, configLoader := setupCloneUseCaseMocks()
 
-			tt.setupMocks(service, fileReader, formatter, configLoader, progress)
+			tt.setupMocks(service, fileReader, formatter, configLoader)
 
 			similarity, err := useCase.ComputeFragmentSimilarity(context.Background(), tt.fragment1, tt.fragment2)
 
@@ -715,8 +696,7 @@ func TestCloneUseCase_ComputeFragmentSimilarity(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			progress.AssertExpectations(t)
-		})
+			})
 	}
 }
 
@@ -724,14 +704,14 @@ func TestCloneUseCase_SaveConfiguration(t *testing.T) {
 	tests := []struct {
 		name        string
 		configPath  string
-		setupMocks  func(*mockCloneService, *mockFileReader, *mockCloneOutputFormatter, *mockCloneConfigurationLoader, *mockProgressReporter)
+		setupMocks  func(*mockCloneService, *mockFileReader, *mockCloneOutputFormatter, *mockCloneConfigurationLoader)
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name:       "successful config save",
 			configPath: "/config/clone.yaml",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("SaveCloneConfig", mock.AnythingOfType("*domain.CloneRequest"), "/config/clone.yaml").Return(nil)
 			},
 			expectError: false,
@@ -739,7 +719,7 @@ func TestCloneUseCase_SaveConfiguration(t *testing.T) {
 		{
 			name:       "config save error",
 			configPath: "/invalid/path/config.yaml",
-			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("SaveCloneConfig", mock.AnythingOfType("*domain.CloneRequest"), "/invalid/path/config.yaml").
 					Return(errors.New("permission denied"))
 			},
@@ -750,9 +730,9 @@ func TestCloneUseCase_SaveConfiguration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			useCase, service, fileReader, formatter, configLoader, progress := setupCloneUseCaseMocks()
+			useCase, service, fileReader, formatter, configLoader := setupCloneUseCaseMocks()
 
-			tt.setupMocks(service, fileReader, formatter, configLoader, progress)
+			tt.setupMocks(service, fileReader, formatter, configLoader)
 
 			req := createValidCloneRequest()
 			err := useCase.SaveConfiguration(req, tt.configPath)
@@ -771,8 +751,7 @@ func TestCloneUseCase_SaveConfiguration(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			progress.AssertExpectations(t)
-		})
+			})
 	}
 }
 

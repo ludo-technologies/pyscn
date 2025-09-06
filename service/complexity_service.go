@@ -16,15 +16,13 @@ import (
 
 // ComplexityServiceImpl implements the ComplexityService interface
 type ComplexityServiceImpl struct {
-	parser   *parser.Parser
-	progress domain.ProgressReporter
+	parser *parser.Parser
 }
 
 // NewComplexityService creates a new complexity service implementation
-func NewComplexityService(progress domain.ProgressReporter) *ComplexityServiceImpl {
+func NewComplexityService() *ComplexityServiceImpl {
 	return &ComplexityServiceImpl{
-		parser:   parser.New(),
-		progress: progress,
+		parser: parser.New(),
 	}
 }
 

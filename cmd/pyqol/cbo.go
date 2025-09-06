@@ -150,8 +150,7 @@ func runCBOCommand(cmd *cobra.Command, args []string) error {
 	}
 
 	// Build dependencies
-	progressReporter := service.NewProgressReporter(os.Stderr, false, false) // Disable progress for now
-	cboService := service.NewCBOService(progressReporter)
+	cboService := service.NewCBOService()
 	fileReader := service.NewFileReader()
 	formatter := service.NewCBOFormatter()
 
@@ -160,7 +159,6 @@ func runCBOCommand(cmd *cobra.Command, args []string) error {
 		WithService(cboService).
 		WithFileReader(fileReader).
 		WithFormatter(formatter).
-		WithProgress(progressReporter).
 		Build()
 	if err != nil {
 		return fmt.Errorf("failed to create CBO use case: %w", err)

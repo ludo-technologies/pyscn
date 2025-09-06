@@ -16,7 +16,6 @@ type CloneUseCase struct {
     fileReader   domain.FileReader
     formatter    domain.CloneOutputFormatter
     configLoader domain.CloneConfigurationLoader
-    progress     domain.ProgressReporter
     output       domain.ReportWriter
 }
 
@@ -26,14 +25,12 @@ func NewCloneUseCase(
     fileReader domain.FileReader,
     formatter domain.CloneOutputFormatter,
     configLoader domain.CloneConfigurationLoader,
-    progress domain.ProgressReporter,
 ) *CloneUseCase {
     return &CloneUseCase{
         service:      service,
         fileReader:   fileReader,
         formatter:    formatter,
         configLoader: configLoader,
-        progress:     progress,
         // Default implementation; CLI may override via builder
         output:       svc.NewFileOutputWriter(nil),
     }
@@ -362,7 +359,6 @@ type CloneUseCaseBuilder struct {
     fileReader   domain.FileReader
     formatter    domain.CloneOutputFormatter
     configLoader domain.CloneConfigurationLoader
-    progress     domain.ProgressReporter
     output       domain.ReportWriter
 }
 
@@ -395,11 +391,6 @@ func (b *CloneUseCaseBuilder) WithConfigLoader(configLoader domain.CloneConfigur
 	return b
 }
 
-// WithProgress sets the progress reporter
-func (b *CloneUseCaseBuilder) WithProgress(progress domain.ProgressReporter) *CloneUseCaseBuilder {
-    b.progress = progress
-    return b
-}
 
 // WithOutputWriter sets the report writer
 func (b *CloneUseCaseBuilder) WithOutputWriter(output domain.ReportWriter) *CloneUseCaseBuilder {
@@ -421,16 +412,12 @@ func (b *CloneUseCaseBuilder) Build() (*CloneUseCase, error) {
 	if b.configLoader == nil {
 		return nil, fmt.Errorf("configuration loader is required")
 	}
-	if b.progress == nil {
-		return nil, fmt.Errorf("progress reporter is required")
-	}
 
     uc := NewCloneUseCase(
         b.service,
         b.fileReader,
         b.formatter,
         b.configLoader,
-        b.progress,
     )
     if b.output != nil {
         uc.output = b.output

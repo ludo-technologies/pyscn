@@ -238,9 +238,7 @@ func (c *DeadCodeCommand) createDeadCodeUseCase(cmd *cobra.Command) (*app.DeadCo
 	formatter := service.NewDeadCodeFormatter()
 	configLoader := service.NewDeadCodeConfigurationLoaderWithFlags(explicitFlags)
 
-	// Create progress reporter
-	progress := service.CreateProgressReporter(cmd.ErrOrStderr(), 0, c.verbose)
-	deadCodeService := service.NewDeadCodeService(progress)
+	deadCodeService := service.NewDeadCodeService()
 
     // Build use case
     useCase, err := app.NewDeadCodeUseCaseBuilder().
@@ -248,7 +246,6 @@ func (c *DeadCodeCommand) createDeadCodeUseCase(cmd *cobra.Command) (*app.DeadCo
         WithFileReader(fileReader).
         WithFormatter(formatter).
         WithConfigLoader(configLoader).
-        WithProgress(progress).
         WithOutputWriter(service.NewFileOutputWriter(cmd.ErrOrStderr())).
         Build()
 
