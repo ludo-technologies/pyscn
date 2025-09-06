@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/pyqol/pyqol/service"
 	"github.com/spf13/cobra"
 )
 
