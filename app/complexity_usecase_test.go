@@ -74,15 +74,14 @@ func (m *mockComplexityConfigurationLoader) MergeConfig(base *domain.ComplexityR
 }
 
 // Helper functions
-func setupComplexityUseCaseMocks() (*ComplexityUseCase, *mockComplexityService, *mockFileReader, *mockComplexityOutputFormatter, *mockComplexityConfigurationLoader, *mockProgressReporter) {
+func setupComplexityUseCaseMocks() (*ComplexityUseCase, *mockComplexityService, *mockFileReader, *mockComplexityOutputFormatter, *mockComplexityConfigurationLoader) {
 	service := &mockComplexityService{}
 	fileReader := &mockFileReader{}
 	formatter := &mockComplexityOutputFormatter{}
 	configLoader := &mockComplexityConfigurationLoader{}
-	progress := &mockProgressReporter{}
 
-	useCase := NewComplexityUseCase(service, fileReader, formatter, configLoader, progress)
-	return useCase, service, fileReader, formatter, configLoader, progress
+	useCase := NewComplexityUseCase(service, fileReader, formatter, configLoader)
+	return useCase, service, fileReader, formatter, configLoader
 }
 
 func createValidComplexityRequest() domain.ComplexityRequest {
@@ -136,7 +135,7 @@ func createMockComplexityResponse() *domain.ComplexityResponse {
 func TestComplexityUseCase_Execute(t *testing.T) {
 	tests := []struct {
 		name        string
-		setupMocks  func(*mockComplexityService, *mockFileReader, *mockComplexityOutputFormatter, *mockComplexityConfigurationLoader, *mockProgressReporter)
+		setupMocks  func(*mockComplexityService, *mockFileReader, *mockComplexityOutputFormatter, *mockComplexityConfigurationLoader)
 		request     domain.ComplexityRequest
 		expectError bool
 		errorType   string
@@ -144,12 +143,11 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 	}{
 		{
 			name: "successful execution with valid request",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				progress.On("StartProgress", 1)
-				progress.On("FinishProgress")
+				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return(createMockComplexityResponse(), nil)
 				formatter.On("Write", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
@@ -159,7 +157,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "validation error - empty paths",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.ComplexityRequest{
@@ -172,7 +170,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "validation error - nil output writer",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.ComplexityRequest{
@@ -185,7 +183,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "validation error - negative min complexity",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.ComplexityRequest{
@@ -203,7 +201,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "validation error - invalid output format",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.ComplexityRequest{
@@ -220,7 +218,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "configuration loading error",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				configLoader.On("LoadConfig", "/invalid/config.yaml").
 					Return((*domain.ComplexityRequest)(nil), errors.New("config file not found"))
 			},
@@ -239,7 +237,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "file collection error",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/invalid/path"}, true, []string{"*.py"}, []string{}).
 					Return([]string{}, errors.New("path not found"))
@@ -261,7 +259,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "no files found error",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/empty/path"}, true, []string{"*.py"}, []string{}).
 					Return([]string{}, nil)
@@ -283,12 +281,11 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "analysis service error",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				progress.On("StartProgress", 1)
-				progress.On("FinishProgress")
+				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return((*domain.ComplexityResponse)(nil), errors.New("parsing failed"))
 			},
@@ -299,12 +296,11 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "output formatting error",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				progress.On("StartProgress", 1)
-				progress.On("FinishProgress")
+				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return(createMockComplexityResponse(), nil)
 				formatter.On("Write", mock.Anything, domain.OutputFormatText, os.Stdout).
@@ -317,7 +313,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "successful execution with config loading",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				configReq := &domain.ComplexityRequest{
 					MinComplexity:   2,
 					MaxComplexity:   15,
@@ -334,8 +330,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 					Return(&mergedReq)
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				progress.On("StartProgress", 1)
-				progress.On("FinishProgress")
+				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return(createMockComplexityResponse(), nil)
 				formatter.On("Write", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
@@ -351,9 +346,9 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			useCase, service, fileReader, formatter, configLoader, progress := setupComplexityUseCaseMocks()
+			useCase, service, fileReader, formatter, configLoader := setupComplexityUseCaseMocks()
 			
-			tt.setupMocks(service, fileReader, formatter, configLoader, progress)
+			tt.setupMocks(service, fileReader, formatter, configLoader)
 
 			err := useCase.Execute(context.Background(), tt.request)
 
@@ -374,27 +369,25 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			progress.AssertExpectations(t)
-		})
+			})
 	}
 }
 
 func TestComplexityUseCase_AnalyzeAndReturn(t *testing.T) {
 	tests := []struct {
 		name        string
-		setupMocks  func(*mockComplexityService, *mockFileReader, *mockComplexityOutputFormatter, *mockComplexityConfigurationLoader, *mockProgressReporter)
+		setupMocks  func(*mockComplexityService, *mockFileReader, *mockComplexityOutputFormatter, *mockComplexityConfigurationLoader)
 		request     domain.ComplexityRequest
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name: "successful analysis without formatting",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				progress.On("StartProgress", 1)
-				progress.On("FinishProgress")
+				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return(createMockComplexityResponse(), nil)
 			},
@@ -403,7 +396,7 @@ func TestComplexityUseCase_AnalyzeAndReturn(t *testing.T) {
 		},
 		{
 			name: "validation error in analyze and return",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.ComplexityRequest{
@@ -415,12 +408,11 @@ func TestComplexityUseCase_AnalyzeAndReturn(t *testing.T) {
 		},
 		{
 			name: "analysis error in analyze and return",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				progress.On("StartProgress", 1)
-				progress.On("FinishProgress")
+				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return((*domain.ComplexityResponse)(nil), errors.New("analysis failed"))
 			},
@@ -432,9 +424,9 @@ func TestComplexityUseCase_AnalyzeAndReturn(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			useCase, service, fileReader, formatter, configLoader, progress := setupComplexityUseCaseMocks()
+			useCase, service, fileReader, formatter, configLoader := setupComplexityUseCaseMocks()
 			
-			tt.setupMocks(service, fileReader, formatter, configLoader, progress)
+			tt.setupMocks(service, fileReader, formatter, configLoader)
 
 			response, err := useCase.AnalyzeAndReturn(context.Background(), tt.request)
 
@@ -456,8 +448,7 @@ func TestComplexityUseCase_AnalyzeAndReturn(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			progress.AssertExpectations(t)
-		})
+			})
 	}
 }
 
@@ -592,14 +583,14 @@ func TestComplexityUseCase_AnalyzeFile(t *testing.T) {
 	tests := []struct {
 		name        string
 		filePath    string
-		setupMocks  func(*mockComplexityService, *mockFileReader, *mockComplexityOutputFormatter, *mockComplexityConfigurationLoader, *mockProgressReporter)
+		setupMocks  func(*mockComplexityService, *mockFileReader, *mockComplexityOutputFormatter, *mockComplexityConfigurationLoader)
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name:     "successful file analysis",
 			filePath: "/test/file.py",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				fileReader.On("IsValidPythonFile", "/test/file.py").Return(true)
 				fileReader.On("FileExists", "/test/file.py").Return(true, nil)
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
@@ -612,7 +603,7 @@ func TestComplexityUseCase_AnalyzeFile(t *testing.T) {
 		{
 			name:     "invalid python file",
 			filePath: "/test/file.txt",
-			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				fileReader.On("IsValidPythonFile", "/test/file.txt").Return(false)
 			},
 			expectError: true,
@@ -622,9 +613,9 @@ func TestComplexityUseCase_AnalyzeFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			useCase, service, fileReader, formatter, configLoader, progress := setupComplexityUseCaseMocks()
+			useCase, service, fileReader, formatter, configLoader := setupComplexityUseCaseMocks()
 			
-			tt.setupMocks(service, fileReader, formatter, configLoader, progress)
+			tt.setupMocks(service, fileReader, formatter, configLoader)
 
 			req := createValidComplexityRequest()
 			err := useCase.AnalyzeFile(context.Background(), tt.filePath, req)
@@ -643,8 +634,7 @@ func TestComplexityUseCase_AnalyzeFile(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			progress.AssertExpectations(t)
-		})
+			})
 	}
 }
 

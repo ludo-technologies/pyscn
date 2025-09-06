@@ -10,7 +10,7 @@ import (
 )
 
 func TestCloneService_ComputeSimilarity_Validation(t *testing.T) {
-	service := NewCloneService(nil)
+	service := NewCloneService()
 	ctx := context.Background()
 
 	t.Run("Empty fragments", func(t *testing.T) {
@@ -53,7 +53,7 @@ func TestCloneService_ComputeSimilarity_Validation(t *testing.T) {
 }
 
 func TestCloneService_DetectClones_Validation(t *testing.T) {
-	service := NewCloneService(nil)
+	service := NewCloneService()
 	ctx := context.Background()
 
 	t.Run("Nil context", func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestCloneService_DetectClones_Validation(t *testing.T) {
 }
 
 func TestCloneService_DetectClonesInFiles_Validation(t *testing.T) {
-	service := NewCloneService(nil)
+	service := NewCloneService()
 	ctx := context.Background()
 
 	t.Run("Nil context", func(t *testing.T) {

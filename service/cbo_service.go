@@ -15,15 +15,13 @@ import (
 
 // CBOServiceImpl implements the CBOService interface
 type CBOServiceImpl struct {
-	parser   *parser.Parser
-	progress domain.ProgressReporter
+	parser *parser.Parser
 }
 
 // NewCBOService creates a new CBO service implementation
-func NewCBOService(progress domain.ProgressReporter) *CBOServiceImpl {
+func NewCBOService() *CBOServiceImpl {
 	return &CBOServiceImpl{
-		parser:   parser.New(),
-		progress: progress,
+		parser: parser.New(),
 	}
 }
 
@@ -34,7 +32,7 @@ func (s *CBOServiceImpl) Analyze(ctx context.Context, req domain.CBORequest) (*d
 	var errors []string
 	filesProcessed := 0
 
-	for i, filePath := range req.Paths {
+	for _, filePath := range req.Paths {
 		// Check context cancellation
 		select {
 		case <-ctx.Done():
@@ -42,10 +40,7 @@ func (s *CBOServiceImpl) Analyze(ctx context.Context, req domain.CBORequest) (*d
 		default:
 		}
 
-		// Update progress
-		if s.progress != nil {
-			s.progress.UpdateProgress(filePath, i, len(req.Paths))
-		}
+		// Progress reporting removed - file parsing is fast
 
 		// Analyze single file
 		classes, fileWarnings, fileErrors := s.analyzeFile(ctx, filePath, req)

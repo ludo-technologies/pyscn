@@ -175,14 +175,3 @@ type ConfigurationLoader interface {
 	MergeConfig(base *ComplexityRequest, override *ComplexityRequest) *ComplexityRequest
 }
 
-// ProgressReporter defines the interface for reporting analysis progress
-type ProgressReporter interface {
-	// StartProgress starts progress reporting for the given number of files
-	StartProgress(totalFiles int)
-
-	// UpdateProgress updates the progress with the current file being processed
-	UpdateProgress(currentFile string, processed, total int)
-
-	// FinishProgress finishes progress reporting
-	FinishProgress()
-}

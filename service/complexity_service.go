@@ -16,15 +16,13 @@ import (
 
 // ComplexityServiceImpl implements the ComplexityService interface
 type ComplexityServiceImpl struct {
-	parser   *parser.Parser
-	progress domain.ProgressReporter
+	parser *parser.Parser
 }
 
 // NewComplexityService creates a new complexity service implementation
-func NewComplexityService(progress domain.ProgressReporter) *ComplexityServiceImpl {
+func NewComplexityService() *ComplexityServiceImpl {
 	return &ComplexityServiceImpl{
-		parser:   parser.New(),
-		progress: progress,
+		parser: parser.New(),
 	}
 }
 
@@ -35,7 +33,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 	var errors []string
 	filesProcessed := 0
 
-	for i, filePath := range req.Paths {
+	for _, filePath := range req.Paths {
 		// Check context cancellation
 		select {
 		case <-ctx.Done():
@@ -43,10 +41,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 		default:
 		}
 
-		// Update progress
-		if s.progress != nil {
-			s.progress.UpdateProgress(filePath, i, len(req.Paths))
-		}
+		// Progress reporting removed - file parsing is fast
 
 		// Analyze single file
 		functions, fileWarnings, fileErrors := s.analyzeFile(ctx, filePath, req)

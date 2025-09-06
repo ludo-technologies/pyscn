@@ -33,8 +33,7 @@ def simple():
 	fileReader := service.NewFileReader()
 	outputFormatter := service.NewOutputFormatter()
 	configLoader := service.NewConfigurationLoader()
-	progressReporter := service.NewNoOpProgressReporter()
-	complexityService := service.NewComplexityService(progressReporter)
+	complexityService := service.NewComplexityService()
 
 	// Create use case
 	useCase := app.NewComplexityUseCase(
@@ -42,7 +41,6 @@ def simple():
 		fileReader,
 		outputFormatter,
 		configLoader,
-		progressReporter,
 	)
 
 	// Use exact same configuration as working test
@@ -120,8 +118,7 @@ def complex_function(n):
 	fileReader := service.NewFileReader()
 	outputFormatter := service.NewOutputFormatter()
 	configLoader := service.NewConfigurationLoader()
-	progressReporter := service.NewNoOpProgressReporter()
-	complexityService := service.NewComplexityService(progressReporter)
+	complexityService := service.NewComplexityService()
 
 	// Create use case
 	useCase := app.NewComplexityUseCase(
@@ -129,7 +126,6 @@ def complex_function(n):
 		fileReader,
 		outputFormatter,
 		configLoader,
-		progressReporter,
 	)
 
 	// Use exact same configuration as working test
@@ -195,8 +191,7 @@ def test_function(x):
 			fileReader := service.NewFileReader()
 			outputFormatter := service.NewOutputFormatter()
 			configLoader := service.NewConfigurationLoader()
-			progressReporter := service.NewNoOpProgressReporter()
-			complexityService := service.NewComplexityService(progressReporter)
+			complexityService := service.NewComplexityService()
 
 			// Create use case
 			useCase := app.NewComplexityUseCase(
@@ -204,8 +199,7 @@ def test_function(x):
 				fileReader,
 				outputFormatter,
 				configLoader,
-				progressReporter,
-			)
+					)
 
 			// Use exact same configuration as working test, but vary format
 			var outputBuffer bytes.Buffer

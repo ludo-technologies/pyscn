@@ -15,15 +15,13 @@ import (
 
 // DeadCodeServiceImpl implements the DeadCodeService interface
 type DeadCodeServiceImpl struct {
-	parser   *parser.Parser
-	progress domain.ProgressReporter
+	parser *parser.Parser
 }
 
 // NewDeadCodeService creates a new dead code service implementation
-func NewDeadCodeService(progress domain.ProgressReporter) *DeadCodeServiceImpl {
+func NewDeadCodeService() *DeadCodeServiceImpl {
 	return &DeadCodeServiceImpl{
-		parser:   parser.New(),
-		progress: progress,
+		parser: parser.New(),
 	}
 }
 
@@ -34,7 +32,7 @@ func (s *DeadCodeServiceImpl) Analyze(ctx context.Context, req domain.DeadCodeRe
 	var errors []string
 	filesProcessed := 0
 
-	for i, filePath := range req.Paths {
+	for _, filePath := range req.Paths {
 		// Check context cancellation
 		select {
 		case <-ctx.Done():
@@ -42,10 +40,7 @@ func (s *DeadCodeServiceImpl) Analyze(ctx context.Context, req domain.DeadCodeRe
 		default:
 		}
 
-		// Update progress
-		if s.progress != nil {
-			s.progress.UpdateProgress(filePath, i, len(req.Paths))
-		}
+		// Progress reporting removed - file parsing is fast
 
 		// Analyze single file
 		fileResult, fileWarnings, fileErrors := s.analyzeFile(ctx, filePath, req)

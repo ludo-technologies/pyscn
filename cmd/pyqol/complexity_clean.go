@@ -208,9 +208,7 @@ func (c *ComplexityCommand) createComplexityUseCase(cmd *cobra.Command) (*app.Co
 	formatter := service.NewOutputFormatter()
 	configLoader := service.NewConfigurationLoaderWithFlags(explicitFlags)
 
-	// Create progress reporter
-	progress := service.CreateProgressReporter(cmd.ErrOrStderr(), 0, c.verbose)
-	complexityService := service.NewComplexityService(progress)
+	complexityService := service.NewComplexityService()
 
     // Build use case
     useCase, err := app.NewComplexityUseCaseBuilder().
@@ -218,7 +216,6 @@ func (c *ComplexityCommand) createComplexityUseCase(cmd *cobra.Command) (*app.Co
         WithFileReader(fileReader).
         WithFormatter(formatter).
         WithConfigLoader(configLoader).
-        WithProgress(progress).
         WithOutputWriter(service.NewFileOutputWriter(cmd.ErrOrStderr())).
         Build()
 

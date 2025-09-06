@@ -348,8 +348,8 @@ func (c *CloneCommand) createCloneUseCase(cmd *cobra.Command) (*app.CloneUseCase
 	fileReader := service.NewFileReader()
 	formatter := service.NewCloneOutputFormatter()
 	configLoader := service.NewCloneConfigurationLoaderWithFlags(explicitFlags)
-	progress := service.CreateProgressReporter(cmd.ErrOrStderr(), 0, c.verbose)
-	cloneService := service.NewCloneService(progress)
+	
+	cloneService := service.NewCloneService()
 
     // Build use case with dependencies
     return app.NewCloneUseCaseBuilder().
@@ -357,10 +357,10 @@ func (c *CloneCommand) createCloneUseCase(cmd *cobra.Command) (*app.CloneUseCase
         WithFileReader(fileReader).
         WithFormatter(formatter).
         WithConfigLoader(configLoader).
-        WithProgress(progress).
         WithOutputWriter(service.NewFileOutputWriter(cmd.ErrOrStderr())).
         Build()
 }
+
 
 // parseSortCriteria parses and validates the sort criteria
 func (c *CloneCommand) parseSortCriteria(sort string) (domain.SortCriteria, error) {

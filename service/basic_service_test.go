@@ -55,12 +55,11 @@ func TestOutputFormatter_Basic(t *testing.T) {
 
 // TestComplexityService_Basic tests basic ComplexityService functionality
 func TestComplexityService_Basic(t *testing.T) {
-	service := NewComplexityService(nil)
+	service := NewComplexityService()
 	
 	t.Run("NewComplexityService creates instance", func(t *testing.T) {
 		assert.NotNil(t, service)
 		assert.NotNil(t, service.parser)
-		assert.Nil(t, service.progress)
 	})
 	
 	// Test sorting function
@@ -91,12 +90,11 @@ func TestComplexityService_Basic(t *testing.T) {
 
 // TestDeadCodeService_Basic tests basic DeadCodeService functionality
 func TestDeadCodeService_Basic(t *testing.T) {
-	service := NewDeadCodeService(nil)
+	service := NewDeadCodeService()
 	
 	t.Run("NewDeadCodeService creates instance", func(t *testing.T) {
 		assert.NotNil(t, service)
 		assert.NotNil(t, service.parser)
-		assert.Nil(t, service.progress)
 	})
 	
 	// Test sorting function
@@ -126,11 +124,10 @@ func TestDeadCodeService_Basic(t *testing.T) {
 
 // TestCloneService_Basic tests basic CloneService functionality
 func TestCloneService_Basic(t *testing.T) {
-	service := NewCloneService(nil)
+	service := NewCloneService()
 	
 	t.Run("NewCloneService creates instance", func(t *testing.T) {
 		assert.NotNil(t, service)
-		assert.Nil(t, service.progress)
 	})
 	
 	// Test filtering function
@@ -203,9 +200,9 @@ func TestCloneService_Basic(t *testing.T) {
 // TestServiceIntegration_Basic tests basic service integration
 func TestServiceIntegration_Basic(t *testing.T) {
 	t.Run("All services can be created", func(t *testing.T) {
-		complexityService := NewComplexityService(nil)
-		deadCodeService := NewDeadCodeService(nil)
-		cloneService := NewCloneService(nil)
+		complexityService := NewComplexityService()
+		deadCodeService := NewDeadCodeService()
+		cloneService := NewCloneService()
 		fileReader := NewFileReader()
 		outputFormatter := NewOutputFormatter()
 		

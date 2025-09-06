@@ -268,7 +268,7 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 	// Redirect output to discard for check command (though we won't use it)
 	request.OutputWriter = io.Discard
 
-	// Create use case (this enables config loading)
+	// Create use case (enables config loading)
 	useCase, err := cloneCmd.createCloneUseCase(cmd)
 	if err != nil {
 		return 0, err

@@ -775,7 +775,7 @@ func (c *AnalyzeCommand) runComplexityAnalysisWithResult(cmd *cobra.Command, arg
 	// Configure complexity command with analyze parameters
 	complexityCmd.minComplexity = c.minComplexity
 	complexityCmd.configFile = c.configFile
-	complexityCmd.verbose = c.verbose
+	complexityCmd.verbose = false // Disable verbose output for unified analysis
 
 	// Build complexity request - bypass validation since paths will be validated by use case
 	request := domain.ComplexityRequest{
@@ -830,7 +830,7 @@ func (c *AnalyzeCommand) runDeadCodeAnalysisWithResult(cmd *cobra.Command, args 
 	// Configure dead code command with analyze parameters
 	deadCodeCmd.minSeverity = c.minSeverity
 	deadCodeCmd.configFile = c.configFile
-	deadCodeCmd.verbose = c.verbose
+	deadCodeCmd.verbose = false // Disable verbose output for unified analysis
 
 	// Parse severity
 	minSeverity := domain.DeadCodeSeverityWarning
@@ -901,7 +901,10 @@ func (c *AnalyzeCommand) runCloneAnalysisWithResult(cmd *cobra.Command, args []s
 	// Configure clone command with analyze parameters
 	cloneCmd.similarityThreshold = c.cloneSimilarity
 	cloneCmd.configFile = c.configFile
-	cloneCmd.verbose = c.verbose
+	cloneCmd.verbose = false // Disable verbose output for unified analysis
+
+	// Pre-calculate file count for progress reporting (not used in concurrent mode)
+	// In analyze mode, we disable progress to avoid conflicts with concurrent analysis
 
 	// Create clone request without output settings
 	request, err := cloneCmd.createCloneRequest(cmd, args)
@@ -918,7 +921,7 @@ func (c *AnalyzeCommand) runCloneAnalysisWithResult(cmd *cobra.Command, args []s
 		return nil, fmt.Errorf("invalid clone request: %w", err)
 	}
 
-	// Create use case
+	// Create use case (progress reporting disabled for concurrent analysis)
 	useCase, err := cloneCmd.createCloneUseCase(cmd)
 	if err != nil {
 		return nil, err
@@ -1097,8 +1100,7 @@ func (c *AnalyzeCommand) runCBOAnalysis(cmd *cobra.Command, args []string) error
 // runCBOAnalysisWithResult runs CBO analysis and returns the result for unified reporting
 func (c *AnalyzeCommand) runCBOAnalysisWithResult(cmd *cobra.Command, args []string) (*domain.CBOResponse, error) {
 	// Import CBO-related packages
-	progressReporter := service.NewProgressReporter(cmd.ErrOrStderr(), false, false) // Quiet for unified report
-	cboService := service.NewCBOService(progressReporter)
+	cboService := service.NewCBOService()
 	fileReader := service.NewFileReader()
 	formatter := service.NewCBOFormatter()
 
@@ -1125,7 +1127,6 @@ func (c *AnalyzeCommand) runCBOAnalysisWithResult(cmd *cobra.Command, args []str
 		WithService(cboService).
 		WithFileReader(fileReader).
 		WithFormatter(formatter).
-		WithProgress(progressReporter).
 		Build()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create CBO use case: %w", err)
