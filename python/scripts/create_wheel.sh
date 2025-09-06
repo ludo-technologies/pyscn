@@ -7,8 +7,54 @@ set -e
 
 # Configuration
 PACKAGE_NAME="pyqol"
-# Auto-detect version from git tags (remove 'v' prefix if present)
-VERSION=$(git describe --tags --always --dirty 2>/dev/null | sed 's/^v//' || echo "0.0.0.dev0")
+
+# Function to convert git describe output to PEP 440 compliant version
+normalize_version() {
+    local git_describe="$1"
+    
+    # Remove v prefix if present
+    git_describe="${git_describe#v}"
+    
+    if [[ "$git_describe" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)-g([0-9a-f]+)(-dirty)?$ ]]; then
+        # After tag: 0.1.0-3-g278cb14[-dirty] -> 0.1.0.post3+g278cb14
+        # Capture matches immediately to avoid interference
+        local base_version="${BASH_REMATCH[1]}"
+        local commits_ahead="${BASH_REMATCH[2]}"
+        local commit_hash="${BASH_REMATCH[3]}"
+        local is_dirty="${BASH_REMATCH[4]}"
+        
+        if [[ -n "$is_dirty" ]]; then
+            # For dirty workspace, use dev version to avoid local version (PyPI rejection)
+            echo "${base_version}.post${commits_ahead}.dev0+g${commit_hash}"
+        else
+            echo "${base_version}.post${commits_ahead}+g${commit_hash}"
+        fi
+    elif [[ "$git_describe" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-dirty)?$ ]]; then
+        # Clean or dirty tag: 0.1.0[-dirty] 
+        local base_version="${BASH_REMATCH[1]}"
+        local is_dirty="${BASH_REMATCH[2]}"
+        
+        if [[ -n "$is_dirty" ]]; then
+            # For dirty workspace, append .dev0 instead of local version
+            echo "${base_version}.dev0"
+        else
+            echo "$base_version"
+        fi
+    elif [[ "$git_describe" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        # Clean tag: 0.1.0 -> 0.1.0
+        echo "$git_describe"
+    elif [[ "$git_describe" =~ ^[0-9a-f]+(-dirty)?$ ]]; then
+        # No tags: 278cb14[-dirty] -> 0.0.0.dev0+g278cb14
+        local commit_hash="${git_describe%-dirty}"
+        echo "0.0.0.dev0+g${commit_hash}"
+    else
+        # Fallback for unexpected format
+        echo "0.0.0.dev0"
+    fi
+}
+
+# Auto-detect version from git tags and normalize to PEP 440
+VERSION=$(normalize_version "$(git describe --tags --always --dirty 2>/dev/null || echo "0.0.0.dev0")")
 PYTHON_TAG="py3"
 ABI_TAG="none"
 
