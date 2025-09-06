@@ -206,10 +206,11 @@ main() {
         local os=$(uname -s | tr '[:upper:]' '[:lower:]')
         local arch=$(uname -m)
         
-        # Normalize architecture
+        # Normalize architecture to match Python wrapper expectations
         case "$arch" in
             x86_64) arch="amd64" ;;
             aarch64) arch="arm64" ;;
+            # Keep arm64 as-is for macOS
         esac
         
         local binary_name="pyqol-${os}-${arch}"
