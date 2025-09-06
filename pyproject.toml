@@ -5,8 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pyqol"
 version = "0.1.0"
-description = "A next-generation Python static analysis tool using Control Flow Graph and tree edit distance algorithms"
-license = {text = "MIT"}
+description = "An intelligent Python code quality analyzer with architectural guidance"
+readme = "README.md"
+license = {file = "LICENSE"}
 authors = [
     {name = "DaisukeYoda", email = "daisukeyoda@users.noreply.github.com"}
 ]
@@ -61,7 +62,7 @@ Changelog = "https://github.com/pyqol/pyqol/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 packages = ["pyqol"]
-package-dir = {"" = "src"}
+package-dir = {"" = "python/src"}
 
 [tool.setuptools.package-data]
 pyqol = ["bin/*"]

@@ -30,7 +30,7 @@ main() {
     
     # Create directories
     local bin_dir="$python_dir/src/pyqol/bin"
-    local dist_dir="$python_dir/dist"
+    local dist_dir="$project_dir/dist"
     
     mkdir -p "$bin_dir" "$dist_dir"
     

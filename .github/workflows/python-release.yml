@@ -35,13 +35,13 @@ jobs:
     
     - name: Verify wheels
       run: |
-        python -m twine check python/dist/*.whl
+        python -m twine check dist/*.whl
     
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
         name: wheels
-        path: python/dist/*.whl
+        path: dist/*.whl
         retention-days: 7
 
   test-wheels:

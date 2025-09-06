@@ -127,14 +127,14 @@ build-python:
 ## python-wheel: Build Python wheel for current platform only
 python-wheel:
 	@echo "$(GREEN)Building Python wheel for current platform...$(NC)"
-	@mkdir -p python/src/pyqol/bin python/dist
+	@mkdir -p python/src/pyqol/bin dist
 	go build $(LDFLAGS) -ldflags="-s -w" -o python/src/pyqol/bin/pyqol-$$(go env GOOS)-$$(go env GOARCH)$$(if [ "$$(go env GOOS)" = "windows" ]; then echo ".exe"; fi) ./cmd/pyqol
 	python/scripts/create_wheel.sh
 
 ## python-test: Test Python package installation
 python-test: python-wheel
 	@echo "$(GREEN)Testing Python package...$(NC)"
-	cd python && pip install --force-reinstall dist/*.whl
+	pip install --force-reinstall dist/*.whl
 	@echo "$(GREEN)Testing pyqol command...$(NC)"
 	pyqol --version || pyqol --help
 
@@ -142,6 +142,6 @@ python-test: python-wheel
 python-clean:
 	@echo "$(YELLOW)Cleaning Python build artifacts...$(NC)"
 	rm -rf python/src/pyqol/bin
-	rm -rf python/dist
-	rm -rf python/build
-	rm -rf python/*.egg-info
+	rm -rf dist
+	rm -rf build
+	rm -rf *.egg-info

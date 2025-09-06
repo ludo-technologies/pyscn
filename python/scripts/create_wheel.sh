@@ -169,7 +169,7 @@ main() {
     # Default values
     local platform_tag=""
     local binary_path=""
-    local output_dir="$python_dir/dist"
+    local output_dir="$project_dir/dist"
     
     # Parse arguments
     while [[ $# -gt 0 ]]; do
