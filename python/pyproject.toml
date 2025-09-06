@@ -8,10 +8,10 @@ version = "0.1.0"
 description = "A next-generation Python static analysis tool using Control Flow Graph and tree edit distance algorithms"
 license = {text = "MIT"}
 authors = [
-    {name = "pyqol team", email = "team@pyqol.dev"}
+    {name = "DaisukeYoda", email = "daisukeyoda@users.noreply.github.com"}
 ]
 maintainers = [
-    {name = "pyqol team", email = "team@pyqol.dev"}
+    {name = "DaisukeYoda", email = "daisukeyoda@users.noreply.github.com"}
 ]
 keywords = [
     "python",
