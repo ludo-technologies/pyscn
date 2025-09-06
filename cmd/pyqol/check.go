@@ -255,18 +255,6 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 	cloneCmd.configFile = c.configFile
 	cloneCmd.verbose = false
 
-	// Pre-calculate file count for progress reporting
-	fileReader := service.NewFileReader()
-	pythonFiles, err := fileReader.CollectPythonFiles(
-		args,
-		true, // recursive
-		[]string{"*.py", "*.pyi"},
-		[]string{},
-	)
-	if err != nil {
-		return 0, fmt.Errorf("failed to collect Python files: %w", err)
-	}
-
 	// Create request
 	request, err := cloneCmd.createCloneRequest(cmd, args)
 	if err != nil {
@@ -281,8 +269,8 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 	// Redirect output to discard for check command (though we won't use it)
 	request.OutputWriter = io.Discard
 
-	// Create use case with file count (enables config loading and proper progress handling)
-	useCase, err := cloneCmd.createCloneUseCaseWithFileCount(cmd, len(pythonFiles))
+	// Create use case (enables config loading)
+	useCase, err := cloneCmd.createCloneUseCase(cmd)
 	if err != nil {
 		return 0, err
 	}

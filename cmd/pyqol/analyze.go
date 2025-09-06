@@ -921,8 +921,8 @@ func (c *AnalyzeCommand) runCloneAnalysisWithResult(cmd *cobra.Command, args []s
 		return nil, fmt.Errorf("invalid clone request: %w", err)
 	}
 
-	// Create use case with file count but disable progress for concurrent analysis
-	useCase, err := cloneCmd.createCloneUseCaseWithFileCount(cmd, 0) // Pass 0 to disable progress
+	// Create use case (progress reporting disabled for concurrent analysis)
+	useCase, err := cloneCmd.createCloneUseCase(cmd)
 	if err != nil {
 		return nil, err
 	}
