@@ -103,10 +103,10 @@ create_wheel() {
 Metadata-Version: 2.1
 Name: $PACKAGE_NAME
 Version: $VERSION
-Summary: A next-generation Python static analysis tool using Control Flow Graph and tree edit distance algorithms
+Summary: An intelligent Python code quality analyzer with architectural guidance
 Home-page: https://github.com/pyqol/pyqol
-Author: pyqol team
-Author-email: team@pyqol.dev
+Author: DaisukeYoda
+Author-email: daisukeyoda@users.noreply.github.com
 License: MIT
 Classifier: Development Status :: 4 - Beta
 Classifier: Environment :: Console
