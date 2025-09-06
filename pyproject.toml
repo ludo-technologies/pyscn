@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=64", "wheel"]
+requires = ["setuptools>=64", "setuptools_scm>=8", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyqol"
-version = "0.1.0"
+dynamic = ["version"]
 description = "An intelligent Python code quality analyzer with architectural guidance"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -69,6 +69,9 @@ pyqol = ["bin/*"]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["*.py[co]", "__pycache__", "*.so", "*.pyd"]
+
+[tool.setuptools_scm]
+# Default configuration - gets version from git tags
 
 [build]
 exclude = [
