@@ -14,15 +14,11 @@ import (
 
 // CloneService implements the domain.CloneService interface
 type CloneService struct {
-	progress domain.ProgressReporter
 }
 
 // NewCloneService creates a new clone service
-// progress can be nil - the service can work without progress reporting
-func NewCloneService(progress domain.ProgressReporter) *CloneService {
-	return &CloneService{
-		progress: progress,
-	}
+func NewCloneService() *CloneService {
+	return &CloneService{}
 }
 
 // DetectClones performs clone detection on the given request

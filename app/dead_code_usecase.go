@@ -17,7 +17,6 @@ type DeadCodeUseCase struct {
     fileReader   domain.FileReader
     formatter    domain.DeadCodeFormatter
     configLoader domain.DeadCodeConfigurationLoader
-    progress     domain.ProgressReporter
     output       domain.ReportWriter
 }
 
@@ -27,14 +26,12 @@ func NewDeadCodeUseCase(
     fileReader domain.FileReader,
     formatter domain.DeadCodeFormatter,
     configLoader domain.DeadCodeConfigurationLoader,
-    progress domain.ProgressReporter,
 ) *DeadCodeUseCase {
     return &DeadCodeUseCase{
         service:      service,
         fileReader:   fileReader,
         formatter:    formatter,
         configLoader: configLoader,
-        progress:     progress,
         output:       svc.NewFileOutputWriter(nil),
     }
 }
@@ -287,7 +284,6 @@ type DeadCodeUseCaseBuilder struct {
     fileReader   domain.FileReader
     formatter    domain.DeadCodeFormatter
     configLoader domain.DeadCodeConfigurationLoader
-    progress     domain.ProgressReporter
     output       domain.ReportWriter
 }
 
@@ -320,11 +316,6 @@ func (b *DeadCodeUseCaseBuilder) WithConfigLoader(configLoader domain.DeadCodeCo
 	return b
 }
 
-// WithProgress sets the progress reporter
-func (b *DeadCodeUseCaseBuilder) WithProgress(progress domain.ProgressReporter) *DeadCodeUseCaseBuilder {
-    b.progress = progress
-    return b
-}
 
 // WithOutputWriter sets the report writer
 func (b *DeadCodeUseCaseBuilder) WithOutputWriter(output domain.ReportWriter) *DeadCodeUseCaseBuilder {
@@ -349,17 +340,12 @@ func (b *DeadCodeUseCaseBuilder) Build() (*DeadCodeUseCase, error) {
 		// ConfigLoader is optional - will skip config loading if nil
 		b.configLoader = nil
 	}
-	if b.progress == nil {
-		// ProgressReporter is optional - will skip progress reporting if nil
-		b.progress = nil
-	}
 
     uc := NewDeadCodeUseCase(
         b.service,
         b.fileReader,
         b.formatter,
         b.configLoader,
-        b.progress,
     )
     if b.output != nil {
         uc.output = b.output
@@ -384,17 +370,12 @@ func (b *DeadCodeUseCaseBuilder) BuildWithDefaults() (*DeadCodeUseCase, error) {
 		// Create a no-op config loader that returns nil
 		b.configLoader = &noOpDeadCodeConfigLoader{}
 	}
-	if b.progress == nil {
-		// Create a no-op progress reporter
-		b.progress = &deadCodeNoOpProgressReporter{}
-	}
 
     uc := NewDeadCodeUseCase(
         b.service,
         b.fileReader,
         b.formatter,
         b.configLoader,
-        b.progress,
     )
     if b.output != nil {
         uc.output = b.output
@@ -417,12 +398,6 @@ func (n *noOpDeadCodeConfigLoader) MergeConfig(base *domain.DeadCodeRequest, ove
 	return override
 }
 
-// deadCodeNoOpProgressReporter is a no-op implementation of ProgressReporter for dead code
-type deadCodeNoOpProgressReporter struct{}
-
-func (n *deadCodeNoOpProgressReporter) StartProgress(totalFiles int)                            {}
-func (n *deadCodeNoOpProgressReporter) UpdateProgress(currentFile string, processed, total int) {}
-func (n *deadCodeNoOpProgressReporter) FinishProgress()                                         {}
 
 // DeadCodeUseCaseOptions provides configuration options for the dead code use case
 type DeadCodeUseCaseOptions struct {

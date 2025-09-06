@@ -15,7 +15,6 @@ type CBOUseCase struct {
 	fileReader   domain.FileReader
 	formatter    domain.CBOOutputFormatter
 	configLoader domain.CBOConfigurationLoader
-	progress     domain.ProgressReporter
 	output       domain.ReportWriter
 }
 
@@ -25,14 +24,12 @@ func NewCBOUseCase(
 	fileReader domain.FileReader,
 	formatter domain.CBOOutputFormatter,
 	configLoader domain.CBOConfigurationLoader,
-	progress domain.ProgressReporter,
 ) *CBOUseCase {
 	return &CBOUseCase{
 		service:      service,
 		fileReader:   fileReader,
 		formatter:    formatter,
 		configLoader: configLoader,
-		progress:     progress,
 		output:       svc.NewFileOutputWriter(nil),
 	}
 }
@@ -282,7 +279,6 @@ type CBOUseCaseBuilder struct {
 	fileReader   domain.FileReader
 	formatter    domain.CBOOutputFormatter
 	configLoader domain.CBOConfigurationLoader
-	progress     domain.ProgressReporter
 	output       domain.ReportWriter
 }
 
@@ -315,11 +311,6 @@ func (b *CBOUseCaseBuilder) WithConfigLoader(configLoader domain.CBOConfiguratio
 	return b
 }
 
-// WithProgress sets the progress reporter
-func (b *CBOUseCaseBuilder) WithProgress(progress domain.ProgressReporter) *CBOUseCaseBuilder {
-	b.progress = progress
-	return b
-}
 
 // WithOutputWriter sets the report writer
 func (b *CBOUseCaseBuilder) WithOutputWriter(output domain.ReportWriter) *CBOUseCaseBuilder {
@@ -344,17 +335,12 @@ func (b *CBOUseCaseBuilder) Build() (*CBOUseCase, error) {
 		// ConfigLoader is optional - will skip config loading if nil
 		b.configLoader = nil
 	}
-	if b.progress == nil {
-		// ProgressReporter is optional - will skip progress reporting if nil
-		b.progress = nil
-	}
 
 	uc := NewCBOUseCase(
 		b.service,
 		b.fileReader,
 		b.formatter,
 		b.configLoader,
-		b.progress,
 	)
 	if b.output != nil {
 		uc.output = b.output
@@ -379,17 +365,12 @@ func (b *CBOUseCaseBuilder) BuildWithDefaults() (*CBOUseCase, error) {
 		// Create a no-op config loader that returns nil
 		b.configLoader = &noOpCBOConfigLoader{}
 	}
-	if b.progress == nil {
-		// Create a no-op progress reporter
-		b.progress = &noOpCBOProgressReporter{}
-	}
 
 	uc := NewCBOUseCase(
 		b.service,
 		b.fileReader,
 		b.formatter,
 		b.configLoader,
-		b.progress,
 	)
 	if b.output != nil {
 		uc.output = b.output
@@ -412,10 +393,4 @@ func (n *noOpCBOConfigLoader) MergeConfig(base *domain.CBORequest, override *dom
 	return override
 }
 
-// noOpCBOProgressReporter is a no-op implementation of ProgressReporter
-type noOpCBOProgressReporter struct{}
-
-func (n *noOpCBOProgressReporter) StartProgress(totalFiles int)                            {}
-func (n *noOpCBOProgressReporter) UpdateProgress(currentFile string, processed, total int) {}
-func (n *noOpCBOProgressReporter) FinishProgress()                                         {}
 

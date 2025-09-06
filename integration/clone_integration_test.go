@@ -21,8 +21,7 @@ func TestCloneDetectionIntegration(t *testing.T) {
 	fileReader := service.NewFileReader()
 	outputFormatter := service.NewCloneOutputFormatter()
 	configLoader := service.NewCloneConfigurationLoader()
-	progressReporter := service.NewNoOpProgressReporter()
-	cloneService := service.NewCloneService(progressReporter)
+	cloneService := service.NewCloneService()
 
 	// Create use case with real dependencies
 	useCase, err := app.NewCloneUseCaseBuilder().
@@ -30,7 +29,6 @@ func TestCloneDetectionIntegration(t *testing.T) {
 		WithFileReader(fileReader).
 		WithFormatter(outputFormatter).
 		WithConfigLoader(configLoader).
-		WithProgress(progressReporter).
 		Build()
 	require.NoError(t, err, "Should create use case successfully")
 
@@ -92,15 +90,13 @@ func TestCloneUseCaseBuilder(t *testing.T) {
 	fileReader := service.NewFileReader()
 	outputFormatter := service.NewCloneOutputFormatter()
 	configLoader := service.NewCloneConfigurationLoader()
-	progressReporter := service.NewNoOpProgressReporter()
-	cloneService := service.NewCloneService(progressReporter)
+	cloneService := service.NewCloneService()
 
 	useCase, err := builder.
 		WithService(cloneService).
 		WithFileReader(fileReader).
 		WithFormatter(outputFormatter).
 		WithConfigLoader(configLoader).
-		WithProgress(progressReporter).
 		Build()
 
 	assert.NoError(t, err, "Should build successfully with all dependencies")
@@ -109,8 +105,7 @@ func TestCloneUseCaseBuilder(t *testing.T) {
 
 // TestCloneServiceWithMockData tests the clone service with mock data
 func TestCloneServiceWithMockData(t *testing.T) {
-	progressReporter := service.NewNoOpProgressReporter()
-	cloneService := service.NewCloneService(progressReporter)
+	cloneService := service.NewCloneService()
 
 	// Test computing similarity between code fragments
 	fragment1 := `def hello_world():
@@ -399,15 +394,13 @@ func createTestCloneUseCase(t *testing.T) *app.CloneUseCase {
 	fileReader := service.NewFileReader()
 	outputFormatter := service.NewCloneOutputFormatter()
 	configLoader := service.NewCloneConfigurationLoader()
-	progressReporter := service.NewNoOpProgressReporter()
-	cloneService := service.NewCloneService(progressReporter)
+	cloneService := service.NewCloneService()
 
 	useCase, err := app.NewCloneUseCaseBuilder().
 		WithService(cloneService).
 		WithFileReader(fileReader).
 		WithFormatter(outputFormatter).
 		WithConfigLoader(configLoader).
-		WithProgress(progressReporter).
 		Build()
 	require.NoError(t, err, "Should create use case successfully")
 

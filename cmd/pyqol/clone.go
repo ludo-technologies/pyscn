@@ -349,9 +349,7 @@ func (c *CloneCommand) createCloneUseCase(cmd *cobra.Command) (*app.CloneUseCase
 	formatter := service.NewCloneOutputFormatter()
 	configLoader := service.NewCloneConfigurationLoaderWithFlags(explicitFlags)
 	
-	// Create no-op progress reporter (file parsing progress is not meaningful)
-	progress := service.NewNoOpProgressReporter()
-	cloneService := service.NewCloneService(progress)
+	cloneService := service.NewCloneService()
 
     // Build use case with dependencies
     return app.NewCloneUseCaseBuilder().
@@ -359,7 +357,6 @@ func (c *CloneCommand) createCloneUseCase(cmd *cobra.Command) (*app.CloneUseCase
         WithFileReader(fileReader).
         WithFormatter(formatter).
         WithConfigLoader(configLoader).
-        WithProgress(progress).
         WithOutputWriter(service.NewFileOutputWriter(cmd.ErrOrStderr())).
         Build()
 }

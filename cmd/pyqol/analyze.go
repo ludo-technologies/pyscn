@@ -1100,8 +1100,7 @@ func (c *AnalyzeCommand) runCBOAnalysis(cmd *cobra.Command, args []string) error
 // runCBOAnalysisWithResult runs CBO analysis and returns the result for unified reporting
 func (c *AnalyzeCommand) runCBOAnalysisWithResult(cmd *cobra.Command, args []string) (*domain.CBOResponse, error) {
 	// Import CBO-related packages
-	progressReporter := service.NewProgressReporter(cmd.ErrOrStderr(), false, false) // Quiet for unified report
-	cboService := service.NewCBOService(progressReporter)
+	cboService := service.NewCBOService()
 	fileReader := service.NewFileReader()
 	formatter := service.NewCBOFormatter()
 
@@ -1128,7 +1127,6 @@ func (c *AnalyzeCommand) runCBOAnalysisWithResult(cmd *cobra.Command, args []str
 		WithService(cboService).
 		WithFileReader(fileReader).
 		WithFormatter(formatter).
-		WithProgress(progressReporter).
 		Build()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create CBO use case: %w", err)

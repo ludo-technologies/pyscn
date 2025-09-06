@@ -87,18 +87,17 @@ func (m *mockDeadCodeConfigurationLoader) MergeConfig(base *domain.DeadCodeReque
 	return args.Get(0).(*domain.DeadCodeRequest)
 }
 
-// mockFileReader and mockProgressReporter are defined in clone_usecase_test.go
+// mockFileReader is defined in clone_usecase_test.go
 
 // Helper functions for DeadCodeUseCase tests
-func setupDeadCodeUseCaseMocks() (*DeadCodeUseCase, *mockDeadCodeService, *mockFileReader, *mockDeadCodeFormatter, *mockDeadCodeConfigurationLoader, *mockProgressReporter) {
+func setupDeadCodeUseCaseMocks() (*DeadCodeUseCase, *mockDeadCodeService, *mockFileReader, *mockDeadCodeFormatter, *mockDeadCodeConfigurationLoader) {
 	service := &mockDeadCodeService{}
 	fileReader := &mockFileReader{}
 	formatter := &mockDeadCodeFormatter{}
 	configLoader := &mockDeadCodeConfigurationLoader{}
-	progress := &mockProgressReporter{}
 
-	useCase := NewDeadCodeUseCase(service, fileReader, formatter, configLoader, progress)
-	return useCase, service, fileReader, formatter, configLoader, progress
+	useCase := NewDeadCodeUseCase(service, fileReader, formatter, configLoader)
+	return useCase, service, fileReader, formatter, configLoader
 }
 
 func createValidDeadCodeRequest() domain.DeadCodeRequest {
@@ -191,7 +190,7 @@ func createMockDeadCodeResponse() *domain.DeadCodeResponse {
 func TestDeadCodeUseCase_Execute(t *testing.T) {
 	tests := []struct {
 		name        string
-		setupMocks  func(*mockDeadCodeService, *mockFileReader, *mockDeadCodeFormatter, *mockDeadCodeConfigurationLoader, *mockProgressReporter)
+		setupMocks  func(*mockDeadCodeService, *mockFileReader, *mockDeadCodeFormatter, *mockDeadCodeConfigurationLoader)
 		request     domain.DeadCodeRequest
 		expectError bool
 		errorType   string
@@ -199,7 +198,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 	}{
 		{
 			name: "successful execution with valid request",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
@@ -213,7 +212,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "validation error - empty paths",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.DeadCodeRequest{
@@ -226,7 +225,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "validation error - nil output writer",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.DeadCodeRequest{
@@ -239,7 +238,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "validation error - negative context lines",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.DeadCodeRequest{
@@ -256,7 +255,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "validation error - invalid severity level",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.DeadCodeRequest{
@@ -273,7 +272,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "validation error - invalid output format",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.DeadCodeRequest{
@@ -290,7 +289,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "validation error - invalid sort criteria",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.DeadCodeRequest{
@@ -307,7 +306,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "configuration loading error",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadConfig", "/invalid/config.yaml").
 					Return((*domain.DeadCodeRequest)(nil), errors.New("config file not found"))
 			},
@@ -326,7 +325,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "file collection error",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/invalid/path"}, true, []string{"*.py"}, []string{}).
 					Return([]string{}, errors.New("path not found"))
@@ -348,7 +347,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "no files found error",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/empty/path"}, true, []string{"*.py"}, []string{}).
 					Return([]string{}, nil)
@@ -370,7 +369,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "analysis service error",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
@@ -385,7 +384,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "output formatting error",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
@@ -402,7 +401,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "successful execution with config loading",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configReq := &domain.DeadCodeRequest{
 					MinSeverity:  domain.DeadCodeSeverityCritical,
 					ContextLines: 5,
@@ -432,9 +431,9 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			useCase, service, fileReader, formatter, configLoader, progress := setupDeadCodeUseCaseMocks()
+			useCase, service, fileReader, formatter, configLoader := setupDeadCodeUseCaseMocks()
 
-			tt.setupMocks(service, fileReader, formatter, configLoader, progress)
+			tt.setupMocks(service, fileReader, formatter, configLoader)
 
 			err := useCase.Execute(context.Background(), tt.request)
 
@@ -455,22 +454,21 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			progress.AssertExpectations(t)
-		})
+			})
 	}
 }
 
 func TestDeadCodeUseCase_AnalyzeAndReturn(t *testing.T) {
 	tests := []struct {
 		name        string
-		setupMocks  func(*mockDeadCodeService, *mockFileReader, *mockDeadCodeFormatter, *mockDeadCodeConfigurationLoader, *mockProgressReporter)
+		setupMocks  func(*mockDeadCodeService, *mockFileReader, *mockDeadCodeFormatter, *mockDeadCodeConfigurationLoader)
 		request     domain.DeadCodeRequest
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name: "successful analysis without formatting",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
@@ -483,7 +481,7 @@ func TestDeadCodeUseCase_AnalyzeAndReturn(t *testing.T) {
 		},
 		{
 			name: "validation error in analyze and return",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.DeadCodeRequest{
@@ -495,7 +493,7 @@ func TestDeadCodeUseCase_AnalyzeAndReturn(t *testing.T) {
 		},
 		{
 			name: "analysis error in analyze and return",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
@@ -511,9 +509,9 @@ func TestDeadCodeUseCase_AnalyzeAndReturn(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			useCase, service, fileReader, formatter, configLoader, progress := setupDeadCodeUseCaseMocks()
+			useCase, service, fileReader, formatter, configLoader := setupDeadCodeUseCaseMocks()
 
-			tt.setupMocks(service, fileReader, formatter, configLoader, progress)
+			tt.setupMocks(service, fileReader, formatter, configLoader)
 
 			response, err := useCase.AnalyzeAndReturn(context.Background(), tt.request)
 
@@ -536,8 +534,7 @@ func TestDeadCodeUseCase_AnalyzeAndReturn(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			progress.AssertExpectations(t)
-		})
+			})
 	}
 }
 
@@ -640,14 +637,14 @@ func TestDeadCodeUseCase_AnalyzeFile(t *testing.T) {
 	tests := []struct {
 		name        string
 		filePath    string
-		setupMocks  func(*mockDeadCodeService, *mockFileReader, *mockDeadCodeFormatter, *mockDeadCodeConfigurationLoader, *mockProgressReporter)
+		setupMocks  func(*mockDeadCodeService, *mockFileReader, *mockDeadCodeFormatter, *mockDeadCodeConfigurationLoader)
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name:     "file not found error",
 			filePath: "/test/file.py",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				fileReader.On("IsValidPythonFile", "/test/file.py").Return(true)
 				fileReader.On("FileExists", "/test/file.py").Return(false, nil)
 			},
@@ -657,7 +654,7 @@ func TestDeadCodeUseCase_AnalyzeFile(t *testing.T) {
 		{
 			name:     "invalid python file",
 			filePath: "/test/file.txt",
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				fileReader.On("IsValidPythonFile", "/test/file.txt").Return(false)
 			},
 			expectError: true,
@@ -666,7 +663,7 @@ func TestDeadCodeUseCase_AnalyzeFile(t *testing.T) {
 		{
 			name:     "analysis error - file not found",
 			filePath: "/test/nonexistent.py", 
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				fileReader.On("IsValidPythonFile", "/test/nonexistent.py").Return(true)
 				fileReader.On("FileExists", "/test/nonexistent.py").Return(false, nil)
 			},
@@ -677,9 +674,9 @@ func TestDeadCodeUseCase_AnalyzeFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			useCase, service, fileReader, formatter, configLoader, progress := setupDeadCodeUseCaseMocks()
+			useCase, service, fileReader, formatter, configLoader := setupDeadCodeUseCaseMocks()
 
-			tt.setupMocks(service, fileReader, formatter, configLoader, progress)
+			tt.setupMocks(service, fileReader, formatter, configLoader)
 
 			req := createValidDeadCodeRequest()
 			err := useCase.AnalyzeFile(context.Background(), tt.filePath, req)
@@ -698,8 +695,7 @@ func TestDeadCodeUseCase_AnalyzeFile(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			progress.AssertExpectations(t)
-		})
+			})
 	}
 }
 
@@ -707,14 +703,14 @@ func TestDeadCodeUseCase_AnalyzeFunction(t *testing.T) {
 	tests := []struct {
 		name        string
 		functionCFG interface{}
-		setupMocks  func(*mockDeadCodeService, *mockFileReader, *mockDeadCodeFormatter, *mockDeadCodeConfigurationLoader, *mockProgressReporter)
+		setupMocks  func(*mockDeadCodeService, *mockFileReader, *mockDeadCodeFormatter, *mockDeadCodeConfigurationLoader)
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name:        "successful function analysis",
 			functionCFG: map[string]interface{}{"nodes": []int{1, 2, 3}, "edges": [][]int{{1, 2}, {2, 3}}},
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
 				
 				mockFunctionResult := &domain.FunctionDeadCode{
@@ -736,7 +732,7 @@ func TestDeadCodeUseCase_AnalyzeFunction(t *testing.T) {
 		{
 			name:        "nil function CFG",
 			functionCFG: nil,
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				// No mocks needed - validation fails before any service calls
 			},
 			expectError: true,
@@ -745,7 +741,7 @@ func TestDeadCodeUseCase_AnalyzeFunction(t *testing.T) {
 		{
 			name:        "analysis error",
 			functionCFG: map[string]interface{}{"nodes": []int{1, 2, 3}},
-			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader, progress *mockProgressReporter) {
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
 				service.On("AnalyzeFunction", mock.Anything, mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return((*domain.FunctionDeadCode)(nil), errors.New("CFG analysis failed"))
@@ -757,9 +753,9 @@ func TestDeadCodeUseCase_AnalyzeFunction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			useCase, service, fileReader, formatter, configLoader, progress := setupDeadCodeUseCaseMocks()
+			useCase, service, fileReader, formatter, configLoader := setupDeadCodeUseCaseMocks()
 
-			tt.setupMocks(service, fileReader, formatter, configLoader, progress)
+			tt.setupMocks(service, fileReader, formatter, configLoader)
 
 			req := createValidDeadCodeRequest()
 			result, err := useCase.AnalyzeFunction(context.Background(), tt.functionCFG, req)
@@ -782,8 +778,7 @@ func TestDeadCodeUseCase_AnalyzeFunction(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			progress.AssertExpectations(t)
-		})
+			})
 	}
 }
 

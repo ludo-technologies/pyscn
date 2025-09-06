@@ -16,7 +16,6 @@ type ComplexityUseCase struct {
     fileReader   domain.FileReader
     formatter    domain.OutputFormatter
     configLoader domain.ConfigurationLoader
-    progress     domain.ProgressReporter
     output       domain.ReportWriter
 }
 
@@ -26,14 +25,12 @@ func NewComplexityUseCase(
     fileReader domain.FileReader,
     formatter domain.OutputFormatter,
     configLoader domain.ConfigurationLoader,
-    progress domain.ProgressReporter,
 ) *ComplexityUseCase {
     return &ComplexityUseCase{
         service:      service,
         fileReader:   fileReader,
         formatter:    formatter,
         configLoader: configLoader,
-        progress:     progress,
         output:       svc.NewFileOutputWriter(nil),
     }
 }
@@ -259,7 +256,6 @@ type ComplexityUseCaseBuilder struct {
     fileReader   domain.FileReader
     formatter    domain.OutputFormatter
     configLoader domain.ConfigurationLoader
-    progress     domain.ProgressReporter
     output       domain.ReportWriter
 }
 
@@ -292,11 +288,6 @@ func (b *ComplexityUseCaseBuilder) WithConfigLoader(configLoader domain.Configur
 	return b
 }
 
-// WithProgress sets the progress reporter
-func (b *ComplexityUseCaseBuilder) WithProgress(progress domain.ProgressReporter) *ComplexityUseCaseBuilder {
-    b.progress = progress
-    return b
-}
 
 // WithOutputWriter sets the report writer
 func (b *ComplexityUseCaseBuilder) WithOutputWriter(output domain.ReportWriter) *ComplexityUseCaseBuilder {
@@ -321,17 +312,12 @@ func (b *ComplexityUseCaseBuilder) Build() (*ComplexityUseCase, error) {
 		// ConfigLoader is optional - will skip config loading if nil
 		b.configLoader = nil
 	}
-	if b.progress == nil {
-		// ProgressReporter is optional - will skip progress reporting if nil
-		b.progress = nil
-	}
 
     uc := NewComplexityUseCase(
         b.service,
         b.fileReader,
         b.formatter,
         b.configLoader,
-        b.progress,
     )
     if b.output != nil {
         uc.output = b.output
@@ -356,17 +342,12 @@ func (b *ComplexityUseCaseBuilder) BuildWithDefaults() (*ComplexityUseCase, erro
 		// Create a no-op config loader that returns nil
 		b.configLoader = &noOpConfigLoader{}
 	}
-	if b.progress == nil {
-		// Create a no-op progress reporter
-		b.progress = &noOpProgressReporter{}
-	}
 
     uc := NewComplexityUseCase(
         b.service,
         b.fileReader,
         b.formatter,
         b.configLoader,
-        b.progress,
     )
     if b.output != nil {
         uc.output = b.output
@@ -389,12 +370,6 @@ func (n *noOpConfigLoader) MergeConfig(base *domain.ComplexityRequest, override 
 	return override
 }
 
-// noOpProgressReporter is a no-op implementation of ProgressReporter
-type noOpProgressReporter struct{}
-
-func (n *noOpProgressReporter) StartProgress(totalFiles int)                            {}
-func (n *noOpProgressReporter) UpdateProgress(currentFile string, processed, total int) {}
-func (n *noOpProgressReporter) FinishProgress()                                         {}
 
 // UseCaseOptions provides configuration options for the use case
 type UseCaseOptions struct {
