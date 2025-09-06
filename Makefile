@@ -16,7 +16,7 @@ GREEN := \033[0;32m
 YELLOW := \033[1;33m
 NC := \033[0m # No Color
 
-.PHONY: all build test clean install run version help
+.PHONY: all build test clean install run version help build-python python-wheel python-test python-clean
 
 ## help: Show this help message
 help:
@@ -53,6 +53,7 @@ clean:
 	@echo "$(YELLOW)Cleaning...$(NC)"
 	rm -f $(BINARY_NAME)
 	rm -f coverage.out coverage.html
+	rm -rf dist/
 	go clean
 
 ## install: Install the binary
@@ -116,3 +117,31 @@ build-windows:
 	@echo "$(GREEN)Building for Windows...$(NC)"
 	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-windows-amd64.exe ./cmd/pyqol
 	GOOS=windows GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-windows-arm64.exe ./cmd/pyqol
+
+# Python packaging
+## build-python: Build Python wheels with embedded binaries
+build-python:
+	@echo "$(GREEN)Building Python wheels...$(NC)"
+	python/scripts/build_all_wheels.sh
+
+## python-wheel: Build Python wheel for current platform only
+python-wheel:
+	@echo "$(GREEN)Building Python wheel for current platform...$(NC)"
+	@mkdir -p python/src/pyqol/bin dist
+	go build $(LDFLAGS) -ldflags="-s -w" -o python/src/pyqol/bin/pyqol-$$(go env GOOS)-$$(go env GOARCH)$$(if [ "$$(go env GOOS)" = "windows" ]; then echo ".exe"; fi) ./cmd/pyqol
+	python/scripts/create_wheel.sh
+
+## python-test: Test Python package installation
+python-test: python-wheel
+	@echo "$(GREEN)Testing Python package...$(NC)"
+	pip install --force-reinstall dist/*.whl
+	@echo "$(GREEN)Testing pyqol command...$(NC)"
+	pyqol --version || pyqol --help
+
+## python-clean: Clean Python build artifacts  
+python-clean:
+	@echo "$(YELLOW)Cleaning Python build artifacts...$(NC)"
+	rm -rf python/src/pyqol/bin
+	rm -rf dist
+	rm -rf build
+	rm -rf *.egg-info

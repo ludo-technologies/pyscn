@@ -5,7 +5,7 @@
 [![Status](https://img.shields.io/badge/Status-Alpha-green.svg)](https://github.com/pyqol/pyqol)
 [![CI](https://img.shields.io/badge/CI-Passing-brightgreen.svg)](https://github.com/pyqol/pyqol/actions)
 
-**A next-generation Python static analysis tool that uses Control Flow Graph (CFG) and tree edit distance algorithms to provide deep code quality insights beyond traditional linters.**
+**An intelligent Python code quality analyzer with architectural guidance - helping you write cleaner, more maintainable code through deep structural analysis.**
 
 While generative AI excels at writing code, it can struggle with maintaining clean architecture and code quality. `pyqol` acts as your intelligent code quality companion, designed to detect structural issues that traditional linters often miss:
 
