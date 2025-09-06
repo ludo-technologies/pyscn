@@ -61,3 +61,8 @@ __pycache__/
 
 # Claude Code setting
 .claude/
+
+# Internal documentation (sensitive/private)
+requirements.md
+AGENTS.md
+CLAUDE.md
