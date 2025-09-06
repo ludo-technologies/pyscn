@@ -6,8 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "pyqol"
 version = "0.1.0"
 description = "A next-generation Python static analysis tool using Control Flow Graph and tree edit distance algorithms"
-readme = "README.md"
-license = {file = "LICENSE"}
+license = {text = "MIT"}
 authors = [
     {name = "pyqol team", email = "team@pyqol.dev"}
 ]

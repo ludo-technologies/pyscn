@@ -16,24 +16,31 @@ detect_platform() {
     local os=$(uname -s | tr '[:upper:]' '[:lower:]')
     local arch=$(uname -m)
     
+    # Normalize architecture for consistent naming
+    case "$arch" in
+        x86_64) arch="amd64" ;;
+        aarch64) arch="arm64" ;;
+        # Keep arm64 as-is for macOS
+    esac
+    
     case "$os" in
         darwin)
             case "$arch" in
-                x86_64) echo "macosx_10_9_x86_64" ;;
+                amd64) echo "macosx_10_9_x86_64" ;;
                 arm64) echo "macosx_11_0_arm64" ;;
                 *) echo "unsupported"; exit 1 ;;
             esac
             ;;
         linux)
             case "$arch" in
-                x86_64) echo "manylinux_2_17_x86_64" ;;
-                aarch64) echo "manylinux_2_17_aarch64" ;;
+                amd64) echo "manylinux_2_17_x86_64" ;;
+                arm64) echo "manylinux_2_17_aarch64" ;;
                 *) echo "unsupported"; exit 1 ;;
             esac
             ;;
         mingw*|msys*|cygwin*)
             case "$arch" in
-                x86_64) echo "win_amd64" ;;
+                amd64) echo "win_amd64" ;;
                 *) echo "unsupported"; exit 1 ;;
             esac
             ;;
