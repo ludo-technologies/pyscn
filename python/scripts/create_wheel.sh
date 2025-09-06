@@ -7,7 +7,8 @@ set -e
 
 # Configuration
 PACKAGE_NAME="pyqol"
-VERSION="0.1.0"
+# Auto-detect version from git tags (remove 'v' prefix if present)
+VERSION=$(git describe --tags --always --dirty 2>/dev/null | sed 's/^v//' || echo "0.0.0.dev0")
 PYTHON_TAG="py3"
 ABI_TAG="none"
 

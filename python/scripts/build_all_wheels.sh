@@ -24,9 +24,13 @@ main() {
     local python_dir="$(dirname "$script_dir")"
     local project_dir="$(dirname "$python_dir")"
     
+    # Auto-detect version from git tags  
+    local version=$(git describe --tags --always --dirty 2>/dev/null | sed 's/^v//' || echo "0.0.0.dev0")
+    
     echo -e "${GREEN}Building wheels for all platforms...${NC}"
     echo "Project dir: $project_dir"
     echo "Python dir: $python_dir"
+    echo "Version: $version"
     
     # Create directories
     local bin_dir="$python_dir/src/pyqol/bin"
