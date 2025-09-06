@@ -198,7 +198,7 @@ func (pb *ProgressBarReporter) StartProgress(totalFiles int) {
 
 	pb.totalFiles = totalFiles
 	pb.processed = 0
-	fmt.Fprintf(pb.writer, "Analyzing %d files:\n", totalFiles)
+	fmt.Fprintf(pb.writer, "Analyzing %d files:", totalFiles)
 }
 
 func (pb *ProgressBarReporter) UpdateProgress(currentFile string, processed, total int) {
@@ -226,7 +226,8 @@ func (pb *ProgressBarReporter) UpdateProgress(currentFile string, processed, tot
 
 	bar := strings.Repeat("█", filled) + strings.Repeat("░", remaining)
 
-	fmt.Fprintf(pb.writer, "\r[%s] %3.0f%% (%d/%d) %s",
+	// Use ANSI escape sequences to clear the line and return to beginning
+	fmt.Fprintf(pb.writer, "\r\033[K[%s] %3.0f%% (%d/%d) %s",
 		bar, percentage*100, displayProcessed, displayTotal, filepath.Base(currentFile))
 }
 
@@ -242,6 +243,11 @@ func (pb *ProgressBarReporter) FinishProgress() {
 func CreateProgressReporter(writer io.Writer, totalFiles int, verbose bool) domain.ProgressReporter {
 	// Don't show progress for tests or when output is redirected to a file
 	if writer == nil || !isTerminal(writer) {
+		return NewNoOpProgressReporter()
+	}
+
+	// Disable progress reporting if totalFiles is 0 (used to disable progress in concurrent mode)
+	if totalFiles == 0 {
 		return NewNoOpProgressReporter()
 	}
 

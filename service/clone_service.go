@@ -65,11 +65,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 		defer cancel()
 	}
 
-	if s.progress != nil {
-		s.progress.StartProgress(len(filePaths))
-		defer s.progress.FinishProgress()
-		s.progress.UpdateProgress(fmt.Sprintf("Analyzing %d files for clones...", len(filePaths)), 0, len(filePaths))
-	}
+	// Progress reporting removed - file parsing is not the bottleneck
 
 	// Create clone detector with configuration
 	detectorConfig := s.createDetectorConfig(req)
@@ -84,7 +80,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	var allFragments []*analyzer.CodeFragment
 	linesAnalyzed := 0
 
-	for i, filePath := range filePaths {
+	for _, filePath := range filePaths {
 		// Check for context cancellation periodically
 		select {
 		case <-ctx.Done():
@@ -92,9 +88,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 		default:
 		}
 
-		if s.progress != nil {
-			s.progress.UpdateProgress(fmt.Sprintf("Processing: %s", filePath), i, len(filePaths))
-		}
+		// Progress reporting removed - file parsing is fast
 
 		// Read file content
 		content, err := readFileContent(filePath)
@@ -129,9 +123,6 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	}
 
 	if len(allFragments) == 0 {
-		if s.progress != nil {
-			s.progress.UpdateProgress("No code fragments found for analysis", len(filePaths), len(filePaths))
-		}
 		return &domain.CloneResponse{
 			Clones:      []*domain.Clone{},
 			ClonePairs:  []*domain.ClonePair{},
@@ -146,9 +137,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 		}, nil
 	}
 
-	if s.progress != nil {
-		s.progress.UpdateProgress(fmt.Sprintf("Found %d code fragments, detecting clones...", len(allFragments)), len(filePaths)-1, len(filePaths))
-	}
+	// Starting actual clone detection (this is the slow part)
 
 	// Detect clones with context support for cancellation
 	clonePairs, cloneGroups := detector.DetectClonesWithContext(ctx, allFragments)
