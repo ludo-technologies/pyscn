@@ -1,291 +1,226 @@
 # pyqol - Python Quality of Life
 
-[![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat-square&logo=go)](https://go.dev/)
+[![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-Alpha-green.svg)](https://github.com/pyqol/pyqol)
 [![CI](https://img.shields.io/badge/CI-Passing-brightgreen.svg)](https://github.com/pyqol/pyqol/actions)
 
-**An intelligent Python code quality analyzer with architectural guidance - helping you write cleaner, more maintainable code through deep structural analysis.**
-
-While generative AI excels at writing code, it can struggle with maintaining clean architecture and code quality. `pyqol` acts as your intelligent code quality companion, designed to detect structural issues that traditional linters often miss:
-
-- **Cyclomatic Complexity Analysis:** Uses CFG-based analysis to measure code complexity with configurable thresholds and risk assessment
-- **Dead Code Detection:** Leverages control flow analysis to find truly unreachable code that other tools miss
-- **Structural Clone Detection:** Uses APTED (tree edit distance) algorithms to find structurally similar code blocks for refactoring
-- **Clean Architecture:** Built with domain-driven design principles for maintainability and extensibility
-
-## ✨ Current Features (Alpha Release)
-
-### 🔍 Complexity Analysis
-Analyze McCabe cyclomatic complexity with advanced CFG-based computation:
+## Quick Start
 
 ```bash
-# Analyze complexity of Python files
+# Install (Python users)
+pip install pyqol
+
+# or install the Go binary directly
+go install github.com/pyqol/pyqol/cmd/pyqol@latest
+
+# Fast quality check (CI-friendly)
+pyqol check .
+
+# Comprehensive analysis with unified report
+pyqol analyze .
+```
+
+An intelligent Python code quality analyzer that performs deep, structural static analysis to help you write cleaner, more maintainable code.
+
+pyqol complements traditional linters with analyses based on control-flow graphs and tree edit distance:
+
+- Cyclomatic complexity: precise CFG-based metrics with risk thresholds and sorting
+- Dead code detection: unreachable code after return/break/continue/raise and unreachable branches
+- Code clone detection: APTED-based structural similarity (Type 1–4) with grouping and thresholds
+- Coupling Between Objects (CBO): class dependency metrics and risk levels
+
+All analyses are available as dedicated commands and via a unified analyze command that can generate HTML/JSON/YAML/CSV reports.
+
+## Features
+
+- Unified analyze workflow: run complexity, dead code, clone, and CBO together with a single command
+- Multiple formats: text, JSON, YAML, CSV, and HTML (auto-open supported)
+- Config discovery: Ruff-style hierarchical search and project-scoped defaults
+- Timestamped reports: output files named with timestamps and optional output directory
+- Clean Architecture: maintainable Go code with domain/use‑case separation and comprehensive tests
+
+## Performance
+
+- Analyzes thousands of lines per second with parallel processing
+
+## Commands Overview
+
+Run `pyqol --help` or `pyqol <command> --help` for all options. Root `--verbose` is supported.
+
+### analyze
+Run all major analyses concurrently and generate a unified report.
+
+```bash
+# Unified HTML report for a directory
+pyqol analyze --html src/
+
+# JSON/YAML/CSV are also supported
+pyqol analyze --json src/ > analyze.json
+
+# Skip specific analyses or tune thresholds
+pyqol analyze --skip-clones --min-complexity 10 --min-severity critical --min-cbo 5 src/
+```
+
+The unified report summarizes files analyzed, average complexity, high-complexity count, dead code findings, clone statistics (including duplication percentage), and CBO metrics, plus a health score.
+
+### complexity
+Analyze McCabe cyclomatic complexity using CFG.
+
+```bash
 pyqol complexity src/
-
-# JSON output for CI integration
-pyqol complexity --format json src/ > complexity-report.json
-
-# Filter by complexity thresholds
-pyqol complexity --min 5 --max 15 src/
-
-# Detailed breakdown with risk assessment
-pyqol complexity --details src/
+pyqol complexity --json src/ > complexity.json
+pyqol complexity --min 5 --max 15 --sort risk src/
+pyqol complexity --low-threshold 9 --medium-threshold 19 src/
 ```
 
-**Sample Output:**
-```
-Complexity Analysis Results
-==========================
-
-src/utils.py:
-  simple_function()     Complexity:  1  Risk: Low
-  process_data()        Complexity:  8  Risk: Medium  
-  complex_algorithm()   Complexity: 15  Risk: High
-
-Summary:
-  Total Functions: 23
-  Average Complexity: 4.2
-  High Risk: 3 functions
-```
-
-### 📊 Multiple Output Formats
-Export analysis results in various formats for different use cases:
+### deadcode
+Detect unreachable or unused code with severity levels and optional context.
 
 ```bash
-# Human-readable text (default)
-pyqol complexity src/
-
-# JSON for CI/CD integration
-pyqol complexity --format json src/
-
-# YAML for configuration management  
-pyqol complexity --format yaml src/
-
-# CSV for spreadsheet analysis
-pyqol complexity --format csv src/
+pyqol deadcode src/
+pyqol deadcode --format json --min-severity critical src/
+pyqol deadcode --show-context --context-lines 5 myfile.py
 ```
 
-### ⚙️ Configurable Analysis
-Fine-tune analysis with comprehensive options:
+Detects code after return/break/continue/raise, unreachable branches, and more. Sort by severity/line/file/function.
+
+### clone
+Find structurally similar code (Type 1–4) using APTED.
 
 ```bash
-# Custom complexity thresholds
-pyqol complexity --low-threshold 5 --medium-threshold 10 src/
-
-# Sorting options
-pyqol complexity --sort name src/        # Sort by function name
-pyqol complexity --sort complexity src/  # Sort by complexity score
-pyqol complexity --sort risk src/        # Sort by risk level
-
-# Filtering capabilities
-pyqol complexity --min 3 src/           # Only show complexity >= 3
-pyqol complexity --max 20 src/          # Only show complexity <= 20
+pyqol clone .
+pyqol clone --similarity-threshold 0.9 src/
+pyqol clone --details --show-content src/
+pyqol clone --clone-types type1,type2 --json src/ > clones.json
 ```
 
-### 🔧 Configuration System
+Filter by similarity range, group clones, sort by similarity/size/location/type, and choose cost models.
 
-pyqol uses a **Ruff-style hierarchical configuration system** for seamless project integration:
+### cbo
+Compute CBO (Coupling Between Objects) metrics for classes.
+
+```bash
+pyqol cbo src/
+pyqol cbo --min-cbo 5 --sort coupling src/
+pyqol cbo --json src/ > cbo.json
+```
+
+Includes thresholds for risk levels, sorting, and options for including built-ins/imports.
+
+### check
+Fast CI‑friendly gate with sensible defaults.
+
+```bash
+pyqol check .
+pyqol check --max-complexity 15 --skip-clones src/
+pyqol check --allow-dead-code src/
+```
+
+Exit codes: 0 (ok), 1 (quality issues), 2 (analysis error). Prints concise findings suitable for CI logs.
+
+### init
+Generate a starter `.pyqol.yaml` with comprehensive, documented options.
+
+```bash
+pyqol init            # create .pyqol.yaml in current directory
+pyqol init --config myconfig.yaml
+pyqol init --force    # overwrite if exists
+```
+
+## Configuration
+
+pyqol supports hierarchical configuration discovery:
+
+1. Target directory upward to filesystem root (nearest file wins)
+2. XDG: `$XDG_CONFIG_HOME/pyqol/`
+3. `~/.config/pyqol/`
+4. Home directory (backward compatibility)
+
+Supported filenames: `.pyqol.yaml`, `.pyqol.yml`, `pyqol.yaml`, `pyqol.yml`, and JSON variants.
+
+Example:
 
 ```yaml
 # .pyqol.yaml
 output:
-  directory: "reports"          # Output directory for generated reports
-  
+  directory: "build/reports"   # Timestamped reports go here (if set)
+  sort_by: name                 # name | complexity | risk
+  min_complexity: 1
+
 complexity:
-  low_threshold: 9             # Low complexity threshold  
-  medium_threshold: 19         # Medium complexity threshold
-  
-# Future configuration options
+  enabled: true
+  low_threshold: 9
+  medium_threshold: 19
+  max_complexity: 0             # 0 = no limit
+  report_unchanged: true
+
 dead_code:
   enabled: true
-  check_unused_imports: true
-  
-clone_detection:
-  similarity_threshold: 0.8
+  min_severity: warning         # critical | warning | info
+  show_context: false
+  context_lines: 3
+  sort_by: severity             # severity | line | file | function
+  detect_after_return: true
+  detect_after_break: true
+  detect_after_continue: true
+  detect_after_raise: true
+  detect_unreachable_branches: true
+
+clones:                         # unified clone settings (see CLI for full options)
   min_lines: 5
+  min_nodes: 5
+  similarity_threshold: 0.8
+
+cbo:                            # CBO settings (maps to cbo command flags)
+  enabled: true
+  low_threshold: 5
+  medium_threshold: 10
+  include_builtins: false
 ```
 
-**Configuration Discovery** (searched in order):
-1. **Target Directory & Parents**: Starting from analysis target, search upward to filesystem root
-2. **XDG Config Directory**: `$XDG_CONFIG_HOME/pyqol/` or `~/.config/pyqol/`
-3. **Home Directory**: `~/.pyqol.yaml` (backward compatibility)
+Notes:
 
-**Supported formats**: `.pyqol.yaml`, `.pyqol.yml`, `pyqol.yaml`, `pyqol.yml`, and JSON variants
+- Default include patterns: `*.py`, `*.pyi`; default exclude: `test_*.py`, `*_test.py`
+- Non-text formats (json/yaml/csv/html) are written as files; text prints to stdout
+- Filenames include a timestamp, e.g., `complexity_YYYYMMDD_HHMMSS.json`
 
-## 🏗️ Architecture & Design
+## Installation
 
-pyqol is built with **Clean Architecture** principles:
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   CLI Layer     │    │ Application     │    │    Domain       │
-│                 │───▶│   Use Cases     │───▶│   Interfaces    │
-│ Cobra Commands  │    │                 │    │   & Entities    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                 │
-                                 ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ Infrastructure  │    │   Service       │    │     Tests       │
-│                 │◀───│ Implementation  │    │                 │
-│ Tree-sitter CFG │    │                 │    │ Unit│Integ│E2E │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-**Benefits:**
-- **Testability:** Comprehensive test coverage (unit, integration, E2E)
-- **Maintainability:** Clear separation of concerns with dependency injection
-- **Extensibility:** Plugin architecture for new analyzers
-- **Performance:** Parallel processing and efficient algorithms
-
-## 🎯 Why Choose pyqol?
-
-| Tool | Focus | pyqol's Advantage |
-|------|-------|-------------------|
-| **Ruff** | Speed & Style | Deep CFG-based structural analysis |
-| **Pylint** | Rule Coverage | Tree edit distance clone detection |
-| **mypy** | Type Checking | Architectural quality metrics |
-| **Bandit** | Security | Design pattern recognition |
-| **SonarQube** | Commercial Tools | Lightweight, fast, extensible |
-
-## 🗓️ Development Roadmap
-
-### ✅ Phase 1: Core Features - **COMPLETE**
-- [x] **Clean Architecture Implementation** - Domain-driven design with dependency injection
-- [x] **Tree-sitter Integration** - Python parsing with robust CFG construction
-- [x] **Complexity Analysis** - McCabe cyclomatic complexity with risk assessment
-- [x] **CLI Framework** - Full-featured command interface with multiple output formats
-- [x] **Comprehensive Testing** - Unit, integration, and E2E test coverage
-- [x] **CI/CD Pipeline** - Cross-platform automated testing
-- [x] **Configuration System** - Ruff-style hierarchical YAML configuration with discovery
-
-### 🚧 Phase 2: Enhanced Features
-- [ ] **Advanced Configuration** - Enhanced rule customization and project-specific settings
-- [ ] **Performance Optimization** - Parallel processing and caching improvements
-- [ ] **Extended Python Support** - Support for latest Python language features
-
-### 🔮 Phase 3: Extended Features
-- [ ] **Dependency Analysis** - Import relationship mapping and circular dependency detection
-- [ ] **VS Code Extension** - Real-time analysis in popular editors
-- [ ] **Advanced Reporting** - HTML dashboards and trend analysis
-- [ ] **Advanced Features** - Team collaboration and CI/CD integration
-
-### 🌟 Phase 4: Advanced Integration
-- [ ] **Smart Suggestions** - Intelligent code improvement recommendations
-- [ ] **Auto-fix Capabilities** - Automated refactoring proposals
-- [ ] **Multi-language Support** - JavaScript, TypeScript, Go analysis
-- [ ] **Advanced Integrations** - Enhanced toolchain and platform support
-
-## 🛠️ Technology Stack
-
-- **Language**: Go 1.22+ (with 1.24 support)
-- **Parser**: Tree-sitter with Python grammar
-- **Architecture**: Clean Architecture with Domain-Driven Design
-- **Algorithms**: Control Flow Graph (CFG), APTED tree edit distance
-- **CLI**: Cobra framework with comprehensive flag support
-- **Testing**: Comprehensive test suite (unit, integration, E2E)
-- **CI/CD**: GitHub Actions with cross-platform testing
-
-## 📦 Installation
-
-### Quick Start
+### Install via pip (recommended for Python users)
 
 ```bash
-# Clone and build
+pip install pyqol
+```
+
+If you prefer to build wheels locally (e.g., for development), see the Python section below.
+
+### Build from source (Go)
+
+```bash
 git clone https://github.com/pyqol/pyqol.git
 cd pyqol
-make build
-
-# Try it out!
-./pyqol complexity --help
-```
-
-### Build from Source
-
-```bash
-# Using Make (recommended)
-make build
-
-# Manual build with Go
-go build -o pyqol ./cmd/pyqol
+make build     # or: go build -o pyqol ./cmd/pyqol
 
 # Install globally
 go install github.com/pyqol/pyqol/cmd/pyqol@latest
 ```
 
-### Development Setup
+### Python wheel (optional)
+
+This repo includes a Python wrapper that bundles platform binaries for `pyqol`. If you’re packaging or testing wheels locally:
 
 ```bash
-# Clone repository  
-git clone https://github.com/pyqol/pyqol.git
-cd pyqol
+# Build wheel for current platform
+make python-wheel
+pip install dist/*.whl
 
-# Install dependencies
-go mod download
-
-# Run tests
-make test
-
-# Run with hot reload (requires air)
-make dev
+# Run
+pyqol version
 ```
 
-## 🧪 Usage Examples
+For all-platform wheels and cross-compiling, see `python/scripts/build_all_wheels.sh`.
 
-### Basic Complexity Analysis
-
-```bash
-# Analyze a single file
-pyqol complexity main.py
-
-# Analyze a directory recursively  
-pyqol complexity src/
-
-# Get help for all options
-pyqol complexity --help
-```
-
-### Advanced Usage
-
-```bash
-# Generate JSON report for CI/CD
-pyqol complexity --format json src/ | jq '.summary'
-
-# Find only high-complexity functions
-pyqol complexity --min 10 src/
-
-# Custom thresholds for risk assessment
-pyqol complexity --low-threshold 3 --medium-threshold 7 src/
-
-# Detailed analysis with breakdown
-pyqol complexity --details --sort risk src/
-```
-
-### Configuration-Based Analysis
-
-Create a `.pyqol.yaml` file in your project root:
-
-```yaml
-# .pyqol.yaml
-output:
-  directory: "build/reports"   # All reports go to build/reports/
-  
-complexity:
-  low_threshold: 5
-  medium_threshold: 10
-```
-
-Then run analysis with automatic configuration discovery:
-
-```bash
-# Uses configuration from nearest .pyqol.yaml (searches upward)
-pyqol complexity src/
-
-# Configuration is found automatically - no flags needed!
-# Output files will be saved to build/reports/ directory
-```
-
-### CI/CD Integration
+## CI/CD Example
 
 ```yaml
 # .github/workflows/code-quality.yml
@@ -293,112 +228,38 @@ name: Code Quality
 on: [push, pull_request]
 
 jobs:
-  complexity:
+  analyze:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
-      
-      - name: Install pyqol
-        run: go install github.com/pyqol/pyqol/cmd/pyqol@latest
-      
-      - name: Run complexity analysis
-        run: |
-          pyqol complexity --format json src/ > complexity.json
-          # Fail if any function has complexity > 15
-          pyqol complexity --max 15 src/
+          go-version: '1.24'
+      - run: go install github.com/pyqol/pyqol/cmd/pyqol@latest
+      - name: Unified analysis (JSON)
+        run: pyqol analyze --json src/ > analyze.json
+      - name: Enforce thresholds
+        run: pyqol check .
 ```
 
-## 🔧 Development
+## Development
 
-### Prerequisites
+- Go 1.24+, Make, Git
+- Commands: `make build`, `make test`, `make coverage`, `make bench`, `make clean`, `make dev`
+- See docs for details: [DEVELOPMENT.md](docs/DEVELOPMENT.md), [TESTING.md](docs/TESTING.md), [ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-- **Go 1.22+** (recommended: 1.24 for development)
-- **Make** (optional but recommended)
-- **Git** for version control
+## License
 
-### Development Commands
+MIT License — see [LICENSE](LICENSE).
 
-| Command | Description |
-|---------|-------------|
-| `make build` | Build the binary |
-| `make test` | Run all tests with race detection |
-| `make test-unit` | Run only unit tests |
-| `make test-integration` | Run integration tests |
-| `make test-e2e` | Run end-to-end tests |
-| `make bench` | Run performance benchmarks |
-| `make coverage` | Generate test coverage report |
-| `make fmt` | Format code with gofmt |
-| `make lint` | Run golangci-lint |
-| `make clean` | Clean build artifacts |
+## Version
 
-### Testing
+Run `pyqol version` for build/version details (commit, date, platform). The repository may be in active development; prefer the binary’s version output over hardcoded README text.
 
-```bash
-# Run all tests
-make test
+## Acknowledgments
 
-# Run specific test suites
-go test ./cmd/pyqol        # CLI tests
-go test ./domain          # Domain logic tests  
-go test ./integration     # Integration tests
-go test ./e2e             # End-to-end tests
+- Tree-sitter for robust parsing
+- Go community for tooling and libraries
+- Research and open-source work on static analysis and tree edit distance
 
-# Run with coverage
-go test -cover ./...
-
-# Run benchmarks
-go test -bench=. ./internal/analyzer
-```
-
-## 🤝 Contributing
-
-We're building pyqol in the open! Contributions are welcome:
-
-- 🐛 **Bug Reports** - Found an issue? Open a GitHub issue
-- 💡 **Feature Requests** - Have ideas? Start a discussion
-- 📖 **Documentation** - Help improve our docs
-- 🔧 **Code Contributions** - Submit PRs with tests
-- 🧪 **Testing** - Help us test on different Python codebases
-
-### Development Workflow
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make changes with tests: `make test`
-4. Commit using conventional commits: `git commit -m "feat: add amazing feature"`
-5. Push and create a pull request
-
-Please see our [Contributing Guide](CONTRIBUTING.md) and [Development Guide](docs/DEVELOPMENT.md).
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## 🌟 Project Status
-
-- **Current Version**: Beta (v0.1.0-beta)
-- **Go Modules**: Stable API  
-- **Testing**: Comprehensive test coverage
-- **CI/CD**: Cross-platform automated testing
-- **Documentation**: Complete architecture and usage docs
-
-### Performance Benchmarks
-
-- **Parser**: ~50,000 lines/second
-- **CFG Construction**: ~25,000 lines/second ✅ (high performance)
-- **Complexity Calculation**: ~0.1ms per function ✅ (fast execution)
-
-## 🙏 Acknowledgments
-
-- **Tree-sitter** team for the excellent parsing library
-- **Go community** for the robust ecosystem
-- **Static analysis research** for algorithmic foundations
-
----
-
-**Ready to improve your Python code quality?** Give pyqol a try and let us know what you think!
-
-Built with ❤️ by the pyqol team | [GitHub](https://github.com/pyqol/pyqol) | [Documentation](docs/)
+— Built with ❤️ by the pyqol team
