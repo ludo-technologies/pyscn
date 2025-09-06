@@ -65,10 +65,7 @@ func (uc *CBOUseCase) prepareAnalysis(ctx context.Context, req domain.CBORequest
 		return req, domain.NewInvalidInputError("no Python files found in the specified paths", nil)
 	}
 
-	// Start progress reporting
-	if uc.progress != nil {
-		uc.progress.StartProgress(len(files))
-	}
+	// Progress reporting removed - not meaningful for file parsing
 
 	// Update request with collected files
 	finalReq.Paths = files
@@ -82,11 +79,7 @@ func (uc *CBOUseCase) Execute(ctx context.Context, req domain.CBORequest) error 
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if uc.progress != nil {
-			uc.progress.FinishProgress()
-		}
-	}()
+	// Progress reporting removed
 
 	// Perform analysis
 	response, err := uc.service.Analyze(ctx, finalReq)
@@ -115,11 +108,7 @@ func (uc *CBOUseCase) AnalyzeAndReturn(ctx context.Context, req domain.CBOReques
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if uc.progress != nil {
-			uc.progress.FinishProgress()
-		}
-	}()
+	// Progress reporting removed
 
 	// Perform analysis and return the response
 	response, err := uc.service.Analyze(ctx, finalReq)

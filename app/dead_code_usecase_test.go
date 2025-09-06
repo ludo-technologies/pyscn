@@ -203,8 +203,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				progress.On("StartProgress", 1)
-				progress.On("FinishProgress")
+				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return(createMockDeadCodeResponse(), nil)
 				formatter.On("Write", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
@@ -375,8 +374,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				progress.On("StartProgress", 1)
-				progress.On("FinishProgress")
+				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return((*domain.DeadCodeResponse)(nil), errors.New("CFG analysis failed"))
 			},
@@ -391,8 +389,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				progress.On("StartProgress", 1)
-				progress.On("FinishProgress")
+				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return(createMockDeadCodeResponse(), nil)
 				formatter.On("Write", mock.Anything, domain.OutputFormatText, os.Stdout).
@@ -419,8 +416,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 					Return(&mergedReq)
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				progress.On("StartProgress", 1)
-				progress.On("FinishProgress")
+				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return(createMockDeadCodeResponse(), nil)
 				formatter.On("Write", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
@@ -478,8 +474,7 @@ func TestDeadCodeUseCase_AnalyzeAndReturn(t *testing.T) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				progress.On("StartProgress", 1)
-				progress.On("FinishProgress")
+				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return(createMockDeadCodeResponse(), nil)
 			},
@@ -504,8 +499,7 @@ func TestDeadCodeUseCase_AnalyzeAndReturn(t *testing.T) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				progress.On("StartProgress", 1)
-				progress.On("FinishProgress")
+				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return((*domain.DeadCodeResponse)(nil), errors.New("CFG construction failed"))
 			},

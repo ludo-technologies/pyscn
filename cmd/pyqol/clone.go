@@ -208,6 +208,18 @@ func (c *CloneCommand) runCloneDetection(cmd *cobra.Command, args []string) erro
 		args = []string{"."}
 	}
 
+	// Pre-calculate file count for progress reporting
+	fileReader := service.NewFileReader()
+	pythonFiles, err := fileReader.CollectPythonFiles(
+		args,
+		true, // recursive
+		[]string{"*.py", "*.pyi"},
+		[]string{},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to collect Python files: %w", err)
+	}
+
 	// Create clone request from command flags
 	request, err := c.createCloneRequest(cmd, args)
 	if err != nil {
@@ -219,8 +231,8 @@ func (c *CloneCommand) runCloneDetection(cmd *cobra.Command, args []string) erro
 		return fmt.Errorf("invalid request: %w", err)
 	}
 
-	// Create clone use case with dependencies
-	useCase, err := c.createCloneUseCase(cmd)
+	// Create clone use case with file count for proper progress reporting
+	useCase, err := c.createCloneUseCaseWithFileCount(cmd, len(pythonFiles))
 	if err != nil {
 		return fmt.Errorf("failed to create clone use case: %w", err)
 	}
@@ -348,7 +360,9 @@ func (c *CloneCommand) createCloneUseCase(cmd *cobra.Command) (*app.CloneUseCase
 	fileReader := service.NewFileReader()
 	formatter := service.NewCloneOutputFormatter()
 	configLoader := service.NewCloneConfigurationLoaderWithFlags(explicitFlags)
-	progress := service.CreateProgressReporter(cmd.ErrOrStderr(), 0, c.verbose)
+	
+	// Create no-op progress reporter (file parsing progress is not meaningful)
+	progress := service.NewNoOpProgressReporter()
 	cloneService := service.NewCloneService(progress)
 
     // Build use case with dependencies
@@ -360,6 +374,12 @@ func (c *CloneCommand) createCloneUseCase(cmd *cobra.Command) (*app.CloneUseCase
         WithProgress(progress).
         WithOutputWriter(service.NewFileOutputWriter(cmd.ErrOrStderr())).
         Build()
+}
+
+// createCloneUseCaseWithFileCount is now deprecated - use createCloneUseCase instead
+func (c *CloneCommand) createCloneUseCaseWithFileCount(cmd *cobra.Command, fileCount int) (*app.CloneUseCase, error) {
+	// File count is ignored - all progress reporting is disabled
+	return c.createCloneUseCase(cmd)
 }
 
 // parseSortCriteria parses and validates the sort criteria

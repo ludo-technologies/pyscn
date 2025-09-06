@@ -66,11 +66,7 @@ func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityR
 		return domain.NewInvalidInputError("no Python files found in the specified paths", nil)
 	}
 
-	// Start progress reporting
-	if uc.progress != nil {
-		uc.progress.StartProgress(len(files))
-		defer uc.progress.FinishProgress()
-	}
+	// Progress reporting removed - not meaningful for file parsing
 
 	// Update request with collected files
 	finalReq.Paths = files
@@ -123,11 +119,7 @@ func (uc *ComplexityUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Co
 		return nil, domain.NewInvalidInputError("no Python files found in the specified paths", nil)
 	}
 
-	// Start progress reporting
-	if uc.progress != nil {
-		uc.progress.StartProgress(len(files))
-		defer uc.progress.FinishProgress()
-	}
+	// Progress reporting removed - not meaningful for file parsing
 
 	// Update request with collected files
 	finalReq.Paths = files
