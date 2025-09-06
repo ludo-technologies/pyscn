@@ -1,0 +1,83 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyqol"
+version = "0.1.0"
+description = "A next-generation Python static analysis tool using Control Flow Graph and tree edit distance algorithms"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "pyqol team", email = "team@pyqol.dev"}
+]
+maintainers = [
+    {name = "pyqol team", email = "team@pyqol.dev"}
+]
+keywords = [
+    "python",
+    "static-analysis",
+    "code-quality",
+    "complexity",
+    "linter",
+    "ast",
+    "cfg",
+    "dead-code"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+requires-python = ">=3.8"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "build>=0.7.0",
+    "twine>=3.0.0",
+]
+
+[project.scripts]
+pyqol = "pyqol.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/pyqol/pyqol"
+Documentation = "https://github.com/pyqol/pyqol/tree/main/docs"
+Repository = "https://github.com/pyqol/pyqol"
+Issues = "https://github.com/pyqol/pyqol/issues"
+Changelog = "https://github.com/pyqol/pyqol/blob/main/CHANGELOG.md"
+
+[tool.setuptools]
+packages = ["pyqol"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+pyqol = ["bin/*"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["*.py[co]", "__pycache__", "*.so", "*.pyd"]
+
+[build]
+exclude = [
+    "*.pyc",
+    "*.pyo", 
+    "__pycache__",
+    ".git",
+    ".gitignore",
+    "*.md",
+    "tests/",
+    "docs/"
+]
