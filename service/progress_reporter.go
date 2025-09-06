@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -226,9 +227,16 @@ func (pb *ProgressBarReporter) UpdateProgress(currentFile string, processed, tot
 
 	bar := strings.Repeat("█", filled) + strings.Repeat("░", remaining)
 
-	// Use ANSI escape sequences to clear the line and return to beginning
-	fmt.Fprintf(pb.writer, "\r\033[K[%s] %3.0f%% (%d/%d) %s",
-		bar, percentage*100, displayProcessed, displayTotal, filepath.Base(currentFile))
+	// Clear line and return to beginning (cross-platform compatible)
+	if supportsANSI() {
+		// Use ANSI escape sequence on Unix/Linux/macOS
+		fmt.Fprintf(pb.writer, "\r\033[K[%s] %3.0f%% (%d/%d) %s",
+			bar, percentage*100, displayProcessed, displayTotal, filepath.Base(currentFile))
+	} else {
+		// Use simple carriage return on Windows (may leave artifacts but safer)
+		fmt.Fprintf(pb.writer, "\r[%s] %3.0f%% (%d/%d) %s",
+			bar, percentage*100, displayProcessed, displayTotal, filepath.Base(currentFile))
+	}
 }
 
 func (pb *ProgressBarReporter) FinishProgress() {
@@ -273,4 +281,11 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// supportsANSI checks if the current platform supports ANSI escape sequences
+func supportsANSI() bool {
+	// Windows traditionally doesn't support ANSI escape sequences in older versions
+	// Modern Windows 10+ with Windows Terminal does support them, but we use conservative approach
+	return runtime.GOOS != "windows"
 }
