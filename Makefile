@@ -6,7 +6,8 @@ GO_MODULE := github.com/pyqol/pyqol
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 DATE := $(shell date +%Y-%m-%d)
-LDFLAGS := -ldflags "-X '$(GO_MODULE)/internal/version.Version=$(VERSION)' \
+LDFLAGS := -ldflags "-s -w \
+                     -X '$(GO_MODULE)/internal/version.Version=$(VERSION)' \
                      -X '$(GO_MODULE)/internal/version.Commit=$(COMMIT)' \
                      -X '$(GO_MODULE)/internal/version.Date=$(DATE)' \
                      -X '$(GO_MODULE)/internal/version.BuiltBy=make'"
@@ -128,7 +129,7 @@ build-python:
 python-wheel:
 	@echo "$(GREEN)Building Python wheel for current platform...$(NC)"
 	@mkdir -p python/src/pyqol/bin dist
-	go build $(LDFLAGS) -ldflags="-s -w" -o python/src/pyqol/bin/pyqol-$$(go env GOOS)-$$(go env GOARCH)$$(if [ "$$(go env GOOS)" = "windows" ]; then echo ".exe"; fi) ./cmd/pyqol
+	go build $(LDFLAGS) -o python/src/pyqol/bin/pyqol-$$(go env GOOS)-$$(go env GOARCH)$$(if [ "$$(go env GOOS)" = "windows" ]; then echo ".exe"; fi) ./cmd/pyqol
 	python/scripts/create_wheel.sh
 
 ## python-test: Test Python package installation
