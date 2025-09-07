@@ -104,7 +104,7 @@ jobs:
       url: https://pypi.org/p/pyscn
     
     permissions:
-      id-token: write  # For trusted publishing
+      contents: read  # For downloading artifacts
     
     steps:
     - name: Download wheels
@@ -134,7 +134,7 @@ jobs:
       url: https://test.pypi.org/p/pyscn
     
     permissions:
-      id-token: write  # For trusted publishing
+      contents: read  # For downloading artifacts
     
     steps:
     - name: Download wheels
