@@ -8,8 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const defaultConfigTemplate = `# pyqol configuration file
-# This file configures all analysis features of pyqol
+const defaultConfigTemplate = `# pyscn configuration file
+# This file configures all analysis features of pyscn
 # Place this file in your project root to customize analysis behavior
 
 # =============================================================================
@@ -169,7 +169,7 @@ type InitCommand struct {
 func NewInitCommand() *InitCommand {
 	return &InitCommand{
 		force:      false,
-		configPath: ".pyqol.yaml",
+		configPath: ".pyscn.yaml",
 	}
 }
 
@@ -177,12 +177,12 @@ func NewInitCommand() *InitCommand {
 func (i *InitCommand) CreateCobraCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Initialize pyqol configuration file",
-		Long: `Initialize a pyqol configuration file in the current directory.
+		Short: "Initialize pyscn configuration file",
+		Long: `Initialize a pyscn configuration file in the current directory.
 
-Creates a .pyqol.yaml file with comprehensive configuration options and
+Creates a .pyscn.yaml file with comprehensive configuration options and
 helpful comments explaining each setting. This file allows you to customize
-pyqol's behavior for your project.
+pyscn's behavior for your project.
 
 The generated configuration includes settings for:
 • Complexity analysis thresholds and options
@@ -192,20 +192,20 @@ The generated configuration includes settings for:
 • Output formatting preferences
 
 Examples:
-  # Create .pyqol.yaml in current directory
-  pyqol init
+  # Create .pyscn.yaml in current directory
+  pyscn init
 
   # Create config file with custom name
-  pyqol init --config myconfig.yaml
+  pyscn init --config myconfig.yaml
 
   # Overwrite existing configuration file
-  pyqol init --force`,
+  pyscn init --force`,
 		RunE: i.runInit,
 	}
 
 	// Add flags
 	cmd.Flags().BoolVarP(&i.force, "force", "f", false, "Overwrite existing configuration file")
-	cmd.Flags().StringVarP(&i.configPath, "config", "c", ".pyqol.yaml", "Configuration file path")
+	cmd.Flags().StringVarP(&i.configPath, "config", "c", ".pyscn.yaml", "Configuration file path")
 
 	return cmd
 }
@@ -241,10 +241,10 @@ func (i *InitCommand) runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Fprintf(cmd.OutOrStdout(), "✅ Configuration file created: %s\n", relPath)
-	fmt.Fprintf(cmd.OutOrStdout(), "\nTo customize pyqol for your project:\n")
+	fmt.Fprintf(cmd.OutOrStdout(), "\nTo customize pyscn for your project:\n")
 	fmt.Fprintf(cmd.OutOrStdout(), "  1. Edit %s\n", relPath)
 	fmt.Fprintf(cmd.OutOrStdout(), "  2. Uncomment and modify settings as needed\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "  3. Run 'pyqol analyze .' to use your configuration\n")
+	fmt.Fprintf(cmd.OutOrStdout(), "  3. Run 'pyscn analyze .' to use your configuration\n")
 
 	return nil
 }

@@ -1,19 +1,19 @@
 """
-pyqol - A next-generation Python static analysis tool.
+pyscn - A next-generation Python static analysis tool.
 
-This package provides a Python wrapper for the pyqol binary,
+This package provides a Python wrapper for the pyscn binary,
 which is implemented in Go for high performance.
 """
 
 from importlib.metadata import version, PackageNotFoundError
 
 try:
-    __version__ = version("pyqol")
+    __version__ = version("pyscn")
 except PackageNotFoundError:
     __version__ = "0.0.0"
 
-__author__ = "pyqol team"
-__email__ = "team@pyqol.dev"
+__author__ = "pyscn team"
+__email__ = "team@pyscn.dev"
 
 from .main import main
 

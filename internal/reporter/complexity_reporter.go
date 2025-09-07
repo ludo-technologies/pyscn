@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pyqol/pyqol/internal/config"
-	"github.com/pyqol/pyqol/internal/version"
+	"github.com/ludo-technologies/pyscn/internal/config"
+	"github.com/ludo-technologies/pyscn/internal/version"
 	"gopkg.in/yaml.v3"
 )
 
@@ -86,7 +86,7 @@ type ReportMetadata struct {
 	// GeneratedAt is when the report was generated
 	GeneratedAt time.Time `json:"generated_at" yaml:"generated_at"`
 
-	// Version is the pyqol version used
+	// Version is the pyscn version used
 	Version string `json:"version" yaml:"version"`
 
 	// Configuration is the analysis configuration used

@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pyqol/pyqol/app"
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/service"
+	"github.com/ludo-technologies/pyscn/app"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/service"
 	"github.com/spf13/cobra"
 )
 
@@ -84,10 +84,10 @@ Detection types:
   • Code after infinite loops
 
 Examples:
-  pyqol deadcode myfile.py
-  pyqol deadcode src/
-  pyqol deadcode --format json --min-severity critical src/
-  pyqol deadcode --show-context --context-lines 5 myfile.py`,
+  pyscn deadcode myfile.py
+  pyscn deadcode src/
+  pyscn deadcode --format json --min-severity critical src/
+  pyscn deadcode --show-context --context-lines 5 myfile.py`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: c.runDeadCodeAnalysis,
 	}
@@ -350,12 +350,12 @@ func (c *DeadCodeCommand) handleAnalysisError(err error) error {
 // GetUsageExamples returns example usage commands
 func (c *DeadCodeCommand) GetUsageExamples() []string {
 	return []string{
-		"pyqol deadcode myfile.py",
-		"pyqol deadcode src/",
-		"pyqol deadcode --format json src/",
-		"pyqol deadcode --min-severity critical --show-context src/",
-		"pyqol deadcode --sort line --context-lines 5 myfile.py",
-		"pyqol deadcode --config .pyqol.yaml src/",
+		"pyscn deadcode myfile.py",
+		"pyscn deadcode src/",
+		"pyscn deadcode --format json src/",
+		"pyscn deadcode --min-severity critical --show-context src/",
+		"pyscn deadcode --sort line --context-lines 5 myfile.py",
+		"pyscn deadcode --config .pyscn.yaml src/",
 	}
 }
 

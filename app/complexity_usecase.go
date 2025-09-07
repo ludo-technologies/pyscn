@@ -6,8 +6,8 @@ import (
     "io"
     "time"
 
-    "github.com/pyqol/pyqol/domain"
-    svc "github.com/pyqol/pyqol/service"
+    "github.com/ludo-technologies/pyscn/domain"
+    svc "github.com/ludo-technologies/pyscn/service"
 )
 
 // ComplexityUseCase orchestrates the complexity analysis workflow

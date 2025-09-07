@@ -1,6 +1,6 @@
 # Coding Standards
 
-This document defines the coding standards for the pyqol project. All contributors must follow these guidelines to ensure consistency and maintainability.
+This document defines the coding standards for the pyscn project. All contributors must follow these guidelines to ensure consistency and maintainability.
 
 ## Go Code Style
 
@@ -140,8 +140,8 @@ import (
     "context"
     "fmt"
     
-    "github.com/pyqol/pyqol/internal/parser"
-    "github.com/pyqol/pyqol/pkg/api"
+    "github.com/pyscn/pyscn/internal/parser"
+    "github.com/pyscn/pyscn/pkg/api"
     
     "github.com/third-party/lib"
 )
@@ -179,8 +179,8 @@ import (
     "fmt"
     "io"
     
-    "github.com/pyqol/pyqol/internal/parser"
-    "github.com/pyqol/pyqol/internal/analyzer"
+    "github.com/pyscn/pyscn/internal/parser"
+    "github.com/pyscn/pyscn/internal/analyzer"
     
     "github.com/spf13/cobra"
     "github.com/stretchr/testify/assert"

@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pyqol/pyqol/app"
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/service"
+	"github.com/ludo-technologies/pyscn/app"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/service"
 	"github.com/spf13/cobra"
 )
 
@@ -124,19 +124,19 @@ and presented in a unified format.
 
 Examples:
   # Analyze current directory
-  pyqol analyze .
+  pyscn analyze .
 
   # Analyze specific files with JSON output
-  pyqol analyze --json src/myfile.py
+  pyscn analyze --json src/myfile.py
 
   # Skip clone detection, focus on complexity, dead code, and dependencies
-  pyqol analyze --skip-clones src/
+  pyscn analyze --skip-clones src/
 
   # Quick analysis with higher thresholds  
-  pyqol analyze --min-complexity 10 --min-severity critical --min-cbo 5 src/
+  pyscn analyze --min-complexity 10 --min-severity critical --min-cbo 5 src/
 
   # Skip dependency analysis
-  pyqol analyze --skip-cbo src/`,
+  pyscn analyze --skip-cbo src/`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: c.runAnalyze,
 	}
@@ -257,7 +257,7 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(cmd.ErrOrStderr(), "\n💡 Suggestions:\n")
 		fmt.Fprintf(cmd.ErrOrStderr(), "  • Check that the path exists and contains Python files (*.py, *.pyi)\n")
 		fmt.Fprintf(cmd.ErrOrStderr(), "  • Try running from a directory containing Python code\n")
-		fmt.Fprintf(cmd.ErrOrStderr(), "  • Use 'pyqol analyze .' to analyze the current directory\n")
+		fmt.Fprintf(cmd.ErrOrStderr(), "  • Use 'pyscn analyze .' to analyze the current directory\n")
 		fmt.Fprintf(cmd.ErrOrStderr(), "  • Specify a valid Python file or directory path\n")
 		return fmt.Errorf("no Python files found to analyze")
 	}
@@ -660,10 +660,10 @@ func (c *AnalyzeCommand) printRecoverySuggestions(cmd *cobra.Command, errorCateg
 		switch category {
 		case ErrorCategoryInput:
 			fmt.Fprintf(cmd.ErrOrStderr(), "  📁 Input Issues: Check that files/directories exist and contain Python files\n")
-			fmt.Fprintf(cmd.ErrOrStderr(), "     Try: pyqol analyze . --verbose to see detailed file discovery\n")
+			fmt.Fprintf(cmd.ErrOrStderr(), "     Try: pyscn analyze . --verbose to see detailed file discovery\n")
 		case ErrorCategoryConfig:
 			fmt.Fprintf(cmd.ErrOrStderr(), "  ⚙️  Config Issues: Verify configuration file format and values\n")
-			fmt.Fprintf(cmd.ErrOrStderr(), "     Try: pyqol init to generate a valid config file\n")
+			fmt.Fprintf(cmd.ErrOrStderr(), "     Try: pyscn init to generate a valid config file\n")
 		case ErrorCategoryTimeout:
 			fmt.Fprintf(cmd.ErrOrStderr(), "  ⏰ Timeout Issues: Consider analyzing smaller file sets or increasing timeout\n")
 			fmt.Fprintf(cmd.ErrOrStderr(), "     Try: Analyze specific files instead of entire directories\n")
@@ -675,11 +675,11 @@ func (c *AnalyzeCommand) printRecoverySuggestions(cmd *cobra.Command, errorCateg
 			fmt.Fprintf(cmd.ErrOrStderr(), "     Try: Run individual analysis types to isolate the problem\n")
 		case ErrorCategoryUnknown:
 			fmt.Fprintf(cmd.ErrOrStderr(), "  ❓ Unknown Issues: Run with --verbose for detailed error information\n")
-			fmt.Fprintf(cmd.ErrOrStderr(), "     Try: pyqol analyze . --verbose or check GitHub issues\n")
+			fmt.Fprintf(cmd.ErrOrStderr(), "     Try: pyscn analyze . --verbose or check GitHub issues\n")
 		}
 	}
 
-	fmt.Fprintf(cmd.ErrOrStderr(), "\n  📖 For more help: pyqol --help or visit the documentation\n")
+	fmt.Fprintf(cmd.ErrOrStderr(), "\n  📖 For more help: pyscn --help or visit the documentation\n")
 }
 
 // monitorAnalysisProgress provides real-time status updates during analysis

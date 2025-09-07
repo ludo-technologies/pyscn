@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pyqol/pyqol/app"
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/internal/constants"
-	"github.com/pyqol/pyqol/service"
+	"github.com/ludo-technologies/pyscn/app"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/constants"
+	"github.com/ludo-technologies/pyscn/service"
 )
 
 // TestCloneDetectionIntegration tests the complete clone detection workflow

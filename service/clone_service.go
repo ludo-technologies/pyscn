@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/internal/analyzer"
-	"github.com/pyqol/pyqol/internal/parser"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/analyzer"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 // CloneService implements the domain.CloneService interface

@@ -291,12 +291,12 @@ func searchConfigInDirectory(dir string, candidates []string) string {
 // targetPath is the path being analyzed (e.g., the Python file or directory)
 func findDefaultConfig(targetPath string) string {
 	candidates := []string{
-		"pyqol.yaml",
-		"pyqol.yml",
-		".pyqol.yaml",
-		".pyqol.yml",
-		"pyqol.json",
-		".pyqol.json",
+		"pyscn.yaml",
+		"pyscn.yml",
+		".pyscn.yaml",
+		".pyscn.yml",
+		"pyscn.json",
+		".pyscn.json",
 	}
 
 	// If targetPath is provided, search from there upward
@@ -336,14 +336,14 @@ func findDefaultConfig(targetPath string) string {
 
 	// Check XDG config directory (Linux/Mac standard)
 	if xdgConfig := os.Getenv("XDG_CONFIG_HOME"); xdgConfig != "" {
-		if config := searchConfigInDirectory(filepath.Join(xdgConfig, "pyqol"), candidates); config != "" {
+		if config := searchConfigInDirectory(filepath.Join(xdgConfig, "pyscn"), candidates); config != "" {
 			return config
 		}
 	}
 	
-	// Check ~/.config/pyqol/ (XDG default)
+	// Check ~/.config/pyscn/ (XDG default)
 	if home, err := os.UserHomeDir(); err == nil {
-		configDir := filepath.Join(home, ".config", "pyqol")
+		configDir := filepath.Join(home, ".config", "pyscn")
 		if config := searchConfigInDirectory(configDir, candidates); config != "" {
 			return config
 		}

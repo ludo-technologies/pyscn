@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/pyqol/pyqol/internal/constants"
+	"github.com/ludo-technologies/pyscn/internal/constants"
 )
 
 // CloneType represents different types of code clones

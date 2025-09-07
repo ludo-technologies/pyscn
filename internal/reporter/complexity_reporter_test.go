@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pyqol/pyqol/internal/config"
+	"github.com/ludo-technologies/pyscn/internal/config"
 	"gopkg.in/yaml.v3"
 )
 

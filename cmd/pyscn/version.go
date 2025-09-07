@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/pyqol/pyqol/internal/version"
+	"github.com/ludo-technologies/pyscn/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -24,17 +24,17 @@ func (v *VersionCommand) CreateCobraCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Show version information",
-		Long: `Display detailed version information for pyqol.
+		Long: `Display detailed version information for pyscn.
 
 Shows version number, build commit, build date, Go version, and platform information.
 Use --short to display only the version number.
 
 Examples:
   # Show full version information
-  pyqol version
+  pyscn version
 
   # Show only version number (useful for scripts)
-  pyqol version --short`,
+  pyscn version --short`,
 		RunE: v.runVersion,
 	}
 

@@ -4,7 +4,7 @@ import (
     "encoding/json"
     "io"
 
-    "github.com/pyqol/pyqol/domain"
+    "github.com/ludo-technologies/pyscn/domain"
     "gopkg.in/yaml.v3"
 )
 

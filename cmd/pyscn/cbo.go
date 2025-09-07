@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/pyqol/pyqol/app"
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/service"
+	"github.com/ludo-technologies/pyscn/app"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/service"
 )
 
 var (
@@ -49,13 +49,13 @@ indicates that a class depends on many other classes, making it harder to
 maintain, test, and reuse.
 
 Examples:
-  pyqol cbo src/                    # Analyze all Python files in src/
-  pyqol cbo --min-cbo 5 src/        # Show only classes with CBO >= 5
-  pyqol cbo --sort coupling src/    # Sort by CBO count (default)
-  pyqol cbo --json src/             # Output as JSON
-  pyqol cbo --html src/             # Generate HTML report
-  pyqol cbo --show-zeros src/       # Include classes with CBO = 0
-  pyqol cbo --include-builtins src/ # Include built-in type dependencies
+  pyscn cbo src/                    # Analyze all Python files in src/
+  pyscn cbo --min-cbo 5 src/        # Show only classes with CBO >= 5
+  pyscn cbo --sort coupling src/    # Sort by CBO count (default)
+  pyscn cbo --json src/             # Output as JSON
+  pyscn cbo --html src/             # Generate HTML report
+  pyscn cbo --show-zeros src/       # Include classes with CBO = 0
+  pyscn cbo --include-builtins src/ # Include built-in type dependencies
 
 Sort options:
   coupling  - Sort by CBO count (default)

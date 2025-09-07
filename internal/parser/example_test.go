@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/pyqol/pyqol/internal/parser"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 func ExampleParser_Parse() {
