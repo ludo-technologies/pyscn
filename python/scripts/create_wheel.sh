@@ -206,7 +206,7 @@ Metadata-Version: 2.1
 Name: $PACKAGE_NAME
 Version: $VERSION
 Summary: An intelligent Python code quality analyzer with architectural guidance
-Home-page: https://github.com/pyscn/pyscn
+Home-page: https://github.com/ludo-technologies/pyscn
 Author: DaisukeYoda
 Author-email: daisukeyoda@users.noreply.github.com
 License: MIT
