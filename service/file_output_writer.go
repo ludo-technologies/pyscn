@@ -7,7 +7,7 @@ import (
     "path/filepath"
     "strings"
 
-    "github.com/pyqol/pyqol/domain"
+    "github.com/ludo-technologies/pyscn/domain"
 )
 
 // FileOutputWriter writes reports to files or provided writers and optionally opens HTML in a browser.

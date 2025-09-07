@@ -7,10 +7,10 @@ import (
 	"sort"
 	"time"
 
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/internal/analyzer"
-	"github.com/pyqol/pyqol/internal/parser"
-	"github.com/pyqol/pyqol/internal/version"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/analyzer"
+	"github.com/ludo-technologies/pyscn/internal/parser"
+	"github.com/ludo-technologies/pyscn/internal/version"
 )
 
 // DeadCodeServiceImpl implements the DeadCodeService interface

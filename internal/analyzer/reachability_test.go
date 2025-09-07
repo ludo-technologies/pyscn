@@ -2,7 +2,7 @@ package analyzer
 
 import (
 	"context"
-	"github.com/pyqol/pyqol/internal/parser"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 	"testing"
 	"time"
 )

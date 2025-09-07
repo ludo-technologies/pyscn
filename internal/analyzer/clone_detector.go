@@ -7,9 +7,9 @@ import (
 	"runtime"
 	"sort"
 
-	"github.com/pyqol/pyqol/internal/config"
-	"github.com/pyqol/pyqol/internal/constants"
-	"github.com/pyqol/pyqol/internal/parser"
+	"github.com/ludo-technologies/pyscn/internal/config"
+	"github.com/ludo-technologies/pyscn/internal/constants"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 // CloneType represents different types of code clones

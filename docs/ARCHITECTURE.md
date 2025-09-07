@@ -2,7 +2,7 @@
 
 ## System Design
 
-pyqol follows **Clean Architecture** principles with clear separation of concerns and dependency inversion. The system is designed as a modular, high-performance static analysis tool for Python code.
+pyscn follows **Clean Architecture** principles with clear separation of concerns and dependency inversion. The system is designed as a modular, high-performance static analysis tool for Python code.
 
 ```mermaid
 graph TB
@@ -118,12 +118,12 @@ func (s *ComplexityService) Analyze(ctx context.Context, req domain.ComplexityRe
 }
 ```
 
-### 4. **CLI Layer** (`cmd/pyqol/`)
+### 4. **CLI Layer** (`cmd/pyscn/`)
 
 Thin adapter layer that handles user input and delegates to application layer.
 
 ```go
-// cmd/pyqol/complexity_clean.go
+// cmd/pyscn/complexity_clean.go
 type ComplexityCommand struct {
     outputFormat    string
     minComplexity   int
@@ -316,7 +316,7 @@ type CloneDetectionConfig struct {
 
 #### Configuration Discovery Algorithm
 
-pyqol uses a hierarchical configuration discovery system inspired by Ruff and other modern tools:
+pyscn uses a hierarchical configuration discovery system inspired by Ruff and other modern tools:
 
 ```go
 // LoadConfigWithTarget searches for configuration in this order:
@@ -354,29 +354,29 @@ func LoadConfigWithTarget(configPath string, targetPath string) (*Config, error)
 ```
 
 **Configuration File Priority:**
-1. `pyqol.yaml`
-2. `pyqol.yml` 
-3. `.pyqol.yaml`
-4. `.pyqol.yml`
-5. `pyqol.json`
-6. `.pyqol.json`
+1. `pyscn.yaml`
+2. `pyscn.yml` 
+3. `.pyscn.yaml`
+4. `.pyscn.yml`
+5. `pyscn.json`
+6. `.pyscn.json`
 
 **Search Locations (in order):**
 1. **Target Directory & Parents**: Starting from the analysis target, search upward to filesystem root
-2. **XDG Config**: `$XDG_CONFIG_HOME/pyqol/` or `~/.config/pyqol/`
-3. **Home Directory**: `~/.pyqol.yaml` (backward compatibility)
+2. **XDG Config**: `$XDG_CONFIG_HOME/pyscn/` or `~/.config/pyscn/`
+3. **Home Directory**: `~/.pyscn.yaml` (backward compatibility)
 
-### 4. CLI Module (`cmd/pyqol`)
+### 4. CLI Module (`cmd/pyscn`)
 
 The CLI layer uses the Command pattern with Cobra framework.
 
 ```go
-// cmd/pyqol/main.go - Root command setup
+// cmd/pyscn/main.go - Root command setup
 type CLI struct {
     rootCmd *cobra.Command
 }
 
-// cmd/pyqol/complexity_clean.go - Command implementation
+// cmd/pyscn/complexity_clean.go - Command implementation
 type ComplexityCommand struct {
     outputFormat    string
     minComplexity   int
@@ -416,7 +416,7 @@ func (b *ComplexityUseCaseBuilder) WithService(service domain.ComplexityService)
 func (b *ComplexityUseCaseBuilder) WithFileReader(fileReader domain.FileReader) *ComplexityUseCaseBuilder
 func (b *ComplexityUseCaseBuilder) Build() (*ComplexityUseCase, error)
 
-// cmd/pyqol/complexity_clean.go - Dependency assembly
+// cmd/pyscn/complexity_clean.go - Dependency assembly
 func (c *ComplexityCommand) createComplexityUseCase(cmd *cobra.Command) (*app.ComplexityUseCase, error) {
     // Create services
     fileReader := service.NewFileReader()
@@ -559,7 +559,7 @@ type Language interface {
 
 ## Testing Strategy
 
-pyqol follows a comprehensive testing approach with multiple layers of validation.
+pyscn follows a comprehensive testing approach with multiple layers of validation.
 
 ### 1. Unit Tests
 
@@ -668,7 +668,7 @@ func TestComplexityE2EBasic(t *testing.T) {
 Test CLI command structure and validation without full execution.
 
 ```go
-// cmd/pyqol/complexity_test.go
+// cmd/pyscn/complexity_test.go
 func TestComplexityCommandInterface(t *testing.T) {
     complexityCmd := NewComplexityCommand()
     cobraCmd := complexityCmd.CreateCobraCommand()
@@ -737,7 +737,7 @@ go test ./...
 go test -cover ./...
 
 # Run specific test suites
-go test ./cmd/pyqol        # Command interface tests
+go test ./cmd/pyscn        # Command interface tests
 go test ./integration     # Integration tests  
 go test ./e2e             # End-to-end tests
 
@@ -826,7 +826,7 @@ All tests run automatically on:
 - 🚧 APTED tree edit distance algorithm
 
 **Recently Completed:**
-- ✅ Configuration file support (.pyqol.yaml) with Ruff-style discovery
+- ✅ Configuration file support (.pyscn.yaml) with Ruff-style discovery
 - ✅ Hierarchical configuration search (target → upward → XDG → home)
 - ✅ Test environment improvements (no file generation in project directories)
 
@@ -864,7 +864,7 @@ require (
 ### Basic Configuration
 
 ```yaml
-# .pyqol.yaml
+# .pyscn.yaml
 dead_code:
   enabled: true
   check_unused_imports: true
@@ -887,7 +887,7 @@ exclude:
 ### Advanced Configuration
 
 ```yaml
-# .pyqol.yaml
+# .pyscn.yaml
 dead_code:
   enabled: true
   check_unused_imports: true
@@ -910,7 +910,7 @@ complexity:
 
 output:
   format: json
-  file: "pyqol-report.json"
+  file: "pyscn-report.json"
   verbose: true
   include_source: true
 

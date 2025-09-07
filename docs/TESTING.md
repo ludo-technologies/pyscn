@@ -1,6 +1,6 @@
 # Testing Guide
 
-Comprehensive testing is crucial for pyqol's reliability and performance. This guide covers testing strategies, patterns, and best practices.
+Comprehensive testing is crucial for pyscn's reliability and performance. This guide covers testing strategies, patterns, and best practices.
 
 ## Testing Philosophy
 
@@ -13,7 +13,7 @@ Comprehensive testing is crucial for pyqol's reliability and performance. This g
 ## Test Organization
 
 ```
-pyqol/
+pyscn/
 ├── internal/
 │   ├── parser/
 │   │   ├── parser.go
@@ -160,8 +160,8 @@ import (
     "testing"
     "path/filepath"
     
-    "github.com/pyqol/pyqol/internal/parser"
-    "github.com/pyqol/pyqol/internal/analyzer"
+    "github.com/pyscn/pyscn/internal/parser"
+    "github.com/pyscn/pyscn/internal/analyzer"
 )
 
 func TestCFGWithRealPythonFiles(t *testing.T) {
@@ -233,7 +233,7 @@ func TestCLIAnalyzeCommand(t *testing.T) {
     
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
-            cmd := exec.Command("./pyqol", tt.args...)
+            cmd := exec.Command("./pyscn", tt.args...)
             var out bytes.Buffer
             cmd.Stdout = &out
             cmd.Stderr = &out
@@ -767,4 +767,4 @@ watch -n 2 'go test ./...'
 
 ## Conclusion
 
-Comprehensive testing is essential for pyqol's success. Follow these guidelines to ensure reliable, maintainable, and performant tests.
+Comprehensive testing is essential for pyscn's success. Follow these guidelines to ensure reliable, maintainable, and performant tests.

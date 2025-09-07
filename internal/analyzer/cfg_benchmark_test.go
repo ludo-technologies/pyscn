@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pyqol/pyqol/internal/parser"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 // Performance Baselines (as of August 2025)

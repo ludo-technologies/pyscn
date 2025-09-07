@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pyqol/pyqol/internal/parser"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 // SeverityLevel represents the severity of a dead code finding

@@ -8,9 +8,9 @@ import (
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v3"
 
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/internal/config"
-	"github.com/pyqol/pyqol/internal/constants"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/config"
+	"github.com/ludo-technologies/pyscn/internal/constants"
 )
 
 // CloneConfigurationLoader implements the domain.CloneConfigurationLoader interface
@@ -57,7 +57,7 @@ func (c *CloneConfigurationLoader) SaveCloneConfig(cloneConfig *domain.CloneRequ
 	return config.SaveConfig(cfg, configPath)
 }
 
-// GetDefaultCloneConfig returns default clone detection configuration, first checking for .pyqol.yaml
+// GetDefaultCloneConfig returns default clone detection configuration, first checking for .pyscn.yaml
 func (c *CloneConfigurationLoader) GetDefaultCloneConfig() *domain.CloneRequest {
 	// First, try to find and load a config file in the current directory
 	configFile := c.FindDefaultConfigFile()
@@ -310,9 +310,9 @@ func (c *CloneConfigurationLoader) cloneTypesToStrings(types []domain.CloneType)
 	return strings
 }
 
-// FindDefaultConfigFile looks for .pyqol.yaml in the current directory
+// FindDefaultConfigFile looks for .pyscn.yaml in the current directory
 func (c *CloneConfigurationLoader) FindDefaultConfigFile() string {
-	configFiles := []string{".pyqol.yaml", ".pyqol.yml", "pyqol.yaml"}
+	configFiles := []string{".pyscn.yaml", ".pyscn.yml", "pyscn.yaml"}
 
 	for _, filename := range configFiles {
 		if _, err := os.Stat(filename); err == nil {

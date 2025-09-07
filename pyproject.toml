@@ -3,7 +3,7 @@ requires = ["setuptools>=64", "setuptools_scm>=8", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pyqol"
+name = "pyscn"
 dynamic = ["version"]
 description = "An intelligent Python code quality analyzer with architectural guidance"
 readme = "README.md"
@@ -51,21 +51,21 @@ dev = [
 ]
 
 [project.scripts]
-pyqol = "pyqol.__main__:main"
+pyscn = "pyscn.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/pyqol/pyqol"
-Documentation = "https://github.com/pyqol/pyqol/tree/main/docs"
-Repository = "https://github.com/pyqol/pyqol"
-Issues = "https://github.com/pyqol/pyqol/issues"
-Changelog = "https://github.com/pyqol/pyqol/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/ludo-technologies/pyscn"
+Documentation = "https://github.com/ludo-technologies/pyscn/tree/main/docs"
+Repository = "https://github.com/ludo-technologies/pyscn"
+Issues = "https://github.com/ludo-technologies/pyscn/issues"
+Changelog = "https://github.com/ludo-technologies/pyscn/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
-packages = ["pyqol"]
+packages = ["pyscn"]
 package-dir = {"" = "python/src"}
 
 [tool.setuptools.package-data]
-pyqol = ["bin/*"]
+pyscn = ["bin/*"]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["*.py[co]", "__pycache__", "*.so", "*.pyd"]

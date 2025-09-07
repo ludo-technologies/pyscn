@@ -1,5 +1,5 @@
 #!/bin/bash
-# Branch management helper script for pyqol
+# Branch management helper script for pyscn
 
 set -e
 
@@ -216,7 +216,7 @@ case "$1" in
         ;;
     
     *)
-        echo "🌿 pyqol Branch Management"
+        echo "🌿 pyscn Branch Management"
         echo ""
         echo "Usage: ./branch.sh <command> [options]"
         echo ""

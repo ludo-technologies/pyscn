@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/pyqol/pyqol/internal/constants"
+	"github.com/ludo-technologies/pyscn/internal/constants"
 )
 
 // CloneConfig represents the unified clone detection configuration

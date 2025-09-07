@@ -421,15 +421,15 @@ func TestFindDefaultConfig(t *testing.T) {
 		}
 
 		// Create a default config file
-		configPath := filepath.Join(tempDir, "pyqol.yaml")
+		configPath := filepath.Join(tempDir, "pyscn.yaml")
 		err := os.WriteFile(configPath, []byte("complexity:\n  enabled: true"), 0644)
 		if err != nil {
 			t.Fatalf("Failed to create test config: %v", err)
 		}
 
 		result := findDefaultConfig("")
-		if result != "pyqol.yaml" {
-			t.Errorf("Expected to find pyqol.yaml, got %s", result)
+		if result != "pyscn.yaml" {
+			t.Errorf("Expected to find pyscn.yaml, got %s", result)
 		}
 	})
 }

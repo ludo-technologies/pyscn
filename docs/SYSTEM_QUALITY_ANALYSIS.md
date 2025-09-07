@@ -1,8 +1,8 @@
-# System-Level Structural Quality Analysis for pyqol
+# System-Level Structural Quality Analysis for pyscn
 
 ## Executive Summary
 
-This document outlines the architectural extension plan for pyqol to evolve from a code-level quality analyzer to a comprehensive system-level structural quality assessment tool. The proposed features will enable analysis of module dependencies, architectural patterns, and system-wide quality metrics.
+This document outlines the architectural extension plan for pyscn to evolve from a code-level quality analyzer to a comprehensive system-level structural quality assessment tool. The proposed features will enable analysis of module dependencies, architectural patterns, and system-wide quality metrics.
 
 ## Current State Analysis
 
@@ -46,16 +46,16 @@ internal/analyzer/
 #### CLI Interface
 ```bash
 # Analyze dependencies
-pyqol deps analyze src/
+pyscn deps analyze src/
 
 # Check for circular dependencies
-pyqol deps --check-circular src/
+pyscn deps --check-circular src/
 
 # Generate dependency graph
-pyqol deps --format dot src/ > deps.dot
+pyscn deps --format dot src/ > deps.dot
 
 # Check layer violations
-pyqol deps --check-layers --config .pyqol.yaml src/
+pyscn deps --check-layers --config .pyscn.yaml src/
 ```
 
 ### 2. Architecture Quality Assessment
@@ -78,7 +78,7 @@ internal/analyzer/
 
 #### Configuration Schema
 ```yaml
-# .pyqol.yaml
+# .pyscn.yaml
 architecture:
   # Define architectural layers
   layers:
@@ -138,16 +138,16 @@ internal/analyzer/
 #### CLI Interface
 ```bash
 # Full system analysis
-pyqol analyze --full src/
+pyscn analyze --full src/
 
 # Generate HTML report
-pyqol analyze --format html --output report.html src/
+pyscn analyze --format html --output report.html src/
 
 # CI mode with quality gates
-pyqol analyze --ci --fail-on-issues src/
+pyscn analyze --ci --fail-on-issues src/
 
 # Compare with baseline
-pyqol analyze --baseline previous.json src/
+pyscn analyze --baseline previous.json src/
 ```
 
 ## Implementation Plan
@@ -257,7 +257,7 @@ type SystemReport struct {
 
 ## Conclusion
 
-This extension transforms pyqol from a tactical code quality tool to a strategic system quality platform. By analyzing dependencies, validating architecture, and providing system-wide metrics, pyqol will help teams maintain healthy, scalable Python codebases.
+This extension transforms pyscn from a tactical code quality tool to a strategic system quality platform. By analyzing dependencies, validating architecture, and providing system-wide metrics, pyscn will help teams maintain healthy, scalable Python codebases.
 
 The implementation leverages existing infrastructure while adding powerful new capabilities. The phased approach ensures each feature is thoroughly tested before moving to the next, minimizing risk while maximizing value delivery.
 

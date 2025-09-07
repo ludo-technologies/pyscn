@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pyqol/pyqol/domain"
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // HTMLFormatterImpl provides common HTML formatting functionality with Lighthouse-style scoring

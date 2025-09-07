@@ -3,7 +3,7 @@ package config
 import (
 	"io"
 
-	"github.com/pyqol/pyqol/domain"
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // Note: ToCloneDetectorConfig is now implemented directly in the analyzer package

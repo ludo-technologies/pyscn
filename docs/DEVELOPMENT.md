@@ -1,6 +1,6 @@
 # Development Guide
 
-This guide covers everything you need to know to contribute to pyqol development.
+This guide covers everything you need to know to contribute to pyscn development.
 
 ## Table of Contents
 
@@ -25,8 +25,8 @@ This guide covers everything you need to know to contribute to pyqol development
 
 ```bash
 # Clone the repository
-git clone https://github.com/pyqol/pyqol.git
-cd pyqol
+git clone https://github.com/pyscn/pyscn.git
+cd pyscn
 
 # Install dependencies
 go mod download
@@ -35,15 +35,15 @@ go mod download
 go test ./...
 
 # Build the binary
-go build ./cmd/pyqol
+go build ./cmd/pyscn
 ```
 
 ## Project Structure
 
 ```
-pyqol/
+pyscn/
 ├── cmd/
-│   └── pyqol/         # CLI entry point
+│   └── pyscn/         # CLI entry point
 │       └── main.go    # Main function
 ├── internal/          # Private packages
 │   ├── parser/        # Tree-sitter integration
@@ -157,27 +157,27 @@ gh issue close 1 --comment "Implemented in PR #10"
 
 ### Configuration Files
 
-pyqol uses a hierarchical configuration system similar to Ruff. Configuration files are searched in the following order:
+pyscn uses a hierarchical configuration system similar to Ruff. Configuration files are searched in the following order:
 
 1. **Target Directory**: Starting from the directory being analyzed
 2. **Parent Directories**: Searching upward to the filesystem root
-3. **XDG Config Directory**: `$XDG_CONFIG_HOME/pyqol/` or `~/.config/pyqol/`
-4. **Home Directory**: `~/.pyqol.yaml` (backward compatibility)
+3. **XDG Config Directory**: `$XDG_CONFIG_HOME/pyscn/` or `~/.config/pyscn/`
+4. **Home Directory**: `~/.pyscn.yaml` (backward compatibility)
 
 ### Configuration File Names
 
 Supported configuration file names (in order of precedence):
-- `pyqol.yaml`
-- `pyqol.yml`
-- `.pyqol.yaml`
-- `.pyqol.yml`
-- `pyqol.json`
-- `.pyqol.json`
+- `pyscn.yaml`
+- `pyscn.yml`
+- `.pyscn.yaml`
+- `.pyscn.yml`
+- `pyscn.json`
+- `.pyscn.json`
 
 ### Configuration Example
 
 ```yaml
-# .pyqol.yaml
+# .pyscn.yaml
 output:
   directory: "reports"  # Output directory for generated reports
   
@@ -196,7 +196,7 @@ For E2E and integration tests, create temporary configuration files:
 
 ```go
 // Create config file for test
-configFile := filepath.Join(testDir, ".pyqol.yaml")
+configFile := filepath.Join(testDir, ".pyscn.yaml")
 configContent := fmt.Sprintf("output:\n  directory: \"%s\"\n", outputDir)
 err := os.WriteFile(configFile, []byte(configContent), 0644)
 ```
@@ -209,15 +209,15 @@ This ensures test-generated files are placed in temporary directories, not in th
 
 ```bash
 # Build for current platform
-go build -o pyqol ./cmd/pyqol
+go build -o pyscn ./cmd/pyscn
 
 # Build for all platforms
-GOOS=linux GOARCH=amd64 go build -o pyqol-linux-amd64 ./cmd/pyqol
-GOOS=darwin GOARCH=amd64 go build -o pyqol-darwin-amd64 ./cmd/pyqol
-GOOS=windows GOARCH=amd64 go build -o pyqol-windows-amd64.exe ./cmd/pyqol
+GOOS=linux GOARCH=amd64 go build -o pyscn-linux-amd64 ./cmd/pyscn
+GOOS=darwin GOARCH=amd64 go build -o pyscn-darwin-amd64 ./cmd/pyscn
+GOOS=windows GOARCH=amd64 go build -o pyscn-windows-amd64.exe ./cmd/pyscn
 
 # Build with version info
-go build -ldflags "-X main.version=v0.1.0" ./cmd/pyqol
+go build -ldflags "-X main.version=v0.1.0" ./cmd/pyscn
 ```
 
 ### Testing
@@ -418,13 +418,13 @@ go tool pprof -http=:8080 cpu.prof
 
 ```bash
 # Build with debug symbols
-go build -gcflags="all=-N -l" ./cmd/pyqol
+go build -gcflags="all=-N -l" ./cmd/pyscn
 
 # Run with debug logging
-PYQOL_DEBUG=1 ./pyqol analyze test.py
+PYQOL_DEBUG=1 ./pyscn analyze test.py
 
 # Use delve debugger
-dlv debug ./cmd/pyqol -- analyze test.py
+dlv debug ./cmd/pyscn -- analyze test.py
 ```
 
 ### Logging
@@ -458,8 +458,8 @@ git push origin v0.1.0
 
 ## Getting Help
 
-- **Issues**: [GitHub Issues](https://github.com/pyqol/pyqol/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/pyqol/pyqol/discussions)
+- **Issues**: [GitHub Issues](https://github.com/pyscn/pyscn/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/pyscn/pyscn/discussions)
 - **Documentation**: This guide and `/docs` directory
 
 ## Quick Reference

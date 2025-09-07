@@ -3,7 +3,7 @@ package service
 import (
     "fmt"
 
-    "github.com/pyqol/pyqol/domain"
+    "github.com/ludo-technologies/pyscn/domain"
 )
 
 // OutputFormatResolver resolves output format and file extension from flags.

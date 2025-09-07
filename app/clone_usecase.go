@@ -6,8 +6,8 @@ import (
     "io"
     "time"
 
-    "github.com/pyqol/pyqol/domain"
-    svc "github.com/pyqol/pyqol/service"
+    "github.com/ludo-technologies/pyscn/domain"
+    svc "github.com/ludo-technologies/pyscn/service"
 )
 
 // CloneUseCase orchestrates clone detection operations
@@ -56,7 +56,7 @@ func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) er
 		// Merge configuration with request (request takes precedence)
 		req = uc.mergeConfiguration(*configReq, req)
 	} else if uc.configLoader != nil {
-		// Try to load default configuration (.pyqol.yaml in current directory)
+		// Try to load default configuration (.pyscn.yaml in current directory)
 		defaultConfigReq := uc.configLoader.GetDefaultCloneConfig()
 		if defaultConfigReq != nil {
 			// Merge default configuration with request (request takes precedence)
@@ -140,7 +140,7 @@ func (uc *CloneUseCase) ExecuteAndReturn(ctx context.Context, req domain.CloneRe
 		// Merge configuration with request (request takes precedence)
 		req = uc.mergeConfiguration(*configReq, req)
 	} else if uc.configLoader != nil {
-		// Try to load default configuration (.pyqol.yaml in current directory)
+		// Try to load default configuration (.pyscn.yaml in current directory)
 		defaultConfigReq := uc.configLoader.GetDefaultCloneConfig()
 		if defaultConfigReq != nil {
 			// Merge default configuration with request (request takes precedence)

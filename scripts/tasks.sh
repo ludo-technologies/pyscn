@@ -1,5 +1,5 @@
 #!/bin/bash
-# Task management helper script for pyqol
+# Task management helper script for pyscn
 
 case "$1" in
   "list")
@@ -70,7 +70,7 @@ case "$1" in
     ;;
   
   *)
-    echo "📚 pyqol Task Management"
+    echo "📚 pyscn Task Management"
     echo ""
     echo "Usage: ./tasks.sh <command> [options]"
     echo ""

@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/pyqol/pyqol/internal/config"
-	"github.com/pyqol/pyqol/internal/reporter"
+	"github.com/ludo-technologies/pyscn/internal/config"
+	"github.com/ludo-technologies/pyscn/internal/reporter"
 )
 
 // ComplexityAnalyzer provides high-level complexity analysis functionality

@@ -3,7 +3,7 @@ package analyzer
 import (
 	"testing"
 
-	"github.com/pyqol/pyqol/internal/config"
+	"github.com/ludo-technologies/pyscn/internal/config"
 )
 
 // BenchmarkComplexityCalculation benchmarks the complexity calculation performance

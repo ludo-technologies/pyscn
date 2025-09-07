@@ -3,7 +3,7 @@ package domain
 import (
 	"testing"
 
-	"github.com/pyqol/pyqol/internal/constants"
+	"github.com/ludo-technologies/pyscn/internal/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

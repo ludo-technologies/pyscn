@@ -1,7 +1,7 @@
 package analyzer
 
 import (
-	"github.com/pyqol/pyqol/internal/config"
+	"github.com/ludo-technologies/pyscn/internal/config"
 	"testing"
 )
 
