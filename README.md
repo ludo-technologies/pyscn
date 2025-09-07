@@ -54,8 +54,8 @@ Run all major analyses concurrently and generate a unified report.
 # Unified HTML report for a directory
 pyqol analyze --html src/
 
-# JSON/YAML/CSV are also supported
-pyqol analyze --json src/ > analyze.json
+# JSON/YAML/CSV are also supported (auto-generates timestamped files)
+pyqol analyze --json src/  # Creates: analyze_YYYYMMDD_HHMMSS.json
 
 # Skip specific analyses or tune thresholds
 pyqol analyze --skip-clones --min-complexity 10 --min-severity critical --min-cbo 5 src/
@@ -68,7 +68,7 @@ Analyze McCabe cyclomatic complexity using CFG.
 
 ```bash
 pyqol complexity src/
-pyqol complexity --json src/ > complexity.json
+pyqol complexity --json src/  # Creates: complexity_YYYYMMDD_HHMMSS.json
 pyqol complexity --min 5 --max 15 --sort risk src/
 pyqol complexity --low-threshold 9 --medium-threshold 19 src/
 ```
@@ -78,7 +78,7 @@ Detect unreachable or unused code with severity levels and optional context.
 
 ```bash
 pyqol deadcode src/
-pyqol deadcode --format json --min-severity critical src/
+pyqol deadcode --json --min-severity critical src/
 pyqol deadcode --show-context --context-lines 5 myfile.py
 ```
 
@@ -91,7 +91,7 @@ Find structurally similar code (Type 1–4) using APTED.
 pyqol clone .
 pyqol clone --similarity-threshold 0.9 src/
 pyqol clone --details --show-content src/
-pyqol clone --clone-types type1,type2 --json src/ > clones.json
+pyqol clone --clone-types type1,type2 --json src/  # Creates: clone_YYYYMMDD_HHMMSS.json
 ```
 
 Filter by similarity range, group clones, sort by similarity/size/location/type, and choose cost models.
@@ -102,7 +102,7 @@ Compute CBO (Coupling Between Objects) metrics for classes.
 ```bash
 pyqol cbo src/
 pyqol cbo --min-cbo 5 --sort coupling src/
-pyqol cbo --json src/ > cbo.json
+pyqol cbo --json src/ > cbo.json  # Note: cbo outputs JSON to stdout unlike other commands
 ```
 
 Includes thresholds for risk levels, sorting, and options for including built-ins/imports.
@@ -181,8 +181,11 @@ cbo:                            # CBO settings (maps to cbo command flags)
 Notes:
 
 - Default include patterns: `*.py`, `*.pyi`; default exclude: `test_*.py`, `*_test.py`
-- Non-text formats (json/yaml/csv/html) are written as files; text prints to stdout
-- Filenames include a timestamp, e.g., `complexity_YYYYMMDD_HHMMSS.json`
+- **Output formats**:
+  - `text` (default): Prints to stdout
+  - `json`, `yaml`, `csv`, `html`: Auto-generates timestamped files (e.g., `complexity_20250907_143022.json`)
+  - HTML reports can be auto-opened with `--no-open` flag to disable
+  - Exception: `cbo --json` outputs to stdout for pipe compatibility
 
 ## Installation
 
@@ -191,6 +194,8 @@ Notes:
 ```bash
 pip install pyqol
 ```
+
+> **Note**: The package is registered on PyPI but will be available once the repository is made public.
 
 If you prefer to build wheels locally (e.g., for development), see the Python section below.
 
