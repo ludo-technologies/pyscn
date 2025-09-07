@@ -15,7 +15,31 @@ normalize_version() {
     # Remove v prefix if present
     git_describe="${git_describe#v}"
     
-    if [[ "$git_describe" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)-g([0-9a-f]+)(-dirty)?$ ]]; then
+    # Check for beta/alpha/rc versions first (e.g., 0.1.0b1, 0.1.0a1, 0.1.0rc1)
+    if [[ "$git_describe" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(a|b|rc)([0-9]+)(-([0-9]+)-g([0-9a-f]+))?(-dirty)?$ ]]; then
+        # Beta/alpha/rc version: 0.1.0b1[-3-g278cb14][-dirty]
+        local base_version="${BASH_REMATCH[1]}"
+        local prerelease_type="${BASH_REMATCH[2]}"
+        local prerelease_num="${BASH_REMATCH[3]}"
+        local commits_ahead="${BASH_REMATCH[5]}"
+        local commit_hash="${BASH_REMATCH[6]}"
+        local is_dirty="${BASH_REMATCH[7]}"
+        
+        if [[ -n "$commits_ahead" ]]; then
+            # After prerelease tag
+            if [[ -n "$is_dirty" ]]; then
+                echo "${base_version}${prerelease_type}${prerelease_num}.post${commits_ahead}.dev0+g${commit_hash}"
+            else
+                echo "${base_version}${prerelease_type}${prerelease_num}.post${commits_ahead}+g${commit_hash}"
+            fi
+        elif [[ -n "$is_dirty" ]]; then
+            # Dirty prerelease tag
+            echo "${base_version}${prerelease_type}${prerelease_num}.dev0"
+        else
+            # Clean prerelease tag
+            echo "${base_version}${prerelease_type}${prerelease_num}"
+        fi
+    elif [[ "$git_describe" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)-g([0-9a-f]+)(-dirty)?$ ]]; then
         # After tag: 0.1.0-3-g278cb14[-dirty] -> 0.1.0.post3+g278cb14
         # Capture matches immediately to avoid interference
         local base_version="${BASH_REMATCH[1]}"
