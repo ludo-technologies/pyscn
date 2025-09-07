@@ -50,6 +50,13 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
+# Python virtual environments
+*_env/
+venv/
+.venv/
+env/
+.env/
+
 # Temporary files
 *.tmp
 *.bak

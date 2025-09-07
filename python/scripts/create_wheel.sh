@@ -15,8 +15,39 @@ normalize_version() {
     # Remove v prefix if present
     git_describe="${git_describe#v}"
     
+    # Check for SemVer prerelease versions (e.g., 0.1.0-beta.1, 0.1.0-alpha.1)
+    if [[ "$git_describe" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-(alpha|beta|rc)\.([0-9]+)(-([0-9]+)-g([0-9a-f]+))?(-dirty)?$ ]]; then
+        # SemVer format: 0.1.0-beta.1 -> 0.1.0b1 (PEP 440)
+        local base_version="${BASH_REMATCH[1]}"
+        local prerelease_type="${BASH_REMATCH[2]}"
+        local prerelease_num="${BASH_REMATCH[3]}"
+        local commits_ahead="${BASH_REMATCH[5]}"
+        local commit_hash="${BASH_REMATCH[6]}"
+        local is_dirty="${BASH_REMATCH[7]}"
+        
+        # Convert to PEP 440 format
+        case "$prerelease_type" in
+            alpha) prerelease_type="a" ;;
+            beta) prerelease_type="b" ;;
+            rc) prerelease_type="rc" ;;
+        esac
+        
+        if [[ -n "$commits_ahead" ]]; then
+            # After prerelease tag
+            if [[ -n "$is_dirty" ]]; then
+                echo "${base_version}${prerelease_type}${prerelease_num}.post${commits_ahead}.dev0+g${commit_hash}"
+            else
+                echo "${base_version}${prerelease_type}${prerelease_num}.post${commits_ahead}+g${commit_hash}"
+            fi
+        elif [[ -n "$is_dirty" ]]; then
+            # Dirty prerelease tag
+            echo "${base_version}${prerelease_type}${prerelease_num}.dev0"
+        else
+            # Clean prerelease tag
+            echo "${base_version}${prerelease_type}${prerelease_num}"
+        fi
     # Check for beta/alpha/rc versions first (e.g., 0.1.0b1, 0.1.0a1, 0.1.0rc1)
-    if [[ "$git_describe" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(a|b|rc)([0-9]+)(-([0-9]+)-g([0-9a-f]+))?(-dirty)?$ ]]; then
+    elif [[ "$git_describe" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(a|b|rc)([0-9]+)(-([0-9]+)-g([0-9a-f]+))?(-dirty)?$ ]]; then
         # Beta/alpha/rc version: 0.1.0b1[-3-g278cb14][-dirty]
         local base_version="${BASH_REMATCH[1]}"
         local prerelease_type="${BASH_REMATCH[2]}"
