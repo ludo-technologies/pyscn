@@ -10,7 +10,7 @@ builds:
     main: ./cmd/pyscn
     binary: pyscn
     env:
-      - CGO_ENABLED=0
+      - CGO_ENABLED=1
     goos:
       - linux
       - darwin
@@ -70,7 +70,7 @@ changelog:
 
 release:
   github:
-    owner: pyscn
+    owner: ludo-technologies
     name: pyscn
   draft: false
   prerelease: auto
@@ -82,11 +82,11 @@ release:
     
     ### macOS/Linux
     ```bash
-    curl -sSfL https://github.com/pyscn/pyscn/releases/download/v{{.Version}}/pyscn_$(uname -s)_$(uname -m).tar.gz | tar xz
+    curl -sSfL https://github.com/ludo-technologies/pyscn/releases/download/v{{.Version}}/pyscn_$(uname -s)_$(uname -m).tar.gz | tar xz
     sudo mv pyscn /usr/local/bin/
     ```
     
     ### Go Install
     ```bash
-    go install github.com/pyscn/pyscn/cmd/pyscn@v{{.Version}}
+    go install github.com/ludo-technologies/pyscn/cmd/pyscn@v{{.Version}}
     ```
