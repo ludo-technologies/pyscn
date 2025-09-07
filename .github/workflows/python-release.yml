@@ -38,7 +38,7 @@ jobs:
         python -m twine check dist/*.whl
     
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: wheels
         path: dist/*.whl
@@ -60,7 +60,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     
     - name: Download wheels
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: wheels
         path: wheels/
@@ -108,7 +108,7 @@ jobs:
     
     steps:
     - name: Download wheels
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: wheels
         path: dist/
@@ -137,7 +137,7 @@ jobs:
     
     steps:
     - name: Download wheels
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: wheels
         path: dist/
@@ -165,7 +165,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Download wheels
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: wheels
         path: wheels/
