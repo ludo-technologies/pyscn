@@ -3,7 +3,7 @@ package analyzer
 import (
 	"time"
 
-	"github.com/pyqol/pyqol/internal/parser"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 // ReachabilityResult contains the results of reachability analysis

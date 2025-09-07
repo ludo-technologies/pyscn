@@ -2,7 +2,7 @@ package analyzer
 
 import (
 	"fmt"
-	"github.com/pyqol/pyqol/internal/parser"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 // TreeNode represents a node in the ordered tree for APTED algorithm

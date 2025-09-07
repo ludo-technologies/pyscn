@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/pyqol/pyqol/domain"
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // TestFileReader_Basic tests basic FileReader functionality

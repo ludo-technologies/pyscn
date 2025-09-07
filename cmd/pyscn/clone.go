@@ -10,10 +10,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/pyqol/pyqol/app"
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/internal/constants"
-	"github.com/pyqol/pyqol/service"
+	"github.com/ludo-technologies/pyscn/app"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/constants"
+	"github.com/ludo-technologies/pyscn/service"
 )
 
 // CloneCommand handles the clone detection CLI command
@@ -113,19 +113,19 @@ for refactoring. It supports detection of different clone types:
 
 Examples:
   # Detect clones in current directory
-  pyqol clone .
+  pyscn clone .
 
   # Detect clones with custom similarity threshold
-  pyqol clone --similarity-threshold 0.9 src/
+  pyscn clone --similarity-threshold 0.9 src/
 
   # Show detailed clone information with content
-  pyqol clone --details --show-content src/
+  pyscn clone --details --show-content src/
 
   # Only detect Type-1 and Type-2 clones
-  pyqol clone --clone-types type1,type2 src/
+  pyscn clone --clone-types type1,type2 src/
 
   # Output results as JSON
-  pyqol clone --format json src/ > clones.json`,
+  pyscn clone --format json src/ > clones.json`,
 		RunE: c.runCloneDetection,
 	}
 

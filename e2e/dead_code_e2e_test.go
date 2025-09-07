@@ -47,7 +47,7 @@ def function_with_raise():
     print("Dead code after raise")
 `)
 
-	// Run pyqol deadcode command
+	// Run pyscn deadcode command
 	cmd := exec.Command(binaryPath, "deadcode", testDir)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

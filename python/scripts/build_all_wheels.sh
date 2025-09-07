@@ -82,7 +82,7 @@ main() {
     echo "Version: $version"
     
     # Create directories
-    local bin_dir="$python_dir/src/pyqol/bin"
+    local bin_dir="$python_dir/src/pyscn/bin"
     local dist_dir="$project_dir/dist"
     
     mkdir -p "$bin_dir" "$dist_dir"
@@ -94,7 +94,7 @@ main() {
     for platform_config in "${PLATFORMS[@]}"; do
         IFS=':' read -r goos goarch wheel_platform <<< "$platform_config"
         
-        local binary_name="pyqol-${goos}-${goarch}"
+        local binary_name="pyscn-${goos}-${goarch}"
         if [[ "$goos" == "windows" ]]; then
             binary_name="${binary_name}.exe"
         fi
@@ -111,7 +111,7 @@ main() {
                 -X '${go_module}/internal/version.Date=${date}' \
                 -X '${go_module}/internal/version.BuiltBy=build_all_wheels.sh'" \
             -o "$binary_path" \
-            "$project_dir/cmd/pyqol"; then
+            "$project_dir/cmd/pyscn"; then
             echo -e "${YELLOW}Warning: Failed to build binary for ${goos}/${goarch}${NC}"
             continue
         fi
@@ -134,8 +134,8 @@ main() {
     
     echo ""
     echo "To test a wheel:"
-    echo "  pip install dist/pyqol-*.whl"
-    echo "  pyqol --version"
+    echo "  pip install dist/pyscn-*.whl"
+    echo "  pyscn --version"
 }
 
 # Run main function if script is executed directly

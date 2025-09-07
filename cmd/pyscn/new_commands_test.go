@@ -143,7 +143,7 @@ func TestInitCommandInterface(t *testing.T) {
 func TestInitCommandExecution(t *testing.T) {
 	// Create temporary directory
 	tempDir := t.TempDir()
-	configFile := filepath.Join(tempDir, ".pyqol.yaml")
+	configFile := filepath.Join(tempDir, ".pyscn.yaml")
 
 	initCmd := NewInitCommand()
 	cobraCmd := initCmd.CreateCobraCommand()
@@ -188,7 +188,7 @@ func TestInitCommandExecution(t *testing.T) {
 func TestInitCommandFileExists(t *testing.T) {
 	// Create temporary directory with existing config file
 	tempDir := t.TempDir()
-	configFile := filepath.Join(tempDir, ".pyqol.yaml")
+	configFile := filepath.Join(tempDir, ".pyscn.yaml")
 
 	// Create existing file
 	err := os.WriteFile(configFile, []byte("existing config"), 0644)

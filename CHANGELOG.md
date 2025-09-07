@@ -70,25 +70,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Installation
 ```bash
 # Install beta version
-pip install --pre pyqol
+pip install --pre pyscn
 
 # Or specify exact version
-pip install pyqol==0.1.0b1
+pip install pyscn==0.1.0b1
 ```
 
 #### Usage
 ```bash
 # Quick quality check
-pyqol check .
+pyscn check .
 
 # Comprehensive analysis
-pyqol analyze --html src/
+pyscn analyze --html src/
 
 # Individual analyses
-pyqol complexity src/
-pyqol deadcode src/
-pyqol clone src/
-pyqol cbo src/
+pyscn complexity src/
+pyscn deadcode src/
+pyscn clone src/
+pyscn cbo src/
 ```
 
-[0.1.0-beta.1]: https://github.com/pyqol/pyqol/releases/tag/v0.1.0-beta.1
+[0.1.0-beta.1]: https://github.com/pyscn/pyscn/releases/tag/v0.1.0-beta.1

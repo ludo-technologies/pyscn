@@ -23,7 +23,7 @@ var (
 // Info returns version information as a formatted string
 func Info() string {
 	return fmt.Sprintf(
-		"pyqol %s\nCommit: %s\nBuilt: %s\nGo: %s\nOS/Arch: %s/%s",
+		"pyscn %s\nCommit: %s\nBuilt: %s\nGo: %s\nOS/Arch: %s/%s",
 		Version,
 		Commit,
 		Date,

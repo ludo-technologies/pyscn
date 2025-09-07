@@ -1,4 +1,4 @@
-project_name: pyqol
+project_name: pyscn
 
 before:
   hooks:
@@ -6,9 +6,9 @@ before:
     - go mod verify
 
 builds:
-  - id: pyqol
-    main: ./cmd/pyqol
-    binary: pyqol
+  - id: pyscn
+    main: ./cmd/pyscn
+    binary: pyscn
     env:
       - CGO_ENABLED=0
     goos:
@@ -22,7 +22,7 @@ builds:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
 
 archives:
-  - id: pyqol
+  - id: pyscn
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -70,8 +70,8 @@ changelog:
 
 release:
   github:
-    owner: pyqol
-    name: pyqol
+    owner: pyscn
+    name: pyscn
   draft: false
   prerelease: auto
   mode: append
@@ -82,11 +82,11 @@ release:
     
     ### macOS/Linux
     ```bash
-    curl -sSfL https://github.com/pyqol/pyqol/releases/download/v{{.Version}}/pyqol_$(uname -s)_$(uname -m).tar.gz | tar xz
-    sudo mv pyqol /usr/local/bin/
+    curl -sSfL https://github.com/pyscn/pyscn/releases/download/v{{.Version}}/pyscn_$(uname -s)_$(uname -m).tar.gz | tar xz
+    sudo mv pyscn /usr/local/bin/
     ```
     
     ### Go Install
     ```bash
-    go install github.com/pyqol/pyqol/cmd/pyqol@v{{.Version}}
+    go install github.com/pyscn/pyscn/cmd/pyscn@v{{.Version}}
     ```

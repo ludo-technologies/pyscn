@@ -1,4 +1,4 @@
-# pyqol Development Roadmap
+# pyscn Development Roadmap
 
 ## 🎯 Current Sprint: MVP (August 2025)
 

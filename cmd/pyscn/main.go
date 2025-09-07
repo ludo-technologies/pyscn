@@ -3,14 +3,14 @@ package main
 import (
 	"os"
 
-	"github.com/pyqol/pyqol/internal/version"
+	"github.com/ludo-technologies/pyscn/internal/version"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "pyqol",
-	Short: "Python Quality of Life - Advanced Python static analysis",
-	Long: `pyqol is a next-generation Python static analysis tool that uses 
+	Use:   "pyscn",
+	Short: "An Intelligent Python Code Quality Analyzer",
+	Long: `pyscn is an intelligent Python code quality analyzer that uses 
 Control Flow Graph (CFG) and APTED (tree edit distance) algorithms 
 to provide deep code quality insights beyond traditional linters.
 

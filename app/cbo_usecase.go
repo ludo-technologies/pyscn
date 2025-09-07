@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/pyqol/pyqol/domain"
-	svc "github.com/pyqol/pyqol/service"
+	"github.com/ludo-technologies/pyscn/domain"
+	svc "github.com/ludo-technologies/pyscn/service"
 )
 
 // CBOUseCase orchestrates the CBO analysis workflow

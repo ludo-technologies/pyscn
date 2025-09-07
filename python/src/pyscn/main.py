@@ -1,7 +1,7 @@
 """
-Main entry point for pyqol command-line interface.
+Main entry point for pyscn command-line interface.
 
-This module provides a Python wrapper for the Go-implemented pyqol binary.
+This module provides a Python wrapper for the Go-implemented pyscn binary.
 It automatically detects the platform and executes the appropriate binary.
 """
 
@@ -14,10 +14,10 @@ from pathlib import Path
 
 def get_binary_path() -> str:
     """
-    Get the path to the pyqol binary for the current platform.
+    Get the path to the pyscn binary for the current platform.
     
     Returns:
-        str: Path to the pyqol binary.
+        str: Path to the pyscn binary.
         
     Raises:
         FileNotFoundError: If the binary is not found for the current platform.
@@ -37,7 +37,7 @@ def get_binary_path() -> str:
         )
     
     # Determine binary name
-    binary_name = f"pyqol-{system}-{machine}"
+    binary_name = f"pyscn-{system}-{machine}"
     if system == "windows":
         binary_name += ".exe"
     
@@ -46,7 +46,7 @@ def get_binary_path() -> str:
     
     if not binary_path.exists():
         raise FileNotFoundError(
-            f"pyqol binary not found for platform {system}-{machine}.\n"
+            f"pyscn binary not found for platform {system}-{machine}.\n"
             f"Expected location: {binary_path}\n"
             f"Please check that the package was installed correctly."
         )
@@ -56,9 +56,9 @@ def get_binary_path() -> str:
 
 def main():
     """
-    Main entry point for pyqol CLI.
+    Main entry point for pyscn CLI.
     
-    Executes the Go-implemented pyqol binary with the provided arguments.
+    Executes the Go-implemented pyscn binary with the provided arguments.
     """
     try:
         binary_path = get_binary_path()

@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/pyqol/pyqol/domain"
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // BenchmarkSortByComplexity benchmarks the sorting performance

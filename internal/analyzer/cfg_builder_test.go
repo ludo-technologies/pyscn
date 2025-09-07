@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pyqol/pyqol/internal/parser"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 func TestCFGBuilder(t *testing.T) {

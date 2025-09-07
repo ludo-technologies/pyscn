@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for pyqol
+about: Suggest an idea for pyscn
 title: '[FEATURE] '
 labels: 'enhancement'
 assignees: ''

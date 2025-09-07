@@ -2,7 +2,7 @@ package analyzer
 
 import (
 	"fmt"
-	"github.com/pyqol/pyqol/internal/parser"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 // EdgeType represents the type of edge between basic blocks

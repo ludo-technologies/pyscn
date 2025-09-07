@@ -3,8 +3,8 @@ package service
 import (
 	"os"
 
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/internal/config"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/config"
 )
 
 // ConfigurationLoaderImpl implements the ConfigurationLoader interface
@@ -25,7 +25,7 @@ func (c *ConfigurationLoaderImpl) LoadConfig(path string) (*domain.ComplexityReq
 	return c.convertToComplexityRequest(cfg), nil
 }
 
-// LoadDefaultConfig loads the default configuration, first checking for .pyqol.yaml
+// LoadDefaultConfig loads the default configuration, first checking for .pyscn.yaml
 func (c *ConfigurationLoaderImpl) LoadDefaultConfig() *domain.ComplexityRequest {
 	// First, try to find and load a config file in the current directory
 	configFile := c.FindDefaultConfigFile()
@@ -187,9 +187,9 @@ func (c *ConfigurationLoaderImpl) CreateConfigTemplate(path string) error {
 	return config.SaveConfig(cfg, path)
 }
 
-// FindDefaultConfigFile looks for .pyqol.yaml in the current directory
+// FindDefaultConfigFile looks for .pyscn.yaml in the current directory
 func (c *ConfigurationLoaderImpl) FindDefaultConfigFile() string {
-	configFiles := []string{".pyqol.yaml", ".pyqol.yml", "pyqol.yaml"}
+	configFiles := []string{".pyscn.yaml", ".pyscn.yml", "pyscn.yaml"}
 
 	for _, filename := range configFiles {
 		if _, err := os.Stat(filename); err == nil {

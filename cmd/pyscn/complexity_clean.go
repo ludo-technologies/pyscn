@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pyqol/pyqol/app"
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/service"
+	"github.com/ludo-technologies/pyscn/app"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/service"
 	"github.com/spf13/cobra"
 )
 
@@ -69,9 +69,9 @@ Risk levels:
   • High (20+):     Complex, should be refactored
 
 Examples:
-  pyqol complexity myfile.py
-  pyqol complexity src/
-  pyqol complexity --format json src/`,
+  pyscn complexity myfile.py
+  pyscn complexity src/
+  pyscn complexity --format json src/`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: c.runComplexityAnalysis,
 	}

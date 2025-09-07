@@ -1,5 +1,5 @@
 """
-Entry point for the pyqol command-line interface.
+Entry point for the pyscn command-line interface.
 """
 
 from .main import main

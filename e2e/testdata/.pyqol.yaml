@@ -2,7 +2,7 @@
 # This configuration ensures test outputs go to a temporary directory
 
 output:
-  directory: "/tmp/pyqol-e2e-test"  # All test outputs will go here
+  directory: "/tmp/pyscn-e2e-test"  # All test outputs will go here
   format: "text"
   show_details: false
 

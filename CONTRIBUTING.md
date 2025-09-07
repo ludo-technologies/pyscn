@@ -1,6 +1,6 @@
-# Contributing to pyqol
+# Contributing to pyscn
 
-First off, thank you for considering contributing to pyqol! It's people like you that make pyqol such a great tool.
+First off, thank you for considering contributing to pyscn! It's people like you that make pyscn such a great tool.
 
 ## Code of Conduct
 
@@ -25,8 +25,8 @@ Enhancement suggestions are tracked as GitHub issues. Create an issue using the 
 
 Unsure where to begin contributing? You can start by looking through these `good-first-issue` and `help-wanted` issues:
 
-- [Good first issues](https://github.com/pyqol/pyqol/labels/good%20first%20issue) - issues which should only require a few lines of code
-- [Help wanted issues](https://github.com/pyqol/pyqol/labels/help%20wanted) - issues which should be a bit more involved
+- [Good first issues](https://github.com/pyscn/pyscn/labels/good%20first%20issue) - issues which should only require a few lines of code
+- [Help wanted issues](https://github.com/pyscn/pyscn/labels/help%20wanted) - issues which should be a bit more involved
 
 ## Development Process
 
@@ -41,11 +41,11 @@ Unsure where to begin contributing? You can start by looking through these `good
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/pyqol.git
-cd pyqol
+git clone https://github.com/YOUR_USERNAME/pyscn.git
+cd pyscn
 
 # Add upstream remote
-git remote add upstream https://github.com/pyqol/pyqol.git
+git remote add upstream https://github.com/pyscn/pyscn.git
 
 # Install dependencies
 go mod download
@@ -54,14 +54,14 @@ go mod download
 go test ./...
 
 # Build the project
-go build ./cmd/pyqol
+go build ./cmd/pyscn
 ```
 
 ## Project Structure
 
 ```
-pyqol/
-├── cmd/pyqol/       # CLI entry point
+pyscn/
+├── cmd/pyscn/       # CLI entry point
 ├── internal/        # Private packages
 │   ├── parser/      # Tree-sitter integration
 │   ├── analyzer/    # CFG and APTED implementations

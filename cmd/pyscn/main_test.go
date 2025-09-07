@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/pyqol/pyqol/internal/version"
+	"github.com/ludo-technologies/pyscn/internal/version"
 )
 
 func TestVersion(t *testing.T) {

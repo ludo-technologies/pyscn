@@ -8,7 +8,7 @@ import (
     "strings"
     "time"
 
-    "github.com/pyqol/pyqol/domain"
+    "github.com/ludo-technologies/pyscn/domain"
 )
 
 // OutputFormatterImpl implements the OutputFormatter interface

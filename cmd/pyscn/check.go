@@ -54,16 +54,16 @@ unless issues are found.
 
 Examples:
   # Check current directory (typical CI usage)
-  pyqol check .
+  pyscn check .
 
   # Check with higher complexity threshold
-  pyqol check --max-complexity 15 src/
+  pyscn check --max-complexity 15 src/
 
   # Allow dead code, only check complexity
-  pyqol check --allow-dead-code src/
+  pyscn check --allow-dead-code src/
 
   # Skip clone detection for faster analysis
-  pyqol check --skip-clones src/`,
+  pyscn check --skip-clones src/`,
 		Args: cobra.ArbitraryArgs,
 		RunE: c.runCheck,
 	}
