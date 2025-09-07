@@ -79,14 +79,14 @@ jobs:
         ls -la wheels/
         
         # Try to install any wheel (the Python wrapper will check platform compatibility)
-        if pip install wheels/pyqol-*.whl; then
-          echo "Testing pyqol command..."
-          if pyqol --version; then
-            echo "✅ pyqol installation and execution successful!"
-          elif pyqol --help >/dev/null 2>&1; then
-            echo "✅ pyqol installation successful (version command failed but help works)"
+        if pip install wheels/pyscn-*.whl; then
+          echo "Testing pyscn command..."
+          if pyscn --version; then
+            echo "✅ pyscn installation and execution successful!"
+          elif pyscn --help >/dev/null 2>&1; then
+            echo "✅ pyscn installation successful (version command failed but help works)"
           else
-            echo "❌ pyqol command failed"
+            echo "❌ pyscn command failed"
             exit 1
           fi
         else
@@ -101,7 +101,7 @@ jobs:
     
     environment:
       name: pypi
-      url: https://pypi.org/p/pyqol
+      url: https://pypi.org/p/pyscn
     
     permissions:
       id-token: write  # For trusted publishing
@@ -131,7 +131,7 @@ jobs:
     
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/pyqol
+      url: https://test.pypi.org/p/pyscn
     
     permissions:
       id-token: write  # For trusted publishing

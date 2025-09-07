@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/internal/config"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/config"
 )
 
 // CloneConfigurationLoaderWithFlags wraps clone configuration loading with explicit flag tracking
@@ -117,7 +117,7 @@ func (cl *CloneConfigurationLoaderWithFlags) MergeConfig(base *domain.CloneReque
 	return &merged
 }
 
-// FindDefaultConfigFile looks for .pyqol.yaml in the current directory
+// FindDefaultConfigFile looks for .pyscn.yaml in the current directory
 func (cl *CloneConfigurationLoaderWithFlags) FindDefaultConfigFile() string {
 	return cl.loader.FindDefaultConfigFile()
 }

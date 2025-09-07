@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pyqol/pyqol/domain"
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // FileReaderImpl implements the FileReader interface

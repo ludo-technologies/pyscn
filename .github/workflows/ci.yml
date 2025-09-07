@@ -63,10 +63,10 @@ jobs:
         cache: true  # Re-enable cache now that race detection is disabled
     
     - name: Build
-      run: go build -v ./cmd/pyqol
+      run: go build -v ./cmd/pyscn
     
     - name: Test binary
-      run: ./pyqol --version || ./pyqol
+      run: ./pyscn --version || ./pyscn
 
   lint:
     runs-on: ubuntu-latest

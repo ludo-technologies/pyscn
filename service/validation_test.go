@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/pyqol/pyqol/domain"
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 func TestCloneService_ComputeSimilarity_Validation(t *testing.T) {

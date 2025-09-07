@@ -2,7 +2,7 @@ package analyzer
 
 import (
 	"fmt"
-	"github.com/pyqol/pyqol/internal/config"
+	"github.com/ludo-technologies/pyscn/internal/config"
 )
 
 // ComplexityResult holds cyclomatic complexity metrics for a function or method

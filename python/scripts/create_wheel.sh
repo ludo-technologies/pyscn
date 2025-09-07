@@ -6,7 +6,7 @@
 set -e
 
 # Configuration
-PACKAGE_NAME="pyqol"
+PACKAGE_NAME="pyscn"
 
 # Function to convert git describe output to PEP 440 compliant version
 normalize_version() {
@@ -192,7 +192,7 @@ create_wheel() {
     mkdir -p "$metadata_dir"
     
     # Copy Python source files
-    local src_dir="$(dirname "$0")/../src/pyqol"
+    local src_dir="$(dirname "$0")/../src/pyscn"
     cp "$src_dir/__init__.py" "$pkg_dir/"
     cp "$src_dir/__main__.py" "$pkg_dir/"
     cp "$src_dir/main.py" "$pkg_dir/"
@@ -206,7 +206,7 @@ Metadata-Version: 2.1
 Name: $PACKAGE_NAME
 Version: $VERSION
 Summary: An intelligent Python code quality analyzer with architectural guidance
-Home-page: https://github.com/pyqol/pyqol
+Home-page: https://github.com/pyscn/pyscn
 Author: DaisukeYoda
 Author-email: daisukeyoda@users.noreply.github.com
 License: MIT
@@ -225,7 +225,7 @@ Classifier: Topic :: Software Development :: Quality Assurance
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
 
-# pyqol - Python Quality of Life
+# pyscn - Python Quality of Life
 
 A next-generation Python static analysis tool that uses Control Flow Graph (CFG) and tree edit distance algorithms to provide deep code quality insights beyond traditional linters.
 EOF
@@ -233,7 +233,7 @@ EOF
     # Create WHEEL file
     cat > "$metadata_dir/WHEEL" << EOF
 Wheel-Version: 1.0
-Generator: pyqol-create-wheel
+Generator: pyscn-create-wheel
 Root-Is-Purelib: false
 Tag: $PYTHON_TAG-$ABI_TAG-$platform_tag
 EOF
@@ -241,7 +241,7 @@ EOF
     # Create entry_points.txt
     cat > "$metadata_dir/entry_points.txt" << EOF
 [console_scripts]
-pyqol = pyqol.__main__:main
+pyscn = pyscn.__main__:main
 EOF
 
     # Create RECORD file (simplified - just list files)
@@ -293,7 +293,7 @@ main() {
                 echo ""
                 echo "Options:"
                 echo "  --platform TAG    Platform tag (e.g., macosx_11_0_arm64)"
-                echo "  --binary PATH     Path to pyqol binary"
+                echo "  --binary PATH     Path to pyscn binary"
                 echo "  --output DIR      Output directory (default: dist/)"
                 echo "  --help           Show this help"
                 exit 0
@@ -322,12 +322,12 @@ main() {
             # Keep arm64 as-is for macOS
         esac
         
-        local binary_name="pyqol-${os}-${arch}"
+        local binary_name="pyscn-${os}-${arch}"
         if [[ "$os" == *"mingw"* || "$os" == *"msys"* || "$os" == *"cygwin"* ]]; then
             binary_name="${binary_name}.exe"
         fi
         
-        binary_path="$python_dir/src/pyqol/bin/$binary_name"
+        binary_path="$python_dir/src/pyscn/bin/$binary_name"
     fi
     
     create_wheel "$platform_tag" "$binary_path" "$output_dir"

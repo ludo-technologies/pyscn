@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/pyqol/pyqol/domain"
+	"github.com/ludo-technologies/pyscn/domain"
 	"gopkg.in/yaml.v3"
 )
 

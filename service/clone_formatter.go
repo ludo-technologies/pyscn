@@ -6,7 +6,7 @@ import (
     "io"
     "strings"
 
-    "github.com/pyqol/pyqol/domain"
+    "github.com/ludo-technologies/pyscn/domain"
 )
 
 // CloneOutputFormatter implements the domain.CloneOutputFormatter interface

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pyqol/pyqol/internal/parser"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

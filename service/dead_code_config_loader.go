@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/internal/config"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/spf13/viper"
 )
 
@@ -30,7 +30,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) LoadConfig(path string) (*domain.Dead
 	return cl.configToRequest(cfg), nil
 }
 
-// LoadDefaultConfig loads the default dead code configuration, first checking for .pyqol.yaml
+// LoadDefaultConfig loads the default dead code configuration, first checking for .pyscn.yaml
 func (cl *DeadCodeConfigurationLoaderImpl) LoadDefaultConfig() *domain.DeadCodeRequest {
 	// First, try to find and load a config file in the current directory
 	configFile := cl.FindDefaultConfigFile()
@@ -172,12 +172,12 @@ func (cl *DeadCodeConfigurationLoaderImpl) configToRequest(cfg *config.Config) *
 // FindDefaultConfigFile looks for default configuration files in common locations
 func (cl *DeadCodeConfigurationLoaderImpl) FindDefaultConfigFile() string {
 	candidates := []string{
-		"pyqol.yaml",
-		"pyqol.yml",
-		".pyqol.yaml",
-		".pyqol.yml",
-		"pyqol.json",
-		".pyqol.json",
+		"pyscn.yaml",
+		"pyscn.yml",
+		".pyscn.yaml",
+		".pyscn.yml",
+		"pyscn.json",
+		".pyscn.json",
 	}
 
 	// Check current directory first

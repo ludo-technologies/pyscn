@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/internal/config"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/config"
 )
 
 // ConfigurationLoaderWithFlags wraps configuration loading with explicit flag tracking
@@ -117,7 +117,7 @@ func (c *ConfigurationLoaderWithFlags) CreateConfigTemplate(path string) error {
 	return c.loader.CreateConfigTemplate(path)
 }
 
-// FindDefaultConfigFile looks for .pyqol.yaml in the current directory
+// FindDefaultConfigFile looks for .pyscn.yaml in the current directory
 func (c *ConfigurationLoaderWithFlags) FindDefaultConfigFile() string {
 	return c.loader.FindDefaultConfigFile()
 }

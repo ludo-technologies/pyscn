@@ -32,7 +32,7 @@ def complex_function(x):
         return 0
 `)
 
-	// Run pyqol complexity command
+	// Run pyscn complexity command
 	cmd := exec.Command(binaryPath, "complexity", testDir)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -286,10 +286,10 @@ func buildPyqolBinary(t *testing.T) string {
 	t.Helper()
 
 	// Create temporary binary
-	binaryPath := filepath.Join(t.TempDir(), "pyqol")
+	binaryPath := filepath.Join(t.TempDir(), "pyscn")
 
 	// Build the binary from the project root (one level up from e2e directory)
-	cmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/pyqol")
+	cmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/pyscn")
 
 	// Set working directory to project root
 	projectRoot, err := filepath.Abs("..")
@@ -299,7 +299,7 @@ func buildPyqolBinary(t *testing.T) string {
 	cmd.Dir = projectRoot
 
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("Failed to build pyqol binary: %v", err)
+		t.Fatalf("Failed to build pyscn binary: %v", err)
 	}
 
 	return binaryPath

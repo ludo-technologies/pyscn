@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/pyqol/pyqol/domain"
-	"github.com/pyqol/pyqol/internal/config"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/config"
 )
 
 // DeadCodeConfigurationLoaderWithFlags wraps dead code configuration loading with explicit flag tracking
@@ -106,7 +106,7 @@ func (cl *DeadCodeConfigurationLoaderWithFlags) MergeConfig(base *domain.DeadCod
 	return &merged
 }
 
-// FindDefaultConfigFile looks for .pyqol.yaml in the current directory
+// FindDefaultConfigFile looks for .pyscn.yaml in the current directory
 func (cl *DeadCodeConfigurationLoaderWithFlags) FindDefaultConfigFile() string {
 	return cl.loader.FindDefaultConfigFile()
 }

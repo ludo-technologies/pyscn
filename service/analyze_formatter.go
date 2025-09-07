@@ -7,7 +7,7 @@ import (
     "strings"
     "time"
 
-    "github.com/pyqol/pyqol/domain"
+    "github.com/ludo-technologies/pyscn/domain"
 )
 
 // AnalyzeFormatter handles formatting of unified analysis reports

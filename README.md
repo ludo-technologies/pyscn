@@ -1,28 +1,28 @@
-# pyqol - Python Quality of Life
+# pyscn - An Intelligent Python Code Quality Analyzer
 
 [![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![CI](https://img.shields.io/badge/CI-Passing-brightgreen.svg)](https://github.com/pyqol/pyqol/actions)
+[![CI](https://img.shields.io/badge/CI-Passing-brightgreen.svg)](https://github.com/ludo-technologies/pyscn/actions)
 
 ## Quick Start
 
 ```bash
 # Install (Python users)
-pip install pyqol
+pip install pyscn
 
 # or install the Go binary directly
-go install github.com/pyqol/pyqol/cmd/pyqol@latest
+go install github.com/ludo-technologies/pyscn/cmd/pyscn@latest
 
 # Fast quality check (CI-friendly)
-pyqol check .
+pyscn check .
 
 # Comprehensive analysis with unified report
-pyqol analyze .
+pyscn analyze .
 ```
 
 An intelligent Python code quality analyzer that performs deep, structural static analysis to help you write cleaner, more maintainable code.
 
-pyqol complements traditional linters with analyses based on control-flow graphs and tree edit distance:
+pyscn complements traditional linters with analyses based on control-flow graphs and tree edit distance:
 
 - Cyclomatic complexity: precise CFG-based metrics with risk thresholds and sorting
 - Dead code detection: unreachable code after return/break/continue/raise and unreachable branches
@@ -45,20 +45,20 @@ All analyses are available as dedicated commands and via a unified analyze comma
 
 ## Commands Overview
 
-Run `pyqol --help` or `pyqol <command> --help` for all options. Root `--verbose` is supported.
+Run `pyscn --help` or `pyscn <command> --help` for all options. Root `--verbose` is supported.
 
 ### analyze
 Run all major analyses concurrently and generate a unified report.
 
 ```bash
 # Unified HTML report for a directory
-pyqol analyze --html src/
+pyscn analyze --html src/
 
 # JSON/YAML/CSV are also supported (auto-generates timestamped files)
-pyqol analyze --json src/  # Creates: analyze_YYYYMMDD_HHMMSS.json
+pyscn analyze --json src/  # Creates: analyze_YYYYMMDD_HHMMSS.json
 
 # Skip specific analyses or tune thresholds
-pyqol analyze --skip-clones --min-complexity 10 --min-severity critical --min-cbo 5 src/
+pyscn analyze --skip-clones --min-complexity 10 --min-severity critical --min-cbo 5 src/
 ```
 
 The unified report summarizes files analyzed, average complexity, high-complexity count, dead code findings, clone statistics (including duplication percentage), and CBO metrics, plus a health score.
@@ -67,19 +67,19 @@ The unified report summarizes files analyzed, average complexity, high-complexit
 Analyze McCabe cyclomatic complexity using CFG.
 
 ```bash
-pyqol complexity src/
-pyqol complexity --json src/  # Creates: complexity_YYYYMMDD_HHMMSS.json
-pyqol complexity --min 5 --max 15 --sort risk src/
-pyqol complexity --low-threshold 9 --medium-threshold 19 src/
+pyscn complexity src/
+pyscn complexity --json src/  # Creates: complexity_YYYYMMDD_HHMMSS.json
+pyscn complexity --min 5 --max 15 --sort risk src/
+pyscn complexity --low-threshold 9 --medium-threshold 19 src/
 ```
 
 ### deadcode
 Detect unreachable or unused code with severity levels and optional context.
 
 ```bash
-pyqol deadcode src/
-pyqol deadcode --json --min-severity critical src/
-pyqol deadcode --show-context --context-lines 5 myfile.py
+pyscn deadcode src/
+pyscn deadcode --json --min-severity critical src/
+pyscn deadcode --show-context --context-lines 5 myfile.py
 ```
 
 Detects code after return/break/continue/raise, unreachable branches, and more. Sort by severity/line/file/function.
@@ -88,10 +88,10 @@ Detects code after return/break/continue/raise, unreachable branches, and more. 
 Find structurally similar code (Type 1–4) using APTED.
 
 ```bash
-pyqol clone .
-pyqol clone --similarity-threshold 0.9 src/
-pyqol clone --details --show-content src/
-pyqol clone --clone-types type1,type2 --json src/  # Creates: clone_YYYYMMDD_HHMMSS.json
+pyscn clone .
+pyscn clone --similarity-threshold 0.9 src/
+pyscn clone --details --show-content src/
+pyscn clone --clone-types type1,type2 --json src/  # Creates: clone_YYYYMMDD_HHMMSS.json
 ```
 
 Filter by similarity range, group clones, sort by similarity/size/location/type, and choose cost models.
@@ -100,9 +100,9 @@ Filter by similarity range, group clones, sort by similarity/size/location/type,
 Compute CBO (Coupling Between Objects) metrics for classes.
 
 ```bash
-pyqol cbo src/
-pyqol cbo --min-cbo 5 --sort coupling src/
-pyqol cbo --json src/ > cbo.json  # Note: cbo outputs JSON to stdout unlike other commands
+pyscn cbo src/
+pyscn cbo --min-cbo 5 --sort coupling src/
+pyscn cbo --json src/ > cbo.json  # Note: cbo outputs JSON to stdout unlike other commands
 ```
 
 Includes thresholds for risk levels, sorting, and options for including built-ins/imports.
@@ -111,37 +111,37 @@ Includes thresholds for risk levels, sorting, and options for including built-in
 Fast CI‑friendly gate with sensible defaults.
 
 ```bash
-pyqol check .
-pyqol check --max-complexity 15 --skip-clones src/
-pyqol check --allow-dead-code src/
+pyscn check .
+pyscn check --max-complexity 15 --skip-clones src/
+pyscn check --allow-dead-code src/
 ```
 
 Exit codes: 0 (ok), 1 (quality issues), 2 (analysis error). Prints concise findings suitable for CI logs.
 
 ### init
-Generate a starter `.pyqol.yaml` with comprehensive, documented options.
+Generate a starter `.pyscn.yaml` with comprehensive, documented options.
 
 ```bash
-pyqol init            # create .pyqol.yaml in current directory
-pyqol init --config myconfig.yaml
-pyqol init --force    # overwrite if exists
+pyscn init            # create .pyscn.yaml in current directory
+pyscn init --config myconfig.yaml
+pyscn init --force    # overwrite if exists
 ```
 
 ## Configuration
 
-pyqol supports hierarchical configuration discovery:
+pyscn supports hierarchical configuration discovery:
 
 1. Target directory upward to filesystem root (nearest file wins)
-2. XDG: `$XDG_CONFIG_HOME/pyqol/`
-3. `~/.config/pyqol/`
+2. XDG: `$XDG_CONFIG_HOME/pyscn/`
+3. `~/.config/pyscn/`
 4. Home directory (backward compatibility)
 
-Supported filenames: `.pyqol.yaml`, `.pyqol.yml`, `pyqol.yaml`, `pyqol.yml`, and JSON variants.
+Supported filenames: `.pyscn.yaml`, `.pyscn.yml`, `pyscn.yaml`, `pyscn.yml`, and JSON variants.
 
 Example:
 
 ```yaml
-# .pyqol.yaml
+# .pyscn.yaml
 output:
   directory: "build/reports"   # Timestamped reports go here (if set)
   sort_by: name                 # name | complexity | risk
@@ -192,7 +192,7 @@ Notes:
 ### Install via pip (recommended for Python users)
 
 ```bash
-pip install pyqol
+pip install pyscn
 ```
 
 > **Note**: The package is registered on PyPI but will be available once the repository is made public.
@@ -202,17 +202,17 @@ If you prefer to build wheels locally (e.g., for development), see the Python se
 ### Build from source (Go)
 
 ```bash
-git clone https://github.com/pyqol/pyqol.git
-cd pyqol
-make build     # or: go build -o pyqol ./cmd/pyqol
+git clone https://github.com/ludo-technologies/pyscn.git
+cd pyscn
+make build     # or: go build -o pyscn ./cmd/pyscn
 
 # Install globally
-go install github.com/pyqol/pyqol/cmd/pyqol@latest
+go install github.com/ludo-technologies/pyscn/cmd/pyscn@latest
 ```
 
 ### Python wheel (optional)
 
-This repo includes a Python wrapper that bundles platform binaries for `pyqol`. If you’re packaging or testing wheels locally:
+This repo includes a Python wrapper that bundles platform binaries for `pyscn`. If you’re packaging or testing wheels locally:
 
 ```bash
 # Build wheel for current platform
@@ -220,7 +220,7 @@ make python-wheel
 pip install dist/*.whl
 
 # Run
-pyqol version
+pyscn version
 ```
 
 For all-platform wheels and cross-compiling, see `python/scripts/build_all_wheels.sh`.
@@ -240,11 +240,11 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.24'
-      - run: go install github.com/pyqol/pyqol/cmd/pyqol@latest
+      - run: go install github.com/ludo-technologies/pyscn/cmd/pyscn@latest
       - name: Unified analysis (JSON)
-        run: pyqol analyze --json src/ > analyze.json
+        run: pyscn analyze --json src/ > analyze.json
       - name: Enforce thresholds
-        run: pyqol check .
+        run: pyscn check .
 ```
 
 ## Development
@@ -259,7 +259,7 @@ MIT License — see [LICENSE](LICENSE).
 
 ## Version
 
-Run `pyqol version` for build/version details (commit, date, platform). The repository may be in active development; prefer the binary’s version output over hardcoded README text.
+Run `pyscn version` for build/version details (commit, date, platform). The repository may be in active development; prefer the binary’s version output over hardcoded README text.
 
 ## Acknowledgments
 
@@ -267,4 +267,4 @@ Run `pyqol version` for build/version details (commit, date, platform). The repo
 - Go community for tooling and libraries
 - Research and open-source work on static analysis and tree edit distance
 
-— Built with ❤️ by the pyqol team
+— Built with ❤️ by the pyscn team

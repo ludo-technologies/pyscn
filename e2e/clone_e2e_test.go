@@ -30,7 +30,7 @@ def func2():
     return y
 `)
 
-	// Run pyqol clone command with verbose disabled to avoid progress bar issues
+	// Run pyscn clone command with verbose disabled to avoid progress bar issues
 	cmd := exec.Command(binaryPath, "clone", testDir)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

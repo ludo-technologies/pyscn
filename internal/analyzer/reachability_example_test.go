@@ -3,7 +3,7 @@ package analyzer
 import (
 	"context"
 	"fmt"
-	"github.com/pyqol/pyqol/internal/parser"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 	"testing"
 )
 

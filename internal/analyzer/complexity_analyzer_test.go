@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pyqol/pyqol/internal/config"
+	"github.com/ludo-technologies/pyscn/internal/config"
 )
 
 func createTestCFGs() []*CFG {
