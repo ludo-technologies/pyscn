@@ -67,7 +67,19 @@ main() {
     }
     
     # Auto-detect version from git tags and normalize to PEP 440
-    local version=$(normalize_version "$(git describe --tags --always --dirty 2>/dev/null || echo "0.0.0.dev0")")
+    # In CI, use the git tag directly if available to ensure consistency across platforms
+    local git_tag="${GITHUB_REF_NAME:-}"
+    local version
+    
+    if [[ -n "$git_tag" && "$git_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+        # Running in CI with a version tag - use tag directly
+        version=$(normalize_version "${git_tag}")
+        echo -e "${GREEN}Using CI tag version: $version${NC}"
+    else
+        # Local or non-tag build - use git describe
+        version=$(normalize_version "$(git describe --tags --always --dirty 2>/dev/null || echo "0.0.0.dev0")")
+        echo -e "${YELLOW}Using git describe version: $version${NC}"
+    fi
     
     # Get build information for version injection
     local go_module=$(go list -m)
