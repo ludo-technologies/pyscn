@@ -108,8 +108,8 @@ normalize_version() {
     fi
 }
 
-# Auto-detect version from git tags and normalize to PEP 440
-VERSION=$(normalize_version "$(git describe --tags --always --dirty 2>/dev/null || echo "0.0.0.dev0")")
+# Version will be set from command line or auto-detected
+VERSION=""
 PYTHON_TAG="py3"
 ABI_TAG="none"
 
@@ -288,6 +288,10 @@ main() {
                 output_dir="$2"
                 shift 2
                 ;;
+            --version)
+                VERSION="$2"
+                shift 2
+                ;;
             --help)
                 echo "Usage: $0 [OPTIONS]"
                 echo ""
@@ -295,6 +299,7 @@ main() {
                 echo "  --platform TAG    Platform tag (e.g., macosx_11_0_arm64)"
                 echo "  --binary PATH     Path to pyscn binary"
                 echo "  --output DIR      Output directory (default: dist/)"
+                echo "  --version VER     Version string (default: auto-detect)"
                 echo "  --help           Show this help"
                 exit 0
                 ;;
@@ -305,6 +310,14 @@ main() {
         esac
     done
     
+    # Auto-detect version if not specified
+    if [[ -z "$VERSION" ]]; then
+        VERSION=$(normalize_version "$(git describe --tags --always --dirty 2>/dev/null || echo "0.0.0.dev0")")
+        echo "Auto-detected version: $VERSION"
+    else
+        echo "Using provided version: $VERSION"
+    fi
+
     # Auto-detect platform if not specified
     if [[ -z "$platform_tag" ]]; then
         platform_tag=$(detect_platform)

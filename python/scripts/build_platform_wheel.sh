@@ -82,15 +82,9 @@ main() {
     local git_tag="${GITHUB_REF_NAME:-${GITHUB_REF#refs/tags/}}"
     local version
     
-    # Debug environment variables
-    echo "Debug - GITHUB_REF_NAME: '${GITHUB_REF_NAME:-}'"
-    echo "Debug - GITHUB_REF: '${GITHUB_REF:-}'"
-    echo "Debug - extracted git_tag: '${git_tag}'"
-    
     # Try multiple sources for the version tag
     if [[ -z "$git_tag" && -n "${GITHUB_REF:-}" ]]; then
         git_tag="${GITHUB_REF#refs/tags/}"
-        echo "Debug - using GITHUB_REF fallback: '${git_tag}'"
     fi
     
     # Additional fallback: check if we're at a specific tag with git command
@@ -98,7 +92,6 @@ main() {
         local current_tag=$(git tag --points-at HEAD 2>/dev/null | grep "^v[0-9]" | head -1)
         if [[ -n "$current_tag" ]]; then
             git_tag="$current_tag"
-            echo "Debug - using git tag at HEAD: '${git_tag}'"
         fi
     fi
     
@@ -184,6 +177,7 @@ main() {
     if ! "$script_dir/create_wheel.sh" \
         --platform "$wheel_platform" \
         --binary "$binary_path" \
+        --version "$version" \
         --output "$dist_dir"; then
         echo -e "${RED}Error: Failed to create wheel for $wheel_platform${NC}"
         exit 1
