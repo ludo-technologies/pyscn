@@ -82,7 +82,18 @@ jobs:
     - name: Build platform-specific wheel (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        bash python/scripts/build_platform_wheel.sh "${{ matrix.platform }}" "${{ matrix.wheel_platform }}"
+        # Setup environment paths for Go and MSYS2
+        export PATH="/mingw64/bin:/usr/bin:$PATH"
+        export PATH="$PATH:$(go env GOROOT)/bin:$(go env GOPATH)/bin"
+        
+        echo "=== Environment Check ==="
+        which go && go version
+        which gcc && gcc --version | head -1
+        which zip && zip --version | head -1
+        
+        echo "=== Starting Build ==="
+        python/scripts/build_platform_wheel.sh "${{ matrix.platform }}" "${{ matrix.wheel_platform }}"
+      shell: msys2 {0}
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
