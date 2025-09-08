@@ -57,7 +57,7 @@ jobs:
       uses: msys2/setup-msys2@v2
       with:
         msystem: MINGW64
-        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-pkg-config zip
+        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-pkg-config zip mingw-w64-x86_64-go
     
     - name: Install wheel verification tools
       run: |
@@ -82,10 +82,6 @@ jobs:
     - name: Build platform-specific wheel (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        # Setup environment paths for Go and MSYS2
-        export PATH="/mingw64/bin:/usr/bin:$PATH"
-        export PATH="$PATH:$(go env GOROOT)/bin:$(go env GOPATH)/bin"
-        
         echo "=== Environment Check ==="
         which go && go version
         which gcc && gcc --version | head -1
