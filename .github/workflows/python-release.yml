@@ -96,7 +96,33 @@ jobs:
     
     - name: Verify wheels
       run: |
+        # Check wheel metadata with twine
         python -m twine check dist/*.whl
+        
+        # Validate RECORD file format in each wheel
+        echo "=== Validating RECORD files ==="
+        for whl in dist/*.whl; do
+          echo "Checking wheel: $whl"
+          rec=$(unzip -Z1 "$whl" | grep -E '\.dist-info/RECORD$')
+          echo "  RECORD path: $rec"
+          
+          # Extract and validate CSV format
+          unzip -p "$whl" "$rec" | awk -F, '
+            NF != 3 && $0 !~ /\.dist-info\/RECORD,,/ {
+              print "❌ Invalid RECORD line: " $0
+              print "   Expected 3 CSV fields, got " NF
+              exit 1
+            }
+          '
+          
+          if [ $? -eq 0 ]; then
+            echo "  ✅ RECORD file is valid CSV format"
+          else
+            echo "  ❌ RECORD file validation failed"
+            exit 1
+          fi
+        done
+        echo "=== All RECORD files validated successfully ==="
       shell: bash
     
     - name: Upload build artifacts
