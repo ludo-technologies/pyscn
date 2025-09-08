@@ -4,6 +4,17 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://img.shields.io/badge/CI-Passing-brightgreen.svg)](https://github.com/ludo-technologies/pyscn/actions)
 
+An intelligent Python code quality analyzer that performs deep, structural static analysis to help you write cleaner, more maintainable code.
+
+pyscn complements traditional linters with analyses based on control-flow graphs and tree edit distance:
+
+- Cyclomatic complexity: precise CFG-based metrics with risk thresholds and sorting
+- Dead code detection: unreachable code after return/break/continue/raise and unreachable branches
+- Code clone detection: APTED-based structural similarity (Type 1–4) with grouping and thresholds
+- Coupling Between Objects (CBO): class dependency metrics and risk levels
+
+All analyses are available as dedicated commands and via a unified analyze command that can generate HTML/JSON/YAML/CSV reports.
+
 ## Quick Start
 
 ```bash
@@ -16,17 +27,6 @@ pyscn check .
 # Comprehensive analysis with unified report
 pyscn analyze .
 ```
-
-An intelligent Python code quality analyzer that performs deep, structural static analysis to help you write cleaner, more maintainable code.
-
-pyscn complements traditional linters with analyses based on control-flow graphs and tree edit distance:
-
-- Cyclomatic complexity: precise CFG-based metrics with risk thresholds and sorting
-- Dead code detection: unreachable code after return/break/continue/raise and unreachable branches
-- Code clone detection: APTED-based structural similarity (Type 1–4) with grouping and thresholds
-- Coupling Between Objects (CBO): class dependency metrics and risk levels
-
-All analyses are available as dedicated commands and via a unified analyze command that can generate HTML/JSON/YAML/CSV reports.
 
 ## Features
 
