@@ -248,35 +248,61 @@ EOF
     > "$metadata_dir/RECORD"  # Clear the file first
     (
         cd "$wheel_dir"
+
+        # Helper to compute PEP 427-compliant urlsafe base64 sha256 digest
+        compute_hash() {
+            local f="$1"
+            if command -v python3 >/dev/null 2>&1; then
+                python3 - "$f" << 'PY'
+import sys,hashlib,base64
+p=sys.argv[1]
+with open(p,'rb') as fh:
+    d=hashlib.sha256(fh.read()).digest()
+print('sha256=' + base64.urlsafe_b64encode(d).decode().rstrip('='))
+PY
+                return
+            elif command -v python >/dev/null 2>&1; then
+                python - "$f" << 'PY'
+import sys,hashlib,base64
+p=sys.argv[1]
+with open(p,'rb') as fh:
+    d=hashlib.sha256(fh.read()).digest()
+print('sha256=' + base64.urlsafe_b64encode(d).decode().rstrip('='))
+PY
+                return
+            elif command -v openssl >/dev/null 2>&1; then
+                # openssl + base64; convert to urlsafe and strip '=' padding
+                local b64
+                b64=$(openssl dgst -sha256 -binary "$f" | base64 | tr '+/' '-_' | tr -d '=')
+                echo "sha256=$b64"
+                return
+            fi
+            echo ""
+        }
+
         # Generate entries for all files except RECORD itself
         find . -type f ! -name "RECORD" | while IFS= read -r file; do
             # Remove leading ./
             file_path="${file#./}"
-            
-            # Calculate SHA256 hash
-            if command -v shasum >/dev/null 2>&1; then
-                file_hash=$(shasum -a 256 "$file" | cut -d' ' -f1)
-            elif command -v sha256sum >/dev/null 2>&1; then
-                file_hash=$(sha256sum "$file" | cut -d' ' -f1)
-            else
-                file_hash=""
-            fi
-            
+
+            # Calculate SHA256 hash (urlsafe base64, per PEP 427)
+            file_hash=$(compute_hash "$file")
+
             # Get file size
             if [[ "$OSTYPE" == "darwin"* ]]; then
                 file_size=$(stat -f%z "$file")
             else
                 file_size=$(stat -c%s "$file")
             fi
-            
+
             # Output CSV format: filepath,hash,size
             if [[ -n "$file_hash" ]]; then
-                echo "$file_path,sha256=$file_hash,$file_size"
+                echo "$file_path,$file_hash,$file_size"
             else
                 echo "$file_path,,$file_size"
             fi
         done | sort
-        
+
         # Add RECORD file entry (no hash, no size for RECORD itself)
         echo "${PACKAGE_NAME}-${VERSION}.dist-info/RECORD,,"
     ) >> "$metadata_dir/RECORD"
