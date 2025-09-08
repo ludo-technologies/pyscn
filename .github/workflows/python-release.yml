@@ -76,7 +76,6 @@ jobs:
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
-        SDKROOT: ${{ matrix.goos == 'darwin' && '$(xcrun --show-sdk-path)' || '' }}
         CC: ${{ matrix.goos == 'darwin' && matrix.goarch == 'arm64' && 'clang -target arm64-apple-macos11' || matrix.goos == 'darwin' && matrix.goarch == 'amd64' && 'clang -target x86_64-apple-macos10.13' || '' }}
     
     - name: Verify wheels

@@ -109,7 +109,11 @@ main() {
             ;;
         *"darwin"*)
             echo "Building for macOS..."
-            # macOS-specific settings are handled via environment variables set in CI
+            # Set SDKROOT if not already set
+            if [[ -z "${SDKROOT}" && -n "$(command -v xcrun)" ]]; then
+                export SDKROOT="$(xcrun --show-sdk-path)"
+                echo "Set SDKROOT to: $SDKROOT"
+            fi
             CGO_ENABLED=1 $build_cmd -ldflags="$ldflags" -o "$binary_path" "$project_dir/cmd/pyscn"
             ;;
         *"linux"*)
