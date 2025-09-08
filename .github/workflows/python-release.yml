@@ -9,7 +9,37 @@ on:
 jobs:
   build-wheels:
     name: Build wheels
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # Linux builds
+          - os: ubuntu-latest
+            platform: linux-amd64
+            goos: linux
+            goarch: amd64
+            wheel_platform: manylinux_2_17_x86_64
+          
+          # Windows builds
+          - os: windows-latest
+            platform: windows-amd64
+            goos: windows
+            goarch: amd64
+            wheel_platform: win_amd64
+          
+          # macOS Intel
+          - os: macos-13
+            platform: darwin-amd64
+            goos: darwin
+            goarch: amd64
+            wheel_platform: macosx_10_9_x86_64
+            
+          # macOS Apple Silicon
+          - os: macos-14
+            platform: darwin-arm64
+            goos: darwin
+            goarch: arm64
+            wheel_platform: macosx_11_0_arm64
     
     steps:
     - uses: actions/checkout@v4
@@ -20,27 +50,44 @@ jobs:
         go-version: '1.23'
         cache: true
     
+    # Windows-specific setup
+    - name: Set up MSYS2 (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-pkg-config
+    
     - name: Install wheel verification tools
       run: |
         pip install --user twine
+      shell: bash
     
     - name: Verify Go module
       run: |
         go mod download
         go mod verify
+      shell: ${{ matrix.os == 'windows-latest' && 'msys2' || 'bash' }}
     
-    - name: Build multi-platform wheels
+    - name: Build platform-specific wheel
       run: |
-        python/scripts/build_all_wheels.sh
+        python/scripts/build_platform_wheel.sh "${{ matrix.platform }}" "${{ matrix.wheel_platform }}"
+      shell: ${{ matrix.os == 'windows-latest' && 'msys2' || 'bash' }}
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        SDKROOT: ${{ matrix.goos == 'darwin' && '$(xcrun --show-sdk-path)' || '' }}
+        CC: ${{ matrix.goos == 'darwin' && matrix.goarch == 'arm64' && 'clang -target arm64-apple-macos11' || matrix.goos == 'darwin' && matrix.goarch == 'amd64' && 'clang -target x86_64-apple-macos10.13' || '' }}
     
     - name: Verify wheels
       run: |
         python -m twine check dist/*.whl
+      shell: bash
     
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: wheels
+        name: wheels-${{ matrix.platform }}
         path: dist/*.whl
         retention-days: 7
 
@@ -59,11 +106,12 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     
-    - name: Download wheels
+    - name: Download all wheels
       uses: actions/download-artifact@v4
       with:
-        name: wheels
+        pattern: wheels-*
         path: wheels/
+        merge-multiple: true
     
     - name: Test wheel installation
       shell: bash
@@ -107,11 +155,12 @@ jobs:
       contents: read  # For downloading artifacts
     
     steps:
-    - name: Download wheels
+    - name: Download all wheels
       uses: actions/download-artifact@v4
       with:
-        name: wheels
+        pattern: wheels-*
         path: dist/
+        merge-multiple: true
     
     - name: List wheels to publish
       run: ls -la dist/
@@ -137,11 +186,12 @@ jobs:
       contents: read  # For downloading artifacts
     
     steps:
-    - name: Download wheels
+    - name: Download all wheels
       uses: actions/download-artifact@v4
       with:
-        name: wheels
+        pattern: wheels-*
         path: dist/
+        merge-multiple: true
     
     - name: List wheels to publish
       run: ls -la dist/
@@ -165,11 +215,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Download wheels
+    - name: Download all wheels
       uses: actions/download-artifact@v4
       with:
-        name: wheels
+        pattern: wheels-*
         path: wheels/
+        merge-multiple: true
     
     - name: Create Release
       uses: softprops/action-gh-release@v1
