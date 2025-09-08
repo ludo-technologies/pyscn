@@ -244,8 +244,37 @@ EOF
 pyscn = pyscn.__main__:main
 EOF
 
-    # Create RECORD file (simplified - just list files)
-    find "$wheel_dir" -type f -exec basename {} \; | sort > "$metadata_dir/RECORD"
+    # Create RECORD file (proper CSV format)
+    (
+        cd "$wheel_dir"
+        # Find all files except RECORD itself and generate proper CSV entries
+        find . -type f ! -name "RECORD" -print0 | while IFS= read -r -d '' file; do
+            # Remove leading ./
+            file_path="${file#./}"
+            
+            # Calculate SHA256 hash
+            if command -v shasum >/dev/null 2>&1; then
+                hash="sha256=$(shasum -a 256 "$file" | cut -d' ' -f1)"
+            elif command -v sha256sum >/dev/null 2>&1; then
+                hash="sha256=$(sha256sum "$file" | cut -d' ' -f1)"
+            else
+                hash=""
+            fi
+            
+            # Get file size
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                size=$(stat -f%z "$file")
+            else
+                size=$(stat -c%s "$file")
+            fi
+            
+            # Output CSV format: filepath,hash,size
+            echo "${file_path},${hash},${size}"
+        done | sort
+        
+        # Add RECORD file entry (no hash, no size for RECORD itself)
+        echo "${PACKAGE_NAME}-${VERSION}.dist-info/RECORD,,"
+    ) > "$metadata_dir/RECORD"
     
     # Create the wheel (zip file)
     mkdir -p "$output_dir"
