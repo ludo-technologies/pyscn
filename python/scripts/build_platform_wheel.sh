@@ -68,8 +68,28 @@ main() {
     
     # Auto-detect version from git tags and normalize to PEP 440
     # In CI, use the git tag directly if available to ensure consistency across platforms
-    local git_tag="${GITHUB_REF_NAME:-}"
+    local git_tag="${GITHUB_REF_NAME:-${GITHUB_REF#refs/tags/}}"
     local version
+    
+    # Debug environment variables
+    echo "Debug - GITHUB_REF_NAME: '${GITHUB_REF_NAME:-}'"
+    echo "Debug - GITHUB_REF: '${GITHUB_REF:-}'"
+    echo "Debug - extracted git_tag: '${git_tag}'"
+    
+    # Try multiple sources for the version tag
+    if [[ -z "$git_tag" && -n "${GITHUB_REF:-}" ]]; then
+        git_tag="${GITHUB_REF#refs/tags/}"
+        echo "Debug - using GITHUB_REF fallback: '${git_tag}'"
+    fi
+    
+    # Additional fallback: check if we're at a specific tag with git command
+    if [[ -z "$git_tag" || "$git_tag" == "0.0.0.dev0" ]]; then
+        local current_tag=$(git tag --points-at HEAD 2>/dev/null | grep "^v[0-9]" | head -1)
+        if [[ -n "$current_tag" ]]; then
+            git_tag="$current_tag"
+            echo "Debug - using git tag at HEAD: '${git_tag}'"
+        fi
+    fi
     
     if [[ -n "$git_tag" && "$git_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
         # Running in CI with a version tag - use tag directly
