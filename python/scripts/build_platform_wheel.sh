@@ -45,6 +45,17 @@ main() {
             else
                 echo "${base_version}.post${commits_ahead}+g${commit_hash}"
             fi
+        elif [[ "$git_describe" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-beta\.([0-9]+)(-dirty)?$ ]]; then
+            # Beta release: 0.1.0-beta.6[-dirty] -> 0.1.0b6[.dev0]
+            local base_version="${BASH_REMATCH[1]}"
+            local beta_number="${BASH_REMATCH[2]}"
+            local is_dirty="${BASH_REMATCH[3]}"
+            
+            if [[ -n "$is_dirty" ]]; then
+                echo "${base_version}b${beta_number}.dev0"
+            else
+                echo "${base_version}b${beta_number}"
+            fi
         elif [[ "$git_describe" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-dirty)?$ ]]; then
             # Clean or dirty tag: 0.1.0[-dirty] 
             local base_version="${BASH_REMATCH[1]}"
@@ -91,7 +102,7 @@ main() {
         fi
     fi
     
-    if [[ -n "$git_tag" && "$git_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+    if [[ -n "$git_tag" && "$git_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$ ]]; then
         # Running in CI with a version tag - use tag directly
         version=$(normalize_version "${git_tag}")
         echo -e "${GREEN}Using CI tag version: $version${NC}"
