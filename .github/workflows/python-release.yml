@@ -67,16 +67,25 @@ jobs:
       run: |
         go mod download
         go mod verify
-      shell: ${{ matrix.os == 'windows-latest' && 'msys2' || 'bash' }}
     
-    - name: Build platform-specific wheel
+    - name: Build platform-specific wheel (Linux/macOS)
+      if: matrix.os != 'windows-latest'
       run: |
         python/scripts/build_platform_wheel.sh "${{ matrix.platform }}" "${{ matrix.wheel_platform }}"
-      shell: ${{ matrix.os == 'windows-latest' && 'msys2' || 'bash' }}
+      shell: bash
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
-        CC: ${{ matrix.goos == 'darwin' && matrix.goarch == 'arm64' && 'clang -target arm64-apple-macos11' || matrix.goos == 'darwin' && matrix.goarch == 'amd64' && 'clang -target x86_64-apple-macos10.13' || '' }}
+        CC: ${{ (matrix.goos == 'darwin' && matrix.goarch == 'arm64') && 'clang -target arm64-apple-macos11' || (matrix.goos == 'darwin' && matrix.goarch == 'amd64') && 'clang -target x86_64-apple-macos10.13' || '' }}
+    
+    - name: Build platform-specific wheel (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        python/scripts/build_platform_wheel.sh "${{ matrix.platform }}" "${{ matrix.wheel_platform }}"
+      shell: msys2 {0}
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
     
     - name: Verify wheels
       run: |
