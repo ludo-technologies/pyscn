@@ -7,11 +7,8 @@
 ## Quick Start
 
 ```bash
-# Install (Python users)
+# Install via pip (recommended)
 pip install pyscn
-
-# or install the Go binary directly
-go install github.com/ludo-technologies/pyscn/cmd/pyscn@latest
 
 # Fast quality check (CI-friendly)
 pyscn check .
