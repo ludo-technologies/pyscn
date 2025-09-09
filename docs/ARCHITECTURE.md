@@ -636,7 +636,7 @@ Test complete user workflows through the CLI interface.
 // e2e/complexity_e2e_test.go
 func TestComplexityE2EBasic(t *testing.T) {
     // Build actual binary
-    binaryPath := buildPyqolBinary(t)
+    binaryPath := buildPyscnBinary(t)
     defer os.Remove(binaryPath)
 
     // Create test Python files

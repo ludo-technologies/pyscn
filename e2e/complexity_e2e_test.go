@@ -13,7 +13,7 @@ import (
 // TestComplexityE2EBasic tests basic complexity analysis command
 func TestComplexityE2EBasic(t *testing.T) {
 	// Build the binary first
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	// Create test directory with Python files
@@ -59,7 +59,7 @@ def complex_function(x):
 
 // TestComplexityE2EJSONOutput tests JSON output format
 func TestComplexityE2EJSONOutput(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
@@ -127,7 +127,7 @@ def sample_function(x):
 
 // TestComplexityE2EFlags tests various command line flags
 func TestComplexityE2EFlags(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
@@ -187,7 +187,7 @@ def medium_complexity(x):
 
 // TestComplexityE2EErrorHandling tests error scenarios
 func TestComplexityE2EErrorHandling(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	tests := []struct {
@@ -240,7 +240,7 @@ func TestComplexityE2EErrorHandling(t *testing.T) {
 
 // TestComplexityE2EMultipleFiles tests analysis of multiple files
 func TestComplexityE2EMultipleFiles(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
@@ -282,7 +282,7 @@ def func2(x):
 
 // Helper functions
 
-func buildPyqolBinary(t *testing.T) string {
+func buildPyscnBinary(t *testing.T) string {
 	t.Helper()
 
 	// Create temporary binary
