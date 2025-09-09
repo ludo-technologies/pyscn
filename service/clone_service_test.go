@@ -40,6 +40,7 @@ func TestCloneService_DetectClones(t *testing.T) {
 			IgnoreIdentifiers: false,
 		}
 
+		//nolint:staticcheck // Intentionally testing nil context error handling
 		_, err := service.DetectClones(nil, req)
 		
 		assert.Error(t, err)
@@ -190,6 +191,7 @@ func TestCloneService_DetectClonesInFiles(t *testing.T) {
 			OutputFormat:    domain.OutputFormatJSON,
 		}
 
+		//nolint:staticcheck // Intentionally testing nil context error handling
 		_, err := service.DetectClonesInFiles(nil, []string{"test.py"}, req)
 		
 		assert.Error(t, err)
@@ -292,6 +294,7 @@ func TestCloneService_ComputeSimilarity(t *testing.T) {
 		fragment1 := "def hello(): pass"
 		fragment2 := "def world(): pass"
 
+		//nolint:staticcheck // Intentionally testing nil context error handling
 		_, err := service.ComputeSimilarity(nil, fragment1, fragment2)
 		
 		assert.Error(t, err)
