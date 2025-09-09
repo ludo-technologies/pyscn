@@ -305,7 +305,7 @@ func TestHTMLFormatter_FormatComplexityAsHTML(t *testing.T) {
 	
 	// Check HTML structure
 	assert.Contains(t, html, "<!DOCTYPE html>")
-	assert.Contains(t, html, "<title>PyQol Code Quality Report - Test Project</title>")
+	assert.Contains(t, html, "<title>pyscn Code Quality Report - Test Project</title>")
 	assert.Contains(t, html, "Test Project")
 	assert.Contains(t, html, "Overall Score")
 	assert.Contains(t, html, "Complexity Score")

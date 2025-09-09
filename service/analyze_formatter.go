@@ -46,7 +46,7 @@ func (f *AnalyzeFormatter) Write(response *domain.AnalyzeResponse, format domain
 
 // writeText formats the response as plain text
 func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io.Writer) error {
-	fmt.Fprintf(writer, "PyQOL Comprehensive Analysis Report\n")
+	fmt.Fprintf(writer, "pyscn Comprehensive Analysis Report\n")
 	fmt.Fprintf(writer, "====================================\n\n")
 	fmt.Fprintf(writer, "Generated: %s\n\n", response.GeneratedAt.Format(time.RFC3339))
 
@@ -145,7 +145,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PyQOL Analysis Report</title>
+    <title>pyscn Analysis Report</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -266,7 +266,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
 <body>
     <div class="container">
         <div class="header">
-            <h1>PyQOL Analysis Report</h1>
+            <h1>pyscn Analysis Report</h1>
             <p>Generated: {{.GeneratedAt.Format "2006-01-02 15:04:05"}}</p>
             <div class="score-badge grade-{{if eq .Summary.Grade "A"}}a{{else if eq .Summary.Grade "B"}}b{{else if eq .Summary.Grade "C"}}c{{else if eq .Summary.Grade "D"}}d{{else}}f{{end}}">
                 Health Score: {{.Summary.HealthScore}}/100 (Grade: {{.Summary.Grade}})

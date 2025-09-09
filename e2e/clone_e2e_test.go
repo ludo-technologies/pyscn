@@ -15,7 +15,7 @@ import (
 // TestCloneE2EBasic tests basic clone detection command
 func TestCloneE2EBasic(t *testing.T) {
 	// Build the binary first
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	// Create test directory with Python files containing simple clones
@@ -53,7 +53,7 @@ def func2():
 
 // TestCloneE2EJSONOutput tests JSON output format
 func TestCloneE2EJSONOutput(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
@@ -168,7 +168,7 @@ def function_b(arg):
 
 // TestCloneE2ETypes tests different clone types filtering
 func TestCloneE2ETypes(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
@@ -224,7 +224,7 @@ def func_b():
 
 // TestCloneE2EThreshold tests similarity threshold configuration
 func TestCloneE2EThreshold(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
@@ -289,7 +289,7 @@ def low_similarity():
 
 // TestCloneE2EFlags tests various command line flags
 func TestCloneE2EFlags(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
@@ -381,7 +381,7 @@ def sample_func2(arg):
 
 // TestCloneE2EErrorHandling tests error scenarios
 func TestCloneE2EErrorHandling(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	tests := []struct {
@@ -433,7 +433,7 @@ func TestCloneE2EErrorHandling(t *testing.T) {
 
 // TestCloneE2EMultipleFiles tests clone detection across multiple files
 func TestCloneE2EMultipleFiles(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
@@ -470,7 +470,7 @@ def another_func():
 
 // TestCloneE2EAdvancedOptions tests advanced configuration options
 func TestCloneE2EAdvancedOptions(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
@@ -531,7 +531,7 @@ def function_with_different_literals():
 
 // TestCloneE2ERecursiveAnalysis tests recursive directory analysis
 func TestCloneE2ERecursiveAnalysis(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()

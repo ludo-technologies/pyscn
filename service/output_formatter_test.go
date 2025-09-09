@@ -255,7 +255,7 @@ func TestOutputFormatter_Format(t *testing.T) {
 				// Verify HTML structure
 				assert.Contains(t, output, "<!DOCTYPE html>", "Should contain HTML doctype")
 				assert.Contains(t, output, "<title>", "Should contain title tag")
-				assert.Contains(t, output, "PyQol Code Quality Report", "Should contain report title")
+				assert.Contains(t, output, "pyscn Code Quality Report", "Should contain report title")
 				assert.Contains(t, output, "Overall Score", "Should contain overall score")
 				assert.Contains(t, output, "<style>", "Should contain embedded CSS")
 				assert.Contains(t, output, "Complexity Score", "Should contain complexity score")

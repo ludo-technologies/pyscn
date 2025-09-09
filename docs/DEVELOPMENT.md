@@ -421,7 +421,7 @@ go tool pprof -http=:8080 cpu.prof
 go build -gcflags="all=-N -l" ./cmd/pyscn
 
 # Run with debug logging
-PYQOL_DEBUG=1 ./pyscn analyze test.py
+PYSCN_DEBUG=1 ./pyscn analyze test.py
 
 # Use delve debugger
 dlv debug ./cmd/pyscn -- analyze test.py

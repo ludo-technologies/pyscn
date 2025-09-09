@@ -13,7 +13,7 @@ import (
 // TestDeadCodeE2EBasic tests basic dead code analysis command
 func TestDeadCodeE2EBasic(t *testing.T) {
 	// Build the binary first
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	// Create test directory with Python files containing dead code
@@ -77,7 +77,7 @@ def function_with_raise():
 
 // TestDeadCodeE2EJSONOutput tests JSON output format
 func TestDeadCodeE2EJSONOutput(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
@@ -153,7 +153,7 @@ def simple_function():
 
 // TestDeadCodeE2EFlags tests various command line flags
 func TestDeadCodeE2EFlags(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
@@ -234,7 +234,7 @@ def warning_dead_code(x):
 
 // TestDeadCodeE2ESeverityFiltering tests severity filtering functionality
 func TestDeadCodeE2ESeverityFiltering(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
@@ -289,7 +289,7 @@ def warning_example(x):
 
 // TestDeadCodeE2EErrorHandling tests error scenarios
 func TestDeadCodeE2EErrorHandling(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	tests := []struct {
@@ -350,7 +350,7 @@ func TestDeadCodeE2EErrorHandling(t *testing.T) {
 
 // TestDeadCodeE2EMultipleFiles tests analysis of multiple files
 func TestDeadCodeE2EMultipleFiles(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
@@ -410,7 +410,7 @@ def func3():
 
 // TestDeadCodeE2EContextDisplay tests context line display functionality
 func TestDeadCodeE2EContextDisplay(t *testing.T) {
-	binaryPath := buildPyqolBinary(t)
+	binaryPath := buildPyscnBinary(t)
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()

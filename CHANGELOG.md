@@ -5,9 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0-beta.1] - 2025-09-07
+## [0.1.0-beta.13] - 2025-09-08
 
-### Initial Beta Release
+### Latest Beta Release
+
+*Note: Previous beta versions (0.1.0-beta.1 through 0.1.0-beta.12) contained distribution issues and have been removed from both PyPI and GitHub releases.*
 
 #### Features
 - **Complexity Analysis**: CFG-based cyclomatic complexity calculation with risk thresholds
@@ -69,11 +71,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Installation
 ```bash
-# Install beta version
+# Install latest beta version
 pip install --pre pyscn
 
 # Or specify exact version
-pip install pyscn==0.1.0b1
+pip install pyscn==0.1.0b13
 ```
 
 #### Usage
@@ -90,5 +92,3 @@ pyscn deadcode src/
 pyscn clone src/
 pyscn cbo src/
 ```
-
-[0.1.0-beta.1]: https://github.com/pyscn/pyscn/releases/tag/v0.1.0-beta.1
