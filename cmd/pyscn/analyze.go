@@ -11,6 +11,7 @@ import (
 
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/version"
 	"github.com/ludo-technologies/pyscn/service"
 	"github.com/spf13/cobra"
 )
@@ -962,7 +963,7 @@ func (c *AnalyzeCommand) generateUnifiedReport(cmd *cobra.Command, result *Analy
 		CBO:         result.CBOResponse,
 		GeneratedAt: time.Now(),
 		Duration:    result.Overall.TotalTime.Milliseconds(),
-		Version:     "1.0.0", // TODO: Get from build info
+		Version:     version.Version,
 	}
 	
 	// Calculate summary statistics
