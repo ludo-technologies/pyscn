@@ -10,6 +10,30 @@ import (
 	"github.com/ludo-technologies/pyscn/domain"
 )
 
+func newDefaultCloneRequest(paths ...string) *domain.CloneRequest {
+	if len(paths) == 0 {
+		paths = []string{"../testdata/python/simple/functions.py"}
+	}
+	return &domain.CloneRequest{
+		Paths:             paths,
+		MinLines:          3,
+		MinNodes:          10,
+		MinSimilarity:     0.7,
+		MaxSimilarity:     1.0,
+		Type1Threshold:    0.95,
+		Type2Threshold:    0.85,
+		Type3Threshold:    0.75,
+		Type4Threshold:    0.65,
+		CloneTypes:        []domain.CloneType{domain.Type1Clone, domain.Type2Clone},
+		OutputFormat:      domain.OutputFormatJSON,
+		ShowDetails:       true,
+		ShowContent:       false,
+		GroupClones:       true,
+		IgnoreLiterals:    true,
+		IgnoreIdentifiers: false,
+	}
+}
+
 func TestNewCloneService(t *testing.T) {
 	service := NewCloneService()
 	
@@ -55,25 +79,10 @@ func TestCloneService_DetectClones(t *testing.T) {
 	})
 
 	t.Run("successful clone detection with valid files", func(t *testing.T) {
-		req := &domain.CloneRequest{
-			Paths:             []string{"../testdata/python/simple/functions.py", "../testdata/python/simple/control_flow.py"},
-			MinLines:          3,
-			MinNodes:          10,
-			MinSimilarity:     0.5,
-			MaxSimilarity:     1.0,
-			Type1Threshold:    0.95,
-			Type2Threshold:    0.85,
-			Type3Threshold:    0.75,
-			Type4Threshold:    0.65,
-			CloneTypes:        []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone},
-			OutputFormat:      domain.OutputFormatJSON,
-			ShowDetails:       true,
-			ShowContent:       false,
-			GroupClones:       true,
-			IgnoreLiterals:    true,
-			IgnoreIdentifiers: false,
-			MaxEditDistance:   10.0,
-		}
+		req := newDefaultCloneRequest("../testdata/python/simple/functions.py", "../testdata/python/simple/control_flow.py")
+		req.MinSimilarity = 0.5
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone}
+		req.MaxEditDistance = 10.0
 
 		// Skip validation check since Validate method may not exist
 		response, err := service.DetectClonesInFiles(ctx, req.Paths, req)
@@ -106,19 +115,9 @@ func TestCloneService_DetectClones(t *testing.T) {
 	})
 
 	t.Run("empty file list should succeed but return empty results", func(t *testing.T) {
-		req := &domain.CloneRequest{
-			Paths:           []string{},
-			MinLines:        3,
-			MinNodes:        10,
-			MinSimilarity:   0.7,
-			MaxSimilarity:   1.0,
-			Type1Threshold:  0.95,
-			Type2Threshold:  0.85,
-			Type3Threshold:  0.75,
-			Type4Threshold:  0.65,
-			CloneTypes:      []domain.CloneType{domain.Type1Clone},
-			OutputFormat:    domain.OutputFormatJSON,
-		}
+		req := newDefaultCloneRequest()
+		req.Paths = []string{}
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone}
 
 		response, err := service.DetectClonesInFiles(ctx, req.Paths, req)
 
@@ -132,16 +131,8 @@ func TestCloneService_DetectClones(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		req := &domain.CloneRequest{
-			Paths:           []string{"../testdata/python/simple/functions.py"},
-			MinLines:        3,
-			MinNodes:        10,
-			MinSimilarity:   0.7,
-			MaxSimilarity:   1.0,
-			Type1Threshold:  0.95,
-			CloneTypes:      []domain.CloneType{domain.Type1Clone},
-			OutputFormat:    domain.OutputFormatJSON,
-		}
+		req := newDefaultCloneRequest()
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone}
 
 		_, err := service.DetectClonesInFiles(ctx, req.Paths, req)
 
@@ -150,17 +141,9 @@ func TestCloneService_DetectClones(t *testing.T) {
 	})
 
 	t.Run("request with timeout should be respected", func(t *testing.T) {
-		req := &domain.CloneRequest{
-			Paths:           []string{"../testdata/python/simple/functions.py"},
-			MinLines:        3,
-			MinNodes:        10,
-			MinSimilarity:   0.7,
-			MaxSimilarity:   1.0,
-			Type1Threshold:  0.95,
-			CloneTypes:      []domain.CloneType{domain.Type1Clone},
-			OutputFormat:    domain.OutputFormatJSON,
-			Timeout:         time.Millisecond * 1, // Very short timeout
-		}
+		req := newDefaultCloneRequest()
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone}
+		req.Timeout = time.Millisecond * 1 // Very short timeout
 
 		startTime := time.Now()
 		_, err := service.DetectClonesInFiles(ctx, req.Paths, req)
@@ -182,14 +165,8 @@ func TestCloneService_DetectClonesInFiles(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("nil context should return error", func(t *testing.T) {
-		req := &domain.CloneRequest{
-			MinLines:        3,
-			MinNodes:        10,
-			MinSimilarity:   0.7,
-			MaxSimilarity:   1.0,
-			CloneTypes:      []domain.CloneType{domain.Type1Clone},
-			OutputFormat:    domain.OutputFormatJSON,
-		}
+		req := newDefaultCloneRequest()
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone}
 
 		//nolint:staticcheck // Intentionally testing nil context error handling
 		_, err := service.DetectClonesInFiles(nil, []string{"test.py"}, req)
@@ -206,14 +183,8 @@ func TestCloneService_DetectClonesInFiles(t *testing.T) {
 	})
 
 	t.Run("empty file paths should return error", func(t *testing.T) {
-		req := &domain.CloneRequest{
-			MinLines:        3,
-			MinNodes:        10,
-			MinSimilarity:   0.7,
-			MaxSimilarity:   1.0,
-			CloneTypes:      []domain.CloneType{domain.Type1Clone},
-			OutputFormat:    domain.OutputFormatJSON,
-		}
+		req := newDefaultCloneRequest()
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone}
 
 		_, err := service.DetectClonesInFiles(ctx, []string{}, req)
 		
@@ -222,15 +193,8 @@ func TestCloneService_DetectClonesInFiles(t *testing.T) {
 	})
 
 	t.Run("non-existent files should be skipped with warnings", func(t *testing.T) {
-		req := &domain.CloneRequest{
-			Paths:           []string{"../testdata/non_existent_file.py"},
-			MinLines:        3,
-			MinNodes:        10,
-			MinSimilarity:   0.7,
-			MaxSimilarity:   1.0,
-			CloneTypes:      []domain.CloneType{domain.Type1Clone},
-			OutputFormat:    domain.OutputFormatJSON,
-		}
+		req := newDefaultCloneRequest("../testdata/non_existent_file.py")
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone}
 
 		response, err := service.DetectClonesInFiles(ctx, req.Paths, req)
 
@@ -330,17 +294,11 @@ func TestCloneService_ComputeSimilarity(t *testing.T) {
 func TestCloneService_CreateDetectorConfig(t *testing.T) {
 	service := NewCloneService()
 
-	req := &domain.CloneRequest{
-		MinLines:          5,
-		MinNodes:          20,
-		Type1Threshold:    0.95,
-		Type2Threshold:    0.85,
-		Type3Threshold:    0.75,
-		Type4Threshold:    0.65,
-		MaxEditDistance:   15.0,
-		IgnoreLiterals:    true,
-		IgnoreIdentifiers: false,
-	}
+	req := newDefaultCloneRequest()
+	req.MinLines = 5
+	req.MinNodes = 20
+	req.MaxEditDistance = 15.0
+	req.IgnoreIdentifiers = false
 
 	config := service.createDetectorConfig(req)
 
@@ -409,11 +367,10 @@ func TestCloneService_FilterClonePairs(t *testing.T) {
 	}
 
 	t.Run("filter by similarity range", func(t *testing.T) {
-		req := &domain.CloneRequest{
-			MinSimilarity: 0.7,
-			MaxSimilarity: 0.85,
-			CloneTypes:    []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone},
-		}
+		req := newDefaultCloneRequest()
+		req.MinSimilarity = 0.7
+		req.MaxSimilarity = 0.85
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone}
 
 		filtered := service.filterClonePairs(pairs, req)
 
@@ -423,11 +380,10 @@ func TestCloneService_FilterClonePairs(t *testing.T) {
 	})
 
 	t.Run("filter by clone types", func(t *testing.T) {
-		req := &domain.CloneRequest{
-			MinSimilarity: 0.0,
-			MaxSimilarity: 1.0,
-			CloneTypes:    []domain.CloneType{domain.Type1Clone},
-		}
+		req := newDefaultCloneRequest()
+		req.MinSimilarity = 0.0
+		req.MaxSimilarity = 1.0
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone}
 
 		filtered := service.filterClonePairs(pairs, req)
 
@@ -437,11 +393,10 @@ func TestCloneService_FilterClonePairs(t *testing.T) {
 	})
 
 	t.Run("filter by both similarity and types", func(t *testing.T) {
-		req := &domain.CloneRequest{
-			MinSimilarity: 0.7,
-			MaxSimilarity: 1.0,
-			CloneTypes:    []domain.CloneType{domain.Type1Clone, domain.Type3Clone},
-		}
+		req := newDefaultCloneRequest()
+		req.MinSimilarity = 0.7
+		req.MaxSimilarity = 1.0
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type3Clone}
 
 		filtered := service.filterClonePairs(pairs, req)
 
@@ -473,11 +428,10 @@ func TestCloneService_FilterCloneGroups(t *testing.T) {
 	}
 
 	t.Run("filter by similarity range", func(t *testing.T) {
-		req := &domain.CloneRequest{
-			MinSimilarity: 0.7,
-			MaxSimilarity: 0.85,
-			CloneTypes:    []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone},
-		}
+		req := newDefaultCloneRequest()
+		req.MinSimilarity = 0.7
+		req.MaxSimilarity = 0.85
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone}
 
 		filtered := service.filterCloneGroups(groups, req)
 
@@ -487,11 +441,10 @@ func TestCloneService_FilterCloneGroups(t *testing.T) {
 	})
 
 	t.Run("filter by clone types", func(t *testing.T) {
-		req := &domain.CloneRequest{
-			MinSimilarity: 0.0,
-			MaxSimilarity: 1.0,
-			CloneTypes:    []domain.CloneType{domain.Type2Clone, domain.Type3Clone},
-		}
+		req := newDefaultCloneRequest()
+		req.MinSimilarity = 0.0
+		req.MaxSimilarity = 1.0
+		req.CloneTypes = []domain.CloneType{domain.Type2Clone, domain.Type3Clone}
 
 		filtered := service.filterCloneGroups(groups, req)
 
@@ -543,18 +496,12 @@ func TestCloneService_ResponseStructure(t *testing.T) {
 	service := NewCloneService()
 	ctx := context.Background()
 
-	req := &domain.CloneRequest{
-		Paths:           []string{"../testdata/python/simple/functions.py"},
-		MinLines:        1,
-		MinNodes:        1,
-		MinSimilarity:   0.0,
-		MaxSimilarity:   1.0,
-		CloneTypes:      []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone, domain.Type4Clone},
-		OutputFormat:    domain.OutputFormatJSON,
-		ShowDetails:     true,
-		ShowContent:     true,
-		GroupClones:     true,
-	}
+	req := newDefaultCloneRequest()
+	req.MinLines = 1
+	req.MinNodes = 1
+	req.MinSimilarity = 0.0
+	req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone, domain.Type4Clone}
+	req.ShowContent = true
 
 	response, err := service.DetectClonesInFiles(ctx, req.Paths, req)
 

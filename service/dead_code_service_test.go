@@ -10,6 +10,26 @@ import (
 	"github.com/ludo-technologies/pyscn/domain"
 )
 
+func newDefaultDeadCodeRequest(paths ...string) domain.DeadCodeRequest {
+	if len(paths) == 0 {
+		paths = []string{"../testdata/python/simple/control_flow.py"}
+	}
+	return domain.DeadCodeRequest{
+		Paths:                     paths,
+		OutputFormat:              domain.OutputFormatJSON,
+		MinSeverity:               domain.DeadCodeSeverityInfo,
+		SortBy:                    domain.DeadCodeSortByFile,
+		ShowContext:               false,
+		ContextLines:              2,
+		Recursive:                 false,
+		DetectAfterReturn:         true,
+		DetectAfterBreak:          true,
+		DetectAfterContinue:       true,
+		DetectAfterRaise:          true,
+		DetectUnreachableBranches: true,
+	}
+}
+
 func TestNewDeadCodeService(t *testing.T) {
 	service := NewDeadCodeService()
 	
@@ -22,20 +42,7 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("successful analysis with Python file containing functions", func(t *testing.T) {
-		req := domain.DeadCodeRequest{
-			Paths:                     []string{"../testdata/python/simple/control_flow.py"},
-			OutputFormat:              domain.OutputFormatJSON,
-			MinSeverity:               domain.DeadCodeSeverityInfo,
-			SortBy:                    domain.DeadCodeSortByFile,
-			ShowContext:               false,
-			ContextLines:              2,
-			Recursive:                 false,
-			DetectAfterReturn:         true,
-			DetectAfterBreak:          true,
-			DetectAfterContinue:       true,
-			DetectAfterRaise:          true,
-			DetectUnreachableBranches: true,
-		}
+		req := newDefaultDeadCodeRequest("../testdata/python/simple/control_flow.py")
 
 		response, err := service.Analyze(ctx, req)
 
@@ -73,20 +80,7 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 	})
 
 	t.Run("analyze file with no functions should return valid response", func(t *testing.T) {
-		req := domain.DeadCodeRequest{
-			Paths:                     []string{"../testdata/python/simple/imports.py"},
-			OutputFormat:              domain.OutputFormatJSON,
-			MinSeverity:               domain.DeadCodeSeverityInfo,
-			SortBy:                    domain.DeadCodeSortByFile,
-			ShowContext:               false,
-			ContextLines:              2,
-			Recursive:                 false,
-			DetectAfterReturn:         true,
-			DetectAfterBreak:          true,
-			DetectAfterContinue:       true,
-			DetectAfterRaise:          true,
-			DetectUnreachableBranches: true,
-		}
+		req := newDefaultDeadCodeRequest("../testdata/python/simple/imports.py")
 
 		response, err := service.Analyze(ctx, req)
 
@@ -97,20 +91,8 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 	})
 
 	t.Run("analyze with severity filtering", func(t *testing.T) {
-		req := domain.DeadCodeRequest{
-			Paths:                     []string{"../testdata/python/simple/control_flow.py"},
-			OutputFormat:              domain.OutputFormatJSON,
-			MinSeverity:               domain.DeadCodeSeverityWarning, // Only warning and critical
-			SortBy:                    domain.DeadCodeSortByFile,
-			ShowContext:               false,
-			ContextLines:              2,
-			Recursive:                 false,
-			DetectAfterReturn:         true,
-			DetectAfterBreak:          true,
-			DetectAfterContinue:       true,
-			DetectAfterRaise:          true,
-			DetectUnreachableBranches: true,
-		}
+		req := newDefaultDeadCodeRequest("../testdata/python/simple/control_flow.py")
+		req.MinSeverity = domain.DeadCodeSeverityWarning // Only warning and critical
 
 		response, err := service.Analyze(ctx, req)
 
@@ -127,23 +109,10 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 	})
 
 	t.Run("analyze multiple files", func(t *testing.T) {
-		req := domain.DeadCodeRequest{
-			Paths: []string{
-				"../testdata/python/simple/functions.py",
-				"../testdata/python/simple/control_flow.py",
-			},
-			OutputFormat:              domain.OutputFormatJSON,
-			MinSeverity:               domain.DeadCodeSeverityInfo,
-			SortBy:                    domain.DeadCodeSortByFile,
-			ShowContext:               false,
-			ContextLines:              2,
-			Recursive:                 false,
-			DetectAfterReturn:         true,
-			DetectAfterBreak:          true,
-			DetectAfterContinue:       true,
-			DetectAfterRaise:          true,
-			DetectUnreachableBranches: true,
-		}
+		req := newDefaultDeadCodeRequest(
+			"../testdata/python/simple/functions.py",
+			"../testdata/python/simple/control_flow.py",
+		)
 
 		response, err := service.Analyze(ctx, req)
 
@@ -153,20 +122,7 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 	})
 
 	t.Run("error handling for non-existent file", func(t *testing.T) {
-		req := domain.DeadCodeRequest{
-			Paths:                     []string{"../testdata/non_existent_file.py"},
-			OutputFormat:              domain.OutputFormatJSON,
-			MinSeverity:               domain.DeadCodeSeverityInfo,
-			SortBy:                    domain.DeadCodeSortByFile,
-			ShowContext:               false,
-			ContextLines:              2,
-			Recursive:                 false,
-			DetectAfterReturn:         true,
-			DetectAfterBreak:          true,
-			DetectAfterContinue:       true,
-			DetectAfterRaise:          true,
-			DetectUnreachableBranches: true,
-		}
+		req := newDefaultDeadCodeRequest("../testdata/non_existent_file.py")
 
 		response, err := service.Analyze(ctx, req)
 
@@ -179,20 +135,7 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		req := domain.DeadCodeRequest{
-			Paths:                     []string{"../testdata/python/simple/functions.py"},
-			OutputFormat:              domain.OutputFormatJSON,
-			MinSeverity:               domain.DeadCodeSeverityInfo,
-			SortBy:                    domain.DeadCodeSortByFile,
-			ShowContext:               false,
-			ContextLines:              2,
-			Recursive:                 false,
-			DetectAfterReturn:         true,
-			DetectAfterBreak:          true,
-			DetectAfterContinue:       true,
-			DetectAfterRaise:          true,
-			DetectUnreachableBranches: true,
-		}
+		req := newDefaultDeadCodeRequest("../testdata/python/simple/functions.py")
 
 		_, err := service.Analyze(ctx, req)
 
@@ -201,20 +144,9 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 	})
 
 	t.Run("analyze with context enabled", func(t *testing.T) {
-		req := domain.DeadCodeRequest{
-			Paths:                     []string{"../testdata/python/simple/control_flow.py"},
-			OutputFormat:              domain.OutputFormatJSON,
-			MinSeverity:               domain.DeadCodeSeverityInfo,
-			SortBy:                    domain.DeadCodeSortByFile,
-			ShowContext:               true,
-			ContextLines:              3,
-			Recursive:                 false,
-			DetectAfterReturn:         true,
-			DetectAfterBreak:          true,
-			DetectAfterContinue:       true,
-			DetectAfterRaise:          true,
-			DetectUnreachableBranches: true,
-		}
+		req := newDefaultDeadCodeRequest("../testdata/python/simple/control_flow.py")
+		req.ShowContext = true
+		req.ContextLines = 3
 
 		response, err := service.Analyze(ctx, req)
 
@@ -229,19 +161,8 @@ func TestDeadCodeService_AnalyzeFile(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("analyze single file", func(t *testing.T) {
-		req := domain.DeadCodeRequest{
-			OutputFormat:              domain.OutputFormatJSON,
-			MinSeverity:               domain.DeadCodeSeverityInfo,
-			SortBy:                    domain.DeadCodeSortByFile,
-			ShowContext:               false,
-			ContextLines:              2,
-			Recursive:                 false,
-			DetectAfterReturn:         true,
-			DetectAfterBreak:          true,
-			DetectAfterContinue:       true,
-			DetectAfterRaise:          true,
-			DetectUnreachableBranches: true,
-		}
+		req := newDefaultDeadCodeRequest()
+		req.Paths = nil // Remove paths since AnalyzeFile provides the path separately
 
 		file, err := service.AnalyzeFile(ctx, "../testdata/python/simple/functions.py", req)
 
@@ -253,19 +174,8 @@ func TestDeadCodeService_AnalyzeFile(t *testing.T) {
 	})
 
 	t.Run("analyze file with errors should return error", func(t *testing.T) {
-		req := domain.DeadCodeRequest{
-			OutputFormat:              domain.OutputFormatJSON,
-			MinSeverity:               domain.DeadCodeSeverityInfo,
-			SortBy:                    domain.DeadCodeSortByFile,
-			ShowContext:               false,
-			ContextLines:              2,
-			Recursive:                 false,
-			DetectAfterReturn:         true,
-			DetectAfterBreak:          true,
-			DetectAfterContinue:       true,
-			DetectAfterRaise:          true,
-			DetectUnreachableBranches: true,
-		}
+		req := newDefaultDeadCodeRequest()
+		req.Paths = nil // Remove paths since AnalyzeFile provides the path separately
 
 		_, err := service.AnalyzeFile(ctx, "../testdata/non_existent_file.py", req)
 
@@ -662,20 +572,7 @@ func TestDeadCodeService_ResponseMetadata(t *testing.T) {
 	service := NewDeadCodeService()
 	ctx := context.Background()
 
-	req := domain.DeadCodeRequest{
-		Paths:                     []string{"../testdata/python/simple/functions.py"},
-		OutputFormat:              domain.OutputFormatJSON,
-		MinSeverity:               domain.DeadCodeSeverityInfo,
-		SortBy:                    domain.DeadCodeSortByFile,
-		ShowContext:               false,
-		ContextLines:              2,
-		Recursive:                 false,
-		DetectAfterReturn:         true,
-		DetectAfterBreak:          true,
-		DetectAfterContinue:       true,
-		DetectAfterRaise:          true,
-		DetectUnreachableBranches: true,
-	}
+	req := newDefaultDeadCodeRequest("../testdata/python/simple/functions.py")
 
 	beforeTime := time.Now()
 	response, err := service.Analyze(ctx, req)

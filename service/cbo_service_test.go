@@ -11,6 +11,26 @@ import (
 	"github.com/ludo-technologies/pyscn/domain"
 )
 
+func newDefaultCBORequest(paths ...string) domain.CBORequest {
+	if len(paths) == 0 {
+		paths = []string{"../testdata/python/complex/decorators.py"}
+	}
+	return domain.CBORequest{
+		Paths:           paths,
+		OutputFormat:    domain.OutputFormatJSON,
+		MinCBO:          0,
+		MaxCBO:          0,
+		SortBy:          domain.SortByCoupling,
+		ShowZeros:       true,
+		LowThreshold:    5,
+		MediumThreshold: 10,
+		ShowDetails:     true,
+		Recursive:       false,
+		IncludeBuiltins: false,
+		IncludeImports:  true,
+	}
+}
+
 func TestNewCBOService(t *testing.T) {
 	service := NewCBOService()
 	
@@ -23,20 +43,7 @@ func TestCBOService_Analyze(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("successful analysis with Python file containing classes", func(t *testing.T) {
-		req := domain.CBORequest{
-			Paths:           []string{"../testdata/python/complex/decorators.py"},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinCBO:          0,
-			MaxCBO:          0,
-			SortBy:          domain.SortByCoupling,
-			ShowZeros:       true,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-			IncludeBuiltins: false,
-			IncludeImports:  true,
-		}
+		req := newDefaultCBORequest("../testdata/python/complex/decorators.py")
 
 		response, err := service.Analyze(ctx, req)
 
@@ -61,20 +68,7 @@ func TestCBOService_Analyze(t *testing.T) {
 	})
 
 	t.Run("analyze file with no classes should return empty result", func(t *testing.T) {
-		req := domain.CBORequest{
-			Paths:           []string{"../testdata/python/simple/functions.py"},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinCBO:          0,
-			MaxCBO:          0,
-			SortBy:          domain.SortByCoupling,
-			ShowZeros:       true,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-			IncludeBuiltins: false,
-			IncludeImports:  true,
-		}
+		req := newDefaultCBORequest("../testdata/python/simple/functions.py")
 
 		response, err := service.Analyze(ctx, req)
 
@@ -87,20 +81,9 @@ func TestCBOService_Analyze(t *testing.T) {
 	})
 
 	t.Run("analyze with filtering by CBO count", func(t *testing.T) {
-		req := domain.CBORequest{
-			Paths:           []string{"../testdata/python/complex/exceptions.py"},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinCBO:          1, // Only classes with CBO >= 1
-			MaxCBO:          0,
-			SortBy:          domain.SortByCoupling,
-			ShowZeros:       false,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-			IncludeBuiltins: false,
-			IncludeImports:  true,
-		}
+		req := newDefaultCBORequest("../testdata/python/complex/exceptions.py")
+		req.MinCBO = 1 // Only classes with CBO >= 1
+		req.ShowZeros = false
 
 		response, err := service.Analyze(ctx, req)
 
@@ -113,20 +96,8 @@ func TestCBOService_Analyze(t *testing.T) {
 	})
 
 	t.Run("analyze with max CBO limit", func(t *testing.T) {
-		req := domain.CBORequest{
-			Paths:           []string{"../testdata/python/complex/exceptions.py"},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinCBO:          0,
-			MaxCBO:          5, // Only classes with CBO <= 5
-			SortBy:          domain.SortByCoupling,
-			ShowZeros:       true,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-			IncludeBuiltins: false,
-			IncludeImports:  true,
-		}
+		req := newDefaultCBORequest("../testdata/python/complex/exceptions.py")
+		req.MaxCBO = 5 // Only classes with CBO <= 5
 
 		response, err := service.Analyze(ctx, req)
 
@@ -139,23 +110,10 @@ func TestCBOService_Analyze(t *testing.T) {
 	})
 
 	t.Run("analyze multiple files", func(t *testing.T) {
-		req := domain.CBORequest{
-			Paths: []string{
-				"../testdata/python/complex/decorators.py",
-				"../testdata/python/complex/exceptions.py",
-			},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinCBO:          0,
-			MaxCBO:          0,
-			SortBy:          domain.SortByCoupling,
-			ShowZeros:       true,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-			IncludeBuiltins: false,
-			IncludeImports:  true,
-		}
+		req := newDefaultCBORequest(
+			"../testdata/python/complex/decorators.py",
+			"../testdata/python/complex/exceptions.py",
+		)
 
 		response, err := service.Analyze(ctx, req)
 
@@ -165,20 +123,8 @@ func TestCBOService_Analyze(t *testing.T) {
 	})
 
 	t.Run("analyze with ShowZeros=false filters out zero CBO classes", func(t *testing.T) {
-		req := domain.CBORequest{
-			Paths:           []string{"../testdata/python/complex/decorators.py"},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinCBO:          0,
-			MaxCBO:          0,
-			SortBy:          domain.SortByCoupling,
-			ShowZeros:       false, // Filter out zero CBO classes
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-			IncludeBuiltins: false,
-			IncludeImports:  true,
-		}
+		req := newDefaultCBORequest("../testdata/python/complex/decorators.py")
+		req.ShowZeros = false // Filter out zero CBO classes
 
 		response, err := service.Analyze(ctx, req)
 
@@ -191,20 +137,7 @@ func TestCBOService_Analyze(t *testing.T) {
 	})
 
 	t.Run("error handling for non-existent file", func(t *testing.T) {
-		req := domain.CBORequest{
-			Paths:           []string{"../testdata/non_existent_file.py"},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinCBO:          0,
-			MaxCBO:          0,
-			SortBy:          domain.SortByCoupling,
-			ShowZeros:       true,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-			IncludeBuiltins: false,
-			IncludeImports:  true,
-		}
+		req := newDefaultCBORequest("../testdata/non_existent_file.py")
 
 		response, err := service.Analyze(ctx, req)
 
@@ -218,20 +151,7 @@ func TestCBOService_Analyze(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		req := domain.CBORequest{
-			Paths:           []string{"../testdata/python/complex/decorators.py"},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinCBO:          0,
-			MaxCBO:          0,
-			SortBy:          domain.SortByCoupling,
-			ShowZeros:       true,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-			IncludeBuiltins: false,
-			IncludeImports:  true,
-		}
+		req := newDefaultCBORequest("../testdata/python/complex/decorators.py")
 
 		_, err := service.Analyze(ctx, req)
 
@@ -240,20 +160,8 @@ func TestCBOService_Analyze(t *testing.T) {
 	})
 
 	t.Run("analyze with include builtins enabled", func(t *testing.T) {
-		req := domain.CBORequest{
-			Paths:           []string{"../testdata/python/complex/exceptions.py"},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinCBO:          0,
-			MaxCBO:          0,
-			SortBy:          domain.SortByCoupling,
-			ShowZeros:       true,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-			IncludeBuiltins: true, // Include built-in dependencies
-			IncludeImports:  true,
-		}
+		req := newDefaultCBORequest("../testdata/python/complex/exceptions.py")
+		req.IncludeBuiltins = true // Include built-in dependencies
 
 		response, err := service.Analyze(ctx, req)
 
@@ -606,20 +514,7 @@ func TestCBOService_ResponseMetadata(t *testing.T) {
 	service := NewCBOService()
 	ctx := context.Background()
 
-	req := domain.CBORequest{
-		Paths:           []string{"../testdata/python/complex/decorators.py"},
-		OutputFormat:    domain.OutputFormatJSON,
-		MinCBO:          0,
-		MaxCBO:          0,
-		SortBy:          domain.SortByCoupling,
-		ShowZeros:       true,
-		LowThreshold:    5,
-		MediumThreshold: 10,
-		ShowDetails:     true,
-		Recursive:       false,
-		IncludeBuiltins: false,
-		IncludeImports:  true,
-	}
+	req := newDefaultCBORequest("../testdata/python/complex/decorators.py")
 
 	beforeTime := time.Now()
 	response, err := service.Analyze(ctx, req)

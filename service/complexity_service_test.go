@@ -11,6 +11,24 @@ import (
 	"github.com/ludo-technologies/pyscn/domain"
 )
 
+// newDefaultComplexityRequest creates a ComplexityRequest with default test values
+func newDefaultComplexityRequest(paths ...string) domain.ComplexityRequest {
+	if len(paths) == 0 {
+		paths = []string{"../testdata/python/simple/functions.py"}
+	}
+	return domain.ComplexityRequest{
+		Paths:           paths,
+		OutputFormat:    domain.OutputFormatJSON,
+		MinComplexity:   1,
+		MaxComplexity:   0,
+		SortBy:          domain.SortByComplexity,
+		LowThreshold:    5,
+		MediumThreshold: 10,
+		ShowDetails:     true,
+		Recursive:       false,
+	}
+}
+
 func TestNewComplexityService(t *testing.T) {
 	service := NewComplexityService()
 	
@@ -23,17 +41,7 @@ func TestComplexityService_Analyze(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("successful analysis with simple Python file", func(t *testing.T) {
-		req := domain.ComplexityRequest{
-			Paths:           []string{"../testdata/python/simple/functions.py"},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinComplexity:   1,
-			MaxComplexity:   0,
-			SortBy:          domain.SortByComplexity,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-		}
+		req := newDefaultComplexityRequest()
 
 		response, err := service.Analyze(ctx, req)
 
@@ -48,17 +56,7 @@ func TestComplexityService_Analyze(t *testing.T) {
 	})
 
 	t.Run("analyze complex Python file with control structures", func(t *testing.T) {
-		req := domain.ComplexityRequest{
-			Paths:           []string{"../testdata/python/simple/control_flow.py"},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinComplexity:   1,
-			MaxComplexity:   0,
-			SortBy:          domain.SortByComplexity,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-		}
+		req := newDefaultComplexityRequest("../testdata/python/simple/control_flow.py")
 
 		response, err := service.Analyze(ctx, req)
 
@@ -87,17 +85,8 @@ func TestComplexityService_Analyze(t *testing.T) {
 	})
 
 	t.Run("analyze with filtering by complexity", func(t *testing.T) {
-		req := domain.ComplexityRequest{
-			Paths:           []string{"../testdata/python/simple/control_flow.py"},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinComplexity:   5, // Only functions with complexity >= 5
-			MaxComplexity:   0,
-			SortBy:          domain.SortByComplexity,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-		}
+		req := newDefaultComplexityRequest("../testdata/python/simple/control_flow.py")
+		req.MinComplexity = 5 // Only functions with complexity >= 5
 
 		response, err := service.Analyze(ctx, req)
 
@@ -110,17 +99,8 @@ func TestComplexityService_Analyze(t *testing.T) {
 	})
 
 	t.Run("analyze with max complexity limit", func(t *testing.T) {
-		req := domain.ComplexityRequest{
-			Paths:           []string{"../testdata/python/simple/control_flow.py"},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinComplexity:   1,
-			MaxComplexity:   3, // Only functions with complexity <= 3
-			SortBy:          domain.SortByComplexity,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-		}
+		req := newDefaultComplexityRequest("../testdata/python/simple/control_flow.py")
+		req.MaxComplexity = 3 // Only functions with complexity <= 3
 
 		response, err := service.Analyze(ctx, req)
 
@@ -133,20 +113,10 @@ func TestComplexityService_Analyze(t *testing.T) {
 	})
 
 	t.Run("analyze multiple files", func(t *testing.T) {
-		req := domain.ComplexityRequest{
-			Paths: []string{
-				"../testdata/python/simple/functions.py",
-				"../testdata/python/simple/control_flow.py",
-			},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinComplexity:   1,
-			MaxComplexity:   0,
-			SortBy:          domain.SortByComplexity,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-		}
+		req := newDefaultComplexityRequest(
+			"../testdata/python/simple/functions.py",
+			"../testdata/python/simple/control_flow.py",
+		)
 
 		response, err := service.Analyze(ctx, req)
 
@@ -163,17 +133,7 @@ func TestComplexityService_Analyze(t *testing.T) {
 	})
 
 	t.Run("error handling for non-existent file", func(t *testing.T) {
-		req := domain.ComplexityRequest{
-			Paths:           []string{"../testdata/non_existent_file.py"},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinComplexity:   1,
-			MaxComplexity:   0,
-			SortBy:          domain.SortByComplexity,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-		}
+		req := newDefaultComplexityRequest("../testdata/non_existent_file.py")
 
 		response, err := service.Analyze(ctx, req)
 
@@ -188,17 +148,7 @@ func TestComplexityService_Analyze(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		req := domain.ComplexityRequest{
-			Paths:           []string{"../testdata/python/simple/functions.py"},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinComplexity:   1,
-			MaxComplexity:   0,
-			SortBy:          domain.SortByComplexity,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-		}
+		req := newDefaultComplexityRequest()
 
 		_, err := service.Analyze(ctx, req)
 
@@ -208,17 +158,8 @@ func TestComplexityService_Analyze(t *testing.T) {
 
 	t.Run("no functions found returns error", func(t *testing.T) {
 		// Use a file that likely has no functions
-		req := domain.ComplexityRequest{
-			Paths:           []string{"../testdata/python/simple/imports.py"},
-			OutputFormat:    domain.OutputFormatJSON,
-			MinComplexity:   100, // Very high threshold to filter out all functions
-			MaxComplexity:   0,
-			SortBy:          domain.SortByComplexity,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-		}
+		req := newDefaultComplexityRequest("../testdata/python/simple/imports.py")
+		req.MinComplexity = 100 // Very high threshold to filter out all functions
 
 		_, err := service.Analyze(ctx, req)
 
@@ -233,16 +174,7 @@ func TestComplexityService_AnalyzeFile(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("analyze single file", func(t *testing.T) {
-		req := domain.ComplexityRequest{
-			OutputFormat:    domain.OutputFormatJSON,
-			MinComplexity:   1,
-			MaxComplexity:   0,
-			SortBy:          domain.SortByComplexity,
-			LowThreshold:    5,
-			MediumThreshold: 10,
-			ShowDetails:     true,
-			Recursive:       false,
-		}
+		req := newDefaultComplexityRequest()
 
 		response, err := service.AnalyzeFile(ctx, "../testdata/python/simple/functions.py", req)
 
@@ -511,18 +443,12 @@ func TestComplexityService_GetComplexityDistributionKey(t *testing.T) {
 func TestComplexityService_BuildConfigForResponse(t *testing.T) {
 	service := NewComplexityService()
 
-	req := domain.ComplexityRequest{
-		OutputFormat:     domain.OutputFormatJSON,
-		MinComplexity:    2,
-		MaxComplexity:    20,
-		LowThreshold:     5,
-		MediumThreshold:  10,
-		SortBy:           domain.SortByComplexity,
-		ShowDetails:      true,
-		Recursive:        true,
-		IncludePatterns:  []string{"*.py"},
-		ExcludePatterns:  []string{"test_*.py"},
-	}
+	req := newDefaultComplexityRequest()
+	req.MinComplexity = 2
+	req.MaxComplexity = 20
+	req.Recursive = true
+	req.IncludePatterns = []string{"*.py"}
+	req.ExcludePatterns = []string{"test_*.py"}
 
 	config := service.buildConfigForResponse(req)
 
@@ -545,17 +471,7 @@ func TestComplexityService_ResponseMetadata(t *testing.T) {
 	service := NewComplexityService()
 	ctx := context.Background()
 
-	req := domain.ComplexityRequest{
-		Paths:           []string{"../testdata/python/simple/functions.py"},
-		OutputFormat:    domain.OutputFormatJSON,
-		MinComplexity:   1,
-		MaxComplexity:   0,
-		SortBy:          domain.SortByComplexity,
-		LowThreshold:    5,
-		MediumThreshold: 10,
-		ShowDetails:     true,
-		Recursive:       false,
-	}
+	req := newDefaultComplexityRequest()
 
 	beforeTime := time.Now()
 	response, err := service.Analyze(ctx, req)
