@@ -25,8 +25,8 @@ Enhancement suggestions are tracked as GitHub issues. Create an issue using the 
 
 Unsure where to begin contributing? You can start by looking through these `good-first-issue` and `help-wanted` issues:
 
-- [Good first issues](https://github.com/pyscn/pyscn/labels/good%20first%20issue) - issues which should only require a few lines of code
-- [Help wanted issues](https://github.com/pyscn/pyscn/labels/help%20wanted) - issues which should be a bit more involved
+- [Good first issues](https://github.com/ludo-technologies/pyscn/labels/good%20first%20issue) - issues which should only require a few lines of code
+- [Help wanted issues](https://github.com/ludo-technologies/pyscn/labels/help%20wanted) - issues which should be a bit more involved
 
 ## Development Process
 
@@ -45,7 +45,7 @@ git clone https://github.com/YOUR_USERNAME/pyscn.git
 cd pyscn
 
 # Add upstream remote
-git remote add upstream https://github.com/pyscn/pyscn.git
+git remote add upstream https://github.com/ludo-technologies/pyscn.git
 
 # Install dependencies
 go mod download

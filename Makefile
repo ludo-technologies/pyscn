@@ -1,8 +1,8 @@
-# Makefile for pyqol
+# Makefile for pyscn
 
 # Variables
-BINARY_NAME := pyqol
-GO_MODULE := github.com/pyqol/pyqol
+BINARY_NAME := pyscn
+GO_MODULE := github.com/ludo-technologies/pyscn
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 DATE := $(shell date +%Y-%m-%d)
@@ -10,7 +10,7 @@ LDFLAGS := -ldflags "-s -w \
                      -X '$(GO_MODULE)/internal/version.Version=$(VERSION)' \
                      -X '$(GO_MODULE)/internal/version.Commit=$(COMMIT)' \
                      -X '$(GO_MODULE)/internal/version.Date=$(DATE)' \
-                     -X '$(GO_MODULE)/internal/version.BuiltBy=make'"
+                     -X '$(GO_MODULE)/internal/version.BuiltBy=make'" 
 
 # Colors for output
 GREEN := \033[0;32m
@@ -30,7 +30,7 @@ all: test build
 ## build: Build the binary
 build:
 	@echo "$(GREEN)Building $(BINARY_NAME) $(VERSION)...$(NC)"
-	go build $(LDFLAGS) -o $(BINARY_NAME) ./cmd/pyqol
+	go build $(LDFLAGS) -o $(BINARY_NAME) ./cmd/pyscn
 
 ## test: Run tests
 test:
@@ -60,11 +60,11 @@ clean:
 ## install: Install the binary
 install: build
 	@echo "$(GREEN)Installing $(BINARY_NAME)...$(NC)"
-	go install $(LDFLAGS) ./cmd/pyqol
+	go install $(LDFLAGS) ./cmd/pyscn
 
 ## run: Run the application
 run:
-	go run $(LDFLAGS) ./cmd/pyqol
+	go run $(LDFLAGS) ./cmd/pyscn
 
 ## version: Show version information
 version:
@@ -106,18 +106,18 @@ build-all: build-linux build-darwin build-windows
 
 build-linux:
 	@echo "$(GREEN)Building for Linux...$(NC)"
-	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-linux-amd64 ./cmd/pyqol
-	GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-linux-arm64 ./cmd/pyqol
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-linux-amd64 ./cmd/pyscn
+	GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-linux-arm64 ./cmd/pyscn
 
 build-darwin:
 	@echo "$(GREEN)Building for macOS...$(NC)"
-	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-darwin-amd64 ./cmd/pyqol
-	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-darwin-arm64 ./cmd/pyqol
+	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-darwin-amd64 ./cmd/pyscn
+	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-darwin-arm64 ./cmd/pyscn
 
 build-windows:
 	@echo "$(GREEN)Building for Windows...$(NC)"
-	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-windows-amd64.exe ./cmd/pyqol
-	GOOS=windows GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-windows-arm64.exe ./cmd/pyqol
+	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-windows-amd64.exe ./cmd/pyscn
+	GOOS=windows GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-windows-arm64.exe ./cmd/pyscn
 
 # Python packaging
 ## build-python: Build Python wheels with embedded binaries
@@ -128,21 +128,21 @@ build-python:
 ## python-wheel: Build Python wheel for current platform only
 python-wheel:
 	@echo "$(GREEN)Building Python wheel for current platform...$(NC)"
-	@mkdir -p python/src/pyqol/bin dist
-	go build $(LDFLAGS) -o python/src/pyqol/bin/pyqol-$$(go env GOOS)-$$(go env GOARCH)$$(if [ "$$(go env GOOS)" = "windows" ]; then echo ".exe"; fi) ./cmd/pyqol
+	@mkdir -p python/src/pyscn/bin dist
+	go build $(LDFLAGS) -o python/src/pyscn/bin/pyscn-$$(go env GOOS)-$$(go env GOARCH)$$(if [ "$$(go env GOOS)" = "windows" ]; then echo ".exe"; fi) ./cmd/pyscn
 	python/scripts/create_wheel.sh
 
 ## python-test: Test Python package installation
 python-test: python-wheel
 	@echo "$(GREEN)Testing Python package...$(NC)"
 	pip install --force-reinstall dist/*.whl
-	@echo "$(GREEN)Testing pyqol command...$(NC)"
-	pyqol --version || pyqol --help
+	@echo "$(GREEN)Testing pyscn command...$(NC)"
+	pyscn --version || pyscn --help
 
 ## python-clean: Clean Python build artifacts  
 python-clean:
 	@echo "$(YELLOW)Cleaning Python build artifacts...$(NC)"
-	rm -rf python/src/pyqol/bin
+	rm -rf python/src/pyscn/bin
 	rm -rf dist
 	rm -rf build
 	rm -rf *.egg-info

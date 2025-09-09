@@ -18,6 +18,9 @@ go.work
 vendor/
 
 # Build output
+/pyscn
+/pyscan
+/pyscn.exe
 /pyqol
 /dist/
 /build/
@@ -56,6 +59,10 @@ venv/
 .venv/
 env/
 .env/
+python/scripts/upload_env/
+
+# Python packaged binaries (built during wheel creation)
+python/src/pyscn/bin/
 
 # Temporary files
 *.tmp

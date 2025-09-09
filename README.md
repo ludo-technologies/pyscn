@@ -18,8 +18,9 @@ All analyses are available as dedicated commands and via a unified analyze comma
 ## Quick Start
 
 ```bash
-# Install via pip (recommended)
+# Install via pip or uv
 pip install pyscn
+# or: uv add pyscn
 
 # Fast quality check (CI-friendly)
 pyscn check .
@@ -186,13 +187,17 @@ Notes:
 
 ## Installation
 
-### Install via pip (recommended for Python users)
+### Install via pip or uv (recommended for Python users)
 
 ```bash
+# Using pip
 pip install pyscn
+
+# Using uv (faster, modern Python package manager)
+uv add pyscn
 ```
 
-> **Note**: The package is registered on PyPI but will be available once the repository is made public.
+> Note: pyscn is available on PyPI and GitHub Releases.
 
 If you prefer to build wheels locally (e.g., for development), see the Python section below.
 
