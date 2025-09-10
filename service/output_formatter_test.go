@@ -198,18 +198,18 @@ func TestOutputFormatter_Format(t *testing.T) {
 			validateOutput: func(t *testing.T, output string) {
 				// Verify text format contains expected sections
 				assert.Contains(t, output, "Complexity Analysis Report")
-				assert.Contains(t, output, "Summary:")
+				assert.Contains(t, output, "SUMMARY")
 				assert.Contains(t, output, "Total Functions: 2")
-				assert.Contains(t, output, "Average Complexity: 5.00")
-				assert.Contains(t, output, "Risk Distribution:")
+				assert.Contains(t, output, "Average Complexity: 5.0")
+				assert.Contains(t, output, "RISK DISTRIBUTION")
 				assert.Contains(t, output, "High: 1")
 				assert.Contains(t, output, "Low: 1")
-				assert.Contains(t, output, "Function Details:")
+				assert.Contains(t, output, "FUNCTION DETAILS")
 				assert.Contains(t, output, "simple_function")
 				assert.Contains(t, output, "complex_function")
-				assert.Contains(t, output, "Warnings:")
+				assert.Contains(t, output, "WARNINGS")
 				assert.Contains(t, output, "High complexity detected")
-				assert.Contains(t, output, "Errors:")
+				assert.Contains(t, output, "ERRORS")
 				assert.Contains(t, output, "Could not parse some_file.py")
 				assert.Contains(t, output, "Generated at:")
 			},
@@ -414,38 +414,39 @@ func TestOutputFormatter_formatText(t *testing.T) {
 			name:     "text format with all sections",
 			response: createTestComplexityResponse(),
 			validate: func(t *testing.T, output string) {
-				// Check header
+				// Check header (new unified format)
 				assert.Contains(t, output, "Complexity Analysis Report")
-				assert.Contains(t, output, "==========================")
+				assert.Contains(t, output, "========================================")
 				
-				// Check summary section
-				assert.Contains(t, output, "Summary:")
+				// Check summary section (new unified format)
+				assert.Contains(t, output, "SUMMARY")
 				assert.Contains(t, output, "Total Functions: 2")
-				assert.Contains(t, output, "Average Complexity: 5.00")
+				assert.Contains(t, output, "Average Complexity: 5.0")
 				assert.Contains(t, output, "Max Complexity: 8")
 				assert.Contains(t, output, "Min Complexity: 2")
 				
-				// Check risk distribution
-				assert.Contains(t, output, "Risk Distribution:")
+				// Check risk distribution (new unified format)
+				assert.Contains(t, output, "RISK DISTRIBUTION")
 				assert.Contains(t, output, "High: 1")
 				assert.Contains(t, output, "Medium: 0")
 				assert.Contains(t, output, "Low: 1")
 				
-				// Check function details
-				assert.Contains(t, output, "Function Details:")
-				assert.Contains(t, output, "Function                       Complexity     Risk")
+				// Check function details (new unified format)
+				assert.Contains(t, output, "FUNCTION DETAILS")
+				assert.Contains(t, output, "Function  Complexity  Risk")
 				assert.Contains(t, output, "simple_function")
 				assert.Contains(t, output, "complex_function")
 				
-				// Check warnings and errors sections
-				assert.Contains(t, output, "Warnings:")
-				assert.Contains(t, output, "⚠️")
+				// Check warnings and errors sections  
+				assert.Contains(t, output, "WARNINGS")
+				assert.Contains(t, output, "⚠")
 				assert.Contains(t, output, "High complexity detected")
-				assert.Contains(t, output, "Errors:")
+				assert.Contains(t, output, "ERRORS")
 				assert.Contains(t, output, "❌")
 				assert.Contains(t, output, "Could not parse some_file.py")
 				
-				// Check footer
+				// Check footer (metadata section)
+				assert.Contains(t, output, "METADATA")
 				assert.Contains(t, output, "Generated at:")
 			},
 		},
@@ -457,9 +458,9 @@ func TestOutputFormatter_formatText(t *testing.T) {
 				assert.Contains(t, output, "Total Functions: 0")
 				
 				// Should not contain function details section
-				assert.NotContains(t, output, "Function Details:")
-				assert.NotContains(t, output, "Warnings:")
-				assert.NotContains(t, output, "Errors:")
+				assert.NotContains(t, output, "FUNCTION DETAILS")
+				assert.NotContains(t, output, "WARNINGS")
+				assert.NotContains(t, output, "ERRORS")
 			},
 		},
 	}
