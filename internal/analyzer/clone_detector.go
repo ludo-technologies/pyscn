@@ -733,6 +733,16 @@ func (cd *CloneDetector) calculateGroupSimilarity(group *CloneGroup) {
 	}
 }
 
+// groupClonesWithStrategy groups clone pairs using a pluggable strategy.
+// This keeps backward compatibility with the existing groupClones method.
+func (cd *CloneDetector) groupClonesWithStrategy(strategy GroupingStrategy) {
+    if strategy == nil {
+        cd.groupClones()
+        return
+    }
+    cd.cloneGroups = strategy.GroupClones(cd.clonePairs)
+}
+
 // isSameLocation checks if two locations refer to the same code
 func (cd *CloneDetector) isSameLocation(loc1, loc2 *CodeLocation) bool {
 	return loc1.FilePath == loc2.FilePath &&
