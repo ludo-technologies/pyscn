@@ -60,94 +60,92 @@ func (f *CloneOutputFormatter) formatAsText(response *domain.CloneResponse, writ
 		return nil
 	}
 
-	// Print header
-	fmt.Fprintf(writer, "Clone Detection Results\n")
-	fmt.Fprintf(writer, "======================\n\n")
+	utils := NewFormatUtils()
 
-	// Print statistics
+	// Header
+	fmt.Fprint(writer, utils.FormatMainHeader("Clone Detection Analysis Report"))
+
+	// Summary
 	if response.Statistics != nil {
-		fmt.Fprintf(writer, "Summary:\n")
-		fmt.Fprintf(writer, "  Files analyzed: %d\n", response.Statistics.FilesAnalyzed)
-		fmt.Fprintf(writer, "  Lines analyzed: %d\n", response.Statistics.LinesAnalyzed)
-		fmt.Fprintf(writer, "  Clone pairs found: %d\n", response.Statistics.TotalClonePairs)
-		fmt.Fprintf(writer, "  Clone groups found: %d\n", response.Statistics.TotalCloneGroups)
-
-		if response.Statistics.AverageSimilarity > 0 {
-			fmt.Fprintf(writer, "  Average similarity: %.3f\n", response.Statistics.AverageSimilarity)
+		stats := map[string]interface{}{
+			"Files Analyzed":    response.Statistics.FilesAnalyzed,
+			"Lines Analyzed":    response.Statistics.LinesAnalyzed,
+			"Clone Pairs":       response.Statistics.TotalClonePairs,
+			"Clone Groups":      response.Statistics.TotalCloneGroups,
+			"Average Similarity": fmt.Sprintf("%.3f", response.Statistics.AverageSimilarity),
+			"Analysis Duration": utils.FormatDuration(response.Duration),
 		}
-
-		fmt.Fprintf(writer, "  Analysis duration: %dms\n\n", response.Duration)
+		fmt.Fprint(writer, utils.FormatSummaryStats(stats))
 	}
 
-	// Print clone types breakdown
+	// Clone Types breakdown
 	if response.Statistics != nil && len(response.Statistics.ClonesByType) > 0 {
-		fmt.Fprintf(writer, "Clone Types:\n")
+		fmt.Fprint(writer, utils.FormatSectionHeader("CLONE TYPES"))
 		for cloneType, count := range response.Statistics.ClonesByType {
-			fmt.Fprintf(writer, "  %s: %d pairs\n", cloneType, count)
+			fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, cloneType, fmt.Sprintf("%d pairs", count)))
 		}
-		fmt.Fprintf(writer, "\n")
+		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
 
 	if len(response.ClonePairs) == 0 {
-		fmt.Fprintf(writer, "No clones detected.\n")
+		fmt.Fprint(writer, utils.FormatSectionHeader("RESULTS"))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Status", "No clones detected"))
 		return nil
 	}
 
-	// Print detailed clone pairs
+	// Detailed clone information
 	if response.Request != nil && response.Request.GroupClones && len(response.CloneGroups) > 0 {
-		fmt.Fprintf(writer, "Clone Groups:\n")
-		fmt.Fprintf(writer, "=============\n\n")
+		fmt.Fprint(writer, utils.FormatSectionHeader("CLONE GROUPS"))
 
 		for _, group := range response.CloneGroups {
 			if group == nil {
 				continue
 			}
-			fmt.Fprintf(writer, "Group %d (%s, %d clones, similarity: %.3f):\n",
-				group.ID, group.Type.String(), group.Size, group.Similarity)
+			fmt.Fprint(writer, utils.FormatLabelWithIndent(0, "Group", fmt.Sprintf("%d (%s, %d clones, similarity: %.3f)",
+				group.ID, group.Type.String(), group.Size, group.Similarity)))
 
 			for i, clone := range group.Clones {
 				if clone == nil || clone.Location == nil {
 					continue
 				}
-				fmt.Fprintf(writer, "  %d. %s (%d lines, %d nodes)\n",
-					i+1, clone.Location.String(), clone.LineCount, clone.Size)
+				fmt.Fprint(writer, utils.FormatLabelWithIndent(ItemPadding, fmt.Sprintf("Clone %d", i+1), 
+					fmt.Sprintf("%s (%d lines, %d nodes)", clone.Location.String(), clone.LineCount, clone.Size)))
 			}
-			fmt.Fprintf(writer, "\n")
+			fmt.Fprint(writer, "\n")
 		}
 	} else {
-		fmt.Fprintf(writer, "Clone Pairs:\n")
-		fmt.Fprintf(writer, "============\n\n")
+		fmt.Fprint(writer, utils.FormatSectionHeader("CLONE PAIRS"))
 
 		for i, pair := range response.ClonePairs {
 			if pair == nil {
 				continue
 			}
-			fmt.Fprintf(writer, "%d. %s (similarity: %.3f, confidence: %.3f)\n",
-				i+1, pair.Type.String(), pair.Similarity, pair.Confidence)
+			fmt.Fprint(writer, utils.FormatLabelWithIndent(0, fmt.Sprintf("Pair %d", i+1), 
+				fmt.Sprintf("%s (similarity: %.3f, confidence: %.3f)", pair.Type.String(), pair.Similarity, pair.Confidence)))
 
 			if pair.Clone1 != nil && pair.Clone1.Location != nil {
-				fmt.Fprintf(writer, "   Clone 1: %s (%d lines, %d nodes)\n",
-					pair.Clone1.Location.String(), pair.Clone1.LineCount, pair.Clone1.Size)
+				fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Clone 1", 
+					fmt.Sprintf("%s (%d lines, %d nodes)", pair.Clone1.Location.String(), pair.Clone1.LineCount, pair.Clone1.Size)))
 			}
 
 			if pair.Clone2 != nil && pair.Clone2.Location != nil {
-				fmt.Fprintf(writer, "   Clone 2: %s (%d lines, %d nodes)\n",
-					pair.Clone2.Location.String(), pair.Clone2.LineCount, pair.Clone2.Size)
+				fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Clone 2", 
+					fmt.Sprintf("%s (%d lines, %d nodes)", pair.Clone2.Location.String(), pair.Clone2.LineCount, pair.Clone2.Size)))
 			}
 
 			if response.Request != nil && response.Request.ShowContent && pair.Clone1 != nil && pair.Clone1.Content != "" {
-				fmt.Fprintf(writer, "   Content preview:\n")
+				fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Preview", ""))
 				lines := strings.Split(pair.Clone1.Content, "\n")
 				for j, line := range lines {
 					if j >= 5 { // Limit preview to 5 lines
-						fmt.Fprintf(writer, "     ...\n")
+						fmt.Fprintf(writer, "%s...\n", strings.Repeat(" ", ItemPadding+2))
 						break
 					}
-					fmt.Fprintf(writer, "     %s\n", line)
+					fmt.Fprintf(writer, "%s%s\n", strings.Repeat(" ", ItemPadding+2), line)
 				}
 			}
 
-			fmt.Fprintf(writer, "\n")
+			fmt.Fprint(writer, "\n")
 		}
 	}
 

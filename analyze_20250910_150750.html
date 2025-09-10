@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pyscn Analysis Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .score-badge {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .grade-a { background: #4caf50; color: white; }
+        .grade-b { background: #8bc34a; color: white; }
+        .grade-c { background: #ff9800; color: white; }
+        .grade-d { background: #ff5722; color: white; }
+        .grade-f { background: #f44336; color: white; }
+        
+        .tabs {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .tab-buttons {
+            display: flex;
+            background: #f5f5f5;
+        }
+        .tab-button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .tab-button.active {
+            background: white;
+            color: #667eea;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .metric-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .metric-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .table th, .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .risk-low { color: #4caf50; }
+        .risk-medium { color: #ff9800; }
+        .risk-high { color: #f44336; }
+        
+        .severity-critical { color: #f44336; }
+        .severity-warning { color: #ff9800; }
+        .severity-info { color: #2196f3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>pyscn Analysis Report</h1>
+            <p>Generated: 2025-09-10 15:07:50</p>
+            <div class="score-badge grade-f">
+                Health Score: 24/100 (Grade: F)
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="showTab('summary')">Summary</button>
+                
+                <button class="tab-button" onclick="showTab('complexity')">Complexity</button>
+                
+                
+                <button class="tab-button" onclick="showTab('deadcode')">Dead Code</button>
+                
+                
+                <button class="tab-button" onclick="showTab('clone')">Clone Detection</button>
+                
+                
+                <button class="tab-button" onclick="showTab('cbo')">Dependency Analysis</button>
+                
+            </div>
+
+            <div id="summary" class="tab-content active">
+                <h2>Analysis Summary</h2>
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">1</div>
+                        <div class="metric-label">Total Files</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">1</div>
+                        <div class="metric-label">Analyzed Files</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">2.36</div>
+                        <div class="metric-label">Avg Complexity</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">8</div>
+                        <div class="metric-label">Dead Code Issues</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">70</div>
+                        <div class="metric-label">Clone Pairs</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">82.7%</div>
+                        <div class="metric-label">Code Duplication</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-value">2</div>
+                        <div class="metric-label">Total Classes</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">0</div>
+                        <div class="metric-label">High Dependencies</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">0.00</div>
+                        <div class="metric-label">Avg Dependencies</div>
+                    </div>
+                    
+                </div>
+            </div>
+
+            
+            <div id="complexity" class="tab-content">
+                <h2>Complexity Analysis</h2>
+                
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">11</div>
+                        <div class="metric-label">Total Functions</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">2.36</div>
+                        <div class="metric-label">Average</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">6</div>
+                        <div class="metric-label">Maximum</div>
+                    </div>
+                </div>
+                
+                <h3>Top Complex Functions</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Function</th>
+                            <th>File</th>
+                            <th>Complexity</th>
+                            <th>Risk</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                        
+                        <tr>
+                            <td>__main__</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>2</td>
+                            <td class="risk-low">low</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>async_dead_code</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>1</td>
+                            <td class="risk-low">low</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>class_method_dead_code</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>1</td>
+                            <td class="risk-low">low</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>complex_control_flow</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>6</td>
+                            <td class="risk-low">low</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>comprehension_dead_code</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>2</td>
+                            <td class="risk-low">low</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>context_manager_dead_code</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>3</td>
+                            <td class="risk-low">low</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>decorator_dead_code</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>1</td>
+                            <td class="risk-low">low</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>exception_hierarchy_dead_code</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>5</td>
+                            <td class="risk-low">low</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>finally_block_patterns</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>2</td>
+                            <td class="risk-low">low</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>generator_with_dead_code</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>1</td>
+                            <td class="risk-low">low</td>
+                        </tr>
+                        
+                        
+                        
+                        
+                    </tbody>
+                </table>
+                
+                <p style="color: #666; margin-top: 10px;">Showing top 10 of 11 functions</p>
+                
+                
+            </div>
+            
+
+            
+            <div id="deadcode" class="tab-content">
+                <h2>Dead Code Detection</h2>
+                
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">8</div>
+                        <div class="metric-label">Total Issues</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">7</div>
+                        <div class="metric-label">Critical</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">1</div>
+                        <div class="metric-label">Warnings</div>
+                    </div>
+                </div>
+                
+                
+                <h3>Top Dead Code Issues</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th>Function</th>
+                            <th>Lines</th>
+                            <th>Severity</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>finally_block_patterns</td>
+                            <td>168-168</td>
+                            <td class="severity-critical">critical</td>
+                            <td>unreachable_after_return</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>finally_block_patterns</td>
+                            <td>172-172</td>
+                            <td class="severity-critical">critical</td>
+                            <td>unreachable_after_return</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>finally_block_patterns</td>
+                            <td>179-179</td>
+                            <td class="severity-warning">warning</td>
+                            <td>unreachable_branch</td>
+                        </tr>
+                        
+                        
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>generator_with_dead_code</td>
+                            <td>45-46</td>
+                            <td class="severity-critical">critical</td>
+                            <td>unreachable_after_return</td>
+                        </tr>
+                        
+                        
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>exception_hierarchy_dead_code</td>
+                            <td>160-160</td>
+                            <td class="severity-critical">critical</td>
+                            <td>unreachable_after_return</td>
+                        </tr>
+                        
+                        
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>context_manager_dead_code</td>
+                            <td>74-74</td>
+                            <td class="severity-critical">critical</td>
+                            <td>unreachable_after_raise</td>
+                        </tr>
+                        
+                        
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>complex_control_flow</td>
+                            <td>30-31</td>
+                            <td class="severity-critical">critical</td>
+                            <td>unreachable_after_return</td>
+                        </tr>
+                        
+                        
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>async_dead_code</td>
+                            <td>57-58</td>
+                            <td class="severity-critical">critical</td>
+                            <td>unreachable_after_return</td>
+                        </tr>
+                        
+                        
+                        
+                        
+                    </tbody>
+                </table>
+                
+                
+                
+            </div>
+            
+
+            
+            <div id="clone" class="tab-content">
+                <h2>Clone Detection</h2>
+                
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">70</div>
+                        <div class="metric-label">Clone Pairs</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">1</div>
+                        <div class="metric-label">Clone Groups</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">0.81</div>
+                        <div class="metric-label">Avg Similarity</div>
+                    </div>
+                </div>
+                
+                
+                <h3>Major Clone Pairs</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>File 1</th>
+                            <th>File 2</th>
+                            <th>Lines 1</th>
+                            <th>Lines 2</th>
+                            <th>Similarity</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>61-77</td>
+                            <td>98-122</td>
+                            <td>0.987</td>
+                            <td>Type-1</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>80-95</td>
+                            <td>98-122</td>
+                            <td>0.987</td>
+                            <td>Type-1</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>61-77</td>
+                            <td>80-95</td>
+                            <td>0.984</td>
+                            <td>Type-1</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>38-46</td>
+                            <td>49-58</td>
+                            <td>0.973</td>
+                            <td>Type-1</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>149-160</td>
+                            <td>163-179</td>
+                            <td>0.964</td>
+                            <td>Type-1</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>9-35</td>
+                            <td>98-122</td>
+                            <td>0.942</td>
+                            <td>Type-2</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>9-35</td>
+                            <td>61-77</td>
+                            <td>0.939</td>
+                            <td>Type-2</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>61-77</td>
+                            <td>125-135</td>
+                            <td>0.933</td>
+                            <td>Type-2</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>80-95</td>
+                            <td>125-135</td>
+                            <td>0.930</td>
+                            <td>Type-2</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>14-31</td>
+                            <td>15-25</td>
+                            <td>0.924</td>
+                            <td>Type-2</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>15-25</td>
+                            <td>102-107</td>
+                            <td>0.923</td>
+                            <td>Type-2</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>49-58</td>
+                            <td>61-77</td>
+                            <td>0.919</td>
+                            <td>Type-2</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>9-35</td>
+                            <td>80-95</td>
+                            <td>0.919</td>
+                            <td>Type-2</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>49-58</td>
+                            <td>125-135</td>
+                            <td>0.912</td>
+                            <td>Type-2</td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>38-46</td>
+                            <td>125-135</td>
+                            <td>0.907</td>
+                            <td>Type-2</td>
+                        </tr>
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                    </tbody>
+                </table>
+                
+                <p style="color: #666; margin-top: 10px;">Showing top 15 of 70 clone pairs</p>
+                
+                
+                
+            </div>
+            
+
+            
+            <div id="cbo" class="tab-content">
+                <h2>Dependency Analysis</h2>
+                <p style="margin-bottom: 20px; color: #666;">Class coupling metrics (CBO - Coupling Between Objects)</p>
+                
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">2</div>
+                        <div class="metric-label">Total Classes</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">0</div>
+                        <div class="metric-label">High Risk Classes</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">0.00</div>
+                        <div class="metric-label">Average Dependencies</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">0</div>
+                        <div class="metric-label">Max Dependencies</div>
+                    </div>
+                </div>
+                
+                <h3>Most Dependent Classes</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Class</th>
+                            <th>File</th>
+                            <th>Dependencies</th>
+                            <th>Risk Level</th>
+                            <th>Dependent Classes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                        
+                        <tr>
+                            <td>CustomContext</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>0</td>
+                            <td class="risk-low">low</td>
+                            <td></td>
+                        </tr>
+                        
+                        
+                        
+                        <tr>
+                            <td>TestClass</td>
+                            <td>testdata/python/complex/dead_code_complex.py</td>
+                            <td>0</td>
+                            <td class="risk-low">low</td>
+                            <td></td>
+                        </tr>
+                        
+                        
+                    </tbody>
+                </table>
+                
+                
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            
+            document.getElementById(tabName).classList.add('active');
+            
+            
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

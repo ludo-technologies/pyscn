@@ -46,58 +46,84 @@ func (f *AnalyzeFormatter) Write(response *domain.AnalyzeResponse, format domain
 
 // writeText formats the response as plain text
 func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io.Writer) error {
-	fmt.Fprintf(writer, "pyscn Comprehensive Analysis Report\n")
-	fmt.Fprintf(writer, "====================================\n\n")
-	fmt.Fprintf(writer, "Generated: %s\n\n", response.GeneratedAt.Format(time.RFC3339))
+	utils := NewFormatUtils()
 
-	// Summary section
-	fmt.Fprintf(writer, "Overall Health Score: %d/100 (Grade: %s)\n", 
-		response.Summary.HealthScore, response.Summary.Grade)
-	fmt.Fprintf(writer, "Analysis Duration: %.2fs\n\n", float64(response.Duration)/1000.0)
+	// Header
+	fmt.Fprint(writer, utils.FormatMainHeader("Comprehensive Analysis Report"))
+
+	// Overall health and duration
+	healthStats := map[string]interface{}{
+		"Health Score":       fmt.Sprintf("%d/100 (%s)", response.Summary.HealthScore, response.Summary.Grade),
+		"Analysis Duration":  fmt.Sprintf("%.2fs", float64(response.Duration)/1000.0),
+		"Generated":         response.GeneratedAt.Format(time.RFC3339),
+	}
+	fmt.Fprint(writer, utils.FormatSummaryStats(healthStats))
 
 	// File statistics
-	fmt.Fprintf(writer, "File Statistics:\n")
-	fmt.Fprintf(writer, "  Total Files: %d\n", response.Summary.TotalFiles)
-	fmt.Fprintf(writer, "  Analyzed: %d\n", response.Summary.AnalyzedFiles)
-	fmt.Fprintf(writer, "  Skipped: %d\n\n", response.Summary.SkippedFiles)
+	fmt.Fprint(writer, utils.FormatFileStats(
+		response.Summary.AnalyzedFiles,
+		response.Summary.TotalFiles,
+		response.Summary.TotalFiles-response.Summary.AnalyzedFiles))
 
-	// Complexity analysis results
-	if response.Complexity != nil && response.Summary.ComplexityEnabled {
-		fmt.Fprintf(writer, "Complexity Analysis:\n")
-		fmt.Fprintf(writer, "--------------------\n")
-		fmt.Fprintf(writer, "  Total Functions: %d\n", response.Summary.TotalFunctions)
-		fmt.Fprintf(writer, "  Average Complexity: %.2f\n", response.Summary.AverageComplexity)
-		fmt.Fprintf(writer, "  High Complexity Count: %d\n\n", response.Summary.HighComplexityCount)
+	// Analysis modules results
+	if response.Summary.ComplexityEnabled {
+		fmt.Fprint(writer, utils.FormatSectionHeader("COMPLEXITY ANALYSIS"))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Total Functions", response.Summary.TotalFunctions))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Average Complexity", fmt.Sprintf("%.1f", response.Summary.AverageComplexity)))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "High Complexity Count", response.Summary.HighComplexityCount))
+		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
 
-	// Dead code analysis results
-	if response.DeadCode != nil && response.Summary.DeadCodeEnabled {
-		fmt.Fprintf(writer, "Dead Code Detection:\n")
-		fmt.Fprintf(writer, "-------------------\n")
-		fmt.Fprintf(writer, "  Total Issues: %d\n", response.Summary.DeadCodeCount)
-		fmt.Fprintf(writer, "  Critical Issues: %d\n\n", response.Summary.CriticalDeadCode)
+	if response.Summary.DeadCodeEnabled {
+		fmt.Fprint(writer, utils.FormatSectionHeader("DEAD CODE DETECTION"))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Total Issues", response.Summary.DeadCodeCount))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Critical Issues", response.Summary.CriticalDeadCode))
+		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
 
-	// Clone detection results
-	if response.Clone != nil && response.Summary.CloneEnabled {
-		fmt.Fprintf(writer, "Clone Detection:\n")
-		fmt.Fprintf(writer, "---------------\n")
-		fmt.Fprintf(writer, "  Clone Pairs: %d\n", response.Summary.ClonePairs)
-		fmt.Fprintf(writer, "  Clone Groups: %d\n", response.Summary.CloneGroups)
-		fmt.Fprintf(writer, "  Code Duplication: %.2f%%\n\n", response.Summary.CodeDuplication)
+	if response.Summary.CloneEnabled {
+		fmt.Fprint(writer, utils.FormatSectionHeader("CLONE DETECTION"))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Clone Pairs", response.Summary.ClonePairs))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Clone Groups", response.Summary.CloneGroups))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Code Duplication", utils.FormatPercentage(response.Summary.CodeDuplication)))
+		fmt.Fprint(writer, utils.FormatSectionSeparator())
+	}
+
+	if response.Summary.CBOEnabled {
+		fmt.Fprint(writer, utils.FormatSectionHeader("DEPENDENCY ANALYSIS"))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Classes Analyzed", response.Summary.CBOClasses))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "High Coupling Classes", response.Summary.HighCouplingClasses))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Average Coupling", fmt.Sprintf("%.1f", response.Summary.AverageCoupling)))
+		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
 
 	// Recommendations
-	fmt.Fprintf(writer, "Recommendations:\n")
-	fmt.Fprintf(writer, "---------------\n")
+	fmt.Fprint(writer, utils.FormatSectionHeader("RECOMMENDATIONS"))
+	recommendationCount := 0
+	
 	if response.Summary.HighComplexityCount > 0 {
-		fmt.Fprintf(writer, "  • Refactor %d high-complexity functions\n", response.Summary.HighComplexityCount)
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•", 
+			fmt.Sprintf("Refactor %d high-complexity functions", response.Summary.HighComplexityCount)))
+		recommendationCount++
 	}
 	if response.Summary.DeadCodeCount > 0 {
-		fmt.Fprintf(writer, "  • Remove %d dead code segments\n", response.Summary.DeadCodeCount)
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•", 
+			fmt.Sprintf("Remove %d dead code segments", response.Summary.DeadCodeCount)))
+		recommendationCount++
 	}
 	if response.Summary.CodeDuplication > 10 {
-		fmt.Fprintf(writer, "  • Reduce code duplication (currently %.1f%%)\n", response.Summary.CodeDuplication)
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•", 
+			fmt.Sprintf("Reduce code duplication (currently %.1f%%)", response.Summary.CodeDuplication)))
+		recommendationCount++
+	}
+	if response.Summary.HighCouplingClasses > 0 {
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•", 
+			fmt.Sprintf("Reduce coupling in %d high-dependency classes", response.Summary.HighCouplingClasses)))
+		recommendationCount++
+	}
+	
+	if recommendationCount == 0 {
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Status", "No major issues detected"))
 	}
 
 	return nil
@@ -133,6 +159,9 @@ func (f *AnalyzeFormatter) writeHTML(response *domain.AnalyzeResponse, writer io
 	funcMap := template.FuncMap{
 		"join": func(elems []string, sep string) string {
 			return strings.Join(elems, sep)
+		},
+		"add": func(a, b int) int {
+			return a + b
 		},
 	}
 	tmpl := template.Must(template.New("analyze").Funcs(funcMap).Parse(analyzeHTMLTemplate))
@@ -376,6 +405,9 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         {{end}}
                     </tbody>
                 </table>
+                {{if gt (len .Complexity.Functions) 10}}
+                <p style="color: #666; margin-top: 10px;">Showing top 10 of {{len .Complexity.Functions}} functions</p>
+                {{end}}
                 {{end}}
             </div>
             {{end}}
@@ -398,6 +430,43 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         <div class="metric-label">Warnings</div>
                     </div>
                 </div>
+                
+                {{if gt .DeadCode.Summary.TotalFindings 0}}
+                <h3>Top Dead Code Issues</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th>Function</th>
+                            <th>Lines</th>
+                            <th>Severity</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $file := .DeadCode.Files}}
+                        {{range $func := $file.Functions}}
+                        {{range $i, $finding := $func.Findings}}
+                        {{if lt $i 10}}
+                        <tr>
+                            <td>{{$finding.Location.FilePath}}</td>
+                            <td>{{$finding.FunctionName}}</td>
+                            <td>{{$finding.Location.StartLine}}-{{$finding.Location.EndLine}}</td>
+                            <td class="severity-{{$finding.Severity}}">{{$finding.Severity}}</td>
+                            <td>{{$finding.Reason}}</td>
+                        </tr>
+                        {{end}}
+                        {{end}}
+                        {{end}}
+                        {{end}}
+                    </tbody>
+                </table>
+                {{if gt .DeadCode.Summary.TotalFindings 10}}
+                <p style="color: #666; margin-top: 10px;">Showing top 10 of {{.DeadCode.Summary.TotalFindings}} dead code issues</p>
+                {{end}}
+                {{else}}
+                <p style="color: #4caf50; font-weight: bold; margin-top: 20px;">✓ No dead code detected</p>
+                {{end}}
                 {{end}}
             </div>
             {{end}}
@@ -420,6 +489,41 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         <div class="metric-label">Avg Similarity</div>
                     </div>
                 </div>
+                
+                {{if gt .Clone.Statistics.TotalClonePairs 0}}
+                <h3>Major Clone Pairs</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>File 1</th>
+                            <th>File 2</th>
+                            <th>Lines 1</th>
+                            <th>Lines 2</th>
+                            <th>Similarity</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $i, $pair := .Clone.ClonePairs}}
+                        {{if lt $i 15}}
+                        <tr>
+                            <td>{{$pair.Clone1.Location.FilePath}}</td>
+                            <td>{{$pair.Clone2.Location.FilePath}}</td>
+                            <td>{{$pair.Clone1.Location.StartLine}}-{{$pair.Clone1.Location.EndLine}}</td>
+                            <td>{{$pair.Clone2.Location.StartLine}}-{{$pair.Clone2.Location.EndLine}}</td>
+                            <td>{{printf "%.3f" $pair.Similarity}}</td>
+                            <td>{{$pair.Type}}</td>
+                        </tr>
+                        {{end}}
+                        {{end}}
+                    </tbody>
+                </table>
+                {{if gt .Clone.Statistics.TotalClonePairs 15}}
+                <p style="color: #666; margin-top: 10px;">Showing top 15 of {{.Clone.Statistics.TotalClonePairs}} clone pairs</p>
+                {{end}}
+                {{else}}
+                <p style="color: #4caf50; font-weight: bold; margin-top: 20px;">✓ No clones detected</p>
+                {{end}}
                 {{end}}
             </div>
             {{end}}
@@ -473,6 +577,9 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         {{end}}
                     </tbody>
                 </table>
+                {{if gt (len .CBO.Classes) 10}}
+                <p style="color: #666; margin-top: 10px;">Showing top 10 of {{len .CBO.Classes}} classes</p>
+                {{end}}
                 {{end}}
             </div>
             {{end}}

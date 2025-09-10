@@ -46,8 +46,8 @@ def func2():
 	output := stdout.String()
 
 	// Verify output contains expected clone detection results header
-	if !strings.Contains(output, "Clone Detection Results") {
-		t.Error("Output should contain 'Clone Detection Results' header")
+	if !strings.Contains(output, "Clone Detection Analysis Report") {
+		t.Error("Output should contain 'Clone Detection Analysis Report' header")
 	}
 }
 
@@ -280,7 +280,7 @@ def low_similarity():
 			output := stdout.String()
 			
 			// Just check that the command completed successfully with different thresholds
-			if !strings.Contains(output, "Clone Detection Results") {
+			if !strings.Contains(output, "Clone Detection Analysis Report") {
 				t.Error("Output should contain clone detection results header")
 			}
 		})
@@ -463,7 +463,7 @@ def another_func():
 	output := stdout.String()
 
 	// Should analyze the file successfully
-	if !strings.Contains(output, "Clone Detection Results") {
+	if !strings.Contains(output, "Clone Detection Analysis Report") {
 		t.Error("Output should contain clone detection results header")
 	}
 }
@@ -557,7 +557,7 @@ def main_function():
 	output := stdout.String()
 
 	// Should complete successfully
-	if !strings.Contains(output, "Clone Detection Results") {
+	if !strings.Contains(output, "Clone Detection Analysis Report") {
 		t.Error("Should contain clone detection results header")
 	}
 }

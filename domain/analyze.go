@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"math"
 	"time"
 )
 
@@ -59,64 +60,86 @@ type AnalyzeSummary struct {
 func (s *AnalyzeSummary) CalculateHealthScore() {
 	score := 100
 
-	// Deduct points for high complexity
+	// Calculate normalization factor for large projects
+	normalizationFactor := 1.0
+	if s.TotalFiles > 10 {
+		// Scale factor increases with project size to reduce penalty impact
+		// 20 files: 1.3x, 50 files: 1.7x, 100 files: 2.0x, 200 files: 2.3x
+		normalizationFactor = 1.0 + math.Log10(float64(s.TotalFiles)/10.0)
+	}
+
+	// Complexity penalty (max 25 points)
+	complexityPenalty := 0
 	if s.AverageComplexity > 20 {
-		score -= 30
+		complexityPenalty = 25
 	} else if s.AverageComplexity > 10 {
-		score -= 20
+		complexityPenalty = 15
 	} else if s.AverageComplexity > 5 {
-		score -= 10
+		complexityPenalty = 8
 	}
+	score -= complexityPenalty
 
-	// Deduct points for dead code
+	// Dead code penalty (max 25 points, normalized for project size)
+	deadCodePenalty := 0
 	if s.DeadCodeCount > 0 {
-		deduction := (s.DeadCodeCount * 2)
-		if deduction > 20 {
-			deduction = 20
-		}
-		score -= deduction
+		rawPenalty := float64(s.DeadCodeCount) / normalizationFactor
+		deadCodePenalty = int(math.Min(25, rawPenalty))
 	}
+	
+	// Additional penalty for critical dead code (max 15 points, normalized)
+	criticalPenalty := 0
+	if s.CriticalDeadCode > 0 {
+		rawCriticalPenalty := float64(s.CriticalDeadCode*3) / normalizationFactor
+		criticalPenalty = int(math.Min(15, rawCriticalPenalty))
+	}
+	
+	totalDeadCodePenalty := deadCodePenalty + criticalPenalty
+	if totalDeadCodePenalty > 25 {
+		totalDeadCodePenalty = 25
+	}
+	score -= totalDeadCodePenalty
 
-	// Deduct points for critical dead code
-	score -= s.CriticalDeadCode * 5
-
-	// Deduct points for code duplication
-	if s.CodeDuplication > 30 {
-		score -= 25
-	} else if s.CodeDuplication > 20 {
-		score -= 15
+	// Clone penalty (max 25 points, based on percentage)
+	clonePenalty := 0
+	if s.CodeDuplication > 40 {
+		clonePenalty = 25
+	} else if s.CodeDuplication > 25 {
+		clonePenalty = 15
 	} else if s.CodeDuplication > 10 {
-		score -= 10
+		clonePenalty = 8
 	}
+	score -= clonePenalty
 
-	// Deduct points for high coupling
+	// CBO penalty (max 25 points)
+	cboPenalty := 0
 	if s.CBOClasses > 0 {
 		couplingRatio := float64(s.HighCouplingClasses) / float64(s.CBOClasses)
 		if couplingRatio > 0.5 {
-			score -= 20
+			cboPenalty = 20
 		} else if couplingRatio > 0.3 {
-			score -= 15
+			cboPenalty = 12
 		} else if couplingRatio > 0.1 {
-			score -= 10
+			cboPenalty = 6
 		}
 	}
+	score -= cboPenalty
 
-	// Ensure score is within bounds
-	if score < 0 {
-		score = 0
+	// Set minimum score to 10 (never completely fail)
+	if score < 10 {
+		score = 10
 	}
 
 	s.HealthScore = score
 
-	// Assign grade based on score
+	// Assign grade based on score (adjusted thresholds)
 	switch {
-	case score >= 90:
+	case score >= 85:
 		s.Grade = "A"
-	case score >= 80:
-		s.Grade = "B"
 	case score >= 70:
+		s.Grade = "B"
+	case score >= 55:
 		s.Grade = "C"
-	case score >= 60:
+	case score >= 40:
 		s.Grade = "D"
 	default:
 		s.Grade = "F"
