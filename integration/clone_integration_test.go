@@ -74,7 +74,7 @@ func TestCloneDetectionIntegration(t *testing.T) {
 	assert.NotEmpty(t, output, "Should produce output")
 
 	// Basic output validation
-	assert.Contains(t, output, "Clone Detection Results", "Should contain results header")
+	assert.Contains(t, output, "Clone Detection Analysis Report", "Should contain results header")
 }
 
 // TestCloneUseCaseBuilder tests the builder pattern for creating use cases
@@ -211,9 +211,9 @@ func TestCloneOutputFormatterIntegration(t *testing.T) {
 	assert.NoError(t, err, "Should format as text without error")
 
 	textOutput := textBuffer.String()
-	assert.Contains(t, textOutput, "Clone Detection Results", "Should contain header")
-	assert.Contains(t, textOutput, "Files analyzed: 2", "Should contain statistics")
-	assert.Contains(t, textOutput, "Clone pairs found: 1", "Should contain pair count")
+	assert.Contains(t, textOutput, "Clone Detection Analysis Report", "Should contain header")
+	assert.Contains(t, textOutput, "Files Analyzed: 2", "Should contain statistics")
+	assert.Contains(t, textOutput, "Clone Pairs: 1", "Should contain pair count")
 	assert.Contains(t, textOutput, "Type-1", "Should contain clone type")
 	assert.Contains(t, textOutput, "similarity: 0.950", "Should contain similarity")
 

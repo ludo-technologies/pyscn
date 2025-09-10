@@ -61,13 +61,13 @@ def function_with_raise():
 	output := stdout.String()
 
 	// Verify output contains expected dead code findings
-	if !strings.Contains(output, "Dead Code Detection Results") {
-		t.Error("Output should contain 'Dead Code Detection Results' header")
+	if !strings.Contains(output, "Dead Code Analysis Report") {
+		t.Error("Output should contain 'Dead Code Analysis Report' header")
 	}
 	if !strings.Contains(output, "function_with_dead_code") {
 		t.Error("Output should contain 'function_with_dead_code'")
 	}
-	if !strings.Contains(output, "CRITICAL") {
+	if !strings.Contains(output, "High") {
 		t.Error("Output should contain critical severity findings")
 	}
 	if !strings.Contains(output, "unreachable") {
@@ -261,7 +261,7 @@ def warning_example(x):
 	}
 
 	output := stdout.String()
-	if !strings.Contains(output, "CRITICAL") {
+	if !strings.Contains(output, "High") {
 		t.Error("Output should contain critical severity findings")
 	}
 
@@ -282,7 +282,7 @@ def warning_example(x):
 		t.Error("Output should contain critical_example function")
 	}
 	// The output should contain some analysis results
-	if !strings.Contains(output2, "Files analyzed: 1") {
+	if !strings.Contains(output2, "Total Files: 1") {
 		t.Error("Output should show files were analyzed")
 	}
 }
@@ -440,7 +440,7 @@ def function_with_context():
 	if !strings.Contains(output, "function_with_context") {
 		t.Error("Output should contain the function name")
 	}
-	if !strings.Contains(output, "CRITICAL") {
+	if !strings.Contains(output, "High") {
 		t.Error("Output should detect critical dead code")
 	}
 	// Context display might work differently than expected, so check for general structure
