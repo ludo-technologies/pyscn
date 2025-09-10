@@ -202,12 +202,12 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 
 // CloneDetector detects code clones using APTED algorithm
 type CloneDetector struct {
-	config         *CloneDetectorConfig
-	analyzer       *APTEDAnalyzer
-	converter      *TreeConverter
-	fragments      []*CodeFragment
-	clonePairs     []*ClonePair
-	cloneGroups    []*CloneGroup
+	config      *CloneDetectorConfig
+	analyzer    *APTEDAnalyzer
+	converter   *TreeConverter
+	fragments   []*CodeFragment
+	clonePairs  []*ClonePair
+	cloneGroups []*CloneGroup
 }
 
 // NewCloneDetectorFromConfig creates a new clone detector from unified config
@@ -360,7 +360,6 @@ func (cd *CloneDetector) DetectClones(fragments []*CodeFragment) ([]*ClonePair, 
 	return cd.DetectClonesWithContext(context.Background(), fragments)
 }
 
-
 // DetectClonesWithContext detects clones with context support for cancellation
 func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments []*CodeFragment) ([]*ClonePair, []*CloneGroup) {
 	cd.fragments = fragments
@@ -406,7 +405,6 @@ func (cd *CloneDetector) prepareFragments() {
 	}
 }
 
-
 // calculateBatchSize determines the optimal batch size based on fragment count
 func (cd *CloneDetector) calculateBatchSize(fragmentCount int) int {
 	if fragmentCount < cd.config.BatchSizeThreshold {
@@ -442,7 +440,6 @@ func (cd *CloneDetector) detectClonePairsWithContext(ctx context.Context) {
 	cd.limitAndSortClonePairs(cd.config.MaxClonePairs)
 }
 
-
 // detectClonePairsStandardWithContext uses standard approach with context
 func (cd *CloneDetector) detectClonePairsStandardWithContext(ctx context.Context) {
 	n := len(cd.fragments)
@@ -471,7 +468,6 @@ func (cd *CloneDetector) detectClonePairsStandardWithContext(ctx context.Context
 		}
 	}
 }
-
 
 // detectClonePairsWithBatchingContext processes batches with context support
 func (cd *CloneDetector) detectClonePairsWithBatchingContext(ctx context.Context, maxPairs, batchSize int) {
@@ -541,7 +537,7 @@ func (cd *CloneDetector) detectClonePairsWithBatchingContext(ctx context.Context
 func (cd *CloneDetector) shouldCompareFragments(fragment1, fragment2 *CodeFragment) bool {
 	// Early filtering: Skip if size difference is too large (>50%)
 	sizeDiff := math.Abs(float64(fragment1.Size - fragment2.Size))
-	avgSize := float64(fragment1.Size + fragment2.Size) / 2.0
+	avgSize := float64(fragment1.Size+fragment2.Size) / 2.0
 	if avgSize > 0 && sizeDiff/avgSize > 0.5 {
 		return false // Too different in size to be clones
 	}
@@ -735,12 +731,13 @@ func (cd *CloneDetector) calculateGroupSimilarity(group *CloneGroup) {
 
 // groupClonesWithStrategy groups clone pairs using a pluggable strategy.
 // This keeps backward compatibility with the existing groupClones method.
+//nolint:unused // Hook for pluggable grouping; used when strategy is wired via config.
 func (cd *CloneDetector) groupClonesWithStrategy(strategy GroupingStrategy) {
     if strategy == nil {
         cd.groupClones()
         return
     }
-    cd.cloneGroups = strategy.GroupClones(cd.clonePairs)
+	cd.cloneGroups = strategy.GroupClones(cd.clonePairs)
 }
 
 // isSameLocation checks if two locations refer to the same code
