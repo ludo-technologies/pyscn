@@ -63,8 +63,9 @@ func (s *AnalyzeSummary) CalculateHealthScore() {
 	// Calculate normalization factor for large projects
 	normalizationFactor := 1.0
 	if s.TotalFiles > 10 {
-		// Use logarithmic scaling to reduce penalty impact for large projects
-		normalizationFactor = math.Log10(float64(s.TotalFiles)) / 2.0
+		// Scale factor increases with project size to reduce penalty impact
+		// 20 files: 1.3x, 50 files: 1.7x, 100 files: 2.0x, 200 files: 2.3x
+		normalizationFactor = 1.0 + math.Log10(float64(s.TotalFiles)/10.0)
 	}
 
 	// Complexity penalty (max 25 points)
