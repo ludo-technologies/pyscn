@@ -206,20 +206,6 @@ func (f *CBOFormatterImpl) writeClassDetails(builder *strings.Builder, class dom
 	}
 }
 
-// getRiskIcon returns an emoji icon for the risk level
-func (f *CBOFormatterImpl) getRiskIcon(risk domain.RiskLevel) string {
-	switch risk {
-	case domain.RiskLevelLow:
-		return "🟢"
-	case domain.RiskLevelMedium:
-		return "🟡"
-	case domain.RiskLevelHigh:
-		return "🔴"
-	default:
-		return "⚪"
-	}
-}
-
 // formatJSON formats the response as JSON
 func (f *CBOFormatterImpl) formatJSON(response *domain.CBOResponse) (string, error) {
 	jsonBytes, err := json.MarshalIndent(response, "", "  ")
