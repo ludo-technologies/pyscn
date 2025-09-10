@@ -55,66 +55,75 @@ func (f *OutputFormatterImpl) Write(response *domain.ComplexityResponse, format 
 // formatText formats the response as human-readable text
 func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (string, error) {
 	var builder strings.Builder
+	utils := NewFormatUtils()
 
 	// Header
-	builder.WriteString("Complexity Analysis Report\n")
-	builder.WriteString("==========================\n\n")
+	builder.WriteString(utils.FormatMainHeader("Complexity Analysis Report"))
 
 	// Summary
-	builder.WriteString("Summary:\n")
-	builder.WriteString(fmt.Sprintf("  Total Functions: %d\n", response.Summary.TotalFunctions))
-	if response.Summary.TotalFunctions > 0 {
-		builder.WriteString(fmt.Sprintf("  Average Complexity: %.2f\n", response.Summary.AverageComplexity))
-		builder.WriteString(fmt.Sprintf("  Max Complexity: %d\n", response.Summary.MaxComplexity))
-		builder.WriteString(fmt.Sprintf("  Min Complexity: %d\n", response.Summary.MinComplexity))
+	stats := map[string]interface{}{
+		"Total Functions": response.Summary.TotalFunctions,
+		"Files Analyzed":  response.Summary.FilesAnalyzed,
 	}
-	builder.WriteString("\n")
+	if response.Summary.TotalFunctions > 0 {
+		stats["Average Complexity"] = fmt.Sprintf("%.1f", response.Summary.AverageComplexity)
+		stats["Max Complexity"] = response.Summary.MaxComplexity
+		stats["Min Complexity"] = response.Summary.MinComplexity
+	}
+	builder.WriteString(utils.FormatSummaryStats(stats))
 
 	// Risk Distribution
-	builder.WriteString("Risk Distribution:\n")
-	builder.WriteString(fmt.Sprintf("  High: %d\n", response.Summary.HighRiskFunctions))
-	builder.WriteString(fmt.Sprintf("  Medium: %d\n", response.Summary.MediumRiskFunctions))
-	builder.WriteString(fmt.Sprintf("  Low: %d\n", response.Summary.LowRiskFunctions))
-	builder.WriteString("\n")
+	builder.WriteString(utils.FormatRiskDistribution(
+		response.Summary.HighRiskFunctions,
+		response.Summary.MediumRiskFunctions,
+		response.Summary.LowRiskFunctions))
 
 	// Function Details
 	if len(response.Functions) > 0 {
-		builder.WriteString("Function Details:\n")
-		builder.WriteString("Function                       Complexity     Risk\n")
-		builder.WriteString("------------------------------------------------\n")
+		builder.WriteString(utils.FormatSectionHeader("FUNCTION DETAILS"))
+		builder.WriteString(utils.FormatTableHeader("Function", "Complexity", "Risk"))
 
 		for _, function := range response.Functions {
-			color := f.getRiskColor(function.RiskLevel)
-			builder.WriteString(fmt.Sprintf("%-30s %10d %s%8s\x1b[0m\n",
+			// Convert domain risk level to standard risk level
+			var standardRisk RiskLevel
+			switch function.RiskLevel {
+			case "High":
+				standardRisk = RiskHigh
+			case "Medium":
+				standardRisk = RiskMedium
+			case "Low":
+				standardRisk = RiskLow
+			default:
+				standardRisk = RiskLow
+			}
+
+			coloredRisk := utils.FormatRiskWithColor(standardRisk)
+			builder.WriteString(fmt.Sprintf("%-30s %10d  %s\n",
 				function.Name,
 				function.Metrics.Complexity,
-				color,
-				function.RiskLevel))
+				coloredRisk))
 		}
-		builder.WriteString("\n")
+		builder.WriteString(utils.FormatSectionSeparator())
 	}
 
 	// Warnings
 	if len(response.Warnings) > 0 {
-		builder.WriteString("Warnings:\n")
-		for _, warning := range response.Warnings {
-			builder.WriteString(fmt.Sprintf("  ⚠️  %s\n", warning))
-		}
-		builder.WriteString("\n")
+		builder.WriteString(utils.FormatWarningsSection(response.Warnings))
 	}
 
 	// Errors
 	if len(response.Errors) > 0 {
-		builder.WriteString("Errors:\n")
+		builder.WriteString(utils.FormatSectionHeader("ERRORS"))
 		for _, err := range response.Errors {
-			builder.WriteString(fmt.Sprintf("  ❌ %s\n", err))
+			builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "❌", err))
 		}
-		builder.WriteString("\n")
+		builder.WriteString(utils.FormatSectionSeparator())
 	}
 
 	// Footer
 	if parsedTime, err := time.Parse(time.RFC3339, response.GeneratedAt); err == nil {
-		builder.WriteString(fmt.Sprintf("Generated at: %s\n", parsedTime.Format("2006-01-02T15:04:05-07:00")))
+		builder.WriteString(utils.FormatSectionHeader("METADATA"))
+		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Generated at", parsedTime.Format("2006-01-02T15:04:05-07:00")))
 	}
 
 	return builder.String(), nil

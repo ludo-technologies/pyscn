@@ -53,29 +53,30 @@ func (f *CBOFormatterImpl) Write(response *domain.CBOResponse, format domain.Out
 // formatText formats the response as human-readable text
 func (f *CBOFormatterImpl) formatText(response *domain.CBOResponse) (string, error) {
 	var builder strings.Builder
+	utils := NewFormatUtils()
 
 	// Header
-	builder.WriteString("=== CBO (Coupling Between Objects) Analysis Results ===\n\n")
+	builder.WriteString(utils.FormatMainHeader("CBO (Coupling Between Objects) Analysis Report"))
 
 	// Summary
-	builder.WriteString("📊 SUMMARY\n")
-	builder.WriteString(fmt.Sprintf("Total Classes:     %d\n", response.Summary.TotalClasses))
-	builder.WriteString(fmt.Sprintf("Files Analyzed:    %d\n", response.Summary.FilesAnalyzed))
-	builder.WriteString(fmt.Sprintf("Average CBO:       %.2f\n", response.Summary.AverageCBO))
-	builder.WriteString(fmt.Sprintf("Max CBO:           %d\n", response.Summary.MaxCBO))
-	builder.WriteString(fmt.Sprintf("Min CBO:           %d\n", response.Summary.MinCBO))
-	builder.WriteString("\n")
+	stats := map[string]interface{}{
+		"Total Classes":  response.Summary.TotalClasses,
+		"Files Analyzed": response.Summary.FilesAnalyzed,
+		"Average CBO":    fmt.Sprintf("%.1f", response.Summary.AverageCBO),
+		"Max CBO":        response.Summary.MaxCBO,
+		"Min CBO":        response.Summary.MinCBO,
+	}
+	builder.WriteString(utils.FormatSummaryStats(stats))
 
 	// Risk distribution
-	builder.WriteString("🚦 RISK DISTRIBUTION\n")
-	builder.WriteString(fmt.Sprintf("Low Risk:          %d classes\n", response.Summary.LowRiskClasses))
-	builder.WriteString(fmt.Sprintf("Medium Risk:       %d classes\n", response.Summary.MediumRiskClasses))
-	builder.WriteString(fmt.Sprintf("High Risk:         %d classes\n", response.Summary.HighRiskClasses))
-	builder.WriteString("\n")
+	builder.WriteString(utils.FormatRiskDistribution(
+		response.Summary.HighRiskClasses,
+		response.Summary.MediumRiskClasses,
+		response.Summary.LowRiskClasses))
 
 	// CBO distribution
 	if len(response.Summary.CBODistribution) > 0 {
-		builder.WriteString("📈 CBO DISTRIBUTION\n")
+		builder.WriteString(utils.FormatSectionHeader("CBO DISTRIBUTION"))
 		
 		// Sort ranges for consistent output
 		ranges := make([]string, 0, len(response.Summary.CBODistribution))
@@ -86,98 +87,121 @@ func (f *CBOFormatterImpl) formatText(response *domain.CBOResponse) (string, err
 
 		for _, rang := range ranges {
 			count := response.Summary.CBODistribution[rang]
-			builder.WriteString(fmt.Sprintf("CBO %s:           %d classes\n", rang, count))
+			builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, fmt.Sprintf("CBO %s", rang), fmt.Sprintf("%d classes", count)))
 		}
-		builder.WriteString("\n")
+		builder.WriteString(utils.FormatSectionSeparator())
 	}
 
 	// Most coupled classes
 	if len(response.Summary.MostCoupledClasses) > 0 {
-		builder.WriteString("🔗 MOST COUPLED CLASSES\n")
+		builder.WriteString(utils.FormatSectionHeader("MOST COUPLED CLASSES"))
 		for i, class := range response.Summary.MostCoupledClasses {
 			if i >= 10 { // Limit to top 10
 				break
 			}
-			riskIcon := f.getRiskIcon(class.RiskLevel)
-			builder.WriteString(fmt.Sprintf("%d. %s %s (CBO: %d) - %s:%d\n", 
-				i+1, riskIcon, class.Name, class.Metrics.CouplingCount, class.FilePath, class.StartLine))
+			// Convert domain risk level to standard risk level
+			var standardRisk RiskLevel
+			switch class.RiskLevel {
+			case "High":
+				standardRisk = RiskHigh
+			case "Medium":
+				standardRisk = RiskMedium
+			case "Low":
+				standardRisk = RiskLow
+			default:
+				standardRisk = RiskLow
+			}
+			coloredRisk := utils.FormatRiskWithColor(standardRisk)
+			
+			builder.WriteString(fmt.Sprintf("%s%d. %s %s (CBO: %d) - %s:%d\n", 
+				strings.Repeat(" ", SectionPadding), i+1, coloredRisk, class.Name, class.Metrics.CouplingCount, class.FilePath, class.StartLine))
 		}
-		builder.WriteString("\n")
+		builder.WriteString(utils.FormatSectionSeparator())
 	}
 
 	// Detailed class information
 	if len(response.Classes) > 0 {
-		builder.WriteString("📋 CLASS DETAILS\n")
+		builder.WriteString(utils.FormatSectionHeader("CLASS DETAILS"))
 		for _, class := range response.Classes {
-			f.writeClassDetails(&builder, class)
+			f.writeClassDetails(&builder, class, utils)
 			builder.WriteString("\n")
 		}
+		builder.WriteString(utils.FormatSectionSeparator())
 	}
 
 	// Warnings
 	if len(response.Warnings) > 0 {
-		builder.WriteString("⚠️  WARNINGS\n")
-		for _, warning := range response.Warnings {
-			builder.WriteString(fmt.Sprintf("• %s\n", warning))
-		}
-		builder.WriteString("\n")
+		builder.WriteString(utils.FormatWarningsSection(response.Warnings))
 	}
 
 	// Errors
 	if len(response.Errors) > 0 {
-		builder.WriteString("❌ ERRORS\n")
+		builder.WriteString(utils.FormatSectionHeader("ERRORS"))
 		for _, err := range response.Errors {
-			builder.WriteString(fmt.Sprintf("• %s\n", err))
+			builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "❌", err))
 		}
-		builder.WriteString("\n")
+		builder.WriteString(utils.FormatSectionSeparator())
 	}
 
 	// Footer
-	builder.WriteString(fmt.Sprintf("Generated at: %s\n", response.GeneratedAt))
-	builder.WriteString(fmt.Sprintf("Version: %s\n", response.Version))
+	builder.WriteString(utils.FormatSectionHeader("METADATA"))
+	builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Generated at", response.GeneratedAt))
+	builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Version", response.Version))
 
 	return builder.String(), nil
 }
 
 // writeClassDetails writes detailed information about a class
-func (f *CBOFormatterImpl) writeClassDetails(builder *strings.Builder, class domain.ClassCoupling) {
-	riskIcon := f.getRiskIcon(class.RiskLevel)
+func (f *CBOFormatterImpl) writeClassDetails(builder *strings.Builder, class domain.ClassCoupling, utils *FormatUtils) {
+	// Convert domain risk level to standard risk level
+	var standardRisk RiskLevel
+	switch class.RiskLevel {
+	case "High":
+		standardRisk = RiskHigh
+	case "Medium":
+		standardRisk = RiskMedium
+	case "Low":
+		standardRisk = RiskLow
+	default:
+		standardRisk = RiskLow
+	}
+	coloredRisk := utils.FormatRiskWithColor(standardRisk)
 	
-	builder.WriteString(fmt.Sprintf("%s %s (CBO: %d, Risk: %s)\n", 
-		riskIcon, class.Name, class.Metrics.CouplingCount, class.RiskLevel))
-	builder.WriteString(fmt.Sprintf("  Location: %s:%d-%d\n", class.FilePath, class.StartLine, class.EndLine))
+	builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Class", fmt.Sprintf("%s %s (CBO: %d)", 
+		coloredRisk, class.Name, class.Metrics.CouplingCount)))
+	builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Location", fmt.Sprintf("%s:%d-%d", class.FilePath, class.StartLine, class.EndLine)))
 	
 	if class.IsAbstract {
-		builder.WriteString("  Type: Abstract Class\n")
+		builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Type", "Abstract Class"))
 	}
 
 	// Base classes
 	if len(class.BaseClasses) > 0 {
-		builder.WriteString(fmt.Sprintf("  Inherits from: %s\n", strings.Join(class.BaseClasses, ", ")))
+		builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Inherits from", strings.Join(class.BaseClasses, ", ")))
 	}
 
 	// Dependency breakdown
 	if class.Metrics.CouplingCount > 0 {
-		builder.WriteString("  Dependencies:\n")
+		builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Dependencies", ""))
 		if class.Metrics.InheritanceDependencies > 0 {
-			builder.WriteString(fmt.Sprintf("    Inheritance: %d\n", class.Metrics.InheritanceDependencies))
+			builder.WriteString(utils.FormatLabelWithIndent(ItemPadding+2, "Inheritance", class.Metrics.InheritanceDependencies))
 		}
 		if class.Metrics.TypeHintDependencies > 0 {
-			builder.WriteString(fmt.Sprintf("    Type Hints: %d\n", class.Metrics.TypeHintDependencies))
+			builder.WriteString(utils.FormatLabelWithIndent(ItemPadding+2, "Type Hints", class.Metrics.TypeHintDependencies))
 		}
 		if class.Metrics.InstantiationDependencies > 0 {
-			builder.WriteString(fmt.Sprintf("    Instantiation: %d\n", class.Metrics.InstantiationDependencies))
+			builder.WriteString(utils.FormatLabelWithIndent(ItemPadding+2, "Instantiation", class.Metrics.InstantiationDependencies))
 		}
 		if class.Metrics.AttributeAccessDependencies > 0 {
-			builder.WriteString(fmt.Sprintf("    Attribute Access: %d\n", class.Metrics.AttributeAccessDependencies))
+			builder.WriteString(utils.FormatLabelWithIndent(ItemPadding+2, "Attribute Access", class.Metrics.AttributeAccessDependencies))
 		}
 		if class.Metrics.ImportDependencies > 0 {
-			builder.WriteString(fmt.Sprintf("    Imports: %d\n", class.Metrics.ImportDependencies))
+			builder.WriteString(utils.FormatLabelWithIndent(ItemPadding+2, "Imports", class.Metrics.ImportDependencies))
 		}
 
 		// List dependent classes
 		if len(class.Metrics.DependentClasses) > 0 {
-			builder.WriteString(fmt.Sprintf("    Coupled to: %s\n", strings.Join(class.Metrics.DependentClasses, ", ")))
+			builder.WriteString(utils.FormatLabelWithIndent(ItemPadding+2, "Coupled to", strings.Join(class.Metrics.DependentClasses, ", ")))
 		}
 	}
 }

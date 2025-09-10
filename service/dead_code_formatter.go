@@ -54,7 +54,7 @@ func (f *DeadCodeFormatterImpl) Write(response *domain.DeadCodeResponse, format 
 func (f *DeadCodeFormatterImpl) FormatFinding(finding domain.DeadCodeFinding, format domain.OutputFormat) (string, error) {
     switch format {
     case domain.OutputFormatText:
-        return f.formatFindingText(finding), nil
+        return f.formatFindingTextLegacy(finding), nil
     case domain.OutputFormatJSON:
         return EncodeJSON(finding)
     case domain.OutputFormatYAML:
@@ -62,7 +62,7 @@ func (f *DeadCodeFormatterImpl) FormatFinding(finding domain.DeadCodeFinding, fo
     case domain.OutputFormatHTML:
         // HTML formatting for individual findings is not typically needed
         // Fall back to text format for individual findings
-        return f.formatFindingText(finding), nil
+        return f.formatFindingTextLegacy(finding), nil
     default:
 		return "", domain.NewUnsupportedFormatError(string(format))
 	}
@@ -71,60 +71,93 @@ func (f *DeadCodeFormatterImpl) FormatFinding(finding domain.DeadCodeFinding, fo
 // formatText formats the response as human-readable text
 func (f *DeadCodeFormatterImpl) formatText(response *domain.DeadCodeResponse) (string, error) {
 	var output strings.Builder
+	utils := NewFormatUtils()
 
 	// Header
-	output.WriteString("Dead Code Detection Results\n")
-	output.WriteString("============================\n\n")
+	output.WriteString(utils.FormatMainHeader("Dead Code Analysis Report"))
 
 	// Summary
-	output.WriteString(fmt.Sprintf("Files analyzed: %d\n", response.Summary.TotalFiles))
-	output.WriteString(fmt.Sprintf("Files with dead code: %d\n", response.Summary.FilesWithDeadCode))
-	output.WriteString(fmt.Sprintf("Total findings: %d\n", response.Summary.TotalFindings))
-	output.WriteString(fmt.Sprintf("Functions analyzed: %d\n", response.Summary.TotalFunctions))
-	output.WriteString(fmt.Sprintf("Functions with dead code: %d\n\n", response.Summary.FunctionsWithDeadCode))
+	stats := map[string]interface{}{
+		"Total Files":           response.Summary.TotalFiles,
+		"Files with Dead Code":  response.Summary.FilesWithDeadCode,
+		"Total Findings":        response.Summary.TotalFindings,
+		"Functions Analyzed":    response.Summary.TotalFunctions,
+		"Functions with Issues": response.Summary.FunctionsWithDeadCode,
+	}
+	output.WriteString(utils.FormatSummaryStats(stats))
 
-	// Severity breakdown
-	output.WriteString("Severity Breakdown:\n")
-	output.WriteString(fmt.Sprintf("  Critical: %d\n", response.Summary.CriticalFindings))
-	output.WriteString(fmt.Sprintf("  Warning:  %d\n", response.Summary.WarningFindings))
-	output.WriteString(fmt.Sprintf("  Info:     %d\n\n", response.Summary.InfoFindings))
+	// Severity distribution (using standard risk levels)
+	output.WriteString(utils.FormatRiskDistribution(
+		response.Summary.CriticalFindings,  // Map Critical to High
+		response.Summary.WarningFindings,   // Map Warning to Medium
+		response.Summary.InfoFindings))     // Map Info to Low
 
-	// Files with findings
-	for _, file := range response.Files {
-		output.WriteString(fmt.Sprintf("File: %s\n", file.FilePath))
-		output.WriteString(strings.Repeat("=", len(file.FilePath)+6) + "\n")
+	// File Details
+	if len(response.Files) > 0 && response.Summary.TotalFindings > 0 {
+		output.WriteString(utils.FormatSectionHeader("DETAILED FINDINGS"))
 
-		for _, function := range file.Functions {
-			output.WriteString(fmt.Sprintf("\nFunction: %s\n", function.Name))
-			for _, finding := range function.Findings {
-				output.WriteString(f.formatFindingText(finding) + "\n")
+		for _, file := range response.Files {
+			if len(file.Functions) > 0 {
+				output.WriteString(utils.FormatLabelWithIndent(0, "File", file.FilePath))
+				output.WriteString(strings.Repeat("-", HeaderWidth) + "\n")
+
+				for _, function := range file.Functions {
+					if len(function.Findings) > 0 {
+						output.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Function", function.Name))
+						for _, finding := range function.Findings {
+							output.WriteString(f.formatFindingText(finding, utils) + "\n")
+						}
+						output.WriteString("\n")
+					}
+				}
 			}
 		}
-		output.WriteString("\n")
+		output.WriteString(utils.FormatSectionSeparator())
 	}
 
-	// Warnings and errors
+	// Warnings
 	if len(response.Warnings) > 0 {
-		output.WriteString("Warnings:\n")
-		for _, warning := range response.Warnings {
-			output.WriteString(fmt.Sprintf("  - %s\n", warning))
-		}
-		output.WriteString("\n")
+		output.WriteString(utils.FormatWarningsSection(response.Warnings))
 	}
 
+	// Errors
 	if len(response.Errors) > 0 {
-		output.WriteString("Errors:\n")
+		output.WriteString(utils.FormatSectionHeader("ERRORS"))
 		for _, error := range response.Errors {
-			output.WriteString(fmt.Sprintf("  - %s\n", error))
+			output.WriteString(utils.FormatLabelWithIndent(SectionPadding, "❌", error))
 		}
-		output.WriteString("\n")
+		output.WriteString(utils.FormatSectionSeparator())
 	}
 
 	return output.String(), nil
 }
 
 // formatFindingText formats a single finding as text
-func (f *DeadCodeFormatterImpl) formatFindingText(finding domain.DeadCodeFinding) string {
+func (f *DeadCodeFormatterImpl) formatFindingText(finding domain.DeadCodeFinding, utils *FormatUtils) string {
+	// Convert severity to standard risk level
+	var standardRisk RiskLevel
+	switch finding.Severity {
+	case "critical":
+		standardRisk = RiskHigh
+	case "warning":
+		standardRisk = RiskMedium
+	case "info":
+		standardRisk = RiskLow
+	default:
+		standardRisk = RiskLow
+	}
+
+	coloredSeverity := utils.FormatRiskWithColor(standardRisk)
+	return fmt.Sprintf("    [%s] Line %d-%d: %s (%s)",
+		coloredSeverity,
+		finding.Location.StartLine,
+		finding.Location.EndLine,
+		finding.Description,
+		finding.Reason)
+}
+
+// Keep the old method for backward compatibility with FormatFinding
+func (f *DeadCodeFormatterImpl) formatFindingTextLegacy(finding domain.DeadCodeFinding) string {
 	return fmt.Sprintf("  [%s] Line %d-%d: %s (%s)",
 		strings.ToUpper(string(finding.Severity)),
 		finding.Location.StartLine,

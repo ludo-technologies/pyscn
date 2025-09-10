@@ -153,7 +153,7 @@ func (s *DeadCodeServiceImpl) analyzeFile(ctx context.Context, filePath string, 
 			continue
 		}
 
-		deadCodeResults := analyzer.DetectInFunction(cfg)
+		deadCodeResults := analyzer.DetectInFunctionWithFilePath(cfg, filePath)
 		if deadCodeResults == nil {
 			warnings = append(warnings, fmt.Sprintf("[%s:%s] Failed to analyze dead code for function", filePath, functionName))
 			continue
