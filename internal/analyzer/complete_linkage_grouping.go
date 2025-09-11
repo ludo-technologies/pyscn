@@ -58,11 +58,16 @@ func (c *CompleteLinkageGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup 
     // Helper to compute complete-linkage similarity between two clusters
     clusterSim := func(a, b []*CodeFragment) float64 {
         // minimum similarity between any pair across clusters
+        // Early exit: if any pair falls below threshold, this cluster pair is invalid.
         minSim := 1.0
         hasPair := false
         for _, x := range a {
             for _, y := range b {
                 s := similarity(sims, x, y) // 0 if missing
+                if s < c.threshold {
+                    // Early rejection for complete linkage
+                    return 0.0
+                }
                 if s < minSim {
                     minSim = s
                 }
@@ -148,4 +153,3 @@ func (c *CompleteLinkageGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup 
 
     return groups
 }
-
