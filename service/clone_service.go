@@ -135,8 +135,14 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 
 	// Starting actual clone detection (this is the slow part)
 
-	// Detect clones with context support for cancellation
-	clonePairs, cloneGroups := detector.DetectClonesWithContext(ctx, allFragments)
+    // Detect clones (use LSH if enabled)
+    var clonePairs []*analyzer.ClonePair
+    var cloneGroups []*analyzer.CloneGroup
+    if detectorConfig.UseLSH {
+        clonePairs, cloneGroups = detector.DetectClonesWithLSH(ctx, allFragments)
+    } else {
+        clonePairs, cloneGroups = detector.DetectClonesWithContext(ctx, allFragments)
+    }
 
 	// Convert to domain objects
 	domainClones := s.convertFragmentsToDomainClones(allFragments)
@@ -255,6 +261,12 @@ func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.
         GroupingMode:      groupMode,
         GroupingThreshold: groupThreshold,
         KCoreK:            kVal,
+        // LSH
+        UseLSH:                 req.UseLSH,
+        LSHSimilarityThreshold: req.LSHSimilarityThreshold,
+        LSHBands:               req.LSHBands,
+        LSHRows:                req.LSHRows,
+        LSHMinHashCount:        req.LSHHashes,
     }
 }
 
