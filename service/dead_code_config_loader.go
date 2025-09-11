@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
@@ -18,19 +17,21 @@ func NewDeadCodeConfigurationLoader() *DeadCodeConfigurationLoaderImpl {
 	return &DeadCodeConfigurationLoaderImpl{}
 }
 
-// LoadConfig loads dead code configuration from the specified path
+// LoadConfig loads dead code configuration from the specified path using TOML-only strategy
 func (cl *DeadCodeConfigurationLoaderImpl) LoadConfig(path string) (*domain.DeadCodeRequest, error) {
-	// Load the full config
-	cfg, err := config.LoadConfig(path)
+	// Use TOML-only loader
+	tomlLoader := config.NewTomlConfigLoader()
+	cloneCfg, err := tomlLoader.LoadConfig(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config from %s: %w", path, err)
 	}
 
-	// Convert to dead code request
+	// Convert clone config to unified config format, then to dead code request
+	cfg := cl.cloneConfigToUnifiedConfig(cloneCfg)
 	return cl.configToRequest(cfg), nil
 }
 
-// LoadDefaultConfig loads the default dead code configuration, first checking for .pyscn.yaml
+// LoadDefaultConfig loads the default dead code configuration, first checking for .pyscn.toml
 func (cl *DeadCodeConfigurationLoaderImpl) LoadDefaultConfig() *domain.DeadCodeRequest {
 	// First, try to find and load a config file in the current directory
 	configFile := cl.FindDefaultConfigFile()
@@ -169,35 +170,19 @@ func (cl *DeadCodeConfigurationLoaderImpl) configToRequest(cfg *config.Config) *
 	}
 }
 
-// FindDefaultConfigFile looks for default configuration files in common locations
+// FindDefaultConfigFile looks for TOML config files in the current directory
 func (cl *DeadCodeConfigurationLoaderImpl) FindDefaultConfigFile() string {
-	candidates := []string{
-		"pyscn.yaml",
-		"pyscn.yml",
-		".pyscn.yaml",
-		".pyscn.yml",
-		"pyscn.json",
-		".pyscn.json",
-	}
-
-	// Check current directory first
-	for _, candidate := range candidates {
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
+	// Use TOML-only strategy
+	tomlLoader := config.NewTomlConfigLoader()
+	configFiles := tomlLoader.GetSupportedConfigFiles()
+	
+	for _, filename := range configFiles {
+		if _, err := os.Stat(filename); err == nil {
+			return filename
 		}
 	}
 
-	// Check home directory
-	if home, err := os.UserHomeDir(); err == nil {
-		for _, candidate := range candidates {
-			path := filepath.Join(home, candidate)
-			if _, err := os.Stat(path); err == nil {
-				return path
-			}
-		}
-	}
-
-	return ""
+	return "" // No config file found
 }
 
 // ValidateConfig validates a dead code configuration
@@ -282,5 +267,24 @@ func (cl *DeadCodeConfigurationLoaderImpl) requestToConfig(req *domain.DeadCodeR
 	cfg.Analysis.IncludePatterns = req.IncludePatterns
 	cfg.Analysis.ExcludePatterns = req.ExcludePatterns
 
+	return cfg
+}
+
+// cloneConfigToUnifiedConfig converts CloneConfig to unified Config format
+func (cl *DeadCodeConfigurationLoaderImpl) cloneConfigToUnifiedConfig(cloneCfg *config.CloneConfig) *config.Config {
+	cfg := config.DefaultConfig()
+	
+	// Map analysis settings
+	cfg.Analysis.IncludePatterns = cloneCfg.Input.IncludePatterns
+	cfg.Analysis.ExcludePatterns = cloneCfg.Input.ExcludePatterns
+	cfg.Analysis.Recursive = cloneCfg.Input.Recursive
+	
+	// Map output settings
+	cfg.Output.Format = cloneCfg.Output.Format
+	cfg.Output.ShowDetails = cloneCfg.Output.ShowDetails
+	
+	// Dead code settings use defaults from DefaultConfig()
+	// since TOML-only config focuses on clone detection
+	
 	return cfg
 }

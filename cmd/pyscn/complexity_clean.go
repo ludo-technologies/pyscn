@@ -71,7 +71,7 @@ Risk levels:
 Examples:
   pyscn complexity myfile.py
   pyscn complexity src/
-  pyscn complexity --format json src/`,
+  pyscn complexity --json src/`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: c.runComplexityAnalysis,
 	}

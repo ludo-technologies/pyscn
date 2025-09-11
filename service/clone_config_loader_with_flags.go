@@ -117,7 +117,7 @@ func (cl *CloneConfigurationLoaderWithFlags) MergeConfig(base *domain.CloneReque
 	return &merged
 }
 
-// FindDefaultConfigFile looks for .pyscn.yaml in the current directory
+// FindDefaultConfigFile looks for .pyscn.toml in the current directory
 func (cl *CloneConfigurationLoaderWithFlags) FindDefaultConfigFile() string {
 	return cl.loader.FindDefaultConfigFile()
 }

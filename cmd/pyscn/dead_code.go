@@ -86,7 +86,7 @@ Detection types:
 Examples:
   pyscn deadcode myfile.py
   pyscn deadcode src/
-  pyscn deadcode --format json --min-severity critical src/
+  pyscn deadcode --json --min-severity critical src/
   pyscn deadcode --show-context --context-lines 5 myfile.py`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: c.runDeadCodeAnalysis,
@@ -352,10 +352,10 @@ func (c *DeadCodeCommand) GetUsageExamples() []string {
 	return []string{
 		"pyscn deadcode myfile.py",
 		"pyscn deadcode src/",
-		"pyscn deadcode --format json src/",
+		"pyscn deadcode --json src/",
 		"pyscn deadcode --min-severity critical --show-context src/",
 		"pyscn deadcode --sort line --context-lines 5 myfile.py",
-		"pyscn deadcode --config .pyscn.yaml src/",
+		"pyscn deadcode --config .pyscn.toml src/",
 	}
 }
 

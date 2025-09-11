@@ -293,7 +293,7 @@ func findDefaultConfig(targetPath string) string {
 	candidates := []string{
 		"pyscn.yaml",
 		"pyscn.yml",
-		".pyscn.yaml",
+		".pyscn.toml",
 		".pyscn.yml",
 		"pyscn.json",
 		".pyscn.json",

@@ -21,16 +21,17 @@ func NewCloneConfigurationLoader() *CloneConfigurationLoader {
 	return &CloneConfigurationLoader{}
 }
 
-// LoadCloneConfig loads clone detection configuration from file
+// LoadCloneConfig loads clone detection configuration from file using TOML-only strategy
 func (c *CloneConfigurationLoader) LoadCloneConfig(configPath string) (*domain.CloneRequest, error) {
-	// Load the full configuration
-	cfg, err := config.LoadConfig(configPath)
+	// Use TOML-only loader
+	tomlLoader := config.NewTomlConfigLoader()
+	cloneCfg, err := tomlLoader.LoadConfig(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	// Convert to clone request
-	request := c.configToCloneRequest(&cfg.CloneDetection)
+	// Convert clone config directly to clone request
+	request := c.cloneConfigToCloneRequest(cloneCfg)
 	return request, nil
 }
 
@@ -57,7 +58,7 @@ func (c *CloneConfigurationLoader) SaveCloneConfig(cloneConfig *domain.CloneRequ
 	return config.SaveConfig(cfg, configPath)
 }
 
-// GetDefaultCloneConfig returns default clone detection configuration, first checking for .pyscn.yaml
+// GetDefaultCloneConfig returns default clone detection configuration
 func (c *CloneConfigurationLoader) GetDefaultCloneConfig() *domain.CloneRequest {
 	// First, try to find and load a config file in the current directory
 	configFile := c.FindDefaultConfigFile()
@@ -69,15 +70,15 @@ func (c *CloneConfigurationLoader) GetDefaultCloneConfig() *domain.CloneRequest 
 	}
 
 	// Fall back to hardcoded default configuration
-	defaultConfig := config.DefaultConfig()
-	return c.configToCloneRequest(&defaultConfig.CloneDetection)
+	defaultCloneConfig := config.DefaultCloneConfig()
+	return c.cloneConfigToCloneRequest(defaultCloneConfig)
 }
 
-// configToCloneRequest converts a config.CloneDetectionConfig to domain.CloneRequest
-func (c *CloneConfigurationLoader) configToCloneRequest(cfg *config.CloneDetectionConfig) *domain.CloneRequest {
-	// Convert string clone types to domain clone types
-	cloneTypes := make([]domain.CloneType, 0, len(cfg.CloneTypes))
-	for _, typeStr := range cfg.CloneTypes {
+// cloneConfigToCloneRequest converts a config.CloneConfig (TOML-based) to domain.CloneRequest
+func (c *CloneConfigurationLoader) cloneConfigToCloneRequest(cloneCfg *config.CloneConfig) *domain.CloneRequest {
+	// Convert enabled clone types from string slice to domain clone types
+	cloneTypes := make([]domain.CloneType, 0, len(cloneCfg.Filtering.EnabledCloneTypes))
+	for _, typeStr := range cloneCfg.Filtering.EnabledCloneTypes {
 		switch typeStr {
 		case "type1":
 			cloneTypes = append(cloneTypes, domain.Type1Clone)
@@ -92,7 +93,7 @@ func (c *CloneConfigurationLoader) configToCloneRequest(cfg *config.CloneDetecti
 
 	// Convert sort criteria
 	var sortBy domain.SortCriteria
-	switch cfg.SortBy {
+	switch cloneCfg.Output.SortBy {
 	case "similarity":
 		sortBy = domain.SortBySimilarity
 	case "size":
@@ -106,28 +107,28 @@ func (c *CloneConfigurationLoader) configToCloneRequest(cfg *config.CloneDetecti
 	}
 
 	return &domain.CloneRequest{
-		Paths:               []string{"."}, // Default to current directory
-		MinLines:            cfg.MinLines,
-		MinNodes:            cfg.MinNodes,
-		SimilarityThreshold: cfg.SimilarityThreshold,
-		MaxEditDistance:     cfg.MaxEditDistance,
-		IgnoreLiterals:      cfg.IgnoreLiterals,
-		IgnoreIdentifiers:   cfg.IgnoreIdentifiers,
-		Type1Threshold:      cfg.Type1Threshold,
-		Type2Threshold:      cfg.Type2Threshold,
-		Type3Threshold:      cfg.Type3Threshold,
-		Type4Threshold:      cfg.Type4Threshold,
-		ShowDetails:         false, // Not stored in config, use CLI default
-		ShowContent:         cfg.ShowContent,
+		Paths:               cloneCfg.Input.Paths,
+		MinLines:            cloneCfg.Analysis.MinLines,
+		MinNodes:            cloneCfg.Analysis.MinNodes,
+		SimilarityThreshold: cloneCfg.Thresholds.SimilarityThreshold,
+		MaxEditDistance:     cloneCfg.Analysis.MaxEditDistance,
+		IgnoreLiterals:      cloneCfg.Analysis.IgnoreLiterals,
+		IgnoreIdentifiers:   cloneCfg.Analysis.IgnoreIdentifiers,
+		Type1Threshold:      cloneCfg.Thresholds.Type1Threshold,
+		Type2Threshold:      cloneCfg.Thresholds.Type2Threshold,
+		Type3Threshold:      cloneCfg.Thresholds.Type3Threshold,
+		Type4Threshold:      cloneCfg.Thresholds.Type4Threshold,
+		ShowDetails:         cloneCfg.Output.ShowDetails,
+		ShowContent:         cloneCfg.Output.ShowContent,
 		SortBy:              sortBy,
-		GroupClones:         cfg.GroupClones,
-		MinSimilarity:       cfg.MinSimilarity,
-		MaxSimilarity:       cfg.MaxSimilarity,
+		GroupClones:         cloneCfg.Output.GroupClones,
+		MinSimilarity:       cloneCfg.Filtering.MinSimilarity,
+		MaxSimilarity:       cloneCfg.Filtering.MaxSimilarity,
 		CloneTypes:          cloneTypes,
-		OutputFormat:        domain.OutputFormatText,            // Default, overridden by CLI
-		Recursive:           true,                               // Default, overridden by CLI
-		IncludePatterns:     []string{"*.py"},                   // Default, overridden by CLI
-		ExcludePatterns:     []string{"test_*.py", "*_test.py"}, // Default
+		OutputFormat:        domain.OutputFormatText, // Default, overridden by CLI
+		Recursive:           cloneCfg.Input.Recursive,
+		IncludePatterns:     cloneCfg.Input.IncludePatterns,
+		ExcludePatterns:     cloneCfg.Input.ExcludePatterns,
 	}
 }
 
@@ -310,10 +311,12 @@ func (c *CloneConfigurationLoader) cloneTypesToStrings(types []domain.CloneType)
 	return strings
 }
 
-// FindDefaultConfigFile looks for .pyscn.yaml in the current directory
+// FindDefaultConfigFile looks for TOML config files in the current directory
 func (c *CloneConfigurationLoader) FindDefaultConfigFile() string {
-	configFiles := []string{".pyscn.yaml", ".pyscn.yml", "pyscn.yaml"}
-
+	// Use TOML-only strategy
+	tomlLoader := config.NewTomlConfigLoader()
+	configFiles := tomlLoader.GetSupportedConfigFiles()
+	
 	for _, filename := range configFiles {
 		if _, err := os.Stat(filename); err == nil {
 			return filename

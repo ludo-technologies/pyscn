@@ -143,7 +143,7 @@ func TestInitCommandInterface(t *testing.T) {
 func TestInitCommandExecution(t *testing.T) {
 	// Create temporary directory
 	tempDir := t.TempDir()
-	configFile := filepath.Join(tempDir, ".pyscn.yaml")
+	configFile := filepath.Join(tempDir, ".pyscn.toml")
 
 	initCmd := NewInitCommand()
 	cobraCmd := initCmd.CreateCobraCommand()
@@ -173,14 +173,17 @@ func TestInitCommandExecution(t *testing.T) {
 	}
 
 	contentStr := string(content)
-	if !strings.Contains(contentStr, "complexity:") {
-		t.Error("Config file should contain complexity section")
+	if !strings.Contains(contentStr, "[analysis]") {
+		t.Error("Config file should contain analysis section")
 	}
-	if !strings.Contains(contentStr, "dead_code:") {
-		t.Error("Config file should contain dead_code section")
+	if !strings.Contains(contentStr, "[thresholds]") {
+		t.Error("Config file should contain thresholds section")
 	}
-	if !strings.Contains(contentStr, "clones:") {
-		t.Error("Config file should contain clones section")
+	if !strings.Contains(contentStr, "[input]") {
+		t.Error("Config file should contain input section")
+	}
+	if !strings.Contains(contentStr, "[output]") {
+		t.Error("Config file should contain output section")
 	}
 }
 
@@ -188,7 +191,7 @@ func TestInitCommandExecution(t *testing.T) {
 func TestInitCommandFileExists(t *testing.T) {
 	// Create temporary directory with existing config file
 	tempDir := t.TempDir()
-	configFile := filepath.Join(tempDir, ".pyscn.yaml")
+	configFile := filepath.Join(tempDir, ".pyscn.toml")
 
 	// Create existing file
 	err := os.WriteFile(configFile, []byte("existing config"), 0644)
