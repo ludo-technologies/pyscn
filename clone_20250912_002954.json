@@ -1,0 +1,412 @@
+{
+  "clones": [
+    {
+      "id": 1,
+      "type": 0,
+      "location": {
+        "file_path": "testdata/python/simple/classes.py",
+        "start_line": 48,
+        "end_line": 65,
+        "start_col": 0,
+        "end_col": 23
+      },
+      "hash": "",
+      "size": 11,
+      "line_count": 18,
+      "complexity": 0
+    },
+    {
+      "id": 2,
+      "type": 0,
+      "location": {
+        "file_path": "testdata/python/simple/classes.py",
+        "start_line": 75,
+        "end_line": 100,
+        "start_col": 0,
+        "end_col": 29
+      },
+      "hash": "",
+      "size": 18,
+      "line_count": 26,
+      "complexity": 0
+    },
+    {
+      "id": 3,
+      "type": 0,
+      "location": {
+        "file_path": "testdata/python/simple/classes.py",
+        "start_line": 129,
+        "end_line": 145,
+        "start_col": 0,
+        "end_col": 25
+      },
+      "hash": "",
+      "size": 25,
+      "line_count": 17,
+      "complexity": 0
+    },
+    {
+      "id": 4,
+      "type": 0,
+      "location": {
+        "file_path": "testdata/python/simple/control_flow.py",
+        "start_line": 21,
+        "end_line": 27,
+        "start_col": 0,
+        "end_col": 22
+      },
+      "hash": "",
+      "size": 13,
+      "line_count": 7,
+      "complexity": 0
+    },
+    {
+      "id": 5,
+      "type": 0,
+      "location": {
+        "file_path": "testdata/python/simple/control_flow.py",
+        "start_line": 133,
+        "end_line": 146,
+        "start_col": 0,
+        "end_col": 26
+      },
+      "hash": "",
+      "size": 14,
+      "line_count": 14,
+      "complexity": 0
+    }
+  ],
+  "clone_pairs": [
+    {
+      "id": 1,
+      "clone1": {
+        "id": 0,
+        "type": 0,
+        "location": {
+          "file_path": "testdata/python/simple/classes.py",
+          "start_line": 75,
+          "end_line": 100,
+          "start_col": 0,
+          "end_col": 29
+        },
+        "hash": "",
+        "size": 18,
+        "line_count": 26,
+        "complexity": 0
+      },
+      "clone2": {
+        "id": 0,
+        "type": 0,
+        "location": {
+          "file_path": "testdata/python/simple/classes.py",
+          "start_line": 129,
+          "end_line": 145,
+          "start_col": 0,
+          "end_col": 25
+        },
+        "hash": "",
+        "size": 25,
+        "line_count": 17,
+        "complexity": 0
+      },
+      "similarity": 0.9558139534883721,
+      "distance": 1.9,
+      "type": 1,
+      "confidence": 1
+    },
+    {
+      "id": 2,
+      "clone1": {
+        "id": 0,
+        "type": 0,
+        "location": {
+          "file_path": "testdata/python/simple/classes.py",
+          "start_line": 48,
+          "end_line": 65,
+          "start_col": 0,
+          "end_col": 23
+        },
+        "hash": "",
+        "size": 11,
+        "line_count": 18,
+        "complexity": 0
+      },
+      "clone2": {
+        "id": 0,
+        "type": 0,
+        "location": {
+          "file_path": "testdata/python/simple/control_flow.py",
+          "start_line": 133,
+          "end_line": 146,
+          "start_col": 0,
+          "end_col": 26
+        },
+        "hash": "",
+        "size": 14,
+        "line_count": 14,
+        "complexity": 0
+      },
+      "similarity": 0.724,
+      "distance": 6.8999999999999995,
+      "type": 3,
+      "confidence": 0.849
+    },
+    {
+      "id": 3,
+      "clone1": {
+        "id": 0,
+        "type": 0,
+        "location": {
+          "file_path": "testdata/python/simple/control_flow.py",
+          "start_line": 21,
+          "end_line": 27,
+          "start_col": 0,
+          "end_col": 22
+        },
+        "hash": "",
+        "size": 13,
+        "line_count": 7,
+        "complexity": 0
+      },
+      "clone2": {
+        "id": 0,
+        "type": 0,
+        "location": {
+          "file_path": "testdata/python/simple/control_flow.py",
+          "start_line": 133,
+          "end_line": 146,
+          "start_col": 0,
+          "end_col": 26
+        },
+        "hash": "",
+        "size": 14,
+        "line_count": 14,
+        "complexity": 0
+      },
+      "similarity": 0.6814814814814816,
+      "distance": 8.6,
+      "type": 4,
+      "confidence": 0.8164814814814816
+    },
+    {
+      "id": 4,
+      "clone1": {
+        "id": 0,
+        "type": 0,
+        "location": {
+          "file_path": "testdata/python/simple/classes.py",
+          "start_line": 75,
+          "end_line": 100,
+          "start_col": 0,
+          "end_col": 29
+        },
+        "hash": "",
+        "size": 18,
+        "line_count": 26,
+        "complexity": 0
+      },
+      "clone2": {
+        "id": 0,
+        "type": 0,
+        "location": {
+          "file_path": "testdata/python/simple/control_flow.py",
+          "start_line": 133,
+          "end_line": 146,
+          "start_col": 0,
+          "end_col": 26
+        },
+        "hash": "",
+        "size": 14,
+        "line_count": 14,
+        "complexity": 0
+      },
+      "similarity": 0.628125,
+      "distance": 11.899999999999999,
+      "type": 4,
+      "confidence": 0.7881250000000001
+    },
+    {
+      "id": 5,
+      "clone1": {
+        "id": 0,
+        "type": 0,
+        "location": {
+          "file_path": "testdata/python/simple/classes.py",
+          "start_line": 48,
+          "end_line": 65,
+          "start_col": 0,
+          "end_col": 23
+        },
+        "hash": "",
+        "size": 11,
+        "line_count": 18,
+        "complexity": 0
+      },
+      "clone2": {
+        "id": 0,
+        "type": 0,
+        "location": {
+          "file_path": "testdata/python/simple/classes.py",
+          "start_line": 75,
+          "end_line": 100,
+          "start_col": 0,
+          "end_col": 29
+        },
+        "hash": "",
+        "size": 18,
+        "line_count": 26,
+        "complexity": 0
+      },
+      "similarity": 0.6275862068965518,
+      "distance": 10.799999999999999,
+      "type": 4,
+      "confidence": 0.7725862068965518
+    }
+  ],
+  "clone_groups": [
+    {
+      "id": 0,
+      "clones": [
+        {
+          "id": 0,
+          "type": 0,
+          "location": {
+            "file_path": "testdata/python/simple/classes.py",
+            "start_line": 75,
+            "end_line": 100,
+            "start_col": 0,
+            "end_col": 29
+          },
+          "hash": "",
+          "size": 18,
+          "line_count": 26,
+          "complexity": 0
+        },
+        {
+          "id": 0,
+          "type": 0,
+          "location": {
+            "file_path": "testdata/python/simple/classes.py",
+            "start_line": 129,
+            "end_line": 145,
+            "start_col": 0,
+            "end_col": 25
+          },
+          "hash": "",
+          "size": 25,
+          "line_count": 17,
+          "complexity": 0
+        }
+      ],
+      "type": 1,
+      "similarity": 0.9558139534883721,
+      "size": 2
+    },
+    {
+      "id": 1,
+      "clones": [
+        {
+          "id": 0,
+          "type": 0,
+          "location": {
+            "file_path": "testdata/python/simple/classes.py",
+            "start_line": 48,
+            "end_line": 65,
+            "start_col": 0,
+            "end_col": 23
+          },
+          "hash": "",
+          "size": 11,
+          "line_count": 18,
+          "complexity": 0
+        },
+        {
+          "id": 0,
+          "type": 0,
+          "location": {
+            "file_path": "testdata/python/simple/control_flow.py",
+            "start_line": 133,
+            "end_line": 146,
+            "start_col": 0,
+            "end_col": 26
+          },
+          "hash": "",
+          "size": 14,
+          "line_count": 14,
+          "complexity": 0
+        }
+      ],
+      "type": 3,
+      "similarity": 0.724,
+      "size": 2
+    }
+  ],
+  "statistics": {
+    "total_clones": 5,
+    "total_clone_pairs": 5,
+    "total_clone_groups": 2,
+    "clones_by_type": {
+      "Type-1": 1,
+      "Type-3": 1,
+      "Type-4": 3
+    },
+    "average_similarity": 0.7234013283732812,
+    "lines_analyzed": 510,
+    "files_analyzed": 5
+  },
+  "request": {
+    "paths": [
+      "testdata/python/simple/classes.py",
+      "testdata/python/simple/control_flow.py",
+      "testdata/python/simple/dead_code_simple.py",
+      "testdata/python/simple/functions.py",
+      "testdata/python/simple/imports.py"
+    ],
+    "recursive": true,
+    "include_patterns": [
+      "*.py"
+    ],
+    "exclude_patterns": [
+      "test_*.py",
+      "*_test.py",
+      "__pycache__/*"
+    ],
+    "min_lines": 5,
+    "min_nodes": 10,
+    "similarity_threshold": 0.8,
+    "max_edit_distance": 50,
+    "ignore_literals": false,
+    "ignore_identifiers": false,
+    "type1_threshold": 0.95,
+    "type2_threshold": 0.85,
+    "type3_threshold": 0.7,
+    "type4_threshold": 0.6,
+    "output_format": "json",
+    "output_path": "clone_20250912_002954.json",
+    "no_open": true,
+    "show_details": false,
+    "show_content": false,
+    "sort_by": "similarity",
+    "group_clones": true,
+    "group_mode": "",
+    "group_threshold": 0,
+    "k_core_k": 0,
+    "min_similarity": 0,
+    "max_similarity": 1,
+    "clone_types": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "config_path": "",
+    "timeout": 0,
+    "use_lsh": false,
+    "lsh_similarity_threshold": 0,
+    "lsh_bands": 0,
+    "lsh_rows": 0,
+    "lsh_hashes": 0
+  },
+  "duration_ms": 6,
+  "success": true
+}

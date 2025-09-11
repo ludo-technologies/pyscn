@@ -235,7 +235,7 @@ func TestComplexityCommandHelp(t *testing.T) {
 	expectedContent := []string{
 		"complexity",
 		"Python files",
-		"--format",
+		"--json",
 		"--min",
 		"--sort",
 	}
