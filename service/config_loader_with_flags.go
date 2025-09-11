@@ -117,7 +117,7 @@ func (c *ConfigurationLoaderWithFlags) CreateConfigTemplate(path string) error {
 	return c.loader.CreateConfigTemplate(path)
 }
 
-// FindDefaultConfigFile looks for .pyscn.yaml in the current directory
+// FindDefaultConfigFile looks for .pyscn.toml in the current directory
 func (c *ConfigurationLoaderWithFlags) FindDefaultConfigFile() string {
 	return c.loader.FindDefaultConfigFile()
 }

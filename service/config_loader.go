@@ -25,7 +25,7 @@ func (c *ConfigurationLoaderImpl) LoadConfig(path string) (*domain.ComplexityReq
 	return c.convertToComplexityRequest(cfg), nil
 }
 
-// LoadDefaultConfig loads the default configuration, first checking for .pyscn.yaml
+// LoadDefaultConfig loads the default configuration, first checking for .pyscn.toml
 func (c *ConfigurationLoaderImpl) LoadDefaultConfig() *domain.ComplexityRequest {
 	// First, try to find and load a config file in the current directory
 	configFile := c.FindDefaultConfigFile()
@@ -187,9 +187,9 @@ func (c *ConfigurationLoaderImpl) CreateConfigTemplate(path string) error {
 	return config.SaveConfig(cfg, path)
 }
 
-// FindDefaultConfigFile looks for .pyscn.yaml in the current directory
+// FindDefaultConfigFile looks for .pyscn.toml in the current directory
 func (c *ConfigurationLoaderImpl) FindDefaultConfigFile() string {
-	configFiles := []string{".pyscn.yaml", ".pyscn.yml", "pyscn.yaml"}
+	configFiles := []string{".pyscn.toml", ".pyscn.yml", "pyscn.yaml"}
 
 	for _, filename := range configFiles {
 		if _, err := os.Stat(filename); err == nil {

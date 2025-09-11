@@ -355,7 +355,7 @@ func (c *DeadCodeCommand) GetUsageExamples() []string {
 		"pyscn deadcode --format json src/",
 		"pyscn deadcode --min-severity critical --show-context src/",
 		"pyscn deadcode --sort line --context-lines 5 myfile.py",
-		"pyscn deadcode --config .pyscn.yaml src/",
+		"pyscn deadcode --config .pyscn.toml src/",
 	}
 }
 

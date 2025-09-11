@@ -30,7 +30,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) LoadConfig(path string) (*domain.Dead
 	return cl.configToRequest(cfg), nil
 }
 
-// LoadDefaultConfig loads the default dead code configuration, first checking for .pyscn.yaml
+// LoadDefaultConfig loads the default dead code configuration, first checking for .pyscn.toml
 func (cl *DeadCodeConfigurationLoaderImpl) LoadDefaultConfig() *domain.DeadCodeRequest {
 	// First, try to find and load a config file in the current directory
 	configFile := cl.FindDefaultConfigFile()
@@ -174,7 +174,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) FindDefaultConfigFile() string {
 	candidates := []string{
 		"pyscn.yaml",
 		"pyscn.yml",
-		".pyscn.yaml",
+		".pyscn.toml",
 		".pyscn.yml",
 		"pyscn.json",
 		".pyscn.json",

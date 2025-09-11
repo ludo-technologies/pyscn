@@ -8,120 +8,98 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const defaultConfigTemplate = `# pyscn configuration file
+const defaultConfigTemplate = `# pyscn configuration file (.pyscn.toml)
 # This file configures all analysis features of pyscn
 # Place this file in your project root to customize analysis behavior
 
 # =============================================================================
 # COMPLEXITY ANALYSIS
 # =============================================================================
-complexity:
-  enabled: true                    # Enable complexity analysis
-  low_threshold: 9                 # Functions with complexity ≤ 9 are low risk
-  medium_threshold: 19             # Functions with complexity 10-19 are medium risk
-                                   # Functions with complexity ≥ 20 are high risk
-  max_complexity: 0                # Maximum allowed complexity (0 = no limit)
-  report_unchanged: true           # Report functions with complexity = 1
+[complexity]
+enabled = true                    # Enable complexity analysis
+low_threshold = 9                 # Functions with complexity ≤ 9 are low risk
+medium_threshold = 19             # Functions with complexity 10-19 are medium risk
+                                  # Functions with complexity ≥ 20 are high risk
+max_complexity = 0                # Maximum allowed complexity (0 = no limit)
+report_unchanged = true           # Report functions with complexity = 1
 
 # =============================================================================
 # DEAD CODE DETECTION
 # =============================================================================
-dead_code:
-  enabled: true                    # Enable dead code detection
-  min_severity: "warning"          # Minimum severity to report: critical, warning, info
-  show_context: false              # Show surrounding code context
-  context_lines: 3                 # Number of context lines to show
-  sort_by: "severity"              # Sort by: severity, line, file, function
-  
-  # Detection options - configure what types of dead code to detect
-  detect_after_return: true        # Code after return statements
-  detect_after_break: true         # Code after break statements
-  detect_after_continue: true      # Code after continue statements
-  detect_after_raise: true         # Code after raise statements
-  detect_unreachable_branches: true # Unreachable conditional branches
-  
-  # Patterns to ignore (regex patterns)
-  ignore_patterns: []
+[dead_code]
+enabled = true                    # Enable dead code detection
+min_severity = "warning"          # Minimum severity to report: critical, warning, info
+show_context = false              # Show surrounding code context
+context_lines = 3                 # Number of context lines to show
+sort_by = "severity"              # Sort by: severity, line, file, function
+
+# Detection options - configure what types of dead code to detect
+detect_after_return = true        # Code after return statements
+detect_after_break = true         # Code after break statements
+detect_after_continue = true      # Code after continue statements
+detect_after_raise = true         # Code after raise statements
+detect_unreachable_branches = true # Unreachable conditional branches
+
+# Patterns to ignore (regex patterns)
+ignore_patterns = []
 
 # =============================================================================
-# CLONE DETECTION
+# CLONE DETECTION (TOML format - no [tool.pyscn] prefix needed)
 # =============================================================================
-clones:
-  analysis:
-    min_lines: 5                   # Minimum lines for clone candidates
-    min_nodes: 10                  # Minimum AST nodes for clone candidates
-    max_edit_distance: 50.0        # Maximum edit distance allowed
-    ignore_literals: false         # Ignore differences in literal values
-    ignore_identifiers: false      # Ignore differences in identifier names
-    cost_model_type: "python"      # Cost model: default, python, weighted
-  
-  thresholds:
-    # Clone type similarity thresholds (0.0 - 1.0)
-    type1_threshold: 0.95          # Type-1: Identical code (except whitespace/comments)
-    type2_threshold: 0.85          # Type-2: Syntactically identical (different identifiers)
-    type3_threshold: 0.75          # Type-3: Syntactically similar (small modifications)
-    type4_threshold: 0.65          # Type-4: Functionally similar (different syntax)
-    similarity_threshold: 0.8      # General minimum similarity threshold
-  
-  filtering:
-    min_similarity: 0.0            # Minimum similarity to report
-    max_similarity: 1.0            # Maximum similarity to report
-    enabled_clone_types:           # Clone types to detect
-      - "type1"
-      - "type2"
-      - "type3"
-      - "type4"
-    max_results: 0                 # Maximum results (0 = no limit)
-  
-  input:
-    paths: []                      # Paths to analyze (empty = use command line)
-    recursive: true                # Recursively analyze directories
-    include_patterns:              # File patterns to include
-      - "*.py"
-    exclude_patterns:              # File patterns to exclude
-      - "test_*.py"
-      - "*_test.py"
-  
-  output:
-    format: "text"                 # Output format: text, json, yaml, csv, html
-    show_details: false            # Show detailed clone information
-    show_content: false            # Include source code content in output
-    sort_by: "similarity"          # Sort by: similarity, size, location, type
-    group_clones: true             # Group related clones together
-  
-  performance:
-    max_parallel_jobs: 0           # Max parallel jobs (0 = auto-detect)
-    cache_enabled: true            # Enable result caching
-    memory_limit_mb: 0             # Memory limit in MB (0 = no limit)
+[analysis]
+min_lines = 5                     # Minimum lines for clone candidates
+min_nodes = 10                    # Minimum AST nodes for clone candidates
+max_edit_distance = 50.0          # Maximum edit distance allowed
+ignore_literals = false           # Ignore differences in literal values
+ignore_identifiers = false        # Ignore differences in identifier names
+cost_model_type = "python"        # Cost model: default, python, weighted
 
-# =============================================================================
-# OUTPUT CONFIGURATION
-# =============================================================================
-output:
-  format: "text"                   # Default output format: text, json, yaml, csv, html
-  show_details: false              # Show detailed breakdown by default
-  sort_by: "name"                  # Default sort: name, complexity, risk
-  min_complexity: 1                # Minimum complexity to report
+[thresholds]
+# Clone type similarity thresholds (0.0 - 1.0)
+type1_threshold = 0.95            # Type-1: Identical code (except whitespace/comments)
+type2_threshold = 0.85            # Type-2: Syntactically identical (different identifiers)
+type3_threshold = 0.75            # Type-3: Syntactically similar (small modifications)
+type4_threshold = 0.65            # Type-4: Functionally similar (different syntax)
+similarity_threshold = 0.8        # General minimum similarity threshold
 
-# =============================================================================
-# ANALYSIS CONFIGURATION
-# =============================================================================
-analysis:
-  recursive: true                  # Recursively analyze directories
-  follow_symlinks: false           # Follow symbolic links
-  include_patterns:                # File patterns to include
-    - "*.py"
-  exclude_patterns:                # File patterns to exclude
-    - "test_*.py"
-    - "*_test.py"
-    - "__pycache__/**"
-    - "*.pyc"
-    - ".pytest_cache/**"
-    - ".tox/**"
-    - "venv/**"
-    - "env/**"
-    - ".venv/**"
-    - ".env/**"
+[filtering]
+min_similarity = 0.0              # Minimum similarity to report
+max_similarity = 1.0              # Maximum similarity to report
+enabled_clone_types = ["type1", "type2", "type3", "type4"] # Clone types to detect
+max_results = 0                   # Maximum results (0 = no limit)
+
+[input]
+paths = []                        # Paths to analyze (empty = use command line)
+recursive = true                  # Recursively analyze directories
+include_patterns = ["*.py"]       # File patterns to include
+exclude_patterns = ["test_*.py", "*_test.py"] # File patterns to exclude
+
+[output]
+format = "text"                   # Output format: text, json, yaml, csv, html
+show_details = false              # Show detailed clone information
+show_content = false              # Include source code content in output
+sort_by = "similarity"            # Sort by: similarity, size, location, type
+group_clones = true               # Group related clones together
+
+[grouping]
+mode = "connected"                # Grouping strategy: connected, star, complete_linkage, k_core
+threshold = 0.85                  # Minimum similarity for group membership
+k_core_k = 2                      # K value for k-core mode
+
+[lsh]
+enabled = "auto"                  # LSH acceleration: true, false, auto
+auto_threshold = 500              # Enable LSH for 500+ fragments
+similarity_threshold = 0.78       # LSH similarity threshold
+bands = 32                        # Number of LSH bands
+rows = 4                          # Rows per LSH band
+hashes = 128                      # MinHash function count
+
+[performance]
+max_memory_mb = 100               # Memory limit in MB
+batch_size = 100                  # Batch size for processing
+enable_batching = true            # Enable batching
+max_goroutines = 4                # Maximum concurrent goroutines
+timeout_seconds = 300             # Timeout in seconds (5 minutes)
 
 # =============================================================================
 # EXAMPLE CONFIGURATIONS
@@ -129,47 +107,38 @@ analysis:
 
 # Uncomment and modify these sections for common use cases:
 
-# # Strict mode - fail on any issues
-# complexity:
-#   max_complexity: 10
-# dead_code:
-#   min_severity: "critical"
+# # Strict mode - high precision
+# [thresholds]
+# similarity_threshold = 0.95
+# [filtering]
+# enabled_clone_types = ["type1", "type2"]
 # 
-# # Relaxed mode - only catch major issues  
-# complexity:
-#   low_threshold: 15
-#   medium_threshold: 25
-# dead_code:
-#   min_severity: "warning"
-# 
-# # Clone detection focused on exact matches
-# clones:
-#   thresholds:
-#     similarity_threshold: 0.95
-#   filtering:
-#     enabled_clone_types: ["type1", "type2"]
+# # Relaxed mode - catch more potential clones
+# [thresholds]  
+# similarity_threshold = 0.7
+# [analysis]
+# min_lines = 3
 # 
 # # Performance optimized for large codebases
-# clones:
-#   performance:
-#     max_parallel_jobs: 4
-#     memory_limit_mb: 1024
-#   analysis:
-#     min_lines: 10
-#     min_nodes: 20
+# [lsh]
+# enabled = "true"
+# [performance]
+# max_goroutines = 8
+# batch_size = 200
 `
 
 // InitCommand represents the init command
 type InitCommand struct {
 	force      bool
 	configPath string
+	// format removed - TOML only now
 }
 
 // NewInitCommand creates a new init command
 func NewInitCommand() *InitCommand {
 	return &InitCommand{
 		force:      false,
-		configPath: ".pyscn.yaml",
+		configPath: ".pyscn.toml", // TOML only
 	}
 }
 
@@ -180,7 +149,7 @@ func (i *InitCommand) CreateCobraCommand() *cobra.Command {
 		Short: "Initialize pyscn configuration file",
 		Long: `Initialize a pyscn configuration file in the current directory.
 
-Creates a .pyscn.yaml file with comprehensive configuration options and
+Creates a .pyscn.toml file with comprehensive configuration options and
 helpful comments explaining each setting. This file allows you to customize
 pyscn's behavior for your project.
 
@@ -192,11 +161,11 @@ The generated configuration includes settings for:
 • Output formatting preferences
 
 Examples:
-  # Create .pyscn.yaml in current directory
+  # Create .pyscn.toml in current directory (recommended)
   pyscn init
 
-  # Create config file with custom name
-  pyscn init --config myconfig.yaml
+  # Create config file with custom name  
+  pyscn init --config myconfig.toml
 
   # Overwrite existing configuration file
   pyscn init --force`,
@@ -205,7 +174,7 @@ Examples:
 
 	// Add flags
 	cmd.Flags().BoolVarP(&i.force, "force", "f", false, "Overwrite existing configuration file")
-	cmd.Flags().StringVarP(&i.configPath, "config", "c", ".pyscn.yaml", "Configuration file path")
+	cmd.Flags().StringVarP(&i.configPath, "config", "c", ".pyscn.toml", "Configuration file path")
 
 	return cmd
 }

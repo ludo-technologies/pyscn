@@ -106,7 +106,7 @@ func (cl *DeadCodeConfigurationLoaderWithFlags) MergeConfig(base *domain.DeadCod
 	return &merged
 }
 
-// FindDefaultConfigFile looks for .pyscn.yaml in the current directory
+// FindDefaultConfigFile looks for .pyscn.toml in the current directory
 func (cl *DeadCodeConfigurationLoaderWithFlags) FindDefaultConfigFile() string {
 	return cl.loader.FindDefaultConfigFile()
 }

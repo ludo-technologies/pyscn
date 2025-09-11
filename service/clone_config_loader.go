@@ -57,7 +57,7 @@ func (c *CloneConfigurationLoader) SaveCloneConfig(cloneConfig *domain.CloneRequ
 	return config.SaveConfig(cfg, configPath)
 }
 
-// GetDefaultCloneConfig returns default clone detection configuration, first checking for .pyscn.yaml
+// GetDefaultCloneConfig returns default clone detection configuration
 func (c *CloneConfigurationLoader) GetDefaultCloneConfig() *domain.CloneRequest {
 	// First, try to find and load a config file in the current directory
 	configFile := c.FindDefaultConfigFile()
@@ -310,9 +310,9 @@ func (c *CloneConfigurationLoader) cloneTypesToStrings(types []domain.CloneType)
 	return strings
 }
 
-// FindDefaultConfigFile looks for .pyscn.yaml in the current directory
+// FindDefaultConfigFile looks for .pyscn.toml in the current directory
 func (c *CloneConfigurationLoader) FindDefaultConfigFile() string {
-	configFiles := []string{".pyscn.yaml", ".pyscn.yml", "pyscn.yaml"}
+	configFiles := []string{".pyscn.toml", ".pyscn.yml", "pyscn.yaml"}
 
 	for _, filename := range configFiles {
 		if _, err := os.Stat(filename); err == nil {
