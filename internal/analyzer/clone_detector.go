@@ -180,6 +180,14 @@ type CloneDetectorConfig struct {
     GroupingMode      GroupingMode // デフォルト: GroupingModeConnected
     GroupingThreshold float64      // デフォルト: Type3Threshold
     KCoreK            int          // デフォルト: 2
+
+    // LSH Configuration
+    UseLSH                 bool    // Enable LSH acceleration
+    LSHSimilarityThreshold float64 // LSH candidate threshold
+    LSHBands               int     // Number of LSH bands
+    LSHRows                int     // Rows per band
+    LSHMinHashCount        int     // Number of MinHash functions
+    LSHAutoThreshold       bool    // Automatically determine LSH threshold
 }
 
 // DefaultCloneDetectorConfig returns default configuration
@@ -207,17 +215,30 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
         GroupingMode:      GroupingModeConnected,
         GroupingThreshold: constants.DefaultType3CloneThreshold,
         KCoreK:            2,
+
+        // LSH defaults
+        UseLSH:                 false, // Disabled by default for backward compatibility
+        LSHSimilarityThreshold: 0.78,  // Default threshold for 32 bands, 4 rows
+        LSHBands:               32,    // Default number of bands
+        LSHRows:                4,     // Default rows per band
+        LSHMinHashCount:        128,   // Default number of MinHash functions
+        LSHAutoThreshold:       true,  // Automatically determine threshold based on parameters
     }
 }
 
 // CloneDetector detects code clones using APTED algorithm
 type CloneDetector struct {
-	config      *CloneDetectorConfig
-	analyzer    *APTEDAnalyzer
-	converter   *TreeConverter
-	fragments   []*CodeFragment
-	clonePairs  []*ClonePair
-	cloneGroups []*CloneGroup
+	config           *CloneDetectorConfig
+	analyzer         *APTEDAnalyzer
+	converter        *TreeConverter
+	fragments        []*CodeFragment
+	clonePairs       []*ClonePair
+	cloneGroups      []*CloneGroup
+	
+	// LSH components
+	featureExtractor *ASTFeatureExtractor
+	minHasher        *MinHasher
+	lshIndex         *LSHIndex
 }
 
 // NewCloneDetectorFromConfig creates a new clone detector from unified config
@@ -262,13 +283,49 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 
 	analyzer := NewAPTEDAnalyzer(costModel)
 
+	// Initialize LSH components if enabled
+	var featureExtractor *ASTFeatureExtractor
+	var minHasher *MinHasher
+	var lshIndex *LSHIndex
+
+	if config.UseLSH {
+		// Create feature extractor with configuration
+		featureExtractor = NewASTFeatureExtractorWithConfig(
+			3,                        // maxSubtreeHeight
+			4,                        // kGramSize
+			true,                     // includeTypes
+			config.IgnoreLiterals,    // includeLiterals
+			true,                     // includeStructure
+		)
+
+		// Create MinHasher with configuration
+		minHasher = NewMinHasherWithSeed(config.LSHMinHashCount, 42) // Use fixed seed for reproducibility
+
+		// Create LSH index with configuration
+		lshConfig := LSHConfig{
+			Bands:     config.LSHBands,
+			Rows:      config.LSHRows,
+			Threshold: config.LSHSimilarityThreshold,
+		}
+
+		// Auto-determine threshold if enabled
+		if config.LSHAutoThreshold {
+			lshConfig.Threshold = math.Pow(1.0/float64(config.LSHBands), 1.0/float64(config.LSHRows))
+		}
+
+		lshIndex = NewLSHIndex(lshConfig)
+	}
+
 	return &CloneDetector{
-		config:      config,
-		analyzer:    analyzer,
-		converter:   NewTreeConverter(),
-		fragments:   []*CodeFragment{},
-		clonePairs:  []*ClonePair{},
-		cloneGroups: []*CloneGroup{},
+		config:           config,
+		analyzer:         analyzer,
+		converter:        NewTreeConverter(),
+		fragments:        []*CodeFragment{},
+		clonePairs:       []*ClonePair{},
+		cloneGroups:      []*CloneGroup{},
+		featureExtractor: featureExtractor,
+		minHasher:        minHasher,
+		lshIndex:         lshIndex,
 	}
 }
 
@@ -865,6 +922,293 @@ func (cd *CloneDetector) limitAndSortClonePairs(maxPairs int) {
 	if len(cd.clonePairs) > maxPairs {
 		cd.clonePairs = cd.clonePairs[:maxPairs]
 	}
+}
+
+// DetectClonesWithLSH detects clones using LSH acceleration
+func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*CodeFragment) ([]*ClonePair, []*CloneGroup) {
+	// Fallback to standard detection if LSH is not enabled or not properly initialized
+	if !cd.config.UseLSH || cd.featureExtractor == nil || cd.minHasher == nil || cd.lshIndex == nil {
+		return cd.DetectClonesWithContext(ctx, fragments)
+	}
+
+	cd.fragments = fragments
+	cd.clonePairs = []*ClonePair{}
+	cd.cloneGroups = []*CloneGroup{}
+
+	// Check for cancellation before starting
+	if isCancelled(ctx) {
+		return cd.clonePairs, cd.cloneGroups
+	}
+
+	// Convert AST fragments to tree nodes
+	cd.prepareFragments()
+
+	// Check for cancellation after preparation
+	if isCancelled(ctx) {
+		return cd.clonePairs, cd.cloneGroups
+	}
+
+	// Extract features and compute MinHash signatures
+	signatures, err := cd.extractFeaturesAndSignatures(ctx)
+	if err != nil {
+		// Fallback to standard detection on error
+		return cd.DetectClonesWithContext(ctx, fragments)
+	}
+
+	// Check for cancellation after feature extraction
+	if isCancelled(ctx) {
+		return cd.clonePairs, cd.cloneGroups
+	}
+
+	// Build LSH index
+	if err := cd.lshIndex.BuildIndex(signatures); err != nil {
+		// Fallback to standard detection on error
+		return cd.DetectClonesWithContext(ctx, fragments)
+	}
+
+	// Check for cancellation after index building
+	if isCancelled(ctx) {
+		return cd.clonePairs, cd.cloneGroups
+	}
+
+	// Detect clone pairs using LSH candidates
+	cd.detectClonePairsWithLSHContext(ctx, signatures)
+
+	// Check for cancellation before grouping
+	if isCancelled(ctx) {
+		return cd.clonePairs, cd.cloneGroups
+	}
+
+	// Group related clones using configured strategy
+	thr := cd.config.GroupingThreshold
+	if thr < 0.0 {
+		thr = 0.0
+	} else if thr > 1.0 {
+		thr = 1.0
+	}
+	k := cd.config.KCoreK
+	if k < 2 {
+		k = 2
+	}
+	groupingConfig := GroupingConfig{
+		Mode:      cd.config.GroupingMode,
+		Threshold: thr,
+		KCoreK:    k,
+	}
+	strategy := CreateGroupingStrategy(groupingConfig)
+	cd.groupClonesWithStrategy(strategy)
+
+	return cd.clonePairs, cd.cloneGroups
+}
+
+// extractFeaturesAndSignatures extracts features and computes MinHash signatures for all fragments
+func (cd *CloneDetector) extractFeaturesAndSignatures(ctx context.Context) (map[string]*MinHashSignature, error) {
+	signatures := make(map[string]*MinHashSignature)
+	
+	for i, fragment := range cd.fragments {
+		// Check for cancellation periodically
+		if i%10 == 0 && isCancelled(ctx) {
+			return nil, fmt.Errorf("operation cancelled during feature extraction")
+		}
+
+		if fragment.TreeNode == nil {
+			continue
+		}
+
+		// Generate unique ID for fragment
+		fragmentID := fmt.Sprintf("%s:%d:%d", fragment.Location.FilePath, fragment.Location.StartLine, fragment.Location.EndLine)
+
+		// Extract features
+		features, err := cd.featureExtractor.ExtractFeatures(fragment.TreeNode)
+		if err != nil {
+			continue // Skip fragments with feature extraction errors
+		}
+
+		// Skip fragments with too few features
+		if len(features) < 5 {
+			continue
+		}
+
+		// Compute MinHash signature
+		signature := cd.minHasher.ComputeSignature(features)
+		signatures[fragmentID] = signature
+	}
+
+	return signatures, nil
+}
+
+// detectClonePairsWithLSHContext detects clone pairs using LSH candidates
+func (cd *CloneDetector) detectClonePairsWithLSHContext(ctx context.Context, signatures map[string]*MinHashSignature) {
+	const checkInterval = 5 // Check context every 5 fragments
+
+	fragmentIndex := make(map[string]*CodeFragment)
+	for i, fragment := range cd.fragments {
+		fragmentID := fmt.Sprintf("%s:%d:%d", fragment.Location.FilePath, fragment.Location.StartLine, fragment.Location.EndLine)
+		fragmentIndex[fragmentID] = fragment
+		
+		// Check for cancellation periodically
+		if i%checkInterval == 0 && isCancelled(ctx) {
+			return
+		}
+	}
+
+	processedPairs := make(map[string]bool)
+	candidatePairs := 0
+	totalComparisons := 0
+
+	// For each fragment, find LSH candidates and verify with APTED
+	for fragmentID, signature := range signatures {
+		// Check for cancellation
+		if isCancelled(ctx) {
+			return
+		}
+
+		fragment1 := fragmentIndex[fragmentID]
+		if fragment1 == nil {
+			continue
+		}
+
+		// Find LSH candidates
+		candidates := cd.lshIndex.FindCandidates(signature)
+		candidatePairs += len(candidates)
+
+		for _, candidateID := range candidates {
+			// Skip self-comparison
+			if candidateID == fragmentID {
+				continue
+			}
+
+			// Create pair key to avoid duplicates
+			var pairKey string
+			if fragmentID < candidateID {
+				pairKey = fragmentID + ":" + candidateID
+			} else {
+				pairKey = candidateID + ":" + fragmentID
+			}
+
+			if processedPairs[pairKey] {
+				continue
+			}
+			processedPairs[pairKey] = true
+
+			fragment2 := fragmentIndex[candidateID]
+			if fragment2 == nil {
+				continue
+			}
+
+			// Skip if both fragments are from the same location
+			if cd.isSameLocation(fragment1.Location, fragment2.Location) {
+				continue
+			}
+
+			// Perform precise comparison using APTED
+			pair := cd.compareFragments(fragment1, fragment2)
+			if pair != nil && cd.isSignificantClone(pair) {
+				cd.clonePairs = append(cd.clonePairs, pair)
+			}
+			
+			totalComparisons++
+		}
+	}
+
+	// Sort and limit results
+	cd.limitAndSortClonePairs(cd.config.MaxClonePairs)
+
+	// Note: Statistics tracking for performance monitoring
+	// fmt.Printf("LSH Stats: %d fragments, %d candidates, %d comparisons, %d clone pairs\n", 
+	//	len(signatures), candidatePairs, totalComparisons, len(cd.clonePairs))
+}
+
+// EnableLSH enables LSH acceleration with default settings
+func (cd *CloneDetector) EnableLSH() error {
+	if cd.config.UseLSH {
+		return nil // Already enabled
+	}
+
+	cd.config.UseLSH = true
+
+	// Initialize LSH components if not already done
+	if cd.featureExtractor == nil {
+		cd.featureExtractor = NewASTFeatureExtractorWithConfig(
+			3,                        // maxSubtreeHeight
+			4,                        // kGramSize
+			true,                     // includeTypes
+			cd.config.IgnoreLiterals, // includeLiterals
+			true,                     // includeStructure
+		)
+	}
+
+	if cd.minHasher == nil {
+		cd.minHasher = NewMinHasherWithSeed(cd.config.LSHMinHashCount, 42)
+	}
+
+	if cd.lshIndex == nil {
+		lshConfig := LSHConfig{
+			Bands:     cd.config.LSHBands,
+			Rows:      cd.config.LSHRows,
+			Threshold: cd.config.LSHSimilarityThreshold,
+		}
+
+		if cd.config.LSHAutoThreshold {
+			lshConfig.Threshold = math.Pow(1.0/float64(cd.config.LSHBands), 1.0/float64(cd.config.LSHRows))
+		}
+
+		cd.lshIndex = NewLSHIndex(lshConfig)
+	}
+
+	return nil
+}
+
+// DisableLSH disables LSH acceleration
+func (cd *CloneDetector) DisableLSH() {
+	cd.config.UseLSH = false
+}
+
+// IsLSHEnabled returns whether LSH is enabled and properly initialized
+func (cd *CloneDetector) IsLSHEnabled() bool {
+	return cd.config.UseLSH && cd.featureExtractor != nil && cd.minHasher != nil && cd.lshIndex != nil
+}
+
+// GetLSHStats returns statistics about the LSH index
+func (cd *CloneDetector) GetLSHStats() *LSHIndexStats {
+	if cd.lshIndex == nil {
+		return nil
+	}
+	stats := cd.lshIndex.GetStats()
+	return &stats
+}
+
+// EstimateLSHPerformance estimates the performance benefit of using LSH
+func (cd *CloneDetector) EstimateLSHPerformance(fragmentCount int) (exhaustiveComparisons, lshComparisons int, speedupRatio float64) {
+	if fragmentCount <= 1 {
+		return 0, 0, 1.0
+	}
+
+	// Exhaustive comparison count: n*(n-1)/2
+	exhaustiveComparisons = (fragmentCount * (fragmentCount - 1)) / 2
+
+	if !cd.IsLSHEnabled() {
+		return exhaustiveComparisons, exhaustiveComparisons, 1.0
+	}
+
+	// Estimate LSH comparisons based on expected bucket collision rate
+	// Typically LSH reduces comparisons by 10-100x for large datasets
+	reductionFactor := 10.0
+	if fragmentCount > 500 {
+		reductionFactor = 50.0
+	}
+	if fragmentCount > 1000 {
+		reductionFactor = 100.0
+	}
+
+	lshComparisons = int(float64(exhaustiveComparisons) / reductionFactor)
+
+	if lshComparisons <= 0 {
+		lshComparisons = 1
+	}
+
+	speedupRatio = float64(exhaustiveComparisons) / float64(lshComparisons)
+	return exhaustiveComparisons, lshComparisons, speedupRatio
 }
 
 // Helper functions

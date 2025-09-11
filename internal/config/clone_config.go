@@ -27,6 +27,9 @@ type CloneConfig struct {
 
 	// Performance Configuration
 	Performance PerformanceConfig `mapstructure:"performance" yaml:"performance" json:"performance"`
+
+	// LSH Configuration
+	LSH LSHConfig `mapstructure:"lsh" yaml:"lsh" json:"lsh"`
 }
 
 // CloneAnalysisConfig holds core analysis parameters
@@ -110,6 +113,26 @@ type PerformanceConfig struct {
 	TimeoutSeconds int `mapstructure:"timeout_seconds" yaml:"timeout_seconds" json:"timeout_seconds"`
 }
 
+// LSHConfig holds Locality Sensitive Hashing configuration
+type LSHConfig struct {
+	// Enable LSH acceleration
+	Enabled bool `mapstructure:"enabled" yaml:"enabled" json:"enabled"`
+
+	// LSH algorithm parameters
+	SimilarityThreshold float64 `mapstructure:"similarity_threshold" yaml:"similarity_threshold" json:"similarity_threshold"`
+	Bands               int     `mapstructure:"bands" yaml:"bands" json:"bands"`
+	Rows                int     `mapstructure:"rows" yaml:"rows" json:"rows"`
+	MinHashCount        int     `mapstructure:"minhash_count" yaml:"minhash_count" json:"minhash_count"`
+	AutoThreshold       bool    `mapstructure:"auto_threshold" yaml:"auto_threshold" json:"auto_threshold"`
+
+	// Feature extraction parameters
+	MaxSubtreeHeight int  `mapstructure:"max_subtree_height" yaml:"max_subtree_height" json:"max_subtree_height"`
+	KGramSize        int  `mapstructure:"kgram_size" yaml:"kgram_size" json:"kgram_size"`
+	IncludeTypes     bool `mapstructure:"include_types" yaml:"include_types" json:"include_types"`
+	IncludeLiterals  bool `mapstructure:"include_literals" yaml:"include_literals" json:"include_literals"`
+	IncludeStructure bool `mapstructure:"include_structure" yaml:"include_structure" json:"include_structure"`
+}
+
 // DefaultCloneConfig returns a configuration with sensible defaults
 func DefaultCloneConfig() *CloneConfig {
 	return &CloneConfig{
@@ -153,6 +176,19 @@ func DefaultCloneConfig() *CloneConfig {
 			EnableBatching: true,
 			MaxGoroutines:  4,
 			TimeoutSeconds: 300, // 5 minutes
+		},
+		LSH: LSHConfig{
+			Enabled:             false, // Disabled by default for backward compatibility
+			SimilarityThreshold: 0.78,  // Default threshold for 32 bands, 4 rows
+			Bands:               32,    // Default number of bands
+			Rows:                4,     // Default rows per band
+			MinHashCount:        128,   // Default number of MinHash functions
+			AutoThreshold:       true,  // Automatically determine threshold
+			MaxSubtreeHeight:    3,     // Default subtree height for feature extraction
+			KGramSize:           4,     // Default k-gram size
+			IncludeTypes:        true,  // Include node types in features
+			IncludeLiterals:     false, // Don't include literals by default
+			IncludeStructure:    true,  // Include structural patterns
 		},
 	}
 }

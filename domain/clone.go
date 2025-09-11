@@ -175,6 +175,14 @@ type CloneRequest struct {
 
 	// Performance configuration
 	Timeout time.Duration `json:"timeout"` // Maximum time for clone analysis (0 = no timeout)
+
+	// LSH configuration
+	UseLSH                 bool    `json:"use_lsh"`                  // Enable LSH acceleration
+	LSHSimilarityThreshold float64 `json:"lsh_similarity_threshold"` // LSH candidate threshold
+	LSHBands               int     `json:"lsh_bands"`                // Number of LSH bands
+	LSHRows                int     `json:"lsh_rows"`                 // Rows per band
+	LSHMinHashCount        int     `json:"lsh_minhash_count"`        // Number of MinHash functions
+	LSHAutoThreshold       bool    `json:"lsh_auto_threshold"`       // Automatically determine threshold
 }
 
 // CloneResponse represents the response from clone detection

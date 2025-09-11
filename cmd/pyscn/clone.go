@@ -67,6 +67,14 @@ type CloneCommand struct {
 
 	// Performance options
 	timeout time.Duration
+
+	// LSH options
+	useLSH                 bool
+	lshThreshold           float64
+	lshBands               int
+	lshRows                int
+	lshHashes              int
+	lshAutoThreshold       bool
 }
 
 // NewCloneCommand creates a new clone detection command
@@ -101,6 +109,14 @@ func NewCloneCommand() *CloneCommand {
         costModelType:       "python",
         verbose:             false,
 		timeout:             5 * time.Minute,
+
+		// LSH defaults
+		useLSH:               false, // Disabled by default
+		lshThreshold:         0.78,  // Default threshold for 32 bands, 4 rows
+		lshBands:             32,    // Default number of bands
+		lshRows:              4,     // Default rows per band
+		lshHashes:            128,   // Default number of MinHash functions
+		lshAutoThreshold:     true,  // Automatically determine threshold
 	}
 }
 
@@ -214,6 +230,20 @@ Examples:
 	cmd.Flags().DurationVar(&c.timeout, "clone-timeout", c.timeout,
 		"Maximum time for clone analysis (e.g., 5m, 30s)")
 
+	// LSH flags
+	cmd.Flags().BoolVar(&c.useLSH, "use-lsh", c.useLSH,
+		"Enable LSH (Locality Sensitive Hashing) acceleration")
+	cmd.Flags().Float64Var(&c.lshThreshold, "lsh-threshold", c.lshThreshold,
+		"LSH similarity threshold for candidate pairs (0.0-1.0)")
+	cmd.Flags().IntVar(&c.lshBands, "lsh-bands", c.lshBands,
+		"Number of LSH bands (more bands = higher precision)")
+	cmd.Flags().IntVar(&c.lshRows, "lsh-rows", c.lshRows,
+		"Rows per LSH band (more rows = higher recall)")
+	cmd.Flags().IntVar(&c.lshHashes, "lsh-hashes", c.lshHashes,
+		"Number of MinHash functions to use")
+	cmd.Flags().BoolVar(&c.lshAutoThreshold, "lsh-auto-threshold", c.lshAutoThreshold,
+		"Automatically determine LSH threshold from bands/rows")
+
 	return cmd
 }
 
@@ -326,6 +356,14 @@ func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*
         CloneTypes:          cloneTypes,
         ConfigPath:          c.configFile,
         Timeout:             c.timeout,
+
+        // LSH configuration
+        UseLSH:                 c.useLSH,
+        LSHSimilarityThreshold: c.lshThreshold,
+        LSHBands:               c.lshBands,
+        LSHRows:                c.lshRows,
+        LSHMinHashCount:        c.lshHashes,
+        LSHAutoThreshold:       c.lshAutoThreshold,
 	}
 
 	return request, nil
