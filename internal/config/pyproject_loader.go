@@ -19,7 +19,51 @@ type ToolConfig struct {
 
 // PyscnConfig represents the [tool.pyscn] section  
 type PyscnConfig struct {
-	Clone CloneConfig `toml:"clone"`
+	Clone PyprojectCloneConfig `toml:"clone"`
+}
+
+// PyprojectCloneConfig is a version of CloneConfig with pointer booleans
+// to distinguish between unset and explicitly set false values
+type PyprojectCloneConfig struct {
+	Analysis    PyprojectCloneAnalysisConfig `toml:"analysis"`
+	Thresholds  ThresholdConfig              `toml:"thresholds"`
+	Filtering   PyprojectFilteringConfig     `toml:"filtering"`
+	Input       PyprojectInputConfig         `toml:"input"`
+	Output      PyprojectCloneOutputConfig   `toml:"output"`
+	Performance PerformanceConfig            `toml:"performance"`
+	Grouping    GroupingConfig               `toml:"grouping"`
+	LSH         LSHConfig                    `toml:"lsh"`
+}
+
+type PyprojectCloneAnalysisConfig struct {
+	MinLines          int     `toml:"min_lines"`
+	MinNodes          int     `toml:"min_nodes"`
+	MaxEditDistance   float64 `toml:"max_edit_distance"`
+	IgnoreLiterals    *bool   `toml:"ignore_literals"`    // pointer to detect unset
+	IgnoreIdentifiers *bool   `toml:"ignore_identifiers"` // pointer to detect unset
+	CostModelType     string  `toml:"cost_model_type"`
+}
+
+type PyprojectFilteringConfig struct {
+	MinSimilarity        float64  `toml:"min_similarity"`
+	MaxSimilarity        float64  `toml:"max_similarity"`
+	EnabledCloneTypes    []string `toml:"enabled_clone_types"`
+	MaxResults           int      `toml:"max_results"`
+}
+
+type PyprojectInputConfig struct {
+	Paths           []string `toml:"paths"`
+	Recursive       *bool    `toml:"recursive"`        // pointer to detect unset
+	IncludePatterns []string `toml:"include_patterns"`
+	ExcludePatterns []string `toml:"exclude_patterns"`
+}
+
+type PyprojectCloneOutputConfig struct {
+	Format      string `toml:"format"`
+	ShowDetails *bool  `toml:"show_details"` // pointer to detect unset
+	ShowContent *bool  `toml:"show_content"` // pointer to detect unset
+	SortBy      string `toml:"sort_by"`
+	GroupClones *bool  `toml:"group_clones"` // pointer to detect unset
 }
 
 // LoadPyprojectConfig loads clone configuration from pyproject.toml
@@ -44,7 +88,7 @@ func LoadPyprojectConfig(startDir string) (*CloneConfig, error) {
 	
 	// Merge with defaults
 	config := DefaultCloneConfig()
-	mergeConfigs(config, &pyproject.Tool.Pyscn.Clone)
+	mergePyprojectConfigs(config, &pyproject.Tool.Pyscn.Clone)
 	
 	return config, nil
 }
@@ -69,8 +113,9 @@ func findPyprojectToml(startDir string) (string, error) {
 	return "", os.ErrNotExist
 }
 
-// mergeConfigs merges pyproject.toml config into default config
-func mergeConfigs(defaults *CloneConfig, pyproject *CloneConfig) {
+// mergePyprojectConfigs merges pyproject.toml config into default config
+// using pointer booleans to detect unset values
+func mergePyprojectConfigs(defaults *CloneConfig, pyproject *PyprojectCloneConfig) {
 	// Only override non-zero values from pyproject.toml
 	
 	// Analysis config
@@ -86,9 +131,13 @@ func mergeConfigs(defaults *CloneConfig, pyproject *CloneConfig) {
 	if pyproject.Analysis.CostModelType != "" {
 		defaults.Analysis.CostModelType = pyproject.Analysis.CostModelType
 	}
-	// Boolean fields need special handling (false is a valid value)
-	defaults.Analysis.IgnoreLiterals = pyproject.Analysis.IgnoreLiterals
-	defaults.Analysis.IgnoreIdentifiers = pyproject.Analysis.IgnoreIdentifiers
+	// Boolean fields: only override if explicitly set (pointer not nil)
+	if pyproject.Analysis.IgnoreLiterals != nil {
+		defaults.Analysis.IgnoreLiterals = *pyproject.Analysis.IgnoreLiterals
+	}
+	if pyproject.Analysis.IgnoreIdentifiers != nil {
+		defaults.Analysis.IgnoreIdentifiers = *pyproject.Analysis.IgnoreIdentifiers
+	}
 	
 	// Threshold config
 	if pyproject.Thresholds.Type1Threshold > 0 {
@@ -148,7 +197,10 @@ func mergeConfigs(defaults *CloneConfig, pyproject *CloneConfig) {
 	if len(pyproject.Input.ExcludePatterns) > 0 {
 		defaults.Input.ExcludePatterns = pyproject.Input.ExcludePatterns
 	}
-	defaults.Input.Recursive = pyproject.Input.Recursive // Boolean field
+	// Boolean field: only override if explicitly set
+	if pyproject.Input.Recursive != nil {
+		defaults.Input.Recursive = *pyproject.Input.Recursive
+	}
 	
 	// Output config
 	if pyproject.Output.Format != "" {
@@ -157,9 +209,16 @@ func mergeConfigs(defaults *CloneConfig, pyproject *CloneConfig) {
 	if pyproject.Output.SortBy != "" {
 		defaults.Output.SortBy = pyproject.Output.SortBy
 	}
-	defaults.Output.ShowDetails = pyproject.Output.ShowDetails
-	defaults.Output.ShowContent = pyproject.Output.ShowContent
-	defaults.Output.GroupClones = pyproject.Output.GroupClones
+	// Boolean fields: only override if explicitly set
+	if pyproject.Output.ShowDetails != nil {
+		defaults.Output.ShowDetails = *pyproject.Output.ShowDetails
+	}
+	if pyproject.Output.ShowContent != nil {
+		defaults.Output.ShowContent = *pyproject.Output.ShowContent
+	}
+	if pyproject.Output.GroupClones != nil {
+		defaults.Output.GroupClones = *pyproject.Output.GroupClones
+	}
 	
 	// Filtering config
 	if pyproject.Filtering.MinSimilarity >= 0 {

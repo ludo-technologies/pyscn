@@ -153,7 +153,7 @@ Examples:
   pyscn clone --clone-types type1,type2 src/
 
   # Output results as JSON
-  pyscn clone --format json src/ > clones.json`,
+  pyscn clone --json src/ > clones.json`,
 		RunE: c.runCloneDetection,
 	}
 
@@ -605,6 +605,18 @@ func (c *CloneCommand) applyCliOverrides(cfg *config.CloneConfig, cmd *cobra.Com
 	}
 	if cmd.Flags().Changed("min-nodes") {
 		cfg.Analysis.MinNodes = c.minNodes
+	}
+	if cmd.Flags().Changed("sort") {
+		cfg.Output.SortBy = c.sortBy
+	}
+	if cmd.Flags().Changed("details") {
+		cfg.Output.ShowDetails = c.showDetails
+	}
+	if cmd.Flags().Changed("show-content") {
+		cfg.Output.ShowContent = c.showContent
+	}
+	if cmd.Flags().Changed("group") {
+		cfg.Output.GroupClones = c.groupClones
 	}
 }
 

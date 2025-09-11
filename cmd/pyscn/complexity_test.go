@@ -109,7 +109,7 @@ func TestComplexityCommandFlags(t *testing.T) {
 	
 	// Create a config file to direct output to temp directory
 	configFile := filepath.Join(tempDir, ".pyscn.toml")
-	configContent := fmt.Sprintf("output:\n  directory: \"%s\"\n", outputDir)
+	configContent := fmt.Sprintf("[output]\ndirectory = \"%s\"\n", outputDir)
 	err = os.WriteFile(configFile, []byte(configContent), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create config file: %v", err)

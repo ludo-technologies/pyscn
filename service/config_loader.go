@@ -17,11 +17,15 @@ func NewConfigurationLoader() *ConfigurationLoaderImpl {
 
 // LoadConfig loads configuration from the specified path
 func (c *ConfigurationLoaderImpl) LoadConfig(path string) (*domain.ComplexityRequest, error) {
-	cfg, err := config.LoadConfig(path)
+	// Use TOML-only loader (like ruff)
+	tomlLoader := config.NewTomlConfigLoader()
+	cloneCfg, err := tomlLoader.LoadConfig(path)
 	if err != nil {
 		return nil, domain.NewConfigError("failed to load configuration file", err)
 	}
 
+	// Convert clone config to unified config format, then to complexity request
+	cfg := c.cloneConfigToUnifiedConfig(cloneCfg)
 	return c.convertToComplexityRequest(cfg), nil
 }
 
@@ -187,10 +191,12 @@ func (c *ConfigurationLoaderImpl) CreateConfigTemplate(path string) error {
 	return config.SaveConfig(cfg, path)
 }
 
-// FindDefaultConfigFile looks for .pyscn.toml in the current directory
+// FindDefaultConfigFile looks for TOML config files in the current directory
 func (c *ConfigurationLoaderImpl) FindDefaultConfigFile() string {
-	configFiles := []string{".pyscn.toml", ".pyscn.yml", "pyscn.yaml"}
-
+	// Use TOML-only strategy (like ruff)
+	tomlLoader := config.NewTomlConfigLoader()
+	configFiles := tomlLoader.GetSupportedConfigFiles()
+	
 	for _, filename := range configFiles {
 		if _, err := os.Stat(filename); err == nil {
 			return filename
@@ -198,4 +204,23 @@ func (c *ConfigurationLoaderImpl) FindDefaultConfigFile() string {
 	}
 
 	return "" // No config file found
+}
+
+// cloneConfigToUnifiedConfig converts CloneConfig to unified Config format
+func (c *ConfigurationLoaderImpl) cloneConfigToUnifiedConfig(cloneCfg *config.CloneConfig) *config.Config {
+	cfg := config.DefaultConfig()
+	
+	// Map analysis settings
+	cfg.Analysis.IncludePatterns = cloneCfg.Input.IncludePatterns
+	cfg.Analysis.ExcludePatterns = cloneCfg.Input.ExcludePatterns
+	cfg.Analysis.Recursive = cloneCfg.Input.Recursive
+	
+	// Map output settings
+	cfg.Output.Format = cloneCfg.Output.Format
+	cfg.Output.ShowDetails = cloneCfg.Output.ShowDetails
+	
+	// Complexity settings use defaults from DefaultConfig()
+	// since TOML-only config focuses on clone detection
+	
+	return cfg
 }
