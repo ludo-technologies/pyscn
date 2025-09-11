@@ -158,7 +158,12 @@ type CloneRequest struct {
 	ShowDetails  bool         `json:"show_details"`
 	ShowContent  bool         `json:"show_content"`
 	SortBy       SortCriteria `json:"sort_by"`
-	GroupClones  bool         `json:"group_clones"`
+    GroupClones  bool         `json:"group_clones"`
+
+    // Grouping options
+    GroupMode      string  `json:"group_mode"`       // connected, star, complete_linkage, k_core
+    GroupThreshold float64 `json:"group_threshold"`  // Minimum similarity for group membership
+    KCoreK         int     `json:"k_core_k"`        // k-core's k value
 
 	// Filtering
 	MinSimilarity float64     `json:"min_similarity"`
@@ -305,7 +310,7 @@ func (req *CloneRequest) ShouldGroupClones() bool {
 
 // DefaultCloneRequest returns a default clone request
 func DefaultCloneRequest() *CloneRequest {
-	return &CloneRequest{
+    return &CloneRequest{
 		Paths:               []string{"."},
 		Recursive:           true,
 		IncludePatterns:     []string{"*.py"},
@@ -323,12 +328,15 @@ func DefaultCloneRequest() *CloneRequest {
 		OutputFormat:        OutputFormatText,
 		ShowDetails:         false,
 		ShowContent:         false,
-		SortBy:              SortBySimilarity,
-		GroupClones:         true,
-		MinSimilarity:       0.0,
-		MaxSimilarity:       1.0,
-		CloneTypes:          []CloneType{Type1Clone, Type2Clone, Type3Clone, Type4Clone},
-	}
+        SortBy:              SortBySimilarity,
+        GroupClones:         true,
+        GroupMode:           "connected",
+        GroupThreshold:      constants.DefaultType3CloneThreshold,
+        KCoreK:              2,
+        MinSimilarity:       0.0,
+        MaxSimilarity:       1.0,
+        CloneTypes:          []CloneType{Type1Clone, Type2Clone, Type3Clone, Type4Clone},
+    }
 }
 
 // NewCloneStatistics creates a new clone statistics instance

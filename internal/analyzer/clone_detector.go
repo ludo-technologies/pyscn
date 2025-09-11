@@ -174,12 +174,17 @@ type CloneDetectorConfig struct {
 	BatchSizeLarge     int // Batch size for normal projects
 	BatchSizeSmall     int // Batch size for large projects
 	LargeProjectSize   int // Fragment count threshold for large projects
-	MemoryLimit        int // Memory limit in bytes
+    MemoryLimit        int // Memory limit in bytes
+
+    // Grouping configuration
+    GroupingMode      GroupingMode // デフォルト: GroupingModeConnected
+    GroupingThreshold float64      // デフォルト: Type3Threshold
+    KCoreK            int          // デフォルト: 2
 }
 
 // DefaultCloneDetectorConfig returns default configuration
 func DefaultCloneDetectorConfig() *CloneDetectorConfig {
-	return &CloneDetectorConfig{
+    return &CloneDetectorConfig{
 		MinLines:          5,
 		MinNodes:          10,
 		Type1Threshold:    constants.DefaultType1CloneThreshold,
@@ -195,9 +200,14 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 		BatchSizeThreshold: 50,
 		BatchSizeLarge:     100,
 		BatchSizeSmall:     50,
-		LargeProjectSize:   500,
-		MemoryLimit:        100 * 1024 * 1024, // 100MB
-	}
+        LargeProjectSize:   500,
+        MemoryLimit:        100 * 1024 * 1024, // 100MB
+
+        // Grouping defaults
+        GroupingMode:      GroupingModeConnected,
+        GroupingThreshold: constants.DefaultType3CloneThreshold,
+        KCoreK:            2,
+    }
 }
 
 // CloneDetector detects code clones using APTED algorithm
@@ -213,19 +223,24 @@ type CloneDetector struct {
 // NewCloneDetectorFromConfig creates a new clone detector from unified config
 func NewCloneDetectorFromConfig(cloneConfig *config.CloneConfig) *CloneDetector {
 	// Convert unified config to legacy config directly
-	legacyConfig := &CloneDetectorConfig{
-		MinLines:          cloneConfig.Analysis.MinLines,
-		MinNodes:          cloneConfig.Analysis.MinNodes,
-		Type1Threshold:    cloneConfig.Thresholds.Type1Threshold,
-		Type2Threshold:    cloneConfig.Thresholds.Type2Threshold,
-		Type3Threshold:    cloneConfig.Thresholds.Type3Threshold,
-		Type4Threshold:    cloneConfig.Thresholds.Type4Threshold,
-		MaxEditDistance:   cloneConfig.Analysis.MaxEditDistance,
-		IgnoreLiterals:    cloneConfig.Analysis.IgnoreLiterals,
-		IgnoreIdentifiers: cloneConfig.Analysis.IgnoreIdentifiers,
-		CostModelType:     cloneConfig.Analysis.CostModelType,
-	}
-	return NewCloneDetector(legacyConfig)
+    legacyConfig := &CloneDetectorConfig{
+        MinLines:          cloneConfig.Analysis.MinLines,
+        MinNodes:          cloneConfig.Analysis.MinNodes,
+        Type1Threshold:    cloneConfig.Thresholds.Type1Threshold,
+        Type2Threshold:    cloneConfig.Thresholds.Type2Threshold,
+        Type3Threshold:    cloneConfig.Thresholds.Type3Threshold,
+        Type4Threshold:    cloneConfig.Thresholds.Type4Threshold,
+        MaxEditDistance:   cloneConfig.Analysis.MaxEditDistance,
+        IgnoreLiterals:    cloneConfig.Analysis.IgnoreLiterals,
+        IgnoreIdentifiers: cloneConfig.Analysis.IgnoreIdentifiers,
+        CostModelType:     cloneConfig.Analysis.CostModelType,
+
+        // Grouping defaults (until unified config supports them explicitly)
+        GroupingMode:      GroupingModeConnected,
+        GroupingThreshold: cloneConfig.Thresholds.Type3Threshold,
+        KCoreK:            2,
+    }
+    return NewCloneDetector(legacyConfig)
 }
 
 // NewCloneDetector creates a new clone detector with the given configuration
@@ -387,8 +402,25 @@ func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments 
 		return cd.clonePairs, cd.cloneGroups
 	}
 
-	// Group related clones
-	cd.groupClones()
+    // Group related clones using configured strategy
+    // Clamp threshold to [0,1]
+    thr := cd.config.GroupingThreshold
+    if thr < 0.0 {
+        thr = 0.0
+    } else if thr > 1.0 {
+        thr = 1.0
+    }
+    k := cd.config.KCoreK
+    if k < 2 {
+        k = 2
+    }
+    groupingConfig := GroupingConfig{
+        Mode:      cd.config.GroupingMode,
+        Threshold: thr,
+        KCoreK:    k,
+    }
+    strategy := CreateGroupingStrategy(groupingConfig)
+    cd.groupClonesWithStrategy(strategy)
 
 	return cd.clonePairs, cd.cloneGroups
 }

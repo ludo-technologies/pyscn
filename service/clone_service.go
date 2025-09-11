@@ -223,20 +223,39 @@ func (s *CloneService) ComputeSimilarity(ctx context.Context, fragment1, fragmen
 
 // createDetectorConfig creates a clone detector configuration from the domain request
 func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.CloneDetectorConfig {
-	return &analyzer.CloneDetectorConfig{
-		MinLines:          req.MinLines,
-		MinNodes:          req.MinNodes,
-		Type1Threshold:    req.Type1Threshold,
-		Type2Threshold:    req.Type2Threshold,
-		Type3Threshold:    req.Type3Threshold,
-		Type4Threshold:    req.Type4Threshold,
-		MaxEditDistance:   req.MaxEditDistance,
-		IgnoreLiterals:    req.IgnoreLiterals,
-		IgnoreIdentifiers: req.IgnoreIdentifiers,
-		CostModelType:     "python", // Default to Python cost model
-		MaxClonePairs:      10000,    // Default max pairs
-		BatchSizeThreshold: 50,       // Default batch size threshold
-	}
+    // Determine grouping defaults
+    groupMode := analyzer.GroupingMode(req.GroupMode)
+    if groupMode == "" {
+        groupMode = analyzer.GroupingModeConnected
+    }
+    groupThreshold := req.GroupThreshold
+    if groupThreshold <= 0 {
+        groupThreshold = req.Type3Threshold
+    }
+    kVal := req.KCoreK
+    if kVal < 2 {
+        kVal = 2
+    }
+
+    return &analyzer.CloneDetectorConfig{
+        MinLines:          req.MinLines,
+        MinNodes:          req.MinNodes,
+        Type1Threshold:    req.Type1Threshold,
+        Type2Threshold:    req.Type2Threshold,
+        Type3Threshold:    req.Type3Threshold,
+        Type4Threshold:    req.Type4Threshold,
+        MaxEditDistance:   req.MaxEditDistance,
+        IgnoreLiterals:    req.IgnoreLiterals,
+        IgnoreIdentifiers: req.IgnoreIdentifiers,
+        CostModelType:     "python", // Default to Python cost model
+        MaxClonePairs:      10000,    // Default max pairs
+        BatchSizeThreshold: 50,       // Default batch size threshold
+
+        // Grouping
+        GroupingMode:      groupMode,
+        GroupingThreshold: groupThreshold,
+        KCoreK:            kVal,
+    }
 }
 
 // convertFragmentsToDomainClones converts analyzer fragments to domain clones
