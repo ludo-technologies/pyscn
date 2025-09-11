@@ -74,64 +74,6 @@ func (c *CloneConfigurationLoader) GetDefaultCloneConfig() *domain.CloneRequest 
 	return c.cloneConfigToCloneRequest(defaultCloneConfig)
 }
 
-// configToCloneRequest converts a config.CloneDetectionConfig to domain.CloneRequest
-func (c *CloneConfigurationLoader) configToCloneRequest(cfg *config.CloneDetectionConfig) *domain.CloneRequest {
-	// Convert string clone types to domain clone types
-	cloneTypes := make([]domain.CloneType, 0, len(cfg.CloneTypes))
-	for _, typeStr := range cfg.CloneTypes {
-		switch typeStr {
-		case "type1":
-			cloneTypes = append(cloneTypes, domain.Type1Clone)
-		case "type2":
-			cloneTypes = append(cloneTypes, domain.Type2Clone)
-		case "type3":
-			cloneTypes = append(cloneTypes, domain.Type3Clone)
-		case "type4":
-			cloneTypes = append(cloneTypes, domain.Type4Clone)
-		}
-	}
-
-	// Convert sort criteria
-	var sortBy domain.SortCriteria
-	switch cfg.SortBy {
-	case "similarity":
-		sortBy = domain.SortBySimilarity
-	case "size":
-		sortBy = domain.SortBySize
-	case "location":
-		sortBy = domain.SortByLocation
-	case "type":
-		sortBy = domain.SortByComplexity // Reuse existing sort criteria
-	default:
-		sortBy = domain.SortBySimilarity
-	}
-
-	return &domain.CloneRequest{
-		Paths:               []string{"."}, // Default to current directory
-		MinLines:            cfg.MinLines,
-		MinNodes:            cfg.MinNodes,
-		SimilarityThreshold: cfg.SimilarityThreshold,
-		MaxEditDistance:     cfg.MaxEditDistance,
-		IgnoreLiterals:      cfg.IgnoreLiterals,
-		IgnoreIdentifiers:   cfg.IgnoreIdentifiers,
-		Type1Threshold:      cfg.Type1Threshold,
-		Type2Threshold:      cfg.Type2Threshold,
-		Type3Threshold:      cfg.Type3Threshold,
-		Type4Threshold:      cfg.Type4Threshold,
-		ShowDetails:         false, // Not stored in config, use CLI default
-		ShowContent:         cfg.ShowContent,
-		SortBy:              sortBy,
-		GroupClones:         cfg.GroupClones,
-		MinSimilarity:       cfg.MinSimilarity,
-		MaxSimilarity:       cfg.MaxSimilarity,
-		CloneTypes:          cloneTypes,
-		OutputFormat:        domain.OutputFormatText,            // Default, overridden by CLI
-		Recursive:           true,                               // Default, overridden by CLI
-		IncludePatterns:     []string{"*.py"},                   // Default, overridden by CLI
-		ExcludePatterns:     []string{"test_*.py", "*_test.py"}, // Default
-	}
-}
-
 // cloneConfigToCloneRequest converts a config.CloneConfig (TOML-based) to domain.CloneRequest
 func (c *CloneConfigurationLoader) cloneConfigToCloneRequest(cloneCfg *config.CloneConfig) *domain.CloneRequest {
 	// Convert enabled clone types from string slice to domain clone types
