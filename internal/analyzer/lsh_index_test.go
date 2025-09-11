@@ -489,7 +489,10 @@ func TestThreadSafety(t *testing.T) {
 	go func() {
 		for i := 0; i < 100; i++ {
 			signature := hasher.ComputeSignature([]string{string(rune(i))})
-			index.AddFragment(string(rune(i)), signature)
+			if err := index.AddFragment(string(rune(i)), signature); err != nil {
+				t.Errorf("Failed to add fragment: %v", err)
+				return
+			}
 		}
 		done <- true
 	}()
@@ -522,7 +525,9 @@ func BenchmarkAddFragment(b *testing.B) {
 	
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		index.AddFragment(string(rune(i)), signatures[i])
+		if err := index.AddFragment(string(rune(i)), signatures[i]); err != nil {
+			b.Fatalf("Failed to add fragment: %v", err)
+		}
 	}
 }
 
@@ -533,7 +538,9 @@ func BenchmarkFindCandidates(b *testing.B) {
 	// Pre-populate index
 	for i := 0; i < 1000; i++ {
 		signature := hasher.ComputeSignature([]string{string(rune(i))})
-		index.AddFragment(string(rune(i)), signature)
+		if err := index.AddFragment(string(rune(i)), signature); err != nil {
+			b.Fatalf("Failed to add fragment: %v", err)
+		}
 	}
 	
 	querySignature := hasher.ComputeSignature([]string{"query"})
@@ -556,7 +563,9 @@ func BenchmarkBuildIndex(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		index := NewDefaultLSHIndex()
-		index.BuildIndex(signatures)
+		if err := index.BuildIndex(signatures); err != nil {
+			b.Fatalf("Failed to build index: %v", err)
+		}
 	}
 }
 

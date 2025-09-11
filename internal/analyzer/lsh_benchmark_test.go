@@ -295,7 +295,9 @@ func BenchmarkLSHIndexUpdate(b *testing.B) {
 	// Pre-populate index
 	for i := 0; i < 500; i++ {
 		signature := hasher.ComputeSignature(generateBenchmarkFeatures(50))
-		index.AddFragment(fmt.Sprintf("frag_%d", i), signature)
+		if err := index.AddFragment(fmt.Sprintf("frag_%d", i), signature); err != nil {
+			b.Fatalf("Failed to add fragment: %v", err)
+		}
 	}
 	
 	b.ResetTimer()
