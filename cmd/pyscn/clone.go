@@ -250,7 +250,7 @@ Examples:
     cmd.Flags().IntVar(&c.lshRows, "lsh-rows", c.lshRows, "Rows per LSH band")
     cmd.Flags().IntVar(&c.lshHashes, "lsh-hashes", c.lshHashes, "MinHash function count")
     
-    // Hide all advanced algorithm flags from help (like ruff)
+    // Hide all advanced algorithm flags from help
     // These should be configured in .pyscn.toml or pyproject.toml
     _ = cmd.Flags().MarkHidden("max-distance")
     _ = cmd.Flags().MarkHidden("type1-threshold")
@@ -529,7 +529,7 @@ func (c *CloneCommand) parseSortCriteria(sort string) (domain.SortCriteria, erro
 	}
 }
 
-// loadConfigWithFallback loads configuration using TOML-only strategy (like ruff)
+// loadConfigWithFallback loads configuration using TOML-only strategy
 // Priority: pyproject.toml > .pyscn.toml > defaults
 func (c *CloneCommand) loadConfigWithFallback(workDir string) (*config.CloneConfig, error) {
 	loader := config.NewTomlConfigLoader()

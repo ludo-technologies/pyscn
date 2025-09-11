@@ -17,7 +17,7 @@ func NewConfigurationLoader() *ConfigurationLoaderImpl {
 
 // LoadConfig loads configuration from the specified path
 func (c *ConfigurationLoaderImpl) LoadConfig(path string) (*domain.ComplexityRequest, error) {
-	// Use TOML-only loader (like ruff)
+	// Use TOML-only loader
 	tomlLoader := config.NewTomlConfigLoader()
 	cloneCfg, err := tomlLoader.LoadConfig(path)
 	if err != nil {
@@ -193,7 +193,7 @@ func (c *ConfigurationLoaderImpl) CreateConfigTemplate(path string) error {
 
 // FindDefaultConfigFile looks for TOML config files in the current directory
 func (c *ConfigurationLoaderImpl) FindDefaultConfigFile() string {
-	// Use TOML-only strategy (like ruff)
+	// Use TOML-only strategy
 	tomlLoader := config.NewTomlConfigLoader()
 	configFiles := tomlLoader.GetSupportedConfigFiles()
 	

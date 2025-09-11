@@ -50,7 +50,7 @@ type PyscnTomlOutputConfig struct {
 	GroupClones *bool  `toml:"group_clones"` // pointer to detect unset
 }
 
-// TomlConfigLoader handles TOML-only configuration loading (like ruff)
+// TomlConfigLoader handles TOML-only configuration loading
 type TomlConfigLoader struct{}
 
 // NewTomlConfigLoader creates a new TOML configuration loader
@@ -259,7 +259,7 @@ func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *CloneConfig, pyscnTom
 
 
 // GetSupportedConfigFiles returns the list of supported TOML config files
-// in order of precedence (like ruff)
+// in order of precedence
 func (l *TomlConfigLoader) GetSupportedConfigFiles() []string {
 	return []string{
 		"pyproject.toml", // with [tool.pyscn] section

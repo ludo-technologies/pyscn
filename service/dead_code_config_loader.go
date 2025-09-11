@@ -19,7 +19,7 @@ func NewDeadCodeConfigurationLoader() *DeadCodeConfigurationLoaderImpl {
 
 // LoadConfig loads dead code configuration from the specified path using TOML-only strategy
 func (cl *DeadCodeConfigurationLoaderImpl) LoadConfig(path string) (*domain.DeadCodeRequest, error) {
-	// Use TOML-only loader (like ruff)
+	// Use TOML-only loader
 	tomlLoader := config.NewTomlConfigLoader()
 	cloneCfg, err := tomlLoader.LoadConfig(path)
 	if err != nil {
@@ -172,7 +172,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) configToRequest(cfg *config.Config) *
 
 // FindDefaultConfigFile looks for TOML config files in the current directory
 func (cl *DeadCodeConfigurationLoaderImpl) FindDefaultConfigFile() string {
-	// Use TOML-only strategy (like ruff)
+	// Use TOML-only strategy
 	tomlLoader := config.NewTomlConfigLoader()
 	configFiles := tomlLoader.GetSupportedConfigFiles()
 	

@@ -23,7 +23,7 @@ func NewCloneConfigurationLoader() *CloneConfigurationLoader {
 
 // LoadCloneConfig loads clone detection configuration from file using TOML-only strategy
 func (c *CloneConfigurationLoader) LoadCloneConfig(configPath string) (*domain.CloneRequest, error) {
-	// Use TOML-only loader (like ruff)
+	// Use TOML-only loader
 	tomlLoader := config.NewTomlConfigLoader()
 	cloneCfg, err := tomlLoader.LoadConfig(configPath)
 	if err != nil {
@@ -371,7 +371,7 @@ func (c *CloneConfigurationLoader) cloneTypesToStrings(types []domain.CloneType)
 
 // FindDefaultConfigFile looks for TOML config files in the current directory
 func (c *CloneConfigurationLoader) FindDefaultConfigFile() string {
-	// Use TOML-only strategy (like ruff)
+	// Use TOML-only strategy
 	tomlLoader := config.NewTomlConfigLoader()
 	configFiles := tomlLoader.GetSupportedConfigFiles()
 	
