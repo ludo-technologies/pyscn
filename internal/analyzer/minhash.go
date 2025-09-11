@@ -1,11 +1,9 @@
 package analyzer
 
 import (
-    "encoding/binary"
     "hash/fnv"
     "math"
     "math/rand"
-    "time"
 )
 
 // MinHashSignature holds the signature vector
@@ -124,16 +122,4 @@ func minInt(a, b int) int {
     return b
 }
 
-// packUint64Slice provides a stable byte representation of a slice
-func packUint64Slice(v []uint64) []byte {
-    b := make([]byte, 8*len(v))
-    off := 0
-    for _, x := range v {
-        binary.BigEndian.PutUint64(b[off:], x)
-        off += 8
-    }
-    return b
-}
-
-// jitSeed can be used to mix time into randomness when needed
-func jitSeed() int64 { return time.Now().UnixNano() }
+// (no extra helpers: keep only used symbols to satisfy linters)
