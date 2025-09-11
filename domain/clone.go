@@ -173,8 +173,15 @@ type CloneRequest struct {
 	// Configuration file
 	ConfigPath string `json:"config_path"`
 
-	// Performance configuration
-	Timeout time.Duration `json:"timeout"` // Maximum time for clone analysis (0 = no timeout)
+    // Performance configuration
+    Timeout time.Duration `json:"timeout"` // Maximum time for clone analysis (0 = no timeout)
+
+    // LSH acceleration (opt-in)
+    UseLSH               bool    `json:"use_lsh"`
+    LSHSimilarityThreshold float64 `json:"lsh_similarity_threshold"`
+    LSHBands             int     `json:"lsh_bands"`
+    LSHRows              int     `json:"lsh_rows"`
+    LSHHashes            int     `json:"lsh_hashes"`
 }
 
 // CloneResponse represents the response from clone detection
@@ -286,11 +293,31 @@ func (req *CloneRequest) Validate() error {
 		return NewValidationError("type2_threshold should be > type3_threshold")
 	}
 
-	if req.Type3Threshold <= req.Type4Threshold {
-		return NewValidationError("type3_threshold should be > type4_threshold")
-	}
+    if req.Type3Threshold <= req.Type4Threshold {
+        return NewValidationError("type3_threshold should be > type4_threshold")
+    }
 
-	return nil
+    // LSH validation
+    if req.UseLSH {
+        if req.LSHSimilarityThreshold < 0.0 || req.LSHSimilarityThreshold > 1.0 {
+            return NewValidationError("lsh_similarity_threshold must be between 0.0 and 1.0")
+        }
+        if req.LSHBands < 1 {
+            return NewValidationError("lsh_bands must be >= 1")
+        }
+        if req.LSHRows < 1 {
+            return NewValidationError("lsh_rows must be >= 1")
+        }
+        if req.LSHHashes < 1 {
+            return NewValidationError("lsh_hashes must be >= 1")
+        }
+        // Optional sanity: total hashes should be >= bands*rows
+        if req.LSHHashes < req.LSHBands*req.LSHRows {
+            return NewValidationError("lsh_hashes must be >= lsh_bands*lsh_rows")
+        }
+    }
+
+    return nil
 }
 
 // HasValidOutputWriter checks if the request has a valid output writer
@@ -336,6 +363,12 @@ func DefaultCloneRequest() *CloneRequest {
         MinSimilarity:       0.0,
         MaxSimilarity:       1.0,
         CloneTypes:          []CloneType{Type1Clone, Type2Clone, Type3Clone, Type4Clone},
+        // LSH defaults (opt-in)
+        UseLSH:                false,
+        LSHSimilarityThreshold: 0.78,
+        LSHBands:              32,
+        LSHRows:               4,
+        LSHHashes:             128,
     }
 }
 

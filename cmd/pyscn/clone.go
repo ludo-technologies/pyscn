@@ -65,8 +65,15 @@ type CloneCommand struct {
 	costModelType string
 	verbose       bool
 
-	// Performance options
-	timeout time.Duration
+    // Performance options
+    timeout time.Duration
+
+    // LSH options
+    useLSH               bool
+    lshThreshold         float64
+    lshBands             int
+    lshRows              int
+    lshHashes            int
 }
 
 // NewCloneCommand creates a new clone detection command
@@ -100,8 +107,15 @@ func NewCloneCommand() *CloneCommand {
         cloneTypes:          []string{"type1", "type2", "type3", "type4"},
         costModelType:       "python",
         verbose:             false,
-		timeout:             5 * time.Minute,
-	}
+        timeout:             5 * time.Minute,
+
+        // LSH defaults
+        useLSH:       false,
+        lshThreshold: 0.78,
+        lshBands:     32,
+        lshRows:      4,
+        lshHashes:    128,
+    }
 }
 
 // CreateCobraCommand creates the Cobra command for clone detection
@@ -210,9 +224,16 @@ Examples:
 	cmd.Flags().BoolVarP(&c.verbose, "verbose", "v", c.verbose,
 		"Enable verbose output")
 
-	// Performance flags
-	cmd.Flags().DurationVar(&c.timeout, "clone-timeout", c.timeout,
-		"Maximum time for clone analysis (e.g., 5m, 30s)")
+    // Performance flags
+    cmd.Flags().DurationVar(&c.timeout, "clone-timeout", c.timeout,
+        "Maximum time for clone analysis (e.g., 5m, 30s)")
+
+    // LSH acceleration flags (opt-in)
+    cmd.Flags().BoolVar(&c.useLSH, "use-lsh", c.useLSH, "Enable LSH acceleration")
+    cmd.Flags().Float64Var(&c.lshThreshold, "lsh-threshold", c.lshThreshold, "LSH MinHash similarity threshold (0.0-1.0)")
+    cmd.Flags().IntVar(&c.lshBands, "lsh-bands", c.lshBands, "Number of LSH bands")
+    cmd.Flags().IntVar(&c.lshRows, "lsh-rows", c.lshRows, "Rows per LSH band")
+    cmd.Flags().IntVar(&c.lshHashes, "lsh-hashes", c.lshHashes, "MinHash function count")
 
 	return cmd
 }
@@ -295,7 +316,7 @@ func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*
 		}
 	}
 
-	request := &domain.CloneRequest{
+    request := &domain.CloneRequest{
 		Paths:               paths,
 		Recursive:           c.recursive,
 		IncludePatterns:     c.includePatterns,
@@ -326,7 +347,14 @@ func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*
         CloneTypes:          cloneTypes,
         ConfigPath:          c.configFile,
         Timeout:             c.timeout,
-	}
+
+        // LSH
+        UseLSH:                c.useLSH,
+        LSHSimilarityThreshold: c.lshThreshold,
+        LSHBands:              c.lshBands,
+        LSHRows:               c.lshRows,
+        LSHHashes:             c.lshHashes,
+    }
 
 	return request, nil
 }
