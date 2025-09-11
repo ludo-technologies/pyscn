@@ -45,11 +45,16 @@ type CloneCommand struct {
 	yaml      bool
 	noOpen    bool
 	
-	// Output options
-	showDetails  bool
-	showContent  bool
-	sortBy       string
-	groupClones  bool
+    // Output options
+    showDetails  bool
+    showContent  bool
+    sortBy       string
+    groupClones  bool
+
+    // Grouping options
+    groupMode      string  // "connected", "star", "complete_linkage", "k_core"
+    groupThreshold float64 // グループ内最小類似度
+    kCoreK         int     // k-coreのk値
 
 	// Filtering
 	minSimilarity float64
@@ -66,7 +71,7 @@ type CloneCommand struct {
 
 // NewCloneCommand creates a new clone detection command
 func NewCloneCommand() *CloneCommand {
-	return &CloneCommand{
+    return &CloneCommand{
 		recursive:           true,
 		minLines:            5,
 		minNodes:            5,
@@ -85,13 +90,16 @@ func NewCloneCommand() *CloneCommand {
 		noOpen:              false,
 		showDetails:         false,
 		showContent:         false,
-		sortBy:              "similarity",
-		groupClones:         true,
-		minSimilarity:       0.0,
-		maxSimilarity:       1.0,
-		cloneTypes:          []string{"type1", "type2", "type3", "type4"},
-		costModelType:       "python",
-		verbose:             false,
+        sortBy:              "similarity",
+        groupClones:         true,
+        groupMode:           "connected",
+        groupThreshold:      constants.DefaultType3CloneThreshold,
+        kCoreK:              2,
+        minSimilarity:       0.0,
+        maxSimilarity:       1.0,
+        cloneTypes:          []string{"type1", "type2", "type3", "type4"},
+        costModelType:       "python",
+        verbose:             false,
 		timeout:             5 * time.Minute,
 	}
 }
@@ -177,8 +185,16 @@ Examples:
 		"Include source code content in output")
 	cmd.Flags().StringVar(&c.sortBy, "sort", c.sortBy,
 		"Sort results by: similarity, size, location, type")
-	cmd.Flags().BoolVar(&c.groupClones, "group", c.groupClones,
-		"Group related clones together")
+    cmd.Flags().BoolVar(&c.groupClones, "group", c.groupClones,
+        "Group related clones together")
+
+    // Grouping strategy flags
+    cmd.Flags().StringVar(&c.groupMode, "group-mode", c.groupMode,
+        "Grouping strategy: connected, star, complete_linkage, k_core")
+    cmd.Flags().Float64Var(&c.groupThreshold, "group-threshold", c.groupThreshold,
+        "Minimum similarity for group membership")
+    cmd.Flags().IntVar(&c.kCoreK, "k-core-k", c.kCoreK,
+        "Minimum neighbors for k-core mode")
 
 	// Filtering flags
 	cmd.Flags().Float64Var(&c.minSimilarity, "min-similarity", c.minSimilarity,
@@ -301,12 +317,15 @@ func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*
 		ShowDetails:         c.showDetails,
 		ShowContent:         c.showContent,
 		SortBy:              sortBy,
-		GroupClones:         c.groupClones,
-		MinSimilarity:       c.minSimilarity,
-		MaxSimilarity:       c.maxSimilarity,
-		CloneTypes:          cloneTypes,
-		ConfigPath:          c.configFile,
-		Timeout:             c.timeout,
+        GroupClones:         c.groupClones,
+        GroupMode:           c.groupMode,
+        GroupThreshold:      c.groupThreshold,
+        KCoreK:              c.kCoreK,
+        MinSimilarity:       c.minSimilarity,
+        MaxSimilarity:       c.maxSimilarity,
+        CloneTypes:          cloneTypes,
+        ConfigPath:          c.configFile,
+        Timeout:             c.timeout,
 	}
 
 	return request, nil
