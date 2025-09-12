@@ -30,10 +30,11 @@ func init() {
 	rootCmd.AddCommand(NewAnalyzeCmd())
 	rootCmd.AddCommand(NewCheckCmd())
 	rootCmd.AddCommand(NewVersionCmd())
-	rootCmd.AddCommand(NewInitCmd())
-	rootCmd.AddCommand(complexityCmd)
-	rootCmd.AddCommand(NewDeadCodeCmd())
-	addCloneCommand(rootCmd)
+    rootCmd.AddCommand(NewInitCmd())
+    rootCmd.AddCommand(complexityCmd)
+    rootCmd.AddCommand(NewDeadCodeCmd())
+    rootCmd.AddCommand(NewDepsCmd())
+    addCloneCommand(rootCmd)
 }
 
 func main() {
