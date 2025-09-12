@@ -55,7 +55,7 @@ pyscn deps --check-circular src/
 pyscn deps --format dot src/ > deps.dot
 
 # Check layer violations
-pyscn deps --check-layers --config .pyscn.yaml src/
+pyscn deps --check-layers --config .pyscn.toml src/
 ```
 
 ### 2. Architecture Quality Assessment
