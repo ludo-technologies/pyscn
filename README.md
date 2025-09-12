@@ -96,7 +96,7 @@ pyscn clone --fast src/        # LSH acceleration for large projects
 pyscn clone --precise src/     # Star grouping for small projects  
 ```
 
-Filter by similarity range, group clones with multiple algorithms (connected, star, complete linkage, k-core), sort by similarity/size/location/type, and choose cost models. LSH acceleration automatically enabled for large codebases.
+Filter by similarity range, group clones with multiple algorithms (connected, star, complete linkage, k-core), sort by similarity/size/location/type, and choose cost models (`default`, `python`, `weighted`). LSH acceleration automatically enabled for large codebases.
 
 ### cbo
 Compute CBO (Coupling Between Objects) metrics for classes.
@@ -121,7 +121,7 @@ pyscn check --allow-dead-code src/
 Exit codes: 0 (ok), 1 (quality issues), 2 (analysis error). Prints concise findings suitable for CI logs.
 
 ### init
-Generate a starter `.pyscn.yaml` with comprehensive, documented options.
+Generate a starter `.pyscn.toml` with comprehensive, documented options.
 
 ```bash
 pyscn init            # create .pyscn.toml in current directory
@@ -181,7 +181,7 @@ include_builtins = false
 
 Notes:
 
-- Default include patterns: `*.py`, `*.pyi`; default exclude: `test_*.py`, `*_test.py`
+- Default include patterns: `*.py` (`.pyi` stub files supported but not included by default); default exclude: `test_*.py`, `*_test.py`
 - **Output formats**:
   - `text` (default): Prints to stdout
   - `json`, `yaml`, `csv`, `html`: Auto-generates timestamped files (e.g., `complexity_20250907_143022.json`)

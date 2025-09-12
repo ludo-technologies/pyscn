@@ -77,36 +77,51 @@ internal/analyzer/
 ```
 
 #### Configuration Schema
-```yaml
-# .pyscn.yaml
-architecture:
-  # Define architectural layers
-  layers:
-    - name: presentation
-      packages: ["ui", "views", "controllers"]
-    - name: application
-      packages: ["services", "use_cases"]
-    - name: domain
-      packages: ["models", "entities", "domain"]
-    - name: infrastructure
-      packages: ["db", "external", "repositories"]
-  
-  # Define allowed dependencies
-  rules:
-    - from: presentation
-      allow: [application]
-    - from: application
-      allow: [domain]
-    - from: domain
-      allow: []  # Domain should not depend on anything
-    - from: infrastructure
-      allow: [domain]
-  
-  # Metrics thresholds
-  metrics:
-    max_coupling: 0.3
-    min_cohesion: 0.7
-    max_complexity_per_module: 50
+
+> **Note**: This is a future enhancement. Configuration format may change during implementation.
+
+```toml
+# .pyscn.toml
+[architecture]
+# Define architectural layers
+[[architecture.layers]]
+name = "presentation"
+packages = ["ui", "views", "controllers"]
+
+[[architecture.layers]]
+name = "application"  
+packages = ["services", "use_cases"]
+
+[[architecture.layers]]
+name = "domain"
+packages = ["models", "entities", "domain"]
+
+[[architecture.layers]]
+name = "infrastructure"
+packages = ["db", "external", "repositories"]
+
+# Define allowed dependencies
+[[architecture.rules]]
+from = "presentation"
+allow = ["application"]
+
+[[architecture.rules]]
+from = "application"
+allow = ["domain"]
+
+[[architecture.rules]]
+from = "domain"
+allow = []  # Domain should not depend on anything
+
+[[architecture.rules]]
+from = "infrastructure"
+allow = ["domain"]
+
+# Metrics thresholds
+[architecture.metrics]
+max_coupling = 0.3
+min_cohesion = 0.7
+max_complexity_per_module = 50
 ```
 
 ### 3. System-Wide Quality Metrics
@@ -219,7 +234,7 @@ type SystemReport struct {
 1. **Parser Extension**: Enhance AST builder to track imports and module structure
 2. **Analyzer Integration**: New analyzers follow existing analyzer pattern
 3. **Reporter Extension**: Add system-level report formatters
-4. **Configuration**: Extend existing YAML configuration structure
+4. **Configuration**: Extend existing TOML configuration structure
 
 ## Expected Benefits
 

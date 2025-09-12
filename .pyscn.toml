@@ -154,7 +154,7 @@ exclude_patterns = [             # File patterns to exclude
 # # Performance optimized for large codebases
 # [clones]
 # max_goroutines = 8
-# memory_limit_mb = 1024
+# max_memory_mb = 1024
 # min_lines = 10
 # min_nodes = 20
 # lsh_enabled = true
