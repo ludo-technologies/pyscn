@@ -72,6 +72,9 @@ python/src/pyscn/bin/
 /testdata/temp/
 /testdata/output/
 
+# pyscn output directory
+.pyscn/
+
 # Claude Code setting
 .claude/
 
