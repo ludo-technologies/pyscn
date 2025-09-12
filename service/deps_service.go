@@ -60,6 +60,22 @@ func (s *DependencyService) Analyze(ctx context.Context, req domain.DependencyRe
 	var warnings []string
 	var errors []string
 
+	// Infer a module prefix from roots (e.g., "app") and apply to local modules to better match absolute imports
+	modulePrefix := ""
+	if p, ok := shouldApplyPrefix(moduleToFiles, roots); ok {
+		modulePrefix = p
+		moduleToFiles = addPrefixToModules(moduleToFiles, modulePrefix)
+		// update fileToModule mapping accordingly
+		for file, mod := range fileToModule {
+			fileToModule[file] = modulePrefix + "." + mod
+		}
+		// add nodes again for prefixed names
+		g = analyzer.NewDepGraph()
+		for mod := range moduleToFiles {
+			g.AddNode(mod)
+		}
+	}
+
 	// Parse each file and extract import edges
 	for _, path := range files {
 		select {
@@ -94,21 +110,31 @@ func (s *DependencyService) Analyze(ctx context.Context, req domain.DependencyRe
 			if t == "" || t == fromModule {
 				continue
 			}
-			if local := longestLocalPrefix(t, moduleToFiles); local != "" {
+			// Prefer stdlib for plain single-segment imports (e.g., "logging") unless explicitly package-qualified
+			if !strings.Contains(t, ".") {
+				// try prefixed resolution only if we have a module prefix
+				if modulePrefix != "" {
+					if local := longestLocalOrPrefixedPrefix(t, moduleToFiles, modulePrefix); local != "" {
+						g.AddEdge(fromModule, local)
+					}
+				}
+				continue
+			}
+			if local := longestLocalOrPrefixedPrefix(t, moduleToFiles, modulePrefix); local != "" {
 				g.AddEdge(fromModule, local)
 			}
 		}
 	}
 
 	// Build response
-    edges := g.Edges()
-    respEdges := make([]domain.DependencyEdge, 0, len(edges))
-    for _, e := range edges {
-        if e[0] == e[1] { // exclude self-referential edges from response
-            continue
-        }
-        respEdges = append(respEdges, domain.DependencyEdge{From: e[0], To: e[1]})
-    }
+	edges := g.Edges()
+	respEdges := make([]domain.DependencyEdge, 0, len(edges))
+	for _, e := range edges {
+		if e[0] == e[1] { // exclude self-referential edges from response
+			continue
+		}
+		respEdges = append(respEdges, domain.DependencyEdge{From: e[0], To: e[1]})
+	}
 
 	// Cycles
 	var respCycles []domain.DependencyCycle
@@ -125,7 +151,7 @@ func (s *DependencyService) Analyze(ctx context.Context, req domain.DependencyRe
 		Modules:     moduleToFiles,
 		Edges:       respEdges,
 		Cycles:      respCycles,
-        Summary:     domain.DependencySummary{Modules: len(moduleToFiles), Edges: len(respEdges), Cycles: len(respCycles), FilesAnalyzed: len(files)},
+		Summary:     domain.DependencySummary{Modules: len(moduleToFiles), Edges: len(respEdges), Cycles: len(respCycles), FilesAnalyzed: len(files)},
 		Warnings:    warnings,
 		Errors:      errors,
 		GeneratedAt: time.Now().Format(time.RFC3339),
@@ -366,6 +392,72 @@ func longestLocalPrefix(name string, local map[string][]string) string {
 		}
 		return ""
 	}
+}
+
+// longestLocalOrPrefixedPrefix tries direct match, then tries with inferred prefix
+func longestLocalOrPrefixedPrefix(name string, local map[string][]string, prefix string) string {
+	if m := longestLocalPrefix(name, local); m != "" {
+		return m
+	}
+	if prefix != "" && !strings.HasPrefix(name, prefix+".") {
+		if m := longestLocalPrefix(prefix+"."+name, local); m != "" {
+			return m
+		}
+	}
+	return ""
+}
+
+// inferModulePrefix returns the base directory name of the primary root as a heuristic
+func inferModulePrefix(roots []string) string {
+	if len(roots) == 0 {
+		return ""
+	}
+	base := filepath.Base(roots[0])
+	if base == "." || base == ".." || base == string(filepath.Separator) {
+		return ""
+	}
+	return base
+}
+
+// addPrefixToModules rebuilds a module map by prefixing each module name with prefix.
+func addPrefixToModules(mods map[string][]string, prefix string) map[string][]string {
+	out := make(map[string][]string, len(mods))
+	for k, v := range mods {
+		if strings.HasPrefix(k, prefix+".") {
+			out[k] = v
+		} else {
+			out[prefix+"."+k] = v
+		}
+	}
+	return out
+}
+
+// shouldApplyPrefix decides whether to add a module prefix based on module name shapes.
+// If most modules are single-segment (no dots), prefix with the root basename; otherwise, do not prefix.
+func shouldApplyPrefix(mods map[string][]string, roots []string) (string, bool) {
+	if len(roots) == 0 || len(mods) == 0 {
+		return "", false
+	}
+	base := inferModulePrefix(roots)
+	if base == "" {
+		return "", false
+	}
+	total := 0
+	dotless := 0
+	for k := range mods {
+		total++
+		if !strings.Contains(k, ".") {
+			dotless++
+		}
+	}
+	if total == 0 {
+		return "", false
+	}
+	// apply prefix when majority are dotless (heuristic)
+	if float64(dotless)/float64(total) >= 0.6 {
+		return base, true
+	}
+	return "", false
 }
 
 // assignLayers maps modules to layer names based on package patterns
