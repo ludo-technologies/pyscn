@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
@@ -183,49 +182,7 @@ func (c *DepsCommand) writeDOT(cmd *cobra.Command, targetPath string, dot string
 	return nil
 }
 
-func (c *DepsCommand) writeText(cmd *cobra.Command, resp *domain.DependencyResponse) error {
-	var b strings.Builder
-	fmt.Fprintf(&b, "Dependency Analysis\n=====================\n\n")
-	fmt.Fprintf(&b, "Modules: %d\nEdges:   %d\nCycles:  %d\n", resp.Summary.Modules, resp.Summary.Edges, resp.Summary.Cycles)
-	if resp.Summary.LayerViolations > 0 {
-		fmt.Fprintf(&b, "Layer Violations: %d\n", resp.Summary.LayerViolations)
-	}
-	fmt.Fprintf(&b, "\n")
-
-	if len(resp.Cycles) > 0 {
-		fmt.Fprintf(&b, "Cycles:\n")
-		for i, cyc := range resp.Cycles {
-			fmt.Fprintf(&b, "  %d) %s\n", i+1, strings.Join(cyc.Modules, " -> "))
-		}
-		fmt.Fprintf(&b, "\n")
-	}
-
-	if len(resp.Errors) > 0 {
-		fmt.Fprintf(&b, "Errors:\n")
-		for _, e := range resp.Errors {
-			fmt.Fprintf(&b, "  - %s\n", e)
-		}
-		fmt.Fprintf(&b, "\n")
-	}
-	if len(resp.Warnings) > 0 {
-		fmt.Fprintf(&b, "Warnings:\n")
-		for _, w := range resp.Warnings {
-			fmt.Fprintf(&b, "  - %s\n", w)
-		}
-		fmt.Fprintf(&b, "\n")
-	}
-
-	if len(resp.LayerViolations) > 0 {
-		fmt.Fprintf(&b, "Layer Rule Violations:\n")
-		for _, v := range resp.LayerViolations {
-			fmt.Fprintf(&b, "  - %s (%s) -> %s (%s)\n", v.FromModule, v.FromLayer, v.ToModule, v.ToLayer)
-		}
-		fmt.Fprintf(&b, "\n")
-	}
-
-	_, err := cmd.OutOrStdout().Write([]byte(b.String()))
-	return err
-}
+// note: text output is handled by DepsFormatter via DepsUseCase
 
 func (c *DepsCommand) expandAndValidatePaths(args []string) ([]string, error) {
 	var paths []string
