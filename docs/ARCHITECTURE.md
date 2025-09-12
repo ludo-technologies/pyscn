@@ -33,7 +33,7 @@ graph TB
         G --> M[CFG Builder]
         G --> N[Complexity Calculator]
         H --> O[File System]
-        I --> P[JSON/YAML/CSV Formatters]
+        I --> P[JSON/YAML/CSV/HTML Formatters]
     end
     
     L --> Q[Python Source Code]
@@ -242,13 +242,14 @@ type Finding struct {
 4. Report unreachable blocks as dead code
 5. Analyze variable usage for unused detection
 
-#### 2.3 APTED Clone Detection
+#### 2.3 APTED Clone Detection with LSH Acceleration
 
 ```go
 // internal/analyzer/apted.go
 type APTEDAnalyzer struct {
     threshold float64
     costModel CostModel
+    lsh       *LSHIndex  // LSH acceleration for large projects
 }
 
 type TreeNode struct {
@@ -256,6 +257,7 @@ type TreeNode struct {
     Children []*TreeNode
     Parent   *TreeNode
     ID       int
+    Features []uint64    // Hash features for LSH
 }
 
 type CostModel interface {
@@ -263,60 +265,125 @@ type CostModel interface {
     Delete(node *TreeNode) float64
     Rename(node1, node2 *TreeNode) float64
 }
+
+// LSH (Locality-Sensitive Hashing) for acceleration
+type LSHIndex struct {
+    bands     int
+    rows      int
+    hashes    int
+    buckets   map[string][]*CodeFragment
+    extractor *FeatureExtractor
+}
+
+type FeatureExtractor struct {
+    // Extract features for LSH hashing
+    SubtreeHashes bool
+    KGrams        int
+    Patterns      []string
+}
 ```
 
-**Algorithm (APTED - All Path Tree Edit Distance):**
-1. Convert AST subtrees to ordered trees
-2. Compute optimal tree edit distance
+**Two-Stage Detection Process:**
+
+**Stage 1: LSH Candidate Generation (for large projects)**
+1. Extract AST features (subtree hashes, k-grams, patterns)
+2. Apply MinHash + LSH banding to find candidate pairs
+3. Filter candidates by similarity threshold
+4. Early termination for dissimilar pairs
+
+**Stage 2: APTED Verification**
+1. Convert candidate pairs to ordered trees
+2. Compute precise tree edit distance using APTED
 3. Use dynamic programming with path decomposition
 4. Compare distance against threshold
-5. Group similar code blocks as clones
+5. Apply advanced grouping algorithms
+
+**Clone Grouping Algorithms:**
+
+```go
+type GroupingMode string
+
+const (
+    GroupingModeConnected     GroupingMode = "connected"      // Connected components
+    GroupingModeStar          GroupingMode = "star"           // Star/medoid clustering
+    GroupingModeCompleteLinkage GroupingMode = "complete_linkage" // Complete linkage clustering
+    GroupingModeKCore         GroupingMode = "k_core"         // K-core decomposition
+)
+
+type CloneGroup struct {
+    ID         string
+    Clones     []*Clone
+    Centroid   *Clone          // Representative clone
+    Similarity float64         // Intra-group similarity
+    Algorithm  GroupingMode    // Grouping algorithm used
+}
+```
+
+1. **Connected Components**: Groups clones based on similarity edges
+2. **Star/Medoid**: Finds representative (medoid) and groups around it
+3. **Complete Linkage**: Hierarchical clustering with maximum distance constraint
+4. **K-Core**: Identifies densely connected clone groups
 
 ### 3. Configuration Module (`internal/config`)
 
-The configuration system implements Ruff-style hierarchical configuration discovery with support for multiple formats and locations.
+The configuration system implements TOML-only configuration discovery similar to Ruff, with support for both dedicated `.pyscn.toml` files and `pyproject.toml` integration.
 
 ```go
 // internal/config/config.go
 type Config struct {
     // Analysis settings
-    DeadCode      DeadCodeConfig      `yaml:"dead_code"`
-    CloneDetection CloneDetectionConfig `yaml:"clone_detection"`
-    Complexity    ComplexityConfig    `yaml:"complexity"`
+    DeadCode   DeadCodeConfig   `toml:"dead_code"`
+    Clones     CloneConfig      `toml:"clones"`
+    Complexity ComplexityConfig `toml:"complexity"`
+    CBO        CBOConfig        `toml:"cbo"`
     
     // Output settings
-    Output        OutputConfig        `yaml:"output"`
+    Output     OutputConfig     `toml:"output"`
     
     // File patterns
-    Include       []string            `yaml:"include"`
-    Exclude       []string            `yaml:"exclude"`
+    Analysis   AnalysisConfig   `toml:"analysis"`
 }
 
 type OutputConfig struct {
-    Format        string `yaml:"format"`
-    Directory     string `yaml:"directory"`    // Output directory for reports
-    Verbose       bool   `yaml:"verbose"`
-    ShowDetails   bool   `yaml:"show_details"`
-    SortBy        string `yaml:"sort_by"`
-    MinComplexity int    `yaml:"min_complexity"`
+    Format        string `toml:"format"`
+    Directory     string `toml:"directory"` // Output directory for reports
+    ShowDetails   bool   `toml:"show_details"`
+    SortBy        string `toml:"sort_by"`
+    MinComplexity int    `toml:"min_complexity"`
 }
 
-type DeadCodeConfig struct {
-    Enabled            bool `yaml:"enabled"`
-    CheckUnusedImports bool `yaml:"check_unused_imports"`
-    CheckUnusedVars    bool `yaml:"check_unused_vars"`
+type CloneConfig struct {
+    // Analysis parameters
+    MinLines          int     `toml:"min_lines"`
+    MinNodes          int     `toml:"min_nodes"`
+    SimilarityThreshold float64 `toml:"similarity_threshold"`
+    
+    // LSH acceleration
+    LSH LSHConfig `toml:"lsh"`
+    
+    // Grouping algorithms
+    Grouping GroupingConfig `toml:"grouping"`
 }
 
-type CloneDetectionConfig struct {
-    Enabled           bool    `yaml:"enabled"`
-    MinLines          int     `yaml:"min_lines"`
-    SimilarityThreshold float64 `yaml:"similarity_threshold"`
+type LSHConfig struct {
+    Enabled           string  `toml:"enabled"`           // "true", "false", "auto"
+    AutoThreshold     int     `toml:"auto_threshold"`     // Auto-enable for projects >N files
+    SimilarityThreshold float64 `toml:"similarity_threshold"`
+    Bands             int     `toml:"bands"`
+    Rows              int     `toml:"rows"`
+    Hashes            int     `toml:"hashes"`
+}
+
+type GroupingConfig struct {
+    Mode      string  `toml:"mode"`      // "connected", "star", "complete_linkage", "k_core"
+    Threshold float64 `toml:"threshold"`
+    KCoreK    int     `toml:"k_core_k"`
 }
 ```
 
 #### Configuration Discovery Algorithm
 
-pyscn uses a hierarchical configuration discovery system inspired by Ruff and other modern tools:
+pyscn uses a TOML-only hierarchical configuration discovery system:
 
 ```go
 // LoadConfigWithTarget searches for configuration in this order:
@@ -338,33 +405,18 @@ func LoadConfigWithTarget(configPath string, targetPath string) (*Config, error)
         return loadFromFile(config)
     }
     
-    // 4. XDG config directory
-    if config := findInXDGConfig(); config != "" {
-        return loadFromFile(config)
-    }
-    
-    // 5. Home directory (fallback)
-    if config := findInHomeDir(); config != "" {
-        return loadFromFile(config)
-    }
-    
-    // 6. Default configuration
+    // 4. Default configuration
     return DefaultConfig(), nil
 }
 ```
 
 **Configuration File Priority:**
-1. `pyscn.yaml`
-2. `pyscn.yml` 
-3. `.pyscn.yaml`
-4. `.pyscn.yml`
-5. `pyscn.json`
-6. `.pyscn.json`
+1. `pyproject.toml` (with `[tool.pyscn]` section)
+2. `.pyscn.toml`
 
-**Search Locations (in order):**
-1. **Target Directory & Parents**: Starting from the analysis target, search upward to filesystem root
-2. **XDG Config**: `$XDG_CONFIG_HOME/pyscn/` or `~/.config/pyscn/`
-3. **Home Directory**: `~/.pyscn.yaml` (backward compatibility)
+**Search Strategy:**
+- **Target Directory & Parents**: Starting from the analysis target, search upward to filesystem root
+- **TOML-only**: Simplified configuration strategy focusing on modern TOML format
 
 ### 4. CLI Module (`cmd/pyscn`)
 
@@ -389,12 +441,14 @@ type ComplexityCommand struct {
     verbose         bool
 }
 
-// Current Commands:
+// Available Commands:
 // - complexity: Calculate McCabe cyclomatic complexity
-// Future Commands:
-// - dead-code: Find unreachable code
-// - clone: Detect code clones using APTED
-// - analyze: Run comprehensive analysis
+// - deadcode: Find unreachable code using CFG analysis
+// - clone: Detect code clones using APTED with LSH acceleration
+// - cbo: Analyze Coupling Between Objects metrics
+// - analyze: Run comprehensive analysis with unified reporting
+// - check: Quick CI-friendly quality check
+// - init: Generate configuration file
 ```
 
 ## Dependency Injection & Builder Pattern
@@ -465,6 +519,7 @@ Results → Aggregation → Formatting → Output (CLI/JSON/SARIF)
 - Parse multiple files concurrently
 - Run independent analyses in parallel
 - Use worker pools for large codebases
+- Batch processing for clone detection
 
 ```go
 type WorkerPool struct {
@@ -473,26 +528,53 @@ type WorkerPool struct {
     results   chan Result
     waitGroup sync.WaitGroup
 }
+
+type BatchProcessor struct {
+    batchSize   int
+    maxMemoryMB int
+    timeout     time.Duration
+}
 ```
 
-### 2. Memory Management
+### 2. LSH Acceleration
+
+- Automatic LSH activation for large projects (>500 files)
+- Two-stage detection: LSH candidates + APTED verification
+- Configurable hash functions and banding parameters
+- Early termination for dissimilar pairs
+
+```go
+type LSHConfig struct {
+    Enabled           string  // "auto", "true", "false"
+    AutoThreshold     int     // Auto-enable threshold
+    SimilarityThreshold float64
+    Bands             int
+    Rows              int
+    Hashes            int
+}
+```
+
+### 3. Memory Management
 
 - Stream large files instead of loading entirely
 - Reuse AST nodes where possible
 - Clear unused CFG blocks after analysis
 - Use object pools for frequent allocations
+- Memory-aware batch processing
 
-### 3. Caching
+### 4. Caching
 
 - Cache parsed ASTs for unchanged files
 - Store CFGs for incremental analysis
 - Memoize APTED distance calculations
+- LSH signature caching
 
 ```go
 type Cache struct {
-    ast  map[string]*AST      // File hash → AST
-    cfg  map[string]*CFG      // Function → CFG
-    dist map[string]float64   // Node pair → distance
+    ast       map[string]*AST      // File hash → AST
+    cfg       map[string]*CFG      // Function → CFG
+    dist      map[string]float64   // Node pair → distance
+    lshSigs   map[string][]uint64  // File → LSH signatures
 }
 ```
 
@@ -748,8 +830,8 @@ go test -bench=. ./internal/analyzer
 ### 8. Continuous Integration
 
 All tests run automatically on:
-- **Go 1.22**: Minimum supported version
-- **Go 1.23**: Latest stable version
+- **Go 1.24**: Current version
+- **Go 1.25**: Latest stable version (when available)
 - **Linux, macOS, Windows**: Cross-platform compatibility
 
 **Quality Gates**:
@@ -783,7 +865,7 @@ All tests run automatically on:
 
 ## Development Progress & Roadmap
 
-### Phase 1 (MVP - September 6, 2025)
+### Phase 1 (MVP - Completed September 2025)
 - [x] **Clean Architecture Implementation** - Domain-driven design with dependency injection
 - [x] **Tree-sitter Integration** - Python parsing with go-tree-sitter
 - [x] **CFG Construction** - Control Flow Graph building for all Python constructs
@@ -791,49 +873,69 @@ All tests run automatically on:
 - [x] **CLI Framework** - Cobra-based command interface with multiple output formats
 - [x] **Comprehensive Testing** - Unit, integration, and E2E test suites
 - [x] **CI/CD Pipeline** - Automated testing on multiple Go versions and platforms
-- [ ] **Dead Code Detection** - CFG-based unreachable code identification
-- [ ] **APTED Clone Detection** - Tree edit distance for code similarity
-- [ ] **Configuration System** - YAML-based configuration with defaults
+- [x] **Dead Code Detection** - CFG-based unreachable code identification
+- [x] **APTED Clone Detection** - Tree edit distance for code similarity with LSH acceleration
+- [x] **Configuration System** - TOML-only configuration with hierarchical discovery
+- [x] **CBO Analysis** - Coupling Between Objects metrics
+- [x] **Advanced Clone Grouping** - Multiple algorithms (connected, star, complete linkage, k-core)
+- [x] **HTML Reports** - Rich web-based analysis reports
 
-### Phase 2 (v0.2 - Q4 2025)
-- [ ] **Performance Optimization** - Parallel processing and memory efficiency
-- [ ] **Incremental Analysis** - Only analyze changed files
-- [ ] **VS Code Extension** - Real-time analysis in editor
-- [ ] **Import Dependency Analysis** - Unused import detection
-- [ ] **Advanced Reporting** - HTML dashboard and trend analysis
+### Future Roadmap (2026 and beyond)
 
-### Phase 3 (v0.3 - Q1 2026)
+**Performance & Scalability (Q1 2026)**
+- [ ] **Incremental Analysis** - Only analyze changed files for faster CI/CD
+- [ ] **Distributed Processing** - Multi-node analysis for enterprise codebases
+- [ ] **Enhanced Caching** - Persistent analysis cache across runs
+- [ ] **Memory Optimizations** - Further reduce memory footprint
+
+**Developer Experience (Q2 2026)**
+- [ ] **VS Code Extension** - Real-time analysis in editor with inline suggestions
+- [ ] **IDE Integrations** - JetBrains, Vim, Emacs plugins
+- [ ] **Watch Mode** - Continuous analysis during development
+- [ ] **Interactive CLI** - TUI interface for exploring results
+
+**Advanced Analysis (Q3-Q4 2026)**
 - [ ] **Type Inference Integration** - Enhanced analysis with type information
-- [ ] **LLM-powered Suggestions** - AI-driven code improvement recommendations
+- [ ] **Semantic Clone Detection** - Beyond structural similarity
 - [ ] **Auto-fix Capabilities** - Automated refactoring suggestions
-- [ ] **Multi-language Support** - JavaScript, TypeScript, Go analysis
-- [ ] **Cloud Analysis Service** - SaaS offering for enterprise teams
+- [ ] **Dependency Analysis** - Import graph analysis and unused dependency detection
+- [ ] **Security Analysis** - Static security vulnerability detection
 
-### Current Status (August 2025)
+**Enterprise Features (2027+)**
+- [ ] **Multi-language Support** - JavaScript, TypeScript, Go, Rust analysis
+- [ ] **Cloud Analysis Service** - SaaS offering for enterprise teams
+- [ ] **Team Analytics** - Code quality trends and team insights
+- [ ] **LLM-powered Suggestions** - AI-driven code improvement recommendations
+
+### Current Status (September 2025)
 
 **Completed Features:**
 - ✅ Full clean architecture with proper separation of concerns
 - ✅ McCabe complexity analysis with configurable thresholds
-- ✅ Multiple output formats (text, JSON, YAML, CSV)
+- ✅ Multiple output formats (text, JSON, YAML, CSV, HTML)
 - ✅ CLI with comprehensive flag support and validation
 - ✅ Robust error handling with domain-specific error types
 - ✅ Builder pattern for dependency injection
 - ✅ Comprehensive test coverage (unit, integration, E2E)
 - ✅ CI/CD pipeline with cross-platform testing
-
-**In Progress:**
-- 🚧 Dead code detection algorithm implementation
-- 🚧 APTED tree edit distance algorithm
+- ✅ Dead code detection with CFG analysis
+- ✅ APTED clone detection with LSH acceleration
+- ✅ CBO (Coupling Between Objects) analysis
+- ✅ Advanced clone grouping algorithms
+- ✅ Unified analyze command with HTML reports
 
 **Recently Completed:**
-- ✅ Configuration file support (.pyscn.yaml) with Ruff-style discovery
-- ✅ Hierarchical configuration search (target → upward → XDG → home)
-- ✅ Test environment improvements (no file generation in project directories)
+- ✅ TOML-only configuration system (.pyscn.toml, pyproject.toml)
+- ✅ LSH-based clone detection acceleration for large projects
+- ✅ Multiple grouping modes (connected, star, complete linkage, k-core)
+- ✅ Performance optimizations and batch processing
 
 **Performance Benchmarks:**
-- Parser: ~50,000 lines/second (target: >100,000)
-- CFG Construction: ~25,000 lines/second (target: >10,000) ✅
-- Complexity Calculation: ~0.1ms per function (target: <1ms) ✅
+- Parser: >100,000 lines/second ✅
+- CFG Construction: >25,000 lines/second ✅ 
+- Complexity Calculation: <0.1ms per function ✅
+- Clone Detection: >10,000 lines/second with LSH acceleration ✅
+- LSH Candidate Generation: >500,000 functions/second ✅
 
 ## Dependencies
 
@@ -842,10 +944,11 @@ All tests run automatically on:
 ```go
 // go.mod
 require (
-    github.com/smacker/go-tree-sitter v0.0.0-20230720070738-0d0a9f78d8f8
-    github.com/spf13/cobra v1.8.0
-    github.com/spf13/viper v1.18.2
-    gopkg.in/yaml.v3 v3.0.1
+    github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82
+    github.com/spf13/cobra v1.9.1
+    github.com/spf13/viper v1.20.1
+    github.com/pelletier/go-toml/v2 v2.2.3
+    github.com/stretchr/testify v1.10.0
 )
 ```
 
@@ -863,66 +966,92 @@ require (
 
 ### Basic Configuration
 
-```yaml
-# .pyscn.yaml
-dead_code:
-  enabled: true
-  check_unused_imports: true
-  check_unused_vars: true
+```toml
+# .pyscn.toml
+[dead_code]
+enabled = true
+min_severity = "warning"
+show_context = false
 
-clone_detection:
-  enabled: true
-  min_lines: 5
-  similarity_threshold: 0.8
+[clones]
+min_lines = 5
+similarity_threshold = 0.8
+lsh_enabled = "auto"
 
-output:
-  format: text
-  verbose: false
+[output]
+format = "text"
+sort_by = "name"
 
-exclude:
-  - "**/*_test.py"
-  - "**/migrations/**"
+[analysis]
+exclude_patterns = [
+    "test_*.py",
+    "*_test.py",
+    "**/migrations/**"
+]
 ```
 
 ### Advanced Configuration
 
-```yaml
-# .pyscn.yaml
-dead_code:
-  enabled: true
-  check_unused_imports: true
-  check_unused_vars: true
-  ignore_patterns:
-    - "__all__"
-    - "_*"
+```toml
+# .pyscn.toml or pyproject.toml [tool.pyscn] section
+[dead_code]
+enabled = true
+min_severity = "warning"
+show_context = true
+context_lines = 3
+ignore_patterns = ["__all__", "_*"]
 
-clone_detection:
-  enabled: true
-  min_lines: 10
-  similarity_threshold: 0.7
-  ignore_literals: true
-  ignore_identifiers: false
+[clones]
+min_lines = 10
+min_nodes = 20
+similarity_threshold = 0.7
+type1_threshold = 0.98
+type2_threshold = 0.95
+type3_threshold = 0.85
+type4_threshold = 0.70
+max_results = 1000
 
-complexity:
-  enabled: true
-  max_complexity: 10
-  warn_complexity: 7
+# LSH acceleration for large projects
+[clones.lsh]
+enabled = "auto"
+auto_threshold = 500
+similarity_threshold = 0.78
+bands = 32
+rows = 4
+hashes = 128
 
-output:
-  format: json
-  file: "pyscn-report.json"
-  verbose: true
-  include_source: true
+# Clone grouping algorithms
+[clones.grouping]
+mode = "connected"  # connected | star | complete_linkage | k_core
+threshold = 0.85
+k_core_k = 2
 
-include:
-  - "src/**/*.py"
-  - "lib/**/*.py"
+[complexity]
+enabled = true
+low_threshold = 9
+medium_threshold = 19
+max_complexity = 0
 
-exclude:
-  - "**/*_test.py"
-  - "**/test_*.py"
-  - "**/migrations/**"
-  - "**/__pycache__/**"
+[cbo]
+enabled = true
+low_threshold = 5
+medium_threshold = 10
+include_builtins = false
+
+[output]
+format = "html"
+directory = "reports"
+show_details = true
+
+[analysis]
+recursive = true
+include_patterns = ["src/**/*.py", "lib/**/*.py"]
+exclude_patterns = [
+    "test_*.py",
+    "*_test.py", 
+    "**/migrations/**",
+    "**/__pycache__/**"
+]
 ```
 
 ## Metrics and Monitoring

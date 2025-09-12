@@ -55,7 +55,7 @@ pyscn deps --check-circular src/
 pyscn deps --format dot src/ > deps.dot
 
 # Check layer violations
-pyscn deps --check-layers --config .pyscn.yaml src/
+pyscn deps --check-layers --config .pyscn.toml src/
 ```
 
 ### 2. Architecture Quality Assessment
@@ -77,36 +77,51 @@ internal/analyzer/
 ```
 
 #### Configuration Schema
-```yaml
-# .pyscn.yaml
-architecture:
-  # Define architectural layers
-  layers:
-    - name: presentation
-      packages: ["ui", "views", "controllers"]
-    - name: application
-      packages: ["services", "use_cases"]
-    - name: domain
-      packages: ["models", "entities", "domain"]
-    - name: infrastructure
-      packages: ["db", "external", "repositories"]
-  
-  # Define allowed dependencies
-  rules:
-    - from: presentation
-      allow: [application]
-    - from: application
-      allow: [domain]
-    - from: domain
-      allow: []  # Domain should not depend on anything
-    - from: infrastructure
-      allow: [domain]
-  
-  # Metrics thresholds
-  metrics:
-    max_coupling: 0.3
-    min_cohesion: 0.7
-    max_complexity_per_module: 50
+
+> **Note**: This is a future enhancement. Configuration format may change during implementation.
+
+```toml
+# .pyscn.toml
+[architecture]
+# Define architectural layers
+[[architecture.layers]]
+name = "presentation"
+packages = ["ui", "views", "controllers"]
+
+[[architecture.layers]]
+name = "application"  
+packages = ["services", "use_cases"]
+
+[[architecture.layers]]
+name = "domain"
+packages = ["models", "entities", "domain"]
+
+[[architecture.layers]]
+name = "infrastructure"
+packages = ["db", "external", "repositories"]
+
+# Define allowed dependencies
+[[architecture.rules]]
+from = "presentation"
+allow = ["application"]
+
+[[architecture.rules]]
+from = "application"
+allow = ["domain"]
+
+[[architecture.rules]]
+from = "domain"
+allow = []  # Domain should not depend on anything
+
+[[architecture.rules]]
+from = "infrastructure"
+allow = ["domain"]
+
+# Metrics thresholds
+[architecture.metrics]
+max_coupling = 0.3
+min_cohesion = 0.7
+max_complexity_per_module = 50
 ```
 
 ### 3. System-Wide Quality Metrics
@@ -150,32 +165,34 @@ pyscn analyze --ci --fail-on-issues src/
 pyscn analyze --baseline previous.json src/
 ```
 
-## Implementation Plan
+## Implementation Plan (Future Enhancement)
 
-### Phase 1: Dependency Analysis (Weeks 1-2)
+> **Note**: This is a future enhancement proposal. Core pyscn functionality (complexity, dead code, clone detection, CBO) has been completed as of September 2025.
+
+### Phase 1: Dependency Analysis
 1. Implement dependency graph construction
 2. Add import analysis to existing parser
 3. Implement circular dependency detection
 4. Create `deps` command with basic features
 5. Add dependency metrics calculation
 
-### Phase 2: Architecture Analysis (Weeks 3-5)
+### Phase 2: Architecture Analysis
 1. Design architecture rule engine
 2. Implement layer validation
 3. Add cohesion/coupling analyzers
 4. Create responsibility analyzer
 5. Implement `architecture` command
 
-### Phase 3: System Metrics (Weeks 6-7)
+### Phase 3: System Metrics
 1. Implement maintainability index
 2. Add technical debt scoring
 3. Calculate Martin metrics
 4. Create unified metrics report
 
-### Phase 4: Integration (Week 8)
-1. Create integrated `analyze` command
-2. Implement HTML report generator
-3. Add CI/CD integration features
+### Phase 4: Integration
+1. Enhance existing `analyze` command with system-level analysis
+2. Extend HTML report generator with architectural insights
+3. Add CI/CD integration features for system quality gates
 4. Documentation and examples
 
 ## Technical Architecture
@@ -217,7 +234,7 @@ type SystemReport struct {
 1. **Parser Extension**: Enhance AST builder to track imports and module structure
 2. **Analyzer Integration**: New analyzers follow existing analyzer pattern
 3. **Reporter Extension**: Add system-level report formatters
-4. **Configuration**: Extend existing YAML configuration structure
+4. **Configuration**: Extend existing TOML configuration structure
 
 ## Expected Benefits
 

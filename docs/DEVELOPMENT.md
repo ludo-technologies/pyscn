@@ -25,7 +25,7 @@ This guide covers everything you need to know to contribute to pyscn development
 
 ```bash
 # Clone the repository
-git clone https://github.com/pyscn/pyscn.git
+git clone https://github.com/ludo-technologies/pyscn.git
 cd pyscn
 
 # Install dependencies
@@ -63,20 +63,7 @@ pyscn/
 
 ## Development Workflow
 
-### 1. Pick a Task
-
-```bash
-# View available tasks for current week
-./scripts/tasks.sh week 1
-
-# View task details
-./scripts/tasks.sh view 1
-
-# Assign task to yourself
-./scripts/tasks.sh start 1
-```
-
-### 2. Create a Feature Branch
+### 1. Create a Feature Branch
 
 Follow our branching strategy (see [BRANCHING.md](BRANCHING.md)):
 
@@ -84,17 +71,17 @@ Follow our branching strategy (see [BRANCHING.md](BRANCHING.md)):
 # Create branch from main
 git checkout main
 git pull origin main
-git checkout -b feature/issue-1-tree-sitter-integration
+git checkout -b feature/tree-sitter-integration
 
 # Branch naming patterns:
-# feature/issue-{number}-{description}  # New features
-# fix/issue-{number}-{description}      # Bug fixes
-# docs/{description}                    # Documentation
-# refactor/{description}                # Code improvements
-# chore/{description}                   # Maintenance
+# feature/{description}  # New features  
+# fix/{description}      # Bug fixes
+# docs/{description}     # Documentation
+# refactor/{description} # Code improvements  
+# chore/{description}    # Maintenance
 ```
 
-### 3. Implement the Feature
+### 2. Implement the Feature
 
 Follow the implementation checklist:
 - [ ] Write tests first (TDD approach)
@@ -103,91 +90,48 @@ Follow the implementation checklist:
 - [ ] Add documentation
 - [ ] Run linters
 
-### 4. Submit Pull Request
+### 3. Submit Pull Request
 
 ```bash
 # Push your branch
-git push origin feature/issue-1-tree-sitter
+git push origin feature/tree-sitter-integration
 
 # Create PR via GitHub CLI
-gh pr create --title "feat: Add tree-sitter integration (#1)" \
-  --body "Closes #1" \
-  --milestone "Week 1 - Foundation"
+gh pr create --title "feat: Add tree-sitter integration" \
+  --body "Brief description of the changes and motivation"
 ```
 
-## Task Management
-
-### GitHub Issues
-
-All development tasks are tracked as GitHub Issues with the following labels:
-
-- **Priority**: `P0` (Critical), `P1` (High), `P2` (Medium), `P3` (Low)
-- **Type**: `task`, `bug`, `enhancement`, `documentation`
-- **Component**: `parser`, `analyzer`, `cli`
-
-### Milestones
-
-Development is organized into weekly sprints:
-
-- **Week 1 - Foundation**: Core parsing and CFG
-- **Week 2 - Dead Code**: Dead code detection
-- **Week 3 - Clone Detection**: APTED implementation
-- **Week 4 - Release**: CLI and release preparation
-
-### Task Commands
-
-```bash
-# List all tasks
-gh issue list
-
-# View tasks by milestone
-gh issue list --milestone "Week 1 - Foundation"
-
-# View tasks by label
-gh issue list --label "P0"
-
-# Update task status
-gh issue comment 1 --body "Progress update: Completed AST implementation"
-
-# Close completed task
-gh issue close 1 --comment "Implemented in PR #10"
-```
 
 ## Configuration System
 
 ### Configuration Files
 
-pyscn uses a hierarchical configuration system similar to Ruff. Configuration files are searched in the following order:
+pyscn uses a TOML-only configuration system similar to Ruff. Configuration files are searched in the following order:
 
-1. **Target Directory**: Starting from the directory being analyzed
-2. **Parent Directories**: Searching upward to the filesystem root
-3. **XDG Config Directory**: `$XDG_CONFIG_HOME/pyscn/` or `~/.config/pyscn/`
-4. **Home Directory**: `~/.pyscn.yaml` (backward compatibility)
+1. **pyproject.toml** with `[tool.pyscn]` section (recommended)
+2. **.pyscn.toml** (dedicated config file)  
+3. **Parent Directories**: Searching upward to filesystem root
 
 ### Configuration File Names
 
-Supported configuration file names (in order of precedence):
-- `pyscn.yaml`
-- `pyscn.yml`
-- `.pyscn.yaml`
-- `.pyscn.yml`
-- `pyscn.json`
-- `.pyscn.json`
+Supported configuration file names:
+- `pyproject.toml` (with `[tool.pyscn]` section)
+- `.pyscn.toml`
 
 ### Configuration Example
 
-```yaml
-# .pyscn.yaml
-output:
-  directory: "reports"  # Output directory for generated reports
-  
-complexity:
-  low_threshold: 9
-  medium_threshold: 19
-  
-clone_detection:
-  similarity_threshold: 0.8
-  min_lines: 5
+```toml
+# .pyscn.toml or [tool.pyscn] section in pyproject.toml
+[output]
+directory = "reports"  # Output directory for generated reports
+
+[complexity]
+low_threshold = 9
+medium_threshold = 19
+
+[clones]
+similarity_threshold = 0.8
+min_lines = 5
 ```
 
 ### Using Configuration in Tests
@@ -196,8 +140,8 @@ For E2E and integration tests, create temporary configuration files:
 
 ```go
 // Create config file for test
-configFile := filepath.Join(testDir, ".pyscn.yaml")
-configContent := fmt.Sprintf("output:\n  directory: \"%s\"\n", outputDir)
+configFile := filepath.Join(testDir, ".pyscn.toml")
+configContent := fmt.Sprintf("[output]\ndirectory = \"%s\"\n", outputDir)
 err := os.WriteFile(configFile, []byte(configContent), 0644)
 ```
 
@@ -458,8 +402,8 @@ git push origin v0.1.0
 
 ## Getting Help
 
-- **Issues**: [GitHub Issues](https://github.com/pyscn/pyscn/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/pyscn/pyscn/discussions)
+- **Issues**: [GitHub Issues](https://github.com/ludo-technologies/pyscn/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/ludo-technologies/pyscn/discussions)
 - **Documentation**: This guide and `/docs` directory
 
 ## Quick Reference
