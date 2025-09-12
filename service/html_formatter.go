@@ -74,6 +74,15 @@ type DepsHTMLData struct {
 	HiddenEdges       int
 	HiddenCycles      int
 	HiddenViolations  int
+	// Hubs folding
+	Hubs          []HubInfo
+	FilteredEdges []domain.DependencyEdge
+	HubEdges      []domain.DependencyEdge
+}
+
+type HubInfo struct {
+	Name  string
+	Count int
 }
 
 // CalculateComplexityScore calculates a Lighthouse-style score (0-100) for complexity
@@ -436,6 +445,13 @@ func (f *HTMLFormatterImpl) getHTMLTemplate() string {
             font-size: 0.9em;
         }
     </style>
+    <script>
+      function toggle(id){
+        var el = document.getElementById(id);
+        if(!el) return;
+        if(el.style.display === 'none'){ el.style.display='block'; } else { el.style.display='none'; }
+      }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -605,6 +621,44 @@ func (f *HTMLFormatterImpl) FormatDepsAsHTML(response *domain.DependencyResponse
 		viols = viols[:maxViolations]
 	}
 
+	// Build hub folding data
+	indeg := make(map[string]int)
+	for _, e := range response.Edges {
+		indeg[e.To]++
+	}
+	var hubs []HubInfo
+	hubSet := make(map[string]struct{})
+	if len(response.Edges) >= 30 {
+		thr := int(0.2 * float64(len(response.Edges)))
+		if thr < 10 {
+			thr = 10
+		}
+		for name, cnt := range indeg {
+			if cnt >= thr {
+				hubs = append(hubs, HubInfo{Name: name, Count: cnt})
+				hubSet[name] = struct{}{}
+			}
+		}
+	}
+	var filtered, hubEdges []domain.DependencyEdge
+	if len(hubs) > 0 {
+		for _, e := range response.Edges {
+			if _, isHub := hubSet[e.To]; isHub {
+				hubEdges = append(hubEdges, e)
+			} else {
+				filtered = append(filtered, e)
+			}
+		}
+		if len(filtered) > maxEdges {
+			filtered = filtered[:maxEdges]
+		}
+		if len(hubEdges) > maxEdges {
+			hubEdges = hubEdges[:maxEdges]
+		}
+	} else {
+		filtered = edges
+	}
+
 	data := DepsHTMLData{
 		OverallScore:      overall,
 		Response:          response,
@@ -619,6 +673,9 @@ func (f *HTMLFormatterImpl) FormatDepsAsHTML(response *domain.DependencyResponse
 		HiddenEdges:       len(response.Edges) - len(edges),
 		HiddenCycles:      len(response.Cycles) - len(cycles),
 		HiddenViolations:  len(response.LayerViolations) - len(viols),
+		Hubs:              hubs,
+		FilteredEdges:     filtered,
+		HubEdges:          hubEdges,
 	}
 	return f.renderTemplateString(f.getDepsHTMLTemplate(), data)
 }
@@ -678,15 +735,40 @@ func (f *HTMLFormatterImpl) getDepsHTMLTemplate() string {
 
     <div class="section">
       <h2>Edges</h2>
+      {{if .Hubs}}
+        <div class="muted">High-degree targets folded: 
+          {{range $i, $h := .Hubs}}{{if $i}}, {{end}}{{$h.Name}} ({{$h.Count}}){{end}}. 
+          <a href="#" onclick="toggle('hub-edges'); return false;">Show/Hide folded edges</a>
+        </div>
+      {{end}}
       <table class="table">
         <thead><tr><th>From</th><th>To</th></tr></thead>
         <tbody>
-          {{range .EdgesDisplay}}
-            <tr><td>{{.From}}</td><td>{{.To}}</td></tr>
+          {{if .Hubs}}
+            {{range .FilteredEdges}}
+              <tr><td>{{.From}}</td><td>{{.To}}</td></tr>
+            {{end}}
+          {{else}}
+            {{range .EdgesDisplay}}
+              <tr><td>{{.From}}</td><td>{{.To}}</td></tr>
+            {{end}}
           {{end}}
         </tbody>
       </table>
       {{if gt .HiddenEdges 0}}<div class="muted">+{{.HiddenEdges}} more edges not shown</div>{{end}}
+      {{if .Hubs}}
+      <div id="hub-edges" style="display:none">
+        <h3>Folded Hub Edges</h3>
+        <table class="table">
+          <thead><tr><th>From</th><th>To</th></tr></thead>
+          <tbody>
+            {{range .HubEdges}}
+              <tr><td>{{.From}}</td><td>{{.To}}</td></tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+      {{end}}
     </div>
 
     <div class="section">
