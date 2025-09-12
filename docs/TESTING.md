@@ -160,8 +160,8 @@ import (
     "testing"
     "path/filepath"
     
-    "github.com/pyscn/pyscn/internal/parser"
-    "github.com/pyscn/pyscn/internal/analyzer"
+    "github.com/ludo-technologies/pyscn/internal/parser"
+    "github.com/ludo-technologies/pyscn/internal/analyzer"
 )
 
 func TestCFGWithRealPythonFiles(t *testing.T) {

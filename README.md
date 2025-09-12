@@ -83,16 +83,20 @@ pyscn deadcode --show-context --context-lines 5 myfile.py
 Detects code after return/break/continue/raise, unreachable branches, and more. Sort by severity/line/file/function.
 
 ### clone
-Find structurally similar code (Type 1–4) using APTED.
+Find structurally similar code (Type 1–4) using APTED with LSH acceleration.
 
 ```bash
 pyscn clone .
 pyscn clone --similarity-threshold 0.9 src/
 pyscn clone --details --show-content src/
 pyscn clone --clone-types type1,type2 --json src/  # Creates: clone_YYYYMMDD_HHMMSS.json
+
+# Performance modes
+pyscn clone --fast src/        # LSH acceleration for large projects
+pyscn clone --precise src/     # Star grouping for small projects  
 ```
 
-Filter by similarity range, group clones, sort by similarity/size/location/type, and choose cost models.
+Filter by similarity range, group clones with multiple algorithms (connected, star, complete linkage, k-core), sort by similarity/size/location/type, and choose cost models. LSH acceleration automatically enabled for large codebases.
 
 ### cbo
 Compute CBO (Coupling Between Objects) metrics for classes.
@@ -100,7 +104,7 @@ Compute CBO (Coupling Between Objects) metrics for classes.
 ```bash
 pyscn cbo src/
 pyscn cbo --min-cbo 5 --sort coupling src/
-pyscn cbo --json src/ > cbo.json  # Note: cbo outputs JSON to stdout unlike other commands
+pyscn cbo --json src/  # Creates: cbo_YYYYMMDD_HHMMSS.json
 ```
 
 Includes thresholds for risk levels, sorting, and options for including built-ins/imports.
@@ -120,8 +124,8 @@ Exit codes: 0 (ok), 1 (quality issues), 2 (analysis error). Prints concise findi
 Generate a starter `.pyscn.yaml` with comprehensive, documented options.
 
 ```bash
-pyscn init            # create .pyscn.yaml in current directory
-pyscn init --config myconfig.yaml
+pyscn init            # create .pyscn.toml in current directory
+pyscn init --config myconfig.toml
 pyscn init --force    # overwrite if exists
 ```
 
@@ -129,51 +133,50 @@ pyscn init --force    # overwrite if exists
 
 pyscn supports hierarchical configuration discovery:
 
-1. Target directory upward to filesystem root (nearest file wins)
-2. XDG: `$XDG_CONFIG_HOME/pyscn/`
-3. `~/.config/pyscn/`
-4. Home directory (backward compatibility)
+1. `pyproject.toml` with `[tool.pyscn]` section (recommended)
+2. `.pyscn.toml` (dedicated config file)
+3. Target directory upward to filesystem root (nearest file wins)
 
-Supported filenames: `.pyscn.yaml`, `.pyscn.yml`, `pyscn.yaml`, `pyscn.yml`, and JSON variants.
+Supported formats: TOML only (unified configuration strategy like ruff).
 
 Example:
 
-```yaml
-# .pyscn.yaml
-output:
-  directory: "build/reports"   # Timestamped reports go here (if set)
-  sort_by: name                 # name | complexity | risk
-  min_complexity: 1
+```toml
+# .pyscn.toml or pyproject.toml with [tool.pyscn] section
+[output]
+directory = "build/reports"    # Timestamped reports go here (if set)
+sort_by = "name"               # name | complexity | risk  
+min_complexity = 1
 
-complexity:
-  enabled: true
-  low_threshold: 9
-  medium_threshold: 19
-  max_complexity: 0             # 0 = no limit
-  report_unchanged: true
+[complexity]
+enabled = true
+low_threshold = 9
+medium_threshold = 19
+max_complexity = 0             # 0 = no limit
+report_unchanged = true
 
-dead_code:
-  enabled: true
-  min_severity: warning         # critical | warning | info
-  show_context: false
-  context_lines: 3
-  sort_by: severity             # severity | line | file | function
-  detect_after_return: true
-  detect_after_break: true
-  detect_after_continue: true
-  detect_after_raise: true
-  detect_unreachable_branches: true
+[dead_code]
+enabled = true
+min_severity = "warning"       # critical | warning | info
+show_context = false
+context_lines = 3
+sort_by = "severity"           # severity | line | file | function
+detect_after_return = true
+detect_after_break = true
+detect_after_continue = true
+detect_after_raise = true
+detect_unreachable_branches = true
 
-clones:                         # unified clone settings (see CLI for full options)
-  min_lines: 5
-  min_nodes: 5
-  similarity_threshold: 0.8
+[clones]                       # unified clone settings (see CLI for full options)
+min_lines = 5
+min_nodes = 5
+similarity_threshold = 0.8
 
-cbo:                            # CBO settings (maps to cbo command flags)
-  enabled: true
-  low_threshold: 5
-  medium_threshold: 10
-  include_builtins: false
+[cbo]                          # CBO settings (maps to cbo command flags)
+enabled = true
+low_threshold = 5
+medium_threshold = 10
+include_builtins = false
 ```
 
 Notes:
@@ -183,7 +186,7 @@ Notes:
   - `text` (default): Prints to stdout
   - `json`, `yaml`, `csv`, `html`: Auto-generates timestamped files (e.g., `complexity_20250907_143022.json`)
   - HTML reports can be auto-opened with `--no-open` flag to disable
-  - Exception: `cbo --json` outputs to stdout for pipe compatibility
+  - All commands now generate timestamped output files for structured formats
 
 ## Installation
 

@@ -140,8 +140,8 @@ import (
     "context"
     "fmt"
     
-    "github.com/pyscn/pyscn/internal/parser"
-    "github.com/pyscn/pyscn/pkg/api"
+    "github.com/ludo-technologies/pyscn/internal/parser"
+    "github.com/ludo-technologies/pyscn/pkg/api"
     
     "github.com/third-party/lib"
 )
@@ -179,8 +179,8 @@ import (
     "fmt"
     "io"
     
-    "github.com/pyscn/pyscn/internal/parser"
-    "github.com/pyscn/pyscn/internal/analyzer"
+    "github.com/ludo-technologies/pyscn/internal/parser"
+    "github.com/ludo-technologies/pyscn/internal/analyzer"
     
     "github.com/spf13/cobra"
     "github.com/stretchr/testify/assert"

@@ -171,7 +171,7 @@ gh pr create \
   --title "feat: Add tree-sitter integration (#1)" \
   --body "Closes #1" \
   --base main \
-  --milestone "Week 1 - Foundation"
+  --milestone "v1.1.0"
 
 # Or push and create PR via GitHub web
 git push origin feature/issue-1-tree-sitter-integration

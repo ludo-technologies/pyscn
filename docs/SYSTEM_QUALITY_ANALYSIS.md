@@ -150,32 +150,34 @@ pyscn analyze --ci --fail-on-issues src/
 pyscn analyze --baseline previous.json src/
 ```
 
-## Implementation Plan
+## Implementation Plan (Future Enhancement)
 
-### Phase 1: Dependency Analysis (Weeks 1-2)
+> **Note**: This is a future enhancement proposal. Core pyscn functionality (complexity, dead code, clone detection, CBO) has been completed as of September 2025.
+
+### Phase 1: Dependency Analysis
 1. Implement dependency graph construction
 2. Add import analysis to existing parser
 3. Implement circular dependency detection
 4. Create `deps` command with basic features
 5. Add dependency metrics calculation
 
-### Phase 2: Architecture Analysis (Weeks 3-5)
+### Phase 2: Architecture Analysis
 1. Design architecture rule engine
 2. Implement layer validation
 3. Add cohesion/coupling analyzers
 4. Create responsibility analyzer
 5. Implement `architecture` command
 
-### Phase 3: System Metrics (Weeks 6-7)
+### Phase 3: System Metrics
 1. Implement maintainability index
 2. Add technical debt scoring
 3. Calculate Martin metrics
 4. Create unified metrics report
 
-### Phase 4: Integration (Week 8)
-1. Create integrated `analyze` command
-2. Implement HTML report generator
-3. Add CI/CD integration features
+### Phase 4: Integration
+1. Enhance existing `analyze` command with system-level analysis
+2. Extend HTML report generator with architectural insights
+3. Add CI/CD integration features for system quality gates
 4. Documentation and examples
 
 ## Technical Architecture
