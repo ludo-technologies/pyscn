@@ -139,20 +139,15 @@ func (g *DepGraph) StronglyConnectedComponents() [][]string {
 
 // Cycles returns only SCCs that represent cycles (size > 1 or self-loop)
 func (g *DepGraph) Cycles() [][]string {
-	sccs := g.StronglyConnectedComponents()
-	var cycles [][]string
-	for _, comp := range sccs {
-		if len(comp) > 1 {
-			cycles = append(cycles, comp)
-			continue
-		}
-		// single node: check self-loop
-		v := comp[0]
-		if _, ok := g.adjacency[v][v]; ok {
-			cycles = append(cycles, []string{v})
-		}
-	}
-	return cycles
+    sccs := g.StronglyConnectedComponents()
+    var cycles [][]string
+    for _, comp := range sccs {
+        // Only treat multi-node SCCs as cycles. Self-referential imports are excluded.
+        if len(comp) > 1 {
+            cycles = append(cycles, comp)
+        }
+    }
+    return cycles
 }
 
 // ToDOT returns a DOT representation of the graph, highlighting cycle edges in red

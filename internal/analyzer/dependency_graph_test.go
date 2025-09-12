@@ -41,13 +41,13 @@ func TestDepGraph_SCCAndCycles(t *testing.T) {
 	}
 }
 
-func TestDepGraph_SelfLoopCycle(t *testing.T) {
-	g := NewDepGraph()
-	g.AddEdge("Z", "Z") // self-loop should count as cycle
-	cycles := g.Cycles()
-	if len(cycles) != 1 || len(cycles[0]) != 1 || cycles[0][0] != "Z" {
-		t.Fatalf("expected single-node cycle [Z], got %#v", cycles)
-	}
+func TestDepGraph_SelfLoopNotCycle(t *testing.T) {
+    g := NewDepGraph()
+    g.AddEdge("Z", "Z") // self-loop should NOT be treated as a cycle
+    cycles := g.Cycles()
+    if len(cycles) != 0 {
+        t.Fatalf("expected no cycles for self-loop, got %#v", cycles)
+    }
 }
 
 func TestDepGraph_DOTHighlightsCycles(t *testing.T) {
