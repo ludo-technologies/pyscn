@@ -171,15 +171,19 @@ func (g *DepGraph) ToDOT() string {
 		}
 	}
 	// edges
-	for _, e := range g.Edges() {
-		color := ""
-		if _, a := cycleSet[e[0]]; a {
-			if _, bcy := cycleSet[e[1]]; bcy {
-				color = " [color=red]"
-			}
-		}
-		fmt.Fprintf(&b, "  \"%s\" -> \"%s\"%s;\n", e[0], e[1], color)
-	}
+    for _, e := range g.Edges() {
+        // Skip self-referential edges in DOT output
+        if e[0] == e[1] {
+            continue
+        }
+        color := ""
+        if _, a := cycleSet[e[0]]; a {
+            if _, bcy := cycleSet[e[1]]; bcy {
+                color = " [color=red]"
+            }
+        }
+        fmt.Fprintf(&b, "  \"%s\" -> \"%s\"%s;\n", e[0], e[1], color)
+    }
 	b.WriteString("}\n")
 	return b.String()
 }

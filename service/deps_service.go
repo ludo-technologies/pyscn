@@ -101,11 +101,14 @@ func (s *DependencyService) Analyze(ctx context.Context, req domain.DependencyRe
 	}
 
 	// Build response
-	edges := g.Edges()
-	respEdges := make([]domain.DependencyEdge, 0, len(edges))
-	for _, e := range edges {
-		respEdges = append(respEdges, domain.DependencyEdge{From: e[0], To: e[1]})
-	}
+    edges := g.Edges()
+    respEdges := make([]domain.DependencyEdge, 0, len(edges))
+    for _, e := range edges {
+        if e[0] == e[1] { // exclude self-referential edges from response
+            continue
+        }
+        respEdges = append(respEdges, domain.DependencyEdge{From: e[0], To: e[1]})
+    }
 
 	// Cycles
 	var respCycles []domain.DependencyCycle
@@ -122,7 +125,7 @@ func (s *DependencyService) Analyze(ctx context.Context, req domain.DependencyRe
 		Modules:     moduleToFiles,
 		Edges:       respEdges,
 		Cycles:      respCycles,
-		Summary:     domain.DependencySummary{Modules: len(moduleToFiles), Edges: len(respEdges), Cycles: len(respCycles), FilesAnalyzed: len(files)},
+        Summary:     domain.DependencySummary{Modules: len(moduleToFiles), Edges: len(respEdges), Cycles: len(respCycles), FilesAnalyzed: len(files)},
 		Warnings:    warnings,
 		Errors:      errors,
 		GeneratedAt: time.Now().Format(time.RFC3339),
