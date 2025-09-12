@@ -75,6 +75,9 @@ python/src/pyscn/bin/
 # pyscn output directory
 .pyscn/
 
+# Local Go build cache used during sandboxed tests
+.gocache/
+
 # Claude Code setting
 .claude/
 
