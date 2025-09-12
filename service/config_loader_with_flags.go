@@ -37,7 +37,7 @@ func (c *ConfigurationLoaderWithFlags) MergeConfig(base *domain.ComplexityReques
 	if override == nil {
 		return base
 	}
-	
+
 	// Start with base configuration
 	merged := *base
 
@@ -52,7 +52,7 @@ func (c *ConfigurationLoaderWithFlags) MergeConfig(base *domain.ComplexityReques
 		// If a specific format was set (not text), use it
 		if override.OutputFormat != domain.OutputFormatText {
 			merged.OutputFormat = override.OutputFormat
-		} else if c.flagTracker.WasSet("html") || c.flagTracker.WasSet("json") || 
+		} else if c.flagTracker.WasSet("html") || c.flagTracker.WasSet("json") ||
 			c.flagTracker.WasSet("csv") || c.flagTracker.WasSet("yaml") {
 			// If any format flag was set, use the override format
 			merged.OutputFormat = override.OutputFormat
@@ -68,7 +68,7 @@ func (c *ConfigurationLoaderWithFlags) MergeConfig(base *domain.ComplexityReques
 	if override.OutputPath != "" {
 		merged.OutputPath = override.OutputPath
 	}
-	
+
 	// Always preserve NoOpen from override if it's been set
 	merged.NoOpen = override.NoOpen
 

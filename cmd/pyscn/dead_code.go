@@ -17,12 +17,12 @@ import (
 // DeadCodeCommand represents the dead code command
 type DeadCodeCommand struct {
 	// Output format flags (only one should be true)
-	html      bool
-	json      bool
-	csv       bool
-	yaml      bool
-	noOpen    bool
-	
+	html   bool
+	json   bool
+	csv    bool
+	yaml   bool
+	noOpen bool
+
 	// Analysis flags
 	minSeverity  string
 	sortBy       string
@@ -98,7 +98,7 @@ Examples:
 	cmd.Flags().BoolVar(&c.csv, "csv", false, "Generate CSV report file")
 	cmd.Flags().BoolVar(&c.yaml, "yaml", false, "Generate YAML report file")
 	cmd.Flags().BoolVar(&c.noOpen, "no-open", false, "Don't auto-open HTML in browser")
-	
+
 	// Add analysis flags
 	cmd.Flags().StringVar(&c.minSeverity, "min-severity", "warning", "Minimum severity to report (critical, warning, info)")
 	cmd.Flags().StringVar(&c.sortBy, "sort", "severity", "Sort results by (severity, line, file, function)")
@@ -150,8 +150,8 @@ func (c *DeadCodeCommand) runDeadCodeAnalysis(cmd *cobra.Command, args []string)
 
 // determineOutputFormat determines the output format based on flags
 func (c *DeadCodeCommand) determineOutputFormat() (domain.OutputFormat, string, error) {
-    resolver := service.NewOutputFormatResolver()
-    return resolver.Determine(c.html, c.json, c.csv, c.yaml)
+	resolver := service.NewOutputFormatResolver()
+	return resolver.Determine(c.html, c.json, c.csv, c.yaml)
 }
 
 // buildDeadCodeRequest creates a domain request from CLI flags
@@ -188,7 +188,7 @@ func (c *DeadCodeCommand) buildDeadCodeRequest(cmd *cobra.Command, args []string
 	// Determine output destination
 	var outputWriter io.Writer
 	var outputPath string
-	
+
 	if outputFormat == domain.OutputFormatText {
 		// Text format goes to stdout
 		outputWriter = cmd.OutOrStdout()
@@ -240,14 +240,14 @@ func (c *DeadCodeCommand) createDeadCodeUseCase(cmd *cobra.Command) (*app.DeadCo
 
 	deadCodeService := service.NewDeadCodeService()
 
-    // Build use case
-    useCase, err := app.NewDeadCodeUseCaseBuilder().
-        WithService(deadCodeService).
-        WithFileReader(fileReader).
-        WithFormatter(formatter).
-        WithConfigLoader(configLoader).
-        WithOutputWriter(service.NewFileOutputWriter(cmd.ErrOrStderr())).
-        Build()
+	// Build use case
+	useCase, err := app.NewDeadCodeUseCaseBuilder().
+		WithService(deadCodeService).
+		WithFileReader(fileReader).
+		WithFormatter(formatter).
+		WithConfigLoader(configLoader).
+		WithOutputWriter(service.NewFileOutputWriter(cmd.ErrOrStderr())).
+		Build()
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to build use case: %w", err)

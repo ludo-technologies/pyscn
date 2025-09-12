@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
-	"encoding/csv"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/service"
@@ -27,8 +26,10 @@ type DepsCommand struct {
 	configFile string
 }
 
+func NewDepsCommand() *DepsCommand { return &DepsCommand{} }
+
 func NewDepsCmd() *cobra.Command {
-	c := &DepsCommand{}
+	c := NewDepsCommand()
 
 	cmd := &cobra.Command{
 		Use:   "deps [paths...]",
@@ -61,14 +62,13 @@ func (c *DepsCommand) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	svc := service.NewDependencyService()
-
 	req := domain.DependencyRequest{
 		Paths:           paths,
 		Recursive:       true,
 		IncludePatterns: []string{"*.py", "*.pyi"},
 		ExcludePatterns: []string{"**/tests/**", "test_*.py", "*_test.py", "**/__pycache__/**"},
 		OutputWriter:    cmd.OutOrStdout(),
+		OutputFormat:    domain.OutputFormatText,
 	}
 
 	// Load architecture rules from config if available
@@ -80,10 +80,6 @@ func (c *DepsCommand) run(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
-	}
-	resp, err := svc.Analyze(ctx, req)
-	if err != nil {
-		return err
 	}
 
 	// Determine output format
@@ -107,66 +103,64 @@ func (c *DepsCommand) run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("only one of --json, --yaml, --csv, --dot, --html can be specified")
 	}
 
-	// Default: text to stdout
+	// Default: text to stdout via use case
 	if formatCount == 0 {
-		return c.writeText(cmd, resp)
-	}
-
-	// Non-text outputs write to files under .pyscn/reports
-	targetPath := getTargetPathFromArgs(args)
-	if c.json {
-		return c.writeReportToFile(cmd, targetPath, "json", domain.OutputFormatJSON, true, func(w io.Writer) error {
-			return service.WriteJSON(w, resp)
-		})
-	}
-	if c.yaml {
-		return c.writeReportToFile(cmd, targetPath, "yaml", domain.OutputFormatYAML, true, func(w io.Writer) error {
-			return service.WriteYAML(w, resp)
-		})
-	}
-	if c.csv {
-		return c.writeReportToFile(cmd, targetPath, "csv", domain.OutputFormatCSV, true, func(w io.Writer) error {
-			cw := csv.NewWriter(w)
-			// header
-			if err := cw.Write([]string{"from", "to"}); err != nil {
-				return err
-			}
-			for _, e := range resp.Edges {
-				if err := cw.Write([]string{e.From, e.To}); err != nil {
-					return err
-				}
-			}
-			cw.Flush()
-			return cw.Error()
-		})
-	}
-	if c.html {
-		formatter := service.NewHTMLFormatter()
-		html, err := formatter.FormatDepsAsHTML(resp, "Python Project")
+		useCase, err := c.createUseCase(cmd)
 		if err != nil {
 			return err
 		}
-		return c.writeReportToFile(cmd, targetPath, "html", domain.OutputFormatHTML, c.noOpen, func(w io.Writer) error {
-			_, err := w.Write([]byte(html))
-			return err
-		})
+		return useCase.Execute(ctx, req)
 	}
-	if c.dot {
+
+	// Non-text outputs via use case (write to .pyscn/reports)
+	targetPath := getTargetPathFromArgs(args)
+	useCase, err := c.createUseCase(cmd)
+	if err != nil {
+		return err
+	}
+	switch {
+	case c.json:
+		req.OutputFormat = domain.OutputFormatJSON
+		req.OutputPath, err = generateOutputFilePath("deps", "json", targetPath)
+		if err != nil {
+			return err
+		}
+		return useCase.Execute(ctx, req)
+	case c.yaml:
+		req.OutputFormat = domain.OutputFormatYAML
+		req.OutputPath, err = generateOutputFilePath("deps", "yaml", targetPath)
+		if err != nil {
+			return err
+		}
+		return useCase.Execute(ctx, req)
+	case c.csv:
+		req.OutputFormat = domain.OutputFormatCSV
+		req.OutputPath, err = generateOutputFilePath("deps", "csv", targetPath)
+		if err != nil {
+			return err
+		}
+		return useCase.Execute(ctx, req)
+	case c.html:
+		req.OutputFormat = domain.OutputFormatHTML
+		req.OutputPath, err = generateOutputFilePath("deps", "html", targetPath)
+		if err != nil {
+			return err
+		}
+		req.NoOpen = c.noOpen
+		return useCase.Execute(ctx, req)
+	case c.dot:
+		// DOT special case: compute deps and write DOT directly
+		depSvc := service.NewDependencyService()
+		resp, err := depSvc.Analyze(ctx, req)
+		if err != nil {
+			return err
+		}
 		return c.writeDOT(cmd, targetPath, resp.DOT)
 	}
 	return nil
 }
 
 // writeReportToFile centralizes file path generation and writing via FileOutputWriter
-func (c *DepsCommand) writeReportToFile(cmd *cobra.Command, targetPath, ext string, format domain.OutputFormat, noOpen bool, writeFunc func(io.Writer) error) error {
-	outputPath, err := generateOutputFilePath("deps", ext, targetPath)
-	if err != nil {
-		return err
-	}
-	outputWriter := service.NewFileOutputWriter(cmd.ErrOrStderr())
-	return outputWriter.Write(cmd.OutOrStdout(), outputPath, format, noOpen, writeFunc)
-}
-
 // writeDOT writes DOT content to a timestamped file and prints a status message
 func (c *DepsCommand) writeDOT(cmd *cobra.Command, targetPath string, dot string) error {
 	outputPath, err := generateOutputFilePath("deps", "dot", targetPath)
@@ -274,4 +268,16 @@ func (c *DepsCommand) loadArchitectureConfig(paths []string) *domain.Architectur
 		spec.Rules = append(spec.Rules, domain.ArchitectureRule{From: r.From, Allow: append([]string{}, r.Allow...)})
 	}
 	return spec
+}
+
+func (c *DepsCommand) createUseCase(cmd *cobra.Command) (*app.DepsUseCase, error) {
+	fileReader := service.NewFileReader()
+	formatter := service.NewDepsFormatter()
+	depSvc := service.NewDependencyService()
+	return app.NewDepsUseCaseBuilder().
+		WithService(depSvc).
+		WithFileReader(fileReader).
+		WithFormatter(formatter).
+		WithOutputWriter(service.NewFileOutputWriter(cmd.ErrOrStderr())).
+		Build()
 }

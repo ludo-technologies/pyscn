@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/ludo-technologies/pyscn/domain"
 )
 
 func newDefaultCloneRequest(paths ...string) *domain.CloneRequest {
@@ -36,7 +36,7 @@ func newDefaultCloneRequest(paths ...string) *domain.CloneRequest {
 
 func TestNewCloneService(t *testing.T) {
 	service := NewCloneService()
-	
+
 	assert.NotNil(t, service)
 }
 
@@ -66,14 +66,14 @@ func TestCloneService_DetectClones(t *testing.T) {
 
 		//nolint:staticcheck // Intentionally testing nil context error handling
 		_, err := service.DetectClones(nil, req)
-		
+
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "context cannot be nil")
 	})
 
 	t.Run("nil request should return error", func(t *testing.T) {
 		_, err := service.DetectClones(ctx, nil)
-		
+
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "clone request cannot be nil")
 	})
@@ -152,9 +152,9 @@ func TestCloneService_DetectClones(t *testing.T) {
 		// Should either succeed quickly or timeout
 		if err != nil {
 			// If it fails, it should be due to timeout or cancellation
-			assert.True(t, 
+			assert.True(t,
 				duration < time.Millisecond*100 || // Finished quickly
-				err.Error() != "" && (ctx.Err() == context.DeadlineExceeded || duration < time.Second), // Or timed out reasonably
+					err.Error() != "" && (ctx.Err() == context.DeadlineExceeded || duration < time.Second), // Or timed out reasonably
 				"Expected quick completion or timeout, got duration: %v, error: %v", duration, err)
 		}
 	})
@@ -170,14 +170,14 @@ func TestCloneService_DetectClonesInFiles(t *testing.T) {
 
 		//nolint:staticcheck // Intentionally testing nil context error handling
 		_, err := service.DetectClonesInFiles(nil, []string{"test.py"}, req)
-		
+
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "context cannot be nil")
 	})
 
 	t.Run("nil request should return error", func(t *testing.T) {
 		_, err := service.DetectClonesInFiles(ctx, []string{"test.py"}, nil)
-		
+
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "clone request cannot be nil")
 	})
@@ -187,7 +187,7 @@ func TestCloneService_DetectClonesInFiles(t *testing.T) {
 		req.CloneTypes = []domain.CloneType{domain.Type1Clone}
 
 		_, err := service.DetectClonesInFiles(ctx, []string{}, req)
-		
+
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "file paths cannot be empty")
 	})
@@ -260,7 +260,7 @@ func TestCloneService_ComputeSimilarity(t *testing.T) {
 
 		//nolint:staticcheck // Intentionally testing nil context error handling
 		_, err := service.ComputeSimilarity(nil, fragment1, fragment2)
-		
+
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "context cannot be nil")
 	})
@@ -275,7 +275,7 @@ func TestCloneService_ComputeSimilarity(t *testing.T) {
 		normalFragment := "def normal(): pass"
 
 		_, err := service.ComputeSimilarity(ctx, largeFragment, normalFragment)
-		
+
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "fragment size exceeds maximum allowed size")
 	})
@@ -285,7 +285,7 @@ func TestCloneService_ComputeSimilarity(t *testing.T) {
 		validFragment := "def valid(): pass"
 
 		_, err := service.ComputeSimilarity(ctx, invalidFragment, validFragment)
-		
+
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to parse")
 	})
@@ -319,8 +319,8 @@ func TestCloneService_CreateDetectorConfig(t *testing.T) {
 
 func TestCloneService_ConvertCloneType(t *testing.T) {
 	testCases := []struct {
-		name             string
-		analyzerType     int // Using int since analyzer types are in internal package
+		name               string
+		analyzerType       int // Using int since analyzer types are in internal package
 		expectedDomainType domain.CloneType
 	}{
 		{"Type1", 1, domain.Type1Clone},
@@ -486,7 +486,7 @@ func TestCloneService_CreateStatistics(t *testing.T) {
 	assert.Equal(t, 5, stats.FilesAnalyzed)
 	assert.Equal(t, 1000, stats.LinesAnalyzed)
 	assert.InDelta(t, 0.8, stats.AverageSimilarity, 0.01) // (0.8 + 0.9 + 0.7) / 3
-	
+
 	// Check clone type counts
 	assert.Equal(t, 2, stats.ClonesByType["Type-1"])
 	assert.Equal(t, 1, stats.ClonesByType["Type-2"])

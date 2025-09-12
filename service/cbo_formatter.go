@@ -77,7 +77,7 @@ func (f *CBOFormatterImpl) formatText(response *domain.CBOResponse) (string, err
 	// CBO distribution
 	if len(response.Summary.CBODistribution) > 0 {
 		builder.WriteString(utils.FormatSectionHeader("CBO DISTRIBUTION"))
-		
+
 		// Sort ranges for consistent output
 		ranges := make([]string, 0, len(response.Summary.CBODistribution))
 		for rang := range response.Summary.CBODistribution {
@@ -112,8 +112,8 @@ func (f *CBOFormatterImpl) formatText(response *domain.CBOResponse) (string, err
 				standardRisk = RiskLow
 			}
 			coloredRisk := utils.FormatRiskWithColor(standardRisk)
-			
-			builder.WriteString(fmt.Sprintf("%s%d. %s %s (CBO: %d) - %s:%d\n", 
+
+			builder.WriteString(fmt.Sprintf("%s%d. %s %s (CBO: %d) - %s:%d\n",
 				strings.Repeat(" ", SectionPadding), i+1, coloredRisk, class.Name, class.Metrics.CouplingCount, class.FilePath, class.StartLine))
 		}
 		builder.WriteString(utils.FormatSectionSeparator())
@@ -166,11 +166,11 @@ func (f *CBOFormatterImpl) writeClassDetails(builder *strings.Builder, class dom
 		standardRisk = RiskLow
 	}
 	coloredRisk := utils.FormatRiskWithColor(standardRisk)
-	
-	builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Class", fmt.Sprintf("%s %s (CBO: %d)", 
+
+	builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Class", fmt.Sprintf("%s %s (CBO: %d)",
 		coloredRisk, class.Name, class.Metrics.CouplingCount)))
 	builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Location", fmt.Sprintf("%s:%d-%d", class.FilePath, class.StartLine, class.EndLine)))
-	
+
 	if class.IsAbstract {
 		builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Type", "Abstract Class"))
 	}
@@ -421,8 +421,8 @@ func (f *CBOFormatterImpl) formatHTML(response *domain.CBOResponse) (string, err
                     <td class="%s">%s</td>
                     <td>%s:%d</td>
                     <td>
-`, class.Name, cboBadgeClass, class.Metrics.CouplingCount, 
-   f.getRiskClass(class.RiskLevel), class.RiskLevel, class.FilePath, class.StartLine))
+`, class.Name, cboBadgeClass, class.Metrics.CouplingCount,
+				f.getRiskClass(class.RiskLevel), class.RiskLevel, class.FilePath, class.StartLine))
 
 			if len(class.Metrics.DependentClasses) > 0 {
 				builder.WriteString(strings.Join(class.Metrics.DependentClasses, ", "))

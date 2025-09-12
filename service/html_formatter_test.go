@@ -3,8 +3,8 @@ package service
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHTMLFormatter_NewHTMLFormatter(t *testing.T) {
@@ -71,7 +71,7 @@ func TestHTMLFormatter_CalculateComplexityScore(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			score := formatter.CalculateComplexityScore(tt.response)
-			
+
 			assert.GreaterOrEqual(t, score.Score, tt.expected.minScore)
 			assert.LessOrEqual(t, score.Score, tt.expected.maxScore)
 			assert.Equal(t, tt.expected.status, score.Status)
@@ -140,7 +140,7 @@ func TestHTMLFormatter_CalculateDeadCodeScore(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			score := formatter.CalculateDeadCodeScore(tt.response)
-			
+
 			assert.GreaterOrEqual(t, score.Score, tt.expected.minScore)
 			assert.LessOrEqual(t, score.Score, tt.expected.maxScore)
 			assert.Equal(t, tt.expected.status, score.Status)
@@ -176,8 +176,8 @@ func TestHTMLFormatter_CalculateCloneScore(t *testing.T) {
 			name: "No clones found",
 			response: &domain.CloneResponse{
 				Statistics: &domain.CloneStatistics{
-					LinesAnalyzed:    1000,
-					TotalClonePairs:  0,
+					LinesAnalyzed:   1000,
+					TotalClonePairs: 0,
 				},
 			},
 			expected: struct {
@@ -190,8 +190,8 @@ func TestHTMLFormatter_CalculateCloneScore(t *testing.T) {
 			name: "Some clones found",
 			response: &domain.CloneResponse{
 				Statistics: &domain.CloneStatistics{
-					LinesAnalyzed:    1000,
-					TotalClonePairs:  10,
+					LinesAnalyzed:   1000,
+					TotalClonePairs: 10,
 				},
 			},
 			expected: struct {
@@ -205,7 +205,7 @@ func TestHTMLFormatter_CalculateCloneScore(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			score := formatter.CalculateCloneScore(tt.response)
-			
+
 			assert.GreaterOrEqual(t, score.Score, tt.expected.minScore)
 			assert.LessOrEqual(t, score.Score, tt.expected.maxScore)
 			assert.Equal(t, tt.expected.status, score.Status)
@@ -266,7 +266,7 @@ func TestHTMLFormatter_CalculateOverallScore(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			overall := formatter.CalculateOverallScore(tt.scores, "Test Project")
-			
+
 			assert.GreaterOrEqual(t, overall.Score, tt.expected.minScore)
 			assert.LessOrEqual(t, overall.Score, tt.expected.maxScore)
 			assert.Equal(t, tt.expected.status, overall.Status)
@@ -279,7 +279,7 @@ func TestHTMLFormatter_CalculateOverallScore(t *testing.T) {
 
 func TestHTMLFormatter_FormatComplexityAsHTML(t *testing.T) {
 	formatter := NewHTMLFormatter()
-	
+
 	response := &domain.ComplexityResponse{
 		Summary: domain.ComplexitySummary{
 			TotalFunctions:    5,
@@ -297,30 +297,30 @@ func TestHTMLFormatter_FormatComplexityAsHTML(t *testing.T) {
 			},
 		},
 	}
-	
+
 	html, err := formatter.FormatComplexityAsHTML(response, "Test Project")
-	
+
 	assert.NoError(t, err)
 	assert.NotEmpty(t, html)
-	
+
 	// Check HTML structure
 	assert.Contains(t, html, "<!DOCTYPE html>")
 	assert.Contains(t, html, "<title>pyscn Code Quality Report - Test Project</title>")
 	assert.Contains(t, html, "Test Project")
 	assert.Contains(t, html, "Overall Score")
 	assert.Contains(t, html, "Complexity Score")
-	
+
 	// Check CSS is included
 	assert.Contains(t, html, "<style>")
 	assert.Contains(t, html, "font-family:")
-	
+
 	// Check responsive design
 	assert.Contains(t, html, "@media")
 }
 
 func TestHTMLFormatter_FormatDeadCodeAsHTML(t *testing.T) {
 	formatter := NewHTMLFormatter()
-	
+
 	response := &domain.DeadCodeResponse{
 		Summary: domain.DeadCodeSummary{
 			TotalFiles:       3,
@@ -330,9 +330,9 @@ func TestHTMLFormatter_FormatDeadCodeAsHTML(t *testing.T) {
 			OverallDeadRatio: 0.1,
 		},
 	}
-	
+
 	html, err := formatter.FormatDeadCodeAsHTML(response, "Test Project")
-	
+
 	assert.NoError(t, err)
 	assert.NotEmpty(t, html)
 	assert.Contains(t, html, "Test Project")
@@ -341,7 +341,7 @@ func TestHTMLFormatter_FormatDeadCodeAsHTML(t *testing.T) {
 
 func TestHTMLFormatter_FormatCloneAsHTML(t *testing.T) {
 	formatter := NewHTMLFormatter()
-	
+
 	response := &domain.CloneResponse{
 		Success: true,
 		Statistics: &domain.CloneStatistics{
@@ -350,9 +350,9 @@ func TestHTMLFormatter_FormatCloneAsHTML(t *testing.T) {
 			FilesAnalyzed:   10,
 		},
 	}
-	
+
 	html, err := formatter.FormatCloneAsHTML(response, "Test Project")
-	
+
 	assert.NoError(t, err)
 	assert.NotEmpty(t, html)
 	assert.Contains(t, html, "Test Project")
@@ -361,7 +361,7 @@ func TestHTMLFormatter_FormatCloneAsHTML(t *testing.T) {
 
 func TestHTMLFormatter_renderTemplate(t *testing.T) {
 	formatter := NewHTMLFormatter()
-	
+
 	data := ComplexityHTMLData{
 		OverallScore: OverallScoreData{
 			Score:       85,
@@ -378,9 +378,9 @@ func TestHTMLFormatter_renderTemplate(t *testing.T) {
 			},
 		},
 	}
-	
+
 	html, err := formatter.renderTemplate(data)
-	
+
 	assert.NoError(t, err)
 	assert.NotEmpty(t, html)
 	assert.Contains(t, html, "Test Project")
@@ -389,7 +389,7 @@ func TestHTMLFormatter_renderTemplate(t *testing.T) {
 
 func TestHTMLFormatter_ErrorHandling(t *testing.T) {
 	formatter := NewHTMLFormatter()
-	
+
 	// Test with nil response
 	_, err := formatter.FormatComplexityAsHTML(nil, "Test")
 	assert.Error(t, err)

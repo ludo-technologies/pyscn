@@ -311,7 +311,6 @@ func (b *CBOUseCaseBuilder) WithConfigLoader(configLoader domain.CBOConfiguratio
 	return b
 }
 
-
 // WithOutputWriter sets the report writer
 func (b *CBOUseCaseBuilder) WithOutputWriter(output domain.ReportWriter) *CBOUseCaseBuilder {
 	b.output = output
@@ -392,5 +391,3 @@ func (n *noOpCBOConfigLoader) LoadDefaultConfig() *domain.CBORequest {
 func (n *noOpCBOConfigLoader) MergeConfig(base *domain.CBORequest, override *domain.CBORequest) *domain.CBORequest {
 	return override
 }
-
-

@@ -196,7 +196,7 @@ func (c *ConfigurationLoaderImpl) FindDefaultConfigFile() string {
 	// Use TOML-only strategy
 	tomlLoader := config.NewTomlConfigLoader()
 	configFiles := tomlLoader.GetSupportedConfigFiles()
-	
+
 	for _, filename := range configFiles {
 		if _, err := os.Stat(filename); err == nil {
 			return filename
@@ -209,18 +209,18 @@ func (c *ConfigurationLoaderImpl) FindDefaultConfigFile() string {
 // cloneConfigToUnifiedConfig converts CloneConfig to unified Config format
 func (c *ConfigurationLoaderImpl) cloneConfigToUnifiedConfig(cloneCfg *config.CloneConfig) *config.Config {
 	cfg := config.DefaultConfig()
-	
+
 	// Map analysis settings
 	cfg.Analysis.IncludePatterns = cloneCfg.Input.IncludePatterns
 	cfg.Analysis.ExcludePatterns = cloneCfg.Input.ExcludePatterns
 	cfg.Analysis.Recursive = cloneCfg.Input.Recursive
-	
+
 	// Map output settings
 	cfg.Output.Format = cloneCfg.Output.Format
 	cfg.Output.ShowDetails = cloneCfg.Output.ShowDetails
-	
+
 	// Complexity settings use defaults from DefaultConfig()
 	// since TOML-only config focuses on clone detection
-	
+
 	return cfg
 }

@@ -31,16 +31,16 @@ func TestNewCBOAnalyzer(t *testing.T) {
 		{
 			name: "custom options should be preserved",
 			options: &CBOOptions{
-				IncludeBuiltins:   true,
-				IncludeImports:    false,
-				LowThreshold:      3,
-				MediumThreshold:   8,
+				IncludeBuiltins: true,
+				IncludeImports:  false,
+				LowThreshold:    3,
+				MediumThreshold: 8,
 			},
 			expected: &CBOOptions{
-				IncludeBuiltins:   true,
-				IncludeImports:    false,
-				LowThreshold:      3,
-				MediumThreshold:   8,
+				IncludeBuiltins: true,
+				IncludeImports:  false,
+				LowThreshold:    3,
+				MediumThreshold: 8,
 			},
 		},
 	}
@@ -63,7 +63,7 @@ func TestCBOAnalyzer_AnalyzeClasses(t *testing.T) {
 		pythonCode    string
 		options       *CBOOptions
 		expectedCount int
-		expectedCBO   map[string]int // className -> expected CBO count
+		expectedCBO   map[string]int    // className -> expected CBO count
 		expectedRisk  map[string]string // className -> risk level
 	}{
 		{
@@ -245,7 +245,7 @@ class MyClass:
 			expectedCBO:     0,
 		},
 		{
-			name:            "include builtins", 
+			name:            "include builtins",
 			includeBuiltins: true,
 			expectedCBO:     3, // list, int, dict (str and len are functions, not types)
 		},
@@ -286,10 +286,10 @@ class NormalClass(_PrivateClass):
 `
 
 	tests := []struct {
-		name             string
-		excludePatterns  []string
+		name              string
+		excludePatterns   []string
 		publicClassesOnly bool
-		expectedClasses  []string
+		expectedClasses   []string
 	}{
 		{
 			name:            "no exclusions",
@@ -302,9 +302,9 @@ class NormalClass(_PrivateClass):
 			expectedClasses: []string{"_PrivateClass", "NormalClass"},
 		},
 		{
-			name:             "public classes only",
+			name:              "public classes only",
 			publicClassesOnly: true,
-			expectedClasses:  []string{"TestClass", "MyTestHelper", "NormalClass"},
+			expectedClasses:   []string{"TestClass", "MyTestHelper", "NormalClass"},
 		},
 	}
 
@@ -353,7 +353,7 @@ func TestCBOAnalyzer_RiskAssessment(t *testing.T) {
 				MediumThreshold: tt.mediumThreshold,
 			}
 			analyzer := NewCBOAnalyzer(options)
-			
+
 			risk := analyzer.assessRiskLevel(tt.cbo)
 			assert.Equal(t, tt.expectedRisk, risk)
 		})
@@ -403,7 +403,7 @@ class DerivedClass(SimpleClass):
 	require.NoError(t, err)
 
 	assert.Len(t, results, 2)
-	
+
 	// Find results by class name
 	var simpleResult, derivedResult *CBOResult
 	for _, result := range results {
@@ -427,15 +427,15 @@ class DerivedClass(SimpleClass):
 func parseCode(code string) (*parser.Node, error) {
 	p := parser.New()
 	ctx := context.Background()
-	
+
 	// Remove leading/trailing whitespace and ensure proper indentation
 	code = strings.TrimSpace(code)
-	
+
 	result, err := p.Parse(ctx, []byte(code))
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return result.AST, nil
 }
 
@@ -497,12 +497,12 @@ class DataProcessor:
 func BenchmarkLargeClassHierarchy(b *testing.B) {
 	// Generate a larger class hierarchy for performance testing
 	var codeBuilder strings.Builder
-	
+
 	// Create base classes
 	for i := 0; i < 20; i++ {
 		codeBuilder.WriteString(fmt.Sprintf("class Base%d:\n    pass\n\n", i))
 	}
-	
+
 	// Create derived classes with multiple dependencies
 	for i := 0; i < 50; i++ {
 		codeBuilder.WriteString(fmt.Sprintf(`class Derived%d(Base%d):

@@ -66,7 +66,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	// Create clone detector with configuration
 	detectorConfig := s.createDetectorConfig(req)
 	detector := analyzer.NewCloneDetector(detectorConfig)
-	
+
 	// Performance optimizations are built into the detector
 
 	// Create Python parser
@@ -135,14 +135,14 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 
 	// Starting actual clone detection (this is the slow part)
 
-    // Detect clones (use LSH if enabled)
-    var clonePairs []*analyzer.ClonePair
-    var cloneGroups []*analyzer.CloneGroup
-    if detectorConfig.UseLSH {
-        clonePairs, cloneGroups = detector.DetectClonesWithLSH(ctx, allFragments)
-    } else {
-        clonePairs, cloneGroups = detector.DetectClonesWithContext(ctx, allFragments)
-    }
+	// Detect clones (use LSH if enabled)
+	var clonePairs []*analyzer.ClonePair
+	var cloneGroups []*analyzer.CloneGroup
+	if detectorConfig.UseLSH {
+		clonePairs, cloneGroups = detector.DetectClonesWithLSH(ctx, allFragments)
+	} else {
+		clonePairs, cloneGroups = detector.DetectClonesWithContext(ctx, allFragments)
+	}
 
 	// Convert to domain objects
 	domainClones := s.convertFragmentsToDomainClones(allFragments)
@@ -229,45 +229,45 @@ func (s *CloneService) ComputeSimilarity(ctx context.Context, fragment1, fragmen
 
 // createDetectorConfig creates a clone detector configuration from the domain request
 func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.CloneDetectorConfig {
-    // Determine grouping defaults
-    groupMode := analyzer.GroupingMode(req.GroupMode)
-    if groupMode == "" {
-        groupMode = analyzer.GroupingModeConnected
-    }
-    groupThreshold := req.GroupThreshold
-    if groupThreshold <= 0 {
-        groupThreshold = req.Type3Threshold
-    }
-    kVal := req.KCoreK
-    if kVal < 2 {
-        kVal = 2
-    }
+	// Determine grouping defaults
+	groupMode := analyzer.GroupingMode(req.GroupMode)
+	if groupMode == "" {
+		groupMode = analyzer.GroupingModeConnected
+	}
+	groupThreshold := req.GroupThreshold
+	if groupThreshold <= 0 {
+		groupThreshold = req.Type3Threshold
+	}
+	kVal := req.KCoreK
+	if kVal < 2 {
+		kVal = 2
+	}
 
-    return &analyzer.CloneDetectorConfig{
-        MinLines:          req.MinLines,
-        MinNodes:          req.MinNodes,
-        Type1Threshold:    req.Type1Threshold,
-        Type2Threshold:    req.Type2Threshold,
-        Type3Threshold:    req.Type3Threshold,
-        Type4Threshold:    req.Type4Threshold,
-        MaxEditDistance:   req.MaxEditDistance,
-        IgnoreLiterals:    req.IgnoreLiterals,
-        IgnoreIdentifiers: req.IgnoreIdentifiers,
-        CostModelType:     "python", // Default to Python cost model
-        MaxClonePairs:      10000,    // Default max pairs
-        BatchSizeThreshold: 50,       // Default batch size threshold
+	return &analyzer.CloneDetectorConfig{
+		MinLines:           req.MinLines,
+		MinNodes:           req.MinNodes,
+		Type1Threshold:     req.Type1Threshold,
+		Type2Threshold:     req.Type2Threshold,
+		Type3Threshold:     req.Type3Threshold,
+		Type4Threshold:     req.Type4Threshold,
+		MaxEditDistance:    req.MaxEditDistance,
+		IgnoreLiterals:     req.IgnoreLiterals,
+		IgnoreIdentifiers:  req.IgnoreIdentifiers,
+		CostModelType:      "python", // Default to Python cost model
+		MaxClonePairs:      10000,    // Default max pairs
+		BatchSizeThreshold: 50,       // Default batch size threshold
 
-        // Grouping
-        GroupingMode:      groupMode,
-        GroupingThreshold: groupThreshold,
-        KCoreK:            kVal,
-        // LSH
-        UseLSH:                 req.UseLSH,
-        LSHSimilarityThreshold: req.LSHSimilarityThreshold,
-        LSHBands:               req.LSHBands,
-        LSHRows:                req.LSHRows,
-        LSHMinHashCount:        req.LSHHashes,
-    }
+		// Grouping
+		GroupingMode:      groupMode,
+		GroupingThreshold: groupThreshold,
+		KCoreK:            kVal,
+		// LSH
+		UseLSH:                 req.UseLSH,
+		LSHSimilarityThreshold: req.LSHSimilarityThreshold,
+		LSHBands:               req.LSHBands,
+		LSHRows:                req.LSHRows,
+		LSHMinHashCount:        req.LSHHashes,
+	}
 }
 
 // convertFragmentsToDomainClones converts analyzer fragments to domain clones

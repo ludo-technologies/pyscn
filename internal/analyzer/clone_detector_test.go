@@ -405,24 +405,24 @@ func TestCloneDetector_ExtractFragments_Integration(t *testing.T) {
 
 func TestCloneDetector_DetectClones(t *testing.T) {
 	tests := []struct {
-		name          string
-		config        *CloneDetectorConfig
-		fragments     []*CodeFragment
-		expectedPairs int
+		name           string
+		config         *CloneDetectorConfig
+		fragments      []*CodeFragment
+		expectedPairs  int
 		expectedGroups int
-		description   string
+		description    string
 	}{
 		{
-			name:   "identical functions",
+			name: "identical functions",
 			config: &CloneDetectorConfig{
-				MinLines:        2,
-				MinNodes:        2,
-				Type1Threshold:  0.95,
-				Type2Threshold:  0.85,
-				Type3Threshold:  0.70,
-				Type4Threshold:  0.60,
-				MaxEditDistance: 50.0,
-				MaxClonePairs:   10000,
+				MinLines:           2,
+				MinNodes:           2,
+				Type1Threshold:     0.95,
+				Type2Threshold:     0.85,
+				Type3Threshold:     0.70,
+				Type4Threshold:     0.60,
+				MaxEditDistance:    50.0,
+				MaxClonePairs:      10000,
 				BatchSizeThreshold: 50,
 			},
 			fragments: func() []*CodeFragment {
@@ -447,35 +447,35 @@ func TestCloneDetector_DetectClones(t *testing.T) {
 						}},
 					},
 				}
-				
+
 				loc1 := &CodeLocation{FilePath: "/test.py", StartLine: 1, EndLine: 5}
 				loc2 := &CodeLocation{FilePath: "/test.py", StartLine: 10, EndLine: 14}
-				
+
 				frag1 := NewCodeFragment(loc1, ast1, "def func1():\n    return 1")
 				frag2 := NewCodeFragment(loc2, ast2, "def func2():\n    return 1")
-				
+
 				// Convert to TreeNode for comparison
 				converter := NewTreeConverter()
 				frag1.TreeNode = converter.ConvertAST(ast1)
 				frag2.TreeNode = converter.ConvertAST(ast2)
-				
+
 				return []*CodeFragment{frag1, frag2}
 			}(),
 			expectedPairs:  1,
 			expectedGroups: 1,
-			description:   "Should detect Type-1 clone for identical functions",
+			description:    "Should detect Type-1 clone for identical functions",
 		},
 		{
-			name:   "different variable names",
+			name: "different variable names",
 			config: &CloneDetectorConfig{
-				MinLines:        2,
-				MinNodes:        2,
-				Type1Threshold:  0.95,
-				Type2Threshold:  0.85,
-				Type3Threshold:  0.70,
-				Type4Threshold:  0.60,
-				MaxEditDistance: 50.0,
-				MaxClonePairs:   10000,
+				MinLines:           2,
+				MinNodes:           2,
+				Type1Threshold:     0.95,
+				Type2Threshold:     0.85,
+				Type3Threshold:     0.70,
+				Type4Threshold:     0.60,
+				MaxEditDistance:    50.0,
+				MaxClonePairs:      10000,
 				BatchSizeThreshold: 50,
 			},
 			fragments: func() []*CodeFragment {
@@ -508,34 +508,34 @@ func TestCloneDetector_DetectClones(t *testing.T) {
 						}},
 					},
 				}
-				
+
 				loc1 := &CodeLocation{FilePath: "/test.py", StartLine: 1, EndLine: 5}
 				loc2 := &CodeLocation{FilePath: "/test.py", StartLine: 10, EndLine: 14}
-				
+
 				frag1 := NewCodeFragment(loc1, ast1, "def process_data(x):\n    x = x * 2")
 				frag2 := NewCodeFragment(loc2, ast2, "def calculate(y):\n    y = y * 2")
-				
+
 				converter := NewTreeConverter()
 				frag1.TreeNode = converter.ConvertAST(ast1)
 				frag2.TreeNode = converter.ConvertAST(ast2)
-				
+
 				return []*CodeFragment{frag1, frag2}
 			}(),
 			expectedPairs:  1,
 			expectedGroups: 1,
-			description:   "Should detect Type-2 clone for renamed variables",
+			description:    "Should detect Type-2 clone for renamed variables",
 		},
 		{
-			name:   "no clones",
+			name: "no clones",
 			config: &CloneDetectorConfig{
-				MinLines:        2,
-				MinNodes:        2,
-				Type1Threshold:  0.95,
-				Type2Threshold:  0.85,
-				Type3Threshold:  0.70,
-				Type4Threshold:  0.60,
-				MaxEditDistance: 50.0,
-				MaxClonePairs:   10000,
+				MinLines:           2,
+				MinNodes:           2,
+				Type1Threshold:     0.95,
+				Type2Threshold:     0.85,
+				Type3Threshold:     0.70,
+				Type4Threshold:     0.60,
+				MaxEditDistance:    50.0,
+				MaxClonePairs:      10000,
 				BatchSizeThreshold: 50,
 			},
 			fragments: func() []*CodeFragment {
@@ -556,41 +556,41 @@ func TestCloneDetector_DetectClones(t *testing.T) {
 						{Type: parser.NodeFunctionDef, Name: "__init__"},
 					},
 				}
-				
+
 				loc1 := &CodeLocation{FilePath: "/test.py", StartLine: 1, EndLine: 5}
 				loc2 := &CodeLocation{FilePath: "/test.py", StartLine: 10, EndLine: 20}
-				
+
 				frag1 := NewCodeFragment(loc1, ast1, "def read_file():\n    open()")
 				frag2 := NewCodeFragment(loc2, ast2, "class DataProcessor:\n    def __init__()")
-				
+
 				converter := NewTreeConverter()
 				frag1.TreeNode = converter.ConvertAST(ast1)
 				frag2.TreeNode = converter.ConvertAST(ast2)
-				
+
 				return []*CodeFragment{frag1, frag2}
 			}(),
 			expectedPairs:  0,
 			expectedGroups: 0,
-			description:   "Should not detect clones for completely different code",
+			description:    "Should not detect clones for completely different code",
 		},
 		{
-			name:   "multiple clones",
+			name: "multiple clones",
 			config: &CloneDetectorConfig{
-				MinLines:        1,
-				MinNodes:        1,
-				Type1Threshold:  0.95,
-				Type2Threshold:  0.85,
-				Type3Threshold:  0.70,
-				Type4Threshold:  0.60,
-				MaxEditDistance: 50.0,
-				MaxClonePairs:   10000,
+				MinLines:           1,
+				MinNodes:           1,
+				Type1Threshold:     0.95,
+				Type2Threshold:     0.85,
+				Type3Threshold:     0.70,
+				Type4Threshold:     0.60,
+				MaxEditDistance:    50.0,
+				MaxClonePairs:      10000,
 				BatchSizeThreshold: 50,
 			},
 			fragments: func() []*CodeFragment {
 				// Create three similar fragments
 				fragments := make([]*CodeFragment, 3)
 				converter := NewTreeConverter()
-				
+
 				for i := 0; i < 3; i++ {
 					ast := &parser.Node{
 						Type:     parser.NodeFunctionDef,
@@ -602,35 +602,35 @@ func TestCloneDetector_DetectClones(t *testing.T) {
 							}},
 						},
 					}
-					
+
 					loc := &CodeLocation{
 						FilePath:  "/test.py",
 						StartLine: i*10 + 1,
 						EndLine:   i*10 + 3,
 					}
-					
+
 					fragments[i] = NewCodeFragment(loc, ast, fmt.Sprintf("def func%d():\n    return %d", i, i))
 					fragments[i].TreeNode = converter.ConvertAST(ast)
 				}
-				
+
 				return fragments
 			}(),
 			expectedPairs:  3, // (0,1), (0,2), (1,2)
 			expectedGroups: 1, // All three in one group
-			description:   "Should detect all pairs and group them together",
+			description:    "Should detect all pairs and group them together",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			detector := NewCloneDetector(tt.config)
-			
+
 			// Detect clones
 			pairs, groups := detector.DetectClones(tt.fragments)
-			
-			assert.Len(t, pairs, tt.expectedPairs, tt.description + " - pairs count")
-			assert.Len(t, groups, tt.expectedGroups, tt.description + " - groups count")
-			
+
+			assert.Len(t, pairs, tt.expectedPairs, tt.description+" - pairs count")
+			assert.Len(t, groups, tt.expectedGroups, tt.description+" - groups count")
+
 			// Verify that all pairs have valid similarity scores
 			for _, pair := range pairs {
 				assert.GreaterOrEqual(t, pair.Similarity, 0.0, "Similarity should be >= 0")
@@ -639,7 +639,7 @@ func TestCloneDetector_DetectClones(t *testing.T) {
 				assert.NotNil(t, pair.Fragment2, "Fragment2 should not be nil")
 				assert.Greater(t, pair.CloneType, CloneType(0), "CloneType should be valid")
 			}
-			
+
 			// Verify groups
 			for _, group := range groups {
 				assert.NotEmpty(t, group.Fragments, "Group should have fragments")
@@ -664,10 +664,10 @@ func TestCloneDetector_compareFragments(t *testing.T) {
 	converter := NewTreeConverter()
 
 	tests := []struct {
-		name         string
-		fragment1    *CodeFragment
-		fragment2    *CodeFragment
-		expectPair   bool
+		name          string
+		fragment1     *CodeFragment
+		fragment2     *CodeFragment
+		expectPair    bool
 		minSimilarity float64
 	}{
 		{
@@ -737,7 +737,7 @@ func TestCloneDetector_compareFragments(t *testing.T) {
 				frag.TreeNode = converter.ConvertAST(ast)
 				return frag
 			}(),
-			expectPair: true, // compareFragments doesn't filter same location, that's done at higher level
+			expectPair:    true, // compareFragments doesn't filter same location, that's done at higher level
 			minSimilarity: 0.95,
 		},
 		{
@@ -783,11 +783,11 @@ func TestCloneDetector_compareFragments(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pair := detector.compareFragments(tt.fragment1, tt.fragment2)
-			
+
 			if tt.expectPair {
 				assert.NotNil(t, pair, "Expected a clone pair")
 				if pair != nil {
-					assert.GreaterOrEqual(t, pair.Similarity, tt.minSimilarity, 
+					assert.GreaterOrEqual(t, pair.Similarity, tt.minSimilarity,
 						"Similarity should be at least %f", tt.minSimilarity)
 					assert.Equal(t, tt.fragment1, pair.Fragment1)
 					assert.Equal(t, tt.fragment2, pair.Fragment2)

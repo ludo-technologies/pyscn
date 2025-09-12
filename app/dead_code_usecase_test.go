@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // Mock implementations for DeadCodeUseCase
@@ -454,7 +454,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			})
+		})
 	}
 }
 
@@ -534,7 +534,7 @@ func TestDeadCodeUseCase_AnalyzeAndReturn(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			})
+		})
 	}
 }
 
@@ -662,7 +662,7 @@ func TestDeadCodeUseCase_AnalyzeFile(t *testing.T) {
 		},
 		{
 			name:     "analysis error - file not found",
-			filePath: "/test/nonexistent.py", 
+			filePath: "/test/nonexistent.py",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				fileReader.On("IsValidPythonFile", "/test/nonexistent.py").Return(true)
 				fileReader.On("FileExists", "/test/nonexistent.py").Return(false, nil)
@@ -695,7 +695,7 @@ func TestDeadCodeUseCase_AnalyzeFile(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			})
+		})
 	}
 }
 
@@ -712,18 +712,18 @@ func TestDeadCodeUseCase_AnalyzeFunction(t *testing.T) {
 			functionCFG: map[string]interface{}{"nodes": []int{1, 2, 3}, "edges": [][]int{{1, 2}, {2, 3}}},
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
-				
+
 				mockFunctionResult := &domain.FunctionDeadCode{
-					Name:         "test_function",
-					FilePath:     "/test/file.py",
-					TotalBlocks:  3,
-					DeadBlocks:   1,
+					Name:           "test_function",
+					FilePath:       "/test/file.py",
+					TotalBlocks:    3,
+					DeadBlocks:     1,
 					ReachableRatio: 0.67,
-					CriticalCount: 0,
-					WarningCount: 1,
-					Findings:     []domain.DeadCodeFinding{},
+					CriticalCount:  0,
+					WarningCount:   1,
+					Findings:       []domain.DeadCodeFinding{},
 				}
-				
+
 				service.On("AnalyzeFunction", mock.Anything, mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return(mockFunctionResult, nil)
 			},
@@ -778,7 +778,7 @@ func TestDeadCodeUseCase_AnalyzeFunction(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			})
+		})
 	}
 }
 

@@ -17,11 +17,11 @@ import (
 // ComplexityCommand represents the complexity command
 type ComplexityCommand struct {
 	// Output format flags (only one should be true)
-	html      bool
-	json      bool
-	csv       bool
-	yaml      bool
-	noOpen    bool
+	html   bool
+	json   bool
+	csv    bool
+	yaml   bool
+	noOpen bool
 
 	// Analysis flags
 	minComplexity   int
@@ -82,7 +82,7 @@ Examples:
 	cmd.Flags().BoolVar(&c.csv, "csv", false, "Generate CSV report file")
 	cmd.Flags().BoolVar(&c.yaml, "yaml", false, "Generate YAML report file")
 	cmd.Flags().BoolVar(&c.noOpen, "no-open", false, "Don't auto-open HTML in browser")
-	
+
 	// Add analysis flags
 	cmd.Flags().IntVar(&c.minComplexity, "min", 1, "Minimum complexity to report")
 	cmd.Flags().IntVar(&c.maxComplexity, "max", 0, "Maximum complexity limit (0 = no limit)")
@@ -129,10 +129,9 @@ func (c *ComplexityCommand) runComplexityAnalysis(cmd *cobra.Command, args []str
 
 // determineOutputFormat determines the output format based on flags
 func (c *ComplexityCommand) determineOutputFormat() (domain.OutputFormat, string, error) {
-    resolver := service.NewOutputFormatResolver()
-    return resolver.Determine(c.html, c.json, c.csv, c.yaml)
+	resolver := service.NewOutputFormatResolver()
+	return resolver.Determine(c.html, c.json, c.csv, c.yaml)
 }
-
 
 // buildComplexityRequest creates a domain request from CLI flags
 func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []string) (domain.ComplexityRequest, error) {
@@ -162,7 +161,7 @@ func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []st
 	// Determine output destination
 	var outputWriter io.Writer
 	var outputPath string
-	
+
 	if outputFormat == domain.OutputFormatText {
 		// Text format goes to stdout
 		outputWriter = cmd.OutOrStdout()
@@ -178,7 +177,7 @@ func (c *ComplexityCommand) buildComplexityRequest(cmd *cobra.Command, args []st
 	}
 
 	// Build request with all values
-	
+
 	return domain.ComplexityRequest{
 		Paths:           paths,
 		OutputFormat:    outputFormat,
@@ -210,14 +209,14 @@ func (c *ComplexityCommand) createComplexityUseCase(cmd *cobra.Command) (*app.Co
 
 	complexityService := service.NewComplexityService()
 
-    // Build use case
-    useCase, err := app.NewComplexityUseCaseBuilder().
-        WithService(complexityService).
-        WithFileReader(fileReader).
-        WithFormatter(formatter).
-        WithConfigLoader(configLoader).
-        WithOutputWriter(service.NewFileOutputWriter(cmd.ErrOrStderr())).
-        Build()
+	// Build use case
+	useCase, err := app.NewComplexityUseCaseBuilder().
+		WithService(complexityService).
+		WithFileReader(fileReader).
+		WithFormatter(formatter).
+		WithConfigLoader(configLoader).
+		WithOutputWriter(service.NewFileOutputWriter(cmd.ErrOrStderr())).
+		Build()
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to build use case: %w", err)

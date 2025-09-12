@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/ludo-technologies/pyscn/domain"
 )
 
 func newDefaultCBORequest(paths ...string) domain.CBORequest {
@@ -33,7 +33,7 @@ func newDefaultCBORequest(paths ...string) domain.CBORequest {
 
 func TestNewCBOService(t *testing.T) {
 	service := NewCBOService()
-	
+
 	assert.NotNil(t, service)
 	assert.NotNil(t, service.parser)
 }
@@ -461,11 +461,11 @@ func TestCBOService_BuildCBOOptions(t *testing.T) {
 	service := NewCBOService()
 
 	req := domain.CBORequest{
-		IncludeBuiltins:  true,
-		IncludeImports:   false,
-		ExcludePatterns:  []string{"test_*.py"},
-		LowThreshold:     3,
-		MediumThreshold:  8,
+		IncludeBuiltins: true,
+		IncludeImports:  false,
+		ExcludePatterns: []string{"test_*.py"},
+		LowThreshold:    3,
+		MediumThreshold: 8,
 	}
 
 	options := service.buildCBOOptions(req)
@@ -498,7 +498,7 @@ func TestCBOService_BuildConfigForResponse(t *testing.T) {
 
 	configMap, ok := config.(map[string]interface{})
 	require.True(t, ok)
-	
+
 	assert.Equal(t, 1, configMap["minCBO"])
 	assert.Equal(t, 20, configMap["maxCBO"])
 	assert.Equal(t, false, configMap["showZeros"])
@@ -522,17 +522,17 @@ func TestCBOService_ResponseMetadata(t *testing.T) {
 
 	assert.NoError(t, err)
 	require.NotNil(t, response)
-	
+
 	// Verify timestamp is within expected range
 	assert.NotEmpty(t, response.GeneratedAt)
 	generatedTime, err := time.Parse(time.RFC3339, response.GeneratedAt)
 	assert.NoError(t, err)
-	assert.True(t, generatedTime.After(beforeTime.Add(-time.Second)) && generatedTime.Before(afterTime.Add(time.Second)), 
+	assert.True(t, generatedTime.After(beforeTime.Add(-time.Second)) && generatedTime.Before(afterTime.Add(time.Second)),
 		"Generated time %v should be between %v and %v", generatedTime, beforeTime, afterTime)
-	
+
 	// Verify version is present
 	assert.NotEmpty(t, response.Version)
-	
+
 	// Verify config is present
 	assert.NotNil(t, response.Config)
 }

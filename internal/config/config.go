@@ -1,11 +1,11 @@
 package config
 
 import (
-    "fmt"
-    "os"
-    "path/filepath"
+	"fmt"
+	"os"
+	"path/filepath"
 
-    "github.com/spf13/viper"
+	"github.com/spf13/viper"
 )
 
 // Default complexity thresholds based on McCabe complexity standards
@@ -58,10 +58,10 @@ type Config struct {
 	Output OutputConfig `mapstructure:"output" yaml:"output"`
 
 	// Analysis holds general analysis configuration
-    Analysis AnalysisConfig `mapstructure:"analysis" yaml:"analysis"`
+	Analysis AnalysisConfig `mapstructure:"analysis" yaml:"analysis"`
 
-    // Architecture holds system-level layer configuration (optional)
-    Architecture *ArchitectureConfig `mapstructure:"architecture" yaml:"architecture"`
+	// Architecture holds system-level layer configuration (optional)
+	Architecture *ArchitectureConfig `mapstructure:"architecture" yaml:"architecture"`
 }
 
 // ComplexityConfig holds configuration for cyclomatic complexity analysis
@@ -98,63 +98,63 @@ type OutputConfig struct {
 	// MinComplexity is the minimum complexity to report (filters low values)
 	MinComplexity int `mapstructure:"min_complexity" yaml:"min_complexity"`
 
-    // Directory specifies the output directory for reports (empty = tool default, e.g., ".pyscn/reports" under current working directory)
-    Directory string `mapstructure:"directory" yaml:"directory"`
+	// Directory specifies the output directory for reports (empty = tool default, e.g., ".pyscn/reports" under current working directory)
+	Directory string `mapstructure:"directory" yaml:"directory"`
 }
 
 // ArchitectureConfig defines layers and dependency rules for system-level validation
 type ArchitectureConfig struct {
-    Enabled bool `mapstructure:"enabled" yaml:"enabled"`
-    Layers  []ArchitectureLayer `mapstructure:"layers" yaml:"layers"`
-    Rules   []ArchitectureRule  `mapstructure:"rules" yaml:"rules"`
+	Enabled bool                `mapstructure:"enabled" yaml:"enabled"`
+	Layers  []ArchitectureLayer `mapstructure:"layers" yaml:"layers"`
+	Rules   []ArchitectureRule  `mapstructure:"rules" yaml:"rules"`
 }
 
 // ArchitectureLayer maps dotted-module patterns to a logical layer name
 type ArchitectureLayer struct {
-    Name     string   `mapstructure:"name" yaml:"name"`
-    Packages []string `mapstructure:"packages" yaml:"packages"`
+	Name     string   `mapstructure:"name" yaml:"name"`
+	Packages []string `mapstructure:"packages" yaml:"packages"`
 }
 
 // ArchitectureRule defines allowed outbound dependencies for a given layer
 type ArchitectureRule struct {
-    From  string   `mapstructure:"from" yaml:"from"`
-    Allow []string `mapstructure:"allow" yaml:"allow"`
+	From  string   `mapstructure:"from" yaml:"from"`
+	Allow []string `mapstructure:"allow" yaml:"allow"`
 }
 
 // Validate checks architecture config consistency
 func (a *ArchitectureConfig) Validate() error {
-    if len(a.Layers) == 0 {
-        return fmt.Errorf("no layers defined")
-    }
-    // unique layer names
-    names := make(map[string]struct{})
-    for _, l := range a.Layers {
-        if l.Name == "" {
-            return fmt.Errorf("layer name cannot be empty")
-        }
-        if _, ok := names[l.Name]; ok {
-            return fmt.Errorf("duplicate layer name: %s", l.Name)
-        }
-        names[l.Name] = struct{}{}
-        if len(l.Packages) == 0 {
-            return fmt.Errorf("layer %s has no packages", l.Name)
-        }
-    }
-    // rules reference known layers
-    for _, r := range a.Rules {
-        if r.From == "" {
-            return fmt.Errorf("rule has empty 'from'")
-        }
-        if _, ok := names[r.From]; !ok {
-            return fmt.Errorf("rule 'from' references unknown layer: %s", r.From)
-        }
-        for _, al := range r.Allow {
-            if _, ok := names[al]; !ok {
-                return fmt.Errorf("rule from %s allows unknown layer: %s", r.From, al)
-            }
-        }
-    }
-    return nil
+	if len(a.Layers) == 0 {
+		return fmt.Errorf("no layers defined")
+	}
+	// unique layer names
+	names := make(map[string]struct{})
+	for _, l := range a.Layers {
+		if l.Name == "" {
+			return fmt.Errorf("layer name cannot be empty")
+		}
+		if _, ok := names[l.Name]; ok {
+			return fmt.Errorf("duplicate layer name: %s", l.Name)
+		}
+		names[l.Name] = struct{}{}
+		if len(l.Packages) == 0 {
+			return fmt.Errorf("layer %s has no packages", l.Name)
+		}
+	}
+	// rules reference known layers
+	for _, r := range a.Rules {
+		if r.From == "" {
+			return fmt.Errorf("rule has empty 'from'")
+		}
+		if _, ok := names[r.From]; !ok {
+			return fmt.Errorf("rule 'from' references unknown layer: %s", r.From)
+		}
+		for _, al := range r.Allow {
+			if _, ok := names[al]; !ok {
+				return fmt.Errorf("rule from %s allows unknown layer: %s", r.From, al)
+			}
+		}
+	}
+	return nil
 }
 
 // DeadCodeConfig holds configuration for dead code detection
@@ -238,7 +238,7 @@ type CloneDetectionConfig struct {
 
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
-    config := &Config{
+	config := &Config{
 		Complexity: ComplexityConfig{
 			LowThreshold:    DefaultLowComplexityThreshold,
 			MediumThreshold: DefaultMediumComplexityThreshold,
@@ -267,14 +267,14 @@ func DefaultConfig() *Config {
 			SortBy:        "name",
 			MinComplexity: DefaultMinComplexityFilter,
 		},
-        Analysis: AnalysisConfig{
-            IncludePatterns: []string{"*.py"},
-            ExcludePatterns: []string{"test_*.py", "*_test.py"},
-            Recursive:       true,
-            FollowSymlinks:  false,
-        },
-        Architecture: nil,
-    }
+		Analysis: AnalysisConfig{
+			IncludePatterns: []string{"*.py"},
+			ExcludePatterns: []string{"test_*.py", "*_test.py"},
+			Recursive:       true,
+			FollowSymlinks:  false,
+		},
+		Architecture: nil,
+	}
 
 	// For backward compatibility, populate legacy CloneDetection field
 	config.CloneDetection = config.Clones.ToCloneDetectionConfig()
@@ -368,7 +368,7 @@ func findDefaultConfig(targetPath string) string {
 			if err == nil && !info.IsDir() {
 				absPath = filepath.Dir(absPath)
 			}
-			
+
 			// Search from target directory up to root with robust termination
 			// Handle Windows edge cases: volume roots (C:\), UNC paths (\\server\share), long paths
 			volume := filepath.VolumeName(absPath)
@@ -376,10 +376,10 @@ func findDefaultConfig(targetPath string) string {
 				if config := searchConfigInDirectory(dir, candidates); config != "" {
 					return config
 				}
-				
+
 				// Robust termination conditions for cross-platform compatibility
 				parent := filepath.Dir(dir)
-				if parent == dir || // Unix-style root reached (/), Windows UNC root (\\server)  
+				if parent == dir || // Unix-style root reached (/), Windows UNC root (\\server)
 					dir == volume || // Windows volume root reached (C:\)
 					(volume != "" && dir == volume+string(filepath.Separator)) { // Alternative volume root format
 					break
@@ -387,7 +387,7 @@ func findDefaultConfig(targetPath string) string {
 			}
 		}
 	}
-	
+
 	// Fallback to current directory
 	if config := searchConfigInDirectory(".", candidates); config != "" {
 		return config
@@ -399,14 +399,14 @@ func findDefaultConfig(targetPath string) string {
 			return config
 		}
 	}
-	
+
 	// Check ~/.config/pyscn/ (XDG default)
 	if home, err := os.UserHomeDir(); err == nil {
 		configDir := filepath.Join(home, ".config", "pyscn")
 		if config := searchConfigInDirectory(configDir, candidates); config != "" {
 			return config
 		}
-		
+
 		// Check home directory (backward compatibility)
 		if config := searchConfigInDirectory(home, candidates); config != "" {
 			return config
@@ -446,16 +446,16 @@ func (c *Config) Validate() error {
 		"html": true,
 	}
 
-    if !validFormats[c.Output.Format] {
-        return fmt.Errorf("invalid output.format '%s', must be one of: text, json, yaml, csv, html", c.Output.Format)
-    }
+	if !validFormats[c.Output.Format] {
+		return fmt.Errorf("invalid output.format '%s', must be one of: text, json, yaml, csv, html", c.Output.Format)
+	}
 
-    // Validate architecture configuration if present
-    if c.Architecture != nil && c.Architecture.Enabled {
-        if err := c.Architecture.Validate(); err != nil {
-            return fmt.Errorf("architecture: %w", err)
-        }
-    }
+	// Validate architecture configuration if present
+	if c.Architecture != nil && c.Architecture.Enabled {
+		if err := c.Architecture.Validate(); err != nil {
+			return fmt.Errorf("architecture: %w", err)
+		}
+	}
 
 	// Validate sort options
 	validSortBy := map[string]bool{

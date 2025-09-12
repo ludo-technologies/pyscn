@@ -20,54 +20,54 @@ func createTempDir(t *testing.T) string {
 
 func createTestFile(t *testing.T, dirPath, fileName, content string) string {
 	filePath := filepath.Join(dirPath, fileName)
-	
+
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(filePath)
 	err := os.MkdirAll(dir, 0755)
 	assert.NoError(t, err)
-	
+
 	err = os.WriteFile(filePath, []byte(content), 0644)
 	assert.NoError(t, err)
-	
+
 	return filePath
 }
 
 func createTestDirectoryStructure(t *testing.T) string {
 	tmpDir := createTempDir(t)
-	
+
 	// Create Python files
 	createTestFile(t, tmpDir, "main.py", "def main(): pass")
 	createTestFile(t, tmpDir, "utils.py", "def helper(): return 42")
 	createTestFile(t, tmpDir, "config.py", "CONFIG = {'debug': True}")
-	
+
 	// Create stub file (.pyi)
 	createTestFile(t, tmpDir, "types.pyi", "def func() -> int: ...")
-	
+
 	// Create non-Python files
 	createTestFile(t, tmpDir, "README.md", "# Documentation")
 	createTestFile(t, tmpDir, "config.json", "{}")
 	createTestFile(t, tmpDir, "script.sh", "#!/bin/bash")
-	
+
 	// Create subdirectories
 	createTestFile(t, tmpDir, "subpackage/__init__.py", "")
 	createTestFile(t, tmpDir, "subpackage/module.py", "class Test: pass")
-	
+
 	// Create deep nested structure
 	createTestFile(t, tmpDir, "package/nested/deep/file.py", "def nested(): pass")
-	
+
 	// Create hidden files and directories (should be skipped)
 	createTestFile(t, tmpDir, ".hidden.py", "# Hidden Python file")
 	hiddenDir := filepath.Join(tmpDir, ".hidden_dir")
 	err := os.MkdirAll(hiddenDir, 0755)
 	assert.NoError(t, err)
 	createTestFile(t, tmpDir, ".hidden_dir/hidden_module.py", "# Hidden module")
-	
+
 	// Create directories that should be skipped
 	createTestFile(t, tmpDir, "__pycache__/cached.py", "# Cached file")
 	createTestFile(t, tmpDir, ".git/hooks/pre-commit.py", "# Git hook")
 	createTestFile(t, tmpDir, "venv/lib/python3.9/site-packages/module.py", "# Virtual env")
 	createTestFile(t, tmpDir, "node_modules/package/index.py", "# Node modules")
-	
+
 	return tmpDir
 }
 
@@ -146,7 +146,7 @@ func TestFileReader_CollectPythonFiles(t *testing.T) {
 			recursive:       true,
 			includePatterns: []string{},
 			excludePatterns: []string{"*test*", "*__init__*", "*.pyi"},
-			expectedCount:   5, // Excludes types.pyi and __init__.py  
+			expectedCount:   5, // Excludes types.pyi and __init__.py
 			expectedFiles:   []string{"main.py", "utils.py", "config.py", "module.py", "file.py"},
 			expectError:     false,
 		},
@@ -231,9 +231,9 @@ func TestFileReader_CollectPythonFiles(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := NewFileReader()
 			_, paths := tt.setupFiles(t)
-			
+
 			files, err := reader.CollectPythonFiles(paths, tt.recursive, tt.includePatterns, tt.excludePatterns)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				if tt.errorMsg != "" {
@@ -241,29 +241,29 @@ func TestFileReader_CollectPythonFiles(t *testing.T) {
 				}
 				return
 			}
-			
+
 			assert.NoError(t, err)
 			assert.Len(t, files, tt.expectedCount, "Expected %d files, got %d", tt.expectedCount, len(files))
-			
+
 			// Verify expected files are present (check basename only for simplicity)
 			if len(tt.expectedFiles) > 0 {
 				fileBasenames := make([]string, len(files))
 				for i, file := range files {
 					fileBasenames[i] = filepath.Base(file)
 				}
-				
+
 				for _, expectedFile := range tt.expectedFiles {
-					assert.Contains(t, fileBasenames, expectedFile, 
+					assert.Contains(t, fileBasenames, expectedFile,
 						"Expected file %s not found in: %v", expectedFile, fileBasenames)
 				}
 			}
-			
+
 			// Verify all returned files are Python files
 			for _, file := range files {
 				assert.True(t, reader.IsValidPythonFile(file),
 					"File %s should be recognized as a Python file", file)
 			}
-			
+
 			// Verify all files actually exist
 			for _, file := range files {
 				_, err := os.Stat(file)
@@ -276,11 +276,11 @@ func TestFileReader_CollectPythonFiles(t *testing.T) {
 // TestFileReader_ReadFile tests file reading functionality
 func TestFileReader_ReadFile(t *testing.T) {
 	tests := []struct {
-		name          string
-		setupFile     func(t *testing.T) string
+		name            string
+		setupFile       func(t *testing.T) string
 		expectedContent string
-		expectError   bool
-		errorMsg      string
+		expectError     bool
+		errorMsg        string
 	}{
 		{
 			name: "read existing file",
@@ -323,7 +323,7 @@ func TestFileReader_ReadFile(t *testing.T) {
 				tmpDir := createTempDir(t)
 				dirPath := filepath.Join(tmpDir, "directory")
 				err := os.MkdirAll(dirPath, 0755)
-	assert.NoError(t, err)
+				assert.NoError(t, err)
 				return dirPath
 			},
 			expectError: true, // Should fail when trying to read a directory
@@ -334,9 +334,9 @@ func TestFileReader_ReadFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := NewFileReader()
 			filePath := tt.setupFile(t)
-			
+
 			content, err := reader.ReadFile(filePath)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				if tt.errorMsg != "" {
@@ -344,7 +344,7 @@ func TestFileReader_ReadFile(t *testing.T) {
 				}
 				return
 			}
-			
+
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedContent, string(content))
 		})
@@ -385,11 +385,11 @@ func TestFileReader_IsValidPythonFile(t *testing.T) {
 // TestFileReader_FileExists tests file existence checking
 func TestFileReader_FileExists(t *testing.T) {
 	tests := []struct {
-		name        string
-		setupPath   func(t *testing.T) string
+		name         string
+		setupPath    func(t *testing.T) string
 		expectExists bool
-		expectError bool
-		errorMsg    string
+		expectError  bool
+		errorMsg     string
 	}{
 		{
 			name: "existing file",
@@ -414,7 +414,7 @@ func TestFileReader_FileExists(t *testing.T) {
 				tmpDir := createTempDir(t)
 				dirPath := filepath.Join(tmpDir, "subdir")
 				err := os.MkdirAll(dirPath, 0755)
-	assert.NoError(t, err)
+				assert.NoError(t, err)
 				return dirPath
 			},
 			expectExists: false, // FileExists should return false for directories
@@ -434,9 +434,9 @@ func TestFileReader_FileExists(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := NewFileReader()
 			path := tt.setupPath(t)
-			
+
 			exists, err := reader.FileExists(path)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				if tt.errorMsg != "" {
@@ -444,7 +444,7 @@ func TestFileReader_FileExists(t *testing.T) {
 				}
 				return
 			}
-			
+
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectExists, exists)
 		})
@@ -469,7 +469,7 @@ func TestFileReader_shouldIncludeFile(t *testing.T) {
 		},
 		{
 			name:            "exclude pattern matches",
-			path:            "test_file.py", 
+			path:            "test_file.py",
 			includePatterns: []string{},
 			excludePatterns: []string{"*test*"},
 			expected:        false,
@@ -509,8 +509,8 @@ func TestFileReader_shouldIncludeFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := &FileReaderImpl{}
 			result := reader.shouldIncludeFile(tt.path, tt.includePatterns, tt.excludePatterns)
-			assert.Equal(t, tt.expected, result, 
-				"shouldIncludeFile(%s, %v, %v) = %v, expected %v", 
+			assert.Equal(t, tt.expected, result,
+				"shouldIncludeFile(%s, %v, %v) = %v, expected %v",
 				tt.path, tt.includePatterns, tt.excludePatterns, result, tt.expected)
 		})
 	}
@@ -544,7 +544,7 @@ func TestFileReader_shouldSkipDirectory(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := &FileReaderImpl{}
 			result := reader.shouldSkipDirectory(tt.dirName)
-			assert.Equal(t, tt.expected, result, 
+			assert.Equal(t, tt.expected, result,
 				"shouldSkipDirectory(%s) = %v, expected %v", tt.dirName, result, tt.expected)
 		})
 	}
@@ -553,7 +553,7 @@ func TestFileReader_shouldSkipDirectory(t *testing.T) {
 // TestFileReader_NewFileReader tests service creation
 func TestFileReader_NewFileReader(t *testing.T) {
 	reader := NewFileReader()
-	
+
 	assert.NotNil(t, reader)
 	assert.IsType(t, &FileReaderImpl{}, reader)
 }
@@ -561,14 +561,14 @@ func TestFileReader_NewFileReader(t *testing.T) {
 // TestFileReader_ErrorTypes tests that proper error types are returned
 func TestFileReader_ErrorTypes(t *testing.T) {
 	reader := NewFileReader()
-	
+
 	// Test file not found error
 	_, err := reader.ReadFile("/path/that/does/not/exist.py")
 	assert.Error(t, err)
-	
+
 	// Check it's a file not found type error
 	assert.Contains(t, err.Error(), "no such file")
-	
+
 	// Test collect with non-existent path
 	_, err = reader.CollectPythonFiles([]string{"/path/that/does/not/exist"}, false, nil, nil)
 	assert.Error(t, err)
@@ -580,26 +580,26 @@ func TestFileReader_PermissionHandling(t *testing.T) {
 	if os.Getuid() == 0 { // Skip if running as root
 		t.Skip("Skipping permission tests when running as root")
 	}
-	
+
 	tmpDir := createTempDir(t)
-	
+
 	// Create a file and remove read permissions
 	filePath := createTestFile(t, tmpDir, "no_read.py", "def test(): pass")
 	err := os.Chmod(filePath, 0000) // No permissions
 	assert.NoError(t, err)
-	
+
 	// Restore permissions for cleanup
 	t.Cleanup(func() {
 		err = os.Chmod(filePath, 0644)
 		assert.NoError(t, err)
 	})
-	
+
 	reader := NewFileReader()
-	
+
 	// ReadFile should fail with permission error
 	_, err = reader.ReadFile(filePath)
 	assert.Error(t, err)
-	
+
 	// FileExists should still work (doesn't require read permission)
 	exists, err := reader.FileExists(filePath)
 	assert.NoError(t, err)

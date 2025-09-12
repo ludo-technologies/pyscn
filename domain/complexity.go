@@ -174,4 +174,3 @@ type ConfigurationLoader interface {
 	// MergeConfig merges CLI flags with configuration file
 	MergeConfig(base *ComplexityRequest, override *ComplexityRequest) *ComplexityRequest
 }
-

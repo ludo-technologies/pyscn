@@ -39,41 +39,41 @@ type OverallScoreData struct {
 
 // ComplexityHTMLData represents complexity analysis data for HTML template
 type ComplexityHTMLData struct {
-	OverallScore OverallScoreData          `json:"overall_score"`
+	OverallScore OverallScoreData           `json:"overall_score"`
 	Response     *domain.ComplexityResponse `json:"response"`
-	ScoreDetails ScoreData                 `json:"score_details"`
+	ScoreDetails ScoreData                  `json:"score_details"`
 }
 
 // DeadCodeHTMLData represents dead code analysis data for HTML template
 type DeadCodeHTMLData struct {
-	OverallScore OverallScoreData        `json:"overall_score"`
+	OverallScore OverallScoreData         `json:"overall_score"`
 	Response     *domain.DeadCodeResponse `json:"response"`
-	ScoreDetails ScoreData               `json:"score_details"`
+	ScoreDetails ScoreData                `json:"score_details"`
 }
 
 // CloneHTMLData represents clone detection data for HTML template
 type CloneHTMLData struct {
-    OverallScore OverallScoreData      `json:"overall_score"`
-    Response     *domain.CloneResponse `json:"response"`
-    ScoreDetails ScoreData             `json:"score_details"`
+	OverallScore OverallScoreData      `json:"overall_score"`
+	Response     *domain.CloneResponse `json:"response"`
+	ScoreDetails ScoreData             `json:"score_details"`
 }
 
 // DepsHTMLData represents dependency analysis data for HTML template
 type DepsHTMLData struct {
-    OverallScore OverallScoreData            `json:"overall_score"`
-    Response     *domain.DependencyResponse  `json:"response"`
-    ScoreDetails ScoreData                   `json:"score_details"`
-    // Convenience fields for rendering
-    Modules       int
-    EdgesCount    int
-    CyclesCount   int
-    ViolationsCount int
-    EdgesDisplay     []domain.DependencyEdge
-    CyclesDisplay    []domain.DependencyCycle
-    ViolationsDisplay []domain.LayerViolation
-    HiddenEdges      int
-    HiddenCycles     int
-    HiddenViolations int
+	OverallScore OverallScoreData           `json:"overall_score"`
+	Response     *domain.DependencyResponse `json:"response"`
+	ScoreDetails ScoreData                  `json:"score_details"`
+	// Convenience fields for rendering
+	Modules           int
+	EdgesCount        int
+	CyclesCount       int
+	ViolationsCount   int
+	EdgesDisplay      []domain.DependencyEdge
+	CyclesDisplay     []domain.DependencyCycle
+	ViolationsDisplay []domain.LayerViolation
+	HiddenEdges       int
+	HiddenCycles      int
+	HiddenViolations  int
 }
 
 // CalculateComplexityScore calculates a Lighthouse-style score (0-100) for complexity
@@ -91,7 +91,7 @@ func (f *HTMLFormatterImpl) CalculateComplexityScore(response *domain.Complexity
 	// Score based on average complexity
 	// Lower complexity = higher score
 	avgComplexity := response.Summary.AverageComplexity
-	
+
 	// Use logarithmic scale to avoid extreme scores
 	rawScore := 100 - (avgComplexity * 8) // Adjust multiplier as needed
 	score := int(math.Max(0, math.Min(100, rawScore)))
@@ -171,10 +171,10 @@ func (f *HTMLFormatterImpl) CalculateCloneScore(response *domain.CloneResponse) 
 	// Calculate score based on clone pairs density
 	totalPairs := response.Statistics.TotalClonePairs
 	linesAnalyzed := response.Statistics.LinesAnalyzed
-	
+
 	// Calculate clone density: pairs per 1000 lines of code
 	cloneDensity := float64(totalPairs) / (float64(linesAnalyzed) / 1000.0)
-	
+
 	// Convert to score using logarithmic scale
 	// 0 clones = 100 score, higher density = lower score
 	var score int
@@ -182,7 +182,7 @@ func (f *HTMLFormatterImpl) CalculateCloneScore(response *domain.CloneResponse) 
 		score = 100
 	} else {
 		// Use log scale to prevent extreme scores, but less aggressive
-		rawScore := 100 - (math.Log(cloneDensity + 1) * 10)
+		rawScore := 100 - (math.Log(cloneDensity+1) * 10)
 		score = int(math.Max(5, math.Min(100, rawScore))) // Minimum score of 5
 	}
 
@@ -237,7 +237,7 @@ func (f *HTMLFormatterImpl) CalculateOverallScore(scores []ScoreData, projectNam
 		default:
 			weight = 1.0 / float64(len(scores))
 		}
-		
+
 		weightedSum += float64(score.Score) * weight
 		totalWeight += weight
 	}
@@ -496,16 +496,16 @@ func (f *HTMLFormatterImpl) FormatComplexityAsHTML(response *domain.ComplexityRe
 	if response == nil {
 		return "", fmt.Errorf("response cannot be nil")
 	}
-	
+
 	scoreDetails := f.CalculateComplexityScore(response)
 	overallScore := f.CalculateOverallScore([]ScoreData{scoreDetails}, projectName)
-	
+
 	data := ComplexityHTMLData{
 		OverallScore: overallScore,
 		Response:     response,
 		ScoreDetails: scoreDetails,
 	}
-	
+
 	return f.renderTemplate(data)
 }
 
@@ -514,16 +514,16 @@ func (f *HTMLFormatterImpl) FormatDeadCodeAsHTML(response *domain.DeadCodeRespon
 	if response == nil {
 		return "", fmt.Errorf("response cannot be nil")
 	}
-	
+
 	scoreDetails := f.CalculateDeadCodeScore(response)
 	overallScore := f.CalculateOverallScore([]ScoreData{scoreDetails}, projectName)
-	
+
 	data := DeadCodeHTMLData{
 		OverallScore: overallScore,
 		Response:     response,
 		ScoreDetails: scoreDetails,
 	}
-	
+
 	return f.renderTemplate(data)
 }
 
@@ -532,100 +532,100 @@ func (f *HTMLFormatterImpl) FormatCloneAsHTML(response *domain.CloneResponse, pr
 	if response == nil {
 		return "", fmt.Errorf("response cannot be nil")
 	}
-	
+
 	scoreDetails := f.CalculateCloneScore(response)
 	overallScore := f.CalculateOverallScore([]ScoreData{scoreDetails}, projectName)
-	
+
 	data := CloneHTMLData{
 		OverallScore: overallScore,
 		Response:     response,
 		ScoreDetails: scoreDetails,
 	}
-	
+
 	return f.renderTemplate(data)
 }
 
 // CalculateDepsScore calculates a Lighthouse-style score for dependency analysis
 // Simple heuristic: penalize cycles and layer violations; 0 = worst, 100 = best.
 func (f *HTMLFormatterImpl) CalculateDepsScore(response *domain.DependencyResponse) ScoreData {
-    if response == nil {
-        return ScoreData{Score: 100, Label: "No Data", Color: "#0CCE6B", Status: "pass", Category: "dependencies"}
-    }
-    cycles := float64(len(response.Cycles))
-    violations := float64(response.Summary.LayerViolations)
+	if response == nil {
+		return ScoreData{Score: 100, Label: "No Data", Color: "#0CCE6B", Status: "pass", Category: "dependencies"}
+	}
+	cycles := float64(len(response.Cycles))
+	violations := float64(response.Summary.LayerViolations)
 
-    // Base score
-    score := 100.0
-    // Each cycle costs 12 points, each violation costs 6 points (tunable)
-    score -= cycles*12 + violations*6
-    if score < 0 {
-        score = 0
-    }
+	// Base score
+	score := 100.0
+	// Each cycle costs 12 points, each violation costs 6 points (tunable)
+	score -= cycles*12 + violations*6
+	if score < 0 {
+		score = 0
+	}
 
-    var color, status string
-    switch {
-    case score >= 90:
-        color = "#0CCE6B" // Green
-        status = "pass"
-    case score >= 50:
-        color = "#FFA500" // Orange
-        status = "average"
-    default:
-        color = "#FF5722" // Red
-        status = "fail"
-    }
+	var color, status string
+	switch {
+	case score >= 90:
+		color = "#0CCE6B" // Green
+		status = "pass"
+	case score >= 50:
+		color = "#FFA500" // Orange
+		status = "average"
+	default:
+		color = "#FF5722" // Red
+		status = "fail"
+	}
 
-    label := fmt.Sprintf("Cycles: %d, Layer Violations: %d", int(cycles), int(violations))
-    return ScoreData{Score: int(score), Label: label, Color: color, Status: status, Category: "dependencies"}
+	label := fmt.Sprintf("Cycles: %d, Layer Violations: %d", int(cycles), int(violations))
+	return ScoreData{Score: int(score), Label: label, Color: color, Status: status, Category: "dependencies"}
 }
 
 // FormatDepsAsHTML formats dependency analysis as HTML
 func (f *HTMLFormatterImpl) FormatDepsAsHTML(response *domain.DependencyResponse, projectName string) (string, error) {
-    if response == nil {
-        return "", fmt.Errorf("response cannot be nil")
-    }
-    scoreDetails := f.CalculateDepsScore(response)
-    overall := f.CalculateOverallScore([]ScoreData{scoreDetails}, projectName)
-    // Limits to keep the HTML compact
-    const maxEdges = 200
-    const maxCycles = 100
-    const maxViolations = 100
+	if response == nil {
+		return "", fmt.Errorf("response cannot be nil")
+	}
+	scoreDetails := f.CalculateDepsScore(response)
+	overall := f.CalculateOverallScore([]ScoreData{scoreDetails}, projectName)
+	// Limits to keep the HTML compact
+	const maxEdges = 200
+	const maxCycles = 100
+	const maxViolations = 100
 
-    edges := response.Edges
-    cycles := response.Cycles
-    viols := response.LayerViolations
+	edges := response.Edges
+	cycles := response.Cycles
+	viols := response.LayerViolations
 
-    if len(edges) > maxEdges {
-        edges = edges[:maxEdges]
-    }
-    if len(cycles) > maxCycles {
-        cycles = cycles[:maxCycles]
-    }
-    if len(viols) > maxViolations {
-        viols = viols[:maxViolations]
-    }
+	if len(edges) > maxEdges {
+		edges = edges[:maxEdges]
+	}
+	if len(cycles) > maxCycles {
+		cycles = cycles[:maxCycles]
+	}
+	if len(viols) > maxViolations {
+		viols = viols[:maxViolations]
+	}
 
-    data := DepsHTMLData{
-        OverallScore:      overall,
-        Response:          response,
-        ScoreDetails:      scoreDetails,
-        Modules:           response.Summary.Modules,
-        EdgesCount:        response.Summary.Edges,
-        CyclesCount:       len(response.Cycles),
-        ViolationsCount:   len(response.LayerViolations),
-        EdgesDisplay:      edges,
-        CyclesDisplay:     cycles,
-        ViolationsDisplay: viols,
-        HiddenEdges:       len(response.Edges) - len(edges),
-        HiddenCycles:      len(response.Cycles) - len(cycles),
-        HiddenViolations:  len(response.LayerViolations) - len(viols),
-    }
-    return f.renderTemplateString(f.getDepsHTMLTemplate(), data)
+	data := DepsHTMLData{
+		OverallScore:      overall,
+		Response:          response,
+		ScoreDetails:      scoreDetails,
+		Modules:           response.Summary.Modules,
+		EdgesCount:        response.Summary.Edges,
+		CyclesCount:       len(response.Cycles),
+		ViolationsCount:   len(response.LayerViolations),
+		EdgesDisplay:      edges,
+		CyclesDisplay:     cycles,
+		ViolationsDisplay: viols,
+		HiddenEdges:       len(response.Edges) - len(edges),
+		HiddenCycles:      len(response.Cycles) - len(cycles),
+		HiddenViolations:  len(response.LayerViolations) - len(viols),
+	}
+	return f.renderTemplateString(f.getDepsHTMLTemplate(), data)
 }
 
 // getDepsHTMLTemplate returns a specialized HTML template for dependency analysis
 func (f *HTMLFormatterImpl) getDepsHTMLTemplate() string {
-    return `<!DOCTYPE html>
+	return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -726,27 +726,29 @@ func (f *HTMLFormatterImpl) getDepsHTMLTemplate() string {
 
 // renderTemplateString renders a provided template string with shared funcMap
 func (f *HTMLFormatterImpl) renderTemplateString(tmplStr string, data interface{}) (string, error) {
-    funcMap := template.FuncMap{
-        "title": func(s string) string {
-            if len(s) == 0 { return s }
-            return strings.ToUpper(s[:1]) + strings.ToLower(s[1:])
-        },
-    }
-    tmpl, err := template.New("html_report").Funcs(funcMap).Parse(tmplStr)
-    if err != nil {
-        return "", fmt.Errorf("failed to parse HTML template: %w", err)
-    }
-    var buf strings.Builder
-    if err := tmpl.Execute(&buf, data); err != nil {
-        return "", fmt.Errorf("failed to execute HTML template: %w", err)
-    }
-    return buf.String(), nil
+	funcMap := template.FuncMap{
+		"title": func(s string) string {
+			if len(s) == 0 {
+				return s
+			}
+			return strings.ToUpper(s[:1]) + strings.ToLower(s[1:])
+		},
+	}
+	tmpl, err := template.New("html_report").Funcs(funcMap).Parse(tmplStr)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse HTML template: %w", err)
+	}
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("failed to execute HTML template: %w", err)
+	}
+	return buf.String(), nil
 }
 
 // renderTemplate renders the HTML template with the provided data
 func (f *HTMLFormatterImpl) renderTemplate(data interface{}) (string, error) {
 	tmplStr := f.getHTMLTemplate()
-	
+
 	// Add custom template functions
 	funcMap := template.FuncMap{
 		"title": func(s string) string {
@@ -756,16 +758,16 @@ func (f *HTMLFormatterImpl) renderTemplate(data interface{}) (string, error) {
 			return strings.ToUpper(s[:1]) + strings.ToLower(s[1:])
 		},
 	}
-	
+
 	tmpl, err := template.New("html_report").Funcs(funcMap).Parse(tmplStr)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse HTML template: %w", err)
 	}
-	
+
 	var buf strings.Builder
 	if err := tmpl.Execute(&buf, data); err != nil {
 		return "", fmt.Errorf("failed to execute HTML template: %w", err)
 	}
-	
+
 	return buf.String(), nil
 }

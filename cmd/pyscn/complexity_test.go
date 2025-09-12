@@ -106,7 +106,7 @@ func TestComplexityCommandFlags(t *testing.T) {
 
 	// Create a temporary output directory for test reports
 	outputDir := t.TempDir()
-	
+
 	// Create a config file to direct output to temp directory
 	configFile := filepath.Join(tempDir, ".pyscn.toml")
 	configContent := fmt.Sprintf("[output]\ndirectory = \"%s\"\n", outputDir)

@@ -72,14 +72,14 @@ def function_b(arg):
 	if err != nil {
 		t.Fatalf("Failed to get absolute path for binary: %v", err)
 	}
-	
+
 	// Run with JSON format (outputs to file in temp directory)
 	testFile := filepath.Join(testDir, "clones_example.py")
 	outputDir := t.TempDir() // Create separate temp directory for output
-	
+
 	// Create a temporary config file to specify output directory
 	createTestConfigFile(t, testDir, outputDir)
-	
+
 	cmd := exec.Command(absBinaryPath, "clone", "--json", testFile)
 	cmd.Dir = testDir // Set working directory to ensure config file discovery works
 	var stdout, stderr bytes.Buffer
@@ -89,17 +89,17 @@ def function_b(arg):
 	// Add timeout to prevent hanging
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	
+
 	err = cmd.Start()
 	if err != nil {
 		t.Fatalf("Command failed to start: %v", err)
 	}
-	
+
 	done := make(chan error, 1)
 	go func() {
 		done <- cmd.Wait()
 	}()
-	
+
 	select {
 	case err = <-done:
 		if err != nil {
@@ -111,11 +111,11 @@ def function_b(arg):
 		}
 		t.Fatal("Command timed out after 10 seconds")
 	}
-	
+
 	// Debug: show command output
 	t.Logf("Command stdout: %s", stdout.String())
 	t.Logf("Command stderr: %s", stderr.String())
-	
+
 	// Find the generated JSON file in outputDir
 	files, err := filepath.Glob(filepath.Join(outputDir, "clone_*.json"))
 	if err != nil {
@@ -130,13 +130,13 @@ def function_b(arg):
 		}
 		t.Fatalf("No JSON file generated in %s, files present: %v", outputDir, fileNames)
 	}
-	
+
 	// Read and verify JSON file content
 	jsonContent, err := os.ReadFile(files[0])
 	if err != nil {
 		t.Fatalf("Failed to read JSON file: %v", err)
 	}
-	
+
 	// No need to clean up - t.TempDir() handles it automatically
 
 	// Verify JSON output is valid
@@ -172,7 +172,7 @@ func TestCloneE2ETypes(t *testing.T) {
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
-	
+
 	// Create a single file with simple clones to avoid panic
 	createTestPythonFile(t, testDir, "types.py", `
 def func_a():
@@ -278,7 +278,7 @@ def low_similarity():
 			}
 
 			output := stdout.String()
-			
+
 			// Just check that the command completed successfully with different thresholds
 			if !strings.Contains(output, "Clone Detection Analysis Report") {
 				t.Error("Output should contain clone detection results header")
@@ -294,10 +294,10 @@ func TestCloneE2EFlags(t *testing.T) {
 
 	testDir := t.TempDir()
 	outputDir := t.TempDir()
-	
+
 	// Create config file to control output directory
 	createTestConfigFile(t, testDir, outputDir)
-	
+
 	createTestPythonFile(t, testDir, "flagtest.py", `
 def sample_func1(param):
     result = param * 2
@@ -535,7 +535,7 @@ func TestCloneE2ERecursiveAnalysis(t *testing.T) {
 	defer os.Remove(binaryPath)
 
 	testDir := t.TempDir()
-	
+
 	// Create single file to avoid panic
 	createTestPythonFile(t, testDir, "main.py", `
 def main_function():
@@ -561,4 +561,3 @@ def main_function():
 		t.Error("Should contain clone detection results header")
 	}
 }
-

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // Mock implementations for CloneUseCase
@@ -62,7 +62,6 @@ func (m *mockFileReader) FileExists(path string) (bool, error) {
 	args := m.Called(path)
 	return args.Bool(0), args.Error(1)
 }
-
 
 type mockCloneOutputFormatter struct {
 	mock.Mock
@@ -351,7 +350,7 @@ func TestCloneUseCase_Execute(t *testing.T) {
 					SimilarityThreshold: 0.9,
 					ShowDetails:         false,
 				}
-				
+
 				configLoader.On("LoadCloneConfig", "/config.yaml").Return(configReq, nil)
 				fileReader.On("CollectPythonFiles", []string{"/test/file1.py", "/test/file2.py"}, true, []string{"*.py"}, []string{"*test*"}).
 					Return([]string{"/test/file1.py", "/test/file2.py"}, nil)
@@ -390,7 +389,7 @@ func TestCloneUseCase_Execute(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			})
+		})
 	}
 }
 
@@ -491,7 +490,7 @@ func TestCloneUseCase_ExecuteAndReturn(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			useCase, service, fileReader, formatter, configLoader := setupCloneUseCaseMocks()
-			
+
 			// Set fileReader to nil for the specific test case
 			if strings.Contains(tt.name, "file reader not initialized") {
 				useCase.fileReader = nil
@@ -522,7 +521,7 @@ func TestCloneUseCase_ExecuteAndReturn(t *testing.T) {
 			}
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			})
+		})
 	}
 }
 
@@ -633,7 +632,7 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			})
+		})
 	}
 }
 
@@ -696,7 +695,7 @@ func TestCloneUseCase_ComputeFragmentSimilarity(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			})
+		})
 	}
 }
 
@@ -751,7 +750,7 @@ func TestCloneUseCase_SaveConfiguration(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			})
+		})
 	}
 }
 
@@ -759,10 +758,10 @@ func TestCloneUseCase_mergeConfiguration(t *testing.T) {
 	useCase := &CloneUseCase{}
 
 	tests := []struct {
-		name      string
-		configReq domain.CloneRequest
+		name       string
+		configReq  domain.CloneRequest
 		requestReq domain.CloneRequest
-		expected  domain.CloneRequest
+		expected   domain.CloneRequest
 	}{
 		{
 			name: "merge with request taking precedence",
@@ -774,20 +773,20 @@ func TestCloneUseCase_mergeConfiguration(t *testing.T) {
 			},
 			requestReq: domain.CloneRequest{
 				Paths:               []string{"/test/file.py"},
-				MinLines:            5,  // Should override config
+				MinLines:            5,     // Should override config
 				ShowDetails:         false, // Should override config
-				SimilarityThreshold: 0.8, // Should override config
+				SimilarityThreshold: 0.8,   // Should override config
 				OutputFormat:        domain.OutputFormatJSON,
 				OutputWriter:        os.Stdout,
 			},
 			expected: domain.CloneRequest{
-				Paths:               []string{"/test/file.py"}, // From request
-				MinLines:            10,                        // From config (request matched default, didn't override)
-				SimilarityThreshold: 0.9,                      // From config (request matched default, didn't override)
-				ShowDetails:         false,                    // From request (overrides config)
+				Paths:               []string{"/test/file.py"},             // From request
+				MinLines:            10,                                    // From config (request matched default, didn't override)
+				SimilarityThreshold: 0.9,                                   // From config (request matched default, didn't override)
+				ShowDetails:         false,                                 // From request (overrides config)
 				CloneTypes:          []domain.CloneType{domain.Type1Clone}, // From config (not overridden)
-				OutputFormat:        domain.OutputFormatJSON,  // From request
-				OutputWriter:        os.Stdout,                // From request
+				OutputFormat:        domain.OutputFormatJSON,               // From request
+				OutputWriter:        os.Stdout,                             // From request
 			},
 		},
 		{
@@ -800,9 +799,9 @@ func TestCloneUseCase_mergeConfiguration(t *testing.T) {
 			},
 			requestReq: *domain.DefaultCloneRequest(), // All default values
 			expected: domain.CloneRequest{
-				MinLines:            15,   // From config (not overridden by default)
-				SimilarityThreshold: 0.95, // From config (not overridden by default)
-				Type1Threshold:      0.98, // From config (not overridden by default)
+				MinLines:            15,                                                       // From config (not overridden by default)
+				SimilarityThreshold: 0.95,                                                     // From config (not overridden by default)
+				Type1Threshold:      0.98,                                                     // From config (not overridden by default)
 				CloneTypes:          []domain.CloneType{domain.Type1Clone, domain.Type2Clone}, // From config
 			},
 		},
