@@ -95,8 +95,8 @@ type OutputConfig struct {
 	// MinComplexity is the minimum complexity to report (filters low values)
 	MinComplexity int `mapstructure:"min_complexity" yaml:"min_complexity"`
 
-	// Directory specifies the output directory for reports (empty = current directory)
-	Directory string `mapstructure:"directory" yaml:"directory"`
+    // Directory specifies the output directory for reports (empty = tool default, e.g., ".pyscn/reports" under current working directory)
+    Directory string `mapstructure:"directory" yaml:"directory"`
 }
 
 // DeadCodeConfig holds configuration for dead code detection
