@@ -198,18 +198,19 @@ func (c *AnalyzeCommand) determineOutputFormat() (string, string, error) {
 		return "", "", fmt.Errorf("only one output format flag can be specified")
 	}
 	
-	// Default to text if no format specified
-	if formatCount == 0 {
-		return "text", "", nil
-	}
+    // Default to HTML if no format specified (hybrid default: file + stderr summary)
+    if formatCount == 0 {
+        return "html", "html", nil
+    }
 	
 	return format, extension, nil
 }
 
 // shouldGenerateUnifiedReport returns true if a unified report should be generated
 func (c *AnalyzeCommand) shouldGenerateUnifiedReport() bool {
-	// Generate unified report if any format flag is set
-	return c.html || c.json || c.csv || c.yaml
+    // Always generate unified report in analyze mode.
+    // Format is determined by flags or defaults to HTML.
+    return true
 }
 
 // outputComplexityReport outputs an individual complexity report (for backward compatibility)
@@ -753,6 +754,19 @@ func containsAny(str string, substrings []string) bool {
 	return false
 }
 
+// isInteractiveEnvironment returns true if the environment appears to be
+// an interactive TTY session (and not CI), used to decide auto-open behavior.
+func isInteractiveEnvironment() bool {
+    if os.Getenv("CI") != "" {
+        return false
+    }
+    // Best-effort TTY detection without external deps
+    if fi, err := os.Stderr.Stat(); err == nil {
+        return (fi.Mode() & os.ModeCharDevice) != 0
+    }
+    return false
+}
+
 // runComplexityAnalysis runs complexity analysis with configured parameters
 func (c *AnalyzeCommand) runComplexityAnalysis(cmd *cobra.Command, args []string) error {
 	response, err := c.runComplexityAnalysisWithResult(cmd, args)
@@ -1065,16 +1079,20 @@ func (c *AnalyzeCommand) generateUnifiedReport(cmd *cobra.Command, result *Analy
 		absPath = filename
 	}
 	
-	// Handle browser opening for HTML
-	if format == "html" && !c.noOpen {
-		fileURL := "file://" + absPath
-		if err := service.OpenBrowser(fileURL); err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Could not open browser: %v\n", err)
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "📊 Unified HTML report generated and opened: %s\n", absPath)
-			return nil
-		}
-	}
+    // Handle browser opening for HTML
+    if format == "html" {
+        // Auto-open only when explicitly allowed and environment appears interactive
+        if !c.noOpen && isInteractiveEnvironment() {
+            fileURL := "file://" + absPath
+            if err := service.OpenBrowser(fileURL); err != nil {
+                fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Could not open browser: %v\n", err)
+            } else {
+                fmt.Fprintf(cmd.ErrOrStderr(), "📊 Unified HTML report generated and opened: %s\n", absPath)
+                return nil
+            }
+        }
+        // If not opened, fall through to standard success message
+    }
 	
 	// Display success message
 	formatName := strings.ToUpper(format)
