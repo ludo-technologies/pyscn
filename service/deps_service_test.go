@@ -114,3 +114,29 @@ func TestDependencyService_LayerViolations(t *testing.T) {
 		t.Fatalf("expected at least 1 layer violation, got %d", resp.Summary.LayerViolations)
 	}
 }
+
+func TestDependencyService_FiltersSelfLoopEdge(t *testing.T) {
+    tmp := t.TempDir()
+    // Create logging.py that imports itself and another module importing logging
+    writePy(t, tmp, "logging.py", "import logging\n")
+    writePy(t, tmp, "a.py", "import logging\n")
+
+    svc := NewDependencyService()
+    req := domain.DependencyRequest{
+        Paths:           []string{tmp},
+        Recursive:       true,
+        IncludePatterns: []string{"*.py"},
+    }
+    resp, err := svc.Analyze(context.Background(), req)
+    if err != nil {
+        t.Fatalf("Analyze error: %v", err)
+    }
+    if len(resp.Edges) == 0 {
+        t.Fatalf("expected at least one edge from a->logging")
+    }
+    for _, e := range resp.Edges {
+        if e.From == e.To {
+            t.Fatalf("self-loop edge should be filtered: %#v", e)
+        }
+    }
+}

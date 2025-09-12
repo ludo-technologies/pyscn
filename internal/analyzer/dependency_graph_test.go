@@ -66,3 +66,12 @@ func TestDepGraph_DOTHighlightsCycles(t *testing.T) {
 		t.Fatalf("expected A->B edge to be red in DOT, got:\n%s", dot)
 	}
 }
+
+func TestDepGraph_DOTSkipsSelfLoop(t *testing.T) {
+    g := NewDepGraph()
+    g.AddEdge("S", "S")
+    dot := g.ToDOT()
+    if strings.Contains(dot, "\"S\" -> \"S\"") {
+        t.Fatalf("expected DOT to skip self-loop edge, got:\n%s", dot)
+    }
+}
