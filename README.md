@@ -48,9 +48,17 @@ Run `pyscn --help` or `pyscn <command> --help` for all options. Root `--verbose`
 ### analyze
 Run all major analyses concurrently and generate a unified report.
 
+Default behavior (no format flags):
+- Generates a unified HTML report under `.pyscn/reports/`
+- Prints a concise analysis summary to stderr
+- Auto-opens the HTML only in interactive (non‑CI) sessions; use `--no-open` to suppress
+
 ```bash
-# Unified HTML report for a directory
+# Unified HTML report (explicit)
 pyscn analyze --html src/
+
+# Default (no flags) also generates HTML under `.pyscn/reports/`
+pyscn analyze src/
 
 # JSON/YAML/CSV are also supported (auto-generates timestamped files)
 pyscn analyze --json src/  # Creates: .pyscn/reports/analyze_YYYYMMDD_HHMMSS.json (unless [output].directory overrides)
@@ -183,10 +191,10 @@ Notes:
 
 - Default include patterns: `*.py` (`.pyi` stub files supported but not included by default); default exclude: `test_*.py`, `*_test.py`
 - **Output formats**:
-  - `text` (default): Prints to stdout
-  - `json`, `yaml`, `csv`, `html`: Auto-generate timestamped files
+  - `text` (default): Prints to stdout (for individual commands)
+  - `analyze` default (no flags): Generates HTML + prints stderr summary (hybrid); auto-open only in interactive (non‑CI) sessions; use `--no-open` to suppress
+  - `json`, `yaml`, `csv`, `html`: Auto-generate timestamped files when selected
   - Default location: `.pyscn/reports/` under the current working directory (created if missing); override with `[output].directory`
-  - HTML reports can be auto-opened with `--no-open` flag to disable
   - All commands generate timestamped output files for structured formats
 
 ## Installation
