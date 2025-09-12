@@ -37,6 +37,11 @@ test:
 	@echo "$(GREEN)Running tests...$(NC)"
 	go test -v ./...
 
+## test-local: Run tests with local Go build cache (for sandboxed envs)
+test-local:
+	@echo "$(GREEN)Running tests with local cache...$(NC)"
+	GOCACHE=$$(pwd)/.pyscn/gocache go test -v ./...
+
 ## bench: Run benchmarks
 bench:
 	@echo "$(GREEN)Running benchmarks...$(NC)"
@@ -83,6 +88,12 @@ lint:
 	@echo "$(GREEN)Running linters...$(NC)"
 	go vet ./...
 	golangci-lint run
+
+## lint-local: Run linters with local caches (for sandboxed envs)
+lint-local:
+	@echo "$(GREEN)Running linters with local caches...$(NC)"
+	GOCACHE=$$(pwd)/.pyscn/gocache go vet ./...
+	GOLANGCI_LINT_CACHE=$$(pwd)/.pyscn/golangci-cache golangci-lint run
 
 ## release: Create a new release (use: make release VERSION=v0.1.0)
 release:
