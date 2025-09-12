@@ -34,7 +34,7 @@ pyscn analyze .
 - Unified analyze workflow: run complexity, dead code, clone, and CBO together with a single command
 - Multiple formats: text, JSON, YAML, CSV, and HTML (auto-open supported)
 - Config discovery: Ruff-style hierarchical search and project-scoped defaults
-- Timestamped reports: output files named with timestamps and optional output directory
+- Timestamped reports: output files named with timestamps; defaults to `.pyscn/reports/` under the current working directory unless overridden by configuration
 - Clean Architecture: maintainable Go code with domain/use‑case separation and comprehensive tests
 
 ## Performance
@@ -53,7 +53,7 @@ Run all major analyses concurrently and generate a unified report.
 pyscn analyze --html src/
 
 # JSON/YAML/CSV are also supported (auto-generates timestamped files)
-pyscn analyze --json src/  # Creates: analyze_YYYYMMDD_HHMMSS.json
+pyscn analyze --json src/  # Creates: .pyscn/reports/analyze_YYYYMMDD_HHMMSS.json (unless [output].directory overrides)
 
 # Skip specific analyses or tune thresholds
 pyscn analyze --skip-clones --min-complexity 10 --min-severity critical --min-cbo 5 src/
@@ -66,7 +66,7 @@ Analyze McCabe cyclomatic complexity using CFG.
 
 ```bash
 pyscn complexity src/
-pyscn complexity --json src/  # Creates: complexity_YYYYMMDD_HHMMSS.json
+pyscn complexity --json src/  # Creates: .pyscn/reports/complexity_YYYYMMDD_HHMMSS.json
 pyscn complexity --min 5 --max 15 --sort risk src/
 pyscn complexity --low-threshold 9 --medium-threshold 19 src/
 ```
@@ -89,7 +89,7 @@ Find structurally similar code (Type 1–4) using APTED with LSH acceleration.
 pyscn clone .
 pyscn clone --similarity-threshold 0.9 src/
 pyscn clone --details --show-content src/
-pyscn clone --clone-types type1,type2 --json src/  # Creates: clone_YYYYMMDD_HHMMSS.json
+pyscn clone --clone-types type1,type2 --json src/  # Creates: .pyscn/reports/clone_YYYYMMDD_HHMMSS.json
 
 # Performance modes
 pyscn clone --fast src/        # LSH acceleration for large projects
@@ -104,7 +104,7 @@ Compute CBO (Coupling Between Objects) metrics for classes.
 ```bash
 pyscn cbo src/
 pyscn cbo --min-cbo 5 --sort coupling src/
-pyscn cbo --json src/  # Creates: cbo_YYYYMMDD_HHMMSS.json
+pyscn cbo --json src/  # Creates: .pyscn/reports/cbo_YYYYMMDD_HHMMSS.json
 ```
 
 Includes thresholds for risk levels, sorting, and options for including built-ins/imports.
@@ -144,7 +144,7 @@ Example:
 ```toml
 # .pyscn.toml or pyproject.toml with [tool.pyscn] section
 [output]
-directory = "build/reports"    # Timestamped reports go here (if set)
+directory = "build/reports"    # Override default 'reports/' if desired
 sort_by = "name"               # name | complexity | risk  
 min_complexity = 1
 
@@ -184,9 +184,10 @@ Notes:
 - Default include patterns: `*.py` (`.pyi` stub files supported but not included by default); default exclude: `test_*.py`, `*_test.py`
 - **Output formats**:
   - `text` (default): Prints to stdout
-  - `json`, `yaml`, `csv`, `html`: Auto-generates timestamped files (e.g., `complexity_20250907_143022.json`)
+  - `json`, `yaml`, `csv`, `html`: Auto-generate timestamped files
+  - Default location: `.pyscn/reports/` under the current working directory (created if missing); override with `[output].directory`
   - HTML reports can be auto-opened with `--no-open` flag to disable
-  - All commands now generate timestamped output files for structured formats
+  - All commands generate timestamped output files for structured formats
 
 ## Installation
 
