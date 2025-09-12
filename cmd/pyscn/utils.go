@@ -51,15 +51,14 @@ func generateOutputFilePath(command, extension, targetPath string) (string, erro
     if err != nil {
         return "", err
     }
-    
-    if outputDir != "" {
-        // Ensure the directory exists before returning the path
-        if mkErr := os.MkdirAll(outputDir, 0o755); mkErr != nil {
-            return "", fmt.Errorf("failed to create output directory %s: %w", outputDir, mkErr)
-        }
-        return filepath.Join(outputDir, filename), nil
+
+    // Ensure the directory exists before returning the path. At this point,
+    // outputDir is always non-empty because resolveOutputDirectory provides
+    // a default (e.g., .pyscn/reports under CWD) when config is unset.
+    if mkErr := os.MkdirAll(outputDir, 0o755); mkErr != nil {
+        return "", fmt.Errorf("failed to create output directory %s: %w", outputDir, mkErr)
     }
-    return filename, nil
+    return filepath.Join(outputDir, filename), nil
 }
 
 // getTargetPathFromArgs extracts the first argument as target path, or returns empty string
