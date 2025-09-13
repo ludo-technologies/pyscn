@@ -611,9 +611,6 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
                 </tbody>
             </table>`)
 	}
-
-	builder.WriteString(`
-        </div>`)
 }
 
 func (f *SystemAnalysisFormatterImpl) writeHTMLArchitectureContent(builder *strings.Builder, arch *domain.ArchitectureAnalysisResult) {
@@ -752,8 +749,6 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLArchitectureContent(builder *stri
 		}
 		builder.WriteString(`</ul>`)
 	}
-
-	builder.WriteString(`</div>`)
 }
 
 func (f *SystemAnalysisFormatterImpl) writeHTMLQualityContent(builder *strings.Builder, quality *domain.QualityMetricsResult) {
