@@ -93,87 +93,32 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 
 // AnalyzeDependencies performs dependency analysis only
 func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req domain.SystemAnalysisRequest) (*domain.DependencyAnalysisResult, error) {
-	// Build dependency graph for all files
-	graph := analyzer.NewDependencyGraph("")
-	filesProcessed := 0
-
-	for _, filePath := range req.Paths {
-		// Check context cancellation
-		select {
-		case <-ctx.Done():
-			return nil, fmt.Errorf("dependency analysis cancelled: %w", ctx.Err())
-		default:
-		}
-
-		// Parse file and extract imports
-		content, err := os.ReadFile(filePath)
-		if err != nil {
-			continue // Skip files we can't read
-		}
-
-		// Parse the Python code
-		parseResult, err := s.parser.Parse(ctx, content)
-		if err != nil {
-			continue // Skip files with syntax errors
-		}
-
-		// Get module name from file path
-		moduleName := s.getModuleNameFromPath(filePath)
-		
-		// Add module to graph
-		graph.AddModule(moduleName, filePath)
-
-		// Extract dependencies using the module analyzer
-		dependencies := s.extractImportsFromAST(parseResult.AST, filePath)
-		
-		// Debug output disabled
-		// Uncomment for debugging:
-		// if len(dependencies) > 0 {
-		// 	fmt.Printf("DEBUG: File %s (module: %s) has %d imports\n", filePath, moduleName, len(dependencies))
-		// 	for _, dep := range dependencies {
-		// 		var targetModule string
-		// 		if dep.IsRelative {
-		// 			targetModule = s.resolveRelativeImport(dep, filePath)
-		// 			fmt.Printf("  - [RELATIVE] Statement: %s -> Module: %s\n", dep.Statement, targetModule)
-		// 		} else {
-		// 			targetModule = s.extractModuleNameFromImport(dep)
-		// 			fmt.Printf("  - Statement: %s -> Module: %s\n", dep.Statement, targetModule)
-		// 		}
-		// 	}
-		// }
-
-		// Add dependencies to graph
-		for _, dep := range dependencies {
-			// Extract module name from import statement
-			var targetModule string
-			if dep.IsRelative {
-				// Resolve relative imports based on current module context
-				targetModule = s.resolveRelativeImport(dep, filePath)
-			} else {
-				targetModule = s.extractModuleNameFromImport(dep)
-			}
-			
-			if targetModule != "" && targetModule != moduleName {
-				// Determine edge type
-				var edgeType analyzer.DependencyEdgeType
-				switch {
-				case dep.IsRelative:
-					edgeType = analyzer.DependencyEdgeRelative
-				case strings.Contains(dep.Statement, "from"):
-					edgeType = analyzer.DependencyEdgeFromImport
-				default:
-					edgeType = analyzer.DependencyEdgeImport
-				}
-
-				graph.AddDependency(moduleName, targetModule, edgeType, dep)
-			}
-		}
-
-		filesProcessed++
+	// Determine project root from common parent of paths
+	projectRoot := s.findProjectRoot(req.Paths)
+	
+	// Create module analyzer with options
+	options := &analyzer.ModuleAnalysisOptions{
+		ProjectRoot:       projectRoot,
+		IncludeStdLib:     req.IncludeStdLib,
+		IncludeThirdParty: req.IncludeThirdParty,
+		FollowRelative:    req.FollowRelative,
+		IncludePatterns:   req.IncludePatterns,
+		ExcludePatterns:   req.ExcludePatterns,
 	}
-
-	// If no modules were processed, return empty result
-	if filesProcessed == 0 {
+	
+	moduleAnalyzer, err := analyzer.NewModuleAnalyzer(options)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create module analyzer: %w", err)
+	}
+	
+	// Analyze files using ModuleAnalyzer
+	graph, err := moduleAnalyzer.AnalyzeFiles(req.Paths)
+	if err != nil {
+		return nil, fmt.Errorf("failed to analyze dependencies: %w", err)
+	}
+	
+	// Check if any modules were processed
+	if graph.TotalModules == 0 {
 		return &domain.DependencyAnalysisResult{
 			TotalModules:      0,
 			TotalDependencies: 0,
@@ -189,8 +134,7 @@ func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req
 
 	// Calculate coupling metrics
 	metricsCalculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-	err := metricsCalculator.CalculateMetrics()
-	if err != nil {
+	if err = metricsCalculator.CalculateMetrics(); err != nil {
 		return nil, err
 	}
 	couplingResults := s.extractCouplingResult(graph)
@@ -315,44 +259,105 @@ func (s *SystemAnalysisServiceImpl) AnalyzeQuality(ctx context.Context, req doma
 
 // Helper methods
 
+// getModuleNameFromPath is deprecated - use ModuleAnalyzer.filePathToModuleName instead
+// Keeping for backward compatibility during transition
 func (s *SystemAnalysisServiceImpl) getModuleNameFromPath(filePath string) string {
-	// Convert file path to Python module name
-	// First, find the app directory as the root
-	parts := strings.Split(filePath, string(filepath.Separator))
-	
-	// Find where "app" directory starts (for this project structure)
-	appIndex := -1
-	for i, part := range parts {
-		if part == "app" {
-			appIndex = i
-			break
+	// For now, just use the simple approach without "app" hardcoding
+	// Get relative path from current directory
+	relPath := filePath
+	if absPath, err := filepath.Abs(filePath); err == nil {
+		if cwd, err := os.Getwd(); err == nil {
+			if rel, err := filepath.Rel(cwd, absPath); err == nil {
+				relPath = rel
+			}
 		}
 	}
 	
-	// If we found "app", build the module path from there
-	if appIndex >= 0 && appIndex < len(parts)-1 {
-		moduleParts := parts[appIndex:]
-		
-		// Remove the file extension from the last part
-		lastIndex := len(moduleParts) - 1
-		moduleParts[lastIndex] = strings.TrimSuffix(moduleParts[lastIndex], filepath.Ext(moduleParts[lastIndex]))
-		
-		// Handle __init__.py files - use parent directory name
-		if moduleParts[lastIndex] == "__init__" {
-			moduleParts = moduleParts[:lastIndex]
-		}
-		
-		// Join with dots to create Python module path
-		return strings.Join(moduleParts, ".")
+	// Remove .py extension
+	if strings.HasSuffix(relPath, ".py") {
+		relPath = relPath[:len(relPath)-3]
 	}
 	
-	// Fallback to simple filename if we can't determine the module structure
-	moduleName := strings.TrimSuffix(filepath.Base(filePath), filepath.Ext(filePath))
-	if moduleName == "__init__" {
-		return filepath.Base(filepath.Dir(filePath))
+	// Handle __init__.py files
+	if strings.HasSuffix(relPath, "__init__") {
+		relPath = filepath.Dir(relPath)
 	}
+	
+	// Convert path separators to dots
+	moduleName := strings.ReplaceAll(relPath, string(filepath.Separator), ".")
+	
+	// Clean up leading/trailing dots
+	moduleName = strings.Trim(moduleName, ".")
 	
 	return moduleName
+}
+
+// findProjectRoot finds the common parent directory of all given paths
+func (s *SystemAnalysisServiceImpl) findProjectRoot(paths []string) string {
+	if len(paths) == 0 {
+		cwd, _ := os.Getwd()
+		return cwd
+	}
+	
+	// Get absolute paths
+	absPaths := make([]string, 0, len(paths))
+	for _, p := range paths {
+		absPath, err := filepath.Abs(p)
+		if err != nil {
+			continue
+		}
+		
+		// If it's a file, get its directory
+		info, err := os.Stat(absPath)
+		if err == nil && !info.IsDir() {
+			absPath = filepath.Dir(absPath)
+		}
+		
+		absPaths = append(absPaths, absPath)
+	}
+	
+	if len(absPaths) == 0 {
+		cwd, _ := os.Getwd()
+		return cwd
+	}
+	
+	// Find common parent
+	commonParent := absPaths[0]
+	for _, path := range absPaths[1:] {
+		for !strings.HasPrefix(path, commonParent) {
+			commonParent = filepath.Dir(commonParent)
+			if commonParent == "/" || commonParent == "." {
+				break
+			}
+		}
+	}
+	
+	// If common parent has __init__.py, it's a Python package root
+	// Otherwise, look for common markers like setup.py, pyproject.toml, etc.
+	for {
+		// Check for Python project markers
+		markers := []string{"setup.py", "pyproject.toml", "setup.cfg", ".git", "requirements.txt"}
+		for _, marker := range markers {
+			if _, err := os.Stat(filepath.Join(commonParent, marker)); err == nil {
+				return commonParent
+			}
+		}
+		
+		// Check if we've reached the root
+		parent := filepath.Dir(commonParent)
+		if parent == commonParent || parent == "/" || parent == "." {
+			break
+		}
+		
+		// Don't go above the original common parent too much
+		if !strings.HasPrefix(absPaths[0], parent) {
+			break
+		}
+		
+		commonParent = parent
+	}
+	
+	return commonParent
 }
 
 func (s *SystemAnalysisServiceImpl) buildDependencyMatrix(graph *analyzer.DependencyGraph) map[string]map[string]bool {
@@ -733,6 +738,8 @@ func (s *SystemAnalysisServiceImpl) extractSystemMetrics(graph *analyzer.Depende
 
 // extractImportsFromAST extracts import information from AST
 // TEMPORARY: Using regex-based extraction due to AST builder issues
+// extractImportsFromAST is deprecated - ModuleAnalyzer handles this internally
+// Keeping for backward compatibility during transition
 func (s *SystemAnalysisServiceImpl) extractImportsFromAST(ast *parser.Node, filePath string) []*analyzer.ImportInfo {
 	// Read the source file directly for regex-based parsing
 	content, err := os.ReadFile(filePath)
@@ -744,8 +751,8 @@ func (s *SystemAnalysisServiceImpl) extractImportsFromAST(ast *parser.Node, file
 	return s.extractImportsWithRegex(string(content))
 }
 
-// extractImportsWithRegex uses regex to extract imports from Python source
-// This is a temporary solution until the AST builder is fixed
+// NOTE: extractImportsWithRegex is deprecated - ModuleAnalyzer handles this internally
+// Keeping for backward compatibility during transition
 func (s *SystemAnalysisServiceImpl) extractImportsWithRegex(source string) []*analyzer.ImportInfo {
 	var imports []*analyzer.ImportInfo
 	
@@ -902,6 +909,8 @@ func (s *SystemAnalysisServiceImpl) walkAST(node *parser.Node, visitor func(*par
 }
 
 // resolveRelativeImport resolves a relative import to an absolute module name
+// NOTE: resolveRelativeImport is deprecated - ModuleAnalyzer handles this internally
+// Keeping for backward compatibility during transition
 func (s *SystemAnalysisServiceImpl) resolveRelativeImport(imp *analyzer.ImportInfo, filePath string) string {
 	if imp == nil || !imp.IsRelative {
 		return ""
