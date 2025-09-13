@@ -242,69 +242,105 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) loadArchitectureConfig(v *viper
         request.ArchitectureRules.ForbiddenPatterns = v.GetStringSlice(section + ".forbidden_patterns")
     }
 
-    // layers: array of tables with name, packages, description
+    // Load layers
     if v.IsSet(section + ".layers") {
-        var layers []map[string]interface{}
-        if err := v.UnmarshalKey(section+".layers", &layers); err == nil {
-            request.ArchitectureRules.Layers = make([]domain.Layer, 0, len(layers))
-            for _, l := range layers {
-                layer := domain.Layer{}
-                if name, ok := l["name"].(string); ok {
-                    layer.Name = name
-                }
-                if desc, ok := l["description"].(string); ok {
-                    layer.Description = desc
-                }
-                if pkgs, ok := l["packages"].([]interface{}); ok {
-                    for _, p := range pkgs {
-                        if s, ok := p.(string); ok {
-                            layer.Packages = append(layer.Packages, s)
-                        }
-                    }
-                } else if pkgs2, ok := l["packages"].([]string); ok {
-                    layer.Packages = append(layer.Packages, pkgs2...)
-                }
-                if layer.Name != "" {
-                    request.ArchitectureRules.Layers = append(request.ArchitectureRules.Layers, layer)
-                }
-            }
+        layers, err := cl.unmarshalLayers(v, section+".layers")
+        if err != nil {
+            return err
         }
+        request.ArchitectureRules.Layers = layers
     }
 
-    // rules: array of tables with from, allow, deny
+    // Load rules
     if v.IsSet(section + ".rules") {
-        var rules []map[string]interface{}
-        if err := v.UnmarshalKey(section+".rules", &rules); err == nil {
-            request.ArchitectureRules.Rules = make([]domain.LayerRule, 0, len(rules))
-            for _, r := range rules {
-                rule := domain.LayerRule{}
-                if from, ok := r["from"].(string); ok {
-                    rule.From = from
-                }
-                // allow
-                if allow, ok := r["allow"].([]interface{}); ok {
-                    for _, a := range allow {
-                        if s, ok := a.(string); ok { rule.Allow = append(rule.Allow, s) }
-                    }
-                } else if allow2, ok := r["allow"].([]string); ok {
-                    rule.Allow = append(rule.Allow, allow2...)
-                }
-                // deny
-                if deny, ok := r["deny"].([]interface{}); ok {
-                    for _, d := range deny {
-                        if s, ok := d.(string); ok { rule.Deny = append(rule.Deny, s) }
-                    }
-                } else if deny2, ok := r["deny"].([]string); ok {
-                    rule.Deny = append(rule.Deny, deny2...)
-                }
-                if rule.From != "" {
-                    request.ArchitectureRules.Rules = append(request.ArchitectureRules.Rules, rule)
-                }
-            }
+        rules, err := cl.unmarshalRules(v, section+".rules")
+        if err != nil {
+            return err
         }
+        request.ArchitectureRules.Rules = rules
     }
 
     return nil
+}
+
+// unmarshalLayers extracts layer configuration from viper
+func (cl *SystemAnalysisConfigurationLoaderImpl) unmarshalLayers(v *viper.Viper, key string) ([]domain.Layer, error) {
+    var rawLayers []map[string]interface{}
+    if err := v.UnmarshalKey(key, &rawLayers); err != nil {
+        return nil, fmt.Errorf("failed to unmarshal architecture layers config: %w", err)
+    }
+
+    layers := make([]domain.Layer, 0, len(rawLayers))
+    for _, l := range rawLayers {
+        layer := cl.parseLayer(l)
+        if layer.Name != "" {
+            layers = append(layers, layer)
+        }
+    }
+    return layers, nil
+}
+
+// parseLayer converts a raw map to a Layer struct
+func (cl *SystemAnalysisConfigurationLoaderImpl) parseLayer(raw map[string]interface{}) domain.Layer {
+    layer := domain.Layer{}
+
+    if name, ok := raw["name"].(string); ok {
+        layer.Name = name
+    }
+    if desc, ok := raw["description"].(string); ok {
+        layer.Description = desc
+    }
+
+    layer.Packages = cl.extractStringSlice(raw["packages"])
+    return layer
+}
+
+// unmarshalRules extracts rule configuration from viper
+func (cl *SystemAnalysisConfigurationLoaderImpl) unmarshalRules(v *viper.Viper, key string) ([]domain.LayerRule, error) {
+    var rawRules []map[string]interface{}
+    if err := v.UnmarshalKey(key, &rawRules); err != nil {
+        return nil, fmt.Errorf("failed to unmarshal architecture rules config: %w", err)
+    }
+
+    rules := make([]domain.LayerRule, 0, len(rawRules))
+    for _, r := range rawRules {
+        rule := cl.parseRule(r)
+        if rule.From != "" {
+            rules = append(rules, rule)
+        }
+    }
+    return rules, nil
+}
+
+// parseRule converts a raw map to a LayerRule struct
+func (cl *SystemAnalysisConfigurationLoaderImpl) parseRule(raw map[string]interface{}) domain.LayerRule {
+    rule := domain.LayerRule{}
+
+    if from, ok := raw["from"].(string); ok {
+        rule.From = from
+    }
+
+    rule.Allow = cl.extractStringSlice(raw["allow"])
+    rule.Deny = cl.extractStringSlice(raw["deny"])
+    return rule
+}
+
+// extractStringSlice handles type conversion for string slices
+func (cl *SystemAnalysisConfigurationLoaderImpl) extractStringSlice(value interface{}) []string {
+    var result []string
+
+    switch v := value.(type) {
+    case []string:
+        result = append(result, v...)
+    case []interface{}:
+        for _, item := range v {
+            if s, ok := item.(string); ok {
+                result = append(result, s)
+            }
+        }
+    }
+
+    return result
 }
 
 // SystemAnalysisConfigurationLoaderWithFlags extends the base loader with CLI flag integration

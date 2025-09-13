@@ -164,12 +164,59 @@ func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req
 
 // AnalyzeArchitecture performs architecture validation only
 func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req domain.SystemAnalysisRequest) (*domain.ArchitectureAnalysisResult, error) {
-    // Require rules to be present; otherwise skip
+    // Return empty result if no rules are defined (consistent with other Analyze methods)
     if req.ArchitectureRules == nil || (len(req.ArchitectureRules.Layers) == 0 && len(req.ArchitectureRules.Rules) == 0) {
-        return nil, nil
+        return s.emptyArchitectureResult(), nil
     }
 
-    // Build dependency graph using ModuleAnalyzer
+    // Build dependency graph
+    graph, err := s.buildDependencyGraph(req)
+    if err != nil {
+        return nil, err
+    }
+
+    // Map modules to layers
+    moduleToLayer := s.buildModuleLayerMap(graph, req.ArchitectureRules)
+
+    // Evaluate layer rules and collect violations
+    violations, severityCounts, layerCoupling, checked := s.evaluateLayerRules(ctx, graph, moduleToLayer, req.ArchitectureRules)
+    if violations == nil {
+        return nil, fmt.Errorf("architecture analysis cancelled")
+    }
+
+    // Calculate metrics
+    layerCohesion, problematic, layersAnalyzed := s.calculateLayerMetrics(layerCoupling)
+    compliance := s.calculateCompliance(len(violations), checked)
+
+    // Build result
+    return s.buildArchitectureResult(violations, severityCounts, layerCoupling, layerCohesion,
+        problematic, layersAnalyzed, compliance, checked), nil
+}
+
+// emptyArchitectureResult returns an empty result when no rules are defined
+func (s *SystemAnalysisServiceImpl) emptyArchitectureResult() *domain.ArchitectureAnalysisResult {
+    return &domain.ArchitectureAnalysisResult{
+        ComplianceScore:        1.0,
+        TotalViolations:        0,
+        TotalRules:             0,
+        LayerAnalysis:          &domain.LayerAnalysis{
+            LayersAnalyzed:    0,
+            LayerViolations:   []domain.LayerViolation{},
+            LayerCoupling:     make(map[string]map[string]int),
+            LayerCohesion:     make(map[string]float64),
+            ProblematicLayers: []string{},
+        },
+        CohesionAnalysis:       nil,
+        ResponsibilityAnalysis: nil,
+        Violations:             []domain.ArchitectureViolation{},
+        SeverityBreakdown:      make(map[domain.ViolationSeverity]int),
+        Recommendations:        []domain.ArchitectureRecommendation{},
+        RefactoringTargets:     []string{},
+    }
+}
+
+// buildDependencyGraph creates the dependency graph using ModuleAnalyzer
+func (s *SystemAnalysisServiceImpl) buildDependencyGraph(req domain.SystemAnalysisRequest) (*analyzer.DependencyGraph, error) {
     projectRoot := s.findProjectRoot(req.Paths)
     options := &analyzer.ModuleAnalysisOptions{
         ProjectRoot:       projectRoot,
@@ -187,11 +234,14 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
     if err != nil {
         return nil, fmt.Errorf("failed to analyze architecture dependencies: %w", err)
     }
+    return graph, nil
+}
 
-    // Map modules to layers
-    moduleToLayer := s.buildModuleLayerMap(graph, req.ArchitectureRules)
+// evaluateLayerRules evaluates all edges against layer rules
+func (s *SystemAnalysisServiceImpl) evaluateLayerRules(ctx context.Context, graph *analyzer.DependencyGraph,
+    moduleToLayer map[string]string, rules *domain.ArchitectureRules) ([]domain.ArchitectureViolation,
+    map[domain.ViolationSeverity]int, map[string]map[string]int, int) {
 
-    // Evaluate edges and collect coupling
     layerCoupling := make(map[string]map[string]int)
     var violations []domain.ArchitectureViolation
     severityCounts := make(map[domain.ViolationSeverity]int)
@@ -200,47 +250,87 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
     for _, edge := range graph.Edges {
         select {
         case <-ctx.Done():
-            return nil, fmt.Errorf("architecture analysis cancelled: %w", ctx.Err())
+            return nil, nil, nil, 0
         default:
         }
         fromLayer := moduleToLayer[edge.From]
         toLayer := moduleToLayer[edge.To]
 
-        if layerCoupling[fromLayer] == nil { layerCoupling[fromLayer] = make(map[string]int) }
+        if layerCoupling[fromLayer] == nil {
+            layerCoupling[fromLayer] = make(map[string]int)
+        }
         layerCoupling[fromLayer][toLayer]++
 
-        if v := s.evaluateLayerEdge(req.ArchitectureRules, edge.From, edge.To, fromLayer, toLayer); v != nil {
+        if v := s.evaluateLayerEdge(rules, edge.From, edge.To, fromLayer, toLayer); v != nil {
             violations = append(violations, *v)
             severityCounts[v.Severity]++
         }
         checked++
     }
 
-    // Cohesion per layer: intra / total outgoing
+    return violations, severityCounts, layerCoupling, checked
+}
+
+// calculateLayerMetrics calculates cohesion and identifies problematic layers
+func (s *SystemAnalysisServiceImpl) calculateLayerMetrics(layerCoupling map[string]map[string]int) (
+    map[string]float64, []string, int) {
+
     layerCohesion := make(map[string]float64)
     problematic := make([]string, 0)
     uniqueLayers := make(map[string]bool)
+
     for layer, targets := range layerCoupling {
         uniqueLayers[layer] = true
         total, intra := 0, 0
         for to, cnt := range targets {
             total += cnt
-            if to == layer { intra += cnt }
+            if to == layer {
+                intra += cnt
+            }
         }
-        if total > 0 { layerCohesion[layer] = float64(intra) / float64(total) } else { layerCohesion[layer] = 1.0 }
-        if layerCohesion[layer] < 0.5 { problematic = append(problematic, layer) }
+        if total > 0 {
+            layerCohesion[layer] = float64(intra) / float64(total)
+        } else {
+            layerCohesion[layer] = 1.0
+        }
+        if layerCohesion[layer] < 0.5 {
+            problematic = append(problematic, layer)
+        }
     }
 
-    // Compliance
+    layersAnalyzed := 0
+    for l := range uniqueLayers {
+        if l != "" {
+            layersAnalyzed++
+        }
+    }
+
+    return layerCohesion, problematic, layersAnalyzed
+}
+
+// calculateCompliance calculates the compliance score
+func (s *SystemAnalysisServiceImpl) calculateCompliance(violations, checked int) float64 {
     compliance := 1.0
     if checked > 0 {
-        compliance = 1.0 - (float64(len(violations)) / float64(checked))
-        if compliance < 0 { compliance = 0 }
+        compliance = 1.0 - (float64(violations) / float64(checked))
+        if compliance < 0 {
+            compliance = 0
+        }
     }
+    return compliance
+}
 
-    // Layer analysis
-    layersAnalyzed := 0
-    for l := range uniqueLayers { if l != "" { layersAnalyzed++ } }
+// buildArchitectureResult constructs the final result
+func (s *SystemAnalysisServiceImpl) buildArchitectureResult(
+    violations []domain.ArchitectureViolation,
+    severityCounts map[domain.ViolationSeverity]int,
+    layerCoupling map[string]map[string]int,
+    layerCohesion map[string]float64,
+    problematic []string,
+    layersAnalyzed int,
+    compliance float64,
+    checked int) *domain.ArchitectureAnalysisResult {
+
     layerAnalysis := &domain.LayerAnalysis{
         LayersAnalyzed:    layersAnalyzed,
         LayerViolations:   s.toLayerViolations(violations),
@@ -249,7 +339,7 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
         ProblematicLayers: problematic,
     }
 
-    result := &domain.ArchitectureAnalysisResult{
+    return &domain.ArchitectureAnalysisResult{
         ComplianceScore:        compliance,
         TotalViolations:        len(violations),
         TotalRules:             checked,
@@ -261,8 +351,6 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
         Recommendations:        []domain.ArchitectureRecommendation{},
         RefactoringTargets:     []string{},
     }
-
-    return result, nil
 }
 
 // buildModuleLayerMap maps each module to a layer based on ArchitectureRules.
