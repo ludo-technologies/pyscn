@@ -127,7 +127,7 @@ func runDepsCommand(cmd *cobra.Command, args []string) error {
 	}
 	if depsDOT {
 		formatCount++
-		outputFormat = "dot" // Special format for DOT graphs
+		outputFormat = domain.OutputFormatDOT
 		extension = "dot"
 	}
 	
@@ -309,11 +309,13 @@ func printBasicDepsSummary(cmd *cobra.Command, result *domain.DependencyAnalysis
 	// Show quick recommendations
 	fmt.Fprintf(cmd.OutOrStdout(), "\n💡 Quick recommendations:\n")
 	if result.CircularDependencies != nil && result.CircularDependencies.HasCircularDependencies {
-		fmt.Fprintf(cmd.OutOrStdout(), "  • Use --cycles flag to analyze circular dependencies\n")
+		fmt.Fprintf(cmd.OutOrStdout(), "  • Use --cycles flag to focus on circular dependencies\n")
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "  • Use --matrix flag to see dependency relationships\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "  • Use --metrics flag for detailed coupling analysis\n")
+	if result.MaxDepth > 3 {
+		fmt.Fprintf(cmd.OutOrStdout(), "  • Use --chains flag to see longest dependency chains\n")
+	}
 	fmt.Fprintf(cmd.OutOrStdout(), "  • Use --html flag for interactive visualization\n")
+	fmt.Fprintf(cmd.OutOrStdout(), "  • Use --json flag for programmatic processing\n")
 }
 
 // Utility functions

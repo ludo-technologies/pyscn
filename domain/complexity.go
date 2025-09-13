@@ -14,6 +14,7 @@ const (
 	OutputFormatYAML OutputFormat = "yaml"
 	OutputFormatCSV  OutputFormat = "csv"
 	OutputFormatHTML OutputFormat = "html"
+	OutputFormatDOT  OutputFormat = "dot"
 )
 
 // SortCriteria represents the criteria for sorting results
