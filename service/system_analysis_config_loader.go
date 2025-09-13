@@ -155,16 +155,21 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
 	merged.FollowRelative = override.FollowRelative
 	merged.DetectCycles = override.DetectCycles
 
-	// File selection - override if provided
-	if len(override.IncludePatterns) > 0 {
-		merged.IncludePatterns = override.IncludePatterns
-	}
-	if len(override.ExcludePatterns) > 0 {
-		merged.ExcludePatterns = override.ExcludePatterns
-	}
-	merged.Recursive = override.Recursive
+    // File selection - override if provided
+    if len(override.IncludePatterns) > 0 {
+        merged.IncludePatterns = override.IncludePatterns
+    }
+    if len(override.ExcludePatterns) > 0 {
+        merged.ExcludePatterns = override.ExcludePatterns
+    }
+    merged.Recursive = override.Recursive
 
-	return &merged
+    // Architecture rules - CLI request takes precedence if provided
+    if override.ArchitectureRules != nil {
+        merged.ArchitectureRules = override.ArchitectureRules
+    }
+
+    return &merged
 }
 
 // loadFromViperSection loads configuration from a specific viper section
@@ -219,15 +224,87 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) loadDependencyConfig(v *viper.V
 
 // loadArchitectureConfig loads architecture-specific configuration
 func (cl *SystemAnalysisConfigurationLoaderImpl) loadArchitectureConfig(v *viper.Viper, section string, request *domain.SystemAnalysisRequest) error {
-	// Architecture analysis doesn't have specific config options yet
-	// This method is here for future extensibility
+    // Initialize rules if missing
+    if request.ArchitectureRules == nil {
+        request.ArchitectureRules = &domain.ArchitectureRules{}
+    }
 
-	// Future options could include:
-	// - Layer definitions
-	// - Architecture pattern detection settings
-	// - Violation severity thresholds
+    // strict_mode
+    if v.IsSet(section + ".strict_mode") {
+        request.ArchitectureRules.StrictMode = v.GetBool(section + ".strict_mode")
+    }
 
-	return nil
+    // allowed_patterns / forbidden_patterns
+    if v.IsSet(section + ".allowed_patterns") {
+        request.ArchitectureRules.AllowedPatterns = v.GetStringSlice(section + ".allowed_patterns")
+    }
+    if v.IsSet(section + ".forbidden_patterns") {
+        request.ArchitectureRules.ForbiddenPatterns = v.GetStringSlice(section + ".forbidden_patterns")
+    }
+
+    // layers: array of tables with name, packages, description
+    if v.IsSet(section + ".layers") {
+        var layers []map[string]interface{}
+        if err := v.UnmarshalKey(section+".layers", &layers); err == nil {
+            request.ArchitectureRules.Layers = make([]domain.Layer, 0, len(layers))
+            for _, l := range layers {
+                layer := domain.Layer{}
+                if name, ok := l["name"].(string); ok {
+                    layer.Name = name
+                }
+                if desc, ok := l["description"].(string); ok {
+                    layer.Description = desc
+                }
+                if pkgs, ok := l["packages"].([]interface{}); ok {
+                    for _, p := range pkgs {
+                        if s, ok := p.(string); ok {
+                            layer.Packages = append(layer.Packages, s)
+                        }
+                    }
+                } else if pkgs2, ok := l["packages"].([]string); ok {
+                    layer.Packages = append(layer.Packages, pkgs2...)
+                }
+                if layer.Name != "" {
+                    request.ArchitectureRules.Layers = append(request.ArchitectureRules.Layers, layer)
+                }
+            }
+        }
+    }
+
+    // rules: array of tables with from, allow, deny
+    if v.IsSet(section + ".rules") {
+        var rules []map[string]interface{}
+        if err := v.UnmarshalKey(section+".rules", &rules); err == nil {
+            request.ArchitectureRules.Rules = make([]domain.LayerRule, 0, len(rules))
+            for _, r := range rules {
+                rule := domain.LayerRule{}
+                if from, ok := r["from"].(string); ok {
+                    rule.From = from
+                }
+                // allow
+                if allow, ok := r["allow"].([]interface{}); ok {
+                    for _, a := range allow {
+                        if s, ok := a.(string); ok { rule.Allow = append(rule.Allow, s) }
+                    }
+                } else if allow2, ok := r["allow"].([]string); ok {
+                    rule.Allow = append(rule.Allow, allow2...)
+                }
+                // deny
+                if deny, ok := r["deny"].([]interface{}); ok {
+                    for _, d := range deny {
+                        if s, ok := d.(string); ok { rule.Deny = append(rule.Deny, s) }
+                    }
+                } else if deny2, ok := r["deny"].([]string); ok {
+                    rule.Deny = append(rule.Deny, deny2...)
+                }
+                if rule.From != "" {
+                    request.ArchitectureRules.Rules = append(request.ArchitectureRules.Rules, rule)
+                }
+            }
+        }
+    }
+
+    return nil
 }
 
 // SystemAnalysisConfigurationLoaderWithFlags extends the base loader with CLI flag integration
@@ -255,8 +332,9 @@ func (cl *SystemAnalysisConfigurationLoaderWithFlags) LoadConfigWithFlags(
 
 	// Merge with CLI flags
 	mergedConfig := cl.MergeConfig(baseConfig, cliRequest)
-	return mergedConfig, nil
+    return mergedConfig, nil
 }
+
 
 // Example configuration file content for documentation
 var ExampleSystemAnalysisConfig = `
