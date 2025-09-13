@@ -402,30 +402,3 @@ func (f *CBOFormatterImpl) formatHTML(response *domain.CBOResponse) (string, err
 	return builder.String(), nil
 }
 
-// getCBOBadgeClass returns CSS class for CBO badge
-func (f *CBOFormatterImpl) getCBOBadgeClass(risk domain.RiskLevel) string {
-	switch risk {
-	case domain.RiskLevelLow:
-		return "cbo-low"
-	case domain.RiskLevelMedium:
-		return "cbo-medium"
-	case domain.RiskLevelHigh:
-		return "cbo-high"
-	default:
-		return "cbo-low"
-	}
-}
-
-// getRiskClass returns CSS class for risk level
-func (f *CBOFormatterImpl) getRiskClass(risk domain.RiskLevel) string {
-	switch risk {
-	case domain.RiskLevelLow:
-		return "risk-low"
-	case domain.RiskLevelMedium:
-		return "risk-medium"
-	case domain.RiskLevelHigh:
-		return "risk-high"
-	default:
-		return "risk-low"
-	}
-}

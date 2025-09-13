@@ -401,9 +401,7 @@ func (ma *ModuleAnalyzer) filePathToModuleName(filePath string) string {
 	}
 	
 	// Remove .py extension
-	if strings.HasSuffix(relPath, ".py") {
-		relPath = relPath[:len(relPath)-3]
-	}
+	relPath = strings.TrimSuffix(relPath, ".py")
 	
 	// Handle __init__.py files
 	if strings.HasSuffix(relPath, "__init__") {

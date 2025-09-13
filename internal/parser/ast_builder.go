@@ -1508,25 +1508,6 @@ func (b *ASTBuilder) buildAlias(tsNode *sitter.Node) *Node {
 	return node
 }
 
-// extractImportNames extracts import names from import nodes
-func (b *ASTBuilder) extractImportNames(tsNode *sitter.Node, importNode *Node) {
-	childCount := int(tsNode.ChildCount())
-	for i := 0; i < childCount; i++ {
-		child := tsNode.Child(i)
-		if child != nil {
-			switch child.Type() {
-			case "dotted_name", "identifier":
-				importNode.Names = append(importNode.Names, b.getNodeText(child))
-			case "aliased_import":
-				if alias := b.buildAlias(child); alias != nil {
-					importNode.AddChild(alias)
-				}
-			case "import_from_as_name":
-				b.extractImportNames(child, importNode)
-			}
-		}
-	}
-}
 
 // Utility methods...
 

@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/viper"
 	"github.com/ludo-technologies/pyscn/domain"
@@ -257,64 +256,6 @@ func (cl *SystemAnalysisConfigurationLoaderWithFlags) LoadConfigWithFlags(
 	// Merge with CLI flags
 	mergedConfig := cl.MergeConfig(baseConfig, cliRequest)
 	return mergedConfig, nil
-}
-
-// discoverConfigFile discovers configuration files in the current directory
-func (cl *SystemAnalysisConfigurationLoaderImpl) discoverConfigFile() string {
-	// Check for .pyscn.toml
-	if _, err := os.Stat(".pyscn.toml"); err == nil {
-		return ".pyscn.toml"
-	}
-
-	// Check for .pyscn.yaml
-	if _, err := os.Stat(".pyscn.yaml"); err == nil {
-		return ".pyscn.yaml"
-	}
-
-	// Check for .pyscn.yml
-	if _, err := os.Stat(".pyscn.yml"); err == nil {
-		return ".pyscn.yml"
-	}
-
-	// Check for pyproject.toml with [tool.pyscn] section
-	if _, err := os.Stat("pyproject.toml"); err == nil {
-		// We could validate that it has [tool.pyscn] section, but let's keep it simple
-		return "pyproject.toml"
-	}
-
-	return ""
-}
-
-// validateConfigPath validates that the config file exists and is readable
-func (cl *SystemAnalysisConfigurationLoaderImpl) validateConfigPath(path string) error {
-	if path == "" {
-		return nil
-	}
-
-	// Check if file exists
-	info, err := os.Stat(path)
-	if err != nil {
-		return fmt.Errorf("configuration file not found: %s", path)
-	}
-
-	// Check if it's a file (not a directory)
-	if info.IsDir() {
-		return fmt.Errorf("configuration path is a directory, not a file: %s", path)
-	}
-
-	// Check file extension
-	ext := filepath.Ext(path)
-	validExts := map[string]bool{
-		".toml": true,
-		".yaml": true,
-		".yml":  true,
-	}
-
-	if !validExts[ext] {
-		return fmt.Errorf("unsupported configuration file format: %s (supported: .toml, .yaml, .yml)", ext)
-	}
-
-	return nil
 }
 
 // Example configuration file content for documentation

@@ -264,9 +264,8 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics() {
 	var totalFanIn, totalFanOut float64
 	var totalInstability, totalAbstractness, totalDistance float64
 	var totalMaintainability, totalTechnicalDebt float64
-	var highComplexityModules []string
 	
-	for moduleName, metrics := range calc.graph.ModuleMetrics {
+	for _, metrics := range calc.graph.ModuleMetrics {
 		totalFanIn += float64(metrics.AfferentCoupling)
 		totalFanOut += float64(metrics.EfferentCoupling)
 		totalInstability += metrics.Instability
@@ -274,11 +273,6 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics() {
 		totalDistance += metrics.Distance
 		totalMaintainability += metrics.Maintainability
 		totalTechnicalDebt += metrics.TechnicalDebt
-		
-		// Identify high complexity modules
-		if metrics.CyclomaticComplexity > 15 {
-			highComplexityModules = append(highComplexityModules, moduleName)
-		}
 	}
 	
 	moduleCount := float64(systemMetrics.TotalModules)

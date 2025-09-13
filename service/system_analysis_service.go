@@ -274,9 +274,7 @@ func (s *SystemAnalysisServiceImpl) getModuleNameFromPath(filePath string) strin
 	}
 	
 	// Remove .py extension
-	if strings.HasSuffix(relPath, ".py") {
-		relPath = relPath[:len(relPath)-3]
-	}
+	relPath = strings.TrimSuffix(relPath, ".py")
 	
 	// Handle __init__.py files
 	if strings.HasSuffix(relPath, "__init__") {
@@ -518,9 +516,6 @@ func (s *SystemAnalysisServiceImpl) convertCircularResults(result *analyzer.Circ
 
 // Architecture analysis helper methods (simplified)
 
-func (s *SystemAnalysisServiceImpl) countArchitecturalLayers(paths []string) int {
-	return s.countLayers(paths)
-}
 
 // Quality analysis helper methods
 
@@ -562,55 +557,9 @@ func (s *SystemAnalysisServiceImpl) countLayers(paths []string) int {
 	return len(layers)
 }
 
-func (s *SystemAnalysisServiceImpl) calculateCodeHealth(metrics *analyzer.SystemMetrics) float64 {
-	// Simple health calculation based on multiple factors
-	health := 1.0
-	
-	// Penalize high instability
-	if metrics.AverageInstability > 0.8 {
-		health -= 0.2
-	}
-	
-	// Penalize high main sequence deviation
-	if metrics.MainSequenceDeviation > 0.5 {
-		health -= 0.3
-	}
-	
-	// Penalize cyclic dependencies
-	if metrics.CyclicDependencies > 0 {
-		health -= 0.4
-	}
-	
-	if health < 0 {
-		health = 0
-	}
-	
-	return health
-}
 
 // Removed evaluateQualityGate - QualityGate is not part of the QualityMetricsResult domain
 
-func (s *SystemAnalysisServiceImpl) generateRecommendations(metrics *analyzer.SystemMetrics) []string {
-	var recommendations []string
-	
-	if metrics.CyclicDependencies > 0 {
-		recommendations = append(recommendations, "Break circular dependencies to improve maintainability")
-	}
-	
-	if metrics.AverageInstability > 0.7 {
-		recommendations = append(recommendations, "Reduce coupling between modules")
-	}
-	
-	if metrics.MainSequenceDeviation > 0.4 {
-		recommendations = append(recommendations, "Balance abstractness and instability of modules")
-	}
-	
-	if len(metrics.RefactoringPriority) > 0 {
-		recommendations = append(recommendations, fmt.Sprintf("Consider refactoring high-priority modules: %v", metrics.RefactoringPriority[:minSystemAnalysis(3, len(metrics.RefactoringPriority))]))
-	}
-	
-	return recommendations
-}
 
 // Additional helper methods
 
@@ -624,49 +573,7 @@ func (s *SystemAnalysisServiceImpl) isArchitecturalLayer(name string) bool {
 	return false
 }
 
-func (s *SystemAnalysisServiceImpl) getLayerDescription(name string) string {
-	descriptions := map[string]string{
-		"presentation":   "User interface and presentation logic",
-		"application":    "Application services and use cases",
-		"domain":         "Business logic and domain entities",
-		"infrastructure": "External concerns and technical implementation",
-		"data":           "Data access and persistence",
-		"service":        "Service layer implementation",
-		"controller":     "Request handling and routing",
-		"model":          "Data models and entities",
-		"view":           "User interface templates and views",
-	}
-	
-	for key, desc := range descriptions {
-		if strings.Contains(strings.ToLower(name), key) {
-			return desc
-		}
-	}
-	
-	return "Application component"
-}
 
-func (s *SystemAnalysisServiceImpl) getLayerLevel(name string) int {
-	levels := map[string]int{
-		"presentation":   1,
-		"controller":     1,
-		"view":           1,
-		"application":    2,
-		"service":        2,
-		"domain":         3,
-		"model":          3,
-		"infrastructure": 4,
-		"data":           4,
-	}
-	
-	for key, level := range levels {
-		if strings.Contains(strings.ToLower(name), key) {
-			return level
-		}
-	}
-	
-	return 2 // Default level
-}
 
 // Removed helper methods that used undefined domain types
 
@@ -685,16 +592,6 @@ func (s *SystemAnalysisServiceImpl) extractZoneOfUselessness(metrics *analyzer.S
 	return []string{}
 }
 
-func (s *SystemAnalysisServiceImpl) calculateCycleSeverity(size int) string {
-	switch {
-	case size >= 5:
-		return "Critical"
-	case size >= 3:
-		return "Warning"
-	default:
-		return "Info"
-	}
-}
 
 func (s *SystemAnalysisServiceImpl) convertCycleDependencies(cycle []string) []domain.DependencyPath {
 	var deps []domain.DependencyPath
@@ -891,82 +788,7 @@ func (s *SystemAnalysisServiceImpl) parseImportNames(namesStr string) []string {
 	return names
 }
 
-// walkAST walks the AST recursively
-func (s *SystemAnalysisServiceImpl) walkAST(node *parser.Node, visitor func(*parser.Node) bool) {
-	if node == nil || !visitor(node) {
-		return
-	}
-	
-	for _, child := range node.Children {
-		s.walkAST(child, visitor)
-	}
-	
-	if node.Body != nil {
-		for _, stmt := range node.Body {
-			s.walkAST(stmt, visitor)
-		}
-	}
-}
 
-// resolveRelativeImport resolves a relative import to an absolute module name
-// NOTE: resolveRelativeImport is deprecated - ModuleAnalyzer handles this internally
-// Keeping for backward compatibility during transition
-func (s *SystemAnalysisServiceImpl) resolveRelativeImport(imp *analyzer.ImportInfo, filePath string) string {
-	if imp == nil || !imp.IsRelative {
-		return ""
-	}
-	
-	// Get the current module path
-	moduleName := s.getModuleNameFromPath(filePath)
-	
-	// Split module path into parts
-	parts := strings.Split(moduleName, ".")
-	
-	// For level 1 (from . import x), use current package
-	// For level 2 (from .. import x), go up one level, etc.
-	if imp.Level > 0 && imp.Level < len(parts) {
-		// Go up 'Level' directories
-		baseParts := parts[:len(parts)-imp.Level]
-		
-		// Extract the module name from the statement
-		modulePart := ""
-		if strings.Contains(imp.Statement, " import ") {
-			statementParts := strings.Split(imp.Statement, " import ")
-			if len(statementParts) > 0 {
-				fromPart := strings.TrimPrefix(statementParts[0], "from ")
-				fromPart = strings.TrimSpace(fromPart)
-				// Remove the dots
-				fromPart = strings.TrimLeft(fromPart, ".")
-				fromPart = strings.TrimSpace(fromPart)
-				if fromPart != "" {
-					modulePart = fromPart
-				}
-			}
-		}
-		
-		// Combine base path with module part
-		if modulePart != "" {
-			return strings.Join(append(baseParts, modulePart), ".")
-		}
-		
-		// If importing directly from parent (from . import x), 
-		// we're importing from the same package
-		if imp.Level == 1 && len(imp.ImportedNames) > 0 {
-			// Return the package path + imported name as module
-			// This helps track intra-package dependencies
-			if len(baseParts) > 0 {
-				return strings.Join(baseParts, ".")
-			}
-		}
-		
-		// For higher levels, just return the parent package
-		if len(baseParts) > 0 {
-			return strings.Join(baseParts, ".")
-		}
-	}
-	
-	return ""
-}
 
 // extractModuleNameFromImport extracts the module name from import info
 func (s *SystemAnalysisServiceImpl) extractModuleNameFromImport(imp *analyzer.ImportInfo) string {

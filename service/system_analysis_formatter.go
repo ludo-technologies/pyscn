@@ -34,7 +34,7 @@ func (f *SystemAnalysisFormatterImpl) Format(response *domain.SystemAnalysisResp
 		return f.formatCSV(response)
 	case domain.OutputFormatHTML:
 		return f.formatHTML(response)
-	case "dot": // Special format for DOT graph visualization
+	case domain.OutputFormatDOT:
 		return f.formatDOT(response)
 	default:
 		return "", fmt.Errorf("unsupported output format: %s", format)
@@ -253,41 +253,41 @@ func (f *SystemAnalysisFormatterImpl) formatCSV(response *domain.SystemAnalysisR
 
 	// CSV headers for dependency analysis
 	if response.DependencyAnalysis != nil {
-		writer.Write([]string{"Analysis Type", "Metric", "Value"})
+		_ = writer.Write([]string{"Analysis Type", "Metric", "Value"})
 		
 		// Dependency metrics
-		writer.Write([]string{"Dependencies", "Total Modules", strconv.Itoa(response.DependencyAnalysis.TotalModules)})
-		writer.Write([]string{"Dependencies", "Total Dependencies", strconv.Itoa(response.DependencyAnalysis.TotalDependencies)})
-		writer.Write([]string{"Dependencies", "Root Modules", strconv.Itoa(len(response.DependencyAnalysis.RootModules))})
-		writer.Write([]string{"Dependencies", "Leaf Modules", strconv.Itoa(len(response.DependencyAnalysis.LeafModules))})
-		writer.Write([]string{"Dependencies", "Max Depth", strconv.Itoa(response.DependencyAnalysis.MaxDepth)})
+		_ = writer.Write([]string{"Dependencies", "Total Modules", strconv.Itoa(response.DependencyAnalysis.TotalModules)})
+		_ = writer.Write([]string{"Dependencies", "Total Dependencies", strconv.Itoa(response.DependencyAnalysis.TotalDependencies)})
+		_ = writer.Write([]string{"Dependencies", "Root Modules", strconv.Itoa(len(response.DependencyAnalysis.RootModules))})
+		_ = writer.Write([]string{"Dependencies", "Leaf Modules", strconv.Itoa(len(response.DependencyAnalysis.LeafModules))})
+		_ = writer.Write([]string{"Dependencies", "Max Depth", strconv.Itoa(response.DependencyAnalysis.MaxDepth)})
 		
 		if response.DependencyAnalysis.CircularDependencies != nil {
-			writer.Write([]string{"Dependencies", "Circular Dependencies", strconv.FormatBool(response.DependencyAnalysis.CircularDependencies.HasCircularDependencies)})
-			writer.Write([]string{"Dependencies", "Total Cycles", strconv.Itoa(response.DependencyAnalysis.CircularDependencies.TotalCycles)})
+			_ = writer.Write([]string{"Dependencies", "Circular Dependencies", strconv.FormatBool(response.DependencyAnalysis.CircularDependencies.HasCircularDependencies)})
+			_ = writer.Write([]string{"Dependencies", "Total Cycles", strconv.Itoa(response.DependencyAnalysis.CircularDependencies.TotalCycles)})
 		}
 		
 		if response.DependencyAnalysis.CouplingAnalysis != nil {
-			writer.Write([]string{"Dependencies", "Average Coupling", fmt.Sprintf("%.2f", response.DependencyAnalysis.CouplingAnalysis.AverageCoupling)})
-			writer.Write([]string{"Dependencies", "Average Instability", fmt.Sprintf("%.3f", response.DependencyAnalysis.CouplingAnalysis.AverageInstability)})
+			_ = writer.Write([]string{"Dependencies", "Average Coupling", fmt.Sprintf("%.2f", response.DependencyAnalysis.CouplingAnalysis.AverageCoupling)})
+			_ = writer.Write([]string{"Dependencies", "Average Instability", fmt.Sprintf("%.3f", response.DependencyAnalysis.CouplingAnalysis.AverageInstability)})
 		}
 	}
 
 	// Architecture metrics
 	if response.ArchitectureAnalysis != nil {
-		writer.Write([]string{"Architecture", "Layer Count", strconv.Itoa(response.ArchitectureAnalysis.LayerAnalysis.LayersAnalyzed)})
-		writer.Write([]string{"Architecture", "Violations", strconv.Itoa(response.ArchitectureAnalysis.TotalViolations)})
-		writer.Write([]string{"Architecture", "Compliance Score", fmt.Sprintf("%.3f", response.ArchitectureAnalysis.ComplianceScore)})
-		writer.Write([]string{"Architecture", "Detected Rules", strconv.Itoa(response.ArchitectureAnalysis.TotalRules)})
+		_ = writer.Write([]string{"Architecture", "Layer Count", strconv.Itoa(response.ArchitectureAnalysis.LayerAnalysis.LayersAnalyzed)})
+		_ = writer.Write([]string{"Architecture", "Violations", strconv.Itoa(response.ArchitectureAnalysis.TotalViolations)})
+		_ = writer.Write([]string{"Architecture", "Compliance Score", fmt.Sprintf("%.3f", response.ArchitectureAnalysis.ComplianceScore)})
+		_ = writer.Write([]string{"Architecture", "Detected Rules", strconv.Itoa(response.ArchitectureAnalysis.TotalRules)})
 	}
 
 	// Quality metrics
 	if response.QualityMetrics != nil {
-		writer.Write([]string{"Quality", "Overall Quality", fmt.Sprintf("%.1f", response.QualityMetrics.OverallQuality)})
-		writer.Write([]string{"Quality", "Maintainability Index", fmt.Sprintf("%.1f", response.QualityMetrics.MaintainabilityIndex)})
-		writer.Write([]string{"Quality", "Technical Debt Hours", fmt.Sprintf("%.1f", response.QualityMetrics.TechnicalDebtTotal)})
-		writer.Write([]string{"Quality", "System Instability", fmt.Sprintf("%.3f", response.QualityMetrics.SystemInstability)})
-		writer.Write([]string{"Quality", "System Complexity", fmt.Sprintf("%.1f", response.QualityMetrics.SystemComplexity)})
+		_ = writer.Write([]string{"Quality", "Overall Quality", fmt.Sprintf("%.1f", response.QualityMetrics.OverallQuality)})
+		_ = writer.Write([]string{"Quality", "Maintainability Index", fmt.Sprintf("%.1f", response.QualityMetrics.MaintainabilityIndex)})
+		_ = writer.Write([]string{"Quality", "Technical Debt Hours", fmt.Sprintf("%.1f", response.QualityMetrics.TechnicalDebtTotal)})
+		_ = writer.Write([]string{"Quality", "System Instability", fmt.Sprintf("%.3f", response.QualityMetrics.SystemInstability)})
+		_ = writer.Write([]string{"Quality", "System Complexity", fmt.Sprintf("%.1f", response.QualityMetrics.SystemComplexity)})
 	}
 
 	writer.Flush()
@@ -521,7 +521,7 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
 	}
 
 	// Add detailed dependency list if available
-	if deps.DependencyMatrix != nil && len(deps.DependencyMatrix) > 0 {
+	if len(deps.DependencyMatrix) > 0 {
 		builder.WriteString(GenerateSectionHeader("Module Dependencies"))
 		builder.WriteString(`
             <table class="table">
