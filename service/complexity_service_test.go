@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // newDefaultComplexityRequest creates a ComplexityRequest with default test values
@@ -31,7 +31,7 @@ func newDefaultComplexityRequest(paths ...string) domain.ComplexityRequest {
 
 func TestNewComplexityService(t *testing.T) {
 	service := NewComplexityService()
-	
+
 	assert.NotNil(t, service)
 	assert.NotNil(t, service.parser)
 }
@@ -62,7 +62,7 @@ func TestComplexityService_Analyze(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
-		
+
 		// Verify response structure
 		for _, function := range response.Functions {
 			assert.NotEmpty(t, function.Name)
@@ -76,7 +76,7 @@ func TestComplexityService_Analyze(t *testing.T) {
 				domain.RiskLevelHigh,
 			}, function.RiskLevel)
 		}
-		
+
 		// Verify summary statistics
 		assert.Equal(t, len(response.Functions), response.Summary.TotalFunctions)
 		assert.Greater(t, response.Summary.AverageComplexity, 0.0)
@@ -123,7 +123,7 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Equal(t, 2, response.Summary.FilesAnalyzed)
-		
+
 		// Should have functions from both files
 		filePathsFound := make(map[string]bool)
 		for _, function := range response.Functions {
@@ -355,11 +355,11 @@ func TestComplexityService_CalculateRiskLevel(t *testing.T) {
 	service := NewComplexityService()
 
 	testCases := []struct {
-		name                  string
-		complexity            int
-		lowThreshold          int
-		mediumThreshold       int
-		expectedRiskLevel     domain.RiskLevel
+		name              string
+		complexity        int
+		lowThreshold      int
+		mediumThreshold   int
+		expectedRiskLevel domain.RiskLevel
 	}{
 		{
 			name:              "low risk",
@@ -454,7 +454,7 @@ func TestComplexityService_BuildConfigForResponse(t *testing.T) {
 
 	configMap, ok := config.(map[string]interface{})
 	require.True(t, ok)
-	
+
 	assert.Equal(t, "json", configMap["output_format"])
 	assert.Equal(t, 2, configMap["min_complexity"])
 	assert.Equal(t, 20, configMap["max_complexity"])
@@ -479,17 +479,17 @@ func TestComplexityService_ResponseMetadata(t *testing.T) {
 
 	assert.NoError(t, err)
 	require.NotNil(t, response)
-	
+
 	// Verify timestamp is within expected range
 	assert.NotEmpty(t, response.GeneratedAt)
 	generatedTime, err := time.Parse(time.RFC3339, response.GeneratedAt)
 	assert.NoError(t, err)
-	assert.True(t, generatedTime.After(beforeTime.Add(-time.Second)) && generatedTime.Before(afterTime.Add(time.Second)), 
+	assert.True(t, generatedTime.After(beforeTime.Add(-time.Second)) && generatedTime.Before(afterTime.Add(time.Second)),
 		"Generated time %v should be between %v and %v", generatedTime, beforeTime, afterTime)
-	
+
 	// Verify version is present
 	assert.NotEmpty(t, response.Version)
-	
+
 	// Verify config is present
 	assert.NotNil(t, response.Config)
 }

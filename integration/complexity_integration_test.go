@@ -199,7 +199,7 @@ def test_function(x):
 				fileReader,
 				outputFormatter,
 				configLoader,
-					)
+			)
 
 			// Use exact same configuration as working test, but vary format
 			var outputBuffer bytes.Buffer

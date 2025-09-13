@@ -1,12 +1,12 @@
 package service
 
 import (
-    "encoding/csv"
-    "fmt"
-    "io"
-    "strings"
+	"encoding/csv"
+	"fmt"
+	"io"
+	"strings"
 
-    "github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // CloneOutputFormatter implements the domain.CloneOutputFormatter interface
@@ -19,38 +19,38 @@ func NewCloneOutputFormatter() *CloneOutputFormatter {
 
 // FormatCloneResponse formats a clone response according to the specified format
 func (f *CloneOutputFormatter) FormatCloneResponse(response *domain.CloneResponse, format domain.OutputFormat, writer io.Writer) error {
-    switch format {
-    case domain.OutputFormatText:
-        return f.formatAsText(response, writer)
-    case domain.OutputFormatJSON:
-        return WriteJSON(writer, response)
-    case domain.OutputFormatYAML:
-        return WriteYAML(writer, response)
-    case domain.OutputFormatCSV:
-        return f.formatAsCSV(response, writer)
-    case domain.OutputFormatHTML:
-        return f.formatAsHTML(response, writer)
-    default:
-        return domain.NewUnsupportedFormatError(string(format))
-    }
+	switch format {
+	case domain.OutputFormatText:
+		return f.formatAsText(response, writer)
+	case domain.OutputFormatJSON:
+		return WriteJSON(writer, response)
+	case domain.OutputFormatYAML:
+		return WriteYAML(writer, response)
+	case domain.OutputFormatCSV:
+		return f.formatAsCSV(response, writer)
+	case domain.OutputFormatHTML:
+		return f.formatAsHTML(response, writer)
+	default:
+		return domain.NewUnsupportedFormatError(string(format))
+	}
 }
 
 // FormatCloneStatistics formats clone statistics
 func (f *CloneOutputFormatter) FormatCloneStatistics(stats *domain.CloneStatistics, format domain.OutputFormat, writer io.Writer) error {
-    switch format {
-    case domain.OutputFormatText:
-        return f.formatStatsAsText(stats, writer)
-    case domain.OutputFormatJSON:
-        return WriteJSON(writer, stats)
-    case domain.OutputFormatYAML:
-        return WriteYAML(writer, stats)
-    case domain.OutputFormatCSV:
-        return f.formatStatsAsCSV(stats, writer)
-    case domain.OutputFormatHTML:
-        return f.formatStatsAsHTML(stats, writer)
-    default:
-        return domain.NewUnsupportedFormatError(string(format))
-    }
+	switch format {
+	case domain.OutputFormatText:
+		return f.formatStatsAsText(stats, writer)
+	case domain.OutputFormatJSON:
+		return WriteJSON(writer, stats)
+	case domain.OutputFormatYAML:
+		return WriteYAML(writer, stats)
+	case domain.OutputFormatCSV:
+		return f.formatStatsAsCSV(stats, writer)
+	case domain.OutputFormatHTML:
+		return f.formatStatsAsHTML(stats, writer)
+	default:
+		return domain.NewUnsupportedFormatError(string(format))
+	}
 }
 
 // formatAsText formats the response as human-readable text
@@ -68,12 +68,12 @@ func (f *CloneOutputFormatter) formatAsText(response *domain.CloneResponse, writ
 	// Summary
 	if response.Statistics != nil {
 		stats := map[string]interface{}{
-			"Files Analyzed":    response.Statistics.FilesAnalyzed,
-			"Lines Analyzed":    response.Statistics.LinesAnalyzed,
-			"Clone Pairs":       response.Statistics.TotalClonePairs,
-			"Clone Groups":      response.Statistics.TotalCloneGroups,
+			"Files Analyzed":     response.Statistics.FilesAnalyzed,
+			"Lines Analyzed":     response.Statistics.LinesAnalyzed,
+			"Clone Pairs":        response.Statistics.TotalClonePairs,
+			"Clone Groups":       response.Statistics.TotalCloneGroups,
 			"Average Similarity": fmt.Sprintf("%.3f", response.Statistics.AverageSimilarity),
-			"Analysis Duration": utils.FormatDuration(response.Duration),
+			"Analysis Duration":  utils.FormatDuration(response.Duration),
 		}
 		fmt.Fprint(writer, utils.FormatSummaryStats(stats))
 	}
@@ -108,7 +108,7 @@ func (f *CloneOutputFormatter) formatAsText(response *domain.CloneResponse, writ
 				if clone == nil || clone.Location == nil {
 					continue
 				}
-				fmt.Fprint(writer, utils.FormatLabelWithIndent(ItemPadding, fmt.Sprintf("Clone %d", i+1), 
+				fmt.Fprint(writer, utils.FormatLabelWithIndent(ItemPadding, fmt.Sprintf("Clone %d", i+1),
 					fmt.Sprintf("%s (%d lines, %d nodes)", clone.Location.String(), clone.LineCount, clone.Size)))
 			}
 			fmt.Fprint(writer, "\n")
@@ -120,16 +120,16 @@ func (f *CloneOutputFormatter) formatAsText(response *domain.CloneResponse, writ
 			if pair == nil {
 				continue
 			}
-			fmt.Fprint(writer, utils.FormatLabelWithIndent(0, fmt.Sprintf("Pair %d", i+1), 
+			fmt.Fprint(writer, utils.FormatLabelWithIndent(0, fmt.Sprintf("Pair %d", i+1),
 				fmt.Sprintf("%s (similarity: %.3f, confidence: %.3f)", pair.Type.String(), pair.Similarity, pair.Confidence)))
 
 			if pair.Clone1 != nil && pair.Clone1.Location != nil {
-				fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Clone 1", 
+				fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Clone 1",
 					fmt.Sprintf("%s (%d lines, %d nodes)", pair.Clone1.Location.String(), pair.Clone1.LineCount, pair.Clone1.Size)))
 			}
 
 			if pair.Clone2 != nil && pair.Clone2.Location != nil {
-				fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Clone 2", 
+				fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Clone 2",
 					fmt.Sprintf("%s (%d lines, %d nodes)", pair.Clone2.Location.String(), pair.Clone2.LineCount, pair.Clone2.Size)))
 			}
 
@@ -257,12 +257,12 @@ func (f *CloneOutputFormatter) formatStatsAsCSV(stats *domain.CloneStatistics, w
 func (f *CloneOutputFormatter) formatAsHTML(response *domain.CloneResponse, writer io.Writer) error {
 	htmlFormatter := NewHTMLFormatter()
 	projectName := "Python Project" // Default project name, could be configurable
-	
+
 	htmlContent, err := htmlFormatter.FormatCloneAsHTML(response, projectName)
 	if err != nil {
 		return fmt.Errorf("failed to format as HTML: %w", err)
 	}
-	
+
 	_, err = writer.Write([]byte(htmlContent))
 	return err
 }
@@ -275,6 +275,6 @@ func (f *CloneOutputFormatter) formatStatsAsHTML(stats *domain.CloneStatistics, 
 		Statistics: stats,
 		ClonePairs: []*domain.ClonePair{}, // Empty pairs for stats-only view
 	}
-	
+
 	return f.formatAsHTML(response, writer)
 }

@@ -89,10 +89,10 @@ def simple_function():
 
 	// Run with JSON format (outputs to file in temp directory)
 	outputDir := t.TempDir() // Create separate temp directory for output
-	
+
 	// Create a temporary config file to specify output directory
 	createTestConfigFile(t, testDir, outputDir)
-	
+
 	cmd := exec.Command(binaryPath, "deadcode", "--json", testDir)
 	cmd.Dir = testDir // Set working directory to ensure config file discovery works
 	var stdout, stderr bytes.Buffer
@@ -115,13 +115,13 @@ def simple_function():
 		}
 		t.Fatalf("No JSON file generated in %s, files present: %v", outputDir, fileNames)
 	}
-	
+
 	// Read and verify JSON file content
 	jsonContent, err := os.ReadFile(files[0])
 	if err != nil {
 		t.Fatalf("Failed to read JSON file: %v", err)
 	}
-	
+
 	// No need to clean up - t.TempDir() handles it automatically
 
 	// Verify JSON output is valid
@@ -158,10 +158,10 @@ func TestDeadCodeE2EFlags(t *testing.T) {
 
 	testDir := t.TempDir()
 	outputDir := t.TempDir()
-	
+
 	// Create config file to control output directory
 	createTestConfigFile(t, testDir, outputDir)
-	
+
 	createTestPythonFile(t, testDir, "flagtest.py", `
 def critical_dead_code():
     return "alive"
@@ -305,7 +305,7 @@ func TestDeadCodeE2EErrorHandling(t *testing.T) {
 			args: []string{"deadcode", "/nonexistent/file.py"},
 		},
 		{
-			name: "directory with no Python files", 
+			name: "directory with no Python files",
 			args: []string{"deadcode", "EMPTY_DIR_PLACEHOLDER"},
 		},
 		{
@@ -328,7 +328,7 @@ func TestDeadCodeE2EErrorHandling(t *testing.T) {
 					args[i] = t.TempDir() // Create empty directory for this test
 				}
 			}
-			
+
 			cmd := exec.Command(binaryPath, args...)
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout

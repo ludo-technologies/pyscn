@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"gopkg.in/yaml.v3"
@@ -77,7 +78,7 @@ func (f *CBOFormatterImpl) formatText(response *domain.CBOResponse) (string, err
 	// CBO distribution
 	if len(response.Summary.CBODistribution) > 0 {
 		builder.WriteString(utils.FormatSectionHeader("CBO DISTRIBUTION"))
-		
+
 		// Sort ranges for consistent output
 		ranges := make([]string, 0, len(response.Summary.CBODistribution))
 		for rang := range response.Summary.CBODistribution {
@@ -112,8 +113,8 @@ func (f *CBOFormatterImpl) formatText(response *domain.CBOResponse) (string, err
 				standardRisk = RiskLow
 			}
 			coloredRisk := utils.FormatRiskWithColor(standardRisk)
-			
-			builder.WriteString(fmt.Sprintf("%s%d. %s %s (CBO: %d) - %s:%d\n", 
+
+			builder.WriteString(fmt.Sprintf("%s%d. %s %s (CBO: %d) - %s:%d\n",
 				strings.Repeat(" ", SectionPadding), i+1, coloredRisk, class.Name, class.Metrics.CouplingCount, class.FilePath, class.StartLine))
 		}
 		builder.WriteString(utils.FormatSectionSeparator())
@@ -166,11 +167,11 @@ func (f *CBOFormatterImpl) writeClassDetails(builder *strings.Builder, class dom
 		standardRisk = RiskLow
 	}
 	coloredRisk := utils.FormatRiskWithColor(standardRisk)
-	
-	builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Class", fmt.Sprintf("%s %s (CBO: %d)", 
+
+	builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Class", fmt.Sprintf("%s %s (CBO: %d)",
 		coloredRisk, class.Name, class.Metrics.CouplingCount)))
 	builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Location", fmt.Sprintf("%s:%d-%d", class.FilePath, class.StartLine, class.EndLine)))
-	
+
 	if class.IsAbstract {
 		builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Type", "Abstract Class"))
 	}
@@ -274,133 +275,55 @@ func (f *CBOFormatterImpl) formatCSV(response *domain.CBOResponse) (string, erro
 func (f *CBOFormatterImpl) formatHTML(response *domain.CBOResponse) (string, error) {
 	var builder strings.Builder
 
-	// HTML header
-	builder.WriteString(`<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CBO Analysis Report</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f9f9f9;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .summary {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .summary-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .summary-card h3 {
-            margin-top: 0;
-            color: #555;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-        }
-        .risk-low { color: #28a745; }
-        .risk-medium { color: #ffc107; }
-        .risk-high { color: #dc3545; }
-        .classes-table {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #555;
-        }
-        tr:hover {
-            background-color: #f5f5f5;
-        }
-        .cbo-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-weight: bold;
-            color: white;
-            font-size: 12px;
-        }
-        .cbo-low { background-color: #28a745; }
-        .cbo-medium { background-color: #ffc107; color: #000; }
-        .cbo-high { background-color: #dc3545; }
-        .dependencies {
-            font-size: 12px;
-            color: #666;
-            margin-top: 4px;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            color: #666;
-            font-size: 14px;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>🔗 CBO Analysis Report</h1>
-        <p>Coupling Between Objects Analysis</p>
-    </div>
-`)
+	// Create HTML template
+	generatedAt, _ := time.Parse("2006-01-02 15:04:05", response.GeneratedAt)
+	if generatedAt.IsZero() {
+		generatedAt = time.Now()
+	}
 
-	// Summary section
-	builder.WriteString(`    <div class="summary">
-        <div class="summary-card">
-            <h3>📊 Overview</h3>`)
-	builder.WriteString(fmt.Sprintf(`            <p><strong>Total Classes:</strong> %d</p>`, response.Summary.TotalClasses))
-	builder.WriteString(fmt.Sprintf(`            <p><strong>Files Analyzed:</strong> %d</p>`, response.Summary.FilesAnalyzed))
-	builder.WriteString(fmt.Sprintf(`            <p><strong>Average CBO:</strong> %.2f</p>`, response.Summary.AverageCBO))
-	builder.WriteString(fmt.Sprintf(`            <p><strong>Max CBO:</strong> %d</p>`, response.Summary.MaxCBO))
-	builder.WriteString(`        </div>
-        <div class="summary-card">
-            <h3>🚦 Risk Distribution</h3>`)
-	builder.WriteString(fmt.Sprintf(`            <p class="risk-low"><strong>Low Risk:</strong> %d classes</p>`, response.Summary.LowRiskClasses))
-	builder.WriteString(fmt.Sprintf(`            <p class="risk-medium"><strong>Medium Risk:</strong> %d classes</p>`, response.Summary.MediumRiskClasses))
-	builder.WriteString(fmt.Sprintf(`            <p class="risk-high"><strong>High Risk:</strong> %d classes</p>`, response.Summary.HighRiskClasses))
-	builder.WriteString(`        </div>
-    </div>
-`)
+	template := HTMLTemplate{
+		Title:       "CBO Analysis Report",
+		Subtitle:    "Coupling Between Objects Analysis",
+		GeneratedAt: generatedAt,
+		Version:     response.Version,
+		Duration:    0,     // CBO doesn't track duration
+		ShowScore:   false, // CBO doesn't have a single score
+	}
+
+	// Generate header
+	builder.WriteString(template.GenerateHTMLHeader())
+
+	// Generate content
+	var content strings.Builder
+
+	// Summary section with metrics
+	content.WriteString(GenerateSectionHeader("📊 Overview"))
+	content.WriteString(`<div class="metric-grid">`)
+	content.WriteString(GenerateMetricCard(strconv.Itoa(response.Summary.TotalClasses), "Total Classes"))
+	content.WriteString(GenerateMetricCard(strconv.Itoa(response.Summary.FilesAnalyzed), "Files Analyzed"))
+	content.WriteString(GenerateMetricCard(fmt.Sprintf("%.2f", response.Summary.AverageCBO), "Average CBO"))
+	content.WriteString(GenerateMetricCard(strconv.Itoa(response.Summary.MaxCBO), "Max CBO"))
+	content.WriteString(`</div>`)
+
+	// Risk distribution
+	content.WriteString(GenerateSectionHeader("🚦 Risk Distribution"))
+	content.WriteString(`<div class="metric-grid">`)
+	content.WriteString(GenerateMetricCard(
+		GenerateStatusBadge(strconv.Itoa(response.Summary.LowRiskClasses), "success"),
+		"Low Risk Classes"))
+	content.WriteString(GenerateMetricCard(
+		GenerateStatusBadge(strconv.Itoa(response.Summary.MediumRiskClasses), "warning"),
+		"Medium Risk Classes"))
+	content.WriteString(GenerateMetricCard(
+		GenerateStatusBadge(strconv.Itoa(response.Summary.HighRiskClasses), "danger"),
+		"High Risk Classes"))
+	content.WriteString(`</div>`)
 
 	// Classes table
 	if len(response.Classes) > 0 {
-		builder.WriteString(`    <div class="classes-table">
-        <table>
+		content.WriteString(GenerateSectionHeader("📋 Class Details"))
+		content.WriteString(`
+        <table class="table">
             <thead>
                 <tr>
                     <th>Class Name</th>
@@ -414,25 +337,36 @@ func (f *CBOFormatterImpl) formatHTML(response *domain.CBOResponse) (string, err
 `)
 
 		for _, class := range response.Classes {
-			cboBadgeClass := f.getCBOBadgeClass(class.RiskLevel)
-			builder.WriteString(fmt.Sprintf(`                <tr>
+			riskSeverity := "info"
+			switch class.RiskLevel {
+			case domain.RiskLevelLow:
+				riskSeverity = "success"
+			case domain.RiskLevelMedium:
+				riskSeverity = "warning"
+			case domain.RiskLevelHigh:
+				riskSeverity = "danger"
+			}
+
+			content.WriteString(fmt.Sprintf(`                <tr>
                     <td><strong>%s</strong></td>
-                    <td><span class="cbo-badge %s">%d</span></td>
-                    <td class="%s">%s</td>
+                    <td>%s</td>
+                    <td>%s</td>
                     <td>%s:%d</td>
                     <td>
-`, class.Name, cboBadgeClass, class.Metrics.CouplingCount, 
-   f.getRiskClass(class.RiskLevel), class.RiskLevel, class.FilePath, class.StartLine))
+`, class.Name,
+				GenerateStatusBadge(strconv.Itoa(class.Metrics.CouplingCount), riskSeverity),
+				GenerateStatusBadge(string(class.RiskLevel), riskSeverity),
+				class.FilePath, class.StartLine))
 
 			if len(class.Metrics.DependentClasses) > 0 {
-				builder.WriteString(strings.Join(class.Metrics.DependentClasses, ", "))
+				content.WriteString(strings.Join(class.Metrics.DependentClasses, ", "))
 			} else {
-				builder.WriteString("No dependencies")
+				content.WriteString("No dependencies")
 			}
 
 			// Add dependency breakdown
 			if class.Metrics.CouplingCount > 0 {
-				builder.WriteString(`<div class="dependencies">`)
+				content.WriteString(`<br><small style="color: #666;">`)
 				deps := []string{}
 				if class.Metrics.InheritanceDependencies > 0 {
 					deps = append(deps, fmt.Sprintf("Inheritance: %d", class.Metrics.InheritanceDependencies))
@@ -446,55 +380,24 @@ func (f *CBOFormatterImpl) formatHTML(response *domain.CBOResponse) (string, err
 				if class.Metrics.AttributeAccessDependencies > 0 {
 					deps = append(deps, fmt.Sprintf("Attribute Access: %d", class.Metrics.AttributeAccessDependencies))
 				}
-				builder.WriteString(strings.Join(deps, ", "))
-				builder.WriteString(`</div>`)
+				content.WriteString(strings.Join(deps, ", "))
+				content.WriteString(`</small>`)
 			}
 
-			builder.WriteString(`                    </td>
+			content.WriteString(`                    </td>
                 </tr>
 `)
 		}
 
-		builder.WriteString(`            </tbody>
-        </table>
-    </div>
-`)
+		content.WriteString(`            </tbody>
+        </table>`)
 	}
 
-	// Footer
-	builder.WriteString(fmt.Sprintf(`    <div class="footer">
-        <p>Generated at: %s | Version: %s</p>
-    </div>
-</body>
-</html>`, response.GeneratedAt, response.Version))
+	// Wrap content in single page container
+	builder.WriteString(GenerateSinglePageContent(content.String()))
+
+	// Close HTML
+	builder.WriteString(GenerateHTMLFooter())
 
 	return builder.String(), nil
-}
-
-// getCBOBadgeClass returns CSS class for CBO badge
-func (f *CBOFormatterImpl) getCBOBadgeClass(risk domain.RiskLevel) string {
-	switch risk {
-	case domain.RiskLevelLow:
-		return "cbo-low"
-	case domain.RiskLevelMedium:
-		return "cbo-medium"
-	case domain.RiskLevelHigh:
-		return "cbo-high"
-	default:
-		return "cbo-low"
-	}
-}
-
-// getRiskClass returns CSS class for risk level
-func (f *CBOFormatterImpl) getRiskClass(risk domain.RiskLevel) string {
-	switch risk {
-	case domain.RiskLevelLow:
-		return "risk-low"
-	case domain.RiskLevelMedium:
-		return "risk-medium"
-	case domain.RiskLevelHigh:
-		return "risk-high"
-	default:
-		return "risk-low"
-	}
 }

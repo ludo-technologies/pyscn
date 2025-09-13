@@ -316,7 +316,7 @@ func (c *CloneConfigurationLoader) FindDefaultConfigFile() string {
 	// Use TOML-only strategy
 	tomlLoader := config.NewTomlConfigLoader()
 	configFiles := tomlLoader.GetSupportedConfigFiles()
-	
+
 	for _, filename := range configFiles {
 		if _, err := os.Stat(filename); err == nil {
 			return filename

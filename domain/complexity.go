@@ -14,6 +14,7 @@ const (
 	OutputFormatYAML OutputFormat = "yaml"
 	OutputFormatCSV  OutputFormat = "csv"
 	OutputFormatHTML OutputFormat = "html"
+	OutputFormatDOT  OutputFormat = "dot"
 )
 
 // SortCriteria represents the criteria for sorting results
@@ -174,4 +175,3 @@ type ConfigurationLoader interface {
 	// MergeConfig merges CLI flags with configuration file
 	MergeConfig(base *ComplexityRequest, override *ComplexityRequest) *ComplexityRequest
 }
-

@@ -1,12 +1,12 @@
 package service
 
 import (
-    "encoding/csv"
-    "fmt"
-    "io"
-    "strings"
+	"encoding/csv"
+	"fmt"
+	"io"
+	"strings"
 
-    "github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // DeadCodeFormatterImpl implements the DeadCodeFormatter interface
@@ -52,18 +52,18 @@ func (f *DeadCodeFormatterImpl) Write(response *domain.DeadCodeResponse, format 
 
 // FormatFinding formats a single dead code finding
 func (f *DeadCodeFormatterImpl) FormatFinding(finding domain.DeadCodeFinding, format domain.OutputFormat) (string, error) {
-    switch format {
-    case domain.OutputFormatText:
-        return f.formatFindingTextLegacy(finding), nil
-    case domain.OutputFormatJSON:
-        return EncodeJSON(finding)
-    case domain.OutputFormatYAML:
-        return EncodeYAML(finding)
-    case domain.OutputFormatHTML:
-        // HTML formatting for individual findings is not typically needed
-        // Fall back to text format for individual findings
-        return f.formatFindingTextLegacy(finding), nil
-    default:
+	switch format {
+	case domain.OutputFormatText:
+		return f.formatFindingTextLegacy(finding), nil
+	case domain.OutputFormatJSON:
+		return EncodeJSON(finding)
+	case domain.OutputFormatYAML:
+		return EncodeYAML(finding)
+	case domain.OutputFormatHTML:
+		// HTML formatting for individual findings is not typically needed
+		// Fall back to text format for individual findings
+		return f.formatFindingTextLegacy(finding), nil
+	default:
 		return "", domain.NewUnsupportedFormatError(string(format))
 	}
 }
@@ -88,9 +88,9 @@ func (f *DeadCodeFormatterImpl) formatText(response *domain.DeadCodeResponse) (s
 
 	// Severity distribution (using standard risk levels)
 	output.WriteString(utils.FormatRiskDistribution(
-		response.Summary.CriticalFindings,  // Map Critical to High
-		response.Summary.WarningFindings,   // Map Warning to Medium
-		response.Summary.InfoFindings))     // Map Info to Low
+		response.Summary.CriticalFindings, // Map Critical to High
+		response.Summary.WarningFindings,  // Map Warning to Medium
+		response.Summary.InfoFindings))    // Map Info to Low
 
 	// File Details
 	if len(response.Files) > 0 && response.Summary.TotalFindings > 0 {
@@ -168,12 +168,12 @@ func (f *DeadCodeFormatterImpl) formatFindingTextLegacy(finding domain.DeadCodeF
 
 // formatJSON formats the response as JSON
 func (f *DeadCodeFormatterImpl) formatJSON(response *domain.DeadCodeResponse) (string, error) {
-    return EncodeJSON(response)
+	return EncodeJSON(response)
 }
 
 // formatYAML formats the response as YAML
 func (f *DeadCodeFormatterImpl) formatYAML(response *domain.DeadCodeResponse) (string, error) {
-    return EncodeYAML(response)
+	return EncodeYAML(response)
 }
 
 // formatCSV formats the response as CSV

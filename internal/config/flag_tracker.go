@@ -50,7 +50,7 @@ func (ft *FlagTracker) WasSet(flagName string) bool {
 func (ft *FlagTracker) GetAll() map[string]bool {
 	ft.mu.RLock()
 	defer ft.mu.RUnlock()
-	
+
 	// Return a copy to prevent external modifications
 	result := make(map[string]bool, len(ft.flags))
 	for k, v := range ft.flags {

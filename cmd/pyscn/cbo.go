@@ -101,7 +101,7 @@ func init() {
 	cboCmd.Flags().StringSliceVar(&cboIncludePatterns, "include", []string{"*.py"}, "Include file patterns")
 	cboCmd.Flags().StringSliceVar(&cboExcludePatterns, "exclude", []string{}, "Exclude file patterns")
 
-	// Configuration  
+	// Configuration
 	cboCmd.Flags().StringVarP(&cboConfigPath, "config", "c", "", "Configuration file path")
 }
 
@@ -109,24 +109,39 @@ func runCBOCommand(cmd *cobra.Command, args []string) error {
 	// Determine output format from flags
 	outputFormat := domain.OutputFormatText // Default
 	outputPath := ""
-	
+	outputWriter := os.Stdout
+	extension := ""
+
 	if cboJSON {
 		outputFormat = domain.OutputFormatJSON
+		extension = "json"
 	} else if cboCSV {
 		outputFormat = domain.OutputFormatCSV
+		extension = "csv"
 	} else if cboHTML {
 		outputFormat = domain.OutputFormatHTML
-		// Generate default filename for HTML if not specified
-		outputPath = "cbo_report.html"
+		extension = "html"
 	} else if cboYAML {
 		outputFormat = domain.OutputFormatYAML
+		extension = "yaml"
+	}
+
+	// Generate output path for non-text formats
+	if outputFormat != domain.OutputFormatText && extension != "" {
+		targetPath := getTargetPathFromArgs(args)
+		var err error
+		outputPath, err = generateOutputFilePath("cbo", extension, targetPath)
+		if err != nil {
+			return fmt.Errorf("failed to generate output path: %w", err)
+		}
+		outputWriter = nil // Don't write to stdout for file output
 	}
 
 	// Build CBO request from flags and arguments
 	request := domain.CBORequest{
 		Paths:           args,
 		OutputFormat:    outputFormat,
-		OutputWriter:    os.Stdout,
+		OutputWriter:    outputWriter,
 		OutputPath:      outputPath,
 		NoOpen:          cboNoOpen,
 		ShowDetails:     cboShowDetails,

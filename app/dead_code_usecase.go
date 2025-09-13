@@ -1,39 +1,39 @@
 package app
 
 import (
-    "context"
-    "fmt"
-    "io"
-    "os"
-    "time"
+	"context"
+	"fmt"
+	"io"
+	"os"
+	"time"
 
-    "github.com/ludo-technologies/pyscn/domain"
-    svc "github.com/ludo-technologies/pyscn/service"
+	"github.com/ludo-technologies/pyscn/domain"
+	svc "github.com/ludo-technologies/pyscn/service"
 )
 
 // DeadCodeUseCase orchestrates the dead code analysis workflow
 type DeadCodeUseCase struct {
-    service      domain.DeadCodeService
-    fileReader   domain.FileReader
-    formatter    domain.DeadCodeFormatter
-    configLoader domain.DeadCodeConfigurationLoader
-    output       domain.ReportWriter
+	service      domain.DeadCodeService
+	fileReader   domain.FileReader
+	formatter    domain.DeadCodeFormatter
+	configLoader domain.DeadCodeConfigurationLoader
+	output       domain.ReportWriter
 }
 
 // NewDeadCodeUseCase creates a new dead code use case
 func NewDeadCodeUseCase(
-    service domain.DeadCodeService,
-    fileReader domain.FileReader,
-    formatter domain.DeadCodeFormatter,
-    configLoader domain.DeadCodeConfigurationLoader,
+	service domain.DeadCodeService,
+	fileReader domain.FileReader,
+	formatter domain.DeadCodeFormatter,
+	configLoader domain.DeadCodeConfigurationLoader,
 ) *DeadCodeUseCase {
-    return &DeadCodeUseCase{
-        service:      service,
-        fileReader:   fileReader,
-        formatter:    formatter,
-        configLoader: configLoader,
-        output:       svc.NewFileOutputWriter(nil),
-    }
+	return &DeadCodeUseCase{
+		service:      service,
+		fileReader:   fileReader,
+		formatter:    formatter,
+		configLoader: configLoader,
+		output:       svc.NewFileOutputWriter(nil),
+	}
 }
 
 // Execute performs the complete dead code analysis workflow
@@ -75,16 +75,16 @@ func (uc *DeadCodeUseCase) Execute(ctx context.Context, req domain.DeadCodeReque
 		return domain.NewAnalysisError("dead code analysis failed", err)
 	}
 
-    // Delegate output handling to ReportWriter
-    var out io.Writer
-    if finalReq.OutputPath == "" {
-        out = finalReq.OutputWriter
-    }
-    if err := uc.output.Write(out, finalReq.OutputPath, finalReq.OutputFormat, finalReq.NoOpen, func(w io.Writer) error {
-        return uc.formatter.Write(response, finalReq.OutputFormat, w)
-    }); err != nil {
-        return domain.NewOutputError("failed to write output", err)
-    }
+	// Delegate output handling to ReportWriter
+	var out io.Writer
+	if finalReq.OutputPath == "" {
+		out = finalReq.OutputWriter
+	}
+	if err := uc.output.Write(out, finalReq.OutputPath, finalReq.OutputFormat, finalReq.NoOpen, func(w io.Writer) error {
+		return uc.formatter.Write(response, finalReq.OutputFormat, w)
+	}); err != nil {
+		return domain.NewOutputError("failed to write output", err)
+	}
 
 	return nil
 }
@@ -172,16 +172,16 @@ func (uc *DeadCodeUseCase) AnalyzeFile(ctx context.Context, filePath string, req
 		GeneratedAt: time.Now().Format(time.RFC3339),
 	}
 
-    // Delegate output handling to ReportWriter
-    var out2 io.Writer
-    if finalReq.OutputPath == "" {
-        out2 = finalReq.OutputWriter
-    }
-    if err := uc.output.Write(out2, finalReq.OutputPath, finalReq.OutputFormat, finalReq.NoOpen, func(w io.Writer) error {
-        return uc.formatter.Write(response, finalReq.OutputFormat, w)
-    }); err != nil {
-        return domain.NewOutputError("failed to write output", err)
-    }
+	// Delegate output handling to ReportWriter
+	var out2 io.Writer
+	if finalReq.OutputPath == "" {
+		out2 = finalReq.OutputWriter
+	}
+	if err := uc.output.Write(out2, finalReq.OutputPath, finalReq.OutputFormat, finalReq.NoOpen, func(w io.Writer) error {
+		return uc.formatter.Write(response, finalReq.OutputFormat, w)
+	}); err != nil {
+		return domain.NewOutputError("failed to write output", err)
+	}
 
 	return nil
 }
@@ -280,11 +280,11 @@ func (uc *DeadCodeUseCase) loadAndMergeConfig(req domain.DeadCodeRequest) (domai
 
 // DeadCodeUseCaseBuilder provides a builder pattern for creating DeadCodeUseCase
 type DeadCodeUseCaseBuilder struct {
-    service      domain.DeadCodeService
-    fileReader   domain.FileReader
-    formatter    domain.DeadCodeFormatter
-    configLoader domain.DeadCodeConfigurationLoader
-    output       domain.ReportWriter
+	service      domain.DeadCodeService
+	fileReader   domain.FileReader
+	formatter    domain.DeadCodeFormatter
+	configLoader domain.DeadCodeConfigurationLoader
+	output       domain.ReportWriter
 }
 
 // NewDeadCodeUseCaseBuilder creates a new builder
@@ -316,11 +316,10 @@ func (b *DeadCodeUseCaseBuilder) WithConfigLoader(configLoader domain.DeadCodeCo
 	return b
 }
 
-
 // WithOutputWriter sets the report writer
 func (b *DeadCodeUseCaseBuilder) WithOutputWriter(output domain.ReportWriter) *DeadCodeUseCaseBuilder {
-    b.output = output
-    return b
+	b.output = output
+	return b
 }
 
 // Build creates the DeadCodeUseCase with the configured dependencies
@@ -341,16 +340,16 @@ func (b *DeadCodeUseCaseBuilder) Build() (*DeadCodeUseCase, error) {
 		b.configLoader = nil
 	}
 
-    uc := NewDeadCodeUseCase(
-        b.service,
-        b.fileReader,
-        b.formatter,
-        b.configLoader,
-    )
-    if b.output != nil {
-        uc.output = b.output
-    }
-    return uc, nil
+	uc := NewDeadCodeUseCase(
+		b.service,
+		b.fileReader,
+		b.formatter,
+		b.configLoader,
+	)
+	if b.output != nil {
+		uc.output = b.output
+	}
+	return uc, nil
 }
 
 // BuildWithDefaults creates the DeadCodeUseCase with default implementations for optional dependencies
@@ -371,16 +370,16 @@ func (b *DeadCodeUseCaseBuilder) BuildWithDefaults() (*DeadCodeUseCase, error) {
 		b.configLoader = &noOpDeadCodeConfigLoader{}
 	}
 
-    uc := NewDeadCodeUseCase(
-        b.service,
-        b.fileReader,
-        b.formatter,
-        b.configLoader,
-    )
-    if b.output != nil {
-        uc.output = b.output
-    }
-    return uc, nil
+	uc := NewDeadCodeUseCase(
+		b.service,
+		b.fileReader,
+		b.formatter,
+		b.configLoader,
+	)
+	if b.output != nil {
+		uc.output = b.output
+	}
+	return uc, nil
 }
 
 // noOpDeadCodeConfigLoader is a no-op implementation of DeadCodeConfigurationLoader
@@ -397,7 +396,6 @@ func (n *noOpDeadCodeConfigLoader) LoadDefaultConfig() *domain.DeadCodeRequest {
 func (n *noOpDeadCodeConfigLoader) MergeConfig(base *domain.DeadCodeRequest, override *domain.DeadCodeRequest) *domain.DeadCodeRequest {
 	return override
 }
-
 
 // DeadCodeUseCaseOptions provides configuration options for the dead code use case
 type DeadCodeUseCaseOptions struct {

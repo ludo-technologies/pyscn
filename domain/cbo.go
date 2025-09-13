@@ -46,11 +46,11 @@ type CBOMetrics struct {
 	CouplingCount int
 
 	// Breakdown by dependency type
-	InheritanceDependencies int // Base classes
-	TypeHintDependencies    int // Type annotations
-	InstantiationDependencies int // Object creation
+	InheritanceDependencies     int // Base classes
+	TypeHintDependencies        int // Type annotations
+	InstantiationDependencies   int // Object creation
 	AttributeAccessDependencies int // Method calls and attribute access
-	ImportDependencies int // Explicitly imported classes
+	ImportDependencies          int // Explicitly imported classes
 
 	// Dependency details
 	DependentClasses []string // List of class names this class depends on
@@ -59,8 +59,8 @@ type CBOMetrics struct {
 // ClassCoupling represents CBO analysis result for a single class
 type ClassCoupling struct {
 	// Class identification
-	Name     string
-	FilePath string
+	Name      string
+	FilePath  string
 	StartLine int
 	EndLine   int
 
@@ -71,18 +71,18 @@ type ClassCoupling struct {
 	RiskLevel RiskLevel
 
 	// Additional context
-	IsAbstract bool
+	IsAbstract  bool
 	BaseClasses []string
 }
 
 // CBOSummary represents aggregate CBO statistics
 type CBOSummary struct {
-	TotalClasses      int
-	AverageCBO        float64
-	MaxCBO            int
-	MinCBO            int
-	ClassesAnalyzed   int
-	FilesAnalyzed     int
+	TotalClasses    int
+	AverageCBO      float64
+	MaxCBO          int
+	MinCBO          int
+	ClassesAnalyzed int
+	FilesAnalyzed   int
 
 	// Risk distribution
 	LowRiskClasses    int
@@ -166,7 +166,7 @@ func DefaultCBORequest() *CBORequest {
 		OutputFormat:    OutputFormatText,
 		ShowDetails:     false,
 		MinCBO:          0,
-		MaxCBO:          0, // No limit
+		MaxCBO:          0,              // No limit
 		SortBy:          SortByCoupling, // Sort by CBO value
 		ShowZeros:       false,
 		LowThreshold:    5,

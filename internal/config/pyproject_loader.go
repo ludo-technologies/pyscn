@@ -3,7 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
-	
+
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -17,7 +17,7 @@ type ToolConfig struct {
 	Pyscn PyscnConfig `toml:"pyscn"`
 }
 
-// PyscnConfig represents the [tool.pyscn] section  
+// PyscnConfig represents the [tool.pyscn] section
 type PyscnConfig struct {
 	Clone PyprojectCloneConfig `toml:"clone"`
 }
@@ -45,15 +45,15 @@ type PyprojectCloneAnalysisConfig struct {
 }
 
 type PyprojectFilteringConfig struct {
-	MinSimilarity        float64  `toml:"min_similarity"`
-	MaxSimilarity        float64  `toml:"max_similarity"`
-	EnabledCloneTypes    []string `toml:"enabled_clone_types"`
-	MaxResults           int      `toml:"max_results"`
+	MinSimilarity     float64  `toml:"min_similarity"`
+	MaxSimilarity     float64  `toml:"max_similarity"`
+	EnabledCloneTypes []string `toml:"enabled_clone_types"`
+	MaxResults        int      `toml:"max_results"`
 }
 
 type PyprojectInputConfig struct {
 	Paths           []string `toml:"paths"`
-	Recursive       *bool    `toml:"recursive"`        // pointer to detect unset
+	Recursive       *bool    `toml:"recursive"` // pointer to detect unset
 	IncludePatterns []string `toml:"include_patterns"`
 	ExcludePatterns []string `toml:"exclude_patterns"`
 }
@@ -74,22 +74,22 @@ func LoadPyprojectConfig(startDir string) (*CloneConfig, error) {
 		// Return default config if no pyproject.toml found
 		return DefaultCloneConfig(), nil
 	}
-	
+
 	// Read and parse pyproject.toml
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var pyproject PyprojectToml
 	if err := toml.Unmarshal(data, &pyproject); err != nil {
 		return nil, err
 	}
-	
+
 	// Merge with defaults
 	config := DefaultCloneConfig()
 	mergePyprojectConfigs(config, &pyproject.Tool.Pyscn.Clone)
-	
+
 	return config, nil
 }
 
@@ -101,7 +101,7 @@ func findPyprojectToml(startDir string) (string, error) {
 		if _, err := os.Stat(configPath); err == nil {
 			return configPath, nil
 		}
-		
+
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			// Reached root directory
@@ -109,7 +109,7 @@ func findPyprojectToml(startDir string) (string, error) {
 		}
 		dir = parent
 	}
-	
+
 	return "", os.ErrNotExist
 }
 
@@ -117,7 +117,7 @@ func findPyprojectToml(startDir string) (string, error) {
 // using pointer booleans to detect unset values
 func mergePyprojectConfigs(defaults *CloneConfig, pyproject *PyprojectCloneConfig) {
 	// Only override non-zero values from pyproject.toml
-	
+
 	// Analysis config
 	if pyproject.Analysis.MinLines > 0 {
 		defaults.Analysis.MinLines = pyproject.Analysis.MinLines
@@ -138,7 +138,7 @@ func mergePyprojectConfigs(defaults *CloneConfig, pyproject *PyprojectCloneConfi
 	if pyproject.Analysis.IgnoreIdentifiers != nil {
 		defaults.Analysis.IgnoreIdentifiers = *pyproject.Analysis.IgnoreIdentifiers
 	}
-	
+
 	// Threshold config
 	if pyproject.Thresholds.Type1Threshold > 0 {
 		defaults.Thresholds.Type1Threshold = pyproject.Thresholds.Type1Threshold
@@ -155,7 +155,7 @@ func mergePyprojectConfigs(defaults *CloneConfig, pyproject *PyprojectCloneConfi
 	if pyproject.Thresholds.SimilarityThreshold > 0 {
 		defaults.Thresholds.SimilarityThreshold = pyproject.Thresholds.SimilarityThreshold
 	}
-	
+
 	// Grouping config
 	if pyproject.Grouping.Mode != "" {
 		defaults.Grouping.Mode = pyproject.Grouping.Mode
@@ -166,7 +166,7 @@ func mergePyprojectConfigs(defaults *CloneConfig, pyproject *PyprojectCloneConfi
 	if pyproject.Grouping.KCoreK > 0 {
 		defaults.Grouping.KCoreK = pyproject.Grouping.KCoreK
 	}
-	
+
 	// LSH config
 	if pyproject.LSH.Enabled != "" {
 		defaults.LSH.Enabled = pyproject.LSH.Enabled
@@ -186,8 +186,8 @@ func mergePyprojectConfigs(defaults *CloneConfig, pyproject *PyprojectCloneConfi
 	if pyproject.LSH.Hashes > 0 {
 		defaults.LSH.Hashes = pyproject.LSH.Hashes
 	}
-	
-	// Input config  
+
+	// Input config
 	if len(pyproject.Input.Paths) > 0 {
 		defaults.Input.Paths = pyproject.Input.Paths
 	}
@@ -201,7 +201,7 @@ func mergePyprojectConfigs(defaults *CloneConfig, pyproject *PyprojectCloneConfi
 	if pyproject.Input.Recursive != nil {
 		defaults.Input.Recursive = *pyproject.Input.Recursive
 	}
-	
+
 	// Output config
 	if pyproject.Output.Format != "" {
 		defaults.Output.Format = pyproject.Output.Format
@@ -219,7 +219,7 @@ func mergePyprojectConfigs(defaults *CloneConfig, pyproject *PyprojectCloneConfi
 	if pyproject.Output.GroupClones != nil {
 		defaults.Output.GroupClones = *pyproject.Output.GroupClones
 	}
-	
+
 	// Filtering config
 	if pyproject.Filtering.MinSimilarity >= 0 {
 		defaults.Filtering.MinSimilarity = pyproject.Filtering.MinSimilarity
