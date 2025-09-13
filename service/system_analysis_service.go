@@ -164,15 +164,19 @@ func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req
 
 // AnalyzeArchitecture performs architecture validation only
 func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req domain.SystemAnalysisRequest) (*domain.ArchitectureAnalysisResult, error) {
-    // Return empty result if no rules are defined (consistent with other Analyze methods)
-    if req.ArchitectureRules == nil || (len(req.ArchitectureRules.Layers) == 0 && len(req.ArchitectureRules.Rules) == 0) {
-        return s.emptyArchitectureResult(), nil
-    }
-
     // Build dependency graph
     graph, err := s.buildDependencyGraph(req)
     if err != nil {
         return nil, err
+    }
+
+    // Auto-detect architecture if no rules are defined
+    if req.ArchitectureRules == nil || (len(req.ArchitectureRules.Layers) == 0 && len(req.ArchitectureRules.Rules) == 0) {
+        req.ArchitectureRules = s.autoDetectArchitecture(graph)
+        // If auto-detection found no recognizable patterns, return empty result
+        if req.ArchitectureRules == nil || len(req.ArchitectureRules.Layers) == 0 {
+            return s.emptyArchitectureResult(), nil
+        }
     }
 
     // Map modules to layers
@@ -181,7 +185,14 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
     // Evaluate layer rules and collect violations
     violations, severityCounts, layerCoupling, checked := s.evaluateLayerRules(ctx, graph, moduleToLayer, req.ArchitectureRules)
     if violations == nil {
-        return nil, fmt.Errorf("architecture analysis cancelled")
+        // Check if context was cancelled
+        select {
+        case <-ctx.Done():
+            return nil, fmt.Errorf("architecture analysis cancelled: %w", ctx.Err())
+        default:
+            // If not cancelled, return empty result (no violations)
+            return s.emptyArchitectureResult(), nil
+        }
     }
 
     // Calculate metrics
@@ -243,7 +254,7 @@ func (s *SystemAnalysisServiceImpl) evaluateLayerRules(ctx context.Context, grap
     map[domain.ViolationSeverity]int, map[string]map[string]int, int) {
 
     layerCoupling := make(map[string]map[string]int)
-    var violations []domain.ArchitectureViolation
+    violations := make([]domain.ArchitectureViolation, 0)
     severityCounts := make(map[domain.ViolationSeverity]int)
     checked := 0
 
@@ -382,12 +393,125 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
 }
 
 // compileModulePattern converts simple glob-like patterns to regex for module names.
+// For Python modules, pattern "views" should match "views", "views.foo", "views.foo.bar", etc.
 func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Regexp {
+    // Handle wildcards
+    if strings.Contains(glob, "*") {
+        esc := regexp.QuoteMeta(glob)
+        esc = strings.ReplaceAll(esc, "\\*", ".*")
+        re, err := regexp.Compile("^" + esc + "$")
+        if err != nil { return nil }
+        return re
+    }
+
+    // For non-wildcard patterns, match the module and any submodules
+    // Pattern "views" matches "views", "views.foo", "views.foo.bar", etc.
     esc := regexp.QuoteMeta(glob)
-    esc = strings.ReplaceAll(esc, "\\*", ".*")
-    re, err := regexp.Compile("^" + esc + "$")
+    pattern := "^" + esc + "(\\..+)?$"
+    re, err := regexp.Compile(pattern)
     if err != nil { return nil }
     return re
+}
+
+// autoDetectArchitecture automatically detects architecture patterns from the dependency graph
+func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.DependencyGraph) *domain.ArchitectureRules {
+    // Standard layer patterns commonly used in Python projects
+    layerPatterns := map[string][]string{
+        "presentation": {"api", "apis", "views", "view", "controllers", "controller", "routes", "route", "handlers", "handler", "ui", "web", "rest", "graphql", "endpoints", "endpoint"},
+        "application":  {"services", "service", "use_cases", "usecase", "usecases", "workflows", "workflow", "commands", "queries", "app"},
+        "domain":       {"models", "model", "entities", "entity", "domain", "domains", "core", "business", "aggregates", "valueobjects", "schemas", "schema"},
+        "infrastructure": {"db", "database", "repositories", "repository", "repo", "external", "adapters", "adapter", "persistence", "storage", "cache", "clients", "client"},
+    }
+
+    // Detect which modules belong to which layer
+    moduleToLayer := make(map[string]string)
+    layerModules := make(map[string][]string)
+
+    for module := range graph.Nodes {
+        layer := s.detectLayerFromModule(module, layerPatterns)
+        if layer != "" {
+            moduleToLayer[module] = layer
+            layerModules[layer] = append(layerModules[layer], module)
+        }
+    }
+
+    // If no standard patterns found, return nil
+    if len(layerModules) == 0 {
+        return nil
+    }
+
+    // Build layers configuration
+    layers := make([]domain.Layer, 0)
+    for layerName, modules := range layerModules {
+        // Extract unique package prefixes from modules
+        packagePrefixes := s.extractPackagePrefixes(modules)
+        if len(packagePrefixes) > 0 {
+            layers = append(layers, domain.Layer{
+                Name:        layerName,
+                Description: fmt.Sprintf("Auto-detected %s layer", layerName),
+                Packages:    packagePrefixes,
+            })
+        }
+    }
+
+    // Define standard layered architecture rules
+    rules := []domain.LayerRule{
+        // Presentation layer can access application and domain
+        {From: "presentation", Allow: []string{"application", "domain"}},
+        // Application layer can only access domain
+        {From: "application", Allow: []string{"domain"}},
+        // Domain layer should not access other layers
+        {From: "domain", Deny: []string{"presentation", "application", "infrastructure"}},
+        // Infrastructure can access domain
+        {From: "infrastructure", Allow: []string{"domain"}},
+    }
+
+    return &domain.ArchitectureRules{
+        Layers: layers,
+        Rules:  rules,
+        StrictMode: false, // Auto-detected rules are not strict by default
+    }
+}
+
+// detectLayerFromModule determines which layer a module belongs to based on its name
+func (s *SystemAnalysisServiceImpl) detectLayerFromModule(module string, patterns map[string][]string) string {
+    // Split module path into parts
+    parts := strings.Split(module, ".")
+
+    // Check each part against patterns
+    for _, part := range parts {
+        lowerPart := strings.ToLower(part)
+        for layer, layerPatterns := range patterns {
+            for _, pattern := range layerPatterns {
+                if lowerPart == pattern || strings.HasPrefix(lowerPart, pattern) {
+                    return layer
+                }
+            }
+        }
+    }
+
+    return ""
+}
+
+// extractPackagePrefixes extracts common package prefixes from module names
+func (s *SystemAnalysisServiceImpl) extractPackagePrefixes(modules []string) []string {
+    prefixMap := make(map[string]bool)
+
+    for _, module := range modules {
+        // Get the first part of the module path as the package prefix
+        parts := strings.Split(module, ".")
+        if len(parts) > 0 {
+            prefixMap[parts[0]] = true
+        }
+    }
+
+    // Convert map to slice
+    prefixes := make([]string, 0, len(prefixMap))
+    for prefix := range prefixMap {
+        prefixes = append(prefixes, prefix)
+    }
+
+    return prefixes
 }
 
 // evaluateLayerEdge evaluates a single dependency edge against rules and returns a violation if any.
