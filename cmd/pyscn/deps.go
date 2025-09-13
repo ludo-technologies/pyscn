@@ -19,7 +19,6 @@ var (
 	depsDetectCycles      bool
 
 	// Architecture validation flags
-	depsValidate   bool // Enable architecture validation
 	depsStrict     bool // Enable strict mode for architecture validation
 	depsAutoDetect bool // Auto-detect architecture patterns
 
@@ -53,17 +52,16 @@ This command performs comprehensive dependency analysis including:
 • Architecture quality assessment
 • Optional architecture validation against defined layer rules
 
-Architecture Validation (--validate):
-When enabled, validates dependencies against architecture rules defined in
-pyproject.toml ([tool.pyscn.architecture]) or .pyscn.toml. Use --auto-detect
-to automatically identify common patterns when no rules are defined.
+Architecture Validation:
+Always validates dependencies against architecture rules. If rules are defined in
+pyproject.toml ([tool.pyscn.architecture]) or .pyscn.toml, they will be used.
+Use --auto-detect to automatically identify common patterns when no rules are defined.
 
 Examples:
-  pyscn deps src/                  # Analyze dependencies only
-  pyscn deps --html src/           # Generate interactive HTML report
-  pyscn deps --validate src/       # Validate against config rules
-  pyscn deps --validate --auto-detect src/  # Auto-detect and validate
-  pyscn deps --validate --strict src/  # Strict validation mode
+  pyscn deps src/                  # Analyze and validate dependencies
+  pyscn deps --html src/           # Generate interactive HTML report with validation
+  pyscn deps --auto-detect src/    # Auto-detect patterns and validate
+  pyscn deps --strict src/         # Enable strict validation mode
 
 Output formats:
   --html       - Interactive HTML report with visualizations (recommended)
@@ -85,7 +83,6 @@ func init() {
 	depsCmd.Flags().BoolVar(&depsDetectCycles, "detect-cycles", true, "Detect circular dependencies")
 
 	// Architecture validation options
-	depsCmd.Flags().BoolVar(&depsValidate, "validate", false, "Validate dependencies against architecture rules")
 	depsCmd.Flags().BoolVar(&depsStrict, "strict", false, "Enable strict mode for architecture validation")
 	depsCmd.Flags().BoolVar(&depsAutoDetect, "auto-detect", false, "Auto-detect architecture patterns when no rules are defined")
 
@@ -164,9 +161,9 @@ func runDepsCommand(cmd *cobra.Command, args []string) error {
 		OutputPath:   outputPath,
 		NoOpen:       depsNoOpen,
 
-		// Enable dependency analysis and optionally architecture validation
+		// Enable dependency analysis and architecture validation (always enabled)
 		AnalyzeDependencies: true,
-		AnalyzeArchitecture: depsValidate,
+		AnalyzeArchitecture: true,
 		AnalyzeQuality:      false,
 
 		// Analysis options
@@ -182,9 +179,9 @@ func runDepsCommand(cmd *cobra.Command, args []string) error {
 		ExcludePatterns: depsExcludePatterns,
 	}
 
-	// If strict mode is enabled with validation, set it in the request
+	// If strict mode is enabled, set it in the request
 	// The actual architecture rules will be loaded from config and merged
-	if depsValidate && depsStrict {
+	if depsStrict {
 		request.ArchitectureRules = &domain.ArchitectureRules{
 			StrictMode: true,
 			// Layers and Rules will be populated from config
