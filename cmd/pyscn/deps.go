@@ -33,9 +33,6 @@ var (
 	depsExcludePatterns []string
 	depsConfigPath      string
 
-	// Display options
-	depsShowCycles      bool // Focus on circular dependencies
-	depsShowChains      bool // Show longest dependency chains
 )
 
 // depsCmd represents the deps command
@@ -53,9 +50,7 @@ This command performs comprehensive dependency analysis including:
 
 Examples:
   pyscn deps src/                  # Analyze all modules in src/
-  pyscn deps --cycles src/         # Check for circular dependencies  
   pyscn deps --html src/           # Generate interactive HTML report
-  pyscn deps --chains src/         # Show longest dependency chains
 
 Output formats:
   --html       - Interactive HTML report with visualizations (recommended)
@@ -69,10 +64,6 @@ Output formats:
 
 func init() {
 	rootCmd.AddCommand(depsCmd)
-
-	// Display options
-	depsCmd.Flags().BoolVar(&depsShowCycles, "cycles", false, "Focus on circular dependencies only")
-	depsCmd.Flags().BoolVar(&depsShowChains, "chains", false, "Show longest dependency chains")
 
 	// Analysis options
 	depsCmd.Flags().BoolVar(&depsIncludeStdLib, "include-stdlib", false, "Include standard library dependencies")
