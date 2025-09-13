@@ -622,44 +622,138 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLArchitectureContent(builder *stri
 		layersAnalyzed = arch.LayerAnalysis.LayersAnalyzed
 	}
 
-	builder.WriteString(`
-        <div class="section">
-            <h2>🏛️ Architecture Analysis</h2>
-            <div class="metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-value">` + strconv.Itoa(layersAnalyzed) + `</div>
-                    <div class="metric-label">Layers Analyzed</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value">` + strconv.Itoa(arch.TotalViolations) + `</div>
-                    <div class="metric-label">Total Violations</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value">` + fmt.Sprintf("%.1f%%", arch.ComplianceScore*100) + `</div>
-                    <div class="metric-label">Compliance Score</div>
-                </div>
-            </div>`)
+	// Use the same section structure as Dependencies
+	builder.WriteString(GenerateSectionHeader("🏛️ Architecture Analysis"))
+	builder.WriteString(`<div class="metric-grid">`)
+	builder.WriteString(GenerateMetricCard(strconv.Itoa(layersAnalyzed), "Layers Analyzed"))
+	builder.WriteString(GenerateMetricCard(strconv.Itoa(arch.TotalRules), "Total Rules"))
 
-	if arch.LayerAnalysis != nil && len(arch.LayerAnalysis.LayerViolations) > 0 {
-		builder.WriteString(`
-            <h3>Layer Violations</h3>
-            <div class="chart-container">`)
-		for _, violation := range arch.LayerAnalysis.LayerViolations {
-			severityClass := "status-warning"
-			if string(violation.Severity) == "Critical" {
-				severityClass = "status-danger"
+	// Violations with status badge
+	violationText := strconv.Itoa(arch.TotalViolations)
+	violationSeverity := "success"
+	if arch.TotalViolations > 0 {
+		violationSeverity = "danger"
+		violationText = "❌ " + violationText
+	} else {
+		violationText = "✅ " + violationText
+	}
+	builder.WriteString(GenerateMetricCard(GenerateStatusBadge(violationText, violationSeverity), "Violations"))
+
+	// Compliance Score with color coding
+	complianceScore := arch.ComplianceScore * 100
+	scoreColor := "success"
+	if complianceScore < 80 {
+		scoreColor = "warning"
+	}
+	if complianceScore < 60 {
+		scoreColor = "danger"
+	}
+	builder.WriteString(GenerateMetricCard(
+		`<span class="badge bg-` + scoreColor + `">` + fmt.Sprintf("%.1f%%", complianceScore) + `</span>`,
+		"Compliance Score"))
+	builder.WriteString(`</div>`)
+
+	// Layer Analysis Details
+	if arch.LayerAnalysis != nil {
+		// Layer Coupling if available
+		if len(arch.LayerAnalysis.LayerCoupling) > 0 {
+			builder.WriteString(GenerateSectionHeader("Layer Dependencies"))
+			builder.WriteString(`
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>From Layer</th>
+                        <th>To Layer</th>
+                        <th>Dependencies</th>
+                    </tr>
+                </thead>
+                <tbody>`)
+
+			for fromLayer, toMap := range arch.LayerAnalysis.LayerCoupling {
+				for toLayer, count := range toMap {
+					builder.WriteString(`
+                    <tr>
+                        <td><strong>` + fromLayer + `</strong></td>
+                        <td>` + toLayer + `</td>
+                        <td>` + strconv.Itoa(count) + `</td>
+                    </tr>`)
+				}
 			}
 			builder.WriteString(`
-                <div class="list-item">
-                    <span class="status-badge ` + severityClass + `">` + string(violation.Severity) + `</span>
-                    ` + violation.Rule + `: ` + violation.FromModule + ` -> ` + violation.ToModule + `
-                </div>`)
+                </tbody>
+            </table>`)
 		}
-		builder.WriteString(`</div>`)
+
+		// Layer Violations
+		if len(arch.LayerAnalysis.LayerViolations) > 0 {
+			builder.WriteString(GenerateSectionHeader("Architecture Violations"))
+			builder.WriteString(`
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Severity</th>
+                        <th>Rule</th>
+                        <th>From Module</th>
+                        <th>To Module</th>
+                    </tr>
+                </thead>
+                <tbody>`)
+
+			for i, violation := range arch.LayerAnalysis.LayerViolations {
+				if i >= 20 { // Limit to 20 violations
+					builder.WriteString(`
+                    <tr>
+                        <td colspan="4"><em>... and ` + strconv.Itoa(len(arch.LayerAnalysis.LayerViolations)-20) + ` more violations</em></td>
+                    </tr>`)
+					break
+				}
+
+				severityClass := "warning"
+				severityIcon := "⚠️"
+				if string(violation.Severity) == "error" {
+					severityClass = "danger"
+					severityIcon = "❌"
+				} else if string(violation.Severity) == "info" {
+					severityClass = "info"
+					severityIcon = "ℹ️"
+				}
+
+				builder.WriteString(`
+                    <tr>
+                        <td><span class="badge bg-` + severityClass + `">` + severityIcon + ` ` + string(violation.Severity) + `</span></td>
+                        <td>` + violation.Rule + `</td>
+                        <td>` + violation.FromModule + `</td>
+                        <td>` + violation.ToModule + `</td>
+                    </tr>`)
+			}
+			builder.WriteString(`
+                </tbody>
+            </table>`)
+		}
+
+		// Layer Cohesion if available
+		if len(arch.LayerAnalysis.LayerCohesion) > 0 {
+			builder.WriteString(GenerateSectionHeader("Layer Cohesion"))
+			builder.WriteString(`<div class="metric-grid">`)
+			for layer, cohesion := range arch.LayerAnalysis.LayerCohesion {
+				cohesionText := fmt.Sprintf("%.2f", cohesion)
+				builder.WriteString(GenerateMetricCard(cohesionText, layer))
+			}
+			builder.WriteString(`</div>`)
+		}
 	}
 
-	builder.WriteString(`
-        </div>`)
+	// Recommendations if available
+	if len(arch.Recommendations) > 0 {
+		builder.WriteString(GenerateSectionHeader("Recommendations"))
+		builder.WriteString(`<ul class="list-group">`)
+		for _, rec := range arch.Recommendations {
+			builder.WriteString(`<li class="list-group-item">` + rec.Description + `</li>`)
+		}
+		builder.WriteString(`</ul>`)
+	}
+
+	builder.WriteString(`</div>`)
 }
 
 func (f *SystemAnalysisFormatterImpl) writeHTMLQualityContent(builder *strings.Builder, quality *domain.QualityMetricsResult) {
