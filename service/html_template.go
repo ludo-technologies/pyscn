@@ -107,6 +107,7 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
         .tab-content {
             display: none;
             padding: 30px;
+            background: white;
         }
         .tab-content.active {
             display: block;
