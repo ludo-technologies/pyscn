@@ -30,10 +30,10 @@ type SystemAnalysisRequest struct {
 	ExcludePatterns []string
 
 	// Analysis options
-	IncludeStdLib     bool // Include standard library dependencies
-	IncludeThirdParty bool // Include third-party dependencies
-	FollowRelative    bool // Follow relative imports
-	DetectCycles      bool // Detect circular dependencies
+	IncludeStdLib        bool // Include standard library dependencies
+	IncludeThirdParty    bool // Include third-party dependencies
+	FollowRelative       bool // Follow relative imports
+	DetectCycles         bool // Detect circular dependencies
 	ValidateArchitecture bool // Validate architecture rules
 
 	// Architecture rules (loaded from config or specified directly)
@@ -48,18 +48,18 @@ type SystemAnalysisRequest struct {
 // SystemAnalysisResponse represents the complete system analysis result
 type SystemAnalysisResponse struct {
 	// Core analysis results
-	DependencyAnalysis  *DependencyAnalysisResult  // Module dependency analysis
+	DependencyAnalysis   *DependencyAnalysisResult   // Module dependency analysis
 	ArchitectureAnalysis *ArchitectureAnalysisResult // Architecture validation results
-	QualityMetrics      *QualityMetricsResult      // System quality metrics
+	QualityMetrics       *QualityMetricsResult       // System quality metrics
 
 	// Summary information
 	Summary SystemAnalysisSummary // High-level summary
 
 	// Issues and recommendations
-	Issues          []SystemIssue       // Critical issues found
+	Issues          []SystemIssue          // Critical issues found
 	Recommendations []SystemRecommendation // Improvement recommendations
-	Warnings        []string           // Analysis warnings
-	Errors          []string           // Analysis errors
+	Warnings        []string               // Analysis warnings
+	Errors          []string               // Analysis errors
 
 	// Metadata
 	GeneratedAt time.Time   // When the analysis was generated
@@ -71,42 +71,42 @@ type SystemAnalysisResponse struct {
 // SystemAnalysisSummary provides a high-level overview of system quality
 type SystemAnalysisSummary struct {
 	// System overview
-	TotalModules   int    // Total number of modules analyzed
-	TotalPackages  int    // Total number of packages
-	TotalDependencies int // Total dependency relationships
-	ProjectRoot    string // Project root directory
+	TotalModules      int    // Total number of modules analyzed
+	TotalPackages     int    // Total number of packages
+	TotalDependencies int    // Total dependency relationships
+	ProjectRoot       string // Project root directory
 
 	// Quality scores (0-100, higher is better)
-	OverallQualityScore   float64 // Composite quality score
-	MaintainabilityScore  float64 // Average maintainability index
-	ArchitectureScore     float64 // Architecture compliance score
-	ModularityScore       float64 // System modularity score
-	TechnicalDebtHours    float64 // Total estimated technical debt
+	OverallQualityScore  float64 // Composite quality score
+	MaintainabilityScore float64 // Average maintainability index
+	ArchitectureScore    float64 // Architecture compliance score
+	ModularityScore      float64 // System modularity score
+	TechnicalDebtHours   float64 // Total estimated technical debt
 
 	// Key metrics
-	AverageCoupling       float64 // Average module coupling
-	AverageInstability    float64 // Average instability
-	CyclicDependencies    int     // Number of modules in cycles
-	ArchitectureViolations int    // Number of architecture rule violations
-	HighRiskModules       int     // Number of high-risk modules
+	AverageCoupling        float64 // Average module coupling
+	AverageInstability     float64 // Average instability
+	CyclicDependencies     int     // Number of modules in cycles
+	ArchitectureViolations int     // Number of architecture rule violations
+	HighRiskModules        int     // Number of high-risk modules
 
 	// Recommendations summary
-	CriticalIssues  int // Number of critical issues requiring immediate attention
-	RefactoringCandidates int // Number of modules needing refactoring
+	CriticalIssues           int // Number of critical issues requiring immediate attention
+	RefactoringCandidates    int // Number of modules needing refactoring
 	ArchitectureImprovements int // Number of architecture improvements suggested
 }
 
 // DependencyAnalysisResult contains module dependency analysis results
 type DependencyAnalysisResult struct {
 	// Dependency graph information
-	TotalModules      int              // Total number of modules
-	TotalDependencies int              // Total number of dependencies
-	RootModules       []string         // Modules with no dependencies
-	LeafModules       []string         // Modules with no dependents
+	TotalModules      int      // Total number of modules
+	TotalDependencies int      // Total number of dependencies
+	RootModules       []string // Modules with no dependencies
+	LeafModules       []string // Modules with no dependents
 
 	// Dependency metrics
-	ModuleMetrics     map[string]*ModuleDependencyMetrics // Per-module metrics
-	DependencyMatrix  map[string]map[string]bool         // Module -> dependencies
+	ModuleMetrics    map[string]*ModuleDependencyMetrics // Per-module metrics
+	DependencyMatrix map[string]map[string]bool          // Module -> dependencies
 
 	// Circular dependency analysis
 	CircularDependencies *CircularDependencyAnalysis // Circular dependency results
@@ -122,10 +122,10 @@ type DependencyAnalysisResult struct {
 // ModuleDependencyMetrics contains dependency metrics for a single module
 type ModuleDependencyMetrics struct {
 	// Basic information
-	ModuleName   string // Module name
-	Package      string // Package name
-	FilePath     string // File path
-	IsPackage    bool   // True if this is a package
+	ModuleName string // Module name
+	Package    string // Package name
+	FilePath   string // File path
+	IsPackage  bool   // True if this is a package
 
 	// Size metrics
 	LinesOfCode     int      // Total lines of code
@@ -134,38 +134,38 @@ type ModuleDependencyMetrics struct {
 	PublicInterface []string // Public names exported
 
 	// Coupling metrics (Robert Martin's metrics)
-	AfferentCoupling  int     // Ca - modules that depend on this one
-	EfferentCoupling  int     // Ce - modules this one depends on
-	Instability       float64 // I = Ce / (Ca + Ce)
-	Abstractness      float64 // A - abstractness measure
-	Distance          float64 // D - distance from main sequence
+	AfferentCoupling int     // Ca - modules that depend on this one
+	EfferentCoupling int     // Ce - modules this one depends on
+	Instability      float64 // I = Ce / (Ca + Ce)
+	Abstractness     float64 // A - abstractness measure
+	Distance         float64 // D - distance from main sequence
 
 	// Quality metrics
-	Maintainability float64 // Maintainability index (0-100)
-	TechnicalDebt   float64 // Estimated technical debt in hours
+	Maintainability float64   // Maintainability index (0-100)
+	TechnicalDebt   float64   // Estimated technical debt in hours
 	RiskLevel       RiskLevel // Overall risk assessment
 
 	// Dependencies
-	DirectDependencies   []string // Modules this directly depends on
+	DirectDependencies     []string // Modules this directly depends on
 	TransitiveDependencies []string // All transitive dependencies
-	Dependents           []string // Modules that depend on this one
+	Dependents             []string // Modules that depend on this one
 }
 
 // CircularDependencyAnalysis contains circular dependency analysis results
 type CircularDependencyAnalysis struct {
-	HasCircularDependencies bool                    // True if cycles exist
-	TotalCycles            int                     // Number of circular dependencies
-	TotalModulesInCycles   int                     // Number of modules involved in cycles
-	CircularDependencies   []CircularDependency    // All detected cycles
+	HasCircularDependencies  bool                 // True if cycles exist
+	TotalCycles              int                  // Number of circular dependencies
+	TotalModulesInCycles     int                  // Number of modules involved in cycles
+	CircularDependencies     []CircularDependency // All detected cycles
 	CycleBreakingSuggestions []string             // Suggestions for breaking cycles
-	CoreInfrastructure     []string               // Modules in multiple cycles
+	CoreInfrastructure       []string             // Modules in multiple cycles
 }
 
 // CircularDependency represents a circular dependency
 type CircularDependency struct {
-	Modules      []string          // Modules in the cycle
-	Dependencies []DependencyPath  // Dependency paths forming the cycle
-	Severity     CycleSeverity     // Severity level
+	Modules      []string         // Modules in the cycle
+	Dependencies []DependencyPath // Dependency paths forming the cycle
+	Severity     CycleSeverity    // Severity level
 	Size         int              // Number of modules
 	Description  string           // Human-readable description
 }
@@ -191,51 +191,51 @@ const (
 // CouplingAnalysis contains detailed coupling analysis
 type CouplingAnalysis struct {
 	// Overall coupling metrics
-	AverageCoupling        float64 // Average coupling across all modules
-	CouplingDistribution   map[int]int // Coupling value -> count
-	HighlyCoupledModules   []string // Modules with high coupling
-	LooselyCoupledModules  []string // Modules with low coupling
+	AverageCoupling       float64     // Average coupling across all modules
+	CouplingDistribution  map[int]int // Coupling value -> count
+	HighlyCoupledModules  []string    // Modules with high coupling
+	LooselyCoupledModules []string    // Modules with low coupling
 
 	// Instability analysis
-	AverageInstability     float64 // Average instability
-	StableModules         []string // Low instability modules
-	InstableModules       []string // High instability modules
+	AverageInstability float64  // Average instability
+	StableModules      []string // Low instability modules
+	InstableModules    []string // High instability modules
 
 	// Main sequence analysis
-	MainSequenceDeviation float64   // Average distance from main sequence
-	ZoneOfPain           []string   // Stable + concrete modules
-	ZoneOfUselessness    []string   // Unstable + abstract modules
-	MainSequence         []string   // Well-positioned modules
+	MainSequenceDeviation float64  // Average distance from main sequence
+	ZoneOfPain            []string // Stable + concrete modules
+	ZoneOfUselessness     []string // Unstable + abstract modules
+	MainSequence          []string // Well-positioned modules
 }
 
 // ArchitectureAnalysisResult contains architecture validation results
 type ArchitectureAnalysisResult struct {
 	// Overall architecture compliance
-	ComplianceScore    float64 // Overall compliance score (0-100)
-	TotalViolations    int     // Total number of violations
-	TotalRules         int     // Total number of rules checked
+	ComplianceScore float64 // Overall compliance score (0-100)
+	TotalViolations int     // Total number of violations
+	TotalRules      int     // Total number of rules checked
 
 	// Layer analysis
-	LayerAnalysis      *LayerAnalysis      // Layer violation analysis
-	CohesionAnalysis   *CohesionAnalysis   // Package cohesion analysis
+	LayerAnalysis          *LayerAnalysis          // Layer violation analysis
+	CohesionAnalysis       *CohesionAnalysis       // Package cohesion analysis
 	ResponsibilityAnalysis *ResponsibilityAnalysis // SRP violation analysis
 
 	// Detailed violations
-	Violations         []ArchitectureViolation // All architecture violations
-	SeverityBreakdown  map[ViolationSeverity]int // Violations by severity
+	Violations        []ArchitectureViolation   // All architecture violations
+	SeverityBreakdown map[ViolationSeverity]int // Violations by severity
 
 	// Architecture recommendations
 	Recommendations    []ArchitectureRecommendation // Specific recommendations
-	RefactoringTargets []string                    // Modules needing refactoring
+	RefactoringTargets []string                     // Modules needing refactoring
 }
 
 // LayerAnalysis contains layer architecture validation results
 type LayerAnalysis struct {
-	LayersAnalyzed     int                    // Number of layers analyzed
-	LayerViolations    []LayerViolation       // Layer rule violations
-	LayerCoupling      map[string]map[string]int // Layer -> Layer -> dependency count
-	LayerCohesion      map[string]float64     // Layer -> cohesion score
-	ProblematicLayers  []string               // Layers with violations
+	LayersAnalyzed    int                       // Number of layers analyzed
+	LayerViolations   []LayerViolation          // Layer rule violations
+	LayerCoupling     map[string]map[string]int // Layer -> Layer -> dependency count
+	LayerCohesion     map[string]float64        // Layer -> cohesion score
+	ProblematicLayers []string                  // Layers with violations
 }
 
 // LayerViolation represents a layer architecture rule violation
@@ -252,47 +252,47 @@ type LayerViolation struct {
 
 // CohesionAnalysis contains package cohesion analysis
 type CohesionAnalysis struct {
-	PackageCohesion    map[string]float64 // Package -> cohesion score
-	LowCohesionPackages []string         // Packages with low cohesion
-	CohesionSuggestions map[string]string // Package -> suggestion
+	PackageCohesion     map[string]float64 // Package -> cohesion score
+	LowCohesionPackages []string           // Packages with low cohesion
+	CohesionSuggestions map[string]string  // Package -> suggestion
 }
 
 // ResponsibilityAnalysis contains Single Responsibility Principle analysis
 type ResponsibilityAnalysis struct {
-	SRPViolations       []SRPViolation // SRP violations detected
+	SRPViolations          []SRPViolation      // SRP violations detected
 	ModuleResponsibilities map[string][]string // Module -> responsibilities
-	OverloadedModules   []string      // Modules with too many responsibilities
+	OverloadedModules      []string            // Modules with too many responsibilities
 }
 
 // SRPViolation represents a Single Responsibility Principle violation
 type SRPViolation struct {
-	Module           string   // Module with violation
-	Responsibilities []string // Multiple responsibilities detected
+	Module           string            // Module with violation
+	Responsibilities []string          // Multiple responsibilities detected
 	Severity         ViolationSeverity // Severity level
-	Suggestion       string   // Refactoring suggestion
+	Suggestion       string            // Refactoring suggestion
 }
 
 // ArchitectureViolation represents an architecture rule violation
 type ArchitectureViolation struct {
 	Type        ViolationType     // Type of violation
 	Severity    ViolationSeverity // Severity level
-	Module      string           // Module involved
-	Target      string           // Target of violation (if applicable)
-	Rule        string           // Rule that was violated
-	Description string           // Human-readable description
-	Suggestion  string           // Suggested remediation
-	Location    *SourceLocation  // Location in code (if available)
+	Module      string            // Module involved
+	Target      string            // Target of violation (if applicable)
+	Rule        string            // Rule that was violated
+	Description string            // Human-readable description
+	Suggestion  string            // Suggested remediation
+	Location    *SourceLocation   // Location in code (if available)
 }
 
 // ViolationType represents the type of architecture violation
 type ViolationType string
 
 const (
-	ViolationTypeLayer         ViolationType = "layer"         // Layer dependency violation
-	ViolationTypeCycle         ViolationType = "cycle"         // Circular dependency
-	ViolationTypeCoupling      ViolationType = "coupling"      // Excessive coupling
+	ViolationTypeLayer          ViolationType = "layer"          // Layer dependency violation
+	ViolationTypeCycle          ViolationType = "cycle"          // Circular dependency
+	ViolationTypeCoupling       ViolationType = "coupling"       // Excessive coupling
 	ViolationTypeResponsibility ViolationType = "responsibility" // SRP violation
-	ViolationTypeCohesion      ViolationType = "cohesion"      // Low cohesion
+	ViolationTypeCohesion       ViolationType = "cohesion"       // Low cohesion
 )
 
 // ViolationSeverity represents the severity of a violation
@@ -307,25 +307,25 @@ const (
 
 // ArchitectureRecommendation represents a specific architecture improvement recommendation
 type ArchitectureRecommendation struct {
-	Type        RecommendationType // Type of recommendation
+	Type        RecommendationType     // Type of recommendation
 	Priority    RecommendationPriority // Priority level
-	Title       string            // Short title
-	Description string            // Detailed description
-	Benefits    []string          // Expected benefits
-	Effort      EstimatedEffort   // Estimated effort
-	Modules     []string          // Affected modules
-	Steps       []string          // Implementation steps
+	Title       string                 // Short title
+	Description string                 // Detailed description
+	Benefits    []string               // Expected benefits
+	Effort      EstimatedEffort        // Estimated effort
+	Modules     []string               // Affected modules
+	Steps       []string               // Implementation steps
 }
 
 // RecommendationType represents the type of recommendation
 type RecommendationType string
 
 const (
-	RecommendationTypeRefactor     RecommendationType = "refactor"     // Code refactoring
-	RecommendationTypeRestructure  RecommendationType = "restructure"  // Architectural restructuring
-	RecommendationTypeExtract      RecommendationType = "extract"      // Extract module/package
-	RecommendationTypeMerge        RecommendationType = "merge"        // Merge modules
-	RecommendationTypeInterface    RecommendationType = "interface"    // Add abstraction
+	RecommendationTypeRefactor    RecommendationType = "refactor"    // Code refactoring
+	RecommendationTypeRestructure RecommendationType = "restructure" // Architectural restructuring
+	RecommendationTypeExtract     RecommendationType = "extract"     // Extract module/package
+	RecommendationTypeMerge       RecommendationType = "merge"       // Merge modules
+	RecommendationTypeInterface   RecommendationType = "interface"   // Add abstraction
 )
 
 // RecommendationPriority represents priority level
@@ -351,7 +351,7 @@ const (
 // QualityMetricsResult contains system-wide quality metrics
 type QualityMetricsResult struct {
 	// Composite quality metrics
-	OverallQuality      float64 // Overall system quality score (0-100)
+	OverallQuality       float64 // Overall system quality score (0-100)
 	MaintainabilityIndex float64 // System maintainability index
 	TechnicalDebtTotal   float64 // Total technical debt in hours
 	ModularityIndex      float64 // System modularity score
@@ -362,54 +362,54 @@ type QualityMetricsResult struct {
 	MainSequenceDistance float64 // Average distance from main sequence
 
 	// Complexity metrics
-	SystemComplexity     float64 // Overall system complexity
-	MaxDependencyDepth   int     // Maximum dependency chain depth
-	AverageFanIn        float64 // Average afferent coupling
-	AverageFanOut       float64 // Average efferent coupling
+	SystemComplexity   float64 // Overall system complexity
+	MaxDependencyDepth int     // Maximum dependency chain depth
+	AverageFanIn       float64 // Average afferent coupling
+	AverageFanOut      float64 // Average efferent coupling
 
 	// Quality distribution
-	HighQualityModules   []string // Modules with excellent quality
+	HighQualityModules     []string // Modules with excellent quality
 	ModerateQualityModules []string // Modules with acceptable quality
-	LowQualityModules    []string // Modules needing attention
-	CriticalModules      []string // Modules requiring immediate action
+	LowQualityModules      []string // Modules needing attention
+	CriticalModules        []string // Modules requiring immediate action
 
 	// Trends and patterns
-	QualityTrends       map[string]float64 // Package -> quality trend
-	HotSpots           []string           // Modules that change frequently and have quality issues
-	RefactoringTargets  []RefactoringTarget // Priority refactoring targets
+	QualityTrends      map[string]float64  // Package -> quality trend
+	HotSpots           []string            // Modules that change frequently and have quality issues
+	RefactoringTargets []RefactoringTarget // Priority refactoring targets
 }
 
 // RefactoringTarget represents a module that needs refactoring
 type RefactoringTarget struct {
-	Module      string  // Module name
-	Priority    float64 // Refactoring priority score
-	Issues      []string // Specific issues
-	Benefits    []string // Expected benefits of refactoring
+	Module      string          // Module name
+	Priority    float64         // Refactoring priority score
+	Issues      []string        // Specific issues
+	Benefits    []string        // Expected benefits of refactoring
 	Effort      EstimatedEffort // Estimated effort
-	Suggestions []string // Specific refactoring suggestions
+	Suggestions []string        // Specific refactoring suggestions
 }
 
 // SystemIssue represents a critical system-level issue
 type SystemIssue struct {
-	Type        IssueType    // Type of issue
+	Type        IssueType     // Type of issue
 	Severity    IssueSeverity // Severity level
-	Title       string       // Issue title
-	Description string       // Detailed description
-	Impact      string       // Impact description
-	Modules     []string     // Affected modules
-	Suggestion  string       // Remediation suggestion
+	Title       string        // Issue title
+	Description string        // Detailed description
+	Impact      string        // Impact description
+	Modules     []string      // Affected modules
+	Suggestion  string        // Remediation suggestion
 }
 
 // IssueType represents the type of system issue
 type IssueType string
 
 const (
-	IssueTypeCircularDependency  IssueType = "circular_dependency"
-	IssueTypeExcessiveCoupling   IssueType = "excessive_coupling"
+	IssueTypeCircularDependency    IssueType = "circular_dependency"
+	IssueTypeExcessiveCoupling     IssueType = "excessive_coupling"
 	IssueTypeArchitectureViolation IssueType = "architecture_violation"
-	IssueTypeLowMaintainability  IssueType = "low_maintainability"
-	IssueTypeHighTechnicalDebt   IssueType = "high_technical_debt"
-	IssueTypePoorModularity      IssueType = "poor_modularity"
+	IssueTypeLowMaintainability    IssueType = "low_maintainability"
+	IssueTypeHighTechnicalDebt     IssueType = "high_technical_debt"
+	IssueTypePoorModularity        IssueType = "poor_modularity"
 )
 
 // IssueSeverity represents issue severity
@@ -426,41 +426,41 @@ const (
 type SystemRecommendation struct {
 	Category    RecommendationCategory // Category of recommendation
 	Priority    RecommendationPriority // Priority level
-	Title       string                // Recommendation title
-	Description string                // Detailed description
-	Rationale   string                // Why this is recommended
-	Benefits    []string              // Expected benefits
-	Steps       []string              // Implementation steps
-	Resources   []string              // Additional resources
-	Effort      EstimatedEffort       // Estimated effort
+	Title       string                 // Recommendation title
+	Description string                 // Detailed description
+	Rationale   string                 // Why this is recommended
+	Benefits    []string               // Expected benefits
+	Steps       []string               // Implementation steps
+	Resources   []string               // Additional resources
+	Effort      EstimatedEffort        // Estimated effort
 }
 
 // RecommendationCategory represents recommendation category
 type RecommendationCategory string
 
 const (
-	RecommendationCategoryArchitecture RecommendationCategory = "architecture"
-	RecommendationCategoryRefactoring  RecommendationCategory = "refactoring"
-	RecommendationCategoryTesting      RecommendationCategory = "testing"
+	RecommendationCategoryArchitecture  RecommendationCategory = "architecture"
+	RecommendationCategoryRefactoring   RecommendationCategory = "refactoring"
+	RecommendationCategoryTesting       RecommendationCategory = "testing"
 	RecommendationCategoryDocumentation RecommendationCategory = "documentation"
-	RecommendationCategoryProcess      RecommendationCategory = "process"
+	RecommendationCategoryProcess       RecommendationCategory = "process"
 )
 
 // ArchitectureRules defines architecture validation rules
 type ArchitectureRules struct {
 	// Layer rules
-	Layers []Layer `json:"layers" yaml:"layers"`
+	Layers []Layer     `json:"layers" yaml:"layers"`
 	Rules  []LayerRule `json:"rules" yaml:"rules"`
-	
+
 	// Package rules
 	PackageRules []PackageRule `json:"package_rules" yaml:"package_rules"`
-	
+
 	// Custom rules
 	CustomRules []CustomRule `json:"custom_rules" yaml:"custom_rules"`
-	
+
 	// Global settings
-	StrictMode      bool     `json:"strict_mode" yaml:"strict_mode"`
-	AllowedPatterns []string `json:"allowed_patterns" yaml:"allowed_patterns"`
+	StrictMode        bool     `json:"strict_mode" yaml:"strict_mode"`
+	AllowedPatterns   []string `json:"allowed_patterns" yaml:"allowed_patterns"`
 	ForbiddenPatterns []string `json:"forbidden_patterns" yaml:"forbidden_patterns"`
 }
 
@@ -480,18 +480,18 @@ type LayerRule struct {
 
 // PackageRule defines rules for packages
 type PackageRule struct {
-	Package     string   `json:"package" yaml:"package"`
-	MaxSize     int      `json:"max_size" yaml:"max_size"`
-	MaxCoupling int      `json:"max_coupling" yaml:"max_coupling"`
-	MinCohesion float64  `json:"min_cohesion" yaml:"min_cohesion"`
+	Package             string   `json:"package" yaml:"package"`
+	MaxSize             int      `json:"max_size" yaml:"max_size"`
+	MaxCoupling         int      `json:"max_coupling" yaml:"max_coupling"`
+	MinCohesion         float64  `json:"min_cohesion" yaml:"min_cohesion"`
 	AllowedDependencies []string `json:"allowed_dependencies" yaml:"allowed_dependencies"`
 }
 
 // CustomRule defines custom validation rules
 type CustomRule struct {
-	Name        string `json:"name" yaml:"name"`
-	Pattern     string `json:"pattern" yaml:"pattern"`
-	Description string `json:"description" yaml:"description"`
+	Name        string            `json:"name" yaml:"name"`
+	Pattern     string            `json:"pattern" yaml:"pattern"`
+	Description string            `json:"description" yaml:"description"`
 	Severity    ViolationSeverity `json:"severity" yaml:"severity"`
 }
 
@@ -536,21 +536,21 @@ type SystemAnalysisOutputFormatter interface {
 // DefaultSystemAnalysisRequest returns a SystemAnalysisRequest with default values
 func DefaultSystemAnalysisRequest() *SystemAnalysisRequest {
 	return &SystemAnalysisRequest{
-		OutputFormat:        OutputFormatText,
-		AnalyzeDependencies: true,
-		AnalyzeArchitecture: true,
-		AnalyzeQuality:      true,
-		Recursive:           true,
-		IncludeStdLib:       false,
-		IncludeThirdParty:   true,
-		FollowRelative:      true,
-		DetectCycles:        true,
+		OutputFormat:         OutputFormatText,
+		AnalyzeDependencies:  true,
+		AnalyzeArchitecture:  true,
+		AnalyzeQuality:       true,
+		Recursive:            true,
+		IncludeStdLib:        false,
+		IncludeThirdParty:    true,
+		FollowRelative:       true,
+		DetectCycles:         true,
 		ValidateArchitecture: true,
-		IncludePatterns:     []string{"*.py"},
-		ExcludePatterns:     []string{"test_*.py", "*_test.py"},
-		ComplexityData:      make(map[string]int),
-		ClonesData:          make(map[string]float64),
-		DeadCodeData:        make(map[string]int),
+		IncludePatterns:      []string{"*.py"},
+		ExcludePatterns:      []string{"test_*.py", "*_test.py"},
+		ComplexityData:       make(map[string]int),
+		ClonesData:           make(map[string]float64),
+		DeadCodeData:         make(map[string]int),
 	}
 }
 

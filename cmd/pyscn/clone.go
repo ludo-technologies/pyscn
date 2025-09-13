@@ -40,22 +40,22 @@ type CloneCommand struct {
 	type4Threshold float64
 
 	// Output format flags (only one should be true)
-	html      bool
-	json      bool
-	csv       bool
-	yaml      bool
-	noOpen    bool
-	
-    // Output options
-    showDetails  bool
-    showContent  bool
-    sortBy       string
-    groupClones  bool
+	html   bool
+	json   bool
+	csv    bool
+	yaml   bool
+	noOpen bool
 
-    // Grouping options
-    groupMode      string  // "connected", "star", "complete_linkage", "k_core"
-    groupThreshold float64 // グループ内最小類似度
-    kCoreK         int     // k-coreのk値
+	// Output options
+	showDetails bool
+	showContent bool
+	sortBy      string
+	groupClones bool
+
+	// Grouping options
+	groupMode      string  // "connected", "star", "complete_linkage", "k_core"
+	groupThreshold float64 // グループ内最小類似度
+	kCoreK         int     // k-coreのk値
 
 	// Filtering
 	minSimilarity float64
@@ -66,25 +66,25 @@ type CloneCommand struct {
 	costModelType string
 	verbose       bool
 
-    // Performance options
-    timeout time.Duration
+	// Performance options
+	timeout time.Duration
 
-    // LSH options
-    useLSH               bool
-    lshThreshold         float64
-    lshBands             int
-    lshRows              int
-    lshHashes            int
+	// LSH options
+	useLSH       bool
+	lshThreshold float64
+	lshBands     int
+	lshRows      int
+	lshHashes    int
 
-    // Simplified preset options
-    fast     bool   // Large project preset
-    precise  bool   // Small project preset
-    preset   string // Named preset
+	// Simplified preset options
+	fast    bool   // Large project preset
+	precise bool   // Small project preset
+	preset  string // Named preset
 }
 
 // NewCloneCommand creates a new clone detection command
 func NewCloneCommand() *CloneCommand {
-    return &CloneCommand{
+	return &CloneCommand{
 		recursive:           true,
 		minLines:            5,
 		minNodes:            5,
@@ -103,25 +103,25 @@ func NewCloneCommand() *CloneCommand {
 		noOpen:              false,
 		showDetails:         false,
 		showContent:         false,
-        sortBy:              "similarity",
-        groupClones:         true,
-        groupMode:           "connected",
-        groupThreshold:      constants.DefaultType3CloneThreshold,
-        kCoreK:              2,
-        minSimilarity:       0.0,
-        maxSimilarity:       1.0,
-        cloneTypes:          []string{"type1", "type2", "type3", "type4"},
-        costModelType:       "python",
-        verbose:             false,
-        timeout:             5 * time.Minute,
+		sortBy:              "similarity",
+		groupClones:         true,
+		groupMode:           "connected",
+		groupThreshold:      constants.DefaultType3CloneThreshold,
+		kCoreK:              2,
+		minSimilarity:       0.0,
+		maxSimilarity:       1.0,
+		cloneTypes:          []string{"type1", "type2", "type3", "type4"},
+		costModelType:       "python",
+		verbose:             false,
+		timeout:             5 * time.Minute,
 
-        // LSH defaults
-        useLSH:       false,
-        lshThreshold: 0.78,
-        lshBands:     32,
-        lshRows:      4,
-        lshHashes:    128,
-    }
+		// LSH defaults
+		useLSH:       false,
+		lshThreshold: 0.78,
+		lshBands:     32,
+		lshRows:      4,
+		lshHashes:    128,
+	}
 }
 
 // CreateCobraCommand creates the Cobra command for clone detection
@@ -197,7 +197,7 @@ Examples:
 	cmd.Flags().BoolVar(&c.csv, "csv", false, "Generate CSV report file")
 	cmd.Flags().BoolVar(&c.yaml, "yaml", false, "Generate YAML report file")
 	cmd.Flags().BoolVar(&c.noOpen, "no-open", false, "Don't auto-open HTML in browser")
-	
+
 	// Output options
 	cmd.Flags().BoolVarP(&c.showDetails, "details", "d", c.showDetails,
 		"Show detailed clone information")
@@ -205,25 +205,25 @@ Examples:
 		"Include source code content in output")
 	cmd.Flags().StringVar(&c.sortBy, "sort", c.sortBy,
 		"Sort results by: similarity, size, location, type")
-    cmd.Flags().BoolVar(&c.groupClones, "group", c.groupClones,
-        "Group related clones together")
+	cmd.Flags().BoolVar(&c.groupClones, "group", c.groupClones,
+		"Group related clones together")
 
-    // Simplified preset flags
-    cmd.Flags().BoolVar(&c.fast, "fast", false, "Fast mode for large projects (enables LSH)")
-    cmd.Flags().BoolVar(&c.precise, "precise", false, "Precise mode for small projects (star grouping)")
-    cmd.Flags().StringVar(&c.preset, "preset", "", "Use preset configuration: fast, precise, balanced")
+	// Simplified preset flags
+	cmd.Flags().BoolVar(&c.fast, "fast", false, "Fast mode for large projects (enables LSH)")
+	cmd.Flags().BoolVar(&c.precise, "precise", false, "Precise mode for small projects (star grouping)")
+	cmd.Flags().StringVar(&c.preset, "preset", "", "Use preset configuration: fast, precise, balanced")
 
-    // Advanced grouping flags (hidden from main help)
-    cmd.Flags().StringVar(&c.groupMode, "group-mode", c.groupMode,
-        "Grouping strategy: connected, star, complete_linkage, k_core")
-    cmd.Flags().Float64Var(&c.groupThreshold, "group-threshold", c.groupThreshold,
-        "Minimum similarity for group membership")
-    cmd.Flags().IntVar(&c.kCoreK, "k-core-k", c.kCoreK,
-        "Minimum neighbors for k-core mode")
-    
-    // Mark advanced flags as hidden
-    _ = cmd.Flags().MarkHidden("group-threshold")
-    _ = cmd.Flags().MarkHidden("k-core-k")
+	// Advanced grouping flags (hidden from main help)
+	cmd.Flags().StringVar(&c.groupMode, "group-mode", c.groupMode,
+		"Grouping strategy: connected, star, complete_linkage, k_core")
+	cmd.Flags().Float64Var(&c.groupThreshold, "group-threshold", c.groupThreshold,
+		"Minimum similarity for group membership")
+	cmd.Flags().IntVar(&c.kCoreK, "k-core-k", c.kCoreK,
+		"Minimum neighbors for k-core mode")
+
+	// Mark advanced flags as hidden
+	_ = cmd.Flags().MarkHidden("group-threshold")
+	_ = cmd.Flags().MarkHidden("k-core-k")
 
 	// Filtering flags
 	cmd.Flags().Float64Var(&c.minSimilarity, "min-similarity", c.minSimilarity,
@@ -239,39 +239,39 @@ Examples:
 	cmd.Flags().BoolVarP(&c.verbose, "verbose", "v", c.verbose,
 		"Enable verbose output")
 
-    // Performance flags
-    cmd.Flags().DurationVar(&c.timeout, "clone-timeout", c.timeout,
-        "Maximum time for clone analysis (e.g., 5m, 30s)")
+	// Performance flags
+	cmd.Flags().DurationVar(&c.timeout, "clone-timeout", c.timeout,
+		"Maximum time for clone analysis (e.g., 5m, 30s)")
 
-    // LSH acceleration flags (hidden advanced options)
-    cmd.Flags().BoolVar(&c.useLSH, "use-lsh", c.useLSH, "Enable LSH acceleration")
-    cmd.Flags().Float64Var(&c.lshThreshold, "lsh-threshold", c.lshThreshold, "LSH MinHash similarity threshold (0.0-1.0)")
-    cmd.Flags().IntVar(&c.lshBands, "lsh-bands", c.lshBands, "Number of LSH bands")
-    cmd.Flags().IntVar(&c.lshRows, "lsh-rows", c.lshRows, "Rows per LSH band")
-    cmd.Flags().IntVar(&c.lshHashes, "lsh-hashes", c.lshHashes, "MinHash function count")
-    
-    // Hide all advanced algorithm flags from help
-    // These should be configured in .pyscn.toml or pyproject.toml
-    _ = cmd.Flags().MarkHidden("max-distance")
-    _ = cmd.Flags().MarkHidden("type1-threshold")
-    _ = cmd.Flags().MarkHidden("type2-threshold")
-    _ = cmd.Flags().MarkHidden("type3-threshold")
-    _ = cmd.Flags().MarkHidden("type4-threshold")
-    _ = cmd.Flags().MarkHidden("cost-model")
-    _ = cmd.Flags().MarkHidden("group-threshold")
-    _ = cmd.Flags().MarkHidden("group-mode")
-    _ = cmd.Flags().MarkHidden("k-core-k")
-    _ = cmd.Flags().MarkHidden("use-lsh")
-    _ = cmd.Flags().MarkHidden("lsh-threshold")
-    _ = cmd.Flags().MarkHidden("lsh-bands")
-    _ = cmd.Flags().MarkHidden("lsh-rows")
-    _ = cmd.Flags().MarkHidden("lsh-hashes")
-    _ = cmd.Flags().MarkHidden("ignore-literals")
-    _ = cmd.Flags().MarkHidden("ignore-identifiers")
-    _ = cmd.Flags().MarkHidden("min-lines")
-    _ = cmd.Flags().MarkHidden("min-nodes")
-    _ = cmd.Flags().MarkHidden("min-similarity")
-    _ = cmd.Flags().MarkHidden("max-similarity")
+	// LSH acceleration flags (hidden advanced options)
+	cmd.Flags().BoolVar(&c.useLSH, "use-lsh", c.useLSH, "Enable LSH acceleration")
+	cmd.Flags().Float64Var(&c.lshThreshold, "lsh-threshold", c.lshThreshold, "LSH MinHash similarity threshold (0.0-1.0)")
+	cmd.Flags().IntVar(&c.lshBands, "lsh-bands", c.lshBands, "Number of LSH bands")
+	cmd.Flags().IntVar(&c.lshRows, "lsh-rows", c.lshRows, "Rows per LSH band")
+	cmd.Flags().IntVar(&c.lshHashes, "lsh-hashes", c.lshHashes, "MinHash function count")
+
+	// Hide all advanced algorithm flags from help
+	// These should be configured in .pyscn.toml or pyproject.toml
+	_ = cmd.Flags().MarkHidden("max-distance")
+	_ = cmd.Flags().MarkHidden("type1-threshold")
+	_ = cmd.Flags().MarkHidden("type2-threshold")
+	_ = cmd.Flags().MarkHidden("type3-threshold")
+	_ = cmd.Flags().MarkHidden("type4-threshold")
+	_ = cmd.Flags().MarkHidden("cost-model")
+	_ = cmd.Flags().MarkHidden("group-threshold")
+	_ = cmd.Flags().MarkHidden("group-mode")
+	_ = cmd.Flags().MarkHidden("k-core-k")
+	_ = cmd.Flags().MarkHidden("use-lsh")
+	_ = cmd.Flags().MarkHidden("lsh-threshold")
+	_ = cmd.Flags().MarkHidden("lsh-bands")
+	_ = cmd.Flags().MarkHidden("lsh-rows")
+	_ = cmd.Flags().MarkHidden("lsh-hashes")
+	_ = cmd.Flags().MarkHidden("ignore-literals")
+	_ = cmd.Flags().MarkHidden("ignore-identifiers")
+	_ = cmd.Flags().MarkHidden("min-lines")
+	_ = cmd.Flags().MarkHidden("min-nodes")
+	_ = cmd.Flags().MarkHidden("min-similarity")
+	_ = cmd.Flags().MarkHidden("max-similarity")
 
 	return cmd
 }
@@ -312,8 +312,8 @@ func (c *CloneCommand) runCloneDetection(cmd *cobra.Command, args []string) erro
 
 // determineOutputFormat determines the output format based on flags
 func (c *CloneCommand) determineOutputFormat() (domain.OutputFormat, string, error) {
-    resolver := service.NewOutputFormatResolver()
-    return resolver.Determine(c.html, c.json, c.csv, c.yaml)
+	resolver := service.NewOutputFormatResolver()
+	return resolver.Determine(c.html, c.json, c.csv, c.yaml)
 }
 
 // createCloneRequest creates a clone request from command line flags
@@ -323,12 +323,12 @@ func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*
 	if len(paths) > 0 {
 		workDir = paths[0]
 	}
-	
+
 	config, err := c.loadConfigWithFallback(workDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
-	
+
 	// Apply presets and CLI overrides
 	c.applyPresets(config)
 	c.applyCliOverrides(config, cmd)
@@ -353,7 +353,7 @@ func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*
 	// Determine output destination
 	var outputWriter io.Writer
 	var outputPath string
-	
+
 	if outputFormat == domain.OutputFormatText {
 		// Text format goes to stdout
 		outputWriter = os.Stdout
@@ -386,7 +386,7 @@ func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*
 		finalCloneTypes = configCloneTypes
 	}
 
-    request := &domain.CloneRequest{
+	request := &domain.CloneRequest{
 		Paths:               inputPaths,
 		Recursive:           config.Input.Recursive,
 		IncludePatterns:     config.Input.IncludePatterns,
@@ -408,23 +408,23 @@ func (c *CloneCommand) createCloneRequest(cmd *cobra.Command, paths []string) (*
 		ShowDetails:         config.Output.ShowDetails,
 		ShowContent:         config.Output.ShowContent,
 		SortBy:              sortBy,
-        GroupClones:         config.Output.GroupClones,
-        GroupMode:           config.Grouping.Mode,
-        GroupThreshold:      config.Grouping.Threshold,
-        KCoreK:              config.Grouping.KCoreK,
-        MinSimilarity:       config.Filtering.MinSimilarity,
-        MaxSimilarity:       config.Filtering.MaxSimilarity,
-        CloneTypes:          finalCloneTypes,
-        ConfigPath:          c.configFile,
-        Timeout:             time.Duration(config.Performance.TimeoutSeconds) * time.Second,
+		GroupClones:         config.Output.GroupClones,
+		GroupMode:           config.Grouping.Mode,
+		GroupThreshold:      config.Grouping.Threshold,
+		KCoreK:              config.Grouping.KCoreK,
+		MinSimilarity:       config.Filtering.MinSimilarity,
+		MaxSimilarity:       config.Filtering.MaxSimilarity,
+		CloneTypes:          finalCloneTypes,
+		ConfigPath:          c.configFile,
+		Timeout:             time.Duration(config.Performance.TimeoutSeconds) * time.Second,
 
-        // LSH settings from config
-        UseLSH:                config.LSH.Enabled == "true" || (config.LSH.Enabled == "auto" && c.shouldAutoEnableLSH()),
-        LSHSimilarityThreshold: config.LSH.SimilarityThreshold,
-        LSHBands:              config.LSH.Bands,
-        LSHRows:               config.LSH.Rows,
-        LSHHashes:             config.LSH.Hashes,
-    }
+		// LSH settings from config
+		UseLSH:                 config.LSH.Enabled == "true" || (config.LSH.Enabled == "auto" && c.shouldAutoEnableLSH()),
+		LSHSimilarityThreshold: config.LSH.SimilarityThreshold,
+		LSHBands:               config.LSH.Bands,
+		LSHRows:                config.LSH.Rows,
+		LSHHashes:              config.LSH.Hashes,
+	}
 
 	return request, nil
 }
@@ -494,24 +494,23 @@ func (c *CloneCommand) shouldAutoEnableLSH() bool {
 func (c *CloneCommand) createCloneUseCase(cmd *cobra.Command) (*app.CloneUseCase, error) {
 	// Track which flags were explicitly set by the user
 	explicitFlags := GetExplicitFlags(cmd)
-	
+
 	// Create services
 	fileReader := service.NewFileReader()
 	formatter := service.NewCloneOutputFormatter()
 	configLoader := service.NewCloneConfigurationLoaderWithFlags(explicitFlags)
-	
+
 	cloneService := service.NewCloneService()
 
-    // Build use case with dependencies
-    return app.NewCloneUseCaseBuilder().
-        WithService(cloneService).
-        WithFileReader(fileReader).
-        WithFormatter(formatter).
-        WithConfigLoader(configLoader).
-        WithOutputWriter(service.NewFileOutputWriter(cmd.ErrOrStderr())).
-        Build()
+	// Build use case with dependencies
+	return app.NewCloneUseCaseBuilder().
+		WithService(cloneService).
+		WithFileReader(fileReader).
+		WithFormatter(formatter).
+		WithConfigLoader(configLoader).
+		WithOutputWriter(service.NewFileOutputWriter(cmd.ErrOrStderr())).
+		Build()
 }
-
 
 // parseSortCriteria parses and validates the sort criteria
 func (c *CloneCommand) parseSortCriteria(sort string) (domain.SortCriteria, error) {
@@ -549,13 +548,13 @@ func (c *CloneCommand) applyPresets(cfg *config.CloneConfig) {
 			// Use default configuration
 		}
 	}
-	
+
 	// Apply fast preset
 	if c.fast {
 		cfg.LSH.Enabled = "true"
 		cfg.Grouping.Mode = "connected" // Faster for large scale
 	}
-	
+
 	// Apply precise preset
 	if c.precise {
 		cfg.LSH.Enabled = "false"
@@ -566,7 +565,7 @@ func (c *CloneCommand) applyPresets(cfg *config.CloneConfig) {
 // applyCliOverrides applies CLI flag overrides to config
 func (c *CloneCommand) applyCliOverrides(cfg *config.CloneConfig, cmd *cobra.Command) {
 	// Only override if flags were explicitly set
-	
+
 	if cmd.Flags().Changed("group-mode") {
 		cfg.Grouping.Mode = c.groupMode
 	}
@@ -576,7 +575,7 @@ func (c *CloneCommand) applyCliOverrides(cfg *config.CloneConfig, cmd *cobra.Com
 	if cmd.Flags().Changed("k-core-k") {
 		cfg.Grouping.KCoreK = c.kCoreK
 	}
-	
+
 	if cmd.Flags().Changed("use-lsh") {
 		if c.useLSH {
 			cfg.LSH.Enabled = "true"
@@ -596,7 +595,7 @@ func (c *CloneCommand) applyCliOverrides(cfg *config.CloneConfig, cmd *cobra.Com
 	if cmd.Flags().Changed("lsh-hashes") {
 		cfg.LSH.Hashes = c.lshHashes
 	}
-	
+
 	if cmd.Flags().Changed("similarity-threshold") {
 		cfg.Thresholds.SimilarityThreshold = c.similarityThreshold
 	}

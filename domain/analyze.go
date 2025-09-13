@@ -25,9 +25,9 @@ type AnalyzeResponse struct {
 // AnalyzeSummary provides an overall summary of all analyses
 type AnalyzeSummary struct {
 	// File statistics
-	TotalFiles     int `json:"total_files" yaml:"total_files"`
-	AnalyzedFiles  int `json:"analyzed_files" yaml:"analyzed_files"`
-	SkippedFiles   int `json:"skipped_files" yaml:"skipped_files"`
+	TotalFiles    int `json:"total_files" yaml:"total_files"`
+	AnalyzedFiles int `json:"analyzed_files" yaml:"analyzed_files"`
+	SkippedFiles  int `json:"skipped_files" yaml:"skipped_files"`
 
 	// Analysis status
 	ComplexityEnabled bool `json:"complexity_enabled" yaml:"complexity_enabled"`
@@ -39,14 +39,14 @@ type AnalyzeSummary struct {
 	TotalFunctions      int     `json:"total_functions" yaml:"total_functions"`
 	AverageComplexity   float64 `json:"average_complexity" yaml:"average_complexity"`
 	HighComplexityCount int     `json:"high_complexity_count" yaml:"high_complexity_count"`
-	
-	DeadCodeCount       int     `json:"dead_code_count" yaml:"dead_code_count"`
-	CriticalDeadCode    int     `json:"critical_dead_code" yaml:"critical_dead_code"`
-	
-	ClonePairs          int     `json:"clone_pairs" yaml:"clone_pairs"`
-	CloneGroups         int     `json:"clone_groups" yaml:"clone_groups"`
-	CodeDuplication     float64 `json:"code_duplication_percentage" yaml:"code_duplication_percentage"`
-	
+
+	DeadCodeCount    int `json:"dead_code_count" yaml:"dead_code_count"`
+	CriticalDeadCode int `json:"critical_dead_code" yaml:"critical_dead_code"`
+
+	ClonePairs      int     `json:"clone_pairs" yaml:"clone_pairs"`
+	CloneGroups     int     `json:"clone_groups" yaml:"clone_groups"`
+	CodeDuplication float64 `json:"code_duplication_percentage" yaml:"code_duplication_percentage"`
+
 	CBOClasses          int     `json:"cbo_classes" yaml:"cbo_classes"`
 	HighCouplingClasses int     `json:"high_coupling_classes" yaml:"high_coupling_classes"`
 	AverageCoupling     float64 `json:"average_coupling" yaml:"average_coupling"`
@@ -85,14 +85,14 @@ func (s *AnalyzeSummary) CalculateHealthScore() {
 		rawPenalty := float64(s.DeadCodeCount) / normalizationFactor
 		deadCodePenalty = int(math.Min(25, rawPenalty))
 	}
-	
+
 	// Additional penalty for critical dead code (max 15 points, normalized)
 	criticalPenalty := 0
 	if s.CriticalDeadCode > 0 {
 		rawCriticalPenalty := float64(s.CriticalDeadCode*3) / normalizationFactor
 		criticalPenalty = int(math.Min(15, rawCriticalPenalty))
 	}
-	
+
 	totalDeadCodePenalty := deadCodePenalty + criticalPenalty
 	if totalDeadCodePenalty > 25 {
 		totalDeadCodePenalty = 25

@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/ludo-technologies/pyscn/domain"
 )
 
 func newDefaultDeadCodeRequest(paths ...string) domain.DeadCodeRequest {
@@ -32,7 +32,7 @@ func newDefaultDeadCodeRequest(paths ...string) domain.DeadCodeRequest {
 
 func TestNewDeadCodeService(t *testing.T) {
 	service := NewDeadCodeService()
-	
+
 	assert.NotNil(t, service)
 	assert.NotNil(t, service.parser)
 }
@@ -57,7 +57,7 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 		for _, file := range response.Files {
 			assert.NotEmpty(t, file.FilePath)
 			assert.GreaterOrEqual(t, file.TotalFunctions, 0)
-			
+
 			for _, function := range file.Functions {
 				assert.NotEmpty(t, function.Name)
 				assert.NotEmpty(t, function.FilePath)
@@ -65,7 +65,7 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 				assert.GreaterOrEqual(t, function.DeadBlocks, 0)
 				assert.GreaterOrEqual(t, function.ReachableRatio, 0.0)
 				assert.LessOrEqual(t, function.ReachableRatio, 1.0)
-				
+
 				for _, finding := range function.Findings {
 					assert.NotEmpty(t, finding.Location.FilePath)
 					assert.Greater(t, finding.Location.StartLine, 0)
@@ -478,14 +478,14 @@ func TestDeadCodeService_GenerateSummary(t *testing.T) {
 
 		assert.Equal(t, 3, summary.TotalFiles)
 		assert.Equal(t, 2, summary.FilesWithDeadCode)
-		assert.Equal(t, 3, summary.TotalFunctions)         // 2 + 1
+		assert.Equal(t, 3, summary.TotalFunctions)        // 2 + 1
 		assert.Equal(t, 2, summary.FunctionsWithDeadCode) // 1 + 1
-		assert.Equal(t, 4, summary.TotalFindings)          // 2 + 2
+		assert.Equal(t, 4, summary.TotalFindings)         // 2 + 2
 		assert.Equal(t, 1, summary.CriticalFindings)
 		assert.Equal(t, 1, summary.WarningFindings)
 		assert.Equal(t, 2, summary.InfoFindings)
-		assert.Equal(t, 15, summary.TotalBlocks) // 10 + 5
-		assert.Equal(t, 3, summary.DeadBlocks)   // 2 + 1
+		assert.Equal(t, 15, summary.TotalBlocks)       // 10 + 5
+		assert.Equal(t, 3, summary.DeadBlocks)         // 2 + 1
 		assert.Equal(t, 0.2, summary.OverallDeadRatio) // 3/15
 
 		// Check findings by reason
@@ -553,7 +553,7 @@ func TestDeadCodeService_BuildConfigForResponse(t *testing.T) {
 
 	configMap, ok := config.(map[string]interface{})
 	require.True(t, ok)
-	
+
 	assert.Equal(t, domain.DeadCodeSeverityWarning, configMap["min_severity"])
 	assert.Equal(t, domain.DeadCodeSortBySeverity, configMap["sort_by"])
 	assert.Equal(t, true, configMap["show_context"])
@@ -580,17 +580,17 @@ func TestDeadCodeService_ResponseMetadata(t *testing.T) {
 
 	assert.NoError(t, err)
 	require.NotNil(t, response)
-	
+
 	// Verify timestamp is within expected range
 	assert.NotEmpty(t, response.GeneratedAt)
 	generatedTime, err := time.Parse(time.RFC3339, response.GeneratedAt)
 	assert.NoError(t, err)
-	assert.True(t, generatedTime.After(beforeTime.Add(-time.Second)) && generatedTime.Before(afterTime.Add(time.Second)), 
+	assert.True(t, generatedTime.After(beforeTime.Add(-time.Second)) && generatedTime.Before(afterTime.Add(time.Second)),
 		"Generated time %v should be between %v and %v", generatedTime, beforeTime, afterTime)
-	
+
 	// Verify version is present
 	assert.NotEmpty(t, response.Version)
-	
+
 	// Verify config is present
 	assert.NotNil(t, response.Config)
 }

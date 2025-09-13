@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/viper"
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/spf13/viper"
 )
 
 // SystemAnalysisConfigurationLoaderImpl implements the SystemAnalysisConfigurationLoader interface
@@ -221,12 +221,12 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) loadDependencyConfig(v *viper.V
 func (cl *SystemAnalysisConfigurationLoaderImpl) loadArchitectureConfig(v *viper.Viper, section string, request *domain.SystemAnalysisRequest) error {
 	// Architecture analysis doesn't have specific config options yet
 	// This method is here for future extensibility
-	
+
 	// Future options could include:
 	// - Layer definitions
 	// - Architecture pattern detection settings
 	// - Violation severity thresholds
-	
+
 	return nil
 }
 

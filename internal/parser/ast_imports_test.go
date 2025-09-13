@@ -22,14 +22,22 @@ func TestImportExtraction(t *testing.T) {
 import sys
 import json`,
 			expectedImport: []string{"os", "sys", "json"},
-			expectedFrom:   []struct{ module string; names []string; level int }{},
+			expectedFrom: []struct {
+				module string
+				names  []string
+				level  int
+			}{},
 		},
 		{
 			name: "aliased imports",
 			source: `import numpy as np
 import pandas as pd`,
 			expectedImport: []string{"numpy", "pandas"},
-			expectedFrom:   []struct{ module string; names []string; level int }{},
+			expectedFrom: []struct {
+				module string
+				names  []string
+				level  int
+			}{},
 		},
 		{
 			name: "from imports",
@@ -37,7 +45,11 @@ import pandas as pd`,
 from collections import defaultdict
 from os.path import join, exists`,
 			expectedImport: []string{},
-			expectedFrom: []struct{ module string; names []string; level int }{
+			expectedFrom: []struct {
+				module string
+				names  []string
+				level  int
+			}{
 				{module: "typing", names: []string{"List", "Dict", "Optional"}, level: 0},
 				{module: "collections", names: []string{"defaultdict"}, level: 0},
 				{module: "os.path", names: []string{"join", "exists"}, level: 0},
@@ -49,17 +61,25 @@ from os.path import join, exists`,
 from .. import parent_module
 from ...package import something`,
 			expectedImport: []string{},
-			expectedFrom: []struct{ module string; names []string; level int }{
+			expectedFrom: []struct {
+				module string
+				names  []string
+				level  int
+			}{
 				{module: "", names: []string{"utils"}, level: 1},
 				{module: "", names: []string{"parent_module"}, level: 2},
 				{module: "package", names: []string{"something"}, level: 3},
 			},
 		},
 		{
-			name: "wildcard import",
-			source: `from math import *`,
+			name:           "wildcard import",
+			source:         `from math import *`,
 			expectedImport: []string{},
-			expectedFrom: []struct{ module string; names []string; level int }{
+			expectedFrom: []struct {
+				module string
+				names  []string
+				level  int
+			}{
 				{module: "math", names: []string{"*"}, level: 0},
 			},
 		},
@@ -72,7 +92,11 @@ from collections import defaultdict
 from . import local_module
 from ..parent import something`,
 			expectedImport: []string{"os", "sys"},
-			expectedFrom: []struct{ module string; names []string; level int }{
+			expectedFrom: []struct {
+				module string
+				names  []string
+				level  int
+			}{
 				{module: "typing", names: []string{"List", "Optional"}, level: 0},
 				{module: "collections", names: []string{"defaultdict"}, level: 0},
 				{module: "", names: []string{"local_module"}, level: 1},
@@ -94,7 +118,7 @@ from ..parent import something`,
 			// Check import statements
 			imports := result.AST.FindByType(NodeImport)
 			if len(imports) != len(tt.expectedImport) {
-				t.Errorf("Expected %d import statements, got %d", 
+				t.Errorf("Expected %d import statements, got %d",
 					len(tt.expectedImport), len(imports))
 			}
 
@@ -103,7 +127,7 @@ from ..parent import something`,
 					if len(imp.Names) == 0 {
 						t.Errorf("Import %d has no names", i)
 					} else if imp.Names[0] != tt.expectedImport[i] {
-						t.Errorf("Import %d: expected %s, got %s", 
+						t.Errorf("Import %d: expected %s, got %s",
 							i, tt.expectedImport[i], imp.Names[0])
 					}
 				}
@@ -112,31 +136,31 @@ from ..parent import something`,
 			// Check from import statements
 			importFroms := result.AST.FindByType(NodeImportFrom)
 			if len(importFroms) != len(tt.expectedFrom) {
-				t.Errorf("Expected %d from-import statements, got %d", 
+				t.Errorf("Expected %d from-import statements, got %d",
 					len(tt.expectedFrom), len(importFroms))
 			}
 
 			for i, imp := range importFroms {
 				if i < len(tt.expectedFrom) {
 					expected := tt.expectedFrom[i]
-					
+
 					if imp.Module != expected.module {
-						t.Errorf("ImportFrom %d: module expected %s, got %s", 
+						t.Errorf("ImportFrom %d: module expected %s, got %s",
 							i, expected.module, imp.Module)
 					}
-					
+
 					if imp.Level != expected.level {
-						t.Errorf("ImportFrom %d: level expected %d, got %d", 
+						t.Errorf("ImportFrom %d: level expected %d, got %d",
 							i, expected.level, imp.Level)
 					}
-					
+
 					if len(imp.Names) != len(expected.names) {
-						t.Errorf("ImportFrom %d: expected %d names, got %d", 
+						t.Errorf("ImportFrom %d: expected %d names, got %d",
 							i, len(expected.names), len(imp.Names))
 					} else {
 						for j, name := range expected.names {
 							if j < len(imp.Names) && imp.Names[j] != name {
-								t.Errorf("ImportFrom %d, name %d: expected %s, got %s", 
+								t.Errorf("ImportFrom %d, name %d: expected %s, got %s",
 									i, j, name, imp.Names[j])
 							}
 						}
@@ -178,7 +202,7 @@ from sklearn.model_selection import train_test_split as tts`
 	for i, imp := range imports {
 		if i < len(expectedImports) {
 			if len(imp.Names) == 0 || imp.Names[0] != expectedImports[i] {
-				t.Errorf("Import %d: expected %s, got %v", 
+				t.Errorf("Import %d: expected %s, got %v",
 					i, expectedImports[i], imp.Names)
 			}
 		}

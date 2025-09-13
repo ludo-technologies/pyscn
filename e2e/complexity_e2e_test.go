@@ -72,10 +72,10 @@ def sample_function(x):
 
 	// Run with JSON format (outputs to file in temp directory)
 	outputDir := t.TempDir() // Create separate temp directory for output
-	
+
 	// Create a temporary config file to specify output directory
 	createTestConfigFile(t, testDir, outputDir)
-	
+
 	cmd := exec.Command(binaryPath, "complexity", "--json", testDir)
 	cmd.Dir = testDir // Set working directory to ensure config file discovery works
 	var stdout, stderr bytes.Buffer
@@ -98,13 +98,13 @@ def sample_function(x):
 		}
 		t.Fatalf("No JSON file generated in %s, files present: %v", outputDir, fileNames)
 	}
-	
+
 	// Read and verify JSON file content
 	jsonContent, err := os.ReadFile(files[0])
 	if err != nil {
 		t.Fatalf("Failed to read JSON file: %v", err)
 	}
-	
+
 	// No need to clean up - t.TempDir() handles it automatically
 
 	// Verify JSON output is valid
@@ -169,7 +169,7 @@ def medium_complexity(x):
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-				cmd := exec.Command(binaryPath, tt.args...)
+			cmd := exec.Command(binaryPath, tt.args...)
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
@@ -218,7 +218,7 @@ func TestComplexityE2EErrorHandling(t *testing.T) {
 					args[i] = t.TempDir() // Create empty directory for this test
 				}
 			}
-			
+
 			cmd := exec.Command(binaryPath, args...)
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout

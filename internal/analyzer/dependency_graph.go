@@ -17,28 +17,28 @@ type ModuleNode struct {
 	IsPackage    bool   // True if this represents a package (__init__.py)
 
 	// Dependencies
-	Imports      []string            // Direct imports from this module
-	ImportedBy   []string            // Modules that import this module
-	Dependencies map[string]bool     // Set of modules this module depends on
-	Dependents   map[string]bool     // Set of modules that depend on this module
+	Imports      []string        // Direct imports from this module
+	ImportedBy   []string        // Modules that import this module
+	Dependencies map[string]bool // Set of modules this module depends on
+	Dependents   map[string]bool // Set of modules that depend on this module
 
 	// Metrics
 	InDegree  int // Number of incoming dependencies
 	OutDegree int // Number of outgoing dependencies
 
 	// Module information
-	LineCount    int      // Total lines in the module
-	FunctionCount int     // Number of functions defined
-	ClassCount   int      // Number of classes defined
-	PublicNames  []string // Public names exported by this module
+	LineCount     int      // Total lines in the module
+	FunctionCount int      // Number of functions defined
+	ClassCount    int      // Number of classes defined
+	PublicNames   []string // Public names exported by this module
 }
 
 // DependencyEdge represents a dependency relationship between modules
 type DependencyEdge struct {
-	From       string              // Source module name
-	To         string              // Target module name
-	EdgeType   DependencyEdgeType  // Type of dependency
-	ImportInfo *ImportInfo         // Details about the import
+	From       string             // Source module name
+	To         string             // Target module name
+	EdgeType   DependencyEdgeType // Type of dependency
+	ImportInfo *ImportInfo        // Details about the import
 }
 
 // DependencyEdgeType represents the type of dependency relationship
@@ -53,12 +53,12 @@ const (
 
 // ImportInfo contains details about an import statement
 type ImportInfo struct {
-	Statement    string   // Original import statement
+	Statement     string   // Original import statement
 	ImportedNames []string // Names imported (for from imports)
-	Alias        string   // Alias used (if any)
-	IsRelative   bool     // True for relative imports
-	Level        int      // Level for relative imports (number of dots)
-	Line         int      // Line number where import occurs
+	Alias         string   // Alias used (if any)
+	IsRelative    bool     // True for relative imports
+	Level         int      // Level for relative imports (number of dots)
+	Line          int      // Line number where import occurs
 }
 
 // DependencyGraph represents the complete module dependency graph
@@ -68,66 +68,66 @@ type DependencyGraph struct {
 	Edges []*DependencyEdge      // All dependency relationships
 
 	// Graph metadata
-	TotalModules   int      // Total number of modules
-	TotalEdges     int      // Total number of dependencies
-	RootModules    []string // Modules with no dependencies
-	LeafModules    []string // Modules with no dependents
-	ProjectRoot    string   // Project root directory
+	TotalModules int      // Total number of modules
+	TotalEdges   int      // Total number of dependencies
+	RootModules  []string // Modules with no dependencies
+	LeafModules  []string // Modules with no dependents
+	ProjectRoot  string   // Project root directory
 
 	// Analysis results
-	CyclicGroups   [][]string           // Strongly connected components (cycles)
-	ModuleMetrics  map[string]*ModuleMetrics // Module-level metrics
-	SystemMetrics  *SystemMetrics       // System-wide metrics
+	CyclicGroups  [][]string                // Strongly connected components (cycles)
+	ModuleMetrics map[string]*ModuleMetrics // Module-level metrics
+	SystemMetrics *SystemMetrics            // System-wide metrics
 }
 
 // ModuleMetrics contains metrics for a single module
 type ModuleMetrics struct {
 	// Coupling metrics
-	AfferentCoupling  int     // Ca - Number of modules that depend on this module
-	EfferentCoupling  int     // Ce - Number of modules this module depends on
-	Instability       float64 // I = Ce / (Ca + Ce) - Measure of instability
-	Abstractness      float64 // A - Measure of abstractness (0-1)
-	Distance          float64 // D - Distance from main sequence
+	AfferentCoupling int     // Ca - Number of modules that depend on this module
+	EfferentCoupling int     // Ce - Number of modules this module depends on
+	Instability      float64 // I = Ce / (Ca + Ce) - Measure of instability
+	Abstractness     float64 // A - Measure of abstractness (0-1)
+	Distance         float64 // D - Distance from main sequence
 
 	// Size metrics
-	LinesOfCode       int // Total lines of code
-	PublicInterface   int // Number of public functions/classes
-	
+	LinesOfCode     int // Total lines of code
+	PublicInterface int // Number of public functions/classes
+
 	// Quality metrics
 	CyclomaticComplexity int     // Average complexity of functions
-	Maintainability     float64 // Maintainability index
-	TechnicalDebt       float64 // Estimated technical debt hours
+	Maintainability      float64 // Maintainability index
+	TechnicalDebt        float64 // Estimated technical debt hours
 }
 
 // SystemMetrics contains system-wide quality metrics
 type SystemMetrics struct {
 	// Overall structure
-	TotalModules       int     // Total number of modules
-	TotalDependencies  int     // Total number of dependencies
-	PackageCount       int     // Number of packages
-	
+	TotalModules      int // Total number of modules
+	TotalDependencies int // Total number of dependencies
+	PackageCount      int // Number of packages
+
 	// Dependency metrics
-	AverageFanIn       float64 // Average number of incoming dependencies
-	AverageFanOut      float64 // Average number of outgoing dependencies
-	DependencyRatio    float64 // Total dependencies / Total modules
-	
+	AverageFanIn    float64 // Average number of incoming dependencies
+	AverageFanOut   float64 // Average number of outgoing dependencies
+	DependencyRatio float64 // Total dependencies / Total modules
+
 	// Coupling and cohesion
-	AverageInstability float64 // System average instability
-	AverageAbstractness float64 // System average abstractness
+	AverageInstability    float64 // System average instability
+	AverageAbstractness   float64 // System average abstractness
 	MainSequenceDeviation float64 // Average distance from main sequence
-	
+
 	// Modularity
-	ModularityIndex    float64 // Measure of system decomposition quality
-	ComponentRatio     float64 // Ratio of strongly connected components
-	
+	ModularityIndex float64 // Measure of system decomposition quality
+	ComponentRatio  float64 // Ratio of strongly connected components
+
 	// Quality indicators
 	CyclicDependencies int     // Number of modules in cycles
 	MaxDependencyDepth int     // Maximum dependency chain length
 	SystemComplexity   float64 // Overall system complexity score
-	
+
 	// Maintainability
-	MaintainabilityIndex float64 // Composite maintainability score
-	TechnicalDebtTotal   float64 // Total estimated technical debt hours
+	MaintainabilityIndex float64  // Composite maintainability score
+	TechnicalDebtTotal   float64  // Total estimated technical debt hours
 	RefactoringPriority  []string // Modules needing refactoring (highest priority first)
 }
 
@@ -150,10 +150,10 @@ func (g *DependencyGraph) AddModule(moduleName, filePath string) *ModuleNode {
 
 	// Calculate relative path
 	relativePath, _ := filepath.Rel(g.ProjectRoot, filePath)
-	
+
 	// Determine package name
 	packageName := g.extractPackageName(moduleName)
-	
+
 	// Check if this is a package (__init__.py)
 	isPackage := strings.HasSuffix(filePath, "__init__.py")
 
@@ -180,7 +180,7 @@ func (g *DependencyGraph) AddDependency(from, to string, edgeType DependencyEdge
 	// Ensure both nodes exist
 	fromNode := g.Nodes[from]
 	toNode := g.Nodes[to]
-	
+
 	if fromNode == nil || toNode == nil {
 		return // Skip invalid dependencies
 	}
@@ -254,7 +254,7 @@ func (g *DependencyGraph) GetPackages() []string {
 			packages[node.Package] = true
 		}
 	}
-	
+
 	result := make([]string, 0, len(packages))
 	for pkg := range packages {
 		result = append(result, pkg)
@@ -276,7 +276,7 @@ func (g *DependencyGraph) GetModulesInCycles() []string {
 			cyclic[module] = true
 		}
 	}
-	
+
 	result := make([]string, 0, len(cyclic))
 	for module := range cyclic {
 		result = append(result, module)
@@ -304,7 +304,7 @@ func (g *DependencyGraph) GetLeafModules() []string {
 // calculateRootAndLeafModules identifies root and leaf modules
 func (g *DependencyGraph) calculateRootAndLeafModules() {
 	var roots, leaves []string
-	
+
 	for name, node := range g.Nodes {
 		if node.OutDegree == 0 {
 			roots = append(roots, name)
@@ -313,10 +313,10 @@ func (g *DependencyGraph) calculateRootAndLeafModules() {
 			leaves = append(leaves, name)
 		}
 	}
-	
+
 	sort.Strings(roots)
 	sort.Strings(leaves)
-	
+
 	g.RootModules = roots
 	g.LeafModules = leaves
 }
@@ -336,22 +336,22 @@ func (g *DependencyGraph) GetDependencyChain(from, to string) []string {
 	if from == to {
 		return []string{from}
 	}
-	
+
 	queue := [][]string{{from}}
 	visited := make(map[string]bool)
 	visited[from] = true
-	
+
 	for len(queue) > 0 {
 		path := queue[0]
 		queue = queue[1:]
 		current := path[len(path)-1]
-		
+
 		if node := g.Nodes[current]; node != nil {
 			for dep := range node.Dependencies {
 				if dep == to {
 					return append(path, dep)
 				}
-				
+
 				if !visited[dep] {
 					visited[dep] = true
 					newPath := make([]string, len(path)+1)
@@ -362,7 +362,7 @@ func (g *DependencyGraph) GetDependencyChain(from, to string) []string {
 			}
 		}
 	}
-	
+
 	return nil // No path found
 }
 
@@ -383,7 +383,7 @@ func (g *DependencyGraph) Validate() error {
 			return fmt.Errorf("edge references non-existent target module: %s", edge.To)
 		}
 	}
-	
+
 	// Check degree consistency
 	for name, node := range g.Nodes {
 		if len(node.Dependencies) != node.OutDegree {
@@ -393,34 +393,34 @@ func (g *DependencyGraph) Validate() error {
 			return fmt.Errorf("module %s: dependent count mismatch", name)
 		}
 	}
-	
+
 	return nil
 }
 
 // Clone creates a deep copy of the dependency graph
 func (g *DependencyGraph) Clone() *DependencyGraph {
 	clone := NewDependencyGraph(g.ProjectRoot)
-	
+
 	// Copy nodes
 	for name, node := range g.Nodes {
 		newNode := &ModuleNode{
-			Name:         node.Name,
-			FilePath:     node.FilePath,
-			RelativePath: node.RelativePath,
-			Package:      node.Package,
-			IsPackage:    node.IsPackage,
-			Dependencies: make(map[string]bool),
-			Dependents:   make(map[string]bool),
-			Imports:      make([]string, len(node.Imports)),
-			ImportedBy:   make([]string, len(node.ImportedBy)),
-			InDegree:     node.InDegree,
-			OutDegree:    node.OutDegree,
-			LineCount:    node.LineCount,
+			Name:          node.Name,
+			FilePath:      node.FilePath,
+			RelativePath:  node.RelativePath,
+			Package:       node.Package,
+			IsPackage:     node.IsPackage,
+			Dependencies:  make(map[string]bool),
+			Dependents:    make(map[string]bool),
+			Imports:       make([]string, len(node.Imports)),
+			ImportedBy:    make([]string, len(node.ImportedBy)),
+			InDegree:      node.InDegree,
+			OutDegree:     node.OutDegree,
+			LineCount:     node.LineCount,
 			FunctionCount: node.FunctionCount,
-			ClassCount:   node.ClassCount,
-			PublicNames:  make([]string, len(node.PublicNames)),
+			ClassCount:    node.ClassCount,
+			PublicNames:   make([]string, len(node.PublicNames)),
 		}
-		
+
 		// Copy maps and slices
 		for dep := range node.Dependencies {
 			newNode.Dependencies[dep] = true
@@ -431,17 +431,17 @@ func (g *DependencyGraph) Clone() *DependencyGraph {
 		copy(newNode.Imports, node.Imports)
 		copy(newNode.ImportedBy, node.ImportedBy)
 		copy(newNode.PublicNames, node.PublicNames)
-		
+
 		clone.Nodes[name] = newNode
 	}
-	
+
 	// Copy edges
 	for _, edge := range g.Edges {
 		newImportInfo := &ImportInfo{}
 		if edge.ImportInfo != nil {
 			*newImportInfo = *edge.ImportInfo
 		}
-		
+
 		newEdge := &DependencyEdge{
 			From:       edge.From,
 			To:         edge.To,
@@ -450,9 +450,9 @@ func (g *DependencyGraph) Clone() *DependencyGraph {
 		}
 		clone.Edges = append(clone.Edges, newEdge)
 	}
-	
+
 	clone.TotalModules = g.TotalModules
 	clone.TotalEdges = g.TotalEdges
-	
+
 	return clone
 }

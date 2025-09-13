@@ -41,7 +41,6 @@ func (cl *DeadCodeConfigurationLoaderWithFlags) MergeConfig(base *domain.DeadCod
 	// Start with base config
 	merged := *base
 
-
 	// Always override paths as they come from command arguments
 	if len(override.Paths) > 0 {
 		merged.Paths = override.Paths
@@ -53,23 +52,23 @@ func (cl *DeadCodeConfigurationLoaderWithFlags) MergeConfig(base *domain.DeadCod
 		// If a specific format was set (not text), use it
 		if override.OutputFormat != domain.OutputFormatText {
 			merged.OutputFormat = override.OutputFormat
-		} else if cl.flagTracker.WasSet("html") || cl.flagTracker.WasSet("json") || 
+		} else if cl.flagTracker.WasSet("html") || cl.flagTracker.WasSet("json") ||
 			cl.flagTracker.WasSet("csv") || cl.flagTracker.WasSet("yaml") {
 			// If any format flag was set, use the override format
 			merged.OutputFormat = override.OutputFormat
 		}
 	}
-	
+
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
-	
+
 	// Always preserve output path and no-open flag from override (command line)
 	// These are generated based on format flags, not set directly
 	if override.OutputPath != "" {
 		merged.OutputPath = override.OutputPath
 	}
-	
+
 	// Always preserve NoOpen from override
 	merged.NoOpen = override.NoOpen
 	merged.ShowContext = cl.flagTracker.MergeBool(merged.ShowContext, override.ShowContext, "show-context")

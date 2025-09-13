@@ -175,7 +175,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) FindDefaultConfigFile() string {
 	// Use TOML-only strategy
 	tomlLoader := config.NewTomlConfigLoader()
 	configFiles := tomlLoader.GetSupportedConfigFiles()
-	
+
 	for _, filename := range configFiles {
 		if _, err := os.Stat(filename); err == nil {
 			return filename
@@ -273,18 +273,18 @@ func (cl *DeadCodeConfigurationLoaderImpl) requestToConfig(req *domain.DeadCodeR
 // cloneConfigToUnifiedConfig converts CloneConfig to unified Config format
 func (cl *DeadCodeConfigurationLoaderImpl) cloneConfigToUnifiedConfig(cloneCfg *config.CloneConfig) *config.Config {
 	cfg := config.DefaultConfig()
-	
+
 	// Map analysis settings
 	cfg.Analysis.IncludePatterns = cloneCfg.Input.IncludePatterns
 	cfg.Analysis.ExcludePatterns = cloneCfg.Input.ExcludePatterns
 	cfg.Analysis.Recursive = cloneCfg.Input.Recursive
-	
+
 	// Map output settings
 	cfg.Output.Format = cloneCfg.Output.Format
 	cfg.Output.ShowDetails = cloneCfg.Output.ShowDetails
-	
+
 	// Dead code settings use defaults from DefaultConfig()
 	// since TOML-only config focuses on clone detection
-	
+
 	return cfg
 }

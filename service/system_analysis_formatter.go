@@ -125,7 +125,7 @@ func (f *SystemAnalysisFormatterImpl) writeDependenciesSection(builder *strings.
 					builder.WriteString(utils.FormatLabelWithIndent(SectionPadding*2, "...", fmt.Sprintf("and %d more cycles", len(deps.CircularDependencies.CircularDependencies)-i)))
 					break
 				}
-				builder.WriteString(utils.FormatLabelWithIndent(SectionPadding*2, fmt.Sprintf("Cycle %d", i+1), 
+				builder.WriteString(utils.FormatLabelWithIndent(SectionPadding*2, fmt.Sprintf("Cycle %d", i+1),
 					fmt.Sprintf("%s (%d modules)", cycle.Description, len(cycle.Modules))))
 			}
 
@@ -148,7 +148,7 @@ func (f *SystemAnalysisFormatterImpl) writeDependenciesSection(builder *strings.
 		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Average Coupling", fmt.Sprintf("%.2f", deps.CouplingAnalysis.AverageCoupling)))
 		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Average Instability", fmt.Sprintf("%.3f", deps.CouplingAnalysis.AverageInstability)))
 		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Main Sequence Deviation", fmt.Sprintf("%.3f", deps.CouplingAnalysis.MainSequenceDeviation)))
-		
+
 		if len(deps.CouplingAnalysis.HighlyCoupledModules) > 0 {
 			builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Highly Coupled", strings.Join(deps.CouplingAnalysis.HighlyCoupledModules[:min(3, len(deps.CouplingAnalysis.HighlyCoupledModules))], ", ")))
 		}
@@ -178,7 +178,7 @@ func (f *SystemAnalysisFormatterImpl) writeArchitectureSection(builder *strings.
 	// Layer analysis
 	if arch.LayerAnalysis != nil {
 		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Layers Analyzed", strconv.Itoa(arch.LayerAnalysis.LayersAnalyzed)))
-		
+
 		// Layer violations
 		if len(arch.LayerAnalysis.LayerViolations) > 0 {
 			builder.WriteString(utils.FormatSectionHeader("LAYER VIOLATIONS"))
@@ -187,7 +187,7 @@ func (f *SystemAnalysisFormatterImpl) writeArchitectureSection(builder *strings.
 					builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "...", fmt.Sprintf("and %d more violations", len(arch.LayerAnalysis.LayerViolations)-i)))
 					break
 				}
-				builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Rule", 
+				builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Rule",
 					fmt.Sprintf("%s: %s -> %s (%s)", violation.Rule, violation.FromModule, violation.ToModule, violation.Severity)))
 			}
 			builder.WriteString("\n")
@@ -197,7 +197,7 @@ func (f *SystemAnalysisFormatterImpl) writeArchitectureSection(builder *strings.
 	// Summary stats
 	stats := map[string]interface{}{
 		"Total Violations": arch.TotalViolations,
-		"Total Rules": arch.TotalRules,
+		"Total Rules":      arch.TotalRules,
 		"Compliance Score": fmt.Sprintf("%.1f%%", arch.ComplianceScore*100),
 	}
 	builder.WriteString(utils.FormatSummaryStats(stats))
@@ -211,17 +211,17 @@ func (f *SystemAnalysisFormatterImpl) writeQualitySection(builder *strings.Build
 
 	// Summary stats
 	stats := map[string]interface{}{
-		"Overall Quality": fmt.Sprintf("%.1f", quality.OverallQuality),
+		"Overall Quality":       fmt.Sprintf("%.1f", quality.OverallQuality),
 		"Maintainability Index": fmt.Sprintf("%.1f", quality.MaintainabilityIndex),
-		"Technical Debt": fmt.Sprintf("%.1f hours", quality.TechnicalDebtTotal),
-		"System Instability": fmt.Sprintf("%.3f", quality.SystemInstability),
-		"System Complexity": fmt.Sprintf("%.1f", quality.SystemComplexity),
+		"Technical Debt":        fmt.Sprintf("%.1f hours", quality.TechnicalDebtTotal),
+		"System Instability":    fmt.Sprintf("%.3f", quality.SystemInstability),
+		"System Complexity":     fmt.Sprintf("%.1f", quality.SystemComplexity),
 	}
 	builder.WriteString(utils.FormatSummaryStats(stats))
 
 	// High quality modules
 	if len(quality.HighQualityModules) > 0 {
-		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "High Quality Modules", 
+		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "High Quality Modules",
 			strings.Join(quality.HighQualityModules[:min(5, len(quality.HighQualityModules))], ", ")))
 	}
 
@@ -254,19 +254,19 @@ func (f *SystemAnalysisFormatterImpl) formatCSV(response *domain.SystemAnalysisR
 	// CSV headers for dependency analysis
 	if response.DependencyAnalysis != nil {
 		_ = writer.Write([]string{"Analysis Type", "Metric", "Value"})
-		
+
 		// Dependency metrics
 		_ = writer.Write([]string{"Dependencies", "Total Modules", strconv.Itoa(response.DependencyAnalysis.TotalModules)})
 		_ = writer.Write([]string{"Dependencies", "Total Dependencies", strconv.Itoa(response.DependencyAnalysis.TotalDependencies)})
 		_ = writer.Write([]string{"Dependencies", "Root Modules", strconv.Itoa(len(response.DependencyAnalysis.RootModules))})
 		_ = writer.Write([]string{"Dependencies", "Leaf Modules", strconv.Itoa(len(response.DependencyAnalysis.LeafModules))})
 		_ = writer.Write([]string{"Dependencies", "Max Depth", strconv.Itoa(response.DependencyAnalysis.MaxDepth)})
-		
+
 		if response.DependencyAnalysis.CircularDependencies != nil {
 			_ = writer.Write([]string{"Dependencies", "Circular Dependencies", strconv.FormatBool(response.DependencyAnalysis.CircularDependencies.HasCircularDependencies)})
 			_ = writer.Write([]string{"Dependencies", "Total Cycles", strconv.Itoa(response.DependencyAnalysis.CircularDependencies.TotalCycles)})
 		}
-		
+
 		if response.DependencyAnalysis.CouplingAnalysis != nil {
 			_ = writer.Write([]string{"Dependencies", "Average Coupling", fmt.Sprintf("%.2f", response.DependencyAnalysis.CouplingAnalysis.AverageCoupling)})
 			_ = writer.Write([]string{"Dependencies", "Average Instability", fmt.Sprintf("%.3f", response.DependencyAnalysis.CouplingAnalysis.AverageInstability)})
@@ -326,7 +326,7 @@ func (f *SystemAnalysisFormatterImpl) formatHTML(response *domain.SystemAnalysis
 	// Use tabs if multiple sections, otherwise single page
 	if sectionCount > 1 {
 		builder.WriteString(GenerateTabsStart())
-		
+
 		// Generate tab buttons
 		activeTab := true
 		if response.DependencyAnalysis != nil {
@@ -340,9 +340,9 @@ func (f *SystemAnalysisFormatterImpl) formatHTML(response *domain.SystemAnalysis
 		if response.QualityMetrics != nil {
 			builder.WriteString(GenerateTabButton("quality", "Quality", activeTab))
 		}
-		
+
 		builder.WriteString(GenerateTabsMiddle())
-		
+
 		// Generate tab content
 		activeTab = true
 		if response.DependencyAnalysis != nil {
@@ -362,7 +362,7 @@ func (f *SystemAnalysisFormatterImpl) formatHTML(response *domain.SystemAnalysis
 			f.writeHTMLQualityContent(&content, response.QualityMetrics)
 			builder.WriteString(GenerateTabContent("quality", activeTab, content.String()))
 		}
-		
+
 		builder.WriteString(GenerateTabsEnd())
 		builder.WriteString(GenerateTabScript())
 	} else {
@@ -401,7 +401,7 @@ func (f *SystemAnalysisFormatterImpl) formatDOT(response *domain.SystemAnalysisR
 
 	// Add nodes for all modules
 	modules := make(map[string]bool)
-	
+
 	// Collect all unique modules from dependency matrix
 	if response.DependencyAnalysis.DependencyMatrix != nil {
 		for modName, deps := range response.DependencyAnalysis.DependencyMatrix {
@@ -419,7 +419,7 @@ func (f *SystemAnalysisFormatterImpl) formatDOT(response *domain.SystemAnalysisR
 		// Clean module name for DOT format
 		cleanName := strings.ReplaceAll(modName, ".", "_")
 		cleanName = strings.ReplaceAll(cleanName, "-", "_")
-		
+
 		// Color nodes based on type
 		color := "lightblue"
 		if f.isInSlice(response.DependencyAnalysis.RootModules, modName) {
@@ -427,7 +427,7 @@ func (f *SystemAnalysisFormatterImpl) formatDOT(response *domain.SystemAnalysisR
 		} else if f.isInSlice(response.DependencyAnalysis.LeafModules, modName) {
 			color = "lightyellow" // Leaf modules
 		}
-		
+
 		// Check if module is in a cycle
 		if response.DependencyAnalysis.CircularDependencies != nil {
 			for _, cycle := range response.DependencyAnalysis.CircularDependencies.CircularDependencies {
@@ -437,7 +437,7 @@ func (f *SystemAnalysisFormatterImpl) formatDOT(response *domain.SystemAnalysisR
 				}
 			}
 		}
-		
+
 		builder.WriteString(fmt.Sprintf("  %s [label=\"%s\", fillcolor=%s];\n", cleanName, modName, color))
 	}
 
@@ -448,12 +448,12 @@ func (f *SystemAnalysisFormatterImpl) formatDOT(response *domain.SystemAnalysisR
 		for modName, deps := range response.DependencyAnalysis.DependencyMatrix {
 			cleanModule := strings.ReplaceAll(modName, ".", "_")
 			cleanModule = strings.ReplaceAll(cleanModule, "-", "_")
-			
+
 			for depName := range deps {
 				if deps[depName] {
 					cleanDep := strings.ReplaceAll(depName, ".", "_")
 					cleanDep = strings.ReplaceAll(cleanDep, "-", "_")
-					
+
 					// Color edges in cycles differently
 					edgeColor := "gray"
 					if response.DependencyAnalysis.CircularDependencies != nil {
@@ -464,7 +464,7 @@ func (f *SystemAnalysisFormatterImpl) formatDOT(response *domain.SystemAnalysisR
 							}
 						}
 					}
-					
+
 					builder.WriteString(fmt.Sprintf("  %s -> %s [color=%s];\n", cleanModule, cleanDep, edgeColor))
 				}
 			}
@@ -532,14 +532,14 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
                     </tr>
                 </thead>
                 <tbody>`)
-		
+
 		// Sort modules for consistent display
 		var modules []string
 		for module := range deps.DependencyMatrix {
 			modules = append(modules, module)
 		}
 		sort.Strings(modules)
-		
+
 		for _, module := range modules {
 			depMap := deps.DependencyMatrix[module]
 			var dependencies []string
@@ -548,7 +548,7 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
 					dependencies = append(dependencies, dep)
 				}
 			}
-			
+
 			if len(dependencies) > 0 {
 				sort.Strings(dependencies)
 				builder.WriteString(`
@@ -565,7 +565,7 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
                         </tr>`)
 			}
 		}
-		
+
 		builder.WriteString(`
                     </tbody>
                 </table>`)

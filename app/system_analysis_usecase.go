@@ -382,10 +382,10 @@ func (n *noOpSystemAnalysisConfigLoader) MergeConfig(base *domain.SystemAnalysis
 	if base == nil {
 		return override
 	}
-	
+
 	// Simple merge - override takes precedence
 	merged := *base
-	
+
 	// Override non-zero values
 	if len(override.Paths) > 0 {
 		merged.Paths = override.Paths
@@ -402,7 +402,7 @@ func (n *noOpSystemAnalysisConfigLoader) MergeConfig(base *domain.SystemAnalysis
 	if override.ConfigPath != "" {
 		merged.ConfigPath = override.ConfigPath
 	}
-	
+
 	// Boolean overrides
 	merged.NoOpen = override.NoOpen
 	merged.AnalyzeDependencies = override.AnalyzeDependencies
@@ -413,9 +413,9 @@ func (n *noOpSystemAnalysisConfigLoader) MergeConfig(base *domain.SystemAnalysis
 	merged.FollowRelative = override.FollowRelative
 	merged.DetectCycles = override.DetectCycles
 	merged.Recursive = override.Recursive
-	
+
 	// (Numeric overrides removed - fields no longer exist)
-	
+
 	// String slices
 	if len(override.IncludePatterns) > 0 {
 		merged.IncludePatterns = override.IncludePatterns
@@ -423,6 +423,6 @@ func (n *noOpSystemAnalysisConfigLoader) MergeConfig(base *domain.SystemAnalysis
 	if len(override.ExcludePatterns) > 0 {
 		merged.ExcludePatterns = override.ExcludePatterns
 	}
-	
+
 	return &merged
 }

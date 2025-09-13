@@ -78,14 +78,14 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 
 	// Build comprehensive response
 	response := &domain.SystemAnalysisResponse{
-		DependencyAnalysis:  dependencyResult,
+		DependencyAnalysis:   dependencyResult,
 		ArchitectureAnalysis: architectureResult,
 		QualityMetrics:       qualityResult,
-		GeneratedAt:         time.Now(),
-		Duration:            time.Since(startTime).Milliseconds(),
-		Version:             version.Version,
-		Warnings:            warnings,
-		Errors:              errors,
+		GeneratedAt:          time.Now(),
+		Duration:             time.Since(startTime).Milliseconds(),
+		Version:              version.Version,
+		Warnings:             warnings,
+		Errors:               errors,
 	}
 
 	return response, nil
@@ -95,7 +95,7 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req domain.SystemAnalysisRequest) (*domain.DependencyAnalysisResult, error) {
 	// Determine project root from common parent of paths
 	projectRoot := s.findProjectRoot(req.Paths)
-	
+
 	// Create module analyzer with options
 	options := &analyzer.ModuleAnalysisOptions{
 		ProjectRoot:       projectRoot,
@@ -105,18 +105,18 @@ func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req
 		IncludePatterns:   req.IncludePatterns,
 		ExcludePatterns:   req.ExcludePatterns,
 	}
-	
+
 	moduleAnalyzer, err := analyzer.NewModuleAnalyzer(options)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create module analyzer: %w", err)
 	}
-	
+
 	// Analyze files using ModuleAnalyzer
 	graph, err := moduleAnalyzer.AnalyzeFiles(req.Paths)
 	if err != nil {
 		return nil, fmt.Errorf("failed to analyze dependencies: %w", err)
 	}
-	
+
 	// Check if any modules were processed
 	if graph.TotalModules == 0 {
 		return &domain.DependencyAnalysisResult{
@@ -147,16 +147,16 @@ func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req
 
 	// Create dependency analysis result
 	result := &domain.DependencyAnalysisResult{
-		TotalModules:      graph.TotalModules,
-		TotalDependencies: graph.TotalEdges,
-		RootModules:       graph.GetRootModules(),
-		LeafModules:       graph.GetLeafModules(),
-		ModuleMetrics:     make(map[string]*domain.ModuleDependencyMetrics), // Mock for now
-		DependencyMatrix:  matrix,
+		TotalModules:         graph.TotalModules,
+		TotalDependencies:    graph.TotalEdges,
+		RootModules:          graph.GetRootModules(),
+		LeafModules:          graph.GetLeafModules(),
+		ModuleMetrics:        make(map[string]*domain.ModuleDependencyMetrics), // Mock for now
+		DependencyMatrix:     matrix,
 		CircularDependencies: s.convertCircularResults(circularResult),
-		CouplingAnalysis:  s.convertCouplingResults(couplingResults),
-		LongestChains:     longestChains,
-		MaxDepth:          s.calculateMaxDepth(graph),
+		CouplingAnalysis:     s.convertCouplingResults(couplingResults),
+		LongestChains:        longestChains,
+		MaxDepth:             s.calculateMaxDepth(graph),
 	}
 
 	return result, nil
@@ -166,11 +166,11 @@ func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req
 func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req domain.SystemAnalysisRequest) (*domain.ArchitectureAnalysisResult, error) {
 	// Simple architecture analysis implementation
 	layerAnalysis := &domain.LayerAnalysis{
-		LayersAnalyzed:     s.countLayers(req.Paths),
-		LayerViolations:    []domain.LayerViolation{}, // No violations for now
-		LayerCoupling:      make(map[string]map[string]int),
-		LayerCohesion:      make(map[string]float64),
-		ProblematicLayers:  []string{},
+		LayersAnalyzed:    s.countLayers(req.Paths),
+		LayerViolations:   []domain.LayerViolation{}, // No violations for now
+		LayerCoupling:     make(map[string]map[string]int),
+		LayerCohesion:     make(map[string]float64),
+		ProblematicLayers: []string{},
 	}
 
 	result := &domain.ArchitectureAnalysisResult{
@@ -234,24 +234,24 @@ func (s *SystemAnalysisServiceImpl) AnalyzeQuality(ctx context.Context, req doma
 	systemMetrics := s.extractSystemMetrics(graph)
 
 	result := &domain.QualityMetricsResult{
-		OverallQuality:       s.calculateOverallQuality(systemMetrics),
-		MaintainabilityIndex: systemMetrics.MaintainabilityIndex,
-		TechnicalDebtTotal:   systemMetrics.TechnicalDebtTotal,
-		ModularityIndex:      systemMetrics.ModularityIndex,
-		SystemInstability:    systemMetrics.AverageInstability,
-		SystemAbstractness:   systemMetrics.AverageAbstractness,
-		MainSequenceDistance: systemMetrics.MainSequenceDeviation,
-		SystemComplexity:     systemMetrics.SystemComplexity,
-		MaxDependencyDepth:   systemMetrics.MaxDependencyDepth,
-		AverageFanIn:         systemMetrics.AverageFanIn,
-		AverageFanOut:        systemMetrics.AverageFanOut,
-		HighQualityModules:   []string{},     // Mock for now
-		ModerateQualityModules: []string{},   // Mock for now
-		LowQualityModules:    systemMetrics.RefactoringPriority[:minSystemAnalysis(3, len(systemMetrics.RefactoringPriority))],
-		CriticalModules:      []string{},     // Mock for now
-		QualityTrends:        make(map[string]float64),
-		HotSpots:            []string{},      // Mock for now
-		RefactoringTargets:  []domain.RefactoringTarget{}, // Mock for now
+		OverallQuality:         s.calculateOverallQuality(systemMetrics),
+		MaintainabilityIndex:   systemMetrics.MaintainabilityIndex,
+		TechnicalDebtTotal:     systemMetrics.TechnicalDebtTotal,
+		ModularityIndex:        systemMetrics.ModularityIndex,
+		SystemInstability:      systemMetrics.AverageInstability,
+		SystemAbstractness:     systemMetrics.AverageAbstractness,
+		MainSequenceDistance:   systemMetrics.MainSequenceDeviation,
+		SystemComplexity:       systemMetrics.SystemComplexity,
+		MaxDependencyDepth:     systemMetrics.MaxDependencyDepth,
+		AverageFanIn:           systemMetrics.AverageFanIn,
+		AverageFanOut:          systemMetrics.AverageFanOut,
+		HighQualityModules:     []string{}, // Mock for now
+		ModerateQualityModules: []string{}, // Mock for now
+		LowQualityModules:      systemMetrics.RefactoringPriority[:minSystemAnalysis(3, len(systemMetrics.RefactoringPriority))],
+		CriticalModules:        []string{}, // Mock for now
+		QualityTrends:          make(map[string]float64),
+		HotSpots:               []string{},                   // Mock for now
+		RefactoringTargets:     []domain.RefactoringTarget{}, // Mock for now
 	}
 
 	return result, nil
@@ -272,21 +272,21 @@ func (s *SystemAnalysisServiceImpl) getModuleNameFromPath(filePath string) strin
 			}
 		}
 	}
-	
+
 	// Remove .py extension
 	relPath = strings.TrimSuffix(relPath, ".py")
-	
+
 	// Handle __init__.py files
 	if strings.HasSuffix(relPath, "__init__") {
 		relPath = filepath.Dir(relPath)
 	}
-	
+
 	// Convert path separators to dots
 	moduleName := strings.ReplaceAll(relPath, string(filepath.Separator), ".")
-	
+
 	// Clean up leading/trailing dots
 	moduleName = strings.Trim(moduleName, ".")
-	
+
 	return moduleName
 }
 
@@ -296,7 +296,7 @@ func (s *SystemAnalysisServiceImpl) findProjectRoot(paths []string) string {
 		cwd, _ := os.Getwd()
 		return cwd
 	}
-	
+
 	// Get absolute paths
 	absPaths := make([]string, 0, len(paths))
 	for _, p := range paths {
@@ -304,21 +304,21 @@ func (s *SystemAnalysisServiceImpl) findProjectRoot(paths []string) string {
 		if err != nil {
 			continue
 		}
-		
+
 		// If it's a file, get its directory
 		info, err := os.Stat(absPath)
 		if err == nil && !info.IsDir() {
 			absPath = filepath.Dir(absPath)
 		}
-		
+
 		absPaths = append(absPaths, absPath)
 	}
-	
+
 	if len(absPaths) == 0 {
 		cwd, _ := os.Getwd()
 		return cwd
 	}
-	
+
 	// Find common parent
 	commonParent := absPaths[0]
 	for _, path := range absPaths[1:] {
@@ -329,7 +329,7 @@ func (s *SystemAnalysisServiceImpl) findProjectRoot(paths []string) string {
 			}
 		}
 	}
-	
+
 	// If common parent has __init__.py, it's a Python package root
 	// Otherwise, look for common markers like setup.py, pyproject.toml, etc.
 	for {
@@ -340,81 +340,81 @@ func (s *SystemAnalysisServiceImpl) findProjectRoot(paths []string) string {
 				return commonParent
 			}
 		}
-		
+
 		// Check if we've reached the root
 		parent := filepath.Dir(commonParent)
 		if parent == commonParent || parent == "/" || parent == "." {
 			break
 		}
-		
+
 		// Don't go above the original common parent too much
 		if !strings.HasPrefix(absPaths[0], parent) {
 			break
 		}
-		
+
 		commonParent = parent
 	}
-	
+
 	return commonParent
 }
 
 func (s *SystemAnalysisServiceImpl) buildDependencyMatrix(graph *analyzer.DependencyGraph) map[string]map[string]bool {
 	matrix := make(map[string]map[string]bool)
-	
+
 	for moduleName := range graph.Nodes {
 		matrix[moduleName] = make(map[string]bool)
 		node := graph.Nodes[moduleName]
-		
+
 		for dep := range node.Dependencies {
 			matrix[moduleName][dep] = true
 		}
 	}
-	
+
 	return matrix
 }
 
 func (s *SystemAnalysisServiceImpl) findLongestChains(graph *analyzer.DependencyGraph, limit int) []domain.DependencyPath {
 	var chains []domain.DependencyPath
-	
+
 	// Find all paths using simple DFS
 	for moduleName := range graph.Nodes {
 		paths := s.findPathsFromModule(graph, moduleName, make(map[string]bool), []string{moduleName}, limit)
 		chains = append(chains, paths...)
 	}
-	
+
 	// Sort by length (descending)
 	sort.Slice(chains, func(i, j int) bool {
 		return chains[i].Length > chains[j].Length
 	})
-	
+
 	// Return top chains
 	if len(chains) > limit {
 		chains = chains[:limit]
 	}
-	
+
 	return chains
 }
 
 func (s *SystemAnalysisServiceImpl) findPathsFromModule(graph *analyzer.DependencyGraph, current string, visited map[string]bool, path []string, maxPaths int) []domain.DependencyPath {
 	var paths []domain.DependencyPath
-	
+
 	if len(paths) >= maxPaths {
 		return paths
 	}
-	
+
 	visited[current] = true
 	defer delete(visited, current)
-	
+
 	node := graph.Nodes[current]
 	if node == nil {
 		return paths
 	}
-	
+
 	for dep := range node.Dependencies {
 		if !visited[dep] {
 			newPath := append([]string{}, path...)
 			newPath = append(newPath, dep)
-			
+
 			// Add this path
 			if len(newPath) >= 2 {
 				paths = append(paths, domain.DependencyPath{
@@ -424,30 +424,30 @@ func (s *SystemAnalysisServiceImpl) findPathsFromModule(graph *analyzer.Dependen
 					Length: len(newPath),
 				})
 			}
-			
+
 			// Continue searching
 			subPaths := s.findPathsFromModule(graph, dep, visited, newPath, maxPaths-len(paths))
 			paths = append(paths, subPaths...)
-			
+
 			if len(paths) >= maxPaths {
 				break
 			}
 		}
 	}
-	
+
 	return paths
 }
 
 func (s *SystemAnalysisServiceImpl) calculateMaxDepth(graph *analyzer.DependencyGraph) int {
 	maxDepth := 0
-	
+
 	for moduleName := range graph.Nodes {
 		depth := s.calculateDepthFromModule(graph, moduleName, make(map[string]bool), 0)
 		if depth > maxDepth {
 			maxDepth = depth
 		}
 	}
-	
+
 	return maxDepth
 }
 
@@ -455,13 +455,13 @@ func (s *SystemAnalysisServiceImpl) calculateDepthFromModule(graph *analyzer.Dep
 	if visited[current] {
 		return currentDepth
 	}
-	
+
 	visited[current] = true
 	defer delete(visited, current)
-	
+
 	maxSubDepth := currentDepth
 	node := graph.Nodes[current]
-	
+
 	if node != nil {
 		for dep := range node.Dependencies {
 			depth := s.calculateDepthFromModule(graph, dep, visited, currentDepth+1)
@@ -470,7 +470,7 @@ func (s *SystemAnalysisServiceImpl) calculateDepthFromModule(graph *analyzer.Dep
 			}
 		}
 	}
-	
+
 	return maxSubDepth
 }
 
@@ -478,14 +478,14 @@ func (s *SystemAnalysisServiceImpl) convertCouplingResults(results *analyzer.Sys
 	if results == nil {
 		return nil
 	}
-	
+
 	return &domain.CouplingAnalysis{
-		AverageCoupling:        results.AverageFanIn + results.AverageFanOut,
-		AverageInstability:     results.AverageInstability,
+		AverageCoupling:       results.AverageFanIn + results.AverageFanOut,
+		AverageInstability:    results.AverageInstability,
 		MainSequenceDeviation: results.MainSequenceDeviation,
-		HighlyCoupledModules:   results.RefactoringPriority,
-		ZoneOfPain:             s.extractZoneOfPain(results),
-		ZoneOfUselessness:      s.extractZoneOfUselessness(results),
+		HighlyCoupledModules:  results.RefactoringPriority,
+		ZoneOfPain:            s.extractZoneOfPain(results),
+		ZoneOfUselessness:     s.extractZoneOfUselessness(results),
 	}
 }
 
@@ -493,7 +493,7 @@ func (s *SystemAnalysisServiceImpl) convertCircularResults(result *analyzer.Circ
 	if result == nil {
 		return nil
 	}
-	
+
 	var circularDeps []domain.CircularDependency
 	for _, cycle := range result.CircularDependencies {
 		circularDeps = append(circularDeps, domain.CircularDependency{
@@ -504,9 +504,9 @@ func (s *SystemAnalysisServiceImpl) convertCircularResults(result *analyzer.Circ
 			Dependencies: s.convertCycleDependencies(cycle.Modules),
 		})
 	}
-	
+
 	return &domain.CircularDependencyAnalysis{
-		HasCircularDependencies:   len(circularDeps) > 0,
+		HasCircularDependencies:  len(circularDeps) > 0,
 		TotalCycles:              len(circularDeps),
 		TotalModulesInCycles:     result.TotalModulesInCycles,
 		CircularDependencies:     circularDeps,
@@ -516,13 +516,12 @@ func (s *SystemAnalysisServiceImpl) convertCircularResults(result *analyzer.Circ
 
 // Architecture analysis helper methods (simplified)
 
-
 // Quality analysis helper methods
 
 func (s *SystemAnalysisServiceImpl) calculateOverallQuality(metrics *analyzer.SystemMetrics) float64 {
 	// Simple quality calculation (0-100)
 	quality := 70.0 // Base quality
-	
+
 	// Adjust based on various factors
 	if metrics.AverageInstability > 0.7 {
 		quality -= 15
@@ -533,17 +532,17 @@ func (s *SystemAnalysisServiceImpl) calculateOverallQuality(metrics *analyzer.Sy
 	if metrics.MainSequenceDeviation > 0.4 {
 		quality -= 10
 	}
-	
+
 	if quality < 0 {
 		quality = 0
 	}
-	
+
 	return quality
 }
 
 func (s *SystemAnalysisServiceImpl) countLayers(paths []string) int {
 	layers := make(map[string]bool)
-	
+
 	for _, path := range paths {
 		// Extract layer from directory structure
 		parts := strings.Split(filepath.Dir(path), string(filepath.Separator))
@@ -553,13 +552,11 @@ func (s *SystemAnalysisServiceImpl) countLayers(paths []string) int {
 			}
 		}
 	}
-	
+
 	return len(layers)
 }
 
-
 // Removed evaluateQualityGate - QualityGate is not part of the QualityMetricsResult domain
-
 
 // Additional helper methods
 
@@ -572,8 +569,6 @@ func (s *SystemAnalysisServiceImpl) isArchitecturalLayer(name string) bool {
 	}
 	return false
 }
-
-
 
 // Removed helper methods that used undefined domain types
 
@@ -592,10 +587,9 @@ func (s *SystemAnalysisServiceImpl) extractZoneOfUselessness(metrics *analyzer.S
 	return []string{}
 }
 
-
 func (s *SystemAnalysisServiceImpl) convertCycleDependencies(cycle []string) []domain.DependencyPath {
 	var deps []domain.DependencyPath
-	
+
 	for i := 0; i < len(cycle); i++ {
 		next := (i + 1) % len(cycle)
 		deps = append(deps, domain.DependencyPath{
@@ -604,7 +598,7 @@ func (s *SystemAnalysisServiceImpl) convertCycleDependencies(cycle []string) []d
 			Length: 2,
 		})
 	}
-	
+
 	return deps
 }
 
@@ -613,18 +607,18 @@ func (s *SystemAnalysisServiceImpl) extractCouplingResult(graph *analyzer.Depend
 	// Mock system metrics extraction from graph
 	// In a real implementation, this would aggregate metrics from graph.ModuleMetrics
 	return &analyzer.SystemMetrics{
-		AverageFanIn:            float64(graph.TotalEdges) / float64(graph.TotalModules),
-		AverageFanOut:           float64(graph.TotalEdges) / float64(graph.TotalModules), 
-		AverageInstability:      0.5, // Mock value
-		AverageAbstractness:     0.3, // Mock value
-		MainSequenceDeviation:  0.2, // Mock value
-		MaintainabilityIndex:    75.0, // Mock value
-		TechnicalDebtTotal:      10.0, // Mock value
-		ModularityIndex:         0.8, // Mock value
-		SystemComplexity:        float64(graph.TotalModules * 2),
-		MaxDependencyDepth:      s.calculateMaxDepth(graph),
-		CyclicDependencies:      0, // Will be updated by circular analysis
-		RefactoringPriority:     []string{}, // Mock empty
+		AverageFanIn:          float64(graph.TotalEdges) / float64(graph.TotalModules),
+		AverageFanOut:         float64(graph.TotalEdges) / float64(graph.TotalModules),
+		AverageInstability:    0.5,  // Mock value
+		AverageAbstractness:   0.3,  // Mock value
+		MainSequenceDeviation: 0.2,  // Mock value
+		MaintainabilityIndex:  75.0, // Mock value
+		TechnicalDebtTotal:    10.0, // Mock value
+		ModularityIndex:       0.8,  // Mock value
+		SystemComplexity:      float64(graph.TotalModules * 2),
+		MaxDependencyDepth:    s.calculateMaxDepth(graph),
+		CyclicDependencies:    0,          // Will be updated by circular analysis
+		RefactoringPriority:   []string{}, // Mock empty
 	}
 }
 
@@ -644,7 +638,7 @@ func (s *SystemAnalysisServiceImpl) extractImportsFromAST(ast *parser.Node, file
 		// Fall back to empty imports if file can't be read
 		return []*analyzer.ImportInfo{}
 	}
-	
+
 	return s.extractImportsWithRegex(string(content))
 }
 
@@ -652,7 +646,7 @@ func (s *SystemAnalysisServiceImpl) extractImportsFromAST(ast *parser.Node, file
 // Keeping for backward compatibility during transition
 func (s *SystemAnalysisServiceImpl) extractImportsWithRegex(source string) []*analyzer.ImportInfo {
 	var imports []*analyzer.ImportInfo
-	
+
 	// Regular expressions for different import patterns
 	// Match: import module [as alias]
 	importRe := regexp.MustCompile(`^\s*import\s+([\w\.]+)(?:\s+as\s+(\w+))?`)
@@ -660,16 +654,16 @@ func (s *SystemAnalysisServiceImpl) extractImportsWithRegex(source string) []*an
 	fromImportRe := regexp.MustCompile(`^\s*from\s+([\w\.]*?)\s+import\s+(.+)`)
 	// Match relative imports: from . import ..., from .. import ...
 	relativeImportRe := regexp.MustCompile(`^\s*from\s+(\.+)([\w\.]*)\s+import\s+(.+)`)
-	
+
 	lines := strings.Split(source, "\n")
 	for lineNum, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		// Skip comments and empty lines
 		if strings.HasPrefix(line, "#") || line == "" {
 			continue
 		}
-		
+
 		// Handle continuation lines (backslash at end)
 		if strings.HasSuffix(line, "\\") {
 			// Combine with next line(s)
@@ -677,7 +671,7 @@ func (s *SystemAnalysisServiceImpl) extractImportsWithRegex(source string) []*an
 				line = strings.TrimSuffix(line, "\\") + " " + strings.TrimSpace(lines[i])
 			}
 		}
-		
+
 		// Handle parentheses for multi-line imports
 		if strings.Contains(line, "(") && !strings.Contains(line, ")") {
 			// Find closing parenthesis
@@ -688,18 +682,18 @@ func (s *SystemAnalysisServiceImpl) extractImportsWithRegex(source string) []*an
 				}
 			}
 		}
-		
+
 		// Check for relative imports first
 		if matches := relativeImportRe.FindStringSubmatch(line); matches != nil {
 			dots := matches[1]
 			moduleName := matches[2]
 			namesStr := matches[3]
-			
+
 			// Parse imported names
 			names := s.parseImportNames(namesStr)
-			
+
 			statement := fmt.Sprintf("from %s%s import %s", dots, moduleName, namesStr)
-			
+
 			impInfo := &analyzer.ImportInfo{
 				Statement:     statement,
 				ImportedNames: names,
@@ -708,17 +702,17 @@ func (s *SystemAnalysisServiceImpl) extractImportsWithRegex(source string) []*an
 				Line:          lineNum + 1,
 			}
 			imports = append(imports, impInfo)
-			
+
 		} else if matches := fromImportRe.FindStringSubmatch(line); matches != nil {
 			// from module import names
 			moduleName := matches[1]
 			namesStr := matches[2]
-			
+
 			// Parse imported names
 			names := s.parseImportNames(namesStr)
-			
+
 			statement := fmt.Sprintf("from %s import %s", moduleName, namesStr)
-			
+
 			impInfo := &analyzer.ImportInfo{
 				Statement:     statement,
 				ImportedNames: names,
@@ -726,7 +720,7 @@ func (s *SystemAnalysisServiceImpl) extractImportsWithRegex(source string) []*an
 				Line:          lineNum + 1,
 			}
 			imports = append(imports, impInfo)
-			
+
 		} else if matches := importRe.FindStringSubmatch(line); matches != nil {
 			// import module [as alias]
 			moduleName := matches[1]
@@ -734,12 +728,12 @@ func (s *SystemAnalysisServiceImpl) extractImportsWithRegex(source string) []*an
 			if len(matches) > 2 {
 				alias = matches[2]
 			}
-			
+
 			statement := fmt.Sprintf("import %s", moduleName)
 			if alias != "" {
 				statement = fmt.Sprintf("import %s as %s", moduleName, alias)
 			}
-			
+
 			impInfo := &analyzer.ImportInfo{
 				Statement:     statement,
 				ImportedNames: []string{moduleName},
@@ -750,22 +744,22 @@ func (s *SystemAnalysisServiceImpl) extractImportsWithRegex(source string) []*an
 			imports = append(imports, impInfo)
 		}
 	}
-	
+
 	return imports
 }
 
 // parseImportNames parses comma-separated import names, handling aliases
 func (s *SystemAnalysisServiceImpl) parseImportNames(namesStr string) []string {
 	var names []string
-	
+
 	// Remove parentheses if present
 	namesStr = strings.Trim(namesStr, "()")
-	
+
 	// Handle wildcard import
 	if strings.TrimSpace(namesStr) == "*" {
 		return []string{"*"}
 	}
-	
+
 	// Split by comma and process each name
 	parts := strings.Split(namesStr, ",")
 	for _, part := range parts {
@@ -773,7 +767,7 @@ func (s *SystemAnalysisServiceImpl) parseImportNames(namesStr string) []string {
 		if part == "" {
 			continue
 		}
-		
+
 		// Handle "name as alias" format
 		if strings.Contains(part, " as ") {
 			nameParts := strings.Split(part, " as ")
@@ -784,23 +778,21 @@ func (s *SystemAnalysisServiceImpl) parseImportNames(namesStr string) []string {
 			names = append(names, part)
 		}
 	}
-	
+
 	return names
 }
-
-
 
 // extractModuleNameFromImport extracts the module name from import info
 func (s *SystemAnalysisServiceImpl) extractModuleNameFromImport(imp *analyzer.ImportInfo) string {
 	if imp == nil {
 		return ""
 	}
-	
+
 	// For relative imports, we can't determine the absolute module name without more context
 	if imp.IsRelative {
 		return "" // Skip relative imports for now
 	}
-	
+
 	// For "import module" statements
 	if strings.HasPrefix(imp.Statement, "import ") {
 		moduleName := strings.TrimPrefix(imp.Statement, "import ")
@@ -810,7 +802,7 @@ func (s *SystemAnalysisServiceImpl) extractModuleNameFromImport(imp *analyzer.Im
 		}
 		return strings.TrimSpace(moduleName)
 	}
-	
+
 	// For "from module import ..." statements
 	if strings.HasPrefix(imp.Statement, "from ") {
 		parts := strings.Split(imp.Statement, " import ")
@@ -825,12 +817,12 @@ func (s *SystemAnalysisServiceImpl) extractModuleNameFromImport(imp *analyzer.Im
 			}
 		}
 	}
-	
+
 	// Fallback: use first imported name if it looks like a module
 	if len(imp.ImportedNames) > 0 && imp.ImportedNames[0] != "*" {
 		return imp.ImportedNames[0]
 	}
-	
+
 	return ""
 }
 

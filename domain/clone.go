@@ -153,17 +153,17 @@ type CloneRequest struct {
 	// Output configuration
 	OutputFormat OutputFormat `json:"output_format"`
 	OutputWriter io.Writer    `json:"-"`
-	OutputPath   string       `json:"output_path"`  // Path to save output file (for HTML format)
-	NoOpen       bool         `json:"no_open"`      // Don't auto-open HTML in browser
+	OutputPath   string       `json:"output_path"` // Path to save output file (for HTML format)
+	NoOpen       bool         `json:"no_open"`     // Don't auto-open HTML in browser
 	ShowDetails  bool         `json:"show_details"`
 	ShowContent  bool         `json:"show_content"`
 	SortBy       SortCriteria `json:"sort_by"`
-    GroupClones  bool         `json:"group_clones"`
+	GroupClones  bool         `json:"group_clones"`
 
-    // Grouping options
-    GroupMode      string  `json:"group_mode"`       // connected, star, complete_linkage, k_core
-    GroupThreshold float64 `json:"group_threshold"`  // Minimum similarity for group membership
-    KCoreK         int     `json:"k_core_k"`        // k-core's k value
+	// Grouping options
+	GroupMode      string  `json:"group_mode"`      // connected, star, complete_linkage, k_core
+	GroupThreshold float64 `json:"group_threshold"` // Minimum similarity for group membership
+	KCoreK         int     `json:"k_core_k"`        // k-core's k value
 
 	// Filtering
 	MinSimilarity float64     `json:"min_similarity"`
@@ -173,15 +173,15 @@ type CloneRequest struct {
 	// Configuration file
 	ConfigPath string `json:"config_path"`
 
-    // Performance configuration
-    Timeout time.Duration `json:"timeout"` // Maximum time for clone analysis (0 = no timeout)
+	// Performance configuration
+	Timeout time.Duration `json:"timeout"` // Maximum time for clone analysis (0 = no timeout)
 
-    // LSH acceleration (opt-in)
-    UseLSH               bool    `json:"use_lsh"`
-    LSHSimilarityThreshold float64 `json:"lsh_similarity_threshold"`
-    LSHBands             int     `json:"lsh_bands"`
-    LSHRows              int     `json:"lsh_rows"`
-    LSHHashes            int     `json:"lsh_hashes"`
+	// LSH acceleration (opt-in)
+	UseLSH                 bool    `json:"use_lsh"`
+	LSHSimilarityThreshold float64 `json:"lsh_similarity_threshold"`
+	LSHBands               int     `json:"lsh_bands"`
+	LSHRows                int     `json:"lsh_rows"`
+	LSHHashes              int     `json:"lsh_hashes"`
 }
 
 // CloneResponse represents the response from clone detection
@@ -293,31 +293,31 @@ func (req *CloneRequest) Validate() error {
 		return NewValidationError("type2_threshold should be > type3_threshold")
 	}
 
-    if req.Type3Threshold <= req.Type4Threshold {
-        return NewValidationError("type3_threshold should be > type4_threshold")
-    }
+	if req.Type3Threshold <= req.Type4Threshold {
+		return NewValidationError("type3_threshold should be > type4_threshold")
+	}
 
-    // LSH validation
-    if req.UseLSH {
-        if req.LSHSimilarityThreshold < 0.0 || req.LSHSimilarityThreshold > 1.0 {
-            return NewValidationError("lsh_similarity_threshold must be between 0.0 and 1.0")
-        }
-        if req.LSHBands < 1 {
-            return NewValidationError("lsh_bands must be >= 1")
-        }
-        if req.LSHRows < 1 {
-            return NewValidationError("lsh_rows must be >= 1")
-        }
-        if req.LSHHashes < 1 {
-            return NewValidationError("lsh_hashes must be >= 1")
-        }
-        // Optional sanity: total hashes should be >= bands*rows
-        if req.LSHHashes < req.LSHBands*req.LSHRows {
-            return NewValidationError("lsh_hashes must be >= lsh_bands*lsh_rows")
-        }
-    }
+	// LSH validation
+	if req.UseLSH {
+		if req.LSHSimilarityThreshold < 0.0 || req.LSHSimilarityThreshold > 1.0 {
+			return NewValidationError("lsh_similarity_threshold must be between 0.0 and 1.0")
+		}
+		if req.LSHBands < 1 {
+			return NewValidationError("lsh_bands must be >= 1")
+		}
+		if req.LSHRows < 1 {
+			return NewValidationError("lsh_rows must be >= 1")
+		}
+		if req.LSHHashes < 1 {
+			return NewValidationError("lsh_hashes must be >= 1")
+		}
+		// Optional sanity: total hashes should be >= bands*rows
+		if req.LSHHashes < req.LSHBands*req.LSHRows {
+			return NewValidationError("lsh_hashes must be >= lsh_bands*lsh_rows")
+		}
+	}
 
-    return nil
+	return nil
 }
 
 // HasValidOutputWriter checks if the request has a valid output writer
@@ -337,7 +337,7 @@ func (req *CloneRequest) ShouldGroupClones() bool {
 
 // DefaultCloneRequest returns a default clone request
 func DefaultCloneRequest() *CloneRequest {
-    return &CloneRequest{
+	return &CloneRequest{
 		Paths:               []string{"."},
 		Recursive:           true,
 		IncludePatterns:     []string{"*.py"},
@@ -355,21 +355,21 @@ func DefaultCloneRequest() *CloneRequest {
 		OutputFormat:        OutputFormatText,
 		ShowDetails:         false,
 		ShowContent:         false,
-        SortBy:              SortBySimilarity,
-        GroupClones:         true,
-        GroupMode:           "connected",
-        GroupThreshold:      constants.DefaultType3CloneThreshold,
-        KCoreK:              2,
-        MinSimilarity:       0.0,
-        MaxSimilarity:       1.0,
-        CloneTypes:          []CloneType{Type1Clone, Type2Clone, Type3Clone, Type4Clone},
-        // LSH defaults (opt-in)
-        UseLSH:                false,
-        LSHSimilarityThreshold: 0.78,
-        LSHBands:              32,
-        LSHRows:               4,
-        LSHHashes:             128,
-    }
+		SortBy:              SortBySimilarity,
+		GroupClones:         true,
+		GroupMode:           "connected",
+		GroupThreshold:      constants.DefaultType3CloneThreshold,
+		KCoreK:              2,
+		MinSimilarity:       0.0,
+		MaxSimilarity:       1.0,
+		CloneTypes:          []CloneType{Type1Clone, Type2Clone, Type3Clone, Type4Clone},
+		// LSH defaults (opt-in)
+		UseLSH:                 false,
+		LSHSimilarityThreshold: 0.78,
+		LSHBands:               32,
+		LSHRows:                4,
+		LSHHashes:              128,
+	}
 }
 
 // NewCloneStatistics creates a new clone statistics instance

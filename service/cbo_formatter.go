@@ -78,7 +78,7 @@ func (f *CBOFormatterImpl) formatText(response *domain.CBOResponse) (string, err
 	// CBO distribution
 	if len(response.Summary.CBODistribution) > 0 {
 		builder.WriteString(utils.FormatSectionHeader("CBO DISTRIBUTION"))
-		
+
 		// Sort ranges for consistent output
 		ranges := make([]string, 0, len(response.Summary.CBODistribution))
 		for rang := range response.Summary.CBODistribution {
@@ -113,8 +113,8 @@ func (f *CBOFormatterImpl) formatText(response *domain.CBOResponse) (string, err
 				standardRisk = RiskLow
 			}
 			coloredRisk := utils.FormatRiskWithColor(standardRisk)
-			
-			builder.WriteString(fmt.Sprintf("%s%d. %s %s (CBO: %d) - %s:%d\n", 
+
+			builder.WriteString(fmt.Sprintf("%s%d. %s %s (CBO: %d) - %s:%d\n",
 				strings.Repeat(" ", SectionPadding), i+1, coloredRisk, class.Name, class.Metrics.CouplingCount, class.FilePath, class.StartLine))
 		}
 		builder.WriteString(utils.FormatSectionSeparator())
@@ -167,11 +167,11 @@ func (f *CBOFormatterImpl) writeClassDetails(builder *strings.Builder, class dom
 		standardRisk = RiskLow
 	}
 	coloredRisk := utils.FormatRiskWithColor(standardRisk)
-	
-	builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Class", fmt.Sprintf("%s %s (CBO: %d)", 
+
+	builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Class", fmt.Sprintf("%s %s (CBO: %d)",
 		coloredRisk, class.Name, class.Metrics.CouplingCount)))
 	builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Location", fmt.Sprintf("%s:%d-%d", class.FilePath, class.StartLine, class.EndLine)))
-	
+
 	if class.IsAbstract {
 		builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Type", "Abstract Class"))
 	}
@@ -280,22 +280,22 @@ func (f *CBOFormatterImpl) formatHTML(response *domain.CBOResponse) (string, err
 	if generatedAt.IsZero() {
 		generatedAt = time.Now()
 	}
-	
+
 	template := HTMLTemplate{
 		Title:       "CBO Analysis Report",
 		Subtitle:    "Coupling Between Objects Analysis",
 		GeneratedAt: generatedAt,
 		Version:     response.Version,
-		Duration:    0, // CBO doesn't track duration
+		Duration:    0,     // CBO doesn't track duration
 		ShowScore:   false, // CBO doesn't have a single score
 	}
 
 	// Generate header
 	builder.WriteString(template.GenerateHTMLHeader())
-	
+
 	// Generate content
 	var content strings.Builder
-	
+
 	// Summary section with metrics
 	content.WriteString(GenerateSectionHeader("📊 Overview"))
 	content.WriteString(`<div class="metric-grid">`)
@@ -304,7 +304,7 @@ func (f *CBOFormatterImpl) formatHTML(response *domain.CBOResponse) (string, err
 	content.WriteString(GenerateMetricCard(fmt.Sprintf("%.2f", response.Summary.AverageCBO), "Average CBO"))
 	content.WriteString(GenerateMetricCard(strconv.Itoa(response.Summary.MaxCBO), "Max CBO"))
 	content.WriteString(`</div>`)
-	
+
 	// Risk distribution
 	content.WriteString(GenerateSectionHeader("🚦 Risk Distribution"))
 	content.WriteString(`<div class="metric-grid">`)
@@ -346,17 +346,17 @@ func (f *CBOFormatterImpl) formatHTML(response *domain.CBOResponse) (string, err
 			case domain.RiskLevelHigh:
 				riskSeverity = "danger"
 			}
-			
+
 			content.WriteString(fmt.Sprintf(`                <tr>
                     <td><strong>%s</strong></td>
                     <td>%s</td>
                     <td>%s</td>
                     <td>%s:%d</td>
                     <td>
-`, class.Name, 
-   GenerateStatusBadge(strconv.Itoa(class.Metrics.CouplingCount), riskSeverity),
-   GenerateStatusBadge(string(class.RiskLevel), riskSeverity),
-   class.FilePath, class.StartLine))
+`, class.Name,
+				GenerateStatusBadge(strconv.Itoa(class.Metrics.CouplingCount), riskSeverity),
+				GenerateStatusBadge(string(class.RiskLevel), riskSeverity),
+				class.FilePath, class.StartLine))
 
 			if len(class.Metrics.DependentClasses) > 0 {
 				content.WriteString(strings.Join(class.Metrics.DependentClasses, ", "))
@@ -395,10 +395,9 @@ func (f *CBOFormatterImpl) formatHTML(response *domain.CBOResponse) (string, err
 
 	// Wrap content in single page container
 	builder.WriteString(GenerateSinglePageContent(content.String()))
-	
+
 	// Close HTML
 	builder.WriteString(GenerateHTMLFooter())
 
 	return builder.String(), nil
 }
-

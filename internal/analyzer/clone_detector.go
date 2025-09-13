@@ -174,24 +174,24 @@ type CloneDetectorConfig struct {
 	BatchSizeLarge     int // Batch size for normal projects
 	BatchSizeSmall     int // Batch size for large projects
 	LargeProjectSize   int // Fragment count threshold for large projects
-    MemoryLimit        int // Memory limit in bytes
+	MemoryLimit        int // Memory limit in bytes
 
-    // Grouping configuration
-    GroupingMode      GroupingMode // デフォルト: GroupingModeConnected
-    GroupingThreshold float64      // デフォルト: Type3Threshold
-    KCoreK            int          // デフォルト: 2
+	// Grouping configuration
+	GroupingMode      GroupingMode // デフォルト: GroupingModeConnected
+	GroupingThreshold float64      // デフォルト: Type3Threshold
+	KCoreK            int          // デフォルト: 2
 
-    // LSH Configuration (optional, opt-in)
-    UseLSH                 bool    // Enable LSH acceleration
-    LSHSimilarityThreshold float64 // Candidate threshold using MinHash similarity
-    LSHBands               int     // Number of LSH bands (default: 32)
-    LSHRows                int     // Rows per band (default: 4)
-    LSHMinHashCount        int     // Number of MinHash functions (default: 128)
+	// LSH Configuration (optional, opt-in)
+	UseLSH                 bool    // Enable LSH acceleration
+	LSHSimilarityThreshold float64 // Candidate threshold using MinHash similarity
+	LSHBands               int     // Number of LSH bands (default: 32)
+	LSHRows                int     // Rows per band (default: 4)
+	LSHMinHashCount        int     // Number of MinHash functions (default: 128)
 }
 
 // DefaultCloneDetectorConfig returns default configuration
 func DefaultCloneDetectorConfig() *CloneDetectorConfig {
-    return &CloneDetectorConfig{
+	return &CloneDetectorConfig{
 		MinLines:          5,
 		MinNodes:          10,
 		Type1Threshold:    constants.DefaultType1CloneThreshold,
@@ -207,21 +207,21 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 		BatchSizeThreshold: 50,
 		BatchSizeLarge:     100,
 		BatchSizeSmall:     50,
-        LargeProjectSize:   500,
-        MemoryLimit:        100 * 1024 * 1024, // 100MB
+		LargeProjectSize:   500,
+		MemoryLimit:        100 * 1024 * 1024, // 100MB
 
-        // Grouping defaults
-        GroupingMode:      GroupingModeConnected,
-        GroupingThreshold: constants.DefaultType3CloneThreshold,
-        KCoreK:            2,
+		// Grouping defaults
+		GroupingMode:      GroupingModeConnected,
+		GroupingThreshold: constants.DefaultType3CloneThreshold,
+		KCoreK:            2,
 
-        // LSH defaults (opt-in)
-        UseLSH:                 false,
-        LSHSimilarityThreshold: 0.78,
-        LSHBands:               32,
-        LSHRows:                4,
-        LSHMinHashCount:        128,
-    }
+		// LSH defaults (opt-in)
+		UseLSH:                 false,
+		LSHSimilarityThreshold: 0.78,
+		LSHBands:               32,
+		LSHRows:                4,
+		LSHMinHashCount:        128,
+	}
 }
 
 // CloneDetector detects code clones using APTED algorithm
@@ -237,24 +237,24 @@ type CloneDetector struct {
 // NewCloneDetectorFromConfig creates a new clone detector from unified config
 func NewCloneDetectorFromConfig(cloneConfig *config.CloneConfig) *CloneDetector {
 	// Convert unified config to legacy config directly
-    legacyConfig := &CloneDetectorConfig{
-        MinLines:          cloneConfig.Analysis.MinLines,
-        MinNodes:          cloneConfig.Analysis.MinNodes,
-        Type1Threshold:    cloneConfig.Thresholds.Type1Threshold,
-        Type2Threshold:    cloneConfig.Thresholds.Type2Threshold,
-        Type3Threshold:    cloneConfig.Thresholds.Type3Threshold,
-        Type4Threshold:    cloneConfig.Thresholds.Type4Threshold,
-        MaxEditDistance:   cloneConfig.Analysis.MaxEditDistance,
-        IgnoreLiterals:    cloneConfig.Analysis.IgnoreLiterals,
-        IgnoreIdentifiers: cloneConfig.Analysis.IgnoreIdentifiers,
-        CostModelType:     cloneConfig.Analysis.CostModelType,
+	legacyConfig := &CloneDetectorConfig{
+		MinLines:          cloneConfig.Analysis.MinLines,
+		MinNodes:          cloneConfig.Analysis.MinNodes,
+		Type1Threshold:    cloneConfig.Thresholds.Type1Threshold,
+		Type2Threshold:    cloneConfig.Thresholds.Type2Threshold,
+		Type3Threshold:    cloneConfig.Thresholds.Type3Threshold,
+		Type4Threshold:    cloneConfig.Thresholds.Type4Threshold,
+		MaxEditDistance:   cloneConfig.Analysis.MaxEditDistance,
+		IgnoreLiterals:    cloneConfig.Analysis.IgnoreLiterals,
+		IgnoreIdentifiers: cloneConfig.Analysis.IgnoreIdentifiers,
+		CostModelType:     cloneConfig.Analysis.CostModelType,
 
-        // Grouping defaults (until unified config supports them explicitly)
-        GroupingMode:      GroupingModeConnected,
-        GroupingThreshold: cloneConfig.Thresholds.Type3Threshold,
-        KCoreK:            2,
-    }
-    return NewCloneDetector(legacyConfig)
+		// Grouping defaults (until unified config supports them explicitly)
+		GroupingMode:      GroupingModeConnected,
+		GroupingThreshold: cloneConfig.Thresholds.Type3Threshold,
+		KCoreK:            2,
+	}
+	return NewCloneDetector(legacyConfig)
 }
 
 // NewCloneDetector creates a new clone detector with the given configuration
@@ -416,25 +416,25 @@ func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments 
 		return cd.clonePairs, cd.cloneGroups
 	}
 
-    // Group related clones using configured strategy
-    // Clamp threshold to [0,1]
-    thr := cd.config.GroupingThreshold
-    if thr < 0.0 {
-        thr = 0.0
-    } else if thr > 1.0 {
-        thr = 1.0
-    }
-    k := cd.config.KCoreK
-    if k < 2 {
-        k = 2
-    }
-    groupingConfig := GroupingConfig{
-        Mode:      cd.config.GroupingMode,
-        Threshold: thr,
-        KCoreK:    k,
-    }
-    strategy := CreateGroupingStrategy(groupingConfig)
-    cd.groupClonesWithStrategy(strategy)
+	// Group related clones using configured strategy
+	// Clamp threshold to [0,1]
+	thr := cd.config.GroupingThreshold
+	if thr < 0.0 {
+		thr = 0.0
+	} else if thr > 1.0 {
+		thr = 1.0
+	}
+	k := cd.config.KCoreK
+	if k < 2 {
+		k = 2
+	}
+	groupingConfig := GroupingConfig{
+		Mode:      cd.config.GroupingMode,
+		Threshold: thr,
+		KCoreK:    k,
+	}
+	strategy := CreateGroupingStrategy(groupingConfig)
+	cd.groupClonesWithStrategy(strategy)
 
 	return cd.clonePairs, cd.cloneGroups
 }
@@ -442,137 +442,145 @@ func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments 
 // DetectClonesWithLSH runs a two-stage pipeline using LSH for candidate generation,
 // followed by APTED verification on candidates only. Falls back to exhaustive if misconfigured.
 func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*CodeFragment) ([]*ClonePair, []*CloneGroup) {
-    // If not enabled, delegate to standard path
-    if cd == nil || cd.config == nil || !cd.config.UseLSH {
-        return cd.DetectClonesWithContext(ctx, fragments)
-    }
+	// If not enabled, delegate to standard path
+	if cd == nil || cd.config == nil || !cd.config.UseLSH {
+		return cd.DetectClonesWithContext(ctx, fragments)
+	}
 
-    cd.fragments = fragments
-    cd.clonePairs = []*ClonePair{}
-    cd.cloneGroups = []*CloneGroup{}
+	cd.fragments = fragments
+	cd.clonePairs = []*ClonePair{}
+	cd.cloneGroups = []*CloneGroup{}
 
-    if isCancelled(ctx) {
-        return cd.clonePairs, cd.cloneGroups
-    }
+	if isCancelled(ctx) {
+		return cd.clonePairs, cd.cloneGroups
+	}
 
-    // Prepare TreeNodes for APTED and feature extraction
-    cd.prepareFragments()
+	// Prepare TreeNodes for APTED and feature extraction
+	cd.prepareFragments()
 
-    if isCancelled(ctx) {
-        return cd.clonePairs, cd.cloneGroups
-    }
+	if isCancelled(ctx) {
+		return cd.clonePairs, cd.cloneGroups
+	}
 
-    // Stage 1: Feature extraction and MinHash signatures
-    extractor := NewASTFeatureExtractor().WithOptions(
-        max(1, cd.config.LSHRows), // reuse rows for subtree height if >0
-        max(2, 4),                 // keep default k=4
-        true,
-        false,
-    )
-    hasher := NewMinHasher(cd.config.LSHMinHashCount)
+	// Stage 1: Feature extraction and MinHash signatures
+	extractor := NewASTFeatureExtractor().WithOptions(
+		max(1, cd.config.LSHRows), // reuse rows for subtree height if >0
+		max(2, 4),                 // keep default k=4
+		true,
+		false,
+	)
+	hasher := NewMinHasher(cd.config.LSHMinHashCount)
 
-    type fragRec struct {
-        id   string
-        idx  int
-        sig  *MinHashSignature
-    }
-    records := make([]fragRec, 0, len(cd.fragments))
-    sigByIndex := make(map[int]*MinHashSignature, len(cd.fragments))
-    idToIndex := make(map[string]int, len(cd.fragments))
-    for i, f := range cd.fragments {
-        if f == nil || f.TreeNode == nil {
-            continue
-        }
-        // Build a stable ID for the fragment
-        id := fmt.Sprintf("%s:%d-%d", f.Location.FilePath, f.Location.StartLine, f.Location.EndLine)
-        // Very short fragments: still create minimal features
-        feats, _ := extractor.ExtractFeatures(f.TreeNode)
-        sig := hasher.ComputeSignature(feats)
-        records = append(records, fragRec{id: id, idx: i, sig: sig})
-        sigByIndex[i] = sig
-        idToIndex[id] = i
-    }
+	type fragRec struct {
+		id  string
+		idx int
+		sig *MinHashSignature
+	}
+	records := make([]fragRec, 0, len(cd.fragments))
+	sigByIndex := make(map[int]*MinHashSignature, len(cd.fragments))
+	idToIndex := make(map[string]int, len(cd.fragments))
+	for i, f := range cd.fragments {
+		if f == nil || f.TreeNode == nil {
+			continue
+		}
+		// Build a stable ID for the fragment
+		id := fmt.Sprintf("%s:%d-%d", f.Location.FilePath, f.Location.StartLine, f.Location.EndLine)
+		// Very short fragments: still create minimal features
+		feats, _ := extractor.ExtractFeatures(f.TreeNode)
+		sig := hasher.ComputeSignature(feats)
+		records = append(records, fragRec{id: id, idx: i, sig: sig})
+		sigByIndex[i] = sig
+		idToIndex[id] = i
+	}
 
-    // Edge case: if signatures cannot be built, fallback
-    if len(records) <= 1 {
-        return cd.DetectClonesWithContext(ctx, fragments)
-    }
+	// Edge case: if signatures cannot be built, fallback
+	if len(records) <= 1 {
+		return cd.DetectClonesWithContext(ctx, fragments)
+	}
 
-    // Stage 2: LSH indexing
-    lsh := NewLSHIndex(cd.config.LSHBands, cd.config.LSHRows)
-    for _, r := range records {
-        _ = lsh.AddFragment(r.id, r.sig)
-    }
-    _ = lsh.BuildIndex()
+	// Stage 2: LSH indexing
+	lsh := NewLSHIndex(cd.config.LSHBands, cd.config.LSHRows)
+	for _, r := range records {
+		_ = lsh.AddFragment(r.id, r.sig)
+	}
+	_ = lsh.BuildIndex()
 
-    // Stage 3: Candidate generation + APTED verification
-    // Use MinHash similarity to filter before expensive APTED
-    minhashThreshold := cd.config.LSHSimilarityThreshold
-    if minhashThreshold < 0 {
-        minhashThreshold = 0
-    } else if minhashThreshold > 1 {
-        minhashThreshold = 1
-    }
+	// Stage 3: Candidate generation + APTED verification
+	// Use MinHash similarity to filter before expensive APTED
+	minhashThreshold := cd.config.LSHSimilarityThreshold
+	if minhashThreshold < 0 {
+		minhashThreshold = 0
+	} else if minhashThreshold > 1 {
+		minhashThreshold = 1
+	}
 
-    seenPairs := make(map[[2]int]struct{})
-    for _, r := range records {
-        if isCancelled(ctx) {
-            break
-        }
-        cands := lsh.FindCandidates(r.sig)
-        for _, cid := range cands {
-            j := idToIndex[cid]
-            i := r.idx
-            if j == i || j < 0 || i < 0 {
-                continue
-            }
-            // Deduplicate unordered pair (i<j)
-            a, b := i, j
-            if a > b { a, b = b, a }
-            key := [2]int{a, b}
-            if _, ok := seenPairs[key]; ok {
-                continue
-            }
-            seenPairs[key] = struct{}{}
+	seenPairs := make(map[[2]int]struct{})
+	for _, r := range records {
+		if isCancelled(ctx) {
+			break
+		}
+		cands := lsh.FindCandidates(r.sig)
+		for _, cid := range cands {
+			j := idToIndex[cid]
+			i := r.idx
+			if j == i || j < 0 || i < 0 {
+				continue
+			}
+			// Deduplicate unordered pair (i<j)
+			a, b := i, j
+			if a > b {
+				a, b = b, a
+			}
+			key := [2]int{a, b}
+			if _, ok := seenPairs[key]; ok {
+				continue
+			}
+			seenPairs[key] = struct{}{}
 
-            f1 := cd.fragments[a]
-            f2 := cd.fragments[b]
-            if cd.isSameLocation(f1.Location, f2.Location) {
-                continue
-            }
+			f1 := cd.fragments[a]
+			f2 := cd.fragments[b]
+			if cd.isSameLocation(f1.Location, f2.Location) {
+				continue
+			}
 
-            // MinHash similarity pre-filter
-            sig1 := sigByIndex[a]
-            sig2 := sigByIndex[b]
-            est := hasher.EstimateJaccardSimilarity(sig1, sig2)
-            if est < minhashThreshold {
-                continue
-            }
+			// MinHash similarity pre-filter
+			sig1 := sigByIndex[a]
+			sig2 := sigByIndex[b]
+			est := hasher.EstimateJaccardSimilarity(sig1, sig2)
+			if est < minhashThreshold {
+				continue
+			}
 
-            // APTED verification
-            if f1.TreeNode == nil || f2.TreeNode == nil {
-                continue
-            }
-            pair := cd.compareFragments(f1, f2)
-            if pair != nil && cd.isSignificantClone(pair) {
-                cd.clonePairs = append(cd.clonePairs, pair)
-            }
-        }
-    }
+			// APTED verification
+			if f1.TreeNode == nil || f2.TreeNode == nil {
+				continue
+			}
+			pair := cd.compareFragments(f1, f2)
+			if pair != nil && cd.isSignificantClone(pair) {
+				cd.clonePairs = append(cd.clonePairs, pair)
+			}
+		}
+	}
 
-    // Finalize results
-    cd.limitAndSortClonePairs(cd.config.MaxClonePairs)
+	// Finalize results
+	cd.limitAndSortClonePairs(cd.config.MaxClonePairs)
 
-    // Grouping
-    thr := cd.config.GroupingThreshold
-    if thr < 0.0 { thr = 0.0 } else if thr > 1.0 { thr = 1.0 }
-    k := cd.config.KCoreK
-    if k < 2 { k = 2 }
-    groupingConfig := GroupingConfig{ Mode: cd.config.GroupingMode, Threshold: thr, KCoreK: k }
-    strategy := CreateGroupingStrategy(groupingConfig)
-    cd.groupClonesWithStrategy(strategy)
+	// Grouping
+	thr := cd.config.GroupingThreshold
+	if thr < 0.0 {
+		thr = 0.0
+	} else if thr > 1.0 {
+		thr = 1.0
+	}
+	k := cd.config.KCoreK
+	if k < 2 {
+		k = 2
+	}
+	groupingConfig := GroupingConfig{Mode: cd.config.GroupingMode, Threshold: thr, KCoreK: k}
+	strategy := CreateGroupingStrategy(groupingConfig)
+	cd.groupClonesWithStrategy(strategy)
 
-    return cd.clonePairs, cd.cloneGroups
+	return cd.clonePairs, cd.cloneGroups
 }
 
 // prepareFragments converts AST fragments to tree nodes
@@ -913,12 +921,13 @@ func (cd *CloneDetector) calculateGroupSimilarity(group *CloneGroup) {
 
 // groupClonesWithStrategy groups clone pairs using a pluggable strategy.
 // This keeps backward compatibility with the existing groupClones method.
+//
 //nolint:unused // Hook for pluggable grouping; used when strategy is wired via config.
 func (cd *CloneDetector) groupClonesWithStrategy(strategy GroupingStrategy) {
-    if strategy == nil {
-        cd.groupClones()
-        return
-    }
+	if strategy == nil {
+		cd.groupClones()
+		return
+	}
 	cd.cloneGroups = strategy.GroupClones(cd.clonePairs)
 }
 

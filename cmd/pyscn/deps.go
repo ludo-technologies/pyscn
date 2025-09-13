@@ -25,14 +25,13 @@ var (
 	depsYAML bool
 	depsDOT  bool // DOT format for graph visualization
 
-	depsNoOpen      bool
+	depsNoOpen bool
 
 	// File selection options
 	depsRecursive       bool
 	depsIncludePatterns []string
 	depsExcludePatterns []string
 	depsConfigPath      string
-
 )
 
 // depsCmd represents the deps command
@@ -94,7 +93,7 @@ func runDepsCommand(cmd *cobra.Command, args []string) error {
 	outputPath := ""
 	outputWriter := os.Stdout
 	extension := ""
-	
+
 	formatCount := 0
 	if depsJSON {
 		formatCount++
@@ -121,7 +120,7 @@ func runDepsCommand(cmd *cobra.Command, args []string) error {
 		outputFormat = domain.OutputFormatDOT
 		extension = "dot"
 	}
-	
+
 	// Check for conflicting format flags
 	if formatCount > 1 {
 		return fmt.Errorf("only one output format flag can be specified")
@@ -140,23 +139,23 @@ func runDepsCommand(cmd *cobra.Command, args []string) error {
 
 	// Build dependency analysis request
 	request := domain.SystemAnalysisRequest{
-		Paths:           args,
-		OutputFormat:    outputFormat,
-		OutputWriter:    outputWriter,
-		OutputPath:      outputPath,
-		NoOpen:          depsNoOpen,
-		
+		Paths:        args,
+		OutputFormat: outputFormat,
+		OutputWriter: outputWriter,
+		OutputPath:   outputPath,
+		NoOpen:       depsNoOpen,
+
 		// Enable only dependency analysis
 		AnalyzeDependencies: true,
 		AnalyzeArchitecture: false,
 		AnalyzeQuality:      false,
-		
+
 		// Analysis options
 		IncludeStdLib:     depsIncludeStdLib,
 		IncludeThirdParty: depsIncludeThirdParty,
 		FollowRelative:    depsFollowRelative,
 		DetectCycles:      depsDetectCycles,
-		
+
 		// File selection
 		ConfigPath:      depsConfigPath,
 		Recursive:       depsRecursive,
@@ -189,4 +188,3 @@ func runDepsCommand(cmd *cobra.Command, args []string) error {
 
 	return nil
 }
-

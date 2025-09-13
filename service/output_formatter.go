@@ -1,14 +1,14 @@
 package service
 
 import (
-    "encoding/csv"
-    "fmt"
-    "io"
-    "sort"
-    "strings"
-    "time"
+	"encoding/csv"
+	"fmt"
+	"io"
+	"sort"
+	"strings"
+	"time"
 
-    "github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // OutputFormatterImpl implements the OutputFormatter interface
@@ -131,16 +131,16 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 
 // formatJSON formats the response as JSON
 func (f *OutputFormatterImpl) formatJSON(response *domain.ComplexityResponse) (string, error) {
-    // Create a JSON-friendly structure
-    jsonResponse := f.createJSONResponse(response)
-    return EncodeJSON(jsonResponse)
+	// Create a JSON-friendly structure
+	jsonResponse := f.createJSONResponse(response)
+	return EncodeJSON(jsonResponse)
 }
 
 // formatYAML formats the response as YAML
 func (f *OutputFormatterImpl) formatYAML(response *domain.ComplexityResponse) (string, error) {
-    // Create a YAML-friendly structure
-    yamlResponse := f.createJSONResponse(response) // Same structure works for YAML
-    return EncodeYAML(yamlResponse)
+	// Create a YAML-friendly structure
+	yamlResponse := f.createJSONResponse(response) // Same structure works for YAML
+	return EncodeYAML(yamlResponse)
 }
 
 // formatCSV formats the response as CSV
@@ -249,17 +249,17 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 
 // FormatSummaryOnly formats only the summary information
 func (f *OutputFormatterImpl) FormatSummaryOnly(response *domain.ComplexityResponse, format domain.OutputFormat) (string, error) {
-    switch format {
-    case domain.OutputFormatText:
-        return f.formatSummaryText(response), nil
-    case domain.OutputFormatJSON:
-        summary := map[string]interface{}{
-            "summary": f.createJSONResponse(response)["summary"],
-        }
-        return EncodeJSON(summary)
-    default:
-        return f.Format(response, format)
-    }
+	switch format {
+	case domain.OutputFormatText:
+		return f.formatSummaryText(response), nil
+	case domain.OutputFormatJSON:
+		summary := map[string]interface{}{
+			"summary": f.createJSONResponse(response)["summary"],
+		}
+		return EncodeJSON(summary)
+	default:
+		return f.Format(response, format)
+	}
 }
 
 // formatSummaryText formats only the summary as text

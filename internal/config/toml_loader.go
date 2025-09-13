@@ -9,14 +9,14 @@ import (
 
 // PyscnTomlConfig represents the structure of .pyscn.toml
 type PyscnTomlConfig struct {
-	Analysis    PyscnTomlAnalysisConfig `toml:"analysis"`
-	Thresholds  ThresholdConfig         `toml:"thresholds"`
+	Analysis    PyscnTomlAnalysisConfig  `toml:"analysis"`
+	Thresholds  ThresholdConfig          `toml:"thresholds"`
 	Filtering   PyscnTomlFilteringConfig `toml:"filtering"`
-	Input       PyscnTomlInputConfig    `toml:"input"`
-	Output      PyscnTomlOutputConfig   `toml:"output"`
-	Performance PerformanceConfig       `toml:"performance"`
-	Grouping    GroupingConfig          `toml:"grouping"`
-	LSH         LSHConfig               `toml:"lsh"`
+	Input       PyscnTomlInputConfig     `toml:"input"`
+	Output      PyscnTomlOutputConfig    `toml:"output"`
+	Performance PerformanceConfig        `toml:"performance"`
+	Grouping    GroupingConfig           `toml:"grouping"`
+	LSH         LSHConfig                `toml:"lsh"`
 }
 
 type PyscnTomlAnalysisConfig struct {
@@ -37,7 +37,7 @@ type PyscnTomlFilteringConfig struct {
 
 type PyscnTomlInputConfig struct {
 	Paths           []string `toml:"paths"`
-	Recursive       *bool    `toml:"recursive"`        // pointer to detect unset
+	Recursive       *bool    `toml:"recursive"` // pointer to detect unset
 	IncludePatterns []string `toml:"include_patterns"`
 	ExcludePatterns []string `toml:"exclude_patterns"`
 }
@@ -67,12 +67,12 @@ func (l *TomlConfigLoader) LoadConfig(startDir string) (*CloneConfig, error) {
 	if config, err := l.loadFromPyprojectToml(startDir); err == nil {
 		return config, nil
 	}
-	
+
 	// Try .pyscn.toml as fallback
 	if config, err := l.loadFromPyscnToml(startDir); err == nil {
 		return config, nil
 	}
-	
+
 	// Return defaults if no config found
 	return DefaultCloneConfig(), nil
 }
@@ -83,7 +83,7 @@ func (l *TomlConfigLoader) loadFromPyprojectToml(startDir string) (*CloneConfig,
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return LoadPyprojectConfig(startDir)
 }
 
@@ -93,22 +93,22 @@ func (l *TomlConfigLoader) loadFromPyscnToml(startDir string) (*CloneConfig, err
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Read and parse .pyscn.toml
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var config PyscnTomlConfig
 	if err := toml.Unmarshal(data, &config); err != nil {
 		return nil, err
 	}
-	
+
 	// Merge with defaults
 	defaults := DefaultCloneConfig()
 	l.mergePyscnTomlConfigs(defaults, &config)
-	
+
 	return defaults, nil
 }
 
@@ -125,7 +125,7 @@ func (l *TomlConfigLoader) findPyscnToml(startDir string) (string, error) {
 		if _, err := os.Stat(configPath); err == nil {
 			return configPath, nil
 		}
-		
+
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			// Reached root directory
@@ -133,7 +133,7 @@ func (l *TomlConfigLoader) findPyscnToml(startDir string) (string, error) {
 		}
 		dir = parent
 	}
-	
+
 	return "", os.ErrNotExist
 }
 
@@ -160,7 +160,7 @@ func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *CloneConfig, pyscnTom
 	if pyscnToml.Analysis.IgnoreIdentifiers != nil {
 		defaults.Analysis.IgnoreIdentifiers = *pyscnToml.Analysis.IgnoreIdentifiers
 	}
-	
+
 	// Threshold config
 	if pyscnToml.Thresholds.Type1Threshold > 0 {
 		defaults.Thresholds.Type1Threshold = pyscnToml.Thresholds.Type1Threshold
@@ -177,7 +177,7 @@ func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *CloneConfig, pyscnTom
 	if pyscnToml.Thresholds.SimilarityThreshold > 0 {
 		defaults.Thresholds.SimilarityThreshold = pyscnToml.Thresholds.SimilarityThreshold
 	}
-	
+
 	// Grouping config
 	if pyscnToml.Grouping.Mode != "" {
 		defaults.Grouping.Mode = pyscnToml.Grouping.Mode
@@ -188,7 +188,7 @@ func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *CloneConfig, pyscnTom
 	if pyscnToml.Grouping.KCoreK > 0 {
 		defaults.Grouping.KCoreK = pyscnToml.Grouping.KCoreK
 	}
-	
+
 	// LSH config
 	if pyscnToml.LSH.Enabled != "" {
 		defaults.LSH.Enabled = pyscnToml.LSH.Enabled
@@ -208,7 +208,7 @@ func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *CloneConfig, pyscnTom
 	if pyscnToml.LSH.Hashes > 0 {
 		defaults.LSH.Hashes = pyscnToml.LSH.Hashes
 	}
-	
+
 	// Input config
 	if len(pyscnToml.Input.Paths) > 0 {
 		defaults.Input.Paths = pyscnToml.Input.Paths
@@ -223,7 +223,7 @@ func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *CloneConfig, pyscnTom
 	if pyscnToml.Input.Recursive != nil {
 		defaults.Input.Recursive = *pyscnToml.Input.Recursive
 	}
-	
+
 	// Output config
 	if pyscnToml.Output.Format != "" {
 		defaults.Output.Format = pyscnToml.Output.Format
@@ -241,7 +241,7 @@ func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *CloneConfig, pyscnTom
 	if pyscnToml.Output.GroupClones != nil {
 		defaults.Output.GroupClones = *pyscnToml.Output.GroupClones
 	}
-	
+
 	// Filtering config
 	if pyscnToml.Filtering.MinSimilarity >= 0 {
 		defaults.Filtering.MinSimilarity = pyscnToml.Filtering.MinSimilarity
@@ -256,7 +256,6 @@ func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *CloneConfig, pyscnTom
 		defaults.Filtering.MaxResults = pyscnToml.Filtering.MaxResults
 	}
 }
-
 
 // GetSupportedConfigFiles returns the list of supported TOML config files
 // in order of precedence

@@ -1,39 +1,39 @@
 package app
 
 import (
-    "context"
-    "fmt"
-    "io"
-    "time"
+	"context"
+	"fmt"
+	"io"
+	"time"
 
-    "github.com/ludo-technologies/pyscn/domain"
-    svc "github.com/ludo-technologies/pyscn/service"
+	"github.com/ludo-technologies/pyscn/domain"
+	svc "github.com/ludo-technologies/pyscn/service"
 )
 
 // CloneUseCase orchestrates clone detection operations
 type CloneUseCase struct {
-    service      domain.CloneService
-    fileReader   domain.FileReader
-    formatter    domain.CloneOutputFormatter
-    configLoader domain.CloneConfigurationLoader
-    output       domain.ReportWriter
+	service      domain.CloneService
+	fileReader   domain.FileReader
+	formatter    domain.CloneOutputFormatter
+	configLoader domain.CloneConfigurationLoader
+	output       domain.ReportWriter
 }
 
 // NewCloneUseCase creates a new clone use case with the given dependencies
 func NewCloneUseCase(
-    service domain.CloneService,
-    fileReader domain.FileReader,
-    formatter domain.CloneOutputFormatter,
-    configLoader domain.CloneConfigurationLoader,
+	service domain.CloneService,
+	fileReader domain.FileReader,
+	formatter domain.CloneOutputFormatter,
+	configLoader domain.CloneConfigurationLoader,
 ) *CloneUseCase {
-    return &CloneUseCase{
-        service:      service,
-        fileReader:   fileReader,
-        formatter:    formatter,
-        configLoader: configLoader,
-        // Default implementation; CLI may override via builder
-        output:       svc.NewFileOutputWriter(nil),
-    }
+	return &CloneUseCase{
+		service:      service,
+		fileReader:   fileReader,
+		formatter:    formatter,
+		configLoader: configLoader,
+		// Default implementation; CLI may override via builder
+		output: svc.NewFileOutputWriter(nil),
+	}
 }
 
 // Execute executes the clone detection use case
@@ -92,21 +92,21 @@ func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) er
 	// Step 5: Update response with timing information
 	response.Duration = time.Since(startTime).Milliseconds()
 
-    // Step 6: Format and output results
-    if !req.HasValidOutputWriter() && req.OutputPath == "" {
-        return fmt.Errorf("no valid output writer or output path specified")
-    }
+	// Step 6: Format and output results
+	if !req.HasValidOutputWriter() && req.OutputPath == "" {
+		return fmt.Errorf("no valid output writer or output path specified")
+	}
 
-    // Delegate output handling to ReportWriter
-    var out io.Writer
-    if req.OutputPath == "" {
-        out = req.OutputWriter
-    }
-    if err := uc.output.Write(out, req.OutputPath, req.OutputFormat, req.NoOpen, func(w io.Writer) error {
-        return uc.formatter.FormatCloneResponse(response, req.OutputFormat, w)
-    }); err != nil {
-        return fmt.Errorf("failed to format output: %w", err)
-    }
+	// Delegate output handling to ReportWriter
+	var out io.Writer
+	if req.OutputPath == "" {
+		out = req.OutputWriter
+	}
+	if err := uc.output.Write(out, req.OutputPath, req.OutputFormat, req.NoOpen, func(w io.Writer) error {
+		return uc.formatter.FormatCloneResponse(response, req.OutputFormat, w)
+	}); err != nil {
+		return fmt.Errorf("failed to format output: %w", err)
+	}
 
 	// Step 7: Log completion summary
 	// uc.progress.Complete(fmt.Sprintf("Clone detection completed. Found %d clone pairs in %d groups (%.2fs)",
@@ -355,11 +355,11 @@ func (uc *CloneUseCase) outputEmptyResults(req domain.CloneRequest) error {
 
 // CloneUseCaseBuilder helps build CloneUseCase with dependencies
 type CloneUseCaseBuilder struct {
-    service      domain.CloneService
-    fileReader   domain.FileReader
-    formatter    domain.CloneOutputFormatter
-    configLoader domain.CloneConfigurationLoader
-    output       domain.ReportWriter
+	service      domain.CloneService
+	fileReader   domain.FileReader
+	formatter    domain.CloneOutputFormatter
+	configLoader domain.CloneConfigurationLoader
+	output       domain.ReportWriter
 }
 
 // NewCloneUseCaseBuilder creates a new builder for CloneUseCase
@@ -391,11 +391,10 @@ func (b *CloneUseCaseBuilder) WithConfigLoader(configLoader domain.CloneConfigur
 	return b
 }
 
-
 // WithOutputWriter sets the report writer
 func (b *CloneUseCaseBuilder) WithOutputWriter(output domain.ReportWriter) *CloneUseCaseBuilder {
-    b.output = output
-    return b
+	b.output = output
+	return b
 }
 
 // Build creates the CloneUseCase with the configured dependencies
@@ -413,14 +412,14 @@ func (b *CloneUseCaseBuilder) Build() (*CloneUseCase, error) {
 		return nil, fmt.Errorf("configuration loader is required")
 	}
 
-    uc := NewCloneUseCase(
-        b.service,
-        b.fileReader,
-        b.formatter,
-        b.configLoader,
-    )
-    if b.output != nil {
-        uc.output = b.output
-    }
-    return uc, nil
+	uc := NewCloneUseCase(
+		b.service,
+		b.fileReader,
+		b.formatter,
+		b.configLoader,
+	)
+	if b.output != nil {
+		uc.output = b.output
+	}
+	return uc, nil
 }

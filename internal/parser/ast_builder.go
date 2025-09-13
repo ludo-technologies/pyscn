@@ -568,7 +568,7 @@ func (b *ASTBuilder) buildImportStatement(tsNode *sitter.Node) *Node {
 	for i := 0; i < childCount; i++ {
 		fieldName := tsNode.FieldNameForChild(i)
 		child := tsNode.Child(i)
-		
+
 		if fieldName == "name" && child != nil {
 			if child.Type() == "dotted_name" {
 				// Simple import
@@ -626,7 +626,7 @@ func (b *ASTBuilder) buildImportFromStatement(tsNode *sitter.Node) *Node {
 	for i := 0; i < childCount; i++ {
 		fieldName := tsNode.FieldNameForChild(i)
 		child := tsNode.Child(i)
-		
+
 		if fieldName == "name" && child != nil {
 			// Handle each imported name
 			if child.Type() == "dotted_name" || child.Type() == "identifier" {
@@ -1507,7 +1507,6 @@ func (b *ASTBuilder) buildAlias(tsNode *sitter.Node) *Node {
 
 	return node
 }
-
 
 // Utility methods...
 

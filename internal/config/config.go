@@ -104,8 +104,8 @@ type OutputConfig struct {
 	// MinComplexity is the minimum complexity to report (filters low values)
 	MinComplexity int `mapstructure:"min_complexity" yaml:"min_complexity"`
 
-    // Directory specifies the output directory for reports (empty = tool default, e.g., ".pyscn/reports" under current working directory)
-    Directory string `mapstructure:"directory" yaml:"directory"`
+	// Directory specifies the output directory for reports (empty = tool default, e.g., ".pyscn/reports" under current working directory)
+	Directory string `mapstructure:"directory" yaml:"directory"`
 }
 
 // DeadCodeConfig holds configuration for dead code detection
@@ -212,7 +212,7 @@ func DefaultConfig() *Config {
 		},
 		// Use unified clone configuration
 		Clones: DefaultCloneConfig(),
-		
+
 		// System analysis configuration
 		SystemAnalysis: SystemAnalysisConfig{
 			Enabled:               false, // Disabled by default - opt-in feature
@@ -224,55 +224,55 @@ func DefaultConfig() *Config {
 			UseDeadCodeData:       true,
 			GenerateUnifiedReport: true,
 		},
-		
+
 		// Dependency analysis configuration
 		Dependencies: DependencyAnalysisConfig{
-			Enabled:             false, // Disabled by default - opt-in feature
-			IncludeStdLib:       false,
-			IncludeThirdParty:   true,
-			FollowRelative:      true,
-			DetectCycles:        true,
-			CalculateMetrics:    true,
-			FindLongChains:      true,
-			MinCoupling:         0,
-			MaxCoupling:         0, // No limit
-			MinInstability:      0.0,
-			MaxDistance:         1.0,
-			SortBy:              "name",
-			ShowMatrix:          false,
-			ShowMetrics:         false,
-			ShowChains:          false,
-			GenerateDotGraph:    false,
-			CycleReporting:      "summary", // all, critical, summary
-			MaxCyclesToShow:     10,
-			ShowCyclePaths:      false,
+			Enabled:           false, // Disabled by default - opt-in feature
+			IncludeStdLib:     false,
+			IncludeThirdParty: true,
+			FollowRelative:    true,
+			DetectCycles:      true,
+			CalculateMetrics:  true,
+			FindLongChains:    true,
+			MinCoupling:       0,
+			MaxCoupling:       0, // No limit
+			MinInstability:    0.0,
+			MaxDistance:       1.0,
+			SortBy:            "name",
+			ShowMatrix:        false,
+			ShowMetrics:       false,
+			ShowChains:        false,
+			GenerateDotGraph:  false,
+			CycleReporting:    "summary", // all, critical, summary
+			MaxCyclesToShow:   10,
+			ShowCyclePaths:    false,
 		},
-		
+
 		// Architecture validation configuration
 		Architecture: ArchitectureConfig{
-			Enabled:                     false, // Disabled by default - opt-in feature
-			ValidateLayers:              true,
-			ValidateCohesion:            true,
-			ValidateResponsibility:      true,
-			Layers:                      []LayerDefinition{}, // Empty by default
-			Rules:                       []LayerRule{},       // Empty by default
-			MinCohesion:                 0.5,
-			MaxCoupling:                 10,
-			MaxResponsibilities:         3,
-			LayerViolationSeverity:      "error",
-			CohesionViolationSeverity:   "warning",
+			Enabled:                         false, // Disabled by default - opt-in feature
+			ValidateLayers:                  true,
+			ValidateCohesion:                true,
+			ValidateResponsibility:          true,
+			Layers:                          []LayerDefinition{}, // Empty by default
+			Rules:                           []LayerRule{},       // Empty by default
+			MinCohesion:                     0.5,
+			MaxCoupling:                     10,
+			MaxResponsibilities:             3,
+			LayerViolationSeverity:          "error",
+			CohesionViolationSeverity:       "warning",
 			ResponsibilityViolationSeverity: "warning",
-			ShowAllViolations:           false,
-			GroupByType:                 true,
-			IncludeSuggestions:          true,
-			MaxViolationsToShow:         20,
-			CustomPatterns:              []string{},
-			AllowedPatterns:             []string{},
-			ForbiddenPatterns:           []string{},
-			StrictMode:                  false,
-			FailOnViolations:            false,
+			ShowAllViolations:               false,
+			GroupByType:                     true,
+			IncludeSuggestions:              true,
+			MaxViolationsToShow:             20,
+			CustomPatterns:                  []string{},
+			AllowedPatterns:                 []string{},
+			ForbiddenPatterns:               []string{},
+			StrictMode:                      false,
+			FailOnViolations:                false,
 		},
-		
+
 		Output: OutputConfig{
 			Format:        "text",
 			ShowDetails:   false,
@@ -379,7 +379,7 @@ func findDefaultConfig(targetPath string) string {
 			if err == nil && !info.IsDir() {
 				absPath = filepath.Dir(absPath)
 			}
-			
+
 			// Search from target directory up to root with robust termination
 			// Handle Windows edge cases: volume roots (C:\), UNC paths (\\server\share), long paths
 			volume := filepath.VolumeName(absPath)
@@ -387,10 +387,10 @@ func findDefaultConfig(targetPath string) string {
 				if config := searchConfigInDirectory(dir, candidates); config != "" {
 					return config
 				}
-				
+
 				// Robust termination conditions for cross-platform compatibility
 				parent := filepath.Dir(dir)
-				if parent == dir || // Unix-style root reached (/), Windows UNC root (\\server)  
+				if parent == dir || // Unix-style root reached (/), Windows UNC root (\\server)
 					dir == volume || // Windows volume root reached (C:\)
 					(volume != "" && dir == volume+string(filepath.Separator)) { // Alternative volume root format
 					break
@@ -398,7 +398,7 @@ func findDefaultConfig(targetPath string) string {
 			}
 		}
 	}
-	
+
 	// Fallback to current directory
 	if config := searchConfigInDirectory(".", candidates); config != "" {
 		return config
@@ -410,14 +410,14 @@ func findDefaultConfig(targetPath string) string {
 			return config
 		}
 	}
-	
+
 	// Check ~/.config/pyscn/ (XDG default)
 	if home, err := os.UserHomeDir(); err == nil {
 		configDir := filepath.Join(home, ".config", "pyscn")
 		if config := searchConfigInDirectory(configDir, candidates); config != "" {
 			return config
 		}
-		
+
 		// Check home directory (backward compatibility)
 		if config := searchConfigInDirectory(home, candidates); config != "" {
 			return config
@@ -761,27 +761,27 @@ type DependencyAnalysisConfig struct {
 	FollowRelative    bool `mapstructure:"follow_relative" yaml:"follow_relative"`
 
 	// Analysis options
-	DetectCycles      bool `mapstructure:"detect_cycles" yaml:"detect_cycles"`
-	CalculateMetrics  bool `mapstructure:"calculate_metrics" yaml:"calculate_metrics"`
-	FindLongChains    bool `mapstructure:"find_long_chains" yaml:"find_long_chains"`
+	DetectCycles     bool `mapstructure:"detect_cycles" yaml:"detect_cycles"`
+	CalculateMetrics bool `mapstructure:"calculate_metrics" yaml:"calculate_metrics"`
+	FindLongChains   bool `mapstructure:"find_long_chains" yaml:"find_long_chains"`
 
 	// Filtering thresholds
-	MinCoupling       int     `mapstructure:"min_coupling" yaml:"min_coupling"`
-	MaxCoupling       int     `mapstructure:"max_coupling" yaml:"max_coupling"`
-	MinInstability    float64 `mapstructure:"min_instability" yaml:"min_instability"`
-	MaxDistance       float64 `mapstructure:"max_distance" yaml:"max_distance"`
+	MinCoupling    int     `mapstructure:"min_coupling" yaml:"min_coupling"`
+	MaxCoupling    int     `mapstructure:"max_coupling" yaml:"max_coupling"`
+	MinInstability float64 `mapstructure:"min_instability" yaml:"min_instability"`
+	MaxDistance    float64 `mapstructure:"max_distance" yaml:"max_distance"`
 
 	// Reporting options
-	SortBy            string `mapstructure:"sort_by" yaml:"sort_by"` // name, coupling, instability, distance, risk
-	ShowMatrix        bool   `mapstructure:"show_matrix" yaml:"show_matrix"`
-	ShowMetrics       bool   `mapstructure:"show_metrics" yaml:"show_metrics"`
-	ShowChains        bool   `mapstructure:"show_chains" yaml:"show_chains"`
-	GenerateDotGraph  bool   `mapstructure:"generate_dot_graph" yaml:"generate_dot_graph"`
+	SortBy           string `mapstructure:"sort_by" yaml:"sort_by"` // name, coupling, instability, distance, risk
+	ShowMatrix       bool   `mapstructure:"show_matrix" yaml:"show_matrix"`
+	ShowMetrics      bool   `mapstructure:"show_metrics" yaml:"show_metrics"`
+	ShowChains       bool   `mapstructure:"show_chains" yaml:"show_chains"`
+	GenerateDotGraph bool   `mapstructure:"generate_dot_graph" yaml:"generate_dot_graph"`
 
 	// Cycle analysis
-	CycleReporting    string `mapstructure:"cycle_reporting" yaml:"cycle_reporting"` // all, critical, summary
-	MaxCyclesToShow   int    `mapstructure:"max_cycles_to_show" yaml:"max_cycles_to_show"`
-	ShowCyclePaths    bool   `mapstructure:"show_cycle_paths" yaml:"show_cycle_paths"`
+	CycleReporting  string `mapstructure:"cycle_reporting" yaml:"cycle_reporting"` // all, critical, summary
+	MaxCyclesToShow int    `mapstructure:"max_cycles_to_show" yaml:"max_cycles_to_show"`
+	ShowCyclePaths  bool   `mapstructure:"show_cycle_paths" yaml:"show_cycle_paths"`
 }
 
 // ArchitectureConfig holds configuration for architecture validation
@@ -790,8 +790,8 @@ type ArchitectureConfig struct {
 	Enabled bool `mapstructure:"enabled" yaml:"enabled"`
 
 	// Validation modes
-	ValidateLayers       bool `mapstructure:"validate_layers" yaml:"validate_layers"`
-	ValidateCohesion     bool `mapstructure:"validate_cohesion" yaml:"validate_cohesion"`
+	ValidateLayers         bool `mapstructure:"validate_layers" yaml:"validate_layers"`
+	ValidateCohesion       bool `mapstructure:"validate_cohesion" yaml:"validate_cohesion"`
 	ValidateResponsibility bool `mapstructure:"validate_responsibility" yaml:"validate_responsibility"`
 
 	// Layer definitions
@@ -804,24 +804,24 @@ type ArchitectureConfig struct {
 	MaxResponsibilities int     `mapstructure:"max_responsibilities" yaml:"max_responsibilities"`
 
 	// Violation severity levels
-	LayerViolationSeverity      string `mapstructure:"layer_violation_severity" yaml:"layer_violation_severity"`
-	CohesionViolationSeverity   string `mapstructure:"cohesion_violation_severity" yaml:"cohesion_violation_severity"`
+	LayerViolationSeverity          string `mapstructure:"layer_violation_severity" yaml:"layer_violation_severity"`
+	CohesionViolationSeverity       string `mapstructure:"cohesion_violation_severity" yaml:"cohesion_violation_severity"`
 	ResponsibilityViolationSeverity string `mapstructure:"responsibility_violation_severity" yaml:"responsibility_violation_severity"`
 
 	// Reporting options
-	ShowAllViolations    bool     `mapstructure:"show_all_violations" yaml:"show_all_violations"`
-	GroupByType          bool     `mapstructure:"group_by_type" yaml:"group_by_type"`
-	IncludeSuggestions   bool     `mapstructure:"include_suggestions" yaml:"include_suggestions"`
-	MaxViolationsToShow  int      `mapstructure:"max_violations_to_show" yaml:"max_violations_to_show"`
+	ShowAllViolations   bool `mapstructure:"show_all_violations" yaml:"show_all_violations"`
+	GroupByType         bool `mapstructure:"group_by_type" yaml:"group_by_type"`
+	IncludeSuggestions  bool `mapstructure:"include_suggestions" yaml:"include_suggestions"`
+	MaxViolationsToShow int  `mapstructure:"max_violations_to_show" yaml:"max_violations_to_show"`
 
 	// Custom rules
-	CustomPatterns       []string `mapstructure:"custom_patterns" yaml:"custom_patterns"`
-	AllowedPatterns      []string `mapstructure:"allowed_patterns" yaml:"allowed_patterns"`
-	ForbiddenPatterns    []string `mapstructure:"forbidden_patterns" yaml:"forbidden_patterns"`
+	CustomPatterns    []string `mapstructure:"custom_patterns" yaml:"custom_patterns"`
+	AllowedPatterns   []string `mapstructure:"allowed_patterns" yaml:"allowed_patterns"`
+	ForbiddenPatterns []string `mapstructure:"forbidden_patterns" yaml:"forbidden_patterns"`
 
 	// Strict mode enforcement
-	StrictMode           bool `mapstructure:"strict_mode" yaml:"strict_mode"`
-	FailOnViolations     bool `mapstructure:"fail_on_violations" yaml:"fail_on_violations"`
+	StrictMode       bool `mapstructure:"strict_mode" yaml:"strict_mode"`
+	FailOnViolations bool `mapstructure:"fail_on_violations" yaml:"fail_on_violations"`
 }
 
 // LayerDefinition defines an architectural layer

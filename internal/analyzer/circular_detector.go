@@ -9,16 +9,16 @@ import (
 // CircularDependencyDetector detects circular dependencies using Tarjan's algorithm
 type CircularDependencyDetector struct {
 	graph *DependencyGraph
-	
+
 	// Tarjan's algorithm state
-	index        int
-	stack        []string
-	inStack      map[string]bool
-	indices      map[string]int
-	lowLinks     map[string]int
-	
+	index    int
+	stack    []string
+	inStack  map[string]bool
+	indices  map[string]int
+	lowLinks map[string]int
+
 	// Results
-	components   [][]string // Strongly connected components
+	components [][]string // Strongly connected components
 }
 
 // CircularDependency represents a circular dependency relationship
@@ -26,14 +26,14 @@ type CircularDependency struct {
 	Modules      []string          // Modules involved in the cycle
 	Dependencies []DependencyChain // The dependency chains that form the cycle
 	Severity     CycleSeverity     // Severity level of this cycle
-	Size         int              // Number of modules in the cycle
-	Description  string           // Human-readable description
+	Size         int               // Number of modules in the cycle
+	Description  string            // Human-readable description
 }
 
 // DependencyChain represents a chain of dependencies
 type DependencyChain struct {
 	From   string   // Starting module
-	To     string   // Ending module  
+	To     string   // Ending module
 	Path   []string // Complete dependency path
 	Length int      // Length of the chain
 }
@@ -51,20 +51,20 @@ const (
 // CircularDependencyResult contains the results of circular dependency analysis
 type CircularDependencyResult struct {
 	HasCircularDependencies bool                  // True if any cycles were found
-	TotalCycles            int                   // Total number of cycles detected
-	TotalModulesInCycles   int                   // Total number of modules involved in cycles
-	CircularDependencies   []*CircularDependency // All detected circular dependencies
-	
+	TotalCycles             int                   // Total number of cycles detected
+	TotalModulesInCycles    int                   // Total number of modules involved in cycles
+	CircularDependencies    []*CircularDependency // All detected circular dependencies
+
 	// Severity breakdown
 	LowSeverityCycles      int // Number of low severity cycles
 	MediumSeverityCycles   int // Number of medium severity cycles
 	HighSeverityCycles     int // Number of high severity cycles
 	CriticalSeverityCycles int // Number of critical severity cycles
-	
+
 	// Most problematic cycles
-	LargestCycle         *CircularDependency // Cycle with most modules
-	MostComplexCycle     *CircularDependency // Cycle with most dependency chains
-	CoreInfrastructure   []string           // Modules that appear in multiple cycles
+	LargestCycle       *CircularDependency // Cycle with most modules
+	MostComplexCycle   *CircularDependency // Cycle with most dependency chains
+	CoreInfrastructure []string            // Modules that appear in multiple cycles
 }
 
 // NewCircularDependencyDetector creates a new circular dependency detector
@@ -82,26 +82,26 @@ func NewCircularDependencyDetector(graph *DependencyGraph) *CircularDependencyDe
 func (cdd *CircularDependencyDetector) DetectCircularDependencies() *CircularDependencyResult {
 	// Reset state
 	cdd.resetState()
-	
+
 	// Run Tarjan's algorithm to find strongly connected components
 	cdd.findStronglyConnectedComponents()
-	
+
 	// Process components to identify circular dependencies
 	circularDeps := cdd.processComponents()
-	
+
 	// Create result
 	result := &CircularDependencyResult{
 		HasCircularDependencies: len(circularDeps) > 0,
-		TotalCycles:            len(circularDeps),
-		CircularDependencies:   circularDeps,
+		TotalCycles:             len(circularDeps),
+		CircularDependencies:    circularDeps,
 	}
-	
+
 	// Calculate statistics
 	cdd.calculateStatistics(result)
-	
+
 	// Update graph with results
 	cdd.updateGraphWithCycles()
-	
+
 	return result
 }
 
@@ -131,11 +131,11 @@ func (cdd *CircularDependencyDetector) strongConnect(module string) {
 	cdd.indices[module] = cdd.index
 	cdd.lowLinks[module] = cdd.index
 	cdd.index++
-	
+
 	// Push the node onto the stack
 	cdd.stack = append(cdd.stack, module)
 	cdd.inStack[module] = true
-	
+
 	// Consider successors of the current module
 	if node := cdd.graph.Nodes[module]; node != nil {
 		for dependency := range node.Dependencies {
@@ -149,7 +149,7 @@ func (cdd *CircularDependencyDetector) strongConnect(module string) {
 			}
 		}
 	}
-	
+
 	// If this is a root node, pop the stack and create an SCC
 	if cdd.lowLinks[module] == cdd.indices[module] {
 		var component []string
@@ -159,12 +159,12 @@ func (cdd *CircularDependencyDetector) strongConnect(module string) {
 			cdd.stack = cdd.stack[:len(cdd.stack)-1]
 			cdd.inStack[top] = false
 			component = append(component, top)
-			
+
 			if top == module {
 				break
 			}
 		}
-		
+
 		// Only add components with more than one module (cycles)
 		if len(component) > 1 {
 			// Sort component for consistent ordering
@@ -177,30 +177,30 @@ func (cdd *CircularDependencyDetector) strongConnect(module string) {
 // processComponents converts strongly connected components to circular dependencies
 func (cdd *CircularDependencyDetector) processComponents() []*CircularDependency {
 	var circularDeps []*CircularDependency
-	
+
 	for _, component := range cdd.components {
 		if len(component) <= 1 {
 			continue // Skip non-circular components
 		}
-		
+
 		// Create circular dependency
 		circularDep := &CircularDependency{
 			Modules: component,
 			Size:    len(component),
 		}
-		
+
 		// Find all dependency chains within the component
 		circularDep.Dependencies = cdd.findDependencyChains(component)
-		
+
 		// Assess severity
 		circularDep.Severity = cdd.assessCycleSeverity(circularDep)
-		
+
 		// Generate description
 		circularDep.Description = cdd.generateCycleDescription(circularDep)
-		
+
 		circularDeps = append(circularDeps, circularDep)
 	}
-	
+
 	// Sort by severity and size
 	sort.Slice(circularDeps, func(i, j int) bool {
 		if circularDeps[i].Severity != circularDeps[j].Severity {
@@ -208,7 +208,7 @@ func (cdd *CircularDependencyDetector) processComponents() []*CircularDependency
 		}
 		return circularDeps[i].Size > circularDeps[j].Size
 	})
-	
+
 	return circularDeps
 }
 
@@ -216,12 +216,12 @@ func (cdd *CircularDependencyDetector) processComponents() []*CircularDependency
 func (cdd *CircularDependencyDetector) findDependencyChains(modules []string) []DependencyChain {
 	var chains []DependencyChain
 	moduleSet := make(map[string]bool)
-	
+
 	// Create module set for quick lookup
 	for _, module := range modules {
 		moduleSet[module] = true
 	}
-	
+
 	// Find direct dependencies between modules in the component
 	for _, from := range modules {
 		if node := cdd.graph.Nodes[from]; node != nil {
@@ -242,7 +242,7 @@ func (cdd *CircularDependencyDetector) findDependencyChains(modules []string) []
 			}
 		}
 	}
-	
+
 	return chains
 }
 
@@ -251,27 +251,27 @@ func (cdd *CircularDependencyDetector) findPathInComponent(from, to string, modu
 	if from == to {
 		return []string{from}
 	}
-	
+
 	// Simple BFS within the component
 	queue := [][]string{{from}}
 	visited := make(map[string]bool)
 	visited[from] = true
-	
+
 	for len(queue) > 0 {
 		path := queue[0]
 		queue = queue[1:]
 		current := path[len(path)-1]
-		
+
 		if node := cdd.graph.Nodes[current]; node != nil {
 			for dependency := range node.Dependencies {
 				if !moduleSet[dependency] {
 					continue // Skip modules outside the component
 				}
-				
+
 				if dependency == to {
 					return append(path, dependency)
 				}
-				
+
 				if !visited[dependency] {
 					visited[dependency] = true
 					newPath := make([]string, len(path)+1)
@@ -282,14 +282,14 @@ func (cdd *CircularDependencyDetector) findPathInComponent(from, to string, modu
 			}
 		}
 	}
-	
+
 	return nil // No path found
 }
 
 // assessCycleSeverity determines the severity of a circular dependency
 func (cdd *CircularDependencyDetector) assessCycleSeverity(cycle *CircularDependency) CycleSeverity {
 	size := cycle.Size
-	
+
 	// Check if any modules are core infrastructure (high fan-in)
 	hasCore := false
 	for _, module := range cycle.Modules {
@@ -300,7 +300,7 @@ func (cdd *CircularDependencyDetector) assessCycleSeverity(cycle *CircularDepend
 			}
 		}
 	}
-	
+
 	if hasCore || size >= 10 {
 		return CycleSeverityCritical
 	} else if size >= 6 {
@@ -308,7 +308,7 @@ func (cdd *CircularDependencyDetector) assessCycleSeverity(cycle *CircularDepend
 	} else if size >= 3 {
 		return CycleSeverityMedium
 	}
-	
+
 	return CycleSeverityLow
 }
 
@@ -318,7 +318,7 @@ func (cdd *CircularDependencyDetector) generateCycleDescription(cycle *CircularD
 		return fmt.Sprintf("Direct circular dependency between %s and %s",
 			cycle.Modules[0], cycle.Modules[1])
 	}
-	
+
 	return fmt.Sprintf("Circular dependency involving %d modules: %s",
 		len(cycle.Modules), strings.Join(cycle.Modules, " → "))
 }
@@ -328,15 +328,15 @@ func (cdd *CircularDependencyDetector) calculateStatistics(result *CircularDepen
 	if len(result.CircularDependencies) == 0 {
 		return
 	}
-	
+
 	// Count modules in cycles
 	modulesInCycles := make(map[string]int)
 	var largest *CircularDependency
 	var mostComplex *CircularDependency
-	
+
 	maxSize := 0
 	maxChains := 0
-	
+
 	// Process each circular dependency
 	for _, cycle := range result.CircularDependencies {
 		// Count by severity
@@ -350,18 +350,18 @@ func (cdd *CircularDependencyDetector) calculateStatistics(result *CircularDepen
 		case CycleSeverityCritical:
 			result.CriticalSeverityCycles++
 		}
-		
+
 		// Track modules
 		for _, module := range cycle.Modules {
 			modulesInCycles[module]++
 		}
-		
+
 		// Find largest cycle
 		if cycle.Size > maxSize {
 			maxSize = cycle.Size
 			largest = cycle
 		}
-		
+
 		// Find most complex cycle (most dependency chains)
 		chainCount := len(cycle.Dependencies)
 		if chainCount > maxChains {
@@ -369,11 +369,11 @@ func (cdd *CircularDependencyDetector) calculateStatistics(result *CircularDepen
 			mostComplex = cycle
 		}
 	}
-	
+
 	result.TotalModulesInCycles = len(modulesInCycles)
 	result.LargestCycle = largest
 	result.MostComplexCycle = mostComplex
-	
+
 	// Identify core infrastructure (modules in multiple cycles)
 	var coreInfra []string
 	for module, count := range modulesInCycles {
@@ -389,7 +389,7 @@ func (cdd *CircularDependencyDetector) calculateStatistics(result *CircularDepen
 func (cdd *CircularDependencyDetector) updateGraphWithCycles() {
 	// Clear existing cycle information
 	cdd.graph.CyclicGroups = make([][]string, 0)
-	
+
 	// Add detected cycles
 	for _, component := range cdd.components {
 		if len(component) > 1 {
@@ -440,7 +440,7 @@ func HasCircularDependencies(graph *DependencyGraph) bool {
 // FindSimpleCycles finds all simple cycles (2-module cycles) in the graph
 func FindSimpleCycles(graph *DependencyGraph) []*CircularDependency {
 	var simpleCycles []*CircularDependency
-	
+
 	// Check each pair of modules for mutual dependencies
 	modules := graph.GetModuleNames()
 	for i, moduleA := range modules {
@@ -448,20 +448,20 @@ func FindSimpleCycles(graph *DependencyGraph) []*CircularDependency {
 		if nodeA == nil {
 			continue
 		}
-		
+
 		for j := i + 1; j < len(modules); j++ {
 			moduleB := modules[j]
 			nodeB := graph.Nodes[moduleB]
 			if nodeB == nil {
 				continue
 			}
-			
+
 			// Check if A depends on B and B depends on A
 			if nodeA.Dependencies[moduleB] && nodeB.Dependencies[moduleA] {
 				cycle := &CircularDependency{
-					Modules: []string{moduleA, moduleB},
-					Size:    2,
-					Severity: CycleSeverityLow,
+					Modules:     []string{moduleA, moduleB},
+					Size:        2,
+					Severity:    CycleSeverityLow,
 					Description: fmt.Sprintf("Direct circular dependency between %s and %s", moduleA, moduleB),
 					Dependencies: []DependencyChain{
 						{From: moduleA, To: moduleB, Path: []string{moduleA, moduleB}, Length: 1},
@@ -472,7 +472,7 @@ func FindSimpleCycles(graph *DependencyGraph) []*CircularDependency {
 			}
 		}
 	}
-	
+
 	return simpleCycles
 }
 
@@ -481,28 +481,28 @@ func GetCycleBreakingSuggestions(result *CircularDependencyResult) []string {
 	if !result.HasCircularDependencies {
 		return nil
 	}
-	
+
 	var suggestions []string
-	
+
 	// Suggest breaking the largest cycle first
 	if result.LargestCycle != nil {
 		suggestions = append(suggestions,
 			fmt.Sprintf("Break the largest cycle (%d modules) by extracting common functionality into a separate module",
 				result.LargestCycle.Size))
 	}
-	
+
 	// Suggest refactoring core infrastructure
 	if len(result.CoreInfrastructure) > 0 {
 		suggestions = append(suggestions,
 			fmt.Sprintf("Refactor core modules that appear in multiple cycles: %s",
 				strings.Join(result.CoreInfrastructure, ", ")))
 	}
-	
+
 	// Suggest dependency inversion for critical cycles
 	if result.CriticalSeverityCycles > 0 {
 		suggestions = append(suggestions,
 			"Consider applying Dependency Inversion Principle to critical cycles")
 	}
-	
+
 	return suggestions
 }

@@ -101,7 +101,7 @@ func init() {
 	cboCmd.Flags().StringSliceVar(&cboIncludePatterns, "include", []string{"*.py"}, "Include file patterns")
 	cboCmd.Flags().StringSliceVar(&cboExcludePatterns, "exclude", []string{}, "Exclude file patterns")
 
-	// Configuration  
+	// Configuration
 	cboCmd.Flags().StringVarP(&cboConfigPath, "config", "c", "", "Configuration file path")
 }
 
@@ -111,7 +111,7 @@ func runCBOCommand(cmd *cobra.Command, args []string) error {
 	outputPath := ""
 	outputWriter := os.Stdout
 	extension := ""
-	
+
 	if cboJSON {
 		outputFormat = domain.OutputFormatJSON
 		extension = "json"

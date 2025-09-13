@@ -146,9 +146,9 @@ func (s *CBOServiceImpl) analyzeFile(ctx context.Context, filePath string, req d
 				ImportDependencies:          cboResult.ImportDependencies,
 				DependentClasses:            cboResult.DependentClasses,
 			},
-			RiskLevel:    domain.RiskLevel(cboResult.RiskLevel),
-			IsAbstract:   cboResult.IsAbstract,
-			BaseClasses:  cboResult.BaseClasses,
+			RiskLevel:   domain.RiskLevel(cboResult.RiskLevel),
+			IsAbstract:  cboResult.IsAbstract,
+			BaseClasses: cboResult.BaseClasses,
 		}
 
 		classes = append(classes, class)
@@ -232,11 +232,11 @@ func (s *CBOServiceImpl) generateSummary(classes []domain.ClassCoupling, filesAn
 	}
 
 	summary := domain.CBOSummary{
-		TotalClasses:        len(classes),
-		ClassesAnalyzed:     len(classes),
-		FilesAnalyzed:       filesAnalyzed,
-		CBODistribution:     make(map[string]int),
-		MostCoupledClasses:  []domain.ClassCoupling{},
+		TotalClasses:       len(classes),
+		ClassesAnalyzed:    len(classes),
+		FilesAnalyzed:      filesAnalyzed,
+		CBODistribution:    make(map[string]int),
+		MostCoupledClasses: []domain.ClassCoupling{},
 	}
 
 	// Calculate statistics
@@ -323,15 +323,15 @@ func (s *CBOServiceImpl) buildCBOOptions(req domain.CBORequest) *analyzer.CBOOpt
 // buildConfigForResponse creates config info for response
 func (s *CBOServiceImpl) buildConfigForResponse(req domain.CBORequest) interface{} {
 	return map[string]interface{}{
-		"minCBO":         req.MinCBO,
-		"maxCBO":         req.MaxCBO,
-		"showZeros":      req.ShowZeros,
-		"lowThreshold":   req.LowThreshold,
+		"minCBO":          req.MinCBO,
+		"maxCBO":          req.MaxCBO,
+		"showZeros":       req.ShowZeros,
+		"lowThreshold":    req.LowThreshold,
 		"mediumThreshold": req.MediumThreshold,
 		"includeBuiltins": req.IncludeBuiltins,
 		"includeImports":  req.IncludeImports,
-		"outputFormat":   req.OutputFormat,
-		"sortBy":         req.SortBy,
+		"outputFormat":    req.OutputFormat,
+		"sortBy":          req.SortBy,
 	}
 }
 

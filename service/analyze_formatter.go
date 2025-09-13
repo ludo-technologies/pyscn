@@ -1,13 +1,13 @@
 package service
 
 import (
-    "fmt"
-    "html/template"
-    "io"
-    "strings"
-    "time"
+	"fmt"
+	"html/template"
+	"io"
+	"strings"
+	"time"
 
-    "github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // AnalyzeFormatter handles formatting of unified analysis reports
@@ -28,20 +28,20 @@ func NewAnalyzeFormatter() *AnalyzeFormatter {
 
 // Write formats and writes the unified analysis response
 func (f *AnalyzeFormatter) Write(response *domain.AnalyzeResponse, format domain.OutputFormat, writer io.Writer) error {
-    switch format {
-    case domain.OutputFormatText:
-        return f.writeText(response, writer)
-    case domain.OutputFormatJSON:
-        return WriteJSON(writer, response)
-    case domain.OutputFormatYAML:
-        return WriteYAML(writer, response)
-    case domain.OutputFormatCSV:
-        return f.writeCSV(response, writer)
-    case domain.OutputFormatHTML:
-        return f.writeHTML(response, writer)
-    default:
-        return domain.NewUnsupportedFormatError(string(format))
-    }
+	switch format {
+	case domain.OutputFormatText:
+		return f.writeText(response, writer)
+	case domain.OutputFormatJSON:
+		return WriteJSON(writer, response)
+	case domain.OutputFormatYAML:
+		return WriteYAML(writer, response)
+	case domain.OutputFormatCSV:
+		return f.writeCSV(response, writer)
+	case domain.OutputFormatHTML:
+		return f.writeHTML(response, writer)
+	default:
+		return domain.NewUnsupportedFormatError(string(format))
+	}
 }
 
 // writeText formats the response as plain text
@@ -53,8 +53,8 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 
 	// Overall health and duration
 	healthStats := map[string]interface{}{
-		"Health Score":       fmt.Sprintf("%d/100 (%s)", response.Summary.HealthScore, response.Summary.Grade),
-		"Analysis Duration":  fmt.Sprintf("%.2fs", float64(response.Duration)/1000.0),
+		"Health Score":      fmt.Sprintf("%d/100 (%s)", response.Summary.HealthScore, response.Summary.Grade),
+		"Analysis Duration": fmt.Sprintf("%.2fs", float64(response.Duration)/1000.0),
 		"Generated":         response.GeneratedAt.Format(time.RFC3339),
 	}
 	fmt.Fprint(writer, utils.FormatSummaryStats(healthStats))
@@ -100,28 +100,28 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 	// Recommendations
 	fmt.Fprint(writer, utils.FormatSectionHeader("RECOMMENDATIONS"))
 	recommendationCount := 0
-	
+
 	if response.Summary.HighComplexityCount > 0 {
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•", 
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•",
 			fmt.Sprintf("Refactor %d high-complexity functions", response.Summary.HighComplexityCount)))
 		recommendationCount++
 	}
 	if response.Summary.DeadCodeCount > 0 {
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•", 
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•",
 			fmt.Sprintf("Remove %d dead code segments", response.Summary.DeadCodeCount)))
 		recommendationCount++
 	}
 	if response.Summary.CodeDuplication > 10 {
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•", 
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•",
 			fmt.Sprintf("Reduce code duplication (currently %.1f%%)", response.Summary.CodeDuplication)))
 		recommendationCount++
 	}
 	if response.Summary.HighCouplingClasses > 0 {
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•", 
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•",
 			fmt.Sprintf("Reduce coupling in %d high-dependency classes", response.Summary.HighCouplingClasses)))
 		recommendationCount++
 	}
-	
+
 	if recommendationCount == 0 {
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Status", "No major issues detected"))
 	}
@@ -134,7 +134,7 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.Writer) error {
 	// Write header
 	fmt.Fprintf(writer, "Metric,Value\n")
-	
+
 	// Write summary metrics
 	fmt.Fprintf(writer, "Health Score,%d\n", response.Summary.HealthScore)
 	fmt.Fprintf(writer, "Grade,%s\n", response.Summary.Grade)
@@ -150,7 +150,7 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	fmt.Fprintf(writer, "Total Classes Analyzed,%d\n", response.Summary.CBOClasses)
 	fmt.Fprintf(writer, "High Dependency Classes,%d\n", response.Summary.HighCouplingClasses)
 	fmt.Fprintf(writer, "Average Dependencies,%.2f\n", response.Summary.AverageCoupling)
-	
+
 	return nil
 }
 

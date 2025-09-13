@@ -184,16 +184,16 @@ func TestAPTEDAnalyzer_ComputeSimilarity(t *testing.T) {
 			delta:              0.001,
 		},
 		{
-			name: "identical single nodes",
-			tree1: NewTreeNode(1, "A"),
-			tree2: NewTreeNode(2, "A"),
+			name:               "identical single nodes",
+			tree1:              NewTreeNode(1, "A"),
+			tree2:              NewTreeNode(2, "A"),
 			expectedSimilarity: 1.0, // Same label, distance = 0
 			delta:              0.001,
 		},
 		{
-			name: "different single nodes",
-			tree1: NewTreeNode(1, "A"),
-			tree2: NewTreeNode(2, "B"),
+			name:               "different single nodes",
+			tree1:              NewTreeNode(1, "A"),
+			tree2:              NewTreeNode(2, "B"),
 			expectedSimilarity: 0.5, // distance = 1 (rename), total size = 2
 			delta:              0.001,
 		},
@@ -265,7 +265,7 @@ func TestAPTEDAnalyzer_ComputeSimilarity(t *testing.T) {
 			delta:              0.001,
 		},
 		{
-			name: "trees with very different sizes",
+			name:  "trees with very different sizes",
 			tree1: NewTreeNode(1, "A"),
 			tree2: func() *TreeNode {
 				root := NewTreeNode(1, "A")
@@ -282,16 +282,16 @@ func TestAPTEDAnalyzer_ComputeSimilarity(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			similarity := analyzer.ComputeSimilarity(tt.tree1, tt.tree2)
-			assert.InDelta(t, tt.expectedSimilarity, similarity, tt.delta, 
+			assert.InDelta(t, tt.expectedSimilarity, similarity, tt.delta,
 				"Similarity should be %f but got %f", tt.expectedSimilarity, similarity)
-			
+
 			// Verify similarity is always in [0, 1] range
 			assert.GreaterOrEqual(t, similarity, 0.0, "Similarity should be >= 0")
 			assert.LessOrEqual(t, similarity, 1.0, "Similarity should be <= 1")
-			
+
 			// Verify symmetry: similarity(A, B) == similarity(B, A)
 			reverseSimilarity := analyzer.ComputeSimilarity(tt.tree2, tt.tree1)
-			assert.InDelta(t, similarity, reverseSimilarity, 0.001, 
+			assert.InDelta(t, similarity, reverseSimilarity, 0.001,
 				"Similarity should be symmetric")
 		})
 	}

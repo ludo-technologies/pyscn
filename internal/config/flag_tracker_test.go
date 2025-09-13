@@ -181,7 +181,7 @@ func TestFlagTracker_MergeMethods(t *testing.T) {
 
 func TestFlagTracker_NilInitialization(t *testing.T) {
 	ft := NewFlagTrackerWithFlags(nil)
-	
+
 	// Should not panic and should work normally
 	ft.Set("test")
 	if !ft.WasSet("test") {

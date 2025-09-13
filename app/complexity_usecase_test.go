@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // Mock implementations
@@ -118,15 +118,15 @@ func createMockComplexityResponse() *domain.ComplexityResponse {
 			},
 		},
 		Summary: domain.ComplexitySummary{
-			FilesAnalyzed:           1,
-			TotalFunctions:          1,
-			AverageComplexity:       5.0,
-			MaxComplexity:           5,
-			MinComplexity:           5,
-			HighRiskFunctions:       0,
-			MediumRiskFunctions:     1,
-			LowRiskFunctions:        0,
-			ComplexityDistribution:  map[string]int{"5": 1},
+			FilesAnalyzed:          1,
+			TotalFunctions:         1,
+			AverageComplexity:      5.0,
+			MaxComplexity:          5,
+			MinComplexity:          5,
+			HighRiskFunctions:      0,
+			MediumRiskFunctions:    1,
+			LowRiskFunctions:       0,
+			ComplexityDistribution: map[string]int{"5": 1},
 		},
 		GeneratedAt: "2025-01-01T00:00:00Z",
 	}
@@ -187,13 +187,13 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 				// No mocks needed - validation fails before any service calls
 			},
 			request: domain.ComplexityRequest{
-				Paths:         []string{"/test/file.py"},
-				OutputWriter:  os.Stdout,
-				MinComplexity: -1,
-				LowThreshold:  3,
+				Paths:           []string{"/test/file.py"},
+				OutputWriter:    os.Stdout,
+				MinComplexity:   -1,
+				LowThreshold:    3,
 				MediumThreshold: 7,
-				OutputFormat:  domain.OutputFormatText,
-				SortBy:        domain.SortByComplexity,
+				OutputFormat:    domain.OutputFormatText,
+				SortBy:          domain.SortByComplexity,
 			},
 			expectError: true,
 			errorType:   "*domain.DomainError",
@@ -324,7 +324,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 				}
 				mergedReq := createValidComplexityRequest()
 				mergedReq.MinComplexity = 2
-				
+
 				configLoader.On("LoadConfig", "/config.yaml").Return(configReq, nil)
 				configLoader.On("MergeConfig", configReq, mock.AnythingOfType("*domain.ComplexityRequest")).
 					Return(&mergedReq)
@@ -347,7 +347,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			useCase, service, fileReader, formatter, configLoader := setupComplexityUseCaseMocks()
-			
+
 			tt.setupMocks(service, fileReader, formatter, configLoader)
 
 			err := useCase.Execute(context.Background(), tt.request)
@@ -369,7 +369,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			})
+		})
 	}
 }
 
@@ -425,7 +425,7 @@ func TestComplexityUseCase_AnalyzeAndReturn(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			useCase, service, fileReader, formatter, configLoader := setupComplexityUseCaseMocks()
-			
+
 			tt.setupMocks(service, fileReader, formatter, configLoader)
 
 			response, err := useCase.AnalyzeAndReturn(context.Background(), tt.request)
@@ -448,7 +448,7 @@ func TestComplexityUseCase_AnalyzeAndReturn(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			})
+		})
 	}
 }
 
@@ -568,7 +568,7 @@ func TestComplexityUseCase_validateRequest(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := useCase.validateRequest(tt.request)
-			
+
 			if tt.wantErr == "" {
 				assert.NoError(t, err)
 			} else {
@@ -614,7 +614,7 @@ func TestComplexityUseCase_AnalyzeFile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			useCase, service, fileReader, formatter, configLoader := setupComplexityUseCaseMocks()
-			
+
 			tt.setupMocks(service, fileReader, formatter, configLoader)
 
 			req := createValidComplexityRequest()
@@ -634,7 +634,7 @@ func TestComplexityUseCase_AnalyzeFile(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
-			})
+		})
 	}
 }
 

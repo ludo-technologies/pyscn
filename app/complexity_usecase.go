@@ -1,38 +1,38 @@
 package app
 
 import (
-    "context"
-    "fmt"
-    "io"
-    "time"
+	"context"
+	"fmt"
+	"io"
+	"time"
 
-    "github.com/ludo-technologies/pyscn/domain"
-    svc "github.com/ludo-technologies/pyscn/service"
+	"github.com/ludo-technologies/pyscn/domain"
+	svc "github.com/ludo-technologies/pyscn/service"
 )
 
 // ComplexityUseCase orchestrates the complexity analysis workflow
 type ComplexityUseCase struct {
-    service      domain.ComplexityService
-    fileReader   domain.FileReader
-    formatter    domain.OutputFormatter
-    configLoader domain.ConfigurationLoader
-    output       domain.ReportWriter
+	service      domain.ComplexityService
+	fileReader   domain.FileReader
+	formatter    domain.OutputFormatter
+	configLoader domain.ConfigurationLoader
+	output       domain.ReportWriter
 }
 
 // NewComplexityUseCase creates a new complexity use case
 func NewComplexityUseCase(
-    service domain.ComplexityService,
-    fileReader domain.FileReader,
-    formatter domain.OutputFormatter,
-    configLoader domain.ConfigurationLoader,
+	service domain.ComplexityService,
+	fileReader domain.FileReader,
+	formatter domain.OutputFormatter,
+	configLoader domain.ConfigurationLoader,
 ) *ComplexityUseCase {
-    return &ComplexityUseCase{
-        service:      service,
-        fileReader:   fileReader,
-        formatter:    formatter,
-        configLoader: configLoader,
-        output:       svc.NewFileOutputWriter(nil),
-    }
+	return &ComplexityUseCase{
+		service:      service,
+		fileReader:   fileReader,
+		formatter:    formatter,
+		configLoader: configLoader,
+		output:       svc.NewFileOutputWriter(nil),
+	}
 }
 
 // Execute performs the complete complexity analysis workflow
@@ -74,16 +74,16 @@ func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityR
 		return domain.NewAnalysisError("complexity analysis failed", err)
 	}
 
-    // Delegate output handling to ReportWriter
-    var out io.Writer
-    if finalReq.OutputPath == "" {
-        out = finalReq.OutputWriter
-    }
-    if err := uc.output.Write(out, finalReq.OutputPath, finalReq.OutputFormat, finalReq.NoOpen, func(w io.Writer) error {
-        return uc.formatter.Write(response, finalReq.OutputFormat, w)
-    }); err != nil {
-        return domain.NewOutputError("failed to write output", err)
-    }
+	// Delegate output handling to ReportWriter
+	var out io.Writer
+	if finalReq.OutputPath == "" {
+		out = finalReq.OutputWriter
+	}
+	if err := uc.output.Write(out, finalReq.OutputPath, finalReq.OutputFormat, finalReq.NoOpen, func(w io.Writer) error {
+		return uc.formatter.Write(response, finalReq.OutputFormat, w)
+	}); err != nil {
+		return domain.NewOutputError("failed to write output", err)
+	}
 
 	return nil
 }
@@ -158,16 +158,16 @@ func (uc *ComplexityUseCase) AnalyzeFile(ctx context.Context, filePath string, r
 		return domain.NewAnalysisError("file analysis failed", err)
 	}
 
-    // Delegate output handling to ReportWriter
-    var out2 io.Writer
-    if finalReq.OutputPath == "" {
-        out2 = finalReq.OutputWriter
-    }
-    if err := uc.output.Write(out2, finalReq.OutputPath, finalReq.OutputFormat, finalReq.NoOpen, func(w io.Writer) error {
-        return uc.formatter.Write(response, finalReq.OutputFormat, w)
-    }); err != nil {
-        return domain.NewOutputError("failed to write output", err)
-    }
+	// Delegate output handling to ReportWriter
+	var out2 io.Writer
+	if finalReq.OutputPath == "" {
+		out2 = finalReq.OutputWriter
+	}
+	if err := uc.output.Write(out2, finalReq.OutputPath, finalReq.OutputFormat, finalReq.NoOpen, func(w io.Writer) error {
+		return uc.formatter.Write(response, finalReq.OutputFormat, w)
+	}); err != nil {
+		return domain.NewOutputError("failed to write output", err)
+	}
 
 	return nil
 }
@@ -252,11 +252,11 @@ func (uc *ComplexityUseCase) loadAndMergeConfig(req domain.ComplexityRequest) (d
 
 // ComplexityUseCaseBuilder provides a builder pattern for creating ComplexityUseCase
 type ComplexityUseCaseBuilder struct {
-    service      domain.ComplexityService
-    fileReader   domain.FileReader
-    formatter    domain.OutputFormatter
-    configLoader domain.ConfigurationLoader
-    output       domain.ReportWriter
+	service      domain.ComplexityService
+	fileReader   domain.FileReader
+	formatter    domain.OutputFormatter
+	configLoader domain.ConfigurationLoader
+	output       domain.ReportWriter
 }
 
 // NewComplexityUseCaseBuilder creates a new builder
@@ -288,11 +288,10 @@ func (b *ComplexityUseCaseBuilder) WithConfigLoader(configLoader domain.Configur
 	return b
 }
 
-
 // WithOutputWriter sets the report writer
 func (b *ComplexityUseCaseBuilder) WithOutputWriter(output domain.ReportWriter) *ComplexityUseCaseBuilder {
-    b.output = output
-    return b
+	b.output = output
+	return b
 }
 
 // Build creates the ComplexityUseCase with the configured dependencies
@@ -313,16 +312,16 @@ func (b *ComplexityUseCaseBuilder) Build() (*ComplexityUseCase, error) {
 		b.configLoader = nil
 	}
 
-    uc := NewComplexityUseCase(
-        b.service,
-        b.fileReader,
-        b.formatter,
-        b.configLoader,
-    )
-    if b.output != nil {
-        uc.output = b.output
-    }
-    return uc, nil
+	uc := NewComplexityUseCase(
+		b.service,
+		b.fileReader,
+		b.formatter,
+		b.configLoader,
+	)
+	if b.output != nil {
+		uc.output = b.output
+	}
+	return uc, nil
 }
 
 // BuildWithDefaults creates the ComplexityUseCase with default implementations for optional dependencies
@@ -343,16 +342,16 @@ func (b *ComplexityUseCaseBuilder) BuildWithDefaults() (*ComplexityUseCase, erro
 		b.configLoader = &noOpConfigLoader{}
 	}
 
-    uc := NewComplexityUseCase(
-        b.service,
-        b.fileReader,
-        b.formatter,
-        b.configLoader,
-    )
-    if b.output != nil {
-        uc.output = b.output
-    }
-    return uc, nil
+	uc := NewComplexityUseCase(
+		b.service,
+		b.fileReader,
+		b.formatter,
+		b.configLoader,
+	)
+	if b.output != nil {
+		uc.output = b.output
+	}
+	return uc, nil
 }
 
 // noOpConfigLoader is a no-op implementation of ConfigurationLoader
@@ -369,7 +368,6 @@ func (n *noOpConfigLoader) LoadDefaultConfig() *domain.ComplexityRequest {
 func (n *noOpConfigLoader) MergeConfig(base *domain.ComplexityRequest, override *domain.ComplexityRequest) *domain.ComplexityRequest {
 	return override
 }
-
 
 // UseCaseOptions provides configuration options for the use case
 type UseCaseOptions struct {

@@ -72,26 +72,26 @@ func (cl *CloneConfigurationLoaderWithFlags) MergeConfig(base *domain.CloneReque
 		// If a specific format was set (not text), use it
 		if override.OutputFormat != domain.OutputFormatText {
 			merged.OutputFormat = override.OutputFormat
-		} else if cl.flagTracker.WasSet("html") || cl.flagTracker.WasSet("json") || 
+		} else if cl.flagTracker.WasSet("html") || cl.flagTracker.WasSet("json") ||
 			cl.flagTracker.WasSet("csv") || cl.flagTracker.WasSet("yaml") {
 			// If any format flag was set, use the override format
 			merged.OutputFormat = override.OutputFormat
 		}
 	}
-	
+
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
-	
+
 	// Always preserve output path and no-open flag from override (command line)
 	// These are generated based on format flags, not set directly
 	if override.OutputPath != "" {
 		merged.OutputPath = override.OutputPath
 	}
-	
+
 	// Always preserve NoOpen from override
 	merged.NoOpen = override.NoOpen
-	
+
 	if cl.flagTracker.WasSet("sort") {
 		merged.SortBy = override.SortBy
 	}

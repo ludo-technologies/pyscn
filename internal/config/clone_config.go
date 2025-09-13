@@ -120,10 +120,10 @@ type PerformanceConfig struct {
 type GroupingConfig struct {
 	// Grouping strategy: connected, star, complete_linkage, k_core
 	Mode string `mapstructure:"mode" yaml:"mode" json:"mode"`
-	
+
 	// Minimum similarity threshold for group membership
 	Threshold float64 `mapstructure:"threshold" yaml:"threshold" json:"threshold"`
-	
+
 	// K value for k-core mode (minimum neighbors)
 	KCoreK int `mapstructure:"k_core_k" yaml:"k_core_k" json:"k_core_k"`
 }
@@ -132,13 +132,13 @@ type GroupingConfig struct {
 type LSHConfig struct {
 	// Whether to enable LSH acceleration: true, false, "auto"
 	Enabled string `mapstructure:"enabled" yaml:"enabled" json:"enabled"`
-	
+
 	// Fragment count threshold for auto-enabling LSH
 	AutoThreshold int `mapstructure:"auto_threshold" yaml:"auto_threshold" json:"auto_threshold"`
-	
+
 	// LSH similarity threshold for candidate generation
 	SimilarityThreshold float64 `mapstructure:"similarity_threshold" yaml:"similarity_threshold" json:"similarity_threshold"`
-	
+
 	// LSH parameters (advanced)
 	Bands  int `mapstructure:"bands" yaml:"bands" json:"bands"`
 	Rows   int `mapstructure:"rows" yaml:"rows" json:"rows"`
