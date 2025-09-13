@@ -53,17 +53,17 @@ This command performs comprehensive dependency analysis including:
 • Architecture quality assessment
 • Optional architecture validation against defined layer rules
 
-Architecture Validation:
-Automatically validates dependencies against architecture rules. If no rules
-are defined in pyproject.toml or .pyscn.toml, automatically detects common
-patterns (api/views → services → models → db).
+Architecture Validation (--validate):
+When enabled, validates dependencies against architecture rules defined in
+pyproject.toml ([tool.pyscn.architecture]) or .pyscn.toml. Use --auto-detect
+to automatically identify common patterns when no rules are defined.
 
 Examples:
-  pyscn deps src/                  # Analyze with auto-detected validation
-  pyscn deps --html src/           # Generate interactive HTML report with validation
-  pyscn deps --no-validate src/    # Disable architecture validation
-  pyscn deps --no-auto-detect src/ # Use config rules only (no auto-detection)
-  pyscn deps --strict src/         # Enable strict validation mode
+  pyscn deps src/                  # Analyze dependencies only
+  pyscn deps --html src/           # Generate interactive HTML report
+  pyscn deps --validate src/       # Validate against config rules
+  pyscn deps --validate --auto-detect src/  # Auto-detect and validate
+  pyscn deps --validate --strict src/  # Strict validation mode
 
 Output formats:
   --html       - Interactive HTML report with visualizations (recommended)
@@ -85,9 +85,9 @@ func init() {
 	depsCmd.Flags().BoolVar(&depsDetectCycles, "detect-cycles", true, "Detect circular dependencies")
 
 	// Architecture validation options
-	depsCmd.Flags().BoolVar(&depsValidate, "validate", true, "Validate dependencies against architecture rules (enabled by default)")
+	depsCmd.Flags().BoolVar(&depsValidate, "validate", false, "Validate dependencies against architecture rules")
 	depsCmd.Flags().BoolVar(&depsStrict, "strict", false, "Enable strict mode for architecture validation")
-	depsCmd.Flags().BoolVar(&depsAutoDetect, "auto-detect", true, "Auto-detect architecture patterns when no rules are defined")
+	depsCmd.Flags().BoolVar(&depsAutoDetect, "auto-detect", false, "Auto-detect architecture patterns when no rules are defined")
 
 	// Output options
 	depsCmd.Flags().BoolVar(&depsJSON, "json", false, "Generate JSON report file")

@@ -417,8 +417,8 @@ func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Re
 func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.DependencyGraph) *domain.ArchitectureRules {
     // Standard layer patterns commonly used in Python projects
     layerPatterns := map[string][]string{
-        "presentation": {"api", "apis", "views", "view", "controllers", "controller", "routes", "route", "handlers", "handler", "ui", "web", "rest", "graphql", "endpoints", "endpoint"},
-        "application":  {"services", "service", "use_cases", "usecase", "usecases", "workflows", "workflow", "commands", "queries", "app"},
+        "presentation": {"api", "apis", "views", "view", "controllers", "controller", "routes", "route", "handlers", "handler", "ui", "web", "rest", "graphql", "endpoints", "endpoint", "routers", "router"},
+        "application":  {"services", "service", "use_cases", "usecase", "usecases", "workflows", "workflow", "commands", "queries"},
         "domain":       {"models", "model", "entities", "entity", "domain", "domains", "core", "business", "aggregates", "valueobjects", "schemas", "schema"},
         "infrastructure": {"db", "database", "repositories", "repository", "repo", "external", "adapters", "adapter", "persistence", "storage", "cache", "clients", "client"},
     }
@@ -454,16 +454,17 @@ func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.Depen
         }
     }
 
-    // Define standard layered architecture rules
+    // Define relaxed standard layered architecture rules for auto-detection
+    // These are more permissive than strict layered architecture to avoid false positives
     rules := []domain.LayerRule{
-        // Presentation layer can access application and domain
-        {From: "presentation", Allow: []string{"application", "domain"}},
-        // Application layer can only access domain
-        {From: "application", Allow: []string{"domain"}},
-        // Domain layer should not access other layers
-        {From: "domain", Deny: []string{"presentation", "application", "infrastructure"}},
-        // Infrastructure can access domain
-        {From: "infrastructure", Allow: []string{"domain"}},
+        // Presentation layer can access all layers (typical in real projects)
+        {From: "presentation", Allow: []string{"application", "domain", "infrastructure"}},
+        // Application layer can access domain and infrastructure
+        {From: "application", Allow: []string{"domain", "infrastructure"}},
+        // Domain layer should ideally not access other layers (but only warn in auto-detect)
+        {From: "domain", Deny: []string{"presentation"}},  // Only deny presentation, allow others
+        // Infrastructure can access domain and application
+        {From: "infrastructure", Allow: []string{"domain", "application"}},
     }
 
     return &domain.ArchitectureRules{
