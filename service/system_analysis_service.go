@@ -164,29 +164,315 @@ func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req
 
 // AnalyzeArchitecture performs architecture validation only
 func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req domain.SystemAnalysisRequest) (*domain.ArchitectureAnalysisResult, error) {
-	// Simple architecture analysis implementation
-	layerAnalysis := &domain.LayerAnalysis{
-		LayersAnalyzed:    s.countLayers(req.Paths),
-		LayerViolations:   []domain.LayerViolation{}, // No violations for now
-		LayerCoupling:     make(map[string]map[string]int),
-		LayerCohesion:     make(map[string]float64),
-		ProblematicLayers: []string{},
-	}
+    // Return empty result if no rules are defined (consistent with other Analyze methods)
+    if req.ArchitectureRules == nil || (len(req.ArchitectureRules.Layers) == 0 && len(req.ArchitectureRules.Rules) == 0) {
+        return s.emptyArchitectureResult(), nil
+    }
 
-	result := &domain.ArchitectureAnalysisResult{
-		ComplianceScore:        0.85, // Mock compliance score
-		TotalViolations:        0,    // No violations detected yet
-		TotalRules:             5,    // Mock number of rules
-		LayerAnalysis:          layerAnalysis,
-		CohesionAnalysis:       nil, // Not implemented yet
-		ResponsibilityAnalysis: nil, // Not implemented yet
-		Violations:             []domain.ArchitectureViolation{},
-		SeverityBreakdown:      make(map[domain.ViolationSeverity]int),
-		Recommendations:        []domain.ArchitectureRecommendation{},
-		RefactoringTargets:     []string{},
-	}
+    // Build dependency graph
+    graph, err := s.buildDependencyGraph(req)
+    if err != nil {
+        return nil, err
+    }
 
-	return result, nil
+    // Map modules to layers
+    moduleToLayer := s.buildModuleLayerMap(graph, req.ArchitectureRules)
+
+    // Evaluate layer rules and collect violations
+    violations, severityCounts, layerCoupling, checked := s.evaluateLayerRules(ctx, graph, moduleToLayer, req.ArchitectureRules)
+    if violations == nil {
+        return nil, fmt.Errorf("architecture analysis cancelled")
+    }
+
+    // Calculate metrics
+    layerCohesion, problematic, layersAnalyzed := s.calculateLayerMetrics(layerCoupling)
+    compliance := s.calculateCompliance(len(violations), checked)
+
+    // Build result
+    return s.buildArchitectureResult(violations, severityCounts, layerCoupling, layerCohesion,
+        problematic, layersAnalyzed, compliance, checked), nil
+}
+
+// emptyArchitectureResult returns an empty result when no rules are defined
+func (s *SystemAnalysisServiceImpl) emptyArchitectureResult() *domain.ArchitectureAnalysisResult {
+    return &domain.ArchitectureAnalysisResult{
+        ComplianceScore:        1.0,
+        TotalViolations:        0,
+        TotalRules:             0,
+        LayerAnalysis:          &domain.LayerAnalysis{
+            LayersAnalyzed:    0,
+            LayerViolations:   []domain.LayerViolation{},
+            LayerCoupling:     make(map[string]map[string]int),
+            LayerCohesion:     make(map[string]float64),
+            ProblematicLayers: []string{},
+        },
+        CohesionAnalysis:       nil,
+        ResponsibilityAnalysis: nil,
+        Violations:             []domain.ArchitectureViolation{},
+        SeverityBreakdown:      make(map[domain.ViolationSeverity]int),
+        Recommendations:        []domain.ArchitectureRecommendation{},
+        RefactoringTargets:     []string{},
+    }
+}
+
+// buildDependencyGraph creates the dependency graph using ModuleAnalyzer
+func (s *SystemAnalysisServiceImpl) buildDependencyGraph(req domain.SystemAnalysisRequest) (*analyzer.DependencyGraph, error) {
+    projectRoot := s.findProjectRoot(req.Paths)
+    options := &analyzer.ModuleAnalysisOptions{
+        ProjectRoot:       projectRoot,
+        IncludeStdLib:     req.IncludeStdLib,
+        IncludeThirdParty: req.IncludeThirdParty,
+        FollowRelative:    req.FollowRelative,
+        IncludePatterns:   req.IncludePatterns,
+        ExcludePatterns:   req.ExcludePatterns,
+    }
+    ma, err := analyzer.NewModuleAnalyzer(options)
+    if err != nil {
+        return nil, fmt.Errorf("failed to create module analyzer: %w", err)
+    }
+    graph, err := ma.AnalyzeFiles(req.Paths)
+    if err != nil {
+        return nil, fmt.Errorf("failed to analyze architecture dependencies: %w", err)
+    }
+    return graph, nil
+}
+
+// evaluateLayerRules evaluates all edges against layer rules
+func (s *SystemAnalysisServiceImpl) evaluateLayerRules(ctx context.Context, graph *analyzer.DependencyGraph,
+    moduleToLayer map[string]string, rules *domain.ArchitectureRules) ([]domain.ArchitectureViolation,
+    map[domain.ViolationSeverity]int, map[string]map[string]int, int) {
+
+    layerCoupling := make(map[string]map[string]int)
+    var violations []domain.ArchitectureViolation
+    severityCounts := make(map[domain.ViolationSeverity]int)
+    checked := 0
+
+    for _, edge := range graph.Edges {
+        select {
+        case <-ctx.Done():
+            return nil, nil, nil, 0
+        default:
+        }
+        fromLayer := moduleToLayer[edge.From]
+        toLayer := moduleToLayer[edge.To]
+
+        if layerCoupling[fromLayer] == nil {
+            layerCoupling[fromLayer] = make(map[string]int)
+        }
+        layerCoupling[fromLayer][toLayer]++
+
+        if v := s.evaluateLayerEdge(rules, edge.From, edge.To, fromLayer, toLayer); v != nil {
+            violations = append(violations, *v)
+            severityCounts[v.Severity]++
+        }
+        checked++
+    }
+
+    return violations, severityCounts, layerCoupling, checked
+}
+
+// calculateLayerMetrics calculates cohesion and identifies problematic layers
+func (s *SystemAnalysisServiceImpl) calculateLayerMetrics(layerCoupling map[string]map[string]int) (
+    map[string]float64, []string, int) {
+
+    layerCohesion := make(map[string]float64)
+    problematic := make([]string, 0)
+    uniqueLayers := make(map[string]bool)
+
+    for layer, targets := range layerCoupling {
+        uniqueLayers[layer] = true
+        total, intra := 0, 0
+        for to, cnt := range targets {
+            total += cnt
+            if to == layer {
+                intra += cnt
+            }
+        }
+        if total > 0 {
+            layerCohesion[layer] = float64(intra) / float64(total)
+        } else {
+            layerCohesion[layer] = 1.0
+        }
+        if layerCohesion[layer] < 0.5 {
+            problematic = append(problematic, layer)
+        }
+    }
+
+    layersAnalyzed := 0
+    for l := range uniqueLayers {
+        if l != "" {
+            layersAnalyzed++
+        }
+    }
+
+    return layerCohesion, problematic, layersAnalyzed
+}
+
+// calculateCompliance calculates the compliance score
+func (s *SystemAnalysisServiceImpl) calculateCompliance(violations, checked int) float64 {
+    compliance := 1.0
+    if checked > 0 {
+        compliance = 1.0 - (float64(violations) / float64(checked))
+        if compliance < 0 {
+            compliance = 0
+        }
+    }
+    return compliance
+}
+
+// buildArchitectureResult constructs the final result
+func (s *SystemAnalysisServiceImpl) buildArchitectureResult(
+    violations []domain.ArchitectureViolation,
+    severityCounts map[domain.ViolationSeverity]int,
+    layerCoupling map[string]map[string]int,
+    layerCohesion map[string]float64,
+    problematic []string,
+    layersAnalyzed int,
+    compliance float64,
+    checked int) *domain.ArchitectureAnalysisResult {
+
+    layerAnalysis := &domain.LayerAnalysis{
+        LayersAnalyzed:    layersAnalyzed,
+        LayerViolations:   s.toLayerViolations(violations),
+        LayerCoupling:     layerCoupling,
+        LayerCohesion:     layerCohesion,
+        ProblematicLayers: problematic,
+    }
+
+    return &domain.ArchitectureAnalysisResult{
+        ComplianceScore:        compliance,
+        TotalViolations:        len(violations),
+        TotalRules:             checked,
+        LayerAnalysis:          layerAnalysis,
+        CohesionAnalysis:       nil,
+        ResponsibilityAnalysis: nil,
+        Violations:             violations,
+        SeverityBreakdown:      severityCounts,
+        Recommendations:        []domain.ArchitectureRecommendation{},
+        RefactoringTargets:     []string{},
+    }
+}
+
+// buildModuleLayerMap maps each module to a layer based on ArchitectureRules.
+func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.DependencyGraph, rules *domain.ArchitectureRules) map[string]string {
+    out := make(map[string]string)
+    compiled := make(map[string][]*regexp.Regexp)
+    for _, layer := range rules.Layers {
+        for _, pat := range layer.Packages {
+            if re := s.compileModulePattern(pat); re != nil {
+                compiled[layer.Name] = append(compiled[layer.Name], re)
+            }
+        }
+    }
+    for module := range graph.Nodes {
+        out[module] = s.findLayerForModule(module, compiled)
+        if out[module] == "" { out[module] = "unknown" }
+    }
+    return out
+}
+
+// findLayerForModule returns the first matching layer for a module.
+func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled map[string][]*regexp.Regexp) string {
+    for layer, patterns := range compiled {
+        for _, re := range patterns {
+            if re.MatchString(module) { return layer }
+        }
+    }
+    return ""
+}
+
+// compileModulePattern converts simple glob-like patterns to regex for module names.
+func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Regexp {
+    esc := regexp.QuoteMeta(glob)
+    esc = strings.ReplaceAll(esc, "\\*", ".*")
+    re, err := regexp.Compile("^" + esc + "$")
+    if err != nil { return nil }
+    return re
+}
+
+// evaluateLayerEdge evaluates a single dependency edge against rules and returns a violation if any.
+func (s *SystemAnalysisServiceImpl) evaluateLayerEdge(rules *domain.ArchitectureRules, fromModule, toModule, fromLayer, toLayer string) *domain.ArchitectureViolation {
+    if (fromLayer == "unknown" || toLayer == "unknown") && rules.StrictMode {
+        return &domain.ArchitectureViolation{
+            Type:        domain.ViolationTypeLayer,
+            Severity:    domain.ViolationSeverityWarning,
+            Module:      fromModule,
+            Target:      toModule,
+            Rule:        "strict_mode",
+            Description: "Dependency involves unknown layer(s)",
+            Suggestion:  "Assign modules to defined layers or relax strict_mode",
+        }
+    }
+    // Find rule for fromLayer
+    var layerRule *domain.LayerRule
+    for i := range rules.Rules {
+        if rules.Rules[i].From == fromLayer {
+            layerRule = &rules.Rules[i]
+            break
+        }
+    }
+    if layerRule == nil {
+        if rules.StrictMode {
+            return &domain.ArchitectureViolation{
+                Type:        domain.ViolationTypeLayer,
+                Severity:    domain.ViolationSeverityWarning,
+                Module:      fromModule,
+                Target:      toModule,
+                Rule:        "no_rule",
+                Description: fmt.Sprintf("No rule defined for layer '%s'", fromLayer),
+                Suggestion:  "Define allow/deny rules for this layer",
+            }
+        }
+        return nil
+    }
+    // Deny takes precedence
+    for _, d := range layerRule.Deny {
+        if d == toLayer {
+            return &domain.ArchitectureViolation{
+                Type:        domain.ViolationTypeLayer,
+                Severity:    domain.ViolationSeverityError,
+                Module:      fromModule,
+                Target:      toModule,
+                Rule:        fmt.Sprintf("%s !> %s", fromLayer, toLayer),
+                Description: fmt.Sprintf("Dependency from '%s' to '%s' is denied by rule", fromLayer, toLayer),
+                Suggestion:  "Introduce an interface or move code to respect layer boundaries",
+            }
+        }
+    }
+    if len(layerRule.Allow) > 0 {
+        allowed := false
+        for _, a := range layerRule.Allow { if a == toLayer { allowed = true; break } }
+        if !allowed {
+            return &domain.ArchitectureViolation{
+                Type:        domain.ViolationTypeLayer,
+                Severity:    domain.ViolationSeverityError,
+                Module:      fromModule,
+                Target:      toModule,
+                Rule:        fmt.Sprintf("%s -> {%s}", fromLayer, strings.Join(layerRule.Allow, ",")),
+                Description: fmt.Sprintf("Dependency from '%s' to '%s' not allowed", fromLayer, toLayer),
+                Suggestion:  "Refactor dependency or update architecture rules if intentional",
+            }
+        }
+    }
+    return nil
+}
+
+// toLayerViolations converts ArchitectureViolation list to LayerViolation list for summary.
+func (s *SystemAnalysisServiceImpl) toLayerViolations(vs []domain.ArchitectureViolation) []domain.LayerViolation {
+    out := make([]domain.LayerViolation, 0, len(vs))
+    for _, v := range vs {
+        out = append(out, domain.LayerViolation{
+            FromModule:  v.Module,
+            ToModule:    v.Target,
+            FromLayer:   "",
+            ToLayer:     "",
+            Rule:        v.Rule,
+            Severity:    v.Severity,
+            Description: v.Description,
+            Suggestion:  v.Suggestion,
+        })
+    }
+    return out
 }
 
 // AnalyzeQuality performs quality metrics analysis only
@@ -540,35 +826,7 @@ func (s *SystemAnalysisServiceImpl) calculateOverallQuality(metrics *analyzer.Sy
 	return quality
 }
 
-func (s *SystemAnalysisServiceImpl) countLayers(paths []string) int {
-	layers := make(map[string]bool)
-
-	for _, path := range paths {
-		// Extract layer from directory structure
-		parts := strings.Split(filepath.Dir(path), string(filepath.Separator))
-		for _, part := range parts {
-			if s.isArchitecturalLayer(part) {
-				layers[part] = true
-			}
-		}
-	}
-
-	return len(layers)
-}
-
-// Removed evaluateQualityGate - QualityGate is not part of the QualityMetricsResult domain
-
-// Additional helper methods
-
-func (s *SystemAnalysisServiceImpl) isArchitecturalLayer(name string) bool {
-	layers := []string{"presentation", "application", "domain", "infrastructure", "data", "service", "controller", "model", "view"}
-	for _, layer := range layers {
-		if strings.Contains(strings.ToLower(name), layer) {
-			return true
-		}
-	}
-	return false
-}
+// Removed legacy helpers for ad-hoc layer counting.
 
 // Removed helper methods that used undefined domain types
 

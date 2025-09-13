@@ -155,16 +155,21 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
 	merged.FollowRelative = override.FollowRelative
 	merged.DetectCycles = override.DetectCycles
 
-	// File selection - override if provided
-	if len(override.IncludePatterns) > 0 {
-		merged.IncludePatterns = override.IncludePatterns
-	}
-	if len(override.ExcludePatterns) > 0 {
-		merged.ExcludePatterns = override.ExcludePatterns
-	}
-	merged.Recursive = override.Recursive
+    // File selection - override if provided
+    if len(override.IncludePatterns) > 0 {
+        merged.IncludePatterns = override.IncludePatterns
+    }
+    if len(override.ExcludePatterns) > 0 {
+        merged.ExcludePatterns = override.ExcludePatterns
+    }
+    merged.Recursive = override.Recursive
 
-	return &merged
+    // Architecture rules - CLI request takes precedence if provided
+    if override.ArchitectureRules != nil {
+        merged.ArchitectureRules = override.ArchitectureRules
+    }
+
+    return &merged
 }
 
 // loadFromViperSection loads configuration from a specific viper section
@@ -219,15 +224,123 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) loadDependencyConfig(v *viper.V
 
 // loadArchitectureConfig loads architecture-specific configuration
 func (cl *SystemAnalysisConfigurationLoaderImpl) loadArchitectureConfig(v *viper.Viper, section string, request *domain.SystemAnalysisRequest) error {
-	// Architecture analysis doesn't have specific config options yet
-	// This method is here for future extensibility
+    // Initialize rules if missing
+    if request.ArchitectureRules == nil {
+        request.ArchitectureRules = &domain.ArchitectureRules{}
+    }
 
-	// Future options could include:
-	// - Layer definitions
-	// - Architecture pattern detection settings
-	// - Violation severity thresholds
+    // strict_mode
+    if v.IsSet(section + ".strict_mode") {
+        request.ArchitectureRules.StrictMode = v.GetBool(section + ".strict_mode")
+    }
 
-	return nil
+    // allowed_patterns / forbidden_patterns
+    if v.IsSet(section + ".allowed_patterns") {
+        request.ArchitectureRules.AllowedPatterns = v.GetStringSlice(section + ".allowed_patterns")
+    }
+    if v.IsSet(section + ".forbidden_patterns") {
+        request.ArchitectureRules.ForbiddenPatterns = v.GetStringSlice(section + ".forbidden_patterns")
+    }
+
+    // Load layers
+    if v.IsSet(section + ".layers") {
+        layers, err := cl.unmarshalLayers(v, section+".layers")
+        if err != nil {
+            return err
+        }
+        request.ArchitectureRules.Layers = layers
+    }
+
+    // Load rules
+    if v.IsSet(section + ".rules") {
+        rules, err := cl.unmarshalRules(v, section+".rules")
+        if err != nil {
+            return err
+        }
+        request.ArchitectureRules.Rules = rules
+    }
+
+    return nil
+}
+
+// unmarshalLayers extracts layer configuration from viper
+func (cl *SystemAnalysisConfigurationLoaderImpl) unmarshalLayers(v *viper.Viper, key string) ([]domain.Layer, error) {
+    var rawLayers []map[string]interface{}
+    if err := v.UnmarshalKey(key, &rawLayers); err != nil {
+        return nil, fmt.Errorf("failed to unmarshal architecture layers config: %w", err)
+    }
+
+    layers := make([]domain.Layer, 0, len(rawLayers))
+    for _, l := range rawLayers {
+        layer := cl.parseLayer(l)
+        if layer.Name != "" {
+            layers = append(layers, layer)
+        }
+    }
+    return layers, nil
+}
+
+// parseLayer converts a raw map to a Layer struct
+func (cl *SystemAnalysisConfigurationLoaderImpl) parseLayer(raw map[string]interface{}) domain.Layer {
+    layer := domain.Layer{}
+
+    if name, ok := raw["name"].(string); ok {
+        layer.Name = name
+    }
+    if desc, ok := raw["description"].(string); ok {
+        layer.Description = desc
+    }
+
+    layer.Packages = cl.extractStringSlice(raw["packages"])
+    return layer
+}
+
+// unmarshalRules extracts rule configuration from viper
+func (cl *SystemAnalysisConfigurationLoaderImpl) unmarshalRules(v *viper.Viper, key string) ([]domain.LayerRule, error) {
+    var rawRules []map[string]interface{}
+    if err := v.UnmarshalKey(key, &rawRules); err != nil {
+        return nil, fmt.Errorf("failed to unmarshal architecture rules config: %w", err)
+    }
+
+    rules := make([]domain.LayerRule, 0, len(rawRules))
+    for _, r := range rawRules {
+        rule := cl.parseRule(r)
+        if rule.From != "" {
+            rules = append(rules, rule)
+        }
+    }
+    return rules, nil
+}
+
+// parseRule converts a raw map to a LayerRule struct
+func (cl *SystemAnalysisConfigurationLoaderImpl) parseRule(raw map[string]interface{}) domain.LayerRule {
+    rule := domain.LayerRule{}
+
+    if from, ok := raw["from"].(string); ok {
+        rule.From = from
+    }
+
+    rule.Allow = cl.extractStringSlice(raw["allow"])
+    rule.Deny = cl.extractStringSlice(raw["deny"])
+    return rule
+}
+
+// extractStringSlice handles type conversion for string slices
+func (cl *SystemAnalysisConfigurationLoaderImpl) extractStringSlice(value interface{}) []string {
+    var result []string
+
+    switch v := value.(type) {
+    case []string:
+        result = append(result, v...)
+    case []interface{}:
+        for _, item := range v {
+            if s, ok := item.(string); ok {
+                result = append(result, s)
+            }
+        }
+    }
+
+    return result
 }
 
 // SystemAnalysisConfigurationLoaderWithFlags extends the base loader with CLI flag integration
@@ -255,8 +368,9 @@ func (cl *SystemAnalysisConfigurationLoaderWithFlags) LoadConfigWithFlags(
 
 	// Merge with CLI flags
 	mergedConfig := cl.MergeConfig(baseConfig, cliRequest)
-	return mergedConfig, nil
+    return mergedConfig, nil
 }
+
 
 // Example configuration file content for documentation
 var ExampleSystemAnalysisConfig = `
