@@ -563,14 +563,24 @@ func (b *ASTBuilder) buildImportStatement(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeImport)
 	node.Location = b.getLocation(tsNode)
 
+	// Tree-sitter uses "name" field for import names
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
+		fieldName := tsNode.FieldNameForChild(i)
 		child := tsNode.Child(i)
-		if child != nil {
-			switch child.Type() {
-			case "dotted_name", "aliased_import":
+		
+		if fieldName == "name" && child != nil {
+			if child.Type() == "dotted_name" {
+				// Simple import
+				node.Names = append(node.Names, b.getNodeText(child))
+			} else if child.Type() == "aliased_import" {
+				// Import with alias
 				if alias := b.buildAlias(child); alias != nil {
 					node.AddChild(alias)
+					// Also add the original name to Names
+					if nameChild := b.getChildByFieldName(child, "name"); nameChild != nil {
+						node.Names = append(node.Names, b.getNodeText(nameChild))
+					}
 				}
 			}
 		}
@@ -594,20 +604,46 @@ func (b *ASTBuilder) buildImportFromStatement(tsNode *sitter.Node) *Node {
 
 	// Get module name
 	if moduleNode := b.getChildByFieldName(tsNode, "module_name"); moduleNode != nil {
-		node.Module = b.getNodeText(moduleNode)
+		// Handle relative imports
+		if moduleNode.Type() == "relative_import" {
+			// Count dots in import_prefix
+			for i := 0; i < int(moduleNode.ChildCount()); i++ {
+				child := moduleNode.Child(i)
+				if child != nil && child.Type() == "import_prefix" {
+					dots := b.getNodeText(child)
+					node.Level = len(dots)
+				} else if child != nil && child.Type() == "dotted_name" {
+					node.Module = b.getNodeText(child)
+				}
+			}
+		} else {
+			node.Module = b.getNodeText(moduleNode)
+		}
 	}
 
-	// Get imported names
+	// Get imported names - tree-sitter uses "name" field directly
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
+		fieldName := tsNode.FieldNameForChild(i)
 		child := tsNode.Child(i)
-		if child != nil {
-			switch child.Type() {
-			case "import_from_as_names", "import_from_as_name":
-				b.extractImportNames(child, node)
-			case "*":
-				node.Names = append(node.Names, "*")
+		
+		if fieldName == "name" && child != nil {
+			// Handle each imported name
+			if child.Type() == "dotted_name" || child.Type() == "identifier" {
+				node.Names = append(node.Names, b.getNodeText(child))
+			} else if child.Type() == "aliased_import" {
+				// Handle aliased imports - extract the original name
+				if nameChild := b.getChildByFieldName(child, "name"); nameChild != nil {
+					node.Names = append(node.Names, b.getNodeText(nameChild))
+				}
+				// Also build alias for additional info
+				if alias := b.buildAlias(child); alias != nil {
+					node.AddChild(alias)
+				}
 			}
+		} else if child != nil && child.Type() == "wildcard_import" {
+			// Handle wildcard imports (from module import *)
+			node.Names = append(node.Names, "*")
 		}
 	}
 

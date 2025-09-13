@@ -54,6 +54,15 @@ type Config struct {
 	// Clones holds the unified clone detection configuration
 	Clones *CloneConfig `mapstructure:"clones" yaml:"clones"`
 
+	// SystemAnalysis holds system-level analysis configuration
+	SystemAnalysis SystemAnalysisConfig `mapstructure:"system_analysis" yaml:"system_analysis"`
+
+	// Dependencies holds dependency analysis configuration
+	Dependencies DependencyAnalysisConfig `mapstructure:"dependencies" yaml:"dependencies"`
+
+	// Architecture holds architecture validation configuration
+	Architecture ArchitectureConfig `mapstructure:"architecture" yaml:"architecture"`
+
 	// Output holds output formatting configuration
 	Output OutputConfig `mapstructure:"output" yaml:"output"`
 
@@ -203,6 +212,67 @@ func DefaultConfig() *Config {
 		},
 		// Use unified clone configuration
 		Clones: DefaultCloneConfig(),
+		
+		// System analysis configuration
+		SystemAnalysis: SystemAnalysisConfig{
+			Enabled:               false, // Disabled by default - opt-in feature
+			EnableDependencies:    true,
+			EnableArchitecture:    true,
+			EnableQuality:         true,
+			UseComplexityData:     true,
+			UseClonesData:         true,
+			UseDeadCodeData:       true,
+			GenerateUnifiedReport: true,
+		},
+		
+		// Dependency analysis configuration
+		Dependencies: DependencyAnalysisConfig{
+			Enabled:             false, // Disabled by default - opt-in feature
+			IncludeStdLib:       false,
+			IncludeThirdParty:   true,
+			FollowRelative:      true,
+			DetectCycles:        true,
+			CalculateMetrics:    true,
+			FindLongChains:      true,
+			MinCoupling:         0,
+			MaxCoupling:         0, // No limit
+			MinInstability:      0.0,
+			MaxDistance:         1.0,
+			SortBy:              "name",
+			ShowMatrix:          false,
+			ShowMetrics:         false,
+			ShowChains:          false,
+			GenerateDotGraph:    false,
+			CycleReporting:      "summary", // all, critical, summary
+			MaxCyclesToShow:     10,
+			ShowCyclePaths:      false,
+		},
+		
+		// Architecture validation configuration
+		Architecture: ArchitectureConfig{
+			Enabled:                     false, // Disabled by default - opt-in feature
+			ValidateLayers:              true,
+			ValidateCohesion:            true,
+			ValidateResponsibility:      true,
+			Layers:                      []LayerDefinition{}, // Empty by default
+			Rules:                       []LayerRule{},       // Empty by default
+			MinCohesion:                 0.5,
+			MaxCoupling:                 10,
+			MaxResponsibilities:         3,
+			LayerViolationSeverity:      "error",
+			CohesionViolationSeverity:   "warning",
+			ResponsibilityViolationSeverity: "warning",
+			ShowAllViolations:           false,
+			GroupByType:                 true,
+			IncludeSuggestions:          true,
+			MaxViolationsToShow:         20,
+			CustomPatterns:              []string{},
+			AllowedPatterns:             []string{},
+			ForbiddenPatterns:           []string{},
+			StrictMode:                  false,
+			FailOnViolations:            false,
+		},
+		
 		Output: OutputConfig{
 			Format:        "text",
 			ShowDetails:   false,
@@ -659,4 +729,113 @@ func (c *CloneDetectionConfig) IsCloneTypeEnabled(cloneType string) bool {
 		}
 	}
 	return false
+}
+
+// SystemAnalysisConfig holds configuration for system-level analysis
+type SystemAnalysisConfig struct {
+	// Enabled controls whether system analysis is performed
+	Enabled bool `mapstructure:"enabled" yaml:"enabled"`
+
+	// Analysis components to enable
+	EnableDependencies bool `mapstructure:"enable_dependencies" yaml:"enable_dependencies"`
+	EnableArchitecture bool `mapstructure:"enable_architecture" yaml:"enable_architecture"`
+	EnableQuality      bool `mapstructure:"enable_quality" yaml:"enable_quality"`
+
+	// Integration with other analyses
+	UseComplexityData bool `mapstructure:"use_complexity_data" yaml:"use_complexity_data"`
+	UseClonesData     bool `mapstructure:"use_clones_data" yaml:"use_clones_data"`
+	UseDeadCodeData   bool `mapstructure:"use_dead_code_data" yaml:"use_dead_code_data"`
+
+	// Output options
+	GenerateUnifiedReport bool `mapstructure:"generate_unified_report" yaml:"generate_unified_report"`
+}
+
+// DependencyAnalysisConfig holds configuration for dependency analysis
+type DependencyAnalysisConfig struct {
+	// Enabled controls whether dependency analysis is performed
+	Enabled bool `mapstructure:"enabled" yaml:"enabled"`
+
+	// Scope options
+	IncludeStdLib     bool `mapstructure:"include_stdlib" yaml:"include_stdlib"`
+	IncludeThirdParty bool `mapstructure:"include_third_party" yaml:"include_third_party"`
+	FollowRelative    bool `mapstructure:"follow_relative" yaml:"follow_relative"`
+
+	// Analysis options
+	DetectCycles      bool `mapstructure:"detect_cycles" yaml:"detect_cycles"`
+	CalculateMetrics  bool `mapstructure:"calculate_metrics" yaml:"calculate_metrics"`
+	FindLongChains    bool `mapstructure:"find_long_chains" yaml:"find_long_chains"`
+
+	// Filtering thresholds
+	MinCoupling       int     `mapstructure:"min_coupling" yaml:"min_coupling"`
+	MaxCoupling       int     `mapstructure:"max_coupling" yaml:"max_coupling"`
+	MinInstability    float64 `mapstructure:"min_instability" yaml:"min_instability"`
+	MaxDistance       float64 `mapstructure:"max_distance" yaml:"max_distance"`
+
+	// Reporting options
+	SortBy            string `mapstructure:"sort_by" yaml:"sort_by"` // name, coupling, instability, distance, risk
+	ShowMatrix        bool   `mapstructure:"show_matrix" yaml:"show_matrix"`
+	ShowMetrics       bool   `mapstructure:"show_metrics" yaml:"show_metrics"`
+	ShowChains        bool   `mapstructure:"show_chains" yaml:"show_chains"`
+	GenerateDotGraph  bool   `mapstructure:"generate_dot_graph" yaml:"generate_dot_graph"`
+
+	// Cycle analysis
+	CycleReporting    string `mapstructure:"cycle_reporting" yaml:"cycle_reporting"` // all, critical, summary
+	MaxCyclesToShow   int    `mapstructure:"max_cycles_to_show" yaml:"max_cycles_to_show"`
+	ShowCyclePaths    bool   `mapstructure:"show_cycle_paths" yaml:"show_cycle_paths"`
+}
+
+// ArchitectureConfig holds configuration for architecture validation
+type ArchitectureConfig struct {
+	// Enabled controls whether architecture validation is performed
+	Enabled bool `mapstructure:"enabled" yaml:"enabled"`
+
+	// Validation modes
+	ValidateLayers       bool `mapstructure:"validate_layers" yaml:"validate_layers"`
+	ValidateCohesion     bool `mapstructure:"validate_cohesion" yaml:"validate_cohesion"`
+	ValidateResponsibility bool `mapstructure:"validate_responsibility" yaml:"validate_responsibility"`
+
+	// Layer definitions
+	Layers []LayerDefinition `mapstructure:"layers" yaml:"layers"`
+	Rules  []LayerRule       `mapstructure:"rules" yaml:"rules"`
+
+	// Thresholds
+	MinCohesion         float64 `mapstructure:"min_cohesion" yaml:"min_cohesion"`
+	MaxCoupling         int     `mapstructure:"max_coupling" yaml:"max_coupling"`
+	MaxResponsibilities int     `mapstructure:"max_responsibilities" yaml:"max_responsibilities"`
+
+	// Violation severity levels
+	LayerViolationSeverity      string `mapstructure:"layer_violation_severity" yaml:"layer_violation_severity"`
+	CohesionViolationSeverity   string `mapstructure:"cohesion_violation_severity" yaml:"cohesion_violation_severity"`
+	ResponsibilityViolationSeverity string `mapstructure:"responsibility_violation_severity" yaml:"responsibility_violation_severity"`
+
+	// Reporting options
+	ShowAllViolations    bool     `mapstructure:"show_all_violations" yaml:"show_all_violations"`
+	GroupByType          bool     `mapstructure:"group_by_type" yaml:"group_by_type"`
+	IncludeSuggestions   bool     `mapstructure:"include_suggestions" yaml:"include_suggestions"`
+	MaxViolationsToShow  int      `mapstructure:"max_violations_to_show" yaml:"max_violations_to_show"`
+
+	// Custom rules
+	CustomPatterns       []string `mapstructure:"custom_patterns" yaml:"custom_patterns"`
+	AllowedPatterns      []string `mapstructure:"allowed_patterns" yaml:"allowed_patterns"`
+	ForbiddenPatterns    []string `mapstructure:"forbidden_patterns" yaml:"forbidden_patterns"`
+
+	// Strict mode enforcement
+	StrictMode           bool `mapstructure:"strict_mode" yaml:"strict_mode"`
+	FailOnViolations     bool `mapstructure:"fail_on_violations" yaml:"fail_on_violations"`
+}
+
+// LayerDefinition defines an architectural layer
+type LayerDefinition struct {
+	Name        string   `mapstructure:"name" yaml:"name"`
+	Packages    []string `mapstructure:"packages" yaml:"packages"`
+	Description string   `mapstructure:"description" yaml:"description"`
+	IsAbstract  bool     `mapstructure:"is_abstract" yaml:"is_abstract"`
+}
+
+// LayerRule defines dependency rules between layers
+type LayerRule struct {
+	From        string   `mapstructure:"from" yaml:"from"`
+	Allow       []string `mapstructure:"allow" yaml:"allow"`
+	Deny        []string `mapstructure:"deny" yaml:"deny"`
+	Description string   `mapstructure:"description" yaml:"description"`
 }

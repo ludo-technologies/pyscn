@@ -34,6 +34,7 @@ type AnalysisResult struct {
 	DeadCode   *AnalysisStatus
 	Clones     *AnalysisStatus
 	CBO        *AnalysisStatus
+	System     *AnalysisStatus // System-level analysis
 	Overall    struct {
 		StartTime    time.Time
 		EndTime      time.Time
@@ -48,6 +49,7 @@ type AnalysisResult struct {
 	DeadCodeResponse   *domain.DeadCodeResponse
 	CloneResponse      *domain.CloneResponse
 	CBOResponse        *domain.CBOResponse
+	SystemResponse     *domain.SystemAnalysisResponse // System analysis response
 }
 
 // AnalyzeCommand represents the comprehensive analysis command
@@ -68,12 +70,18 @@ type AnalyzeCommand struct {
 	skipDeadCode   bool
 	skipClones     bool
 	skipCBO        bool
+	skipSystem     bool // Skip system-level analysis
 
 	// Quick filters
 	minComplexity   int
 	minSeverity     string
 	cloneSimilarity float64
 	minCBO          int
+
+	// System analysis options
+	enableSystemAnalysis bool // Enable system-level analysis
+	detectCycles        bool // Detect circular dependencies
+	validateArch        bool // Validate architecture rules
 }
 
 // NewAnalyzeCommand creates a new analyze command
@@ -90,10 +98,14 @@ func NewAnalyzeCommand() *AnalyzeCommand {
 		skipDeadCode:    false,
 		skipClones:      false,
 		skipCBO:         false,
+		skipSystem:      false,
 		minComplexity:   5,
 		minSeverity:     "warning",
 		cloneSimilarity: 0.8,
 		minCBO:          0,
+		enableSystemAnalysis: false, // Disabled by default - opt-in feature
+		detectCycles:        true,
+		validateArch:        true,
 	}
 }
 
@@ -104,6 +116,7 @@ func NewAnalysisResult() *AnalysisResult {
 		DeadCode:   &AnalysisStatus{Name: "Dead Code Detection", Enabled: false},
 		Clones:     &AnalysisStatus{Name: "Clone Detection", Enabled: false},
 		CBO:        &AnalysisStatus{Name: "Dependency Analysis", Enabled: false},
+		System:     &AnalysisStatus{Name: "System Analysis", Enabled: false},
 	}
 }
 

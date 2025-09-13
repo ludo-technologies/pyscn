@@ -1,0 +1,346 @@
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/spf13/cobra"
+
+	"github.com/ludo-technologies/pyscn/app"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/service"
+)
+
+var (
+	// Analysis options
+	depsIncludeStdLib     bool
+	depsIncludeThirdParty bool
+	depsFollowRelative    bool
+	depsDetectCycles      bool
+
+	// Output format flags
+	depsJSON bool
+	depsCSV  bool
+	depsHTML bool
+	depsYAML bool
+	depsDOT  bool // DOT format for graph visualization
+
+	depsNoOpen      bool
+
+	// File selection options
+	depsRecursive       bool
+	depsIncludePatterns []string
+	depsExcludePatterns []string
+	depsConfigPath      string
+
+	// Display options
+	depsShowCycles      bool // Focus on circular dependencies
+	depsShowChains      bool // Show longest dependency chains
+)
+
+// depsCmd represents the deps command
+var depsCmd = &cobra.Command{
+	Use:   "deps [paths...]",
+	Short: "Analyze module dependencies and coupling",
+	Long: `Analyze module dependencies, detect circular dependencies, and calculate coupling metrics.
+
+This command performs comprehensive dependency analysis including:
+• Module dependency graph construction
+• Circular dependency detection using Tarjan's algorithm
+• Robert Martin's coupling metrics (Ca, Ce, I, A, D)
+• Dependency chain analysis
+• Architecture quality assessment
+
+Examples:
+  pyscn deps src/                  # Analyze all modules in src/
+  pyscn deps --cycles src/         # Check for circular dependencies  
+  pyscn deps --html src/           # Generate interactive HTML report
+  pyscn deps --chains src/         # Show longest dependency chains
+
+Output formats:
+  --html       - Interactive HTML report with visualizations (recommended)
+  --json       - JSON output for programmatic processing
+  --csv        - CSV output for spreadsheet analysis
+  --yaml       - YAML output
+  --dot        - DOT graph for external visualization tools`,
+	Args: cobra.MinimumNArgs(1),
+	RunE: runDepsCommand,
+}
+
+func init() {
+	rootCmd.AddCommand(depsCmd)
+
+	// Display options
+	depsCmd.Flags().BoolVar(&depsShowCycles, "cycles", false, "Focus on circular dependencies only")
+	depsCmd.Flags().BoolVar(&depsShowChains, "chains", false, "Show longest dependency chains")
+
+	// Analysis options
+	depsCmd.Flags().BoolVar(&depsIncludeStdLib, "include-stdlib", false, "Include standard library dependencies")
+	depsCmd.Flags().BoolVar(&depsIncludeThirdParty, "include-third-party", true, "Include third-party dependencies")
+	depsCmd.Flags().BoolVar(&depsFollowRelative, "follow-relative", true, "Follow relative imports")
+	depsCmd.Flags().BoolVar(&depsDetectCycles, "detect-cycles", true, "Detect circular dependencies")
+
+	// Output options
+	depsCmd.Flags().BoolVar(&depsJSON, "json", false, "Generate JSON report file")
+	depsCmd.Flags().BoolVar(&depsCSV, "csv", false, "Generate CSV report file")
+	depsCmd.Flags().BoolVar(&depsHTML, "html", false, "Generate HTML report file")
+	depsCmd.Flags().BoolVar(&depsYAML, "yaml", false, "Generate YAML report file")
+	depsCmd.Flags().BoolVar(&depsDOT, "dot", false, "Generate DOT graph file")
+	depsCmd.Flags().BoolVar(&depsNoOpen, "no-open", false, "Don't auto-open HTML in browser")
+
+	// File selection options
+	depsCmd.Flags().BoolVar(&depsRecursive, "recursive", true, "Recursively analyze subdirectories")
+	depsCmd.Flags().StringSliceVar(&depsIncludePatterns, "include", []string{"*.py"}, "Include file patterns")
+	depsCmd.Flags().StringSliceVar(&depsExcludePatterns, "exclude", []string{}, "Exclude file patterns")
+
+	// Configuration
+	depsCmd.Flags().StringVarP(&depsConfigPath, "config", "c", "", "Configuration file path")
+}
+
+func runDepsCommand(cmd *cobra.Command, args []string) error {
+	// Determine output format from flags
+	outputFormat := domain.OutputFormatText // Default
+	outputPath := ""
+	outputWriter := os.Stdout
+	extension := ""
+	
+	formatCount := 0
+	if depsJSON {
+		formatCount++
+		outputFormat = domain.OutputFormatJSON
+		extension = "json"
+	}
+	if depsCSV {
+		formatCount++
+		outputFormat = domain.OutputFormatCSV
+		extension = "csv"
+	}
+	if depsHTML {
+		formatCount++
+		outputFormat = domain.OutputFormatHTML
+		extension = "html"
+	}
+	if depsYAML {
+		formatCount++
+		outputFormat = domain.OutputFormatYAML
+		extension = "yaml"
+	}
+	if depsDOT {
+		formatCount++
+		outputFormat = "dot" // Special format for DOT graphs
+		extension = "dot"
+	}
+	
+	// Check for conflicting format flags
+	if formatCount > 1 {
+		return fmt.Errorf("only one output format flag can be specified")
+	}
+
+	// Generate output path for non-text formats
+	if outputFormat != domain.OutputFormatText && extension != "" {
+		targetPath := getTargetPathFromArgs(args)
+		var err error
+		outputPath, err = generateOutputFilePath("deps", extension, targetPath)
+		if err != nil {
+			return fmt.Errorf("failed to generate output path: %w", err)
+		}
+		outputWriter = nil // Don't write to stdout for file output
+	}
+
+	// Build dependency analysis request
+	request := domain.SystemAnalysisRequest{
+		Paths:           args,
+		OutputFormat:    outputFormat,
+		OutputWriter:    outputWriter,
+		OutputPath:      outputPath,
+		NoOpen:          depsNoOpen,
+		
+		// Enable only dependency analysis
+		AnalyzeDependencies: true,
+		AnalyzeArchitecture: false,
+		AnalyzeQuality:      false,
+		
+		// Analysis options
+		IncludeStdLib:     depsIncludeStdLib,
+		IncludeThirdParty: depsIncludeThirdParty,
+		FollowRelative:    depsFollowRelative,
+		DetectCycles:      depsDetectCycles,
+		
+		// File selection
+		ConfigPath:      depsConfigPath,
+		Recursive:       depsRecursive,
+		IncludePatterns: depsIncludePatterns,
+		ExcludePatterns: depsExcludePatterns,
+	}
+
+	// Build dependencies
+	systemService := service.NewSystemAnalysisService()
+	fileReader := service.NewFileReader()
+	formatter := service.NewSystemAnalysisFormatter()
+
+	// Create use case
+	systemUseCase, err := app.NewSystemAnalysisUseCaseBuilder().
+		WithService(systemService).
+		WithFileReader(fileReader).
+		WithFormatter(formatter).
+		Build()
+	if err != nil {
+		return fmt.Errorf("failed to create system analysis use case: %w", err)
+	}
+
+	// Execute analysis
+	ctx := cmd.Context()
+	if err := systemUseCase.Execute(ctx, request); err != nil {
+		return fmt.Errorf("system analysis failed: %w", err)
+	}
+
+	return nil
+}
+
+// handleDepsTextOutput handles special text output options for deps command
+func handleDepsTextOutput(cmd *cobra.Command, result *domain.DependencyAnalysisResult, request *domain.SystemAnalysisRequest) error {
+	// Show circular dependencies if requested or found
+	if depsShowCycles && result.CircularDependencies != nil {
+		fmt.Fprintf(cmd.OutOrStdout(), "🔄 Circular Dependencies Analysis\n")
+		fmt.Fprintf(cmd.OutOrStdout(), "==================================\n\n")
+		
+		if result.CircularDependencies.HasCircularDependencies {
+			fmt.Fprintf(cmd.OutOrStdout(), "Found %d circular dependencies involving %d modules:\n\n",
+				result.CircularDependencies.TotalCycles,
+				result.CircularDependencies.TotalModulesInCycles)
+			
+			for i, cycle := range result.CircularDependencies.CircularDependencies {
+				fmt.Fprintf(cmd.OutOrStdout(), "%d. %s (%s severity)\n",
+					i+1, cycle.Description, cycle.Severity)
+				
+				// Always show cycle details
+				fmt.Fprintf(cmd.OutOrStdout(), "   Modules: %v\n", cycle.Modules)
+				if len(cycle.Dependencies) > 0 {
+					fmt.Fprintf(cmd.OutOrStdout(), "   Dependency paths:\n")
+					for _, dep := range cycle.Dependencies {
+						fmt.Fprintf(cmd.OutOrStdout(), "     %s → %s\n", dep.From, dep.To)
+					}
+				}
+				fmt.Fprintf(cmd.OutOrStdout(), "\n")
+			}
+			
+			// Show cycle breaking suggestions
+			if len(result.CircularDependencies.CycleBreakingSuggestions) > 0 {
+				fmt.Fprintf(cmd.OutOrStdout(), "💡 Suggestions for breaking cycles:\n")
+				for _, suggestion := range result.CircularDependencies.CycleBreakingSuggestions {
+					fmt.Fprintf(cmd.OutOrStdout(), "  • %s\n", suggestion)
+				}
+				fmt.Fprintf(cmd.OutOrStdout(), "\n")
+			}
+		} else {
+			fmt.Fprintf(cmd.OutOrStdout(), "✅ No circular dependencies detected!\n\n")
+		}
+	}
+
+	// Show dependency chains if requested
+	if depsShowChains {
+		fmt.Fprintf(cmd.OutOrStdout(), "🔗 Longest Dependency Chains\n")
+		fmt.Fprintf(cmd.OutOrStdout(), "============================\n\n")
+		printDependencyChains(cmd, result)
+		fmt.Fprintf(cmd.OutOrStdout(), "\n")
+	}
+
+	// Show basic summary if no special options
+	if !depsShowCycles && !depsShowChains {
+		printBasicDepsSummary(cmd, result)
+	}
+
+	return nil
+}
+
+
+// printDependencyChains prints the longest dependency chains
+func printDependencyChains(cmd *cobra.Command, result *domain.DependencyAnalysisResult) {
+	if len(result.LongestChains) == 0 {
+		fmt.Fprintf(cmd.OutOrStdout(), "No long dependency chains found.\n")
+		return
+	}
+
+	fmt.Fprintf(cmd.OutOrStdout(), "Top %d longest dependency chains:\n\n", min(len(result.LongestChains), 5))
+	
+	for i, chain := range result.LongestChains[:min(len(result.LongestChains), 5)] {
+		fmt.Fprintf(cmd.OutOrStdout(), "%d. Length %d: %s → %s\n",
+			i+1, chain.Length, chain.From, chain.To)
+		
+		// Always show chain path if available
+		if len(chain.Path) > 0 {
+			fmt.Fprintf(cmd.OutOrStdout(), "   Path: %s\n", formatPath(chain.Path))
+		}
+		fmt.Fprintf(cmd.OutOrStdout(), "\n")
+	}
+	
+	fmt.Fprintf(cmd.OutOrStdout(), "Maximum dependency depth: %d\n", result.MaxDepth)
+}
+
+// printBasicDepsSummary prints a basic summary of dependency analysis
+func printBasicDepsSummary(cmd *cobra.Command, result *domain.DependencyAnalysisResult) {
+	fmt.Fprintf(cmd.OutOrStdout(), "📦 Dependency Analysis Summary\n")
+	fmt.Fprintf(cmd.OutOrStdout(), "=============================\n\n")
+	
+	fmt.Fprintf(cmd.OutOrStdout(), "Total Modules: %d\n", result.TotalModules)
+	fmt.Fprintf(cmd.OutOrStdout(), "Total Dependencies: %d\n", result.TotalDependencies)
+	fmt.Fprintf(cmd.OutOrStdout(), "Root Modules: %d\n", len(result.RootModules))
+	fmt.Fprintf(cmd.OutOrStdout(), "Leaf Modules: %d\n", len(result.LeafModules))
+	
+	if result.CircularDependencies != nil {
+		if result.CircularDependencies.HasCircularDependencies {
+			fmt.Fprintf(cmd.OutOrStdout(), "⚠️  Circular Dependencies: %d cycles involving %d modules\n",
+				result.CircularDependencies.TotalCycles,
+				result.CircularDependencies.TotalModulesInCycles)
+		} else {
+			fmt.Fprintf(cmd.OutOrStdout(), "✅ Circular Dependencies: None detected\n")
+		}
+	}
+	
+	if result.CouplingAnalysis != nil {
+		fmt.Fprintf(cmd.OutOrStdout(), "📊 Average Coupling: %.2f\n", result.CouplingAnalysis.AverageCoupling)
+		fmt.Fprintf(cmd.OutOrStdout(), "📏 Average Instability: %.3f\n", result.CouplingAnalysis.AverageInstability)
+	}
+	
+	fmt.Fprintf(cmd.OutOrStdout(), "🔗 Maximum Dependency Depth: %d\n", result.MaxDepth)
+	
+	// Show quick recommendations
+	fmt.Fprintf(cmd.OutOrStdout(), "\n💡 Quick recommendations:\n")
+	if result.CircularDependencies != nil && result.CircularDependencies.HasCircularDependencies {
+		fmt.Fprintf(cmd.OutOrStdout(), "  • Use --cycles flag to analyze circular dependencies\n")
+	}
+	fmt.Fprintf(cmd.OutOrStdout(), "  • Use --matrix flag to see dependency relationships\n")
+	fmt.Fprintf(cmd.OutOrStdout(), "  • Use --metrics flag for detailed coupling analysis\n")
+	fmt.Fprintf(cmd.OutOrStdout(), "  • Use --html flag for interactive visualization\n")
+}
+
+// Utility functions
+
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+
+func formatPath(path []string) string {
+	if len(path) == 0 {
+		return ""
+	}
+	if len(path) == 1 {
+		return path[0]
+	}
+	
+	// Show first -> ... -> last for long paths
+	if len(path) > 4 {
+		return fmt.Sprintf("%s → ... → %s", path[0], path[len(path)-1])
+	}
+	
+	result := path[0]
+	for i := 1; i < len(path); i++ {
+		result += " → " + path[i]
+	}
+	return result
+}
