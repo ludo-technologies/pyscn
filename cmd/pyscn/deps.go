@@ -177,12 +177,14 @@ func runDepsCommand(cmd *cobra.Command, args []string) error {
 	systemService := service.NewSystemAnalysisService()
 	fileReader := service.NewFileReader()
 	formatter := service.NewSystemAnalysisFormatter()
+	configLoader := service.NewSystemAnalysisConfigurationLoader()
 
 	// Create use case
 	systemUseCase, err := app.NewSystemAnalysisUseCaseBuilder().
 		WithService(systemService).
 		WithFileReader(fileReader).
 		WithFormatter(formatter).
+		WithConfigLoader(configLoader).
 		Build()
 	if err != nil {
 		return fmt.Errorf("failed to create system analysis use case: %w", err)
