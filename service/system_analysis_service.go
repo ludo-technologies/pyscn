@@ -201,7 +201,7 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
 
     // Build result
     return s.buildArchitectureResult(violations, severityCounts, layerCoupling, layerCohesion,
-        problematic, layersAnalyzed, compliance, checked), nil
+        problematic, layersAnalyzed, compliance, checked, moduleToLayer), nil
 }
 
 // emptyArchitectureResult returns an empty result when no rules are defined
@@ -340,11 +340,12 @@ func (s *SystemAnalysisServiceImpl) buildArchitectureResult(
     problematic []string,
     layersAnalyzed int,
     compliance float64,
-    checked int) *domain.ArchitectureAnalysisResult {
+    checked int,
+    moduleToLayer map[string]string) *domain.ArchitectureAnalysisResult {
 
     layerAnalysis := &domain.LayerAnalysis{
         LayersAnalyzed:    layersAnalyzed,
-        LayerViolations:   s.toLayerViolations(violations),
+        LayerViolations:   s.toLayerViolations(violations, moduleToLayer),
         LayerCoupling:     layerCoupling,
         LayerCohesion:     layerCohesion,
         ProblematicLayers: problematic,
@@ -365,13 +366,21 @@ func (s *SystemAnalysisServiceImpl) buildArchitectureResult(
 }
 
 // buildModuleLayerMap maps each module to a layer based on ArchitectureRules.
+// compiledPattern keeps the compiled regex and its original pattern with simple specificity info.
+type compiledPattern struct {
+    re          *regexp.Regexp
+    original    string
+    specificity int // number of dots in original pattern; higher = more specific
+}
+
 func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.DependencyGraph, rules *domain.ArchitectureRules) map[string]string {
     out := make(map[string]string)
-    compiled := make(map[string][]*regexp.Regexp)
+    compiled := make(map[string][]compiledPattern)
     for _, layer := range rules.Layers {
         for _, pat := range layer.Packages {
             if re := s.compileModulePattern(pat); re != nil {
-                compiled[layer.Name] = append(compiled[layer.Name], re)
+                cp := compiledPattern{re: re, original: pat, specificity: strings.Count(pat, ".")}
+                compiled[layer.Name] = append(compiled[layer.Name], cp)
             }
         }
     }
@@ -383,7 +392,7 @@ func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.Dependen
 }
 
 // findLayerForModule returns the most specific matching layer for a module.
-func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled map[string][]*regexp.Regexp) string {
+func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled map[string][]compiledPattern) string {
     // Find all matching patterns with their specificity
     type match struct {
         layer       string
@@ -393,23 +402,9 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
 
     var matches []match
     for layer, patterns := range compiled {
-        for _, re := range patterns {
-            if re.MatchString(module) {
-                // Extract the original pattern from regex (remove ^, (\\.|$), etc.)
-                pattern := re.String()
-                pattern = strings.TrimPrefix(pattern, "^")
-                pattern = strings.TrimSuffix(pattern, "(\\.|$)")
-                // Unescape the pattern
-                pattern = strings.ReplaceAll(pattern, "\\.", ".")
-
-                // Specificity is the number of dots (more dots = more specific)
-                specificity := strings.Count(pattern, ".")
-
-                matches = append(matches, match{
-                    layer:       layer,
-                    pattern:     pattern,
-                    specificity: specificity,
-                })
+        for _, cp := range patterns {
+            if cp.re.MatchString(module) {
+                matches = append(matches, match{layer: layer, pattern: cp.original, specificity: cp.specificity})
             }
         }
     }
@@ -420,6 +415,11 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
         for _, m := range matches[1:] {
             if m.specificity > best.specificity {
                 best = m
+            } else if m.specificity == best.specificity {
+                // tie-breaker: prefer longer original pattern
+                if len(m.pattern) > len(best.pattern) {
+                    best = m
+                }
             }
         }
         return best.layer
@@ -662,14 +662,14 @@ func (s *SystemAnalysisServiceImpl) evaluateLayerEdge(rules *domain.Architecture
 }
 
 // toLayerViolations converts ArchitectureViolation list to LayerViolation list for summary.
-func (s *SystemAnalysisServiceImpl) toLayerViolations(vs []domain.ArchitectureViolation) []domain.LayerViolation {
+func (s *SystemAnalysisServiceImpl) toLayerViolations(vs []domain.ArchitectureViolation, moduleToLayer map[string]string) []domain.LayerViolation {
     out := make([]domain.LayerViolation, 0, len(vs))
     for _, v := range vs {
         out = append(out, domain.LayerViolation{
             FromModule:  v.Module,
             ToModule:    v.Target,
-            FromLayer:   "",
-            ToLayer:     "",
+            FromLayer:   moduleToLayer[v.Module],
+            ToLayer:     moduleToLayer[v.Target],
             Rule:        v.Rule,
             Severity:    v.Severity,
             Description: v.Description,

@@ -625,16 +625,14 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLArchitectureContent(builder *stri
 	builder.WriteString(GenerateMetricCard(strconv.Itoa(layersAnalyzed), "Layers Analyzed"))
 	builder.WriteString(GenerateMetricCard(strconv.Itoa(arch.TotalRules), "Total Rules"))
 
-	// Violations with status badge
-	violationText := strconv.Itoa(arch.TotalViolations)
-	violationSeverity := "success"
-	if arch.TotalViolations > 0 {
-		violationSeverity = "danger"
-		violationText = "❌ " + violationText
-	} else {
-		violationText = "✅ " + violationText
-	}
-	builder.WriteString(GenerateMetricCard(GenerateStatusBadge(violationText, violationSeverity), "Violations"))
+    // Violations: show as large metric number (not inside small badge)
+    violationValue := strconv.Itoa(arch.TotalViolations)
+    if arch.TotalViolations > 0 {
+        violationValue = "❌ " + violationValue
+    } else {
+        violationValue = "✅ " + violationValue
+    }
+    builder.WriteString(GenerateMetricCard(violationValue, "Violations"))
 
 	// Compliance Score with color coding
 	complianceScore := arch.ComplianceScore * 100
@@ -752,10 +750,10 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLArchitectureContent(builder *stri
 }
 
 func (f *SystemAnalysisFormatterImpl) writeHTMLQualityContent(builder *strings.Builder, quality *domain.QualityMetricsResult) {
-	builder.WriteString(`
+    builder.WriteString(`
         <div class="section">
             <h2>⚡ Quality Metrics</h2>
-            <div class="metrics-grid">
+            <div class="metric-grid">
                 <div class="metric-card">
                     <div class="metric-value">` + fmt.Sprintf("%.1f", quality.OverallQuality) + `</div>
                     <div class="metric-label">Overall Quality</div>
