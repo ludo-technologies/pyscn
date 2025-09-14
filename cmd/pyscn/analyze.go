@@ -69,8 +69,8 @@ type AnalyzeCommand struct {
 	skipComplexity bool
 	skipDeadCode   bool
 	skipClones     bool
-	skipCBO        bool
-	skipSystem     bool // Skip system-level analysis
+    skipCBO        bool
+    skipSystem     bool // Skip system-level analysis (deps + architecture)
 
 	// Quick filters
 	minComplexity   int
@@ -79,14 +79,14 @@ type AnalyzeCommand struct {
 	minCBO          int
 
 	// System analysis options
-	enableSystemAnalysis bool // Enable system-level analysis
+    enableSystemAnalysis bool // Deprecated: not used; use skipSystem instead
 	detectCycles         bool // Detect circular dependencies
 	validateArch         bool // Validate architecture rules
 }
 
 // NewAnalyzeCommand creates a new analyze command
 func NewAnalyzeCommand() *AnalyzeCommand {
-	return &AnalyzeCommand{
+    return &AnalyzeCommand{
 		html:                 false,
 		json:                 false,
 		csv:                  false,
@@ -98,15 +98,15 @@ func NewAnalyzeCommand() *AnalyzeCommand {
 		skipDeadCode:         false,
 		skipClones:           false,
 		skipCBO:              false,
-		skipSystem:           false,
+        skipSystem:           false,
 		minComplexity:        5,
 		minSeverity:          "warning",
 		cloneSimilarity:      0.8,
 		minCBO:               0,
-		enableSystemAnalysis: false, // Disabled by default - opt-in feature
-		detectCycles:         true,
-		validateArch:         true,
-	}
+        enableSystemAnalysis: true, // Deprecated: keep true; actual control is skipSystem
+        detectCycles:         true,
+        validateArch:         true,
+    }
 }
 
 // NewAnalysisResult creates a new analysis result tracker
@@ -115,7 +115,7 @@ func NewAnalysisResult() *AnalysisResult {
 		Complexity: &AnalysisStatus{Name: "Complexity Analysis", Enabled: false},
 		DeadCode:   &AnalysisStatus{Name: "Dead Code Detection", Enabled: false},
 		Clones:     &AnalysisStatus{Name: "Clone Detection", Enabled: false},
-		CBO:        &AnalysisStatus{Name: "Dependency Analysis", Enabled: false},
+        CBO:        &AnalysisStatus{Name: "Class Coupling (CBO)", Enabled: false},
 		System:     &AnalysisStatus{Name: "System Analysis", Enabled: false},
 	}
 }
@@ -167,7 +167,8 @@ Examples:
 	cmd.Flags().BoolVar(&c.skipComplexity, "skip-complexity", false, "Skip complexity analysis")
 	cmd.Flags().BoolVar(&c.skipDeadCode, "skip-deadcode", false, "Skip dead code detection")
 	cmd.Flags().BoolVar(&c.skipClones, "skip-clones", false, "Skip clone detection")
-	cmd.Flags().BoolVar(&c.skipCBO, "skip-cbo", false, "Skip dependency analysis")
+    cmd.Flags().BoolVar(&c.skipCBO, "skip-cbo", false, "Skip class coupling (CBO) analysis")
+    cmd.Flags().BoolVar(&c.skipSystem, "skip-deps", false, "Skip module dependencies and architecture analysis")
 
 	// Quick filter flags
 	cmd.Flags().IntVar(&c.minComplexity, "min-complexity", 5, "Minimum complexity to report")
@@ -248,7 +249,8 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 	result.Complexity.Enabled = !c.skipComplexity
 	result.DeadCode.Enabled = !c.skipDeadCode
 	result.Clones.Enabled = !c.skipClones
-	result.CBO.Enabled = !c.skipCBO
+    result.CBO.Enabled = !c.skipCBO
+    result.System.Enabled = !c.skipSystem
 
 	// Early validation: Check if there are any Python files to analyze
 	fileReader := service.NewFileReader()
@@ -384,8 +386,8 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 		}()
 	}
 
-	// Run CBO analysis
-	if result.CBO.Enabled {
+    // Run CBO analysis
+    if result.CBO.Enabled {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -399,7 +401,28 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 						response, err := c.runCBOAnalysisWithResult(cmd, args)
 						if err == nil {
 							result.CBOResponse = response
-						}
+    }
+
+    // Run System (deps + architecture) analysis
+    if result.System.Enabled {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+            select {
+            case <-ctx.Done():
+                result.System.Error = fmt.Errorf("analysis timed out")
+                return
+            default:
+                c.runAnalysisWithStatus(result.System, statusMutex, func() error {
+                    response, err := c.runSystemAnalysisWithResult(cmd, args)
+                    if err == nil {
+                        result.SystemResponse = response
+                    }
+                    return err
+                })
+            }
+        }()
+    }
 						return err
 					}
 					return c.runCBOAnalysis(cmd, args)
@@ -555,8 +578,8 @@ func (c *AnalyzeCommand) runAnalysisWithStatus(status *AnalysisStatus, mutex *sy
 
 // printAnalysisPlan prints the planned analyses
 func (c *AnalyzeCommand) printAnalysisPlan(cmd *cobra.Command, result *AnalysisResult) {
-	if c.verbose {
-		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Analysis Plan:\n")
+    if c.verbose {
+        fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Analysis Plan:\n")
 		if result.Complexity.Enabled {
 			fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ Complexity Analysis (threshold: >%d)\n", c.minComplexity)
 		} else {
@@ -572,18 +595,23 @@ func (c *AnalyzeCommand) printAnalysisPlan(cmd *cobra.Command, result *AnalysisR
 		} else {
 			fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ Clone Detection (skipped)\n")
 		}
-		if result.CBO.Enabled {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ Dependency Analysis (min CBO: %d)\n", c.minCBO)
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ Dependency Analysis (skipped)\n")
-		}
-		fmt.Fprintf(cmd.ErrOrStderr(), "\n")
-	}
+        if result.CBO.Enabled {
+            fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ Class Coupling (CBO) (min CBO: %d)\n", c.minCBO)
+        } else {
+            fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ Class Coupling (CBO) (skipped)\n")
+        }
+        if result.System.Enabled {
+            fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ System Analysis (deps + architecture)\n")
+        } else {
+            fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ System Analysis (skipped)\n")
+        }
+        fmt.Fprintf(cmd.ErrOrStderr(), "\n")
+    }
 }
 
 // calculateOverallStats calculates overall statistics from individual analysis statuses
 func (c *AnalyzeCommand) calculateOverallStats(result *AnalysisResult) {
-	analyses := []*AnalysisStatus{result.Complexity, result.DeadCode, result.Clones, result.CBO}
+    analyses := []*AnalysisStatus{result.Complexity, result.DeadCode, result.Clones, result.CBO, result.System}
 
 	for _, analysis := range analyses {
 		if analysis.Enabled {
@@ -605,7 +633,7 @@ func (c *AnalyzeCommand) printStatusReport(cmd *cobra.Command, result *AnalysisR
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n")
 
 	// Print individual analysis status
-	analyses := []*AnalysisStatus{result.Complexity, result.DeadCode, result.Clones, result.CBO}
+    analyses := []*AnalysisStatus{result.Complexity, result.DeadCode, result.Clones, result.CBO, result.System}
 	for _, analysis := range analyses {
 		if analysis.Enabled {
 			if analysis.Success {
@@ -715,8 +743,8 @@ func (c *AnalyzeCommand) monitorAnalysisProgress(cmd *cobra.Command, result *Ana
 			fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Progress monitoring timed out after 5 minutes\n")
 			return
 		case <-ticker.C:
-			mutex.Lock()
-			analyses := []*AnalysisStatus{result.Complexity, result.DeadCode, result.Clones}
+            mutex.Lock()
+            analyses := []*AnalysisStatus{result.Complexity, result.DeadCode, result.Clones, result.CBO, result.System}
 
 			var running []string
 
@@ -962,8 +990,56 @@ func (c *AnalyzeCommand) runCloneAnalysisWithResult(cmd *cobra.Command, args []s
 
 // outputCloneReport outputs an individual clone report (for backward compatibility)
 func (c *AnalyzeCommand) outputCloneReport(cmd *cobra.Command, response *domain.CloneResponse) error {
-	// Placeholder for backward compatibility
-	return nil
+    // Placeholder for backward compatibility
+    return nil
+}
+
+// runSystemAnalysisWithResult runs module dependency + architecture analysis and returns the result
+func (c *AnalyzeCommand) runSystemAnalysisWithResult(cmd *cobra.Command, args []string) (*domain.SystemAnalysisResponse, error) {
+    // Build request
+    request := domain.SystemAnalysisRequest{
+        Paths:               args,
+        OutputFormat:        domain.OutputFormatText,
+        OutputWriter:        os.Stdout, // required by usecase validation
+        AnalyzeDependencies: true,
+        AnalyzeArchitecture: true,
+        AnalyzeQuality:      false,
+
+        // Options (lean defaults; config can override)
+        IncludeStdLib:     false,
+        IncludeThirdParty: true,
+        FollowRelative:    true,
+        DetectCycles:      true,
+
+        // File selection
+        ConfigPath:      c.configFile,
+        Recursive:       true,
+        IncludePatterns: []string{"*.py", "*.pyi"},
+        ExcludePatterns: []string{"test_*.py", "*_test.py"},
+    }
+
+    // Build use case
+    systemService := service.NewSystemAnalysisService()
+    fileReader := service.NewFileReader()
+    formatter := service.NewSystemAnalysisFormatter()
+    configLoader := service.NewSystemAnalysisConfigurationLoader()
+
+    uc, err := app.NewSystemAnalysisUseCaseBuilder().
+        WithService(systemService).
+        WithFileReader(fileReader).
+        WithFormatter(formatter).
+        WithConfigLoader(configLoader).
+        Build()
+    if err != nil {
+        return nil, err
+    }
+
+    // Execute
+    ctx := cmd.Context()
+    if ctx == nil {
+        ctx = context.Background()
+    }
+    return uc.AnalyzeAndReturn(ctx, request)
 }
 
 // generateUnifiedReport generates a unified report from all analysis results
@@ -983,15 +1059,16 @@ func (c *AnalyzeCommand) generateUnifiedReport(cmd *cobra.Command, result *Analy
 	}
 
 	// Create the unified response
-	response := &domain.AnalyzeResponse{
-		Complexity:  result.ComplexityResponse,
-		DeadCode:    result.DeadCodeResponse,
-		Clone:       result.CloneResponse,
-		CBO:         result.CBOResponse,
-		GeneratedAt: time.Now(),
-		Duration:    result.Overall.TotalTime.Milliseconds(),
-		Version:     version.Version,
-	}
+    response := &domain.AnalyzeResponse{
+        Complexity:  result.ComplexityResponse,
+        DeadCode:    result.DeadCodeResponse,
+        Clone:       result.CloneResponse,
+        CBO:         result.CBOResponse,
+        System:      result.SystemResponse,
+        GeneratedAt: time.Now(),
+        Duration:    result.Overall.TotalTime.Milliseconds(),
+        Version:     version.Version,
+    }
 
 	// Calculate summary statistics
 	summary := &response.Summary

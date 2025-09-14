@@ -7,11 +7,12 @@ import (
 
 // AnalyzeResponse represents the combined results of all analyses
 type AnalyzeResponse struct {
-	// Analysis results
-	Complexity *ComplexityResponse `json:"complexity,omitempty" yaml:"complexity,omitempty"`
-	DeadCode   *DeadCodeResponse   `json:"dead_code,omitempty" yaml:"dead_code,omitempty"`
-	Clone      *CloneResponse      `json:"clone,omitempty" yaml:"clone,omitempty"`
-	CBO        *CBOResponse        `json:"cbo,omitempty" yaml:"cbo,omitempty"`
+    // Analysis results
+    Complexity *ComplexityResponse `json:"complexity,omitempty" yaml:"complexity,omitempty"`
+    DeadCode   *DeadCodeResponse   `json:"dead_code,omitempty" yaml:"dead_code,omitempty"`
+    Clone      *CloneResponse      `json:"clone,omitempty" yaml:"clone,omitempty"`
+    CBO        *CBOResponse        `json:"cbo,omitempty" yaml:"cbo,omitempty"`
+    System     *SystemAnalysisResponse `json:"system,omitempty" yaml:"system,omitempty"`
 
 	// Overall summary
 	Summary AnalyzeSummary `json:"summary" yaml:"summary"`
