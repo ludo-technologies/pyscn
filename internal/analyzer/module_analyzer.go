@@ -211,6 +211,15 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 	for _, imp := range imports {
 		targetModule := ma.resolveImport(imp, filePath)
 		if targetModule != "" && ma.shouldIncludeDependency(targetModule) {
+			// Skip dependencies from __init__.py to its own submodules
+			// This is a common Python pattern for re-exporting
+			if strings.HasSuffix(filePath, "__init__.py") {
+				// Check if target is a submodule of the current package
+				if strings.HasPrefix(targetModule, moduleName+".") {
+					continue // Skip this dependency
+				}
+			}
+
 			// Determine edge type
 			edgeType := DependencyEdgeImport
 			if imp.IsRelative {

@@ -456,15 +456,16 @@ func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.Depen
 
     // Define relaxed standard layered architecture rules for auto-detection
     // These are more permissive than strict layered architecture to avoid false positives
+    // Note: Same-layer dependencies are implicitly allowed (common in real projects)
     rules := []domain.LayerRule{
-        // Presentation layer can access all layers (typical in real projects)
-        {From: "presentation", Allow: []string{"application", "domain", "infrastructure"}},
-        // Application layer can access domain and infrastructure
-        {From: "application", Allow: []string{"domain", "infrastructure"}},
-        // Domain layer should ideally not access other layers (but only warn in auto-detect)
-        {From: "domain", Deny: []string{"presentation"}},  // Only deny presentation, allow others
-        // Infrastructure can access domain and application
-        {From: "infrastructure", Allow: []string{"domain", "application"}},
+        // Presentation layer can access all layers including itself
+        {From: "presentation", Allow: []string{"presentation", "application", "domain", "infrastructure"}},
+        // Application layer can access domain, infrastructure, and itself
+        {From: "application", Allow: []string{"application", "domain", "infrastructure"}},
+        // Domain layer should ideally not access presentation but can access itself
+        {From: "domain", Allow: []string{"domain", "infrastructure"}, Deny: []string{"presentation", "application"}},
+        // Infrastructure can access domain, application, and itself
+        {From: "infrastructure", Allow: []string{"infrastructure", "domain", "application"}},
     }
 
     return &domain.ArchitectureRules{
@@ -494,14 +495,57 @@ func (s *SystemAnalysisServiceImpl) detectLayerFromModule(module string, pattern
     return ""
 }
 
+// isArchitecturalComponent checks if a module part represents an architectural component
+func (s *SystemAnalysisServiceImpl) isArchitecturalComponent(part string) bool {
+    architecturalKeywords := []string{
+        // Presentation layer
+        "api", "apis", "views", "view", "controllers", "controller", "routes", "route",
+        "handlers", "handler", "ui", "web", "rest", "graphql", "endpoints", "endpoint",
+        "routers", "router",
+        // Application layer
+        "services", "service", "use_cases", "usecase", "usecases", "workflows", "workflow",
+        "commands", "queries",
+        // Domain layer
+        "models", "model", "entities", "entity", "domain", "domains", "core", "business",
+        "aggregates", "valueobjects", "schemas", "schema",
+        // Infrastructure layer
+        "db", "database", "repositories", "repository", "repo", "external", "adapters",
+        "adapter", "persistence", "storage", "cache", "clients", "client",
+        // Other common architectural components
+        "utils", "util", "helpers", "helper", "common", "shared", "lib", "libs",
+    }
+
+    lowerPart := strings.ToLower(part)
+    for _, keyword := range architecturalKeywords {
+        if lowerPart == keyword || strings.HasPrefix(lowerPart, keyword) {
+            return true
+        }
+    }
+    return false
+}
+
 // extractPackagePrefixes extracts common package prefixes from module names
 func (s *SystemAnalysisServiceImpl) extractPackagePrefixes(modules []string) []string {
     prefixMap := make(map[string]bool)
 
     for _, module := range modules {
-        // Get the first part of the module path as the package prefix
+        // For auto-detection, use more specific prefixes to avoid conflicts
+        // e.g., "app.api.v1.admin" should produce "app.api" not just "app"
         parts := strings.Split(module, ".")
-        if len(parts) > 0 {
+
+        // If module has multiple parts and the second part matches a known pattern,
+        // use the first two parts as the prefix
+        if len(parts) >= 2 {
+            // Check if the second part is a meaningful architectural component
+            secondPart := strings.ToLower(parts[1])
+            if s.isArchitecturalComponent(secondPart) {
+                // Use first two parts as prefix (e.g., "app.api")
+                prefixMap[parts[0] + "." + parts[1]] = true
+            } else {
+                // Use just the first part
+                prefixMap[parts[0]] = true
+            }
+        } else if len(parts) > 0 {
             prefixMap[parts[0]] = true
         }
     }
