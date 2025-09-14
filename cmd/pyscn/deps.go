@@ -19,8 +19,7 @@ var (
 	depsDetectCycles      bool
 
 	// Architecture validation flags
-	depsStrict     bool // Enable strict mode for architecture validation
-	depsAutoDetect bool // Auto-detect architecture patterns
+	depsStrict bool // Enable strict mode for architecture validation
 
 	// Output format flags
 	depsJSON bool
@@ -55,12 +54,11 @@ This command performs comprehensive dependency analysis including:
 Architecture Validation:
 Always validates dependencies against architecture rules. If rules are defined in
 pyproject.toml ([tool.pyscn.architecture]) or .pyscn.toml, they will be used.
-Use --auto-detect to automatically identify common patterns when no rules are defined.
+Otherwise, automatically identifies common architecture patterns.
 
 Examples:
   pyscn deps src/                  # Analyze and validate dependencies
   pyscn deps --html src/           # Generate interactive HTML report with validation
-  pyscn deps --auto-detect src/    # Auto-detect patterns and validate
   pyscn deps --strict src/         # Enable strict validation mode
 
 Output formats:
@@ -84,7 +82,6 @@ func init() {
 
 	// Architecture validation options
 	depsCmd.Flags().BoolVar(&depsStrict, "strict", false, "Enable strict mode for architecture validation")
-	depsCmd.Flags().BoolVar(&depsAutoDetect, "auto-detect", false, "Auto-detect architecture patterns when no rules are defined")
 
 	// Output options
 	depsCmd.Flags().BoolVar(&depsJSON, "json", false, "Generate JSON report file")
