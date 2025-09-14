@@ -1144,6 +1144,27 @@ func (c *AnalyzeCommand) generateUnifiedReport(cmd *cobra.Command, result *Analy
 		summary.AverageCoupling = result.CBOResponse.Summary.AverageCBO
 	}
 
+    // System (deps + architecture) statistics for scoring
+    if result.SystemResponse != nil {
+        if result.SystemResponse.DependencyAnalysis != nil {
+            da := result.SystemResponse.DependencyAnalysis
+            summary.DepsEnabled = true
+            summary.DepsTotalModules = da.TotalModules
+            summary.DepsMaxDepth = da.MaxDepth
+            if da.CircularDependencies != nil {
+                summary.DepsModulesInCycles = da.CircularDependencies.TotalModulesInCycles
+            }
+            if da.CouplingAnalysis != nil {
+                summary.DepsMainSequenceDeviation = da.CouplingAnalysis.MainSequenceDeviation
+            }
+        }
+        if result.SystemResponse.ArchitectureAnalysis != nil {
+            aa := result.SystemResponse.ArchitectureAnalysis
+            summary.ArchEnabled = true
+            summary.ArchCompliance = aa.ComplianceScore
+        }
+    }
+
 	// Calculate health score
 	summary.CalculateHealthScore()
 

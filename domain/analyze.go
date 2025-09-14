@@ -34,7 +34,16 @@ type AnalyzeSummary struct {
 	ComplexityEnabled bool `json:"complexity_enabled" yaml:"complexity_enabled"`
 	DeadCodeEnabled   bool `json:"dead_code_enabled" yaml:"dead_code_enabled"`
 	CloneEnabled      bool `json:"clone_enabled" yaml:"clone_enabled"`
-	CBOEnabled        bool `json:"cbo_enabled" yaml:"cbo_enabled"`
+    CBOEnabled        bool `json:"cbo_enabled" yaml:"cbo_enabled"`
+
+    // System-level (module dependencies & architecture) summary used for scoring
+    DepsEnabled bool    `json:"deps_enabled" yaml:"deps_enabled"`
+    ArchEnabled bool    `json:"arch_enabled" yaml:"arch_enabled"`
+    DepsTotalModules        int     `json:"deps_total_modules" yaml:"deps_total_modules"`
+    DepsModulesInCycles     int     `json:"deps_modules_in_cycles" yaml:"deps_modules_in_cycles"`
+    DepsMaxDepth            int     `json:"deps_max_depth" yaml:"deps_max_depth"`
+    DepsMainSequenceDeviation float64 `json:"deps_main_sequence_deviation" yaml:"deps_main_sequence_deviation"`
+    ArchCompliance          float64 `json:"arch_compliance" yaml:"arch_compliance"`
 
 	// Key metrics
 	TotalFunctions      int     `json:"total_functions" yaml:"total_functions"`
@@ -59,92 +68,129 @@ type AnalyzeSummary struct {
 
 // CalculateHealthScore calculates an overall health score based on analysis results
 func (s *AnalyzeSummary) CalculateHealthScore() {
-	score := 100
+    score := 100
 
-	// Calculate normalization factor for large projects
-	normalizationFactor := 1.0
-	if s.TotalFiles > 10 {
-		// Scale factor increases with project size to reduce penalty impact
-		// 20 files: 1.3x, 50 files: 1.7x, 100 files: 2.0x, 200 files: 2.3x
-		normalizationFactor = 1.0 + math.Log10(float64(s.TotalFiles)/10.0)
-	}
+    // Project size normalization (affects dead code penalties)
+    normalizationFactor := 1.0
+    if s.TotalFiles > 10 {
+        normalizationFactor = 1.0 + math.Log10(float64(s.TotalFiles)/10.0)
+    }
 
-	// Complexity penalty (max 25 points)
-	complexityPenalty := 0
-	if s.AverageComplexity > 20 {
-		complexityPenalty = 25
-	} else if s.AverageComplexity > 10 {
-		complexityPenalty = 15
-	} else if s.AverageComplexity > 5 {
-		complexityPenalty = 8
-	}
-	score -= complexityPenalty
+    // Complexity penalty (max 20)
+    switch {
+    case s.AverageComplexity > 20:
+        score -= 20
+    case s.AverageComplexity > 10:
+        score -= 12
+    case s.AverageComplexity > 5:
+        score -= 6
+    }
 
-	// Dead code penalty (max 25 points, normalized for project size)
-	deadCodePenalty := 0
-	if s.DeadCodeCount > 0 {
-		rawPenalty := float64(s.DeadCodeCount) / normalizationFactor
-		deadCodePenalty = int(math.Min(25, rawPenalty))
-	}
+    // Dead code penalty (max 20, normalized)
+    if s.DeadCodeCount > 0 || s.CriticalDeadCode > 0 {
+        base := int(math.Min(20, float64(s.DeadCodeCount)/normalizationFactor))
+        critical := int(math.Min(10, float64(3*s.CriticalDeadCode)/normalizationFactor))
+        penalty := base + critical
+        if penalty > 20 {
+            penalty = 20
+        }
+        score -= penalty
+    }
 
-	// Additional penalty for critical dead code (max 15 points, normalized)
-	criticalPenalty := 0
-	if s.CriticalDeadCode > 0 {
-		rawCriticalPenalty := float64(s.CriticalDeadCode*3) / normalizationFactor
-		criticalPenalty = int(math.Min(15, rawCriticalPenalty))
-	}
+    // Clone penalty (max 20)
+    switch {
+    case s.CodeDuplication > 40:
+        score -= 20
+    case s.CodeDuplication > 25:
+        score -= 12
+    case s.CodeDuplication > 10:
+        score -= 6
+    }
 
-	totalDeadCodePenalty := deadCodePenalty + criticalPenalty
-	if totalDeadCodePenalty > 25 {
-		totalDeadCodePenalty = 25
-	}
-	score -= totalDeadCodePenalty
+    // CBO penalty (max 20) based on ratio of high-coupling classes
+    if s.CBOClasses > 0 {
+        ratio := float64(s.HighCouplingClasses) / float64(s.CBOClasses)
+        switch {
+        case ratio > 0.5:
+            score -= 16
+        case ratio > 0.3:
+            score -= 10
+        case ratio > 0.1:
+            score -= 5
+        }
+    }
 
-	// Clone penalty (max 25 points, based on percentage)
-	clonePenalty := 0
-	if s.CodeDuplication > 40 {
-		clonePenalty = 25
-	} else if s.CodeDuplication > 25 {
-		clonePenalty = 15
-	} else if s.CodeDuplication > 10 {
-		clonePenalty = 8
-	}
-	score -= clonePenalty
+    // Module Dependencies & Architecture (max 20 total)
+    if s.DepsEnabled {
+        // Cycles penalty (max 8): proportion of modules in cycles
+        if s.DepsTotalModules > 0 {
+            ratio := float64(s.DepsModulesInCycles) / float64(s.DepsTotalModules)
+            if ratio < 0 {
+                ratio = 0
+            }
+            if ratio > 1 {
+                ratio = 1
+            }
+            score -= int(math.Round(8 * ratio))
+        }
 
-	// CBO penalty (max 25 points)
-	cboPenalty := 0
-	if s.CBOClasses > 0 {
-		couplingRatio := float64(s.HighCouplingClasses) / float64(s.CBOClasses)
-		if couplingRatio > 0.5 {
-			cboPenalty = 20
-		} else if couplingRatio > 0.3 {
-			cboPenalty = 12
-		} else if couplingRatio > 0.1 {
-			cboPenalty = 6
-		}
-	}
-	score -= cboPenalty
+        // Depth penalty (max 2): excess over expected depth ~ O(log N)
+        if s.DepsTotalModules > 0 {
+            expected := int(math.Max(3, math.Ceil(math.Log2(float64(s.DepsTotalModules)+1))+1))
+            excess := s.DepsMaxDepth - expected
+            if excess < 0 {
+                excess = 0
+            }
+            if excess > 2 {
+                excess = 2
+            }
+            score -= excess
+        }
 
-	// Set minimum score to 10 (never completely fail)
-	if score < 10 {
-		score = 10
-	}
+        // Main sequence deviation penalty (max 2)
+        if s.DepsMainSequenceDeviation > 0 {
+            msd := s.DepsMainSequenceDeviation
+            if msd < 0 {
+                msd = 0
+            }
+            if msd > 1 {
+                msd = 1
+            }
+            score -= int(math.Round(msd * 2))
+        }
+    }
 
-	s.HealthScore = score
+    // Architecture compliance penalty (max 8)
+    if s.ArchEnabled {
+        comp := s.ArchCompliance
+        if comp < 0 {
+            comp = 0
+        }
+        if comp > 1 {
+            comp = 1
+        }
+        score -= int(math.Round(8 * (1 - comp)))
+    }
 
-	// Assign grade based on score (adjusted thresholds)
-	switch {
-	case score >= 85:
-		s.Grade = "A"
-	case score >= 70:
-		s.Grade = "B"
-	case score >= 55:
-		s.Grade = "C"
-	case score >= 40:
-		s.Grade = "D"
-	default:
-		s.Grade = "F"
-	}
+    // Minimum score floor
+    if score < 10 {
+        score = 10
+    }
+    s.HealthScore = score
+
+    // Grade mapping
+    switch {
+    case score >= 85:
+        s.Grade = "A"
+    case score >= 70:
+        s.Grade = "B"
+    case score >= 55:
+        s.Grade = "C"
+    case score >= 40:
+        s.Grade = "D"
+    default:
+        s.Grade = "F"
+    }
 }
 
 // IsHealthy returns true if the codebase is considered healthy
