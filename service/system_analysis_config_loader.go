@@ -164,9 +164,30 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
     }
     merged.Recursive = override.Recursive
 
-    // Architecture rules - CLI request takes precedence if provided
+    // Architecture rules - merge carefully to preserve config while applying CLI overrides
     if override.ArchitectureRules != nil {
-        merged.ArchitectureRules = override.ArchitectureRules
+        if merged.ArchitectureRules == nil {
+            // No config rules, use override as-is
+            merged.ArchitectureRules = override.ArchitectureRules
+        } else {
+            // Merge: apply StrictMode from CLI while preserving config rules
+            if override.ArchitectureRules.StrictMode {
+                merged.ArchitectureRules.StrictMode = true
+            }
+            // If CLI provides layers/rules, they override config (unlikely in deps command)
+            if len(override.ArchitectureRules.Layers) > 0 {
+                merged.ArchitectureRules.Layers = override.ArchitectureRules.Layers
+            }
+            if len(override.ArchitectureRules.Rules) > 0 {
+                merged.ArchitectureRules.Rules = override.ArchitectureRules.Rules
+            }
+            if len(override.ArchitectureRules.AllowedPatterns) > 0 {
+                merged.ArchitectureRules.AllowedPatterns = override.ArchitectureRules.AllowedPatterns
+            }
+            if len(override.ArchitectureRules.ForbiddenPatterns) > 0 {
+                merged.ArchitectureRules.ForbiddenPatterns = override.ArchitectureRules.ForbiddenPatterns
+            }
+        }
     }
 
     return &merged

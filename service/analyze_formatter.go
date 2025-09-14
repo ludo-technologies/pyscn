@@ -148,24 +148,25 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	fmt.Fprintf(writer, "Clone Groups,%d\n", response.Summary.CloneGroups)
 	fmt.Fprintf(writer, "Code Duplication,%.2f\n", response.Summary.CodeDuplication)
 	fmt.Fprintf(writer, "Total Classes Analyzed,%d\n", response.Summary.CBOClasses)
-	fmt.Fprintf(writer, "High Dependency Classes,%d\n", response.Summary.HighCouplingClasses)
-	fmt.Fprintf(writer, "Average Dependencies,%.2f\n", response.Summary.AverageCoupling)
+    fmt.Fprintf(writer, "High Coupling (CBO) Classes,%d\n", response.Summary.HighCouplingClasses)
+    fmt.Fprintf(writer, "Average CBO,%.2f\n", response.Summary.AverageCoupling)
 
 	return nil
 }
 
 // writeHTML formats the response as HTML
 func (f *AnalyzeFormatter) writeHTML(response *domain.AnalyzeResponse, writer io.Writer) error {
-	funcMap := template.FuncMap{
-		"join": func(elems []string, sep string) string {
-			return strings.Join(elems, sep)
-		},
-		"add": func(a, b int) int {
-			return a + b
-		},
-	}
-	tmpl := template.Must(template.New("analyze").Funcs(funcMap).Parse(analyzeHTMLTemplate))
-	return tmpl.Execute(writer, response)
+    funcMap := template.FuncMap{
+        "join": func(elems []string, sep string) string {
+            return strings.Join(elems, sep)
+        },
+        "add": func(a, b int) int {
+            return a + b
+        },
+        "mul100": func(v float64) float64 { return v * 100.0 },
+    }
+    tmpl := template.Must(template.New("analyze").Funcs(funcMap).Parse(analyzeHTMLTemplate))
+    return tmpl.Execute(writer, response)
 }
 
 // HTML template for unified report
@@ -304,18 +305,26 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
 
         <div class="tabs">
             <div class="tab-buttons">
-                <button class="tab-button active" onclick="showTab('summary')">Summary</button>
+                <button class="tab-button active" onclick="showTab('summary', this)">Summary</button>
                 {{if .Summary.ComplexityEnabled}}
-                <button class="tab-button" onclick="showTab('complexity')">Complexity</button>
+                <button class="tab-button" onclick="showTab('complexity', this)">Complexity</button>
                 {{end}}
                 {{if .Summary.DeadCodeEnabled}}
-                <button class="tab-button" onclick="showTab('deadcode')">Dead Code</button>
+                <button class="tab-button" onclick="showTab('deadcode', this)">Dead Code</button>
                 {{end}}
                 {{if .Summary.CloneEnabled}}
-                <button class="tab-button" onclick="showTab('clone')">Clone Detection</button>
+                <button class="tab-button" onclick="showTab('clone', this)">Clone Detection</button>
                 {{end}}
                 {{if .Summary.CBOEnabled}}
-                <button class="tab-button" onclick="showTab('cbo')">Dependency Analysis</button>
+                <button class="tab-button" onclick="showTab('cbo', this)">Class Coupling</button>
+                {{end}}
+                {{if .System}}
+                {{if .System.DependencyAnalysis}}
+                <button class="tab-button" onclick="showTab('sys-deps', this)">Dependencies</button>
+                {{end}}
+                {{if .System.ArchitectureAnalysis}}
+                <button class="tab-button" onclick="showTab('sys-arch', this)">Architecture</button>
+                {{end}}
                 {{end}}
             </div>
 
@@ -353,14 +362,63 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{.Summary.HighCouplingClasses}}</div>
-                        <div class="metric-label">High Dependencies</div>
+                        <div class="metric-label">High Coupling (CBO)</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{printf "%.2f" .Summary.AverageCoupling}}</div>
-                        <div class="metric-label">Avg Dependencies</div>
+                        <div class="metric-label">Avg CBO</div>
                     </div>
                     {{end}}
                 </div>
+
+                {{/* System-level quick glance */}}
+                {{if .System}}
+                {{if .System.DependencyAnalysis}}
+                <h3 style="margin-top: 16px; color: #2c3e50;">Dependencies</h3>
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">{{.System.DependencyAnalysis.TotalModules}}</div>
+                        <div class="metric-label">Total Modules</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.System.DependencyAnalysis.TotalDependencies}}</div>
+                        <div class="metric-label">Total Dependencies</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.System.DependencyAnalysis.MaxDepth}}</div>
+                        <div class="metric-label">Max Depth</div>
+                    </div>
+                    {{if .System.DependencyAnalysis.CircularDependencies}}
+                    <div class="metric-card">
+                        <div class="metric-value">{{if .System.DependencyAnalysis.CircularDependencies.HasCircularDependencies}}❌ {{.System.DependencyAnalysis.CircularDependencies.TotalCycles}}{{else}}✅ 0{{end}}</div>
+                        <div class="metric-label">Circular Dependencies</div>
+                    </div>
+                    {{end}}
+                </div>
+                {{end}}
+
+                {{if .System.ArchitectureAnalysis}}
+                <h3 style="margin-top: 8px; color: #2c3e50;">Architecture</h3>
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">{{.System.ArchitectureAnalysis.TotalViolations}}</div>
+                        <div class="metric-label">Violations</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{printf "%.1f%%" (mul100 .System.ArchitectureAnalysis.ComplianceScore)}}</div>
+                        <div class="metric-label">Compliance</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{if .System.ArchitectureAnalysis.LayerAnalysis}}{{.System.ArchitectureAnalysis.LayerAnalysis.LayersAnalyzed}}{{else}}0{{end}}</div>
+                        <div class="metric-label">Layers Analyzed</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.System.ArchitectureAnalysis.TotalRules}}</div>
+                        <div class="metric-label">Total Rules</div>
+                    </div>
+                </div>
+                {{end}}
+                {{end}}
             </div>
 
             {{if .Summary.ComplexityEnabled}}
@@ -530,8 +588,8 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
 
             {{if .Summary.CBOEnabled}}
             <div id="cbo" class="tab-content">
-                <h2>Dependency Analysis</h2>
-                <p style="margin-bottom: 20px; color: #666;">Class coupling metrics (CBO - Coupling Between Objects)</p>
+                <h2>Class Coupling</h2>
+                <p style="margin-bottom: 20px; color: #666;">Coupling Between Objects (CBO) metrics</p>
                 {{if .CBO}}
                 <div class="metric-grid">
                     <div class="metric-card">
@@ -544,11 +602,11 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{printf "%.2f" .CBO.Summary.AverageCBO}}</div>
-                        <div class="metric-label">Average Dependencies</div>
+                        <div class="metric-label">Average CBO</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{.CBO.Summary.MaxCBO}}</div>
-                        <div class="metric-label">Max Dependencies</div>
+                        <div class="metric-label">Max CBO</div>
                     </div>
                 </div>
                 
@@ -558,7 +616,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         <tr>
                             <th>Class</th>
                             <th>File</th>
-                            <th>Dependencies</th>
+                            <th>CBO</th>
                             <th>Risk Level</th>
                             <th>Dependent Classes</th>
                         </tr>
@@ -583,11 +641,116 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{end}}
             </div>
             {{end}}
+
+            {{if .System}}
+            {{if .System.DependencyAnalysis}}
+            <div id="sys-deps" class="tab-content">
+                <h2>Module Dependencies</h2>
+                <p style="margin-bottom: 20px; color: #666;">Project-wide module dependency graph metrics</p>
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">{{.System.DependencyAnalysis.TotalModules}}</div>
+                        <div class="metric-label">Total Modules</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.System.DependencyAnalysis.TotalDependencies}}</div>
+                        <div class="metric-label">Total Dependencies</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.System.DependencyAnalysis.MaxDepth}}</div>
+                        <div class="metric-label">Max Depth</div>
+                    </div>
+                    {{if .System.DependencyAnalysis.CircularDependencies}}
+                    <div class="metric-card">
+                        <div class="metric-value">{{if .System.DependencyAnalysis.CircularDependencies.HasCircularDependencies}}❌ {{.System.DependencyAnalysis.CircularDependencies.TotalCycles}}{{else}}✅ 0{{end}}</div>
+                        <div class="metric-label">Circular Dependencies</div>
+                    </div>
+                    {{end}}
+                </div>
+
+                {{if gt (len .System.DependencyAnalysis.LongestChains) 0}}
+                <h3>Longest Dependency Chains</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Depth</th>
+                            <th>Path</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $i, $chain := .System.DependencyAnalysis.LongestChains}}
+                        {{if lt $i 10}}
+                        <tr>
+                            <td>{{add $i 1}}</td>
+                            <td>{{$chain.Length}}</td>
+                            <td>{{join $chain.Path " → "}}</td>
+                        </tr>
+                        {{end}}
+                        {{end}}
+                    </tbody>
+                </table>
+                {{end}}
+            </div>
+            {{end}}
+
+            {{if .System.ArchitectureAnalysis}}
+            <div id="sys-arch" class="tab-content">
+                <h2>Architecture Validation</h2>
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">{{if .System.ArchitectureAnalysis.LayerAnalysis}}{{.System.ArchitectureAnalysis.LayerAnalysis.LayersAnalyzed}}{{else}}0{{end}}</div>
+                        <div class="metric-label">Layers Analyzed</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.System.ArchitectureAnalysis.TotalRules}}</div>
+                        <div class="metric-label">Total Rules</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.System.ArchitectureAnalysis.TotalViolations}}</div>
+                        <div class="metric-label">Violations</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{printf "%.1f%%" (mul100 .System.ArchitectureAnalysis.ComplianceScore)}}</div>
+                        <div class="metric-label">Compliance</div>
+                    </div>
+                </div>
+
+                {{if and .System.ArchitectureAnalysis.LayerAnalysis (gt (len .System.ArchitectureAnalysis.LayerAnalysis.LayerViolations) 0)}}
+                <h3>Top Rule Violations</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Severity</th>
+                            <th>Rule</th>
+                            <th>From</th>
+                            <th>To</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $i, $v := .System.ArchitectureAnalysis.LayerAnalysis.LayerViolations}}
+                        {{if lt $i 20}}
+                        <tr>
+                            <td>{{$v.Severity}}</td>
+                            <td>{{$v.Rule}}</td>
+                            <td>{{$v.FromModule}}</td>
+                            <td>{{$v.ToModule}}</td>
+                        </tr>
+                        {{end}}
+                        {{end}}
+                    </tbody>
+                </table>
+                {{else}}
+                <p style="color: #4caf50; font-weight: bold; margin-top: 20px;">✓ No architecture violations</p>
+                {{end}}
+            </div>
+            {{end}}
+            {{end}}
         </div>
     </div>
 
     <script>
-        function showTab(tabName) {
+        function showTab(tabName, el) {
             // Hide all tabs
             const tabs = document.querySelectorAll('.tab-content');
             tabs.forEach(tab => tab.classList.remove('active'));
@@ -600,7 +763,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             document.getElementById(tabName).classList.add('active');
             
             // Mark button as active
-            event.target.classList.add('active');
+            if (el) { el.classList.add('active'); }
         }
     </script>
 </body>

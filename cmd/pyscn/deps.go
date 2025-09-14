@@ -18,6 +18,9 @@ var (
 	depsFollowRelative    bool
 	depsDetectCycles      bool
 
+	// Architecture validation flags
+	depsStrict bool // Enable strict mode for architecture validation
+
 	// Output format flags
 	depsJSON bool
 	depsCSV  bool
@@ -46,10 +49,17 @@ This command performs comprehensive dependency analysis including:
 • Robert Martin's coupling metrics (Ca, Ce, I, A, D)
 • Dependency chain analysis
 • Architecture quality assessment
+• Optional architecture validation against defined layer rules
+
+Architecture Validation:
+Always validates dependencies against architecture rules. If rules are defined in
+pyproject.toml ([tool.pyscn.architecture]) or .pyscn.toml, they will be used.
+Otherwise, automatically identifies common architecture patterns.
 
 Examples:
-  pyscn deps src/                  # Analyze all modules in src/
-  pyscn deps --html src/           # Generate interactive HTML report
+  pyscn deps src/                  # Analyze and validate dependencies
+  pyscn deps --html src/           # Generate interactive HTML report with validation
+  pyscn deps --strict src/         # Enable strict validation mode
 
 Output formats:
   --html       - Interactive HTML report with visualizations (recommended)
@@ -69,6 +79,9 @@ func init() {
 	depsCmd.Flags().BoolVar(&depsIncludeThirdParty, "include-third-party", true, "Include third-party dependencies")
 	depsCmd.Flags().BoolVar(&depsFollowRelative, "follow-relative", true, "Follow relative imports")
 	depsCmd.Flags().BoolVar(&depsDetectCycles, "detect-cycles", true, "Detect circular dependencies")
+
+	// Architecture validation options
+	depsCmd.Flags().BoolVar(&depsStrict, "strict", false, "Enable strict mode for architecture validation")
 
 	// Output options
 	depsCmd.Flags().BoolVar(&depsJSON, "json", false, "Generate JSON report file")
@@ -145,9 +158,9 @@ func runDepsCommand(cmd *cobra.Command, args []string) error {
 		OutputPath:   outputPath,
 		NoOpen:       depsNoOpen,
 
-		// Enable only dependency analysis
+		// Enable dependency analysis and architecture validation (always enabled)
 		AnalyzeDependencies: true,
-		AnalyzeArchitecture: false,
+		AnalyzeArchitecture: true,
 		AnalyzeQuality:      false,
 
 		// Analysis options
@@ -161,6 +174,15 @@ func runDepsCommand(cmd *cobra.Command, args []string) error {
 		Recursive:       depsRecursive,
 		IncludePatterns: depsIncludePatterns,
 		ExcludePatterns: depsExcludePatterns,
+	}
+
+	// If strict mode is enabled, set it in the request
+	// The actual architecture rules will be loaded from config and merged
+	if depsStrict {
+		request.ArchitectureRules = &domain.ArchitectureRules{
+			StrictMode: true,
+			// Layers and Rules will be populated from config
+		}
 	}
 
 	// Build dependencies

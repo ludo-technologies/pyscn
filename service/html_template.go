@@ -107,6 +107,7 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
         .tab-content {
             display: none;
             padding: 30px;
+            background: white;
         }
         .tab-content.active {
             display: block;
@@ -227,13 +228,13 @@ func GenerateTabsStart() string {
 
 // GenerateTabButton generates a tab button
 func GenerateTabButton(id, label string, active bool) string {
-	activeClass := ""
-	if active {
-		activeClass = " active"
-	}
-	return fmt.Sprintf(`
-                <button class="tab-button%s" onclick="showTab('%s')">%s</button>`,
-		activeClass, id, label)
+    activeClass := ""
+    if active {
+        activeClass = " active"
+    }
+    return fmt.Sprintf(`
+                <button class="tab-button%s" onclick="showTab('%s', this)">%s</button>`,
+        activeClass, id, label)
 }
 
 // GenerateTabsMiddle generates the middle section between tab buttons and content
@@ -270,20 +271,21 @@ func GenerateSinglePageContent(content string) string {
 
 // GenerateTabScript generates the JavaScript for tab switching
 func GenerateTabScript() string {
-	return `
+    return `
     <script>
-        function showTab(tabId) {
+        function showTab(tabId, el) {
             // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
+            document.querySelectorAll('.tab-content').forEach(function(tab){
                 tab.classList.remove('active');
             });
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.classList.remove('active');
+            // Deactivate all buttons
+            document.querySelectorAll('.tab-button').forEach(function(btn){
+                btn.classList.remove('active');
             });
-            
-            // Show selected tab
-            document.getElementById(tabId).classList.add('active');
-            event.target.classList.add('active');
+            // Show selected tab and activate clicked button
+            var tab = document.getElementById(tabId);
+            if (tab) { tab.classList.add('active'); }
+            if (el && el.classList) { el.classList.add('active'); }
         }
     </script>`
 }
