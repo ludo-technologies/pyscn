@@ -401,7 +401,14 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 						response, err := c.runCBOAnalysisWithResult(cmd, args)
 						if err == nil {
 							result.CBOResponse = response
-    }
+						}
+						return err
+					}
+					return c.runCBOAnalysis(cmd, args)
+				})
+			}
+		}()
+	}
 
     // Run System (deps + architecture) analysis
     if result.System.Enabled {
@@ -423,13 +430,6 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
             }
         }()
     }
-						return err
-					}
-					return c.runCBOAnalysis(cmd, args)
-				})
-			}
-		}()
-	}
 
 	// Wait for all analyses to complete or timeout
 	done := make(chan struct{})
