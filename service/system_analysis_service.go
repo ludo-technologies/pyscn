@@ -382,13 +382,49 @@ func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.Dependen
     return out
 }
 
-// findLayerForModule returns the first matching layer for a module.
+// findLayerForModule returns the most specific matching layer for a module.
 func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled map[string][]*regexp.Regexp) string {
+    // Find all matching patterns with their specificity
+    type match struct {
+        layer       string
+        pattern     string
+        specificity int
+    }
+
+    var matches []match
     for layer, patterns := range compiled {
         for _, re := range patterns {
-            if re.MatchString(module) { return layer }
+            if re.MatchString(module) {
+                // Extract the original pattern from regex (remove ^, (\\.|$), etc.)
+                pattern := re.String()
+                pattern = strings.TrimPrefix(pattern, "^")
+                pattern = strings.TrimSuffix(pattern, "(\\.|$)")
+                // Unescape the pattern
+                pattern = strings.ReplaceAll(pattern, "\\.", ".")
+
+                // Specificity is the number of dots (more dots = more specific)
+                specificity := strings.Count(pattern, ".")
+
+                matches = append(matches, match{
+                    layer:       layer,
+                    pattern:     pattern,
+                    specificity: specificity,
+                })
+            }
         }
     }
+
+    // Return the most specific match
+    if len(matches) > 0 {
+        best := matches[0]
+        for _, m := range matches[1:] {
+            if m.specificity > best.specificity {
+                best = m
+            }
+        }
+        return best.layer
+    }
+
     return ""
 }
 
@@ -533,8 +569,6 @@ func (s *SystemAnalysisServiceImpl) extractPackagePrefixes(modules []string) []s
         // e.g., "app.api.v1.admin" should produce "app.api" not just "app"
         parts := strings.Split(module, ".")
 
-        // If module has multiple parts and the second part matches a known pattern,
-        // use the first two parts as the prefix
         if len(parts) >= 2 {
             // Check if the second part is a meaningful architectural component
             secondPart := strings.ToLower(parts[1])
@@ -542,7 +576,8 @@ func (s *SystemAnalysisServiceImpl) extractPackagePrefixes(modules []string) []s
                 // Use first two parts as prefix (e.g., "app.api")
                 prefixMap[parts[0] + "." + parts[1]] = true
             } else {
-                // Use just the first part
+                // Use just the first part only if it's not too generic
+                // Avoid using "app" alone if there are more specific prefixes
                 prefixMap[parts[0]] = true
             }
         } else if len(parts) > 0 {
