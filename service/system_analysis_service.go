@@ -454,7 +454,7 @@ func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.Depen
     // Standard layer patterns commonly used in Python projects
     layerPatterns := map[string][]string{
         "presentation": {"api", "apis", "views", "view", "controllers", "controller", "routes", "route", "handlers", "handler", "ui", "web", "rest", "graphql", "endpoints", "endpoint", "routers", "router"},
-        "application":  {"app", "application", "services", "service", "use_cases", "usecase", "usecases", "workflows", "workflow", "commands", "queries"},
+        "application":  {"services", "service", "use_cases", "usecase", "usecases", "workflows", "workflow", "commands", "queries"},
         "domain":       {"models", "model", "entities", "entity", "domain", "domains", "core", "business", "aggregates", "valueobjects", "schemas", "schema"},
         "infrastructure": {"db", "database", "repositories", "repository", "repo", "external", "adapters", "adapter", "persistence", "storage", "cache", "clients", "client"},
     }
