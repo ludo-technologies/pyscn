@@ -8,20 +8,36 @@ import (
 // This strategy uses BFS to grow groups while directly comparing candidates to existing members,
 // avoiding the transitive similarity issue (A↔B↔C where A and C are dissimilar).
 type CentroidGrouping struct {
-	threshold float64
-	analyzer  *APTEDAnalyzer
+	threshold      float64
+	analyzer       *APTEDAnalyzer
+	type1Threshold float64
+	type2Threshold float64
+	type3Threshold float64
+	type4Threshold float64
 }
 
 // NewCentroidGrouping creates a new centroid-based grouping strategy
 func NewCentroidGrouping(threshold float64) *CentroidGrouping {
 	costModel := NewPythonCostModel()
 	return &CentroidGrouping{
-		threshold: threshold,
-		analyzer:  NewAPTEDAnalyzer(costModel),
+		threshold:      threshold,
+		analyzer:       NewAPTEDAnalyzer(costModel),
+		type1Threshold: 0.95, // Default fallback values
+		type2Threshold: 0.85,
+		type3Threshold: 0.80,
+		type4Threshold: 0.75,
 	}
 }
 
 func (c *CentroidGrouping) GetName() string { return "Centroid-based" }
+
+// SetThresholds sets the clone type thresholds for classification
+func (c *CentroidGrouping) SetThresholds(type1, type2, type3, type4 float64) {
+	c.type1Threshold = type1
+	c.type2Threshold = type2
+	c.type3Threshold = type3
+	c.type4Threshold = type4
+}
 
 // GroupClones groups clones using centroid-based approach
 func (c *CentroidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
@@ -154,7 +170,6 @@ func makePairKey(f1, f2 *CodeFragment) string {
 	return id2 + "|" + id1
 }
 
-
 // calculateSimilarity computes similarity between two fragments
 func (c *CentroidGrouping) calculateSimilarity(f1, f2 *CodeFragment) float64 {
 	if f1 == nil || f2 == nil || f1.TreeNode == nil || f2.TreeNode == nil {
@@ -188,14 +203,24 @@ func (c *CentroidGrouping) calculateGroupSimilarity(group *CloneGroup) {
 		group.Similarity = 0.0
 	}
 
-	// Determine clone type based on average similarity
+	// Classify the group based on its similarity
+	c.classifyGroupBySimilarity(group, group.Similarity)
+}
+
+// classifyGroupBySimilarity classifies a group based on similarity using configured thresholds
+func (c *CentroidGrouping) classifyGroupBySimilarity(group *CloneGroup, similarity float64) {
+	group.Similarity = similarity
+
+	// Determine clone type based on similarity using configured thresholds
 	switch {
-	case group.Similarity >= 0.95:
+	case similarity >= c.type1Threshold:
 		group.CloneType = Type1Clone
-	case group.Similarity >= 0.85:
+	case similarity >= c.type2Threshold:
 		group.CloneType = Type2Clone
-	case group.Similarity >= 0.75:
+	case similarity >= c.type3Threshold:
 		group.CloneType = Type3Clone
+	case similarity >= c.type4Threshold:
+		group.CloneType = Type4Clone
 	default:
 		group.CloneType = Type4Clone
 	}

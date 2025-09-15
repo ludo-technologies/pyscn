@@ -13,9 +13,13 @@ const (
 
 // GroupingConfig holds configuration for grouping strategies
 type GroupingConfig struct {
-	Mode      GroupingMode
-	Threshold float64 // Minimum similarity for group membership
-	KCoreK    int     // K value for k-core mode (default: 2)
+	Mode           GroupingMode
+	Threshold      float64 // Minimum similarity for group membership
+	KCoreK         int     // K value for k-core mode (default: 2)
+	Type1Threshold float64 // Type-1 clone threshold
+	Type2Threshold float64 // Type-2 clone threshold
+	Type3Threshold float64 // Type-3 clone threshold
+	Type4Threshold float64 // Type-4 clone threshold
 }
 
 // CreateGroupingStrategy creates a strategy based on mode and config
@@ -28,7 +32,9 @@ func CreateGroupingStrategy(config GroupingConfig) GroupingStrategy {
 	case GroupingModeKCore:
 		return NewKCoreGrouping(config.Threshold, config.KCoreK)
 	case GroupingModeCentroid:
-		return NewCentroidGrouping(config.Threshold)
+		strategy := NewCentroidGrouping(config.Threshold)
+		strategy.SetThresholds(config.Type1Threshold, config.Type2Threshold, config.Type3Threshold, config.Type4Threshold)
+		return strategy
 	case GroupingModeConnected:
 		fallthrough
 	default:

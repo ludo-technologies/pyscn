@@ -429,9 +429,13 @@ func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments 
 		k = 2
 	}
 	groupingConfig := GroupingConfig{
-		Mode:      cd.config.GroupingMode,
-		Threshold: thr,
-		KCoreK:    k,
+		Mode:           cd.config.GroupingMode,
+		Threshold:      thr,
+		KCoreK:         k,
+		Type1Threshold: cd.config.Type1Threshold,
+		Type2Threshold: cd.config.Type2Threshold,
+		Type3Threshold: cd.config.Type3Threshold,
+		Type4Threshold: cd.config.Type4Threshold,
 	}
 	strategy := CreateGroupingStrategy(groupingConfig)
 	cd.groupClonesWithStrategy(strategy)
@@ -576,7 +580,15 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 	if k < 2 {
 		k = 2
 	}
-	groupingConfig := GroupingConfig{Mode: cd.config.GroupingMode, Threshold: thr, KCoreK: k}
+	groupingConfig := GroupingConfig{
+		Mode:           cd.config.GroupingMode,
+		Threshold:      thr,
+		KCoreK:         k,
+		Type1Threshold: cd.config.Type1Threshold,
+		Type2Threshold: cd.config.Type2Threshold,
+		Type3Threshold: cd.config.Type3Threshold,
+		Type4Threshold: cd.config.Type4Threshold,
+	}
 	strategy := CreateGroupingStrategy(groupingConfig)
 	cd.groupClonesWithStrategy(strategy)
 
