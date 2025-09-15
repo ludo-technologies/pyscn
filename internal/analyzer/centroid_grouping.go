@@ -5,6 +5,9 @@ import (
 )
 
 // CentroidGrouping implements centroid-based grouping that avoids transitive problems
+// Note: This is the standard GroupingStrategy implementation that works with pre-computed pairs.
+// For performance optimization, clone_detector.go has a direct implementation (detectClonesWithCentroid)
+// that avoids pre-computing all pairs.
 type CentroidGrouping struct {
 	threshold float64
 	analyzer  *APTEDAnalyzer

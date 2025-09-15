@@ -925,6 +925,7 @@ func (cd *CloneDetector) calculateGroupSimilarity(group *CloneGroup) {
 }
 
 // detectClonesWithCentroid performs centroid-based clone detection directly from fragments
+// This is an optimized implementation that avoids pre-computing all pairs for better performance
 func (cd *CloneDetector) detectClonesWithCentroid(ctx context.Context) {
 	if len(cd.fragments) == 0 {
 		return
@@ -1022,11 +1023,20 @@ func (cd *CloneDetector) determineGroupCloneType(group *CloneGroup) {
 // generatePairsFromGroups generates clone pairs from groups for compatibility
 func (cd *CloneDetector) generatePairsFromGroups() {
 	cd.clonePairs = make([]*ClonePair, 0)
+	maxPairs := cd.config.MaxClonePairs
+	if maxPairs <= 0 {
+		maxPairs = 10000 // Default max pairs
+	}
 
 	for _, group := range cd.cloneGroups {
 		// Generate pairs within each group
 		for i := 0; i < len(group.Fragments); i++ {
 			for j := i + 1; j < len(group.Fragments); j++ {
+				// Check if we've reached the maximum number of pairs
+				if len(cd.clonePairs) >= maxPairs {
+					return
+				}
+
 				pair := &ClonePair{
 					Fragment1:  group.Fragments[i],
 					Fragment2:  group.Fragments[j],
