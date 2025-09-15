@@ -919,50 +919,6 @@ func (cd *CloneDetector) calculateGroupSimilarity(group *CloneGroup) {
 	}
 }
 
-
-// determineGroupCloneType determines the clone type based on group similarity
-func (cd *CloneDetector) determineGroupCloneType(group *CloneGroup) {
-	switch {
-	case group.Similarity >= cd.config.Type1Threshold:
-		group.CloneType = Type1Clone
-	case group.Similarity >= cd.config.Type2Threshold:
-		group.CloneType = Type2Clone
-	case group.Similarity >= cd.config.Type3Threshold:
-		group.CloneType = Type3Clone
-	default:
-		group.CloneType = Type4Clone
-	}
-}
-
-// generatePairsFromGroups generates clone pairs from groups for compatibility
-func (cd *CloneDetector) generatePairsFromGroups() {
-	cd.clonePairs = make([]*ClonePair, 0)
-	maxPairs := cd.config.MaxClonePairs
-	if maxPairs <= 0 {
-		maxPairs = 10000 // Default max pairs
-	}
-
-	for _, group := range cd.cloneGroups {
-		// Generate pairs within each group
-		for i := 0; i < len(group.Fragments); i++ {
-			for j := i + 1; j < len(group.Fragments); j++ {
-				// Check if we've reached the maximum number of pairs
-				if len(cd.clonePairs) >= maxPairs {
-					return
-				}
-
-				pair := &ClonePair{
-					Fragment1:  group.Fragments[i],
-					Fragment2:  group.Fragments[j],
-					Similarity: cd.analyzer.ComputeSimilarity(group.Fragments[i].TreeNode, group.Fragments[j].TreeNode),
-					CloneType:  group.CloneType,
-				}
-				cd.clonePairs = append(cd.clonePairs, pair)
-			}
-		}
-	}
-}
-
 // groupClonesWithStrategy groups clone pairs using a pluggable strategy.
 // This keeps backward compatibility with the existing groupClones method.
 //
