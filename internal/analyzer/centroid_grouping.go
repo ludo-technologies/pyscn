@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"fmt"
 	"sort"
 )
 
@@ -73,8 +74,8 @@ func (c *CentroidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 			continue
 		}
 		// Store both directions for quick lookup using string keys
-		key1 := makePairKey(p.Fragment1, p.Fragment2)
-		key2 := makePairKey(p.Fragment2, p.Fragment1)
+		key1 := c.makePairKey(p.Fragment1, p.Fragment2)
+		key2 := c.makePairKey(p.Fragment2, p.Fragment1)
 		similarityIndex[key1] = p.Similarity
 		similarityIndex[key2] = p.Similarity
 	}
@@ -120,7 +121,7 @@ func (c *CentroidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 			for candidate := range unclassified {
 				// First try to use pre-computed similarity
 				var similarity float64
-				key := makePairKey(current, candidate)
+				key := c.makePairKey(current, candidate)
 				if sim, exists := similarityIndex[key]; exists {
 					similarity = sim
 				} else {
@@ -160,10 +161,19 @@ func (c *CentroidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 	return groups
 }
 
+// fragmentID returns a stable identifier for a fragment based on its location
+func (c *CentroidGrouping) fragmentID(f *CodeFragment) string {
+	if f == nil || f.Location == nil {
+		return fmt.Sprintf("%p", f)
+	}
+	loc := f.Location
+	return fmt.Sprintf("%s|%d|%d|%d|%d", loc.FilePath, loc.StartLine, loc.EndLine, loc.StartCol, loc.EndCol)
+}
+
 // makePairKey creates a string key for a pair of fragments to avoid memory leaks
-func makePairKey(f1, f2 *CodeFragment) string {
-	id1 := fragmentID(f1)
-	id2 := fragmentID(f2)
+func (c *CentroidGrouping) makePairKey(f1, f2 *CodeFragment) string {
+	id1 := c.fragmentID(f1)
+	id2 := c.fragmentID(f2)
 	if id1 <= id2 {
 		return id1 + "|" + id2
 	}
