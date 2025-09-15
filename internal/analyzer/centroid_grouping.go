@@ -5,9 +5,8 @@ import (
 )
 
 // CentroidGrouping implements centroid-based grouping that avoids transitive problems
-// Note: This is the standard GroupingStrategy implementation that works with pre-computed pairs.
-// For performance optimization, clone_detector.go has a direct implementation (detectClonesWithCentroid)
-// that avoids pre-computing all pairs.
+// This strategy uses BFS to grow groups while directly comparing candidates to existing members,
+// avoiding the transitive similarity issue (A↔B↔C where A and C are dissimilar).
 type CentroidGrouping struct {
 	threshold float64
 	analyzer  *APTEDAnalyzer
@@ -51,7 +50,20 @@ func (c *CentroidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 		return []*CloneGroup{}
 	}
 
-	// BFS-based grouping without using pre-computed pairs
+	// Create similarity index from pre-computed pairs for faster lookup
+	similarityIndex := make(map[[2]*CodeFragment]float64)
+	for _, p := range pairs {
+		if p == nil || p.Fragment1 == nil || p.Fragment2 == nil {
+			continue
+		}
+		// Store both directions for quick lookup
+		key1 := [2]*CodeFragment{p.Fragment1, p.Fragment2}
+		key2 := [2]*CodeFragment{p.Fragment2, p.Fragment1}
+		similarityIndex[key1] = p.Similarity
+		similarityIndex[key2] = p.Similarity
+	}
+
+	// BFS-based grouping using similarity index
 	groups := make([]*CloneGroup, 0)
 	unclassified := make(map[*CodeFragment]bool)
 	for _, f := range fragments {
@@ -84,8 +96,15 @@ func (c *CentroidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 			// Check all unclassified fragments
 			toAdd := make([]*CodeFragment, 0)
 			for candidate := range unclassified {
-				// Calculate similarity between candidate and current group member
-				similarity := c.calculateSimilarity(current, candidate)
+				// First try to use pre-computed similarity
+				var similarity float64
+				key := [2]*CodeFragment{current, candidate}
+				if sim, exists := similarityIndex[key]; exists {
+					similarity = sim
+				} else {
+					// Fall back to calculating if not in index
+					similarity = c.calculateSimilarity(current, candidate)
+				}
 
 				if similarity >= c.threshold {
 					toAdd = append(toAdd, candidate)
