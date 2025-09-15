@@ -51,14 +51,14 @@ func (c *CentroidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 	}
 
 	// Create similarity index from pre-computed pairs for faster lookup
-	similarityIndex := make(map[[2]*CodeFragment]float64)
+	similarityIndex := make(map[string]float64)
 	for _, p := range pairs {
 		if p == nil || p.Fragment1 == nil || p.Fragment2 == nil {
 			continue
 		}
-		// Store both directions for quick lookup
-		key1 := [2]*CodeFragment{p.Fragment1, p.Fragment2}
-		key2 := [2]*CodeFragment{p.Fragment2, p.Fragment1}
+		// Store both directions for quick lookup using string keys
+		key1 := makePairKey(p.Fragment1, p.Fragment2)
+		key2 := makePairKey(p.Fragment2, p.Fragment1)
 		similarityIndex[key1] = p.Similarity
 		similarityIndex[key2] = p.Similarity
 	}
@@ -93,12 +93,18 @@ func (c *CentroidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 			current := queue[0]
 			queue = queue[1:]
 
+			// Performance optimization: limit group size for large groups
+			const maxGroupSize = 50
+			if len(group.Fragments) >= maxGroupSize {
+				break
+			}
+
 			// Check all unclassified fragments
 			toAdd := make([]*CodeFragment, 0)
 			for candidate := range unclassified {
 				// First try to use pre-computed similarity
 				var similarity float64
-				key := [2]*CodeFragment{current, candidate}
+				key := makePairKey(current, candidate)
 				if sim, exists := similarityIndex[key]; exists {
 					similarity = sim
 				} else {
@@ -137,6 +143,17 @@ func (c *CentroidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 
 	return groups
 }
+
+// makePairKey creates a string key for a pair of fragments to avoid memory leaks
+func makePairKey(f1, f2 *CodeFragment) string {
+	id1 := fragmentID(f1)
+	id2 := fragmentID(f2)
+	if id1 <= id2 {
+		return id1 + "|" + id2
+	}
+	return id2 + "|" + id1
+}
+
 
 // calculateSimilarity computes similarity between two fragments
 func (c *CentroidGrouping) calculateSimilarity(f1, f2 *CodeFragment) float64 {
