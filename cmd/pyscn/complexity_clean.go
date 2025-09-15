@@ -319,3 +319,8 @@ var complexityCommand = NewComplexityCommand()
 
 // complexityCmd is the cobra command that will be added to the root command
 var complexityCmd = complexityCommand.CreateCobraCommand()
+
+// NewComplexityCmd creates and returns the complexity cobra command
+func NewComplexityCmd() *cobra.Command {
+	return complexityCmd
+}

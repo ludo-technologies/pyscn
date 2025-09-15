@@ -71,9 +71,8 @@ Output formats:
 	RunE: runDepsCommand,
 }
 
-func init() {
-	rootCmd.AddCommand(depsCmd)
-
+// NewDepsCmd creates and returns the deps cobra command
+func NewDepsCmd() *cobra.Command {
 	// Analysis options
 	depsCmd.Flags().BoolVar(&depsIncludeStdLib, "include-stdlib", false, "Include standard library dependencies")
 	depsCmd.Flags().BoolVar(&depsIncludeThirdParty, "include-third-party", true, "Include third-party dependencies")
@@ -98,6 +97,8 @@ func init() {
 
 	// Configuration
 	depsCmd.Flags().StringVarP(&depsConfigPath, "config", "c", "", "Configuration file path")
+
+	return depsCmd
 }
 
 func runDepsCommand(cmd *cobra.Command, args []string) error {
