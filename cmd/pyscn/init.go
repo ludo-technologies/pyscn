@@ -58,8 +58,8 @@ cost_model_type = "python"        # Cost model: default, python, weighted
 # Clone type similarity thresholds (0.0 - 1.0)
 type1_threshold = 0.95            # Type-1: Identical code (except whitespace/comments)
 type2_threshold = 0.85            # Type-2: Syntactically identical (different identifiers)
-type3_threshold = 0.75            # Type-3: Syntactically similar (small modifications)
-type4_threshold = 0.65            # Type-4: Functionally similar (different syntax)
+type3_threshold = 0.80            # Type-3: Syntactically similar (small modifications)
+type4_threshold = 0.75            # Type-4: Functionally similar (different syntax)
 similarity_threshold = 0.8        # General minimum similarity threshold
 
 [filtering]

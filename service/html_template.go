@@ -228,13 +228,13 @@ func GenerateTabsStart() string {
 
 // GenerateTabButton generates a tab button
 func GenerateTabButton(id, label string, active bool) string {
-    activeClass := ""
-    if active {
-        activeClass = " active"
-    }
-    return fmt.Sprintf(`
+	activeClass := ""
+	if active {
+		activeClass = " active"
+	}
+	return fmt.Sprintf(`
                 <button class="tab-button%s" onclick="showTab('%s', this)">%s</button>`,
-        activeClass, id, label)
+		activeClass, id, label)
 }
 
 // GenerateTabsMiddle generates the middle section between tab buttons and content
@@ -271,7 +271,7 @@ func GenerateSinglePageContent(content string) string {
 
 // GenerateTabScript generates the JavaScript for tab switching
 func GenerateTabScript() string {
-    return `
+	return `
     <script>
         function showTab(tabId, el) {
             // Hide all tabs

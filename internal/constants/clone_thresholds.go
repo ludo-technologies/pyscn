@@ -21,14 +21,14 @@ const (
 
 	// DefaultType3CloneThreshold represents the similarity threshold for Type-3 clones.
 	// Type-3 clones are copied fragments with further modifications such as changed,
-	// added or removed statements. Medium-high similarity (≥70%).
-	DefaultType3CloneThreshold = 0.70
+	// added or removed statements. Medium-high similarity (≥80%).
+	DefaultType3CloneThreshold = 0.80
 
 	// DefaultType4CloneThreshold represents the similarity threshold for Type-4 clones.
 	// Type-4 clones are syntactically different but functionally similar fragments.
 	// They perform the same computation but through different syntactic variants.
-	// Medium similarity (≥60%).
-	DefaultType4CloneThreshold = 0.60
+	// Medium similarity (≥70%).
+	DefaultType4CloneThreshold = 0.75
 )
 
 // CloneThresholdConfig holds all clone detection threshold values

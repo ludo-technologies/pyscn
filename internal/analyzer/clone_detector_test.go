@@ -243,8 +243,8 @@ func TestCloneDetector_ClassifyCloneType(t *testing.T) {
 	}{
 		{"very high similarity", 0.96, Type1Clone},
 		{"high similarity", 0.90, Type2Clone},
-		{"medium similarity", 0.75, Type3Clone},
-		{"low similarity", 0.65, Type4Clone},
+		{"medium similarity", 0.75, Type4Clone},     // 0.75 is exactly Type4 threshold
+		{"low similarity", 0.65, CloneType(0)},      // 0.65 is below Type4 threshold (0.75)
 		{"very low similarity", 0.50, CloneType(0)}, // Not a clone
 	}
 
@@ -272,7 +272,7 @@ func TestCloneDetector_IsSignificantClone(t *testing.T) {
 		{"high similarity, low distance", 0.85, 10.0, true},
 		{"low similarity", 0.40, 10.0, false},
 		{"high distance", 0.85, 100.0, false},
-		{"threshold values", 0.60, 50.0, true},
+		{"threshold values", 0.60, 50.0, false}, // 0.60 is below Type4 threshold (0.75)
 	}
 
 	for _, tt := range tests {
