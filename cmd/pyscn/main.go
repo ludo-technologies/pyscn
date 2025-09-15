@@ -26,13 +26,30 @@ func init() {
 	// Global flags
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose output")
 
-	// Add subcommands
+	// Add main subcommands
 	rootCmd.AddCommand(NewAnalyzeCmd())
 	rootCmd.AddCommand(NewCheckCmd())
 	rootCmd.AddCommand(NewVersionCmd())
 	rootCmd.AddCommand(NewInitCmd())
+
+	// Add deprecated commands (hidden from help)
+	complexityCmd := NewComplexityCmd()
+	complexityCmd.Hidden = true
 	rootCmd.AddCommand(complexityCmd)
-	rootCmd.AddCommand(NewDeadCodeCmd())
+
+	deadCodeCmd := NewDeadCodeCmd()
+	deadCodeCmd.Hidden = true
+	rootCmd.AddCommand(deadCodeCmd)
+
+	cboCmd := NewCBOCmd()
+	cboCmd.Hidden = true
+	rootCmd.AddCommand(cboCmd)
+
+	depsCmd := NewDepsCmd()
+	depsCmd.Hidden = true
+	rootCmd.AddCommand(depsCmd)
+
+	// Add clone command (uses different pattern)
 	addCloneCommand(rootCmd)
 }
 

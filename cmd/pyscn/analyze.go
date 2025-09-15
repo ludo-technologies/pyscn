@@ -70,7 +70,8 @@ type AnalyzeCommand struct {
 	skipDeadCode   bool
 	skipClones     bool
 	skipCBO        bool
-	skipSystem     bool // Skip system-level analysis (deps + architecture)
+	skipSystem       bool     // Skip system-level analysis (deps + architecture)
+	selectAnalyses   []string // Only run specified analyses
 
 	// Quick filters
 	minComplexity   int
@@ -169,6 +170,7 @@ Examples:
 	cmd.Flags().BoolVar(&c.skipClones, "skip-clones", false, "Skip clone detection")
 	cmd.Flags().BoolVar(&c.skipCBO, "skip-cbo", false, "Skip class coupling (CBO) analysis")
 	cmd.Flags().BoolVar(&c.skipSystem, "skip-deps", false, "Skip module dependencies and architecture analysis")
+	cmd.Flags().StringSliceVar(&c.selectAnalyses, "select", []string{}, "Only run specified analyses (complexity,deadcode,clones,cbo,deps)")
 
 	// Quick filter flags
 	cmd.Flags().IntVar(&c.minComplexity, "min-complexity", 5, "Minimum complexity to report")
@@ -245,12 +247,22 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 	result := NewAnalysisResult()
 	result.Overall.StartTime = time.Now()
 
-	// Configure which analyses to run
-	result.Complexity.Enabled = !c.skipComplexity
-	result.DeadCode.Enabled = !c.skipDeadCode
-	result.Clones.Enabled = !c.skipClones
-	result.CBO.Enabled = !c.skipCBO
-	result.System.Enabled = !c.skipSystem
+	// Configure which analyses to run based on --select or skip flags
+	if len(c.selectAnalyses) > 0 {
+		// --select flag specified: only run the specified analyses
+		result.Complexity.Enabled = c.containsAnalysis("complexity")
+		result.DeadCode.Enabled = c.containsAnalysis("deadcode")
+		result.Clones.Enabled = c.containsAnalysis("clones")
+		result.CBO.Enabled = c.containsAnalysis("cbo")
+		result.System.Enabled = c.containsAnalysis("deps")
+	} else {
+		// No --select flag: run all except those explicitly skipped
+		result.Complexity.Enabled = !c.skipComplexity
+		result.DeadCode.Enabled = !c.skipDeadCode
+		result.Clones.Enabled = !c.skipClones
+		result.CBO.Enabled = !c.skipCBO
+		result.System.Enabled = !c.skipSystem
+	}
 
 	// Early validation: Check if there are any Python files to analyze
 	fileReader := service.NewFileReader()
@@ -1265,6 +1277,16 @@ func (c *AnalyzeCommand) runCBOAnalysisWithResult(cmd *cobra.Command, args []str
 
 	// Execute analysis and return result
 	return cboUseCase.AnalyzeAndReturn(cmd.Context(), request)
+}
+
+// containsAnalysis checks if the given analysis is in the selectAnalyses list
+func (c *AnalyzeCommand) containsAnalysis(analysis string) bool {
+	for _, a := range c.selectAnalyses {
+		if strings.ToLower(a) == analysis {
+			return true
+		}
+	}
+	return false
 }
 
 // NewAnalyzeCmd creates and returns the analyze cobra command

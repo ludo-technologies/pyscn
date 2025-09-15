@@ -118,6 +118,10 @@ Examples:
 
 // runDeadCodeAnalysis executes the dead code analysis
 func (c *DeadCodeCommand) runDeadCodeAnalysis(cmd *cobra.Command, args []string) error {
+	// Show deprecation warning
+	fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  'deadcode' command is deprecated. Use 'pyscn analyze --select deadcode' instead.\n")
+	fmt.Fprintf(cmd.ErrOrStderr(), "   This command will be removed in a future version.\n\n")
+
 	// Get verbose flag from parent command
 	if cmd.Parent() != nil {
 		c.verbose, _ = cmd.Parent().Flags().GetBool("verbose")

@@ -97,6 +97,10 @@ Examples:
 
 // runComplexityAnalysis executes the complexity analysis
 func (c *ComplexityCommand) runComplexityAnalysis(cmd *cobra.Command, args []string) error {
+	// Show deprecation warning
+	fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  'complexity' command is deprecated. Use 'pyscn analyze --select complexity' instead.\n")
+	fmt.Fprintf(cmd.ErrOrStderr(), "   This command will be removed in a future version.\n\n")
+
 	// Get verbose flag from parent command
 	if cmd.Parent() != nil {
 		c.verbose, _ = cmd.Parent().Flags().GetBool("verbose")
@@ -315,3 +319,8 @@ var complexityCommand = NewComplexityCommand()
 
 // complexityCmd is the cobra command that will be added to the root command
 var complexityCmd = complexityCommand.CreateCobraCommand()
+
+// NewComplexityCmd creates and returns the complexity cobra command
+func NewComplexityCmd() *cobra.Command {
+	return complexityCmd
+}

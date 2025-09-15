@@ -65,57 +65,14 @@ pyscn analyze --json src/  # Creates: .pyscn/reports/analyze_YYYYMMDD_HHMMSS.jso
 
 # Skip specific analyses or tune thresholds
 pyscn analyze --skip-clones --min-complexity 10 --min-severity critical --min-cbo 5 src/
+
+# Run only specific analyses (preferred over individual commands)
+pyscn analyze --select complexity,deadcode src/  # Only run complexity and dead code detection
+pyscn analyze --select cbo src/                  # Only run CBO analysis
 ```
 
 The unified report summarizes files analyzed, average complexity, high-complexity count, dead code findings, clone statistics (including duplication percentage), and CBO metrics, plus a health score.
 
-### complexity
-Analyze McCabe cyclomatic complexity using CFG.
-
-```bash
-pyscn complexity src/
-pyscn complexity --json src/  # Creates: .pyscn/reports/complexity_YYYYMMDD_HHMMSS.json
-pyscn complexity --min 5 --max 15 --sort risk src/
-pyscn complexity --low-threshold 9 --medium-threshold 19 src/
-```
-
-### deadcode
-Detect unreachable or unused code with severity levels and optional context.
-
-```bash
-pyscn deadcode src/
-pyscn deadcode --json --min-severity critical src/
-pyscn deadcode --show-context --context-lines 5 myfile.py
-```
-
-Detects code after return/break/continue/raise, unreachable branches, and more. Sort by severity/line/file/function.
-
-### clone
-Find structurally similar code (Type 1–4) using APTED with LSH acceleration.
-
-```bash
-pyscn clone .
-pyscn clone --similarity-threshold 0.9 src/
-pyscn clone --details --show-content src/
-pyscn clone --clone-types type1,type2 --json src/  # Creates: .pyscn/reports/clone_YYYYMMDD_HHMMSS.json
-
-# Performance modes
-pyscn clone --fast src/        # LSH acceleration for large projects
-pyscn clone --precise src/     # Star grouping for small projects  
-```
-
-Filter by similarity range, group clones with multiple algorithms (connected, star, complete linkage, k-core), sort by similarity/size/location/type, and choose cost models (`default`, `python`, `weighted`). LSH acceleration automatically enabled for large codebases.
-
-### cbo
-Compute CBO (Coupling Between Objects) metrics for classes.
-
-```bash
-pyscn cbo src/
-pyscn cbo --min-cbo 5 --sort coupling src/
-pyscn cbo --json src/  # Creates: .pyscn/reports/cbo_YYYYMMDD_HHMMSS.json
-```
-
-Includes thresholds for risk levels, sorting, and options for including built-ins/imports.
 
 ### check
 Fast CI‑friendly gate with sensible defaults.

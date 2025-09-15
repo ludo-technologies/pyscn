@@ -278,6 +278,10 @@ Examples:
 
 // runCloneDetection executes the clone detection command
 func (c *CloneCommand) runCloneDetection(cmd *cobra.Command, args []string) error {
+	// Show deprecation warning
+	fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  'clone' command is deprecated. Use 'pyscn analyze --select clones' instead.\n")
+	fmt.Fprintf(cmd.ErrOrStderr(), "   This command will be removed in a future version.\n\n")
+
 	// Set default paths if none provided
 	if len(args) == 0 {
 		args = []string{"."}
@@ -622,5 +626,7 @@ func (c *CloneCommand) applyCliOverrides(cfg *config.CloneConfig, cmd *cobra.Com
 // Helper function to add the clone command to the root command
 func addCloneCommand(rootCmd *cobra.Command) {
 	cloneCmd := NewCloneCommand()
-	rootCmd.AddCommand(cloneCmd.CreateCobraCommand())
+	cobraCmd := cloneCmd.CreateCobraCommand()
+	cobraCmd.Hidden = true // Hide deprecated command from help
+	rootCmd.AddCommand(cobraCmd)
 }

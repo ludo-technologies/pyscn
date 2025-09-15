@@ -71,9 +71,8 @@ Risk levels are determined by thresholds:
 	RunE: runCBOCommand,
 }
 
-func init() {
-	rootCmd.AddCommand(cboCmd)
-
+// NewCBOCmd creates and returns the CBO cobra command
+func NewCBOCmd() *cobra.Command {
 	// Filtering options
 	cboCmd.Flags().IntVar(&cboMinCBO, "min-cbo", 0, "Minimum CBO to report")
 	cboCmd.Flags().IntVar(&cboMaxCBO, "max-cbo", 0, "Maximum CBO to report (0 = no limit)")
@@ -103,9 +102,15 @@ func init() {
 
 	// Configuration
 	cboCmd.Flags().StringVarP(&cboConfigPath, "config", "c", "", "Configuration file path")
+
+	return cboCmd
 }
 
 func runCBOCommand(cmd *cobra.Command, args []string) error {
+	// Show deprecation warning
+	fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  'cbo' command is deprecated. Use 'pyscn analyze --select cbo' instead.\n")
+	fmt.Fprintf(cmd.ErrOrStderr(), "   This command will be removed in a future version.\n\n")
+
 	// Determine output format from flags
 	outputFormat := domain.OutputFormatText // Default
 	outputPath := ""
