@@ -101,6 +101,10 @@ func init() {
 }
 
 func runDepsCommand(cmd *cobra.Command, args []string) error {
+	// Show deprecation warning
+	fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  'deps' command is deprecated. Use 'pyscn analyze --select deps' instead.\n")
+	fmt.Fprintf(cmd.ErrOrStderr(), "   This command will be removed in a future version.\n\n")
+
 	// Determine output format from flags
 	outputFormat := domain.OutputFormatText // Default
 	outputPath := ""

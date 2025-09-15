@@ -31,8 +31,22 @@ func init() {
 	rootCmd.AddCommand(NewCheckCmd())
 	rootCmd.AddCommand(NewVersionCmd())
 	rootCmd.AddCommand(NewInitCmd())
+
+	// Hide deprecated commands from help
+	complexityCmd.Hidden = true
 	rootCmd.AddCommand(complexityCmd)
-	rootCmd.AddCommand(NewDeadCodeCmd())
+
+	deadCodeCmd := NewDeadCodeCmd()
+	deadCodeCmd.Hidden = true
+	rootCmd.AddCommand(deadCodeCmd)
+
+	cboCmd.Hidden = true
+	rootCmd.AddCommand(cboCmd)
+
+	depsCmd.Hidden = true
+	rootCmd.AddCommand(depsCmd)
+
+	// Add clone command (uses different pattern)
 	addCloneCommand(rootCmd)
 }
 

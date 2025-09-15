@@ -106,6 +106,10 @@ func init() {
 }
 
 func runCBOCommand(cmd *cobra.Command, args []string) error {
+	// Show deprecation warning
+	fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  'cbo' command is deprecated. Use 'pyscn analyze --select cbo' instead.\n")
+	fmt.Fprintf(cmd.ErrOrStderr(), "   This command will be removed in a future version.\n\n")
+
 	// Determine output format from flags
 	outputFormat := domain.OutputFormatText // Default
 	outputPath := ""
