@@ -11,8 +11,8 @@ func TestDefaultCloneThresholds(t *testing.T) {
 	t.Run("Constants have expected values", func(t *testing.T) {
 		assert.Equal(t, 0.95, DefaultType1CloneThreshold, "Type1 threshold should be 0.95")
 		assert.Equal(t, 0.85, DefaultType2CloneThreshold, "Type2 threshold should be 0.85")
-		assert.Equal(t, 0.70, DefaultType3CloneThreshold, "Type3 threshold should be 0.70")
-		assert.Equal(t, 0.60, DefaultType4CloneThreshold, "Type4 threshold should be 0.60")
+		assert.Equal(t, 0.80, DefaultType3CloneThreshold, "Type3 threshold should be 0.80")
+		assert.Equal(t, 0.75, DefaultType4CloneThreshold, "Type4 threshold should be 0.75")
 	})
 
 	t.Run("Constants are in correct order", func(t *testing.T) {
