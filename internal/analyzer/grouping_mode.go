@@ -8,6 +8,7 @@ const (
 	GroupingModeStar            GroupingMode = "star"             // Star/Medoid（バランス型）
 	GroupingModeCompleteLinkage GroupingMode = "complete_linkage" // 完全連結（高精度）
 	GroupingModeKCore           GroupingMode = "k_core"           // k-core制約（スケーラブル）
+	GroupingModeCentroid        GroupingMode = "centroid"         // 重心ベース（推移的問題を回避）
 )
 
 // GroupingConfig holds configuration for grouping strategies
@@ -26,6 +27,8 @@ func CreateGroupingStrategy(config GroupingConfig) GroupingStrategy {
 		return NewCompleteLinkageGrouping(config.Threshold)
 	case GroupingModeKCore:
 		return NewKCoreGrouping(config.Threshold, config.KCoreK)
+	case GroupingModeCentroid:
+		return NewCentroidGrouping(config.Threshold)
 	case GroupingModeConnected:
 		fallthrough
 	default:

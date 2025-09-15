@@ -83,7 +83,7 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 
 	if response.Summary.CloneEnabled {
 		fmt.Fprint(writer, utils.FormatSectionHeader("CLONE DETECTION"))
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Clone Pairs", response.Summary.ClonePairs))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Unique Fragments", response.Summary.TotalClones))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Clone Groups", response.Summary.CloneGroups))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Code Duplication", utils.FormatPercentage(response.Summary.CodeDuplication)))
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
@@ -144,7 +144,7 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	fmt.Fprintf(writer, "High Complexity Count,%d\n", response.Summary.HighComplexityCount)
 	fmt.Fprintf(writer, "Dead Code Count,%d\n", response.Summary.DeadCodeCount)
 	fmt.Fprintf(writer, "Critical Dead Code,%d\n", response.Summary.CriticalDeadCode)
-	fmt.Fprintf(writer, "Clone Pairs,%d\n", response.Summary.ClonePairs)
+	fmt.Fprintf(writer, "Unique Fragments,%d\n", response.Summary.TotalClones)
 	fmt.Fprintf(writer, "Clone Groups,%d\n", response.Summary.CloneGroups)
 	fmt.Fprintf(writer, "Code Duplication,%.2f\n", response.Summary.CodeDuplication)
 	fmt.Fprintf(writer, "Total Classes Analyzed,%d\n", response.Summary.CBOClasses)
@@ -162,6 +162,9 @@ func (f *AnalyzeFormatter) writeHTML(response *domain.AnalyzeResponse, writer io
         },
         "add": func(a, b int) int {
             return a + b
+        },
+        "sub": func(a, b int) int {
+            return a - b
         },
         "mul100": func(v float64) float64 { return v * 100.0 },
     }
@@ -348,8 +351,8 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         <div class="metric-label">Dead Code Issues</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">{{.Summary.ClonePairs}}</div>
-                        <div class="metric-label">Clone Pairs</div>
+                        <div class="metric-value">{{.Summary.TotalClones}}</div>
+                        <div class="metric-label">Unique Fragments</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{printf "%.1f%%" .Summary.CodeDuplication}}</div>
@@ -535,8 +538,8 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{if .Clone}}
                 <div class="metric-grid">
                     <div class="metric-card">
-                        <div class="metric-value">{{.Clone.Statistics.TotalClonePairs}}</div>
-                        <div class="metric-label">Clone Pairs</div>
+                        <div class="metric-value">{{.Clone.Statistics.TotalClones}}</div>
+                        <div class="metric-label">Unique Fragments</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{.Clone.Statistics.TotalCloneGroups}}</div>
@@ -548,8 +551,47 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </div>
                 </div>
                 
-                {{if gt .Clone.Statistics.TotalClonePairs 0}}
-                <h3>Major Clone Pairs</h3>
+                {{if gt .Clone.Statistics.TotalCloneGroups 0}}
+                <h3>Clone Groups</h3>
+                <p style="color: #666; margin-bottom: 15px;">Code fragments grouped by similarity</p>
+                {{range $i, $group := .Clone.CloneGroups}}
+                {{if lt $i 10}}
+                <div style="background: #f8f9fa; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <h4 style="margin-top: 0; color: #333;">Group {{$group.ID}} - {{len $group.Clones}} clones (Type {{$group.Type}}, similarity: {{printf "%.2f" $group.Similarity}})</h4>
+                    <table class="table" style="margin-bottom: 0;">
+                        <thead>
+                            <tr>
+                                <th>File</th>
+                                <th>Lines</th>
+                                <th>Size</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range $j, $clone := $group.Clones}}
+                            {{if lt $j 10}}
+                            <tr>
+                                <td>{{$clone.Location.FilePath}}</td>
+                                <td>{{$clone.Location.StartLine}}-{{$clone.Location.EndLine}}</td>
+                                <td>{{$clone.LineCount}} lines</td>
+                            </tr>
+                            {{end}}
+                            {{end}}
+                            {{if gt (len $group.Clones) 10}}
+                            <tr>
+                                <td colspan="3" style="color: #666; font-style: italic;">... and {{sub (len $group.Clones) 10}} more clones</td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+                {{end}}
+                {{end}}
+                {{if gt .Clone.Statistics.TotalCloneGroups 10}}
+                <p style="color: #666; margin-top: 10px;">Showing top 10 of {{.Clone.Statistics.TotalCloneGroups}} clone groups</p>
+                {{end}}
+                {{else if gt .Clone.Statistics.TotalClonePairs 0}}
+                <h3>Clone Pairs</h3>
+                <p style="color: #666; margin-bottom: 15px;">No groups formed, showing individual pairs</p>
                 <table class="table">
                     <thead>
                         <tr>

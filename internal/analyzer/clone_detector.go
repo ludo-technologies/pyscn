@@ -211,7 +211,7 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 		MemoryLimit:        100 * 1024 * 1024, // 100MB
 
 		// Grouping defaults
-		GroupingMode:      GroupingModeConnected,
+		GroupingMode:      GroupingModeKCore,
 		GroupingThreshold: constants.DefaultType3CloneThreshold,
 		KCoreK:            2,
 
@@ -250,7 +250,7 @@ func NewCloneDetectorFromConfig(cloneConfig *config.CloneConfig) *CloneDetector 
 		CostModelType:     cloneConfig.Analysis.CostModelType,
 
 		// Grouping defaults (until unified config supports them explicitly)
-		GroupingMode:      GroupingModeConnected,
+		GroupingMode:      GroupingModeKCore,
 		GroupingThreshold: cloneConfig.Thresholds.Type3Threshold,
 		KCoreK:            2,
 	}
@@ -408,33 +408,38 @@ func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments 
 		return cd.clonePairs, cd.cloneGroups
 	}
 
-	// Detect clone pairs with context
-	cd.detectClonePairsWithContext(ctx)
+	// Special handling for centroid mode - skip pair detection
+	if cd.config.GroupingMode == GroupingModeCentroid {
+		cd.detectClonesWithCentroid(ctx)
+	} else {
+		// Detect clone pairs with context
+		cd.detectClonePairsWithContext(ctx)
 
-	// Check for cancellation before grouping
-	if isCancelled(ctx) {
-		return cd.clonePairs, cd.cloneGroups
-	}
+		// Check for cancellation before grouping
+		if isCancelled(ctx) {
+			return cd.clonePairs, cd.cloneGroups
+		}
 
-	// Group related clones using configured strategy
-	// Clamp threshold to [0,1]
-	thr := cd.config.GroupingThreshold
-	if thr < 0.0 {
-		thr = 0.0
-	} else if thr > 1.0 {
-		thr = 1.0
+		// Group related clones using configured strategy
+		// Clamp threshold to [0,1]
+		thr := cd.config.GroupingThreshold
+		if thr < 0.0 {
+			thr = 0.0
+		} else if thr > 1.0 {
+			thr = 1.0
+		}
+		k := cd.config.KCoreK
+		if k < 2 {
+			k = 2
+		}
+		groupingConfig := GroupingConfig{
+			Mode:      cd.config.GroupingMode,
+			Threshold: thr,
+			KCoreK:    k,
+		}
+		strategy := CreateGroupingStrategy(groupingConfig)
+		cd.groupClonesWithStrategy(strategy)
 	}
-	k := cd.config.KCoreK
-	if k < 2 {
-		k = 2
-	}
-	groupingConfig := GroupingConfig{
-		Mode:      cd.config.GroupingMode,
-		Threshold: thr,
-		KCoreK:    k,
-	}
-	strategy := CreateGroupingStrategy(groupingConfig)
-	cd.groupClonesWithStrategy(strategy)
 
 	return cd.clonePairs, cd.cloneGroups
 }
@@ -916,6 +921,121 @@ func (cd *CloneDetector) calculateGroupSimilarity(group *CloneGroup) {
 		group.Similarity = totalSimilarity / float64(pairCount)
 	} else {
 		group.Similarity = 0.0
+	}
+}
+
+// detectClonesWithCentroid performs centroid-based clone detection directly from fragments
+func (cd *CloneDetector) detectClonesWithCentroid(ctx context.Context) {
+	if len(cd.fragments) == 0 {
+		return
+	}
+
+	// Get threshold
+	threshold := cd.config.GroupingThreshold
+	if threshold <= 0 {
+		threshold = cd.config.Type3Threshold
+	}
+
+	// BFS-based grouping without pre-computing pairs
+	groups := make([]*CloneGroup, 0)
+	unclassified := make(map[*CodeFragment]bool)
+	for _, f := range cd.fragments {
+		unclassified[f] = true
+	}
+
+	groupID := 0
+	for len(unclassified) > 0 {
+		// Check for cancellation
+		if isCancelled(ctx) {
+			break
+		}
+
+		// Pick first unclassified fragment as seed
+		var seed *CodeFragment
+		for f := range unclassified {
+			seed = f
+			break
+		}
+		delete(unclassified, seed)
+
+		// Start new group
+		group := NewCloneGroup(groupID)
+		groupID++
+		group.AddFragment(seed)
+
+		// BFS queue
+		queue := []*CodeFragment{seed}
+
+		// Process queue
+		for len(queue) > 0 {
+			current := queue[0]
+			queue = queue[1:]
+
+			// Check all unclassified fragments
+			toAdd := make([]*CodeFragment, 0)
+			for candidate := range unclassified {
+				// Calculate similarity between candidate and current group member
+				similarity := cd.analyzer.ComputeSimilarity(current.TreeNode, candidate.TreeNode)
+
+				if similarity >= threshold {
+					toAdd = append(toAdd, candidate)
+				}
+			}
+
+			// Add qualifying fragments to group and queue
+			for _, f := range toAdd {
+				group.AddFragment(f)
+				queue = append(queue, f)
+				delete(unclassified, f)
+			}
+		}
+
+		// Only keep groups with 2+ members
+		if len(group.Fragments) >= 2 {
+			// Calculate average similarity and determine clone type
+			cd.calculateGroupSimilarity(group)
+			cd.determineGroupCloneType(group)
+			groups = append(groups, group)
+		}
+	}
+
+	cd.cloneGroups = groups
+
+	// Generate clone pairs from groups for compatibility
+	cd.generatePairsFromGroups()
+}
+
+// determineGroupCloneType determines the clone type based on group similarity
+func (cd *CloneDetector) determineGroupCloneType(group *CloneGroup) {
+	switch {
+	case group.Similarity >= cd.config.Type1Threshold:
+		group.CloneType = Type1Clone
+	case group.Similarity >= cd.config.Type2Threshold:
+		group.CloneType = Type2Clone
+	case group.Similarity >= cd.config.Type3Threshold:
+		group.CloneType = Type3Clone
+	default:
+		group.CloneType = Type4Clone
+	}
+}
+
+// generatePairsFromGroups generates clone pairs from groups for compatibility
+func (cd *CloneDetector) generatePairsFromGroups() {
+	cd.clonePairs = make([]*ClonePair, 0)
+
+	for _, group := range cd.cloneGroups {
+		// Generate pairs within each group
+		for i := 0; i < len(group.Fragments); i++ {
+			for j := i + 1; j < len(group.Fragments); j++ {
+				pair := &ClonePair{
+					Fragment1:  group.Fragments[i],
+					Fragment2:  group.Fragments[j],
+					Similarity: cd.analyzer.ComputeSimilarity(group.Fragments[i].TreeNode, group.Fragments[j].TreeNode),
+					CloneType:  group.CloneType,
+				}
+				cd.clonePairs = append(cd.clonePairs, pair)
+			}
+		}
 	}
 }
 

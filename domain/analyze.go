@@ -53,6 +53,7 @@ type AnalyzeSummary struct {
 	DeadCodeCount    int `json:"dead_code_count" yaml:"dead_code_count"`
 	CriticalDeadCode int `json:"critical_dead_code" yaml:"critical_dead_code"`
 
+	TotalClones     int     `json:"total_clones" yaml:"total_clones"`
 	ClonePairs      int     `json:"clone_pairs" yaml:"clone_pairs"`
 	CloneGroups     int     `json:"clone_groups" yaml:"clone_groups"`
 	CodeDuplication float64 `json:"code_duplication_percentage" yaml:"code_duplication_percentage"`

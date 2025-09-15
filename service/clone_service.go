@@ -232,11 +232,15 @@ func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.
 	// Determine grouping defaults
 	groupMode := analyzer.GroupingMode(req.GroupMode)
 	if groupMode == "" {
-		groupMode = analyzer.GroupingModeConnected
+		// Use K-Core as default for better performance and quality balance
+		groupMode = analyzer.GroupingModeKCore
 	}
 	groupThreshold := req.GroupThreshold
 	if groupThreshold <= 0 {
-		groupThreshold = req.Type3Threshold
+		groupThreshold = req.SimilarityThreshold
+		if groupThreshold <= 0 {
+			groupThreshold = req.Type3Threshold
+		}
 	}
 	kVal := req.KCoreK
 	if kVal < 2 {

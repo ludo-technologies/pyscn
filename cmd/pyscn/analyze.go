@@ -1095,6 +1095,7 @@ func (c *AnalyzeCommand) generateUnifiedReport(cmd *cobra.Command, result *Analy
 	// Clone statistics
 	if result.CloneResponse != nil {
 		summary.CloneEnabled = true
+		summary.TotalClones = result.CloneResponse.Statistics.TotalClones
 		summary.ClonePairs = result.CloneResponse.Statistics.TotalClonePairs
 		summary.CloneGroups = result.CloneResponse.Statistics.TotalCloneGroups
 
