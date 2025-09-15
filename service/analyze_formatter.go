@@ -148,28 +148,28 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	fmt.Fprintf(writer, "Clone Groups,%d\n", response.Summary.CloneGroups)
 	fmt.Fprintf(writer, "Code Duplication,%.2f\n", response.Summary.CodeDuplication)
 	fmt.Fprintf(writer, "Total Classes Analyzed,%d\n", response.Summary.CBOClasses)
-    fmt.Fprintf(writer, "High Coupling (CBO) Classes,%d\n", response.Summary.HighCouplingClasses)
-    fmt.Fprintf(writer, "Average CBO,%.2f\n", response.Summary.AverageCoupling)
+	fmt.Fprintf(writer, "High Coupling (CBO) Classes,%d\n", response.Summary.HighCouplingClasses)
+	fmt.Fprintf(writer, "Average CBO,%.2f\n", response.Summary.AverageCoupling)
 
 	return nil
 }
 
 // writeHTML formats the response as HTML
 func (f *AnalyzeFormatter) writeHTML(response *domain.AnalyzeResponse, writer io.Writer) error {
-    funcMap := template.FuncMap{
-        "join": func(elems []string, sep string) string {
-            return strings.Join(elems, sep)
-        },
-        "add": func(a, b int) int {
-            return a + b
-        },
-        "sub": func(a, b int) int {
-            return a - b
-        },
-        "mul100": func(v float64) float64 { return v * 100.0 },
-    }
-    tmpl := template.Must(template.New("analyze").Funcs(funcMap).Parse(analyzeHTMLTemplate))
-    return tmpl.Execute(writer, response)
+	funcMap := template.FuncMap{
+		"join": func(elems []string, sep string) string {
+			return strings.Join(elems, sep)
+		},
+		"add": func(a, b int) int {
+			return a + b
+		},
+		"sub": func(a, b int) int {
+			return a - b
+		},
+		"mul100": func(v float64) float64 { return v * 100.0 },
+	}
+	tmpl := template.Must(template.New("analyze").Funcs(funcMap).Parse(analyzeHTMLTemplate))
+	return tmpl.Execute(writer, response)
 }
 
 // HTML template for unified report
