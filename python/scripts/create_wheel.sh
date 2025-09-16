@@ -200,6 +200,12 @@ create_wheel() {
     # Copy binary
     cp "$binary_path" "$bin_dir/"
     
+    # Check if README.md exists
+    if [[ ! -f "$readme_path" ]]; then
+        echo "Error: README.md not found at $readme_path"
+        exit 1
+    fi
+
     # Create METADATA file
     cat > "$metadata_dir/METADATA" << EOF
 Metadata-Version: 2.1
@@ -225,10 +231,10 @@ Classifier: Topic :: Software Development :: Quality Assurance
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
 
-# pyscn - Python Quality of Life
-
-A next-generation Python static analysis tool that uses Control Flow Graph (CFG) and tree edit distance algorithms to provide deep code quality insights beyond traditional linters.
 EOF
+
+    # Append README.md content to METADATA
+    cat "$readme_path" >> "$metadata_dir/METADATA"
 
     # Create WHEEL file
     cat > "$metadata_dir/WHEEL" << EOF
@@ -332,6 +338,7 @@ main() {
     local platform_tag=""
     local binary_path=""
     local output_dir="$project_dir/dist"
+    local readme_path="$project_dir/README.md"
     
     # Parse arguments
     while [[ $# -gt 0 ]]; do
