@@ -9,12 +9,12 @@
 
 ## What Can It Do For You?
 
-🔍 **Find Complex Code** - Identify functions that are hard to test and maintain
-🧹 **Remove Dead Code** - Detect unreachable code that clutters your codebase
-📋 **Detect Duplicates** - Find copy-pasted code for refactoring opportunities
-🔗 **Analyze Dependencies** - Understand module relationships and coupling
-📊 **Validate Architecture** - Ensure your code follows architectural patterns
-📈 **Generate Reports** - Export findings in HTML, JSON, YAML, or CSV
+- 🔍 **Find Complex Code** - Identify functions that are hard to test and maintain
+- 🧹 **Remove Dead Code** - Detect unreachable code that clutters your codebase
+- 📋 **Detect Duplicates** - Find copy-pasted code for refactoring opportunities
+- 🔗 **Analyze Dependencies** - Understand module relationships and coupling
+- 📊 **Validate Architecture** - Ensure your code follows architectural patterns
+- 📈 **Generate Reports** - Export findings in HTML, JSON, YAML, or CSV
 
 ## Quick Start
 
