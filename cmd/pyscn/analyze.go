@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,19 +14,25 @@ import (
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/version"
 	"github.com/ludo-technologies/pyscn/service"
+	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 // AnalysisStatus represents the status of an individual analysis
 type AnalysisStatus struct {
-	Name      string
-	Enabled   bool
-	Started   bool
-	Completed bool
-	Success   bool
-	Error     error
-	Duration  time.Duration
-	StartTime time.Time
+	Name              string
+	Enabled           bool
+	Started           bool
+	Completed         bool
+	Success           bool
+	Error             error
+	Duration          time.Duration
+	StartTime         time.Time
+	EstimatedDuration time.Duration
+	ProcessedFiles    int
+	TotalFiles        int
+	ProgressBar       *progressbar.ProgressBar
 }
 
 // AnalysisResult aggregates all analysis results
@@ -70,8 +77,8 @@ type AnalyzeCommand struct {
 	skipDeadCode   bool
 	skipClones     bool
 	skipCBO        bool
-	skipSystem       bool     // Skip system-level analysis (deps + architecture)
-	selectAnalyses   []string // Only run specified analyses
+	skipSystem     bool     // Skip system-level analysis (deps + architecture)
+	selectAnalyses []string // Only run specified analyses
 
 	// Quick filters
 	minComplexity   int
@@ -229,6 +236,85 @@ func (c *AnalyzeCommand) shouldGenerateUnifiedReport() bool {
 	return true
 }
 
+// shouldUseProgressBars returns true when the session appears to be interactive
+// and progress bars won't pollute machine-readable stdout consumers.
+func (c *AnalyzeCommand) shouldUseProgressBars(cmd *cobra.Command) bool {
+	if !isInteractiveEnvironment() {
+		return false
+	}
+
+	if errWriter, ok := cmd.ErrOrStderr().(*os.File); ok {
+		return term.IsTerminal(int(errWriter.Fd()))
+	}
+
+	return false
+}
+
+// initializeProgressTracking sets up progress tracking for each analysis
+func (c *AnalyzeCommand) initializeProgressTracking(result *AnalysisResult, totalFiles int, writer io.Writer) {
+	if writer == nil {
+		writer = io.Discard
+	}
+	// Estimation coefficients (ms per file)
+	complexityCoeff := 50.0 // Fast parsing and CFG analysis
+	deadCodeCoeff := 50.0   // Similar to complexity
+	cboCoeff := 30.0        // Simpler analysis
+	systemCoeff := 40.0     // Module dependency analysis
+
+	// Clone detection is O(n²) for file comparisons, so use quadratic estimation
+	cloneCoeff := 100.0 + float64(totalFiles)*2.0 // Base cost + scaling factor
+
+	if result.Complexity.Enabled {
+		result.Complexity.TotalFiles = totalFiles
+		result.Complexity.EstimatedDuration = time.Duration(float64(totalFiles)*complexityCoeff) * time.Millisecond
+		result.Complexity.ProgressBar = c.createProgressBar("Complexity Analysis", totalFiles, writer)
+	}
+
+	if result.DeadCode.Enabled {
+		result.DeadCode.TotalFiles = totalFiles
+		result.DeadCode.EstimatedDuration = time.Duration(float64(totalFiles)*deadCodeCoeff) * time.Millisecond
+		result.DeadCode.ProgressBar = c.createProgressBar("Dead Code Detection", totalFiles, writer)
+	}
+
+	if result.Clones.Enabled {
+		result.Clones.TotalFiles = totalFiles
+		result.Clones.EstimatedDuration = time.Duration(float64(totalFiles)*cloneCoeff) * time.Millisecond
+		result.Clones.ProgressBar = c.createProgressBar("Clone Detection", totalFiles, writer)
+	}
+
+	if result.CBO.Enabled {
+		result.CBO.TotalFiles = totalFiles
+		result.CBO.EstimatedDuration = time.Duration(float64(totalFiles)*cboCoeff) * time.Millisecond
+		result.CBO.ProgressBar = c.createProgressBar("Class Coupling (CBO)", totalFiles, writer)
+	}
+
+	if result.System.Enabled {
+		result.System.TotalFiles = totalFiles
+		result.System.EstimatedDuration = time.Duration(float64(totalFiles)*systemCoeff) * time.Millisecond
+		result.System.ProgressBar = c.createProgressBar("System Analysis", totalFiles, writer)
+	}
+}
+
+// createProgressBar creates a new progress bar with consistent styling
+func (c *AnalyzeCommand) createProgressBar(description string, max int, writer io.Writer) *progressbar.ProgressBar {
+	if writer == nil {
+		writer = io.Discard
+	}
+	return progressbar.NewOptions(max,
+		progressbar.OptionSetDescription(description),
+		progressbar.OptionSetWidth(50),
+		progressbar.OptionShowCount(),
+		progressbar.OptionShowIts(),
+		progressbar.OptionSetPredictTime(true),
+		progressbar.OptionFullWidth(),
+		progressbar.OptionSetRenderBlankState(true),
+		progressbar.OptionSetWriter(writer),
+		progressbar.OptionOnCompletion(func() {
+			fmt.Fprintln(writer)
+		}),
+	)
+}
+
 // outputComplexityReport outputs an individual complexity report (for backward compatibility)
 func (c *AnalyzeCommand) outputComplexityReport(cmd *cobra.Command, response *domain.ComplexityResponse) error {
 	// This is a placeholder for backward compatibility
@@ -296,8 +382,15 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(cmd.ErrOrStderr(), "📁 Found %d Python file(s) to analyze\n", len(pythonFiles))
 	}
 
-	// Print analysis plan
-	c.printAnalysisPlan(cmd, result)
+	// Decide whether interactive progress bars should be rendered
+	enableProgressBars := c.shouldUseProgressBars(cmd)
+
+	// Initialize progress tracking for enabled analyses when interactive
+	if enableProgressBars {
+		c.initializeProgressTracking(result, len(pythonFiles), cmd.ErrOrStderr())
+	} else if c.verbose {
+		c.printAnalysisPlan(cmd, result)
+	}
 
 	// Create a context with timeout for the entire operation
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
@@ -307,16 +400,16 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 	var wg sync.WaitGroup
 	statusMutex := &sync.Mutex{}
 
-	// Start real-time status monitoring if verbose
+	// Start real-time status monitoring for interactive or verbose sessions
 	var statusDone chan bool
-	if c.verbose {
+	if enableProgressBars || c.verbose {
 		statusDone = make(chan bool)
-		go c.monitorAnalysisProgress(cmd, result, statusMutex, statusDone)
+		go c.monitorAnalysisProgress(cmd, result, statusMutex, statusDone, enableProgressBars)
 	}
 
 	// Ensure status monitoring is stopped on exit
 	defer func() {
-		if c.verbose && statusDone != nil {
+		if statusDone != nil {
 			select {
 			case <-statusDone:
 				// Already closed
@@ -459,7 +552,7 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 	}
 
 	// Stop status monitoring
-	if c.verbose && statusDone != nil {
+	if statusDone != nil {
 		select {
 		case <-statusDone:
 			// Already closed
@@ -584,41 +677,47 @@ func (c *AnalyzeCommand) runAnalysisWithStatus(status *AnalysisStatus, mutex *sy
 		status.Error = categorizeError(err)
 	} else {
 		status.Success = true
+		// Mark progress bar as complete
+		if status.ProgressBar != nil {
+			_ = status.ProgressBar.Finish()
+		}
 	}
 	mutex.Unlock()
 }
 
-// printAnalysisPlan prints the planned analyses
+// printAnalysisPlan prints the planned analyses when verbose mode is enabled.
 func (c *AnalyzeCommand) printAnalysisPlan(cmd *cobra.Command, result *AnalysisResult) {
-	if c.verbose {
-		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Analysis Plan:\n")
-		if result.Complexity.Enabled {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ Complexity Analysis (threshold: >%d)\n", c.minComplexity)
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ Complexity Analysis (skipped)\n")
-		}
-		if result.DeadCode.Enabled {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ Dead Code Detection (minimum severity: %s)\n", c.minSeverity)
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ Dead Code Detection (skipped)\n")
-		}
-		if result.Clones.Enabled {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ Clone Detection (similarity: %.1f)\n", c.cloneSimilarity)
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ Clone Detection (skipped)\n")
-		}
-		if result.CBO.Enabled {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ Class Coupling (CBO) (min CBO: %d)\n", c.minCBO)
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ Class Coupling (CBO) (skipped)\n")
-		}
-		if result.System.Enabled {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ System Analysis (deps + architecture)\n")
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ System Analysis (skipped)\n")
-		}
-		fmt.Fprintf(cmd.ErrOrStderr(), "\n")
+	if !c.verbose {
+		return
 	}
+
+	fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Analysis Plan:\n")
+	if result.Complexity.Enabled {
+		fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ Complexity Analysis (threshold: >%d)\n", c.minComplexity)
+	} else {
+		fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ Complexity Analysis (skipped)\n")
+	}
+	if result.DeadCode.Enabled {
+		fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ Dead Code Detection (minimum severity: %s)\n", c.minSeverity)
+	} else {
+		fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ Dead Code Detection (skipped)\n")
+	}
+	if result.Clones.Enabled {
+		fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ Clone Detection (similarity: %.1f)\n", c.cloneSimilarity)
+	} else {
+		fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ Clone Detection (skipped)\n")
+	}
+	if result.CBO.Enabled {
+		fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ Class Coupling (CBO) (min CBO: %d)\n", c.minCBO)
+	} else {
+		fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ Class Coupling (CBO) (skipped)\n")
+	}
+	if result.System.Enabled {
+		fmt.Fprintf(cmd.ErrOrStderr(), "  ✓ System Analysis (deps + architecture)\n")
+	} else {
+		fmt.Fprintf(cmd.ErrOrStderr(), "  ⏭ System Analysis (skipped)\n")
+	}
+	fmt.Fprintf(cmd.ErrOrStderr(), "\n")
 }
 
 // calculateOverallStats calculates overall statistics from individual analysis statuses
@@ -738,7 +837,7 @@ func (c *AnalyzeCommand) printRecoverySuggestions(cmd *cobra.Command, errorCateg
 }
 
 // monitorAnalysisProgress provides real-time status updates during analysis
-func (c *AnalyzeCommand) monitorAnalysisProgress(cmd *cobra.Command, result *AnalysisResult, mutex *sync.Mutex, done chan bool) {
+func (c *AnalyzeCommand) monitorAnalysisProgress(cmd *cobra.Command, result *AnalysisResult, mutex *sync.Mutex, done chan bool, useProgressBars bool) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
@@ -755,26 +854,72 @@ func (c *AnalyzeCommand) monitorAnalysisProgress(cmd *cobra.Command, result *Ana
 			fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Progress monitoring timed out after 5 minutes\n")
 			return
 		case <-ticker.C:
-			mutex.Lock()
-			analyses := []*AnalysisStatus{result.Complexity, result.DeadCode, result.Clones, result.CBO, result.System}
-
-			var running []string
-
-			for _, analysis := range analyses {
-				if analysis.Enabled {
-					if analysis.Started && !analysis.Completed {
-						elapsed := time.Since(analysis.StartTime)
-						running = append(running, fmt.Sprintf("%s (%v)", analysis.Name, elapsed.Round(time.Second)))
-					}
+			if useProgressBars {
+				mutex.Lock()
+				c.updateProgressBars(result)
+				mutex.Unlock()
+			} else if c.verbose {
+				mutex.Lock()
+				running := c.collectRunningAnalyses(result)
+				mutex.Unlock()
+				if len(running) > 0 {
+					fmt.Fprintf(cmd.ErrOrStderr(), "🔄 Running: %s\n", joinStrings(running, ", "))
 				}
-			}
-			mutex.Unlock()
-
-			if len(running) > 0 {
-				fmt.Fprintf(cmd.ErrOrStderr(), "🔄 Running: %s\n", joinStrings(running, ", "))
 			}
 		}
 	}
+}
+
+// updateProgressBars updates the progress bars based on elapsed time
+func (c *AnalyzeCommand) updateProgressBars(result *AnalysisResult) {
+	analyses := []*AnalysisStatus{result.Complexity, result.DeadCode, result.Clones, result.CBO, result.System}
+
+	for _, analysis := range analyses {
+		if analysis.Enabled && analysis.Started && !analysis.Completed && analysis.ProgressBar != nil {
+			elapsed := time.Since(analysis.StartTime)
+			if analysis.EstimatedDuration > 0 {
+				// Calculate progress based on elapsed time vs estimated duration
+				progress := float64(elapsed) / float64(analysis.EstimatedDuration)
+				if progress > 1.0 {
+					progress = 1.0
+				}
+
+				// Set the progress bar to the calculated progress
+				targetValue := int(progress * float64(analysis.TotalFiles))
+
+				// Only update if we haven't exceeded the max
+				if targetValue <= analysis.TotalFiles {
+					_ = analysis.ProgressBar.Set(targetValue)
+				}
+			}
+		}
+	}
+}
+
+func (c *AnalyzeCommand) collectRunningAnalyses(result *AnalysisResult) []string {
+	analyses := []*AnalysisStatus{result.Complexity, result.DeadCode, result.Clones, result.CBO, result.System}
+	var running []string
+	for _, analysis := range analyses {
+		if analysis.Enabled && analysis.Started && !analysis.Completed {
+			elapsed := time.Since(analysis.StartTime)
+			running = append(running, fmt.Sprintf("%s (%v)", analysis.Name, elapsed.Round(time.Second)))
+		}
+	}
+	return running
+}
+
+// containsAny checks if a string contains any of the given substrings
+func containsAny(str string, substrings []string) bool {
+	for _, substr := range substrings {
+		if len(str) >= len(substr) {
+			for i := 0; i <= len(str)-len(substr); i++ {
+				if str[i:i+len(substr)] == substr {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // joinStrings joins a slice of strings with a delimiter
@@ -791,20 +936,6 @@ func joinStrings(strs []string, delimiter string) string {
 		result += delimiter + strs[i]
 	}
 	return result
-}
-
-// containsAny checks if a string contains any of the given substrings
-func containsAny(str string, substrings []string) bool {
-	for _, substr := range substrings {
-		if len(str) >= len(substr) {
-			for i := 0; i <= len(str)-len(substr); i++ {
-				if str[i:i+len(substr)] == substr {
-					return true
-				}
-			}
-		}
-	}
-	return false
 }
 
 // isInteractiveEnvironment returns true if the environment appears to be
