@@ -372,8 +372,7 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 	statusMutex := &sync.Mutex{}
 
 	// Start real-time status monitoring (always enabled)
-	var statusDone chan bool
-	statusDone = make(chan bool)
+	statusDone := make(chan bool)
 	go c.monitorAnalysisProgress(cmd, result, statusMutex, statusDone)
 
 	// Ensure status monitoring is stopped on exit
@@ -648,7 +647,7 @@ func (c *AnalyzeCommand) runAnalysisWithStatus(status *AnalysisStatus, mutex *sy
 		status.Success = true
 		// Mark progress bar as complete
 		if status.ProgressBar != nil {
-			status.ProgressBar.Finish()
+			_ = status.ProgressBar.Finish()
 		}
 	}
 	mutex.Unlock()
@@ -815,28 +814,13 @@ func (c *AnalyzeCommand) updateProgressBars(result *AnalysisResult) {
 
 				// Only update if we haven't exceeded the max
 				if targetValue <= analysis.TotalFiles {
-					analysis.ProgressBar.Set(targetValue)
+					_ = analysis.ProgressBar.Set(targetValue)
 				}
 			}
 		}
 	}
 }
 
-// joinStrings joins a slice of strings with a delimiter
-func joinStrings(strs []string, delimiter string) string {
-	if len(strs) == 0 {
-		return ""
-	}
-	if len(strs) == 1 {
-		return strs[0]
-	}
-
-	result := strs[0]
-	for i := 1; i < len(strs); i++ {
-		result += delimiter + strs[i]
-	}
-	return result
-}
 
 // containsAny checks if a string contains any of the given substrings
 func containsAny(str string, substrings []string) bool {
