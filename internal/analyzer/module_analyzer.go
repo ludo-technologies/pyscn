@@ -301,7 +301,8 @@ func (ma *ModuleAnalyzer) resolveImport(imp *ImportInfo, fromFile string) string
 	if imp.IsRelative {
 		return ma.resolveRelativeImport(imp, fromFile)
 	}
-	return ma.resolveAbsoluteImport(imp)
+	// For absolute imports, try to resolve within the project first
+	return ma.resolveAbsoluteImportWithProject(imp, fromFile)
 }
 
 // resolveRelativeImport resolves relative imports like "from .module import name"
@@ -330,10 +331,8 @@ func (ma *ModuleAnalyzer) resolveRelativeImport(imp *ImportInfo, fromFile string
 
 // resolveAbsoluteImport resolves absolute imports
 func (ma *ModuleAnalyzer) resolveAbsoluteImport(imp *ImportInfo) string {
+	// Statement already contains the module name (e.g., "module_b" for "from module_b import func_b")
 	moduleName := imp.Statement
-	if len(imp.ImportedNames) > 0 {
-		moduleName = imp.ImportedNames[0] // Use first imported name
-	}
 
 	// Check cache first
 	if resolved, exists := ma.resolvedModules[moduleName]; exists {
@@ -372,6 +371,58 @@ func (ma *ModuleAnalyzer) resolveAbsoluteImport(imp *ImportInfo) string {
 	}
 
 	return ""
+}
+
+// resolveAbsoluteImportWithProject resolves absolute imports, checking project modules first
+func (ma *ModuleAnalyzer) resolveAbsoluteImportWithProject(imp *ImportInfo, fromFile string) string {
+	moduleName := imp.Statement
+
+	// Check cache first
+	if resolved, exists := ma.resolvedModules[moduleName]; exists {
+		return resolved
+	}
+
+	// First, try to resolve within the current project directory
+	// Build possible module path relative to the file's directory
+	currentDir := filepath.Dir(fromFile)
+
+	// Try to find the module in the same directory or project root
+	searchPaths := []string{
+		currentDir,           // Current directory
+		ma.projectRoot,       // Project root
+		filepath.Dir(currentDir), // Parent directory
+	}
+
+	for _, searchPath := range searchPaths {
+		// Try to build module path from the import name
+		modulePath := filepath.Join(searchPath, strings.ReplaceAll(moduleName, ".", string(filepath.Separator)))
+
+		// Check if it's a Python file
+		if moduleFile := modulePath + ".py"; ma.fileExists(moduleFile) {
+			// Calculate the module name based on project structure
+			resolvedName := ma.filePathToModuleName(moduleFile)
+			if resolvedName != "" {
+				ma.resolvedModules[moduleName] = resolvedName
+				return resolvedName
+			}
+		}
+
+		// Check if it's a package (directory with __init__.py)
+		if initFile := filepath.Join(modulePath, "__init__.py"); ma.fileExists(initFile) {
+			resolvedName := ma.filePathToModuleName(initFile)
+			if resolvedName != "" {
+				// For __init__.py files, use the package name (without __init__)
+				if strings.HasSuffix(resolvedName, ".__init__") {
+					resolvedName = strings.TrimSuffix(resolvedName, ".__init__")
+				}
+				ma.resolvedModules[moduleName] = resolvedName
+				return resolvedName
+			}
+		}
+	}
+
+	// Fall back to the original resolveAbsoluteImport logic
+	return ma.resolveAbsoluteImport(imp)
 }
 
 // Helper methods

@@ -1146,7 +1146,7 @@ func (c *AnalyzeCommand) runSystemAnalysisWithResult(cmd *cobra.Command, args []
 		OutputWriter:        os.Stdout, // required by usecase validation
 		AnalyzeDependencies: true,
 		AnalyzeArchitecture: true,
-		AnalyzeQuality:      false,
+		AnalyzeQuality:      true,
 
 		// Options (lean defaults; config can override)
 		IncludeStdLib:     false,

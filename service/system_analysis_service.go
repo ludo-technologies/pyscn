@@ -145,13 +145,16 @@ func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req
 	// Find longest dependency chains
 	longestChains := s.findLongestChains(graph, 10) // Top 10 chains
 
+	// Extract module metrics
+	moduleMetrics := s.extractModuleMetrics(graph)
+
 	// Create dependency analysis result
 	result := &domain.DependencyAnalysisResult{
 		TotalModules:         graph.TotalModules,
 		TotalDependencies:    graph.TotalEdges,
 		RootModules:          graph.GetRootModules(),
 		LeafModules:          graph.GetLeafModules(),
-		ModuleMetrics:        make(map[string]*domain.ModuleDependencyMetrics), // Mock for now
+		ModuleMetrics:        moduleMetrics,
 		DependencyMatrix:     matrix,
 		CircularDependencies: s.convertCircularResults(circularResult),
 		CouplingAnalysis:     s.convertCouplingResults(couplingResults),
@@ -199,9 +202,15 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
 	layerCohesion, problematic, layersAnalyzed := s.calculateLayerMetrics(layerCoupling)
 	compliance := s.calculateCompliance(len(violations), checked)
 
+	// Generate architecture recommendations
+	recommendations := s.generateArchitectureRecommendations(violations, layerCohesion, problematic, compliance)
+
+	// Identify refactoring targets based on violations
+	refactoringTargets := s.identifyArchitectureRefactoringTargets(violations, moduleToLayer)
+
 	// Build result
-	return s.buildArchitectureResult(violations, severityCounts, layerCoupling, layerCohesion,
-		problematic, layersAnalyzed, compliance, checked, moduleToLayer), nil
+	return s.buildArchitectureResultWithRecommendations(violations, severityCounts, layerCoupling, layerCohesion,
+		problematic, layersAnalyzed, compliance, checked, moduleToLayer, recommendations, refactoringTargets), nil
 }
 
 // emptyArchitectureResult returns an empty result when no rules are defined
@@ -331,8 +340,8 @@ func (s *SystemAnalysisServiceImpl) calculateCompliance(violations, checked int)
 	return compliance
 }
 
-// buildArchitectureResult constructs the final result
-func (s *SystemAnalysisServiceImpl) buildArchitectureResult(
+// buildArchitectureResultWithRecommendations constructs the final result with recommendations
+func (s *SystemAnalysisServiceImpl) buildArchitectureResultWithRecommendations(
 	violations []domain.ArchitectureViolation,
 	severityCounts map[domain.ViolationSeverity]int,
 	layerCoupling map[string]map[string]int,
@@ -341,7 +350,9 @@ func (s *SystemAnalysisServiceImpl) buildArchitectureResult(
 	layersAnalyzed int,
 	compliance float64,
 	checked int,
-	moduleToLayer map[string]string) *domain.ArchitectureAnalysisResult {
+	moduleToLayer map[string]string,
+	recommendations []domain.ArchitectureRecommendation,
+	refactoringTargets []string) *domain.ArchitectureAnalysisResult {
 
 	layerAnalysis := &domain.LayerAnalysis{
 		LayersAnalyzed:    layersAnalyzed,
@@ -360,8 +371,8 @@ func (s *SystemAnalysisServiceImpl) buildArchitectureResult(
 		ResponsibilityAnalysis: nil,
 		Violations:             violations,
 		SeverityBreakdown:      severityCounts,
-		Recommendations:        []domain.ArchitectureRecommendation{},
-		RefactoringTargets:     []string{},
+		Recommendations:        recommendations,
+		RefactoringTargets:     refactoringTargets,
 	}
 }
 
@@ -437,7 +448,9 @@ func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Re
 	if strings.Contains(glob, "*") {
 		esc := regexp.QuoteMeta(glob)
 		esc = strings.ReplaceAll(esc, "\\*", ".*")
-		re, err := regexp.Compile("^" + esc + "$")
+		// Match with or without project prefix
+		pattern := "(^|\\.)?" + esc + "$"
+		re, err := regexp.Compile(pattern)
 		if err != nil {
 			return nil
 		}
@@ -446,8 +459,12 @@ func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Re
 
 	// For non-wildcard patterns, match the module and any submodules
 	// Pattern "views" matches "views", "views.foo", "views.foo.bar", etc.
+	// Also matches "project.views", "project.views.foo", etc.
 	esc := regexp.QuoteMeta(glob)
-	pattern := "^" + esc + "(\\..+)?$"
+	// Match the pattern as:
+	// - Exact match at the beginning: ^pattern(\..+)?$
+	// - Or as part of a larger module path: \.pattern(\..+)?$
+	pattern := "(^|\\.)?" + esc + "(\\..+)?$"
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil
@@ -458,11 +475,12 @@ func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Re
 // autoDetectArchitecture automatically detects architecture patterns from the dependency graph
 func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.DependencyGraph) *domain.ArchitectureRules {
 	// Standard layer patterns commonly used in Python projects
+	// Focus on architectural patterns, not business-specific names
 	layerPatterns := map[string][]string{
-		"presentation":   {"api", "apis", "views", "view", "controllers", "controller", "routes", "route", "handlers", "handler", "ui", "web", "rest", "graphql", "endpoints", "endpoint", "routers", "router"},
-		"application":    {"services", "service", "use_cases", "usecase", "usecases", "workflows", "workflow", "commands", "queries"},
-		"domain":         {"models", "model", "entities", "entity", "domain", "domains", "core", "business", "aggregates", "valueobjects", "schemas", "schema"},
-		"infrastructure": {"db", "database", "repositories", "repository", "repo", "external", "adapters", "adapter", "persistence", "storage", "cache", "clients", "client"},
+		"presentation":   {"router", "routers", "route", "routes", "endpoint", "endpoints", "handler", "handlers", "controller", "controllers", "view", "views", "api", "apis", "ui", "web", "rest", "graphql"},
+		"application":    {"service", "services", "usecase", "usecases", "use_case", "use_cases", "workflow", "workflows", "command", "commands", "query", "queries", "manager", "managers", "dependencies", "dependency"},
+		"domain":         {"model", "models", "entity", "entities", "schema", "schemas", "domain", "domains", "core", "business", "aggregate", "aggregates", "valueobject", "valueobjects"},
+		"infrastructure": {"repository", "repositories", "repo", "repos", "db", "database", "adapter", "adapters", "persistence", "storage", "cache", "client", "clients", "external"},
 	}
 
 	// Detect which modules belong to which layer
@@ -522,12 +540,50 @@ func (s *SystemAnalysisServiceImpl) detectLayerFromModule(module string, pattern
 	// Split module path into parts
 	parts := strings.Split(module, ".")
 
-	// Check each part against patterns
+	if len(parts) == 0 {
+		return ""
+	}
+
+	// Priority 1: Check the LAST part of the module path (most specific)
+	// This is usually the most accurate indicator of the layer
+	// e.g., "app.api.v1.admin.companies.router" -> "router" indicates presentation layer
+	lastPart := strings.ToLower(parts[len(parts)-1])
+
+	// Define priority order for last part matching
+	// Presentation and Infrastructure are most specific when they're the last part
+	lastPartPriority := []string{"presentation", "infrastructure", "application", "domain"}
+	for _, layer := range lastPartPriority {
+		for _, pattern := range patterns[layer] {
+			// Exact match or variations with underscores/prefixes/suffixes
+			if lastPart == pattern ||
+			   strings.HasPrefix(lastPart, pattern+"_") ||
+			   strings.HasSuffix(lastPart, "_"+pattern) ||
+			   (len(lastPart) > len(pattern) && strings.Contains(lastPart, pattern)) {
+				return layer
+			}
+		}
+	}
+
+	// Priority 2: Check the second-to-last part if it exists
+	// This handles cases like "services.py" where the last part is just "py"
+	if len(parts) > 1 {
+		secondToLast := strings.ToLower(parts[len(parts)-2])
+		for _, layer := range lastPartPriority {
+			for _, pattern := range patterns[layer] {
+				if secondToLast == pattern || strings.HasPrefix(secondToLast, pattern+"_") || strings.HasSuffix(secondToLast, "_"+pattern) {
+					return layer
+				}
+			}
+		}
+	}
+
+	// Priority 3: Check all parts from beginning to end
+	// This catches cases where the layer indicator is in the middle of the path
 	for _, part := range parts {
 		lowerPart := strings.ToLower(part)
-		for layer, layerPatterns := range patterns {
-			for _, pattern := range layerPatterns {
-				if lowerPart == pattern || strings.HasPrefix(lowerPart, pattern) {
+		for _, layer := range lastPartPriority {
+			for _, pattern := range patterns[layer] {
+				if lowerPart == pattern {
 					return layer
 				}
 			}
@@ -734,6 +790,15 @@ func (s *SystemAnalysisServiceImpl) AnalyzeQuality(ctx context.Context, req doma
 	}
 	systemMetrics := s.extractSystemMetrics(graph)
 
+	// Classify modules by quality
+	highQuality, moderateQuality, lowQuality, critical := s.classifyModulesByQuality(graph)
+
+	// Generate refactoring targets
+	refactoringTargets := s.generateRefactoringTargets(graph, systemMetrics)
+
+	// Identify hot spots (modules with high complexity and coupling)
+	hotSpots := s.identifyHotSpots(graph)
+
 	result := &domain.QualityMetricsResult{
 		OverallQuality:         s.calculateOverallQuality(systemMetrics),
 		MaintainabilityIndex:   systemMetrics.MaintainabilityIndex,
@@ -746,13 +811,13 @@ func (s *SystemAnalysisServiceImpl) AnalyzeQuality(ctx context.Context, req doma
 		MaxDependencyDepth:     systemMetrics.MaxDependencyDepth,
 		AverageFanIn:           systemMetrics.AverageFanIn,
 		AverageFanOut:          systemMetrics.AverageFanOut,
-		HighQualityModules:     []string{}, // Mock for now
-		ModerateQualityModules: []string{}, // Mock for now
-		LowQualityModules:      systemMetrics.RefactoringPriority[:minSystemAnalysis(3, len(systemMetrics.RefactoringPriority))],
-		CriticalModules:        []string{}, // Mock for now
-		QualityTrends:          make(map[string]float64),
-		HotSpots:               []string{},                   // Mock for now
-		RefactoringTargets:     []domain.RefactoringTarget{}, // Mock for now
+		HighQualityModules:     highQuality,
+		ModerateQualityModules: moderateQuality,
+		LowQualityModules:      lowQuality,
+		CriticalModules:        critical,
+		QualityTrends:          make(map[string]float64), // Could be enhanced with historical data
+		HotSpots:               hotSpots,
+		RefactoringTargets:     refactoringTargets,
 	}
 
 	return result, nil
@@ -980,11 +1045,20 @@ func (s *SystemAnalysisServiceImpl) convertCouplingResults(results *analyzer.Sys
 		return nil
 	}
 
+	// Only consider modules as highly coupled if they actually have high coupling
+	var highlyCoupled []string
+	if results.RefactoringPriority != nil && len(results.RefactoringPriority) > 0 {
+		// Only include in highly coupled if there's actual coupling
+		if results.AverageFanIn+results.AverageFanOut > 0.5 {
+			highlyCoupled = results.RefactoringPriority
+		}
+	}
+
 	return &domain.CouplingAnalysis{
 		AverageCoupling:       results.AverageFanIn + results.AverageFanOut,
 		AverageInstability:    results.AverageInstability,
 		MainSequenceDeviation: results.MainSequenceDeviation,
-		HighlyCoupledModules:  results.RefactoringPriority,
+		HighlyCoupledModules:  highlyCoupled,
 		ZoneOfPain:            s.extractZoneOfPain(results),
 		ZoneOfUselessness:     s.extractZoneOfUselessness(results),
 	}
@@ -996,6 +1070,8 @@ func (s *SystemAnalysisServiceImpl) convertCircularResults(result *analyzer.Circ
 	}
 
 	var circularDeps []domain.CircularDependency
+	coreModules := make(map[string]int) // Track modules appearing in multiple cycles
+
 	for _, cycle := range result.CircularDependencies {
 		circularDeps = append(circularDeps, domain.CircularDependency{
 			Modules:      cycle.Modules,
@@ -1004,14 +1080,32 @@ func (s *SystemAnalysisServiceImpl) convertCircularResults(result *analyzer.Circ
 			Size:         cycle.Size,
 			Dependencies: s.convertCycleDependencies(cycle.Modules),
 		})
+
+		// Count occurrences for core infrastructure identification
+		for _, module := range cycle.Modules {
+			coreModules[module]++
+		}
 	}
+
+	// Identify core infrastructure (modules in multiple cycles)
+	var coreInfrastructure []string
+	for module, count := range coreModules {
+		if count > 1 {
+			coreInfrastructure = append(coreInfrastructure, module)
+		}
+	}
+	sort.Strings(coreInfrastructure)
+
+	// Generate cycle breaking suggestions
+	suggestions := s.generateCycleBreakingSuggestions(circularDeps, coreInfrastructure)
 
 	return &domain.CircularDependencyAnalysis{
 		HasCircularDependencies:  len(circularDeps) > 0,
 		TotalCycles:              len(circularDeps),
 		TotalModulesInCycles:     result.TotalModulesInCycles,
 		CircularDependencies:     circularDeps,
-		CycleBreakingSuggestions: []string{}, // Mock for now
+		CycleBreakingSuggestions: suggestions,
+		CoreInfrastructure:       coreInfrastructure,
 	}
 }
 
@@ -1077,22 +1171,61 @@ func (s *SystemAnalysisServiceImpl) convertCycleDependencies(cycle []string) []d
 
 // extractCouplingResult extracts coupling analysis from the dependency graph
 func (s *SystemAnalysisServiceImpl) extractCouplingResult(graph *analyzer.DependencyGraph) *analyzer.SystemMetrics {
-	// Mock system metrics extraction from graph
-	// In a real implementation, this would aggregate metrics from graph.ModuleMetrics
-	return &analyzer.SystemMetrics{
-		AverageFanIn:          float64(graph.TotalEdges) / float64(graph.TotalModules),
-		AverageFanOut:         float64(graph.TotalEdges) / float64(graph.TotalModules),
-		AverageInstability:    0.5,  // Mock value
-		AverageAbstractness:   0.3,  // Mock value
-		MainSequenceDeviation: 0.2,  // Mock value
-		MaintainabilityIndex:  75.0, // Mock value
-		TechnicalDebtTotal:    10.0, // Mock value
-		ModularityIndex:       0.8,  // Mock value
-		SystemComplexity:      float64(graph.TotalModules * 2),
-		MaxDependencyDepth:    s.calculateMaxDepth(graph),
-		CyclicDependencies:    0,          // Will be updated by circular analysis
-		RefactoringPriority:   []string{}, // Mock empty
+	// If SystemMetrics is already calculated in the graph, use it
+	if graph.SystemMetrics != nil && graph.SystemMetrics.RefactoringPriority != nil {
+		return graph.SystemMetrics
 	}
+
+	// Otherwise, calculate basic metrics
+	metrics := &analyzer.SystemMetrics{
+		TotalModules:      graph.TotalModules,
+		TotalDependencies: graph.TotalEdges,
+	}
+
+	if graph.TotalModules > 0 {
+		// Calculate averages from module metrics
+		var totalFanIn, totalFanOut float64
+		var totalInstability, totalAbstractness, totalDistance float64
+		var totalMaintainability, totalTechnicalDebt float64
+		var refactoringCandidates []string
+
+		for moduleName, moduleMetrics := range graph.ModuleMetrics {
+			totalFanIn += float64(moduleMetrics.AfferentCoupling)
+			totalFanOut += float64(moduleMetrics.EfferentCoupling)
+			totalInstability += moduleMetrics.Instability
+			totalAbstractness += moduleMetrics.Abstractness
+			totalDistance += moduleMetrics.Distance
+			totalMaintainability += moduleMetrics.Maintainability
+			totalTechnicalDebt += moduleMetrics.TechnicalDebt
+
+			// Identify refactoring priorities
+			if moduleMetrics.TechnicalDebt > 5 || moduleMetrics.Maintainability < 50 || moduleMetrics.Distance > 0.5 {
+				refactoringCandidates = append(refactoringCandidates, moduleName)
+			}
+		}
+
+		moduleCount := float64(graph.TotalModules)
+		metrics.AverageFanIn = totalFanIn / moduleCount
+		metrics.AverageFanOut = totalFanOut / moduleCount
+		metrics.AverageInstability = totalInstability / moduleCount
+		metrics.AverageAbstractness = totalAbstractness / moduleCount
+		metrics.MainSequenceDeviation = totalDistance / moduleCount
+		metrics.MaintainabilityIndex = totalMaintainability / moduleCount
+		metrics.TechnicalDebtTotal = totalTechnicalDebt
+		metrics.SystemComplexity = float64(graph.TotalModules * 2)
+		metrics.MaxDependencyDepth = s.calculateMaxDepth(graph)
+		metrics.RefactoringPriority = refactoringCandidates
+
+		// Modularity index approximation
+		if graph.TotalEdges > 0 {
+			metrics.ModularityIndex = 1.0 - (float64(graph.TotalEdges) / float64(graph.TotalModules * graph.TotalModules))
+			if metrics.ModularityIndex < 0 {
+				metrics.ModularityIndex = 0
+			}
+		}
+	}
+
+	return metrics
 }
 
 // extractSystemMetrics extracts system-wide metrics from the dependency graph
@@ -1304,4 +1437,500 @@ func minSystemAnalysis(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// extractModuleMetrics extracts module dependency metrics from the graph
+func (s *SystemAnalysisServiceImpl) extractModuleMetrics(graph *analyzer.DependencyGraph) map[string]*domain.ModuleDependencyMetrics {
+	result := make(map[string]*domain.ModuleDependencyMetrics)
+
+	for moduleName, node := range graph.Nodes {
+		// Get analyzer metrics if available
+		analyzerMetrics, hasMetrics := graph.ModuleMetrics[moduleName]
+
+		metrics := &domain.ModuleDependencyMetrics{
+			ModuleName: moduleName,
+			FilePath:   node.FilePath,
+			IsPackage:  node.IsPackage,
+
+			// Dependencies
+			DirectDependencies:     s.getDirectDependencies(moduleName, node),
+			TransitiveDependencies: s.getTransitiveDependencies(graph, moduleName),
+			Dependents:             s.getDependents(graph, moduleName),
+		}
+
+		// If analyzer metrics are available, use them
+		if hasMetrics && analyzerMetrics != nil {
+			metrics.AfferentCoupling = analyzerMetrics.AfferentCoupling
+			metrics.EfferentCoupling = analyzerMetrics.EfferentCoupling
+			metrics.Instability = analyzerMetrics.Instability
+			metrics.Abstractness = analyzerMetrics.Abstractness
+			metrics.Distance = analyzerMetrics.Distance
+			metrics.Maintainability = analyzerMetrics.Maintainability
+			metrics.TechnicalDebt = analyzerMetrics.TechnicalDebt
+
+			// Determine risk level based on metrics
+			if analyzerMetrics.Distance > 0.7 || analyzerMetrics.TechnicalDebt > 10 {
+				metrics.RiskLevel = domain.RiskLevelHigh
+			} else if analyzerMetrics.Distance > 0.4 || analyzerMetrics.TechnicalDebt > 5 {
+				metrics.RiskLevel = domain.RiskLevelMedium
+			} else {
+				metrics.RiskLevel = domain.RiskLevelLow
+			}
+		} else {
+			// Fallback to basic metrics
+			metrics.AfferentCoupling = node.InDegree
+			metrics.EfferentCoupling = node.OutDegree
+			if (node.InDegree + node.OutDegree) > 0 {
+				metrics.Instability = float64(node.OutDegree) / float64(node.InDegree + node.OutDegree)
+			}
+			metrics.RiskLevel = domain.RiskLevelLow
+		}
+
+		result[moduleName] = metrics
+	}
+
+	return result
+}
+
+// getDirectDependencies returns the direct dependencies of a module
+func (s *SystemAnalysisServiceImpl) getDirectDependencies(moduleName string, node *analyzer.ModuleNode) []string {
+	var deps []string
+	for dep := range node.Dependencies {
+		deps = append(deps, dep)
+	}
+	sort.Strings(deps)
+	return deps
+}
+
+// getTransitiveDependencies returns all transitive dependencies of a module
+func (s *SystemAnalysisServiceImpl) getTransitiveDependencies(graph *analyzer.DependencyGraph, moduleName string) []string {
+	visited := make(map[string]bool)
+	s.collectTransitiveDependencies(graph, moduleName, visited)
+
+	// Remove the module itself from visited
+	delete(visited, moduleName)
+
+	var deps []string
+	for dep := range visited {
+		deps = append(deps, dep)
+	}
+	sort.Strings(deps)
+	return deps
+}
+
+// collectTransitiveDependencies recursively collects all transitive dependencies
+func (s *SystemAnalysisServiceImpl) collectTransitiveDependencies(graph *analyzer.DependencyGraph, moduleName string, visited map[string]bool) {
+	if visited[moduleName] {
+		return
+	}
+	visited[moduleName] = true
+
+	node, exists := graph.Nodes[moduleName]
+	if !exists {
+		return
+	}
+
+	for dep := range node.Dependencies {
+		s.collectTransitiveDependencies(graph, dep, visited)
+	}
+}
+
+// getDependents returns the modules that depend on the given module
+func (s *SystemAnalysisServiceImpl) getDependents(graph *analyzer.DependencyGraph, moduleName string) []string {
+	var dependents []string
+	for otherModule, otherNode := range graph.Nodes {
+		if _, depends := otherNode.Dependencies[moduleName]; depends {
+			dependents = append(dependents, otherModule)
+		}
+	}
+	sort.Strings(dependents)
+	return dependents
+}
+
+// generateCycleBreakingSuggestions generates suggestions for breaking circular dependencies
+func (s *SystemAnalysisServiceImpl) generateCycleBreakingSuggestions(cycles []domain.CircularDependency, coreInfrastructure []string) []string {
+	var suggestions []string
+
+	if len(cycles) == 0 {
+		return suggestions
+	}
+
+	// General suggestions
+	suggestions = append(suggestions, "Consider introducing interfaces or abstract base classes to invert dependencies")
+
+	// Suggest refactoring core infrastructure
+	if len(coreInfrastructure) > 0 {
+		suggestions = append(suggestions, fmt.Sprintf("Modules %v appear in multiple cycles - consider extracting shared functionality to a separate module", coreInfrastructure))
+	}
+
+	// Analyze cycle patterns
+	for i, cycle := range cycles {
+		if i >= 3 { // Limit detailed suggestions to first 3 cycles
+			break
+		}
+
+		if cycle.Size == 2 {
+			// For simple two-module cycles
+			suggestions = append(suggestions, fmt.Sprintf("Break cycle between %s and %s by introducing a third module or using dependency injection", cycle.Modules[0], cycle.Modules[1]))
+		} else if cycle.Size <= 4 {
+			// For small cycles
+			suggestions = append(suggestions, fmt.Sprintf("Cycle involving %v - identify the least coupled module and extract its dependencies", cycle.Modules))
+		}
+	}
+
+	// Architecture-based suggestions
+	suggestions = append(suggestions, "Review your architecture to ensure proper layer separation (e.g., presentation → application → domain → infrastructure)")
+	suggestions = append(suggestions, "Consider using event-driven patterns to decouple tightly coupled modules")
+
+	return suggestions
+}
+
+// classifyModulesByQuality classifies modules into quality categories
+func (s *SystemAnalysisServiceImpl) classifyModulesByQuality(graph *analyzer.DependencyGraph) (high, moderate, low, critical []string) {
+	for moduleName, metrics := range graph.ModuleMetrics {
+		// Classify based on maintainability index and technical debt
+		if metrics.Maintainability >= 80 && metrics.TechnicalDebt < 2 {
+			high = append(high, moduleName)
+		} else if metrics.Maintainability >= 50 && metrics.TechnicalDebt < 5 {
+			moderate = append(moderate, moduleName)
+		} else if metrics.Maintainability >= 30 || metrics.TechnicalDebt >= 10 {
+			low = append(low, moduleName)
+		}
+
+		// Critical modules: low maintainability, high coupling, and high technical debt
+		if metrics.Maintainability < 30 &&
+		   (metrics.AfferentCoupling + metrics.EfferentCoupling) > 20 &&
+		   metrics.TechnicalDebt > 10 {
+			critical = append(critical, moduleName)
+		}
+	}
+
+	// Sort for consistent output
+	sort.Strings(high)
+	sort.Strings(moderate)
+	sort.Strings(low)
+	sort.Strings(critical)
+
+	return high, moderate, low, critical
+}
+
+// generateRefactoringTargets generates prioritized refactoring targets
+func (s *SystemAnalysisServiceImpl) generateRefactoringTargets(graph *analyzer.DependencyGraph, systemMetrics *analyzer.SystemMetrics) []domain.RefactoringTarget {
+	var targets []domain.RefactoringTarget
+
+	// Create a priority score for each module
+	type modulePriority struct {
+		name     string
+		priority float64
+		metrics  *analyzer.ModuleMetrics
+	}
+
+	var candidates []modulePriority
+
+	for moduleName, metrics := range graph.ModuleMetrics {
+		priority := 0.0
+
+		// Factor in maintainability (lower is worse)
+		if metrics.Maintainability < 50 {
+			priority += (50 - metrics.Maintainability) * 2
+		}
+
+		// Factor in technical debt
+		priority += metrics.TechnicalDebt * 5
+
+		// Factor in coupling
+		totalCoupling := float64(metrics.AfferentCoupling + metrics.EfferentCoupling)
+		if totalCoupling > 15 {
+			priority += totalCoupling * 2
+		}
+
+		// Factor in distance from main sequence
+		priority += metrics.Distance * 30
+
+		// Factor in instability for stable modules that change frequently
+		if metrics.Instability < 0.3 && metrics.AfferentCoupling > 5 {
+			priority += 20
+		}
+
+		if priority > 10 { // Only consider modules with significant issues
+			candidates = append(candidates, modulePriority{
+				name:     moduleName,
+				priority: priority,
+				metrics:  metrics,
+			})
+		}
+	}
+
+	// Sort by priority (highest first)
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].priority > candidates[j].priority
+	})
+
+	// Generate refactoring targets for top candidates
+	for i, candidate := range candidates {
+		if i >= 10 { // Limit to top 10 targets
+			break
+		}
+
+		var issues []string
+		var suggestions []string
+		var benefits []string
+		effort := domain.EstimatedEffortMedium
+
+		// Identify specific issues
+		if candidate.metrics.Maintainability < 40 {
+			issues = append(issues, "Low maintainability index")
+			suggestions = append(suggestions, "Simplify complex logic and improve code organization")
+			benefits = append(benefits, "Improved readability and maintainability")
+		}
+
+		if candidate.metrics.TechnicalDebt > 8 {
+			issues = append(issues, fmt.Sprintf("High technical debt (%.1f hours)", candidate.metrics.TechnicalDebt))
+			suggestions = append(suggestions, "Address code smells and refactor problematic areas")
+			benefits = append(benefits, "Reduced maintenance cost")
+			effort = domain.EstimatedEffortHigh
+		}
+
+		if candidate.metrics.AfferentCoupling + candidate.metrics.EfferentCoupling > 20 {
+			issues = append(issues, "Excessive coupling")
+			suggestions = append(suggestions, "Introduce abstractions and reduce dependencies")
+			benefits = append(benefits, "Better modularity and testability")
+		}
+
+		if candidate.metrics.Distance > 0.5 {
+			issues = append(issues, "Poor architectural positioning")
+			suggestions = append(suggestions, "Rebalance abstractness and stability")
+			benefits = append(benefits, "Better adherence to SOLID principles")
+		}
+
+		targets = append(targets, domain.RefactoringTarget{
+			Module:      candidate.name,
+			Priority:    candidate.priority,
+			Issues:      issues,
+			Benefits:    benefits,
+			Effort:      effort,
+			Suggestions: suggestions,
+		})
+	}
+
+	return targets
+}
+
+// identifyHotSpots identifies modules that are problematic and likely to change
+func (s *SystemAnalysisServiceImpl) identifyHotSpots(graph *analyzer.DependencyGraph) []string {
+	var hotSpots []string
+
+	type hotSpotCandidate struct {
+		name  string
+		score float64
+	}
+
+	var candidates []hotSpotCandidate
+
+	for moduleName, metrics := range graph.ModuleMetrics {
+		score := 0.0
+
+		// High coupling indicates frequent changes
+		coupling := float64(metrics.AfferentCoupling + metrics.EfferentCoupling)
+		if coupling > 10 {
+			score += coupling
+		}
+
+		// Low maintainability indicates problematic code
+		if metrics.Maintainability < 50 {
+			score += (50 - metrics.Maintainability) / 5
+		}
+
+		// High technical debt
+		if metrics.TechnicalDebt > 5 {
+			score += metrics.TechnicalDebt
+		}
+
+		// High instability indicates frequent changes
+		if metrics.Instability > 0.7 {
+			score += metrics.Instability * 10
+		}
+
+		// Module in the "zone of pain" (concrete and unstable)
+		if metrics.Abstractness < 0.3 && metrics.Instability > 0.7 {
+			score += 20
+		}
+
+		if score > 15 { // Threshold for hot spots
+			candidates = append(candidates, hotSpotCandidate{
+				name:  moduleName,
+				score: score,
+			})
+		}
+	}
+
+	// Sort by score (highest first)
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].score > candidates[j].score
+	})
+
+	// Extract top hot spots
+	for i, candidate := range candidates {
+		if i >= 10 { // Limit to top 10
+			break
+		}
+		hotSpots = append(hotSpots, candidate.name)
+	}
+
+	return hotSpots
+}
+
+// generateArchitectureRecommendations generates architecture improvement recommendations
+func (s *SystemAnalysisServiceImpl) generateArchitectureRecommendations(
+	violations []domain.ArchitectureViolation,
+	layerCohesion map[string]float64,
+	problematicLayers []string,
+	compliance float64) []domain.ArchitectureRecommendation {
+
+	var recommendations []domain.ArchitectureRecommendation
+
+	// Recommend based on compliance score
+	if compliance < 0.6 {
+		recommendations = append(recommendations, domain.ArchitectureRecommendation{
+			Type:     domain.RecommendationTypeRestructure,
+			Priority: domain.RecommendationPriorityCritical,
+			Title:    "Major Architecture Restructuring Required",
+			Description: fmt.Sprintf("With %.1f%% compliance, your architecture has significant structural issues", compliance*100),
+			Benefits: []string{
+				"Improved maintainability and testability",
+				"Clear separation of concerns",
+				"Reduced coupling between layers",
+			},
+			Effort: domain.EstimatedEffortLarge,
+			Steps: []string{
+				"Identify and document current architecture patterns",
+				"Define clear layer boundaries and responsibilities",
+				"Create interfaces to decouple layers",
+				"Gradually refactor violations starting with critical ones",
+			},
+		})
+	}
+
+	// Recommend fixing layer violations
+	if len(violations) > 10 {
+		violationModules := make(map[string]int)
+		for _, v := range violations {
+			violationModules[v.Module]++
+		}
+
+		var topViolators []string
+		for module, count := range violationModules {
+			if count > 2 {
+				topViolators = append(topViolators, module)
+			}
+		}
+
+		if len(topViolators) > 0 {
+			recommendations = append(recommendations, domain.ArchitectureRecommendation{
+				Type:     domain.RecommendationTypeRefactor,
+				Priority: domain.RecommendationPriorityHigh,
+				Title:    "Address Frequent Architecture Violators",
+				Description: fmt.Sprintf("Modules with multiple violations need refactoring: %v", topViolators[:minSystemAnalysis(3, len(topViolators))]),
+				Benefits: []string{
+					"Reduced architecture violations",
+					"Better adherence to design principles",
+					"Improved system structure",
+				},
+				Effort:  domain.EstimatedEffortMedium,
+				Modules: topViolators,
+				Steps: []string{
+					"Review dependencies of violating modules",
+					"Identify improper layer crossings",
+					"Introduce abstractions or move code to appropriate layers",
+				},
+			})
+		}
+	}
+
+	// Recommend improving layer cohesion
+	for _, layer := range problematicLayers {
+		if cohesion, exists := layerCohesion[layer]; exists && cohesion < 0.5 {
+			recommendations = append(recommendations, domain.ArchitectureRecommendation{
+				Type:     domain.RecommendationTypeRestructure,
+				Priority: domain.RecommendationPriorityMedium,
+				Title:    fmt.Sprintf("Improve Cohesion in %s Layer", layer),
+				Description: fmt.Sprintf("Layer '%s' has low cohesion (%.2f), indicating mixed responsibilities", layer, cohesion),
+				Benefits: []string{
+					"Better separation of concerns",
+					"Increased code reusability",
+					"Easier to understand and maintain",
+				},
+				Effort: domain.EstimatedEffortMedium,
+				Steps: []string{
+					"Review the responsibilities of modules in this layer",
+					"Group related functionality together",
+					"Consider splitting the layer if it has multiple distinct responsibilities",
+				},
+			})
+		}
+	}
+
+	// General recommendations for good architecture
+	if len(recommendations) < 3 {
+		recommendations = append(recommendations, domain.ArchitectureRecommendation{
+			Type:        domain.RecommendationTypeInterface,
+			Priority:    domain.RecommendationPriorityLow,
+			Title:       "Introduce Dependency Injection",
+			Description: "Use dependency injection to reduce coupling between layers",
+			Benefits: []string{
+				"Better testability with mock dependencies",
+				"Reduced coupling between components",
+				"More flexible and maintainable code",
+			},
+			Effort: domain.EstimatedEffortMedium,
+			Steps: []string{
+				"Identify tightly coupled components",
+				"Create interfaces for dependencies",
+				"Inject dependencies rather than creating them directly",
+			},
+		})
+	}
+
+	return recommendations
+}
+
+// identifyArchitectureRefactoringTargets identifies modules that need refactoring based on violations
+func (s *SystemAnalysisServiceImpl) identifyArchitectureRefactoringTargets(
+	violations []domain.ArchitectureViolation,
+	moduleToLayer map[string]string) []string {
+
+	// Count violations per module
+	violationCount := make(map[string]int)
+	for _, v := range violations {
+		violationCount[v.Module]++
+		if v.Target != "" {
+			violationCount[v.Target]++
+		}
+	}
+
+	// Sort modules by violation count
+	type moduleViolation struct {
+		module string
+		count  int
+	}
+
+	var modules []moduleViolation
+	for module, count := range violationCount {
+		modules = append(modules, moduleViolation{module: module, count: count})
+	}
+
+	sort.Slice(modules, func(i, j int) bool {
+		return modules[i].count > modules[j].count
+	})
+
+	// Return top refactoring targets
+	var targets []string
+	for i, m := range modules {
+		if i >= 10 { // Limit to top 10
+			break
+		}
+		targets = append(targets, m.module)
+	}
+
+	return targets
 }
