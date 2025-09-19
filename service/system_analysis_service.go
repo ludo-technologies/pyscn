@@ -1594,7 +1594,8 @@ func (s *SystemAnalysisServiceImpl) classifyModulesByQuality(graph *analyzer.Dep
 				high = append(high, moduleName)
 			} else if metrics.Maintainability >= 50 && metrics.TechnicalDebt < 5 {
 				moderate = append(moderate, moduleName)
-			} else if metrics.Maintainability >= 30 || metrics.TechnicalDebt >= 10 {
+			} else {
+				// Treat everything else as low quality so very weak modules don't fall through
 				low = append(low, moduleName)
 			}
 
@@ -1909,9 +1910,6 @@ func (s *SystemAnalysisServiceImpl) identifyArchitectureRefactoringTargets(
 	violationCount := make(map[string]int)
 	for _, v := range violations {
 		violationCount[v.Module]++
-		if v.Target != "" {
-			violationCount[v.Target]++
-		}
 	}
 
 	// Sort modules by violation count
