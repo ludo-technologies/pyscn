@@ -429,9 +429,7 @@ func (ma *ModuleAnalyzer) resolveAbsoluteImportWithProject(imp *ImportInfo, from
 			resolvedName := ma.filePathToModuleName(initFile)
 			if resolvedName != "" {
 				// For __init__.py files, use the package name (without __init__)
-				if strings.HasSuffix(resolvedName, ".__init__") {
-					resolvedName = strings.TrimSuffix(resolvedName, ".__init__")
-				}
+				resolvedName = strings.TrimSuffix(resolvedName, ".__init__")
 				ma.resolvedModules[moduleName] = resolvedName
 				return resolvedName
 			}

@@ -1041,7 +1041,7 @@ func (s *SystemAnalysisServiceImpl) convertCouplingResults(results *analyzer.Sys
 
 	// Only consider modules as highly coupled if they actually have high coupling
 	var highlyCoupled []string
-	if results.RefactoringPriority != nil && len(results.RefactoringPriority) > 0 {
+	if len(results.RefactoringPriority) > 0 {
 		// Only include in highly coupled if there's actual coupling
 		if results.AverageFanIn+results.AverageFanOut > 0.5 {
 			highlyCoupled = results.RefactoringPriority
