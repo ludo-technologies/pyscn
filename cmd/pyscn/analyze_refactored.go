@@ -151,18 +151,23 @@ func (c *AnalyzeCommandRefactored) runAnalyze(cmd *cobra.Command, args []string)
 
 	// Execute analysis
 	ctx := context.Background()
-	response, err := useCase.Execute(ctx, config, args)
-	if err != nil {
-		return err
+	response, analysisErr := useCase.Execute(ctx, config, args)
+
+	// Generate output even if there were partial failures
+	if response != nil {
+		// Generate output
+		if err := c.generateOutput(cmd, response, args); err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Failed to generate output: %v\n", err)
+		}
+
+		// Print summary
+		c.printSummary(cmd, response)
 	}
 
-	// Generate output
-	if err := c.generateOutput(cmd, response, args); err != nil {
-		return fmt.Errorf("failed to generate output: %w", err)
+	// Return the analysis error so CLI exits with non-zero status
+	if analysisErr != nil {
+		return analysisErr
 	}
-
-	// Print summary
-	c.printSummary(cmd, response)
 
 	return nil
 }
@@ -385,33 +390,55 @@ func (c *AnalyzeCommandRefactored) printSummary(cmd *cobra.Command, response *do
 	fmt.Fprintf(cmd.ErrOrStderr(), "Total time: %dms\n", response.Duration)
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n")
 
-	// Print health score
-	fmt.Fprintf(cmd.ErrOrStderr(), "Health Score: %d/100 (%s)\n", response.Summary.HealthScore, response.Summary.Grade)
+	// Print health score if available
+	if response.Summary.HealthScore > 0 {
+		fmt.Fprintf(cmd.ErrOrStderr(), "Health Score: %d/100 (%s)\n", response.Summary.HealthScore, response.Summary.Grade)
+	}
 
-	// Print enabled analyses summary
+	// Print enabled analyses summary with success indicators
 	if response.Summary.ComplexityEnabled {
-		fmt.Fprintf(cmd.ErrOrStderr(), "✅ Complexity Analysis: %d functions analyzed, average complexity: %.1f\n",
-			response.Summary.TotalFunctions, response.Summary.AverageComplexity)
+		if response.Complexity != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Complexity Analysis: %d functions analyzed, average complexity: %.1f\n",
+				response.Summary.TotalFunctions, response.Summary.AverageComplexity)
+		} else {
+			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Complexity Analysis: Failed\n")
+		}
 	}
 
 	if response.Summary.DeadCodeEnabled {
-		fmt.Fprintf(cmd.ErrOrStderr(), "✅ Dead Code Detection: %d issues found (%d critical)\n",
-			response.Summary.DeadCodeCount, response.Summary.CriticalDeadCode)
+		if response.DeadCode != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Dead Code Detection: %d issues found (%d critical)\n",
+				response.Summary.DeadCodeCount, response.Summary.CriticalDeadCode)
+		} else {
+			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Dead Code Detection: Failed\n")
+		}
 	}
 
 	if response.Summary.CloneEnabled {
-		fmt.Fprintf(cmd.ErrOrStderr(), "✅ Clone Detection: %d clone groups, %.1f%% duplication\n",
-			response.Summary.CloneGroups, response.Summary.CodeDuplication)
+		if response.Clone != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Clone Detection: %d clone groups, %.1f%% duplication\n",
+				response.Summary.CloneGroups, response.Summary.CodeDuplication)
+		} else {
+			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Clone Detection: Failed\n")
+		}
 	}
 
 	if response.Summary.CBOEnabled {
-		fmt.Fprintf(cmd.ErrOrStderr(), "✅ Class Coupling (CBO): %d classes analyzed, average coupling: %.1f\n",
-			response.Summary.CBOClasses, response.Summary.AverageCoupling)
+		if response.CBO != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Class Coupling (CBO): %d classes analyzed, average coupling: %.1f\n",
+				response.Summary.CBOClasses, response.Summary.AverageCoupling)
+		} else {
+			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Class Coupling (CBO): Failed\n")
+		}
 	}
 
 	if response.Summary.DepsEnabled {
-		fmt.Fprintf(cmd.ErrOrStderr(), "✅ System Analysis: %d modules analyzed\n",
-			response.Summary.DepsTotalModules)
+		if response.System != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "✅ System Analysis: %d modules analyzed\n",
+				response.Summary.DepsTotalModules)
+		} else {
+			fmt.Fprintf(cmd.ErrOrStderr(), "❌ System Analysis: Failed\n")
+		}
 	}
 }
 

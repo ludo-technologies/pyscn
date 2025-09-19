@@ -288,11 +288,19 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Name:    "Clone Detection",
 			Enabled: !config.SkipClones,
 			Execute: func(ctx context.Context) (interface{}, error) {
+				// Start with defaults to ensure all required fields are populated
+				defaultReq := domain.DefaultCloneRequest()
 				request := domain.CloneRequest{
 					Paths:               files,
 					OutputFormat:        domain.OutputFormatJSON,
 					OutputWriter:        io.Discard,
+					MinLines:            defaultReq.MinLines,
+					MinNodes:            defaultReq.MinNodes,
 					SimilarityThreshold: config.CloneSimilarity,
+					Type1Threshold:      defaultReq.Type1Threshold,
+					Type2Threshold:      defaultReq.Type2Threshold,
+					Type3Threshold:      defaultReq.Type3Threshold,
+					Type4Threshold:      defaultReq.Type4Threshold,
 					ConfigPath:          config.ConfigFile,
 				}
 				return uc.cloneUseCase.ExecuteAndReturn(ctx, request)
