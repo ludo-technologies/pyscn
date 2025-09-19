@@ -444,27 +444,21 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
 // compileModulePattern converts simple glob-like patterns to regex for module names.
 // For Python modules, pattern "views" should match "views", "views.foo", "views.foo.bar", etc.
 func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Regexp {
-	// Handle wildcards
-	if strings.Contains(glob, "*") {
-		esc := regexp.QuoteMeta(glob)
-		esc = strings.ReplaceAll(esc, "\\*", ".*")
-		// Match with or without project prefix
-		pattern := "(^|\\.)?" + esc + "$"
-		re, err := regexp.Compile(pattern)
-		if err != nil {
-			return nil
-		}
-		return re
+	if glob == "" {
+		return nil
 	}
 
-	// For non-wildcard patterns, match the module and any submodules
-	// Pattern "views" matches "views", "views.foo", "views.foo.bar", etc.
-	// Also matches "project.views", "project.views.foo", etc.
-	esc := regexp.QuoteMeta(glob)
-	// Match the pattern as:
-	// - Exact match at the beginning: ^pattern(\..+)?$
-	// - Or as part of a larger module path: \.pattern(\..+)?$
-	pattern := "(^|\\.)?" + esc + "(\\..+)?$"
+	escaped := regexp.QuoteMeta(glob)
+	hasWildcard := strings.Contains(glob, "*")
+	if hasWildcard {
+		escaped = strings.ReplaceAll(escaped, "\\*", ".*")
+	} else {
+		// Allow matching the module segment plus any nested submodules
+		escaped = fmt.Sprintf("%s(?:\\..+)?", escaped)
+	}
+
+	// Match either at the beginning of the module path or as a later segment.
+	pattern := fmt.Sprintf("^(?:%s|.+\\.%s)$", escaped, escaped)
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil
@@ -556,9 +550,9 @@ func (s *SystemAnalysisServiceImpl) detectLayerFromModule(module string, pattern
 		for _, pattern := range patterns[layer] {
 			// Exact match or variations with underscores/prefixes/suffixes
 			if lastPart == pattern ||
-			   strings.HasPrefix(lastPart, pattern+"_") ||
-			   strings.HasSuffix(lastPart, "_"+pattern) ||
-			   (len(lastPart) > len(pattern) && strings.Contains(lastPart, pattern)) {
+				strings.HasPrefix(lastPart, pattern+"_") ||
+				strings.HasSuffix(lastPart, "_"+pattern) ||
+				(len(lastPart) > len(pattern) && strings.Contains(lastPart, pattern)) {
 				return layer
 			}
 		}
@@ -1220,7 +1214,7 @@ func (s *SystemAnalysisServiceImpl) extractCouplingResult(graph *analyzer.Depend
 
 		// Modularity index approximation
 		if graph.TotalEdges > 0 {
-			metrics.ModularityIndex = 1.0 - (float64(graph.TotalEdges) / float64(graph.TotalModules * graph.TotalModules))
+			metrics.ModularityIndex = 1.0 - (float64(graph.TotalEdges) / float64(graph.TotalModules*graph.TotalModules))
 			if metrics.ModularityIndex < 0 {
 				metrics.ModularityIndex = 0
 			}
@@ -1487,7 +1481,7 @@ func (s *SystemAnalysisServiceImpl) extractModuleMetrics(graph *analyzer.Depende
 			metrics.AfferentCoupling = node.InDegree
 			metrics.EfferentCoupling = node.OutDegree
 			if (node.InDegree + node.OutDegree) > 0 {
-				metrics.Instability = float64(node.OutDegree) / float64(node.InDegree + node.OutDegree)
+				metrics.Instability = float64(node.OutDegree) / float64(node.InDegree+node.OutDegree)
 			}
 			metrics.RiskLevel = domain.RiskLevelLow
 		}
@@ -1606,8 +1600,8 @@ func (s *SystemAnalysisServiceImpl) classifyModulesByQuality(graph *analyzer.Dep
 
 			// Critical modules: low maintainability, high coupling, and high technical debt
 			if metrics.Maintainability < 30 &&
-			   (metrics.AfferentCoupling + metrics.EfferentCoupling) > 20 &&
-			   metrics.TechnicalDebt > 10 {
+				(metrics.AfferentCoupling+metrics.EfferentCoupling) > 20 &&
+				metrics.TechnicalDebt > 10 {
 				critical = append(critical, moduleName)
 			}
 		}
@@ -1701,7 +1695,7 @@ func (s *SystemAnalysisServiceImpl) generateRefactoringTargets(graph *analyzer.D
 			effort = domain.EstimatedEffortHigh
 		}
 
-		if candidate.metrics.AfferentCoupling + candidate.metrics.EfferentCoupling > 20 {
+		if candidate.metrics.AfferentCoupling+candidate.metrics.EfferentCoupling > 20 {
 			issues = append(issues, "Excessive coupling")
 			suggestions = append(suggestions, "Introduce abstractions and reduce dependencies")
 			benefits = append(benefits, "Better modularity and testability")
@@ -1804,9 +1798,9 @@ func (s *SystemAnalysisServiceImpl) generateArchitectureRecommendations(
 	// Recommend based on compliance score
 	if compliance < 0.6 {
 		recommendations = append(recommendations, domain.ArchitectureRecommendation{
-			Type:     domain.RecommendationTypeRestructure,
-			Priority: domain.RecommendationPriorityCritical,
-			Title:    "Major Architecture Restructuring Required",
+			Type:        domain.RecommendationTypeRestructure,
+			Priority:    domain.RecommendationPriorityCritical,
+			Title:       "Major Architecture Restructuring Required",
 			Description: fmt.Sprintf("With %.1f%% compliance, your architecture has significant structural issues", compliance*100),
 			Benefits: []string{
 				"Improved maintainability and testability",
@@ -1839,9 +1833,9 @@ func (s *SystemAnalysisServiceImpl) generateArchitectureRecommendations(
 
 		if len(topViolators) > 0 {
 			recommendations = append(recommendations, domain.ArchitectureRecommendation{
-				Type:     domain.RecommendationTypeRefactor,
-				Priority: domain.RecommendationPriorityHigh,
-				Title:    "Address Frequent Architecture Violators",
+				Type:        domain.RecommendationTypeRefactor,
+				Priority:    domain.RecommendationPriorityHigh,
+				Title:       "Address Frequent Architecture Violators",
 				Description: fmt.Sprintf("Modules with multiple violations need refactoring: %v", topViolators[:minSystemAnalysis(3, len(topViolators))]),
 				Benefits: []string{
 					"Reduced architecture violations",
@@ -1863,9 +1857,9 @@ func (s *SystemAnalysisServiceImpl) generateArchitectureRecommendations(
 	for _, layer := range problematicLayers {
 		if cohesion, exists := layerCohesion[layer]; exists && cohesion < 0.5 {
 			recommendations = append(recommendations, domain.ArchitectureRecommendation{
-				Type:     domain.RecommendationTypeRestructure,
-				Priority: domain.RecommendationPriorityMedium,
-				Title:    fmt.Sprintf("Improve Cohesion in %s Layer", layer),
+				Type:        domain.RecommendationTypeRestructure,
+				Priority:    domain.RecommendationPriorityMedium,
+				Title:       fmt.Sprintf("Improve Cohesion in %s Layer", layer),
 				Description: fmt.Sprintf("Layer '%s' has low cohesion (%.2f), indicating mixed responsibilities", layer, cohesion),
 				Benefits: []string{
 					"Better separation of concerns",
