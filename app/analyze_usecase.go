@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 
@@ -218,8 +219,21 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 	// Wait for all tasks to complete
 	wg.Wait()
 
+	// Check for errors
+	var errors []error
+	for _, task := range tasks {
+		if task.Enabled && task.Error != nil {
+			errors = append(errors, fmt.Errorf("%s: %w", task.Name, task.Error))
+		}
+	}
+
 	// Build response
 	response := uc.buildResponse(tasks, startTime)
+
+	// Return aggregated error if any tasks failed
+	if len(errors) > 0 {
+		return response, fmt.Errorf("analysis completed with %d error(s): %w", len(errors), errors[0])
+	}
 
 	return response, nil
 }
@@ -235,9 +249,14 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Enabled: !config.SkipComplexity,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.ComplexityRequest{
-					Paths:         files,
-					MinComplexity: config.MinComplexity,
-					ConfigPath:    config.ConfigFile,
+					Paths:           files,
+					OutputFormat:    domain.OutputFormatJSON,
+					OutputWriter:    io.Discard,
+					MinComplexity:   config.MinComplexity,
+					LowThreshold:    9,
+					MediumThreshold: 19,
+					SortBy:          domain.SortByComplexity,
+					ConfigPath:      config.ConfigFile,
 				}
 				return uc.complexityUseCase.AnalyzeAndReturn(ctx, request)
 			},
@@ -251,9 +270,12 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Enabled: !config.SkipDeadCode,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.DeadCodeRequest{
-					Paths:       files,
-					MinSeverity: config.MinSeverity,
-					ConfigPath:  config.ConfigFile,
+					Paths:        files,
+					OutputFormat: domain.OutputFormatJSON,
+					OutputWriter: io.Discard,
+					MinSeverity:  config.MinSeverity,
+					SortBy:       domain.DeadCodeSortBySeverity,
+					ConfigPath:   config.ConfigFile,
 				}
 				return uc.deadCodeUseCase.AnalyzeAndReturn(ctx, request)
 			},
@@ -268,6 +290,8 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.CloneRequest{
 					Paths:               files,
+					OutputFormat:        domain.OutputFormatJSON,
+					OutputWriter:        io.Discard,
 					SimilarityThreshold: config.CloneSimilarity,
 					ConfigPath:          config.ConfigFile,
 				}
@@ -283,8 +307,13 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Enabled: !config.SkipCBO,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.CBORequest{
-					Paths:  files,
-					MinCBO: config.MinCBO,
+					Paths:           files,
+					OutputFormat:    domain.OutputFormatJSON,
+					OutputWriter:    io.Discard,
+					MinCBO:          config.MinCBO,
+					LowThreshold:    5,
+					MediumThreshold: 10,
+					SortBy:          domain.SortByCoupling,
 				}
 				return uc.cboUseCase.AnalyzeAndReturn(ctx, request)
 			},
@@ -299,6 +328,8 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.SystemAnalysisRequest{
 					Paths:               files,
+					OutputFormat:        domain.OutputFormatJSON,
+					OutputWriter:        io.Discard,
 					AnalyzeDependencies: true,
 					AnalyzeArchitecture: true,
 					AnalyzeQuality:      true,
