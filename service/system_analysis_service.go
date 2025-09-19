@@ -1189,18 +1189,20 @@ func (s *SystemAnalysisServiceImpl) extractCouplingResult(graph *analyzer.Depend
 		var totalMaintainability, totalTechnicalDebt float64
 		var refactoringCandidates []string
 
-		for moduleName, moduleMetrics := range graph.ModuleMetrics {
-			totalFanIn += float64(moduleMetrics.AfferentCoupling)
-			totalFanOut += float64(moduleMetrics.EfferentCoupling)
-			totalInstability += moduleMetrics.Instability
-			totalAbstractness += moduleMetrics.Abstractness
-			totalDistance += moduleMetrics.Distance
-			totalMaintainability += moduleMetrics.Maintainability
-			totalTechnicalDebt += moduleMetrics.TechnicalDebt
+		if graph.ModuleMetrics != nil {
+			for moduleName, moduleMetrics := range graph.ModuleMetrics {
+				totalFanIn += float64(moduleMetrics.AfferentCoupling)
+				totalFanOut += float64(moduleMetrics.EfferentCoupling)
+				totalInstability += moduleMetrics.Instability
+				totalAbstractness += moduleMetrics.Abstractness
+				totalDistance += moduleMetrics.Distance
+				totalMaintainability += moduleMetrics.Maintainability
+				totalTechnicalDebt += moduleMetrics.TechnicalDebt
 
-			// Identify refactoring priorities
-			if moduleMetrics.TechnicalDebt > 5 || moduleMetrics.Maintainability < 50 || moduleMetrics.Distance > 0.5 {
-				refactoringCandidates = append(refactoringCandidates, moduleName)
+				// Identify refactoring priorities
+				if moduleMetrics.TechnicalDebt > 5 || moduleMetrics.Maintainability < 50 || moduleMetrics.Distance > 0.5 {
+					refactoringCandidates = append(refactoringCandidates, moduleName)
+				}
 			}
 		}
 
@@ -1445,7 +1447,11 @@ func (s *SystemAnalysisServiceImpl) extractModuleMetrics(graph *analyzer.Depende
 
 	for moduleName, node := range graph.Nodes {
 		// Get analyzer metrics if available
-		analyzerMetrics, hasMetrics := graph.ModuleMetrics[moduleName]
+		var analyzerMetrics *analyzer.ModuleMetrics
+		var hasMetrics bool
+		if graph.ModuleMetrics != nil {
+			analyzerMetrics, hasMetrics = graph.ModuleMetrics[moduleName]
+		}
 
 		metrics := &domain.ModuleDependencyMetrics{
 			ModuleName: moduleName,
@@ -1587,21 +1593,23 @@ func (s *SystemAnalysisServiceImpl) generateCycleBreakingSuggestions(cycles []do
 
 // classifyModulesByQuality classifies modules into quality categories
 func (s *SystemAnalysisServiceImpl) classifyModulesByQuality(graph *analyzer.DependencyGraph) (high, moderate, low, critical []string) {
-	for moduleName, metrics := range graph.ModuleMetrics {
-		// Classify based on maintainability index and technical debt
-		if metrics.Maintainability >= 80 && metrics.TechnicalDebt < 2 {
-			high = append(high, moduleName)
-		} else if metrics.Maintainability >= 50 && metrics.TechnicalDebt < 5 {
-			moderate = append(moderate, moduleName)
-		} else if metrics.Maintainability >= 30 || metrics.TechnicalDebt >= 10 {
-			low = append(low, moduleName)
-		}
+	if graph.ModuleMetrics != nil {
+		for moduleName, metrics := range graph.ModuleMetrics {
+			// Classify based on maintainability index and technical debt
+			if metrics.Maintainability >= 80 && metrics.TechnicalDebt < 2 {
+				high = append(high, moduleName)
+			} else if metrics.Maintainability >= 50 && metrics.TechnicalDebt < 5 {
+				moderate = append(moderate, moduleName)
+			} else if metrics.Maintainability >= 30 || metrics.TechnicalDebt >= 10 {
+				low = append(low, moduleName)
+			}
 
-		// Critical modules: low maintainability, high coupling, and high technical debt
-		if metrics.Maintainability < 30 &&
-		   (metrics.AfferentCoupling + metrics.EfferentCoupling) > 20 &&
-		   metrics.TechnicalDebt > 10 {
-			critical = append(critical, moduleName)
+			// Critical modules: low maintainability, high coupling, and high technical debt
+			if metrics.Maintainability < 30 &&
+			   (metrics.AfferentCoupling + metrics.EfferentCoupling) > 20 &&
+			   metrics.TechnicalDebt > 10 {
+				critical = append(critical, moduleName)
+			}
 		}
 	}
 
@@ -1627,37 +1635,39 @@ func (s *SystemAnalysisServiceImpl) generateRefactoringTargets(graph *analyzer.D
 
 	var candidates []modulePriority
 
-	for moduleName, metrics := range graph.ModuleMetrics {
-		priority := 0.0
+	if graph.ModuleMetrics != nil {
+		for moduleName, metrics := range graph.ModuleMetrics {
+			priority := 0.0
 
-		// Factor in maintainability (lower is worse)
-		if metrics.Maintainability < 50 {
-			priority += (50 - metrics.Maintainability) * 2
-		}
+			// Factor in maintainability (lower is worse)
+			if metrics.Maintainability < 50 {
+				priority += (50 - metrics.Maintainability) * 2
+			}
 
-		// Factor in technical debt
-		priority += metrics.TechnicalDebt * 5
+			// Factor in technical debt
+			priority += metrics.TechnicalDebt * 5
 
-		// Factor in coupling
-		totalCoupling := float64(metrics.AfferentCoupling + metrics.EfferentCoupling)
-		if totalCoupling > 15 {
-			priority += totalCoupling * 2
-		}
+			// Factor in coupling
+			totalCoupling := float64(metrics.AfferentCoupling + metrics.EfferentCoupling)
+			if totalCoupling > 15 {
+				priority += totalCoupling * 2
+			}
 
-		// Factor in distance from main sequence
-		priority += metrics.Distance * 30
+			// Factor in distance from main sequence
+			priority += metrics.Distance * 30
 
-		// Factor in instability for stable modules that change frequently
-		if metrics.Instability < 0.3 && metrics.AfferentCoupling > 5 {
-			priority += 20
-		}
+			// Factor in instability for stable modules that change frequently
+			if metrics.Instability < 0.3 && metrics.AfferentCoupling > 5 {
+				priority += 20
+			}
 
-		if priority > 10 { // Only consider modules with significant issues
-			candidates = append(candidates, modulePriority{
-				name:     moduleName,
-				priority: priority,
-				metrics:  metrics,
-			})
+			if priority > 10 { // Only consider modules with significant issues
+				candidates = append(candidates, modulePriority{
+					name:     moduleName,
+					priority: priority,
+					metrics:  metrics,
+				})
+			}
 		}
 	}
 
@@ -1727,40 +1737,42 @@ func (s *SystemAnalysisServiceImpl) identifyHotSpots(graph *analyzer.DependencyG
 
 	var candidates []hotSpotCandidate
 
-	for moduleName, metrics := range graph.ModuleMetrics {
-		score := 0.0
+	if graph.ModuleMetrics != nil {
+		for moduleName, metrics := range graph.ModuleMetrics {
+			score := 0.0
 
-		// High coupling indicates frequent changes
-		coupling := float64(metrics.AfferentCoupling + metrics.EfferentCoupling)
-		if coupling > 10 {
-			score += coupling
-		}
+			// High coupling indicates frequent changes
+			coupling := float64(metrics.AfferentCoupling + metrics.EfferentCoupling)
+			if coupling > 10 {
+				score += coupling
+			}
 
-		// Low maintainability indicates problematic code
-		if metrics.Maintainability < 50 {
-			score += (50 - metrics.Maintainability) / 5
-		}
+			// Low maintainability indicates problematic code
+			if metrics.Maintainability < 50 {
+				score += (50 - metrics.Maintainability) / 5
+			}
 
-		// High technical debt
-		if metrics.TechnicalDebt > 5 {
-			score += metrics.TechnicalDebt
-		}
+			// High technical debt
+			if metrics.TechnicalDebt > 5 {
+				score += metrics.TechnicalDebt
+			}
 
-		// High instability indicates frequent changes
-		if metrics.Instability > 0.7 {
-			score += metrics.Instability * 10
-		}
+			// High instability indicates frequent changes
+			if metrics.Instability > 0.7 {
+				score += metrics.Instability * 10
+			}
 
-		// Module in the "zone of pain" (concrete and unstable)
-		if metrics.Abstractness < 0.3 && metrics.Instability > 0.7 {
-			score += 20
-		}
+			// Module in the "zone of pain" (concrete and unstable)
+			if metrics.Abstractness < 0.3 && metrics.Instability > 0.7 {
+				score += 20
+			}
 
-		if score > 15 { // Threshold for hot spots
-			candidates = append(candidates, hotSpotCandidate{
-				name:  moduleName,
-				score: score,
-			})
+			if score > 15 { // Threshold for hot spots
+				candidates = append(candidates, hotSpotCandidate{
+					name:  moduleName,
+					score: score,
+				})
+			}
 		}
 	}
 
