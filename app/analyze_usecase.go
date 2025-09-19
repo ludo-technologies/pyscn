@@ -360,26 +360,43 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 
 	// Collect results from tasks
 	for _, task := range tasks {
-		if !task.Enabled || task.Result == nil {
+		if !task.Enabled {
 			continue
 		}
 
 		switch result := task.Result.(type) {
 		case *domain.ComplexityResponse:
-			response.Complexity = result
 			response.Summary.ComplexityEnabled = true
+			if result != nil {
+				response.Complexity = result
+			}
 		case *domain.DeadCodeResponse:
-			response.DeadCode = result
 			response.Summary.DeadCodeEnabled = true
+			if result != nil {
+				response.DeadCode = result
+			}
 		case *domain.CloneResponse:
-			response.Clone = result
 			response.Summary.CloneEnabled = true
+			if result != nil {
+				response.Clone = result
+			}
 		case *domain.CBOResponse:
-			response.CBO = result
 			response.Summary.CBOEnabled = true
+			if result != nil {
+				response.CBO = result
+			}
 		case *domain.SystemAnalysisResponse:
-			response.System = result
 			response.Summary.DepsEnabled = true
+			if result != nil {
+				response.System = result
+				if result.ArchitectureAnalysis != nil {
+					response.Summary.ArchEnabled = true
+				}
+			}
+		case nil:
+			uc.markSummaryForTask(&response.Summary, task.Name)
+		default:
+			uc.markSummaryForTask(&response.Summary, task.Name)
 		}
 	}
 
@@ -387,6 +404,22 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 	uc.calculateSummary(&response.Summary, response)
 
 	return response
+}
+
+// markSummaryForTask ensures the summary reflects analyses that attempted to run
+func (uc *AnalyzeUseCase) markSummaryForTask(summary *domain.AnalyzeSummary, taskName string) {
+	switch taskName {
+	case "Complexity Analysis":
+		summary.ComplexityEnabled = true
+	case "Dead Code Detection":
+		summary.DeadCodeEnabled = true
+	case "Clone Detection":
+		summary.CloneEnabled = true
+	case "Class Coupling (CBO)":
+		summary.CBOEnabled = true
+	case "System Analysis":
+		summary.DepsEnabled = true
+	}
 }
 
 // calculateSummary calculates the summary statistics
