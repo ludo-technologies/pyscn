@@ -244,18 +244,30 @@ func (ma *ModuleAnalyzer) collectModuleImports(ast *parser.Node, filePath string
 		switch node.Type {
 		case parser.NodeImport:
 			// Handle "import module" statements
-			for _, child := range node.Children {
-				if child.Type == parser.NodeAlias {
+			if len(node.Children) > 0 {
+				for _, child := range node.Children {
+					if child.Type == parser.NodeAlias {
+						imp := &ImportInfo{
+							Statement:     fmt.Sprintf("import %s", child.Name),
+							ImportedNames: []string{child.Name},
+							IsRelative:    false,
+							Line:          node.Location.StartLine,
+						}
+						if child.Value != nil {
+							if alias, ok := child.Value.(string); ok {
+								imp.Alias = alias
+							}
+						}
+						imports = append(imports, imp)
+					}
+				}
+			} else if len(node.Names) > 0 {
+				for _, name := range node.Names {
 					imp := &ImportInfo{
-						Statement:     fmt.Sprintf("import %s", child.Name),
-						ImportedNames: []string{child.Name},
+						Statement:     fmt.Sprintf("import %s", name),
+						ImportedNames: []string{name},
 						IsRelative:    false,
 						Line:          node.Location.StartLine,
-					}
-					if child.Value != nil {
-						if alias, ok := child.Value.(string); ok {
-							imp.Alias = alias
-						}
 					}
 					imports = append(imports, imp)
 				}
@@ -301,7 +313,8 @@ func (ma *ModuleAnalyzer) resolveImport(imp *ImportInfo, fromFile string) string
 	if imp.IsRelative {
 		return ma.resolveRelativeImport(imp, fromFile)
 	}
-	return ma.resolveAbsoluteImport(imp)
+	// For absolute imports, try to resolve within the project first
+	return ma.resolveAbsoluteImportWithProject(imp, fromFile)
 }
 
 // resolveRelativeImport resolves relative imports like "from .module import name"
@@ -330,9 +343,9 @@ func (ma *ModuleAnalyzer) resolveRelativeImport(imp *ImportInfo, fromFile string
 
 // resolveAbsoluteImport resolves absolute imports
 func (ma *ModuleAnalyzer) resolveAbsoluteImport(imp *ImportInfo) string {
-	moduleName := imp.Statement
-	if len(imp.ImportedNames) > 0 {
-		moduleName = imp.ImportedNames[0] // Use first imported name
+	moduleName := ma.moduleNameFromImport(imp)
+	if moduleName == "" {
+		return ""
 	}
 
 	// Check cache first
@@ -372,6 +385,82 @@ func (ma *ModuleAnalyzer) resolveAbsoluteImport(imp *ImportInfo) string {
 	}
 
 	return ""
+}
+
+// resolveAbsoluteImportWithProject resolves absolute imports, checking project modules first
+func (ma *ModuleAnalyzer) resolveAbsoluteImportWithProject(imp *ImportInfo, fromFile string) string {
+	moduleName := ma.moduleNameFromImport(imp)
+	if moduleName == "" {
+		return ""
+	}
+
+	// Check cache first
+	if resolved, exists := ma.resolvedModules[moduleName]; exists {
+		return resolved
+	}
+
+	// First, try to resolve within the current project directory
+	// Build possible module path relative to the file's directory
+	currentDir := filepath.Dir(fromFile)
+
+	// Try to find the module in the same directory or project root
+	searchPaths := []string{
+		currentDir,               // Current directory
+		ma.projectRoot,           // Project root
+		filepath.Dir(currentDir), // Parent directory
+	}
+
+	for _, searchPath := range searchPaths {
+		// Try to build module path from the import name
+		modulePath := filepath.Join(searchPath, strings.ReplaceAll(moduleName, ".", string(filepath.Separator)))
+
+		// Check if it's a Python file
+		if moduleFile := modulePath + ".py"; ma.fileExists(moduleFile) {
+			// Calculate the module name based on project structure
+			resolvedName := ma.filePathToModuleName(moduleFile)
+			if resolvedName != "" {
+				ma.resolvedModules[moduleName] = resolvedName
+				return resolvedName
+			}
+		}
+
+		// Check if it's a package (directory with __init__.py)
+		if initFile := filepath.Join(modulePath, "__init__.py"); ma.fileExists(initFile) {
+			resolvedName := ma.filePathToModuleName(initFile)
+			if resolvedName != "" {
+				// For __init__.py files, use the package name (without __init__)
+				resolvedName = strings.TrimSuffix(resolvedName, ".__init__")
+				ma.resolvedModules[moduleName] = resolvedName
+				return resolvedName
+			}
+		}
+	}
+
+	// Fall back to the original resolveAbsoluteImport logic
+	return ma.resolveAbsoluteImport(imp)
+}
+
+// moduleNameFromImport normalizes the module name from an import statement
+func (ma *ModuleAnalyzer) moduleNameFromImport(imp *ImportInfo) string {
+	if imp == nil {
+		return ""
+	}
+
+	moduleName := strings.TrimSpace(imp.Statement)
+
+	// Handle plain "import foo as bar" statements by stripping the prefix and alias
+	if strings.HasPrefix(moduleName, "import ") {
+		moduleName = strings.TrimSpace(strings.TrimPrefix(moduleName, "import "))
+		if idx := strings.Index(moduleName, " as "); idx != -1 {
+			moduleName = moduleName[:idx]
+		}
+	}
+
+	if moduleName == "" && len(imp.ImportedNames) > 0 {
+		moduleName = imp.ImportedNames[0]
+	}
+
+	return strings.TrimSpace(moduleName)
 }
 
 // Helper methods

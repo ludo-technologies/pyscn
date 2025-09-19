@@ -196,6 +196,28 @@ func runDepsCommand(cmd *cobra.Command, args []string) error {
 	formatter := service.NewSystemAnalysisFormatter()
 	configLoader := service.NewSystemAnalysisConfigurationLoader()
 
+	// Load configuration from file if specified
+	var finalRequest *domain.SystemAnalysisRequest
+	if depsConfigPath != "" {
+		// Load config from file
+		configRequest, err := configLoader.LoadConfig(depsConfigPath)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+		if configRequest == nil {
+			configRequest = configLoader.LoadDefaultConfig()
+		}
+		// Merge CLI flags with configuration
+		finalRequest = configLoader.MergeConfig(configRequest, &request)
+	} else if depsStrict {
+		// Strict mode but no config path specified, use default config
+		configRequest := configLoader.LoadDefaultConfig()
+		// Merge CLI flags with configuration
+		finalRequest = configLoader.MergeConfig(configRequest, &request)
+	} else {
+		finalRequest = &request
+	}
+
 	// Create use case
 	systemUseCase, err := app.NewSystemAnalysisUseCaseBuilder().
 		WithService(systemService).
@@ -209,7 +231,7 @@ func runDepsCommand(cmd *cobra.Command, args []string) error {
 
 	// Execute analysis
 	ctx := cmd.Context()
-	if err := systemUseCase.Execute(ctx, request); err != nil {
+	if err := systemUseCase.Execute(ctx, *finalRequest); err != nil {
 		return fmt.Errorf("system analysis failed: %w", err)
 	}
 
