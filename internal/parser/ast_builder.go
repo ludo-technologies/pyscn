@@ -1110,35 +1110,70 @@ func (b *ASTBuilder) buildGeneratorExp(tsNode *sitter.Node) *Node {
 
 // buildComprehension extracts comprehension parts
 func (b *ASTBuilder) buildComprehension(tsNode *sitter.Node, node *Node) {
-	if body := b.getChildByFieldName(tsNode, "body"); body != nil {
-		node.Value = b.buildNode(body)
+	// Extract the body (the expression being generated)
+	childCount := int(tsNode.ChildCount())
+	if childCount > 0 {
+		firstChild := tsNode.Child(0)
+		// Skip opening bracket/brace
+		if firstChild != nil && firstChild.Type() != "[" && firstChild.Type() != "{" && firstChild.Type() != "(" {
+			node.Value = b.buildNode(firstChild)
+		} else if childCount > 1 {
+			// Body is likely the second child after opening bracket
+			bodyChild := tsNode.Child(1)
+			if bodyChild != nil && bodyChild.Type() != "for_in_clause" {
+				node.Value = b.buildNode(bodyChild)
+			}
+		}
 	}
 
-	childCount := int(tsNode.ChildCount())
+	// Process for_in_clauses and if_clauses
+	var currentComp *Node
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
-		if child != nil && child.Type() == "for_in_clause" {
+		if child == nil {
+			continue
+		}
+
+		if child.Type() == "for_in_clause" {
+			// Create new comprehension node for each for clause
 			comp := NewNode(NodeComprehension)
 
-			if left := b.getChildByFieldName(child, "left"); left != nil {
-				comp.Targets = []*Node{b.buildNode(left)}
-			}
-
-			if right := b.getChildByFieldName(child, "right"); right != nil {
-				comp.Iter = b.buildNode(right)
-			}
-
-			// Look for if clauses
+			// Extract target variable(s)
 			for j := 0; j < int(child.ChildCount()); j++ {
-				grandChild := child.Child(j)
-				if grandChild != nil && grandChild.Type() == "if_clause" {
-					if condition := b.getChildByFieldName(grandChild, "condition"); condition != nil {
-						comp.Test = b.buildNode(condition)
+				subChild := child.Child(j)
+				if subChild != nil && subChild.Type() == "identifier" {
+					// First identifier after "for" is the target
+					comp.Targets = []*Node{b.buildNode(subChild)}
+					break
+				}
+			}
+
+			// Extract iterator expression (after "in")
+			foundIn := false
+			for j := 0; j < int(child.ChildCount()); j++ {
+				subChild := child.Child(j)
+				if subChild != nil {
+					if subChild.Type() == "in" {
+						foundIn = true
+					} else if foundIn && subChild.Type() != "identifier" {
+						comp.Iter = b.buildNode(subChild)
+						break
 					}
 				}
 			}
 
 			node.AddChild(comp)
+			currentComp = comp
+		} else if child.Type() == "if_clause" && currentComp != nil {
+			// if_clause follows the for_in_clause it applies to
+			// Extract the condition expression
+			for j := 0; j < int(child.ChildCount()); j++ {
+				subChild := child.Child(j)
+				if subChild != nil && subChild.Type() != "if" {
+					currentComp.Test = b.buildNode(subChild)
+					break
+				}
+			}
 		}
 	}
 }

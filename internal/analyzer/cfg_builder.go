@@ -328,11 +328,37 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 		b.currentBlock.AddStatement(stmt)
 
 	case parser.NodeAssign, parser.NodeAugAssign, parser.NodeAnnAssign:
-		// Assignment statements
+		// Check if the assignment value is a comprehension
+		if stmt.Value != nil {
+			if valNode, ok := stmt.Value.(*parser.Node); ok {
+				if valNode.Type == parser.NodeListComp || valNode.Type == parser.NodeDictComp ||
+				   valNode.Type == parser.NodeSetComp || valNode.Type == parser.NodeGeneratorExp {
+					// Process the comprehension
+					b.processComprehension(valNode)
+					// Add the assignment statement after comprehension processing
+					b.currentBlock.AddStatement(stmt)
+					return
+				}
+			}
+		}
+		// Regular assignment - just add to current block
 		b.currentBlock.AddStatement(stmt)
 
 	case parser.NodeExpr:
-		// Expression statements
+		// Check if the expression is a comprehension
+		if stmt.Value != nil {
+			if valNode, ok := stmt.Value.(*parser.Node); ok {
+				if valNode.Type == parser.NodeListComp || valNode.Type == parser.NodeDictComp ||
+				   valNode.Type == parser.NodeSetComp || valNode.Type == parser.NodeGeneratorExp {
+					// Process the comprehension
+					b.processComprehension(valNode)
+					// Add the expression statement after comprehension processing
+					b.currentBlock.AddStatement(stmt)
+					return
+				}
+			}
+		}
+		// Regular expression statement
 		b.currentBlock.AddStatement(stmt)
 
 	case parser.NodeImport, parser.NodeImportFrom:
@@ -399,6 +425,10 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 	case parser.NodeYield, parser.NodeYieldFrom:
 		// Handle yield expressions - treat as expression (potential suspend point)
 		b.currentBlock.AddStatement(stmt)
+
+	case parser.NodeListComp, parser.NodeDictComp, parser.NodeSetComp, parser.NodeGeneratorExp:
+		// Handle comprehensions as complex expressions that have internal control flow
+		b.processComprehension(stmt)
 
 	default:
 		// For other statements, just add them to current block
@@ -997,6 +1027,104 @@ func (b *CFGBuilder) processMatchStatement(stmt *parser.Node) {
 
 	// Continue with merge block
 	b.currentBlock = mergeBlock
+}
+
+// processComprehension handles list/dict/set comprehensions and generator expressions
+func (b *CFGBuilder) processComprehension(node *parser.Node) {
+	// Comprehensions are modeled as implicit loops that build a result
+	// Structure: init -> loop_header -> [filter] -> body -> append -> loop_header
+	//                 \-> exit
+
+	// Create initialization block (creates result container)
+	initBlock := b.createBlock("comp_init")
+	b.cfg.ConnectBlocks(b.currentBlock, initBlock, EdgeNormal)
+
+	// Add the comprehension node to init block for result container creation
+	initBlock.AddStatement(node)
+
+	// Create exit block (returns completed result)
+	exitBlock := b.createBlock("comp_exit")
+
+	// Keep track of the current processing block
+	currentProcessBlock := initBlock
+
+	// Process each for_in_clause (comprehension child)
+	// Comprehensions can have multiple for clauses that nest
+	for _, child := range node.Children {
+		if child.Type == parser.NodeComprehension {
+			// Create loop header block for this iterator
+			headerBlock := b.createBlock("comp_header")
+			b.cfg.ConnectBlocks(currentProcessBlock, headerBlock, EdgeNormal)
+
+			// Add iterator evaluation to header
+			if child.Iter != nil {
+				headerBlock.AddStatement(child.Iter)
+			}
+
+			// Create body block for element processing
+			bodyBlock := b.createBlock("comp_body")
+
+			// Connect header to body (has more elements)
+			b.cfg.ConnectBlocks(headerBlock, bodyBlock, EdgeCondTrue)
+
+			// Check if there's a filter condition
+			if child.Test != nil {
+				// Create filter block
+				filterBlock := b.createBlock("comp_filter")
+				b.cfg.ConnectBlocks(bodyBlock, filterBlock, EdgeNormal)
+
+				// Add filter test
+				filterBlock.AddStatement(child.Test)
+
+				// Create append block for when filter passes
+				appendBlock := b.createBlock("comp_append")
+				b.cfg.ConnectBlocks(filterBlock, appendBlock, EdgeCondTrue)
+
+				// Filter false goes back to loop header (skip this element)
+				b.cfg.ConnectBlocks(filterBlock, headerBlock, EdgeCondFalse)
+
+				// Process element generation/transformation
+				if node.Value != nil {
+					if valueNode, ok := node.Value.(*parser.Node); ok {
+						appendBlock.AddStatement(valueNode)
+					}
+				}
+
+				// Loop back to header from append
+				b.cfg.ConnectBlocks(appendBlock, headerBlock, EdgeLoop)
+			} else {
+				// No filter - process element directly in body
+				if node.Value != nil {
+					if valueNode, ok := node.Value.(*parser.Node); ok {
+						bodyBlock.AddStatement(valueNode)
+					}
+				}
+
+				// Create append block
+				appendBlock := b.createBlock("comp_append")
+				b.cfg.ConnectBlocks(bodyBlock, appendBlock, EdgeNormal)
+
+				// Loop back to header
+				b.cfg.ConnectBlocks(appendBlock, headerBlock, EdgeLoop)
+			}
+
+			// When iterator is exhausted, exit this comprehension level
+			// For nested comprehensions, this continues to next level
+			currentProcessBlock = headerBlock
+		}
+	}
+
+	// Connect the last header block to exit when all iterators are exhausted
+	if currentProcessBlock != initBlock {
+		// Find the last header block and connect it to exit
+		b.cfg.ConnectBlocks(currentProcessBlock, exitBlock, EdgeCondFalse)
+	} else {
+		// No comprehension clauses found (shouldn't happen in valid code)
+		b.cfg.ConnectBlocks(initBlock, exitBlock, EdgeNormal)
+	}
+
+	// Continue with exit block
+	b.currentBlock = exitBlock
 }
 
 // createBlock creates a new basic block
