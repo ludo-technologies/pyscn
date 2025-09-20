@@ -19,11 +19,10 @@
 ## Quick Start
 
 ```bash
-# 1. Install
-pip install pyscn
-
-# 2. Run analysis
-pyscn analyze .
+# Run analysis without installation
+uvx pyscn analyze .
+# or
+pipx run pyscn analyze .
 ```
 
 ## Common Commands
@@ -73,12 +72,12 @@ directory = "reports"
 
 ## Installation
 
-### Recommended: pip or uv
-
 ```bash
-pip install pyscn
-# or
-uv add pyscn
+# Install with pipx (recommended)
+pipx install pyscn
+
+# Or run directly with uvx
+uvx pyscn
 ```
 
 <details>

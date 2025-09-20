@@ -159,8 +159,10 @@ Examples:
 
   # Skip dependency analysis
   pyscn analyze --skip-cbo src/`,
-		Args: cobra.MinimumNArgs(1),
-		RunE: c.runAnalyze,
+		Args:          cobra.MinimumNArgs(1),
+		SilenceUsage:  true,
+		SilenceErrors: false,
+		RunE:          c.runAnalyze,
 	}
 
 	// Output format flags
@@ -359,6 +361,15 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 		[]string{"test_*.py", "*_test.py"},
 	)
 	if err != nil {
+		// Check if it's a file not found error and provide cleaner message
+		if domainErr, ok := err.(domain.DomainError); ok && domainErr.Code == domain.ErrCodeFileNotFound {
+			// Extract just the path from the error message
+			for _, arg := range args {
+				if _, statErr := os.Stat(arg); os.IsNotExist(statErr) {
+					return fmt.Errorf("no such file or directory: %s", arg)
+				}
+			}
+		}
 		return fmt.Errorf("failed to collect Python files: %w", err)
 	}
 
