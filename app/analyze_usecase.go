@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"sync"
 	"time"
 
@@ -508,6 +509,13 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		}
 	}
 
-	// Calculate health score
-	summary.CalculateHealthScore()
+	// Calculate health score with error handling
+	if err := summary.CalculateHealthScore(); err != nil {
+		// Log warning
+		log.Printf("WARNING: Failed to calculate health score: %v", err)
+
+		// Fallback processing: calculate simple score
+		summary.HealthScore = summary.CalculateFallbackScore()
+		summary.Grade = domain.GetGradeFromScore(summary.HealthScore)
+	}
 }
