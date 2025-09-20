@@ -1,8 +1,56 @@
 package domain
 
 import (
+	"fmt"
 	"math"
 	"time"
+)
+
+// Health Score Calculation Constants
+const (
+	// Complexity thresholds and penalties
+	ComplexityThresholdHigh   = 20
+	ComplexityThresholdMedium = 10
+	ComplexityThresholdLow    = 5
+	ComplexityPenaltyHigh     = 20
+	ComplexityPenaltyMedium   = 12
+	ComplexityPenaltyLow      = 6
+
+	// Code duplication thresholds and penalties
+	DuplicationThresholdHigh   = 40.0
+	DuplicationThresholdMedium = 25.0
+	DuplicationThresholdLow    = 10.0
+	DuplicationPenaltyHigh     = 20
+	DuplicationPenaltyMedium   = 12
+	DuplicationPenaltyLow      = 6
+
+	// CBO coupling thresholds and penalties
+	CouplingRatioHigh   = 0.5
+	CouplingRatioMedium = 0.3
+	CouplingRatioLow    = 0.1
+	CouplingPenaltyHigh   = 16
+	CouplingPenaltyMedium = 10
+	CouplingPenaltyLow    = 5
+
+	// Maximum penalties
+	MaxDeadCodePenalty = 20
+	MaxCriticalPenalty = 10
+	MaxCyclesPenalty   = 8
+	MaxDepthPenalty    = 2
+	MaxArchPenalty     = 8
+	MaxMSDPenalty      = 2
+
+	// Grade thresholds
+	GradeAThreshold = 85
+	GradeBThreshold = 70
+	GradeCThreshold = 55
+	GradeDThreshold = 40
+
+	// Other constants
+	MinimumScore       = 10
+	HealthyThreshold   = 70
+	FallbackComplexityThreshold = 10
+	FallbackPenalty    = 5
 )
 
 // AnalyzeResponse represents the combined results of all analyses
@@ -67,8 +115,54 @@ type AnalyzeSummary struct {
 	Grade       string `json:"grade" yaml:"grade"` // A, B, C, D, F
 }
 
+// Validate checks if the summary contains valid values
+func (s *AnalyzeSummary) Validate() error {
+	// Basic range checks
+	if s.AverageComplexity < 0 {
+		return fmt.Errorf("AverageComplexity cannot be negative: %f", s.AverageComplexity)
+	}
+
+	if s.CodeDuplication < 0 || s.CodeDuplication > 100 {
+		return fmt.Errorf("CodeDuplication must be 0-100: %f", s.CodeDuplication)
+	}
+
+	// Architecture compliance check (when enabled)
+	if s.ArchEnabled {
+		if s.ArchCompliance < 0 || s.ArchCompliance > 1 {
+			return fmt.Errorf("ArchCompliance must be 0-1, got %f", s.ArchCompliance)
+		}
+	}
+
+	// Dependency metrics check (when enabled)
+	if s.DepsEnabled {
+		if s.DepsMainSequenceDeviation < 0 || s.DepsMainSequenceDeviation > 1 {
+			return fmt.Errorf("DepsMainSequenceDeviation must be 0-1, got %f", s.DepsMainSequenceDeviation)
+		}
+
+		if s.DepsTotalModules > 0 && s.DepsModulesInCycles > s.DepsTotalModules {
+			return fmt.Errorf("DepsModulesInCycles (%d) cannot exceed DepsTotalModules (%d)",
+				s.DepsModulesInCycles, s.DepsTotalModules)
+		}
+	}
+
+	// CBO checks
+	if s.CBOClasses > 0 && s.HighCouplingClasses > s.CBOClasses {
+		return fmt.Errorf("HighCouplingClasses (%d) cannot exceed CBOClasses (%d)",
+			s.HighCouplingClasses, s.CBOClasses)
+	}
+
+	return nil
+}
+
 // CalculateHealthScore calculates an overall health score based on analysis results
-func (s *AnalyzeSummary) CalculateHealthScore() {
+func (s *AnalyzeSummary) CalculateHealthScore() error {
+	// Validate input values first
+	if err := s.Validate(); err != nil {
+		// Set default values on error
+		s.HealthScore = 0
+		s.Grade = "N/A"
+		return fmt.Errorf("invalid summary data: %w", err)
+	}
 	score := 100
 
 	// Project size normalization (affects dead code penalties)
@@ -77,47 +171,47 @@ func (s *AnalyzeSummary) CalculateHealthScore() {
 		normalizationFactor = 1.0 + math.Log10(float64(s.TotalFiles)/10.0)
 	}
 
-	// Complexity penalty (max 20)
+	// Complexity penalty
 	switch {
-	case s.AverageComplexity > 20:
-		score -= 20
-	case s.AverageComplexity > 10:
-		score -= 12
-	case s.AverageComplexity > 5:
-		score -= 6
+	case s.AverageComplexity > float64(ComplexityThresholdHigh):
+		score -= ComplexityPenaltyHigh
+	case s.AverageComplexity > float64(ComplexityThresholdMedium):
+		score -= ComplexityPenaltyMedium
+	case s.AverageComplexity > float64(ComplexityThresholdLow):
+		score -= ComplexityPenaltyLow
 	}
 
-	// Dead code penalty (max 20, normalized)
+	// Dead code penalty (normalized)
 	if s.DeadCodeCount > 0 || s.CriticalDeadCode > 0 {
-		base := int(math.Min(20, float64(s.DeadCodeCount)/normalizationFactor))
-		critical := int(math.Min(10, float64(3*s.CriticalDeadCode)/normalizationFactor))
+		base := int(math.Min(float64(MaxDeadCodePenalty), float64(s.DeadCodeCount)/normalizationFactor))
+		critical := int(math.Min(float64(MaxCriticalPenalty), float64(3*s.CriticalDeadCode)/normalizationFactor))
 		penalty := base + critical
-		if penalty > 20 {
-			penalty = 20
+		if penalty > MaxDeadCodePenalty {
+			penalty = MaxDeadCodePenalty
 		}
 		score -= penalty
 	}
 
-	// Clone penalty (max 20)
+	// Clone penalty
 	switch {
-	case s.CodeDuplication > 40:
-		score -= 20
-	case s.CodeDuplication > 25:
-		score -= 12
-	case s.CodeDuplication > 10:
-		score -= 6
+	case s.CodeDuplication > DuplicationThresholdHigh:
+		score -= DuplicationPenaltyHigh
+	case s.CodeDuplication > DuplicationThresholdMedium:
+		score -= DuplicationPenaltyMedium
+	case s.CodeDuplication > DuplicationThresholdLow:
+		score -= DuplicationPenaltyLow
 	}
 
-	// CBO penalty (max 20) based on ratio of high-coupling classes
+	// CBO penalty based on ratio of high-coupling classes
 	if s.CBOClasses > 0 {
 		ratio := float64(s.HighCouplingClasses) / float64(s.CBOClasses)
 		switch {
-		case ratio > 0.5:
-			score -= 16
-		case ratio > 0.3:
-			score -= 10
-		case ratio > 0.1:
-			score -= 5
+		case ratio > CouplingRatioHigh:
+			score -= CouplingPenaltyHigh
+		case ratio > CouplingRatioMedium:
+			score -= CouplingPenaltyMedium
+		case ratio > CouplingRatioLow:
+			score -= CouplingPenaltyLow
 		}
 	}
 
@@ -132,7 +226,7 @@ func (s *AnalyzeSummary) CalculateHealthScore() {
 			if ratio > 1 {
 				ratio = 1
 			}
-			score -= int(math.Round(8 * ratio))
+			score -= int(math.Round(float64(MaxCyclesPenalty) * ratio))
 		}
 
 		// Depth penalty (max 2): excess over expected depth ~ O(log N)
@@ -142,8 +236,8 @@ func (s *AnalyzeSummary) CalculateHealthScore() {
 			if excess < 0 {
 				excess = 0
 			}
-			if excess > 2 {
-				excess = 2
+			if excess > MaxDepthPenalty {
+				excess = MaxDepthPenalty
 			}
 			score -= excess
 		}
@@ -157,7 +251,7 @@ func (s *AnalyzeSummary) CalculateHealthScore() {
 			if msd > 1 {
 				msd = 1
 			}
-			score -= int(math.Round(msd * 2))
+			score -= int(math.Round(msd * float64(MaxMSDPenalty)))
 		}
 	}
 
@@ -170,33 +264,78 @@ func (s *AnalyzeSummary) CalculateHealthScore() {
 		if comp > 1 {
 			comp = 1
 		}
-		score -= int(math.Round(8 * (1 - comp)))
+		score -= int(math.Round(float64(MaxArchPenalty) * (1 - comp)))
 	}
 
 	// Minimum score floor
-	if score < 10 {
-		score = 10
+	if score < MinimumScore {
+		score = MinimumScore
 	}
 	s.HealthScore = score
 
 	// Grade mapping
 	switch {
-	case score >= 85:
+	case score >= GradeAThreshold:
 		s.Grade = "A"
-	case score >= 70:
+	case score >= GradeBThreshold:
 		s.Grade = "B"
-	case score >= 55:
+	case score >= GradeCThreshold:
 		s.Grade = "C"
-	case score >= 40:
+	case score >= GradeDThreshold:
 		s.Grade = "D"
 	default:
 		s.Grade = "F"
+	}
+
+	return nil
+}
+
+// CalculateFallbackScore provides a simple fallback health score calculation
+// Used when validation fails to provide a basic score based on available metrics
+func (s *AnalyzeSummary) CalculateFallbackScore() int {
+	score := 100
+
+	// Complexity penalty
+	if s.AverageComplexity > float64(FallbackComplexityThreshold) {
+		score -= FallbackComplexityThreshold
+	}
+
+	// Dead code penalty
+	if s.DeadCodeCount > 0 {
+		score -= FallbackPenalty
+	}
+
+	// High complexity penalty
+	if s.HighComplexityCount > 0 {
+		score -= FallbackPenalty
+	}
+
+	if score < MinimumScore {
+		score = MinimumScore
+	}
+
+	return score
+}
+
+// GetGradeFromScore maps a health score to a letter grade
+func GetGradeFromScore(score int) string {
+	switch {
+	case score >= GradeAThreshold:
+		return "A"
+	case score >= GradeBThreshold:
+		return "B"
+	case score >= GradeCThreshold:
+		return "C"
+	case score >= GradeDThreshold:
+		return "D"
+	default:
+		return "F"
 	}
 }
 
 // IsHealthy returns true if the codebase is considered healthy
 func (s *AnalyzeSummary) IsHealthy() bool {
-	return s.HealthScore >= 70
+	return s.HealthScore >= HealthyThreshold
 }
 
 // HasIssues returns true if any issues were found

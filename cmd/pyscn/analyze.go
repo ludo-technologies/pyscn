@@ -1320,8 +1320,20 @@ func (c *AnalyzeCommand) generateUnifiedReport(cmd *cobra.Command, result *Analy
 		}
 	}
 
-	// Calculate health score
-	summary.CalculateHealthScore()
+	// Calculate health score with error handling
+	if err := summary.CalculateHealthScore(); err != nil {
+		// CLI warning display
+		fmt.Fprintf(os.Stderr, "⚠️  Warning: Health score calculation issue: %v\n", err)
+
+		// Debug mode detailed output
+		if c.verbose {
+			fmt.Fprintf(os.Stderr, "Debug: Summary data: %+v\n", summary)
+		}
+
+		// Simple score for continuation
+		summary.HealthScore = summary.CalculateFallbackScore()
+		summary.Grade = domain.GetGradeFromScore(summary.HealthScore)
+	}
 
 	// Create formatter
 	formatter := service.NewAnalyzeFormatter()
