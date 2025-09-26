@@ -151,7 +151,7 @@ func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req
 		TotalDependencies:    graph.TotalEdges,
 		RootModules:          graph.GetRootModules(),
 		LeafModules:          graph.GetLeafModules(),
-		ModuleMetrics:        make(map[string]*domain.ModuleDependencyMetrics), // Mock for now
+		ModuleMetrics:        s.convertModuleMetrics(graph),
 		DependencyMatrix:     matrix,
 		CircularDependencies: s.convertCircularResults(circularResult),
 		CouplingAnalysis:     s.convertCouplingResults(couplingResults),
@@ -1304,4 +1304,142 @@ func minSystemAnalysis(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// convertModuleMetrics converts analyzer.ModuleMetrics to domain.ModuleDependencyMetrics
+func (s *SystemAnalysisServiceImpl) convertModuleMetrics(graph *analyzer.DependencyGraph) map[string]*domain.ModuleDependencyMetrics {
+	result := make(map[string]*domain.ModuleDependencyMetrics)
+
+	// If ModuleMetrics is empty but we have nodes, populate metrics from nodes directly
+	if len(graph.ModuleMetrics) == 0 && len(graph.Nodes) > 0 {
+		// Create basic metrics from node information
+		for moduleName, node := range graph.Nodes {
+			if node == nil {
+				continue
+			}
+
+			// Convert dependencies and dependents from map to slice
+			directDeps := make([]string, 0, len(node.Dependencies))
+			for dep := range node.Dependencies {
+				directDeps = append(directDeps, dep)
+			}
+
+			dependents := make([]string, 0, len(node.Dependents))
+			for dep := range node.Dependents {
+				dependents = append(dependents, dep)
+			}
+
+			// Calculate basic coupling metrics
+			ca := node.InDegree  // AfferentCoupling
+			ce := node.OutDegree // EfferentCoupling
+			instability := 0.0
+			if ca+ce > 0 {
+				instability = float64(ce) / float64(ca+ce)
+			}
+
+			domainMetrics := &domain.ModuleDependencyMetrics{
+				// Basic information
+				ModuleName: moduleName,
+				Package:    node.Package,
+				FilePath:   node.FilePath,
+				IsPackage:  node.IsPackage,
+
+				// Size metrics
+				LinesOfCode:     node.LineCount,
+				FunctionCount:   node.FunctionCount,
+				ClassCount:      node.ClassCount,
+				PublicInterface: []string{},
+
+				// Coupling metrics (Robert Martin's metrics)
+				AfferentCoupling: ca,
+				EfferentCoupling: ce,
+				Instability:      instability,
+				Abstractness:     0.0, // Would need proper analysis
+				Distance:         0.0, // Would need calculation
+
+				// Quality metrics
+				Maintainability: 0.0,
+				TechnicalDebt:   0.0,
+				RiskLevel:       domain.RiskLevelLow,
+
+				// Dependencies
+				DirectDependencies:     directDeps,
+				TransitiveDependencies: []string{},
+				Dependents:             dependents,
+			}
+
+			result[moduleName] = domainMetrics
+		}
+		return result
+	}
+
+	for moduleName, metrics := range graph.ModuleMetrics {
+		node := graph.Nodes[moduleName]
+		if node == nil {
+			continue
+		}
+
+		// Convert dependencies and dependents from map to slice
+		directDeps := make([]string, 0, len(node.Dependencies))
+		for dep := range node.Dependencies {
+			directDeps = append(directDeps, dep)
+		}
+
+		dependents := make([]string, 0, len(node.Dependents))
+		for dep := range node.Dependents {
+			dependents = append(dependents, dep)
+		}
+
+		// Determine risk level based on metrics
+		riskLevel := domain.RiskLevelLow
+		if metrics.Instability > 0.8 || metrics.Distance > 0.5 {
+			riskLevel = domain.RiskLevelHigh
+		} else if metrics.Instability > 0.6 || metrics.Distance > 0.3 {
+			riskLevel = domain.RiskLevelMedium
+		}
+
+		// Extract public interface (simplified - would need proper AST analysis for full accuracy)
+		publicInterface := make([]string, 0)
+		if node.FunctionCount > 0 || node.ClassCount > 0 {
+			// In a real implementation, we'd extract actual function/class names
+			// For now, we'll just indicate the counts
+			publicInterface = append(publicInterface, fmt.Sprintf("%d functions", node.FunctionCount))
+			publicInterface = append(publicInterface, fmt.Sprintf("%d classes", node.ClassCount))
+		}
+
+		domainMetrics := &domain.ModuleDependencyMetrics{
+			// Basic information
+			ModuleName: moduleName,
+			Package:    node.Package,
+			FilePath:   node.FilePath,
+			IsPackage:  node.IsPackage,
+
+			// Size metrics
+			LinesOfCode:     metrics.LinesOfCode,
+			FunctionCount:   node.FunctionCount,
+			ClassCount:      node.ClassCount,
+			PublicInterface: publicInterface,
+
+			// Coupling metrics (Robert Martin's metrics)
+			AfferentCoupling: metrics.AfferentCoupling,
+			EfferentCoupling: metrics.EfferentCoupling,
+			Instability:      metrics.Instability,
+			Abstractness:     metrics.Abstractness,
+			Distance:         metrics.Distance,
+
+			// Quality metrics
+			Maintainability: metrics.Maintainability,
+			TechnicalDebt:   metrics.TechnicalDebt,
+			RiskLevel:       riskLevel,
+
+			// Dependencies
+			DirectDependencies:     directDeps,
+			TransitiveDependencies: []string{}, // Would need graph traversal for full transitive deps
+			Dependents:             dependents,
+		}
+
+		result[moduleName] = domainMetrics
+	}
+
+	return result
 }
