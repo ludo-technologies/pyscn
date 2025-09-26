@@ -1451,6 +1451,13 @@ func (s *SystemAnalysisServiceImpl) extractModuleMetrics(graph *analyzer.Depende
 			ModuleName: moduleName,
 			FilePath:   node.FilePath,
 			IsPackage:  node.IsPackage,
+			Package:    node.Package,
+
+			// Size metrics from node
+			LinesOfCode:     node.LineCount,
+			FunctionCount:   node.FunctionCount,
+			ClassCount:      node.ClassCount,
+			PublicInterface: node.PublicNames,
 
 			// Dependencies
 			DirectDependencies:     s.getDirectDependencies(moduleName, node),
