@@ -332,7 +332,7 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 		if stmt.Value != nil {
 			if valNode, ok := stmt.Value.(*parser.Node); ok {
 				if valNode.Type == parser.NodeListComp || valNode.Type == parser.NodeDictComp ||
-				   valNode.Type == parser.NodeSetComp || valNode.Type == parser.NodeGeneratorExp {
+					valNode.Type == parser.NodeSetComp || valNode.Type == parser.NodeGeneratorExp {
 					// Process the comprehension
 					b.processComprehension(valNode)
 					// Add the assignment statement after comprehension processing
@@ -349,7 +349,7 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 		if stmt.Value != nil {
 			if valNode, ok := stmt.Value.(*parser.Node); ok {
 				if valNode.Type == parser.NodeListComp || valNode.Type == parser.NodeDictComp ||
-				   valNode.Type == parser.NodeSetComp || valNode.Type == parser.NodeGeneratorExp {
+					valNode.Type == parser.NodeSetComp || valNode.Type == parser.NodeGeneratorExp {
 					// Process the comprehension
 					b.processComprehension(valNode)
 					// Add the expression statement after comprehension processing

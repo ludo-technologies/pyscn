@@ -70,11 +70,6 @@ func (f *SystemAnalysisFormatterImpl) formatText(response *domain.SystemAnalysis
 		f.writeArchitectureSection(&builder, response.ArchitectureAnalysis, utils)
 	}
 
-	// Quality section
-	if response.QualityMetrics != nil {
-		f.writeQualitySection(&builder, response.QualityMetrics, utils)
-	}
-
 	// Warnings section
 	if len(response.Warnings) > 0 {
 		builder.WriteString(utils.FormatWarningsSection(response.Warnings))
@@ -205,29 +200,6 @@ func (f *SystemAnalysisFormatterImpl) writeArchitectureSection(builder *strings.
 	builder.WriteString(utils.FormatSectionSeparator())
 }
 
-// writeQualitySection writes the quality metrics section
-func (f *SystemAnalysisFormatterImpl) writeQualitySection(builder *strings.Builder, quality *domain.QualityMetricsResult, utils *FormatUtils) {
-	builder.WriteString(utils.FormatSectionHeader("QUALITY METRICS"))
-
-	// Summary stats
-	stats := map[string]interface{}{
-		"Overall Quality":       fmt.Sprintf("%.1f", quality.OverallQuality),
-		"Maintainability Index": fmt.Sprintf("%.1f", quality.MaintainabilityIndex),
-		"Technical Debt":        fmt.Sprintf("%.1f hours", quality.TechnicalDebtTotal),
-		"System Instability":    fmt.Sprintf("%.3f", quality.SystemInstability),
-		"System Complexity":     fmt.Sprintf("%.1f", quality.SystemComplexity),
-	}
-	builder.WriteString(utils.FormatSummaryStats(stats))
-
-	// High quality modules
-	if len(quality.HighQualityModules) > 0 {
-		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "High Quality Modules",
-			strings.Join(quality.HighQualityModules[:min(5, len(quality.HighQualityModules))], ", ")))
-	}
-
-	builder.WriteString(utils.FormatSectionSeparator())
-}
-
 // formatJSON formats the response as JSON
 func (f *SystemAnalysisFormatterImpl) formatJSON(response *domain.SystemAnalysisResponse) (string, error) {
 	data, err := json.MarshalIndent(response, "", "  ")
@@ -281,15 +253,6 @@ func (f *SystemAnalysisFormatterImpl) formatCSV(response *domain.SystemAnalysisR
 		_ = writer.Write([]string{"Architecture", "Detected Rules", strconv.Itoa(response.ArchitectureAnalysis.TotalRules)})
 	}
 
-	// Quality metrics
-	if response.QualityMetrics != nil {
-		_ = writer.Write([]string{"Quality", "Overall Quality", fmt.Sprintf("%.1f", response.QualityMetrics.OverallQuality)})
-		_ = writer.Write([]string{"Quality", "Maintainability Index", fmt.Sprintf("%.1f", response.QualityMetrics.MaintainabilityIndex)})
-		_ = writer.Write([]string{"Quality", "Technical Debt Hours", fmt.Sprintf("%.1f", response.QualityMetrics.TechnicalDebtTotal)})
-		_ = writer.Write([]string{"Quality", "System Instability", fmt.Sprintf("%.3f", response.QualityMetrics.SystemInstability)})
-		_ = writer.Write([]string{"Quality", "System Complexity", fmt.Sprintf("%.1f", response.QualityMetrics.SystemComplexity)})
-	}
-
 	writer.Flush()
 	return builder.String(), nil
 }
@@ -319,9 +282,6 @@ func (f *SystemAnalysisFormatterImpl) formatHTML(response *domain.SystemAnalysis
 	if response.ArchitectureAnalysis != nil {
 		sectionCount++
 	}
-	if response.QualityMetrics != nil {
-		sectionCount++
-	}
 
 	// Use tabs if multiple sections, otherwise single page
 	if sectionCount > 1 {
@@ -335,10 +295,6 @@ func (f *SystemAnalysisFormatterImpl) formatHTML(response *domain.SystemAnalysis
 		}
 		if response.ArchitectureAnalysis != nil {
 			builder.WriteString(GenerateTabButton("architecture", "Architecture", activeTab))
-			activeTab = false
-		}
-		if response.QualityMetrics != nil {
-			builder.WriteString(GenerateTabButton("quality", "Quality", activeTab))
 		}
 
 		builder.WriteString(GenerateTabsMiddle())
@@ -355,12 +311,6 @@ func (f *SystemAnalysisFormatterImpl) formatHTML(response *domain.SystemAnalysis
 			var content strings.Builder
 			f.writeHTMLArchitectureContent(&content, response.ArchitectureAnalysis)
 			builder.WriteString(GenerateTabContent("architecture", activeTab, content.String()))
-			activeTab = false
-		}
-		if response.QualityMetrics != nil {
-			var content strings.Builder
-			f.writeHTMLQualityContent(&content, response.QualityMetrics)
-			builder.WriteString(GenerateTabContent("quality", activeTab, content.String()))
 		}
 
 		builder.WriteString(GenerateTabsEnd())
@@ -373,9 +323,6 @@ func (f *SystemAnalysisFormatterImpl) formatHTML(response *domain.SystemAnalysis
 		}
 		if response.ArchitectureAnalysis != nil {
 			f.writeHTMLArchitectureContent(&content, response.ArchitectureAnalysis)
-		}
-		if response.QualityMetrics != nil {
-			f.writeHTMLQualityContent(&content, response.QualityMetrics)
 		}
 		builder.WriteString(GenerateSinglePageContent(content.String()))
 	}
@@ -746,43 +693,6 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLArchitectureContent(builder *stri
 			builder.WriteString(`<li class="list-group-item">` + rec.Description + `</li>`)
 		}
 		builder.WriteString(`</ul>`)
-	}
-}
-
-func (f *SystemAnalysisFormatterImpl) writeHTMLQualityContent(builder *strings.Builder, quality *domain.QualityMetricsResult) {
-	builder.WriteString(`
-        <div class="section">
-            <h2>⚡ Quality Metrics</h2>
-            <div class="metric-grid">
-                <div class="metric-card">
-                    <div class="metric-value">` + fmt.Sprintf("%.1f", quality.OverallQuality) + `</div>
-                    <div class="metric-label">Overall Quality</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value">` + fmt.Sprintf("%.1f", quality.MaintainabilityIndex) + `</div>
-                    <div class="metric-label">Maintainability Index</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value">` + fmt.Sprintf("%.1f", quality.TechnicalDebtTotal) + `h</div>
-                    <div class="metric-label">Technical Debt</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value">` + fmt.Sprintf("%.3f", quality.SystemInstability) + `</div>
-                    <div class="metric-label">System Instability</div>
-                </div>
-            </div>`)
-
-	if len(quality.HighQualityModules) > 0 {
-		builder.WriteString(`
-            <h3>High Quality Modules</h3>
-            <div class="chart-container">`)
-		for i, module := range quality.HighQualityModules {
-			if i >= 10 { // Limit to 10 modules
-				break
-			}
-			builder.WriteString(`<div style="padding: 8px 0; border-bottom: 1px solid #e9ecef;">` + module + `</div>`)
-		}
-		builder.WriteString(`</div>`)
 	}
 }
 

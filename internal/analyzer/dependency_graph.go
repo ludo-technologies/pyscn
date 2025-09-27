@@ -94,9 +94,7 @@ type ModuleMetrics struct {
 	PublicInterface int // Number of public functions/classes
 
 	// Quality metrics
-	CyclomaticComplexity int     // Average complexity of functions
-	Maintainability      float64 // Maintainability index
-	TechnicalDebt        float64 // Estimated technical debt hours
+	CyclomaticComplexity int // Average complexity of functions
 }
 
 // SystemMetrics contains system-wide quality metrics
@@ -125,10 +123,8 @@ type SystemMetrics struct {
 	MaxDependencyDepth int     // Maximum dependency chain length
 	SystemComplexity   float64 // Overall system complexity score
 
-	// Maintainability
-	MaintainabilityIndex float64  // Composite maintainability score
-	TechnicalDebtTotal   float64  // Total estimated technical debt hours
-	RefactoringPriority  []string // Modules needing refactoring (highest priority first)
+	// Refactoring
+	RefactoringPriority []string // Modules needing refactoring (highest priority first)
 }
 
 // NewDependencyGraph creates a new dependency graph

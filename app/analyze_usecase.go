@@ -341,7 +341,6 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 					OutputWriter:        io.Discard,
 					AnalyzeDependencies: true,
 					AnalyzeArchitecture: true,
-					AnalyzeQuality:      true,
 					ConfigPath:          config.ConfigFile,
 				}
 				return uc.systemUseCase.AnalyzeAndReturn(ctx, request)

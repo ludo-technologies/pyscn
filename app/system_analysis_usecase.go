@@ -146,23 +146,6 @@ func (uc *SystemAnalysisUseCase) AnalyzeArchitectureOnly(ctx context.Context, re
 	return result, nil
 }
 
-// AnalyzeQualityOnly performs quality analysis only
-func (uc *SystemAnalysisUseCase) AnalyzeQualityOnly(ctx context.Context, req domain.SystemAnalysisRequest) (*domain.QualityMetricsResult, error) {
-	// Prepare for analysis
-	finalReq, err := uc.prepareAnalysis(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-
-	// Perform quality analysis only
-	result, err := uc.service.AnalyzeQuality(ctx, finalReq)
-	if err != nil {
-		return nil, domain.NewAnalysisError("quality analysis failed", err)
-	}
-
-	return result, nil
-}
-
 // validateRequest validates the analysis request
 func (uc *SystemAnalysisUseCase) validateRequest(req domain.SystemAnalysisRequest) error {
 	// Validate paths
@@ -213,7 +196,7 @@ func (uc *SystemAnalysisUseCase) validateThresholds(req domain.SystemAnalysisReq
 // validateAnalysisOptions validates analysis type options
 func (uc *SystemAnalysisUseCase) validateAnalysisOptions(req domain.SystemAnalysisRequest) error {
 	// At least one analysis type must be enabled
-	if !req.AnalyzeDependencies && !req.AnalyzeArchitecture && !req.AnalyzeQuality {
+	if !req.AnalyzeDependencies && !req.AnalyzeArchitecture {
 		return fmt.Errorf("at least one analysis type must be enabled")
 	}
 
@@ -407,7 +390,6 @@ func (n *noOpSystemAnalysisConfigLoader) MergeConfig(base *domain.SystemAnalysis
 	merged.NoOpen = override.NoOpen
 	merged.AnalyzeDependencies = override.AnalyzeDependencies
 	merged.AnalyzeArchitecture = override.AnalyzeArchitecture
-	merged.AnalyzeQuality = override.AnalyzeQuality
 	merged.IncludeStdLib = override.IncludeStdLib
 	merged.IncludeThirdParty = override.IncludeThirdParty
 	merged.FollowRelative = override.FollowRelative

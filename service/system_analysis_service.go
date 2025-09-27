@@ -59,18 +59,6 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 		}
 	}
 
-	// Analyze quality metrics if requested
-	var qualityResult *domain.QualityMetricsResult
-	if req.AnalyzeQuality {
-		result, err := s.AnalyzeQuality(ctx, req)
-		if err != nil {
-			errors = append(errors, fmt.Sprintf("Quality analysis failed: %v", err))
-		} else {
-			qualityResult = result
-			allResults = append(allResults, result)
-		}
-	}
-
 	// If all analyses failed, return an error
 	if len(allResults) == 0 {
 		return nil, fmt.Errorf("all requested analyses failed: %v", strings.Join(errors, "; "))
@@ -80,7 +68,6 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 	response := &domain.SystemAnalysisResponse{
 		DependencyAnalysis:   dependencyResult,
 		ArchitectureAnalysis: architectureResult,
-		QualityMetrics:       qualityResult,
 		GeneratedAt:          time.Now(),
 		Duration:             time.Since(startTime).Milliseconds(),
 		Version:              version.Version,
@@ -740,115 +727,7 @@ func (s *SystemAnalysisServiceImpl) toLayerViolations(vs []domain.ArchitectureVi
 	return out
 }
 
-// AnalyzeQuality performs quality metrics analysis only
-func (s *SystemAnalysisServiceImpl) AnalyzeQuality(ctx context.Context, req domain.SystemAnalysisRequest) (*domain.QualityMetricsResult, error) {
-	// Build dependency graph for quality analysis
-	graph := analyzer.NewDependencyGraph("")
-
-	// Basic file processing for quality metrics
-	for _, filePath := range req.Paths {
-		select {
-		case <-ctx.Done():
-			return nil, fmt.Errorf("quality analysis cancelled: %w", ctx.Err())
-		default:
-		}
-
-		content, err := os.ReadFile(filePath)
-		if err != nil {
-			continue
-		}
-
-		parseResult, err := s.parser.Parse(ctx, content)
-		if err != nil {
-			continue
-		}
-
-		moduleName := s.getModuleNameFromPath(filePath)
-		graph.AddModule(moduleName, filePath)
-
-		// Extract basic metrics (mock implementation)
-		dependencies := s.extractImportsFromAST(parseResult.AST, filePath)
-		for _, dep := range dependencies {
-			targetModule := s.extractModuleNameFromImport(dep)
-			if targetModule != "" && targetModule != moduleName {
-				graph.AddDependency(moduleName, targetModule, analyzer.DependencyEdgeImport, dep)
-			}
-		}
-	}
-
-	// Calculate quality metrics
-	metricsCalculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-	err := metricsCalculator.CalculateMetrics()
-	if err != nil {
-		return nil, err
-	}
-	systemMetrics := s.extractSystemMetrics(graph)
-
-	// Classify modules by quality
-	highQuality, moderateQuality, lowQuality, critical := s.classifyModulesByQuality(graph)
-
-	// Generate refactoring targets
-	refactoringTargets := s.generateRefactoringTargets(graph, systemMetrics)
-
-	// Identify hot spots (modules with high complexity and coupling)
-	hotSpots := s.identifyHotSpots(graph)
-
-	result := &domain.QualityMetricsResult{
-		OverallQuality:         s.calculateOverallQuality(systemMetrics),
-		MaintainabilityIndex:   systemMetrics.MaintainabilityIndex,
-		TechnicalDebtTotal:     systemMetrics.TechnicalDebtTotal,
-		ModularityIndex:        systemMetrics.ModularityIndex,
-		SystemInstability:      systemMetrics.AverageInstability,
-		SystemAbstractness:     systemMetrics.AverageAbstractness,
-		MainSequenceDistance:   systemMetrics.MainSequenceDeviation,
-		SystemComplexity:       systemMetrics.SystemComplexity,
-		MaxDependencyDepth:     systemMetrics.MaxDependencyDepth,
-		AverageFanIn:           systemMetrics.AverageFanIn,
-		AverageFanOut:          systemMetrics.AverageFanOut,
-		HighQualityModules:     highQuality,
-		ModerateQualityModules: moderateQuality,
-		LowQualityModules:      lowQuality,
-		CriticalModules:        critical,
-		QualityTrends:          make(map[string]float64), // Could be enhanced with historical data
-		HotSpots:               hotSpots,
-		RefactoringTargets:     refactoringTargets,
-	}
-
-	return result, nil
-}
-
 // Helper methods
-
-// getModuleNameFromPath is deprecated - use ModuleAnalyzer.filePathToModuleName instead
-// Keeping for backward compatibility during transition
-func (s *SystemAnalysisServiceImpl) getModuleNameFromPath(filePath string) string {
-	// For now, just use the simple approach without "app" hardcoding
-	// Get relative path from current directory
-	relPath := filePath
-	if absPath, err := filepath.Abs(filePath); err == nil {
-		if cwd, err := os.Getwd(); err == nil {
-			if rel, err := filepath.Rel(cwd, absPath); err == nil {
-				relPath = rel
-			}
-		}
-	}
-
-	// Remove .py extension
-	relPath = strings.TrimSuffix(relPath, ".py")
-
-	// Handle __init__.py files
-	if strings.HasSuffix(relPath, "__init__") {
-		relPath = filepath.Dir(relPath)
-	}
-
-	// Convert path separators to dots
-	moduleName := strings.ReplaceAll(relPath, string(filepath.Separator), ".")
-
-	// Clean up leading/trailing dots
-	moduleName = strings.Trim(moduleName, ".")
-
-	return moduleName
-}
 
 // findProjectRoot finds the common parent directory of all given paths
 func (s *SystemAnalysisServiceImpl) findProjectRoot(paths []string) string {
@@ -1105,30 +984,6 @@ func (s *SystemAnalysisServiceImpl) convertCircularResults(result *analyzer.Circ
 
 // Architecture analysis helper methods (simplified)
 
-// Quality analysis helper methods
-
-func (s *SystemAnalysisServiceImpl) calculateOverallQuality(metrics *analyzer.SystemMetrics) float64 {
-	// Simple quality calculation (0-100)
-	quality := 70.0 // Base quality
-
-	// Adjust based on various factors
-	if metrics.AverageInstability > 0.7 {
-		quality -= 15
-	}
-	if metrics.CyclicDependencies > 0 {
-		quality -= 20
-	}
-	if metrics.MainSequenceDeviation > 0.4 {
-		quality -= 10
-	}
-
-	if quality < 0 {
-		quality = 0
-	}
-
-	return quality
-}
-
 // Removed legacy helpers for ad-hoc layer counting.
 
 // Removed helper methods that used undefined domain types
@@ -1180,7 +1035,6 @@ func (s *SystemAnalysisServiceImpl) extractCouplingResult(graph *analyzer.Depend
 		// Calculate averages from module metrics
 		var totalFanIn, totalFanOut float64
 		var totalInstability, totalAbstractness, totalDistance float64
-		var totalMaintainability, totalTechnicalDebt float64
 		var refactoringCandidates []string
 
 		if graph.ModuleMetrics != nil {
@@ -1190,11 +1044,9 @@ func (s *SystemAnalysisServiceImpl) extractCouplingResult(graph *analyzer.Depend
 				totalInstability += moduleMetrics.Instability
 				totalAbstractness += moduleMetrics.Abstractness
 				totalDistance += moduleMetrics.Distance
-				totalMaintainability += moduleMetrics.Maintainability
-				totalTechnicalDebt += moduleMetrics.TechnicalDebt
 
-				// Identify refactoring priorities
-				if moduleMetrics.TechnicalDebt > 5 || moduleMetrics.Maintainability < 50 || moduleMetrics.Distance > 0.5 {
+				// Identify refactoring priorities based on distance
+				if moduleMetrics.Distance > 0.5 {
 					refactoringCandidates = append(refactoringCandidates, moduleName)
 				}
 			}
@@ -1206,8 +1058,6 @@ func (s *SystemAnalysisServiceImpl) extractCouplingResult(graph *analyzer.Depend
 		metrics.AverageInstability = totalInstability / moduleCount
 		metrics.AverageAbstractness = totalAbstractness / moduleCount
 		metrics.MainSequenceDeviation = totalDistance / moduleCount
-		metrics.MaintainabilityIndex = totalMaintainability / moduleCount
-		metrics.TechnicalDebtTotal = totalTechnicalDebt
 		metrics.SystemComplexity = float64(graph.TotalModules * 2)
 		metrics.MaxDependencyDepth = s.calculateMaxDepth(graph)
 		metrics.RefactoringPriority = refactoringCandidates
@@ -1222,210 +1072,6 @@ func (s *SystemAnalysisServiceImpl) extractCouplingResult(graph *analyzer.Depend
 	}
 
 	return metrics
-}
-
-// extractSystemMetrics extracts system-wide metrics from the dependency graph
-func (s *SystemAnalysisServiceImpl) extractSystemMetrics(graph *analyzer.DependencyGraph) *analyzer.SystemMetrics {
-	return s.extractCouplingResult(graph) // Same implementation for now
-}
-
-// extractImportsFromAST extracts import information from AST
-// TEMPORARY: Using regex-based extraction due to AST builder issues
-// extractImportsFromAST is deprecated - ModuleAnalyzer handles this internally
-// Keeping for backward compatibility during transition
-func (s *SystemAnalysisServiceImpl) extractImportsFromAST(ast *parser.Node, filePath string) []*analyzer.ImportInfo {
-	// Read the source file directly for regex-based parsing
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		// Fall back to empty imports if file can't be read
-		return []*analyzer.ImportInfo{}
-	}
-
-	return s.extractImportsWithRegex(string(content))
-}
-
-// NOTE: extractImportsWithRegex is deprecated - ModuleAnalyzer handles this internally
-// Keeping for backward compatibility during transition
-func (s *SystemAnalysisServiceImpl) extractImportsWithRegex(source string) []*analyzer.ImportInfo {
-	var imports []*analyzer.ImportInfo
-
-	// Regular expressions for different import patterns
-	// Match: import module [as alias]
-	importRe := regexp.MustCompile(`^\s*import\s+([\w\.]+)(?:\s+as\s+(\w+))?`)
-	// Match: from module import name [as alias], name2, ...
-	fromImportRe := regexp.MustCompile(`^\s*from\s+([\w\.]*?)\s+import\s+(.+)`)
-	// Match relative imports: from . import ..., from .. import ...
-	relativeImportRe := regexp.MustCompile(`^\s*from\s+(\.+)([\w\.]*)\s+import\s+(.+)`)
-
-	lines := strings.Split(source, "\n")
-	for lineNum, line := range lines {
-		line = strings.TrimSpace(line)
-
-		// Skip comments and empty lines
-		if strings.HasPrefix(line, "#") || line == "" {
-			continue
-		}
-
-		// Handle continuation lines (backslash at end)
-		if strings.HasSuffix(line, "\\") {
-			// Combine with next line(s)
-			for i := lineNum + 1; i < len(lines) && strings.HasSuffix(line, "\\"); i++ {
-				line = strings.TrimSuffix(line, "\\") + " " + strings.TrimSpace(lines[i])
-			}
-		}
-
-		// Handle parentheses for multi-line imports
-		if strings.Contains(line, "(") && !strings.Contains(line, ")") {
-			// Find closing parenthesis
-			for i := lineNum + 1; i < len(lines); i++ {
-				line += " " + strings.TrimSpace(lines[i])
-				if strings.Contains(lines[i], ")") {
-					break
-				}
-			}
-		}
-
-		// Check for relative imports first
-		if matches := relativeImportRe.FindStringSubmatch(line); matches != nil {
-			dots := matches[1]
-			moduleName := matches[2]
-			namesStr := matches[3]
-
-			// Parse imported names
-			names := s.parseImportNames(namesStr)
-
-			statement := fmt.Sprintf("from %s%s import %s", dots, moduleName, namesStr)
-
-			impInfo := &analyzer.ImportInfo{
-				Statement:     statement,
-				ImportedNames: names,
-				IsRelative:    true,
-				Level:         len(dots),
-				Line:          lineNum + 1,
-			}
-			imports = append(imports, impInfo)
-
-		} else if matches := fromImportRe.FindStringSubmatch(line); matches != nil {
-			// from module import names
-			moduleName := matches[1]
-			namesStr := matches[2]
-
-			// Parse imported names
-			names := s.parseImportNames(namesStr)
-
-			statement := fmt.Sprintf("from %s import %s", moduleName, namesStr)
-
-			impInfo := &analyzer.ImportInfo{
-				Statement:     statement,
-				ImportedNames: names,
-				IsRelative:    false,
-				Line:          lineNum + 1,
-			}
-			imports = append(imports, impInfo)
-
-		} else if matches := importRe.FindStringSubmatch(line); matches != nil {
-			// import module [as alias]
-			moduleName := matches[1]
-			alias := ""
-			if len(matches) > 2 {
-				alias = matches[2]
-			}
-
-			statement := fmt.Sprintf("import %s", moduleName)
-			if alias != "" {
-				statement = fmt.Sprintf("import %s as %s", moduleName, alias)
-			}
-
-			impInfo := &analyzer.ImportInfo{
-				Statement:     statement,
-				ImportedNames: []string{moduleName},
-				Alias:         alias,
-				IsRelative:    false,
-				Line:          lineNum + 1,
-			}
-			imports = append(imports, impInfo)
-		}
-	}
-
-	return imports
-}
-
-// parseImportNames parses comma-separated import names, handling aliases
-func (s *SystemAnalysisServiceImpl) parseImportNames(namesStr string) []string {
-	var names []string
-
-	// Remove parentheses if present
-	namesStr = strings.Trim(namesStr, "()")
-
-	// Handle wildcard import
-	if strings.TrimSpace(namesStr) == "*" {
-		return []string{"*"}
-	}
-
-	// Split by comma and process each name
-	parts := strings.Split(namesStr, ",")
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if part == "" {
-			continue
-		}
-
-		// Handle "name as alias" format
-		if strings.Contains(part, " as ") {
-			nameParts := strings.Split(part, " as ")
-			if len(nameParts) > 0 {
-				names = append(names, strings.TrimSpace(nameParts[0]))
-			}
-		} else {
-			names = append(names, part)
-		}
-	}
-
-	return names
-}
-
-// extractModuleNameFromImport extracts the module name from import info
-func (s *SystemAnalysisServiceImpl) extractModuleNameFromImport(imp *analyzer.ImportInfo) string {
-	if imp == nil {
-		return ""
-	}
-
-	// For relative imports, we can't determine the absolute module name without more context
-	if imp.IsRelative {
-		return "" // Skip relative imports for now
-	}
-
-	// For "import module" statements
-	if strings.HasPrefix(imp.Statement, "import ") {
-		moduleName := strings.TrimPrefix(imp.Statement, "import ")
-		// Handle "import module as alias"
-		if parts := strings.Split(moduleName, " as "); len(parts) > 0 {
-			return strings.TrimSpace(parts[0])
-		}
-		return strings.TrimSpace(moduleName)
-	}
-
-	// For "from module import ..." statements
-	if strings.HasPrefix(imp.Statement, "from ") {
-		parts := strings.Split(imp.Statement, " import ")
-		if len(parts) > 0 {
-			moduleName := strings.TrimPrefix(parts[0], "from ")
-			moduleName = strings.TrimSpace(moduleName)
-			// Remove relative dots
-			moduleName = strings.TrimLeft(moduleName, ".")
-			moduleName = strings.TrimSpace(moduleName)
-			if moduleName != "" {
-				return moduleName
-			}
-		}
-	}
-
-	// Fallback: use first imported name if it looks like a module
-	if len(imp.ImportedNames) > 0 && imp.ImportedNames[0] != "*" {
-		return imp.ImportedNames[0]
-	}
-
-	return ""
 }
 
 func minSystemAnalysis(a, b int) int {
@@ -1472,13 +1118,11 @@ func (s *SystemAnalysisServiceImpl) extractModuleMetrics(graph *analyzer.Depende
 			metrics.Instability = analyzerMetrics.Instability
 			metrics.Abstractness = analyzerMetrics.Abstractness
 			metrics.Distance = analyzerMetrics.Distance
-			metrics.Maintainability = analyzerMetrics.Maintainability
-			metrics.TechnicalDebt = analyzerMetrics.TechnicalDebt
 
-			// Determine risk level based on metrics
-			if analyzerMetrics.Distance > 0.7 || analyzerMetrics.TechnicalDebt > 10 {
+			// Determine risk level based on distance
+			if analyzerMetrics.Distance > 0.7 {
 				metrics.RiskLevel = domain.RiskLevelHigh
-			} else if analyzerMetrics.Distance > 0.4 || analyzerMetrics.TechnicalDebt > 5 {
+			} else if analyzerMetrics.Distance > 0.4 {
 				metrics.RiskLevel = domain.RiskLevelMedium
 			} else {
 				metrics.RiskLevel = domain.RiskLevelLow
@@ -1590,208 +1234,6 @@ func (s *SystemAnalysisServiceImpl) generateCycleBreakingSuggestions(cycles []do
 	suggestions = append(suggestions, "Consider using event-driven patterns to decouple tightly coupled modules")
 
 	return suggestions
-}
-
-// classifyModulesByQuality classifies modules into quality categories
-func (s *SystemAnalysisServiceImpl) classifyModulesByQuality(graph *analyzer.DependencyGraph) (high, moderate, low, critical []string) {
-	if graph.ModuleMetrics != nil {
-		for moduleName, metrics := range graph.ModuleMetrics {
-			// Classify based on maintainability index and technical debt
-			if metrics.Maintainability >= 80 && metrics.TechnicalDebt < 2 {
-				high = append(high, moduleName)
-			} else if metrics.Maintainability >= 50 && metrics.TechnicalDebt < 5 {
-				moderate = append(moderate, moduleName)
-			} else {
-				// Treat everything else as low quality so very weak modules don't fall through
-				low = append(low, moduleName)
-			}
-
-			// Critical modules: low maintainability, high coupling, and high technical debt
-			if metrics.Maintainability < 30 &&
-				(metrics.AfferentCoupling+metrics.EfferentCoupling) > 20 &&
-				metrics.TechnicalDebt > 10 {
-				critical = append(critical, moduleName)
-			}
-		}
-	}
-
-	// Sort for consistent output
-	sort.Strings(high)
-	sort.Strings(moderate)
-	sort.Strings(low)
-	sort.Strings(critical)
-
-	return high, moderate, low, critical
-}
-
-// generateRefactoringTargets generates prioritized refactoring targets
-func (s *SystemAnalysisServiceImpl) generateRefactoringTargets(graph *analyzer.DependencyGraph, systemMetrics *analyzer.SystemMetrics) []domain.RefactoringTarget {
-	var targets []domain.RefactoringTarget
-
-	// Create a priority score for each module
-	type modulePriority struct {
-		name     string
-		priority float64
-		metrics  *analyzer.ModuleMetrics
-	}
-
-	var candidates []modulePriority
-
-	if graph.ModuleMetrics != nil {
-		for moduleName, metrics := range graph.ModuleMetrics {
-			priority := 0.0
-
-			// Factor in maintainability (lower is worse)
-			if metrics.Maintainability < 50 {
-				priority += (50 - metrics.Maintainability) * 2
-			}
-
-			// Factor in technical debt
-			priority += metrics.TechnicalDebt * 5
-
-			// Factor in coupling
-			totalCoupling := float64(metrics.AfferentCoupling + metrics.EfferentCoupling)
-			if totalCoupling > 15 {
-				priority += totalCoupling * 2
-			}
-
-			// Factor in distance from main sequence
-			priority += metrics.Distance * 30
-
-			// Factor in instability for stable modules that change frequently
-			if metrics.Instability < 0.3 && metrics.AfferentCoupling > 5 {
-				priority += 20
-			}
-
-			if priority > 10 { // Only consider modules with significant issues
-				candidates = append(candidates, modulePriority{
-					name:     moduleName,
-					priority: priority,
-					metrics:  metrics,
-				})
-			}
-		}
-	}
-
-	// Sort by priority (highest first)
-	sort.Slice(candidates, func(i, j int) bool {
-		return candidates[i].priority > candidates[j].priority
-	})
-
-	// Generate refactoring targets for top candidates
-	for i, candidate := range candidates {
-		if i >= 10 { // Limit to top 10 targets
-			break
-		}
-
-		var issues []string
-		var suggestions []string
-		var benefits []string
-		effort := domain.EstimatedEffortMedium
-
-		// Identify specific issues
-		if candidate.metrics.Maintainability < 40 {
-			issues = append(issues, "Low maintainability index")
-			suggestions = append(suggestions, "Simplify complex logic and improve code organization")
-			benefits = append(benefits, "Improved readability and maintainability")
-		}
-
-		if candidate.metrics.TechnicalDebt > 8 {
-			issues = append(issues, fmt.Sprintf("High technical debt (%.1f hours)", candidate.metrics.TechnicalDebt))
-			suggestions = append(suggestions, "Address code smells and refactor problematic areas")
-			benefits = append(benefits, "Reduced maintenance cost")
-			effort = domain.EstimatedEffortHigh
-		}
-
-		if candidate.metrics.AfferentCoupling+candidate.metrics.EfferentCoupling > 20 {
-			issues = append(issues, "Excessive coupling")
-			suggestions = append(suggestions, "Introduce abstractions and reduce dependencies")
-			benefits = append(benefits, "Better modularity and testability")
-		}
-
-		if candidate.metrics.Distance > 0.5 {
-			issues = append(issues, "Poor architectural positioning")
-			suggestions = append(suggestions, "Rebalance abstractness and stability")
-			benefits = append(benefits, "Better adherence to SOLID principles")
-		}
-
-		targets = append(targets, domain.RefactoringTarget{
-			Module:      candidate.name,
-			Priority:    candidate.priority,
-			Issues:      issues,
-			Benefits:    benefits,
-			Effort:      effort,
-			Suggestions: suggestions,
-		})
-	}
-
-	return targets
-}
-
-// identifyHotSpots identifies modules that are problematic and likely to change
-func (s *SystemAnalysisServiceImpl) identifyHotSpots(graph *analyzer.DependencyGraph) []string {
-	var hotSpots []string
-
-	type hotSpotCandidate struct {
-		name  string
-		score float64
-	}
-
-	var candidates []hotSpotCandidate
-
-	if graph.ModuleMetrics != nil {
-		for moduleName, metrics := range graph.ModuleMetrics {
-			score := 0.0
-
-			// High coupling indicates frequent changes
-			coupling := float64(metrics.AfferentCoupling + metrics.EfferentCoupling)
-			if coupling > 10 {
-				score += coupling
-			}
-
-			// Low maintainability indicates problematic code
-			if metrics.Maintainability < 50 {
-				score += (50 - metrics.Maintainability) / 5
-			}
-
-			// High technical debt
-			if metrics.TechnicalDebt > 5 {
-				score += metrics.TechnicalDebt
-			}
-
-			// High instability indicates frequent changes
-			if metrics.Instability > 0.7 {
-				score += metrics.Instability * 10
-			}
-
-			// Module in the "zone of pain" (concrete and unstable)
-			if metrics.Abstractness < 0.3 && metrics.Instability > 0.7 {
-				score += 20
-			}
-
-			if score > 15 { // Threshold for hot spots
-				candidates = append(candidates, hotSpotCandidate{
-					name:  moduleName,
-					score: score,
-				})
-			}
-		}
-	}
-
-	// Sort by score (highest first)
-	sort.Slice(candidates, func(i, j int) bool {
-		return candidates[i].score > candidates[j].score
-	})
-
-	// Extract top hot spots
-	for i, candidate := range candidates {
-		if i >= 10 { // Limit to top 10
-			break
-		}
-		hotSpots = append(hotSpots, candidate.name)
-	}
-
-	return hotSpots
 }
 
 // generateArchitectureRecommendations generates architecture improvement recommendations
