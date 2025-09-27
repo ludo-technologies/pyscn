@@ -99,7 +99,6 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) LoadDefaultConfig() *domain.Sys
 		OutputFormat:        domain.OutputFormatText,
 		AnalyzeDependencies: true,
 		AnalyzeArchitecture: true,
-		AnalyzeQuality:      true,
 		IncludeStdLib:       false,
 		IncludeThirdParty:   true,
 		FollowRelative:      true,
@@ -145,7 +144,6 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
 	// Analysis type overrides - CLI takes precedence
 	merged.AnalyzeDependencies = override.AnalyzeDependencies
 	merged.AnalyzeArchitecture = override.AnalyzeArchitecture
-	merged.AnalyzeQuality = override.AnalyzeQuality
 
 	// (Filtering options removed - fields no longer exist)
 
@@ -201,9 +199,6 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) loadFromViperSection(v *viper.V
 	}
 	if v.IsSet(section + ".analyze_architecture") {
 		request.AnalyzeArchitecture = v.GetBool(section + ".analyze_architecture")
-	}
-	if v.IsSet(section + ".analyze_quality") {
-		request.AnalyzeQuality = v.GetBool(section + ".analyze_quality")
 	}
 
 	// (Output options removed - ShowDetails field no longer exists)
@@ -398,8 +393,7 @@ var ExampleSystemAnalysisConfig = `
 
 [system_analysis]
 analyze_dependencies = true
-analyze_architecture = true  
-analyze_quality = true
+analyze_architecture = true
 show_details = false
 recursive = true
 include_patterns = ["*.py"]

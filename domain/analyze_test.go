@@ -154,12 +154,12 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 		{
 			name: "typical 74 score case",
 			summary: domain.AnalyzeSummary{
-				AverageComplexity:         7.0,   // -6
-				CodeDuplication:           15.0,  // -6
+				AverageComplexity:         7.0,  // -6
+				CodeDuplication:           15.0, // -6
 				CBOClasses:                10,
-				HighCouplingClasses:       2,     // -5
+				HighCouplingClasses:       2, // -5
 				DepsEnabled:               true,
-				DepsMainSequenceDeviation: 1.0,   // -2
+				DepsMainSequenceDeviation: 1.0, // -2
 				ArchEnabled:               true,
 				ArchCompliance:            0.125, // -7
 			},
@@ -209,17 +209,17 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 		{
 			name: "minimum score floor",
 			summary: domain.AnalyzeSummary{
-				AverageComplexity:    25.0, // -20
-				CodeDuplication:      50.0, // -20
-				CBOClasses:           10,
-				HighCouplingClasses:  6,    // -16
-				DeadCodeCount:        100,
-				CriticalDeadCode:     50,   // -20 (capped)
-				DepsEnabled:          true,
-				DepsTotalModules:     10,
-				DepsModulesInCycles:  10,   // -8
-				ArchEnabled:          true,
-				ArchCompliance:       0.0,  // -8
+				AverageComplexity:   25.0, // -20
+				CodeDuplication:     50.0, // -20
+				CBOClasses:          10,
+				HighCouplingClasses: 6, // -16
+				DeadCodeCount:       100,
+				CriticalDeadCode:    50, // -20 (capped)
+				DepsEnabled:         true,
+				DepsTotalModules:    10,
+				DepsModulesInCycles: 10, // -8
+				ArchEnabled:         true,
+				ArchCompliance:      0.0, // -8
 			},
 			expectedScore: 10, // Floor at 10
 			expectedGrade: "F",
@@ -228,17 +228,17 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 		{
 			name: "grade A threshold",
 			summary: domain.AnalyzeSummary{
-				AverageComplexity: 4.0, // -0
-				CodeDuplication:   5.0, // -0
-				CBOClasses:        10,
-				HighCouplingClasses: 1,  // -5
-				DepsEnabled:        true,
-				DepsTotalModules:   10,
-				DepsMaxDepth:       4,   // Expected ~4, so no penalty
-				ArchEnabled:        true,
-				ArchCompliance:     0.9, // -1 (rounded)
+				AverageComplexity:   4.0, // -0
+				CodeDuplication:     5.0, // -0
+				CBOClasses:          10,
+				HighCouplingClasses: 1, // -5
+				DepsEnabled:         true,
+				DepsTotalModules:    10,
+				DepsMaxDepth:        4, // Expected ~4, so no penalty
+				ArchEnabled:         true,
+				ArchCompliance:      0.9, // -1 (rounded)
 			},
-			expectedScore: 99,  // Updated based on actual calculation
+			expectedScore: 99, // Updated based on actual calculation
 			expectedGrade: "A",
 			expectError:   false,
 		},
@@ -248,8 +248,8 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				AverageComplexity:   15.0, // -12
 				CodeDuplication:     35.0, // -12
 				CBOClasses:          10,
-				HighCouplingClasses: 4,    // -10
-				DeadCodeCount:       5,    // -5 (normalized)
+				HighCouplingClasses: 4, // -10
+				DeadCodeCount:       5, // -5 (normalized)
 				TotalFiles:          1,
 			},
 			expectedScore: 61,
@@ -262,7 +262,7 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				AverageComplexity:   22.0, // -20
 				CodeDuplication:     45.0, // -20
 				CBOClasses:          10,
-				HighCouplingClasses: 6,    // -16
+				HighCouplingClasses: 6, // -16
 			},
 			expectedScore: 44,
 			expectedGrade: "D",

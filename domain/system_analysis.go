@@ -21,7 +21,6 @@ type SystemAnalysisRequest struct {
 	// Analysis scope
 	AnalyzeDependencies bool // Enable dependency analysis
 	AnalyzeArchitecture bool // Enable architecture validation
-	AnalyzeQuality      bool // Enable quality metrics
 
 	// Configuration
 	ConfigPath      string
@@ -50,7 +49,6 @@ type SystemAnalysisResponse struct {
 	// Core analysis results
 	DependencyAnalysis   *DependencyAnalysisResult   // Module dependency analysis
 	ArchitectureAnalysis *ArchitectureAnalysisResult // Architecture validation results
-	QualityMetrics       *QualityMetricsResult       // System quality metrics
 
 	// Summary information
 	Summary SystemAnalysisSummary // High-level summary
@@ -348,47 +346,6 @@ const (
 	EstimatedEffortLarge  EstimatedEffort = "large"  // > 40 hours
 )
 
-// QualityMetricsResult contains system-wide quality metrics
-type QualityMetricsResult struct {
-	// Composite quality metrics
-	OverallQuality       float64 // Overall system quality score (0-100)
-	MaintainabilityIndex float64 // System maintainability index
-	TechnicalDebtTotal   float64 // Total technical debt in hours
-	ModularityIndex      float64 // System modularity score
-
-	// Robert Martin's metrics (aggregated)
-	SystemInstability    float64 // Average system instability
-	SystemAbstractness   float64 // Average system abstractness
-	MainSequenceDistance float64 // Average distance from main sequence
-
-	// Complexity metrics
-	SystemComplexity   float64 // Overall system complexity
-	MaxDependencyDepth int     // Maximum dependency chain depth
-	AverageFanIn       float64 // Average afferent coupling
-	AverageFanOut      float64 // Average efferent coupling
-
-	// Quality distribution
-	HighQualityModules     []string // Modules with excellent quality
-	ModerateQualityModules []string // Modules with acceptable quality
-	LowQualityModules      []string // Modules needing attention
-	CriticalModules        []string // Modules requiring immediate action
-
-	// Trends and patterns
-	QualityTrends      map[string]float64  // Package -> quality trend
-	HotSpots           []string            // Modules that change frequently and have quality issues
-	RefactoringTargets []RefactoringTarget // Priority refactoring targets
-}
-
-// RefactoringTarget represents a module that needs refactoring
-type RefactoringTarget struct {
-	Module      string          // Module name
-	Priority    float64         // Refactoring priority score
-	Issues      []string        // Specific issues
-	Benefits    []string        // Expected benefits of refactoring
-	Effort      EstimatedEffort // Estimated effort
-	Suggestions []string        // Specific refactoring suggestions
-}
-
 // SystemIssue represents a critical system-level issue
 type SystemIssue struct {
 	Type        IssueType     // Type of issue
@@ -407,8 +364,6 @@ const (
 	IssueTypeCircularDependency    IssueType = "circular_dependency"
 	IssueTypeExcessiveCoupling     IssueType = "excessive_coupling"
 	IssueTypeArchitectureViolation IssueType = "architecture_violation"
-	IssueTypeLowMaintainability    IssueType = "low_maintainability"
-	IssueTypeHighTechnicalDebt     IssueType = "high_technical_debt"
 	IssueTypePoorModularity        IssueType = "poor_modularity"
 )
 
@@ -507,9 +462,6 @@ type SystemAnalysisService interface {
 
 	// AnalyzeArchitecture performs architecture validation only
 	AnalyzeArchitecture(ctx context.Context, req SystemAnalysisRequest) (*ArchitectureAnalysisResult, error)
-
-	// AnalyzeQuality performs quality metrics analysis only
-	AnalyzeQuality(ctx context.Context, req SystemAnalysisRequest) (*QualityMetricsResult, error)
 }
 
 // SystemAnalysisConfigurationLoader defines configuration loading interface
@@ -539,7 +491,6 @@ func DefaultSystemAnalysisRequest() *SystemAnalysisRequest {
 		OutputFormat:         OutputFormatText,
 		AnalyzeDependencies:  true,
 		AnalyzeArchitecture:  true,
-		AnalyzeQuality:       true,
 		Recursive:            true,
 		IncludeStdLib:        false,
 		IncludeThirdParty:    true,

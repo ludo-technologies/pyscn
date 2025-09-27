@@ -25,9 +25,9 @@ const (
 	DuplicationPenaltyLow      = 6
 
 	// CBO coupling thresholds and penalties
-	CouplingRatioHigh   = 0.5
-	CouplingRatioMedium = 0.3
-	CouplingRatioLow    = 0.1
+	CouplingRatioHigh     = 0.5
+	CouplingRatioMedium   = 0.3
+	CouplingRatioLow      = 0.1
 	CouplingPenaltyHigh   = 16
 	CouplingPenaltyMedium = 10
 	CouplingPenaltyLow    = 5
@@ -47,10 +47,10 @@ const (
 	GradeDThreshold = 40
 
 	// Other constants
-	MinimumScore       = 10
-	HealthyThreshold   = 70
+	MinimumScore                = 10
+	HealthyThreshold            = 70
 	FallbackComplexityThreshold = 10
-	FallbackPenalty    = 5
+	FallbackPenalty             = 5
 )
 
 // AnalyzeResponse represents the combined results of all analyses
