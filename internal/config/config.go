@@ -218,7 +218,6 @@ func DefaultConfig() *Config {
 			Enabled:               false, // Disabled by default - opt-in feature
 			EnableDependencies:    true,
 			EnableArchitecture:    true,
-			EnableQuality:         true,
 			UseComplexityData:     true,
 			UseClonesData:         true,
 			UseDeadCodeData:       true,
@@ -739,7 +738,6 @@ type SystemAnalysisConfig struct {
 	// Analysis components to enable
 	EnableDependencies bool `mapstructure:"enable_dependencies" yaml:"enable_dependencies"`
 	EnableArchitecture bool `mapstructure:"enable_architecture" yaml:"enable_architecture"`
-	EnableQuality      bool `mapstructure:"enable_quality" yaml:"enable_quality"`
 
 	// Integration with other analyses
 	UseComplexityData bool `mapstructure:"use_complexity_data" yaml:"use_complexity_data"`
