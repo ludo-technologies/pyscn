@@ -96,12 +96,6 @@ func (calc *CouplingMetricsCalculator) calculateModuleMetrics(moduleName string,
 		metrics.CyclomaticComplexity = complexity
 	}
 
-	// Calculate Maintainability Index
-	metrics.Maintainability = calc.calculateMaintainabilityIndex(metrics, moduleName)
-
-	// Estimate Technical Debt
-	metrics.TechnicalDebt = calc.estimateTechnicalDebt(metrics, moduleName)
-
 	return metrics
 }
 
@@ -150,103 +144,6 @@ func (calc *CouplingMetricsCalculator) isAbstractName(name string) bool {
 	return false
 }
 
-// calculateMaintainabilityIndex calculates the Maintainability Index
-func (calc *CouplingMetricsCalculator) calculateMaintainabilityIndex(metrics *ModuleMetrics, moduleName string) float64 {
-	// Maintainability Index = 171 - 5.2 * ln(HV) - 0.23 * CC - 16.2 * ln(LOC) + 50 * sin(sqrt(2.4 * CM))
-	// Where: HV = Halstead Volume, CC = Cyclomatic Complexity, LOC = Lines of Code, CM = Comment Percentage
-
-	loc := float64(metrics.LinesOfCode)
-	if loc == 0 {
-		return 100.0 // Perfect maintainability for empty files
-	}
-
-	cc := float64(metrics.CyclomaticComplexity)
-	if cc == 0 {
-		cc = 1.0 // Minimum complexity
-	}
-
-	// Simplified Halstead Volume estimation (without token analysis)
-	// Use module size and interface size as proxy
-	estimatedVolume := loc*0.5 + float64(metrics.PublicInterface)*2.0
-	if estimatedVolume < 1 {
-		estimatedVolume = 1.0
-	}
-
-	// Simplified comment ratio estimation
-	// Use dead code ratio as inverse proxy for comment quality
-	deadCodeLines := 0.0
-	if dead, exists := calc.deadCodeData[moduleName]; exists {
-		deadCodeLines = float64(dead)
-	}
-
-	commentRatio := math.Max(0.1, 1.0-(deadCodeLines/loc)) * 100
-
-	// Calculate MI with bounds checking
-	mi := 171.0 - 5.2*math.Log(estimatedVolume) - 0.23*cc - 16.2*math.Log(loc) + 50.0*math.Sin(math.Sqrt(2.4*commentRatio))
-
-	// Normalize to 0-100 scale and apply quality adjustments
-	mi = math.Max(0.0, math.Min(100.0, mi))
-
-	// Apply penalties for poor coupling
-	if metrics.Instability > 0.8 {
-		mi *= 0.9 // 10% penalty for high instability
-	}
-	if metrics.Distance > 0.5 {
-		mi *= 0.95 // 5% penalty for distance from main sequence
-	}
-
-	// Apply penalty for code duplication
-	if duplication, exists := calc.clonesData[moduleName]; exists && duplication > 0.1 {
-		mi *= (1.0 - duplication*0.5) // Up to 50% penalty for high duplication
-	}
-
-	return mi
-}
-
-// estimateTechnicalDebt estimates technical debt in hours
-func (calc *CouplingMetricsCalculator) estimateTechnicalDebt(metrics *ModuleMetrics, moduleName string) float64 {
-	debt := 0.0
-
-	// Base debt from complexity
-	if metrics.CyclomaticComplexity > 10 {
-		excessComplexity := float64(metrics.CyclomaticComplexity - 10)
-		debt += excessComplexity * 0.5 // 30 minutes per excess complexity point
-	}
-
-	// Debt from poor coupling
-	if metrics.Instability > 0.7 {
-		debt += (metrics.Instability - 0.7) * 4.0 // Up to 1.2 hours for high instability
-	}
-
-	if metrics.Distance > 0.3 {
-		debt += metrics.Distance * 3.0 // Up to 3 hours for distance from main sequence
-	}
-
-	// Debt from poor maintainability
-	if metrics.Maintainability < 60 {
-		maintainabilityDebt := (60.0 - metrics.Maintainability) / 10.0
-		debt += maintainabilityDebt
-	}
-
-	// Debt from code duplication
-	if duplication, exists := calc.clonesData[moduleName]; exists {
-		debt += duplication * float64(metrics.LinesOfCode) * 0.01 // 1% of LOC as hours
-	}
-
-	// Debt from dead code
-	if deadLines, exists := calc.deadCodeData[moduleName]; exists {
-		debt += float64(deadLines) * 0.05 // 3 minutes per dead line
-	}
-
-	// Scale by module size
-	if metrics.LinesOfCode > 500 {
-		sizeMultiplier := 1.0 + float64(metrics.LinesOfCode-500)/1000.0
-		debt *= sizeMultiplier
-	}
-
-	return debt
-}
-
 // calculateSystemMetrics calculates system-wide metrics
 func (calc *CouplingMetricsCalculator) calculateSystemMetrics() {
 	systemMetrics := calc.graph.SystemMetrics
@@ -263,7 +160,6 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics() {
 	// Aggregate metrics
 	var totalFanIn, totalFanOut float64
 	var totalInstability, totalAbstractness, totalDistance float64
-	var totalMaintainability, totalTechnicalDebt float64
 
 	for _, metrics := range calc.graph.ModuleMetrics {
 		totalFanIn += float64(metrics.AfferentCoupling)
@@ -271,8 +167,6 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics() {
 		totalInstability += metrics.Instability
 		totalAbstractness += metrics.Abstractness
 		totalDistance += metrics.Distance
-		totalMaintainability += metrics.Maintainability
-		totalTechnicalDebt += metrics.TechnicalDebt
 	}
 
 	moduleCount := float64(systemMetrics.TotalModules)
@@ -284,8 +178,6 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics() {
 	systemMetrics.AverageInstability = totalInstability / moduleCount
 	systemMetrics.AverageAbstractness = totalAbstractness / moduleCount
 	systemMetrics.MainSequenceDeviation = totalDistance / moduleCount
-	systemMetrics.MaintainabilityIndex = totalMaintainability / moduleCount
-	systemMetrics.TechnicalDebtTotal = totalTechnicalDebt
 
 	// Calculate modularity index
 	systemMetrics.ModularityIndex = calc.calculateModularityIndex()
@@ -445,16 +337,6 @@ func (calc *CouplingMetricsCalculator) identifyRefactoringPriorities() []string 
 
 	for moduleName, metrics := range calc.graph.ModuleMetrics {
 		priority := 0.0
-
-		// High priority for poor maintainability
-		if metrics.Maintainability < 40 {
-			priority += (40 - metrics.Maintainability) * 2
-		}
-
-		// High priority for excessive technical debt
-		if metrics.TechnicalDebt > 8 {
-			priority += (metrics.TechnicalDebt - 8) * 5
-		}
 
 		// High priority for poor architectural position
 		if metrics.Distance > 0.5 {

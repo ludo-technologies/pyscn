@@ -166,7 +166,6 @@ func runDepsCommand(cmd *cobra.Command, args []string) error {
 		// Enable dependency analysis and architecture validation (always enabled)
 		AnalyzeDependencies: true,
 		AnalyzeArchitecture: true,
-		AnalyzeQuality:      false,
 
 		// Analysis options
 		IncludeStdLib:     depsIncludeStdLib,

@@ -40,7 +40,6 @@ func TestExtractCouplingResult_VariesWithGraphs(t *testing.T) {
 				assert.Equal(t, 2, metrics.TotalDependencies)
 				assert.Equal(t, 0, metrics.CyclicDependencies) // No cycles
 				assert.InDelta(t, 0.667, metrics.DependencyRatio, 0.01) // 2/3
-				assert.Greater(t, metrics.MaintainabilityIndex, 0.0)
 				assert.NotNil(t, metrics.RefactoringPriority)
 			},
 		},

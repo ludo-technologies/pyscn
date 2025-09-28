@@ -107,12 +107,10 @@ func TestExtractModuleMetrics(t *testing.T) {
 					EfferentCoupling:     2,
 					Instability:          0.4,
 					Abstractness:         0.3,
-					Distance:             0.5,  // Medium risk threshold
+					Distance:             0.5, // Medium risk threshold
 					LinesOfCode:          200,
 					PublicInterface:      3,
 					CyclomaticComplexity: 10,
-					Maintainability:      75.5,
-					TechnicalDebt:        2.5,
 				}
 
 				return service, graph
@@ -134,8 +132,6 @@ func TestExtractModuleMetrics(t *testing.T) {
 				assert.InDelta(t, 0.4, metrics.Instability, 0.01)
 				assert.InDelta(t, 0.3, metrics.Abstractness, 0.01)
 				assert.InDelta(t, 0.5, metrics.Distance, 0.01)
-				assert.InDelta(t, 75.5, metrics.Maintainability, 0.01)
-				assert.InDelta(t, 2.5, metrics.TechnicalDebt, 0.01)
 				assert.Equal(t, domain.RiskLevelMedium, metrics.RiskLevel) // Distance=0.5 triggers medium risk
 			},
 		},
@@ -155,8 +151,7 @@ func TestExtractModuleMetrics(t *testing.T) {
 				// Add high-risk analyzer metrics
 				graph.ModuleMetrics = make(map[string]*analyzer.ModuleMetrics)
 				graph.ModuleMetrics["risky.module"] = &analyzer.ModuleMetrics{
-					Distance:      0.8,  // High distance from main sequence
-					TechnicalDebt: 15.0, // High technical debt
+					Distance: 0.8, // High distance from main sequence
 				}
 
 				return service, graph

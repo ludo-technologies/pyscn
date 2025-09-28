@@ -13,12 +13,12 @@ import (
 
 // ProgressManagerImpl implements the ProgressManager interface
 type ProgressManagerImpl struct {
-	mu           sync.Mutex
-	writer       io.Writer
-	tasks        map[string]*TaskProgress
-	totalFiles   int
-	interactive  bool
-	initialized  bool
+	mu          sync.Mutex
+	writer      io.Writer
+	tasks       map[string]*TaskProgress
+	totalFiles  int
+	interactive bool
+	initialized bool
 }
 
 // TaskProgress tracks the progress of a single task
