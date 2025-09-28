@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"sync"
 	"time"
 
@@ -229,7 +228,10 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 	}
 
 	// Build response
-	response := uc.buildResponse(tasks, startTime)
+	response, err := uc.buildResponse(tasks, startTime)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build response: %w", err)
+	}
 
 	// Return aggregated error if any tasks failed
 	if len(errors) > 0 {
@@ -352,7 +354,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 }
 
 // buildResponse builds the analyze response from task results
-func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Time) *domain.AnalyzeResponse {
+func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Time) (*domain.AnalyzeResponse, error) {
 	response := &domain.AnalyzeResponse{
 		GeneratedAt: time.Now(),
 		Duration:    time.Since(startTime).Milliseconds(),
@@ -401,9 +403,11 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 	}
 
 	// Calculate summary statistics
-	uc.calculateSummary(&response.Summary, response)
+	if err := uc.calculateSummary(&response.Summary, response); err != nil {
+		return nil, err
+	}
 
-	return response
+	return response, nil
 }
 
 // markSummaryForTask ensures the summary reflects analyses that attempted to run
@@ -423,7 +427,7 @@ func (uc *AnalyzeUseCase) markSummaryForTask(summary *domain.AnalyzeSummary, tas
 }
 
 // calculateSummary calculates the summary statistics
-func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, response *domain.AnalyzeResponse) {
+func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, response *domain.AnalyzeResponse) error {
 	// Complexity statistics
 	if response.Complexity != nil {
 		summary.TotalFiles = response.Complexity.Summary.FilesAnalyzed
@@ -508,13 +512,10 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		}
 	}
 
-	// Calculate health score with error handling
+	// Calculate health score
 	if err := summary.CalculateHealthScore(); err != nil {
-		// Log warning
-		log.Printf("WARNING: Failed to calculate health score: %v", err)
-
-		// Fallback processing: calculate simple score
-		summary.HealthScore = summary.CalculateFallbackScore()
-		summary.Grade = domain.GetGradeFromScore(summary.HealthScore)
+		return fmt.Errorf("failed to calculate health score: %w", err)
 	}
+
+	return nil
 }

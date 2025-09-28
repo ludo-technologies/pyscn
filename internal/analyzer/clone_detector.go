@@ -169,12 +169,13 @@ type CloneDetectorConfig struct {
 	CostModelType string // "default", "python", "weighted"
 
 	// Performance tuning parameters
-	MaxClonePairs      int // Maximum pairs to keep in memory
-	BatchSizeThreshold int // Minimum fragments to trigger batching
-	BatchSizeLarge     int // Batch size for normal projects
-	BatchSizeSmall     int // Batch size for large projects
-	LargeProjectSize   int // Fragment count threshold for large projects
-	MemoryLimit        int // Memory limit in bytes
+	MaxClonePairs        int // Maximum pairs to keep in memory
+	BatchSizeThreshold   int // Minimum fragments to trigger batching
+	BatchSizeLarge       int // Batch size for normal projects
+	BatchSizeSmall       int // Batch size for large projects
+	LargeProjectSize     int // Fragment count threshold for large projects
+	MemoryLimit          int // Memory limit in bytes
+	ContextCheckInterval int // How often to check context cancellation during analysis
 
 	// Grouping configuration
 	GroupingMode      GroupingMode // デフォルト: GroupingModeConnected
@@ -203,12 +204,13 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 		IgnoreIdentifiers: false,
 		CostModelType:     "python",
 		// Performance parameters
-		MaxClonePairs:      10000,
-		BatchSizeThreshold: 50,
-		BatchSizeLarge:     100,
-		BatchSizeSmall:     50,
-		LargeProjectSize:   500,
-		MemoryLimit:        100 * 1024 * 1024, // 100MB
+		MaxClonePairs:        10000,
+		BatchSizeThreshold:   50,
+		BatchSizeLarge:       100,
+		BatchSizeSmall:       50,
+		LargeProjectSize:     500,
+		MemoryLimit:          100 * 1024 * 1024, // 100MB
+		ContextCheckInterval: constants.DefaultContextCheckInterval,
 
 		// Grouping defaults
 		GroupingMode:      GroupingModeKCore,
@@ -645,7 +647,10 @@ func (cd *CloneDetector) detectClonePairsWithContext(ctx context.Context) {
 // detectClonePairsStandardWithContext uses standard approach with context
 func (cd *CloneDetector) detectClonePairsStandardWithContext(ctx context.Context) {
 	n := len(cd.fragments)
-	const checkInterval = 10 // Check context every 10 comparisons
+	checkInterval := cd.config.ContextCheckInterval
+	if checkInterval <= 0 {
+		checkInterval = constants.DefaultContextCheckInterval
+	}
 
 	for i := 0; i < n; i++ {
 		for j := i + 1; j < n; j++ {

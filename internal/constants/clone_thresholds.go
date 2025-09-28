@@ -104,3 +104,14 @@ var CloneTypeDescriptions = map[int]string{
 	3: "Copied fragments with further modifications (changed, added or removed statements)",
 	4: "Syntactically different but functionally similar code fragments",
 }
+
+// Performance and resource management constants
+const (
+	// DefaultMaxFragmentSize defines the maximum size for code fragments to prevent resource exhaustion
+	// Default is 1MB (1024 * 1024 bytes)
+	DefaultMaxFragmentSize = 1024 * 1024
+
+	// DefaultContextCheckInterval defines how often to check for context cancellation during analysis
+	// This balances responsiveness with performance overhead
+	DefaultContextCheckInterval = 10
+)

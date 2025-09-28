@@ -3,12 +3,14 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/analyzer"
+	"github.com/ludo-technologies/pyscn/internal/constants"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -75,6 +77,8 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	// Parse files and extract fragments
 	var allFragments []*analyzer.CodeFragment
 	linesAnalyzed := 0
+	var fileErrors []error
+	successfulFiles := 0
 
 	for _, filePath := range filePaths {
 		// Check for context cancellation periodically
@@ -89,25 +93,26 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 		// Read file content
 		content, err := readFileContent(filePath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to read file %s: %v\n", filePath, err)
-			continue // Skip files that cannot be read
+			fileErrors = append(fileErrors, fmt.Errorf("failed to read file %s: %w", filePath, err))
+			continue
 		}
 
 		// Parse Python file
 		parseResult, err := pyParser.Parse(ctx, content)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to parse file %s: %v\n", filePath, err)
-			continue // Skip files that cannot be parsed
+			fileErrors = append(fileErrors, fmt.Errorf("failed to parse file %s: %w", filePath, err))
+			continue
 		}
 
 		// Validate parse result
 		if parseResult == nil || parseResult.AST == nil {
-			fmt.Fprintf(os.Stderr, "Warning: Invalid parse result for file %s\n", filePath)
-			continue // Skip files with invalid parse results
+			fileErrors = append(fileErrors, fmt.Errorf("invalid parse result for file %s", filePath))
+			continue
 		}
 
 		// Count lines for statistics
 		linesAnalyzed += len(strings.Split(string(content), "\n"))
+		successfulFiles++
 
 		// Extract code fragments from AST
 		if parseResult.AST != nil {
@@ -115,6 +120,28 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 			astNodes := []*parser.Node{parseResult.AST}
 			fragments := detector.ExtractFragments(astNodes, filePath)
 			allFragments = append(allFragments, fragments...)
+		}
+	}
+
+	// Check if too many files failed
+	if len(fileErrors) > 0 {
+		// Log warnings for failed files
+		for _, err := range fileErrors {
+			log.Printf("Warning: %v", err)
+		}
+
+		// If all files failed and no fragments were extracted, still return success with empty results
+		// This handles cases where all input files are non-existent or invalid
+		if successfulFiles == 0 && len(allFragments) == 0 {
+			// Continue to return empty results below
+			log.Printf("Warning: All %d files could not be processed, returning empty results", len(filePaths))
+		} else if successfulFiles > 0 {
+			// Some files succeeded, continue with analysis
+			failedRatio := float64(len(fileErrors)) / float64(len(filePaths))
+			if failedRatio > 0.5 {
+				// More than 50% failed but some succeeded - log warning but continue
+				log.Printf("Warning: %d out of %d files could not be processed", len(fileErrors), len(filePaths))
+			}
 		}
 	}
 
@@ -186,9 +213,8 @@ func (s *CloneService) ComputeSimilarity(ctx context.Context, fragment1, fragmen
 	}
 
 	// Check for excessively large fragments to prevent resource exhaustion
-	const maxFragmentSize = 1024 * 1024 // 1MB limit
-	if len(fragment1) > maxFragmentSize || len(fragment2) > maxFragmentSize {
-		return 0.0, fmt.Errorf("fragment size exceeds maximum allowed size of %d bytes", maxFragmentSize)
+	if len(fragment1) > constants.DefaultMaxFragmentSize || len(fragment2) > constants.DefaultMaxFragmentSize {
+		return 0.0, fmt.Errorf("fragment size exceeds maximum allowed size of %d bytes", constants.DefaultMaxFragmentSize)
 	}
 
 	// Parse both fragments
