@@ -171,7 +171,10 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 	startTime := time.Now()
 
 	// Load configuration to get file patterns
-	includePatterns, excludePatterns := uc.getFilePatterns(config.ConfigFile, paths)
+	includePatterns, excludePatterns, patternErr := uc.getFilePatterns(config.ConfigFile, paths)
+	if patternErr != nil {
+		return nil, patternErr
+	}
 
 	// Validate and collect files using configured patterns
 	files, err := uc.fileReader.CollectPythonFiles(
@@ -525,7 +528,7 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 }
 
 // getFilePatterns loads file patterns from configuration or returns defaults
-func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]string, []string) {
+func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]string, []string, error) {
 	// Default patterns
 	defaultInclude := []string{"*.py", "*.pyi"}
 	defaultExclude := []string{"test_*.py", "*_test.py"}
@@ -537,9 +540,11 @@ func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]
 	}
 
 	cfg, err := config.LoadConfigWithTarget(configPath, targetPath)
-	if err != nil || cfg == nil {
-		// No config found or error loading, use defaults
-		return defaultInclude, defaultExclude
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to load configuration for pattern resolution: %w", err)
+	}
+	if cfg == nil {
+		return defaultInclude, defaultExclude, nil
 	}
 
 	// Use configured patterns if available
@@ -554,5 +559,5 @@ func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]
 		excludePatterns = defaultExclude
 	}
 
-	return includePatterns, excludePatterns
+	return includePatterns, excludePatterns, nil
 }
