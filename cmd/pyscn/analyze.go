@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
@@ -149,8 +150,9 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to build analyze use case: %w", err)
 	}
 
-	// Execute analysis
-	ctx := context.Background()
+	// Execute analysis with timeout and cancellation support
+	ctx, cancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
+	defer cancel()
 	response, analysisErr := useCase.Execute(ctx, config, args)
 
 	// Generate output even if there were partial failures

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/service"
 )
 
@@ -169,12 +170,15 @@ type AnalysisTask struct {
 func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConfig, paths []string) (*domain.AnalyzeResponse, error) {
 	startTime := time.Now()
 
-	// Validate and collect files
+	// Load configuration to get file patterns
+	includePatterns, excludePatterns := uc.getFilePatterns(config.ConfigFile, paths)
+
+	// Validate and collect files using configured patterns
 	files, err := uc.fileReader.CollectPythonFiles(
 		paths,
 		true, // recursive
-		[]string{"*.py", "*.pyi"},
-		[]string{"test_*.py", "*_test.py"},
+		includePatterns,
+		excludePatterns,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to collect Python files: %w", err)
@@ -302,6 +306,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 					Type2Threshold:      defaultReq.Type2Threshold,
 					Type3Threshold:      defaultReq.Type3Threshold,
 					Type4Threshold:      defaultReq.Type4Threshold,
+					GroupClones:         true, // Enable clone grouping (default behavior)
 					ConfigPath:          config.ConfigFile,
 				}
 				return uc.cloneUseCase.ExecuteAndReturn(ctx, request)
@@ -517,4 +522,37 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		summary.HealthScore = summary.CalculateFallbackScore()
 		summary.Grade = domain.GetGradeFromScore(summary.HealthScore)
 	}
+}
+
+// getFilePatterns loads file patterns from configuration or returns defaults
+func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]string, []string) {
+	// Default patterns
+	defaultInclude := []string{"*.py", "*.pyi"}
+	defaultExclude := []string{"test_*.py", "*_test.py"}
+
+	// Try to load configuration
+	targetPath := ""
+	if len(paths) > 0 {
+		targetPath = paths[0]
+	}
+
+	cfg, err := config.LoadConfigWithTarget(configPath, targetPath)
+	if err != nil || cfg == nil {
+		// No config found or error loading, use defaults
+		return defaultInclude, defaultExclude
+	}
+
+	// Use configured patterns if available
+	includePatterns := cfg.Analysis.IncludePatterns
+	excludePatterns := cfg.Analysis.ExcludePatterns
+
+	// Fall back to defaults if not specified
+	if len(includePatterns) == 0 {
+		includePatterns = defaultInclude
+	}
+	if len(excludePatterns) == 0 {
+		excludePatterns = defaultExclude
+	}
+
+	return includePatterns, excludePatterns
 }
