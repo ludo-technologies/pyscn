@@ -6,6 +6,9 @@ import (
 	"io"
 	"os"
 
+	"github.com/ludo-technologies/pyscn/app"
+	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/service"
 	"github.com/spf13/cobra"
 )
 
@@ -147,39 +150,43 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 
 // checkComplexity runs complexity analysis and returns issue count
 func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, error) {
-	complexityCmd := NewComplexityCommand()
-
-	// Configure with stricter defaults for checking
-	// Default to text output for check command
-	complexityCmd.minComplexity = 1   // Analyze all functions
-	complexityCmd.maxComplexity = 0   // No filter - we want to see ALL functions
-	complexityCmd.lowThreshold = 5    // Low: 1-5
-	complexityCmd.mediumThreshold = 9 // Medium: 6-9, High: 10+
-	complexityCmd.configFile = c.configFile
-	complexityCmd.verbose = false
-
-	// Build request but discard output (we only want to count issues)
-	request, err := complexityCmd.buildComplexityRequest(cmd, args)
-	if err != nil {
-		return 0, err
+	// Create request with check-specific settings
+	request := &domain.ComplexityRequest{
+		Paths:           args,
+		OutputFormat:    domain.OutputFormatText,
+		OutputWriter:    io.Discard,
+		MinComplexity:   1,
+		MaxComplexity:   0, // No filter
+		LowThreshold:    5,
+		MediumThreshold: 9,
+		ShowDetails:     false,
+		SortBy:          domain.SortByComplexity,
+		Recursive:       true,
+		IncludePatterns: []string{"*.py"},
+		ExcludePatterns: []string{"__pycache__/*", "*.pyc"},
+		ConfigPath:      c.configFile,
 	}
 
-	// Redirect output to discard for check command (though we won't use it)
-	request.OutputWriter = io.Discard
+	// Create use case with services
+	configLoader := service.NewConfigurationLoader()
+	fileReader := service.NewFileReader()
+	complexityService := service.NewComplexityService()
+	outputFormatter := service.NewOutputFormatter()
 
-	// Create use case (this enables config loading)
-	useCase, err := complexityCmd.createComplexityUseCase(cmd)
-	if err != nil {
-		return 0, err
-	}
+	useCase := app.NewComplexityUseCase(
+		complexityService,
+		fileReader,
+		outputFormatter,
+		configLoader,
+	)
 
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	// Use the new AnalyzeAndReturn method to get the response for counting
-	response, err := useCase.AnalyzeAndReturn(ctx, request)
+	// Run analysis
+	response, err := useCase.AnalyzeAndReturn(ctx, *request)
 	if err != nil {
 		return 0, err
 	}
@@ -201,36 +208,47 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 
 // checkDeadCode runs dead code analysis and returns issue count
 func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, error) {
-	deadCodeCmd := NewDeadCodeCommand()
-
-	// Configure for critical issues only
-	// Default to text output for check command
-	deadCodeCmd.minSeverity = "critical"
-	deadCodeCmd.configFile = c.configFile
-	deadCodeCmd.verbose = false
-
-	// Build request
-	request, err := deadCodeCmd.buildDeadCodeRequest(cmd, args)
-	if err != nil {
-		return 0, err
+	// Create request with check-specific settings
+	request := &domain.DeadCodeRequest{
+		Paths:                     args,
+		OutputFormat:              domain.OutputFormatText,
+		OutputWriter:              io.Discard,
+		ShowContext:               false,
+		ContextLines:              0,
+		MinSeverity:               domain.DeadCodeSeverityCritical,
+		SortBy:                    domain.DeadCodeSortBySeverity,
+		Recursive:                 true,
+		IncludePatterns:           []string{"*.py"},
+		ExcludePatterns:           []string{"__pycache__/*", "*.pyc"},
+		IgnorePatterns:            []string{},
+		DetectAfterReturn:         true,
+		DetectAfterBreak:          true,
+		DetectAfterContinue:       true,
+		DetectAfterRaise:          true,
+		DetectUnreachableBranches: true,
+		ConfigPath:                c.configFile,
 	}
 
-	// Redirect output to discard for check command (though we won't use it)
-	request.OutputWriter = io.Discard
+	// Create use case with services
+	configLoader := service.NewDeadCodeConfigurationLoader()
+	fileReader := service.NewFileReader()
+	deadCodeService := service.NewDeadCodeService()
+	deadCodeFormatter := service.NewDeadCodeFormatter()
 
-	// Create use case (this enables config loading)
-	useCase, err := deadCodeCmd.createDeadCodeUseCase(cmd)
-	if err != nil {
-		return 0, err
-	}
+	useCase := app.NewDeadCodeUseCase(
+		deadCodeService,
+		fileReader,
+		deadCodeFormatter,
+		configLoader,
+	)
 
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	// Use the new AnalyzeAndReturn method to get the response for counting
-	response, err := useCase.AnalyzeAndReturn(ctx, request)
+	// Run analysis
+	response, err := useCase.AnalyzeAndReturn(ctx, *request)
 	if err != nil {
 		return 0, err
 	}
@@ -246,18 +264,32 @@ func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, er
 
 // checkClones runs clone detection and returns issue count
 func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, error) {
-	cloneCmd := NewCloneCommand()
-
-	// Configure for informational reporting
-	// Default to text output for check command
-	cloneCmd.similarityThreshold = 0.8
-	cloneCmd.configFile = c.configFile
-	cloneCmd.verbose = false
-
-	// Create request
-	request, err := cloneCmd.createCloneRequest(cmd, args)
-	if err != nil {
-		return 0, err
+	// Create request with check-specific settings
+	request := &domain.CloneRequest{
+		Paths:               args,
+		OutputFormat:        domain.OutputFormatText,
+		OutputWriter:        io.Discard,
+		MinLines:            5,
+		MinNodes:            10,
+		SimilarityThreshold: 0.8,
+		MaxEditDistance:     50.0,
+		IgnoreLiterals:      false,
+		IgnoreIdentifiers:   false,
+		Type1Threshold:      0.98,
+		Type2Threshold:      0.95,
+		Type3Threshold:      0.85,
+		Type4Threshold:      0.70,
+		ShowDetails:         false,
+		ShowContent:         false,
+		SortBy:              domain.SortBySimilarity,
+		GroupClones:         true,
+		MinSimilarity:       0.0,
+		MaxSimilarity:       1.0,
+		CloneTypes:          []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone, domain.Type4Clone},
+		Recursive:           true,
+		IncludePatterns:     []string{"*.py"},
+		ExcludePatterns:     []string{"__pycache__/*", "*.pyc"},
+		ConfigPath:          c.configFile,
 	}
 
 	// Validate request
@@ -265,21 +297,25 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 		return 0, fmt.Errorf("invalid clone request: %w", err)
 	}
 
-	// Redirect output to discard for check command (though we won't use it)
-	request.OutputWriter = io.Discard
+	// Create use case with services
+	configLoader := service.NewCloneConfigurationLoader()
+	fileReader := service.NewFileReader()
+	cloneService := service.NewCloneService()
+	cloneFormatter := service.NewCloneOutputFormatter()
 
-	// Create use case (enables config loading)
-	useCase, err := cloneCmd.createCloneUseCase(cmd)
-	if err != nil {
-		return 0, err
-	}
+	useCase := app.NewCloneUseCase(
+		cloneService,
+		fileReader,
+		cloneFormatter,
+		configLoader,
+	)
 
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	// Use the new ExecuteAndReturn method to get the response for counting
+	// Run analysis
 	response, err := useCase.ExecuteAndReturn(ctx, *request)
 	if err != nil {
 		return 0, err

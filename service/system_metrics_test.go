@@ -38,7 +38,7 @@ func TestExtractCouplingResult_VariesWithGraphs(t *testing.T) {
 			expectedCheck: func(t *testing.T, metrics *analyzer.SystemMetrics) {
 				assert.Equal(t, 3, metrics.TotalModules)
 				assert.Equal(t, 2, metrics.TotalDependencies)
-				assert.Equal(t, 0, metrics.CyclicDependencies) // No cycles
+				assert.Equal(t, 0, metrics.CyclicDependencies)          // No cycles
 				assert.InDelta(t, 0.667, metrics.DependencyRatio, 0.01) // 2/3
 				assert.NotNil(t, metrics.RefactoringPriority)
 			},
@@ -79,7 +79,7 @@ func TestExtractCouplingResult_VariesWithGraphs(t *testing.T) {
 			expectedCheck: func(t *testing.T, metrics *analyzer.SystemMetrics) {
 				assert.Equal(t, 5, metrics.TotalModules)
 				assert.Equal(t, 9, metrics.TotalDependencies)
-				assert.Greater(t, metrics.CyclicDependencies, 0) // Has cycles
+				assert.Greater(t, metrics.CyclicDependencies, 0)      // Has cycles
 				assert.InDelta(t, 1.8, metrics.DependencyRatio, 0.01) // 9/5
 				assert.Greater(t, metrics.SystemComplexity, 0.0)
 				assert.NotNil(t, metrics.RefactoringPriority)
@@ -119,7 +119,7 @@ func TestExtractCouplingResult_VariesWithGraphs(t *testing.T) {
 				assert.Equal(t, 4, metrics.TotalModules)
 				assert.Equal(t, 3, metrics.TotalDependencies)
 				assert.Equal(t, 2, metrics.PackageCount)
-				assert.Greater(t, metrics.ModularityIndex, 0.0) // Should have some modularity
+				assert.Greater(t, metrics.ModularityIndex, 0.0)        // Should have some modularity
 				assert.InDelta(t, 0.75, metrics.DependencyRatio, 0.01) // 3/4
 			},
 		},

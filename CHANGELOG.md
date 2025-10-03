@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - TBD
+
+### Breaking Changes
+- **Removed deprecated individual commands**: Removed `complexity`, `deadcode`, `clone`, `cbo`, and `deps` commands
+  - **Migration**: Use `pyscn analyze --select <analysis>` instead
+  - Example: `pyscn complexity .` → `pyscn analyze --select complexity .`
+  - Example: `pyscn deadcode --min-severity critical .` → `pyscn analyze --select deadcode --min-severity critical .`
+  - This change simplifies the CLI interface and improves consistency
+  - All functionality is preserved through the unified `analyze` command
+
+### Rationale
+This breaking change was made during the beta period (v0.x.x) before the 1.0.0 release to:
+- Eliminate redundant command interfaces and reduce maintenance burden
+- Provide a single, consistent way to run analyses
+- Simplify documentation and reduce user confusion
+- Clean up the codebase before the stable 1.0.0 release
+
 ## [0.1.0-beta.13] - 2025-09-08
 
 ### Latest Beta Release
@@ -86,9 +103,9 @@ pyscn check .
 # Comprehensive analysis
 pyscn analyze --html src/
 
-# Individual analyses
-pyscn complexity src/
-pyscn deadcode src/
-pyscn clone src/
-pyscn cbo src/
+# Individual analyses (use analyze --select)
+pyscn analyze --select complexity src/
+pyscn analyze --select deadcode src/
+pyscn analyze --select clones src/
+pyscn analyze --select cbo src/
 ```
