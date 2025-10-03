@@ -31,26 +31,6 @@ func init() {
 	rootCmd.AddCommand(NewCheckCmd())
 	rootCmd.AddCommand(NewVersionCmd())
 	rootCmd.AddCommand(NewInitCmd())
-
-	// Add deprecated commands (hidden from help)
-	complexityCmd := NewComplexityCmd()
-	complexityCmd.Hidden = true
-	rootCmd.AddCommand(complexityCmd)
-
-	deadCodeCmd := NewDeadCodeCmd()
-	deadCodeCmd.Hidden = true
-	rootCmd.AddCommand(deadCodeCmd)
-
-	cboCmd := NewCBOCmd()
-	cboCmd.Hidden = true
-	rootCmd.AddCommand(cboCmd)
-
-	depsCmd := NewDepsCmd()
-	depsCmd.Hidden = true
-	rootCmd.AddCommand(depsCmd)
-
-	// Add clone command (uses different pattern)
-	addCloneCommand(rootCmd)
 }
 
 func main() {

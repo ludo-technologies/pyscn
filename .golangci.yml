@@ -1,0 +1,12 @@
+linters-settings:
+  staticcheck:
+    checks:
+      - "all"
+      - "-SA5011" # Disable false positives for nil checks before dereferencing
+
+linters:
+  enable:
+    - staticcheck
+    - unused
+    - gofmt
+    - govet
