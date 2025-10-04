@@ -1238,12 +1238,16 @@ func (b *CFGBuilder) convertElifClauseToIf(elifNode *parser.Node) *parser.Node {
 		Orelse: elifNode.Orelse,
 	}
 
-	// Validation: log if expected fields are missing (indicates parser bug)
-	if len(ifNode.Body) == 0 {
-		b.logError("elif_clause node has empty Body - possible parser bug")
-	}
-	if ifNode.Test == nil {
-		b.logError("elif_clause node has nil Test - possible parser bug")
+	// Validation: panic if expected fields are missing (indicates parser bug)
+	// This is a programming error, not a user input error, so fail-fast is appropriate
+	if len(ifNode.Body) == 0 || ifNode.Test == nil {
+		panic(fmt.Sprintf(
+			"Invalid elif_clause node at %s:%d - parser bug detected (Test exists: %v, Body length: %d)",
+			elifNode.Location.File,
+			elifNode.Location.StartLine,
+			ifNode.Test != nil,
+			len(ifNode.Body),
+		))
 	}
 
 	return ifNode
@@ -1251,20 +1255,18 @@ func (b *CFGBuilder) convertElifClauseToIf(elifNode *parser.Node) *parser.Node {
 
 // blockTerminates checks if a block ends with a terminating statement
 // (return, raise, break, or continue)
+// Only checks the last statement to avoid false positives from nested control flow
 func (b *CFGBuilder) blockTerminates(block *BasicBlock) bool {
 	if block == nil || len(block.Statements) == 0 {
 		return false
 	}
 
-	for _, stmt := range block.Statements {
-		if stmt.Type == parser.NodeReturn ||
-			stmt.Type == parser.NodeRaise ||
-			stmt.Type == parser.NodeBreak ||
-			stmt.Type == parser.NodeContinue {
-			return true
-		}
-	}
-	return false
+	// Check only the last statement in the block
+	lastStmt := block.Statements[len(block.Statements)-1]
+	return lastStmt.Type == parser.NodeReturn ||
+		lastStmt.Type == parser.NodeRaise ||
+		lastStmt.Type == parser.NodeBreak ||
+		lastStmt.Type == parser.NodeContinue
 }
 
 // allBranchesTerminate checks if all branches of a conditional terminate
