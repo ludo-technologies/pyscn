@@ -133,11 +133,17 @@ func TestAnalyzeSummary_Validate(t *testing.T) {
 
 func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 	tests := []struct {
-		name          string
-		summary       domain.AnalyzeSummary
-		expectedScore int
-		expectedGrade string
-		expectError   bool
+		name                      string
+		summary                   domain.AnalyzeSummary
+		expectedScore             int
+		expectedGrade             string
+		expectError               bool
+		expectedComplexityScore   int
+		expectedDeadCodeScore     int
+		expectedDuplicationScore  int
+		expectedCouplingScore     int
+		expectedDependencyScore   int
+		expectedArchitectureScore int
 	}{
 		{
 			name: "perfect score",
@@ -147,9 +153,15 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				ArchEnabled:       true,
 				ArchCompliance:    1.0,
 			},
-			expectedScore: 100,
-			expectedGrade: "A",
-			expectError:   false,
+			expectedScore:             100,
+			expectedGrade:             "A",
+			expectError:               false,
+			expectedComplexityScore:   100,
+			expectedDeadCodeScore:     100,
+			expectedDuplicationScore:  100,
+			expectedCouplingScore:     100,
+			expectedDependencyScore:   100,
+			expectedArchitectureScore: 100,
 		},
 		{
 			name: "typical 74 score case",
@@ -163,9 +175,15 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				ArchEnabled:               true,
 				ArchCompliance:            0.125, // -7
 			},
-			expectedScore: 74,
-			expectedGrade: "B",
-			expectError:   false,
+			expectedScore:             74,
+			expectedGrade:             "B",
+			expectError:               false,
+			expectedComplexityScore:   70,  // 100 - (6/20)*100 = 70
+			expectedDeadCodeScore:     100, // No dead code
+			expectedDuplicationScore:  70,  // 100 - (6/20)*100 = 70
+			expectedCouplingScore:     69,  // 100 - (5/16)*100 = 69 (rounded)
+			expectedDependencyScore:   83,  // 100 - (2/12)*100 = 83 (rounded)
+			expectedArchitectureScore: 12,  // 100 - (7/8)*100 = 12 (rounded)
 		},
 		{
 			name: "moderate complexity and duplication",
@@ -285,6 +303,38 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				if tt.summary.Grade != tt.expectedGrade {
 					t.Errorf("Grade = %s, want %s", tt.summary.Grade, tt.expectedGrade)
 				}
+
+				// Check individual scores if specified
+				if tt.expectedComplexityScore > 0 {
+					if tt.summary.ComplexityScore != tt.expectedComplexityScore {
+						t.Errorf("ComplexityScore = %d, want %d", tt.summary.ComplexityScore, tt.expectedComplexityScore)
+					}
+				}
+				if tt.expectedDeadCodeScore > 0 {
+					if tt.summary.DeadCodeScore != tt.expectedDeadCodeScore {
+						t.Errorf("DeadCodeScore = %d, want %d", tt.summary.DeadCodeScore, tt.expectedDeadCodeScore)
+					}
+				}
+				if tt.expectedDuplicationScore > 0 {
+					if tt.summary.DuplicationScore != tt.expectedDuplicationScore {
+						t.Errorf("DuplicationScore = %d, want %d", tt.summary.DuplicationScore, tt.expectedDuplicationScore)
+					}
+				}
+				if tt.expectedCouplingScore > 0 {
+					if tt.summary.CouplingScore != tt.expectedCouplingScore {
+						t.Errorf("CouplingScore = %d, want %d", tt.summary.CouplingScore, tt.expectedCouplingScore)
+					}
+				}
+				if tt.expectedDependencyScore > 0 {
+					if tt.summary.DependencyScore != tt.expectedDependencyScore {
+						t.Errorf("DependencyScore = %d, want %d", tt.summary.DependencyScore, tt.expectedDependencyScore)
+					}
+				}
+				if tt.expectedArchitectureScore > 0 {
+					if tt.summary.ArchitectureScore != tt.expectedArchitectureScore {
+						t.Errorf("ArchitectureScore = %d, want %d", tt.summary.ArchitectureScore, tt.expectedArchitectureScore)
+					}
+				}
 			} else {
 				// When error occurs, check default values
 				if tt.summary.HealthScore != 0 {
@@ -292,6 +342,10 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				}
 				if tt.summary.Grade != "N/A" {
 					t.Errorf("Grade should be N/A on error, got %s", tt.summary.Grade)
+				}
+				// All scores should be 0 on error
+				if tt.summary.ComplexityScore != 0 {
+					t.Errorf("ComplexityScore should be 0 on error, got %d", tt.summary.ComplexityScore)
 				}
 			}
 		})
