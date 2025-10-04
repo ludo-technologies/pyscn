@@ -167,6 +167,18 @@ func (f *AnalyzeFormatter) writeHTML(response *domain.AnalyzeResponse, writer io
 			return a - b
 		},
 		"mul100": func(v float64) float64 { return v * 100.0 },
+		"scoreQuality": func(score int) string {
+			switch {
+			case score >= domain.ScoreThresholdExcellent:
+				return "excellent"
+			case score >= domain.ScoreThresholdGood:
+				return "good"
+			case score >= domain.ScoreThresholdFair:
+				return "fair"
+			default:
+				return "poor"
+			}
+		},
 	}
 	tmpl := template.Must(template.New("analyze").Funcs(funcMap).Parse(analyzeHTMLTemplate))
 	return tmpl.Execute(writer, response)
@@ -294,6 +306,86 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         .severity-critical { color: #f44336; }
         .severity-warning { color: #ff9800; }
         .severity-info { color: #2196f3; }
+
+        /* Score bars */
+        .score-bars {
+            margin: 20px 0;
+        }
+        .score-bar-item {
+            margin-bottom: 24px;
+        }
+        .score-bar-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        .score-label {
+            font-weight: 600;
+            color: #333;
+        }
+        .score-value {
+            font-weight: 700;
+            color: #667eea;
+        }
+        .score-bar-container {
+            width: 100%;
+            height: 12px;
+            background: #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .score-bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 6px;
+        }
+        .score-excellent { background: linear-gradient(90deg, #4caf50, #66bb6a); }
+        .score-good { background: linear-gradient(90deg, #8bc34a, #9ccc65); }
+        .score-fair { background: linear-gradient(90deg, #ff9800, #ffa726); }
+        .score-poor { background: linear-gradient(90deg, #f44336, #ef5350); }
+        .score-detail {
+            margin-top: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* Tab header with score badge */
+        .tab-header-with-score {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .score-badge-compact {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 700;
+            color: white;
+            white-space: nowrap;
+        }
+        .score-badge-compact.score-excellent {
+            background: linear-gradient(135deg, #4caf50, #66bb6a);
+            box-shadow: 0 2px 6px rgba(76, 175, 80, 0.4);
+        }
+        .score-badge-compact.score-good {
+            background: linear-gradient(135deg, #8bc34a, #9ccc65);
+            box-shadow: 0 2px 6px rgba(139, 195, 74, 0.4);
+        }
+        .score-badge-compact.score-fair {
+            background: linear-gradient(135deg, #ff9800, #ffa726);
+            box-shadow: 0 2px 6px rgba(255, 152, 0, 0.4);
+        }
+        .score-badge-compact.score-poor {
+            background: linear-gradient(135deg, #f44336, #ef5350);
+            box-shadow: 0 2px 6px rgba(244, 67, 54, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -333,6 +425,89 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
 
             <div id="summary" class="tab-content active">
                 <h2>Analysis Summary</h2>
+
+                <h3 style="margin-top: 20px; margin-bottom: 16px; color: #2c3e50;">Quality Scores</h3>
+                <div class="score-bars">
+                    {{if .Summary.ComplexityEnabled}}
+                    <div class="score-bar-item">
+                        <div class="score-bar-header">
+                            <span class="score-label">Complexity</span>
+                            <span class="score-value">{{.Summary.ComplexityScore}}/100</span>
+                        </div>
+                        <div class="score-bar-container">
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.ComplexityScore}}" style="width: {{.Summary.ComplexityScore}}%"></div>
+                        </div>
+                        <div class="score-detail">Avg: {{printf "%.1f" .Summary.AverageComplexity}}, High-risk: {{.Summary.HighComplexityCount}}</div>
+                    </div>
+                    {{end}}
+
+                    {{if .Summary.DeadCodeEnabled}}
+                    <div class="score-bar-item">
+                        <div class="score-bar-header">
+                            <span class="score-label">Dead Code</span>
+                            <span class="score-value">{{.Summary.DeadCodeScore}}/100</span>
+                        </div>
+                        <div class="score-bar-container">
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.DeadCodeScore}}" style="width: {{.Summary.DeadCodeScore}}%"></div>
+                        </div>
+                        <div class="score-detail">{{.Summary.DeadCodeCount}} issues, {{.Summary.CriticalDeadCode}} critical</div>
+                    </div>
+                    {{end}}
+
+                    {{if .Summary.CloneEnabled}}
+                    <div class="score-bar-item">
+                        <div class="score-bar-header">
+                            <span class="score-label">Duplication</span>
+                            <span class="score-value">{{.Summary.DuplicationScore}}/100</span>
+                        </div>
+                        <div class="score-bar-container">
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.DuplicationScore}}" style="width: {{.Summary.DuplicationScore}}%"></div>
+                        </div>
+                        <div class="score-detail">{{printf "%.1f%%" .Summary.CodeDuplication}} duplication, {{.Summary.CloneGroups}} groups</div>
+                    </div>
+                    {{end}}
+
+                    {{if .Summary.CBOEnabled}}
+                    <div class="score-bar-item">
+                        <div class="score-bar-header">
+                            <span class="score-label">Coupling (CBO)</span>
+                            <span class="score-value">{{.Summary.CouplingScore}}/100</span>
+                        </div>
+                        <div class="score-bar-container">
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.CouplingScore}}" style="width: {{.Summary.CouplingScore}}%"></div>
+                        </div>
+                        <div class="score-detail">Avg: {{printf "%.1f" .Summary.AverageCoupling}}, High-coupling: {{.Summary.HighCouplingClasses}}/{{.Summary.CBOClasses}}</div>
+                    </div>
+                    {{end}}
+
+                    {{if .Summary.DepsEnabled}}
+                    <div class="score-bar-item">
+                        <div class="score-bar-header">
+                            <span class="score-label">Dependencies</span>
+                            <span class="score-value">{{.Summary.DependencyScore}}/100</span>
+                        </div>
+                        <div class="score-bar-container">
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.DependencyScore}}" style="width: {{.Summary.DependencyScore}}%"></div>
+                        </div>
+                        <div class="score-detail">{{if eq .Summary.DepsModulesInCycles 0}}No cycles{{else}}{{.Summary.DepsModulesInCycles}} cycles{{end}}, Depth: {{.Summary.DepsMaxDepth}}</div>
+                    </div>
+                    {{end}}
+
+                    {{if .Summary.ArchEnabled}}
+                    <div class="score-bar-item">
+                        <div class="score-bar-header">
+                            <span class="score-label">Architecture</span>
+                            <span class="score-value">{{.Summary.ArchitectureScore}}/100</span>
+                        </div>
+                        <div class="score-bar-container">
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.ArchitectureScore}}" style="width: {{.Summary.ArchitectureScore}}%"></div>
+                        </div>
+                        <div class="score-detail">{{printf "%.0f%%" (mul100 .Summary.ArchCompliance)}} compliant</div>
+                    </div>
+                    {{end}}
+                </div>
+
+                <h3 style="margin-top: 24px; margin-bottom: 16px; color: #2c3e50;">File Statistics</h3>
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-value">{{.Summary.TotalFiles}}</div>
@@ -426,7 +601,12 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
 
             {{if .Summary.ComplexityEnabled}}
             <div id="complexity" class="tab-content">
-                <h2>Complexity Analysis</h2>
+                <div class="tab-header-with-score">
+                    <h2 style="margin: 0;">Complexity Analysis</h2>
+                    <div class="score-badge-compact score-{{scoreQuality .Summary.ComplexityScore}}">
+                        {{.Summary.ComplexityScore}}/100
+                    </div>
+                </div>
                 {{if .Complexity}}
                 <div class="metric-grid">
                     <div class="metric-card">
@@ -475,7 +655,12 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
 
             {{if .Summary.DeadCodeEnabled}}
             <div id="deadcode" class="tab-content">
-                <h2>Dead Code Detection</h2>
+                <div class="tab-header-with-score">
+                    <h2 style="margin: 0;">Dead Code Detection</h2>
+                    <div class="score-badge-compact score-{{scoreQuality .Summary.DeadCodeScore}}">
+                        {{.Summary.DeadCodeScore}}/100
+                    </div>
+                </div>
                 {{if .DeadCode}}
                 <div class="metric-grid">
                     <div class="metric-card">
@@ -534,7 +719,12 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
 
             {{if .Summary.CloneEnabled}}
             <div id="clone" class="tab-content">
-                <h2>Clone Detection</h2>
+                <div class="tab-header-with-score">
+                    <h2 style="margin: 0;">Clone Detection</h2>
+                    <div class="score-badge-compact score-{{scoreQuality .Summary.DuplicationScore}}">
+                        {{.Summary.DuplicationScore}}/100
+                    </div>
+                </div>
                 {{if .Clone}}
                 <div class="metric-grid">
                     <div class="metric-card">
@@ -630,7 +820,12 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
 
             {{if .Summary.CBOEnabled}}
             <div id="cbo" class="tab-content">
-                <h2>Class Coupling</h2>
+                <div class="tab-header-with-score">
+                    <h2 style="margin: 0;">Class Coupling</h2>
+                    <div class="score-badge-compact score-{{scoreQuality .Summary.CouplingScore}}">
+                        {{.Summary.CouplingScore}}/100
+                    </div>
+                </div>
                 <p style="margin-bottom: 20px; color: #666;">Coupling Between Objects (CBO) metrics</p>
                 {{if .CBO}}
                 <div class="metric-grid">
@@ -687,7 +882,12 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             {{if .System}}
             {{if .System.DependencyAnalysis}}
             <div id="sys-deps" class="tab-content">
-                <h2>Module Dependencies</h2>
+                <div class="tab-header-with-score">
+                    <h2 style="margin: 0;">Module Dependencies</h2>
+                    <div class="score-badge-compact score-{{scoreQuality .Summary.DependencyScore}}">
+                        {{.Summary.DependencyScore}}/100
+                    </div>
+                </div>
                 <p style="margin-bottom: 20px; color: #666;">Project-wide module dependency graph metrics</p>
                 <div class="metric-grid">
                     <div class="metric-card">
@@ -738,7 +938,12 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
 
             {{if .System.ArchitectureAnalysis}}
             <div id="sys-arch" class="tab-content">
-                <h2>Architecture Validation</h2>
+                <div class="tab-header-with-score">
+                    <h2 style="margin: 0;">Architecture Validation</h2>
+                    <div class="score-badge-compact score-{{scoreQuality .Summary.ArchitectureScore}}">
+                        {{.Summary.ArchitectureScore}}/100
+                    </div>
+                </div>
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-value">{{if .System.ArchitectureAnalysis.LayerAnalysis}}{{.System.ArchitectureAnalysis.LayerAnalysis.LayersAnalyzed}}{{else}}0{{end}}</div>

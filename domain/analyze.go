@@ -46,6 +46,12 @@ const (
 	GradeCThreshold = 55
 	GradeDThreshold = 40
 
+	// Score quality thresholds (aligned with grade thresholds)
+	ScoreThresholdExcellent = 85 // Excellent: 85-100
+	ScoreThresholdGood      = 70 // Good: 70-84
+	ScoreThresholdFair      = 55 // Fair: 55-69
+	// Poor: 0-54 (below ScoreThresholdFair)
+
 	// Other constants
 	MinimumScore                = 10
 	HealthyThreshold            = 70
@@ -113,6 +119,14 @@ type AnalyzeSummary struct {
 	// Overall health score (0-100)
 	HealthScore int    `json:"health_score" yaml:"health_score"`
 	Grade       string `json:"grade" yaml:"grade"` // A, B, C, D, F
+
+	// Individual category scores (0-100)
+	ComplexityScore   int `json:"complexity_score" yaml:"complexity_score"`
+	DeadCodeScore     int `json:"dead_code_score" yaml:"dead_code_score"`
+	DuplicationScore  int `json:"duplication_score" yaml:"duplication_score"`
+	CouplingScore     int `json:"coupling_score" yaml:"coupling_score"`
+	DependencyScore   int `json:"dependency_score" yaml:"dependency_score"`
+	ArchitectureScore int `json:"architecture_score" yaml:"architecture_score"`
 }
 
 // Validate checks if the summary contains valid values
@@ -154,6 +168,147 @@ func (s *AnalyzeSummary) Validate() error {
 	return nil
 }
 
+// calculateComplexityPenalty calculates the penalty for complexity (max 20)
+func (s *AnalyzeSummary) calculateComplexityPenalty() int {
+	switch {
+	case s.AverageComplexity > float64(ComplexityThresholdHigh):
+		return ComplexityPenaltyHigh
+	case s.AverageComplexity > float64(ComplexityThresholdMedium):
+		return ComplexityPenaltyMedium
+	case s.AverageComplexity > float64(ComplexityThresholdLow):
+		return ComplexityPenaltyLow
+	default:
+		return 0
+	}
+}
+
+// calculateDeadCodePenalty calculates the penalty for dead code (max 20)
+func (s *AnalyzeSummary) calculateDeadCodePenalty(normalizationFactor float64) int {
+	if s.DeadCodeCount == 0 && s.CriticalDeadCode == 0 {
+		return 0
+	}
+
+	base := int(math.Min(float64(MaxDeadCodePenalty), float64(s.DeadCodeCount)/normalizationFactor))
+	critical := int(math.Min(float64(MaxCriticalPenalty), float64(3*s.CriticalDeadCode)/normalizationFactor))
+	penalty := base + critical
+	if penalty > MaxDeadCodePenalty {
+		penalty = MaxDeadCodePenalty
+	}
+	return penalty
+}
+
+// calculateDuplicationPenalty calculates the penalty for code duplication (max 20)
+func (s *AnalyzeSummary) calculateDuplicationPenalty() int {
+	switch {
+	case s.CodeDuplication > DuplicationThresholdHigh:
+		return DuplicationPenaltyHigh
+	case s.CodeDuplication > DuplicationThresholdMedium:
+		return DuplicationPenaltyMedium
+	case s.CodeDuplication > DuplicationThresholdLow:
+		return DuplicationPenaltyLow
+	default:
+		return 0
+	}
+}
+
+// calculateCouplingPenalty calculates the penalty for class coupling (max 16)
+func (s *AnalyzeSummary) calculateCouplingPenalty() int {
+	if s.CBOClasses == 0 {
+		return 0
+	}
+
+	ratio := float64(s.HighCouplingClasses) / float64(s.CBOClasses)
+	switch {
+	case ratio > CouplingRatioHigh:
+		return CouplingPenaltyHigh
+	case ratio > CouplingRatioMedium:
+		return CouplingPenaltyMedium
+	case ratio > CouplingRatioLow:
+		return CouplingPenaltyLow
+	default:
+		return 0
+	}
+}
+
+// calculateDependencyPenalty calculates the penalty for module dependencies (max 12)
+func (s *AnalyzeSummary) calculateDependencyPenalty() int {
+	if !s.DepsEnabled {
+		return 0
+	}
+
+	penalty := 0
+
+	// Cycles penalty (max 8): proportion of modules in cycles
+	if s.DepsTotalModules > 0 {
+		ratio := float64(s.DepsModulesInCycles) / float64(s.DepsTotalModules)
+		if ratio < 0 {
+			ratio = 0
+		}
+		if ratio > 1 {
+			ratio = 1
+		}
+		penalty += int(math.Round(float64(MaxCyclesPenalty) * ratio))
+	}
+
+	// Depth penalty (max 2): excess over expected depth ~ O(log N)
+	if s.DepsTotalModules > 0 {
+		expected := int(math.Max(3, math.Ceil(math.Log2(float64(s.DepsTotalModules)+1))+1))
+		excess := s.DepsMaxDepth - expected
+		if excess < 0 {
+			excess = 0
+		}
+		if excess > MaxDepthPenalty {
+			excess = MaxDepthPenalty
+		}
+		penalty += excess
+	}
+
+	// Main sequence deviation penalty (max 2)
+	if s.DepsMainSequenceDeviation > 0 {
+		msd := s.DepsMainSequenceDeviation
+		if msd < 0 {
+			msd = 0
+		}
+		if msd > 1 {
+			msd = 1
+		}
+		penalty += int(math.Round(msd * float64(MaxMSDPenalty)))
+	}
+
+	return penalty
+}
+
+// calculateArchitecturePenalty calculates the penalty for architecture compliance (max 8)
+func (s *AnalyzeSummary) calculateArchitecturePenalty() int {
+	if !s.ArchEnabled {
+		return 0
+	}
+
+	comp := s.ArchCompliance
+	if comp < 0 {
+		comp = 0
+	}
+	if comp > 1 {
+		comp = 1
+	}
+	return int(math.Round(float64(MaxArchPenalty) * (1 - comp)))
+}
+
+// penaltyToScore converts a penalty value to a 0-100 score
+func penaltyToScore(penalty int, maxPenalty int) int {
+	if maxPenalty == 0 {
+		return 100
+	}
+	score := 100 - int(math.Round(float64(penalty)*100.0/float64(maxPenalty)))
+	if score < 0 {
+		score = 0
+	}
+	if score > 100 {
+		score = 100
+	}
+	return score
+}
+
 // CalculateHealthScore calculates an overall health score based on analysis results
 func (s *AnalyzeSummary) CalculateHealthScore() error {
 	// Validate input values first
@@ -161,6 +316,12 @@ func (s *AnalyzeSummary) CalculateHealthScore() error {
 		// Set default values on error
 		s.HealthScore = 0
 		s.Grade = "N/A"
+		s.ComplexityScore = 0
+		s.DeadCodeScore = 0
+		s.DuplicationScore = 0
+		s.CouplingScore = 0
+		s.DependencyScore = 0
+		s.ArchitectureScore = 0
 		return fmt.Errorf("invalid summary data: %w", err)
 	}
 	score := 100
@@ -171,101 +332,30 @@ func (s *AnalyzeSummary) CalculateHealthScore() error {
 		normalizationFactor = 1.0 + math.Log10(float64(s.TotalFiles)/10.0)
 	}
 
-	// Complexity penalty
-	switch {
-	case s.AverageComplexity > float64(ComplexityThresholdHigh):
-		score -= ComplexityPenaltyHigh
-	case s.AverageComplexity > float64(ComplexityThresholdMedium):
-		score -= ComplexityPenaltyMedium
-	case s.AverageComplexity > float64(ComplexityThresholdLow):
-		score -= ComplexityPenaltyLow
-	}
+	// Calculate penalties and corresponding scores
+	complexityPenalty := s.calculateComplexityPenalty()
+	s.ComplexityScore = penaltyToScore(complexityPenalty, ComplexityPenaltyHigh)
+	score -= complexityPenalty
 
-	// Dead code penalty (normalized)
-	if s.DeadCodeCount > 0 || s.CriticalDeadCode > 0 {
-		base := int(math.Min(float64(MaxDeadCodePenalty), float64(s.DeadCodeCount)/normalizationFactor))
-		critical := int(math.Min(float64(MaxCriticalPenalty), float64(3*s.CriticalDeadCode)/normalizationFactor))
-		penalty := base + critical
-		if penalty > MaxDeadCodePenalty {
-			penalty = MaxDeadCodePenalty
-		}
-		score -= penalty
-	}
+	deadCodePenalty := s.calculateDeadCodePenalty(normalizationFactor)
+	s.DeadCodeScore = penaltyToScore(deadCodePenalty, MaxDeadCodePenalty)
+	score -= deadCodePenalty
 
-	// Clone penalty
-	switch {
-	case s.CodeDuplication > DuplicationThresholdHigh:
-		score -= DuplicationPenaltyHigh
-	case s.CodeDuplication > DuplicationThresholdMedium:
-		score -= DuplicationPenaltyMedium
-	case s.CodeDuplication > DuplicationThresholdLow:
-		score -= DuplicationPenaltyLow
-	}
+	duplicationPenalty := s.calculateDuplicationPenalty()
+	s.DuplicationScore = penaltyToScore(duplicationPenalty, DuplicationPenaltyHigh)
+	score -= duplicationPenalty
 
-	// CBO penalty based on ratio of high-coupling classes
-	if s.CBOClasses > 0 {
-		ratio := float64(s.HighCouplingClasses) / float64(s.CBOClasses)
-		switch {
-		case ratio > CouplingRatioHigh:
-			score -= CouplingPenaltyHigh
-		case ratio > CouplingRatioMedium:
-			score -= CouplingPenaltyMedium
-		case ratio > CouplingRatioLow:
-			score -= CouplingPenaltyLow
-		}
-	}
+	couplingPenalty := s.calculateCouplingPenalty()
+	s.CouplingScore = penaltyToScore(couplingPenalty, CouplingPenaltyHigh)
+	score -= couplingPenalty
 
-	// Module Dependencies & Architecture (max 20 total)
-	if s.DepsEnabled {
-		// Cycles penalty (max 8): proportion of modules in cycles
-		if s.DepsTotalModules > 0 {
-			ratio := float64(s.DepsModulesInCycles) / float64(s.DepsTotalModules)
-			if ratio < 0 {
-				ratio = 0
-			}
-			if ratio > 1 {
-				ratio = 1
-			}
-			score -= int(math.Round(float64(MaxCyclesPenalty) * ratio))
-		}
+	dependencyPenalty := s.calculateDependencyPenalty()
+	s.DependencyScore = penaltyToScore(dependencyPenalty, MaxCyclesPenalty+MaxDepthPenalty+MaxMSDPenalty)
+	score -= dependencyPenalty
 
-		// Depth penalty (max 2): excess over expected depth ~ O(log N)
-		if s.DepsTotalModules > 0 {
-			expected := int(math.Max(3, math.Ceil(math.Log2(float64(s.DepsTotalModules)+1))+1))
-			excess := s.DepsMaxDepth - expected
-			if excess < 0 {
-				excess = 0
-			}
-			if excess > MaxDepthPenalty {
-				excess = MaxDepthPenalty
-			}
-			score -= excess
-		}
-
-		// Main sequence deviation penalty (max 2)
-		if s.DepsMainSequenceDeviation > 0 {
-			msd := s.DepsMainSequenceDeviation
-			if msd < 0 {
-				msd = 0
-			}
-			if msd > 1 {
-				msd = 1
-			}
-			score -= int(math.Round(msd * float64(MaxMSDPenalty)))
-		}
-	}
-
-	// Architecture compliance penalty (max 8)
-	if s.ArchEnabled {
-		comp := s.ArchCompliance
-		if comp < 0 {
-			comp = 0
-		}
-		if comp > 1 {
-			comp = 1
-		}
-		score -= int(math.Round(float64(MaxArchPenalty) * (1 - comp)))
-	}
+	architecturePenalty := s.calculateArchitecturePenalty()
+	s.ArchitectureScore = penaltyToScore(architecturePenalty, MaxArchPenalty)
+	score -= architecturePenalty
 
 	// Minimum score floor
 	if score < MinimumScore {

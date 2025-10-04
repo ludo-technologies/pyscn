@@ -386,22 +386,82 @@ func (c *AnalyzeCommand) generateOutput(cmd *cobra.Command, response *domain.Ana
 	return nil
 }
 
+// getScoreIcon returns an icon representing the score quality
+func getScoreIcon(score int) string {
+	switch {
+	case score >= domain.ScoreThresholdExcellent:
+		return "✅" // Excellent
+	case score >= domain.ScoreThresholdGood:
+		return "👍" // Good
+	case score >= domain.ScoreThresholdFair:
+		return "⚠️" // Fair
+	default:
+		return "❌" // Poor
+	}
+}
+
 // printSummary prints a summary of the analysis results
 func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.AnalyzeResponse) {
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n📊 Analysis Summary:\n")
-	fmt.Fprintf(cmd.ErrOrStderr(), "Total time: %dms\n", response.Duration)
-	fmt.Fprintf(cmd.ErrOrStderr(), "\n")
+	fmt.Fprintf(cmd.ErrOrStderr(), "Health Score: %d/100 (Grade: %s)\n", response.Summary.HealthScore, response.Summary.Grade)
+	fmt.Fprintf(cmd.ErrOrStderr(), "Total time: %dms\n\n", response.Duration)
 
-	// Print health score if available
-	if response.Summary.HealthScore > 0 {
-		fmt.Fprintf(cmd.ErrOrStderr(), "Health Score: %d/100 (%s)\n", response.Summary.HealthScore, response.Summary.Grade)
+	// Print detailed scores section
+	fmt.Fprintf(cmd.ErrOrStderr(), "📈 Detailed Scores:\n")
+
+	if response.Summary.ComplexityEnabled {
+		icon := getScoreIcon(response.Summary.ComplexityScore)
+		fmt.Fprintf(cmd.ErrOrStderr(), "  Complexity:     %3d/100 %s  (avg: %.1f, high-risk: %d functions)\n",
+			response.Summary.ComplexityScore, icon,
+			response.Summary.AverageComplexity, response.Summary.HighComplexityCount)
 	}
 
-	// Print enabled analyses summary with success indicators
+	if response.Summary.DeadCodeEnabled {
+		icon := getScoreIcon(response.Summary.DeadCodeScore)
+		fmt.Fprintf(cmd.ErrOrStderr(), "  Dead Code:      %3d/100 %s  (%d issues, %d critical)\n",
+			response.Summary.DeadCodeScore, icon,
+			response.Summary.DeadCodeCount, response.Summary.CriticalDeadCode)
+	}
+
+	if response.Summary.CloneEnabled {
+		icon := getScoreIcon(response.Summary.DuplicationScore)
+		fmt.Fprintf(cmd.ErrOrStderr(), "  Duplication:    %3d/100 %s  (%.1f%% duplication, %d groups)\n",
+			response.Summary.DuplicationScore, icon,
+			response.Summary.CodeDuplication, response.Summary.CloneGroups)
+	}
+
+	if response.Summary.CBOEnabled {
+		icon := getScoreIcon(response.Summary.CouplingScore)
+		fmt.Fprintf(cmd.ErrOrStderr(), "  Coupling (CBO): %3d/100 %s  (avg: %.1f, %d/%d high-coupling)\n",
+			response.Summary.CouplingScore, icon,
+			response.Summary.AverageCoupling, response.Summary.HighCouplingClasses, response.Summary.CBOClasses)
+	}
+
+	if response.Summary.DepsEnabled {
+		icon := getScoreIcon(response.Summary.DependencyScore)
+		cyclesMsg := fmt.Sprintf("%d cycles", response.Summary.DepsModulesInCycles)
+		if response.Summary.DepsModulesInCycles == 0 {
+			cyclesMsg = "no cycles"
+		}
+		fmt.Fprintf(cmd.ErrOrStderr(), "  Dependencies:   %3d/100 %s  (%s, depth: %d)\n",
+			response.Summary.DependencyScore, icon,
+			cyclesMsg, response.Summary.DepsMaxDepth)
+	}
+
+	if response.Summary.ArchEnabled {
+		icon := getScoreIcon(response.Summary.ArchitectureScore)
+		fmt.Fprintf(cmd.ErrOrStderr(), "  Architecture:   %3d/100 %s  (%.0f%% compliant)\n",
+			response.Summary.ArchitectureScore, icon,
+			response.Summary.ArchCompliance*100)
+	}
+
+	fmt.Fprintf(cmd.ErrOrStderr(), "\n")
+
+	// Print analysis status summary
 	if response.Summary.ComplexityEnabled {
 		if response.Complexity != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Complexity Analysis: %d functions analyzed, average complexity: %.1f\n",
-				response.Summary.TotalFunctions, response.Summary.AverageComplexity)
+			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Complexity Analysis: %d functions analyzed\n",
+				response.Summary.TotalFunctions)
 		} else {
 			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Complexity Analysis: Failed\n")
 		}
@@ -409,8 +469,7 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 
 	if response.Summary.DeadCodeEnabled {
 		if response.DeadCode != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Dead Code Detection: %d issues found (%d critical)\n",
-				response.Summary.DeadCodeCount, response.Summary.CriticalDeadCode)
+			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Dead Code Detection: Completed\n")
 		} else {
 			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Dead Code Detection: Failed\n")
 		}
@@ -418,8 +477,7 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 
 	if response.Summary.CloneEnabled {
 		if response.Clone != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Clone Detection: %d clone groups, %.1f%% duplication\n",
-				response.Summary.CloneGroups, response.Summary.CodeDuplication)
+			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Clone Detection: Completed\n")
 		} else {
 			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Clone Detection: Failed\n")
 		}
@@ -427,10 +485,10 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 
 	if response.Summary.CBOEnabled {
 		if response.CBO != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Class Coupling (CBO): %d classes analyzed, average coupling: %.1f\n",
-				response.Summary.CBOClasses, response.Summary.AverageCoupling)
+			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Class Coupling: %d classes analyzed\n",
+				response.Summary.CBOClasses)
 		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Class Coupling (CBO): Failed\n")
+			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Class Coupling: Failed\n")
 		}
 	}
 
