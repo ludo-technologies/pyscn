@@ -5,16 +5,16 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://img.shields.io/badge/CI-Passing-brightgreen.svg)](https://github.com/ludo-technologies/pyscn/actions)
 
-**pyscn** is an intelligent Python code quality analyzer that performs deep structural analysis to help you write cleaner, more maintainable code.
+**pyscn is a code quality analyzer for Python vibe coders.**
 
-## What Can It Do For You?
+Building with Cursor, Claude, or ChatGPT? pyscn performs structural analysis to keep your codebase maintainable:
 
-- 🔍 **Find Complex Code** - Identify functions that are hard to test and maintain
-- 🧹 **Remove Dead Code** - Detect unreachable code that clutters your codebase
-- 📋 **Detect Duplicates** - Find copy-pasted code for refactoring opportunities
-- 🔗 **Analyze Dependencies** - Understand module relationships and coupling
-- 📊 **Validate Architecture** - Ensure your code follows architectural patterns
-- 📈 **Generate Reports** - Export findings in HTML, JSON, YAML, or CSV
+- 🔍 **CFG-based dead code detection** – Find unreachable code after exhaustive if-elif-else chains
+- 📋 **Clone detection with APTED + LSH** – Identify refactoring opportunities with tree edit distance
+- 🔗 **Coupling metrics (CBO)** – Track architecture quality and module dependencies
+- 📊 **Cyclomatic complexity analysis** – Spot functions that need breaking down
+
+**100,000+ lines/sec** • Built with Go + tree-sitter
 
 ## Quick Start
 
