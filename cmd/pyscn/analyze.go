@@ -400,20 +400,6 @@ func getScoreIcon(score int) string {
 	}
 }
 
-// getScoreLabel returns a text label for the score
-func getScoreLabel(score int) string {
-	switch {
-	case score >= 85:
-		return "Excellent"
-	case score >= 70:
-		return "Good"
-	case score >= 55:
-		return "Fair"
-	default:
-		return "Poor"
-	}
-}
-
 // printSummary prints a summary of the analysis results
 func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.AnalyzeResponse) {
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n📊 Analysis Summary:\n")
