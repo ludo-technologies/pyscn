@@ -482,6 +482,18 @@ func (b *CFGBuilder) processIfStatement(stmt *parser.Node) {
 			// Process elif recursively - it will create its own test, then, and possibly else
 			b.processIfStatementElif(elifStmt, mergeBlock)
 
+			// If the elif chain determined all branches terminate (currentBlock is unreachable),
+			// check if the then branch also terminates
+			if strings.Contains(b.currentBlock.Label, LabelUnreachable) {
+				// All elif/else branches terminated, check if then also terminates
+				if b.blockTerminates(thenEndBlock) {
+					// All branches terminate - stay in unreachable block
+					return
+				}
+				// Then branch doesn't terminate, so merge is reachable
+				b.currentBlock = mergeBlock
+			}
+
 			// Connect then branch to merge if not already connected to exit
 			if !b.hasSuccessor(thenEndBlock, b.cfg.Exit) {
 				b.cfg.ConnectBlocks(thenEndBlock, mergeBlock, EdgeNormal)
@@ -493,11 +505,28 @@ func (b *CFGBuilder) processIfStatement(stmt *parser.Node) {
 
 			// Process else branch
 			b.currentBlock = elseBlock
+
+			// Handle else_clause nodes by extracting their body
 			for _, elseStmt := range stmt.Orelse {
-				b.processStatement(elseStmt)
+				if elseStmt.Type == parser.NodeElseClause {
+					// Extract statements from else_clause body
+					for _, bodyStmt := range elseStmt.Body {
+						b.processStatement(bodyStmt)
+					}
+				} else {
+					b.processStatement(elseStmt)
+				}
 			}
 
-			// Connect both branches to merge if not already connected to exit
+			// Check if all branches terminate
+			elseEndBlock := b.currentBlock
+			if b.allBranchesTerminate(thenEndBlock, elseEndBlock, true) {
+				// All branches terminate - don't connect to merge, make it unreachable
+				b.currentBlock = b.createBlock(LabelUnreachable)
+				return
+			}
+
+			// Normal case: connect branches to merge
 			if !b.hasSuccessor(thenEndBlock, b.cfg.Exit) {
 				b.cfg.ConnectBlocks(thenEndBlock, mergeBlock, EdgeNormal)
 			}
@@ -560,11 +589,28 @@ func (b *CFGBuilder) processIfStatementElif(stmt *parser.Node, finalMerge *Basic
 			b.cfg.ConnectBlocks(conditionBlock, elseBlock, EdgeCondFalse)
 
 			b.currentBlock = elseBlock
+
+			// Process else clause statements
+			// Handle else_clause nodes by extracting their body
 			for _, elseStmt := range stmt.Orelse {
-				b.processStatement(elseStmt)
+				if elseStmt.Type == parser.NodeElseClause {
+					// Extract statements from else_clause body
+					for _, bodyStmt := range elseStmt.Body {
+						b.processStatement(bodyStmt)
+					}
+				} else {
+					b.processStatement(elseStmt)
+				}
 			}
 
 			// Connect else to final merge
+			elseEndBlock := b.currentBlock
+			if b.allBranchesTerminate(thenEndBlock, elseEndBlock, true) {
+				// All branches terminate - subsequent code is unreachable
+				b.currentBlock = b.createBlock(LabelUnreachable)
+				return
+			}
+
 			if !b.hasSuccessor(b.currentBlock, b.cfg.Exit) {
 				b.cfg.ConnectBlocks(b.currentBlock, finalMerge, EdgeNormal)
 			}
@@ -1184,28 +1230,53 @@ func (b *CFGBuilder) getCurrentScope() string {
 // convertElifClauseToIf converts an elif_clause node to an If node
 func (b *CFGBuilder) convertElifClauseToIf(elifNode *parser.Node) *parser.Node {
 	// Create an If node from elif_clause
-	// The elif_clause has: elif keyword, condition, :, and block in Children
+	// The parser's buildElifClause() already populates Test, Body, and Orelse from tree-sitter fields
 	ifNode := &parser.Node{
 		Type:   parser.NodeIf,
-		Body:   []*parser.Node{},
-		Orelse: []*parser.Node{},
+		Test:   elifNode.Test,
+		Body:   elifNode.Body,
+		Orelse: elifNode.Orelse,
 	}
 
-	// Find the condition and block in Children
-	for _, child := range elifNode.Children {
-		if child != nil {
-			if child.Type == parser.NodeBlock {
-				// Extract statements from block
-				ifNode.Body = child.Body
-			} else if child.Type != "elif" && child.Type != ":" {
-				// This should be the condition
-				ifNode.Test = child
-			}
-		}
+	// Validation: panic if expected fields are missing (indicates parser bug)
+	// This is a programming error, not a user input error, so fail-fast is appropriate
+	if len(ifNode.Body) == 0 || ifNode.Test == nil {
+		panic(fmt.Sprintf(
+			"Invalid elif_clause node at %s:%d - parser bug detected (Test exists: %v, Body length: %d)",
+			elifNode.Location.File,
+			elifNode.Location.StartLine,
+			ifNode.Test != nil,
+			len(ifNode.Body),
+		))
 	}
-
-	// Check if there's a continuation in Orelse (another elif or else)
-	ifNode.Orelse = elifNode.Orelse
 
 	return ifNode
+}
+
+// blockTerminates checks if a block ends with a terminating statement
+// (return, raise, break, or continue)
+// Only checks the last statement to avoid false positives from nested control flow
+func (b *CFGBuilder) blockTerminates(block *BasicBlock) bool {
+	if block == nil || len(block.Statements) == 0 {
+		return false
+	}
+
+	// Check only the last statement in the block
+	lastStmt := block.Statements[len(block.Statements)-1]
+	return lastStmt.Type == parser.NodeReturn ||
+		lastStmt.Type == parser.NodeRaise ||
+		lastStmt.Type == parser.NodeBreak ||
+		lastStmt.Type == parser.NodeContinue
+}
+
+// allBranchesTerminate checks if all branches of a conditional terminate
+// Returns true only if there is an else branch and all paths terminate
+func (b *CFGBuilder) allBranchesTerminate(thenEndBlock, elseEndBlock *BasicBlock, hasElse bool) bool {
+	// If there's no else branch, not all paths terminate
+	if !hasElse || elseEndBlock == nil {
+		return false
+	}
+
+	// Check if both then and else branches terminate
+	return b.blockTerminates(thenEndBlock) && b.blockTerminates(elseEndBlock)
 }
