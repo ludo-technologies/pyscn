@@ -389,11 +389,11 @@ func (c *AnalyzeCommand) generateOutput(cmd *cobra.Command, response *domain.Ana
 // getScoreIcon returns an icon representing the score quality
 func getScoreIcon(score int) string {
 	switch {
-	case score >= 85:
+	case score >= domain.ScoreThresholdExcellent:
 		return "✅" // Excellent
-	case score >= 70:
+	case score >= domain.ScoreThresholdGood:
 		return "👍" // Good
-	case score >= 55:
+	case score >= domain.ScoreThresholdFair:
 		return "⚠️" // Fair
 	default:
 		return "❌" // Poor

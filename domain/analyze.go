@@ -46,6 +46,12 @@ const (
 	GradeCThreshold = 55
 	GradeDThreshold = 40
 
+	// Score quality thresholds (aligned with grade thresholds)
+	ScoreThresholdExcellent = 85 // Excellent: 85-100
+	ScoreThresholdGood      = 70 // Good: 70-84
+	ScoreThresholdFair      = 55 // Fair: 55-69
+	// Poor: 0-54 (below ScoreThresholdFair)
+
 	// Other constants
 	MinimumScore                = 10
 	HealthyThreshold            = 70

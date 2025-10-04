@@ -167,6 +167,18 @@ func (f *AnalyzeFormatter) writeHTML(response *domain.AnalyzeResponse, writer io
 			return a - b
 		},
 		"mul100": func(v float64) float64 { return v * 100.0 },
+		"scoreQuality": func(score int) string {
+			switch {
+			case score >= domain.ScoreThresholdExcellent:
+				return "excellent"
+			case score >= domain.ScoreThresholdGood:
+				return "good"
+			case score >= domain.ScoreThresholdFair:
+				return "fair"
+			default:
+				return "poor"
+			}
+		},
 	}
 	tmpl := template.Must(template.New("analyze").Funcs(funcMap).Parse(analyzeHTMLTemplate))
 	return tmpl.Execute(writer, response)
@@ -423,7 +435,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <span class="score-value">{{.Summary.ComplexityScore}}/100</span>
                         </div>
                         <div class="score-bar-container">
-                            <div class="score-bar-fill score-{{if ge .Summary.ComplexityScore 85}}excellent{{else if ge .Summary.ComplexityScore 70}}good{{else if ge .Summary.ComplexityScore 55}}fair{{else}}poor{{end}}" style="width: {{.Summary.ComplexityScore}}%"></div>
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.ComplexityScore}}" style="width: {{.Summary.ComplexityScore}}%"></div>
                         </div>
                         <div class="score-detail">Avg: {{printf "%.1f" .Summary.AverageComplexity}}, High-risk: {{.Summary.HighComplexityCount}}</div>
                     </div>
@@ -436,7 +448,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <span class="score-value">{{.Summary.DeadCodeScore}}/100</span>
                         </div>
                         <div class="score-bar-container">
-                            <div class="score-bar-fill score-{{if ge .Summary.DeadCodeScore 85}}excellent{{else if ge .Summary.DeadCodeScore 70}}good{{else if ge .Summary.DeadCodeScore 55}}fair{{else}}poor{{end}}" style="width: {{.Summary.DeadCodeScore}}%"></div>
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.DeadCodeScore}}" style="width: {{.Summary.DeadCodeScore}}%"></div>
                         </div>
                         <div class="score-detail">{{.Summary.DeadCodeCount}} issues, {{.Summary.CriticalDeadCode}} critical</div>
                     </div>
@@ -449,7 +461,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <span class="score-value">{{.Summary.DuplicationScore}}/100</span>
                         </div>
                         <div class="score-bar-container">
-                            <div class="score-bar-fill score-{{if ge .Summary.DuplicationScore 85}}excellent{{else if ge .Summary.DuplicationScore 70}}good{{else if ge .Summary.DuplicationScore 55}}fair{{else}}poor{{end}}" style="width: {{.Summary.DuplicationScore}}%"></div>
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.DuplicationScore}}" style="width: {{.Summary.DuplicationScore}}%"></div>
                         </div>
                         <div class="score-detail">{{printf "%.1f%%" .Summary.CodeDuplication}} duplication, {{.Summary.CloneGroups}} groups</div>
                     </div>
@@ -462,7 +474,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <span class="score-value">{{.Summary.CouplingScore}}/100</span>
                         </div>
                         <div class="score-bar-container">
-                            <div class="score-bar-fill score-{{if ge .Summary.CouplingScore 85}}excellent{{else if ge .Summary.CouplingScore 70}}good{{else if ge .Summary.CouplingScore 55}}fair{{else}}poor{{end}}" style="width: {{.Summary.CouplingScore}}%"></div>
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.CouplingScore}}" style="width: {{.Summary.CouplingScore}}%"></div>
                         </div>
                         <div class="score-detail">Avg: {{printf "%.1f" .Summary.AverageCoupling}}, High-coupling: {{.Summary.HighCouplingClasses}}/{{.Summary.CBOClasses}}</div>
                     </div>
@@ -475,7 +487,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <span class="score-value">{{.Summary.DependencyScore}}/100</span>
                         </div>
                         <div class="score-bar-container">
-                            <div class="score-bar-fill score-{{if ge .Summary.DependencyScore 85}}excellent{{else if ge .Summary.DependencyScore 70}}good{{else if ge .Summary.DependencyScore 55}}fair{{else}}poor{{end}}" style="width: {{.Summary.DependencyScore}}%"></div>
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.DependencyScore}}" style="width: {{.Summary.DependencyScore}}%"></div>
                         </div>
                         <div class="score-detail">{{if eq .Summary.DepsModulesInCycles 0}}No cycles{{else}}{{.Summary.DepsModulesInCycles}} cycles{{end}}, Depth: {{.Summary.DepsMaxDepth}}</div>
                     </div>
@@ -488,7 +500,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <span class="score-value">{{.Summary.ArchitectureScore}}/100</span>
                         </div>
                         <div class="score-bar-container">
-                            <div class="score-bar-fill score-{{if ge .Summary.ArchitectureScore 85}}excellent{{else if ge .Summary.ArchitectureScore 70}}good{{else if ge .Summary.ArchitectureScore 55}}fair{{else}}poor{{end}}" style="width: {{.Summary.ArchitectureScore}}%"></div>
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.ArchitectureScore}}" style="width: {{.Summary.ArchitectureScore}}%"></div>
                         </div>
                         <div class="score-detail">{{printf "%.0f%%" (mul100 .Summary.ArchCompliance)}} compliant</div>
                     </div>
@@ -591,7 +603,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             <div id="complexity" class="tab-content">
                 <div class="tab-header-with-score">
                     <h2 style="margin: 0;">Complexity Analysis</h2>
-                    <div class="score-badge-compact score-{{if ge .Summary.ComplexityScore 85}}excellent{{else if ge .Summary.ComplexityScore 70}}good{{else if ge .Summary.ComplexityScore 55}}fair{{else}}poor{{end}}">
+                    <div class="score-badge-compact score-{{scoreQuality .Summary.ComplexityScore}}">
                         {{.Summary.ComplexityScore}}/100
                     </div>
                 </div>
@@ -645,7 +657,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             <div id="deadcode" class="tab-content">
                 <div class="tab-header-with-score">
                     <h2 style="margin: 0;">Dead Code Detection</h2>
-                    <div class="score-badge-compact score-{{if ge .Summary.DeadCodeScore 85}}excellent{{else if ge .Summary.DeadCodeScore 70}}good{{else if ge .Summary.DeadCodeScore 55}}fair{{else}}poor{{end}}">
+                    <div class="score-badge-compact score-{{scoreQuality .Summary.DeadCodeScore}}">
                         {{.Summary.DeadCodeScore}}/100
                     </div>
                 </div>
@@ -709,7 +721,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             <div id="clone" class="tab-content">
                 <div class="tab-header-with-score">
                     <h2 style="margin: 0;">Clone Detection</h2>
-                    <div class="score-badge-compact score-{{if ge .Summary.DuplicationScore 85}}excellent{{else if ge .Summary.DuplicationScore 70}}good{{else if ge .Summary.DuplicationScore 55}}fair{{else}}poor{{end}}">
+                    <div class="score-badge-compact score-{{scoreQuality .Summary.DuplicationScore}}">
                         {{.Summary.DuplicationScore}}/100
                     </div>
                 </div>
@@ -810,7 +822,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             <div id="cbo" class="tab-content">
                 <div class="tab-header-with-score">
                     <h2 style="margin: 0;">Class Coupling</h2>
-                    <div class="score-badge-compact score-{{if ge .Summary.CouplingScore 85}}excellent{{else if ge .Summary.CouplingScore 70}}good{{else if ge .Summary.CouplingScore 55}}fair{{else}}poor{{end}}">
+                    <div class="score-badge-compact score-{{scoreQuality .Summary.CouplingScore}}">
                         {{.Summary.CouplingScore}}/100
                     </div>
                 </div>
@@ -872,7 +884,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             <div id="sys-deps" class="tab-content">
                 <div class="tab-header-with-score">
                     <h2 style="margin: 0;">Module Dependencies</h2>
-                    <div class="score-badge-compact score-{{if ge .Summary.DependencyScore 85}}excellent{{else if ge .Summary.DependencyScore 70}}good{{else if ge .Summary.DependencyScore 55}}fair{{else}}poor{{end}}">
+                    <div class="score-badge-compact score-{{scoreQuality .Summary.DependencyScore}}">
                         {{.Summary.DependencyScore}}/100
                     </div>
                 </div>
@@ -928,7 +940,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             <div id="sys-arch" class="tab-content">
                 <div class="tab-header-with-score">
                     <h2 style="margin: 0;">Architecture Validation</h2>
-                    <div class="score-badge-compact score-{{if ge .Summary.ArchitectureScore 85}}excellent{{else if ge .Summary.ArchitectureScore 70}}good{{else if ge .Summary.ArchitectureScore 55}}fair{{else}}poor{{end}}">
+                    <div class="score-badge-compact score-{{scoreQuality .Summary.ArchitectureScore}}">
                         {{.Summary.ArchitectureScore}}/100
                     </div>
                 </div>
