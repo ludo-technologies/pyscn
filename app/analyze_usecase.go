@@ -191,9 +191,14 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 		return nil, fmt.Errorf("no Python files found in the specified paths")
 	}
 
-	// Initialize progress tracking
+	// Calculate estimated time based on file count and enabled analyses
+	estimatedTime := uc.calculateEstimatedTime(len(files), config)
+
+	// Start unified progress tracking with time-based estimation
+	var progressDone chan struct{}
 	if uc.progressManager != nil {
-		uc.progressManager.Initialize(len(files))
+		uc.progressManager.Initialize(100) // 100% based progress
+		progressDone = uc.startTimeBasedProgressUpdater(estimatedTime)
 	}
 
 	// Create analysis tasks
@@ -209,23 +214,21 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 		wg.Add(1)
 		go func(t *AnalysisTask) {
 			defer wg.Done()
-
-			if uc.progressManager != nil {
-				uc.progressManager.StartTask(t.Name)
-			}
-
 			result, err := t.Execute(ctx)
 			t.Result = result
 			t.Error = err
-
-			if uc.progressManager != nil {
-				uc.progressManager.CompleteTask(t.Name, err == nil)
-			}
 		}(task)
 	}
 
 	// Wait for all tasks to complete
 	wg.Wait()
+
+	// Stop progress updater and ensure progress bar reaches 100%
+	if progressDone != nil {
+		close(progressDone)
+		uc.progressManager.Update(100, 100)
+		uc.progressManager.Complete(true)
+	}
 
 	// Check for errors
 	var errors []error
@@ -560,4 +563,71 @@ func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]
 	}
 
 	return includePatterns, excludePatterns, nil
+}
+
+// calculateEstimatedTime estimates the total analysis time based on file count and enabled analyses
+func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUseCaseConfig) float64 {
+	n := float64(fileCount)
+	totalTime := 0.0
+
+	// Linear analyses (fast)
+	if !config.SkipComplexity {
+		totalTime += 0.01 * n // Complexity: ~0.01s per file
+	}
+	if !config.SkipDeadCode {
+		totalTime += 0.01 * n // Dead Code: ~0.01s per file
+	}
+	if !config.SkipCBO {
+		totalTime += 0.01 * n // CBO: ~0.01s per file
+	}
+	if !config.SkipSystem {
+		totalTime += 0.02 * n // System: ~0.02s per file (slightly heavier)
+	}
+
+	// Clone detection (quadratic - the dominant factor)
+	if !config.SkipClones {
+		// More conservative estimate: O(n²) is the bottleneck
+		// For 207 files: 0.01 * 207² ≈ 428 seconds
+		totalTime += 0.01 * n * n
+	}
+
+	// Minimum time to avoid division by zero
+	if totalTime < 0.1 {
+		totalTime = 0.1
+	}
+
+	return totalTime
+}
+
+// startTimeBasedProgressUpdater starts a background goroutine that updates progress based on elapsed time
+func (uc *AnalyzeUseCase) startTimeBasedProgressUpdater(estimatedTime float64) chan struct{} {
+	done := make(chan struct{})
+	startTime := time.Now()
+
+	// Start progress bar
+	uc.progressManager.Start()
+
+	go func() {
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				elapsed := time.Since(startTime).Seconds()
+				// Progress increases with elapsed time, but caps at 99%
+				// (we'll set it to 100% when tasks actually complete)
+				progress := int((elapsed / estimatedTime) * 100)
+				if progress > 99 {
+					progress = 99
+				}
+				uc.progressManager.Update(progress, 100)
+
+			case <-done:
+				return
+			}
+		}
+	}()
+
+	return done
 }
