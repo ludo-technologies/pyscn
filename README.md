@@ -18,7 +18,7 @@ Building with Cursor, Claude, or ChatGPT? pyscn performs structural analysis to 
 
 ## Demo
 
-https://github.com/ludo-technologies/pyscn/releases/download/v0.6.0-beta.1/pyscn_demo.mov
+https://github.com/user-attachments/assets/b7e9d72e-0845-4a1e-a6a0-e34e00ed8a39
 
 ## Quick Start
 
