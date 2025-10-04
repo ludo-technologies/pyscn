@@ -5,22 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - TBD
+## [1.0.0] - 2025-10-05
+
+### 🎉 First Stable Release
+
+pyscn 1.0.0 is a structural code quality analyzer for Python vibe coders building with AI assistants (Cursor, Claude, ChatGPT).
+
+### Key Features
+
+- **CFG-based dead code detection** – Find unreachable code after exhaustive if-elif-else chains
+- **Clone detection (APTED + LSH)** – Tree edit distance with LSH acceleration for large codebases
+- **Coupling metrics (CBO)** – Track architecture quality and module dependencies
+- **Cyclomatic complexity analysis** – Identify functions that need refactoring
+- **Multiple output formats** – HTML, JSON, YAML, CSV reports
+- **Fast analysis** – 100,000+ lines/sec (Go + tree-sitter)
+- **CI/CD friendly** – `pyscn check` command for quality gates
 
 ### Breaking Changes
-- **Removed deprecated individual commands**: Removed `complexity`, `deadcode`, `clone`, `cbo`, and `deps` commands
+
+- **Removed deprecated individual commands**: `complexity`, `deadcode`, `clone`, `cbo`, and `deps` commands
   - **Migration**: Use `pyscn analyze --select <analysis>` instead
   - Example: `pyscn complexity .` → `pyscn analyze --select complexity .`
   - Example: `pyscn deadcode --min-severity critical .` → `pyscn analyze --select deadcode --min-severity critical .`
-  - This change simplifies the CLI interface and improves consistency
+  - This simplifies the CLI interface and improves consistency
   - All functionality is preserved through the unified `analyze` command
 
-### Rationale
-This breaking change was made during the beta period (v0.x.x) before the 1.0.0 release to:
-- Eliminate redundant command interfaces and reduce maintenance burden
-- Provide a single, consistent way to run analyses
-- Simplify documentation and reduce user confusion
-- Clean up the codebase before the stable 1.0.0 release
+### Installation
+
+```bash
+# Install with pipx (recommended)
+pipx install pyscn
+
+# Or run directly without install
+uvx pyscn analyze .
+```
+
+### What's New Since Beta
+
+- Improved dead code detection for exhaustive if-elif-else chains
+- Enhanced documentation for vibe coding workflows
+- Streamlined CLI with unified `analyze` command
+- Production-ready stability and performance
 
 ## [0.1.0-beta.13] - 2025-09-08
 
