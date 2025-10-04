@@ -5,20 +5,9 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://img.shields.io/badge/CI-Passing-brightgreen.svg)](https://github.com/ludo-technologies/pyscn/actions)
 
-**pyscn is a code quality analyzer for Python vibe coders.**
+## pyscn is a code quality analyzer for Python vibe coders.
 
-Building with Cursor, Claude, or ChatGPT? pyscn performs structural analysis to keep your codebase maintainable:
-
-- 🔍 **CFG-based dead code detection** – Find unreachable code after exhaustive if-elif-else chains
-- 📋 **Clone detection with APTED + LSH** – Identify refactoring opportunities with tree edit distance
-- 🔗 **Coupling metrics (CBO)** – Track architecture quality and module dependencies
-- 📊 **Cyclomatic complexity analysis** – Spot functions that need breaking down
-
-**100,000+ lines/sec** • Built with Go + tree-sitter
-
-## Demo
-
-https://github.com/user-attachments/assets/b7e9d72e-0845-4a1e-a6a0-e34e00ed8a39
+Building with Cursor, Claude, or ChatGPT? pyscn performs structural analysis to keep your codebase maintainable.
 
 ## Quick Start
 
@@ -28,6 +17,20 @@ uvx pyscn analyze .
 # or
 pipx run pyscn analyze .
 ```
+
+## Demo
+
+https://github.com/user-attachments/assets/b7e9d72e-0845-4a1e-a6a0-e34e00ed8a39
+
+## Features
+
+- 🔍 **CFG-based dead code detection** – Find unreachable code after exhaustive if-elif-else chains
+- 📋 **Clone detection with APTED + LSH** – Identify refactoring opportunities with tree edit distance
+- 🔗 **Coupling metrics (CBO)** – Track architecture quality and module dependencies
+- 📊 **Cyclomatic complexity analysis** – Spot functions that need breaking down
+
+**100,000+ lines/sec** • Built with Go + tree-sitter
+
 
 ## Common Commands
 
