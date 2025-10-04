@@ -194,11 +194,11 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 	// Calculate estimated time based on file count and enabled analyses
 	estimatedTime := uc.calculateEstimatedTime(len(files), config)
 
-	// Start unified progress tracking with fake progress based on time
+	// Start unified progress tracking with time-based estimation
 	var progressDone chan struct{}
 	if uc.progressManager != nil {
 		uc.progressManager.Initialize(100) // 100% based progress
-		progressDone = uc.startFakeProgressUpdater(estimatedTime)
+		progressDone = uc.startTimeBasedProgressUpdater(estimatedTime)
 	}
 
 	// Create analysis tasks
@@ -599,8 +599,8 @@ func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUs
 	return totalTime
 }
 
-// startFakeProgressUpdater starts a background goroutine that updates progress based on elapsed time
-func (uc *AnalyzeUseCase) startFakeProgressUpdater(estimatedTime float64) chan struct{} {
+// startTimeBasedProgressUpdater starts a background goroutine that updates progress based on elapsed time
+func (uc *AnalyzeUseCase) startTimeBasedProgressUpdater(estimatedTime float64) chan struct{} {
 	done := make(chan struct{})
 	startTime := time.Now()
 
