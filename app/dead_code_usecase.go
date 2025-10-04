@@ -64,8 +64,6 @@ func (uc *DeadCodeUseCase) Execute(ctx context.Context, req domain.DeadCodeReque
 		return domain.NewInvalidInputError("no Python files found in the specified paths", nil)
 	}
 
-	// Progress reporting removed - not meaningful for file parsing
-
 	// Update request with collected files
 	finalReq.Paths = files
 
@@ -116,8 +114,6 @@ func (uc *DeadCodeUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Dead
 	if len(files) == 0 {
 		return nil, domain.NewInvalidInputError("no Python files found in the specified paths", nil)
 	}
-
-	// Progress reporting removed - not meaningful for file parsing
 
 	// Update request with collected files
 	finalReq.Paths = files

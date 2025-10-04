@@ -147,7 +147,6 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return(createMockComplexityResponse(), nil)
 				formatter.On("Write", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
@@ -285,7 +284,6 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return((*domain.ComplexityResponse)(nil), errors.New("parsing failed"))
 			},
@@ -300,7 +298,6 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return(createMockComplexityResponse(), nil)
 				formatter.On("Write", mock.Anything, domain.OutputFormatText, os.Stdout).
@@ -330,7 +327,6 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 					Return(&mergedReq)
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return(createMockComplexityResponse(), nil)
 				formatter.On("Write", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
@@ -387,7 +383,6 @@ func TestComplexityUseCase_AnalyzeAndReturn(t *testing.T) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return(createMockComplexityResponse(), nil)
 			},
@@ -412,7 +407,6 @@ func TestComplexityUseCase_AnalyzeAndReturn(t *testing.T) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
-				// Progress expectations removed - no longer tracking file parsing
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return((*domain.ComplexityResponse)(nil), errors.New("analysis failed"))
 			},

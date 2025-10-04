@@ -47,7 +47,6 @@ func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) er
 
 	// Step 2: Load configuration if specified or try default config
 	if req.ConfigPath != "" {
-		// uc.progress.Info(fmt.Sprintf("Loading configuration from %s", req.ConfigPath))
 		configReq, err := uc.configLoader.LoadCloneConfig(req.ConfigPath)
 		if err != nil {
 			return fmt.Errorf("failed to load configuration: %w", err)
@@ -65,25 +64,20 @@ func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) er
 	}
 
 	// Step 3: Collect files to analyze
-	// uc.progress.Start("Collecting Python files...")
 	files, err := uc.fileReader.CollectPythonFiles(req.Paths, req.Recursive, req.IncludePatterns, req.ExcludePatterns)
 	if err != nil {
 		return fmt.Errorf("failed to collect files: %w", err)
 	}
 
 	if len(files) == 0 {
-		// uc.progress.Warning("No Python files found matching the criteria")
 		return uc.outputEmptyResults(req)
 	}
-
-	// uc.progress.Info(fmt.Sprintf("Found %d Python files to analyze", len(files)))
 
 	// Create a copy of the request to avoid modifying the original
 	reqCopy := req
 	reqCopy.Paths = files
 
 	// Step 4: Perform clone detection
-	// uc.progress.Update("Performing clone detection...", 0, 1)
 	response, err := uc.service.DetectClones(ctx, &reqCopy)
 	if err != nil {
 		return fmt.Errorf("clone detection failed: %w", err)
@@ -107,12 +101,6 @@ func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) er
 	}); err != nil {
 		return fmt.Errorf("failed to format output: %w", err)
 	}
-
-	// Step 7: Log completion summary
-	// uc.progress.Complete(fmt.Sprintf("Clone detection completed. Found %d clone pairs in %d groups (%.2fs)",
-	//	response.Statistics.TotalClonePairs,
-	//	response.Statistics.TotalCloneGroups,
-	//	float64(response.Duration)/1000.0))
 
 	return nil
 }
@@ -201,11 +189,8 @@ func (uc *CloneUseCase) ExecuteWithFiles(ctx context.Context, filePaths []string
 	}
 
 	if len(validFiles) == 0 {
-		// uc.progress.Warning("No valid Python files provided")
 		return uc.outputEmptyResults(req)
 	}
-
-	// uc.progress.Info(fmt.Sprintf("Analyzing %d Python files for clones", len(validFiles)))
 
 	// Perform clone detection on specific files
 	response, err := uc.service.DetectClonesInFiles(ctx, validFiles, &req)
@@ -225,34 +210,25 @@ func (uc *CloneUseCase) ExecuteWithFiles(ctx context.Context, filePaths []string
 		return fmt.Errorf("failed to format output: %w", err)
 	}
 
-	// uc.progress.Complete(fmt.Sprintf("Clone detection completed on %d files (%.2fs)",
-	//	len(validFiles), float64(response.Duration)/1000.0))
-
 	return nil
 }
 
 // ComputeFragmentSimilarity computes similarity between two code fragments
 func (uc *CloneUseCase) ComputeFragmentSimilarity(ctx context.Context, fragment1, fragment2 string) (float64, error) {
-	// uc.progress.Info("Computing similarity between code fragments...")
-
 	similarity, err := uc.service.ComputeSimilarity(ctx, fragment1, fragment2)
 	if err != nil {
 		return 0.0, fmt.Errorf("failed to compute similarity: %w", err)
 	}
 
-	// uc.progress.Info(fmt.Sprintf("Fragment similarity: %.3f", similarity))
 	return similarity, nil
 }
 
 // SaveConfiguration saves the current clone detection configuration
 func (uc *CloneUseCase) SaveConfiguration(req domain.CloneRequest, configPath string) error {
-	// uc.progress.Info(fmt.Sprintf("Saving clone detection configuration to %s", configPath))
-
 	if err := uc.configLoader.SaveCloneConfig(&req, configPath); err != nil {
 		return fmt.Errorf("failed to save configuration: %w", err)
 	}
 
-	// uc.progress.Complete("Configuration saved successfully")
 	return nil
 }
 
