@@ -36,19 +36,19 @@ func (pm *ProgressManagerImpl) Initialize(maxValue int) {
 	pm.maxValue = maxValue
 }
 
-// StartTask marks a task as started (creates the progress bar)
-func (pm *ProgressManagerImpl) StartTask(taskName string) {
+// Start starts the progress bar
+func (pm *ProgressManagerImpl) Start() {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
 	// Create progress bar if interactive and not already created
 	if pm.interactive && pm.progressBar == nil {
-		pm.progressBar = pm.createProgressBar(taskName, pm.maxValue)
+		pm.progressBar = pm.createProgressBar("Analyzing", pm.maxValue)
 	}
 }
 
-// CompleteTask marks a task as completed (finishes the progress bar)
-func (pm *ProgressManagerImpl) CompleteTask(taskName string, success bool) {
+// Complete marks the progress as completed (finishes the progress bar)
+func (pm *ProgressManagerImpl) Complete(success bool) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
@@ -58,14 +58,14 @@ func (pm *ProgressManagerImpl) CompleteTask(taskName string, success bool) {
 	}
 }
 
-// UpdateProgress updates the progress
-func (pm *ProgressManagerImpl) UpdateProgress(taskName string, processed, total int) {
+// Update updates the progress
+func (pm *ProgressManagerImpl) Update(processed, total int) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	// Create progress bar on first update if not created by StartTask
+	// Create progress bar on first update if not created by Start
 	if pm.progressBar == nil && pm.interactive {
-		pm.progressBar = pm.createProgressBar(taskName, total)
+		pm.progressBar = pm.createProgressBar("Analyzing", total)
 	}
 
 	// Update progress bar if it exists

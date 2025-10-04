@@ -228,8 +228,8 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 		close(progressDone)
 		// Ensure progress bar reaches 100%
 		if uc.progressManager != nil {
-			uc.progressManager.UpdateProgress("Analysis", 100, 100)
-			uc.progressManager.CompleteTask("Analysis", true)
+			uc.progressManager.Update(100, 100)
+			uc.progressManager.Complete(true)
 		}
 	}
 
@@ -607,8 +607,8 @@ func (uc *AnalyzeUseCase) startFakeProgressUpdater(estimatedTime float64) chan s
 	done := make(chan struct{})
 	startTime := time.Now()
 
-	// Start task with unified name
-	uc.progressManager.StartTask("Analysis")
+	// Start progress bar
+	uc.progressManager.Start()
 
 	go func() {
 		ticker := time.NewTicker(100 * time.Millisecond)
@@ -624,7 +624,7 @@ func (uc *AnalyzeUseCase) startFakeProgressUpdater(estimatedTime float64) chan s
 				if progress > 99 {
 					progress = 99
 				}
-				uc.progressManager.UpdateProgress("Analysis", progress, 100)
+				uc.progressManager.Update(progress, 100)
 
 			case <-done:
 				return

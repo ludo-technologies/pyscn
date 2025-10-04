@@ -20,19 +20,19 @@ type ReportWriter interface {
 	Write(writer io.Writer, outputPath string, format OutputFormat, noOpen bool, writeFunc func(io.Writer) error) error
 }
 
-// ProgressManager manages progress tracking for multiple concurrent analyses
+// ProgressManager manages progress tracking for analysis
 type ProgressManager interface {
-	// Initialize sets up progress tracking for the given number of files
-	Initialize(totalFiles int)
+	// Initialize sets up progress tracking with the maximum value
+	Initialize(maxValue int)
 
-	// StartTask marks a task as started
-	StartTask(taskName string)
+	// Start starts the progress bar
+	Start()
 
-	// CompleteTask marks a task as completed
-	CompleteTask(taskName string, success bool)
+	// Complete marks the progress as completed
+	Complete(success bool)
 
-	// UpdateProgress updates the progress for a specific task
-	UpdateProgress(taskName string, processed, total int)
+	// Update updates the progress
+	Update(processed, total int)
 
 	// SetWriter sets the output writer for progress bars
 	SetWriter(writer io.Writer)
