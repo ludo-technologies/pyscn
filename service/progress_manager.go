@@ -15,107 +15,62 @@ import (
 type ProgressManagerImpl struct {
 	mu          sync.Mutex
 	writer      io.Writer
-	tasks       map[string]*TaskProgress
-	totalFiles  int
+	progressBar *progressbar.ProgressBar
 	interactive bool
-	initialized bool
-}
-
-// TaskProgress tracks the progress of a single task
-type TaskProgress struct {
-	Name        string
-	ProgressBar *progressbar.ProgressBar
-	Started     bool
-	Completed   bool
-	Success     bool
-	Processed   int
-	Total       int
+	maxValue    int // Maximum value for progress (set by Initialize)
 }
 
 // NewProgressManager creates a new progress manager
 func NewProgressManager() domain.ProgressManager {
 	return &ProgressManagerImpl{
-		tasks:       make(map[string]*TaskProgress),
 		writer:      os.Stderr,
 		interactive: isInteractiveEnvironment(),
 	}
 }
 
-// Initialize sets up progress tracking for the given number of files
-func (pm *ProgressManagerImpl) Initialize(totalFiles int) {
+// Initialize sets up progress tracking with the maximum value
+func (pm *ProgressManagerImpl) Initialize(maxValue int) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	pm.totalFiles = totalFiles
-	pm.initialized = true
-	pm.tasks = make(map[string]*TaskProgress)
+	pm.maxValue = maxValue
 }
 
-// StartTask marks a task as started
+// StartTask marks a task as started (creates the progress bar)
 func (pm *ProgressManagerImpl) StartTask(taskName string) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	if !pm.initialized {
-		return
-	}
-
-	task, exists := pm.tasks[taskName]
-	if !exists {
-		task = &TaskProgress{
-			Name:  taskName,
-			Total: pm.totalFiles,
-		}
-		pm.tasks[taskName] = task
-	}
-
-	task.Started = true
-
-	// Create progress bar if interactive
-	if pm.interactive && task.ProgressBar == nil {
-		task.ProgressBar = pm.createProgressBar(taskName, pm.totalFiles)
+	// Create progress bar if interactive and not already created
+	if pm.interactive && pm.progressBar == nil {
+		pm.progressBar = pm.createProgressBar(taskName, pm.maxValue)
 	}
 }
 
-// CompleteTask marks a task as completed
+// CompleteTask marks a task as completed (finishes the progress bar)
 func (pm *ProgressManagerImpl) CompleteTask(taskName string, success bool) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	task, exists := pm.tasks[taskName]
-	if !exists {
-		return
-	}
-
-	task.Completed = true
-	task.Success = success
-
 	// Finish progress bar if it exists
-	if task.ProgressBar != nil {
-		_ = task.ProgressBar.Finish()
+	if pm.progressBar != nil {
+		_ = pm.progressBar.Finish()
 	}
 }
 
-// UpdateProgress updates the progress for a specific task
+// UpdateProgress updates the progress
 func (pm *ProgressManagerImpl) UpdateProgress(taskName string, processed, total int) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	task, exists := pm.tasks[taskName]
-	if !exists {
-		task = &TaskProgress{
-			Name:  taskName,
-			Total: total,
-		}
-		pm.tasks[taskName] = task
+	// Create progress bar on first update if not created by StartTask
+	if pm.progressBar == nil && pm.interactive {
+		pm.progressBar = pm.createProgressBar(taskName, total)
 	}
 
-	task.Processed = processed
-	task.Total = total
-
 	// Update progress bar if it exists
-	if task.ProgressBar != nil {
-		_ = task.ProgressBar.Set(processed)
+	if pm.progressBar != nil {
+		_ = pm.progressBar.Set(processed)
 	}
 }
 
@@ -147,11 +102,9 @@ func (pm *ProgressManagerImpl) Close() {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	// Finish any incomplete progress bars
-	for _, task := range pm.tasks {
-		if task.ProgressBar != nil && !task.Completed {
-			_ = task.ProgressBar.Finish()
-		}
+	// Finish progress bar if it exists
+	if pm.progressBar != nil {
+		_ = pm.progressBar.Finish()
 	}
 }
 
@@ -188,18 +141,4 @@ func isInteractiveEnvironment() bool {
 		return (fi.Mode() & os.ModeCharDevice) != 0
 	}
 	return false
-}
-
-// GetTaskStatus returns the status of all tasks for reporting
-func (pm *ProgressManagerImpl) GetTaskStatus() map[string]*TaskProgress {
-	pm.mu.Lock()
-	defer pm.mu.Unlock()
-
-	// Return a copy to avoid race conditions
-	status := make(map[string]*TaskProgress)
-	for name, task := range pm.tasks {
-		taskCopy := *task
-		status[name] = &taskCopy
-	}
-	return status
 }
