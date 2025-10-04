@@ -133,7 +133,7 @@ def complex():
     finally:
         cleanup = True  # reachable
 `,
-			expectedDead: 3, // After adjusting elif handling, we get 3 dead blocks
+			expectedDead: 4, // Fixed elif handling now detects unreachable code after exhaustive if-elif-else
 		},
 		{
 			name: "EmptyFunction",
@@ -165,7 +165,51 @@ def foo(x):
         return "impossible"  # dead if x is numeric
     print("never")  # dead
 `,
-			expectedDead: 0, // TODO: Should be 1, but all-paths-return detection needs refinement
+			expectedDead: 1, // Detects unreachable code after exhaustive if-elif-else
+		},
+		{
+			name: "ExhaustiveIfElseReturn",
+			code: `
+def foo(x):
+    if x > 0:
+        return "positive"
+    else:
+        return "negative"
+    print("unreachable")
+`,
+			expectedDead:   1,
+			deadBlockNames: []string{"unreachable"},
+		},
+		{
+			name: "NestedExhaustiveReturn",
+			code: `
+def bar(x, y):
+    if x > 0:
+        if y > 0:
+            return "both positive"
+        else:
+            return "x positive, y not"
+    else:
+        return "x not positive"
+    print("unreachable")
+`,
+			expectedDead:   1,
+			deadBlockNames: []string{"unreachable"},
+		},
+		{
+			name: "MixedTerminators",
+			code: `
+def baz(x):
+    if x > 0:
+        return "positive"
+    elif x < 0:
+        raise ValueError("negative")
+    else:
+        return "zero"
+    print("unreachable")
+`,
+			expectedDead:   1,
+			deadBlockNames: []string{"unreachable"},
 		},
 		{
 			name: "UnreachableInWith",

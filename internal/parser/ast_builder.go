@@ -72,6 +72,10 @@ func (b *ASTBuilder) buildNode(tsNode *sitter.Node) *Node {
 		return b.buildClassDef(tsNode)
 	case "if_statement":
 		return b.buildIfStatement(tsNode)
+	case "elif_clause":
+		return b.buildElifClause(tsNode)
+	case "else_clause":
+		return b.buildElseClause(tsNode)
 	case "for_statement":
 		return b.buildForStatement(tsNode)
 	case "while_statement":
@@ -287,16 +291,84 @@ func (b *ASTBuilder) buildIfStatement(tsNode *sitter.Node) *Node {
 		}
 	}
 
-	// Get alternative (else/elif)
-	if alternative := b.getChildByFieldName(tsNode, "alternative"); alternative != nil {
-		if alt := b.buildNode(alternative); alt != nil {
-			if alt.Type == NodeIf {
-				// elif case
-				node.Orelse = []*Node{alt}
-			} else {
-				// else case - use extractBlockBody to handle blocks
-				node.Orelse = b.extractBlockBody(alt, node)
+	// Get alternatives (else/elif) - there may be multiple with the same field name
+	// Tree-sitter can have both elif_clause and else_clause as "alternative"
+	var elifNode *Node
+	var elseNode *Node
+
+	childCount := int(tsNode.ChildCount())
+	for i := 0; i < childCount; i++ {
+		child := tsNode.Child(i)
+		if child != nil && tsNode.FieldNameForChild(i) == "alternative" {
+			alt := b.buildNode(child)
+			if alt != nil {
+				if alt.Type == NodeIf || alt.Type == NodeElifClause {
+					elifNode = alt
+				} else if alt.Type == NodeElseClause {
+					elseNode = alt
+				}
 			}
+		}
+	}
+
+	// If we have an elif, attach the else to it
+	if elifNode != nil {
+		if elseNode != nil {
+			// Attach else to the elif chain
+			b.attachElseToElifChain(elifNode, elseNode)
+		}
+		node.Orelse = []*Node{elifNode}
+	} else if elseNode != nil {
+		// Just an else clause, no elif
+		node.Orelse = b.extractBlockBody(elseNode, node)
+	}
+
+	return node
+}
+
+// attachElseToElifChain attaches an else clause to the end of an elif chain
+func (b *ASTBuilder) attachElseToElifChain(elifNode *Node, elseNode *Node) {
+	current := elifNode
+	// Find the last elif in the chain
+	for len(current.Orelse) > 0 && current.Orelse[0].Type == NodeElifClause {
+		current = current.Orelse[0]
+	}
+	// Attach the else clause
+	current.Orelse = b.extractBlockBody(elseNode, current)
+}
+
+// buildElifClause builds an elif clause node (similar to if statement)
+func (b *ASTBuilder) buildElifClause(tsNode *sitter.Node) *Node {
+	node := NewNode(NodeElifClause)
+	node.Location = b.getLocation(tsNode)
+
+	// Get condition
+	if condition := b.getChildByFieldName(tsNode, "condition"); condition != nil {
+		node.Test = b.buildNode(condition)
+	}
+
+	// Get consequence (body)
+	if consequence := b.getChildByFieldName(tsNode, "consequence"); consequence != nil {
+		if body := b.buildNode(consequence); body != nil {
+			node.Body = b.extractBlockBody(body, node)
+		}
+	}
+
+	// Note: elif_clause in tree-sitter doesn't have an alternative field
+	// The else clause is handled at the parent if_statement level
+
+	return node
+}
+
+// buildElseClause builds an else clause node
+func (b *ASTBuilder) buildElseClause(tsNode *sitter.Node) *Node {
+	node := NewNode(NodeElseClause)
+	node.Location = b.getLocation(tsNode)
+
+	// Get body
+	if body := b.getChildByFieldName(tsNode, "body"); body != nil {
+		if bodyNode := b.buildNode(body); bodyNode != nil {
+			node.Body = b.extractBlockBody(bodyNode, node)
 		}
 	}
 
