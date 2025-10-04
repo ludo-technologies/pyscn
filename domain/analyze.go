@@ -184,16 +184,11 @@ func (s *AnalyzeSummary) calculateComplexityPenalty() int {
 
 // calculateDeadCodePenalty calculates the penalty for dead code (max 20)
 func (s *AnalyzeSummary) calculateDeadCodePenalty(normalizationFactor float64) int {
-	if s.DeadCodeCount == 0 && s.CriticalDeadCode == 0 {
+	if s.CriticalDeadCode == 0 {
 		return 0
 	}
 
-	base := int(math.Min(float64(MaxDeadCodePenalty), float64(s.DeadCodeCount)/normalizationFactor))
-	critical := int(math.Min(float64(MaxCriticalPenalty), float64(3*s.CriticalDeadCode)/normalizationFactor))
-	penalty := base + critical
-	if penalty > MaxDeadCodePenalty {
-		penalty = MaxDeadCodePenalty
-	}
+	penalty := int(math.Min(float64(MaxDeadCodePenalty), float64(s.CriticalDeadCode)/normalizationFactor))
 	return penalty
 }
 
