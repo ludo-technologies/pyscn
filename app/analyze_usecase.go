@@ -223,14 +223,11 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 	// Wait for all tasks to complete
 	wg.Wait()
 
-	// Stop progress updater
+	// Stop progress updater and ensure progress bar reaches 100%
 	if progressDone != nil {
 		close(progressDone)
-		// Ensure progress bar reaches 100%
-		if uc.progressManager != nil {
-			uc.progressManager.Update(100, 100)
-			uc.progressManager.Complete(true)
-		}
+		uc.progressManager.Update(100, 100)
+		uc.progressManager.Complete(true)
 	}
 
 	// Check for errors
