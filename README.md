@@ -16,6 +16,10 @@ Building with Cursor, Claude, or ChatGPT? pyscn performs structural analysis to 
 
 **100,000+ lines/sec** • Built with Go + tree-sitter
 
+## Demo
+
+https://github.com/ludo-technologies/pyscn/releases/download/v0.6.0-beta.1/pyscn_demo.mov
+
 ## Quick Start
 
 ```bash
