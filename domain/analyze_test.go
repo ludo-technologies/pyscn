@@ -267,10 +267,11 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				CodeDuplication:     35.0, // -12
 				CBOClasses:          10,
 				HighCouplingClasses: 4, // -10
-				DeadCodeCount:       5, // -5 (normalized)
+				DeadCodeCount:       5,
+				CriticalDeadCode:    0, // No critical issues, so no dead code penalty
 				TotalFiles:          1,
 			},
-			expectedScore: 61,
+			expectedScore: 66,
 			expectedGrade: "C",
 			expectError:   false,
 		},
