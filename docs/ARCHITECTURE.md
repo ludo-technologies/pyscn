@@ -562,14 +562,18 @@ type LSHConfig struct {
 - Use object pools for frequent allocations
 - Memory-aware batch processing
 
-### 4. Caching
+### 4. Caching (Future Enhancement)
 
+**Note: Caching is not yet implemented in v1.0.0. This section describes the planned architecture for future releases.**
+
+Planned caching features:
 - Cache parsed ASTs for unchanged files
 - Store CFGs for incremental analysis
 - Memoize APTED distance calculations
 - LSH signature caching
 
 ```go
+// Planned implementation (not yet available)
 type Cache struct {
     ast       map[string]*AST      // File hash → AST
     cfg       map[string]*CFG      // Function → CFG
