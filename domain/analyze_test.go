@@ -176,7 +176,7 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				ArchCompliance:            0.125, // -7
 			},
 			expectedScore:             68,  // Updated: 100-6-12-5-2-7 = 68
-			expectedGrade:             "C",  // Updated from B
+			expectedGrade:             "C", // Updated from B
 			expectError:               false,
 			expectedComplexityScore:   70,  // 100 - (6/20)*100 = 70
 			expectedDeadCodeScore:     100, // No dead code
@@ -194,17 +194,17 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				DepsEnabled:       false,
 			},
 			expectedScore: 68,  // Updated: 100-12-20 = 68
-			expectedGrade: "C",  // Updated from B
+			expectedGrade: "C", // Updated from B
 			expectError:   false,
 		},
 		{
 			name: "high complexity",
 			summary: domain.AnalyzeSummary{
 				AverageComplexity: 25.0, // -20
-				CodeDuplication:   5.0,  // -12 (new: 3-10% = Medium penalty)
+				CodeDuplication:   5.0,  // -6 (new: 3-10% = Low penalty)
 			},
-			expectedScore: 68,  // Updated: 100-20-12 = 68
-			expectedGrade: "C",  // Updated from B
+			expectedScore: 74,  // Updated: 100-20-6 = 74
+			expectedGrade: "B", // 74 is in B range (70-84)
 			expectError:   false,
 		},
 		{
@@ -256,7 +256,7 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				ArchEnabled:         true,
 				ArchCompliance:      0.9, // -1 (rounded)
 			},
-			expectedScore: 93,  // Actual calculation: penalties total 7
+			expectedScore: 93, // Actual calculation: penalties total 7
 			expectedGrade: "A",
 			expectError:   false,
 		},
@@ -271,8 +271,8 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				CriticalDeadCode:    0, // No critical issues, so no dead code penalty
 				TotalFiles:          1,
 			},
-			expectedScore: 59,  // Actual calculation
-			expectedGrade: "C",  // 59 is in C range (55-69)
+			expectedScore: 58,  // Updated: 100-12-20-10 = 58
+			expectedGrade: "C", // 58 is in C range (55-69)
 			expectError:   false,
 		},
 		{
