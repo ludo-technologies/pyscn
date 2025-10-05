@@ -177,9 +177,9 @@ type CloneRequest struct {
 	Timeout time.Duration `json:"timeout"` // Maximum time for clone analysis (0 = no timeout)
 
 	// LSH acceleration (opt-in)
-	UseLSH                 bool    `json:"use_lsh"`                   // Deprecated: use LSHEnabled instead
-	LSHEnabled             string  `json:"lsh_enabled"`               // "auto", "true", "false"
-	LSHAutoThreshold       int     `json:"lsh_auto_threshold"`        // Auto-enable LSH for N+ fragments
+	UseLSH                 bool    `json:"use_lsh"`            // Deprecated: use LSHEnabled instead
+	LSHEnabled             string  `json:"lsh_enabled"`        // "auto", "true", "false"
+	LSHAutoThreshold       int     `json:"lsh_auto_threshold"` // Auto-enable LSH for N+ fragments
 	LSHSimilarityThreshold float64 `json:"lsh_similarity_threshold"`
 	LSHBands               int     `json:"lsh_bands"`
 	LSHRows                int     `json:"lsh_rows"`

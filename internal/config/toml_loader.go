@@ -57,11 +57,11 @@ type ClonesConfig struct {
 	LSHHashes              int     `toml:"lsh_hashes"`
 
 	// Performance
-	MaxMemoryMB    int  `toml:"max_memory_mb"`
-	BatchSize      int  `toml:"batch_size"`
+	MaxMemoryMB    int   `toml:"max_memory_mb"`
+	BatchSize      int   `toml:"batch_size"`
 	EnableBatching *bool `toml:"enable_batching"` // pointer to detect unset
-	MaxGoroutines  int  `toml:"max_goroutines"`
-	TimeoutSeconds int  `toml:"timeout_seconds"`
+	MaxGoroutines  int   `toml:"max_goroutines"`
+	TimeoutSeconds int   `toml:"timeout_seconds"`
 
 	// Output
 	ShowDetails *bool  `toml:"show_details"` // pointer to detect unset
