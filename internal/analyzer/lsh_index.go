@@ -6,13 +6,6 @@ import (
 	"hash/fnv"
 )
 
-// LSHConfig holds banding parameters
-type LSHConfig struct {
-	Bands               int
-	Rows                int
-	SimilarityThreshold float64 // approximate threshold for MinHash similarity filtering
-}
-
 // LSHIndex implements MinHash LSH with banding
 type LSHIndex struct {
 	bands      int

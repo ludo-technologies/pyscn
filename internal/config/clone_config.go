@@ -269,16 +269,23 @@ func (a *CloneAnalysisConfig) Validate() error {
 
 // Validate validates the threshold configuration
 func (t *ThresholdConfig) Validate() error {
-	// Use the threshold validation from constants
-	thresholdConfig := constants.CloneThresholdConfig{
-		Type1Threshold: t.Type1Threshold,
-		Type2Threshold: t.Type2Threshold,
-		Type3Threshold: t.Type3Threshold,
-		Type4Threshold: t.Type4Threshold,
+	// Check range
+	thresholds := []float64{t.Type1Threshold, t.Type2Threshold, t.Type3Threshold, t.Type4Threshold}
+	for i, threshold := range thresholds {
+		if threshold < 0.0 || threshold > 1.0 {
+			return fmt.Errorf("threshold %d is out of range [0.0, 1.0]: %f", i+1, threshold)
+		}
 	}
 
-	if err := thresholdConfig.ValidateThresholds(); err != nil {
-		return err
+	// Check ordering: Type1 > Type2 > Type3 > Type4
+	if t.Type1Threshold <= t.Type2Threshold {
+		return fmt.Errorf("Type1 threshold (%.3f) should be > Type2 threshold (%.3f)", t.Type1Threshold, t.Type2Threshold)
+	}
+	if t.Type2Threshold <= t.Type3Threshold {
+		return fmt.Errorf("Type2 threshold (%.3f) should be > Type3 threshold (%.3f)", t.Type2Threshold, t.Type3Threshold)
+	}
+	if t.Type3Threshold <= t.Type4Threshold {
+		return fmt.Errorf("Type3 threshold (%.3f) should be > Type4 threshold (%.3f)", t.Type3Threshold, t.Type4Threshold)
 	}
 
 	// Validate general similarity threshold
