@@ -20,7 +20,7 @@ pipx run pyscn analyze .
 
 ## Demo
 
-https://github.com/user-attachments/assets/b8e52d90-2a8e-4b49-a7e5-8a9a46f6a672
+https://github.com/user-attachments/assets/07f48070-c0dd-437b-9621-cb3963f863ff
 
 ## Features
 
