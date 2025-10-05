@@ -25,12 +25,12 @@ const (
 	DuplicationPenaltyLow      = 6
 
 	// CBO coupling thresholds and penalties
-	CouplingRatioHigh     = 0.5
-	CouplingRatioMedium   = 0.3
-	CouplingRatioLow      = 0.1
-	CouplingPenaltyHigh   = 16
-	CouplingPenaltyMedium = 10
-	CouplingPenaltyLow    = 5
+	CouplingRatioHigh     = 0.30 // 30% or more classes with high coupling
+	CouplingRatioMedium   = 0.15 // 15-30% classes with high coupling
+	CouplingRatioLow      = 0.05 // 5-15% classes with high coupling
+	CouplingPenaltyHigh   = 20   // Aligned with other high penalties
+	CouplingPenaltyMedium = 12   // Aligned with other medium penalties
+	CouplingPenaltyLow    = 6    // Aligned with other low penalties
 
 	// Maximum penalties
 	MaxDeadCodePenalty = 20

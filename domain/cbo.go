@@ -24,8 +24,8 @@ type CBORequest struct {
 	ShowZeros bool // Include classes with CBO = 0
 
 	// CBO thresholds for risk assessment
-	LowThreshold    int // Default: 5
-	MediumThreshold int // Default: 10
+	LowThreshold    int // Default: 3 (industry standard)
+	MediumThreshold int // Default: 7 (industry standard)
 
 	// Configuration
 	ConfigPath string
@@ -169,8 +169,8 @@ func DefaultCBORequest() *CBORequest {
 		MaxCBO:          0,              // No limit
 		SortBy:          SortByCoupling, // Sort by CBO value
 		ShowZeros:       false,
-		LowThreshold:    5,
-		MediumThreshold: 10,
+		LowThreshold:    3, // Industry standard: CBO <= 3 is low risk
+		MediumThreshold: 7, // Industry standard: 3 < CBO <= 7 is medium risk
 		Recursive:       true,
 		IncludeBuiltins: false,
 		IncludeImports:  true,

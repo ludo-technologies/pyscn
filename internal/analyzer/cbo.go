@@ -45,8 +45,8 @@ type CBOOptions struct {
 	IncludeImports    bool
 	PublicClassesOnly bool
 	ExcludePatterns   []string
-	LowThreshold      int // Default: 5
-	MediumThreshold   int // Default: 10
+	LowThreshold      int // Default: 3 (industry standard)
+	MediumThreshold   int // Default: 7 (industry standard)
 }
 
 // DefaultCBOOptions returns default CBO analysis options
@@ -56,8 +56,8 @@ func DefaultCBOOptions() *CBOOptions {
 		IncludeImports:    true,
 		PublicClassesOnly: false,
 		ExcludePatterns:   []string{"test_*", "*_test", "__*__"},
-		LowThreshold:      5,
-		MediumThreshold:   10,
+		LowThreshold:      3, // Industry standard: CBO <= 3 is low risk
+		MediumThreshold:   7, // Industry standard: 3 < CBO <= 7 is medium risk
 	}
 }
 

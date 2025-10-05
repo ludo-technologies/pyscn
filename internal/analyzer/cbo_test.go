@@ -24,8 +24,8 @@ func TestNewCBOAnalyzer(t *testing.T) {
 				IncludeBuiltins:   false,
 				IncludeImports:    true,
 				PublicClassesOnly: false,
-				LowThreshold:      5,
-				MediumThreshold:   10,
+				LowThreshold:      3, // Updated to industry standard
+				MediumThreshold:   7, // Updated to industry standard
 			},
 		},
 		{
