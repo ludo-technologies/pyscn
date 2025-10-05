@@ -59,17 +59,17 @@ func NewTomlConfigLoader() *TomlConfigLoader {
 }
 
 // LoadConfig loads configuration from TOML files with ruff-like priority:
-// 1. pyproject.toml (with [tool.pyscn] section)
-// 2. .pyscn.toml (dedicated config file)
+// 1. .pyscn.toml (dedicated config file)
+// 2. pyproject.toml (with [tool.pyscn] section)
 // 3. defaults
 func (l *TomlConfigLoader) LoadConfig(startDir string) (*CloneConfig, error) {
-	// Try pyproject.toml first
-	if config, err := l.loadFromPyprojectToml(startDir); err == nil {
+	// Try .pyscn.toml first (highest priority)
+	if config, err := l.loadFromPyscnToml(startDir); err == nil {
 		return config, nil
 	}
 
-	// Try .pyscn.toml as fallback
-	if config, err := l.loadFromPyscnToml(startDir); err == nil {
+	// Try pyproject.toml as fallback
+	if config, err := l.loadFromPyprojectToml(startDir); err == nil {
 		return config, nil
 	}
 
@@ -261,7 +261,7 @@ func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *CloneConfig, pyscnTom
 // in order of precedence
 func (l *TomlConfigLoader) GetSupportedConfigFiles() []string {
 	return []string{
+		".pyscn.toml",    // dedicated config file (highest priority)
 		"pyproject.toml", // with [tool.pyscn] section
-		".pyscn.toml",    // dedicated config file
 	}
 }

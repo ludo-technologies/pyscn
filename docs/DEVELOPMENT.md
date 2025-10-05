@@ -106,17 +106,19 @@ gh pr create --title "feat: Add tree-sitter integration" \
 
 ### Configuration Files
 
-pyscn uses a TOML-only configuration system similar to Ruff. Configuration files are searched in the following order:
+pyscn uses a TOML-only configuration system similar to Ruff. Configuration files are searched in the following priority order:
 
-1. **pyproject.toml** with `[tool.pyscn]` section (recommended)
-2. **.pyscn.toml** (dedicated config file)  
+1. **.pyscn.toml** (dedicated config file - takes precedence)
+2. **pyproject.toml** with `[tool.pyscn]` section (fallback)
 3. **Parent Directories**: Searching upward to filesystem root
+
+When both `.pyscn.toml` and `pyproject.toml` exist in the same directory, `.pyscn.toml` is used and `pyproject.toml` is ignored.
 
 ### Configuration File Names
 
-Supported configuration file names:
+Supported configuration file names (in priority order):
+- `.pyscn.toml` (dedicated config file)
 - `pyproject.toml` (with `[tool.pyscn]` section)
-- `.pyscn.toml`
 
 ### Configuration Example
 
