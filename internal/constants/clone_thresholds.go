@@ -1,7 +1,5 @@
 package constants
 
-import "fmt"
-
 // CloneThresholds defines the standard similarity thresholds for different types of code clones.
 // These values are based on research in clone detection and represent industry standards.
 //
@@ -30,64 +28,6 @@ const (
 	// Medium similarity (≥70%).
 	DefaultType4CloneThreshold = 0.75
 )
-
-// CloneThresholdConfig holds all clone detection threshold values
-type CloneThresholdConfig struct {
-	Type1Threshold float64
-	Type2Threshold float64
-	Type3Threshold float64
-	Type4Threshold float64
-}
-
-// DefaultCloneThresholds returns the default clone detection thresholds
-func DefaultCloneThresholds() CloneThresholdConfig {
-	return CloneThresholdConfig{
-		Type1Threshold: DefaultType1CloneThreshold,
-		Type2Threshold: DefaultType2CloneThreshold,
-		Type3Threshold: DefaultType3CloneThreshold,
-		Type4Threshold: DefaultType4CloneThreshold,
-	}
-}
-
-// ValidateThresholds validates that clone thresholds are in correct order and range
-func (c *CloneThresholdConfig) ValidateThresholds() error {
-	// Check range
-	thresholds := []float64{c.Type1Threshold, c.Type2Threshold, c.Type3Threshold, c.Type4Threshold}
-	for i, threshold := range thresholds {
-		if threshold < 0.0 || threshold > 1.0 {
-			return fmt.Errorf("threshold %d is out of range [0.0, 1.0]: %f", i+1, threshold)
-		}
-	}
-
-	// Check ordering: Type1 > Type2 > Type3 > Type4
-	if c.Type1Threshold <= c.Type2Threshold {
-		return fmt.Errorf("Type1 threshold (%.3f) should be > Type2 threshold (%.3f)", c.Type1Threshold, c.Type2Threshold)
-	}
-	if c.Type2Threshold <= c.Type3Threshold {
-		return fmt.Errorf("Type2 threshold (%.3f) should be > Type3 threshold (%.3f)", c.Type2Threshold, c.Type3Threshold)
-	}
-	if c.Type3Threshold <= c.Type4Threshold {
-		return fmt.Errorf("Type3 threshold (%.3f) should be > Type4 threshold (%.3f)", c.Type3Threshold, c.Type4Threshold)
-	}
-
-	return nil
-}
-
-// GetThresholdForType returns the threshold for a specific clone type
-func (c *CloneThresholdConfig) GetThresholdForType(cloneType int) float64 {
-	switch cloneType {
-	case 1:
-		return c.Type1Threshold
-	case 2:
-		return c.Type2Threshold
-	case 3:
-		return c.Type3Threshold
-	case 4:
-		return c.Type4Threshold
-	default:
-		return c.Type4Threshold // Default to most permissive
-	}
-}
 
 // CloneTypeNames provides human-readable names for clone types
 var CloneTypeNames = map[int]string{

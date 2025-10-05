@@ -169,27 +169,31 @@ func (c *CloneConfigurationLoader) updateConfigFromCloneRequest(cfg *config.Conf
 		sortBy = "similarity"
 	}
 
-	// Update clone detection configuration
-	cfg.CloneDetection = config.CloneDetectionConfig{
-		Enabled:             true, // Always enabled if we're saving config
-		MinLines:            req.MinLines,
-		MinNodes:            req.MinNodes,
-		Type1Threshold:      req.Type1Threshold,
-		Type2Threshold:      req.Type2Threshold,
-		Type3Threshold:      req.Type3Threshold,
-		Type4Threshold:      req.Type4Threshold,
-		SimilarityThreshold: req.SimilarityThreshold,
-		MaxEditDistance:     req.MaxEditDistance,
-		CostModelType:       "python", // Default cost model
-		IgnoreLiterals:      req.IgnoreLiterals,
-		IgnoreIdentifiers:   req.IgnoreIdentifiers,
-		ShowContent:         req.ShowContent,
-		GroupClones:         req.GroupClones,
-		SortBy:              sortBy,
-		MinSimilarity:       req.MinSimilarity,
-		MaxSimilarity:       req.MaxSimilarity,
-		CloneTypes:          cloneTypes,
+	// Update clone detection configuration using unified config
+	if cfg.Clones == nil {
+		cfg.Clones = config.DefaultCloneConfig()
 	}
+
+	cfg.Clones.Analysis.MinLines = req.MinLines
+	cfg.Clones.Analysis.MinNodes = req.MinNodes
+	cfg.Clones.Analysis.MaxEditDistance = req.MaxEditDistance
+	cfg.Clones.Analysis.CostModelType = "python" // Default cost model
+	cfg.Clones.Analysis.IgnoreLiterals = req.IgnoreLiterals
+	cfg.Clones.Analysis.IgnoreIdentifiers = req.IgnoreIdentifiers
+
+	cfg.Clones.Thresholds.Type1Threshold = req.Type1Threshold
+	cfg.Clones.Thresholds.Type2Threshold = req.Type2Threshold
+	cfg.Clones.Thresholds.Type3Threshold = req.Type3Threshold
+	cfg.Clones.Thresholds.Type4Threshold = req.Type4Threshold
+	cfg.Clones.Thresholds.SimilarityThreshold = req.SimilarityThreshold
+
+	cfg.Clones.Output.ShowContent = req.ShowContent
+	cfg.Clones.Output.GroupClones = req.GroupClones
+	cfg.Clones.Output.SortBy = sortBy
+
+	cfg.Clones.Filtering.MinSimilarity = req.MinSimilarity
+	cfg.Clones.Filtering.MaxSimilarity = req.MaxSimilarity
+	cfg.Clones.Filtering.EnabledCloneTypes = cloneTypes
 
 	// Update analysis patterns if provided
 	if len(req.IncludePatterns) > 0 {

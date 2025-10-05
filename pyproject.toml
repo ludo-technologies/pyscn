@@ -85,11 +85,9 @@ exclude = [
     "docs/"
 ]
 
-# pyscn clone detection configuration
-[tool.pyscn.clone]
-
+# pyscn clone detection configuration (flat structure)
+[tool.pyscn.clones]
 # Analysis settings
-[tool.pyscn.clone.analysis]
 min_lines = 5
 min_nodes = 10
 max_edit_distance = 50.0
@@ -98,7 +96,6 @@ ignore_identifiers = false
 cost_model_type = "python"
 
 # Threshold settings for clone type classification
-[tool.pyscn.clone.thresholds]
 type1_threshold = 0.98
 type2_threshold = 0.95
 type3_threshold = 0.85
@@ -106,14 +103,12 @@ type4_threshold = 0.70
 similarity_threshold = 0.8
 
 # Input settings
-[tool.pyscn.clone.input]
 paths = ["."]
 recursive = true
 include_patterns = ["*.py"]
 exclude_patterns = ["test_*.py", "*_test.py", "__pycache__/*"]
 
 # Output settings
-[tool.pyscn.clone.output]
 format = "text"
 show_details = false
 show_content = false
@@ -121,29 +116,25 @@ sort_by = "similarity"
 group_clones = true
 
 # Filtering settings
-[tool.pyscn.clone.filtering]
 min_similarity = 0.0
 max_similarity = 1.0
 enabled_clone_types = ["type1", "type2", "type3", "type4"]
 max_results = 10000
 
 # Grouping settings
-[tool.pyscn.clone.grouping]
-mode = "connected"
-threshold = 0.85
+grouping_mode = "connected"
+grouping_threshold = 0.85
 k_core_k = 2
 
 # LSH acceleration settings
-[tool.pyscn.clone.lsh]
-enabled = "auto"
-auto_threshold = 500
-similarity_threshold = 0.78
-bands = 32
-rows = 4
-hashes = 128
+lsh_enabled = "auto"
+lsh_auto_threshold = 500
+lsh_similarity_threshold = 0.78
+lsh_bands = 32
+lsh_rows = 4
+lsh_hashes = 128
 
 # Performance settings
-[tool.pyscn.clone.performance]
 max_memory_mb = 100
 batch_size = 100
 enable_batching = true

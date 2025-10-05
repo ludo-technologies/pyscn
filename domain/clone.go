@@ -177,7 +177,6 @@ type CloneRequest struct {
 	Timeout time.Duration `json:"timeout"` // Maximum time for clone analysis (0 = no timeout)
 
 	// LSH acceleration (opt-in)
-	UseLSH                 bool    `json:"use_lsh"`            // Deprecated: use LSHEnabled instead
 	LSHEnabled             string  `json:"lsh_enabled"`        // "auto", "true", "false"
 	LSHAutoThreshold       int     `json:"lsh_auto_threshold"` // Auto-enable LSH for N+ fragments
 	LSHSimilarityThreshold float64 `json:"lsh_similarity_threshold"`
@@ -299,26 +298,6 @@ func (req *CloneRequest) Validate() error {
 		return NewValidationError("type3_threshold should be > type4_threshold")
 	}
 
-	// LSH validation
-	if req.UseLSH {
-		if req.LSHSimilarityThreshold < 0.0 || req.LSHSimilarityThreshold > 1.0 {
-			return NewValidationError("lsh_similarity_threshold must be between 0.0 and 1.0")
-		}
-		if req.LSHBands < 1 {
-			return NewValidationError("lsh_bands must be >= 1")
-		}
-		if req.LSHRows < 1 {
-			return NewValidationError("lsh_rows must be >= 1")
-		}
-		if req.LSHHashes < 1 {
-			return NewValidationError("lsh_hashes must be >= 1")
-		}
-		// Optional sanity: total hashes should be >= bands*rows
-		if req.LSHHashes < req.LSHBands*req.LSHRows {
-			return NewValidationError("lsh_hashes must be >= lsh_bands*lsh_rows")
-		}
-	}
-
 	return nil
 }
 
@@ -365,10 +344,9 @@ func DefaultCloneRequest() *CloneRequest {
 		MinSimilarity:       0.0,
 		MaxSimilarity:       1.0,
 		CloneTypes:          []CloneType{Type1Clone, Type2Clone, Type3Clone, Type4Clone},
-		// LSH defaults (opt-in)
-		UseLSH:                 false,
-		LSHEnabled:             "auto", // Auto-enable based on fragment count
-		LSHAutoThreshold:       500,    // Enable LSH for 500+ fragments
+		// LSH defaults (auto-enable based on fragment count)
+		LSHEnabled:             "auto",
+		LSHAutoThreshold:       500,
 		LSHSimilarityThreshold: 0.78,
 		LSHBands:               32,
 		LSHRows:                4,

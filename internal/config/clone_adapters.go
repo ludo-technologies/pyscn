@@ -9,31 +9,6 @@ import (
 // Note: ToCloneDetectorConfig is now implemented directly in the analyzer package
 // to avoid circular import dependencies
 
-// ToCloneDetectionConfig converts unified CloneConfig to config's CloneDetectionConfig
-// This maintains backward compatibility with the existing config package
-func (c *CloneConfig) ToCloneDetectionConfig() CloneDetectionConfig {
-	return CloneDetectionConfig{
-		Enabled:             true, // Assumed enabled if we're creating config
-		MinLines:            c.Analysis.MinLines,
-		MinNodes:            c.Analysis.MinNodes,
-		Type1Threshold:      c.Thresholds.Type1Threshold,
-		Type2Threshold:      c.Thresholds.Type2Threshold,
-		Type3Threshold:      c.Thresholds.Type3Threshold,
-		Type4Threshold:      c.Thresholds.Type4Threshold,
-		SimilarityThreshold: c.Thresholds.SimilarityThreshold,
-		MaxEditDistance:     c.Analysis.MaxEditDistance,
-		CostModelType:       c.Analysis.CostModelType,
-		IgnoreLiterals:      c.Analysis.IgnoreLiterals,
-		IgnoreIdentifiers:   c.Analysis.IgnoreIdentifiers,
-		ShowContent:         c.Output.ShowContent,
-		GroupClones:         c.Output.GroupClones,
-		SortBy:              c.Output.SortBy,
-		MinSimilarity:       c.Filtering.MinSimilarity,
-		MaxSimilarity:       c.Filtering.MaxSimilarity,
-		CloneTypes:          c.Filtering.EnabledCloneTypes,
-	}
-}
-
 // ToCloneRequest converts unified CloneConfig to domain's CloneRequest
 // This maintains backward compatibility with the domain package
 func (c *CloneConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneRequest {
@@ -116,35 +91,6 @@ func (c *CloneConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 
 // Note: Analyzer-specific adapter functions are implemented directly in the analyzer package
 // to avoid circular import dependencies
-
-// FromCloneDetectionConfig creates unified CloneConfig from config's CloneDetectionConfig
-func FromCloneDetectionConfig(detectionConfig CloneDetectionConfig) *CloneConfig {
-	config := DefaultCloneConfig()
-
-	// Update with config-specific values
-	config.Analysis.MinLines = detectionConfig.MinLines
-	config.Analysis.MinNodes = detectionConfig.MinNodes
-	config.Analysis.MaxEditDistance = detectionConfig.MaxEditDistance
-	config.Analysis.IgnoreLiterals = detectionConfig.IgnoreLiterals
-	config.Analysis.IgnoreIdentifiers = detectionConfig.IgnoreIdentifiers
-	config.Analysis.CostModelType = detectionConfig.CostModelType
-
-	config.Thresholds.Type1Threshold = detectionConfig.Type1Threshold
-	config.Thresholds.Type2Threshold = detectionConfig.Type2Threshold
-	config.Thresholds.Type3Threshold = detectionConfig.Type3Threshold
-	config.Thresholds.Type4Threshold = detectionConfig.Type4Threshold
-	config.Thresholds.SimilarityThreshold = detectionConfig.SimilarityThreshold
-
-	config.Output.ShowContent = detectionConfig.ShowContent
-	config.Output.GroupClones = detectionConfig.GroupClones
-	config.Output.SortBy = detectionConfig.SortBy
-
-	config.Filtering.MinSimilarity = detectionConfig.MinSimilarity
-	config.Filtering.MaxSimilarity = detectionConfig.MaxSimilarity
-	config.Filtering.EnabledCloneTypes = detectionConfig.CloneTypes
-
-	return config
-}
 
 // FromCloneRequest creates unified CloneConfig from domain's CloneRequest
 func FromCloneRequest(request *domain.CloneRequest) *CloneConfig {

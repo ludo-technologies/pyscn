@@ -44,9 +44,10 @@ detect_unreachable_branches = true # Unreachable conditional branches
 ignore_patterns = []
 
 # =============================================================================
-# CLONE DETECTION (TOML format - no [tool.pyscn] prefix needed)
+# CLONE DETECTION (Unified flat structure under [clones] section)
 # =============================================================================
-[analysis]
+[clones]
+# Analysis settings
 min_lines = 5                     # Minimum lines for clone candidates
 min_nodes = 10                    # Minimum AST nodes for clone candidates
 max_edit_distance = 50.0          # Maximum edit distance allowed
@@ -54,77 +55,70 @@ ignore_literals = false           # Ignore differences in literal values
 ignore_identifiers = false        # Ignore differences in identifier names
 cost_model_type = "python"        # Cost model: default, python, weighted
 
-[thresholds]
-# Clone type similarity thresholds (0.0 - 1.0)
+# Threshold settings for clone type classification (0.0 - 1.0)
 type1_threshold = 0.95            # Type-1: Identical code (except whitespace/comments)
 type2_threshold = 0.85            # Type-2: Syntactically identical (different identifiers)
 type3_threshold = 0.80            # Type-3: Syntactically similar (small modifications)
 type4_threshold = 0.75            # Type-4: Functionally similar (different syntax)
 similarity_threshold = 0.8        # General minimum similarity threshold
 
-[filtering]
+# Filtering settings
 min_similarity = 0.0              # Minimum similarity to report
 max_similarity = 1.0              # Maximum similarity to report
 enabled_clone_types = ["type1", "type2", "type3", "type4"] # Clone types to detect
 max_results = 0                   # Maximum results (0 = no limit)
 
-[input]
-paths = []                        # Paths to analyze (empty = use command line)
-recursive = true                  # Recursively analyze directories
-include_patterns = ["*.py"]       # File patterns to include
-exclude_patterns = ["test_*.py", "*_test.py"] # File patterns to exclude
-
-[output]
-format = "text"                   # Output format: text, json, yaml, csv, html
-show_details = false              # Show detailed clone information
-show_content = false              # Include source code content in output
-sort_by = "similarity"            # Sort by: similarity, size, location, type
-group_clones = true               # Group related clones together
-
-[grouping]
-mode = "connected"                # Grouping strategy: connected, star, complete_linkage, k_core
-threshold = 0.85                  # Minimum similarity for group membership
+# Grouping settings
+grouping_mode = "connected"       # Grouping strategy: connected, star, complete_linkage, k_core
+grouping_threshold = 0.85         # Minimum similarity for group membership
 k_core_k = 2                      # K value for k-core mode
 
-[lsh]
-enabled = "auto"                  # LSH acceleration: true, false, auto
-auto_threshold = 500              # Enable LSH for 500+ fragments
-similarity_threshold = 0.78       # LSH similarity threshold
-bands = 32                        # Number of LSH bands
-rows = 4                          # Rows per LSH band
-hashes = 128                      # MinHash function count
+# LSH acceleration settings
+lsh_enabled = "auto"              # LSH acceleration: true, false, auto (based on project size)
+lsh_auto_threshold = 500          # Enable LSH for 500+ fragments
+lsh_similarity_threshold = 0.78   # LSH similarity threshold
+lsh_bands = 32                    # Number of LSH bands
+lsh_rows = 4                      # Rows per LSH band
+lsh_hashes = 128                  # MinHash function count
 
-[performance]
+# Performance settings
 max_memory_mb = 100               # Memory limit in MB
 batch_size = 100                  # Batch size for processing
 enable_batching = true            # Enable batching
 max_goroutines = 4                # Maximum concurrent goroutines
 timeout_seconds = 300             # Timeout in seconds (5 minutes)
 
+# Input settings
+paths = []                        # Paths to analyze (empty = use command line)
+recursive = true                  # Recursively analyze directories
+include_patterns = ["*.py"]       # File patterns to include
+exclude_patterns = ["test_*.py", "*_test.py"] # File patterns to exclude
+
+# Output settings
+format = "text"                   # Output format: text, json, yaml, csv, html
+show_details = false              # Show detailed clone information
+show_content = false              # Include source code content in output
+sort_by = "similarity"            # Sort by: similarity, size, location, type
+group_clones = true               # Group related clones together
+
 # =============================================================================
 # EXAMPLE CONFIGURATIONS
 # =============================================================================
 
-# Uncomment and modify these sections for common use cases:
+# Uncomment and modify these settings for common use cases:
 
-# # Strict mode - high precision
-# [thresholds]
-# similarity_threshold = 0.95
-# [filtering]
-# enabled_clone_types = ["type1", "type2"]
-# 
+# # Strict mode - high precision (uncomment and add to [clones] section)
+# # similarity_threshold = 0.95
+# # enabled_clone_types = ["type1", "type2"]
+#
 # # Relaxed mode - catch more potential clones
-# [thresholds]  
-# similarity_threshold = 0.7
-# [analysis]
-# min_lines = 3
-# 
+# # similarity_threshold = 0.7
+# # min_lines = 3
+#
 # # Performance optimized for large codebases
-# [lsh]
-# enabled = "true"
-# [performance]
-# max_goroutines = 8
-# batch_size = 200
+# # lsh_enabled = "true"
+# # max_goroutines = 8
+# # batch_size = 200
 `
 
 // InitCommand represents the init command

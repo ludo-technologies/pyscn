@@ -54,7 +54,12 @@ func (f *DeadCodeFormatterImpl) Write(response *domain.DeadCodeResponse, format 
 func (f *DeadCodeFormatterImpl) FormatFinding(finding domain.DeadCodeFinding, format domain.OutputFormat) (string, error) {
 	switch format {
 	case domain.OutputFormatText:
-		return f.formatFindingTextLegacy(finding), nil
+		return fmt.Sprintf("  [%s] Line %d-%d: %s (%s)",
+			strings.ToUpper(string(finding.Severity)),
+			finding.Location.StartLine,
+			finding.Location.EndLine,
+			finding.Description,
+			finding.Reason), nil
 	case domain.OutputFormatJSON:
 		return EncodeJSON(finding)
 	case domain.OutputFormatYAML:
@@ -62,7 +67,12 @@ func (f *DeadCodeFormatterImpl) FormatFinding(finding domain.DeadCodeFinding, fo
 	case domain.OutputFormatHTML:
 		// HTML formatting for individual findings is not typically needed
 		// Fall back to text format for individual findings
-		return f.formatFindingTextLegacy(finding), nil
+		return fmt.Sprintf("  [%s] Line %d-%d: %s (%s)",
+			strings.ToUpper(string(finding.Severity)),
+			finding.Location.StartLine,
+			finding.Location.EndLine,
+			finding.Description,
+			finding.Reason), nil
 	default:
 		return "", domain.NewUnsupportedFormatError(string(format))
 	}
@@ -150,16 +160,6 @@ func (f *DeadCodeFormatterImpl) formatFindingText(finding domain.DeadCodeFinding
 	coloredSeverity := utils.FormatRiskWithColor(standardRisk)
 	return fmt.Sprintf("    [%s] Line %d-%d: %s (%s)",
 		coloredSeverity,
-		finding.Location.StartLine,
-		finding.Location.EndLine,
-		finding.Description,
-		finding.Reason)
-}
-
-// Keep the old method for backward compatibility with FormatFinding
-func (f *DeadCodeFormatterImpl) formatFindingTextLegacy(finding domain.DeadCodeFinding) string {
-	return fmt.Sprintf("  [%s] Line %d-%d: %s (%s)",
-		strings.ToUpper(string(finding.Severity)),
 		finding.Location.StartLine,
 		finding.Location.EndLine,
 		finding.Description,
