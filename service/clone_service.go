@@ -139,10 +139,8 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	useLSH := false
 	if req.LSHEnabled == "true" {
 		useLSH = true
-		fmt.Fprintf(os.Stderr, "LSH: Explicitly enabled (lsh_enabled=true)\n")
 	} else if req.LSHEnabled == "false" {
 		useLSH = false
-		fmt.Fprintf(os.Stderr, "LSH: Explicitly disabled (lsh_enabled=false)\n")
 	} else if req.LSHEnabled == "auto" || req.LSHEnabled == "" {
 		// Auto mode: enable LSH if fragment count >= threshold
 		threshold := req.LSHAutoThreshold
@@ -150,8 +148,6 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 			threshold = 500 // Default threshold
 		}
 		useLSH = len(allFragments) >= threshold
-		fmt.Fprintf(os.Stderr, "LSH: Auto-detection - %d fragments, threshold=%d, enabled=%v\n",
-			len(allFragments), threshold, useLSH)
 	}
 
 	// Update detector with LSH decision
