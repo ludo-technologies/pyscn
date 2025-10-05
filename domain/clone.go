@@ -177,7 +177,9 @@ type CloneRequest struct {
 	Timeout time.Duration `json:"timeout"` // Maximum time for clone analysis (0 = no timeout)
 
 	// LSH acceleration (opt-in)
-	UseLSH                 bool    `json:"use_lsh"`
+	UseLSH                 bool    `json:"use_lsh"`                   // Deprecated: use LSHEnabled instead
+	LSHEnabled             string  `json:"lsh_enabled"`               // "auto", "true", "false"
+	LSHAutoThreshold       int     `json:"lsh_auto_threshold"`        // Auto-enable LSH for N+ fragments
 	LSHSimilarityThreshold float64 `json:"lsh_similarity_threshold"`
 	LSHBands               int     `json:"lsh_bands"`
 	LSHRows                int     `json:"lsh_rows"`
@@ -365,6 +367,8 @@ func DefaultCloneRequest() *CloneRequest {
 		CloneTypes:          []CloneType{Type1Clone, Type2Clone, Type3Clone, Type4Clone},
 		// LSH defaults (opt-in)
 		UseLSH:                 false,
+		LSHEnabled:             "auto", // Auto-enable based on fragment count
+		LSHAutoThreshold:       500,    // Enable LSH for 500+ fragments
 		LSHSimilarityThreshold: 0.78,
 		LSHBands:               32,
 		LSHRows:                4,

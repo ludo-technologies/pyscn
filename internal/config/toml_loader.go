@@ -9,14 +9,65 @@ import (
 
 // PyscnTomlConfig represents the structure of .pyscn.toml
 type PyscnTomlConfig struct {
-	Analysis    PyscnTomlAnalysisConfig  `toml:"analysis"`
-	Thresholds  ThresholdConfig          `toml:"thresholds"`
-	Filtering   PyscnTomlFilteringConfig `toml:"filtering"`
-	Input       PyscnTomlInputConfig     `toml:"input"`
-	Output      PyscnTomlOutputConfig    `toml:"output"`
-	Performance PerformanceConfig        `toml:"performance"`
-	Grouping    GroupingConfig           `toml:"grouping"`
-	LSH         LSHConfig                `toml:"lsh"`
+	Clones      ClonesConfig             `toml:"clones"`      // Primary: [clones] section
+	Analysis    PyscnTomlAnalysisConfig  `toml:"analysis"`    // Fallback for compatibility
+	Thresholds  ThresholdConfig          `toml:"thresholds"`  // Fallback for compatibility
+	Filtering   PyscnTomlFilteringConfig `toml:"filtering"`   // Fallback for compatibility
+	Input       PyscnTomlInputConfig     `toml:"input"`       // Fallback for compatibility
+	Output      PyscnTomlOutputConfig    `toml:"output"`      // Fallback for compatibility
+	Performance PerformanceConfig        `toml:"performance"` // Fallback for compatibility
+	Grouping    GroupingConfig           `toml:"grouping"`    // Fallback for compatibility
+	LSH         LSHConfig                `toml:"lsh"`         // Fallback for compatibility
+}
+
+// ClonesConfig represents the [clones] section (flat structure)
+type ClonesConfig struct {
+	// Analysis settings
+	MinLines          int     `toml:"min_lines"`
+	MinNodes          int     `toml:"min_nodes"`
+	MaxEditDistance   float64 `toml:"max_edit_distance"`
+	IgnoreLiterals    *bool   `toml:"ignore_literals"`    // pointer to detect unset
+	IgnoreIdentifiers *bool   `toml:"ignore_identifiers"` // pointer to detect unset
+	CostModelType     string  `toml:"cost_model_type"`
+
+	// Thresholds
+	Type1Threshold      float64 `toml:"type1_threshold"`
+	Type2Threshold      float64 `toml:"type2_threshold"`
+	Type3Threshold      float64 `toml:"type3_threshold"`
+	Type4Threshold      float64 `toml:"type4_threshold"`
+	SimilarityThreshold float64 `toml:"similarity_threshold"`
+
+	// Filtering
+	MinSimilarity     float64  `toml:"min_similarity"`
+	MaxSimilarity     float64  `toml:"max_similarity"`
+	EnabledCloneTypes []string `toml:"enabled_clone_types"`
+	MaxResults        int      `toml:"max_results"`
+
+	// Grouping
+	GroupingMode      string  `toml:"grouping_mode"`
+	GroupingThreshold float64 `toml:"grouping_threshold"`
+	KCoreK            int     `toml:"k_core_k"`
+
+	// LSH (flat structure with lsh_ prefix)
+	LSHEnabled             string  `toml:"lsh_enabled"`
+	LSHAutoThreshold       int     `toml:"lsh_auto_threshold"`
+	LSHSimilarityThreshold float64 `toml:"lsh_similarity_threshold"`
+	LSHBands               int     `toml:"lsh_bands"`
+	LSHRows                int     `toml:"lsh_rows"`
+	LSHHashes              int     `toml:"lsh_hashes"`
+
+	// Performance
+	MaxMemoryMB    int  `toml:"max_memory_mb"`
+	BatchSize      int  `toml:"batch_size"`
+	EnableBatching *bool `toml:"enable_batching"` // pointer to detect unset
+	MaxGoroutines  int  `toml:"max_goroutines"`
+	TimeoutSeconds int  `toml:"timeout_seconds"`
+
+	// Output
+	ShowDetails *bool  `toml:"show_details"` // pointer to detect unset
+	ShowContent *bool  `toml:"show_content"` // pointer to detect unset
+	SortBy      string `toml:"sort_by"`
+	GroupClones *bool  `toml:"group_clones"` // pointer to detect unset
 }
 
 type PyscnTomlAnalysisConfig struct {
@@ -139,7 +190,14 @@ func (l *TomlConfigLoader) findPyscnToml(startDir string) (string, error) {
 
 // mergePyscnTomlConfigs merges .pyscn.toml config into defaults
 // using pointer booleans to detect unset values
+// Priority: [clones] section > individual sections (for backward compatibility)
 func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *CloneConfig, pyscnToml *PyscnTomlConfig) {
+	// First, merge from [clones] section if it exists (highest priority)
+	l.mergeClonesSection(defaults, &pyscnToml.Clones)
+
+	// Then, merge from individual sections as fallback (for backward compatibility)
+	// Only apply if not already set by [clones] section
+
 	// Analysis config
 	if pyscnToml.Analysis.MinLines > 0 {
 		defaults.Analysis.MinLines = pyscnToml.Analysis.MinLines
@@ -254,6 +312,122 @@ func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *CloneConfig, pyscnTom
 	}
 	if pyscnToml.Filtering.MaxResults > 0 {
 		defaults.Filtering.MaxResults = pyscnToml.Filtering.MaxResults
+	}
+}
+
+// mergeClonesSection merges settings from the [clones] section
+func (l *TomlConfigLoader) mergeClonesSection(defaults *CloneConfig, clones *ClonesConfig) {
+	// Analysis settings
+	if clones.MinLines > 0 {
+		defaults.Analysis.MinLines = clones.MinLines
+	}
+	if clones.MinNodes > 0 {
+		defaults.Analysis.MinNodes = clones.MinNodes
+	}
+	if clones.MaxEditDistance > 0 {
+		defaults.Analysis.MaxEditDistance = clones.MaxEditDistance
+	}
+	if clones.CostModelType != "" {
+		defaults.Analysis.CostModelType = clones.CostModelType
+	}
+	if clones.IgnoreLiterals != nil {
+		defaults.Analysis.IgnoreLiterals = *clones.IgnoreLiterals
+	}
+	if clones.IgnoreIdentifiers != nil {
+		defaults.Analysis.IgnoreIdentifiers = *clones.IgnoreIdentifiers
+	}
+
+	// Thresholds
+	if clones.Type1Threshold > 0 {
+		defaults.Thresholds.Type1Threshold = clones.Type1Threshold
+	}
+	if clones.Type2Threshold > 0 {
+		defaults.Thresholds.Type2Threshold = clones.Type2Threshold
+	}
+	if clones.Type3Threshold > 0 {
+		defaults.Thresholds.Type3Threshold = clones.Type3Threshold
+	}
+	if clones.Type4Threshold > 0 {
+		defaults.Thresholds.Type4Threshold = clones.Type4Threshold
+	}
+	if clones.SimilarityThreshold > 0 {
+		defaults.Thresholds.SimilarityThreshold = clones.SimilarityThreshold
+	}
+
+	// Filtering
+	if clones.MinSimilarity >= 0 {
+		defaults.Filtering.MinSimilarity = clones.MinSimilarity
+	}
+	if clones.MaxSimilarity > 0 {
+		defaults.Filtering.MaxSimilarity = clones.MaxSimilarity
+	}
+	if len(clones.EnabledCloneTypes) > 0 {
+		defaults.Filtering.EnabledCloneTypes = clones.EnabledCloneTypes
+	}
+	if clones.MaxResults > 0 {
+		defaults.Filtering.MaxResults = clones.MaxResults
+	}
+
+	// Grouping
+	if clones.GroupingMode != "" {
+		defaults.Grouping.Mode = clones.GroupingMode
+	}
+	if clones.GroupingThreshold > 0 {
+		defaults.Grouping.Threshold = clones.GroupingThreshold
+	}
+	if clones.KCoreK > 0 {
+		defaults.Grouping.KCoreK = clones.KCoreK
+	}
+
+	// LSH settings (this is the critical part!)
+	if clones.LSHEnabled != "" {
+		defaults.LSH.Enabled = clones.LSHEnabled
+	}
+	if clones.LSHAutoThreshold > 0 {
+		defaults.LSH.AutoThreshold = clones.LSHAutoThreshold
+	}
+	if clones.LSHSimilarityThreshold > 0 {
+		defaults.LSH.SimilarityThreshold = clones.LSHSimilarityThreshold
+	}
+	if clones.LSHBands > 0 {
+		defaults.LSH.Bands = clones.LSHBands
+	}
+	if clones.LSHRows > 0 {
+		defaults.LSH.Rows = clones.LSHRows
+	}
+	if clones.LSHHashes > 0 {
+		defaults.LSH.Hashes = clones.LSHHashes
+	}
+
+	// Performance
+	if clones.MaxMemoryMB > 0 {
+		defaults.Performance.MaxMemoryMB = clones.MaxMemoryMB
+	}
+	if clones.BatchSize > 0 {
+		defaults.Performance.BatchSize = clones.BatchSize
+	}
+	if clones.EnableBatching != nil {
+		defaults.Performance.EnableBatching = *clones.EnableBatching
+	}
+	if clones.MaxGoroutines > 0 {
+		defaults.Performance.MaxGoroutines = clones.MaxGoroutines
+	}
+	if clones.TimeoutSeconds > 0 {
+		defaults.Performance.TimeoutSeconds = clones.TimeoutSeconds
+	}
+
+	// Output
+	if clones.ShowDetails != nil {
+		defaults.Output.ShowDetails = *clones.ShowDetails
+	}
+	if clones.ShowContent != nil {
+		defaults.Output.ShowContent = *clones.ShowContent
+	}
+	if clones.SortBy != "" {
+		defaults.Output.SortBy = clones.SortBy
+	}
+	if clones.GroupClones != nil {
+		defaults.Output.GroupClones = *clones.GroupClones
 	}
 }
 
