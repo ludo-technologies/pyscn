@@ -69,9 +69,14 @@ enabled_clone_types = ["type1", "type2", "type3", "type4"] # Clone types to dete
 max_results = 0                   # Maximum results (0 = no limit)
 
 # Grouping settings
-grouping_mode = "connected"       # Grouping strategy: connected, star, complete_linkage, k_core
+# Grouping strategy:
+#   - connected: Group by transitive similarity (simple, fast, default)
+#   - star: Star-based grouping around centroids
+#   - complete_linkage: Hierarchical clustering (high quality)
+#   - k_core: K-core decomposition (balanced quality/performance)
+grouping_mode = "connected"
 grouping_threshold = 0.85         # Minimum similarity for group membership
-k_core_k = 2                      # K value for k-core mode
+k_core_k = 2                      # K value for k-core mode (minimum connections per node)
 
 # LSH acceleration settings
 lsh_enabled = "auto"              # LSH acceleration: true, false, auto (based on project size)
