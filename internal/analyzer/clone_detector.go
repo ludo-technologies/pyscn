@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"sort"
 
-	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/internal/constants"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
@@ -142,7 +141,6 @@ func (cg *CloneGroup) AddFragment(fragment *CodeFragment) {
 }
 
 // CloneDetectorConfig holds configuration for clone detection
-// DEPRECATED: Use config.CloneConfig with adapter functions instead
 type CloneDetectorConfig struct {
 	// Minimum number of lines for a code fragment to be considered
 	MinLines int
@@ -226,7 +224,9 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 
 // CloneDetector detects code clones using APTED algorithm
 type CloneDetector struct {
-	config      *CloneDetectorConfig
+	// Embed config fields directly
+	CloneDetectorConfig
+
 	analyzer    *APTEDAnalyzer
 	converter   *TreeConverter
 	fragments   []*CodeFragment
@@ -234,31 +234,7 @@ type CloneDetector struct {
 	cloneGroups []*CloneGroup
 }
 
-// NewCloneDetectorFromConfig creates a new clone detector from unified config
-func NewCloneDetectorFromConfig(cloneConfig *config.CloneConfig) *CloneDetector {
-	// Convert unified config to legacy config directly
-	legacyConfig := &CloneDetectorConfig{
-		MinLines:          cloneConfig.Analysis.MinLines,
-		MinNodes:          cloneConfig.Analysis.MinNodes,
-		Type1Threshold:    cloneConfig.Thresholds.Type1Threshold,
-		Type2Threshold:    cloneConfig.Thresholds.Type2Threshold,
-		Type3Threshold:    cloneConfig.Thresholds.Type3Threshold,
-		Type4Threshold:    cloneConfig.Thresholds.Type4Threshold,
-		MaxEditDistance:   cloneConfig.Analysis.MaxEditDistance,
-		IgnoreLiterals:    cloneConfig.Analysis.IgnoreLiterals,
-		IgnoreIdentifiers: cloneConfig.Analysis.IgnoreIdentifiers,
-		CostModelType:     cloneConfig.Analysis.CostModelType,
-
-		// Grouping defaults (until unified config supports them explicitly)
-		GroupingMode:      GroupingModeKCore,
-		GroupingThreshold: cloneConfig.Thresholds.Type3Threshold,
-		KCoreK:            2,
-	}
-	return NewCloneDetector(legacyConfig)
-}
-
 // NewCloneDetector creates a new clone detector with the given configuration
-// DEPRECATED: Use NewCloneDetectorFromConfig with unified config.CloneConfig instead
 func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 	// Create appropriate cost model based on configuration
 	var costModel CostModel
@@ -277,12 +253,12 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 	analyzer := NewAPTEDAnalyzer(costModel)
 
 	return &CloneDetector{
-		config:      config,
-		analyzer:    analyzer,
-		converter:   NewTreeConverter(),
-		fragments:   []*CodeFragment{},
-		clonePairs:  []*ClonePair{},
-		cloneGroups: []*CloneGroup{},
+		CloneDetectorConfig: *config,
+		analyzer:            analyzer,
+		converter:           NewTreeConverter(),
+		fragments:           []*CodeFragment{},
+		clonePairs:          []*ClonePair{},
+		cloneGroups:         []*CloneGroup{},
 	}
 }
 
@@ -363,11 +339,11 @@ func (cd *CloneDetector) isFragmentCandidate(node *parser.Node) bool {
 // shouldIncludeFragment determines if a fragment should be included in analysis
 func (cd *CloneDetector) shouldIncludeFragment(fragment *CodeFragment) bool {
 	// Check minimum size requirements
-	if fragment.Size < cd.config.MinNodes {
+	if fragment.Size < cd.MinNodes {
 		return false
 	}
 
-	if fragment.LineCount < cd.config.MinLines {
+	if fragment.LineCount < cd.MinLines {
 		return false
 	}
 
@@ -418,24 +394,24 @@ func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments 
 
 	// Group related clones using configured strategy
 	// Clamp threshold to [0,1]
-	thr := cd.config.GroupingThreshold
+	thr := cd.GroupingThreshold
 	if thr < 0.0 {
 		thr = 0.0
 	} else if thr > 1.0 {
 		thr = 1.0
 	}
-	k := cd.config.KCoreK
+	k := cd.KCoreK
 	if k < 2 {
 		k = 2
 	}
 	groupingConfig := GroupingConfig{
-		Mode:           cd.config.GroupingMode,
+		Mode:           cd.GroupingMode,
 		Threshold:      thr,
 		KCoreK:         k,
-		Type1Threshold: cd.config.Type1Threshold,
-		Type2Threshold: cd.config.Type2Threshold,
-		Type3Threshold: cd.config.Type3Threshold,
-		Type4Threshold: cd.config.Type4Threshold,
+		Type1Threshold: cd.Type1Threshold,
+		Type2Threshold: cd.Type2Threshold,
+		Type3Threshold: cd.Type3Threshold,
+		Type4Threshold: cd.Type4Threshold,
 	}
 	strategy := CreateGroupingStrategy(groupingConfig)
 	cd.groupClonesWithStrategy(strategy)
@@ -447,7 +423,7 @@ func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments 
 // followed by APTED verification on candidates only. Falls back to exhaustive if misconfigured.
 func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*CodeFragment) ([]*ClonePair, []*CloneGroup) {
 	// If not enabled, delegate to standard path
-	if cd == nil || cd.config == nil || !cd.config.UseLSH {
+	if cd == nil || !cd.UseLSH {
 		return cd.DetectClonesWithContext(ctx, fragments)
 	}
 
@@ -468,12 +444,12 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 
 	// Stage 1: Feature extraction and MinHash signatures
 	extractor := NewASTFeatureExtractor().WithOptions(
-		max(1, cd.config.LSHRows), // reuse rows for subtree height if >0
+		max(1, cd.LSHRows), // reuse rows for subtree height if >0
 		max(2, 4),                 // keep default k=4
 		true,
 		false,
 	)
-	hasher := NewMinHasher(cd.config.LSHMinHashCount)
+	hasher := NewMinHasher(cd.LSHMinHashCount)
 
 	type fragRec struct {
 		id  string
@@ -503,7 +479,7 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 	}
 
 	// Stage 2: LSH indexing
-	lsh := NewLSHIndex(cd.config.LSHBands, cd.config.LSHRows)
+	lsh := NewLSHIndex(cd.LSHBands, cd.LSHRows)
 	for _, r := range records {
 		_ = lsh.AddFragment(r.id, r.sig)
 	}
@@ -511,7 +487,7 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 
 	// Stage 3: Candidate generation + APTED verification
 	// Use MinHash similarity to filter before expensive APTED
-	minhashThreshold := cd.config.LSHSimilarityThreshold
+	minhashThreshold := cd.LSHSimilarityThreshold
 	if minhashThreshold < 0 {
 		minhashThreshold = 0
 	} else if minhashThreshold > 1 {
@@ -567,27 +543,27 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 	}
 
 	// Finalize results
-	cd.limitAndSortClonePairs(cd.config.MaxClonePairs)
+	cd.limitAndSortClonePairs(cd.MaxClonePairs)
 
 	// Grouping
-	thr := cd.config.GroupingThreshold
+	thr := cd.GroupingThreshold
 	if thr < 0.0 {
 		thr = 0.0
 	} else if thr > 1.0 {
 		thr = 1.0
 	}
-	k := cd.config.KCoreK
+	k := cd.KCoreK
 	if k < 2 {
 		k = 2
 	}
 	groupingConfig := GroupingConfig{
-		Mode:           cd.config.GroupingMode,
+		Mode:           cd.GroupingMode,
 		Threshold:      thr,
 		KCoreK:         k,
-		Type1Threshold: cd.config.Type1Threshold,
-		Type2Threshold: cd.config.Type2Threshold,
-		Type3Threshold: cd.config.Type3Threshold,
-		Type4Threshold: cd.config.Type4Threshold,
+		Type1Threshold: cd.Type1Threshold,
+		Type2Threshold: cd.Type2Threshold,
+		Type3Threshold: cd.Type3Threshold,
+		Type4Threshold: cd.Type4Threshold,
 	}
 	strategy := CreateGroupingStrategy(groupingConfig)
 	cd.groupClonesWithStrategy(strategy)
@@ -609,13 +585,13 @@ func (cd *CloneDetector) prepareFragments() {
 
 // calculateBatchSize determines the optimal batch size based on fragment count
 func (cd *CloneDetector) calculateBatchSize(fragmentCount int) int {
-	if fragmentCount < cd.config.BatchSizeThreshold {
+	if fragmentCount < cd.BatchSizeThreshold {
 		return fragmentCount // No batching needed
 	}
-	if fragmentCount > cd.config.LargeProjectSize {
-		return cd.config.BatchSizeSmall
+	if fragmentCount > cd.LargeProjectSize {
+		return cd.BatchSizeSmall
 	}
-	return cd.config.BatchSizeLarge
+	return cd.BatchSizeLarge
 }
 
 // detectClonePairsWithContext detects pairs with context support
@@ -629,17 +605,17 @@ func (cd *CloneDetector) detectClonePairsWithContext(ctx context.Context) {
 
 	// Determine if batching is needed based on fragment count and estimated pairs
 	estimatedPairs := (n * (n - 1)) / 2
-	needsBatching := n > cd.config.BatchSizeThreshold || estimatedPairs > cd.config.MaxClonePairs
+	needsBatching := n > cd.BatchSizeThreshold || estimatedPairs > cd.MaxClonePairs
 
 	if needsBatching {
 		batchSize := cd.calculateBatchSize(n)
-		cd.detectClonePairsWithBatchingContext(ctx, cd.config.MaxClonePairs, batchSize)
+		cd.detectClonePairsWithBatchingContext(ctx, cd.MaxClonePairs, batchSize)
 	} else {
 		cd.detectClonePairsStandardWithContext(ctx)
 	}
 
 	// Sort and limit final results
-	cd.limitAndSortClonePairs(cd.config.MaxClonePairs)
+	cd.limitAndSortClonePairs(cd.MaxClonePairs)
 }
 
 // detectClonePairsStandardWithContext uses standard approach with context
@@ -685,7 +661,7 @@ func (cd *CloneDetector) detectClonePairsWithBatchingContext(ctx context.Context
 
 	// Priority queue to keep only the best pairs
 	topPairs := make([]*ClonePair, 0, maxPairs)
-	minSimilarity := cd.config.Type4Threshold // Use the lowest threshold as minimum
+	minSimilarity := cd.Type4Threshold // Use the lowest threshold as minimum
 
 	// Process in batches to limit memory usage
 	for batchStart := 0; batchStart < n; batchStart += batchSize {
@@ -789,13 +765,13 @@ func (cd *CloneDetector) compareFragments(fragment1, fragment2 *CodeFragment) *C
 
 // classifyCloneType classifies the type of clone based on similarity
 func (cd *CloneDetector) classifyCloneType(similarity, distance float64) CloneType {
-	if similarity >= cd.config.Type1Threshold {
+	if similarity >= cd.Type1Threshold {
 		return Type1Clone
-	} else if similarity >= cd.config.Type2Threshold {
+	} else if similarity >= cd.Type2Threshold {
 		return Type2Clone
-	} else if similarity >= cd.config.Type3Threshold {
+	} else if similarity >= cd.Type3Threshold {
 		return Type3Clone
-	} else if similarity >= cd.config.Type4Threshold {
+	} else if similarity >= cd.Type4Threshold {
 		return Type4Clone
 	}
 
@@ -830,18 +806,18 @@ func (cd *CloneDetector) calculateConfidence(fragment1, fragment2 *CodeFragment,
 // isSignificantClone determines if a clone pair is significant enough to report
 func (cd *CloneDetector) isSignificantClone(pair *ClonePair) bool {
 	// Check minimum similarity threshold
-	if pair.Similarity < cd.config.Type4Threshold {
+	if pair.Similarity < cd.Type4Threshold {
 		return false
 	}
 
 	// Check maximum distance threshold
-	if pair.Distance > cd.config.MaxEditDistance {
+	if pair.Distance > cd.MaxEditDistance {
 		return false
 	}
 
 	// Additional filtering based on fragment characteristics
 	minSize := math.Min(float64(pair.Fragment1.Size), float64(pair.Fragment2.Size))
-	return minSize >= float64(cd.config.MinNodes)
+	return minSize >= float64(cd.MinNodes)
 }
 
 // groupClones groups related clone pairs into clone groups

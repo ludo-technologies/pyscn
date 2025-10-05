@@ -6,9 +6,6 @@ import (
 	"github.com/ludo-technologies/pyscn/domain"
 )
 
-// Note: ToCloneDetectorConfig is now implemented directly in the analyzer package
-// to avoid circular import dependencies
-
 // ToCloneRequest converts unified CloneConfig to domain's CloneRequest
 // This maintains backward compatibility with the domain package
 func (c *CloneConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneRequest {
@@ -88,9 +85,6 @@ func (c *CloneConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 		CloneTypes:    cloneTypes,
 	}
 }
-
-// Note: Analyzer-specific adapter functions are implemented directly in the analyzer package
-// to avoid circular import dependencies
 
 // FromCloneRequest creates unified CloneConfig from domain's CloneRequest
 func FromCloneRequest(request *domain.CloneRequest) *CloneConfig {
