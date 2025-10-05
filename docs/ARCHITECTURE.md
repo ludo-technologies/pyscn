@@ -411,8 +411,8 @@ func LoadConfigWithTarget(configPath string, targetPath string) (*Config, error)
 ```
 
 **Configuration File Priority:**
-1. `pyproject.toml` (with `[tool.pyscn]` section)
-2. `.pyscn.toml`
+1. `.pyscn.toml` (dedicated config file)
+2. `pyproject.toml` (with `[tool.pyscn]` section)
 
 **Search Strategy:**
 - **Target Directory & Parents**: Starting from the analysis target, search upward to filesystem root
