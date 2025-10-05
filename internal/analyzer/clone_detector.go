@@ -213,7 +213,7 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 
 		// LSH defaults (opt-in)
 		UseLSH:                 false,
-		LSHSimilarityThreshold: 0.88,
+		LSHSimilarityThreshold: 0.50,
 		LSHBands:               32,
 		LSHRows:                4,
 		LSHMinHashCount:        128,
