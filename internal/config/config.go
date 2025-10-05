@@ -442,6 +442,13 @@ func (c *Config) Validate() error {
 		return err
 	}
 
+	// Validate clone detection configuration
+	if c.Clones != nil {
+		if err := c.Clones.Validate(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
