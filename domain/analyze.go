@@ -25,12 +25,12 @@ const (
 	DuplicationPenaltyLow      = 6
 
 	// CBO coupling thresholds and penalties
-	CouplingRatioHigh     = 0.5
-	CouplingRatioMedium   = 0.3
-	CouplingRatioLow      = 0.1
-	CouplingPenaltyHigh   = 16
-	CouplingPenaltyMedium = 10
-	CouplingPenaltyLow    = 5
+	CouplingRatioHigh     = 0.30 // 30% or more classes with high coupling
+	CouplingRatioMedium   = 0.15 // 15-30% classes with high coupling
+	CouplingRatioLow      = 0.05 // 5-15% classes with high coupling
+	CouplingPenaltyHigh   = 20   // Aligned with other high penalties
+	CouplingPenaltyMedium = 12   // Aligned with other medium penalties
+	CouplingPenaltyLow    = 6    // Aligned with other low penalties
 
 	// Maximum penalties
 	MaxDeadCodePenalty = 20
@@ -112,9 +112,10 @@ type AnalyzeSummary struct {
 	CloneGroups     int     `json:"clone_groups" yaml:"clone_groups"`
 	CodeDuplication float64 `json:"code_duplication_percentage" yaml:"code_duplication_percentage"`
 
-	CBOClasses          int     `json:"cbo_classes" yaml:"cbo_classes"`
-	HighCouplingClasses int     `json:"high_coupling_classes" yaml:"high_coupling_classes"`
-	AverageCoupling     float64 `json:"average_coupling" yaml:"average_coupling"`
+	CBOClasses            int     `json:"cbo_classes" yaml:"cbo_classes"`
+	HighCouplingClasses   int     `json:"high_coupling_classes" yaml:"high_coupling_classes"`     // CBO > 7 (High Risk)
+	MediumCouplingClasses int     `json:"medium_coupling_classes" yaml:"medium_coupling_classes"` // 3 < CBO ≤ 7 (Medium Risk)
+	AverageCoupling       float64 `json:"average_coupling" yaml:"average_coupling"`
 
 	// Overall health score (0-100)
 	HealthScore int    `json:"health_score" yaml:"health_score"`
@@ -160,9 +161,19 @@ func (s *AnalyzeSummary) Validate() error {
 	}
 
 	// CBO checks
-	if s.CBOClasses > 0 && s.HighCouplingClasses > s.CBOClasses {
-		return fmt.Errorf("HighCouplingClasses (%d) cannot exceed CBOClasses (%d)",
-			s.HighCouplingClasses, s.CBOClasses)
+	if s.CBOClasses > 0 {
+		if s.HighCouplingClasses > s.CBOClasses {
+			return fmt.Errorf("HighCouplingClasses (%d) cannot exceed CBOClasses (%d)",
+				s.HighCouplingClasses, s.CBOClasses)
+		}
+		if s.MediumCouplingClasses > s.CBOClasses {
+			return fmt.Errorf("MediumCouplingClasses (%d) cannot exceed CBOClasses (%d)",
+				s.MediumCouplingClasses, s.CBOClasses)
+		}
+		if (s.HighCouplingClasses + s.MediumCouplingClasses) > s.CBOClasses {
+			return fmt.Errorf("HighCouplingClasses + MediumCouplingClasses (%d) cannot exceed CBOClasses (%d)",
+				s.HighCouplingClasses+s.MediumCouplingClasses, s.CBOClasses)
+		}
 	}
 
 	return nil
@@ -206,13 +217,18 @@ func (s *AnalyzeSummary) calculateDuplicationPenalty() int {
 	}
 }
 
-// calculateCouplingPenalty calculates the penalty for class coupling (max 16)
+// calculateCouplingPenalty calculates the penalty for class coupling (max 20)
+// Considers both High and Medium risk classes with different weights
 func (s *AnalyzeSummary) calculateCouplingPenalty() int {
 	if s.CBOClasses == 0 {
 		return 0
 	}
 
-	ratio := float64(s.HighCouplingClasses) / float64(s.CBOClasses)
+	// Calculate combined problematic classes ratio
+	// Weight: High Risk = 1.0, Medium Risk = 0.5
+	weightedProblematicClasses := float64(s.HighCouplingClasses) + (0.5 * float64(s.MediumCouplingClasses))
+	ratio := weightedProblematicClasses / float64(s.CBOClasses)
+
 	switch {
 	case ratio > CouplingRatioHigh:
 		return CouplingPenaltyHigh

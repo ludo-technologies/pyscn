@@ -167,21 +167,21 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 			name: "typical 74 score case",
 			summary: domain.AnalyzeSummary{
 				AverageComplexity:         7.0,  // -6
-				CodeDuplication:           15.0, // -12 (new: Medium-High range)
+				CodeDuplication:           15.0, // -12 (Medium-High range)
 				CBOClasses:                10,
-				HighCouplingClasses:       2, // -5
+				HighCouplingClasses:       2, // 20% ratio: -12 (new: Medium penalty)
 				DepsEnabled:               true,
 				DepsMainSequenceDeviation: 1.0, // -2
 				ArchEnabled:               true,
 				ArchCompliance:            0.125, // -7
 			},
-			expectedScore:             68,  // Updated: 100-6-12-5-2-7 = 68
-			expectedGrade:             "C", // Updated from B
+			expectedScore:             61,  // Updated: 100-6-12-12-2-7 = 61
+			expectedGrade:             "C", // 61 is in C range (55-69)
 			expectError:               false,
 			expectedComplexityScore:   70,  // 100 - (6/20)*100 = 70
 			expectedDeadCodeScore:     100, // No dead code
-			expectedDuplicationScore:  40,  // Updated: 100 - (12/20)*100 = 40
-			expectedCouplingScore:     69,  // 100 - (5/16)*100 = 69 (rounded)
+			expectedDuplicationScore:  40,  // 100 - (12/20)*100 = 40
+			expectedCouplingScore:     40,  // 100 - (12/20)*100 = 40 (new penalty)
 			expectedDependencyScore:   83,  // 100 - (2/12)*100 = 83 (rounded)
 			expectedArchitectureScore: 12,  // 100 - (7/8)*100 = 12 (rounded)
 		},
@@ -230,7 +230,7 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				AverageComplexity:   25.0, // -20
 				CodeDuplication:     50.0, // -20
 				CBOClasses:          10,
-				HighCouplingClasses: 6, // -16
+				HighCouplingClasses: 6, // 60% ratio: -20 (new: High penalty)
 				DeadCodeCount:       100,
 				CriticalDeadCode:    50, // -20 (capped)
 				DepsEnabled:         true,
@@ -239,24 +239,24 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				ArchEnabled:         true,
 				ArchCompliance:      0.0, // -8
 			},
-			expectedScore: 10, // Floor at 10
+			expectedScore: 10, // Floor at 10 (actual: 100-20-20-20-20-8-8 = 4, floored to 10)
 			expectedGrade: "F",
 			expectError:   false,
 		},
 		{
 			name: "grade A threshold",
 			summary: domain.AnalyzeSummary{
-				AverageComplexity:   4.0, // -0
-				CodeDuplication:     5.0, // -12 (new: 3-10% = Medium penalty)
-				CBOClasses:          10,
-				HighCouplingClasses: 1, // -5
+				AverageComplexity:   4.0, // -0 (low complexity)
+				CodeDuplication:     2.0, // -0 (below 3% threshold)
+				CBOClasses:          20,
+				HighCouplingClasses: 2, // 10% ratio: -6 (new: Low penalty)
 				DepsEnabled:         true,
 				DepsTotalModules:    10,
 				DepsMaxDepth:        4, // Expected ~4, so no penalty
 				ArchEnabled:         true,
 				ArchCompliance:      0.9, // -1 (rounded)
 			},
-			expectedScore: 93, // Actual calculation: penalties total 7
+			expectedScore: 93, // Updated: 100-0-0-6-0-1 = 93
 			expectedGrade: "A",
 			expectError:   false,
 		},
@@ -264,15 +264,15 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 			name: "grade C threshold",
 			summary: domain.AnalyzeSummary{
 				AverageComplexity:   15.0, // -12
-				CodeDuplication:     35.0, // -20 (new: >20% = High penalty)
-				CBOClasses:          10,
-				HighCouplingClasses: 4, // -10
+				CodeDuplication:     25.0, // -20 (>20% = High penalty)
+				CBOClasses:          20,
+				HighCouplingClasses: 2, // 10% ratio: -6 (new: Low penalty, 10% > 5%)
 				DeadCodeCount:       5,
 				CriticalDeadCode:    0, // No critical issues, so no dead code penalty
 				TotalFiles:          1,
 			},
-			expectedScore: 58,  // Updated: 100-12-20-10 = 58
-			expectedGrade: "C", // 58 is in C range (55-69)
+			expectedScore: 62,  // Updated: 100-12-20-6 = 62
+			expectedGrade: "C", // 62 is in C range (55-69)
 			expectError:   false,
 		},
 		{
@@ -281,10 +281,10 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				AverageComplexity:   22.0, // -20
 				CodeDuplication:     45.0, // -20
 				CBOClasses:          10,
-				HighCouplingClasses: 6, // -16
+				HighCouplingClasses: 6, // 60% ratio: -20 (new: High penalty)
 			},
-			expectedScore: 44,
-			expectedGrade: "D",
+			expectedScore: 40,  // Updated: 100-20-20-20 = 40
+			expectedGrade: "D", // 40 is exact D threshold
 			expectError:   false,
 		},
 	}

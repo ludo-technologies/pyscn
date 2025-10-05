@@ -497,6 +497,7 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 	if response.CBO != nil {
 		summary.CBOClasses = response.CBO.Summary.TotalClasses
 		summary.HighCouplingClasses = response.CBO.Summary.HighRiskClasses
+		summary.MediumCouplingClasses = response.CBO.Summary.MediumRiskClasses
 		summary.AverageCoupling = response.CBO.Summary.AverageCBO
 	}
 
