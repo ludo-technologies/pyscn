@@ -17,9 +17,9 @@ const (
 	ComplexityPenaltyLow      = 6
 
 	// Code duplication thresholds and penalties
-	DuplicationThresholdHigh   = 40.0
-	DuplicationThresholdMedium = 25.0
-	DuplicationThresholdLow    = 10.0
+	DuplicationThresholdHigh   = 20.0
+	DuplicationThresholdMedium = 10.0
+	DuplicationThresholdLow    = 3.0
 	DuplicationPenaltyHigh     = 20
 	DuplicationPenaltyMedium   = 12
 	DuplicationPenaltyLow      = 6
