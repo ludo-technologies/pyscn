@@ -155,12 +155,12 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	}
 
 	// Update detector with LSH decision
-	detector.UseLSH = useLSH
+	detector.SetUseLSH(useLSH)
 
 	// Detect clones (use LSH if enabled)
 	var clonePairs []*analyzer.ClonePair
 	var cloneGroups []*analyzer.CloneGroup
-	if detector.UseLSH {
+	if useLSH {
 		clonePairs, cloneGroups = detector.DetectClonesWithLSH(ctx, allFragments)
 	} else {
 		clonePairs, cloneGroups = detector.DetectClonesWithContext(ctx, allFragments)

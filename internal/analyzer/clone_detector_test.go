@@ -14,7 +14,7 @@ func TestCloneDetector_Creation(t *testing.T) {
 	detector := NewCloneDetector(config)
 
 	assert.NotNil(t, detector, "Detector should be created")
-	assert.Equal(t, *config, detector.CloneDetectorConfig, "Config should be set correctly")
+	assert.Equal(t, *config, detector.cloneDetectorConfig, "Config should be set correctly")
 	assert.NotNil(t, detector.analyzer, "APTED analyzer should be initialized")
 	assert.NotNil(t, detector.converter, "Tree converter should be initialized")
 }
