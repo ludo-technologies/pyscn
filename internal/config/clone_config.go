@@ -197,7 +197,7 @@ func DefaultCloneConfig() *CloneConfig {
 		LSH: LSHConfig{
 			Enabled:             "auto", // Auto-enable based on project size
 			AutoThreshold:       500,    // Enable LSH for 500+ fragments
-			SimilarityThreshold: 0.78,
+			SimilarityThreshold: 0.88,
 			Bands:               32,
 			Rows:                4,
 			Hashes:              128,

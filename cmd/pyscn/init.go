@@ -81,7 +81,7 @@ k_core_k = 2                      # K value for k-core mode (minimum connections
 # LSH acceleration settings
 lsh_enabled = "auto"              # LSH acceleration: true, false, auto (based on project size)
 lsh_auto_threshold = 500          # Enable LSH for 500+ fragments
-lsh_similarity_threshold = 0.78   # LSH similarity threshold
+lsh_similarity_threshold = 0.88   # LSH similarity threshold
 lsh_bands = 32                    # Number of LSH bands
 lsh_rows = 4                      # Rows per LSH band
 lsh_hashes = 128                  # MinHash function count

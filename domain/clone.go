@@ -347,7 +347,7 @@ func DefaultCloneRequest() *CloneRequest {
 		// LSH defaults (auto-enable based on fragment count)
 		LSHEnabled:             "auto",
 		LSHAutoThreshold:       500,
-		LSHSimilarityThreshold: 0.78,
+		LSHSimilarityThreshold: 0.88,
 		LSHBands:               32,
 		LSHRows:                4,
 		LSHHashes:              128,
