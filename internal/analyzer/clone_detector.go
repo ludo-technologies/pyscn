@@ -265,6 +265,11 @@ func (cd *CloneDetector) SetUseLSH(enabled bool) {
 	cd.cloneDetectorConfig.UseLSH = enabled
 }
 
+// SetBatchSizeLarge sets the batch size for normal projects (used in testing)
+func (cd *CloneDetector) SetBatchSizeLarge(size int) {
+	cd.cloneDetectorConfig.BatchSizeLarge = size
+}
+
 // ExtractFragments extracts code fragments from AST nodes
 func (cd *CloneDetector) ExtractFragments(astNodes []*parser.Node, filePath string) []*CodeFragment {
 	var fragments []*CodeFragment

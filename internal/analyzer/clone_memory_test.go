@@ -196,7 +196,7 @@ func TestBatchingAlgorithmCorrectness(t *testing.T) {
 	// Test batching algorithm with small batch size
 	detector2 := NewCloneDetector(config)
 	detector2.fragments = fragments
-	detector2.cloneDetectorConfig.BatchSizeLarge = 30 // Small batch size for testing
+	detector2.SetBatchSizeLarge(30) // Small batch size for testing
 	detector2.DetectClones(detector2.fragments)
 	batchedPairs := detector2.clonePairs
 
