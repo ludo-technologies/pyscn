@@ -76,7 +76,7 @@ k_core_k = 2                     # K-core parameter
 # LSH acceleration settings
 lsh_enabled = "auto"             # Enable LSH: true, false, auto (based on project size)
 lsh_auto_threshold = 500         # Auto-enable LSH for projects with >500 fragments
-lsh_similarity_threshold = 0.78  # LSH similarity threshold
+lsh_similarity_threshold = 0.50  # LSH similarity threshold
 lsh_bands = 32                   # Number of LSH bands
 lsh_rows = 4                     # Number of rows per band
 lsh_hashes = 128                 # Number of hash functions
