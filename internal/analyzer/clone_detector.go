@@ -448,7 +448,7 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 	// Stage 1: Feature extraction and MinHash signatures
 	extractor := NewASTFeatureExtractor().WithOptions(
 		max(1, cd.cloneDetectorConfig.LSHRows), // reuse rows for subtree height if >0
-		max(2, 4),                 // keep default k=4
+		max(2, 4),                              // keep default k=4
 		true,
 		false,
 	)

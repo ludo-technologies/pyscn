@@ -57,7 +57,7 @@ type ClonesConfig struct {
 
 	// Input
 	Paths           []string `toml:"paths"`
-	Recursive       *bool    `toml:"recursive"`        // pointer to detect unset
+	Recursive       *bool    `toml:"recursive"` // pointer to detect unset
 	IncludePatterns []string `toml:"include_patterns"`
 	ExcludePatterns []string `toml:"exclude_patterns"`
 
