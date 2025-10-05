@@ -135,6 +135,28 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 
 	// Starting actual clone detection (this is the slow part)
 
+	// Determine whether to use LSH based on configuration
+	useLSH := false
+	if req.LSHEnabled == "true" {
+		useLSH = true
+		fmt.Fprintf(os.Stderr, "LSH: Explicitly enabled (lsh_enabled=true)\n")
+	} else if req.LSHEnabled == "false" {
+		useLSH = false
+		fmt.Fprintf(os.Stderr, "LSH: Explicitly disabled (lsh_enabled=false)\n")
+	} else if req.LSHEnabled == "auto" || req.LSHEnabled == "" {
+		// Auto mode: enable LSH if fragment count >= threshold
+		threshold := req.LSHAutoThreshold
+		if threshold == 0 {
+			threshold = 500 // Default threshold
+		}
+		useLSH = len(allFragments) >= threshold
+		fmt.Fprintf(os.Stderr, "LSH: Auto-detection - %d fragments, threshold=%d, enabled=%v\n",
+			len(allFragments), threshold, useLSH)
+	}
+
+	// Update detector config with LSH decision
+	detectorConfig.UseLSH = useLSH
+
 	// Detect clones (use LSH if enabled)
 	var clonePairs []*analyzer.ClonePair
 	var cloneGroups []*analyzer.CloneGroup
@@ -265,8 +287,8 @@ func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.
 		GroupingMode:      groupMode,
 		GroupingThreshold: groupThreshold,
 		KCoreK:            kVal,
-		// LSH
-		UseLSH:                 req.UseLSH,
+		// LSH (UseLSH will be set dynamically based on fragment count)
+		UseLSH:                 false, // Will be overridden after fragment extraction
 		LSHSimilarityThreshold: req.LSHSimilarityThreshold,
 		LSHBands:               req.LSHBands,
 		LSHRows:                req.LSHRows,

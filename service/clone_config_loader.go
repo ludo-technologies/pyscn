@@ -129,6 +129,13 @@ func (c *CloneConfigurationLoader) cloneConfigToCloneRequest(cloneCfg *config.Cl
 		Recursive:           cloneCfg.Input.Recursive,
 		IncludePatterns:     cloneCfg.Input.IncludePatterns,
 		ExcludePatterns:     cloneCfg.Input.ExcludePatterns,
+		// LSH settings
+		LSHEnabled:             cloneCfg.LSH.Enabled,
+		LSHAutoThreshold:       cloneCfg.LSH.AutoThreshold,
+		LSHSimilarityThreshold: cloneCfg.LSH.SimilarityThreshold,
+		LSHBands:               cloneCfg.LSH.Bands,
+		LSHRows:                cloneCfg.LSH.Rows,
+		LSHHashes:              cloneCfg.LSH.Hashes,
 	}
 }
 
