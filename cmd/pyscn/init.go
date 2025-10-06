@@ -13,6 +13,16 @@ const defaultConfigTemplate = `# pyscn configuration file (.pyscn.toml)
 # Place this file in your project root to customize analysis behavior
 
 # =============================================================================
+# OUTPUT CONFIGURATION
+# =============================================================================
+[output]
+format = "text"                   # Output format: text, json, yaml, csv, html
+show_details = false              # Show detailed breakdown by default
+sort_by = "complexity"            # Default sort: name, complexity, risk
+min_complexity = 1                # Minimum complexity to report
+directory = ""                    # Output directory for reports (empty = .pyscn/reports/)
+
+# =============================================================================
 # COMPLEXITY ANALYSIS
 # =============================================================================
 [complexity]
@@ -44,11 +54,10 @@ detect_unreachable_branches = true # Unreachable conditional branches
 ignore_patterns = []
 
 # =============================================================================
-# CLONE DETECTION (Nested structure for better organization)
+# CLONE DETECTION
 # =============================================================================
-
-# Clone Analysis Configuration
-[clones.analysis]
+[clones]
+# Analysis settings
 min_lines = 5                     # Minimum lines for clone candidates
 min_nodes = 10                    # Minimum AST nodes for clone candidates
 max_edit_distance = 50.0          # Maximum edit distance allowed
@@ -57,7 +66,6 @@ ignore_identifiers = false        # Ignore differences in identifier names
 cost_model_type = "python"        # Cost model: default, python, weighted
 
 # Threshold settings for clone type classification (0.0 - 1.0)
-[clones.thresholds]
 type1_threshold = 0.95            # Type-1: Identical code (except whitespace/comments)
 type2_threshold = 0.85            # Type-2: Syntactically identical (different identifiers)
 type3_threshold = 0.80            # Type-3: Syntactically similar (small modifications)
@@ -65,54 +73,56 @@ type4_threshold = 0.75            # Type-4: Functionally similar (different synt
 similarity_threshold = 0.8        # General minimum similarity threshold
 
 # Filtering settings
-[clones.filtering]
 min_similarity = 0.0              # Minimum similarity to report
 max_similarity = 1.0              # Maximum similarity to report
 enabled_clone_types = ["type1", "type2", "type3", "type4"] # Clone types to detect
 max_results = 0                   # Maximum results (0 = no limit)
 
 # Grouping settings
-[clones.grouping]
-# Grouping strategy:
-#   - connected: Group by transitive similarity (simple, fast, default)
-#   - star: Star-based grouping around centroids
-#   - complete_linkage: Hierarchical clustering (high quality)
-#   - k_core: K-core decomposition (balanced quality/performance)
-mode = "connected"
-threshold = 0.85                  # Minimum similarity for group membership
+grouping_mode = "connected"       # Grouping mode: connected, star, complete_linkage, k_core
+grouping_threshold = 0.85         # Minimum similarity for group membership
 k_core_k = 2                      # K value for k-core mode (minimum connections per node)
 
 # LSH acceleration settings
-[clones.lsh]
-enabled = "auto"                  # LSH acceleration: true, false, auto (based on project size)
-auto_threshold = 500              # Enable LSH for 500+ fragments
-similarity_threshold = 0.50       # LSH similarity threshold
-bands = 32                        # Number of LSH bands
-rows = 4                          # Rows per LSH band
-hashes = 128                      # MinHash function count
+lsh_enabled = "auto"              # LSH acceleration: true, false, auto (based on project size)
+lsh_auto_threshold = 500          # Enable LSH for 500+ fragments
+lsh_similarity_threshold = 0.50   # LSH similarity threshold
+lsh_bands = 32                    # Number of LSH bands
+lsh_rows = 4                      # Rows per LSH band
+lsh_hashes = 128                  # MinHash function count
 
 # Performance settings
-[clones.performance]
 max_memory_mb = 100               # Memory limit in MB
 batch_size = 100                  # Batch size for processing
 enable_batching = true            # Enable batching
 max_goroutines = 4                # Maximum concurrent goroutines
 timeout_seconds = 300             # Timeout in seconds (5 minutes)
 
-# Input settings
-[clones.input]
-paths = ["."]                     # Paths to analyze (default: current directory)
-recursive = true                  # Recursively analyze directories
-include_patterns = ["*.py"]       # File patterns to include
-exclude_patterns = ["test_*.py", "*_test.py"] # File patterns to exclude
-
-# Output settings
-[clones.output]
-format = "text"                   # Output format: text, json, yaml, csv, html
+# Output settings (clone-specific)
 show_details = false              # Show detailed clone information
 show_content = false              # Include source code content in output
 sort_by = "similarity"            # Sort by: similarity, size, location, type
 group_clones = true               # Group related clones together
+
+# =============================================================================
+# ANALYSIS CONFIGURATION
+# =============================================================================
+[analysis]
+recursive = true                  # Recursively analyze directories
+follow_symlinks = false           # Follow symbolic links
+include_patterns = ["*.py"]       # File patterns to include
+exclude_patterns = [              # File patterns to exclude
+    "test_*.py",
+    "*_test.py",
+    "__pycache__/**",
+    "*.pyc",
+    ".pytest_cache/**",
+    ".tox/**",
+    "venv/**",
+    "env/**",
+    ".venv/**",
+    ".env/**"
+]
 
 # =============================================================================
 # EXAMPLE CONFIGURATIONS
@@ -120,24 +130,22 @@ group_clones = true               # Group related clones together
 
 # Uncomment and modify these settings for common use cases:
 
-# # Strict mode - high precision (add to [clones.thresholds] and [clones.filtering])
-# # [clones.thresholds]
-# # similarity_threshold = 0.95
-# # [clones.filtering]
-# # enabled_clone_types = ["type1", "type2"]
+# # Strict mode - high precision
+# [clones]
+# similarity_threshold = 0.95
+# enabled_clone_types = ["type1", "type2"]
 #
-# # Relaxed mode - catch more potential clones (add to [clones.thresholds] and [clones.analysis])
-# # [clones.thresholds]
-# # similarity_threshold = 0.7
-# # [clones.analysis]
-# # min_lines = 3
+# # Relaxed mode - catch more potential clones
+# [clones]
+# similarity_threshold = 0.7
+# min_lines = 3
 #
-# # Performance optimized for large codebases (add to [clones.lsh] and [clones.performance])
-# # [clones.lsh]
-# # enabled = "true"
-# # [clones.performance]
-# # max_goroutines = 8
-# # batch_size = 200
+# # Performance optimized for large codebases
+# [clones]
+# lsh_enabled = "true"
+# max_goroutines = 8
+# batch_size = 200
+# max_memory_mb = 1024
 `
 
 // InitCommand represents the init command
