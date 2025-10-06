@@ -235,7 +235,7 @@ func DefaultConfig() *Config {
 		Output: OutputConfig{
 			Format:        "text",
 			ShowDetails:   false,
-			SortBy:        "name",
+			SortBy:        "complexity",
 			MinComplexity: DefaultMinComplexityFilter,
 		},
 		Analysis: AnalysisConfig{
