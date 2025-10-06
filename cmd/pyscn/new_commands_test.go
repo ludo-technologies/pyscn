@@ -173,17 +173,20 @@ func TestInitCommandExecution(t *testing.T) {
 	}
 
 	contentStr := string(content)
-	if !strings.Contains(contentStr, "[clones]") {
-		t.Error("Config file should contain clones section")
+	if !strings.Contains(contentStr, "[clones.analysis]") {
+		t.Error("Config file should contain clones.analysis section")
+	}
+	if !strings.Contains(contentStr, "[clones.thresholds]") {
+		t.Error("Config file should contain clones.thresholds section")
+	}
+	if !strings.Contains(contentStr, "[clones.lsh]") {
+		t.Error("Config file should contain clones.lsh section")
 	}
 	if !strings.Contains(contentStr, "min_lines") {
 		t.Error("Config file should contain min_lines setting")
 	}
 	if !strings.Contains(contentStr, "type1_threshold") {
 		t.Error("Config file should contain type1_threshold setting")
-	}
-	if !strings.Contains(contentStr, "lsh_enabled") {
-		t.Error("Config file should contain lsh_enabled setting")
 	}
 }
 
