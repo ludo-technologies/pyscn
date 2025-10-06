@@ -367,8 +367,8 @@ func (c *AnalyzeCommand) generateOutput(cmd *cobra.Command, response *domain.Ana
 
 	// Handle browser opening for HTML
 	if format == "html" {
-		// Auto-open only when explicitly allowed and environment appears interactive
-		if !c.noOpen && isInteractiveEnvironment() {
+		// Auto-open only when explicitly allowed, environment is interactive, and not over SSH
+		if !c.noOpen && isInteractiveEnvironment() && !isSSH() {
 			fileURL := "file://" + absPath
 			if err := service.OpenBrowser(fileURL); err != nil {
 				fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Could not open browser: %v\n", err)
