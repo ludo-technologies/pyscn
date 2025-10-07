@@ -432,7 +432,7 @@ func TestCategorize_MultiplePatternMatches(t *testing.T) {
 
 	/*
 	   Error message that could match multiple categories "parse" is in processing, but if "config" appears first in the message
-	   and we check config patterns first, it should match config However, 
+	   and we check config patterns first, it should match config However,
 	   the order depends on map iteration which is random in Go So we test with a pattern that's unique to one category
 	*/
 
