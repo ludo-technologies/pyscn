@@ -307,6 +307,32 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         .severity-warning { color: #ff9800; }
         .severity-info { color: #2196f3; }
 
+        /* Code content display */
+        .code-content {
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 10px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .code-content pre {
+            margin: 0;
+            white-space: pre;
+        }
+        .code-content-header {
+            font-weight: 600;
+            color: #667eea;
+            margin-top: 8px;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
         /* Score bars */
         .score-bars {
             margin: 20px 0;
@@ -773,6 +799,19 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             {{end}}
                         </tbody>
                     </table>
+                    {{if and $.Clone.Request $.Clone.Request.ShowContent}}
+                    {{range $j, $clone := $group.Clones}}
+                    {{if and (lt $j 3) $clone.Content}}
+                    <div class="code-content-header">📄 Clone {{add $j 1}} - Code Preview:</div>
+                    <div class="code-content">
+                        <pre>{{$clone.Content}}</pre>
+                    </div>
+                    {{end}}
+                    {{end}}
+                    {{if gt (len $group.Clones) 3}}
+                    <p style="color: #666; font-size: 12px; margin-top: 8px; font-style: italic;">Showing content for first 3 clones only</p>
+                    {{end}}
+                    {{end}}
                 </div>
                 {{end}}
                 {{end}}
@@ -782,32 +821,48 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{else if gt .Clone.Statistics.TotalClonePairs 0}}
                 <h3>Clone Pairs</h3>
                 <p style="color: #666; margin-bottom: 15px;">No groups formed, showing individual pairs</p>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>File 1</th>
-                            <th>File 2</th>
-                            <th>Lines 1</th>
-                            <th>Lines 2</th>
-                            <th>Similarity</th>
-                            <th>Type</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{range $i, $pair := .Clone.ClonePairs}}
-                        {{if lt $i 15}}
-                        <tr>
-                            <td>{{$pair.Clone1.Location.FilePath}}</td>
-                            <td>{{$pair.Clone2.Location.FilePath}}</td>
-                            <td>{{$pair.Clone1.Location.StartLine}}-{{$pair.Clone1.Location.EndLine}}</td>
-                            <td>{{$pair.Clone2.Location.StartLine}}-{{$pair.Clone2.Location.EndLine}}</td>
-                            <td>{{printf "%.3f" $pair.Similarity}}</td>
-                            <td>{{$pair.Type}}</td>
-                        </tr>
-                        {{end}}
-                        {{end}}
-                    </tbody>
-                </table>
+                {{range $i, $pair := .Clone.ClonePairs}}
+                {{if lt $i 15}}
+                <div style="background: #f8f9fa; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <h4 style="margin-top: 0; color: #333;">Clone Pair {{add $i 1}} - {{$pair.Type}} (Similarity: {{printf "%.3f" $pair.Similarity}})</h4>
+                    <table class="table" style="margin-bottom: 0;">
+                        <thead>
+                            <tr>
+                                <th>File</th>
+                                <th>Lines</th>
+                                <th>Size</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>{{$pair.Clone1.Location.FilePath}}</td>
+                                <td>{{$pair.Clone1.Location.StartLine}}-{{$pair.Clone1.Location.EndLine}}</td>
+                                <td>{{$pair.Clone1.LineCount}} lines</td>
+                            </tr>
+                            <tr>
+                                <td>{{$pair.Clone2.Location.FilePath}}</td>
+                                <td>{{$pair.Clone2.Location.StartLine}}-{{$pair.Clone2.Location.EndLine}}</td>
+                                <td>{{$pair.Clone2.LineCount}} lines</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    {{if and $.Clone.Request $.Clone.Request.ShowContent}}
+                    {{if $pair.Clone1.Content}}
+                    <div class="code-content-header">📄 Clone 1 - Code Content:</div>
+                    <div class="code-content">
+                        <pre>{{$pair.Clone1.Content}}</pre>
+                    </div>
+                    {{end}}
+                    {{if $pair.Clone2.Content}}
+                    <div class="code-content-header">📄 Clone 2 - Code Content:</div>
+                    <div class="code-content">
+                        <pre>{{$pair.Clone2.Content}}</pre>
+                    </div>
+                    {{end}}
+                    {{end}}
+                </div>
+                {{end}}
+                {{end}}
                 {{if gt .Clone.Statistics.TotalClonePairs 15}}
                 <p style="color: #666; margin-top: 10px;">Showing top 15 of {{.Clone.Statistics.TotalClonePairs}} clone pairs</p>
                 {{end}}

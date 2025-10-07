@@ -245,9 +245,9 @@ func (uc *CloneUseCase) mergeConfiguration(configReq, requestReq domain.CloneReq
 
 	// Override boolean flags if explicitly set
 	merged.Recursive = requestReq.Recursive
-	merged.ShowDetails = requestReq.ShowDetails
-	merged.ShowContent = requestReq.ShowContent
 	merged.GroupClones = requestReq.GroupClones
+	// Note: ShowDetails and ShowContent are not overridden here
+	// They come from config file and should be preserved
 
 	// Override numeric values if they differ from defaults
 	defaultReq := domain.DefaultCloneRequest()

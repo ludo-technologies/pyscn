@@ -283,6 +283,9 @@ func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.
 		LSHBands:               req.LSHBands,
 		LSHRows:                req.LSHRows,
 		LSHMinHashCount:        req.LSHHashes,
+
+		// Content extraction
+		ShowContent: req.ShowContent,
 	}
 }
 
@@ -373,6 +376,7 @@ func (s *CloneService) convertCloneGroupsToDomain(cloneGroups []*analyzer.CloneG
 					StartCol:  fragment.Location.StartCol,
 					EndCol:    fragment.Location.EndCol,
 				},
+				Content:   fragment.Content,
 				Size:      fragment.Size,
 				LineCount: fragment.LineCount,
 			}

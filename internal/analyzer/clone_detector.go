@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"os"
 	"runtime"
 	"sort"
+	"strings"
 
 	"github.com/ludo-technologies/pyscn/internal/constants"
 	"github.com/ludo-technologies/pyscn/internal/parser"
@@ -184,6 +186,9 @@ type CloneDetectorConfig struct {
 	LSHBands               int     // Number of LSH bands (default: 32)
 	LSHRows                int     // Rows per band (default: 4)
 	LSHMinHashCount        int     // Number of MinHash functions (default: 128)
+
+	// Content extraction
+	ShowContent bool // Include source code content in clones
 }
 
 // DefaultCloneDetectorConfig returns default configuration
@@ -225,11 +230,12 @@ type CloneDetector struct {
 	// Embed config fields (private to maintain encapsulation)
 	cloneDetectorConfig CloneDetectorConfig
 
-	analyzer    *APTEDAnalyzer
-	converter   *TreeConverter
-	fragments   []*CodeFragment
-	clonePairs  []*ClonePair
-	cloneGroups []*CloneGroup
+	analyzer     *APTEDAnalyzer
+	converter    *TreeConverter
+	fragments    []*CodeFragment
+	clonePairs   []*ClonePair
+	cloneGroups  []*CloneGroup
+	fileContents map[string][]string // Cache of file contents (filepath -> lines)
 }
 
 // NewCloneDetector creates a new clone detector with the given configuration
@@ -257,6 +263,7 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 		fragments:           []*CodeFragment{},
 		clonePairs:          []*ClonePair{},
 		cloneGroups:         []*CloneGroup{},
+		fileContents:        make(map[string][]string),
 	}
 }
 
@@ -281,6 +288,46 @@ func (cd *CloneDetector) ExtractFragments(astNodes []*parser.Node, filePath stri
 	return fragments
 }
 
+// loadFileContents loads file contents into cache if not already loaded
+func (cd *CloneDetector) loadFileContents(filePath string) error {
+	if _, exists := cd.fileContents[filePath]; exists {
+		return nil
+	}
+
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	lines := strings.Split(string(content), "\n")
+	cd.fileContents[filePath] = lines
+	return nil
+}
+
+// extractCodeContent extracts the source code lines for a given location
+func (cd *CloneDetector) extractCodeContent(filePath string, startLine, endLine int) string {
+	lines, exists := cd.fileContents[filePath]
+	if !exists {
+		return ""
+	}
+
+	// Adjust for 0-based indexing
+	start := startLine - 1
+	end := endLine
+
+	if start < 0 {
+		start = 0
+	}
+	if end > len(lines) {
+		end = len(lines)
+	}
+	if start >= end {
+		return ""
+	}
+
+	return strings.Join(lines[start:end], "\n")
+}
+
 // extractFragmentsRecursive recursively extracts fragments from AST
 func (cd *CloneDetector) extractFragmentsRecursive(node *parser.Node, filePath string, fragments *[]*CodeFragment) {
 	if node == nil {
@@ -297,7 +344,16 @@ func (cd *CloneDetector) extractFragmentsRecursive(node *parser.Node, filePath s
 			EndCol:    node.Location.EndCol,
 		}
 
-		fragment := NewCodeFragment(location, node, "")
+		// Extract content if ShowContent is enabled
+		var content string
+		if cd.cloneDetectorConfig.ShowContent {
+			// Load file contents if not already loaded
+			if err := cd.loadFileContents(filePath); err == nil {
+				content = cd.extractCodeContent(filePath, location.StartLine, location.EndLine)
+			}
+		}
+
+		fragment := NewCodeFragment(location, node, content)
 
 		// Filter fragments based on configuration
 		if cd.shouldIncludeFragment(fragment) {

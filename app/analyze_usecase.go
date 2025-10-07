@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -301,6 +302,14 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Execute: func(ctx context.Context) (interface{}, error) {
 				// Start with defaults to ensure all required fields are populated
 				defaultReq := domain.DefaultCloneRequest()
+
+				// Determine config path: use specified config or search in first file's directory
+				configPath := config.ConfigFile
+				if configPath == "" && len(files) > 0 {
+					// Use first file's directory as starting point for config search
+					configPath = filepath.Dir(files[0])
+				}
+
 				request := domain.CloneRequest{
 					Paths:               files,
 					OutputFormat:        domain.OutputFormatJSON,
@@ -313,7 +322,8 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 					Type3Threshold:      defaultReq.Type3Threshold,
 					Type4Threshold:      defaultReq.Type4Threshold,
 					GroupClones:         true, // Enable clone grouping (default behavior)
-					ConfigPath:          config.ConfigFile,
+					// ShowContent will be loaded from config file via mergeConfiguration
+					ConfigPath: configPath,
 				}
 				return uc.cloneUseCase.ExecuteAndReturn(ctx, request)
 			},
