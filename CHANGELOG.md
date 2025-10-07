@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.1] - 2025-10-07
+
+### Fixed
+- Fixed `pyscn init` missing `[output]` and `[analysis]` sections in generated config (#131)
+- Fixed HTML reports to sort by complexity instead of name by default (#130)
+
 ## [1.0.0] - 2025-10-05
 
 ### 🎉 First Stable Release
