@@ -134,6 +134,10 @@ jobs:
 
 📚 **[Development Guide](docs/DEVELOPMENT.md)** • **[Architecture](docs/ARCHITECTURE.md)** • **[Testing](docs/TESTING.md)**
 
+## Enterprise Support
+
+For commercial support, custom integrations, or consulting services, contact us at contact@ludo-tech.org
+
 ## License
 
 MIT License — see [LICENSE](LICENSE)
