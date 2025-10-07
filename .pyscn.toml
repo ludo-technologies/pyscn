@@ -8,7 +8,7 @@
 [output]
 format = "text"                 # Default output format: text, json, yaml, csv, html
 show_details = false             # Show detailed breakdown by default
-sort_by = "name"                 # Default sort: name, complexity, risk
+sort_by = "complexity"           # Default sort: name, complexity, risk
 min_complexity = 1               # Minimum complexity to report
 directory = ""                   # Output directory for reports (empty = current directory)
 

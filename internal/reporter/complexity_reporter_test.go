@@ -462,16 +462,16 @@ func TestOutputCSV(t *testing.T) {
 		}
 	}
 
-	// Verify first data row (should be sorted by name)
+	// Verify first data row (should be sorted by complexity descending)
 	firstRow := records[1]
-	if firstRow[0] != "complex_function" { // Sorted by name
-		t.Errorf("Expected first function to be complex_function, got %s", firstRow[0])
+	if firstRow[0] != "very_complex_function" { // Sorted by complexity (highest first)
+		t.Errorf("Expected first function to be very_complex_function, got %s", firstRow[0])
 	}
-	if firstRow[1] != "15" {
-		t.Errorf("Expected complexity 15, got %s", firstRow[1])
+	if firstRow[1] != "25" {
+		t.Errorf("Expected complexity 25, got %s", firstRow[1])
 	}
-	if firstRow[2] != "medium" {
-		t.Errorf("Expected risk medium, got %s", firstRow[2])
+	if firstRow[2] != "high" {
+		t.Errorf("Expected risk high, got %s", firstRow[2])
 	}
 }
 

@@ -35,8 +35,8 @@ func TestDefaultConfig(t *testing.T) {
 	if config.Output.ShowDetails {
 		t.Error("Expected show_details to be false by default")
 	}
-	if config.Output.SortBy != "name" {
-		t.Errorf("Expected sort_by 'name', got %s", config.Output.SortBy)
+	if config.Output.SortBy != "complexity" {
+		t.Errorf("Expected sort_by 'complexity', got %s", config.Output.SortBy)
 	}
 	if config.Output.MinComplexity != 1 {
 		t.Errorf("Expected min complexity 1, got %d", config.Output.MinComplexity)
