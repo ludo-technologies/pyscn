@@ -173,9 +173,25 @@ func TestInitCommandExecution(t *testing.T) {
 	}
 
 	contentStr := string(content)
-	if !strings.Contains(contentStr, "[clones]") {
-		t.Error("Config file should contain clones section")
+
+	// Check for top-level sections
+	if !strings.Contains(contentStr, "[output]") {
+		t.Error("Config file should contain [output] section")
 	}
+	if !strings.Contains(contentStr, "[analysis]") {
+		t.Error("Config file should contain [analysis] section")
+	}
+	if !strings.Contains(contentStr, "[complexity]") {
+		t.Error("Config file should contain [complexity] section")
+	}
+	if !strings.Contains(contentStr, "[dead_code]") {
+		t.Error("Config file should contain [dead_code] section")
+	}
+	if !strings.Contains(contentStr, "[clones]") {
+		t.Error("Config file should contain [clones] section")
+	}
+
+	// Check for key settings
 	if !strings.Contains(contentStr, "min_lines") {
 		t.Error("Config file should contain min_lines setting")
 	}
@@ -184,6 +200,9 @@ func TestInitCommandExecution(t *testing.T) {
 	}
 	if !strings.Contains(contentStr, "lsh_enabled") {
 		t.Error("Config file should contain lsh_enabled setting")
+	}
+	if !strings.Contains(contentStr, "include_patterns") {
+		t.Error("Config file should contain include_patterns setting")
 	}
 }
 

@@ -13,6 +13,16 @@ const defaultConfigTemplate = `# pyscn configuration file (.pyscn.toml)
 # Place this file in your project root to customize analysis behavior
 
 # =============================================================================
+# OUTPUT CONFIGURATION
+# =============================================================================
+[output]
+format = "text"                   # Output format: text, json, yaml, csv, html
+show_details = false              # Show detailed breakdown by default
+sort_by = "complexity"            # Default sort: name, complexity, risk
+min_complexity = 1                # Minimum complexity to report
+directory = ""                    # Output directory for reports (empty = .pyscn/reports/)
+
+# =============================================================================
 # COMPLEXITY ANALYSIS
 # =============================================================================
 [complexity]
@@ -44,7 +54,7 @@ detect_unreachable_branches = true # Unreachable conditional branches
 ignore_patterns = []
 
 # =============================================================================
-# CLONE DETECTION (Unified flat structure under [clones] section)
+# CLONE DETECTION
 # =============================================================================
 [clones]
 # Analysis settings
@@ -69,12 +79,7 @@ enabled_clone_types = ["type1", "type2", "type3", "type4"] # Clone types to dete
 max_results = 0                   # Maximum results (0 = no limit)
 
 # Grouping settings
-# Grouping strategy:
-#   - connected: Group by transitive similarity (simple, fast, default)
-#   - star: Star-based grouping around centroids
-#   - complete_linkage: Hierarchical clustering (high quality)
-#   - k_core: K-core decomposition (balanced quality/performance)
-grouping_mode = "connected"
+grouping_mode = "connected"       # Grouping mode: connected, star, complete_linkage, k_core
 grouping_threshold = 0.85         # Minimum similarity for group membership
 k_core_k = 2                      # K value for k-core mode (minimum connections per node)
 
@@ -93,18 +98,31 @@ enable_batching = true            # Enable batching
 max_goroutines = 4                # Maximum concurrent goroutines
 timeout_seconds = 300             # Timeout in seconds (5 minutes)
 
-# Input settings
-paths = []                        # Paths to analyze (empty = use command line)
-recursive = true                  # Recursively analyze directories
-include_patterns = ["*.py"]       # File patterns to include
-exclude_patterns = ["test_*.py", "*_test.py"] # File patterns to exclude
-
-# Output settings
-format = "text"                   # Output format: text, json, yaml, csv, html
+# Output settings (clone-specific)
 show_details = false              # Show detailed clone information
 show_content = false              # Include source code content in output
 sort_by = "similarity"            # Sort by: similarity, size, location, type
 group_clones = true               # Group related clones together
+
+# =============================================================================
+# ANALYSIS CONFIGURATION
+# =============================================================================
+[analysis]
+recursive = true                  # Recursively analyze directories
+follow_symlinks = false           # Follow symbolic links
+include_patterns = ["*.py"]       # File patterns to include
+exclude_patterns = [              # File patterns to exclude
+    "test_*.py",
+    "*_test.py",
+    "__pycache__/**",
+    "*.pyc",
+    ".pytest_cache/**",
+    ".tox/**",
+    "venv/**",
+    "env/**",
+    ".venv/**",
+    ".env/**"
+]
 
 # =============================================================================
 # EXAMPLE CONFIGURATIONS
@@ -112,18 +130,22 @@ group_clones = true               # Group related clones together
 
 # Uncomment and modify these settings for common use cases:
 
-# # Strict mode - high precision (uncomment and add to [clones] section)
-# # similarity_threshold = 0.95
-# # enabled_clone_types = ["type1", "type2"]
+# # Strict mode - high precision
+# [clones]
+# similarity_threshold = 0.95
+# enabled_clone_types = ["type1", "type2"]
 #
 # # Relaxed mode - catch more potential clones
-# # similarity_threshold = 0.7
-# # min_lines = 3
+# [clones]
+# similarity_threshold = 0.7
+# min_lines = 3
 #
 # # Performance optimized for large codebases
-# # lsh_enabled = "true"
-# # max_goroutines = 8
-# # batch_size = 200
+# [clones]
+# lsh_enabled = "true"
+# max_goroutines = 8
+# batch_size = 200
+# max_memory_mb = 1024
 `
 
 // InitCommand represents the init command
