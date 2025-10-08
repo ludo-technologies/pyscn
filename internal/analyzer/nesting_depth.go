@@ -4,7 +4,7 @@ import (
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
-// NestingDepthResult holds nesting depth metrics for a function or method
+// NestingDepthResult holds the maximum nesting depth and related metadata for a function
 type NestingDepthResult struct {
 	// Maximum nesting depth found in the function
 	MaxDepth int
