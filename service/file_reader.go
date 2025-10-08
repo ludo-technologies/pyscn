@@ -19,6 +19,14 @@ func NewFileReader() *FileReaderImpl {
 
 // CollectPythonFiles recursively finds all Python files in the given paths
 func (f *FileReaderImpl) CollectPythonFiles(paths []string, recursive bool, includePatterns, excludePatterns []string) ([]string, error) {
+	// Validate patterns early to catch common issues
+	if err := f.validatePatterns(includePatterns, "include"); err != nil {
+		return nil, err
+	}
+	if err := f.validatePatterns(excludePatterns, "exclude"); err != nil {
+		return nil, err
+	}
+
 	var files []string
 
 	for _, path := range paths {
@@ -122,11 +130,7 @@ func (f *FileReaderImpl) collectFromDirectory(dirPath string, recursive bool, in
 func (f *FileReaderImpl) shouldIncludeFile(path string, includePatterns, excludePatterns []string) bool {
 	// Check exclude patterns first
 	for _, pattern := range excludePatterns {
-		if matched, _ := filepath.Match(pattern, filepath.Base(path)); matched {
-			return false
-		}
-		// Also check against the full path for more complex patterns
-		if matched, _ := filepath.Match(pattern, path); matched {
+		if f.matchesPattern(pattern, path) {
 			return false
 		}
 	}
@@ -138,16 +142,130 @@ func (f *FileReaderImpl) shouldIncludeFile(path string, includePatterns, exclude
 
 	// Check include patterns
 	for _, pattern := range includePatterns {
-		if matched, _ := filepath.Match(pattern, filepath.Base(path)); matched {
+		if f.matchesPattern(pattern, path) {
 			return true
 		}
-		// Also check against the full path
+	}
+
+	return false
+}
+
+// matchesPattern checks if a path matches a pattern
+func (f *FileReaderImpl) matchesPattern(pattern, path string) bool {
+	// First try matching against just the filename
+	if matched, _ := filepath.Match(pattern, filepath.Base(path)); matched {
+		return true
+	}
+
+	// Handle globstar (**) patterns
+	if strings.Contains(pattern, "**") {
+		return f.matchesGlobstarPattern(pattern, path)
+	}
+
+	// For patterns with path separators, try full path matching
+	if strings.Contains(pattern, "/") {
 		if matched, _ := filepath.Match(pattern, path); matched {
 			return true
 		}
 	}
 
 	return false
+}
+
+// matchesGlobstarPattern handles patterns with ** (recursive directory matching)
+func (f *FileReaderImpl) matchesGlobstarPattern(pattern, path string) bool {
+	// Handle simple globstar patterns using stdlib approach
+
+	// Pattern: "**/suffix" - matches anything ending with suffix
+	if strings.HasPrefix(pattern, "**/") {
+		suffix := strings.TrimPrefix(pattern, "**/")
+		// Try matching the suffix directly
+		if matched, _ := filepath.Match(suffix, filepath.Base(path)); matched {
+			return true
+		}
+		// Try matching the full suffix as a path segment
+		if strings.HasSuffix(path, "/"+suffix) || path == suffix {
+			return true
+		}
+		return false
+	}
+
+	// Pattern: "prefix/**" - matches anything starting with prefix
+	if strings.HasSuffix(pattern, "/**") {
+		prefix := strings.TrimSuffix(pattern, "/**")
+		// Check if path starts with prefix or contains it as a path segment
+		return strings.HasPrefix(path, prefix+"/") || strings.Contains(path, "/"+prefix+"/") || path == prefix
+	}
+
+	// Pattern: "prefix/**/suffix" - more complex, for now just check contains
+	parts := strings.Split(pattern, "**")
+	if len(parts) == 2 {
+		prefix := strings.TrimSuffix(parts[0], "/")
+		suffix := strings.TrimPrefix(parts[1], "/")
+
+		prefixMatch := prefix == "" || strings.Contains(path, prefix)
+		suffixMatch := suffix == "" || strings.Contains(path, suffix)
+
+		return prefixMatch && suffixMatch
+	}
+
+	return false
+}
+
+// validatePatterns checks for common pattern syntax issues and provides helpful error messages
+func (f *FileReaderImpl) validatePatterns(patterns []string, patternType string) error {
+	for _, pattern := range patterns {
+		if err := f.validatePattern(pattern); err != nil {
+			return fmt.Errorf("invalid %s pattern '%s': %w", patternType, pattern, err)
+		}
+	}
+	return nil
+}
+
+// validatePattern validates a single pattern for common issues
+func (f *FileReaderImpl) validatePattern(pattern string) error {
+	if pattern == "" {
+		return fmt.Errorf("empty pattern not allowed")
+	}
+
+	// Check for escaped characters first (before other bracket checks)
+	if strings.Contains(pattern, "\\") {
+		return fmt.Errorf("escaped characters not fully supported, avoid backslashes in patterns")
+	}
+
+	// Check for multiple ** (not supported)
+	if strings.Count(pattern, "**") > 1 {
+		return fmt.Errorf("multiple ** globstars not supported, use single ** instead")
+	}
+
+	// Check for regex-like patterns (common confusion)
+	if strings.Contains(pattern, ".*") {
+		return fmt.Errorf("looks like regex syntax, use glob syntax instead (e.g., '*.py' not '.*\\.py')")
+	}
+	if strings.HasSuffix(pattern, "$") || strings.HasPrefix(pattern, "^") {
+		return fmt.Errorf("regex anchors (^ $) not supported, use glob syntax instead")
+	}
+
+	// Check for character classes (not supported by filepath.Match)
+	if strings.Contains(pattern, "[") || strings.Contains(pattern, "]") {
+		return fmt.Errorf("character classes [abc] not supported, use separate patterns instead")
+	}
+
+	// Check for brace expansion (not supported)
+	if strings.Contains(pattern, "{") || strings.Contains(pattern, "}") {
+		return fmt.Errorf("brace expansion {a,b} not supported, use separate patterns instead")
+	}
+
+	// Validate the pattern with filepath.Match to catch syntax errors early
+	_, err := filepath.Match(pattern, "test")
+	if err != nil {
+		return fmt.Errorf("invalid glob syntax: %w", err)
+	}
+
+	// Note: We could add more specific validations here for complex ** patterns,
+	// but most patterns that pass filepath.Match will work reasonably well
+
+	return nil
 }
 
 // shouldSkipDirectory checks if a directory should be skipped entirely
