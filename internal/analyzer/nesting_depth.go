@@ -112,7 +112,7 @@ func isNestingNode(node *parser.Node) bool {
 
 	switch node.Type {
 	case parser.NodeIf, parser.NodeFor, parser.NodeAsyncFor, parser.NodeWhile, parser.NodeWith, parser.NodeAsyncWith, parser.NodeTry, parser.NodeExceptHandler, parser.NodeMatch, parser.NodeMatchCase, parser.NodeElifClause,
-		parser.NodeFunctionDef, parser.NodeAsyncFunctionDef, parser.NodeClassDef, parser.NodeLambda, parser.NodeListComp, parser.NodeSetComp, parser.NodeDictComp, parser.NodeGeneratorExp:
+		parser.NodeLambda, parser.NodeListComp, parser.NodeSetComp, parser.NodeDictComp, parser.NodeGeneratorExp:
 		// These nodes increase nesting depth
 		return true
 	case parser.NodeElseClause:
