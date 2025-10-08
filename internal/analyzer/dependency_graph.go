@@ -53,12 +53,13 @@ const (
 
 // ImportInfo contains details about an import statement
 type ImportInfo struct {
-	Statement     string   // Original import statement
-	ImportedNames []string // Names imported (for from imports)
-	Alias         string   // Alias used (if any)
-	IsRelative    bool     // True for relative imports
-	Level         int      // Level for relative imports (number of dots)
-	Line          int      // Line number where import occurs
+	Statement      string   // Original import statement
+	ImportedNames  []string // Names imported (for from imports)
+	Alias          string   // Alias used (if any)
+	IsRelative     bool     // True for relative imports
+	Level          int      // Level for relative imports (number of dots)
+	Line           int      // Line number where import occurs
+	IsTypeChecking bool     // True if import is inside a TYPE_CHECKING block
 }
 
 // DependencyGraph represents the complete module dependency graph
