@@ -234,10 +234,17 @@ func TestFileReader_CollectPythonFiles(t *testing.T) {
 				createTestFile(t, tmpDir, "subdir/module.py", "class Test: pass")
 
 				// Change to temp directory and return "." as path
-				origDir, _ := os.Getwd()
-				os.Chdir(tmpDir)
+				origDir, err := os.Getwd()
+				if err != nil {
+					t.Fatalf("Failed to get working directory: %v", err)
+				}
+				if err := os.Chdir(tmpDir); err != nil {
+					t.Fatalf("Failed to change to temp directory: %v", err)
+				}
 				t.Cleanup(func() {
-					os.Chdir(origDir)
+					if err := os.Chdir(origDir); err != nil {
+						t.Errorf("Failed to restore directory: %v", err)
+					}
 				})
 				return tmpDir, []string{"."}
 			},
