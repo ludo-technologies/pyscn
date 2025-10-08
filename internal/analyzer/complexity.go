@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"fmt"
+
 	"github.com/ludo-technologies/pyscn/internal/config"
 )
 
@@ -19,6 +20,9 @@ type ComplexityResult struct {
 	FunctionName string
 	StartLine    int
 	EndLine      int
+
+	// Nesting depth
+	NestingDepth int
 
 	// Decision points breakdown
 	IfStatements      int
@@ -148,12 +152,20 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 	// Count actual conditional decisions (blocks with conditional outgoing edges)
 	conditionalDecisions := len(visitor.decisionPoints)
 
+	// Calculate nesting depth if function node is available
+	nestingDepth := 0
+	if cfg.FunctionNode != nil {
+		nestingResult := CalculateMaxNestingDepth(cfg.FunctionNode)
+		nestingDepth = nestingResult.MaxDepth
+	}
+
 	result := &ComplexityResult{
 		Complexity:          complexity,
 		Edges:               visitor.edgeCount,
 		Nodes:               visitor.nodeCount,
 		ConnectedComponents: 1,
 		FunctionName:        cfg.Name,
+		NestingDepth:        nestingDepth,
 		IfStatements:        conditionalDecisions, // Accurate count of decision points
 		LoopStatements:      visitor.loopStatements,
 		ExceptionHandlers:   visitor.exceptionHandlers,

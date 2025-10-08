@@ -148,7 +148,7 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Len(t, records, 3, "Should have header plus 2 function rows")
 
 				// Check header
-				expectedHeaders := []string{"Function", "Complexity", "Risk", "Nodes", "Edges", "If Statements", "Loop Statements", "Exception Handlers"}
+				expectedHeaders := []string{"Function", "Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
 				assert.Equal(t, expectedHeaders, records[0])
 
 				// Check first data row
@@ -556,12 +556,12 @@ func TestOutputFormatter_formatCSV(t *testing.T) {
 	assert.Len(t, records, 3) // Header + 2 functions
 
 	// Check header
-	expectedHeaders := []string{"Function", "Complexity", "Risk", "Nodes", "Edges", "If Statements", "Loop Statements", "Exception Handlers"}
+	expectedHeaders := []string{"Function", "Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
 	assert.Equal(t, expectedHeaders, records[0])
 
 	// Check data rows (risk levels are lowercase in actual implementation)
-	assert.Equal(t, []string{"simple_function", "2", "low", "5", "4", "1", "0", "0"}, records[1])
-	assert.Equal(t, []string{"complex_function", "8", "high", "20", "18", "3", "2", "1"}, records[2])
+	assert.Equal(t, []string{"simple_function", "2", "low", "5", "4", "0", "1", "0", "0"}, records[1])
+	assert.Equal(t, []string{"complex_function", "8", "high", "20", "18", "0", "3", "2", "1"}, records[2])
 }
 
 // TestOutputFormatter_NewOutputFormatter tests service creation

@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"fmt"
+
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -167,6 +168,9 @@ type CFG struct {
 
 	// Name is the name of the CFG (e.g., function name)
 	Name string
+
+	// FunctionNode is the original AST node for the function
+	FunctionNode *parser.Node
 
 	// nextBlockID is used to generate unique block IDs
 	nextBlockID int
