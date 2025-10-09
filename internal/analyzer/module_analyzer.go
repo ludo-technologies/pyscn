@@ -85,15 +85,9 @@ func NewModuleAnalyzer(options *ModuleAnalysisOptions) (*ModuleAnalyzer, error) 
 		followRelative:    options.FollowRelative,
 	}
 
-	// Compile exclude patterns
-	for _, pattern := range options.ExcludePatterns {
-		analyzer.excludePatterns = append(analyzer.excludePatterns, pattern)
-	}
+	analyzer.excludePatterns = append(analyzer.excludePatterns, options.ExcludePatterns...)
 
-	// Compile include patterns
-	for _, pattern := range options.IncludePatterns {
-		analyzer.includePatterns = append(analyzer.includePatterns, pattern)
-	}
+	analyzer.includePatterns = append(analyzer.includePatterns, options.IncludePatterns...)
 
 	return analyzer, nil
 }
