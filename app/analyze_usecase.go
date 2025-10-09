@@ -534,7 +534,7 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 // getFilePatterns loads file patterns from configuration or returns defaults
 func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]string, []string, error) {
 	// Default patterns
-	defaultInclude := []string{"*.py", "*.pyi"}
+	defaultInclude := []string{"**/*.py", "*.pyi"}
 	defaultExclude := []string{"test_*.py", "*_test.py"}
 
 	// Try to load configuration

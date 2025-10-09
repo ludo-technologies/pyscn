@@ -447,7 +447,7 @@ func TestComplexityService_BuildConfigForResponse(t *testing.T) {
 	req.MinComplexity = 2
 	req.MaxComplexity = 20
 	req.Recursive = true
-	req.IncludePatterns = []string{"*.py"}
+	req.IncludePatterns = []string{"**/*.py"}
 	req.ExcludePatterns = []string{"test_*.py"}
 
 	config := service.buildConfigForResponse(req)
@@ -463,7 +463,7 @@ func TestComplexityService_BuildConfigForResponse(t *testing.T) {
 	assert.Equal(t, "complexity", configMap["sort_by"])
 	assert.Equal(t, true, configMap["show_details"])
 	assert.Equal(t, true, configMap["recursive"])
-	assert.Equal(t, []string{"*.py"}, configMap["include_patterns"])
+	assert.Equal(t, []string{"**/*.py"}, configMap["include_patterns"])
 	assert.Equal(t, []string{"test_*.py"}, configMap["exclude_patterns"])
 }
 

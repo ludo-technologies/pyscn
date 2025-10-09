@@ -344,7 +344,7 @@ func TestDefaultCloneRequest(t *testing.T) {
 	assert.NotNil(t, request, "Default request should not be nil")
 	assert.Equal(t, []string{"."}, request.Paths, "Default paths should be current directory")
 	assert.True(t, request.Recursive, "Default recursive should be true")
-	assert.Equal(t, []string{"*.py"}, request.IncludePatterns, "Default include patterns should be *.py")
+	assert.Equal(t, []string{"**/*.py"}, request.IncludePatterns, "Default include patterns should be **/*.py")
 	assert.Contains(t, request.ExcludePatterns, "test_*.py", "Default exclude patterns should contain test files")
 	assert.Contains(t, request.ExcludePatterns, "*_test.py", "Default exclude patterns should contain test files")
 	assert.Equal(t, 5, request.MinLines, "Default min lines should be 5")

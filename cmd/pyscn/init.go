@@ -110,7 +110,7 @@ group_clones = true               # Group related clones together
 [analysis]
 recursive = true                  # Recursively analyze directories
 follow_symlinks = false           # Follow symbolic links
-include_patterns = ["*.py"]       # File patterns to include
+include_patterns = ["**/*.py]       # File patterns to include
 exclude_patterns = [              # File patterns to exclude
     "test_*.py",
     "*_test.py",

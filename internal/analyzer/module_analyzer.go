@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -15,8 +15,8 @@ import (
 type ModuleAnalyzer struct {
 	projectRoot     string
 	pythonPath      []string
-	excludePatterns []*regexp.Regexp
-	includePatterns []*regexp.Regexp
+	excludePatterns []string
+	includePatterns []string
 
 	// Module resolution cache
 	resolvedModules map[string]string // module name -> file path
@@ -33,7 +33,7 @@ type ModuleAnalysisOptions struct {
 	ProjectRoot       string   // Project root directory
 	PythonPath        []string // Additional Python path entries
 	ExcludePatterns   []string // Module patterns to exclude
-	IncludePatterns   []string // Module patterns to include (default: ["*.py"])
+	IncludePatterns   []string // Module patterns to include (default: ["**/*.py"])
 	IncludeStdLib     bool     // Include standard library dependencies
 	IncludeThirdParty bool     // Include third-party dependencies
 	FollowRelative    bool     // Follow relative imports
@@ -42,7 +42,7 @@ type ModuleAnalysisOptions struct {
 // DefaultModuleAnalysisOptions returns default analysis options
 func DefaultModuleAnalysisOptions() *ModuleAnalysisOptions {
 	return &ModuleAnalysisOptions{
-		IncludePatterns:   []string{"*.py"},
+		IncludePatterns:   []string{"**/*.py"},
 		ExcludePatterns:   []string{"test_*.py", "*_test.py", "__pycache__", "*.pyc"},
 		IncludeStdLib:     false,
 		IncludeThirdParty: true,
@@ -56,6 +56,9 @@ func NewModuleAnalyzer(options *ModuleAnalysisOptions) (*ModuleAnalyzer, error) 
 		options = DefaultModuleAnalysisOptions()
 	}
 
+	if matched, _ := doublestar.Match("a", "a"); matched {
+		print("false")
+	}
 	// Determine project root
 	projectRoot := options.ProjectRoot
 	if projectRoot == "" {
@@ -84,20 +87,12 @@ func NewModuleAnalyzer(options *ModuleAnalysisOptions) (*ModuleAnalyzer, error) 
 
 	// Compile exclude patterns
 	for _, pattern := range options.ExcludePatterns {
-		regex, err := compileGlobPattern(pattern)
-		if err != nil {
-			return nil, fmt.Errorf("invalid exclude pattern '%s': %w", pattern, err)
-		}
-		analyzer.excludePatterns = append(analyzer.excludePatterns, regex)
+		analyzer.excludePatterns = append(analyzer.excludePatterns, pattern)
 	}
 
 	// Compile include patterns
 	for _, pattern := range options.IncludePatterns {
-		regex, err := compileGlobPattern(pattern)
-		if err != nil {
-			return nil, fmt.Errorf("invalid include pattern '%s': %w", pattern, err)
-		}
-		analyzer.includePatterns = append(analyzer.includePatterns, regex)
+		analyzer.includePatterns = append(analyzer.includePatterns, pattern)
 	}
 
 	return analyzer, nil
@@ -578,7 +573,7 @@ func (ma *ModuleAnalyzer) shouldIncludeDependency(moduleName string) bool {
 
 	// Check exclude patterns
 	for _, pattern := range ma.excludePatterns {
-		if pattern.MatchString(moduleName) {
+		if matched, _ := doublestar.Match(pattern, moduleName); matched {
 			return false
 		}
 	}
@@ -647,7 +642,7 @@ func (ma *ModuleAnalyzer) matchesIncludePatterns(path string) bool {
 		return true
 	}
 	for _, pattern := range ma.includePatterns {
-		if pattern.MatchString(filepath.Base(path)) {
+		if matched, _ := doublestar.Match(pattern, filepath.Base(path)); matched {
 			return true
 		}
 	}
@@ -657,7 +652,10 @@ func (ma *ModuleAnalyzer) matchesIncludePatterns(path string) bool {
 // matchesExcludePatterns checks if path matches any exclude pattern
 func (ma *ModuleAnalyzer) matchesExcludePatterns(path string) bool {
 	for _, pattern := range ma.excludePatterns {
-		if pattern.MatchString(filepath.Base(path)) || pattern.MatchString(path) {
+		if matched, _ := doublestar.Match(pattern, path); matched {
+			return true
+		}
+		if matched, _ := doublestar.Match(pattern, filepath.Base(path)); matched {
 			return true
 		}
 	}
@@ -698,13 +696,6 @@ func (ma *ModuleAnalyzer) estimateLineCount(filePath string) int {
 		return 0
 	}
 	return strings.Count(string(content), "\n") + 1
-}
-
-// compileGlobPattern compiles a glob pattern to regex
-func compileGlobPattern(pattern string) (*regexp.Regexp, error) {
-	// Convert glob pattern to regex
-	regexPattern := "^" + strings.ReplaceAll(regexp.QuoteMeta(pattern), "\\*", ".*") + "$"
-	return regexp.Compile(regexPattern)
 }
 
 // isInTypeCheckingBlock checks if a node is inside a TYPE_CHECKING conditional block

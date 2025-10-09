@@ -104,7 +104,7 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) LoadDefaultConfig() *domain.Sys
 		FollowRelative:      true,
 		DetectCycles:        true,
 		Recursive:           true,
-		IncludePatterns:     []string{"*.py"},
+		IncludePatterns:     []string{"**/*.py"},
 		ExcludePatterns:     []string{},
 	}
 }
@@ -396,7 +396,7 @@ analyze_dependencies = true
 analyze_architecture = true
 show_details = false
 recursive = true
-include_patterns = ["*.py"]
+include_patterns = ["**/*.py"]
 exclude_patterns = ["test_*.py", "*_test.py"]
 
 [dependencies]

@@ -67,10 +67,10 @@ clones:
     paths: []                      # Paths to analyze (empty = use command line)
     recursive: true                # Recursively analyze directories
     include_patterns:              # File patterns to include
-      - "*.py"
+      - "**/*.py"
     exclude_patterns:              # File patterns to exclude
-      - "test_*.py"
-      - "*_test.py"
+      - "**/test_*.py"
+      - "**/*_test.py"
   
   output:
     format: "text"                 # Output format: text, json, yaml, csv, html
@@ -100,12 +100,12 @@ analysis:
   recursive: true                  # Recursively analyze directories
   follow_symlinks: false           # Follow symbolic links
   include_patterns:                # File patterns to include
-    - "*.py"
+    - "**/*.py"
   exclude_patterns:                # File patterns to exclude
-    - "test_*.py"
-    - "*_test.py"
-    - "__pycache__/**"
-    - "*.pyc"
+    - "**/test_*.py"
+    - "**/*_test.py"
+    - "**/__pycache__/**"
+    - "**/*.pyc"
     - ".pytest_cache/**"
     - ".tox/**"
     - "venv/**"

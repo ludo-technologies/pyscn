@@ -65,7 +65,7 @@ if TYPE_CHECKING and sys.version_info >= (3, 9):
 	// Create module analyzer
 	options := &ModuleAnalysisOptions{
 		ProjectRoot:       tmpDir,
-		IncludePatterns:   []string{"*.py"},
+		IncludePatterns:   []string{"**/*.py"},
 		ExcludePatterns:   []string{},
 		IncludeStdLib:     false,
 		IncludeThirdParty: true,
@@ -189,7 +189,7 @@ class ClassB:
 	// Create module analyzer
 	options := &ModuleAnalysisOptions{
 		ProjectRoot:       tmpDir,
-		IncludePatterns:   []string{"*.py"},
+		IncludePatterns:   []string{"**/*.py"},
 		ExcludePatterns:   []string{},
 		IncludeStdLib:     false,
 		IncludeThirdParty: true,

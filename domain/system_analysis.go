@@ -497,7 +497,7 @@ func DefaultSystemAnalysisRequest() *SystemAnalysisRequest {
 		FollowRelative:       true,
 		DetectCycles:         true,
 		ValidateArchitecture: true,
-		IncludePatterns:      []string{"*.py"},
+		IncludePatterns:      []string{"**/*.py"},
 		ExcludePatterns:      []string{"test_*.py", "*_test.py"},
 		ComplexityData:       make(map[string]int),
 		ClonesData:           make(map[string]float64),

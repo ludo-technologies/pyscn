@@ -113,18 +113,18 @@ show_zeros = false               # Include classes with CBO = 0
 [analysis]
 recursive = true                 # Recursively analyze directories
 follow_symlinks = false          # Follow symbolic links
-include_patterns = ["*.py"]      # File patterns to include
+include_patterns = ["**/*.py"]      # File patterns to include
 exclude_patterns = [             # File patterns to exclude
-    "test_*.py",
-    "*_test.py",
-    "__pycache__/**",
-    "*.pyc",
-    ".pytest_cache/**",
-    ".tox/**",
-    "venv/**",
-    "env/**",
-    ".venv/**",
-    ".env/**"
+    "/**/test_*.py",
+    "/**/*_test.py",
+    "/**/__pycache__/*",
+    "/**/*.pyc",
+    "/**/.pytest_cache/",
+    ".tox/",
+    "venv/",
+    "env/",
+    ".venv/",
+    ".env/"
 ]
 
 # =============================================================================

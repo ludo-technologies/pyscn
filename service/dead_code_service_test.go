@@ -544,7 +544,7 @@ func TestDeadCodeService_BuildConfigForResponse(t *testing.T) {
 		DetectAfterContinue:       true,
 		DetectAfterRaise:          false,
 		DetectUnreachableBranches: true,
-		IncludePatterns:           []string{"*.py"},
+		IncludePatterns:           []string{"**/*.py"},
 		ExcludePatterns:           []string{"test_*.py"},
 		IgnorePatterns:            []string{"# TODO"},
 	}
@@ -563,7 +563,7 @@ func TestDeadCodeService_BuildConfigForResponse(t *testing.T) {
 	assert.Equal(t, true, configMap["detect_after_continue"])
 	assert.Equal(t, false, configMap["detect_after_raise"])
 	assert.Equal(t, true, configMap["detect_unreachable_branches"])
-	assert.Equal(t, []string{"*.py"}, configMap["include_patterns"])
+	assert.Equal(t, []string{"**/*.py"}, configMap["include_patterns"])
 	assert.Equal(t, []string{"test_*.py"}, configMap["exclude_patterns"])
 	assert.Equal(t, []string{"# TODO"}, configMap["ignore_patterns"])
 }
