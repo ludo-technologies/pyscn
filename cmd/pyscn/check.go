@@ -22,6 +22,7 @@ type CheckCommand struct {
 	maxComplexity int
 	allowDeadCode bool
 	skipClones    bool
+	selectAnalyses []string	// only run specified analyses
 }
 
 // NewCheckCommand creates a new check command
@@ -79,6 +80,10 @@ Examples:
 	cmd.Flags().IntVar(&c.maxComplexity, "max-complexity", 10, "Maximum allowed complexity")
 	cmd.Flags().BoolVar(&c.allowDeadCode, "allow-dead-code", false, "Allow dead code (don't fail)")
 	cmd.Flags().BoolVar(&c.skipClones, "skip-clones", false, "Skip clone detection")
+	cmd.Flags().StringSliceVar(&c.selectAnalyses, "select", []string{}, "Only run specified analyses (complexity,deadcode,clones)")
+
+	// Quick filter flags
+	cmd.Flags().IntVar(&c.maxComplexity, "max-complexity", 5, "Minimum complexity to report"))
 
 	return cmd
 }
@@ -93,6 +98,9 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	// Count issues found
 	var issueCount int
 	var hasErrors bool
+
+	// Create use case configuration
+	config := c.createUseCaseConfig()
 
 	if !c.quiet {
 		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check...\n")
@@ -146,6 +154,26 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// createUseCaseConfig creates the use case configuration from command flags
+func (c *CheckCommand) createUseCaseConfig() app.CheckUseCaseConfig {
+	config := app.CheckUseCaseConfig{
+		ConfigFile:      c.configFile,
+		Quiet:           c.quiet,
+		Verbose:         c.verbose,
+		MaxComplexity:   c.maxComplexity,
+		DeadClone:       c.skipClones,
+	}
+
+	// Handle analysis selection
+	if len(c.selectAnalyses) > 0 {
+		// If --select is used, only run selected analyses
+		config.maxComplexity = !c.containsAnalysis("complexity")
+		config.allowDeadCode = !c.containsAnalysis("deadcode")
+		config.skipClones = !c.containsAnalysis("clones")
+	}
+	return config
 }
 
 // checkComplexity runs complexity analysis and returns issue count
@@ -329,6 +357,16 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 	}
 
 	return issueCount, nil
+}
+
+// containsAnalysis checks if the given analysis is in the selectAnalyses list
+func (c *CheckCommand) containsAnalysis(analysis string) bool {
+	for _, a := range c.selectAnalyses {
+		if strings.ToLower(a) == analysis {
+			return true
+		}
+	}
+	return false
 }
 
 // NewCheckCmd creates and returns the check cobra command
