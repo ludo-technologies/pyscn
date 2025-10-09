@@ -225,6 +225,36 @@ func TestFileReader_CollectPythonFiles(t *testing.T) {
 			expectedFiles:   []string{"main.py"},
 			expectError:     false,
 		},
+		{
+			name: "current directory with dot path",
+			setupFiles: func(t *testing.T) (string, []string) {
+				tmpDir := createTempDir(t)
+				createTestFile(t, tmpDir, "main.py", "def main(): pass")
+				createTestFile(t, tmpDir, "utils.py", "def helper(): return 42")
+				createTestFile(t, tmpDir, "subdir/module.py", "class Test: pass")
+
+				// Change to temp directory and return "." as path
+				origDir, err := os.Getwd()
+				if err != nil {
+					t.Fatalf("Failed to get working directory: %v", err)
+				}
+				if err := os.Chdir(tmpDir); err != nil {
+					t.Fatalf("Failed to change to temp directory: %v", err)
+				}
+				t.Cleanup(func() {
+					if err := os.Chdir(origDir); err != nil {
+						t.Errorf("Failed to restore directory: %v", err)
+					}
+				})
+				return tmpDir, []string{"."}
+			},
+			recursive:       true,
+			includePatterns: []string{"*.py"},
+			excludePatterns: []string{},
+			expectedCount:   3, // main.py, utils.py, module.py
+			expectedFiles:   []string{"main.py", "utils.py", "module.py"},
+			expectError:     false,
+		},
 	}
 
 	for _, tt := range tests {
