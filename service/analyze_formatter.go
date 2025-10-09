@@ -965,7 +965,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </div>
                 </div>
 
-                {{if and .System.ArchitectureAnalysis.LayerAnalysis (gt (len .System.ArchitectureAnalysis.LayerViolations) 0)}}
+                {{if and .System.ArchitectureAnalysis.LayerAnalysis (gt (len .System.ArchitectureAnalysis.LayerAnalysis.LayerViolations) 0)}}
                 <h3>Top Rule Violations</h3>
                 <table class="table">
                     <thead>
