@@ -630,6 +630,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <th>Function</th>
                             <th>File</th>
                             <th>Complexity</th>
+                            <th>Nesting Depth</th>
                             <th>Risk</th>
                         </tr>
                     </thead>
@@ -640,6 +641,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <td>{{$f.Name}}</td>
                             <td>{{$f.FilePath}}</td>
                             <td>{{$f.Metrics.Complexity}}</td>
+                            <td>{{$f.Metrics.NestingDepth}}</td>
                             <td class="risk-{{$f.RiskLevel}}">{{$f.RiskLevel}}</td>
                         </tr>
                         {{end}}
@@ -963,7 +965,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </div>
                 </div>
 
-                {{if and .System.ArchitectureAnalysis.LayerAnalysis (gt (len .System.ArchitectureAnalysis.LayerAnalysis.LayerViolations) 0)}}
+                {{if and .System.ArchitectureAnalysis.LayerAnalysis (gt (len .System.ArchitectureAnalysis.LayerViolations) 0)}}
                 <h3>Top Rule Violations</h3>
                 <table class="table">
                     <thead>
