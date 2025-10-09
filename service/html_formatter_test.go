@@ -291,7 +291,8 @@ func TestHTMLFormatter_FormatComplexityAsHTML(t *testing.T) {
 				Name:     "test_function",
 				FilePath: "test.py",
 				Metrics: domain.ComplexityMetrics{
-					Complexity: 5,
+					Complexity:   5,
+					NestingDepth: 3,
 				},
 				RiskLevel: domain.RiskLevelMedium,
 			},
@@ -316,6 +317,90 @@ func TestHTMLFormatter_FormatComplexityAsHTML(t *testing.T) {
 
 	// Check responsive design
 	assert.Contains(t, html, "@media")
+
+	// Check function table is present with nesting depth column
+	assert.Contains(t, html, "Function Details")
+	assert.Contains(t, html, "Nesting Depth")
+	assert.Contains(t, html, "test_function")
+}
+
+func TestHTMLFormatter_FormatComplexityAsHTML_WithNestingDepth(t *testing.T) {
+	formatter := NewHTMLFormatter()
+
+	response := &domain.ComplexityResponse{
+		Summary: domain.ComplexitySummary{
+			TotalFunctions:    2,
+			AverageComplexity: 5.5,
+			FilesAnalyzed:     1,
+		},
+		Functions: []domain.FunctionComplexity{
+			{
+				Name:     "low_nesting_func",
+				FilePath: "example.py",
+				Metrics: domain.ComplexityMetrics{
+					Complexity:   3,
+					NestingDepth: 1,
+					Nodes:        10,
+					Edges:        12,
+				},
+				RiskLevel: domain.RiskLevelLow,
+			},
+			{
+				Name:     "high_nesting_func",
+				FilePath: "example.py",
+				Metrics: domain.ComplexityMetrics{
+					Complexity:   8,
+					NestingDepth: 5,
+					Nodes:        25,
+					Edges:        35,
+				},
+				RiskLevel: domain.RiskLevelHigh,
+			},
+		},
+	}
+
+	html, err := formatter.FormatComplexityAsHTML(response, "Nesting Test")
+
+	assert.NoError(t, err)
+	assert.NotEmpty(t, html)
+
+	// Verify function table is present
+	assert.Contains(t, html, "Function Details")
+	assert.Contains(t, html, "Nesting Depth")
+
+	// Verify both functions are listed
+	assert.Contains(t, html, "low_nesting_func")
+	assert.Contains(t, html, "high_nesting_func")
+
+	// Verify nesting depth values are displayed (as they appear in table cells)
+	assert.Contains(t, html, ">1<")
+	assert.Contains(t, html, ">5<")
+}
+
+func TestHTMLFormatter_FormatComplexityAsHTML_EmptyFunctions(t *testing.T) {
+	formatter := NewHTMLFormatter()
+
+	response := &domain.ComplexityResponse{
+		Summary: domain.ComplexitySummary{
+			TotalFunctions:    0,
+			AverageComplexity: 0,
+			FilesAnalyzed:     0,
+		},
+		Functions: []domain.FunctionComplexity{},
+	}
+
+	html, err := formatter.FormatComplexityAsHTML(response, "Empty Test")
+
+	assert.NoError(t, err)
+	assert.NotEmpty(t, html)
+
+	// Function table should NOT be present when there are no functions
+	assert.NotContains(t, html, "Function Details")
+	assert.NotContains(t, html, "<table")
+
+	// But the report structure should still be present
+	assert.Contains(t, html, "Empty Test")
+	assert.Contains(t, html, "Overall Score")
 }
 
 func TestHTMLFormatter_FormatDeadCodeAsHTML(t *testing.T) {
