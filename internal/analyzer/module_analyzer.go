@@ -209,6 +209,11 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 
 	// Process each import
 	for _, imp := range imports {
+		// Skip TYPE_CHECKING imports for circular dependency detection
+		if imp.IsTypeChecking {
+			continue
+		}
+
 		targetModule := ma.resolveImport(imp, filePath)
 		if targetModule != "" && ma.shouldIncludeDependency(targetModule) {
 			// Skip dependencies from __init__.py to its own submodules
@@ -244,14 +249,17 @@ func (ma *ModuleAnalyzer) collectModuleImports(ast *parser.Node, filePath string
 		switch node.Type {
 		case parser.NodeImport:
 			// Handle "import module" statements
+			isTypeChecking := ma.isInTypeCheckingBlock(node)
+
 			if len(node.Children) > 0 {
 				for _, child := range node.Children {
 					if child.Type == parser.NodeAlias {
 						imp := &ImportInfo{
-							Statement:     fmt.Sprintf("import %s", child.Name),
-							ImportedNames: []string{child.Name},
-							IsRelative:    false,
-							Line:          node.Location.StartLine,
+							Statement:      fmt.Sprintf("import %s", child.Name),
+							ImportedNames:  []string{child.Name},
+							IsRelative:     false,
+							Line:           node.Location.StartLine,
+							IsTypeChecking: isTypeChecking,
 						}
 						if child.Value != nil {
 							if alias, ok := child.Value.(string); ok {
@@ -264,10 +272,11 @@ func (ma *ModuleAnalyzer) collectModuleImports(ast *parser.Node, filePath string
 			} else if len(node.Names) > 0 {
 				for _, name := range node.Names {
 					imp := &ImportInfo{
-						Statement:     fmt.Sprintf("import %s", name),
-						ImportedNames: []string{name},
-						IsRelative:    false,
-						Line:          node.Location.StartLine,
+						Statement:      fmt.Sprintf("import %s", name),
+						ImportedNames:  []string{name},
+						IsRelative:     false,
+						Line:           node.Location.StartLine,
+						IsTypeChecking: isTypeChecking,
 					}
 					imports = append(imports, imp)
 				}
@@ -275,6 +284,7 @@ func (ma *ModuleAnalyzer) collectModuleImports(ast *parser.Node, filePath string
 
 		case parser.NodeImportFrom:
 			// Handle "from module import name" statements
+			isTypeChecking := ma.isInTypeCheckingBlock(node)
 			module := node.Module
 			level := ma.calculateRelativeLevel(node.Module)
 
@@ -286,11 +296,12 @@ func (ma *ModuleAnalyzer) collectModuleImports(ast *parser.Node, filePath string
 			}
 
 			imp := &ImportInfo{
-				Statement:     ma.buildImportStatement(node),
-				ImportedNames: importedNames,
-				IsRelative:    level > 0,
-				Level:         level,
-				Line:          node.Location.StartLine,
+				Statement:      ma.buildImportStatement(node),
+				ImportedNames:  importedNames,
+				IsRelative:     level > 0,
+				Level:          level,
+				Line:           node.Location.StartLine,
+				IsTypeChecking: isTypeChecking,
 			}
 
 			// Clean module name for relative imports
@@ -694,4 +705,72 @@ func compileGlobPattern(pattern string) (*regexp.Regexp, error) {
 	// Convert glob pattern to regex
 	regexPattern := "^" + strings.ReplaceAll(regexp.QuoteMeta(pattern), "\\*", ".*") + "$"
 	return regexp.Compile(regexPattern)
+}
+
+// isInTypeCheckingBlock checks if a node is inside a TYPE_CHECKING conditional block
+func (ma *ModuleAnalyzer) isInTypeCheckingBlock(node *parser.Node) bool {
+	// Walk up the parent chain to find if we're inside an if statement
+	current := node.Parent
+	for current != nil {
+		if current.Type == parser.NodeIf {
+			// Check if this is a TYPE_CHECKING condition
+			if ma.isTypeCheckingCondition(current.Test) {
+				return true
+			}
+		}
+		current = current.Parent
+	}
+	return false
+}
+
+// isTypeCheckingCondition checks if an expression is a TYPE_CHECKING condition
+func (ma *ModuleAnalyzer) isTypeCheckingCondition(expr *parser.Node) bool {
+	if expr == nil {
+		return false
+	}
+
+	// Handle simple case: just TYPE_CHECKING
+	if expr.Type == parser.NodeName && expr.Name == "TYPE_CHECKING" {
+		return true
+	}
+
+	// Handle attribute access: typing.TYPE_CHECKING
+	if expr.Type == parser.NodeAttribute && expr.Name == "TYPE_CHECKING" {
+		return true
+	}
+
+	// Handle binary operations that include TYPE_CHECKING
+	// e.g., "TYPE_CHECKING and sys.version_info >= (3, 9)"
+	if expr.Type == parser.NodeBoolOp {
+		return ma.containsTypeChecking(expr)
+	}
+
+	// Handle comparisons and other complex expressions
+	if expr.Type == parser.NodeCompare {
+		return ma.containsTypeChecking(expr)
+	}
+
+	return false
+}
+
+// containsTypeChecking recursively checks if an expression contains TYPE_CHECKING
+func (ma *ModuleAnalyzer) containsTypeChecking(node *parser.Node) bool {
+	if node == nil {
+		return false
+	}
+
+	// Check current node
+	if (node.Type == parser.NodeName && node.Name == "TYPE_CHECKING") ||
+		(node.Type == parser.NodeAttribute && node.Name == "TYPE_CHECKING") {
+		return true
+	}
+
+	// Recursively check all children
+	for _, child := range node.GetChildren() {
+		if ma.containsTypeChecking(child) {
+			return true
+		}
+	}
+
+	return false
 }

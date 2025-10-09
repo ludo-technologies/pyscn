@@ -96,8 +96,8 @@ func (f *FileReaderImpl) collectFromDirectory(dirPath string, recursive bool, in
 			return filepath.SkipDir
 		}
 
-		// Skip hidden directories and files
-		if strings.HasPrefix(info.Name(), ".") {
+		// Skip hidden directories and files (but not the root directory being walked)
+		if strings.HasPrefix(info.Name(), ".") && path != dirPath {
 			if info.IsDir() {
 				return filepath.SkipDir
 			}
