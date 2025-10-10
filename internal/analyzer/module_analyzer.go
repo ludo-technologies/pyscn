@@ -56,9 +56,6 @@ func NewModuleAnalyzer(options *ModuleAnalysisOptions) (*ModuleAnalyzer, error) 
 		options = DefaultModuleAnalysisOptions()
 	}
 
-	if matched, _ := doublestar.Match("a", "a"); matched {
-		print("false")
-	}
 	// Determine project root
 	projectRoot := options.ProjectRoot
 	if projectRoot == "" {
