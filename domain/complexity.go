@@ -78,6 +78,9 @@ type ComplexityMetrics struct {
 	Nodes int
 	Edges int
 
+	// Nesting depth
+	NestingDepth int
+
 	// Statement counts
 	IfStatements      int
 	LoopStatements    int

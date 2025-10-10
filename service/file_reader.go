@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/ludo-technologies/pyscn/domain"
 )
 
@@ -19,6 +20,7 @@ func NewFileReader() *FileReaderImpl {
 
 // CollectPythonFiles recursively finds all Python files in the given paths
 func (f *FileReaderImpl) CollectPythonFiles(paths []string, recursive bool, includePatterns, excludePatterns []string) ([]string, error) {
+
 	var files []string
 
 	for _, path := range paths {
@@ -88,8 +90,8 @@ func (f *FileReaderImpl) collectFromDirectory(dirPath string, recursive bool, in
 			return filepath.SkipDir
 		}
 
-		// Skip hidden directories and files
-		if strings.HasPrefix(info.Name(), ".") {
+		// Skip hidden directories and files (but not the root directory being walked)
+		if strings.HasPrefix(info.Name(), ".") && path != dirPath {
 			if info.IsDir() {
 				return filepath.SkipDir
 			}
@@ -122,11 +124,7 @@ func (f *FileReaderImpl) collectFromDirectory(dirPath string, recursive bool, in
 func (f *FileReaderImpl) shouldIncludeFile(path string, includePatterns, excludePatterns []string) bool {
 	// Check exclude patterns first
 	for _, pattern := range excludePatterns {
-		if matched, _ := filepath.Match(pattern, filepath.Base(path)); matched {
-			return false
-		}
-		// Also check against the full path for more complex patterns
-		if matched, _ := filepath.Match(pattern, path); matched {
+		if matched, _ := doublestar.Match(pattern, path); matched {
 			return false
 		}
 	}
@@ -138,11 +136,7 @@ func (f *FileReaderImpl) shouldIncludeFile(path string, includePatterns, exclude
 
 	// Check include patterns
 	for _, pattern := range includePatterns {
-		if matched, _ := filepath.Match(pattern, filepath.Base(path)); matched {
-			return true
-		}
-		// Also check against the full path
-		if matched, _ := filepath.Match(pattern, path); matched {
+		if matched, _ := doublestar.Match(pattern, path); matched {
 			return true
 		}
 	}

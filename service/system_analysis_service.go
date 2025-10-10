@@ -12,6 +12,7 @@ import (
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/analyzer"
+	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/ludo-technologies/pyscn/internal/version"
 )
@@ -455,13 +456,18 @@ func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Re
 
 // autoDetectArchitecture automatically detects architecture patterns from the dependency graph
 func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.DependencyGraph) *domain.ArchitectureRules {
-	// Standard layer patterns commonly used in Python projects
-	// Focus on architectural patterns, not business-specific names
-	layerPatterns := map[string][]string{
-		"presentation":   {"router", "routers", "route", "routes", "endpoint", "endpoints", "handler", "handlers", "controller", "controllers", "view", "views", "api", "apis", "ui", "web", "rest", "graphql"},
-		"application":    {"service", "services", "usecase", "usecases", "use_case", "use_cases", "workflow", "workflows", "command", "commands", "query", "queries", "manager", "managers", "dependencies", "dependency"},
-		"domain":         {"model", "models", "entity", "entities", "schema", "schemas", "domain", "domains", "core", "business", "aggregate", "aggregates", "valueobject", "valueobjects"},
-		"infrastructure": {"repository", "repositories", "repo", "repos", "db", "database", "adapter", "adapters", "persistence", "storage", "cache", "client", "clients", "external"},
+	// Load layer patterns and rules from the embedded default config
+	defaultConfig, err := config.LoadDefaultConfig()
+	if err != nil {
+		// This should never happen since the config is embedded at compile time
+		// But if it does, return nil to indicate no auto-detection is possible
+		return nil
+	}
+
+	// Build layer patterns map from default config
+	layerPatterns := make(map[string][]string)
+	for _, layer := range defaultConfig.Architecture.Layers {
+		layerPatterns[layer.Name] = layer.Packages
 	}
 
 	// Detect which modules belong to which layer
@@ -495,18 +501,14 @@ func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.Depen
 		}
 	}
 
-	// Define relaxed standard layered architecture rules for auto-detection
-	// These are more permissive than strict layered architecture to avoid false positives
-	// Note: Same-layer dependencies are implicitly allowed (common in real projects)
-	rules := []domain.LayerRule{
-		// Presentation layer can access all layers including itself
-		{From: "presentation", Allow: []string{"presentation", "application", "domain", "infrastructure"}},
-		// Application layer can access domain, infrastructure, and itself
-		{From: "application", Allow: []string{"application", "domain", "infrastructure"}},
-		// Domain layer should ideally not access presentation but can access itself
-		{From: "domain", Allow: []string{"domain", "infrastructure"}, Deny: []string{"presentation", "application"}},
-		// Infrastructure can access domain, application, and itself
-		{From: "infrastructure", Allow: []string{"infrastructure", "domain", "application"}},
+	// Convert config.LayerRule to domain.LayerRule
+	rules := make([]domain.LayerRule, 0, len(defaultConfig.Architecture.Rules))
+	for _, rule := range defaultConfig.Architecture.Rules {
+		rules = append(rules, domain.LayerRule{
+			From:  rule.From,
+			Allow: rule.Allow,
+			Deny:  rule.Deny,
+		})
 	}
 
 	return &domain.ArchitectureRules{

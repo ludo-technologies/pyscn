@@ -34,7 +34,7 @@ func TestCloneConfig_ToCloneRequest(t *testing.T) {
 	cloneConfig := DefaultCloneConfig()
 	cloneConfig.Input.Paths = []string{"/test/path"}
 	cloneConfig.Input.Recursive = true
-	cloneConfig.Input.IncludePatterns = []string{"*.py"}
+	cloneConfig.Input.IncludePatterns = []string{"**/*.py"}
 	cloneConfig.Input.ExcludePatterns = []string{"*_test.py"}
 	cloneConfig.Output.Format = "json"
 	cloneConfig.Output.SortBy = "similarity"
@@ -46,7 +46,7 @@ func TestCloneConfig_ToCloneRequest(t *testing.T) {
 	// Verify input parameters
 	assert.Equal(t, []string{"/test/path"}, request.Paths)
 	assert.True(t, request.Recursive)
-	assert.Equal(t, []string{"*.py"}, request.IncludePatterns)
+	assert.Equal(t, []string{"**/*.py"}, request.IncludePatterns)
 	assert.Equal(t, []string{"*_test.py"}, request.ExcludePatterns)
 
 	// Verify analysis configuration
@@ -86,7 +86,7 @@ func TestFromCloneRequest(t *testing.T) {
 	request := &domain.CloneRequest{
 		Paths:           []string{"/test/path1", "/test/path2"},
 		Recursive:       false,
-		IncludePatterns: []string{"*.py", "*.pyx"},
+		IncludePatterns: []string{"**/*.py", "*.pyx"},
 		ExcludePatterns: []string{"test_*.py"},
 
 		MinLines:            12,

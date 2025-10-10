@@ -174,7 +174,7 @@ func DefaultCBORequest() *CBORequest {
 		Recursive:       true,
 		IncludeBuiltins: false,
 		IncludeImports:  true,
-		IncludePatterns: []string{"*.py"},
+		IncludePatterns: []string{"**/*.py"},
 		ExcludePatterns: []string{},
 	}
 }

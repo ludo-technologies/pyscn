@@ -113,19 +113,60 @@ show_zeros = false               # Include classes with CBO = 0
 [analysis]
 recursive = true                 # Recursively analyze directories
 follow_symlinks = false          # Follow symbolic links
-include_patterns = ["*.py"]      # File patterns to include
+include_patterns = ["**/*.py"]      # File patterns to include
 exclude_patterns = [             # File patterns to exclude
-    "test_*.py",
-    "*_test.py",
-    "__pycache__/**",
-    "*.pyc",
-    ".pytest_cache/**",
-    ".tox/**",
-    "venv/**",
-    "env/**",
-    ".venv/**",
-    ".env/**"
+    "**/test_*.py",
+    "**/*_test.py",
+    "**/__pycache__/*",
+    "**/*.pyc",
+    "**/.pytest_cache/",
+    ".tox/",
+    "venv/",
+    "env/",
+    ".venv/",
+    ".env/"
 ]
+# =============================================================================
+# ARCHITECTURE VALIDATION
+# =============================================================================
+# Define architectural layers and validate dependencies
+
+[architecture]
+enabled = true
+validate_layers = true
+
+[[architecture.layers]]
+name = "presentation"
+packages = ["router", "routers", "route", "routes", "endpoint", "endpoints", "handler", "handlers", "controller", "controllers", "view", "views", "api", "apis", "ui", "web", "rest", "graphql"]
+
+[[architecture.layers]]
+name = "application"
+packages = ["service", "services", "usecase", "usecases", "use_case", "use_cases", "workflow", "workflows", "command", "commands", "query", "queries", "manager", "managers", "dependencies", "dependency"]
+
+[[architecture.layers]]
+name = "domain"
+packages = ["model", "models", "entity", "entities", "schema", "schemas", "domain", "domains", "core", "business", "aggregate", "aggregates", "valueobject", "valueobjects"]
+
+[[architecture.layers]]
+name = "infrastructure"
+packages = ["repository", "repositories", "repo", "repos", "db", "database", "adapter", "adapters", "persistence", "storage", "cache", "client", "clients", "external"]
+[[architecture.rules]]
+from = "presentation" 
+allow = ["presentation", "application", "domain", "infrastructure"]
+
+[[architecture.rules]]
+from = "application" 
+allow = ["application", "domain", "infrastructure"]
+
+[[architecture.rules]]
+from = "domain" 
+allow = ["domain", "infrastructure"] 
+deny = ["presentation", "application"]
+
+[[architecture.rules]]
+from = "infrastructure" 
+allow = ["infrastructure", "domain", "application"]
+
 
 # =============================================================================
 # EXAMPLE CONFIGURATIONS

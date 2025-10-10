@@ -31,6 +31,32 @@ https://github.com/user-attachments/assets/07f48070-c0dd-437b-9621-cb3963f863ff
 
 **100,000+ lines/sec** • Built with Go + tree-sitter
 
+## Installation
+
+```bash
+# Install with pipx (recommended)
+pipx install pyscn
+
+# Or with uv
+uv tool install pyscn
+```
+
+<details>
+<summary>Alternative installation methods</summary>
+
+### Build from source
+```bash
+git clone https://github.com/ludo-technologies/pyscn.git
+cd pyscn
+make build
+```
+
+### Go install
+```bash
+go install github.com/ludo-technologies/pyscn/cmd/pyscn@latest
+```
+
+</details>
 
 ## Common Commands
 
@@ -76,33 +102,6 @@ directory = "reports"
 ```
 
 > ⚙️ Run `pyscn init` to generate a full configuration file with all available options
-
-## Installation
-
-```bash
-# Install with pipx (recommended)
-pipx install pyscn
-
-# Or run directly with uvx
-uvx pyscn
-```
-
-<details>
-<summary>Alternative installation methods</summary>
-
-### Build from source
-```bash
-git clone https://github.com/ludo-technologies/pyscn.git
-cd pyscn
-make build
-```
-
-### Go install
-```bash
-go install github.com/ludo-technologies/pyscn/cmd/pyscn@latest
-```
-
-</details>
 
 ## CI/CD Integration
 

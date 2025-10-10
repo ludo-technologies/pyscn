@@ -131,7 +131,7 @@ func TestFileReader_CollectPythonFiles(t *testing.T) {
 				return tmpDir, []string{tmpDir}
 			},
 			recursive:       true,
-			includePatterns: []string{"*utils*", "*config*"},
+			includePatterns: []string{"**/utils*", "**/config*"},
 			excludePatterns: []string{},
 			expectedCount:   2, // utils.py and config.py
 			expectedFiles:   []string{"utils.py", "config.py"},
@@ -145,7 +145,7 @@ func TestFileReader_CollectPythonFiles(t *testing.T) {
 			},
 			recursive:       true,
 			includePatterns: []string{},
-			excludePatterns: []string{"*test*", "*__init__*", "*.pyi"},
+			excludePatterns: []string{"**/*test*", "**/*__init__*", "**/*.pyi"},
 			expectedCount:   5, // Excludes types.pyi and __init__.py
 			expectedFiles:   []string{"main.py", "utils.py", "config.py", "module.py", "file.py"},
 			expectError:     false,
@@ -157,8 +157,8 @@ func TestFileReader_CollectPythonFiles(t *testing.T) {
 				return tmpDir, []string{tmpDir}
 			},
 			recursive:       true,
-			includePatterns: []string{"*.py"},
-			excludePatterns: []string{"*config*", "*__init__*"},
+			includePatterns: []string{"**/*.py"},
+			excludePatterns: []string{"**/*config*", "**/*__init__*"},
 			expectedCount:   4, // Include .py files but exclude config.py and __init__.py
 			expectedFiles:   []string{"main.py", "utils.py", "module.py", "file.py"},
 			expectError:     false,
@@ -223,6 +223,36 @@ func TestFileReader_CollectPythonFiles(t *testing.T) {
 			excludePatterns: []string{},
 			expectedCount:   1, // Only src/main.py
 			expectedFiles:   []string{"main.py"},
+			expectError:     false,
+		},
+		{
+			name: "current directory with dot path",
+			setupFiles: func(t *testing.T) (string, []string) {
+				tmpDir := createTempDir(t)
+				createTestFile(t, tmpDir, "main.py", "def main(): pass")
+				createTestFile(t, tmpDir, "utils.py", "def helper(): return 42")
+				createTestFile(t, tmpDir, "subdir/module.py", "class Test: pass")
+
+				// Change to temp directory and return "." as path
+				origDir, err := os.Getwd()
+				if err != nil {
+					t.Fatalf("Failed to get working directory: %v", err)
+				}
+				if err := os.Chdir(tmpDir); err != nil {
+					t.Fatalf("Failed to change to temp directory: %v", err)
+				}
+				t.Cleanup(func() {
+					if err := os.Chdir(origDir); err != nil {
+						t.Errorf("Failed to restore directory: %v", err)
+					}
+				})
+				return tmpDir, []string{"."}
+			},
+			recursive:       true,
+			includePatterns: []string{"**/*.py"},
+			excludePatterns: []string{},
+			expectedCount:   3, // main.py, utils.py, module.py
+			expectedFiles:   []string{"main.py", "utils.py", "module.py"},
 			expectError:     false,
 		},
 	}
@@ -498,7 +528,7 @@ func TestFileReader_shouldIncludeFile(t *testing.T) {
 		{
 			name:            "full path pattern matching",
 			path:            "/project/src/main.py",
-			includePatterns: []string{"main*"}, // Match on basename instead
+			includePatterns: []string{"**/main*"}, // Match on basename instead
 			excludePatterns: []string{},
 			expected:        true,
 		},

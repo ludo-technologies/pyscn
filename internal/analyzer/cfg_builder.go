@@ -2,10 +2,11 @@ package analyzer
 
 import (
 	"fmt"
-	"github.com/ludo-technologies/pyscn/internal/parser"
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 // Block label constants to avoid magic strings
@@ -120,6 +121,11 @@ func (b *CFGBuilder) Build(node *parser.Node) (*CFG, error) {
 
 	b.cfg = NewCFG(cfgName)
 	b.currentBlock = b.cfg.Entry
+
+	// Store the function node for later use (nesting depth calculation)
+	if node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef {
+		b.cfg.FunctionNode = node
+	}
 
 	// Build CFG based on node type
 	switch node.Type {

@@ -321,7 +321,7 @@ func DefaultCloneRequest() *CloneRequest {
 	return &CloneRequest{
 		Paths:               []string{"."},
 		Recursive:           true,
-		IncludePatterns:     []string{"*.py"},
+		IncludePatterns:     []string{"**/*.py"},
 		ExcludePatterns:     []string{"test_*.py", "*_test.py"},
 		MinLines:            5,
 		MinNodes:            10,
@@ -359,4 +359,21 @@ func NewCloneStatistics() *CloneStatistics {
 	return &CloneStatistics{
 		ClonesByType: make(map[string]int),
 	}
+}
+
+// ShouldUseLSH determines whether to use LSH based on configuration and fragment count
+// This centralizes the LSH decision logic used by both clone detection and progress estimation
+func ShouldUseLSH(lshEnabled string, fragmentCount int, autoThreshold int) bool {
+	if lshEnabled == "true" {
+		return true
+	}
+	if lshEnabled == "false" {
+		return false
+	}
+	// Auto mode (default) or empty string
+	threshold := autoThreshold
+	if threshold == 0 {
+		threshold = 500 // Default threshold
+	}
+	return fragmentCount >= threshold
 }

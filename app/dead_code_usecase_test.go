@@ -110,7 +110,7 @@ func createValidDeadCodeRequest() domain.DeadCodeRequest {
 		ContextLines:              3,
 		ShowContext:               true,
 		Recursive:                 true,
-		IncludePatterns:           []string{"*.py"},
+		IncludePatterns:           []string{"**/*.py"},
 		ExcludePatterns:           []string{},
 		IgnorePatterns:            []string{},
 		DetectAfterReturn:         true,
@@ -200,7 +200,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 			name: "successful execution with valid request",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
-				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
+				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"**/*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return(createMockDeadCodeResponse(), nil)
@@ -326,7 +326,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 			name: "file collection error",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
-				fileReader.On("CollectPythonFiles", []string{"/invalid/path"}, true, []string{"*.py"}, []string{}).
+				fileReader.On("CollectPythonFiles", []string{"/invalid/path"}, true, []string{"**/*.py"}, []string{}).
 					Return([]string{}, errors.New("path not found"))
 			},
 			request: domain.DeadCodeRequest{
@@ -337,7 +337,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 				SortBy:          domain.DeadCodeSortBySeverity,
 				MinSeverity:     domain.DeadCodeSeverityWarning,
 				Recursive:       true,
-				IncludePatterns: []string{"*.py"},
+				IncludePatterns: []string{"**/*.py"},
 				ExcludePatterns: []string{},
 			},
 			expectError: true,
@@ -348,7 +348,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 			name: "no files found error",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
-				fileReader.On("CollectPythonFiles", []string{"/empty/path"}, true, []string{"*.py"}, []string{}).
+				fileReader.On("CollectPythonFiles", []string{"/empty/path"}, true, []string{"**/*.py"}, []string{}).
 					Return([]string{}, nil)
 			},
 			request: domain.DeadCodeRequest{
@@ -359,7 +359,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 				SortBy:          domain.DeadCodeSortBySeverity,
 				MinSeverity:     domain.DeadCodeSeverityWarning,
 				Recursive:       true,
-				IncludePatterns: []string{"*.py"},
+				IncludePatterns: []string{"**/*.py"},
 				ExcludePatterns: []string{},
 			},
 			expectError: true,
@@ -370,7 +370,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 			name: "analysis service error",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
-				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
+				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"**/*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return((*domain.DeadCodeResponse)(nil), errors.New("CFG analysis failed"))
@@ -384,7 +384,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 			name: "output formatting error",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
-				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
+				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"**/*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return(createMockDeadCodeResponse(), nil)
@@ -410,7 +410,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 				configLoader.On("LoadConfig", "/config.yaml").Return(configReq, nil)
 				configLoader.On("MergeConfig", configReq, mock.AnythingOfType("*domain.DeadCodeRequest")).
 					Return(&mergedReq)
-				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
+				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"**/*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return(createMockDeadCodeResponse(), nil)
@@ -466,7 +466,7 @@ func TestDeadCodeUseCase_AnalyzeAndReturn(t *testing.T) {
 			name: "successful analysis without formatting",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
-				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
+				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"**/*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return(createMockDeadCodeResponse(), nil)
@@ -490,7 +490,7 @@ func TestDeadCodeUseCase_AnalyzeAndReturn(t *testing.T) {
 			name: "analysis error in analyze and return",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
-				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"*.py"}, []string{}).
+				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"**/*.py"}, []string{}).
 					Return([]string{"/test/file.py"}, nil)
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
 					Return((*domain.DeadCodeResponse)(nil), errors.New("CFG construction failed"))

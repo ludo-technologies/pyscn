@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -15,8 +15,8 @@ import (
 type ModuleAnalyzer struct {
 	projectRoot     string
 	pythonPath      []string
-	excludePatterns []*regexp.Regexp
-	includePatterns []*regexp.Regexp
+	excludePatterns []string
+	includePatterns []string
 
 	// Module resolution cache
 	resolvedModules map[string]string // module name -> file path
@@ -33,7 +33,7 @@ type ModuleAnalysisOptions struct {
 	ProjectRoot       string   // Project root directory
 	PythonPath        []string // Additional Python path entries
 	ExcludePatterns   []string // Module patterns to exclude
-	IncludePatterns   []string // Module patterns to include (default: ["*.py"])
+	IncludePatterns   []string // Module patterns to include (default: ["**/*.py"])
 	IncludeStdLib     bool     // Include standard library dependencies
 	IncludeThirdParty bool     // Include third-party dependencies
 	FollowRelative    bool     // Follow relative imports
@@ -42,7 +42,7 @@ type ModuleAnalysisOptions struct {
 // DefaultModuleAnalysisOptions returns default analysis options
 func DefaultModuleAnalysisOptions() *ModuleAnalysisOptions {
 	return &ModuleAnalysisOptions{
-		IncludePatterns:   []string{"*.py"},
+		IncludePatterns:   []string{"**/*.py"},
 		ExcludePatterns:   []string{"test_*.py", "*_test.py", "__pycache__", "*.pyc"},
 		IncludeStdLib:     false,
 		IncludeThirdParty: true,
@@ -82,23 +82,9 @@ func NewModuleAnalyzer(options *ModuleAnalysisOptions) (*ModuleAnalyzer, error) 
 		followRelative:    options.FollowRelative,
 	}
 
-	// Compile exclude patterns
-	for _, pattern := range options.ExcludePatterns {
-		regex, err := compileGlobPattern(pattern)
-		if err != nil {
-			return nil, fmt.Errorf("invalid exclude pattern '%s': %w", pattern, err)
-		}
-		analyzer.excludePatterns = append(analyzer.excludePatterns, regex)
-	}
+	analyzer.excludePatterns = append(analyzer.excludePatterns, options.ExcludePatterns...)
 
-	// Compile include patterns
-	for _, pattern := range options.IncludePatterns {
-		regex, err := compileGlobPattern(pattern)
-		if err != nil {
-			return nil, fmt.Errorf("invalid include pattern '%s': %w", pattern, err)
-		}
-		analyzer.includePatterns = append(analyzer.includePatterns, regex)
-	}
+	analyzer.includePatterns = append(analyzer.includePatterns, options.IncludePatterns...)
 
 	return analyzer, nil
 }
@@ -209,6 +195,11 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 
 	// Process each import
 	for _, imp := range imports {
+		// Skip TYPE_CHECKING imports for circular dependency detection
+		if imp.IsTypeChecking {
+			continue
+		}
+
 		targetModule := ma.resolveImport(imp, filePath)
 		if targetModule != "" && ma.shouldIncludeDependency(targetModule) {
 			// Skip dependencies from __init__.py to its own submodules
@@ -244,14 +235,17 @@ func (ma *ModuleAnalyzer) collectModuleImports(ast *parser.Node, filePath string
 		switch node.Type {
 		case parser.NodeImport:
 			// Handle "import module" statements
+			isTypeChecking := ma.isInTypeCheckingBlock(node)
+
 			if len(node.Children) > 0 {
 				for _, child := range node.Children {
 					if child.Type == parser.NodeAlias {
 						imp := &ImportInfo{
-							Statement:     fmt.Sprintf("import %s", child.Name),
-							ImportedNames: []string{child.Name},
-							IsRelative:    false,
-							Line:          node.Location.StartLine,
+							Statement:      fmt.Sprintf("import %s", child.Name),
+							ImportedNames:  []string{child.Name},
+							IsRelative:     false,
+							Line:           node.Location.StartLine,
+							IsTypeChecking: isTypeChecking,
 						}
 						if child.Value != nil {
 							if alias, ok := child.Value.(string); ok {
@@ -264,10 +258,11 @@ func (ma *ModuleAnalyzer) collectModuleImports(ast *parser.Node, filePath string
 			} else if len(node.Names) > 0 {
 				for _, name := range node.Names {
 					imp := &ImportInfo{
-						Statement:     fmt.Sprintf("import %s", name),
-						ImportedNames: []string{name},
-						IsRelative:    false,
-						Line:          node.Location.StartLine,
+						Statement:      fmt.Sprintf("import %s", name),
+						ImportedNames:  []string{name},
+						IsRelative:     false,
+						Line:           node.Location.StartLine,
+						IsTypeChecking: isTypeChecking,
 					}
 					imports = append(imports, imp)
 				}
@@ -275,6 +270,7 @@ func (ma *ModuleAnalyzer) collectModuleImports(ast *parser.Node, filePath string
 
 		case parser.NodeImportFrom:
 			// Handle "from module import name" statements
+			isTypeChecking := ma.isInTypeCheckingBlock(node)
 			module := node.Module
 			level := ma.calculateRelativeLevel(node.Module)
 
@@ -286,11 +282,12 @@ func (ma *ModuleAnalyzer) collectModuleImports(ast *parser.Node, filePath string
 			}
 
 			imp := &ImportInfo{
-				Statement:     ma.buildImportStatement(node),
-				ImportedNames: importedNames,
-				IsRelative:    level > 0,
-				Level:         level,
-				Line:          node.Location.StartLine,
+				Statement:      ma.buildImportStatement(node),
+				ImportedNames:  importedNames,
+				IsRelative:     level > 0,
+				Level:          level,
+				Line:           node.Location.StartLine,
+				IsTypeChecking: isTypeChecking,
 			}
 
 			// Clean module name for relative imports
@@ -567,7 +564,7 @@ func (ma *ModuleAnalyzer) shouldIncludeDependency(moduleName string) bool {
 
 	// Check exclude patterns
 	for _, pattern := range ma.excludePatterns {
-		if pattern.MatchString(moduleName) {
+		if matched, _ := doublestar.Match(pattern, moduleName); matched {
 			return false
 		}
 	}
@@ -636,7 +633,7 @@ func (ma *ModuleAnalyzer) matchesIncludePatterns(path string) bool {
 		return true
 	}
 	for _, pattern := range ma.includePatterns {
-		if pattern.MatchString(filepath.Base(path)) {
+		if matched, _ := doublestar.Match(pattern, filepath.Base(path)); matched {
 			return true
 		}
 	}
@@ -646,7 +643,10 @@ func (ma *ModuleAnalyzer) matchesIncludePatterns(path string) bool {
 // matchesExcludePatterns checks if path matches any exclude pattern
 func (ma *ModuleAnalyzer) matchesExcludePatterns(path string) bool {
 	for _, pattern := range ma.excludePatterns {
-		if pattern.MatchString(filepath.Base(path)) || pattern.MatchString(path) {
+		if matched, _ := doublestar.Match(pattern, path); matched {
+			return true
+		}
+		if matched, _ := doublestar.Match(pattern, filepath.Base(path)); matched {
 			return true
 		}
 	}
@@ -689,9 +689,70 @@ func (ma *ModuleAnalyzer) estimateLineCount(filePath string) int {
 	return strings.Count(string(content), "\n") + 1
 }
 
-// compileGlobPattern compiles a glob pattern to regex
-func compileGlobPattern(pattern string) (*regexp.Regexp, error) {
-	// Convert glob pattern to regex
-	regexPattern := "^" + strings.ReplaceAll(regexp.QuoteMeta(pattern), "\\*", ".*") + "$"
-	return regexp.Compile(regexPattern)
+// isInTypeCheckingBlock checks if a node is inside a TYPE_CHECKING conditional block
+func (ma *ModuleAnalyzer) isInTypeCheckingBlock(node *parser.Node) bool {
+	// Walk up the parent chain to find if we're inside an if statement
+	current := node.Parent
+	for current != nil {
+		if current.Type == parser.NodeIf {
+			// Check if this is a TYPE_CHECKING condition
+			if ma.isTypeCheckingCondition(current.Test) {
+				return true
+			}
+		}
+		current = current.Parent
+	}
+	return false
+}
+
+// isTypeCheckingCondition checks if an expression is a TYPE_CHECKING condition
+func (ma *ModuleAnalyzer) isTypeCheckingCondition(expr *parser.Node) bool {
+	if expr == nil {
+		return false
+	}
+
+	// Handle simple case: just TYPE_CHECKING
+	if expr.Type == parser.NodeName && expr.Name == "TYPE_CHECKING" {
+		return true
+	}
+
+	// Handle attribute access: typing.TYPE_CHECKING
+	if expr.Type == parser.NodeAttribute && expr.Name == "TYPE_CHECKING" {
+		return true
+	}
+
+	// Handle binary operations that include TYPE_CHECKING
+	// e.g., "TYPE_CHECKING and sys.version_info >= (3, 9)"
+	if expr.Type == parser.NodeBoolOp {
+		return ma.containsTypeChecking(expr)
+	}
+
+	// Handle comparisons and other complex expressions
+	if expr.Type == parser.NodeCompare {
+		return ma.containsTypeChecking(expr)
+	}
+
+	return false
+}
+
+// containsTypeChecking recursively checks if an expression contains TYPE_CHECKING
+func (ma *ModuleAnalyzer) containsTypeChecking(node *parser.Node) bool {
+	if node == nil {
+		return false
+	}
+
+	// Check current node
+	if (node.Type == parser.NodeName && node.Name == "TYPE_CHECKING") ||
+		(node.Type == parser.NodeAttribute && node.Name == "TYPE_CHECKING") {
+		return true
+	}
+
+	// Recursively check all children
+	for _, child := range node.GetChildren() {
+		if ma.containsTypeChecking(child) {
+			return true
+		}
+	}
+
+	return false
 }

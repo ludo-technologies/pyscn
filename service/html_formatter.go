@@ -473,6 +473,76 @@ func (f *HTMLFormatterImpl) getHTMLTemplate() string {
 </html>`
 }
 
+// renderComplexityTemplate renders the HTML template with complexity-specific function table
+func (f *HTMLFormatterImpl) renderComplexityTemplate(data ComplexityHTMLData) (string, error) {
+	// Reuse base template but inject function table content
+	tmplStr := f.getHTMLTemplateWithContent(f.getFunctionTableHTML())
+
+	// Add custom template functions
+	funcMap := template.FuncMap{
+		"title": func(s string) string {
+			if len(s) == 0 {
+				return s
+			}
+			return strings.ToUpper(s[:1]) + strings.ToLower(s[1:])
+		},
+	}
+
+	tmpl, err := template.New("html_report").Funcs(funcMap).Parse(tmplStr)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse HTML template: %w", err)
+	}
+
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("failed to execute HTML template: %w", err)
+	}
+
+	return buf.String(), nil
+}
+
+// getFunctionTableHTML returns the HTML for the function details table
+func (f *HTMLFormatterImpl) getFunctionTableHTML() string {
+	return `
+            {{if .Response.Functions}}
+            <h3 style="margin-top: 30px; margin-bottom: 15px; color: #1a1a1a;">Function Details</h3>
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <thead>
+                    <tr style="background: #f8f9fa;">
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Function</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">File</th>
+                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Complexity</th>
+                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Nesting Depth</th>
+                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Risk</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Response.Functions}}
+                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 12px;">{{.Name}}</td>
+                        <td style="padding: 12px; color: #666;">{{.FilePath}}</td>
+                        <td style="padding: 12px; text-align: center;">{{.Metrics.Complexity}}</td>
+                        <td style="padding: 12px; text-align: center;">{{.Metrics.NestingDepth}}</td>
+                        <td style="padding: 12px; text-align: center;">
+                            <span class="risk-{{.RiskLevel}}" style="padding: 4px 8px; border-radius: 4px; font-weight: 600;">{{.RiskLevel}}</span>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+            {{end}}`
+}
+
+// getHTMLTemplateWithContent returns the base HTML template with additional content injected
+func (f *HTMLFormatterImpl) getHTMLTemplateWithContent(additionalContent string) string {
+	baseTemplate := f.getHTMLTemplate()
+	// Inject additional content before the closing </div> of details-section
+	injectionPoint := `        </div>
+        
+        <div class="footer">`
+	return strings.Replace(baseTemplate, injectionPoint, additionalContent+`</div> <div class="footer">`, 1)
+}
+
 // FormatComplexityAsHTML formats complexity analysis as HTML
 func (f *HTMLFormatterImpl) FormatComplexityAsHTML(response *domain.ComplexityResponse, projectName string) (string, error) {
 	if response == nil {
@@ -488,7 +558,7 @@ func (f *HTMLFormatterImpl) FormatComplexityAsHTML(response *domain.ComplexityRe
 		ScoreDetails: scoreDetails,
 	}
 
-	return f.renderTemplate(data)
+	return f.renderComplexityTemplate(data)
 }
 
 // FormatDeadCodeAsHTML formats dead code analysis as HTML

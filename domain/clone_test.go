@@ -344,7 +344,7 @@ func TestDefaultCloneRequest(t *testing.T) {
 	assert.NotNil(t, request, "Default request should not be nil")
 	assert.Equal(t, []string{"."}, request.Paths, "Default paths should be current directory")
 	assert.True(t, request.Recursive, "Default recursive should be true")
-	assert.Equal(t, []string{"*.py"}, request.IncludePatterns, "Default include patterns should be *.py")
+	assert.Equal(t, []string{"**/*.py"}, request.IncludePatterns, "Default include patterns should be **/*.py")
 	assert.Contains(t, request.ExcludePatterns, "test_*.py", "Default exclude patterns should contain test files")
 	assert.Contains(t, request.ExcludePatterns, "*_test.py", "Default exclude patterns should contain test files")
 	assert.Equal(t, 5, request.MinLines, "Default min lines should be 5")
@@ -533,4 +533,71 @@ func TestCloneResponse_ErrorHandling(t *testing.T) {
 	assert.Empty(t, errorResponse.Clones, "Error response should have empty clones")
 	assert.Empty(t, errorResponse.ClonePairs, "Error response should have empty clone pairs")
 	assert.Empty(t, errorResponse.CloneGroups, "Error response should have empty clone groups")
+}
+
+func TestShouldUseLSH(t *testing.T) {
+	tests := []struct {
+		name          string
+		lshEnabled    string
+		fragmentCount int
+		autoThreshold int
+		want          bool
+	}{
+		{
+			name:          "explicit true",
+			lshEnabled:    "true",
+			fragmentCount: 100,
+			autoThreshold: 500,
+			want:          true,
+		},
+		{
+			name:          "explicit false",
+			lshEnabled:    "false",
+			fragmentCount: 1000,
+			autoThreshold: 500,
+			want:          false,
+		},
+		{
+			name:          "auto - below threshold",
+			lshEnabled:    "auto",
+			fragmentCount: 400,
+			autoThreshold: 500,
+			want:          false,
+		},
+		{
+			name:          "auto - at threshold",
+			lshEnabled:    "auto",
+			fragmentCount: 500,
+			autoThreshold: 500,
+			want:          true,
+		},
+		{
+			name:          "auto - above threshold",
+			lshEnabled:    "auto",
+			fragmentCount: 600,
+			autoThreshold: 500,
+			want:          true,
+		},
+		{
+			name:          "empty string defaults to auto",
+			lshEnabled:    "",
+			fragmentCount: 600,
+			autoThreshold: 500,
+			want:          true,
+		},
+		{
+			name:          "zero threshold uses default 500",
+			lshEnabled:    "auto",
+			fragmentCount: 600,
+			autoThreshold: 0,
+			want:          true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ShouldUseLSH(tt.lshEnabled, tt.fragmentCount, tt.autoThreshold)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }

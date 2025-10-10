@@ -56,7 +56,7 @@ def simple():
 		SortBy:          domain.SortByName,
 		ShowDetails:     true,
 		Recursive:       true,
-		IncludePatterns: []string{"*.py", "*.pyi"},
+		IncludePatterns: []string{"**/*.py", "**/*.pyi"},
 		ExcludePatterns: []string{},
 	}
 
@@ -141,7 +141,7 @@ def complex_function(n):
 		SortBy:          domain.SortByName,
 		ShowDetails:     true,
 		Recursive:       true,
-		IncludePatterns: []string{"*.py", "*.pyi"},
+		IncludePatterns: []string{"**/*.py", "**/*.pyi"},
 		ExcludePatterns: []string{},
 	}
 
@@ -214,7 +214,7 @@ def test_function(x):
 				SortBy:          domain.SortByName,
 				ShowDetails:     true,
 				Recursive:       true,
-				IncludePatterns: []string{"*.py", "*.pyi"},
+				IncludePatterns: []string{"**/*.py", "**/*.pyi"},
 				ExcludePatterns: []string{},
 			}
 
