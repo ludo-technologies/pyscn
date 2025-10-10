@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"sync"
 	"time"
 
@@ -192,7 +193,7 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 	}
 
 	// Calculate estimated time based on file count and enabled analyses
-	estimatedTime := uc.calculateEstimatedTime(len(files), config)
+	estimatedTime := uc.calculateEstimatedTime(len(files), config, paths)
 
 	// Start unified progress tracking with time-based estimation
 	var progressDone chan struct{}
@@ -566,8 +567,36 @@ func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]
 	return includePatterns, excludePatterns, nil
 }
 
+// getLSHConfig loads LSH configuration settings for clone detection
+func (uc *AnalyzeUseCase) getLSHConfig(configPath string, paths []string) (enabled string, threshold int) {
+	// Default values from domain.DefaultCloneRequest()
+	enabled = "auto"
+	threshold = 500
+
+	// Try to load configuration
+	targetPath := ""
+	if len(paths) > 0 {
+		targetPath = paths[0]
+	}
+
+	cfg, err := config.LoadConfigWithTarget(configPath, targetPath)
+	if err != nil || cfg == nil {
+		return enabled, threshold
+	}
+
+	// Extract LSH settings from config if available
+	if cfg.Clones.LSH.Enabled != "" {
+		enabled = cfg.Clones.LSH.Enabled
+	}
+	if cfg.Clones.LSH.AutoThreshold > 0 {
+		threshold = cfg.Clones.LSH.AutoThreshold
+	}
+
+	return enabled, threshold
+}
+
 // calculateEstimatedTime estimates the total analysis time based on file count and enabled analyses
-func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUseCaseConfig) float64 {
+func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUseCaseConfig, paths []string) float64 {
 	n := float64(fileCount)
 	totalTime := 0.0
 
@@ -585,11 +614,30 @@ func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUs
 		totalTime += 0.02 * n // System: ~0.02s per file (slightly heavier)
 	}
 
-	// Clone detection (quadratic - the dominant factor)
+	// Clone detection - account for LSH configuration
 	if !config.SkipClones {
-		// More conservative estimate: O(n²) is the bottleneck
-		// For 207 files: 0.01 * 207² ≈ 428 seconds
-		totalTime += 0.01 * n * n
+		// Estimate fragment count (empirical average: ~5.0 fragments per file)
+		estimatedFragments := n * 5.0
+
+		// Load LSH config to determine if LSH will be used
+		lshEnabled, lshThreshold := uc.getLSHConfig(config.ConfigFile, paths)
+
+		// Determine LSH usage using centralized logic
+		useLSH := domain.ShouldUseLSH(lshEnabled, int(estimatedFragments), lshThreshold)
+
+		if useLSH {
+			// LSH enabled: Near-linear O(n^1.1) complexity
+			// LSH candidate filtering significantly reduces the number of APTED comparisons
+			// Exponent 1.1 and coefficient 0.01 are empirically tuned
+			// Note: Actual performance varies by environment and code characteristics
+			totalTime += 0.01 * math.Pow(estimatedFragments, 1.1)
+		} else {
+			// LSH disabled: Quadratic O(n²) complexity - full pairwise comparison
+			// All fragment pairs are compared via expensive APTED tree edit distance
+			// This becomes the bottleneck for codebases with many fragments
+			// Coefficient 0.001 accounts for fragment count estimation
+			totalTime += 0.001 * estimatedFragments * estimatedFragments
+		}
 	}
 
 	// Minimum time to avoid division by zero

@@ -136,19 +136,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	// Starting actual clone detection (this is the slow part)
 
 	// Determine whether to use LSH based on configuration
-	useLSH := false
-	if req.LSHEnabled == "true" {
-		useLSH = true
-	} else if req.LSHEnabled == "false" {
-		useLSH = false
-	} else if req.LSHEnabled == "auto" || req.LSHEnabled == "" {
-		// Auto mode: enable LSH if fragment count >= threshold
-		threshold := req.LSHAutoThreshold
-		if threshold == 0 {
-			threshold = 500 // Default threshold
-		}
-		useLSH = len(allFragments) >= threshold
-	}
+	useLSH := domain.ShouldUseLSH(req.LSHEnabled, len(allFragments), req.LSHAutoThreshold)
 
 	// Update detector with LSH decision
 	detector.SetUseLSH(useLSH)
