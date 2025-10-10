@@ -622,14 +622,8 @@ func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUs
 		// Load LSH config to determine if LSH will be used
 		lshEnabled, lshThreshold := uc.getLSHConfig(config.ConfigFile, paths)
 
-		// Apply same LSH decision logic as clone_service.go
-		useLSH := false
-		if lshEnabled == "true" {
-			useLSH = true
-		} else if lshEnabled == "auto" || lshEnabled == "" {
-			// Auto mode: enable LSH if estimated fragments >= threshold
-			useLSH = estimatedFragments >= float64(lshThreshold)
-		}
+		// Determine LSH usage using centralized logic
+		useLSH := domain.ShouldUseLSH(lshEnabled, int(estimatedFragments), lshThreshold)
 
 		if useLSH {
 			// LSH enabled: Near-linear O(n^1.1) complexity
