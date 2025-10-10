@@ -37,7 +37,7 @@ func TestCloneDetectionIntegration(t *testing.T) {
 	request := domain.CloneRequest{
 		Paths:               []string{"../testdata/python/simple"}, // Use existing test data
 		Recursive:           true,
-		IncludePatterns:     []string{"*.py"},
+		IncludePatterns:     []string{"**/*.py"},
 		ExcludePatterns:     []string{"*test*.py"},
 		MinLines:            3,
 		MinNodes:            5,

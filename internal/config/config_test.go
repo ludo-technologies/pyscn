@@ -43,7 +43,7 @@ func TestDefaultConfig(t *testing.T) {
 	}
 
 	// Test analysis defaults
-	if len(config.Analysis.IncludePatterns) != 1 || config.Analysis.IncludePatterns[0] != "*.py" {
+	if len(config.Analysis.IncludePatterns) != 1 || config.Analysis.IncludePatterns[0] != "**/*.py" {
 		t.Errorf("Expected include patterns ['*.py'], got %v", config.Analysis.IncludePatterns)
 	}
 	if len(config.Analysis.ExcludePatterns) != 2 {
@@ -291,10 +291,10 @@ output:
 
 analysis:
   include_patterns:
-    - "*.py"
-    - "*.pyx"
+    - "**/*.py"
+    - "**/*.pyx"
   exclude_patterns:
-    - "*test*.py"
+    - "**/*test*.py"
   recursive: true
   follow_symlinks: false
 `

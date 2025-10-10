@@ -442,7 +442,7 @@ func (uc *DeadCodeUseCase) QuickAnalysis(ctx context.Context, filePaths []string
 		ShowContext:     false,
 		ContextLines:    0,
 		Recursive:       false,
-		IncludePatterns: []string{"*.py"},
+		IncludePatterns: []string{"**/*.py"},
 		ExcludePatterns: []string{},
 		IgnorePatterns:  []string{},
 

@@ -239,7 +239,7 @@ func DefaultConfig() *Config {
 			MinComplexity: DefaultMinComplexityFilter,
 		},
 		Analysis: AnalysisConfig{
-			IncludePatterns: []string{"*.py"},
+			IncludePatterns: []string{"**/*.py"},
 			ExcludePatterns: []string{"test_*.py", "*_test.py"},
 			Recursive:       true,
 			FollowSymlinks:  false,
