@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
@@ -22,17 +23,33 @@ type CheckCommand struct {
 	maxComplexity int
 	allowDeadCode bool
 	skipClones    bool
-	selectAnalyses []string	// only run specified analyses
+
+	// Select specific analyses to run
+	selectAnalyses []string
+}
+
+// CheckUseCaseConfig holds the configuration for the check use case
+type CheckUseCaseConfig struct {
+	SkipComplexity bool
+	AllowDeadCode  bool
+	SkipDeadCode   bool
+	SkipClones     bool
+
+	MaxComplexity int
+
+	ConfigFile string
+	Quiet      bool
 }
 
 // NewCheckCommand creates a new check command
 func NewCheckCommand() *CheckCommand {
 	return &CheckCommand{
-		configFile:    "",
-		quiet:         false,
-		maxComplexity: 10,    // Fail if complexity > 10
-		allowDeadCode: false, // Fail on any dead code
-		skipClones:    false,
+		configFile:     "",
+		quiet:          false,
+		maxComplexity:  10,    // Fail if complexity > 10
+		allowDeadCode:  false, // Fail on any dead code
+		skipClones:     false,
+		selectAnalyses: []string{},
 	}
 }
 
@@ -48,6 +65,8 @@ This command performs a fast analysis with predefined thresholds:
 • Dead Code: Fails if any critical dead code is found
 • Clones: Reports clones with similarity > 0.8 (warning only)
 
+By default, all analyses are run. Use --select to choose specific analyses.
+
 Exit codes:
 • 0: No issues found
 • 1: Quality issues found (see output for details)
@@ -59,6 +78,15 @@ unless issues are found.
 Examples:
   # Check current directory (typical CI usage)
   pyscn check .
+
+  # Check only complexity (like ruff --select C901)
+  pyscn check --select complexity --max-complexity 10 src/
+
+  # Check only dead code
+  pyscn check --select deadcode src/
+
+  # Check complexity and dead code, skip clones
+  pyscn check --select complexity,deadcode src/
 
   # Check with higher complexity threshold
   pyscn check --max-complexity 15 src/
@@ -80,10 +108,10 @@ Examples:
 	cmd.Flags().IntVar(&c.maxComplexity, "max-complexity", 10, "Maximum allowed complexity")
 	cmd.Flags().BoolVar(&c.allowDeadCode, "allow-dead-code", false, "Allow dead code (don't fail)")
 	cmd.Flags().BoolVar(&c.skipClones, "skip-clones", false, "Skip clone detection")
-	cmd.Flags().StringSliceVar(&c.selectAnalyses, "select", []string{}, "Only run specified analyses (complexity,deadcode,clones)")
 
-	// Quick filter flags
-	cmd.Flags().IntVar(&c.maxComplexity, "max-complexity", 5, "Minimum complexity to report"))
+	// Select specific analyses to run
+	cmd.Flags().StringSliceVarP(&c.selectAnalyses, "select", "s", []string{},
+		"Comma-separated list of analyses to run: complexity, deadcode, clones")
 
 	return cmd
 }
@@ -95,39 +123,46 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		args = []string{"."}
 	}
 
+	// Create use case configuration
+	config := c.createUseCaseConfig()
+
 	// Count issues found
 	var issueCount int
 	var hasErrors bool
 
-	// Create use case configuration
-	config := c.createUseCaseConfig()
-
 	if !c.quiet {
-		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check...\n")
+		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check (%s)...\n", strings.Join(c.getEnabledAnalyses(config), ", "))
 	}
 
-	// Run complexity check
-	complexityIssues, err := c.checkComplexity(cmd, args)
-	if err != nil {
-		fmt.Fprintf(cmd.ErrOrStderr(), "❌ Complexity analysis failed: %v\n", err)
-		hasErrors = true
-	} else {
-		issueCount += complexityIssues
+	// Run complexity check if enabled
+	if !config.SkipComplexity {
+		complexityIssues, err := c.checkComplexity(cmd, args)
+		if err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Complexity analysis failed: %v\n", err)
+			hasErrors = true
+		} else {
+			issueCount += complexityIssues
+		}
 	}
 
-	// Run dead code check (if not explicitly allowed)
-	if !c.allowDeadCode {
+	// Run dead code check if enabled
+	if !config.SkipDeadCode {
 		deadCodeIssues, err := c.checkDeadCode(cmd, args)
 		if err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Dead code analysis failed: %v\n", err)
 			hasErrors = true
 		} else {
-			issueCount += deadCodeIssues
+			// Only count dead code issues if not explicitly allowed
+			if !config.AllowDeadCode {
+				issueCount += deadCodeIssues
+			} else if deadCodeIssues > 0 && !c.quiet {
+				fmt.Fprintf(cmd.ErrOrStderr(), "Found %d dead code issue(s) (ignored due to --allow-dead-code)\n", deadCodeIssues)
+			}
 		}
 	}
 
-	// Run clone check (if not skipped)
-	if !c.skipClones {
+	// Run clone check if enabled
+	if !config.SkipClones {
 		cloneIssues, err := c.checkClones(cmd, args)
 		if err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Clone detection failed: %v\n", err)
@@ -157,23 +192,78 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 }
 
 // createUseCaseConfig creates the use case configuration from command flags
-func (c *CheckCommand) createUseCaseConfig() app.CheckUseCaseConfig {
-	config := app.CheckUseCaseConfig{
-		ConfigFile:      c.configFile,
-		Quiet:           c.quiet,
-		Verbose:         c.verbose,
-		MaxComplexity:   c.maxComplexity,
-		DeadClone:       c.skipClones,
+func (c *CheckCommand) createUseCaseConfig() CheckUseCaseConfig {
+	config := CheckUseCaseConfig{
+		ConfigFile:    c.configFile,
+		Quiet:         c.quiet,
+		MaxComplexity: c.maxComplexity,
+		AllowDeadCode: c.allowDeadCode,
+		SkipClones:    c.skipClones,
 	}
 
 	// Handle analysis selection
 	if len(c.selectAnalyses) > 0 {
+		// Validate selected analyses
+		if err := c.validateSelectedAnalyses(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(2)
+		}
 		// If --select is used, only run selected analyses
-		config.maxComplexity = !c.containsAnalysis("complexity")
-		config.allowDeadCode = !c.containsAnalysis("deadcode")
-		config.skipClones = !c.containsAnalysis("clones")
+		config.SkipComplexity = !c.containsAnalysis("complexity")
+		config.SkipDeadCode = !c.containsAnalysis("deadcode") // ✅ Use SkipDeadCode instead of AllowDeadCode
+		config.SkipClones = !c.containsAnalysis("clones")
+	} else {
+		// Otherwise use original behavior (backward compatible)
+		config.SkipComplexity = false    // Always run complexity
+		config.SkipDeadCode = false      // Always run dead code analysis
+		config.SkipClones = c.skipClones // Only skip clones if explicitly requested
 	}
+
 	return config
+}
+
+// containsAnalysis checks if the specified analysis is in the select list
+func (c *CheckCommand) containsAnalysis(analysis string) bool {
+	for _, a := range c.selectAnalyses {
+		if strings.ToLower(a) == analysis {
+			return true
+		}
+	}
+	return false
+}
+
+// getEnabledAnalyses returns a list of enabled analyses for display
+func (c *CheckCommand) getEnabledAnalyses(config CheckUseCaseConfig) []string {
+	var enabled []string
+	if !config.SkipComplexity {
+		enabled = append(enabled, "complexity")
+	}
+	if !config.SkipDeadCode {
+		enabled = append(enabled, "deadcode")
+	}
+	if !config.SkipClones {
+		enabled = append(enabled, "clones")
+	}
+	return enabled
+}
+
+// validateSelectedAnalyses validates the --select flag values
+func (c *CheckCommand) validateSelectedAnalyses() error {
+	validAnalyses := map[string]bool{
+		"complexity": true,
+		"deadcode":   true,
+		"clones":     true,
+	}
+	for _, analysis := range c.selectAnalyses {
+		if !validAnalyses[strings.ToLower(analysis)] {
+			return fmt.Errorf("invalid analysis type: %s. Valid options: complexity, deadcode, clones", analysis)
+		}
+	}
+	if len(c.selectAnalyses) == 0 {
+		return fmt.Errorf("--select flag requires at least one analysis type")
+	}
+
+	return nil
 }
 
 // checkComplexity runs complexity analysis and returns issue count
@@ -357,16 +447,6 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 	}
 
 	return issueCount, nil
-}
-
-// containsAnalysis checks if the given analysis is in the selectAnalyses list
-func (c *CheckCommand) containsAnalysis(analysis string) bool {
-	for _, a := range c.selectAnalyses {
-		if strings.ToLower(a) == analysis {
-			return true
-		}
-	}
-	return false
 }
 
 // NewCheckCmd creates and returns the check cobra command
