@@ -41,9 +41,10 @@ coverage.txt
 coverage.html
 *.prof
 
-# Environment files
+# Local Environment & config files
 .env
 .env.local
+.pyscn.toml
 
 # Python test files (for testing the analyzer)
 __pycache__/
@@ -82,3 +83,4 @@ python/src/pyscn/bin/
 requirements.md
 AGENTS.md
 CLAUDE.md
+
