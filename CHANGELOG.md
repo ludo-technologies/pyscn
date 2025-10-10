@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.2] - 2025-10-10
+
+### Enhanced
+- Add nesting depth metric to complexity analysis (#150)
+
+### Fixed
+- **Critical:** Fix `pyscn check .` and `pyscn analyze .` failing with "no Python files found" (#147)
+- Ignore circular dependencies for imports inside TYPE_CHECKING (#151)
+
+### Improved
+- Add comprehensive test coverage for error categorizer (#142)
+- Improve README structure and installation section (#148)
+
 ## [1.0.1] - 2025-10-07
 
 ### Fixed
