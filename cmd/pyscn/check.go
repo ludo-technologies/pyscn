@@ -28,19 +28,6 @@ type CheckCommand struct {
 	selectAnalyses []string
 }
 
-// CheckUseCaseConfig holds the configuration for the check use case
-type CheckUseCaseConfig struct {
-	SkipComplexity bool
-	AllowDeadCode  bool
-	SkipDeadCode   bool
-	SkipClones     bool
-
-	MaxComplexity int
-
-	ConfigFile string
-	Quiet      bool
-}
-
 // NewCheckCommand creates a new check command
 func NewCheckCommand() *CheckCommand {
 	return &CheckCommand{
@@ -123,19 +110,26 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		args = []string{"."}
 	}
 
+	// Validate selected analyses before creating config
+	if len(c.selectAnalyses) > 0 {
+		if err := c.validateSelectedAnalyses(); err != nil {
+			return fmt.Errorf("invalid --select flag: %w", err)
+		}
+	}
+
 	// Create use case configuration
-	config := c.createUseCaseConfig()
+	skipComplexity, skipDeadCode, skipClones := c.determineEnabledAnalyses()
 
 	// Count issues found
 	var issueCount int
 	var hasErrors bool
 
 	if !c.quiet {
-		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check (%s)...\n", strings.Join(c.getEnabledAnalyses(config), ", "))
+		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check (%s)...\n", strings.Join(c.getEnabledAnalyses(skipComplexity, skipDeadCode, skipClones), ", "))
 	}
 
 	// Run complexity check if enabled
-	if !config.SkipComplexity {
+	if !skipComplexity {
 		complexityIssues, err := c.checkComplexity(cmd, args)
 		if err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Complexity analysis failed: %v\n", err)
@@ -146,14 +140,14 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	// Run dead code check if enabled
-	if !config.SkipDeadCode {
+	if !skipDeadCode {
 		deadCodeIssues, err := c.checkDeadCode(cmd, args)
 		if err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Dead code analysis failed: %v\n", err)
 			hasErrors = true
 		} else {
 			// Only count dead code issues if not explicitly allowed
-			if !config.AllowDeadCode {
+			if !c.allowDeadCode {
 				issueCount += deadCodeIssues
 			} else if deadCodeIssues > 0 && !c.quiet {
 				fmt.Fprintf(cmd.ErrOrStderr(), "Found %d dead code issue(s) (ignored due to --allow-dead-code)\n", deadCodeIssues)
@@ -162,7 +156,7 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	// Run clone check if enabled
-	if !config.SkipClones {
+	if !skipClones {
 		cloneIssues, err := c.checkClones(cmd, args)
 		if err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Clone detection failed: %v\n", err)
@@ -191,35 +185,20 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// createUseCaseConfig creates the use case configuration from command flags
-func (c *CheckCommand) createUseCaseConfig() CheckUseCaseConfig {
-	config := CheckUseCaseConfig{
-		ConfigFile:    c.configFile,
-		Quiet:         c.quiet,
-		MaxComplexity: c.maxComplexity,
-		AllowDeadCode: c.allowDeadCode,
-		SkipClones:    c.skipClones,
-	}
-
-	// Handle analysis selection
+// determineEnabledAnalyses determines which analyses should run based on flags
+func (c *CheckCommand) determineEnabledAnalyses() (skipComplexity bool, skipDeadCode bool, skipClones bool) {
 	if len(c.selectAnalyses) > 0 {
-		// Validate selected analyses
-		if err := c.validateSelectedAnalyses(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(2)
-		}
 		// If --select is used, only run selected analyses
-		config.SkipComplexity = !c.containsAnalysis("complexity")
-		config.SkipDeadCode = !c.containsAnalysis("deadcode") // ✅ Use SkipDeadCode instead of AllowDeadCode
-		config.SkipClones = !c.containsAnalysis("clones")
+		skipComplexity = !c.containsAnalysis("complexity")
+		skipDeadCode = !c.containsAnalysis("deadcode")
+		skipClones = !c.containsAnalysis("clones")
 	} else {
 		// Otherwise use original behavior (backward compatible)
-		config.SkipComplexity = false    // Always run complexity
-		config.SkipDeadCode = false      // Always run dead code analysis
-		config.SkipClones = c.skipClones // Only skip clones if explicitly requested
+		skipComplexity = false    // Always run complexity
+		skipDeadCode = false      // Always run dead code analysis
+		skipClones = c.skipClones // Only skip clones if explicitly requested
 	}
-
-	return config
+	return
 }
 
 // containsAnalysis checks if the specified analysis is in the select list
@@ -233,15 +212,15 @@ func (c *CheckCommand) containsAnalysis(analysis string) bool {
 }
 
 // getEnabledAnalyses returns a list of enabled analyses for display
-func (c *CheckCommand) getEnabledAnalyses(config CheckUseCaseConfig) []string {
+func (c *CheckCommand) getEnabledAnalyses(skipComplexity bool, skipDeadCode bool, skipClones bool) []string {
 	var enabled []string
-	if !config.SkipComplexity {
+	if !skipComplexity {
 		enabled = append(enabled, "complexity")
 	}
-	if !config.SkipDeadCode {
+	if !skipDeadCode {
 		enabled = append(enabled, "deadcode")
 	}
-	if !config.SkipClones {
+	if !skipClones {
 		enabled = append(enabled, "clones")
 	}
 	return enabled
