@@ -276,6 +276,11 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) loadArchitectureConfig(v *viper
 		request.ArchitectureRules.Rules = rules
 	}
 
+	// Validate the loaded architecture config
+	if err := cl.validateArchitectureConfig(request.ArchitectureRules); err != nil {
+		return fmt.Errorf("invalid architecture configuration: %w", err)
+	}
+
 	return nil
 }
 
@@ -339,6 +344,51 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) parseRule(raw map[string]interf
 	rule.Allow = cl.extractStringSlice(raw["allow"])
 	rule.Deny = cl.extractStringSlice(raw["deny"])
 	return rule
+}
+
+// validateArchitectureConfig validates the architecture configuration for common errors
+func (cl *SystemAnalysisConfigurationLoaderImpl) validateArchitectureConfig(rules *domain.ArchitectureRules) error {
+	if rules == nil {
+		return nil
+	}
+
+	// Build a map of valid layer names
+	layerNames := make(map[string]bool)
+	for _, layer := range rules.Layers {
+		if layer.Name == "" {
+			return fmt.Errorf("layer with empty name found")
+		}
+		layerNames[layer.Name] = true
+	}
+
+	// Validate rules
+	for i, rule := range rules.Rules {
+		// Check if 'from' field is set (common mistake: using 'source' instead)
+		if rule.From == "" {
+			return fmt.Errorf("rule #%d: 'from' field is required (did you mean 'from' instead of 'source'?)", i+1)
+		}
+
+		// Warn if the 'from' layer doesn't exist in layers definition
+		if len(rules.Layers) > 0 && !layerNames[rule.From] {
+			return fmt.Errorf("rule #%d: layer '%s' referenced in 'from' is not defined in layers", i+1, rule.From)
+		}
+
+		// Validate 'allow' references
+		for _, allowed := range rule.Allow {
+			if len(rules.Layers) > 0 && !layerNames[allowed] {
+				return fmt.Errorf("rule #%d: layer '%s' in 'allow' list is not defined in layers", i+1, allowed)
+			}
+		}
+
+		// Validate 'deny' references
+		for _, denied := range rule.Deny {
+			if len(rules.Layers) > 0 && !layerNames[denied] {
+				return fmt.Errorf("rule #%d: layer '%s' in 'deny' list is not defined in layers", i+1, denied)
+			}
+		}
+	}
+
+	return nil
 }
 
 // extractStringSlice handles type conversion for string slices
