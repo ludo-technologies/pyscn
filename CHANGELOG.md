@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.3] - 2025-10-10
+
+### Fixed
+- Improve progress estimation for clone detection with LSH (#161)
+- Support for `**` globstar patterns in include/exclude patterns (#152)
+
+### Note
+- Pattern matching now uses `doublestar` library for proper `**` support
+- If you use custom patterns, update `*.py` to `**/*.py` for recursive matching
+
 ## [1.0.2] - 2025-10-10
 
 ### Enhanced
