@@ -67,16 +67,3 @@ func getTargetPathFromArgs(args []string) string {
 	}
 	return ""
 }
-
-// isInteractiveEnvironment returns true if the environment appears to be
-// an interactive TTY session (and not CI), used to decide auto-open behavior.
-func isInteractiveEnvironment() bool {
-	if os.Getenv("CI") != "" {
-		return false
-	}
-	// Best-effort TTY detection without external deps
-	if fi, err := os.Stderr.Stat(); err == nil {
-		return (fi.Mode() & os.ModeCharDevice) != 0
-	}
-	return false
-}
