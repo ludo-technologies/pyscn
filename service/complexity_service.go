@@ -140,6 +140,7 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 				Complexity:        result.Complexity,
 				Nodes:             result.Nodes,
 				Edges:             result.Edges,
+				NestingDepth:      result.NestingDepth,
 				IfStatements:      result.IfStatements,
 				LoopStatements:    result.LoopStatements,
 				ExceptionHandlers: result.ExceptionHandlers,
