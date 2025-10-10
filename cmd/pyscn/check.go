@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
@@ -22,16 +23,20 @@ type CheckCommand struct {
 	maxComplexity int
 	allowDeadCode bool
 	skipClones    bool
+
+	// Select specific analyses to run
+	selectAnalyses []string
 }
 
 // NewCheckCommand creates a new check command
 func NewCheckCommand() *CheckCommand {
 	return &CheckCommand{
-		configFile:    "",
-		quiet:         false,
-		maxComplexity: 10,    // Fail if complexity > 10
-		allowDeadCode: false, // Fail on any dead code
-		skipClones:    false,
+		configFile:     "",
+		quiet:          false,
+		maxComplexity:  10,    // Fail if complexity > 10
+		allowDeadCode:  false, // Fail on any dead code
+		skipClones:     false,
+		selectAnalyses: []string{},
 	}
 }
 
@@ -47,6 +52,8 @@ This command performs a fast analysis with predefined thresholds:
 • Dead Code: Fails if any critical dead code is found
 • Clones: Reports clones with similarity > 0.8 (warning only)
 
+By default, all analyses are run. Use --select to choose specific analyses.
+
 Exit codes:
 • 0: No issues found
 • 1: Quality issues found (see output for details)
@@ -58,6 +65,15 @@ unless issues are found.
 Examples:
   # Check current directory (typical CI usage)
   pyscn check .
+
+  # Check only complexity (like ruff --select C901)
+  pyscn check --select complexity --max-complexity 10 src/
+
+  # Check only dead code
+  pyscn check --select deadcode src/
+
+  # Check complexity and dead code, skip clones
+  pyscn check --select complexity,deadcode src/
 
   # Check with higher complexity threshold
   pyscn check --max-complexity 15 src/
@@ -80,6 +96,10 @@ Examples:
 	cmd.Flags().BoolVar(&c.allowDeadCode, "allow-dead-code", false, "Allow dead code (don't fail)")
 	cmd.Flags().BoolVar(&c.skipClones, "skip-clones", false, "Skip clone detection")
 
+	// Select specific analyses to run
+	cmd.Flags().StringSliceVarP(&c.selectAnalyses, "select", "s", []string{},
+		"Comma-separated list of analyses to run: complexity, deadcode, clones")
+
 	return cmd
 }
 
@@ -90,36 +110,53 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		args = []string{"."}
 	}
 
+	// Validate selected analyses before creating config
+	if len(c.selectAnalyses) > 0 {
+		if err := c.validateSelectedAnalyses(); err != nil {
+			return fmt.Errorf("invalid --select flag: %w", err)
+		}
+	}
+
+	// Create use case configuration
+	skipComplexity, skipDeadCode, skipClones := c.determineEnabledAnalyses()
+
 	// Count issues found
 	var issueCount int
 	var hasErrors bool
 
 	if !c.quiet {
-		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check...\n")
+		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check (%s)...\n", strings.Join(c.getEnabledAnalyses(skipComplexity, skipDeadCode, skipClones), ", "))
 	}
 
-	// Run complexity check
-	complexityIssues, err := c.checkComplexity(cmd, args)
-	if err != nil {
-		fmt.Fprintf(cmd.ErrOrStderr(), "❌ Complexity analysis failed: %v\n", err)
-		hasErrors = true
-	} else {
-		issueCount += complexityIssues
+	// Run complexity check if enabled
+	if !skipComplexity {
+		complexityIssues, err := c.checkComplexity(cmd, args)
+		if err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Complexity analysis failed: %v\n", err)
+			hasErrors = true
+		} else {
+			issueCount += complexityIssues
+		}
 	}
 
-	// Run dead code check (if not explicitly allowed)
-	if !c.allowDeadCode {
+	// Run dead code check if enabled
+	if !skipDeadCode {
 		deadCodeIssues, err := c.checkDeadCode(cmd, args)
 		if err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Dead code analysis failed: %v\n", err)
 			hasErrors = true
 		} else {
-			issueCount += deadCodeIssues
+			// Only count dead code issues if not explicitly allowed
+			if !c.allowDeadCode {
+				issueCount += deadCodeIssues
+			} else if deadCodeIssues > 0 && !c.quiet {
+				fmt.Fprintf(cmd.ErrOrStderr(), "Found %d dead code issue(s) (ignored due to --allow-dead-code)\n", deadCodeIssues)
+			}
 		}
 	}
 
-	// Run clone check (if not skipped)
-	if !c.skipClones {
+	// Run clone check if enabled
+	if !skipClones {
 		cloneIssues, err := c.checkClones(cmd, args)
 		if err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Clone detection failed: %v\n", err)
@@ -143,6 +180,66 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 
 	if !c.quiet {
 		fmt.Fprintf(cmd.ErrOrStderr(), "✅ Code quality check passed\n")
+	}
+
+	return nil
+}
+
+// determineEnabledAnalyses determines which analyses should run based on flags
+func (c *CheckCommand) determineEnabledAnalyses() (skipComplexity bool, skipDeadCode bool, skipClones bool) {
+	if len(c.selectAnalyses) > 0 {
+		// If --select is used, only run selected analyses
+		skipComplexity = !c.containsAnalysis("complexity")
+		skipDeadCode = !c.containsAnalysis("deadcode")
+		skipClones = !c.containsAnalysis("clones")
+	} else {
+		// Otherwise use original behavior (backward compatible)
+		skipComplexity = false    // Always run complexity
+		skipDeadCode = false      // Always run dead code analysis
+		skipClones = c.skipClones // Only skip clones if explicitly requested
+	}
+	return
+}
+
+// containsAnalysis checks if the specified analysis is in the select list
+func (c *CheckCommand) containsAnalysis(analysis string) bool {
+	for _, a := range c.selectAnalyses {
+		if strings.ToLower(a) == analysis {
+			return true
+		}
+	}
+	return false
+}
+
+// getEnabledAnalyses returns a list of enabled analyses for display
+func (c *CheckCommand) getEnabledAnalyses(skipComplexity bool, skipDeadCode bool, skipClones bool) []string {
+	var enabled []string
+	if !skipComplexity {
+		enabled = append(enabled, "complexity")
+	}
+	if !skipDeadCode {
+		enabled = append(enabled, "deadcode")
+	}
+	if !skipClones {
+		enabled = append(enabled, "clones")
+	}
+	return enabled
+}
+
+// validateSelectedAnalyses validates the --select flag values
+func (c *CheckCommand) validateSelectedAnalyses() error {
+	validAnalyses := map[string]bool{
+		"complexity": true,
+		"deadcode":   true,
+		"clones":     true,
+	}
+	for _, analysis := range c.selectAnalyses {
+		if !validAnalyses[strings.ToLower(analysis)] {
+			return fmt.Errorf("invalid analysis type: %s. Valid options: complexity, deadcode, clones", analysis)
+		}
+	}
+	if len(c.selectAnalyses) == 0 {
+		return fmt.Errorf("--select flag requires at least one analysis type")
 	}
 
 	return nil
