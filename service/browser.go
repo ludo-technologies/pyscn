@@ -7,9 +7,8 @@ import (
 	"runtime"
 )
 
-// isSSH returns true if the session is running over SSH
-func isSSH() bool {
-	// SSH_TTY is set when connected via SSH
+// IsSSH returns true if the session is running over SSH
+func IsSSH() bool {
 	return os.Getenv("SSH_TTY") != "" || os.Getenv("SSH_CONNECTION") != ""
 }
 
