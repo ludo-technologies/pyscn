@@ -91,8 +91,11 @@ type ComplexityMetrics struct {
 // FunctionComplexity represents complexity analysis result for a single function
 type FunctionComplexity struct {
 	// Function identification
-	Name     string
-	FilePath string
+	Name        string
+	FilePath    string
+	StartLine   int
+	StartColumn int
+	EndLine     int
 
 	// Complexity metrics
 	Metrics ComplexityMetrics
