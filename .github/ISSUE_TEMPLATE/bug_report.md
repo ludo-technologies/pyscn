@@ -7,32 +7,32 @@ assignees: ''
 
 ---
 
-**Describe the bug**
+## Describe the bug
 A clear and concise description of what the bug is.
 
-**To Reproduce**
+## To Reproduce
 Steps to reproduce the behavior:
 1. Run command '...'
 2. With file '...'
 3. See error
 
-**Expected behavior**
+## Expected behavior
 A clear and concise description of what you expected to happen.
 
-**Example Code**
+## Example Code
 ```python
 # Minimal Python code that triggers the issue
 ```
 
-**Output**
+## Output
 ```
 # Actual output from pyscn
 ```
 
-**Environment:**
+## Environment
  - OS: [e.g. macOS 14.0]
  - Go Version: [e.g. 1.21]
  - pyscn Version: [e.g. 0.1.0]
 
-**Additional context**
+## Additional context
 Add any other context about the problem here.
