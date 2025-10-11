@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    # Group all Go dependencies into a single PR
+    groups:
+      go-dependencies:
+        patterns:
+          - "*"
+    # Add labels to PRs
+    labels:
+      - "dependencies"
+      - "go"
+    # Set PR limit
+    open-pull-requests-limit: 1
