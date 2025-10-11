@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.1.0] - 2025-10-11
+
+### Added
+- `file:line:col` output format to `check` command for better editor integration (#168)
+- `--select` flag to `check` command for running specific analyses (#159)
+
+### Enhanced
+- Embed default config as TOML and load architecture rules from config (#163)
+
+### Fixed
+- Prevent browser from opening HTML reports when connected via SSH (#154)
+- Fix Makefile ASCII escape codes on cross-platform (#153)
+
+### Improved
+- Add Dependabot configuration for Go dependency updates (#165)
+- Improve issue template readability (#169)
+
 ## [1.0.3] - 2025-10-10
 
 ### Fixed
