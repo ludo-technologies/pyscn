@@ -10,7 +10,7 @@ LDFLAGS := -ldflags "-s -w \
                      -X '$(GO_MODULE)/internal/version.Version=$(VERSION)' \
                      -X '$(GO_MODULE)/internal/version.Commit=$(COMMIT)' \
                      -X '$(GO_MODULE)/internal/version.Date=$(DATE)' \
-                     -X '$(GO_MODULE)/internal/version.BuiltBy=make'" 
+                     -X '$(GO_MODULE)/internal/version.BuiltBy=make'"
 
 # Colors for output
 GREEN := \033[0;32m
@@ -29,29 +29,29 @@ all: test build
 
 ## build: Build the binary
 build:
-	@echo "$(GREEN)Building $(BINARY_NAME) $(VERSION)...$(NC)"
+	@printf "$(GREEN)Building $(BINARY_NAME) $(VERSION)...$(NC)\n"
 	go build $(LDFLAGS) -o $(BINARY_NAME) ./cmd/pyscn
 
 ## test: Run tests
 test:
-	@echo "$(GREEN)Running tests...$(NC)"
+	@printf "$(GREEN)Running tests...$(NC)\n"
 	go test -v ./...
 
 ## bench: Run benchmarks
 bench:
-	@echo "$(GREEN)Running benchmarks...$(NC)"
+	@printf "$(GREEN)Running benchmarks...$(NC)\n"
 	go test -bench=. -benchmem ./...
 
 ## coverage: Generate coverage report
 coverage:
-	@echo "$(GREEN)Generating coverage report...$(NC)"
+	@printf "$(GREEN)Generating coverage report...$(NC)\n"
 	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
-	@echo "$(GREEN)Coverage report generated: coverage.html$(NC)"
+	@printf "$(GREEN)Coverage report generated: coverage.html$(NC)\n"
 
 ## clean: Clean build artifacts
 clean:
-	@echo "$(YELLOW)Cleaning...$(NC)"
+	@printf "$(YELLOW)Cleaning...$(NC)\n"
 	rm -f $(BINARY_NAME)
 	rm -f coverage.out coverage.html
 	rm -rf dist/
@@ -59,7 +59,7 @@ clean:
 
 ## install: Install the binary
 install: build
-	@echo "$(GREEN)Installing $(BINARY_NAME)...$(NC)"
+	@printf "$(GREEN)Installing $(BINARY_NAME)...$(NC)\n"
 	go install $(LDFLAGS) ./cmd/pyscn
 
 ## run: Run the application
@@ -74,26 +74,26 @@ version:
 
 ## fmt: Format code
 fmt:
-	@echo "$(GREEN)Formatting code...$(NC)"
+	@printf "$(GREEN)Formatting code...$(NC)\n"
 	go fmt ./...
 	gofmt -s -w .
 
 ## lint: Run linters
 lint:
-	@echo "$(GREEN)Running linters...$(NC)"
+	@printf "$(GREEN)Running linters...$(NC)\n"
 	go vet ./...
 	golangci-lint run
 
 ## release: Create a new release (use: make release VERSION=v0.1.0)
 release:
 	@if [ -z "$(VERSION)" ]; then \
-		echo "$(YELLOW)Please specify VERSION. Usage: make release VERSION=v0.1.0$(NC)"; \
+		printf "$(YELLOW)Please specify VERSION. Usage: make release VERSION=v0.1.0$(NC)\n"; \
 		exit 1; \
 	fi
-	@echo "$(GREEN)Creating release $(VERSION)...$(NC)"
+	@printf "$(GREEN)Creating release $(VERSION)...$(NC)\n"
 	git tag -a $(VERSION) -m "Release $(VERSION)"
 	git push origin $(VERSION)
-	@echo "$(GREEN)Release $(VERSION) created and pushed!$(NC)"
+	@printf "$(GREEN)Release $(VERSION) created and pushed!$(NC)\n"
 
 ## dev: Development build with hot reload (requires air)
 dev:
@@ -105,43 +105,43 @@ dev:
 build-all: build-linux build-darwin build-windows
 
 build-linux:
-	@echo "$(GREEN)Building for Linux...$(NC)"
+	@printf "$(GREEN)Building for Linux...$(NC)\n"
 	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-linux-amd64 ./cmd/pyscn
 	GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-linux-arm64 ./cmd/pyscn
 
 build-darwin:
-	@echo "$(GREEN)Building for macOS...$(NC)"
+	@printf "$(GREEN)Building for macOS...$(NC)\n"
 	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-darwin-amd64 ./cmd/pyscn
 	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-darwin-arm64 ./cmd/pyscn
 
 build-windows:
-	@echo "$(GREEN)Building for Windows...$(NC)"
+	@printf "$(GREEN)Building for Windows...$(NC)\n"
 	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-windows-amd64.exe ./cmd/pyscn
 	GOOS=windows GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-windows-arm64.exe ./cmd/pyscn
 
 # Python packaging
 ## build-python: Build Python wheels with embedded binaries
 build-python:
-	@echo "$(GREEN)Building Python wheels...$(NC)"
+	@printf "$(GREEN)Building Python wheels...$(NC)\n"
 	python/scripts/build_all_wheels.sh
 
 ## python-wheel: Build Python wheel for current platform only
 python-wheel:
-	@echo "$(GREEN)Building Python wheel for current platform...$(NC)"
+	@printf "$(GREEN)Building Python wheel for current platform...$(NC)\n"
 	@mkdir -p python/src/pyscn/bin dist
 	go build $(LDFLAGS) -o python/src/pyscn/bin/pyscn-$$(go env GOOS)-$$(go env GOARCH)$$(if [ "$$(go env GOOS)" = "windows" ]; then echo ".exe"; fi) ./cmd/pyscn
 	python/scripts/create_wheel.sh
 
 ## python-test: Test Python package installation
 python-test: python-wheel
-	@echo "$(GREEN)Testing Python package...$(NC)"
+	@printf "$(GREEN)Testing Python package...$(NC)\n"
 	pip install --force-reinstall dist/*.whl
-	@echo "$(GREEN)Testing pyscn command...$(NC)"
+	@printf "$(GREEN)Testing pyscn command...$(NC)\n"
 	pyscn --version || pyscn --help
 
-## python-clean: Clean Python build artifacts  
+## python-clean: Clean Python build artifacts
 python-clean:
-	@echo "$(YELLOW)Cleaning Python build artifacts...$(NC)"
+	@printf "$(YELLOW)Cleaning Python build artifacts...$(NC)\n"
 	rm -rf python/src/pyscn/bin
 	rm -rf dist
 	rm -rf build
