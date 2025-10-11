@@ -24,7 +24,7 @@ type ProgressManagerImpl struct {
 func NewProgressManager() domain.ProgressManager {
 	return &ProgressManagerImpl{
 		writer:      os.Stderr,
-		interactive: isInteractiveEnvironment(),
+		interactive: IsInteractiveEnvironment(),
 	}
 }
 
@@ -128,17 +128,4 @@ func (pm *ProgressManagerImpl) createProgressBar(description string, max int) *p
 			fmt.Fprintln(writer)
 		}),
 	)
-}
-
-// isInteractiveEnvironment returns true if the environment appears to be
-// an interactive TTY session (and not CI)
-func isInteractiveEnvironment() bool {
-	if os.Getenv("CI") != "" {
-		return false
-	}
-	// Best-effort TTY detection
-	if fi, err := os.Stderr.Stat(); err == nil {
-		return (fi.Mode() & os.ModeCharDevice) != 0
-	}
-	return false
 }

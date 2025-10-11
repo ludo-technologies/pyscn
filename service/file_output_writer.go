@@ -51,7 +51,7 @@ func (w *FileOutputWriter) Write(writer io.Writer, outputPath string, format dom
 		}
 
 		if format == domain.OutputFormatHTML {
-			if !noOpen {
+			if !noOpen && !IsSSH() {
 				fileURL := "file://" + absPath
 				if err := OpenBrowser(fileURL); err != nil {
 					fmt.Fprintf(w.status, "Warning: Could not open browser: %v\n", err)

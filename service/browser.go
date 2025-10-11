@@ -2,9 +2,27 @@ package service
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"runtime"
 )
+
+// IsSSH returns true if the session is running over SSH
+func IsSSH() bool {
+	return os.Getenv("SSH_TTY") != "" || os.Getenv("SSH_CONNECTION") != ""
+}
+
+// IsInteractiveEnvironment returns true if the environment appears to be
+// an interactive TTY session (and not CI)
+func IsInteractiveEnvironment() bool {
+	if os.Getenv("CI") != "" {
+		return false
+	}
+	if fi, err := os.Stderr.Stat(); err == nil {
+		return (fi.Mode() & os.ModeCharDevice) != 0
+	}
+	return false
+}
 
 // OpenBrowser opens the specified URL in the default browser
 func OpenBrowser(url string) error {

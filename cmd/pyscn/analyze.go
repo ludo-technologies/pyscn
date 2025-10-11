@@ -367,8 +367,8 @@ func (c *AnalyzeCommand) generateOutput(cmd *cobra.Command, response *domain.Ana
 
 	// Handle browser opening for HTML
 	if format == "html" {
-		// Auto-open only when explicitly allowed and environment appears interactive
-		if !c.noOpen && isInteractiveEnvironment() {
+		// Auto-open only when explicitly allowed, environment is interactive, and not over SSH
+		if !c.noOpen && service.IsInteractiveEnvironment() && !service.IsSSH() {
 			fileURL := "file://" + absPath
 			if err := service.OpenBrowser(fileURL); err != nil {
 				fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Could not open browser: %v\n", err)
@@ -546,7 +546,7 @@ func (c *AnalyzeCommand) determineOutputFormat() (string, string, error) {
 
 // shouldUseProgressBars returns true when the session appears to be interactive
 func (c *AnalyzeCommand) shouldUseProgressBars(cmd *cobra.Command) bool {
-	if !isInteractiveEnvironment() {
+	if !service.IsInteractiveEnvironment() {
 		return false
 	}
 
