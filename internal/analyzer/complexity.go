@@ -19,6 +19,7 @@ type ComplexityResult struct {
 	// Function/method information
 	FunctionName string
 	StartLine    int
+	StartCol     int
 	EndLine      int
 
 	// Nesting depth
@@ -154,9 +155,15 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 
 	// Calculate nesting depth if function node is available
 	nestingDepth := 0
+	startLine := 0
+	startCol := 0
+	endLine := 0
 	if cfg.FunctionNode != nil {
 		nestingResult := CalculateMaxNestingDepth(cfg.FunctionNode)
 		nestingDepth = nestingResult.MaxDepth
+		startLine = cfg.FunctionNode.Location.StartLine
+		startCol = cfg.FunctionNode.Location.StartCol
+		endLine = cfg.FunctionNode.Location.EndLine
 	}
 
 	result := &ComplexityResult{
@@ -165,6 +172,9 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 		Nodes:               visitor.nodeCount,
 		ConnectedComponents: 1,
 		FunctionName:        cfg.Name,
+		StartLine:           startLine,
+		StartCol:            startCol,
+		EndLine:             endLine,
 		NestingDepth:        nestingDepth,
 		IfStatements:        conditionalDecisions, // Accurate count of decision points
 		LoopStatements:      visitor.loopStatements,

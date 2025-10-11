@@ -134,8 +134,11 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 		riskLevel := s.calculateRiskLevel(result.Complexity, req)
 
 		function := domain.FunctionComplexity{
-			Name:     functionName,
-			FilePath: filePath,
+			Name:        functionName,
+			FilePath:    filePath,
+			StartLine:   result.StartLine,
+			StartColumn: result.StartCol,
+			EndLine:     result.EndLine,
 			Metrics: domain.ComplexityMetrics{
 				Complexity:        result.Complexity,
 				Nodes:             result.Nodes,

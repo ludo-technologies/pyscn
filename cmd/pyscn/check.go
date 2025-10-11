@@ -294,8 +294,8 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 		if function.Metrics.Complexity > c.maxComplexity {
 			issueCount++
 			if !c.quiet {
-				fmt.Fprintf(cmd.ErrOrStderr(), "❌ High complexity in %s:%s (complexity: %d > %d)\n",
-					function.FilePath, function.Name, function.Metrics.Complexity, c.maxComplexity)
+				fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s is too complex (%d > %d)\n",
+					function.FilePath, function.StartLine, function.StartColumn+1, function.Name, function.Metrics.Complexity, c.maxComplexity)
 			}
 		}
 	}
@@ -350,10 +350,24 @@ func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, er
 		return 0, err
 	}
 
-	// Count critical dead code findings
-	issueCount := response.Summary.CriticalFindings
-	if issueCount > 0 && !c.quiet {
-		fmt.Fprintf(cmd.ErrOrStderr(), "❌ Found %d critical dead code issue(s)\n", issueCount)
+	// Count and output critical dead code findings
+	issueCount := 0
+	for _, file := range response.Files {
+		for _, function := range file.Functions {
+			for _, finding := range function.Findings {
+				if finding.Severity == domain.DeadCodeSeverityCritical {
+					issueCount++
+					if !c.quiet {
+						fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s (%s)\n",
+							finding.Location.FilePath,
+							finding.Location.StartLine,
+							finding.Location.StartColumn+1,
+							finding.Reason,
+							finding.Severity)
+					}
+				}
+			}
+		}
 	}
 
 	return issueCount, nil
@@ -418,11 +432,20 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 		return 0, err
 	}
 
-	// Count clone pairs above the similarity threshold
-	issueCount := len(response.ClonePairs)
-	if issueCount > 0 && !c.quiet {
-		fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Found %d code clone pair(s) (similarity > %.1f)\n",
-			issueCount, request.SimilarityThreshold)
+	// Output clone pairs above the similarity threshold
+	issueCount := 0
+	for _, pair := range response.ClonePairs {
+		issueCount++
+		if !c.quiet {
+			fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: clone of %s:%d:%d (similarity: %.1f%%)\n",
+				pair.Clone1.Location.FilePath,
+				pair.Clone1.Location.StartLine,
+				pair.Clone1.Location.StartCol+1,
+				pair.Clone2.Location.FilePath,
+				pair.Clone2.Location.StartLine,
+				pair.Clone2.Location.StartCol+1,
+				pair.Similarity*100)
+		}
 	}
 
 	return issueCount, nil
