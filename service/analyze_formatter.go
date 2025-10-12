@@ -950,7 +950,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                                 {{else if eq $cycle.Severity "medium"}}<span style="background: #fff3cd; color: #856404; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">MEDIUM</span>
                                 {{else}}<span style="background: #d1ecf1; color: #0c5460; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">LOW</span>{{end}}
                             </td>
-                            <td>{{$cycle.Size}} modules</td>
+                            <td>{{$cycle.Size}}</td>
                             <td>{{$cycle.Description}}</td>
                             <td style="font-size: 12px;">
                                 {{if gt (len $cycle.Modules) 5}}

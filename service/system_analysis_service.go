@@ -953,7 +953,7 @@ func (s *SystemAnalysisServiceImpl) convertCircularResults(result *analyzer.Circ
 			Description:  cycle.Description,
 			Severity:     domain.CycleSeverity(cycle.Severity),
 			Size:         cycle.Size,
-			Dependencies: s.convertCycleDependencies(cycle.Modules),
+			Dependencies: s.convertDependencyChains(cycle.Dependencies),
 		})
 
 		// Count occurrences for core infrastructure identification
@@ -1014,6 +1014,22 @@ func (s *SystemAnalysisServiceImpl) convertCycleDependencies(cycle []string) []d
 			From:   cycle[i],
 			To:     cycle[next],
 			Length: 2,
+		})
+	}
+
+	return deps
+}
+
+// convertDependencyChains converts analyzer.DependencyChain to domain.DependencyPath
+func (s *SystemAnalysisServiceImpl) convertDependencyChains(chains []analyzer.DependencyChain) []domain.DependencyPath {
+	var deps []domain.DependencyPath
+
+	for _, chain := range chains {
+		deps = append(deps, domain.DependencyPath{
+			From:   chain.From,
+			To:     chain.To,
+			Path:   chain.Path,
+			Length: chain.Length,
 		})
 	}
 

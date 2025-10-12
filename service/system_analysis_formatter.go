@@ -553,7 +553,7 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
 				}
 
 				severityBadge := GenerateStatusBadge(strings.ToUpper(string(cycle.Severity)), string(cycle.Severity))
-				sizeStr := strconv.Itoa(cycle.Size) + " modules"
+				sizeStr := strconv.Itoa(cycle.Size)
 
 				// Format modules list
 				modulesStr := strings.Join(cycle.Modules, ", ")
