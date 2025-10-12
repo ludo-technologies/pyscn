@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Enhanced
+- Display circular dependency details in HTML dependency reports (#136)
+  - Show severity, size, description, and involved modules for each cycle
+  - Display dependency paths that form cycles
+  - Highlight core infrastructure modules that appear in multiple cycles
+  - Provide suggestions for breaking cycles
+
 ## [1.1.0] - 2025-10-11
 
 ### Added
