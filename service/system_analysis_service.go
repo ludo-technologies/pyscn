@@ -1005,21 +1005,6 @@ func (s *SystemAnalysisServiceImpl) extractZoneOfUselessness(metrics *analyzer.S
 	return []string{}
 }
 
-func (s *SystemAnalysisServiceImpl) convertCycleDependencies(cycle []string) []domain.DependencyPath {
-	var deps []domain.DependencyPath
-
-	for i := 0; i < len(cycle); i++ {
-		next := (i + 1) % len(cycle)
-		deps = append(deps, domain.DependencyPath{
-			From:   cycle[i],
-			To:     cycle[next],
-			Length: 2,
-		})
-	}
-
-	return deps
-}
-
 // convertDependencyChains converts analyzer.DependencyChain to domain.DependencyPath
 func (s *SystemAnalysisServiceImpl) convertDependencyChains(chains []analyzer.DependencyChain) []domain.DependencyPath {
 	var deps []domain.DependencyPath
