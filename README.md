@@ -1,6 +1,5 @@
 # pyscn - Python Code Quality Analyzer
 
-
 [![Article](https://img.shields.io/badge/dev.to-Article-0A0A0A?style=flat-square&logo=dev.to)](https://dev.to/daisukeyoda/pyscn-the-code-quality-analyzer-for-vibe-coders-18hk)
 [![PyPI](https://img.shields.io/pypi/v/pyscn?style=flat-square&logo=pypi)](https://pypi.org/project/pyscn/)
 [![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat-square&logo=go)](https://go.dev/)
@@ -117,7 +116,7 @@ directory = "reports"
   hooks:
     - id: pyscn
       name: pyscn check
-      entry: pyscn check .
+      entry: pipx run pyscn check .
       language: system
       pass_filenames: false
       types: [python]
