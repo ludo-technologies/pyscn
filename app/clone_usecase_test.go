@@ -405,8 +405,11 @@ func TestCloneUseCase_ExecuteAndReturn(t *testing.T) {
 			name: "successful analysis without formatting",
 			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
-				fileReader.On("CollectPythonFiles", []string{"/test/file1.py", "/test/file2.py"}, true, []string{"**/*.py"}, []string{"*test*"}).
-					Return([]string{"/test/file1.py", "/test/file2.py"}, nil)
+				// Mock file detection logic
+				fileReader.On("IsValidPythonFile", "/test/file1.py").Return(true)
+				fileReader.On("IsValidPythonFile", "/test/file2.py").Return(true)
+				fileReader.On("FileExists", "/test/file1.py").Return(true, nil)
+				fileReader.On("FileExists", "/test/file2.py").Return(true, nil)
 				service.On("DetectClones", mock.Anything, mock.AnythingOfType("*domain.CloneRequest")).
 					Return(createMockCloneResponse(), nil)
 			},
@@ -461,6 +464,9 @@ func TestCloneUseCase_ExecuteAndReturn(t *testing.T) {
 			name: "no files found error",
 			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
+				// Mock file detection logic - path is not a valid Python file (breaks immediately, FileExists not called)
+				fileReader.On("IsValidPythonFile", "/empty/path").Return(false)
+				// CollectPythonFiles is called since allFiles=false
 				fileReader.On("CollectPythonFiles", []string{"/empty/path"}, true, []string{"**/*.py"}, []string{"*test*"}).
 					Return([]string{}, nil)
 			},
@@ -476,8 +482,11 @@ func TestCloneUseCase_ExecuteAndReturn(t *testing.T) {
 			name: "analysis error in execute and return",
 			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
 				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
-				fileReader.On("CollectPythonFiles", []string{"/test/file1.py", "/test/file2.py"}, true, []string{"**/*.py"}, []string{"*test*"}).
-					Return([]string{"/test/file1.py", "/test/file2.py"}, nil)
+				// Mock file detection logic
+				fileReader.On("IsValidPythonFile", "/test/file1.py").Return(true)
+				fileReader.On("IsValidPythonFile", "/test/file2.py").Return(true)
+				fileReader.On("FileExists", "/test/file1.py").Return(true, nil)
+				fileReader.On("FileExists", "/test/file2.py").Return(true, nil)
 				service.On("DetectClones", mock.Anything, mock.AnythingOfType("*domain.CloneRequest")).
 					Return((*domain.CloneResponse)(nil), errors.New("AST comparison failed"))
 			},

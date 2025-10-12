@@ -262,6 +262,9 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.ComplexityRequest{
 					Paths:           files,
+					Recursive:       false,
+					IncludePatterns: []string{},
+					ExcludePatterns: []string{},
 					OutputFormat:    domain.OutputFormatJSON,
 					OutputWriter:    io.Discard,
 					MinComplexity:   config.MinComplexity,
@@ -282,12 +285,15 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Enabled: !config.SkipDeadCode,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.DeadCodeRequest{
-					Paths:        files,
-					OutputFormat: domain.OutputFormatJSON,
-					OutputWriter: io.Discard,
-					MinSeverity:  config.MinSeverity,
-					SortBy:       domain.DeadCodeSortBySeverity,
-					ConfigPath:   config.ConfigFile,
+					Paths:           files,
+					Recursive:       false,
+					IncludePatterns: []string{},
+					ExcludePatterns: []string{},
+					OutputFormat:    domain.OutputFormatJSON,
+					OutputWriter:    io.Discard,
+					MinSeverity:     config.MinSeverity,
+					SortBy:          domain.DeadCodeSortBySeverity,
+					ConfigPath:      config.ConfigFile,
 				}
 				return uc.deadCodeUseCase.AnalyzeAndReturn(ctx, request)
 			},
@@ -304,6 +310,9 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 				defaultReq := domain.DefaultCloneRequest()
 				request := domain.CloneRequest{
 					Paths:               files,
+					Recursive:           false,
+					IncludePatterns:     []string{},
+					ExcludePatterns:     []string{},
 					OutputFormat:        domain.OutputFormatJSON,
 					OutputWriter:        io.Discard,
 					MinLines:            defaultReq.MinLines,
@@ -329,12 +338,16 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.CBORequest{
 					Paths:           files,
+					Recursive:       false,
+					IncludePatterns: []string{},
+					ExcludePatterns: []string{},
 					OutputFormat:    domain.OutputFormatJSON,
 					OutputWriter:    io.Discard,
 					MinCBO:          config.MinCBO,
 					LowThreshold:    5,
 					MediumThreshold: 10,
 					SortBy:          domain.SortByCoupling,
+					ConfigPath:      config.ConfigFile,
 				}
 				return uc.cboUseCase.AnalyzeAndReturn(ctx, request)
 			},
@@ -349,6 +362,9 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.SystemAnalysisRequest{
 					Paths:               files,
+					Recursive:           false,
+					IncludePatterns:     []string{},
+					ExcludePatterns:     []string{},
 					OutputFormat:        domain.OutputFormatJSON,
 					OutputWriter:        io.Discard,
 					AnalyzeDependencies: true,

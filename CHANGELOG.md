@@ -1,13 +1,12 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.1] - 2025-10-12
 
-### Enhanced
-- Display circular dependency details in HTML dependency reports (#136)
-  - Show severity, size, description, and involved modules for each cycle
-  - Display dependency paths that form cycles
-  - Highlight core infrastructure modules that appear in multiple cycles
-  - Provide suggestions for breaking cycles
+### Fixed
+- **Critical:** Fix `pyscn analyze` failing with "no Python files found" error (#178)
+
+### Improved
+- Improve README with dev.to article link and streamline CI/CD section (#172)
 
 ## [1.1.0] - 2025-10-11
 
