@@ -933,10 +933,8 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>Severity</th>
-                            <th>Size</th>
-                            <th>Description</th>
-                            <th>Modules Involved</th>
+                            <th style="width: 10%;">Severity</th>
+                            <th style="width: 8%;">Size</th>
                             <th>Dependency Paths</th>
                         </tr>
                     </thead>
@@ -951,23 +949,15 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                                 {{else}}<span style="background: #d1ecf1; color: #0c5460; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">LOW</span>{{end}}
                             </td>
                             <td>{{$cycle.Size}}</td>
-                            <td>{{$cycle.Description}}</td>
-                            <td style="font-size: 12px;">
-                                {{if gt (len $cycle.Modules) 5}}
-                                    {{join (slice $cycle.Modules 0 5) ", "}}...
-                                {{else}}
-                                    {{join $cycle.Modules ", "}}
-                                {{end}}
-                            </td>
                             <td>
                                 {{range $j, $path := $cycle.Dependencies}}
-                                    {{if lt $j 3}}
-                                        {{if gt $j 0}}<br><br>{{end}}
+                                    {{if lt $j 5}}
+                                        {{if gt $j 0}}<br>{{end}}
                                         <code style="font-size: 11px;">{{join $path.Path " → "}}</code>
                                     {{end}}
                                 {{end}}
-                                {{if gt (len $cycle.Dependencies) 3}}
-                                    <br><em style="font-size: 11px; color: #666;">... and {{sub (len $cycle.Dependencies) 3}} more paths</em>
+                                {{if gt (len $cycle.Dependencies) 5}}
+                                    <br><em style="font-size: 11px; color: #666;">... and {{sub (len $cycle.Dependencies) 5}} more paths</em>
                                 {{end}}
                             </td>
                         </tr>
@@ -975,7 +965,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         {{end}}
                         {{if gt (len .System.DependencyAnalysis.CircularDependencies.CircularDependencies) 20}}
                         <tr>
-                            <td colspan="5"><em>... and {{sub (len .System.DependencyAnalysis.CircularDependencies.CircularDependencies) 20}} more circular dependencies</em></td>
+                            <td colspan="3"><em>... and {{sub (len .System.DependencyAnalysis.CircularDependencies.CircularDependencies) 20}} more circular dependencies</em></td>
                         </tr>
                         {{end}}
                     </tbody>

@@ -533,10 +533,8 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Severity</th>
-                        <th>Size</th>
-                        <th>Description</th>
-                        <th>Modules Involved</th>
+                        <th style="width: 10%;">Severity</th>
+                        <th style="width: 8%;">Size</th>
                         <th>Dependency Paths</th>
                     </tr>
                 </thead>
@@ -547,7 +545,7 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
 				if i >= 20 { // Limit to 20 cycles for readability
 					builder.WriteString(`
                     <tr>
-                        <td colspan="5"><em>... and ` + strconv.Itoa(len(deps.CircularDependencies.CircularDependencies)-20) + ` more circular dependencies</em></td>
+                        <td colspan="3"><em>... and ` + strconv.Itoa(len(deps.CircularDependencies.CircularDependencies)-20) + ` more circular dependencies</em></td>
                     </tr>`)
 					break
 				}
@@ -555,24 +553,18 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
 				severityBadge := GenerateStatusBadge(strings.ToUpper(string(cycle.Severity)), string(cycle.Severity))
 				sizeStr := strconv.Itoa(cycle.Size)
 
-				// Format modules list
-				modulesStr := strings.Join(cycle.Modules, ", ")
-				if len(cycle.Modules) > 5 {
-					modulesStr = strings.Join(cycle.Modules[:5], ", ") + "..."
-				}
-
-				// Format dependency paths (show first 3 paths)
+				// Format dependency paths (show first 5 paths)
 				var pathsHTML strings.Builder
 				pathCount := len(cycle.Dependencies)
 				displayCount := pathCount
-				if displayCount > 3 {
-					displayCount = 3
+				if displayCount > 5 {
+					displayCount = 5
 				}
 
 				for j := 0; j < displayCount; j++ {
 					path := cycle.Dependencies[j]
 					if j > 0 {
-						pathsHTML.WriteString(`<br><br>`)
+						pathsHTML.WriteString(`<br>`)
 					}
 
 					// Format path with arrows
@@ -580,16 +572,14 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
 					pathsHTML.WriteString(`<code style="font-size: 11px;">` + pathStr + `</code>`)
 				}
 
-				if pathCount > 3 {
-					pathsHTML.WriteString(`<br><em style="font-size: 11px; color: #666;">... and ` + strconv.Itoa(pathCount-3) + ` more paths</em>`)
+				if pathCount > 5 {
+					pathsHTML.WriteString(`<br><em style="font-size: 11px; color: #666;">... and ` + strconv.Itoa(pathCount-5) + ` more paths</em>`)
 				}
 
 				builder.WriteString(`
                     <tr>
                         <td>` + severityBadge + `</td>
                         <td>` + sizeStr + `</td>
-                        <td>` + cycle.Description + `</td>
-                        <td style="font-size: 12px;">` + modulesStr + `</td>
                         <td>` + pathsHTML.String() + `</td>
                     </tr>`)
 			}
