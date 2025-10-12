@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1] - 2025-10-12
+
+### Fixed
+- **Critical:** Fix `pyscn analyze` failing with "no Python files found" error (#178)
+
+### Improved
+- Improve README with dev.to article link and streamline CI/CD section (#172)
+
 ## [1.1.0] - 2025-10-11
 
 ### Added
