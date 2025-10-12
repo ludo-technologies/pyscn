@@ -1,5 +1,7 @@
 # pyscn - Python Code Quality Analyzer
 
+
+[![Article](https://img.shields.io/badge/dev.to-Article-0A0A0A?style=flat-square&logo=dev.to)](https://dev.to/daisukeyoda/pyscn-the-code-quality-analyzer-for-vibe-coders-18hk)
 [![PyPI](https://img.shields.io/pypi/v/pyscn?style=flat-square&logo=pypi)](https://pypi.org/project/pyscn/)
 [![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -106,25 +108,19 @@ directory = "reports"
 ## CI/CD Integration
 
 ```yaml
-# .github/workflows/code-quality.yml
-name: Code Quality
-on: [push, pull_request]
+# GitHub Actions
+- uses: actions/checkout@v4
+- run: pipx run pyscn check .    # Fail on quality issues
 
-jobs:
-  quality-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: pip install pyscn
-      - name: Quick quality check
-        run: pyscn check .
-      - name: Generate detailed report
-        run: pyscn analyze --json --select complexity,deadcode,deps src/
-      - name: Upload report
-        uses: actions/upload-artifact@v4
-        with:
-          name: code-quality-report
-          path: .pyscn/reports/
+# Pre-commit hook
+- repo: local
+  hooks:
+    - id: pyscn
+      name: pyscn check
+      entry: pyscn check .
+      language: system
+      pass_filenames: false
+      types: [python]
 ```
 
 ---
