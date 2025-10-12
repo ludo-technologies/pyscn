@@ -381,8 +381,8 @@ func TestComplexityUseCase_AnalyzeAndReturn(t *testing.T) {
 			name: "successful analysis without formatting",
 			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
-				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"**/*.py"}, []string{}).
-					Return([]string{"/test/file.py"}, nil)
+				// Mock file detection logic
+				fileReader.On("FileExists", "/test/file.py").Return(true, nil)
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return(createMockComplexityResponse(), nil)
 			},
@@ -405,8 +405,8 @@ func TestComplexityUseCase_AnalyzeAndReturn(t *testing.T) {
 			name: "analysis error in analyze and return",
 			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
-				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"**/*.py"}, []string{}).
-					Return([]string{"/test/file.py"}, nil)
+				// Mock file detection logic
+				fileReader.On("FileExists", "/test/file.py").Return(true, nil)
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return((*domain.ComplexityResponse)(nil), errors.New("analysis failed"))
 			},
