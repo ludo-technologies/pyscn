@@ -141,37 +141,17 @@ func (uc *CloneUseCase) ExecuteAndReturn(ctx context.Context, req domain.CloneRe
 		return nil, fmt.Errorf("file reader not initialized")
 	}
 
-	// Check if all paths are already files (not directories)
-	// This happens when called from AnalyzeUseCase which pre-collects files
-	allFiles := true
-	for _, path := range req.Paths {
-		if !uc.fileReader.IsValidPythonFile(path) {
-			allFiles = false
-			break
-		}
-		exists, err := uc.fileReader.FileExists(path)
-		if err != nil || !exists {
-			allFiles = false
-			break
-		}
-	}
-
-	var files []string
-	if allFiles {
-		// All paths are already files, no need to collect again
-		files = req.Paths
-	} else {
-		// Collect Python files from directories
-		var err error
-		files, err = uc.fileReader.CollectPythonFiles(
-			req.Paths,
-			req.Recursive,
-			req.IncludePatterns,
-			req.ExcludePatterns,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to collect files: %w", err)
-		}
+	// Resolve file paths (use helper to avoid duplication)
+	files, err := ResolveFilePaths(
+		uc.fileReader,
+		req.Paths,
+		req.Recursive,
+		req.IncludePatterns,
+		req.ExcludePatterns,
+		true, // validatePythonFile: clone detection requires strict Python validation
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect files: %w", err)
 	}
 
 	if len(files) == 0 {
