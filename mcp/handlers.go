@@ -138,12 +138,13 @@ func HandleCheckComplexity(ctx context.Context, request mcp.CallToolRequest) (*m
 	complexityService := service.NewComplexityService()
 	fileReader := service.NewFileReader()
 	formatter := service.NewOutputFormatter()
+	configLoader := service.NewConfigurationLoader()
 
 	useCase := app.NewComplexityUseCase(
 		complexityService,
 		fileReader,
 		formatter,
-		nil, // config loader
+		configLoader,
 	)
 
 	// Execute analysis
@@ -207,12 +208,13 @@ func HandleDetectClones(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 	cloneService := service.NewCloneService()
 	fileReader := service.NewFileReader()
 	formatter := service.NewCloneOutputFormatter()
+	configLoader := service.NewCloneConfigurationLoader()
 
 	useCase := app.NewCloneUseCase(
 		cloneService,
 		fileReader,
 		formatter,
-		nil, // config loader
+		configLoader,
 	)
 
 	// Execute analysis
@@ -266,7 +268,7 @@ func HandleCheckCoupling(ctx context.Context, request mcp.CallToolRequest) (*mcp
 		cboService,
 		fileReader,
 		formatter,
-		nil, // config loader
+		nil, // CBO config loader is optional
 	)
 
 	// Execute analysis
@@ -327,12 +329,13 @@ func HandleFindDeadCode(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 	deadCodeService := service.NewDeadCodeService()
 	fileReader := service.NewFileReader()
 	formatter := service.NewDeadCodeFormatter()
+	configLoader := service.NewDeadCodeConfigurationLoader()
 
 	useCase := app.NewDeadCodeUseCase(
 		deadCodeService,
 		fileReader,
 		formatter,
-		nil, // config loader
+		configLoader,
 	)
 
 	// Execute analysis
@@ -431,30 +434,36 @@ func contains(slice []string, item string) bool {
 }
 
 func buildAnalyzeUseCase(fileReader domain.FileReader) (*app.AnalyzeUseCase, error) {
+	// Create config loaders
+	complexityConfigLoader := service.NewConfigurationLoader()
+	deadCodeConfigLoader := service.NewDeadCodeConfigurationLoader()
+	cloneConfigLoader := service.NewCloneConfigurationLoader()
+	systemConfigLoader := service.NewSystemAnalysisConfigurationLoader()
+
 	// Build complexity use case
 	complexityService := service.NewComplexityService()
 	complexityFormatter := service.NewOutputFormatter()
-	complexityUC := app.NewComplexityUseCase(complexityService, fileReader, complexityFormatter, nil)
+	complexityUC := app.NewComplexityUseCase(complexityService, fileReader, complexityFormatter, complexityConfigLoader)
 
 	// Build dead code use case
 	deadCodeService := service.NewDeadCodeService()
 	deadCodeFormatter := service.NewDeadCodeFormatter()
-	deadCodeUC := app.NewDeadCodeUseCase(deadCodeService, fileReader, deadCodeFormatter, nil)
+	deadCodeUC := app.NewDeadCodeUseCase(deadCodeService, fileReader, deadCodeFormatter, deadCodeConfigLoader)
 
 	// Build clone use case
 	cloneService := service.NewCloneService()
 	cloneFormatter := service.NewCloneOutputFormatter()
-	cloneUC := app.NewCloneUseCase(cloneService, fileReader, cloneFormatter, nil)
+	cloneUC := app.NewCloneUseCase(cloneService, fileReader, cloneFormatter, cloneConfigLoader)
 
 	// Build CBO use case
 	cboService := service.NewCBOService()
 	cboFormatter := service.NewCBOFormatter()
-	cboUC := app.NewCBOUseCase(cboService, fileReader, cboFormatter, nil)
+	cboUC := app.NewCBOUseCase(cboService, fileReader, cboFormatter, nil) // CBO config loader is optional
 
 	// Build system analysis use case
 	systemService := service.NewSystemAnalysisService()
 	systemFormatter := service.NewSystemAnalysisFormatter()
-	systemUC := app.NewSystemAnalysisUseCase(systemService, fileReader, systemFormatter, nil)
+	systemUC := app.NewSystemAnalysisUseCase(systemService, fileReader, systemFormatter, systemConfigLoader)
 
 	// Build analyze use case
 	return app.NewAnalyzeUseCaseBuilder().

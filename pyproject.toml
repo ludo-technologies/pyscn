@@ -53,6 +53,7 @@ dev = [
 
 [project.scripts]
 pyscn = "pyscn.__main__:main"
+pyscn-mcp = "pyscn.mcp_main:main"
 
 [project.urls]
 Homepage = "https://github.com/ludo-technologies/pyscn"

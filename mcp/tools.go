@@ -8,12 +8,14 @@ import (
 // RegisterTools registers all pyscn MCP tools with the server
 func RegisterTools(s *server.MCPServer) {
 	// Tool 1: analyze_code - Comprehensive code analysis
-	// Note: analyses parameter is optional and will be parsed from arguments map
 	s.AddTool(mcp.NewTool("analyze_code",
-		mcp.WithDescription("Comprehensive Python code quality analysis with complexity, dead code, clone detection, and coupling metrics. Optional 'analyses' parameter accepts array of strings: complexity, dead_code, clone, cbo, deps"),
+		mcp.WithDescription("Comprehensive Python code quality analysis with complexity, dead code, clone detection, and coupling metrics"),
 		mcp.WithString("path",
 			mcp.Required(),
 			mcp.Description("Path to Python code (file or directory) to analyze")),
+		mcp.WithArray("analyses",
+			mcp.WithStringEnumItems([]string{"complexity", "dead_code", "clone", "cbo", "deps"}),
+			mcp.Description("Array of analyses to run. Options: complexity, dead_code, clone, cbo, deps. Default: all analyses")),
 		mcp.WithBoolean("recursive",
 			mcp.Description("Recursively analyze directories (default: true)")),
 	), HandleAnalyzeCode)

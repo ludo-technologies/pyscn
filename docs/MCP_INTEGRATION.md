@@ -36,7 +36,7 @@ This document outlines the design for integrating Model Context Protocol (MCP) i
 
 ## Recommended SDK
 
-**Choice: `mark3labs/mcp-go` or official `modelcontextprotocol/go-sdk`**
+**Choice: `mark3labs/mcp-go` v0.41.1**
 
 Reasons:
 - Most popular community implementation
@@ -201,7 +201,7 @@ Reasons:
     },
     "min_severity": {
       "type": "string",
-      "enum": ["info", "warning", "error"],
+      "enum": ["info", "warning", "critical"],
       "description": "Minimum severity to report",
       "default": "warning"
     }
@@ -252,6 +252,41 @@ Reasons:
   }
 }
 ```
+
+## Current Implementation
+
+### Go-based MCP Server
+
+**Location**: `cmd/pyscn-mcp/` and `mcp/`
+
+**Structure**:
+```
+cmd/pyscn-mcp/
+└── main.go          # Server entry point
+
+mcp/
+├── tools.go         # Tool definitions
+└── handlers.go      # Tool handler implementations
+```
+
+**Key Implementation Details**:
+
+1. **Server Setup** (`cmd/pyscn-mcp/main.go`):
+   - Uses `mark3labs/mcp-go` v0.41.1
+   - Stdio transport for JSON-RPC communication
+   - Registers 6 tools at startup
+   - Logs to stderr to avoid stdio interference
+
+2. **Tool Definitions** (`mcp/tools.go`):
+   - Simple tool registration using `mcp.NewTool()`
+   - Parameters defined with `mcp.WithString()`, `mcp.WithBoolean()`, etc.
+   - No `WithArray()` API (doesn't exist in v0.41.1)
+
+3. **Handlers** (`mcp/handlers.go`):
+   - Each handler receives `mcp.CallToolRequest`
+   - Extracts parameters from `request.Params.Arguments` map
+   - Calls existing pyscn use cases directly
+   - Returns JSON via `mcp.NewToolResultText()`
 
 ## Implementation Steps
 
@@ -367,35 +402,30 @@ Reasons:
 
 ### Phase 4: Client Configuration
 
-8. **Claude Desktop configuration**
+8. **Cursor configuration**
+
+   First, locate the binary path using `uv tool dir`:
+   ```bash
+   uv tool dir
+   # Output example: C:\Users\YourName\AppData\Local\uv\tools\pyscn
+   ```
+
+   Then configure Cursor with the full path:
    ```json
    {
      "mcpServers": {
-       "pyscn": {
-         "command": "pyscn-mcp",
-         "args": [],
-         "env": {}
+       "pyscn-mcp": {
+         "command": "C:\\Users\\YourName\\AppData\\Local\\uv\\tools\\pyscn\\bin\\pyscn-mcp.exe",
+         "args": []
        }
      }
    }
    ```
 
-9. **Cursor configuration**
-   ```json
-   {
-     "experimental": {
-       "modelContextProtocolServers": [
-         {
-           "transport": {
-             "type": "stdio",
-             "command": "pyscn-mcp",
-             "args": []
-           }
-         }
-       ]
-     }
-   }
-   ```
+   **Note**:
+   - Windows: Use `pyscn-mcp.exe`
+   - Linux/macOS: Use `pyscn-mcp` (no extension)
+   - Adjust the base path based on your actual `uv tool dir` output
 
 ## Benefits of MCP Integration
 
@@ -464,6 +494,136 @@ Reasons:
 3. **Sandboxing**: Run analysis in isolated environment
 4. **Authentication**: Optional API key for remote access
 
+## Installation Guide
+
+### Installation via uv tool
+
+The recommended installation method is using `uv tool`:
+
+```bash
+# Install pyscn (includes pyscn-mcp binary)
+uv tool install pyscn
+```
+
+### Locating the MCP Binary
+
+After installation, locate the binary path:
+
+```bash
+# Find the uv tools directory
+uv tool dir
+
+# Example output:
+# Windows: C:\Users\YourName\AppData\Local\uv\tools\pyscn
+# Linux: /home/username/.local/share/uv/tools/pyscn
+# macOS: /Users/username/Library/Application Support/uv/tools/pyscn
+```
+
+The MCP binary location within the tool directory:
+- **Windows**: `bin\pyscn-mcp.exe`
+- **Linux**: `bin/pyscn-mcp`
+- **macOS**: `bin/pyscn-mcp`
+
+### Cursor Configuration
+
+**Option 1: Using uvx (Recommended)**
+
+The simplest way is to use `uvx`, which automatically handles installation:
+
+```json
+{
+  "mcpServers": {
+    "pyscn-mcp": {
+      "command": "uvx",
+      "args": ["pyscn-mcp"],
+      "env": {
+        "PYSCN_CONFIG": "/path/to/.pyscn.toml"
+      }
+    }
+  }
+}
+```
+
+**Option 2: Using installed binary path**
+
+Configure Cursor with the full binary path:
+
+**Windows:**
+```json
+{
+  "mcpServers": {
+    "pyscn-mcp": {
+      "command": "C:\\Users\\YourName\\AppData\\Local\\uv\\tools\\pyscn\\bin\\pyscn-mcp.exe",
+      "args": [],
+      "env": {
+        "PYSCN_CONFIG": "/path/to/.pyscn.toml"
+      }
+    }
+  }
+}
+```
+
+**Linux:**
+```json
+{
+  "mcpServers": {
+    "pyscn-mcp": {
+      "command": "/home/username/.local/share/uv/tools/pyscn/bin/pyscn-mcp",
+      "args": [],
+      "env": {
+        "PYSCN_CONFIG": "/path/to/.pyscn.toml"
+      }
+    }
+  }
+}
+```
+
+**macOS:**
+```json
+{
+  "mcpServers": {
+    "pyscn-mcp": {
+      "command": "/Users/username/Library/Application Support/uv/tools/pyscn/bin/pyscn-mcp",
+      "args": [],
+      "env": {
+        "PYSCN_CONFIG": "/path/to/.pyscn.toml"
+      }
+    }
+  }
+}
+```
+
+**Note**: `PYSCN_CONFIG` environment variable is optional
+
+### Building from Source (Optional)
+
+If you want to build from source instead:
+
+#### Linux/macOS
+
+```bash
+# Build the MCP server binary
+make build-mcp
+
+# Or install globally
+sudo make install-mcp
+```
+
+#### Windows
+
+Due to CGO requirements, Windows builds are best done using WSL for cross-compilation:
+
+```bash
+# In WSL, install MinGW-w64
+sudo apt-get update
+sudo apt-get install -y mingw-w64
+
+# Cross-compile for Windows
+CGO_ENABLED=1 GOOS=windows GOARCH=amd64 \
+  CC=x86_64-w64-mingw32-gcc \
+  go build -o bin/pyscn-mcp.exe ./cmd/pyscn-mcp
+```
+
 ## Future Enhancements
 
 1. **Resources**: Expose configuration files as MCP resources
@@ -471,6 +631,7 @@ Reasons:
 3. **Sampling**: Support for progressive analysis
 4. **Notifications**: Real-time progress updates
 5. **Incremental analysis**: Only analyze changed files
+6. **Configuration profiles**: Project-specific analysis profiles
 
 ## References
 

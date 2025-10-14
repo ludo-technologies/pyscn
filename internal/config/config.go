@@ -380,6 +380,13 @@ func findDefaultConfig(targetPath string) string {
 		}
 	}
 
+	// Check PYSCN_CONFIG environment variable as fallback
+	if envConfig := os.Getenv("PYSCN_CONFIG"); envConfig != "" {
+		if _, err := os.Stat(envConfig); err == nil {
+			return envConfig
+		}
+	}
+
 	return ""
 }
 

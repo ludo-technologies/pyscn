@@ -21,104 +21,148 @@ pyscn MCP Server exposes pyscn's code analysis capabilities as MCP tools, allowi
 
 ## Quick Start
 
-### 1. Build the MCP Server
+### Option 1: Using uvx (Recommended)
 
-#### Option A: Build Go-based MCP Server
-
-```bash
-# Build the MCP server binary
-make build-mcp
-
-# Or install globally
-make install-mcp
-```
-
-This creates the `pyscn-mcp` binary.
-
-#### Option B: Use FastMCP Python Server (Recommended)
-
-```bash
-# Install pyscn with MCP support
-pip install "pyscn[mcp]"
-# or
-pip install pyscn fastmcp
-
-# Start MCP server
-pyscn --start-mcp
-```
-
-This uses the FastMCP-based Python server, which is easier to install and maintain.
-
-### 2. Configure Your AI Assistant
-
-#### Cherry Studio
-
-Add to Cherry Studio MCP settings:
+The simplest way to use pyscn-mcp is with `uvx`, which automatically handles installation and execution:
 
 ```json
 {
   "mcpServers": {
-    "pyscn": {
-      "isActive": true,
-      "disabled": false,
-      "command": "pyscn",
-      "args": ["--start-mcp"],
-      "transportType": "stdio",
-      "timeout": 120,
-      "name": "pyscn"
+    "pyscn-mcp": {
+      "command": "uvx",
+      "args": ["pyscn-mcp"],
+      "env": {
+        "PYSCN_CONFIG": "/path/to/.pyscn.toml"
+      }
     }
   }
 }
 ```
 
-#### Claude Desktop
+**Benefits**:
+- ✅ No manual installation needed
+- ✅ Always uses the latest version
+- ✅ Works across all platforms
+- ✅ Supports environment variables
 
-Edit configuration file:
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-- **Linux**: `~/.config/Claude/claude_desktop_config.json`
+**Environment Variables**:
+- `PYSCN_CONFIG`: Path to custom configuration file (optional)
 
-```json
-{
-  "mcpServers": {
-    "pyscn": {
-      "command": "pyscn",
-      "args": ["--start-mcp"]
-    }
-  }
-}
+### Option 2: Using uv tool install
+
+If you prefer to install pyscn once and use the binary path:
+
+#### 1. Install pyscn via uv tool
+
+```bash
+# Install pyscn as a uv tool
+uv tool install pyscn
 ```
 
-#### Cursor
+This installs pyscn and includes the compiled `pyscn-mcp` binary.
+
+#### 2. Locate the Binary Path
+
+The MCP server binary is included in the uv tool installation. To find its path:
+
+```bash
+# Get the tool directory
+uv tool dir
+
+# Example output: C:\Users\YourName\AppData\Local\uv\tools\pyscn
+```
+
+The binary location depends on your platform:
+- **Windows**: `<uv_tool_dir>\pyscn\bin\pyscn-mcp.exe`
+- **Linux**: `<uv_tool_dir>/pyscn/bin/pyscn-mcp`
+- **macOS**: `<uv_tool_dir>/pyscn/bin/pyscn-mcp`
+
+#### 3. Configure Cursor
 
 Add to Cursor settings (Settings → Features → Model Context Protocol):
 
+**Windows Example:**
 ```json
 {
-  "experimental": {
-    "modelContextProtocolServers": [
-      {
-        "name": "pyscn",
-        "transport": {
-          "type": "stdio",
-          "command": "pyscn",
-          "args": ["--start-mcp"]
-        }
+  "mcpServers": {
+    "pyscn-mcp": {
+      "command": "C:\\Users\\YourName\\AppData\\Local\\uv\\tools\\pyscn\\bin\\pyscn-mcp.exe",
+      "args": [],
+      "env": {
+        "PYSCN_CONFIG": "/path/to/.pyscn.toml"
       }
-    ]
+    }
   }
 }
 ```
 
-**Note**: Replace `"pyscn"` with `"pyscn-mcp"` if using the Go-based server.
+**Linux Example:**
+```json
+{
+  "mcpServers": {
+    "pyscn-mcp": {
+      "command": "/home/username/.local/share/uv/tools/pyscn/bin/pyscn-mcp",
+      "args": [],
+      "env": {
+        "PYSCN_CONFIG": "/path/to/.pyscn.toml"
+      }
+    }
+  }
+}
+```
 
-See [../MCP_FASTMCP_GUIDE.md](../MCP_FASTMCP_GUIDE.md) for FastMCP-specific configuration.
+**macOS Example:**
+```json
+{
+  "mcpServers": {
+    "pyscn-mcp": {
+      "command": "/Users/username/Library/Application Support/uv/tools/pyscn/bin/pyscn-mcp",
+      "args": [],
+      "env": {
+        "PYSCN_CONFIG": "/path/to/.pyscn.toml"
+      }
+    }
+  }
+}
+```
 
-### 3. Restart Your AI Assistant
+**Note**: Replace the path with your actual `uv tool dir` output path.
 
-Restart Claude Desktop or Cursor to load the MCP server.
+## Configuration
 
-### 4. Test It Out
+### Configuration File Priority
+
+pyscn-mcp searches for configuration files in the following order:
+
+1. **Project configuration** - Searches from analysis target directory upward:
+   - `pyscn.yaml`
+   - `pyscn.yml`
+   - `.pyscn.toml`
+   - `.pyscn.yml`
+   - `pyscn.json`
+   - `.pyscn.json`
+
+2. **Current directory** - Same file names as above
+
+3. **XDG config directory** - `$XDG_CONFIG_HOME/pyscn/`
+
+4. **User config directory** - `~/.config/pyscn/`
+
+5. **Home directory** - `~/`
+
+6. **Environment variable** - `PYSCN_CONFIG` (if set and file exists)
+
+7. **Default configuration** - Built-in defaults
+
+**Best Practice**: Place `.pyscn.toml` in your project root for project-specific settings.
+
+## Testing
+
+### Restart Cursor
+
+Restart Cursor to load the MCP server.
+
+### Test It Out
 
 Try asking your AI assistant:
 
@@ -397,44 +441,6 @@ What's the health score of my codebase?
 - Context-aware explanations
 - Visual dependency maps
 - Complexity hotspots
-
-## Configuration
-
-### Global Configuration
-
-Create `.pyscn-mcp.toml` in your project root:
-
-```toml
-[defaults]
-recursive = true
-min_complexity = 10
-similarity_threshold = 0.85
-
-[performance]
-timeout_seconds = 300
-```
-
-### Environment Variables
-
-Set in your MCP client configuration:
-
-- `PYSCN_LOG_LEVEL`: Log level (`debug`, `info`, `warn`, `error`)
-- `PYSCN_CONFIG`: Path to custom config file
-
-**Example** (Claude Desktop):
-```json
-{
-  "mcpServers": {
-    "pyscn": {
-      "command": "pyscn-mcp",
-      "env": {
-        "PYSCN_LOG_LEVEL": "debug",
-        "PYSCN_CONFIG": "/path/to/.pyscn-mcp.toml"
-      }
-    }
-  }
-}
-```
 
 ## Development
 
