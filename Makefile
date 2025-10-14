@@ -2,6 +2,7 @@
 
 # Variables
 BINARY_NAME := pyscn
+MCP_BINARY_NAME := pyscn-mcp
 GO_MODULE := github.com/ludo-technologies/pyscn
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -17,7 +18,7 @@ GREEN := \033[0;32m
 YELLOW := \033[1;33m
 NC := \033[0m # No Color
 
-.PHONY: all build test clean install run version help build-python python-wheel python-test python-clean
+.PHONY: all build test clean install run version help build-python python-wheel python-test python-clean build-mcp install-mcp clean-mcp
 
 ## help: Show this help message
 help:
@@ -31,6 +32,11 @@ all: test build
 build:
 	@printf "$(GREEN)Building $(BINARY_NAME) $(VERSION)...$(NC)\n"
 	go build $(LDFLAGS) -o $(BINARY_NAME) ./cmd/pyscn
+
+## build-mcp: Build the MCP server binary
+build-mcp:
+	@printf "$(GREEN)Building $(MCP_BINARY_NAME) $(VERSION)...$(NC)\n"
+	go build $(LDFLAGS) -o $(MCP_BINARY_NAME) ./cmd/pyscn-mcp
 
 ## test: Run tests
 test:
@@ -53,14 +59,25 @@ coverage:
 clean:
 	@printf "$(YELLOW)Cleaning...$(NC)\n"
 	rm -f $(BINARY_NAME)
+	rm -f $(MCP_BINARY_NAME)
 	rm -f coverage.out coverage.html
 	rm -rf dist/
 	go clean
+
+## clean-mcp: Clean MCP build artifacts
+clean-mcp:
+	@printf "$(YELLOW)Cleaning MCP artifacts...$(NC)\n"
+	rm -f $(MCP_BINARY_NAME)
 
 ## install: Install the binary
 install: build
 	@printf "$(GREEN)Installing $(BINARY_NAME)...$(NC)\n"
 	go install $(LDFLAGS) ./cmd/pyscn
+
+## install-mcp: Install the MCP server binary
+install-mcp: build-mcp
+	@printf "$(GREEN)Installing $(MCP_BINARY_NAME)...$(NC)\n"
+	go install $(LDFLAGS) ./cmd/pyscn-mcp
 
 ## run: Run the application
 run:
@@ -101,8 +118,8 @@ dev:
 	air
 
 # Platform-specific builds
-## build-all: Build for all platforms
-build-all: build-linux build-darwin build-windows
+## build-all: Build for all platforms (CLI + MCP)
+build-all: build-linux build-darwin build-windows build-mcp-all
 
 build-linux:
 	@printf "$(GREEN)Building for Linux...$(NC)\n"
@@ -119,30 +136,88 @@ build-windows:
 	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-windows-amd64.exe ./cmd/pyscn
 	GOOS=windows GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-windows-arm64.exe ./cmd/pyscn
 
-# Python packaging
-## build-python: Build Python wheels with embedded binaries
-build-python:
-	@printf "$(GREEN)Building Python wheels...$(NC)\n"
-	python/scripts/build_all_wheels.sh
+# MCP Server Platform-specific builds
+## build-mcp-all: Build MCP server for all platforms
+build-mcp-all: build-mcp-linux build-mcp-darwin build-mcp-windows
 
-## python-wheel: Build Python wheel for current platform only
+build-mcp-linux:
+	@printf "$(GREEN)Building MCP server for Linux...$(NC)\n"
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/$(MCP_BINARY_NAME)-linux-amd64 ./cmd/pyscn-mcp
+	GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o dist/$(MCP_BINARY_NAME)-linux-arm64 ./cmd/pyscn-mcp
+
+build-mcp-darwin:
+	@printf "$(GREEN)Building MCP server for macOS...$(NC)\n"
+	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o dist/$(MCP_BINARY_NAME)-darwin-amd64 ./cmd/pyscn-mcp
+	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o dist/$(MCP_BINARY_NAME)-darwin-arm64 ./cmd/pyscn-mcp
+
+build-mcp-windows:
+	@printf "$(GREEN)Building MCP server for Windows...$(NC)\n"
+	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o dist/$(MCP_BINARY_NAME)-windows-amd64.exe ./cmd/pyscn-mcp
+	GOOS=windows GOARCH=arm64 go build $(LDFLAGS) -o dist/$(MCP_BINARY_NAME)-windows-arm64.exe ./cmd/pyscn-mcp
+
+# Python packaging
+## build-python: Build Python wheels with embedded binaries (all platforms)
+build-python: build-mcp-all
+	@printf "$(GREEN)Building Python wheels with all platform binaries...$(NC)\n"
+	@mkdir -p python/src/pyscn/bin
+	@cp dist/$(MCP_BINARY_NAME)-* python/src/pyscn/bin/ 2>/dev/null || true
+	@printf "$(GREEN)Binaries copied to python/src/pyscn/bin/$(NC)\n"
+	@ls -lh python/src/pyscn/bin/
+	python3 -m build
+	@printf "$(GREEN)Python wheel built: $(NC)\n"
+	@ls -lh dist/*.whl
+
+## python-wheel: Build Python wheel with current platform binary only
 python-wheel:
 	@printf "$(GREEN)Building Python wheel for current platform...$(NC)\n"
 	@mkdir -p python/src/pyscn/bin dist
 	go build $(LDFLAGS) -o python/src/pyscn/bin/pyscn-$$(go env GOOS)-$$(go env GOARCH)$$(if [ "$$(go env GOOS)" = "windows" ]; then echo ".exe"; fi) ./cmd/pyscn
-	python/scripts/create_wheel.sh
+	go build $(LDFLAGS) -o python/src/pyscn/bin/$(MCP_BINARY_NAME)-$$(go env GOOS)-$$(go env GOARCH)$$(if [ "$$(go env GOOS)" = "windows" ]; then echo ".exe"; fi) ./cmd/pyscn-mcp
+	python3 -m build
+
+## python-dev-install: Install development version with uv
+python-dev-install: python-wheel
+	@printf "$(GREEN)Uninstalling old version...$(NC)\n"
+	-uv tool uninstall pyscn 2>/dev/null || pip uninstall -y pyscn 2>/dev/null || true
+	@printf "$(GREEN)Installing development version with uv...$(NC)\n"
+	uv tool install --force --editable python/
+	@printf "$(GREEN)Testing installation...$(NC)\n"
+	pyscn --version
+	@printf "$(GREEN)Testing uvx pyscn-mcp...$(NC)\n"
+	@printf "Run: uvx pyscn-mcp --help\n"
+
+## python-install: Install from built wheel with uv
+python-install: python-wheel
+	@printf "$(GREEN)Uninstalling old version...$(NC)\n"
+	-uv tool uninstall pyscn 2>/dev/null || pip uninstall -y pyscn 2>/dev/null || true
+	@printf "$(GREEN)Installing from wheel...$(NC)\n"
+	uv tool install $$(ls -t dist/*.whl | head -1)
+	@printf "$(GREEN)Installation complete!$(NC)\n"
+	@printf "$(GREEN)Testing commands:$(NC)\n"
+	pyscn --version
+	uvx pyscn-mcp --help
 
 ## python-test: Test Python package installation
 python-test: python-wheel
 	@printf "$(GREEN)Testing Python package...$(NC)\n"
-	pip install --force-reinstall dist/*.whl
+	pip install --force-reinstall $$(ls -t dist/*.whl | head -1)
 	@printf "$(GREEN)Testing pyscn command...$(NC)\n"
-	pyscn --version || pyscn --help
+	pyscn --version
+	@printf "$(GREEN)Testing pyscn-mcp command...$(NC)\n"
+	pyscn-mcp --help || python -m pyscn.mcp_main --help
+
+## python-uninstall: Uninstall pyscn from uv and pip
+python-uninstall:
+	@printf "$(YELLOW)Uninstalling pyscn...$(NC)\n"
+	-uv tool uninstall pyscn 2>/dev/null || true
+	-pip uninstall -y pyscn 2>/dev/null || true
+	@printf "$(GREEN)Uninstall complete$(NC)\n"
 
 ## python-clean: Clean Python build artifacts
 python-clean:
 	@printf "$(YELLOW)Cleaning Python build artifacts...$(NC)\n"
 	rm -rf python/src/pyscn/bin
-	rm -rf dist
+	rm -rf dist/*.whl
 	rm -rf build
 	rm -rf *.egg-info
+	rm -rf .eggs
