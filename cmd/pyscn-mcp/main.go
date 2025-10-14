@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
 )
@@ -27,8 +28,18 @@ func main() {
 		mcpserver.WithLogging(),
 	)
 
+	configPath := os.Getenv("PYSCN_CONFIG")
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		log.Printf("Warning: failed to load config: %v, using defaults", err)
+		cfg = config.DefaultConfig()
+	}
+
+	dependencies := mcp.NewDependencies(cfg, configPath)
+	handlers := mcp.NewHandlerSet(dependencies)
+
 	// Register all pyscn tools
-	mcp.RegisterTools(server)
+	mcp.RegisterTools(server, handlers)
 
 	log.Printf("Starting %s MCP server v%s\n", serverName, serverVersion)
 	log.Println("Registered tools:")

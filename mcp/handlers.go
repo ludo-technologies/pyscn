@@ -13,8 +13,21 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
+// HandlerSet exposes MCP tool handlers with shared dependencies.
+type HandlerSet struct {
+	deps *Dependencies
+}
+
+// NewHandlerSet constructs a handler set.
+func NewHandlerSet(deps *Dependencies) *HandlerSet {
+	if deps == nil {
+		deps = NewDependencies(nil, "")
+	}
+	return &HandlerSet{deps: deps}
+}
+
 // HandleAnalyzeCode handles the analyze_code tool
-func HandleAnalyzeCode(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Parse arguments with type assertion
 	args, ok := request.Params.Arguments.(map[string]interface{})
 	if !ok {
@@ -41,37 +54,43 @@ func HandleAnalyzeCode(ctx context.Context, request mcp.CallToolRequest) (*mcp.C
 		}
 	}
 
-	// Parse recursive flag
-	recursive := true
-	if r, ok := args["recursive"].(bool); ok {
-		recursive = r
-	}
-
-	// Build use case with dependencies
-	fileReader := service.NewFileReader()
-
 	// Create config for analyze use case
 	config := app.AnalyzeUseCaseConfig{
-		SkipComplexity: !contains(analyses, "complexity") && len(analyses) > 0,
-		SkipDeadCode:   !contains(analyses, "dead_code") && len(analyses) > 0,
-		SkipClones:     !contains(analyses, "clone") && len(analyses) > 0,
-		SkipCBO:        !contains(analyses, "cbo") && len(analyses) > 0,
-		SkipSystem:     !contains(analyses, "deps") && len(analyses) > 0,
-		MinSeverity:    domain.DeadCodeSeverityWarning,
+		SkipComplexity:  !contains(analyses, "complexity") && len(analyses) > 0,
+		SkipDeadCode:    !contains(analyses, "dead_code") && len(analyses) > 0,
+		SkipClones:      !contains(analyses, "clone") && len(analyses) > 0,
+		SkipCBO:         !contains(analyses, "cbo") && len(analyses) > 0,
+		SkipSystem:      !contains(analyses, "deps") && len(analyses) > 0,
+		MinComplexity:   1,
+		MinSeverity:     domain.DeadCodeSeverityWarning,
+		CloneSimilarity: 0.8,
+		ConfigFile:      h.deps.ConfigPath(),
+	}
+	if cfg := h.deps.Config(); cfg != nil {
+		if cfg.Output.MinComplexity > 0 {
+			config.MinComplexity = cfg.Output.MinComplexity
+		}
+		switch cfg.DeadCode.MinSeverity {
+		case "info":
+			config.MinSeverity = domain.DeadCodeSeverityInfo
+		case "critical", "error":
+			config.MinSeverity = domain.DeadCodeSeverityCritical
+		default:
+			config.MinSeverity = domain.DeadCodeSeverityWarning
+		}
+		if cfg.Clones != nil && cfg.Clones.Thresholds.SimilarityThreshold > 0 {
+			config.CloneSimilarity = cfg.Clones.Thresholds.SimilarityThreshold
+		}
 	}
 
 	// Build analyze use case using builder pattern
-	analyzeUC, err := buildAnalyzeUseCase(fileReader)
+	analyzeUC, err := h.deps.BuildAnalyzeUseCase()
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to create analyzer: %v", err)), nil
 	}
 
 	// Collect files
 	paths := []string{path}
-	if !recursive {
-		// Just use the provided path
-		paths = []string{path}
-	}
 
 	// Execute analysis
 	result, err := analyzeUC.Execute(ctx, config, paths)
@@ -89,7 +108,7 @@ func HandleAnalyzeCode(ctx context.Context, request mcp.CallToolRequest) (*mcp.C
 }
 
 // HandleCheckComplexity handles the check_complexity tool
-func HandleCheckComplexity(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (h *HandlerSet) HandleCheckComplexity(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args, ok := request.Params.Arguments.(map[string]interface{})
 	if !ok {
 		return mcp.NewToolResultError("invalid arguments format"), nil
@@ -105,19 +124,62 @@ func HandleCheckComplexity(ctx context.Context, request mcp.CallToolRequest) (*m
 	}
 
 	// Parse optional parameters
+	cfg := h.deps.Config()
+
 	minComplexity := 1
+	if cfg != nil && cfg.Output.MinComplexity > 0 {
+		minComplexity = cfg.Output.MinComplexity
+	}
 	if mc, ok := args["min_complexity"].(float64); ok {
 		minComplexity = int(mc)
 	}
 
 	maxComplexity := 0
+	if cfg != nil && cfg.Complexity.MaxComplexity > 0 {
+		maxComplexity = cfg.Complexity.MaxComplexity
+	}
 	if mc, ok := args["max_complexity"].(float64); ok {
 		maxComplexity = int(mc)
 	}
 
 	showDetails := true
+	if cfg != nil {
+		showDetails = cfg.Output.ShowDetails
+	}
 	if sd, ok := args["show_details"].(bool); ok {
 		showDetails = sd
+	}
+
+	lowThreshold := 9
+	mediumThreshold := 19
+	if cfg != nil {
+		if cfg.Complexity.LowThreshold > 0 {
+			lowThreshold = cfg.Complexity.LowThreshold
+		}
+		if cfg.Complexity.MediumThreshold > 0 {
+			mediumThreshold = cfg.Complexity.MediumThreshold
+		}
+	}
+
+	sortBy := domain.SortByComplexity
+	if cfg != nil {
+		switch cfg.Output.SortBy {
+		case "name":
+			sortBy = domain.SortByName
+		case "risk":
+			sortBy = domain.SortByRisk
+		}
+	}
+
+	includePatterns := []string{}
+	excludePatterns := []string{}
+	if cfg != nil {
+		if len(cfg.Analysis.IncludePatterns) > 0 {
+			includePatterns = cfg.Analysis.IncludePatterns
+		}
+		if len(cfg.Analysis.ExcludePatterns) > 0 {
+			excludePatterns = cfg.Analysis.ExcludePatterns
+		}
 	}
 
 	// Create complexity request
@@ -126,12 +188,15 @@ func HandleCheckComplexity(ctx context.Context, request mcp.CallToolRequest) (*m
 		MinComplexity:   minComplexity,
 		MaxComplexity:   maxComplexity,
 		ShowDetails:     showDetails,
-		Recursive:       true,
+		Recursive:       cfg == nil || cfg.Analysis.Recursive,
 		OutputFormat:    domain.OutputFormatJSON,
 		OutputWriter:    io.Discard,
-		LowThreshold:    9,
-		MediumThreshold: 19,
-		SortBy:          domain.SortByComplexity,
+		LowThreshold:    lowThreshold,
+		MediumThreshold: mediumThreshold,
+		SortBy:          sortBy,
+		IncludePatterns: includePatterns,
+		ExcludePatterns: excludePatterns,
+		ConfigPath:      h.deps.ConfigPath(),
 	}
 
 	// Build use case with all required dependencies
@@ -163,7 +228,7 @@ func HandleCheckComplexity(ctx context.Context, request mcp.CallToolRequest) (*m
 }
 
 // HandleDetectClones handles the detect_clones tool
-func HandleDetectClones(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (h *HandlerSet) HandleDetectClones(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args, ok := request.Params.Arguments.(map[string]interface{})
 	if !ok {
 		return mcp.NewToolResultError("invalid arguments format"), nil
@@ -178,31 +243,55 @@ func HandleDetectClones(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 		return mcp.NewToolResultError(fmt.Sprintf("path does not exist: %s", path)), nil
 	}
 
+	// Load defaults from configuration
+	cfg := h.deps.Config()
+	req := domain.DefaultCloneRequest()
+	if cfg != nil && cfg.Clones != nil {
+		req.SimilarityThreshold = cfg.Clones.Thresholds.SimilarityThreshold
+		req.MinLines = cfg.Clones.Analysis.MinLines
+		req.MinNodes = cfg.Clones.Analysis.MinNodes
+		req.GroupClones = cfg.Clones.Output.GroupClones
+		req.Recursive = cfg.Clones.Input.Recursive
+		if len(cfg.Clones.Input.IncludePatterns) > 0 {
+			req.IncludePatterns = cfg.Clones.Input.IncludePatterns
+		}
+		if len(cfg.Clones.Input.ExcludePatterns) > 0 {
+			req.ExcludePatterns = cfg.Clones.Input.ExcludePatterns
+		}
+	} else if cfg != nil {
+		req.Recursive = cfg.Analysis.Recursive
+		if len(cfg.Analysis.IncludePatterns) > 0 {
+			req.IncludePatterns = cfg.Analysis.IncludePatterns
+		}
+		if len(cfg.Analysis.ExcludePatterns) > 0 {
+			req.ExcludePatterns = cfg.Analysis.ExcludePatterns
+		}
+	}
+
 	// Parse optional parameters
-	similarityThreshold := 0.8
+	similarityThreshold := req.SimilarityThreshold
 	if st, ok := args["similarity_threshold"].(float64); ok {
 		similarityThreshold = st
 	}
 
-	minLines := 5
+	minLines := req.MinLines
 	if ml, ok := args["min_lines"].(float64); ok {
 		minLines = int(ml)
 	}
 
-	groupClones := true
+	groupClones := req.GroupClones
 	if gc, ok := args["group_clones"].(bool); ok {
 		groupClones = gc
 	}
 
-	// Create clone request
-	req := domain.DefaultCloneRequest()
 	req.Paths = []string{path}
 	req.SimilarityThreshold = similarityThreshold
 	req.MinLines = minLines
 	req.GroupClones = groupClones
-	req.Recursive = true
+	// Preserve MinNodes from defaults/config
 	req.OutputFormat = domain.OutputFormatJSON
 	req.OutputWriter = io.Discard
+	req.ConfigPath = h.deps.ConfigPath()
 
 	// Build use case with all required dependencies
 	cloneService := service.NewCloneService()
@@ -233,7 +322,7 @@ func HandleDetectClones(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 }
 
 // HandleCheckCoupling handles the check_coupling tool
-func HandleCheckCoupling(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (h *HandlerSet) HandleCheckCoupling(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args, ok := request.Params.Arguments.(map[string]interface{})
 	if !ok {
 		return mcp.NewToolResultError("invalid arguments format"), nil
@@ -248,15 +337,24 @@ func HandleCheckCoupling(ctx context.Context, request mcp.CallToolRequest) (*mcp
 		return mcp.NewToolResultError(fmt.Sprintf("path does not exist: %s", path)), nil
 	}
 
-	// Create CBO request
-	req := domain.CBORequest{
-		Paths:           []string{path},
-		Recursive:       true,
-		OutputFormat:    domain.OutputFormatJSON,
-		OutputWriter:    io.Discard,
-		LowThreshold:    5,
-		MediumThreshold: 10,
-		SortBy:          domain.SortByCoupling,
+	cfg := h.deps.Config()
+	req := domain.DefaultCBORequest()
+	req.Paths = []string{path}
+	req.OutputFormat = domain.OutputFormatJSON
+	req.OutputWriter = io.Discard
+	req.ConfigPath = h.deps.ConfigPath()
+	req.LowThreshold = 5
+	req.MediumThreshold = 10
+	req.SortBy = domain.SortByCoupling
+
+	if cfg != nil {
+		req.Recursive = cfg.Analysis.Recursive
+		if len(cfg.Analysis.IncludePatterns) > 0 {
+			req.IncludePatterns = cfg.Analysis.IncludePatterns
+		}
+		if len(cfg.Analysis.ExcludePatterns) > 0 {
+			req.ExcludePatterns = cfg.Analysis.ExcludePatterns
+		}
 	}
 
 	// Build use case with all required dependencies
@@ -272,7 +370,7 @@ func HandleCheckCoupling(ctx context.Context, request mcp.CallToolRequest) (*mcp
 	)
 
 	// Execute analysis
-	result, err := useCase.AnalyzeAndReturn(ctx, req)
+	result, err := useCase.AnalyzeAndReturn(ctx, *req)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("coupling analysis failed: %v", err)), nil
 	}
@@ -287,7 +385,7 @@ func HandleCheckCoupling(ctx context.Context, request mcp.CallToolRequest) (*mcp
 }
 
 // HandleFindDeadCode handles the find_dead_code tool
-func HandleFindDeadCode(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (h *HandlerSet) HandleFindDeadCode(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args, ok := request.Params.Arguments.(map[string]interface{})
 	if !ok {
 		return mcp.NewToolResultError("invalid arguments format"), nil
@@ -303,7 +401,16 @@ func HandleFindDeadCode(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 	}
 
 	// Parse min_severity
+	cfg := h.deps.Config()
 	minSeverity := domain.DeadCodeSeverityWarning
+	if cfg != nil {
+		switch cfg.DeadCode.MinSeverity {
+		case "info":
+			minSeverity = domain.DeadCodeSeverityInfo
+		case "critical", "error":
+			minSeverity = domain.DeadCodeSeverityCritical
+		}
+	}
 	if ms, ok := args["min_severity"].(string); ok {
 		switch ms {
 		case "info":
@@ -323,6 +430,16 @@ func HandleFindDeadCode(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 		OutputFormat: domain.OutputFormatJSON,
 		OutputWriter: io.Discard,
 		SortBy:       domain.DeadCodeSortBySeverity,
+		ConfigPath:   h.deps.ConfigPath(),
+	}
+	if cfg != nil {
+		req.Recursive = cfg.Analysis.Recursive
+		if len(cfg.Analysis.IncludePatterns) > 0 {
+			req.IncludePatterns = cfg.Analysis.IncludePatterns
+		}
+		if len(cfg.Analysis.ExcludePatterns) > 0 {
+			req.ExcludePatterns = cfg.Analysis.ExcludePatterns
+		}
 	}
 
 	// Build use case with all required dependencies
@@ -354,7 +471,7 @@ func HandleFindDeadCode(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 }
 
 // HandleGetHealthScore handles the get_health_score tool
-func HandleGetHealthScore(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (h *HandlerSet) HandleGetHealthScore(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args, ok := request.Params.Arguments.(map[string]interface{})
 	if !ok {
 		return mcp.NewToolResultError("invalid arguments format"), nil
@@ -370,19 +487,36 @@ func HandleGetHealthScore(ctx context.Context, request mcp.CallToolRequest) (*mc
 	}
 
 	// Run comprehensive analysis to get health score
-	fileReader := service.NewFileReader()
-
-	analyzeUC, err := buildAnalyzeUseCase(fileReader)
+	analyzeUC, err := h.deps.BuildAnalyzeUseCase()
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to create analyzer: %v", err)), nil
 	}
 
 	config := app.AnalyzeUseCaseConfig{
-		SkipComplexity: false,
-		SkipDeadCode:   false,
-		SkipClones:     false,
-		SkipCBO:        false,
-		MinSeverity:    domain.DeadCodeSeverityWarning,
+		SkipComplexity:  false,
+		SkipDeadCode:    false,
+		SkipClones:      false,
+		SkipCBO:         false,
+		MinSeverity:     domain.DeadCodeSeverityWarning,
+		MinComplexity:   1,
+		CloneSimilarity: 0.8,
+		ConfigFile:      h.deps.ConfigPath(),
+	}
+	if cfg := h.deps.Config(); cfg != nil {
+		if cfg.Output.MinComplexity > 0 {
+			config.MinComplexity = cfg.Output.MinComplexity
+		}
+		switch cfg.DeadCode.MinSeverity {
+		case "info":
+			config.MinSeverity = domain.DeadCodeSeverityInfo
+		case "critical", "error":
+			config.MinSeverity = domain.DeadCodeSeverityCritical
+		default:
+			config.MinSeverity = domain.DeadCodeSeverityWarning
+		}
+		if cfg.Clones != nil && cfg.Clones.Thresholds.SimilarityThreshold > 0 {
+			config.CloneSimilarity = cfg.Clones.Thresholds.SimilarityThreshold
+		}
 	}
 
 	result, err := analyzeUC.Execute(ctx, config, []string{path})
