@@ -2,6 +2,7 @@
 
 # Variables
 BINARY_NAME := pyscn
+MCP_BINARY_NAME := pyscn-mcp
 GO_MODULE := github.com/ludo-technologies/pyscn
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -17,7 +18,7 @@ GREEN := \033[0;32m
 YELLOW := \033[1;33m
 NC := \033[0m # No Color
 
-.PHONY: all build test clean install run version help build-python python-wheel python-test python-clean
+.PHONY: all build test clean install run version help build-python python-wheel python-test python-clean build-mcp install-mcp clean-mcp
 
 ## help: Show this help message
 help:
@@ -31,6 +32,11 @@ all: test build
 build:
 	@printf "$(GREEN)Building $(BINARY_NAME) $(VERSION)...$(NC)\n"
 	go build $(LDFLAGS) -o $(BINARY_NAME) ./cmd/pyscn
+
+## build-mcp: Build the MCP server binary
+build-mcp:
+	@printf "$(GREEN)Building $(MCP_BINARY_NAME) $(VERSION)...$(NC)\n"
+	go build $(LDFLAGS) -o $(MCP_BINARY_NAME) ./cmd/pyscn-mcp
 
 ## test: Run tests
 test:
@@ -53,14 +59,25 @@ coverage:
 clean:
 	@printf "$(YELLOW)Cleaning...$(NC)\n"
 	rm -f $(BINARY_NAME)
+	rm -f $(MCP_BINARY_NAME)
 	rm -f coverage.out coverage.html
 	rm -rf dist/
 	go clean
+
+## clean-mcp: Clean MCP build artifacts
+clean-mcp:
+	@printf "$(YELLOW)Cleaning MCP artifacts...$(NC)\n"
+	rm -f $(MCP_BINARY_NAME)
 
 ## install: Install the binary
 install: build
 	@printf "$(GREEN)Installing $(BINARY_NAME)...$(NC)\n"
 	go install $(LDFLAGS) ./cmd/pyscn
+
+## install-mcp: Install the MCP server binary
+install-mcp: build-mcp
+	@printf "$(GREEN)Installing $(MCP_BINARY_NAME)...$(NC)\n"
+	go install $(LDFLAGS) ./cmd/pyscn-mcp
 
 ## run: Run the application
 run:
@@ -101,8 +118,8 @@ dev:
 	air
 
 # Platform-specific builds
-## build-all: Build for all platforms
-build-all: build-linux build-darwin build-windows
+## build-all: Build for all platforms (CLI + MCP)
+build-all: build-linux build-darwin build-windows build-mcp-all
 
 build-linux:
 	@printf "$(GREEN)Building for Linux...$(NC)\n"
@@ -118,6 +135,25 @@ build-windows:
 	@printf "$(GREEN)Building for Windows...$(NC)\n"
 	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-windows-amd64.exe ./cmd/pyscn
 	GOOS=windows GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-windows-arm64.exe ./cmd/pyscn
+
+# MCP Server Platform-specific builds
+## build-mcp-all: Build MCP server for all platforms
+build-mcp-all: build-mcp-linux build-mcp-darwin build-mcp-windows
+
+build-mcp-linux:
+	@printf "$(GREEN)Building MCP server for Linux...$(NC)\n"
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/$(MCP_BINARY_NAME)-linux-amd64 ./cmd/pyscn-mcp
+	GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o dist/$(MCP_BINARY_NAME)-linux-arm64 ./cmd/pyscn-mcp
+
+build-mcp-darwin:
+	@printf "$(GREEN)Building MCP server for macOS...$(NC)\n"
+	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o dist/$(MCP_BINARY_NAME)-darwin-amd64 ./cmd/pyscn-mcp
+	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o dist/$(MCP_BINARY_NAME)-darwin-arm64 ./cmd/pyscn-mcp
+
+build-mcp-windows:
+	@printf "$(GREEN)Building MCP server for Windows...$(NC)\n"
+	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o dist/$(MCP_BINARY_NAME)-windows-amd64.exe ./cmd/pyscn-mcp
+	GOOS=windows GOARCH=arm64 go build $(LDFLAGS) -o dist/$(MCP_BINARY_NAME)-windows-arm64.exe ./cmd/pyscn-mcp
 
 # Python packaging
 ## build-python: Build Python wheels with embedded binaries
