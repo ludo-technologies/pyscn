@@ -176,10 +176,20 @@ create_wheel() {
         fi
     done
     
-    # Ensure binaries have unique basenames
+    # Ensure binaries have unique basenames and track required binaries
     local basenames=()
+    local has_pyscn_binary=0
+    local has_mcp_binary=0
     for binary_path in "${binary_paths[@]}"; do
         local basename="${binary_path##*/}"
+        case "$basename" in
+            pyscn-mcp-*)
+                has_mcp_binary=1
+                ;;
+            pyscn-*)
+                has_pyscn_binary=1
+                ;;
+        esac
         for seen_basename in "${basenames[@]}"; do
             if [[ "$seen_basename" == "$basename" ]]; then
                 echo "Error: Duplicate binary name detected: $basename"
@@ -188,6 +198,16 @@ create_wheel() {
         done
         basenames+=("$basename")
     done
+    
+    if [[ "$has_pyscn_binary" -ne 1 ]]; then
+        echo "Error: Missing pyscn CLI binary in provided --binary arguments"
+        exit 1
+    fi
+    
+    if [[ "$has_mcp_binary" -ne 1 ]]; then
+        echo "Error: Missing pyscn-mcp MCP server binary in provided --binary arguments"
+        exit 1
+    fi
     
     # Wheel filename
     local wheel_name="${PACKAGE_NAME}-${VERSION}-${PYTHON_TAG}-${ABI_TAG}-${platform_tag}.whl"
@@ -221,7 +241,10 @@ create_wheel() {
     cp "$src_dir/__init__.py" "$pkg_dir/"
     cp "$src_dir/__main__.py" "$pkg_dir/"
     cp "$src_dir/main.py" "$pkg_dir/"
-    cp "$src_dir/mcp_main.py" "$pkg_dir/"
+    
+    if [[ "$has_mcp_binary" -eq 1 ]]; then
+        cp "$src_dir/mcp_main.py" "$pkg_dir/"
+    fi
     
     # Copy binaries
     for binary_path in "${binary_paths[@]}"; do
@@ -273,11 +296,15 @@ Tag: $PYTHON_TAG-$ABI_TAG-$platform_tag
 EOF
 
     # Create entry_points.txt
-    cat > "$metadata_dir/entry_points.txt" << EOF
-[console_scripts]
-pyscn = pyscn.__main__:main
-pyscn-mcp = pyscn.mcp_main:main
-EOF
+    {
+        echo "[console_scripts]"
+        if [[ "$has_pyscn_binary" -eq 1 ]]; then
+            echo "pyscn = pyscn.__main__:main"
+        fi
+        if [[ "$has_mcp_binary" -eq 1 ]]; then
+            echo "pyscn-mcp = pyscn.mcp_main:main"
+        fi
+    } > "$metadata_dir/entry_points.txt"
 
     # Create RECORD file (proper CSV format)
     > "$metadata_dir/RECORD"  # Clear the file first

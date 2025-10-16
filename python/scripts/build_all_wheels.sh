@@ -135,8 +135,8 @@ main() {
         done
         
         if [[ "$build_failed" -eq 1 ]]; then
-            echo -e "${YELLOW}Skipping wheel creation for ${wheel_platform} due to build failure${NC}"
-            continue
+            echo -e "${RED}Error: Failed to build required binaries for ${goos}/${goarch}${NC}"
+            return 1
         fi
         
         local create_args=(
@@ -149,8 +149,8 @@ main() {
         done
         
         if ! "$script_dir/create_wheel.sh" "${create_args[@]}"; then
-            echo -e "${YELLOW}Warning: Failed to create wheel for ${wheel_platform}${NC}"
-            continue
+            echo -e "${RED}Error: Failed to create wheel for ${wheel_platform}${NC}"
+            return 1
         fi
     done
     
