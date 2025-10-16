@@ -32,6 +32,28 @@ https://github.com/user-attachments/assets/07f48070-c0dd-437b-9621-cb3963f863ff
 
 **100,000+ lines/sec** • Built with Go + tree-sitter
 
+## MCP Integration
+
+Run pyscn analyses straight from AI coding assistants via the Model Context Protocol (MCP). The bundled `pyscn-mcp` server exposes the same tools used in the CLI to Claude Code, Cursor, ChatGPT, and other MCP clients.
+
+```json
+{
+  "mcpServers": {
+    "pyscn-mcp": {
+      "command": "uvx",
+      "args": ["pyscn-mcp"],
+      "env": {
+        "PYSCN_CONFIG": "/path/to/.pyscn.toml"
+      }
+    }
+  }
+}
+```
+
+The instructions like "Analyze the code quality" trigger pyscn via MCP.
+
+Dive deeper in `mcp/README.md` for setup walkthroughs and `docs/MCP_INTEGRATION.md` for architecture details.
+
 ## Installation
 
 ```bash
