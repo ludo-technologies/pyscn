@@ -7,6 +7,7 @@ set -e
 
 # Configuration
 PACKAGE_NAME="pyscn"
+binary_paths=()
 
 # Function to convert git describe output to PEP 440 compliant version
 normalize_version() {
@@ -156,16 +157,55 @@ detect_platform() {
 # Create wheel for specified platform
 create_wheel() {
     local platform_tag="$1"
-    local binary_path="$2"
-    local output_dir="$3"
+    local output_dir="$2"
     
-    if [[ -z "$platform_tag" || -z "$binary_path" || -z "$output_dir" ]]; then
-        echo "Usage: create_wheel <platform_tag> <binary_path> <output_dir>"
+    if [[ -z "$platform_tag" || -z "$output_dir" ]]; then
+        echo "Usage: create_wheel <platform_tag> <output_dir>"
         exit 1
     fi
     
-    if [[ ! -f "$binary_path" ]]; then
-        echo "Error: Binary not found at $binary_path"
+    if [[ ${#binary_paths[@]} -eq 0 ]]; then
+        echo "Error: No binaries specified for wheel creation"
+        exit 1
+    fi
+    
+    for binary_path in "${binary_paths[@]}"; do
+        if [[ ! -f "$binary_path" ]]; then
+            echo "Error: Binary not found at $binary_path"
+            exit 1
+        fi
+    done
+    
+    # Ensure binaries have unique basenames and track required binaries
+    local basenames=()
+    local has_pyscn_binary=0
+    local has_mcp_binary=0
+    for binary_path in "${binary_paths[@]}"; do
+        local basename="${binary_path##*/}"
+        case "$basename" in
+            pyscn-mcp-*)
+                has_mcp_binary=1
+                ;;
+            pyscn-*)
+                has_pyscn_binary=1
+                ;;
+        esac
+        for seen_basename in "${basenames[@]}"; do
+            if [[ "$seen_basename" == "$basename" ]]; then
+                echo "Error: Duplicate binary name detected: $basename"
+                exit 1
+            fi
+        done
+        basenames+=("$basename")
+    done
+    
+    if [[ "$has_pyscn_binary" -ne 1 ]]; then
+        echo "Error: Missing pyscn CLI binary in provided --binary arguments"
+        exit 1
+    fi
+    
+    if [[ "$has_mcp_binary" -ne 1 ]]; then
+        echo "Error: Missing pyscn-mcp MCP server binary in provided --binary arguments"
         exit 1
     fi
     
@@ -174,13 +214,17 @@ create_wheel() {
     local wheel_path="${output_dir}/${wheel_name}"
     
     # Create temporary directory
-    local temp_dir=$(mktemp -d)
+    local temp_dir
+    temp_dir=$(mktemp -d)
     trap "rm -rf $temp_dir" EXIT
     
     echo "Creating wheel: $wheel_name"
     echo "  Platform: $platform_tag"
-    echo "  Binary: $binary_path"
     echo "  Output: $wheel_path"
+    echo "  Binaries:"
+    for binary_path in "${binary_paths[@]}"; do
+        echo "    - $binary_path"
+    done
     
     # Create wheel directory structure
     local wheel_dir="$temp_dir/wheel"
@@ -192,20 +236,27 @@ create_wheel() {
     mkdir -p "$metadata_dir"
     
     # Copy Python source files
-    local src_dir="$(dirname "$0")/../src/pyscn"
+    local src_dir
+    src_dir="$(dirname "$0")/../src/pyscn"
     cp "$src_dir/__init__.py" "$pkg_dir/"
     cp "$src_dir/__main__.py" "$pkg_dir/"
     cp "$src_dir/main.py" "$pkg_dir/"
     
-    # Copy binary
-    cp "$binary_path" "$bin_dir/"
+    if [[ "$has_mcp_binary" -eq 1 ]]; then
+        cp "$src_dir/mcp_main.py" "$pkg_dir/"
+    fi
+    
+    # Copy binaries
+    for binary_path in "${binary_paths[@]}"; do
+        cp "$binary_path" "$bin_dir/"
+    done
     
     # Check if README.md exists
     if [[ ! -f "$readme_path" ]]; then
         echo "Error: README.md not found at $readme_path"
         exit 1
     fi
-
+    
     # Create METADATA file
     cat > "$metadata_dir/METADATA" << EOF
 Metadata-Version: 2.1
@@ -245,10 +296,15 @@ Tag: $PYTHON_TAG-$ABI_TAG-$platform_tag
 EOF
 
     # Create entry_points.txt
-    cat > "$metadata_dir/entry_points.txt" << EOF
-[console_scripts]
-pyscn = pyscn.__main__:main
-EOF
+    {
+        echo "[console_scripts]"
+        if [[ "$has_pyscn_binary" -eq 1 ]]; then
+            echo "pyscn = pyscn.__main__:main"
+        fi
+        if [[ "$has_mcp_binary" -eq 1 ]]; then
+            echo "pyscn-mcp = pyscn.mcp_main:main"
+        fi
+    } > "$metadata_dir/entry_points.txt"
 
     # Create RECORD file (proper CSV format)
     > "$metadata_dir/RECORD"  # Clear the file first
@@ -336,9 +392,9 @@ main() {
     
     # Default values
     local platform_tag=""
-    local binary_path=""
     local output_dir="$project_dir/dist"
     local readme_path="$project_dir/README.md"
+    binary_paths=()
     
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -348,7 +404,7 @@ main() {
                 shift 2
                 ;;
             --binary)
-                binary_path="$2"
+                binary_paths+=("$2")
                 shift 2
                 ;;
             --output)
@@ -364,7 +420,7 @@ main() {
                 echo ""
                 echo "Options:"
                 echo "  --platform TAG    Platform tag (e.g., macosx_11_0_arm64)"
-                echo "  --binary PATH     Path to pyscn binary"
+                echo "  --binary PATH     Path to binary to include (repeatable)"
                 echo "  --output DIR      Output directory (default: dist/)"
                 echo "  --version VER     Version string (default: auto-detect)"
                 echo "  --help           Show this help"
@@ -390,8 +446,8 @@ main() {
         platform_tag=$(detect_platform)
     fi
     
-    # Auto-detect binary if not specified
-    if [[ -z "$binary_path" ]]; then
+    # Auto-detect binaries if not specified
+    if [[ ${#binary_paths[@]} -eq 0 ]]; then
         local os=$(uname -s | tr '[:upper:]' '[:lower:]')
         local arch=$(uname -m)
         
@@ -402,15 +458,46 @@ main() {
             # Keep arm64 as-is for macOS
         esac
         
-        local binary_name="pyscn-${os}-${arch}"
-        if [[ "$os" == *"mingw"* || "$os" == *"msys"* || "$os" == *"cygwin"* ]]; then
-            binary_name="${binary_name}.exe"
-        fi
+        local suffix=""
+        case "$os" in
+            mingw*|msys*|cygwin*)
+                os="windows"
+                suffix=".exe"
+                ;;
+            darwin|linux)
+                # keep as-is
+                ;;
+            *)
+                echo "Error: Unsupported OS for automatic binary detection: $os"
+                exit 1
+                ;;
+        esac
         
-        binary_path="$python_dir/src/pyscn/bin/$binary_name"
+        local bin_base="$python_dir/src/pyscn/bin"
+        local expected_binaries=(
+            "$bin_base/pyscn-${os}-${arch}${suffix}"
+            "$bin_base/pyscn-mcp-${os}-${arch}${suffix}"
+        )
+        
+        local missing=()
+        for candidate in "${expected_binaries[@]}"; do
+            if [[ -f "$candidate" ]]; then
+                binary_paths+=("$candidate")
+            else
+                missing+=("$candidate")
+            fi
+        done
+        
+        if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "Error: Unable to locate required binaries:"
+            for candidate in "${missing[@]}"; do
+                echo "  - $candidate"
+            done
+            exit 1
+        fi
     fi
     
-    create_wheel "$platform_tag" "$binary_path" "$output_dir"
+    create_wheel "$platform_tag" "$output_dir"
 }
 
 # Run main function if script is executed directly

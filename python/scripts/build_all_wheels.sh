@@ -94,37 +94,63 @@ main() {
     for platform_config in "${PLATFORMS[@]}"; do
         IFS=':' read -r goos goarch wheel_platform <<< "$platform_config"
         
-        local binary_name="pyscn-${goos}-${goarch}"
+        local binary_suffix=""
         if [[ "$goos" == "windows" ]]; then
-            binary_name="${binary_name}.exe"
+            binary_suffix=".exe"
         fi
-        
-        local binary_path="$bin_dir/$binary_name"
         
         echo -e "${GREEN}Building for ${goos}/${goarch}...${NC}"
+        local binaries=("pyscn" "pyscn-mcp")
+        local built_binary_paths=()
+        local build_failed=0
         
-        # Build Go binary
-        if ! GOOS="$goos" GOARCH="$goarch" go build \
-            -ldflags="-s -w \
-                -X '${go_module}/internal/version.Version=${version}' \
-                -X '${go_module}/internal/version.Commit=${commit}' \
-                -X '${go_module}/internal/version.Date=${date}' \
-                -X '${go_module}/internal/version.BuiltBy=build_all_wheels.sh'" \
-            -o "$binary_path" \
-            "$project_dir/cmd/pyscn"; then
-            echo -e "${YELLOW}Warning: Failed to build binary for ${goos}/${goarch}${NC}"
-            continue
+        for binary in "${binaries[@]}"; do
+            local binary_name="${binary}-${goos}-${goarch}${binary_suffix}"
+            local binary_path="$bin_dir/$binary_name"
+            local cmd_path="$project_dir/cmd/$binary"
+            
+            if [[ ! -d "$cmd_path" ]]; then
+                echo -e "${YELLOW}Warning: Command directory not found (${cmd_path}); skipping ${goos}/${goarch}${NC}"
+                build_failed=1
+                break
+            fi
+            
+            echo "  Building ${binary} -> ${binary_name}"
+            
+            if ! GOOS="$goos" GOARCH="$goarch" go build \
+                -ldflags="-s -w \
+                    -X '${go_module}/internal/version.Version=${version}' \
+                    -X '${go_module}/internal/version.Commit=${commit}' \
+                    -X '${go_module}/internal/version.Date=${date}' \
+                    -X '${go_module}/internal/version.BuiltBy=build_all_wheels.sh'" \
+                -o "$binary_path" \
+                "$cmd_path"; then
+                echo -e "${YELLOW}Warning: Failed to build ${binary} for ${goos}/${goarch}${NC}"
+                build_failed=1
+                break
+            fi
+            
+            echo "    Binary created: $binary_path"
+            built_binary_paths+=("$binary_path")
+        done
+        
+        if [[ "$build_failed" -eq 1 ]]; then
+            echo -e "${RED}Error: Failed to build required binaries for ${goos}/${goarch}${NC}"
+            return 1
         fi
         
-        echo "  Binary created: $binary_path"
+        local create_args=(
+            --platform "$wheel_platform"
+            --output "$dist_dir"
+            --version "$version"
+        )
+        for binary_path in "${built_binary_paths[@]}"; do
+            create_args+=(--binary "$binary_path")
+        done
         
-        # Create wheel
-        if ! "$script_dir/create_wheel.sh" \
-            --platform "$wheel_platform" \
-            --binary "$binary_path" \
-            --output "$dist_dir"; then
-            echo -e "${YELLOW}Warning: Failed to create wheel for ${wheel_platform}${NC}"
-            continue
+        if ! "$script_dir/create_wheel.sh" "${create_args[@]}"; then
+            echo -e "${RED}Error: Failed to create wheel for ${wheel_platform}${NC}"
+            return 1
         fi
     done
     

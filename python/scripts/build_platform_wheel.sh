@@ -123,62 +123,84 @@ main() {
     
     mkdir -p "$bin_dir" "$dist_dir"
     
-    # Determine binary name based on platform
-    local binary_name="pyscn-$platform"
+    local binary_suffix=""
     if [[ "$platform" == *"windows"* ]]; then
-        binary_name="${binary_name}.exe"
+        binary_suffix=".exe"
     fi
     
-    local binary_path="$bin_dir/$binary_name"
+    local binaries=("pyscn" "pyscn-mcp")
+    local built_binary_paths=()
     
-    echo -e "${GREEN}Building Go binary for $platform...${NC}"
+    echo -e "${GREEN}Building Go binaries for $platform...${NC}"
     
     # Build Go binary with platform-specific settings
     local build_cmd="go build"
     local ldflags="-s -w -X '${go_module}/internal/version.Version=${version}' -X '${go_module}/internal/version.Commit=${commit}' -X '${go_module}/internal/version.Date=${date}' -X '${go_module}/internal/version.BuiltBy=build_platform_wheel.sh'"
     
-    # Platform-specific build configuration
-    case "$platform" in
-        *"windows"*)
-            echo "Building for Windows with MinGW-w64..."
-            CGO_ENABLED=1 $build_cmd -ldflags="$ldflags" -o "$binary_path" "$project_dir/cmd/pyscn"
-            ;;
-        *"darwin"*)
-            echo "Building for macOS..."
-            # Set SDKROOT if not already set
-            if [[ -z "${SDKROOT}" && -n "$(command -v xcrun)" ]]; then
-                export SDKROOT="$(xcrun --show-sdk-path)"
-                echo "Set SDKROOT to: $SDKROOT"
-            fi
-            CGO_ENABLED=1 $build_cmd -ldflags="$ldflags" -o "$binary_path" "$project_dir/cmd/pyscn"
-            ;;
-        *"linux"*)
-            echo "Building for Linux..."
-            CGO_ENABLED=1 $build_cmd -ldflags="$ldflags" -o "$binary_path" "$project_dir/cmd/pyscn"
-            ;;
-        *)
-            echo -e "${RED}Error: Unknown platform $platform${NC}"
+    for binary in "${binaries[@]}"; do
+        local binary_filename="${binary}-${platform}${binary_suffix}"
+        local binary_path="$bin_dir/$binary_filename"
+        local cmd_path="$project_dir/cmd/$binary"
+        
+        if [[ ! -d "$cmd_path" ]]; then
+            echo -e "${RED}Error: Command directory not found for ${binary}: $cmd_path${NC}"
             exit 1
-            ;;
-    esac
-    
-    if [[ ! -f "$binary_path" ]]; then
-        echo -e "${RED}Error: Failed to build binary for $platform${NC}"
-        echo "Expected binary at: $binary_path"
-        exit 1
-    fi
-    
-    echo -e "${GREEN}Binary created successfully: $binary_path${NC}"
-    local size=$(du -h "$binary_path" | cut -f1)
-    echo "Binary size: $size"
+        fi
+        
+        echo "Building ${binary} -> ${binary_filename}"
+        
+        # Platform-specific build configuration
+        case "$platform" in
+            *"windows"*)
+                echo "  Using MinGW-w64 for Windows build..."
+                CGO_ENABLED=1 $build_cmd -ldflags="$ldflags" -o "$binary_path" "$cmd_path"
+                ;;
+            *"darwin"*)
+                echo "  Building for macOS..."
+                # Set SDKROOT if not already set
+                if [[ -z "${SDKROOT}" && -n "$(command -v xcrun)" ]]; then
+                    export SDKROOT="$(xcrun --show-sdk-path)"
+                    echo "  Set SDKROOT to: $SDKROOT"
+                fi
+                CGO_ENABLED=1 $build_cmd -ldflags="$ldflags" -o "$binary_path" "$cmd_path"
+                ;;
+            *"linux"*)
+                echo "  Building for Linux..."
+                CGO_ENABLED=1 $build_cmd -ldflags="$ldflags" -o "$binary_path" "$cmd_path"
+                ;;
+            *)
+                echo -e "${RED}Error: Unknown platform $platform${NC}"
+                exit 1
+                ;;
+        esac
+        
+        if [[ ! -f "$binary_path" ]]; then
+            echo -e "${RED}Error: Failed to build ${binary} for $platform${NC}"
+            echo "Expected binary at: $binary_path"
+            exit 1
+        fi
+        
+        echo -e "${GREEN}Binary created successfully: $binary_path${NC}"
+        local size
+        size=$(du -h "$binary_path" | cut -f1)
+        echo "  Binary size: $size"
+        
+        built_binary_paths+=("$binary_path")
+    done
     
     # Create wheel using the existing create_wheel.sh script
     echo -e "${GREEN}Creating wheel...${NC}"
-    if ! "$script_dir/create_wheel.sh" \
-        --platform "$wheel_platform" \
-        --binary "$binary_path" \
-        --version "$version" \
-        --output "$dist_dir"; then
+    local create_args=(
+        --platform "$wheel_platform"
+        --version "$version"
+        --output "$dist_dir"
+    )
+    
+    for binary_path in "${built_binary_paths[@]}"; do
+        create_args+=(--binary "$binary_path")
+    done
+    
+    if ! "$script_dir/create_wheel.sh" "${create_args[@]}"; then
         echo -e "${RED}Error: Failed to create wheel for $wheel_platform${NC}"
         exit 1
     fi
