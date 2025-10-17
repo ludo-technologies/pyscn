@@ -99,33 +99,17 @@ func (uc *ComplexityUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Co
 		return nil, domain.NewConfigError("failed to load configuration", err)
 	}
 
-	// Check if all paths are already files (not directories)
-	// This happens when called from AnalyzeUseCase which pre-collects files
-	allFiles := true
-	for _, path := range finalReq.Paths {
-		exists, err := uc.fileReader.FileExists(path)
-		if err != nil || !exists {
-			allFiles = false
-			break
-		}
-		// FileExists returns true only for files, not directories
-	}
-
-	var files []string
-	if allFiles {
-		// All paths are already files, no need to collect again
-		files = finalReq.Paths
-	} else {
-		// Collect Python files from directories
-		files, err = uc.fileReader.CollectPythonFiles(
-			finalReq.Paths,
-			finalReq.Recursive,
-			finalReq.IncludePatterns,
-			finalReq.ExcludePatterns,
-		)
-		if err != nil {
-			return nil, domain.NewFileNotFoundError("failed to collect files", err)
-		}
+	// Resolve file paths (use helper to avoid duplication)
+	files, err := ResolveFilePaths(
+		uc.fileReader,
+		finalReq.Paths,
+		finalReq.Recursive,
+		finalReq.IncludePatterns,
+		finalReq.ExcludePatterns,
+		false, // validatePythonFile: complexity doesn't need strict Python validation
+	)
+	if err != nil {
+		return nil, domain.NewFileNotFoundError("failed to collect files", err)
 	}
 
 	if len(files) == 0 {
