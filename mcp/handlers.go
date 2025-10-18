@@ -700,6 +700,7 @@ func contains(slice []string, item string) bool {
 // formatComplexitySummary formats complexity results in compact summary mode
 func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, maxResults int) map[string]interface{} {
 	issues := []string{}
+	totalIssues := 0
 
 	// Default threshold to 10 if not specified
 	if threshold == 0 {
@@ -709,14 +710,15 @@ func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, m
 	// Filter functions that exceed threshold
 	for _, fn := range result.Functions {
 		if fn.Metrics.Complexity > threshold {
-			// Format: "file:line:col: function is too complex (X > threshold)"
-			issue := fmt.Sprintf("%s:%d:%d: %s is too complex (%d > %d)",
-				fn.FilePath, fn.StartLine, fn.StartColumn+1, fn.Name,
-				fn.Metrics.Complexity, threshold)
-			issues = append(issues, issue)
+			totalIssues++
 
-			if maxResults > 0 && len(issues) >= maxResults {
-				break
+			// Only add to issues array if within max_results limit
+			if maxResults == 0 || len(issues) < maxResults {
+				// Format: "file:line:col: function is too complex (X > threshold)"
+				issue := fmt.Sprintf("%s:%d:%d: %s is too complex (%d > %d)",
+					fn.FilePath, fn.StartLine, fn.StartColumn+1, fn.Name,
+					fn.Metrics.Complexity, threshold)
+				issues = append(issues, issue)
 			}
 		}
 	}
@@ -724,7 +726,7 @@ func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, m
 	return map[string]interface{}{
 		"issues": issues,
 		"summary": map[string]interface{}{
-			"total_issues":       len(issues),
+			"total_issues":       totalIssues,
 			"total_functions":    result.Summary.TotalFunctions,
 			"max_complexity":     result.Summary.MaxComplexity,
 			"average_complexity": result.Summary.AverageComplexity,
@@ -746,6 +748,7 @@ func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, 
 	}
 
 	issues := []Issue{}
+	totalIssues := 0
 
 	if threshold == 0 {
 		threshold = 10
@@ -753,19 +756,20 @@ func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, 
 
 	for _, fn := range result.Functions {
 		if fn.Metrics.Complexity > threshold {
-			issue := Issue{
-				File:       fn.FilePath,
-				Line:       fn.StartLine,
-				Column:     fn.StartColumn + 1,
-				Function:   fn.Name,
-				Complexity: fn.Metrics.Complexity,
-				Threshold:  threshold,
-				Message:    fmt.Sprintf("is too complex (%d > %d)", fn.Metrics.Complexity, threshold),
-			}
-			issues = append(issues, issue)
+			totalIssues++
 
-			if maxResults > 0 && len(issues) >= maxResults {
-				break
+			// Only add to issues array if within max_results limit
+			if maxResults == 0 || len(issues) < maxResults {
+				issue := Issue{
+					File:       fn.FilePath,
+					Line:       fn.StartLine,
+					Column:     fn.StartColumn + 1,
+					Function:   fn.Name,
+					Complexity: fn.Metrics.Complexity,
+					Threshold:  threshold,
+					Message:    fmt.Sprintf("is too complex (%d > %d)", fn.Metrics.Complexity, threshold),
+				}
+				issues = append(issues, issue)
 			}
 		}
 	}
@@ -773,7 +777,7 @@ func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, 
 	return map[string]interface{}{
 		"issues": issues,
 		"summary": map[string]interface{}{
-			"total_issues":       len(issues),
+			"total_issues":       totalIssues,
 			"total_functions":    result.Summary.TotalFunctions,
 			"max_complexity":     result.Summary.MaxComplexity,
 			"average_complexity": result.Summary.AverageComplexity,
@@ -969,6 +973,7 @@ func formatClonesDetailed(result *domain.CloneResponse, maxResults int) map[stri
 // formatCouplingSummary formats coupling results in compact summary mode
 func formatCouplingSummary(result *domain.CBOResponse, threshold int, maxResults int) map[string]interface{} {
 	issues := []string{}
+	highCouplingCount := 0
 	totalCBO := 0
 	maxCBO := 0
 
@@ -980,6 +985,9 @@ func formatCouplingSummary(result *domain.CBOResponse, threshold int, maxResults
 		totalCBO += cbo
 
 		if cbo > threshold {
+			highCouplingCount++
+
+			// Only add to issues array if within max_results limit
 			if maxResults == 0 || len(issues) < maxResults {
 				// Format: "file:line: ClassName has high coupling (CBO=X)"
 				issue := fmt.Sprintf("%s:%d: %s has high coupling (CBO=%d)",
@@ -997,7 +1005,7 @@ func formatCouplingSummary(result *domain.CBOResponse, threshold int, maxResults
 	return map[string]interface{}{
 		"issues": issues,
 		"summary": map[string]interface{}{
-			"high_coupling_classes": len(issues),
+			"high_coupling_classes": highCouplingCount,
 			"total_classes":         len(result.Classes),
 			"max_cbo":               maxCBO,
 			"average_cbo":           avgCBO,
@@ -1017,6 +1025,7 @@ func formatCouplingDetailed(result *domain.CBOResponse, threshold int, maxResult
 	}
 
 	issues := []Issue{}
+	highCouplingCount := 0
 	totalCBO := 0
 	maxCBO := 0
 
@@ -1028,6 +1037,9 @@ func formatCouplingDetailed(result *domain.CBOResponse, threshold int, maxResult
 		totalCBO += cbo
 
 		if cbo > threshold {
+			highCouplingCount++
+
+			// Only add to issues array if within max_results limit
 			if maxResults == 0 || len(issues) < maxResults {
 				issue := Issue{
 					File:      class.FilePath,
@@ -1049,7 +1061,7 @@ func formatCouplingDetailed(result *domain.CBOResponse, threshold int, maxResult
 	return map[string]interface{}{
 		"issues": issues,
 		"summary": map[string]interface{}{
-			"high_coupling_classes": len(issues),
+			"high_coupling_classes": highCouplingCount,
 			"total_classes":         len(result.Classes),
 			"max_cbo":               maxCBO,
 			"average_cbo":           avgCBO,
