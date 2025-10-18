@@ -220,11 +220,11 @@ main() {
     local mcp_binary_path="$bin_dir/$mcp_binary_filename"
     cp "$mcp_binary_path" "$mcp_bin_dir/"
 
-    # Build pyscn-mcp wheel from project root
-    cd "$project_dir"
+    # Build pyscn-mcp wheel from python/ directory
+    cd "$python_dir"
 
     # Temporarily use pyproject-mcp.toml
-    ln -sf python/pyproject-mcp.toml pyproject.toml
+    ln -sf pyproject-mcp.toml pyproject.toml
 
     # Build wheel
     pip install --user build >/dev/null 2>&1 || true
@@ -241,7 +241,7 @@ main() {
         # Extract wheel, modify WHEEL file, update RECORD, and repack
         local temp_dir=$(mktemp -d)
         cd "$temp_dir"
-        unzip -q "$project_dir/$mcp_built_wheel"
+        unzip -q "$python_dir/$mcp_built_wheel"
 
         # Update platform tag in WHEEL file
         local wheel_file=$(find . -name "WHEEL" -type f)
@@ -267,10 +267,10 @@ main() {
         fi
 
         # Repack wheel
-        rm -f "$project_dir/$mcp_built_wheel"
+        rm -f "$python_dir/$mcp_built_wheel"
         zip -q -r "$dist_dir/$mcp_wheel_name" .
 
-        cd "$project_dir"
+        cd "$python_dir"
         rm -rf "$temp_dir"
 
         echo -e "${GREEN}pyscn-mcp wheel created: $dist_dir/$mcp_wheel_name${NC}"
@@ -280,8 +280,9 @@ main() {
 
     # Cleanup (keep dist/ with wheels, only remove build artifacts)
     rm -rf "$mcp_bin_dir"
-    rm -rf "$project_dir/build"
-    rm -rf "$project_dir/src/pyscn_mcp.egg-info"
+    rm -rf "$python_dir/build"
+    rm -rf "$python_dir/dist"
+    rm -rf "$python_dir/src/pyscn_mcp.egg-info"
 
     echo -e "${GREEN}All wheels created successfully!${NC}"
     echo "Final wheels:"

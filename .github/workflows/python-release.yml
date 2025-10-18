@@ -215,12 +215,17 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         pattern: wheels-*
-        path: dist/
+        path: all-wheels/
         merge-multiple: true
-    
+
+    - name: Filter pyscn wheels
+      run: |
+        mkdir -p dist
+        find all-wheels -name 'pyscn-*.whl' -exec cp {} dist/ \;
+
     - name: List wheels to publish
       run: ls -la dist/
-    
+
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
@@ -246,12 +251,17 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         pattern: wheels-*
-        path: dist/
+        path: all-wheels/
         merge-multiple: true
-    
+
+    - name: Filter pyscn wheels
+      run: |
+        mkdir -p dist
+        find all-wheels -name 'pyscn-*.whl' -exec cp {} dist/ \;
+
     - name: List wheels to publish
       run: ls -la dist/
-    
+
     - name: Publish to Test PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
