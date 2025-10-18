@@ -57,7 +57,7 @@ jobs:
       uses: msys2/setup-msys2@v2
       with:
         msystem: MINGW64
-        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-pkg-config zip mingw-w64-x86_64-go
+        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-pkg-config zip unzip mingw-w64-x86_64-go mingw-w64-x86_64-python mingw-w64-x86_64-python-pip
     
     - name: Install wheel verification tools
       run: |
