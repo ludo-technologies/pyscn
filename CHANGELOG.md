@@ -3,12 +3,15 @@
 ## [1.2.0] - 2025-10-18
 
 ### Added
-- MCP (Model Context Protocol) server integration for AI coding assistants
+- MCP (Model Context Protocol) server integration for AI coding assistants (#184)
 
 ### Improved
+- Package pyscn-mcp binary in wheels for uv workflows (#189)
+- Add MCP integration documentation section (#190)
 - Refactor file resolution logic into shared helper (#183)
-- Add Python 3.13 support
-- Improve build system and packaging documentation
+- Add Python 3.13 support (#174)
+- Improve build system and MCP documentation (#191)
+- Update issue templates for user feedback (#192)
 
 ## [1.1.1] - 2025-10-12
 
