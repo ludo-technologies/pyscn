@@ -98,8 +98,40 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 		return mcp.NewToolResultError(fmt.Sprintf("analysis failed: %v", err)), nil
 	}
 
+	// Parse output_mode parameter (default: "summary")
+	outputMode := "summary"
+	if om, ok := args["output_mode"].(string); ok {
+		outputMode = om
+	}
+
+	// Format output based on mode
+	var responseData interface{}
+	switch outputMode {
+	case "full":
+		responseData = result
+	default: // "summary" - return health score and high-level metrics
+		responseData = map[string]interface{}{
+			"health_score": result.Summary.HealthScore,
+			"grade":        result.Summary.Grade,
+			"is_healthy":   result.Summary.IsHealthy(),
+			"summary": map[string]interface{}{
+				"total_files":           result.Summary.TotalFiles,
+				"total_functions":       result.Summary.TotalFunctions,
+				"complexity_score":      result.Summary.ComplexityScore,
+				"dead_code_score":       result.Summary.DeadCodeScore,
+				"duplication_score":     result.Summary.DuplicationScore,
+				"coupling_score":        result.Summary.CouplingScore,
+				"dependency_score":      result.Summary.DependencyScore,
+				"high_complexity_count": result.Summary.HighComplexityCount,
+				"dead_code_count":       result.Summary.DeadCodeCount,
+				"clone_pairs":           result.Summary.ClonePairs,
+				"high_coupling_classes": result.Summary.HighCouplingClasses,
+			},
+		}
+	}
+
 	// Convert result to JSON
-	jsonData, err := json.Marshal(result)
+	jsonData, err := json.Marshal(responseData)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal result: %v", err)), nil
 	}
@@ -218,8 +250,31 @@ func (h *HandlerSet) HandleCheckComplexity(ctx context.Context, request mcp.Call
 		return mcp.NewToolResultError(fmt.Sprintf("complexity analysis failed: %v", err)), nil
 	}
 
+	// Parse output_mode parameter (default: "summary")
+	outputMode := "summary"
+	if om, ok := args["output_mode"].(string); ok {
+		outputMode = om
+	}
+
+	// Parse max_results parameter (default: unlimited for summary mode)
+	maxResults := 0
+	if mr, ok := args["max_results"].(float64); ok {
+		maxResults = int(mr)
+	}
+
+	// Format output based on mode
+	var responseData interface{}
+	switch outputMode {
+	case "full":
+		responseData = result
+	case "detailed":
+		responseData = formatComplexityDetailed(result, maxComplexity, maxResults)
+	default: // "summary"
+		responseData = formatComplexitySummary(result, maxComplexity, maxResults)
+	}
+
 	// Convert to JSON
-	jsonData, err := json.Marshal(result)
+	jsonData, err := json.Marshal(responseData)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal result: %v", err)), nil
 	}
@@ -312,8 +367,31 @@ func (h *HandlerSet) HandleDetectClones(ctx context.Context, request mcp.CallToo
 		return mcp.NewToolResultError(fmt.Sprintf("clone detection failed: %v", err)), nil
 	}
 
+	// Parse output_mode parameter (default: "summary")
+	outputMode := "summary"
+	if om, ok := args["output_mode"].(string); ok {
+		outputMode = om
+	}
+
+	// Parse max_results parameter
+	maxResults := 0
+	if mr, ok := args["max_results"].(float64); ok {
+		maxResults = int(mr)
+	}
+
+	// Format output based on mode
+	var responseData interface{}
+	switch outputMode {
+	case "full":
+		responseData = result
+	case "detailed":
+		responseData = formatClonesDetailed(result, maxResults)
+	default: // "summary"
+		responseData = formatClonesSummary(result, maxResults)
+	}
+
 	// Convert to JSON
-	jsonData, err := json.Marshal(result)
+	jsonData, err := json.Marshal(responseData)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal result: %v", err)), nil
 	}
@@ -375,8 +453,37 @@ func (h *HandlerSet) HandleCheckCoupling(ctx context.Context, request mcp.CallTo
 		return mcp.NewToolResultError(fmt.Sprintf("coupling analysis failed: %v", err)), nil
 	}
 
+	// Parse output_mode parameter (default: "summary")
+	outputMode := "summary"
+	if om, ok := args["output_mode"].(string); ok {
+		outputMode = om
+	}
+
+	// Parse max_results parameter
+	maxResults := 0
+	if mr, ok := args["max_results"].(float64); ok {
+		maxResults = int(mr)
+	}
+
+	// Parse min_cbo parameter (default threshold for filtering)
+	minCBO := 10
+	if mc, ok := args["min_cbo"].(float64); ok {
+		minCBO = int(mc)
+	}
+
+	// Format output based on mode
+	var responseData interface{}
+	switch outputMode {
+	case "full":
+		responseData = result
+	case "detailed":
+		responseData = formatCouplingDetailed(result, minCBO, maxResults)
+	default: // "summary"
+		responseData = formatCouplingSummary(result, minCBO, maxResults)
+	}
+
 	// Convert to JSON
-	jsonData, err := json.Marshal(result)
+	jsonData, err := json.Marshal(responseData)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal result: %v", err)), nil
 	}
@@ -461,8 +568,31 @@ func (h *HandlerSet) HandleFindDeadCode(ctx context.Context, request mcp.CallToo
 		return mcp.NewToolResultError(fmt.Sprintf("dead code analysis failed: %v", err)), nil
 	}
 
+	// Parse output_mode parameter (default: "summary")
+	outputMode := "summary"
+	if om, ok := args["output_mode"].(string); ok {
+		outputMode = om
+	}
+
+	// Parse max_results parameter
+	maxResults := 0
+	if mr, ok := args["max_results"].(float64); ok {
+		maxResults = int(mr)
+	}
+
+	// Format output based on mode
+	var responseData interface{}
+	switch outputMode {
+	case "full":
+		responseData = result
+	case "detailed":
+		responseData = formatDeadCodeDetailed(result, maxResults)
+	default: // "summary"
+		responseData = formatDeadCodeSummary(result, maxResults)
+	}
+
 	// Convert to JSON
-	jsonData, err := json.Marshal(result)
+	jsonData, err := json.Marshal(responseData)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal result: %v", err)), nil
 	}
@@ -565,6 +695,379 @@ func contains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+// formatComplexitySummary formats complexity results in compact summary mode
+func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, maxResults int) map[string]interface{} {
+	issues := []string{}
+	totalIssues := 0
+
+	// Default threshold to 10 if not specified
+	if threshold == 0 {
+		threshold = 10
+	}
+
+	// Filter functions that exceed threshold
+	for _, fn := range result.Functions {
+		if fn.Metrics.Complexity > threshold {
+			totalIssues++
+
+			// Only add to issues array if within max_results limit
+			if maxResults == 0 || len(issues) < maxResults {
+				// Format: "file:line:col: function is too complex (X > threshold)"
+				issue := fmt.Sprintf("%s:%d:%d: %s is too complex (%d > %d)",
+					fn.FilePath, fn.StartLine, fn.StartColumn+1, fn.Name,
+					fn.Metrics.Complexity, threshold)
+				issues = append(issues, issue)
+			}
+		}
+	}
+
+	return map[string]interface{}{
+		"issues": issues,
+		"summary": map[string]interface{}{
+			"total_issues":       totalIssues,
+			"total_functions":    result.Summary.TotalFunctions,
+			"max_complexity":     result.Summary.MaxComplexity,
+			"average_complexity": result.Summary.AverageComplexity,
+			"threshold":          threshold,
+		},
+	}
+}
+
+// formatComplexityDetailed formats complexity results with structured details
+func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, maxResults int) map[string]interface{} {
+	type Issue struct {
+		File       string `json:"file"`
+		Line       int    `json:"line"`
+		Column     int    `json:"column"`
+		Function   string `json:"function"`
+		Complexity int    `json:"complexity"`
+		Threshold  int    `json:"threshold"`
+		Message    string `json:"message"`
+	}
+
+	issues := []Issue{}
+	totalIssues := 0
+
+	if threshold == 0 {
+		threshold = 10
+	}
+
+	for _, fn := range result.Functions {
+		if fn.Metrics.Complexity > threshold {
+			totalIssues++
+
+			// Only add to issues array if within max_results limit
+			if maxResults == 0 || len(issues) < maxResults {
+				issue := Issue{
+					File:       fn.FilePath,
+					Line:       fn.StartLine,
+					Column:     fn.StartColumn + 1,
+					Function:   fn.Name,
+					Complexity: fn.Metrics.Complexity,
+					Threshold:  threshold,
+					Message:    fmt.Sprintf("is too complex (%d > %d)", fn.Metrics.Complexity, threshold),
+				}
+				issues = append(issues, issue)
+			}
+		}
+	}
+
+	return map[string]interface{}{
+		"issues": issues,
+		"summary": map[string]interface{}{
+			"total_issues":       totalIssues,
+			"total_functions":    result.Summary.TotalFunctions,
+			"max_complexity":     result.Summary.MaxComplexity,
+			"average_complexity": result.Summary.AverageComplexity,
+			"threshold":          threshold,
+		},
+	}
+}
+
+// formatDeadCodeSummary formats dead code results in compact summary mode
+func formatDeadCodeSummary(result *domain.DeadCodeResponse, maxResults int) map[string]interface{} {
+	issues := []string{}
+	totalIssues := 0
+	criticalCount := 0
+	warningCount := 0
+	infoCount := 0
+
+	for _, file := range result.Files {
+		for _, function := range file.Functions {
+			for _, finding := range function.Findings {
+				totalIssues++
+
+				switch finding.Severity {
+				case domain.DeadCodeSeverityCritical:
+					criticalCount++
+				case domain.DeadCodeSeverityWarning:
+					warningCount++
+				case domain.DeadCodeSeverityInfo:
+					infoCount++
+				}
+
+				if maxResults == 0 || len(issues) < maxResults {
+					// Format: "file:line:col: message (severity)"
+					issue := fmt.Sprintf("%s:%d:%d: %s (%s)",
+						finding.Location.FilePath,
+						finding.Location.StartLine,
+						finding.Location.StartColumn+1,
+						finding.Reason,
+						finding.Severity)
+					issues = append(issues, issue)
+				}
+			}
+		}
+	}
+
+	return map[string]interface{}{
+		"issues": issues,
+		"summary": map[string]interface{}{
+			"total_issues":    totalIssues,
+			"critical_issues": criticalCount,
+			"warning_issues":  warningCount,
+			"info_issues":     infoCount,
+			"files_analyzed":  len(result.Files),
+		},
+	}
+}
+
+// formatDeadCodeDetailed formats dead code results with structured details
+func formatDeadCodeDetailed(result *domain.DeadCodeResponse, maxResults int) map[string]interface{} {
+	type Issue struct {
+		File     string `json:"file"`
+		Line     int    `json:"line"`
+		Column   int    `json:"column"`
+		Function string `json:"function"`
+		Reason   string `json:"reason"`
+		Severity string `json:"severity"`
+	}
+
+	issues := []Issue{}
+	totalIssues := 0
+	criticalCount := 0
+	warningCount := 0
+	infoCount := 0
+
+	for _, file := range result.Files {
+		for _, function := range file.Functions {
+			for _, finding := range function.Findings {
+				totalIssues++
+
+				switch finding.Severity {
+				case domain.DeadCodeSeverityCritical:
+					criticalCount++
+				case domain.DeadCodeSeverityWarning:
+					warningCount++
+				case domain.DeadCodeSeverityInfo:
+					infoCount++
+				}
+
+				if maxResults == 0 || len(issues) < maxResults {
+					issue := Issue{
+						File:     finding.Location.FilePath,
+						Line:     finding.Location.StartLine,
+						Column:   finding.Location.StartColumn + 1,
+						Function: function.Name,
+						Reason:   finding.Reason,
+						Severity: string(finding.Severity),
+					}
+					issues = append(issues, issue)
+				}
+			}
+		}
+	}
+
+	return map[string]interface{}{
+		"issues": issues,
+		"summary": map[string]interface{}{
+			"total_issues":    totalIssues,
+			"critical_issues": criticalCount,
+			"warning_issues":  warningCount,
+			"info_issues":     infoCount,
+			"files_analyzed":  len(result.Files),
+		},
+	}
+}
+
+// formatClonesSummary formats clone detection results in compact summary mode
+func formatClonesSummary(result *domain.CloneResponse, maxResults int) map[string]interface{} {
+	issues := []string{}
+	filesWithClones := make(map[string]bool)
+
+	for _, pair := range result.ClonePairs {
+		filesWithClones[pair.Clone1.Location.FilePath] = true
+		filesWithClones[pair.Clone2.Location.FilePath] = true
+
+		if maxResults == 0 || len(issues) < maxResults {
+			// Format: "file1:line:col: clone of file2:line:col (similarity%)"
+			issue := fmt.Sprintf("%s:%d:%d: clone of %s:%d:%d (%.1f%%)",
+				pair.Clone1.Location.FilePath,
+				pair.Clone1.Location.StartLine,
+				pair.Clone1.Location.StartCol+1,
+				pair.Clone2.Location.FilePath,
+				pair.Clone2.Location.StartLine,
+				pair.Clone2.Location.StartCol+1,
+				pair.Similarity*100)
+			issues = append(issues, issue)
+		}
+	}
+
+	return map[string]interface{}{
+		"issues": issues,
+		"summary": map[string]interface{}{
+			"total_clone_pairs":  len(result.ClonePairs),
+			"total_clone_groups": len(result.CloneGroups),
+			"files_with_clones":  len(filesWithClones),
+		},
+	}
+}
+
+// formatClonesDetailed formats clone detection results with structured details
+func formatClonesDetailed(result *domain.CloneResponse, maxResults int) map[string]interface{} {
+	type Issue struct {
+		File1      string  `json:"file1"`
+		Line1      int     `json:"line1"`
+		Col1       int     `json:"col1"`
+		File2      string  `json:"file2"`
+		Line2      int     `json:"line2"`
+		Col2       int     `json:"col2"`
+		Similarity float64 `json:"similarity"`
+		Lines      int     `json:"lines"`
+	}
+
+	issues := []Issue{}
+	filesWithClones := make(map[string]bool)
+
+	for _, pair := range result.ClonePairs {
+		filesWithClones[pair.Clone1.Location.FilePath] = true
+		filesWithClones[pair.Clone2.Location.FilePath] = true
+
+		if maxResults == 0 || len(issues) < maxResults {
+			issue := Issue{
+				File1:      pair.Clone1.Location.FilePath,
+				Line1:      pair.Clone1.Location.StartLine,
+				Col1:       pair.Clone1.Location.StartCol + 1,
+				File2:      pair.Clone2.Location.FilePath,
+				Line2:      pair.Clone2.Location.StartLine,
+				Col2:       pair.Clone2.Location.StartCol + 1,
+				Similarity: pair.Similarity,
+				Lines:      pair.Clone1.Location.EndLine - pair.Clone1.Location.StartLine + 1,
+			}
+			issues = append(issues, issue)
+		}
+	}
+
+	return map[string]interface{}{
+		"issues": issues,
+		"summary": map[string]interface{}{
+			"total_clone_pairs":  len(result.ClonePairs),
+			"total_clone_groups": len(result.CloneGroups),
+			"files_with_clones":  len(filesWithClones),
+		},
+	}
+}
+
+// formatCouplingSummary formats coupling results in compact summary mode
+func formatCouplingSummary(result *domain.CBOResponse, threshold int, maxResults int) map[string]interface{} {
+	issues := []string{}
+	highCouplingCount := 0
+	totalCBO := 0
+	maxCBO := 0
+
+	for _, class := range result.Classes {
+		cbo := class.Metrics.CouplingCount
+		if cbo > maxCBO {
+			maxCBO = cbo
+		}
+		totalCBO += cbo
+
+		if cbo > threshold {
+			highCouplingCount++
+
+			// Only add to issues array if within max_results limit
+			if maxResults == 0 || len(issues) < maxResults {
+				// Format: "file:line: ClassName has high coupling (CBO=X)"
+				issue := fmt.Sprintf("%s:%d: %s has high coupling (CBO=%d)",
+					class.FilePath, class.StartLine, class.Name, cbo)
+				issues = append(issues, issue)
+			}
+		}
+	}
+
+	avgCBO := 0.0
+	if len(result.Classes) > 0 {
+		avgCBO = float64(totalCBO) / float64(len(result.Classes))
+	}
+
+	return map[string]interface{}{
+		"issues": issues,
+		"summary": map[string]interface{}{
+			"high_coupling_classes": highCouplingCount,
+			"total_classes":         len(result.Classes),
+			"max_cbo":               maxCBO,
+			"average_cbo":           avgCBO,
+			"threshold":             threshold,
+		},
+	}
+}
+
+// formatCouplingDetailed formats coupling results with structured details
+func formatCouplingDetailed(result *domain.CBOResponse, threshold int, maxResults int) map[string]interface{} {
+	type Issue struct {
+		File      string `json:"file"`
+		Line      int    `json:"line"`
+		ClassName string `json:"class_name"`
+		CBO       int    `json:"cbo"`
+		Message   string `json:"message"`
+	}
+
+	issues := []Issue{}
+	highCouplingCount := 0
+	totalCBO := 0
+	maxCBO := 0
+
+	for _, class := range result.Classes {
+		cbo := class.Metrics.CouplingCount
+		if cbo > maxCBO {
+			maxCBO = cbo
+		}
+		totalCBO += cbo
+
+		if cbo > threshold {
+			highCouplingCount++
+
+			// Only add to issues array if within max_results limit
+			if maxResults == 0 || len(issues) < maxResults {
+				issue := Issue{
+					File:      class.FilePath,
+					Line:      class.StartLine,
+					ClassName: class.Name,
+					CBO:       cbo,
+					Message:   fmt.Sprintf("has high coupling (CBO=%d)", cbo),
+				}
+				issues = append(issues, issue)
+			}
+		}
+	}
+
+	avgCBO := 0.0
+	if len(result.Classes) > 0 {
+		avgCBO = float64(totalCBO) / float64(len(result.Classes))
+	}
+
+	return map[string]interface{}{
+		"issues": issues,
+		"summary": map[string]interface{}{
+			"high_coupling_classes": highCouplingCount,
+			"total_classes":         len(result.Classes),
+			"max_cbo":               maxCBO,
+			"average_cbo":           avgCBO,
+			"threshold":             threshold,
+		},
+	}
 }
 
 func buildAnalyzeUseCase(fileReader domain.FileReader) (*app.AnalyzeUseCase, error) {
