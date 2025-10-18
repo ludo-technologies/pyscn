@@ -39,7 +39,6 @@ Run pyscn analyses straight from AI coding assistants via the Model Context Prot
 ### Claude Code Setup
 
 ```bash
-# Add pyscn MCP server with one command
 claude mcp add pyscn-mcp uvx -- pyscn-mcp
 ```
 
