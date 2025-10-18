@@ -36,6 +36,17 @@ https://github.com/user-attachments/assets/07f48070-c0dd-437b-9621-cb3963f863ff
 
 Run pyscn analyses straight from AI coding assistants via the Model Context Protocol (MCP). The bundled `pyscn-mcp` server exposes the same tools used in the CLI to Claude Code, Cursor, ChatGPT, and other MCP clients.
 
+### Claude Code Setup
+
+```bash
+# Add pyscn MCP server with one command
+claude mcp add pyscn-mcp uvx -- pyscn-mcp
+```
+
+### Cursor / Claude Desktop Setup
+
+Add to your MCP settings (`~/.config/claude-desktop/config.json` or Cursor settings):
+
 ```json
 {
   "mcpServers": {
