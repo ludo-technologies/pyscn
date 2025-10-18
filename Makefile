@@ -163,7 +163,7 @@ build-python: build-mcp-all
 	@cp dist/$(MCP_BINARY_NAME)-* python/src/pyscn/bin/ 2>/dev/null || true
 	@printf "$(GREEN)Binaries copied to python/src/pyscn/bin/$(NC)\n"
 	@ls -lh python/src/pyscn/bin/
-	python3 -m build
+	uv build
 	@printf "$(GREEN)Python wheel built: $(NC)\n"
 	@ls -lh dist/*.whl
 
@@ -173,14 +173,14 @@ python-wheel:
 	@mkdir -p python/src/pyscn/bin dist
 	go build $(LDFLAGS) -o python/src/pyscn/bin/pyscn-$$(go env GOOS)-$$(go env GOARCH)$$(if [ "$$(go env GOOS)" = "windows" ]; then echo ".exe"; fi) ./cmd/pyscn
 	go build $(LDFLAGS) -o python/src/pyscn/bin/$(MCP_BINARY_NAME)-$$(go env GOOS)-$$(go env GOARCH)$$(if [ "$$(go env GOOS)" = "windows" ]; then echo ".exe"; fi) ./cmd/pyscn-mcp
-	python3 -m build
+	uv build
 
 ## python-dev-install: Install development version with uv
 python-dev-install: python-wheel
 	@printf "$(GREEN)Uninstalling old version...$(NC)\n"
 	-uv tool uninstall pyscn 2>/dev/null || pip uninstall -y pyscn 2>/dev/null || true
 	@printf "$(GREEN)Installing development version with uv...$(NC)\n"
-	uv tool install --force --editable python/
+	uv tool install --force --editable .
 	@printf "$(GREEN)Testing installation...$(NC)\n"
 	pyscn --version
 	@printf "$(GREEN)Testing uvx pyscn-mcp...$(NC)\n"
