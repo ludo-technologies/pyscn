@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.0] - 2025-10-18
+
+### Added
+- MCP (Model Context Protocol) server integration for AI coding assistants
+
+### Improved
+- Refactor file resolution logic into shared helper (#183)
+- Add Python 3.13 support
+- Improve build system and packaging documentation
+
 ## [1.1.1] - 2025-10-12
 
 ### Fixed
