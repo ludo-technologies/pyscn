@@ -157,18 +157,17 @@ jobs:
     - name: Test wheel installation
       shell: bash
       run: |
-        # Find and install the appropriate wheel for this platform
         wheel_count=$(ls wheels/*.whl 2>/dev/null | wc -l)
         if [ $wheel_count -eq 0 ]; then
           echo "No wheels found, skipping test"
           exit 0
         fi
-        
+
         echo "Available wheels:"
         ls -la wheels/
-        
-        # Try to install any wheel (the Python wrapper will check platform compatibility)
-        if pip install wheels/pyscn-*.whl; then
+
+        # Use pip's platform detection to install the correct wheel
+        if pip install --no-index --find-links wheels/ pyscn; then
           echo "Testing pyscn command..."
           if pyscn --version; then
             echo "✅ pyscn installation and execution successful!"
@@ -179,7 +178,8 @@ jobs:
             exit 1
           fi
         else
-          echo "⚠️  Wheel installation failed - likely unsupported platform combination"
+          echo "❌ Wheel installation failed"
+          exit 1
         fi
 
   publish-pypi:
@@ -369,7 +369,8 @@ jobs:
         echo "Available wheels:"
         ls -la wheels/
 
-        if pip install wheels/pyscn_mcp-*.whl; then
+        # Use pip's platform detection to install the correct wheel
+        if pip install --no-index --find-links wheels/ pyscn-mcp; then
           echo "Testing pyscn-mcp command..."
           if pyscn-mcp --help >/dev/null 2>&1; then
             echo "✅ pyscn-mcp installation and execution successful!"
@@ -378,7 +379,8 @@ jobs:
             exit 1
           fi
         else
-          echo "⚠️  Wheel installation failed - likely unsupported platform combination"
+          echo "❌ Wheel installation failed"
+          exit 1
         fi
 
   publish-mcp-pypi:
