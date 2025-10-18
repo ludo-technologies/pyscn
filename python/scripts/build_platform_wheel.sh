@@ -228,6 +228,8 @@ main() {
 
     # Build wheel
     pip install --user build >/dev/null 2>&1 || true
+    # Use python3 for better cross-platform compatibility (especially Windows MSYS2)
+    SETUPTOOLS_SCM_PRETEND_VERSION="$version" python3 -m build --wheel 2>/dev/null || \
     SETUPTOOLS_SCM_PRETEND_VERSION="$version" python -m build --wheel
 
     # Remove symlink
