@@ -227,9 +227,10 @@ main() {
     ln -sf pyproject-mcp.toml pyproject.toml
 
     # Build wheel
-    pip install --user build >/dev/null 2>&1 || true
-    # Use python3 for better cross-platform compatibility (especially Windows MSYS2)
-    SETUPTOOLS_SCM_PRETEND_VERSION="$version" python3 -m build --wheel 2>/dev/null || \
+    # Install build tool if not available
+    python -m pip install --quiet build 2>/dev/null || pip install --user --quiet build || true
+
+    # Build with setuptools_scm version override
     SETUPTOOLS_SCM_PRETEND_VERSION="$version" python -m build --wheel
 
     # Remove symlink
