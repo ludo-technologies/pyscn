@@ -7,7 +7,6 @@ name = "pyscn-mcp"
 dynamic = ["version"]
 description = "MCP (Model Context Protocol) server for pyscn Python code analyzer"
 readme = "README-mcp.md"
-license = {file = "../LICENSE"}
 authors = [
     {name = "DaisukeYoda", email = "daisukeyoda@users.noreply.github.com"}
 ]
