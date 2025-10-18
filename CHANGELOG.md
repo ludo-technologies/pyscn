@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.1] - 2025-10-18
+
+### Added
+- Standalone pyscn-mcp PyPI package for MCP-only usage (#194)
+
 ## [1.2.0] - 2025-10-18
 
 ### Added
