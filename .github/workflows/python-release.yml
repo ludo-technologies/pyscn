@@ -166,7 +166,7 @@ jobs:
         echo "Available wheels:"
         ls -la wheels/
 
-        # Use pip's platform detection to install the correct wheel
+        # Test pyscn wheel
         if pip install --no-index --find-links wheels/ pyscn; then
           echo "Testing pyscn command..."
           if pyscn --version; then
@@ -178,7 +178,22 @@ jobs:
             exit 1
           fi
         else
-          echo "❌ Wheel installation failed"
+          echo "❌ pyscn wheel installation failed"
+          exit 1
+        fi
+
+        # Test pyscn-mcp wheel
+        pip uninstall -y pyscn || true
+        if pip install --no-index --find-links wheels/ pyscn-mcp; then
+          echo "Testing pyscn-mcp command..."
+          if pyscn-mcp --help >/dev/null 2>&1; then
+            echo "✅ pyscn-mcp installation and execution successful!"
+          else
+            echo "❌ pyscn-mcp command failed"
+            exit 1
+          fi
+        else
+          echo "❌ pyscn-mcp wheel installation failed"
           exit 1
         fi
 
@@ -200,12 +215,17 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         pattern: wheels-*
-        path: dist/
+        path: all-wheels/
         merge-multiple: true
-    
+
+    - name: Filter pyscn wheels
+      run: |
+        mkdir -p dist
+        find all-wheels -name 'pyscn-*.whl' -exec cp {} dist/ \;
+
     - name: List wheels to publish
       run: ls -la dist/
-    
+
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
@@ -231,12 +251,17 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         pattern: wheels-*
-        path: dist/
+        path: all-wheels/
         merge-multiple: true
-    
+
+    - name: Filter pyscn wheels
+      run: |
+        mkdir -p dist
+        find all-wheels -name 'pyscn-*.whl' -exec cp {} dist/ \;
+
     - name: List wheels to publish
       run: ls -la dist/
-    
+
     - name: Publish to Test PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
@@ -244,148 +269,9 @@ jobs:
         packages-dir: dist/
         verbose: true
 
-  build-mcp-wheels:
-    name: Build pyscn-mcp wheels
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          # Linux builds
-          - os: ubuntu-latest
-            platform: linux-amd64
-            goos: linux
-            goarch: amd64
-            wheel_platform: manylinux_2_17_x86_64
-
-          # Windows builds
-          - os: windows-latest
-            platform: windows-amd64
-            goos: windows
-            goarch: amd64
-            wheel_platform: win_amd64
-
-          # macOS Intel
-          - os: macos-13
-            platform: darwin-amd64
-            goos: darwin
-            goarch: amd64
-            wheel_platform: macosx_10_9_x86_64
-
-          # macOS Apple Silicon
-          - os: macos-14
-            platform: darwin-arm64
-            goos: darwin
-            goarch: arm64
-            wheel_platform: macosx_11_0_arm64
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.23'
-        cache: true
-
-    - name: Set up MSYS2 (Windows)
-      if: matrix.os == 'windows-latest'
-      uses: msys2/setup-msys2@v2
-      with:
-        msystem: MINGW64
-        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-pkg-config zip mingw-w64-x86_64-go
-
-    - name: Install build tools
-      run: |
-        pip install --user build twine
-      shell: bash
-
-    - name: Verify Go module
-      run: |
-        go mod download
-        go mod verify
-
-    - name: Build pyscn-mcp wheel (Linux/macOS)
-      if: matrix.os != 'windows-latest'
-      run: |
-        python/scripts/build_mcp_wheel.sh "${{ matrix.platform }}" "${{ matrix.wheel_platform }}"
-      shell: bash
-      env:
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
-        CC: ${{ (matrix.goos == 'darwin' && matrix.goarch == 'arm64') && 'clang -target arm64-apple-macos11' || (matrix.goos == 'darwin' && matrix.goarch == 'amd64') && 'clang -target x86_64-apple-macos10.13' || '' }}
-
-    - name: Build pyscn-mcp wheel (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        python/scripts/build_mcp_wheel.sh "${{ matrix.platform }}" "${{ matrix.wheel_platform }}"
-      shell: msys2 {0}
-      env:
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
-
-    - name: Verify wheels
-      run: |
-        python -m twine check dist/*.whl
-      shell: bash
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: mcp-wheels-${{ matrix.platform }}
-        path: dist/*.whl
-        retention-days: 7
-
-  test-mcp-wheels:
-    name: Test pyscn-mcp wheels
-    needs: build-mcp-wheels
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.8', '3.13']
-
-    steps:
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Download all wheels
-      uses: actions/download-artifact@v4
-      with:
-        pattern: mcp-wheels-*
-        path: wheels/
-        merge-multiple: true
-
-    - name: Test wheel installation
-      shell: bash
-      run: |
-        wheel_count=$(ls wheels/*.whl 2>/dev/null | wc -l)
-        if [ $wheel_count -eq 0 ]; then
-          echo "No wheels found, skipping test"
-          exit 0
-        fi
-
-        echo "Available wheels:"
-        ls -la wheels/
-
-        # Use pip's platform detection to install the correct wheel
-        if pip install --no-index --find-links wheels/ pyscn-mcp; then
-          echo "Testing pyscn-mcp command..."
-          if pyscn-mcp --help >/dev/null 2>&1; then
-            echo "✅ pyscn-mcp installation and execution successful!"
-          else
-            echo "❌ pyscn-mcp command failed"
-            exit 1
-          fi
-        else
-          echo "❌ Wheel installation failed"
-          exit 1
-        fi
-
   publish-mcp-pypi:
     name: Publish pyscn-mcp to PyPI
-    needs: [build-mcp-wheels, test-mcp-wheels]
+    needs: [build-wheels, test-wheels]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
 
@@ -400,9 +286,14 @@ jobs:
     - name: Download all wheels
       uses: actions/download-artifact@v4
       with:
-        pattern: mcp-wheels-*
-        path: dist/
+        pattern: wheels-*
+        path: all-wheels/
         merge-multiple: true
+
+    - name: Filter pyscn-mcp wheels
+      run: |
+        mkdir -p dist
+        find all-wheels -name 'pyscn_mcp-*.whl' -exec cp {} dist/ \;
 
     - name: List wheels to publish
       run: ls -la dist/
@@ -416,7 +307,7 @@ jobs:
 
   publish-mcp-test-pypi:
     name: Publish pyscn-mcp to Test PyPI
-    needs: [build-mcp-wheels, test-mcp-wheels]
+    needs: [build-wheels, test-wheels]
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
 
@@ -431,9 +322,14 @@ jobs:
     - name: Download all wheels
       uses: actions/download-artifact@v4
       with:
-        pattern: mcp-wheels-*
-        path: dist/
+        pattern: wheels-*
+        path: all-wheels/
         merge-multiple: true
+
+    - name: Filter pyscn-mcp wheels
+      run: |
+        mkdir -p dist
+        find all-wheels -name 'pyscn_mcp-*.whl' -exec cp {} dist/ \;
 
     - name: List wheels to publish
       run: ls -la dist/
@@ -447,7 +343,7 @@ jobs:
 
   create-github-release:
     name: Create GitHub Release
-    needs: [build-wheels, test-wheels, build-mcp-wheels, test-mcp-wheels]
+    needs: [build-wheels, test-wheels]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
 
@@ -457,17 +353,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Download pyscn wheels
+    - name: Download all wheels
       uses: actions/download-artifact@v4
       with:
         pattern: wheels-*
-        path: wheels/
-        merge-multiple: true
-
-    - name: Download pyscn-mcp wheels
-      uses: actions/download-artifact@v4
-      with:
-        pattern: mcp-wheels-*
         path: wheels/
         merge-multiple: true
 
