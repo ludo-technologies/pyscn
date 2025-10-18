@@ -6,7 +6,7 @@
 set -e
 
 # Configuration
-PACKAGE_NAME="pyscn"
+PACKAGE_NAME="pyscn"  # Default, can be overridden with --package
 binary_paths=()
 
 # Function to convert git describe output to PEP 440 compliant version
@@ -198,15 +198,22 @@ create_wheel() {
         done
         basenames+=("$basename")
     done
-    
-    if [[ "$has_pyscn_binary" -ne 1 ]]; then
-        echo "Error: Missing pyscn CLI binary in provided --binary arguments"
-        exit 1
-    fi
-    
-    if [[ "$has_mcp_binary" -ne 1 ]]; then
-        echo "Error: Missing pyscn-mcp MCP server binary in provided --binary arguments"
-        exit 1
+
+    # Validate required binaries based on package type
+    if [[ "$PACKAGE_NAME" == "pyscn" ]]; then
+        if [[ "$has_pyscn_binary" -ne 1 ]]; then
+            echo "Error: Missing pyscn CLI binary in provided --binary arguments"
+            exit 1
+        fi
+        if [[ "$has_mcp_binary" -ne 1 ]]; then
+            echo "Error: Missing pyscn-mcp MCP server binary in provided --binary arguments"
+            exit 1
+        fi
+    elif [[ "$PACKAGE_NAME" == "pyscn_mcp" ]]; then
+        if [[ "$has_mcp_binary" -ne 1 ]]; then
+            echo "Error: Missing pyscn-mcp binary in provided --binary arguments"
+            exit 1
+        fi
     fi
     
     # Wheel filename
@@ -235,15 +242,20 @@ create_wheel() {
     mkdir -p "$bin_dir"
     mkdir -p "$metadata_dir"
     
-    # Copy Python source files
+    # Copy Python source files based on package type
     local src_dir
-    src_dir="$(dirname "$0")/../src/pyscn"
-    cp "$src_dir/__init__.py" "$pkg_dir/"
-    cp "$src_dir/__main__.py" "$pkg_dir/"
-    cp "$src_dir/main.py" "$pkg_dir/"
-    
-    if [[ "$has_mcp_binary" -eq 1 ]]; then
-        cp "$src_dir/mcp_main.py" "$pkg_dir/"
+    if [[ "$PACKAGE_NAME" == "pyscn" ]]; then
+        src_dir="$(dirname "$0")/../src/pyscn"
+        cp "$src_dir/__init__.py" "$pkg_dir/"
+        cp "$src_dir/__main__.py" "$pkg_dir/"
+        cp "$src_dir/main.py" "$pkg_dir/"
+        if [[ "$has_mcp_binary" -eq 1 ]]; then
+            cp "$src_dir/mcp_main.py" "$pkg_dir/"
+        fi
+    elif [[ "$PACKAGE_NAME" == "pyscn_mcp" ]]; then
+        src_dir="$(dirname "$0")/../src/pyscn_mcp"
+        cp "$src_dir/__init__.py" "$pkg_dir/"
+        cp "$src_dir/__main__.py" "$pkg_dir/"
     fi
     
     # Copy binaries
@@ -251,14 +263,15 @@ create_wheel() {
         cp "$binary_path" "$bin_dir/"
     done
     
-    # Check if README.md exists
+    # Check if README exists
     if [[ ! -f "$readme_path" ]]; then
-        echo "Error: README.md not found at $readme_path"
+        echo "Error: README not found at $readme_path"
         exit 1
     fi
-    
-    # Create METADATA file
-    cat > "$metadata_dir/METADATA" << EOF
+
+    # Create METADATA file based on package type
+    if [[ "$PACKAGE_NAME" == "pyscn" ]]; then
+        cat > "$metadata_dir/METADATA" << EOF
 Metadata-Version: 2.1
 Name: $PACKAGE_NAME
 Version: $VERSION
@@ -267,7 +280,7 @@ Home-page: https://github.com/ludo-technologies/pyscn
 Author: DaisukeYoda
 Author-email: daisukeyoda@users.noreply.github.com
 License: MIT
-Classifier: Development Status :: 4 - Beta
+Classifier: Development Status :: 5 - Production/Stable
 Classifier: Environment :: Console
 Classifier: Intended Audience :: Developers
 Classifier: License :: OSI Approved :: MIT License
@@ -278,13 +291,44 @@ Classifier: Programming Language :: Python :: 3.9
 Classifier: Programming Language :: Python :: 3.10
 Classifier: Programming Language :: Python :: 3.11
 Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
 Classifier: Topic :: Software Development :: Quality Assurance
+Classifier: Typing :: Typed
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
 
 EOF
+    elif [[ "$PACKAGE_NAME" == "pyscn_mcp" ]]; then
+        cat > "$metadata_dir/METADATA" << EOF
+Metadata-Version: 2.1
+Name: pyscn-mcp
+Version: $VERSION
+Summary: MCP (Model Context Protocol) server for pyscn Python code analyzer
+Home-page: https://github.com/ludo-technologies/pyscn
+Author: DaisukeYoda
+Author-email: daisukeyoda@users.noreply.github.com
+License: MIT
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Software Development :: Quality Assurance
+Classifier: Typing :: Typed
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
 
-    # Append README.md content to METADATA
+EOF
+    fi
+
+    # Append README content to METADATA
     cat "$readme_path" >> "$metadata_dir/METADATA"
 
     # Create WHEEL file
@@ -295,14 +339,18 @@ Root-Is-Purelib: false
 Tag: $PYTHON_TAG-$ABI_TAG-$platform_tag
 EOF
 
-    # Create entry_points.txt
+    # Create entry_points.txt based on package type
     {
         echo "[console_scripts]"
-        if [[ "$has_pyscn_binary" -eq 1 ]]; then
-            echo "pyscn = pyscn.__main__:main"
-        fi
-        if [[ "$has_mcp_binary" -eq 1 ]]; then
-            echo "pyscn-mcp = pyscn.mcp_main:main"
+        if [[ "$PACKAGE_NAME" == "pyscn" ]]; then
+            if [[ "$has_pyscn_binary" -eq 1 ]]; then
+                echo "pyscn = pyscn.__main__:main"
+            fi
+            if [[ "$has_mcp_binary" -eq 1 ]]; then
+                echo "pyscn-mcp = pyscn.mcp_main:main"
+            fi
+        elif [[ "$PACKAGE_NAME" == "pyscn_mcp" ]]; then
+            echo "pyscn-mcp = pyscn_mcp.__main__:main"
         fi
     } > "$metadata_dir/entry_points.txt"
 
@@ -395,7 +443,7 @@ main() {
     local output_dir="$project_dir/dist"
     local readme_path="$project_dir/README.md"
     binary_paths=()
-    
+
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -415,6 +463,14 @@ main() {
                 VERSION="$2"
                 shift 2
                 ;;
+            --package)
+                PACKAGE_NAME="$2"
+                shift 2
+                ;;
+            --readme)
+                readme_path="$2"
+                shift 2
+                ;;
             --help)
                 echo "Usage: $0 [OPTIONS]"
                 echo ""
@@ -423,7 +479,9 @@ main() {
                 echo "  --binary PATH     Path to binary to include (repeatable)"
                 echo "  --output DIR      Output directory (default: dist/)"
                 echo "  --version VER     Version string (default: auto-detect)"
-                echo "  --help           Show this help"
+                echo "  --package NAME    Package name: pyscn or pyscn_mcp (default: pyscn)"
+                echo "  --readme PATH     Path to README file (default: README.md)"
+                echo "  --help            Show this help"
                 exit 0
                 ;;
             *)
@@ -432,6 +490,11 @@ main() {
                 ;;
         esac
     done
+
+    # Set README path based on package if not specified
+    if [[ "$PACKAGE_NAME" == "pyscn_mcp" && "$readme_path" == "$project_dir/README.md" ]]; then
+        readme_path="$python_dir/README-mcp.md"
+    fi
     
     # Auto-detect version if not specified
     if [[ -z "$VERSION" ]]; then

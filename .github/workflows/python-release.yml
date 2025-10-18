@@ -57,7 +57,7 @@ jobs:
       uses: msys2/setup-msys2@v2
       with:
         msystem: MINGW64
-        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-pkg-config zip unzip mingw-w64-x86_64-go mingw-w64-x86_64-python mingw-w64-x86_64-python-pip
+        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-pkg-config zip unzip mingw-w64-x86_64-go
     
     - name: Install wheel verification tools
       run: |
@@ -86,7 +86,7 @@ jobs:
         which go && go version
         which gcc && gcc --version | head -1
         which zip && zip --version | head -1
-        
+
         echo "=== Starting Build ==="
         python/scripts/build_platform_wheel.sh "${{ matrix.platform }}" "${{ matrix.wheel_platform }}"
       shell: msys2 {0}
