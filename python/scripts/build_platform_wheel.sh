@@ -278,9 +278,8 @@ main() {
         echo -e "${YELLOW}Warning: pyscn-mcp wheel not created${NC}"
     fi
 
-    # Cleanup
+    # Cleanup (keep dist/ with wheels, only remove build artifacts)
     rm -rf "$mcp_bin_dir"
-    rm -rf "$project_dir/dist"
     rm -rf "$project_dir/build"
     rm -rf "$project_dir/src/pyscn_mcp.egg-info"
 
