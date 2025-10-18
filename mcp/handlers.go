@@ -115,17 +115,17 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 			"grade":        result.Summary.Grade,
 			"is_healthy":   result.Summary.IsHealthy(),
 			"summary": map[string]interface{}{
-				"total_files":             result.Summary.TotalFiles,
-				"total_functions":         result.Summary.TotalFunctions,
-				"complexity_score":        result.Summary.ComplexityScore,
-				"dead_code_score":         result.Summary.DeadCodeScore,
-				"duplication_score":       result.Summary.DuplicationScore,
-				"coupling_score":          result.Summary.CouplingScore,
-				"dependency_score":        result.Summary.DependencyScore,
-				"high_complexity_count":   result.Summary.HighComplexityCount,
-				"dead_code_count":         result.Summary.DeadCodeCount,
-				"clone_pairs":             result.Summary.ClonePairs,
-				"high_coupling_classes":   result.Summary.HighCouplingClasses,
+				"total_files":           result.Summary.TotalFiles,
+				"total_functions":       result.Summary.TotalFunctions,
+				"complexity_score":      result.Summary.ComplexityScore,
+				"dead_code_score":       result.Summary.DeadCodeScore,
+				"duplication_score":     result.Summary.DuplicationScore,
+				"coupling_score":        result.Summary.CouplingScore,
+				"dependency_score":      result.Summary.DependencyScore,
+				"high_complexity_count": result.Summary.HighComplexityCount,
+				"dead_code_count":       result.Summary.DeadCodeCount,
+				"clone_pairs":           result.Summary.ClonePairs,
+				"high_coupling_classes": result.Summary.HighCouplingClasses,
 			},
 		}
 	}
@@ -914,9 +914,9 @@ func formatClonesSummary(result *domain.CloneResponse, maxResults int) map[strin
 	return map[string]interface{}{
 		"issues": issues,
 		"summary": map[string]interface{}{
-			"total_clone_pairs": len(result.ClonePairs),
+			"total_clone_pairs":  len(result.ClonePairs),
 			"total_clone_groups": len(result.CloneGroups),
-			"files_with_clones": len(filesWithClones),
+			"files_with_clones":  len(filesWithClones),
 		},
 	}
 }
@@ -959,9 +959,9 @@ func formatClonesDetailed(result *domain.CloneResponse, maxResults int) map[stri
 	return map[string]interface{}{
 		"issues": issues,
 		"summary": map[string]interface{}{
-			"total_clone_pairs": len(result.ClonePairs),
+			"total_clone_pairs":  len(result.ClonePairs),
 			"total_clone_groups": len(result.CloneGroups),
-			"files_with_clones": len(filesWithClones),
+			"files_with_clones":  len(filesWithClones),
 		},
 	}
 }
