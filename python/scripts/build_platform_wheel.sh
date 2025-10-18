@@ -209,83 +209,21 @@ main() {
     echo "Wheels created:"
     ls -la "$dist_dir"/*.whl 2>/dev/null || echo "No wheels found"
 
-    # Build pyscn-mcp wheel using the same pyscn-mcp binary
+    # Build pyscn-mcp wheel using create_wheel.sh
     echo -e "${GREEN}Building pyscn-mcp wheel...${NC}"
-
-    # Copy pyscn-mcp binary to python/src/pyscn_mcp/bin/
-    local mcp_bin_dir="$python_dir/src/pyscn_mcp/bin"
-    mkdir -p "$mcp_bin_dir"
 
     local mcp_binary_filename="pyscn-mcp-${platform}${binary_suffix}"
     local mcp_binary_path="$bin_dir/$mcp_binary_filename"
-    cp "$mcp_binary_path" "$mcp_bin_dir/"
 
-    # Build pyscn-mcp wheel from python/ directory
-    cd "$python_dir"
-
-    # Temporarily use pyproject-mcp.toml
-    ln -sf pyproject-mcp.toml pyproject.toml
-
-    # Build wheel
-    # Install build tool if not available
-    python -m pip install --quiet build 2>/dev/null || pip install --user --quiet build || true
-
-    # Build with setuptools_scm version override
-    SETUPTOOLS_SCM_PRETEND_VERSION="$version" python -m build --wheel
-
-    # Remove symlink
-    rm -f pyproject.toml
-
-    # Rename and move wheel
-    local mcp_built_wheel=$(ls -t dist/pyscn_mcp-*.whl 2>/dev/null | head -1)
-    if [[ -f "$mcp_built_wheel" ]]; then
-        local mcp_wheel_name="pyscn_mcp-${version}-py3-none-${wheel_platform}.whl"
-
-        # Extract wheel, modify WHEEL file, update RECORD, and repack
-        local temp_dir=$(mktemp -d)
-        cd "$temp_dir"
-        unzip -q "$python_dir/$mcp_built_wheel"
-
-        # Update platform tag in WHEEL file
-        local wheel_file=$(find . -name "WHEEL" -type f)
-        if [[ -f "$wheel_file" ]]; then
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-                sed -i '' "s/Tag: py3-none-any/Tag: py3-none-${wheel_platform}/" "$wheel_file"
-            else
-                sed -i "s/Tag: py3-none-any/Tag: py3-none-${wheel_platform}/" "$wheel_file"
-            fi
-        fi
-
-        # Update RECORD file with new hash for WHEEL
-        local record_file=$(find . -name "RECORD" -type f)
-        if [[ -f "$record_file" && -f "$wheel_file" ]]; then
-            local wheel_hash=$(python -c "import hashlib,base64; print('sha256=' + base64.urlsafe_b64encode(hashlib.sha256(open('$wheel_file', 'rb').read()).digest()).decode().rstrip('='))")
-            local wheel_size=$(wc -c < "$wheel_file" | tr -d ' ')
-            local wheel_path="${wheel_file#./}"
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-                sed -i '' "s|^${wheel_path},.*|${wheel_path},${wheel_hash},${wheel_size}|" "$record_file"
-            else
-                sed -i "s|^${wheel_path},.*|${wheel_path},${wheel_hash},${wheel_size}|" "$record_file"
-            fi
-        fi
-
-        # Repack wheel
-        rm -f "$python_dir/$mcp_built_wheel"
-        zip -q -r "$dist_dir/$mcp_wheel_name" .
-
-        cd "$python_dir"
-        rm -rf "$temp_dir"
-
-        echo -e "${GREEN}pyscn-mcp wheel created: $dist_dir/$mcp_wheel_name${NC}"
-    else
-        echo -e "${YELLOW}Warning: pyscn-mcp wheel not created${NC}"
+    if ! "$script_dir/create_wheel.sh" \
+        --package "pyscn_mcp" \
+        --platform "$wheel_platform" \
+        --version "$version" \
+        --output "$dist_dir" \
+        --binary "$mcp_binary_path"; then
+        echo -e "${RED}Error: Failed to create pyscn-mcp wheel for $wheel_platform${NC}"
+        exit 1
     fi
-
-    # Cleanup (keep dist/ with wheels, only remove build artifacts)
-    rm -rf "$mcp_bin_dir"
-    rm -rf "$python_dir/build"
-    rm -rf "$python_dir/dist"
-    rm -rf "$python_dir/src/pyscn_mcp.egg-info"
 
     echo -e "${GREEN}All wheels created successfully!${NC}"
     echo "Final wheels:"
