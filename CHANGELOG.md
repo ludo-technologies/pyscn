@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.2] - 2025-10-19
+
+### Enhanced
+- Compact MCP responses for MCP tools via the new `output_mode` parameter, including summary/detailed formats and correct totals when `max_results` is used (#203)
+
+### Improved
+- Drop unused `python/pyproject-mcp.toml` now that the MCP wheel uses the primary config (#204)
+- Remove redundant guidance from the Claude MCP setup snippet (#205)
+
 ## [1.2.1] - 2025-10-18
 
 ### Added
