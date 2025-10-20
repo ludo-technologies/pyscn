@@ -530,3 +530,131 @@ func TestCloneService_ResponseStructure(t *testing.T) {
 	assert.LessOrEqual(t, stats.AverageSimilarity, 1.0)
 	assert.NotNil(t, stats.ClonesByType)
 }
+
+
+filter by clone types", func(t *testing.T) {
+		req := newDefaultCloneRequest()
+		req.MinSimilarity = 0.0
+		req.MaxSimilarity = 1.0
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type3Clone}
+
+		filtered := service.filterClonePairs(pairs, req)
+
+		assert.Len(t, filtered, 2)
+		assert.Equal(t, 1, filtered[0].ID) // Type1Clone
+		assert.Equal(t, 3, filtered[1].ID) // Type3Clone
+	})
+
+	t.Run("filter by all criteria combined", func(t *testing.T) {
+		req := newDefaultCloneRequest()
+		req.MinSimilarity = 0.75
+		req.MaxSimilarity = 0.95
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone}
+
+		filtered := service.filterClonePairs(pairs, req)
+
+		assert.Len(t, filtered, 2)
+		assert.Equal(t, 1, filtered[0].ID) // Type1Clone, Similarity 0.8
+		assert.Equal(t, 3, filtered[1].ID) // Type3Clone, Similarity 0.9
+	})
+
+	t.Run("no matches found", func(t *testing.T) {
+		req := newDefaultCloneRequest()
+		req.MinSimilarity = 0.95
+		req.MaxSimilarity = 1.0
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone}
+
+		filtered := service.filterClonePairs(pairs, req)
+
+		assert.Empty(t, filtered)
+	})
+
+	t.Run("empty request clone types should return all", func(t *testing.T) {
+		req := newDefaultCloneRequest()
+		req.MinSimilarity = 0.0
+		req.MaxSimilarity = 1.0
+		req.CloneTypes = []domain.CloneType{} // Empty slice means no type filter
+
+		filtered := service.filterClonePairs(pairs, req)
+
+		assert.Len(t, filtered, len(pairs))
+	})
+}
+
+func TestDetectClonesInFiles_SkippedFilesStats(t *testing.T) {
+	service := NewCloneService()
+	ctx := context.Background()
+
+	t.Run("FilesAnalyzed counts only successfully processed files", func(t *testing.T) {
+		validFilePath := "../testdata/python/simple/functions.py"
+		nonExistentFilePath := "../testdata/non_existent_for_stats_test.py" // This file will be skipped
+
+		req := newDefaultCloneRequest()
+		req.Paths = []string{validFilePath, nonExistentFilePath}
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone}
+
+		response, err := service.DetectClonesInFiles(ctx, req.Paths, req)
+
+		assert.NoError(t, err)
+		require.NotNil(t, response)
+		assert.True(t, response.Success)
+		assert.NotNil(t, response.Statistics)
+
+		// Expect only the valid file to be counted as analyzed
+		assert.Equal(t, 1, response.Statistics.FilesAnalyzed, "Only one file should have been analyzed (the valid one)")
+		// The total number of input files was 2
+		assert.Equal(t, len(req.Paths), 2)
+		// No clones are expected since only one file was successfully processed, and we need at least two files for pairs/groups.
+		assert.Empty(t, response.Clones)
+		assert.Empty(t, response.ClonePairs)
+		assert.Empty(t, response.CloneGroups)
+	})
+
+	t.Run("FilesAnalyzed correctly counts multiple valid and skipped files", func(t *testing.T) {
+		validFilePath1 := "../testdata/python/simple/functions.py"
+		validFilePath2 := "../testdata/python/simple/control_flow.py"
+		nonExistentFilePath1 := "../testdata/non_existent_1.py"
+		nonExistentFilePath2 := "../testdata/non_existent_2.py"
+
+		req := newDefaultCloneRequest()
+		req.Paths = []string{validFilePath1, nonExistentFilePath1, validFilePath2, nonExistentFilePath2}
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone}
+		req.MinSimilarity = 0.0 // Ensure clones can be detected between the two valid files
+
+		response, err := service.DetectClonesInFiles(ctx, req.Paths, req)
+
+		assert.NoError(t, err)
+		require.NotNil(t, response)
+		assert.True(t, response.Success)
+		assert.NotNil(t, response.Statistics)
+
+		// Expect only the two valid files to be counted as analyzed
+		assert.Equal(t, 2, response.Statistics.FilesAnalyzed, "Two files should have been analyzed (the valid ones)")
+		assert.Equal(t, len(req.Paths), 4, "Total input files should be 4")
+		// Clones might be found between validFilePath1 and validFilePath2 depending on content
+		assert.GreaterOrEqual(t, response.Statistics.LinesAnalyzed, 0)
+		assert.GreaterOrEqual(t, len(response.Clones), 0)
+	})
+
+	t.Run("FilesAnalyzed is zero if all files are skipped", func(t *testing.T) {
+		nonExistentFilePath1 := "../testdata/non_existent_A.py"
+		nonExistentFilePath2 := "../testdata/non_existent_B.py"
+
+		req := newDefaultCloneRequest()
+		req.Paths = []string{nonExistentFilePath1, nonExistentFilePath2}
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone}
+
+		response, err := service.DetectClonesInFiles(ctx, req.Paths, req)
+
+		assert.NoError(t, err)
+		require.NotNil(t, response)
+		assert.True(t, response.Success)
+		assert.NotNil(t, response.Statistics)
+
+		// Expect zero files analyzed
+		assert.Equal(t, 0, response.Statistics.FilesAnalyzed, "Zero files should have been analyzed as all were skipped")
+		assert.Empty(t, response.Clones)
+		assert.Empty(t, response.ClonePairs)
+		assert.Empty(t, response.CloneGroups)
+	})
+}
