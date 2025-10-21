@@ -320,8 +320,23 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 		b.buildClass(stmt)
 
 	case parser.NodeReturn:
-		// Add return statement and connect to exit
+		// Add return statement to current block
 		b.currentBlock.AddStatement(stmt)
+
+		// If we're in a try block with a finally clause, return must go through finally first
+		// This ensures finally blocks are always executed before returning
+		if len(b.exceptionStack) > 0 {
+			exceptionCtx := b.exceptionStack[len(b.exceptionStack)-1]
+			if exceptionCtx.finallyBlock != nil {
+				b.cfg.ConnectBlocks(b.currentBlock, exceptionCtx.finallyBlock, EdgeReturn)
+				// Create unreachable block for any code after return
+				unreachableBlock := b.createBlock(LabelUnreachable)
+				b.currentBlock = unreachableBlock
+				return
+			}
+		}
+
+		// Normal case: connect directly to exit
 		b.cfg.ConnectBlocks(b.currentBlock, b.cfg.Exit, EdgeReturn)
 		// Create unreachable block for any code following the return statement.
 		// This block will not be connected to the exit, making it truly unreachable

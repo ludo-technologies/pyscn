@@ -75,6 +75,42 @@ if __name__ == "__main__":
 `,
 			wantErr: true,
 		},
+		{
+			name: "try finally statement",
+			source: `
+try:
+    print("try")
+finally:
+    print("finally")
+`,
+			wantErr: false,
+		},
+		{
+			name: "try except finally",
+			source: `
+try:
+    risky_operation()
+except ValueError:
+    handle_error()
+finally:
+    cleanup()
+`,
+			wantErr: false,
+		},
+		{
+			name: "try except else finally",
+			source: `
+try:
+    operation()
+except Exception:
+    handle()
+else:
+    success()
+finally:
+    cleanup()
+`,
+			wantErr: false,
+		},
 	}
 
 	parser := New()

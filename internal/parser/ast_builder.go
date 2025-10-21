@@ -509,12 +509,20 @@ func (b *ASTBuilder) buildTryStatement(tsNode *sitter.Node) *Node {
 	}
 
 	// Get finally clause
+	// Note: finally_clause doesn't have a "body" field, we need to find the block child directly
+	// This is similar to how except_clause is handled in buildExceptHandler
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
 		if child != nil && child.Type() == "finally_clause" {
-			if bodyNode := b.getChildByFieldName(child, "body"); bodyNode != nil {
-				if body := b.buildNode(bodyNode); body != nil {
-					node.Finalbody = b.extractBlockBody(body, node)
+			// Extract block directly from finally_clause children
+			finallyChildCount := int(child.ChildCount())
+			for j := 0; j < finallyChildCount; j++ {
+				finallyChild := child.Child(j)
+				if finallyChild != nil && finallyChild.Type() == "block" {
+					if body := b.buildNode(finallyChild); body != nil {
+						node.Finalbody = b.extractBlockBody(body, node)
+					}
+					break
 				}
 			}
 		}
