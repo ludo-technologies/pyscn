@@ -323,22 +323,30 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 		// Add return statement to current block
 		b.currentBlock.AddStatement(stmt)
 
-		// If we're in a try block with a finally clause, return must go through finally first
-		// This ensures finally blocks are always executed before returning
-		// However, if we're already IN the finally block, connect directly to exit to avoid self-loop
-		if len(b.exceptionStack) > 0 {
-			exceptionCtx := b.exceptionStack[len(b.exceptionStack)-1]
+		// Find the next finally block that needs to execute before this return completes.
+		// Walk the exception stack from innermost to outermost, skipping any finally
+		// blocks we're currently inside (to avoid self-loops), until we find the first
+		// enclosing finally block that hasn't been entered yet.
+		var targetFinallyBlock *BasicBlock
+		for i := len(b.exceptionStack) - 1; i >= 0; i-- {
+			exceptionCtx := b.exceptionStack[i]
 			if exceptionCtx.finallyBlock != nil && b.currentBlock != exceptionCtx.finallyBlock {
-				b.cfg.ConnectBlocks(b.currentBlock, exceptionCtx.finallyBlock, EdgeReturn)
-				// Create unreachable block for any code after return
-				unreachableBlock := b.createBlock(LabelUnreachable)
-				b.currentBlock = unreachableBlock
-				return
+				targetFinallyBlock = exceptionCtx.finallyBlock
+				break
 			}
 		}
 
-		// Normal case: connect directly to exit
-		// This also handles returns inside finally blocks
+		if targetFinallyBlock != nil {
+			// Route through the next outer finally block
+			b.cfg.ConnectBlocks(b.currentBlock, targetFinallyBlock, EdgeReturn)
+			// Create unreachable block for any code after return
+			unreachableBlock := b.createBlock(LabelUnreachable)
+			b.currentBlock = unreachableBlock
+			return
+		}
+
+		// No enclosing finally blocks remain - connect directly to exit
+		// This handles: returns outside try blocks, or returns in the outermost finally
 		b.cfg.ConnectBlocks(b.currentBlock, b.cfg.Exit, EdgeReturn)
 		// Create unreachable block for any code following the return statement.
 		// This block will not be connected to the exit, making it truly unreachable
@@ -959,9 +967,34 @@ func (b *CFGBuilder) processTryStatement(stmt *parser.Node) {
 			b.processStatement(finallyStmt)
 		}
 
-		// Finally always flows to exit
+		// Finally flows to exit in the normal case
 		if !b.hasSuccessor(b.currentBlock, b.cfg.Exit) {
 			b.cfg.ConnectBlocks(b.currentBlock, exitBlock, EdgeNormal)
+		}
+
+		// Additionally, if this finally can be reached via return from inner code,
+		// it must propagate that return to the next enclosing finally (if any) or to CFG.Exit.
+		// This handles nested try-finally where an inner finally returns.
+		// We look for the next outer finally block by searching the exception stack
+		// (excluding the current context which is about to be popped).
+		var nextOuterFinally *BasicBlock
+		for i := len(b.exceptionStack) - 2; i >= 0; i-- {
+			if b.exceptionStack[i].finallyBlock != nil {
+				nextOuterFinally = b.exceptionStack[i].finallyBlock
+				break
+			}
+		}
+
+		if nextOuterFinally != nil {
+			// Connect to next outer finally with return edge
+			if !b.hasSuccessor(finallyBlock, nextOuterFinally) {
+				b.cfg.ConnectBlocks(finallyBlock, nextOuterFinally, EdgeReturn)
+			}
+		} else {
+			// No outer finally - connect to CFG.Exit for return propagation
+			if !b.hasSuccessor(finallyBlock, b.cfg.Exit) {
+				b.cfg.ConnectBlocks(finallyBlock, b.cfg.Exit, EdgeReturn)
+			}
 		}
 	}
 

@@ -229,4 +229,118 @@ def test():
 			}
 		}
 	})
+
+	t.Run("NestedFinallyWithReturnInInner", func(t *testing.T) {
+		source := `
+def test():
+    try:
+        try:
+            x = 1
+        finally:
+            return "inner"
+    finally:
+        print("outer cleanup")
+`
+		ast := parseSource(t, source)
+		funcNode := ast.Body[0]
+
+		builder := NewCFGBuilder()
+		cfg, err := builder.Build(funcNode)
+		if err != nil {
+			t.Fatalf("Failed to build CFG: %v", err)
+		}
+
+		// Find inner and outer finally blocks
+		var innerFinally *BasicBlock
+		var outerFinally *BasicBlock
+		finallyBlocks := []*BasicBlock{}
+
+		cfg.Walk(&testVisitor{
+			onBlock: func(b *BasicBlock) bool {
+				if strings.Contains(b.Label, "finally_block") {
+					finallyBlocks = append(finallyBlocks, b)
+					t.Logf("Found finally block: %s", b.Label)
+				}
+				return true
+			},
+			onEdge: func(e *Edge) bool { return true },
+		})
+
+		if len(finallyBlocks) != 2 {
+			t.Errorf("Expected 2 finally blocks, got %d", len(finallyBlocks))
+		}
+
+		// Determine which is inner and which is outer by checking successors
+		// Inner finally should have return edge to outer finally
+		// Outer finally should have edge to EXIT
+		for _, fb := range finallyBlocks {
+			hasReturnToFinally := false
+			hasReturnToExit := false
+
+			for _, edge := range fb.Successors {
+				if edge.Type == EdgeReturn {
+					if strings.Contains(edge.To.Label, "finally_block") {
+						hasReturnToFinally = true
+					}
+					if edge.To == cfg.Exit {
+						hasReturnToExit = true
+					}
+				}
+			}
+
+			if hasReturnToFinally {
+				innerFinally = fb
+				t.Logf("Inner finally: %s (routes to outer finally)", fb.Label)
+			}
+			if hasReturnToExit {
+				outerFinally = fb
+				t.Logf("Outer finally: %s (routes to EXIT)", fb.Label)
+			}
+		}
+
+		// Verify the chain: inner finally -> outer finally -> EXIT
+		if innerFinally == nil {
+			t.Error("Inner finally block not found or not routing to outer finally")
+		}
+		if outerFinally == nil {
+			t.Error("Outer finally block not found or not routing to EXIT")
+		}
+
+		if innerFinally != nil && outerFinally != nil {
+			// Check that inner finally routes to outer finally
+			foundRoute := false
+			for _, edge := range innerFinally.Successors {
+				if edge.Type == EdgeReturn && edge.To == outerFinally {
+					foundRoute = true
+					t.Logf("✅ Inner finally correctly routes to outer finally")
+					break
+				}
+			}
+			if !foundRoute {
+				t.Error("Inner finally does not route return to outer finally")
+			}
+
+			// Check that outer finally routes to EXIT
+			foundExit := false
+			for _, edge := range outerFinally.Successors {
+				if edge.Type == EdgeReturn && edge.To == cfg.Exit {
+					foundExit = true
+					t.Logf("✅ Outer finally correctly routes to EXIT")
+					break
+				}
+			}
+			if !foundExit {
+				t.Error("Outer finally does not route to EXIT")
+			}
+
+			// Verify no self-loops
+			for _, fb := range finallyBlocks {
+				for _, edge := range fb.Successors {
+					if edge.To == fb {
+						t.Errorf("❌ Finally block %s has self-loop!", fb.Label)
+					}
+				}
+			}
+		}
+	})
 }
