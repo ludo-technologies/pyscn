@@ -325,9 +325,10 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 
 		// If we're in a try block with a finally clause, return must go through finally first
 		// This ensures finally blocks are always executed before returning
+		// However, if we're already IN the finally block, connect directly to exit to avoid self-loop
 		if len(b.exceptionStack) > 0 {
 			exceptionCtx := b.exceptionStack[len(b.exceptionStack)-1]
-			if exceptionCtx.finallyBlock != nil {
+			if exceptionCtx.finallyBlock != nil && b.currentBlock != exceptionCtx.finallyBlock {
 				b.cfg.ConnectBlocks(b.currentBlock, exceptionCtx.finallyBlock, EdgeReturn)
 				// Create unreachable block for any code after return
 				unreachableBlock := b.createBlock(LabelUnreachable)
@@ -337,6 +338,7 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 		}
 
 		// Normal case: connect directly to exit
+		// This also handles returns inside finally blocks
 		b.cfg.ConnectBlocks(b.currentBlock, b.cfg.Exit, EdgeReturn)
 		// Create unreachable block for any code following the return statement.
 		// This block will not be connected to the exit, making it truly unreachable

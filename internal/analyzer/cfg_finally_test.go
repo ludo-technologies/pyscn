@@ -162,4 +162,71 @@ def test():
 			t.Logf("⚠️  Finally block not in CFG (return interaction not yet implemented)")
 		}
 	})
+
+	t.Run("ReturnInFinally", func(t *testing.T) {
+		source := `
+def test():
+    try:
+        x = 1
+    finally:
+        return "from finally"
+`
+		ast := parseSource(t, source)
+		funcNode := ast.Body[0]
+		tryNode := funcNode.Body[0]
+
+		t.Logf("Finalbody length: %d", len(tryNode.Finalbody))
+
+		// Verify parser correctly extracted finally body
+		if len(tryNode.Finalbody) == 0 {
+			t.Error("Parser failed to extract finally body")
+		}
+
+		builder := NewCFGBuilder()
+		cfg, err := builder.Build(funcNode)
+		if err != nil {
+			t.Fatalf("Failed to build CFG: %v", err)
+		}
+
+		// Check that finally block with return connects to EXIT
+		// This is critical to avoid self-loop when return is inside finally
+		hasFinallyBlock := false
+		finallyBlockConnectsToExit := false
+
+		var finallyBlock *BasicBlock
+		cfg.Walk(&testVisitor{
+			onBlock: func(b *BasicBlock) bool {
+				if strings.Contains(b.Label, "finally_block") {
+					hasFinallyBlock = true
+					finallyBlock = b
+					t.Logf("Found finally block: %s", b.Label)
+				}
+				return true
+			},
+			onEdge: func(e *Edge) bool { return true },
+		})
+
+		if !hasFinallyBlock {
+			t.Error("Finally block not created in CFG")
+		}
+
+		if finallyBlock != nil {
+			// Check that finally block connects to EXIT (not to itself)
+			for _, edge := range finallyBlock.Successors {
+				if edge.To == cfg.Exit && edge.Type == EdgeReturn {
+					finallyBlockConnectsToExit = true
+					t.Logf("✅ Finally block correctly connects to EXIT with EdgeReturn")
+					break
+				}
+				if edge.To == finallyBlock {
+					t.Errorf("❌ Finally block has self-loop! From=%s To=%s Type=%v",
+						edge.From.Label, edge.To.Label, edge.Type)
+				}
+			}
+
+			if !finallyBlockConnectsToExit {
+				t.Error("Finally block with return does not connect to EXIT")
+			}
+		}
+	})
 }
