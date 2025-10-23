@@ -106,8 +106,11 @@ pyscn analyze --select complexity,deps,deadcode . # Multiple analyses
 ### `pyscn check`
 Fast CI-friendly quality gate
 ```bash
-pyscn check .                      # Quick pass/fail check
-pyscn check --max-complexity 15 .  # Custom thresholds
+pyscn check .                         # Quick pass/fail check
+pyscn check --max-complexity 15 .     # Custom thresholds
+pyscn check --max-cycles 0 .          # Only allow 0 cycle dependency
+pyscn check --select deps .           # Check only for circular dependencies
+pyscn check --allow-circular-deps .   # Allow circular dependencies (warning only)
 ```
 
 ### `pyscn init`
