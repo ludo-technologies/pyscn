@@ -394,3 +394,25 @@ func TestCommandHelpOutput(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckCommand_CircularDep(test *testing.T) {
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+
+	var stdout, stderr bytes.Buffer
+	cobraCmd.SetOut(&stdout)
+	cobraCmd.SetErr(&stderr)
+
+	cobraCmd.SetArgs([]string{"--select", "deps", "testdata/python"})
+
+	err := cobraCmd.Execute()
+	output := stdout.String() + stderr.String()
+
+	if err == nil {
+		test.Fatalf("Expected error because of circular dependency, got none, output: %s", output)
+	}
+
+	if !strings.Contains(output, "circular dependency detected") {
+		test.Errorf("Expected circular dependency warning, got: %s", output)
+	}
+}

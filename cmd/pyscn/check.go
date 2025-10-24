@@ -26,17 +26,26 @@ type CheckCommand struct {
 
 	// Select specific analyses to run
 	selectAnalyses []string
+
+	// Check circular dependency related fields
+	allowCircularDeps  bool
+	circularIssueCount int // Number of circular dependency issues found in the current run
+	maxCycles          int
+	desiredStart       string // Optional node name used to rotate detected cycles to start with this node
+	prefix             string // Path prefix used to filter modules during circular dependency detection
 }
 
 // NewCheckCommand creates a new check command
 func NewCheckCommand() *CheckCommand {
 	return &CheckCommand{
-		configFile:     "",
-		quiet:          false,
-		maxComplexity:  10,    // Fail if complexity > 10
-		allowDeadCode:  false, // Fail on any dead code
-		skipClones:     false,
-		selectAnalyses: []string{},
+		configFile:        "",
+		quiet:             false,
+		maxComplexity:     10,    // Fail if complexity > 10
+		allowDeadCode:     false, // Fail on any dead code
+		skipClones:        false,
+		selectAnalyses:    []string{},
+		allowCircularDeps: false,
+		maxCycles:         0,
 	}
 }
 
@@ -100,6 +109,10 @@ Examples:
 	cmd.Flags().StringSliceVarP(&c.selectAnalyses, "select", "s", []string{},
 		"Comma-separated list of analyses to run: complexity, deadcode, clones")
 
+	// Check circular dependency
+	cmd.Flags().BoolVar(&c.allowCircularDeps, "allow-circular-deps", false, "Allow circular dependencies (warnings only)")
+	cmd.Flags().IntVar(&c.maxCycles, "max-cycles", 0, "Maximum allowed circular dependency cycles before failing")
+
 	return cmd
 }
 
@@ -117,8 +130,27 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Dynamically generate the prefix using the first path as the base, ensuring it ends with a slash
+	if len(args) > 0 {
+		if args[0] == "." {
+			c.prefix = "" // Avoid prefixes starting with "./"; set to an empty string to facilitate matching absolute paths
+		} else {
+			c.prefix = strings.TrimSuffix(args[0], "/") + "/"
+		}
+	} else {
+		c.prefix = ""
+	}
+
 	// Create use case configuration
 	skipComplexity, skipDeadCode, skipClones := c.determineEnabledAnalyses()
+	// Check circular dependencies
+	skipCircular := true
+	for _, analyses := range c.selectAnalyses {
+		if strings.ToLower(analyses) == "circular" || strings.ToLower(analyses) == "deps" {
+			skipCircular = false
+			break
+		}
+	}
 
 	// Count issues found
 	var issueCount int
@@ -168,14 +200,33 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Pass prefix when calling loop detection
+	if !skipCircular {
+		circularIssues, err := c.checkCircularDependencies(cmd, args, c.prefix)
+		if err != nil {
+			// Print error message
+			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Circular dependency check failed: %v\n", err)
+			// Return an error, terminate the process, and the CLI will exit with an error code of 1.
+			return err
+		}
+		c.circularIssueCount = circularIssues
+		issueCount += circularIssues
+	}
+
 	// Handle results
 	if hasErrors {
 		return fmt.Errorf("analysis failed with errors")
 	}
 
 	if issueCount > 0 {
-		fmt.Fprintf(cmd.ErrOrStderr(), "❌ Found %d quality issue(s)\n", issueCount)
-		os.Exit(1) // Exit with code 1 to indicate issues found
+		if c.allowCircularDeps && issueCount == c.circularIssueCount {
+			if !c.quiet {
+				fmt.Fprintf(cmd.ErrOrStderr(), "! Found %d circular dependency warning(s) (allowed by flag)\n", issueCount)
+			}
+		} else {
+			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Found %d quality issue(s)\n", issueCount)
+			os.Exit(1) // Exit with code 1 to indicate issues found
+		}
 	}
 
 	if !c.quiet {
@@ -204,7 +255,10 @@ func (c *CheckCommand) determineEnabledAnalyses() (skipComplexity bool, skipDead
 // containsAnalysis checks if the specified analysis is in the select list
 func (c *CheckCommand) containsAnalysis(analysis string) bool {
 	for _, a := range c.selectAnalyses {
-		if strings.ToLower(a) == analysis {
+		lowered := strings.ToLower(a)
+		if lowered == analysis ||
+			(analysis == "circular" && lowered == "deps") ||
+			(analysis == "deps" && lowered == "circular") {
 			return true
 		}
 	}
@@ -232,6 +286,8 @@ func (c *CheckCommand) validateSelectedAnalyses() error {
 		"complexity": true,
 		"deadcode":   true,
 		"clones":     true,
+		"circular":   true,
+		"deps":       true,
 	}
 	for _, analysis := range c.selectAnalyses {
 		if !validAnalyses[strings.ToLower(analysis)] {
@@ -455,4 +511,41 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 func NewCheckCmd() *cobra.Command {
 	checkCommand := NewCheckCommand()
 	return checkCommand.CreateCobraCommand()
+}
+
+// checkCircularDependencies performs circular dependency detection on the provided paths,
+// using the CircularDependencyService to build a dependency graph and detect cycles.
+func (c *CheckCommand) checkCircularDependencies(cmd *cobra.Command, args []string, prefix string) (int, error) {
+	// Establish and utilize services for dependency graph construction and loop detection
+	service := service.NewCircularDependencyService()
+
+	// Detect the loop cycles from given paths, with start node and prefix filtering
+	cycles, err := service.DetectCycles(args, c.desiredStart, prefix)
+	if err != nil {
+		return 0, err
+	}
+
+	importPositions := service.GetImportPositions()
+
+	issueCount := len(cycles)
+
+	// Iterate detected cycles and output formatted circular dependency messages
+	for _, cycle := range cycles {
+		pos := importPositions[cycle[0]][cycle[1]]
+		if pos.Line == 0 {
+			pos.Line = 1
+		}
+		if pos.Column == 0 {
+			pos.Column = 1
+		}
+		fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: circular dependency detected: %s\n",
+			cycle[0], pos.Line, pos.Column, strings.Join(cycle, " -> "))
+	}
+
+	// Enforce maxCycles limit and allowCircularDeps flag, return error if limit exceeded
+	if issueCount > c.maxCycles && !c.allowCircularDeps {
+		return issueCount, fmt.Errorf("too many circular dependencies")
+	}
+
+	return issueCount, nil
 }
