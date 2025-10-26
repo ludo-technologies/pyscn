@@ -828,100 +828,13 @@ func (cd *CloneDetector) isSignificantClone(pair *ClonePair) bool {
 	return minSize >= float64(cd.cloneDetectorConfig.MinNodes)
 }
 
-// groupClones groups related clone pairs into clone groups
-func (cd *CloneDetector) groupClones() {
-	// Simple clustering based on shared fragments
-	fragmentToGroup := make(map[*CodeFragment]*CloneGroup)
-	groupID := 0
-
-	for _, pair := range cd.clonePairs {
-		group1 := fragmentToGroup[pair.Fragment1]
-		group2 := fragmentToGroup[pair.Fragment2]
-
-		if group1 == nil && group2 == nil {
-			// Create new group
-			newGroup := NewCloneGroup(groupID)
-			groupID++
-			newGroup.AddFragment(pair.Fragment1)
-			newGroup.AddFragment(pair.Fragment2)
-			newGroup.CloneType = pair.CloneType
-			newGroup.Similarity = pair.Similarity
-
-			fragmentToGroup[pair.Fragment1] = newGroup
-			fragmentToGroup[pair.Fragment2] = newGroup
-			cd.cloneGroups = append(cd.cloneGroups, newGroup)
-		} else if group1 != nil && group2 == nil {
-			// Add fragment2 to existing group1
-			group1.AddFragment(pair.Fragment2)
-			fragmentToGroup[pair.Fragment2] = group1
-		} else if group1 == nil && group2 != nil {
-			// Add fragment1 to existing group2
-			group2.AddFragment(pair.Fragment1)
-			fragmentToGroup[pair.Fragment1] = group2
-		} else if group1 != group2 {
-			// Merge two groups (simple approach: add all fragments from group2 to group1)
-			for _, fragment := range group2.Fragments {
-				if fragmentToGroup[fragment] == group2 {
-					fragmentToGroup[fragment] = group1
-				}
-			}
-			group1.Fragments = append(group1.Fragments, group2.Fragments...)
-			group1.Size = len(group1.Fragments)
-
-			// Remove group2 from clone groups
-			for i, group := range cd.cloneGroups {
-				if group == group2 {
-					cd.cloneGroups = append(cd.cloneGroups[:i], cd.cloneGroups[i+1:]...)
-					break
-				}
-			}
-		}
-	}
-
-	// Calculate average similarity for each group
-	for _, group := range cd.cloneGroups {
-		cd.calculateGroupSimilarity(group)
-	}
-}
-
-// calculateGroupSimilarity calculates average similarity within a clone group
-func (cd *CloneDetector) calculateGroupSimilarity(group *CloneGroup) {
-	if group.Size < 2 {
-		group.Similarity = 1.0
-		return
-	}
-
-	totalSimilarity := 0.0
-	pairCount := 0
-
-	// Calculate all pairwise similarities
-	for i := 0; i < group.Size; i++ {
-		for j := i + 1; j < group.Size; j++ {
-			fragment1 := group.Fragments[i]
-			fragment2 := group.Fragments[j]
-
-			if fragment1.TreeNode != nil && fragment2.TreeNode != nil {
-				similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
-				totalSimilarity += similarity
-				pairCount++
-			}
-		}
-	}
-
-	if pairCount > 0 {
-		group.Similarity = totalSimilarity / float64(pairCount)
-	} else {
-		group.Similarity = 0.0
-	}
-}
-
 // groupClonesWithStrategy groups clone pairs using a pluggable strategy.
 // This keeps backward compatibility with the existing groupClones method.
 //
 //nolint:unused // Hook for pluggable grouping; used when strategy is wired via config.
 func (cd *CloneDetector) groupClonesWithStrategy(strategy GroupingStrategy) {
 	if strategy == nil {
-		cd.groupClones()
+		cd.cloneGroups = []*CloneGroup{}
 		return
 	}
 	cd.cloneGroups = strategy.GroupClones(cd.clonePairs)
