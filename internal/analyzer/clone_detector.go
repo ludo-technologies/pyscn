@@ -828,37 +828,6 @@ func (cd *CloneDetector) isSignificantClone(pair *ClonePair) bool {
 	return minSize >= float64(cd.cloneDetectorConfig.MinNodes)
 }
 
-// calculateGroupSimilarity calculates average similarity within a clone group
-func (cd *CloneDetector) calculateGroupSimilarity(group *CloneGroup) {
-	if group.Size < 2 {
-		group.Similarity = 1.0
-		return
-	}
-
-	totalSimilarity := 0.0
-	pairCount := 0
-
-	// Calculate all pairwise similarities
-	for i := 0; i < group.Size; i++ {
-		for j := i + 1; j < group.Size; j++ {
-			fragment1 := group.Fragments[i]
-			fragment2 := group.Fragments[j]
-
-			if fragment1.TreeNode != nil && fragment2.TreeNode != nil {
-				similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
-				totalSimilarity += similarity
-				pairCount++
-			}
-		}
-	}
-
-	if pairCount > 0 {
-		group.Similarity = totalSimilarity / float64(pairCount)
-	} else {
-		group.Similarity = 0.0
-	}
-}
-
 // groupClonesWithStrategy groups clone pairs using a pluggable strategy.
 // This keeps backward compatibility with the existing groupClones method.
 //
