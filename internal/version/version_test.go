@@ -77,12 +77,16 @@ func TestInfoIncludesBuildMetadata(t *testing.T) {
 	}
 
 	for name, val := range metadataFields {
-
 		if val == "" {
 			t.Fatalf("%s should not be empty", name)
 		}
 
-		expected := fmt.Sprintf("%s: %s", name, val)
+		var expected string
+		if name == "pyscn" {
+			expected = fmt.Sprintf("%s %s", name, val)
+		} else {
+			expected = fmt.Sprintf("%s: %s", name, val)
+		}
 
 		if !strings.Contains(info, expected) {
 			t.Errorf("Info() output missing %q", expected)
