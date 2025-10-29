@@ -1,6 +1,7 @@
 package version_test
 
 import (
+	"fmt"
 	"runtime"
 	"strings"
 	"testing"
@@ -76,8 +77,15 @@ func TestInfoIncludesBuildMetadata(t *testing.T) {
 	}
 
 	for name, val := range metadataFields {
-		if !strings.Contains(info, val) {
-			t.Errorf("Info() should contain %s value %q", name, val)
+
+		if val == "" {
+			t.Fatalf("%s should not be empty", name)
+		}
+
+		expected := fmt.Sprintf("%s: %s", name, val)
+
+		if !strings.Contains(info, expected) {
+			t.Errorf("Info() output missing %q", expected)
 		}
 	}
 }
