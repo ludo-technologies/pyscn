@@ -518,6 +518,100 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
                 </table>`)
 	}
 
+	// Add circular dependencies details section
+	if deps.CircularDependencies != nil {
+		builder.WriteString(GenerateSectionHeader("Circular Dependencies"))
+
+		if !deps.CircularDependencies.HasCircularDependencies {
+			builder.WriteString(`<div style="padding: 20px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px; margin: 20px 0;">
+				<strong style="color: #155724;">✅ No circular dependencies detected</strong>
+				<p style="color: #155724; margin: 10px 0 0 0;">All modules have acyclic dependency relationships.</p>
+			</div>`)
+		} else {
+			// Show circular dependencies table
+			builder.WriteString(`
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 10%;">Severity</th>
+                        <th style="width: 8%;">Size</th>
+                        <th>Dependency Paths</th>
+                    </tr>
+                </thead>
+                <tbody>`)
+
+			// Display each circular dependency
+			for i, cycle := range deps.CircularDependencies.CircularDependencies {
+				if i >= 20 { // Limit to 20 cycles for readability
+					builder.WriteString(`
+                    <tr>
+                        <td colspan="3"><em>... and ` + strconv.Itoa(len(deps.CircularDependencies.CircularDependencies)-20) + ` more circular dependencies</em></td>
+                    </tr>`)
+					break
+				}
+
+				severityBadge := GenerateStatusBadge(strings.ToUpper(string(cycle.Severity)), string(cycle.Severity))
+				sizeStr := strconv.Itoa(cycle.Size)
+
+				// Format dependency paths (show first 5 paths)
+				var pathsHTML strings.Builder
+				pathCount := len(cycle.Dependencies)
+				displayCount := pathCount
+				if displayCount > 5 {
+					displayCount = 5
+				}
+
+				for j := 0; j < displayCount; j++ {
+					path := cycle.Dependencies[j]
+					if j > 0 {
+						pathsHTML.WriteString(`<br>`)
+					}
+
+					// Format path with arrows
+					pathStr := strings.Join(path.Path, " → ")
+					pathsHTML.WriteString(`<code style="font-size: 11px;">` + pathStr + `</code>`)
+				}
+
+				if pathCount > 5 {
+					pathsHTML.WriteString(`<br><em style="font-size: 11px; color: #666;">... and ` + strconv.Itoa(pathCount-5) + ` more paths</em>`)
+				}
+
+				builder.WriteString(`
+                    <tr>
+                        <td>` + severityBadge + `</td>
+                        <td>` + sizeStr + `</td>
+                        <td>` + pathsHTML.String() + `</td>
+                    </tr>`)
+			}
+
+			builder.WriteString(`
+                </tbody>
+            </table>`)
+
+			// Show core infrastructure modules if available
+			if len(deps.CircularDependencies.CoreInfrastructure) > 0 {
+				builder.WriteString(`
+            <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin: 20px 0;">
+                <strong style="color: #856404;">⚠️ Core Infrastructure Modules (appear in multiple cycles):</strong>
+                <p style="color: #856404; margin: 10px 0 0 0;">` + strings.Join(deps.CircularDependencies.CoreInfrastructure, ", ") + `</p>
+            </div>`)
+			}
+
+			// Show cycle breaking suggestions if available
+			if len(deps.CircularDependencies.CycleBreakingSuggestions) > 0 {
+				builder.WriteString(`
+            <div style="padding: 15px; background: #d1ecf1; border-left: 4px solid #17a2b8; border-radius: 4px; margin: 20px 0;">
+                <strong style="color: #0c5460;">💡 Suggestions for Breaking Cycles:</strong>
+                <ul style="margin: 10px 0 0 20px; color: #0c5460;">`)
+				for _, suggestion := range deps.CircularDependencies.CycleBreakingSuggestions {
+					builder.WriteString(`<li>` + suggestion + `</li>`)
+				}
+				builder.WriteString(`</ul>
+            </div>`)
+			}
+		}
+	}
+
 	// Add longest dependency chains
 	if len(deps.LongestChains) > 0 {
 		builder.WriteString(GenerateSectionHeader("Longest Dependency Chains"))
