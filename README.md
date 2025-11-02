@@ -109,8 +109,7 @@ Fast CI-friendly quality gate
 pyscn check .                         # Quick pass/fail check
 pyscn check --max-complexity 15 .     # Custom thresholds
 pyscn check --select deps .           # Check only circular dependencies
-pyscn check --allow-circular-deps .   # Allow circular deps (warning only)
-pyscn check --max-cycles 3 .          # Allow up to 3 circular dep cycles
+
 ```
 
 ### `pyscn init`
