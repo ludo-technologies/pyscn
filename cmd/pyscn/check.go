@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	"github.com/ludo-technologies/pyscn/service"
 	"github.com/spf13/cobra"
 )
@@ -20,9 +22,11 @@ type CheckCommand struct {
 	quiet      bool
 
 	// Quick override flags
-	maxComplexity int
-	allowDeadCode bool
-	skipClones    bool
+	maxComplexity     int
+	allowDeadCode     bool
+	skipClones        bool
+	allowCircularDeps bool
+	maxCycles         int
 
 	// Select specific analyses to run
 	selectAnalyses []string
@@ -31,12 +35,14 @@ type CheckCommand struct {
 // NewCheckCommand creates a new check command
 func NewCheckCommand() *CheckCommand {
 	return &CheckCommand{
-		configFile:     "",
-		quiet:          false,
-		maxComplexity:  10,    // Fail if complexity > 10
-		allowDeadCode:  false, // Fail on any dead code
-		skipClones:     false,
-		selectAnalyses: []string{},
+		configFile:        "",
+		quiet:             false,
+		maxComplexity:     10,    // Fail if complexity > 10
+		allowDeadCode:     false, // Fail on any dead code
+		skipClones:        false,
+		allowCircularDeps: false, // Fail on any circular dependencies
+		maxCycles:         0,     // Fail if more than 0 cycles found
+		selectAnalyses:    []string{},
 	}
 }
 
@@ -51,8 +57,9 @@ This command performs a fast analysis with predefined thresholds:
 • Complexity: Fails if any function has complexity > 10
 • Dead Code: Fails if any critical dead code is found
 • Clones: Reports clones with similarity > 0.8 (warning only)
+• Circular Dependencies: Fails if any cycles are detected
 
-By default, all analyses are run. Use --select to choose specific analyses.
+By default, complexity, dead code, and clones analyses are run. Use --select to choose specific analyses.
 
 Exit codes:
 • 0: No issues found
@@ -75,11 +82,20 @@ Examples:
   # Check complexity and dead code, skip clones
   pyscn check --select complexity,deadcode src/
 
+  # Check only for circular dependencies
+  pyscn check --select deps src/
+
   # Check with higher complexity threshold
   pyscn check --max-complexity 15 src/
 
   # Allow dead code, only check complexity
   pyscn check --allow-dead-code src/
+
+  # Allow circular dependencies (warning only)
+  pyscn check --allow-circular-deps src/
+
+  # Allow up to 3 circular dependency cycles
+  pyscn check --max-cycles 3 src/
 
   # Skip clone detection for faster analysis
   pyscn check --skip-clones src/`,
@@ -95,10 +111,12 @@ Examples:
 	cmd.Flags().IntVar(&c.maxComplexity, "max-complexity", 10, "Maximum allowed complexity")
 	cmd.Flags().BoolVar(&c.allowDeadCode, "allow-dead-code", false, "Allow dead code (don't fail)")
 	cmd.Flags().BoolVar(&c.skipClones, "skip-clones", false, "Skip clone detection")
+	cmd.Flags().BoolVar(&c.allowCircularDeps, "allow-circular-deps", false, "Allow circular dependencies (warnings only)")
+	cmd.Flags().IntVar(&c.maxCycles, "max-cycles", 0, "Maximum allowed circular dependency cycles before failing")
 
 	// Select specific analyses to run
 	cmd.Flags().StringSliceVarP(&c.selectAnalyses, "select", "s", []string{},
-		"Comma-separated list of analyses to run: complexity, deadcode, clones")
+		"Comma-separated list of analyses to run: complexity, deadcode, clones, deps")
 
 	return cmd
 }
@@ -118,14 +136,14 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create use case configuration
-	skipComplexity, skipDeadCode, skipClones := c.determineEnabledAnalyses()
+	skipComplexity, skipDeadCode, skipClones, skipDeps := c.determineEnabledAnalyses()
 
 	// Count issues found
 	var issueCount int
 	var hasErrors bool
 
 	if !c.quiet {
-		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check (%s)...\n", strings.Join(c.getEnabledAnalyses(skipComplexity, skipDeadCode, skipClones), ", "))
+		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check (%s)...\n", strings.Join(c.getEnabledAnalyses(skipComplexity, skipDeadCode, skipClones, skipDeps), ", "))
 	}
 
 	// Run complexity check if enabled
@@ -168,6 +186,27 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Run circular dependency check if enabled
+	if !skipDeps {
+		depsIssues, err := c.checkCircularDependencies(cmd, args)
+		if err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Circular dependency check failed: %v\n", err)
+			hasErrors = true
+		} else {
+			// Handle max-cycles threshold
+			if depsIssues > c.maxCycles {
+				if !c.allowCircularDeps {
+					issueCount += depsIssues
+				} else if depsIssues > 0 && !c.quiet {
+					fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Found %d circular dependency cycle(s) (allowed by --allow-circular-deps)\n", depsIssues)
+				}
+			} else if depsIssues > 0 && !c.quiet {
+				// Within max-cycles threshold
+				fmt.Fprintf(cmd.ErrOrStderr(), "✓ Found %d circular dependency cycle(s) (within allowed limit of %d)\n", depsIssues, c.maxCycles)
+			}
+		}
+	}
+
 	// Handle results
 	if hasErrors {
 		return fmt.Errorf("analysis failed with errors")
@@ -175,7 +214,7 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 
 	if issueCount > 0 {
 		fmt.Fprintf(cmd.ErrOrStderr(), "❌ Found %d quality issue(s)\n", issueCount)
-		os.Exit(1) // Exit with code 1 to indicate issues found
+		return fmt.Errorf("found %d quality issue(s)", issueCount)
 	}
 
 	if !c.quiet {
@@ -186,17 +225,19 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 }
 
 // determineEnabledAnalyses determines which analyses should run based on flags
-func (c *CheckCommand) determineEnabledAnalyses() (skipComplexity bool, skipDeadCode bool, skipClones bool) {
+func (c *CheckCommand) determineEnabledAnalyses() (skipComplexity bool, skipDeadCode bool, skipClones bool, skipDeps bool) {
 	if len(c.selectAnalyses) > 0 {
 		// If --select is used, only run selected analyses
 		skipComplexity = !c.containsAnalysis("complexity")
 		skipDeadCode = !c.containsAnalysis("deadcode")
 		skipClones = !c.containsAnalysis("clones")
+		skipDeps = !c.containsAnalysis("deps") && !c.containsAnalysis("circular")
 	} else {
 		// Otherwise use original behavior (backward compatible)
 		skipComplexity = false    // Always run complexity
 		skipDeadCode = false      // Always run dead code analysis
 		skipClones = c.skipClones // Only skip clones if explicitly requested
+		skipDeps = true           // Skip deps by default (opt-in via --select)
 	}
 	return
 }
@@ -204,7 +245,12 @@ func (c *CheckCommand) determineEnabledAnalyses() (skipComplexity bool, skipDead
 // containsAnalysis checks if the specified analysis is in the select list
 func (c *CheckCommand) containsAnalysis(analysis string) bool {
 	for _, a := range c.selectAnalyses {
-		if strings.ToLower(a) == analysis {
+		lowered := strings.ToLower(a)
+		if lowered == analysis {
+			return true
+		}
+		// Support both 'deps' and 'circular' for circular dependency analysis
+		if (analysis == "deps" && lowered == "circular") || (analysis == "circular" && lowered == "deps") {
 			return true
 		}
 	}
@@ -212,7 +258,7 @@ func (c *CheckCommand) containsAnalysis(analysis string) bool {
 }
 
 // getEnabledAnalyses returns a list of enabled analyses for display
-func (c *CheckCommand) getEnabledAnalyses(skipComplexity bool, skipDeadCode bool, skipClones bool) []string {
+func (c *CheckCommand) getEnabledAnalyses(skipComplexity bool, skipDeadCode bool, skipClones bool, skipDeps bool) []string {
 	var enabled []string
 	if !skipComplexity {
 		enabled = append(enabled, "complexity")
@@ -223,6 +269,9 @@ func (c *CheckCommand) getEnabledAnalyses(skipComplexity bool, skipDeadCode bool
 	if !skipClones {
 		enabled = append(enabled, "clones")
 	}
+	if !skipDeps {
+		enabled = append(enabled, "deps")
+	}
 	return enabled
 }
 
@@ -232,10 +281,12 @@ func (c *CheckCommand) validateSelectedAnalyses() error {
 		"complexity": true,
 		"deadcode":   true,
 		"clones":     true,
+		"deps":       true,
+		"circular":   true,
 	}
 	for _, analysis := range c.selectAnalyses {
 		if !validAnalyses[strings.ToLower(analysis)] {
-			return fmt.Errorf("invalid analysis type: %s. Valid options: complexity, deadcode, clones", analysis)
+			return fmt.Errorf("invalid analysis type: %s. Valid options: complexity, deadcode, clones, deps", analysis)
 		}
 	}
 	if len(c.selectAnalyses) == 0 {
@@ -449,6 +500,93 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 	}
 
 	return issueCount, nil
+}
+
+// checkCircularDependencies runs circular dependency detection and returns issue count
+func (c *CheckCommand) checkCircularDependencies(cmd *cobra.Command, args []string) (int, error) {
+	// Determine project root
+	var projectRoot string
+	if len(args) > 0 {
+		absPath, err := filepath.Abs(args[0])
+		if err != nil {
+			return 0, fmt.Errorf("failed to resolve path: %w", err)
+		}
+		// Check if it's a directory or file
+		info, err := os.Stat(absPath)
+		if err != nil {
+			return 0, fmt.Errorf("failed to stat path: %w", err)
+		}
+		if info.IsDir() {
+			projectRoot = absPath
+		} else {
+			projectRoot = filepath.Dir(absPath)
+		}
+	} else {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return 0, fmt.Errorf("failed to get working directory: %w", err)
+		}
+		projectRoot = cwd
+	}
+
+	// Create module analyzer with check-optimized options
+	opts := &analyzer.ModuleAnalysisOptions{
+		ProjectRoot:       projectRoot,
+		IncludePatterns:   []string{"**/*.py"},
+		ExcludePatterns:   []string{"__pycache__", "*.pyc", ".venv", "venv"},
+		IncludeStdLib:     false, // Exclude standard library for faster analysis
+		IncludeThirdParty: false, // Exclude third-party for faster analysis
+		FollowRelative:    true,  // Follow relative imports
+	}
+
+	moduleAnalyzer, err := analyzer.NewModuleAnalyzer(opts)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create module analyzer: %w", err)
+	}
+
+	// Build dependency graph
+	graph, err := moduleAnalyzer.AnalyzeProject()
+	if err != nil {
+		return 0, fmt.Errorf("failed to analyze dependencies: %w", err)
+	}
+
+	// Detect circular dependencies
+	result := analyzer.DetectCircularDependencies(graph)
+
+	if !result.HasCircularDependencies {
+		return 0, nil
+	}
+
+	// Output circular dependencies in linter format
+	for _, cycle := range result.CircularDependencies {
+		if len(cycle.Modules) == 0 {
+			continue
+		}
+
+		// Get the first module's file path
+		firstModule := cycle.Modules[0]
+		node := graph.Nodes[firstModule]
+		if node == nil {
+			continue
+		}
+
+		// Find the import line for the second module in the cycle
+		var importLine int = 1
+		if len(cycle.Dependencies) > 0 && len(cycle.Dependencies[0].Path) > 1 {
+			// Try to find the actual import statement
+			// For now, use line 1 as we don't have precise import position tracking
+			importLine = 1
+		}
+
+		// Format: file:line:col: message
+		cyclePath := strings.Join(cycle.Modules, " -> ")
+		if !c.quiet {
+			fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:1: circular dependency detected: %s\n",
+				node.FilePath, importLine, cyclePath)
+		}
+	}
+
+	return result.TotalCycles, nil
 }
 
 // NewCheckCmd creates and returns the check cobra command
