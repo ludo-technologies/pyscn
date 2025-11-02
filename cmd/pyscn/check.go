@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/ludo-technologies/pyscn/app"
@@ -504,29 +502,10 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 
 // checkCircularDependencies runs circular dependency detection and returns issue count
 func (c *CheckCommand) checkCircularDependencies(cmd *cobra.Command, args []string) (int, error) {
-	// Determine project root
-	var projectRoot string
+	// Determine project root (default to current directory if no args)
+	projectRoot := "."
 	if len(args) > 0 {
-		absPath, err := filepath.Abs(args[0])
-		if err != nil {
-			return 0, fmt.Errorf("failed to resolve path: %w", err)
-		}
-		// Check if it's a directory or file
-		info, err := os.Stat(absPath)
-		if err != nil {
-			return 0, fmt.Errorf("failed to stat path: %w", err)
-		}
-		if info.IsDir() {
-			projectRoot = absPath
-		} else {
-			projectRoot = filepath.Dir(absPath)
-		}
-	} else {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return 0, fmt.Errorf("failed to get working directory: %w", err)
-		}
-		projectRoot = cwd
+		projectRoot = args[0]
 	}
 
 	// Create module analyzer with check-optimized options
@@ -570,19 +549,11 @@ func (c *CheckCommand) checkCircularDependencies(cmd *cobra.Command, args []stri
 			continue
 		}
 
-		// Find the import line for the second module in the cycle
-		var importLine int = 1
-		if len(cycle.Dependencies) > 0 && len(cycle.Dependencies[0].Path) > 1 {
-			// Try to find the actual import statement
-			// For now, use line 1 as we don't have precise import position tracking
-			importLine = 1
-		}
-
 		// Format: file:line:col: message
 		cyclePath := strings.Join(cycle.Modules, " -> ")
 		if !c.quiet {
-			fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:1: circular dependency detected: %s\n",
-				node.FilePath, importLine, cyclePath)
+			fmt.Fprintf(cmd.ErrOrStderr(), "%s:1:1: circular dependency detected: %s\n",
+				node.FilePath, cyclePath)
 		}
 	}
 
