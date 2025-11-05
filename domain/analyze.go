@@ -35,25 +35,32 @@ const (
 	// Maximum penalties
 	MaxDeadCodePenalty = 20
 	MaxCriticalPenalty = 10
-	MaxCyclesPenalty   = 8
-	MaxDepthPenalty    = 2
-	MaxArchPenalty     = 8
-	MaxMSDPenalty      = 2
+	MaxCyclesPenalty   = 10 // Increased from 8 for stricter scoring
+	MaxDepthPenalty    = 3  // Increased from 2 for stricter scoring
+	MaxArchPenalty     = 12 // Increased from 8 for stricter scoring
+	MaxMSDPenalty      = 3  // Increased from 2 for stricter scoring
 
-	// Grade thresholds
-	GradeAThreshold = 85
-	GradeBThreshold = 70
-	GradeCThreshold = 55
-	GradeDThreshold = 40
+	// Score display scale - all categories normalized to this base
+	MaxScoreBase = 20
+
+	// Actual maximum penalty values for normalization
+	MaxDependencyPenalty   = MaxCyclesPenalty + MaxDepthPenalty + MaxMSDPenalty // 16
+	MaxArchitecturePenalty = MaxArchPenalty                                     // 12
+
+	// Grade thresholds (stricter than before)
+	GradeAThreshold = 90 // Increased from 85
+	GradeBThreshold = 75 // Increased from 70
+	GradeCThreshold = 60 // Increased from 55
+	GradeDThreshold = 45 // Increased from 40
 
 	// Score quality thresholds (aligned with grade thresholds)
-	ScoreThresholdExcellent = 85 // Excellent: 85-100
-	ScoreThresholdGood      = 70 // Good: 70-84
-	ScoreThresholdFair      = 55 // Fair: 55-69
-	// Poor: 0-54 (below ScoreThresholdFair)
+	ScoreThresholdExcellent = 90 // Excellent: 90-100 (increased from 85)
+	ScoreThresholdGood      = 75 // Good: 75-89 (increased from 70)
+	ScoreThresholdFair      = 60 // Fair: 60-74 (increased from 55)
+	// Poor: 0-59 (below ScoreThresholdFair)
 
 	// Other constants
-	MinimumScore                = 10
+	MinimumScore                = 0 // Changed from 10 to allow truly low scores for severely problematic code
 	HealthyThreshold            = 70
 	FallbackComplexityThreshold = 10
 	FallbackPenalty             = 5
@@ -106,6 +113,8 @@ type AnalyzeSummary struct {
 
 	DeadCodeCount    int `json:"dead_code_count" yaml:"dead_code_count"`
 	CriticalDeadCode int `json:"critical_dead_code" yaml:"critical_dead_code"`
+	WarningDeadCode  int `json:"warning_dead_code" yaml:"warning_dead_code"`
+	InfoDeadCode     int `json:"info_dead_code" yaml:"info_dead_code"`
 
 	TotalClones     int     `json:"total_clones" yaml:"total_clones"`
 	ClonePairs      int     `json:"clone_pairs" yaml:"clone_pairs"`
@@ -180,45 +189,58 @@ func (s *AnalyzeSummary) Validate() error {
 }
 
 // calculateComplexityPenalty calculates the penalty for complexity (max 20)
+// Uses continuous linear function starting from avg complexity of 2
 func (s *AnalyzeSummary) calculateComplexityPenalty() int {
-	switch {
-	case s.AverageComplexity > float64(ComplexityThresholdHigh):
-		return ComplexityPenaltyHigh
-	case s.AverageComplexity > float64(ComplexityThresholdMedium):
-		return ComplexityPenaltyMedium
-	case s.AverageComplexity > float64(ComplexityThresholdLow):
-		return ComplexityPenaltyLow
-	default:
+	// Linear penalty: starts at avg=2, reaches max (20) at avg=15
+	// Formula: penalty = (avg - 2) / 13 * 20
+	if s.AverageComplexity <= 2.0 {
 		return 0
 	}
+
+	penalty := (s.AverageComplexity - 2.0) / 13.0 * 20.0
+	if penalty > 20.0 {
+		penalty = 20.0
+	}
+
+	return int(math.Round(penalty))
 }
 
 // calculateDeadCodePenalty calculates the penalty for dead code (max 20)
+// Uses weighted counting: Critical=1.0, Warning=0.5, Info=0.2
 func (s *AnalyzeSummary) calculateDeadCodePenalty(normalizationFactor float64) int {
-	if s.CriticalDeadCode == 0 {
+	// Calculate weighted dead code count
+	// Critical issues have full weight, warning half, info minimal
+	weightedDeadCode := float64(s.CriticalDeadCode)*1.0 +
+		float64(s.WarningDeadCode)*0.5 +
+		float64(s.InfoDeadCode)*0.2
+
+	if weightedDeadCode <= 0 {
 		return 0
 	}
 
-	penalty := int(math.Min(float64(MaxDeadCodePenalty), float64(s.CriticalDeadCode)/normalizationFactor))
+	penalty := int(math.Min(float64(MaxDeadCodePenalty), weightedDeadCode/normalizationFactor))
 	return penalty
 }
 
 // calculateDuplicationPenalty calculates the penalty for code duplication (max 20)
+// Uses continuous linear function starting from 1% duplication
 func (s *AnalyzeSummary) calculateDuplicationPenalty() int {
-	switch {
-	case s.CodeDuplication > DuplicationThresholdHigh:
-		return DuplicationPenaltyHigh
-	case s.CodeDuplication > DuplicationThresholdMedium:
-		return DuplicationPenaltyMedium
-	case s.CodeDuplication > DuplicationThresholdLow:
-		return DuplicationPenaltyLow
-	default:
+	// Linear penalty: starts at 1%, reaches max (20) at 8%
+	// Formula: penalty = (duplication - 1) / 7 * 20
+	if s.CodeDuplication <= 1.0 {
 		return 0
 	}
+
+	penalty := (s.CodeDuplication - 1.0) / 7.0 * 20.0
+	if penalty > 20.0 {
+		penalty = 20.0
+	}
+
+	return int(math.Round(penalty))
 }
 
 // calculateCouplingPenalty calculates the penalty for class coupling (max 20)
-// Considers both High and Medium risk classes with different weights
+// Uses continuous linear function based on weighted ratio of problematic classes
 func (s *AnalyzeSummary) calculateCouplingPenalty() int {
 	if s.CBOClasses == 0 {
 		return 0
@@ -229,19 +251,17 @@ func (s *AnalyzeSummary) calculateCouplingPenalty() int {
 	weightedProblematicClasses := float64(s.HighCouplingClasses) + (0.5 * float64(s.MediumCouplingClasses))
 	ratio := weightedProblematicClasses / float64(s.CBOClasses)
 
-	switch {
-	case ratio > CouplingRatioHigh:
-		return CouplingPenaltyHigh
-	case ratio > CouplingRatioMedium:
-		return CouplingPenaltyMedium
-	case ratio > CouplingRatioLow:
-		return CouplingPenaltyLow
-	default:
-		return 0
+	// Linear penalty: starts at 0%, reaches max (20) at 12%
+	// Formula: penalty = ratio / 0.12 * 20
+	penalty := ratio / 0.12 * 20.0
+	if penalty > 20.0 {
+		penalty = 20.0
 	}
+
+	return int(math.Round(penalty))
 }
 
-// calculateDependencyPenalty calculates the penalty for module dependencies (max 12)
+// calculateDependencyPenalty calculates the penalty for module dependencies (max 16: cycles=10, depth=3, MSD=3)
 func (s *AnalyzeSummary) calculateDependencyPenalty() int {
 	if !s.DepsEnabled {
 		return 0
@@ -249,7 +269,7 @@ func (s *AnalyzeSummary) calculateDependencyPenalty() int {
 
 	penalty := 0
 
-	// Cycles penalty (max 8): proportion of modules in cycles
+	// Cycles penalty (max 10): proportion of modules in cycles
 	if s.DepsTotalModules > 0 {
 		ratio := float64(s.DepsModulesInCycles) / float64(s.DepsTotalModules)
 		if ratio < 0 {
@@ -261,7 +281,7 @@ func (s *AnalyzeSummary) calculateDependencyPenalty() int {
 		penalty += int(math.Round(float64(MaxCyclesPenalty) * ratio))
 	}
 
-	// Depth penalty (max 2): excess over expected depth ~ O(log N)
+	// Depth penalty (max 3): excess over expected depth ~ O(log N)
 	if s.DepsTotalModules > 0 {
 		expected := int(math.Max(3, math.Ceil(math.Log2(float64(s.DepsTotalModules)+1))+1))
 		excess := s.DepsMaxDepth - expected
@@ -274,7 +294,7 @@ func (s *AnalyzeSummary) calculateDependencyPenalty() int {
 		penalty += excess
 	}
 
-	// Main sequence deviation penalty (max 2)
+	// Main sequence deviation penalty (max 3)
 	if s.DepsMainSequenceDeviation > 0 {
 		msd := s.DepsMainSequenceDeviation
 		if msd < 0 {
@@ -289,7 +309,7 @@ func (s *AnalyzeSummary) calculateDependencyPenalty() int {
 	return penalty
 }
 
-// calculateArchitecturePenalty calculates the penalty for architecture compliance (max 8)
+// calculateArchitecturePenalty calculates the penalty for architecture compliance (max 12)
 func (s *AnalyzeSummary) calculateArchitecturePenalty() int {
 	if !s.ArchEnabled {
 		return 0
@@ -303,6 +323,22 @@ func (s *AnalyzeSummary) calculateArchitecturePenalty() int {
 		comp = 1
 	}
 	return int(math.Round(float64(MaxArchPenalty) * (1 - comp)))
+}
+
+// normalizeToScoreBase normalizes a penalty value to the MaxScoreBase scale (0-20)
+// This ensures all category scores use a consistent display scale
+func normalizeToScoreBase(penalty int, maxPenalty int) int {
+	if maxPenalty == 0 {
+		return 0
+	}
+	normalized := int(math.Round(float64(penalty) / float64(maxPenalty) * float64(MaxScoreBase)))
+	if normalized < 0 {
+		normalized = 0
+	}
+	if normalized > MaxScoreBase {
+		normalized = MaxScoreBase
+	}
+	return normalized
 }
 
 // penaltyToScore converts a penalty value to a 0-100 score
@@ -344,28 +380,33 @@ func (s *AnalyzeSummary) CalculateHealthScore() error {
 	}
 
 	// Calculate penalties and corresponding scores
+	// Individual scores are normalized to a consistent 20-point scale for display consistency
+
 	complexityPenalty := s.calculateComplexityPenalty()
-	s.ComplexityScore = penaltyToScore(complexityPenalty, ComplexityPenaltyHigh)
+	s.ComplexityScore = penaltyToScore(complexityPenalty, MaxScoreBase)
 	score -= complexityPenalty
 
 	deadCodePenalty := s.calculateDeadCodePenalty(normalizationFactor)
-	s.DeadCodeScore = penaltyToScore(deadCodePenalty, MaxDeadCodePenalty)
+	s.DeadCodeScore = penaltyToScore(deadCodePenalty, MaxScoreBase)
 	score -= deadCodePenalty
 
 	duplicationPenalty := s.calculateDuplicationPenalty()
-	s.DuplicationScore = penaltyToScore(duplicationPenalty, DuplicationPenaltyHigh)
+	s.DuplicationScore = penaltyToScore(duplicationPenalty, MaxScoreBase)
 	score -= duplicationPenalty
 
 	couplingPenalty := s.calculateCouplingPenalty()
-	s.CouplingScore = penaltyToScore(couplingPenalty, CouplingPenaltyHigh)
+	s.CouplingScore = penaltyToScore(couplingPenalty, MaxScoreBase)
 	score -= couplingPenalty
 
+	// Dependencies and Architecture need normalization since their max penalties differ from MaxScoreBase
 	dependencyPenalty := s.calculateDependencyPenalty()
-	s.DependencyScore = penaltyToScore(dependencyPenalty, MaxCyclesPenalty+MaxDepthPenalty+MaxMSDPenalty)
+	normalizedDepPenalty := normalizeToScoreBase(dependencyPenalty, MaxDependencyPenalty)
+	s.DependencyScore = penaltyToScore(normalizedDepPenalty, MaxScoreBase)
 	score -= dependencyPenalty
 
 	architecturePenalty := s.calculateArchitecturePenalty()
-	s.ArchitectureScore = penaltyToScore(architecturePenalty, MaxArchPenalty)
+	normalizedArchPenalty := normalizeToScoreBase(architecturePenalty, MaxArchitecturePenalty)
+	s.ArchitectureScore = penaltyToScore(normalizedArchPenalty, MaxScoreBase)
 	score -= architecturePenalty
 
 	// Minimum score floor

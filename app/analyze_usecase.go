@@ -465,6 +465,8 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 	if response.DeadCode != nil {
 		summary.DeadCodeCount = response.DeadCode.Summary.TotalFindings
 		summary.CriticalDeadCode = response.DeadCode.Summary.CriticalFindings
+		summary.WarningDeadCode = response.DeadCode.Summary.WarningFindings
+		summary.InfoDeadCode = response.DeadCode.Summary.InfoFindings
 	}
 
 	// Clone statistics
