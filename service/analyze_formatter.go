@@ -167,6 +167,15 @@ func (f *AnalyzeFormatter) writeHTML(response *domain.AnalyzeResponse, writer io
 			return a - b
 		},
 		"mul100": func(v float64) float64 { return v * 100.0 },
+		"slice": func(s []string, start, end int) []string {
+			if start < 0 || start >= len(s) {
+				return []string{}
+			}
+			if end > len(s) {
+				end = len(s)
+			}
+			return s[start:end]
+		},
 		"scoreQuality": func(score int) string {
 			switch {
 			case score >= domain.ScoreThresholdExcellent:
@@ -911,6 +920,78 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </div>
                     {{end}}
                 </div>
+
+                {{/* Circular Dependencies Details Section */}}
+                {{if .System.DependencyAnalysis.CircularDependencies}}
+                <h3 style="margin-top: 30px;">Circular Dependencies</h3>
+                {{if not .System.DependencyAnalysis.CircularDependencies.HasCircularDependencies}}
+                <div style="padding: 20px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px; margin: 20px 0;">
+                    <strong style="color: #155724;">✅ No circular dependencies detected</strong>
+                    <p style="color: #155724; margin: 10px 0 0 0;">All modules have acyclic dependency relationships.</p>
+                </div>
+                {{else}}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">Severity</th>
+                            <th style="width: 8%;">Size</th>
+                            <th>Dependency Paths</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $i, $cycle := .System.DependencyAnalysis.CircularDependencies.CircularDependencies}}
+                        {{if lt $i 20}}
+                        <tr>
+                            <td>
+                                {{if eq $cycle.Severity "critical"}}<span style="background: #f8d7da; color: #721c24; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">CRITICAL</span>
+                                {{else if eq $cycle.Severity "high"}}<span style="background: #fff3cd; color: #856404; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">HIGH</span>
+                                {{else if eq $cycle.Severity "medium"}}<span style="background: #fff3cd; color: #856404; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">MEDIUM</span>
+                                {{else}}<span style="background: #d1ecf1; color: #0c5460; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">LOW</span>{{end}}
+                            </td>
+                            <td>{{$cycle.Size}}</td>
+                            <td>
+                                {{range $j, $path := $cycle.Dependencies}}
+                                    {{if lt $j 5}}
+                                        {{if gt $j 0}}<br>{{end}}
+                                        <code style="font-size: 11px;">{{join $path.Path " → "}}</code>
+                                    {{end}}
+                                {{end}}
+                                {{if gt (len $cycle.Dependencies) 5}}
+                                    <br><em style="font-size: 11px; color: #666;">... and {{sub (len $cycle.Dependencies) 5}} more paths</em>
+                                {{end}}
+                            </td>
+                        </tr>
+                        {{end}}
+                        {{end}}
+                        {{if gt (len .System.DependencyAnalysis.CircularDependencies.CircularDependencies) 20}}
+                        <tr>
+                            <td colspan="3"><em>... and {{sub (len .System.DependencyAnalysis.CircularDependencies.CircularDependencies) 20}} more circular dependencies</em></td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+
+                {{/* Core Infrastructure Modules */}}
+                {{if gt (len .System.DependencyAnalysis.CircularDependencies.CoreInfrastructure) 0}}
+                <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin: 20px 0;">
+                    <strong style="color: #856404;">⚠️ Core Infrastructure Modules (appear in multiple cycles):</strong>
+                    <p style="color: #856404; margin: 10px 0 0 0;">{{join .System.DependencyAnalysis.CircularDependencies.CoreInfrastructure ", "}}</p>
+                </div>
+                {{end}}
+
+                {{/* Cycle Breaking Suggestions */}}
+                {{if gt (len .System.DependencyAnalysis.CircularDependencies.CycleBreakingSuggestions) 0}}
+                <div style="padding: 15px; background: #d1ecf1; border-left: 4px solid #17a2b8; border-radius: 4px; margin: 20px 0;">
+                    <strong style="color: #0c5460;">💡 Suggestions for Breaking Cycles:</strong>
+                    <ul style="margin: 10px 0 0 20px; color: #0c5460;">
+                        {{range .System.DependencyAnalysis.CircularDependencies.CycleBreakingSuggestions}}
+                        <li>{{.}}</li>
+                        {{end}}
+                    </ul>
+                </div>
+                {{end}}
+                {{end}}
+                {{end}}
 
                 {{if gt (len .System.DependencyAnalysis.LongestChains) 0}}
                 <h3>Longest Dependency Chains</h3>
