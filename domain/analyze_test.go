@@ -324,11 +324,11 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 		{
 			name: "edge case - worst dependency score (score should be 0)",
 			summary: domain.AnalyzeSummary{
-				DepsEnabled:         true,
-				DepsTotalModules:    10,
-				DepsModulesInCycles: 10,                 // 100% in cycles: 10 penalty
-				DepsMaxDepth:        20,                 // Very deep: 3 penalty (capped)
-				DepsMainSequenceDeviation: 1.0,          // Max deviation: 3 penalty
+				DepsEnabled:               true,
+				DepsTotalModules:          10,
+				DepsModulesInCycles:       10,  // 100% in cycles: 10 penalty
+				DepsMaxDepth:              20,  // Very deep: 3 penalty (capped)
+				DepsMainSequenceDeviation: 1.0, // Max deviation: 3 penalty
 			},
 			expectedScore:           84, // 100 - 16 = 84
 			expectedGrade:           "B",
