@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.3.0] - 2025-11-06
+
+### Fixed
+- Fix finally clause parsing in try-except-finally statements (#209)
+- Fix score normalization for dependencies and architecture categories (#221)
+
+### Added
+- Circular dependency details in HTML reports (#176)
+- Scoring reference documentation (#211)
+- MCP use case examples in README (#222)
+
+### Enhanced
+- Stricter analyze scoring with continuous penalties and weighted dead code (#212)
+
+### Improved
+- Add test coverage for version package (#218)
+- Add test coverage for system-analysis helper utilities (#216)
+- Remove unused clone detection code (#214)
+
 ## [1.2.2] - 2025-10-19
 
 ### Enhanced
