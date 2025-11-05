@@ -40,6 +40,13 @@ const (
 	MaxArchPenalty     = 12 // Increased from 8 for stricter scoring
 	MaxMSDPenalty      = 3  // Increased from 2 for stricter scoring
 
+	// Score display scale - all categories normalized to this base
+	MaxScoreBase = 20
+
+	// Actual maximum penalty values for normalization
+	MaxDependencyPenalty   = MaxCyclesPenalty + MaxDepthPenalty + MaxMSDPenalty // 16
+	MaxArchitecturePenalty = MaxArchPenalty                                     // 12
+
 	// Grade thresholds (stricter than before)
 	GradeAThreshold = 90 // Increased from 85
 	GradeBThreshold = 75 // Increased from 70
@@ -207,7 +214,7 @@ func (s *AnalyzeSummary) calculateDeadCodePenalty(normalizationFactor float64) i
 		float64(s.WarningDeadCode)*0.5 +
 		float64(s.InfoDeadCode)*0.2
 
-	if weightedDeadCode == 0 {
+	if weightedDeadCode <= 0 {
 		return 0
 	}
 
@@ -318,6 +325,22 @@ func (s *AnalyzeSummary) calculateArchitecturePenalty() int {
 	return int(math.Round(float64(MaxArchPenalty) * (1 - comp)))
 }
 
+// normalizeToScoreBase normalizes a penalty value to the MaxScoreBase scale (0-20)
+// This ensures all category scores use a consistent display scale
+func normalizeToScoreBase(penalty int, maxPenalty int) int {
+	if maxPenalty == 0 {
+		return 0
+	}
+	normalized := int(math.Round(float64(penalty) / float64(maxPenalty) * float64(MaxScoreBase)))
+	if normalized < 0 {
+		normalized = 0
+	}
+	if normalized > MaxScoreBase {
+		normalized = MaxScoreBase
+	}
+	return normalized
+}
+
 // penaltyToScore converts a penalty value to a 0-100 score
 func penaltyToScore(penalty int, maxPenalty int) int {
 	if maxPenalty == 0 {
@@ -358,30 +381,32 @@ func (s *AnalyzeSummary) CalculateHealthScore() error {
 
 	// Calculate penalties and corresponding scores
 	// Individual scores are normalized to a consistent 20-point scale for display consistency
-	const maxScoreBase = 20 // All categories use this as the display scale
 
 	complexityPenalty := s.calculateComplexityPenalty()
-	s.ComplexityScore = penaltyToScore(complexityPenalty, maxScoreBase)
+	s.ComplexityScore = penaltyToScore(complexityPenalty, MaxScoreBase)
 	score -= complexityPenalty
 
 	deadCodePenalty := s.calculateDeadCodePenalty(normalizationFactor)
-	s.DeadCodeScore = penaltyToScore(deadCodePenalty, maxScoreBase)
+	s.DeadCodeScore = penaltyToScore(deadCodePenalty, MaxScoreBase)
 	score -= deadCodePenalty
 
 	duplicationPenalty := s.calculateDuplicationPenalty()
-	s.DuplicationScore = penaltyToScore(duplicationPenalty, maxScoreBase)
+	s.DuplicationScore = penaltyToScore(duplicationPenalty, MaxScoreBase)
 	score -= duplicationPenalty
 
 	couplingPenalty := s.calculateCouplingPenalty()
-	s.CouplingScore = penaltyToScore(couplingPenalty, maxScoreBase)
+	s.CouplingScore = penaltyToScore(couplingPenalty, MaxScoreBase)
 	score -= couplingPenalty
 
+	// Dependencies and Architecture need normalization since their max penalties differ from MaxScoreBase
 	dependencyPenalty := s.calculateDependencyPenalty()
-	s.DependencyScore = penaltyToScore(dependencyPenalty, maxScoreBase)
+	normalizedDepPenalty := normalizeToScoreBase(dependencyPenalty, MaxDependencyPenalty)
+	s.DependencyScore = penaltyToScore(normalizedDepPenalty, MaxScoreBase)
 	score -= dependencyPenalty
 
 	architecturePenalty := s.calculateArchitecturePenalty()
-	s.ArchitectureScore = penaltyToScore(architecturePenalty, maxScoreBase)
+	normalizedArchPenalty := normalizeToScoreBase(architecturePenalty, MaxArchitecturePenalty)
+	s.ArchitectureScore = penaltyToScore(normalizedArchPenalty, MaxScoreBase)
 	score -= architecturePenalty
 
 	// Minimum score floor

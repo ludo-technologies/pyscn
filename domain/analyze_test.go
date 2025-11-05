@@ -182,8 +182,8 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 			expectedDeadCodeScore:     100, // No dead code
 			expectedDuplicationScore:  0,   // 100 - (20/20)*100 = 0
 			expectedCouplingScore:     0,   // 100 - (20/20)*100 = 0
-			expectedDependencyScore:   85,  // 100 - (3/20)*100 = 85
-			expectedArchitectureScore: 45,  // 100 - (11/20)*100 = 45
+			expectedDependencyScore:   80,  // Normalized: (3/16)*20 = 3.75 → 4, Score: 100 - (4/20)*100 = 80
+			expectedArchitectureScore: 10,  // Normalized: (11/12)*20 = 18.33 → 18, Score: 100 - (18/20)*100 = 10
 		},
 		{
 			name: "moderate complexity and duplication",
@@ -287,6 +287,64 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 			expectedScore: 40,  // Updated: 100-20-20-20 = 40
 			expectedGrade: "F", // 40 < 45 = F (stricter grade D threshold)
 			expectError:   false,
+		},
+		{
+			name: "edge case - complexity boundary at 2.0",
+			summary: domain.AnalyzeSummary{
+				AverageComplexity: 2.0, // Exactly at boundary, should result in 0 penalty
+			},
+			expectedScore:           100,
+			expectedGrade:           "A",
+			expectError:             false,
+			expectedComplexityScore: 100, // 0 penalty
+		},
+		{
+			name: "edge case - duplication boundary at 1.0",
+			summary: domain.AnalyzeSummary{
+				CodeDuplication: 1.0, // Exactly at boundary, should result in 0 penalty
+			},
+			expectedScore:            100,
+			expectedGrade:            "A",
+			expectError:              false,
+			expectedDuplicationScore: 100, // 0 penalty
+		},
+		{
+			name: "edge case - small weighted dead code",
+			summary: domain.AnalyzeSummary{
+				CriticalDeadCode: 0,
+				WarningDeadCode:  0,
+				InfoDeadCode:     1, // Weighted = 0.2
+				TotalFiles:       10,
+			},
+			expectedScore:         100, // Very small weighted value, normalized to 0 penalty
+			expectedGrade:         "A",
+			expectError:           false,
+			expectedDeadCodeScore: 100, // Should be 100 due to very small penalty
+		},
+		{
+			name: "edge case - worst dependency score (score should be 0)",
+			summary: domain.AnalyzeSummary{
+				DepsEnabled:         true,
+				DepsTotalModules:    10,
+				DepsModulesInCycles: 10,                 // 100% in cycles: 10 penalty
+				DepsMaxDepth:        20,                 // Very deep: 3 penalty (capped)
+				DepsMainSequenceDeviation: 1.0,          // Max deviation: 3 penalty
+			},
+			expectedScore:           84, // 100 - 16 = 84
+			expectedGrade:           "B",
+			expectError:             false,
+			expectedDependencyScore: 0, // Normalized: (16/16)*20 = 20, Score: 100 - (20/20)*100 = 0
+		},
+		{
+			name: "edge case - worst architecture score (score should be 0)",
+			summary: domain.AnalyzeSummary{
+				ArchEnabled:    true,
+				ArchCompliance: 0.0, // 0% compliance: 12 penalty
+			},
+			expectedScore:             88, // 100 - 12 = 88
+			expectedGrade:             "B",
+			expectError:               false,
+			expectedArchitectureScore: 0, // Normalized: (12/12)*20 = 20, Score: 100 - (20/20)*100 = 0
 		},
 	}
 
