@@ -65,7 +65,7 @@ func TestCheckCommandInterface(t *testing.T) {
 
 	// Test CI-friendly flags
 	flags := cobraCmd.Flags()
-	expectedFlags := []string{"quiet", "max-complexity", "allow-dead-code", "skip-clones"}
+	expectedFlags := []string{"quiet", "max-complexity", "allow-dead-code", "skip-clones", "allow-circular-deps", "max-cycles"}
 	for _, flagName := range expectedFlags {
 		flag := flags.Lookup(flagName)
 		if flag == nil {
@@ -392,5 +392,102 @@ func TestCommandHelpOutput(t *testing.T) {
 				t.Error("Help should contain Flags section")
 			}
 		})
+	}
+}
+
+// TestCheckCircularDependencies tests circular dependency detection
+func TestCheckCircularDependencies(t *testing.T) {
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+
+	var stdout, stderr bytes.Buffer
+	cobraCmd.SetOut(&stdout)
+	cobraCmd.SetErr(&stderr)
+
+	// Test with circular dependencies
+	cobraCmd.SetArgs([]string{"--select", "deps", filepath.Join("..", "..", "testdata", "python", "circular_deps_test")})
+
+	err := cobraCmd.Execute()
+	output := stdout.String() + stderr.String()
+
+	if err == nil {
+		t.Fatalf("Expected error because of circular dependency, got none, output: %s", output)
+	}
+
+	if !strings.Contains(output, "circular dependency detected") {
+		t.Errorf("Expected circular dependency warning, got: %s", output)
+	}
+}
+
+// TestCheckCircularDependenciesWithAllowFlag tests --allow-circular-deps flag
+func TestCheckCircularDependenciesWithAllowFlag(t *testing.T) {
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+
+	var stdout, stderr bytes.Buffer
+	cobraCmd.SetOut(&stdout)
+	cobraCmd.SetErr(&stderr)
+
+	// Test with --allow-circular-deps flag
+	cobraCmd.SetArgs([]string{"--select", "deps", "--allow-circular-deps", filepath.Join("..", "..", "testdata", "python", "circular_deps_test")})
+
+	err := cobraCmd.Execute()
+	output := stdout.String() + stderr.String()
+
+	if err != nil {
+		t.Fatalf("Expected no error with --allow-circular-deps flag, got: %v, output: %s", err, output)
+	}
+
+	if !strings.Contains(output, "circular dependency") {
+		t.Errorf("Expected circular dependency warning, got: %s", output)
+	}
+
+	if !strings.Contains(output, "Code quality check passed") {
+		t.Errorf("Expected check to pass with --allow-circular-deps, got: %s", output)
+	}
+}
+
+// TestCheckCircularDependenciesWithMaxCycles tests --max-cycles flag
+func TestCheckCircularDependenciesWithMaxCycles(t *testing.T) {
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+
+	var stdout, stderr bytes.Buffer
+	cobraCmd.SetOut(&stdout)
+	cobraCmd.SetErr(&stderr)
+
+	// Test with --max-cycles 1 (should pass)
+	cobraCmd.SetArgs([]string{"--select", "deps", "--max-cycles", "1", filepath.Join("..", "..", "testdata", "python", "circular_deps_test")})
+
+	err := cobraCmd.Execute()
+	output := stdout.String() + stderr.String()
+
+	if err != nil {
+		t.Fatalf("Expected no error with --max-cycles 1, got: %v, output: %s", err, output)
+	}
+
+	if !strings.Contains(output, "within allowed limit") {
+		t.Errorf("Expected 'within allowed limit' message, got: %s", output)
+	}
+}
+
+// TestCheckNoDepsAnalysis tests that deps analysis is opt-in by default
+func TestCheckNoDepsAnalysis(t *testing.T) {
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+
+	var stdout, stderr bytes.Buffer
+	cobraCmd.SetOut(&stdout)
+	cobraCmd.SetErr(&stderr)
+
+	// Run check without --select (should not include deps by default)
+	cobraCmd.SetArgs([]string{filepath.Join("..", "..", "testdata", "python", "circular_deps_test")})
+
+	_ = cobraCmd.Execute()
+	output := stdout.String() + stderr.String()
+
+	// Should not fail on circular deps (since deps analysis is not run)
+	if strings.Contains(output, "circular dependency") {
+		t.Errorf("Deps analysis should not run by default, but got: %s", output)
 	}
 }
