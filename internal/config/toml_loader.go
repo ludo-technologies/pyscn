@@ -9,7 +9,16 @@ import (
 
 // PyscnTomlConfig represents the structure of .pyscn.toml
 type PyscnTomlConfig struct {
-	Clones ClonesConfig `toml:"clones"` // [clones] section - unified flat structure
+	Complexity ComplexityTomlConfig `toml:"complexity"` // [complexity] section
+	Clones     ClonesConfig         `toml:"clones"`     // [clones] section - unified flat structure
+}
+
+// ComplexityTomlConfig represents the [complexity] section
+type ComplexityTomlConfig struct {
+	LowThreshold    *int `toml:"low_threshold"`    // pointer to detect unset
+	MediumThreshold *int `toml:"medium_threshold"` // pointer to detect unset
+	MaxComplexity   *int `toml:"max_complexity"`   // pointer to detect unset
+	MinComplexity   *int `toml:"min_complexity"`   // pointer to detect unset
 }
 
 // ClonesConfig represents the [clones] section (flat structure)
@@ -159,6 +168,20 @@ func (l *TomlConfigLoader) findPyscnToml(startDir string) (string, error) {
 // mergePyscnTomlConfigs merges .pyscn.toml config into defaults
 // using pointer booleans to detect unset values
 func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *CloneConfig, pyscnToml *PyscnTomlConfig) {
+	// Merge from [complexity] section
+	if pyscnToml.Complexity.LowThreshold != nil {
+		defaults.ComplexityLowThreshold = *pyscnToml.Complexity.LowThreshold
+	}
+	if pyscnToml.Complexity.MediumThreshold != nil {
+		defaults.ComplexityMediumThreshold = *pyscnToml.Complexity.MediumThreshold
+	}
+	if pyscnToml.Complexity.MaxComplexity != nil {
+		defaults.ComplexityMaxComplexity = *pyscnToml.Complexity.MaxComplexity
+	}
+	if pyscnToml.Complexity.MinComplexity != nil {
+		defaults.ComplexityMinComplexity = *pyscnToml.Complexity.MinComplexity
+	}
+
 	// Merge from [clones] section (unified flat structure)
 	mergeClonesSection(defaults, &pyscnToml.Clones)
 }
