@@ -33,6 +33,12 @@ type CloneConfig struct {
 
 	// LSH Configuration
 	LSH LSHConfig `mapstructure:"lsh" yaml:"lsh" json:"lsh"`
+
+	// Complexity Configuration (from [complexity] section in TOML)
+	ComplexityLowThreshold    int `mapstructure:"complexity_low_threshold" yaml:"complexity_low_threshold" json:"complexity_low_threshold"`
+	ComplexityMediumThreshold int `mapstructure:"complexity_medium_threshold" yaml:"complexity_medium_threshold" json:"complexity_medium_threshold"`
+	ComplexityMaxComplexity   int `mapstructure:"complexity_max_complexity" yaml:"complexity_max_complexity" json:"complexity_max_complexity"`
+	ComplexityMinComplexity   int `mapstructure:"complexity_min_complexity" yaml:"complexity_min_complexity" json:"complexity_min_complexity"`
 }
 
 // CloneAnalysisConfig holds core analysis parameters
@@ -202,6 +208,11 @@ func DefaultCloneConfig() *CloneConfig {
 			Rows:                4,
 			Hashes:              128,
 		},
+		// Complexity defaults
+		ComplexityLowThreshold:    DefaultLowComplexityThreshold,
+		ComplexityMediumThreshold: DefaultMediumComplexityThreshold,
+		ComplexityMaxComplexity:   DefaultMaxComplexityLimit,
+		ComplexityMinComplexity:   DefaultMinComplexityFilter,
 	}
 }
 

@@ -19,7 +19,8 @@ type ToolConfig struct {
 
 // PyscnConfig represents the [tool.pyscn] section
 type PyscnConfig struct {
-	Clones ClonesConfig `toml:"clones"`
+	Complexity ComplexityTomlConfig `toml:"complexity"`
+	Clones     ClonesConfig         `toml:"clones"`
 }
 
 // LoadPyprojectConfig loads clone configuration from pyproject.toml
@@ -44,9 +45,27 @@ func LoadPyprojectConfig(startDir string) (*CloneConfig, error) {
 
 	// Merge with defaults using shared merge logic
 	config := DefaultCloneConfig()
+	mergeComplexitySection(config, &pyproject.Tool.Pyscn.Complexity)
 	mergeClonesSection(config, &pyproject.Tool.Pyscn.Clones)
 
 	return config, nil
+}
+
+// mergeComplexitySection merges settings from the [complexity] section
+// This function is shared between .pyscn.toml and pyproject.toml loaders
+func mergeComplexitySection(defaults *CloneConfig, complexity *ComplexityTomlConfig) {
+	if complexity.LowThreshold != nil {
+		defaults.ComplexityLowThreshold = *complexity.LowThreshold
+	}
+	if complexity.MediumThreshold != nil {
+		defaults.ComplexityMediumThreshold = *complexity.MediumThreshold
+	}
+	if complexity.MaxComplexity != nil {
+		defaults.ComplexityMaxComplexity = *complexity.MaxComplexity
+	}
+	if complexity.MinComplexity != nil {
+		defaults.ComplexityMinComplexity = *complexity.MinComplexity
+	}
 }
 
 // mergeClonesSection merges settings from the [clones] section

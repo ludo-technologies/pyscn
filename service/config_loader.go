@@ -219,8 +219,11 @@ func (c *ConfigurationLoaderImpl) cloneConfigToUnifiedConfig(cloneCfg *config.Cl
 	cfg.Output.Format = cloneCfg.Output.Format
 	cfg.Output.ShowDetails = cloneCfg.Output.ShowDetails
 
-	// Complexity settings use defaults from DefaultConfig()
-	// since TOML-only config focuses on clone detection
+	// Map complexity settings from CloneConfig
+	cfg.Complexity.LowThreshold = cloneCfg.ComplexityLowThreshold
+	cfg.Complexity.MediumThreshold = cloneCfg.ComplexityMediumThreshold
+	cfg.Complexity.MaxComplexity = cloneCfg.ComplexityMaxComplexity
+	cfg.Output.MinComplexity = cloneCfg.ComplexityMinComplexity
 
 	return cfg
 }
