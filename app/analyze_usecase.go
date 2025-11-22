@@ -295,13 +295,13 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 					SortBy:          domain.DeadCodeSortBySeverity,
 					ConfigPath:      config.ConfigFile,
 					// Detection options (defaults - will be overridden by config file if present)
-					ShowContext:               false,
+					ShowContext:               domain.BoolPtr(false),
 					ContextLines:              3,
-					DetectAfterReturn:         true,
-					DetectAfterBreak:          true,
-					DetectAfterContinue:       true,
-					DetectAfterRaise:          true,
-					DetectUnreachableBranches: true,
+					DetectAfterReturn:         domain.BoolPtr(true),
+					DetectAfterBreak:          domain.BoolPtr(true),
+					DetectAfterContinue:       domain.BoolPtr(true),
+					DetectAfterRaise:          domain.BoolPtr(true),
+					DetectUnreachableBranches: domain.BoolPtr(true),
 				}
 				return uc.deadCodeUseCase.AnalyzeAndReturn(ctx, request)
 			},
