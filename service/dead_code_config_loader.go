@@ -315,19 +315,24 @@ func (cl *DeadCodeConfigurationLoaderImpl) requestToConfig(req *domain.DeadCodeR
 }
 
 // pyscnConfigToUnifiedConfig converts PyscnConfig to unified Config format
+//
+// Configuration priority (lower priority to higher priority):
+//  1. DefaultConfig() - base defaults
+//  2. Clone-specific legacy fields (Input.*, Output.*) - backward compatibility
+//  3. General sections ([analysis], [output]) - override legacy if set
+//  4. Feature-specific sections ([dead_code], [cbo], etc.) - highest priority
 func (cl *DeadCodeConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.PyscnConfig) *config.Config {
 	cfg := config.DefaultConfig()
 
-	// Map analysis settings
+	// Step 1: Map clone-specific legacy fields (backward compatibility)
+	// These are from [clone.input] and [clone.output] sections
 	cfg.Analysis.IncludePatterns = pyscnCfg.Input.IncludePatterns
 	cfg.Analysis.ExcludePatterns = pyscnCfg.Input.ExcludePatterns
 	cfg.Analysis.Recursive = pyscnCfg.Input.Recursive
-
-	// Map output settings
 	cfg.Output.Format = pyscnCfg.Output.Format
 	cfg.Output.ShowDetails = pyscnCfg.Output.ShowDetails
 
-	// Map dead code settings from [dead_code] section
+	// Step 2: Map feature-specific settings from [dead_code] section
 	cfg.DeadCode.Enabled = pyscnCfg.DeadCodeEnabled
 	cfg.DeadCode.MinSeverity = pyscnCfg.DeadCodeMinSeverity
 	cfg.DeadCode.ShowContext = pyscnCfg.DeadCodeShowContext
@@ -340,7 +345,8 @@ func (cl *DeadCodeConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *
 	cfg.DeadCode.DetectUnreachableBranches = pyscnCfg.DeadCodeDetectUnreachableBranches
 	cfg.DeadCode.IgnorePatterns = pyscnCfg.DeadCodeIgnorePatterns
 
-	// Map general analysis settings from [analysis] section (override clone-specific if set)
+	// Step 3: Apply general [analysis] section overrides (highest priority for analysis settings)
+	// Only override if explicitly set (non-empty/non-zero values)
 	if len(pyscnCfg.AnalysisIncludePatterns) > 0 {
 		cfg.Analysis.IncludePatterns = pyscnCfg.AnalysisIncludePatterns
 	}
@@ -350,7 +356,8 @@ func (cl *DeadCodeConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *
 	cfg.Analysis.Recursive = cfg.Analysis.Recursive || pyscnCfg.AnalysisRecursive
 	cfg.Analysis.FollowSymlinks = pyscnCfg.AnalysisFollowSymlinks
 
-	// Map general output settings from [output] section (override clone-specific if set)
+	// Step 4: Apply general [output] section overrides (highest priority for output settings)
+	// Only override if explicitly set (non-empty values)
 	if pyscnCfg.OutputFormat != "" {
 		cfg.Output.Format = pyscnCfg.OutputFormat
 	}
