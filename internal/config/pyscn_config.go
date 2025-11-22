@@ -304,10 +304,10 @@ func DefaultPyscnConfig() *PyscnConfig {
 
 		// DeadCode defaults (from [dead_code] section)
 		DeadCodeEnabled:                   true,
-		DeadCodeMinSeverity:               DefaultDeadCodeMinSeverity,   // "warning"
+		DeadCodeMinSeverity:               DefaultDeadCodeMinSeverity, // "warning"
 		DeadCodeShowContext:               false,
-		DeadCodeContextLines:              DefaultDeadCodeContextLines,  // 3
-		DeadCodeSortBy:                    DefaultDeadCodeSortBy,        // "severity"
+		DeadCodeContextLines:              DefaultDeadCodeContextLines, // 3
+		DeadCodeSortBy:                    DefaultDeadCodeSortBy,       // "severity"
 		DeadCodeDetectAfterReturn:         true,
 		DeadCodeDetectAfterBreak:          true,
 		DeadCodeDetectAfterContinue:       true,
@@ -332,7 +332,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 		CboLowThreshold:    3, // Industry standard
 		CboMediumThreshold: 7, // Industry standard
 		CboMinCbo:          0,
-		CboMaxCbo:          0,     // No limit
+		CboMaxCbo:          0, // No limit
 		CboShowZeros:       false,
 		CboIncludeBuiltins: false,
 		CboIncludeImports:  true,
@@ -376,7 +376,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 		DependenciesCalculateMetrics:  true,
 		DependenciesFindLongChains:    true,
 		DependenciesMinCoupling:       0,
-		DependenciesMaxCoupling:       0,    // No limit
+		DependenciesMaxCoupling:       0, // No limit
 		DependenciesMinInstability:    0.0,
 		DependenciesMaxDistance:       1.0,
 		DependenciesSortBy:            "name",
