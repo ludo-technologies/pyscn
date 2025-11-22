@@ -420,7 +420,7 @@ func DefaultDeadCodeUseCaseOptions() DeadCodeUseCaseOptions {
 // ExecuteWithOptions performs dead code analysis with custom options
 func (uc *DeadCodeUseCase) ExecuteWithOptions(ctx context.Context, req domain.DeadCodeRequest, options DeadCodeUseCaseOptions) error {
 	// Apply options to request
-	req.ShowContext = options.ShowContext
+	req.ShowContext = domain.BoolPtr(options.ShowContext)
 	req.ContextLines = options.ContextLines
 
 	// Create context with timeout
@@ -441,7 +441,7 @@ func (uc *DeadCodeUseCase) QuickAnalysis(ctx context.Context, filePaths []string
 		OutputWriter:    outputWriter,
 		MinSeverity:     domain.DeadCodeSeverityWarning,
 		SortBy:          domain.DeadCodeSortBySeverity,
-		ShowContext:     false,
+		ShowContext:     domain.BoolPtr(false),
 		ContextLines:    0,
 		Recursive:       false,
 		IncludePatterns: []string{"**/*.py"},
@@ -449,11 +449,11 @@ func (uc *DeadCodeUseCase) QuickAnalysis(ctx context.Context, filePaths []string
 		IgnorePatterns:  []string{},
 
 		// Enable all detection types
-		DetectAfterReturn:         true,
-		DetectAfterBreak:          true,
-		DetectAfterContinue:       true,
-		DetectAfterRaise:          true,
-		DetectUnreachableBranches: true,
+		DetectAfterReturn:         domain.BoolPtr(true),
+		DetectAfterBreak:          domain.BoolPtr(true),
+		DetectAfterContinue:       domain.BoolPtr(true),
+		DetectAfterRaise:          domain.BoolPtr(true),
+		DetectUnreachableBranches: domain.BoolPtr(true),
 	}
 
 	return uc.Execute(ctx, req)

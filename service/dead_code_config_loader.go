@@ -87,29 +87,47 @@ func (cl *DeadCodeConfigurationLoaderImpl) MergeConfig(base *domain.DeadCodeRequ
 		merged.ConfigPath = override.ConfigPath
 	}
 
-	// Boolean values - ShowContext defaults to false, preserve base value unless explicitly changed
-	// Since CLI defaults match config defaults, we preserve base (from config file)
-	// and only override if CLI value differs from default
-	// This allows config file values to take effect
+	// Boolean pointer values - nil means not set, non-nil means explicitly set
+	// With pointer types, we can now distinguish between "not set" and "set to default value"
+	// This allows proper precedence: CLI override > config file > defaults
 
-	// ShowContext: config file value is preserved, CLI can override
-	// (base comes from config file, override comes from CLI with default false)
-	// Only override if explicitly set to true
-	if override.ShowContext {
+	// ShowContext: use override if explicitly set (non-nil), otherwise use base
+	if override.ShowContext != nil {
 		merged.ShowContext = override.ShowContext
+	} else {
+		merged.ShowContext = base.ShowContext
 	}
 
-	// Detection flags: defaults are true
-	// We need to preserve the base value (from config file)
-	// and only override if different from default
-	// Since override always has default values (true), we can't detect if CLI changed it
-	// So we just preserve the base (config file) values
-	// This allows config file settings to take precedence over defaults
-	merged.DetectAfterReturn = base.DetectAfterReturn
-	merged.DetectAfterBreak = base.DetectAfterBreak
-	merged.DetectAfterContinue = base.DetectAfterContinue
-	merged.DetectAfterRaise = base.DetectAfterRaise
-	merged.DetectUnreachableBranches = base.DetectUnreachableBranches
+	// Detection flags: use override if explicitly set (non-nil), otherwise use base
+	if override.DetectAfterReturn != nil {
+		merged.DetectAfterReturn = override.DetectAfterReturn
+	} else {
+		merged.DetectAfterReturn = base.DetectAfterReturn
+	}
+
+	if override.DetectAfterBreak != nil {
+		merged.DetectAfterBreak = override.DetectAfterBreak
+	} else {
+		merged.DetectAfterBreak = base.DetectAfterBreak
+	}
+
+	if override.DetectAfterContinue != nil {
+		merged.DetectAfterContinue = override.DetectAfterContinue
+	} else {
+		merged.DetectAfterContinue = base.DetectAfterContinue
+	}
+
+	if override.DetectAfterRaise != nil {
+		merged.DetectAfterRaise = override.DetectAfterRaise
+	} else {
+		merged.DetectAfterRaise = base.DetectAfterRaise
+	}
+
+	if override.DetectUnreachableBranches != nil {
+		merged.DetectUnreachableBranches = override.DetectUnreachableBranches
+	} else {
+		merged.DetectUnreachableBranches = base.DetectUnreachableBranches
+	}
 
 	// ContextLines - override only if non-default
 	if override.ContextLines >= 0 && override.ContextLines != 3 {
@@ -180,7 +198,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) configToRequest(cfg *config.Config) *
 
 	return &domain.DeadCodeRequest{
 		OutputFormat:              outputFormat,
-		ShowContext:               cfg.DeadCode.ShowContext,
+		ShowContext:               domain.BoolPtr(cfg.DeadCode.ShowContext),
 		ContextLines:              cfg.DeadCode.ContextLines,
 		MinSeverity:               minSeverity,
 		SortBy:                    sortBy,
@@ -188,11 +206,11 @@ func (cl *DeadCodeConfigurationLoaderImpl) configToRequest(cfg *config.Config) *
 		IncludePatterns:           cfg.Analysis.IncludePatterns,
 		ExcludePatterns:           cfg.Analysis.ExcludePatterns,
 		IgnorePatterns:            cfg.DeadCode.IgnorePatterns,
-		DetectAfterReturn:         cfg.DeadCode.DetectAfterReturn,
-		DetectAfterBreak:          cfg.DeadCode.DetectAfterBreak,
-		DetectAfterContinue:       cfg.DeadCode.DetectAfterContinue,
-		DetectAfterRaise:          cfg.DeadCode.DetectAfterRaise,
-		DetectUnreachableBranches: cfg.DeadCode.DetectUnreachableBranches,
+		DetectAfterReturn:         domain.BoolPtr(cfg.DeadCode.DetectAfterReturn),
+		DetectAfterBreak:          domain.BoolPtr(cfg.DeadCode.DetectAfterBreak),
+		DetectAfterContinue:       domain.BoolPtr(cfg.DeadCode.DetectAfterContinue),
+		DetectAfterRaise:          domain.BoolPtr(cfg.DeadCode.DetectAfterRaise),
+		DetectUnreachableBranches: domain.BoolPtr(cfg.DeadCode.DetectUnreachableBranches),
 	}
 }
 
@@ -279,13 +297,13 @@ func (cl *DeadCodeConfigurationLoaderImpl) requestToConfig(req *domain.DeadCodeR
 	}
 
 	// Set dead code specific config
-	cfg.DeadCode.ShowContext = req.ShowContext
+	cfg.DeadCode.ShowContext = domain.BoolValue(req.ShowContext, false)
 	cfg.DeadCode.ContextLines = req.ContextLines
-	cfg.DeadCode.DetectAfterReturn = req.DetectAfterReturn
-	cfg.DeadCode.DetectAfterBreak = req.DetectAfterBreak
-	cfg.DeadCode.DetectAfterContinue = req.DetectAfterContinue
-	cfg.DeadCode.DetectAfterRaise = req.DetectAfterRaise
-	cfg.DeadCode.DetectUnreachableBranches = req.DetectUnreachableBranches
+	cfg.DeadCode.DetectAfterReturn = domain.BoolValue(req.DetectAfterReturn, true)
+	cfg.DeadCode.DetectAfterBreak = domain.BoolValue(req.DetectAfterBreak, true)
+	cfg.DeadCode.DetectAfterContinue = domain.BoolValue(req.DetectAfterContinue, true)
+	cfg.DeadCode.DetectAfterRaise = domain.BoolValue(req.DetectAfterRaise, true)
+	cfg.DeadCode.DetectUnreachableBranches = domain.BoolValue(req.DetectUnreachableBranches, true)
 	cfg.DeadCode.IgnorePatterns = req.IgnorePatterns
 
 	// Set analysis config

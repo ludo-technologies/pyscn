@@ -19,14 +19,14 @@ func newDefaultDeadCodeRequest(paths ...string) domain.DeadCodeRequest {
 		OutputFormat:              domain.OutputFormatJSON,
 		MinSeverity:               domain.DeadCodeSeverityInfo,
 		SortBy:                    domain.DeadCodeSortByFile,
-		ShowContext:               false,
+		ShowContext:               domain.BoolPtr(false),
 		ContextLines:              2,
 		Recursive:                 false,
-		DetectAfterReturn:         true,
-		DetectAfterBreak:          true,
-		DetectAfterContinue:       true,
-		DetectAfterRaise:          true,
-		DetectUnreachableBranches: true,
+		DetectAfterReturn:         domain.BoolPtr(true),
+		DetectAfterBreak:          domain.BoolPtr(true),
+		DetectAfterContinue:       domain.BoolPtr(true),
+		DetectAfterRaise:          domain.BoolPtr(true),
+		DetectUnreachableBranches: domain.BoolPtr(true),
 	}
 }
 
@@ -145,7 +145,7 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 
 	t.Run("analyze with context enabled", func(t *testing.T) {
 		req := newDefaultDeadCodeRequest("../testdata/python/simple/control_flow.py")
-		req.ShowContext = true
+		req.ShowContext = domain.BoolPtr(true)
 		req.ContextLines = 3
 
 		response, err := service.Analyze(ctx, req)
@@ -537,13 +537,13 @@ func TestDeadCodeService_BuildConfigForResponse(t *testing.T) {
 	req := domain.DeadCodeRequest{
 		MinSeverity:               domain.DeadCodeSeverityWarning,
 		SortBy:                    domain.DeadCodeSortBySeverity,
-		ShowContext:               true,
+		ShowContext:               domain.BoolPtr(true),
 		ContextLines:              3,
-		DetectAfterReturn:         true,
-		DetectAfterBreak:          false,
-		DetectAfterContinue:       true,
-		DetectAfterRaise:          false,
-		DetectUnreachableBranches: true,
+		DetectAfterReturn:         domain.BoolPtr(true),
+		DetectAfterBreak:          domain.BoolPtr(false),
+		DetectAfterContinue:       domain.BoolPtr(true),
+		DetectAfterRaise:          domain.BoolPtr(false),
+		DetectUnreachableBranches: domain.BoolPtr(true),
 		IncludePatterns:           []string{"**/*.py"},
 		ExcludePatterns:           []string{"test_*.py"},
 		IgnorePatterns:            []string{"# TODO"},
