@@ -59,41 +59,67 @@ func (cl *DeadCodeConfigurationLoaderImpl) MergeConfig(base *domain.DeadCodeRequ
 	// Start with base config
 	merged := *base
 
-	// Override with CLI values (only if they're not default/empty)
+	// Always override paths as they come from command arguments
 	if len(override.Paths) > 0 {
 		merged.Paths = override.Paths
 	}
+
+	// Output configuration
 	if override.OutputFormat != "" {
 		merged.OutputFormat = override.OutputFormat
 	}
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
-	if override.MinSeverity != "" {
+
+	// MinSeverity - override only if non-default
+	if override.MinSeverity != "" && override.MinSeverity != domain.DeadCodeSeverityWarning {
 		merged.MinSeverity = override.MinSeverity
 	}
-	if override.SortBy != "" {
+
+	// SortBy - override only if non-default
+	if override.SortBy != "" && override.SortBy != domain.DeadCodeSortBySeverity {
 		merged.SortBy = override.SortBy
 	}
+
+	// ConfigPath - always override if provided
 	if override.ConfigPath != "" {
 		merged.ConfigPath = override.ConfigPath
 	}
 
-	// Boolean values - use override values
-	merged.ShowContext = override.ShowContext
-	merged.Recursive = override.Recursive
-	merged.DetectAfterReturn = override.DetectAfterReturn
-	merged.DetectAfterBreak = override.DetectAfterBreak
-	merged.DetectAfterContinue = override.DetectAfterContinue
-	merged.DetectAfterRaise = override.DetectAfterRaise
-	merged.DetectUnreachableBranches = override.DetectUnreachableBranches
+	// Boolean values - ShowContext defaults to false, preserve base value unless explicitly changed
+	// Since CLI defaults match config defaults, we preserve base (from config file)
+	// and only override if CLI value differs from default
+	// This allows config file values to take effect
 
-	// Integer values - use override if positive
-	if override.ContextLines >= 0 {
+	// ShowContext: config file value is preserved, CLI can override
+	// (base comes from config file, override comes from CLI with default false)
+	// Only override if explicitly set to true
+	if override.ShowContext {
+		merged.ShowContext = override.ShowContext
+	}
+
+	// Detection flags: defaults are true
+	// We need to preserve the base value (from config file)
+	// and only override if different from default
+	// Since override always has default values (true), we can't detect if CLI changed it
+	// So we just preserve the base (config file) values
+	// This allows config file settings to take precedence over defaults
+	merged.DetectAfterReturn = base.DetectAfterReturn
+	merged.DetectAfterBreak = base.DetectAfterBreak
+	merged.DetectAfterContinue = base.DetectAfterContinue
+	merged.DetectAfterRaise = base.DetectAfterRaise
+	merged.DetectUnreachableBranches = base.DetectUnreachableBranches
+
+	// ContextLines - override only if non-default
+	if override.ContextLines >= 0 && override.ContextLines != 3 {
 		merged.ContextLines = override.ContextLines
 	}
 
-	// Array values - use override if not empty
+	// Recursive - preserve override value
+	merged.Recursive = override.Recursive
+
+	// Array values - override if provided
 	if len(override.IncludePatterns) > 0 {
 		merged.IncludePatterns = override.IncludePatterns
 	}

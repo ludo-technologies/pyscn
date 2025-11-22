@@ -294,6 +294,14 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 					MinSeverity:     config.MinSeverity,
 					SortBy:          domain.DeadCodeSortBySeverity,
 					ConfigPath:      config.ConfigFile,
+					// Detection options (defaults - will be overridden by config file if present)
+					ShowContext:               false,
+					ContextLines:              3,
+					DetectAfterReturn:         true,
+					DetectAfterBreak:          true,
+					DetectAfterContinue:       true,
+					DetectAfterRaise:          true,
+					DetectUnreachableBranches: true,
 				}
 				return uc.deadCodeUseCase.AnalyzeAndReturn(ctx, request)
 			},
