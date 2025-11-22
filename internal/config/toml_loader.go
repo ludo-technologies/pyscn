@@ -168,19 +168,8 @@ func (l *TomlConfigLoader) findPyscnToml(startDir string) (string, error) {
 // mergePyscnTomlConfigs merges .pyscn.toml config into defaults
 // using pointer booleans to detect unset values
 func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *CloneConfig, pyscnToml *PyscnTomlConfig) {
-	// Merge from [complexity] section
-	if pyscnToml.Complexity.LowThreshold != nil {
-		defaults.ComplexityLowThreshold = *pyscnToml.Complexity.LowThreshold
-	}
-	if pyscnToml.Complexity.MediumThreshold != nil {
-		defaults.ComplexityMediumThreshold = *pyscnToml.Complexity.MediumThreshold
-	}
-	if pyscnToml.Complexity.MaxComplexity != nil {
-		defaults.ComplexityMaxComplexity = *pyscnToml.Complexity.MaxComplexity
-	}
-	if pyscnToml.Complexity.MinComplexity != nil {
-		defaults.ComplexityMinComplexity = *pyscnToml.Complexity.MinComplexity
-	}
+	// Merge from [complexity] section using shared merge logic
+	mergeComplexitySection(defaults, &pyscnToml.Complexity)
 
 	// Merge from [clones] section (unified flat structure)
 	mergeClonesSection(defaults, &pyscnToml.Clones)
