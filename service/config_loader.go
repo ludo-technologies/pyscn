@@ -19,13 +19,13 @@ func NewConfigurationLoader() *ConfigurationLoaderImpl {
 func (c *ConfigurationLoaderImpl) LoadConfig(path string) (*domain.ComplexityRequest, error) {
 	// Use TOML-only loader
 	tomlLoader := config.NewTomlConfigLoader()
-	cloneCfg, err := tomlLoader.LoadConfig(path)
+	pyscnCfg, err := tomlLoader.LoadConfig(path)
 	if err != nil {
 		return nil, domain.NewConfigError("failed to load configuration file", err)
 	}
 
-	// Convert clone config to unified config format, then to complexity request
-	cfg := c.cloneConfigToUnifiedConfig(cloneCfg)
+	// Convert pyscn config to unified config format, then to complexity request
+	cfg := c.pyscnConfigToUnifiedConfig(pyscnCfg)
 	return c.convertToComplexityRequest(cfg), nil
 }
 
@@ -206,24 +206,116 @@ func (c *ConfigurationLoaderImpl) FindDefaultConfigFile() string {
 	return "" // No config file found
 }
 
-// cloneConfigToUnifiedConfig converts CloneConfig to unified Config format
-func (c *ConfigurationLoaderImpl) cloneConfigToUnifiedConfig(cloneCfg *config.CloneConfig) *config.Config {
+// pyscnConfigToUnifiedConfig converts PyscnConfig to unified Config format
+func (c *ConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.PyscnConfig) *config.Config {
 	cfg := config.DefaultConfig()
 
-	// Map analysis settings
-	cfg.Analysis.IncludePatterns = cloneCfg.Input.IncludePatterns
-	cfg.Analysis.ExcludePatterns = cloneCfg.Input.ExcludePatterns
-	cfg.Analysis.Recursive = cloneCfg.Input.Recursive
+	// Map clone detection settings (backward compatibility)
+	cfg.Analysis.IncludePatterns = pyscnCfg.Input.IncludePatterns
+	cfg.Analysis.ExcludePatterns = pyscnCfg.Input.ExcludePatterns
+	cfg.Analysis.Recursive = pyscnCfg.Input.Recursive
 
-	// Map output settings
-	cfg.Output.Format = cloneCfg.Output.Format
-	cfg.Output.ShowDetails = cloneCfg.Output.ShowDetails
+	// Map clone output settings (backward compatibility)
+	cfg.Output.Format = pyscnCfg.Output.Format
+	cfg.Output.ShowDetails = pyscnCfg.Output.ShowDetails
 
-	// Map complexity settings from CloneConfig
-	cfg.Complexity.LowThreshold = cloneCfg.ComplexityLowThreshold
-	cfg.Complexity.MediumThreshold = cloneCfg.ComplexityMediumThreshold
-	cfg.Complexity.MaxComplexity = cloneCfg.ComplexityMaxComplexity
-	cfg.Output.MinComplexity = cloneCfg.ComplexityMinComplexity
+	// Map complexity settings from [complexity] section
+	cfg.Complexity.LowThreshold = pyscnCfg.ComplexityLowThreshold
+	cfg.Complexity.MediumThreshold = pyscnCfg.ComplexityMediumThreshold
+	cfg.Complexity.MaxComplexity = pyscnCfg.ComplexityMaxComplexity
+	cfg.Output.MinComplexity = pyscnCfg.ComplexityMinComplexity
+
+	// Map dead code settings from [dead_code] section
+	cfg.DeadCode.Enabled = pyscnCfg.DeadCodeEnabled
+	cfg.DeadCode.MinSeverity = pyscnCfg.DeadCodeMinSeverity
+	cfg.DeadCode.ShowContext = pyscnCfg.DeadCodeShowContext
+	cfg.DeadCode.ContextLines = pyscnCfg.DeadCodeContextLines
+	cfg.DeadCode.SortBy = pyscnCfg.DeadCodeSortBy
+	cfg.DeadCode.DetectAfterReturn = pyscnCfg.DeadCodeDetectAfterReturn
+	cfg.DeadCode.DetectAfterBreak = pyscnCfg.DeadCodeDetectAfterBreak
+	cfg.DeadCode.DetectAfterContinue = pyscnCfg.DeadCodeDetectAfterContinue
+	cfg.DeadCode.DetectAfterRaise = pyscnCfg.DeadCodeDetectAfterRaise
+	cfg.DeadCode.DetectUnreachableBranches = pyscnCfg.DeadCodeDetectUnreachableBranches
+	cfg.DeadCode.IgnorePatterns = pyscnCfg.DeadCodeIgnorePatterns
+
+	// Map general output settings from [output] section (override clone-specific if set)
+	if pyscnCfg.OutputFormat != "" {
+		cfg.Output.Format = pyscnCfg.OutputFormat
+	}
+	if pyscnCfg.OutputSortBy != "" {
+		cfg.Output.SortBy = pyscnCfg.OutputSortBy
+	}
+	if pyscnCfg.OutputDirectory != "" {
+		cfg.Output.Directory = pyscnCfg.OutputDirectory
+	}
+	cfg.Output.ShowDetails = cfg.Output.ShowDetails || pyscnCfg.OutputShowDetails
+	if pyscnCfg.OutputMinComplexity > 0 {
+		cfg.Output.MinComplexity = pyscnCfg.OutputMinComplexity
+	}
+
+	// Map general analysis settings from [analysis] section (override clone-specific if set)
+	if len(pyscnCfg.AnalysisIncludePatterns) > 0 {
+		cfg.Analysis.IncludePatterns = pyscnCfg.AnalysisIncludePatterns
+	}
+	if len(pyscnCfg.AnalysisExcludePatterns) > 0 {
+		cfg.Analysis.ExcludePatterns = pyscnCfg.AnalysisExcludePatterns
+	}
+	cfg.Analysis.Recursive = cfg.Analysis.Recursive || pyscnCfg.AnalysisRecursive
+	cfg.Analysis.FollowSymlinks = pyscnCfg.AnalysisFollowSymlinks
+
+	// Map architecture settings from [architecture] section
+	cfg.Architecture.Enabled = pyscnCfg.ArchitectureEnabled
+	cfg.Architecture.ValidateLayers = pyscnCfg.ArchitectureValidateLayers
+	cfg.Architecture.ValidateCohesion = pyscnCfg.ArchitectureValidateCohesion
+	cfg.Architecture.ValidateResponsibility = pyscnCfg.ArchitectureValidateResponsibility
+	cfg.Architecture.MinCohesion = pyscnCfg.ArchitectureMinCohesion
+	cfg.Architecture.MaxCoupling = pyscnCfg.ArchitectureMaxCoupling
+	cfg.Architecture.MaxResponsibilities = pyscnCfg.ArchitectureMaxResponsibilities
+	cfg.Architecture.LayerViolationSeverity = pyscnCfg.ArchitectureLayerViolationSeverity
+	cfg.Architecture.CohesionViolationSeverity = pyscnCfg.ArchitectureCohesionViolationSeverity
+	cfg.Architecture.ResponsibilityViolationSeverity = pyscnCfg.ArchitectureResponsibilityViolationSeverity
+	cfg.Architecture.ShowAllViolations = pyscnCfg.ArchitectureShowAllViolations
+	cfg.Architecture.GroupByType = pyscnCfg.ArchitectureGroupByType
+	cfg.Architecture.IncludeSuggestions = pyscnCfg.ArchitectureIncludeSuggestions
+	cfg.Architecture.MaxViolationsToShow = pyscnCfg.ArchitectureMaxViolationsToShow
+	cfg.Architecture.CustomPatterns = pyscnCfg.ArchitectureCustomPatterns
+	cfg.Architecture.AllowedPatterns = pyscnCfg.ArchitectureAllowedPatterns
+	cfg.Architecture.ForbiddenPatterns = pyscnCfg.ArchitectureForbiddenPatterns
+	cfg.Architecture.StrictMode = pyscnCfg.ArchitectureStrictMode
+	cfg.Architecture.FailOnViolations = pyscnCfg.ArchitectureFailOnViolations
+
+	// Map system analysis settings from [system_analysis] section
+	cfg.SystemAnalysis.Enabled = pyscnCfg.SystemAnalysisEnabled
+	cfg.SystemAnalysis.EnableDependencies = pyscnCfg.SystemAnalysisEnableDependencies
+	cfg.SystemAnalysis.EnableArchitecture = pyscnCfg.SystemAnalysisEnableArchitecture
+	cfg.SystemAnalysis.UseComplexityData = pyscnCfg.SystemAnalysisUseComplexityData
+	cfg.SystemAnalysis.UseClonesData = pyscnCfg.SystemAnalysisUseClonesData
+	cfg.SystemAnalysis.UseDeadCodeData = pyscnCfg.SystemAnalysisUseDeadCodeData
+	cfg.SystemAnalysis.GenerateUnifiedReport = pyscnCfg.SystemAnalysisGenerateUnifiedReport
+
+	// Map dependencies settings from [dependencies] section
+	cfg.Dependencies.Enabled = pyscnCfg.DependenciesEnabled
+	cfg.Dependencies.IncludeStdLib = pyscnCfg.DependenciesIncludeStdLib
+	cfg.Dependencies.IncludeThirdParty = pyscnCfg.DependenciesIncludeThirdParty
+	cfg.Dependencies.FollowRelative = pyscnCfg.DependenciesFollowRelative
+	cfg.Dependencies.DetectCycles = pyscnCfg.DependenciesDetectCycles
+	cfg.Dependencies.CalculateMetrics = pyscnCfg.DependenciesCalculateMetrics
+	cfg.Dependencies.FindLongChains = pyscnCfg.DependenciesFindLongChains
+	cfg.Dependencies.MinCoupling = pyscnCfg.DependenciesMinCoupling
+	cfg.Dependencies.MaxCoupling = pyscnCfg.DependenciesMaxCoupling
+	cfg.Dependencies.MinInstability = pyscnCfg.DependenciesMinInstability
+	cfg.Dependencies.MaxDistance = pyscnCfg.DependenciesMaxDistance
+	cfg.Dependencies.SortBy = pyscnCfg.DependenciesSortBy
+	cfg.Dependencies.ShowMatrix = pyscnCfg.DependenciesShowMatrix
+	cfg.Dependencies.ShowMetrics = pyscnCfg.DependenciesShowMetrics
+	cfg.Dependencies.ShowChains = pyscnCfg.DependenciesShowChains
+	cfg.Dependencies.GenerateDotGraph = pyscnCfg.DependenciesGenerateDotGraph
+	cfg.Dependencies.CycleReporting = pyscnCfg.DependenciesCycleReporting
+	cfg.Dependencies.MaxCyclesToShow = pyscnCfg.DependenciesMaxCyclesToShow
+	cfg.Dependencies.ShowCyclePaths = pyscnCfg.DependenciesShowCyclePaths
+
+	// Keep the clone config reference for backward compatibility
+	cfg.Clones = pyscnCfg
 
 	return cfg
 }

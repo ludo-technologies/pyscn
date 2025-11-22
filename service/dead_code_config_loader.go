@@ -271,7 +271,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) requestToConfig(req *domain.DeadCodeR
 }
 
 // cloneConfigToUnifiedConfig converts CloneConfig to unified Config format
-func (cl *DeadCodeConfigurationLoaderImpl) cloneConfigToUnifiedConfig(cloneCfg *config.CloneConfig) *config.Config {
+func (cl *DeadCodeConfigurationLoaderImpl) cloneConfigToUnifiedConfig(cloneCfg *config.PyscnConfig) *config.Config {
 	cfg := config.DefaultConfig()
 
 	// Map analysis settings

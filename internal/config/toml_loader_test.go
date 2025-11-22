@@ -84,7 +84,7 @@ medium_threshold = 6
 
 func TestMergeComplexitySection(t *testing.T) {
 	// Create a default config
-	config := DefaultCloneConfig()
+	config := DefaultPyscnConfig()
 
 	// Create complexity settings
 	complexity := ComplexityTomlConfig{
@@ -114,7 +114,7 @@ func TestMergeComplexitySection(t *testing.T) {
 
 func TestMergeComplexitySectionNilValues(t *testing.T) {
 	// Create a default config
-	config := DefaultCloneConfig()
+	config := DefaultPyscnConfig()
 	originalLow := config.ComplexityLowThreshold
 
 	// Create complexity settings with nil values

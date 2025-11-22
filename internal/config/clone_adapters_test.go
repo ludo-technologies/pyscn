@@ -11,7 +11,7 @@ import (
 )
 
 func TestCloneConfig_Structure(t *testing.T) {
-	cloneConfig := DefaultCloneConfig()
+	cloneConfig := DefaultPyscnConfig()
 
 	// Verify the unified config has all expected sections
 	assert.NotNil(t, cloneConfig.Analysis)
@@ -31,7 +31,7 @@ func TestCloneConfig_Structure(t *testing.T) {
 // TestCloneConfig_ToCloneDetectionConfig removed - CloneDetectionConfig type has been deleted
 
 func TestCloneConfig_ToCloneRequest(t *testing.T) {
-	cloneConfig := DefaultCloneConfig()
+	cloneConfig := DefaultPyscnConfig()
 	cloneConfig.Input.Paths = []string{"/test/path"}
 	cloneConfig.Input.Recursive = true
 	cloneConfig.Input.IncludePatterns = []string{"**/*.py"}
@@ -153,11 +153,11 @@ func TestFromCloneRequest(t *testing.T) {
 func TestRoundTripConversion(t *testing.T) {
 	t.Run("Configuration roundtrip validation", func(t *testing.T) {
 		// Test that unified config can be created and is valid
-		original := DefaultCloneConfig()
+		original := DefaultPyscnConfig()
 		assert.NoError(t, original.Validate(), "Default config should be valid")
 
 		// Test that we can create variations and they remain valid
-		modified := DefaultCloneConfig()
+		modified := DefaultPyscnConfig()
 		modified.Analysis.MinLines = 10
 		modified.Thresholds.Type1Threshold = 0.98
 		assert.NoError(t, modified.Validate(), "Modified config should be valid")
@@ -170,13 +170,13 @@ func TestRoundTripConversion(t *testing.T) {
 
 func TestCloneConfigValidation(t *testing.T) {
 	t.Run("Valid default config", func(t *testing.T) {
-		config := DefaultCloneConfig()
+		config := DefaultPyscnConfig()
 		err := config.Validate()
 		assert.NoError(t, err)
 	})
 
 	t.Run("Invalid analysis config", func(t *testing.T) {
-		config := DefaultCloneConfig()
+		config := DefaultPyscnConfig()
 		config.Analysis.MinLines = 0 // Invalid
 
 		err := config.Validate()
@@ -185,7 +185,7 @@ func TestCloneConfigValidation(t *testing.T) {
 	})
 
 	t.Run("Invalid threshold config", func(t *testing.T) {
-		config := DefaultCloneConfig()
+		config := DefaultPyscnConfig()
 		config.Thresholds.Type1Threshold = -0.1 // Invalid range
 
 		err := config.Validate()
