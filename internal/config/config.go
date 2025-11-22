@@ -48,7 +48,7 @@ type Config struct {
 	DeadCode DeadCodeConfig `mapstructure:"dead_code" yaml:"dead_code"`
 
 	// Clones holds the unified clone detection configuration
-	Clones *CloneConfig `mapstructure:"clones" yaml:"clones"`
+	Clones *PyscnConfig `mapstructure:"clones" yaml:"clones"`
 
 	// SystemAnalysis holds system-level analysis configuration
 	SystemAnalysis SystemAnalysisConfig `mapstructure:"system_analysis" yaml:"system_analysis"`
@@ -170,8 +170,8 @@ func DefaultConfig() *Config {
 			DetectUnreachableBranches: true,
 			IgnorePatterns:            []string{},
 		},
-		// Use unified clone configuration
-		Clones: DefaultCloneConfig(),
+		// Use unified pyscn configuration
+		Clones: DefaultPyscnConfig(),
 
 		// System analysis configuration
 		SystemAnalysis: SystemAnalysisConfig{

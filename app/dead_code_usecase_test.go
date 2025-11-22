@@ -108,16 +108,16 @@ func createValidDeadCodeRequest() domain.DeadCodeRequest {
 		SortBy:                    domain.DeadCodeSortBySeverity,
 		MinSeverity:               domain.DeadCodeSeverityWarning,
 		ContextLines:              3,
-		ShowContext:               true,
+		ShowContext:               domain.BoolPtr(true),
 		Recursive:                 true,
 		IncludePatterns:           []string{"**/*.py"},
 		ExcludePatterns:           []string{},
 		IgnorePatterns:            []string{},
-		DetectAfterReturn:         true,
-		DetectAfterBreak:          true,
-		DetectAfterContinue:       true,
-		DetectAfterRaise:          true,
-		DetectUnreachableBranches: true,
+		DetectAfterReturn:         domain.BoolPtr(true),
+		DetectAfterBreak:          domain.BoolPtr(true),
+		DetectAfterContinue:       domain.BoolPtr(true),
+		DetectAfterRaise:          domain.BoolPtr(true),
+		DetectUnreachableBranches: domain.BoolPtr(true),
 	}
 }
 
@@ -402,7 +402,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 				configReq := &domain.DeadCodeRequest{
 					MinSeverity:  domain.DeadCodeSeverityCritical,
 					ContextLines: 5,
-					ShowContext:  false,
+					ShowContext:  domain.BoolPtr(false),
 				}
 				mergedReq := createValidDeadCodeRequest()
 				mergedReq.MinSeverity = domain.DeadCodeSeverityCritical
@@ -812,7 +812,7 @@ func TestDeadCodeUseCase_loadAndMergeConfig(t *testing.T) {
 				configReq := &domain.DeadCodeRequest{
 					MinSeverity:  domain.DeadCodeSeverityInfo,
 					ContextLines: 7,
-					ShowContext:  false,
+					ShowContext:  domain.BoolPtr(false),
 				}
 				configLoader.On("LoadConfig", "/config.yaml").Return(configReq, nil)
 				configLoader.On("MergeConfig", configReq, mock.AnythingOfType("*domain.DeadCodeRequest")).

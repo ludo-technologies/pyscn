@@ -34,8 +34,8 @@ type DeadCodeRequest struct {
 	OutputWriter io.Writer
 	OutputPath   string // Path to save output file (for HTML format)
 	NoOpen       bool   // Don't auto-open HTML in browser
-	ShowContext  bool
-	ContextLines int // Number of lines to show around dead code
+	ShowContext  *bool  // nil = use default (false), non-nil = explicitly set
+	ContextLines int    // Number of lines to show around dead code
 
 	// Filtering and sorting
 	MinSeverity DeadCodeSeverity
@@ -51,11 +51,11 @@ type DeadCodeRequest struct {
 	ConfigPath string
 
 	// Dead code specific options
-	DetectAfterReturn         bool // Detect code after return statements
-	DetectAfterBreak          bool // Detect code after break statements
-	DetectAfterContinue       bool // Detect code after continue statements
-	DetectAfterRaise          bool // Detect code after raise statements
-	DetectUnreachableBranches bool // Detect unreachable conditional branches
+	DetectAfterReturn         *bool // nil = use default (true), non-nil = explicitly set
+	DetectAfterBreak          *bool // nil = use default (true), non-nil = explicitly set
+	DetectAfterContinue       *bool // nil = use default (true), non-nil = explicitly set
+	DetectAfterRaise          *bool // nil = use default (true), non-nil = explicitly set
+	DetectUnreachableBranches *bool // nil = use default (true), non-nil = explicitly set
 }
 
 // DeadCodeLocation represents the location of dead code
@@ -198,11 +198,28 @@ type DeadCodeFormatter interface {
 	FormatFinding(finding DeadCodeFinding, format OutputFormat) (string, error)
 }
 
+// Helper functions for pointer boolean handling
+
+// BoolPtr creates a pointer to a boolean value
+// This is useful for creating pointer boolean values inline
+func BoolPtr(b bool) *bool {
+	return &b
+}
+
+// BoolValue safely dereferences a boolean pointer, returning defaultVal if nil
+// This allows safe access to pointer booleans with explicit defaults
+func BoolValue(b *bool, defaultVal bool) bool {
+	if b == nil {
+		return defaultVal
+	}
+	return *b
+}
+
 // Default configuration values for dead code analysis
 func DefaultDeadCodeRequest() *DeadCodeRequest {
 	return &DeadCodeRequest{
 		OutputFormat:    OutputFormatText,
-		ShowContext:     false,
+		ShowContext:     BoolPtr(false),
 		ContextLines:    3,
 		MinSeverity:     DeadCodeSeverityWarning,
 		SortBy:          DeadCodeSortBySeverity,
@@ -212,11 +229,11 @@ func DefaultDeadCodeRequest() *DeadCodeRequest {
 		IgnorePatterns:  []string{},
 
 		// Dead code detection options (all enabled by default)
-		DetectAfterReturn:         true,
-		DetectAfterBreak:          true,
-		DetectAfterContinue:       true,
-		DetectAfterRaise:          true,
-		DetectUnreachableBranches: true,
+		DetectAfterReturn:         BoolPtr(true),
+		DetectAfterBreak:          BoolPtr(true),
+		DetectAfterContinue:       BoolPtr(true),
+		DetectAfterRaise:          BoolPtr(true),
+		DetectUnreachableBranches: BoolPtr(true),
 	}
 }
 

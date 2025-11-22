@@ -6,9 +6,9 @@ import (
 	"github.com/ludo-technologies/pyscn/domain"
 )
 
-// ToCloneRequest converts unified CloneConfig to domain's CloneRequest
+// ToCloneRequest converts unified PyscnConfig to domain's CloneRequest
 // This maintains backward compatibility with the domain package
-func (c *CloneConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneRequest {
+func (c *PyscnConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneRequest {
 	// Convert clone types from strings to domain.CloneType
 	var cloneTypes []domain.CloneType
 	for _, typeStr := range c.Filtering.EnabledCloneTypes {
@@ -86,9 +86,9 @@ func (c *CloneConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 	}
 }
 
-// FromCloneRequest creates unified CloneConfig from domain's CloneRequest
-func FromCloneRequest(request *domain.CloneRequest) *CloneConfig {
-	config := DefaultCloneConfig()
+// FromCloneRequest creates unified PyscnConfig from domain's CloneRequest
+func FromCloneRequest(request *domain.CloneRequest) *PyscnConfig {
+	config := DefaultPyscnConfig()
 
 	// Input parameters
 	config.Input.Paths = request.Paths

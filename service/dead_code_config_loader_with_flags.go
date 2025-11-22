@@ -71,7 +71,10 @@ func (cl *DeadCodeConfigurationLoaderWithFlags) MergeConfig(base *domain.DeadCod
 
 	// Always preserve NoOpen from override
 	merged.NoOpen = override.NoOpen
-	merged.ShowContext = cl.flagTracker.MergeBool(merged.ShowContext, override.ShowContext, "show-context")
+	merged.ShowContext = domain.BoolPtr(cl.flagTracker.MergeBool(
+		domain.BoolValue(merged.ShowContext, false),
+		domain.BoolValue(override.ShowContext, false),
+		"show-context"))
 	merged.ContextLines = cl.flagTracker.MergeInt(merged.ContextLines, override.ContextLines, "context-lines")
 
 	// Filtering and sorting
@@ -88,11 +91,26 @@ func (cl *DeadCodeConfigurationLoaderWithFlags) MergeConfig(base *domain.DeadCod
 	}
 
 	// Dead code detection options
-	merged.DetectAfterReturn = cl.flagTracker.MergeBool(merged.DetectAfterReturn, override.DetectAfterReturn, "detect-after-return")
-	merged.DetectAfterBreak = cl.flagTracker.MergeBool(merged.DetectAfterBreak, override.DetectAfterBreak, "detect-after-break")
-	merged.DetectAfterContinue = cl.flagTracker.MergeBool(merged.DetectAfterContinue, override.DetectAfterContinue, "detect-after-continue")
-	merged.DetectAfterRaise = cl.flagTracker.MergeBool(merged.DetectAfterRaise, override.DetectAfterRaise, "detect-after-raise")
-	merged.DetectUnreachableBranches = cl.flagTracker.MergeBool(merged.DetectUnreachableBranches, override.DetectUnreachableBranches, "detect-unreachable-branches")
+	merged.DetectAfterReturn = domain.BoolPtr(cl.flagTracker.MergeBool(
+		domain.BoolValue(merged.DetectAfterReturn, true),
+		domain.BoolValue(override.DetectAfterReturn, true),
+		"detect-after-return"))
+	merged.DetectAfterBreak = domain.BoolPtr(cl.flagTracker.MergeBool(
+		domain.BoolValue(merged.DetectAfterBreak, true),
+		domain.BoolValue(override.DetectAfterBreak, true),
+		"detect-after-break"))
+	merged.DetectAfterContinue = domain.BoolPtr(cl.flagTracker.MergeBool(
+		domain.BoolValue(merged.DetectAfterContinue, true),
+		domain.BoolValue(override.DetectAfterContinue, true),
+		"detect-after-continue"))
+	merged.DetectAfterRaise = domain.BoolPtr(cl.flagTracker.MergeBool(
+		domain.BoolValue(merged.DetectAfterRaise, true),
+		domain.BoolValue(override.DetectAfterRaise, true),
+		"detect-after-raise"))
+	merged.DetectUnreachableBranches = domain.BoolPtr(cl.flagTracker.MergeBool(
+		domain.BoolValue(merged.DetectUnreachableBranches, true),
+		domain.BoolValue(override.DetectUnreachableBranches, true),
+		"detect-unreachable-branches"))
 
 	// For recursive, only override if explicitly set
 	merged.Recursive = cl.flagTracker.MergeBool(merged.Recursive, override.Recursive, "recursive")

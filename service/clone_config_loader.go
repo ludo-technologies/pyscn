@@ -70,12 +70,12 @@ func (c *CloneConfigurationLoader) GetDefaultCloneConfig() *domain.CloneRequest 
 	}
 
 	// Fall back to hardcoded default configuration
-	defaultCloneConfig := config.DefaultCloneConfig()
+	defaultCloneConfig := config.DefaultPyscnConfig()
 	return c.cloneConfigToCloneRequest(defaultCloneConfig)
 }
 
 // cloneConfigToCloneRequest converts a config.CloneConfig (TOML-based) to domain.CloneRequest
-func (c *CloneConfigurationLoader) cloneConfigToCloneRequest(cloneCfg *config.CloneConfig) *domain.CloneRequest {
+func (c *CloneConfigurationLoader) cloneConfigToCloneRequest(cloneCfg *config.PyscnConfig) *domain.CloneRequest {
 	// Convert enabled clone types from string slice to domain clone types
 	cloneTypes := make([]domain.CloneType, 0, len(cloneCfg.Filtering.EnabledCloneTypes))
 	for _, typeStr := range cloneCfg.Filtering.EnabledCloneTypes {
@@ -171,7 +171,7 @@ func (c *CloneConfigurationLoader) updateConfigFromCloneRequest(cfg *config.Conf
 
 	// Update clone detection configuration using unified config
 	if cfg.Clones == nil {
-		cfg.Clones = config.DefaultCloneConfig()
+		cfg.Clones = config.DefaultPyscnConfig()
 	}
 
 	cfg.Clones.Analysis.MinLines = req.MinLines

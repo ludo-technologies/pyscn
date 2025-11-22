@@ -297,10 +297,12 @@ func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuil
 	// CBO use case
 	cboService := service.NewCBOService()
 	cboFormatter := service.NewCBOFormatter()
+	cboConfigLoader := service.NewCBOConfigurationLoader()
 	cboUseCase, err := app.NewCBOUseCaseBuilder().
 		WithService(cboService).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(cboFormatter).
+		WithConfigLoader(cboConfigLoader).
 		Build()
 	if err != nil {
 		return fmt.Errorf("failed to build CBO use case: %w", err)
