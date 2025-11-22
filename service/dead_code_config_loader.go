@@ -26,8 +26,8 @@ func (cl *DeadCodeConfigurationLoaderImpl) LoadConfig(path string) (*domain.Dead
 		return nil, fmt.Errorf("failed to load config from %s: %w", path, err)
 	}
 
-	// Convert clone config to unified config format, then to dead code request
-	cfg := cl.cloneConfigToUnifiedConfig(cloneCfg)
+	// Convert pyscn config to unified config format, then to dead code request
+	cfg := cl.pyscnConfigToUnifiedConfig(cloneCfg)
 	return cl.configToRequest(cfg), nil
 }
 
@@ -270,21 +270,53 @@ func (cl *DeadCodeConfigurationLoaderImpl) requestToConfig(req *domain.DeadCodeR
 	return cfg
 }
 
-// cloneConfigToUnifiedConfig converts CloneConfig to unified Config format
-func (cl *DeadCodeConfigurationLoaderImpl) cloneConfigToUnifiedConfig(cloneCfg *config.PyscnConfig) *config.Config {
+// pyscnConfigToUnifiedConfig converts PyscnConfig to unified Config format
+func (cl *DeadCodeConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.PyscnConfig) *config.Config {
 	cfg := config.DefaultConfig()
 
 	// Map analysis settings
-	cfg.Analysis.IncludePatterns = cloneCfg.Input.IncludePatterns
-	cfg.Analysis.ExcludePatterns = cloneCfg.Input.ExcludePatterns
-	cfg.Analysis.Recursive = cloneCfg.Input.Recursive
+	cfg.Analysis.IncludePatterns = pyscnCfg.Input.IncludePatterns
+	cfg.Analysis.ExcludePatterns = pyscnCfg.Input.ExcludePatterns
+	cfg.Analysis.Recursive = pyscnCfg.Input.Recursive
 
 	// Map output settings
-	cfg.Output.Format = cloneCfg.Output.Format
-	cfg.Output.ShowDetails = cloneCfg.Output.ShowDetails
+	cfg.Output.Format = pyscnCfg.Output.Format
+	cfg.Output.ShowDetails = pyscnCfg.Output.ShowDetails
 
-	// Dead code settings use defaults from DefaultConfig()
-	// since TOML-only config focuses on clone detection
+	// Map dead code settings from [dead_code] section
+	cfg.DeadCode.Enabled = pyscnCfg.DeadCodeEnabled
+	cfg.DeadCode.MinSeverity = pyscnCfg.DeadCodeMinSeverity
+	cfg.DeadCode.ShowContext = pyscnCfg.DeadCodeShowContext
+	cfg.DeadCode.ContextLines = pyscnCfg.DeadCodeContextLines
+	cfg.DeadCode.SortBy = pyscnCfg.DeadCodeSortBy
+	cfg.DeadCode.DetectAfterReturn = pyscnCfg.DeadCodeDetectAfterReturn
+	cfg.DeadCode.DetectAfterBreak = pyscnCfg.DeadCodeDetectAfterBreak
+	cfg.DeadCode.DetectAfterContinue = pyscnCfg.DeadCodeDetectAfterContinue
+	cfg.DeadCode.DetectAfterRaise = pyscnCfg.DeadCodeDetectAfterRaise
+	cfg.DeadCode.DetectUnreachableBranches = pyscnCfg.DeadCodeDetectUnreachableBranches
+	cfg.DeadCode.IgnorePatterns = pyscnCfg.DeadCodeIgnorePatterns
+
+	// Map general analysis settings from [analysis] section (override clone-specific if set)
+	if len(pyscnCfg.AnalysisIncludePatterns) > 0 {
+		cfg.Analysis.IncludePatterns = pyscnCfg.AnalysisIncludePatterns
+	}
+	if len(pyscnCfg.AnalysisExcludePatterns) > 0 {
+		cfg.Analysis.ExcludePatterns = pyscnCfg.AnalysisExcludePatterns
+	}
+	cfg.Analysis.Recursive = cfg.Analysis.Recursive || pyscnCfg.AnalysisRecursive
+	cfg.Analysis.FollowSymlinks = pyscnCfg.AnalysisFollowSymlinks
+
+	// Map general output settings from [output] section (override clone-specific if set)
+	if pyscnCfg.OutputFormat != "" {
+		cfg.Output.Format = pyscnCfg.OutputFormat
+	}
+	if pyscnCfg.OutputSortBy != "" {
+		cfg.Output.SortBy = pyscnCfg.OutputSortBy
+	}
+	if pyscnCfg.OutputDirectory != "" {
+		cfg.Output.Directory = pyscnCfg.OutputDirectory
+	}
+	cfg.Output.ShowDetails = cfg.Output.ShowDetails || pyscnCfg.OutputShowDetails
 
 	return cfg
 }
