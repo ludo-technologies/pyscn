@@ -21,7 +21,7 @@ type CBORequest struct {
 	MinCBO    int
 	MaxCBO    int // 0 means no limit
 	SortBy    SortCriteria
-	ShowZeros bool // Include classes with CBO = 0
+	ShowZeros *bool // Include classes with CBO = 0
 
 	// CBO thresholds for risk assessment
 	LowThreshold    int // Default: 3 (industry standard)
@@ -31,13 +31,13 @@ type CBORequest struct {
 	ConfigPath string
 
 	// Analysis options
-	Recursive       bool
+	Recursive       *bool
 	IncludePatterns []string
 	ExcludePatterns []string
 
 	// Analysis scope
-	IncludeBuiltins bool // Include dependencies on built-in types
-	IncludeImports  bool // Include imported modules in dependency count
+	IncludeBuiltins *bool // Include dependencies on built-in types
+	IncludeImports  *bool // Include imported modules in dependency count
 }
 
 // CBOMetrics represents detailed CBO metrics for a class
@@ -168,12 +168,12 @@ func DefaultCBORequest() *CBORequest {
 		MinCBO:          0,
 		MaxCBO:          0,              // No limit
 		SortBy:          SortByCoupling, // Sort by CBO value
-		ShowZeros:       false,
+		ShowZeros:       BoolPtr(false),
 		LowThreshold:    3, // Industry standard: CBO <= 3 is low risk
 		MediumThreshold: 7, // Industry standard: 3 < CBO <= 7 is medium risk
-		Recursive:       true,
-		IncludeBuiltins: false,
-		IncludeImports:  true,
+		Recursive:       BoolPtr(true),
+		IncludeBuiltins: BoolPtr(false),
+		IncludeImports:  BoolPtr(true),
 		IncludePatterns: []string{"**/*.py"},
 		ExcludePatterns: []string{},
 	}

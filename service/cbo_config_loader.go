@@ -102,27 +102,26 @@ func (cl *CBOConfigurationLoaderImpl) MergeConfig(base *domain.CBORequest, overr
 		merged.ConfigPath = override.ConfigPath
 	}
 
-	// Boolean flags - in CBO these are simple bools, not pointers
-	// For bools, we need a different strategy - check if they differ from defaults
-	// ShowZeros: default is false, so if override is true, use it
-	if override.ShowZeros {
-		merged.ShowZeros = true
+	// Boolean flags - use pointer type to distinguish "not set" (nil) from "set to false"
+	// Only override if explicitly set (non-nil)
+	if override.ShowZeros != nil {
+		merged.ShowZeros = override.ShowZeros
 	}
 	// ShowDetails: default is false, so if override is true, use it
 	if override.ShowDetails {
 		merged.ShowDetails = true
 	}
-	// IncludeBuiltins: default is false, so if override is true, use it
-	if override.IncludeBuiltins {
-		merged.IncludeBuiltins = true
+	if override.IncludeBuiltins != nil {
+		merged.IncludeBuiltins = override.IncludeBuiltins
 	}
-	// IncludeImports: default is true, so preserve from base unless explicitly set
-	// This is tricky - we can't distinguish between "not set" and "set to false" with simple bool
-	// For now, we'll use override value if it differs from default
-	merged.IncludeImports = override.IncludeImports
+	if override.IncludeImports != nil {
+		merged.IncludeImports = override.IncludeImports
+	}
 
 	// Analysis options
-	merged.Recursive = override.Recursive
+	if override.Recursive != nil {
+		merged.Recursive = override.Recursive
+	}
 
 	// Array values - override if provided
 	if len(override.IncludePatterns) > 0 {
@@ -143,13 +142,13 @@ func (cl *CBOConfigurationLoaderImpl) configToRequest(pyscnCfg *config.PyscnConf
 			MediumThreshold: 7,
 			MinCBO:          0,
 			MaxCBO:          0,
-			ShowZeros:       false,
+			ShowZeros:       domain.BoolPtr(false),
 			ShowDetails:     false,
-			IncludeBuiltins: false,
-			IncludeImports:  true,
+			IncludeBuiltins: domain.BoolPtr(false),
+			IncludeImports:  domain.BoolPtr(true),
 			SortBy:          domain.SortByComplexity,
 			OutputFormat:    domain.OutputFormatText,
-			Recursive:       true,
+			Recursive:       domain.BoolPtr(true),
 			IncludePatterns: []string{"**/*.py"},
 			ExcludePatterns: []string{},
 		}
@@ -162,11 +161,11 @@ func (cl *CBOConfigurationLoaderImpl) configToRequest(pyscnCfg *config.PyscnConf
 		MediumThreshold: pyscnCfg.CboMediumThreshold,
 		MinCBO:          pyscnCfg.CboMinCbo,
 		MaxCBO:          pyscnCfg.CboMaxCbo,
-		ShowZeros:       pyscnCfg.CboShowZeros,
-		IncludeBuiltins: pyscnCfg.CboIncludeBuiltins,
-		IncludeImports:  pyscnCfg.CboIncludeImports,
+		ShowZeros:       domain.BoolPtr(pyscnCfg.CboShowZeros),
+		IncludeBuiltins: domain.BoolPtr(pyscnCfg.CboIncludeBuiltins),
+		IncludeImports:  domain.BoolPtr(pyscnCfg.CboIncludeImports),
 		SortBy:          domain.SortByComplexity, // Default, can be overridden
-		Recursive:       pyscnCfg.AnalysisRecursive,
+		Recursive:       domain.BoolPtr(pyscnCfg.AnalysisRecursive),
 		IncludePatterns: pyscnCfg.AnalysisIncludePatterns,
 		ExcludePatterns: pyscnCfg.AnalysisExcludePatterns,
 	}

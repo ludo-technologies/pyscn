@@ -426,7 +426,7 @@ func (h *HandlerSet) HandleCheckCoupling(ctx context.Context, request mcp.CallTo
 	req.SortBy = domain.SortByCoupling
 
 	if cfg != nil {
-		req.Recursive = cfg.Analysis.Recursive
+		req.Recursive = domain.BoolPtr(cfg.Analysis.Recursive)
 		if len(cfg.Analysis.IncludePatterns) > 0 {
 			req.IncludePatterns = cfg.Analysis.IncludePatterns
 		}

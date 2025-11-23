@@ -47,13 +47,13 @@ include_imports = false
 	if req.MaxCBO != 20 {
 		t.Errorf("Expected MaxCBO 20, got %d", req.MaxCBO)
 	}
-	if !req.ShowZeros {
+	if !domain.BoolValue(req.ShowZeros, false) {
 		t.Errorf("Expected ShowZeros true, got %v", req.ShowZeros)
 	}
-	if !req.IncludeBuiltins {
+	if !domain.BoolValue(req.IncludeBuiltins, false) {
 		t.Errorf("Expected IncludeBuiltins true, got %v", req.IncludeBuiltins)
 	}
-	if req.IncludeImports {
+	if domain.BoolValue(req.IncludeImports, true) {
 		t.Errorf("Expected IncludeImports false, got %v", req.IncludeImports)
 	}
 }
@@ -79,13 +79,13 @@ func TestCBOConfigurationLoader_LoadDefaultConfig(t *testing.T) {
 	if req.MaxCBO != 0 {
 		t.Errorf("Expected default MaxCBO 0 (no limit), got %d", req.MaxCBO)
 	}
-	if req.ShowZeros {
+	if domain.BoolValue(req.ShowZeros, false) {
 		t.Errorf("Expected default ShowZeros false, got %v", req.ShowZeros)
 	}
-	if req.IncludeBuiltins {
+	if domain.BoolValue(req.IncludeBuiltins, false) {
 		t.Errorf("Expected default IncludeBuiltins false, got %v", req.IncludeBuiltins)
 	}
-	if !req.IncludeImports {
+	if !domain.BoolValue(req.IncludeImports, true) {
 		t.Errorf("Expected default IncludeImports true, got %v", req.IncludeImports)
 	}
 }
@@ -123,19 +123,19 @@ func TestCBOConfigurationLoader_MergeConfig(t *testing.T) {
 		{
 			name: "override boolean flags",
 			base: &domain.CBORequest{
-				ShowZeros:       false,
-				IncludeBuiltins: false,
-				IncludeImports:  true,
+				ShowZeros:       domain.BoolPtr(false),
+				IncludeBuiltins: domain.BoolPtr(false),
+				IncludeImports:  domain.BoolPtr(true),
 			},
 			override: &domain.CBORequest{
-				ShowZeros:       true,
-				IncludeBuiltins: true,
-				IncludeImports:  false,
+				ShowZeros:       domain.BoolPtr(true),
+				IncludeBuiltins: domain.BoolPtr(true),
+				IncludeImports:  domain.BoolPtr(false),
 			},
 			expected: &domain.CBORequest{
-				ShowZeros:       true,
-				IncludeBuiltins: true,
-				IncludeImports:  false,
+				ShowZeros:       domain.BoolPtr(true),
+				IncludeBuiltins: domain.BoolPtr(true),
+				IncludeImports:  domain.BoolPtr(false),
 			},
 		},
 		{

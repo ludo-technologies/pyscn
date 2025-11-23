@@ -173,7 +173,7 @@ func (s *CBOServiceImpl) filterClasses(classes []domain.ClassCoupling, req domai
 		}
 
 		// Filter out zero CBO classes if not requested
-		if !req.ShowZeros && class.Metrics.CouplingCount == 0 {
+		if !domain.BoolValue(req.ShowZeros, false) && class.Metrics.CouplingCount == 0 {
 			continue
 		}
 
@@ -311,8 +311,8 @@ func (s *CBOServiceImpl) getCBORange(cbo int) string {
 // buildCBOOptions converts domain request to analyzer options
 func (s *CBOServiceImpl) buildCBOOptions(req domain.CBORequest) *analyzer.CBOOptions {
 	return &analyzer.CBOOptions{
-		IncludeBuiltins:   req.IncludeBuiltins,
-		IncludeImports:    req.IncludeImports,
+		IncludeBuiltins:   domain.BoolValue(req.IncludeBuiltins, false),
+		IncludeImports:    domain.BoolValue(req.IncludeImports, true),
 		PublicClassesOnly: false, // Could add this to domain.CBORequest later
 		ExcludePatterns:   req.ExcludePatterns,
 		LowThreshold:      req.LowThreshold,
@@ -325,11 +325,11 @@ func (s *CBOServiceImpl) buildConfigForResponse(req domain.CBORequest) interface
 	return map[string]interface{}{
 		"minCBO":          req.MinCBO,
 		"maxCBO":          req.MaxCBO,
-		"showZeros":       req.ShowZeros,
+		"showZeros":       domain.BoolValue(req.ShowZeros, false),
 		"lowThreshold":    req.LowThreshold,
 		"mediumThreshold": req.MediumThreshold,
-		"includeBuiltins": req.IncludeBuiltins,
-		"includeImports":  req.IncludeImports,
+		"includeBuiltins": domain.BoolValue(req.IncludeBuiltins, false),
+		"includeImports":  domain.BoolValue(req.IncludeImports, true),
 		"outputFormat":    req.OutputFormat,
 		"sortBy":          req.SortBy,
 	}

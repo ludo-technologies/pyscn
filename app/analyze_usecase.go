@@ -347,7 +347,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.CBORequest{
 					Paths:           files,
-					Recursive:       false,
+					Recursive:       nil, // Let config file values take precedence
 					IncludePatterns: []string{},
 					ExcludePatterns: []string{},
 					OutputFormat:    domain.OutputFormatJSON,
@@ -357,6 +357,10 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 					MediumThreshold: 10,
 					SortBy:          domain.SortByCoupling,
 					ConfigPath:      config.ConfigFile,
+					// Boolean options left as nil to allow config file values to take precedence
+					ShowZeros:       nil,
+					IncludeBuiltins: nil,
+					IncludeImports:  nil,
 				}
 				return uc.cboUseCase.AnalyzeAndReturn(ctx, request)
 			},
@@ -370,15 +374,21 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Enabled: !config.SkipSystem,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.SystemAnalysisRequest{
-					Paths:               files,
-					Recursive:           false,
-					IncludePatterns:     []string{},
-					ExcludePatterns:     []string{},
-					OutputFormat:        domain.OutputFormatJSON,
-					OutputWriter:        io.Discard,
-					AnalyzeDependencies: true,
-					AnalyzeArchitecture: true,
-					ConfigPath:          config.ConfigFile,
+					Paths:            files,
+					Recursive:        nil, // Let config file values take precedence
+					IncludePatterns:  []string{},
+					ExcludePatterns:  []string{},
+					OutputFormat:     domain.OutputFormatJSON,
+					OutputWriter:     io.Discard,
+					ConfigPath:       config.ConfigFile,
+					// Boolean options left as nil to allow config file values to take precedence
+					AnalyzeDependencies:  nil,
+					AnalyzeArchitecture:  nil,
+					IncludeStdLib:        nil,
+					IncludeThirdParty:    nil,
+					FollowRelative:       nil,
+					DetectCycles:         nil,
+					ValidateArchitecture: nil,
 				}
 				return uc.systemUseCase.AnalyzeAndReturn(ctx, request)
 			},

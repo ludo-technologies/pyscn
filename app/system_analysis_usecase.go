@@ -51,7 +51,7 @@ func (uc *SystemAnalysisUseCase) prepareAnalysis(ctx context.Context, req domain
 	files, err := ResolveFilePaths(
 		uc.fileReader,
 		finalReq.Paths,
-		finalReq.Recursive,
+		domain.BoolValue(finalReq.Recursive, true),
 		finalReq.IncludePatterns,
 		finalReq.ExcludePatterns,
 		false, // validatePythonFile: system analysis doesn't need strict Python validation
@@ -198,7 +198,7 @@ func (uc *SystemAnalysisUseCase) validateThresholds(req domain.SystemAnalysisReq
 // validateAnalysisOptions validates analysis type options
 func (uc *SystemAnalysisUseCase) validateAnalysisOptions(req domain.SystemAnalysisRequest) error {
 	// At least one analysis type must be enabled
-	if !req.AnalyzeDependencies && !req.AnalyzeArchitecture {
+	if !domain.BoolValue(req.AnalyzeDependencies, true) && !domain.BoolValue(req.AnalyzeArchitecture, true) {
 		return fmt.Errorf("at least one analysis type must be enabled")
 	}
 
