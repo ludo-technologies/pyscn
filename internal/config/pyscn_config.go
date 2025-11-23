@@ -41,21 +41,21 @@ type PyscnConfig struct {
 	ComplexityMinComplexity   int `mapstructure:"complexity_min_complexity" yaml:"complexity_min_complexity" json:"complexity_min_complexity"`
 
 	// DeadCode Configuration (from [dead_code] section in TOML)
-	DeadCodeEnabled                   bool     `mapstructure:"dead_code_enabled" yaml:"dead_code_enabled" json:"dead_code_enabled"`
+	DeadCodeEnabled                   *bool    `mapstructure:"dead_code_enabled" yaml:"dead_code_enabled" json:"dead_code_enabled"`
 	DeadCodeMinSeverity               string   `mapstructure:"dead_code_min_severity" yaml:"dead_code_min_severity" json:"dead_code_min_severity"`
-	DeadCodeShowContext               bool     `mapstructure:"dead_code_show_context" yaml:"dead_code_show_context" json:"dead_code_show_context"`
+	DeadCodeShowContext               *bool    `mapstructure:"dead_code_show_context" yaml:"dead_code_show_context" json:"dead_code_show_context"`
 	DeadCodeContextLines              int      `mapstructure:"dead_code_context_lines" yaml:"dead_code_context_lines" json:"dead_code_context_lines"`
 	DeadCodeSortBy                    string   `mapstructure:"dead_code_sort_by" yaml:"dead_code_sort_by" json:"dead_code_sort_by"`
-	DeadCodeDetectAfterReturn         bool     `mapstructure:"dead_code_detect_after_return" yaml:"dead_code_detect_after_return" json:"dead_code_detect_after_return"`
-	DeadCodeDetectAfterBreak          bool     `mapstructure:"dead_code_detect_after_break" yaml:"dead_code_detect_after_break" json:"dead_code_detect_after_break"`
-	DeadCodeDetectAfterContinue       bool     `mapstructure:"dead_code_detect_after_continue" yaml:"dead_code_detect_after_continue" json:"dead_code_detect_after_continue"`
-	DeadCodeDetectAfterRaise          bool     `mapstructure:"dead_code_detect_after_raise" yaml:"dead_code_detect_after_raise" json:"dead_code_detect_after_raise"`
-	DeadCodeDetectUnreachableBranches bool     `mapstructure:"dead_code_detect_unreachable_branches" yaml:"dead_code_detect_unreachable_branches" json:"dead_code_detect_unreachable_branches"`
+	DeadCodeDetectAfterReturn         *bool    `mapstructure:"dead_code_detect_after_return" yaml:"dead_code_detect_after_return" json:"dead_code_detect_after_return"`
+	DeadCodeDetectAfterBreak          *bool    `mapstructure:"dead_code_detect_after_break" yaml:"dead_code_detect_after_break" json:"dead_code_detect_after_break"`
+	DeadCodeDetectAfterContinue       *bool    `mapstructure:"dead_code_detect_after_continue" yaml:"dead_code_detect_after_continue" json:"dead_code_detect_after_continue"`
+	DeadCodeDetectAfterRaise          *bool    `mapstructure:"dead_code_detect_after_raise" yaml:"dead_code_detect_after_raise" json:"dead_code_detect_after_raise"`
+	DeadCodeDetectUnreachableBranches *bool    `mapstructure:"dead_code_detect_unreachable_branches" yaml:"dead_code_detect_unreachable_branches" json:"dead_code_detect_unreachable_branches"`
 	DeadCodeIgnorePatterns            []string `mapstructure:"dead_code_ignore_patterns" yaml:"dead_code_ignore_patterns" json:"dead_code_ignore_patterns"`
 
 	// Output Configuration (from [output] section in TOML - general output settings)
 	OutputFormat        string `mapstructure:"output_format" yaml:"output_format" json:"output_format"`
-	OutputShowDetails   bool   `mapstructure:"output_show_details" yaml:"output_show_details" json:"output_show_details"`
+	OutputShowDetails   *bool  `mapstructure:"output_show_details" yaml:"output_show_details" json:"output_show_details"`
 	OutputSortBy        string `mapstructure:"output_sort_by" yaml:"output_sort_by" json:"output_sort_by"`
 	OutputMinComplexity int    `mapstructure:"output_min_complexity" yaml:"output_min_complexity" json:"output_min_complexity"`
 	OutputDirectory     string `mapstructure:"output_directory" yaml:"output_directory" json:"output_directory"`
@@ -63,68 +63,68 @@ type PyscnConfig struct {
 	// Analysis Configuration (from [analysis] section in TOML - general analysis settings)
 	AnalysisIncludePatterns []string `mapstructure:"analysis_include_patterns" yaml:"analysis_include_patterns" json:"analysis_include_patterns"`
 	AnalysisExcludePatterns []string `mapstructure:"analysis_exclude_patterns" yaml:"analysis_exclude_patterns" json:"analysis_exclude_patterns"`
-	AnalysisRecursive       bool     `mapstructure:"analysis_recursive" yaml:"analysis_recursive" json:"analysis_recursive"`
-	AnalysisFollowSymlinks  bool     `mapstructure:"analysis_follow_symlinks" yaml:"analysis_follow_symlinks" json:"analysis_follow_symlinks"`
+	AnalysisRecursive       *bool    `mapstructure:"analysis_recursive" yaml:"analysis_recursive" json:"analysis_recursive"`
+	AnalysisFollowSymlinks  *bool    `mapstructure:"analysis_follow_symlinks" yaml:"analysis_follow_symlinks" json:"analysis_follow_symlinks"`
 
 	// CBO Configuration (from [cbo] section in TOML)
-	CboLowThreshold    int  `mapstructure:"cbo_low_threshold" yaml:"cbo_low_threshold" json:"cbo_low_threshold"`
-	CboMediumThreshold int  `mapstructure:"cbo_medium_threshold" yaml:"cbo_medium_threshold" json:"cbo_medium_threshold"`
-	CboMinCbo          int  `mapstructure:"cbo_min_cbo" yaml:"cbo_min_cbo" json:"cbo_min_cbo"`
-	CboMaxCbo          int  `mapstructure:"cbo_max_cbo" yaml:"cbo_max_cbo" json:"cbo_max_cbo"`
-	CboShowZeros       bool `mapstructure:"cbo_show_zeros" yaml:"cbo_show_zeros" json:"cbo_show_zeros"`
-	CboIncludeBuiltins bool `mapstructure:"cbo_include_builtins" yaml:"cbo_include_builtins" json:"cbo_include_builtins"`
-	CboIncludeImports  bool `mapstructure:"cbo_include_imports" yaml:"cbo_include_imports" json:"cbo_include_imports"`
+	CboLowThreshold    int   `mapstructure:"cbo_low_threshold" yaml:"cbo_low_threshold" json:"cbo_low_threshold"`
+	CboMediumThreshold int   `mapstructure:"cbo_medium_threshold" yaml:"cbo_medium_threshold" json:"cbo_medium_threshold"`
+	CboMinCbo          int   `mapstructure:"cbo_min_cbo" yaml:"cbo_min_cbo" json:"cbo_min_cbo"`
+	CboMaxCbo          int   `mapstructure:"cbo_max_cbo" yaml:"cbo_max_cbo" json:"cbo_max_cbo"`
+	CboShowZeros       *bool `mapstructure:"cbo_show_zeros" yaml:"cbo_show_zeros" json:"cbo_show_zeros"`
+	CboIncludeBuiltins *bool `mapstructure:"cbo_include_builtins" yaml:"cbo_include_builtins" json:"cbo_include_builtins"`
+	CboIncludeImports  *bool `mapstructure:"cbo_include_imports" yaml:"cbo_include_imports" json:"cbo_include_imports"`
 
 	// Architecture Configuration (from [architecture] section in TOML)
-	ArchitectureEnabled                         bool     `mapstructure:"architecture_enabled" yaml:"architecture_enabled" json:"architecture_enabled"`
-	ArchitectureValidateLayers                  bool     `mapstructure:"architecture_validate_layers" yaml:"architecture_validate_layers" json:"architecture_validate_layers"`
-	ArchitectureValidateCohesion                bool     `mapstructure:"architecture_validate_cohesion" yaml:"architecture_validate_cohesion" json:"architecture_validate_cohesion"`
-	ArchitectureValidateResponsibility          bool     `mapstructure:"architecture_validate_responsibility" yaml:"architecture_validate_responsibility" json:"architecture_validate_responsibility"`
+	ArchitectureEnabled                         *bool    `mapstructure:"architecture_enabled" yaml:"architecture_enabled" json:"architecture_enabled"`
+	ArchitectureValidateLayers                  *bool    `mapstructure:"architecture_validate_layers" yaml:"architecture_validate_layers" json:"architecture_validate_layers"`
+	ArchitectureValidateCohesion                *bool    `mapstructure:"architecture_validate_cohesion" yaml:"architecture_validate_cohesion" json:"architecture_validate_cohesion"`
+	ArchitectureValidateResponsibility          *bool    `mapstructure:"architecture_validate_responsibility" yaml:"architecture_validate_responsibility" json:"architecture_validate_responsibility"`
 	ArchitectureMinCohesion                     float64  `mapstructure:"architecture_min_cohesion" yaml:"architecture_min_cohesion" json:"architecture_min_cohesion"`
 	ArchitectureMaxCoupling                     int      `mapstructure:"architecture_max_coupling" yaml:"architecture_max_coupling" json:"architecture_max_coupling"`
 	ArchitectureMaxResponsibilities             int      `mapstructure:"architecture_max_responsibilities" yaml:"architecture_max_responsibilities" json:"architecture_max_responsibilities"`
 	ArchitectureLayerViolationSeverity          string   `mapstructure:"architecture_layer_violation_severity" yaml:"architecture_layer_violation_severity" json:"architecture_layer_violation_severity"`
 	ArchitectureCohesionViolationSeverity       string   `mapstructure:"architecture_cohesion_violation_severity" yaml:"architecture_cohesion_violation_severity" json:"architecture_cohesion_violation_severity"`
 	ArchitectureResponsibilityViolationSeverity string   `mapstructure:"architecture_responsibility_violation_severity" yaml:"architecture_responsibility_violation_severity" json:"architecture_responsibility_violation_severity"`
-	ArchitectureShowAllViolations               bool     `mapstructure:"architecture_show_all_violations" yaml:"architecture_show_all_violations" json:"architecture_show_all_violations"`
-	ArchitectureGroupByType                     bool     `mapstructure:"architecture_group_by_type" yaml:"architecture_group_by_type" json:"architecture_group_by_type"`
-	ArchitectureIncludeSuggestions              bool     `mapstructure:"architecture_include_suggestions" yaml:"architecture_include_suggestions" json:"architecture_include_suggestions"`
+	ArchitectureShowAllViolations               *bool    `mapstructure:"architecture_show_all_violations" yaml:"architecture_show_all_violations" json:"architecture_show_all_violations"`
+	ArchitectureGroupByType                     *bool    `mapstructure:"architecture_group_by_type" yaml:"architecture_group_by_type" json:"architecture_group_by_type"`
+	ArchitectureIncludeSuggestions              *bool    `mapstructure:"architecture_include_suggestions" yaml:"architecture_include_suggestions" json:"architecture_include_suggestions"`
 	ArchitectureMaxViolationsToShow             int      `mapstructure:"architecture_max_violations_to_show" yaml:"architecture_max_violations_to_show" json:"architecture_max_violations_to_show"`
 	ArchitectureCustomPatterns                  []string `mapstructure:"architecture_custom_patterns" yaml:"architecture_custom_patterns" json:"architecture_custom_patterns"`
 	ArchitectureAllowedPatterns                 []string `mapstructure:"architecture_allowed_patterns" yaml:"architecture_allowed_patterns" json:"architecture_allowed_patterns"`
 	ArchitectureForbiddenPatterns               []string `mapstructure:"architecture_forbidden_patterns" yaml:"architecture_forbidden_patterns" json:"architecture_forbidden_patterns"`
-	ArchitectureStrictMode                      bool     `mapstructure:"architecture_strict_mode" yaml:"architecture_strict_mode" json:"architecture_strict_mode"`
-	ArchitectureFailOnViolations                bool     `mapstructure:"architecture_fail_on_violations" yaml:"architecture_fail_on_violations" json:"architecture_fail_on_violations"`
+	ArchitectureStrictMode                      *bool    `mapstructure:"architecture_strict_mode" yaml:"architecture_strict_mode" json:"architecture_strict_mode"`
+	ArchitectureFailOnViolations                *bool    `mapstructure:"architecture_fail_on_violations" yaml:"architecture_fail_on_violations" json:"architecture_fail_on_violations"`
 
 	// SystemAnalysis Configuration (from [system_analysis] section in TOML)
-	SystemAnalysisEnabled               bool `mapstructure:"system_analysis_enabled" yaml:"system_analysis_enabled" json:"system_analysis_enabled"`
-	SystemAnalysisEnableDependencies    bool `mapstructure:"system_analysis_enable_dependencies" yaml:"system_analysis_enable_dependencies" json:"system_analysis_enable_dependencies"`
-	SystemAnalysisEnableArchitecture    bool `mapstructure:"system_analysis_enable_architecture" yaml:"system_analysis_enable_architecture" json:"system_analysis_enable_architecture"`
-	SystemAnalysisUseComplexityData     bool `mapstructure:"system_analysis_use_complexity_data" yaml:"system_analysis_use_complexity_data" json:"system_analysis_use_complexity_data"`
-	SystemAnalysisUseClonesData         bool `mapstructure:"system_analysis_use_clones_data" yaml:"system_analysis_use_clones_data" json:"system_analysis_use_clones_data"`
-	SystemAnalysisUseDeadCodeData       bool `mapstructure:"system_analysis_use_dead_code_data" yaml:"system_analysis_use_dead_code_data" json:"system_analysis_use_dead_code_data"`
-	SystemAnalysisGenerateUnifiedReport bool `mapstructure:"system_analysis_generate_unified_report" yaml:"system_analysis_generate_unified_report" json:"system_analysis_generate_unified_report"`
+	SystemAnalysisEnabled               *bool `mapstructure:"system_analysis_enabled" yaml:"system_analysis_enabled" json:"system_analysis_enabled"`
+	SystemAnalysisEnableDependencies    *bool `mapstructure:"system_analysis_enable_dependencies" yaml:"system_analysis_enable_dependencies" json:"system_analysis_enable_dependencies"`
+	SystemAnalysisEnableArchitecture    *bool `mapstructure:"system_analysis_enable_architecture" yaml:"system_analysis_enable_architecture" json:"system_analysis_enable_architecture"`
+	SystemAnalysisUseComplexityData     *bool `mapstructure:"system_analysis_use_complexity_data" yaml:"system_analysis_use_complexity_data" json:"system_analysis_use_complexity_data"`
+	SystemAnalysisUseClonesData         *bool `mapstructure:"system_analysis_use_clones_data" yaml:"system_analysis_use_clones_data" json:"system_analysis_use_clones_data"`
+	SystemAnalysisUseDeadCodeData       *bool `mapstructure:"system_analysis_use_dead_code_data" yaml:"system_analysis_use_dead_code_data" json:"system_analysis_use_dead_code_data"`
+	SystemAnalysisGenerateUnifiedReport *bool `mapstructure:"system_analysis_generate_unified_report" yaml:"system_analysis_generate_unified_report" json:"system_analysis_generate_unified_report"`
 
 	// Dependencies Configuration (from [dependencies] section in TOML)
-	DependenciesEnabled           bool    `mapstructure:"dependencies_enabled" yaml:"dependencies_enabled" json:"dependencies_enabled"`
-	DependenciesIncludeStdLib     bool    `mapstructure:"dependencies_include_stdlib" yaml:"dependencies_include_stdlib" json:"dependencies_include_stdlib"`
-	DependenciesIncludeThirdParty bool    `mapstructure:"dependencies_include_third_party" yaml:"dependencies_include_third_party" json:"dependencies_include_third_party"`
-	DependenciesFollowRelative    bool    `mapstructure:"dependencies_follow_relative" yaml:"dependencies_follow_relative" json:"dependencies_follow_relative"`
-	DependenciesDetectCycles      bool    `mapstructure:"dependencies_detect_cycles" yaml:"dependencies_detect_cycles" json:"dependencies_detect_cycles"`
-	DependenciesCalculateMetrics  bool    `mapstructure:"dependencies_calculate_metrics" yaml:"dependencies_calculate_metrics" json:"dependencies_calculate_metrics"`
-	DependenciesFindLongChains    bool    `mapstructure:"dependencies_find_long_chains" yaml:"dependencies_find_long_chains" json:"dependencies_find_long_chains"`
+	DependenciesEnabled           *bool   `mapstructure:"dependencies_enabled" yaml:"dependencies_enabled" json:"dependencies_enabled"`
+	DependenciesIncludeStdLib     *bool   `mapstructure:"dependencies_include_stdlib" yaml:"dependencies_include_stdlib" json:"dependencies_include_stdlib"`
+	DependenciesIncludeThirdParty *bool   `mapstructure:"dependencies_include_third_party" yaml:"dependencies_include_third_party" json:"dependencies_include_third_party"`
+	DependenciesFollowRelative    *bool   `mapstructure:"dependencies_follow_relative" yaml:"dependencies_follow_relative" json:"dependencies_follow_relative"`
+	DependenciesDetectCycles      *bool   `mapstructure:"dependencies_detect_cycles" yaml:"dependencies_detect_cycles" json:"dependencies_detect_cycles"`
+	DependenciesCalculateMetrics  *bool   `mapstructure:"dependencies_calculate_metrics" yaml:"dependencies_calculate_metrics" json:"dependencies_calculate_metrics"`
+	DependenciesFindLongChains    *bool   `mapstructure:"dependencies_find_long_chains" yaml:"dependencies_find_long_chains" json:"dependencies_find_long_chains"`
 	DependenciesMinCoupling       int     `mapstructure:"dependencies_min_coupling" yaml:"dependencies_min_coupling" json:"dependencies_min_coupling"`
 	DependenciesMaxCoupling       int     `mapstructure:"dependencies_max_coupling" yaml:"dependencies_max_coupling" json:"dependencies_max_coupling"`
 	DependenciesMinInstability    float64 `mapstructure:"dependencies_min_instability" yaml:"dependencies_min_instability" json:"dependencies_min_instability"`
 	DependenciesMaxDistance       float64 `mapstructure:"dependencies_max_distance" yaml:"dependencies_max_distance" json:"dependencies_max_distance"`
 	DependenciesSortBy            string  `mapstructure:"dependencies_sort_by" yaml:"dependencies_sort_by" json:"dependencies_sort_by"`
-	DependenciesShowMatrix        bool    `mapstructure:"dependencies_show_matrix" yaml:"dependencies_show_matrix" json:"dependencies_show_matrix"`
-	DependenciesShowMetrics       bool    `mapstructure:"dependencies_show_metrics" yaml:"dependencies_show_metrics" json:"dependencies_show_metrics"`
-	DependenciesShowChains        bool    `mapstructure:"dependencies_show_chains" yaml:"dependencies_show_chains" json:"dependencies_show_chains"`
-	DependenciesGenerateDotGraph  bool    `mapstructure:"dependencies_generate_dot_graph" yaml:"dependencies_generate_dot_graph" json:"dependencies_generate_dot_graph"`
+	DependenciesShowMatrix        *bool   `mapstructure:"dependencies_show_matrix" yaml:"dependencies_show_matrix" json:"dependencies_show_matrix"`
+	DependenciesShowMetrics       *bool   `mapstructure:"dependencies_show_metrics" yaml:"dependencies_show_metrics" json:"dependencies_show_metrics"`
+	DependenciesShowChains        *bool   `mapstructure:"dependencies_show_chains" yaml:"dependencies_show_chains" json:"dependencies_show_chains"`
+	DependenciesGenerateDotGraph  *bool   `mapstructure:"dependencies_generate_dot_graph" yaml:"dependencies_generate_dot_graph" json:"dependencies_generate_dot_graph"`
 	DependenciesCycleReporting    string  `mapstructure:"dependencies_cycle_reporting" yaml:"dependencies_cycle_reporting" json:"dependencies_cycle_reporting"`
 	DependenciesMaxCyclesToShow   int     `mapstructure:"dependencies_max_cycles_to_show" yaml:"dependencies_max_cycles_to_show" json:"dependencies_max_cycles_to_show"`
-	DependenciesShowCyclePaths    bool    `mapstructure:"dependencies_show_cycle_paths" yaml:"dependencies_show_cycle_paths" json:"dependencies_show_cycle_paths"`
+	DependenciesShowCyclePaths    *bool   `mapstructure:"dependencies_show_cycle_paths" yaml:"dependencies_show_cycle_paths" json:"dependencies_show_cycle_paths"`
 }
 
 // CloneAnalysisConfig holds core analysis parameters
@@ -137,8 +137,8 @@ type CloneAnalysisConfig struct {
 	MaxEditDistance float64 `mapstructure:"max_edit_distance" yaml:"max_edit_distance" json:"max_edit_distance"`
 
 	// Normalization options
-	IgnoreLiterals    bool `mapstructure:"ignore_literals" yaml:"ignore_literals" json:"ignore_literals"`
-	IgnoreIdentifiers bool `mapstructure:"ignore_identifiers" yaml:"ignore_identifiers" json:"ignore_identifiers"`
+	IgnoreLiterals    *bool `mapstructure:"ignore_literals" yaml:"ignore_literals" json:"ignore_literals"`
+	IgnoreIdentifiers *bool `mapstructure:"ignore_identifiers" yaml:"ignore_identifiers" json:"ignore_identifiers"`
 
 	// Cost model configuration
 	CostModelType string `mapstructure:"cost_model_type" yaml:"cost_model_type" json:"cost_model_type"`
@@ -173,7 +173,7 @@ type FilteringConfig struct {
 type InputConfig struct {
 	// File selection
 	Paths           []string `mapstructure:"paths" yaml:"paths" json:"paths"`
-	Recursive       bool     `mapstructure:"recursive" yaml:"recursive" json:"recursive"`
+	Recursive       *bool    `mapstructure:"recursive" yaml:"recursive" json:"recursive"`
 	IncludePatterns []string `mapstructure:"include_patterns" yaml:"include_patterns" json:"include_patterns"`
 	ExcludePatterns []string `mapstructure:"exclude_patterns" yaml:"exclude_patterns" json:"exclude_patterns"`
 }
@@ -183,12 +183,12 @@ type InputConfig struct {
 type CloneOutputConfig struct {
 	// Format and display
 	Format      string `mapstructure:"format" yaml:"format" json:"format"`
-	ShowDetails bool   `mapstructure:"show_details" yaml:"show_details" json:"show_details"`
-	ShowContent bool   `mapstructure:"show_content" yaml:"show_content" json:"show_content"`
+	ShowDetails *bool  `mapstructure:"show_details" yaml:"show_details" json:"show_details"`
+	ShowContent *bool  `mapstructure:"show_content" yaml:"show_content" json:"show_content"`
 
 	// Sorting and grouping
 	SortBy      string `mapstructure:"sort_by" yaml:"sort_by" json:"sort_by"`
-	GroupClones bool   `mapstructure:"group_clones" yaml:"group_clones" json:"group_clones"`
+	GroupClones *bool  `mapstructure:"group_clones" yaml:"group_clones" json:"group_clones"`
 
 	// Output destination (not serialized)
 	Writer io.Writer `json:"-" yaml:"-" mapstructure:"-"`
@@ -197,9 +197,9 @@ type CloneOutputConfig struct {
 // PerformanceConfig holds performance-related settings
 type PerformanceConfig struct {
 	// Memory management
-	MaxMemoryMB    int  `mapstructure:"max_memory_mb" yaml:"max_memory_mb" json:"max_memory_mb"`
-	BatchSize      int  `mapstructure:"batch_size" yaml:"batch_size" json:"batch_size"`
-	EnableBatching bool `mapstructure:"enable_batching" yaml:"enable_batching" json:"enable_batching"`
+	MaxMemoryMB    int   `mapstructure:"max_memory_mb" yaml:"max_memory_mb" json:"max_memory_mb"`
+	BatchSize      int   `mapstructure:"batch_size" yaml:"batch_size" json:"batch_size"`
+	EnableBatching *bool `mapstructure:"enable_batching" yaml:"enable_batching" json:"enable_batching"`
 
 	// Parallelization
 	MaxGoroutines int `mapstructure:"max_goroutines" yaml:"max_goroutines" json:"max_goroutines"`
@@ -237,6 +237,21 @@ type LSHConfig struct {
 	Hashes int `mapstructure:"hashes" yaml:"hashes" json:"hashes"`
 }
 
+// BoolPtr returns a pointer to the given bool value
+// This helper function is used to create *bool values in struct literals
+func BoolPtr(b bool) *bool {
+	return &b
+}
+
+// BoolValue safely dereferences a boolean pointer, returning defaultVal if nil
+// This allows safe access to pointer booleans with explicit defaults
+func BoolValue(b *bool, defaultVal bool) bool {
+	if b == nil {
+		return defaultVal
+	}
+	return *b
+}
+
 // DefaultPyscnConfig returns a configuration with sensible defaults
 func DefaultPyscnConfig() *PyscnConfig {
 	return &PyscnConfig{
@@ -245,8 +260,8 @@ func DefaultPyscnConfig() *PyscnConfig {
 			MinLines:          5,
 			MinNodes:          10,
 			MaxEditDistance:   50.0,
-			IgnoreLiterals:    false,
-			IgnoreIdentifiers: false,
+			IgnoreLiterals:    BoolPtr(false),
+			IgnoreIdentifiers: BoolPtr(false),
 			CostModelType:     "python",
 		},
 		Thresholds: ThresholdConfig{
@@ -264,21 +279,21 @@ func DefaultPyscnConfig() *PyscnConfig {
 		},
 		Input: InputConfig{
 			Paths:           []string{"."},
-			Recursive:       true,
+			Recursive:       BoolPtr(true),
 			IncludePatterns: []string{"**/*.py"},
 			ExcludePatterns: []string{"test_*.py", "*_test.py"},
 		},
 		Output: CloneOutputConfig{
 			Format:      "text",
-			ShowDetails: false,
-			ShowContent: false,
+			ShowDetails: BoolPtr(false),
+			ShowContent: BoolPtr(false),
 			SortBy:      "similarity",
-			GroupClones: true,
+			GroupClones: BoolPtr(true),
 		},
 		Performance: PerformanceConfig{
 			MaxMemoryMB:    100,
 			BatchSize:      100,
-			EnableBatching: true,
+			EnableBatching: BoolPtr(true),
 			MaxGoroutines:  4,
 			TimeoutSeconds: 300, // 5 minutes
 		},
@@ -303,21 +318,21 @@ func DefaultPyscnConfig() *PyscnConfig {
 		ComplexityMinComplexity:   DefaultMinComplexityFilter,       // 1
 
 		// DeadCode defaults (from [dead_code] section)
-		DeadCodeEnabled:                   true,
+		DeadCodeEnabled:                   BoolPtr(true),
 		DeadCodeMinSeverity:               DefaultDeadCodeMinSeverity, // "warning"
-		DeadCodeShowContext:               false,
+		DeadCodeShowContext:               BoolPtr(false),
 		DeadCodeContextLines:              DefaultDeadCodeContextLines, // 3
 		DeadCodeSortBy:                    DefaultDeadCodeSortBy,       // "severity"
-		DeadCodeDetectAfterReturn:         true,
-		DeadCodeDetectAfterBreak:          true,
-		DeadCodeDetectAfterContinue:       true,
-		DeadCodeDetectAfterRaise:          true,
-		DeadCodeDetectUnreachableBranches: true,
+		DeadCodeDetectAfterReturn:         BoolPtr(true),
+		DeadCodeDetectAfterBreak:          BoolPtr(true),
+		DeadCodeDetectAfterContinue:       BoolPtr(true),
+		DeadCodeDetectAfterRaise:          BoolPtr(true),
+		DeadCodeDetectUnreachableBranches: BoolPtr(true),
 		DeadCodeIgnorePatterns:            []string{},
 
 		// Output defaults (from [output] section - general output settings)
 		OutputFormat:        "text",
-		OutputShowDetails:   false,
+		OutputShowDetails:   BoolPtr(false),
 		OutputSortBy:        "complexity",
 		OutputMinComplexity: DefaultMinComplexityFilter, // 1
 		OutputDirectory:     "",                         // empty = tool default (.pyscn/reports)
@@ -325,68 +340,68 @@ func DefaultPyscnConfig() *PyscnConfig {
 		// Analysis defaults (from [analysis] section - general analysis settings)
 		AnalysisIncludePatterns: []string{"**/*.py"},
 		AnalysisExcludePatterns: []string{"test_*.py", "*_test.py"},
-		AnalysisRecursive:       true,
-		AnalysisFollowSymlinks:  false,
+		AnalysisRecursive:       BoolPtr(true),
+		AnalysisFollowSymlinks:  BoolPtr(false),
 
 		// CBO defaults (from [cbo] section)
 		CboLowThreshold:    3, // Industry standard
 		CboMediumThreshold: 7, // Industry standard
 		CboMinCbo:          0,
 		CboMaxCbo:          0, // No limit
-		CboShowZeros:       false,
-		CboIncludeBuiltins: false,
-		CboIncludeImports:  true,
+		CboShowZeros:       BoolPtr(false),
+		CboIncludeBuiltins: BoolPtr(false),
+		CboIncludeImports:  BoolPtr(true),
 
 		// Architecture defaults (from [architecture] section)
-		ArchitectureEnabled:                         false, // Disabled by default - opt-in
-		ArchitectureValidateLayers:                  true,
-		ArchitectureValidateCohesion:                true,
-		ArchitectureValidateResponsibility:          true,
+		ArchitectureEnabled:                         BoolPtr(false), // Disabled by default - opt-in
+		ArchitectureValidateLayers:                  BoolPtr(true),
+		ArchitectureValidateCohesion:                BoolPtr(true),
+		ArchitectureValidateResponsibility:          BoolPtr(true),
 		ArchitectureMinCohesion:                     0.5,
 		ArchitectureMaxCoupling:                     10,
 		ArchitectureMaxResponsibilities:             3,
 		ArchitectureLayerViolationSeverity:          "error",
 		ArchitectureCohesionViolationSeverity:       "warning",
 		ArchitectureResponsibilityViolationSeverity: "warning",
-		ArchitectureShowAllViolations:               false,
-		ArchitectureGroupByType:                     true,
-		ArchitectureIncludeSuggestions:              true,
+		ArchitectureShowAllViolations:               BoolPtr(false),
+		ArchitectureGroupByType:                     BoolPtr(true),
+		ArchitectureIncludeSuggestions:              BoolPtr(true),
 		ArchitectureMaxViolationsToShow:             20,
 		ArchitectureCustomPatterns:                  []string{},
 		ArchitectureAllowedPatterns:                 []string{},
 		ArchitectureForbiddenPatterns:               []string{},
-		ArchitectureStrictMode:                      false,
-		ArchitectureFailOnViolations:                false,
+		ArchitectureStrictMode:                      BoolPtr(false),
+		ArchitectureFailOnViolations:                BoolPtr(false),
 
 		// SystemAnalysis defaults (from [system_analysis] section)
-		SystemAnalysisEnabled:               false, // Disabled by default - opt-in
-		SystemAnalysisEnableDependencies:    true,
-		SystemAnalysisEnableArchitecture:    true,
-		SystemAnalysisUseComplexityData:     true,
-		SystemAnalysisUseClonesData:         true,
-		SystemAnalysisUseDeadCodeData:       true,
-		SystemAnalysisGenerateUnifiedReport: true,
+		SystemAnalysisEnabled:               BoolPtr(false), // Disabled by default - opt-in
+		SystemAnalysisEnableDependencies:    BoolPtr(true),
+		SystemAnalysisEnableArchitecture:    BoolPtr(true),
+		SystemAnalysisUseComplexityData:     BoolPtr(true),
+		SystemAnalysisUseClonesData:         BoolPtr(true),
+		SystemAnalysisUseDeadCodeData:       BoolPtr(true),
+		SystemAnalysisGenerateUnifiedReport: BoolPtr(true),
 
 		// Dependencies defaults (from [dependencies] section)
-		DependenciesEnabled:           false, // Disabled by default - opt-in
-		DependenciesIncludeStdLib:     false,
-		DependenciesIncludeThirdParty: true,
-		DependenciesFollowRelative:    true,
-		DependenciesDetectCycles:      true,
-		DependenciesCalculateMetrics:  true,
-		DependenciesFindLongChains:    true,
+		DependenciesEnabled:           BoolPtr(false), // Disabled by default - opt-in
+		DependenciesIncludeStdLib:     BoolPtr(false),
+		DependenciesIncludeThirdParty: BoolPtr(true),
+		DependenciesFollowRelative:    BoolPtr(true),
+		DependenciesDetectCycles:      BoolPtr(true),
+		DependenciesCalculateMetrics:  BoolPtr(true),
+		DependenciesFindLongChains:    BoolPtr(true),
 		DependenciesMinCoupling:       0,
 		DependenciesMaxCoupling:       0, // No limit
 		DependenciesMinInstability:    0.0,
 		DependenciesMaxDistance:       1.0,
 		DependenciesSortBy:            "name",
-		DependenciesShowMatrix:        false,
-		DependenciesShowMetrics:       false,
-		DependenciesShowChains:        false,
-		DependenciesGenerateDotGraph:  false,
+		DependenciesShowMatrix:        BoolPtr(false),
+		DependenciesShowMetrics:       BoolPtr(false),
+		DependenciesShowChains:        BoolPtr(false),
+		DependenciesGenerateDotGraph:  BoolPtr(false),
 		DependenciesCycleReporting:    "summary", // all, critical, summary
 		DependenciesMaxCyclesToShow:   10,
-		DependenciesShowCyclePaths:    false,
+		DependenciesShowCyclePaths:    BoolPtr(false),
 	}
 }
 

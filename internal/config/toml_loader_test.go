@@ -175,7 +175,7 @@ detect_after_break = false
 	if config.DeadCodeMinSeverity != "info" {
 		t.Errorf("Expected min_severity 'info', got %s", config.DeadCodeMinSeverity)
 	}
-	if !config.DeadCodeShowContext {
+	if !BoolValue(config.DeadCodeShowContext, false) {
 		t.Errorf("Expected show_context true, got %v", config.DeadCodeShowContext)
 	}
 	if config.DeadCodeContextLines != 5 {
@@ -184,10 +184,10 @@ detect_after_break = false
 	if config.DeadCodeSortBy != "line" {
 		t.Errorf("Expected sort_by 'line', got %s", config.DeadCodeSortBy)
 	}
-	if config.DeadCodeDetectAfterReturn {
+	if BoolValue(config.DeadCodeDetectAfterReturn, true) {
 		t.Errorf("Expected detect_after_return false, got %v", config.DeadCodeDetectAfterReturn)
 	}
-	if config.DeadCodeDetectAfterBreak {
+	if BoolValue(config.DeadCodeDetectAfterBreak, true) {
 		t.Errorf("Expected detect_after_break false, got %v", config.DeadCodeDetectAfterBreak)
 	}
 }

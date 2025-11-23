@@ -99,10 +99,10 @@ func mergeClonesSection(defaults *PyscnConfig, clones *ClonesConfig) {
 		defaults.Analysis.CostModelType = clones.CostModelType
 	}
 	if clones.IgnoreLiterals != nil {
-		defaults.Analysis.IgnoreLiterals = *clones.IgnoreLiterals
+		defaults.Analysis.IgnoreLiterals = clones.IgnoreLiterals
 	}
 	if clones.IgnoreIdentifiers != nil {
-		defaults.Analysis.IgnoreIdentifiers = *clones.IgnoreIdentifiers
+		defaults.Analysis.IgnoreIdentifiers = clones.IgnoreIdentifiers
 	}
 
 	// Thresholds
@@ -175,7 +175,7 @@ func mergeClonesSection(defaults *PyscnConfig, clones *ClonesConfig) {
 		defaults.Performance.BatchSize = clones.BatchSize
 	}
 	if clones.EnableBatching != nil {
-		defaults.Performance.EnableBatching = *clones.EnableBatching
+		defaults.Performance.EnableBatching = clones.EnableBatching
 	}
 	if clones.MaxGoroutines > 0 {
 		defaults.Performance.MaxGoroutines = clones.MaxGoroutines
@@ -189,7 +189,7 @@ func mergeClonesSection(defaults *PyscnConfig, clones *ClonesConfig) {
 		defaults.Input.Paths = clones.Paths
 	}
 	if clones.Recursive != nil {
-		defaults.Input.Recursive = *clones.Recursive
+		defaults.Input.Recursive = clones.Recursive
 	}
 	if len(clones.IncludePatterns) > 0 {
 		defaults.Input.IncludePatterns = clones.IncludePatterns
@@ -200,16 +200,16 @@ func mergeClonesSection(defaults *PyscnConfig, clones *ClonesConfig) {
 
 	// Output
 	if clones.ShowDetails != nil {
-		defaults.Output.ShowDetails = *clones.ShowDetails
+		defaults.Output.ShowDetails = clones.ShowDetails
 	}
 	if clones.ShowContent != nil {
-		defaults.Output.ShowContent = *clones.ShowContent
+		defaults.Output.ShowContent = clones.ShowContent
 	}
 	if clones.SortBy != "" {
 		defaults.Output.SortBy = clones.SortBy
 	}
 	if clones.GroupClones != nil {
-		defaults.Output.GroupClones = *clones.GroupClones
+		defaults.Output.GroupClones = clones.GroupClones
 	}
 	if clones.Format != "" {
 		defaults.Output.Format = clones.Format
@@ -219,13 +219,13 @@ func mergeClonesSection(defaults *PyscnConfig, clones *ClonesConfig) {
 // mergeDeadCodeSection merges settings from the [dead_code] section
 func mergeDeadCodeSection(defaults *PyscnConfig, deadCode *DeadCodeTomlConfig) {
 	if deadCode.Enabled != nil {
-		defaults.DeadCodeEnabled = *deadCode.Enabled
+		defaults.DeadCodeEnabled = deadCode.Enabled
 	}
 	if deadCode.MinSeverity != "" {
 		defaults.DeadCodeMinSeverity = deadCode.MinSeverity
 	}
 	if deadCode.ShowContext != nil {
-		defaults.DeadCodeShowContext = *deadCode.ShowContext
+		defaults.DeadCodeShowContext = deadCode.ShowContext
 	}
 	if deadCode.ContextLines != nil {
 		defaults.DeadCodeContextLines = *deadCode.ContextLines
@@ -234,19 +234,19 @@ func mergeDeadCodeSection(defaults *PyscnConfig, deadCode *DeadCodeTomlConfig) {
 		defaults.DeadCodeSortBy = deadCode.SortBy
 	}
 	if deadCode.DetectAfterReturn != nil {
-		defaults.DeadCodeDetectAfterReturn = *deadCode.DetectAfterReturn
+		defaults.DeadCodeDetectAfterReturn = deadCode.DetectAfterReturn
 	}
 	if deadCode.DetectAfterBreak != nil {
-		defaults.DeadCodeDetectAfterBreak = *deadCode.DetectAfterBreak
+		defaults.DeadCodeDetectAfterBreak = deadCode.DetectAfterBreak
 	}
 	if deadCode.DetectAfterContinue != nil {
-		defaults.DeadCodeDetectAfterContinue = *deadCode.DetectAfterContinue
+		defaults.DeadCodeDetectAfterContinue = deadCode.DetectAfterContinue
 	}
 	if deadCode.DetectAfterRaise != nil {
-		defaults.DeadCodeDetectAfterRaise = *deadCode.DetectAfterRaise
+		defaults.DeadCodeDetectAfterRaise = deadCode.DetectAfterRaise
 	}
 	if deadCode.DetectUnreachableBranches != nil {
-		defaults.DeadCodeDetectUnreachableBranches = *deadCode.DetectUnreachableBranches
+		defaults.DeadCodeDetectUnreachableBranches = deadCode.DetectUnreachableBranches
 	}
 	if len(deadCode.IgnorePatterns) > 0 {
 		defaults.DeadCodeIgnorePatterns = deadCode.IgnorePatterns
@@ -259,7 +259,7 @@ func mergeOutputSection(defaults *PyscnConfig, output *OutputTomlConfig) {
 		defaults.OutputFormat = output.Format
 	}
 	if output.ShowDetails != nil {
-		defaults.OutputShowDetails = *output.ShowDetails
+		defaults.OutputShowDetails = output.ShowDetails
 	}
 	if output.SortBy != "" {
 		defaults.OutputSortBy = output.SortBy
@@ -281,10 +281,10 @@ func mergeAnalysisSection(defaults *PyscnConfig, analysis *AnalysisTomlConfig) {
 		defaults.AnalysisExcludePatterns = analysis.ExcludePatterns
 	}
 	if analysis.Recursive != nil {
-		defaults.AnalysisRecursive = *analysis.Recursive
+		defaults.AnalysisRecursive = analysis.Recursive
 	}
 	if analysis.FollowSymlinks != nil {
-		defaults.AnalysisFollowSymlinks = *analysis.FollowSymlinks
+		defaults.AnalysisFollowSymlinks = analysis.FollowSymlinks
 	}
 }
 
@@ -303,29 +303,29 @@ func mergeCboSection(defaults *PyscnConfig, cbo *CboTomlConfig) {
 		defaults.CboMaxCbo = *cbo.MaxCbo
 	}
 	if cbo.ShowZeros != nil {
-		defaults.CboShowZeros = *cbo.ShowZeros
+		defaults.CboShowZeros = cbo.ShowZeros
 	}
 	if cbo.IncludeBuiltins != nil {
-		defaults.CboIncludeBuiltins = *cbo.IncludeBuiltins
+		defaults.CboIncludeBuiltins = cbo.IncludeBuiltins
 	}
 	if cbo.IncludeImports != nil {
-		defaults.CboIncludeImports = *cbo.IncludeImports
+		defaults.CboIncludeImports = cbo.IncludeImports
 	}
 }
 
 // mergeArchitectureSection merges settings from the [architecture] section
 func mergeArchitectureSection(defaults *PyscnConfig, arch *ArchitectureTomlConfig) {
 	if arch.Enabled != nil {
-		defaults.ArchitectureEnabled = *arch.Enabled
+		defaults.ArchitectureEnabled = arch.Enabled
 	}
 	if arch.ValidateLayers != nil {
-		defaults.ArchitectureValidateLayers = *arch.ValidateLayers
+		defaults.ArchitectureValidateLayers = arch.ValidateLayers
 	}
 	if arch.ValidateCohesion != nil {
-		defaults.ArchitectureValidateCohesion = *arch.ValidateCohesion
+		defaults.ArchitectureValidateCohesion = arch.ValidateCohesion
 	}
 	if arch.ValidateResponsibility != nil {
-		defaults.ArchitectureValidateResponsibility = *arch.ValidateResponsibility
+		defaults.ArchitectureValidateResponsibility = arch.ValidateResponsibility
 	}
 	if arch.MinCohesion != nil {
 		defaults.ArchitectureMinCohesion = *arch.MinCohesion
@@ -346,13 +346,13 @@ func mergeArchitectureSection(defaults *PyscnConfig, arch *ArchitectureTomlConfi
 		defaults.ArchitectureResponsibilityViolationSeverity = arch.ResponsibilityViolationSeverity
 	}
 	if arch.ShowAllViolations != nil {
-		defaults.ArchitectureShowAllViolations = *arch.ShowAllViolations
+		defaults.ArchitectureShowAllViolations = arch.ShowAllViolations
 	}
 	if arch.GroupByType != nil {
-		defaults.ArchitectureGroupByType = *arch.GroupByType
+		defaults.ArchitectureGroupByType = arch.GroupByType
 	}
 	if arch.IncludeSuggestions != nil {
-		defaults.ArchitectureIncludeSuggestions = *arch.IncludeSuggestions
+		defaults.ArchitectureIncludeSuggestions = arch.IncludeSuggestions
 	}
 	if arch.MaxViolationsToShow != nil {
 		defaults.ArchitectureMaxViolationsToShow = *arch.MaxViolationsToShow
@@ -367,60 +367,60 @@ func mergeArchitectureSection(defaults *PyscnConfig, arch *ArchitectureTomlConfi
 		defaults.ArchitectureForbiddenPatterns = arch.ForbiddenPatterns
 	}
 	if arch.StrictMode != nil {
-		defaults.ArchitectureStrictMode = *arch.StrictMode
+		defaults.ArchitectureStrictMode = arch.StrictMode
 	}
 	if arch.FailOnViolations != nil {
-		defaults.ArchitectureFailOnViolations = *arch.FailOnViolations
+		defaults.ArchitectureFailOnViolations = arch.FailOnViolations
 	}
 }
 
 // mergeSystemAnalysisSection merges settings from the [system_analysis] section
 func mergeSystemAnalysisSection(defaults *PyscnConfig, sa *SystemAnalysisTomlConfig) {
 	if sa.Enabled != nil {
-		defaults.SystemAnalysisEnabled = *sa.Enabled
+		defaults.SystemAnalysisEnabled = sa.Enabled
 	}
 	if sa.EnableDependencies != nil {
-		defaults.SystemAnalysisEnableDependencies = *sa.EnableDependencies
+		defaults.SystemAnalysisEnableDependencies = sa.EnableDependencies
 	}
 	if sa.EnableArchitecture != nil {
-		defaults.SystemAnalysisEnableArchitecture = *sa.EnableArchitecture
+		defaults.SystemAnalysisEnableArchitecture = sa.EnableArchitecture
 	}
 	if sa.UseComplexityData != nil {
-		defaults.SystemAnalysisUseComplexityData = *sa.UseComplexityData
+		defaults.SystemAnalysisUseComplexityData = sa.UseComplexityData
 	}
 	if sa.UseClonesData != nil {
-		defaults.SystemAnalysisUseClonesData = *sa.UseClonesData
+		defaults.SystemAnalysisUseClonesData = sa.UseClonesData
 	}
 	if sa.UseDeadCodeData != nil {
-		defaults.SystemAnalysisUseDeadCodeData = *sa.UseDeadCodeData
+		defaults.SystemAnalysisUseDeadCodeData = sa.UseDeadCodeData
 	}
 	if sa.GenerateUnifiedReport != nil {
-		defaults.SystemAnalysisGenerateUnifiedReport = *sa.GenerateUnifiedReport
+		defaults.SystemAnalysisGenerateUnifiedReport = sa.GenerateUnifiedReport
 	}
 }
 
 // mergeDependenciesSection merges settings from the [dependencies] section
 func mergeDependenciesSection(defaults *PyscnConfig, dep *DependenciesTomlConfig) {
 	if dep.Enabled != nil {
-		defaults.DependenciesEnabled = *dep.Enabled
+		defaults.DependenciesEnabled = dep.Enabled
 	}
 	if dep.IncludeStdLib != nil {
-		defaults.DependenciesIncludeStdLib = *dep.IncludeStdLib
+		defaults.DependenciesIncludeStdLib = dep.IncludeStdLib
 	}
 	if dep.IncludeThirdParty != nil {
-		defaults.DependenciesIncludeThirdParty = *dep.IncludeThirdParty
+		defaults.DependenciesIncludeThirdParty = dep.IncludeThirdParty
 	}
 	if dep.FollowRelative != nil {
-		defaults.DependenciesFollowRelative = *dep.FollowRelative
+		defaults.DependenciesFollowRelative = dep.FollowRelative
 	}
 	if dep.DetectCycles != nil {
-		defaults.DependenciesDetectCycles = *dep.DetectCycles
+		defaults.DependenciesDetectCycles = dep.DetectCycles
 	}
 	if dep.CalculateMetrics != nil {
-		defaults.DependenciesCalculateMetrics = *dep.CalculateMetrics
+		defaults.DependenciesCalculateMetrics = dep.CalculateMetrics
 	}
 	if dep.FindLongChains != nil {
-		defaults.DependenciesFindLongChains = *dep.FindLongChains
+		defaults.DependenciesFindLongChains = dep.FindLongChains
 	}
 	if dep.MinCoupling != nil {
 		defaults.DependenciesMinCoupling = *dep.MinCoupling
@@ -438,16 +438,16 @@ func mergeDependenciesSection(defaults *PyscnConfig, dep *DependenciesTomlConfig
 		defaults.DependenciesSortBy = dep.SortBy
 	}
 	if dep.ShowMatrix != nil {
-		defaults.DependenciesShowMatrix = *dep.ShowMatrix
+		defaults.DependenciesShowMatrix = dep.ShowMatrix
 	}
 	if dep.ShowMetrics != nil {
-		defaults.DependenciesShowMetrics = *dep.ShowMetrics
+		defaults.DependenciesShowMetrics = dep.ShowMetrics
 	}
 	if dep.ShowChains != nil {
-		defaults.DependenciesShowChains = *dep.ShowChains
+		defaults.DependenciesShowChains = dep.ShowChains
 	}
 	if dep.GenerateDotGraph != nil {
-		defaults.DependenciesGenerateDotGraph = *dep.GenerateDotGraph
+		defaults.DependenciesGenerateDotGraph = dep.GenerateDotGraph
 	}
 	if dep.CycleReporting != "" {
 		defaults.DependenciesCycleReporting = dep.CycleReporting
@@ -456,7 +456,7 @@ func mergeDependenciesSection(defaults *PyscnConfig, dep *DependenciesTomlConfig
 		defaults.DependenciesMaxCyclesToShow = *dep.MaxCyclesToShow
 	}
 	if dep.ShowCyclePaths != nil {
-		defaults.DependenciesShowCyclePaths = *dep.ShowCyclePaths
+		defaults.DependenciesShowCyclePaths = dep.ShowCyclePaths
 	}
 }
 

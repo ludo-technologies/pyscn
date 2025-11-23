@@ -156,16 +156,16 @@ func (cl *CBOConfigurationLoaderImpl) configToRequest(pyscnCfg *config.PyscnConf
 
 	return &domain.CBORequest{
 		OutputFormat:    domain.OutputFormat(pyscnCfg.Output.Format),
-		ShowDetails:     pyscnCfg.Output.ShowDetails,
+		ShowDetails:     domain.BoolValue(pyscnCfg.Output.ShowDetails, false),
 		LowThreshold:    pyscnCfg.CboLowThreshold,
 		MediumThreshold: pyscnCfg.CboMediumThreshold,
 		MinCBO:          pyscnCfg.CboMinCbo,
 		MaxCBO:          pyscnCfg.CboMaxCbo,
-		ShowZeros:       domain.BoolPtr(pyscnCfg.CboShowZeros),
-		IncludeBuiltins: domain.BoolPtr(pyscnCfg.CboIncludeBuiltins),
-		IncludeImports:  domain.BoolPtr(pyscnCfg.CboIncludeImports),
+		ShowZeros:       pyscnCfg.CboShowZeros,
+		IncludeBuiltins: pyscnCfg.CboIncludeBuiltins,
+		IncludeImports:  pyscnCfg.CboIncludeImports,
 		SortBy:          domain.SortByComplexity, // Default, can be overridden
-		Recursive:       domain.BoolPtr(pyscnCfg.AnalysisRecursive),
+		Recursive:       pyscnCfg.AnalysisRecursive,
 		IncludePatterns: pyscnCfg.AnalysisIncludePatterns,
 		ExcludePatterns: pyscnCfg.AnalysisExcludePatterns,
 	}

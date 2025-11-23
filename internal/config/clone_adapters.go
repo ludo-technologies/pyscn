@@ -53,7 +53,7 @@ func (c *PyscnConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 	return &domain.CloneRequest{
 		// Input parameters
 		Paths:           c.Input.Paths,
-		Recursive:       c.Input.Recursive,
+		Recursive:       BoolValue(c.Input.Recursive, true),
 		IncludePatterns: c.Input.IncludePatterns,
 		ExcludePatterns: c.Input.ExcludePatterns,
 
@@ -62,8 +62,8 @@ func (c *PyscnConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 		MinNodes:            c.Analysis.MinNodes,
 		SimilarityThreshold: c.Thresholds.SimilarityThreshold,
 		MaxEditDistance:     c.Analysis.MaxEditDistance,
-		IgnoreLiterals:      c.Analysis.IgnoreLiterals,
-		IgnoreIdentifiers:   c.Analysis.IgnoreIdentifiers,
+		IgnoreLiterals:      BoolValue(c.Analysis.IgnoreLiterals, false),
+		IgnoreIdentifiers:   BoolValue(c.Analysis.IgnoreIdentifiers, false),
 
 		// Type-specific thresholds
 		Type1Threshold: c.Thresholds.Type1Threshold,
@@ -74,10 +74,10 @@ func (c *PyscnConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 		// Output configuration
 		OutputFormat: outputFormat,
 		OutputWriter: outputWriter,
-		ShowDetails:  c.Output.ShowDetails,
-		ShowContent:  c.Output.ShowContent,
+		ShowDetails:  BoolValue(c.Output.ShowDetails, false),
+		ShowContent:  BoolValue(c.Output.ShowContent, false),
 		SortBy:       sortBy,
-		GroupClones:  c.Output.GroupClones,
+		GroupClones:  BoolValue(c.Output.GroupClones, true),
 
 		// Filtering
 		MinSimilarity: c.Filtering.MinSimilarity,
@@ -92,7 +92,7 @@ func FromCloneRequest(request *domain.CloneRequest) *PyscnConfig {
 
 	// Input parameters
 	config.Input.Paths = request.Paths
-	config.Input.Recursive = request.Recursive
+	config.Input.Recursive = BoolPtr(request.Recursive)
 	config.Input.IncludePatterns = request.IncludePatterns
 	config.Input.ExcludePatterns = request.ExcludePatterns
 
@@ -100,8 +100,8 @@ func FromCloneRequest(request *domain.CloneRequest) *PyscnConfig {
 	config.Analysis.MinLines = request.MinLines
 	config.Analysis.MinNodes = request.MinNodes
 	config.Analysis.MaxEditDistance = request.MaxEditDistance
-	config.Analysis.IgnoreLiterals = request.IgnoreLiterals
-	config.Analysis.IgnoreIdentifiers = request.IgnoreIdentifiers
+	config.Analysis.IgnoreLiterals = BoolPtr(request.IgnoreLiterals)
+	config.Analysis.IgnoreIdentifiers = BoolPtr(request.IgnoreIdentifiers)
 
 	// Thresholds
 	config.Thresholds.Type1Threshold = request.Type1Threshold
@@ -122,9 +122,9 @@ func FromCloneRequest(request *domain.CloneRequest) *PyscnConfig {
 		config.Output.Format = "text"
 	}
 
-	config.Output.ShowDetails = request.ShowDetails
-	config.Output.ShowContent = request.ShowContent
-	config.Output.GroupClones = request.GroupClones
+	config.Output.ShowDetails = BoolPtr(request.ShowDetails)
+	config.Output.ShowContent = BoolPtr(request.ShowContent)
+	config.Output.GroupClones = BoolPtr(request.GroupClones)
 	config.Output.Writer = request.OutputWriter
 
 	switch request.SortBy {
