@@ -129,8 +129,9 @@ func (cl *DeadCodeConfigurationLoaderImpl) MergeConfig(base *domain.DeadCodeRequ
 		merged.DetectUnreachableBranches = base.DetectUnreachableBranches
 	}
 
-	// ContextLines - override only if non-default
-	if override.ContextLines >= 0 && override.ContextLines != 3 {
+	// ContextLines - override only if explicitly set (non-zero)
+	// 0 means "use config file or default value"
+	if override.ContextLines > 0 {
 		merged.ContextLines = override.ContextLines
 	}
 
@@ -353,7 +354,10 @@ func (cl *DeadCodeConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *
 	if len(pyscnCfg.AnalysisExcludePatterns) > 0 {
 		cfg.Analysis.ExcludePatterns = pyscnCfg.AnalysisExcludePatterns
 	}
-	cfg.Analysis.Recursive = cfg.Analysis.Recursive || config.BoolValue(pyscnCfg.AnalysisRecursive, true)
+	// Only override if explicitly set (non-nil)
+	if pyscnCfg.AnalysisRecursive != nil {
+		cfg.Analysis.Recursive = *pyscnCfg.AnalysisRecursive
+	}
 	cfg.Analysis.FollowSymlinks = config.BoolValue(pyscnCfg.AnalysisFollowSymlinks, false)
 
 	// Step 4: Apply general [output] section overrides (highest priority for output settings)
@@ -367,7 +371,10 @@ func (cl *DeadCodeConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *
 	if pyscnCfg.OutputDirectory != "" {
 		cfg.Output.Directory = pyscnCfg.OutputDirectory
 	}
-	cfg.Output.ShowDetails = cfg.Output.ShowDetails || config.BoolValue(pyscnCfg.OutputShowDetails, false)
+	// Only override if explicitly set (non-nil)
+	if pyscnCfg.OutputShowDetails != nil {
+		cfg.Output.ShowDetails = *pyscnCfg.OutputShowDetails
+	}
 
 	return cfg
 }
