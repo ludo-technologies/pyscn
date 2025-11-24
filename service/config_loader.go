@@ -248,7 +248,10 @@ func (c *ConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.Py
 	if pyscnCfg.OutputDirectory != "" {
 		cfg.Output.Directory = pyscnCfg.OutputDirectory
 	}
-	cfg.Output.ShowDetails = cfg.Output.ShowDetails || config.BoolValue(pyscnCfg.OutputShowDetails, false)
+	// Override if explicitly set
+	if pyscnCfg.OutputShowDetails != nil {
+		cfg.Output.ShowDetails = *pyscnCfg.OutputShowDetails
+	}
 	if pyscnCfg.OutputMinComplexity > 0 {
 		cfg.Output.MinComplexity = pyscnCfg.OutputMinComplexity
 	}
@@ -260,8 +263,14 @@ func (c *ConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.Py
 	if len(pyscnCfg.AnalysisExcludePatterns) > 0 {
 		cfg.Analysis.ExcludePatterns = pyscnCfg.AnalysisExcludePatterns
 	}
-	cfg.Analysis.Recursive = cfg.Analysis.Recursive || config.BoolValue(pyscnCfg.AnalysisRecursive, true)
-	cfg.Analysis.FollowSymlinks = config.BoolValue(pyscnCfg.AnalysisFollowSymlinks, false)
+	// Override if explicitly set
+	if pyscnCfg.AnalysisRecursive != nil {
+		cfg.Analysis.Recursive = *pyscnCfg.AnalysisRecursive
+	}
+
+	if pyscnCfg.AnalysisFollowSymlinks != nil {
+		cfg.Analysis.FollowSymlinks = *pyscnCfg.AnalysisFollowSymlinks
+	}
 
 	// Map architecture settings from [architecture] section
 	cfg.Architecture.Enabled = config.BoolValue(pyscnCfg.ArchitectureEnabled, false)
