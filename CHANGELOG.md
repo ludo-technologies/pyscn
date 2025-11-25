@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.4.0] - 2025-11-25
+
+### Added
+- Circular dependency detection in `check` command with `--select deps`, `--allow-circular-deps`, and `--max-cycles` flags (#213)
+- Universal TOML configuration support for all pyscn sections in `.pyscn.toml` and `pyproject.toml` (#229)
+
+### Fixed
+- Complexity thresholds from `.pyscn.toml` were being ignored (#226)
+
 ## [1.3.0] - 2025-11-06
 
 ### Fixed
