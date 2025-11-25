@@ -11,7 +11,7 @@ import (
 )
 
 func TestCloneConfig_Structure(t *testing.T) {
-	cloneConfig := DefaultCloneConfig()
+	cloneConfig := DefaultPyscnConfig()
 
 	// Verify the unified config has all expected sections
 	assert.NotNil(t, cloneConfig.Analysis)
@@ -31,9 +31,9 @@ func TestCloneConfig_Structure(t *testing.T) {
 // TestCloneConfig_ToCloneDetectionConfig removed - CloneDetectionConfig type has been deleted
 
 func TestCloneConfig_ToCloneRequest(t *testing.T) {
-	cloneConfig := DefaultCloneConfig()
+	cloneConfig := DefaultPyscnConfig()
 	cloneConfig.Input.Paths = []string{"/test/path"}
-	cloneConfig.Input.Recursive = true
+	cloneConfig.Input.Recursive = BoolPtr(true)
 	cloneConfig.Input.IncludePatterns = []string{"**/*.py"}
 	cloneConfig.Input.ExcludePatterns = []string{"*_test.py"}
 	cloneConfig.Output.Format = "json"
@@ -54,8 +54,8 @@ func TestCloneConfig_ToCloneRequest(t *testing.T) {
 	assert.Equal(t, cloneConfig.Analysis.MinNodes, request.MinNodes)
 	assert.Equal(t, cloneConfig.Thresholds.SimilarityThreshold, request.SimilarityThreshold)
 	assert.Equal(t, cloneConfig.Analysis.MaxEditDistance, request.MaxEditDistance)
-	assert.Equal(t, cloneConfig.Analysis.IgnoreLiterals, request.IgnoreLiterals)
-	assert.Equal(t, cloneConfig.Analysis.IgnoreIdentifiers, request.IgnoreIdentifiers)
+	assert.Equal(t, BoolValue(cloneConfig.Analysis.IgnoreLiterals, false), request.IgnoreLiterals)
+	assert.Equal(t, BoolValue(cloneConfig.Analysis.IgnoreIdentifiers, false), request.IgnoreIdentifiers)
 
 	// Verify thresholds
 	assert.Equal(t, cloneConfig.Thresholds.Type1Threshold, request.Type1Threshold)
@@ -117,7 +117,7 @@ func TestFromCloneRequest(t *testing.T) {
 
 	// Verify input conversion
 	assert.Equal(t, request.Paths, cloneConfig.Input.Paths)
-	assert.Equal(t, request.Recursive, cloneConfig.Input.Recursive)
+	assert.Equal(t, BoolPtr(request.Recursive), cloneConfig.Input.Recursive)
 	assert.Equal(t, request.IncludePatterns, cloneConfig.Input.IncludePatterns)
 	assert.Equal(t, request.ExcludePatterns, cloneConfig.Input.ExcludePatterns)
 
@@ -125,8 +125,8 @@ func TestFromCloneRequest(t *testing.T) {
 	assert.Equal(t, request.MinLines, cloneConfig.Analysis.MinLines)
 	assert.Equal(t, request.MinNodes, cloneConfig.Analysis.MinNodes)
 	assert.Equal(t, request.MaxEditDistance, cloneConfig.Analysis.MaxEditDistance)
-	assert.Equal(t, request.IgnoreLiterals, cloneConfig.Analysis.IgnoreLiterals)
-	assert.Equal(t, request.IgnoreIdentifiers, cloneConfig.Analysis.IgnoreIdentifiers)
+	assert.Equal(t, BoolPtr(request.IgnoreLiterals), cloneConfig.Analysis.IgnoreLiterals)
+	assert.Equal(t, BoolPtr(request.IgnoreIdentifiers), cloneConfig.Analysis.IgnoreIdentifiers)
 
 	// Verify thresholds conversion
 	assert.Equal(t, request.Type1Threshold, cloneConfig.Thresholds.Type1Threshold)
@@ -138,10 +138,10 @@ func TestFromCloneRequest(t *testing.T) {
 	// Verify output conversion
 	assert.Equal(t, "yaml", cloneConfig.Output.Format)
 	assert.Equal(t, outputWriter, cloneConfig.Output.Writer)
-	assert.Equal(t, request.ShowDetails, cloneConfig.Output.ShowDetails)
-	assert.Equal(t, request.ShowContent, cloneConfig.Output.ShowContent)
+	assert.Equal(t, BoolPtr(request.ShowDetails), cloneConfig.Output.ShowDetails)
+	assert.Equal(t, BoolPtr(request.ShowContent), cloneConfig.Output.ShowContent)
 	assert.Equal(t, "size", cloneConfig.Output.SortBy)
-	assert.Equal(t, request.GroupClones, cloneConfig.Output.GroupClones)
+	assert.Equal(t, BoolPtr(request.GroupClones), cloneConfig.Output.GroupClones)
 
 	// Verify filtering conversion
 	assert.Equal(t, request.MinSimilarity, cloneConfig.Filtering.MinSimilarity)
@@ -153,11 +153,11 @@ func TestFromCloneRequest(t *testing.T) {
 func TestRoundTripConversion(t *testing.T) {
 	t.Run("Configuration roundtrip validation", func(t *testing.T) {
 		// Test that unified config can be created and is valid
-		original := DefaultCloneConfig()
+		original := DefaultPyscnConfig()
 		assert.NoError(t, original.Validate(), "Default config should be valid")
 
 		// Test that we can create variations and they remain valid
-		modified := DefaultCloneConfig()
+		modified := DefaultPyscnConfig()
 		modified.Analysis.MinLines = 10
 		modified.Thresholds.Type1Threshold = 0.98
 		assert.NoError(t, modified.Validate(), "Modified config should be valid")
@@ -170,13 +170,13 @@ func TestRoundTripConversion(t *testing.T) {
 
 func TestCloneConfigValidation(t *testing.T) {
 	t.Run("Valid default config", func(t *testing.T) {
-		config := DefaultCloneConfig()
+		config := DefaultPyscnConfig()
 		err := config.Validate()
 		assert.NoError(t, err)
 	})
 
 	t.Run("Invalid analysis config", func(t *testing.T) {
-		config := DefaultCloneConfig()
+		config := DefaultPyscnConfig()
 		config.Analysis.MinLines = 0 // Invalid
 
 		err := config.Validate()
@@ -185,7 +185,7 @@ func TestCloneConfigValidation(t *testing.T) {
 	})
 
 	t.Run("Invalid threshold config", func(t *testing.T) {
-		config := DefaultCloneConfig()
+		config := DefaultPyscnConfig()
 		config.Thresholds.Type1Threshold = -0.1 // Invalid range
 
 		err := config.Validate()

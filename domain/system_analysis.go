@@ -19,21 +19,21 @@ type SystemAnalysisRequest struct {
 	NoOpen       bool   // Don't auto-open HTML in browser
 
 	// Analysis scope
-	AnalyzeDependencies bool // Enable dependency analysis
-	AnalyzeArchitecture bool // Enable architecture validation
+	AnalyzeDependencies *bool // Enable dependency analysis
+	AnalyzeArchitecture *bool // Enable architecture validation
 
 	// Configuration
 	ConfigPath      string
-	Recursive       bool
+	Recursive       *bool
 	IncludePatterns []string
 	ExcludePatterns []string
 
 	// Analysis options
-	IncludeStdLib        bool // Include standard library dependencies
-	IncludeThirdParty    bool // Include third-party dependencies
-	FollowRelative       bool // Follow relative imports
-	DetectCycles         bool // Detect circular dependencies
-	ValidateArchitecture bool // Validate architecture rules
+	IncludeStdLib        *bool // Include standard library dependencies
+	IncludeThirdParty    *bool // Include third-party dependencies
+	FollowRelative       *bool // Follow relative imports
+	DetectCycles         *bool // Detect circular dependencies
+	ValidateArchitecture *bool // Validate architecture rules
 
 	// Architecture rules (loaded from config or specified directly)
 	ArchitectureRules *ArchitectureRules
@@ -489,14 +489,14 @@ type SystemAnalysisOutputFormatter interface {
 func DefaultSystemAnalysisRequest() *SystemAnalysisRequest {
 	return &SystemAnalysisRequest{
 		OutputFormat:         OutputFormatText,
-		AnalyzeDependencies:  true,
-		AnalyzeArchitecture:  true,
-		Recursive:            true,
-		IncludeStdLib:        false,
-		IncludeThirdParty:    true,
-		FollowRelative:       true,
-		DetectCycles:         true,
-		ValidateArchitecture: true,
+		AnalyzeDependencies:  BoolPtr(true),
+		AnalyzeArchitecture:  BoolPtr(true),
+		Recursive:            BoolPtr(true),
+		IncludeStdLib:        BoolPtr(false),
+		IncludeThirdParty:    BoolPtr(true),
+		FollowRelative:       BoolPtr(true),
+		DetectCycles:         BoolPtr(true),
+		ValidateArchitecture: BoolPtr(true),
 		IncludePatterns:      []string{"**/*.py"},
 		ExcludePatterns:      []string{"test_*.py", "*_test.py"},
 		ComplexityData:       make(map[string]int),

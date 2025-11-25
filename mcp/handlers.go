@@ -9,6 +9,7 @@ import (
 
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/service"
 	"github.com/mark3labs/mcp-go/mcp"
 )
@@ -305,8 +306,8 @@ func (h *HandlerSet) HandleDetectClones(ctx context.Context, request mcp.CallToo
 		req.SimilarityThreshold = cfg.Clones.Thresholds.SimilarityThreshold
 		req.MinLines = cfg.Clones.Analysis.MinLines
 		req.MinNodes = cfg.Clones.Analysis.MinNodes
-		req.GroupClones = cfg.Clones.Output.GroupClones
-		req.Recursive = cfg.Clones.Input.Recursive
+		req.GroupClones = config.BoolValue(cfg.Clones.Output.GroupClones, true)
+		req.Recursive = config.BoolValue(cfg.Clones.Input.Recursive, true)
 		if len(cfg.Clones.Input.IncludePatterns) > 0 {
 			req.IncludePatterns = cfg.Clones.Input.IncludePatterns
 		}
@@ -426,7 +427,7 @@ func (h *HandlerSet) HandleCheckCoupling(ctx context.Context, request mcp.CallTo
 	req.SortBy = domain.SortByCoupling
 
 	if cfg != nil {
-		req.Recursive = cfg.Analysis.Recursive
+		req.Recursive = domain.BoolPtr(cfg.Analysis.Recursive)
 		if len(cfg.Analysis.IncludePatterns) > 0 {
 			req.IncludePatterns = cfg.Analysis.IncludePatterns
 		}

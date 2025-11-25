@@ -38,7 +38,7 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 
 	// Analyze dependencies if requested
 	var dependencyResult *domain.DependencyAnalysisResult
-	if req.AnalyzeDependencies {
+	if domain.BoolValue(req.AnalyzeDependencies, true) {
 		result, err := s.AnalyzeDependencies(ctx, req)
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("Dependency analysis failed: %v", err))
@@ -50,7 +50,7 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 
 	// Analyze architecture if requested
 	var architectureResult *domain.ArchitectureAnalysisResult
-	if req.AnalyzeArchitecture {
+	if domain.BoolValue(req.AnalyzeArchitecture, true) {
 		result, err := s.AnalyzeArchitecture(ctx, req)
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("Architecture analysis failed: %v", err))
@@ -87,9 +87,9 @@ func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req
 	// Create module analyzer with options
 	options := &analyzer.ModuleAnalysisOptions{
 		ProjectRoot:       projectRoot,
-		IncludeStdLib:     req.IncludeStdLib,
-		IncludeThirdParty: req.IncludeThirdParty,
-		FollowRelative:    req.FollowRelative,
+		IncludeStdLib:     domain.BoolValue(req.IncludeStdLib, false),
+		IncludeThirdParty: domain.BoolValue(req.IncludeThirdParty, true),
+		FollowRelative:    domain.BoolValue(req.FollowRelative, true),
 		IncludePatterns:   req.IncludePatterns,
 		ExcludePatterns:   req.ExcludePatterns,
 	}
@@ -228,9 +228,9 @@ func (s *SystemAnalysisServiceImpl) buildDependencyGraph(req domain.SystemAnalys
 	projectRoot := s.findProjectRoot(req.Paths)
 	options := &analyzer.ModuleAnalysisOptions{
 		ProjectRoot:       projectRoot,
-		IncludeStdLib:     req.IncludeStdLib,
-		IncludeThirdParty: req.IncludeThirdParty,
-		FollowRelative:    req.FollowRelative,
+		IncludeStdLib:     domain.BoolValue(req.IncludeStdLib, false),
+		IncludeThirdParty: domain.BoolValue(req.IncludeThirdParty, true),
+		FollowRelative:    domain.BoolValue(req.FollowRelative, true),
 		IncludePatterns:   req.IncludePatterns,
 		ExcludePatterns:   req.ExcludePatterns,
 	}

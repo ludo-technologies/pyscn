@@ -26,8 +26,8 @@ func (cl *DeadCodeConfigurationLoaderImpl) LoadConfig(path string) (*domain.Dead
 		return nil, fmt.Errorf("failed to load config from %s: %w", path, err)
 	}
 
-	// Convert clone config to unified config format, then to dead code request
-	cfg := cl.cloneConfigToUnifiedConfig(cloneCfg)
+	// Convert pyscn config to unified config format, then to dead code request
+	cfg := cl.pyscnConfigToUnifiedConfig(cloneCfg)
 	return cl.configToRequest(cfg), nil
 }
 
@@ -59,41 +59,86 @@ func (cl *DeadCodeConfigurationLoaderImpl) MergeConfig(base *domain.DeadCodeRequ
 	// Start with base config
 	merged := *base
 
-	// Override with CLI values (only if they're not default/empty)
+	// Always override paths as they come from command arguments
 	if len(override.Paths) > 0 {
 		merged.Paths = override.Paths
 	}
+
+	// Output configuration
 	if override.OutputFormat != "" {
 		merged.OutputFormat = override.OutputFormat
 	}
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
-	if override.MinSeverity != "" {
+
+	// MinSeverity - override only if non-default
+	if override.MinSeverity != "" && override.MinSeverity != domain.DeadCodeSeverityWarning {
 		merged.MinSeverity = override.MinSeverity
 	}
-	if override.SortBy != "" {
+
+	// SortBy - override only if non-default
+	if override.SortBy != "" && override.SortBy != domain.DeadCodeSortBySeverity {
 		merged.SortBy = override.SortBy
 	}
+
+	// ConfigPath - always override if provided
 	if override.ConfigPath != "" {
 		merged.ConfigPath = override.ConfigPath
 	}
 
-	// Boolean values - use override values
-	merged.ShowContext = override.ShowContext
-	merged.Recursive = override.Recursive
-	merged.DetectAfterReturn = override.DetectAfterReturn
-	merged.DetectAfterBreak = override.DetectAfterBreak
-	merged.DetectAfterContinue = override.DetectAfterContinue
-	merged.DetectAfterRaise = override.DetectAfterRaise
-	merged.DetectUnreachableBranches = override.DetectUnreachableBranches
+	// Boolean pointer values - nil means not set, non-nil means explicitly set
+	// With pointer types, we can now distinguish between "not set" and "set to default value"
+	// This allows proper precedence: CLI override > config file > defaults
 
-	// Integer values - use override if positive
-	if override.ContextLines >= 0 {
+	// ShowContext: use override if explicitly set (non-nil), otherwise use base
+	if override.ShowContext != nil {
+		merged.ShowContext = override.ShowContext
+	} else {
+		merged.ShowContext = base.ShowContext
+	}
+
+	// Detection flags: use override if explicitly set (non-nil), otherwise use base
+	if override.DetectAfterReturn != nil {
+		merged.DetectAfterReturn = override.DetectAfterReturn
+	} else {
+		merged.DetectAfterReturn = base.DetectAfterReturn
+	}
+
+	if override.DetectAfterBreak != nil {
+		merged.DetectAfterBreak = override.DetectAfterBreak
+	} else {
+		merged.DetectAfterBreak = base.DetectAfterBreak
+	}
+
+	if override.DetectAfterContinue != nil {
+		merged.DetectAfterContinue = override.DetectAfterContinue
+	} else {
+		merged.DetectAfterContinue = base.DetectAfterContinue
+	}
+
+	if override.DetectAfterRaise != nil {
+		merged.DetectAfterRaise = override.DetectAfterRaise
+	} else {
+		merged.DetectAfterRaise = base.DetectAfterRaise
+	}
+
+	if override.DetectUnreachableBranches != nil {
+		merged.DetectUnreachableBranches = override.DetectUnreachableBranches
+	} else {
+		merged.DetectUnreachableBranches = base.DetectUnreachableBranches
+	}
+
+	// ContextLines - override only if explicitly set (non-zero)
+	// 0 means "use config file or default value"
+	if override.ContextLines > 0 {
 		merged.ContextLines = override.ContextLines
 	}
 
-	// Array values - use override if not empty
+	// Recursive - preserve override value
+	merged.Recursive = override.Recursive
+
+	// Array values - override if provided
 	if len(override.IncludePatterns) > 0 {
 		merged.IncludePatterns = override.IncludePatterns
 	}
@@ -154,7 +199,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) configToRequest(cfg *config.Config) *
 
 	return &domain.DeadCodeRequest{
 		OutputFormat:              outputFormat,
-		ShowContext:               cfg.DeadCode.ShowContext,
+		ShowContext:               domain.BoolPtr(cfg.DeadCode.ShowContext),
 		ContextLines:              cfg.DeadCode.ContextLines,
 		MinSeverity:               minSeverity,
 		SortBy:                    sortBy,
@@ -162,11 +207,11 @@ func (cl *DeadCodeConfigurationLoaderImpl) configToRequest(cfg *config.Config) *
 		IncludePatterns:           cfg.Analysis.IncludePatterns,
 		ExcludePatterns:           cfg.Analysis.ExcludePatterns,
 		IgnorePatterns:            cfg.DeadCode.IgnorePatterns,
-		DetectAfterReturn:         cfg.DeadCode.DetectAfterReturn,
-		DetectAfterBreak:          cfg.DeadCode.DetectAfterBreak,
-		DetectAfterContinue:       cfg.DeadCode.DetectAfterContinue,
-		DetectAfterRaise:          cfg.DeadCode.DetectAfterRaise,
-		DetectUnreachableBranches: cfg.DeadCode.DetectUnreachableBranches,
+		DetectAfterReturn:         domain.BoolPtr(cfg.DeadCode.DetectAfterReturn),
+		DetectAfterBreak:          domain.BoolPtr(cfg.DeadCode.DetectAfterBreak),
+		DetectAfterContinue:       domain.BoolPtr(cfg.DeadCode.DetectAfterContinue),
+		DetectAfterRaise:          domain.BoolPtr(cfg.DeadCode.DetectAfterRaise),
+		DetectUnreachableBranches: domain.BoolPtr(cfg.DeadCode.DetectUnreachableBranches),
 	}
 }
 
@@ -253,13 +298,13 @@ func (cl *DeadCodeConfigurationLoaderImpl) requestToConfig(req *domain.DeadCodeR
 	}
 
 	// Set dead code specific config
-	cfg.DeadCode.ShowContext = req.ShowContext
+	cfg.DeadCode.ShowContext = domain.BoolValue(req.ShowContext, false)
 	cfg.DeadCode.ContextLines = req.ContextLines
-	cfg.DeadCode.DetectAfterReturn = req.DetectAfterReturn
-	cfg.DeadCode.DetectAfterBreak = req.DetectAfterBreak
-	cfg.DeadCode.DetectAfterContinue = req.DetectAfterContinue
-	cfg.DeadCode.DetectAfterRaise = req.DetectAfterRaise
-	cfg.DeadCode.DetectUnreachableBranches = req.DetectUnreachableBranches
+	cfg.DeadCode.DetectAfterReturn = domain.BoolValue(req.DetectAfterReturn, true)
+	cfg.DeadCode.DetectAfterBreak = domain.BoolValue(req.DetectAfterBreak, true)
+	cfg.DeadCode.DetectAfterContinue = domain.BoolValue(req.DetectAfterContinue, true)
+	cfg.DeadCode.DetectAfterRaise = domain.BoolValue(req.DetectAfterRaise, true)
+	cfg.DeadCode.DetectUnreachableBranches = domain.BoolValue(req.DetectUnreachableBranches, true)
 	cfg.DeadCode.IgnorePatterns = req.IgnorePatterns
 
 	// Set analysis config
@@ -270,21 +315,66 @@ func (cl *DeadCodeConfigurationLoaderImpl) requestToConfig(req *domain.DeadCodeR
 	return cfg
 }
 
-// cloneConfigToUnifiedConfig converts CloneConfig to unified Config format
-func (cl *DeadCodeConfigurationLoaderImpl) cloneConfigToUnifiedConfig(cloneCfg *config.CloneConfig) *config.Config {
+// pyscnConfigToUnifiedConfig converts PyscnConfig to unified Config format
+//
+// Configuration priority (lower priority to higher priority):
+//  1. DefaultConfig() - base defaults
+//  2. Clone-specific legacy fields (Input.*, Output.*) - backward compatibility
+//  3. General sections ([analysis], [output]) - override legacy if set
+//  4. Feature-specific sections ([dead_code], [cbo], etc.) - highest priority
+func (cl *DeadCodeConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.PyscnConfig) *config.Config {
 	cfg := config.DefaultConfig()
 
-	// Map analysis settings
-	cfg.Analysis.IncludePatterns = cloneCfg.Input.IncludePatterns
-	cfg.Analysis.ExcludePatterns = cloneCfg.Input.ExcludePatterns
-	cfg.Analysis.Recursive = cloneCfg.Input.Recursive
+	// Step 1: Map clone-specific legacy fields (backward compatibility)
+	// These are from [clone.input] and [clone.output] sections
+	cfg.Analysis.IncludePatterns = pyscnCfg.Input.IncludePatterns
+	cfg.Analysis.ExcludePatterns = pyscnCfg.Input.ExcludePatterns
+	cfg.Analysis.Recursive = config.BoolValue(pyscnCfg.Input.Recursive, true)
+	cfg.Output.Format = pyscnCfg.Output.Format
+	cfg.Output.ShowDetails = config.BoolValue(pyscnCfg.Output.ShowDetails, false)
 
-	// Map output settings
-	cfg.Output.Format = cloneCfg.Output.Format
-	cfg.Output.ShowDetails = cloneCfg.Output.ShowDetails
+	// Step 2: Map feature-specific settings from [dead_code] section
+	cfg.DeadCode.Enabled = config.BoolValue(pyscnCfg.DeadCodeEnabled, true)
+	cfg.DeadCode.MinSeverity = pyscnCfg.DeadCodeMinSeverity
+	cfg.DeadCode.ShowContext = config.BoolValue(pyscnCfg.DeadCodeShowContext, false)
+	cfg.DeadCode.ContextLines = pyscnCfg.DeadCodeContextLines
+	cfg.DeadCode.SortBy = pyscnCfg.DeadCodeSortBy
+	cfg.DeadCode.DetectAfterReturn = config.BoolValue(pyscnCfg.DeadCodeDetectAfterReturn, true)
+	cfg.DeadCode.DetectAfterBreak = config.BoolValue(pyscnCfg.DeadCodeDetectAfterBreak, true)
+	cfg.DeadCode.DetectAfterContinue = config.BoolValue(pyscnCfg.DeadCodeDetectAfterContinue, true)
+	cfg.DeadCode.DetectAfterRaise = config.BoolValue(pyscnCfg.DeadCodeDetectAfterRaise, true)
+	cfg.DeadCode.DetectUnreachableBranches = config.BoolValue(pyscnCfg.DeadCodeDetectUnreachableBranches, true)
+	cfg.DeadCode.IgnorePatterns = pyscnCfg.DeadCodeIgnorePatterns
 
-	// Dead code settings use defaults from DefaultConfig()
-	// since TOML-only config focuses on clone detection
+	// Step 3: Apply general [analysis] section overrides (highest priority for analysis settings)
+	// Only override if explicitly set (non-empty/non-zero values)
+	if len(pyscnCfg.AnalysisIncludePatterns) > 0 {
+		cfg.Analysis.IncludePatterns = pyscnCfg.AnalysisIncludePatterns
+	}
+	if len(pyscnCfg.AnalysisExcludePatterns) > 0 {
+		cfg.Analysis.ExcludePatterns = pyscnCfg.AnalysisExcludePatterns
+	}
+	// Only override if explicitly set (non-nil)
+	if pyscnCfg.AnalysisRecursive != nil {
+		cfg.Analysis.Recursive = *pyscnCfg.AnalysisRecursive
+	}
+	cfg.Analysis.FollowSymlinks = config.BoolValue(pyscnCfg.AnalysisFollowSymlinks, false)
+
+	// Step 4: Apply general [output] section overrides (highest priority for output settings)
+	// Only override if explicitly set (non-empty values)
+	if pyscnCfg.OutputFormat != "" {
+		cfg.Output.Format = pyscnCfg.OutputFormat
+	}
+	if pyscnCfg.OutputSortBy != "" {
+		cfg.Output.SortBy = pyscnCfg.OutputSortBy
+	}
+	if pyscnCfg.OutputDirectory != "" {
+		cfg.Output.Directory = pyscnCfg.OutputDirectory
+	}
+	// Only override if explicitly set (non-nil)
+	if pyscnCfg.OutputShowDetails != nil {
+		cfg.Output.ShowDetails = *pyscnCfg.OutputShowDetails
+	}
 
 	return cfg
 }

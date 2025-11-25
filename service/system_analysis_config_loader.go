@@ -96,16 +96,17 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) LoadConfig(path string) (*domai
 // LoadDefaultConfig loads the default configuration
 func (cl *SystemAnalysisConfigurationLoaderImpl) LoadDefaultConfig() *domain.SystemAnalysisRequest {
 	return &domain.SystemAnalysisRequest{
-		OutputFormat:        domain.OutputFormatText,
-		AnalyzeDependencies: true,
-		AnalyzeArchitecture: true,
-		IncludeStdLib:       false,
-		IncludeThirdParty:   true,
-		FollowRelative:      true,
-		DetectCycles:        true,
-		Recursive:           true,
-		IncludePatterns:     []string{"**/*.py"},
-		ExcludePatterns:     []string{},
+		OutputFormat:         domain.OutputFormatText,
+		AnalyzeDependencies:  domain.BoolPtr(true),
+		AnalyzeArchitecture:  domain.BoolPtr(true),
+		IncludeStdLib:        domain.BoolPtr(false),
+		IncludeThirdParty:    domain.BoolPtr(true),
+		FollowRelative:       domain.BoolPtr(true),
+		DetectCycles:         domain.BoolPtr(true),
+		ValidateArchitecture: domain.BoolPtr(true),
+		Recursive:            domain.BoolPtr(true),
+		IncludePatterns:      []string{"**/*.py"},
+		ExcludePatterns:      []string{},
 	}
 }
 
@@ -141,17 +142,32 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
 	// Boolean flags - CLI always takes precedence for explicit settings
 	merged.NoOpen = override.NoOpen
 
-	// Analysis type overrides - CLI takes precedence
-	merged.AnalyzeDependencies = override.AnalyzeDependencies
-	merged.AnalyzeArchitecture = override.AnalyzeArchitecture
+	// Analysis type overrides - only override if explicitly set (non-nil)
+	if override.AnalyzeDependencies != nil {
+		merged.AnalyzeDependencies = override.AnalyzeDependencies
+	}
+	if override.AnalyzeArchitecture != nil {
+		merged.AnalyzeArchitecture = override.AnalyzeArchitecture
+	}
 
 	// (Filtering options removed - fields no longer exist)
 
-	// Analysis options - CLI takes precedence
-	merged.IncludeStdLib = override.IncludeStdLib
-	merged.IncludeThirdParty = override.IncludeThirdParty
-	merged.FollowRelative = override.FollowRelative
-	merged.DetectCycles = override.DetectCycles
+	// Analysis options - only override if explicitly set (non-nil)
+	if override.IncludeStdLib != nil {
+		merged.IncludeStdLib = override.IncludeStdLib
+	}
+	if override.IncludeThirdParty != nil {
+		merged.IncludeThirdParty = override.IncludeThirdParty
+	}
+	if override.FollowRelative != nil {
+		merged.FollowRelative = override.FollowRelative
+	}
+	if override.DetectCycles != nil {
+		merged.DetectCycles = override.DetectCycles
+	}
+	if override.ValidateArchitecture != nil {
+		merged.ValidateArchitecture = override.ValidateArchitecture
+	}
 
 	// File selection - override if provided
 	if len(override.IncludePatterns) > 0 {
@@ -160,7 +176,9 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
 	if len(override.ExcludePatterns) > 0 {
 		merged.ExcludePatterns = override.ExcludePatterns
 	}
-	merged.Recursive = override.Recursive
+	if override.Recursive != nil {
+		merged.Recursive = override.Recursive
+	}
 
 	// Architecture rules - merge carefully to preserve config while applying CLI overrides
 	if override.ArchitectureRules != nil {
@@ -195,10 +213,10 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
 func (cl *SystemAnalysisConfigurationLoaderImpl) loadFromViperSection(v *viper.Viper, section string, request *domain.SystemAnalysisRequest) error {
 	// Analysis types
 	if v.IsSet(section + ".analyze_dependencies") {
-		request.AnalyzeDependencies = v.GetBool(section + ".analyze_dependencies")
+		request.AnalyzeDependencies = domain.BoolPtr(v.GetBool(section + ".analyze_dependencies"))
 	}
 	if v.IsSet(section + ".analyze_architecture") {
-		request.AnalyzeArchitecture = v.GetBool(section + ".analyze_architecture")
+		request.AnalyzeArchitecture = domain.BoolPtr(v.GetBool(section + ".analyze_architecture"))
 	}
 
 	// (Output options removed - ShowDetails field no longer exists)
@@ -211,7 +229,7 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) loadFromViperSection(v *viper.V
 		request.ExcludePatterns = v.GetStringSlice(section + ".exclude_patterns")
 	}
 	if v.IsSet(section + ".recursive") {
-		request.Recursive = v.GetBool(section + ".recursive")
+		request.Recursive = domain.BoolPtr(v.GetBool(section + ".recursive"))
 	}
 
 	return nil
@@ -223,16 +241,16 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) loadDependencyConfig(v *viper.V
 
 	// Analysis options
 	if v.IsSet(section + ".include_stdlib") {
-		request.IncludeStdLib = v.GetBool(section + ".include_stdlib")
+		request.IncludeStdLib = domain.BoolPtr(v.GetBool(section + ".include_stdlib"))
 	}
 	if v.IsSet(section + ".include_third_party") {
-		request.IncludeThirdParty = v.GetBool(section + ".include_third_party")
+		request.IncludeThirdParty = domain.BoolPtr(v.GetBool(section + ".include_third_party"))
 	}
 	if v.IsSet(section + ".follow_relative") {
-		request.FollowRelative = v.GetBool(section + ".follow_relative")
+		request.FollowRelative = domain.BoolPtr(v.GetBool(section + ".follow_relative"))
 	}
 	if v.IsSet(section + ".detect_cycles") {
-		request.DetectCycles = v.GetBool(section + ".detect_cycles")
+		request.DetectCycles = domain.BoolPtr(v.GetBool(section + ".detect_cycles"))
 	}
 
 	return nil

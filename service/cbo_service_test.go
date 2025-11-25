@@ -21,13 +21,13 @@ func newDefaultCBORequest(paths ...string) domain.CBORequest {
 		MinCBO:          0,
 		MaxCBO:          0,
 		SortBy:          domain.SortByCoupling,
-		ShowZeros:       true,
+		ShowZeros:       domain.BoolPtr(true),
 		LowThreshold:    5,
 		MediumThreshold: 10,
 		ShowDetails:     true,
-		Recursive:       false,
-		IncludeBuiltins: false,
-		IncludeImports:  true,
+		Recursive:       domain.BoolPtr(false),
+		IncludeBuiltins: domain.BoolPtr(false),
+		IncludeImports:  domain.BoolPtr(true),
 	}
 }
 
@@ -83,7 +83,7 @@ func TestCBOService_Analyze(t *testing.T) {
 	t.Run("analyze with filtering by CBO count", func(t *testing.T) {
 		req := newDefaultCBORequest("../testdata/python/complex/exceptions.py")
 		req.MinCBO = 1 // Only classes with CBO >= 1
-		req.ShowZeros = false
+		req.ShowZeros = domain.BoolPtr(false)
 
 		response, err := service.Analyze(ctx, req)
 
@@ -124,7 +124,7 @@ func TestCBOService_Analyze(t *testing.T) {
 
 	t.Run("analyze with ShowZeros=false filters out zero CBO classes", func(t *testing.T) {
 		req := newDefaultCBORequest("../testdata/python/complex/decorators.py")
-		req.ShowZeros = false // Filter out zero CBO classes
+		req.ShowZeros = domain.BoolPtr(false) // Filter out zero CBO classes
 
 		response, err := service.Analyze(ctx, req)
 
@@ -161,7 +161,7 @@ func TestCBOService_Analyze(t *testing.T) {
 
 	t.Run("analyze with include builtins enabled", func(t *testing.T) {
 		req := newDefaultCBORequest("../testdata/python/complex/exceptions.py")
-		req.IncludeBuiltins = true // Include built-in dependencies
+		req.IncludeBuiltins = domain.BoolPtr(true) // Include built-in dependencies
 
 		response, err := service.Analyze(ctx, req)
 
@@ -181,13 +181,13 @@ func TestCBOService_AnalyzeFile(t *testing.T) {
 			MinCBO:          0,
 			MaxCBO:          0,
 			SortBy:          domain.SortByCoupling,
-			ShowZeros:       true,
+			ShowZeros:       domain.BoolPtr(true),
 			LowThreshold:    5,
 			MediumThreshold: 10,
 			ShowDetails:     true,
-			Recursive:       false,
-			IncludeBuiltins: false,
-			IncludeImports:  true,
+			Recursive:       domain.BoolPtr(false),
+			IncludeBuiltins: domain.BoolPtr(false),
+			IncludeImports:  domain.BoolPtr(true),
 		}
 
 		response, err := service.AnalyzeFile(ctx, "../testdata/python/complex/decorators.py", req)
@@ -228,7 +228,7 @@ func TestCBOService_FilterClasses(t *testing.T) {
 		req := domain.CBORequest{
 			MinCBO:    3,
 			MaxCBO:    0,
-			ShowZeros: true,
+			ShowZeros: domain.BoolPtr(true),
 		}
 
 		filtered := service.filterClasses(classes, req)
@@ -243,7 +243,7 @@ func TestCBOService_FilterClasses(t *testing.T) {
 		req := domain.CBORequest{
 			MinCBO:    0,
 			MaxCBO:    5,
-			ShowZeros: true,
+			ShowZeros: domain.BoolPtr(true),
 		}
 
 		filtered := service.filterClasses(classes, req)
@@ -257,7 +257,7 @@ func TestCBOService_FilterClasses(t *testing.T) {
 		req := domain.CBORequest{
 			MinCBO:    3,
 			MaxCBO:    8,
-			ShowZeros: true,
+			ShowZeros: domain.BoolPtr(true),
 		}
 
 		filtered := service.filterClasses(classes, req)
@@ -271,7 +271,7 @@ func TestCBOService_FilterClasses(t *testing.T) {
 		req := domain.CBORequest{
 			MinCBO:    0,
 			MaxCBO:    0,
-			ShowZeros: false,
+			ShowZeros: domain.BoolPtr(false),
 		}
 
 		filtered := service.filterClasses(classes, req)
@@ -461,8 +461,8 @@ func TestCBOService_BuildCBOOptions(t *testing.T) {
 	service := NewCBOService()
 
 	req := domain.CBORequest{
-		IncludeBuiltins: true,
-		IncludeImports:  false,
+		IncludeBuiltins: domain.BoolPtr(true),
+		IncludeImports:  domain.BoolPtr(false),
 		ExcludePatterns: []string{"test_*.py"},
 		LowThreshold:    3,
 		MediumThreshold: 8,
@@ -485,11 +485,11 @@ func TestCBOService_BuildConfigForResponse(t *testing.T) {
 	req := domain.CBORequest{
 		MinCBO:          1,
 		MaxCBO:          20,
-		ShowZeros:       false,
+		ShowZeros:       domain.BoolPtr(false),
 		LowThreshold:    5,
 		MediumThreshold: 10,
-		IncludeBuiltins: true,
-		IncludeImports:  false,
+		IncludeBuiltins: domain.BoolPtr(true),
+		IncludeImports:  domain.BoolPtr(false),
 		OutputFormat:    domain.OutputFormatJSON,
 		SortBy:          domain.SortByCoupling,
 	}

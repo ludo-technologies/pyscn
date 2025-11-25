@@ -51,7 +51,7 @@ func (uc *CBOUseCase) prepareAnalysis(ctx context.Context, req domain.CBORequest
 	files, err := ResolveFilePaths(
 		uc.fileReader,
 		finalReq.Paths,
-		finalReq.Recursive,
+		domain.BoolValue(finalReq.Recursive, true),
 		finalReq.IncludePatterns,
 		finalReq.ExcludePatterns,
 		false, // validatePythonFile: CBO doesn't need strict Python validation

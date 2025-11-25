@@ -70,12 +70,12 @@ func (c *CloneConfigurationLoader) GetDefaultCloneConfig() *domain.CloneRequest 
 	}
 
 	// Fall back to hardcoded default configuration
-	defaultCloneConfig := config.DefaultCloneConfig()
+	defaultCloneConfig := config.DefaultPyscnConfig()
 	return c.cloneConfigToCloneRequest(defaultCloneConfig)
 }
 
 // cloneConfigToCloneRequest converts a config.CloneConfig (TOML-based) to domain.CloneRequest
-func (c *CloneConfigurationLoader) cloneConfigToCloneRequest(cloneCfg *config.CloneConfig) *domain.CloneRequest {
+func (c *CloneConfigurationLoader) cloneConfigToCloneRequest(cloneCfg *config.PyscnConfig) *domain.CloneRequest {
 	// Convert enabled clone types from string slice to domain clone types
 	cloneTypes := make([]domain.CloneType, 0, len(cloneCfg.Filtering.EnabledCloneTypes))
 	for _, typeStr := range cloneCfg.Filtering.EnabledCloneTypes {
@@ -112,21 +112,21 @@ func (c *CloneConfigurationLoader) cloneConfigToCloneRequest(cloneCfg *config.Cl
 		MinNodes:            cloneCfg.Analysis.MinNodes,
 		SimilarityThreshold: cloneCfg.Thresholds.SimilarityThreshold,
 		MaxEditDistance:     cloneCfg.Analysis.MaxEditDistance,
-		IgnoreLiterals:      cloneCfg.Analysis.IgnoreLiterals,
-		IgnoreIdentifiers:   cloneCfg.Analysis.IgnoreIdentifiers,
+		IgnoreLiterals:      domain.BoolValue(cloneCfg.Analysis.IgnoreLiterals, false),
+		IgnoreIdentifiers:   domain.BoolValue(cloneCfg.Analysis.IgnoreIdentifiers, false),
 		Type1Threshold:      cloneCfg.Thresholds.Type1Threshold,
 		Type2Threshold:      cloneCfg.Thresholds.Type2Threshold,
 		Type3Threshold:      cloneCfg.Thresholds.Type3Threshold,
 		Type4Threshold:      cloneCfg.Thresholds.Type4Threshold,
-		ShowDetails:         cloneCfg.Output.ShowDetails,
-		ShowContent:         cloneCfg.Output.ShowContent,
+		ShowDetails:         domain.BoolValue(cloneCfg.Output.ShowDetails, false),
+		ShowContent:         domain.BoolValue(cloneCfg.Output.ShowContent, false),
 		SortBy:              sortBy,
-		GroupClones:         cloneCfg.Output.GroupClones,
+		GroupClones:         domain.BoolValue(cloneCfg.Output.GroupClones, true),
 		MinSimilarity:       cloneCfg.Filtering.MinSimilarity,
 		MaxSimilarity:       cloneCfg.Filtering.MaxSimilarity,
 		CloneTypes:          cloneTypes,
 		OutputFormat:        domain.OutputFormatText, // Default, overridden by CLI
-		Recursive:           cloneCfg.Input.Recursive,
+		Recursive:           domain.BoolValue(cloneCfg.Input.Recursive, true),
 		IncludePatterns:     cloneCfg.Input.IncludePatterns,
 		ExcludePatterns:     cloneCfg.Input.ExcludePatterns,
 		// LSH settings
@@ -171,15 +171,15 @@ func (c *CloneConfigurationLoader) updateConfigFromCloneRequest(cfg *config.Conf
 
 	// Update clone detection configuration using unified config
 	if cfg.Clones == nil {
-		cfg.Clones = config.DefaultCloneConfig()
+		cfg.Clones = config.DefaultPyscnConfig()
 	}
 
 	cfg.Clones.Analysis.MinLines = req.MinLines
 	cfg.Clones.Analysis.MinNodes = req.MinNodes
 	cfg.Clones.Analysis.MaxEditDistance = req.MaxEditDistance
 	cfg.Clones.Analysis.CostModelType = "python" // Default cost model
-	cfg.Clones.Analysis.IgnoreLiterals = req.IgnoreLiterals
-	cfg.Clones.Analysis.IgnoreIdentifiers = req.IgnoreIdentifiers
+	cfg.Clones.Analysis.IgnoreLiterals = config.BoolPtr(req.IgnoreLiterals)
+	cfg.Clones.Analysis.IgnoreIdentifiers = config.BoolPtr(req.IgnoreIdentifiers)
 
 	cfg.Clones.Thresholds.Type1Threshold = req.Type1Threshold
 	cfg.Clones.Thresholds.Type2Threshold = req.Type2Threshold
@@ -187,8 +187,8 @@ func (c *CloneConfigurationLoader) updateConfigFromCloneRequest(cfg *config.Conf
 	cfg.Clones.Thresholds.Type4Threshold = req.Type4Threshold
 	cfg.Clones.Thresholds.SimilarityThreshold = req.SimilarityThreshold
 
-	cfg.Clones.Output.ShowContent = req.ShowContent
-	cfg.Clones.Output.GroupClones = req.GroupClones
+	cfg.Clones.Output.ShowContent = config.BoolPtr(req.ShowContent)
+	cfg.Clones.Output.GroupClones = config.BoolPtr(req.GroupClones)
 	cfg.Clones.Output.SortBy = sortBy
 
 	cfg.Clones.Filtering.MinSimilarity = req.MinSimilarity

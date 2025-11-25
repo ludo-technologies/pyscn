@@ -84,7 +84,7 @@ medium_threshold = 6
 
 func TestMergeComplexitySection(t *testing.T) {
 	// Create a default config
-	config := DefaultCloneConfig()
+	config := DefaultPyscnConfig()
 
 	// Create complexity settings
 	complexity := ComplexityTomlConfig{
@@ -114,7 +114,7 @@ func TestMergeComplexitySection(t *testing.T) {
 
 func TestMergeComplexitySectionNilValues(t *testing.T) {
 	// Create a default config
-	config := DefaultCloneConfig()
+	config := DefaultPyscnConfig()
 	originalLow := config.ComplexityLowThreshold
 
 	// Create complexity settings with nil values
@@ -137,4 +137,57 @@ func TestMergeComplexitySectionNilValues(t *testing.T) {
 // Helper function to create int pointer
 func intPtr(val int) *int {
 	return &val
+}
+
+func TestLoadDeadCodeFromPyscnToml(t *testing.T) {
+	// Create temporary directory
+	tempDir := t.TempDir()
+
+	// Create .pyscn.toml with dead_code settings
+	configContent := `[dead_code]
+min_severity = "info"
+show_context = true
+context_lines = 5
+sort_by = "line"
+detect_after_return = false
+detect_after_break = false
+`
+	configPath := filepath.Join(tempDir, ".pyscn.toml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	// Load config
+	loader := NewTomlConfigLoader()
+	config, err := loader.LoadConfig(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	// Debug: print values
+	t.Logf("Loaded PyscnConfig:")
+	t.Logf("  DeadCodeMinSeverity: %s", config.DeadCodeMinSeverity)
+	t.Logf("  DeadCodeShowContext: %v", config.DeadCodeShowContext)
+	t.Logf("  DeadCodeContextLines: %d", config.DeadCodeContextLines)
+	t.Logf("  DeadCodeSortBy: %s", config.DeadCodeSortBy)
+
+	// Verify dead_code settings were loaded
+	if config.DeadCodeMinSeverity != "info" {
+		t.Errorf("Expected min_severity 'info', got %s", config.DeadCodeMinSeverity)
+	}
+	if !BoolValue(config.DeadCodeShowContext, false) {
+		t.Errorf("Expected show_context true, got %v", config.DeadCodeShowContext)
+	}
+	if config.DeadCodeContextLines != 5 {
+		t.Errorf("Expected context_lines 5, got %d", config.DeadCodeContextLines)
+	}
+	if config.DeadCodeSortBy != "line" {
+		t.Errorf("Expected sort_by 'line', got %s", config.DeadCodeSortBy)
+	}
+	if BoolValue(config.DeadCodeDetectAfterReturn, true) {
+		t.Errorf("Expected detect_after_return false, got %v", config.DeadCodeDetectAfterReturn)
+	}
+	if BoolValue(config.DeadCodeDetectAfterBreak, true) {
+		t.Errorf("Expected detect_after_break false, got %v", config.DeadCodeDetectAfterBreak)
+	}
 }

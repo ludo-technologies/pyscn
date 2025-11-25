@@ -171,8 +171,8 @@ type AnalysisTask struct {
 func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConfig, paths []string) (*domain.AnalyzeResponse, error) {
 	startTime := time.Now()
 
-	// Load configuration to get file patterns
-	includePatterns, excludePatterns, patternErr := uc.getFilePatterns(config.ConfigFile, paths)
+	// Load configuration to get file patterns and recursive setting
+	includePatterns, excludePatterns, recursive, patternErr := uc.getFilePatterns(config.ConfigFile, paths)
 	if patternErr != nil {
 		return nil, patternErr
 	}
@@ -180,7 +180,7 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 	// Validate and collect files using configured patterns
 	files, err := uc.fileReader.CollectPythonFiles(
 		paths,
-		true, // recursive
+		recursive, // Use recursive setting from config
 		includePatterns,
 		excludePatterns,
 	)
@@ -294,6 +294,15 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 					MinSeverity:     config.MinSeverity,
 					SortBy:          domain.DeadCodeSortBySeverity,
 					ConfigPath:      config.ConfigFile,
+					// Detection options left as nil to allow config file values to take precedence
+					// If not set in config, defaults from DefaultDeadCodeRequest() will be used
+					ShowContext:               nil,
+					ContextLines:              0, // 0 = use config file or default value
+					DetectAfterReturn:         nil,
+					DetectAfterBreak:          nil,
+					DetectAfterContinue:       nil,
+					DetectAfterRaise:          nil,
+					DetectUnreachableBranches: nil,
 				}
 				return uc.deadCodeUseCase.AnalyzeAndReturn(ctx, request)
 			},
@@ -338,7 +347,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.CBORequest{
 					Paths:           files,
-					Recursive:       false,
+					Recursive:       nil, // Let config file values take precedence
 					IncludePatterns: []string{},
 					ExcludePatterns: []string{},
 					OutputFormat:    domain.OutputFormatJSON,
@@ -348,6 +357,10 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 					MediumThreshold: 10,
 					SortBy:          domain.SortByCoupling,
 					ConfigPath:      config.ConfigFile,
+					// Boolean options left as nil to allow config file values to take precedence
+					ShowZeros:       nil,
+					IncludeBuiltins: nil,
+					IncludeImports:  nil,
 				}
 				return uc.cboUseCase.AnalyzeAndReturn(ctx, request)
 			},
@@ -361,15 +374,21 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Enabled: !config.SkipSystem,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.SystemAnalysisRequest{
-					Paths:               files,
-					Recursive:           false,
-					IncludePatterns:     []string{},
-					ExcludePatterns:     []string{},
-					OutputFormat:        domain.OutputFormatJSON,
-					OutputWriter:        io.Discard,
-					AnalyzeDependencies: true,
-					AnalyzeArchitecture: true,
-					ConfigPath:          config.ConfigFile,
+					Paths:           files,
+					Recursive:       nil, // Let config file values take precedence
+					IncludePatterns: []string{},
+					ExcludePatterns: []string{},
+					OutputFormat:    domain.OutputFormatJSON,
+					OutputWriter:    io.Discard,
+					ConfigPath:      config.ConfigFile,
+					// Boolean options left as nil to allow config file values to take precedence
+					AnalyzeDependencies:  nil,
+					AnalyzeArchitecture:  nil,
+					IncludeStdLib:        nil,
+					IncludeThirdParty:    nil,
+					FollowRelative:       nil,
+					DetectCycles:         nil,
+					ValidateArchitecture: nil,
 				}
 				return uc.systemUseCase.AnalyzeAndReturn(ctx, request)
 			},
@@ -550,11 +569,12 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 	}
 }
 
-// getFilePatterns loads file patterns from configuration or returns defaults
-func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]string, []string, error) {
+// getFilePatterns loads file patterns and recursive setting from configuration or returns defaults
+func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]string, []string, bool, error) {
 	// Default patterns
 	defaultInclude := []string{"**/*.py", "*.pyi"}
 	defaultExclude := []string{"test_*.py", "*_test.py"}
+	defaultRecursive := true
 
 	// Try to load configuration
 	targetPath := ""
@@ -564,15 +584,16 @@ func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]
 
 	cfg, err := config.LoadConfigWithTarget(configPath, targetPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to load configuration for pattern resolution: %w", err)
+		return nil, nil, false, fmt.Errorf("failed to load configuration for pattern resolution: %w", err)
 	}
 	if cfg == nil {
-		return defaultInclude, defaultExclude, nil
+		return defaultInclude, defaultExclude, defaultRecursive, nil
 	}
 
 	// Use configured patterns if available
 	includePatterns := cfg.Analysis.IncludePatterns
 	excludePatterns := cfg.Analysis.ExcludePatterns
+	recursive := cfg.Analysis.Recursive
 
 	// Fall back to defaults if not specified
 	if len(includePatterns) == 0 {
@@ -582,7 +603,7 @@ func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]
 		excludePatterns = defaultExclude
 	}
 
-	return includePatterns, excludePatterns, nil
+	return includePatterns, excludePatterns, recursive, nil
 }
 
 // getLSHConfig loads LSH configuration settings for clone detection
