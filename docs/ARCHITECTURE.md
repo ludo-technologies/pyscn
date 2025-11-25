@@ -333,7 +333,7 @@ The configuration system implements TOML-only configuration discovery similar to
 type Config struct {
     // Analysis settings
     DeadCode   DeadCodeConfig   `toml:"dead_code"`
-    Clones     CloneConfig      `toml:"clones"`
+    Clones     PyscnConfig      `toml:"clones"`
     Complexity ComplexityConfig `toml:"complexity"`
     CBO        CBOConfig        `toml:"cbo"`
     
@@ -352,7 +352,7 @@ type OutputConfig struct {
     MinComplexity int    `toml:"min_complexity"`
 }
 
-type CloneConfig struct {
+type PyscnConfig struct {
     // Analysis parameters
     MinLines          int     `toml:"min_lines"`
     MinNodes          int     `toml:"min_nodes"`
