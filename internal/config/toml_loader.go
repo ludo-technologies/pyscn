@@ -73,25 +73,41 @@ type CboTomlConfig struct {
 
 // ArchitectureTomlConfig represents the [architecture] section
 type ArchitectureTomlConfig struct {
-	Enabled                         *bool    `toml:"enabled"`
-	ValidateLayers                  *bool    `toml:"validate_layers"`
-	ValidateCohesion                *bool    `toml:"validate_cohesion"`
-	ValidateResponsibility          *bool    `toml:"validate_responsibility"`
-	MinCohesion                     *float64 `toml:"min_cohesion"`
-	MaxCoupling                     *int     `toml:"max_coupling"`
-	MaxResponsibilities             *int     `toml:"max_responsibilities"`
-	LayerViolationSeverity          string   `toml:"layer_violation_severity"`
-	CohesionViolationSeverity       string   `toml:"cohesion_violation_severity"`
-	ResponsibilityViolationSeverity string   `toml:"responsibility_violation_severity"`
-	ShowAllViolations               *bool    `toml:"show_all_violations"`
-	GroupByType                     *bool    `toml:"group_by_type"`
-	IncludeSuggestions              *bool    `toml:"include_suggestions"`
-	MaxViolationsToShow             *int     `toml:"max_violations_to_show"`
-	CustomPatterns                  []string `toml:"custom_patterns"`
-	AllowedPatterns                 []string `toml:"allowed_patterns"`
-	ForbiddenPatterns               []string `toml:"forbidden_patterns"`
-	StrictMode                      *bool    `toml:"strict_mode"`
-	FailOnViolations                *bool    `toml:"fail_on_violations"`
+	Enabled                         *bool                 `toml:"enabled"`
+	ValidateLayers                  *bool                 `toml:"validate_layers"`
+	ValidateCohesion                *bool                 `toml:"validate_cohesion"`
+	ValidateResponsibility          *bool                 `toml:"validate_responsibility"`
+	MinCohesion                     *float64              `toml:"min_cohesion"`
+	MaxCoupling                     *int                  `toml:"max_coupling"`
+	MaxResponsibilities             *int                  `toml:"max_responsibilities"`
+	LayerViolationSeverity          string                `toml:"layer_violation_severity"`
+	CohesionViolationSeverity       string                `toml:"cohesion_violation_severity"`
+	ResponsibilityViolationSeverity string                `toml:"responsibility_violation_severity"`
+	ShowAllViolations               *bool                 `toml:"show_all_violations"`
+	GroupByType                     *bool                 `toml:"group_by_type"`
+	IncludeSuggestions              *bool                 `toml:"include_suggestions"`
+	MaxViolationsToShow             *int                  `toml:"max_violations_to_show"`
+	CustomPatterns                  []string              `toml:"custom_patterns"`
+	AllowedPatterns                 []string              `toml:"allowed_patterns"`
+	ForbiddenPatterns               []string              `toml:"forbidden_patterns"`
+	StrictMode                      *bool                 `toml:"strict_mode"`
+	FailOnViolations                *bool                 `toml:"fail_on_violations"`
+	Layers                          []LayerDefinitionToml `toml:"layers"`
+	Rules                           []LayerRuleToml       `toml:"rules"`
+}
+
+// LayerDefinitionToml represents a layer definition in TOML
+type LayerDefinitionToml struct {
+	Name        string   `toml:"name"`
+	Description string   `toml:"description"`
+	Packages    []string `toml:"packages"`
+}
+
+// LayerRuleToml represents a layer rule in TOML
+type LayerRuleToml struct {
+	From  string   `toml:"from"`
+	Allow []string `toml:"allow"`
+	Deny  []string `toml:"deny"`
 }
 
 // SystemAnalysisTomlConfig represents the [system_analysis] section

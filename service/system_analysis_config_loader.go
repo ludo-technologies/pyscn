@@ -3,9 +3,11 @@ package service
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/ludo-technologies/pyscn/domain"
-	"github.com/spf13/viper"
+	"github.com/ludo-technologies/pyscn/internal/config"
+	"github.com/pelletier/go-toml/v2"
 )
 
 // SystemAnalysisConfigurationLoaderImpl implements the SystemAnalysisConfigurationLoader interface
@@ -16,81 +18,193 @@ func NewSystemAnalysisConfigurationLoader() *SystemAnalysisConfigurationLoaderIm
 	return &SystemAnalysisConfigurationLoaderImpl{}
 }
 
-// LoadConfig loads configuration from the specified path
+// LoadConfig loads configuration from the specified path using TOML-only loader
 func (cl *SystemAnalysisConfigurationLoaderImpl) LoadConfig(path string) (*domain.SystemAnalysisRequest, error) {
-	// Create a new viper instance
-	v := viper.New()
-
-	// Set configuration file
-	if path != "" {
-		// Use the specified file
-		v.SetConfigFile(path)
-	} else {
-		// Look for default configuration files
-		v.SetConfigName(".pyscn")
-		v.SetConfigType("toml")
-		v.AddConfigPath(".")
-
-		// Also check for pyproject.toml
-		pyprojectPath := "pyproject.toml"
-		if _, err := os.Stat(pyprojectPath); err == nil {
-			v.SetConfigFile(pyprojectPath)
-		}
-	}
-
-	// Read the config file
-	if err := v.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// Config file not found; use default configuration
-			return cl.LoadDefaultConfig(), nil
-		} else {
-			// Config file was found but another error was produced
-			return nil, fmt.Errorf("error reading config file: %w", err)
-		}
-	}
-
-	// Load system analysis specific configuration
+	// Start with default configuration
 	request := cl.LoadDefaultConfig()
 
-	// Load from [tool.pyscn.system_analysis] section if it exists (for pyproject.toml)
-	if v.IsSet("tool.pyscn.system_analysis") {
-		if err := cl.loadFromViperSection(v, "tool.pyscn.system_analysis", request); err != nil {
-			return nil, err
+	// Determine the directory to search for config
+	startDir := "."
+	if path != "" {
+		info, err := os.Stat(path)
+		if err == nil {
+			if info.IsDir() {
+				startDir = path
+			} else {
+				startDir = filepath.Dir(path)
+			}
 		}
 	}
 
-	// Load from [system_analysis] section if it exists (for .pyscn.toml)
-	if v.IsSet("system_analysis") {
-		if err := cl.loadFromViperSection(v, "system_analysis", request); err != nil {
-			return nil, err
+	// Try to load .pyscn.toml first
+	pyscnTomlPath := cl.findPyscnToml(startDir)
+	if pyscnTomlPath != "" {
+		if err := cl.loadFromPyscnToml(pyscnTomlPath, request); err != nil {
+			return nil, fmt.Errorf("error reading .pyscn.toml: %w", err)
 		}
+		return request, nil
 	}
 
-	// Load dependency analysis configuration
-	if v.IsSet("tool.pyscn.dependencies") {
-		if err := cl.loadDependencyConfig(v, "tool.pyscn.dependencies", request); err != nil {
-			return nil, err
+	// Try to load pyproject.toml
+	pyprojectPath := cl.findPyprojectToml(startDir)
+	if pyprojectPath != "" {
+		if err := cl.loadFromPyprojectToml(pyprojectPath, request); err != nil {
+			return nil, fmt.Errorf("error reading pyproject.toml: %w", err)
 		}
-	}
-	if v.IsSet("dependencies") {
-		if err := cl.loadDependencyConfig(v, "dependencies", request); err != nil {
-			return nil, err
-		}
+		return request, nil
 	}
 
-	// Load architecture analysis configuration
-	if v.IsSet("tool.pyscn.architecture") {
-		if err := cl.loadArchitectureConfig(v, "tool.pyscn.architecture", request); err != nil {
-			return nil, err
-		}
-	}
-	if v.IsSet("architecture") {
-		if err := cl.loadArchitectureConfig(v, "architecture", request); err != nil {
-			return nil, err
-		}
-	}
-
+	// No config file found, return defaults
 	return request, nil
+}
+
+// findPyscnToml walks up the directory tree to find .pyscn.toml
+func (cl *SystemAnalysisConfigurationLoaderImpl) findPyscnToml(startDir string) string {
+	dir := startDir
+	for {
+		configPath := filepath.Join(dir, ".pyscn.toml")
+		if _, err := os.Stat(configPath); err == nil {
+			return configPath
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+	return ""
+}
+
+// findPyprojectToml walks up the directory tree to find pyproject.toml
+func (cl *SystemAnalysisConfigurationLoaderImpl) findPyprojectToml(startDir string) string {
+	dir := startDir
+	for {
+		configPath := filepath.Join(dir, "pyproject.toml")
+		if _, err := os.Stat(configPath); err == nil {
+			return configPath
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+	return ""
+}
+
+// loadFromPyscnToml loads configuration from .pyscn.toml
+func (cl *SystemAnalysisConfigurationLoaderImpl) loadFromPyscnToml(configPath string, request *domain.SystemAnalysisRequest) error {
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return err
+	}
+
+	var cfg config.PyscnTomlConfig
+	if err := toml.Unmarshal(data, &cfg); err != nil {
+		return err
+	}
+
+	// Merge system_analysis section
+	cl.mergeSystemAnalysisSection(&cfg.SystemAnalysis, request)
+
+	// Merge dependencies section
+	cl.mergeDependenciesSection(&cfg.Dependencies, request)
+
+	// Merge architecture section
+	cl.mergeArchitectureSection(&cfg.Architecture, request)
+
+	// Merge analysis section (for include/exclude patterns)
+	cl.mergeAnalysisSection(&cfg.Analysis, request)
+
+	return nil
+}
+
+// loadFromPyprojectToml loads configuration from pyproject.toml
+func (cl *SystemAnalysisConfigurationLoaderImpl) loadFromPyprojectToml(configPath string, request *domain.SystemAnalysisRequest) error {
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return err
+	}
+
+	var pyproject config.PyprojectToml
+	if err := toml.Unmarshal(data, &pyproject); err != nil {
+		return err
+	}
+
+	pyscn := pyproject.Tool.Pyscn
+
+	// Merge system_analysis section
+	cl.mergeSystemAnalysisSection(&pyscn.SystemAnalysis, request)
+
+	// Merge dependencies section
+	cl.mergeDependenciesSection(&pyscn.Dependencies, request)
+
+	// Merge architecture section
+	cl.mergeArchitectureSection(&pyscn.Architecture, request)
+
+	// Merge analysis section (for include/exclude patterns)
+	cl.mergeAnalysisSection(&pyscn.Analysis, request)
+
+	return nil
+}
+
+// mergeSystemAnalysisSection merges system_analysis settings into the request
+func (cl *SystemAnalysisConfigurationLoaderImpl) mergeSystemAnalysisSection(cfg *config.SystemAnalysisTomlConfig, request *domain.SystemAnalysisRequest) {
+	if cfg.EnableDependencies != nil {
+		request.AnalyzeDependencies = cfg.EnableDependencies
+	}
+	if cfg.EnableArchitecture != nil {
+		request.AnalyzeArchitecture = cfg.EnableArchitecture
+	}
+}
+
+// mergeDependenciesSection merges dependencies settings into the request
+func (cl *SystemAnalysisConfigurationLoaderImpl) mergeDependenciesSection(cfg *config.DependenciesTomlConfig, request *domain.SystemAnalysisRequest) {
+	if cfg.IncludeStdLib != nil {
+		request.IncludeStdLib = cfg.IncludeStdLib
+	}
+	if cfg.IncludeThirdParty != nil {
+		request.IncludeThirdParty = cfg.IncludeThirdParty
+	}
+	if cfg.FollowRelative != nil {
+		request.FollowRelative = cfg.FollowRelative
+	}
+	if cfg.DetectCycles != nil {
+		request.DetectCycles = cfg.DetectCycles
+	}
+}
+
+// mergeArchitectureSection merges architecture settings into the request
+func (cl *SystemAnalysisConfigurationLoaderImpl) mergeArchitectureSection(cfg *config.ArchitectureTomlConfig, request *domain.SystemAnalysisRequest) {
+	// Initialize architecture rules if needed
+	if request.ArchitectureRules == nil {
+		request.ArchitectureRules = &domain.ArchitectureRules{}
+	}
+
+	if cfg.StrictMode != nil {
+		request.ArchitectureRules.StrictMode = *cfg.StrictMode
+	}
+	if len(cfg.AllowedPatterns) > 0 {
+		request.ArchitectureRules.AllowedPatterns = cfg.AllowedPatterns
+	}
+	if len(cfg.ForbiddenPatterns) > 0 {
+		request.ArchitectureRules.ForbiddenPatterns = cfg.ForbiddenPatterns
+	}
+}
+
+// mergeAnalysisSection merges analysis settings into the request
+func (cl *SystemAnalysisConfigurationLoaderImpl) mergeAnalysisSection(cfg *config.AnalysisTomlConfig, request *domain.SystemAnalysisRequest) {
+	if len(cfg.IncludePatterns) > 0 {
+		request.IncludePatterns = cfg.IncludePatterns
+	}
+	if len(cfg.ExcludePatterns) > 0 {
+		request.ExcludePatterns = cfg.ExcludePatterns
+	}
+	if cfg.Recursive != nil {
+		request.Recursive = cfg.Recursive
+	}
 }
 
 // LoadDefaultConfig loads the default configuration
@@ -150,8 +264,6 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
 		merged.AnalyzeArchitecture = override.AnalyzeArchitecture
 	}
 
-	// (Filtering options removed - fields no longer exist)
-
 	// Analysis options - only override if explicitly set (non-nil)
 	if override.IncludeStdLib != nil {
 		merged.IncludeStdLib = override.IncludeStdLib
@@ -209,224 +321,6 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
 	return &merged
 }
 
-// loadFromViperSection loads configuration from a specific viper section
-func (cl *SystemAnalysisConfigurationLoaderImpl) loadFromViperSection(v *viper.Viper, section string, request *domain.SystemAnalysisRequest) error {
-	// Analysis types
-	if v.IsSet(section + ".analyze_dependencies") {
-		request.AnalyzeDependencies = domain.BoolPtr(v.GetBool(section + ".analyze_dependencies"))
-	}
-	if v.IsSet(section + ".analyze_architecture") {
-		request.AnalyzeArchitecture = domain.BoolPtr(v.GetBool(section + ".analyze_architecture"))
-	}
-
-	// (Output options removed - ShowDetails field no longer exists)
-
-	// File patterns
-	if v.IsSet(section + ".include_patterns") {
-		request.IncludePatterns = v.GetStringSlice(section + ".include_patterns")
-	}
-	if v.IsSet(section + ".exclude_patterns") {
-		request.ExcludePatterns = v.GetStringSlice(section + ".exclude_patterns")
-	}
-	if v.IsSet(section + ".recursive") {
-		request.Recursive = domain.BoolPtr(v.GetBool(section + ".recursive"))
-	}
-
-	return nil
-}
-
-// loadDependencyConfig loads dependency-specific configuration
-func (cl *SystemAnalysisConfigurationLoaderImpl) loadDependencyConfig(v *viper.Viper, section string, request *domain.SystemAnalysisRequest) error {
-	// (Filtering options removed - fields no longer exist)
-
-	// Analysis options
-	if v.IsSet(section + ".include_stdlib") {
-		request.IncludeStdLib = domain.BoolPtr(v.GetBool(section + ".include_stdlib"))
-	}
-	if v.IsSet(section + ".include_third_party") {
-		request.IncludeThirdParty = domain.BoolPtr(v.GetBool(section + ".include_third_party"))
-	}
-	if v.IsSet(section + ".follow_relative") {
-		request.FollowRelative = domain.BoolPtr(v.GetBool(section + ".follow_relative"))
-	}
-	if v.IsSet(section + ".detect_cycles") {
-		request.DetectCycles = domain.BoolPtr(v.GetBool(section + ".detect_cycles"))
-	}
-
-	return nil
-}
-
-// loadArchitectureConfig loads architecture-specific configuration
-func (cl *SystemAnalysisConfigurationLoaderImpl) loadArchitectureConfig(v *viper.Viper, section string, request *domain.SystemAnalysisRequest) error {
-	// Initialize rules if missing
-	if request.ArchitectureRules == nil {
-		request.ArchitectureRules = &domain.ArchitectureRules{}
-	}
-
-	// strict_mode
-	if v.IsSet(section + ".strict_mode") {
-		request.ArchitectureRules.StrictMode = v.GetBool(section + ".strict_mode")
-	}
-
-	// allowed_patterns / forbidden_patterns
-	if v.IsSet(section + ".allowed_patterns") {
-		request.ArchitectureRules.AllowedPatterns = v.GetStringSlice(section + ".allowed_patterns")
-	}
-	if v.IsSet(section + ".forbidden_patterns") {
-		request.ArchitectureRules.ForbiddenPatterns = v.GetStringSlice(section + ".forbidden_patterns")
-	}
-
-	// Load layers
-	if v.IsSet(section + ".layers") {
-		layers, err := cl.unmarshalLayers(v, section+".layers")
-		if err != nil {
-			return err
-		}
-		request.ArchitectureRules.Layers = layers
-	}
-
-	// Load rules
-	if v.IsSet(section + ".rules") {
-		rules, err := cl.unmarshalRules(v, section+".rules")
-		if err != nil {
-			return err
-		}
-		request.ArchitectureRules.Rules = rules
-	}
-
-	// Validate the loaded architecture config
-	if err := cl.validateArchitectureConfig(request.ArchitectureRules); err != nil {
-		return fmt.Errorf("invalid architecture configuration: %w", err)
-	}
-
-	return nil
-}
-
-// unmarshalLayers extracts layer configuration from viper
-func (cl *SystemAnalysisConfigurationLoaderImpl) unmarshalLayers(v *viper.Viper, key string) ([]domain.Layer, error) {
-	var rawLayers []map[string]interface{}
-	if err := v.UnmarshalKey(key, &rawLayers); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal architecture layers config: %w", err)
-	}
-
-	layers := make([]domain.Layer, 0, len(rawLayers))
-	for _, l := range rawLayers {
-		layer := cl.parseLayer(l)
-		if layer.Name != "" {
-			layers = append(layers, layer)
-		}
-	}
-	return layers, nil
-}
-
-// parseLayer converts a raw map to a Layer struct
-func (cl *SystemAnalysisConfigurationLoaderImpl) parseLayer(raw map[string]interface{}) domain.Layer {
-	layer := domain.Layer{}
-
-	if name, ok := raw["name"].(string); ok {
-		layer.Name = name
-	}
-	if desc, ok := raw["description"].(string); ok {
-		layer.Description = desc
-	}
-
-	layer.Packages = cl.extractStringSlice(raw["packages"])
-	return layer
-}
-
-// unmarshalRules extracts rule configuration from viper
-func (cl *SystemAnalysisConfigurationLoaderImpl) unmarshalRules(v *viper.Viper, key string) ([]domain.LayerRule, error) {
-	var rawRules []map[string]interface{}
-	if err := v.UnmarshalKey(key, &rawRules); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal architecture rules config: %w", err)
-	}
-
-	rules := make([]domain.LayerRule, 0, len(rawRules))
-	for _, r := range rawRules {
-		rule := cl.parseRule(r)
-		if rule.From != "" {
-			rules = append(rules, rule)
-		}
-	}
-	return rules, nil
-}
-
-// parseRule converts a raw map to a LayerRule struct
-func (cl *SystemAnalysisConfigurationLoaderImpl) parseRule(raw map[string]interface{}) domain.LayerRule {
-	rule := domain.LayerRule{}
-
-	if from, ok := raw["from"].(string); ok {
-		rule.From = from
-	}
-
-	rule.Allow = cl.extractStringSlice(raw["allow"])
-	rule.Deny = cl.extractStringSlice(raw["deny"])
-	return rule
-}
-
-// validateArchitectureConfig validates the architecture configuration for common errors
-func (cl *SystemAnalysisConfigurationLoaderImpl) validateArchitectureConfig(rules *domain.ArchitectureRules) error {
-	if rules == nil {
-		return nil
-	}
-
-	// Build a map of valid layer names
-	layerNames := make(map[string]bool)
-	for _, layer := range rules.Layers {
-		if layer.Name == "" {
-			return fmt.Errorf("layer with empty name found")
-		}
-		layerNames[layer.Name] = true
-	}
-
-	// Validate rules
-	for i, rule := range rules.Rules {
-		// Check if 'from' field is set (common mistake: using 'source' instead)
-		if rule.From == "" {
-			return fmt.Errorf("rule #%d: 'from' field is required (did you mean 'from' instead of 'source'?)", i+1)
-		}
-
-		// Warn if the 'from' layer doesn't exist in layers definition
-		if len(rules.Layers) > 0 && !layerNames[rule.From] {
-			return fmt.Errorf("rule #%d: layer '%s' referenced in 'from' is not defined in layers", i+1, rule.From)
-		}
-
-		// Validate 'allow' references
-		for _, allowed := range rule.Allow {
-			if len(rules.Layers) > 0 && !layerNames[allowed] {
-				return fmt.Errorf("rule #%d: layer '%s' in 'allow' list is not defined in layers", i+1, allowed)
-			}
-		}
-
-		// Validate 'deny' references
-		for _, denied := range rule.Deny {
-			if len(rules.Layers) > 0 && !layerNames[denied] {
-				return fmt.Errorf("rule #%d: layer '%s' in 'deny' list is not defined in layers", i+1, denied)
-			}
-		}
-	}
-
-	return nil
-}
-
-// extractStringSlice handles type conversion for string slices
-func (cl *SystemAnalysisConfigurationLoaderImpl) extractStringSlice(value interface{}) []string {
-	var result []string
-
-	switch v := value.(type) {
-	case []string:
-		result = append(result, v...)
-	case []interface{}:
-		for _, item := range v {
-			if s, ok := item.(string); ok {
-				result = append(result, s)
-			}
-		}
-	}
-
-	return result
-}
-
 // SystemAnalysisConfigurationLoaderWithFlags extends the base loader with CLI flag integration
 type SystemAnalysisConfigurationLoaderWithFlags struct {
 	*SystemAnalysisConfigurationLoaderImpl
@@ -462,22 +356,18 @@ var ExampleSystemAnalysisConfig = `
 [system_analysis]
 analyze_dependencies = true
 analyze_architecture = true
-show_details = false
 recursive = true
 include_patterns = ["**/*.py"]
 exclude_patterns = ["test_*.py", "*_test.py"]
 
 [dependencies]
-min_coupling = 0
-max_coupling = 0  # 0 means no limit
-min_instability = 0.0
-max_distance = 1.0
 include_stdlib = false
 include_third_party = true
 follow_relative = true
 detect_cycles = true
 
 [architecture]
-# Architecture-specific settings
-# (to be extended in future versions)
+strict_mode = false
+allowed_patterns = []
+forbidden_patterns = []
 `
