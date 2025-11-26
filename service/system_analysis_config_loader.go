@@ -1,13 +1,8 @@
 package service
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
-
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
-	"github.com/pelletier/go-toml/v2"
 )
 
 // SystemAnalysisConfigurationLoaderImpl implements the SystemAnalysisConfigurationLoader interface
@@ -18,193 +13,73 @@ func NewSystemAnalysisConfigurationLoader() *SystemAnalysisConfigurationLoaderIm
 	return &SystemAnalysisConfigurationLoaderImpl{}
 }
 
-// LoadConfig loads configuration from the specified path using TOML-only loader
+// LoadConfig loads configuration from the specified path using the shared TomlConfigLoader
 func (cl *SystemAnalysisConfigurationLoaderImpl) LoadConfig(path string) (*domain.SystemAnalysisRequest, error) {
-	// Start with default configuration
+	// Use the shared TomlConfigLoader to load configuration
+	tomlLoader := config.NewTomlConfigLoader()
+	pyscnCfg, err := tomlLoader.LoadConfig(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert PyscnConfig to SystemAnalysisRequest
+	return cl.pyscnConfigToSystemAnalysisRequest(pyscnCfg), nil
+}
+
+// pyscnConfigToSystemAnalysisRequest converts PyscnConfig to SystemAnalysisRequest
+func (cl *SystemAnalysisConfigurationLoaderImpl) pyscnConfigToSystemAnalysisRequest(cfg *config.PyscnConfig) *domain.SystemAnalysisRequest {
 	request := cl.LoadDefaultConfig()
 
-	// Determine the directory to search for config
-	startDir := "."
-	if path != "" {
-		info, err := os.Stat(path)
-		if err == nil {
-			if info.IsDir() {
-				startDir = path
-			} else {
-				startDir = filepath.Dir(path)
-			}
+	// System analysis settings
+	if cfg.SystemAnalysisEnableDependencies != nil {
+		request.AnalyzeDependencies = cfg.SystemAnalysisEnableDependencies
+	}
+	if cfg.SystemAnalysisEnableArchitecture != nil {
+		request.AnalyzeArchitecture = cfg.SystemAnalysisEnableArchitecture
+	}
+
+	// Dependencies settings
+	if cfg.DependenciesIncludeStdLib != nil {
+		request.IncludeStdLib = cfg.DependenciesIncludeStdLib
+	}
+	if cfg.DependenciesIncludeThirdParty != nil {
+		request.IncludeThirdParty = cfg.DependenciesIncludeThirdParty
+	}
+	if cfg.DependenciesFollowRelative != nil {
+		request.FollowRelative = cfg.DependenciesFollowRelative
+	}
+	if cfg.DependenciesDetectCycles != nil {
+		request.DetectCycles = cfg.DependenciesDetectCycles
+	}
+
+	// Architecture settings
+	if cfg.ArchitectureStrictMode != nil || len(cfg.ArchitectureAllowedPatterns) > 0 || len(cfg.ArchitectureForbiddenPatterns) > 0 {
+		if request.ArchitectureRules == nil {
+			request.ArchitectureRules = &domain.ArchitectureRules{}
+		}
+		if cfg.ArchitectureStrictMode != nil {
+			request.ArchitectureRules.StrictMode = *cfg.ArchitectureStrictMode
+		}
+		if len(cfg.ArchitectureAllowedPatterns) > 0 {
+			request.ArchitectureRules.AllowedPatterns = cfg.ArchitectureAllowedPatterns
+		}
+		if len(cfg.ArchitectureForbiddenPatterns) > 0 {
+			request.ArchitectureRules.ForbiddenPatterns = cfg.ArchitectureForbiddenPatterns
 		}
 	}
 
-	// Try to load .pyscn.toml first
-	pyscnTomlPath := cl.findPyscnToml(startDir)
-	if pyscnTomlPath != "" {
-		if err := cl.loadFromPyscnToml(pyscnTomlPath, request); err != nil {
-			return nil, fmt.Errorf("error reading .pyscn.toml: %w", err)
-		}
-		return request, nil
+	// Analysis settings (include/exclude patterns)
+	if len(cfg.AnalysisIncludePatterns) > 0 {
+		request.IncludePatterns = cfg.AnalysisIncludePatterns
+	}
+	if len(cfg.AnalysisExcludePatterns) > 0 {
+		request.ExcludePatterns = cfg.AnalysisExcludePatterns
+	}
+	if cfg.AnalysisRecursive != nil {
+		request.Recursive = cfg.AnalysisRecursive
 	}
 
-	// Try to load pyproject.toml
-	pyprojectPath := cl.findPyprojectToml(startDir)
-	if pyprojectPath != "" {
-		if err := cl.loadFromPyprojectToml(pyprojectPath, request); err != nil {
-			return nil, fmt.Errorf("error reading pyproject.toml: %w", err)
-		}
-		return request, nil
-	}
-
-	// No config file found, return defaults
-	return request, nil
-}
-
-// findPyscnToml walks up the directory tree to find .pyscn.toml
-func (cl *SystemAnalysisConfigurationLoaderImpl) findPyscnToml(startDir string) string {
-	dir := startDir
-	for {
-		configPath := filepath.Join(dir, ".pyscn.toml")
-		if _, err := os.Stat(configPath); err == nil {
-			return configPath
-		}
-
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-		dir = parent
-	}
-	return ""
-}
-
-// findPyprojectToml walks up the directory tree to find pyproject.toml
-func (cl *SystemAnalysisConfigurationLoaderImpl) findPyprojectToml(startDir string) string {
-	dir := startDir
-	for {
-		configPath := filepath.Join(dir, "pyproject.toml")
-		if _, err := os.Stat(configPath); err == nil {
-			return configPath
-		}
-
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-		dir = parent
-	}
-	return ""
-}
-
-// loadFromPyscnToml loads configuration from .pyscn.toml
-func (cl *SystemAnalysisConfigurationLoaderImpl) loadFromPyscnToml(configPath string, request *domain.SystemAnalysisRequest) error {
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		return err
-	}
-
-	var cfg config.PyscnTomlConfig
-	if err := toml.Unmarshal(data, &cfg); err != nil {
-		return err
-	}
-
-	// Merge system_analysis section
-	cl.mergeSystemAnalysisSection(&cfg.SystemAnalysis, request)
-
-	// Merge dependencies section
-	cl.mergeDependenciesSection(&cfg.Dependencies, request)
-
-	// Merge architecture section
-	cl.mergeArchitectureSection(&cfg.Architecture, request)
-
-	// Merge analysis section (for include/exclude patterns)
-	cl.mergeAnalysisSection(&cfg.Analysis, request)
-
-	return nil
-}
-
-// loadFromPyprojectToml loads configuration from pyproject.toml
-func (cl *SystemAnalysisConfigurationLoaderImpl) loadFromPyprojectToml(configPath string, request *domain.SystemAnalysisRequest) error {
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		return err
-	}
-
-	var pyproject config.PyprojectToml
-	if err := toml.Unmarshal(data, &pyproject); err != nil {
-		return err
-	}
-
-	pyscn := pyproject.Tool.Pyscn
-
-	// Merge system_analysis section
-	cl.mergeSystemAnalysisSection(&pyscn.SystemAnalysis, request)
-
-	// Merge dependencies section
-	cl.mergeDependenciesSection(&pyscn.Dependencies, request)
-
-	// Merge architecture section
-	cl.mergeArchitectureSection(&pyscn.Architecture, request)
-
-	// Merge analysis section (for include/exclude patterns)
-	cl.mergeAnalysisSection(&pyscn.Analysis, request)
-
-	return nil
-}
-
-// mergeSystemAnalysisSection merges system_analysis settings into the request
-func (cl *SystemAnalysisConfigurationLoaderImpl) mergeSystemAnalysisSection(cfg *config.SystemAnalysisTomlConfig, request *domain.SystemAnalysisRequest) {
-	if cfg.EnableDependencies != nil {
-		request.AnalyzeDependencies = cfg.EnableDependencies
-	}
-	if cfg.EnableArchitecture != nil {
-		request.AnalyzeArchitecture = cfg.EnableArchitecture
-	}
-}
-
-// mergeDependenciesSection merges dependencies settings into the request
-func (cl *SystemAnalysisConfigurationLoaderImpl) mergeDependenciesSection(cfg *config.DependenciesTomlConfig, request *domain.SystemAnalysisRequest) {
-	if cfg.IncludeStdLib != nil {
-		request.IncludeStdLib = cfg.IncludeStdLib
-	}
-	if cfg.IncludeThirdParty != nil {
-		request.IncludeThirdParty = cfg.IncludeThirdParty
-	}
-	if cfg.FollowRelative != nil {
-		request.FollowRelative = cfg.FollowRelative
-	}
-	if cfg.DetectCycles != nil {
-		request.DetectCycles = cfg.DetectCycles
-	}
-}
-
-// mergeArchitectureSection merges architecture settings into the request
-func (cl *SystemAnalysisConfigurationLoaderImpl) mergeArchitectureSection(cfg *config.ArchitectureTomlConfig, request *domain.SystemAnalysisRequest) {
-	// Initialize architecture rules if needed
-	if request.ArchitectureRules == nil {
-		request.ArchitectureRules = &domain.ArchitectureRules{}
-	}
-
-	if cfg.StrictMode != nil {
-		request.ArchitectureRules.StrictMode = *cfg.StrictMode
-	}
-	if len(cfg.AllowedPatterns) > 0 {
-		request.ArchitectureRules.AllowedPatterns = cfg.AllowedPatterns
-	}
-	if len(cfg.ForbiddenPatterns) > 0 {
-		request.ArchitectureRules.ForbiddenPatterns = cfg.ForbiddenPatterns
-	}
-}
-
-// mergeAnalysisSection merges analysis settings into the request
-func (cl *SystemAnalysisConfigurationLoaderImpl) mergeAnalysisSection(cfg *config.AnalysisTomlConfig, request *domain.SystemAnalysisRequest) {
-	if len(cfg.IncludePatterns) > 0 {
-		request.IncludePatterns = cfg.IncludePatterns
-	}
-	if len(cfg.ExcludePatterns) > 0 {
-		request.ExcludePatterns = cfg.ExcludePatterns
-	}
-	if cfg.Recursive != nil {
-		request.Recursive = cfg.Recursive
-	}
+	return request
 }
 
 // LoadDefaultConfig loads the default configuration
