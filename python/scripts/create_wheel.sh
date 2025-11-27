@@ -536,11 +536,31 @@ main() {
                 ;;
         esac
         
-        local bin_base="$python_dir/src/pyscn/bin"
-        local expected_binaries=(
-            "$bin_base/pyscn-${os}-${arch}${suffix}"
-            "$bin_base/pyscn-mcp-${os}-${arch}${suffix}"
-        )
+        # Set bin_base based on package type
+        local bin_base
+        if [[ "$PACKAGE_NAME" == "pyscn" ]]; then
+            bin_base="$python_dir/src/pyscn/bin"
+        elif [[ "$PACKAGE_NAME" == "pyscn_mcp" ]]; then
+            bin_base="$python_dir/src/pyscn_mcp/bin"
+        else
+            echo "Error: Unknown package name: $PACKAGE_NAME"
+            exit 1
+        fi
+
+        # Build expected_binaries based on package type
+        local expected_binaries=()
+        if [[ "$PACKAGE_NAME" == "pyscn" ]]; then
+            # pyscn package needs both binaries
+            expected_binaries=(
+                "$bin_base/pyscn-${os}-${arch}${suffix}"
+                "$bin_base/pyscn-mcp-${os}-${arch}${suffix}"
+            )
+        elif [[ "$PACKAGE_NAME" == "pyscn_mcp" ]]; then
+            # pyscn_mcp package only needs the MCP server binary
+            expected_binaries=(
+                "$bin_base/pyscn-mcp-${os}-${arch}${suffix}"
+            )
+        fi
         
         local missing=()
         for candidate in "${expected_binaries[@]}"; do
