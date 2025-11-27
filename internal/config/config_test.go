@@ -244,12 +244,14 @@ func TestComplexityConfigMethods(t *testing.T) {
 
 func TestLoadConfig(t *testing.T) {
 	t.Run("LoadNonExistentConfig", func(t *testing.T) {
-		config, err := LoadConfig("nonexistent.yaml")
-		if err == nil {
-			t.Error("Expected error for non-existent config file")
+		// TOML-only loader returns defaults when config file is not found
+		// (searches directory, not exact file path)
+		config, err := LoadConfig("/nonexistent/path")
+		if err != nil {
+			t.Errorf("Expected no error for non-existent path with TOML loader, got: %v", err)
 		}
-		if config != nil {
-			t.Error("Expected nil config for non-existent file")
+		if config == nil {
+			t.Error("Expected default config when no config file found")
 		}
 	})
 
@@ -270,41 +272,36 @@ func TestLoadConfig(t *testing.T) {
 		}
 	})
 
-	t.Run("LoadValidYAMLConfig", func(t *testing.T) {
-		// Create temporary config file
+	t.Run("LoadValidTOMLConfig", func(t *testing.T) {
+		// Create temporary config file in TOML format
 		tempDir := t.TempDir()
-		configPath := filepath.Join(tempDir, "test_config.yaml")
+		configPath := filepath.Join(tempDir, ".pyscn.toml")
 
-		yamlContent := `
-complexity:
-  low_threshold: 5
-  medium_threshold: 15
-  enabled: true
-  report_unchanged: true
-  max_complexity: 50
+		tomlContent := `
+[complexity]
+low_threshold = 5
+medium_threshold = 15
+max_complexity = 50
 
-output:
-  format: json
-  show_details: true
-  sort_by: complexity
-  min_complexity: 2
+[output]
+format = "json"
+show_details = true
+sort_by = "complexity"
+min_complexity = 2
 
-analysis:
-  include_patterns:
-    - "**/*.py"
-    - "**/*.pyx"
-  exclude_patterns:
-    - "**/*test*.py"
-  recursive: true
-  follow_symlinks: false
+[analysis]
+include_patterns = ["**/*.py", "**/*.pyx"]
+exclude_patterns = ["**/*test*.py"]
+recursive = true
+follow_symlinks = false
 `
 
-		err := os.WriteFile(configPath, []byte(yamlContent), 0644)
+		err := os.WriteFile(configPath, []byte(tomlContent), 0644)
 		if err != nil {
 			t.Fatalf("Failed to create test config file: %v", err)
 		}
 
-		config, err := LoadConfig(configPath)
+		config, err := LoadConfig(tempDir)
 		if err != nil {
 			t.Fatalf("Failed to load config: %v", err)
 		}
@@ -336,23 +333,24 @@ analysis:
 		}
 	})
 
-	t.Run("LoadInvalidYAMLConfig", func(t *testing.T) {
-		// Create temporary invalid config file
+	t.Run("LoadInvalidTOMLConfig", func(t *testing.T) {
+		// Create temporary invalid config file in TOML format
+		// medium_threshold must be > low_threshold, so this is invalid
 		tempDir := t.TempDir()
-		configPath := filepath.Join(tempDir, "invalid_config.yaml")
+		configPath := filepath.Join(tempDir, ".pyscn.toml")
 
-		yamlContent := `
-complexity:
-  low_threshold: 0  # Invalid: must be >= 1
-  medium_threshold: 15
+		tomlContent := `
+[complexity]
+low_threshold = 20
+medium_threshold = 10
 `
 
-		err := os.WriteFile(configPath, []byte(yamlContent), 0644)
+		err := os.WriteFile(configPath, []byte(tomlContent), 0644)
 		if err != nil {
 			t.Fatalf("Failed to create test config file: %v", err)
 		}
 
-		config, err := LoadConfig(configPath)
+		config, err := LoadConfig(tempDir)
 		if err == nil {
 			t.Error("Expected validation error for invalid config")
 		}
@@ -364,7 +362,7 @@ complexity:
 
 func TestSaveConfig(t *testing.T) {
 	tempDir := t.TempDir()
-	configPath := filepath.Join(tempDir, "saved_config.yaml")
+	configPath := filepath.Join(tempDir, ".pyscn.toml")
 
 	config := DefaultConfig()
 	config.Complexity.LowThreshold = 7
@@ -380,8 +378,8 @@ func TestSaveConfig(t *testing.T) {
 		t.Error("Config file was not created")
 	}
 
-	// Load the saved config and verify
-	loadedConfig, err := LoadConfig(configPath)
+	// Load the saved config and verify (use tempDir as LoadConfig searches for .pyscn.toml)
+	loadedConfig, err := LoadConfig(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to load saved config: %v", err)
 	}
@@ -394,42 +392,38 @@ func TestSaveConfig(t *testing.T) {
 	}
 }
 
-func TestFindDefaultConfig(t *testing.T) {
-	// Save current working directory
-	originalWd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("Failed to get working directory: %v", err)
-	}
-	defer func() { _ = os.Chdir(originalWd) }()
-
+func TestTomlConfigDiscovery(t *testing.T) {
 	t.Run("NoDefaultConfigFound", func(t *testing.T) {
 		tempDir := t.TempDir()
-		if err := os.Chdir(tempDir); err != nil {
-			t.Fatalf("Failed to change to temp directory: %v", err)
-		}
+		loader := NewTomlConfigLoader()
 
-		result := findDefaultConfig("")
-		if result != "" {
-			t.Errorf("Expected empty result for no config files, got %s", result)
+		// Should return defaults when no config file found
+		cfg, err := loader.LoadConfig(tempDir)
+		if err != nil {
+			t.Fatalf("Expected no error for missing config, got %v", err)
+		}
+		if cfg == nil {
+			t.Error("Expected default config, got nil")
 		}
 	})
 
-	t.Run("FindDefaultConfigInCurrentDir", func(t *testing.T) {
+	t.Run("FindPyscnTomlInCurrentDir", func(t *testing.T) {
 		tempDir := t.TempDir()
-		if err := os.Chdir(tempDir); err != nil {
-			t.Fatalf("Failed to change to temp directory: %v", err)
-		}
 
-		// Create a default config file
-		configPath := filepath.Join(tempDir, "pyscn.yaml")
-		err := os.WriteFile(configPath, []byte("complexity:\n  enabled: true"), 0644)
+		// Create a .pyscn.toml config file
+		configPath := filepath.Join(tempDir, ".pyscn.toml")
+		err := os.WriteFile(configPath, []byte("[complexity]\nlow_threshold = 5"), 0644)
 		if err != nil {
 			t.Fatalf("Failed to create test config: %v", err)
 		}
 
-		result := findDefaultConfig("")
-		if result != "pyscn.yaml" {
-			t.Errorf("Expected to find pyscn.yaml, got %s", result)
+		loader := NewTomlConfigLoader()
+		cfg, err := loader.LoadConfig(tempDir)
+		if err != nil {
+			t.Fatalf("Failed to load config: %v", err)
+		}
+		if cfg.ComplexityLowThreshold != 5 {
+			t.Errorf("Expected low_threshold 5, got %d", cfg.ComplexityLowThreshold)
 		}
 	})
 }

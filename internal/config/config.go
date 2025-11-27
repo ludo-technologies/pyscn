@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/viper"
+	"github.com/pelletier/go-toml/v2"
 )
 
 // Default complexity thresholds based on McCabe complexity standards
@@ -250,144 +250,281 @@ func DefaultConfig() *Config {
 }
 
 // LoadConfig loads configuration from file or returns default config
+// This is a TOML-only implementation that replaces the previous Viper-based loader
 func LoadConfig(configPath string) (*Config, error) {
 	return LoadConfigWithTarget(configPath, "")
 }
 
-// discoverConfigFile finds the appropriate config file path
-// Single responsibility: configuration file discovery only
-func discoverConfigFile(targetPath string) string {
-	return findDefaultConfig(targetPath)
-}
+// LoadConfigWithTarget loads configuration with target path context
+// Uses TOML-only configuration loader
+func LoadConfigWithTarget(configPath string, targetPath string) (*Config, error) {
+	loader := NewTomlConfigLoader()
 
-// loadConfigFromFile reads and parses a configuration file
-// Single responsibility: file loading and parsing only
-func loadConfigFromFile(configPath string) (*Config, error) {
-	if configPath == "" {
-		return DefaultConfig(), nil
+	// Determine start directory for config discovery
+	startDir := targetPath
+	if configPath != "" {
+		// If explicit config path provided, use its directory
+		info, err := os.Stat(configPath)
+		if err == nil {
+			if info.IsDir() {
+				startDir = configPath
+			} else {
+				startDir = filepath.Dir(configPath)
+			}
+		}
+	} else if startDir == "" {
+		startDir = "."
+	} else {
+		// If targetPath is a file, use its directory
+		info, err := os.Stat(startDir)
+		if err == nil && !info.IsDir() {
+			startDir = filepath.Dir(startDir)
+		}
 	}
 
-	// Create a new viper instance to avoid race conditions
-	v := viper.New()
-	config := DefaultConfig()
-	v.SetConfigFile(configPath)
-
-	// Read config file
-	if err := v.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("failed to read config file %s: %w", configPath, err)
+	// Load PyscnConfig using TOML loader
+	pyscnCfg, err := loader.LoadConfig(startDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	// Unmarshal into config struct
-	if err := v.Unmarshal(config); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
-	}
+	// Convert to legacy Config struct
+	cfg := PyscnConfigToConfig(pyscnCfg)
 
 	// Validate configuration
-	if err := config.Validate(); err != nil {
+	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	return config, nil
+	return cfg, nil
 }
 
-// LoadConfigWithTarget loads configuration with target path context
-// Orchestrates discovery and loading but delegates specific concerns
-func LoadConfigWithTarget(configPath string, targetPath string) (*Config, error) {
-	// If no config path specified, discover one
-	if configPath == "" {
-		configPath = discoverConfigFile(targetPath)
+// PyscnConfigToConfig converts PyscnConfig (from TOML loader) to legacy Config struct
+func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
+	cfg := DefaultConfig()
+
+	// Complexity settings
+	if pyscn.ComplexityLowThreshold > 0 {
+		cfg.Complexity.LowThreshold = pyscn.ComplexityLowThreshold
+	}
+	if pyscn.ComplexityMediumThreshold > 0 {
+		cfg.Complexity.MediumThreshold = pyscn.ComplexityMediumThreshold
+	}
+	if pyscn.ComplexityMaxComplexity > 0 {
+		cfg.Complexity.MaxComplexity = pyscn.ComplexityMaxComplexity
 	}
 
-	// Load the configuration from the determined path
-	return loadConfigFromFile(configPath)
-}
-
-// searchConfigInDirectory searches for configuration files in a specific directory
-func searchConfigInDirectory(dir string, candidates []string) string {
-	for _, candidate := range candidates {
-		path := filepath.Join(dir, candidate)
-		if _, err := os.Stat(path); err == nil {
-			return path
-		}
+	// DeadCode settings
+	if pyscn.DeadCodeEnabled != nil {
+		cfg.DeadCode.Enabled = *pyscn.DeadCodeEnabled
 	}
-	return ""
-}
-
-// findDefaultConfig looks for default configuration files in common locations
-// targetPath is the path being analyzed (e.g., the Python file or directory)
-func findDefaultConfig(targetPath string) string {
-	candidates := []string{
-		"pyscn.yaml",
-		"pyscn.yml",
-		".pyscn.toml",
-		".pyscn.yml",
-		"pyscn.json",
-		".pyscn.json",
+	if pyscn.DeadCodeMinSeverity != "" {
+		cfg.DeadCode.MinSeverity = pyscn.DeadCodeMinSeverity
 	}
-
-	// If targetPath is provided, search from there upward
-	if targetPath != "" {
-		// Convert to absolute path
-		absPath, err := filepath.Abs(targetPath)
-		if err == nil {
-			// If it's a file, start from its directory
-			info, err := os.Stat(absPath)
-			if err == nil && !info.IsDir() {
-				absPath = filepath.Dir(absPath)
-			}
-
-			// Search from target directory up to root with robust termination
-			// Handle Windows edge cases: volume roots (C:\), UNC paths (\\server\share), long paths
-			volume := filepath.VolumeName(absPath)
-			for dir := absPath; ; dir = filepath.Dir(dir) {
-				if config := searchConfigInDirectory(dir, candidates); config != "" {
-					return config
-				}
-
-				// Robust termination conditions for cross-platform compatibility
-				parent := filepath.Dir(dir)
-				if parent == dir || // Unix-style root reached (/), Windows UNC root (\\server)
-					dir == volume || // Windows volume root reached (C:\)
-					(volume != "" && dir == volume+string(filepath.Separator)) { // Alternative volume root format
-					break
-				}
-			}
-		}
+	if pyscn.DeadCodeShowContext != nil {
+		cfg.DeadCode.ShowContext = *pyscn.DeadCodeShowContext
+	}
+	if pyscn.DeadCodeContextLines > 0 {
+		cfg.DeadCode.ContextLines = pyscn.DeadCodeContextLines
+	}
+	if pyscn.DeadCodeSortBy != "" {
+		cfg.DeadCode.SortBy = pyscn.DeadCodeSortBy
+	}
+	if pyscn.DeadCodeDetectAfterReturn != nil {
+		cfg.DeadCode.DetectAfterReturn = *pyscn.DeadCodeDetectAfterReturn
+	}
+	if pyscn.DeadCodeDetectAfterBreak != nil {
+		cfg.DeadCode.DetectAfterBreak = *pyscn.DeadCodeDetectAfterBreak
+	}
+	if pyscn.DeadCodeDetectAfterContinue != nil {
+		cfg.DeadCode.DetectAfterContinue = *pyscn.DeadCodeDetectAfterContinue
+	}
+	if pyscn.DeadCodeDetectAfterRaise != nil {
+		cfg.DeadCode.DetectAfterRaise = *pyscn.DeadCodeDetectAfterRaise
+	}
+	if pyscn.DeadCodeDetectUnreachableBranches != nil {
+		cfg.DeadCode.DetectUnreachableBranches = *pyscn.DeadCodeDetectUnreachableBranches
+	}
+	if len(pyscn.DeadCodeIgnorePatterns) > 0 {
+		cfg.DeadCode.IgnorePatterns = pyscn.DeadCodeIgnorePatterns
 	}
 
-	// Fallback to current directory
-	if config := searchConfigInDirectory(".", candidates); config != "" {
-		return config
+	// Output settings
+	if pyscn.OutputFormat != "" {
+		cfg.Output.Format = pyscn.OutputFormat
+	}
+	if pyscn.OutputShowDetails != nil {
+		cfg.Output.ShowDetails = *pyscn.OutputShowDetails
+	}
+	if pyscn.OutputSortBy != "" {
+		cfg.Output.SortBy = pyscn.OutputSortBy
+	}
+	if pyscn.OutputMinComplexity > 0 {
+		cfg.Output.MinComplexity = pyscn.OutputMinComplexity
+	}
+	if pyscn.OutputDirectory != "" {
+		cfg.Output.Directory = pyscn.OutputDirectory
 	}
 
-	// Check XDG config directory (Linux/Mac standard)
-	if xdgConfig := os.Getenv("XDG_CONFIG_HOME"); xdgConfig != "" {
-		if config := searchConfigInDirectory(filepath.Join(xdgConfig, "pyscn"), candidates); config != "" {
-			return config
-		}
+	// Analysis settings
+	if len(pyscn.AnalysisIncludePatterns) > 0 {
+		cfg.Analysis.IncludePatterns = pyscn.AnalysisIncludePatterns
+	}
+	if len(pyscn.AnalysisExcludePatterns) > 0 {
+		cfg.Analysis.ExcludePatterns = pyscn.AnalysisExcludePatterns
+	}
+	if pyscn.AnalysisRecursive != nil {
+		cfg.Analysis.Recursive = *pyscn.AnalysisRecursive
+	}
+	if pyscn.AnalysisFollowSymlinks != nil {
+		cfg.Analysis.FollowSymlinks = *pyscn.AnalysisFollowSymlinks
 	}
 
-	// Check ~/.config/pyscn/ (XDG default)
-	if home, err := os.UserHomeDir(); err == nil {
-		configDir := filepath.Join(home, ".config", "pyscn")
-		if config := searchConfigInDirectory(configDir, candidates); config != "" {
-			return config
-		}
+	// Clone settings - assign PyscnConfig directly as Clones
+	cfg.Clones = pyscn
 
-		// Check home directory (backward compatibility)
-		if config := searchConfigInDirectory(home, candidates); config != "" {
-			return config
-		}
+	// SystemAnalysis settings
+	if pyscn.SystemAnalysisEnabled != nil {
+		cfg.SystemAnalysis.Enabled = *pyscn.SystemAnalysisEnabled
+	}
+	if pyscn.SystemAnalysisEnableDependencies != nil {
+		cfg.SystemAnalysis.EnableDependencies = *pyscn.SystemAnalysisEnableDependencies
+	}
+	if pyscn.SystemAnalysisEnableArchitecture != nil {
+		cfg.SystemAnalysis.EnableArchitecture = *pyscn.SystemAnalysisEnableArchitecture
+	}
+	if pyscn.SystemAnalysisUseComplexityData != nil {
+		cfg.SystemAnalysis.UseComplexityData = *pyscn.SystemAnalysisUseComplexityData
+	}
+	if pyscn.SystemAnalysisUseClonesData != nil {
+		cfg.SystemAnalysis.UseClonesData = *pyscn.SystemAnalysisUseClonesData
+	}
+	if pyscn.SystemAnalysisUseDeadCodeData != nil {
+		cfg.SystemAnalysis.UseDeadCodeData = *pyscn.SystemAnalysisUseDeadCodeData
+	}
+	if pyscn.SystemAnalysisGenerateUnifiedReport != nil {
+		cfg.SystemAnalysis.GenerateUnifiedReport = *pyscn.SystemAnalysisGenerateUnifiedReport
 	}
 
-	// Check PYSCN_CONFIG environment variable as fallback
-	if envConfig := os.Getenv("PYSCN_CONFIG"); envConfig != "" {
-		if _, err := os.Stat(envConfig); err == nil {
-			return envConfig
-		}
+	// Dependencies settings
+	if pyscn.DependenciesEnabled != nil {
+		cfg.Dependencies.Enabled = *pyscn.DependenciesEnabled
+	}
+	if pyscn.DependenciesIncludeStdLib != nil {
+		cfg.Dependencies.IncludeStdLib = *pyscn.DependenciesIncludeStdLib
+	}
+	if pyscn.DependenciesIncludeThirdParty != nil {
+		cfg.Dependencies.IncludeThirdParty = *pyscn.DependenciesIncludeThirdParty
+	}
+	if pyscn.DependenciesFollowRelative != nil {
+		cfg.Dependencies.FollowRelative = *pyscn.DependenciesFollowRelative
+	}
+	if pyscn.DependenciesDetectCycles != nil {
+		cfg.Dependencies.DetectCycles = *pyscn.DependenciesDetectCycles
+	}
+	if pyscn.DependenciesCalculateMetrics != nil {
+		cfg.Dependencies.CalculateMetrics = *pyscn.DependenciesCalculateMetrics
+	}
+	if pyscn.DependenciesFindLongChains != nil {
+		cfg.Dependencies.FindLongChains = *pyscn.DependenciesFindLongChains
+	}
+	if pyscn.DependenciesMinCoupling > 0 {
+		cfg.Dependencies.MinCoupling = pyscn.DependenciesMinCoupling
+	}
+	if pyscn.DependenciesMaxCoupling > 0 {
+		cfg.Dependencies.MaxCoupling = pyscn.DependenciesMaxCoupling
+	}
+	if pyscn.DependenciesMinInstability > 0 {
+		cfg.Dependencies.MinInstability = pyscn.DependenciesMinInstability
+	}
+	if pyscn.DependenciesMaxDistance > 0 {
+		cfg.Dependencies.MaxDistance = pyscn.DependenciesMaxDistance
+	}
+	if pyscn.DependenciesSortBy != "" {
+		cfg.Dependencies.SortBy = pyscn.DependenciesSortBy
+	}
+	if pyscn.DependenciesShowMatrix != nil {
+		cfg.Dependencies.ShowMatrix = *pyscn.DependenciesShowMatrix
+	}
+	if pyscn.DependenciesShowMetrics != nil {
+		cfg.Dependencies.ShowMetrics = *pyscn.DependenciesShowMetrics
+	}
+	if pyscn.DependenciesShowChains != nil {
+		cfg.Dependencies.ShowChains = *pyscn.DependenciesShowChains
+	}
+	if pyscn.DependenciesGenerateDotGraph != nil {
+		cfg.Dependencies.GenerateDotGraph = *pyscn.DependenciesGenerateDotGraph
+	}
+	if pyscn.DependenciesCycleReporting != "" {
+		cfg.Dependencies.CycleReporting = pyscn.DependenciesCycleReporting
+	}
+	if pyscn.DependenciesMaxCyclesToShow > 0 {
+		cfg.Dependencies.MaxCyclesToShow = pyscn.DependenciesMaxCyclesToShow
+	}
+	if pyscn.DependenciesShowCyclePaths != nil {
+		cfg.Dependencies.ShowCyclePaths = *pyscn.DependenciesShowCyclePaths
 	}
 
-	return ""
+	// Architecture settings
+	if pyscn.ArchitectureEnabled != nil {
+		cfg.Architecture.Enabled = *pyscn.ArchitectureEnabled
+	}
+	if pyscn.ArchitectureValidateLayers != nil {
+		cfg.Architecture.ValidateLayers = *pyscn.ArchitectureValidateLayers
+	}
+	if pyscn.ArchitectureValidateCohesion != nil {
+		cfg.Architecture.ValidateCohesion = *pyscn.ArchitectureValidateCohesion
+	}
+	if pyscn.ArchitectureValidateResponsibility != nil {
+		cfg.Architecture.ValidateResponsibility = *pyscn.ArchitectureValidateResponsibility
+	}
+	if pyscn.ArchitectureMinCohesion > 0 {
+		cfg.Architecture.MinCohesion = pyscn.ArchitectureMinCohesion
+	}
+	if pyscn.ArchitectureMaxCoupling > 0 {
+		cfg.Architecture.MaxCoupling = pyscn.ArchitectureMaxCoupling
+	}
+	if pyscn.ArchitectureMaxResponsibilities > 0 {
+		cfg.Architecture.MaxResponsibilities = pyscn.ArchitectureMaxResponsibilities
+	}
+	if pyscn.ArchitectureLayerViolationSeverity != "" {
+		cfg.Architecture.LayerViolationSeverity = pyscn.ArchitectureLayerViolationSeverity
+	}
+	if pyscn.ArchitectureCohesionViolationSeverity != "" {
+		cfg.Architecture.CohesionViolationSeverity = pyscn.ArchitectureCohesionViolationSeverity
+	}
+	if pyscn.ArchitectureResponsibilityViolationSeverity != "" {
+		cfg.Architecture.ResponsibilityViolationSeverity = pyscn.ArchitectureResponsibilityViolationSeverity
+	}
+	if pyscn.ArchitectureShowAllViolations != nil {
+		cfg.Architecture.ShowAllViolations = *pyscn.ArchitectureShowAllViolations
+	}
+	if pyscn.ArchitectureGroupByType != nil {
+		cfg.Architecture.GroupByType = *pyscn.ArchitectureGroupByType
+	}
+	if pyscn.ArchitectureIncludeSuggestions != nil {
+		cfg.Architecture.IncludeSuggestions = *pyscn.ArchitectureIncludeSuggestions
+	}
+	if pyscn.ArchitectureMaxViolationsToShow > 0 {
+		cfg.Architecture.MaxViolationsToShow = pyscn.ArchitectureMaxViolationsToShow
+	}
+	if len(pyscn.ArchitectureCustomPatterns) > 0 {
+		cfg.Architecture.CustomPatterns = pyscn.ArchitectureCustomPatterns
+	}
+	if len(pyscn.ArchitectureAllowedPatterns) > 0 {
+		cfg.Architecture.AllowedPatterns = pyscn.ArchitectureAllowedPatterns
+	}
+	if len(pyscn.ArchitectureForbiddenPatterns) > 0 {
+		cfg.Architecture.ForbiddenPatterns = pyscn.ArchitectureForbiddenPatterns
+	}
+	if pyscn.ArchitectureStrictMode != nil {
+		cfg.Architecture.StrictMode = *pyscn.ArchitectureStrictMode
+	}
+	if pyscn.ArchitectureFailOnViolations != nil {
+		cfg.Architecture.FailOnViolations = *pyscn.ArchitectureFailOnViolations
+	}
+
+	return cfg
 }
 
 // Validate validates the configuration values
@@ -487,20 +624,62 @@ func (c *ComplexityConfig) ExceedsMaxComplexity(complexity int) bool {
 	return c.MaxComplexity > 0 && complexity > c.MaxComplexity
 }
 
-// SaveConfig saves configuration to a YAML file
+// SaveConfig saves configuration to a TOML file
 func SaveConfig(config *Config, path string) error {
-	// Create a new viper instance to avoid race conditions
-	v := viper.New()
-	v.SetConfigFile(path)
-	v.SetConfigType("yaml")
+	// Convert Config to PyscnTomlConfig for TOML serialization
+	tomlCfg := ConfigToPyscnTomlConfig(config)
 
-	// Set all config values in viper
-	v.Set("complexity", config.Complexity)
-	v.Set("dead_code", config.DeadCode)
-	v.Set("output", config.Output)
-	v.Set("analysis", config.Analysis)
+	data, err := toml.Marshal(tomlCfg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
 
-	return v.WriteConfig()
+	// Ensure directory exists
+	dir := filepath.Dir(path)
+	if dir != "" && dir != "." {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("failed to create directory: %w", err)
+		}
+	}
+
+	return os.WriteFile(path, data, 0644)
+}
+
+// ConfigToPyscnTomlConfig converts a Config to PyscnTomlConfig for TOML serialization
+func ConfigToPyscnTomlConfig(cfg *Config) *PyscnTomlConfig {
+	return &PyscnTomlConfig{
+		Complexity: ComplexityTomlConfig{
+			LowThreshold:    &cfg.Complexity.LowThreshold,
+			MediumThreshold: &cfg.Complexity.MediumThreshold,
+			MaxComplexity:   &cfg.Complexity.MaxComplexity,
+		},
+		DeadCode: DeadCodeTomlConfig{
+			Enabled:                   &cfg.DeadCode.Enabled,
+			MinSeverity:               cfg.DeadCode.MinSeverity,
+			ShowContext:               &cfg.DeadCode.ShowContext,
+			ContextLines:              &cfg.DeadCode.ContextLines,
+			SortBy:                    cfg.DeadCode.SortBy,
+			DetectAfterReturn:         &cfg.DeadCode.DetectAfterReturn,
+			DetectAfterBreak:          &cfg.DeadCode.DetectAfterBreak,
+			DetectAfterContinue:       &cfg.DeadCode.DetectAfterContinue,
+			DetectAfterRaise:          &cfg.DeadCode.DetectAfterRaise,
+			DetectUnreachableBranches: &cfg.DeadCode.DetectUnreachableBranches,
+			IgnorePatterns:            cfg.DeadCode.IgnorePatterns,
+		},
+		Output: OutputTomlConfig{
+			Format:        cfg.Output.Format,
+			ShowDetails:   &cfg.Output.ShowDetails,
+			SortBy:        cfg.Output.SortBy,
+			MinComplexity: &cfg.Output.MinComplexity,
+			Directory:     cfg.Output.Directory,
+		},
+		Analysis: AnalysisTomlConfig{
+			IncludePatterns: cfg.Analysis.IncludePatterns,
+			ExcludePatterns: cfg.Analysis.ExcludePatterns,
+			Recursive:       &cfg.Analysis.Recursive,
+			FollowSymlinks:  &cfg.Analysis.FollowSymlinks,
+		},
+	}
 }
 
 // validateDeadCodeConfig validates the dead code configuration

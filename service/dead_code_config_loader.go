@@ -6,7 +6,6 @@ import (
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
-	"github.com/spf13/viper"
 )
 
 // DeadCodeConfigurationLoaderImpl implements the DeadCodeConfigurationLoader interface
@@ -239,7 +238,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) ValidateConfig(req *domain.DeadCodeRe
 	return req.Validate()
 }
 
-// SaveConfig saves dead code configuration to a file
+// SaveConfig saves dead code configuration to a TOML file
 func (cl *DeadCodeConfigurationLoaderImpl) SaveConfig(req *domain.DeadCodeRequest, path string) error {
 	if req == nil {
 		return fmt.Errorf("configuration cannot be nil")
@@ -248,15 +247,8 @@ func (cl *DeadCodeConfigurationLoaderImpl) SaveConfig(req *domain.DeadCodeReques
 	// Convert request back to config format
 	cfg := cl.requestToConfig(req)
 
-	viper.SetConfigFile(path)
-	viper.SetConfigType("yaml")
-
-	// Set dead code config values
-	viper.Set("dead_code", cfg.DeadCode)
-	viper.Set("output", cfg.Output)
-	viper.Set("analysis", cfg.Analysis)
-
-	return viper.WriteConfig()
+	// Use the TOML-based SaveConfig
+	return config.SaveConfig(cfg, path)
 }
 
 // requestToConfig converts a domain.DeadCodeRequest back to config.Config

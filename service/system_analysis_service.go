@@ -457,7 +457,7 @@ func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Re
 // autoDetectArchitecture automatically detects architecture patterns from the dependency graph
 func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.DependencyGraph) *domain.ArchitectureRules {
 	// Load layer patterns and rules from the embedded default config
-	defaultConfig, err := config.LoadDefaultConfig()
+	defaultConfig, err := config.LoadDefaultConfigFromTOML()
 	if err != nil {
 		// This should never happen since the config is embedded at compile time
 		// But if it does, return nil to indicate no auto-detection is possible
