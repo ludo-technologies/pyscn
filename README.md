@@ -10,6 +10,8 @@
 
 Building with Cursor, Claude, or ChatGPT? pyscn performs structural analysis to keep your codebase maintainable.
 
+> Working with JavaScript/TypeScript? Check out [jscan](https://github.com/ludo-technologies/jscan)
+
 ## Quick Start
 
 ```bash
