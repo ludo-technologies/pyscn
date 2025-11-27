@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.1] - 2025-11-27
+
+### Fixed
+- Fix binary auto-detection for `pyscn_mcp` package in wheel build script (#224)
+
+### Improved
+- Remove Viper-based config loader and unify on TOML-only (#231)
+
 ## [1.4.0] - 2025-11-25
 
 ### Added
