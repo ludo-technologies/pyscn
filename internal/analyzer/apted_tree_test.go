@@ -77,16 +77,17 @@ func TestSizeWithDepthLimit_apted(t *testing.T) {
 			expected: 3, // root + child1 + child2
 		},
 		{
-			name:     "depth 2 include include all nodes",
+			name:     "depth 2 includes all nodes",
 			maxDepth: 2,
 			expected: 4, // root + child1 + child2 + grandchild
 		},
 		{
-			name:     "large depth include all nodes",
+			name:     "large depth includes all nodes",
 			maxDepth: 100,
 			expected: 4,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			//     root
@@ -141,17 +142,17 @@ func TestHeightWithDepthLimit_apted(t *testing.T) {
 			expected: 0,
 		},
 		{
-			name:     "depth 1 include direct child",
+			name:     "depth 1 includes direct child",
 			maxDepth: 1,
 			expected: 1,
 		},
 		{
-			name:     "depth 2 include all nodes",
+			name:     "depth 2 includes all nodes",
 			maxDepth: 2,
 			expected: 2,
 		},
 		{
-			name:     "large depth include all nodes",
+			name:     "large depth includes all nodes",
 			maxDepth: 100,
 			expected: 2,
 		},
