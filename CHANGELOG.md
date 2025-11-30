@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.4.2] - 2025-11-30
+
+### Fixed
+- Route break/continue/raise through finally blocks correctly in CFG (#210)
+
+### Improved
+- Add comprehensive tests for apted_tree.go (#238)
+- Add jscan link to README (#234)
+- Bump Go dependencies (#232)
+- Remove unused labels from dependabot.yml (#240)
+
 ## [1.4.1] - 2025-11-27
 
 ### Fixed
