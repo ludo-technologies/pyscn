@@ -9,9 +9,5 @@ updates:
       go-dependencies:
         patterns:
           - "*"
-    # Add labels to PRs
-    labels:
-      - "dependencies"
-      - "go"
     # Set PR limit
     open-pull-requests-limit: 1
