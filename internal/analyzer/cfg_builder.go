@@ -809,8 +809,26 @@ func (b *CFGBuilder) processBreakStatement(stmt *parser.Node) {
 
 	loopCtx := b.loopStack[len(b.loopStack)-1]
 
-	// Connect to loop exit with break edge
-	b.cfg.ConnectBlocks(b.currentBlock, loopCtx.exitBlock, EdgeBreak)
+	// Find the next finally block that needs to execute before this break completes.
+	// Walk the exception stack from innermost to outermost, skipping any finally
+	// blocks we're currently inside (to avoid self-loops), until we find the first
+	// enclosing finally block that hasn't been entered yet.
+	var targetFinallyBlock *BasicBlock
+	for i := len(b.exceptionStack) - 1; i >= 0; i-- {
+		exceptionCtx := b.exceptionStack[i]
+		if exceptionCtx.finallyBlock != nil && b.currentBlock != exceptionCtx.finallyBlock {
+			targetFinallyBlock = exceptionCtx.finallyBlock
+			break
+		}
+	}
+
+	if targetFinallyBlock != nil {
+		// Route through the next outer finally block
+		b.cfg.ConnectBlocks(b.currentBlock, targetFinallyBlock, EdgeBreak)
+	} else {
+		// No enclosing finally blocks - connect directly to loop exit
+		b.cfg.ConnectBlocks(b.currentBlock, loopCtx.exitBlock, EdgeBreak)
+	}
 
 	// Create unreachable block for any code after break
 	unreachableBlock := b.createBlock(LabelUnreachable)
@@ -830,8 +848,26 @@ func (b *CFGBuilder) processContinueStatement(stmt *parser.Node) {
 
 	loopCtx := b.loopStack[len(b.loopStack)-1]
 
-	// Connect to loop header with continue edge
-	b.cfg.ConnectBlocks(b.currentBlock, loopCtx.headerBlock, EdgeContinue)
+	// Find the next finally block that needs to execute before this continue completes.
+	// Walk the exception stack from innermost to outermost, skipping any finally
+	// blocks we're currently inside (to avoid self-loops), until we find the first
+	// enclosing finally block that hasn't been entered yet.
+	var targetFinallyBlock *BasicBlock
+	for i := len(b.exceptionStack) - 1; i >= 0; i-- {
+		exceptionCtx := b.exceptionStack[i]
+		if exceptionCtx.finallyBlock != nil && b.currentBlock != exceptionCtx.finallyBlock {
+			targetFinallyBlock = exceptionCtx.finallyBlock
+			break
+		}
+	}
+
+	if targetFinallyBlock != nil {
+		// Route through the next outer finally block
+		b.cfg.ConnectBlocks(b.currentBlock, targetFinallyBlock, EdgeContinue)
+	} else {
+		// No enclosing finally blocks - connect directly to loop header
+		b.cfg.ConnectBlocks(b.currentBlock, loopCtx.headerBlock, EdgeContinue)
+	}
 
 	// Create unreachable block for any code after continue
 	unreachableBlock := b.createBlock(LabelUnreachable)
@@ -996,6 +1032,55 @@ func (b *CFGBuilder) processTryStatement(stmt *parser.Node) {
 				b.cfg.ConnectBlocks(finallyBlock, b.cfg.Exit, EdgeReturn)
 			}
 		}
+
+		// Break/Continue propagation: if this finally is inside a loop,
+		// connect to the next outer finally or to the loop exit/header.
+		if len(b.loopStack) > 0 {
+			loopCtx := b.loopStack[len(b.loopStack)-1]
+
+			// Break propagation
+			if nextOuterFinally != nil {
+				if !b.hasSuccessor(finallyBlock, nextOuterFinally) {
+					b.cfg.ConnectBlocks(finallyBlock, nextOuterFinally, EdgeBreak)
+				}
+			} else {
+				if !b.hasSuccessor(finallyBlock, loopCtx.exitBlock) {
+					b.cfg.ConnectBlocks(finallyBlock, loopCtx.exitBlock, EdgeBreak)
+				}
+			}
+
+			// Continue propagation
+			if nextOuterFinally != nil {
+				if !b.hasSuccessor(finallyBlock, nextOuterFinally) {
+					b.cfg.ConnectBlocks(finallyBlock, nextOuterFinally, EdgeContinue)
+				}
+			} else {
+				if !b.hasSuccessor(finallyBlock, loopCtx.headerBlock) {
+					b.cfg.ConnectBlocks(finallyBlock, loopCtx.headerBlock, EdgeContinue)
+				}
+			}
+		}
+
+		// Exception propagation: connect to next outer finally or exception handlers or exit.
+		// This handles raise statements that route through this finally block.
+		if nextOuterFinally != nil {
+			if !b.hasSuccessor(finallyBlock, nextOuterFinally) {
+				b.cfg.ConnectBlocks(finallyBlock, nextOuterFinally, EdgeException)
+			}
+		} else if len(b.exceptionStack) >= 2 {
+			// Connect to exception handlers of the outer try block
+			outerCtx := b.exceptionStack[len(b.exceptionStack)-2]
+			for _, handler := range outerCtx.handlers {
+				if !b.hasSuccessor(finallyBlock, handler) {
+					b.cfg.ConnectBlocks(finallyBlock, handler, EdgeException)
+				}
+			}
+		} else {
+			// No outer context - connect to exit for exception propagation
+			if !b.hasSuccessor(finallyBlock, b.cfg.Exit) {
+				b.cfg.ConnectBlocks(finallyBlock, b.cfg.Exit, EdgeException)
+			}
+		}
 	}
 
 	// Continue with exit block
@@ -1007,11 +1092,25 @@ func (b *CFGBuilder) processRaiseStatement(stmt *parser.Node) {
 	// Add raise statement to current block
 	b.currentBlock.AddStatement(stmt)
 
-	// Get the innermost exception context
-	if len(b.exceptionStack) > 0 {
-		exceptionCtx := b.exceptionStack[len(b.exceptionStack)-1]
+	// Find the next finally block that needs to execute before this raise propagates.
+	// Walk the exception stack from innermost to outermost, skipping any finally
+	// blocks we're currently inside (to avoid self-loops), until we find the first
+	// enclosing finally block that hasn't been entered yet.
+	var targetFinallyBlock *BasicBlock
+	for i := len(b.exceptionStack) - 1; i >= 0; i-- {
+		exceptionCtx := b.exceptionStack[i]
+		if exceptionCtx.finallyBlock != nil && b.currentBlock != exceptionCtx.finallyBlock {
+			targetFinallyBlock = exceptionCtx.finallyBlock
+			break
+		}
+	}
 
-		// Connect to all exception handlers in the current context
+	if targetFinallyBlock != nil {
+		// Route through the next outer finally block
+		b.cfg.ConnectBlocks(b.currentBlock, targetFinallyBlock, EdgeException)
+	} else if len(b.exceptionStack) > 0 {
+		// No finally blocks - connect to exception handlers
+		exceptionCtx := b.exceptionStack[len(b.exceptionStack)-1]
 		for _, handler := range exceptionCtx.handlers {
 			b.cfg.ConnectBlocks(b.currentBlock, handler, EdgeException)
 		}

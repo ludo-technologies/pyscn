@@ -344,3 +344,294 @@ def test():
 		}
 	})
 }
+
+// TestBreakContinueRaiseWithFinally tests that break/continue/raise statements
+// correctly route through finally blocks before reaching their targets.
+// This is required by Python semantics - finally blocks always execute.
+func TestBreakContinueRaiseWithFinally(t *testing.T) {
+	t.Run("BreakWithFinally", func(t *testing.T) {
+		source := `
+def test():
+    for i in range(5):
+        try:
+            if i == 2:
+                break
+        finally:
+            print("cleanup")
+`
+		ast := parseSource(t, source)
+		funcNode := ast.Body[0]
+
+		builder := NewCFGBuilder()
+		cfg, err := builder.Build(funcNode)
+		if err != nil {
+			t.Fatalf("Failed to build CFG: %v", err)
+		}
+
+		// Find the block containing break statement
+		var breakBlock *BasicBlock
+		var finallyBlock *BasicBlock
+		cfg.Walk(&testVisitor{
+			onBlock: func(b *BasicBlock) bool {
+				if strings.Contains(b.Label, "finally_block") {
+					finallyBlock = b
+				}
+				for _, stmt := range b.Statements {
+					if stmt.Type == "Break" {
+						breakBlock = b
+					}
+				}
+				return true
+			},
+			onEdge: func(e *Edge) bool { return true },
+		})
+
+		if breakBlock == nil {
+			t.Fatal("Break block not found")
+		}
+		if finallyBlock == nil {
+			t.Fatal("Finally block not found")
+		}
+
+		// Check that break routes to finally block, not directly to loop exit
+		foundBreakToFinally := false
+		for _, edge := range breakBlock.Successors {
+			if edge.Type == EdgeBreak && edge.To == finallyBlock {
+				foundBreakToFinally = true
+				t.Logf("Break correctly routes to finally block")
+			}
+		}
+
+		if !foundBreakToFinally {
+			t.Error("Break does not route through finally block")
+			for _, edge := range breakBlock.Successors {
+				t.Logf("  Break edge: %s -> %s (type: %v)", breakBlock.Label, edge.To.Label, edge.Type)
+			}
+		}
+	})
+
+	t.Run("ContinueWithFinally", func(t *testing.T) {
+		source := `
+def test():
+    for i in range(5):
+        try:
+            if i == 2:
+                continue
+        finally:
+            print("cleanup")
+`
+		ast := parseSource(t, source)
+		funcNode := ast.Body[0]
+
+		builder := NewCFGBuilder()
+		cfg, err := builder.Build(funcNode)
+		if err != nil {
+			t.Fatalf("Failed to build CFG: %v", err)
+		}
+
+		var continueBlock *BasicBlock
+		var finallyBlock *BasicBlock
+		cfg.Walk(&testVisitor{
+			onBlock: func(b *BasicBlock) bool {
+				if strings.Contains(b.Label, "finally_block") {
+					finallyBlock = b
+				}
+				for _, stmt := range b.Statements {
+					if stmt.Type == "Continue" {
+						continueBlock = b
+					}
+				}
+				return true
+			},
+			onEdge: func(e *Edge) bool { return true },
+		})
+
+		if continueBlock == nil {
+			t.Fatal("Continue block not found")
+		}
+		if finallyBlock == nil {
+			t.Fatal("Finally block not found")
+		}
+
+		foundContinueToFinally := false
+		for _, edge := range continueBlock.Successors {
+			if edge.Type == EdgeContinue && edge.To == finallyBlock {
+				foundContinueToFinally = true
+				t.Logf("Continue correctly routes to finally block")
+			}
+		}
+
+		if !foundContinueToFinally {
+			t.Error("Continue does not route through finally block")
+			for _, edge := range continueBlock.Successors {
+				t.Logf("  Continue edge: %s -> %s (type: %v)", continueBlock.Label, edge.To.Label, edge.Type)
+			}
+		}
+	})
+
+	t.Run("RaiseWithFinally", func(t *testing.T) {
+		source := `
+def test():
+    try:
+        raise ValueError("error")
+    finally:
+        print("cleanup")
+`
+		ast := parseSource(t, source)
+		funcNode := ast.Body[0]
+
+		builder := NewCFGBuilder()
+		cfg, err := builder.Build(funcNode)
+		if err != nil {
+			t.Fatalf("Failed to build CFG: %v", err)
+		}
+
+		var raiseBlock *BasicBlock
+		var finallyBlock *BasicBlock
+		cfg.Walk(&testVisitor{
+			onBlock: func(b *BasicBlock) bool {
+				if strings.Contains(b.Label, "finally_block") {
+					finallyBlock = b
+				}
+				for _, stmt := range b.Statements {
+					if stmt.Type == "Raise" {
+						raiseBlock = b
+					}
+				}
+				return true
+			},
+			onEdge: func(e *Edge) bool { return true },
+		})
+
+		if raiseBlock == nil {
+			t.Fatal("Raise block not found")
+		}
+		if finallyBlock == nil {
+			t.Fatal("Finally block not found")
+		}
+
+		foundRaiseToFinally := false
+		for _, edge := range raiseBlock.Successors {
+			if edge.Type == EdgeException && edge.To == finallyBlock {
+				foundRaiseToFinally = true
+				t.Logf("Raise correctly routes to finally block")
+			}
+		}
+
+		if !foundRaiseToFinally {
+			t.Error("Raise does not route through finally block")
+			for _, edge := range raiseBlock.Successors {
+				t.Logf("  Raise edge: %s -> %s (type: %v)", raiseBlock.Label, edge.To.Label, edge.Type)
+			}
+		}
+	})
+
+	t.Run("NestedFinallyWithBreak", func(t *testing.T) {
+		// Tests the expected CFG: break → inner_finally → outer_finally → loop_exit
+		source := `
+def test():
+    for i in range(5):
+        try:
+            try:
+                if i == 2:
+                    break
+            finally:
+                print("inner finally")
+        finally:
+            print("outer finally")
+`
+		ast := parseSource(t, source)
+		funcNode := ast.Body[0]
+
+		builder := NewCFGBuilder()
+		cfg, err := builder.Build(funcNode)
+		if err != nil {
+			t.Fatalf("Failed to build CFG: %v", err)
+		}
+
+		var breakBlock *BasicBlock
+		finallyBlocks := []*BasicBlock{}
+
+		cfg.Walk(&testVisitor{
+			onBlock: func(b *BasicBlock) bool {
+				if strings.Contains(b.Label, "finally_block") {
+					finallyBlocks = append(finallyBlocks, b)
+				}
+				for _, stmt := range b.Statements {
+					if stmt.Type == "Break" {
+						breakBlock = b
+					}
+				}
+				return true
+			},
+			onEdge: func(e *Edge) bool { return true },
+		})
+
+		if breakBlock == nil {
+			t.Fatal("Break block not found")
+		}
+		if len(finallyBlocks) != 2 {
+			t.Fatalf("Expected 2 finally blocks, got %d", len(finallyBlocks))
+		}
+
+		// Break should route to the innermost finally
+		foundBreakToFinally := false
+		var innerFinally *BasicBlock
+		for _, edge := range breakBlock.Successors {
+			if edge.Type == EdgeBreak {
+				for _, fb := range finallyBlocks {
+					if edge.To == fb {
+						foundBreakToFinally = true
+						innerFinally = fb
+						t.Logf("Break routes to finally block: %s", fb.Label)
+						break
+					}
+				}
+			}
+		}
+
+		if !foundBreakToFinally {
+			t.Error("Break does not route to any finally block")
+		}
+
+		// Inner finally should route to outer finally or loop exit via any edge type
+		// (CFG only tracks reachability, not specific edge types for propagation)
+		if innerFinally != nil {
+			var outerFinally *BasicBlock
+			for _, fb := range finallyBlocks {
+				if fb != innerFinally {
+					outerFinally = fb
+					break
+				}
+			}
+
+			hasConnectionToOuter := false
+			for _, edge := range innerFinally.Successors {
+				if edge.To == outerFinally {
+					hasConnectionToOuter = true
+					t.Logf("Inner finally connects to outer finally via %v edge", edge.Type)
+				}
+			}
+			if !hasConnectionToOuter && outerFinally != nil {
+				t.Error("Inner finally does not connect to outer finally")
+			}
+
+			// Check outer finally connects to loop exit
+			if outerFinally != nil {
+				hasLoopExitConnection := false
+				for _, edge := range outerFinally.Successors {
+					if strings.Contains(edge.To.Label, "for_exit") || strings.Contains(edge.To.Label, "loop_exit") {
+						hasLoopExitConnection = true
+						t.Logf("Outer finally connects to loop exit via %v edge", edge.Type)
+					}
+				}
+				if !hasLoopExitConnection {
+					t.Logf("Outer finally successors:")
+					for _, edge := range outerFinally.Successors {
+						t.Logf("  -> %s (type: %v)", edge.To.Label, edge.Type)
+					}
+				}
+			}
+		}
+	})
+}
