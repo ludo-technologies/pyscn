@@ -634,4 +634,222 @@ def test():
 			}
 		}
 	})
+
+	t.Run("BreakInsideFinally", func(t *testing.T) {
+		// BUG REPRODUCTION: break inside finally should route to loop exit,
+		// NOT back to the finally block itself (which would create a loop)
+		source := `
+def test():
+    for i in range(5):
+        try:
+            pass
+        finally:
+            if i == 2:
+                break  # This should go to loop exit, NOT to finally_block
+`
+		ast := parseSource(t, source)
+		funcNode := ast.Body[0]
+
+		builder := NewCFGBuilder()
+		cfg, err := builder.Build(funcNode)
+		if err != nil {
+			t.Fatalf("Failed to build CFG: %v", err)
+		}
+
+		var breakBlock *BasicBlock
+		var finallyBlock *BasicBlock
+		var loopExitBlock *BasicBlock
+
+		cfg.Walk(&testVisitor{
+			onBlock: func(b *BasicBlock) bool {
+				if strings.Contains(b.Label, "finally_block") {
+					finallyBlock = b
+				}
+				if strings.Contains(b.Label, "for_exit") || strings.Contains(b.Label, "loop_exit") {
+					loopExitBlock = b
+				}
+				for _, stmt := range b.Statements {
+					if stmt.Type == "Break" {
+						breakBlock = b
+					}
+				}
+				return true
+			},
+			onEdge: func(e *Edge) bool { return true },
+		})
+
+		if breakBlock == nil {
+			t.Fatal("Break block not found")
+		}
+		if finallyBlock == nil {
+			t.Fatal("Finally block not found")
+		}
+		if loopExitBlock == nil {
+			t.Fatal("Loop exit block not found")
+		}
+
+		// Check that break does NOT route to its own finally block (bug)
+		for _, edge := range breakBlock.Successors {
+			if edge.Type == EdgeBreak && edge.To == finallyBlock {
+				t.Errorf("BUG: Break inside finally incorrectly routes back to finally block (creates loop)")
+				t.Logf("  Break block: %s", breakBlock.Label)
+				t.Logf("  Incorrectly routes to: %s", finallyBlock.Label)
+			}
+		}
+
+		// Check that break routes to loop exit (correct behavior)
+		foundBreakToLoopExit := false
+		for _, edge := range breakBlock.Successors {
+			if edge.Type == EdgeBreak && edge.To == loopExitBlock {
+				foundBreakToLoopExit = true
+				t.Logf("Break correctly routes to loop exit")
+			}
+		}
+
+		if !foundBreakToLoopExit {
+			t.Error("Break inside finally should route directly to loop exit")
+			t.Logf("Break block successors:")
+			for _, edge := range breakBlock.Successors {
+				t.Logf("  -> %s (type: %v)", edge.To.Label, edge.Type)
+			}
+		}
+	})
+
+	t.Run("ContinueInsideFinally", func(t *testing.T) {
+		// continue inside finally should route to loop header, NOT back to finally
+		source := `
+def test():
+    for i in range(5):
+        try:
+            pass
+        finally:
+            if i == 2:
+                continue  # This should go to loop header, NOT to finally_block
+`
+		ast := parseSource(t, source)
+		funcNode := ast.Body[0]
+
+		builder := NewCFGBuilder()
+		cfg, err := builder.Build(funcNode)
+		if err != nil {
+			t.Fatalf("Failed to build CFG: %v", err)
+		}
+
+		var continueBlock *BasicBlock
+		var finallyBlock *BasicBlock
+		var loopHeaderBlock *BasicBlock
+
+		cfg.Walk(&testVisitor{
+			onBlock: func(b *BasicBlock) bool {
+				if strings.Contains(b.Label, "finally_block") {
+					finallyBlock = b
+				}
+				if strings.Contains(b.Label, "loop_header") {
+					loopHeaderBlock = b
+				}
+				for _, stmt := range b.Statements {
+					if stmt.Type == "Continue" {
+						continueBlock = b
+					}
+				}
+				return true
+			},
+			onEdge: func(e *Edge) bool { return true },
+		})
+
+		if continueBlock == nil {
+			t.Fatal("Continue block not found")
+		}
+		if finallyBlock == nil {
+			t.Fatal("Finally block not found")
+		}
+		if loopHeaderBlock == nil {
+			t.Fatal("Loop header block not found")
+		}
+
+		// Check that continue does NOT route to its own finally block (bug)
+		for _, edge := range continueBlock.Successors {
+			if edge.Type == EdgeContinue && edge.To == finallyBlock {
+				t.Errorf("BUG: Continue inside finally incorrectly routes back to finally block")
+			}
+		}
+
+		// Check that continue routes to loop header (correct behavior)
+		foundContinueToLoopHeader := false
+		for _, edge := range continueBlock.Successors {
+			if edge.Type == EdgeContinue && edge.To == loopHeaderBlock {
+				foundContinueToLoopHeader = true
+				t.Logf("Continue correctly routes to loop header")
+			}
+		}
+
+		if !foundContinueToLoopHeader {
+			t.Error("Continue inside finally should route directly to loop header")
+		}
+	})
+
+	t.Run("RaiseInsideFinally", func(t *testing.T) {
+		// raise inside finally should propagate to exit, NOT back to finally
+		source := `
+def test():
+    try:
+        pass
+    finally:
+        if True:
+            raise ValueError("error")  # Should go to exit, NOT to finally_block
+`
+		ast := parseSource(t, source)
+		funcNode := ast.Body[0]
+
+		builder := NewCFGBuilder()
+		cfg, err := builder.Build(funcNode)
+		if err != nil {
+			t.Fatalf("Failed to build CFG: %v", err)
+		}
+
+		var raiseBlock *BasicBlock
+		var finallyBlock *BasicBlock
+
+		cfg.Walk(&testVisitor{
+			onBlock: func(b *BasicBlock) bool {
+				if strings.Contains(b.Label, "finally_block") {
+					finallyBlock = b
+				}
+				for _, stmt := range b.Statements {
+					if stmt.Type == "Raise" {
+						raiseBlock = b
+					}
+				}
+				return true
+			},
+			onEdge: func(e *Edge) bool { return true },
+		})
+
+		if raiseBlock == nil {
+			t.Fatal("Raise block not found")
+		}
+		if finallyBlock == nil {
+			t.Fatal("Finally block not found")
+		}
+
+		// Check that raise does NOT route to its own finally block (bug)
+		for _, edge := range raiseBlock.Successors {
+			if edge.Type == EdgeException && edge.To == finallyBlock {
+				t.Errorf("BUG: Raise inside finally incorrectly routes back to finally block")
+			}
+		}
+
+		// Check that raise routes to exit (correct behavior for unhandled exception)
+		foundRaiseToExit := false
+		for _, edge := range raiseBlock.Successors {
+			if edge.Type == EdgeException && edge.To == cfg.Exit {
+				foundRaiseToExit = true
+				t.Logf("Raise correctly routes to exit")
+			}
+		}
+
+		if !foundRaiseToExit {
+			t.Error("Raise inside finally should route to exit (unhandled exception)")
+		}
+	})
 }

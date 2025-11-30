@@ -48,10 +48,11 @@ type loopContext struct {
 
 // exceptionContext tracks the context of a try block for exception handling
 type exceptionContext struct {
-	tryBlock     *BasicBlock   // Try block
-	finallyBlock *BasicBlock   // Finally block (optional)
-	handlers     []*BasicBlock // Exception handler blocks
-	elseBlock    *BasicBlock   // Try else clause (optional)
+	tryBlock          *BasicBlock   // Try block
+	finallyBlock      *BasicBlock   // Finally block (optional)
+	handlers          []*BasicBlock // Exception handler blocks
+	elseBlock         *BasicBlock   // Try else clause (optional)
+	processingFinally bool          // True while processing the finally block body
 }
 
 // CFGBuilder builds control flow graphs from AST nodes
@@ -811,12 +812,16 @@ func (b *CFGBuilder) processBreakStatement(stmt *parser.Node) {
 
 	// Find the next finally block that needs to execute before this break completes.
 	// Walk the exception stack from innermost to outermost, skipping any finally
-	// blocks we're currently inside (to avoid self-loops), until we find the first
+	// blocks we're currently processing (to avoid self-loops), until we find the first
 	// enclosing finally block that hasn't been entered yet.
 	var targetFinallyBlock *BasicBlock
 	for i := len(b.exceptionStack) - 1; i >= 0; i-- {
 		exceptionCtx := b.exceptionStack[i]
-		if exceptionCtx.finallyBlock != nil && b.currentBlock != exceptionCtx.finallyBlock {
+		// Skip if currently processing this finally block (break is inside finally)
+		if exceptionCtx.processingFinally {
+			continue
+		}
+		if exceptionCtx.finallyBlock != nil {
 			targetFinallyBlock = exceptionCtx.finallyBlock
 			break
 		}
@@ -850,12 +855,16 @@ func (b *CFGBuilder) processContinueStatement(stmt *parser.Node) {
 
 	// Find the next finally block that needs to execute before this continue completes.
 	// Walk the exception stack from innermost to outermost, skipping any finally
-	// blocks we're currently inside (to avoid self-loops), until we find the first
+	// blocks we're currently processing (to avoid self-loops), until we find the first
 	// enclosing finally block that hasn't been entered yet.
 	var targetFinallyBlock *BasicBlock
 	for i := len(b.exceptionStack) - 1; i >= 0; i-- {
 		exceptionCtx := b.exceptionStack[i]
-		if exceptionCtx.finallyBlock != nil && b.currentBlock != exceptionCtx.finallyBlock {
+		// Skip if currently processing this finally block (continue is inside finally)
+		if exceptionCtx.processingFinally {
+			continue
+		}
+		if exceptionCtx.finallyBlock != nil {
 			targetFinallyBlock = exceptionCtx.finallyBlock
 			break
 		}
@@ -999,9 +1008,13 @@ func (b *CFGBuilder) processTryStatement(stmt *parser.Node) {
 	// Process finally block if present
 	if finallyBlock != nil {
 		b.currentBlock = finallyBlock
+		// Mark that we're processing this finally block so break/continue/raise
+		// inside it don't route back to themselves
+		exceptionCtx.processingFinally = true
 		for _, finallyStmt := range stmt.Finalbody {
 			b.processStatement(finallyStmt)
 		}
+		exceptionCtx.processingFinally = false
 
 		// Finally flows to exit in the normal case
 		if !b.hasSuccessor(b.currentBlock, b.cfg.Exit) {
@@ -1094,12 +1107,21 @@ func (b *CFGBuilder) processRaiseStatement(stmt *parser.Node) {
 
 	// Find the next finally block that needs to execute before this raise propagates.
 	// Walk the exception stack from innermost to outermost, skipping any finally
-	// blocks we're currently inside (to avoid self-loops), until we find the first
+	// blocks we're currently processing (to avoid self-loops), until we find the first
 	// enclosing finally block that hasn't been entered yet.
 	var targetFinallyBlock *BasicBlock
+	var fallbackExceptionCtx *exceptionContext
 	for i := len(b.exceptionStack) - 1; i >= 0; i-- {
 		exceptionCtx := b.exceptionStack[i]
-		if exceptionCtx.finallyBlock != nil && b.currentBlock != exceptionCtx.finallyBlock {
+		// Skip if currently processing this finally block (raise is inside finally)
+		if exceptionCtx.processingFinally {
+			continue
+		}
+		// Remember the first non-processing context for fallback to handlers
+		if fallbackExceptionCtx == nil {
+			fallbackExceptionCtx = exceptionCtx
+		}
+		if exceptionCtx.finallyBlock != nil {
 			targetFinallyBlock = exceptionCtx.finallyBlock
 			break
 		}
@@ -1108,10 +1130,9 @@ func (b *CFGBuilder) processRaiseStatement(stmt *parser.Node) {
 	if targetFinallyBlock != nil {
 		// Route through the next outer finally block
 		b.cfg.ConnectBlocks(b.currentBlock, targetFinallyBlock, EdgeException)
-	} else if len(b.exceptionStack) > 0 {
+	} else if fallbackExceptionCtx != nil && len(fallbackExceptionCtx.handlers) > 0 {
 		// No finally blocks - connect to exception handlers
-		exceptionCtx := b.exceptionStack[len(b.exceptionStack)-1]
-		for _, handler := range exceptionCtx.handlers {
+		for _, handler := range fallbackExceptionCtx.handlers {
 			b.cfg.ConnectBlocks(b.currentBlock, handler, EdgeException)
 		}
 	} else {
