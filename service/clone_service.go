@@ -161,7 +161,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	s.sortResults(domainClones, domainClonePairs, domainCloneGroups, req)
 
 	// Create statistics
-	statistics := s.createStatistics(domainClones, domainClonePairs, domainCloneGroups, len(filePaths), linesAnalyzed)
+	statistics := s.createStatistics(domainClones, domainClonePairs, domainCloneGroups, filesAnalyzed, linesAnalyzed)
 
 	duration := time.Since(startTime).Milliseconds()
 	// s.progress.Complete(fmt.Sprintf("Clone detection completed in %dms. Found %d clone pairs in %d groups.",

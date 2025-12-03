@@ -242,6 +242,27 @@ func TestCloneService_DetectClonesInFiles(t *testing.T) {
 		assert.NotNil(t, response.Statistics)
 		assert.Equal(t, 1, response.Statistics.FilesAnalyzed)
 	})
+
+	t.Run("statistics uses processed file count after detection", func(t *testing.T) {
+		tmp := t.TempDir()
+		f1 := filepath.Join(tmp, "a.py")
+		f2 := filepath.Join(tmp, "b.py")
+		missing := "../testdata/python/missing.py"
+
+		body := "def foo(x):\n	return x\n"
+		require.NoError(t, os.WriteFile(f1, []byte(body), 0o644))
+		require.NoError(t, os.WriteFile(f2, []byte(body), 0o644))
+
+		req := newDefaultCloneRequest(f1, f2, missing)
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone}
+
+		response, err := service.DetectClonesInFiles(ctx, req.Paths, req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.NotNil(t, response.Statistics)
+		assert.Equal(t, 2, response.Statistics.FilesAnalyzed) // skips missing; counts only processed files
+	})
 }
 
 func TestCloneService_ComputeSimilarity(t *testing.T) {
