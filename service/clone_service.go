@@ -75,6 +75,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	// Parse files and extract fragments
 	var allFragments []*analyzer.CodeFragment
 	linesAnalyzed := 0
+	filesAnalyzed := 0
 
 	for _, filePath := range filePaths {
 		// Check for context cancellation periodically
@@ -106,6 +107,9 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 			continue // Skip files with invalid parse results
 		}
 
+		// Count only files that were successfully read and parsed
+		filesAnalyzed++
+
 		// Count lines for statistics
 		linesAnalyzed += len(strings.Split(string(content), "\n"))
 
@@ -124,7 +128,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 			ClonePairs:  []*domain.ClonePair{},
 			CloneGroups: []*domain.CloneGroup{},
 			Statistics: &domain.CloneStatistics{
-				FilesAnalyzed: len(filePaths),
+				FilesAnalyzed: filesAnalyzed,
 				LinesAnalyzed: linesAnalyzed,
 			},
 			Request:  req,
