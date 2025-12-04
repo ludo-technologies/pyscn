@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -205,6 +207,61 @@ func TestCloneService_DetectClonesInFiles(t *testing.T) {
 		assert.Empty(t, response.Clones)
 		assert.Empty(t, response.ClonePairs)
 		assert.Empty(t, response.CloneGroups)
+	})
+
+	t.Run("files analyzed counts only successfully processed files", func(t *testing.T) {
+		valid := "../testdata/python/simple/functions.py"
+		missing := "../testdata/python/missing.py"
+
+		req := newDefaultCloneRequest(valid, missing)
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone}
+
+		response, err := service.DetectClonesInFiles(ctx, req.Paths, req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.NotNil(t, response.Statistics)
+		assert.Equal(t, 1, response.Statistics.FilesAnalyzed)
+	})
+
+	t.Run("parsing failures are not counted", func(t *testing.T) {
+		// Create brokenFile
+		tmpDir := t.TempDir()
+		brokenFile := filepath.Join(tmpDir, "broken.py")
+		assert.NoError(t, os.WriteFile(brokenFile, []byte("def oops(:\n    pass"), 0o644))
+
+		valid := "../testdata/python/simple/functions.py"
+
+		req := newDefaultCloneRequest(valid, brokenFile)
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone}
+
+		response, err := service.DetectClonesInFiles(ctx, req.Paths, req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.NotNil(t, response.Statistics)
+		assert.Equal(t, 1, response.Statistics.FilesAnalyzed)
+	})
+
+	t.Run("statistics uses processed file count after detection", func(t *testing.T) {
+		tmp := t.TempDir()
+		f1 := filepath.Join(tmp, "a.py")
+		f2 := filepath.Join(tmp, "b.py")
+		missing := "../testdata/python/missing.py"
+
+		body := "def foo(x):\n	return x\n"
+		require.NoError(t, os.WriteFile(f1, []byte(body), 0o644))
+		require.NoError(t, os.WriteFile(f2, []byte(body), 0o644))
+
+		req := newDefaultCloneRequest(f1, f2, missing)
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone}
+
+		response, err := service.DetectClonesInFiles(ctx, req.Paths, req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.NotNil(t, response.Statistics)
+		assert.Equal(t, 2, response.Statistics.FilesAnalyzed) // skips missing; counts only processed files
 	})
 }
 
