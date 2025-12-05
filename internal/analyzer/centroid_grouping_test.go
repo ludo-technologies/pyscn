@@ -3,6 +3,7 @@ package analyzer
 import (
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/internal/constants"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -10,10 +11,10 @@ func TestCentroidGroupingThresholds(t *testing.T) {
 	t.Run("Default thresholds are set correctly", func(t *testing.T) {
 		grouping := NewCentroidGrouping(0.7)
 
-		assert.Equal(t, 0.95, grouping.type1Threshold, "Type1 threshold should default to 0.95")
-		assert.Equal(t, 0.85, grouping.type2Threshold, "Type2 threshold should default to 0.85")
-		assert.Equal(t, 0.80, grouping.type3Threshold, "Type3 threshold should default to 0.80")
-		assert.Equal(t, 0.75, grouping.type4Threshold, "Type4 threshold should default to 0.75")
+		assert.Equal(t, constants.DefaultType1CloneThreshold, grouping.type1Threshold, "Type1 threshold should use constants.DefaultType1CloneThreshold")
+		assert.Equal(t, constants.DefaultType2CloneThreshold, grouping.type2Threshold, "Type2 threshold should use constants.DefaultType2CloneThreshold")
+		assert.Equal(t, constants.DefaultType3CloneThreshold, grouping.type3Threshold, "Type3 threshold should use constants.DefaultType3CloneThreshold")
+		assert.Equal(t, constants.DefaultType4CloneThreshold, grouping.type4Threshold, "Type4 threshold should use constants.DefaultType4CloneThreshold")
 	})
 
 	t.Run("SetThresholds updates values correctly", func(t *testing.T) {

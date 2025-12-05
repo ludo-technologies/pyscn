@@ -3,6 +3,8 @@ package analyzer
 import (
 	"fmt"
 	"sort"
+
+	"github.com/ludo-technologies/pyscn/internal/constants"
 )
 
 // CentroidGrouping implements centroid-based grouping that avoids transitive problems
@@ -23,10 +25,10 @@ func NewCentroidGrouping(threshold float64) *CentroidGrouping {
 	return &CentroidGrouping{
 		threshold:      threshold,
 		analyzer:       NewAPTEDAnalyzer(costModel),
-		type1Threshold: 0.95, // Default fallback values
-		type2Threshold: 0.85,
-		type3Threshold: 0.80,
-		type4Threshold: 0.75,
+		type1Threshold: constants.DefaultType1CloneThreshold,
+		type2Threshold: constants.DefaultType2CloneThreshold,
+		type3Threshold: constants.DefaultType3CloneThreshold,
+		type4Threshold: constants.DefaultType4CloneThreshold,
 	}
 }
 
