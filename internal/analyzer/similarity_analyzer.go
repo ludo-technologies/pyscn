@@ -115,8 +115,10 @@ func (c *CloneClassifier) ClassifyClone(f1, f2 *CodeFragment) *ClassificationRes
 	}
 
 	// Step 3: Type-3 check (structural APTED)
+	// Cache the structural similarity for potential reuse in fallback
+	var structuralSim float64
 	if c.structuralAnalyzer != nil {
-		structuralSim := c.structuralAnalyzer.ComputeSimilarity(f1, f2)
+		structuralSim = c.structuralAnalyzer.ComputeSimilarity(f1, f2)
 		if structuralSim >= c.type3Threshold {
 			return &ClassificationResult{
 				CloneType:  Type3Clone,
@@ -140,17 +142,14 @@ func (c *CloneClassifier) ClassifyClone(f1, f2 *CodeFragment) *ClassificationRes
 		}
 	}
 
-	// Not a clone - check if structural similarity meets Type-4 threshold as fallback
+	// Fallback: check if cached structural similarity meets Type-4 threshold
 	// This maintains backward compatibility with single-metric classification
-	if c.structuralAnalyzer != nil {
-		structuralSim := c.structuralAnalyzer.ComputeSimilarity(f1, f2)
-		if structuralSim >= c.type4Threshold {
-			return &ClassificationResult{
-				CloneType:  Type4Clone,
-				Similarity: structuralSim,
-				Confidence: 0.8,
-				Analyzer:   c.structuralAnalyzer.GetName(),
-			}
+	if c.structuralAnalyzer != nil && structuralSim >= c.type4Threshold {
+		return &ClassificationResult{
+			CloneType:  Type4Clone,
+			Similarity: structuralSim,
+			Confidence: 0.8,
+			Analyzer:   c.structuralAnalyzer.GetName(),
 		}
 	}
 

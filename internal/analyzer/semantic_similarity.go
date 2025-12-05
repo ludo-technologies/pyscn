@@ -9,15 +9,11 @@ import (
 // SemanticSimilarityAnalyzer computes semantic similarity using CFG (Control Flow Graph)
 // feature comparison. This is used for Type-4 clone detection (functionally similar
 // code with different syntax).
-type SemanticSimilarityAnalyzer struct {
-	cfgBuilder *CFGBuilder
-}
+type SemanticSimilarityAnalyzer struct{}
 
 // NewSemanticSimilarityAnalyzer creates a new semantic similarity analyzer
 func NewSemanticSimilarityAnalyzer() *SemanticSimilarityAnalyzer {
-	return &SemanticSimilarityAnalyzer{
-		cfgBuilder: NewCFGBuilder(),
-	}
+	return &SemanticSimilarityAnalyzer{}
 }
 
 // CFGFeatures captures key structural properties of a control flow graph
@@ -108,7 +104,23 @@ func (s *SemanticSimilarityAnalyzer) extractCFGFeatures(cfg *CFG) *CFGFeatures {
 	return features
 }
 
-// compareCFGFeatures compares two CFG feature sets and returns a similarity score
+// compareCFGFeatures compares two CFG feature sets and returns a similarity score.
+//
+// Weight rationale (based on clone detection research and empirical observations):
+//   - Cyclomatic complexity (0.25): Primary indicator of control flow complexity.
+//     McCabe's metric directly measures decision complexity, making it the most
+//     reliable single indicator of semantic equivalence.
+//   - Edge type distribution (0.25): Captures the pattern of control flow (conditionals,
+//     loops, exceptions). Similar distributions suggest similar behavioral patterns.
+//   - Block count (0.20): Basic structural size indicator. Similar block counts
+//     suggest similar decomposition of logic.
+//   - Edge count (0.15): Complements block count; together they describe graph density.
+//   - Branching factor (0.10): Average successors per block; indicates complexity
+//     of individual decisions.
+//   - Loop/conditional structure (0.05): Fine-grained structure; lower weight as
+//     it's partially captured by edge type distribution.
+//
+// These weights can be adjusted via configuration in future versions if needed.
 func (s *SemanticSimilarityAnalyzer) compareCFGFeatures(f1, f2 *CFGFeatures) float64 {
 	if f1 == nil || f2 == nil {
 		return 0.0
@@ -126,9 +138,9 @@ func (s *SemanticSimilarityAnalyzer) compareCFGFeatures(f1, f2 *CFGFeatures) flo
 	var weights []float64
 	var similarities []float64
 
-	// 1. Block count similarity (weight: 0.2)
+	// 1. Block count similarity (weight: 0.20)
 	blockSim := s.computeCountSimilarity(f1.BlockCount, f2.BlockCount)
-	weights = append(weights, 0.2)
+	weights = append(weights, 0.20)
 	similarities = append(similarities, blockSim)
 
 	// 2. Edge count similarity (weight: 0.15)
@@ -146,9 +158,9 @@ func (s *SemanticSimilarityAnalyzer) compareCFGFeatures(f1, f2 *CFGFeatures) flo
 	weights = append(weights, 0.25)
 	similarities = append(similarities, edgeTypeSim)
 
-	// 5. Branching factor similarity (weight: 0.1)
+	// 5. Branching factor similarity (weight: 0.10)
 	branchSim := s.computeFloatSimilarity(f1.BranchingFactor, f2.BranchingFactor)
-	weights = append(weights, 0.1)
+	weights = append(weights, 0.10)
 	similarities = append(similarities, branchSim)
 
 	// 6. Loop/conditional structure similarity (weight: 0.05)

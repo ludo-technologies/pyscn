@@ -7,6 +7,9 @@ import (
 	"unicode"
 )
 
+// Precompiled regex for whitespace normalization (avoid recompilation on each call)
+var whitespaceRegex = regexp.MustCompile(`\s+`)
+
 // TextualSimilarityAnalyzer computes textual similarity for Type-1 clone detection.
 // Type-1 clones are identical code fragments except for whitespace and comments.
 type TextualSimilarityAnalyzer struct {
@@ -180,8 +183,7 @@ func (t *TextualSimilarityAnalyzer) removeLineComment(line string) string {
 
 // normalizeWhitespaceInContent normalizes whitespace in content
 func (t *TextualSimilarityAnalyzer) normalizeWhitespaceInContent(content string) string {
-	// Replace multiple whitespace characters with single space
-	whitespaceRegex := regexp.MustCompile(`\s+`)
+	// Replace multiple whitespace characters with single space (using precompiled regex)
 	content = whitespaceRegex.ReplaceAllString(content, " ")
 
 	// Trim leading and trailing whitespace
