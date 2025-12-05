@@ -184,6 +184,11 @@ type CloneDetectorConfig struct {
 	LSHBands               int     // Number of LSH bands (default: 32)
 	LSHRows                int     // Rows per band (default: 4)
 	LSHMinHashCount        int     // Number of MinHash functions (default: 128)
+
+	// Multi-dimensional classification (optional, opt-in)
+	EnableMultiDimensionalAnalysis bool // Enable multi-dimensional clone type classification
+	EnableTextualAnalysis          bool // Enable Type-1 textual analysis (increases memory usage)
+	EnableSemanticAnalysis         bool // Enable Type-4 semantic/CFG analysis (increases CPU usage)
 }
 
 // DefaultCloneDetectorConfig returns default configuration
@@ -217,6 +222,11 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 		LSHBands:               32,
 		LSHRows:                4,
 		LSHMinHashCount:        128,
+
+		// Multi-dimensional classification defaults (opt-in)
+		EnableMultiDimensionalAnalysis: false,
+		EnableTextualAnalysis:          false,
+		EnableSemanticAnalysis:         false,
 	}
 }
 
@@ -227,6 +237,7 @@ type CloneDetector struct {
 
 	analyzer    *APTEDAnalyzer
 	converter   *TreeConverter
+	classifier  *CloneClassifier // Multi-dimensional classifier (optional)
 	fragments   []*CodeFragment
 	clonePairs  []*ClonePair
 	cloneGroups []*CloneGroup
@@ -250,10 +261,25 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 
 	analyzer := NewAPTEDAnalyzer(costModel)
 
+	// Initialize multi-dimensional classifier if enabled
+	var classifier *CloneClassifier
+	if config.EnableMultiDimensionalAnalysis {
+		classifierConfig := &CloneClassifierConfig{
+			Type1Threshold:         config.Type1Threshold,
+			Type2Threshold:         config.Type2Threshold,
+			Type3Threshold:         config.Type3Threshold,
+			Type4Threshold:         config.Type4Threshold,
+			EnableTextualAnalysis:  config.EnableTextualAnalysis,
+			EnableSemanticAnalysis: config.EnableSemanticAnalysis,
+		}
+		classifier = NewCloneClassifier(classifierConfig)
+	}
+
 	return &CloneDetector{
 		cloneDetectorConfig: *config,
 		analyzer:            analyzer,
 		converter:           NewTreeConverter(),
+		classifier:          classifier,
 		fragments:           []*CodeFragment{},
 		clonePairs:          []*ClonePair{},
 		cloneGroups:         []*CloneGroup{},
@@ -279,6 +305,107 @@ func (cd *CloneDetector) ExtractFragments(astNodes []*parser.Node, filePath stri
 	}
 
 	return fragments
+}
+
+// ExtractFragmentsWithSource extracts code fragments from AST nodes with source content.
+// Use this method when EnableTextualAnalysis is true to populate CodeFragment.Content.
+func (cd *CloneDetector) ExtractFragmentsWithSource(astNodes []*parser.Node, filePath string, sourceCode []byte) []*CodeFragment {
+	var fragments []*CodeFragment
+
+	for _, node := range astNodes {
+		cd.extractFragmentsRecursiveWithSource(node, filePath, sourceCode, &fragments)
+	}
+
+	return fragments
+}
+
+// extractFragmentsRecursiveWithSource recursively extracts fragments with source content
+func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, filePath string, sourceCode []byte, fragments *[]*CodeFragment) {
+	if node == nil {
+		return
+	}
+
+	// Check if this node should be considered as a fragment
+	if cd.isFragmentCandidate(node) {
+		location := &CodeLocation{
+			FilePath:  filePath,
+			StartLine: node.Location.StartLine,
+			EndLine:   node.Location.EndLine,
+			StartCol:  node.Location.StartCol,
+			EndCol:    node.Location.EndCol,
+		}
+
+		// Extract content from source code if textual analysis is enabled
+		content := ""
+		if cd.cloneDetectorConfig.EnableTextualAnalysis && len(sourceCode) > 0 {
+			content = cd.extractSourceContent(sourceCode, &node.Location)
+		}
+
+		fragment := NewCodeFragment(location, node, content)
+
+		// Filter fragments based on configuration
+		if cd.shouldIncludeFragment(fragment) {
+			*fragments = append(*fragments, fragment)
+		}
+	}
+
+	// Recursively process children
+	for _, child := range node.Children {
+		cd.extractFragmentsRecursiveWithSource(child, filePath, sourceCode, fragments)
+	}
+
+	for _, bodyNode := range node.Body {
+		cd.extractFragmentsRecursiveWithSource(bodyNode, filePath, sourceCode, fragments)
+	}
+
+	for _, orelseNode := range node.Orelse {
+		cd.extractFragmentsRecursiveWithSource(orelseNode, filePath, sourceCode, fragments)
+	}
+}
+
+// extractSourceContent extracts source code content for a given location
+func (cd *CloneDetector) extractSourceContent(sourceCode []byte, loc *parser.Location) string {
+	if loc == nil || len(sourceCode) == 0 {
+		return ""
+	}
+
+	lines := splitLines(sourceCode)
+	if loc.StartLine < 1 || loc.EndLine > len(lines) {
+		return ""
+	}
+
+	// Extract lines from StartLine to EndLine (1-indexed)
+	var result []byte
+	for i := loc.StartLine - 1; i < loc.EndLine && i < len(lines); i++ {
+		result = append(result, lines[i]...)
+		if i < loc.EndLine-1 {
+			result = append(result, '\n')
+		}
+	}
+
+	return string(result)
+}
+
+// splitLines splits source code into lines
+func splitLines(sourceCode []byte) [][]byte {
+	var lines [][]byte
+	var currentLine []byte
+
+	for _, b := range sourceCode {
+		if b == '\n' {
+			lines = append(lines, currentLine)
+			currentLine = nil
+		} else {
+			currentLine = append(currentLine, b)
+		}
+	}
+
+	// Add last line if it doesn't end with newline
+	if len(currentLine) > 0 {
+		lines = append(lines, currentLine)
+	}
+
+	return lines
 }
 
 // extractFragmentsRecursive recursively extracts fragments from AST
@@ -748,6 +875,37 @@ func (cd *CloneDetector) compareFragments(fragment1, fragment2 *CodeFragment) *C
 		return nil
 	}
 
+	// Use multi-dimensional classifier if enabled
+	if cd.classifier != nil && cd.cloneDetectorConfig.EnableMultiDimensionalAnalysis {
+		return cd.compareFragmentsWithClassifier(fragment1, fragment2)
+	}
+
+	// Fallback to single-metric classification (backward compatible)
+	return cd.compareFragmentsSingleMetric(fragment1, fragment2)
+}
+
+// compareFragmentsWithClassifier uses multi-dimensional classification
+func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *CodeFragment) *ClonePair {
+	result := cd.classifier.ClassifyClone(fragment1, fragment2)
+	if result == nil {
+		return nil
+	}
+
+	// Calculate edit distance for backward compatibility
+	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
+
+	return &ClonePair{
+		Fragment1:  fragment1,
+		Fragment2:  fragment2,
+		Similarity: result.Similarity,
+		Distance:   distance,
+		CloneType:  result.CloneType,
+		Confidence: result.Confidence,
+	}
+}
+
+// compareFragmentsSingleMetric uses the original single-metric classification
+func (cd *CloneDetector) compareFragmentsSingleMetric(fragment1, fragment2 *CodeFragment) *ClonePair {
 	// Compute edit distance and similarity using APTED algorithm
 	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
 	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
