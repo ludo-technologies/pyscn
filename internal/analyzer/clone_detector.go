@@ -189,6 +189,7 @@ type CloneDetectorConfig struct {
 	EnableMultiDimensionalAnalysis bool // Enable multi-dimensional clone type classification
 	EnableTextualAnalysis          bool // Enable Type-1 textual analysis (increases memory usage)
 	EnableSemanticAnalysis         bool // Enable Type-4 semantic/CFG analysis (increases CPU usage)
+	EnableDFAAnalysis              bool // Enable Data Flow Analysis for enhanced Type-4 detection
 }
 
 // DefaultCloneDetectorConfig returns default configuration
@@ -271,6 +272,7 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 			Type4Threshold:         config.Type4Threshold,
 			EnableTextualAnalysis:  config.EnableTextualAnalysis,
 			EnableSemanticAnalysis: config.EnableSemanticAnalysis,
+			EnableDFAAnalysis:      config.EnableDFAAnalysis,
 		}
 		classifier = NewCloneClassifier(classifierConfig)
 	}

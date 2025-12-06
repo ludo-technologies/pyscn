@@ -3,17 +3,46 @@ package analyzer
 import (
 	"math"
 
+	"github.com/ludo-technologies/pyscn/internal/constants"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 // SemanticSimilarityAnalyzer computes semantic similarity using CFG (Control Flow Graph)
-// feature comparison. This is used for Type-4 clone detection (functionally similar
-// code with different syntax).
-type SemanticSimilarityAnalyzer struct{}
+// and optionally DFA (Data Flow Analysis) feature comparison. This is used for Type-4
+// clone detection (functionally similar code with different syntax).
+type SemanticSimilarityAnalyzer struct {
+	enableDFA        bool    // Enable DFA-based analysis
+	cfgFeatureWeight float64 // Weight for CFG features (default: 0.6)
+	dfaFeatureWeight float64 // Weight for DFA features (default: 0.4)
+}
 
 // NewSemanticSimilarityAnalyzer creates a new semantic similarity analyzer
 func NewSemanticSimilarityAnalyzer() *SemanticSimilarityAnalyzer {
-	return &SemanticSimilarityAnalyzer{}
+	return &SemanticSimilarityAnalyzer{
+		enableDFA:        false,
+		cfgFeatureWeight: constants.DefaultCFGFeatureWeight,
+		dfaFeatureWeight: constants.DefaultDFAFeatureWeight,
+	}
+}
+
+// NewSemanticSimilarityAnalyzerWithDFA creates a new analyzer with DFA enabled
+func NewSemanticSimilarityAnalyzerWithDFA() *SemanticSimilarityAnalyzer {
+	return &SemanticSimilarityAnalyzer{
+		enableDFA:        true,
+		cfgFeatureWeight: constants.DefaultCFGFeatureWeight,
+		dfaFeatureWeight: constants.DefaultDFAFeatureWeight,
+	}
+}
+
+// SetEnableDFA enables or disables DFA analysis
+func (s *SemanticSimilarityAnalyzer) SetEnableDFA(enable bool) {
+	s.enableDFA = enable
+}
+
+// SetWeights sets the CFG and DFA feature weights
+func (s *SemanticSimilarityAnalyzer) SetWeights(cfgWeight, dfaWeight float64) {
+	s.cfgFeatureWeight = cfgWeight
+	s.dfaFeatureWeight = dfaWeight
 }
 
 // CFGFeatures captures key structural properties of a control flow graph
@@ -28,7 +57,7 @@ type CFGFeatures struct {
 }
 
 // ComputeSimilarity computes the semantic similarity between two code fragments
-// by comparing their CFG structures.
+// by comparing their CFG structures and optionally DFA features.
 func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) float64 {
 	if f1 == nil || f2 == nil {
 		return 0.0
@@ -42,12 +71,32 @@ func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) flo
 		return 0.0
 	}
 
-	// Extract features from both CFGs
-	features1 := s.extractCFGFeatures(cfg1)
-	features2 := s.extractCFGFeatures(cfg2)
+	// Extract CFG features from both CFGs
+	cfgFeatures1 := s.extractCFGFeatures(cfg1)
+	cfgFeatures2 := s.extractCFGFeatures(cfg2)
 
-	// Compare features to compute similarity
-	return s.compareCFGFeatures(features1, features2)
+	// Compare CFG features to compute similarity
+	cfgSimilarity := s.compareCFGFeatures(cfgFeatures1, cfgFeatures2)
+
+	// If DFA is not enabled, return CFG similarity only
+	if !s.enableDFA {
+		return cfgSimilarity
+	}
+
+	// Build DFA info for both CFGs
+	dfaBuilder := NewDFABuilder()
+	dfaInfo1, _ := dfaBuilder.Build(cfg1)
+	dfaInfo2, _ := dfaBuilder.Build(cfg2)
+
+	// Extract DFA features
+	dfaFeatures1 := ExtractDFAFeatures(dfaInfo1)
+	dfaFeatures2 := ExtractDFAFeatures(dfaInfo2)
+
+	// Compare DFA features
+	dfaSimilarity := s.compareDFAFeatures(dfaFeatures1, dfaFeatures2)
+
+	// Combine CFG and DFA similarities with configured weights
+	return s.cfgFeatureWeight*cfgSimilarity + s.dfaFeatureWeight*dfaSimilarity
 }
 
 // buildCFGFromFragment builds a CFG from a code fragment
@@ -274,4 +323,138 @@ func (s *SemanticSimilarityAnalyzer) BuildCFG(node *parser.Node) (*CFG, error) {
 // ExtractFeatures extracts CFG features (exposed for testing)
 func (s *SemanticSimilarityAnalyzer) ExtractFeatures(cfg *CFG) *CFGFeatures {
 	return s.extractCFGFeatures(cfg)
+}
+
+// compareDFAFeatures compares two DFA feature sets and returns a similarity score.
+//
+// Weight rationale (based on data flow analysis research):
+//   - Pair count (0.25): Total def-use pairs indicate data flow complexity
+//   - Chain length (0.20): Uses per definition shows variable reuse patterns
+//   - Cross-block pairs (0.20): Data dependencies across control flow structure
+//   - Def kind distribution (0.20): Coding patterns in variable definitions
+//   - Use kind distribution (0.15): Variable access patterns
+func (s *SemanticSimilarityAnalyzer) compareDFAFeatures(f1, f2 *DFAFeatures) float64 {
+	if f1 == nil || f2 == nil {
+		return 0.0
+	}
+
+	// Handle edge cases
+	if f1.TotalDefs == 0 && f2.TotalDefs == 0 {
+		return 1.0 // Both empty
+	}
+	if f1.TotalDefs == 0 || f2.TotalDefs == 0 {
+		return 0.0 // One empty
+	}
+
+	// Calculate individual similarity components
+	var weights []float64
+	var similarities []float64
+
+	// 1. Total pairs similarity (weight from constants)
+	pairSim := s.computeCountSimilarity(f1.TotalPairs, f2.TotalPairs)
+	weights = append(weights, constants.DefaultDFAPairCountWeight)
+	similarities = append(similarities, pairSim)
+
+	// 2. Average chain length similarity
+	chainSim := s.computeFloatSimilarity(f1.AvgChainLength, f2.AvgChainLength)
+	weights = append(weights, constants.DefaultDFAChainLengthWeight)
+	similarities = append(similarities, chainSim)
+
+	// 3. Cross-block pairs ratio similarity
+	crossBlockRatio1 := 0.0
+	crossBlockRatio2 := 0.0
+	if f1.TotalPairs > 0 {
+		crossBlockRatio1 = float64(f1.CrossBlockPairs) / float64(f1.TotalPairs)
+	}
+	if f2.TotalPairs > 0 {
+		crossBlockRatio2 = float64(f2.CrossBlockPairs) / float64(f2.TotalPairs)
+	}
+	crossBlockSim := s.computeFloatSimilarity(crossBlockRatio1, crossBlockRatio2)
+	weights = append(weights, constants.DefaultDFACrossBlockWeight)
+	similarities = append(similarities, crossBlockSim)
+
+	// 4. Definition kind distribution similarity
+	defKindSim := s.compareDefUseKindDistributions(f1.DefKindCounts, f2.DefKindCounts)
+	weights = append(weights, constants.DefaultDFADefKindWeight)
+	similarities = append(similarities, defKindSim)
+
+	// 5. Use kind distribution similarity
+	useKindSim := s.compareDefUseKindDistributions(f1.UseKindCounts, f2.UseKindCounts)
+	weights = append(weights, constants.DefaultDFAUseKindWeight)
+	similarities = append(similarities, useKindSim)
+
+	// Compute weighted average
+	var totalWeight float64
+	var weightedSum float64
+	for i := range weights {
+		totalWeight += weights[i]
+		weightedSum += weights[i] * similarities[i]
+	}
+
+	if totalWeight == 0 {
+		return 0.0
+	}
+
+	similarity := weightedSum / totalWeight
+
+	// Clamp to [0, 1]
+	return math.Max(0.0, math.Min(1.0, similarity))
+}
+
+// compareDefUseKindDistributions compares two DefUseKind distributions using cosine similarity
+func (s *SemanticSimilarityAnalyzer) compareDefUseKindDistributions(dist1, dist2 map[DefUseKind]int) float64 {
+	if len(dist1) == 0 && len(dist2) == 0 {
+		return 1.0
+	}
+	if len(dist1) == 0 || len(dist2) == 0 {
+		return 0.0
+	}
+
+	// Get all kinds
+	allKinds := make(map[DefUseKind]bool)
+	for k := range dist1 {
+		allKinds[k] = true
+	}
+	for k := range dist2 {
+		allKinds[k] = true
+	}
+
+	// Compute cosine similarity
+	var dotProduct float64
+	var norm1 float64
+	var norm2 float64
+
+	for k := range allKinds {
+		v1 := float64(dist1[k])
+		v2 := float64(dist2[k])
+
+		dotProduct += v1 * v2
+		norm1 += v1 * v1
+		norm2 += v2 * v2
+	}
+
+	norm1 = math.Sqrt(norm1)
+	norm2 = math.Sqrt(norm2)
+
+	if norm1 == 0 || norm2 == 0 {
+		return 0.0
+	}
+
+	return dotProduct / (norm1 * norm2)
+}
+
+// BuildDFA builds DFA info from a CFG (exposed for testing)
+func (s *SemanticSimilarityAnalyzer) BuildDFA(cfg *CFG) (*DFAInfo, error) {
+	builder := NewDFABuilder()
+	return builder.Build(cfg)
+}
+
+// ExtractDFAFeatures extracts DFA features from DFA info (exposed for testing)
+func (s *SemanticSimilarityAnalyzer) ExtractDFAFeaturesFromInfo(info *DFAInfo) *DFAFeatures {
+	return ExtractDFAFeatures(info)
+}
+
+// IsDFAEnabled returns whether DFA analysis is enabled
+func (s *SemanticSimilarityAnalyzer) IsDFAEnabled() bool {
+	return s.enableDFA
 }
