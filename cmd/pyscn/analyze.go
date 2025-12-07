@@ -71,7 +71,7 @@ func NewAnalyzeCommand() *AnalyzeCommand {
 		minSeverity:     "warning",
 		cloneSimilarity: 0.8,
 		minCBO:          0,
-		enableDFA:       false,
+		enableDFA:       true,
 		detectCycles:    true,
 		validateArch:    true,
 	}
@@ -134,9 +134,6 @@ Examples:
 	cmd.Flags().StringVar(&c.minSeverity, "min-severity", "warning", "Minimum dead code severity (critical, warning, info)")
 	cmd.Flags().Float64Var(&c.cloneSimilarity, "clone-threshold", 0.8, "Minimum similarity for clone detection (0.0-1.0)")
 	cmd.Flags().IntVar(&c.minCBO, "min-cbo", 0, "Minimum CBO to report")
-
-	// Clone detection options
-	cmd.Flags().BoolVar(&c.enableDFA, "enable-dfa", false, "Enable Data Flow Analysis for enhanced Type-4 clone detection")
 
 	return cmd
 }

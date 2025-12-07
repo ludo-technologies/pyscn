@@ -142,6 +142,9 @@ type CloneAnalysisConfig struct {
 
 	// Cost model configuration
 	CostModelType string `mapstructure:"cost_model_type" yaml:"cost_model_type" json:"cost_model_type"`
+
+	// Advanced analysis
+	EnableDFA *bool `mapstructure:"enable_dfa" yaml:"enable_dfa" json:"enable_dfa"` // Data Flow Analysis for Type-4
 }
 
 // ThresholdConfig holds similarity thresholds for different clone types

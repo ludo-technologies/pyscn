@@ -62,6 +62,9 @@ type3_threshold = 0.85           # Type-3: Syntactically similar (small modifica
 type4_threshold = 0.70           # Type-4: Functionally similar (different syntax)
 similarity_threshold = 0.8       # General minimum similarity threshold
 
+# Advanced analysis settings
+enable_dfa = true                # Enable Data Flow Analysis for enhanced Type-4 detection
+
 # Filtering settings
 min_similarity = 0.0             # Minimum similarity to report
 max_similarity = 1.0             # Maximum similarity to report
