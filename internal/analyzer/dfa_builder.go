@@ -150,11 +150,19 @@ func (b *DFABuilder) findDefInPredecessors(defs []*VarReference, startBlock *Bas
 		block := queue[0]
 		queue = queue[1:]
 
-		// Check if any definition is in this block
+		// Find the last definition in this block
+		var lastDef *VarReference
 		for _, def := range defs {
 			if def.Block != nil && def.Block.ID == block.ID {
-				return def // Return first found (simplified)
+				// We want the definition with the highest position in this block
+				if lastDef == nil || def.Position > lastDef.Position {
+					lastDef = def
+				}
 			}
+		}
+
+		if lastDef != nil {
+			return lastDef
 		}
 
 		// Add predecessors to queue
