@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.5.0] - 2025-12-08
+
+### Added
+- Data Flow Analysis (DFA) for Type-4 clone detection with `--enable-dfa` flag (#250)
+- Multi-dimensional clone type classification (#248)
+
+### Fixed
+- Ensure deterministic architecture analysis results (#252)
+- Count skipped files as analyzed (#243)
+- Replace hardcoded thresholds with constants in CentroidGrouping (#247)
+
 ## [1.4.2] - 2025-11-30
 
 ### Fixed
