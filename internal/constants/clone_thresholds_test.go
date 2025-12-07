@@ -9,8 +9,8 @@ import (
 
 func TestDefaultCloneThresholds(t *testing.T) {
 	t.Run("Constants have expected values", func(t *testing.T) {
-		assert.Equal(t, 0.95, DefaultType1CloneThreshold, "Type1 threshold should be 0.95")
-		assert.Equal(t, 0.85, DefaultType2CloneThreshold, "Type2 threshold should be 0.85")
+		assert.Equal(t, 0.98, DefaultType1CloneThreshold, "Type1 threshold should be 0.98")
+		assert.Equal(t, 0.95, DefaultType2CloneThreshold, "Type2 threshold should be 0.95")
 		assert.Equal(t, 0.80, DefaultType3CloneThreshold, "Type3 threshold should be 0.80")
 		assert.Equal(t, 0.75, DefaultType4CloneThreshold, "Type4 threshold should be 0.75")
 	})
@@ -74,14 +74,14 @@ func TestCloneTypeDescriptions(t *testing.T) {
 func TestTemplateConfigConsistency(t *testing.T) {
 	t.Run("Template values match constants", func(t *testing.T) {
 		// These values should match what's in cmd/pyscn/init.go template
-		expectedType1 := DefaultType1CloneThreshold // 0.95
-		expectedType2 := DefaultType2CloneThreshold // 0.85
+		expectedType1 := DefaultType1CloneThreshold // 0.98
+		expectedType2 := DefaultType2CloneThreshold // 0.95
 		expectedType3 := DefaultType3CloneThreshold // 0.80
 		expectedType4 := DefaultType4CloneThreshold // 0.75
 
 		// Verify the constants are what we expect
-		assert.Equal(t, 0.95, expectedType1, "Type1 constant should be 0.95")
-		assert.Equal(t, 0.85, expectedType2, "Type2 constant should be 0.85")
+		assert.Equal(t, 0.98, expectedType1, "Type1 constant should be 0.98")
+		assert.Equal(t, 0.95, expectedType2, "Type2 constant should be 0.95")
 		assert.Equal(t, 0.80, expectedType3, "Type3 constant should be 0.80")
 		assert.Equal(t, 0.75, expectedType4, "Type4 constant should be 0.75")
 	})

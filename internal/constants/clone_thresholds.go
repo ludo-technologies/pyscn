@@ -9,13 +9,13 @@ package constants
 const (
 	// DefaultType1CloneThreshold represents the similarity threshold for Type-1 clones.
 	// Type-1 clones are identical code fragments except for variations in whitespace,
-	// layout and comments. They should have very high similarity (≥95%).
-	DefaultType1CloneThreshold = 0.95
+	// layout and comments. They should have very high similarity (≥98%).
+	DefaultType1CloneThreshold = 0.98
 
 	// DefaultType2CloneThreshold represents the similarity threshold for Type-2 clones.
 	// Type-2 clones are syntactically identical fragments except for variations in
-	// identifiers, literals, types, layout and comments. High similarity (≥85%).
-	DefaultType2CloneThreshold = 0.85
+	// identifiers, literals, types, layout and comments. High similarity (≥95%).
+	DefaultType2CloneThreshold = 0.95
 
 	// DefaultType3CloneThreshold represents the similarity threshold for Type-3 clones.
 	// Type-3 clones are copied fragments with further modifications such as changed,
