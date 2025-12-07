@@ -44,6 +44,9 @@ type AnalyzeCommand struct {
 	cloneSimilarity float64
 	minCBO          int
 
+	// Clone detection options
+	enableDFA bool // Enable Data Flow Analysis for enhanced Type-4 detection
+
 	// System analysis options
 	detectCycles bool // Detect circular dependencies
 	validateArch bool // Validate architecture rules
@@ -68,6 +71,7 @@ func NewAnalyzeCommand() *AnalyzeCommand {
 		minSeverity:     "warning",
 		cloneSimilarity: 0.8,
 		minCBO:          0,
+		enableDFA:       false,
 		detectCycles:    true,
 		validateArch:    true,
 	}
@@ -131,6 +135,9 @@ Examples:
 	cmd.Flags().Float64Var(&c.cloneSimilarity, "clone-threshold", 0.8, "Minimum similarity for clone detection (0.0-1.0)")
 	cmd.Flags().IntVar(&c.minCBO, "min-cbo", 0, "Minimum CBO to report")
 
+	// Clone detection options
+	cmd.Flags().BoolVar(&c.enableDFA, "enable-dfa", false, "Enable Data Flow Analysis for enhanced Type-4 clone detection")
+
 	return cmd
 }
 
@@ -182,6 +189,7 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		MinComplexity:   c.minComplexity,
 		CloneSimilarity: c.cloneSimilarity,
 		MinCBO:          c.minCBO,
+		EnableDFA:       c.enableDFA,
 	}
 
 	// Handle analysis selection

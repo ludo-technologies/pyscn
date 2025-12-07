@@ -27,6 +27,9 @@ type AnalyzeUseCaseConfig struct {
 	CloneSimilarity float64
 	MinCBO          int
 
+	// Clone detection options
+	EnableDFA bool // Enable Data Flow Analysis for enhanced Type-4 detection
+
 	ConfigFile string
 	Verbose    bool
 }
@@ -331,6 +334,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 					Type2Threshold:      defaultReq.Type2Threshold,
 					Type3Threshold:      defaultReq.Type3Threshold,
 					Type4Threshold:      defaultReq.Type4Threshold,
+					EnableDFA:           config.EnableDFA,
 					GroupClones:         true, // Enable clone grouping (default behavior)
 					ConfigPath:          config.ConfigFile,
 				}

@@ -265,6 +265,9 @@ func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.
 		MaxClonePairs:      10000,    // Default max pairs
 		BatchSizeThreshold: 50,       // Default batch size threshold
 
+		// Advanced analysis
+		EnableDFAAnalysis: req.EnableDFA,
+
 		// Grouping
 		GroupingMode:      groupMode,
 		GroupingThreshold: groupThreshold,
