@@ -275,6 +275,7 @@ func similarity(sims map[string]float64, a, b *CodeFragment) float64 {
 }
 
 // averageGroupSimilarity computes average pairwise similarity among members using cache.
+// Only pairs that exist in the similarity map are counted (missing pairs are skipped, not treated as 0).
 func averageGroupSimilarity(sims map[string]float64, members []*CodeFragment) float64 {
 	if len(members) < 2 {
 		return 1.0
@@ -283,8 +284,11 @@ func averageGroupSimilarity(sims map[string]float64, members []*CodeFragment) fl
 	cnt := 0
 	for i := 0; i < len(members); i++ {
 		for j := i + 1; j < len(members); j++ {
-			sum += similarity(sims, members[i], members[j])
-			cnt++
+			key := pairKey(members[i], members[j])
+			if sim, ok := sims[key]; ok {
+				sum += sim
+				cnt++
+			}
 		}
 	}
 	if cnt == 0 {

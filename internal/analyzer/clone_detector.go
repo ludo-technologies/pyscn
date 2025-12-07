@@ -665,7 +665,7 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 
 			f1 := cd.fragments[a]
 			f2 := cd.fragments[b]
-			if cd.isSameLocation(f1.Location, f2.Location) {
+			if cd.isOverlappingLocation(f1.Location, f2.Location) {
 				continue
 			}
 
@@ -779,8 +779,8 @@ func (cd *CloneDetector) detectClonePairsStandardWithContext(ctx context.Context
 			fragment1 := cd.fragments[i]
 			fragment2 := cd.fragments[j]
 
-			// Skip if both fragments are from the same location
-			if cd.isSameLocation(fragment1.Location, fragment2.Location) {
+			// Skip if both fragments are from the same location or overlap in the same file
+			if cd.isOverlappingLocation(fragment1.Location, fragment2.Location) {
 				continue
 			}
 
@@ -1021,6 +1021,16 @@ func (cd *CloneDetector) isSameLocation(loc1, loc2 *CodeLocation) bool {
 		loc1.EndLine == loc2.EndLine
 }
 
+// isOverlappingLocation checks if two locations from the same file overlap
+// (one contains or partially contains the other)
+func (cd *CloneDetector) isOverlappingLocation(loc1, loc2 *CodeLocation) bool {
+	if loc1.FilePath != loc2.FilePath {
+		return false
+	}
+	// Check if ranges overlap: NOT (loc1 ends before loc2 starts OR loc2 ends before loc1 starts)
+	return !(loc1.EndLine < loc2.StartLine || loc2.EndLine < loc1.StartLine)
+}
+
 // GetStatistics returns clone detection statistics
 func (cd *CloneDetector) GetStatistics() map[string]interface{} {
 	stats := make(map[string]interface{})
@@ -1053,8 +1063,8 @@ func (cd *CloneDetector) tryCreateClonePair(i, j int, minSimilarity float64) *Cl
 	fragment1 := cd.fragments[i]
 	fragment2 := cd.fragments[j]
 
-	// Skip if both fragments are from the same location
-	if cd.isSameLocation(fragment1.Location, fragment2.Location) {
+	// Skip if both fragments are from the same location or overlap in the same file
+	if cd.isOverlappingLocation(fragment1.Location, fragment2.Location) {
 		return nil
 	}
 
