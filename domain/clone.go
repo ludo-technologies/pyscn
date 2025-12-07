@@ -328,7 +328,7 @@ func DefaultCloneRequest() *CloneRequest {
 		ExcludePatterns:     []string{"test_*.py", "*_test.py"},
 		MinLines:            5,
 		MinNodes:            10,
-		SimilarityThreshold: 0.8,
+		SimilarityThreshold: 0.9,
 		MaxEditDistance:     50.0,
 		IgnoreLiterals:      false,
 		IgnoreIdentifiers:   false,

@@ -17,9 +17,10 @@ const (
 	ComplexityPenaltyLow      = 6
 
 	// Code duplication thresholds and penalties
-	DuplicationThresholdHigh   = 20.0
-	DuplicationThresholdMedium = 10.0
-	DuplicationThresholdLow    = 3.0
+	// Industry standard: < 5% excellent, 5-15% good, 15-25% acceptable, > 25% needs attention
+	DuplicationThresholdHigh   = 30.0
+	DuplicationThresholdMedium = 15.0
+	DuplicationThresholdLow    = 5.0
 	DuplicationPenaltyHigh     = 20
 	DuplicationPenaltyMedium   = 12
 	DuplicationPenaltyLow      = 6
@@ -223,15 +224,17 @@ func (s *AnalyzeSummary) calculateDeadCodePenalty(normalizationFactor float64) i
 }
 
 // calculateDuplicationPenalty calculates the penalty for code duplication (max 20)
-// Uses continuous linear function starting from 1% duplication
+// Uses continuous linear function based on defined thresholds
 func (s *AnalyzeSummary) calculateDuplicationPenalty() int {
-	// Linear penalty: starts at 1%, reaches max (20) at 8%
-	// Formula: penalty = (duplication - 1) / 7 * 20
-	if s.CodeDuplication <= 1.0 {
+	// Linear penalty: starts at DuplicationThresholdLow (5%), reaches max (20) at DuplicationThresholdHigh (30%)
+	// Industry standard: < 5% excellent, 5-15% good, 15-25% acceptable, > 25% needs attention
+	if s.CodeDuplication <= DuplicationThresholdLow {
 		return 0
 	}
 
-	penalty := (s.CodeDuplication - 1.0) / 7.0 * 20.0
+	// Formula: penalty = (duplication - low) / (high - low) * 20
+	penaltyRange := DuplicationThresholdHigh - DuplicationThresholdLow // 25%
+	penalty := (s.CodeDuplication - DuplicationThresholdLow) / penaltyRange * 20.0
 	if penalty > 20.0 {
 		penalty = 20.0
 	}

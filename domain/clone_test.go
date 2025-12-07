@@ -349,7 +349,7 @@ func TestDefaultCloneRequest(t *testing.T) {
 	assert.Contains(t, request.ExcludePatterns, "*_test.py", "Default exclude patterns should contain test files")
 	assert.Equal(t, 5, request.MinLines, "Default min lines should be 5")
 	assert.Equal(t, 10, request.MinNodes, "Default min nodes should be 10")
-	assert.Equal(t, 0.8, request.SimilarityThreshold, "Default similarity threshold should be 0.8")
+	assert.Equal(t, 0.9, request.SimilarityThreshold, "Default similarity threshold should be 0.9")
 	assert.Equal(t, 50.0, request.MaxEditDistance, "Default max edit distance should be 50.0")
 	assert.False(t, request.IgnoreLiterals, "Default ignore literals should be false")
 	assert.False(t, request.IgnoreIdentifiers, "Default ignore identifiers should be false")

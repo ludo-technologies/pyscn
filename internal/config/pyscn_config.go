@@ -273,7 +273,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 			Type2Threshold:      constants.DefaultType2CloneThreshold,
 			Type3Threshold:      constants.DefaultType3CloneThreshold,
 			Type4Threshold:      constants.DefaultType4CloneThreshold,
-			SimilarityThreshold: 0.8, // General threshold for clone reporting
+			SimilarityThreshold: 0.9, // General threshold for clone reporting (stricter default)
 		},
 		Filtering: FilteringConfig{
 			MinSimilarity:     0.0,

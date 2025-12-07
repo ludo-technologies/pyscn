@@ -154,6 +154,9 @@ type CloneDetectorConfig struct {
 	Type3Threshold float64 // Usually > constants.DefaultType3CloneThreshold
 	Type4Threshold float64 // Usually > constants.DefaultType4CloneThreshold
 
+	// Minimum similarity threshold for clone reporting (user-configurable via --clone-threshold)
+	SimilarityThreshold float64
+
 	// Maximum edit distance allowed
 	MaxEditDistance float64
 
@@ -980,7 +983,12 @@ func (cd *CloneDetector) calculateConfidence(fragment1, fragment2 *CodeFragment,
 // isSignificantClone determines if a clone pair is significant enough to report
 func (cd *CloneDetector) isSignificantClone(pair *ClonePair) bool {
 	// Check minimum similarity threshold
-	if pair.Similarity < cd.cloneDetectorConfig.Type4Threshold {
+	// Use SimilarityThreshold if set, otherwise fall back to Type4Threshold
+	minThreshold := cd.cloneDetectorConfig.SimilarityThreshold
+	if minThreshold <= 0 {
+		minThreshold = cd.cloneDetectorConfig.Type4Threshold
+	}
+	if pair.Similarity < minThreshold {
 		return false
 	}
 

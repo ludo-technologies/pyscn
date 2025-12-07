@@ -263,7 +263,7 @@ func TestCloneConfigurationLoaderIntegration(t *testing.T) {
 	assert.NotNil(t, defaultConfig, "Should return default configuration")
 	assert.Equal(t, 5, defaultConfig.MinLines, "Default min lines should be 5")
 	assert.Equal(t, 10, defaultConfig.MinNodes, "Default min nodes should be 10")
-	assert.Equal(t, 0.8, defaultConfig.SimilarityThreshold, "Default similarity threshold should be 0.8")
+	assert.Equal(t, 0.9, defaultConfig.SimilarityThreshold, "Default similarity threshold should be 0.9")
 
 	// Validate default configuration
 	err := defaultConfig.Validate()

@@ -432,7 +432,7 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 		OutputWriter:        io.Discard,
 		MinLines:            5,
 		MinNodes:            10,
-		SimilarityThreshold: 0.8,
+		SimilarityThreshold: 0.9,
 		MaxEditDistance:     50.0,
 		IgnoreLiterals:      false,
 		IgnoreIdentifiers:   false,
