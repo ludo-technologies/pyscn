@@ -262,6 +262,12 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 
 	analyzer := NewAPTEDAnalyzer(costModel)
 
+	// If DFA is enabled, automatically enable multi-dimensional analysis and semantic analysis
+	if config.EnableDFAAnalysis {
+		config.EnableMultiDimensionalAnalysis = true
+		config.EnableSemanticAnalysis = true
+	}
+
 	// Initialize multi-dimensional classifier if enabled
 	var classifier *CloneClassifier
 	if config.EnableMultiDimensionalAnalysis {
@@ -978,8 +984,8 @@ func (cd *CloneDetector) isSignificantClone(pair *ClonePair) bool {
 		return false
 	}
 
-	// Check maximum distance threshold
-	if pair.Distance > cd.cloneDetectorConfig.MaxEditDistance {
+	// Check maximum distance threshold (0 means no limit)
+	if cd.cloneDetectorConfig.MaxEditDistance > 0 && pair.Distance > cd.cloneDetectorConfig.MaxEditDistance {
 		return false
 	}
 
