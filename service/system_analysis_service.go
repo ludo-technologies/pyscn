@@ -313,6 +313,9 @@ func (s *SystemAnalysisServiceImpl) calculateLayerMetrics(layerCoupling map[stri
 		}
 	}
 
+	// Sort problematic layers for deterministic results
+	sort.Strings(problematic)
+
 	return layerCohesion, problematic, layersAnalyzed
 }
 
@@ -419,6 +422,9 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
 			} else if m.specificity == best.specificity {
 				// tie-breaker: prefer longer original pattern
 				if len(m.pattern) > len(best.pattern) {
+					best = m
+				} else if len(m.pattern) == len(best.pattern) && m.layer < best.layer {
+					// final tie-breaker: alphabetical order by layer name for deterministic results
 					best = m
 				}
 			}
@@ -630,11 +636,12 @@ func (s *SystemAnalysisServiceImpl) extractPackagePrefixes(modules []string) []s
 		}
 	}
 
-	// Convert map to slice
+	// Convert map to slice and sort for deterministic results
 	prefixes := make([]string, 0, len(prefixMap))
 	for prefix := range prefixMap {
 		prefixes = append(prefixes, prefix)
 	}
+	sort.Strings(prefixes)
 
 	return prefixes
 }
@@ -823,9 +830,13 @@ func (s *SystemAnalysisServiceImpl) findLongestChains(graph *analyzer.Dependency
 		chains = append(chains, paths...)
 	}
 
-	// Sort by length (descending)
+	// Sort by length (descending), then by first module name for deterministic results
 	sort.Slice(chains, func(i, j int) bool {
-		return chains[i].Length > chains[j].Length
+		if chains[i].Length != chains[j].Length {
+			return chains[i].Length > chains[j].Length
+		}
+		// Tie-breaker: compare first module name for deterministic results
+		return chains[i].Path[0] < chains[j].Path[0]
 	})
 
 	// Return top chains
@@ -1283,6 +1294,8 @@ func (s *SystemAnalysisServiceImpl) generateArchitectureRecommendations(
 				topViolators = append(topViolators, module)
 			}
 		}
+		// Sort for deterministic results
+		sort.Strings(topViolators)
 
 		if len(topViolators) > 0 {
 			recommendations = append(recommendations, domain.ArchitectureRecommendation{
@@ -1376,7 +1389,11 @@ func (s *SystemAnalysisServiceImpl) identifyArchitectureRefactoringTargets(
 	}
 
 	sort.Slice(modules, func(i, j int) bool {
-		return modules[i].count > modules[j].count
+		if modules[i].count != modules[j].count {
+			return modules[i].count > modules[j].count
+		}
+		// Tie-breaker: alphabetical order by module name for deterministic results
+		return modules[i].module < modules[j].module
 	})
 
 	// Return top refactoring targets
