@@ -102,7 +102,7 @@ type1_threshold = 0.98
 type2_threshold = 0.95
 type3_threshold = 0.85
 type4_threshold = 0.70
-similarity_threshold = 0.8
+similarity_threshold = 0.9
 
 # Input settings
 paths = ["."]

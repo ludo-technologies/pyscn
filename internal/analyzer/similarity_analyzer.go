@@ -38,6 +38,7 @@ type CloneClassifierConfig struct {
 	Type4Threshold         float64
 	EnableTextualAnalysis  bool
 	EnableSemanticAnalysis bool
+	EnableDFAAnalysis      bool // Enable Data Flow Analysis for enhanced Type-4 detection
 }
 
 // NewCloneClassifier creates a new multi-dimensional clone classifier
@@ -65,7 +66,12 @@ func NewCloneClassifier(config *CloneClassifierConfig) *CloneClassifier {
 
 	// Type-4: Semantic similarity (CFG-based, only if enabled)
 	if config.EnableSemanticAnalysis {
-		classifier.semanticAnalyzer = NewSemanticSimilarityAnalyzer()
+		if config.EnableDFAAnalysis {
+			// Use DFA-enhanced semantic analyzer
+			classifier.semanticAnalyzer = NewSemanticSimilarityAnalyzerWithDFA()
+		} else {
+			classifier.semanticAnalyzer = NewSemanticSimilarityAnalyzer()
+		}
 	}
 
 	return classifier

@@ -150,6 +150,9 @@ type CloneRequest struct {
 	Type3Threshold float64 `json:"type3_threshold"`
 	Type4Threshold float64 `json:"type4_threshold"`
 
+	// Advanced analysis options
+	EnableDFA bool `json:"enable_dfa"` // Enable Data Flow Analysis for enhanced Type-4 detection
+
 	// Output configuration
 	OutputFormat OutputFormat `json:"output_format"`
 	OutputWriter io.Writer    `json:"-"`
@@ -325,7 +328,7 @@ func DefaultCloneRequest() *CloneRequest {
 		ExcludePatterns:     []string{"test_*.py", "*_test.py"},
 		MinLines:            5,
 		MinNodes:            10,
-		SimilarityThreshold: 0.8,
+		SimilarityThreshold: 0.9,
 		MaxEditDistance:     50.0,
 		IgnoreLiterals:      false,
 		IgnoreIdentifiers:   false,

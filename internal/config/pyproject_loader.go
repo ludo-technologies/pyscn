@@ -104,6 +104,9 @@ func mergeClonesSection(defaults *PyscnConfig, clones *ClonesConfig) {
 	if clones.IgnoreIdentifiers != nil {
 		defaults.Analysis.IgnoreIdentifiers = clones.IgnoreIdentifiers
 	}
+	if clones.EnableDFA != nil {
+		defaults.Analysis.EnableDFA = clones.EnableDFA
+	}
 
 	// Thresholds
 	if clones.Type1Threshold > 0 {

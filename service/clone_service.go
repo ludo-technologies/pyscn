@@ -252,18 +252,22 @@ func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.
 	}
 
 	return &analyzer.CloneDetectorConfig{
-		MinLines:           req.MinLines,
-		MinNodes:           req.MinNodes,
-		Type1Threshold:     req.Type1Threshold,
-		Type2Threshold:     req.Type2Threshold,
-		Type3Threshold:     req.Type3Threshold,
-		Type4Threshold:     req.Type4Threshold,
-		MaxEditDistance:    req.MaxEditDistance,
-		IgnoreLiterals:     req.IgnoreLiterals,
-		IgnoreIdentifiers:  req.IgnoreIdentifiers,
-		CostModelType:      "python", // Default to Python cost model
-		MaxClonePairs:      10000,    // Default max pairs
-		BatchSizeThreshold: 50,       // Default batch size threshold
+		MinLines:            req.MinLines,
+		MinNodes:            req.MinNodes,
+		Type1Threshold:      req.Type1Threshold,
+		Type2Threshold:      req.Type2Threshold,
+		Type3Threshold:      req.Type3Threshold,
+		Type4Threshold:      req.Type4Threshold,
+		SimilarityThreshold: req.SimilarityThreshold, // User-configurable minimum similarity
+		MaxEditDistance:     req.MaxEditDistance,
+		IgnoreLiterals:      req.IgnoreLiterals,
+		IgnoreIdentifiers:   req.IgnoreIdentifiers,
+		CostModelType:       "python", // Default to Python cost model
+		MaxClonePairs:       10000,    // Default max pairs
+		BatchSizeThreshold:  50,       // Default batch size threshold
+
+		// Advanced analysis
+		EnableDFAAnalysis: req.EnableDFA,
 
 		// Grouping
 		GroupingMode:      groupMode,

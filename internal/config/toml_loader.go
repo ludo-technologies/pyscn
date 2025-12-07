@@ -161,6 +161,9 @@ type ClonesConfig struct {
 	Type4Threshold      float64 `toml:"type4_threshold"`
 	SimilarityThreshold float64 `toml:"similarity_threshold"`
 
+	// Advanced analysis
+	EnableDFA *bool `toml:"enable_dfa"` // Enable Data Flow Analysis for Type-4 detection
+
 	// Filtering
 	MinSimilarity     float64  `toml:"min_similarity"`
 	MaxSimilarity     float64  `toml:"max_similarity"`

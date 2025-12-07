@@ -142,6 +142,9 @@ type CloneAnalysisConfig struct {
 
 	// Cost model configuration
 	CostModelType string `mapstructure:"cost_model_type" yaml:"cost_model_type" json:"cost_model_type"`
+
+	// Advanced analysis
+	EnableDFA *bool `mapstructure:"enable_dfa" yaml:"enable_dfa" json:"enable_dfa"` // Data Flow Analysis for Type-4
 }
 
 // ThresholdConfig holds similarity thresholds for different clone types
@@ -263,13 +266,14 @@ func DefaultPyscnConfig() *PyscnConfig {
 			IgnoreLiterals:    BoolPtr(false),
 			IgnoreIdentifiers: BoolPtr(false),
 			CostModelType:     "python",
+			EnableDFA:         BoolPtr(true), // Enable Data Flow Analysis by default for multi-dimensional classification
 		},
 		Thresholds: ThresholdConfig{
 			Type1Threshold:      constants.DefaultType1CloneThreshold,
 			Type2Threshold:      constants.DefaultType2CloneThreshold,
 			Type3Threshold:      constants.DefaultType3CloneThreshold,
 			Type4Threshold:      constants.DefaultType4CloneThreshold,
-			SimilarityThreshold: 0.8, // General threshold for clone reporting
+			SimilarityThreshold: 0.9, // General threshold for clone reporting (stricter default)
 		},
 		Filtering: FilteringConfig{
 			MinSimilarity:     0.0,

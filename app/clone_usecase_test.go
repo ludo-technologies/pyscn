@@ -784,7 +784,7 @@ func TestCloneUseCase_mergeConfiguration(t *testing.T) {
 				Paths:               []string{"/test/file.py"},
 				MinLines:            5,     // Should override config
 				ShowDetails:         false, // Should override config
-				SimilarityThreshold: 0.8,   // Should override config
+				SimilarityThreshold: 0.9,   // Matches new default, won't override config
 				OutputFormat:        domain.OutputFormatJSON,
 				OutputWriter:        os.Stdout,
 			},
