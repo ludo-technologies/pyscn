@@ -266,6 +266,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 			IgnoreLiterals:    BoolPtr(false),
 			IgnoreIdentifiers: BoolPtr(false),
 			CostModelType:     "python",
+			EnableDFA:         BoolPtr(true), // Enable Data Flow Analysis by default for multi-dimensional classification
 		},
 		Thresholds: ThresholdConfig{
 			Type1Threshold:      constants.DefaultType1CloneThreshold,

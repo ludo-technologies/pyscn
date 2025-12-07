@@ -124,6 +124,8 @@ func (c *CloneConfigurationLoader) cloneConfigToCloneRequest(cloneCfg *config.Py
 		Recursive:           domain.BoolValue(cloneCfg.Input.Recursive, true),
 		IncludePatterns:     cloneCfg.Input.IncludePatterns,
 		ExcludePatterns:     cloneCfg.Input.ExcludePatterns,
+		// DFA (Data Flow Analysis) - default enabled for multi-dimensional classification
+		EnableDFA: domain.BoolValue(cloneCfg.Analysis.EnableDFA, true),
 		// LSH settings
 		LSHEnabled:             cloneCfg.LSH.Enabled,
 		LSHAutoThreshold:       cloneCfg.LSH.AutoThreshold,
