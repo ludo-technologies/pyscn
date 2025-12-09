@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ludo-technologies/pyscn/internal/constants"
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // PyscnConfig represents the universal pyscn configuration from TOML files
@@ -256,24 +256,25 @@ func BoolValue(b *bool, defaultVal bool) bool {
 }
 
 // DefaultPyscnConfig returns a configuration with sensible defaults
+// All default values are sourced from domain/defaults.go
 func DefaultPyscnConfig() *PyscnConfig {
 	return &PyscnConfig{
 		// Clone detection configuration
 		Analysis: CloneAnalysisConfig{
-			MinLines:          5,
-			MinNodes:          10,
-			MaxEditDistance:   50.0,
+			MinLines:          domain.DefaultCloneMinLines,
+			MinNodes:          domain.DefaultCloneMinNodes,
+			MaxEditDistance:   domain.DefaultCloneMaxEditDistance,
 			IgnoreLiterals:    BoolPtr(false),
 			IgnoreIdentifiers: BoolPtr(false),
 			CostModelType:     "python",
 			EnableDFA:         BoolPtr(true), // Enable Data Flow Analysis by default for multi-dimensional classification
 		},
 		Thresholds: ThresholdConfig{
-			Type1Threshold:      constants.DefaultType1CloneThreshold,
-			Type2Threshold:      constants.DefaultType2CloneThreshold,
-			Type3Threshold:      constants.DefaultType3CloneThreshold,
-			Type4Threshold:      constants.DefaultType4CloneThreshold,
-			SimilarityThreshold: 0.9, // General threshold for clone reporting (stricter default)
+			Type1Threshold:      domain.DefaultType1CloneThreshold,
+			Type2Threshold:      domain.DefaultType2CloneThreshold,
+			Type3Threshold:      domain.DefaultType3CloneThreshold,
+			Type4Threshold:      domain.DefaultType4CloneThreshold,
+			SimilarityThreshold: domain.DefaultCloneSimilarityThreshold,
 		},
 		Filtering: FilteringConfig{
 			MinSimilarity:     0.0,
@@ -295,38 +296,38 @@ func DefaultPyscnConfig() *PyscnConfig {
 			GroupClones: BoolPtr(true),
 		},
 		Performance: PerformanceConfig{
-			MaxMemoryMB:    100,
-			BatchSize:      100,
+			MaxMemoryMB:    domain.DefaultMaxMemoryMB,
+			BatchSize:      domain.DefaultBatchSize,
 			EnableBatching: BoolPtr(true),
-			MaxGoroutines:  4,
-			TimeoutSeconds: 300, // 5 minutes
+			MaxGoroutines:  domain.DefaultMaxGoroutines,
+			TimeoutSeconds: domain.DefaultTimeoutSeconds,
 		},
 		Grouping: GroupingConfig{
 			Mode:      "connected", // Conservative default
-			Threshold: constants.DefaultType3CloneThreshold,
+			Threshold: domain.DefaultCloneGroupingThreshold,
 			KCoreK:    2,
 		},
 		LSH: LSHConfig{
 			Enabled:             "auto", // Auto-enable based on project size
-			AutoThreshold:       500,    // Enable LSH for 500+ fragments
-			SimilarityThreshold: 0.50,
-			Bands:               32,
-			Rows:                4,
-			Hashes:              128,
+			AutoThreshold:       domain.DefaultLSHAutoThreshold,
+			SimilarityThreshold: domain.DefaultLSHSimilarityThreshold,
+			Bands:               domain.DefaultLSHBands,
+			Rows:                domain.DefaultLSHRows,
+			Hashes:              domain.DefaultLSHHashes,
 		},
 
 		// Complexity defaults (from [complexity] section)
-		ComplexityLowThreshold:    DefaultLowComplexityThreshold,    // 9
-		ComplexityMediumThreshold: DefaultMediumComplexityThreshold, // 19
-		ComplexityMaxComplexity:   DefaultMaxComplexityLimit,        // 0 (no limit)
-		ComplexityMinComplexity:   DefaultMinComplexityFilter,       // 1
+		ComplexityLowThreshold:    DefaultLowComplexityThreshold,
+		ComplexityMediumThreshold: DefaultMediumComplexityThreshold,
+		ComplexityMaxComplexity:   DefaultMaxComplexityLimit,
+		ComplexityMinComplexity:   DefaultMinComplexityFilter,
 
 		// DeadCode defaults (from [dead_code] section)
 		DeadCodeEnabled:                   BoolPtr(true),
-		DeadCodeMinSeverity:               DefaultDeadCodeMinSeverity, // "warning"
+		DeadCodeMinSeverity:               DefaultDeadCodeMinSeverity,
 		DeadCodeShowContext:               BoolPtr(false),
-		DeadCodeContextLines:              DefaultDeadCodeContextLines, // 3
-		DeadCodeSortBy:                    DefaultDeadCodeSortBy,       // "severity"
+		DeadCodeContextLines:              DefaultDeadCodeContextLines,
+		DeadCodeSortBy:                    DefaultDeadCodeSortBy,
 		DeadCodeDetectAfterReturn:         BoolPtr(true),
 		DeadCodeDetectAfterBreak:          BoolPtr(true),
 		DeadCodeDetectAfterContinue:       BoolPtr(true),
@@ -338,8 +339,8 @@ func DefaultPyscnConfig() *PyscnConfig {
 		OutputFormat:        "text",
 		OutputShowDetails:   BoolPtr(false),
 		OutputSortBy:        "complexity",
-		OutputMinComplexity: DefaultMinComplexityFilter, // 1
-		OutputDirectory:     "",                         // empty = tool default (.pyscn/reports)
+		OutputMinComplexity: DefaultMinComplexityFilter,
+		OutputDirectory:     "", // empty = tool default (.pyscn/reports)
 
 		// Analysis defaults (from [analysis] section - general analysis settings)
 		AnalysisIncludePatterns: []string{"**/*.py"},
@@ -348,8 +349,8 @@ func DefaultPyscnConfig() *PyscnConfig {
 		AnalysisFollowSymlinks:  BoolPtr(false),
 
 		// CBO defaults (from [cbo] section)
-		CboLowThreshold:    3, // Industry standard
-		CboMediumThreshold: 7, // Industry standard
+		CboLowThreshold:    domain.DefaultCBOLowThreshold,
+		CboMediumThreshold: domain.DefaultCBOMediumThreshold,
 		CboMinCbo:          0,
 		CboMaxCbo:          0, // No limit
 		CboShowZeros:       BoolPtr(false),

@@ -161,6 +161,7 @@ type CBOAnalysisOptions struct {
 }
 
 // DefaultCBORequest returns a CBORequest with default values
+// Threshold values are sourced from domain/defaults.go
 func DefaultCBORequest() *CBORequest {
 	return &CBORequest{
 		OutputFormat:    OutputFormatText,
@@ -169,8 +170,8 @@ func DefaultCBORequest() *CBORequest {
 		MaxCBO:          0,              // No limit
 		SortBy:          SortByCoupling, // Sort by CBO value
 		ShowZeros:       BoolPtr(false),
-		LowThreshold:    3, // Industry standard: CBO <= 3 is low risk
-		MediumThreshold: 7, // Industry standard: 3 < CBO <= 7 is medium risk
+		LowThreshold:    DefaultCBOLowThreshold,    // Industry standard: CBO <= 3 is low risk
+		MediumThreshold: DefaultCBOMediumThreshold, // Industry standard: 3 < CBO <= 7 is medium risk
 		Recursive:       BoolPtr(true),
 		IncludeBuiltins: BoolPtr(false),
 		IncludeImports:  BoolPtr(true),

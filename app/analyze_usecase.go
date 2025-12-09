@@ -357,8 +357,8 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 					OutputFormat:    domain.OutputFormatJSON,
 					OutputWriter:    io.Discard,
 					MinCBO:          config.MinCBO,
-					LowThreshold:    5,
-					MediumThreshold: 10,
+					LowThreshold:    domain.DefaultCBOLowThreshold,
+					MediumThreshold: domain.DefaultCBOMediumThreshold,
 					SortBy:          domain.SortByCoupling,
 					ConfigPath:      config.ConfigFile,
 					// Boolean options left as nil to allow config file values to take precedence

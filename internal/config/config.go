@@ -5,38 +5,36 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/pelletier/go-toml/v2"
 )
 
-// Default complexity thresholds based on McCabe complexity standards
+// Default complexity thresholds - re-exported from domain for backward compatibility
+// All default values are defined in domain/defaults.go
 const (
 	// DefaultLowComplexityThreshold defines the upper bound for low complexity functions
-	// Functions with complexity <= 9 are considered low risk and easy to maintain
-	DefaultLowComplexityThreshold = 9
+	DefaultLowComplexityThreshold = domain.DefaultComplexityLowThreshold
 
 	// DefaultMediumComplexityThreshold defines the upper bound for medium complexity functions
-	// Functions with complexity 10-19 are considered medium risk and may need refactoring
-	DefaultMediumComplexityThreshold = 19
+	DefaultMediumComplexityThreshold = domain.DefaultComplexityMediumThreshold
 
 	// DefaultMinComplexityFilter defines the minimum complexity to report
-	// Functions with complexity >= 1 will be included in reports
-	DefaultMinComplexityFilter = 1
+	DefaultMinComplexityFilter = domain.DefaultComplexityMinFilter
 
 	// DefaultMaxComplexityLimit defines no upper limit for complexity analysis
-	// Setting to 0 means no maximum complexity enforcement
-	DefaultMaxComplexityLimit = 0
+	DefaultMaxComplexityLimit = domain.DefaultComplexityMaxLimit
 )
 
-// Default dead code detection settings
+// Default dead code detection settings - re-exported from domain for backward compatibility
 const (
 	// DefaultDeadCodeMinSeverity defines the minimum severity level to report
-	DefaultDeadCodeMinSeverity = "warning"
+	DefaultDeadCodeMinSeverity = domain.DefaultDeadCodeMinSeverity
 
 	// DefaultDeadCodeContextLines defines the number of context lines to show
-	DefaultDeadCodeContextLines = 3
+	DefaultDeadCodeContextLines = domain.DefaultDeadCodeContextLines
 
 	// DefaultDeadCodeSortBy defines the default sorting criteria
-	DefaultDeadCodeSortBy = "severity"
+	DefaultDeadCodeSortBy = domain.DefaultDeadCodeSortBy
 )
 
 // Config represents the main configuration structure

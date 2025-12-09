@@ -84,11 +84,11 @@ func (c *ConfigurationLoaderImpl) MergeConfig(base *domain.ComplexityRequest, ov
 	}
 
 	// Complexity thresholds - override if non-default
-	if override.LowThreshold != 9 && override.LowThreshold > 0 {
+	if override.LowThreshold != domain.DefaultComplexityLowThreshold && override.LowThreshold > 0 {
 		merged.LowThreshold = override.LowThreshold
 	}
 
-	if override.MediumThreshold != 19 && override.MediumThreshold > 0 {
+	if override.MediumThreshold != domain.DefaultComplexityMediumThreshold && override.MediumThreshold > 0 {
 		merged.MediumThreshold = override.MediumThreshold
 	}
 

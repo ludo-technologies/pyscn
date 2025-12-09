@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -50,14 +51,15 @@ type CBOOptions struct {
 }
 
 // DefaultCBOOptions returns default CBO analysis options
+// Threshold values are sourced from domain/defaults.go
 func DefaultCBOOptions() *CBOOptions {
 	return &CBOOptions{
 		IncludeBuiltins:   false,
 		IncludeImports:    true,
 		PublicClassesOnly: false,
 		ExcludePatterns:   []string{"test_*", "*_test", "__*__"},
-		LowThreshold:      3, // Industry standard: CBO <= 3 is low risk
-		MediumThreshold:   7, // Industry standard: 3 < CBO <= 7 is medium risk
+		LowThreshold:      domain.DefaultCBOLowThreshold,    // Industry standard: CBO <= 3 is low risk
+		MediumThreshold:   domain.DefaultCBOMediumThreshold, // Industry standard: 3 < CBO <= 7 is medium risk
 	}
 }
 

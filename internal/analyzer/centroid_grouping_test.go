@@ -3,7 +3,7 @@ package analyzer
 import (
 	"testing"
 
-	"github.com/ludo-technologies/pyscn/internal/constants"
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,10 +11,10 @@ func TestCentroidGroupingThresholds(t *testing.T) {
 	t.Run("Default thresholds are set correctly", func(t *testing.T) {
 		grouping := NewCentroidGrouping(0.7)
 
-		assert.Equal(t, constants.DefaultType1CloneThreshold, grouping.type1Threshold, "Type1 threshold should use constants.DefaultType1CloneThreshold")
-		assert.Equal(t, constants.DefaultType2CloneThreshold, grouping.type2Threshold, "Type2 threshold should use constants.DefaultType2CloneThreshold")
-		assert.Equal(t, constants.DefaultType3CloneThreshold, grouping.type3Threshold, "Type3 threshold should use constants.DefaultType3CloneThreshold")
-		assert.Equal(t, constants.DefaultType4CloneThreshold, grouping.type4Threshold, "Type4 threshold should use constants.DefaultType4CloneThreshold")
+		assert.Equal(t, domain.DefaultType1CloneThreshold, grouping.type1Threshold, "Type1 threshold should use domain.DefaultType1CloneThreshold")
+		assert.Equal(t, domain.DefaultType2CloneThreshold, grouping.type2Threshold, "Type2 threshold should use domain.DefaultType2CloneThreshold")
+		assert.Equal(t, domain.DefaultType3CloneThreshold, grouping.type3Threshold, "Type3 threshold should use domain.DefaultType3CloneThreshold")
+		assert.Equal(t, domain.DefaultType4CloneThreshold, grouping.type4Threshold, "Type4 threshold should use domain.DefaultType4CloneThreshold")
 	})
 
 	t.Run("SetThresholds updates values correctly", func(t *testing.T) {

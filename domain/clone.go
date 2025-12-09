@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"time"
-
-	"github.com/ludo-technologies/pyscn/internal/constants"
 )
 
 // CloneType represents different types of code clones
@@ -332,17 +330,17 @@ func DefaultCloneRequest() *CloneRequest {
 		MaxEditDistance:     50.0,
 		IgnoreLiterals:      false,
 		IgnoreIdentifiers:   false,
-		Type1Threshold:      constants.DefaultType1CloneThreshold,
-		Type2Threshold:      constants.DefaultType2CloneThreshold,
-		Type3Threshold:      constants.DefaultType3CloneThreshold,
-		Type4Threshold:      constants.DefaultType4CloneThreshold,
+		Type1Threshold:      DefaultType1CloneThreshold,
+		Type2Threshold:      DefaultType2CloneThreshold,
+		Type3Threshold:      DefaultType3CloneThreshold,
+		Type4Threshold:      DefaultType4CloneThreshold,
 		OutputFormat:        OutputFormatText,
 		ShowDetails:         false,
 		ShowContent:         false,
 		SortBy:              SortBySimilarity,
 		GroupClones:         true,
 		GroupMode:           "connected",
-		GroupThreshold:      constants.DefaultType3CloneThreshold,
+		GroupThreshold:      DefaultType3CloneThreshold,
 		KCoreK:              2,
 		MinSimilarity:       0.0,
 		MaxSimilarity:       1.0,

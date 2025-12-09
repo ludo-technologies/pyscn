@@ -417,13 +417,11 @@ func (h *HandlerSet) HandleCheckCoupling(ctx context.Context, request mcp.CallTo
 	}
 
 	cfg := h.deps.Config()
-	req := domain.DefaultCBORequest()
+	req := domain.DefaultCBORequest() // Already sets LowThreshold and MediumThreshold from domain defaults
 	req.Paths = []string{path}
 	req.OutputFormat = domain.OutputFormatJSON
 	req.OutputWriter = io.Discard
 	req.ConfigPath = h.deps.ConfigPath()
-	req.LowThreshold = 5
-	req.MediumThreshold = 10
 	req.SortBy = domain.SortByCoupling
 
 	if cfg != nil {

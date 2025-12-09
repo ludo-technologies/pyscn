@@ -426,20 +426,21 @@ func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, er
 // checkClones runs clone detection and returns issue count
 func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, error) {
 	// Create request with check-specific settings
+	// All threshold values are sourced from domain/defaults.go
 	request := &domain.CloneRequest{
 		Paths:               args,
 		OutputFormat:        domain.OutputFormatText,
 		OutputWriter:        io.Discard,
-		MinLines:            5,
-		MinNodes:            10,
-		SimilarityThreshold: 0.9,
-		MaxEditDistance:     50.0,
+		MinLines:            domain.DefaultCloneMinLines,
+		MinNodes:            domain.DefaultCloneMinNodes,
+		SimilarityThreshold: domain.DefaultCloneSimilarityThreshold,
+		MaxEditDistance:     domain.DefaultCloneMaxEditDistance,
 		IgnoreLiterals:      false,
 		IgnoreIdentifiers:   false,
-		Type1Threshold:      0.98,
-		Type2Threshold:      0.95,
-		Type3Threshold:      0.85,
-		Type4Threshold:      0.70,
+		Type1Threshold:      domain.DefaultType1CloneThreshold,
+		Type2Threshold:      domain.DefaultType2CloneThreshold,
+		Type3Threshold:      domain.DefaultType3CloneThreshold,
+		Type4Threshold:      domain.DefaultType4CloneThreshold,
 		ShowDetails:         false,
 		ShowContent:         false,
 		SortBy:              domain.SortBySimilarity,
