@@ -188,7 +188,9 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
 
 	// Calculate metrics
 	layerCohesion, problematic, layersAnalyzed := s.calculateLayerMetrics(layerCoupling)
-	compliance := s.calculateCompliance(len(violations), checked)
+	errorCount := severityCounts[domain.ViolationSeverityError]
+	warningCount := severityCounts[domain.ViolationSeverityWarning]
+	compliance := s.calculateComplianceWeighted(errorCount, warningCount, checked)
 
 	// Generate architecture recommendations
 	recommendations := s.generateArchitectureRecommendations(violations, layerCohesion, problematic, compliance)
@@ -319,14 +321,16 @@ func (s *SystemAnalysisServiceImpl) calculateLayerMetrics(layerCoupling map[stri
 	return layerCohesion, problematic, layersAnalyzed
 }
 
-// calculateCompliance calculates the compliance score
-func (s *SystemAnalysisServiceImpl) calculateCompliance(violations, checked int) float64 {
-	compliance := 1.0
-	if checked > 0 {
-		compliance = 1.0 - (float64(violations) / float64(checked))
-		if compliance < 0 {
-			compliance = 0
-		}
+// calculateComplianceWeighted calculates compliance with severity weights.
+// Error = 5 points, Warning = 1 point.
+func (s *SystemAnalysisServiceImpl) calculateComplianceWeighted(errorCount, warningCount, checked int) float64 {
+	if checked == 0 {
+		return 1.0
+	}
+	weightedViolations := float64(errorCount*5 + warningCount*1)
+	compliance := 1.0 - (weightedViolations / float64(checked))
+	if compliance < 0 {
+		compliance = 0
 	}
 	return compliance
 }
