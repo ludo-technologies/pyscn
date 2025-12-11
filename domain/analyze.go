@@ -408,8 +408,8 @@ func (s *AnalyzeSummary) CalculateHealthScore() error {
 	score -= dependencyPenalty
 
 	architecturePenalty := s.calculateArchitecturePenalty()
-	normalizedArchPenalty := normalizeToScoreBase(architecturePenalty, MaxArchitecturePenalty)
-	s.ArchitectureScore = penaltyToScore(normalizedArchPenalty, MaxScoreBase)
+	// Use compliance directly as score (98% compliance = 98 points)
+	s.ArchitectureScore = int(math.Round(s.ArchCompliance * 100))
 	score -= architecturePenalty
 
 	// Minimum score floor
