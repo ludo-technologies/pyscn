@@ -138,6 +138,7 @@ exclude_patterns = [             # File patterns to exclude
 [architecture]
 enabled = true
 validate_layers = true
+strict_mode = true
 
 [[architecture.layers]]
 name = "presentation"
@@ -145,7 +146,7 @@ packages = ["router", "routers", "route", "routes", "endpoint", "endpoints", "ha
 
 [[architecture.layers]]
 name = "application"
-packages = ["service", "services", "usecase", "usecases", "use_case", "use_cases", "workflow", "workflows", "command", "commands", "query", "queries", "manager", "managers", "dependencies", "dependency"]
+packages = ["service", "services", "usecase", "usecases", "use_case", "use_cases", "workflow", "workflows", "command", "commands", "query", "queries", "manager", "managers"]
 
 [[architecture.layers]]
 name = "domain"

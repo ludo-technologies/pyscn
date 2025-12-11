@@ -183,7 +183,7 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 			expectedDuplicationScore:  60,  // 100 - (8/20)*100 = 60 (new formula: 8 penalty)
 			expectedCouplingScore:     0,   // 100 - (20/20)*100 = 0
 			expectedDependencyScore:   80,  // Normalized: (3/16)*20 = 3.75 → 4, Score: 100 - (4/20)*100 = 80
-			expectedArchitectureScore: 10,  // Normalized: (11/12)*20 = 18.33 → 18, Score: 100 - (18/20)*100 = 10
+			expectedArchitectureScore: 13,  // Compliance 0.125 * 100 = 12.5 → 13
 		},
 		{
 			name: "moderate complexity and duplication",
