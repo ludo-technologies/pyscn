@@ -226,7 +226,7 @@ func DefaultConfig() *Config {
 			CustomPatterns:                  []string{},
 			AllowedPatterns:                 []string{},
 			ForbiddenPatterns:               []string{},
-			StrictMode:                      false,
+			StrictMode:                      true,
 			FailOnViolations:                false,
 		},
 

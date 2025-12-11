@@ -290,7 +290,7 @@ func (c *ConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.Py
 	cfg.Architecture.CustomPatterns = pyscnCfg.ArchitectureCustomPatterns
 	cfg.Architecture.AllowedPatterns = pyscnCfg.ArchitectureAllowedPatterns
 	cfg.Architecture.ForbiddenPatterns = pyscnCfg.ArchitectureForbiddenPatterns
-	cfg.Architecture.StrictMode = config.BoolValue(pyscnCfg.ArchitectureStrictMode, false)
+	cfg.Architecture.StrictMode = config.BoolValue(pyscnCfg.ArchitectureStrictMode, true)
 	cfg.Architecture.FailOnViolations = config.BoolValue(pyscnCfg.ArchitectureFailOnViolations, false)
 
 	// Map system analysis settings from [system_analysis] section

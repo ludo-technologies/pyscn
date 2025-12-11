@@ -375,7 +375,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 		ArchitectureCustomPatterns:                  []string{},
 		ArchitectureAllowedPatterns:                 []string{},
 		ArchitectureForbiddenPatterns:               []string{},
-		ArchitectureStrictMode:                      BoolPtr(false),
+		ArchitectureStrictMode:                      BoolPtr(true),
 		ArchitectureFailOnViolations:                BoolPtr(false),
 
 		// SystemAnalysis defaults (from [system_analysis] section)

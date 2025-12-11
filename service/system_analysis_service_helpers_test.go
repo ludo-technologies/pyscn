@@ -108,7 +108,7 @@ func TestAutoDetectArchitecture(t *testing.T) {
 
 	rules := service.autoDetectArchitecture(graph)
 	require.NotNil(t, rules)
-	assert.False(t, rules.StrictMode)
+	assert.True(t, rules.StrictMode)
 	require.Greater(t, len(rules.Rules), 0)
 
 	layerPackages := make(map[string][]string)
