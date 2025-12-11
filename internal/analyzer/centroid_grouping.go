@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ludo-technologies/pyscn/internal/constants"
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // CentroidGrouping implements centroid-based grouping that avoids transitive problems
@@ -25,10 +25,10 @@ func NewCentroidGrouping(threshold float64) *CentroidGrouping {
 	return &CentroidGrouping{
 		threshold:      threshold,
 		analyzer:       NewAPTEDAnalyzer(costModel),
-		type1Threshold: constants.DefaultType1CloneThreshold,
-		type2Threshold: constants.DefaultType2CloneThreshold,
-		type3Threshold: constants.DefaultType3CloneThreshold,
-		type4Threshold: constants.DefaultType4CloneThreshold,
+		type1Threshold: domain.DefaultType1CloneThreshold,
+		type2Threshold: domain.DefaultType2CloneThreshold,
+		type3Threshold: domain.DefaultType3CloneThreshold,
+		type4Threshold: domain.DefaultType4CloneThreshold,
 	}
 }
 

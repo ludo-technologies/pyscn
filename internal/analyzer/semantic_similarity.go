@@ -3,7 +3,7 @@ package analyzer
 import (
 	"math"
 
-	"github.com/ludo-technologies/pyscn/internal/constants"
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -20,8 +20,8 @@ type SemanticSimilarityAnalyzer struct {
 func NewSemanticSimilarityAnalyzer() *SemanticSimilarityAnalyzer {
 	return &SemanticSimilarityAnalyzer{
 		enableDFA:        false,
-		cfgFeatureWeight: constants.DefaultCFGFeatureWeight,
-		dfaFeatureWeight: constants.DefaultDFAFeatureWeight,
+		cfgFeatureWeight: domain.DefaultCFGFeatureWeight,
+		dfaFeatureWeight: domain.DefaultDFAFeatureWeight,
 	}
 }
 
@@ -29,8 +29,8 @@ func NewSemanticSimilarityAnalyzer() *SemanticSimilarityAnalyzer {
 func NewSemanticSimilarityAnalyzerWithDFA() *SemanticSimilarityAnalyzer {
 	return &SemanticSimilarityAnalyzer{
 		enableDFA:        true,
-		cfgFeatureWeight: constants.DefaultCFGFeatureWeight,
-		dfaFeatureWeight: constants.DefaultDFAFeatureWeight,
+		cfgFeatureWeight: domain.DefaultCFGFeatureWeight,
+		dfaFeatureWeight: domain.DefaultDFAFeatureWeight,
 	}
 }
 
@@ -352,12 +352,12 @@ func (s *SemanticSimilarityAnalyzer) compareDFAFeatures(f1, f2 *DFAFeatures) flo
 
 	// 1. Total pairs similarity (weight from constants)
 	pairSim := s.computeCountSimilarity(f1.TotalPairs, f2.TotalPairs)
-	weights = append(weights, constants.DefaultDFAPairCountWeight)
+	weights = append(weights, domain.DefaultDFAPairCountWeight)
 	similarities = append(similarities, pairSim)
 
 	// 2. Average chain length similarity
 	chainSim := s.computeFloatSimilarity(f1.AvgChainLength, f2.AvgChainLength)
-	weights = append(weights, constants.DefaultDFAChainLengthWeight)
+	weights = append(weights, domain.DefaultDFAChainLengthWeight)
 	similarities = append(similarities, chainSim)
 
 	// 3. Cross-block pairs ratio similarity
@@ -370,17 +370,17 @@ func (s *SemanticSimilarityAnalyzer) compareDFAFeatures(f1, f2 *DFAFeatures) flo
 		crossBlockRatio2 = float64(f2.CrossBlockPairs) / float64(f2.TotalPairs)
 	}
 	crossBlockSim := s.computeFloatSimilarity(crossBlockRatio1, crossBlockRatio2)
-	weights = append(weights, constants.DefaultDFACrossBlockWeight)
+	weights = append(weights, domain.DefaultDFACrossBlockWeight)
 	similarities = append(similarities, crossBlockSim)
 
 	// 4. Definition kind distribution similarity
 	defKindSim := s.compareDefUseKindDistributions(f1.DefKindCounts, f2.DefKindCounts)
-	weights = append(weights, constants.DefaultDFADefKindWeight)
+	weights = append(weights, domain.DefaultDFADefKindWeight)
 	similarities = append(similarities, defKindSim)
 
 	// 5. Use kind distribution similarity
 	useKindSim := s.compareDefUseKindDistributions(f1.UseKindCounts, f2.UseKindCounts)
-	weights = append(weights, constants.DefaultDFAUseKindWeight)
+	weights = append(weights, domain.DefaultDFAUseKindWeight)
 	similarities = append(similarities, useKindSim)
 
 	// Compute weighted average

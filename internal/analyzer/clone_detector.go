@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"sort"
 
-	"github.com/ludo-technologies/pyscn/internal/constants"
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -149,10 +149,10 @@ type CloneDetectorConfig struct {
 	MinNodes int
 
 	// Similarity thresholds for different clone types
-	Type1Threshold float64 // Usually > constants.DefaultType1CloneThreshold
-	Type2Threshold float64 // Usually > constants.DefaultType2CloneThreshold
-	Type3Threshold float64 // Usually > constants.DefaultType3CloneThreshold
-	Type4Threshold float64 // Usually > constants.DefaultType4CloneThreshold
+	Type1Threshold float64 // Usually > domain.DefaultType1CloneThreshold
+	Type2Threshold float64 // Usually > domain.DefaultType2CloneThreshold
+	Type3Threshold float64 // Usually > domain.DefaultType3CloneThreshold
+	Type4Threshold float64 // Usually > domain.DefaultType4CloneThreshold
 
 	// Minimum similarity threshold for clone reporting (user-configurable via --clone-threshold)
 	SimilarityThreshold float64
@@ -200,10 +200,10 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 	return &CloneDetectorConfig{
 		MinLines:          5,
 		MinNodes:          10,
-		Type1Threshold:    constants.DefaultType1CloneThreshold,
-		Type2Threshold:    constants.DefaultType2CloneThreshold,
-		Type3Threshold:    constants.DefaultType3CloneThreshold,
-		Type4Threshold:    constants.DefaultType4CloneThreshold,
+		Type1Threshold:    domain.DefaultType1CloneThreshold,
+		Type2Threshold:    domain.DefaultType2CloneThreshold,
+		Type3Threshold:    domain.DefaultType3CloneThreshold,
+		Type4Threshold:    domain.DefaultType4CloneThreshold,
 		MaxEditDistance:   50.0,
 		IgnoreLiterals:    false,
 		IgnoreIdentifiers: false,
@@ -217,7 +217,7 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 
 		// Grouping defaults
 		GroupingMode:      GroupingModeKCore,
-		GroupingThreshold: constants.DefaultType3CloneThreshold,
+		GroupingThreshold: domain.DefaultType3CloneThreshold,
 		KCoreK:            2,
 
 		// LSH defaults (opt-in)

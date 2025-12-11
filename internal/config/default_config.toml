@@ -56,11 +56,12 @@ ignore_identifiers = false       # Ignore differences in identifier names
 cost_model_type = "python"       # Cost model: default, python, weighted
 
 # Threshold settings for clone type classification (0.0 - 1.0)
+# These values are sourced from domain/defaults.go
 type1_threshold = 0.98           # Type-1: Identical code (except whitespace/comments)
 type2_threshold = 0.95           # Type-2: Syntactically identical (different identifiers)
-type3_threshold = 0.85           # Type-3: Syntactically similar (small modifications)
-type4_threshold = 0.70           # Type-4: Functionally similar (different syntax)
-similarity_threshold = 0.8       # General minimum similarity threshold
+type3_threshold = 0.80           # Type-3: Syntactically similar (small modifications)
+type4_threshold = 0.75           # Type-4: Functionally similar (different syntax)
+similarity_threshold = 0.9       # General minimum similarity threshold
 
 # Advanced analysis settings
 enable_dfa = true                # Enable Data Flow Analysis for enhanced Type-4 detection
@@ -73,7 +74,7 @@ max_results = 10000              # Maximum results (0 = no limit)
 
 # Grouping settings
 grouping_mode = "connected"      # Grouping mode: connected, star, complete_linkage, k_core
-grouping_threshold = 0.85        # Threshold for grouping
+grouping_threshold = 0.80        # Threshold for grouping (uses Type-3 threshold)
 k_core_k = 2                     # K-core parameter
 
 # LSH acceleration settings
@@ -102,9 +103,9 @@ group_clones = true              # Group related clones together
 # =============================================================================
 [cbo]
 enabled = true                   # Enable CBO analysis
-low_threshold = 5                # CBO values ≤ 5 are low risk
-medium_threshold = 10            # CBO values 6-10 are medium risk
-                                # CBO values > 10 are high risk
+low_threshold = 3                # CBO values ≤ 3 are low risk (industry standard)
+medium_threshold = 7             # CBO values 4-7 are medium risk (industry standard)
+                                # CBO values > 7 are high risk
 include_builtins = false         # Include built-in type dependencies
 include_imports = true           # Include imported module dependencies
 min_cbo = 0                      # Minimum CBO to report

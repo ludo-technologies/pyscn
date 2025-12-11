@@ -11,7 +11,6 @@ import (
 
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
-	"github.com/ludo-technologies/pyscn/internal/constants"
 	"github.com/ludo-technologies/pyscn/service"
 )
 
@@ -42,10 +41,10 @@ func TestCloneDetectionIntegration(t *testing.T) {
 		MinLines:            3,
 		MinNodes:            5,
 		SimilarityThreshold: 0.7,
-		Type1Threshold:      constants.DefaultType1CloneThreshold,
-		Type2Threshold:      constants.DefaultType2CloneThreshold,
-		Type3Threshold:      constants.DefaultType3CloneThreshold,
-		Type4Threshold:      constants.DefaultType4CloneThreshold,
+		Type1Threshold:      domain.DefaultType1CloneThreshold,
+		Type2Threshold:      domain.DefaultType2CloneThreshold,
+		Type3Threshold:      domain.DefaultType3CloneThreshold,
+		Type4Threshold:      domain.DefaultType4CloneThreshold,
 		OutputFormat:        domain.OutputFormatText,
 		OutputWriter:        &outputBuffer,
 		ShowDetails:         true,
@@ -180,7 +179,7 @@ func TestCloneOutputFormatterIntegration(t *testing.T) {
 		ID:         1,
 		Clone1:     clone1,
 		Clone2:     clone2,
-		Similarity: constants.DefaultType1CloneThreshold,
+		Similarity: domain.DefaultType1CloneThreshold,
 		Distance:   1.0,
 		Type:       domain.Type1Clone,
 		Confidence: 0.92,
@@ -281,10 +280,10 @@ func TestCloneConfigurationLoaderIntegration(t *testing.T) {
 		MinLines:            5,
 		MinNodes:            10,
 		SimilarityThreshold: 0.8,
-		Type1Threshold:      constants.DefaultType1CloneThreshold,
-		Type2Threshold:      constants.DefaultType2CloneThreshold,
-		Type3Threshold:      constants.DefaultType3CloneThreshold,
-		Type4Threshold:      constants.DefaultType4CloneThreshold,
+		Type1Threshold:      domain.DefaultType1CloneThreshold,
+		Type2Threshold:      domain.DefaultType2CloneThreshold,
+		Type3Threshold:      domain.DefaultType3CloneThreshold,
+		Type4Threshold:      domain.DefaultType4CloneThreshold,
 		MaxEditDistance:     50.0,
 		CloneTypes:          []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone, domain.Type4Clone},
 	}
@@ -422,7 +421,7 @@ func TestCloneDetectionPerformance(t *testing.T) {
 		MinNodes:            20,
 		SimilarityThreshold: 0.9, // Higher threshold for faster processing
 		Type1Threshold:      0.98,
-		Type2Threshold:      constants.DefaultType1CloneThreshold,
+		Type2Threshold:      domain.DefaultType1CloneThreshold,
 		Type3Threshold:      0.90,
 		Type4Threshold:      0.85,
 		MaxEditDistance:     10.0,                                  // Lower distance for faster processing

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ludo-technologies/pyscn/internal/constants"
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,20 +14,20 @@ import (
 func TestCloneClassifier(t *testing.T) {
 	t.Run("NewCloneClassifier", func(t *testing.T) {
 		config := &CloneClassifierConfig{
-			Type1Threshold:         constants.DefaultType1CloneThreshold,
-			Type2Threshold:         constants.DefaultType2CloneThreshold,
-			Type3Threshold:         constants.DefaultType3CloneThreshold,
-			Type4Threshold:         constants.DefaultType4CloneThreshold,
+			Type1Threshold:         domain.DefaultType1CloneThreshold,
+			Type2Threshold:         domain.DefaultType2CloneThreshold,
+			Type3Threshold:         domain.DefaultType3CloneThreshold,
+			Type4Threshold:         domain.DefaultType4CloneThreshold,
 			EnableTextualAnalysis:  true,
 			EnableSemanticAnalysis: true,
 		}
 
 		classifier := NewCloneClassifier(config)
 		require.NotNil(t, classifier)
-		assert.Equal(t, constants.DefaultType1CloneThreshold, classifier.type1Threshold)
-		assert.Equal(t, constants.DefaultType2CloneThreshold, classifier.type2Threshold)
-		assert.Equal(t, constants.DefaultType3CloneThreshold, classifier.type3Threshold)
-		assert.Equal(t, constants.DefaultType4CloneThreshold, classifier.type4Threshold)
+		assert.Equal(t, domain.DefaultType1CloneThreshold, classifier.type1Threshold)
+		assert.Equal(t, domain.DefaultType2CloneThreshold, classifier.type2Threshold)
+		assert.Equal(t, domain.DefaultType3CloneThreshold, classifier.type3Threshold)
+		assert.Equal(t, domain.DefaultType4CloneThreshold, classifier.type4Threshold)
 	})
 
 	t.Run("ClassifyCloneWithNilFragments", func(t *testing.T) {
