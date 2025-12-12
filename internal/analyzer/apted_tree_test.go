@@ -696,15 +696,15 @@ func TestTryFinallyConversion(t *testing.T) {
 	passNode := &parser.Node{
 		Type: parser.NodePass,
 	}
-	
+
 	assignNode := &parser.Node{
 		Type: parser.NodeAssign,
 		Name: "x",
 	}
-	
+
 	tryNode := &parser.Node{
-		Type: parser.NodeTry,
-		Body: []*parser.Node{passNode},
+		Type:      parser.NodeTry,
+		Body:      []*parser.Node{passNode},
 		Finalbody: []*parser.Node{assignNode},
 	}
 
@@ -730,17 +730,17 @@ func TestTryExceptConversion(t *testing.T) {
 	//     pass
 	// except:
 	//     pass
-	
+
 	exceptHandler := &parser.Node{
 		Type: parser.NodeExceptHandler,
 		Body: []*parser.Node{
 			{Type: parser.NodePass},
 		},
 	}
-	
+
 	tryNode := &parser.Node{
-		Type: parser.NodeTry,
-		Body: []*parser.Node{{Type: parser.NodePass}},
+		Type:     parser.NodeTry,
+		Body:     []*parser.Node{{Type: parser.NodePass}},
 		Handlers: []*parser.Node{exceptHandler},
 	}
 
