@@ -139,6 +139,7 @@ type CloneAnalysisConfig struct {
 	// Normalization options
 	IgnoreLiterals    *bool `mapstructure:"ignore_literals" yaml:"ignore_literals" json:"ignore_literals"`
 	IgnoreIdentifiers *bool `mapstructure:"ignore_identifiers" yaml:"ignore_identifiers" json:"ignore_identifiers"`
+	SkipDocstrings    *bool `mapstructure:"skip_docstrings" yaml:"skip_docstrings" json:"skip_docstrings"`
 
 	// Cost model configuration
 	CostModelType string `mapstructure:"cost_model_type" yaml:"cost_model_type" json:"cost_model_type"`
@@ -266,6 +267,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 			MaxEditDistance:   domain.DefaultCloneMaxEditDistance,
 			IgnoreLiterals:    BoolPtr(false),
 			IgnoreIdentifiers: BoolPtr(false),
+			SkipDocstrings:    BoolPtr(true),
 			CostModelType:     "python",
 			EnableDFA:         BoolPtr(true), // Enable Data Flow Analysis by default for multi-dimensional classification
 		},

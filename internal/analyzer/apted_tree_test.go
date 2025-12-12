@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/internal/parser"
@@ -491,5 +492,413 @@ func TestGetSubtreeNodes(t *testing.T) {
 		assert.Contains(t, labels, "grandchild")
 		assert.NotContains(t, labels, "root")
 		assert.NotContains(t, labels, "child2")
+	})
+}
+
+func TestNewTreeConverterWithConfig(t *testing.T) {
+	t.Run("default converter does not skip docstrings", func(t *testing.T) {
+		converter := NewTreeConverter()
+		assert.NotNil(t, converter)
+		assert.False(t, converter.skipDocstrings)
+	})
+
+	t.Run("converter with skip docstrings enabled", func(t *testing.T) {
+		converter := NewTreeConverterWithConfig(true)
+		assert.NotNil(t, converter)
+		assert.True(t, converter.skipDocstrings)
+	})
+
+	t.Run("converter with skip docstrings disabled", func(t *testing.T) {
+		converter := NewTreeConverterWithConfig(false)
+		assert.NotNil(t, converter)
+		assert.False(t, converter.skipDocstrings)
+	})
+}
+
+func TestTreeConverter_SkipDocstrings(t *testing.T) {
+	t.Run("skips docstring when configured", func(t *testing.T) {
+		// Create a function with a docstring
+		// def test_function():
+		//     """This is a docstring"""
+		//     return 1
+		docstringNode := &parser.Node{
+			Type:     parser.NodeConstant,
+			Value:    "This is a docstring",
+			Children: []*parser.Node{},
+		}
+		exprNode := &parser.Node{
+			Type:     parser.NodeExpr,
+			Children: []*parser.Node{docstringNode},
+		}
+		returnNode := &parser.Node{
+			Type:     parser.NodeReturn,
+			Children: []*parser.Node{},
+		}
+		funcNode := &parser.Node{
+			Type: parser.NodeFunctionDef,
+			Name: "test_function",
+			Body: []*parser.Node{exprNode, returnNode},
+		}
+
+		converterWithSkip := NewTreeConverterWithConfig(true)
+		treeWithSkip := converterWithSkip.ConvertAST(funcNode)
+
+		converterWithoutSkip := NewTreeConverterWithConfig(false)
+		treeWithoutSkip := converterWithoutSkip.ConvertAST(funcNode)
+
+		// Tree with skip should have fewer children (docstring excluded)
+		assert.Less(t, treeWithSkip.Size(), treeWithoutSkip.Size())
+	})
+
+	t.Run("does not skip non-docstring expressions", func(t *testing.T) {
+		// Create a function with a non-docstring expression first
+		// def test_function():
+		//     print("hello")  # This is a Call, not a Constant
+		//     return 1
+		callNode := &parser.Node{
+			Type:     parser.NodeCall,
+			Name:     "print",
+			Children: []*parser.Node{},
+		}
+		exprNode := &parser.Node{
+			Type:     parser.NodeExpr,
+			Children: []*parser.Node{callNode},
+		}
+		returnNode := &parser.Node{
+			Type:     parser.NodeReturn,
+			Children: []*parser.Node{},
+		}
+		funcNode := &parser.Node{
+			Type: parser.NodeFunctionDef,
+			Name: "test_function",
+			Body: []*parser.Node{exprNode, returnNode},
+		}
+
+		converterWithSkip := NewTreeConverterWithConfig(true)
+		treeWithSkip := converterWithSkip.ConvertAST(funcNode)
+
+		converterWithoutSkip := NewTreeConverterWithConfig(false)
+		treeWithoutSkip := converterWithoutSkip.ConvertAST(funcNode)
+
+		// Should be same size since the first expression is not a docstring
+		assert.Equal(t, treeWithSkip.Size(), treeWithoutSkip.Size())
+	})
+
+	t.Run("does not skip docstring at non-first position", func(t *testing.T) {
+		// Create a function with docstring at position 1 (not 0)
+		// def test_function():
+		//     x = 1
+		//     """Not a docstring - appears after first statement"""
+		assignNode := &parser.Node{
+			Type:     parser.NodeAssign,
+			Children: []*parser.Node{},
+		}
+		docstringNode := &parser.Node{
+			Type:     parser.NodeConstant,
+			Value:    "Not a docstring",
+			Children: []*parser.Node{},
+		}
+		exprNode := &parser.Node{
+			Type:     parser.NodeExpr,
+			Children: []*parser.Node{docstringNode},
+		}
+		funcNode := &parser.Node{
+			Type: parser.NodeFunctionDef,
+			Name: "test_function",
+			Body: []*parser.Node{assignNode, exprNode},
+		}
+
+		converterWithSkip := NewTreeConverterWithConfig(true)
+		treeWithSkip := converterWithSkip.ConvertAST(funcNode)
+
+		converterWithoutSkip := NewTreeConverterWithConfig(false)
+		treeWithoutSkip := converterWithoutSkip.ConvertAST(funcNode)
+
+		// Should be same size since the string is not at position 0
+		assert.Equal(t, treeWithSkip.Size(), treeWithoutSkip.Size())
+	})
+
+	t.Run("handles integer constant at first position", func(t *testing.T) {
+		// Create a function with integer constant at first position
+		// def test_function():
+		//     42  # Not a docstring - it's an integer
+		//     return 1
+		intNode := &parser.Node{
+			Type:     parser.NodeConstant,
+			Value:    int64(42), // integer, not string
+			Children: []*parser.Node{},
+		}
+		exprNode := &parser.Node{
+			Type:     parser.NodeExpr,
+			Children: []*parser.Node{intNode},
+		}
+		returnNode := &parser.Node{
+			Type:     parser.NodeReturn,
+			Children: []*parser.Node{},
+		}
+		funcNode := &parser.Node{
+			Type: parser.NodeFunctionDef,
+			Name: "test_function",
+			Body: []*parser.Node{exprNode, returnNode},
+		}
+
+		converterWithSkip := NewTreeConverterWithConfig(true)
+		treeWithSkip := converterWithSkip.ConvertAST(funcNode)
+
+		converterWithoutSkip := NewTreeConverterWithConfig(false)
+		treeWithoutSkip := converterWithoutSkip.ConvertAST(funcNode)
+
+		// Should be same size since the constant is not a string
+		assert.Equal(t, treeWithSkip.Size(), treeWithoutSkip.Size())
+	})
+}
+
+// TestSkipDocstringInIf verifies if string literals at the start of an If block are skipped.
+// Python semantics say these are NOT docstrings, but the current implementation might skip them.
+func TestSkipDocstringInIf(t *testing.T) {
+	// if True:
+	//     "Not a docstring"
+	//     pass
+	docstringNode := &parser.Node{
+		Type:     parser.NodeConstant,
+		Value:    "Not a docstring",
+		Children: []*parser.Node{},
+	}
+	exprNode := &parser.Node{
+		Type:     parser.NodeExpr,
+		Children: []*parser.Node{docstringNode},
+	}
+	passNode := &parser.Node{
+		Type:     parser.NodePass,
+		Children: []*parser.Node{},
+	}
+	ifNode := &parser.Node{
+		Type: parser.NodeIf,
+		Body: []*parser.Node{exprNode, passNode},
+	}
+
+	converterWithSkip := NewTreeConverterWithConfig(true)
+	treeWithSkip := converterWithSkip.ConvertAST(ifNode)
+
+	converterWithoutSkip := NewTreeConverterWithConfig(false)
+	treeWithoutSkip := converterWithoutSkip.ConvertAST(ifNode)
+
+	// Since "If" node type does not support docstrings, the string literal should NOT be skipped
+	// regardless of the config setting.
+	assert.Equal(t, treeWithoutSkip.Size(), treeWithSkip.Size(), "String literal in If block should not be skipped")
+}
+
+// TestTryFinallyConversion verifies if Finalbody (finally block) is converted.
+func TestTryFinallyConversion(t *testing.T) {
+	// try:
+	//     pass
+	// finally:
+	//     x = 1
+	passNode := &parser.Node{
+		Type: parser.NodePass,
+	}
+
+	assignNode := &parser.Node{
+		Type: parser.NodeAssign,
+		Name: "x",
+	}
+
+	tryNode := &parser.Node{
+		Type:      parser.NodeTry,
+		Body:      []*parser.Node{passNode},
+		Finalbody: []*parser.Node{assignNode},
+	}
+
+	converter := NewTreeConverter()
+	tree := converter.ConvertAST(tryNode)
+
+	// We search for the assignment node in the converted tree
+	found := false
+	nodes := GetSubtreeNodes(tree)
+	for _, node := range nodes {
+		if node.OriginalNode == assignNode {
+			found = true
+			break
+		}
+	}
+
+	assert.True(t, found, "Code in 'finally' block was NOT found in the converted tree")
+}
+
+// TestTryExceptConversion verifies if Handlers (except blocks) are converted.
+func TestTryExceptConversion(t *testing.T) {
+	// try:
+	//     pass
+	// except:
+	//     pass
+
+	exceptHandler := &parser.Node{
+		Type: parser.NodeExceptHandler,
+		Body: []*parser.Node{
+			{Type: parser.NodePass},
+		},
+	}
+
+	tryNode := &parser.Node{
+		Type:     parser.NodeTry,
+		Body:     []*parser.Node{{Type: parser.NodePass}},
+		Handlers: []*parser.Node{exceptHandler},
+	}
+
+	converter := NewTreeConverter()
+	tree := converter.ConvertAST(tryNode)
+
+	// Search for ExceptHandler
+	found := false
+	nodes := GetSubtreeNodes(tree)
+	for _, node := range nodes {
+		if node.OriginalNode == exceptHandler {
+			found = true
+			break
+		}
+	}
+
+	assert.True(t, found, "ExceptHandler was NOT found in the converted tree")
+}
+
+// TestSkipDocstrings_Integration tests docstring skipping with actual parser output
+func TestSkipDocstrings_Integration(t *testing.T) {
+	t.Run("skips function docstring with real parser", func(t *testing.T) {
+		code := `def test_function():
+    """This is a docstring"""
+    return 1
+`
+		p := parser.New()
+		result, err := p.Parse(context.Background(), []byte(code))
+		assert.NoError(t, err)
+
+		// Find the function definition
+		var funcNode *parser.Node
+		for _, node := range result.AST.Body {
+			if node.Type == parser.NodeFunctionDef {
+				funcNode = node
+				break
+			}
+		}
+		assert.NotNil(t, funcNode)
+		assert.Equal(t, "test_function", funcNode.Name)
+
+		// Verify parser output structure - docstring should be NodeConstant directly in Body
+		assert.GreaterOrEqual(t, len(funcNode.Body), 2)
+		assert.Equal(t, parser.NodeConstant, funcNode.Body[0].Type, "First body element should be NodeConstant (docstring)")
+
+		// Convert with and without docstring skipping
+		converterWithSkip := NewTreeConverterWithConfig(true)
+		treeWithSkip := converterWithSkip.ConvertAST(funcNode)
+
+		converterWithoutSkip := NewTreeConverterWithConfig(false)
+		treeWithoutSkip := converterWithoutSkip.ConvertAST(funcNode)
+
+		// Tree with skip should have fewer nodes (docstring excluded)
+		assert.Less(t, treeWithSkip.Size(), treeWithoutSkip.Size(),
+			"Tree with docstring skipping should be smaller")
+	})
+
+	t.Run("skips class docstring with real parser", func(t *testing.T) {
+		code := `class MyClass:
+    """Class docstring"""
+    def method(self):
+        pass
+`
+		p := parser.New()
+		result, err := p.Parse(context.Background(), []byte(code))
+		assert.NoError(t, err)
+
+		// Find the class definition
+		var classNode *parser.Node
+		for _, node := range result.AST.Body {
+			if node.Type == parser.NodeClassDef {
+				classNode = node
+				break
+			}
+		}
+		assert.NotNil(t, classNode)
+
+		// Convert with and without docstring skipping
+		converterWithSkip := NewTreeConverterWithConfig(true)
+		treeWithSkip := converterWithSkip.ConvertAST(classNode)
+
+		converterWithoutSkip := NewTreeConverterWithConfig(false)
+		treeWithoutSkip := converterWithoutSkip.ConvertAST(classNode)
+
+		// Tree with skip should have fewer nodes
+		assert.Less(t, treeWithSkip.Size(), treeWithoutSkip.Size(),
+			"Tree with docstring skipping should be smaller")
+	})
+
+	t.Run("does not skip non-first string constant with real parser", func(t *testing.T) {
+		code := `def test_function():
+    x = 1
+    """Not a docstring - after first statement"""
+    return x
+`
+		p := parser.New()
+		result, err := p.Parse(context.Background(), []byte(code))
+		assert.NoError(t, err)
+
+		var funcNode *parser.Node
+		for _, node := range result.AST.Body {
+			if node.Type == parser.NodeFunctionDef {
+				funcNode = node
+				break
+			}
+		}
+		assert.NotNil(t, funcNode)
+
+		converterWithSkip := NewTreeConverterWithConfig(true)
+		treeWithSkip := converterWithSkip.ConvertAST(funcNode)
+
+		converterWithoutSkip := NewTreeConverterWithConfig(false)
+		treeWithoutSkip := converterWithoutSkip.ConvertAST(funcNode)
+
+		// Should be same size - string at position 1 is not a docstring
+		assert.Equal(t, treeWithSkip.Size(), treeWithoutSkip.Size(),
+			"Non-first string constant should not be skipped")
+	})
+
+	t.Run("similar functions with different docstrings should have same tree when skipping", func(t *testing.T) {
+		code1 := `def calculate():
+    """Calculate the sum of two numbers."""
+    return 1 + 2
+`
+		code2 := `def calculate():
+    """This function performs multiplication."""
+    return 1 + 2
+`
+		p := parser.New()
+
+		result1, err := p.Parse(context.Background(), []byte(code1))
+		assert.NoError(t, err)
+		result2, err := p.Parse(context.Background(), []byte(code2))
+		assert.NoError(t, err)
+
+		var func1, func2 *parser.Node
+		for _, node := range result1.AST.Body {
+			if node.Type == parser.NodeFunctionDef {
+				func1 = node
+				break
+			}
+		}
+		for _, node := range result2.AST.Body {
+			if node.Type == parser.NodeFunctionDef {
+				func2 = node
+				break
+			}
+		}
+
+		// With docstring skipping, tree sizes should be equal
+		converterWithSkip := NewTreeConverterWithConfig(true)
+		tree1 := converterWithSkip.ConvertAST(func1)
+
+		converterWithSkip2 := NewTreeConverterWithConfig(true)
+		tree2 := converterWithSkip2.ConvertAST(func2)
+
+		assert.Equal(t, tree1.Size(), tree2.Size(),
+			"Functions with different docstrings should have same tree size when skipping docstrings")
 	})
 }

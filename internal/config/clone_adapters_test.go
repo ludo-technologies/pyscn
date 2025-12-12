@@ -56,6 +56,7 @@ func TestCloneConfig_ToCloneRequest(t *testing.T) {
 	assert.Equal(t, cloneConfig.Analysis.MaxEditDistance, request.MaxEditDistance)
 	assert.Equal(t, BoolValue(cloneConfig.Analysis.IgnoreLiterals, false), request.IgnoreLiterals)
 	assert.Equal(t, BoolValue(cloneConfig.Analysis.IgnoreIdentifiers, false), request.IgnoreIdentifiers)
+	assert.Equal(t, BoolValue(cloneConfig.Analysis.SkipDocstrings, true), request.SkipDocstrings)
 
 	// Verify thresholds
 	assert.Equal(t, cloneConfig.Thresholds.Type1Threshold, request.Type1Threshold)
@@ -95,6 +96,7 @@ func TestFromCloneRequest(t *testing.T) {
 		MaxEditDistance:     45.0,
 		IgnoreLiterals:      false,
 		IgnoreIdentifiers:   true,
+		SkipDocstrings:      true,
 
 		Type1Threshold: 0.96,
 		Type2Threshold: 0.86,
@@ -127,6 +129,7 @@ func TestFromCloneRequest(t *testing.T) {
 	assert.Equal(t, request.MaxEditDistance, cloneConfig.Analysis.MaxEditDistance)
 	assert.Equal(t, BoolPtr(request.IgnoreLiterals), cloneConfig.Analysis.IgnoreLiterals)
 	assert.Equal(t, BoolPtr(request.IgnoreIdentifiers), cloneConfig.Analysis.IgnoreIdentifiers)
+	assert.Equal(t, BoolPtr(request.SkipDocstrings), cloneConfig.Analysis.SkipDocstrings)
 
 	// Verify thresholds conversion
 	assert.Equal(t, request.Type1Threshold, cloneConfig.Thresholds.Type1Threshold)

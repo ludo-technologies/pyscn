@@ -262,6 +262,7 @@ func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.
 		MaxEditDistance:     req.MaxEditDistance,
 		IgnoreLiterals:      req.IgnoreLiterals,
 		IgnoreIdentifiers:   req.IgnoreIdentifiers,
+		SkipDocstrings:      req.SkipDocstrings,
 		CostModelType:       "python", // Default to Python cost model
 		MaxClonePairs:       10000,    // Default max pairs
 		BatchSizeThreshold:  50,       // Default batch size threshold
