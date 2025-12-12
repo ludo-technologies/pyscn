@@ -26,14 +26,7 @@ jobs:
             goos: windows
             goarch: amd64
             wheel_platform: win_amd64
-          
-          # macOS Intel
-          - os: macos-13
-            platform: darwin-amd64
-            goos: darwin
-            goarch: amd64
-            wheel_platform: macosx_10_9_x86_64
-            
+
           # macOS Apple Silicon
           - os: macos-14
             platform: darwin-arm64
