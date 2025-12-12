@@ -8,6 +8,9 @@
 ### Improved
 - Consolidate default configuration values in `domain/defaults.go` (#254)
 
+### Removed
+- macOS Intel (x86_64) build support (#259)
+
 ## [1.5.0] - 2025-12-08
 
 ### Added
