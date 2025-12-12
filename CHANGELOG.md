@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.5.2] - 2025-12-13
+
+### Fixed
+- Skip docstrings from clone detection to reduce false positives (#258)
+
 ## [1.5.1] - 2025-12-12
 
 ### Fixed
