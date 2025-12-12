@@ -651,3 +651,111 @@ func TestTreeConverter_SkipDocstrings(t *testing.T) {
 		assert.Equal(t, treeWithSkip.Size(), treeWithoutSkip.Size())
 	})
 }
+
+// TestSkipDocstringInIf verifies if string literals at the start of an If block are skipped.
+// Python semantics say these are NOT docstrings, but the current implementation might skip them.
+func TestSkipDocstringInIf(t *testing.T) {
+	// if True:
+	//     "Not a docstring"
+	//     pass
+	docstringNode := &parser.Node{
+		Type:     parser.NodeConstant,
+		Value:    "Not a docstring",
+		Children: []*parser.Node{},
+	}
+	exprNode := &parser.Node{
+		Type:     parser.NodeExpr,
+		Children: []*parser.Node{docstringNode},
+	}
+	passNode := &parser.Node{
+		Type:     parser.NodePass,
+		Children: []*parser.Node{},
+	}
+	ifNode := &parser.Node{
+		Type: parser.NodeIf,
+		Body: []*parser.Node{exprNode, passNode},
+	}
+
+	converterWithSkip := NewTreeConverterWithConfig(true)
+	treeWithSkip := converterWithSkip.ConvertAST(ifNode)
+
+	converterWithoutSkip := NewTreeConverterWithConfig(false)
+	treeWithoutSkip := converterWithoutSkip.ConvertAST(ifNode)
+
+	// Since "If" node type does not support docstrings, the string literal should NOT be skipped
+	// regardless of the config setting.
+	assert.Equal(t, treeWithoutSkip.Size(), treeWithSkip.Size(), "String literal in If block should not be skipped")
+}
+
+// TestTryFinallyConversion verifies if Finalbody (finally block) is converted.
+func TestTryFinallyConversion(t *testing.T) {
+	// try:
+	//     pass
+	// finally:
+	//     x = 1
+	passNode := &parser.Node{
+		Type: parser.NodePass,
+	}
+	
+	assignNode := &parser.Node{
+		Type: parser.NodeAssign,
+		Name: "x",
+	}
+	
+	tryNode := &parser.Node{
+		Type: parser.NodeTry,
+		Body: []*parser.Node{passNode},
+		Finalbody: []*parser.Node{assignNode},
+	}
+
+	converter := NewTreeConverter()
+	tree := converter.ConvertAST(tryNode)
+
+	// We search for the assignment node in the converted tree
+	found := false
+	nodes := GetSubtreeNodes(tree)
+	for _, node := range nodes {
+		if node.OriginalNode == assignNode {
+			found = true
+			break
+		}
+	}
+
+	assert.True(t, found, "Code in 'finally' block was NOT found in the converted tree")
+}
+
+// TestTryExceptConversion verifies if Handlers (except blocks) are converted.
+func TestTryExceptConversion(t *testing.T) {
+	// try:
+	//     pass
+	// except:
+	//     pass
+	
+	exceptHandler := &parser.Node{
+		Type: parser.NodeExceptHandler,
+		Body: []*parser.Node{
+			{Type: parser.NodePass},
+		},
+	}
+	
+	tryNode := &parser.Node{
+		Type: parser.NodeTry,
+		Body: []*parser.Node{{Type: parser.NodePass}},
+		Handlers: []*parser.Node{exceptHandler},
+	}
+
+	converter := NewTreeConverter()
+	tree := converter.ConvertAST(tryNode)
+
+	// Search for ExceptHandler
+	found := false
+	nodes := GetSubtreeNodes(tree)
+	for _, node := range nodes {
+		if node.OriginalNode == exceptHandler {
+			found = true
+			break
+		}
+	}
+
+	assert.True(t, found, "ExceptHandler was NOT found in the converted tree")
+}

@@ -171,8 +171,9 @@ func (tc *TreeConverter) ConvertAST(astNode *parser.Node) *TreeNode {
 
 	// Also convert body, orelse, and other AST-specific children
 	// Skip docstrings if configured (first Expr(Constant(str)) in body)
+	canHaveDocstring := tc.canNodeHaveDocstring(astNode.Type)
 	for i, bodyNode := range astNode.Body {
-		if tc.isDocstring(bodyNode, i) {
+		if canHaveDocstring && tc.isDocstring(bodyNode, i) {
 			continue
 		}
 		if childNode := tc.ConvertAST(bodyNode); childNode != nil {
@@ -186,7 +187,29 @@ func (tc *TreeConverter) ConvertAST(astNode *parser.Node) *TreeNode {
 		}
 	}
 
+	for _, finalbodyNode := range astNode.Finalbody {
+		if childNode := tc.ConvertAST(finalbodyNode); childNode != nil {
+			treeNode.AddChild(childNode)
+		}
+	}
+
+	for _, handlerNode := range astNode.Handlers {
+		if childNode := tc.ConvertAST(handlerNode); childNode != nil {
+			treeNode.AddChild(childNode)
+		}
+	}
+
 	return treeNode
+}
+
+// canNodeHaveDocstring checks if a node type can have a docstring
+func (tc *TreeConverter) canNodeHaveDocstring(nodeType parser.NodeType) bool {
+	switch nodeType {
+	case parser.NodeModule, parser.NodeClassDef, parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
+		return true
+	default:
+		return false
+	}
 }
 
 // getNodeLabel extracts a meaningful label from the AST node
