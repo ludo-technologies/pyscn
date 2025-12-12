@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.1] - 2025-12-12
+
+### Fixed
+- Enable architecture strict mode by default (#255)
+
+### Improved
+- Consolidate default configuration values in `domain/defaults.go` (#254)
+
 ## [1.5.0] - 2025-12-08
 
 ### Added
