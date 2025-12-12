@@ -141,6 +141,7 @@ type CloneRequest struct {
 	MaxEditDistance     float64 `json:"max_edit_distance"`
 	IgnoreLiterals      bool    `json:"ignore_literals"`
 	IgnoreIdentifiers   bool    `json:"ignore_identifiers"`
+	SkipDocstrings      bool    `json:"skip_docstrings"`
 
 	// Type-specific thresholds
 	Type1Threshold float64 `json:"type1_threshold"`
@@ -330,6 +331,7 @@ func DefaultCloneRequest() *CloneRequest {
 		MaxEditDistance:     50.0,
 		IgnoreLiterals:      false,
 		IgnoreIdentifiers:   false,
+		SkipDocstrings:      true,
 		Type1Threshold:      DefaultType1CloneThreshold,
 		Type2Threshold:      DefaultType2CloneThreshold,
 		Type3Threshold:      DefaultType3CloneThreshold,

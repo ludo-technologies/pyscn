@@ -97,12 +97,55 @@ func (t *TreeNode) String() string {
 
 // TreeConverter converts parser AST nodes to APTED tree nodes
 type TreeConverter struct {
-	nextID int
+	nextID         int
+	skipDocstrings bool
 }
 
-// NewTreeConverter creates a new tree converter
+// NewTreeConverter creates a new tree converter with default settings (no docstring skipping)
 func NewTreeConverter() *TreeConverter {
-	return &TreeConverter{nextID: 0}
+	return &TreeConverter{nextID: 0, skipDocstrings: false}
+}
+
+// NewTreeConverterWithConfig creates a tree converter with configuration
+func NewTreeConverterWithConfig(skipDocstrings bool) *TreeConverter {
+	return &TreeConverter{nextID: 0, skipDocstrings: skipDocstrings}
+}
+
+// isDocstring checks if the given node is a docstring at the given position in the body.
+// A docstring is the first Expr(Constant(str)) in a function/class/module body.
+func (tc *TreeConverter) isDocstring(node *parser.Node, positionInBody int) bool {
+	if !tc.skipDocstrings {
+		return false
+	}
+
+	// Must be the first statement (position 0)
+	if positionInBody != 0 {
+		return false
+	}
+
+	// Must be an Expr node
+	if node.Type != parser.NodeExpr {
+		return false
+	}
+
+	// Must have exactly one child which is a Constant
+	if len(node.Children) != 1 {
+		return false
+	}
+
+	child := node.Children[0]
+	if child.Type != parser.NodeConstant {
+		return false
+	}
+
+	// The constant must be a string
+	if child.Value == nil {
+		return false
+	}
+
+	// Check if value is a string type
+	_, isString := child.Value.(string)
+	return isString
 }
 
 // ConvertAST converts a parser AST node to an APTED tree
@@ -127,7 +170,11 @@ func (tc *TreeConverter) ConvertAST(astNode *parser.Node) *TreeNode {
 	}
 
 	// Also convert body, orelse, and other AST-specific children
-	for _, bodyNode := range astNode.Body {
+	// Skip docstrings if configured (first Expr(Constant(str)) in body)
+	for i, bodyNode := range astNode.Body {
+		if tc.isDocstring(bodyNode, i) {
+			continue
+		}
 		if childNode := tc.ConvertAST(bodyNode); childNode != nil {
 			treeNode.AddChild(childNode)
 		}

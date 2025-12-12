@@ -152,6 +152,7 @@ type ClonesConfig struct {
 	MaxEditDistance   float64 `toml:"max_edit_distance"`
 	IgnoreLiterals    *bool   `toml:"ignore_literals"`    // pointer to detect unset
 	IgnoreIdentifiers *bool   `toml:"ignore_identifiers"` // pointer to detect unset
+	SkipDocstrings    *bool   `toml:"skip_docstrings"`    // pointer to detect unset
 	CostModelType     string  `toml:"cost_model_type"`
 
 	// Thresholds

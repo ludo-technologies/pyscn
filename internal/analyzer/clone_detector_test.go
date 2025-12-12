@@ -31,6 +31,7 @@ func TestCloneDetectorConfig_Defaults(t *testing.T) {
 	assert.Equal(t, 50.0, config.MaxEditDistance, "Default max edit distance should be 50.0")
 	assert.False(t, config.IgnoreLiterals, "Default ignore literals should be false")
 	assert.False(t, config.IgnoreIdentifiers, "Default ignore identifiers should be false")
+	assert.True(t, config.SkipDocstrings, "Default skip docstrings should be true")
 	assert.Equal(t, "python", config.CostModelType, "Default cost model should be python")
 }
 

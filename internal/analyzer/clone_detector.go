@@ -166,6 +166,10 @@ type CloneDetectorConfig struct {
 	// Whether to ignore differences in identifiers
 	IgnoreIdentifiers bool
 
+	// Whether to skip docstrings from AST comparison (default: true)
+	// Docstrings are the first Expr(Constant(str)) in function/class/module bodies
+	SkipDocstrings bool
+
 	// Cost model to use for APTED
 	CostModelType string // "default", "python", "weighted"
 
@@ -207,6 +211,7 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 		MaxEditDistance:   50.0,
 		IgnoreLiterals:    false,
 		IgnoreIdentifiers: false,
+		SkipDocstrings:    true,
 		CostModelType:     "python",
 		// Performance parameters
 		MaxClonePairs:      10000,
@@ -289,7 +294,7 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 	return &CloneDetector{
 		cloneDetectorConfig: *config,
 		analyzer:            analyzer,
-		converter:           NewTreeConverter(),
+		converter:           NewTreeConverterWithConfig(config.SkipDocstrings),
 		classifier:          classifier,
 		fragments:           []*CodeFragment{},
 		clonePairs:          []*ClonePair{},

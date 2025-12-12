@@ -64,6 +64,7 @@ func (c *PyscnConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 		MaxEditDistance:     c.Analysis.MaxEditDistance,
 		IgnoreLiterals:      BoolValue(c.Analysis.IgnoreLiterals, false),
 		IgnoreIdentifiers:   BoolValue(c.Analysis.IgnoreIdentifiers, false),
+		SkipDocstrings:      BoolValue(c.Analysis.SkipDocstrings, true),
 
 		// Type-specific thresholds
 		Type1Threshold: c.Thresholds.Type1Threshold,
@@ -105,6 +106,7 @@ func FromCloneRequest(request *domain.CloneRequest) *PyscnConfig {
 	config.Analysis.MaxEditDistance = request.MaxEditDistance
 	config.Analysis.IgnoreLiterals = BoolPtr(request.IgnoreLiterals)
 	config.Analysis.IgnoreIdentifiers = BoolPtr(request.IgnoreIdentifiers)
+	config.Analysis.SkipDocstrings = BoolPtr(request.SkipDocstrings)
 	config.Analysis.EnableDFA = BoolPtr(request.EnableDFA)
 
 	// Thresholds
