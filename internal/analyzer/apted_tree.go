@@ -112,7 +112,8 @@ func NewTreeConverterWithConfig(skipDocstrings bool) *TreeConverter {
 }
 
 // isDocstring checks if the given node is a docstring at the given position in the body.
-// A docstring is the first Expr(Constant(str)) in a function/class/module body.
+// A docstring is the first string constant in a function/class/module body.
+// The parser returns NodeConstant directly in the Body (not wrapped in NodeExpr).
 func (tc *TreeConverter) isDocstring(node *parser.Node, positionInBody int) bool {
 	if !tc.skipDocstrings {
 		return false
@@ -123,7 +124,17 @@ func (tc *TreeConverter) isDocstring(node *parser.Node, positionInBody int) bool
 		return false
 	}
 
-	// Must be an Expr node
+	// Case 1: Direct Constant node (actual parser output)
+	// The parser's buildExpressionStatement returns the child node directly
+	if node.Type == parser.NodeConstant {
+		if node.Value == nil {
+			return false
+		}
+		_, isString := node.Value.(string)
+		return isString
+	}
+
+	// Case 2: Expr wrapping Constant (for backward compatibility with manual AST construction)
 	if node.Type != parser.NodeExpr {
 		return false
 	}
