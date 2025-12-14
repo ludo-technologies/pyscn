@@ -167,7 +167,7 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 			name: "typical 74 score case",
 			summary: domain.AnalyzeSummary{
 				AverageComplexity:         7.0,  // Continuous: (7-2)/13*20 = 7.69 → 8
-				CodeDuplication:           15.0, // Continuous: (15-5)/25*20 = 8 penalty
+				CodeDuplication:           15.0, // Continuous: 15/10*20 = 30 → 20 (capped, 0-10% scale)
 				CBOClasses:                10,
 				HighCouplingClasses:       2, // 20% ratio: 0.20/0.12*20 = 33.33 → 20 (capped)
 				DepsEnabled:               true,
@@ -175,12 +175,12 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				ArchEnabled:               true,
 				ArchCompliance:            0.125, // (1-0.125)*12 = 10.5 → 11 (new max arch)
 			},
-			expectedScore:             50,  // Updated: 100-8-8-20-3-11 = 50 (new duplication formula)
-			expectedGrade:             "D", // 45 ≤ 50 < 60 = D
+			expectedScore:             38,  // Updated: 100-8-20-20-3-11 = 38 (0-10% duplication scale, capped)
+			expectedGrade:             "F", // 38 < 45 = F
 			expectError:               false,
 			expectedComplexityScore:   60,  // 100 - (8/20)*100 = 60
 			expectedDeadCodeScore:     100, // No dead code
-			expectedDuplicationScore:  60,  // 100 - (8/20)*100 = 60 (new formula: 8 penalty)
+			expectedDuplicationScore:  0,   // 100 - (20/20)*100 = 0 (0-10% scale: 20 penalty capped)
 			expectedCouplingScore:     0,   // 100 - (20/20)*100 = 0
 			expectedDependencyScore:   80,  // Normalized: (3/16)*20 = 3.75 → 4, Score: 100 - (4/20)*100 = 80
 			expectedArchitectureScore: 13,  // Compliance 0.125 * 100 = 12.5 → 13
@@ -201,10 +201,10 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 			name: "high complexity",
 			summary: domain.AnalyzeSummary{
 				AverageComplexity: 25.0, // Continuous: (25-2)/13*20 = 35.38 → 20 (capped)
-				CodeDuplication:   5.0,  // At 5% threshold = 0 penalty
+				CodeDuplication:   5.0,  // 5/5*20 = 20 penalty (0-5% scale, capped)
 			},
-			expectedScore: 80,  // Updated: 100-20-0 = 80 (duplication now 0 at 5%)
-			expectedGrade: "B", // 75 ≤ 80 < 90 = B
+			expectedScore: 60,  // Updated: 100-20-20 = 60 (0-5% duplication scale)
+			expectedGrade: "C", // 60 ≤ 60 < 75 = C
 			expectError:   false,
 		},
 		{
@@ -248,7 +248,7 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 			name: "grade A threshold",
 			summary: domain.AnalyzeSummary{
 				AverageComplexity:   4.0, // Continuous: (4-2)/13*20 = 3.08 → 3
-				CodeDuplication:     2.0, // Below 5% threshold = 0 penalty
+				CodeDuplication:     2.0, // 2/5*20 = 8 penalty (0-5% scale)
 				CBOClasses:          20,
 				HighCouplingClasses: 2, // 10% ratio: 0.10/0.12*20 = 16.67 → 17
 				DepsEnabled:         true,
@@ -257,23 +257,23 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				ArchEnabled:         true,
 				ArchCompliance:      0.9, // (1-0.9)*12 = 1.2 → 1
 			},
-			expectedScore: 79,  // Updated: 100-3-0-17-0-1 = 79 (duplication now 0 penalty for <5%)
-			expectedGrade: "B", // 75 ≤ 79 < 90 = B
+			expectedScore: 71,  // Updated: 100-3-8-17-0-1 = 71 (0-5% duplication scale)
+			expectedGrade: "C", // 60 ≤ 71 < 75 = C
 			expectError:   false,
 		},
 		{
 			name: "grade C threshold",
 			summary: domain.AnalyzeSummary{
 				AverageComplexity:   15.0, // Continuous: (15-2)/13*20 = 20 (capped)
-				CodeDuplication:     25.0, // Continuous: (25-5)/25*20 = 16 penalty
+				CodeDuplication:     25.0, // 25/20*20 = 25 → capped at 20 penalty (0-20% scale)
 				CBOClasses:          20,
 				HighCouplingClasses: 2, // 10% ratio: 0.10/0.12*20 = 16.67 → 17
 				DeadCodeCount:       5,
 				CriticalDeadCode:    0, // No critical issues, so no dead code penalty
 				TotalFiles:          1,
 			},
-			expectedScore: 47,  // Updated: 100-20-16-17 = 47 (new duplication formula)
-			expectedGrade: "D", // 45 ≤ 47 < 60 = D
+			expectedScore: 43,  // Updated: 100-20-20-17 = 43 (new 0-20% duplication scale, capped)
+			expectedGrade: "F", // 43 < 45 = F
 			expectError:   false,
 		},
 		{
@@ -299,14 +299,14 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 			expectedComplexityScore: 100, // 0 penalty
 		},
 		{
-			name: "edge case - duplication boundary at 1.0",
+			name: "edge case - duplication at 1.0%",
 			summary: domain.AnalyzeSummary{
-				CodeDuplication: 1.0, // Exactly at boundary, should result in 0 penalty
+				CodeDuplication: 1.0, // 1% duplication = 4 penalty (0-5% scale: 1/5*20=4)
 			},
-			expectedScore:            100,
+			expectedScore:            96,
 			expectedGrade:            "A",
 			expectError:              false,
-			expectedDuplicationScore: 100, // 0 penalty
+			expectedDuplicationScore: 80, // penalty=4, score=100-(4/20)*100=80
 		},
 		{
 			name: "edge case - small weighted dead code",

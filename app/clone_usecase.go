@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"slices"
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -297,9 +298,17 @@ func (uc *CloneUseCase) mergeConfiguration(configReq, requestReq domain.CloneReq
 		merged.ExcludePatterns = requestReq.ExcludePatterns
 	}
 
-	// Override clone types if provided
-	if len(requestReq.CloneTypes) > 0 && len(requestReq.CloneTypes) != len(defaultReq.CloneTypes) {
+	// Override clone types if different from defaults (i.e., explicitly set via CLI)
+	if len(requestReq.CloneTypes) > 0 && !slices.Equal(requestReq.CloneTypes, defaultReq.CloneTypes) {
 		merged.CloneTypes = requestReq.CloneTypes
+	}
+
+	// Override grouping settings if config has empty/zero values
+	if merged.GroupMode == "" && requestReq.GroupMode != "" {
+		merged.GroupMode = requestReq.GroupMode
+	}
+	if merged.GroupThreshold == 0 && requestReq.GroupThreshold > 0 {
+		merged.GroupThreshold = requestReq.GroupThreshold
 	}
 
 	return merged

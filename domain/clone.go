@@ -346,7 +346,7 @@ func DefaultCloneRequest() *CloneRequest {
 		KCoreK:              2,
 		MinSimilarity:       0.0,
 		MaxSimilarity:       1.0,
-		CloneTypes:          []CloneType{Type1Clone, Type2Clone, Type3Clone, Type4Clone},
+		CloneTypes:          []CloneType{Type1Clone, Type3Clone, Type4Clone}, // Type2 disabled by default due to high false positive rate
 		// LSH defaults (auto-enable based on fragment count)
 		LSHEnabled:             "auto",
 		LSHAutoThreshold:       500,
