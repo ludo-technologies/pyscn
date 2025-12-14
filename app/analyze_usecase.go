@@ -335,7 +335,9 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 					Type3Threshold:      defaultReq.Type3Threshold,
 					Type4Threshold:      defaultReq.Type4Threshold,
 					EnableDFA:           config.EnableDFA,
-					GroupClones:         true, // Enable clone grouping (default behavior)
+					GroupClones:         defaultReq.GroupClones,
+					GroupMode:           defaultReq.GroupMode,
+					GroupThreshold:      defaultReq.GroupThreshold,
 					ConfigPath:          config.ConfigFile,
 				}
 				return uc.cloneUseCase.ExecuteAndReturn(ctx, request)
@@ -498,29 +500,22 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		summary.ClonePairs = response.Clone.Statistics.TotalClonePairs
 		summary.CloneGroups = response.Clone.Statistics.TotalCloneGroups
 
-		// Calculate code duplication percentage
-		if response.Clone.Statistics.LinesAnalyzed > 0 {
+		// Calculate code duplication percentage based on clone groups (not pairs)
+		// This ensures that ungrouped pairs don't affect the score
+		if response.Clone.Statistics.LinesAnalyzed > 0 && len(response.Clone.CloneGroups) > 0 {
 			duplicatedLineSet := make(map[string]map[int]bool)
 
-			for _, pair := range response.Clone.ClonePairs {
-				// Track unique lines in Clone1
-				if pair.Clone1 != nil && pair.Clone1.Location != nil {
-					filePath := pair.Clone1.Location.FilePath
-					if duplicatedLineSet[filePath] == nil {
-						duplicatedLineSet[filePath] = make(map[int]bool)
-					}
-					for line := pair.Clone1.Location.StartLine; line <= pair.Clone1.Location.EndLine; line++ {
-						duplicatedLineSet[filePath][line] = true
-					}
-				}
-				// Track unique lines in Clone2
-				if pair.Clone2 != nil && pair.Clone2.Location != nil {
-					filePath := pair.Clone2.Location.FilePath
-					if duplicatedLineSet[filePath] == nil {
-						duplicatedLineSet[filePath] = make(map[int]bool)
-					}
-					for line := pair.Clone2.Location.StartLine; line <= pair.Clone2.Location.EndLine; line++ {
-						duplicatedLineSet[filePath][line] = true
+			for _, group := range response.Clone.CloneGroups {
+				// Track unique lines from clones in each group
+				for _, clone := range group.Clones {
+					if clone != nil && clone.Location != nil {
+						filePath := clone.Location.FilePath
+						if duplicatedLineSet[filePath] == nil {
+							duplicatedLineSet[filePath] = make(map[int]bool)
+						}
+						for line := clone.Location.StartLine; line <= clone.Location.EndLine; line++ {
+							duplicatedLineSet[filePath][line] = true
+						}
 					}
 				}
 			}
