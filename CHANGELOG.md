@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.5.3] - 2025-12-14
+
+### Fixed
+- Disable Type2 clone detection by default and fix clone grouping (#262)
+
 ## [1.5.2] - 2025-12-13
 
 ### Fixed
