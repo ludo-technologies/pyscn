@@ -581,8 +581,8 @@ func TestCloneDetector_DetectClones(t *testing.T) {
 				MinNodes:           1,
 				Type1Threshold:     0.95,
 				Type2Threshold:     0.85,
-				Type3Threshold:     0.70,
-				Type4Threshold:     0.60,
+				Type3Threshold:     0.50,
+				Type4Threshold:     0.30, // Lowered for small test trees with max-based normalization
 				MaxEditDistance:    50.0,
 				MaxClonePairs:      10000,
 				BatchSizeThreshold: 50,
@@ -776,8 +776,8 @@ func TestCloneDetector_compareFragments(t *testing.T) {
 				frag.TreeNode = converter.ConvertAST(ast)
 				return frag
 			}(),
-			expectPair:    true, // APTED finds structural similarity even with different node types
-			minSimilarity: 0.60, // They have similar structure but different node types
+			expectPair:    false, // With max-based normalization, structurally different code should not match
+			minSimilarity: 0.0,
 		},
 	}
 

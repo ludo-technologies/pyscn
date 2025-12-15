@@ -434,18 +434,19 @@ func (a *APTEDAnalyzer) ComputeSimilarity(tree1, tree2 *TreeNode) float64 {
 	size1 := float64(tree1.Size())
 	size2 := float64(tree2.Size())
 
-	// Use Jaccard-like similarity normalization
-	// This handles cases where distance might exceed individual tree sizes
-	maxPossibleDistance := size1 + size2
+	// Use max(size1, size2) for normalization
+	// This is stricter than (size1 + size2) and reduces false positives
+	// A tree can be transformed into another with at most max(size1, size2) operations
+	// when we delete one tree and insert the other optimally
+	maxSize := math.Max(size1, size2)
 
-	if maxPossibleDistance == 0 {
+	if maxSize == 0 {
 		return 1.0
 	}
 
 	// Normalize distance to [0, 1] range
-	// Distance can theoretically be at most size1 + size2 (delete all, insert all)
-	// But we cap it at maxPossibleDistance to ensure normalized value stays valid
-	normalizedDistance := math.Min(distance, maxPossibleDistance) / maxPossibleDistance
+	// Cap at maxSize to ensure valid range
+	normalizedDistance := math.Min(distance, maxSize) / maxSize
 
 	// Calculate similarity as inverse of normalized distance
 	similarity := 1.0 - normalizedDistance
