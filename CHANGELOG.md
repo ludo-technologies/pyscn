@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.5.4] - 2025-12-15
+
+### Improved
+- Change duplication rate calculation from line-based to function-based for consistent measurements (#264)
+
 ## [1.5.3] - 2025-12-14
 
 ### Fixed
