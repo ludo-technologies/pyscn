@@ -148,13 +148,15 @@ func TestCloneService_Basic(t *testing.T) {
 		var pairs []*domain.ClonePair
 		var groups []*domain.CloneGroup
 
-		stats := service.createStatistics(clones, pairs, groups, 0, 0)
+		stats := service.createStatistics(clones, pairs, groups, 0, 0, 0, 0)
 
+		assert.Equal(t, 0, stats.TotalFragments)
 		assert.Equal(t, 0, stats.TotalClones)
 		assert.Equal(t, 0, stats.TotalClonePairs)
 		assert.Equal(t, 0, stats.TotalCloneGroups)
 		assert.Equal(t, 0, stats.FilesAnalyzed)
 		assert.Equal(t, 0, stats.LinesAnalyzed)
+		assert.Equal(t, 0, stats.NodesAnalyzed)
 	})
 
 	// Test basic validation
