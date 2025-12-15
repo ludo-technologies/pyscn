@@ -117,12 +117,14 @@ func (cg *CloneGroup) AddClone(clone *Clone) {
 
 // CloneStatistics provides statistics about clone detection results
 type CloneStatistics struct {
-	TotalClones       int            `json:"total_clones" yaml:"total_clones" csv:"total_clones"`
+	TotalFragments    int            `json:"total_fragments" yaml:"total_fragments" csv:"total_fragments"` // All extracted fragments (functions, classes, etc.)
+	TotalClones       int            `json:"total_clones" yaml:"total_clones" csv:"total_clones"`          // Fragments detected as clones
 	TotalClonePairs   int            `json:"total_clone_pairs" yaml:"total_clone_pairs" csv:"total_clone_pairs"`
 	TotalCloneGroups  int            `json:"total_clone_groups" yaml:"total_clone_groups" csv:"total_clone_groups"`
 	ClonesByType      map[string]int `json:"clones_by_type" yaml:"clones_by_type" csv:"clones_by_type"`
 	AverageSimilarity float64        `json:"average_similarity" yaml:"average_similarity" csv:"average_similarity"`
 	LinesAnalyzed     int            `json:"lines_analyzed" yaml:"lines_analyzed" csv:"lines_analyzed"`
+	NodesAnalyzed     int            `json:"nodes_analyzed" yaml:"nodes_analyzed" csv:"nodes_analyzed"`
 	FilesAnalyzed     int            `json:"files_analyzed" yaml:"files_analyzed" csv:"files_analyzed"`
 }
 

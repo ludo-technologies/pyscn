@@ -500,33 +500,27 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		summary.ClonePairs = response.Clone.Statistics.TotalClonePairs
 		summary.CloneGroups = response.Clone.Statistics.TotalCloneGroups
 
-		// Calculate code duplication percentage based on clone groups (not pairs)
-		// This ensures that ungrouped pairs don't affect the score
-		if response.Clone.Statistics.LinesAnalyzed > 0 && len(response.Clone.CloneGroups) > 0 {
-			duplicatedLineSet := make(map[string]map[int]bool)
+		// Calculate code duplication percentage based on fragment count
+		// Formula: duplicated fragments / total fragments * 100
+		// TotalFragments = all extracted fragments (functions, classes, etc.)
+		// duplicatedFragments = copies in clone groups (excluding originals)
+		totalFragments := response.Clone.Statistics.TotalFragments
+		if totalFragments > 0 && len(response.Clone.CloneGroups) > 0 {
+			duplicatedFragments := 0
 
 			for _, group := range response.Clone.CloneGroups {
-				// Track unique lines from clones in each group
-				for _, clone := range group.Clones {
-					if clone != nil && clone.Location != nil {
-						filePath := clone.Location.FilePath
-						if duplicatedLineSet[filePath] == nil {
-							duplicatedLineSet[filePath] = make(map[int]bool)
-						}
-						for line := clone.Location.StartLine; line <= clone.Location.EndLine; line++ {
-							duplicatedLineSet[filePath][line] = true
-						}
+				// Skip the first clone (original) and only count copies
+				for i, clone := range group.Clones {
+					if i == 0 {
+						continue // Skip original, only count duplicates
+					}
+					if clone != nil {
+						duplicatedFragments++
 					}
 				}
 			}
 
-			// Count unique duplicated lines
-			duplicatedLines := 0
-			for _, lines := range duplicatedLineSet {
-				duplicatedLines += len(lines)
-			}
-
-			summary.CodeDuplication = (float64(duplicatedLines) / float64(response.Clone.Statistics.LinesAnalyzed)) * 100
+			summary.CodeDuplication = (float64(duplicatedFragments) / float64(totalFragments)) * 100
 		}
 	}
 

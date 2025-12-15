@@ -531,17 +531,21 @@ func TestCloneService_CreateStatistics(t *testing.T) {
 		{ID: 2},
 	}
 
+	totalFragments := 10
 	filesAnalyzed := 5
 	linesAnalyzed := 1000
+	nodesAnalyzed := 500
 
-	stats := service.createStatistics(clones, pairs, groups, filesAnalyzed, linesAnalyzed)
+	stats := service.createStatistics(clones, pairs, groups, totalFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
 
 	assert.NotNil(t, stats)
+	assert.Equal(t, 10, stats.TotalFragments)
 	assert.Equal(t, 3, stats.TotalClones)
 	assert.Equal(t, 3, stats.TotalClonePairs)
 	assert.Equal(t, 2, stats.TotalCloneGroups)
 	assert.Equal(t, 5, stats.FilesAnalyzed)
 	assert.Equal(t, 1000, stats.LinesAnalyzed)
+	assert.Equal(t, 500, stats.NodesAnalyzed)
 	assert.InDelta(t, 0.8, stats.AverageSimilarity, 0.01) // (0.8 + 0.9 + 0.7) / 3
 
 	// Check clone type counts
