@@ -907,13 +907,16 @@ func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *Co
 		return nil
 	}
 
-	// Calculate edit distance for backward compatibility
+	// Always use APTED for distance and similarity calculation
+	// This ensures consistent, continuous similarity scores
+	// The classifier result is only used for clone type classification
 	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
+	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
 
 	return &ClonePair{
 		Fragment1:  fragment1,
 		Fragment2:  fragment2,
-		Similarity: result.Similarity,
+		Similarity: similarity,
 		Distance:   distance,
 		CloneType:  result.CloneType,
 		Confidence: result.Confidence,

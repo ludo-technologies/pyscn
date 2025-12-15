@@ -233,28 +233,31 @@ func (c *PythonCostModel) shouldIgnoreDifference(label1, label2 string) bool {
 	return false
 }
 
-// calculateLabelSimilarity calculates similarity between two node labels
+// calculateLabelSimilarity calculates similarity between two node labels.
+// Returns a value in [0, 1] that reduces the rename cost.
+// Lower values = higher rename cost = stricter clone detection.
 func (c *PythonCostModel) calculateLabelSimilarity(label1, label2 string) float64 {
 	// Extract base node types (remove parenthetical content)
 	baseType1 := c.extractBaseNodeType(label1)
 	baseType2 := c.extractBaseNodeType(label2)
 
-	// If base types are identical, high similarity
+	// If base types are identical, moderate similarity
+	// This ensures renaming Name(foo) -> Name(bar) still has meaningful cost (0.7)
 	if baseType1 == baseType2 {
-		return 0.8
-	}
-
-	// Check for related node types
-	if c.areRelatedNodeTypes(baseType1, baseType2) {
-		return 0.5
-	}
-
-	// Check for same category
-	if c.areSameCategory(baseType1, baseType2) {
 		return 0.3
 	}
 
-	return 0.0 // No similarity
+	// Check for related node types (e.g., For/AsyncFor)
+	if c.areRelatedNodeTypes(baseType1, baseType2) {
+		return 0.2
+	}
+
+	// Check for same category (e.g., both control flow)
+	if c.areSameCategory(baseType1, baseType2) {
+		return 0.1
+	}
+
+	return 0.0 // No similarity - full rename cost
 }
 
 // extractBaseNodeType extracts the base node type from a label

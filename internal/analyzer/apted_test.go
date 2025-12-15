@@ -144,10 +144,10 @@ func TestAPTEDAnalyzer_ComputeDistance_ComplexTrees(t *testing.T) {
 	assert.Equal(t, 1.0, distance, "APTED algorithm computes optimal distance")
 
 	similarity := analyzer.ComputeSimilarity(tree1, tree2)
-	// With the new normalization: similarity = 1.0 - (distance / (size1 + size2))
+	// With max-based normalization: similarity = 1.0 - (distance / max(size1, size2))
 	// distance = 1.0, size1 = 3, size2 = 3
-	// similarity = 1.0 - (1.0 / 6.0) = 0.8333...
-	expectedSimilarity := 1.0 - (1.0 / 6.0) // 1.0 distance, 3 nodes in each tree, total 6
+	// similarity = 1.0 - (1.0 / 3.0) = 0.6667...
+	expectedSimilarity := 1.0 - (1.0 / 3.0) // 1.0 distance, max size = 3
 	assert.InDelta(t, expectedSimilarity, similarity, 0.001, "Similarity should be calculated correctly")
 }
 
@@ -194,7 +194,7 @@ func TestAPTEDAnalyzer_ComputeSimilarity(t *testing.T) {
 			name:               "different single nodes",
 			tree1:              NewTreeNode(1, "A"),
 			tree2:              NewTreeNode(2, "B"),
-			expectedSimilarity: 0.5, // distance = 1 (rename), total size = 2
+			expectedSimilarity: 0.0, // distance = 1 (rename), max size = 1, 1-1/1=0
 			delta:              0.001,
 		},
 		{
@@ -226,7 +226,7 @@ func TestAPTEDAnalyzer_ComputeSimilarity(t *testing.T) {
 				root.AddChild(NewTreeNode(2, "C"))
 				return root
 			}(),
-			expectedSimilarity: 0.75, // distance = 1 (rename), total size = 4
+			expectedSimilarity: 0.5, // distance = 1 (rename), max size = 2, 1-1/2=0.5
 			delta:              0.001,
 		},
 		{
@@ -243,7 +243,7 @@ func TestAPTEDAnalyzer_ComputeSimilarity(t *testing.T) {
 				root.AddChild(NewTreeNode(3, "Z"))
 				return root
 			}(),
-			expectedSimilarity: 0.6667, // APTED finds optimal distance of 2, total size = 6
+			expectedSimilarity: 0.3333, // APTED finds optimal distance of 2, max size = 3, 1-2/3=0.333
 			delta:              0.001,
 		},
 		{
@@ -261,7 +261,7 @@ func TestAPTEDAnalyzer_ComputeSimilarity(t *testing.T) {
 				root.AddChild(NewTreeNode(3, "C"))
 				return root
 			}(),
-			expectedSimilarity: 0.6667, // APTED optimal distance = 2, total size = 6
+			expectedSimilarity: 0.3333, // APTED optimal distance = 2, max size = 3, 1-2/3=0.333
 			delta:              0.001,
 		},
 		{
@@ -274,7 +274,7 @@ func TestAPTEDAnalyzer_ComputeSimilarity(t *testing.T) {
 				}
 				return root
 			}(),
-			expectedSimilarity: 0.1818, // APTED optimal distance = 9, total size = 11
+			expectedSimilarity: 0.1, // APTED optimal distance = 9, max size = 10, 1-9/10=0.1
 			delta:              0.001,
 		},
 	}
