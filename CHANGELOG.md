@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.5] - 2025-12-15
+
+### Fixed
+- Improve clone detection similarity calculation to reduce false positives (#266)
+
+### Changed
+- Adjust duplication threshold from 0-20% to 0-10% (#267)
+
 ## [1.5.4] - 2025-12-15
 
 ### Improved
