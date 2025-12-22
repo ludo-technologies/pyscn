@@ -19,29 +19,29 @@ func createTestAnalyzeResponse() *domain.AnalyzeResponse {
 		GeneratedAt: time.Now(),
 		Duration:    1500,
 		Summary: domain.AnalyzeSummary{
-			HealthScore:          85,
-			Grade:                "B",
-			TotalFiles:           10,
-			AnalyzedFiles:        10,
-			TotalFunctions:       25,
-			AverageComplexity:    5.5,
-			HighComplexityCount:  2,
-			DeadCodeCount:        3,
-			CriticalDeadCode:     1,
-			WarningDeadCode:      2,
-			InfoDeadCode:         0,
-			TotalClones:          5,
-			ClonePairs:           3,
-			CloneGroups:          2,
-			CodeDuplication:      8.5,
-			CBOClasses:           8,
-			HighCouplingClasses:  1,
+			HealthScore:           85,
+			Grade:                 "B",
+			TotalFiles:            10,
+			AnalyzedFiles:         10,
+			TotalFunctions:        25,
+			AverageComplexity:     5.5,
+			HighComplexityCount:   2,
+			DeadCodeCount:         3,
+			CriticalDeadCode:      1,
+			WarningDeadCode:       2,
+			InfoDeadCode:          0,
+			TotalClones:           5,
+			ClonePairs:            3,
+			CloneGroups:           2,
+			CodeDuplication:       8.5,
+			CBOClasses:            8,
+			HighCouplingClasses:   1,
 			MediumCouplingClasses: 2,
-			AverageCoupling:      3.2,
-			ComplexityEnabled:    true,
-			DeadCodeEnabled:      true,
-			CloneEnabled:         true,
-			CBOEnabled:           true,
+			AverageCoupling:       3.2,
+			ComplexityEnabled:     true,
+			DeadCodeEnabled:       true,
+			CloneEnabled:          true,
+			CBOEnabled:            true,
 		},
 		Complexity: &domain.ComplexityResponse{
 			Functions: []domain.FunctionComplexity{
@@ -108,10 +108,10 @@ func TestNewAnalyzeFormatter(t *testing.T) {
 
 func TestAnalyzeFormatter_Write_Text(t *testing.T) {
 	tests := []struct {
-		name           string
-		response       *domain.AnalyzeResponse
-		expectedParts  []string
-		notExpected    []string
+		name          string
+		response      *domain.AnalyzeResponse
+		expectedParts []string
+		notExpected   []string
 	}{
 		{
 			name:     "full response with all analyses",

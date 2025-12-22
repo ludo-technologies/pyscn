@@ -17,11 +17,11 @@ func createTestCloneResponse() *domain.CloneResponse {
 		Success:  true,
 		Duration: 1500,
 		Statistics: &domain.CloneStatistics{
-			FilesAnalyzed:    10,
-			LinesAnalyzed:    1000,
-			TotalClones:      5,
-			TotalClonePairs:  3,
-			TotalCloneGroups: 2,
+			FilesAnalyzed:     10,
+			LinesAnalyzed:     1000,
+			TotalClones:       5,
+			TotalClonePairs:   3,
+			TotalCloneGroups:  2,
 			AverageSimilarity: 0.85,
 			ClonesByType: map[string]int{
 				"Type-1": 1,
@@ -250,8 +250,8 @@ func TestCloneOutputFormatter_FormatCloneStatistics_Text(t *testing.T) {
 func TestCloneOutputFormatter_FormatCloneStatistics_JSON(t *testing.T) {
 	formatter := NewCloneOutputFormatter()
 	stats := &domain.CloneStatistics{
-		FilesAnalyzed:    10,
-		TotalClonePairs:  3,
+		FilesAnalyzed:     10,
+		TotalClonePairs:   3,
 		AverageSimilarity: 0.85,
 	}
 	var buf bytes.Buffer
