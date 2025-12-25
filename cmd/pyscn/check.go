@@ -447,7 +447,7 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 		GroupClones:         true,
 		MinSimilarity:       0.0,
 		MaxSimilarity:       1.0,
-		CloneTypes:          []domain.CloneType{domain.Type1Clone, domain.Type3Clone, domain.Type4Clone}, // Type2 disabled by default
+		CloneTypes:          domain.DefaultEnabledCloneTypes,
 		Recursive:           true,
 		IncludePatterns:     []string{"**/*.py"},
 		ExcludePatterns:     []string{"__pycache__/*", "*.pyc"},

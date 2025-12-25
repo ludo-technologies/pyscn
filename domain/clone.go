@@ -37,6 +37,13 @@ func (ct CloneType) String() string {
 	}
 }
 
+// DefaultEnabledCloneTypes defines the clone types enabled by default.
+// Type2Clone is excluded due to high false positive rate.
+var DefaultEnabledCloneTypes = []CloneType{Type1Clone, Type3Clone, Type4Clone}
+
+// DefaultEnabledCloneTypeStrings provides string representations for config files.
+var DefaultEnabledCloneTypeStrings = []string{"type1", "type3", "type4"}
+
 // CloneLocation represents a location of a clone in source code
 type CloneLocation struct {
 	FilePath  string `json:"file_path" yaml:"file_path" csv:"file_path"`
@@ -348,7 +355,7 @@ func DefaultCloneRequest() *CloneRequest {
 		KCoreK:              2,
 		MinSimilarity:       0.0,
 		MaxSimilarity:       1.0,
-		CloneTypes:          []CloneType{Type1Clone, Type3Clone, Type4Clone}, // Type2 disabled by default due to high false positive rate
+		CloneTypes:          DefaultEnabledCloneTypes,
 		// LSH defaults (auto-enable based on fragment count)
 		LSHEnabled:             "auto",
 		LSHAutoThreshold:       500,
