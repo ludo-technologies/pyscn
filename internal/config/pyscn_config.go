@@ -281,7 +281,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 		Filtering: FilteringConfig{
 			MinSimilarity:     0.0,
 			MaxSimilarity:     1.0,
-			EnabledCloneTypes: []string{"type1", "type3", "type4"}, // type2 disabled by default
+			EnabledCloneTypes: domain.DefaultEnabledCloneTypeStrings,
 			MaxResults:        10000,
 		},
 		Input: InputConfig{
