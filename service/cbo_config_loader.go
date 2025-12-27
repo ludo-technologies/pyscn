@@ -138,8 +138,8 @@ func (cl *CBOConfigurationLoaderImpl) MergeConfig(base *domain.CBORequest, overr
 func (cl *CBOConfigurationLoaderImpl) configToRequest(pyscnCfg *config.PyscnConfig) *domain.CBORequest {
 	if pyscnCfg == nil {
 		return &domain.CBORequest{
-			LowThreshold:    3,
-			MediumThreshold: 7,
+			LowThreshold:    domain.DefaultCBOLowThreshold,
+			MediumThreshold: domain.DefaultCBOMediumThreshold,
 			MinCBO:          0,
 			MaxCBO:          0,
 			ShowZeros:       domain.BoolPtr(false),
