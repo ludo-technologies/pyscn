@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.0] - 2026-01-06
+
+### Added
+- Pyscn Bot (GitHub App) for automated PR reviews and weekly code audits (#276)
+
+### Changed
+- Consolidate default CBO thresholds to single source of truth (#274)
+- Consolidate default CloneTypes to single source of truth (#273)
+
+### Improved
+- Service layer test coverage (36.3% → 53.7%) (#269, #270)
+
 ## [1.5.5] - 2025-12-15
 
 ### Fixed
