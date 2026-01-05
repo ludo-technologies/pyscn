@@ -151,23 +151,14 @@ directory = "reports"
 
 > ⚙️ Run `pyscn init` to generate a full configuration file with all available options
 
-## CI/CD Integration
+## Pyscn Bot (GitHub App)
 
-```yaml
-# GitHub Actions
-- uses: actions/checkout@v4
-- run: pipx run pyscn check .    # Fail on quality issues
+[pyscn-bot](https://pyscn.ludo-tech.org/) monitors your Python code quality automatically.
 
-# Pre-commit hook
-- repo: local
-  hooks:
-    - id: pyscn
-      name: pyscn check
-      entry: pipx run pyscn check .
-      language: system
-      pass_filenames: false
-      types: [python]
-```
+### Features
+
+- **PR Code Review** - Automatic code review on every pull request
+- **Weekly Code Audit** - Scans your entire repository and creates issues for architectural problems
 
 ---
 
