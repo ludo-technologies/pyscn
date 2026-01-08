@@ -175,8 +175,8 @@ func (c *CloneConfigurationLoader) updateConfigFromCloneRequest(cfg *config.Conf
 	cfg.Clones.Analysis.MinNodes = req.MinNodes
 	cfg.Clones.Analysis.MaxEditDistance = req.MaxEditDistance
 	cfg.Clones.Analysis.CostModelType = "python" // Default cost model
-	cfg.Clones.Analysis.IgnoreLiterals = config.BoolPtr(req.IgnoreLiterals)
-	cfg.Clones.Analysis.IgnoreIdentifiers = config.BoolPtr(req.IgnoreIdentifiers)
+	cfg.Clones.Analysis.IgnoreLiterals = domain.BoolPtr(req.IgnoreLiterals)
+	cfg.Clones.Analysis.IgnoreIdentifiers = domain.BoolPtr(req.IgnoreIdentifiers)
 
 	cfg.Clones.Thresholds.Type1Threshold = req.Type1Threshold
 	cfg.Clones.Thresholds.Type2Threshold = req.Type2Threshold
@@ -184,8 +184,8 @@ func (c *CloneConfigurationLoader) updateConfigFromCloneRequest(cfg *config.Conf
 	cfg.Clones.Thresholds.Type4Threshold = req.Type4Threshold
 	cfg.Clones.Thresholds.SimilarityThreshold = req.SimilarityThreshold
 
-	cfg.Clones.Output.ShowContent = config.BoolPtr(req.ShowContent)
-	cfg.Clones.Output.GroupClones = config.BoolPtr(req.GroupClones)
+	cfg.Clones.Output.ShowContent = domain.BoolPtr(req.ShowContent)
+	cfg.Clones.Output.GroupClones = domain.BoolPtr(req.GroupClones)
 	cfg.Clones.Output.SortBy = sortBy
 
 	cfg.Clones.Filtering.MinSimilarity = req.MinSimilarity

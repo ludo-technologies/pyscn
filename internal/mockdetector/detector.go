@@ -263,8 +263,8 @@ func extractStringContent(s string) string {
 		return s
 	}
 
-	// Handle regular strings
-	if s[0] == '"' || s[0] == '\'' || s[0] == '`' {
+	// Handle regular strings (Python only uses single and double quotes)
+	if s[0] == '"' || s[0] == '\'' {
 		return s[1 : len(s)-1]
 	}
 

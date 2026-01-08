@@ -213,11 +213,11 @@ func (c *ConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.Py
 	// Map clone detection settings (backward compatibility)
 	cfg.Analysis.IncludePatterns = pyscnCfg.Input.IncludePatterns
 	cfg.Analysis.ExcludePatterns = pyscnCfg.Input.ExcludePatterns
-	cfg.Analysis.Recursive = config.BoolValue(pyscnCfg.Input.Recursive, true)
+	cfg.Analysis.Recursive = domain.BoolValue(pyscnCfg.Input.Recursive, true)
 
 	// Map clone output settings (backward compatibility)
 	cfg.Output.Format = pyscnCfg.Output.Format
-	cfg.Output.ShowDetails = config.BoolValue(pyscnCfg.Output.ShowDetails, false)
+	cfg.Output.ShowDetails = domain.BoolValue(pyscnCfg.Output.ShowDetails, false)
 
 	// Map complexity settings from [complexity] section
 	cfg.Complexity.LowThreshold = pyscnCfg.ComplexityLowThreshold
@@ -226,16 +226,16 @@ func (c *ConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.Py
 	cfg.Output.MinComplexity = pyscnCfg.ComplexityMinComplexity
 
 	// Map dead code settings from [dead_code] section
-	cfg.DeadCode.Enabled = config.BoolValue(pyscnCfg.DeadCodeEnabled, true)
+	cfg.DeadCode.Enabled = domain.BoolValue(pyscnCfg.DeadCodeEnabled, true)
 	cfg.DeadCode.MinSeverity = pyscnCfg.DeadCodeMinSeverity
-	cfg.DeadCode.ShowContext = config.BoolValue(pyscnCfg.DeadCodeShowContext, false)
+	cfg.DeadCode.ShowContext = domain.BoolValue(pyscnCfg.DeadCodeShowContext, false)
 	cfg.DeadCode.ContextLines = pyscnCfg.DeadCodeContextLines
 	cfg.DeadCode.SortBy = pyscnCfg.DeadCodeSortBy
-	cfg.DeadCode.DetectAfterReturn = config.BoolValue(pyscnCfg.DeadCodeDetectAfterReturn, true)
-	cfg.DeadCode.DetectAfterBreak = config.BoolValue(pyscnCfg.DeadCodeDetectAfterBreak, true)
-	cfg.DeadCode.DetectAfterContinue = config.BoolValue(pyscnCfg.DeadCodeDetectAfterContinue, true)
-	cfg.DeadCode.DetectAfterRaise = config.BoolValue(pyscnCfg.DeadCodeDetectAfterRaise, true)
-	cfg.DeadCode.DetectUnreachableBranches = config.BoolValue(pyscnCfg.DeadCodeDetectUnreachableBranches, true)
+	cfg.DeadCode.DetectAfterReturn = domain.BoolValue(pyscnCfg.DeadCodeDetectAfterReturn, true)
+	cfg.DeadCode.DetectAfterBreak = domain.BoolValue(pyscnCfg.DeadCodeDetectAfterBreak, true)
+	cfg.DeadCode.DetectAfterContinue = domain.BoolValue(pyscnCfg.DeadCodeDetectAfterContinue, true)
+	cfg.DeadCode.DetectAfterRaise = domain.BoolValue(pyscnCfg.DeadCodeDetectAfterRaise, true)
+	cfg.DeadCode.DetectUnreachableBranches = domain.BoolValue(pyscnCfg.DeadCodeDetectUnreachableBranches, true)
 	cfg.DeadCode.IgnorePatterns = pyscnCfg.DeadCodeIgnorePatterns
 
 	// Map general output settings from [output] section (override clone-specific if set)
@@ -273,55 +273,55 @@ func (c *ConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.Py
 	}
 
 	// Map architecture settings from [architecture] section
-	cfg.Architecture.Enabled = config.BoolValue(pyscnCfg.ArchitectureEnabled, false)
-	cfg.Architecture.ValidateLayers = config.BoolValue(pyscnCfg.ArchitectureValidateLayers, true)
-	cfg.Architecture.ValidateCohesion = config.BoolValue(pyscnCfg.ArchitectureValidateCohesion, true)
-	cfg.Architecture.ValidateResponsibility = config.BoolValue(pyscnCfg.ArchitectureValidateResponsibility, true)
+	cfg.Architecture.Enabled = domain.BoolValue(pyscnCfg.ArchitectureEnabled, false)
+	cfg.Architecture.ValidateLayers = domain.BoolValue(pyscnCfg.ArchitectureValidateLayers, true)
+	cfg.Architecture.ValidateCohesion = domain.BoolValue(pyscnCfg.ArchitectureValidateCohesion, true)
+	cfg.Architecture.ValidateResponsibility = domain.BoolValue(pyscnCfg.ArchitectureValidateResponsibility, true)
 	cfg.Architecture.MinCohesion = pyscnCfg.ArchitectureMinCohesion
 	cfg.Architecture.MaxCoupling = pyscnCfg.ArchitectureMaxCoupling
 	cfg.Architecture.MaxResponsibilities = pyscnCfg.ArchitectureMaxResponsibilities
 	cfg.Architecture.LayerViolationSeverity = pyscnCfg.ArchitectureLayerViolationSeverity
 	cfg.Architecture.CohesionViolationSeverity = pyscnCfg.ArchitectureCohesionViolationSeverity
 	cfg.Architecture.ResponsibilityViolationSeverity = pyscnCfg.ArchitectureResponsibilityViolationSeverity
-	cfg.Architecture.ShowAllViolations = config.BoolValue(pyscnCfg.ArchitectureShowAllViolations, true)
-	cfg.Architecture.GroupByType = config.BoolValue(pyscnCfg.ArchitectureGroupByType, true)
-	cfg.Architecture.IncludeSuggestions = config.BoolValue(pyscnCfg.ArchitectureIncludeSuggestions, true)
+	cfg.Architecture.ShowAllViolations = domain.BoolValue(pyscnCfg.ArchitectureShowAllViolations, true)
+	cfg.Architecture.GroupByType = domain.BoolValue(pyscnCfg.ArchitectureGroupByType, true)
+	cfg.Architecture.IncludeSuggestions = domain.BoolValue(pyscnCfg.ArchitectureIncludeSuggestions, true)
 	cfg.Architecture.MaxViolationsToShow = pyscnCfg.ArchitectureMaxViolationsToShow
 	cfg.Architecture.CustomPatterns = pyscnCfg.ArchitectureCustomPatterns
 	cfg.Architecture.AllowedPatterns = pyscnCfg.ArchitectureAllowedPatterns
 	cfg.Architecture.ForbiddenPatterns = pyscnCfg.ArchitectureForbiddenPatterns
-	cfg.Architecture.StrictMode = config.BoolValue(pyscnCfg.ArchitectureStrictMode, true)
-	cfg.Architecture.FailOnViolations = config.BoolValue(pyscnCfg.ArchitectureFailOnViolations, false)
+	cfg.Architecture.StrictMode = domain.BoolValue(pyscnCfg.ArchitectureStrictMode, true)
+	cfg.Architecture.FailOnViolations = domain.BoolValue(pyscnCfg.ArchitectureFailOnViolations, false)
 
 	// Map system analysis settings from [system_analysis] section
-	cfg.SystemAnalysis.Enabled = config.BoolValue(pyscnCfg.SystemAnalysisEnabled, false)
-	cfg.SystemAnalysis.EnableDependencies = config.BoolValue(pyscnCfg.SystemAnalysisEnableDependencies, true)
-	cfg.SystemAnalysis.EnableArchitecture = config.BoolValue(pyscnCfg.SystemAnalysisEnableArchitecture, true)
-	cfg.SystemAnalysis.UseComplexityData = config.BoolValue(pyscnCfg.SystemAnalysisUseComplexityData, false)
-	cfg.SystemAnalysis.UseClonesData = config.BoolValue(pyscnCfg.SystemAnalysisUseClonesData, false)
-	cfg.SystemAnalysis.UseDeadCodeData = config.BoolValue(pyscnCfg.SystemAnalysisUseDeadCodeData, false)
-	cfg.SystemAnalysis.GenerateUnifiedReport = config.BoolValue(pyscnCfg.SystemAnalysisGenerateUnifiedReport, true)
+	cfg.SystemAnalysis.Enabled = domain.BoolValue(pyscnCfg.SystemAnalysisEnabled, false)
+	cfg.SystemAnalysis.EnableDependencies = domain.BoolValue(pyscnCfg.SystemAnalysisEnableDependencies, true)
+	cfg.SystemAnalysis.EnableArchitecture = domain.BoolValue(pyscnCfg.SystemAnalysisEnableArchitecture, true)
+	cfg.SystemAnalysis.UseComplexityData = domain.BoolValue(pyscnCfg.SystemAnalysisUseComplexityData, false)
+	cfg.SystemAnalysis.UseClonesData = domain.BoolValue(pyscnCfg.SystemAnalysisUseClonesData, false)
+	cfg.SystemAnalysis.UseDeadCodeData = domain.BoolValue(pyscnCfg.SystemAnalysisUseDeadCodeData, false)
+	cfg.SystemAnalysis.GenerateUnifiedReport = domain.BoolValue(pyscnCfg.SystemAnalysisGenerateUnifiedReport, true)
 
 	// Map dependencies settings from [dependencies] section
-	cfg.Dependencies.Enabled = config.BoolValue(pyscnCfg.DependenciesEnabled, false)
-	cfg.Dependencies.IncludeStdLib = config.BoolValue(pyscnCfg.DependenciesIncludeStdLib, false)
-	cfg.Dependencies.IncludeThirdParty = config.BoolValue(pyscnCfg.DependenciesIncludeThirdParty, true)
-	cfg.Dependencies.FollowRelative = config.BoolValue(pyscnCfg.DependenciesFollowRelative, true)
-	cfg.Dependencies.DetectCycles = config.BoolValue(pyscnCfg.DependenciesDetectCycles, true)
-	cfg.Dependencies.CalculateMetrics = config.BoolValue(pyscnCfg.DependenciesCalculateMetrics, true)
-	cfg.Dependencies.FindLongChains = config.BoolValue(pyscnCfg.DependenciesFindLongChains, true)
+	cfg.Dependencies.Enabled = domain.BoolValue(pyscnCfg.DependenciesEnabled, false)
+	cfg.Dependencies.IncludeStdLib = domain.BoolValue(pyscnCfg.DependenciesIncludeStdLib, false)
+	cfg.Dependencies.IncludeThirdParty = domain.BoolValue(pyscnCfg.DependenciesIncludeThirdParty, true)
+	cfg.Dependencies.FollowRelative = domain.BoolValue(pyscnCfg.DependenciesFollowRelative, true)
+	cfg.Dependencies.DetectCycles = domain.BoolValue(pyscnCfg.DependenciesDetectCycles, true)
+	cfg.Dependencies.CalculateMetrics = domain.BoolValue(pyscnCfg.DependenciesCalculateMetrics, true)
+	cfg.Dependencies.FindLongChains = domain.BoolValue(pyscnCfg.DependenciesFindLongChains, true)
 	cfg.Dependencies.MinCoupling = pyscnCfg.DependenciesMinCoupling
 	cfg.Dependencies.MaxCoupling = pyscnCfg.DependenciesMaxCoupling
 	cfg.Dependencies.MinInstability = pyscnCfg.DependenciesMinInstability
 	cfg.Dependencies.MaxDistance = pyscnCfg.DependenciesMaxDistance
 	cfg.Dependencies.SortBy = pyscnCfg.DependenciesSortBy
-	cfg.Dependencies.ShowMatrix = config.BoolValue(pyscnCfg.DependenciesShowMatrix, true)
-	cfg.Dependencies.ShowMetrics = config.BoolValue(pyscnCfg.DependenciesShowMetrics, true)
-	cfg.Dependencies.ShowChains = config.BoolValue(pyscnCfg.DependenciesShowChains, true)
-	cfg.Dependencies.GenerateDotGraph = config.BoolValue(pyscnCfg.DependenciesGenerateDotGraph, false)
+	cfg.Dependencies.ShowMatrix = domain.BoolValue(pyscnCfg.DependenciesShowMatrix, true)
+	cfg.Dependencies.ShowMetrics = domain.BoolValue(pyscnCfg.DependenciesShowMetrics, true)
+	cfg.Dependencies.ShowChains = domain.BoolValue(pyscnCfg.DependenciesShowChains, true)
+	cfg.Dependencies.GenerateDotGraph = domain.BoolValue(pyscnCfg.DependenciesGenerateDotGraph, false)
 	cfg.Dependencies.CycleReporting = pyscnCfg.DependenciesCycleReporting
 	cfg.Dependencies.MaxCyclesToShow = pyscnCfg.DependenciesMaxCyclesToShow
-	cfg.Dependencies.ShowCyclePaths = config.BoolValue(pyscnCfg.DependenciesShowCyclePaths, true)
+	cfg.Dependencies.ShowCyclePaths = domain.BoolValue(pyscnCfg.DependenciesShowCyclePaths, true)
 
 	// Keep the clone config reference for backward compatibility
 	cfg.Clones = pyscnCfg

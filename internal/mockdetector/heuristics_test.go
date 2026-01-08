@@ -283,3 +283,88 @@ func TestNewHeuristics_CustomDomains(t *testing.T) {
 		t.Error("expected match for custom domain")
 	}
 }
+
+func TestContainsWordBoundary(t *testing.T) {
+	tests := []struct {
+		name    string
+		s       string
+		keyword string
+		want    bool
+	}{
+		// True positives - should match
+		{"standalone word", "test", "test", true},
+		{"prefix with underscore", "test_user", "test", true},
+		{"suffix with underscore", "user_test", "test", true},
+		{"prefix with hyphen", "test-user", "test", true},
+		{"suffix with hyphen", "user-test", "test", true},
+		{"middle with underscores", "my_test_data", "test", true},
+		{"space separated", "my test data", "test", true},
+		{"dot separated", "test.py", "test", true},
+
+		// False positives - should NOT match
+		{"contest", "contest", "test", false},
+		{"attest", "attest", "test", false},
+		{"latest", "latest", "test", false},
+		{"testify", "testify", "test", false},
+		{"protest", "protest", "test", false},
+		{"detestable", "detestable", "test", false},
+
+		// Edge cases
+		{"empty string", "", "test", false},
+		{"keyword only at end", "mytest", "test", false},
+		{"keyword only at start", "testing", "test", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := containsWordBoundary(tt.s, tt.keyword)
+			if got != tt.want {
+				t.Errorf("containsWordBoundary(%q, %q) = %v, want %v", tt.s, tt.keyword, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHeuristics_CheckString_Keywords_WordBoundary(t *testing.T) {
+	h := NewHeuristics(nil, nil)
+
+	// Should NOT match - false positives prevented by word boundary
+	falsePositives := []string{
+		"contest",
+		"attest",
+		"latest",
+		"testify",
+		"protest",
+	}
+
+	for _, fp := range falsePositives {
+		matches := h.CheckString(fp)
+		for _, m := range matches {
+			if m.Type == domain.MockDataTypeKeyword {
+				t.Errorf("should not match keyword in %q, but got match: %s", fp, m.Rationale)
+			}
+		}
+	}
+
+	// Should match - true positives with proper word boundaries
+	truePositives := []string{
+		"test_user",
+		"user_test",
+		"my_test_data",
+		"test-data",
+	}
+
+	for _, tp := range truePositives {
+		matches := h.CheckString(tp)
+		found := false
+		for _, m := range matches {
+			if m.Type == domain.MockDataTypeKeyword {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("should match keyword in %q, but got no match", tp)
+		}
+	}
+}

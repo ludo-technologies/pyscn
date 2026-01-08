@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 func TestLoadComplexityFromPyscnToml(t *testing.T) {
@@ -175,7 +177,7 @@ detect_after_break = false
 	if config.DeadCodeMinSeverity != "info" {
 		t.Errorf("Expected min_severity 'info', got %s", config.DeadCodeMinSeverity)
 	}
-	if !BoolValue(config.DeadCodeShowContext, false) {
+	if !domain.BoolValue(config.DeadCodeShowContext, false) {
 		t.Errorf("Expected show_context true, got %v", config.DeadCodeShowContext)
 	}
 	if config.DeadCodeContextLines != 5 {
@@ -184,10 +186,10 @@ detect_after_break = false
 	if config.DeadCodeSortBy != "line" {
 		t.Errorf("Expected sort_by 'line', got %s", config.DeadCodeSortBy)
 	}
-	if BoolValue(config.DeadCodeDetectAfterReturn, true) {
+	if domain.BoolValue(config.DeadCodeDetectAfterReturn, true) {
 		t.Errorf("Expected detect_after_return false, got %v", config.DeadCodeDetectAfterReturn)
 	}
-	if BoolValue(config.DeadCodeDetectAfterBreak, true) {
+	if domain.BoolValue(config.DeadCodeDetectAfterBreak, true) {
 		t.Errorf("Expected detect_after_break false, got %v", config.DeadCodeDetectAfterBreak)
 	}
 }

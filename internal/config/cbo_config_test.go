@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 func TestLoadCBOFromPyscnToml(t *testing.T) {
@@ -55,13 +57,13 @@ include_imports = false
 	if config.CboMaxCbo != 20 {
 		t.Errorf("Expected max_cbo 20, got %d", config.CboMaxCbo)
 	}
-	if !BoolValue(config.CboShowZeros, false) {
+	if !domain.BoolValue(config.CboShowZeros, false) {
 		t.Errorf("Expected show_zeros true, got %v", config.CboShowZeros)
 	}
-	if !BoolValue(config.CboIncludeBuiltins, false) {
+	if !domain.BoolValue(config.CboIncludeBuiltins, false) {
 		t.Errorf("Expected include_builtins true, got %v", config.CboIncludeBuiltins)
 	}
-	if BoolValue(config.CboIncludeImports, true) {
+	if domain.BoolValue(config.CboIncludeImports, true) {
 		t.Errorf("Expected include_imports false, got %v", config.CboIncludeImports)
 	}
 }
@@ -102,13 +104,13 @@ medium_threshold = 8
 	if config.CboMaxCbo != 0 {
 		t.Errorf("Expected default max_cbo 0, got %d", config.CboMaxCbo)
 	}
-	if BoolValue(config.CboShowZeros, false) {
+	if domain.BoolValue(config.CboShowZeros, false) {
 		t.Errorf("Expected default show_zeros false, got %v", config.CboShowZeros)
 	}
-	if BoolValue(config.CboIncludeBuiltins, false) {
+	if domain.BoolValue(config.CboIncludeBuiltins, false) {
 		t.Errorf("Expected default include_builtins false, got %v", config.CboIncludeBuiltins)
 	}
-	if !BoolValue(config.CboIncludeImports, true) {
+	if !domain.BoolValue(config.CboIncludeImports, true) {
 		t.Errorf("Expected default include_imports true, got %v", config.CboIncludeImports)
 	}
 }
@@ -144,13 +146,13 @@ func TestMergeCboSection(t *testing.T) {
 	if config.CboMaxCbo != 15 {
 		t.Errorf("Expected max_cbo 15, got %d", config.CboMaxCbo)
 	}
-	if !BoolValue(config.CboShowZeros, false) {
+	if !domain.BoolValue(config.CboShowZeros, false) {
 		t.Errorf("Expected show_zeros true, got %v", config.CboShowZeros)
 	}
-	if !BoolValue(config.CboIncludeBuiltins, false) {
+	if !domain.BoolValue(config.CboIncludeBuiltins, false) {
 		t.Errorf("Expected include_builtins true, got %v", config.CboIncludeBuiltins)
 	}
-	if BoolValue(config.CboIncludeImports, true) {
+	if domain.BoolValue(config.CboIncludeImports, true) {
 		t.Errorf("Expected include_imports false, got %v", config.CboIncludeImports)
 	}
 }

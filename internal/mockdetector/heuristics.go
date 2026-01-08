@@ -138,7 +138,7 @@ func (h *Heuristics) CheckIdentifier(name string) []Match {
 
 	lower := strings.ToLower(name)
 	for _, keyword := range h.Keywords {
-		if strings.Contains(lower, keyword) {
+		if containsWordBoundary(lower, keyword) {
 			matches = append(matches, Match{
 				Value:       name,
 				Type:        domain.MockDataTypeKeyword,
@@ -157,7 +157,7 @@ func (h *Heuristics) CheckIdentifier(name string) []Match {
 func (h *Heuristics) checkKeywords(value string) *Match {
 	lower := strings.ToLower(value)
 	for _, keyword := range h.Keywords {
-		if strings.Contains(lower, keyword) {
+		if containsWordBoundary(lower, keyword) {
 			return &Match{
 				Value:       value,
 				Type:        domain.MockDataTypeKeyword,
@@ -168,6 +168,41 @@ func (h *Heuristics) checkKeywords(value string) *Match {
 		}
 	}
 	return nil
+}
+
+// containsWordBoundary checks if the keyword appears in the string at word boundaries.
+// A word boundary is defined as: start/end of string, or non-alphanumeric characters like '_', '-', '.', etc.
+// This prevents false positives like "contest" matching "test".
+func containsWordBoundary(s, keyword string) bool {
+	idx := strings.Index(s, keyword)
+	for idx != -1 {
+		// Check left boundary
+		leftOK := idx == 0 || !isAlphaNum(s[idx-1])
+		// Check right boundary
+		endIdx := idx + len(keyword)
+		rightOK := endIdx == len(s) || !isAlphaNum(s[endIdx])
+
+		if leftOK && rightOK {
+			return true
+		}
+
+		// Search for next occurrence
+		if endIdx < len(s) {
+			nextIdx := strings.Index(s[endIdx:], keyword)
+			if nextIdx == -1 {
+				break
+			}
+			idx = endIdx + nextIdx
+		} else {
+			break
+		}
+	}
+	return false
+}
+
+// isAlphaNum returns true if the byte is alphanumeric (a-z, A-Z, 0-9).
+func isAlphaNum(b byte) bool {
+	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
 }
 
 // checkDomains checks for test/mock domain patterns.
