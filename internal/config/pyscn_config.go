@@ -125,6 +125,15 @@ type PyscnConfig struct {
 	DependenciesCycleReporting    string  `mapstructure:"dependencies_cycle_reporting" yaml:"dependencies_cycle_reporting" json:"dependencies_cycle_reporting"`
 	DependenciesMaxCyclesToShow   int     `mapstructure:"dependencies_max_cycles_to_show" yaml:"dependencies_max_cycles_to_show" json:"dependencies_max_cycles_to_show"`
 	DependenciesShowCyclePaths    *bool   `mapstructure:"dependencies_show_cycle_paths" yaml:"dependencies_show_cycle_paths" json:"dependencies_show_cycle_paths"`
+
+	// MockData Configuration (from [mock_data] section in TOML)
+	MockDataEnabled        *bool    `mapstructure:"mock_data_enabled" yaml:"mock_data_enabled" json:"mock_data_enabled"`
+	MockDataMinSeverity    string   `mapstructure:"mock_data_min_severity" yaml:"mock_data_min_severity" json:"mock_data_min_severity"`
+	MockDataSortBy         string   `mapstructure:"mock_data_sort_by" yaml:"mock_data_sort_by" json:"mock_data_sort_by"`
+	MockDataIgnoreTests    *bool    `mapstructure:"mock_data_ignore_tests" yaml:"mock_data_ignore_tests" json:"mock_data_ignore_tests"`
+	MockDataKeywords       []string `mapstructure:"mock_data_keywords" yaml:"mock_data_keywords" json:"mock_data_keywords"`
+	MockDataDomains        []string `mapstructure:"mock_data_domains" yaml:"mock_data_domains" json:"mock_data_domains"`
+	MockDataIgnorePatterns []string `mapstructure:"mock_data_ignore_patterns" yaml:"mock_data_ignore_patterns" json:"mock_data_ignore_patterns"`
 }
 
 // CloneAnalysisConfig holds core analysis parameters
@@ -409,6 +418,15 @@ func DefaultPyscnConfig() *PyscnConfig {
 		DependenciesCycleReporting:    "summary", // all, critical, summary
 		DependenciesMaxCyclesToShow:   10,
 		DependenciesShowCyclePaths:    BoolPtr(false),
+
+		// MockData defaults (from [mock_data] section)
+		MockDataEnabled:        BoolPtr(false), // Disabled by default - opt-in
+		MockDataMinSeverity:    domain.DefaultMockDataMinSeverity,
+		MockDataSortBy:         domain.DefaultMockDataSortBy,
+		MockDataIgnoreTests:    BoolPtr(domain.DefaultMockDataIgnoreTests),
+		MockDataKeywords:       domain.DefaultMockDataKeywords(),
+		MockDataDomains:        domain.DefaultMockDataDomains(),
+		MockDataIgnorePatterns: []string{},
 	}
 }
 

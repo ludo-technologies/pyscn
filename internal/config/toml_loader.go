@@ -18,6 +18,7 @@ type PyscnTomlConfig struct {
 	SystemAnalysis SystemAnalysisTomlConfig `toml:"system_analysis"` // [system_analysis] section
 	Dependencies   DependenciesTomlConfig   `toml:"dependencies"`    // [dependencies] section
 	Clones         ClonesConfig             `toml:"clones"`          // [clones] section - unified flat structure
+	MockData       MockDataTomlConfig       `toml:"mock_data"`       // [mock_data] section
 }
 
 // ComplexityTomlConfig represents the [complexity] section
@@ -142,6 +143,17 @@ type DependenciesTomlConfig struct {
 	CycleReporting    string   `toml:"cycle_reporting"`
 	MaxCyclesToShow   *int     `toml:"max_cycles_to_show"`
 	ShowCyclePaths    *bool    `toml:"show_cycle_paths"`
+}
+
+// MockDataTomlConfig represents the [mock_data] section
+type MockDataTomlConfig struct {
+	Enabled        *bool    `toml:"enabled"`
+	MinSeverity    string   `toml:"min_severity"`
+	SortBy         string   `toml:"sort_by"`
+	IgnoreTests    *bool    `toml:"ignore_tests"`
+	Keywords       []string `toml:"keywords"`
+	Domains        []string `toml:"domains"`
+	IgnorePatterns []string `toml:"ignore_patterns"`
 }
 
 // ClonesConfig represents the [clones] section (flat structure)
@@ -321,6 +333,9 @@ func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *PyscnConfig, pyscnTom
 
 	// Merge from [clones] section (unified flat structure)
 	mergeClonesSection(defaults, &pyscnToml.Clones)
+
+	// Merge from [mock_data] section
+	mergeMockDataSection(defaults, &pyscnToml.MockData)
 }
 
 // mergeClonesSection is moved to pyproject_loader.go and is now shared
