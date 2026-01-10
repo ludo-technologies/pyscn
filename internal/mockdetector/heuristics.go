@@ -17,12 +17,12 @@ type Heuristics struct {
 	Domains []string
 
 	// Compiled regex patterns for efficient matching
-	emailPattern     *regexp.Regexp
-	phonePattern     *regexp.Regexp
-	uuidPattern      *regexp.Regexp
-	repetitivePattern *regexp.Regexp
+	emailPattern       *regexp.Regexp
+	phonePattern       *regexp.Regexp
+	uuidPattern        *regexp.Regexp
+	repetitivePattern  *regexp.Regexp
 	placeholderPattern *regexp.Regexp
-	credentialPattern *regexp.Regexp
+	credentialPattern  *regexp.Regexp
 }
 
 // NewHeuristics creates a new Heuristics instance with default or custom patterns.

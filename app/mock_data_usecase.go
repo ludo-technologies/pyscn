@@ -159,12 +159,12 @@ func (uc *MockDataUseCase) AnalyzeFile(ctx context.Context, filePath string, req
 	response := &domain.MockDataResponse{
 		Files: []domain.FileMockData{*fileResult},
 		Summary: domain.MockDataSummary{
-			TotalFiles:         1,
-			TotalFindings:      fileResult.TotalFindings,
-			FilesWithMockData:  0,
-			ErrorFindings:      fileResult.ErrorCount,
-			WarningFindings:    fileResult.WarningCount,
-			InfoFindings:       fileResult.InfoCount,
+			TotalFiles:        1,
+			TotalFindings:     fileResult.TotalFindings,
+			FilesWithMockData: 0,
+			ErrorFindings:     fileResult.ErrorCount,
+			WarningFindings:   fileResult.WarningCount,
+			InfoFindings:      fileResult.InfoCount,
 		},
 	}
 	if fileResult.HasFindings() {

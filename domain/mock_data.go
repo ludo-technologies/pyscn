@@ -28,13 +28,13 @@ const (
 type MockDataType string
 
 const (
-	MockDataTypeKeyword       MockDataType = "keyword"        // mock, fake, dummy, etc.
-	MockDataTypeDomain        MockDataType = "domain"         // example.com, test.com, etc.
-	MockDataTypeEmail         MockDataType = "email"          // test@example.com, etc.
-	MockDataTypePhone         MockDataType = "phone"          // 000-0000-0000, etc.
-	MockDataTypeUUID          MockDataType = "uuid"           // low-entropy UUIDs
-	MockDataTypePlaceholder   MockDataType = "placeholder"    // TODO, FIXME, XXX, etc.
-	MockDataTypeRepetitive    MockDataType = "repetitive"     // aaaa, 1111, etc.
+	MockDataTypeKeyword        MockDataType = "keyword"         // mock, fake, dummy, etc.
+	MockDataTypeDomain         MockDataType = "domain"          // example.com, test.com, etc.
+	MockDataTypeEmail          MockDataType = "email"           // test@example.com, etc.
+	MockDataTypePhone          MockDataType = "phone"           // 000-0000-0000, etc.
+	MockDataTypeUUID           MockDataType = "uuid"            // low-entropy UUIDs
+	MockDataTypePlaceholder    MockDataType = "placeholder"     // TODO, FIXME, XXX, etc.
+	MockDataTypeRepetitive     MockDataType = "repetitive"      // aaaa, 1111, etc.
 	MockDataTypeTestCredential MockDataType = "test_credential" // password123, secret, etc.
 )
 
@@ -63,10 +63,10 @@ type MockDataRequest struct {
 	ConfigPath string
 
 	// Mock data specific options
-	Keywords         []string // Keywords to detect (mock, fake, dummy, etc.)
-	Domains          []string // Domains to detect (example.com, etc.)
-	IgnorePatterns   []string // Patterns in code to ignore
-	EnabledTypes     []MockDataType // Types of mock data to detect (empty = all)
+	Keywords       []string       // Keywords to detect (mock, fake, dummy, etc.)
+	Domains        []string       // Domains to detect (example.com, etc.)
+	IgnorePatterns []string       // Patterns in code to ignore
+	EnabledTypes   []MockDataType // Types of mock data to detect (empty = all)
 }
 
 // MockDataLocation represents the location of detected mock data
@@ -84,14 +84,14 @@ type MockDataFinding struct {
 	Location MockDataLocation `json:"location"`
 
 	// Mock data details
-	Value       string           `json:"value"`       // The detected mock value
-	Type        MockDataType     `json:"type"`        // Type of mock data
+	Value       string           `json:"value"` // The detected mock value
+	Type        MockDataType     `json:"type"`  // Type of mock data
 	Severity    MockDataSeverity `json:"severity"`
 	Description string           `json:"description"` // Why this was flagged
 	Rationale   string           `json:"rationale"`   // Detection rationale
 
 	// Context information
-	Context     string `json:"context,omitempty"`      // Surrounding code
+	Context      string `json:"context,omitempty"`       // Surrounding code
 	VariableName string `json:"variable_name,omitempty"` // Variable name if applicable
 }
 
@@ -113,9 +113,9 @@ type FileMockData struct {
 // MockDataSummary represents aggregate statistics for mock data analysis
 type MockDataSummary struct {
 	// Overall metrics
-	TotalFiles         int `json:"total_files"`
-	TotalFindings      int `json:"total_findings"`
-	FilesWithMockData  int `json:"files_with_mock_data"`
+	TotalFiles        int `json:"total_files"`
+	TotalFindings     int `json:"total_findings"`
+	FilesWithMockData int `json:"files_with_mock_data"`
 
 	// Severity distribution
 	ErrorFindings   int `json:"error_findings"`

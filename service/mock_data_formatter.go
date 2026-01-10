@@ -60,9 +60,9 @@ func (f *MockDataFormatterImpl) formatText(response *domain.MockDataResponse) (s
 
 	// Summary
 	stats := map[string]interface{}{
-		"Total Files":           response.Summary.TotalFiles,
-		"Files with Mock Data":  response.Summary.FilesWithMockData,
-		"Total Findings":        response.Summary.TotalFindings,
+		"Total Files":          response.Summary.TotalFiles,
+		"Files with Mock Data": response.Summary.FilesWithMockData,
+		"Total Findings":       response.Summary.TotalFindings,
 	}
 	output.WriteString(utils.FormatSummaryStats(stats))
 
