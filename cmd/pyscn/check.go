@@ -25,7 +25,6 @@ type CheckCommand struct {
 	skipClones        bool
 	allowCircularDeps bool
 	maxCycles         int
-	allowMockData     bool
 
 	// Select specific analyses to run
 	selectAnalyses []string
@@ -111,7 +110,6 @@ Examples:
 	cmd.Flags().BoolVar(&c.skipClones, "skip-clones", false, "Skip clone detection")
 	cmd.Flags().BoolVar(&c.allowCircularDeps, "allow-circular-deps", false, "Allow circular dependencies (warnings only)")
 	cmd.Flags().IntVar(&c.maxCycles, "max-cycles", 0, "Maximum allowed circular dependency cycles before failing")
-	cmd.Flags().BoolVar(&c.allowMockData, "allow-mock-data", false, "Allow mock data (don't fail)")
 
 	// Select specific analyses to run
 	cmd.Flags().StringSliceVarP(&c.selectAnalyses, "select", "s", []string{},
@@ -213,12 +211,7 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Mock data check failed: %v\n", err)
 			hasErrors = true
 		} else {
-			// Only count mock data issues if not explicitly allowed
-			if !c.allowMockData {
-				issueCount += mockdataIssues
-			} else if mockdataIssues > 0 && !c.quiet {
-				fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Found %d mock data issue(s) (allowed by --allow-mock-data)\n", mockdataIssues)
-			}
+			issueCount += mockdataIssues
 		}
 	}
 
