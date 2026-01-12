@@ -2,6 +2,7 @@ package mockdetector
 
 import (
 	"context"
+	"fmt"
 
 	sitter "github.com/smacker/go-tree-sitter"
 
@@ -82,7 +83,42 @@ func (d *Detector) analyzeTree(root *sitter.Node, source []byte) []domain.MockDa
 		return nil
 	})
 
-	return findings
+	return deduplicateFindings(findings)
+}
+
+// deduplicateFindings removes duplicate findings for the same location,
+// keeping only the one with the highest severity.
+// This handles cases where the same code triggers multiple detection rules
+// (e.g., assignment, identifier, and string detections for the same line).
+func deduplicateFindings(findings []domain.MockDataFinding) []domain.MockDataFinding {
+	if len(findings) == 0 {
+		return findings
+	}
+
+	// Key: "line:column" -> Finding with highest severity
+	seen := make(map[string]domain.MockDataFinding)
+	order := make([]string, 0, len(findings)) // Preserve order
+
+	for _, f := range findings {
+		key := fmt.Sprintf("%d:%d", f.Location.StartLine, f.Location.StartColumn)
+		if existing, ok := seen[key]; ok {
+			// Keep the one with higher severity
+			if f.Severity.Level() > existing.Severity.Level() {
+				seen[key] = f
+			}
+		} else {
+			seen[key] = f
+			order = append(order, key)
+		}
+	}
+
+	// Rebuild slice preserving original order
+	result := make([]domain.MockDataFinding, 0, len(order))
+	for _, key := range order {
+		result = append(result, seen[key])
+	}
+
+	return result
 }
 
 // walkTree traverses the AST depth-first.
