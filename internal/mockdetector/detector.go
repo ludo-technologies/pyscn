@@ -53,7 +53,7 @@ func (d *Detector) analyzeTree(root *sitter.Node, source []byte) []domain.MockDa
 		nodeType := node.Type()
 
 		switch nodeType {
-		case "string", "string_content":
+		case "string":
 			finding := d.analyzeString(node, source)
 			if finding != nil {
 				findings = append(findings, *finding)
