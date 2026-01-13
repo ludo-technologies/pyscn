@@ -466,6 +466,31 @@ func mergeDependenciesSection(defaults *PyscnConfig, dep *DependenciesTomlConfig
 	}
 }
 
+// mergeMockDataSection merges settings from the [mock_data] section
+func mergeMockDataSection(defaults *PyscnConfig, mockData *MockDataTomlConfig) {
+	if mockData.Enabled != nil {
+		defaults.MockDataEnabled = mockData.Enabled
+	}
+	if mockData.MinSeverity != "" {
+		defaults.MockDataMinSeverity = mockData.MinSeverity
+	}
+	if mockData.SortBy != "" {
+		defaults.MockDataSortBy = mockData.SortBy
+	}
+	if mockData.IgnoreTests != nil {
+		defaults.MockDataIgnoreTests = mockData.IgnoreTests
+	}
+	if len(mockData.Keywords) > 0 {
+		defaults.MockDataKeywords = mockData.Keywords
+	}
+	if len(mockData.Domains) > 0 {
+		defaults.MockDataDomains = mockData.Domains
+	}
+	if len(mockData.IgnorePatterns) > 0 {
+		defaults.MockDataIgnorePatterns = mockData.IgnorePatterns
+	}
+}
+
 // findPyprojectToml walks up the directory tree to find pyproject.toml
 func findPyprojectToml(startDir string) (string, error) {
 	dir := startDir

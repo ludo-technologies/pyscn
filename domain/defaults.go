@@ -199,3 +199,54 @@ const (
 	// DefaultTimeoutSeconds is the default timeout in seconds for analysis operations.
 	DefaultTimeoutSeconds = 300
 )
+
+// ============================================================================
+// Mock Data Detection Defaults
+// ============================================================================
+
+const (
+	// DefaultMockDataMinSeverity is the minimum severity level for mock data reports.
+	// Options: "info", "warning", "error"
+	DefaultMockDataMinSeverity = "warning"
+
+	// DefaultMockDataSortBy is the default sort order for mock data results.
+	// Options: "severity", "file", "line", "type"
+	DefaultMockDataSortBy = "severity"
+
+	// DefaultMockDataIgnoreTests determines whether test files are ignored by default.
+	DefaultMockDataIgnoreTests = true
+)
+
+// DefaultMockDataKeywords returns the default keywords used to detect mock data.
+// These are common identifiers used in placeholder/mock data.
+func DefaultMockDataKeywords() []string {
+	return []string{
+		"mock", "fake", "dummy", "test", "sample", "example",
+		"placeholder", "stub", "fixture", "temp", "tmp",
+		"foo", "bar", "baz", "qux", "lorem", "ipsum",
+	}
+}
+
+// DefaultMockDataDomains returns the default domains that indicate mock data.
+// These are reserved domains per RFC 2606 and common test domains.
+func DefaultMockDataDomains() []string {
+	return []string{
+		"example.com", "example.org", "example.net",
+		"test.com", "test.org", "test.net",
+		"localhost", "invalid",
+		"foo.com", "bar.com",
+	}
+}
+
+// DefaultMockDataTestPatterns returns the default patterns for test files to ignore.
+func DefaultMockDataTestPatterns() []string {
+	return []string{
+		"test_*.py",
+		"*_test.py",
+		"tests/",
+		"test/",
+		"testing/",
+		"__tests__/",
+		"conftest.py",
+	}
+}

@@ -321,21 +321,21 @@ func (cl *DeadCodeConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *
 	// These are from [clone.input] and [clone.output] sections
 	cfg.Analysis.IncludePatterns = pyscnCfg.Input.IncludePatterns
 	cfg.Analysis.ExcludePatterns = pyscnCfg.Input.ExcludePatterns
-	cfg.Analysis.Recursive = config.BoolValue(pyscnCfg.Input.Recursive, true)
+	cfg.Analysis.Recursive = domain.BoolValue(pyscnCfg.Input.Recursive, true)
 	cfg.Output.Format = pyscnCfg.Output.Format
-	cfg.Output.ShowDetails = config.BoolValue(pyscnCfg.Output.ShowDetails, false)
+	cfg.Output.ShowDetails = domain.BoolValue(pyscnCfg.Output.ShowDetails, false)
 
 	// Step 2: Map feature-specific settings from [dead_code] section
-	cfg.DeadCode.Enabled = config.BoolValue(pyscnCfg.DeadCodeEnabled, true)
+	cfg.DeadCode.Enabled = domain.BoolValue(pyscnCfg.DeadCodeEnabled, true)
 	cfg.DeadCode.MinSeverity = pyscnCfg.DeadCodeMinSeverity
-	cfg.DeadCode.ShowContext = config.BoolValue(pyscnCfg.DeadCodeShowContext, false)
+	cfg.DeadCode.ShowContext = domain.BoolValue(pyscnCfg.DeadCodeShowContext, false)
 	cfg.DeadCode.ContextLines = pyscnCfg.DeadCodeContextLines
 	cfg.DeadCode.SortBy = pyscnCfg.DeadCodeSortBy
-	cfg.DeadCode.DetectAfterReturn = config.BoolValue(pyscnCfg.DeadCodeDetectAfterReturn, true)
-	cfg.DeadCode.DetectAfterBreak = config.BoolValue(pyscnCfg.DeadCodeDetectAfterBreak, true)
-	cfg.DeadCode.DetectAfterContinue = config.BoolValue(pyscnCfg.DeadCodeDetectAfterContinue, true)
-	cfg.DeadCode.DetectAfterRaise = config.BoolValue(pyscnCfg.DeadCodeDetectAfterRaise, true)
-	cfg.DeadCode.DetectUnreachableBranches = config.BoolValue(pyscnCfg.DeadCodeDetectUnreachableBranches, true)
+	cfg.DeadCode.DetectAfterReturn = domain.BoolValue(pyscnCfg.DeadCodeDetectAfterReturn, true)
+	cfg.DeadCode.DetectAfterBreak = domain.BoolValue(pyscnCfg.DeadCodeDetectAfterBreak, true)
+	cfg.DeadCode.DetectAfterContinue = domain.BoolValue(pyscnCfg.DeadCodeDetectAfterContinue, true)
+	cfg.DeadCode.DetectAfterRaise = domain.BoolValue(pyscnCfg.DeadCodeDetectAfterRaise, true)
+	cfg.DeadCode.DetectUnreachableBranches = domain.BoolValue(pyscnCfg.DeadCodeDetectUnreachableBranches, true)
 	cfg.DeadCode.IgnorePatterns = pyscnCfg.DeadCodeIgnorePatterns
 
 	// Step 3: Apply general [analysis] section overrides (highest priority for analysis settings)
@@ -350,7 +350,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *
 	if pyscnCfg.AnalysisRecursive != nil {
 		cfg.Analysis.Recursive = *pyscnCfg.AnalysisRecursive
 	}
-	cfg.Analysis.FollowSymlinks = config.BoolValue(pyscnCfg.AnalysisFollowSymlinks, false)
+	cfg.Analysis.FollowSymlinks = domain.BoolValue(pyscnCfg.AnalysisFollowSymlinks, false)
 
 	// Step 4: Apply general [output] section overrides (highest priority for output settings)
 	// Only override if explicitly set (non-empty values)

@@ -75,6 +75,7 @@ type AnalyzeResponse struct {
 	Clone      *CloneResponse          `json:"clone,omitempty" yaml:"clone,omitempty"`
 	CBO        *CBOResponse            `json:"cbo,omitempty" yaml:"cbo,omitempty"`
 	System     *SystemAnalysisResponse `json:"system,omitempty" yaml:"system,omitempty"`
+	MockData   *MockDataResponse       `json:"mock_data,omitempty" yaml:"mock_data,omitempty"`
 
 	// Overall summary
 	Summary AnalyzeSummary `json:"summary" yaml:"summary"`
@@ -97,6 +98,7 @@ type AnalyzeSummary struct {
 	DeadCodeEnabled   bool `json:"dead_code_enabled" yaml:"dead_code_enabled"`
 	CloneEnabled      bool `json:"clone_enabled" yaml:"clone_enabled"`
 	CBOEnabled        bool `json:"cbo_enabled" yaml:"cbo_enabled"`
+	MockDataEnabled   bool `json:"mock_data_enabled" yaml:"mock_data_enabled"`
 
 	// System-level (module dependencies & architecture) summary used for scoring
 	DepsEnabled               bool    `json:"deps_enabled" yaml:"deps_enabled"`
@@ -126,6 +128,11 @@ type AnalyzeSummary struct {
 	HighCouplingClasses   int     `json:"high_coupling_classes" yaml:"high_coupling_classes"`     // CBO > 7 (High Risk)
 	MediumCouplingClasses int     `json:"medium_coupling_classes" yaml:"medium_coupling_classes"` // 3 < CBO ≤ 7 (Medium Risk)
 	AverageCoupling       float64 `json:"average_coupling" yaml:"average_coupling"`
+
+	MockDataCount        int `json:"mock_data_count" yaml:"mock_data_count"`
+	MockDataErrorCount   int `json:"mock_data_error_count" yaml:"mock_data_error_count"`
+	MockDataWarningCount int `json:"mock_data_warning_count" yaml:"mock_data_warning_count"`
+	MockDataInfoCount    int `json:"mock_data_info_count" yaml:"mock_data_info_count"`
 
 	// Overall health score (0-100)
 	HealthScore int    `json:"health_score" yaml:"health_score"`

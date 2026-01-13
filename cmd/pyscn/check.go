@@ -113,7 +113,7 @@ Examples:
 
 	// Select specific analyses to run
 	cmd.Flags().StringSliceVarP(&c.selectAnalyses, "select", "s", []string{},
-		"Comma-separated list of analyses to run: complexity, deadcode, clones, deps")
+		"Comma-separated list of analyses to run: complexity, deadcode, clones, deps, mockdata")
 
 	return cmd
 }
@@ -133,14 +133,14 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create use case configuration
-	skipComplexity, skipDeadCode, skipClones, skipDeps := c.determineEnabledAnalyses()
+	skipComplexity, skipDeadCode, skipClones, skipDeps, skipMockdata := c.determineEnabledAnalyses()
 
 	// Count issues found
 	var issueCount int
 	var hasErrors bool
 
 	if !c.quiet {
-		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check (%s)...\n", strings.Join(c.getEnabledAnalyses(skipComplexity, skipDeadCode, skipClones, skipDeps), ", "))
+		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check (%s)...\n", strings.Join(c.getEnabledAnalyses(skipComplexity, skipDeadCode, skipClones, skipDeps, skipMockdata), ", "))
 	}
 
 	// Run complexity check if enabled
@@ -204,6 +204,17 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Run mock data check if enabled
+	if !skipMockdata {
+		mockdataIssues, err := c.checkMockdata(cmd, args)
+		if err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Mock data check failed: %v\n", err)
+			hasErrors = true
+		} else {
+			issueCount += mockdataIssues
+		}
+	}
+
 	// Handle results
 	if hasErrors {
 		return fmt.Errorf("analysis failed with errors")
@@ -224,19 +235,21 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 }
 
 // determineEnabledAnalyses determines which analyses should run based on flags
-func (c *CheckCommand) determineEnabledAnalyses() (skipComplexity bool, skipDeadCode bool, skipClones bool, skipDeps bool) {
+func (c *CheckCommand) determineEnabledAnalyses() (skipComplexity bool, skipDeadCode bool, skipClones bool, skipDeps bool, skipMockdata bool) {
 	if len(c.selectAnalyses) > 0 {
 		// If --select is used, only run selected analyses
 		skipComplexity = !c.containsAnalysis("complexity")
 		skipDeadCode = !c.containsAnalysis("deadcode")
 		skipClones = !c.containsAnalysis("clones")
 		skipDeps = !c.containsAnalysis("deps") && !c.containsAnalysis("circular")
+		skipMockdata = !c.containsAnalysis("mockdata")
 	} else {
 		// Otherwise use original behavior (backward compatible)
 		skipComplexity = false    // Always run complexity
 		skipDeadCode = false      // Always run dead code analysis
 		skipClones = c.skipClones // Only skip clones if explicitly requested
 		skipDeps = true           // Skip deps by default (opt-in via --select)
+		skipMockdata = true       // Skip mockdata by default (opt-in via --select)
 	}
 	return
 }
@@ -257,7 +270,7 @@ func (c *CheckCommand) containsAnalysis(analysis string) bool {
 }
 
 // getEnabledAnalyses returns a list of enabled analyses for display
-func (c *CheckCommand) getEnabledAnalyses(skipComplexity bool, skipDeadCode bool, skipClones bool, skipDeps bool) []string {
+func (c *CheckCommand) getEnabledAnalyses(skipComplexity bool, skipDeadCode bool, skipClones bool, skipDeps bool, skipMockdata bool) []string {
 	var enabled []string
 	if !skipComplexity {
 		enabled = append(enabled, "complexity")
@@ -271,6 +284,9 @@ func (c *CheckCommand) getEnabledAnalyses(skipComplexity bool, skipDeadCode bool
 	if !skipDeps {
 		enabled = append(enabled, "deps")
 	}
+	if !skipMockdata {
+		enabled = append(enabled, "mockdata")
+	}
 	return enabled
 }
 
@@ -282,10 +298,11 @@ func (c *CheckCommand) validateSelectedAnalyses() error {
 		"clones":     true,
 		"deps":       true,
 		"circular":   true,
+		"mockdata":   true,
 	}
 	for _, analysis := range c.selectAnalyses {
 		if !validAnalyses[strings.ToLower(analysis)] {
-			return fmt.Errorf("invalid analysis type: %s. Valid options: complexity, deadcode, clones, deps", analysis)
+			return fmt.Errorf("invalid analysis type: %s. Valid options: complexity, deadcode, clones, deps, mockdata", analysis)
 		}
 	}
 	if len(c.selectAnalyses) == 0 {
@@ -560,6 +577,72 @@ func (c *CheckCommand) checkCircularDependencies(cmd *cobra.Command, args []stri
 	}
 
 	return result.TotalCycles, nil
+}
+
+// checkMockdata runs mock data analysis and returns issue count
+func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, error) {
+	// Create request with check-specific settings
+	request := &domain.MockDataRequest{
+		Paths:           args,
+		OutputFormat:    domain.OutputFormatText,
+		OutputWriter:    io.Discard,
+		MinSeverity:     domain.MockDataSeverityWarning,
+		SortBy:          domain.MockDataSortBySeverity,
+		Recursive:       true,
+		IncludePatterns: []string{"**/*.py"},
+		ExcludePatterns: []string{"__pycache__/*", "*.pyc"},
+		IgnoreTests:     domain.BoolPtr(true),
+		Keywords:        domain.DefaultMockDataKeywords(),
+		Domains:         domain.DefaultMockDataDomains(),
+	}
+
+	// Validate request
+	if err := request.Validate(); err != nil {
+		return 0, fmt.Errorf("invalid mock data request: %w", err)
+	}
+
+	// Create service components
+	mockDataService := service.NewMockDataService()
+	mockDataFormatter := service.NewMockDataFormatter()
+	mockDataConfigLoader := service.NewMockDataConfigurationLoader()
+
+	// Build use case with defaults
+	useCase, err := app.NewMockDataUseCaseBuilder().
+		WithService(mockDataService).
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(mockDataFormatter).
+		WithConfigLoader(mockDataConfigLoader).
+		Build()
+	if err != nil {
+		return 0, fmt.Errorf("failed to create mock data use case: %w", err)
+	}
+
+	// Run analysis
+	response, err := useCase.AnalyzeAndReturn(cmd.Context(), *request)
+	if err != nil {
+		return 0, err
+	}
+
+	// Count and output issues
+	issueCount := 0
+	for _, file := range response.Files {
+		for _, finding := range file.Findings {
+			// Only count warning and error level findings
+			if finding.Severity.IsAtLeast(domain.MockDataSeverityWarning) {
+				issueCount++
+				if !c.quiet {
+					fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: mock data detected: %s (%s)\n",
+						finding.Location.FilePath,
+						finding.Location.StartLine,
+						finding.Location.StartColumn,
+						finding.Description,
+						finding.Rationale)
+				}
+			}
+		}
+	}
+
+	return issueCount, nil
 }
 
 // NewCheckCmd creates and returns the check cobra command

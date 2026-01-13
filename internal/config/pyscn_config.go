@@ -125,6 +125,15 @@ type PyscnConfig struct {
 	DependenciesCycleReporting    string  `mapstructure:"dependencies_cycle_reporting" yaml:"dependencies_cycle_reporting" json:"dependencies_cycle_reporting"`
 	DependenciesMaxCyclesToShow   int     `mapstructure:"dependencies_max_cycles_to_show" yaml:"dependencies_max_cycles_to_show" json:"dependencies_max_cycles_to_show"`
 	DependenciesShowCyclePaths    *bool   `mapstructure:"dependencies_show_cycle_paths" yaml:"dependencies_show_cycle_paths" json:"dependencies_show_cycle_paths"`
+
+	// MockData Configuration (from [mock_data] section in TOML)
+	MockDataEnabled        *bool    `mapstructure:"mock_data_enabled" yaml:"mock_data_enabled" json:"mock_data_enabled"`
+	MockDataMinSeverity    string   `mapstructure:"mock_data_min_severity" yaml:"mock_data_min_severity" json:"mock_data_min_severity"`
+	MockDataSortBy         string   `mapstructure:"mock_data_sort_by" yaml:"mock_data_sort_by" json:"mock_data_sort_by"`
+	MockDataIgnoreTests    *bool    `mapstructure:"mock_data_ignore_tests" yaml:"mock_data_ignore_tests" json:"mock_data_ignore_tests"`
+	MockDataKeywords       []string `mapstructure:"mock_data_keywords" yaml:"mock_data_keywords" json:"mock_data_keywords"`
+	MockDataDomains        []string `mapstructure:"mock_data_domains" yaml:"mock_data_domains" json:"mock_data_domains"`
+	MockDataIgnorePatterns []string `mapstructure:"mock_data_ignore_patterns" yaml:"mock_data_ignore_patterns" json:"mock_data_ignore_patterns"`
 }
 
 // CloneAnalysisConfig holds core analysis parameters
@@ -241,21 +250,6 @@ type LSHConfig struct {
 	Hashes int `mapstructure:"hashes" yaml:"hashes" json:"hashes"`
 }
 
-// BoolPtr returns a pointer to the given bool value
-// This helper function is used to create *bool values in struct literals
-func BoolPtr(b bool) *bool {
-	return &b
-}
-
-// BoolValue safely dereferences a boolean pointer, returning defaultVal if nil
-// This allows safe access to pointer booleans with explicit defaults
-func BoolValue(b *bool, defaultVal bool) bool {
-	if b == nil {
-		return defaultVal
-	}
-	return *b
-}
-
 // DefaultPyscnConfig returns a configuration with sensible defaults
 // All default values are sourced from domain/defaults.go
 func DefaultPyscnConfig() *PyscnConfig {
@@ -265,11 +259,11 @@ func DefaultPyscnConfig() *PyscnConfig {
 			MinLines:          domain.DefaultCloneMinLines,
 			MinNodes:          domain.DefaultCloneMinNodes,
 			MaxEditDistance:   domain.DefaultCloneMaxEditDistance,
-			IgnoreLiterals:    BoolPtr(false),
-			IgnoreIdentifiers: BoolPtr(false),
-			SkipDocstrings:    BoolPtr(true),
+			IgnoreLiterals:    domain.BoolPtr(false),
+			IgnoreIdentifiers: domain.BoolPtr(false),
+			SkipDocstrings:    domain.BoolPtr(true),
 			CostModelType:     "python",
-			EnableDFA:         BoolPtr(true), // Enable Data Flow Analysis by default for multi-dimensional classification
+			EnableDFA:         domain.BoolPtr(true), // Enable Data Flow Analysis by default for multi-dimensional classification
 		},
 		Thresholds: ThresholdConfig{
 			Type1Threshold:      domain.DefaultType1CloneThreshold,
@@ -286,21 +280,21 @@ func DefaultPyscnConfig() *PyscnConfig {
 		},
 		Input: InputConfig{
 			Paths:           []string{"."},
-			Recursive:       BoolPtr(true),
+			Recursive:       domain.BoolPtr(true),
 			IncludePatterns: []string{"**/*.py"},
 			ExcludePatterns: []string{"test_*.py", "*_test.py"},
 		},
 		Output: CloneOutputConfig{
 			Format:      "text",
-			ShowDetails: BoolPtr(false),
-			ShowContent: BoolPtr(false),
+			ShowDetails: domain.BoolPtr(false),
+			ShowContent: domain.BoolPtr(false),
 			SortBy:      "similarity",
-			GroupClones: BoolPtr(true),
+			GroupClones: domain.BoolPtr(true),
 		},
 		Performance: PerformanceConfig{
 			MaxMemoryMB:    domain.DefaultMaxMemoryMB,
 			BatchSize:      domain.DefaultBatchSize,
-			EnableBatching: BoolPtr(true),
+			EnableBatching: domain.BoolPtr(true),
 			MaxGoroutines:  domain.DefaultMaxGoroutines,
 			TimeoutSeconds: domain.DefaultTimeoutSeconds,
 		},
@@ -325,21 +319,21 @@ func DefaultPyscnConfig() *PyscnConfig {
 		ComplexityMinComplexity:   DefaultMinComplexityFilter,
 
 		// DeadCode defaults (from [dead_code] section)
-		DeadCodeEnabled:                   BoolPtr(true),
+		DeadCodeEnabled:                   domain.BoolPtr(true),
 		DeadCodeMinSeverity:               DefaultDeadCodeMinSeverity,
-		DeadCodeShowContext:               BoolPtr(false),
+		DeadCodeShowContext:               domain.BoolPtr(false),
 		DeadCodeContextLines:              DefaultDeadCodeContextLines,
 		DeadCodeSortBy:                    DefaultDeadCodeSortBy,
-		DeadCodeDetectAfterReturn:         BoolPtr(true),
-		DeadCodeDetectAfterBreak:          BoolPtr(true),
-		DeadCodeDetectAfterContinue:       BoolPtr(true),
-		DeadCodeDetectAfterRaise:          BoolPtr(true),
-		DeadCodeDetectUnreachableBranches: BoolPtr(true),
+		DeadCodeDetectAfterReturn:         domain.BoolPtr(true),
+		DeadCodeDetectAfterBreak:          domain.BoolPtr(true),
+		DeadCodeDetectAfterContinue:       domain.BoolPtr(true),
+		DeadCodeDetectAfterRaise:          domain.BoolPtr(true),
+		DeadCodeDetectUnreachableBranches: domain.BoolPtr(true),
 		DeadCodeIgnorePatterns:            []string{},
 
 		// Output defaults (from [output] section - general output settings)
 		OutputFormat:        "text",
-		OutputShowDetails:   BoolPtr(false),
+		OutputShowDetails:   domain.BoolPtr(false),
 		OutputSortBy:        "complexity",
 		OutputMinComplexity: DefaultMinComplexityFilter,
 		OutputDirectory:     "", // empty = tool default (.pyscn/reports)
@@ -347,68 +341,77 @@ func DefaultPyscnConfig() *PyscnConfig {
 		// Analysis defaults (from [analysis] section - general analysis settings)
 		AnalysisIncludePatterns: []string{"**/*.py"},
 		AnalysisExcludePatterns: []string{"test_*.py", "*_test.py"},
-		AnalysisRecursive:       BoolPtr(true),
-		AnalysisFollowSymlinks:  BoolPtr(false),
+		AnalysisRecursive:       domain.BoolPtr(true),
+		AnalysisFollowSymlinks:  domain.BoolPtr(false),
 
 		// CBO defaults (from [cbo] section)
 		CboLowThreshold:    domain.DefaultCBOLowThreshold,
 		CboMediumThreshold: domain.DefaultCBOMediumThreshold,
 		CboMinCbo:          0,
 		CboMaxCbo:          0, // No limit
-		CboShowZeros:       BoolPtr(false),
-		CboIncludeBuiltins: BoolPtr(false),
-		CboIncludeImports:  BoolPtr(true),
+		CboShowZeros:       domain.BoolPtr(false),
+		CboIncludeBuiltins: domain.BoolPtr(false),
+		CboIncludeImports:  domain.BoolPtr(true),
 
 		// Architecture defaults (from [architecture] section)
-		ArchitectureEnabled:                         BoolPtr(false), // Disabled by default - opt-in
-		ArchitectureValidateLayers:                  BoolPtr(true),
-		ArchitectureValidateCohesion:                BoolPtr(true),
-		ArchitectureValidateResponsibility:          BoolPtr(true),
+		ArchitectureEnabled:                         domain.BoolPtr(false), // Disabled by default - opt-in
+		ArchitectureValidateLayers:                  domain.BoolPtr(true),
+		ArchitectureValidateCohesion:                domain.BoolPtr(true),
+		ArchitectureValidateResponsibility:          domain.BoolPtr(true),
 		ArchitectureMinCohesion:                     0.5,
 		ArchitectureMaxCoupling:                     10,
 		ArchitectureMaxResponsibilities:             3,
 		ArchitectureLayerViolationSeverity:          "error",
 		ArchitectureCohesionViolationSeverity:       "warning",
 		ArchitectureResponsibilityViolationSeverity: "warning",
-		ArchitectureShowAllViolations:               BoolPtr(false),
-		ArchitectureGroupByType:                     BoolPtr(true),
-		ArchitectureIncludeSuggestions:              BoolPtr(true),
+		ArchitectureShowAllViolations:               domain.BoolPtr(false),
+		ArchitectureGroupByType:                     domain.BoolPtr(true),
+		ArchitectureIncludeSuggestions:              domain.BoolPtr(true),
 		ArchitectureMaxViolationsToShow:             20,
 		ArchitectureCustomPatterns:                  []string{},
 		ArchitectureAllowedPatterns:                 []string{},
 		ArchitectureForbiddenPatterns:               []string{},
-		ArchitectureStrictMode:                      BoolPtr(true),
-		ArchitectureFailOnViolations:                BoolPtr(false),
+		ArchitectureStrictMode:                      domain.BoolPtr(true),
+		ArchitectureFailOnViolations:                domain.BoolPtr(false),
 
 		// SystemAnalysis defaults (from [system_analysis] section)
-		SystemAnalysisEnabled:               BoolPtr(false), // Disabled by default - opt-in
-		SystemAnalysisEnableDependencies:    BoolPtr(true),
-		SystemAnalysisEnableArchitecture:    BoolPtr(true),
-		SystemAnalysisUseComplexityData:     BoolPtr(true),
-		SystemAnalysisUseClonesData:         BoolPtr(true),
-		SystemAnalysisUseDeadCodeData:       BoolPtr(true),
-		SystemAnalysisGenerateUnifiedReport: BoolPtr(true),
+		SystemAnalysisEnabled:               domain.BoolPtr(false), // Disabled by default - opt-in
+		SystemAnalysisEnableDependencies:    domain.BoolPtr(true),
+		SystemAnalysisEnableArchitecture:    domain.BoolPtr(true),
+		SystemAnalysisUseComplexityData:     domain.BoolPtr(true),
+		SystemAnalysisUseClonesData:         domain.BoolPtr(true),
+		SystemAnalysisUseDeadCodeData:       domain.BoolPtr(true),
+		SystemAnalysisGenerateUnifiedReport: domain.BoolPtr(true),
 
 		// Dependencies defaults (from [dependencies] section)
-		DependenciesEnabled:           BoolPtr(false), // Disabled by default - opt-in
-		DependenciesIncludeStdLib:     BoolPtr(false),
-		DependenciesIncludeThirdParty: BoolPtr(true),
-		DependenciesFollowRelative:    BoolPtr(true),
-		DependenciesDetectCycles:      BoolPtr(true),
-		DependenciesCalculateMetrics:  BoolPtr(true),
-		DependenciesFindLongChains:    BoolPtr(true),
+		DependenciesEnabled:           domain.BoolPtr(false), // Disabled by default - opt-in
+		DependenciesIncludeStdLib:     domain.BoolPtr(false),
+		DependenciesIncludeThirdParty: domain.BoolPtr(true),
+		DependenciesFollowRelative:    domain.BoolPtr(true),
+		DependenciesDetectCycles:      domain.BoolPtr(true),
+		DependenciesCalculateMetrics:  domain.BoolPtr(true),
+		DependenciesFindLongChains:    domain.BoolPtr(true),
 		DependenciesMinCoupling:       0,
 		DependenciesMaxCoupling:       0, // No limit
 		DependenciesMinInstability:    0.0,
 		DependenciesMaxDistance:       1.0,
 		DependenciesSortBy:            "name",
-		DependenciesShowMatrix:        BoolPtr(false),
-		DependenciesShowMetrics:       BoolPtr(false),
-		DependenciesShowChains:        BoolPtr(false),
-		DependenciesGenerateDotGraph:  BoolPtr(false),
+		DependenciesShowMatrix:        domain.BoolPtr(false),
+		DependenciesShowMetrics:       domain.BoolPtr(false),
+		DependenciesShowChains:        domain.BoolPtr(false),
+		DependenciesGenerateDotGraph:  domain.BoolPtr(false),
 		DependenciesCycleReporting:    "summary", // all, critical, summary
 		DependenciesMaxCyclesToShow:   10,
-		DependenciesShowCyclePaths:    BoolPtr(false),
+		DependenciesShowCyclePaths:    domain.BoolPtr(false),
+
+		// MockData defaults (from [mock_data] section)
+		MockDataEnabled:        domain.BoolPtr(false), // Disabled by default - opt-in
+		MockDataMinSeverity:    domain.DefaultMockDataMinSeverity,
+		MockDataSortBy:         domain.DefaultMockDataSortBy,
+		MockDataIgnoreTests:    domain.BoolPtr(domain.DefaultMockDataIgnoreTests),
+		MockDataKeywords:       domain.DefaultMockDataKeywords(),
+		MockDataDomains:        domain.DefaultMockDataDomains(),
+		MockDataIgnorePatterns: []string{},
 	}
 }
 
