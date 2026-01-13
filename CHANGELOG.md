@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.7.0] - 2026-01-14
+
+### Added
+- Mock data detection with `--select mockdata` flag (#278)
+
 ## [1.6.0] - 2026-01-06
 
 ### Added
