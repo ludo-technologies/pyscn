@@ -29,13 +29,17 @@ type ReachabilityResult struct {
 
 // ReachabilityAnalyzer performs reachability analysis on CFGs
 type ReachabilityAnalyzer struct {
-	cfg *CFG
+	cfg                    *CFG
+	allPathsReturnCache    map[string]bool // cached results of allSuccessorsReturn
+	allPathsReturnComputed map[string]bool // tracks which blocks have been computed
 }
 
 // NewReachabilityAnalyzer creates a new reachability analyzer for the given CFG
 func NewReachabilityAnalyzer(cfg *CFG) *ReachabilityAnalyzer {
 	return &ReachabilityAnalyzer{
-		cfg: cfg,
+		cfg:                    cfg,
+		allPathsReturnCache:    make(map[string]bool),
+		allPathsReturnComputed: make(map[string]bool),
 	}
 }
 
@@ -226,24 +230,36 @@ func (ra *ReachabilityAnalyzer) allSuccessorsReturn(block *BasicBlock, visited m
 		return false
 	}
 
-	// Avoid infinite recursion
+	// Check cache first (memoization)
+	if ra.allPathsReturnComputed[block.ID] {
+		return ra.allPathsReturnCache[block.ID]
+	}
+
+	// Avoid infinite recursion (cycle detection)
 	if visited[block.ID] {
 		return false
 	}
 	visited[block.ID] = true
+	defer func() { visited[block.ID] = false }()
 
 	// If this block contains a return statement, it leads to return
 	if ra.blockContainsReturn(block) {
+		ra.allPathsReturnCache[block.ID] = true
+		ra.allPathsReturnComputed[block.ID] = true
 		return true
 	}
 
 	// If this is the exit block, it doesn't count as a return
 	if block == ra.cfg.Exit {
+		ra.allPathsReturnCache[block.ID] = false
+		ra.allPathsReturnComputed[block.ID] = true
 		return false
 	}
 
 	// If no successors, it's not a return path
 	if len(block.Successors) == 0 {
+		ra.allPathsReturnCache[block.ID] = false
+		ra.allPathsReturnComputed[block.ID] = true
 		return false
 	}
 
@@ -254,11 +270,15 @@ func (ra *ReachabilityAnalyzer) allSuccessorsReturn(block *BasicBlock, visited m
 			continue
 		}
 
-		if !ra.allSuccessorsReturn(edge.To, copyVisited(visited)) {
+		if !ra.allSuccessorsReturn(edge.To, visited) {
+			ra.allPathsReturnCache[block.ID] = false
+			ra.allPathsReturnComputed[block.ID] = true
 			return false
 		}
 	}
 
+	ra.allPathsReturnCache[block.ID] = true
+	ra.allPathsReturnComputed[block.ID] = true
 	return true
 }
 
