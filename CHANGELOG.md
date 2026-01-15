@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.7.1] - 2026-01-15
+
+### Fixed
+- Fix reachability analysis exponential time complexity with memoization (#283)
+
 ## [1.7.0] - 2026-01-14
 
 ### Added
