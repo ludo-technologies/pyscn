@@ -1,0 +1,10 @@
+{
+  "name": "pyscn-mcp",
+  "description": "Python code quality analysis MCP server",
+  "mcpServers": {
+    "pyscn-mcp": {
+      "command": "uvx",
+      "args": ["pyscn-mcp"]
+    }
+  }
+}

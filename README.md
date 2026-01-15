@@ -50,6 +50,15 @@ You can interact with pyscn with your AI coding tools:
 
 ### Claude Code Setup
 
+**Option 1: Install via Plugin Marketplace (Recommended)**
+
+```bash
+/plugin marketplace add ludo-technologies/pyscn
+/plugin install pyscn-mcp@pyscn-marketplace
+```
+
+**Option 2: Manual MCP Setup**
+
 ```bash
 claude mcp add pyscn-mcp uvx -- pyscn-mcp
 ```

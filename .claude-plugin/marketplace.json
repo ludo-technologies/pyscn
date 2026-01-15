@@ -1,0 +1,16 @@
+{
+  "name": "pyscn-marketplace",
+  "owner": {
+    "name": "Ludo Technologies"
+  },
+  "metadata": {
+    "description": "Python code quality analysis tools"
+  },
+  "plugins": [
+    {
+      "name": "pyscn-mcp",
+      "source": ".",
+      "description": "Python code quality analysis with complexity, dead code, clone detection, and coupling metrics"
+    }
+  ]
+}
