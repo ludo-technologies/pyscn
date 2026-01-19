@@ -350,7 +350,7 @@ func DefaultCloneRequest() *CloneRequest {
 		ShowContent:         false,
 		SortBy:              SortBySimilarity,
 		GroupClones:         true,
-		GroupMode:           "connected",
+		GroupMode:           "k_core",
 		GroupThreshold:      DefaultType3CloneThreshold,
 		KCoreK:              2,
 		MinSimilarity:       0.0,

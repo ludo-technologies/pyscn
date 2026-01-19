@@ -500,27 +500,26 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		summary.ClonePairs = response.Clone.Statistics.TotalClonePairs
 		summary.CloneGroups = response.Clone.Statistics.TotalCloneGroups
 
-		// Calculate code duplication percentage based on fragment count
-		// Formula: duplicated fragments / total fragments * 100
-		// TotalFragments = all extracted fragments (functions, classes, etc.)
-		// duplicatedFragments = copies in clone groups (excluding originals)
-		totalFragments := response.Clone.Statistics.TotalFragments
-		if totalFragments > 0 && len(response.Clone.CloneGroups) > 0 {
-			duplicatedFragments := 0
+		// Calculate code duplication based on K-Core clone groups
+		// K-Core groups represent true duplication clusters where each fragment
+		// is similar to at least k other fragments (default k=2)
+		// This filters out false positives from structural similarity
+		totalLines := response.Clone.Statistics.LinesAnalyzed
+		groupCount := response.Clone.Statistics.TotalCloneGroups
 
-			for _, group := range response.Clone.CloneGroups {
-				// Skip the first clone (original) and only count copies
-				for i, clone := range group.Clones {
-					if i == 0 {
-						continue // Skip original, only count duplicates
-					}
-					if clone != nil {
-						duplicatedFragments++
-					}
-				}
+		if totalLines > 0 && groupCount > 0 {
+			// Calculate group density: groups per 1000 lines of code
+			// This normalizes for project size
+			linesInThousands := float64(totalLines) / 1000.0
+			if linesInThousands < 1.0 {
+				linesInThousands = 1.0 // Minimum 1000 lines for small projects
 			}
+			groupDensity := float64(groupCount) / linesInThousands
 
-			summary.CodeDuplication = (float64(duplicatedFragments) / float64(totalFragments)) * 100
+			// Convert density to percentage for penalty calculation
+			// 0.5 groups/1000 lines = 10% duplication (max penalty)
+			// This makes the scoring stricter for duplicate code clusters
+			summary.CodeDuplication = math.Min(10.0, groupDensity*20.0)
 		}
 	}
 
