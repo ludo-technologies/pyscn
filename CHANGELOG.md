@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.8.0] - 2026-01-20
+
+### Added
+- Claude Code plugin marketplace support (#281)
+
+### Fixed
+- Improve duplication scoring with K-Core groups (#286)
+
+### Changed
+- Bump the go-dependencies group with 4 updates (#275)
+
 ## [1.7.1] - 2026-01-15
 
 ### Fixed
