@@ -510,16 +510,16 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		if totalLines > 0 && groupCount > 0 {
 			// Calculate group density: groups per 1000 lines of code
 			// This normalizes for project size
-			linesInThousands := float64(totalLines) / 1000.0
-			if linesInThousands < 1.0 {
-				linesInThousands = 1.0 // Minimum 1000 lines for small projects
+			linesInThousands := float64(totalLines) / domain.GroupDensityLinesUnit
+			if linesInThousands < domain.GroupDensityMinLines {
+				linesInThousands = domain.GroupDensityMinLines
 			}
 			groupDensity := float64(groupCount) / linesInThousands
 
 			// Convert density to percentage for penalty calculation
 			// 0.5 groups/1000 lines = 10% duplication (max penalty)
 			// This makes the scoring stricter for duplicate code clusters
-			summary.CodeDuplication = math.Min(10.0, groupDensity*20.0)
+			summary.CodeDuplication = math.Min(domain.DuplicationThresholdHigh, groupDensity*domain.GroupDensityCoefficient)
 		}
 	}
 
