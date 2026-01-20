@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "pyscn-mcp",
-      "source": "./pyscn-mcp",
+      "source": "./.claude-plugin/pyscn-mcp",
       "description": "Python code quality analysis with complexity, dead code, clone detection, and coupling metrics"
     }
   ]
