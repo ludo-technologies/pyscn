@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.1] - 2026-01-20
+
+### Fixed
+- Fix marketplace plugin source path for GitHub registration (#288, #289)
+
 ## [1.8.0] - 2026-01-20
 
 ### Added
