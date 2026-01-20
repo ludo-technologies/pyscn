@@ -25,6 +25,13 @@ const (
 	DuplicationPenaltyMedium   = 12
 	DuplicationPenaltyLow      = 6
 
+	// K-Core group density calculation constants
+	// Group density = groups / (lines / GroupDensityLinesUnit)
+	// CodeDuplication% = min(DuplicationThresholdHigh, density * GroupDensityCoefficient)
+	GroupDensityLinesUnit   = 1000.0 // Calculate density per 1000 lines
+	GroupDensityMinLines    = 1.0    // Minimum lines in thousands (for small projects)
+	GroupDensityCoefficient = 20.0   // Multiplier to convert density to percentage
+
 	// CBO coupling thresholds and penalties
 	CouplingRatioHigh     = 0.30 // 30% or more classes with high coupling
 	CouplingRatioMedium   = 0.15 // 15-30% classes with high coupling
