@@ -125,6 +125,9 @@ func (uc *ComplexityUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Co
 		return nil, domain.NewAnalysisError("complexity analysis failed", err)
 	}
 
+	// Store merged configuration in response for caller access
+	response.Request = &finalReq
+
 	return response, nil
 }
 

@@ -355,14 +355,21 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 		return 0, err
 	}
 
+	// Determine max complexity threshold: CLI flag > config file > default
+	maxComplexity := c.maxComplexity
+	if !cmd.Flags().Changed("max-complexity") && response.Request != nil && response.Request.MaxComplexity > 0 {
+		// CLI flag not explicitly set, use config file value
+		maxComplexity = response.Request.MaxComplexity
+	}
+
 	// Count functions that exceed the maximum complexity threshold
 	issueCount := 0
 	for _, function := range response.Functions {
-		if function.Metrics.Complexity > c.maxComplexity {
+		if function.Metrics.Complexity > maxComplexity {
 			issueCount++
 			if !c.quiet {
 				fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s is too complex (%d > %d)\n",
-					function.FilePath, function.StartLine, function.StartColumn+1, function.Name, function.Metrics.Complexity, c.maxComplexity)
+					function.FilePath, function.StartLine, function.StartColumn+1, function.Name, function.Metrics.Complexity, maxComplexity)
 			}
 		}
 	}
@@ -417,12 +424,18 @@ func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, er
 		return 0, err
 	}
 
-	// Count and output critical dead code findings
+	// Determine min severity threshold from merged config or default
+	minSeverity := domain.DeadCodeSeverityCritical
+	if response.Request != nil && response.Request.MinSeverity != "" {
+		minSeverity = response.Request.MinSeverity
+	}
+
+	// Count and output dead code findings at or above min severity
 	issueCount := 0
 	for _, file := range response.Files {
 		for _, function := range file.Functions {
 			for _, finding := range function.Findings {
-				if finding.Severity == domain.DeadCodeSeverityCritical {
+				if finding.Severity.IsAtLeast(minSeverity) {
 					issueCount++
 					if !c.quiet {
 						fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s (%s)\n",

@@ -134,7 +134,8 @@ type ComplexityResponse struct {
 	// Metadata
 	GeneratedAt string
 	Version     string
-	Config      interface{} // Configuration used for analysis
+	Config      interface{}        // Configuration used for analysis
+	Request     *ComplexityRequest `json:"request,omitempty"` // Merged configuration request
 }
 
 // ComplexityService defines the core business logic for complexity analysis
