@@ -274,7 +274,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) requestToConfig(req *domain.DeadCodeR
 	case domain.DeadCodeSeverityInfo:
 		cfg.DeadCode.MinSeverity = "info"
 	default:
-		cfg.DeadCode.MinSeverity = "warning"
+		cfg.DeadCode.MinSeverity = domain.DefaultDeadCodeMinSeverity
 	}
 
 	// Convert sort criteria
@@ -286,7 +286,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) requestToConfig(req *domain.DeadCodeR
 	case domain.DeadCodeSortByFunction:
 		cfg.DeadCode.SortBy = "function"
 	default:
-		cfg.DeadCode.SortBy = "severity"
+		cfg.DeadCode.SortBy = domain.DefaultDeadCodeSortBy
 	}
 
 	// Set dead code specific config
