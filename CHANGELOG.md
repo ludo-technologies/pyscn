@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.2] - 2026-01-22
+
+### Fixed
+- Remove MaxComplexity filtering from service layer (#298)
+- Check command now respects .pyscn.toml settings (#296)
+- Consolidate default settings to single source of truth (#294)
+
 ## [1.8.1] - 2026-01-20
 
 ### Fixed
