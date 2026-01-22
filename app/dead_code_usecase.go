@@ -126,6 +126,9 @@ func (uc *DeadCodeUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Dead
 		return nil, domain.NewAnalysisError("dead code analysis failed", err)
 	}
 
+	// Store merged configuration in response for caller access
+	response.Request = &finalReq
+
 	return response, nil
 }
 
