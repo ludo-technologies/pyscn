@@ -98,20 +98,6 @@ func TestComplexityService_Analyze(t *testing.T) {
 		}
 	})
 
-	t.Run("analyze with max complexity limit", func(t *testing.T) {
-		req := newDefaultComplexityRequest("../testdata/python/simple/control_flow.py")
-		req.MaxComplexity = 3 // Only functions with complexity <= 3
-
-		response, err := service.Analyze(ctx, req)
-
-		assert.NoError(t, err)
-		if response != nil {
-			for _, function := range response.Functions {
-				assert.LessOrEqual(t, function.Metrics.Complexity, 3)
-			}
-		}
-	})
-
 	t.Run("analyze multiple files", func(t *testing.T) {
 		req := newDefaultComplexityRequest(
 			"../testdata/python/simple/functions.py",
@@ -224,30 +210,21 @@ func TestComplexityService_FilterFunctions(t *testing.T) {
 		assert.Equal(t, "func4", filtered[2].Name)
 	})
 
-	t.Run("filter by maximum complexity", func(t *testing.T) {
+	t.Run("MaxComplexity does not filter functions", func(t *testing.T) {
+		// MaxComplexity is used only as a warning threshold, not for filtering
 		req := domain.ComplexityRequest{
 			MinComplexity: 1,
-			MaxComplexity: 8,
+			MaxComplexity: 8, // This should NOT filter out functions
 		}
 
 		filtered := service.filterFunctions(functions, req)
 
-		require.Len(t, filtered, 2)
+		// All 4 functions should be returned (MaxComplexity doesn't filter)
+		require.Len(t, filtered, 4)
 		assert.Equal(t, "func1", filtered[0].Name)
 		assert.Equal(t, "func2", filtered[1].Name)
-	})
-
-	t.Run("filter by both min and max complexity", func(t *testing.T) {
-		req := domain.ComplexityRequest{
-			MinComplexity: 5,
-			MaxComplexity: 10,
-		}
-
-		filtered := service.filterFunctions(functions, req)
-
-		require.Len(t, filtered, 2)
-		assert.Equal(t, "func2", filtered[0].Name)
-		assert.Equal(t, "func3", filtered[1].Name)
+		assert.Equal(t, "func3", filtered[2].Name)
+		assert.Equal(t, "func4", filtered[3].Name)
 	})
 }
 

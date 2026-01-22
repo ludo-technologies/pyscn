@@ -168,11 +168,8 @@ func (s *ComplexityServiceImpl) filterFunctions(functions []domain.FunctionCompl
 			continue
 		}
 
-		// Apply maximum complexity filter
-		if req.MaxComplexity > 0 && function.Metrics.Complexity > req.MaxComplexity {
-			continue
-		}
-
+		// MaxComplexity is used only as a warning threshold (not for filtering)
+		// See check command for threshold violation detection
 		filtered = append(filtered, function)
 	}
 
