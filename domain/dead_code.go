@@ -159,8 +159,8 @@ type DeadCodeResponse struct {
 	// Metadata
 	GeneratedAt string           `json:"generated_at"`
 	Version     string           `json:"version"`
-	Config      interface{}      `json:"config"`             // Configuration used for analysis
-	Request     *DeadCodeRequest `json:"request,omitempty"`  // Merged configuration request
+	Config      interface{}      `json:"config"`            // Configuration used for analysis
+	Request     *DeadCodeRequest `json:"request,omitempty"` // Merged configuration request
 }
 
 // DeadCodeService defines the core business logic for dead code analysis
