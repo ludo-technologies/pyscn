@@ -1,22 +1,31 @@
 package analyzer
 
-// SyntacticSimilarityAnalyzer computes syntactic similarity using APTED with
-// identifier and literal normalization. This is used for Type-2 clone detection
-// (syntactically identical but with different identifiers/literals).
+// SyntacticSimilarityAnalyzer computes syntactic similarity using normalized
+// AST hash comparison with Jaccard coefficient. This is used for Type-2 clone
+// detection (syntactically identical but with different identifiers/literals).
+//
+// Unlike the previous APTED-based approach which measured tree edit distance,
+// this implementation compares sets of normalized node hashes. This eliminates
+// false positives from structurally similar but semantically different code,
+// as only nodes with identical normalized structure contribute to similarity.
 type SyntacticSimilarityAnalyzer struct {
-	analyzer  *APTEDAnalyzer
+	extractor *ASTFeatureExtractor
 	converter *TreeConverter
 }
 
 // NewSyntacticSimilarityAnalyzer creates a new syntactic similarity analyzer
-// using a Python cost model that ignores identifier and literal differences.
+// using normalized AST hash comparison that ignores identifier and literal differences.
 func NewSyntacticSimilarityAnalyzer() *SyntacticSimilarityAnalyzer {
-	// Use PythonCostModel with IgnoreLiterals=true, IgnoreIdentifiers=true
-	// This makes the comparison focus on structure, treating all identifiers
-	// and literals as equivalent.
-	costModel := NewPythonCostModelWithConfig(true, true)
+	// Use ASTFeatureExtractor with includeLiterals=false to normalize
+	// identifiers and literals, focusing only on structural patterns.
+	extractor := NewASTFeatureExtractor().WithOptions(
+		3,     // maxSubtreeHeight
+		4,     // kGramSize
+		true,  // includeTypes
+		false, // includeLiterals - ignore literal values for Type-2
+	)
 	return &SyntacticSimilarityAnalyzer{
-		analyzer:  NewAPTEDAnalyzer(costModel),
+		extractor: extractor,
 		converter: NewTreeConverter(),
 	}
 }
@@ -24,14 +33,23 @@ func NewSyntacticSimilarityAnalyzer() *SyntacticSimilarityAnalyzer {
 // NewSyntacticSimilarityAnalyzerWithOptions creates a syntactic similarity analyzer
 // with configurable normalization options.
 func NewSyntacticSimilarityAnalyzerWithOptions(ignoreLiterals, ignoreIdentifiers bool) *SyntacticSimilarityAnalyzer {
-	costModel := NewPythonCostModelWithConfig(ignoreLiterals, ignoreIdentifiers)
+	// Both ignoreLiterals and ignoreIdentifiers map to includeLiterals=false
+	// since our normalization strips both when includeLiterals is false.
+	includeLiterals := !(ignoreLiterals || ignoreIdentifiers)
+	extractor := NewASTFeatureExtractor().WithOptions(
+		3,              // maxSubtreeHeight
+		4,              // kGramSize
+		true,           // includeTypes
+		includeLiterals,
+	)
 	return &SyntacticSimilarityAnalyzer{
-		analyzer:  NewAPTEDAnalyzer(costModel),
+		extractor: extractor,
 		converter: NewTreeConverter(),
 	}
 }
 
-// ComputeSimilarity computes the syntactic similarity between two code fragments.
+// ComputeSimilarity computes the syntactic similarity between two code fragments
+// using Jaccard coefficient of normalized AST hash sets.
 // It ignores differences in identifier names and literal values, focusing only
 // on the structural syntax pattern.
 func (s *SyntacticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) float64 {
@@ -47,24 +65,66 @@ func (s *SyntacticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) fl
 		return 0.0
 	}
 
-	// Compute similarity using APTED with normalization
-	return s.analyzer.ComputeSimilarity(tree1, tree2)
+	// Extract normalized feature sets
+	features1, err1 := s.extractor.ExtractFeatures(tree1)
+	features2, err2 := s.extractor.ExtractFeatures(tree2)
+
+	if err1 != nil || err2 != nil {
+		return 0.0
+	}
+
+	// Compute Jaccard similarity
+	return jaccardSimilarity(features1, features2)
 }
 
-// ComputeDistance computes the syntactic edit distance between two code fragments.
+// ComputeDistance computes the syntactic distance between two code fragments.
+// Returns 1 - similarity, so distance ranges from 0 (identical) to 1 (completely different).
+// Returns 0.0 for nil inputs (no distance can be computed).
 func (s *SyntacticSimilarityAnalyzer) ComputeDistance(f1, f2 *CodeFragment) float64 {
 	if f1 == nil || f2 == nil {
 		return 0.0
 	}
+	return 1.0 - s.ComputeSimilarity(f1, f2)
+}
 
-	tree1 := s.getTreeNode(f1)
-	tree2 := s.getTreeNode(f2)
-
-	if tree1 == nil || tree2 == nil {
-		return 0.0
+// jaccardSimilarity computes the Jaccard coefficient between two string sets.
+// Jaccard(A, B) = |A ∩ B| / |A ∪ B|
+func jaccardSimilarity(set1, set2 []string) float64 {
+	if len(set1) == 0 && len(set2) == 0 {
+		return 1.0 // Both empty = identical
+	}
+	if len(set1) == 0 || len(set2) == 0 {
+		return 0.0 // One empty = no similarity
 	}
 
-	return s.analyzer.ComputeDistance(tree1, tree2)
+	// Build hash set for set1
+	s1 := make(map[string]struct{}, len(set1))
+	for _, f := range set1 {
+		s1[f] = struct{}{}
+	}
+
+	// Build hash set for set2
+	s2 := make(map[string]struct{}, len(set2))
+	for _, f := range set2 {
+		s2[f] = struct{}{}
+	}
+
+	// Count intersection
+	intersection := 0
+	for f := range s1 {
+		if _, ok := s2[f]; ok {
+			intersection++
+		}
+	}
+
+	// Union size = |A| + |B| - |A ∩ B|
+	union := len(s1) + len(s2) - intersection
+
+	if union == 0 {
+		return 1.0
+	}
+
+	return float64(intersection) / float64(union)
 }
 
 // getTreeNode retrieves or builds the tree node for a code fragment
@@ -91,7 +151,7 @@ func (s *SyntacticSimilarityAnalyzer) GetName() string {
 	return "syntactic"
 }
 
-// GetAnalyzer returns the underlying APTED analyzer (for advanced usage)
-func (s *SyntacticSimilarityAnalyzer) GetAnalyzer() *APTEDAnalyzer {
-	return s.analyzer
+// GetExtractor returns the underlying feature extractor (for advanced usage)
+func (s *SyntacticSimilarityAnalyzer) GetExtractor() *ASTFeatureExtractor {
+	return s.extractor
 }

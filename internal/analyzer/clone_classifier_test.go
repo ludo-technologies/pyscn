@@ -179,6 +179,73 @@ func TestSyntacticSimilarityAnalyzer(t *testing.T) {
 		distance := analyzer.ComputeDistance(nil, nil)
 		assert.Equal(t, 0.0, distance)
 	})
+
+	t.Run("JaccardSimilarity_Type2Clones", func(t *testing.T) {
+		// Type-2 clones: same structure, different identifiers/literals
+		// These should have high similarity
+		analyzer := NewSyntacticSimilarityAnalyzer()
+		converter := NewTreeConverter()
+		p := parser.New()
+		ctx := context.Background()
+
+		code1 := `def foo(x):
+    return x + 1`
+		code2 := `def bar(y):
+    return y + 2`
+
+		result1, err := p.Parse(ctx, []byte(code1))
+		require.NoError(t, err)
+		result2, err := p.Parse(ctx, []byte(code2))
+		require.NoError(t, err)
+
+		f1 := &CodeFragment{TreeNode: converter.ConvertAST(result1.AST)}
+		f2 := &CodeFragment{TreeNode: converter.ConvertAST(result2.AST)}
+
+		PrepareTreeForAPTED(f1.TreeNode)
+		PrepareTreeForAPTED(f2.TreeNode)
+
+		similarity := analyzer.ComputeSimilarity(f1, f2)
+		// Type-2 clones should have high similarity (>= 0.80)
+		assert.GreaterOrEqual(t, similarity, 0.80,
+			"Type-2 clones (renamed identifiers/literals) should have high similarity")
+	})
+
+	t.Run("JaccardSimilarity_DifferentStructures", func(t *testing.T) {
+		// Structurally different code should have low similarity
+		analyzer := NewSyntacticSimilarityAnalyzer()
+		converter := NewTreeConverter()
+		p := parser.New()
+		ctx := context.Background()
+
+		code1 := `def foo(x):
+    return x + 1`
+		code2 := `def bar(items):
+    for item in items:
+        print(item)
+    return len(items)`
+
+		result1, err := p.Parse(ctx, []byte(code1))
+		require.NoError(t, err)
+		result2, err := p.Parse(ctx, []byte(code2))
+		require.NoError(t, err)
+
+		f1 := &CodeFragment{TreeNode: converter.ConvertAST(result1.AST)}
+		f2 := &CodeFragment{TreeNode: converter.ConvertAST(result2.AST)}
+
+		PrepareTreeForAPTED(f1.TreeNode)
+		PrepareTreeForAPTED(f2.TreeNode)
+
+		similarity := analyzer.ComputeSimilarity(f1, f2)
+		// Different structures should have low similarity (< 0.50)
+		assert.Less(t, similarity, 0.50,
+			"Structurally different code should have low similarity")
+	})
+
+	t.Run("GetExtractor", func(t *testing.T) {
+		analyzer := NewSyntacticSimilarityAnalyzer()
+		extractor := analyzer.GetExtractor()
+		assert.NotNil(t, extractor)
+	})
 }
 
 // TestStructuralSimilarityAnalyzer tests structural similarity analysis

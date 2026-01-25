@@ -28,7 +28,7 @@ https://github.com/user-attachments/assets/10c747b3-e566-4c30-b873-6755750170a0
 ## Features
 
 - 🔍 **CFG-based dead code detection** – Find unreachable code after exhaustive if-elif-else chains
-- 📋 **Clone detection with APTED + LSH** – Identify refactoring opportunities with tree edit distance
+- 📋 **Multi-algorithm clone detection (Type 1-4)** – Identify refactoring opportunities with LSH acceleration
 - 🔗 **Coupling metrics (CBO)** – Track architecture quality and module dependencies
 - 📊 **Cyclomatic complexity analysis** – Spot functions that need breaking down
 

@@ -242,22 +242,35 @@ type Finding struct {
 4. Report unreachable blocks as dead code
 5. Analyze variable usage for unused detection
 
-#### 2.3 APTED Clone Detection with LSH Acceleration
+#### 2.3 Clone Detection with Multi-Algorithm Approach
+
+**Clone Type Classification:**
+
+Each clone type uses a specialized algorithm optimized for its detection characteristics:
+
+| Type | Algorithm | Description |
+|------|-----------|-------------|
+| Type-1 | Textual + FNV Hash | Exact matches (ignoring whitespace/comments) |
+| Type-2 | Normalized AST Hash + Jaccard | Renamed identifiers/literals only |
+| Type-3 | APTED (Tree Edit Distance) | Structural similarity with modifications |
+| Type-4 | CFG-based Semantic Analysis | Semantically equivalent code |
 
 ```go
+// Type-2: Normalized AST Hash with Jaccard Coefficient
+// internal/analyzer/syntactic_similarity.go
+type SyntacticSimilarityAnalyzer struct {
+    extractor *ASTFeatureExtractor  // Extracts normalized node hashes
+    converter *TreeConverter
+}
+
+// Jaccard(A, B) = |A ∩ B| / |A ∪ B|
+// Compares sets of normalized AST node hashes
+
+// Type-3: APTED for structural similarity
 // internal/analyzer/apted.go
 type APTEDAnalyzer struct {
     threshold float64
     costModel CostModel
-    lsh       *LSHIndex  // LSH acceleration for large projects
-}
-
-type TreeNode struct {
-    Label    string
-    Children []*TreeNode
-    Parent   *TreeNode
-    ID       int
-    Features []uint64    // Hash features for LSH
 }
 
 type CostModel interface {
@@ -265,8 +278,12 @@ type CostModel interface {
     Delete(node *TreeNode) float64
     Rename(node1, node2 *TreeNode) float64
 }
+```
 
-// LSH (Locality-Sensitive Hashing) for acceleration
+**LSH Acceleration (for large projects):**
+
+```go
+// LSH (Locality-Sensitive Hashing) for candidate filtering
 type LSHIndex struct {
     bands     int
     rows      int
@@ -276,7 +293,6 @@ type LSHIndex struct {
 }
 
 type FeatureExtractor struct {
-    // Extract features for LSH hashing
     SubtreeHashes bool
     KGrams        int
     Patterns      []string
@@ -291,11 +307,11 @@ type FeatureExtractor struct {
 3. Filter candidates by similarity threshold
 4. Early termination for dissimilar pairs
 
-**Stage 2: APTED Verification**
-1. Convert candidate pairs to ordered trees
-2. Compute precise tree edit distance using APTED
-3. Use dynamic programming with path decomposition
-4. Compare distance against threshold
+**Stage 2: Type-Specific Verification**
+1. Type-1: Compare normalized text hashes
+2. Type-2: Compare Jaccard similarity of normalized AST hash sets
+3. Type-3: Compute tree edit distance using APTED
+4. Type-4: Analyze CFG similarity
 5. Apply advanced grouping algorithms
 
 **Clone Grouping Algorithms:**
