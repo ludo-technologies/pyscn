@@ -37,9 +37,9 @@ func NewSyntacticSimilarityAnalyzerWithOptions(ignoreLiterals, ignoreIdentifiers
 	// since our normalization strips both when includeLiterals is false.
 	includeLiterals := !(ignoreLiterals || ignoreIdentifiers)
 	extractor := NewASTFeatureExtractor().WithOptions(
-		3,              // maxSubtreeHeight
-		4,              // kGramSize
-		true,           // includeTypes
+		3,    // maxSubtreeHeight
+		4,    // kGramSize
+		true, // includeTypes
 		includeLiterals,
 	)
 	return &SyntacticSimilarityAnalyzer{
