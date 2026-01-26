@@ -120,7 +120,7 @@ group_clones = true
 # Filtering settings
 min_similarity = 0.0
 max_similarity = 1.0
-enabled_clone_types = ["type1", "type3", "type4"]
+enabled_clone_types = ["type1", "type2", "type3", "type4"]
 max_results = 10000
 
 # Grouping settings
