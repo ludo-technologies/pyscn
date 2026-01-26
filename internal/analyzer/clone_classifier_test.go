@@ -179,6 +179,300 @@ func TestSyntacticSimilarityAnalyzer(t *testing.T) {
 		distance := analyzer.ComputeDistance(nil, nil)
 		assert.Equal(t, 0.0, distance)
 	})
+
+	t.Run("JaccardSimilarity_Type2Clones", func(t *testing.T) {
+		// Type-2 clones: same structure, different identifiers/literals
+		// These should have high similarity
+		analyzer := NewSyntacticSimilarityAnalyzer()
+		converter := NewTreeConverter()
+		p := parser.New()
+		ctx := context.Background()
+
+		code1 := `def foo(x):
+    return x + 1`
+		code2 := `def bar(y):
+    return y + 2`
+
+		result1, err := p.Parse(ctx, []byte(code1))
+		require.NoError(t, err)
+		result2, err := p.Parse(ctx, []byte(code2))
+		require.NoError(t, err)
+
+		f1 := &CodeFragment{TreeNode: converter.ConvertAST(result1.AST)}
+		f2 := &CodeFragment{TreeNode: converter.ConvertAST(result2.AST)}
+
+		PrepareTreeForAPTED(f1.TreeNode)
+		PrepareTreeForAPTED(f2.TreeNode)
+
+		similarity := analyzer.ComputeSimilarity(f1, f2)
+		// Type-2 clones should have high similarity (>= 0.80)
+		assert.GreaterOrEqual(t, similarity, 0.80,
+			"Type-2 clones (renamed identifiers/literals) should have high similarity")
+	})
+
+	// True positive test: Type-2 clones SHOULD be detected via CloneClassifier
+	t.Run("Type2Clone_TruePositive_DetectedViaClassifier", func(t *testing.T) {
+		// Type-2 clones: structurally identical code with only identifier/literal differences.
+		// These MUST be detected as Type-2 clones through the full CloneClassifier flow.
+		converter := NewTreeConverter()
+		p := parser.New()
+		ctx := context.Background()
+
+		// Two functions with identical structure, only names and literals differ
+		code1 := `def calculate_sum(a, b):
+    result = a + b
+    if result > 100:
+        return result * 2
+    return result`
+
+		code2 := `def compute_total(x, y):
+    value = x + y
+    if value > 200:
+        return value * 3
+    return value`
+
+		result1, err := p.Parse(ctx, []byte(code1))
+		require.NoError(t, err)
+		result2, err := p.Parse(ctx, []byte(code2))
+		require.NoError(t, err)
+
+		f1 := &CodeFragment{TreeNode: converter.ConvertAST(result1.AST)}
+		f2 := &CodeFragment{TreeNode: converter.ConvertAST(result2.AST)}
+
+		PrepareTreeForAPTED(f1.TreeNode)
+		PrepareTreeForAPTED(f2.TreeNode)
+
+		// Use CloneClassifier with default thresholds
+		classifier := NewCloneClassifier(&CloneClassifierConfig{
+			Type1Threshold: domain.DefaultType1CloneThreshold,
+			Type2Threshold: domain.DefaultType2CloneThreshold,
+			Type3Threshold: domain.DefaultType3CloneThreshold,
+			Type4Threshold: domain.DefaultType4CloneThreshold,
+		})
+
+		result := classifier.ClassifyClone(f1, f2)
+
+		// These ARE Type-2 clones and MUST be detected
+		require.NotNil(t, result, "Type-2 clones should be detected")
+		assert.Equal(t, Type2Clone, result.CloneType,
+			"Structurally identical code with different identifiers should be Type-2 clone")
+		assert.GreaterOrEqual(t, result.Similarity, domain.DefaultType2CloneThreshold,
+			"Type-2 clone similarity should meet threshold")
+	})
+
+	t.Run("JaccardSimilarity_DifferentStructures", func(t *testing.T) {
+		// Structurally different code should have low similarity
+		analyzer := NewSyntacticSimilarityAnalyzer()
+		converter := NewTreeConverter()
+		p := parser.New()
+		ctx := context.Background()
+
+		code1 := `def foo(x):
+    return x + 1`
+		code2 := `def bar(items):
+    for item in items:
+        print(item)
+    return len(items)`
+
+		result1, err := p.Parse(ctx, []byte(code1))
+		require.NoError(t, err)
+		result2, err := p.Parse(ctx, []byte(code2))
+		require.NoError(t, err)
+
+		f1 := &CodeFragment{TreeNode: converter.ConvertAST(result1.AST)}
+		f2 := &CodeFragment{TreeNode: converter.ConvertAST(result2.AST)}
+
+		PrepareTreeForAPTED(f1.TreeNode)
+		PrepareTreeForAPTED(f2.TreeNode)
+
+		similarity := analyzer.ComputeSimilarity(f1, f2)
+		// Different structures should have low similarity (< 0.50)
+		assert.Less(t, similarity, 0.50,
+			"Structurally different code should have low similarity")
+	})
+
+	t.Run("GetExtractor", func(t *testing.T) {
+		analyzer := NewSyntacticSimilarityAnalyzer()
+		extractor := analyzer.GetExtractor()
+		assert.NotNil(t, extractor)
+	})
+
+	// Issue #292: False positives for structurally different dataclasses
+	t.Run("Type2Clone_DifferentDataclasses_Issue292", func(t *testing.T) {
+		// Regression test for issue #292: Different dataclasses were incorrectly
+		// identified as Type-2 clones with 97%+ similarity due to APTED treating
+		// structurally similar but semantically different code as near-identical.
+		//
+		// This test verifies the full CloneClassifier flow to ensure these
+		// different dataclasses are NOT classified as Type-2 clones.
+		converter := NewTreeConverter()
+		p := parser.New()
+		ctx := context.Background()
+
+		// Simplified version of ScopeConfig from issue #292
+		code1 := `@dataclass
+class ScopeConfig:
+    allowlist: frozenset = None
+    before_hooks: tuple = ()
+    after_hooks: tuple = ()
+    timeout: float = None
+
+    def __post_init__(self):
+        self.timeout = validate_timeout(self.timeout)`
+
+		// Simplified version of InMemoryMetrics from issue #292
+		code2 := `@dataclass
+class InMemoryMetrics:
+    counters: dict = field(default_factory=dict)
+    histograms: dict = field(default_factory=dict)
+    _lock: Lock = field(default_factory=Lock)
+
+    def inc_counter(self, name, value, labels):
+        with self._lock:
+            self.counters[name] = self.counters.get(name, 0) + value
+
+    def observe_histogram(self, name, value, labels):
+        with self._lock:
+            if name not in self.histograms:
+                self.histograms[name] = []
+            self.histograms[name].append(value)
+
+    def reset(self):
+        with self._lock:
+            self.counters.clear()
+            self.histograms.clear()`
+
+		result1, err := p.Parse(ctx, []byte(code1))
+		require.NoError(t, err)
+		result2, err := p.Parse(ctx, []byte(code2))
+		require.NoError(t, err)
+
+		f1 := &CodeFragment{TreeNode: converter.ConvertAST(result1.AST)}
+		f2 := &CodeFragment{TreeNode: converter.ConvertAST(result2.AST)}
+
+		PrepareTreeForAPTED(f1.TreeNode)
+		PrepareTreeForAPTED(f2.TreeNode)
+
+		// Use CloneClassifier with default thresholds to test actual Type-2 detection
+		classifier := NewCloneClassifier(&CloneClassifierConfig{
+			Type1Threshold: domain.DefaultType1CloneThreshold,
+			Type2Threshold: domain.DefaultType2CloneThreshold,
+			Type3Threshold: domain.DefaultType3CloneThreshold,
+			Type4Threshold: domain.DefaultType4CloneThreshold,
+		})
+
+		result := classifier.ClassifyClone(f1, f2)
+
+		// Issue #292: These were incorrectly reported as 97.6% similar Type-2 clones.
+		// With Jaccard coefficient, they should NOT be classified as Type-2 clones.
+		if result != nil && result.CloneType == Type2Clone {
+			t.Errorf("Different dataclasses should NOT be classified as Type-2 clones (issue #292), "+
+				"got similarity: %.1f%%", result.Similarity*100)
+		}
+
+		// Also verify the raw syntactic similarity is well below the threshold
+		syntacticAnalyzer := NewSyntacticSimilarityAnalyzer()
+		similarity := syntacticAnalyzer.ComputeSimilarity(f1, f2)
+		assert.Less(t, similarity, domain.DefaultType2CloneThreshold,
+			"Syntactic similarity should be below Type-2 threshold (issue #292)")
+	})
+
+	// Issue #292: False positives for classes with different method counts
+	t.Run("Type2Clone_DifferentClassStructures_Issue292", func(t *testing.T) {
+		// Regression test for issue #292: TracingHook vs TestMetricsHook
+		// were incorrectly identified as 98.9% similar Type-2 clones.
+		//
+		// This test verifies the full CloneClassifier flow to ensure these
+		// different classes are NOT classified as Type-2 clones.
+		converter := NewTreeConverter()
+		p := parser.New()
+		ctx := context.Background()
+
+		// Simplified version of TracingHook from issue #292
+		code1 := `class TracingHook:
+    def __init__(self, tracer, record_output=True):
+        self._tracer = tracer
+        self._record_output = record_output
+        self._active_spans = {}
+        self._lock = Lock()
+
+    def __call__(self, event):
+        if event.phase == "start":
+            self._handle_start(event)
+        elif event.phase == "exit":
+            self._handle_exit(event)
+
+    def _handle_start(self, event):
+        if event.pid is None:
+            return
+        attrs = self._build_attributes(event)
+        span = self._tracer.start_span(event.program, attrs)
+        with self._lock:
+            self._active_spans[event.pid] = span
+
+    def _handle_exit(self, event):
+        if event.pid is None:
+            return
+        with self._lock:
+            span = self._active_spans.pop(event.pid, None)
+        if span:
+            span.end()`
+
+		// Simplified version of TestMetricsHook from issue #292
+		code2 := `class TestMetricsHook:
+    def test_increments_counter(self):
+        metrics = InMemoryMetrics()
+        hook = MetricsHook(metrics)
+        cmd.run_sync()
+        assert metrics.counters.get("total") == 1.0
+
+    def test_counts_output_lines(self):
+        metrics = InMemoryMetrics()
+        hook = MetricsHook(metrics)
+        cmd.run_sync()
+        assert metrics.counters.get("stdout") == 2.0
+
+    def test_records_duration(self):
+        metrics = InMemoryMetrics()
+        hook = MetricsHook(metrics)
+        cmd.run_sync()
+        durations = metrics.histograms.get("duration", [])
+        assert len(durations) == 1`
+
+		result1, err := p.Parse(ctx, []byte(code1))
+		require.NoError(t, err)
+		result2, err := p.Parse(ctx, []byte(code2))
+		require.NoError(t, err)
+
+		f1 := &CodeFragment{TreeNode: converter.ConvertAST(result1.AST)}
+		f2 := &CodeFragment{TreeNode: converter.ConvertAST(result2.AST)}
+
+		PrepareTreeForAPTED(f1.TreeNode)
+		PrepareTreeForAPTED(f2.TreeNode)
+
+		// Use CloneClassifier with default thresholds to test actual Type-2 detection
+		classifier := NewCloneClassifier(&CloneClassifierConfig{
+			Type1Threshold: domain.DefaultType1CloneThreshold,
+			Type2Threshold: domain.DefaultType2CloneThreshold,
+			Type3Threshold: domain.DefaultType3CloneThreshold,
+			Type4Threshold: domain.DefaultType4CloneThreshold,
+		})
+
+		result := classifier.ClassifyClone(f1, f2)
+
+		// Issue #292: These were incorrectly reported as 98.9% similar Type-2 clones.
+		// With Jaccard coefficient, they should NOT be classified as Type-2 clones.
+		if result != nil && result.CloneType == Type2Clone {
+			t.Errorf("Different class structures should NOT be classified as Type-2 clones (issue #292), "+
+				"got similarity: %.1f%%", result.Similarity*100)
+		}
+
+		// Also verify the raw syntactic similarity is well below the threshold
+		syntacticAnalyzer := NewSyntacticSimilarityAnalyzer()
+		similarity := syntacticAnalyzer.ComputeSimilarity(f1, f2)
+		assert.Less(t, similarity, domain.DefaultType2CloneThreshold,
+			"Syntactic similarity should be below Type-2 threshold (issue #292)")
+	})
 }
 
 // TestStructuralSimilarityAnalyzer tests structural similarity analysis
