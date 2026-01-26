@@ -38,11 +38,12 @@ func (ct CloneType) String() string {
 }
 
 // DefaultEnabledCloneTypes defines the clone types enabled by default.
-// Type2Clone is excluded due to high false positive rate.
-var DefaultEnabledCloneTypes = []CloneType{Type1Clone, Type3Clone, Type4Clone}
+// Type-2 detection uses Jaccard coefficient algorithm (PR #301) which resolved
+// the false positive issues reported in #292.
+var DefaultEnabledCloneTypes = []CloneType{Type1Clone, Type2Clone, Type3Clone, Type4Clone}
 
 // DefaultEnabledCloneTypeStrings provides string representations for config files.
-var DefaultEnabledCloneTypeStrings = []string{"type1", "type3", "type4"}
+var DefaultEnabledCloneTypeStrings = []string{"type1", "type2", "type3", "type4"}
 
 // CloneLocation represents a location of a clone in source code
 type CloneLocation struct {

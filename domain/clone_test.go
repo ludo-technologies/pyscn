@@ -363,9 +363,9 @@ func TestDefaultCloneRequest(t *testing.T) {
 	assert.True(t, request.GroupClones, "Default group clones should be true")
 	assert.Equal(t, 0.0, request.MinSimilarity, "Default min similarity should be 0.0")
 	assert.Equal(t, 1.0, request.MaxSimilarity, "Default max similarity should be 1.0")
-	assert.Len(t, request.CloneTypes, 3, "Default clone types should include Type-1, Type-3, Type-4 (Type-2 disabled by default)")
+	assert.Len(t, request.CloneTypes, 4, "Default clone types should include all types (Type-1 through Type-4)")
 	assert.Contains(t, request.CloneTypes, Type1Clone, "Default should include Type-1")
-	assert.NotContains(t, request.CloneTypes, Type2Clone, "Default should NOT include Type-2 (high false positive rate)")
+	assert.Contains(t, request.CloneTypes, Type2Clone, "Default should include Type-2 (Jaccard algorithm, PR #301)")
 	assert.Contains(t, request.CloneTypes, Type3Clone, "Default should include Type-3")
 	assert.Contains(t, request.CloneTypes, Type4Clone, "Default should include Type-4")
 
