@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.0] - 2026-01-27
+
+### Added
+- Add `pyscn-mcp` skill for MCP tools integration (#291, #303)
+
+### Changed
+- Enable Type-2 clone detection by default with Jaccard coefficient (#302)
+
 ## [1.8.2] - 2026-01-22
 
 ### Fixed
