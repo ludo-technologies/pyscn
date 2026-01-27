@@ -1,87 +1,62 @@
 ---
-name: pyscn-analyze
-description: Analyze Python code quality - complexity, clones, dead code, coupling, circular dependencies. Use when user asks about code quality, refactoring, maintainability, duplicates, or technical debt.
-allowed-tools: Bash(uvx:*), Bash(uv:*)
+name: pyscn-mcp
+description: Analyze Python code quality using MCP tools - complexity, clones, dead code, coupling. Use when user asks about code quality, refactoring, maintainability, duplicates, or technical debt.
 ---
 
-# Python Code Quality Analysis with pyscn
+# Python Code Quality Analysis with pyscn MCP
 
-Always use `uvx pyscn` for Python code quality analysis. Choose the right command based on the user's needs.
+Use the pyscn MCP tools for Python code quality analysis.
 
-## Prerequisites
+## Available Tools
 
-If `uvx` is not available, ask the user to either:
+| Tool | Purpose |
+|------|---------|
+| `get_health_score` | Overall code health score (0-100) with grade |
+| `analyze_code` | Comprehensive analysis (complexity, dead code, clones, coupling, deps) |
+| `check_complexity` | Cyclomatic complexity of functions |
+| `detect_clones` | Duplicate code detection |
+| `find_dead_code` | Unreachable code detection |
+| `check_coupling` | Class coupling (CBO) metrics |
 
-1. **Install uv** (recommended):
-   ```bash
-   curl -LsSf https://astral.sh/uv/install.sh | sh
-   ```
+## Tool Selection Guide
 
-2. **Add pyscn MCP server** (alternative):
-   ```bash
-   claude mcp add pyscn-mcp uvx -- pyscn-mcp
-   ```
-   Then use the MCP tools: `analyze_code`, `check_complexity`, `detect_clones`, `find_dead_code`, `check_coupling`, `get_health_score`
+| User Request | Tool |
+|-------------|------|
+| "How healthy is this code?" | `get_health_score` |
+| "Analyze code quality" | `analyze_code` |
+| "Find complex functions" | `check_complexity` |
+| "Find duplicate code" | `detect_clones` |
+| "Find dead code" | `find_dead_code` |
+| "Check class coupling" | `check_coupling` |
 
-## Command Selection Guide
+## Common Parameters
 
-### `pyscn analyze` - Detailed Analysis & Reports
-Use when the user wants to:
-- Understand overall code quality
-- Get a detailed report (HTML/JSON/CSV)
-- Explore specific issues in depth
-- Review before refactoring
+- `path` (required): Path to Python file or directory
+- `recursive` (analyze_code): Recursively analyze directories (default: true)
+- `analyses` (analyze_code): Array of analyses to run - `complexity`, `dead_code`, `clone`, `cbo`, `deps`
 
-```bash
-# Full analysis with HTML report (opens in browser)
-uvx pyscn analyze .
+## Examples
 
-# JSON output for programmatic processing
-uvx pyscn analyze --json .
+### Quick Health Check
+Use `get_health_score` for a quick overview:
+- Returns score 0-100 with letter grade (A-F)
+- Category breakdowns for maintainability, reliability, etc.
 
-# Focus on specific analysis
-uvx pyscn analyze --select complexity .      # Only complexity
-uvx pyscn analyze --select clones .          # Only duplicates
-uvx pyscn analyze --select deadcode .        # Only dead code
-uvx pyscn analyze --select deps .            # Only dependencies
-uvx pyscn analyze --select complexity,deadcode .  # Multiple
-```
+### Detailed Analysis
+Use `analyze_code` with specific analyses:
+- `analyses: ["complexity"]` - Only complexity
+- `analyses: ["clone"]` - Only duplicates
+- `analyses: ["dead_code"]` - Only dead code
+- `analyses: ["complexity", "dead_code"]` - Multiple
 
-### `pyscn check` - Quick Pass/Fail Check
-Use when the user wants to:
-- Quick quality gate (CI/CD style)
-- Simple yes/no answer on code health
-- Verify code meets standards
+### Complexity Thresholds
+Use `check_complexity` with:
+- `min_complexity`: Minimum to report (default: 1)
+- `max_complexity`: Maximum allowed (default: 0 = no limit)
 
-```bash
-# Quick check with defaults
-uvx pyscn check .
+### Clone Detection
+Use `detect_clones` with:
+- `similarity_threshold`: 0.0-1.0 (default: 0.8)
+- `min_lines`: Minimum lines to consider (default: 5)
 
-# Custom thresholds
-uvx pyscn check --max-complexity 15 .
-
-# Check specific aspects only
-uvx pyscn check --select complexity .
-uvx pyscn check --select deadcode .
-uvx pyscn check --select deps .         # Circular dependencies
-```
-
-## When to Use Which
-
-| User Request | Command |
-|-------------|---------|
-| "Analyze code quality" | `uvx pyscn analyze .` |
-| "Is this code OK?" | `uvx pyscn check .` |
-| "Find complex functions" | `uvx pyscn analyze --select complexity .` |
-| "Find duplicate code" | `uvx pyscn analyze --select clones .` |
-| "Find dead code" | `uvx pyscn analyze --select deadcode .` |
-| "Check for circular dependencies" | `uvx pyscn check --select deps .` |
-| "Generate a report" | `uvx pyscn analyze --html .` |
-| "CI quality gate" | `uvx pyscn check .` |
-
-## Exit Codes (for check command)
-- 0: No issues
-- 1: Quality issues found
-- 2: Analysis failed
-
-Always run pyscn first, then explain results and suggest improvements.
+Always explain results and suggest improvements based on findings.
