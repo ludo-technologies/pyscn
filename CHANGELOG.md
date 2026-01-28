@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.1] - 2026-01-28
+
+### Fixed
+- Reduce false positives in Type-3/Type-4 clone detection (#305)
+
 ## [1.9.0] - 2026-01-27
 
 ### Added
