@@ -129,19 +129,19 @@ func TestDefaultValueConsistency(t *testing.T) {
 
 // TestExpectedDefaultValues verifies that default values match expected industry standards
 func TestExpectedDefaultValues(t *testing.T) {
-	t.Run("Clone type thresholds match academic standards", func(t *testing.T) {
-		// Based on Roy & Cordy (2007) and Bellon et al. (2007)
+	t.Run("Clone type thresholds match expected values", func(t *testing.T) {
+		// Tuned thresholds to reduce false positives (stricter than academic baselines)
 		if DefaultType1CloneThreshold != 0.98 {
 			t.Errorf("Type1 threshold should be 0.98, got %.2f", DefaultType1CloneThreshold)
 		}
 		if DefaultType2CloneThreshold != 0.95 {
 			t.Errorf("Type2 threshold should be 0.95, got %.2f", DefaultType2CloneThreshold)
 		}
-		if DefaultType3CloneThreshold != 0.80 {
-			t.Errorf("Type3 threshold should be 0.80, got %.2f", DefaultType3CloneThreshold)
+		if DefaultType3CloneThreshold != 0.85 {
+			t.Errorf("Type3 threshold should be 0.85, got %.2f", DefaultType3CloneThreshold)
 		}
-		if DefaultType4CloneThreshold != 0.75 {
-			t.Errorf("Type4 threshold should be 0.75, got %.2f", DefaultType4CloneThreshold)
+		if DefaultType4CloneThreshold != 0.80 {
+			t.Errorf("Type4 threshold should be 0.80, got %.2f", DefaultType4CloneThreshold)
 		}
 	})
 
