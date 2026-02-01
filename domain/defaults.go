@@ -201,6 +201,39 @@ const (
 )
 
 // ============================================================================
+// DI Anti-pattern Detection Defaults
+// ============================================================================
+
+const (
+	// DefaultDIConstructorParamThreshold is the maximum allowed constructor parameters.
+	// Classes with more than 5 parameters in __init__ are flagged as constructor over-injection.
+	// Reference: Martin, R.C. (2008). Clean Code - recommends max 3-4, we use 5 as threshold.
+	DefaultDIConstructorParamThreshold = 5
+
+	// DefaultDIMinSeverity is the minimum severity level for DI anti-pattern reports.
+	// Options: "info", "warning", "error"
+	DefaultDIMinSeverity = "warning"
+)
+
+// ServiceLocatorMethodNames returns the method names that indicate service locator pattern
+func ServiceLocatorMethodNames() []string {
+	return []string{
+		"get_service",
+		"resolve",
+		"get_instance",
+		"locate",
+		"get_component",
+		"get_dependency",
+		"get_bean",
+		"inject",
+		"container.get",
+		"locator.get",
+		"registry.get",
+		"ioc.resolve",
+	}
+}
+
+// ============================================================================
 // Mock Data Detection Defaults
 // ============================================================================
 
