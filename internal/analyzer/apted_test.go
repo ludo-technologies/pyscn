@@ -382,6 +382,69 @@ func TestWeightedCostModel(t *testing.T) {
 	assert.Equal(t, baseCost*2.0, weightedCost, "Weighted cost should be base cost times weight")
 }
 
+func TestCalculateLabelSimilarity_TopLevelDefinitions(t *testing.T) {
+	costModel := NewPythonCostModel()
+
+	// Different class names should have zero similarity
+	sim := costModel.calculateLabelSimilarity("ClassDef(UserProfile)", "ClassDef(ProductInventory)")
+	assert.Equal(t, 0.0, sim, "Different class names should have zero similarity")
+
+	// Different function names should have zero similarity
+	sim = costModel.calculateLabelSimilarity("FunctionDef(foo)", "FunctionDef(bar)")
+	assert.Equal(t, 0.0, sim, "Different function names should have zero similarity")
+
+	// Same class names should have 0.3 similarity
+	sim = costModel.calculateLabelSimilarity("ClassDef(UserProfile)", "ClassDef(UserProfile)")
+	assert.Equal(t, 0.3, sim, "Same class names should have 0.3 similarity")
+
+	// Same function names should have 0.3 similarity
+	sim = costModel.calculateLabelSimilarity("FunctionDef(foo)", "FunctionDef(foo)")
+	assert.Equal(t, 0.3, sim, "Same function names should have 0.3 similarity")
+
+	// Other same-type nodes keep 0.3 similarity (names don't matter)
+	sim = costModel.calculateLabelSimilarity("Name(x)", "Name(y)")
+	assert.Equal(t, 0.3, sim, "Name nodes with different values should have 0.3 similarity")
+
+	// Constant nodes with different values keep 0.3 similarity
+	sim = costModel.calculateLabelSimilarity("Constant(1)", "Constant(2)")
+	assert.Equal(t, 0.3, sim, "Constant nodes with different values should have 0.3 similarity")
+}
+
+func TestExtractNameFromLabel(t *testing.T) {
+	costModel := NewPythonCostModel()
+
+	tests := []struct {
+		label    string
+		expected string
+	}{
+		{"ClassDef(MyClass)", "MyClass"},
+		{"FunctionDef(my_function)", "my_function"},
+		{"Name(x)", "x"},
+		{"Constant(42)", "42"},
+		{"If", ""},
+		{"", ""},
+		{"NoParens", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.label, func(t *testing.T) {
+			result := costModel.extractNameFromLabel(tt.label)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestIsTopLevelDefinition(t *testing.T) {
+	costModel := NewPythonCostModel()
+
+	assert.True(t, costModel.isTopLevelDefinition("ClassDef"), "ClassDef should be top-level definition")
+	assert.True(t, costModel.isTopLevelDefinition("FunctionDef"), "FunctionDef should be top-level definition")
+	assert.False(t, costModel.isTopLevelDefinition("Name"), "Name should not be top-level definition")
+	assert.False(t, costModel.isTopLevelDefinition("Constant"), "Constant should not be top-level definition")
+	assert.False(t, costModel.isTopLevelDefinition("If"), "If should not be top-level definition")
+	assert.False(t, costModel.isTopLevelDefinition("AsyncFunctionDef"), "AsyncFunctionDef should not be top-level definition")
+}
+
 func TestOptimizedAPTEDAnalyzer(t *testing.T) {
 	costModel := NewDefaultCostModel()
 	maxDistance := 5.0
