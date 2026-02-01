@@ -159,7 +159,8 @@ func (c *PythonCostModel) Rename(node1, node2 *TreeNode) float64 {
 func (c *PythonCostModel) getNodeTypeMultiplier(label string) float64 {
 	// Boilerplate nodes (type annotations, decorators, Field() calls) get very low weight
 	// This reduces false positives for framework patterns like dataclasses and Pydantic
-	if c.ReduceBoilerplateWeight && c.isBoilerplateNode(label) {
+	// Uses the shared IsBoilerplateLabel function to avoid duplication
+	if c.ReduceBoilerplateWeight && IsBoilerplateLabel(label) {
 		return c.BoilerplateMultiplier
 	}
 
@@ -188,46 +189,6 @@ func (c *PythonCostModel) getNodeTypeMultiplier(label string) float64 {
 	}
 
 	return 1.0 // Default multiplier
-}
-
-// isBoilerplateNode checks if a node is boilerplate (type annotation, decorator, Field() call)
-// These nodes are common in framework patterns and their similarity inflates false positives
-func (c *PythonCostModel) isBoilerplateNode(label string) bool {
-	// Type annotations (AnnAssign nodes)
-	if strings.HasPrefix(label, "AnnAssign") {
-		return true
-	}
-
-	// Decorator nodes
-	if strings.HasPrefix(label, "Decorator") {
-		return true
-	}
-
-	// Type hint related nodes
-	typeHintNodes := []string{
-		"generic_type",
-		"type_parameter",
-		"type",
-	}
-	labelLower := strings.ToLower(label)
-	for _, typeNode := range typeHintNodes {
-		if strings.Contains(labelLower, typeNode) {
-			return true
-		}
-	}
-
-	// Check for common field factory patterns in the label
-	// These appear in dataclasses, Pydantic, and attrs
-	fieldPatterns := []string{
-		"Field(", "field(", "Factory(", "attrib(", "attr.ib(",
-	}
-	for _, pattern := range fieldPatterns {
-		if strings.Contains(label, pattern) {
-			return true
-		}
-	}
-
-	return false
 }
 
 // isStructuralNode checks if a node represents a structural element
