@@ -162,7 +162,7 @@ directory = "reports"
 
 ## Pyscn Bot (GitHub App)
 
-[pyscn-bot](https://pyscn.ludo-tech.org/) monitors your Python code quality automatically.
+[Pyscn Bot](https://github.com/marketplace/pyscn-bot) monitors your Python code quality automatically.
 
 ### Features
 
