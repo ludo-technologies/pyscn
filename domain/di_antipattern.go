@@ -210,3 +210,16 @@ func (s DIAntipatternSeverity) SeverityOrder() int {
 		return 0
 	}
 }
+
+// IsAtLeast returns true if this severity is at least as severe as the given level
+func (s DIAntipatternSeverity) IsAtLeast(other DIAntipatternSeverity) bool {
+	return s.SeverityOrder() >= other.SeverityOrder()
+}
+
+// Validate validates the request parameters
+func (r *DIAntipatternRequest) Validate() error {
+	if len(r.Paths) == 0 {
+		return NewInvalidInputError("at least one path must be specified", nil)
+	}
+	return nil
+}
