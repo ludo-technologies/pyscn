@@ -76,17 +76,9 @@ func (a *ConstructorAnalyzer) analyzeClass(classNode *parser.Node, filePath stri
 	return findings
 }
 
-// findInitMethod finds the __init__ method in a class
+// findInitMethod finds the __init__ method in a class (delegates to shared helper)
 func (a *ConstructorAnalyzer) findInitMethod(classNode *parser.Node) *parser.Node {
-	// Check body for __init__ method
-	for _, node := range classNode.Body {
-		if node != nil && (node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef) {
-			if node.Name == "__init__" {
-				return node
-			}
-		}
-	}
-	return nil
+	return FindInitMethod(classNode)
 }
 
 // countParameters counts the number of parameters excluding 'self'

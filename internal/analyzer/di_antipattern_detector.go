@@ -150,9 +150,8 @@ func GenerateSummary(findings []domain.DIAntipatternFinding, filesAnalyzed int) 
 		FilesAnalyzed: filesAnalyzed,
 	}
 
-	// Track affected classes
+	// Track affected classes (classes with at least one finding)
 	affectedClasses := make(map[string]bool)
-	allClasses := make(map[string]bool)
 
 	for _, finding := range findings {
 		// Count by type
@@ -161,14 +160,12 @@ func GenerateSummary(findings []domain.DIAntipatternFinding, filesAnalyzed int) 
 		// Count by severity
 		summary.BySeverity[finding.Severity]++
 
-		// Track classes
+		// Track affected classes
 		if finding.ClassName != "" {
-			allClasses[finding.ClassName] = true
 			affectedClasses[finding.ClassName] = true
 		}
 	}
 
-	summary.ClassesAnalyzed = len(allClasses)
 	summary.AffectedClasses = len(affectedClasses)
 
 	return summary

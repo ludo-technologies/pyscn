@@ -364,13 +364,7 @@ func (d *ServiceLocatorDetector) isKnownLocatorPattern(fullCall string) bool {
 	return false
 }
 
-// findMethods finds all methods in a class
+// findMethods finds all methods in a class (delegates to shared helper)
 func (d *ServiceLocatorDetector) findMethods(classNode *parser.Node) []*parser.Node {
-	var methods []*parser.Node
-	for _, node := range classNode.Body {
-		if node != nil && (node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef) {
-			methods = append(methods, node)
-		}
-	}
-	return methods
+	return FindClassMethods(classNode)
 }

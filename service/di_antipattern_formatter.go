@@ -67,7 +67,6 @@ func (f *DIAntipatternFormatter) writeText(response *domain.DIAntipatternRespons
 	fmt.Fprintf(writer, "Summary:\n")
 	fmt.Fprintf(writer, "  Total Findings: %d\n", response.Summary.TotalFindings)
 	fmt.Fprintf(writer, "  Files Analyzed: %d\n", response.Summary.FilesAnalyzed)
-	fmt.Fprintf(writer, "  Classes Analyzed: %d\n", response.Summary.ClassesAnalyzed)
 	fmt.Fprintf(writer, "  Affected Classes: %d\n", response.Summary.AffectedClasses)
 	fmt.Fprintf(writer, "\n")
 

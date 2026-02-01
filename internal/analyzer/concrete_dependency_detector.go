@@ -256,16 +256,9 @@ func (d *ConcreteDependencyDetector) isBuiltinType(name string) bool {
 	return builtins[name]
 }
 
-// findInitMethod finds the __init__ method in a class
+// findInitMethod finds the __init__ method in a class (delegates to shared helper)
 func (d *ConcreteDependencyDetector) findInitMethod(classNode *parser.Node) *parser.Node {
-	for _, node := range classNode.Body {
-		if node != nil && (node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef) {
-			if node.Name == "__init__" {
-				return node
-			}
-		}
-	}
-	return nil
+	return FindInitMethod(classNode)
 }
 
 // extractTypeHintName extracts the type name from an argument's type annotation

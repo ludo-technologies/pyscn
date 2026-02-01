@@ -348,15 +348,9 @@ func (d *HiddenDependencyDetector) hasClsInstanceAccess(method *parser.Node) boo
 	return found
 }
 
-// findMethods finds all methods in a class
+// findMethods finds all methods in a class (delegates to shared helper)
 func (d *HiddenDependencyDetector) findMethods(class *parser.Node) []*parser.Node {
-	var methods []*parser.Node
-	for _, node := range class.Body {
-		if node != nil && (node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef) {
-			methods = append(methods, node)
-		}
-	}
-	return methods
+	return FindClassMethods(class)
 }
 
 // findModuleVariableAccesses finds all module variable accesses in a method

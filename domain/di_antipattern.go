@@ -127,9 +127,6 @@ type DIAntipatternSummary struct {
 	// FilesAnalyzed is the number of files analyzed
 	FilesAnalyzed int `json:"files_analyzed"`
 
-	// ClassesAnalyzed is the number of classes analyzed
-	ClassesAnalyzed int `json:"classes_analyzed"`
-
 	// AffectedClasses is the number of classes with at least one finding
 	AffectedClasses int `json:"affected_classes"`
 }
