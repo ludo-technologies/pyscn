@@ -197,6 +197,10 @@ type CloneDetectorConfig struct {
 	EnableTextualAnalysis          bool // Enable Type-1 textual analysis (increases memory usage)
 	EnableSemanticAnalysis         bool // Enable Type-4 semantic/CFG analysis (increases CPU usage)
 	EnableDFAAnalysis              bool // Enable Data Flow Analysis for enhanced Type-4 detection
+
+	// Framework pattern handling (reduces false positives for dataclass, Pydantic, etc.)
+	ReduceBoilerplateSimilarity bool    // Apply lower weight to boilerplate nodes (default: true)
+	BoilerplateMultiplier       float64 // Cost multiplier for boilerplate nodes (default: 0.1)
 }
 
 // DefaultCloneDetectorConfig returns default configuration
@@ -236,6 +240,10 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 		EnableMultiDimensionalAnalysis: false,
 		EnableTextualAnalysis:          false,
 		EnableSemanticAnalysis:         false,
+
+		// Framework pattern handling defaults (enabled by default to reduce false positives)
+		ReduceBoilerplateSimilarity: true,
+		BoilerplateMultiplier:       0.1,
 	}
 }
 
@@ -260,9 +268,20 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 	case "default":
 		costModel = NewDefaultCostModel()
 	case "python":
-		costModel = NewPythonCostModelWithConfig(config.IgnoreLiterals, config.IgnoreIdentifiers)
+		// Use boilerplate-aware cost model if enabled
+		costModel = NewPythonCostModelWithBoilerplateConfig(
+			config.IgnoreLiterals,
+			config.IgnoreIdentifiers,
+			config.ReduceBoilerplateSimilarity,
+			config.BoilerplateMultiplier,
+		)
 	case "weighted":
-		baseCostModel := NewPythonCostModelWithConfig(config.IgnoreLiterals, config.IgnoreIdentifiers)
+		baseCostModel := NewPythonCostModelWithBoilerplateConfig(
+			config.IgnoreLiterals,
+			config.IgnoreIdentifiers,
+			config.ReduceBoilerplateSimilarity,
+			config.BoilerplateMultiplier,
+		)
 		costModel = NewWeightedCostModel(1.0, 1.0, 0.8, baseCostModel)
 	default:
 		costModel = NewPythonCostModel()
