@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.2] - 2026-02-01
+
+### Fixed
+- Prevent Type-3 clone false positives for different class/function names (#313)
+- Reduce clone detection false positives for framework patterns (#312)
+- Exclude test modules from layer detection (#311)
+
 ## [1.9.1] - 2026-01-28
 
 ### Fixed
