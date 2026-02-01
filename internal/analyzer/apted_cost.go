@@ -277,6 +277,15 @@ func (c *PythonCostModel) calculateLabelSimilarity(label1, label2 string) float6
 	// If base types are identical, moderate similarity
 	// This ensures renaming Name(foo) -> Name(bar) still has meaningful cost (0.7)
 	if baseType1 == baseType2 {
+		// For top-level definitions, names matter significantly.
+		// Different names = no similarity = full rename cost.
+		if c.isTopLevelDefinition(baseType1) {
+			name1 := c.extractNameFromLabel(label1)
+			name2 := c.extractNameFromLabel(label2)
+			if name1 != name2 {
+				return 0.0
+			}
+		}
 		return 0.3
 	}
 
@@ -299,6 +308,24 @@ func (c *PythonCostModel) extractBaseNodeType(label string) string {
 		return label[:idx]
 	}
 	return label
+}
+
+// isTopLevelDefinition checks if a node type represents a top-level definition
+// where the name is semantically significant for clone detection.
+// Note: AsyncFunctionDef is included for consistency with isStructuralNode,
+// though the tree converter normalizes async functions to FunctionDef labels.
+func (c *PythonCostModel) isTopLevelDefinition(baseType string) bool {
+	return baseType == "ClassDef" || baseType == "FunctionDef" || baseType == "AsyncFunctionDef"
+}
+
+// extractNameFromLabel extracts the name from a label like "ClassDef(MyClass)" -> "MyClass"
+func (c *PythonCostModel) extractNameFromLabel(label string) string {
+	start := strings.Index(label, "(")
+	end := strings.LastIndex(label, ")")
+	if start != -1 && end > start {
+		return label[start+1 : end]
+	}
+	return ""
 }
 
 // areRelatedNodeTypes checks if two node types are related
