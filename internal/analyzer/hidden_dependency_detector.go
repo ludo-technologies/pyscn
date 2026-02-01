@@ -59,8 +59,9 @@ func (d *HiddenDependencyDetector) collectModuleVariables(ast *parser.Node) {
 		if node.Type == parser.NodeAssign {
 			for _, target := range node.Targets {
 				if target != nil && target.Type == parser.NodeName {
-					// Skip private/dunder names for now (they're often intentional)
-					if !strings.HasPrefix(target.Name, "__") {
+					// Only track private module variables (starting with single underscore)
+					// Skip dunder names (__name__) and uppercase constants (MAX_RETRIES)
+					if d.isMutableModuleVariable(target.Name) {
 						d.moduleVariables[target.Name] = true
 					}
 				}
@@ -71,13 +72,13 @@ func (d *HiddenDependencyDetector) collectModuleVariables(ast *parser.Node) {
 		if node.Type == parser.NodeAnnAssign {
 			for _, target := range node.Targets {
 				if target != nil && target.Type == parser.NodeName {
-					if !strings.HasPrefix(target.Name, "__") {
+					if d.isMutableModuleVariable(target.Name) {
 						d.moduleVariables[target.Name] = true
 					}
 				}
 			}
 			// Also check Name field for simple annotations
-			if node.Name != "" && !strings.HasPrefix(node.Name, "__") {
+			if node.Name != "" && d.isMutableModuleVariable(node.Name) {
 				d.moduleVariables[node.Name] = true
 			}
 		}
@@ -209,6 +210,44 @@ func (d *HiddenDependencyDetector) detectModuleVariableAccess(ast *parser.Node, 
 	}
 
 	return findings
+}
+
+// isMutableModuleVariable checks if a name represents a mutable module variable
+// that should be tracked for hidden dependency detection.
+// Returns true for private variables (starting with single _) that are not constants.
+func (d *HiddenDependencyDetector) isMutableModuleVariable(name string) bool {
+	if name == "" {
+		return false
+	}
+
+	// Skip dunder names (__name__, __file__, etc.)
+	if strings.HasPrefix(name, "__") {
+		return false
+	}
+
+	// Only track private module variables (starting with single underscore)
+	// These are typically mutable module state that should be injected
+	if strings.HasPrefix(name, "_") {
+		return true
+	}
+
+	// Skip uppercase constants (MAX_RETRIES, DEFAULT_VALUE, etc.)
+	// Constants are immutable and don't represent hidden dependencies
+	if d.isUpperCase(name) {
+		return false
+	}
+
+	return false
+}
+
+// isUpperCase checks if a name is in UPPER_CASE format (constant naming convention)
+func (d *HiddenDependencyDetector) isUpperCase(name string) bool {
+	for _, r := range name {
+		if r >= 'a' && r <= 'z' {
+			return false
+		}
+	}
+	return true
 }
 
 // getGlobalNames extracts variable names from a global statement

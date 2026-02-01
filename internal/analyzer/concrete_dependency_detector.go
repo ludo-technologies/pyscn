@@ -144,8 +144,8 @@ type instantiationInfo struct {
 func (d *ConcreteDependencyDetector) findInstantiations(funcNode *parser.Node, ownerClassName string) []instantiationInfo {
 	var instantiations []instantiationInfo
 
-	// Use custom walk function that includes Value field
-	d.walkNode(funcNode, func(node *parser.Node) bool {
+	// Use WalkDeep to traverse including Value field
+	funcNode.WalkDeep(func(node *parser.Node) bool {
 		// Only check Assign nodes - the Call is in the Value field
 		if node.Type == parser.NodeAssign {
 			if node.Value != nil {
@@ -166,32 +166,6 @@ func (d *ConcreteDependencyDetector) findInstantiations(funcNode *parser.Node, o
 	})
 
 	return instantiations
-}
-
-// walkNode recursively walks AST nodes including the Value field
-func (d *ConcreteDependencyDetector) walkNode(node *parser.Node, visitor func(*parser.Node) bool) {
-	if node == nil || !visitor(node) {
-		return
-	}
-
-	for _, child := range node.Children {
-		d.walkNode(child, visitor)
-	}
-
-	for _, child := range node.Body {
-		d.walkNode(child, visitor)
-	}
-
-	for _, child := range node.Args {
-		d.walkNode(child, visitor)
-	}
-
-	// Also traverse Value field if it contains a Node
-	if node.Value != nil {
-		if valueNode, ok := node.Value.(*parser.Node); ok {
-			d.walkNode(valueNode, visitor)
-		}
-	}
 }
 
 // extractCalleeClassName extracts the class name from a Call node

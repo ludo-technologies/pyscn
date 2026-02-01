@@ -53,8 +53,8 @@ func (d *ServiceLocatorDetector) analyzeClass(classNode *parser.Node, filePath s
 func (d *ServiceLocatorDetector) analyzeMethod(methodNode *parser.Node, className string, filePath string) []domain.DIAntipatternFinding {
 	var findings []domain.DIAntipatternFinding
 
-	// Use custom walk function that includes Value field
-	d.walkNode(methodNode, func(node *parser.Node) bool {
+	// Use WalkDeep to traverse including Value field
+	methodNode.WalkDeep(func(node *parser.Node) bool {
 		// Check Assign nodes - the Call is in the Value field
 		if node.Type == parser.NodeAssign {
 			if node.Value != nil {
@@ -107,32 +107,6 @@ func (d *ServiceLocatorDetector) createFinding(className, methodName, filePath s
 			"locator_method": locatorInfo.methodName,
 			"container_name": locatorInfo.containerName,
 		},
-	}
-}
-
-// walkNode recursively walks AST nodes including the Value field
-func (d *ServiceLocatorDetector) walkNode(node *parser.Node, visitor func(*parser.Node) bool) {
-	if node == nil || !visitor(node) {
-		return
-	}
-
-	for _, child := range node.Children {
-		d.walkNode(child, visitor)
-	}
-
-	for _, child := range node.Body {
-		d.walkNode(child, visitor)
-	}
-
-	for _, child := range node.Args {
-		d.walkNode(child, visitor)
-	}
-
-	// Also traverse Value field if it contains a Node
-	if node.Value != nil {
-		if valueNode, ok := node.Value.(*parser.Node); ok {
-			d.walkNode(valueNode, visitor)
-		}
 	}
 }
 

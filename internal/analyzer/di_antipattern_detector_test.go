@@ -86,6 +86,102 @@ class BadService:
 	}
 }
 
+func TestConstructorAnalyzer_ArgsKwargs(t *testing.T) {
+	tests := []struct {
+		name         string
+		code         string
+		threshold    int
+		wantFindings int
+	}{
+		{
+			name: "args only should not count as over-injection",
+			code: `
+class Service:
+    def __init__(self, *args):
+        self.args = args
+`,
+			threshold:    5,
+			wantFindings: 0,
+		},
+		{
+			name: "kwargs only should not count as over-injection",
+			code: `
+class Service:
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+`,
+			threshold:    5,
+			wantFindings: 0,
+		},
+		{
+			name: "mixed params with args/kwargs under threshold",
+			code: `
+class Service:
+    def __init__(self, a, b, *args, **kwargs):
+        pass
+`,
+			threshold:    5,
+			wantFindings: 0,
+		},
+		{
+			name: "many params with args/kwargs over threshold",
+			code: `
+class Service:
+    def __init__(self, a, b, c, d, e, f, *args, **kwargs):
+        pass
+`,
+			threshold:    5,
+			wantFindings: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := parser.New()
+			result, err := p.Parse(context.Background(), []byte(tt.code))
+			if err != nil {
+				t.Fatalf("Parse error: %v", err)
+			}
+
+			analyzer := NewConstructorAnalyzer(tt.threshold)
+			findings := analyzer.Analyze(result.AST, "test.py")
+
+			if len(findings) != tt.wantFindings {
+				t.Errorf("got %d findings, want %d", len(findings), tt.wantFindings)
+			}
+		})
+	}
+}
+
+func TestConstructorAnalyzer_NestedClasses(t *testing.T) {
+	code := `
+class Outer:
+    def __init__(self, a, b, c):
+        pass
+
+    class Inner:
+        def __init__(self, x, y, z, w, v, u):
+            pass
+`
+	p := parser.New()
+	result, err := p.Parse(context.Background(), []byte(code))
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	analyzer := NewConstructorAnalyzer(5)
+	findings := analyzer.Analyze(result.AST, "test.py")
+
+	// Should find over-injection in Inner class only
+	if len(findings) != 1 {
+		t.Errorf("got %d findings, want 1", len(findings))
+	}
+
+	if len(findings) > 0 && findings[0].ClassName != "Inner" {
+		t.Errorf("got class name %q, want %q", findings[0].ClassName, "Inner")
+	}
+}
+
 func TestHiddenDependencyDetector_GlobalStatement(t *testing.T) {
 	code := `
 _config = {}
