@@ -312,8 +312,10 @@ func (c *PythonCostModel) extractBaseNodeType(label string) string {
 
 // isTopLevelDefinition checks if a node type represents a top-level definition
 // where the name is semantically significant for clone detection.
+// Note: AsyncFunctionDef is included for consistency with isStructuralNode,
+// though the tree converter normalizes async functions to FunctionDef labels.
 func (c *PythonCostModel) isTopLevelDefinition(baseType string) bool {
-	return baseType == "ClassDef" || baseType == "FunctionDef"
+	return baseType == "ClassDef" || baseType == "FunctionDef" || baseType == "AsyncFunctionDef"
 }
 
 // extractNameFromLabel extracts the name from a label like "ClassDef(MyClass)" -> "MyClass"

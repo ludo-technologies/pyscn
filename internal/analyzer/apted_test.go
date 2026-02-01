@@ -393,6 +393,10 @@ func TestCalculateLabelSimilarity_TopLevelDefinitions(t *testing.T) {
 	sim = costModel.calculateLabelSimilarity("FunctionDef(foo)", "FunctionDef(bar)")
 	assert.Equal(t, 0.0, sim, "Different function names should have zero similarity")
 
+	// Different async function names should have zero similarity
+	sim = costModel.calculateLabelSimilarity("AsyncFunctionDef(async_foo)", "AsyncFunctionDef(async_bar)")
+	assert.Equal(t, 0.0, sim, "Different async function names should have zero similarity")
+
 	// Same class names should have 0.3 similarity
 	sim = costModel.calculateLabelSimilarity("ClassDef(UserProfile)", "ClassDef(UserProfile)")
 	assert.Equal(t, 0.3, sim, "Same class names should have 0.3 similarity")
@@ -439,10 +443,10 @@ func TestIsTopLevelDefinition(t *testing.T) {
 
 	assert.True(t, costModel.isTopLevelDefinition("ClassDef"), "ClassDef should be top-level definition")
 	assert.True(t, costModel.isTopLevelDefinition("FunctionDef"), "FunctionDef should be top-level definition")
+	assert.True(t, costModel.isTopLevelDefinition("AsyncFunctionDef"), "AsyncFunctionDef should be top-level definition for consistency with isStructuralNode")
 	assert.False(t, costModel.isTopLevelDefinition("Name"), "Name should not be top-level definition")
 	assert.False(t, costModel.isTopLevelDefinition("Constant"), "Constant should not be top-level definition")
 	assert.False(t, costModel.isTopLevelDefinition("If"), "If should not be top-level definition")
-	assert.False(t, costModel.isTopLevelDefinition("AsyncFunctionDef"), "AsyncFunctionDef should not be top-level definition")
 }
 
 func TestOptimizedAPTEDAnalyzer(t *testing.T) {
