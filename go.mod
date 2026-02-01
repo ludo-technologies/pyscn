@@ -5,7 +5,7 @@ go 1.24.0
 toolchain go1.24.6
 
 require (
-	github.com/bmatcuk/doublestar/v4 v4.9.1
+	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/mark3labs/mcp-go v0.43.2
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/schollz/progressbar/v3 v3.19.0
@@ -13,7 +13,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/term v0.38.0
+	golang.org/x/term v0.39.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -33,6 +33,6 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
-	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 )
