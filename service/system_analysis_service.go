@@ -528,8 +528,33 @@ func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.Depen
 	}
 }
 
+// isTestModule checks if a module represents test code
+func (s *SystemAnalysisServiceImpl) isTestModule(module string) bool {
+	parts := strings.Split(module, ".")
+	for _, part := range parts {
+		lowerPart := strings.ToLower(part)
+		// Check for test directory/package names
+		if lowerPart == "tests" || lowerPart == "test" || lowerPart == "testing" || lowerPart == "conftest" {
+			return true
+		}
+	}
+	// Check if the last part indicates a test file
+	if len(parts) > 0 {
+		lastPart := strings.ToLower(parts[len(parts)-1])
+		if strings.HasPrefix(lastPart, "test_") || strings.HasSuffix(lastPart, "_test") {
+			return true
+		}
+	}
+	return false
+}
+
 // detectLayerFromModule determines which layer a module belongs to based on its name
 func (s *SystemAnalysisServiceImpl) detectLayerFromModule(module string, patterns map[string][]string) string {
+	// Early return for test modules - they should not be classified as any layer
+	if s.isTestModule(module) {
+		return ""
+	}
+
 	// Split module path into parts
 	parts := strings.Split(module, ".")
 
@@ -550,8 +575,7 @@ func (s *SystemAnalysisServiceImpl) detectLayerFromModule(module string, pattern
 			// Exact match or variations with underscores/prefixes/suffixes
 			if lastPart == pattern ||
 				strings.HasPrefix(lastPart, pattern+"_") ||
-				strings.HasSuffix(lastPart, "_"+pattern) ||
-				(len(lastPart) > len(pattern) && strings.Contains(lastPart, pattern)) {
+				strings.HasSuffix(lastPart, "_"+pattern) {
 				return layer
 			}
 		}

@@ -302,3 +302,96 @@ func TestExtractModuleMetrics_MultipleModules(t *testing.T) {
 	assert.Equal(t, 1, metricsC.ClassCount)
 	assert.Equal(t, []string{"ClassC"}, metricsC.PublicInterface)
 }
+
+func TestIsTestModule(t *testing.T) {
+	service := &SystemAnalysisServiceImpl{}
+
+	testCases := []struct {
+		module   string
+		expected bool
+	}{
+		// Test modules - should return true
+		{"tests.test_model", true},
+		{"test_model", true},
+		{"model_test", true},
+		{"tests", true},
+		{"test", true},
+		{"app.testing.fixtures", true},
+		{"conftest", true},
+		{"app.tests.unit.test_service", true},
+		{"test.unit.test_controller", true},
+		{"tests.integration.test_api", true},
+		{"app.test_user", true},
+		{"api_test", true},
+
+		// Non-test modules - should return false
+		{"app.domain.models", false},
+		{"app.models.user_model", false},
+		{"app.services.user_service", false},
+		{"app.controllers.api", false},
+		{"domain.entities", false},
+		{"infrastructure.repository", false},
+		{"contest", false},              // Not a test - "conftest" is special, but "contest" is not
+		{"app.contestant.model", false}, // Contains "test" but not a test module
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.module, func(t *testing.T) {
+			result := service.isTestModule(tc.module)
+			assert.Equal(t, tc.expected, result, "isTestModule(%q) = %v, expected %v", tc.module, result, tc.expected)
+		})
+	}
+}
+
+func TestDetectLayerFromModule_ExcludesTestModules(t *testing.T) {
+	service := &SystemAnalysisServiceImpl{}
+
+	// Standard layer patterns
+	patterns := map[string][]string{
+		"domain":         {"models", "model", "entities", "entity", "domain", "schemas", "schema"},
+		"application":    {"services", "service", "use_cases", "usecase"},
+		"infrastructure": {"repositories", "repository", "db", "database"},
+		"presentation":   {"controllers", "controller", "api", "views", "router"},
+	}
+
+	testCases := []struct {
+		module   string
+		expected string
+	}{
+		// Test modules should NOT be classified as any layer (return "")
+		{"tests.test_model", ""},
+		{"tests.test_entity", ""},
+		{"tests.test_schema", ""},
+		{"test.unit.test_service", ""},
+		{"app.testing.fixtures", ""},
+		{"conftest", ""},
+		{"tests.integration.test_api", ""},
+		{"test_controller", ""},
+		{"repository_test", ""},
+
+		// Valid domain modules should still be detected
+		{"app.domain.models", "domain"},
+		{"app.models.user_model", "domain"},
+		{"domain.entities", "domain"},
+		{"app.schemas.user_schema", "domain"},
+
+		// Valid application modules should still be detected
+		{"app.services.user_service", "application"},
+		{"app.use_cases.create_user", "application"},
+
+		// Valid infrastructure modules should still be detected
+		{"app.repositories.user_repository", "infrastructure"},
+		{"infrastructure.db", "infrastructure"},
+
+		// Valid presentation modules should still be detected
+		{"app.api.v1.router", "presentation"},
+		{"app.controllers.user_controller", "presentation"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.module, func(t *testing.T) {
+			result := service.detectLayerFromModule(tc.module, patterns)
+			assert.Equal(t, tc.expected, result, "detectLayerFromModule(%q) = %q, expected %q", tc.module, result, tc.expected)
+		})
+	}
+}
