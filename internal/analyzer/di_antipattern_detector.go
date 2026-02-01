@@ -9,11 +9,11 @@ import (
 
 // DIAntipatternDetector coordinates all DI anti-pattern detectors
 type DIAntipatternDetector struct {
-	constructorAnalyzer   *ConstructorAnalyzer
-	hiddenDepDetector     *HiddenDependencyDetector
-	concreteDepDetector   *ConcreteDependencyDetector
+	constructorAnalyzer    *ConstructorAnalyzer
+	hiddenDepDetector      *HiddenDependencyDetector
+	concreteDepDetector    *ConcreteDependencyDetector
 	serviceLocatorDetector *ServiceLocatorDetector
-	minSeverity           domain.DIAntipatternSeverity
+	minSeverity            domain.DIAntipatternSeverity
 }
 
 // DIAntipatternOptions configures DI anti-pattern detection

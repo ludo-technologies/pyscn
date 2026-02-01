@@ -379,16 +379,6 @@ func (d *ConcreteDependencyDetector) extractGenericInnerType(subscriptNode *pars
 	return ""
 }
 
-// extractTypeFromTypeNode extracts type name from tree-sitter type nodes
-func (d *ConcreteDependencyDetector) extractTypeFromTypeNode(typeNode *parser.Node) string {
-	for _, child := range typeNode.Children {
-		if child != nil && child.Type == parser.NodeName {
-			return child.Name
-		}
-	}
-	return ""
-}
-
 // isConcreteType checks if a type name is likely a concrete class
 func (d *ConcreteDependencyDetector) isConcreteType(typeName string) bool {
 	// Empty or builtin types are not concrete dependencies
@@ -415,9 +405,6 @@ func (d *ConcreteDependencyDetector) isConcreteType(typeName string) bool {
 		"Tuple": true, "Union": true, "Callable": true, "Type": true,
 		"Any": true, "Sequence": true, "Mapping": true, "Iterable": true,
 	}
-	if genericTypes[typeName] {
-		return false
-	}
 
-	return true
+	return !genericTypes[typeName]
 }

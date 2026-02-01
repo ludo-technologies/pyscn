@@ -52,10 +52,6 @@ func (s *DIAntipatternServiceImpl) Analyze(ctx context.Context, req domain.DIAnt
 		filesProcessed++
 	}
 
-	if len(allFindings) == 0 && filesProcessed > 0 {
-		// No findings is actually good news for this analysis
-	}
-
 	// Sort findings
 	sortedFindings := analyzer.SortFindings(allFindings, req.SortBy)
 
