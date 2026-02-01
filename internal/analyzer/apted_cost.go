@@ -60,27 +60,53 @@ type PythonCostModel struct {
 
 	// Whether to ignore differences in identifier names
 	IgnoreIdentifiers bool
+
+	// Whether to reduce weight for boilerplate nodes (type annotations, decorators, Field() calls)
+	ReduceBoilerplateWeight bool
+
+	// Multiplier for boilerplate nodes (default: 0.1)
+	BoilerplateMultiplier float64
 }
 
 // NewPythonCostModel creates a new Python-aware cost model with default settings
 func NewPythonCostModel() *PythonCostModel {
 	return &PythonCostModel{
-		BaseInsertCost:    1.0,
-		BaseDeleteCost:    1.0,
-		BaseRenameCost:    1.0,
-		IgnoreLiterals:    false,
-		IgnoreIdentifiers: false,
+		BaseInsertCost:          1.0,
+		BaseDeleteCost:          1.0,
+		BaseRenameCost:          1.0,
+		IgnoreLiterals:          false,
+		IgnoreIdentifiers:       false,
+		ReduceBoilerplateWeight: true, // Enable by default to reduce false positives
+		BoilerplateMultiplier:   0.1,
 	}
 }
 
 // NewPythonCostModelWithConfig creates a Python cost model with custom configuration
 func NewPythonCostModelWithConfig(ignoreLiterals, ignoreIdentifiers bool) *PythonCostModel {
 	return &PythonCostModel{
-		BaseInsertCost:    1.0,
-		BaseDeleteCost:    1.0,
-		BaseRenameCost:    1.0,
-		IgnoreLiterals:    ignoreLiterals,
-		IgnoreIdentifiers: ignoreIdentifiers,
+		BaseInsertCost:          1.0,
+		BaseDeleteCost:          1.0,
+		BaseRenameCost:          1.0,
+		IgnoreLiterals:          ignoreLiterals,
+		IgnoreIdentifiers:       ignoreIdentifiers,
+		ReduceBoilerplateWeight: true, // Enable by default to reduce false positives
+		BoilerplateMultiplier:   0.1,
+	}
+}
+
+// NewPythonCostModelWithBoilerplateConfig creates a Python cost model with full configuration
+func NewPythonCostModelWithBoilerplateConfig(ignoreLiterals, ignoreIdentifiers, reduceBoilerplate bool, boilerplateMultiplier float64) *PythonCostModel {
+	if boilerplateMultiplier <= 0 {
+		boilerplateMultiplier = 0.1
+	}
+	return &PythonCostModel{
+		BaseInsertCost:          1.0,
+		BaseDeleteCost:          1.0,
+		BaseRenameCost:          1.0,
+		IgnoreLiterals:          ignoreLiterals,
+		IgnoreIdentifiers:       ignoreIdentifiers,
+		ReduceBoilerplateWeight: reduceBoilerplate,
+		BoilerplateMultiplier:   boilerplateMultiplier,
 	}
 }
 
@@ -131,6 +157,12 @@ func (c *PythonCostModel) Rename(node1, node2 *TreeNode) float64 {
 
 // getNodeTypeMultiplier returns a cost multiplier based on the node type
 func (c *PythonCostModel) getNodeTypeMultiplier(label string) float64 {
+	// Boilerplate nodes (type annotations, decorators, Field() calls) get very low weight
+	// This reduces false positives for framework patterns like dataclasses and Pydantic
+	if c.ReduceBoilerplateWeight && c.isBoilerplateNode(label) {
+		return c.BoilerplateMultiplier
+	}
+
 	// Structural nodes are more expensive to modify
 	if c.isStructuralNode(label) {
 		return 1.5
@@ -156,6 +188,46 @@ func (c *PythonCostModel) getNodeTypeMultiplier(label string) float64 {
 	}
 
 	return 1.0 // Default multiplier
+}
+
+// isBoilerplateNode checks if a node is boilerplate (type annotation, decorator, Field() call)
+// These nodes are common in framework patterns and their similarity inflates false positives
+func (c *PythonCostModel) isBoilerplateNode(label string) bool {
+	// Type annotations (AnnAssign nodes)
+	if strings.HasPrefix(label, "AnnAssign") {
+		return true
+	}
+
+	// Decorator nodes
+	if strings.HasPrefix(label, "Decorator") {
+		return true
+	}
+
+	// Type hint related nodes
+	typeHintNodes := []string{
+		"generic_type",
+		"type_parameter",
+		"type",
+	}
+	labelLower := strings.ToLower(label)
+	for _, typeNode := range typeHintNodes {
+		if strings.Contains(labelLower, typeNode) {
+			return true
+		}
+	}
+
+	// Check for common field factory patterns in the label
+	// These appear in dataclasses, Pydantic, and attrs
+	fieldPatterns := []string{
+		"Field(", "field(", "Factory(", "attrib(", "attr.ib(",
+	}
+	for _, pattern := range fieldPatterns {
+		if strings.Contains(label, pattern) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // isStructuralNode checks if a node represents a structural element

@@ -197,6 +197,10 @@ type CloneDetectorConfig struct {
 	EnableTextualAnalysis          bool // Enable Type-1 textual analysis (increases memory usage)
 	EnableSemanticAnalysis         bool // Enable Type-4 semantic/CFG analysis (increases CPU usage)
 	EnableDFAAnalysis              bool // Enable Data Flow Analysis for enhanced Type-4 detection
+
+	// Framework pattern handling (reduces false positives for dataclass, Pydantic, etc.)
+	ReduceBoilerplateSimilarity bool    // Apply lower weight to boilerplate nodes (default: true)
+	MinSemanticContentRatio     float64 // Minimum ratio of non-boilerplate nodes (default: 0.3)
 }
 
 // DefaultCloneDetectorConfig returns default configuration
@@ -236,6 +240,10 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 		EnableMultiDimensionalAnalysis: false,
 		EnableTextualAnalysis:          false,
 		EnableSemanticAnalysis:         false,
+
+		// Framework pattern handling defaults (enabled by default to reduce false positives)
+		ReduceBoilerplateSimilarity: true,
+		MinSemanticContentRatio:     0.3,
 	}
 }
 
@@ -244,12 +252,13 @@ type CloneDetector struct {
 	// Embed config fields (private to maintain encapsulation)
 	cloneDetectorConfig CloneDetectorConfig
 
-	analyzer    *APTEDAnalyzer
-	converter   *TreeConverter
-	classifier  *CloneClassifier // Multi-dimensional classifier (optional)
-	fragments   []*CodeFragment
-	clonePairs  []*ClonePair
-	cloneGroups []*CloneGroup
+	analyzer        *APTEDAnalyzer
+	converter       *TreeConverter
+	classifier      *CloneClassifier // Multi-dimensional classifier (optional)
+	patternDetector *PatternDetector // Framework pattern detector for boilerplate handling
+	fragments       []*CodeFragment
+	clonePairs      []*ClonePair
+	cloneGroups     []*CloneGroup
 }
 
 // NewCloneDetector creates a new clone detector with the given configuration
@@ -260,9 +269,20 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 	case "default":
 		costModel = NewDefaultCostModel()
 	case "python":
-		costModel = NewPythonCostModelWithConfig(config.IgnoreLiterals, config.IgnoreIdentifiers)
+		// Use boilerplate-aware cost model if enabled
+		costModel = NewPythonCostModelWithBoilerplateConfig(
+			config.IgnoreLiterals,
+			config.IgnoreIdentifiers,
+			config.ReduceBoilerplateSimilarity,
+			0.1, // Default boilerplate multiplier
+		)
 	case "weighted":
-		baseCostModel := NewPythonCostModelWithConfig(config.IgnoreLiterals, config.IgnoreIdentifiers)
+		baseCostModel := NewPythonCostModelWithBoilerplateConfig(
+			config.IgnoreLiterals,
+			config.IgnoreIdentifiers,
+			config.ReduceBoilerplateSimilarity,
+			0.1,
+		)
 		costModel = NewWeightedCostModel(1.0, 1.0, 0.8, baseCostModel)
 	default:
 		costModel = NewPythonCostModel()
@@ -291,11 +311,18 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 		classifier = NewCloneClassifier(classifierConfig)
 	}
 
+	// Initialize pattern detector for framework pattern handling
+	var patternDetector *PatternDetector
+	if config.ReduceBoilerplateSimilarity || config.MinSemanticContentRatio > 0 {
+		patternDetector = NewPatternDetector()
+	}
+
 	return &CloneDetector{
 		cloneDetectorConfig: *config,
 		analyzer:            analyzer,
 		converter:           NewTreeConverterWithConfig(config.SkipDocstrings),
 		classifier:          classifier,
+		patternDetector:     patternDetector,
 		fragments:           []*CodeFragment{},
 		clonePairs:          []*ClonePair{},
 		cloneGroups:         []*CloneGroup{},
@@ -496,6 +523,15 @@ func (cd *CloneDetector) shouldIncludeFragment(fragment *CodeFragment) bool {
 
 	if fragment.LineCount < cd.cloneDetectorConfig.MinLines {
 		return false
+	}
+
+	// Check semantic content ratio if pattern detector is available
+	// This filters out fragments that are mostly boilerplate (e.g., empty dataclasses)
+	if cd.patternDetector != nil && cd.cloneDetectorConfig.MinSemanticContentRatio > 0 {
+		ratio := cd.patternDetector.CalculateSemanticContentRatio(fragment.ASTNode)
+		if ratio < cd.cloneDetectorConfig.MinSemanticContentRatio {
+			return false
+		}
 	}
 
 	return true
