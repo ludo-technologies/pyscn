@@ -18,10 +18,10 @@ type ReExportEntry struct {
 
 // ReExportMap holds all exports from a package's __init__.py
 type ReExportMap struct {
-	PackageName string                     // The package name (e.g., "pkg_a")
-	Exports     map[string]*ReExportEntry  // name -> source info
-	AllDeclared []string                   // Names in __all__ if declared
-	HasAllDecl  bool                       // True if __all__ is explicitly declared
+	PackageName string                    // The package name (e.g., "pkg_a")
+	Exports     map[string]*ReExportEntry // name -> source info
+	AllDeclared []string                  // Names in __all__ if declared
+	HasAllDecl  bool                      // True if __all__ is explicitly declared
 }
 
 // ReExportResolver resolves re-exports in __init__.py files
