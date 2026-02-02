@@ -215,14 +215,6 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 				}
 			}
 
-			// For "from package import name" style imports, resolve through re-exports
-			// to find the actual source module
-			if len(imp.ImportedNames) > 0 && !imp.IsRelative {
-				if resolvedModule, found := ma.reExportResolver.ResolveReExport(targetModule, imp.ImportedNames[0]); found {
-					targetModule = resolvedModule
-				}
-			}
-
 			// Determine edge type
 			edgeType := DependencyEdgeImport
 			if imp.IsRelative {
@@ -231,8 +223,27 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 				edgeType = DependencyEdgeFromImport
 			}
 
-			// Add dependency to graph
-			graph.AddDependency(moduleName, targetModule, edgeType, imp)
+			// For "from package import name" style imports, resolve through re-exports
+			// to find the actual source module. Each imported name may come from a
+			// different source module, so we need to add edges for each.
+			if len(imp.ImportedNames) > 0 && !imp.IsRelative {
+				resolvedModules := make(map[string]bool)
+				for _, importedName := range imp.ImportedNames {
+					if resolvedModule, found := ma.reExportResolver.ResolveReExport(targetModule, importedName); found {
+						resolvedModules[resolvedModule] = true
+					} else {
+						// Not a re-export, use the original target
+						resolvedModules[targetModule] = true
+					}
+				}
+				// Add dependency for each unique resolved module
+				for resolvedModule := range resolvedModules {
+					graph.AddDependency(moduleName, resolvedModule, edgeType, imp)
+				}
+			} else {
+				// Add dependency to graph
+				graph.AddDependency(moduleName, targetModule, edgeType, imp)
+			}
 		}
 	}
 
@@ -286,15 +297,20 @@ func (ma *ModuleAnalyzer) collectModuleImports(ast *parser.Node, filePath string
 			module := node.Module
 			level := ma.calculateRelativeLevel(node.Module)
 
-			// Get imported names - they can be in node.Names or in child Alias nodes
-			var importedNames []string
-			if len(node.Names) > 0 {
-				importedNames = append(importedNames, node.Names...)
+			// Get imported names - use map to deduplicate since names may appear
+			// in both node.Names and child Alias nodes depending on parser version
+			nameSet := make(map[string]bool)
+			for _, name := range node.Names {
+				nameSet[name] = true
 			}
 			for _, child := range node.Children {
 				if child.Type == parser.NodeAlias {
-					importedNames = append(importedNames, child.Name)
+					nameSet[child.Name] = true
 				}
+			}
+			importedNames := make([]string, 0, len(nameSet))
+			for name := range nameSet {
+				importedNames = append(importedNames, name)
 			}
 
 			imp := &ImportInfo{

@@ -215,6 +215,69 @@ func TestReExportResolutionInGraph(t *testing.T) {
 	}
 }
 
+func TestMultipleNamesReExportResolution(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create package structure where multiple names come from different modules:
+	// pkg_a/__init__.py: from .module_x import ClassA; from .module_y import ClassB
+	// pkg_a/module_x.py: class ClassA: pass
+	// pkg_a/module_y.py: class ClassB: pass
+	// consumer.py: from pkg_a import ClassA, ClassB
+	//
+	// Expected: consumer should have dependencies on both pkg_a.module_x AND pkg_a.module_y
+
+	pkgADir := filepath.Join(dir, "pkg_a")
+	if err := os.MkdirAll(pkgADir, 0o755); err != nil {
+		t.Fatalf("failed to create pkg_a directory: %v", err)
+	}
+
+	pkgAInit := `from .module_x import ClassA
+from .module_y import ClassB
+`
+	if err := os.WriteFile(filepath.Join(pkgADir, "__init__.py"), []byte(pkgAInit), 0o644); err != nil {
+		t.Fatalf("failed to write pkg_a/__init__.py: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(pkgADir, "module_x.py"), []byte("class ClassA: pass\n"), 0o644); err != nil {
+		t.Fatalf("failed to write module_x.py: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(pkgADir, "module_y.py"), []byte("class ClassB: pass\n"), 0o644); err != nil {
+		t.Fatalf("failed to write module_y.py: %v", err)
+	}
+
+	consumer := `from pkg_a import ClassA, ClassB
+`
+	if err := os.WriteFile(filepath.Join(dir, "consumer.py"), []byte(consumer), 0o644); err != nil {
+		t.Fatalf("failed to write consumer.py: %v", err)
+	}
+
+	analyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{ProjectRoot: dir})
+	if err != nil {
+		t.Fatalf("failed to create analyzer: %v", err)
+	}
+
+	graph, err := analyzer.AnalyzeProject()
+	if err != nil {
+		t.Fatalf("AnalyzeProject failed: %v", err)
+	}
+
+	consumerNode := graph.GetModule("consumer")
+	if consumerNode == nil {
+		t.Fatalf("consumer module not found in graph")
+	}
+
+	// Should have dependencies on BOTH module_x and module_y
+	if !consumerNode.Dependencies["pkg_a.module_x"] {
+		t.Errorf("expected consumer to depend on pkg_a.module_x")
+	}
+	if !consumerNode.Dependencies["pkg_a.module_y"] {
+		t.Errorf("expected consumer to depend on pkg_a.module_y")
+	}
+
+	t.Logf("Consumer dependencies: %v", consumerNode.Dependencies)
+}
+
 func getNodeNames(graph *DependencyGraph) []string {
 	var names []string
 	for name := range graph.Nodes {

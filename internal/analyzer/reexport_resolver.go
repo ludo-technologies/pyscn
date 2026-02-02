@@ -65,11 +65,16 @@ func (r *ReExportResolver) GetReExportMap(packageName string) (*ReExportMap, err
 	return reExportMap, nil
 }
 
-// ResolveReExport resolves an imported name to its actual source module
-// Returns (sourceModule, found)
+// ResolveReExport resolves an imported name to its actual source module.
+// Returns (sourceModule, found).
+//
+// Parse errors are treated as "no re-exports found" - if the __init__.py
+// cannot be parsed, we fall back to using the package as the dependency target.
+// This is intentional: syntax errors in __init__.py shouldn't break dependency
+// analysis, and the error is cached to avoid repeated parse attempts.
 func (r *ReExportResolver) ResolveReExport(packageName, importedName string) (string, bool) {
-	reExportMap, err := r.GetReExportMap(packageName)
-	if err != nil || reExportMap == nil {
+	reExportMap, _ := r.GetReExportMap(packageName)
+	if reExportMap == nil {
 		return "", false
 	}
 
@@ -169,9 +174,13 @@ func (r *ReExportResolver) processImportFrom(node *parser.Node, packageName stri
 			// from . import something - importing from same package
 			sourceModule = packageName
 		} else {
-			// Handle deeper relative imports
+			// Handle deeper relative imports (Level 2+)
+			// Example: from ..sibling import Thing in pkg_a.sub
+			//   - Level 2: go up 2, then down to sibling -> pkg_a.sibling
 			parts := strings.Split(packageName, ".")
 			if node.Level <= len(parts) {
+				// Calculate parent package by going up (Level - 1) levels
+				// parts[:len(parts)-node.Level+1] gives us the target package level
 				parentPkg := strings.Join(parts[:len(parts)-node.Level+1], ".")
 				if module != "" {
 					sourceModule = parentPkg + "." + module
@@ -179,6 +188,8 @@ func (r *ReExportResolver) processImportFrom(node *parser.Node, packageName stri
 					sourceModule = parentPkg
 				}
 			}
+			// If Level > len(parts), the relative import goes beyond the project root
+			// which is invalid - sourceModule stays empty and we skip this re-export
 		}
 	} else {
 		// Absolute import - check if it's re-exporting from within the same package

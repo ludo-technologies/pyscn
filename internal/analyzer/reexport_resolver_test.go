@@ -255,6 +255,81 @@ func TestReExportResolverLevel2RelativeImport(t *testing.T) {
 	}
 }
 
+func TestReExportResolverLevel3RelativeImport(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create deeply nested package structure:
+	// root/__init__.py: (empty)
+	// root/pkg_a/__init__.py: (empty)
+	// root/pkg_a/sub/__init__.py: (empty)
+	// root/pkg_a/sub/deep/__init__.py: from ...sibling import Thing (Level 3)
+	// root/pkg_a/sibling.py: class Thing: pass
+	rootDir := filepath.Join(dir, "root")
+	pkgADir := filepath.Join(rootDir, "pkg_a")
+	subDir := filepath.Join(pkgADir, "sub")
+	deepDir := filepath.Join(subDir, "deep")
+	if err := os.MkdirAll(deepDir, 0o755); err != nil {
+		t.Fatalf("failed to create directories: %v", err)
+	}
+
+	// Create __init__.py files
+	for _, d := range []string{rootDir, pkgADir, subDir} {
+		if err := os.WriteFile(filepath.Join(d, "__init__.py"), []byte(""), 0o644); err != nil {
+			t.Fatalf("failed to write __init__.py in %s: %v", d, err)
+		}
+	}
+
+	// Sibling module at pkg_a level
+	if err := os.WriteFile(filepath.Join(pkgADir, "sibling.py"), []byte("class Thing: pass\n"), 0o644); err != nil {
+		t.Fatalf("failed to write sibling.py: %v", err)
+	}
+
+	// Deep package with level 3 relative import
+	initContent := `from ...sibling import Thing
+`
+	if err := os.WriteFile(filepath.Join(deepDir, "__init__.py"), []byte(initContent), 0o644); err != nil {
+		t.Fatalf("failed to write deep/__init__.py: %v", err)
+	}
+
+	resolver := NewReExportResolver(dir)
+
+	// from ...sibling in root.pkg_a.sub.deep means:
+	// go up 3 levels -> root.pkg_a, then .sibling -> root.pkg_a.sibling
+	sourceModule, found := resolver.ResolveReExport("root.pkg_a.sub.deep", "Thing")
+	if !found {
+		t.Fatal("expected to find Thing in root.pkg_a.sub.deep re-exports (level 3 relative import)")
+	}
+	if sourceModule != "root.pkg_a.sibling" {
+		t.Fatalf("expected source module 'root.pkg_a.sibling', got '%s'", sourceModule)
+	}
+}
+
+func TestReExportResolverLevelExceedsDepth(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create shallow package with too-deep relative import:
+	// pkg_a/__init__.py: from ...too_deep import Thing (Level 3, but only 1 level deep)
+	pkgDir := filepath.Join(dir, "pkg_a")
+	if err := os.MkdirAll(pkgDir, 0o755); err != nil {
+		t.Fatalf("failed to create pkg_a directory: %v", err)
+	}
+
+	// This import is invalid - goes beyond project root
+	initContent := `from ...too_deep import Thing
+`
+	if err := os.WriteFile(filepath.Join(pkgDir, "__init__.py"), []byte(initContent), 0o644); err != nil {
+		t.Fatalf("failed to write __init__.py: %v", err)
+	}
+
+	resolver := NewReExportResolver(dir)
+
+	// Should NOT find this re-export since level (3) > package depth (1)
+	_, found := resolver.ResolveReExport("pkg_a", "Thing")
+	if found {
+		t.Fatal("expected re-export to NOT be found when level exceeds package depth")
+	}
+}
+
 func TestReExportResolverWithAlias(t *testing.T) {
 	dir := t.TempDir()
 
