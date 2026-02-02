@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.3] - 2026-02-03
+
+### Fixed
+- Detect circular dependencies through `__init__.py` re-exports (#318)
+
+### Changed
+- Bump the go-dependencies group with 2 updates (#307)
+
 ## [1.9.2] - 2026-02-01
 
 ### Fixed
