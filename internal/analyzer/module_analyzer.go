@@ -22,6 +22,9 @@ type ModuleAnalyzer struct {
 	resolvedModules map[string]string // module name -> file path
 	packageCache    map[string]bool   // package name -> is valid package
 
+	// Re-export resolution
+	reExportResolver *ReExportResolver // Resolves re-exports in __init__.py files
+
 	// Analysis options
 	includeStdLib     bool
 	includeThirdParty bool
@@ -77,6 +80,7 @@ func NewModuleAnalyzer(options *ModuleAnalysisOptions) (*ModuleAnalyzer, error) 
 		pythonPath:        append([]string{absRoot}, options.PythonPath...),
 		resolvedModules:   make(map[string]string),
 		packageCache:      make(map[string]bool),
+		reExportResolver:  NewReExportResolver(absRoot),
 		includeStdLib:     options.IncludeStdLib,
 		includeThirdParty: options.IncludeThirdParty,
 		followRelative:    options.FollowRelative,
@@ -203,11 +207,19 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 		targetModule := ma.resolveImport(imp, filePath)
 		if targetModule != "" && ma.shouldIncludeDependency(targetModule) {
 			// Skip dependencies from __init__.py to its own submodules
-			// This is a common Python pattern for re-exporting
+			// This is a common Python pattern for re-exporting (internal structure)
 			if strings.HasSuffix(filePath, "__init__.py") {
 				// Check if target is a submodule of the current package
 				if strings.HasPrefix(targetModule, moduleName+".") {
 					continue // Skip this dependency
+				}
+			}
+
+			// For "from package import name" style imports, resolve through re-exports
+			// to find the actual source module
+			if len(imp.ImportedNames) > 0 && !imp.IsRelative {
+				if resolvedModule, found := ma.reExportResolver.ResolveReExport(targetModule, imp.ImportedNames[0]); found {
+					targetModule = resolvedModule
 				}
 			}
 
@@ -274,7 +286,11 @@ func (ma *ModuleAnalyzer) collectModuleImports(ast *parser.Node, filePath string
 			module := node.Module
 			level := ma.calculateRelativeLevel(node.Module)
 
+			// Get imported names - they can be in node.Names or in child Alias nodes
 			var importedNames []string
+			if len(node.Names) > 0 {
+				importedNames = append(importedNames, node.Names...)
+			}
 			for _, child := range node.Children {
 				if child.Type == parser.NodeAlias {
 					importedNames = append(importedNames, child.Name)
