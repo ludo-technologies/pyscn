@@ -212,3 +212,112 @@ func TestReExportResolverNestedPackage(t *testing.T) {
 		t.Fatalf("expected source module 'pkg_a.sub.impl', got '%s'", sourceModule)
 	}
 }
+
+func TestReExportResolverLevel2RelativeImport(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create nested package structure:
+	// pkg_a/__init__.py: (empty)
+	// pkg_a/sub/__init__.py: from ..sibling import Thing (Level 2 relative import)
+	// pkg_a/sibling.py: class Thing: pass
+	pkgADir := filepath.Join(dir, "pkg_a")
+	subDir := filepath.Join(pkgADir, "sub")
+	if err := os.MkdirAll(subDir, 0o755); err != nil {
+		t.Fatalf("failed to create directories: %v", err)
+	}
+
+	// Parent package
+	if err := os.WriteFile(filepath.Join(pkgADir, "__init__.py"), []byte(""), 0o644); err != nil {
+		t.Fatalf("failed to write pkg_a/__init__.py: %v", err)
+	}
+
+	// Sibling module
+	if err := os.WriteFile(filepath.Join(pkgADir, "sibling.py"), []byte("class Thing: pass\n"), 0o644); err != nil {
+		t.Fatalf("failed to write sibling.py: %v", err)
+	}
+
+	// Sub-package with level 2 relative import (from .. import sibling)
+	initContent := `from ..sibling import Thing
+`
+	if err := os.WriteFile(filepath.Join(subDir, "__init__.py"), []byte(initContent), 0o644); err != nil {
+		t.Fatalf("failed to write sub/__init__.py: %v", err)
+	}
+
+	resolver := NewReExportResolver(dir)
+
+	sourceModule, found := resolver.ResolveReExport("pkg_a.sub", "Thing")
+	if !found {
+		t.Fatal("expected to find Thing in pkg_a.sub re-exports (level 2 relative import)")
+	}
+	// from ..sibling means: go up 2 levels from pkg_a.sub -> pkg_a, then .sibling -> pkg_a.sibling
+	if sourceModule != "pkg_a.sibling" {
+		t.Fatalf("expected source module 'pkg_a.sibling', got '%s'", sourceModule)
+	}
+}
+
+func TestReExportResolverWithAlias(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create package with aliased re-export:
+	// pkg_a/__init__.py: from .module_x import OriginalClass as AliasedClass
+	pkgDir := filepath.Join(dir, "pkg_a")
+	if err := os.MkdirAll(pkgDir, 0o755); err != nil {
+		t.Fatalf("failed to create pkg_a directory: %v", err)
+	}
+
+	initContent := `from .module_x import OriginalClass as AliasedClass
+`
+	if err := os.WriteFile(filepath.Join(pkgDir, "__init__.py"), []byte(initContent), 0o644); err != nil {
+		t.Fatalf("failed to write __init__.py: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(pkgDir, "module_x.py"), []byte("class OriginalClass: pass\n"), 0o644); err != nil {
+		t.Fatalf("failed to write module_x.py: %v", err)
+	}
+
+	resolver := NewReExportResolver(dir)
+
+	// Should find AliasedClass (the alias name)
+	sourceModule, found := resolver.ResolveReExport("pkg_a", "AliasedClass")
+	if !found {
+		t.Fatal("expected to find AliasedClass in pkg_a re-exports")
+	}
+	if sourceModule != "pkg_a.module_x" {
+		t.Fatalf("expected source module 'pkg_a.module_x', got '%s'", sourceModule)
+	}
+
+	// OriginalClass should NOT be found (it's aliased)
+	_, found = resolver.ResolveReExport("pkg_a", "OriginalClass")
+	if found {
+		t.Fatal("expected OriginalClass to NOT be found (it's exported as AliasedClass)")
+	}
+}
+
+func TestReExportResolverWildcardNotSupported(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create package with wildcard re-export:
+	// pkg_a/__init__.py: from .module_x import *
+	pkgDir := filepath.Join(dir, "pkg_a")
+	if err := os.MkdirAll(pkgDir, 0o755); err != nil {
+		t.Fatalf("failed to create pkg_a directory: %v", err)
+	}
+
+	initContent := `from .module_x import *
+`
+	if err := os.WriteFile(filepath.Join(pkgDir, "__init__.py"), []byte(initContent), 0o644); err != nil {
+		t.Fatalf("failed to write __init__.py: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(pkgDir, "module_x.py"), []byte("class SomeClass: pass\n"), 0o644); err != nil {
+		t.Fatalf("failed to write module_x.py: %v", err)
+	}
+
+	resolver := NewReExportResolver(dir)
+
+	// Wildcard imports are not tracked - should NOT find any re-exports
+	_, found := resolver.ResolveReExport("pkg_a", "SomeClass")
+	if found {
+		t.Fatal("expected wildcard re-exports to NOT be tracked")
+	}
+}

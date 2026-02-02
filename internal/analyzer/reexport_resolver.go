@@ -195,44 +195,36 @@ func (r *ReExportResolver) processImportFrom(node *parser.Node, packageName stri
 	}
 
 	// Process each imported name
+	// For aliased imports like "from .module import X as Y":
+	//   - node.Names contains [X] (original name)
+	//   - node.Children contains Alias node with Name="X", Value="Y" (alias)
 	for _, name := range node.Names {
 		if name == "*" {
 			// Wildcard import - we can't track individual names without parsing the source module
+			// NOTE: Wildcard re-exports are not supported
 			continue
 		}
 
 		// Check for aliases in the children (Alias nodes)
-		alias := name
+		exportedName := name
 		sourceName := name
 		for _, child := range node.Children {
-			if child.Type == parser.NodeAlias && child.Name != "" {
-				// Found an aliased import
-				if originalName := r.getAliasOriginalName(child); originalName == name || child.Name == name {
-					if originalName != "" && child.Name != "" && originalName != child.Name {
-						// This is an aliased import: from .module import OriginalName as Alias
-						sourceName = originalName
-						alias = child.Name
-					}
-					break
+			if child.Type == parser.NodeAlias && child.Name == name {
+				// Found the Alias node for this import
+				// child.Name is the original name, child.Value is the alias (if any)
+				if aliasName, ok := child.Value.(string); ok && aliasName != "" {
+					exportedName = aliasName
 				}
+				break
 			}
 		}
 
-		exports[alias] = &ReExportEntry{
-			Name:         alias,
+		exports[exportedName] = &ReExportEntry{
+			Name:         exportedName,
 			SourceModule: sourceModule,
 			SourceName:   sourceName,
 		}
 	}
-}
-
-// getAliasOriginalName gets the original name from an Alias node
-func (r *ReExportResolver) getAliasOriginalName(node *parser.Node) string {
-	// The Value field may contain the original name for aliased imports
-	if val, ok := node.Value.(string); ok && val != "" {
-		return val
-	}
-	return node.Name
 }
 
 // extractAllDeclaration extracts names from __all__ = [...] assignment
