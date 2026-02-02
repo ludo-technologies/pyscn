@@ -52,7 +52,7 @@ func NewSyntacticSimilarityAnalyzerWithOptions(ignoreLiterals, ignoreIdentifiers
 // using Jaccard coefficient of normalized AST hash sets.
 // It ignores differences in identifier names and literal values, focusing only
 // on the structural syntax pattern.
-func (s *SyntacticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) float64 {
+func (s *SyntacticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment, calc *TFIDFCalculator) float64 {
 	if f1 == nil || f2 == nil {
 		return 0.0
 	}
@@ -66,15 +66,17 @@ func (s *SyntacticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) fl
 	}
 
 	// Extract normalized feature sets
-	features1, err1 := s.extractor.ExtractFeatures(tree1)
-	features2, err2 := s.extractor.ExtractFeatures(tree2)
+	features1, _ := s.extractor.ExtractFeatures(tree1)
+    features2, _ := s.extractor.ExtractFeatures(tree2)
 
-	if err1 != nil || err2 != nil {
-		return 0.0
-	}
+    // Use TF-IDF + Cosine if calculator is provided and feature is enabled
+    if calc != nil {
+        v1 := calc.ToWeightedVector(features1)
+        v2 := calc.ToWeightedVector(features2)
+        return CosineSimilarity(v1, v2)
+    }
 
-	// Compute Jaccard similarity
-	return jaccardSimilarity(features1, features2)
+    return jaccardSimilarity(features1, features2)
 }
 
 // ComputeDistance computes the syntactic distance between two code fragments.
@@ -84,7 +86,7 @@ func (s *SyntacticSimilarityAnalyzer) ComputeDistance(f1, f2 *CodeFragment) floa
 	if f1 == nil || f2 == nil {
 		return 0.0
 	}
-	return 1.0 - s.ComputeSimilarity(f1, f2)
+	return 1.0 - s.ComputeSimilarity(f1, f2, nil)
 }
 
 // jaccardSimilarity computes the Jaccard coefficient between two string sets.

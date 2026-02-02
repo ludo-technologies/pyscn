@@ -201,6 +201,8 @@ type CloneDetectorConfig struct {
 	// Framework pattern handling (reduces false positives for dataclass, Pydantic, etc.)
 	ReduceBoilerplateSimilarity bool    // Apply lower weight to boilerplate nodes (default: true)
 	BoilerplateMultiplier       float64 // Cost multiplier for boilerplate nodes (default: 0.1)
+
+	UseTFIDF 	bool
 }
 
 // DefaultCloneDetectorConfig returns default configuration
@@ -258,6 +260,8 @@ type CloneDetector struct {
 	fragments   []*CodeFragment
 	clonePairs  []*ClonePair
 	cloneGroups []*CloneGroup
+
+	tfidfCalculator *TFIDFCalculator
 }
 
 // NewCloneDetector creates a new clone detector with the given configuration
@@ -549,15 +553,34 @@ func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments 
 	// Convert AST fragments to tree nodes
 	cd.prepareFragments()
 
-	// Check for cancellation after preparation
-	if isCancelled(ctx) {
-		return cd.clonePairs, cd.cloneGroups
+
+	// Pass 1: TF-IDF Pre-computation
+	if cd.cloneDetectorConfig.UseTFIDF {
+		calc := &TFIDFCalculator{
+			DocumentFrequency: make(map[string]int),
+			TotalDocuments:    len(fragments),
+		}
+		extractor := NewASTFeatureExtractor() // Use default options for scanning
+		for _, f := range fragments {
+			if f.TreeNode != nil {
+				features, _ := extractor.ExtractFeatures(f.TreeNode)
+				// Deduplicate features per "document" for DF calculation
+				uniqueFeatures := make(map[string]struct{})
+				for _, feat := range features {
+					uniqueFeatures[feat] = struct{}{}
+				}
+				for feat := range uniqueFeatures {
+					calc.DocumentFrequency[feat]++
+				}
+			}
+		}
+		cd.tfidfCalculator = calc
 	}
 
-	// Detect clone pairs with context
-	cd.detectClonePairsWithContext(ctx)
+	// Pass 2 : Detection (use weights from pass 1)
+	cd.detectClonePairsWithContext(ctx) 
 
-	// Check for cancellation before grouping
+	// Check for cancellation after preparation
 	if isCancelled(ctx) {
 		return cd.clonePairs, cd.cloneGroups
 	}
@@ -921,7 +944,7 @@ func (cd *CloneDetector) compareFragments(fragment1, fragment2 *CodeFragment) *C
 
 // compareFragmentsWithClassifier uses multi-dimensional classification
 func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *CodeFragment) *ClonePair {
-	result := cd.classifier.ClassifyClone(fragment1, fragment2)
+	result := cd.classifier.ClassifyClone(fragment1, fragment2, cd.tfidfCalculator)
 	if result == nil {
 		return nil
 	}
@@ -930,7 +953,7 @@ func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *Co
 	// This ensures consistent, continuous similarity scores
 	// The classifier result is only used for clone type classification
 	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
-	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
+	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode, cd.tfidfCalculator)
 
 	return &ClonePair{
 		Fragment1:  fragment1,
@@ -946,7 +969,7 @@ func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *Co
 func (cd *CloneDetector) compareFragmentsSingleMetric(fragment1, fragment2 *CodeFragment) *ClonePair {
 	// Compute edit distance and similarity using APTED algorithm
 	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
-	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
+	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode, cd.tfidfCalculator)
 
 	// Determine clone type based on similarity
 	cloneType := cd.classifyCloneType(similarity, distance)

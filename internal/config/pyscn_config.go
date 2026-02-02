@@ -155,6 +155,9 @@ type CloneAnalysisConfig struct {
 
 	// Advanced analysis
 	EnableDFA *bool `mapstructure:"enable_dfa" yaml:"enable_dfa" json:"enable_dfa"` // Data Flow Analysis for Type-4
+
+	// TF-IDF toggle
+	UseTFIDF bool `mapstructure:"use_tfidf" yaml:"use_tfidf" json:"use_tfidf"`
 }
 
 // ThresholdConfig holds similarity thresholds for different clone types
@@ -264,6 +267,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 			SkipDocstrings:    domain.BoolPtr(true),
 			CostModelType:     "python",
 			EnableDFA:         domain.BoolPtr(true), // Enable Data Flow Analysis by default for multi-dimensional classification
+			UseTFIDF: 		   false, //default to traditional jaccard
 		},
 		Thresholds: ThresholdConfig{
 			Type1Threshold:      domain.DefaultType1CloneThreshold,

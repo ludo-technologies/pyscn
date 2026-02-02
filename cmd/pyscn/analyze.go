@@ -30,6 +30,8 @@ type AnalyzeCommand struct {
 	configFile string
 	verbose    bool
 
+	UseTFIDF bool
+
 	// Analysis selection
 	skipComplexity bool
 	skipDeadCode   bool
@@ -74,6 +76,7 @@ func NewAnalyzeCommand() *AnalyzeCommand {
 		enableDFA:       true,
 		detectCycles:    true,
 		validateArch:    true,
+		UseTFIDF:		 false,
 	}
 }
 
@@ -135,7 +138,10 @@ Examples:
 	cmd.Flags().Float64Var(&c.cloneSimilarity, "clone-threshold", 0.9, "Minimum similarity for clone detection (0.0-1.0)")
 	cmd.Flags().IntVar(&c.minCBO, "min-cbo", 0, "Minimum CBO to report")
 
-	return cmd
+	// Use TF-IDF flag
+	cmd.Flags().BoolVar(&c.UseTFIDF, "use-tfidf", false, "Use TF-IDF + Cosine Similarity for Type-2 clone detection")
+
+    return cmd
 }
 
 // runAnalyze executes the comprehensive analysis using the clean architecture
@@ -187,6 +193,7 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		CloneSimilarity: c.cloneSimilarity,
 		MinCBO:          c.minCBO,
 		EnableDFA:       c.enableDFA,
+		UseTFIDF:        c.UseTFIDF,
 	}
 
 	// Handle analysis selection

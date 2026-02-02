@@ -30,6 +30,8 @@ type AnalyzeUseCaseConfig struct {
 	// Clone detection options
 	EnableDFA bool // Enable Data Flow Analysis for enhanced Type-4 detection
 
+	UseTFIDF  bool 
+
 	ConfigFile string
 	Verbose    bool
 }

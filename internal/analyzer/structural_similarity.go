@@ -28,7 +28,7 @@ func NewStructuralSimilarityAnalyzerWithCostModel(costModel CostModel) *Structur
 
 // ComputeSimilarity computes the structural similarity between two code fragments
 // using APTED tree edit distance.
-func (s *StructuralSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) float64 {
+func (s *StructuralSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment, _ *TFIDFCalculator) float64 {
 	if f1 == nil || f2 == nil {
 		return 0.0
 	}
@@ -42,7 +42,7 @@ func (s *StructuralSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) f
 	}
 
 	// Compute similarity using APTED
-	return s.analyzer.ComputeSimilarity(tree1, tree2)
+	return s.analyzer.ComputeSimilarity(tree1, tree2, nil)
 }
 
 // ComputeDistance computes the edit distance between two code fragments.

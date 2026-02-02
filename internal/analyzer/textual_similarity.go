@@ -45,7 +45,7 @@ func NewTextualSimilarityAnalyzerWithConfig(config *TextualSimilarityConfig) *Te
 // ComputeSimilarity computes the textual similarity between two code fragments.
 // Returns 1.0 for identical content (after normalization), or a Levenshtein-based
 // similarity score for near-matches.
-func (t *TextualSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) float64 {
+func (t *TextualSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment, _ *TFIDFCalculator) float64 {
 	if f1 == nil || f2 == nil {
 		return 0.0
 	}

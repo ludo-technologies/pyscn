@@ -187,7 +187,7 @@ func (c *CentroidGrouping) calculateSimilarity(f1, f2 *CodeFragment) float64 {
 	if f1 == nil || f2 == nil || f1.TreeNode == nil || f2.TreeNode == nil {
 		return 0.0
 	}
-	return c.analyzer.ComputeSimilarity(f1.TreeNode, f2.TreeNode)
+	return c.analyzer.ComputeSimilarity(f1.TreeNode, f2.TreeNode, nil)
 }
 
 // calculateGroupSimilarity calculates average similarity within a group

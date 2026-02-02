@@ -4,7 +4,7 @@ package analyzer
 // Each clone type should have its own analyzer implementation.
 type SimilarityAnalyzer interface {
 	// ComputeSimilarity returns a similarity score between 0.0 and 1.0
-	ComputeSimilarity(fragment1, fragment2 *CodeFragment) float64
+	ComputeSimilarity(f1, f2 *CodeFragment, calc *TFIDFCalculator) float64
 
 	// GetName returns the name of this analyzer
 	GetName() string
@@ -88,7 +88,7 @@ type ClassificationResult struct {
 // ClassifyClone determines the clone type using cascading analysis.
 // It returns the clone type, similarity score, and confidence.
 // Classification order: Type-1 (fastest) -> Type-2 -> Type-3 -> Type-4 (slowest)
-func (c *CloneClassifier) ClassifyClone(f1, f2 *CodeFragment) *ClassificationResult {
+func (c *CloneClassifier) ClassifyClone(f1, f2 *CodeFragment, calc *TFIDFCalculator) *ClassificationResult {
 	// Early validation
 	if f1 == nil || f2 == nil {
 		return nil
@@ -96,7 +96,7 @@ func (c *CloneClassifier) ClassifyClone(f1, f2 *CodeFragment) *ClassificationRes
 
 	// Step 1: Type-1 check (textual comparison - fastest)
 	if c.textualAnalyzer != nil && c.enableTextualAnalysis {
-		textualSim := c.textualAnalyzer.ComputeSimilarity(f1, f2)
+		textualSim := c.textualAnalyzer.ComputeSimilarity(f1, f2, calc)
 		if textualSim >= c.type1Threshold {
 			return &ClassificationResult{
 				CloneType:  Type1Clone,
@@ -109,7 +109,7 @@ func (c *CloneClassifier) ClassifyClone(f1, f2 *CodeFragment) *ClassificationRes
 
 	// Step 2: Type-2 check (syntactic with normalization)
 	if c.syntacticAnalyzer != nil {
-		syntacticSim := c.syntacticAnalyzer.ComputeSimilarity(f1, f2)
+		syntacticSim := c.syntacticAnalyzer.ComputeSimilarity(f1, f2, calc)
 		if syntacticSim >= c.type2Threshold {
 			return &ClassificationResult{
 				CloneType:  Type2Clone,
@@ -124,7 +124,7 @@ func (c *CloneClassifier) ClassifyClone(f1, f2 *CodeFragment) *ClassificationRes
 	// Cache the structural similarity for potential reuse in fallback
 	var structuralSim float64
 	if c.structuralAnalyzer != nil {
-		structuralSim = c.structuralAnalyzer.ComputeSimilarity(f1, f2)
+		structuralSim = c.structuralAnalyzer.ComputeSimilarity(f1, f2, calc)
 		if structuralSim >= c.type3Threshold {
 			return &ClassificationResult{
 				CloneType:  Type3Clone,
@@ -137,7 +137,7 @@ func (c *CloneClassifier) ClassifyClone(f1, f2 *CodeFragment) *ClassificationRes
 
 	// Step 4: Type-4 check (semantic/CFG - slowest)
 	if c.semanticAnalyzer != nil && c.enableSemanticAnalysis {
-		semanticSim := c.semanticAnalyzer.ComputeSimilarity(f1, f2)
+		semanticSim := c.semanticAnalyzer.ComputeSimilarity(f1, f2, calc)
 		if semanticSim >= c.type4Threshold {
 			return &ClassificationResult{
 				CloneType:  Type4Clone,
@@ -165,7 +165,7 @@ func (c *CloneClassifier) ClassifyClone(f1, f2 *CodeFragment) *ClassificationRes
 // ClassifyCloneSimple is a simplified version that returns just CloneType, similarity, and confidence.
 // This is for backward compatibility with existing code.
 func (c *CloneClassifier) ClassifyCloneSimple(f1, f2 *CodeFragment) (CloneType, float64, float64) {
-	result := c.ClassifyClone(f1, f2)
+	result := c.ClassifyClone(f1, f2, nil)
 	if result == nil {
 		return 0, 0.0, 0.0
 	}

@@ -419,7 +419,7 @@ func (a *APTEDAnalyzer) computeDeleteCostWithDepthLimit(root *TreeNode, maxDepth
 }
 
 // ComputeSimilarity computes similarity score between two trees (0.0 to 1.0)
-func (a *APTEDAnalyzer) ComputeSimilarity(tree1, tree2 *TreeNode) float64 {
+func (a *APTEDAnalyzer) ComputeSimilarity(tree1, tree2 *TreeNode, _ *TFIDFCalculator) float64 {
 	// Handle nil cases
 	if tree1 == nil && tree2 == nil {
 		return 1.0 // Identical (both empty)
@@ -469,7 +469,7 @@ type TreeEditResult struct {
 // ComputeDetailedDistance computes detailed tree edit distance information
 func (a *APTEDAnalyzer) ComputeDetailedDistance(tree1, tree2 *TreeNode) *TreeEditResult {
 	distance := a.ComputeDistance(tree1, tree2)
-	similarity := a.ComputeSimilarity(tree1, tree2)
+	similarity := a.ComputeSimilarity(tree1, tree2, nil)
 
 	var size1, size2 int
 	if tree1 != nil {
