@@ -313,13 +313,13 @@ func TestServiceLocatorDetector(t *testing.T) {
 		wantFindings int
 	}{
 		{
-			name: "container.get",
+			name: "container.get should not be detected (false positive prevention)",
 			code: `
 class Service:
     def __init__(self):
         self.logger = container.get("logger")
 `,
-			wantFindings: 1,
+			wantFindings: 0, // .get() is too generic, excluded to avoid dict.get() false positives
 		},
 		{
 			name: "resolve function",
@@ -373,17 +373,12 @@ func TestDIAntipatternDetector_Integration(t *testing.T) {
 	code := `
 _global_config = {}
 
-class Container:
-    @classmethod
-    def get(cls, name):
-        return None
-
 class BadService:
     _instance = None
 
     def __init__(self, a, b, c, d, e, f, repo: ConcreteRepo):
         global _global_config
-        self.logger = Container.get("logger")
+        self.logger = resolve("logger")
         self.helper = Helper()
 `
 	p := parser.New()

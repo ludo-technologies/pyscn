@@ -216,6 +216,7 @@ const (
 )
 
 // ServiceLocatorMethodNames returns the method names that indicate service locator pattern
+// Note: Generic .get() methods are excluded to avoid false positives with dict.get() etc.
 func ServiceLocatorMethodNames() []string {
 	return []string{
 		"get_service",
@@ -226,10 +227,6 @@ func ServiceLocatorMethodNames() []string {
 		"get_dependency",
 		"get_bean",
 		"inject",
-		"container.get",
-		"locator.get",
-		"registry.get",
-		"ioc.resolve",
 	}
 }
 

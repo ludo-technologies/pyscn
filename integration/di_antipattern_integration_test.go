@@ -281,19 +281,15 @@ func TestDIAntipatternDetection_ServiceLocator(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Create test file with service locator patterns
+	// Note: Container.get() is excluded to avoid dict.get() false positives
 	testFile := filepath.Join(tempDir, "service_locator.py")
 	content := `
-class Container:
-    @classmethod
-    def get(cls, name):
-        return None
-
 class ServiceLocatorUser:
-    def __init__(self):
-        self.logger = Container.get("logger")
-
     def process(self):
         return resolve("executor")
+
+    def get_instance(self):
+        return locate("service")
 
 class GlobalLocatorUser:
     def __init__(self):
@@ -348,6 +344,7 @@ class GlobalLocatorUser:
 		}
 	}
 
+	// We expect 3 service locator findings: resolve, locate, get_service
 	if serviceLocatorCount < 3 {
 		t.Errorf("Expected at least 3 service locator findings, got %d", serviceLocatorCount)
 	}

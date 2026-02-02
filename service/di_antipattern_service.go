@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -82,6 +84,11 @@ func (s *DIAntipatternServiceImpl) analyzeFile(ctx context.Context, filePath str
 	var warnings []string
 	var errors []string
 
+	// Skip test files by default
+	if s.isTestFile(filePath) {
+		return findings, warnings, errors
+	}
+
 	// Read the file
 	content, err := s.readFile(filePath)
 	if err != nil {
@@ -141,4 +148,36 @@ func (s *DIAntipatternServiceImpl) buildConfigForResponse(req domain.DIAntipatte
 // readFile reads file content
 func (s *DIAntipatternServiceImpl) readFile(filePath string) ([]byte, error) {
 	return os.ReadFile(filePath)
+}
+
+// isTestFile checks if the file is a test file that should be skipped
+func (s *DIAntipatternServiceImpl) isTestFile(filePath string) bool {
+	baseName := filepath.Base(filePath)
+	dir := filepath.Dir(filePath)
+
+	// Check file name patterns: test_*.py, *_test.py
+	if strings.HasPrefix(baseName, "test_") && strings.HasSuffix(baseName, ".py") {
+		return true
+	}
+	if strings.HasSuffix(baseName, "_test.py") {
+		return true
+	}
+
+	// Check special files: conftest.py
+	if baseName == "conftest.py" {
+		return true
+	}
+
+	// Check directory patterns: tests/, test/, testing/, __tests__/
+	testDirs := []string{"tests", "test", "testing", "__tests__"}
+	dirParts := strings.Split(dir, string(filepath.Separator))
+	for _, part := range dirParts {
+		for _, testDir := range testDirs {
+			if part == testDir {
+				return true
+			}
+		}
+	}
+
+	return false
 }

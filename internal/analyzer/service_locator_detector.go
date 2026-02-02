@@ -343,16 +343,11 @@ func (d *ServiceLocatorDetector) isKnownLocatorPattern(fullCall string) bool {
 		}
 	}
 
-	// Additional common patterns
+	// Additional common patterns (excluding generic .get() which causes false positives)
 	commonPatterns := []string{
-		"container.get",
 		"container.resolve",
-		"locator.get",
 		"locator.resolve",
-		"registry.get",
 		"ioc.resolve",
-		"injector.get",
-		"services.get",
 	}
 
 	for _, pattern := range commonPatterns {
