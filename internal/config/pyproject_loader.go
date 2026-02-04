@@ -510,3 +510,31 @@ func findPyprojectToml(startDir string) (string, error) {
 
 	return "", os.ErrNotExist
 }
+
+// LoadPyprojectConfigFromFile loads configuration from a specific pyproject.toml file path
+func LoadPyprojectConfigFromFile(filePath string) (*PyscnConfig, error) {
+	// Read and parse pyproject.toml
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var pyproject PyprojectToml
+	if err := toml.Unmarshal(data, &pyproject); err != nil {
+		return nil, err
+	}
+
+	// Merge with defaults using shared merge logic
+	config := DefaultPyscnConfig()
+	mergeComplexitySection(config, &pyproject.Tool.Pyscn.Complexity)
+	mergeDeadCodeSection(config, &pyproject.Tool.Pyscn.DeadCode)
+	mergeOutputSection(config, &pyproject.Tool.Pyscn.Output)
+	mergeAnalysisSection(config, &pyproject.Tool.Pyscn.Analysis)
+	mergeCboSection(config, &pyproject.Tool.Pyscn.Cbo)
+	mergeArchitectureSection(config, &pyproject.Tool.Pyscn.Architecture)
+	mergeSystemAnalysisSection(config, &pyproject.Tool.Pyscn.SystemAnalysis)
+	mergeDependenciesSection(config, &pyproject.Tool.Pyscn.Dependencies)
+	mergeClonesSection(config, &pyproject.Tool.Pyscn.Clones)
+
+	return config, nil
+}

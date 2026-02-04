@@ -171,11 +171,17 @@ type AnalysisTask struct {
 }
 
 // Execute performs comprehensive analysis
-func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConfig, paths []string) (*domain.AnalyzeResponse, error) {
+func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string) (*domain.AnalyzeResponse, error) {
 	startTime := time.Now()
 
+	// If no config file specified, discover one from target paths
+	if useCaseCfg.ConfigFile == "" && len(paths) > 0 {
+		tomlLoader := config.NewTomlConfigLoader()
+		useCaseCfg.ConfigFile = tomlLoader.FindConfigFileFromPath(paths[0])
+	}
+
 	// Load configuration to get file patterns and recursive setting
-	includePatterns, excludePatterns, recursive, patternErr := uc.getFilePatterns(config.ConfigFile, paths)
+	includePatterns, excludePatterns, recursive, patternErr := uc.getFilePatterns(useCaseCfg.ConfigFile, paths)
 	if patternErr != nil {
 		return nil, patternErr
 	}
@@ -196,7 +202,7 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 	}
 
 	// Calculate estimated time based on file count and enabled analyses
-	estimatedTime := uc.calculateEstimatedTime(len(files), config, paths)
+	estimatedTime := uc.calculateEstimatedTime(len(files), useCaseCfg, paths)
 
 	// Start unified progress tracking with time-based estimation
 	var progressDone chan struct{}
@@ -206,7 +212,7 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 	}
 
 	// Create analysis tasks
-	tasks := uc.createAnalysisTasks(config, files)
+	tasks := uc.createAnalysisTasks(useCaseCfg, files)
 
 	// Execute tasks in parallel
 	var wg sync.WaitGroup

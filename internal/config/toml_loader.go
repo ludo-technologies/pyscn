@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -229,7 +230,20 @@ func NewTomlConfigLoader() *TomlConfigLoader {
 // 1. .pyscn.toml (dedicated config file)
 // 2. pyproject.toml (with [tool.pyscn] section)
 // 3. defaults
-func (l *TomlConfigLoader) LoadConfig(startDir string) (*PyscnConfig, error) {
+//
+// The path parameter can be either:
+// - A direct file path (e.g., "/path/to/config.toml") - will load that file directly
+// - A directory path - will search for .pyscn.toml or pyproject.toml
+func (l *TomlConfigLoader) LoadConfig(path string) (*PyscnConfig, error) {
+	// Check if path is a file or directory
+	if info, err := os.Stat(path); err == nil && !info.IsDir() {
+		// Direct file path specified - load it directly
+		return l.loadFromFile(path)
+	}
+
+	// Path is a directory (or doesn't exist) - search for config files
+	startDir := path
+
 	// Try .pyscn.toml first (highest priority)
 	if config, err := l.loadFromPyscnToml(startDir); err == nil {
 		return config, nil
@@ -242,6 +256,34 @@ func (l *TomlConfigLoader) LoadConfig(startDir string) (*PyscnConfig, error) {
 
 	// Return defaults if no config found
 	return DefaultPyscnConfig(), nil
+}
+
+// loadFromFile loads configuration from a specific file path
+func (l *TomlConfigLoader) loadFromFile(filePath string) (*PyscnConfig, error) {
+	// Determine file type by name
+	baseName := filepath.Base(filePath)
+
+	if baseName == "pyproject.toml" || strings.HasSuffix(baseName, "pyproject.toml") {
+		// Load as pyproject.toml
+		return LoadPyprojectConfigFromFile(filePath)
+	}
+
+	// Load as .pyscn.toml (or any other TOML config)
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var config PyscnTomlConfig
+	if err := toml.Unmarshal(data, &config); err != nil {
+		return nil, err
+	}
+
+	// Merge with defaults
+	defaults := DefaultPyscnConfig()
+	l.mergePyscnTomlConfigs(defaults, &config)
+
+	return defaults, nil
 }
 
 // loadFromPyprojectToml loads config from pyproject.toml
@@ -302,6 +344,71 @@ func (l *TomlConfigLoader) findPyscnToml(startDir string) (string, error) {
 	}
 
 	return "", os.ErrNotExist
+}
+
+// FindConfigFileFromPath searches for a config file starting from the given path
+// and walking up the directory tree. It prioritizes .pyscn.toml over pyproject.toml,
+// searching for .pyscn.toml in all parent directories first before falling back to pyproject.toml.
+// If startPath is empty, it uses the current working directory.
+// Returns the path to the config file found, or empty string if none found.
+func (l *TomlConfigLoader) FindConfigFileFromPath(startPath string) string {
+	// If no path provided, use current working directory
+	if startPath == "" {
+		var err error
+		startPath, err = os.Getwd()
+		if err != nil {
+			return ""
+		}
+	}
+
+	// If path is a file, use its directory
+	if info, err := os.Stat(startPath); err == nil && !info.IsDir() {
+		startPath = filepath.Dir(startPath)
+	}
+
+	// First pass: search for .pyscn.toml (highest priority)
+	dir := startPath
+	for {
+		pyscnPath := filepath.Join(dir, ".pyscn.toml")
+		if _, err := os.Stat(pyscnPath); err == nil {
+			return pyscnPath
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+
+	// Second pass: search for pyproject.toml with [tool.pyscn] section
+	dir = startPath
+	for {
+		pyprojectPath := filepath.Join(dir, "pyproject.toml")
+		if _, err := os.Stat(pyprojectPath); err == nil {
+			// Check if it has [tool.pyscn] section
+			if hasPyscnSection(pyprojectPath) {
+				return pyprojectPath
+			}
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+
+	return ""
+}
+
+// hasPyscnSection checks if a pyproject.toml file contains [tool.pyscn] section
+func hasPyscnSection(filePath string) bool {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return false
+	}
+	return strings.Contains(string(data), "[tool.pyscn]")
 }
 
 // mergePyscnTomlConfigs merges .pyscn.toml config into defaults
