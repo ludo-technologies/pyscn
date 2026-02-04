@@ -72,6 +72,7 @@ python/src/pyscn/bin/
 # Project specific
 /testdata/temp/
 /testdata/output/
+/test-codes/
 
 # pyscn output directory
 .pyscn/
