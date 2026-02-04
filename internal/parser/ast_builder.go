@@ -778,6 +778,16 @@ func (b *ASTBuilder) buildExpressionStatement(tsNode *sitter.Node) *Node {
 			expressionNode := b.buildNode(child)
 
 			if expressionNode != nil {
+				// Special case: If the node is an assignment or constant (docstring), return it directly
+				// This handles cases where tree-sitter parses assignments as expression statements
+				// and preserves backward compatibility for docstring detection in tests.
+				if expressionNode.Type == NodeAssign ||
+					expressionNode.Type == NodeAugAssign ||
+					expressionNode.Type == NodeAnnAssign ||
+					expressionNode.Type == NodeConstant {
+					return expressionNode
+				}
+
 				// We attach it to the container
 				node.Value = expressionNode
 				node.AddChild(expressionNode)
