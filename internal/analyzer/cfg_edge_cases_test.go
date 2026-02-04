@@ -522,3 +522,221 @@ def nested_returns():
 		})
 	}
 }
+
+// TestWalrusOperatorInConditional tests support for the walrus operator (:=) in if conditions
+func TestWalrusOperatorInConditional(t *testing.T) {
+	code := `
+		def walrus_if():
+			items = [1, 2, 3]
+			if (n := len(items)) > 2:
+				return n
+			return 0
+	`
+	funcName := "walrus_if"
+
+	p := parser.New()
+	ctx := context.Background()
+	result, err := p.Parse(ctx, []byte(code))
+	require.NoError(t, err)
+
+	builder := NewCFGBuilder()
+	cfgs, err := builder.BuildAll(result.AST)
+	require.NoError(t, err)
+
+	cfg, exists := cfgs[funcName]
+	require.True(t, exists, "Function CFG should exist")
+	assert.NotNil(t, cfg)
+
+	// Verify structure
+	assert.NotNil(t, cfg.Entry)
+	assert.NotNil(t, cfg.Exit)
+
+	// Find the if block
+	var ifBlock *BasicBlock
+	for _, block := range cfg.Blocks {
+		// In the builder, the if condition usually ends a block
+		// We look for the block that has CondTrue and CondFalse edges
+		hasTrue := false
+		hasFalse := false
+		for _, edge := range block.Successors {
+			if edge.Type == EdgeCondTrue {
+				hasTrue = true
+			}
+			if edge.Type == EdgeCondFalse {
+				hasFalse = true
+			}
+		}
+		if hasTrue && hasFalse {
+			ifBlock = block
+			break
+		}
+	}
+	require.NotNil(t, ifBlock, "Should find a block with conditional edges")
+
+	// Verify the walrus operator is processed
+	foundWalrus := false
+	for _, stmt := range ifBlock.Statements {
+		stmt.Walk(func(n *parser.Node) bool {
+			if n.Type == parser.NodeNamedExpr {
+				foundWalrus = true
+				return false
+			}
+			return true
+		})
+		if foundWalrus {
+			break
+		}
+	}
+	assert.True(t, foundWalrus, "Should find named expression (walrus) in the conditional block")
+}
+
+// TestWalrusOperatorInWhile tests support for the walrus operator (:=) in while loops
+func TestWalrusOperatorInWhile(t *testing.T) {
+	code := `
+		def walrus_while():
+			data = [1, 2, 3, 0]
+			it = iter(data)
+			res = []
+			while (x := next(it)) != 0:
+				res.append(x)
+			return res
+	`
+	funcName := "walrus_while"
+
+	p := parser.New()
+	ctx := context.Background()
+	result, err := p.Parse(ctx, []byte(code))
+	require.NoError(t, err)
+
+	builder := NewCFGBuilder()
+	cfgs, err := builder.BuildAll(result.AST)
+	require.NoError(t, err)
+
+	cfg, exists := cfgs[funcName]
+	require.True(t, exists, "Function CFG should exist")
+	assert.NotNil(t, cfg)
+
+	// Find loop header
+	var loopHeader *BasicBlock
+	for _, block := range cfg.Blocks {
+		if strings.HasPrefix(block.Label, LabelLoopHeader) {
+			loopHeader = block
+			break
+		}
+	}
+
+	require.NotNil(t, loopHeader, "Should find loop header")
+
+	// The while condition contains the walrus operator.
+	// It should be present in the loop header block statements.
+	foundWalrus := false
+	for _, stmt := range loopHeader.Statements {
+		stmt.Walk(func(n *parser.Node) bool {
+			if n.Type == parser.NodeNamedExpr {
+				foundWalrus = true
+				return false
+			}
+			return true
+		})
+		if foundWalrus {
+			break
+		}
+	}
+	assert.True(t, foundWalrus, "Loop header should contain walrus operator")
+}
+
+// TestWalrusOperatorInComprehension tests support for the walrus operator (:=) in comprehensions
+func TestWalrusOperatorInComprehension(t *testing.T) {
+	code := `
+		def walrus_comp():
+			data = [1, 2, 3]
+			return [y for x in data if (y := x * 2) > 2]
+	`
+	funcName := "walrus_comp"
+
+	p := parser.New()
+	ctx := context.Background()
+	result, err := p.Parse(ctx, []byte(code))
+	require.NoError(t, err)
+
+	builder := NewCFGBuilder()
+	cfgs, err := builder.BuildAll(result.AST)
+	require.NoError(t, err)
+
+	cfg, exists := cfgs[funcName]
+	require.True(t, exists, "Function CFG should exist")
+	assert.NotNil(t, cfg)
+
+	// Comprehensions are complex.
+	// We expect to find the named expression in a block related to the comprehension filter.
+	// labels: comp_filter or similar.
+
+	foundWalrus := false
+	for _, block := range cfg.Blocks {
+		if strings.HasPrefix(block.Label, "comp_filter") {
+			for _, stmt := range block.Statements {
+				stmt.Walk(func(n *parser.Node) bool {
+					if n.Type == parser.NodeNamedExpr {
+						foundWalrus = true
+						return false
+					}
+					return true
+				})
+				if foundWalrus {
+					break
+				}
+			}
+		}
+		if foundWalrus {
+			break
+		}
+	}
+	assert.True(t, foundWalrus, "Comprehension filter should contain walrus operator")
+}
+
+// TestWalrusOperatorWithComprehension tests support for the walrus operator (:=) assigning a comprehension
+func TestWalrusOperatorWithComprehension(t *testing.T) {
+	code := `
+		def walrus_with_comp():
+			(x := [i for i in range(10)])
+			return x
+	`
+	funcName := "walrus_with_comp"
+
+	p := parser.New()
+	ctx := context.Background()
+	result, err := p.Parse(ctx, []byte(code))
+	require.NoError(t, err)
+
+	builder := NewCFGBuilder()
+	cfgs, err := builder.BuildAll(result.AST)
+	require.NoError(t, err)
+
+	cfg, exists := cfgs[funcName]
+	require.True(t, exists, "Function CFG should exist")
+	assert.NotNil(t, cfg)
+
+	// This one assigns the result of a comprehension to x.
+	// (x := [...])
+	// This is an expression statement where the expression is a named expr.
+
+	foundWalrus := false
+	for _, block := range cfg.Blocks {
+		for _, stmt := range block.Statements {
+			stmt.Walk(func(n *parser.Node) bool {
+				if n.Type == parser.NodeNamedExpr {
+					foundWalrus = true
+					return false
+				}
+				return true
+			})
+			if foundWalrus {
+				break
+			}
+		}
+		if foundWalrus {
+			break
+		}
+	}
+	assert.True(t, foundWalrus, "Should find walrus operator")
+}
