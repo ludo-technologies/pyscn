@@ -523,6 +523,52 @@ def nested_returns():
 	}
 }
 
+// TestSimpleWalrusStatement tests the detection of the walrus operator
+func TestSimpleWalrusStatement(t *testing.T) {
+	code := `
+		def simple_walrus():
+			(x := 42)
+			return x
+	`
+	funcName := "simple_walrus"
+
+	p := parser.New()
+	ctx := context.Background()
+	result, err := p.Parse(ctx, []byte(code))
+	require.NoError(t, err)
+
+	builder := NewCFGBuilder()
+	cfgs, err := builder.BuildAll(result.AST)
+	require.NoError(t, err)
+
+	cfg, exists := cfgs[funcName]
+	require.True(t, exists)
+
+	foundExpr := false
+	foundWalrus := false
+
+	// Searching for the block wich contain the instruction
+	for _, block := range cfg.Blocks {
+		for _, stmt := range block.Statements {
+			// First verification, is it a NodeExpr (the container) ?
+			if stmt.Type == parser.NodeExpr {
+				foundExpr = true
+				// Second verification, does it contain the Walrus ?
+				stmt.Walk(func(n *parser.Node) bool {
+					if n.Type == parser.NodeNamedExpr {
+						foundWalrus = true
+						return false
+					}
+					return true
+				})
+			}
+		}
+	}
+
+	assert.True(t, foundExpr, "Should have detected a NodeExpr")
+	assert.True(t, foundWalrus, "The NodeExpr should contain a NodeNamedExpr")
+}
+
 // TestWalrusOperatorInConditional tests support for the walrus operator (:=) in if conditions
 func TestWalrusOperatorInConditional(t *testing.T) {
 	code := `
@@ -667,31 +713,97 @@ func TestWalrusOperatorInComprehension(t *testing.T) {
 	require.True(t, exists, "Function CFG should exist")
 	assert.NotNil(t, cfg)
 
-	// Comprehensions are complex.
-	// We expect to find the named expression in a block related to the comprehension filter.
-	// labels: comp_filter or similar.
+	// Verify comprehension structure and walrus operator location
+	hasCompInit := false
+	hasCompHeader := false
+	hasCompFilter := false
+	hasCompBody := false
+	hasCompAppend := false
+	hasCompExit := false
+	foundWalrusInFilter := false
 
-	foundWalrus := false
-	for _, block := range cfg.Blocks {
-		if strings.HasPrefix(block.Label, "comp_filter") {
-			for _, stmt := range block.Statements {
-				stmt.Walk(func(n *parser.Node) bool {
-					if n.Type == parser.NodeNamedExpr {
-						foundWalrus = true
-						return false
-					}
-					return true
-				})
-				if foundWalrus {
-					break
+	cfg.Walk(&testVisitor{
+		onBlock: func(b *BasicBlock) bool {
+			if strings.Contains(b.Label, "comp_init") {
+				hasCompInit = true
+			}
+			if strings.Contains(b.Label, "comp_header") {
+				hasCompHeader = true
+			}
+			if strings.Contains(b.Label, "comp_filter") {
+				hasCompFilter = true
+				// The walrus operator (y := x * 2) is in the filter condition
+				for _, stmt := range b.Statements {
+					stmt.Walk(func(n *parser.Node) bool {
+						if n.Type == parser.NodeNamedExpr {
+							foundWalrusInFilter = true
+							return false
+						}
+						return true
+					})
 				}
 			}
-		}
-		if foundWalrus {
-			break
-		}
-	}
-	assert.True(t, foundWalrus, "Comprehension filter should contain walrus operator")
+			if strings.Contains(b.Label, "comp_body") {
+				hasCompBody = true
+			}
+			if strings.Contains(b.Label, "comp_append") {
+				hasCompAppend = true
+			}
+			if strings.Contains(b.Label, "comp_exit") {
+				hasCompExit = true
+			}
+			return true
+		},
+		onEdge: func(e *Edge) bool { return true },
+	})
+
+	assert.True(t, hasCompInit, "Should have comp_init block")
+	assert.True(t, hasCompHeader, "Should have comp_header block")
+	assert.True(t, hasCompFilter, "Should have comp_filter block")
+	assert.True(t, hasCompBody, "Should have comp_body block")
+	assert.True(t, hasCompAppend, "Should have comp_append block")
+	assert.True(t, hasCompExit, "Should have comp_exit block")
+	assert.True(t, foundWalrusInFilter, "Walrus operator should be in comp_filter block")
+
+	// Verify edges
+	hasHeaderToBody := false
+	hasBodyToFilter := false
+	hasFilterToAppend := false
+	hasFilterToHeader := false
+	hasAppendToHeader := false
+	hasHeaderToExit := false
+
+	cfg.Walk(&testVisitor{
+		onEdge: func(e *Edge) bool {
+			if strings.Contains(e.From.Label, "comp_header") && strings.Contains(e.To.Label, "comp_body") && e.Type == EdgeCondTrue {
+				hasHeaderToBody = true
+			}
+			if strings.Contains(e.From.Label, "comp_body") && strings.Contains(e.To.Label, "comp_filter") && e.Type == EdgeNormal {
+				hasBodyToFilter = true
+			}
+			if strings.Contains(e.From.Label, "comp_filter") && strings.Contains(e.To.Label, "comp_append") && e.Type == EdgeCondTrue {
+				hasFilterToAppend = true
+			}
+			if strings.Contains(e.From.Label, "comp_filter") && strings.Contains(e.To.Label, "comp_header") && e.Type == EdgeCondFalse {
+				hasFilterToHeader = true
+			}
+			if strings.Contains(e.From.Label, "comp_append") && strings.Contains(e.To.Label, "comp_header") && e.Type == EdgeLoop {
+				hasAppendToHeader = true
+			}
+			if strings.Contains(e.From.Label, "comp_header") && strings.Contains(e.To.Label, "comp_exit") && e.Type == EdgeCondFalse {
+				hasHeaderToExit = true
+			}
+			return true
+		},
+		onBlock: func(b *BasicBlock) bool { return true },
+	})
+
+	assert.True(t, hasHeaderToBody, "Missing EdgeCondTrue from header to body")
+	assert.True(t, hasBodyToFilter, "Missing EdgeNormal from body to filter")
+	assert.True(t, hasFilterToAppend, "Missing EdgeCondTrue from filter to append")
+	assert.True(t, hasFilterToHeader, "Missing EdgeCondFalse from filter back to header")
+	assert.True(t, hasAppendToHeader, "Missing EdgeLoop from append back to header")
+	assert.True(t, hasHeaderToExit, "Missing EdgeCondFalse from header to exit")
 }
 
 // TestWalrusOperatorWithComprehension tests support for the walrus operator (:=) assigning a comprehension

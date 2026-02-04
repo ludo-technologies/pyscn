@@ -461,23 +461,6 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 		// Handle match statements (Python 3.10+)
 		b.processMatchStatement(stmt)
 
-	case parser.NodeNamedExpr:
-		// Handle named expressions (walrus operator)
-		// Check if the value is a comprehension
-		if stmt.Value != nil {
-			if valNode, ok := stmt.Value.(*parser.Node); ok {
-				if valNode.Type == parser.NodeListComp || valNode.Type == parser.NodeDictComp ||
-					valNode.Type == parser.NodeSetComp || valNode.Type == parser.NodeGeneratorExp {
-					// Process the comprehension
-					b.processComprehension(valNode)
-					// Add the statement after comprehension processing
-					b.currentBlock.AddStatement(stmt)
-				}
-			}
-		}
-		// Regular named expression - just add to current block
-		b.currentBlock.AddStatement(stmt)
-
 	case parser.NodeAwait:
 		// Handle await expressions - treat as expression in current block
 		b.currentBlock.AddStatement(stmt)
