@@ -1068,6 +1068,100 @@ func formatCouplingDetailed(result *domain.CBOResponse, threshold int, maxResult
 	}
 }
 
+// HandleDetectDIAntipatterns handles the detect_di_antipatterns tool
+func (h *HandlerSet) HandleDetectDIAntipatterns(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args, ok := request.Params.Arguments.(map[string]interface{})
+	if !ok {
+		return mcp.NewToolResultError("invalid arguments format"), nil
+	}
+
+	path, ok := args["path"].(string)
+	if !ok {
+		return mcp.NewToolResultError("path parameter is required and must be a string"), nil
+	}
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return mcp.NewToolResultError(fmt.Sprintf("path does not exist: %s", path)), nil
+	}
+
+	// Parse optional parameters
+	constructorParamThreshold := 0
+	if cpt, ok := args["constructor_param_threshold"].(float64); ok {
+		constructorParamThreshold = int(cpt)
+	}
+
+	var minSeverity domain.DIAntipatternSeverity
+	if ms, ok := args["min_severity"].(string); ok {
+		switch ms {
+		case "info":
+			minSeverity = domain.DIAntipatternSeverityInfo
+		case "warning":
+			minSeverity = domain.DIAntipatternSeverityWarning
+		case "error":
+			minSeverity = domain.DIAntipatternSeverityError
+		}
+	}
+
+	cfg := h.deps.Config()
+	recursive := true
+	includePatterns := []string{}
+	excludePatterns := []string{}
+	if cfg != nil {
+		recursive = cfg.Analysis.Recursive
+		if len(cfg.Analysis.IncludePatterns) > 0 {
+			includePatterns = cfg.Analysis.IncludePatterns
+		}
+		if len(cfg.Analysis.ExcludePatterns) > 0 {
+			excludePatterns = cfg.Analysis.ExcludePatterns
+		}
+	}
+
+	// Create DI anti-pattern request
+	req := domain.DIAntipatternRequest{
+		Paths:           []string{path},
+		OutputFormat:    domain.OutputFormatJSON,
+		OutputWriter:    io.Discard,
+		Recursive:       domain.BoolPtr(recursive),
+		IncludePatterns: includePatterns,
+		ExcludePatterns: excludePatterns,
+		SortBy:          domain.SortBySeverity,
+		ConfigPath:      h.deps.ConfigPath(),
+	}
+	if constructorParamThreshold > 0 {
+		req.ConstructorParamThreshold = constructorParamThreshold
+	}
+	if minSeverity != "" {
+		req.MinSeverity = minSeverity
+	}
+
+	// Build use case with all required dependencies
+	diService := service.NewDIAntipatternService()
+	fileReader := service.NewFileReader()
+	formatter := service.NewDIAntipatternFormatter()
+	configLoader := service.NewDIAntipatternConfigurationLoader()
+
+	useCase := app.NewDIAntipatternUseCase(
+		diService,
+		fileReader,
+		formatter,
+		configLoader,
+	)
+
+	// Execute analysis
+	result, err := useCase.AnalyzeAndReturn(ctx, req)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("DI anti-pattern analysis failed: %v", err)), nil
+	}
+
+	// Convert to JSON
+	jsonData, err := json.Marshal(result)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal result: %v", err)), nil
+	}
+
+	return mcp.NewToolResultText(string(jsonData)), nil
+}
+
 func buildAnalyzeUseCase(fileReader domain.FileReader) (*app.AnalyzeUseCase, error) {
 	// Create config loaders
 	complexityConfigLoader := service.NewConfigurationLoader()

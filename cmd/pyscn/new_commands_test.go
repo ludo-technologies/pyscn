@@ -491,3 +491,39 @@ func TestCheckNoDepsAnalysis(t *testing.T) {
 		t.Errorf("Deps analysis should not run by default, but got: %s", output)
 	}
 }
+
+func TestCheckDIRespectsConfigThreshold(t *testing.T) {
+	tempDir := t.TempDir()
+
+	sourcePath := filepath.Join(tempDir, "service.py")
+	source := `class Service:
+    def __init__(self, a, b, c, d, e, f):
+        pass
+`
+	if err := os.WriteFile(sourcePath, []byte(source), 0o644); err != nil {
+		t.Fatalf("failed to write source file: %v", err)
+	}
+
+	configPath := filepath.Join(tempDir, ".pyscn.toml")
+	config := `[di]
+constructor_param_threshold = 10
+`
+	if err := os.WriteFile(configPath, []byte(config), 0o644); err != nil {
+		t.Fatalf("failed to write config file: %v", err)
+	}
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+
+	var stdout, stderr bytes.Buffer
+	cobraCmd.SetOut(&stdout)
+	cobraCmd.SetErr(&stderr)
+	cobraCmd.SetArgs([]string{"--select", "di", "--config", configPath, tempDir})
+
+	err := cobraCmd.Execute()
+	output := stdout.String() + stderr.String()
+
+	if err != nil {
+		t.Fatalf("expected no error when DI threshold comes from config, got: %v, output: %s", err, output)
+	}
+}

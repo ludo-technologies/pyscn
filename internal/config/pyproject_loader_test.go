@@ -119,3 +119,32 @@ low_threshold = 10
 		t.Errorf("Expected .pyscn.toml value 5, got %d (pyproject.toml should be ignored)", config.ComplexityLowThreshold)
 	}
 }
+
+func TestLoadDIFromPyprojectToml(t *testing.T) {
+	tempDir := t.TempDir()
+
+	configContent := `[tool.pyscn.di]
+enabled = true
+min_severity = "error"
+constructor_param_threshold = 8
+`
+	configPath := filepath.Join(tempDir, "pyproject.toml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	config, err := LoadPyprojectConfig(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if config.DIEnabled == nil || !*config.DIEnabled {
+		t.Errorf("Expected di.enabled true, got %v", config.DIEnabled)
+	}
+	if config.DIMinSeverity != "error" {
+		t.Errorf("Expected di.min_severity error, got %s", config.DIMinSeverity)
+	}
+	if config.DIConstructorParamThreshold != 8 {
+		t.Errorf("Expected di.constructor_param_threshold 8, got %d", config.DIConstructorParamThreshold)
+	}
+}

@@ -73,4 +73,16 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 			mcp.Required(),
 			mcp.Description("Path to Python code to analyze")),
 	), handlers.HandleGetHealthScore)
+
+	// Tool 7: detect_di_antipatterns - DI anti-pattern detection
+	s.AddTool(mcp.NewTool("detect_di_antipatterns",
+		mcp.WithDescription("Detect Dependency Injection anti-patterns in Python code (constructor over-injection, hidden dependencies, concrete dependencies, service locator)"),
+		mcp.WithString("path",
+			mcp.Required(),
+			mcp.Description("Path to Python code to analyze")),
+		mcp.WithNumber("constructor_param_threshold",
+			mcp.Description("Maximum allowed constructor parameters (default: 5)")),
+		mcp.WithString("min_severity",
+			mcp.Description("Minimum severity: info, warning, error (default: warning)")),
+	), handlers.HandleDetectDIAntipatterns)
 }

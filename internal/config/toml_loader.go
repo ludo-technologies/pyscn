@@ -19,6 +19,7 @@ type PyscnTomlConfig struct {
 	Dependencies   DependenciesTomlConfig   `toml:"dependencies"`    // [dependencies] section
 	Clones         ClonesConfig             `toml:"clones"`          // [clones] section - unified flat structure
 	MockData       MockDataTomlConfig       `toml:"mock_data"`       // [mock_data] section
+	DI             DITomlConfig             `toml:"di"`              // [di] section
 }
 
 // ComplexityTomlConfig represents the [complexity] section
@@ -154,6 +155,13 @@ type MockDataTomlConfig struct {
 	Keywords       []string `toml:"keywords"`
 	Domains        []string `toml:"domains"`
 	IgnorePatterns []string `toml:"ignore_patterns"`
+}
+
+// DITomlConfig represents the [di] section
+type DITomlConfig struct {
+	Enabled                   *bool  `toml:"enabled"`
+	MinSeverity               string `toml:"min_severity"`
+	ConstructorParamThreshold *int   `toml:"constructor_param_threshold"`
 }
 
 // ClonesConfig represents the [clones] section (flat structure)
@@ -336,6 +344,9 @@ func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *PyscnConfig, pyscnTom
 
 	// Merge from [mock_data] section
 	mergeMockDataSection(defaults, &pyscnToml.MockData)
+
+	// Merge from [di] section
+	mergeDISection(defaults, &pyscnToml.DI)
 }
 
 // mergeClonesSection is moved to pyproject_loader.go and is now shared

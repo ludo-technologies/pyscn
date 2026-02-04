@@ -134,6 +134,11 @@ type PyscnConfig struct {
 	MockDataKeywords       []string `mapstructure:"mock_data_keywords" yaml:"mock_data_keywords" json:"mock_data_keywords"`
 	MockDataDomains        []string `mapstructure:"mock_data_domains" yaml:"mock_data_domains" json:"mock_data_domains"`
 	MockDataIgnorePatterns []string `mapstructure:"mock_data_ignore_patterns" yaml:"mock_data_ignore_patterns" json:"mock_data_ignore_patterns"`
+
+	// DI Configuration (from [di] section in TOML)
+	DIEnabled                   *bool  `mapstructure:"di_enabled" yaml:"di_enabled" json:"di_enabled"`
+	DIMinSeverity               string `mapstructure:"di_min_severity" yaml:"di_min_severity" json:"di_min_severity"`
+	DIConstructorParamThreshold int    `mapstructure:"di_constructor_param_threshold" yaml:"di_constructor_param_threshold" json:"di_constructor_param_threshold"`
 }
 
 // CloneAnalysisConfig holds core analysis parameters
@@ -412,6 +417,11 @@ func DefaultPyscnConfig() *PyscnConfig {
 		MockDataKeywords:       domain.DefaultMockDataKeywords(),
 		MockDataDomains:        domain.DefaultMockDataDomains(),
 		MockDataIgnorePatterns: []string{},
+
+		// DI defaults (from [di] section)
+		DIEnabled:                   domain.BoolPtr(false), // Disabled by default - opt-in
+		DIMinSeverity:               string(domain.DIAntipatternSeverityWarning),
+		DIConstructorParamThreshold: domain.DefaultDIConstructorParamThreshold,
 	}
 }
 

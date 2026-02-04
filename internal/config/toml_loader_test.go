@@ -193,3 +193,33 @@ detect_after_break = false
 		t.Errorf("Expected detect_after_break false, got %v", config.DeadCodeDetectAfterBreak)
 	}
 }
+
+func TestLoadDIFromPyscnToml(t *testing.T) {
+	tempDir := t.TempDir()
+
+	configContent := `[di]
+enabled = true
+min_severity = "error"
+constructor_param_threshold = 9
+`
+	configPath := filepath.Join(tempDir, ".pyscn.toml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	loader := NewTomlConfigLoader()
+	config, err := loader.LoadConfig(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if !domain.BoolValue(config.DIEnabled, false) {
+		t.Errorf("Expected di.enabled true, got %v", config.DIEnabled)
+	}
+	if config.DIMinSeverity != "error" {
+		t.Errorf("Expected di.min_severity error, got %s", config.DIMinSeverity)
+	}
+	if config.DIConstructorParamThreshold != 9 {
+		t.Errorf("Expected di.constructor_param_threshold 9, got %d", config.DIConstructorParamThreshold)
+	}
+}
