@@ -683,12 +683,10 @@ func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, er
 func (c *CheckCommand) checkDIAntipatterns(cmd *cobra.Command, args []string) (int, error) {
 	// Create request with check-specific settings
 	request := &domain.DIAntipatternRequest{
-		Paths:                     args,
-		OutputFormat:              domain.OutputFormatText,
-		OutputWriter:              io.Discard,
-		Recursive:                 domain.BoolPtr(true),
-		ConstructorParamThreshold: domain.DefaultDIConstructorParamThreshold,
-		MinSeverity:               domain.DIAntipatternSeverityWarning,
+		Paths:        args,
+		OutputFormat: domain.OutputFormatText,
+		OutputWriter: io.Discard,
+		ConfigPath:   c.configFile,
 	}
 
 	// Validate request

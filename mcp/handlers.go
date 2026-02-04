@@ -1085,12 +1085,12 @@ func (h *HandlerSet) HandleDetectDIAntipatterns(ctx context.Context, request mcp
 	}
 
 	// Parse optional parameters
-	constructorParamThreshold := domain.DefaultDIConstructorParamThreshold
+	constructorParamThreshold := 0
 	if cpt, ok := args["constructor_param_threshold"].(float64); ok {
 		constructorParamThreshold = int(cpt)
 	}
 
-	minSeverity := domain.DIAntipatternSeverityWarning
+	var minSeverity domain.DIAntipatternSeverity
 	if ms, ok := args["min_severity"].(string); ok {
 		switch ms {
 		case "info":
@@ -1118,28 +1118,33 @@ func (h *HandlerSet) HandleDetectDIAntipatterns(ctx context.Context, request mcp
 
 	// Create DI anti-pattern request
 	req := domain.DIAntipatternRequest{
-		Paths:                     []string{path},
-		OutputFormat:              domain.OutputFormatJSON,
-		OutputWriter:              io.Discard,
-		Recursive:                 domain.BoolPtr(recursive),
-		IncludePatterns:           includePatterns,
-		ExcludePatterns:           excludePatterns,
-		ConstructorParamThreshold: constructorParamThreshold,
-		MinSeverity:               minSeverity,
-		SortBy:                    domain.SortBySeverity,
-		ConfigPath:                h.deps.ConfigPath(),
+		Paths:           []string{path},
+		OutputFormat:    domain.OutputFormatJSON,
+		OutputWriter:    io.Discard,
+		Recursive:       domain.BoolPtr(recursive),
+		IncludePatterns: includePatterns,
+		ExcludePatterns: excludePatterns,
+		SortBy:          domain.SortBySeverity,
+		ConfigPath:      h.deps.ConfigPath(),
+	}
+	if constructorParamThreshold > 0 {
+		req.ConstructorParamThreshold = constructorParamThreshold
+	}
+	if minSeverity != "" {
+		req.MinSeverity = minSeverity
 	}
 
 	// Build use case with all required dependencies
 	diService := service.NewDIAntipatternService()
 	fileReader := service.NewFileReader()
 	formatter := service.NewDIAntipatternFormatter()
+	configLoader := service.NewDIAntipatternConfigurationLoader()
 
 	useCase := app.NewDIAntipatternUseCase(
 		diService,
 		fileReader,
 		formatter,
-		nil, // Config loader is optional
+		configLoader,
 	)
 
 	// Execute analysis

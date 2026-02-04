@@ -369,9 +369,59 @@ class Service:
 	}
 }
 
+func TestServiceLocatorDetector_DetectsElseBranchCalls(t *testing.T) {
+	code := `
+class Service:
+    def __init__(self, use_resolver):
+        if use_resolver:
+            self.dep = None
+        else:
+            self.dep = resolve("dep")
+`
+	p := parser.New()
+	result, err := p.Parse(context.Background(), []byte(code))
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	detector := NewServiceLocatorDetector()
+	findings := detector.Analyze(result.AST, "test.py")
+
+	if len(findings) != 1 {
+		t.Fatalf("expected 1 finding from else branch, got %d", len(findings))
+	}
+}
+
+func TestConcreteDependencyDetector_DetectsElseBranchInstantiation(t *testing.T) {
+	code := `
+class Repo:
+    pass
+
+class Service:
+    def __init__(self, use_injected):
+        if use_injected:
+            self.repo = None
+        else:
+            self.repo = Repo()
+`
+	p := parser.New()
+	result, err := p.Parse(context.Background(), []byte(code))
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	detector := NewConcreteDependencyDetector()
+	findings := detector.Analyze(result.AST, "test.py")
+
+	instantiationFindings := filterBySubtype(findings, string(domain.ConcreteDepInstantiation))
+	if len(instantiationFindings) != 1 {
+		t.Fatalf("expected 1 instantiation finding from else branch, got %d", len(instantiationFindings))
+	}
+}
+
 func TestDIAntipatternDetector_Integration(t *testing.T) {
 	code := `
-_global_config = {}
+	_global_config = {}
 
 class BadService:
     _instance = None
