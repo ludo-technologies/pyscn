@@ -124,6 +124,8 @@ func (b *ASTBuilder) buildNode(tsNode *sitter.Node) *Node {
 		return b.buildUnaryOp(tsNode)
 	case "boolean_operator":
 		return b.buildBoolOp(tsNode)
+	case "named_expression":
+		return b.buildNamedExpr(tsNode)
 	case "comparison_operator":
 		return b.buildCompare(tsNode)
 	case "conditional_expression":
@@ -906,6 +908,24 @@ func (b *ASTBuilder) buildUnaryOp(tsNode *sitter.Node) *Node {
 
 	if operand := b.getChildByFieldName(tsNode, "operand"); operand != nil {
 		node.Value = b.buildNode(operand)
+	}
+
+	return node
+}
+
+// buildNamedExpr builds a named expression node (walrus operator)
+func (b *ASTBuilder) buildNamedExpr(tsNode *sitter.Node) *Node {
+	node := NewNode(NodeNamedExpr)
+	node.Location = b.getLocation(tsNode)
+
+	// Get name (target)
+	if name := b.getChildByFieldName(tsNode, "name"); name != nil {
+		node.AddChild(b.buildNode(name))
+	}
+
+	// Get value
+	if value := b.getChildByFieldName(tsNode, "value"); value != nil {
+		node.Value = b.buildNode(value)
 	}
 
 	return node
