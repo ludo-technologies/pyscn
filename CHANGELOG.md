@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.10.1] - 2026-02-06
+
+### Added
+- Add CFG support for Walrus operator (#322)
+- Add missing error code constants (#320)
+
+### Fixed
+- Improve config file discovery from target paths (#323)
+
+### Enhanced
+- Add test coverage for ast_features.go (#321)
+
 ## [1.9.3] - 2026-02-03
 
 ### Fixed
