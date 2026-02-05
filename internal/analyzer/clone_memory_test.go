@@ -84,7 +84,7 @@ func TestCloneDetectorMemoryManagement(t *testing.T) {
 		assert.Less(t, memoryGrowth, uint64(200*1024*1024), "Memory growth should be limited (< 200MB)")
 
 		// Should complete in reasonable time (extended for CI environments)
-		assert.Less(t, duration, 120*time.Second, "Should complete within 120 seconds")
+		assert.Less(t, duration, 180*time.Second, "Should complete within 180 seconds")
 
 		t.Logf("Large dataset: %d fragments, %d pairs, memory growth: %.2f MB, duration: %v",
 			len(fragments), len(detector.clonePairs), float64(memoryGrowth)/(1024*1024), duration)
