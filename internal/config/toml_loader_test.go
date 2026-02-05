@@ -252,3 +252,15 @@ func TestResolveConfigPath_MissingTomlReturnsError(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 }
+
+func TestResolveConfigPath_MissingNonTomlPathReturnsError(t *testing.T) {
+	loader := NewTomlConfigLoader()
+
+	_, err := loader.ResolveConfigPath("/nonexistent/config-dir", "")
+	if err == nil {
+		t.Fatal("Expected error for missing explicit config path")
+	}
+	if !strings.Contains(err.Error(), "config file not found") {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+}

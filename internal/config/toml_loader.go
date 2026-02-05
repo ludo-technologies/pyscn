@@ -359,10 +359,7 @@ func (l *TomlConfigLoader) ResolveConfigPath(configPath string, targetPath strin
 	if configPath != "" {
 		info, err := os.Stat(configPath)
 		if err != nil {
-			if isLikelyConfigFilePath(configPath) {
-				return "", fmt.Errorf("config file not found: %s", configPath)
-			}
-			return l.FindConfigFileFromPath(configPath), nil
+			return "", fmt.Errorf("config file not found: %s", configPath)
 		}
 		if !info.IsDir() {
 			return configPath, nil
