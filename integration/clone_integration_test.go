@@ -3,6 +3,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"os"
 	"strings"
 	"testing"
 
@@ -255,6 +256,15 @@ func TestCloneOutputFormatterIntegration(t *testing.T) {
 
 // TestCloneConfigurationLoaderIntegration tests configuration loading and saving
 func TestCloneConfigurationLoaderIntegration(t *testing.T) {
+	// Isolate from repository-level config discovery.
+	workingDir := t.TempDir()
+	originalDir, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Chdir(originalDir)
+	}()
+	require.NoError(t, os.Chdir(workingDir))
+
 	configLoader := service.NewCloneConfigurationLoader()
 
 	// Test getting default configuration
@@ -265,7 +275,7 @@ func TestCloneConfigurationLoaderIntegration(t *testing.T) {
 	assert.Equal(t, 0.9, defaultConfig.SimilarityThreshold, "Default similarity threshold should be 0.9")
 
 	// Validate default configuration
-	err := defaultConfig.Validate()
+	err = defaultConfig.Validate()
 	assert.NoError(t, err, "Default configuration should be valid")
 
 	// Test configuration merging in use case

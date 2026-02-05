@@ -171,11 +171,24 @@ type AnalysisTask struct {
 }
 
 // Execute performs comprehensive analysis
-func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConfig, paths []string) (*domain.AnalyzeResponse, error) {
+func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string) (*domain.AnalyzeResponse, error) {
 	startTime := time.Now()
 
+	// Resolve config path once so all analysis phases read the same file.
+	targetPath := ""
+	if len(paths) > 0 {
+		targetPath = paths[0]
+	}
+
+	tomlLoader := config.NewTomlConfigLoader()
+	resolvedConfigPath, err := tomlLoader.ResolveConfigPath(useCaseCfg.ConfigFile, targetPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve configuration: %w", err)
+	}
+	useCaseCfg.ConfigFile = resolvedConfigPath
+
 	// Load configuration to get file patterns and recursive setting
-	includePatterns, excludePatterns, recursive, patternErr := uc.getFilePatterns(config.ConfigFile, paths)
+	includePatterns, excludePatterns, recursive, patternErr := uc.getFilePatterns(useCaseCfg.ConfigFile)
 	if patternErr != nil {
 		return nil, patternErr
 	}
@@ -196,7 +209,7 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 	}
 
 	// Calculate estimated time based on file count and enabled analyses
-	estimatedTime := uc.calculateEstimatedTime(len(files), config, paths)
+	estimatedTime := uc.calculateEstimatedTime(len(files), useCaseCfg)
 
 	// Start unified progress tracking with time-based estimation
 	var progressDone chan struct{}
@@ -206,7 +219,7 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 	}
 
 	// Create analysis tasks
-	tasks := uc.createAnalysisTasks(config, files)
+	tasks := uc.createAnalysisTasks(useCaseCfg, files)
 
 	// Execute tasks in parallel
 	var wg sync.WaitGroup
@@ -562,19 +575,17 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 }
 
 // getFilePatterns loads file patterns and recursive setting from configuration or returns defaults
-func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]string, []string, bool, error) {
+func (uc *AnalyzeUseCase) getFilePatterns(configPath string) ([]string, []string, bool, error) {
 	// Default patterns
 	defaultInclude := []string{"**/*.py", "*.pyi"}
 	defaultExclude := []string{"test_*.py", "*_test.py"}
 	defaultRecursive := true
 
-	// Try to load configuration
-	targetPath := ""
-	if len(paths) > 0 {
-		targetPath = paths[0]
+	if configPath == "" {
+		return defaultInclude, defaultExclude, defaultRecursive, nil
 	}
 
-	cfg, err := config.LoadConfigWithTarget(configPath, targetPath)
+	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("failed to load configuration for pattern resolution: %w", err)
 	}
@@ -599,18 +610,16 @@ func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]
 }
 
 // getLSHConfig loads LSH configuration settings for clone detection
-func (uc *AnalyzeUseCase) getLSHConfig(configPath string, paths []string) (enabled string, threshold int) {
+func (uc *AnalyzeUseCase) getLSHConfig(configPath string) (enabled string, threshold int) {
 	// Default values from domain.DefaultCloneRequest()
 	enabled = "auto"
 	threshold = 500
 
-	// Try to load configuration
-	targetPath := ""
-	if len(paths) > 0 {
-		targetPath = paths[0]
+	if configPath == "" {
+		return enabled, threshold
 	}
 
-	cfg, err := config.LoadConfigWithTarget(configPath, targetPath)
+	cfg, err := config.LoadConfig(configPath)
 	if err != nil || cfg == nil {
 		return enabled, threshold
 	}
@@ -627,7 +636,7 @@ func (uc *AnalyzeUseCase) getLSHConfig(configPath string, paths []string) (enabl
 }
 
 // calculateEstimatedTime estimates the total analysis time based on file count and enabled analyses
-func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUseCaseConfig, paths []string) float64 {
+func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUseCaseConfig) float64 {
 	n := float64(fileCount)
 	totalTime := 0.0
 
@@ -651,7 +660,7 @@ func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUs
 		estimatedFragments := n * 5.0
 
 		// Load LSH config to determine if LSH will be used
-		lshEnabled, lshThreshold := uc.getLSHConfig(config.ConfigFile, paths)
+		lshEnabled, lshThreshold := uc.getLSHConfig(config.ConfigFile)
 
 		// Determine LSH usage using centralized logic
 		useLSH := domain.ShouldUseLSH(lshEnabled, int(estimatedFragments), lshThreshold)

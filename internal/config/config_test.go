@@ -244,14 +244,13 @@ func TestComplexityConfigMethods(t *testing.T) {
 
 func TestLoadConfig(t *testing.T) {
 	t.Run("LoadNonExistentConfig", func(t *testing.T) {
-		// TOML-only loader returns defaults when config file is not found
-		// (searches directory, not exact file path)
+		// Explicit config path must exist.
 		config, err := LoadConfig("/nonexistent/path")
-		if err != nil {
-			t.Errorf("Expected no error for non-existent path with TOML loader, got: %v", err)
+		if err == nil {
+			t.Error("Expected error for non-existent explicit config path")
 		}
-		if config == nil {
-			t.Error("Expected default config when no config file found")
+		if config != nil {
+			t.Error("Expected nil config when explicit config path does not exist")
 		}
 	})
 
@@ -508,6 +507,34 @@ func TestConfigEdgeCases(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestLoadConfigWithTarget_ExplicitPyprojectTakesPrecedence(t *testing.T) {
+	tempDir := t.TempDir()
+
+	pyscnContent := `[analysis]
+include_patterns = ["from-pyscn"]
+`
+	pyprojectContent := `[tool.pyscn.analysis]
+include_patterns = ["from-pyproject"]
+`
+
+	if err := os.WriteFile(filepath.Join(tempDir, ".pyscn.toml"), []byte(pyscnContent), 0644); err != nil {
+		t.Fatalf("Failed to write .pyscn.toml: %v", err)
+	}
+	pyprojectPath := filepath.Join(tempDir, "pyproject.toml")
+	if err := os.WriteFile(pyprojectPath, []byte(pyprojectContent), 0644); err != nil {
+		t.Fatalf("Failed to write pyproject.toml: %v", err)
+	}
+
+	cfg, err := LoadConfigWithTarget(pyprojectPath, "")
+	if err != nil {
+		t.Fatalf("Failed to load config with explicit pyproject path: %v", err)
+	}
+
+	if len(cfg.Analysis.IncludePatterns) != 1 || cfg.Analysis.IncludePatterns[0] != "from-pyproject" {
+		t.Fatalf("Expected include pattern from explicit pyproject.toml, got %v", cfg.Analysis.IncludePatterns)
+	}
 }
 
 // Helper function to check if a string contains a substring

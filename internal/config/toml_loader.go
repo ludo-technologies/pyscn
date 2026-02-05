@@ -1,8 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -229,7 +231,27 @@ func NewTomlConfigLoader() *TomlConfigLoader {
 // 1. .pyscn.toml (dedicated config file)
 // 2. pyproject.toml (with [tool.pyscn] section)
 // 3. defaults
-func (l *TomlConfigLoader) LoadConfig(startDir string) (*PyscnConfig, error) {
+//
+// The path parameter can be either:
+// - a direct file path (e.g. "/path/to/pyproject.toml")
+// - a directory path (searches parent directories)
+func (l *TomlConfigLoader) LoadConfig(path string) (*PyscnConfig, error) {
+	// If an explicit config-like file path is provided and does not exist, fail fast.
+	if path != "" {
+		if info, err := os.Stat(path); err == nil {
+			if !info.IsDir() {
+				return l.loadFromFile(path)
+			}
+		} else if isLikelyConfigFilePath(path) {
+			return nil, fmt.Errorf("config file not found: %s", path)
+		}
+	}
+
+	startDir := path
+	if startDir == "" {
+		startDir = "."
+	}
+
 	// Try .pyscn.toml first (highest priority)
 	if config, err := l.loadFromPyscnToml(startDir); err == nil {
 		return config, nil
@@ -242,6 +264,27 @@ func (l *TomlConfigLoader) LoadConfig(startDir string) (*PyscnConfig, error) {
 
 	// Return defaults if no config found
 	return DefaultPyscnConfig(), nil
+}
+
+func (l *TomlConfigLoader) loadFromFile(filePath string) (*PyscnConfig, error) {
+	if filepath.Base(filePath) == "pyproject.toml" {
+		return LoadPyprojectConfigFromFile(filePath)
+	}
+
+	// Read and parse TOML config file
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var parsed PyscnTomlConfig
+	if err := toml.Unmarshal(data, &parsed); err != nil {
+		return nil, err
+	}
+
+	defaults := DefaultPyscnConfig()
+	l.mergePyscnTomlConfigs(defaults, &parsed)
+	return defaults, nil
 }
 
 // loadFromPyprojectToml loads config from pyproject.toml
@@ -286,7 +329,11 @@ func (l *TomlConfigLoader) findPyprojectToml(startDir string) (string, error) {
 
 // findPyscnToml walks up the directory tree to find .pyscn.toml
 func (l *TomlConfigLoader) findPyscnToml(startDir string) (string, error) {
-	dir := startDir
+	dir, err := normalizeSearchDir(startDir)
+	if err != nil {
+		return "", err
+	}
+
 	for {
 		configPath := filepath.Join(dir, ".pyscn.toml")
 		if _, err := os.Stat(configPath); err == nil {
@@ -302,6 +349,100 @@ func (l *TomlConfigLoader) findPyscnToml(startDir string) (string, error) {
 	}
 
 	return "", os.ErrNotExist
+}
+
+// ResolveConfigPath resolves the effective configuration file path once.
+//   - If configPath is provided, it must exist; files are used directly and
+//     directories are searched.
+//   - If configPath is empty, targetPath (or cwd) is searched.
+func (l *TomlConfigLoader) ResolveConfigPath(configPath string, targetPath string) (string, error) {
+	if configPath != "" {
+		info, err := os.Stat(configPath)
+		if err != nil {
+			return "", fmt.Errorf("config file not found: %s", configPath)
+		}
+		if !info.IsDir() {
+			return configPath, nil
+		}
+
+		return l.FindConfigFileFromPath(configPath), nil
+	}
+
+	searchPath := targetPath
+	if searchPath == "" {
+		searchPath = "."
+	}
+
+	return l.FindConfigFileFromPath(searchPath), nil
+}
+
+// FindConfigFileFromPath discovers a config file from the given path.
+// Priority:
+// 1. .pyscn.toml
+// 2. pyproject.toml containing [tool.pyscn]
+func (l *TomlConfigLoader) FindConfigFileFromPath(startPath string) string {
+	dir, err := normalizeSearchDir(startPath)
+	if err != nil {
+		return ""
+	}
+
+	// Dedicated file takes precedence across the entire search tree.
+	current := dir
+	for {
+		pyscnPath := filepath.Join(current, ".pyscn.toml")
+		if _, err := os.Stat(pyscnPath); err == nil {
+			return pyscnPath
+		}
+
+		parent := filepath.Dir(current)
+		if parent == current {
+			break
+		}
+		current = parent
+	}
+
+	// Fallback to pyproject.toml if it has [tool.pyscn].
+	current = dir
+	for {
+		pyprojectPath := filepath.Join(current, "pyproject.toml")
+		if _, err := os.Stat(pyprojectPath); err == nil && hasPyscnSection(pyprojectPath) {
+			return pyprojectPath
+		}
+
+		parent := filepath.Dir(current)
+		if parent == current {
+			break
+		}
+		current = parent
+	}
+
+	return ""
+}
+
+func isLikelyConfigFilePath(path string) bool {
+	base := filepath.Base(path)
+	if base == ".pyscn.toml" || base == "pyproject.toml" {
+		return true
+	}
+	return strings.HasSuffix(base, ".toml")
+}
+
+func normalizeSearchDir(path string) (string, error) {
+	if path == "" {
+		path = "."
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+
+	info, err := os.Stat(absPath)
+	if err == nil && !info.IsDir() {
+		return filepath.Dir(absPath), nil
+	}
+
+	return absPath, nil
 }
 
 // mergePyscnTomlConfigs merges .pyscn.toml config into defaults
