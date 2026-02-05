@@ -764,37 +764,18 @@ func (b *ASTBuilder) buildNonlocalStatement(tsNode *sitter.Node) *Node {
 	return node
 }
 
-// / buildExpressionStatement builds an expression statement node
+// buildExpressionStatement builds an expression statement node
 func (b *ASTBuilder) buildExpressionStatement(tsNode *sitter.Node) *Node {
-	// We always create the container NodeExpr
-	node := NewNode(NodeExpr)
-	node.Location = b.getLocation(tsNode)
-
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
 		if child != nil && !b.isTrivia(child) {
-			// We create the child (Walrus, Function call, etc.)
-			expressionNode := b.buildNode(child)
-
-			if expressionNode != nil {
-				// Special case: If the node is an assignment or constant (docstring), return it directly
-				// This handles cases where tree-sitter parses assignments as expression statements
-				// and preserves backward compatibility for docstring detection in tests.
-				if expressionNode.Type == NodeAssign ||
-					expressionNode.Type == NodeAugAssign ||
-					expressionNode.Type == NodeAnnAssign ||
-					expressionNode.Type == NodeConstant {
-					return expressionNode
-				}
-
-				// We attach it to the container
-				node.Value = expressionNode
-				node.AddChild(expressionNode)
-				return node // We return the container, not the child
-			}
+			return b.buildNode(child)
 		}
 	}
+
+	node := NewNode(NodeExpr)
+	node.Location = b.getLocation(tsNode)
 	return node
 }
 

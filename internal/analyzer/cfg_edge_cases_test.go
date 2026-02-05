@@ -544,28 +544,22 @@ func TestSimpleWalrusStatement(t *testing.T) {
 	cfg, exists := cfgs[funcName]
 	require.True(t, exists)
 
-	foundExpr := false
 	foundWalrus := false
 
 	// Searching for the block wich contain the instruction
 	for _, block := range cfg.Blocks {
 		for _, stmt := range block.Statements {
 			// First verification, is it a NodeExpr (the container) ?
-			if stmt.Type == parser.NodeExpr {
-				foundExpr = true
-				// Second verification, does it contain the Walrus ?
-				stmt.Walk(func(n *parser.Node) bool {
-					if n.Type == parser.NodeNamedExpr {
-						foundWalrus = true
-						return false
-					}
-					return true
-				})
-			}
+			stmt.Walk(func(n *parser.Node) bool {
+				if n.Type == parser.NodeNamedExpr {
+					foundWalrus = true
+					return false
+				}
+				return true
+			})
 		}
 	}
 
-	assert.True(t, foundExpr, "Should have detected a NodeExpr")
 	assert.True(t, foundWalrus, "The NodeExpr should contain a NodeNamedExpr")
 }
 

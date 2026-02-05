@@ -391,13 +391,19 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 		// Check if the expression is a comprehension
 		if stmt.Value != nil {
 			if valNode, ok := stmt.Value.(*parser.Node); ok {
-				if valNode.Type == parser.NodeListComp || valNode.Type == parser.NodeDictComp ||
-					valNode.Type == parser.NodeSetComp || valNode.Type == parser.NodeGeneratorExp {
-					// Process the comprehension
+				// Direct comprehension
+				if isComprehensionNode(valNode) {
 					b.processComprehension(valNode)
-					// Add the expression statement after comprehension processing
 					b.currentBlock.AddStatement(stmt)
 					return
+				}
+				// Walrus containing comprehension: (x := [i for i in ...])
+				if valNode.Type == parser.NodeNamedExpr {
+					if inner, ok := valNode.Value.(*parser.Node); ok && isComprehensionNode(inner) {
+						b.processComprehension(inner)
+						b.currentBlock.AddStatement(stmt)
+						return
+					}
 				}
 			}
 		}
