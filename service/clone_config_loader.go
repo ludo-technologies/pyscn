@@ -202,8 +202,7 @@ func (c *CloneConfigurationLoader) updateConfigFromCloneRequest(cfg *config.Conf
 	cfg.Analysis.Recursive = req.Recursive
 }
 
-// FindDefaultConfigFile looks for TOML config files starting from the current directory
-// and walking up the directory tree
+// FindDefaultConfigFile looks for TOML config files from the current directory upward.
 func (c *CloneConfigurationLoader) FindDefaultConfigFile() string {
 	tomlLoader := config.NewTomlConfigLoader()
 	return tomlLoader.FindConfigFileFromPath("")

@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -191,5 +192,63 @@ detect_after_break = false
 	}
 	if domain.BoolValue(config.DeadCodeDetectAfterBreak, true) {
 		t.Errorf("Expected detect_after_break false, got %v", config.DeadCodeDetectAfterBreak)
+	}
+}
+
+func TestLoadConfig_DirectPyprojectPathIgnoresSiblingPyscn(t *testing.T) {
+	tempDir := t.TempDir()
+
+	pyscnContent := `[analysis]
+include_patterns = ["from-pyscn"]
+`
+	pyprojectContent := `[tool.pyscn.analysis]
+include_patterns = ["from-pyproject"]
+`
+
+	if err := os.WriteFile(filepath.Join(tempDir, ".pyscn.toml"), []byte(pyscnContent), 0644); err != nil {
+		t.Fatalf("Failed to write .pyscn.toml: %v", err)
+	}
+	pyprojectPath := filepath.Join(tempDir, "pyproject.toml")
+	if err := os.WriteFile(pyprojectPath, []byte(pyprojectContent), 0644); err != nil {
+		t.Fatalf("Failed to write pyproject.toml: %v", err)
+	}
+
+	loader := NewTomlConfigLoader()
+	cfg, err := loader.LoadConfig(pyprojectPath)
+	if err != nil {
+		t.Fatalf("Failed to load explicit pyproject.toml: %v", err)
+	}
+
+	if len(cfg.AnalysisIncludePatterns) != 1 || cfg.AnalysisIncludePatterns[0] != "from-pyproject" {
+		t.Fatalf("Expected include pattern from explicit pyproject.toml, got %v", cfg.AnalysisIncludePatterns)
+	}
+}
+
+func TestFindConfigFileFromPath_DetectsQuotedPyscnSection(t *testing.T) {
+	tempDir := t.TempDir()
+	pyprojectPath := filepath.Join(tempDir, "pyproject.toml")
+	content := `[tool."pyscn".analysis]
+include_patterns = ["quoted"]
+`
+	if err := os.WriteFile(pyprojectPath, []byte(content), 0644); err != nil {
+		t.Fatalf("Failed to write pyproject.toml: %v", err)
+	}
+
+	loader := NewTomlConfigLoader()
+	found := loader.FindConfigFileFromPath(tempDir)
+	if found != pyprojectPath {
+		t.Fatalf("Expected %s, got %s", pyprojectPath, found)
+	}
+}
+
+func TestResolveConfigPath_MissingTomlReturnsError(t *testing.T) {
+	loader := NewTomlConfigLoader()
+
+	_, err := loader.ResolveConfigPath("/nonexistent/.pyscn.toml", "")
+	if err == nil {
+		t.Fatal("Expected error for missing explicit TOML file")
+	}
+	if !strings.Contains(err.Error(), "config file not found") {
+		t.Fatalf("Unexpected error: %v", err)
 	}
 }

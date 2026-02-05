@@ -510,6 +510,34 @@ func TestConfigEdgeCases(t *testing.T) {
 	})
 }
 
+func TestLoadConfigWithTarget_ExplicitPyprojectTakesPrecedence(t *testing.T) {
+	tempDir := t.TempDir()
+
+	pyscnContent := `[analysis]
+include_patterns = ["from-pyscn"]
+`
+	pyprojectContent := `[tool.pyscn.analysis]
+include_patterns = ["from-pyproject"]
+`
+
+	if err := os.WriteFile(filepath.Join(tempDir, ".pyscn.toml"), []byte(pyscnContent), 0644); err != nil {
+		t.Fatalf("Failed to write .pyscn.toml: %v", err)
+	}
+	pyprojectPath := filepath.Join(tempDir, "pyproject.toml")
+	if err := os.WriteFile(pyprojectPath, []byte(pyprojectContent), 0644); err != nil {
+		t.Fatalf("Failed to write pyproject.toml: %v", err)
+	}
+
+	cfg, err := LoadConfigWithTarget(pyprojectPath, "")
+	if err != nil {
+		t.Fatalf("Failed to load config with explicit pyproject path: %v", err)
+	}
+
+	if len(cfg.Analysis.IncludePatterns) != 1 || cfg.Analysis.IncludePatterns[0] != "from-pyproject" {
+		t.Fatalf("Expected include pattern from explicit pyproject.toml, got %v", cfg.Analysis.IncludePatterns)
+	}
+}
+
 // Helper function to check if a string contains a substring
 func containsString(str, substr string) bool {
 	return len(str) >= len(substr) &&

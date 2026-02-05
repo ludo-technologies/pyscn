@@ -170,8 +170,7 @@ func (cl *CBOConfigurationLoaderImpl) configToRequest(pyscnCfg *config.PyscnConf
 	}
 }
 
-// FindDefaultConfigFile looks for TOML config files starting from the current directory
-// and walking up the directory tree
+// FindDefaultConfigFile looks for TOML config files from the current directory upward.
 func (cl *CBOConfigurationLoaderImpl) FindDefaultConfigFile() string {
 	tomlLoader := config.NewTomlConfigLoader()
 	return tomlLoader.FindConfigFileFromPath("")

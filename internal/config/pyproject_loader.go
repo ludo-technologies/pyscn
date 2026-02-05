@@ -45,6 +45,20 @@ func LoadPyprojectConfig(startDir string) (*PyscnConfig, error) {
 		return nil, err
 	}
 
+	return loadPyprojectConfigData(data)
+}
+
+// LoadPyprojectConfigFromFile loads configuration from a specific pyproject.toml file path.
+func LoadPyprojectConfigFromFile(filePath string) (*PyscnConfig, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return loadPyprojectConfigData(data)
+}
+
+func loadPyprojectConfigData(data []byte) (*PyscnConfig, error) {
 	var pyproject PyprojectToml
 	if err := toml.Unmarshal(data, &pyproject); err != nil {
 		return nil, err
@@ -493,11 +507,17 @@ func mergeMockDataSection(defaults *PyscnConfig, mockData *MockDataTomlConfig) {
 
 // findPyprojectToml walks up the directory tree to find pyproject.toml
 func findPyprojectToml(startDir string) (string, error) {
-	dir := startDir
+	dir, err := normalizeSearchDir(startDir)
+	if err != nil {
+		return "", err
+	}
+
 	for {
 		configPath := filepath.Join(dir, "pyproject.toml")
 		if _, err := os.Stat(configPath); err == nil {
-			return configPath, nil
+			if hasPyscnSection(configPath) {
+				return configPath, nil
+			}
 		}
 
 		parent := filepath.Dir(dir)
@@ -511,30 +531,22 @@ func findPyprojectToml(startDir string) (string, error) {
 	return "", os.ErrNotExist
 }
 
-// LoadPyprojectConfigFromFile loads configuration from a specific pyproject.toml file path
-func LoadPyprojectConfigFromFile(filePath string) (*PyscnConfig, error) {
-	// Read and parse pyproject.toml
+func hasPyscnSection(filePath string) bool {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, err
+		return false
 	}
 
-	var pyproject PyprojectToml
-	if err := toml.Unmarshal(data, &pyproject); err != nil {
-		return nil, err
+	var root map[string]interface{}
+	if err := toml.Unmarshal(data, &root); err != nil {
+		return false
 	}
 
-	// Merge with defaults using shared merge logic
-	config := DefaultPyscnConfig()
-	mergeComplexitySection(config, &pyproject.Tool.Pyscn.Complexity)
-	mergeDeadCodeSection(config, &pyproject.Tool.Pyscn.DeadCode)
-	mergeOutputSection(config, &pyproject.Tool.Pyscn.Output)
-	mergeAnalysisSection(config, &pyproject.Tool.Pyscn.Analysis)
-	mergeCboSection(config, &pyproject.Tool.Pyscn.Cbo)
-	mergeArchitectureSection(config, &pyproject.Tool.Pyscn.Architecture)
-	mergeSystemAnalysisSection(config, &pyproject.Tool.Pyscn.SystemAnalysis)
-	mergeDependenciesSection(config, &pyproject.Tool.Pyscn.Dependencies)
-	mergeClonesSection(config, &pyproject.Tool.Pyscn.Clones)
+	tool, ok := root["tool"].(map[string]interface{})
+	if !ok {
+		return false
+	}
 
-	return config, nil
+	_, ok = tool["pyscn"]
+	return ok
 }
