@@ -244,8 +244,14 @@ func (b *ASTBuilder) buildFunctionDef(tsNode *sitter.Node) *Node {
 
 	// Get return type annotation if present
 	if returnType := b.getChildByFieldName(tsNode, "return_type"); returnType != nil {
-		// Store return type in Value field
+		// Store return type in Value field (for backward compatibility)
 		node.Value = b.getNodeText(returnType)
+		// Also build the return type as an AST node and store in Right field
+		// Using Right instead of Children to avoid DFA treating type annotations as uses
+		returnTypeNode := b.buildNode(returnType)
+		if returnTypeNode != nil {
+			node.Right = returnTypeNode
+		}
 	}
 
 	return node
@@ -1462,9 +1468,20 @@ func (b *ASTBuilder) buildParameters(tsNode *sitter.Node) []*Node {
 				if nameNode := b.getChildByFieldName(child, "name"); nameNode != nil {
 					arg.Name = b.getNodeText(nameNode)
 				}
-				// Store type annotation in Value field for now
+				// Store type annotation both as text (for backward compatibility) and as AST node
 				if typeNode := b.getChildByFieldName(child, "type"); typeNode != nil {
 					arg.Value = b.getNodeText(typeNode)
+					// Also build the type annotation as an AST node and add to Children
+					// This allows proper analysis of complex types like Union (X | Y)
+					typeASTNode := b.buildNode(typeNode)
+					if typeASTNode != nil {
+						arg.Children = append(arg.Children, typeASTNode)
+					}
+				}
+				// Handle default value for typed_default_parameter
+				if valueNode := b.getChildByFieldName(child, "value"); valueNode != nil {
+					// Store default value - don't overwrite type annotation
+					// Default value is handled separately if needed
 				}
 				params = append(params, arg)
 			case "list_splat_pattern":

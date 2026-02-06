@@ -152,7 +152,7 @@ class Service:
 			name: "high coupling class",
 			pythonCode: `
 class A: pass
-class B: pass  
+class B: pass
 class C: pass
 class D: pass
 class E: pass
@@ -173,6 +173,52 @@ class HighlyCoupled(A):
 			expectedCount: 7,
 			expectedCBO:   map[string]int{"HighlyCoupled": 6}, // Inherits from A + instantiates B,C,D,E,F
 			expectedRisk:  map[string]string{"HighlyCoupled": "high"},
+		},
+		{
+			name: "class with union type annotations (Python 3.10+)",
+			pythonCode: `
+class Context:
+    pass
+
+class Parameter:
+    pass
+
+class Command:
+    def __init__(self, ctx: Context | None = None):
+        self.ctx = ctx
+
+    def get_param(self, name: str) -> Parameter | None:
+        return None
+
+    def process(self, ctx: Context, param: Parameter | None) -> str | int:
+        return 0
+`,
+			expectedCount: 3,
+			expectedCBO:   map[string]int{"Context": 0, "Parameter": 0, "Command": 2}, // Command depends on Context and Parameter
+			expectedRisk:  map[string]string{"Context": "low", "Parameter": "low", "Command": "low"},
+		},
+		{
+			name: "class with nested union types",
+			pythonCode: `
+class User:
+    pass
+
+class Admin:
+    pass
+
+class Guest:
+    pass
+
+class AccessControl:
+    def get_user(self) -> User | Admin | Guest | None:
+        return None
+
+    def check_access(self, user: User | Admin) -> bool:
+        return True
+`,
+			expectedCount: 4,
+			expectedCBO:   map[string]int{"User": 0, "Admin": 0, "Guest": 0, "AccessControl": 3}, // Depends on User, Admin, Guest
+			expectedRisk:  map[string]string{"User": "low", "Admin": "low", "Guest": "low", "AccessControl": "low"},
 		},
 	}
 
