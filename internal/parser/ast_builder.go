@@ -1478,11 +1478,6 @@ func (b *ASTBuilder) buildParameters(tsNode *sitter.Node) []*Node {
 						arg.Children = append(arg.Children, typeASTNode)
 					}
 				}
-				// Handle default value for typed_default_parameter
-				if valueNode := b.getChildByFieldName(child, "value"); valueNode != nil {
-					// Store default value - don't overwrite type annotation
-					// Default value is handled separately if needed
-				}
 				params = append(params, arg)
 			case "list_splat_pattern":
 				arg := NewNode(NodeArg)
