@@ -246,11 +246,11 @@ func (b *ASTBuilder) buildFunctionDef(tsNode *sitter.Node) *Node {
 	if returnType := b.getChildByFieldName(tsNode, "return_type"); returnType != nil {
 		// Store return type in Value field (for backward compatibility)
 		node.Value = b.getNodeText(returnType)
-		// Also build the return type as an AST node and add to Children
-		// This allows proper analysis of complex types like Union (X | Y)
+		// Also build the return type as an AST node and store in Right field
+		// Using Right instead of Children to avoid DFA treating type annotations as uses
 		returnTypeNode := b.buildNode(returnType)
 		if returnTypeNode != nil {
-			node.Children = append(node.Children, returnTypeNode)
+			node.Right = returnTypeNode
 		}
 	}
 

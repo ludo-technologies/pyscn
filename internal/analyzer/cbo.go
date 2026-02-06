@@ -309,11 +309,9 @@ func (a *CBOAnalyzer) analyzeMethodTypeHints(methodNode *parser.Node, dependenci
 	}
 
 	// Analyze return type annotation
-	// Look for return type annotations in function children
-	for _, child := range methodNode.Children {
-		if child != nil && a.isTypeAnnotation(child) {
-			a.extractTypeAnnotationDependencies(child, dependencies, result)
-		}
+	// Return type is stored in Right field (not Children) to avoid DFA interference
+	if methodNode.Right != nil && a.isTypeAnnotation(methodNode.Right) {
+		a.extractTypeAnnotationDependencies(methodNode.Right, dependencies, result)
 	}
 }
 
