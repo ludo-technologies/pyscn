@@ -216,7 +216,8 @@ func (a *CBOAnalyzer) isTypeAnnotation(node *parser.Node) bool {
 		node.Type == parser.NodeAttribute ||
 		node.Type == parser.NodeTypeNode ||
 		node.Type == parser.NodeGenericType ||
-		node.Type == parser.NodeTypeParameter
+		node.Type == parser.NodeTypeParameter ||
+		node.Type == parser.NodeBinOp // Union type: X | Y (Python 3.10+)
 }
 
 // extractTypeAnnotationDependencies extracts class dependencies from type annotations
@@ -273,6 +274,17 @@ func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, depen
 		for _, child := range node.Children {
 			if child != nil && a.isTypeAnnotation(child) {
 				a.extractTypeAnnotationDependencies(child, dependencies, result)
+			}
+		}
+	case parser.NodeBinOp:
+		// Union type using | operator (Python 3.10+): Context | None, str | int
+		if node.Op == "|" {
+			// Extract dependencies from both sides of the union
+			if node.Left != nil {
+				a.extractTypeAnnotationDependencies(node.Left, dependencies, result)
+			}
+			if node.Right != nil {
+				a.extractTypeAnnotationDependencies(node.Right, dependencies, result)
 			}
 		}
 	}
