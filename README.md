@@ -1,22 +1,30 @@
-# pyscn - Python Code Quality Analyzer
+<div align="center">
 
-[![Article](https://img.shields.io/badge/dev.to-Article-0A0A0A?style=flat-square&logo=dev.to)](https://dev.to/daisukeyoda/pyscn-the-code-quality-analyzer-for-vibe-coders-18hk)
-[![PyPI](https://img.shields.io/pypi/v/pyscn?style=flat-square&logo=pypi)](https://pypi.org/project/pyscn/)
-[![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat-square&logo=go)](https://go.dev/)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![CI](https://img.shields.io/badge/CI-Passing-brightgreen.svg)](https://github.com/ludo-technologies/pyscn/actions)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/logo-light.svg">
+  <img alt="pyscn" src="assets/logo-light.svg" width="320">
+</picture>
 
-## pyscn is a code quality analyzer for Python vibe coders.
+**A code quality analyzer for Python vibe coders.**
 
 Building with Cursor, Claude, or ChatGPT? pyscn performs structural analysis to keep your codebase maintainable.
 
-> Working with JavaScript/TypeScript? Check out [jscan](https://github.com/ludo-technologies/jscan)
+[![Article](https://img.shields.io/badge/dev.to-Article-0A0A0A?style=flat-square&logo=dev.to)](https://dev.to/daisukeyoda/pyscn-the-code-quality-analyzer-for-vibe-coders-18hk)
+[![PyPI](https://img.shields.io/pypi/v/pyscn?style=flat-square&logo=pypi)](https://pypi.org/project/pyscn/)
+[![Downloads](https://img.shields.io/pypi/dm/pyscn?style=flat-square&logo=pypi&label=downloads)](https://pypi.org/project/pyscn/)
+[![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
+[![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
+
+*Working with JavaScript/TypeScript? Check out [jscan](https://github.com/ludo-technologies/jscan)*
+
+</div>
 
 ## Quick Start
 
 ```bash
 # Run analysis without installation
-uvx pyscn analyze .
+uvx pyscn@latest analyze .
 # or
 pipx run pyscn analyze .
 ```
