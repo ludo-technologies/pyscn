@@ -1,8 +1,10 @@
 <div align="center">
 
-<img alt="pyscn" src="assets/logo.svg" width="80">
-
-# pyscn
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/logo-light.svg">
+  <img alt="pyscn" src="assets/logo-light.svg" width="320">
+</picture>
 
 **A code quality analyzer for Python vibe coders.**
 
