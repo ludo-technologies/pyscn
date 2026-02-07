@@ -24,7 +24,7 @@ Building with Cursor, Claude, or ChatGPT? pyscn performs structural analysis to 
 
 ```bash
 # Run analysis without installation
-uvx pyscn analyze .
+uvx pyscn@latest analyze .
 # or
 pipx run pyscn analyze .
 ```
