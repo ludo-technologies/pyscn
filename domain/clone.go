@@ -38,8 +38,9 @@ func (ct CloneType) String() string {
 }
 
 // DefaultEnabledCloneTypes defines the clone types enabled by default.
-// Type-2 detection uses Jaccard coefficient algorithm (PR #301) which resolved
-// the false positive issues reported in #292.
+// All four types are enabled: the multi-metric classifier assigns Type-3
+// (APTED structural comparison) to most detected clones, so excluding it
+// would discard the majority of valid detections and leave groups empty.
 var DefaultEnabledCloneTypes = []CloneType{Type1Clone, Type2Clone, Type3Clone, Type4Clone}
 
 // DefaultEnabledCloneTypeStrings provides string representations for config files.
@@ -298,6 +299,7 @@ func (req *CloneRequest) Validate() error {
 	}
 
 	// Validate threshold ordering (Type1 > Type2 > Type3 > Type4)
+	// This ordering is required by the classifyCloneType else-if chain.
 	if req.Type1Threshold <= req.Type2Threshold {
 		return NewValidationError("type1_threshold should be > type2_threshold")
 	}
@@ -337,7 +339,7 @@ func DefaultCloneRequest() *CloneRequest {
 		ExcludePatterns:     []string{"test_*.py", "*_test.py"},
 		MinLines:            5,
 		MinNodes:            10,
-		SimilarityThreshold: 0.9,
+		SimilarityThreshold: DefaultCloneSimilarityThreshold,
 		MaxEditDistance:     50.0,
 		IgnoreLiterals:      false,
 		IgnoreIdentifiers:   false,
@@ -351,8 +353,8 @@ func DefaultCloneRequest() *CloneRequest {
 		ShowContent:         false,
 		SortBy:              SortBySimilarity,
 		GroupClones:         true,
-		GroupMode:           "k_core",
-		GroupThreshold:      DefaultType3CloneThreshold,
+		GroupMode:           "connected",
+		GroupThreshold:      DefaultType4CloneThreshold,
 		KCoreK:              2,
 		MinSimilarity:       0.0,
 		MaxSimilarity:       1.0,

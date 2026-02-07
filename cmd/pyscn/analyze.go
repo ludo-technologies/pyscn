@@ -69,7 +69,7 @@ func NewAnalyzeCommand() *AnalyzeCommand {
 		skipSystem:      false,
 		minComplexity:   5,
 		minSeverity:     "warning",
-		cloneSimilarity: 0.9,
+		cloneSimilarity: 0.65,
 		minCBO:          0,
 		enableDFA:       true,
 		detectCycles:    true,
@@ -132,7 +132,7 @@ Examples:
 	// Quick filter flags
 	cmd.Flags().IntVar(&c.minComplexity, "min-complexity", 5, "Minimum complexity to report")
 	cmd.Flags().StringVar(&c.minSeverity, "min-severity", "warning", "Minimum dead code severity (critical, warning, info)")
-	cmd.Flags().Float64Var(&c.cloneSimilarity, "clone-threshold", 0.9, "Minimum similarity for clone detection (0.0-1.0)")
+	cmd.Flags().Float64Var(&c.cloneSimilarity, "clone-threshold", 0.65, "Minimum similarity for clone detection (0.0-1.0)")
 	cmd.Flags().IntVar(&c.minCBO, "min-cbo", 0, "Minimum CBO to report")
 
 	return cmd

@@ -271,7 +271,7 @@ func TestCloneRequest_Validate(t *testing.T) {
 				MinNodes:            10,
 				SimilarityThreshold: 0.8,
 				MaxEditDistance:     50.0,
-				Type1Threshold:      0.95,
+				Type1Threshold:      0.90,
 				Type2Threshold:      0.70,
 				Type3Threshold:      0.70,
 			},
@@ -286,8 +286,8 @@ func TestCloneRequest_Validate(t *testing.T) {
 				MinNodes:            10,
 				SimilarityThreshold: 0.8,
 				MaxEditDistance:     50.0,
-				Type1Threshold:      0.95,
-				Type2Threshold:      0.85,
+				Type1Threshold:      0.90,
+				Type2Threshold:      0.80,
 				Type3Threshold:      0.60,
 				Type4Threshold:      0.60,
 			},
@@ -348,7 +348,7 @@ func TestDefaultCloneRequest(t *testing.T) {
 	assert.Contains(t, request.ExcludePatterns, "*_test.py", "Default exclude patterns should contain test files")
 	assert.Equal(t, 5, request.MinLines, "Default min lines should be 5")
 	assert.Equal(t, 10, request.MinNodes, "Default min nodes should be 10")
-	assert.Equal(t, 0.9, request.SimilarityThreshold, "Default similarity threshold should be 0.9")
+	assert.Equal(t, 0.65, request.SimilarityThreshold, "Default similarity threshold should be 0.65")
 	assert.Equal(t, 50.0, request.MaxEditDistance, "Default max edit distance should be 50.0")
 	assert.False(t, request.IgnoreLiterals, "Default ignore literals should be false")
 	assert.False(t, request.IgnoreIdentifiers, "Default ignore identifiers should be false")
@@ -363,10 +363,10 @@ func TestDefaultCloneRequest(t *testing.T) {
 	assert.True(t, request.GroupClones, "Default group clones should be true")
 	assert.Equal(t, 0.0, request.MinSimilarity, "Default min similarity should be 0.0")
 	assert.Equal(t, 1.0, request.MaxSimilarity, "Default max similarity should be 1.0")
-	assert.Len(t, request.CloneTypes, 4, "Default clone types should include all types (Type-1 through Type-4)")
+	assert.Len(t, request.CloneTypes, 4, "Default clone types should include all four types")
 	assert.Contains(t, request.CloneTypes, Type1Clone, "Default should include Type-1")
 	assert.Contains(t, request.CloneTypes, Type2Clone, "Default should include Type-2 (Jaccard algorithm, PR #301)")
-	assert.Contains(t, request.CloneTypes, Type3Clone, "Default should include Type-3")
+	assert.Contains(t, request.CloneTypes, Type3Clone, "Default should include Type-3 (multi-metric classifier primary output)")
 	assert.Contains(t, request.CloneTypes, Type4Clone, "Default should include Type-4")
 
 	// Validate that the default request passes validation

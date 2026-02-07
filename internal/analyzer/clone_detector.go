@@ -225,8 +225,8 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 		LargeProjectSize:   500,
 
 		// Grouping defaults
-		GroupingMode:      GroupingModeKCore,
-		GroupingThreshold: domain.DefaultType3CloneThreshold,
+		GroupingMode:      GroupingModeConnected,
+		GroupingThreshold: domain.DefaultType4CloneThreshold,
 		KCoreK:            2,
 
 		// LSH defaults (opt-in)

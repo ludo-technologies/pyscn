@@ -8,7 +8,7 @@ import (
 // and maintain expected relationships
 func TestDefaultValueConsistency(t *testing.T) {
 	t.Run("Clone thresholds are properly ordered", func(t *testing.T) {
-		// Type1 > Type2 > Type3 > Type4 (higher is more restrictive)
+		// Type1 > Type2 > Type3 > Type4 (required by classifyCloneType else-if chain)
 		if DefaultType1CloneThreshold <= DefaultType2CloneThreshold {
 			t.Errorf("Type1 threshold (%.2f) should be > Type2 threshold (%.2f)",
 				DefaultType1CloneThreshold, DefaultType2CloneThreshold)
@@ -119,10 +119,10 @@ func TestDefaultValueConsistency(t *testing.T) {
 		}
 	})
 
-	t.Run("Grouping threshold equals Type3 threshold", func(t *testing.T) {
-		if DefaultCloneGroupingThreshold != DefaultType3CloneThreshold {
-			t.Errorf("Grouping threshold (%.2f) should equal Type3 threshold (%.2f)",
-				DefaultCloneGroupingThreshold, DefaultType3CloneThreshold)
+	t.Run("Grouping threshold equals Type4 threshold", func(t *testing.T) {
+		if DefaultCloneGroupingThreshold != DefaultType4CloneThreshold {
+			t.Errorf("GroupingThreshold (%.2f) should equal Type4 threshold (%.2f)",
+				DefaultCloneGroupingThreshold, DefaultType4CloneThreshold)
 		}
 	})
 }
@@ -130,18 +130,18 @@ func TestDefaultValueConsistency(t *testing.T) {
 // TestExpectedDefaultValues verifies that default values match expected industry standards
 func TestExpectedDefaultValues(t *testing.T) {
 	t.Run("Clone type thresholds match expected values", func(t *testing.T) {
-		// Tuned thresholds to reduce false positives (stricter than academic baselines)
-		if DefaultType1CloneThreshold != 0.98 {
-			t.Errorf("Type1 threshold should be 0.98, got %.2f", DefaultType1CloneThreshold)
+		// Relaxed thresholds for broader detection; scoring is done at group/report level
+		if DefaultType1CloneThreshold != 0.85 {
+			t.Errorf("Type1 threshold should be 0.85, got %.2f", DefaultType1CloneThreshold)
 		}
-		if DefaultType2CloneThreshold != 0.95 {
-			t.Errorf("Type2 threshold should be 0.95, got %.2f", DefaultType2CloneThreshold)
+		if DefaultType2CloneThreshold != 0.75 {
+			t.Errorf("Type2 threshold should be 0.75, got %.2f", DefaultType2CloneThreshold)
 		}
-		if DefaultType3CloneThreshold != 0.85 {
-			t.Errorf("Type3 threshold should be 0.85, got %.2f", DefaultType3CloneThreshold)
+		if DefaultType3CloneThreshold != 0.70 {
+			t.Errorf("Type3 threshold should be 0.70, got %.2f", DefaultType3CloneThreshold)
 		}
-		if DefaultType4CloneThreshold != 0.80 {
-			t.Errorf("Type4 threshold should be 0.80, got %.2f", DefaultType4CloneThreshold)
+		if DefaultType4CloneThreshold != 0.65 {
+			t.Errorf("Type4 threshold should be 0.65, got %.2f", DefaultType4CloneThreshold)
 		}
 	})
 
