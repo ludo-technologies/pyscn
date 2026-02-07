@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.2] - 2026-02-07
+
+### Fixed
+- Calibrate clone detection thresholds and scoring (#327)
+- Improve CBO analysis with Union type support and score calibration (#326)
+- Extend clone memory test timeout to 180s (#325)
+
 ## [1.10.1] - 2026-02-06
 
 ### Added
