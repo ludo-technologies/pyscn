@@ -488,6 +488,7 @@ func (t *ThresholdConfig) Validate() error {
 	}
 
 	// Check ordering: Type1 > Type2 > Type3 > Type4
+	// This ordering is required by the classifyCloneType else-if chain.
 	if t.Type1Threshold <= t.Type2Threshold {
 		return fmt.Errorf("Type1 threshold (%.3f) should be > Type2 threshold (%.3f)", t.Type1Threshold, t.Type2Threshold)
 	}
