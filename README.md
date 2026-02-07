@@ -1,4 +1,12 @@
-# pyscn - Python Code Quality Analyzer
+<div align="center">
+
+<img alt="pyscn" src="assets/logo.svg" width="80">
+
+# pyscn
+
+**A code quality analyzer for Python vibe coders.**
+
+Building with Cursor, Claude, or ChatGPT? pyscn performs structural analysis to keep your codebase maintainable.
 
 [![Article](https://img.shields.io/badge/dev.to-Article-0A0A0A?style=flat-square&logo=dev.to)](https://dev.to/daisukeyoda/pyscn-the-code-quality-analyzer-for-vibe-coders-18hk)
 [![PyPI](https://img.shields.io/pypi/v/pyscn?style=flat-square&logo=pypi)](https://pypi.org/project/pyscn/)
@@ -6,11 +14,9 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://img.shields.io/badge/CI-Passing-brightgreen.svg)](https://github.com/ludo-technologies/pyscn/actions)
 
-## pyscn is a code quality analyzer for Python vibe coders.
+*Working with JavaScript/TypeScript? Check out [jscan](https://github.com/ludo-technologies/jscan)*
 
-Building with Cursor, Claude, or ChatGPT? pyscn performs structural analysis to keep your codebase maintainable.
-
-> Working with JavaScript/TypeScript? Check out [jscan](https://github.com/ludo-technologies/jscan)
+</div>
 
 ## Quick Start
 
