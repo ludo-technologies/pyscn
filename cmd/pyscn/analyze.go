@@ -464,48 +464,39 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n")
 
-	// Print analysis status summary
-	if response.Summary.ComplexityEnabled {
-		if response.Complexity != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Complexity Analysis: %d functions analyzed\n",
-				response.Summary.TotalFunctions)
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Complexity Analysis: Failed\n")
-		}
-	}
+	// Print README badge snippet
+	c.printBadge(cmd, response.Summary.Grade)
+}
 
-	if response.Summary.DeadCodeEnabled {
-		if response.DeadCode != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Dead Code Detection: Completed\n")
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Dead Code Detection: Failed\n")
-		}
-	}
+const badgeLandingURL = "https://pyscn.ludo-tech.org"
 
-	if response.Summary.CloneEnabled {
-		if response.Clone != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Clone Detection: Completed\n")
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Clone Detection: Failed\n")
-		}
-	}
+// printBadge prints a Markdown badge snippet for the user's README
+func (c *AnalyzeCommand) printBadge(cmd *cobra.Command, grade string) {
+	color := gradeBadgeColor(grade)
+	badge := fmt.Sprintf("[![pyscn quality](https://img.shields.io/badge/pyscn-%s-%s)](%s)",
+		grade, color, badgeLandingURL)
 
-	if response.Summary.CBOEnabled {
-		if response.CBO != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Class Coupling: %d classes analyzed\n",
-				response.Summary.CBOClasses)
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Class Coupling: Failed\n")
-		}
-	}
+	fmt.Fprintf(cmd.ErrOrStderr(), "\n--------------------------------------------------\n")
+	fmt.Fprintf(cmd.ErrOrStderr(), "[Badge] Add this to your README to show off your score:\n")
+	fmt.Fprintf(cmd.ErrOrStderr(), "%s\n", badge)
+	fmt.Fprintf(cmd.ErrOrStderr(), "--------------------------------------------------\n")
+}
 
-	if response.Summary.DepsEnabled {
-		if response.System != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ System Analysis: %d modules analyzed\n",
-				response.Summary.DepsTotalModules)
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ System Analysis: Failed\n")
-		}
+// gradeBadgeColor returns a shields.io color name for the given grade
+func gradeBadgeColor(grade string) string {
+	switch grade {
+	case "A":
+		return "brightgreen"
+	case "B":
+		return "yellow"
+	case "C":
+		return "orange"
+	case "D":
+		return "red"
+	case "F":
+		return "critical"
+	default:
+		return "lightgrey"
 	}
 }
 
