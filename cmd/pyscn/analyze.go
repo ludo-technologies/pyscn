@@ -464,50 +464,6 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n")
 
-	// Print analysis status summary
-	if response.Summary.ComplexityEnabled {
-		if response.Complexity != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Complexity Analysis: %d functions analyzed\n",
-				response.Summary.TotalFunctions)
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Complexity Analysis: Failed\n")
-		}
-	}
-
-	if response.Summary.DeadCodeEnabled {
-		if response.DeadCode != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Dead Code Detection: Completed\n")
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Dead Code Detection: Failed\n")
-		}
-	}
-
-	if response.Summary.CloneEnabled {
-		if response.Clone != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Clone Detection: Completed\n")
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Clone Detection: Failed\n")
-		}
-	}
-
-	if response.Summary.CBOEnabled {
-		if response.CBO != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Class Coupling: %d classes analyzed\n",
-				response.Summary.CBOClasses)
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Class Coupling: Failed\n")
-		}
-	}
-
-	if response.Summary.DepsEnabled {
-		if response.System != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ System Analysis: %d modules analyzed\n",
-				response.Summary.DepsTotalModules)
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ System Analysis: Failed\n")
-		}
-	}
-
 	// Print README badge snippet
 	c.printBadge(cmd, response.Summary.Grade)
 }
