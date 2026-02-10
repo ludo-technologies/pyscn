@@ -41,3 +41,11 @@ func (d *Dependencies) ConfigPath() string {
 func (d *Dependencies) BuildAnalyzeUseCase() (*app.AnalyzeUseCase, error) {
 	return buildAnalyzeUseCase(d.fileReader)
 }
+
+func NewTestDependencies(fr domain.FileReader, cfg *config.Config, path string) *Dependencies {
+	return &Dependencies{
+		fileReader: fr,
+		config:     cfg,
+		configPath: path,
+	}
+}
