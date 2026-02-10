@@ -507,6 +507,41 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 			fmt.Fprintf(cmd.ErrOrStderr(), "❌ System Analysis: Failed\n")
 		}
 	}
+
+	// Print README badge snippet
+	c.printBadge(cmd, response.Summary.Grade)
+}
+
+const badgeLandingURL = "https://pyscn.ludo-tech.org"
+
+// printBadge prints a Markdown badge snippet for the user's README
+func (c *AnalyzeCommand) printBadge(cmd *cobra.Command, grade string) {
+	color := gradeBadgeColor(grade)
+	badge := fmt.Sprintf("[![pyscn quality](https://img.shields.io/badge/pyscn-%s-%s)](%s)",
+		grade, color, badgeLandingURL)
+
+	fmt.Fprintf(cmd.ErrOrStderr(), "\n--------------------------------------------------\n")
+	fmt.Fprintf(cmd.ErrOrStderr(), "[Badge] Add this to your README to show off your score:\n")
+	fmt.Fprintf(cmd.ErrOrStderr(), "%s\n", badge)
+	fmt.Fprintf(cmd.ErrOrStderr(), "--------------------------------------------------\n")
+}
+
+// gradeBadgeColor returns a shields.io color name for the given grade
+func gradeBadgeColor(grade string) string {
+	switch grade {
+	case "A":
+		return "brightgreen"
+	case "B":
+		return "yellow"
+	case "C":
+		return "orange"
+	case "D":
+		return "red"
+	case "F":
+		return "critical"
+	default:
+		return "lightgrey"
+	}
 }
 
 // Helper methods
