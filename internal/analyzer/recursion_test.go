@@ -56,10 +56,10 @@ func TestRecursionDepthLimits(t *testing.T) {
 		// APTED operations should not crash
 		analyzer := NewAPTEDAnalyzer(NewDefaultCostModel())
 
-		distance := analyzer.ComputeDistance(root, root2)
+		distance := analyzer.ComputeDistanceTrees(root, root2)
 		assert.GreaterOrEqual(t, distance, 0.0, "Distance should be non-negative")
 
-		similarity := analyzer.ComputeSimilarity(root, root2)
+		similarity := analyzer.ComputeSimilarityTrees(root, root2, nil)
 		assert.GreaterOrEqual(t, similarity, 0.0, "Similarity should be non-negative")
 		assert.LessOrEqual(t, similarity, 1.0, "Similarity should not exceed 1.0")
 	})
@@ -168,7 +168,7 @@ func TestAPTEDRecursionProtection(t *testing.T) {
 
 	t.Run("compute distance with deep trees", func(t *testing.T) {
 		// This should not panic or crash
-		distance := analyzer.ComputeDistance(tree1, tree2)
+		distance := analyzer.ComputeDistanceTrees(tree1, tree2)
 		assert.GreaterOrEqual(t, distance, 0.0, "Distance should be non-negative")
 
 		// Should complete in reasonable time (not hang)
@@ -177,7 +177,7 @@ func TestAPTEDRecursionProtection(t *testing.T) {
 
 	t.Run("compute similarity with deep trees", func(t *testing.T) {
 		// This should not panic or crash
-		similarity := analyzer.ComputeSimilarity(tree1, tree2)
+		similarity := analyzer.ComputeSimilarityTrees(tree1, tree2, nil)
 		assert.GreaterOrEqual(t, similarity, 0.0, "Similarity should be non-negative")
 		assert.LessOrEqual(t, similarity, 1.0, "Similarity should not exceed 1.0")
 	})

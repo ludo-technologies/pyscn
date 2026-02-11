@@ -20,8 +20,8 @@ func NewAPTEDAnalyzer(costModel CostModel) *APTEDAnalyzer {
 	}
 }
 
-// ComputeDistance computes the tree edit distance between two trees
-func (a *APTEDAnalyzer) ComputeDistance(tree1, tree2 *TreeNode) float64 {
+// ComputeDistanceTrees computes the tree edit distance between two trees
+func (a *APTEDAnalyzer) ComputeDistanceTrees(tree1, tree2 *TreeNode) float64 {
 	// Handle edge cases
 	if tree1 == nil && tree2 == nil {
 		return 0.0
@@ -418,8 +418,8 @@ func (a *APTEDAnalyzer) computeDeleteCostWithDepthLimit(root *TreeNode, maxDepth
 	return cost
 }
 
-// ComputeSimilarity computes similarity score between two trees (0.0 to 1.0)
-func (a *APTEDAnalyzer) ComputeSimilarity(tree1, tree2 *TreeNode, _ *TFIDFCalculator) float64 {
+// ComputeSimilarityTrees computes similarity score between two trees (0.0 to 1.0)
+func (a *APTEDAnalyzer) ComputeSimilarityTrees(tree1, tree2 *TreeNode, _ *TFIDFCalculator) float64 {
 	// Handle nil cases
 	if tree1 == nil && tree2 == nil {
 		return 1.0 // Identical (both empty)
@@ -428,7 +428,7 @@ func (a *APTEDAnalyzer) ComputeSimilarity(tree1, tree2 *TreeNode, _ *TFIDFCalcul
 		return 0.0 // Completely different (one empty)
 	}
 
-	distance := a.ComputeDistance(tree1, tree2)
+	distance := a.ComputeDistanceTrees(tree1, tree2)
 
 	// Get sizes of both trees
 	size1 := float64(tree1.Size())
@@ -468,8 +468,8 @@ type TreeEditResult struct {
 
 // ComputeDetailedDistance computes detailed tree edit distance information
 func (a *APTEDAnalyzer) ComputeDetailedDistance(tree1, tree2 *TreeNode) *TreeEditResult {
-	distance := a.ComputeDistance(tree1, tree2)
-	similarity := a.ComputeSimilarity(tree1, tree2, nil)
+	distance := a.ComputeDistanceTrees(tree1, tree2)
+	similarity := a.ComputeSimilarityTrees(tree1, tree2, nil)
 
 	var size1, size2 int
 	if tree1 != nil {
@@ -504,8 +504,8 @@ func NewOptimizedAPTEDAnalyzer(costModel CostModel, maxDistance float64) *Optimi
 	}
 }
 
-// ComputeDistance computes tree edit distance with early stopping optimization
-func (a *OptimizedAPTEDAnalyzer) ComputeDistance(tree1, tree2 *TreeNode) float64 {
+// ComputeDistanceTrees computes tree edit distance with early stopping optimization
+func (a *OptimizedAPTEDAnalyzer) ComputeDistanceTrees(tree1, tree2 *TreeNode) float64 {
 	// Quick size-based early termination
 	if a.enableEarlyStop {
 		sizeDiff := math.Abs(float64(tree1.Size() - tree2.Size()))
@@ -515,7 +515,7 @@ func (a *OptimizedAPTEDAnalyzer) ComputeDistance(tree1, tree2 *TreeNode) float64
 	}
 
 	// Use parent implementation
-	distance := a.APTEDAnalyzer.ComputeDistance(tree1, tree2)
+	distance := a.APTEDAnalyzer.ComputeDistanceTrees(tree1, tree2)
 
 	// Early termination check
 	if a.enableEarlyStop && distance > a.maxDistance {
@@ -530,7 +530,7 @@ func (a *APTEDAnalyzer) BatchComputeDistances(pairs [][2]*TreeNode) []float64 {
 	distances := make([]float64, len(pairs))
 
 	for i, pair := range pairs {
-		distances[i] = a.ComputeDistance(pair[0], pair[1])
+		distances[i] = a.ComputeDistanceTrees(pair[0], pair[1])
 	}
 
 	return distances
@@ -601,7 +601,7 @@ func (a *APTEDAnalyzer) ClusterSimilarTrees(trees []*TreeNode, similarityThresho
 	for i := 0; i < n; i++ {
 		for j := i + 1; j < n; j++ {
 			if validTrees[i] != nil && validTrees[j] != nil {
-				dist := a.ComputeDistance(validTrees[i], validTrees[j])
+				dist := a.ComputeDistanceTrees(validTrees[i], validTrees[j])
 				distances[i][j] = dist
 				distances[j][i] = dist
 			}

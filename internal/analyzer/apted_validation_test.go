@@ -12,7 +12,7 @@ func TestAPTEDAnalyzer_NilChecks(t *testing.T) {
 
 	t.Run("ComputeDistance with nil trees", func(t *testing.T) {
 		// Both nil
-		distance := analyzer.ComputeDistance(nil, nil)
+		distance := analyzer.ComputeDistanceTrees(nil, nil)
 		assert.Equal(t, 0.0, distance, "Distance between two nil trees should be 0")
 
 		// Create a test tree for comparison
@@ -20,17 +20,17 @@ func TestAPTEDAnalyzer_NilChecks(t *testing.T) {
 		tree.AddChild(NewTreeNode(2, "child"))
 
 		// First nil
-		distance = analyzer.ComputeDistance(nil, tree)
+		distance = analyzer.ComputeDistanceTrees(nil, tree)
 		assert.Greater(t, distance, 0.0, "Distance from nil to tree should be > 0")
 
 		// Second nil
-		distance = analyzer.ComputeDistance(tree, nil)
+		distance = analyzer.ComputeDistanceTrees(tree, nil)
 		assert.Greater(t, distance, 0.0, "Distance from tree to nil should be > 0")
 	})
 
 	t.Run("ComputeSimilarity with nil trees", func(t *testing.T) {
 		// Both nil
-		similarity := analyzer.ComputeSimilarity(nil, nil)
+		similarity := analyzer.ComputeSimilarityTrees(nil, nil, nil)
 		assert.Equal(t, 1.0, similarity, "Similarity between two nil trees should be 1.0")
 
 		// Create a test tree for comparison
@@ -38,11 +38,11 @@ func TestAPTEDAnalyzer_NilChecks(t *testing.T) {
 		tree.AddChild(NewTreeNode(2, "child"))
 
 		// First nil
-		similarity = analyzer.ComputeSimilarity(nil, tree)
+		similarity = analyzer.ComputeSimilarityTrees(nil, tree, nil)
 		assert.Equal(t, 0.0, similarity, "Similarity from nil to tree should be 0.0")
 
 		// Second nil
-		similarity = analyzer.ComputeSimilarity(tree, nil)
+		similarity = analyzer.ComputeSimilarityTrees(tree, nil, nil)
 		assert.Equal(t, 0.0, similarity, "Similarity from tree to nil should be 0.0")
 	})
 
@@ -74,10 +74,10 @@ func TestAPTEDAnalyzer_NilChecks(t *testing.T) {
 		tree2.AddChild(NewTreeNode(6, "body"))
 
 		// Should work normally
-		distance := analyzer.ComputeDistance(tree1, tree2)
+		distance := analyzer.ComputeDistanceTrees(tree1, tree2)
 		assert.GreaterOrEqual(t, distance, 0.0, "Distance should be non-negative")
 
-		similarity := analyzer.ComputeSimilarity(tree1, tree2)
+		similarity := analyzer.ComputeSimilarityTrees(tree1, tree2, nil)
 		assert.GreaterOrEqual(t, similarity, 0.0, "Similarity should be >= 0")
 		assert.LessOrEqual(t, similarity, 1.0, "Similarity should be <= 1")
 	})

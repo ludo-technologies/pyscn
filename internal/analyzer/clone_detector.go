@@ -202,7 +202,7 @@ type CloneDetectorConfig struct {
 	ReduceBoilerplateSimilarity bool    // Apply lower weight to boilerplate nodes (default: true)
 	BoilerplateMultiplier       float64 // Cost multiplier for boilerplate nodes (default: 0.1)
 
-	UseTFIDF 	bool
+	UseTFIDF bool
 }
 
 // DefaultCloneDetectorConfig returns default configuration
@@ -254,7 +254,7 @@ type CloneDetector struct {
 	// Embed config fields (private to maintain encapsulation)
 	cloneDetectorConfig CloneDetectorConfig
 
-	analyzer    *APTEDAnalyzer
+	analyzer    SimilarityAnalyzer
 	converter   *TreeConverter
 	classifier  *CloneClassifier // Multi-dimensional classifier (optional)
 	fragments   []*CodeFragment
@@ -291,7 +291,13 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 		costModel = NewPythonCostModel()
 	}
 
-	analyzer := NewAPTEDAnalyzer(costModel)
+	// Default analyzer is APTED
+	var analyzer SimilarityAnalyzer = NewAPTEDAnalyzer(costModel)
+
+	// Switch to SyntacticSimilarityAnalyzer if TF-IDF is enabled
+	if config.UseTFIDF {
+		analyzer = NewSyntacticSimilarityAnalyzerWithOptions(config.IgnoreLiterals, config.IgnoreIdentifiers)
+	}
 
 	// If DFA is enabled, automatically enable multi-dimensional analysis and semantic analysis
 	if config.EnableDFAAnalysis {
@@ -553,32 +559,15 @@ func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments 
 	// Convert AST fragments to tree nodes
 	cd.prepareFragments()
 
-
 	// Pass 1: TF-IDF Pre-computation
 	if cd.cloneDetectorConfig.UseTFIDF {
-		calc := &TFIDFCalculator{
-			DocumentFrequency: make(map[string]int),
-			TotalDocuments:    len(fragments),
-		}
-		extractor := NewASTFeatureExtractor() // Use default options for scanning
-		for _, f := range fragments {
-			if f.TreeNode != nil {
-				features, _ := extractor.ExtractFeatures(f.TreeNode)
-				// Deduplicate features per "document" for DF calculation
-				uniqueFeatures := make(map[string]struct{})
-				for _, feat := range features {
-					uniqueFeatures[feat] = struct{}{}
-				}
-				for feat := range uniqueFeatures {
-					calc.DocumentFrequency[feat]++
-				}
-			}
-		}
+		calc := NewTFIDFCalculator()
+		calc.ComputeIDF(fragments)
 		cd.tfidfCalculator = calc
 	}
 
 	// Pass 2 : Detection (use weights from pass 1)
-	cd.detectClonePairsWithContext(ctx) 
+	cd.detectClonePairsWithContext(ctx)
 
 	// Check for cancellation after preparation
 	if isCancelled(ctx) {
@@ -949,11 +938,11 @@ func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *Co
 		return nil
 	}
 
-	// Always use APTED for distance and similarity calculation
+	// Always use the configured analyzer for distance and similarity calculation
 	// This ensures consistent, continuous similarity scores
 	// The classifier result is only used for clone type classification
-	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
-	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode, cd.tfidfCalculator)
+	distance := cd.analyzer.ComputeDistance(fragment1, fragment2)
+	similarity := cd.analyzer.ComputeSimilarity(fragment1, fragment2, cd.tfidfCalculator)
 
 	return &ClonePair{
 		Fragment1:  fragment1,
@@ -967,9 +956,9 @@ func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *Co
 
 // compareFragmentsSingleMetric uses the original single-metric classification
 func (cd *CloneDetector) compareFragmentsSingleMetric(fragment1, fragment2 *CodeFragment) *ClonePair {
-	// Compute edit distance and similarity using APTED algorithm
-	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
-	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode, cd.tfidfCalculator)
+	// Compute edit distance and similarity using the configured analyzer
+	distance := cd.analyzer.ComputeDistance(fragment1, fragment2)
+	similarity := cd.analyzer.ComputeSimilarity(fragment1, fragment2, cd.tfidfCalculator)
 
 	// Determine clone type based on similarity
 	cloneType := cd.classifyCloneType(similarity, distance)

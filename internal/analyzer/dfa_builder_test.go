@@ -428,8 +428,8 @@ def compute(x, y):
 		analyzerWithDFA := NewSemanticSimilarityAnalyzerWithDFA()
 		analyzerWithoutDFA := NewSemanticSimilarityAnalyzer()
 
-		simWithDFA := analyzerWithDFA.ComputeSimilarity(f1, f2)
-		simWithoutDFA := analyzerWithoutDFA.ComputeSimilarity(f1, f2)
+		simWithDFA := analyzerWithDFA.ComputeSimilarity(f1, f2, nil)
+		simWithoutDFA := analyzerWithoutDFA.ComputeSimilarity(f1, f2, nil)
 
 		// Both should produce valid similarity scores
 		assert.Greater(t, simWithDFA, 0.0)

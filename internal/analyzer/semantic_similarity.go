@@ -56,6 +56,17 @@ type CFGFeatures struct {
 	ConditionalCount int              // Number of conditional branches
 }
 
+// ComputeDistance computes the semantic distance (1 - similarity) between two code fragments.
+func (s *SemanticSimilarityAnalyzer) ComputeDistance(f1, f2 *CodeFragment) float64 {
+	if f1 == nil && f2 == nil {
+		return 0.0
+	}
+	if f1 == nil || f2 == nil {
+		return 1.0
+	}
+	return 1.0 - s.ComputeSimilarity(f1, f2, nil)
+}
+
 // ComputeSimilarity computes the semantic similarity between two code fragments
 // by comparing their CFG structures and optionally DFA features.
 func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment, _ *TFIDFCalculator) float64 {

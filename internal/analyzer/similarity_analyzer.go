@@ -6,6 +6,9 @@ type SimilarityAnalyzer interface {
 	// ComputeSimilarity returns a similarity score between 0.0 and 1.0
 	ComputeSimilarity(f1, f2 *CodeFragment, calc *TFIDFCalculator) float64
 
+	// ComputeDistance returns a distance score (0.0 for identical, higher for different)
+	ComputeDistance(f1, f2 *CodeFragment) float64
+
 	// GetName returns the name of this analyzer
 	GetName() string
 }

@@ -42,7 +42,7 @@ func (s *StructuralSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment, _
 	}
 
 	// Compute similarity using APTED
-	return s.analyzer.ComputeSimilarity(tree1, tree2, nil)
+	return s.analyzer.ComputeSimilarityTrees(tree1, tree2, nil)
 }
 
 // ComputeDistance computes the edit distance between two code fragments.
@@ -59,7 +59,7 @@ func (s *StructuralSimilarityAnalyzer) ComputeDistance(f1, f2 *CodeFragment) flo
 		return 0.0
 	}
 
-	return s.analyzer.ComputeDistance(tree1, tree2)
+	return s.analyzer.ComputeDistanceTrees(tree1, tree2)
 }
 
 // getTreeNode retrieves or builds the tree node for a code fragment

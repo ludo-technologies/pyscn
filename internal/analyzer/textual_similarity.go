@@ -42,6 +42,17 @@ func NewTextualSimilarityAnalyzerWithConfig(config *TextualSimilarityConfig) *Te
 	}
 }
 
+// ComputeDistance computes the textual distance (1 - similarity) between two code fragments.
+func (t *TextualSimilarityAnalyzer) ComputeDistance(f1, f2 *CodeFragment) float64 {
+	if f1 == nil && f2 == nil {
+		return 0.0
+	}
+	if f1 == nil || f2 == nil {
+		return 1.0
+	}
+	return 1.0 - t.ComputeSimilarity(f1, f2, nil)
+}
+
 // ComputeSimilarity computes the textual similarity between two code fragments.
 // Returns 1.0 for identical content (after normalization), or a Levenshtein-based
 // similarity score for near-matches.

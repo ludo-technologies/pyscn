@@ -69,7 +69,7 @@ func TestType4SimilarityScores(t *testing.T) {
 			f1 := &CodeFragment{ASTNode: functions[i].ast}
 			f2 := &CodeFragment{ASTNode: functions[j].ast}
 
-			sim := analyzer.ComputeSimilarity(f1, f2)
+			sim := analyzer.ComputeSimilarity(f1, f2, nil)
 			t.Logf("  %s:%s vs %s:%s = %.3f",
 				functions[i].file, functions[i].name,
 				functions[j].file, functions[j].name,
@@ -85,7 +85,7 @@ func TestType4SimilarityScores(t *testing.T) {
 			f1 := &CodeFragment{ASTNode: functions[i].ast}
 			f2 := &CodeFragment{ASTNode: functions[j].ast}
 
-			sim := analyzerNoDFA.ComputeSimilarity(f1, f2)
+			sim := analyzerNoDFA.ComputeSimilarity(f1, f2, nil)
 			t.Logf("  %s:%s vs %s:%s = %.3f",
 				functions[i].file, functions[i].name,
 				functions[j].file, functions[j].name,

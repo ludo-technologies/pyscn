@@ -67,16 +67,16 @@ func (s *SyntacticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment, ca
 
 	// Extract normalized feature sets
 	features1, _ := s.extractor.ExtractFeatures(tree1)
-    features2, _ := s.extractor.ExtractFeatures(tree2)
+	features2, _ := s.extractor.ExtractFeatures(tree2)
 
-    // Use TF-IDF + Cosine if calculator is provided and feature is enabled
-    if calc != nil {
-        v1 := calc.ToWeightedVector(features1)
-        v2 := calc.ToWeightedVector(features2)
-        return CosineSimilarity(v1, v2)
-    }
+	// Use TF-IDF + Cosine if calculator is provided and feature is enabled
+	if calc != nil {
+		v1 := calc.ToWeightedVector(features1)
+		v2 := calc.ToWeightedVector(features2)
+		return CosineSimilarity(v1, v2)
+	}
 
-    return jaccardSimilarity(features1, features2)
+	return jaccardSimilarity(features1, features2)
 }
 
 // ComputeDistance computes the syntactic distance between two code fragments.

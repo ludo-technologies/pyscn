@@ -236,7 +236,7 @@ func (s *CloneService) ComputeSimilarity(ctx context.Context, fragment1, fragmen
 	costModel := analyzer.NewPythonCostModel()
 	aptedAnalyzer := analyzer.NewAPTEDAnalyzer(costModel)
 
-	similarity := aptedAnalyzer.ComputeSimilarity(tree1, tree2, nil)
+	similarity := aptedAnalyzer.ComputeSimilarityTrees(tree1, tree2, nil)
 	return similarity, nil
 }
 
