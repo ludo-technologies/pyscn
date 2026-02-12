@@ -43,9 +43,42 @@ func setupTestFile(t *testing.T, filename string) string {
 	return dst
 }
 
-func TestHandleAnalyzeCode(t *testing.T) {
-	configFile := setupConfig(t)
+func runToolTest(
+	t *testing.T,
+	setupFS func(t *testing.T) string,
+	arguments interface{},
+	handlerFunc func(*mcp.HandlerSet, context.Context, mcplib.CallToolRequest) (*mcplib.CallToolResult, error),
+) *mcplib.CallToolResult {
 
+	t.Helper()
+	configFile := setupConfig(t)
+	deps := mcp.NewTestDependencies(service.NewFileReader(), nil, configFile)
+	h := mcp.NewHandlerSet(deps)
+
+	var filePath string
+	if setupFS != nil {
+		filePath = setupFS(t)
+	}
+
+	if filePath != "" {
+		if m, ok := arguments.(map[string]interface{}); ok {
+			m["path"] = filePath
+		}
+	}
+
+	req := mcplib.CallToolRequest{
+		Params: mcplib.CallToolParams{
+			Arguments: arguments,
+		},
+	}
+
+	res, err := handlerFunc(h, context.Background(), req)
+	require.NoError(t, err)
+
+	return res
+}
+
+func TestHandleAnalyzeCode(t *testing.T) {
 	type want struct {
 		isError      *bool
 		expectPrefix string
@@ -90,6 +123,7 @@ func TestHandleAnalyzeCode(t *testing.T) {
 				setupFS: func(t *testing.T) string {
 					return setupTestFile(t, "classes.py")
 				},
+				arguments: map[string]interface{}{},
 			},
 			want: want{
 				isError: nil,
@@ -143,31 +177,13 @@ func TestHandleAnalyzeCode(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			deps := mcp.NewTestDependencies(service.NewFileReader(), nil, configFile)
-			h := mcp.NewHandlerSet(deps)
+			res := runToolTest(
+				t,
 
-			var path string
-			if tc.args.setupFS != nil {
-				path = tc.args.setupFS(t)
-			}
-
-			reqArgs := tc.args.arguments
-			if reqArgs == nil {
-				reqArgs = map[string]interface{}{}
-			}
-
-			if m, ok := reqArgs.(map[string]interface{}); ok && path != "" {
-				m["path"] = path
-			}
-
-			req := mcplib.CallToolRequest{
-				Params: mcplib.CallToolParams{
-					Arguments: reqArgs,
-				},
-			}
-
-			res, err := h.HandleAnalyzeCode(context.Background(), req)
-			require.NoError(t, err)
+				tc.args.setupFS,
+				tc.args.arguments,
+				(*mcp.HandlerSet).HandleAnalyzeCode,
+			)
 
 			if tc.want.isError != nil && *tc.want.isError != res.IsError {
 				t.Fatalf("IsError = %v, want %v", res.IsError, *tc.want.isError)
@@ -186,7 +202,6 @@ func TestHandleAnalyzeCode(t *testing.T) {
 }
 
 func TestHandleCheckComplexity(t *testing.T) {
-	configFile := setupConfig(t)
 
 	errTrue := true
 
@@ -215,6 +230,7 @@ func TestHandleCheckComplexity(t *testing.T) {
 				setupFS: func(t *testing.T) string {
 					return setupTestFile(t, "classes.py")
 				},
+				arguments: map[string]interface{}{},
 			},
 		},
 	}
@@ -224,28 +240,12 @@ func TestHandleCheckComplexity(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			deps := mcp.NewTestDependencies(service.NewFileReader(), nil, configFile)
-			h := mcp.NewHandlerSet(deps)
-
-			path := ""
-			if tc.args.setupFS != nil {
-				path = tc.args.setupFS(t)
-			}
-
-			reqArgs := tc.args.arguments
-			if reqArgs == nil {
-				reqArgs = map[string]interface{}{}
-			}
-			if m, ok := reqArgs.(map[string]interface{}); ok && path != "" {
-				m["path"] = path
-			}
-
-			req := mcplib.CallToolRequest{
-				Params: mcplib.CallToolParams{Arguments: reqArgs},
-			}
-
-			res, err := h.HandleCheckComplexity(context.Background(), req)
-			require.NoError(t, err)
+			res := runToolTest(
+				t,
+				tc.args.setupFS,
+				tc.args.arguments,
+				(*mcp.HandlerSet).HandleCheckComplexity,
+			)
 
 			if tc.isError != nil {
 				require.Equal(t, *tc.isError, res.IsError)
@@ -254,12 +254,98 @@ func TestHandleCheckComplexity(t *testing.T) {
 
 			require.False(t, res.IsError)
 			require.NotEmpty(t, res.Content)
+
 		})
 	}
 }
 
+func TestHandleCheckCoupling(t *testing.T) {
+
+	errTrue := true
+	errFalse := false
+
+	tests := map[string]struct {
+		args    args
+		isError *bool
+	}{
+		"happy_path_summary": {
+			args: args{
+				setupFS: func(t *testing.T) string {
+					return setupTestFile(t, "classes.py")
+				},
+				arguments: map[string]interface{}{
+					"output_mode": "summary",
+				},
+			},
+			isError: &errFalse,
+		},
+		"happy_path_full": {
+			args: args{
+				setupFS: func(t *testing.T) string {
+					return setupTestFile(t, "classes.py")
+				},
+				arguments: map[string]interface{}{
+					"output_mode": "full",
+				},
+			},
+			isError: &errFalse,
+		},
+		"invalid_arguments": {
+			args: args{
+				arguments: "bad",
+			},
+			isError: &errTrue,
+		},
+		"path_missing": {
+			args: args{
+				arguments: map[string]interface{}{},
+			},
+			isError: &errTrue,
+		},
+		"path_not_exist": {
+			args: args{
+				arguments: map[string]interface{}{
+					"path": "/non/existing/file.py",
+				},
+			},
+			isError: &errTrue,
+		},
+	}
+
+	for name, tc := range tests {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			res := runToolTest(
+				t,
+				tc.args.setupFS,
+				tc.args.arguments,
+				(*mcp.HandlerSet).HandleCheckCoupling,
+			)
+
+			if tc.isError != nil {
+				require.Equal(t, *tc.isError, res.IsError)
+				return
+			}
+
+			require.False(t, res.IsError)
+			require.NotEmpty(t, res.Content)
+
+			outText := mcplib.GetTextFromContent(res.Content[0])
+
+			if argsMap, ok := tc.args.arguments.(map[string]interface{}); ok {
+				if argsMap["output_mode"] == "summary" {
+					var out map[string]interface{}
+					require.NoError(t, json.Unmarshal([]byte(outText), &out))
+					assert.Contains(t, out, "summary")
+				}
+			}
+		})
+	}
+
+}
 func TestHandleDetectClones(t *testing.T) {
-	configFile := setupConfig(t)
 
 	errTrue := true
 
@@ -288,6 +374,7 @@ func TestHandleDetectClones(t *testing.T) {
 				setupFS: func(t *testing.T) string {
 					return setupTestFile(t, "classes.py")
 				},
+				arguments: map[string]interface{}{},
 			},
 		},
 		"success_detailed": {
@@ -317,28 +404,12 @@ func TestHandleDetectClones(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			deps := mcp.NewTestDependencies(service.NewFileReader(), nil, configFile)
-			h := mcp.NewHandlerSet(deps)
-
-			path := ""
-			if tc.args.setupFS != nil {
-				path = tc.args.setupFS(t)
-			}
-
-			reqArgs := tc.args.arguments
-			if reqArgs == nil {
-				reqArgs = map[string]interface{}{}
-			}
-			if m, ok := reqArgs.(map[string]interface{}); ok && path != "" {
-				m["path"] = path
-			}
-
-			req := mcplib.CallToolRequest{
-				Params: mcplib.CallToolParams{Arguments: reqArgs},
-			}
-
-			res, err := h.HandleDetectClones(context.Background(), req)
-			require.NoError(t, err)
+			res := runToolTest(
+				t,
+				tc.args.setupFS,
+				tc.args.arguments,
+				(*mcp.HandlerSet).HandleDetectClones,
+			)
 
 			if tc.isError != nil {
 				require.Equal(t, *tc.isError, res.IsError)
@@ -349,112 +420,10 @@ func TestHandleDetectClones(t *testing.T) {
 			require.NotEmpty(t, res.Content)
 		})
 	}
-}
 
-func TestHandleCheckCoupling(t *testing.T) {
-	configFile := setupConfig(t)
-
-	path := setupTestFile(t, "classes.py")
-
-	errTrue := true
-	errFalse := false
-
-	tests := map[string]struct {
-		args    args
-		isError *bool
-	}{
-		"happy_path_summary": {
-			args: args{
-				arguments: map[string]interface{}{
-					"path":        path,
-					"output_mode": "summary",
-				},
-			},
-			isError: &errFalse,
-		},
-		"happy_path_full": {
-			args: args{
-				arguments: map[string]interface{}{
-					"path":        path,
-					"output_mode": "full",
-				},
-			},
-			isError: &errFalse,
-		},
-		"invalid_arguments": {
-			args: args{
-				arguments: nil,
-			},
-			isError: &errTrue,
-		},
-		"path_missing": {
-			args: args{
-				arguments: map[string]interface{}{},
-			},
-			isError: &errTrue,
-		},
-		"path_not_exist": {
-			args: args{
-				arguments: map[string]interface{}{
-					"path": "/non/existing/file.py",
-				},
-			},
-			isError: &errTrue,
-		},
-	}
-
-	for name, tc := range tests {
-		tc := tc
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			deps := mcp.NewTestDependencies(service.NewFileReader(), nil, configFile)
-			h := mcp.NewHandlerSet(deps)
-
-			var filePath string
-			if tc.args.setupFS != nil {
-				filePath = tc.args.setupFS(t)
-			}
-
-			var reqArgsMap map[string]interface{}
-			if m, ok := tc.args.arguments.(map[string]interface{}); ok {
-				reqArgsMap = m
-			} else {
-				reqArgsMap = map[string]interface{}{}
-			}
-
-			if filePath != "" {
-				reqArgsMap["path"] = filePath
-			}
-
-			req := mcplib.CallToolRequest{
-				Params: mcplib.CallToolParams{
-					Arguments: reqArgsMap,
-				},
-			}
-
-			res, err := h.HandleCheckCoupling(context.Background(), req)
-			require.NoError(t, err)
-
-			if tc.isError != nil {
-				require.Equal(t, *tc.isError, res.IsError)
-				return
-			}
-
-			require.False(t, res.IsError)
-			require.NotEmpty(t, res.Content)
-
-			if outText := mcplib.GetTextFromContent(res.Content[0]); reqArgsMap["output_mode"] == "summary" {
-				var out map[string]interface{}
-				require.NoError(t, json.Unmarshal([]byte(outText), &out))
-				assert.Contains(t, out, "summary")
-			}
-		})
-	}
 }
 
 func TestHandleFindDeadCode(t *testing.T) {
-	configFile := setupConfig(t)
 
 	errTrue := true
 	errFalse := false
@@ -501,6 +470,7 @@ func TestHandleFindDeadCode(t *testing.T) {
 				setupFS: func(t *testing.T) string {
 					return setupTestFile(t, "classes.py")
 				},
+				arguments: map[string]interface{}{},
 			},
 			isError: &errFalse,
 		},
@@ -531,33 +501,12 @@ func TestHandleFindDeadCode(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			deps := mcp.NewTestDependencies(service.NewFileReader(), nil, configFile)
-			h := mcp.NewHandlerSet(deps)
-
-			var filePath string
-			if tc.args.setupFS != nil {
-				filePath = tc.args.setupFS(t)
-			}
-
-			reqArgs := tc.args.arguments
-			if reqArgs == nil {
-				reqArgs = map[string]interface{}{}
-			}
-			if filePath != "" {
-				if m, ok := reqArgs.(map[string]interface{}); ok {
-					m["path"] = filePath
-					reqArgs = m
-				}
-			}
-
-			req := mcplib.CallToolRequest{
-				Params: mcplib.CallToolParams{
-					Arguments: reqArgs,
-				},
-			}
-
-			res, err := h.HandleFindDeadCode(context.Background(), req)
-			require.NoError(t, err)
+			res := runToolTest(
+				t,
+				tc.args.setupFS,
+				tc.args.arguments,
+				(*mcp.HandlerSet).HandleFindDeadCode,
+			)
 
 			if tc.isError != nil {
 				require.Equal(t, *tc.isError, res.IsError)
@@ -574,9 +523,7 @@ func TestHandleFindDeadCode(t *testing.T) {
 		})
 	}
 }
-
 func TestHandleGetHealthScore(t *testing.T) {
-	configFile := setupConfig(t)
 
 	errTrue := true
 	errFalse := false
@@ -590,6 +537,7 @@ func TestHandleGetHealthScore(t *testing.T) {
 				setupFS: func(t *testing.T) string {
 					return setupTestFile(t, "classes.py")
 				},
+				arguments: map[string]interface{}{},
 			},
 			isError: &errFalse,
 		},
@@ -620,32 +568,12 @@ func TestHandleGetHealthScore(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			deps := mcp.NewTestDependencies(service.NewFileReader(), nil, configFile)
-			h := mcp.NewHandlerSet(deps)
-
-			var filePath string
-			if tc.args.setupFS != nil {
-				filePath = tc.args.setupFS(t)
-			}
-			var reqArgs map[string]interface{}
-			if m, ok := tc.args.arguments.(map[string]interface{}); ok {
-				reqArgs = m
-			} else {
-				reqArgs = map[string]interface{}{}
-			}
-
-			if filePath != "" {
-				reqArgs["path"] = filePath
-			}
-
-			req := mcplib.CallToolRequest{
-				Params: mcplib.CallToolParams{
-					Arguments: reqArgs,
-				},
-			}
-
-			res, err := h.HandleGetHealthScore(context.Background(), req)
-			require.NoError(t, err)
+			res := runToolTest(
+				t,
+				tc.args.setupFS,
+				tc.args.arguments,
+				(*mcp.HandlerSet).HandleGetHealthScore,
+			)
 
 			if tc.isError != nil {
 				require.Equal(t, *tc.isError, res.IsError)
@@ -664,4 +592,5 @@ func TestHandleGetHealthScore(t *testing.T) {
 			assert.Contains(t, out, "category_scores")
 		})
 	}
+
 }
