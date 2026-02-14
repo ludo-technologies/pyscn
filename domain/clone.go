@@ -38,13 +38,12 @@ func (ct CloneType) String() string {
 }
 
 // DefaultEnabledCloneTypes defines the clone types enabled by default.
-// All four types are enabled: the multi-metric classifier assigns Type-3
-// (APTED structural comparison) to most detected clones, so excluding it
-// would discard the majority of valid detections and leave groups empty.
-var DefaultEnabledCloneTypes = []CloneType{Type1Clone, Type2Clone, Type3Clone, Type4Clone}
+// Type-3 is excluded by default to reduce near-miss false positives in
+// day-to-day analysis. Users can opt in when they want broader detection.
+var DefaultEnabledCloneTypes = []CloneType{Type1Clone, Type2Clone, Type4Clone}
 
 // DefaultEnabledCloneTypeStrings provides string representations for config files.
-var DefaultEnabledCloneTypeStrings = []string{"type1", "type2", "type3", "type4"}
+var DefaultEnabledCloneTypeStrings = []string{"type1", "type2", "type4"}
 
 // CloneLocation represents a location of a clone in source code
 type CloneLocation struct {
