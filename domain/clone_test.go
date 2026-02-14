@@ -363,11 +363,11 @@ func TestDefaultCloneRequest(t *testing.T) {
 	assert.True(t, request.GroupClones, "Default group clones should be true")
 	assert.Equal(t, 0.0, request.MinSimilarity, "Default min similarity should be 0.0")
 	assert.Equal(t, 1.0, request.MaxSimilarity, "Default max similarity should be 1.0")
-	assert.Len(t, request.CloneTypes, 4, "Default clone types should include all four types")
+	assert.Len(t, request.CloneTypes, 3, "Default clone types should include Type-1/2/4 only")
 	assert.Contains(t, request.CloneTypes, Type1Clone, "Default should include Type-1")
 	assert.Contains(t, request.CloneTypes, Type2Clone, "Default should include Type-2 (Jaccard algorithm, PR #301)")
-	assert.Contains(t, request.CloneTypes, Type3Clone, "Default should include Type-3 (multi-metric classifier primary output)")
 	assert.Contains(t, request.CloneTypes, Type4Clone, "Default should include Type-4")
+	assert.NotContains(t, request.CloneTypes, Type3Clone, "Default should exclude Type-3 to reduce near-miss noise")
 
 	// Validate that the default request passes validation
 	err := request.Validate()

@@ -69,7 +69,7 @@ enable_dfa = true                # Enable Data Flow Analysis for enhanced Type-4
 # Filtering settings
 min_similarity = 0.0             # Minimum similarity to report
 max_similarity = 1.0             # Maximum similarity to report
-# enabled_clone_types = ["type1", "type2", "type3", "type4"]  # Default: uses domain.DefaultEnabledCloneTypes
+# enabled_clone_types = ["type1", "type2", "type4"]  # Default: uses domain.DefaultEnabledCloneTypes
 max_results = 10000              # Maximum results (0 = no limit)
 
 # Grouping settings
