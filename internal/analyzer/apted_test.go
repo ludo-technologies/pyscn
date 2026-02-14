@@ -139,15 +139,14 @@ func TestAPTEDAnalyzer_ComputeDistance_ComplexTrees(t *testing.T) {
 	tree2.AddChild(childE2)
 
 	distance := analyzer.ComputeDistance(tree1, tree2)
-	// Note: APTED algorithm finds an optimal distance of 1.0 for this case
-	// This might be due to structural alignment optimizations in the algorithm
-	assert.Equal(t, 1.0, distance, "APTED algorithm computes optimal distance")
+	// Optimal distance: rename B→D and C→E = 2.0 (root A matches)
+	assert.Equal(t, 2.0, distance, "APTED algorithm computes optimal distance")
 
 	similarity := analyzer.ComputeSimilarity(tree1, tree2)
 	// With max-based normalization: similarity = 1.0 - (distance / max(size1, size2))
-	// distance = 1.0, size1 = 3, size2 = 3
-	// similarity = 1.0 - (1.0 / 3.0) = 0.6667...
-	expectedSimilarity := 1.0 - (1.0 / 3.0) // 1.0 distance, max size = 3
+	// distance = 2.0, size1 = 3, size2 = 3
+	// similarity = 1.0 - (2.0 / 3.0) = 0.3333...
+	expectedSimilarity := 1.0 - (2.0 / 3.0)
 	assert.InDelta(t, expectedSimilarity, similarity, 0.001, "Similarity should be calculated correctly")
 }
 
@@ -243,7 +242,7 @@ func TestAPTEDAnalyzer_ComputeSimilarity(t *testing.T) {
 				root.AddChild(NewTreeNode(3, "Z"))
 				return root
 			}(),
-			expectedSimilarity: 0.3333, // APTED finds optimal distance of 2, max size = 3, 1-2/3=0.333
+			expectedSimilarity: 0.0, // All 3 nodes renamed: distance = 3, max size = 3, 1-3/3=0.0
 			delta:              0.001,
 		},
 		{
