@@ -60,11 +60,11 @@ type CodeFragment struct {
 	Location   *CodeLocation
 	ASTNode    *parser.Node
 	TreeNode   *TreeNode
-	Content    string // Original source code content
-	Hash       string // Hash for quick comparison
-	Size       int    // Number of AST nodes
-	LineCount  int    // Number of source lines
-	Complexity int    // Cyclomatic complexity (if applicable)
+	Content    string   // Original source code content
+	Hash       string   // Hash for quick comparison
+	Size       int      // Number of AST nodes
+	LineCount  int      // Number of source lines
+	Complexity int      // Cyclomatic complexity (if applicable)
 	Features   []string // Pre-computed features for Jaccard similarity
 }
 
@@ -260,7 +260,7 @@ type CloneDetector struct {
 
 	analyzer         *APTEDAnalyzer
 	converter        *TreeConverter
-	classifier       *CloneClassifier    // Multi-dimensional classifier (optional)
+	classifier       *CloneClassifier     // Multi-dimensional classifier (optional)
 	featureExtractor *ASTFeatureExtractor // Pre-filter feature extractor
 	fragments        []*CodeFragment
 	clonePairs       []*ClonePair
