@@ -921,32 +921,13 @@ func (cd *CloneDetector) compareFragments(fragment1, fragment2 *CodeFragment) *C
 		return nil
 	}
 
-	// Jaccard pre-filter using pre-computed features (benefits both classifier and single-metric paths)
+	// Jaccard pre-filter: reject clear non-clones before expensive APTED/classifier work.
+	// Only used for rejection — all non-rejected pairs proceed to APTED-based classification
+	// for accurate clone typing and distance computation.
 	if len(fragment1.Features) > 0 && len(fragment2.Features) > 0 {
-		jaccard := jaccardSimilarity(fragment1.Features, fragment2.Features)
-
-		// Low Jaccard → not a clone, skip all expensive computation
-		if jaccard < jaccardRejectionThreshold {
+		if jaccardSimilarity(fragment1.Features, fragment2.Features) < jaccardRejectionThreshold {
 			return nil
 		}
-
-		// High Jaccard → Type-1/2 clone, skip APTED entirely
-		if jaccard >= cd.cloneDetectorConfig.Type2Threshold {
-			cloneType := Type2Clone
-			if jaccard >= cd.cloneDetectorConfig.Type1Threshold {
-				cloneType = Type1Clone
-			}
-			confidence := cd.calculateConfidence(fragment1, fragment2, jaccard)
-			return &ClonePair{
-				Fragment1:  fragment1,
-				Fragment2:  fragment2,
-				Similarity: jaccard,
-				CloneType:  cloneType,
-				Confidence: confidence,
-			}
-		}
-
-		// Intermediate Jaccard → fall through to APTED-based comparison
 	}
 
 	// Use multi-dimensional classifier if enabled
@@ -958,39 +939,30 @@ func (cd *CloneDetector) compareFragments(fragment1, fragment2 *CodeFragment) *C
 	return cd.compareFragmentsSingleMetric(fragment1, fragment2)
 }
 
-// compareFragmentsWithClassifier uses multi-dimensional classification.
-// Type-1/2 clones use the classifier's similarity directly (APTED skipped).
-// Type-3/4 clones use APTED for precise distance/similarity measurement.
+// compareFragmentsWithClassifier uses the classifier as a gate and APTED for
+// final similarity/distance scoring and clone-type classification.
 func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *CodeFragment) *ClonePair {
 	result := cd.classifier.ClassifyClone(fragment1, fragment2)
 	if result == nil {
 		return nil
 	}
 
-	// Type-1/2: classifier provides sufficient accuracy, skip expensive APTED
-	if result.CloneType == Type1Clone || result.CloneType == Type2Clone {
-		return &ClonePair{
-			Fragment1:  fragment1,
-			Fragment2:  fragment2,
-			Similarity: result.Similarity,
-			CloneType:  result.CloneType,
-			Confidence: result.Confidence,
-		}
-	}
-
-	// Type-3/4: re-run APTED with detector's cost model (boilerplate-aware)
-	// for consistent similarity scores and false positive reduction.
-	// The classifier uses a plain cost model for accurate type classification,
-	// while the detector uses a boilerplate-aware model for scoring.
+	// Always run APTED with the detector's cost model (boilerplate-aware) so that
+	// Distance is populated and clone type is derived from a consistent metric.
 	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
 	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
+
+	cloneType := cd.classifyCloneType(similarity, distance)
+	if cloneType == 0 {
+		return nil
+	}
 
 	return &ClonePair{
 		Fragment1:  fragment1,
 		Fragment2:  fragment2,
 		Similarity: similarity,
 		Distance:   distance,
-		CloneType:  result.CloneType,
+		CloneType:  cloneType,
 		Confidence: result.Confidence,
 	}
 }
