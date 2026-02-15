@@ -531,11 +531,12 @@ func (h *HandlerSet) HandleCheckCohesion(ctx context.Context, request mcp.CallTo
 	fileReader := service.NewFileReader()
 	formatter := service.NewLCOMFormatter()
 
+	lcomConfigLoader := service.NewLCOMConfigurationLoader()
 	useCase := app.NewLCOMUseCase(
 		lcomService,
 		fileReader,
 		formatter,
-		nil, // LCOM config loader is optional
+		lcomConfigLoader,
 	)
 
 	// Execute analysis
@@ -1287,7 +1288,8 @@ func buildAnalyzeUseCase(fileReader domain.FileReader) (*app.AnalyzeUseCase, err
 	// Build LCOM use case
 	lcomService := service.NewLCOMService()
 	lcomFormatter := service.NewLCOMFormatter()
-	lcomUC := app.NewLCOMUseCase(lcomService, fileReader, lcomFormatter, nil) // LCOM config loader is optional
+	lcomConfigLoader := service.NewLCOMConfigurationLoader()
+	lcomUC := app.NewLCOMUseCase(lcomService, fileReader, lcomFormatter, lcomConfigLoader)
 
 	// Build system analysis use case
 	systemService := service.NewSystemAnalysisService()
