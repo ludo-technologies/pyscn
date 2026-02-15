@@ -122,6 +122,22 @@ const (
 )
 
 // ============================================================================
+// LCOM (Lack of Cohesion of Methods) Defaults
+// ============================================================================
+
+// LCOM4 thresholds based on Hitz & Montazeri graph-based algorithm.
+// Reference: Hitz, M. & Montazeri, B. (1995). Measuring Coupling and Cohesion in OO Systems
+const (
+	// DefaultLCOMLowThreshold is the upper bound for low-risk LCOM.
+	// Classes with LCOM4 <= 2 have high cohesion.
+	DefaultLCOMLowThreshold = 2
+
+	// DefaultLCOMMediumThreshold is the upper bound for medium-risk LCOM.
+	// Classes with LCOM4 3-5 have acceptable cohesion.
+	DefaultLCOMMediumThreshold = 5
+)
+
+// ============================================================================
 // Dead Code Detection Defaults
 // ============================================================================
 

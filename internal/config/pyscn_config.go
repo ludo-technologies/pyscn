@@ -75,6 +75,10 @@ type PyscnConfig struct {
 	CboIncludeBuiltins *bool `mapstructure:"cbo_include_builtins" yaml:"cbo_include_builtins" json:"cbo_include_builtins"`
 	CboIncludeImports  *bool `mapstructure:"cbo_include_imports" yaml:"cbo_include_imports" json:"cbo_include_imports"`
 
+	// LCOM Configuration (from [lcom] section in TOML)
+	LcomLowThreshold    int `mapstructure:"lcom_low_threshold" yaml:"lcom_low_threshold" json:"lcom_low_threshold"`
+	LcomMediumThreshold int `mapstructure:"lcom_medium_threshold" yaml:"lcom_medium_threshold" json:"lcom_medium_threshold"`
+
 	// Architecture Configuration (from [architecture] section in TOML)
 	ArchitectureEnabled                         *bool    `mapstructure:"architecture_enabled" yaml:"architecture_enabled" json:"architecture_enabled"`
 	ArchitectureValidateLayers                  *bool    `mapstructure:"architecture_validate_layers" yaml:"architecture_validate_layers" json:"architecture_validate_layers"`
@@ -352,6 +356,10 @@ func DefaultPyscnConfig() *PyscnConfig {
 		CboShowZeros:       domain.BoolPtr(false),
 		CboIncludeBuiltins: domain.BoolPtr(false),
 		CboIncludeImports:  domain.BoolPtr(true),
+
+		// LCOM defaults (from [lcom] section)
+		LcomLowThreshold:    domain.DefaultLCOMLowThreshold,
+		LcomMediumThreshold: domain.DefaultLCOMMediumThreshold,
 
 		// Architecture defaults (from [architecture] section)
 		ArchitectureEnabled:                         domain.BoolPtr(false), // Disabled by default - opt-in

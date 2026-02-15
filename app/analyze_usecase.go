@@ -20,6 +20,7 @@ type AnalyzeUseCaseConfig struct {
 	SkipDeadCode   bool
 	SkipClones     bool
 	SkipCBO        bool
+	SkipLCOM       bool
 	SkipSystem     bool
 
 	MinComplexity   int
@@ -40,6 +41,7 @@ type AnalyzeUseCase struct {
 	deadCodeUseCase   *DeadCodeUseCase
 	cloneUseCase      *CloneUseCase
 	cboUseCase        *CBOUseCase
+	lcomUseCase       *LCOMUseCase
 	systemUseCase     *SystemAnalysisUseCase
 
 	fileReader       domain.FileReader
@@ -55,6 +57,7 @@ type AnalyzeUseCaseBuilder struct {
 	deadCodeUseCase   *DeadCodeUseCase
 	cloneUseCase      *CloneUseCase
 	cboUseCase        *CBOUseCase
+	lcomUseCase       *LCOMUseCase
 	systemUseCase     *SystemAnalysisUseCase
 
 	fileReader       domain.FileReader
@@ -90,6 +93,12 @@ func (b *AnalyzeUseCaseBuilder) WithCloneUseCase(uc *CloneUseCase) *AnalyzeUseCa
 // WithCBOUseCase sets the CBO use case
 func (b *AnalyzeUseCaseBuilder) WithCBOUseCase(uc *CBOUseCase) *AnalyzeUseCaseBuilder {
 	b.cboUseCase = uc
+	return b
+}
+
+// WithLCOMUseCase sets the LCOM use case
+func (b *AnalyzeUseCaseBuilder) WithLCOMUseCase(uc *LCOMUseCase) *AnalyzeUseCaseBuilder {
+	b.lcomUseCase = uc
 	return b
 }
 
@@ -152,6 +161,7 @@ func (b *AnalyzeUseCaseBuilder) Build() (*AnalyzeUseCase, error) {
 		deadCodeUseCase:   b.deadCodeUseCase,
 		cloneUseCase:      b.cloneUseCase,
 		cboUseCase:        b.cboUseCase,
+		lcomUseCase:       b.lcomUseCase,
 		systemUseCase:     b.systemUseCase,
 		fileReader:        b.fileReader,
 		formatter:         b.formatter,
@@ -386,6 +396,29 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 		})
 	}
 
+	// LCOM analysis task
+	if uc.lcomUseCase != nil {
+		tasks = append(tasks, &AnalysisTask{
+			Name:    "Class Cohesion (LCOM)",
+			Enabled: !config.SkipLCOM,
+			Execute: func(ctx context.Context) (interface{}, error) {
+				request := domain.LCOMRequest{
+					Paths:           files,
+					Recursive:       nil, // Let config file values take precedence
+					IncludePatterns: []string{},
+					ExcludePatterns: []string{},
+					OutputFormat:    domain.OutputFormatJSON,
+					OutputWriter:    io.Discard,
+					LowThreshold:    0, // Zero: let config file values take precedence via merge
+					MediumThreshold: 0, // Zero: let config file values take precedence via merge
+					SortBy:          domain.SortByCohesion,
+					ConfigPath:      config.ConfigFile,
+				}
+				return uc.lcomUseCase.AnalyzeAndReturn(ctx, request)
+			},
+		})
+	}
+
 	// System analysis task
 	if uc.systemUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
@@ -451,6 +484,11 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 			if result != nil {
 				response.CBO = result
 			}
+		case *domain.LCOMResponse:
+			response.Summary.LCOMEnabled = true
+			if result != nil {
+				response.LCOM = result
+			}
 		case *domain.SystemAnalysisResponse:
 			response.Summary.DepsEnabled = true
 			if result != nil {
@@ -483,6 +521,8 @@ func (uc *AnalyzeUseCase) markSummaryForTask(summary *domain.AnalyzeSummary, tas
 		summary.CloneEnabled = true
 	case "Class Coupling (CBO)":
 		summary.CBOEnabled = true
+	case "Class Cohesion (LCOM)":
+		summary.LCOMEnabled = true
 	case "System Analysis":
 		summary.DepsEnabled = true
 	}
@@ -542,6 +582,14 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		summary.HighCouplingClasses = response.CBO.Summary.HighRiskClasses
 		summary.MediumCouplingClasses = response.CBO.Summary.MediumRiskClasses
 		summary.AverageCoupling = response.CBO.Summary.AverageCBO
+	}
+
+	// LCOM statistics
+	if response.LCOM != nil {
+		summary.LCOMClasses = response.LCOM.Summary.TotalClasses
+		summary.HighLCOMClasses = response.LCOM.Summary.HighRiskClasses
+		summary.MediumLCOMClasses = response.LCOM.Summary.MediumRiskClasses
+		summary.AverageLCOM = response.LCOM.Summary.AverageLCOM
 	}
 
 	// System analysis statistics
@@ -649,6 +697,9 @@ func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUs
 	}
 	if !config.SkipCBO {
 		totalTime += 0.01 * n // CBO: ~0.01s per file
+	}
+	if !config.SkipLCOM {
+		totalTime += 0.01 * n // LCOM: ~0.01s per file
 	}
 	if !config.SkipSystem {
 		totalTime += 0.02 * n // System: ~0.02s per file (slightly heavier)
