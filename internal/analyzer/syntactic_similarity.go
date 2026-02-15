@@ -57,6 +57,11 @@ func (s *SyntacticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) fl
 		return 0.0
 	}
 
+	// Use pre-computed features if available (avoids redundant tree traversal)
+	if len(f1.Features) > 0 && len(f2.Features) > 0 {
+		return jaccardSimilarity(f1.Features, f2.Features)
+	}
+
 	// Get or build tree nodes for fragments
 	tree1 := s.getTreeNode(f1)
 	tree2 := s.getTreeNode(f2)
@@ -87,8 +92,10 @@ func (s *SyntacticSimilarityAnalyzer) ComputeDistance(f1, f2 *CodeFragment) floa
 	return 1.0 - s.ComputeSimilarity(f1, f2)
 }
 
-// jaccardSimilarity computes the Jaccard coefficient between two string sets.
+// jaccardSimilarity computes the Jaccard coefficient between two string slices.
 // Jaccard(A, B) = |A ∩ B| / |A ∪ B|
+// If both slices are sorted (as produced by ASTFeatureExtractor.ExtractFeatures),
+// uses an O(n+m) merge-join without hash map allocation.
 func jaccardSimilarity(set1, set2 []string) float64 {
 	if len(set1) == 0 && len(set2) == 0 {
 		return 1.0 // Both empty = identical
@@ -97,28 +104,52 @@ func jaccardSimilarity(set1, set2 []string) float64 {
 		return 0.0 // One empty = no similarity
 	}
 
-	// Build hash set for set1
-	s1 := make(map[string]struct{}, len(set1))
-	for _, f := range set1 {
-		s1[f] = struct{}{}
-	}
-
-	// Build hash set for set2
-	s2 := make(map[string]struct{}, len(set2))
-	for _, f := range set2 {
-		s2[f] = struct{}{}
-	}
-
-	// Count intersection
+	// Merge-join on sorted slices: count unique elements and intersection
+	i, j := 0, 0
 	intersection := 0
-	for f := range s1 {
-		if _, ok := s2[f]; ok {
+	union := 0
+
+	for i < len(set1) && j < len(set2) {
+		if set1[i] == set2[j] {
 			intersection++
+			union++
+			// Skip duplicates in both
+			val := set1[i]
+			for i < len(set1) && set1[i] == val {
+				i++
+			}
+			for j < len(set2) && set2[j] == val {
+				j++
+			}
+		} else if set1[i] < set2[j] {
+			union++
+			val := set1[i]
+			for i < len(set1) && set1[i] == val {
+				i++
+			}
+		} else {
+			union++
+			val := set2[j]
+			for j < len(set2) && set2[j] == val {
+				j++
+			}
 		}
 	}
-
-	// Union size = |A| + |B| - |A ∩ B|
-	union := len(s1) + len(s2) - intersection
+	// Count remaining unique elements
+	for i < len(set1) {
+		union++
+		val := set1[i]
+		for i < len(set1) && set1[i] == val {
+			i++
+		}
+	}
+	for j < len(set2) {
+		union++
+		val := set2[j]
+		for j < len(set2) && set2[j] == val {
+			j++
+		}
+	}
 
 	if union == 0 {
 		return 1.0

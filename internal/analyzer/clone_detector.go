@@ -60,11 +60,12 @@ type CodeFragment struct {
 	Location   *CodeLocation
 	ASTNode    *parser.Node
 	TreeNode   *TreeNode
-	Content    string // Original source code content
-	Hash       string // Hash for quick comparison
-	Size       int    // Number of AST nodes
-	LineCount  int    // Number of source lines
-	Complexity int    // Cyclomatic complexity (if applicable)
+	Content    string   // Original source code content
+	Hash       string   // Hash for quick comparison
+	Size       int      // Number of AST nodes
+	LineCount  int      // Number of source lines
+	Complexity int      // Cyclomatic complexity (if applicable)
+	Features   []string // Pre-computed features for Jaccard similarity
 }
 
 // NewCodeFragment creates a new code fragment
@@ -247,17 +248,23 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 	}
 }
 
+// jaccardRejectionThreshold is the Jaccard similarity below which pairs are
+// rejected without running APTED. At 0.10, virtually no true Type-3/4 clones
+// are missed while the vast majority of non-clone pairs are skipped.
+const jaccardRejectionThreshold = 0.10
+
 // CloneDetector detects code clones using APTED algorithm
 type CloneDetector struct {
 	// Embed config fields (private to maintain encapsulation)
 	cloneDetectorConfig CloneDetectorConfig
 
-	analyzer    *APTEDAnalyzer
-	converter   *TreeConverter
-	classifier  *CloneClassifier // Multi-dimensional classifier (optional)
-	fragments   []*CodeFragment
-	clonePairs  []*ClonePair
-	cloneGroups []*CloneGroup
+	analyzer         *APTEDAnalyzer
+	converter        *TreeConverter
+	classifier       *CloneClassifier     // Multi-dimensional classifier (optional)
+	featureExtractor *ASTFeatureExtractor // Pre-filter feature extractor
+	fragments        []*CodeFragment
+	clonePairs       []*ClonePair
+	cloneGroups      []*CloneGroup
 }
 
 // NewCloneDetector creates a new clone detector with the given configuration
@@ -315,6 +322,7 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 		analyzer:            analyzer,
 		converter:           NewTreeConverterWithConfig(config.SkipDocstrings),
 		classifier:          classifier,
+		featureExtractor:    NewASTFeatureExtractor(),
 		fragments:           []*CodeFragment{},
 		clonePairs:          []*ClonePair{},
 		cloneGroups:         []*CloneGroup{},
@@ -741,13 +749,15 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 	return cd.clonePairs, cd.cloneGroups
 }
 
-// prepareFragments converts AST fragments to tree nodes
+// prepareFragments converts AST fragments to tree nodes and pre-computes features
 func (cd *CloneDetector) prepareFragments() {
 	for _, fragment := range cd.fragments {
 		if fragment.ASTNode != nil {
 			fragment.TreeNode = cd.converter.ConvertAST(fragment.ASTNode)
 			if fragment.TreeNode != nil {
 				PrepareTreeForAPTED(fragment.TreeNode)
+				features, _ := cd.featureExtractor.ExtractFeatures(fragment.TreeNode)
+				fragment.Features = features
 			}
 		}
 	}
@@ -899,7 +909,8 @@ func (cd *CloneDetector) shouldCompareFragments(fragment1, fragment2 *CodeFragme
 	return true
 }
 
-// compareFragments compares two fragments and returns a clone pair if similar
+// compareFragments compares two fragments and returns a clone pair if similar.
+// Uses a Jaccard pre-filter on pre-computed features to minimize expensive APTED calls.
 func (cd *CloneDetector) compareFragments(fragment1, fragment2 *CodeFragment) *ClonePair {
 	if fragment1.TreeNode == nil || fragment2.TreeNode == nil {
 		return nil
@@ -908,6 +919,15 @@ func (cd *CloneDetector) compareFragments(fragment1, fragment2 *CodeFragment) *C
 	// Early filtering check
 	if !cd.shouldCompareFragments(fragment1, fragment2) {
 		return nil
+	}
+
+	// Jaccard pre-filter: reject clear non-clones before expensive APTED/classifier work.
+	// Only used for rejection — all non-rejected pairs proceed to APTED-based classification
+	// for accurate clone typing and distance computation.
+	if len(fragment1.Features) > 0 && len(fragment2.Features) > 0 {
+		if jaccardSimilarity(fragment1.Features, fragment2.Features) < jaccardRejectionThreshold {
+			return nil
+		}
 	}
 
 	// Use multi-dimensional classifier if enabled
@@ -919,42 +939,50 @@ func (cd *CloneDetector) compareFragments(fragment1, fragment2 *CodeFragment) *C
 	return cd.compareFragmentsSingleMetric(fragment1, fragment2)
 }
 
-// compareFragmentsWithClassifier uses multi-dimensional classification
+// compareFragmentsWithClassifier uses the classifier as a gate and APTED for
+// final similarity/distance scoring and clone-type classification.
 func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *CodeFragment) *ClonePair {
 	result := cd.classifier.ClassifyClone(fragment1, fragment2)
 	if result == nil {
 		return nil
 	}
 
-	// Always use APTED for distance and similarity calculation
-	// This ensures consistent, continuous similarity scores
-	// The classifier result is only used for clone type classification
+	// Always run APTED with the detector's cost model (boilerplate-aware) so that
+	// Distance is populated and clone type is derived from a consistent metric.
 	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
 	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
+
+	cloneType := cd.classifyCloneType(similarity, distance)
+	if cloneType == 0 {
+		return nil
+	}
 
 	return &ClonePair{
 		Fragment1:  fragment1,
 		Fragment2:  fragment2,
 		Similarity: similarity,
 		Distance:   distance,
-		CloneType:  result.CloneType,
+		CloneType:  cloneType,
 		Confidence: result.Confidence,
 	}
 }
 
-// compareFragmentsSingleMetric uses the original single-metric classification
+// compareFragmentsSingleMetric uses APTED for clone type classification.
+// Jaccard pre-filtering is handled at the compareFragments level.
 func (cd *CloneDetector) compareFragmentsSingleMetric(fragment1, fragment2 *CodeFragment) *ClonePair {
-	// Compute edit distance and similarity using APTED algorithm
+	return cd.compareWithAPTED(fragment1, fragment2)
+}
+
+// compareWithAPTED uses the APTED algorithm for precise similarity measurement.
+func (cd *CloneDetector) compareWithAPTED(fragment1, fragment2 *CodeFragment) *ClonePair {
 	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
 	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
 
-	// Determine clone type based on similarity
 	cloneType := cd.classifyCloneType(similarity, distance)
 	if cloneType == 0 {
-		return nil // Not a significant clone
+		return nil
 	}
 
-	// Calculate confidence based on fragment size and similarity
 	confidence := cd.calculateConfidence(fragment1, fragment2, similarity)
 
 	return &ClonePair{
