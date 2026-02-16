@@ -260,9 +260,7 @@ func TestHandleCheckComplexity(t *testing.T) {
 }
 
 func TestHandleCheckCoupling(t *testing.T) {
-
 	errTrue := true
-	errFalse := false
 
 	tests := map[string]struct {
 		args    args
@@ -277,7 +275,6 @@ func TestHandleCheckCoupling(t *testing.T) {
 					"output_mode": "summary",
 				},
 			},
-			isError: &errFalse,
 		},
 		"happy_path_full": {
 			args: args{
@@ -288,7 +285,6 @@ func TestHandleCheckCoupling(t *testing.T) {
 					"output_mode": "full",
 				},
 			},
-			isError: &errFalse,
 		},
 		"invalid_arguments": {
 			args: args{
@@ -426,7 +422,6 @@ func TestHandleDetectClones(t *testing.T) {
 func TestHandleFindDeadCode(t *testing.T) {
 
 	errTrue := true
-	errFalse := false
 
 	tests := map[string]struct {
 		args    args
@@ -441,7 +436,6 @@ func TestHandleFindDeadCode(t *testing.T) {
 					return setupTestFile(t, "classes.py")
 				},
 			},
-			isError: &errFalse,
 		},
 		"happy_path_info": {
 			args: args{
@@ -452,7 +446,6 @@ func TestHandleFindDeadCode(t *testing.T) {
 					return setupTestFile(t, "classes.py")
 				},
 			},
-			isError: &errFalse,
 		},
 		"happy_path_critical": {
 			args: args{
@@ -463,7 +456,6 @@ func TestHandleFindDeadCode(t *testing.T) {
 					return setupTestFile(t, "classes.py")
 				},
 			},
-			isError: &errFalse,
 		},
 		"happy_path_default_severity": {
 			args: args{
@@ -472,7 +464,6 @@ func TestHandleFindDeadCode(t *testing.T) {
 				},
 				arguments: map[string]interface{}{},
 			},
-			isError: &errFalse,
 		},
 		"invalid_arguments": {
 			args: args{
@@ -526,7 +517,6 @@ func TestHandleFindDeadCode(t *testing.T) {
 func TestHandleGetHealthScore(t *testing.T) {
 
 	errTrue := true
-	errFalse := false
 
 	tests := map[string]struct {
 		args    args
@@ -539,7 +529,6 @@ func TestHandleGetHealthScore(t *testing.T) {
 				},
 				arguments: map[string]interface{}{},
 			},
-			isError: &errFalse,
 		},
 		"invalid_arguments": {
 			args: args{
@@ -592,5 +581,4 @@ func TestHandleGetHealthScore(t *testing.T) {
 			assert.Contains(t, out, "category_scores")
 		})
 	}
-
 }
