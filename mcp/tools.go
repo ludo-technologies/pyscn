@@ -14,8 +14,8 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 			mcp.Required(),
 			mcp.Description("Path to Python code (file or directory) to analyze")),
 		mcp.WithArray("analyses",
-			mcp.WithStringEnumItems([]string{"complexity", "dead_code", "clone", "cbo", "deps"}),
-			mcp.Description("Array of analyses to run. Options: complexity, dead_code, clone, cbo, deps. Default: all analyses")),
+			mcp.WithStringEnumItems([]string{"complexity", "dead_code", "clone", "cbo", "lcom", "deps"}),
+			mcp.Description("Array of analyses to run. Options: complexity, dead_code, clone, cbo, lcom, deps. Default: all analyses")),
 		mcp.WithBoolean("recursive",
 			mcp.Description("Recursively analyze directories (default: true)")),
 	), handlers.HandleAnalyzeCode)
@@ -56,7 +56,15 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 			mcp.Description("Path to Python code to analyze")),
 	), handlers.HandleCheckCoupling)
 
-	// Tool 5: find_dead_code - Dead code detection
+	// Tool 5: check_cohesion - Class cohesion (LCOM4) analysis
+	s.AddTool(mcp.NewTool("check_cohesion",
+		mcp.WithDescription("Analyze class cohesion (LCOM4 - Lack of Cohesion of Methods) metrics"),
+		mcp.WithString("path",
+			mcp.Required(),
+			mcp.Description("Path to Python code to analyze")),
+	), handlers.HandleCheckCohesion)
+
+	// Tool 6: find_dead_code - Dead code detection
 	s.AddTool(mcp.NewTool("find_dead_code",
 		mcp.WithDescription("Find unreachable code using Control Flow Graph (CFG) analysis"),
 		mcp.WithString("path",
@@ -66,7 +74,7 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 			mcp.Description("Minimum severity: info, warning, error (default: warning)")),
 	), handlers.HandleFindDeadCode)
 
-	// Tool 6: get_health_score - Overall code health score
+	// Tool 7: get_health_score - Overall code health score
 	s.AddTool(mcp.NewTool("get_health_score",
 		mcp.WithDescription("Get overall code health score (0-100) with grade and category scores"),
 		mcp.WithString("path",

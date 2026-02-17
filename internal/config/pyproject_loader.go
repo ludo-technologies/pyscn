@@ -24,6 +24,7 @@ type PyprojectPyscnSection struct {
 	Output         OutputTomlConfig         `toml:"output"`
 	Analysis       AnalysisTomlConfig       `toml:"analysis"`
 	Cbo            CboTomlConfig            `toml:"cbo"`
+	Lcom           LcomTomlConfig           `toml:"lcom"`
 	Architecture   ArchitectureTomlConfig   `toml:"architecture"`
 	SystemAnalysis SystemAnalysisTomlConfig `toml:"system_analysis"`
 	Dependencies   DependenciesTomlConfig   `toml:"dependencies"`
@@ -71,6 +72,7 @@ func loadPyprojectConfigData(data []byte) (*PyscnConfig, error) {
 	mergeOutputSection(config, &pyproject.Tool.Pyscn.Output)
 	mergeAnalysisSection(config, &pyproject.Tool.Pyscn.Analysis)
 	mergeCboSection(config, &pyproject.Tool.Pyscn.Cbo)
+	mergeLcomSection(config, &pyproject.Tool.Pyscn.Lcom)
 	mergeArchitectureSection(config, &pyproject.Tool.Pyscn.Architecture)
 	mergeSystemAnalysisSection(config, &pyproject.Tool.Pyscn.SystemAnalysis)
 	mergeDependenciesSection(config, &pyproject.Tool.Pyscn.Dependencies)
@@ -330,6 +332,16 @@ func mergeCboSection(defaults *PyscnConfig, cbo *CboTomlConfig) {
 	}
 	if cbo.IncludeImports != nil {
 		defaults.CboIncludeImports = cbo.IncludeImports
+	}
+}
+
+// mergeLcomSection merges settings from the [lcom] section
+func mergeLcomSection(defaults *PyscnConfig, lcom *LcomTomlConfig) {
+	if lcom.LowThreshold != nil {
+		defaults.LcomLowThreshold = *lcom.LowThreshold
+	}
+	if lcom.MediumThreshold != nil {
+		defaults.LcomMediumThreshold = *lcom.MediumThreshold
 	}
 }
 

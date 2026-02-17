@@ -60,6 +60,7 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 		SkipDeadCode:    !contains(analyses, "dead_code") && len(analyses) > 0,
 		SkipClones:      !contains(analyses, "clone") && len(analyses) > 0,
 		SkipCBO:         !contains(analyses, "cbo") && len(analyses) > 0,
+		SkipLCOM:        !contains(analyses, "lcom") && len(analyses) > 0,
 		SkipSystem:      !contains(analyses, "deps") && len(analyses) > 0,
 		MinComplexity:   1,
 		MinSeverity:     domain.DeadCodeSeverityWarning,
@@ -121,11 +122,13 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 				"dead_code_score":       result.Summary.DeadCodeScore,
 				"duplication_score":     result.Summary.DuplicationScore,
 				"coupling_score":        result.Summary.CouplingScore,
+				"cohesion_score":        result.Summary.CohesionScore,
 				"dependency_score":      result.Summary.DependencyScore,
 				"high_complexity_count": result.Summary.HighComplexityCount,
 				"dead_code_count":       result.Summary.DeadCodeCount,
 				"clone_pairs":           result.Summary.ClonePairs,
 				"high_coupling_classes": result.Summary.HighCouplingClasses,
+				"high_lcom_classes":     result.Summary.HighLCOMClasses,
 			},
 		}
 	}
@@ -489,6 +492,94 @@ func (h *HandlerSet) HandleCheckCoupling(ctx context.Context, request mcp.CallTo
 	return mcp.NewToolResultText(string(jsonData)), nil
 }
 
+// HandleCheckCohesion handles the check_cohesion tool
+func (h *HandlerSet) HandleCheckCohesion(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args, ok := request.Params.Arguments.(map[string]interface{})
+	if !ok {
+		return mcp.NewToolResultError("invalid arguments format"), nil
+	}
+
+	path, ok := args["path"].(string)
+	if !ok {
+		return mcp.NewToolResultError("path parameter is required and must be a string"), nil
+	}
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return mcp.NewToolResultError(fmt.Sprintf("path does not exist: %s", path)), nil
+	}
+
+	cfg := h.deps.Config()
+	req := &domain.LCOMRequest{
+		Paths:           []string{path},
+		OutputFormat:    domain.OutputFormatJSON,
+		OutputWriter:    io.Discard,
+		ConfigPath:      h.deps.ConfigPath(),
+		SortBy:          domain.SortByCohesion,
+		LowThreshold:    0, // Zero: let config file values take precedence via merge
+		MediumThreshold: 0, // Zero: let config file values take precedence via merge
+	}
+
+	if cfg != nil {
+		req.Recursive = domain.BoolPtr(cfg.Analysis.Recursive)
+		if len(cfg.Analysis.IncludePatterns) > 0 {
+			req.IncludePatterns = cfg.Analysis.IncludePatterns
+		}
+		if len(cfg.Analysis.ExcludePatterns) > 0 {
+			req.ExcludePatterns = cfg.Analysis.ExcludePatterns
+		}
+	}
+
+	// Build use case with all required dependencies
+	lcomService := service.NewLCOMService()
+	fileReader := service.NewFileReader()
+	formatter := service.NewLCOMFormatter()
+
+	lcomConfigLoader := service.NewLCOMConfigurationLoader()
+	useCase := app.NewLCOMUseCase(
+		lcomService,
+		fileReader,
+		formatter,
+		lcomConfigLoader,
+	)
+
+	// Execute analysis
+	result, err := useCase.AnalyzeAndReturn(ctx, *req)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("cohesion analysis failed: %v", err)), nil
+	}
+
+	// Parse output_mode parameter (default: "summary")
+	outputMode := "summary"
+	if om, ok := args["output_mode"].(string); ok {
+		outputMode = om
+	}
+
+	// Parse max_results parameter
+	maxResults := 0
+	if mr, ok := args["max_results"].(float64); ok {
+		maxResults = int(mr)
+	}
+
+	// Format output based on mode
+	var responseData interface{}
+	switch outputMode {
+	case "full":
+		responseData = result
+	case "detailed":
+		responseData = formatCohesionDetailed(result, maxResults)
+	default: // "summary"
+		responseData = formatCohesionSummary(result, maxResults)
+	}
+
+	// Convert to JSON
+	jsonData, err := json.Marshal(responseData)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal result: %v", err)), nil
+	}
+
+	return mcp.NewToolResultText(string(jsonData)), nil
+}
+
 // HandleFindDeadCode handles the find_dead_code tool
 func (h *HandlerSet) HandleFindDeadCode(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args, ok := request.Params.Arguments.(map[string]interface{})
@@ -625,6 +716,7 @@ func (h *HandlerSet) HandleGetHealthScore(ctx context.Context, request mcp.CallT
 		SkipDeadCode:    false,
 		SkipClones:      false,
 		SkipCBO:         false,
+		SkipLCOM:        false,
 		MinSeverity:     domain.DeadCodeSeverityWarning,
 		MinComplexity:   1,
 		CloneSimilarity: 0.8,
@@ -662,6 +754,7 @@ func (h *HandlerSet) HandleGetHealthScore(ctx context.Context, request mcp.CallT
 			"dead_code_score":    result.Summary.DeadCodeScore,
 			"duplication_score":  result.Summary.DuplicationScore,
 			"coupling_score":     result.Summary.CouplingScore,
+			"cohesion_score":     result.Summary.CohesionScore,
 			"dependency_score":   result.Summary.DependencyScore,
 			"architecture_score": result.Summary.ArchitectureScore,
 		},
@@ -672,6 +765,7 @@ func (h *HandlerSet) HandleGetHealthScore(ctx context.Context, request mcp.CallT
 			"dead_code_count":       result.Summary.DeadCodeCount,
 			"clone_pairs":           result.Summary.ClonePairs,
 			"high_coupling_classes": result.Summary.HighCouplingClasses,
+			"high_lcom_classes":     result.Summary.HighLCOMClasses,
 		},
 	}
 
@@ -1068,6 +1162,105 @@ func formatCouplingDetailed(result *domain.CBOResponse, threshold int, maxResult
 	}
 }
 
+// formatCohesionSummary formats cohesion results in compact summary mode
+func formatCohesionSummary(result *domain.LCOMResponse, maxResults int) map[string]interface{} {
+	issues := []string{}
+	highLCOMCount := 0
+	totalLCOM := 0
+	maxLCOM := 0
+
+	for _, class := range result.Classes {
+		lcom := class.Metrics.LCOM4
+		if lcom > maxLCOM {
+			maxLCOM = lcom
+		}
+		totalLCOM += lcom
+
+		if class.RiskLevel == domain.RiskLevelHigh {
+			highLCOMCount++
+
+			if maxResults == 0 || len(issues) < maxResults {
+				issue := fmt.Sprintf("%s:%d: %s has low cohesion (LCOM4=%d)",
+					class.FilePath, class.StartLine, class.Name, lcom)
+				issues = append(issues, issue)
+			}
+		}
+	}
+
+	avgLCOM := 0.0
+	if len(result.Classes) > 0 {
+		avgLCOM = float64(totalLCOM) / float64(len(result.Classes))
+	}
+
+	return map[string]interface{}{
+		"issues": issues,
+		"summary": map[string]interface{}{
+			"high_lcom_classes": highLCOMCount,
+			"total_classes":     len(result.Classes),
+			"max_lcom":          maxLCOM,
+			"average_lcom":      avgLCOM,
+		},
+	}
+}
+
+// formatCohesionDetailed formats cohesion results with structured details
+func formatCohesionDetailed(result *domain.LCOMResponse, maxResults int) map[string]interface{} {
+	type Issue struct {
+		File      string `json:"file"`
+		Line      int    `json:"line"`
+		ClassName string `json:"class_name"`
+		LCOM4     int    `json:"lcom4"`
+		RiskLevel string `json:"risk_level"`
+		Message   string `json:"message"`
+	}
+
+	issues := []Issue{}
+	highLCOMCount := 0
+	totalLCOM := 0
+	maxLCOM := 0
+
+	for _, class := range result.Classes {
+		lcom := class.Metrics.LCOM4
+		if lcom > maxLCOM {
+			maxLCOM = lcom
+		}
+		totalLCOM += lcom
+
+		if class.RiskLevel == domain.RiskLevelHigh || class.RiskLevel == domain.RiskLevelMedium {
+			if class.RiskLevel == domain.RiskLevelHigh {
+				highLCOMCount++
+			}
+
+			if maxResults == 0 || len(issues) < maxResults {
+				issue := Issue{
+					File:      class.FilePath,
+					Line:      class.StartLine,
+					ClassName: class.Name,
+					LCOM4:     lcom,
+					RiskLevel: string(class.RiskLevel),
+					Message:   fmt.Sprintf("has low cohesion (LCOM4=%d)", lcom),
+				}
+				issues = append(issues, issue)
+			}
+		}
+	}
+
+	avgLCOM := 0.0
+	if len(result.Classes) > 0 {
+		avgLCOM = float64(totalLCOM) / float64(len(result.Classes))
+	}
+
+	return map[string]interface{}{
+		"issues": issues,
+		"summary": map[string]interface{}{
+			"high_lcom_classes": highLCOMCount,
+			"total_classes":     len(result.Classes),
+			"max_lcom":          maxLCOM,
+			"average_lcom":      avgLCOM,
+		},
+	}
+}
+
 func buildAnalyzeUseCase(fileReader domain.FileReader) (*app.AnalyzeUseCase, error) {
 	// Create config loaders
 	complexityConfigLoader := service.NewConfigurationLoader()
@@ -1095,6 +1288,12 @@ func buildAnalyzeUseCase(fileReader domain.FileReader) (*app.AnalyzeUseCase, err
 	cboFormatter := service.NewCBOFormatter()
 	cboUC := app.NewCBOUseCase(cboService, fileReader, cboFormatter, nil) // CBO config loader is optional
 
+	// Build LCOM use case
+	lcomService := service.NewLCOMService()
+	lcomFormatter := service.NewLCOMFormatter()
+	lcomConfigLoader := service.NewLCOMConfigurationLoader()
+	lcomUC := app.NewLCOMUseCase(lcomService, fileReader, lcomFormatter, lcomConfigLoader)
+
 	// Build system analysis use case
 	systemService := service.NewSystemAnalysisService()
 	systemFormatter := service.NewSystemAnalysisFormatter()
@@ -1106,6 +1305,7 @@ func buildAnalyzeUseCase(fileReader domain.FileReader) (*app.AnalyzeUseCase, err
 		WithDeadCodeUseCase(deadCodeUC).
 		WithCloneUseCase(cloneUC).
 		WithCBOUseCase(cboUC).
+		WithLCOMUseCase(lcomUC).
 		WithSystemUseCase(systemUC).
 		WithFileReader(fileReader).
 		WithProgressManager(service.NewProgressManager()).

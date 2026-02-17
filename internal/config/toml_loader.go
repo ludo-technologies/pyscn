@@ -16,6 +16,7 @@ type PyscnTomlConfig struct {
 	Output         OutputTomlConfig         `toml:"output"`          // [output] section
 	Analysis       AnalysisTomlConfig       `toml:"analysis"`        // [analysis] section
 	Cbo            CboTomlConfig            `toml:"cbo"`             // [cbo] section
+	Lcom           LcomTomlConfig           `toml:"lcom"`            // [lcom] section
 	Architecture   ArchitectureTomlConfig   `toml:"architecture"`    // [architecture] section
 	SystemAnalysis SystemAnalysisTomlConfig `toml:"system_analysis"` // [system_analysis] section
 	Dependencies   DependenciesTomlConfig   `toml:"dependencies"`    // [dependencies] section
@@ -72,6 +73,12 @@ type CboTomlConfig struct {
 	ShowZeros       *bool `toml:"show_zeros"`
 	IncludeBuiltins *bool `toml:"include_builtins"`
 	IncludeImports  *bool `toml:"include_imports"`
+}
+
+// LcomTomlConfig represents the [lcom] section
+type LcomTomlConfig struct {
+	LowThreshold    *int `toml:"low_threshold"`
+	MediumThreshold *int `toml:"medium_threshold"`
 }
 
 // ArchitectureTomlConfig represents the [architecture] section
@@ -462,6 +469,9 @@ func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *PyscnConfig, pyscnTom
 
 	// Merge from [cbo] section
 	mergeCboSection(defaults, &pyscnToml.Cbo)
+
+	// Merge from [lcom] section
+	mergeLcomSection(defaults, &pyscnToml.Lcom)
 
 	// Merge from [architecture] section
 	mergeArchitectureSection(defaults, &pyscnToml.Architecture)

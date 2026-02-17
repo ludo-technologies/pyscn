@@ -35,6 +35,7 @@ type AnalyzeCommand struct {
 	skipDeadCode   bool
 	skipClones     bool
 	skipCBO        bool
+	skipLCOM       bool
 	skipSystem     bool
 	selectAnalyses []string // Only run specified analyses
 
@@ -66,6 +67,7 @@ func NewAnalyzeCommand() *AnalyzeCommand {
 		skipDeadCode:    false,
 		skipClones:      false,
 		skipCBO:         false,
+		skipLCOM:        false,
 		skipSystem:      false,
 		minComplexity:   5,
 		minSeverity:     "warning",
@@ -89,6 +91,7 @@ This command performs all available static analyses on Python code:
 • Dead code detection using CFG analysis
 • Code clone detection using APTED algorithm
 • Dependency analysis (class coupling)
+• Class cohesion analysis (LCOM4)
 • System-level analysis (module dependencies and architecture)
 
 The analyses run concurrently for optimal performance. Results are combined
@@ -126,8 +129,9 @@ Examples:
 	cmd.Flags().BoolVar(&c.skipDeadCode, "skip-deadcode", false, "Skip dead code detection")
 	cmd.Flags().BoolVar(&c.skipClones, "skip-clones", false, "Skip clone detection")
 	cmd.Flags().BoolVar(&c.skipCBO, "skip-cbo", false, "Skip class coupling (CBO) analysis")
+	cmd.Flags().BoolVar(&c.skipLCOM, "skip-lcom", false, "Skip class cohesion (LCOM4) analysis")
 	cmd.Flags().BoolVar(&c.skipSystem, "skip-deps", false, "Skip module dependencies and architecture analysis")
-	cmd.Flags().StringSliceVar(&c.selectAnalyses, "select", []string{}, "Only run specified analyses (complexity,deadcode,clones,cbo,deps)")
+	cmd.Flags().StringSliceVar(&c.selectAnalyses, "select", []string{}, "Only run specified analyses (complexity,deadcode,clones,cbo,lcom,deps)")
 
 	// Quick filter flags
 	cmd.Flags().IntVar(&c.minComplexity, "min-complexity", 5, "Minimum complexity to report")
@@ -196,6 +200,7 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		config.SkipDeadCode = !c.containsAnalysis("deadcode")
 		config.SkipClones = !c.containsAnalysis("clones")
 		config.SkipCBO = !c.containsAnalysis("cbo")
+		config.SkipLCOM = !c.containsAnalysis("lcom")
 		config.SkipSystem = !c.containsAnalysis("deps")
 	} else {
 		// Otherwise use skip flags
@@ -203,6 +208,7 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		config.SkipDeadCode = c.skipDeadCode
 		config.SkipClones = c.skipClones
 		config.SkipCBO = c.skipCBO
+		config.SkipLCOM = c.skipLCOM
 		config.SkipSystem = c.skipSystem
 	}
 
@@ -313,6 +319,21 @@ func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuil
 		return fmt.Errorf("failed to build CBO use case: %w", err)
 	}
 	builder.WithCBOUseCase(cboUseCase)
+
+	// LCOM use case
+	lcomService := service.NewLCOMService()
+	lcomFormatter := service.NewLCOMFormatter()
+	lcomConfigLoader := service.NewLCOMConfigurationLoader()
+	lcomUseCase, err := app.NewLCOMUseCaseBuilder().
+		WithService(lcomService).
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(lcomFormatter).
+		WithConfigLoader(lcomConfigLoader).
+		Build()
+	if err != nil {
+		return fmt.Errorf("failed to build LCOM use case: %w", err)
+	}
+	builder.WithLCOMUseCase(lcomUseCase)
 
 	// System analysis use case
 	systemService := service.NewSystemAnalysisService()
@@ -442,6 +463,13 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 		fmt.Fprintf(cmd.ErrOrStderr(), "  Coupling (CBO): %3d/100 %s  (avg: %.1f, %d/%d high-coupling)\n",
 			response.Summary.CouplingScore, icon,
 			response.Summary.AverageCoupling, response.Summary.HighCouplingClasses, response.Summary.CBOClasses)
+	}
+
+	if response.Summary.LCOMEnabled {
+		icon := getScoreIcon(response.Summary.CohesionScore)
+		fmt.Fprintf(cmd.ErrOrStderr(), "  Cohesion (LCOM):%3d/100 %s  (avg: %.1f, %d/%d high-lcom)\n",
+			response.Summary.CohesionScore, icon,
+			response.Summary.AverageLCOM, response.Summary.HighLCOMClasses, response.Summary.LCOMClasses)
 	}
 
 	if response.Summary.DepsEnabled {

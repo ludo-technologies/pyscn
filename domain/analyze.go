@@ -81,6 +81,7 @@ type AnalyzeResponse struct {
 	DeadCode   *DeadCodeResponse       `json:"dead_code,omitempty" yaml:"dead_code,omitempty"`
 	Clone      *CloneResponse          `json:"clone,omitempty" yaml:"clone,omitempty"`
 	CBO        *CBOResponse            `json:"cbo,omitempty" yaml:"cbo,omitempty"`
+	LCOM       *LCOMResponse           `json:"lcom,omitempty" yaml:"lcom,omitempty"`
 	System     *SystemAnalysisResponse `json:"system,omitempty" yaml:"system,omitempty"`
 	MockData   *MockDataResponse       `json:"mock_data,omitempty" yaml:"mock_data,omitempty"`
 
@@ -136,6 +137,12 @@ type AnalyzeSummary struct {
 	MediumCouplingClasses int     `json:"medium_coupling_classes" yaml:"medium_coupling_classes"` // 3 < CBO ≤ 7 (Medium Risk)
 	AverageCoupling       float64 `json:"average_coupling" yaml:"average_coupling"`
 
+	LCOMEnabled       bool    `json:"lcom_enabled" yaml:"lcom_enabled"`
+	LCOMClasses       int     `json:"lcom_classes" yaml:"lcom_classes"`
+	HighLCOMClasses   int     `json:"high_lcom_classes" yaml:"high_lcom_classes"`     // LCOM4 > 5 (High Risk)
+	MediumLCOMClasses int     `json:"medium_lcom_classes" yaml:"medium_lcom_classes"` // 2 < LCOM4 ≤ 5 (Medium Risk)
+	AverageLCOM       float64 `json:"average_lcom" yaml:"average_lcom"`
+
 	MockDataCount        int `json:"mock_data_count" yaml:"mock_data_count"`
 	MockDataErrorCount   int `json:"mock_data_error_count" yaml:"mock_data_error_count"`
 	MockDataWarningCount int `json:"mock_data_warning_count" yaml:"mock_data_warning_count"`
@@ -150,6 +157,7 @@ type AnalyzeSummary struct {
 	DeadCodeScore     int `json:"dead_code_score" yaml:"dead_code_score"`
 	DuplicationScore  int `json:"duplication_score" yaml:"duplication_score"`
 	CouplingScore     int `json:"coupling_score" yaml:"coupling_score"`
+	CohesionScore     int `json:"cohesion_score" yaml:"cohesion_score"`
 	DependencyScore   int `json:"dependency_score" yaml:"dependency_score"`
 	ArchitectureScore int `json:"architecture_score" yaml:"architecture_score"`
 }
@@ -181,6 +189,22 @@ func (s *AnalyzeSummary) Validate() error {
 		if s.DepsTotalModules > 0 && s.DepsModulesInCycles > s.DepsTotalModules {
 			return fmt.Errorf("DepsModulesInCycles (%d) cannot exceed DepsTotalModules (%d)",
 				s.DepsModulesInCycles, s.DepsTotalModules)
+		}
+	}
+
+	// LCOM checks
+	if s.LCOMClasses > 0 {
+		if s.HighLCOMClasses > s.LCOMClasses {
+			return fmt.Errorf("HighLCOMClasses (%d) cannot exceed LCOMClasses (%d)",
+				s.HighLCOMClasses, s.LCOMClasses)
+		}
+		if s.MediumLCOMClasses > s.LCOMClasses {
+			return fmt.Errorf("MediumLCOMClasses (%d) cannot exceed LCOMClasses (%d)",
+				s.MediumLCOMClasses, s.LCOMClasses)
+		}
+		if (s.HighLCOMClasses + s.MediumLCOMClasses) > s.LCOMClasses {
+			return fmt.Errorf("HighLCOMClasses + MediumLCOMClasses (%d) cannot exceed LCOMClasses (%d)",
+				s.HighLCOMClasses+s.MediumLCOMClasses, s.LCOMClasses)
 		}
 	}
 
@@ -270,6 +294,28 @@ func (s *AnalyzeSummary) calculateCouplingPenalty() int {
 	// Linear penalty: starts at 0%, reaches max (20) at 25%
 	// Formula: penalty = ratio / 0.25 * 20
 	penalty := ratio / 0.25 * 20.0
+	if penalty > 20.0 {
+		penalty = 20.0
+	}
+
+	return int(math.Round(penalty))
+}
+
+// calculateCohesionPenalty calculates the penalty for class cohesion (max 20)
+// Uses continuous linear function based on weighted ratio of low-cohesion classes
+func (s *AnalyzeSummary) calculateCohesionPenalty() int {
+	if s.LCOMClasses == 0 {
+		return 0
+	}
+
+	// Calculate combined problematic classes ratio
+	// Weight: High Risk (LCOM4 > 5) = 1.0, Medium Risk (LCOM4 3-5) = 0.5
+	weightedProblematicClasses := float64(s.HighLCOMClasses) + (0.5 * float64(s.MediumLCOMClasses))
+	ratio := weightedProblematicClasses / float64(s.LCOMClasses)
+
+	// Linear penalty: starts at 0%, reaches max (20) at 30%
+	// Formula: penalty = ratio / 0.30 * 20
+	penalty := ratio / 0.30 * 20.0
 	if penalty > 20.0 {
 		penalty = 20.0
 	}
@@ -383,6 +429,7 @@ func (s *AnalyzeSummary) CalculateHealthScore() error {
 		s.DeadCodeScore = 0
 		s.DuplicationScore = 0
 		s.CouplingScore = 0
+		s.CohesionScore = 0
 		s.DependencyScore = 0
 		s.ArchitectureScore = 0
 		return fmt.Errorf("invalid summary data: %w", err)
@@ -413,6 +460,10 @@ func (s *AnalyzeSummary) CalculateHealthScore() error {
 	couplingPenalty := s.calculateCouplingPenalty()
 	s.CouplingScore = penaltyToScore(couplingPenalty, MaxScoreBase)
 	score -= couplingPenalty
+
+	cohesionPenalty := s.calculateCohesionPenalty()
+	s.CohesionScore = penaltyToScore(cohesionPenalty, MaxScoreBase)
+	score -= cohesionPenalty
 
 	// Dependencies and Architecture need normalization since their max penalties differ from MaxScoreBase
 	dependencyPenalty := s.calculateDependencyPenalty()
@@ -465,6 +516,11 @@ func (s *AnalyzeSummary) CalculateFallbackScore() int {
 
 	// High complexity penalty
 	if s.HighComplexityCount > 0 {
+		score -= FallbackPenalty
+	}
+
+	// Low cohesion penalty
+	if s.HighLCOMClasses > 0 {
 		score -= FallbackPenalty
 	}
 

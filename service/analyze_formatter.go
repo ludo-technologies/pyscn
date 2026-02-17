@@ -422,6 +422,9 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{if .Summary.CBOEnabled}}
                 <button class="tab-button" onclick="showTab('cbo', this)">Class Coupling</button>
                 {{end}}
+                {{if .Summary.LCOMEnabled}}
+                <button class="tab-button" onclick="showTab('lcom', this)">Cohesion</button>
+                {{end}}
                 {{if .System}}
                 {{if .System.DependencyAnalysis}}
                 <button class="tab-button" onclick="showTab('sys-deps', this)">Dependencies</button>
@@ -486,6 +489,19 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <div class="score-bar-fill score-{{scoreQuality .Summary.CouplingScore}}" style="width: {{.Summary.CouplingScore}}%"></div>
                         </div>
                         <div class="score-detail">Avg: {{printf "%.1f" .Summary.AverageCoupling}}, High-coupling: {{.Summary.HighCouplingClasses}}/{{.Summary.CBOClasses}}</div>
+                    </div>
+                    {{end}}
+
+                    {{if .Summary.LCOMEnabled}}
+                    <div class="score-bar-item">
+                        <div class="score-bar-header">
+                            <span class="score-label">Cohesion (LCOM)</span>
+                            <span class="score-value">{{.Summary.CohesionScore}}/100</span>
+                        </div>
+                        <div class="score-bar-container">
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.CohesionScore}}" style="width: {{.Summary.CohesionScore}}%"></div>
+                        </div>
+                        <div class="score-detail">Avg: {{printf "%.1f" .Summary.AverageLCOM}}, Low-cohesion: {{.Summary.HighLCOMClasses}}/{{.Summary.LCOMClasses}}</div>
                     </div>
                     {{end}}
 
@@ -554,6 +570,20 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     <div class="metric-card">
                         <div class="metric-value">{{printf "%.2f" .Summary.AverageCoupling}}</div>
                         <div class="metric-label">Avg CBO</div>
+                    </div>
+                    {{end}}
+                    {{if .Summary.LCOMEnabled}}
+                    <div class="metric-card">
+                        <div class="metric-value">{{.Summary.LCOMClasses}}</div>
+                        <div class="metric-label">Classes (LCOM)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.Summary.HighLCOMClasses}}</div>
+                        <div class="metric-label">Low Cohesion</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{printf "%.2f" .Summary.AverageLCOM}}</div>
+                        <div class="metric-label">Avg LCOM4</div>
                     </div>
                     {{end}}
                 </div>
@@ -885,6 +915,69 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 </table>
                 {{if gt (len .CBO.Classes) 10}}
                 <p style="color: #666; margin-top: 10px;">Showing top 10 of {{len .CBO.Classes}} classes</p>
+                {{end}}
+                {{end}}
+            </div>
+            {{end}}
+
+            {{if .Summary.LCOMEnabled}}
+            <div id="lcom" class="tab-content">
+                <div class="tab-header-with-score">
+                    <h2 style="margin: 0;">Class Cohesion</h2>
+                    <div class="score-badge-compact score-{{scoreQuality .Summary.CohesionScore}}">
+                        {{.Summary.CohesionScore}}/100
+                    </div>
+                </div>
+                <p style="margin-bottom: 20px; color: #666;">Lack of Cohesion of Methods (LCOM4) metrics</p>
+                {{if .LCOM}}
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">{{.LCOM.Summary.TotalClasses}}</div>
+                        <div class="metric-label">Total Classes</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.LCOM.Summary.HighRiskClasses}}</div>
+                        <div class="metric-label">Low Cohesion</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{printf "%.2f" .LCOM.Summary.AverageLCOM}}</div>
+                        <div class="metric-label">Average LCOM4</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.LCOM.Summary.MaxLCOM}}</div>
+                        <div class="metric-label">Max LCOM4</div>
+                    </div>
+                </div>
+
+                <h3>Least Cohesive Classes</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Class</th>
+                            <th>File</th>
+                            <th>LCOM4</th>
+                            <th>Risk</th>
+                            <th>Methods</th>
+                            <th>Instance Vars</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $i, $c := .LCOM.Classes}}
+                        {{if lt $i 10}}
+                        <tr>
+                            <td>{{$c.Name}}</td>
+                            <td>{{$c.FilePath}}:{{$c.StartLine}}</td>
+                            <td>{{$c.Metrics.LCOM4}}</td>
+                            <td class="risk-{{$c.RiskLevel}}">{{$c.RiskLevel}}</td>
+                            <td>{{sub $c.Metrics.TotalMethods $c.Metrics.ExcludedMethods}}</td>
+                            <td>{{$c.Metrics.InstanceVariables}}</td>
+                        </tr>
+                        {{end}}
+                        {{end}}
+                    </tbody>
+                </table>
+                {{if gt (len .LCOM.Classes) 10}}
+                <p style="color: #666; margin-top: 10px;">Showing top 10 of {{len .LCOM.Classes}} classes</p>
                 {{end}}
                 {{end}}
             </div>

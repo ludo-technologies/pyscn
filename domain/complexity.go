@@ -28,6 +28,7 @@ const (
 	SortBySize       SortCriteria = "size"
 	SortByLocation   SortCriteria = "location"
 	SortByCoupling   SortCriteria = "coupling" // For CBO metrics
+	SortByCohesion   SortCriteria = "cohesion" // For LCOM metrics
 )
 
 // RiskLevel represents the complexity risk level
