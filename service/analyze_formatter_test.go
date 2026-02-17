@@ -237,8 +237,8 @@ func TestAnalyzeFormatter_Write_HTML(t *testing.T) {
 	// Verify tabs are present for enabled analyses
 	assert.Contains(t, output, "Complexity")
 	assert.Contains(t, output, "Dead Code")
-	assert.Contains(t, output, "Clone Detection")
-	assert.Contains(t, output, "Class Coupling")
+	assert.Contains(t, output, "Clone")
+	assert.Contains(t, output, "Coupling")
 }
 
 func TestAnalyzeFormatter_Write_UnsupportedFormat(t *testing.T) {

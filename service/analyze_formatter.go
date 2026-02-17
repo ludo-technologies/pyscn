@@ -417,10 +417,10 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 <button class="tab-button" onclick="showTab('deadcode', this)">Dead Code</button>
                 {{end}}
                 {{if .Summary.CloneEnabled}}
-                <button class="tab-button" onclick="showTab('clone', this)">Clone Detection</button>
+                <button class="tab-button" onclick="showTab('clone', this)">Clone</button>
                 {{end}}
                 {{if .Summary.CBOEnabled}}
-                <button class="tab-button" onclick="showTab('cbo', this)">Class Coupling</button>
+                <button class="tab-button" onclick="showTab('cbo', this)">Coupling</button>
                 {{end}}
                 {{if .Summary.LCOMEnabled}}
                 <button class="tab-button" onclick="showTab('lcom', this)">Cohesion</button>
@@ -761,7 +761,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             {{if .Summary.CloneEnabled}}
             <div id="clone" class="tab-content">
                 <div class="tab-header-with-score">
-                    <h2 style="margin: 0;">Clone Detection</h2>
+                    <h2 style="margin: 0;">Clone</h2>
                     <div class="score-badge-compact score-{{scoreQuality .Summary.DuplicationScore}}">
                         {{.Summary.DuplicationScore}}/100
                     </div>
@@ -862,7 +862,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             {{if .Summary.CBOEnabled}}
             <div id="cbo" class="tab-content">
                 <div class="tab-header-with-score">
-                    <h2 style="margin: 0;">Class Coupling</h2>
+                    <h2 style="margin: 0;">Coupling</h2>
                     <div class="score-badge-compact score-{{scoreQuality .Summary.CouplingScore}}">
                         {{.Summary.CouplingScore}}/100
                     </div>
