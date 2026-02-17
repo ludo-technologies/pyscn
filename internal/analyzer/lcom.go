@@ -99,8 +99,8 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string) (*L
 		MethodGroups: [][]string{},
 	}
 
-	// Step 1: Collect methods and their instance variable accesses
-	methods, excluded := a.collectMethods(classNode)
+	// Step 1: Collect methods, their instance variable accesses, and intra-class calls
+	methods, excluded, methodCalls := a.collectMethods(classNode)
 	result.TotalMethods = len(methods) + excluded
 	result.ExcludedMethods = excluded
 
@@ -180,6 +180,15 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string) (*L
 		}
 	}
 
+	// Union methods connected by intra-class method calls (self.xxx())
+	for caller, callees := range methodCalls {
+		for callee := range callees {
+			if _, exists := methods[callee]; exists {
+				union(caller, callee)
+			}
+		}
+	}
+
 	// Step 4: Count connected components and build groups
 	components := make(map[string][]string) // root -> method names
 	for _, name := range methodNames {
@@ -202,9 +211,13 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string) (*L
 }
 
 // collectMethods extracts instance methods and their self.xxx variable accesses from a class.
-// Returns a map of methodName -> set of instance variable names, and the count of excluded methods.
-func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node) (map[string]map[string]bool, int) {
+// Returns:
+//   - methods: methodName -> set of instance variable names
+//   - excluded: count of excluded methods (@classmethod/@staticmethod)
+//   - calls: methodName -> set of called method names (self.xxx() intra-class calls)
+func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node) (map[string]map[string]bool, int, map[string]map[string]bool) {
 	methods := make(map[string]map[string]bool)
+	calls := make(map[string]map[string]bool)
 	excluded := 0
 
 	for _, node := range classNode.Body {
@@ -226,9 +239,14 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node) (map[string]map[st
 		vars := make(map[string]bool)
 		a.extractInstanceVars(node, vars)
 		methods[node.Name] = vars
+
+		// Extract self.xxx() method calls
+		methodCalls := make(map[string]bool)
+		a.extractMethodCalls(node, methodCalls)
+		calls[node.Name] = methodCalls
 	}
 
-	return methods, excluded
+	return methods, excluded, calls
 }
 
 // isClassOrStaticMethod checks if a method has a @classmethod or @staticmethod decorator.
@@ -272,6 +290,20 @@ func (a *LCOMAnalyzer) getDecoratorName(decorator *parser.Node) string {
 		}
 	}
 	return ""
+}
+
+// extractMethodCalls walks a method's AST to find all self.xxx() method call targets
+func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls map[string]bool) {
+	a.walkNode(methodNode, func(node *parser.Node) bool {
+		if node.Type == parser.NodeCall && node.Value != nil {
+			if attrNode, ok := node.Value.(*parser.Node); ok {
+				if attrNode.Type == parser.NodeAttribute && a.isSelfAccess(attrNode) && attrNode.Name != "" {
+					calls[attrNode.Name] = true
+				}
+			}
+		}
+		return true
+	})
 }
 
 // extractInstanceVars walks a method's AST to find all self.xxx attribute accesses

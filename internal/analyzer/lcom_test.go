@@ -248,6 +248,60 @@ class HighLCOMClass:
 			expectedLCOM:  map[string]int{"HighLCOMClass": 6},
 			expectedRisk:  map[string]string{"HighLCOMClass": "high"},
 		},
+		{
+			name: "methods connected by intra-class calls without shared fields",
+			pythonCode: `
+class CallConnectedClass:
+    def action_a(self):
+        self.helper()
+
+    def action_b(self):
+        self.helper()
+
+    def helper(self):
+        print("work")
+`,
+			expectedCount: 1,
+			expectedLCOM:  map[string]int{"CallConnectedClass": 1},
+			expectedRisk:  map[string]string{"CallConnectedClass": "low"},
+		},
+		{
+			name: "mixed field sharing and method calls",
+			pythonCode: `
+class MixedConnectionClass:
+    def get_data(self):
+        return self.data
+
+    def set_data(self, v):
+        self.data = v
+
+    def process(self):
+        self.validate()
+
+    def validate(self):
+        pass
+`,
+			expectedCount: 1,
+			expectedLCOM:  map[string]int{"MixedConnectionClass": 2},
+			expectedRisk:  map[string]string{"MixedConnectionClass": "low"},
+		},
+		{
+			name: "chain of method calls connects all methods",
+			pythonCode: `
+class ChainCallClass:
+    def start(self):
+        self.middle()
+
+    def middle(self):
+        self.finish()
+
+    def finish(self):
+        pass
+`,
+			expectedCount: 1,
+			expectedLCOM:  map[string]int{"ChainCallClass": 1},
+			expectedRisk:  map[string]string{"ChainCallClass": "low"},
+		},
 	}
 
 	p := parser.New()
