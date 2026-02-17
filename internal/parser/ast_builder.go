@@ -858,9 +858,12 @@ func (b *ASTBuilder) buildContinueStatement(tsNode *sitter.Node) *Node {
 	return node
 }
 
-// buildDecoratedDefinition builds a decorated function or class
+// buildDecoratedDefinition builds a decorated function or class.
+// Decorators appear before the definition in tree-sitter's child order,
+// so we collect them first and attach after the definition node is built.
 func (b *ASTBuilder) buildDecoratedDefinition(tsNode *sitter.Node) *Node {
 	var defNode *Node
+	var decorators []*Node
 
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
@@ -869,13 +872,17 @@ func (b *ASTBuilder) buildDecoratedDefinition(tsNode *sitter.Node) *Node {
 			switch child.Type() {
 			case "decorator":
 				dec := b.buildDecorator(child)
-				if dec != nil && defNode != nil {
-					defNode.Decorator = append(defNode.Decorator, dec)
+				if dec != nil {
+					decorators = append(decorators, dec)
 				}
 			case "function_definition", "class_definition":
 				defNode = b.buildNode(child)
 			}
 		}
+	}
+
+	if defNode != nil {
+		defNode.Decorator = append(defNode.Decorator, decorators...)
 	}
 
 	return defNode

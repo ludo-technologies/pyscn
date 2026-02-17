@@ -509,12 +509,15 @@ func (h *HandlerSet) HandleCheckCohesion(ctx context.Context, request mcp.CallTo
 	}
 
 	cfg := h.deps.Config()
-	req := domain.DefaultLCOMRequest()
-	req.Paths = []string{path}
-	req.OutputFormat = domain.OutputFormatJSON
-	req.OutputWriter = io.Discard
-	req.ConfigPath = h.deps.ConfigPath()
-	req.SortBy = domain.SortByCohesion
+	req := &domain.LCOMRequest{
+		Paths:           []string{path},
+		OutputFormat:    domain.OutputFormatJSON,
+		OutputWriter:    io.Discard,
+		ConfigPath:      h.deps.ConfigPath(),
+		SortBy:          domain.SortByCohesion,
+		LowThreshold:    0, // Zero: let config file values take precedence via merge
+		MediumThreshold: 0, // Zero: let config file values take precedence via merge
+	}
 
 	if cfg != nil {
 		req.Recursive = domain.BoolPtr(cfg.Analysis.Recursive)

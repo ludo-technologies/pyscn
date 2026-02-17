@@ -231,11 +231,8 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node) (map[string]map[st
 	return methods, excluded
 }
 
-// isClassOrStaticMethod checks if a method is a @classmethod or @staticmethod.
-// It first checks decorators, then falls back to parameter inspection since
-// some parser implementations may not populate the Decorator field.
+// isClassOrStaticMethod checks if a method has a @classmethod or @staticmethod decorator.
 func (a *LCOMAnalyzer) isClassOrStaticMethod(funcNode *parser.Node) bool {
-	// Check decorators first
 	for _, decorator := range funcNode.Decorator {
 		if decorator == nil {
 			continue
@@ -245,14 +242,7 @@ func (a *LCOMAnalyzer) isClassOrStaticMethod(funcNode *parser.Node) bool {
 			return true
 		}
 	}
-	// Fallback: if the first parameter is not "self", it's a classmethod/staticmethod.
-	// - @staticmethod: no self/cls parameter (or arbitrary name like "x")
-	// - @classmethod: first parameter is "cls"
-	if len(funcNode.Args) == 0 {
-		return true // No parameters at all → staticmethod
-	}
-	firstParam := funcNode.Args[0]
-	return firstParam.Name != "self"
+	return false
 }
 
 // getDecoratorName extracts the decorator name from a decorator node
