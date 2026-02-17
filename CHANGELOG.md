@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.11.0] - 2026-02-17
+
+### Added
+- Add LCOM4 class cohesion metric (#340)
+- Show README badge snippet after health score output (#331)
+
+### Fixed
+- Shorten HTML tab labels to prevent wrapping (#341)
+- Exclude Type-3 from default enabled clone types (#338)
+- Correct APTED key-root DP ordering (#337)
+
+### Performance
+- Add Jaccard pre-filter to minimize APTED calls (#339)
+
+### Documentation
+- Add algorithm documentation for all analysis engines (#330)
+- Redesign README header with centered logo (#329)
+
+### Testing
+- Add unit tests for MCP server handlers (#332)
+
 ## [1.10.2] - 2026-02-07
 
 ### Fixed
