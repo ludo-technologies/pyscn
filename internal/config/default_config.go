@@ -40,14 +40,14 @@ type DefaultConfigValues struct {
 	GroupingThreshold    float64
 	CloneMinLines        int
 	CloneMinNodes        int
-	CloneMaxEditDistance  float64
+	CloneMaxEditDistance float64
 
 	// LSH
-	LSHAutoThreshold      int
+	LSHAutoThreshold       int
 	LSHSimilarityThreshold float64
-	LSHBands              int
-	LSHRows               int
-	LSHHashes             int
+	LSHBands               int
+	LSHRows                int
+	LSHHashes              int
 
 	// Performance
 	MaxMemoryMB    int
@@ -56,9 +56,9 @@ type DefaultConfigValues struct {
 	TimeoutSeconds int
 
 	// CBO
-	CBOLowThreshold         int
-	CBOMediumThreshold      int
-	CBOLowThresholdPlus1    int
+	CBOLowThreshold      int
+	CBOMediumThreshold   int
+	CBOLowThresholdPlus1 int
 }
 
 // newDefaultConfigValues creates a DefaultConfigValues populated from domain constants.
@@ -78,14 +78,14 @@ func newDefaultConfigValues() DefaultConfigValues {
 		DeadCodeSortBy:       domain.DefaultDeadCodeSortBy,
 
 		// Clone thresholds
-		Type1Threshold:      domain.DefaultType1CloneThreshold,
-		Type2Threshold:      domain.DefaultType2CloneThreshold,
-		Type3Threshold:      domain.DefaultType3CloneThreshold,
-		Type4Threshold:      domain.DefaultType4CloneThreshold,
-		SimilarityThreshold: domain.DefaultCloneSimilarityThreshold,
-		GroupingThreshold:   domain.DefaultCloneGroupingThreshold,
-		CloneMinLines:       domain.DefaultCloneMinLines,
-		CloneMinNodes:       domain.DefaultCloneMinNodes,
+		Type1Threshold:       domain.DefaultType1CloneThreshold,
+		Type2Threshold:       domain.DefaultType2CloneThreshold,
+		Type3Threshold:       domain.DefaultType3CloneThreshold,
+		Type4Threshold:       domain.DefaultType4CloneThreshold,
+		SimilarityThreshold:  domain.DefaultCloneSimilarityThreshold,
+		GroupingThreshold:    domain.DefaultCloneGroupingThreshold,
+		CloneMinLines:        domain.DefaultCloneMinLines,
+		CloneMinNodes:        domain.DefaultCloneMinNodes,
 		CloneMaxEditDistance: domain.DefaultCloneMaxEditDistance,
 
 		// LSH
