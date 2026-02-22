@@ -35,6 +35,13 @@ func NewComplexityUseCase(
 	}
 }
 
+// SetParseCache injects a shared parse cache into the underlying service.
+func (uc *ComplexityUseCase) SetParseCache(cache *svc.ParseCache) {
+	if cacheable, ok := uc.service.(svc.ParseCacheAware); ok {
+		cacheable.SetParseCache(cache)
+	}
+}
+
 // Execute performs the complete complexity analysis workflow
 func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityRequest) error {
 	// Validate input

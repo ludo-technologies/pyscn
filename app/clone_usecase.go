@@ -37,6 +37,13 @@ func NewCloneUseCase(
 	}
 }
 
+// SetParseCache injects a shared parse cache into the underlying service.
+func (uc *CloneUseCase) SetParseCache(cache *svc.ParseCache) {
+	if cacheable, ok := uc.service.(svc.ParseCacheAware); ok {
+		cacheable.SetParseCache(cache)
+	}
+}
+
 // Execute executes the clone detection use case
 func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) error {
 	startTime := time.Now()

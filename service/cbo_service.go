@@ -15,7 +15,8 @@ import (
 
 // CBOServiceImpl implements the CBOService interface
 type CBOServiceImpl struct {
-	parser *parser.Parser
+	parser     *parser.Parser
+	parseCache *ParseCache
 }
 
 // NewCBOService creates a new CBO service implementation
@@ -23,6 +24,11 @@ func NewCBOService() *CBOServiceImpl {
 	return &CBOServiceImpl{
 		parser: parser.New(),
 	}
+}
+
+// SetParseCache injects a shared parse cache to avoid redundant parsing.
+func (s *CBOServiceImpl) SetParseCache(cache *ParseCache) {
+	s.parseCache = cache
 }
 
 // Analyze performs CBO analysis on multiple files
@@ -102,24 +108,44 @@ func (s *CBOServiceImpl) analyzeFile(ctx context.Context, filePath string, req d
 	var warnings []string
 	var errors []string
 
-	// Parse the file
-	content, err := s.readFile(filePath)
-	if err != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
-		return classes, warnings, errors
+	var ast *parser.Node
+
+	// Try cache first
+	if s.parseCache != nil {
+		if cached, ok := s.parseCache.Get(filePath); ok {
+			if cached.ParseErr != nil {
+				errors = append(errors, fmt.Sprintf("[%s] %v", filePath, cached.ParseErr))
+				return classes, warnings, errors
+			}
+			if cached.ParseResult != nil {
+				ast = cached.ParseResult.AST
+			}
+			goto analyze
+		}
 	}
 
-	result, err := s.parser.Parse(ctx, content)
-	if err != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", filePath, err))
-		return classes, warnings, errors
+	// Fallback: parse the file directly
+	{
+		content, err := s.readFile(filePath)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
+			return classes, warnings, errors
+		}
+
+		result, err := s.parser.Parse(ctx, content)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", filePath, err))
+			return classes, warnings, errors
+		}
+		ast = result.AST
 	}
 
+analyze:
 	// Configure CBO analysis options
 	options := s.buildCBOOptions(req)
 
 	// Perform CBO analysis
-	cboResults, err := analyzer.CalculateCBOWithConfig(result.AST, filePath, options)
+	cboResults, err := analyzer.CalculateCBOWithConfig(ast, filePath, options)
 	if err != nil {
 		errors = append(errors, fmt.Sprintf("[%s] CBO analysis failed: %v", filePath, err))
 		return classes, warnings, errors
