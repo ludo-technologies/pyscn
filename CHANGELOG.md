@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.11.1] - 2026-02-22
+
+### Fixed
+- Generate default_config.toml dynamically from domain defaults (#343)
+
+### Style
+- Restyle HTML output with professional data-first palette (#345)
+
+### Documentation
+- Update README.md
+
 ## [1.11.0] - 2026-02-17
 
 ### Added
