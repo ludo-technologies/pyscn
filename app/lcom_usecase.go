@@ -34,6 +34,13 @@ func NewLCOMUseCase(
 	}
 }
 
+// SetParseCache injects a shared parse cache into the underlying service.
+func (uc *LCOMUseCase) SetParseCache(cache *svc.ParseCache) {
+	if cacheable, ok := uc.service.(svc.ParseCacheAware); ok {
+		cacheable.SetParseCache(cache)
+	}
+}
+
 // prepareAnalysis handles common preparation steps for analysis.
 // Config is merged before validation so that callers may leave threshold
 // fields at zero and rely on the config file (or built-in defaults) to
