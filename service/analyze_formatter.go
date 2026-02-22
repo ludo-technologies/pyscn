@@ -206,7 +206,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
             color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #f1f5f9;
             min-height: 100vh;
         }
         .container {
@@ -219,10 +219,10 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             border-radius: 10px;
             padding: 30px;
             margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         .header h1 {
-            color: #667eea;
+            color: #0f172a;
             margin-bottom: 10px;
         }
         .score-badge {
@@ -233,17 +233,17 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             font-weight: bold;
             margin: 10px 0;
         }
-        .grade-a { background: #4caf50; color: white; }
-        .grade-b { background: #8bc34a; color: white; }
-        .grade-c { background: #ff9800; color: white; }
-        .grade-d { background: #ff5722; color: white; }
-        .grade-f { background: #f44336; color: white; }
-        
+        .grade-a { background: #14532d; color: white; }
+        .grade-b { background: #365314; color: white; }
+        .grade-c { background: #713f12; color: white; }
+        .grade-d { background: #7c2d12; color: white; }
+        .grade-f { background: #7f1d1d; color: white; }
+
         .tabs {
             background: white;
             border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         .tab-buttons {
             display: flex;
@@ -260,8 +260,9 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         }
         .tab-button.active {
             background: white;
-            color: #667eea;
+            color: #334155;
             font-weight: bold;
+            border-bottom: 2px solid #334155;
         }
         .tab-content {
             display: none;
@@ -286,7 +287,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         .metric-value {
             font-size: 32px;
             font-weight: bold;
-            color: #667eea;
+            color: #0f172a;
         }
         .metric-label {
             color: #666;
@@ -308,13 +309,13 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             font-weight: 600;
         }
         
-        .risk-low { color: #4caf50; }
-        .risk-medium { color: #ff9800; }
-        .risk-high { color: #f44336; }
-        
-        .severity-critical { color: #f44336; }
-        .severity-warning { color: #ff9800; }
-        .severity-info { color: #2196f3; }
+        .risk-low { color: #15803d; }
+        .risk-medium { color: #a16207; }
+        .risk-high { color: #b91c1c; }
+
+        .severity-critical { color: #b91c1c; }
+        .severity-warning { color: #a16207; }
+        .severity-info { color: #1e40af; }
 
         /* Score bars */
         .score-bars {
@@ -335,7 +336,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         }
         .score-value {
             font-weight: 700;
-            color: #667eea;
+            color: #334155;
         }
         .score-bar-container {
             width: 100%;
@@ -350,10 +351,10 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             transition: width 0.3s ease;
             border-radius: 6px;
         }
-        .score-excellent { background: linear-gradient(90deg, #4caf50, #66bb6a); }
-        .score-good { background: linear-gradient(90deg, #8bc34a, #9ccc65); }
-        .score-fair { background: linear-gradient(90deg, #ff9800, #ffa726); }
-        .score-poor { background: linear-gradient(90deg, #f44336, #ef5350); }
+        .score-excellent { background: #15803d; }
+        .score-good { background: #4d7c0f; }
+        .score-fair { background: #a16207; }
+        .score-poor { background: #b91c1c; }
         .score-detail {
             margin-top: 4px;
             font-size: 12px;
@@ -380,20 +381,20 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             white-space: nowrap;
         }
         .score-badge-compact.score-excellent {
-            background: linear-gradient(135deg, #4caf50, #66bb6a);
-            box-shadow: 0 2px 6px rgba(76, 175, 80, 0.4);
+            background: #15803d;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
         .score-badge-compact.score-good {
-            background: linear-gradient(135deg, #8bc34a, #9ccc65);
-            box-shadow: 0 2px 6px rgba(139, 195, 74, 0.4);
+            background: #4d7c0f;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
         .score-badge-compact.score-fair {
-            background: linear-gradient(135deg, #ff9800, #ffa726);
-            box-shadow: 0 2px 6px rgba(255, 152, 0, 0.4);
+            background: #a16207;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
         .score-badge-compact.score-poor {
-            background: linear-gradient(135deg, #f44336, #ef5350);
-            box-shadow: 0 2px 6px rgba(244, 67, 54, 0.4);
+            background: #b91c1c;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
     </style>
 </head>
@@ -438,7 +439,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             <div id="summary" class="tab-content active">
                 <h2>Analysis Summary</h2>
 
-                <h3 style="margin-top: 20px; margin-bottom: 16px; color: #2c3e50;">Quality Scores</h3>
+                <h3 style="margin-top: 20px; margin-bottom: 16px; color: #0f172a;">Quality Scores</h3>
                 <div class="score-bars">
                     {{if .Summary.ComplexityEnabled}}
                     <div class="score-bar-item">
@@ -532,7 +533,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     {{end}}
                 </div>
 
-                <h3 style="margin-top: 24px; margin-bottom: 16px; color: #2c3e50;">File Statistics</h3>
+                <h3 style="margin-top: 24px; margin-bottom: 16px; color: #0f172a;">File Statistics</h3>
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-value">{{.Summary.TotalFiles}}</div>
@@ -591,7 +592,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{/* System-level quick glance */}}
                 {{if .System}}
                 {{if .System.DependencyAnalysis}}
-                <h3 style="margin-top: 16px; color: #2c3e50;">Dependencies</h3>
+                <h3 style="margin-top: 16px; color: #0f172a;">Dependencies</h3>
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-value">{{.System.DependencyAnalysis.TotalModules}}</div>
@@ -615,7 +616,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{end}}
 
                 {{if .System.ArchitectureAnalysis}}
-                <h3 style="margin-top: 8px; color: #2c3e50;">Architecture</h3>
+                <h3 style="margin-top: 8px; color: #0f172a;">Architecture</h3>
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-value">{{.System.ArchitectureAnalysis.TotalViolations}}</div>
@@ -752,7 +753,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 <p style="color: #666; margin-top: 10px;">Showing top 10 of {{.DeadCode.Summary.TotalFindings}} dead code issues</p>
                 {{end}}
                 {{else}}
-                <p style="color: #4caf50; font-weight: bold; margin-top: 20px;">✓ No dead code detected</p>
+                <p style="color: #15803d; font-weight: bold; margin-top: 20px;">✓ No dead code detected</p>
                 {{end}}
                 {{end}}
             </div>
@@ -787,7 +788,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 <p style="color: #666; margin-bottom: 15px;">Code fragments grouped by similarity</p>
                 {{range $i, $group := .Clone.CloneGroups}}
                 {{if lt $i 10}}
-                <div style="background: #f8f9fa; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                <div style="background: #f8fafc; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 4px solid #cbd5e1;">
                     <h4 style="margin-top: 0; color: #333;">Group {{$group.ID}} - {{len $group.Clones}} clones (Type {{$group.Type}}, similarity: {{printf "%.2f" $group.Similarity}})</h4>
                     <table class="table" style="margin-bottom: 0;">
                         <thead>
@@ -853,7 +854,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 <p style="color: #666; margin-top: 10px;">Showing top 15 of {{.Clone.Statistics.TotalClonePairs}} clone pairs</p>
                 {{end}}
                 {{else}}
-                <p style="color: #4caf50; font-weight: bold; margin-top: 20px;">✓ No clones detected</p>
+                <p style="color: #15803d; font-weight: bold; margin-top: 20px;">✓ No clones detected</p>
                 {{end}}
                 {{end}}
             </div>
@@ -1018,9 +1019,9 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{if .System.DependencyAnalysis.CircularDependencies}}
                 <h3 style="margin-top: 30px;">Circular Dependencies</h3>
                 {{if not .System.DependencyAnalysis.CircularDependencies.HasCircularDependencies}}
-                <div style="padding: 20px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px; margin: 20px 0;">
-                    <strong style="color: #155724;">✅ No circular dependencies detected</strong>
-                    <p style="color: #155724; margin: 10px 0 0 0;">All modules have acyclic dependency relationships.</p>
+                <div style="padding: 20px; background: #f0fdf4; border-left: 4px solid #bbf7d0; border-radius: 4px; margin: 20px 0;">
+                    <strong style="color: #14532d;">✅ No circular dependencies detected</strong>
+                    <p style="color: #14532d; margin: 10px 0 0 0;">All modules have acyclic dependency relationships.</p>
                 </div>
                 {{else}}
                 <table class="table">
@@ -1066,17 +1067,17 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
 
                 {{/* Core Infrastructure Modules */}}
                 {{if gt (len .System.DependencyAnalysis.CircularDependencies.CoreInfrastructure) 0}}
-                <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin: 20px 0;">
-                    <strong style="color: #856404;">⚠️ Core Infrastructure Modules (appear in multiple cycles):</strong>
-                    <p style="color: #856404; margin: 10px 0 0 0;">{{join .System.DependencyAnalysis.CircularDependencies.CoreInfrastructure ", "}}</p>
+                <div style="padding: 15px; background: #fefce8; border-left: 4px solid #fde68a; border-radius: 4px; margin: 20px 0;">
+                    <strong style="color: #713f12;">⚠️ Core Infrastructure Modules (appear in multiple cycles):</strong>
+                    <p style="color: #713f12; margin: 10px 0 0 0;">{{join .System.DependencyAnalysis.CircularDependencies.CoreInfrastructure ", "}}</p>
                 </div>
                 {{end}}
 
                 {{/* Cycle Breaking Suggestions */}}
                 {{if gt (len .System.DependencyAnalysis.CircularDependencies.CycleBreakingSuggestions) 0}}
-                <div style="padding: 15px; background: #d1ecf1; border-left: 4px solid #17a2b8; border-radius: 4px; margin: 20px 0;">
-                    <strong style="color: #0c5460;">💡 Suggestions for Breaking Cycles:</strong>
-                    <ul style="margin: 10px 0 0 20px; color: #0c5460;">
+                <div style="padding: 15px; background: #eff6ff; border-left: 4px solid #bfdbfe; border-radius: 4px; margin: 20px 0;">
+                    <strong style="color: #1e3a8a;">💡 Suggestions for Breaking Cycles:</strong>
+                    <ul style="margin: 10px 0 0 20px; color: #1e3a8a;">
                         {{range .System.DependencyAnalysis.CircularDependencies.CycleBreakingSuggestions}}
                         <li>{{.}}</li>
                         {{end}}
@@ -1164,7 +1165,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </tbody>
                 </table>
                 {{else}}
-                <p style="color: #4caf50; font-weight: bold; margin-top: 20px;">✓ No architecture violations</p>
+                <p style="color: #15803d; font-weight: bold; margin-top: 20px;">✓ No architecture violations</p>
                 {{end}}
             </div>
             {{end}}
