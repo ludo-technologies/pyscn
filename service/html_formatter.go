@@ -64,7 +64,7 @@ func (f *HTMLFormatterImpl) CalculateComplexityScore(response *domain.Complexity
 		return ScoreData{
 			Score:    100,
 			Label:    "No Functions",
-			Color:    "#0CCE6B",
+			Color:    "#15803d",
 			Status:   "pass",
 			Category: "complexity",
 		}
@@ -81,13 +81,13 @@ func (f *HTMLFormatterImpl) CalculateComplexityScore(response *domain.Complexity
 	var color, status string
 	switch {
 	case score >= 90:
-		color = "#0CCE6B" // Green
+		color = "#15803d" // Green
 		status = "pass"
 	case score >= 50:
-		color = "#FFA500" // Orange
+		color = "#a16207" // Orange
 		status = "average"
 	default:
-		color = "#FF5722" // Red
+		color = "#b91c1c" // Red
 		status = "fail"
 	}
 
@@ -106,7 +106,7 @@ func (f *HTMLFormatterImpl) CalculateDeadCodeScore(response *domain.DeadCodeResp
 		return ScoreData{
 			Score:    100,
 			Label:    "No Code Blocks",
-			Color:    "#0CCE6B",
+			Color:    "#15803d",
 			Status:   "pass",
 			Category: "dead_code",
 		}
@@ -119,13 +119,13 @@ func (f *HTMLFormatterImpl) CalculateDeadCodeScore(response *domain.DeadCodeResp
 	var color, status string
 	switch {
 	case score >= 90:
-		color = "#0CCE6B" // Green
+		color = "#15803d" // Green
 		status = "pass"
 	case score >= 50:
-		color = "#FFA500" // Orange
+		color = "#a16207" // Orange
 		status = "average"
 	default:
-		color = "#FF5722" // Red
+		color = "#b91c1c" // Red
 		status = "fail"
 	}
 
@@ -144,7 +144,7 @@ func (f *HTMLFormatterImpl) CalculateCloneScore(response *domain.CloneResponse) 
 		return ScoreData{
 			Score:    100,
 			Label:    "No Lines Analyzed",
-			Color:    "#0CCE6B",
+			Color:    "#15803d",
 			Status:   "pass",
 			Category: "clone",
 		}
@@ -171,13 +171,13 @@ func (f *HTMLFormatterImpl) CalculateCloneScore(response *domain.CloneResponse) 
 	var color, status string
 	switch {
 	case score >= 90:
-		color = "#0CCE6B" // Green
+		color = "#15803d" // Green
 		status = "pass"
 	case score >= 50:
-		color = "#FFA500" // Orange
+		color = "#a16207" // Orange
 		status = "average"
 	default:
-		color = "#FF5722" // Red
+		color = "#b91c1c" // Red
 		status = "fail"
 	}
 
@@ -195,7 +195,7 @@ func (f *HTMLFormatterImpl) CalculateOverallScore(scores []ScoreData, projectNam
 	if len(scores) == 0 {
 		return OverallScoreData{
 			Score:       100,
-			Color:       "#0CCE6B",
+			Color:       "#15803d",
 			Status:      "pass",
 			Breakdown:   []ScoreData{},
 			ProjectName: projectName,
@@ -229,13 +229,13 @@ func (f *HTMLFormatterImpl) CalculateOverallScore(scores []ScoreData, projectNam
 	var color, status string
 	switch {
 	case overallScore >= 90:
-		color = "#0CCE6B" // Green
+		color = "#15803d" // Green
 		status = "pass"
 	case overallScore >= 50:
-		color = "#FFA500" // Orange
+		color = "#a16207" // Orange
 		status = "average"
 	default:
-		color = "#FF5722" // Red
+		color = "#b91c1c" // Red
 		status = "fail"
 	}
 
@@ -268,7 +268,7 @@ func (f *HTMLFormatterImpl) getHTMLTemplate() string {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
             color: #333;
-            background-color: #f5f5f5;
+            background-color: #f1f5f9;
         }
         
         .container {
@@ -397,9 +397,9 @@ func (f *HTMLFormatterImpl) getHTMLTemplate() string {
             transition: width 0.3s ease;
         }
         
-        .risk-high { background-color: #FF5722; }
-        .risk-medium { background-color: #FFA500; }
-        .risk-low { background-color: #0CCE6B; }
+        .risk-high { background-color: #b91c1c; }
+        .risk-medium { background-color: #a16207; }
+        .risk-low { background-color: #15803d; }
         
         @media (max-width: 768px) {
             .score-section {
