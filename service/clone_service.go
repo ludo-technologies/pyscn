@@ -14,11 +14,17 @@ import (
 
 // CloneService implements the domain.CloneService interface
 type CloneService struct {
+	parseCache *ParseCache
 }
 
 // NewCloneService creates a new clone service
 func NewCloneService() *CloneService {
 	return &CloneService{}
+}
+
+// SetParseCache injects a shared parse cache to avoid redundant parsing.
+func (s *CloneService) SetParseCache(cache *ParseCache) {
+	s.parseCache = cache
 }
 
 // DetectClones performs clone detection on the given request
@@ -69,7 +75,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 
 	// Performance optimizations are built into the detector
 
-	// Create Python parser
+	// Create Python parser (used only when cache misses)
 	pyParser := parser.New()
 
 	// Parse files and extract fragments
@@ -86,28 +92,49 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 		default:
 		}
 
-		// Progress reporting removed - file parsing is fast
+		var content []byte
+		var parseResult *parser.ParseResult
 
-		// Read file content
-		content, err := readFileContent(filePath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to read file %s: %v\n", filePath, err)
-			continue // Skip files that cannot be read
+		// Try cache first
+		if s.parseCache != nil {
+			if cached, ok := s.parseCache.Get(filePath); ok {
+				if cached.ParseErr != nil {
+					fmt.Fprintf(os.Stderr, "Warning: Cached parse error for %s: %v\n", filePath, cached.ParseErr)
+					continue
+				}
+				content = cached.Content
+				parseResult = cached.ParseResult
+				if parseResult == nil || parseResult.AST == nil {
+					fmt.Fprintf(os.Stderr, "Warning: Invalid cached parse result for file %s\n", filePath)
+					continue
+				}
+				goto extractFragments
+			}
 		}
 
-		// Parse Python file
-		parseResult, err := pyParser.Parse(ctx, content)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to parse file %s: %v\n", filePath, err)
-			continue // Skip files that cannot be parsed
+		// Fallback: read and parse the file directly
+		{
+			var err error
+			content, err = readFileContent(filePath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: Failed to read file %s: %v\n", filePath, err)
+				continue
+			}
+
+			var parseErr error
+			parseResult, parseErr = pyParser.Parse(ctx, content)
+			if parseErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: Failed to parse file %s: %v\n", filePath, parseErr)
+				continue
+			}
+
+			if parseResult == nil || parseResult.AST == nil {
+				fmt.Fprintf(os.Stderr, "Warning: Invalid parse result for file %s\n", filePath)
+				continue
+			}
 		}
 
-		// Validate parse result
-		if parseResult == nil || parseResult.AST == nil {
-			fmt.Fprintf(os.Stderr, "Warning: Invalid parse result for file %s\n", filePath)
-			continue // Skip files with invalid parse results
-		}
-
+	extractFragments:
 		// Count only files that were successfully read and parsed
 		filesAnalyzed++
 

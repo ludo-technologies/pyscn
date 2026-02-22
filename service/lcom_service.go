@@ -15,7 +15,8 @@ import (
 
 // LCOMServiceImpl implements the LCOMService interface
 type LCOMServiceImpl struct {
-	parser *parser.Parser
+	parser     *parser.Parser
+	parseCache *ParseCache
 }
 
 // NewLCOMService creates a new LCOM service implementation
@@ -23,6 +24,11 @@ func NewLCOMService() *LCOMServiceImpl {
 	return &LCOMServiceImpl{
 		parser: parser.New(),
 	}
+}
+
+// SetParseCache injects a shared parse cache to avoid redundant parsing.
+func (s *LCOMServiceImpl) SetParseCache(cache *ParseCache) {
+	s.parseCache = cache
 }
 
 // Analyze performs LCOM analysis on multiple files
@@ -92,20 +98,41 @@ func (s *LCOMServiceImpl) analyzeFile(ctx context.Context, filePath string, req 
 	var warnings []string
 	var errors []string
 
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
-		return classes, warnings, errors
+	var ast *parser.Node
+
+	// Try cache first
+	if s.parseCache != nil {
+		if cached, ok := s.parseCache.Get(filePath); ok {
+			if cached.ParseErr != nil {
+				errors = append(errors, fmt.Sprintf("[%s] %v", filePath, cached.ParseErr))
+				return classes, warnings, errors
+			}
+			if cached.ParseResult != nil {
+				ast = cached.ParseResult.AST
+			}
+			goto analyze
+		}
 	}
 
-	result, err := s.parser.Parse(ctx, content)
-	if err != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", filePath, err))
-		return classes, warnings, errors
+	// Fallback: parse the file directly
+	{
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
+			return classes, warnings, errors
+		}
+
+		result, err := s.parser.Parse(ctx, content)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", filePath, err))
+			return classes, warnings, errors
+		}
+		ast = result.AST
 	}
 
+analyze:
 	options := s.buildLCOMOptions(req)
-	lcomResults, err := analyzer.CalculateLCOMWithConfig(result.AST, filePath, options)
+	lcomResults, err := analyzer.CalculateLCOMWithConfig(ast, filePath, options)
 	if err != nil {
 		errors = append(errors, fmt.Sprintf("[%s] LCOM analysis failed: %v", filePath, err))
 		return classes, warnings, errors

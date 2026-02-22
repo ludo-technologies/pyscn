@@ -34,6 +34,13 @@ func NewCBOUseCase(
 	}
 }
 
+// SetParseCache injects a shared parse cache into the underlying service.
+func (uc *CBOUseCase) SetParseCache(cache *svc.ParseCache) {
+	if cacheable, ok := uc.service.(svc.ParseCacheAware); ok {
+		cacheable.SetParseCache(cache)
+	}
+}
+
 // prepareAnalysis handles common preparation steps for analysis
 func (uc *CBOUseCase) prepareAnalysis(ctx context.Context, req domain.CBORequest) (domain.CBORequest, error) {
 	// Validate input
