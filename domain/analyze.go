@@ -85,6 +85,9 @@ type AnalyzeResponse struct {
 	System     *SystemAnalysisResponse `json:"system,omitempty" yaml:"system,omitempty"`
 	MockData   *MockDataResponse       `json:"mock_data,omitempty" yaml:"mock_data,omitempty"`
 
+	// Actionable suggestions derived from analysis results
+	Suggestions []Suggestion `json:"suggestions,omitempty" yaml:"suggestions,omitempty"`
+
 	// Overall summary
 	Summary AnalyzeSummary `json:"summary" yaml:"summary"`
 

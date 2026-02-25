@@ -97,33 +97,34 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
 
-	// Recommendations
-	fmt.Fprint(writer, utils.FormatSectionHeader("RECOMMENDATIONS"))
-	recommendationCount := 0
-
-	if response.Summary.HighComplexityCount > 0 {
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•",
-			fmt.Sprintf("Refactor %d high-complexity functions", response.Summary.HighComplexityCount)))
-		recommendationCount++
-	}
-	if response.Summary.DeadCodeCount > 0 {
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•",
-			fmt.Sprintf("Remove %d dead code segments", response.Summary.DeadCodeCount)))
-		recommendationCount++
-	}
-	if response.Summary.CodeDuplication > 10 {
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•",
-			fmt.Sprintf("Reduce code duplication (currently %.1f%%)", response.Summary.CodeDuplication)))
-		recommendationCount++
-	}
-	if response.Summary.HighCouplingClasses > 0 {
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•",
-			fmt.Sprintf("Reduce coupling in %d high-dependency classes", response.Summary.HighCouplingClasses)))
-		recommendationCount++
-	}
-
-	if recommendationCount == 0 {
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Status", "No major issues detected"))
+	// Suggestions
+	fmt.Fprint(writer, utils.FormatSectionHeader("SUGGESTIONS"))
+	if len(response.Suggestions) == 0 {
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Status", "No actionable suggestions"))
+	} else {
+		maxShow := 20
+		if len(response.Suggestions) < maxShow {
+			maxShow = len(response.Suggestions)
+		}
+		for _, s := range response.Suggestions[:maxShow] {
+			location := ""
+			if s.FilePath != "" {
+				location = s.FilePath
+				if s.StartLine > 0 {
+					location = fmt.Sprintf("%s:%d", s.FilePath, s.StartLine)
+				}
+			}
+			label := fmt.Sprintf("[%s/%s]", s.Severity, s.Effort)
+			detail := s.Title
+			if location != "" {
+				detail = fmt.Sprintf("%s (%s)", s.Title, location)
+			}
+			fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, label, detail))
+		}
+		if len(response.Suggestions) > maxShow {
+			fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "...",
+				fmt.Sprintf("and %d more suggestions", len(response.Suggestions)-maxShow)))
+		}
 	}
 
 	return nil
@@ -411,6 +412,9 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         <div class="tabs">
             <div class="tab-buttons">
                 <button class="tab-button active" onclick="showTab('summary', this)">Summary</button>
+                {{if .Suggestions}}
+                <button class="tab-button" onclick="showTab('suggestions', this)">Suggestions</button>
+                {{end}}
                 {{if .Summary.ComplexityEnabled}}
                 <button class="tab-button" onclick="showTab('complexity', this)">Complexity</button>
                 {{end}}
@@ -638,6 +642,40 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{end}}
                 {{end}}
             </div>
+
+            {{if .Suggestions}}
+            <div id="suggestions" class="tab-content">
+                <h2>Suggestions</h2>
+                <p style="color: #666; margin-bottom: 20px;">Actionable improvements sorted by priority (severity × effort)</p>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Severity</th>
+                            <th>Category</th>
+                            <th>Title</th>
+                            <th>Effort</th>
+                            <th>Location</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $i, $s := .Suggestions}}
+                        {{if lt $i 30}}
+                        <tr>
+                            <td><span class="severity-{{$s.Severity}}">{{$s.Severity}}</span></td>
+                            <td>{{$s.Category}}</td>
+                            <td>{{$s.Title}}{{if $s.Description}}<br><small style="color: #666;">{{$s.Description}}</small>{{end}}</td>
+                            <td>{{$s.Effort}}</td>
+                            <td>{{if $s.FilePath}}{{$s.FilePath}}{{if $s.StartLine}}:{{$s.StartLine}}{{end}}{{end}}</td>
+                        </tr>
+                        {{end}}
+                        {{end}}
+                    </tbody>
+                </table>
+                {{if gt (len .Suggestions) 30}}
+                <p style="color: #666; margin-top: 10px;">Showing top 30 of {{len .Suggestions}} suggestions</p>
+                {{end}}
+            </div>
+            {{end}}
 
             {{if .Summary.ComplexityEnabled}}
             <div id="complexity" class="tab-content">
