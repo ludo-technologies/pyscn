@@ -462,6 +462,99 @@ func TestSuggestionSeverityIcon(t *testing.T) {
 	}
 }
 
+func TestGenerateSuggestions_ClonePrioritySurvivesLimit(t *testing.T) {
+	// Create 12 clone groups: first 11 are Type-3 with 2 members (warning),
+	// 12th is Type-1 with 5 members (critical+easy).
+	// The critical group must survive the 10-item cap.
+	groups := make([]*CloneGroup, 12)
+	for i := 0; i < 11; i++ {
+		groups[i] = &CloneGroup{
+			ID:         i + 1,
+			Type:       Type3Clone,
+			Similarity: 0.80,
+			Clones:     make([]*Clone, 2), // warning
+		}
+	}
+	groups[11] = &CloneGroup{
+		ID:         12,
+		Type:       Type1Clone,
+		Similarity: 1.0,
+		Clones:     make([]*Clone, 5), // critical+easy
+	}
+
+	resp := &AnalyzeResponse{
+		Clone: &CloneResponse{CloneGroups: groups},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != maxSuggestionsPerCategory {
+		t.Fatalf("expected %d suggestions, got %d", maxSuggestionsPerCategory, len(suggestions))
+	}
+
+	// The critical+easy group (originally 12th) must be in the result
+	found := false
+	for _, s := range suggestions {
+		if s.Severity == SuggestionSeverityCritical && s.Effort == SuggestionEffortEasy {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("critical+easy clone suggestion was dropped by the limit; expected it to survive via priority sort")
+	}
+
+	// It should also be sorted first
+	if suggestions[0].Severity != SuggestionSeverityCritical {
+		t.Errorf("first suggestion should be critical, got %s", suggestions[0].Severity)
+	}
+}
+
+func TestGenerateSuggestions_SystemIndependentLimits(t *testing.T) {
+	// 12 cycle-breaking suggestions + 3 architecture violations.
+	// Architecture violations must NOT be blocked by the dependency limit.
+	cycleStrings := make([]string, 12)
+	for i := range cycleStrings {
+		cycleStrings[i] = "Break cycle " + string(rune('A'+i))
+	}
+
+	resp := &AnalyzeResponse{
+		System: &SystemAnalysisResponse{
+			DependencyAnalysis: &DependencyAnalysisResult{
+				CircularDependencies: &CircularDependencyAnalysis{
+					CycleBreakingSuggestions: cycleStrings,
+				},
+			},
+			ArchitectureAnalysis: &ArchitectureAnalysisResult{
+				Violations: []ArchitectureViolation{
+					{Module: "mod_a", Severity: ViolationSeverityCritical, Suggestion: "Fix A"},
+					{Module: "mod_b", Severity: ViolationSeverityWarning, Suggestion: "Fix B"},
+					{Module: "mod_c", Severity: ViolationSeverityInfo, Suggestion: "Fix C"},
+				},
+			},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+
+	depCount := 0
+	archCount := 0
+	for _, s := range suggestions {
+		switch s.Category {
+		case SuggestionCategoryDependency:
+			depCount++
+		case SuggestionCategoryArchitecure:
+			archCount++
+		}
+	}
+
+	if depCount != maxSuggestionsPerCategory {
+		t.Errorf("expected %d dependency suggestions, got %d", maxSuggestionsPerCategory, depCount)
+	}
+	if archCount != 3 {
+		t.Errorf("expected 3 architecture suggestions (independent of dependency limit), got %d", archCount)
+	}
+}
+
 // helpers
 
 func contains(s, substr string) bool {

@@ -168,10 +168,6 @@ func generateCloneSuggestions(resp *CloneResponse) []Suggestion {
 
 	var suggestions []Suggestion
 	for _, group := range resp.CloneGroups {
-		if len(suggestions) >= maxSuggestionsPerCategory {
-			break
-		}
-
 		effort := cloneEffort(group.Type)
 		memberCount := len(group.Clones)
 		sev := SuggestionSeverityWarning
@@ -197,6 +193,12 @@ func generateCloneSuggestions(resp *CloneResponse) []Suggestion {
 		}
 
 		suggestions = append(suggestions, s)
+	}
+
+	// Sort by priority first, then truncate — so the most important groups survive the cap
+	sortSuggestions(suggestions)
+	if len(suggestions) > maxSuggestionsPerCategory {
+		suggestions = suggestions[:maxSuggestionsPerCategory]
 	}
 	return suggestions
 }
@@ -303,11 +305,12 @@ func generateSystemSuggestions(resp *SystemAnalysisResponse) []Suggestion {
 
 	var suggestions []Suggestion
 
-	// Cycle breaking suggestions
+	// Cycle breaking suggestions (own limit)
 	if resp.DependencyAnalysis != nil && resp.DependencyAnalysis.CircularDependencies != nil {
+		depCount := 0
 		cd := resp.DependencyAnalysis.CircularDependencies
 		for _, s := range cd.CycleBreakingSuggestions {
-			if len(suggestions) >= maxSuggestionsPerCategory {
+			if depCount >= maxSuggestionsPerCategory {
 				break
 			}
 			suggestions = append(suggestions, Suggestion{
@@ -317,13 +320,15 @@ func generateSystemSuggestions(resp *SystemAnalysisResponse) []Suggestion {
 				Title:       "Break circular dependency",
 				Description: s,
 			})
+			depCount++
 		}
 	}
 
-	// Architecture violations
+	// Architecture violations (own limit, independent of dependency count)
 	if resp.ArchitectureAnalysis != nil {
+		archCount := 0
 		for _, v := range resp.ArchitectureAnalysis.Violations {
-			if len(suggestions) >= maxSuggestionsPerCategory {
+			if archCount >= maxSuggestionsPerCategory {
 				break
 			}
 			if v.Suggestion == "" {
@@ -343,6 +348,7 @@ func generateSystemSuggestions(resp *SystemAnalysisResponse) []Suggestion {
 				Title:       fmt.Sprintf("Fix architecture violation in '%s'", v.Module),
 				Description: v.Suggestion,
 			})
+			archCount++
 		}
 	}
 
