@@ -502,6 +502,9 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 		for _, s := range response.Suggestions[:maxShow] {
 			fmt.Fprintf(cmd.ErrOrStderr(), "  %s [%s] %s (%s)\n",
 				s.SeverityIcon(), s.Category, s.Title, s.Effort)
+			if len(s.Steps) > 0 {
+				fmt.Fprintf(cmd.ErrOrStderr(), "     → %s\n", s.Steps[0])
+			}
 		}
 		remaining := len(response.Suggestions) - maxShow
 		if remaining > 0 {

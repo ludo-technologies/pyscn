@@ -120,6 +120,9 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 				detail = fmt.Sprintf("%s (%s)", s.Title, location)
 			}
 			fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, label, detail))
+			for i, step := range s.Steps {
+				fmt.Fprintf(writer, "%s    %d. %s\n", strings.Repeat(" ", SectionPadding), i+1, step)
+			}
 		}
 		if len(response.Suggestions) > maxShow {
 			fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "...",
@@ -397,6 +400,12 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             background: #b91c1c;
             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
+        .suggestion-steps {
+            font-size: 13px;
+            margin-top: 4px;
+            padding-left: 20px;
+            color: #475569;
+        }
     </style>
 </head>
 <body>
@@ -663,7 +672,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         <tr>
                             <td><span class="severity-{{$s.Severity}}">{{$s.Severity}}</span></td>
                             <td>{{$s.Category}}</td>
-                            <td>{{$s.Title}}{{if $s.Description}}<br><small style="color: #666;">{{$s.Description}}</small>{{end}}</td>
+                            <td>{{$s.Title}}{{if $s.Description}}<br><small style="color: #666;">{{$s.Description}}</small>{{end}}{{if $s.Steps}}<ol class="suggestion-steps">{{range $s.Steps}}<li>{{.}}</li>{{end}}</ol>{{end}}</td>
                             <td>{{$s.Effort}}</td>
                             <td>{{if $s.FilePath}}{{$s.FilePath}}{{if $s.StartLine}}:{{$s.StartLine}}{{end}}{{end}}</td>
                         </tr>

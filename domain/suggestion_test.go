@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -62,9 +63,10 @@ func TestGenerateSuggestions_ComplexityNestingDepth(t *testing.T) {
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
 				{
-					Name:     "deep_func",
-					FilePath: "a.py",
-					Metrics:  ComplexityMetrics{Complexity: 25, NestingDepth: 5},
+					Name:      "deep_func",
+					FilePath:  "a.py",
+					StartLine: 42,
+					Metrics:   ComplexityMetrics{Complexity: 25, NestingDepth: 5},
 				},
 			},
 		},
@@ -80,6 +82,82 @@ func TestGenerateSuggestions_ComplexityNestingDepth(t *testing.T) {
 	// Should suggest early returns for deep nesting
 	if !contains(suggestions[0].Description, "early returns") {
 		t.Errorf("expected 'early returns' in description for deep nesting, got: %s", suggestions[0].Description)
+	}
+	// Steps should mention guard clauses
+	if len(suggestions[0].Steps) < 2 || len(suggestions[0].Steps) > 3 {
+		t.Fatalf("expected 2-3 steps for complexity nesting, got %d", len(suggestions[0].Steps))
+	}
+	if !strings.Contains(suggestions[0].Steps[1], "guard clauses") {
+		t.Errorf("expected 'guard clauses' in steps for deep nesting, got: %v", suggestions[0].Steps)
+	}
+}
+
+func TestGenerateSuggestions_ComplexityDefault(t *testing.T) {
+	resp := &AnalyzeResponse{
+		Complexity: &ComplexityResponse{
+			Functions: []FunctionComplexity{
+				{
+					Name:     "wide_func",
+					FilePath: "a.py",
+					Metrics:  ComplexityMetrics{Complexity: 15, NestingDepth: 2},
+				},
+			},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != 1 {
+		t.Fatalf("expected 1 suggestion, got %d", len(suggestions))
+	}
+	if len(suggestions[0].Steps) < 2 || len(suggestions[0].Steps) > 3 {
+		t.Fatalf("expected 2-3 steps for default complexity, got %d", len(suggestions[0].Steps))
+	}
+	if !strings.Contains(suggestions[0].Steps[0], "smaller functions") {
+		t.Errorf("expected 'smaller functions' in steps, got: %v", suggestions[0].Steps)
+	}
+}
+
+func TestGenerateSuggestions_ComplexityLoopStatements(t *testing.T) {
+	resp := &AnalyzeResponse{
+		Complexity: &ComplexityResponse{
+			Functions: []FunctionComplexity{
+				{
+					Name:     "loopy_func",
+					FilePath: "a.py",
+					Metrics:  ComplexityMetrics{Complexity: 15, NestingDepth: 2, LoopStatements: 4},
+				},
+			},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != 1 {
+		t.Fatalf("expected 1 suggestion, got %d", len(suggestions))
+	}
+	if !strings.Contains(suggestions[0].Steps[0], "loop bodies") {
+		t.Errorf("expected 'loop bodies' in steps for loop-heavy function, got: %v", suggestions[0].Steps)
+	}
+}
+
+func TestGenerateSuggestions_ComplexityExceptionHandlers(t *testing.T) {
+	resp := &AnalyzeResponse{
+		Complexity: &ComplexityResponse{
+			Functions: []FunctionComplexity{
+				{
+					Name:     "error_func",
+					FilePath: "a.py",
+					Metrics:  ComplexityMetrics{Complexity: 15, NestingDepth: 2, ExceptionHandlers: 4},
+				},
+			},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != 1 {
+		t.Fatalf("expected 1 suggestion, got %d", len(suggestions))
+	}
+	if !strings.Contains(suggestions[0].Steps[0], "exception handlers") {
+		t.Errorf("expected 'exception handlers' in steps, got: %v", suggestions[0].Steps)
 	}
 }
 
@@ -129,6 +207,13 @@ func TestGenerateSuggestions_DeadCodeOnly(t *testing.T) {
 	if afterReturn.Severity != SuggestionSeverityCritical {
 		t.Errorf("expected critical severity, got %s", afterReturn.Severity)
 	}
+	// Steps should contain "Delete lines"
+	if len(afterReturn.Steps) < 2 || len(afterReturn.Steps) > 3 {
+		t.Fatalf("expected 2-3 steps for dead code after_return, got %d", len(afterReturn.Steps))
+	}
+	if !strings.Contains(afterReturn.Steps[0], "Delete lines") {
+		t.Errorf("expected 'Delete lines' in steps for after_return, got: %v", afterReturn.Steps)
+	}
 
 	// unreachable_branch should be moderate effort
 	branch := findSuggestionByFunction(suggestions, "process")
@@ -137,6 +222,13 @@ func TestGenerateSuggestions_DeadCodeOnly(t *testing.T) {
 	}
 	if branch.Effort != SuggestionEffortModerate {
 		t.Errorf("expected moderate effort for unreachable_branch, got %s", branch.Effort)
+	}
+	// Steps should mention "condition"
+	if len(branch.Steps) < 2 || len(branch.Steps) > 3 {
+		t.Fatalf("expected 2-3 steps for unreachable_branch, got %d", len(branch.Steps))
+	}
+	if !strings.Contains(branch.Steps[0], "condition") {
+		t.Errorf("expected 'condition' in steps for unreachable_branch, got: %v", branch.Steps)
 	}
 }
 
@@ -172,6 +264,13 @@ func TestGenerateSuggestions_CloneGroups(t *testing.T) {
 	if suggestions[0].Effort != SuggestionEffortEasy {
 		t.Errorf("expected easy effort for Type-1, got %s", suggestions[0].Effort)
 	}
+	// Steps should contain "shared function"
+	if len(suggestions[0].Steps) != 3 {
+		t.Fatalf("expected 3 steps for Type-1 clone, got %d", len(suggestions[0].Steps))
+	}
+	if !strings.Contains(suggestions[0].Steps[0], "shared function") {
+		t.Errorf("expected 'shared function' in steps for Type-1, got: %v", suggestions[0].Steps)
+	}
 
 	// Type-4 with 2 members should be warning + hard
 	if suggestions[1].Severity != SuggestionSeverityWarning {
@@ -179,6 +278,13 @@ func TestGenerateSuggestions_CloneGroups(t *testing.T) {
 	}
 	if suggestions[1].Effort != SuggestionEffortHard {
 		t.Errorf("expected hard effort for Type-4, got %s", suggestions[1].Effort)
+	}
+	// Type-4 steps should mention "serve the same purpose"
+	if len(suggestions[1].Steps) != 3 {
+		t.Fatalf("expected 3 steps for Type-4 clone, got %d", len(suggestions[1].Steps))
+	}
+	if !strings.Contains(suggestions[1].Steps[0], "serve the same purpose") {
+		t.Errorf("expected 'serve the same purpose' in Type-4 steps, got: %v", suggestions[1].Steps)
 	}
 }
 
@@ -220,6 +326,13 @@ func TestGenerateSuggestions_CBOOnly(t *testing.T) {
 	if high.Effort != SuggestionEffortHard {
 		t.Errorf("expected hard effort for CBO>7, got %s", high.Effort)
 	}
+	// Steps should mention "interfaces"
+	if len(high.Steps) != 3 {
+		t.Fatalf("expected 3 steps for CBO>7, got %d", len(high.Steps))
+	}
+	if !strings.Contains(high.Steps[1], "interfaces") {
+		t.Errorf("expected 'interfaces' in steps for CBO>7, got: %v", high.Steps)
+	}
 
 	med := findSuggestionByClass(suggestions, "MedClass")
 	if med == nil {
@@ -230,6 +343,10 @@ func TestGenerateSuggestions_CBOOnly(t *testing.T) {
 	}
 	if med.Effort != SuggestionEffortModerate {
 		t.Errorf("expected moderate effort for CBO 4-7, got %s", med.Effort)
+	}
+	// Medium CBO steps should have 2 items
+	if len(med.Steps) != 2 {
+		t.Fatalf("expected 2 steps for CBO 4-7, got %d", len(med.Steps))
 	}
 }
 
@@ -268,6 +385,42 @@ func TestGenerateSuggestions_LCOMOnly(t *testing.T) {
 	if !contains(suggestions[0].Description, "Method groups:") {
 		t.Errorf("expected method groups in description, got: %s", suggestions[0].Description)
 	}
+	// Steps should mention "Split into"
+	if len(suggestions[0].Steps) != 3 {
+		t.Fatalf("expected 3 steps for LCOM4>5, got %d", len(suggestions[0].Steps))
+	}
+	if !strings.Contains(suggestions[0].Steps[1], "Split into") {
+		t.Errorf("expected 'Split into' in steps for LCOM4>5, got: %v", suggestions[0].Steps)
+	}
+}
+
+func TestGenerateSuggestions_LCOMMedium(t *testing.T) {
+	resp := &AnalyzeResponse{
+		LCOM: &LCOMResponse{
+			Classes: []ClassCohesion{
+				{
+					Name:     "MedClass",
+					FilePath: "a.py",
+					Metrics: LCOMMetrics{
+						LCOM4:        4,
+						MethodGroups: [][]string{{"m1"}, {"m2"}, {"m3"}, {"m4"}},
+					},
+				},
+			},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != 1 {
+		t.Fatalf("expected 1 suggestion, got %d", len(suggestions))
+	}
+	// Medium LCOM steps should have 2 items
+	if len(suggestions[0].Steps) != 2 {
+		t.Fatalf("expected 2 steps for LCOM 3-5, got %d", len(suggestions[0].Steps))
+	}
+	if !strings.Contains(suggestions[0].Steps[0], "method groups") {
+		t.Errorf("expected 'method groups' in steps for LCOM 3-5, got: %v", suggestions[0].Steps)
+	}
 }
 
 func TestGenerateSuggestions_SystemCycleBreaking(t *testing.T) {
@@ -298,6 +451,13 @@ func TestGenerateSuggestions_SystemCycleBreaking(t *testing.T) {
 		}
 		if s.Effort != SuggestionEffortHard {
 			t.Errorf("expected hard effort for cycle breaking, got %s", s.Effort)
+		}
+		// Steps should contain the description itself
+		if len(s.Steps) != 1 {
+			t.Errorf("expected 1 step for system cycle breaking, got %d", len(s.Steps))
+		}
+		if len(s.Steps) > 0 && s.Steps[0] != s.Description {
+			t.Errorf("expected step to equal description for system suggestion, got step=%q desc=%q", s.Steps[0], s.Description)
 		}
 	}
 }
@@ -330,6 +490,16 @@ func TestGenerateSuggestions_SystemArchViolation(t *testing.T) {
 	suggestions := GenerateSuggestions(resp)
 	if len(suggestions) != 2 {
 		t.Fatalf("expected 2 suggestions (empty suggestion skipped), got %d", len(suggestions))
+	}
+
+	// Architecture violation steps should contain the suggestion text
+	for _, s := range suggestions {
+		if len(s.Steps) != 1 {
+			t.Errorf("expected 1 step for architecture violation, got %d", len(s.Steps))
+		}
+		if len(s.Steps) > 0 && s.Steps[0] != s.Description {
+			t.Errorf("expected step to equal description, got step=%q desc=%q", s.Steps[0], s.Description)
+		}
 	}
 }
 
@@ -382,6 +552,13 @@ func TestGenerateSuggestions_AllAnalysesEnabled_SortOrder(t *testing.T) {
 		if prevPri > currPri {
 			t.Errorf("suggestion %d (priority %d) should not come before suggestion %d (priority %d): %s vs %s",
 				i-1, prevPri, i, currPri, suggestions[i-1].Title, suggestions[i].Title)
+		}
+	}
+
+	// All suggestions should have Steps
+	for i, s := range suggestions {
+		if len(s.Steps) == 0 {
+			t.Errorf("suggestion %d (%s) has no steps", i, s.Title)
 		}
 	}
 }
@@ -552,6 +729,58 @@ func TestGenerateSuggestions_SystemIndependentLimits(t *testing.T) {
 	}
 	if archCount != 3 {
 		t.Errorf("expected 3 architecture suggestions (independent of dependency limit), got %d", archCount)
+	}
+}
+
+func TestGenerateSuggestions_CloneType2Steps(t *testing.T) {
+	resp := &AnalyzeResponse{
+		Clone: &CloneResponse{
+			CloneGroups: []*CloneGroup{
+				{
+					ID:         1,
+					Type:       Type2Clone,
+					Similarity: 0.95,
+					Clones:     make([]*Clone, 3),
+				},
+			},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != 1 {
+		t.Fatalf("expected 1 suggestion, got %d", len(suggestions))
+	}
+	if len(suggestions[0].Steps) != 3 {
+		t.Fatalf("expected 3 steps for Type-2, got %d", len(suggestions[0].Steps))
+	}
+	if !strings.Contains(suggestions[0].Steps[0], "parameterized function") {
+		t.Errorf("expected 'parameterized function' in Type-2 steps, got: %v", suggestions[0].Steps)
+	}
+}
+
+func TestGenerateSuggestions_CloneType3Steps(t *testing.T) {
+	resp := &AnalyzeResponse{
+		Clone: &CloneResponse{
+			CloneGroups: []*CloneGroup{
+				{
+					ID:         1,
+					Type:       Type3Clone,
+					Similarity: 0.80,
+					Clones:     make([]*Clone, 2),
+				},
+			},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != 1 {
+		t.Fatalf("expected 1 suggestion, got %d", len(suggestions))
+	}
+	if len(suggestions[0].Steps) != 3 {
+		t.Fatalf("expected 3 steps for Type-3, got %d", len(suggestions[0].Steps))
+	}
+	if !strings.Contains(suggestions[0].Steps[0], "common structure") {
+		t.Errorf("expected 'common structure' in Type-3 steps, got: %v", suggestions[0].Steps)
 	}
 }
 

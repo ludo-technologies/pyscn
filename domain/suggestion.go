@@ -44,6 +44,7 @@ type Suggestion struct {
 	Effort      SuggestionEffort   `json:"effort"`
 	Title       string             `json:"title"`
 	Description string             `json:"description"`
+	Steps       []string           `json:"steps,omitempty"`
 	FilePath    string             `json:"file_path,omitempty"`
 	Function    string             `json:"function,omitempty"`
 	ClassName   string             `json:"class_name,omitempty"`
@@ -94,10 +95,35 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 		}
 
 		desc := fmt.Sprintf("Function '%s' has cyclomatic complexity of %d.", f.Name, complexity)
+		var steps []string
 		if f.Metrics.NestingDepth > 4 {
 			desc += " Consider using early returns or guard clauses to reduce nesting depth."
+			steps = []string{
+				fmt.Sprintf("Identify the deepest nested block at line %d", f.StartLine),
+				"Convert nested conditions to early returns or guard clauses",
+				fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
+			}
+		} else if f.Metrics.LoopStatements >= 3 {
+			desc += " Consider extracting helper functions to reduce complexity."
+			steps = []string{
+				"Extract loop bodies into named helper functions",
+				"Consider using list comprehensions or map/filter for simple loops",
+				fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
+			}
+		} else if f.Metrics.ExceptionHandlers >= 3 {
+			desc += " Consider extracting helper functions to reduce complexity."
+			steps = []string{
+				"Consolidate exception handlers — merge similar except blocks",
+				"Extract try/except blocks into dedicated error-handling functions",
+				fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
+			}
 		} else {
 			desc += " Consider extracting helper functions to reduce complexity."
+			steps = []string{
+				fmt.Sprintf("Split '%s' into smaller functions, each handling one responsibility", f.Name),
+				"Extract blocks of 10+ lines into well-named helper functions",
+				fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
+			}
 		}
 
 		suggestions = append(suggestions, Suggestion{
@@ -106,6 +132,7 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 			Effort:      SuggestionEffortModerate,
 			Title:       fmt.Sprintf("Refactor high-complexity function '%s'", f.Name),
 			Description: desc,
+			Steps:       steps,
 			FilePath:    f.FilePath,
 			Function:    f.Name,
 			StartLine:   f.StartLine,
@@ -144,12 +171,29 @@ func generateDeadCodeSuggestions(resp *DeadCodeResponse) []Suggestion {
 					desc += " This code is safely removable."
 				}
 
+				var steps []string
+				if finding.Reason == "unreachable_branch" {
+					steps = []string{
+						"Review the condition guarding this branch — it may always be true/false",
+						"Simplify the conditional or remove the unreachable branch",
+						"Run tests to confirm no regressions",
+					}
+				} else {
+					steps = []string{
+						fmt.Sprintf("Delete lines %d-%d in %s",
+							finding.Location.StartLine, finding.Location.EndLine, finding.Location.FilePath),
+						"Verify no side effects are lost (logging, cleanup, assignments)",
+						"Run tests to confirm no regressions",
+					}
+				}
+
 				suggestions = append(suggestions, Suggestion{
 					Category:    SuggestionCategoryDeadCode,
 					Severity:    sev,
 					Effort:      effort,
 					Title:       title,
 					Description: desc,
+					Steps:       steps,
 					FilePath:    finding.Location.FilePath,
 					Function:    finding.FunctionName,
 					StartLine:   finding.Location.StartLine,
@@ -178,6 +222,7 @@ func generateCloneSuggestions(resp *CloneResponse) []Suggestion {
 		typeStr := cloneTypeLabel(group.Type)
 		title := fmt.Sprintf("Extract duplicated code (%s, %d fragments)", typeStr, memberCount)
 		desc := cloneDescription(group)
+		steps := cloneSteps(group.Type, memberCount)
 
 		s := Suggestion{
 			Category:    SuggestionCategoryClone,
@@ -185,6 +230,7 @@ func generateCloneSuggestions(resp *CloneResponse) []Suggestion {
 			Effort:      effort,
 			Title:       title,
 			Description: desc,
+			Steps:       steps,
 			MetricValue: fmt.Sprintf("%.0f%% similarity", group.Similarity*100),
 		}
 		if len(group.Clones) > 0 && group.Clones[0] != nil && group.Clones[0].Location != nil {
@@ -231,12 +277,27 @@ func generateCBOSuggestions(resp *CBOResponse) []Suggestion {
 		desc := fmt.Sprintf("Class '%s' depends on %d other classes (%s). Consider applying dependency inversion or splitting responsibilities.",
 			cls.Name, cbo, deps)
 
+		var steps []string
+		if cbo > 7 {
+			steps = []string{
+				fmt.Sprintf("List the %d dependencies: %s", cbo, deps),
+				"Introduce interfaces for the most-used dependencies (dependency inversion)",
+				fmt.Sprintf("Consider splitting '%s' if it has multiple responsibilities", cls.Name),
+			}
+		} else {
+			steps = []string{
+				fmt.Sprintf("Review the %d dependencies: %s", cbo, deps),
+				"Look for dependencies that can be removed or replaced with interfaces",
+			}
+		}
+
 		suggestions = append(suggestions, Suggestion{
 			Category:    SuggestionCategoryCoupling,
 			Severity:    sev,
 			Effort:      effort,
 			Title:       fmt.Sprintf("Reduce coupling in class '%s'", cls.Name),
 			Description: desc,
+			Steps:       steps,
 			FilePath:    cls.FilePath,
 			ClassName:   cls.Name,
 			StartLine:   cls.StartLine,
@@ -273,12 +334,28 @@ func generateLCOMSuggestions(resp *LCOMResponse) []Suggestion {
 
 		desc := fmt.Sprintf("Class '%s' has LCOM4=%d, indicating %d disconnected method groups.",
 			cls.Name, lcom, lcom)
+		var groupSummary string
 		if len(cls.Metrics.MethodGroups) > 0 {
 			groupStrs := make([]string, 0, len(cls.Metrics.MethodGroups))
 			for _, g := range cls.Metrics.MethodGroups {
 				groupStrs = append(groupStrs, fmt.Sprintf("[%s]", strings.Join(g, ", ")))
 			}
-			desc += fmt.Sprintf(" Method groups: %s. Consider splitting into separate classes.", strings.Join(groupStrs, ", "))
+			groupSummary = strings.Join(groupStrs, ", ")
+			desc += fmt.Sprintf(" Method groups: %s. Consider splitting into separate classes.", groupSummary)
+		}
+
+		var steps []string
+		if lcom > 5 {
+			steps = []string{
+				fmt.Sprintf("This class has %d disconnected method groups: %s", lcom, groupSummary),
+				fmt.Sprintf("Split into %d classes, one per method group", lcom),
+				"Use composition to connect the new classes if they need to collaborate",
+			}
+		} else {
+			steps = []string{
+				fmt.Sprintf("Review the %d method groups for natural class boundaries", lcom),
+				"Consider extracting one group into a separate class",
+			}
 		}
 
 		suggestions = append(suggestions, Suggestion{
@@ -287,6 +364,7 @@ func generateLCOMSuggestions(resp *LCOMResponse) []Suggestion {
 			Effort:      effort,
 			Title:       fmt.Sprintf("Split low-cohesion class '%s'", cls.Name),
 			Description: desc,
+			Steps:       steps,
 			FilePath:    cls.FilePath,
 			ClassName:   cls.Name,
 			StartLine:   cls.StartLine,
@@ -319,6 +397,7 @@ func generateSystemSuggestions(resp *SystemAnalysisResponse) []Suggestion {
 				Effort:      SuggestionEffortHard,
 				Title:       "Break circular dependency",
 				Description: s,
+				Steps:       []string{s},
 			})
 			depCount++
 		}
@@ -347,6 +426,7 @@ func generateSystemSuggestions(resp *SystemAnalysisResponse) []Suggestion {
 				Effort:      effort,
 				Title:       fmt.Sprintf("Fix architecture violation in '%s'", v.Module),
 				Description: v.Suggestion,
+				Steps:       []string{v.Suggestion},
 			})
 			archCount++
 		}
@@ -485,6 +565,41 @@ func cloneDescription(group *CloneGroup) string {
 		return "Semantically similar code with different structure. Evaluate whether a common abstraction is appropriate."
 	default:
 		return "Duplicated code detected. Consider refactoring to reduce duplication."
+	}
+}
+
+func cloneSteps(t CloneType, memberCount int) []string {
+	switch t {
+	case Type1Clone:
+		return []string{
+			"Create a shared function from the duplicated code",
+			fmt.Sprintf("Replace all %d occurrences with calls to the new function", memberCount),
+			"Run tests to confirm no regressions",
+		}
+	case Type2Clone:
+		return []string{
+			"Create a parameterized function, passing differing identifiers/literals as arguments",
+			fmt.Sprintf("Replace all %d occurrences with calls using appropriate arguments", memberCount),
+			"Run tests to confirm no regressions",
+		}
+	case Type3Clone:
+		return []string{
+			"Identify the common structure across fragments",
+			"Extract shared logic into a function, using parameters or callbacks for varying parts",
+			"Run tests to confirm no regressions",
+		}
+	case Type4Clone:
+		return []string{
+			fmt.Sprintf("Analyze whether the %d fragments serve the same purpose", memberCount),
+			"If so, design a common abstraction (base class, strategy pattern, or utility)",
+			"Refactor incrementally — start with 2 fragments, then extend",
+		}
+	default:
+		return []string{
+			"Identify the duplicated logic",
+			"Extract into a shared function or module",
+			"Run tests to confirm no regressions",
+		}
 	}
 }
 
