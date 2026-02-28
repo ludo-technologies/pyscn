@@ -10,13 +10,13 @@ import (
 type SuggestionCategory string
 
 const (
-	SuggestionCategoryComplexity  SuggestionCategory = "complexity"
-	SuggestionCategoryDeadCode    SuggestionCategory = "dead_code"
-	SuggestionCategoryClone       SuggestionCategory = "clone"
-	SuggestionCategoryCoupling    SuggestionCategory = "coupling"
-	SuggestionCategoryCohesion    SuggestionCategory = "cohesion"
-	SuggestionCategoryDependency  SuggestionCategory = "dependency"
-	SuggestionCategoryArchitecure SuggestionCategory = "architecture"
+	SuggestionCategoryComplexity   SuggestionCategory = "complexity"
+	SuggestionCategoryDeadCode     SuggestionCategory = "dead_code"
+	SuggestionCategoryClone        SuggestionCategory = "clone"
+	SuggestionCategoryCoupling     SuggestionCategory = "coupling"
+	SuggestionCategoryCohesion     SuggestionCategory = "cohesion"
+	SuggestionCategoryDependency   SuggestionCategory = "dependency"
+	SuggestionCategoryArchitecture SuggestionCategory = "architecture"
 )
 
 // SuggestionSeverity represents the importance of a suggestion
@@ -80,10 +80,6 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 
 	var suggestions []Suggestion
 	for _, f := range resp.Functions {
-		if len(suggestions) >= maxSuggestionsPerCategory {
-			break
-		}
-
 		complexity := f.Metrics.Complexity
 		if complexity <= ComplexityThresholdMedium {
 			continue
@@ -140,6 +136,12 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 			Threshold:   fmt.Sprintf("%d", ComplexityThresholdMedium),
 		})
 	}
+
+	// Sort by priority first, then truncate — so the most important suggestions survive the cap
+	sortSuggestions(suggestions)
+	if len(suggestions) > maxSuggestionsPerCategory {
+		suggestions = suggestions[:maxSuggestionsPerCategory]
+	}
 	return suggestions
 }
 
@@ -153,10 +155,6 @@ func generateDeadCodeSuggestions(resp *DeadCodeResponse) []Suggestion {
 	for _, file := range resp.Files {
 		for _, fn := range file.Functions {
 			for _, finding := range fn.Findings {
-				if len(suggestions) >= maxSuggestionsPerCategory {
-					return suggestions
-				}
-
 				sev := mapDeadCodeSeverity(finding.Severity)
 				effort := deadCodeEffort(finding.Reason)
 
@@ -200,6 +198,12 @@ func generateDeadCodeSuggestions(resp *DeadCodeResponse) []Suggestion {
 				})
 			}
 		}
+	}
+
+	// Sort by priority first, then truncate — so the most important findings survive the cap
+	sortSuggestions(suggestions)
+	if len(suggestions) > maxSuggestionsPerCategory {
+		suggestions = suggestions[:maxSuggestionsPerCategory]
 	}
 	return suggestions
 }
@@ -257,10 +261,6 @@ func generateCBOSuggestions(resp *CBOResponse) []Suggestion {
 
 	var suggestions []Suggestion
 	for _, cls := range resp.Classes {
-		if len(suggestions) >= maxSuggestionsPerCategory {
-			break
-		}
-
 		cbo := cls.Metrics.CouplingCount
 		if cbo <= 3 {
 			continue
@@ -305,6 +305,12 @@ func generateCBOSuggestions(resp *CBOResponse) []Suggestion {
 			Threshold:   "7",
 		})
 	}
+
+	// Sort by priority first, then truncate — so the most important suggestions survive the cap
+	sortSuggestions(suggestions)
+	if len(suggestions) > maxSuggestionsPerCategory {
+		suggestions = suggestions[:maxSuggestionsPerCategory]
+	}
 	return suggestions
 }
 
@@ -316,10 +322,6 @@ func generateLCOMSuggestions(resp *LCOMResponse) []Suggestion {
 
 	var suggestions []Suggestion
 	for _, cls := range resp.Classes {
-		if len(suggestions) >= maxSuggestionsPerCategory {
-			break
-		}
-
 		lcom := cls.Metrics.LCOM4
 		if lcom <= 2 {
 			continue
@@ -372,6 +374,12 @@ func generateLCOMSuggestions(resp *LCOMResponse) []Suggestion {
 			Threshold:   "2",
 		})
 	}
+
+	// Sort by priority first, then truncate — so the most important suggestions survive the cap
+	sortSuggestions(suggestions)
+	if len(suggestions) > maxSuggestionsPerCategory {
+		suggestions = suggestions[:maxSuggestionsPerCategory]
+	}
 	return suggestions
 }
 
@@ -397,7 +405,6 @@ func generateSystemSuggestions(resp *SystemAnalysisResponse) []Suggestion {
 				Effort:      SuggestionEffortHard,
 				Title:       "Break circular dependency",
 				Description: s,
-				Steps:       []string{s},
 			})
 			depCount++
 		}
@@ -421,12 +428,11 @@ func generateSystemSuggestions(resp *SystemAnalysisResponse) []Suggestion {
 			}
 
 			suggestions = append(suggestions, Suggestion{
-				Category:    SuggestionCategoryArchitecure,
+				Category:    SuggestionCategoryArchitecture,
 				Severity:    sev,
 				Effort:      effort,
 				Title:       fmt.Sprintf("Fix architecture violation in '%s'", v.Module),
 				Description: v.Suggestion,
-				Steps:       []string{v.Suggestion},
 			})
 			archCount++
 		}

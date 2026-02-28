@@ -80,7 +80,7 @@ func TestGenerateSuggestions_ComplexityNestingDepth(t *testing.T) {
 		t.Error("expected non-empty description")
 	}
 	// Should suggest early returns for deep nesting
-	if !contains(suggestions[0].Description, "early returns") {
+	if !strings.Contains(suggestions[0].Description, "early returns") {
 		t.Errorf("expected 'early returns' in description for deep nesting, got: %s", suggestions[0].Description)
 	}
 	// Steps should mention guard clauses
@@ -382,7 +382,7 @@ func TestGenerateSuggestions_LCOMOnly(t *testing.T) {
 	if suggestions[0].Effort != SuggestionEffortHard {
 		t.Errorf("expected hard effort for LCOM4>5, got %s", suggestions[0].Effort)
 	}
-	if !contains(suggestions[0].Description, "Method groups:") {
+	if !strings.Contains(suggestions[0].Description, "Method groups:") {
 		t.Errorf("expected method groups in description, got: %s", suggestions[0].Description)
 	}
 	// Steps should mention "Split into"
@@ -452,12 +452,9 @@ func TestGenerateSuggestions_SystemCycleBreaking(t *testing.T) {
 		if s.Effort != SuggestionEffortHard {
 			t.Errorf("expected hard effort for cycle breaking, got %s", s.Effort)
 		}
-		// Steps should contain the description itself
-		if len(s.Steps) != 1 {
-			t.Errorf("expected 1 step for system cycle breaking, got %d", len(s.Steps))
-		}
-		if len(s.Steps) > 0 && s.Steps[0] != s.Description {
-			t.Errorf("expected step to equal description for system suggestion, got step=%q desc=%q", s.Steps[0], s.Description)
+		// System suggestions should not have Steps (Description is already specific enough)
+		if len(s.Steps) != 0 {
+			t.Errorf("expected 0 steps for system cycle breaking (avoid duplication), got %d", len(s.Steps))
 		}
 	}
 }
@@ -492,13 +489,10 @@ func TestGenerateSuggestions_SystemArchViolation(t *testing.T) {
 		t.Fatalf("expected 2 suggestions (empty suggestion skipped), got %d", len(suggestions))
 	}
 
-	// Architecture violation steps should contain the suggestion text
+	// System suggestions should not have Steps (Description is already specific enough)
 	for _, s := range suggestions {
-		if len(s.Steps) != 1 {
-			t.Errorf("expected 1 step for architecture violation, got %d", len(s.Steps))
-		}
-		if len(s.Steps) > 0 && s.Steps[0] != s.Description {
-			t.Errorf("expected step to equal description, got step=%q desc=%q", s.Steps[0], s.Description)
+		if len(s.Steps) != 0 {
+			t.Errorf("expected 0 steps for architecture violation (avoid duplication), got %d", len(s.Steps))
 		}
 	}
 }
@@ -719,7 +713,7 @@ func TestGenerateSuggestions_SystemIndependentLimits(t *testing.T) {
 		switch s.Category {
 		case SuggestionCategoryDependency:
 			depCount++
-		case SuggestionCategoryArchitecure:
+		case SuggestionCategoryArchitecture:
 			archCount++
 		}
 	}
@@ -785,19 +779,6 @@ func TestGenerateSuggestions_CloneType3Steps(t *testing.T) {
 }
 
 // helpers
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && containsStr(s, substr)
-}
-
-func containsStr(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
 
 func findSuggestionByFunction(suggestions []Suggestion, fn string) *Suggestion {
 	for i := range suggestions {
