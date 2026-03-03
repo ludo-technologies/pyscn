@@ -124,7 +124,7 @@ func TestAnalyzeFormatter_Write_Text(t *testing.T) {
 				"DEAD CODE DETECTION",
 				"CLONE DETECTION",
 				"DEPENDENCY ANALYSIS",
-				"RECOMMENDATIONS",
+				"SUGGESTIONS",
 			},
 		},
 		{
@@ -134,7 +134,7 @@ func TestAnalyzeFormatter_Write_Text(t *testing.T) {
 				"Comprehensive Analysis Report",
 				"Health Score",
 				"100/100",
-				"No major issues detected",
+				"No actionable suggestions",
 			},
 			notExpected: []string{
 				"COMPLEXITY ANALYSIS",
@@ -251,43 +251,59 @@ func TestAnalyzeFormatter_Write_UnsupportedFormat(t *testing.T) {
 	assert.Contains(t, err.Error(), "invalid")
 }
 
-func TestAnalyzeFormatter_WriteText_Recommendations(t *testing.T) {
+func TestAnalyzeFormatter_WriteText_Suggestions(t *testing.T) {
 	tests := []struct {
 		name             string
 		modifyResponse   func(*domain.AnalyzeResponse)
 		expectedContains []string
 	}{
 		{
-			name: "high complexity recommendation",
+			name: "no suggestions shows status message",
 			modifyResponse: func(r *domain.AnalyzeResponse) {
-				r.Summary.HighComplexityCount = 5
-				r.Summary.ComplexityEnabled = true
+				// No suggestions
 			},
-			expectedContains: []string{"Refactor 5 high-complexity functions"},
+			expectedContains: []string{"SUGGESTIONS", "No actionable suggestions"},
 		},
 		{
-			name: "dead code recommendation",
+			name: "complexity suggestion displayed",
 			modifyResponse: func(r *domain.AnalyzeResponse) {
-				r.Summary.DeadCodeCount = 10
-				r.Summary.DeadCodeEnabled = true
+				r.Suggestions = []domain.Suggestion{
+					{
+						Category: domain.SuggestionCategoryComplexity,
+						Severity: domain.SuggestionSeverityCritical,
+						Effort:   domain.SuggestionEffortModerate,
+						Title:    "Refactor high-complexity function 'process_data'",
+						FilePath: "main.py",
+					},
+				}
 			},
-			expectedContains: []string{"Remove 10 dead code segments"},
+			expectedContains: []string{"SUGGESTIONS", "Refactor high-complexity function 'process_data'", "critical/moderate"},
 		},
 		{
-			name: "high duplication recommendation",
+			name: "multiple suggestions displayed",
 			modifyResponse: func(r *domain.AnalyzeResponse) {
-				r.Summary.CodeDuplication = 15.5
-				r.Summary.CloneEnabled = true
+				r.Suggestions = []domain.Suggestion{
+					{
+						Category:  domain.SuggestionCategoryDeadCode,
+						Severity:  domain.SuggestionSeverityWarning,
+						Effort:    domain.SuggestionEffortEasy,
+						Title:     "Remove dead code after return in 'validate'",
+						FilePath:  "utils.py",
+						StartLine: 42,
+					},
+					{
+						Category: domain.SuggestionCategoryCoupling,
+						Severity: domain.SuggestionSeverityCritical,
+						Effort:   domain.SuggestionEffortHard,
+						Title:    "Reduce coupling in class 'UserService'",
+					},
+				}
 			},
-			expectedContains: []string{"Reduce code duplication", "15.5%"},
-		},
-		{
-			name: "high coupling recommendation",
-			modifyResponse: func(r *domain.AnalyzeResponse) {
-				r.Summary.HighCouplingClasses = 3
-				r.Summary.CBOEnabled = true
+			expectedContains: []string{
+				"Remove dead code after return in 'validate'",
+				"Reduce coupling in class 'UserService'",
+				"utils.py:42",
 			},
-			expectedContains: []string{"Reduce coupling in 3 high-dependency classes"},
 		},
 	}
 

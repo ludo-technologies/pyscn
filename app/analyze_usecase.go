@@ -507,6 +507,9 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 	// Calculate summary statistics
 	uc.calculateSummary(&response.Summary, response)
 
+	// Generate actionable suggestions from analysis results
+	response.Suggestions = domain.GenerateSuggestions(response)
+
 	return response
 }
 
