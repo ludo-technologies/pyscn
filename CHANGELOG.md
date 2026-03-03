@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.12.0] - 2026-03-03
+
+### Added
+- Add actionable suggestions to analyze output (#347)
+
+### Dependencies
+- Bump the go-dependencies group with 2 updates (#349)
+
 ## [1.11.1] - 2026-02-22
 
 ### Fixed
