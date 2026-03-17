@@ -10,6 +10,13 @@ import (
 	"github.com/ludo-technologies/pyscn/domain"
 )
 
+// Color constants for score indicators
+const (
+	colorSuccess = "#15803d"
+	colorWarning = "#a16207"
+	colorDanger  = "#b91c1c"
+)
+
 // HTMLFormatterImpl provides common HTML formatting functionality with Lighthouse-style scoring
 type HTMLFormatterImpl struct{}
 
@@ -64,7 +71,7 @@ func (f *HTMLFormatterImpl) CalculateComplexityScore(response *domain.Complexity
 		return ScoreData{
 			Score:    100,
 			Label:    "No Functions",
-			Color:    "#15803d",
+			Color:    colorSuccess,
 			Status:   "pass",
 			Category: "complexity",
 		}
@@ -81,13 +88,13 @@ func (f *HTMLFormatterImpl) CalculateComplexityScore(response *domain.Complexity
 	var color, status string
 	switch {
 	case score >= 90:
-		color = "#15803d" // Green
+		color = colorSuccess
 		status = "pass"
 	case score >= 50:
-		color = "#a16207" // Orange
+		color = colorWarning
 		status = "average"
 	default:
-		color = "#b91c1c" // Red
+		color = colorDanger
 		status = "fail"
 	}
 
@@ -106,7 +113,7 @@ func (f *HTMLFormatterImpl) CalculateDeadCodeScore(response *domain.DeadCodeResp
 		return ScoreData{
 			Score:    100,
 			Label:    "No Code Blocks",
-			Color:    "#15803d",
+			Color:    colorSuccess,
 			Status:   "pass",
 			Category: "dead_code",
 		}
@@ -119,13 +126,13 @@ func (f *HTMLFormatterImpl) CalculateDeadCodeScore(response *domain.DeadCodeResp
 	var color, status string
 	switch {
 	case score >= 90:
-		color = "#15803d" // Green
+		color = colorSuccess
 		status = "pass"
 	case score >= 50:
-		color = "#a16207" // Orange
+		color = colorWarning
 		status = "average"
 	default:
-		color = "#b91c1c" // Red
+		color = colorDanger
 		status = "fail"
 	}
 
@@ -144,7 +151,7 @@ func (f *HTMLFormatterImpl) CalculateCloneScore(response *domain.CloneResponse) 
 		return ScoreData{
 			Score:    100,
 			Label:    "No Lines Analyzed",
-			Color:    "#15803d",
+			Color:    colorSuccess,
 			Status:   "pass",
 			Category: "clone",
 		}
@@ -171,13 +178,13 @@ func (f *HTMLFormatterImpl) CalculateCloneScore(response *domain.CloneResponse) 
 	var color, status string
 	switch {
 	case score >= 90:
-		color = "#15803d" // Green
+		color = colorSuccess
 		status = "pass"
 	case score >= 50:
-		color = "#a16207" // Orange
+		color = colorWarning
 		status = "average"
 	default:
-		color = "#b91c1c" // Red
+		color = colorDanger
 		status = "fail"
 	}
 
@@ -195,7 +202,7 @@ func (f *HTMLFormatterImpl) CalculateOverallScore(scores []ScoreData, projectNam
 	if len(scores) == 0 {
 		return OverallScoreData{
 			Score:       100,
-			Color:       "#15803d",
+			Color:       colorSuccess,
 			Status:      "pass",
 			Breakdown:   []ScoreData{},
 			ProjectName: projectName,
@@ -229,13 +236,13 @@ func (f *HTMLFormatterImpl) CalculateOverallScore(scores []ScoreData, projectNam
 	var color, status string
 	switch {
 	case overallScore >= 90:
-		color = "#15803d" // Green
+		color = colorSuccess
 		status = "pass"
 	case overallScore >= 50:
-		color = "#a16207" // Orange
+		color = colorWarning
 		status = "average"
 	default:
-		color = "#b91c1c" // Red
+		color = colorDanger
 		status = "fail"
 	}
 
@@ -258,12 +265,20 @@ func (f *HTMLFormatterImpl) getHTMLTemplate() string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>pyscn Code Quality Report - {{.OverallScore.ProjectName}}</title>
     <style>
+        :root {
+            --color-success: #15803d;
+            --color-warning: #a16207;
+            --color-danger:  #b91c1c;
+            --color-text:    #0f172a;
+            --color-muted:   #334155;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
@@ -397,9 +412,9 @@ func (f *HTMLFormatterImpl) getHTMLTemplate() string {
             transition: width 0.3s ease;
         }
         
-        .risk-high { background-color: #b91c1c; }
-        .risk-medium { background-color: #a16207; }
-        .risk-low { background-color: #15803d; }
+        .risk-high { background-color: var(--color-danger); }
+        .risk-medium { background-color: var(--color-warning); }
+        .risk-low { background-color: var(--color-success); }
         
         @media (max-width: 768px) {
             .score-section {

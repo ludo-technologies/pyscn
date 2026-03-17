@@ -35,6 +35,13 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>%s</title>
     <style>
+        :root {
+            --color-success: #15803d;
+            --color-warning: #a16207;
+            --color-danger:  #b91c1c;
+            --color-text:    #0f172a;
+            --color-muted:   #334155;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -56,7 +63,7 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         .header h1 {
-            color: #0f172a;
+            color: var(--color-text);
             margin-bottom: 10px;
         }
         .header p {
@@ -101,9 +108,9 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
         }
         .tab-button.active {
             background: white;
-            color: #334155;
+            color: var(--color-muted);
             font-weight: bold;
-            border-bottom: 2px solid #334155;
+            border-bottom: 2px solid var(--color-muted);
         }
         .tab-content {
             display: none;
@@ -137,7 +144,7 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
         .metric-value {
             font-size: 32px;
             font-weight: bold;
-            color: #0f172a;
+            color: var(--color-text);
         }
         .metric-label {
             color: #666;
@@ -162,7 +169,7 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
         }
         .table th {
             background: #f1f5f9;
-            color: #334155;
+            color: var(--color-muted);
             padding: 12px;
             text-align: left;
             font-weight: 600;

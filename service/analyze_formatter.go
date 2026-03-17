@@ -205,6 +205,13 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>pyscn Analysis Report</title>
     <style>
+        :root {
+            --color-success: #15803d;
+            --color-warning: #a16207;
+            --color-danger:  #b91c1c;
+            --color-text:    #0f172a;
+            --color-muted:   #334155;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -226,7 +233,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         .header h1 {
-            color: #0f172a;
+            color: var(--color-text);
             margin-bottom: 10px;
         }
         .score-badge {
@@ -264,9 +271,9 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         }
         .tab-button.active {
             background: white;
-            color: #334155;
+            color: var(--color-muted);
             font-weight: bold;
-            border-bottom: 2px solid #334155;
+            border-bottom: 2px solid var(--color-muted);
         }
         .tab-content {
             display: none;
@@ -291,7 +298,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         .metric-value {
             font-size: 32px;
             font-weight: bold;
-            color: #0f172a;
+            color: var(--color-text);
         }
         .metric-label {
             color: #666;
@@ -313,12 +320,12 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             font-weight: 600;
         }
         
-        .risk-low { color: #15803d; }
-        .risk-medium { color: #a16207; }
-        .risk-high { color: #b91c1c; }
+        .risk-low { color: var(--color-success); }
+        .risk-medium { color: var(--color-warning); }
+        .risk-high { color: var(--color-danger); }
 
-        .severity-critical { color: #b91c1c; }
-        .severity-warning { color: #a16207; }
+        .severity-critical { color: var(--color-danger); }
+        .severity-warning { color: var(--color-warning); }
         .severity-info { color: #1e40af; }
 
         /* Score bars */
@@ -340,7 +347,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         }
         .score-value {
             font-weight: 700;
-            color: #334155;
+            color: var(--color-muted);
         }
         .score-bar-container {
             width: 100%;
@@ -355,10 +362,10 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             transition: width 0.3s ease;
             border-radius: 6px;
         }
-        .score-excellent { background: #15803d; }
+        .score-excellent { background: var(--color-success); }
         .score-good { background: #4d7c0f; }
-        .score-fair { background: #a16207; }
-        .score-poor { background: #b91c1c; }
+        .score-fair { background: var(--color-warning); }
+        .score-poor { background: var(--color-danger); }
         .score-detail {
             margin-top: 4px;
             font-size: 12px;
@@ -385,7 +392,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             white-space: nowrap;
         }
         .score-badge-compact.score-excellent {
-            background: #15803d;
+            background: var(--color-success);
             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
         .score-badge-compact.score-good {
@@ -393,11 +400,11 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
         .score-badge-compact.score-fair {
-            background: #a16207;
+            background: var(--color-warning);
             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
         .score-badge-compact.score-poor {
-            background: #b91c1c;
+            background: var(--color-danger);
             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
         .suggestion-steps {
@@ -452,7 +459,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             <div id="summary" class="tab-content active">
                 <h2>Analysis Summary</h2>
 
-                <h3 style="margin-top: 20px; margin-bottom: 16px; color: #0f172a;">Quality Scores</h3>
+                <h3 style="margin-top: 20px; margin-bottom: 16px; color: var(--color-text);">Quality Scores</h3>
                 <div class="score-bars">
                     {{if .Summary.ComplexityEnabled}}
                     <div class="score-bar-item">
@@ -546,7 +553,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     {{end}}
                 </div>
 
-                <h3 style="margin-top: 24px; margin-bottom: 16px; color: #0f172a;">File Statistics</h3>
+                <h3 style="margin-top: 24px; margin-bottom: 16px; color: var(--color-text);">File Statistics</h3>
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-value">{{.Summary.TotalFiles}}</div>
@@ -605,7 +612,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{/* System-level quick glance */}}
                 {{if .System}}
                 {{if .System.DependencyAnalysis}}
-                <h3 style="margin-top: 16px; color: #0f172a;">Dependencies</h3>
+                <h3 style="margin-top: 16px; color: var(--color-text);">Dependencies</h3>
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-value">{{.System.DependencyAnalysis.TotalModules}}</div>
@@ -629,7 +636,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{end}}
 
                 {{if .System.ArchitectureAnalysis}}
-                <h3 style="margin-top: 8px; color: #0f172a;">Architecture</h3>
+                <h3 style="margin-top: 8px; color: var(--color-text);">Architecture</h3>
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-value">{{.System.ArchitectureAnalysis.TotalViolations}}</div>
@@ -800,7 +807,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 <p style="color: #666; margin-top: 10px;">Showing top 10 of {{.DeadCode.Summary.TotalFindings}} dead code issues</p>
                 {{end}}
                 {{else}}
-                <p style="color: #15803d; font-weight: bold; margin-top: 20px;">✓ No dead code detected</p>
+                <p style="color: var(--color-success); font-weight: bold; margin-top: 20px;">✓ No dead code detected</p>
                 {{end}}
                 {{end}}
             </div>
@@ -901,7 +908,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 <p style="color: #666; margin-top: 10px;">Showing top 15 of {{.Clone.Statistics.TotalClonePairs}} clone pairs</p>
                 {{end}}
                 {{else}}
-                <p style="color: #15803d; font-weight: bold; margin-top: 20px;">✓ No clones detected</p>
+                <p style="color: var(--color-success); font-weight: bold; margin-top: 20px;">✓ No clones detected</p>
                 {{end}}
                 {{end}}
             </div>
@@ -1212,7 +1219,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </tbody>
                 </table>
                 {{else}}
-                <p style="color: #15803d; font-weight: bold; margin-top: 20px;">✓ No architecture violations</p>
+                <p style="color: var(--color-success); font-weight: bold; margin-top: 20px;">✓ No architecture violations</p>
                 {{end}}
             </div>
             {{end}}
