@@ -5,6 +5,7 @@ import (
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/analyzer"
+	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -276,4 +277,80 @@ func TestIdentifyArchitectureRefactoringTargets(t *testing.T) {
 
 	targets := service.identifyArchitectureRefactoringTargets(violations, moduleToLayer)
 	require.Equal(t, []string{"moduleC", "moduleA", "moduleB"}, targets)
+}
+
+func TestBuildModuleLayerMap_AmbiguousPackages(t *testing.T) {
+	svc := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+
+	graph.AddModule("domain.routers", "/project/domain/routers/__init__.py")
+	graph.AddModule("routers.main", "/project/routers/main.py")
+	graph.AddModule("app.services.billing", "/project/app/services/billing.py")
+
+	rules := &domain.ArchitectureRules{
+		Layers: []domain.Layer{
+			{Name: "domain", Packages: []string{"domain"}},
+			{Name: "presentation", Packages: []string{"routers"}},
+			{Name: "application", Packages: []string{"app.services"}},
+		},
+	}
+
+	moduleToLayer := svc.buildModuleLayerMap(graph, rules)
+
+	assert.Equal(t, "domain", moduleToLayer["domain.routers"],
+		"domain.routers should be classified as 'domain' (prefix match wins)")
+	assert.Equal(t, "presentation", moduleToLayer["routers.main"],
+		"routers.main should be classified as 'presentation'")
+	assert.Equal(t, "application", moduleToLayer["app.services.billing"],
+		"app.services.billing should be classified as 'application'")
+}
+
+func TestPyscnConfigToSystemAnalysisRequest_PropagatesLayers(t *testing.T) {
+	loader := NewSystemAnalysisConfigurationLoader()
+
+	cfg := &config.PyscnConfig{
+		ArchitectureLayers: []config.LayerDefinition{
+			{Name: "api", Packages: []string{"myapp.api"}, Description: "API layer"},
+			{Name: "domain", Packages: []string{"myapp.domain"}, Description: "Domain layer"},
+		},
+		ArchitectureRules: []config.LayerRule{
+			{From: "api", Allow: []string{"domain"}, Deny: []string{"infrastructure"}},
+		},
+	}
+
+	request := loader.pyscnConfigToSystemAnalysisRequest(cfg)
+
+	require.NotNil(t, request.ArchitectureRules, "ArchitectureRules should be set")
+	require.Len(t, request.ArchitectureRules.Layers, 2, "should have 2 layers")
+
+	assert.Equal(t, "api", request.ArchitectureRules.Layers[0].Name)
+	assert.Equal(t, []string{"myapp.api"}, request.ArchitectureRules.Layers[0].Packages)
+	assert.Equal(t, "API layer", request.ArchitectureRules.Layers[0].Description)
+
+	assert.Equal(t, "domain", request.ArchitectureRules.Layers[1].Name)
+	assert.Equal(t, []string{"myapp.domain"}, request.ArchitectureRules.Layers[1].Packages)
+
+	require.Len(t, request.ArchitectureRules.Rules, 1, "should have 1 rule")
+	assert.Equal(t, "api", request.ArchitectureRules.Rules[0].From)
+	assert.Equal(t, []string{"domain"}, request.ArchitectureRules.Rules[0].Allow)
+	assert.Equal(t, []string{"infrastructure"}, request.ArchitectureRules.Rules[0].Deny)
+}
+
+func TestPyscnConfigToSystemAnalysisRequest_PropagatesLayersWithStrictMode(t *testing.T) {
+	loader := NewSystemAnalysisConfigurationLoader()
+	strictMode := true
+
+	cfg := &config.PyscnConfig{
+		ArchitectureStrictMode: &strictMode,
+		ArchitectureLayers: []config.LayerDefinition{
+			{Name: "api", Packages: []string{"api"}},
+		},
+	}
+
+	request := loader.pyscnConfigToSystemAnalysisRequest(cfg)
+
+	require.NotNil(t, request.ArchitectureRules)
+	assert.True(t, request.ArchitectureRules.StrictMode)
+	require.Len(t, request.ArchitectureRules.Layers, 1)
+	assert.Equal(t, "api", request.ArchitectureRules.Layers[0].Name)
 }

@@ -372,11 +372,26 @@ func (s *SystemAnalysisServiceImpl) buildArchitectureResultWithRecommendations(
 }
 
 // buildModuleLayerMap maps each module to a layer based on ArchitectureRules.
-// compiledPattern keeps the compiled regex and its original pattern with simple specificity info.
+// compiledPattern keeps the compiled regexes and its original pattern with simple specificity info.
+// It uses two regexes to distinguish prefix (position 0) and suffix (position 1+) matches.
 type compiledPattern struct {
-	re          *regexp.Regexp
+	prefixRe    *regexp.Regexp // matches when the pattern appears at the start of the module path
+	suffixRe    *regexp.Regexp // matches when the pattern appears after a dot separator
 	original    string
 	specificity int // number of dots in original pattern; higher = more specific
+}
+
+// matchModule returns whether the pattern matches the module and the match position.
+// position 0 means prefix match (higher priority), position 1 means suffix match.
+// Returns (matched bool, prefixMatch bool).
+func (cp *compiledPattern) matchModule(module string) (bool, bool) {
+	if cp.prefixRe != nil && cp.prefixRe.MatchString(module) {
+		return true, true
+	}
+	if cp.suffixRe != nil && cp.suffixRe.MatchString(module) {
+		return true, false
+	}
+	return false, false
 }
 
 func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.DependencyGraph, rules *domain.ArchitectureRules) map[string]string {
@@ -384,9 +399,8 @@ func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.Dependen
 	compiled := make(map[string][]compiledPattern)
 	for _, layer := range rules.Layers {
 		for _, pat := range layer.Packages {
-			if re := s.compileModulePattern(pat); re != nil {
-				cp := compiledPattern{re: re, original: pat, specificity: strings.Count(pat, ".")}
-				compiled[layer.Name] = append(compiled[layer.Name], cp)
+			if cp := s.compileModulePatterns(pat); cp != nil {
+				compiled[layer.Name] = append(compiled[layer.Name], *cp)
 			}
 		}
 	}
@@ -400,62 +414,116 @@ func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.Dependen
 }
 
 // findLayerForModule returns the most specific matching layer for a module.
+// Tie-breaking priority:
+//  1. Prefix match (position 0) wins over suffix match (position 1+)
+//  2. Higher specificity (more dots in pattern) wins
+//  3. Longer pattern string wins
+//  4. Alphabetical layer name for determinism
 func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled map[string][]compiledPattern) string {
-	// Find all matching patterns with their specificity
 	type match struct {
 		layer       string
 		pattern     string
 		specificity int
+		isPrefix    bool // true = prefix match (higher priority)
 	}
 
 	var matches []match
 	for layer, patterns := range compiled {
 		for _, cp := range patterns {
-			if cp.re.MatchString(module) {
-				matches = append(matches, match{layer: layer, pattern: cp.original, specificity: cp.specificity})
+			if matched, isPrefix := cp.matchModule(module); matched {
+				matches = append(matches, match{
+					layer:       layer,
+					pattern:     cp.original,
+					specificity: cp.specificity,
+					isPrefix:    isPrefix,
+				})
 			}
 		}
 	}
 
-	// Return the most specific match
-	if len(matches) > 0 {
-		best := matches[0]
-		for _, m := range matches[1:] {
-			if m.specificity > best.specificity {
-				best = m
-			} else if m.specificity == best.specificity {
-				// tie-breaker: prefer longer original pattern
-				if len(m.pattern) > len(best.pattern) {
-					best = m
-				} else if len(m.pattern) == len(best.pattern) && m.layer < best.layer {
-					// final tie-breaker: alphabetical order by layer name for deterministic results
-					best = m
-				}
-			}
-		}
-		return best.layer
+	if len(matches) == 0 {
+		return ""
 	}
 
-	return ""
+	// Sort matches by priority: prefix > specificity > pattern length > layer name
+	sort.Slice(matches, func(i, j int) bool {
+		a, b := matches[i], matches[j]
+		// 1. Prefix match wins
+		if a.isPrefix != b.isPrefix {
+			return a.isPrefix
+		}
+		// 2. Higher specificity wins
+		if a.specificity != b.specificity {
+			return a.specificity > b.specificity
+		}
+		// 3. Longer pattern wins
+		if len(a.pattern) != len(b.pattern) {
+			return len(a.pattern) > len(b.pattern)
+		}
+		// 4. Alphabetical layer name
+		return a.layer < b.layer
+	})
+
+	return matches[0].layer
 }
 
-// compileModulePattern converts simple glob-like patterns to regex for module names.
+// compileModulePatterns converts simple glob-like patterns to a compiledPattern
+// with separate prefix and suffix regexes for position-aware matching.
 // For Python modules, pattern "views" should match "views", "views.foo", "views.foo.bar", etc.
-func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Regexp {
+func (s *SystemAnalysisServiceImpl) compileModulePatterns(glob string) *compiledPattern {
 	if glob == "" {
 		return nil
 	}
 
 	escaped := regexp.QuoteMeta(glob)
 	hasWildcard := strings.Contains(glob, "*")
+
+	var prefixPattern, suffixPattern string
+	if hasWildcard {
+		wild := strings.ReplaceAll(escaped, "\\*", ".*")
+		prefixPattern = fmt.Sprintf("^%s$", wild)
+		suffixPattern = fmt.Sprintf("^.+\\.%s$", wild)
+	} else {
+		segment := fmt.Sprintf("%s(?:\\..+)?", escaped)
+		prefixPattern = fmt.Sprintf("^%s$", segment)
+		suffixPattern = fmt.Sprintf("^.+\\.%s$", segment)
+	}
+
+	prefixRe, err1 := regexp.Compile(prefixPattern)
+	suffixRe, err2 := regexp.Compile(suffixPattern)
+	if err1 != nil && err2 != nil {
+		return nil
+	}
+	if err1 != nil {
+		prefixRe = nil
+	}
+	if err2 != nil {
+		suffixRe = nil
+	}
+
+	return &compiledPattern{
+		prefixRe:    prefixRe,
+		suffixRe:    suffixRe,
+		original:    glob,
+		specificity: strings.Count(glob, "."),
+	}
+}
+
+// compileModulePattern is a convenience wrapper that returns a combined regex
+// matching both prefix and suffix positions. Used by autoDetectArchitecture tests.
+func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Regexp {
+	cp := s.compileModulePatterns(glob)
+	if cp == nil {
+		return nil
+	}
+	// Build a combined regex for backward compatibility
+	escaped := regexp.QuoteMeta(glob)
+	hasWildcard := strings.Contains(glob, "*")
 	if hasWildcard {
 		escaped = strings.ReplaceAll(escaped, "\\*", ".*")
 	} else {
-		// Allow matching the module segment plus any nested submodules
 		escaped = fmt.Sprintf("%s(?:\\..+)?", escaped)
 	}
-
-	// Match either at the beginning of the module path or as a later segment.
 	pattern := fmt.Sprintf("^(?:%s|.+\\.%s)$", escaped, escaped)
 	re, err := regexp.Compile(pattern)
 	if err != nil {
