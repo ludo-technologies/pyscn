@@ -510,6 +510,12 @@ func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
 	if pyscn.ArchitectureFailOnViolations != nil {
 		cfg.Architecture.FailOnViolations = *pyscn.ArchitectureFailOnViolations
 	}
+	if len(pyscn.ArchitectureLayers) > 0 {
+		cfg.Architecture.Layers = pyscn.ArchitectureLayers
+	}
+	if len(pyscn.ArchitectureRules) > 0 {
+		cfg.Architecture.Rules = pyscn.ArchitectureRules
+	}
 
 	return cfg
 }

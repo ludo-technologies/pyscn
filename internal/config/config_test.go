@@ -242,6 +242,45 @@ func TestComplexityConfigMethods(t *testing.T) {
 	})
 }
 
+func TestPyscnConfigToConfigArchitectureLayersAndRules(t *testing.T) {
+	pyscn := DefaultPyscnConfig()
+	pyscn.ArchitectureLayers = []LayerDefinition{
+		{Name: "api", Description: "API layer", Packages: []string{"myapp.api"}},
+		{Name: "domain", Description: "Domain layer", Packages: []string{"myapp.domain"}},
+	}
+	pyscn.ArchitectureRules = []LayerRule{
+		{From: "api", Allow: []string{"domain"}, Deny: []string{"infrastructure"}},
+	}
+
+	cfg := PyscnConfigToConfig(pyscn)
+
+	if len(cfg.Architecture.Layers) != 2 {
+		t.Fatalf("Expected 2 layers, got %d", len(cfg.Architecture.Layers))
+	}
+	if cfg.Architecture.Layers[0].Name != "api" {
+		t.Errorf("Expected Layers[0].Name 'api', got %q", cfg.Architecture.Layers[0].Name)
+	}
+	if cfg.Architecture.Layers[1].Name != "domain" {
+		t.Errorf("Expected Layers[1].Name 'domain', got %q", cfg.Architecture.Layers[1].Name)
+	}
+	if len(cfg.Architecture.Layers[0].Packages) != 1 || cfg.Architecture.Layers[0].Packages[0] != "myapp.api" {
+		t.Errorf("Expected Layers[0].Packages ['myapp.api'], got %v", cfg.Architecture.Layers[0].Packages)
+	}
+
+	if len(cfg.Architecture.Rules) != 1 {
+		t.Fatalf("Expected 1 rule, got %d", len(cfg.Architecture.Rules))
+	}
+	if cfg.Architecture.Rules[0].From != "api" {
+		t.Errorf("Expected Rules[0].From 'api', got %q", cfg.Architecture.Rules[0].From)
+	}
+	if len(cfg.Architecture.Rules[0].Allow) != 1 || cfg.Architecture.Rules[0].Allow[0] != "domain" {
+		t.Errorf("Expected Rules[0].Allow ['domain'], got %v", cfg.Architecture.Rules[0].Allow)
+	}
+	if len(cfg.Architecture.Rules[0].Deny) != 1 || cfg.Architecture.Rules[0].Deny[0] != "infrastructure" {
+		t.Errorf("Expected Rules[0].Deny ['infrastructure'], got %v", cfg.Architecture.Rules[0].Deny)
+	}
+}
+
 func TestLoadConfig(t *testing.T) {
 	t.Run("LoadNonExistentConfig", func(t *testing.T) {
 		// Explicit config path must exist.
