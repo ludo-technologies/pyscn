@@ -80,27 +80,27 @@ type PyscnConfig struct {
 	LcomMediumThreshold int `mapstructure:"lcom_medium_threshold" yaml:"lcom_medium_threshold" json:"lcom_medium_threshold"`
 
 	// Architecture Configuration (from [architecture] section in TOML)
-	ArchitectureEnabled                         *bool    `mapstructure:"architecture_enabled" yaml:"architecture_enabled" json:"architecture_enabled"`
-	ArchitectureValidateLayers                  *bool    `mapstructure:"architecture_validate_layers" yaml:"architecture_validate_layers" json:"architecture_validate_layers"`
-	ArchitectureValidateCohesion                *bool    `mapstructure:"architecture_validate_cohesion" yaml:"architecture_validate_cohesion" json:"architecture_validate_cohesion"`
-	ArchitectureValidateResponsibility          *bool    `mapstructure:"architecture_validate_responsibility" yaml:"architecture_validate_responsibility" json:"architecture_validate_responsibility"`
-	ArchitectureMinCohesion                     float64  `mapstructure:"architecture_min_cohesion" yaml:"architecture_min_cohesion" json:"architecture_min_cohesion"`
-	ArchitectureMaxCoupling                     int      `mapstructure:"architecture_max_coupling" yaml:"architecture_max_coupling" json:"architecture_max_coupling"`
-	ArchitectureMaxResponsibilities             int      `mapstructure:"architecture_max_responsibilities" yaml:"architecture_max_responsibilities" json:"architecture_max_responsibilities"`
-	ArchitectureLayerViolationSeverity          string   `mapstructure:"architecture_layer_violation_severity" yaml:"architecture_layer_violation_severity" json:"architecture_layer_violation_severity"`
-	ArchitectureCohesionViolationSeverity       string   `mapstructure:"architecture_cohesion_violation_severity" yaml:"architecture_cohesion_violation_severity" json:"architecture_cohesion_violation_severity"`
-	ArchitectureResponsibilityViolationSeverity string   `mapstructure:"architecture_responsibility_violation_severity" yaml:"architecture_responsibility_violation_severity" json:"architecture_responsibility_violation_severity"`
-	ArchitectureShowAllViolations               *bool    `mapstructure:"architecture_show_all_violations" yaml:"architecture_show_all_violations" json:"architecture_show_all_violations"`
-	ArchitectureGroupByType                     *bool    `mapstructure:"architecture_group_by_type" yaml:"architecture_group_by_type" json:"architecture_group_by_type"`
-	ArchitectureIncludeSuggestions              *bool    `mapstructure:"architecture_include_suggestions" yaml:"architecture_include_suggestions" json:"architecture_include_suggestions"`
-	ArchitectureMaxViolationsToShow             int      `mapstructure:"architecture_max_violations_to_show" yaml:"architecture_max_violations_to_show" json:"architecture_max_violations_to_show"`
-	ArchitectureCustomPatterns                  []string `mapstructure:"architecture_custom_patterns" yaml:"architecture_custom_patterns" json:"architecture_custom_patterns"`
-	ArchitectureAllowedPatterns                 []string `mapstructure:"architecture_allowed_patterns" yaml:"architecture_allowed_patterns" json:"architecture_allowed_patterns"`
-	ArchitectureForbiddenPatterns               []string `mapstructure:"architecture_forbidden_patterns" yaml:"architecture_forbidden_patterns" json:"architecture_forbidden_patterns"`
-	ArchitectureStrictMode                      *bool    `mapstructure:"architecture_strict_mode" yaml:"architecture_strict_mode" json:"architecture_strict_mode"`
-	ArchitectureFailOnViolations                *bool    `mapstructure:"architecture_fail_on_violations" yaml:"architecture_fail_on_violations" json:"architecture_fail_on_violations"`
-	ArchitectureLayers                         []LayerDefinition `mapstructure:"architecture_layers" yaml:"architecture_layers" json:"architecture_layers"`
-	ArchitectureRules                          []LayerRule       `mapstructure:"architecture_rules" yaml:"architecture_rules" json:"architecture_rules"`
+	ArchitectureEnabled                         *bool             `mapstructure:"architecture_enabled" yaml:"architecture_enabled" json:"architecture_enabled"`
+	ArchitectureValidateLayers                  *bool             `mapstructure:"architecture_validate_layers" yaml:"architecture_validate_layers" json:"architecture_validate_layers"`
+	ArchitectureValidateCohesion                *bool             `mapstructure:"architecture_validate_cohesion" yaml:"architecture_validate_cohesion" json:"architecture_validate_cohesion"`
+	ArchitectureValidateResponsibility          *bool             `mapstructure:"architecture_validate_responsibility" yaml:"architecture_validate_responsibility" json:"architecture_validate_responsibility"`
+	ArchitectureMinCohesion                     float64           `mapstructure:"architecture_min_cohesion" yaml:"architecture_min_cohesion" json:"architecture_min_cohesion"`
+	ArchitectureMaxCoupling                     int               `mapstructure:"architecture_max_coupling" yaml:"architecture_max_coupling" json:"architecture_max_coupling"`
+	ArchitectureMaxResponsibilities             int               `mapstructure:"architecture_max_responsibilities" yaml:"architecture_max_responsibilities" json:"architecture_max_responsibilities"`
+	ArchitectureLayerViolationSeverity          string            `mapstructure:"architecture_layer_violation_severity" yaml:"architecture_layer_violation_severity" json:"architecture_layer_violation_severity"`
+	ArchitectureCohesionViolationSeverity       string            `mapstructure:"architecture_cohesion_violation_severity" yaml:"architecture_cohesion_violation_severity" json:"architecture_cohesion_violation_severity"`
+	ArchitectureResponsibilityViolationSeverity string            `mapstructure:"architecture_responsibility_violation_severity" yaml:"architecture_responsibility_violation_severity" json:"architecture_responsibility_violation_severity"`
+	ArchitectureShowAllViolations               *bool             `mapstructure:"architecture_show_all_violations" yaml:"architecture_show_all_violations" json:"architecture_show_all_violations"`
+	ArchitectureGroupByType                     *bool             `mapstructure:"architecture_group_by_type" yaml:"architecture_group_by_type" json:"architecture_group_by_type"`
+	ArchitectureIncludeSuggestions              *bool             `mapstructure:"architecture_include_suggestions" yaml:"architecture_include_suggestions" json:"architecture_include_suggestions"`
+	ArchitectureMaxViolationsToShow             int               `mapstructure:"architecture_max_violations_to_show" yaml:"architecture_max_violations_to_show" json:"architecture_max_violations_to_show"`
+	ArchitectureCustomPatterns                  []string          `mapstructure:"architecture_custom_patterns" yaml:"architecture_custom_patterns" json:"architecture_custom_patterns"`
+	ArchitectureAllowedPatterns                 []string          `mapstructure:"architecture_allowed_patterns" yaml:"architecture_allowed_patterns" json:"architecture_allowed_patterns"`
+	ArchitectureForbiddenPatterns               []string          `mapstructure:"architecture_forbidden_patterns" yaml:"architecture_forbidden_patterns" json:"architecture_forbidden_patterns"`
+	ArchitectureStrictMode                      *bool             `mapstructure:"architecture_strict_mode" yaml:"architecture_strict_mode" json:"architecture_strict_mode"`
+	ArchitectureFailOnViolations                *bool             `mapstructure:"architecture_fail_on_violations" yaml:"architecture_fail_on_violations" json:"architecture_fail_on_violations"`
+	ArchitectureLayers                          []LayerDefinition `mapstructure:"architecture_layers" yaml:"architecture_layers" json:"architecture_layers"`
+	ArchitectureRules                           []LayerRule       `mapstructure:"architecture_rules" yaml:"architecture_rules" json:"architecture_rules"`
 
 	// SystemAnalysis Configuration (from [system_analysis] section in TOML)
 	SystemAnalysisEnabled               *bool `mapstructure:"system_analysis_enabled" yaml:"system_analysis_enabled" json:"system_analysis_enabled"`
