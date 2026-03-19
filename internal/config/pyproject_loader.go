@@ -404,6 +404,28 @@ func mergeArchitectureSection(defaults *PyscnConfig, arch *ArchitectureTomlConfi
 	if arch.FailOnViolations != nil {
 		defaults.ArchitectureFailOnViolations = arch.FailOnViolations
 	}
+	if len(arch.Layers) > 0 {
+		layers := make([]LayerDefinition, len(arch.Layers))
+		for i, l := range arch.Layers {
+			layers[i] = LayerDefinition{
+				Name:        l.Name,
+				Description: l.Description,
+				Packages:    l.Packages,
+			}
+		}
+		defaults.ArchitectureLayers = layers
+	}
+	if len(arch.Rules) > 0 {
+		rules := make([]LayerRule, len(arch.Rules))
+		for i, r := range arch.Rules {
+			rules[i] = LayerRule{
+				From:  r.From,
+				Allow: r.Allow,
+				Deny:  r.Deny,
+			}
+		}
+		defaults.ArchitectureRules = rules
+	}
 }
 
 // mergeSystemAnalysisSection merges settings from the [system_analysis] section
