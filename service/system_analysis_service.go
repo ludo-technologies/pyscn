@@ -170,14 +170,17 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
 			return s.emptyArchitectureResult(), nil
 		}
 	} else {
-		// User provided partial config — fill in the missing half from auto-detection
-		autoDetected := s.autoDetectArchitecture(graph)
-		if autoDetected != nil {
-			if len(req.ArchitectureRules.Layers) > 0 && len(req.ArchitectureRules.Rules) == 0 {
-				// User provided layers but no rules — use default rules
-				req.ArchitectureRules.Rules = autoDetected.Rules
-			} else if len(req.ArchitectureRules.Rules) > 0 && len(req.ArchitectureRules.Layers) == 0 {
-				// User provided rules but no layers — use auto-detected layers
+		// User provided partial config — fill in the missing half.
+		if len(req.ArchitectureRules.Layers) > 0 && len(req.ArchitectureRules.Rules) == 0 {
+			// User provided layers but no rules — load default rules from the
+			// embedded config (not from autoDetect, which may return nil when
+			// graph modules don't match built-in patterns) and filter them to
+			// only include rules whose From matches a user-defined layer name.
+			req.ArchitectureRules.Rules = s.loadDefaultRulesForLayers(req.ArchitectureRules.Layers)
+		} else if len(req.ArchitectureRules.Rules) > 0 && len(req.ArchitectureRules.Layers) == 0 {
+			// User provided rules but no layers — use auto-detected layers
+			autoDetected := s.autoDetectArchitecture(graph)
+			if autoDetected != nil {
 				req.ArchitectureRules.Layers = autoDetected.Layers
 			}
 		}
@@ -462,16 +465,20 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
 		return ""
 	}
 
-	// Sort matches by priority: prefix > specificity > pattern length > layer name
+	// Sort matches by priority: specificity > prefix > pattern length > layer name
+	// Specificity (dot count) is the primary signal so that "api.v1" always beats
+	// "foo" even when "foo" matches at prefix position. Among equal-specificity
+	// matches, prefer prefix over suffix to resolve ambiguities like
+	// "domain.routers" → domain (prefix) over presentation (suffix "routers").
 	sort.Slice(matches, func(i, j int) bool {
 		a, b := matches[i], matches[j]
-		// 1. Prefix match wins
-		if a.isPrefix != b.isPrefix {
-			return a.isPrefix
-		}
-		// 2. Higher specificity wins
+		// 1. Higher specificity wins
 		if a.specificity != b.specificity {
 			return a.specificity > b.specificity
+		}
+		// 2. Prefix match wins (among equal specificity)
+		if a.isPrefix != b.isPrefix {
+			return a.isPrefix
 		}
 		// 3. Longer pattern wins
 		if len(a.pattern) != len(b.pattern) {
@@ -611,6 +618,35 @@ func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.Depen
 		Rules:      rules,
 		StrictMode: defaultConfig.Architecture.StrictMode,
 	}
+}
+
+// loadDefaultRulesForLayers loads the embedded default layer rules and returns
+// only those whose From field matches one of the given layer names. This avoids
+// injecting rules that reference built-in layer names (e.g. "presentation") when
+// the user's layers use custom names (e.g. "api").
+func (s *SystemAnalysisServiceImpl) loadDefaultRulesForLayers(layers []domain.Layer) []domain.LayerRule {
+	defaultConfig, err := config.LoadDefaultConfigFromTOML()
+	if err != nil {
+		return nil
+	}
+
+	// Build a set of user-defined layer names for fast lookup
+	layerNames := make(map[string]struct{}, len(layers))
+	for _, l := range layers {
+		layerNames[l.Name] = struct{}{}
+	}
+
+	var filtered []domain.LayerRule
+	for _, rule := range defaultConfig.Architecture.Rules {
+		if _, ok := layerNames[rule.From]; ok {
+			filtered = append(filtered, domain.LayerRule{
+				From:  rule.From,
+				Allow: rule.Allow,
+				Deny:  rule.Deny,
+			})
+		}
+	}
+	return filtered
 }
 
 // isTestModule checks if a module represents test code

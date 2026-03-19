@@ -210,6 +210,32 @@ func TestFindLayerForModule_DeterministicOnTie(t *testing.T) {
 	}
 }
 
+func TestFindLayerForModule_SpecificityBeatsPrefixPosition(t *testing.T) {
+	svc := NewSystemAnalysisService()
+
+	// "foo" matches "foo.api.v1.controller" at prefix (specificity=0).
+	// "api.v1" matches at suffix (specificity=1).
+	// The more specific "api.v1" must win despite being a suffix match.
+	compiled := make(map[string][]compiledPattern)
+	for _, tc := range []struct {
+		layer   string
+		pattern string
+	}{
+		{"catch_all", "foo"},
+		{"api_layer", "api.v1"},
+	} {
+		cp := svc.compileModulePatterns(tc.pattern)
+		require.NotNil(t, cp)
+		compiled[tc.layer] = append(compiled[tc.layer], *cp)
+	}
+
+	assert.Equal(t, "api_layer", svc.findLayerForModule("foo.api.v1.controller", compiled),
+		"more specific 'api.v1' (suffix) should beat less specific 'foo' (prefix)")
+	// When specificity is equal, prefix still wins
+	assert.Equal(t, "catch_all", svc.findLayerForModule("foo.bar", compiled),
+		"with equal specificity, prefix 'foo' should win")
+}
+
 func TestBuildModuleLayerMap_AmbiguousPackagesPrefixWins(t *testing.T) {
 	svc := NewSystemAnalysisService()
 

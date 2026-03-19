@@ -373,6 +373,48 @@ func TestPyscnConfigToSystemAnalysisRequest_LayersOnlyPreservesDefaultRules(t *t
 	assert.Empty(t, request.ArchitectureRules.Rules, "rules should be empty in config; auto-detect fills them later")
 }
 
+func TestLoadDefaultRulesForLayers_FiltersToMatchingNames(t *testing.T) {
+	svc := NewSystemAnalysisService()
+
+	// Only "domain" matches a built-in rule name; "api" does not.
+	layers := []domain.Layer{
+		{Name: "domain", Packages: []string{"myapp.domain"}},
+		{Name: "api", Packages: []string{"myapp.api"}},
+	}
+
+	rules := svc.loadDefaultRulesForLayers(layers)
+
+	// Should only include rules whose From matches "domain" or "api".
+	// "api" is not a built-in layer name, so it should be filtered out.
+	for _, r := range rules {
+		assert.True(t, r.From == "domain" || r.From == "api",
+			"rule From=%q should match a user-defined layer name", r.From)
+	}
+
+	// "domain" is a built-in name, so we expect at least one rule for it
+	hasDomainRule := false
+	for _, r := range rules {
+		if r.From == "domain" {
+			hasDomainRule = true
+			break
+		}
+	}
+	assert.True(t, hasDomainRule, "should have default rules for 'domain' layer")
+}
+
+func TestLoadDefaultRulesForLayers_CustomNamesReturnEmpty(t *testing.T) {
+	svc := NewSystemAnalysisService()
+
+	// All custom names, none match built-in rule names
+	layers := []domain.Layer{
+		{Name: "my_service", Packages: []string{"svc"}},
+		{Name: "my_api", Packages: []string{"api"}},
+	}
+
+	rules := svc.loadDefaultRulesForLayers(layers)
+	assert.Empty(t, rules, "custom layer names should not match any built-in rules")
+}
+
 func TestPyscnConfigToSystemAnalysisRequest_RulesOnlyDoesNotBlockAutoDetect(t *testing.T) {
 	loader := NewSystemAnalysisConfigurationLoader()
 
