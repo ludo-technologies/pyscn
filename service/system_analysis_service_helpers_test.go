@@ -354,3 +354,38 @@ func TestPyscnConfigToSystemAnalysisRequest_PropagatesLayersWithStrictMode(t *te
 	require.Len(t, request.ArchitectureRules.Layers, 1)
 	assert.Equal(t, "api", request.ArchitectureRules.Layers[0].Name)
 }
+
+func TestPyscnConfigToSystemAnalysisRequest_LayersOnlyPreservesDefaultRules(t *testing.T) {
+	loader := NewSystemAnalysisConfigurationLoader()
+
+	cfg := &config.PyscnConfig{
+		ArchitectureLayers: []config.LayerDefinition{
+			{Name: "api", Packages: []string{"myapp.api"}},
+			{Name: "domain", Packages: []string{"myapp.domain"}},
+		},
+	}
+
+	request := loader.pyscnConfigToSystemAnalysisRequest(cfg)
+
+	require.NotNil(t, request.ArchitectureRules, "ArchitectureRules should be set")
+	require.Len(t, request.ArchitectureRules.Layers, 2, "should have user-provided layers")
+	// Rules should be empty at this stage — auto-detection fills them at analysis time
+	assert.Empty(t, request.ArchitectureRules.Rules, "rules should be empty in config; auto-detect fills them later")
+}
+
+func TestPyscnConfigToSystemAnalysisRequest_RulesOnlyDoesNotBlockAutoDetect(t *testing.T) {
+	loader := NewSystemAnalysisConfigurationLoader()
+
+	cfg := &config.PyscnConfig{
+		ArchitectureRules: []config.LayerRule{
+			{From: "api", Allow: []string{"domain"}},
+		},
+	}
+
+	request := loader.pyscnConfigToSystemAnalysisRequest(cfg)
+
+	require.NotNil(t, request.ArchitectureRules, "ArchitectureRules should be set")
+	require.Len(t, request.ArchitectureRules.Rules, 1, "should have user-provided rules")
+	// Layers should be empty at this stage — auto-detection fills them at analysis time
+	assert.Empty(t, request.ArchitectureRules.Layers, "layers should be empty in config; auto-detect fills them later")
+}

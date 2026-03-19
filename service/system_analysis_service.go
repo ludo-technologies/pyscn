@@ -161,11 +161,28 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
 		return nil, err
 	}
 
-	// Auto-detect architecture if no rules are defined
+	// Auto-detect architecture if no rules are defined, or fill in missing half
+	// when the user provides only layers or only rules.
 	if req.ArchitectureRules == nil || (len(req.ArchitectureRules.Layers) == 0 && len(req.ArchitectureRules.Rules) == 0) {
 		req.ArchitectureRules = s.autoDetectArchitecture(graph)
 		// If auto-detection found no recognizable patterns, return empty result
 		if req.ArchitectureRules == nil || len(req.ArchitectureRules.Layers) == 0 {
+			return s.emptyArchitectureResult(), nil
+		}
+	} else {
+		// User provided partial config — fill in the missing half from auto-detection
+		autoDetected := s.autoDetectArchitecture(graph)
+		if autoDetected != nil {
+			if len(req.ArchitectureRules.Layers) > 0 && len(req.ArchitectureRules.Rules) == 0 {
+				// User provided layers but no rules — use default rules
+				req.ArchitectureRules.Rules = autoDetected.Rules
+			} else if len(req.ArchitectureRules.Rules) > 0 && len(req.ArchitectureRules.Layers) == 0 {
+				// User provided rules but no layers — use auto-detected layers
+				req.ArchitectureRules.Layers = autoDetected.Layers
+			}
+		}
+		// If still no layers, cannot proceed
+		if len(req.ArchitectureRules.Layers) == 0 {
 			return s.emptyArchitectureResult(), nil
 		}
 	}
