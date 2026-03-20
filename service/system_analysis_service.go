@@ -161,34 +161,13 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
 		return nil, err
 	}
 
-	// Auto-detect architecture if no rules are defined, or fill in missing half
-	// when the user provides only layers or only rules.
-	if req.ArchitectureRules == nil || (len(req.ArchitectureRules.Layers) == 0 && len(req.ArchitectureRules.Rules) == 0) {
-		req.ArchitectureRules = s.autoDetectArchitecture(graph)
-		// If auto-detection found no recognizable patterns, return empty result
-		if req.ArchitectureRules == nil || len(req.ArchitectureRules.Layers) == 0 {
-			return s.emptyArchitectureResult(), nil
-		}
-	} else {
-		// User provided partial config — fill in the missing half.
-		if len(req.ArchitectureRules.Layers) > 0 && len(req.ArchitectureRules.Rules) == 0 {
-			// User provided layers but no rules — load default rules from the
-			// embedded config (not from autoDetect, which may return nil when
-			// graph modules don't match built-in patterns) and filter them to
-			// only include rules whose From matches a user-defined layer name.
-			req.ArchitectureRules.Rules = s.loadDefaultRulesForLayers(req.ArchitectureRules.Layers)
-		} else if len(req.ArchitectureRules.Rules) > 0 && len(req.ArchitectureRules.Layers) == 0 {
-			// User provided rules but no layers — use auto-detected layers
-			autoDetected := s.autoDetectArchitecture(graph)
-			if autoDetected != nil {
-				req.ArchitectureRules.Layers = autoDetected.Layers
-			}
-		}
-		// If still no layers, cannot proceed
-		if len(req.ArchitectureRules.Layers) == 0 {
-			return s.emptyArchitectureResult(), nil
-		}
+	// Clone ArchitectureRules before modifying to avoid mutating the caller's object
+	// (the pointer is shared even though SystemAnalysisRequest is passed by value).
+	rules := s.resolveArchitectureRules(graph, req.ArchitectureRules)
+	if rules == nil || len(rules.Layers) == 0 {
+		return s.emptyArchitectureResult(), nil
 	}
+	req.ArchitectureRules = rules
 
 	// Map modules to layers
 	moduleToLayer := s.buildModuleLayerMap(graph, req.ArchitectureRules)
@@ -618,6 +597,62 @@ func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.Depen
 		Rules:      rules,
 		StrictMode: defaultConfig.Architecture.StrictMode,
 	}
+}
+
+// resolveArchitectureRules returns a self-contained ArchitectureRules ready for
+// evaluation. It clones the caller's rules (if any) to avoid mutation, then fills
+// in missing layers or rules from auto-detection / embedded defaults.
+func (s *SystemAnalysisServiceImpl) resolveArchitectureRules(graph *analyzer.DependencyGraph, orig *domain.ArchitectureRules) *domain.ArchitectureRules {
+	// No user config at all — fully auto-detect
+	if orig == nil || (len(orig.Layers) == 0 && len(orig.Rules) == 0) {
+		return s.autoDetectArchitecture(graph)
+	}
+
+	// Clone to avoid mutating the caller's object
+	resolved := &domain.ArchitectureRules{
+		Layers:            append([]domain.Layer(nil), orig.Layers...),
+		Rules:             append([]domain.LayerRule(nil), orig.Rules...),
+		StrictMode:        orig.StrictMode,
+		AllowedPatterns:   orig.AllowedPatterns,
+		ForbiddenPatterns: orig.ForbiddenPatterns,
+	}
+
+	if len(resolved.Layers) > 0 && len(resolved.Rules) == 0 {
+		// User provided layers but no rules — load default rules filtered to
+		// user-defined layer names.
+		resolved.Rules = s.loadDefaultRulesForLayers(resolved.Layers)
+	} else if len(resolved.Rules) > 0 && len(resolved.Layers) == 0 {
+		// User provided rules but no layers — auto-detect layers, then merge
+		// auto-detected default rules with user rules (user rules take precedence).
+		autoDetected := s.autoDetectArchitecture(graph)
+		if autoDetected != nil {
+			resolved.Layers = autoDetected.Layers
+			resolved.Rules = s.mergeLayerRules(autoDetected.Rules, resolved.Rules)
+		}
+	}
+
+	return resolved
+}
+
+// mergeLayerRules merges base rules with override rules. For any From value
+// that appears in overrides, the override replaces the base rule entirely.
+func (s *SystemAnalysisServiceImpl) mergeLayerRules(base, overrides []domain.LayerRule) []domain.LayerRule {
+	// Build set of From values that the user explicitly defined
+	overrideFroms := make(map[string]struct{}, len(overrides))
+	for _, r := range overrides {
+		overrideFroms[r.From] = struct{}{}
+	}
+
+	// Start with base rules that are NOT overridden by the user
+	var merged []domain.LayerRule
+	for _, r := range base {
+		if _, overridden := overrideFroms[r.From]; !overridden {
+			merged = append(merged, r)
+		}
+	}
+	// Append all user overrides
+	merged = append(merged, overrides...)
+	return merged
 }
 
 // loadDefaultRulesForLayers loads the embedded default layer rules and returns

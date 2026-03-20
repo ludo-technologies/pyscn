@@ -431,3 +431,55 @@ func TestPyscnConfigToSystemAnalysisRequest_RulesOnlyDoesNotBlockAutoDetect(t *t
 	// Layers should be empty at this stage — auto-detection fills them at analysis time
 	assert.Empty(t, request.ArchitectureRules.Layers, "layers should be empty in config; auto-detect fills them later")
 }
+
+func TestResolveArchitectureRules_DoesNotMutateOriginal(t *testing.T) {
+	svc := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+	graph.AddModule("app.api.users.router", "/project/app/api/users/router.py")
+	graph.AddModule("app.services.user_service", "/project/app/services/user_service.py")
+	graph.AddModule("app.domain.user_model", "/project/app/domain/user_model.py")
+
+	original := &domain.ArchitectureRules{
+		Layers: []domain.Layer{
+			{Name: "domain", Packages: []string{"domain"}},
+		},
+	}
+	origRulesLen := len(original.Rules)
+	origLayersLen := len(original.Layers)
+
+	resolved := svc.resolveArchitectureRules(graph, original)
+
+	// resolved may have filled in rules, but original must be untouched
+	assert.Equal(t, origRulesLen, len(original.Rules), "original Rules must not be mutated")
+	assert.Equal(t, origLayersLen, len(original.Layers), "original Layers must not be mutated")
+	assert.NotSame(t, original, resolved, "resolved should be a new object")
+}
+
+func TestMergeLayerRules_UserOverridesDefaultForSameFrom(t *testing.T) {
+	svc := NewSystemAnalysisService()
+
+	base := []domain.LayerRule{
+		{From: "domain", Allow: []string{"domain"}},
+		{From: "application", Allow: []string{"domain", "infrastructure"}},
+	}
+	overrides := []domain.LayerRule{
+		{From: "domain", Allow: []string{"domain", "application"}, Deny: []string{"infrastructure"}},
+	}
+
+	merged := svc.mergeLayerRules(base, overrides)
+
+	// "domain" rule should come from overrides, "application" from base
+	require.Len(t, merged, 2)
+
+	rulesByFrom := make(map[string]domain.LayerRule)
+	for _, r := range merged {
+		rulesByFrom[r.From] = r
+	}
+
+	assert.Equal(t, []string{"domain", "application"}, rulesByFrom["domain"].Allow,
+		"user override for 'domain' should replace base")
+	assert.Equal(t, []string{"infrastructure"}, rulesByFrom["domain"].Deny,
+		"user override for 'domain' should include Deny")
+	assert.Equal(t, []string{"domain", "infrastructure"}, rulesByFrom["application"].Allow,
+		"base rule for 'application' should be preserved")
+}
