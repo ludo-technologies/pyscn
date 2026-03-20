@@ -16,7 +16,8 @@ import (
 
 // ComplexityServiceImpl implements the ComplexityService interface
 type ComplexityServiceImpl struct {
-	parser *parser.Parser
+	parser     *parser.Parser
+	parseCache *ParseCache
 }
 
 // NewComplexityService creates a new complexity service implementation
@@ -24,6 +25,11 @@ func NewComplexityService() *ComplexityServiceImpl {
 	return &ComplexityServiceImpl{
 		parser: parser.New(),
 	}
+}
+
+// SetParseCache injects a shared parse cache to avoid redundant parsing.
+func (s *ComplexityServiceImpl) SetParseCache(cache *ParseCache) {
+	s.parseCache = cache
 }
 
 // Analyze performs complexity analysis on multiple files
@@ -93,28 +99,59 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 	var warnings []string
 	var errors []string
 
-	// Parse the file
-	content, err := s.readFile(filePath)
-	if err != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
-		return functions, warnings, errors
+	var cfgs map[string]*analyzer.CFG
+
+	// Try cache first
+	if s.parseCache != nil {
+		if cached, ok := s.parseCache.Get(filePath); ok {
+			if cached.ParseErr != nil {
+				errors = append(errors, fmt.Sprintf("[%s] %v", filePath, cached.ParseErr))
+				return functions, warnings, errors
+			}
+			if cached.CFGs != nil {
+				cfgs = cached.CFGs
+			} else if cached.ParseResult != nil && cached.ParseResult.AST != nil {
+				// Cache has AST but no CFGs — build them
+				builder := analyzer.NewCFGBuilder()
+				built, err := builder.BuildAll(cached.ParseResult.AST)
+				if err != nil {
+					errors = append(errors, fmt.Sprintf("[%s] CFG construction failed: %v", filePath, err))
+					return functions, warnings, errors
+				}
+				cfgs = built
+			}
+			if cached.CFGErr != nil {
+				errors = append(errors, fmt.Sprintf("[%s] %v", filePath, cached.CFGErr))
+				return functions, warnings, errors
+			}
+			goto analyzeCFGs
+		}
 	}
 
-	result, err := s.parser.Parse(ctx, content)
-	if err != nil {
-		// Enhanced error context with file path
-		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", filePath, err))
-		return functions, warnings, errors
+	// Fallback: parse the file directly
+	{
+		content, err := s.readFile(filePath)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
+			return functions, warnings, errors
+		}
+
+		result, err := s.parser.Parse(ctx, content)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", filePath, err))
+			return functions, warnings, errors
+		}
+
+		builder := analyzer.NewCFGBuilder()
+		built, err := builder.BuildAll(result.AST)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("[%s] CFG construction failed: %v", filePath, err))
+			return functions, warnings, errors
+		}
+		cfgs = built
 	}
 
-	// Build CFGs for all functions
-	builder := analyzer.NewCFGBuilder()
-	cfgs, err := builder.BuildAll(result.AST)
-	if err != nil {
-		// Enhanced error context with file path
-		errors = append(errors, fmt.Sprintf("[%s] CFG construction failed: %v", filePath, err))
-		return functions, warnings, errors
-	}
+analyzeCFGs:
 
 	if len(cfgs) == 0 {
 		warnings = append(warnings, fmt.Sprintf("[%s] No functions found in file", filePath))

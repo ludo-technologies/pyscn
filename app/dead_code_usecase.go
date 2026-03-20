@@ -36,6 +36,13 @@ func NewDeadCodeUseCase(
 	}
 }
 
+// SetParseCache injects a shared parse cache into the underlying service.
+func (uc *DeadCodeUseCase) SetParseCache(cache *svc.ParseCache) {
+	if cacheable, ok := uc.service.(svc.ParseCacheAware); ok {
+		cacheable.SetParseCache(cache)
+	}
+}
+
 // Execute performs the complete dead code analysis workflow
 func (uc *DeadCodeUseCase) Execute(ctx context.Context, req domain.DeadCodeRequest) error {
 	// Validate input
