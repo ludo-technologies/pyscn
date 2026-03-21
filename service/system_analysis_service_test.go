@@ -366,9 +366,11 @@ func TestFindLayerForModule_WithDefaultPatterns(t *testing.T) {
 		{"app.domain.user_service", "domain"},
 
 		// Issue #355: tie-breaker should prefer earlier match position, not longer pattern
-		{"app.domain_service", "domain"},         // "domain" at pos 4 beats "service" at pos 11
-		{"app.model_repository", "domain"},       // "model" at pos 4 beats "repository" at pos 10
-		{"app.controller_service", "presentation"}, // "controller" at pos 4 beats "service" at pos 15
+		{"app.domain_service", "domain"},            // underscore-boundary: "domain" at pos 4 beats "service" at pos 11
+		{"app.model_repository", "domain"},          // underscore-boundary: "model" at pos 4 beats "repository" at pos 10
+		{"app.controller_service", "presentation"},  // underscore-boundary: "controller" at pos 4 beats "service" at pos 15
+		{"app.domain.service", "domain"},            // dot-separated suffix: "domain" at pos 4 beats "service" at pos 11
+		{"pkg.entity.repository", "domain"},         // dot-separated suffix: "entity" at pos 4 beats "repository" at pos 11
 
 		// Valid domain modules
 		{"app.domain.models", "domain"},
