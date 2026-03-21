@@ -111,13 +111,15 @@ type LayerDefinitionToml struct {
 	Name        string   `toml:"name"`
 	Description string   `toml:"description"`
 	Packages    []string `toml:"packages"`
+	IsAbstract  bool     `toml:"is_abstract"`
 }
 
 // LayerRuleToml represents a layer rule in TOML
 type LayerRuleToml struct {
-	From  string   `toml:"from"`
-	Allow []string `toml:"allow"`
-	Deny  []string `toml:"deny"`
+	From        string   `toml:"from"`
+	Allow       []string `toml:"allow"`
+	Deny        []string `toml:"deny"`
+	Description string   `toml:"description"`
 }
 
 // SystemAnalysisTomlConfig represents the [system_analysis] section
