@@ -5,6 +5,7 @@ import (
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/analyzer"
+	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -276,4 +277,209 @@ func TestIdentifyArchitectureRefactoringTargets(t *testing.T) {
 
 	targets := service.identifyArchitectureRefactoringTargets(violations, moduleToLayer)
 	require.Equal(t, []string{"moduleC", "moduleA", "moduleB"}, targets)
+}
+
+func TestBuildModuleLayerMap_AmbiguousPackages(t *testing.T) {
+	svc := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+
+	graph.AddModule("domain.routers", "/project/domain/routers/__init__.py")
+	graph.AddModule("routers.main", "/project/routers/main.py")
+	graph.AddModule("app.services.billing", "/project/app/services/billing.py")
+
+	rules := &domain.ArchitectureRules{
+		Layers: []domain.Layer{
+			{Name: "domain", Packages: []string{"domain"}},
+			{Name: "presentation", Packages: []string{"routers"}},
+			{Name: "application", Packages: []string{"app.services"}},
+		},
+	}
+
+	moduleToLayer := svc.buildModuleLayerMap(graph, rules)
+
+	assert.Equal(t, "domain", moduleToLayer["domain.routers"],
+		"domain.routers should be classified as 'domain' (prefix match wins)")
+	assert.Equal(t, "presentation", moduleToLayer["routers.main"],
+		"routers.main should be classified as 'presentation'")
+	assert.Equal(t, "application", moduleToLayer["app.services.billing"],
+		"app.services.billing should be classified as 'application'")
+}
+
+func TestPyscnConfigToSystemAnalysisRequest_PropagatesLayers(t *testing.T) {
+	loader := NewSystemAnalysisConfigurationLoader()
+
+	cfg := &config.PyscnConfig{
+		ArchitectureLayers: []config.LayerDefinition{
+			{Name: "api", Packages: []string{"myapp.api"}, Description: "API layer"},
+			{Name: "domain", Packages: []string{"myapp.domain"}, Description: "Domain layer"},
+		},
+		ArchitectureRules: []config.LayerRule{
+			{From: "api", Allow: []string{"domain"}, Deny: []string{"infrastructure"}},
+		},
+	}
+
+	request := loader.pyscnConfigToSystemAnalysisRequest(cfg)
+
+	require.NotNil(t, request.ArchitectureRules, "ArchitectureRules should be set")
+	require.Len(t, request.ArchitectureRules.Layers, 2, "should have 2 layers")
+
+	assert.Equal(t, "api", request.ArchitectureRules.Layers[0].Name)
+	assert.Equal(t, []string{"myapp.api"}, request.ArchitectureRules.Layers[0].Packages)
+	assert.Equal(t, "API layer", request.ArchitectureRules.Layers[0].Description)
+
+	assert.Equal(t, "domain", request.ArchitectureRules.Layers[1].Name)
+	assert.Equal(t, []string{"myapp.domain"}, request.ArchitectureRules.Layers[1].Packages)
+
+	require.Len(t, request.ArchitectureRules.Rules, 1, "should have 1 rule")
+	assert.Equal(t, "api", request.ArchitectureRules.Rules[0].From)
+	assert.Equal(t, []string{"domain"}, request.ArchitectureRules.Rules[0].Allow)
+	assert.Equal(t, []string{"infrastructure"}, request.ArchitectureRules.Rules[0].Deny)
+}
+
+func TestPyscnConfigToSystemAnalysisRequest_PropagatesLayersWithStrictMode(t *testing.T) {
+	loader := NewSystemAnalysisConfigurationLoader()
+	strictMode := true
+
+	cfg := &config.PyscnConfig{
+		ArchitectureStrictMode: &strictMode,
+		ArchitectureLayers: []config.LayerDefinition{
+			{Name: "api", Packages: []string{"api"}},
+		},
+	}
+
+	request := loader.pyscnConfigToSystemAnalysisRequest(cfg)
+
+	require.NotNil(t, request.ArchitectureRules)
+	assert.True(t, request.ArchitectureRules.StrictMode)
+	require.Len(t, request.ArchitectureRules.Layers, 1)
+	assert.Equal(t, "api", request.ArchitectureRules.Layers[0].Name)
+}
+
+func TestPyscnConfigToSystemAnalysisRequest_LayersOnlyPreservesDefaultRules(t *testing.T) {
+	loader := NewSystemAnalysisConfigurationLoader()
+
+	cfg := &config.PyscnConfig{
+		ArchitectureLayers: []config.LayerDefinition{
+			{Name: "api", Packages: []string{"myapp.api"}},
+			{Name: "domain", Packages: []string{"myapp.domain"}},
+		},
+	}
+
+	request := loader.pyscnConfigToSystemAnalysisRequest(cfg)
+
+	require.NotNil(t, request.ArchitectureRules, "ArchitectureRules should be set")
+	require.Len(t, request.ArchitectureRules.Layers, 2, "should have user-provided layers")
+	// Rules should be empty at this stage — auto-detection fills them at analysis time
+	assert.Empty(t, request.ArchitectureRules.Rules, "rules should be empty in config; auto-detect fills them later")
+}
+
+func TestLoadDefaultRulesForLayers_FiltersToMatchingNames(t *testing.T) {
+	svc := NewSystemAnalysisService()
+
+	// Only "domain" matches a built-in rule name; "api" does not.
+	layers := []domain.Layer{
+		{Name: "domain", Packages: []string{"myapp.domain"}},
+		{Name: "api", Packages: []string{"myapp.api"}},
+	}
+
+	rules := svc.loadDefaultRulesForLayers(layers)
+
+	// Should only include rules whose From matches "domain" or "api".
+	// "api" is not a built-in layer name, so it should be filtered out.
+	for _, r := range rules {
+		assert.True(t, r.From == "domain" || r.From == "api",
+			"rule From=%q should match a user-defined layer name", r.From)
+	}
+
+	// "domain" is a built-in name, so we expect at least one rule for it
+	hasDomainRule := false
+	for _, r := range rules {
+		if r.From == "domain" {
+			hasDomainRule = true
+			break
+		}
+	}
+	assert.True(t, hasDomainRule, "should have default rules for 'domain' layer")
+}
+
+func TestLoadDefaultRulesForLayers_CustomNamesReturnEmpty(t *testing.T) {
+	svc := NewSystemAnalysisService()
+
+	// All custom names, none match built-in rule names
+	layers := []domain.Layer{
+		{Name: "my_service", Packages: []string{"svc"}},
+		{Name: "my_api", Packages: []string{"api"}},
+	}
+
+	rules := svc.loadDefaultRulesForLayers(layers)
+	assert.Empty(t, rules, "custom layer names should not match any built-in rules")
+}
+
+func TestPyscnConfigToSystemAnalysisRequest_RulesOnlyDoesNotBlockAutoDetect(t *testing.T) {
+	loader := NewSystemAnalysisConfigurationLoader()
+
+	cfg := &config.PyscnConfig{
+		ArchitectureRules: []config.LayerRule{
+			{From: "api", Allow: []string{"domain"}},
+		},
+	}
+
+	request := loader.pyscnConfigToSystemAnalysisRequest(cfg)
+
+	require.NotNil(t, request.ArchitectureRules, "ArchitectureRules should be set")
+	require.Len(t, request.ArchitectureRules.Rules, 1, "should have user-provided rules")
+	// Layers should be empty at this stage — auto-detection fills them at analysis time
+	assert.Empty(t, request.ArchitectureRules.Layers, "layers should be empty in config; auto-detect fills them later")
+}
+
+func TestResolveArchitectureRules_DoesNotMutateOriginal(t *testing.T) {
+	svc := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+	graph.AddModule("app.api.users.router", "/project/app/api/users/router.py")
+	graph.AddModule("app.services.user_service", "/project/app/services/user_service.py")
+	graph.AddModule("app.domain.user_model", "/project/app/domain/user_model.py")
+
+	original := &domain.ArchitectureRules{
+		Layers: []domain.Layer{
+			{Name: "domain", Packages: []string{"domain"}},
+		},
+	}
+	origRulesLen := len(original.Rules)
+	origLayersLen := len(original.Layers)
+
+	resolved := svc.resolveArchitectureRules(graph, original)
+
+	// resolved may have filled in rules, but original must be untouched
+	assert.Equal(t, origRulesLen, len(original.Rules), "original Rules must not be mutated")
+	assert.Equal(t, origLayersLen, len(original.Layers), "original Layers must not be mutated")
+	assert.NotSame(t, original, resolved, "resolved should be a new object")
+}
+
+func TestMergeLayerRules_UserOverridesDefaultForSameFrom(t *testing.T) {
+	svc := NewSystemAnalysisService()
+
+	base := []domain.LayerRule{
+		{From: "domain", Allow: []string{"domain"}},
+		{From: "application", Allow: []string{"domain", "infrastructure"}},
+	}
+	overrides := []domain.LayerRule{
+		{From: "domain", Allow: []string{"domain", "application"}, Deny: []string{"infrastructure"}},
+	}
+
+	merged := svc.mergeLayerRules(base, overrides)
+
+	// "domain" rule should come from overrides, "application" from base
+	require.Len(t, merged, 2)
+
+	rulesByFrom := make(map[string]domain.LayerRule)
+	for _, r := range merged {
+		rulesByFrom[r.From] = r
+	}
+
+	assert.Equal(t, []string{"domain", "application"}, rulesByFrom["domain"].Allow,
+		"user override for 'domain' should replace base")
+	assert.Equal(t, []string{"infrastructure"}, rulesByFrom["domain"].Deny,
+		"user override for 'domain' should include Deny")
+	assert.Equal(t, []string{"domain", "infrastructure"}, rulesByFrom["application"].Allow,
+		"base rule for 'application' should be preserved")
 }
