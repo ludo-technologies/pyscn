@@ -134,6 +134,30 @@ func TestAutoDetectArchitecture(t *testing.T) {
 	assert.Nil(t, service.autoDetectArchitecture(graph))
 }
 
+func TestAutoDetectArchitecture_FlatUnderscoreModules(t *testing.T) {
+	service := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+
+	graph.AddModule("user_service", "/project/user_service.py")
+	graph.AddModule("user_repository", "/project/user_repository.py")
+	graph.AddModule("api_v1", "/project/api_v1.py")
+
+	rules := service.autoDetectArchitecture(graph)
+	require.NotNil(t, rules)
+
+	layerPackages := make(map[string][]string)
+	for _, layer := range rules.Layers {
+		layerPackages[layer.Name] = layer.Packages
+	}
+
+	require.Contains(t, layerPackages, "presentation")
+	require.Contains(t, layerPackages, "application")
+	require.Contains(t, layerPackages, "infrastructure")
+	assert.Contains(t, layerPackages["presentation"], "api_v1")
+	assert.Contains(t, layerPackages["application"], "user_service")
+	assert.Contains(t, layerPackages["infrastructure"], "user_repository")
+}
+
 func TestDependencyMatrixAndLongestChains(t *testing.T) {
 	service := NewSystemAnalysisService()
 	graph := analyzer.NewDependencyGraph("/project")

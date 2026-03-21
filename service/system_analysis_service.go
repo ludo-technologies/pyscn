@@ -380,17 +380,39 @@ type compiledPattern struct {
 	specificity int // number of dots in original pattern; higher = more specific
 }
 
+type modulePatternMatch struct {
+	matched       bool
+	isPrefix      bool
+	boundaryScore int // dot/exact matches outrank underscore-boundary matches
+}
+
 // matchModule returns whether the pattern matches the module and the match position.
 // position 0 means prefix match (higher priority), position 1 means suffix match.
-// Returns (matched bool, prefixMatch bool).
-func (cp *compiledPattern) matchModule(module string) (bool, bool) {
+func (cp *compiledPattern) matchModule(module string) modulePatternMatch {
 	if cp.prefixRe != nil && cp.prefixRe.MatchString(module) {
-		return true, true
+		return modulePatternMatch{matched: true, isPrefix: true, boundaryScore: 2}
 	}
 	if cp.suffixRe != nil && cp.suffixRe.MatchString(module) {
-		return true, false
+		return modulePatternMatch{matched: true, isPrefix: false, boundaryScore: 2}
 	}
-	return false, false
+	if strings.Contains(cp.original, "*") {
+		return modulePatternMatch{}
+	}
+
+	parts := strings.Split(module, ".")
+	offset := 0
+	for _, part := range parts {
+		isPrefix := offset == 0
+		if strings.HasPrefix(part, cp.original+"_") {
+			return modulePatternMatch{matched: true, isPrefix: isPrefix, boundaryScore: 1}
+		}
+		if strings.HasSuffix(part, "_"+cp.original) {
+			return modulePatternMatch{matched: true, isPrefix: false, boundaryScore: 1}
+		}
+		offset += len(part) + 1
+	}
+
+	return modulePatternMatch{}
 }
 
 // compileLayerPatterns compiles the package patterns for each layer into
@@ -421,27 +443,30 @@ func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.Dependen
 
 // findLayerForModule returns the most specific matching layer for a module.
 // Tie-breaking priority:
-//  1. Prefix match (position 0) wins over suffix match (position 1+)
-//  2. Higher specificity (more dots in pattern) wins
-//  3. Longer pattern string wins
-//  4. Alphabetical layer name for determinism
+//  1. Higher specificity (more dots in pattern) wins
+//  2. Prefix match wins over suffix match (among equal specificity)
+//  3. Higher boundary strength wins (dot-segment match > underscore-boundary fallback)
+//  4. Longer pattern string wins
+//  5. Alphabetical layer name for determinism
 func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled map[string][]compiledPattern) string {
 	type match struct {
 		layer       string
 		pattern     string
 		specificity int
 		isPrefix    bool // true = prefix match (higher priority)
+		boundary    int
 	}
 
 	var matches []match
 	for layer, patterns := range compiled {
 		for _, cp := range patterns {
-			if matched, isPrefix := cp.matchModule(module); matched {
+			if m := cp.matchModule(module); m.matched {
 				matches = append(matches, match{
 					layer:       layer,
 					pattern:     cp.original,
 					specificity: cp.specificity,
-					isPrefix:    isPrefix,
+					isPrefix:    m.isPrefix,
+					boundary:    m.boundaryScore,
 				})
 			}
 		}
@@ -451,7 +476,7 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
 		return ""
 	}
 
-	// Sort matches by priority: specificity > prefix > pattern length > layer name
+	// Sort matches by priority: specificity > prefix > boundary strength > pattern length > layer name
 	// Specificity (dot count) is the primary signal so that "api.v1" always beats
 	// "foo" even when "foo" matches at prefix position. Among equal-specificity
 	// matches, prefer prefix over suffix to resolve ambiguities like
@@ -466,11 +491,15 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
 		if a.isPrefix != b.isPrefix {
 			return a.isPrefix
 		}
-		// 3. Longer pattern wins
+		// 3. Dot/exact segment matches beat underscore-boundary fallbacks
+		if a.boundary != b.boundary {
+			return a.boundary > b.boundary
+		}
+		// 4. Longer pattern wins
 		if len(a.pattern) != len(b.pattern) {
 			return len(a.pattern) > len(b.pattern)
 		}
-		// 4. Alphabetical layer name
+		// 5. Alphabetical layer name
 		return a.layer < b.layer
 	})
 
@@ -529,12 +558,16 @@ func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Re
 	// Build a combined regex for backward compatibility
 	escaped := regexp.QuoteMeta(glob)
 	hasWildcard := strings.Contains(glob, "*")
+	var pattern string
 	if hasWildcard {
 		escaped = strings.ReplaceAll(escaped, "\\*", ".*")
+		pattern = fmt.Sprintf("^(?:%s|.+\\.%s)$", escaped, escaped)
 	} else {
-		escaped = fmt.Sprintf("%s(?:\\..+)?", escaped)
+		segmentTail := "(?:$|[._].+)"
+		prefixPattern := fmt.Sprintf("%s%s", escaped, segmentTail)
+		suffixPattern := fmt.Sprintf(".+[._]%s%s", escaped, segmentTail)
+		pattern = fmt.Sprintf("^(?:%s|%s)$", prefixPattern, suffixPattern)
 	}
-	pattern := fmt.Sprintf("^(?:%s|.+\\.%s)$", escaped, escaped)
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil
