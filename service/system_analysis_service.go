@@ -394,11 +394,17 @@ func (cp *compiledPattern) matchModule(module string) modulePatternMatch {
 		return modulePatternMatch{matched: true, isPrefix: true, boundaryScore: 2, matchPos: 0}
 	}
 	if cp.suffixRe != nil && cp.suffixRe.MatchString(module) {
-		// The suffix regex is anchored (^.+\.<pattern>$), so FindStringIndex
-		// always returns 0. Compute the actual position by finding where the
-		// original pattern appears after the last dot separator.
-		pos := strings.LastIndex(strings.ToLower(module), strings.ToLower(cp.original))
-		if pos < 0 {
+		// The suffix regex is anchored (^.+\.<pattern>$), so we locate the
+		// matched segment by searching for ".<base>" at a dot boundary.
+		// Strip wildcard suffixes so "api.*" searches for ".api".
+		base := strings.TrimRight(strings.ToLower(cp.original), "*.")
+		if base == "" {
+			base = strings.ToLower(cp.original)
+		}
+		pos := strings.Index(strings.ToLower(module), "."+base)
+		if pos >= 0 {
+			pos++ // skip the dot to point at the pattern itself
+		} else {
 			pos = 0
 		}
 		return modulePatternMatch{matched: true, isPrefix: false, boundaryScore: 2, matchPos: pos}
