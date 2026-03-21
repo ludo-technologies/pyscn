@@ -384,16 +384,19 @@ type modulePatternMatch struct {
 	matched       bool
 	isPrefix      bool
 	boundaryScore int // dot/exact matches outrank underscore-boundary matches
+	matchPos      int // byte offset in the module where the match starts; lower = better
 }
 
 // matchModule returns whether the pattern matches the module and the match position.
 // position 0 means prefix match (higher priority), position 1 means suffix match.
 func (cp *compiledPattern) matchModule(module string) modulePatternMatch {
 	if cp.prefixRe != nil && cp.prefixRe.MatchString(module) {
-		return modulePatternMatch{matched: true, isPrefix: true, boundaryScore: 2}
+		return modulePatternMatch{matched: true, isPrefix: true, boundaryScore: 2, matchPos: 0}
 	}
-	if cp.suffixRe != nil && cp.suffixRe.MatchString(module) {
-		return modulePatternMatch{matched: true, isPrefix: false, boundaryScore: 2}
+	if cp.suffixRe != nil {
+		if loc := cp.suffixRe.FindStringIndex(module); loc != nil {
+			return modulePatternMatch{matched: true, isPrefix: false, boundaryScore: 2, matchPos: loc[0]}
+		}
 	}
 	if strings.Contains(cp.original, "*") {
 		return modulePatternMatch{}
@@ -406,10 +409,11 @@ func (cp *compiledPattern) matchModule(module string) modulePatternMatch {
 		lowerPart := strings.ToLower(part)
 		isPrefix := offset == 0
 		if strings.HasPrefix(lowerPart, lowerOriginal+"_") {
-			return modulePatternMatch{matched: true, isPrefix: isPrefix, boundaryScore: 1}
+			return modulePatternMatch{matched: true, isPrefix: isPrefix, boundaryScore: 1, matchPos: offset}
 		}
 		if strings.HasSuffix(lowerPart, "_"+lowerOriginal) {
-			return modulePatternMatch{matched: true, isPrefix: false, boundaryScore: 1}
+			pos := offset + len(part) - len(cp.original)
+			return modulePatternMatch{matched: true, isPrefix: false, boundaryScore: 1, matchPos: pos}
 		}
 		offset += len(part) + 1
 	}
@@ -452,8 +456,9 @@ func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.Dependen
 //  1. Higher specificity (more dots in pattern) wins
 //  2. Prefix match wins over suffix match (among equal specificity)
 //  3. Higher boundary strength wins (dot-segment match > underscore-boundary fallback)
-//  4. Longer pattern string wins
-//  5. Alphabetical layer name for determinism
+//  4. Earlier match position wins (leftmost segment carries more context)
+//  5. Longer pattern string wins
+//  6. Alphabetical layer name for determinism
 func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled map[string][]compiledPattern) string {
 	type match struct {
 		layer       string
@@ -461,6 +466,7 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
 		specificity int
 		isPrefix    bool // true = prefix match (higher priority)
 		boundary    int
+		matchPos    int // byte offset where the pattern matched in the module
 	}
 
 	var matches []match
@@ -473,6 +479,7 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
 					specificity: cp.specificity,
 					isPrefix:    m.isPrefix,
 					boundary:    m.boundaryScore,
+					matchPos:    m.matchPos,
 				})
 			}
 		}
@@ -482,7 +489,7 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
 		return ""
 	}
 
-	// Sort matches by priority: specificity > prefix > boundary strength > pattern length > layer name
+	// Sort matches by priority: specificity > prefix > boundary strength > match position > pattern length > layer name
 	// Specificity (dot count) is the primary signal so that "api.v1" always beats
 	// "foo" even when "foo" matches at prefix position. Among equal-specificity
 	// matches, prefer prefix over suffix to resolve ambiguities like
@@ -501,11 +508,15 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
 		if a.boundary != b.boundary {
 			return a.boundary > b.boundary
 		}
-		// 4. Longer pattern wins
+		// 4. Earlier match position wins (leftmost segment carries more context)
+		if a.matchPos != b.matchPos {
+			return a.matchPos < b.matchPos
+		}
+		// 5. Longer pattern wins
 		if len(a.pattern) != len(b.pattern) {
 			return len(a.pattern) > len(b.pattern)
 		}
-		// 5. Alphabetical layer name
+		// 6. Alphabetical layer name
 		return a.layer < b.layer
 	})
 

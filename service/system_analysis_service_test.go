@@ -365,6 +365,11 @@ func TestFindLayerForModule_WithDefaultPatterns(t *testing.T) {
 		{"service.models", "application"},
 		{"app.domain.user_service", "domain"},
 
+		// Issue #355: tie-breaker should prefer earlier match position, not longer pattern
+		{"app.domain_service", "domain"},         // "domain" at pos 4 beats "service" at pos 11
+		{"app.model_repository", "domain"},       // "model" at pos 4 beats "repository" at pos 10
+		{"app.controller_service", "presentation"}, // "controller" at pos 4 beats "service" at pos 15
+
 		// Valid domain modules
 		{"app.domain.models", "domain"},
 		{"app.models.user_model", "domain"},
