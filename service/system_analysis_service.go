@@ -399,14 +399,16 @@ func (cp *compiledPattern) matchModule(module string) modulePatternMatch {
 		return modulePatternMatch{}
 	}
 
+	lowerOriginal := strings.ToLower(cp.original)
 	parts := strings.Split(module, ".")
 	offset := 0
 	for _, part := range parts {
+		lowerPart := strings.ToLower(part)
 		isPrefix := offset == 0
-		if strings.HasPrefix(part, cp.original+"_") {
+		if strings.HasPrefix(lowerPart, lowerOriginal+"_") {
 			return modulePatternMatch{matched: true, isPrefix: isPrefix, boundaryScore: 1}
 		}
-		if strings.HasSuffix(part, "_"+cp.original) {
+		if strings.HasSuffix(lowerPart, "_"+lowerOriginal) {
 			return modulePatternMatch{matched: true, isPrefix: false, boundaryScore: 1}
 		}
 		offset += len(part) + 1
@@ -433,6 +435,10 @@ func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.Dependen
 	out := make(map[string]string)
 	compiled := s.compileLayerPatterns(rules.Layers)
 	for module := range graph.Nodes {
+		if s.isTestModule(module) {
+			out[module] = "unknown"
+			continue
+		}
 		out[module] = s.findLayerForModule(module, compiled)
 		if out[module] == "" {
 			out[module] = "unknown"
@@ -520,12 +526,12 @@ func (s *SystemAnalysisServiceImpl) compileModulePatterns(glob string) *compiled
 	var prefixPattern, suffixPattern string
 	if hasWildcard {
 		wild := strings.ReplaceAll(escaped, "\\*", ".*")
-		prefixPattern = fmt.Sprintf("^%s$", wild)
-		suffixPattern = fmt.Sprintf("^.+\\.%s$", wild)
+		prefixPattern = fmt.Sprintf("(?i)^%s$", wild)
+		suffixPattern = fmt.Sprintf("(?i)^.+\\.%s$", wild)
 	} else {
 		segment := fmt.Sprintf("%s(?:\\..+)?", escaped)
-		prefixPattern = fmt.Sprintf("^%s$", segment)
-		suffixPattern = fmt.Sprintf("^.+\\.%s$", segment)
+		prefixPattern = fmt.Sprintf("(?i)^%s$", segment)
+		suffixPattern = fmt.Sprintf("(?i)^.+\\.%s$", segment)
 	}
 
 	prefixRe, err1 := regexp.Compile(prefixPattern)
@@ -561,12 +567,12 @@ func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Re
 	var pattern string
 	if hasWildcard {
 		escaped = strings.ReplaceAll(escaped, "\\*", ".*")
-		pattern = fmt.Sprintf("^(?:%s|.+\\.%s)$", escaped, escaped)
+		pattern = fmt.Sprintf("(?i)^(?:%s|.+\\.%s)$", escaped, escaped)
 	} else {
 		segmentTail := "(?:$|[._].+)"
 		prefixPattern := fmt.Sprintf("%s%s", escaped, segmentTail)
 		suffixPattern := fmt.Sprintf(".+[._]%s%s", escaped, segmentTail)
-		pattern = fmt.Sprintf("^(?:%s|%s)$", prefixPattern, suffixPattern)
+		pattern = fmt.Sprintf("(?i)^(?:%s|%s)$", prefixPattern, suffixPattern)
 	}
 	re, err := regexp.Compile(pattern)
 	if err != nil {

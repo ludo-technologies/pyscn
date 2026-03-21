@@ -416,3 +416,56 @@ func TestAutoDetectArchitecture_ExcludesTestModules(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildModuleLayerMap_ExcludesTestModules(t *testing.T) {
+	svc := NewSystemAnalysisService()
+
+	graph := analyzer.NewDependencyGraph("/project")
+	graph.AddModule("app.services.user_service", "/project/app/services/user_service.py")
+	graph.AddModule("tests.test_service", "/project/tests/test_service.py")
+	graph.AddModule("test_controller", "/project/test_controller.py")
+
+	rules := &domain.ArchitectureRules{
+		Layers: []domain.Layer{
+			{Name: "application", Packages: []string{"services", "service"}},
+			{Name: "presentation", Packages: []string{"controller"}},
+		},
+	}
+
+	result := svc.buildModuleLayerMap(graph, rules)
+
+	assert.Equal(t, "application", result["app.services.user_service"])
+	assert.Equal(t, "unknown", result["tests.test_service"],
+		"test module tests.test_service should not be classified as a layer")
+	assert.Equal(t, "unknown", result["test_controller"],
+		"test module test_controller should not be classified as a layer")
+}
+
+func TestFindLayerForModule_CaseInsensitive(t *testing.T) {
+	service := &SystemAnalysisServiceImpl{}
+
+	layers := []domain.Layer{
+		{Name: "domain", Packages: []string{"models", "domain"}},
+		{Name: "application", Packages: []string{"services", "service"}},
+		{Name: "presentation", Packages: []string{"api", "controller"}},
+	}
+	compiled := service.compileLayerPatterns(layers)
+
+	testCases := []struct {
+		module   string
+		expected string
+	}{
+		{"API.v1", "presentation"},
+		{"app.Services.billing", "application"},
+		{"User_Service", "application"},
+		{"Domain.Models", "domain"},
+		{"APP.DOMAIN.user", "domain"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.module, func(t *testing.T) {
+			result := service.findLayerForModule(tc.module, compiled)
+			assert.Equal(t, tc.expected, result, "findLayerForModule(%q) should be case-insensitive", tc.module)
+		})
+	}
+}
