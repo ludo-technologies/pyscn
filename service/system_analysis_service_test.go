@@ -343,55 +343,129 @@ func TestIsTestModule(t *testing.T) {
 	}
 }
 
-func TestDetectLayerFromModule_ExcludesTestModules(t *testing.T) {
+func TestFindLayerForModule_WithDefaultPatterns(t *testing.T) {
 	service := &SystemAnalysisServiceImpl{}
 
-	// Standard layer patterns
-	patterns := map[string][]string{
-		"domain":         {"models", "model", "entities", "entity", "domain", "schemas", "schema"},
-		"application":    {"services", "service", "use_cases", "usecase"},
-		"infrastructure": {"repositories", "repository", "db", "database"},
-		"presentation":   {"controllers", "controller", "api", "views", "router"},
+	// Standard layer definitions matching the default config
+	layers := []domain.Layer{
+		{Name: "domain", Packages: []string{"models", "model", "entities", "entity", "domain", "schemas", "schema"}},
+		{Name: "application", Packages: []string{"services", "service", "use_cases", "usecase"}},
+		{Name: "infrastructure", Packages: []string{"repositories", "repository", "db", "database"}},
+		{Name: "presentation", Packages: []string{"controllers", "controller", "api", "views", "router"}},
 	}
+	compiled := service.compileLayerPatterns(layers)
 
 	testCases := []struct {
 		module   string
 		expected string
 	}{
-		// Test modules should NOT be classified as any layer (return "")
-		{"tests.test_model", ""},
-		{"tests.test_entity", ""},
-		{"tests.test_schema", ""},
-		{"test.unit.test_service", ""},
-		{"app.testing.fixtures", ""},
-		{"conftest", ""},
-		{"tests.integration.test_api", ""},
-		{"test_controller", ""},
-		{"repository_test", ""},
+		// Issue #354: last-segment heuristic misclassifications
+		{"domain.service", "domain"},
+		{"domain.repository", "domain"},
+		{"service.models", "application"},
+		{"app.domain.user_service", "domain"},
 
-		// Valid domain modules should still be detected
+		// Valid domain modules
 		{"app.domain.models", "domain"},
 		{"app.models.user_model", "domain"},
 		{"domain.entities", "domain"},
 		{"app.schemas.user_schema", "domain"},
 
-		// Valid application modules should still be detected
+		// Valid application modules
 		{"app.services.user_service", "application"},
 		{"app.use_cases.create_user", "application"},
 
-		// Valid infrastructure modules should still be detected
+		// Valid infrastructure modules
 		{"app.repositories.user_repository", "infrastructure"},
 		{"infrastructure.db", "infrastructure"},
 
-		// Valid presentation modules should still be detected
+		// Valid presentation modules
 		{"app.api.v1.router", "presentation"},
 		{"app.controllers.user_controller", "presentation"},
+
+		// No match
+		{"utils.helpers", ""},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.module, func(t *testing.T) {
-			result := service.detectLayerFromModule(tc.module, patterns)
-			assert.Equal(t, tc.expected, result, "detectLayerFromModule(%q) = %q, expected %q", tc.module, result, tc.expected)
+			result := service.findLayerForModule(tc.module, compiled)
+			assert.Equal(t, tc.expected, result, "findLayerForModule(%q) = %q, expected %q", tc.module, result, tc.expected)
+		})
+	}
+}
+
+func TestAutoDetectArchitecture_ExcludesTestModules(t *testing.T) {
+	service := &SystemAnalysisServiceImpl{}
+
+	testModules := []string{
+		"tests.test_model",
+		"tests.test_entity",
+		"tests.test_schema",
+		"test.unit.test_service",
+		"app.testing.fixtures",
+		"conftest",
+		"tests.integration.test_api",
+		"test_controller",
+		"repository_test",
+	}
+
+	for _, module := range testModules {
+		t.Run(module, func(t *testing.T) {
+			assert.True(t, service.isTestModule(module), "isTestModule(%q) should be true", module)
+		})
+	}
+}
+
+func TestBuildModuleLayerMap_ExcludesTestModules(t *testing.T) {
+	svc := NewSystemAnalysisService()
+
+	graph := analyzer.NewDependencyGraph("/project")
+	graph.AddModule("app.services.user_service", "/project/app/services/user_service.py")
+	graph.AddModule("tests.test_service", "/project/tests/test_service.py")
+	graph.AddModule("test_controller", "/project/test_controller.py")
+
+	rules := &domain.ArchitectureRules{
+		Layers: []domain.Layer{
+			{Name: "application", Packages: []string{"services", "service"}},
+			{Name: "presentation", Packages: []string{"controller"}},
+		},
+	}
+
+	result := svc.buildModuleLayerMap(graph, rules)
+
+	assert.Equal(t, "application", result["app.services.user_service"])
+	assert.Equal(t, "unknown", result["tests.test_service"],
+		"test module tests.test_service should not be classified as a layer")
+	assert.Equal(t, "unknown", result["test_controller"],
+		"test module test_controller should not be classified as a layer")
+}
+
+func TestFindLayerForModule_CaseInsensitive(t *testing.T) {
+	service := &SystemAnalysisServiceImpl{}
+
+	layers := []domain.Layer{
+		{Name: "domain", Packages: []string{"models", "domain"}},
+		{Name: "application", Packages: []string{"services", "service"}},
+		{Name: "presentation", Packages: []string{"api", "controller"}},
+	}
+	compiled := service.compileLayerPatterns(layers)
+
+	testCases := []struct {
+		module   string
+		expected string
+	}{
+		{"API.v1", "presentation"},
+		{"app.Services.billing", "application"},
+		{"User_Service", "application"},
+		{"Domain.Models", "domain"},
+		{"APP.DOMAIN.user", "domain"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.module, func(t *testing.T) {
+			result := service.findLayerForModule(tc.module, compiled)
+			assert.Equal(t, tc.expected, result, "findLayerForModule(%q) should be case-insensitive", tc.module)
 		})
 	}
 }

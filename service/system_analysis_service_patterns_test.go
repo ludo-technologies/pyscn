@@ -24,11 +24,14 @@ func TestCompileModulePatternAnchoring(t *testing.T) {
 			matches: []string{
 				"service",
 				"service.handlers",
+				"service_handler",
+				"user_service",
 				"project.service",
 				"project.service.api",
 			},
 			rejects: []string{
 				"microservice",
+				"user_microservice",
 				"core.microservice.adapter",
 			},
 		},
@@ -135,6 +138,35 @@ func TestFindLayerForModule_PrefixMatchPriority(t *testing.T) {
 		"prefix match 'service' should win over suffix match 'app'")
 }
 
+func TestFindLayerForModule_UnderscoreSeparatedModules(t *testing.T) {
+	svc := NewSystemAnalysisService()
+
+	compiled := make(map[string][]compiledPattern)
+	for _, tc := range []struct {
+		layer   string
+		pattern string
+	}{
+		{"presentation", "api"},
+		{"application", "service"},
+		{"infrastructure", "repository"},
+	} {
+		cp := svc.compileModulePatterns(tc.pattern)
+		require.NotNil(t, cp)
+		compiled[tc.layer] = append(compiled[tc.layer], *cp)
+	}
+
+	assert.Equal(t, "application", svc.findLayerForModule("service_user", compiled),
+		"service_ prefix should be treated as a layer boundary")
+	assert.Equal(t, "application", svc.findLayerForModule("user_service", compiled),
+		"_service suffix should be treated as a layer boundary")
+	assert.Equal(t, "infrastructure", svc.findLayerForModule("user_repository", compiled),
+		"_repository suffix should be treated as a layer boundary")
+	assert.Equal(t, "presentation", svc.findLayerForModule("api_v1", compiled),
+		"api_ prefix should be treated as a layer boundary")
+	assert.Equal(t, "", svc.findLayerForModule("microservice", compiled),
+		"plain substrings without separators should not match")
+}
+
 func TestCompileModulePatterns_PrefixSuffix(t *testing.T) {
 	svc := NewSystemAnalysisService()
 
@@ -142,26 +174,26 @@ func TestCompileModulePatterns_PrefixSuffix(t *testing.T) {
 	require.NotNil(t, cp)
 
 	// Prefix matches
-	matched, isPrefix := cp.matchModule("routers")
-	assert.True(t, matched)
-	assert.True(t, isPrefix, "routers alone should be a prefix match")
+	match := cp.matchModule("routers")
+	assert.True(t, match.matched)
+	assert.True(t, match.isPrefix, "routers alone should be a prefix match")
 
-	matched, isPrefix = cp.matchModule("routers.users")
-	assert.True(t, matched)
-	assert.True(t, isPrefix, "routers.users should be a prefix match")
+	match = cp.matchModule("routers.users")
+	assert.True(t, match.matched)
+	assert.True(t, match.isPrefix, "routers.users should be a prefix match")
 
 	// Suffix matches
-	matched, isPrefix = cp.matchModule("app.routers")
-	assert.True(t, matched)
-	assert.False(t, isPrefix, "app.routers should be a suffix match")
+	match = cp.matchModule("app.routers")
+	assert.True(t, match.matched)
+	assert.False(t, match.isPrefix, "app.routers should be a suffix match")
 
-	matched, isPrefix = cp.matchModule("domain.routers.users")
-	assert.True(t, matched)
-	assert.False(t, isPrefix, "domain.routers.users should be a suffix match")
+	match = cp.matchModule("domain.routers.users")
+	assert.True(t, match.matched)
+	assert.False(t, match.isPrefix, "domain.routers.users should be a suffix match")
 
 	// No match
-	matched, _ = cp.matchModule("microrouters")
-	assert.False(t, matched, "microrouters should not match")
+	match = cp.matchModule("microrouters")
+	assert.False(t, match.matched, "microrouters should not match")
 }
 
 func TestFindLayerForModule_SpecificityBeatsGeneric(t *testing.T) {

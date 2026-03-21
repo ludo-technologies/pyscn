@@ -380,30 +380,65 @@ type compiledPattern struct {
 	specificity int // number of dots in original pattern; higher = more specific
 }
 
-// matchModule returns whether the pattern matches the module and the match position.
-// position 0 means prefix match (higher priority), position 1 means suffix match.
-// Returns (matched bool, prefixMatch bool).
-func (cp *compiledPattern) matchModule(module string) (bool, bool) {
-	if cp.prefixRe != nil && cp.prefixRe.MatchString(module) {
-		return true, true
-	}
-	if cp.suffixRe != nil && cp.suffixRe.MatchString(module) {
-		return true, false
-	}
-	return false, false
+type modulePatternMatch struct {
+	matched       bool
+	isPrefix      bool
+	boundaryScore int // dot/exact matches outrank underscore-boundary matches
 }
 
-func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.DependencyGraph, rules *domain.ArchitectureRules) map[string]string {
-	out := make(map[string]string)
+// matchModule returns whether the pattern matches the module and the match position.
+// position 0 means prefix match (higher priority), position 1 means suffix match.
+func (cp *compiledPattern) matchModule(module string) modulePatternMatch {
+	if cp.prefixRe != nil && cp.prefixRe.MatchString(module) {
+		return modulePatternMatch{matched: true, isPrefix: true, boundaryScore: 2}
+	}
+	if cp.suffixRe != nil && cp.suffixRe.MatchString(module) {
+		return modulePatternMatch{matched: true, isPrefix: false, boundaryScore: 2}
+	}
+	if strings.Contains(cp.original, "*") {
+		return modulePatternMatch{}
+	}
+
+	lowerOriginal := strings.ToLower(cp.original)
+	parts := strings.Split(module, ".")
+	offset := 0
+	for _, part := range parts {
+		lowerPart := strings.ToLower(part)
+		isPrefix := offset == 0
+		if strings.HasPrefix(lowerPart, lowerOriginal+"_") {
+			return modulePatternMatch{matched: true, isPrefix: isPrefix, boundaryScore: 1}
+		}
+		if strings.HasSuffix(lowerPart, "_"+lowerOriginal) {
+			return modulePatternMatch{matched: true, isPrefix: false, boundaryScore: 1}
+		}
+		offset += len(part) + 1
+	}
+
+	return modulePatternMatch{}
+}
+
+// compileLayerPatterns compiles the package patterns for each layer into
+// position-aware regexes for use with findLayerForModule.
+func (s *SystemAnalysisServiceImpl) compileLayerPatterns(layers []domain.Layer) map[string][]compiledPattern {
 	compiled := make(map[string][]compiledPattern)
-	for _, layer := range rules.Layers {
+	for _, layer := range layers {
 		for _, pat := range layer.Packages {
 			if cp := s.compileModulePatterns(pat); cp != nil {
 				compiled[layer.Name] = append(compiled[layer.Name], *cp)
 			}
 		}
 	}
+	return compiled
+}
+
+func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.DependencyGraph, rules *domain.ArchitectureRules) map[string]string {
+	out := make(map[string]string)
+	compiled := s.compileLayerPatterns(rules.Layers)
 	for module := range graph.Nodes {
+		if s.isTestModule(module) {
+			out[module] = "unknown"
+			continue
+		}
 		out[module] = s.findLayerForModule(module, compiled)
 		if out[module] == "" {
 			out[module] = "unknown"
@@ -414,27 +449,30 @@ func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.Dependen
 
 // findLayerForModule returns the most specific matching layer for a module.
 // Tie-breaking priority:
-//  1. Prefix match (position 0) wins over suffix match (position 1+)
-//  2. Higher specificity (more dots in pattern) wins
-//  3. Longer pattern string wins
-//  4. Alphabetical layer name for determinism
+//  1. Higher specificity (more dots in pattern) wins
+//  2. Prefix match wins over suffix match (among equal specificity)
+//  3. Higher boundary strength wins (dot-segment match > underscore-boundary fallback)
+//  4. Longer pattern string wins
+//  5. Alphabetical layer name for determinism
 func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled map[string][]compiledPattern) string {
 	type match struct {
 		layer       string
 		pattern     string
 		specificity int
 		isPrefix    bool // true = prefix match (higher priority)
+		boundary    int
 	}
 
 	var matches []match
 	for layer, patterns := range compiled {
 		for _, cp := range patterns {
-			if matched, isPrefix := cp.matchModule(module); matched {
+			if m := cp.matchModule(module); m.matched {
 				matches = append(matches, match{
 					layer:       layer,
 					pattern:     cp.original,
 					specificity: cp.specificity,
-					isPrefix:    isPrefix,
+					isPrefix:    m.isPrefix,
+					boundary:    m.boundaryScore,
 				})
 			}
 		}
@@ -444,7 +482,7 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
 		return ""
 	}
 
-	// Sort matches by priority: specificity > prefix > pattern length > layer name
+	// Sort matches by priority: specificity > prefix > boundary strength > pattern length > layer name
 	// Specificity (dot count) is the primary signal so that "api.v1" always beats
 	// "foo" even when "foo" matches at prefix position. Among equal-specificity
 	// matches, prefer prefix over suffix to resolve ambiguities like
@@ -459,11 +497,15 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
 		if a.isPrefix != b.isPrefix {
 			return a.isPrefix
 		}
-		// 3. Longer pattern wins
+		// 3. Dot/exact segment matches beat underscore-boundary fallbacks
+		if a.boundary != b.boundary {
+			return a.boundary > b.boundary
+		}
+		// 4. Longer pattern wins
 		if len(a.pattern) != len(b.pattern) {
 			return len(a.pattern) > len(b.pattern)
 		}
-		// 4. Alphabetical layer name
+		// 5. Alphabetical layer name
 		return a.layer < b.layer
 	})
 
@@ -484,12 +526,12 @@ func (s *SystemAnalysisServiceImpl) compileModulePatterns(glob string) *compiled
 	var prefixPattern, suffixPattern string
 	if hasWildcard {
 		wild := strings.ReplaceAll(escaped, "\\*", ".*")
-		prefixPattern = fmt.Sprintf("^%s$", wild)
-		suffixPattern = fmt.Sprintf("^.+\\.%s$", wild)
+		prefixPattern = fmt.Sprintf("(?i)^%s$", wild)
+		suffixPattern = fmt.Sprintf("(?i)^.+\\.%s$", wild)
 	} else {
 		segment := fmt.Sprintf("%s(?:\\..+)?", escaped)
-		prefixPattern = fmt.Sprintf("^%s$", segment)
-		suffixPattern = fmt.Sprintf("^.+\\.%s$", segment)
+		prefixPattern = fmt.Sprintf("(?i)^%s$", segment)
+		suffixPattern = fmt.Sprintf("(?i)^.+\\.%s$", segment)
 	}
 
 	prefixRe, err1 := regexp.Compile(prefixPattern)
@@ -522,12 +564,16 @@ func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Re
 	// Build a combined regex for backward compatibility
 	escaped := regexp.QuoteMeta(glob)
 	hasWildcard := strings.Contains(glob, "*")
+	var pattern string
 	if hasWildcard {
 		escaped = strings.ReplaceAll(escaped, "\\*", ".*")
+		pattern = fmt.Sprintf("(?i)^(?:%s|.+\\.%s)$", escaped, escaped)
 	} else {
-		escaped = fmt.Sprintf("%s(?:\\..+)?", escaped)
+		segmentTail := "(?:$|[._].+)"
+		prefixPattern := fmt.Sprintf("%s%s", escaped, segmentTail)
+		suffixPattern := fmt.Sprintf(".+[._]%s%s", escaped, segmentTail)
+		pattern = fmt.Sprintf("(?i)^(?:%s|%s)$", prefixPattern, suffixPattern)
 	}
-	pattern := fmt.Sprintf("^(?:%s|.+\\.%s)$", escaped, escaped)
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil
@@ -545,18 +591,25 @@ func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.Depen
 		return nil
 	}
 
-	// Build layer patterns map from default config
-	layerPatterns := make(map[string][]string)
-	for _, layer := range defaultConfig.Architecture.Layers {
-		layerPatterns[layer.Name] = layer.Packages
+	// Convert config layer definitions to domain layers and compile patterns
+	domainLayers := make([]domain.Layer, 0, len(defaultConfig.Architecture.Layers))
+	for _, l := range defaultConfig.Architecture.Layers {
+		domainLayers = append(domainLayers, domain.Layer{
+			Name:     l.Name,
+			Packages: l.Packages,
+		})
 	}
+	compiled := s.compileLayerPatterns(domainLayers)
 
 	// Detect which modules belong to which layer
 	moduleToLayer := make(map[string]string)
 	layerModules := make(map[string][]string)
 
 	for module := range graph.Nodes {
-		layer := s.detectLayerFromModule(module, layerPatterns)
+		if s.isTestModule(module) {
+			continue
+		}
+		layer := s.findLayerForModule(module, compiled)
 		if layer != "" {
 			moduleToLayer[module] = layer
 			layerModules[layer] = append(layerModules[layer], module)
@@ -702,68 +755,6 @@ func (s *SystemAnalysisServiceImpl) isTestModule(module string) bool {
 		}
 	}
 	return false
-}
-
-// detectLayerFromModule determines which layer a module belongs to based on its name
-func (s *SystemAnalysisServiceImpl) detectLayerFromModule(module string, patterns map[string][]string) string {
-	// Early return for test modules - they should not be classified as any layer
-	if s.isTestModule(module) {
-		return ""
-	}
-
-	// Split module path into parts
-	parts := strings.Split(module, ".")
-
-	if len(parts) == 0 {
-		return ""
-	}
-
-	// Priority 1: Check the LAST part of the module path (most specific)
-	// This is usually the most accurate indicator of the layer
-	// e.g., "app.api.v1.admin.companies.router" -> "router" indicates presentation layer
-	lastPart := strings.ToLower(parts[len(parts)-1])
-
-	// Define priority order for last part matching
-	// Presentation and Infrastructure are most specific when they're the last part
-	lastPartPriority := []string{"presentation", "infrastructure", "application", "domain"}
-	for _, layer := range lastPartPriority {
-		for _, pattern := range patterns[layer] {
-			// Exact match or variations with underscores/prefixes/suffixes
-			if lastPart == pattern ||
-				strings.HasPrefix(lastPart, pattern+"_") ||
-				strings.HasSuffix(lastPart, "_"+pattern) {
-				return layer
-			}
-		}
-	}
-
-	// Priority 2: Check the second-to-last part if it exists
-	// This handles cases like "services.py" where the last part is just "py"
-	if len(parts) > 1 {
-		secondToLast := strings.ToLower(parts[len(parts)-2])
-		for _, layer := range lastPartPriority {
-			for _, pattern := range patterns[layer] {
-				if secondToLast == pattern || strings.HasPrefix(secondToLast, pattern+"_") || strings.HasSuffix(secondToLast, "_"+pattern) {
-					return layer
-				}
-			}
-		}
-	}
-
-	// Priority 3: Check all parts from beginning to end
-	// This catches cases where the layer indicator is in the middle of the path
-	for _, part := range parts {
-		lowerPart := strings.ToLower(part)
-		for _, layer := range lastPartPriority {
-			for _, pattern := range patterns[layer] {
-				if lowerPart == pattern {
-					return layer
-				}
-			}
-		}
-	}
-
-	return ""
 }
 
 // isArchitecturalComponent checks if a module part represents an architectural component
