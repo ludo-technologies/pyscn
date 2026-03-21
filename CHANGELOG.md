@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.13.0] - 2026-03-22
+
+### Added
+- Add neutral_prefixes config for architecture layer detection (#365)
+
+### Fixed
+- Add missing IsAbstract and Description fields to TOML layer/rule types (#362)
+- Use match position as tie-breaker in findLayerForModule (#361)
+- Replace detectLayerFromModule heuristic with findLayerForModule (#360)
+- Resolve layer misclassification for ambiguous module paths (#359)
+- Propagate architecture layers and rules from TOML config (#356)
+
+### Refactored
+- Extract color hex values into CSS custom properties and Go constants (#351)
+
+### Testing
+- Add architecture layer integration tests (#363)
+
 ## [1.12.0] - 2026-03-03
 
 ### Added
