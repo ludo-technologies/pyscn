@@ -9,6 +9,7 @@
 
 [architecture]
 enabled = true
+neutral_prefixes = ["app"]
 
 [[architecture.layers]]
 name = "presentation"

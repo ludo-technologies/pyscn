@@ -404,6 +404,9 @@ func mergeArchitectureSection(defaults *PyscnConfig, arch *ArchitectureTomlConfi
 	if arch.FailOnViolations != nil {
 		defaults.ArchitectureFailOnViolations = arch.FailOnViolations
 	}
+	if len(arch.NeutralPrefixes) > 0 {
+		defaults.ArchitectureNeutralPrefixes = arch.NeutralPrefixes
+	}
 	if len(arch.Layers) > 0 {
 		layers := make([]LayerDefinition, len(arch.Layers))
 		for i, l := range arch.Layers {

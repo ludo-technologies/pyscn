@@ -102,6 +102,7 @@ type ArchitectureTomlConfig struct {
 	ForbiddenPatterns               []string              `toml:"forbidden_patterns"`
 	StrictMode                      *bool                 `toml:"strict_mode"`
 	FailOnViolations                *bool                 `toml:"fail_on_violations"`
+	NeutralPrefixes                 []string              `toml:"neutral_prefixes"`
 	Layers                          []LayerDefinitionToml `toml:"layers"`
 	Rules                           []LayerRuleToml       `toml:"rules"`
 }
