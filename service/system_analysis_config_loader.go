@@ -54,7 +54,7 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) pyscnConfigToSystemAnalysisRequ
 
 	// Architecture settings
 	if cfg.ArchitectureStrictMode != nil || len(cfg.ArchitectureAllowedPatterns) > 0 || len(cfg.ArchitectureForbiddenPatterns) > 0 ||
-		len(cfg.ArchitectureLayers) > 0 || len(cfg.ArchitectureRules) > 0 {
+		len(cfg.ArchitectureLayers) > 0 || len(cfg.ArchitectureRules) > 0 || len(cfg.ArchitectureNeutralPrefixes) > 0 {
 		if request.ArchitectureRules == nil {
 			request.ArchitectureRules = &domain.ArchitectureRules{}
 		}
@@ -72,6 +72,9 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) pyscnConfigToSystemAnalysisRequ
 		}
 		if len(cfg.ArchitectureRules) > 0 {
 			request.ArchitectureRules.Rules = convertLayerRules(cfg.ArchitectureRules)
+		}
+		if len(cfg.ArchitectureNeutralPrefixes) > 0 {
+			request.ArchitectureRules.NeutralPrefixes = cfg.ArchitectureNeutralPrefixes
 		}
 	}
 
@@ -196,6 +199,9 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
 			}
 			if len(override.ArchitectureRules.ForbiddenPatterns) > 0 {
 				merged.ArchitectureRules.ForbiddenPatterns = override.ArchitectureRules.ForbiddenPatterns
+			}
+			if len(override.ArchitectureRules.NeutralPrefixes) > 0 {
+				merged.ArchitectureRules.NeutralPrefixes = override.ArchitectureRules.NeutralPrefixes
 			}
 		}
 	}

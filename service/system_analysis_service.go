@@ -454,7 +454,15 @@ func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.Dependen
 			out[module] = "unknown"
 			continue
 		}
-		out[module] = s.findLayerForModule(module, compiled)
+		// Strip the first matching neutral prefix before layer matching
+		stripped := module
+		for _, prefix := range rules.NeutralPrefixes {
+			if strings.HasPrefix(stripped, prefix+".") {
+				stripped = stripped[len(prefix)+1:]
+				break
+			}
+		}
+		out[module] = s.findLayerForModule(stripped, compiled)
 		if out[module] == "" {
 			out[module] = "unknown"
 		}
@@ -687,6 +695,7 @@ func (s *SystemAnalysisServiceImpl) resolveArchitectureRules(graph *analyzer.Dep
 	resolved := &domain.ArchitectureRules{
 		Layers:            append([]domain.Layer(nil), orig.Layers...),
 		Rules:             append([]domain.LayerRule(nil), orig.Rules...),
+		NeutralPrefixes:   append([]string(nil), orig.NeutralPrefixes...),
 		StrictMode:        orig.StrictMode,
 		AllowedPatterns:   orig.AllowedPatterns,
 		ForbiddenPatterns: orig.ForbiddenPatterns,

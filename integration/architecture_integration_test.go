@@ -159,3 +159,34 @@ func TestArchitecture_AllowedDepsNotFlagged(t *testing.T) {
 		}
 	}
 }
+
+// TestArchitecture_NeutralPrefixesLayerClassification verifies that the
+// neutral_prefixes config option strips prefixes from module names before
+// layer matching. The fastapi_layers test fixture has neutral_prefixes = ["app"],
+// so "app.routers.user_router" should be classified as "presentation".
+func TestArchitecture_NeutralPrefixesLayerClassification(t *testing.T) {
+	// Verify the config is loaded with neutral_prefixes
+	configLoader := service.NewSystemAnalysisConfigurationLoader()
+	cfg, err := configLoader.LoadConfig(fastapiLayersDir)
+	require.NoError(t, err)
+	require.NotNil(t, cfg.ArchitectureRules)
+	assert.Equal(t, []string{"app"}, cfg.ArchitectureRules.NeutralPrefixes,
+		"neutral_prefixes should be loaded from .pyscn.toml")
+
+	// Verify that layer classification works correctly with prefix stripping
+	result := analyzeArchitecture(t, fastapiLayersDir)
+	require.NotNil(t, result.LayerAnalysis)
+
+	// The coupling map should show the expected layer relationships.
+	// With neutral_prefixes = ["app"], "app.routers.*" -> presentation,
+	// "app.domain.*" -> domain, "app.repositories.*" -> infrastructure.
+	coupling := result.LayerAnalysis.LayerCoupling
+	require.Contains(t, coupling, "presentation",
+		"presentation layer should exist (modules like app.routers.* matched via prefix stripping)")
+
+	// Verify violations still use original module names (not stripped)
+	for _, v := range result.LayerAnalysis.LayerViolations {
+		assert.Contains(t, v.FromModule, "app.",
+			"violation module names should use original (unstripped) names")
+	}
+}

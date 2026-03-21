@@ -293,3 +293,129 @@ func TestBuildModuleLayerMap_AmbiguousPackagesPrefixWins(t *testing.T) {
 	assert.Equal(t, "application", moduleToLayer["app.services.billing"],
 		"app.services.billing: prefix 'app.services' → application")
 }
+
+func TestBuildModuleLayerMap_NeutralPrefixes(t *testing.T) {
+	svc := NewSystemAnalysisService()
+
+	t.Run("strips prefix before layer matching", func(t *testing.T) {
+		graph := analyzer.NewDependencyGraph("/project")
+		graph.AddModule("app.routers.user_router", "/project/app/routers/user_router.py")
+		graph.AddModule("app.domain.models", "/project/app/domain/models.py")
+		graph.AddModule("app.repositories.user_repo", "/project/app/repositories/user_repo.py")
+
+		rules := &domain.ArchitectureRules{
+			NeutralPrefixes: []string{"app"},
+			Layers: []domain.Layer{
+				{Name: "presentation", Packages: []string{"routers"}},
+				{Name: "domain", Packages: []string{"domain"}},
+				{Name: "infrastructure", Packages: []string{"repositories"}},
+			},
+		}
+
+		moduleToLayer := svc.buildModuleLayerMap(graph, rules)
+
+		// Keys must use original (unstripped) module names
+		assert.Equal(t, "presentation", moduleToLayer["app.routers.user_router"],
+			"app.routers.user_router with prefix 'app' stripped should match presentation")
+		assert.Equal(t, "domain", moduleToLayer["app.domain.models"],
+			"app.domain.models with prefix 'app' stripped should match domain")
+		assert.Equal(t, "infrastructure", moduleToLayer["app.repositories.user_repo"],
+			"app.repositories.user_repo with prefix 'app' stripped should match infrastructure")
+	})
+
+	t.Run("src prefix strips correctly", func(t *testing.T) {
+		graph := analyzer.NewDependencyGraph("/project")
+		graph.AddModule("src.domain.models", "/project/src/domain/models.py")
+
+		rules := &domain.ArchitectureRules{
+			NeutralPrefixes: []string{"src"},
+			Layers: []domain.Layer{
+				{Name: "domain", Packages: []string{"domain"}},
+			},
+		}
+
+		moduleToLayer := svc.buildModuleLayerMap(graph, rules)
+		assert.Equal(t, "domain", moduleToLayer["src.domain.models"])
+	})
+
+	t.Run("first matching prefix wins", func(t *testing.T) {
+		graph := analyzer.NewDependencyGraph("/project")
+		graph.AddModule("app.src.domain.models", "/project/app/src/domain/models.py")
+
+		rules := &domain.ArchitectureRules{
+			NeutralPrefixes: []string{"app", "src"},
+			Layers: []domain.Layer{
+				{Name: "domain", Packages: []string{"domain"}},
+				{Name: "source", Packages: []string{"src"}},
+			},
+		}
+
+		moduleToLayer := svc.buildModuleLayerMap(graph, rules)
+		// "app" is stripped first, leaving "src.domain.models" → matches "src" prefix → source
+		assert.Equal(t, "source", moduleToLayer["app.src.domain.models"],
+			"first matching prefix 'app' should be stripped, leaving 'src.domain.models'")
+	})
+
+	t.Run("non-matching prefixes don't affect results", func(t *testing.T) {
+		graph := analyzer.NewDependencyGraph("/project")
+		graph.AddModule("routers.user_router", "/project/routers/user_router.py")
+
+		rules := &domain.ArchitectureRules{
+			NeutralPrefixes: []string{"app", "src"},
+			Layers: []domain.Layer{
+				{Name: "presentation", Packages: []string{"routers"}},
+			},
+		}
+
+		moduleToLayer := svc.buildModuleLayerMap(graph, rules)
+		assert.Equal(t, "presentation", moduleToLayer["routers.user_router"],
+			"module without matching prefix should still classify correctly")
+	})
+
+	t.Run("module without prefix still works", func(t *testing.T) {
+		graph := analyzer.NewDependencyGraph("/project")
+		graph.AddModule("domain.models", "/project/domain/models.py")
+
+		rules := &domain.ArchitectureRules{
+			NeutralPrefixes: []string{"app"},
+			Layers: []domain.Layer{
+				{Name: "domain", Packages: []string{"domain"}},
+			},
+		}
+
+		moduleToLayer := svc.buildModuleLayerMap(graph, rules)
+		assert.Equal(t, "domain", moduleToLayer["domain.models"])
+	})
+
+	t.Run("partial prefix doesn't match", func(t *testing.T) {
+		graph := analyzer.NewDependencyGraph("/project")
+		graph.AddModule("application.foo", "/project/application/foo.py")
+
+		rules := &domain.ArchitectureRules{
+			NeutralPrefixes: []string{"app"},
+			Layers: []domain.Layer{
+				{Name: "app_layer", Packages: []string{"application"}},
+			},
+		}
+
+		moduleToLayer := svc.buildModuleLayerMap(graph, rules)
+		assert.Equal(t, "app_layer", moduleToLayer["application.foo"],
+			"prefix 'app' must not strip from 'application.foo' (requires dot boundary)")
+	})
+
+	t.Run("empty neutral prefixes has no effect", func(t *testing.T) {
+		graph := analyzer.NewDependencyGraph("/project")
+		graph.AddModule("app.routers.user_router", "/project/app/routers/user_router.py")
+
+		rules := &domain.ArchitectureRules{
+			NeutralPrefixes: []string{},
+			Layers: []domain.Layer{
+				{Name: "presentation", Packages: []string{"routers"}},
+			},
+		}
+
+		moduleToLayer := svc.buildModuleLayerMap(graph, rules)
+		// Without stripping, "app.routers.user_router" should still match "routers" via suffix
+		assert.Equal(t, "presentation", moduleToLayer["app.routers.user_router"])
+	})
+}

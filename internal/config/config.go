@@ -510,6 +510,9 @@ func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
 	if pyscn.ArchitectureFailOnViolations != nil {
 		cfg.Architecture.FailOnViolations = *pyscn.ArchitectureFailOnViolations
 	}
+	if len(pyscn.ArchitectureNeutralPrefixes) > 0 {
+		cfg.Architecture.NeutralPrefixes = pyscn.ArchitectureNeutralPrefixes
+	}
 	if len(pyscn.ArchitectureLayers) > 0 {
 		cfg.Architecture.Layers = pyscn.ArchitectureLayers
 	}
@@ -803,8 +806,9 @@ type ArchitectureConfig struct {
 	ValidateResponsibility bool `mapstructure:"validate_responsibility" yaml:"validate_responsibility"`
 
 	// Layer definitions
-	Layers []LayerDefinition `mapstructure:"layers" yaml:"layers"`
-	Rules  []LayerRule       `mapstructure:"rules" yaml:"rules"`
+	Layers          []LayerDefinition `mapstructure:"layers" yaml:"layers"`
+	Rules           []LayerRule       `mapstructure:"rules" yaml:"rules"`
+	NeutralPrefixes []string          `mapstructure:"neutral_prefixes" yaml:"neutral_prefixes"`
 
 	// Thresholds
 	MinCohesion         float64 `mapstructure:"min_cohesion" yaml:"min_cohesion"`
