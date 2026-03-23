@@ -228,6 +228,13 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 		progressDone = uc.startTimeBasedProgressUpdater(estimatedTime)
 	}
 
+	// Pre-parse all files into shared cache to avoid redundant parsing
+	needCFGs := !useCaseCfg.SkipComplexity || !useCaseCfg.SkipDeadCode
+	cache := service.PopulateParseCache(ctx, files, service.ParseCachePopulatorConfig{
+		BuildCFGs: needCFGs,
+	})
+	uc.injectParseCache(cache)
+
 	// Create analysis tasks
 	tasks := uc.createAnalysisTasks(useCaseCfg, files)
 
@@ -274,6 +281,25 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 
 	return response, nil
+}
+
+// injectParseCache passes the shared parse cache to each use case.
+func (uc *AnalyzeUseCase) injectParseCache(cache *service.ParseCache) {
+	if uc.complexityUseCase != nil {
+		uc.complexityUseCase.SetParseCache(cache)
+	}
+	if uc.deadCodeUseCase != nil {
+		uc.deadCodeUseCase.SetParseCache(cache)
+	}
+	if uc.cloneUseCase != nil {
+		uc.cloneUseCase.SetParseCache(cache)
+	}
+	if uc.cboUseCase != nil {
+		uc.cboUseCase.SetParseCache(cache)
+	}
+	if uc.lcomUseCase != nil {
+		uc.lcomUseCase.SetParseCache(cache)
+	}
 }
 
 // createAnalysisTasks creates the analysis tasks based on configuration
