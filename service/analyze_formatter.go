@@ -97,39 +97,6 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
 
-	// Suggestions
-	fmt.Fprint(writer, utils.FormatSectionHeader("SUGGESTIONS"))
-	if len(response.Suggestions) == 0 {
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Status", "No actionable suggestions"))
-	} else {
-		maxShow := 20
-		if len(response.Suggestions) < maxShow {
-			maxShow = len(response.Suggestions)
-		}
-		for _, s := range response.Suggestions[:maxShow] {
-			location := ""
-			if s.FilePath != "" {
-				location = s.FilePath
-				if s.StartLine > 0 {
-					location = fmt.Sprintf("%s:%d", s.FilePath, s.StartLine)
-				}
-			}
-			label := fmt.Sprintf("[%s/%s]", s.Severity, s.Effort)
-			detail := s.Title
-			if location != "" {
-				detail = fmt.Sprintf("%s (%s)", s.Title, location)
-			}
-			fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, label, detail))
-			for i, step := range s.Steps {
-				fmt.Fprintf(writer, "%s    %d. %s\n", strings.Repeat(" ", SectionPadding), i+1, step)
-			}
-		}
-		if len(response.Suggestions) > maxShow {
-			fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "...",
-				fmt.Sprintf("and %d more suggestions", len(response.Suggestions)-maxShow)))
-		}
-	}
-
 	return nil
 }
 

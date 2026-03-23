@@ -124,7 +124,6 @@ func TestAnalyzeFormatter_Write_Text(t *testing.T) {
 				"DEAD CODE DETECTION",
 				"CLONE DETECTION",
 				"DEPENDENCY ANALYSIS",
-				"SUGGESTIONS",
 			},
 		},
 		{
@@ -134,7 +133,6 @@ func TestAnalyzeFormatter_Write_Text(t *testing.T) {
 				"Comprehensive Analysis Report",
 				"Health Score",
 				"100/100",
-				"No actionable suggestions",
 			},
 			notExpected: []string{
 				"COMPLEXITY ANALYSIS",
@@ -249,81 +247,6 @@ func TestAnalyzeFormatter_Write_UnsupportedFormat(t *testing.T) {
 	err := formatter.Write(response, domain.OutputFormat("invalid"), &buf)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid")
-}
-
-func TestAnalyzeFormatter_WriteText_Suggestions(t *testing.T) {
-	tests := []struct {
-		name             string
-		modifyResponse   func(*domain.AnalyzeResponse)
-		expectedContains []string
-	}{
-		{
-			name: "no suggestions shows status message",
-			modifyResponse: func(r *domain.AnalyzeResponse) {
-				// No suggestions
-			},
-			expectedContains: []string{"SUGGESTIONS", "No actionable suggestions"},
-		},
-		{
-			name: "complexity suggestion displayed",
-			modifyResponse: func(r *domain.AnalyzeResponse) {
-				r.Suggestions = []domain.Suggestion{
-					{
-						Category: domain.SuggestionCategoryComplexity,
-						Severity: domain.SuggestionSeverityCritical,
-						Effort:   domain.SuggestionEffortModerate,
-						Title:    "Refactor high-complexity function 'process_data'",
-						FilePath: "main.py",
-					},
-				}
-			},
-			expectedContains: []string{"SUGGESTIONS", "Refactor high-complexity function 'process_data'", "critical/moderate"},
-		},
-		{
-			name: "multiple suggestions displayed",
-			modifyResponse: func(r *domain.AnalyzeResponse) {
-				r.Suggestions = []domain.Suggestion{
-					{
-						Category:  domain.SuggestionCategoryDeadCode,
-						Severity:  domain.SuggestionSeverityWarning,
-						Effort:    domain.SuggestionEffortEasy,
-						Title:     "Remove dead code after return in 'validate'",
-						FilePath:  "utils.py",
-						StartLine: 42,
-					},
-					{
-						Category: domain.SuggestionCategoryCoupling,
-						Severity: domain.SuggestionSeverityCritical,
-						Effort:   domain.SuggestionEffortHard,
-						Title:    "Reduce coupling in class 'UserService'",
-					},
-				}
-			},
-			expectedContains: []string{
-				"Remove dead code after return in 'validate'",
-				"Reduce coupling in class 'UserService'",
-				"utils.py:42",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			response := createMinimalAnalyzeResponse()
-			tt.modifyResponse(response)
-
-			formatter := NewAnalyzeFormatter()
-			var buf bytes.Buffer
-
-			err := formatter.Write(response, domain.OutputFormatText, &buf)
-			require.NoError(t, err)
-
-			output := buf.String()
-			for _, expected := range tt.expectedContains {
-				assert.Contains(t, output, expected)
-			}
-		})
-	}
 }
 
 func TestAnalyzeFormatter_WriteHTML_ScoreQuality(t *testing.T) {
