@@ -492,27 +492,6 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n")
 
-	// Print top suggestions
-	if len(response.Suggestions) > 0 {
-		maxShow := 5
-		if len(response.Suggestions) < maxShow {
-			maxShow = len(response.Suggestions)
-		}
-		fmt.Fprintf(cmd.ErrOrStderr(), "💡 Top Suggestions:\n")
-		for _, s := range response.Suggestions[:maxShow] {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  %s [%s] %s (%s)\n",
-				s.SeverityIcon(), s.Category, s.Title, s.Effort)
-			if len(s.Steps) > 0 {
-				fmt.Fprintf(cmd.ErrOrStderr(), "     → %s\n", s.Steps[0])
-			}
-		}
-		remaining := len(response.Suggestions) - maxShow
-		if remaining > 0 {
-			fmt.Fprintf(cmd.ErrOrStderr(), "  ... and %d more (see full report)\n", remaining)
-		}
-		fmt.Fprintf(cmd.ErrOrStderr(), "\n")
-	}
-
 	// Print README badge snippet
 	c.printBadge(cmd, response.Summary.Grade)
 }
