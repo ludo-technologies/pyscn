@@ -23,7 +23,7 @@ type CognitiveComplexityResult struct {
 //     ternary (IfExp), and each boolean operator sequence change
 //   - +nesting level (nesting increment) for: if, ternary (IfExp), for, while, except,
 //     match/case, nested functions/lambdas (structures that increase nesting)
-//   - Nesting level increases inside: if, elif, else, for, while, except, with, try,
+//   - Nesting level increases inside: if, elif, else, for, while, except, with,
 //     match/case, lambda, nested function/class definitions
 func CalculateCognitiveComplexity(funcNode *parser.Node) *CognitiveComplexityResult {
 	if funcNode == nil {
@@ -200,8 +200,8 @@ func traverseForCognitive(node *parser.Node, nestingLevel int, result *Cognitive
 		return
 
 	case parser.NodeLambda:
-		// Lambda increases nesting but +1 base + nesting increment
-		result.Total += 1 + nestingLevel
+		// Lambda increases nesting but does NOT add base increment
+		// (lambda is not a control flow break, only a nesting structure)
 		for _, bodyNode := range node.Body {
 			traverseForCognitive(bodyNode, nestingLevel+1, result)
 		}
@@ -273,6 +273,9 @@ func traverseChildrenForCognitive(node *parser.Node, nestingLevel int, result *C
 // A sequence of the same operator (a and b and c) counts as +1.
 // Alternating operators (a and b or c) counts as +2.
 // Nested BoolOps are handled by checking if children are also BoolOps.
+//
+// Note: The parser's buildBoolOp stores operands only in Children (via AddChild),
+// not in Left/Right. We only traverse Children to avoid double-counting.
 func countBoolOpComplexity(node *parser.Node, parentOp string, result *CognitiveComplexityResult) {
 	if node == nil || node.Type != parser.NodeBoolOp {
 		return
@@ -285,29 +288,13 @@ func countBoolOpComplexity(node *parser.Node, parentOp string, result *Cognitive
 		result.Total += 1
 	}
 
-	// Traverse children - if a child is also a BoolOp, recurse with current op
+	// Traverse Children only (parser stores BoolOp operands exclusively in Children)
 	for _, child := range node.Children {
 		if child != nil && child.Type == parser.NodeBoolOp {
 			countBoolOpComplexity(child, currentOp, result)
 		} else {
 			// Non-BoolOp children are regular expressions, traverse normally
 			traverseForCognitive(child, 0, result)
-		}
-	}
-
-	// Also check Left/Right (binary structure)
-	if node.Left != nil {
-		if node.Left.Type == parser.NodeBoolOp {
-			countBoolOpComplexity(node.Left, currentOp, result)
-		} else {
-			traverseForCognitive(node.Left, 0, result)
-		}
-	}
-	if node.Right != nil {
-		if node.Right.Type == parser.NodeBoolOp {
-			countBoolOpComplexity(node.Right, currentOp, result)
-		} else {
-			traverseForCognitive(node.Right, 0, result)
 		}
 	}
 }

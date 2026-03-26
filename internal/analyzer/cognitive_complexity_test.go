@@ -410,9 +410,8 @@ func TestCalculateCognitiveComplexity_BooleanOperator(t *testing.T) {
 					Children: []*parser.Node{
 						{Type: parser.NodeName, Name: "a"},
 						{Type: parser.NodeName, Name: "b"},
+						{Type: parser.NodeName, Name: "c"},
 					},
-					Left:  &parser.Node{Type: parser.NodeName, Name: "a"},
-					Right: &parser.Node{Type: parser.NodeName, Name: "c"},
 				},
 				Body: []*parser.Node{
 					{
@@ -453,13 +452,17 @@ func TestCalculateCognitiveComplexity_MixedBooleanOperators(t *testing.T) {
 				Test: &parser.Node{
 					Type: parser.NodeBoolOp,
 					Op:   "or",
-					Left: &parser.Node{
-						Type: parser.NodeBoolOp,
-						Op:   "and",
-						Left: &parser.Node{Type: parser.NodeName, Name: "a"},
-						Right: &parser.Node{Type: parser.NodeName, Name: "b"},
+					Children: []*parser.Node{
+						{
+							Type: parser.NodeBoolOp,
+							Op:   "and",
+							Children: []*parser.Node{
+								{Type: parser.NodeName, Name: "a"},
+								{Type: parser.NodeName, Name: "b"},
+							},
+						},
+						{Type: parser.NodeName, Name: "c"},
 					},
-					Right: &parser.Node{Type: parser.NodeName, Name: "c"},
 				},
 				Body: []*parser.Node{
 					{
@@ -689,5 +692,93 @@ func TestCalculateCognitiveComplexity_DeeplyNested(t *testing.T) {
 
 	if result.Total != 7 {
 		t.Errorf("Expected cognitive complexity 7 for deeply nested, got %d", result.Total)
+	}
+}
+
+func TestCalculateCognitiveComplexity_Lambda(t *testing.T) {
+	// def func():
+	//     f = lambda x: x + 1   # lambda: nesting increase only, no base increment
+	//     return f
+	// Cognitive complexity: 0
+	funcNode := &parser.Node{
+		Type: parser.NodeFunctionDef,
+		Name: "func",
+		Location: parser.Location{
+			StartLine: 1,
+			EndLine:   4,
+		},
+		Body: []*parser.Node{
+			{
+				Type: parser.NodeAssign,
+				Children: []*parser.Node{
+					{
+						Type: parser.NodeLambda,
+						Location: parser.Location{
+							StartLine: 2,
+						},
+						Body: []*parser.Node{
+							{
+								Type: parser.NodeBinOp,
+							},
+						},
+					},
+				},
+			},
+			{
+				Type: parser.NodeReturn,
+			},
+		},
+	}
+
+	result := CalculateCognitiveComplexity(funcNode)
+
+	if result.Total != 0 {
+		t.Errorf("Expected cognitive complexity 0 for lambda (no base increment), got %d", result.Total)
+	}
+}
+
+func TestCalculateCognitiveComplexity_LambdaWithNesting(t *testing.T) {
+	// def func():
+	//     f = lambda x: x if x > 0 else -x  # lambda: nesting+1, IfExp: +1 base + nesting=1 = +2
+	//     return f
+	// Cognitive complexity: 2
+	funcNode := &parser.Node{
+		Type: parser.NodeFunctionDef,
+		Name: "func",
+		Location: parser.Location{
+			StartLine: 1,
+			EndLine:   4,
+		},
+		Body: []*parser.Node{
+			{
+				Type: parser.NodeAssign,
+				Children: []*parser.Node{
+					{
+						Type: parser.NodeLambda,
+						Location: parser.Location{
+							StartLine: 2,
+						},
+						Children: []*parser.Node{
+							{
+								Type: parser.NodeIfExp,
+								Location: parser.Location{
+									StartLine: 2,
+								},
+								Test: &parser.Node{Type: parser.NodeCompare},
+							},
+						},
+					},
+				},
+			},
+			{
+				Type: parser.NodeReturn,
+			},
+		},
+	}
+
+	result := CalculateCognitiveComplexity(funcNode)
+
+	if result.Total != 2 {
+		t.Errorf("Expected cognitive complexity 2 for lambda with ternary, got %d", result.Total)
 	}
 }
