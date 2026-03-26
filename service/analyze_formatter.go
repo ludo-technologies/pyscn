@@ -691,6 +691,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <th>Function</th>
                             <th>File</th>
                             <th>Complexity</th>
+                            <th>Cognitive</th>
                             <th>Nesting Depth</th>
                             <th>Risk</th>
                         </tr>
@@ -702,6 +703,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <td>{{$f.Name}}</td>
                             <td>{{$f.FilePath}}</td>
                             <td>{{$f.Metrics.Complexity}}</td>
+                            <td>{{$f.Metrics.CognitiveComplexity}}</td>
                             <td>{{$f.Metrics.NestingDepth}}</td>
                             <td class="risk-{{$f.RiskLevel}}">{{$f.RiskLevel}}</td>
                         </tr>

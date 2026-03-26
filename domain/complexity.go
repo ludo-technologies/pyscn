@@ -75,6 +75,9 @@ type ComplexityMetrics struct {
 	// McCabe cyclomatic complexity
 	Complexity int
 
+	// Cognitive complexity (SonarQube-style)
+	CognitiveComplexity int
+
 	// CFG metrics
 	Nodes int
 	Edges int

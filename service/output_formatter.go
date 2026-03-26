@@ -149,7 +149,7 @@ func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (st
 	writer := csv.NewWriter(&builder)
 
 	// Write header
-	header := []string{"Function", "Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
+	header := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
 	if err := writer.Write(header); err != nil {
 		return "", domain.NewOutputError("failed to write CSV header", err)
 	}
@@ -159,6 +159,7 @@ func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (st
 		row := []string{
 			function.Name,
 			fmt.Sprintf("%d", function.Metrics.Complexity),
+			fmt.Sprintf("%d", function.Metrics.CognitiveComplexity),
 			string(function.RiskLevel),
 			fmt.Sprintf("%d", function.Metrics.Nodes),
 			fmt.Sprintf("%d", function.Metrics.Edges),
@@ -186,17 +187,18 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 	functions := make([]map[string]interface{}, len(response.Functions))
 	for i, function := range response.Functions {
 		functions[i] = map[string]interface{}{
-			"complexity":         function.Metrics.Complexity,
-			"function_name":      function.Name,
-			"file_path":          function.FilePath,
-			"risk_level":         string(function.RiskLevel),
-			"nodes":              function.Metrics.Nodes,
-			"edges":              function.Metrics.Edges,
-			"nesting_depth":      function.Metrics.NestingDepth,
-			"if_statements":      function.Metrics.IfStatements,
-			"loop_statements":    function.Metrics.LoopStatements,
-			"exception_handlers": function.Metrics.ExceptionHandlers,
-			"switch_cases":       function.Metrics.SwitchCases,
+			"complexity":            function.Metrics.Complexity,
+			"cognitive_complexity":  function.Metrics.CognitiveComplexity,
+			"function_name":         function.Name,
+			"file_path":             function.FilePath,
+			"risk_level":            string(function.RiskLevel),
+			"nodes":                 function.Metrics.Nodes,
+			"edges":                 function.Metrics.Edges,
+			"nesting_depth":         function.Metrics.NestingDepth,
+			"if_statements":         function.Metrics.IfStatements,
+			"loop_statements":       function.Metrics.LoopStatements,
+			"exception_handlers":    function.Metrics.ExceptionHandlers,
+			"switch_cases":          function.Metrics.SwitchCases,
 		}
 	}
 
