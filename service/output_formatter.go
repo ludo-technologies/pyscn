@@ -81,7 +81,7 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 	// Function Details
 	if len(response.Functions) > 0 {
 		builder.WriteString(utils.FormatSectionHeader("FUNCTION DETAILS"))
-		builder.WriteString(utils.FormatTableHeader("Function", "Complexity", "Risk"))
+		builder.WriteString(utils.FormatTableHeader("Function", "Complexity", "Cognitive", "Risk"))
 
 		for _, function := range response.Functions {
 			// Convert domain risk level to standard risk level
@@ -98,9 +98,10 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 			}
 
 			coloredRisk := utils.FormatRiskWithColor(standardRisk)
-			builder.WriteString(fmt.Sprintf("%-30s %10d  %s\n",
+			builder.WriteString(fmt.Sprintf("%-30s %10d %10d  %s\n",
 				function.Name,
 				function.Metrics.Complexity,
+				function.Metrics.CognitiveComplexity,
 				coloredRisk))
 		}
 		builder.WriteString(utils.FormatSectionSeparator())

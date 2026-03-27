@@ -435,7 +435,7 @@ func TestOutputFormatter_formatText(t *testing.T) {
 
 				// Check function details (new unified format)
 				assert.Contains(t, output, "FUNCTION DETAILS")
-				assert.Contains(t, output, "Function  Complexity  Risk")
+				assert.Contains(t, output, "Function  Complexity  Cognitive  Risk")
 				assert.Contains(t, output, "simple_function")
 				assert.Contains(t, output, "complex_function")
 
