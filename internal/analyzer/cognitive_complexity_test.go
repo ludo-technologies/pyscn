@@ -782,3 +782,57 @@ func TestCalculateCognitiveComplexity_LambdaWithNesting(t *testing.T) {
 		t.Errorf("Expected cognitive complexity 2 for lambda with ternary, got %d", result.Total)
 	}
 }
+
+func TestCalculateCognitiveComplexity_BoolOpWithNestedIfExp(t *testing.T) {
+	// def func(a, cond, x, y):
+	//     if a and (x if cond else y):  # if: +1(base) + 0(nesting)
+	//                                   # "and": +1(bool op)
+	//                                   # IfExp: +1(base) + 1(nesting from if)
+	//                                   # Total inside if's test is at nesting=1
+	//         pass
+	// Cognitive complexity: 3
+	funcNode := &parser.Node{
+		Type: parser.NodeFunctionDef,
+		Name: "func",
+		Location: parser.Location{
+			StartLine: 1,
+			EndLine:   4,
+		},
+		Body: []*parser.Node{
+			{
+				Type: parser.NodeIf,
+				Location: parser.Location{
+					StartLine: 2,
+				},
+				Test: &parser.Node{
+					Type: parser.NodeBoolOp,
+					Op:   "and",
+					Children: []*parser.Node{
+						{Type: parser.NodeName, Name: "a"},
+						{
+							Type: parser.NodeIfExp,
+							Location: parser.Location{
+								StartLine: 2,
+							},
+							Test: &parser.Node{Type: parser.NodeName, Name: "cond"},
+						},
+					},
+				},
+				Body: []*parser.Node{
+					{Type: parser.NodePass},
+				},
+			},
+		},
+	}
+
+	result := CalculateCognitiveComplexity(funcNode)
+
+	// if: +1, and: +1, IfExp at nesting=1 (inherited from if's test context): +1+1 = +2
+	// But BoolOp's children are traversed with nestingLevel from the caller (which is
+	// the if's test traversal at nestingLevel=0, not nestingLevel+1).
+	// The if condition's Test is traversed at nestingLevel (0), so IfExp gets +1+0 = +1.
+	// Total: 1(if) + 1(and) + 1(IfExp at nesting=0) = 3
+	if result.Total != 3 {
+		t.Errorf("Expected cognitive complexity 3 for BoolOp with nested IfExp, got %d", result.Total)
+	}
+}

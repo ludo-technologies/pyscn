@@ -183,7 +183,7 @@ func traverseForCognitive(node *parser.Node, nestingLevel int, result *Cognitive
 		// Boolean operator sequences: +1 per operator
 		// Nested BoolOps with same operator are part of one sequence (no extra increment)
 		// But alternating operators each get +1
-		countBoolOpComplexity(node, "", result)
+		countBoolOpComplexity(node, "", nestingLevel, result)
 		return
 
 	case parser.NodeIfExp:
@@ -276,7 +276,7 @@ func traverseChildrenForCognitive(node *parser.Node, nestingLevel int, result *C
 //
 // Note: The parser's buildBoolOp stores operands only in Children (via AddChild),
 // not in Left/Right. We only traverse Children to avoid double-counting.
-func countBoolOpComplexity(node *parser.Node, parentOp string, result *CognitiveComplexityResult) {
+func countBoolOpComplexity(node *parser.Node, parentOp string, nestingLevel int, result *CognitiveComplexityResult) {
 	if node == nil || node.Type != parser.NodeBoolOp {
 		return
 	}
@@ -291,10 +291,11 @@ func countBoolOpComplexity(node *parser.Node, parentOp string, result *Cognitive
 	// Traverse Children only (parser stores BoolOp operands exclusively in Children)
 	for _, child := range node.Children {
 		if child != nil && child.Type == parser.NodeBoolOp {
-			countBoolOpComplexity(child, currentOp, result)
+			countBoolOpComplexity(child, currentOp, nestingLevel, result)
 		} else {
-			// Non-BoolOp children are regular expressions, traverse normally
-			traverseForCognitive(child, 0, result)
+			// Non-BoolOp children may contain nested expressions (e.g., IfExp)
+			// that need the correct nesting level for their own increments
+			traverseForCognitive(child, nestingLevel, result)
 		}
 	}
 }
