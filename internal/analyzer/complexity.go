@@ -25,9 +25,6 @@ type ComplexityResult struct {
 	// Nesting depth
 	NestingDepth int
 
-	// Cognitive complexity (SonarQube-style)
-	CognitiveComplexity int
-
 	// Decision points breakdown
 	IfStatements      int
 	LoopStatements    int
@@ -54,13 +51,12 @@ func (cr *ComplexityResult) GetRiskLevel() string {
 
 func (cr *ComplexityResult) GetDetailedMetrics() map[string]int {
 	return map[string]int{
-		"nodes":                cr.Nodes,
-		"edges":                cr.Edges,
-		"cognitive_complexity": cr.CognitiveComplexity,
-		"if_statements":        cr.IfStatements,
-		"loop_statements":      cr.LoopStatements,
-		"exception_handlers":   cr.ExceptionHandlers,
-		"switch_cases":         cr.SwitchCases,
+		"nodes":              cr.Nodes,
+		"edges":              cr.Edges,
+		"if_statements":      cr.IfStatements,
+		"loop_statements":    cr.LoopStatements,
+		"exception_handlers": cr.ExceptionHandlers,
+		"switch_cases":       cr.SwitchCases,
 	}
 }
 
@@ -157,18 +153,14 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 	// Count actual conditional decisions (blocks with conditional outgoing edges)
 	conditionalDecisions := len(visitor.decisionPoints)
 
-	// Calculate nesting depth and cognitive complexity if function node is available
+	// Calculate nesting depth if function node is available
 	nestingDepth := 0
-	cognitiveComplexity := 0
 	startLine := 0
 	startCol := 0
 	endLine := 0
 	if cfg.FunctionNode != nil {
 		nestingResult := CalculateMaxNestingDepth(cfg.FunctionNode)
 		nestingDepth = nestingResult.MaxDepth
-
-		cognitiveResult := CalculateCognitiveComplexity(cfg.FunctionNode)
-		cognitiveComplexity = cognitiveResult.Total
 
 		startLine = cfg.FunctionNode.Location.StartLine
 		startCol = cfg.FunctionNode.Location.StartCol
@@ -185,7 +177,6 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 		StartCol:            startCol,
 		EndLine:             endLine,
 		NestingDepth:        nestingDepth,
-		CognitiveComplexity: cognitiveComplexity,
 		IfStatements:        conditionalDecisions, // Accurate count of decision points
 		LoopStatements:      visitor.loopStatements,
 		ExceptionHandlers:   visitor.exceptionHandlers,
