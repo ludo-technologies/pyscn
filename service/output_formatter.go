@@ -188,18 +188,18 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 	functions := make([]map[string]interface{}, len(response.Functions))
 	for i, function := range response.Functions {
 		functions[i] = map[string]interface{}{
-			"complexity":            function.Metrics.Complexity,
-			"cognitive_complexity":  function.Metrics.CognitiveComplexity,
-			"function_name":         function.Name,
-			"file_path":             function.FilePath,
-			"risk_level":            string(function.RiskLevel),
-			"nodes":                 function.Metrics.Nodes,
-			"edges":                 function.Metrics.Edges,
-			"nesting_depth":         function.Metrics.NestingDepth,
-			"if_statements":         function.Metrics.IfStatements,
-			"loop_statements":       function.Metrics.LoopStatements,
-			"exception_handlers":    function.Metrics.ExceptionHandlers,
-			"switch_cases":          function.Metrics.SwitchCases,
+			"complexity":           function.Metrics.Complexity,
+			"cognitive_complexity": function.Metrics.CognitiveComplexity,
+			"function_name":        function.Name,
+			"file_path":            function.FilePath,
+			"risk_level":           string(function.RiskLevel),
+			"nodes":                function.Metrics.Nodes,
+			"edges":                function.Metrics.Edges,
+			"nesting_depth":        function.Metrics.NestingDepth,
+			"if_statements":        function.Metrics.IfStatements,
+			"loop_statements":      function.Metrics.LoopStatements,
+			"exception_handlers":   function.Metrics.ExceptionHandlers,
+			"switch_cases":         function.Metrics.SwitchCases,
 		}
 	}
 
