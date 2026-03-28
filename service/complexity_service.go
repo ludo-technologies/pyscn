@@ -131,6 +131,13 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 			continue
 		}
 
+		// Calculate cognitive complexity independently from CFG-based McCabe calculation
+		cognitiveComplexity := 0
+		if cfg.FunctionNode != nil {
+			cognitiveResult := analyzer.CalculateCognitiveComplexity(cfg.FunctionNode)
+			cognitiveComplexity = cognitiveResult.Total
+		}
+
 		riskLevel := s.calculateRiskLevel(result.Complexity, req)
 
 		function := domain.FunctionComplexity{
@@ -140,14 +147,15 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 			StartColumn: result.StartCol,
 			EndLine:     result.EndLine,
 			Metrics: domain.ComplexityMetrics{
-				Complexity:        result.Complexity,
-				Nodes:             result.Nodes,
-				Edges:             result.Edges,
-				NestingDepth:      result.NestingDepth,
-				IfStatements:      result.IfStatements,
-				LoopStatements:    result.LoopStatements,
-				ExceptionHandlers: result.ExceptionHandlers,
-				SwitchCases:       result.SwitchCases,
+				Complexity:          result.Complexity,
+				CognitiveComplexity: cognitiveComplexity,
+				Nodes:               result.Nodes,
+				Edges:               result.Edges,
+				NestingDepth:        result.NestingDepth,
+				IfStatements:        result.IfStatements,
+				LoopStatements:      result.LoopStatements,
+				ExceptionHandlers:   result.ExceptionHandlers,
+				SwitchCases:         result.SwitchCases,
 			},
 			RiskLevel: riskLevel,
 		}

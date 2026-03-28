@@ -527,6 +527,7 @@ func (f *HTMLFormatterImpl) getFunctionTableHTML() string {
                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Function</th>
                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">File</th>
                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Complexity</th>
+                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Cognitive</th>
                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Nesting Depth</th>
                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Risk</th>
                     </tr>
@@ -537,6 +538,7 @@ func (f *HTMLFormatterImpl) getFunctionTableHTML() string {
                         <td style="padding: 12px;">{{.Name}}</td>
                         <td style="padding: 12px; color: #666;">{{.FilePath}}</td>
                         <td style="padding: 12px; text-align: center;">{{.Metrics.Complexity}}</td>
+                        <td style="padding: 12px; text-align: center;">{{.Metrics.CognitiveComplexity}}</td>
                         <td style="padding: 12px; text-align: center;">{{.Metrics.NestingDepth}}</td>
                         <td style="padding: 12px; text-align: center;">
                             <span class="risk-{{.RiskLevel}}" style="padding: 4px 8px; border-radius: 4px; font-weight: 600;">{{.RiskLevel}}</span>
