@@ -2,9 +2,15 @@ package domain
 
 import (
 	"fmt"
+	"io"
 	"math"
 	"time"
 )
+
+// AnalyzeOutputFormatter defines the interface for formatting unified analysis results
+type AnalyzeOutputFormatter interface {
+	Write(response *AnalyzeResponse, format OutputFormat, writer io.Writer) error
+}
 
 // Health Score Calculation Constants
 const (
