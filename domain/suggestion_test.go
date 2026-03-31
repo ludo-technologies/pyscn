@@ -161,6 +161,41 @@ func TestGenerateSuggestions_ComplexityExceptionHandlers(t *testing.T) {
 	}
 }
 
+func TestGenerateSuggestions_ComplexityTopLevel(t *testing.T) {
+	resp := &AnalyzeResponse{
+		Complexity: &ComplexityResponse{
+			Functions: []FunctionComplexity{
+				{
+					Name:     "__main__",
+					FilePath: "src/comprehensions.py",
+					Metrics:  ComplexityMetrics{Complexity: 15},
+				},
+			},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != 1 {
+		t.Fatalf("expected 1 suggestion, got %d", len(suggestions))
+	}
+	s := suggestions[0]
+	if !strings.Contains(s.Title, "comprehensions.py") {
+		t.Errorf("expected title to contain filename, got: %s", s.Title)
+	}
+	if strings.Contains(s.Title, "__main__") {
+		t.Errorf("title should not contain '__main__', got: %s", s.Title)
+	}
+	if !strings.Contains(s.Description, "Top-level code") {
+		t.Errorf("expected description to mention top-level code, got: %s", s.Description)
+	}
+	if s.Function != "__main__" {
+		t.Errorf("expected Function field to remain '__main__', got: %s", s.Function)
+	}
+	if !strings.Contains(s.Steps[0], "Extract top-level logic") {
+		t.Errorf("expected top-level specific steps, got: %v", s.Steps)
+	}
+}
+
 func TestGenerateSuggestions_DeadCodeOnly(t *testing.T) {
 	resp := &AnalyzeResponse{
 		DeadCode: &DeadCodeResponse{
