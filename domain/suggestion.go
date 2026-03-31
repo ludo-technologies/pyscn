@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -90,35 +91,51 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 			sev = SuggestionSeverityCritical
 		}
 
-		desc := fmt.Sprintf("Function '%s' has cyclomatic complexity of %d.", f.Name, complexity)
+		var title, desc string
 		var steps []string
-		if f.Metrics.NestingDepth > 4 {
-			desc += " Consider using early returns or guard clauses to reduce nesting depth."
+		isTopLevel := f.Name == "__main__"
+		basename := filepath.Base(f.FilePath)
+
+		if isTopLevel {
+			title = fmt.Sprintf("Reduce top-level code complexity in '%s'", basename)
+			desc = fmt.Sprintf("Top-level code in '%s' has cyclomatic complexity of %d.", basename, complexity)
+			desc += " Consider extracting logic into well-named functions."
 			steps = []string{
-				fmt.Sprintf("Identify the deepest nested block at line %d", f.StartLine),
-				"Convert nested conditions to early returns or guard clauses",
-				fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
-			}
-		} else if f.Metrics.LoopStatements >= 3 {
-			desc += " Consider extracting helper functions to reduce complexity."
-			steps = []string{
-				"Extract loop bodies into named helper functions",
-				"Consider using list comprehensions or map/filter for simple loops",
-				fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
-			}
-		} else if f.Metrics.ExceptionHandlers >= 3 {
-			desc += " Consider extracting helper functions to reduce complexity."
-			steps = []string{
-				"Consolidate exception handlers — merge similar except blocks",
-				"Extract try/except blocks into dedicated error-handling functions",
+				"Extract top-level logic into well-named functions",
+				"Keep module-level code to imports, constants, and a main() call",
 				fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
 			}
 		} else {
-			desc += " Consider extracting helper functions to reduce complexity."
-			steps = []string{
-				fmt.Sprintf("Split '%s' into smaller functions, each handling one responsibility", f.Name),
-				"Extract blocks of 10+ lines into well-named helper functions",
-				fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
+			title = fmt.Sprintf("Refactor high-complexity function '%s'", f.Name)
+			desc = fmt.Sprintf("Function '%s' has cyclomatic complexity of %d.", f.Name, complexity)
+			if f.Metrics.NestingDepth > 4 {
+				desc += " Consider using early returns or guard clauses to reduce nesting depth."
+				steps = []string{
+					fmt.Sprintf("Identify the deepest nested block at line %d", f.StartLine),
+					"Convert nested conditions to early returns or guard clauses",
+					fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
+				}
+			} else if f.Metrics.LoopStatements >= 3 {
+				desc += " Consider extracting helper functions to reduce complexity."
+				steps = []string{
+					"Extract loop bodies into named helper functions",
+					"Consider using list comprehensions or map/filter for simple loops",
+					fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
+				}
+			} else if f.Metrics.ExceptionHandlers >= 3 {
+				desc += " Consider extracting helper functions to reduce complexity."
+				steps = []string{
+					"Consolidate exception handlers — merge similar except blocks",
+					"Extract try/except blocks into dedicated error-handling functions",
+					fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
+				}
+			} else {
+				desc += " Consider extracting helper functions to reduce complexity."
+				steps = []string{
+					fmt.Sprintf("Split '%s' into smaller functions, each handling one responsibility", f.Name),
+					"Extract blocks of 10+ lines into well-named helper functions",
+					fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
+				}
 			}
 		}
 
@@ -126,7 +143,7 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 			Category:    SuggestionCategoryComplexity,
 			Severity:    sev,
 			Effort:      SuggestionEffortModerate,
-			Title:       fmt.Sprintf("Refactor high-complexity function '%s'", f.Name),
+			Title:       title,
 			Description: desc,
 			Steps:       steps,
 			FilePath:    f.FilePath,
