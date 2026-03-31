@@ -45,7 +45,7 @@ type AnalyzeUseCase struct {
 	systemUseCase     *SystemAnalysisUseCase
 
 	fileReader       domain.FileReader
-	formatter        *service.AnalyzeFormatter
+	formatter        domain.AnalyzeOutputFormatter
 	progressManager  domain.ProgressManager
 	parallelExecutor domain.ParallelExecutor
 	errorCategorizer domain.ErrorCategorizer
@@ -61,7 +61,7 @@ type AnalyzeUseCaseBuilder struct {
 	systemUseCase     *SystemAnalysisUseCase
 
 	fileReader       domain.FileReader
-	formatter        *service.AnalyzeFormatter
+	formatter        domain.AnalyzeOutputFormatter
 	progressManager  domain.ProgressManager
 	parallelExecutor domain.ParallelExecutor
 	errorCategorizer domain.ErrorCategorizer
@@ -115,7 +115,7 @@ func (b *AnalyzeUseCaseBuilder) WithFileReader(fr domain.FileReader) *AnalyzeUse
 }
 
 // WithFormatter sets the formatter
-func (b *AnalyzeUseCaseBuilder) WithFormatter(f *service.AnalyzeFormatter) *AnalyzeUseCaseBuilder {
+func (b *AnalyzeUseCaseBuilder) WithFormatter(f domain.AnalyzeOutputFormatter) *AnalyzeUseCaseBuilder {
 	b.formatter = f
 	return b
 }
