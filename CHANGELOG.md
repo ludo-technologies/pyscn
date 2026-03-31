@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.14.0] - 2026-04-01
+
+### Added
+- Add Cognitive Complexity metric with SonarQube-style calculation (#370)
+- Improve display of `__main__` top-level code suggestions (#375)
+
+### Refactored
+- Remove top suggestions from terminal output (#369)
+- Refactor AnalyzeUseCase to depend on AnalyzeOutputFormatter interface (#376)
+
 ## [1.13.0] - 2026-03-22
 
 ### Added
