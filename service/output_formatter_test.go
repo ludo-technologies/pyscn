@@ -148,18 +148,20 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Len(t, records, 3, "Should have header plus 2 function rows")
 
 				// Check header
-				expectedHeaders := []string{"Function", "Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
+				expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
 				assert.Equal(t, expectedHeaders, records[0])
 
 				// Check first data row
 				assert.Equal(t, "simple_function", records[1][0])
 				assert.Equal(t, "2", records[1][1])
-				assert.Equal(t, "low", records[1][2])
+				assert.Equal(t, "0", records[1][2]) // Cognitive Complexity
+				assert.Equal(t, "low", records[1][3])
 
 				// Check second data row
 				assert.Equal(t, "complex_function", records[2][0])
 				assert.Equal(t, "8", records[2][1])
-				assert.Equal(t, "high", records[2][2])
+				assert.Equal(t, "0", records[2][2]) // Cognitive Complexity
+				assert.Equal(t, "high", records[2][3])
 			},
 			expectError: false,
 		},
@@ -344,7 +346,7 @@ func TestOutputFormatter_Write(t *testing.T) {
 			writer:   &strings.Builder{},
 			validateWriter: func(t *testing.T, writer *strings.Builder) {
 				output := writer.String()
-				assert.Contains(t, output, "Function,Complexity,Risk")
+				assert.Contains(t, output, "Function,Complexity,Cognitive Complexity,Risk")
 				assert.Contains(t, output, "simple_function")
 				assert.Contains(t, output, "complex_function")
 			},
@@ -433,7 +435,7 @@ func TestOutputFormatter_formatText(t *testing.T) {
 
 				// Check function details (new unified format)
 				assert.Contains(t, output, "FUNCTION DETAILS")
-				assert.Contains(t, output, "Function  Complexity  Risk")
+				assert.Contains(t, output, "Function  Complexity  Cognitive  Risk")
 				assert.Contains(t, output, "simple_function")
 				assert.Contains(t, output, "complex_function")
 
@@ -556,12 +558,12 @@ func TestOutputFormatter_formatCSV(t *testing.T) {
 	assert.Len(t, records, 3) // Header + 2 functions
 
 	// Check header
-	expectedHeaders := []string{"Function", "Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
+	expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
 	assert.Equal(t, expectedHeaders, records[0])
 
 	// Check data rows (risk levels are lowercase in actual implementation)
-	assert.Equal(t, []string{"simple_function", "2", "low", "5", "4", "0", "1", "0", "0"}, records[1])
-	assert.Equal(t, []string{"complex_function", "8", "high", "20", "18", "0", "3", "2", "1"}, records[2])
+	assert.Equal(t, []string{"simple_function", "2", "0", "low", "5", "4", "0", "1", "0", "0"}, records[1])
+	assert.Equal(t, []string{"complex_function", "8", "0", "high", "20", "18", "0", "3", "2", "1"}, records[2])
 }
 
 // TestOutputFormatter_NewOutputFormatter tests service creation

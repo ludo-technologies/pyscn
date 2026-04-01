@@ -124,6 +124,8 @@ func (b *ASTBuilder) buildNode(tsNode *sitter.Node) *Node {
 		return b.buildUnaryOp(tsNode)
 	case "boolean_operator":
 		return b.buildBoolOp(tsNode)
+	case "named_expression":
+		return b.buildNamedExpr(tsNode)
 	case "comparison_operator":
 		return b.buildCompare(tsNode)
 	case "conditional_expression":
@@ -242,8 +244,14 @@ func (b *ASTBuilder) buildFunctionDef(tsNode *sitter.Node) *Node {
 
 	// Get return type annotation if present
 	if returnType := b.getChildByFieldName(tsNode, "return_type"); returnType != nil {
-		// Store return type in Value field
+		// Store return type in Value field (for backward compatibility)
 		node.Value = b.getNodeText(returnType)
+		// Also build the return type as an AST node and store in Right field
+		// Using Right instead of Children to avoid DFA treating type annotations as uses
+		returnTypeNode := b.buildNode(returnType)
+		if returnTypeNode != nil {
+			node.Right = returnTypeNode
+		}
 	}
 
 	return node
@@ -850,9 +858,12 @@ func (b *ASTBuilder) buildContinueStatement(tsNode *sitter.Node) *Node {
 	return node
 }
 
-// buildDecoratedDefinition builds a decorated function or class
+// buildDecoratedDefinition builds a decorated function or class.
+// Decorators appear before the definition in tree-sitter's child order,
+// so we collect them first and attach after the definition node is built.
 func (b *ASTBuilder) buildDecoratedDefinition(tsNode *sitter.Node) *Node {
 	var defNode *Node
+	var decorators []*Node
 
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
@@ -861,13 +872,17 @@ func (b *ASTBuilder) buildDecoratedDefinition(tsNode *sitter.Node) *Node {
 			switch child.Type() {
 			case "decorator":
 				dec := b.buildDecorator(child)
-				if dec != nil && defNode != nil {
-					defNode.Decorator = append(defNode.Decorator, dec)
+				if dec != nil {
+					decorators = append(decorators, dec)
 				}
 			case "function_definition", "class_definition":
 				defNode = b.buildNode(child)
 			}
 		}
+	}
+
+	if defNode != nil {
+		defNode.Decorator = append(defNode.Decorator, decorators...)
 	}
 
 	return defNode
@@ -906,6 +921,24 @@ func (b *ASTBuilder) buildUnaryOp(tsNode *sitter.Node) *Node {
 
 	if operand := b.getChildByFieldName(tsNode, "operand"); operand != nil {
 		node.Value = b.buildNode(operand)
+	}
+
+	return node
+}
+
+// buildNamedExpr builds a named expression node (walrus operator)
+func (b *ASTBuilder) buildNamedExpr(tsNode *sitter.Node) *Node {
+	node := NewNode(NodeNamedExpr)
+	node.Location = b.getLocation(tsNode)
+
+	// Get name (target)
+	if name := b.getChildByFieldName(tsNode, "name"); name != nil {
+		node.AddChild(b.buildNode(name))
+	}
+
+	// Get value
+	if value := b.getChildByFieldName(tsNode, "value"); value != nil {
+		node.Value = b.buildNode(value)
 	}
 
 	return node
@@ -1442,9 +1475,15 @@ func (b *ASTBuilder) buildParameters(tsNode *sitter.Node) []*Node {
 				if nameNode := b.getChildByFieldName(child, "name"); nameNode != nil {
 					arg.Name = b.getNodeText(nameNode)
 				}
-				// Store type annotation in Value field for now
+				// Store type annotation both as text (for backward compatibility) and as AST node
 				if typeNode := b.getChildByFieldName(child, "type"); typeNode != nil {
 					arg.Value = b.getNodeText(typeNode)
+					// Also build the type annotation as an AST node and add to Children
+					// This allows proper analysis of complex types like Union (X | Y)
+					typeASTNode := b.buildNode(typeNode)
+					if typeASTNode != nil {
+						arg.Children = append(arg.Children, typeASTNode)
+					}
 				}
 				params = append(params, arg)
 			case "list_splat_pattern":

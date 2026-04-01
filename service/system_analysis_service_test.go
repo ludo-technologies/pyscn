@@ -302,3 +302,178 @@ func TestExtractModuleMetrics_MultipleModules(t *testing.T) {
 	assert.Equal(t, 1, metricsC.ClassCount)
 	assert.Equal(t, []string{"ClassC"}, metricsC.PublicInterface)
 }
+
+func TestIsTestModule(t *testing.T) {
+	service := &SystemAnalysisServiceImpl{}
+
+	testCases := []struct {
+		module   string
+		expected bool
+	}{
+		// Test modules - should return true
+		{"tests.test_model", true},
+		{"test_model", true},
+		{"model_test", true},
+		{"tests", true},
+		{"test", true},
+		{"app.testing.fixtures", true},
+		{"conftest", true},
+		{"app.tests.unit.test_service", true},
+		{"test.unit.test_controller", true},
+		{"tests.integration.test_api", true},
+		{"app.test_user", true},
+		{"api_test", true},
+
+		// Non-test modules - should return false
+		{"app.domain.models", false},
+		{"app.models.user_model", false},
+		{"app.services.user_service", false},
+		{"app.controllers.api", false},
+		{"domain.entities", false},
+		{"infrastructure.repository", false},
+		{"contest", false},              // Not a test - "conftest" is special, but "contest" is not
+		{"app.contestant.model", false}, // Contains "test" but not a test module
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.module, func(t *testing.T) {
+			result := service.isTestModule(tc.module)
+			assert.Equal(t, tc.expected, result, "isTestModule(%q) = %v, expected %v", tc.module, result, tc.expected)
+		})
+	}
+}
+
+func TestFindLayerForModule_WithDefaultPatterns(t *testing.T) {
+	service := &SystemAnalysisServiceImpl{}
+
+	// Standard layer definitions matching the default config
+	layers := []domain.Layer{
+		{Name: "domain", Packages: []string{"models", "model", "entities", "entity", "domain", "schemas", "schema"}},
+		{Name: "application", Packages: []string{"services", "service", "use_cases", "usecase"}},
+		{Name: "infrastructure", Packages: []string{"repositories", "repository", "db", "database"}},
+		{Name: "presentation", Packages: []string{"controllers", "controller", "api", "views", "router"}},
+	}
+	compiled := service.compileLayerPatterns(layers)
+
+	testCases := []struct {
+		module   string
+		expected string
+	}{
+		// Issue #354: last-segment heuristic misclassifications
+		{"domain.service", "domain"},
+		{"domain.repository", "domain"},
+		{"service.models", "application"},
+		{"app.domain.user_service", "domain"},
+
+		// Issue #355: tie-breaker should prefer earlier match position, not longer pattern
+		{"app.domain_service", "domain"},                                // underscore-boundary: "domain" at pos 4 beats "service" at pos 11
+		{"app.model_repository", "domain"},                              // underscore-boundary: "model" at pos 4 beats "repository" at pos 10
+		{"app.controller_service", "presentation"},                      // underscore-boundary: "controller" at pos 4 beats "service" at pos 15
+		{"app.domain.service", "domain"},                                // dot-separated suffix: "domain" at pos 4 beats "service" at pos 11
+		{"pkg.entity.repository", "domain"},                             // dot-separated suffix: "entity" at pos 4 beats "repository" at pos 11
+		{"app.controller.service.usercontrollerhelper", "presentation"}, // substring regression: segment "controller" wins over substring in later segment
+
+		// Valid domain modules
+		{"app.domain.models", "domain"},
+		{"app.models.user_model", "domain"},
+		{"domain.entities", "domain"},
+		{"app.schemas.user_schema", "domain"},
+
+		// Valid application modules
+		{"app.services.user_service", "application"},
+		{"app.use_cases.create_user", "application"},
+
+		// Valid infrastructure modules
+		{"app.repositories.user_repository", "infrastructure"},
+		{"infrastructure.db", "infrastructure"},
+
+		// Valid presentation modules
+		{"app.api.v1.router", "presentation"},
+		{"app.controllers.user_controller", "presentation"},
+
+		// No match
+		{"utils.helpers", ""},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.module, func(t *testing.T) {
+			result := service.findLayerForModule(tc.module, compiled)
+			assert.Equal(t, tc.expected, result, "findLayerForModule(%q) = %q, expected %q", tc.module, result, tc.expected)
+		})
+	}
+}
+
+func TestAutoDetectArchitecture_ExcludesTestModules(t *testing.T) {
+	service := &SystemAnalysisServiceImpl{}
+
+	testModules := []string{
+		"tests.test_model",
+		"tests.test_entity",
+		"tests.test_schema",
+		"test.unit.test_service",
+		"app.testing.fixtures",
+		"conftest",
+		"tests.integration.test_api",
+		"test_controller",
+		"repository_test",
+	}
+
+	for _, module := range testModules {
+		t.Run(module, func(t *testing.T) {
+			assert.True(t, service.isTestModule(module), "isTestModule(%q) should be true", module)
+		})
+	}
+}
+
+func TestBuildModuleLayerMap_ExcludesTestModules(t *testing.T) {
+	svc := NewSystemAnalysisService()
+
+	graph := analyzer.NewDependencyGraph("/project")
+	graph.AddModule("app.services.user_service", "/project/app/services/user_service.py")
+	graph.AddModule("tests.test_service", "/project/tests/test_service.py")
+	graph.AddModule("test_controller", "/project/test_controller.py")
+
+	rules := &domain.ArchitectureRules{
+		Layers: []domain.Layer{
+			{Name: "application", Packages: []string{"services", "service"}},
+			{Name: "presentation", Packages: []string{"controller"}},
+		},
+	}
+
+	result := svc.buildModuleLayerMap(graph, rules)
+
+	assert.Equal(t, "application", result["app.services.user_service"])
+	assert.Equal(t, "unknown", result["tests.test_service"],
+		"test module tests.test_service should not be classified as a layer")
+	assert.Equal(t, "unknown", result["test_controller"],
+		"test module test_controller should not be classified as a layer")
+}
+
+func TestFindLayerForModule_CaseInsensitive(t *testing.T) {
+	service := &SystemAnalysisServiceImpl{}
+
+	layers := []domain.Layer{
+		{Name: "domain", Packages: []string{"models", "domain"}},
+		{Name: "application", Packages: []string{"services", "service"}},
+		{Name: "presentation", Packages: []string{"api", "controller"}},
+	}
+	compiled := service.compileLayerPatterns(layers)
+
+	testCases := []struct {
+		module   string
+		expected string
+	}{
+		{"API.v1", "presentation"},
+		{"app.Services.billing", "application"},
+		{"User_Service", "application"},
+		{"Domain.Models", "domain"},
+		{"APP.DOMAIN.user", "domain"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.module, func(t *testing.T) {
+			result := service.findLayerForModule(tc.module, compiled)
+			assert.Equal(t, tc.expected, result, "findLayerForModule(%q) should be case-insensitive", tc.module)
+		})
+	}
+}

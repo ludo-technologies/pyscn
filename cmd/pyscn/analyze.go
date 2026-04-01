@@ -35,6 +35,7 @@ type AnalyzeCommand struct {
 	skipDeadCode   bool
 	skipClones     bool
 	skipCBO        bool
+	skipLCOM       bool
 	skipSystem     bool
 	selectAnalyses []string // Only run specified analyses
 
@@ -66,10 +67,11 @@ func NewAnalyzeCommand() *AnalyzeCommand {
 		skipDeadCode:    false,
 		skipClones:      false,
 		skipCBO:         false,
+		skipLCOM:        false,
 		skipSystem:      false,
 		minComplexity:   5,
 		minSeverity:     "warning",
-		cloneSimilarity: 0.9,
+		cloneSimilarity: 0.65,
 		minCBO:          0,
 		enableDFA:       true,
 		detectCycles:    true,
@@ -89,6 +91,7 @@ This command performs all available static analyses on Python code:
 • Dead code detection using CFG analysis
 • Code clone detection using APTED algorithm
 • Dependency analysis (class coupling)
+• Class cohesion analysis (LCOM4)
 • System-level analysis (module dependencies and architecture)
 
 The analyses run concurrently for optimal performance. Results are combined
@@ -126,13 +129,14 @@ Examples:
 	cmd.Flags().BoolVar(&c.skipDeadCode, "skip-deadcode", false, "Skip dead code detection")
 	cmd.Flags().BoolVar(&c.skipClones, "skip-clones", false, "Skip clone detection")
 	cmd.Flags().BoolVar(&c.skipCBO, "skip-cbo", false, "Skip class coupling (CBO) analysis")
+	cmd.Flags().BoolVar(&c.skipLCOM, "skip-lcom", false, "Skip class cohesion (LCOM4) analysis")
 	cmd.Flags().BoolVar(&c.skipSystem, "skip-deps", false, "Skip module dependencies and architecture analysis")
-	cmd.Flags().StringSliceVar(&c.selectAnalyses, "select", []string{}, "Only run specified analyses (complexity,deadcode,clones,cbo,deps)")
+	cmd.Flags().StringSliceVar(&c.selectAnalyses, "select", []string{}, "Only run specified analyses (complexity,deadcode,clones,cbo,lcom,deps)")
 
 	// Quick filter flags
 	cmd.Flags().IntVar(&c.minComplexity, "min-complexity", 5, "Minimum complexity to report")
 	cmd.Flags().StringVar(&c.minSeverity, "min-severity", "warning", "Minimum dead code severity (critical, warning, info)")
-	cmd.Flags().Float64Var(&c.cloneSimilarity, "clone-threshold", 0.9, "Minimum similarity for clone detection (0.0-1.0)")
+	cmd.Flags().Float64Var(&c.cloneSimilarity, "clone-threshold", 0.65, "Minimum similarity for clone detection (0.0-1.0)")
 	cmd.Flags().IntVar(&c.minCBO, "min-cbo", 0, "Minimum CBO to report")
 
 	return cmd
@@ -196,6 +200,7 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		config.SkipDeadCode = !c.containsAnalysis("deadcode")
 		config.SkipClones = !c.containsAnalysis("clones")
 		config.SkipCBO = !c.containsAnalysis("cbo")
+		config.SkipLCOM = !c.containsAnalysis("lcom")
 		config.SkipSystem = !c.containsAnalysis("deps")
 	} else {
 		// Otherwise use skip flags
@@ -203,6 +208,7 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		config.SkipDeadCode = c.skipDeadCode
 		config.SkipClones = c.skipClones
 		config.SkipCBO = c.skipCBO
+		config.SkipLCOM = c.skipLCOM
 		config.SkipSystem = c.skipSystem
 	}
 
@@ -313,6 +319,21 @@ func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuil
 		return fmt.Errorf("failed to build CBO use case: %w", err)
 	}
 	builder.WithCBOUseCase(cboUseCase)
+
+	// LCOM use case
+	lcomService := service.NewLCOMService()
+	lcomFormatter := service.NewLCOMFormatter()
+	lcomConfigLoader := service.NewLCOMConfigurationLoader()
+	lcomUseCase, err := app.NewLCOMUseCaseBuilder().
+		WithService(lcomService).
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(lcomFormatter).
+		WithConfigLoader(lcomConfigLoader).
+		Build()
+	if err != nil {
+		return fmt.Errorf("failed to build LCOM use case: %w", err)
+	}
+	builder.WithLCOMUseCase(lcomUseCase)
 
 	// System analysis use case
 	systemService := service.NewSystemAnalysisService()
@@ -444,6 +465,13 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 			response.Summary.AverageCoupling, response.Summary.HighCouplingClasses, response.Summary.CBOClasses)
 	}
 
+	if response.Summary.LCOMEnabled {
+		icon := getScoreIcon(response.Summary.CohesionScore)
+		fmt.Fprintf(cmd.ErrOrStderr(), "  Cohesion (LCOM):%3d/100 %s  (avg: %.1f, %d/%d high-lcom)\n",
+			response.Summary.CohesionScore, icon,
+			response.Summary.AverageLCOM, response.Summary.HighLCOMClasses, response.Summary.LCOMClasses)
+	}
+
 	if response.Summary.DepsEnabled {
 		icon := getScoreIcon(response.Summary.DependencyScore)
 		cyclesMsg := fmt.Sprintf("%d cycles", response.Summary.DepsModulesInCycles)
@@ -464,48 +492,39 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n")
 
-	// Print analysis status summary
-	if response.Summary.ComplexityEnabled {
-		if response.Complexity != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Complexity Analysis: %d functions analyzed\n",
-				response.Summary.TotalFunctions)
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Complexity Analysis: Failed\n")
-		}
-	}
+	// Print README badge snippet
+	c.printBadge(cmd, response.Summary.Grade)
+}
 
-	if response.Summary.DeadCodeEnabled {
-		if response.DeadCode != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Dead Code Detection: Completed\n")
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Dead Code Detection: Failed\n")
-		}
-	}
+const badgeLandingURL = "https://pyscn.ludo-tech.org"
 
-	if response.Summary.CloneEnabled {
-		if response.Clone != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Clone Detection: Completed\n")
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Clone Detection: Failed\n")
-		}
-	}
+// printBadge prints a Markdown badge snippet for the user's README
+func (c *AnalyzeCommand) printBadge(cmd *cobra.Command, grade string) {
+	color := gradeBadgeColor(grade)
+	badge := fmt.Sprintf("[![pyscn quality](https://img.shields.io/badge/pyscn-%s-%s)](%s)",
+		grade, color, badgeLandingURL)
 
-	if response.Summary.CBOEnabled {
-		if response.CBO != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Class Coupling: %d classes analyzed\n",
-				response.Summary.CBOClasses)
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Class Coupling: Failed\n")
-		}
-	}
+	fmt.Fprintf(cmd.ErrOrStderr(), "\n--------------------------------------------------\n")
+	fmt.Fprintf(cmd.ErrOrStderr(), "[Badge] Add this to your README to show off your score:\n")
+	fmt.Fprintf(cmd.ErrOrStderr(), "%s\n", badge)
+	fmt.Fprintf(cmd.ErrOrStderr(), "--------------------------------------------------\n")
+}
 
-	if response.Summary.DepsEnabled {
-		if response.System != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ System Analysis: %d modules analyzed\n",
-				response.Summary.DepsTotalModules)
-		} else {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ System Analysis: Failed\n")
-		}
+// gradeBadgeColor returns a shields.io color name for the given grade
+func gradeBadgeColor(grade string) string {
+	switch grade {
+	case "A":
+		return "brightgreen"
+	case "B":
+		return "yellow"
+	case "C":
+		return "orange"
+	case "D":
+		return "red"
+	case "F":
+		return "critical"
+	default:
+		return "lightgrey"
 	}
 }
 

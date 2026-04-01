@@ -10,6 +10,13 @@ import (
 	"github.com/ludo-technologies/pyscn/domain"
 )
 
+// Color constants for score indicators
+const (
+	colorSuccess = "#15803d"
+	colorWarning = "#a16207"
+	colorDanger  = "#b91c1c"
+)
+
 // HTMLFormatterImpl provides common HTML formatting functionality with Lighthouse-style scoring
 type HTMLFormatterImpl struct{}
 
@@ -64,7 +71,7 @@ func (f *HTMLFormatterImpl) CalculateComplexityScore(response *domain.Complexity
 		return ScoreData{
 			Score:    100,
 			Label:    "No Functions",
-			Color:    "#0CCE6B",
+			Color:    colorSuccess,
 			Status:   "pass",
 			Category: "complexity",
 		}
@@ -81,13 +88,13 @@ func (f *HTMLFormatterImpl) CalculateComplexityScore(response *domain.Complexity
 	var color, status string
 	switch {
 	case score >= 90:
-		color = "#0CCE6B" // Green
+		color = colorSuccess
 		status = "pass"
 	case score >= 50:
-		color = "#FFA500" // Orange
+		color = colorWarning
 		status = "average"
 	default:
-		color = "#FF5722" // Red
+		color = colorDanger
 		status = "fail"
 	}
 
@@ -106,7 +113,7 @@ func (f *HTMLFormatterImpl) CalculateDeadCodeScore(response *domain.DeadCodeResp
 		return ScoreData{
 			Score:    100,
 			Label:    "No Code Blocks",
-			Color:    "#0CCE6B",
+			Color:    colorSuccess,
 			Status:   "pass",
 			Category: "dead_code",
 		}
@@ -119,13 +126,13 @@ func (f *HTMLFormatterImpl) CalculateDeadCodeScore(response *domain.DeadCodeResp
 	var color, status string
 	switch {
 	case score >= 90:
-		color = "#0CCE6B" // Green
+		color = colorSuccess
 		status = "pass"
 	case score >= 50:
-		color = "#FFA500" // Orange
+		color = colorWarning
 		status = "average"
 	default:
-		color = "#FF5722" // Red
+		color = colorDanger
 		status = "fail"
 	}
 
@@ -144,7 +151,7 @@ func (f *HTMLFormatterImpl) CalculateCloneScore(response *domain.CloneResponse) 
 		return ScoreData{
 			Score:    100,
 			Label:    "No Lines Analyzed",
-			Color:    "#0CCE6B",
+			Color:    colorSuccess,
 			Status:   "pass",
 			Category: "clone",
 		}
@@ -171,13 +178,13 @@ func (f *HTMLFormatterImpl) CalculateCloneScore(response *domain.CloneResponse) 
 	var color, status string
 	switch {
 	case score >= 90:
-		color = "#0CCE6B" // Green
+		color = colorSuccess
 		status = "pass"
 	case score >= 50:
-		color = "#FFA500" // Orange
+		color = colorWarning
 		status = "average"
 	default:
-		color = "#FF5722" // Red
+		color = colorDanger
 		status = "fail"
 	}
 
@@ -195,7 +202,7 @@ func (f *HTMLFormatterImpl) CalculateOverallScore(scores []ScoreData, projectNam
 	if len(scores) == 0 {
 		return OverallScoreData{
 			Score:       100,
-			Color:       "#0CCE6B",
+			Color:       colorSuccess,
 			Status:      "pass",
 			Breakdown:   []ScoreData{},
 			ProjectName: projectName,
@@ -229,13 +236,13 @@ func (f *HTMLFormatterImpl) CalculateOverallScore(scores []ScoreData, projectNam
 	var color, status string
 	switch {
 	case overallScore >= 90:
-		color = "#0CCE6B" // Green
+		color = colorSuccess
 		status = "pass"
 	case overallScore >= 50:
-		color = "#FFA500" // Orange
+		color = colorWarning
 		status = "average"
 	default:
-		color = "#FF5722" // Red
+		color = colorDanger
 		status = "fail"
 	}
 
@@ -258,17 +265,25 @@ func (f *HTMLFormatterImpl) getHTMLTemplate() string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>pyscn Code Quality Report - {{.OverallScore.ProjectName}}</title>
     <style>
+        :root {
+            --color-success: #15803d;
+            --color-warning: #a16207;
+            --color-danger:  #b91c1c;
+            --color-text:    #0f172a;
+            --color-muted:   #334155;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
             color: #333;
-            background-color: #f5f5f5;
+            background-color: #f1f5f9;
         }
         
         .container {
@@ -397,9 +412,9 @@ func (f *HTMLFormatterImpl) getHTMLTemplate() string {
             transition: width 0.3s ease;
         }
         
-        .risk-high { background-color: #FF5722; }
-        .risk-medium { background-color: #FFA500; }
-        .risk-low { background-color: #0CCE6B; }
+        .risk-high { background-color: var(--color-danger); }
+        .risk-medium { background-color: var(--color-warning); }
+        .risk-low { background-color: var(--color-success); }
         
         @media (max-width: 768px) {
             .score-section {
@@ -512,6 +527,7 @@ func (f *HTMLFormatterImpl) getFunctionTableHTML() string {
                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Function</th>
                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">File</th>
                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Complexity</th>
+                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Cognitive</th>
                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Nesting Depth</th>
                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Risk</th>
                     </tr>
@@ -522,6 +538,7 @@ func (f *HTMLFormatterImpl) getFunctionTableHTML() string {
                         <td style="padding: 12px;">{{.Name}}</td>
                         <td style="padding: 12px; color: #666;">{{.FilePath}}</td>
                         <td style="padding: 12px; text-align: center;">{{.Metrics.Complexity}}</td>
+                        <td style="padding: 12px; text-align: center;">{{.Metrics.CognitiveComplexity}}</td>
                         <td style="padding: 12px; text-align: center;">{{.Metrics.NestingDepth}}</td>
                         <td style="padding: 12px; text-align: center;">
                             <span class="risk-{{.RiskLevel}}" style="padding: 4px 8px; border-radius: 4px; font-weight: 600;">{{.RiskLevel}}</span>

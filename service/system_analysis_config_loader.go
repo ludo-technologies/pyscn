@@ -53,7 +53,8 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) pyscnConfigToSystemAnalysisRequ
 	}
 
 	// Architecture settings
-	if cfg.ArchitectureStrictMode != nil || len(cfg.ArchitectureAllowedPatterns) > 0 || len(cfg.ArchitectureForbiddenPatterns) > 0 {
+	if cfg.ArchitectureStrictMode != nil || len(cfg.ArchitectureAllowedPatterns) > 0 || len(cfg.ArchitectureForbiddenPatterns) > 0 ||
+		len(cfg.ArchitectureLayers) > 0 || len(cfg.ArchitectureRules) > 0 || len(cfg.ArchitectureNeutralPrefixes) > 0 {
 		if request.ArchitectureRules == nil {
 			request.ArchitectureRules = &domain.ArchitectureRules{}
 		}
@@ -65,6 +66,15 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) pyscnConfigToSystemAnalysisRequ
 		}
 		if len(cfg.ArchitectureForbiddenPatterns) > 0 {
 			request.ArchitectureRules.ForbiddenPatterns = cfg.ArchitectureForbiddenPatterns
+		}
+		if len(cfg.ArchitectureLayers) > 0 {
+			request.ArchitectureRules.Layers = convertLayerDefinitions(cfg.ArchitectureLayers)
+		}
+		if len(cfg.ArchitectureRules) > 0 {
+			request.ArchitectureRules.Rules = convertLayerRules(cfg.ArchitectureRules)
+		}
+		if len(cfg.ArchitectureNeutralPrefixes) > 0 {
+			request.ArchitectureRules.NeutralPrefixes = cfg.ArchitectureNeutralPrefixes
 		}
 	}
 
@@ -190,6 +200,9 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
 			if len(override.ArchitectureRules.ForbiddenPatterns) > 0 {
 				merged.ArchitectureRules.ForbiddenPatterns = override.ArchitectureRules.ForbiddenPatterns
 			}
+			if len(override.ArchitectureRules.NeutralPrefixes) > 0 {
+				merged.ArchitectureRules.NeutralPrefixes = override.ArchitectureRules.NeutralPrefixes
+			}
 		}
 	}
 
@@ -222,6 +235,32 @@ func (cl *SystemAnalysisConfigurationLoaderWithFlags) LoadConfigWithFlags(
 	// Merge with CLI flags
 	mergedConfig := cl.MergeConfig(baseConfig, cliRequest)
 	return mergedConfig, nil
+}
+
+// convertLayerDefinitions converts config.LayerDefinition slice to domain.Layer slice.
+func convertLayerDefinitions(layers []config.LayerDefinition) []domain.Layer {
+	out := make([]domain.Layer, len(layers))
+	for i, l := range layers {
+		out[i] = domain.Layer{
+			Name:        l.Name,
+			Packages:    l.Packages,
+			Description: l.Description,
+		}
+	}
+	return out
+}
+
+// convertLayerRules converts config.LayerRule slice to domain.LayerRule slice.
+func convertLayerRules(rules []config.LayerRule) []domain.LayerRule {
+	out := make([]domain.LayerRule, len(rules))
+	for i, r := range rules {
+		out[i] = domain.LayerRule{
+			From:  r.From,
+			Allow: r.Allow,
+			Deny:  r.Deny,
+		}
+	}
+	return out
 }
 
 // Example configuration file content for documentation

@@ -20,6 +20,7 @@ type AnalyzeUseCaseConfig struct {
 	SkipDeadCode   bool
 	SkipClones     bool
 	SkipCBO        bool
+	SkipLCOM       bool
 	SkipSystem     bool
 
 	MinComplexity   int
@@ -40,10 +41,11 @@ type AnalyzeUseCase struct {
 	deadCodeUseCase   *DeadCodeUseCase
 	cloneUseCase      *CloneUseCase
 	cboUseCase        *CBOUseCase
+	lcomUseCase       *LCOMUseCase
 	systemUseCase     *SystemAnalysisUseCase
 
 	fileReader       domain.FileReader
-	formatter        *service.AnalyzeFormatter
+	formatter        domain.AnalyzeOutputFormatter
 	progressManager  domain.ProgressManager
 	parallelExecutor domain.ParallelExecutor
 	errorCategorizer domain.ErrorCategorizer
@@ -55,10 +57,11 @@ type AnalyzeUseCaseBuilder struct {
 	deadCodeUseCase   *DeadCodeUseCase
 	cloneUseCase      *CloneUseCase
 	cboUseCase        *CBOUseCase
+	lcomUseCase       *LCOMUseCase
 	systemUseCase     *SystemAnalysisUseCase
 
 	fileReader       domain.FileReader
-	formatter        *service.AnalyzeFormatter
+	formatter        domain.AnalyzeOutputFormatter
 	progressManager  domain.ProgressManager
 	parallelExecutor domain.ParallelExecutor
 	errorCategorizer domain.ErrorCategorizer
@@ -93,6 +96,12 @@ func (b *AnalyzeUseCaseBuilder) WithCBOUseCase(uc *CBOUseCase) *AnalyzeUseCaseBu
 	return b
 }
 
+// WithLCOMUseCase sets the LCOM use case
+func (b *AnalyzeUseCaseBuilder) WithLCOMUseCase(uc *LCOMUseCase) *AnalyzeUseCaseBuilder {
+	b.lcomUseCase = uc
+	return b
+}
+
 // WithSystemUseCase sets the system analysis use case
 func (b *AnalyzeUseCaseBuilder) WithSystemUseCase(uc *SystemAnalysisUseCase) *AnalyzeUseCaseBuilder {
 	b.systemUseCase = uc
@@ -106,7 +115,7 @@ func (b *AnalyzeUseCaseBuilder) WithFileReader(fr domain.FileReader) *AnalyzeUse
 }
 
 // WithFormatter sets the formatter
-func (b *AnalyzeUseCaseBuilder) WithFormatter(f *service.AnalyzeFormatter) *AnalyzeUseCaseBuilder {
+func (b *AnalyzeUseCaseBuilder) WithFormatter(f domain.AnalyzeOutputFormatter) *AnalyzeUseCaseBuilder {
 	b.formatter = f
 	return b
 }
@@ -152,6 +161,7 @@ func (b *AnalyzeUseCaseBuilder) Build() (*AnalyzeUseCase, error) {
 		deadCodeUseCase:   b.deadCodeUseCase,
 		cloneUseCase:      b.cloneUseCase,
 		cboUseCase:        b.cboUseCase,
+		lcomUseCase:       b.lcomUseCase,
 		systemUseCase:     b.systemUseCase,
 		fileReader:        b.fileReader,
 		formatter:         b.formatter,
@@ -171,11 +181,24 @@ type AnalysisTask struct {
 }
 
 // Execute performs comprehensive analysis
-func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConfig, paths []string) (*domain.AnalyzeResponse, error) {
+func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string) (*domain.AnalyzeResponse, error) {
 	startTime := time.Now()
 
+	// Resolve config path once so all analysis phases read the same file.
+	targetPath := ""
+	if len(paths) > 0 {
+		targetPath = paths[0]
+	}
+
+	tomlLoader := config.NewTomlConfigLoader()
+	resolvedConfigPath, err := tomlLoader.ResolveConfigPath(useCaseCfg.ConfigFile, targetPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve configuration: %w", err)
+	}
+	useCaseCfg.ConfigFile = resolvedConfigPath
+
 	// Load configuration to get file patterns and recursive setting
-	includePatterns, excludePatterns, recursive, patternErr := uc.getFilePatterns(config.ConfigFile, paths)
+	includePatterns, excludePatterns, recursive, patternErr := uc.getFilePatterns(useCaseCfg.ConfigFile)
 	if patternErr != nil {
 		return nil, patternErr
 	}
@@ -196,7 +219,7 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 	}
 
 	// Calculate estimated time based on file count and enabled analyses
-	estimatedTime := uc.calculateEstimatedTime(len(files), config, paths)
+	estimatedTime := uc.calculateEstimatedTime(len(files), useCaseCfg)
 
 	// Start unified progress tracking with time-based estimation
 	var progressDone chan struct{}
@@ -206,7 +229,7 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, config AnalyzeUseCaseConf
 	}
 
 	// Create analysis tasks
-	tasks := uc.createAnalysisTasks(config, files)
+	tasks := uc.createAnalysisTasks(useCaseCfg, files)
 
 	// Execute tasks in parallel
 	var wg sync.WaitGroup
@@ -373,6 +396,29 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 		})
 	}
 
+	// LCOM analysis task
+	if uc.lcomUseCase != nil {
+		tasks = append(tasks, &AnalysisTask{
+			Name:    "Class Cohesion (LCOM)",
+			Enabled: !config.SkipLCOM,
+			Execute: func(ctx context.Context) (interface{}, error) {
+				request := domain.LCOMRequest{
+					Paths:           files,
+					Recursive:       nil, // Let config file values take precedence
+					IncludePatterns: []string{},
+					ExcludePatterns: []string{},
+					OutputFormat:    domain.OutputFormatJSON,
+					OutputWriter:    io.Discard,
+					LowThreshold:    0, // Zero: let config file values take precedence via merge
+					MediumThreshold: 0, // Zero: let config file values take precedence via merge
+					SortBy:          domain.SortByCohesion,
+					ConfigPath:      config.ConfigFile,
+				}
+				return uc.lcomUseCase.AnalyzeAndReturn(ctx, request)
+			},
+		})
+	}
+
 	// System analysis task
 	if uc.systemUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
@@ -438,6 +484,11 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 			if result != nil {
 				response.CBO = result
 			}
+		case *domain.LCOMResponse:
+			response.Summary.LCOMEnabled = true
+			if result != nil {
+				response.LCOM = result
+			}
 		case *domain.SystemAnalysisResponse:
 			response.Summary.DepsEnabled = true
 			if result != nil {
@@ -456,6 +507,9 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 	// Calculate summary statistics
 	uc.calculateSummary(&response.Summary, response)
 
+	// Generate actionable suggestions from analysis results
+	response.Suggestions = domain.GenerateSuggestions(response)
+
 	return response
 }
 
@@ -470,6 +524,8 @@ func (uc *AnalyzeUseCase) markSummaryForTask(summary *domain.AnalyzeSummary, tas
 		summary.CloneEnabled = true
 	case "Class Coupling (CBO)":
 		summary.CBOEnabled = true
+	case "Class Cohesion (LCOM)":
+		summary.LCOMEnabled = true
 	case "System Analysis":
 		summary.DepsEnabled = true
 	}
@@ -531,6 +587,14 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		summary.AverageCoupling = response.CBO.Summary.AverageCBO
 	}
 
+	// LCOM statistics
+	if response.LCOM != nil {
+		summary.LCOMClasses = response.LCOM.Summary.TotalClasses
+		summary.HighLCOMClasses = response.LCOM.Summary.HighRiskClasses
+		summary.MediumLCOMClasses = response.LCOM.Summary.MediumRiskClasses
+		summary.AverageLCOM = response.LCOM.Summary.AverageLCOM
+	}
+
 	// System analysis statistics
 	if response.System != nil {
 		if response.System.DependencyAnalysis != nil {
@@ -562,19 +626,17 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 }
 
 // getFilePatterns loads file patterns and recursive setting from configuration or returns defaults
-func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]string, []string, bool, error) {
+func (uc *AnalyzeUseCase) getFilePatterns(configPath string) ([]string, []string, bool, error) {
 	// Default patterns
 	defaultInclude := []string{"**/*.py", "*.pyi"}
 	defaultExclude := []string{"test_*.py", "*_test.py"}
 	defaultRecursive := true
 
-	// Try to load configuration
-	targetPath := ""
-	if len(paths) > 0 {
-		targetPath = paths[0]
+	if configPath == "" {
+		return defaultInclude, defaultExclude, defaultRecursive, nil
 	}
 
-	cfg, err := config.LoadConfigWithTarget(configPath, targetPath)
+	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("failed to load configuration for pattern resolution: %w", err)
 	}
@@ -599,18 +661,16 @@ func (uc *AnalyzeUseCase) getFilePatterns(configPath string, paths []string) ([]
 }
 
 // getLSHConfig loads LSH configuration settings for clone detection
-func (uc *AnalyzeUseCase) getLSHConfig(configPath string, paths []string) (enabled string, threshold int) {
+func (uc *AnalyzeUseCase) getLSHConfig(configPath string) (enabled string, threshold int) {
 	// Default values from domain.DefaultCloneRequest()
 	enabled = "auto"
 	threshold = 500
 
-	// Try to load configuration
-	targetPath := ""
-	if len(paths) > 0 {
-		targetPath = paths[0]
+	if configPath == "" {
+		return enabled, threshold
 	}
 
-	cfg, err := config.LoadConfigWithTarget(configPath, targetPath)
+	cfg, err := config.LoadConfig(configPath)
 	if err != nil || cfg == nil {
 		return enabled, threshold
 	}
@@ -627,7 +687,7 @@ func (uc *AnalyzeUseCase) getLSHConfig(configPath string, paths []string) (enabl
 }
 
 // calculateEstimatedTime estimates the total analysis time based on file count and enabled analyses
-func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUseCaseConfig, paths []string) float64 {
+func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUseCaseConfig) float64 {
 	n := float64(fileCount)
 	totalTime := 0.0
 
@@ -641,6 +701,9 @@ func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUs
 	if !config.SkipCBO {
 		totalTime += 0.01 * n // CBO: ~0.01s per file
 	}
+	if !config.SkipLCOM {
+		totalTime += 0.01 * n // LCOM: ~0.01s per file
+	}
 	if !config.SkipSystem {
 		totalTime += 0.02 * n // System: ~0.02s per file (slightly heavier)
 	}
@@ -651,7 +714,7 @@ func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUs
 		estimatedFragments := n * 5.0
 
 		// Load LSH config to determine if LSH will be used
-		lshEnabled, lshThreshold := uc.getLSHConfig(config.ConfigFile, paths)
+		lshEnabled, lshThreshold := uc.getLSHConfig(config.ConfigFile)
 
 		// Determine LSH usage using centralized logic
 		useLSH := domain.ShouldUseLSH(lshEnabled, int(estimatedFragments), lshThreshold)

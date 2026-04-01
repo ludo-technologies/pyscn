@@ -97,35 +97,6 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
 
-	// Recommendations
-	fmt.Fprint(writer, utils.FormatSectionHeader("RECOMMENDATIONS"))
-	recommendationCount := 0
-
-	if response.Summary.HighComplexityCount > 0 {
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•",
-			fmt.Sprintf("Refactor %d high-complexity functions", response.Summary.HighComplexityCount)))
-		recommendationCount++
-	}
-	if response.Summary.DeadCodeCount > 0 {
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•",
-			fmt.Sprintf("Remove %d dead code segments", response.Summary.DeadCodeCount)))
-		recommendationCount++
-	}
-	if response.Summary.CodeDuplication > 10 {
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•",
-			fmt.Sprintf("Reduce code duplication (currently %.1f%%)", response.Summary.CodeDuplication)))
-		recommendationCount++
-	}
-	if response.Summary.HighCouplingClasses > 0 {
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "•",
-			fmt.Sprintf("Reduce coupling in %d high-dependency classes", response.Summary.HighCouplingClasses)))
-		recommendationCount++
-	}
-
-	if recommendationCount == 0 {
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Status", "No major issues detected"))
-	}
-
 	return nil
 }
 
@@ -201,12 +172,19 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>pyscn Analysis Report</title>
     <style>
+        :root {
+            --color-success: #15803d;
+            --color-warning: #a16207;
+            --color-danger:  #b91c1c;
+            --color-text:    #0f172a;
+            --color-muted:   #334155;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
             color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #f1f5f9;
             min-height: 100vh;
         }
         .container {
@@ -219,10 +197,10 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             border-radius: 10px;
             padding: 30px;
             margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         .header h1 {
-            color: #667eea;
+            color: var(--color-text);
             margin-bottom: 10px;
         }
         .score-badge {
@@ -233,17 +211,17 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             font-weight: bold;
             margin: 10px 0;
         }
-        .grade-a { background: #4caf50; color: white; }
-        .grade-b { background: #8bc34a; color: white; }
-        .grade-c { background: #ff9800; color: white; }
-        .grade-d { background: #ff5722; color: white; }
-        .grade-f { background: #f44336; color: white; }
-        
+        .grade-a { background: #14532d; color: white; }
+        .grade-b { background: #365314; color: white; }
+        .grade-c { background: #713f12; color: white; }
+        .grade-d { background: #7c2d12; color: white; }
+        .grade-f { background: #7f1d1d; color: white; }
+
         .tabs {
             background: white;
             border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         .tab-buttons {
             display: flex;
@@ -260,8 +238,9 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         }
         .tab-button.active {
             background: white;
-            color: #667eea;
+            color: var(--color-muted);
             font-weight: bold;
+            border-bottom: 2px solid var(--color-muted);
         }
         .tab-content {
             display: none;
@@ -286,7 +265,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         .metric-value {
             font-size: 32px;
             font-weight: bold;
-            color: #667eea;
+            color: var(--color-text);
         }
         .metric-label {
             color: #666;
@@ -308,13 +287,13 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             font-weight: 600;
         }
         
-        .risk-low { color: #4caf50; }
-        .risk-medium { color: #ff9800; }
-        .risk-high { color: #f44336; }
-        
-        .severity-critical { color: #f44336; }
-        .severity-warning { color: #ff9800; }
-        .severity-info { color: #2196f3; }
+        .risk-low { color: var(--color-success); }
+        .risk-medium { color: var(--color-warning); }
+        .risk-high { color: var(--color-danger); }
+
+        .severity-critical { color: var(--color-danger); }
+        .severity-warning { color: var(--color-warning); }
+        .severity-info { color: #1e40af; }
 
         /* Score bars */
         .score-bars {
@@ -335,7 +314,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         }
         .score-value {
             font-weight: 700;
-            color: #667eea;
+            color: var(--color-muted);
         }
         .score-bar-container {
             width: 100%;
@@ -350,10 +329,10 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             transition: width 0.3s ease;
             border-radius: 6px;
         }
-        .score-excellent { background: linear-gradient(90deg, #4caf50, #66bb6a); }
-        .score-good { background: linear-gradient(90deg, #8bc34a, #9ccc65); }
-        .score-fair { background: linear-gradient(90deg, #ff9800, #ffa726); }
-        .score-poor { background: linear-gradient(90deg, #f44336, #ef5350); }
+        .score-excellent { background: var(--color-success); }
+        .score-good { background: #4d7c0f; }
+        .score-fair { background: var(--color-warning); }
+        .score-poor { background: var(--color-danger); }
         .score-detail {
             margin-top: 4px;
             font-size: 12px;
@@ -380,20 +359,26 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             white-space: nowrap;
         }
         .score-badge-compact.score-excellent {
-            background: linear-gradient(135deg, #4caf50, #66bb6a);
-            box-shadow: 0 2px 6px rgba(76, 175, 80, 0.4);
+            background: var(--color-success);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
         .score-badge-compact.score-good {
-            background: linear-gradient(135deg, #8bc34a, #9ccc65);
-            box-shadow: 0 2px 6px rgba(139, 195, 74, 0.4);
+            background: #4d7c0f;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
         .score-badge-compact.score-fair {
-            background: linear-gradient(135deg, #ff9800, #ffa726);
-            box-shadow: 0 2px 6px rgba(255, 152, 0, 0.4);
+            background: var(--color-warning);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
         .score-badge-compact.score-poor {
-            background: linear-gradient(135deg, #f44336, #ef5350);
-            box-shadow: 0 2px 6px rgba(244, 67, 54, 0.4);
+            background: var(--color-danger);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .suggestion-steps {
+            font-size: 13px;
+            margin-top: 4px;
+            padding-left: 20px;
+            color: #475569;
         }
     </style>
 </head>
@@ -410,6 +395,9 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         <div class="tabs">
             <div class="tab-buttons">
                 <button class="tab-button active" onclick="showTab('summary', this)">Summary</button>
+                {{if .Suggestions}}
+                <button class="tab-button" onclick="showTab('suggestions', this)">Suggestions</button>
+                {{end}}
                 {{if .Summary.ComplexityEnabled}}
                 <button class="tab-button" onclick="showTab('complexity', this)">Complexity</button>
                 {{end}}
@@ -417,10 +405,13 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 <button class="tab-button" onclick="showTab('deadcode', this)">Dead Code</button>
                 {{end}}
                 {{if .Summary.CloneEnabled}}
-                <button class="tab-button" onclick="showTab('clone', this)">Clone Detection</button>
+                <button class="tab-button" onclick="showTab('clone', this)">Clone</button>
                 {{end}}
                 {{if .Summary.CBOEnabled}}
-                <button class="tab-button" onclick="showTab('cbo', this)">Class Coupling</button>
+                <button class="tab-button" onclick="showTab('cbo', this)">Coupling</button>
+                {{end}}
+                {{if .Summary.LCOMEnabled}}
+                <button class="tab-button" onclick="showTab('lcom', this)">Cohesion</button>
                 {{end}}
                 {{if .System}}
                 {{if .System.DependencyAnalysis}}
@@ -435,7 +426,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             <div id="summary" class="tab-content active">
                 <h2>Analysis Summary</h2>
 
-                <h3 style="margin-top: 20px; margin-bottom: 16px; color: #2c3e50;">Quality Scores</h3>
+                <h3 style="margin-top: 20px; margin-bottom: 16px; color: var(--color-text);">Quality Scores</h3>
                 <div class="score-bars">
                     {{if .Summary.ComplexityEnabled}}
                     <div class="score-bar-item">
@@ -489,6 +480,19 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </div>
                     {{end}}
 
+                    {{if .Summary.LCOMEnabled}}
+                    <div class="score-bar-item">
+                        <div class="score-bar-header">
+                            <span class="score-label">Cohesion (LCOM)</span>
+                            <span class="score-value">{{.Summary.CohesionScore}}/100</span>
+                        </div>
+                        <div class="score-bar-container">
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.CohesionScore}}" style="width: {{.Summary.CohesionScore}}%"></div>
+                        </div>
+                        <div class="score-detail">Avg: {{printf "%.1f" .Summary.AverageLCOM}}, Low-cohesion: {{.Summary.HighLCOMClasses}}/{{.Summary.LCOMClasses}}</div>
+                    </div>
+                    {{end}}
+
                     {{if .Summary.DepsEnabled}}
                     <div class="score-bar-item">
                         <div class="score-bar-header">
@@ -516,7 +520,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     {{end}}
                 </div>
 
-                <h3 style="margin-top: 24px; margin-bottom: 16px; color: #2c3e50;">File Statistics</h3>
+                <h3 style="margin-top: 24px; margin-bottom: 16px; color: var(--color-text);">File Statistics</h3>
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-value">{{.Summary.TotalFiles}}</div>
@@ -556,12 +560,26 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         <div class="metric-label">Avg CBO</div>
                     </div>
                     {{end}}
+                    {{if .Summary.LCOMEnabled}}
+                    <div class="metric-card">
+                        <div class="metric-value">{{.Summary.LCOMClasses}}</div>
+                        <div class="metric-label">Classes (LCOM)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.Summary.HighLCOMClasses}}</div>
+                        <div class="metric-label">Low Cohesion</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{printf "%.2f" .Summary.AverageLCOM}}</div>
+                        <div class="metric-label">Avg LCOM4</div>
+                    </div>
+                    {{end}}
                 </div>
 
                 {{/* System-level quick glance */}}
                 {{if .System}}
                 {{if .System.DependencyAnalysis}}
-                <h3 style="margin-top: 16px; color: #2c3e50;">Dependencies</h3>
+                <h3 style="margin-top: 16px; color: var(--color-text);">Dependencies</h3>
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-value">{{.System.DependencyAnalysis.TotalModules}}</div>
@@ -585,7 +603,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{end}}
 
                 {{if .System.ArchitectureAnalysis}}
-                <h3 style="margin-top: 8px; color: #2c3e50;">Architecture</h3>
+                <h3 style="margin-top: 8px; color: var(--color-text);">Architecture</h3>
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-value">{{.System.ArchitectureAnalysis.TotalViolations}}</div>
@@ -607,6 +625,40 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{end}}
                 {{end}}
             </div>
+
+            {{if .Suggestions}}
+            <div id="suggestions" class="tab-content">
+                <h2>Suggestions</h2>
+                <p style="color: #666; margin-bottom: 20px;">Actionable improvements sorted by priority (severity × effort)</p>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Severity</th>
+                            <th>Category</th>
+                            <th>Title</th>
+                            <th>Effort</th>
+                            <th>Location</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $i, $s := .Suggestions}}
+                        {{if lt $i 30}}
+                        <tr>
+                            <td><span class="severity-{{$s.Severity}}">{{$s.Severity}}</span></td>
+                            <td>{{$s.Category}}</td>
+                            <td>{{$s.Title}}{{if $s.Description}}<br><small style="color: #666;">{{$s.Description}}</small>{{end}}{{if $s.Steps}}<ol class="suggestion-steps">{{range $s.Steps}}<li>{{.}}</li>{{end}}</ol>{{end}}</td>
+                            <td>{{$s.Effort}}</td>
+                            <td>{{if $s.FilePath}}{{$s.FilePath}}{{if $s.StartLine}}:{{$s.StartLine}}{{end}}{{end}}</td>
+                        </tr>
+                        {{end}}
+                        {{end}}
+                    </tbody>
+                </table>
+                {{if gt (len .Suggestions) 30}}
+                <p style="color: #666; margin-top: 10px;">Showing top 30 of {{len .Suggestions}} suggestions</p>
+                {{end}}
+            </div>
+            {{end}}
 
             {{if .Summary.ComplexityEnabled}}
             <div id="complexity" class="tab-content">
@@ -639,6 +691,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <th>Function</th>
                             <th>File</th>
                             <th>Complexity</th>
+                            <th>Cognitive</th>
                             <th>Nesting Depth</th>
                             <th>Risk</th>
                         </tr>
@@ -650,6 +703,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <td>{{$f.Name}}</td>
                             <td>{{$f.FilePath}}</td>
                             <td>{{$f.Metrics.Complexity}}</td>
+                            <td>{{$f.Metrics.CognitiveComplexity}}</td>
                             <td>{{$f.Metrics.NestingDepth}}</td>
                             <td class="risk-{{$f.RiskLevel}}">{{$f.RiskLevel}}</td>
                         </tr>
@@ -722,7 +776,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 <p style="color: #666; margin-top: 10px;">Showing top 10 of {{.DeadCode.Summary.TotalFindings}} dead code issues</p>
                 {{end}}
                 {{else}}
-                <p style="color: #4caf50; font-weight: bold; margin-top: 20px;">✓ No dead code detected</p>
+                <p style="color: var(--color-success); font-weight: bold; margin-top: 20px;">✓ No dead code detected</p>
                 {{end}}
                 {{end}}
             </div>
@@ -731,7 +785,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             {{if .Summary.CloneEnabled}}
             <div id="clone" class="tab-content">
                 <div class="tab-header-with-score">
-                    <h2 style="margin: 0;">Clone Detection</h2>
+                    <h2 style="margin: 0;">Clone</h2>
                     <div class="score-badge-compact score-{{scoreQuality .Summary.DuplicationScore}}">
                         {{.Summary.DuplicationScore}}/100
                     </div>
@@ -757,7 +811,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 <p style="color: #666; margin-bottom: 15px;">Code fragments grouped by similarity</p>
                 {{range $i, $group := .Clone.CloneGroups}}
                 {{if lt $i 10}}
-                <div style="background: #f8f9fa; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                <div style="background: #f8fafc; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 4px solid #cbd5e1;">
                     <h4 style="margin-top: 0; color: #333;">Group {{$group.ID}} - {{len $group.Clones}} clones (Type {{$group.Type}}, similarity: {{printf "%.2f" $group.Similarity}})</h4>
                     <table class="table" style="margin-bottom: 0;">
                         <thead>
@@ -823,7 +877,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 <p style="color: #666; margin-top: 10px;">Showing top 15 of {{.Clone.Statistics.TotalClonePairs}} clone pairs</p>
                 {{end}}
                 {{else}}
-                <p style="color: #4caf50; font-weight: bold; margin-top: 20px;">✓ No clones detected</p>
+                <p style="color: var(--color-success); font-weight: bold; margin-top: 20px;">✓ No clones detected</p>
                 {{end}}
                 {{end}}
             </div>
@@ -832,7 +886,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             {{if .Summary.CBOEnabled}}
             <div id="cbo" class="tab-content">
                 <div class="tab-header-with-score">
-                    <h2 style="margin: 0;">Class Coupling</h2>
+                    <h2 style="margin: 0;">Coupling</h2>
                     <div class="score-badge-compact score-{{scoreQuality .Summary.CouplingScore}}">
                         {{.Summary.CouplingScore}}/100
                     </div>
@@ -890,6 +944,69 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             </div>
             {{end}}
 
+            {{if .Summary.LCOMEnabled}}
+            <div id="lcom" class="tab-content">
+                <div class="tab-header-with-score">
+                    <h2 style="margin: 0;">Class Cohesion</h2>
+                    <div class="score-badge-compact score-{{scoreQuality .Summary.CohesionScore}}">
+                        {{.Summary.CohesionScore}}/100
+                    </div>
+                </div>
+                <p style="margin-bottom: 20px; color: #666;">Lack of Cohesion of Methods (LCOM4) metrics</p>
+                {{if .LCOM}}
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">{{.LCOM.Summary.TotalClasses}}</div>
+                        <div class="metric-label">Total Classes</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.LCOM.Summary.HighRiskClasses}}</div>
+                        <div class="metric-label">Low Cohesion</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{printf "%.2f" .LCOM.Summary.AverageLCOM}}</div>
+                        <div class="metric-label">Average LCOM4</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.LCOM.Summary.MaxLCOM}}</div>
+                        <div class="metric-label">Max LCOM4</div>
+                    </div>
+                </div>
+
+                <h3>Least Cohesive Classes</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Class</th>
+                            <th>File</th>
+                            <th>LCOM4</th>
+                            <th>Risk</th>
+                            <th>Methods</th>
+                            <th>Instance Vars</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $i, $c := .LCOM.Classes}}
+                        {{if lt $i 10}}
+                        <tr>
+                            <td>{{$c.Name}}</td>
+                            <td>{{$c.FilePath}}:{{$c.StartLine}}</td>
+                            <td>{{$c.Metrics.LCOM4}}</td>
+                            <td class="risk-{{$c.RiskLevel}}">{{$c.RiskLevel}}</td>
+                            <td>{{sub $c.Metrics.TotalMethods $c.Metrics.ExcludedMethods}}</td>
+                            <td>{{$c.Metrics.InstanceVariables}}</td>
+                        </tr>
+                        {{end}}
+                        {{end}}
+                    </tbody>
+                </table>
+                {{if gt (len .LCOM.Classes) 10}}
+                <p style="color: #666; margin-top: 10px;">Showing top 10 of {{len .LCOM.Classes}} classes</p>
+                {{end}}
+                {{end}}
+            </div>
+            {{end}}
+
             {{if .System}}
             {{if .System.DependencyAnalysis}}
             <div id="sys-deps" class="tab-content">
@@ -925,9 +1042,9 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{if .System.DependencyAnalysis.CircularDependencies}}
                 <h3 style="margin-top: 30px;">Circular Dependencies</h3>
                 {{if not .System.DependencyAnalysis.CircularDependencies.HasCircularDependencies}}
-                <div style="padding: 20px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px; margin: 20px 0;">
-                    <strong style="color: #155724;">✅ No circular dependencies detected</strong>
-                    <p style="color: #155724; margin: 10px 0 0 0;">All modules have acyclic dependency relationships.</p>
+                <div style="padding: 20px; background: #f0fdf4; border-left: 4px solid #bbf7d0; border-radius: 4px; margin: 20px 0;">
+                    <strong style="color: #14532d;">✅ No circular dependencies detected</strong>
+                    <p style="color: #14532d; margin: 10px 0 0 0;">All modules have acyclic dependency relationships.</p>
                 </div>
                 {{else}}
                 <table class="table">
@@ -973,17 +1090,17 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
 
                 {{/* Core Infrastructure Modules */}}
                 {{if gt (len .System.DependencyAnalysis.CircularDependencies.CoreInfrastructure) 0}}
-                <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin: 20px 0;">
-                    <strong style="color: #856404;">⚠️ Core Infrastructure Modules (appear in multiple cycles):</strong>
-                    <p style="color: #856404; margin: 10px 0 0 0;">{{join .System.DependencyAnalysis.CircularDependencies.CoreInfrastructure ", "}}</p>
+                <div style="padding: 15px; background: #fefce8; border-left: 4px solid #fde68a; border-radius: 4px; margin: 20px 0;">
+                    <strong style="color: #713f12;">⚠️ Core Infrastructure Modules (appear in multiple cycles):</strong>
+                    <p style="color: #713f12; margin: 10px 0 0 0;">{{join .System.DependencyAnalysis.CircularDependencies.CoreInfrastructure ", "}}</p>
                 </div>
                 {{end}}
 
                 {{/* Cycle Breaking Suggestions */}}
                 {{if gt (len .System.DependencyAnalysis.CircularDependencies.CycleBreakingSuggestions) 0}}
-                <div style="padding: 15px; background: #d1ecf1; border-left: 4px solid #17a2b8; border-radius: 4px; margin: 20px 0;">
-                    <strong style="color: #0c5460;">💡 Suggestions for Breaking Cycles:</strong>
-                    <ul style="margin: 10px 0 0 20px; color: #0c5460;">
+                <div style="padding: 15px; background: #eff6ff; border-left: 4px solid #bfdbfe; border-radius: 4px; margin: 20px 0;">
+                    <strong style="color: #1e3a8a;">💡 Suggestions for Breaking Cycles:</strong>
+                    <ul style="margin: 10px 0 0 20px; color: #1e3a8a;">
                         {{range .System.DependencyAnalysis.CircularDependencies.CycleBreakingSuggestions}}
                         <li>{{.}}</li>
                         {{end}}
@@ -1071,7 +1188,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </tbody>
                 </table>
                 {{else}}
-                <p style="color: #4caf50; font-weight: bold; margin-top: 20px;">✓ No architecture violations</p>
+                <p style="color: var(--color-success); font-weight: bold; margin-top: 20px;">✓ No architecture violations</p>
                 {{end}}
             </div>
             {{end}}

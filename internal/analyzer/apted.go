@@ -46,9 +46,9 @@ func (a *APTEDAnalyzer) ComputeDistance(tree1, tree2 *TreeNode) float64 {
 	keyRoots1 := PrepareTreeForAPTED(tree1)
 	keyRoots2 := PrepareTreeForAPTED(tree2)
 
-	// Sort key roots in descending order
-	sort.Sort(sort.Reverse(sort.IntSlice(keyRoots1)))
-	sort.Sort(sort.Reverse(sort.IntSlice(keyRoots2)))
+	// Sort key roots in ascending order (leaves before parents)
+	sort.Ints(keyRoots1)
+	sort.Ints(keyRoots2)
 
 	// Compute distance using APTED algorithm
 	return a.apted(tree1, tree2, keyRoots1, keyRoots2)
@@ -86,9 +86,9 @@ func (a *APTEDAnalyzer) computeDistanceOptimized(tree1, tree2 *TreeNode) float64
 		keyRoots2 = keyRoots2[:100]
 	}
 
-	// Sort key roots in descending order
-	sort.Sort(sort.Reverse(sort.IntSlice(keyRoots1)))
-	sort.Sort(sort.Reverse(sort.IntSlice(keyRoots2)))
+	// Sort key roots in ascending order (leaves before parents)
+	sort.Ints(keyRoots1)
+	sort.Ints(keyRoots2)
 
 	// Compute distance using optimized APTED algorithm
 	return a.aptedOptimized(tree1, tree2, keyRoots1, keyRoots2, maxDistance*0.5)
@@ -243,18 +243,10 @@ func (a *APTEDAnalyzer) computeForestDistanceOptimized(nodes1, nodes2 []*TreeNod
 				deleteCost := fd[x][y+1] + a.costModel.Delete(nodes1[x])
 				insertCost := fd[x+1][y] + a.costModel.Insert(nodes2[y])
 
-				var subtreeCost float64
-				if lml_x == lml_i {
-					subtreeCost = fd[lml_i][y] + td[x+1][lml_y]
-				} else if lml_y == lml_j {
-					subtreeCost = fd[x][lml_j] + td[lml_x][y+1]
-				} else {
-					subtreeCost = fd[lml_i][lml_j] + td[lml_x][lml_y]
-				}
+				// td[x+1][y+1] was already computed during a previous key root iteration
+				subtreeCost := fd[lml_x][lml_y] + td[x+1][y+1]
 
 				fd[x+1][y+1] = math.Min(deleteCost, math.Min(insertCost, subtreeCost))
-				// Fix: Update td matrix in both branches
-				td[x+1][y+1] = fd[x+1][y+1]
 			}
 
 			// Early termination check
@@ -326,18 +318,10 @@ func (a *APTEDAnalyzer) computeForestDistance(nodes1, nodes2 []*TreeNode, i, j i
 				deleteCost := fd[x][y+1] + a.costModel.Delete(nodes1[x])
 				insertCost := fd[x+1][y] + a.costModel.Insert(nodes2[y])
 
-				var subtreeCost float64
-				if lml_x == lml_i {
-					subtreeCost = fd[lml_i][y] + td[x+1][lml_y]
-				} else if lml_y == lml_j {
-					subtreeCost = fd[x][lml_j] + td[lml_x][y+1]
-				} else {
-					subtreeCost = fd[lml_i][lml_j] + td[lml_x][lml_y]
-				}
+				// td[x+1][y+1] was already computed during a previous key root iteration
+				subtreeCost := fd[lml_x][lml_y] + td[x+1][y+1]
 
 				fd[x+1][y+1] = math.Min(deleteCost, math.Min(insertCost, subtreeCost))
-				// Fix: Update td matrix in both branches
-				td[x+1][y+1] = fd[x+1][y+1]
 			}
 		}
 	}

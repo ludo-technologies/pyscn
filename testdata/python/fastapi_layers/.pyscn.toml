@@ -1,0 +1,42 @@
+# Configuration for FastAPI layer classification test case
+# Reproduces the scenario from discussion #352:
+# - "routers" and "pages" should be classified as "presentation"
+# - "domain" should be classified as "domain"
+# - "repositories" should be classified as "infrastructure"
+#
+# Without this config, pyscn would misclassify "routers" as "domain"
+# because the default heuristic doesn't know about custom package names.
+
+[architecture]
+enabled = true
+neutral_prefixes = ["app"]
+
+[[architecture.layers]]
+name = "presentation"
+description = "HTTP routers and page renderers"
+packages = ["routers", "pages"]
+
+[[architecture.layers]]
+name = "domain"
+description = "Core business entities"
+packages = ["domain"]
+
+[[architecture.layers]]
+name = "infrastructure"
+description = "Data access and external services"
+packages = ["repositories"]
+
+# Presentation can depend on domain and infrastructure
+[[architecture.rules]]
+from = "presentation"
+allow = ["presentation", "domain", "infrastructure"]
+
+# Domain must not depend on presentation or infrastructure
+[[architecture.rules]]
+from = "domain"
+allow = ["domain"]
+
+# Infrastructure can depend on domain only
+[[architecture.rules]]
+from = "infrastructure"
+allow = ["infrastructure", "domain"]

@@ -35,12 +35,19 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>%s</title>
     <style>
+        :root {
+            --color-success: #15803d;
+            --color-warning: #a16207;
+            --color-danger:  #b91c1c;
+            --color-text:    #0f172a;
+            --color-muted:   #334155;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
             color: #333;
-            background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%);
+            background-color: #f1f5f9;
             min-height: 100vh;
         }
         .container {
@@ -53,10 +60,10 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
             border-radius: 10px;
             padding: 30px;
             margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         .header h1 {
-            color: #667eea;
+            color: var(--color-text);
             margin-bottom: 10px;
         }
         .header p {
@@ -71,17 +78,17 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
             font-weight: bold;
             margin: 10px 0;
         }
-        .grade-a { background: #4caf50; color: white; }
-        .grade-b { background: #8bc34a; color: white; }
-        .grade-c { background: #ff9800; color: white; }
-        .grade-d { background: #ff5722; color: white; }
-        .grade-f { background: #f44336; color: white; }
-        
+        .grade-a { background: #14532d; color: white; }
+        .grade-b { background: #365314; color: white; }
+        .grade-c { background: #713f12; color: white; }
+        .grade-d { background: #7c2d12; color: white; }
+        .grade-f { background: #7f1d1d; color: white; }
+
         .tabs {
             background: white;
             border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         .tab-buttons {
             display: flex;
@@ -101,8 +108,9 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
         }
         .tab-button.active {
             background: white;
-            color: #667eea;
+            color: var(--color-muted);
             font-weight: bold;
+            border-bottom: 2px solid var(--color-muted);
         }
         .tab-content {
             display: none;
@@ -117,7 +125,7 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
             background: white;
             border-radius: 10px;
             padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         
         .metric-grid {
@@ -127,16 +135,16 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
             margin: 20px 0;
         }
         .metric-card {
-            background: #f8f9fa;
+            background: #f8fafc;
             padding: 20px;
             border-radius: 8px;
             text-align: center;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid #cbd5e1;
         }
         .metric-value {
             font-size: 32px;
             font-weight: bold;
-            color: #667eea;
+            color: var(--color-text);
         }
         .metric-label {
             color: #666;
@@ -160,11 +168,12 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
             margin: 20px 0;
         }
         .table th {
-            background: #667eea;
-            color: white;
+            background: #f1f5f9;
+            color: var(--color-muted);
             padding: 12px;
             text-align: left;
             font-weight: 600;
+            border-bottom: 2px solid #e2e8f0;
         }
         .table td {
             padding: 12px;
@@ -190,7 +199,7 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
             margin-top: 40px;
             padding: 20px;
             text-align: center;
-            color: white;
+            color: #94a3b8;
             font-size: 14px;
         }
         

@@ -258,32 +258,21 @@ func LoadConfig(configPath string) (*Config, error) {
 func LoadConfigWithTarget(configPath string, targetPath string) (*Config, error) {
 	loader := NewTomlConfigLoader()
 
-	// Determine start directory for config discovery
-	startDir := targetPath
-	if configPath != "" {
-		// If explicit config path provided, use its directory
-		info, err := os.Stat(configPath)
-		if err == nil {
-			if info.IsDir() {
-				startDir = configPath
-			} else {
-				startDir = filepath.Dir(configPath)
-			}
-		}
-	} else if startDir == "" {
-		startDir = "."
-	} else {
-		// If targetPath is a file, use its directory
-		info, err := os.Stat(startDir)
-		if err == nil && !info.IsDir() {
-			startDir = filepath.Dir(startDir)
-		}
+	// Resolve once so every analysis phase reads the same config source.
+	resolvedConfigPath, err := loader.ResolveConfigPath(configPath, targetPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve configuration: %w", err)
 	}
 
-	// Load PyscnConfig using TOML loader
-	pyscnCfg, err := loader.LoadConfig(startDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load configuration: %w", err)
+	var pyscnCfg *PyscnConfig
+	if resolvedConfigPath == "" {
+		pyscnCfg = DefaultPyscnConfig()
+	} else {
+		// Load PyscnConfig using TOML loader
+		pyscnCfg, err = loader.LoadConfig(resolvedConfigPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load configuration: %w", err)
+		}
 	}
 
 	// Convert to legacy Config struct
@@ -520,6 +509,15 @@ func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
 	}
 	if pyscn.ArchitectureFailOnViolations != nil {
 		cfg.Architecture.FailOnViolations = *pyscn.ArchitectureFailOnViolations
+	}
+	if len(pyscn.ArchitectureNeutralPrefixes) > 0 {
+		cfg.Architecture.NeutralPrefixes = pyscn.ArchitectureNeutralPrefixes
+	}
+	if len(pyscn.ArchitectureLayers) > 0 {
+		cfg.Architecture.Layers = pyscn.ArchitectureLayers
+	}
+	if len(pyscn.ArchitectureRules) > 0 {
+		cfg.Architecture.Rules = pyscn.ArchitectureRules
 	}
 
 	return cfg
@@ -808,8 +806,9 @@ type ArchitectureConfig struct {
 	ValidateResponsibility bool `mapstructure:"validate_responsibility" yaml:"validate_responsibility"`
 
 	// Layer definitions
-	Layers []LayerDefinition `mapstructure:"layers" yaml:"layers"`
-	Rules  []LayerRule       `mapstructure:"rules" yaml:"rules"`
+	Layers          []LayerDefinition `mapstructure:"layers" yaml:"layers"`
+	Rules           []LayerRule       `mapstructure:"rules" yaml:"rules"`
+	NeutralPrefixes []string          `mapstructure:"neutral_prefixes" yaml:"neutral_prefixes"`
 
 	// Thresholds
 	MinCohesion         float64 `mapstructure:"min_cohesion" yaml:"min_cohesion"`

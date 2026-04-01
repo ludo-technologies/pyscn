@@ -31,6 +31,10 @@ const (
 	ErrCodeConfigError       = "CONFIG_ERROR"
 	ErrCodeOutputError       = "OUTPUT_ERROR"
 	ErrCodeUnsupportedFormat = "UNSUPPORTED_FORMAT"
+	ErrCodeTimeout           = "TIMEOUT"
+	ErrCodeCancelled         = "CANCELLED"
+	ErrCodeNotImplemented    = "NOT_IMPLEMENTED"
+	ErrCodeInternal          = "INTERNAL"
 )
 
 // NewDomainError creates a new domain error
@@ -80,4 +84,24 @@ func NewUnsupportedFormatError(format string) error {
 // NewValidationError creates a validation error
 func NewValidationError(message string) error {
 	return NewDomainError(ErrCodeInvalidInput, message, nil)
+}
+
+// NewTimeoutError creates a timeout error
+func NewTimeoutError(message string, cause error) error {
+	return NewDomainError(ErrCodeTimeout, message, cause)
+}
+
+// NewCancelledError creates a cancellation error
+func NewCancelledError(message string, cause error) error {
+	return NewDomainError(ErrCodeCancelled, message, cause)
+}
+
+// NewNotImplementedError creates a not implemented error
+func NewNotImplementedError(feature string) error {
+	return NewDomainError(ErrCodeNotImplemented, fmt.Sprintf("not implemented: %s", feature), nil)
+}
+
+// NewInternalError creates an internal error
+func NewInternalError(message string, cause error) error {
+	return NewDomainError(ErrCodeInternal, message, cause)
 }

@@ -161,6 +161,7 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 	if cfg.FunctionNode != nil {
 		nestingResult := CalculateMaxNestingDepth(cfg.FunctionNode)
 		nestingDepth = nestingResult.MaxDepth
+
 		startLine = cfg.FunctionNode.Location.StartLine
 		startCol = cfg.FunctionNode.Location.StartCol
 		endLine = cfg.FunctionNode.Location.EndLine

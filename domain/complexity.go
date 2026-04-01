@@ -29,6 +29,7 @@ const (
 	SortByLocation   SortCriteria = "location"
 	SortByCoupling   SortCriteria = "coupling" // For CBO metrics
 	SortBySeverity   SortCriteria = "severity" // For anti-pattern findings
+	SortByCohesion   SortCriteria = "cohesion" // For LCOM metrics
 )
 
 // RiskLevel represents the complexity risk level
@@ -74,6 +75,9 @@ type ComplexityRequest struct {
 type ComplexityMetrics struct {
 	// McCabe cyclomatic complexity
 	Complexity int
+
+	// Cognitive complexity (SonarQube-style)
+	CognitiveComplexity int
 
 	// CFG metrics
 	Nodes int

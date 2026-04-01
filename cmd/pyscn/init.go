@@ -80,8 +80,11 @@ func (i *InitCommand) runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create directory %s: %w", configDir, err)
 	}
 
-	// Use embedded default config
-	configData := config.DefaultConfigTOML
+	// Generate default config from domain values
+	configData, err := config.GenerateDefaultConfigTOML()
+	if err != nil {
+		return fmt.Errorf("failed to generate default configuration: %w", err)
+	}
 
 	// Write the configuration file
 	if err := os.WriteFile(configPath, []byte(configData), 0644); err != nil {

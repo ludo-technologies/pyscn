@@ -413,6 +413,9 @@ type ArchitectureRules struct {
 	// Custom rules
 	CustomRules []CustomRule `json:"custom_rules" yaml:"custom_rules"`
 
+	// Neutral prefixes to strip from module names before layer matching
+	NeutralPrefixes []string `json:"neutral_prefixes" yaml:"neutral_prefixes"`
+
 	// Global settings
 	StrictMode        bool     `json:"strict_mode" yaml:"strict_mode"`
 	AllowedPatterns   []string `json:"allowed_patterns" yaml:"allowed_patterns"`

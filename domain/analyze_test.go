@@ -169,19 +169,19 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				AverageComplexity:         7.0,  // Continuous: (7-2)/13*20 = 7.69 → 8
 				CodeDuplication:           15.0, // Continuous: 15/10*20 = 30 → 20 (capped, 0-10% scale)
 				CBOClasses:                10,
-				HighCouplingClasses:       2, // 20% ratio: 0.20/0.12*20 = 33.33 → 20 (capped)
+				HighCouplingClasses:       2, // 20% ratio: 0.20/0.25*20 = 16
 				DepsEnabled:               true,
 				DepsMainSequenceDeviation: 1.0, // 1.0*3 = 3 (new max MSD)
 				ArchEnabled:               true,
 				ArchCompliance:            0.125, // (1-0.125)*12 = 10.5 → 11 (new max arch)
 			},
-			expectedScore:             38,  // Updated: 100-8-20-20-3-11 = 38 (0-10% duplication scale, capped)
-			expectedGrade:             "F", // 38 < 45 = F
+			expectedScore:             42,  // Updated: 100-8-20-16-3-11 = 42 (CBO threshold changed to 25%)
+			expectedGrade:             "F", // 42 < 45 = F
 			expectError:               false,
 			expectedComplexityScore:   60,  // 100 - (8/20)*100 = 60
 			expectedDeadCodeScore:     100, // No dead code
 			expectedDuplicationScore:  0,   // 100 - (20/20)*100 = 0 (0-10% scale: 20 penalty capped)
-			expectedCouplingScore:     0,   // 100 - (20/20)*100 = 0
+			expectedCouplingScore:     20,  // 100 - (16/20)*100 = 20 (CBO threshold 25%)
 			expectedDependencyScore:   80,  // Normalized: (3/16)*20 = 3.75 → 4, Score: 100 - (4/20)*100 = 80
 			expectedArchitectureScore: 13,  // Compliance 0.125 * 100 = 12.5 → 13
 		},
@@ -250,15 +250,15 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				AverageComplexity:   4.0, // Continuous: (4-2)/13*20 = 3.08 → 3
 				CodeDuplication:     2.0, // 2/10*20 = 4 penalty (0-10% scale)
 				CBOClasses:          20,
-				HighCouplingClasses: 2, // 10% ratio: 0.10/0.12*20 = 16.67 → 17
+				HighCouplingClasses: 2, // 10% ratio: 0.10/0.25*20 = 8 (CBO threshold 25%)
 				DepsEnabled:         true,
 				DepsTotalModules:    10,
 				DepsMaxDepth:        4, // Expected = max(3, ceil(log2(11))+1) = 5, excess = 4-5 = 0
 				ArchEnabled:         true,
 				ArchCompliance:      0.9, // (1-0.9)*12 = 1.2 → 1
 			},
-			expectedScore: 75,  // Updated: 100-3-4-17-0-1 = 75 (0-10% duplication scale)
-			expectedGrade: "B", // 75 ≤ 75 < 90 = B
+			expectedScore: 84,  // Updated: 100-3-4-8-0-1 = 84 (CBO threshold changed to 25%)
+			expectedGrade: "B", // 75 ≤ 84 < 90 = B
 			expectError:   false,
 		},
 		{
@@ -267,13 +267,13 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				AverageComplexity:   15.0, // Continuous: (15-2)/13*20 = 20 (capped)
 				CodeDuplication:     25.0, // 25/20*20 = 25 → capped at 20 penalty (0-20% scale)
 				CBOClasses:          20,
-				HighCouplingClasses: 2, // 10% ratio: 0.10/0.12*20 = 16.67 → 17
+				HighCouplingClasses: 2, // 10% ratio: 0.10/0.25*20 = 8 (CBO threshold 25%)
 				DeadCodeCount:       5,
 				CriticalDeadCode:    0, // No critical issues, so no dead code penalty
 				TotalFiles:          1,
 			},
-			expectedScore: 43,  // Updated: 100-20-20-17 = 43 (new 0-20% duplication scale, capped)
-			expectedGrade: "F", // 43 < 45 = F
+			expectedScore: 52,  // Updated: 100-20-20-8 = 52 (CBO threshold changed to 25%)
+			expectedGrade: "D", // 45 ≤ 52 < 60 = D
 			expectError:   false,
 		},
 		{

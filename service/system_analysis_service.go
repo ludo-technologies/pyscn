@@ -161,14 +161,13 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
 		return nil, err
 	}
 
-	// Auto-detect architecture if no rules are defined
-	if req.ArchitectureRules == nil || (len(req.ArchitectureRules.Layers) == 0 && len(req.ArchitectureRules.Rules) == 0) {
-		req.ArchitectureRules = s.autoDetectArchitecture(graph)
-		// If auto-detection found no recognizable patterns, return empty result
-		if req.ArchitectureRules == nil || len(req.ArchitectureRules.Layers) == 0 {
-			return s.emptyArchitectureResult(), nil
-		}
+	// Clone ArchitectureRules before modifying to avoid mutating the caller's object
+	// (the pointer is shared even though SystemAnalysisRequest is passed by value).
+	rules := s.resolveArchitectureRules(graph, req.ArchitectureRules)
+	if rules == nil || len(rules.Layers) == 0 {
+		return s.emptyArchitectureResult(), nil
 	}
+	req.ArchitectureRules = rules
 
 	// Map modules to layers
 	moduleToLayer := s.buildModuleLayerMap(graph, req.ArchitectureRules)
@@ -372,26 +371,98 @@ func (s *SystemAnalysisServiceImpl) buildArchitectureResultWithRecommendations(
 }
 
 // buildModuleLayerMap maps each module to a layer based on ArchitectureRules.
-// compiledPattern keeps the compiled regex and its original pattern with simple specificity info.
+// compiledPattern keeps the compiled regexes and its original pattern with simple specificity info.
+// It uses two regexes to distinguish prefix (position 0) and suffix (position 1+) matches.
 type compiledPattern struct {
-	re          *regexp.Regexp
+	prefixRe    *regexp.Regexp // matches when the pattern appears at the start of the module path
+	suffixRe    *regexp.Regexp // matches when the pattern appears after a dot separator
 	original    string
 	specificity int // number of dots in original pattern; higher = more specific
 }
 
-func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.DependencyGraph, rules *domain.ArchitectureRules) map[string]string {
-	out := make(map[string]string)
+type modulePatternMatch struct {
+	matched       bool
+	isPrefix      bool
+	boundaryScore int // dot/exact matches outrank underscore-boundary matches
+	matchPos      int // byte offset in the module where the match starts; lower = better
+}
+
+// matchModule returns whether the pattern matches the module and the match position.
+// position 0 means prefix match (higher priority), position 1 means suffix match.
+func (cp *compiledPattern) matchModule(module string) modulePatternMatch {
+	if cp.prefixRe != nil && cp.prefixRe.MatchString(module) {
+		return modulePatternMatch{matched: true, isPrefix: true, boundaryScore: 2, matchPos: 0}
+	}
+	if cp.suffixRe != nil && cp.suffixRe.MatchString(module) {
+		// The suffix regex is anchored (^.+\.<pattern>$), so we locate the
+		// matched segment by searching for ".<base>" at a dot boundary.
+		// Strip wildcard suffixes so "api.*" searches for ".api".
+		base := strings.TrimRight(strings.ToLower(cp.original), "*.")
+		if base == "" {
+			base = strings.ToLower(cp.original)
+		}
+		pos := strings.Index(strings.ToLower(module), "."+base)
+		if pos >= 0 {
+			pos++ // skip the dot to point at the pattern itself
+		} else {
+			pos = 0
+		}
+		return modulePatternMatch{matched: true, isPrefix: false, boundaryScore: 2, matchPos: pos}
+	}
+	if strings.Contains(cp.original, "*") {
+		return modulePatternMatch{}
+	}
+
+	lowerOriginal := strings.ToLower(cp.original)
+	parts := strings.Split(module, ".")
+	offset := 0
+	for _, part := range parts {
+		lowerPart := strings.ToLower(part)
+		isPrefix := offset == 0
+		if strings.HasPrefix(lowerPart, lowerOriginal+"_") {
+			return modulePatternMatch{matched: true, isPrefix: isPrefix, boundaryScore: 1, matchPos: offset}
+		}
+		if strings.HasSuffix(lowerPart, "_"+lowerOriginal) {
+			pos := offset + len(part) - len(cp.original)
+			return modulePatternMatch{matched: true, isPrefix: false, boundaryScore: 1, matchPos: pos}
+		}
+		offset += len(part) + 1
+	}
+
+	return modulePatternMatch{}
+}
+
+// compileLayerPatterns compiles the package patterns for each layer into
+// position-aware regexes for use with findLayerForModule.
+func (s *SystemAnalysisServiceImpl) compileLayerPatterns(layers []domain.Layer) map[string][]compiledPattern {
 	compiled := make(map[string][]compiledPattern)
-	for _, layer := range rules.Layers {
+	for _, layer := range layers {
 		for _, pat := range layer.Packages {
-			if re := s.compileModulePattern(pat); re != nil {
-				cp := compiledPattern{re: re, original: pat, specificity: strings.Count(pat, ".")}
-				compiled[layer.Name] = append(compiled[layer.Name], cp)
+			if cp := s.compileModulePatterns(pat); cp != nil {
+				compiled[layer.Name] = append(compiled[layer.Name], *cp)
 			}
 		}
 	}
+	return compiled
+}
+
+func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.DependencyGraph, rules *domain.ArchitectureRules) map[string]string {
+	out := make(map[string]string)
+	compiled := s.compileLayerPatterns(rules.Layers)
 	for module := range graph.Nodes {
-		out[module] = s.findLayerForModule(module, compiled)
+		if s.isTestModule(module) {
+			out[module] = "unknown"
+			continue
+		}
+		// Strip the first matching neutral prefix before layer matching
+		stripped := module
+		for _, prefix := range rules.NeutralPrefixes {
+			if strings.HasPrefix(stripped, prefix+".") {
+				stripped = stripped[len(prefix)+1:]
+				break
+			}
+		}
+		out[module] = s.findLayerForModule(stripped, compiled)
 		if out[module] == "" {
 			out[module] = "unknown"
 		}
@@ -400,63 +471,139 @@ func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.Dependen
 }
 
 // findLayerForModule returns the most specific matching layer for a module.
+// Tie-breaking priority:
+//  1. Higher specificity (more dots in pattern) wins
+//  2. Prefix match wins over suffix match (among equal specificity)
+//  3. Higher boundary strength wins (dot-segment match > underscore-boundary fallback)
+//  4. Earlier match position wins (leftmost segment carries more context)
+//  5. Longer pattern string wins
+//  6. Alphabetical layer name for determinism
 func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled map[string][]compiledPattern) string {
-	// Find all matching patterns with their specificity
 	type match struct {
 		layer       string
 		pattern     string
 		specificity int
+		isPrefix    bool // true = prefix match (higher priority)
+		boundary    int
+		matchPos    int // byte offset where the pattern matched in the module
 	}
 
 	var matches []match
 	for layer, patterns := range compiled {
 		for _, cp := range patterns {
-			if cp.re.MatchString(module) {
-				matches = append(matches, match{layer: layer, pattern: cp.original, specificity: cp.specificity})
+			if m := cp.matchModule(module); m.matched {
+				matches = append(matches, match{
+					layer:       layer,
+					pattern:     cp.original,
+					specificity: cp.specificity,
+					isPrefix:    m.isPrefix,
+					boundary:    m.boundaryScore,
+					matchPos:    m.matchPos,
+				})
 			}
 		}
 	}
 
-	// Return the most specific match
-	if len(matches) > 0 {
-		best := matches[0]
-		for _, m := range matches[1:] {
-			if m.specificity > best.specificity {
-				best = m
-			} else if m.specificity == best.specificity {
-				// tie-breaker: prefer longer original pattern
-				if len(m.pattern) > len(best.pattern) {
-					best = m
-				} else if len(m.pattern) == len(best.pattern) && m.layer < best.layer {
-					// final tie-breaker: alphabetical order by layer name for deterministic results
-					best = m
-				}
-			}
-		}
-		return best.layer
+	if len(matches) == 0 {
+		return ""
 	}
 
-	return ""
+	// Sort matches by priority: specificity > prefix > boundary strength > match position > pattern length > layer name
+	// Specificity (dot count) is the primary signal so that "api.v1" always beats
+	// "foo" even when "foo" matches at prefix position. Among equal-specificity
+	// matches, prefer prefix over suffix to resolve ambiguities like
+	// "domain.routers" → domain (prefix) over presentation (suffix "routers").
+	sort.Slice(matches, func(i, j int) bool {
+		a, b := matches[i], matches[j]
+		// 1. Higher specificity wins
+		if a.specificity != b.specificity {
+			return a.specificity > b.specificity
+		}
+		// 2. Prefix match wins (among equal specificity)
+		if a.isPrefix != b.isPrefix {
+			return a.isPrefix
+		}
+		// 3. Dot/exact segment matches beat underscore-boundary fallbacks
+		if a.boundary != b.boundary {
+			return a.boundary > b.boundary
+		}
+		// 4. Earlier match position wins (leftmost segment carries more context)
+		if a.matchPos != b.matchPos {
+			return a.matchPos < b.matchPos
+		}
+		// 5. Longer pattern wins
+		if len(a.pattern) != len(b.pattern) {
+			return len(a.pattern) > len(b.pattern)
+		}
+		// 6. Alphabetical layer name
+		return a.layer < b.layer
+	})
+
+	return matches[0].layer
 }
 
-// compileModulePattern converts simple glob-like patterns to regex for module names.
+// compileModulePatterns converts simple glob-like patterns to a compiledPattern
+// with separate prefix and suffix regexes for position-aware matching.
 // For Python modules, pattern "views" should match "views", "views.foo", "views.foo.bar", etc.
-func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Regexp {
+func (s *SystemAnalysisServiceImpl) compileModulePatterns(glob string) *compiledPattern {
 	if glob == "" {
 		return nil
 	}
 
 	escaped := regexp.QuoteMeta(glob)
 	hasWildcard := strings.Contains(glob, "*")
+
+	var prefixPattern, suffixPattern string
 	if hasWildcard {
-		escaped = strings.ReplaceAll(escaped, "\\*", ".*")
+		wild := strings.ReplaceAll(escaped, "\\*", ".*")
+		prefixPattern = fmt.Sprintf("(?i)^%s$", wild)
+		suffixPattern = fmt.Sprintf("(?i)^.+\\.%s$", wild)
 	} else {
-		// Allow matching the module segment plus any nested submodules
-		escaped = fmt.Sprintf("%s(?:\\..+)?", escaped)
+		segment := fmt.Sprintf("%s(?:\\..+)?", escaped)
+		prefixPattern = fmt.Sprintf("(?i)^%s$", segment)
+		suffixPattern = fmt.Sprintf("(?i)^.+\\.%s$", segment)
 	}
 
-	// Match either at the beginning of the module path or as a later segment.
-	pattern := fmt.Sprintf("^(?:%s|.+\\.%s)$", escaped, escaped)
+	prefixRe, err1 := regexp.Compile(prefixPattern)
+	suffixRe, err2 := regexp.Compile(suffixPattern)
+	if err1 != nil && err2 != nil {
+		return nil
+	}
+	if err1 != nil {
+		prefixRe = nil
+	}
+	if err2 != nil {
+		suffixRe = nil
+	}
+
+	return &compiledPattern{
+		prefixRe:    prefixRe,
+		suffixRe:    suffixRe,
+		original:    glob,
+		specificity: strings.Count(glob, "."),
+	}
+}
+
+// compileModulePattern is a convenience wrapper that returns a combined regex
+// matching both prefix and suffix positions. Used by autoDetectArchitecture tests.
+func (s *SystemAnalysisServiceImpl) compileModulePattern(glob string) *regexp.Regexp {
+	cp := s.compileModulePatterns(glob)
+	if cp == nil {
+		return nil
+	}
+	// Build a combined regex for backward compatibility
+	escaped := regexp.QuoteMeta(glob)
+	hasWildcard := strings.Contains(glob, "*")
+	var pattern string
+	if hasWildcard {
+		escaped = strings.ReplaceAll(escaped, "\\*", ".*")
+		pattern = fmt.Sprintf("(?i)^(?:%s|.+\\.%s)$", escaped, escaped)
+	} else {
+		segmentTail := "(?:$|[._].+)"
+		prefixPattern := fmt.Sprintf("%s%s", escaped, segmentTail)
+		suffixPattern := fmt.Sprintf(".+[._]%s%s", escaped, segmentTail)
+		pattern = fmt.Sprintf("(?i)^(?:%s|%s)$", prefixPattern, suffixPattern)
+	}
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil
@@ -474,18 +621,25 @@ func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.Depen
 		return nil
 	}
 
-	// Build layer patterns map from default config
-	layerPatterns := make(map[string][]string)
-	for _, layer := range defaultConfig.Architecture.Layers {
-		layerPatterns[layer.Name] = layer.Packages
+	// Convert config layer definitions to domain layers and compile patterns
+	domainLayers := make([]domain.Layer, 0, len(defaultConfig.Architecture.Layers))
+	for _, l := range defaultConfig.Architecture.Layers {
+		domainLayers = append(domainLayers, domain.Layer{
+			Name:     l.Name,
+			Packages: l.Packages,
+		})
 	}
+	compiled := s.compileLayerPatterns(domainLayers)
 
 	// Detect which modules belong to which layer
 	moduleToLayer := make(map[string]string)
 	layerModules := make(map[string][]string)
 
 	for module := range graph.Nodes {
-		layer := s.detectLayerFromModule(module, layerPatterns)
+		if s.isTestModule(module) {
+			continue
+		}
+		layer := s.findLayerForModule(module, compiled)
 		if layer != "" {
 			moduleToLayer[module] = layer
 			layerModules[layer] = append(layerModules[layer], module)
@@ -528,62 +682,110 @@ func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.Depen
 	}
 }
 
-// detectLayerFromModule determines which layer a module belongs to based on its name
-func (s *SystemAnalysisServiceImpl) detectLayerFromModule(module string, patterns map[string][]string) string {
-	// Split module path into parts
+// resolveArchitectureRules returns a self-contained ArchitectureRules ready for
+// evaluation. It clones the caller's rules (if any) to avoid mutation, then fills
+// in missing layers or rules from auto-detection / embedded defaults.
+func (s *SystemAnalysisServiceImpl) resolveArchitectureRules(graph *analyzer.DependencyGraph, orig *domain.ArchitectureRules) *domain.ArchitectureRules {
+	// No user config at all — fully auto-detect
+	if orig == nil || (len(orig.Layers) == 0 && len(orig.Rules) == 0) {
+		return s.autoDetectArchitecture(graph)
+	}
+
+	// Clone to avoid mutating the caller's object
+	resolved := &domain.ArchitectureRules{
+		Layers:            append([]domain.Layer(nil), orig.Layers...),
+		Rules:             append([]domain.LayerRule(nil), orig.Rules...),
+		NeutralPrefixes:   append([]string(nil), orig.NeutralPrefixes...),
+		StrictMode:        orig.StrictMode,
+		AllowedPatterns:   orig.AllowedPatterns,
+		ForbiddenPatterns: orig.ForbiddenPatterns,
+	}
+
+	if len(resolved.Layers) > 0 && len(resolved.Rules) == 0 {
+		// User provided layers but no rules — load default rules filtered to
+		// user-defined layer names.
+		resolved.Rules = s.loadDefaultRulesForLayers(resolved.Layers)
+	} else if len(resolved.Rules) > 0 && len(resolved.Layers) == 0 {
+		// User provided rules but no layers — auto-detect layers, then merge
+		// auto-detected default rules with user rules (user rules take precedence).
+		autoDetected := s.autoDetectArchitecture(graph)
+		if autoDetected != nil {
+			resolved.Layers = autoDetected.Layers
+			resolved.Rules = s.mergeLayerRules(autoDetected.Rules, resolved.Rules)
+		}
+	}
+
+	return resolved
+}
+
+// mergeLayerRules merges base rules with override rules. For any From value
+// that appears in overrides, the override replaces the base rule entirely.
+func (s *SystemAnalysisServiceImpl) mergeLayerRules(base, overrides []domain.LayerRule) []domain.LayerRule {
+	// Build set of From values that the user explicitly defined
+	overrideFroms := make(map[string]struct{}, len(overrides))
+	for _, r := range overrides {
+		overrideFroms[r.From] = struct{}{}
+	}
+
+	// Start with base rules that are NOT overridden by the user
+	var merged []domain.LayerRule
+	for _, r := range base {
+		if _, overridden := overrideFroms[r.From]; !overridden {
+			merged = append(merged, r)
+		}
+	}
+	// Append all user overrides
+	merged = append(merged, overrides...)
+	return merged
+}
+
+// loadDefaultRulesForLayers loads the embedded default layer rules and returns
+// only those whose From field matches one of the given layer names. This avoids
+// injecting rules that reference built-in layer names (e.g. "presentation") when
+// the user's layers use custom names (e.g. "api").
+func (s *SystemAnalysisServiceImpl) loadDefaultRulesForLayers(layers []domain.Layer) []domain.LayerRule {
+	defaultConfig, err := config.LoadDefaultConfigFromTOML()
+	if err != nil {
+		return nil
+	}
+
+	// Build a set of user-defined layer names for fast lookup
+	layerNames := make(map[string]struct{}, len(layers))
+	for _, l := range layers {
+		layerNames[l.Name] = struct{}{}
+	}
+
+	var filtered []domain.LayerRule
+	for _, rule := range defaultConfig.Architecture.Rules {
+		if _, ok := layerNames[rule.From]; ok {
+			filtered = append(filtered, domain.LayerRule{
+				From:  rule.From,
+				Allow: rule.Allow,
+				Deny:  rule.Deny,
+			})
+		}
+	}
+	return filtered
+}
+
+// isTestModule checks if a module represents test code
+func (s *SystemAnalysisServiceImpl) isTestModule(module string) bool {
 	parts := strings.Split(module, ".")
-
-	if len(parts) == 0 {
-		return ""
-	}
-
-	// Priority 1: Check the LAST part of the module path (most specific)
-	// This is usually the most accurate indicator of the layer
-	// e.g., "app.api.v1.admin.companies.router" -> "router" indicates presentation layer
-	lastPart := strings.ToLower(parts[len(parts)-1])
-
-	// Define priority order for last part matching
-	// Presentation and Infrastructure are most specific when they're the last part
-	lastPartPriority := []string{"presentation", "infrastructure", "application", "domain"}
-	for _, layer := range lastPartPriority {
-		for _, pattern := range patterns[layer] {
-			// Exact match or variations with underscores/prefixes/suffixes
-			if lastPart == pattern ||
-				strings.HasPrefix(lastPart, pattern+"_") ||
-				strings.HasSuffix(lastPart, "_"+pattern) ||
-				(len(lastPart) > len(pattern) && strings.Contains(lastPart, pattern)) {
-				return layer
-			}
-		}
-	}
-
-	// Priority 2: Check the second-to-last part if it exists
-	// This handles cases like "services.py" where the last part is just "py"
-	if len(parts) > 1 {
-		secondToLast := strings.ToLower(parts[len(parts)-2])
-		for _, layer := range lastPartPriority {
-			for _, pattern := range patterns[layer] {
-				if secondToLast == pattern || strings.HasPrefix(secondToLast, pattern+"_") || strings.HasSuffix(secondToLast, "_"+pattern) {
-					return layer
-				}
-			}
-		}
-	}
-
-	// Priority 3: Check all parts from beginning to end
-	// This catches cases where the layer indicator is in the middle of the path
 	for _, part := range parts {
 		lowerPart := strings.ToLower(part)
-		for _, layer := range lastPartPriority {
-			for _, pattern := range patterns[layer] {
-				if lowerPart == pattern {
-					return layer
-				}
-			}
+		// Check for test directory/package names
+		if lowerPart == "tests" || lowerPart == "test" || lowerPart == "testing" || lowerPart == "conftest" {
+			return true
 		}
 	}
-
-	return ""
+	// Check if the last part indicates a test file
+	if len(parts) > 0 {
+		lastPart := strings.ToLower(parts[len(parts)-1])
+		if strings.HasPrefix(lastPart, "test_") || strings.HasSuffix(lastPart, "_test") {
+			return true
+		}
+	}
+	return false
 }
 
 // isArchitecturalComponent checks if a module part represents an architectural component

@@ -3,6 +3,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"os"
 	"strings"
 	"testing"
 
@@ -214,7 +215,7 @@ func TestCloneOutputFormatterIntegration(t *testing.T) {
 	assert.Contains(t, textOutput, "Files Analyzed: 2", "Should contain statistics")
 	assert.Contains(t, textOutput, "Clone Pairs: 1", "Should contain pair count")
 	assert.Contains(t, textOutput, "Type-1", "Should contain clone type")
-	assert.Contains(t, textOutput, "similarity: 0.980", "Should contain similarity")
+	assert.Contains(t, textOutput, "similarity: 0.850", "Should contain similarity")
 
 	// Test JSON format
 	var jsonBuffer bytes.Buffer
@@ -224,7 +225,7 @@ func TestCloneOutputFormatterIntegration(t *testing.T) {
 	jsonOutput := jsonBuffer.String()
 	assert.Contains(t, jsonOutput, `"success": true`, "Should contain success field")
 	assert.Contains(t, jsonOutput, `"total_clones": 2`, "Should contain clone count")
-	assert.Contains(t, jsonOutput, `"similarity": 0.98`, "Should contain similarity")
+	assert.Contains(t, jsonOutput, `"similarity": 0.85`, "Should contain similarity")
 
 	// Test YAML format
 	var yamlBuffer bytes.Buffer
@@ -255,17 +256,26 @@ func TestCloneOutputFormatterIntegration(t *testing.T) {
 
 // TestCloneConfigurationLoaderIntegration tests configuration loading and saving
 func TestCloneConfigurationLoaderIntegration(t *testing.T) {
+	// Isolate from repository-level config discovery.
+	workingDir := t.TempDir()
+	originalDir, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Chdir(originalDir)
+	}()
+	require.NoError(t, os.Chdir(workingDir))
+
 	configLoader := service.NewCloneConfigurationLoader()
 
 	// Test getting default configuration
 	defaultConfig := configLoader.GetDefaultCloneConfig()
 	assert.NotNil(t, defaultConfig, "Should return default configuration")
-	assert.Equal(t, 5, defaultConfig.MinLines, "Default min lines should be 5")
-	assert.Equal(t, 10, defaultConfig.MinNodes, "Default min nodes should be 10")
-	assert.Equal(t, 0.9, defaultConfig.SimilarityThreshold, "Default similarity threshold should be 0.9")
+	assert.Equal(t, 10, defaultConfig.MinLines, "Default min lines should be 10")
+	assert.Equal(t, 20, defaultConfig.MinNodes, "Default min nodes should be 20")
+	assert.Equal(t, 0.65, defaultConfig.SimilarityThreshold, "Default similarity threshold should be 0.65")
 
 	// Validate default configuration
-	err := defaultConfig.Validate()
+	err = defaultConfig.Validate()
 	assert.NoError(t, err, "Default configuration should be valid")
 
 	// Test configuration merging in use case

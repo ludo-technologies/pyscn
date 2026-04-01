@@ -84,6 +84,64 @@ min_nodes = 20
 	}
 }
 
+func TestLoadArchitectureLayersAndRulesFromPyprojectToml(t *testing.T) {
+	tempDir := t.TempDir()
+
+	configContent := `[tool.pyscn.architecture]
+enabled = true
+
+[[tool.pyscn.architecture.layers]]
+name = "api"
+description = "API layer"
+packages = ["myapp.api"]
+
+[[tool.pyscn.architecture.layers]]
+name = "domain"
+description = "Domain layer"
+packages = ["myapp.domain"]
+
+[[tool.pyscn.architecture.rules]]
+from = "api"
+allow = ["domain"]
+deny = ["infrastructure"]
+`
+	configPath := filepath.Join(tempDir, "pyproject.toml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	config, err := LoadPyprojectConfig(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if len(config.ArchitectureLayers) != 2 {
+		t.Fatalf("Expected 2 layers, got %d", len(config.ArchitectureLayers))
+	}
+	if config.ArchitectureLayers[0].Name != "api" {
+		t.Errorf("Expected layer[0].Name 'api', got %q", config.ArchitectureLayers[0].Name)
+	}
+	if config.ArchitectureLayers[1].Name != "domain" {
+		t.Errorf("Expected layer[1].Name 'domain', got %q", config.ArchitectureLayers[1].Name)
+	}
+	if len(config.ArchitectureLayers[0].Packages) != 1 || config.ArchitectureLayers[0].Packages[0] != "myapp.api" {
+		t.Errorf("Expected layer[0].Packages ['myapp.api'], got %v", config.ArchitectureLayers[0].Packages)
+	}
+
+	if len(config.ArchitectureRules) != 1 {
+		t.Fatalf("Expected 1 rule, got %d", len(config.ArchitectureRules))
+	}
+	if config.ArchitectureRules[0].From != "api" {
+		t.Errorf("Expected rule[0].From 'api', got %q", config.ArchitectureRules[0].From)
+	}
+	if len(config.ArchitectureRules[0].Allow) != 1 || config.ArchitectureRules[0].Allow[0] != "domain" {
+		t.Errorf("Expected rule[0].Allow ['domain'], got %v", config.ArchitectureRules[0].Allow)
+	}
+	if len(config.ArchitectureRules[0].Deny) != 1 || config.ArchitectureRules[0].Deny[0] != "infrastructure" {
+		t.Errorf("Expected rule[0].Deny ['infrastructure'], got %v", config.ArchitectureRules[0].Deny)
+	}
+}
+
 func TestPyprojectTomlPriority(t *testing.T) {
 	// Create temporary directory
 	tempDir := t.TempDir()

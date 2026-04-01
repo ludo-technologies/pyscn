@@ -60,27 +60,53 @@ type PythonCostModel struct {
 
 	// Whether to ignore differences in identifier names
 	IgnoreIdentifiers bool
+
+	// Whether to reduce weight for boilerplate nodes (type annotations, decorators, Field() calls)
+	ReduceBoilerplateWeight bool
+
+	// Multiplier for boilerplate nodes (default: 0.1)
+	BoilerplateMultiplier float64
 }
 
 // NewPythonCostModel creates a new Python-aware cost model with default settings
 func NewPythonCostModel() *PythonCostModel {
 	return &PythonCostModel{
-		BaseInsertCost:    1.0,
-		BaseDeleteCost:    1.0,
-		BaseRenameCost:    1.0,
-		IgnoreLiterals:    false,
-		IgnoreIdentifiers: false,
+		BaseInsertCost:          1.0,
+		BaseDeleteCost:          1.0,
+		BaseRenameCost:          1.0,
+		IgnoreLiterals:          false,
+		IgnoreIdentifiers:       false,
+		ReduceBoilerplateWeight: true, // Enable by default to reduce false positives
+		BoilerplateMultiplier:   0.1,
 	}
 }
 
 // NewPythonCostModelWithConfig creates a Python cost model with custom configuration
 func NewPythonCostModelWithConfig(ignoreLiterals, ignoreIdentifiers bool) *PythonCostModel {
 	return &PythonCostModel{
-		BaseInsertCost:    1.0,
-		BaseDeleteCost:    1.0,
-		BaseRenameCost:    1.0,
-		IgnoreLiterals:    ignoreLiterals,
-		IgnoreIdentifiers: ignoreIdentifiers,
+		BaseInsertCost:          1.0,
+		BaseDeleteCost:          1.0,
+		BaseRenameCost:          1.0,
+		IgnoreLiterals:          ignoreLiterals,
+		IgnoreIdentifiers:       ignoreIdentifiers,
+		ReduceBoilerplateWeight: true, // Enable by default to reduce false positives
+		BoilerplateMultiplier:   0.1,
+	}
+}
+
+// NewPythonCostModelWithBoilerplateConfig creates a Python cost model with full configuration
+func NewPythonCostModelWithBoilerplateConfig(ignoreLiterals, ignoreIdentifiers, reduceBoilerplate bool, boilerplateMultiplier float64) *PythonCostModel {
+	if boilerplateMultiplier <= 0 {
+		boilerplateMultiplier = 0.1
+	}
+	return &PythonCostModel{
+		BaseInsertCost:          1.0,
+		BaseDeleteCost:          1.0,
+		BaseRenameCost:          1.0,
+		IgnoreLiterals:          ignoreLiterals,
+		IgnoreIdentifiers:       ignoreIdentifiers,
+		ReduceBoilerplateWeight: reduceBoilerplate,
+		BoilerplateMultiplier:   boilerplateMultiplier,
 	}
 }
 
@@ -131,6 +157,13 @@ func (c *PythonCostModel) Rename(node1, node2 *TreeNode) float64 {
 
 // getNodeTypeMultiplier returns a cost multiplier based on the node type
 func (c *PythonCostModel) getNodeTypeMultiplier(label string) float64 {
+	// Boilerplate nodes (type annotations, decorators, Field() calls) get very low weight
+	// This reduces false positives for framework patterns like dataclasses and Pydantic
+	// Uses the shared IsBoilerplateLabel function to avoid duplication
+	if c.ReduceBoilerplateWeight && IsBoilerplateLabel(label) {
+		return c.BoilerplateMultiplier
+	}
+
 	// Structural nodes are more expensive to modify
 	if c.isStructuralNode(label) {
 		return 1.5
@@ -244,6 +277,15 @@ func (c *PythonCostModel) calculateLabelSimilarity(label1, label2 string) float6
 	// If base types are identical, moderate similarity
 	// This ensures renaming Name(foo) -> Name(bar) still has meaningful cost (0.7)
 	if baseType1 == baseType2 {
+		// For top-level definitions, names matter significantly.
+		// Different names = no similarity = full rename cost.
+		if c.isTopLevelDefinition(baseType1) {
+			name1 := c.extractNameFromLabel(label1)
+			name2 := c.extractNameFromLabel(label2)
+			if name1 != name2 {
+				return 0.0
+			}
+		}
 		return 0.3
 	}
 
@@ -266,6 +308,24 @@ func (c *PythonCostModel) extractBaseNodeType(label string) string {
 		return label[:idx]
 	}
 	return label
+}
+
+// isTopLevelDefinition checks if a node type represents a top-level definition
+// where the name is semantically significant for clone detection.
+// Note: AsyncFunctionDef is included for consistency with isStructuralNode,
+// though the tree converter normalizes async functions to FunctionDef labels.
+func (c *PythonCostModel) isTopLevelDefinition(baseType string) bool {
+	return baseType == "ClassDef" || baseType == "FunctionDef" || baseType == "AsyncFunctionDef"
+}
+
+// extractNameFromLabel extracts the name from a label like "ClassDef(MyClass)" -> "MyClass"
+func (c *PythonCostModel) extractNameFromLabel(label string) string {
+	start := strings.Index(label, "(")
+	end := strings.LastIndex(label, ")")
+	if start != -1 && end > start {
+		return label[start+1 : end]
+	}
+	return ""
 }
 
 // areRelatedNodeTypes checks if two node types are related

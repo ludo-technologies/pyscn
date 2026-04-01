@@ -1,5 +1,112 @@
 # Changelog
 
+## [1.14.0] - 2026-04-01
+
+### Added
+- Add Cognitive Complexity metric with SonarQube-style calculation (#370)
+- Improve display of `__main__` top-level code suggestions (#375)
+
+### Refactored
+- Remove top suggestions from terminal output (#369)
+- Refactor AnalyzeUseCase to depend on AnalyzeOutputFormatter interface (#376)
+
+## [1.13.0] - 2026-03-22
+
+### Added
+- Add neutral_prefixes config for architecture layer detection (#365)
+
+### Fixed
+- Add missing IsAbstract and Description fields to TOML layer/rule types (#362)
+- Use match position as tie-breaker in findLayerForModule (#361)
+- Replace detectLayerFromModule heuristic with findLayerForModule (#360)
+- Resolve layer misclassification for ambiguous module paths (#359)
+- Propagate architecture layers and rules from TOML config (#356)
+
+### Refactored
+- Extract color hex values into CSS custom properties and Go constants (#351)
+
+### Testing
+- Add architecture layer integration tests (#363)
+
+## [1.12.0] - 2026-03-03
+
+### Added
+- Add actionable suggestions to analyze output (#347)
+
+### Dependencies
+- Bump the go-dependencies group with 2 updates (#349)
+
+## [1.11.1] - 2026-02-22
+
+### Fixed
+- Generate default_config.toml dynamically from domain defaults (#343)
+
+### Style
+- Restyle HTML output with professional data-first palette (#345)
+
+### Documentation
+- Update README.md
+
+## [1.11.0] - 2026-02-17
+
+### Added
+- Add LCOM4 class cohesion metric (#340)
+- Show README badge snippet after health score output (#331)
+
+### Fixed
+- Shorten HTML tab labels to prevent wrapping (#341)
+- Exclude Type-3 from default enabled clone types (#338)
+- Correct APTED key-root DP ordering (#337)
+
+### Performance
+- Add Jaccard pre-filter to minimize APTED calls (#339)
+
+### Documentation
+- Add algorithm documentation for all analysis engines (#330)
+- Redesign README header with centered logo (#329)
+
+### Testing
+- Add unit tests for MCP server handlers (#332)
+
+## [1.10.2] - 2026-02-07
+
+### Fixed
+- Calibrate clone detection thresholds and scoring (#327)
+- Improve CBO analysis with Union type support and score calibration (#326)
+- Extend clone memory test timeout to 180s (#325)
+
+## [1.10.1] - 2026-02-06
+
+### Added
+- Add CFG support for Walrus operator (#322)
+- Add missing error code constants (#320)
+
+### Fixed
+- Improve config file discovery from target paths (#323)
+
+### Enhanced
+- Add test coverage for ast_features.go (#321)
+
+## [1.9.3] - 2026-02-03
+
+### Fixed
+- Detect circular dependencies through `__init__.py` re-exports (#318)
+
+### Changed
+- Bump the go-dependencies group with 2 updates (#307)
+
+## [1.9.2] - 2026-02-01
+
+### Fixed
+- Prevent Type-3 clone false positives for different class/function names (#313)
+- Reduce clone detection false positives for framework patterns (#312)
+- Exclude test modules from layer detection (#311)
+
+## [1.9.1] - 2026-01-28
+
+### Fixed
+- Reduce false positives in Type-3/Type-4 clone detection (#305)
+
 ## [1.9.0] - 2026-01-27
 
 ### Added

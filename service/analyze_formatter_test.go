@@ -124,7 +124,6 @@ func TestAnalyzeFormatter_Write_Text(t *testing.T) {
 				"DEAD CODE DETECTION",
 				"CLONE DETECTION",
 				"DEPENDENCY ANALYSIS",
-				"RECOMMENDATIONS",
 			},
 		},
 		{
@@ -134,7 +133,6 @@ func TestAnalyzeFormatter_Write_Text(t *testing.T) {
 				"Comprehensive Analysis Report",
 				"Health Score",
 				"100/100",
-				"No major issues detected",
 			},
 			notExpected: []string{
 				"COMPLEXITY ANALYSIS",
@@ -237,8 +235,8 @@ func TestAnalyzeFormatter_Write_HTML(t *testing.T) {
 	// Verify tabs are present for enabled analyses
 	assert.Contains(t, output, "Complexity")
 	assert.Contains(t, output, "Dead Code")
-	assert.Contains(t, output, "Clone Detection")
-	assert.Contains(t, output, "Class Coupling")
+	assert.Contains(t, output, "Clone")
+	assert.Contains(t, output, "Coupling")
 }
 
 func TestAnalyzeFormatter_Write_UnsupportedFormat(t *testing.T) {
@@ -249,65 +247,6 @@ func TestAnalyzeFormatter_Write_UnsupportedFormat(t *testing.T) {
 	err := formatter.Write(response, domain.OutputFormat("invalid"), &buf)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid")
-}
-
-func TestAnalyzeFormatter_WriteText_Recommendations(t *testing.T) {
-	tests := []struct {
-		name             string
-		modifyResponse   func(*domain.AnalyzeResponse)
-		expectedContains []string
-	}{
-		{
-			name: "high complexity recommendation",
-			modifyResponse: func(r *domain.AnalyzeResponse) {
-				r.Summary.HighComplexityCount = 5
-				r.Summary.ComplexityEnabled = true
-			},
-			expectedContains: []string{"Refactor 5 high-complexity functions"},
-		},
-		{
-			name: "dead code recommendation",
-			modifyResponse: func(r *domain.AnalyzeResponse) {
-				r.Summary.DeadCodeCount = 10
-				r.Summary.DeadCodeEnabled = true
-			},
-			expectedContains: []string{"Remove 10 dead code segments"},
-		},
-		{
-			name: "high duplication recommendation",
-			modifyResponse: func(r *domain.AnalyzeResponse) {
-				r.Summary.CodeDuplication = 15.5
-				r.Summary.CloneEnabled = true
-			},
-			expectedContains: []string{"Reduce code duplication", "15.5%"},
-		},
-		{
-			name: "high coupling recommendation",
-			modifyResponse: func(r *domain.AnalyzeResponse) {
-				r.Summary.HighCouplingClasses = 3
-				r.Summary.CBOEnabled = true
-			},
-			expectedContains: []string{"Reduce coupling in 3 high-dependency classes"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			response := createMinimalAnalyzeResponse()
-			tt.modifyResponse(response)
-
-			formatter := NewAnalyzeFormatter()
-			var buf bytes.Buffer
-
-			err := formatter.Write(response, domain.OutputFormatText, &buf)
-			require.NoError(t, err)
-
-			output := buf.String()
-			for _, expected := range tt.expectedContains {
-				assert.Contains(t, output, expected)
-			}
-		})
-	}
 }
 
 func TestAnalyzeFormatter_WriteHTML_ScoreQuality(t *testing.T) {

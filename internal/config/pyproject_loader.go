@@ -24,6 +24,7 @@ type PyprojectPyscnSection struct {
 	Output         OutputTomlConfig         `toml:"output"`
 	Analysis       AnalysisTomlConfig       `toml:"analysis"`
 	Cbo            CboTomlConfig            `toml:"cbo"`
+	Lcom           LcomTomlConfig           `toml:"lcom"`
 	Architecture   ArchitectureTomlConfig   `toml:"architecture"`
 	SystemAnalysis SystemAnalysisTomlConfig `toml:"system_analysis"`
 	Dependencies   DependenciesTomlConfig   `toml:"dependencies"`
@@ -46,6 +47,20 @@ func LoadPyprojectConfig(startDir string) (*PyscnConfig, error) {
 		return nil, err
 	}
 
+	return loadPyprojectConfigData(data)
+}
+
+// LoadPyprojectConfigFromFile loads configuration from a specific pyproject.toml file path.
+func LoadPyprojectConfigFromFile(filePath string) (*PyscnConfig, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return loadPyprojectConfigData(data)
+}
+
+func loadPyprojectConfigData(data []byte) (*PyscnConfig, error) {
 	var pyproject PyprojectToml
 	if err := toml.Unmarshal(data, &pyproject); err != nil {
 		return nil, err
@@ -58,6 +73,7 @@ func LoadPyprojectConfig(startDir string) (*PyscnConfig, error) {
 	mergeOutputSection(config, &pyproject.Tool.Pyscn.Output)
 	mergeAnalysisSection(config, &pyproject.Tool.Pyscn.Analysis)
 	mergeCboSection(config, &pyproject.Tool.Pyscn.Cbo)
+	mergeLcomSection(config, &pyproject.Tool.Pyscn.Lcom)
 	mergeArchitectureSection(config, &pyproject.Tool.Pyscn.Architecture)
 	mergeSystemAnalysisSection(config, &pyproject.Tool.Pyscn.SystemAnalysis)
 	mergeDependenciesSection(config, &pyproject.Tool.Pyscn.Dependencies)
@@ -321,6 +337,16 @@ func mergeCboSection(defaults *PyscnConfig, cbo *CboTomlConfig) {
 	}
 }
 
+// mergeLcomSection merges settings from the [lcom] section
+func mergeLcomSection(defaults *PyscnConfig, lcom *LcomTomlConfig) {
+	if lcom.LowThreshold != nil {
+		defaults.LcomLowThreshold = *lcom.LowThreshold
+	}
+	if lcom.MediumThreshold != nil {
+		defaults.LcomMediumThreshold = *lcom.MediumThreshold
+	}
+}
+
 // mergeArchitectureSection merges settings from the [architecture] section
 func mergeArchitectureSection(defaults *PyscnConfig, arch *ArchitectureTomlConfig) {
 	if arch.Enabled != nil {
@@ -379,6 +405,28 @@ func mergeArchitectureSection(defaults *PyscnConfig, arch *ArchitectureTomlConfi
 	}
 	if arch.FailOnViolations != nil {
 		defaults.ArchitectureFailOnViolations = arch.FailOnViolations
+	}
+	if len(arch.NeutralPrefixes) > 0 {
+		defaults.ArchitectureNeutralPrefixes = arch.NeutralPrefixes
+	}
+	if len(arch.Layers) > 0 {
+		layers := make([]LayerDefinition, len(arch.Layers))
+		for i, l := range arch.Layers {
+			layers[i] = LayerDefinition{
+				Name:        l.Name,
+				Description: l.Description,
+				Packages:    l.Packages,
+				IsAbstract:  l.IsAbstract,
+			}
+		}
+		defaults.ArchitectureLayers = layers
+	}
+	if len(arch.Rules) > 0 {
+		rules := make([]LayerRule, len(arch.Rules))
+		for i, r := range arch.Rules {
+			rules[i] = LayerRule(r)
+		}
+		defaults.ArchitectureRules = rules
 	}
 }
 
@@ -508,11 +556,17 @@ func mergeDISection(defaults *PyscnConfig, di *DITomlConfig) {
 
 // findPyprojectToml walks up the directory tree to find pyproject.toml
 func findPyprojectToml(startDir string) (string, error) {
-	dir := startDir
+	dir, err := normalizeSearchDir(startDir)
+	if err != nil {
+		return "", err
+	}
+
 	for {
 		configPath := filepath.Join(dir, "pyproject.toml")
 		if _, err := os.Stat(configPath); err == nil {
-			return configPath, nil
+			if hasPyscnSection(configPath) {
+				return configPath, nil
+			}
 		}
 
 		parent := filepath.Dir(dir)
@@ -524,4 +578,24 @@ func findPyprojectToml(startDir string) (string, error) {
 	}
 
 	return "", os.ErrNotExist
+}
+
+func hasPyscnSection(filePath string) bool {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return false
+	}
+
+	var root map[string]interface{}
+	if err := toml.Unmarshal(data, &root); err != nil {
+		return false
+	}
+
+	tool, ok := root["tool"].(map[string]interface{})
+	if !ok {
+		return false
+	}
+
+	_, ok = tool["pyscn"]
+	return ok
 }
