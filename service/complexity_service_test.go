@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -51,8 +52,13 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.NotEmpty(t, response.GeneratedAt)
 		assert.NotEmpty(t, response.Version)
 		assert.NotNil(t, response.Config)
+		assert.NotEmpty(t, response.RawMetrics)
+		assert.NotNil(t, response.RawMetricsSummary)
 		assert.GreaterOrEqual(t, response.Summary.TotalFunctions, 1)
 		assert.GreaterOrEqual(t, response.Summary.FilesAnalyzed, 1)
+		for _, function := range response.Functions {
+			assert.NotEqual(t, "__main__", function.Name)
+		}
 	})
 
 	t.Run("analyze complex Python file with control structures", func(t *testing.T) {
@@ -109,6 +115,9 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Equal(t, 2, response.Summary.FilesAnalyzed)
+		require.NotNil(t, response.RawMetricsSummary)
+		assert.Len(t, response.RawMetrics, 2)
+		assert.Equal(t, 2, response.RawMetricsSummary.FilesAnalyzed)
 
 		// Should have functions from both files
 		filePathsFound := make(map[string]bool)
@@ -142,16 +151,38 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.Contains(t, err.Error(), "cancelled")
 	})
 
-	t.Run("no functions found returns error", func(t *testing.T) {
-		// Use a file that likely has no functions
-		req := newDefaultComplexityRequest("../testdata/python/simple/imports.py")
-		req.MinComplexity = 100 // Very high threshold to filter out all functions
+	t.Run("no functions found still returns raw metrics", func(t *testing.T) {
+		req := newDefaultComplexityRequest("../testdata/python/edge_cases/syntax_errors.py")
 
-		_, err := service.Analyze(ctx, req)
+		response, err := service.Analyze(ctx, req)
 
-		if err != nil {
-			assert.Contains(t, err.Error(), "no functions found to analyze")
-		}
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Empty(t, response.Functions)
+		assert.Len(t, response.RawMetrics, 1)
+		require.NotNil(t, response.RawMetricsSummary)
+		assert.Equal(t, 1, response.RawMetricsSummary.FilesAnalyzed)
+		assert.NotZero(t, response.RawMetrics[0].TotalLines)
+		require.NotEmpty(t, response.Warnings)
+		assert.Contains(t, response.Warnings[0], "No functions found in file")
+	})
+
+	t.Run("parse errors still return raw metrics", func(t *testing.T) {
+		tempDir := t.TempDir()
+		filePath := tempDir + "/invalid.py"
+		err := os.WriteFile(filePath, []byte("def broken(:\n    pass\n"), 0644)
+		require.NoError(t, err)
+
+		req := newDefaultComplexityRequest(filePath)
+
+		response, err := service.Analyze(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Empty(t, response.Functions)
+		assert.Len(t, response.RawMetrics, 1)
+		require.NotNil(t, response.RawMetricsSummary)
+		assert.NotEmpty(t, response.Errors)
 	})
 }
 
