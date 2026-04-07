@@ -85,14 +85,13 @@ func CalculateRawMetrics(content []byte, filePath string) *RawMetricsResult {
 
 // CalculateAggregateRawMetrics aggregates raw code metrics across files.
 func CalculateAggregateRawMetrics(results []*RawMetricsResult) *AggregateRawMetrics {
-	aggregate := &AggregateRawMetrics{
-		FilesAnalyzed: len(results),
-	}
+	aggregate := &AggregateRawMetrics{}
 
 	for _, result := range results {
 		if result == nil {
 			continue
 		}
+		aggregate.FilesAnalyzed++
 		aggregate.SLOC += result.SLOC
 		aggregate.LLOC += result.LLOC
 		aggregate.CommentLines += result.CommentLines

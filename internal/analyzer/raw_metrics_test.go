@@ -155,4 +155,18 @@ b = 2
 	assert.Equal(t, 1, aggregate.BlankLines)
 	assert.Equal(t, 5, aggregate.TotalLines)
 	assert.InDelta(t, float64(1)/float64(3), aggregate.CommentRatio, 0.0001)
+
+	t.Run("ignores nil entries when counting files", func(t *testing.T) {
+		aggregate := CalculateAggregateRawMetrics([]*RawMetricsResult{first, nil, second})
+
+		require.NotNil(t, aggregate)
+		assert.Equal(t, 2, aggregate.FilesAnalyzed)
+		assert.Equal(t, 2, aggregate.SLOC)
+		assert.Equal(t, 2, aggregate.LLOC)
+		assert.Equal(t, 1, aggregate.CommentLines)
+		assert.Equal(t, 1, aggregate.DocstringLines)
+		assert.Equal(t, 1, aggregate.BlankLines)
+		assert.Equal(t, 5, aggregate.TotalLines)
+		assert.InDelta(t, float64(1)/float64(3), aggregate.CommentRatio, 0.0001)
+	})
 }
