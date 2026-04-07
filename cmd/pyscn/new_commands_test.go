@@ -471,6 +471,49 @@ func TestCheckCircularDependenciesWithMaxCycles(t *testing.T) {
 	}
 }
 
+func TestCheckCircularDependenciesUsesConfigPatterns(t *testing.T) {
+	tempDir := t.TempDir()
+	fixtureDir := filepath.Join("..", "..", "testdata", "python", "circular_deps_test")
+	files := []string{"main.py", "player.py", "physics.py"}
+
+	for _, name := range files {
+		content, err := os.ReadFile(filepath.Join(fixtureDir, name))
+		if err != nil {
+			t.Fatalf("Failed to read fixture %s: %v", name, err)
+		}
+		if err := os.WriteFile(filepath.Join(tempDir, name), content, 0644); err != nil {
+			t.Fatalf("Failed to write fixture %s: %v", name, err)
+		}
+	}
+
+	configPath := filepath.Join(tempDir, ".pyscn.toml")
+	configContent := `[analysis]
+exclude_patterns = ["**/physics.py"]
+`
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+
+	var stdout, stderr bytes.Buffer
+	cobraCmd.SetOut(&stdout)
+	cobraCmd.SetErr(&stderr)
+	cobraCmd.SetArgs([]string{"--select", "deps", "--config", configPath, tempDir})
+
+	err := cobraCmd.Execute()
+	output := stdout.String() + stderr.String()
+
+	if err != nil {
+		t.Fatalf("Expected deps check to respect config exclude pattern, got: %v, output: %s", err, output)
+	}
+
+	if strings.Contains(output, "circular dependency detected") {
+		t.Fatalf("Expected no circular dependency output when physics.py is excluded, got: %s", output)
+	}
+}
+
 // TestCheckNoDepsAnalysis tests that deps analysis is opt-in by default
 func TestCheckNoDepsAnalysis(t *testing.T) {
 	checkCmd := NewCheckCommand()
