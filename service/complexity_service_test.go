@@ -184,6 +184,34 @@ func TestComplexityService_Analyze(t *testing.T) {
 		require.NotNil(t, response.RawMetricsSummary)
 		assert.NotEmpty(t, response.Errors)
 	})
+
+	t.Run("raw metrics include parse failures without inflating analyzed file count", func(t *testing.T) {
+		tempDir := t.TempDir()
+		invalidPath := tempDir + "/invalid.py"
+		err := os.WriteFile(invalidPath, []byte("def broken(:\n    pass\n"), 0644)
+		require.NoError(t, err)
+
+		validPath := "../testdata/python/simple/functions.py"
+		req := newDefaultComplexityRequest(validPath, invalidPath)
+
+		response, err := service.Analyze(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		require.NotNil(t, response.RawMetricsSummary)
+		assert.NotEmpty(t, response.Functions)
+		assert.NotEmpty(t, response.Errors)
+		assert.Equal(t, 1, response.Summary.FilesAnalyzed)
+		assert.Equal(t, 2, response.RawMetricsSummary.FilesAnalyzed)
+		assert.Len(t, response.RawMetrics, 2)
+
+		rawMetricPaths := make(map[string]bool, len(response.RawMetrics))
+		for _, metrics := range response.RawMetrics {
+			rawMetricPaths[metrics.FilePath] = true
+		}
+		assert.True(t, rawMetricPaths[validPath])
+		assert.True(t, rawMetricPaths[invalidPath])
+	})
 }
 
 func TestComplexityService_AnalyzeFile(t *testing.T) {
