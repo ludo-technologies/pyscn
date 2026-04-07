@@ -315,6 +315,15 @@ func TestHasSyntaxErrors(t *testing.T) {
 	}
 }
 
+func TestParseRejectsIncompleteCode(t *testing.T) {
+	parser := New()
+
+	_, err := parser.Parse(context.Background(), []byte("def broken(: pass"))
+	if err == nil {
+		t.Fatal("expected Parse to reject incomplete code")
+	}
+}
+
 func BenchmarkParse(b *testing.B) {
 	parser := New()
 	ctx := context.Background()

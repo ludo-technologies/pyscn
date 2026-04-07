@@ -55,6 +55,7 @@ This command performs a fast analysis with predefined thresholds:
 • Dead Code: Fails if any critical dead code is found
 • Clones: Reports clones with similarity > 0.8 (warning only)
 • Circular Dependencies: Fails if any cycles are detected
+• DI Anti-patterns: Detects dependency injection anti-patterns
 By default, complexity, dead code, and clones analyses are run. Use --select to choose specific analyses.
 
 Exit codes:
@@ -80,7 +81,10 @@ Examples:
 
   # Check only for circular dependencies
   pyscn check --select deps src/
-  
+
+  # Check for DI anti-patterns
+  pyscn check --select di src/
+
 	# Check with higher complexity threshold
   pyscn check --max-complexity 15 src/
 
@@ -112,7 +116,7 @@ Examples:
 
 	// Select specific analyses to run
 	cmd.Flags().StringSliceVarP(&c.selectAnalyses, "select", "s", []string{},
-		"Comma-separated list of analyses to run: complexity, deadcode, clones, deps, mockdata")
+		"Comma-separated list of analyses to run: complexity, deadcode, clones, deps, mockdata, di")
 
 	return cmd
 }
@@ -132,14 +136,14 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create use case configuration
-	skipComplexity, skipDeadCode, skipClones, skipDeps, skipMockdata := c.determineEnabledAnalyses()
+	skipComplexity, skipDeadCode, skipClones, skipDeps, skipMockdata, skipDI := c.determineEnabledAnalyses()
 
 	// Count issues found
 	var issueCount int
 	var hasErrors bool
 
 	if !c.quiet {
-		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check (%s)...\n", strings.Join(c.getEnabledAnalyses(skipComplexity, skipDeadCode, skipClones, skipDeps, skipMockdata), ", "))
+		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check (%s)...\n", strings.Join(c.getEnabledAnalyses(skipComplexity, skipDeadCode, skipClones, skipDeps, skipMockdata, skipDI), ", "))
 	}
 
 	// Run complexity check if enabled
@@ -214,6 +218,17 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Run DI anti-pattern check if enabled
+	if !skipDI {
+		diIssues, err := c.checkDIAntipatterns(cmd, args)
+		if err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "❌ DI anti-pattern check failed: %v\n", err)
+			hasErrors = true
+		} else {
+			issueCount += diIssues
+		}
+	}
+
 	// Handle results
 	if hasErrors {
 		return fmt.Errorf("analysis failed with errors")
@@ -234,7 +249,7 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 }
 
 // determineEnabledAnalyses determines which analyses should run based on flags
-func (c *CheckCommand) determineEnabledAnalyses() (skipComplexity bool, skipDeadCode bool, skipClones bool, skipDeps bool, skipMockdata bool) {
+func (c *CheckCommand) determineEnabledAnalyses() (skipComplexity bool, skipDeadCode bool, skipClones bool, skipDeps bool, skipMockdata bool, skipDI bool) {
 	if len(c.selectAnalyses) > 0 {
 		// If --select is used, only run selected analyses
 		skipComplexity = !c.containsAnalysis("complexity")
@@ -242,6 +257,7 @@ func (c *CheckCommand) determineEnabledAnalyses() (skipComplexity bool, skipDead
 		skipClones = !c.containsAnalysis("clones")
 		skipDeps = !c.containsAnalysis("deps") && !c.containsAnalysis("circular")
 		skipMockdata = !c.containsAnalysis("mockdata")
+		skipDI = !c.containsAnalysis("di")
 	} else {
 		// Otherwise use original behavior (backward compatible)
 		skipComplexity = false    // Always run complexity
@@ -249,6 +265,7 @@ func (c *CheckCommand) determineEnabledAnalyses() (skipComplexity bool, skipDead
 		skipClones = c.skipClones // Only skip clones if explicitly requested
 		skipDeps = true           // Skip deps by default (opt-in via --select)
 		skipMockdata = true       // Skip mockdata by default (opt-in via --select)
+		skipDI = true             // Skip DI by default (opt-in via --select)
 	}
 	return
 }
@@ -269,7 +286,7 @@ func (c *CheckCommand) containsAnalysis(analysis string) bool {
 }
 
 // getEnabledAnalyses returns a list of enabled analyses for display
-func (c *CheckCommand) getEnabledAnalyses(skipComplexity bool, skipDeadCode bool, skipClones bool, skipDeps bool, skipMockdata bool) []string {
+func (c *CheckCommand) getEnabledAnalyses(skipComplexity bool, skipDeadCode bool, skipClones bool, skipDeps bool, skipMockdata bool, skipDI bool) []string {
 	var enabled []string
 	if !skipComplexity {
 		enabled = append(enabled, "complexity")
@@ -286,6 +303,9 @@ func (c *CheckCommand) getEnabledAnalyses(skipComplexity bool, skipDeadCode bool
 	if !skipMockdata {
 		enabled = append(enabled, "mockdata")
 	}
+	if !skipDI {
+		enabled = append(enabled, "di")
+	}
 	return enabled
 }
 
@@ -298,10 +318,11 @@ func (c *CheckCommand) validateSelectedAnalyses() error {
 		"deps":       true,
 		"circular":   true,
 		"mockdata":   true,
+		"di":         true,
 	}
 	for _, analysis := range c.selectAnalyses {
 		if !validAnalyses[strings.ToLower(analysis)] {
-			return fmt.Errorf("invalid analysis type: %s. Valid options: complexity, deadcode, clones, deps, mockdata", analysis)
+			return fmt.Errorf("invalid analysis type: %s. Valid options: complexity, deadcode, clones, deps, mockdata, di", analysis)
 		}
 	}
 	if len(c.selectAnalyses) == 0 {
@@ -633,6 +654,9 @@ func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, er
 	if err != nil {
 		return 0, err
 	}
+	if len(response.Errors) > 0 {
+		return 0, fmt.Errorf("analysis errors: %s", strings.Join(response.Errors, "; "))
+	}
 
 	// Count and output issues
 	issueCount := 0
@@ -649,6 +673,69 @@ func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, er
 						finding.Description,
 						finding.Rationale)
 				}
+			}
+		}
+	}
+
+	return issueCount, nil
+}
+
+// checkDIAntipatterns runs DI anti-pattern detection and returns issue count
+func (c *CheckCommand) checkDIAntipatterns(cmd *cobra.Command, args []string) (int, error) {
+	// Create request with check-specific settings
+	request := &domain.DIAntipatternRequest{
+		Paths:        args,
+		OutputFormat: domain.OutputFormatText,
+		OutputWriter: io.Discard,
+		ConfigPath:   c.configFile,
+	}
+
+	// Validate request
+	if err := request.Validate(); err != nil {
+		return 0, fmt.Errorf("invalid DI anti-pattern request: %w", err)
+	}
+
+	// Create service components
+	diService := service.NewDIAntipatternService()
+	diFormatter := service.NewDIAntipatternFormatter()
+	diConfigLoader := service.NewDIAntipatternConfigurationLoader()
+
+	// Build use case with defaults
+	useCase, err := app.NewDIAntipatternUseCaseBuilder().
+		WithService(diService).
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(diFormatter).
+		WithConfigLoader(diConfigLoader).
+		Build()
+	if err != nil {
+		return 0, fmt.Errorf("failed to create DI anti-pattern use case: %w", err)
+	}
+
+	// Run analysis
+	response, err := useCase.AnalyzeAndReturn(cmd.Context(), *request)
+	if err != nil {
+		return 0, err
+	}
+
+	return c.countDIAntipatternIssues(cmd.ErrOrStderr(), response)
+}
+
+func (c *CheckCommand) countDIAntipatternIssues(writer io.Writer, response *domain.DIAntipatternResponse) (int, error) {
+	if len(response.Errors) > 0 {
+		return 0, fmt.Errorf("analysis errors: %s", strings.Join(response.Errors, "; "))
+	}
+
+	issueCount := 0
+	for _, finding := range response.Findings {
+		if finding.Severity.IsAtLeast(domain.DIAntipatternSeverityWarning) {
+			issueCount++
+			if !c.quiet {
+				fmt.Fprintf(writer, "%s:%d:%d: %s: %s\n",
+					finding.Location.FilePath,
+					finding.Location.StartLine,
+					finding.Location.StartCol+1,
+					finding.Type,
+					finding.Description)
 			}
 		}
 	}

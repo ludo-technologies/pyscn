@@ -262,6 +262,38 @@ func (n *Node) Walk(visitor func(*Node) bool) {
 	}
 }
 
+// WalkDeep traverses the AST including the Value field when it contains a *Node.
+// This is necessary because tree-sitter stores some child nodes in the Value field
+// (e.g., Call nodes store the callee in Value, Assign nodes store the RHS in Value).
+func (n *Node) WalkDeep(visitor func(*Node) bool) {
+	visited := make(map[*Node]bool)
+	n.walkDeep(visitor, visited)
+}
+
+func (n *Node) walkDeep(visitor func(*Node) bool, visited map[*Node]bool) {
+	if n == nil {
+		return
+	}
+	if visited[n] {
+		return
+	}
+	visited[n] = true
+
+	if !visitor(n) {
+		return
+	}
+
+	// Traverse all standard AST children (Body/Orelse/Handlers/etc.).
+	for _, child := range n.GetChildren() {
+		child.walkDeep(visitor, visited)
+	}
+
+	// Traverse Value field if it contains a Node (tree-sitter-specific storage).
+	if valueNode, ok := n.Value.(*Node); ok {
+		valueNode.walkDeep(visitor, visited)
+	}
+}
+
 // Find finds all nodes matching a predicate
 func (n *Node) Find(predicate func(*Node) bool) []*Node {
 	var results []*Node
