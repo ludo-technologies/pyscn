@@ -336,4 +336,3 @@ func (d *ServiceLocatorDetector) isKnownLocatorPattern(fullCall string) bool {
 
 	return false
 }
-
