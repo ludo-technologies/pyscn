@@ -233,6 +233,52 @@ class Singleton:
 	}
 }
 
+func TestHiddenDependencyDetector_ModuleVariableAccess(t *testing.T) {
+	code := `
+_settings = {}
+settings = {}
+MAX_RETRIES = 3
+
+class Service:
+    def use_private_state(self):
+        return _settings
+
+    def use_public_state(self):
+        return settings
+
+    def use_constant(self):
+        return MAX_RETRIES
+`
+	p := parser.New()
+	result, err := p.Parse(context.Background(), []byte(code))
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	detector := NewHiddenDependencyDetector()
+	findings := filterBySubtype(detector.Analyze(result.AST, "test.py"), string(domain.HiddenDepModuleVariable))
+
+	if len(findings) != 2 {
+		t.Fatalf("expected 2 module variable findings, got %d", len(findings))
+	}
+
+	foundVars := make(map[string]bool)
+	for _, finding := range findings {
+		varName, _ := finding.Details["variable_name"].(string)
+		foundVars[varName] = true
+	}
+
+	if !foundVars["_settings"] {
+		t.Error("expected private module variable access to be detected")
+	}
+	if !foundVars["settings"] {
+		t.Error("expected public module variable access to be detected")
+	}
+	if foundVars["MAX_RETRIES"] {
+		t.Error("did not expect uppercase constant access to be detected")
+	}
+}
+
 func TestConcreteDependencyDetector_TypeHint(t *testing.T) {
 	code := `
 class MySQLRepo:
@@ -389,6 +435,26 @@ class Service:
 
 	if len(findings) != 1 {
 		t.Fatalf("expected 1 finding from else branch, got %d", len(findings))
+	}
+}
+
+func TestServiceLocatorDetector_DetectsNestedCalls(t *testing.T) {
+	code := `
+class Service:
+    def __init__(self):
+        self.executor = wrap(resolve("executor"))
+`
+	p := parser.New()
+	result, err := p.Parse(context.Background(), []byte(code))
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	detector := NewServiceLocatorDetector()
+	findings := detector.Analyze(result.AST, "test.py")
+
+	if len(findings) != 1 {
+		t.Fatalf("expected 1 nested service locator finding, got %d", len(findings))
 	}
 }
 

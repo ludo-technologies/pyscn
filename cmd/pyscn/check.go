@@ -656,6 +656,9 @@ func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, er
 	if err != nil {
 		return 0, err
 	}
+	if len(response.Errors) > 0 {
+		return 0, fmt.Errorf("analysis errors: %s", strings.Join(response.Errors, "; "))
+	}
 
 	// Count and output issues
 	issueCount := 0
@@ -716,14 +719,20 @@ func (c *CheckCommand) checkDIAntipatterns(cmd *cobra.Command, args []string) (i
 		return 0, err
 	}
 
-	// Count and output issues
+	return c.countDIAntipatternIssues(cmd.ErrOrStderr(), response)
+}
+
+func (c *CheckCommand) countDIAntipatternIssues(writer io.Writer, response *domain.DIAntipatternResponse) (int, error) {
+	if len(response.Errors) > 0 {
+		return 0, fmt.Errorf("analysis errors: %s", strings.Join(response.Errors, "; "))
+	}
+
 	issueCount := 0
 	for _, finding := range response.Findings {
-		// Only count warning and error level findings
 		if finding.Severity.IsAtLeast(domain.DIAntipatternSeverityWarning) {
 			issueCount++
 			if !c.quiet {
-				fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s: %s\n",
+				fmt.Fprintf(writer, "%s:%d:%d: %s: %s\n",
 					finding.Location.FilePath,
 					finding.Location.StartLine,
 					finding.Location.StartCol+1,

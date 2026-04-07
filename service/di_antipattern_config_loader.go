@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
@@ -136,17 +135,8 @@ func (cl *DIAntipatternConfigurationLoaderImpl) configToRequest(pyscnCfg *config
 	}
 }
 
-// FindDefaultConfigFile looks for TOML config files in the current directory
+// FindDefaultConfigFile looks for TOML config files from the current directory upward.
 func (cl *DIAntipatternConfigurationLoaderImpl) FindDefaultConfigFile() string {
-	// Use TOML-only strategy
 	tomlLoader := config.NewTomlConfigLoader()
-	configFiles := tomlLoader.GetSupportedConfigFiles()
-
-	for _, filename := range configFiles {
-		if _, err := os.Stat(filename); err == nil {
-			return filename
-		}
-	}
-
-	return "" // No config file found
+	return tomlLoader.FindConfigFileFromPath("")
 }

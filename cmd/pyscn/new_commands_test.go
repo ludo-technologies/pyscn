@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/spf13/cobra"
 )
 
@@ -525,5 +526,78 @@ constructor_param_threshold = 10
 
 	if err != nil {
 		t.Fatalf("expected no error when DI threshold comes from config, got: %v, output: %s", err, output)
+	}
+}
+
+func TestCheckDILoadsDefaultConfigFromParentDirectory(t *testing.T) {
+	tempDir := t.TempDir()
+	projectDir := filepath.Join(tempDir, "project")
+	subDir := filepath.Join(projectDir, "pkg")
+	if err := os.MkdirAll(subDir, 0o755); err != nil {
+		t.Fatalf("failed to create test directories: %v", err)
+	}
+
+	configPath := filepath.Join(projectDir, ".pyscn.toml")
+	config := `[di]
+constructor_param_threshold = 10
+`
+	if err := os.WriteFile(configPath, []byte(config), 0o644); err != nil {
+		t.Fatalf("failed to write config file: %v", err)
+	}
+
+	sourcePath := filepath.Join(subDir, "service.py")
+	source := `class Service:
+    def __init__(self, a, b, c, d, e, f):
+        pass
+`
+	if err := os.WriteFile(sourcePath, []byte(source), 0o644); err != nil {
+		t.Fatalf("failed to write source file: %v", err)
+	}
+
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current directory: %v", err)
+	}
+	defer func() {
+		if chdirErr := os.Chdir(originalDir); chdirErr != nil {
+			t.Errorf("failed to restore current directory: %v", chdirErr)
+		}
+	}()
+	if err := os.Chdir(subDir); err != nil {
+		t.Fatalf("failed to change directory: %v", err)
+	}
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+
+	var stdout, stderr bytes.Buffer
+	cobraCmd.SetOut(&stdout)
+	cobraCmd.SetErr(&stderr)
+	cobraCmd.SetArgs([]string{"--select", "di", "."})
+
+	err = cobraCmd.Execute()
+	output := stdout.String() + stderr.String()
+
+	if err != nil {
+		t.Fatalf("expected parent config to be discovered automatically, got: %v, output: %s", err, output)
+	}
+	if strings.Contains(output, "constructor_over_injection") {
+		t.Fatalf("expected parent config threshold to suppress the finding, output: %s", output)
+	}
+}
+
+func TestCountDIAntipatternIssuesFailsOnAnalysisErrors(t *testing.T) {
+	checkCmd := NewCheckCommand()
+	response := &domain.DIAntipatternResponse{
+		Errors: []string{"[broken.py] Parse error: syntax errors found in source code"},
+	}
+
+	var stderr bytes.Buffer
+	_, err := checkCmd.countDIAntipatternIssues(&stderr, response)
+	if err == nil {
+		t.Fatal("expected DI analysis errors to fail the check")
+	}
+	if !strings.Contains(err.Error(), "Parse error") {
+		t.Fatalf("expected parse error to be preserved, got: %v", err)
 	}
 }

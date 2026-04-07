@@ -39,7 +39,7 @@ func (p *Parser) Parse(ctx context.Context, source []byte) (*ParseResult, error)
 	}
 
 	rootNode := tree.RootNode()
-	if rootNode.HasError() {
+	if p.HasSyntaxErrors(rootNode) {
 		return nil, fmt.Errorf("syntax errors found in source code")
 	}
 
