@@ -94,18 +94,6 @@ func SortFindings(findings []domain.DIAntipatternFinding, sortBy domain.SortCrit
 	copy(sorted, findings)
 
 	switch sortBy {
-	case domain.SortBySeverity:
-		sort.Slice(sorted, func(i, j int) bool {
-			// Higher severity first
-			if sorted[i].Severity.SeverityOrder() != sorted[j].Severity.SeverityOrder() {
-				return sorted[i].Severity.SeverityOrder() > sorted[j].Severity.SeverityOrder()
-			}
-			// Then by location
-			if sorted[i].Location.FilePath != sorted[j].Location.FilePath {
-				return sorted[i].Location.FilePath < sorted[j].Location.FilePath
-			}
-			return sorted[i].Location.StartLine < sorted[j].Location.StartLine
-		})
 	case domain.SortByName:
 		sort.Slice(sorted, func(i, j int) bool {
 			// By class name
@@ -126,7 +114,7 @@ func SortFindings(findings []domain.DIAntipatternFinding, sortBy domain.SortCrit
 			return sorted[i].Location.StartLine < sorted[j].Location.StartLine
 		})
 	default:
-		// Default to severity
+		// Default to severity (also handles SortBySeverity)
 		sort.Slice(sorted, func(i, j int) bool {
 			if sorted[i].Severity.SeverityOrder() != sorted[j].Severity.SeverityOrder() {
 				return sorted[i].Severity.SeverityOrder() > sorted[j].Severity.SeverityOrder()

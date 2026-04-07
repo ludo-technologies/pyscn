@@ -200,32 +200,9 @@ func (b *DIAntipatternUseCaseBuilder) WithOutputWriter(output domain.ReportWrite
 	return b
 }
 
-// Build creates the DIAntipatternUseCase with the configured dependencies
+// Build creates the DIAntipatternUseCase with the configured dependencies.
+// Optional dependencies (configLoader) are filled with no-op defaults if nil.
 func (b *DIAntipatternUseCaseBuilder) Build() (*DIAntipatternUseCase, error) {
-	if b.service == nil {
-		return nil, fmt.Errorf("DI anti-pattern service is required")
-	}
-	if b.fileReader == nil {
-		return nil, fmt.Errorf("file reader is required")
-	}
-	if b.formatter == nil {
-		return nil, fmt.Errorf("output formatter is required")
-	}
-
-	uc := NewDIAntipatternUseCase(
-		b.service,
-		b.fileReader,
-		b.formatter,
-		b.configLoader,
-	)
-	if b.output != nil {
-		uc.output = b.output
-	}
-	return uc, nil
-}
-
-// BuildWithDefaults creates the DIAntipatternUseCase with default implementations for optional dependencies
-func (b *DIAntipatternUseCaseBuilder) BuildWithDefaults() (*DIAntipatternUseCase, error) {
 	if b.service == nil {
 		return nil, fmt.Errorf("DI anti-pattern service is required")
 	}

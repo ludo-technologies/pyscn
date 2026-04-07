@@ -10,7 +10,7 @@ import (
 
 // HiddenDependencyDetector detects hidden dependency anti-patterns
 type HiddenDependencyDetector struct {
-	moduleVariables map[string]bool // Track module-level variable names
+	moduleVariables map[string]bool // Track module-level mutable state names
 }
 
 // NewHiddenDependencyDetector creates a new hidden dependency detector
@@ -23,6 +23,8 @@ func NewHiddenDependencyDetector() *HiddenDependencyDetector {
 // Analyze detects hidden dependencies in the given AST
 func (d *HiddenDependencyDetector) Analyze(ast *parser.Node, filePath string) []domain.DIAntipatternFinding {
 	var findings []domain.DIAntipatternFinding
+
+	d.moduleVariables = make(map[string]bool)
 
 	// First pass: collect module-level variables
 	d.collectModuleVariables(ast)
@@ -59,8 +61,6 @@ func (d *HiddenDependencyDetector) collectModuleVariables(ast *parser.Node) {
 		if node.Type == parser.NodeAssign {
 			for _, target := range node.Targets {
 				if target != nil && target.Type == parser.NodeName {
-					// Only track private module variables (starting with single underscore)
-					// Skip dunder names (__name__) and uppercase constants (MAX_RETRIES)
 					if d.isMutableModuleVariable(target.Name) {
 						d.moduleVariables[target.Name] = true
 					}
@@ -178,7 +178,7 @@ func (d *HiddenDependencyDetector) detectModuleVariableAccess(ast *parser.Node, 
 
 	for _, class := range classes {
 		// Find all methods in the class
-		methods := d.findMethods(class)
+		methods := FindClassMethods(class)
 
 		for _, method := range methods {
 			// Find all name references in the method
@@ -214,7 +214,7 @@ func (d *HiddenDependencyDetector) detectModuleVariableAccess(ast *parser.Node, 
 
 // isMutableModuleVariable checks if a name represents a mutable module variable
 // that should be tracked for hidden dependency detection.
-// Returns true for private variables (starting with single _) that are not constants.
+// Constants and dunder names are ignored, but ordinary module state is tracked.
 func (d *HiddenDependencyDetector) isMutableModuleVariable(name string) bool {
 	if name == "" {
 		return false
@@ -225,19 +225,13 @@ func (d *HiddenDependencyDetector) isMutableModuleVariable(name string) bool {
 		return false
 	}
 
-	// Only track private module variables (starting with single underscore)
-	// These are typically mutable module state that should be injected
-	if strings.HasPrefix(name, "_") {
-		return true
-	}
-
 	// Skip uppercase constants (MAX_RETRIES, DEFAULT_VALUE, etc.)
 	// Constants are immutable and don't represent hidden dependencies
 	if d.isUpperCase(name) {
 		return false
 	}
 
-	return false
+	return true
 }
 
 // isUpperCase checks if a name is in UPPER_CASE format (constant naming convention)
@@ -271,7 +265,7 @@ func (d *HiddenDependencyDetector) getGlobalNames(globalNode *parser.Node) []str
 
 // findContainingMethodName finds the method containing a node
 func (d *HiddenDependencyDetector) findContainingMethodName(node *parser.Node, class *parser.Node) string {
-	for _, method := range d.findMethods(class) {
+	for _, method := range FindClassMethods(class) {
 		if d.nodeContains(method, node) {
 			return method.Name
 		}
@@ -318,7 +312,7 @@ func (d *HiddenDependencyDetector) hasSingletonPattern(class *parser.Node) bool 
 	}
 
 	// Also check for cls._instance pattern in methods
-	methods := d.findMethods(class)
+	methods := FindClassMethods(class)
 	for _, method := range methods {
 		if d.hasClsInstanceAccess(method) {
 			return true
@@ -348,11 +342,6 @@ func (d *HiddenDependencyDetector) hasClsInstanceAccess(method *parser.Node) boo
 	return found
 }
 
-// findMethods finds all methods in a class (delegates to shared helper)
-func (d *HiddenDependencyDetector) findMethods(class *parser.Node) []*parser.Node {
-	return FindClassMethods(class)
-}
-
 // findModuleVariableAccesses finds all module variable accesses in a method
 func (d *HiddenDependencyDetector) findModuleVariableAccesses(method *parser.Node, className string) map[string]parser.Location {
 	accesses := make(map[string]parser.Location)
@@ -360,7 +349,7 @@ func (d *HiddenDependencyDetector) findModuleVariableAccesses(method *parser.Nod
 	// Collect local variables defined in the method
 	localVars := d.collectLocalVariables(method)
 
-	method.Walk(func(node *parser.Node) bool {
+	method.WalkDeep(func(node *parser.Node) bool {
 		if node.Type == parser.NodeName && node.Name != "" {
 			// Skip if it's a local variable
 			if localVars[node.Name] {

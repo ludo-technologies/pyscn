@@ -45,7 +45,7 @@ func (d *ConcreteDependencyDetector) detectConcreteTypeHints(ast *parser.Node, f
 	classes := ast.FindByType(parser.NodeClassDef)
 
 	for _, class := range classes {
-		initMethod := d.findInitMethod(class)
+		initMethod := FindInitMethod(class)
 		if initMethod == nil {
 			continue
 		}
@@ -99,7 +99,7 @@ func (d *ConcreteDependencyDetector) detectDirectInstantiation(ast *parser.Node,
 	classes := ast.FindByType(parser.NodeClassDef)
 
 	for _, class := range classes {
-		initMethod := d.findInitMethod(class)
+		initMethod := FindInitMethod(class)
 		if initMethod == nil {
 			continue
 		}
@@ -205,15 +205,7 @@ func (d *ConcreteDependencyDetector) extractCalleeClassName(callNode *parser.Nod
 
 // extractAttributeClassName extracts class name from an Attribute node
 func (d *ConcreteDependencyDetector) extractAttributeClassName(attrNode *parser.Node) string {
-	// For Attribute nodes, the method/class name is stored in Name field
-	if attrNode.Name != "" {
-		return attrNode.Name
-	}
-	// Fallback: check Right field
-	if attrNode.Right != nil && attrNode.Right.Type == parser.NodeName {
-		return attrNode.Right.Name
-	}
-	return ""
+	return ExtractAttributeName(attrNode)
 }
 
 // isClassInstantiation checks if a call is likely a class instantiation
@@ -254,11 +246,6 @@ func (d *ConcreteDependencyDetector) isBuiltinType(name string) bool {
 		"AttributeError": true, "RuntimeError": true,
 	}
 	return builtins[name]
-}
-
-// findInitMethod finds the __init__ method in a class (delegates to shared helper)
-func (d *ConcreteDependencyDetector) findInitMethod(classNode *parser.Node) *parser.Node {
-	return FindInitMethod(classNode)
 }
 
 // extractTypeHintName extracts the type name from an argument's type annotation

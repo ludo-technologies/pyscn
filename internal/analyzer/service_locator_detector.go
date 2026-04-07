@@ -39,7 +39,7 @@ func (d *ServiceLocatorDetector) analyzeClass(classNode *parser.Node, filePath s
 	var findings []domain.DIAntipatternFinding
 
 	// Find all methods in the class
-	methods := d.findMethods(classNode)
+	methods := FindClassMethods(classNode)
 
 	for _, method := range methods {
 		methodFindings := d.analyzeMethod(method, classNode.Name, filePath)
@@ -53,32 +53,12 @@ func (d *ServiceLocatorDetector) analyzeClass(classNode *parser.Node, filePath s
 func (d *ServiceLocatorDetector) analyzeMethod(methodNode *parser.Node, className string, filePath string) []domain.DIAntipatternFinding {
 	var findings []domain.DIAntipatternFinding
 
-	// Use WalkDeep to traverse including Value field
+	// Walk every call in the method so nested locator usages are not missed.
 	methodNode.WalkDeep(func(node *parser.Node) bool {
-		// Check Assign nodes - the Call is in the Value field
-		if node.Type == parser.NodeAssign {
-			if node.Value != nil {
-				if valueNode, ok := node.Value.(*parser.Node); ok {
-					if valueNode.Type == parser.NodeCall {
-						if locatorInfo := d.isServiceLocatorCall(valueNode); locatorInfo != nil {
-							finding := d.createFinding(className, methodNode.Name, filePath, valueNode, locatorInfo)
-							findings = append(findings, finding)
-						}
-					}
-				}
-			}
-		}
-		// Check Return nodes - the Call is in the Value field
-		if node.Type == parser.NodeReturn {
-			if node.Value != nil {
-				if valueNode, ok := node.Value.(*parser.Node); ok {
-					if valueNode.Type == parser.NodeCall {
-						if locatorInfo := d.isServiceLocatorCall(valueNode); locatorInfo != nil {
-							finding := d.createFinding(className, methodNode.Name, filePath, valueNode, locatorInfo)
-							findings = append(findings, finding)
-						}
-					}
-				}
+		if node.Type == parser.NodeCall {
+			if locatorInfo := d.isServiceLocatorCall(node); locatorInfo != nil {
+				finding := d.createFinding(className, methodNode.Name, filePath, node, locatorInfo)
+				findings = append(findings, finding)
 			}
 		}
 		return true
@@ -191,15 +171,7 @@ func (d *ServiceLocatorDetector) isServiceLocatorCall(callNode *parser.Node) *se
 
 // extractMethodName extracts the method name from an attribute node
 func (d *ServiceLocatorDetector) extractMethodName(attrNode *parser.Node) string {
-	// For Attribute nodes, the method name is stored in Name field
-	if attrNode.Name != "" {
-		return attrNode.Name
-	}
-	// Fallback: check Right field
-	if attrNode.Right != nil && attrNode.Right.Type == parser.NodeName {
-		return attrNode.Right.Name
-	}
-	return ""
+	return ExtractAttributeName(attrNode)
 }
 
 // extractContainerName extracts the container/object name from an attribute node
@@ -326,7 +298,8 @@ func (d *ServiceLocatorDetector) isLocatorMethodName(name string) bool {
 	return false
 }
 
-// isKnownLocatorPattern checks if a full call matches known locator patterns
+// isKnownLocatorPattern checks if a full call matches known locator patterns.
+// Uses "." + pattern suffix matching to avoid false positives (e.g., "promise.resolve").
 func (d *ServiceLocatorDetector) isKnownLocatorPattern(fullCall string) bool {
 	if fullCall == "" {
 		return false
@@ -337,8 +310,13 @@ func (d *ServiceLocatorDetector) isKnownLocatorPattern(fullCall string) bool {
 	for _, pattern := range d.locatorMethods {
 		patternLower := strings.ToLower(pattern)
 
-		// Check for pattern match (e.g., "container.get" matches "container.get")
-		if strings.HasSuffix(fullCallLower, patternLower) {
+		// Exact match
+		if fullCallLower == patternLower {
+			return true
+		}
+		// Suffix match with dot separator to avoid matching unrelated methods
+		// e.g., "container.resolve" matches but "promise.resolve" does not
+		if strings.HasSuffix(fullCallLower, "."+patternLower) {
 			return true
 		}
 	}
@@ -359,7 +337,3 @@ func (d *ServiceLocatorDetector) isKnownLocatorPattern(fullCall string) bool {
 	return false
 }
 
-// findMethods finds all methods in a class (delegates to shared helper)
-func (d *ServiceLocatorDetector) findMethods(classNode *parser.Node) []*parser.Node {
-	return FindClassMethods(classNode)
-}

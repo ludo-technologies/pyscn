@@ -42,7 +42,7 @@ func (a *ConstructorAnalyzer) analyzeClass(classNode *parser.Node, filePath stri
 	var findings []domain.DIAntipatternFinding
 
 	// Find __init__ method
-	initMethod := a.findInitMethod(classNode)
+	initMethod := FindInitMethod(classNode)
 	if initMethod == nil {
 		return findings
 	}
@@ -74,11 +74,6 @@ func (a *ConstructorAnalyzer) analyzeClass(classNode *parser.Node, filePath stri
 	}
 
 	return findings
-}
-
-// findInitMethod finds the __init__ method in a class (delegates to shared helper)
-func (a *ConstructorAnalyzer) findInitMethod(classNode *parser.Node) *parser.Node {
-	return FindInitMethod(classNode)
 }
 
 // countParameters counts the number of parameters excluding 'self'

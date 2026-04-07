@@ -27,3 +27,15 @@ func FindInitMethod(classNode *parser.Node) *parser.Node {
 	}
 	return nil
 }
+
+// ExtractAttributeName extracts the attribute/method name from an Attribute node.
+// This is a shared helper used by concrete dependency and service locator detectors.
+func ExtractAttributeName(attrNode *parser.Node) string {
+	if attrNode.Name != "" {
+		return attrNode.Name
+	}
+	if attrNode.Right != nil && attrNode.Right.Type == parser.NodeName {
+		return attrNode.Right.Name
+	}
+	return ""
+}
