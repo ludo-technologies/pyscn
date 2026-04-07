@@ -63,6 +63,25 @@ class Greeter:
 		assert.InDelta(t, float64(1)/float64(6), result.CommentRatio, 0.0001)
 	})
 
+	t.Run("raw and unicode prefixed docstrings are treated as docstrings", func(t *testing.T) {
+		content := []byte(`r"""Module docstring"""
+
+def greet():
+    u"""Function docstring"""
+    return "hello"
+`)
+
+		result := CalculateRawMetrics(content, "prefixed_docstrings.py")
+
+		require.NotNil(t, result)
+		assert.Equal(t, 5, result.TotalLines)
+		assert.Equal(t, 2, result.SLOC)
+		assert.Equal(t, 2, result.LLOC)
+		assert.Equal(t, 0, result.CommentLines)
+		assert.Equal(t, 2, result.DocstringLines)
+		assert.Equal(t, 1, result.BlankLines)
+	})
+
 	t.Run("multiline statements and semicolons", func(t *testing.T) {
 		content := []byte(`value = (
     1 +
@@ -77,6 +96,22 @@ a = 1; b = 2
 		assert.Equal(t, 5, result.TotalLines)
 		assert.Equal(t, 5, result.SLOC)
 		assert.Equal(t, 3, result.LLOC)
+		assert.Equal(t, 0, result.CommentLines)
+		assert.Equal(t, 0, result.DocstringLines)
+		assert.Equal(t, 0, result.BlankLines)
+	})
+
+	t.Run("formatted and byte triple quoted strings are not treated as docstrings", func(t *testing.T) {
+		content := []byte(`f"""not a docstring"""
+b"""also not a docstring"""
+`)
+
+		result := CalculateRawMetrics(content, "non_docstring_prefixes.py")
+
+		require.NotNil(t, result)
+		assert.Equal(t, 2, result.TotalLines)
+		assert.Equal(t, 2, result.SLOC)
+		assert.Equal(t, 2, result.LLOC)
 		assert.Equal(t, 0, result.CommentLines)
 		assert.Equal(t, 0, result.DocstringLines)
 		assert.Equal(t, 0, result.BlankLines)

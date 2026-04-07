@@ -170,7 +170,7 @@ func (s *rawMetricsState) classifyLine(line string, lineIndex int, docstringLine
 	}
 
 	result.SLOC++
-	s.consumeDocstringExpectation(indent)
+	s.clearDocstringExpectation()
 	s.moduleDocstringReady = false
 
 	if delimiter, ok := findTripleQuoteOutsideComments(line); ok && strings.Count(line, delimiter)%2 == 1 {
@@ -202,14 +202,8 @@ func (s *rawMetricsState) docstringDelimiter(trimmed string, indent int) string 
 	return ""
 }
 
-func (s *rawMetricsState) consumeDocstringExpectation(indent int) {
-	if s.blockDocstringIndent == nil {
-		return
-	}
-
-	if indent <= *s.blockDocstringIndent || indent > *s.blockDocstringIndent {
-		s.blockDocstringIndent = nil
-	}
+func (s *rawMetricsState) clearDocstringExpectation() {
+	s.blockDocstringIndent = nil
 }
 
 func countLeadingIndent(line string) int {
@@ -254,19 +248,12 @@ func leadingTripleQuoteDelimiter(trimmed string) string {
 }
 
 func isValidStringPrefix(prefix string) bool {
-	if len(prefix) > 2 {
+	switch prefix {
+	case "", "r", "R", "u", "U":
+		return true
+	default:
 		return false
 	}
-
-	for _, r := range prefix {
-		switch r {
-		case 'r', 'R', 'u', 'U', 'b', 'B', 'f', 'F':
-		default:
-			return false
-		}
-	}
-
-	return true
 }
 
 func findTripleQuoteOutsideComments(line string) (string, bool) {
