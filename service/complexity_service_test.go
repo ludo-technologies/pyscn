@@ -56,9 +56,6 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.NotNil(t, response.RawMetricsSummary)
 		assert.GreaterOrEqual(t, response.Summary.TotalFunctions, 1)
 		assert.GreaterOrEqual(t, response.Summary.FilesAnalyzed, 1)
-		for _, function := range response.Functions {
-			assert.NotEqual(t, "__main__", function.Name)
-		}
 	})
 
 	t.Run("analyze complex Python file with control structures", func(t *testing.T) {
@@ -151,20 +148,18 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.Contains(t, err.Error(), "cancelled")
 	})
 
-	t.Run("no functions found still returns raw metrics", func(t *testing.T) {
+	t.Run("comment only files still return raw metrics", func(t *testing.T) {
 		req := newDefaultComplexityRequest("../testdata/python/edge_cases/syntax_errors.py")
 
 		response, err := service.Analyze(ctx, req)
 
 		require.NoError(t, err)
 		require.NotNil(t, response)
-		assert.Empty(t, response.Functions)
 		assert.Len(t, response.RawMetrics, 1)
 		require.NotNil(t, response.RawMetricsSummary)
 		assert.Equal(t, 1, response.RawMetricsSummary.FilesAnalyzed)
 		assert.NotZero(t, response.RawMetrics[0].TotalLines)
-		require.NotEmpty(t, response.Warnings)
-		assert.Contains(t, response.Warnings[0], "No functions found in file")
+		assert.Equal(t, 0, response.RawMetrics[0].LLOC)
 	})
 
 	t.Run("parse errors still return raw metrics", func(t *testing.T) {
@@ -182,6 +177,7 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.Empty(t, response.Functions)
 		assert.Len(t, response.RawMetrics, 1)
 		require.NotNil(t, response.RawMetricsSummary)
+		assert.Equal(t, 0, response.RawMetrics[0].LLOC)
 		assert.NotEmpty(t, response.Errors)
 	})
 

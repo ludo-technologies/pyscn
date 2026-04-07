@@ -1,11 +1,26 @@
 package analyzer
 
 import (
+	"context"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func calculateRawMetricsForParsedSource(t *testing.T, content []byte, filePath string) *RawMetricsResult {
+	t.Helper()
+
+	result := CalculateRawMetrics(content, filePath)
+	require.NotNil(t, result)
+
+	parsed, err := parser.New().Parse(context.Background(), content)
+	require.NoError(t, err)
+
+	PopulateLogicalLines(result, parsed.AST)
+	return result
+}
 
 func TestCalculateRawMetrics(t *testing.T) {
 	t.Run("empty file", func(t *testing.T) {
@@ -24,7 +39,7 @@ func TestCalculateRawMetrics(t *testing.T) {
 
 	t.Run("comments and blanks only", func(t *testing.T) {
 		content := []byte("# first comment\n\n    # second comment\n")
-		result := CalculateRawMetrics(content, "comments.py")
+		result := calculateRawMetricsForParsedSource(t, content, "comments.py")
 
 		require.NotNil(t, result)
 		assert.Equal(t, 3, result.TotalLines)
@@ -51,7 +66,7 @@ class Greeter:
             return message
 `)
 
-		result := CalculateRawMetrics(content, "greeter.py")
+		result := calculateRawMetricsForParsedSource(t, content, "greeter.py")
 
 		require.NotNil(t, result)
 		assert.Equal(t, 12, result.TotalLines)
@@ -71,7 +86,7 @@ def greet():
     return "hello"
 `)
 
-		result := CalculateRawMetrics(content, "prefixed_docstrings.py")
+		result := calculateRawMetricsForParsedSource(t, content, "prefixed_docstrings.py")
 
 		require.NotNil(t, result)
 		assert.Equal(t, 5, result.TotalLines)
@@ -90,7 +105,7 @@ def greet():
 a = 1; b = 2
 `)
 
-		result := CalculateRawMetrics(content, "statements.py")
+		result := calculateRawMetricsForParsedSource(t, content, "statements.py")
 
 		require.NotNil(t, result)
 		assert.Equal(t, 5, result.TotalLines)
@@ -106,7 +121,7 @@ a = 1; b = 2
 b"""also not a docstring"""
 `)
 
-		result := CalculateRawMetrics(content, "non_docstring_prefixes.py")
+		result := calculateRawMetricsForParsedSource(t, content, "non_docstring_prefixes.py")
 
 		require.NotNil(t, result)
 		assert.Equal(t, 2, result.TotalLines)
@@ -125,7 +140,7 @@ hello
 """
 `)
 
-		result := CalculateRawMetrics(content, "assignment.py")
+		result := calculateRawMetricsForParsedSource(t, content, "assignment.py")
 
 		require.NotNil(t, result)
 		assert.Equal(t, 5, result.TotalLines)
@@ -135,11 +150,18 @@ hello
 		assert.Equal(t, 0, result.DocstringLines)
 		assert.Equal(t, 0, result.BlankLines)
 	})
+
+	t.Run("lloc stays zero when source cannot be parsed", func(t *testing.T) {
+		result := CalculateRawMetrics([]byte("def broken(:\n    pass\n"), "invalid.py")
+
+		require.NotNil(t, result)
+		assert.Equal(t, 0, result.LLOC)
+	})
 }
 
 func TestCalculateAggregateRawMetrics(t *testing.T) {
-	first := CalculateRawMetrics([]byte("a = 1\n# comment\n"), "first.py")
-	second := CalculateRawMetrics([]byte(`"""module"""
+	first := calculateRawMetricsForParsedSource(t, []byte("a = 1\n# comment\n"), "first.py")
+	second := calculateRawMetricsForParsedSource(t, []byte(`"""module"""
 
 b = 2
 `), "second.py")

@@ -119,6 +119,8 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 		return functions, rawMetrics, warnings, errors
 	}
 
+	analyzer.PopulateLogicalLines(rawMetrics, result.AST)
+
 	// Build CFGs for all functions
 	builder := analyzer.NewCFGBuilder()
 	cfgs, err := builder.BuildAll(result.AST)
@@ -130,14 +132,8 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 
 	// Calculate complexity for each function
 	complexityConfig := s.buildComplexityConfig(req)
-	userFunctionCount := 0
 
 	for functionName, cfg := range cfgs {
-		if functionName == "__main__" {
-			continue
-		}
-
-		userFunctionCount++
 		result := analyzer.CalculateComplexityWithConfig(cfg, complexityConfig)
 		if result == nil {
 			warnings = append(warnings, fmt.Sprintf("[%s:%s] Failed to calculate complexity for function", filePath, functionName))
@@ -174,10 +170,6 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 		}
 
 		functions = append(functions, function)
-	}
-
-	if userFunctionCount == 0 {
-		warnings = append(warnings, fmt.Sprintf("[%s] No functions found in file", filePath))
 	}
 
 	return functions, rawMetrics, warnings, errors

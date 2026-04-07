@@ -3,6 +3,8 @@ package analyzer
 import (
 	"bytes"
 	"strings"
+
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 // RawMetricsResult contains file-level raw code metrics.
@@ -15,6 +17,8 @@ type RawMetricsResult struct {
 	BlankLines     int
 	TotalLines     int
 	CommentRatio   float64
+
+	docstringLines map[int]bool
 }
 
 // AggregateRawMetrics contains aggregated raw code metrics across files.
@@ -45,16 +49,6 @@ type rawMetricsState struct {
 	blockDocstringIndent *int
 }
 
-type logicalLineState struct {
-	inString       bool
-	inTripleString bool
-	stringQuote    byte
-	tripleQuote    string
-	escaped        bool
-	bracketDepth   int
-	lineHasCode    bool
-}
-
 // CalculateRawMetrics calculates raw code metrics without requiring AST parsing.
 func CalculateRawMetrics(content []byte, filePath string) *RawMetricsResult {
 	lines := splitRawLines(content)
@@ -72,8 +66,7 @@ func CalculateRawMetrics(content []byte, filePath string) *RawMetricsResult {
 	for i, line := range lines {
 		state.classifyLine(line, i, docstringLines, result)
 	}
-
-	result.LLOC = estimateLogicalLines(lines, docstringLines)
+	result.docstringLines = docstringLines
 
 	denominator := result.SLOC + result.CommentLines
 	if denominator > 0 {
@@ -106,6 +99,15 @@ func CalculateAggregateRawMetrics(results []*RawMetricsResult) *AggregateRawMetr
 	}
 
 	return aggregate
+}
+
+// PopulateLogicalLines updates raw metrics with LLOC derived from the parsed AST.
+func PopulateLogicalLines(result *RawMetricsResult, ast *parser.Node) {
+	if result == nil || ast == nil {
+		return
+	}
+
+	result.LLOC = countLogicalBody(ast.Body, result.docstringLines, isDocstringBodyOwner(ast))
 }
 
 func splitRawLines(content []byte) []string {
@@ -300,119 +302,66 @@ func findTripleQuoteOutsideComments(line string) (string, bool) {
 	return "", false
 }
 
-func estimateLogicalLines(lines []string, docstringLines map[int]bool) int {
-	state := logicalLineState{}
-	statementCount := 0
+func countLogicalBody(nodes []*parser.Node, docstringLines map[int]bool, allowDocstring bool) int {
+	total := 0
+	docstringSkipped := false
 
-	for i, line := range lines {
-		if docstringLines[i] {
+	for _, node := range nodes {
+		if node == nil || isLogicalSeparator(node) {
 			continue
 		}
 
-		lastMeaningful := byte(0)
-		for pos := 0; pos < len(line); {
-			if state.inTripleString {
-				index := strings.Index(line[pos:], state.tripleQuote)
-				state.lineHasCode = true
-				if index == -1 {
-					pos = len(line)
-					continue
-				}
-				pos += index + len(state.tripleQuote)
-				state.inTripleString = false
-				state.tripleQuote = ""
-				continue
-			}
-
-			ch := line[pos]
-
-			if state.escaped {
-				state.escaped = false
-				state.lineHasCode = true
-				lastMeaningful = ch
-				pos++
-				continue
-			}
-
-			if state.inString {
-				state.lineHasCode = true
-				lastMeaningful = ch
-				if ch == '\\' {
-					state.escaped = true
-					pos++
-					continue
-				}
-				if ch == state.stringQuote {
-					state.inString = false
-				}
-				pos++
-				continue
-			}
-
-			switch {
-			case strings.HasPrefix(line[pos:], `"""`):
-				state.inTripleString = true
-				state.tripleQuote = `"""`
-				state.lineHasCode = true
-				lastMeaningful = '"'
-				pos += 3
-				continue
-			case strings.HasPrefix(line[pos:], `'''`):
-				state.inTripleString = true
-				state.tripleQuote = `'''`
-				state.lineHasCode = true
-				lastMeaningful = '\''
-				pos += 3
-				continue
-			}
-
-			if ch == '#' {
-				break
-			}
-
-			if ch == '\'' || ch == '"' {
-				state.inString = true
-				state.stringQuote = ch
-				state.lineHasCode = true
-				lastMeaningful = ch
-				pos++
-				continue
-			}
-
-			if ch == ' ' || ch == '\t' {
-				pos++
-				continue
-			}
-
-			state.lineHasCode = true
-			lastMeaningful = ch
-
-			switch ch {
-			case '(', '[', '{':
-				state.bracketDepth++
-			case ')', ']', '}':
-				if state.bracketDepth > 0 {
-					state.bracketDepth--
-				}
-			case ';':
-				statementCount++
-				state.lineHasCode = false
-				lastMeaningful = 0
-			}
-
-			pos++
+		if allowDocstring && !docstringSkipped && isDocstringNode(node, docstringLines) {
+			docstringSkipped = true
+			continue
 		}
 
-		continued := state.inTripleString || state.inString || state.bracketDepth > 0 || lastMeaningful == '\\'
-		if state.lineHasCode && !continued {
-			statementCount++
-			state.lineHasCode = false
-		}
+		docstringSkipped = true
+		total += countLogicalNode(node, docstringLines)
 	}
 
-	if state.lineHasCode {
-		statementCount++
+	return total
+}
+
+func countLogicalNode(node *parser.Node, docstringLines map[int]bool) int {
+	if node == nil || isLogicalSeparator(node) {
+		return 0
 	}
 
-	return statementCount
+	if node.Type == parser.NodeElseClause || node.Type == parser.NodeBlock {
+		return countLogicalBody(node.Body, docstringLines, false)
+	}
+
+	total := 1
+	total += countLogicalBody(node.Body, docstringLines, isDocstringBodyOwner(node))
+	total += countLogicalBody(node.Orelse, docstringLines, false)
+	total += countLogicalBody(node.Finalbody, docstringLines, false)
+	total += countLogicalBody(node.Handlers, docstringLines, false)
+
+	return total
+}
+
+func isDocstringBodyOwner(node *parser.Node) bool {
+	if node == nil {
+		return false
+	}
+
+	switch node.Type {
+	case parser.NodeModule, parser.NodeFunctionDef, parser.NodeAsyncFunctionDef, parser.NodeClassDef:
+		return true
+	default:
+		return false
+	}
+}
+
+func isDocstringNode(node *parser.Node, docstringLines map[int]bool) bool {
+	if node == nil || node.Location.StartLine == 0 || len(docstringLines) == 0 {
+		return false
+	}
+
+	return docstringLines[node.Location.StartLine-1]
+}
+
+func isLogicalSeparator(node *parser.Node) bool {
+	return node != nil && string(node.Type) == ";"
 }
