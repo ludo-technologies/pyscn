@@ -49,9 +49,32 @@ func createTestComplexityResponse() *domain.ComplexityResponse {
 			AverageComplexity:   5.0,
 			MaxComplexity:       8,
 			MinComplexity:       2,
+			FilesAnalyzed:       1,
 			LowRiskFunctions:    1,
 			MediumRiskFunctions: 0,
 			HighRiskFunctions:   1,
+		},
+		RawMetrics: []domain.RawMetrics{
+			{
+				FilePath:       "test.py",
+				SLOC:           10,
+				LLOC:           8,
+				CommentLines:   2,
+				DocstringLines: 1,
+				BlankLines:     3,
+				TotalLines:     16,
+				CommentRatio:   2.0 / 12.0,
+			},
+		},
+		RawMetricsSummary: &domain.RawMetricsSummary{
+			FilesAnalyzed:  1,
+			SLOC:           10,
+			LLOC:           8,
+			CommentLines:   2,
+			DocstringLines: 1,
+			BlankLines:     3,
+			TotalLines:     16,
+			CommentRatio:   2.0 / 12.0,
 		},
 		Warnings: []string{
 			"Warning: High complexity detected in complex_function",
@@ -76,6 +99,7 @@ func createMinimalComplexityResponse() *domain.ComplexityResponse {
 			AverageComplexity:   0.0,
 			MaxComplexity:       0,
 			MinComplexity:       0,
+			FilesAnalyzed:       0,
 			LowRiskFunctions:    0,
 			MediumRiskFunctions: 0,
 			HighRiskFunctions:   0,
@@ -112,6 +136,8 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Contains(t, result, "results") // functions are in "results"
 				assert.Contains(t, result, "summary")
 				assert.Contains(t, result, "metadata") // contains generated_at and version
+				assert.Contains(t, result, "raw_metrics")
+				assert.Contains(t, result, "raw_metrics_summary")
 
 				// Verify results array (contains functions)
 				functions, ok := result["results"].([]interface{})
@@ -131,6 +157,10 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.True(t, ok)
 				assert.Contains(t, metadata, "generated_at")
 				assert.Contains(t, metadata, "version")
+
+				rawMetrics, ok := result["raw_metrics"].([]interface{})
+				assert.True(t, ok)
+				assert.Len(t, rawMetrics, 1)
 			},
 			expectError: false,
 		},
@@ -179,6 +209,8 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Contains(t, result, "results") // functions are in "results"
 				assert.Contains(t, result, "summary")
 				assert.Contains(t, result, "metadata") // contains generated_at and version
+				assert.Contains(t, result, "raw_metrics")
+				assert.Contains(t, result, "raw_metrics_summary")
 
 				// Verify results array (contains functions)
 				functions, ok := result["results"].([]interface{})
@@ -190,6 +222,10 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.True(t, ok)
 				assert.Contains(t, metadata, "generated_at")
 				assert.Contains(t, metadata, "version")
+
+				rawMetrics, ok := result["raw_metrics"].([]interface{})
+				assert.True(t, ok)
+				assert.Len(t, rawMetrics, 1)
 			},
 			expectError: false,
 		},
@@ -206,6 +242,9 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Contains(t, output, "RISK DISTRIBUTION")
 				assert.Contains(t, output, "High: 1")
 				assert.Contains(t, output, "Low: 1")
+				assert.Contains(t, output, "RAW CODE METRICS")
+				assert.Contains(t, output, "SLOC: 10")
+				assert.Contains(t, output, "Comment Ratio: 16.7%")
 				assert.Contains(t, output, "FUNCTION DETAILS")
 				assert.Contains(t, output, "simple_function")
 				assert.Contains(t, output, "complex_function")
@@ -359,8 +398,9 @@ func TestOutputFormatter_Write(t *testing.T) {
 			writer:   &strings.Builder{},
 			validateWriter: func(t *testing.T, writer *strings.Builder) {
 				output := writer.String()
-				assert.Contains(t, output, "functions:")
+				assert.Contains(t, output, "results:")
 				assert.Contains(t, output, "summary:")
+				assert.Contains(t, output, "raw_metrics:")
 
 				// Verify it's valid YAML
 				var result map[string]interface{}
@@ -433,6 +473,13 @@ func TestOutputFormatter_formatText(t *testing.T) {
 				assert.Contains(t, output, "Medium: 0")
 				assert.Contains(t, output, "Low: 1")
 
+				// Check raw metrics section
+				assert.Contains(t, output, "RAW CODE METRICS")
+				assert.Contains(t, output, "Files Analyzed: 1")
+				assert.Contains(t, output, "SLOC: 10")
+				assert.Contains(t, output, "Comment Ratio: 16.7%")
+				assert.Contains(t, output, "File: test.py")
+
 				// Check function details (new unified format)
 				assert.Contains(t, output, "FUNCTION DETAILS")
 				assert.Contains(t, output, "Function  Complexity  Cognitive  Risk")
@@ -460,6 +507,7 @@ func TestOutputFormatter_formatText(t *testing.T) {
 				assert.Contains(t, output, "Total Functions: 0")
 
 				// Should not contain function details section
+				assert.NotContains(t, output, "RAW CODE METRICS")
 				assert.NotContains(t, output, "FUNCTION DETAILS")
 				assert.NotContains(t, output, "WARNINGS")
 				assert.NotContains(t, output, "ERRORS")
@@ -498,6 +546,8 @@ func TestOutputFormatter_formatJSON(t *testing.T) {
 	assert.Contains(t, parsed, "results") // not "functions"
 	assert.Contains(t, parsed, "summary")
 	assert.Contains(t, parsed, "metadata") // contains generated_at, version, config
+	assert.Contains(t, parsed, "raw_metrics")
+	assert.Contains(t, parsed, "raw_metrics_summary")
 
 	// Verify results array structure (contains functions)
 	functions := parsed["results"].([]interface{})
@@ -518,6 +568,12 @@ func TestOutputFormatter_formatJSON(t *testing.T) {
 	assert.Contains(t, metadata, "generated_at")
 	assert.Contains(t, metadata, "version")
 	assert.Contains(t, metadata, "configuration")
+
+	rawMetricsSummary := parsed["raw_metrics_summary"].(map[string]interface{})
+	assert.Equal(t, float64(10), rawMetricsSummary["sloc"])
+
+	rawMetrics := parsed["raw_metrics"].([]interface{})
+	assert.Len(t, rawMetrics, 1)
 }
 
 // TestOutputFormatter_formatYAML tests YAML formatting details
@@ -538,6 +594,8 @@ func TestOutputFormatter_formatYAML(t *testing.T) {
 	assert.Contains(t, parsed, "results") // not "functions"
 	assert.Contains(t, parsed, "summary")
 	assert.Contains(t, parsed, "metadata") // contains generated_at, version
+	assert.Contains(t, parsed, "raw_metrics")
+	assert.Contains(t, parsed, "raw_metrics_summary")
 }
 
 // TestOutputFormatter_formatCSV tests CSV formatting details
