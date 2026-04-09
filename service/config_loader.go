@@ -92,6 +92,14 @@ func (c *ConfigurationLoaderImpl) MergeConfig(base *domain.ComplexityRequest, ov
 		merged.MediumThreshold = override.MediumThreshold
 	}
 
+	if override.Enabled != nil {
+		merged.Enabled = override.Enabled
+	}
+
+	if override.ReportUnchanged != nil {
+		merged.ReportUnchanged = override.ReportUnchanged
+	}
+
 	// Config path is always from override if provided
 	if override.ConfigPath != "" {
 		merged.ConfigPath = override.ConfigPath
@@ -149,6 +157,8 @@ func (c *ConfigurationLoaderImpl) convertToComplexityRequest(cfg *config.Config)
 		SortBy:          sortBy,
 		LowThreshold:    cfg.Complexity.LowThreshold,
 		MediumThreshold: cfg.Complexity.MediumThreshold,
+		Enabled:         domain.BoolPtr(cfg.Complexity.Enabled),
+		ReportUnchanged: domain.BoolPtr(cfg.Complexity.ReportUnchanged),
 		Recursive:       cfg.Analysis.Recursive,
 		IncludePatterns: cfg.Analysis.IncludePatterns,
 		ExcludePatterns: cfg.Analysis.ExcludePatterns,
@@ -211,6 +221,8 @@ func (c *ConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.Py
 	cfg.Output.ShowDetails = domain.BoolValue(pyscnCfg.Output.ShowDetails, false)
 
 	// Map complexity settings from [complexity] section
+	cfg.Complexity.Enabled = domain.BoolValue(pyscnCfg.ComplexityEnabled, true)
+	cfg.Complexity.ReportUnchanged = domain.BoolValue(pyscnCfg.ComplexityReportUnchanged, true)
 	cfg.Complexity.LowThreshold = pyscnCfg.ComplexityLowThreshold
 	cfg.Complexity.MediumThreshold = pyscnCfg.ComplexityMediumThreshold
 	cfg.Complexity.MaxComplexity = pyscnCfg.ComplexityMaxComplexity

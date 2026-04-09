@@ -291,6 +291,12 @@ func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
 	cfg := DefaultConfig()
 
 	// Complexity settings
+	if pyscn.ComplexityEnabled != nil {
+		cfg.Complexity.Enabled = *pyscn.ComplexityEnabled
+	}
+	if pyscn.ComplexityReportUnchanged != nil {
+		cfg.Complexity.ReportUnchanged = *pyscn.ComplexityReportUnchanged
+	}
 	if pyscn.ComplexityLowThreshold > 0 {
 		cfg.Complexity.LowThreshold = pyscn.ComplexityLowThreshold
 	}
@@ -645,6 +651,8 @@ func SaveConfig(config *Config, path string) error {
 func ConfigToPyscnTomlConfig(cfg *Config) *PyscnTomlConfig {
 	return &PyscnTomlConfig{
 		Complexity: ComplexityTomlConfig{
+			Enabled:         &cfg.Complexity.Enabled,
+			ReportUnchanged: &cfg.Complexity.ReportUnchanged,
 			LowThreshold:    &cfg.Complexity.LowThreshold,
 			MediumThreshold: &cfg.Complexity.MediumThreshold,
 			MaxComplexity:   &cfg.Complexity.MaxComplexity,
