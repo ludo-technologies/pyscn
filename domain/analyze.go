@@ -12,6 +12,31 @@ type AnalyzeOutputFormatter interface {
 	Write(response *AnalyzeResponse, format OutputFormat, writer io.Writer) error
 }
 
+// AnalyzeExecutionConfig contains the resolved configuration that AnalyzeUseCase
+// needs after config file discovery and loading.
+type AnalyzeExecutionConfig struct {
+	ConfigPath string
+
+	IncludePatterns []string
+	ExcludePatterns []string
+	Recursive       bool
+
+	ComplexityEnabled         bool
+	ComplexityReportUnchanged bool
+	ComplexityMinComplexity   int
+	ComplexityLowThreshold    int
+	ComplexityMediumThreshold int
+	ComplexityMaxComplexity   int
+
+	CloneLSHEnabled       string
+	CloneLSHAutoThreshold int
+}
+
+// AnalyzeConfigurationLoader resolves and loads configuration for AnalyzeUseCase.
+type AnalyzeConfigurationLoader interface {
+	LoadAnalyzeExecutionConfig(configPath string, targetPath string) (*AnalyzeExecutionConfig, error)
+}
+
 // Health Score Calculation Constants
 const (
 	// Complexity thresholds and penalties
