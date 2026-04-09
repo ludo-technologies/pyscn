@@ -57,12 +57,17 @@ type analyzeExecutionConfig struct {
 	recursive                 bool
 	complexityEnabled         bool
 	reportUnchanged           bool
+	complexityMinComplexity   int
 	complexityLowThreshold    int
 	complexityMediumThreshold int
 	complexityMaxComplexity   int
 	lshEnabled                string
 	lshThreshold              int
 }
+
+// analyze includes stub files by default because they participate in the
+// same module surface as runtime Python files.
+var analyzeDefaultIncludePatterns = []string{"**/*.py", "*.pyi"}
 
 // AnalyzeUseCaseBuilder builds an AnalyzeUseCase
 type AnalyzeUseCaseBuilder struct {
@@ -301,23 +306,8 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Name:    "Complexity Analysis",
 			Enabled: !config.SkipComplexity,
 			Execute: func(ctx context.Context) (interface{}, error) {
-				request := domain.ComplexityRequest{
-					Paths:           files,
-					Recursive:       false,
-					IncludePatterns: []string{},
-					ExcludePatterns: []string{},
-					OutputFormat:    domain.OutputFormatJSON,
-					OutputWriter:    io.Discard,
-					MinComplexity:   config.MinComplexity,
-					MaxComplexity:   executionCfg.complexityMaxComplexity,
-					SortBy:          domain.SortByComplexity,
-					LowThreshold:    executionCfg.complexityLowThreshold,
-					MediumThreshold: executionCfg.complexityMediumThreshold,
-					Enabled:         domain.BoolPtr(executionCfg.complexityEnabled),
-					ReportUnchanged: domain.BoolPtr(executionCfg.reportUnchanged),
-					ConfigPath:      config.ConfigFile,
-				}
-				return uc.complexityUseCase.AnalyzeAndReturn(ctx, request)
+				request := uc.buildComplexityTaskRequest(config, files, executionCfg)
+				return uc.complexityUseCase.analyzeResolvedRequest(ctx, request)
 			},
 		})
 	}
@@ -466,6 +456,30 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 	}
 
 	return tasks
+}
+
+func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig, files []string, executionCfg analyzeExecutionConfig) domain.ComplexityRequest {
+	minComplexity := config.MinComplexity
+	if minComplexity <= 0 {
+		minComplexity = executionCfg.complexityMinComplexity
+	}
+
+	return domain.ComplexityRequest{
+		Paths:           files,
+		Recursive:       false,
+		IncludePatterns: []string{},
+		ExcludePatterns: []string{},
+		OutputFormat:    domain.OutputFormatJSON,
+		OutputWriter:    io.Discard,
+		MinComplexity:   minComplexity,
+		MaxComplexity:   executionCfg.complexityMaxComplexity,
+		SortBy:          domain.SortByComplexity,
+		LowThreshold:    executionCfg.complexityLowThreshold,
+		MediumThreshold: executionCfg.complexityMediumThreshold,
+		Enabled:         domain.BoolPtr(executionCfg.complexityEnabled),
+		ReportUnchanged: domain.BoolPtr(executionCfg.reportUnchanged),
+		ConfigPath:      config.ConfigFile,
+	}
 }
 
 // buildResponse builds the analyze response from task results
@@ -644,44 +658,54 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 }
 
 func (uc *AnalyzeUseCase) loadExecutionConfig(configPath string) (analyzeExecutionConfig, error) {
-	// Default patterns
-	defaultInclude := []string{"**/*.py", "*.pyi"}
-	defaultExclude := []string{"test_*.py", "*_test.py"}
-	defaultCloneReq := domain.DefaultCloneRequest()
-	executionCfg := analyzeExecutionConfig{
-		includePatterns:           defaultInclude,
-		excludePatterns:           defaultExclude,
-		recursive:                 true,
-		complexityEnabled:         true,
-		reportUnchanged:           true,
-		complexityLowThreshold:    config.DefaultLowComplexityThreshold,
-		complexityMediumThreshold: config.DefaultMediumComplexityThreshold,
-		complexityMaxComplexity:   config.DefaultMaxComplexityLimit,
-		lshEnabled:                defaultCloneReq.LSHEnabled,
-		lshThreshold:              defaultCloneReq.LSHAutoThreshold,
-	}
-
 	if configPath == "" {
-		return executionCfg, nil
+		return defaultAnalyzeExecutionConfig(), nil
 	}
 
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		return analyzeExecutionConfig{}, fmt.Errorf("failed to load configuration for analyze: %w", err)
 	}
+
+	return analyzeExecutionConfigFromConfig(cfg), nil
+}
+
+func defaultAnalyzeExecutionConfig() analyzeExecutionConfig {
+	defaultCfg := config.DefaultConfig()
+	defaultCloneReq := domain.DefaultCloneRequest()
+
+	return analyzeExecutionConfig{
+		includePatterns:           append([]string(nil), analyzeDefaultIncludePatterns...),
+		excludePatterns:           append([]string(nil), defaultCfg.Analysis.ExcludePatterns...),
+		recursive:                 defaultCfg.Analysis.Recursive,
+		complexityEnabled:         defaultCfg.Complexity.Enabled,
+		reportUnchanged:           defaultCfg.Complexity.ReportUnchanged,
+		complexityMinComplexity:   defaultCfg.Output.MinComplexity,
+		complexityLowThreshold:    defaultCfg.Complexity.LowThreshold,
+		complexityMediumThreshold: defaultCfg.Complexity.MediumThreshold,
+		complexityMaxComplexity:   defaultCfg.Complexity.MaxComplexity,
+		lshEnabled:                defaultCloneReq.LSHEnabled,
+		lshThreshold:              defaultCloneReq.LSHAutoThreshold,
+	}
+}
+
+func analyzeExecutionConfigFromConfig(cfg *config.Config) analyzeExecutionConfig {
+	executionCfg := defaultAnalyzeExecutionConfig()
+
 	if cfg == nil {
-		return executionCfg, nil
+		return executionCfg
 	}
 
 	if len(cfg.Analysis.IncludePatterns) > 0 {
-		executionCfg.includePatterns = cfg.Analysis.IncludePatterns
+		executionCfg.includePatterns = append([]string(nil), cfg.Analysis.IncludePatterns...)
 	}
 	if len(cfg.Analysis.ExcludePatterns) > 0 {
-		executionCfg.excludePatterns = cfg.Analysis.ExcludePatterns
+		executionCfg.excludePatterns = append([]string(nil), cfg.Analysis.ExcludePatterns...)
 	}
 	executionCfg.recursive = cfg.Analysis.Recursive
 	executionCfg.complexityEnabled = cfg.Complexity.Enabled
 	executionCfg.reportUnchanged = cfg.Complexity.ReportUnchanged
+	executionCfg.complexityMinComplexity = cfg.Output.MinComplexity
 	executionCfg.complexityLowThreshold = cfg.Complexity.LowThreshold
 	executionCfg.complexityMediumThreshold = cfg.Complexity.MediumThreshold
 	executionCfg.complexityMaxComplexity = cfg.Complexity.MaxComplexity
@@ -695,7 +719,7 @@ func (uc *AnalyzeUseCase) loadExecutionConfig(configPath string) (analyzeExecuti
 		}
 	}
 
-	return executionCfg, nil
+	return executionCfg
 }
 
 // calculateEstimatedTime estimates the total analysis time based on file count and enabled analyses

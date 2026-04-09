@@ -180,6 +180,9 @@ func TestAnalyzeUseCase_LoadExecutionConfig(t *testing.T) {
 		if executionCfg.complexityMaxComplexity != domain.DefaultComplexityMaxLimit {
 			t.Errorf("Expected max complexity %d, got %d", domain.DefaultComplexityMaxLimit, executionCfg.complexityMaxComplexity)
 		}
+		if executionCfg.complexityMinComplexity != domain.DefaultComplexityMinFilter {
+			t.Errorf("Expected min complexity %d, got %d", domain.DefaultComplexityMinFilter, executionCfg.complexityMinComplexity)
+		}
 		if len(executionCfg.includePatterns) != 2 || executionCfg.includePatterns[1] != "*.pyi" {
 			t.Errorf("Expected default include patterns to include .pyi files, got %v", executionCfg.includePatterns)
 		}
@@ -206,6 +209,9 @@ report_unchanged = false
 low_threshold = 3
 medium_threshold = 7
 max_complexity = 11
+
+[output]
+min_complexity = 9
 
 [clones]
 lsh_enabled = "true"
@@ -234,6 +240,9 @@ lsh_auto_threshold = 123
 		}
 		if executionCfg.complexityMaxComplexity != 11 {
 			t.Errorf("Expected max complexity 11, got %d", executionCfg.complexityMaxComplexity)
+		}
+		if executionCfg.complexityMinComplexity != 9 {
+			t.Errorf("Expected min complexity 9, got %d", executionCfg.complexityMinComplexity)
 		}
 		if executionCfg.recursive {
 			t.Error("Expected recursive to be false")
