@@ -226,7 +226,7 @@ func (c *ConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.Py
 	cfg.Complexity.LowThreshold = pyscnCfg.ComplexityLowThreshold
 	cfg.Complexity.MediumThreshold = pyscnCfg.ComplexityMediumThreshold
 	cfg.Complexity.MaxComplexity = pyscnCfg.ComplexityMaxComplexity
-	cfg.Output.MinComplexity = pyscnCfg.ComplexityMinComplexity
+	cfg.Output.MinComplexity = pyscnCfg.EffectiveOutputMinComplexity()
 
 	// Map dead code settings from [dead_code] section
 	cfg.DeadCode.Enabled = domain.BoolValue(pyscnCfg.DeadCodeEnabled, true)
@@ -255,10 +255,6 @@ func (c *ConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.Py
 	if pyscnCfg.OutputShowDetails != nil {
 		cfg.Output.ShowDetails = *pyscnCfg.OutputShowDetails
 	}
-	if pyscnCfg.OutputMinComplexity > 0 {
-		cfg.Output.MinComplexity = pyscnCfg.OutputMinComplexity
-	}
-
 	// Map general analysis settings from [analysis] section (override clone-specific if set)
 	if len(pyscnCfg.AnalysisIncludePatterns) > 0 {
 		cfg.Analysis.IncludePatterns = pyscnCfg.AnalysisIncludePatterns

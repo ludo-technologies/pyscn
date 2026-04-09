@@ -143,6 +143,10 @@ type PyscnConfig struct {
 	MockDataKeywords       []string `mapstructure:"mock_data_keywords" yaml:"mock_data_keywords" json:"mock_data_keywords"`
 	MockDataDomains        []string `mapstructure:"mock_data_domains" yaml:"mock_data_domains" json:"mock_data_domains"`
 	MockDataIgnorePatterns []string `mapstructure:"mock_data_ignore_patterns" yaml:"mock_data_ignore_patterns" json:"mock_data_ignore_patterns"`
+
+	// Track whether [output].min_complexity was explicitly set so it can
+	// override [complexity].min_complexity even when both resolve to defaults.
+	outputMinComplexityExplicit bool `mapstructure:"-" yaml:"-" json:"-"`
 }
 
 // CloneAnalysisConfig holds core analysis parameters
@@ -428,6 +432,44 @@ func DefaultPyscnConfig() *PyscnConfig {
 		MockDataDomains:        domain.DefaultMockDataDomains(),
 		MockDataIgnorePatterns: []string{},
 	}
+}
+
+func (c *PyscnConfig) setOutputMinComplexity(min int) {
+	c.OutputMinComplexity = min
+	c.outputMinComplexityExplicit = true
+}
+
+func (c *PyscnConfig) hasExplicitOutputMinComplexity() bool {
+	if c == nil {
+		return false
+	}
+
+	if c.outputMinComplexityExplicit {
+		return true
+	}
+
+	return c.OutputMinComplexity > 0 && c.OutputMinComplexity != DefaultMinComplexityFilter
+}
+
+// EffectiveOutputMinComplexity resolves the output filter precedence.
+// [output].min_complexity overrides [complexity].min_complexity only when
+// the output value was explicitly set.
+func (c *PyscnConfig) EffectiveOutputMinComplexity() int {
+	if c == nil {
+		return DefaultMinComplexityFilter
+	}
+
+	if c.hasExplicitOutputMinComplexity() {
+		return c.OutputMinComplexity
+	}
+	if c.ComplexityMinComplexity > 0 {
+		return c.ComplexityMinComplexity
+	}
+	if c.OutputMinComplexity > 0 {
+		return c.OutputMinComplexity
+	}
+
+	return DefaultMinComplexityFilter
 }
 
 // Validate checks if the configuration is valid

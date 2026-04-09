@@ -306,6 +306,7 @@ func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
 	if pyscn.ComplexityMaxComplexity > 0 {
 		cfg.Complexity.MaxComplexity = pyscn.ComplexityMaxComplexity
 	}
+	cfg.Output.MinComplexity = pyscn.EffectiveOutputMinComplexity()
 
 	// DeadCode settings
 	if pyscn.DeadCodeEnabled != nil {
@@ -351,9 +352,6 @@ func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
 	}
 	if pyscn.OutputSortBy != "" {
 		cfg.Output.SortBy = pyscn.OutputSortBy
-	}
-	if pyscn.OutputMinComplexity > 0 {
-		cfg.Output.MinComplexity = pyscn.OutputMinComplexity
 	}
 	if pyscn.OutputDirectory != "" {
 		cfg.Output.Directory = pyscn.OutputDirectory

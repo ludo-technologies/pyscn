@@ -293,7 +293,7 @@ func mergeOutputSection(defaults *PyscnConfig, output *OutputTomlConfig) {
 		defaults.OutputSortBy = output.SortBy
 	}
 	if output.MinComplexity != nil {
-		defaults.OutputMinComplexity = *output.MinComplexity
+		defaults.setOutputMinComplexity(*output.MinComplexity)
 	}
 	if output.Directory != "" {
 		defaults.OutputDirectory = output.Directory

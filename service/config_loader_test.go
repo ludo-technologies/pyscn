@@ -152,6 +152,27 @@ func TestConfigurationLoader_LoadConfig_ValidFile(t *testing.T) {
 	assert.False(t, *req.ReportUnchanged)
 }
 
+func TestConfigurationLoader_LoadConfig_MinComplexityPrecedence(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, ".pyscn.toml")
+
+	configContent := `
+	[complexity]
+	min_complexity = 3
+
+	[output]
+	min_complexity = 1
+	`
+	err := os.WriteFile(configPath, []byte(configContent), 0644)
+	require.NoError(t, err)
+
+	loader := NewConfigurationLoader()
+	req, err := loader.LoadConfig(configPath)
+	require.NoError(t, err)
+	require.NotNil(t, req)
+	assert.Equal(t, 1, req.MinComplexity)
+}
+
 func TestConfigurationLoader_FindDefaultConfigFile(t *testing.T) {
 	loader := NewConfigurationLoader()
 
