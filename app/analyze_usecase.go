@@ -282,23 +282,11 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 
 	// Complexity analysis task
 	if uc.complexityUseCase != nil {
+		request := uc.buildComplexityTaskRequest(config, files)
 		tasks = append(tasks, &AnalysisTask{
 			Name:    "Complexity Analysis",
-			Enabled: !config.SkipComplexity,
+			Enabled: !config.SkipComplexity && uc.isComplexityTaskEnabled(request),
 			Execute: func(ctx context.Context) (interface{}, error) {
-				request := domain.ComplexityRequest{
-					Paths:           files,
-					Recursive:       false,
-					IncludePatterns: []string{},
-					ExcludePatterns: []string{},
-					OutputFormat:    domain.OutputFormatJSON,
-					OutputWriter:    io.Discard,
-					MinComplexity:   config.MinComplexity,
-					LowThreshold:    9,
-					MediumThreshold: 19,
-					SortBy:          domain.SortByComplexity,
-					ConfigPath:      config.ConfigFile,
-				}
 				return uc.complexityUseCase.AnalyzeAndReturn(ctx, request)
 			},
 		})
@@ -448,6 +436,31 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 	}
 
 	return tasks
+}
+
+func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig, files []string) domain.ComplexityRequest {
+	return domain.ComplexityRequest{
+		Paths:           files,
+		Recursive:       false,
+		IncludePatterns: []string{},
+		ExcludePatterns: []string{},
+		OutputFormat:    domain.OutputFormatJSON,
+		OutputWriter:    io.Discard,
+		MinComplexity:   config.MinComplexity,
+		LowThreshold:    9,
+		MediumThreshold: 19,
+		SortBy:          domain.SortByComplexity,
+		ConfigPath:      config.ConfigFile,
+	}
+}
+
+func (uc *AnalyzeUseCase) isComplexityTaskEnabled(req domain.ComplexityRequest) bool {
+	mergedReq, err := uc.complexityUseCase.loadAndMergeConfig(req)
+	if err != nil {
+		return true
+	}
+
+	return domain.BoolValue(mergedReq.Enabled, true)
 }
 
 // buildResponse builds the analyze response from task results

@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -97,5 +99,59 @@ func TestAnalyzeUseCaseBuilder(t *testing.T) {
 
 	if useCase == nil {
 		t.Error("Expected non-nil use case, got nil")
+	}
+}
+
+func TestAnalyzeUseCase_Execute_DisablesComplexityFromConfig(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, ".pyscn.toml")
+	configContent := `[complexity]
+enabled = false
+`
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	config := AnalyzeUseCaseConfig{
+		ConfigFile:      configPath,
+		SkipComplexity:  false,
+		SkipDeadCode:    true,
+		SkipClones:      true,
+		SkipCBO:         true,
+		SkipLCOM:        true,
+		SkipSystem:      true,
+		MinComplexity:   1,
+		MinSeverity:     domain.DeadCodeSeverityWarning,
+		CloneSimilarity: 0.8,
+	}
+
+	builder := NewAnalyzeUseCaseBuilder()
+	builder.WithFileReader(service.NewFileReader())
+	builder.WithFormatter(service.NewAnalyzeFormatter())
+	builder.WithProgressManager(service.NewProgressManager())
+	builder.WithParallelExecutor(service.NewParallelExecutor())
+	builder.WithErrorCategorizer(service.NewErrorCategorizer())
+	builder.WithComplexityUseCase(NewComplexityUseCase(
+		service.NewComplexityService(),
+		service.NewFileReader(),
+		service.NewOutputFormatter(),
+		service.NewConfigurationLoader(),
+	))
+
+	useCase, err := builder.Build()
+	if err != nil {
+		t.Fatalf("Failed to build AnalyzeUseCase: %v", err)
+	}
+
+	response, err := useCase.Execute(context.Background(), config, []string{"../testdata/python/simple"})
+	if err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+
+	if response.Summary.ComplexityEnabled {
+		t.Errorf("Expected complexity to be disabled, got %v", response.Summary.ComplexityEnabled)
+	}
+	if response.Complexity != nil {
+		t.Errorf("Expected no complexity response, got %+v", response.Complexity)
 	}
 }
