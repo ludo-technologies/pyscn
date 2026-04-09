@@ -139,6 +139,9 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 			warnings = append(warnings, fmt.Sprintf("[%s:%s] Failed to calculate complexity for function", filePath, functionName))
 			continue
 		}
+		if !complexityConfig.ShouldReport(result.Complexity) {
+			continue
+		}
 
 		// Calculate cognitive complexity independently from CFG-based McCabe calculation
 		cognitiveComplexity := 0
@@ -328,8 +331,8 @@ func (s *ComplexityServiceImpl) buildComplexityConfig(req domain.ComplexityReque
 	return &config.ComplexityConfig{
 		LowThreshold:    req.LowThreshold,
 		MediumThreshold: req.MediumThreshold,
-		Enabled:         true,
-		ReportUnchanged: true,
+		Enabled:         domain.BoolValue(req.Enabled, true),
+		ReportUnchanged: domain.BoolValue(req.ReportUnchanged, true),
 		MaxComplexity:   req.MaxComplexity,
 	}
 }
@@ -341,6 +344,8 @@ func (s *ComplexityServiceImpl) buildConfigForResponse(req domain.ComplexityRequ
 		"max_complexity":   req.MaxComplexity,
 		"low_threshold":    req.LowThreshold,
 		"medium_threshold": req.MediumThreshold,
+		"enabled":          domain.BoolValue(req.Enabled, true),
+		"report_unchanged": domain.BoolValue(req.ReportUnchanged, true),
 		"sort_by":          string(req.SortBy),
 		"show_details":     req.ShowDetails,
 		"recursive":        req.Recursive,

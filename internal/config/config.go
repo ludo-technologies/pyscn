@@ -291,6 +291,12 @@ func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
 	cfg := DefaultConfig()
 
 	// Complexity settings
+	if pyscn.ComplexityEnabled != nil {
+		cfg.Complexity.Enabled = *pyscn.ComplexityEnabled
+	}
+	if pyscn.ComplexityReportUnchanged != nil {
+		cfg.Complexity.ReportUnchanged = *pyscn.ComplexityReportUnchanged
+	}
 	if pyscn.ComplexityLowThreshold > 0 {
 		cfg.Complexity.LowThreshold = pyscn.ComplexityLowThreshold
 	}
@@ -300,6 +306,7 @@ func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
 	if pyscn.ComplexityMaxComplexity > 0 {
 		cfg.Complexity.MaxComplexity = pyscn.ComplexityMaxComplexity
 	}
+	cfg.Output.MinComplexity = pyscn.EffectiveOutputMinComplexity()
 
 	// DeadCode settings
 	if pyscn.DeadCodeEnabled != nil {
@@ -345,9 +352,6 @@ func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
 	}
 	if pyscn.OutputSortBy != "" {
 		cfg.Output.SortBy = pyscn.OutputSortBy
-	}
-	if pyscn.OutputMinComplexity > 0 {
-		cfg.Output.MinComplexity = pyscn.OutputMinComplexity
 	}
 	if pyscn.OutputDirectory != "" {
 		cfg.Output.Directory = pyscn.OutputDirectory
@@ -645,6 +649,8 @@ func SaveConfig(config *Config, path string) error {
 func ConfigToPyscnTomlConfig(cfg *Config) *PyscnTomlConfig {
 	return &PyscnTomlConfig{
 		Complexity: ComplexityTomlConfig{
+			Enabled:         &cfg.Complexity.Enabled,
+			ReportUnchanged: &cfg.Complexity.ReportUnchanged,
 			LowThreshold:    &cfg.Complexity.LowThreshold,
 			MediumThreshold: &cfg.Complexity.MediumThreshold,
 			MaxComplexity:   &cfg.Complexity.MaxComplexity,

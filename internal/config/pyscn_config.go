@@ -35,10 +35,12 @@ type PyscnConfig struct {
 	LSH LSHConfig `mapstructure:"lsh" yaml:"lsh" json:"lsh"`
 
 	// Complexity Configuration (from [complexity] section in TOML)
-	ComplexityLowThreshold    int `mapstructure:"complexity_low_threshold" yaml:"complexity_low_threshold" json:"complexity_low_threshold"`
-	ComplexityMediumThreshold int `mapstructure:"complexity_medium_threshold" yaml:"complexity_medium_threshold" json:"complexity_medium_threshold"`
-	ComplexityMaxComplexity   int `mapstructure:"complexity_max_complexity" yaml:"complexity_max_complexity" json:"complexity_max_complexity"`
-	ComplexityMinComplexity   int `mapstructure:"complexity_min_complexity" yaml:"complexity_min_complexity" json:"complexity_min_complexity"`
+	ComplexityEnabled         *bool `mapstructure:"complexity_enabled" yaml:"complexity_enabled" json:"complexity_enabled"`
+	ComplexityReportUnchanged *bool `mapstructure:"complexity_report_unchanged" yaml:"complexity_report_unchanged" json:"complexity_report_unchanged"`
+	ComplexityLowThreshold    int   `mapstructure:"complexity_low_threshold" yaml:"complexity_low_threshold" json:"complexity_low_threshold"`
+	ComplexityMediumThreshold int   `mapstructure:"complexity_medium_threshold" yaml:"complexity_medium_threshold" json:"complexity_medium_threshold"`
+	ComplexityMaxComplexity   int   `mapstructure:"complexity_max_complexity" yaml:"complexity_max_complexity" json:"complexity_max_complexity"`
+	ComplexityMinComplexity   int   `mapstructure:"complexity_min_complexity" yaml:"complexity_min_complexity" json:"complexity_min_complexity"`
 
 	// DeadCode Configuration (from [dead_code] section in TOML)
 	DeadCodeEnabled                   *bool    `mapstructure:"dead_code_enabled" yaml:"dead_code_enabled" json:"dead_code_enabled"`
@@ -141,6 +143,10 @@ type PyscnConfig struct {
 	MockDataKeywords       []string `mapstructure:"mock_data_keywords" yaml:"mock_data_keywords" json:"mock_data_keywords"`
 	MockDataDomains        []string `mapstructure:"mock_data_domains" yaml:"mock_data_domains" json:"mock_data_domains"`
 	MockDataIgnorePatterns []string `mapstructure:"mock_data_ignore_patterns" yaml:"mock_data_ignore_patterns" json:"mock_data_ignore_patterns"`
+
+	// Track whether [output].min_complexity was explicitly set so it can
+	// override [complexity].min_complexity even when both resolve to defaults.
+	outputMinComplexityExplicit bool `mapstructure:"-" yaml:"-" json:"-"`
 }
 
 // CloneAnalysisConfig holds core analysis parameters
@@ -320,6 +326,8 @@ func DefaultPyscnConfig() *PyscnConfig {
 		},
 
 		// Complexity defaults (from [complexity] section)
+		ComplexityEnabled:         domain.BoolPtr(true),
+		ComplexityReportUnchanged: domain.BoolPtr(true),
 		ComplexityLowThreshold:    DefaultLowComplexityThreshold,
 		ComplexityMediumThreshold: DefaultMediumComplexityThreshold,
 		ComplexityMaxComplexity:   DefaultMaxComplexityLimit,
@@ -424,6 +432,44 @@ func DefaultPyscnConfig() *PyscnConfig {
 		MockDataDomains:        domain.DefaultMockDataDomains(),
 		MockDataIgnorePatterns: []string{},
 	}
+}
+
+func (c *PyscnConfig) setOutputMinComplexity(min int) {
+	c.OutputMinComplexity = min
+	c.outputMinComplexityExplicit = true
+}
+
+func (c *PyscnConfig) hasExplicitOutputMinComplexity() bool {
+	if c == nil {
+		return false
+	}
+
+	if c.outputMinComplexityExplicit {
+		return true
+	}
+
+	return c.OutputMinComplexity > 0 && c.OutputMinComplexity != DefaultMinComplexityFilter
+}
+
+// EffectiveOutputMinComplexity resolves the output filter precedence.
+// [output].min_complexity overrides [complexity].min_complexity only when
+// the output value was explicitly set.
+func (c *PyscnConfig) EffectiveOutputMinComplexity() int {
+	if c == nil {
+		return DefaultMinComplexityFilter
+	}
+
+	if c.hasExplicitOutputMinComplexity() {
+		return c.OutputMinComplexity
+	}
+	if c.ComplexityMinComplexity > 0 {
+		return c.ComplexityMinComplexity
+	}
+	if c.OutputMinComplexity > 0 {
+		return c.OutputMinComplexity
+	}
+
+	return DefaultMinComplexityFilter
 }
 
 // Validate checks if the configuration is valid

@@ -15,11 +15,13 @@ func TestLoadComplexityFromPyscnToml(t *testing.T) {
 
 	// Create .pyscn.toml with complexity settings
 	configContent := `[complexity]
-low_threshold = 5
-medium_threshold = 7
-max_complexity = 9
-min_complexity = 3
-`
+	enabled = false
+	report_unchanged = false
+	low_threshold = 5
+	medium_threshold = 7
+	max_complexity = 9
+	min_complexity = 3
+	`
 	configPath := filepath.Join(tempDir, ".pyscn.toml")
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
@@ -33,6 +35,12 @@ min_complexity = 3
 	}
 
 	// Verify complexity settings were loaded
+	if domain.BoolValue(config.ComplexityEnabled, true) {
+		t.Errorf("Expected enabled false, got %v", config.ComplexityEnabled)
+	}
+	if domain.BoolValue(config.ComplexityReportUnchanged, true) {
+		t.Errorf("Expected report_unchanged false, got %v", config.ComplexityReportUnchanged)
+	}
 	if config.ComplexityLowThreshold != 5 {
 		t.Errorf("Expected low_threshold 5, got %d", config.ComplexityLowThreshold)
 	}
@@ -91,6 +99,8 @@ func TestMergeComplexitySection(t *testing.T) {
 
 	// Create complexity settings
 	complexity := ComplexityTomlConfig{
+		Enabled:         domain.BoolPtr(false),
+		ReportUnchanged: domain.BoolPtr(false),
 		LowThreshold:    intPtr(3),
 		MediumThreshold: intPtr(5),
 		MaxComplexity:   intPtr(10),
@@ -101,6 +111,12 @@ func TestMergeComplexitySection(t *testing.T) {
 	mergeComplexitySection(config, &complexity)
 
 	// Verify settings were merged
+	if domain.BoolValue(config.ComplexityEnabled, true) {
+		t.Errorf("Expected enabled false, got %v", config.ComplexityEnabled)
+	}
+	if domain.BoolValue(config.ComplexityReportUnchanged, true) {
+		t.Errorf("Expected report_unchanged false, got %v", config.ComplexityReportUnchanged)
+	}
 	if config.ComplexityLowThreshold != 3 {
 		t.Errorf("Expected low_threshold 3, got %d", config.ComplexityLowThreshold)
 	}
@@ -122,6 +138,8 @@ func TestMergeComplexitySectionNilValues(t *testing.T) {
 
 	// Create complexity settings with nil values
 	complexity := ComplexityTomlConfig{
+		Enabled:         nil,
+		ReportUnchanged: nil,
 		LowThreshold:    nil,
 		MediumThreshold: nil,
 		MaxComplexity:   nil,

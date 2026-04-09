@@ -61,6 +61,11 @@ type ComplexityRequest struct {
 	LowThreshold    int
 	MediumThreshold int
 
+	// Analysis toggles loaded from configuration when present.
+	// Nil means "use the default enabled behavior".
+	Enabled         *bool
+	ReportUnchanged *bool
+
 	// Configuration
 	ConfigPath string
 

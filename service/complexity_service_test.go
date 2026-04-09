@@ -101,6 +101,36 @@ func TestComplexityService_Analyze(t *testing.T) {
 		}
 	})
 
+	t.Run("report_unchanged false filters complexity one functions", func(t *testing.T) {
+		tempDir := t.TempDir()
+		filePath := tempDir + "/mixed.py"
+		content := []byte("def unchanged():\n    return 1\n\n\ndef branch(x):\n    if x:\n        return 1\n    return 0\n")
+		err := os.WriteFile(filePath, content, 0644)
+		require.NoError(t, err)
+
+		req := newDefaultComplexityRequest(filePath)
+		req.ReportUnchanged = domain.BoolPtr(false)
+
+		response, err := service.Analyze(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		require.Len(t, response.Functions, 1)
+		assert.Equal(t, "branch", response.Functions[0].Name)
+	})
+
+	t.Run("enabled false suppresses complexity results", func(t *testing.T) {
+		req := newDefaultComplexityRequest("../testdata/python/simple/functions.py")
+		req.Enabled = domain.BoolPtr(false)
+
+		response, err := service.Analyze(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Empty(t, response.Functions)
+		assert.NotEmpty(t, response.RawMetrics)
+	})
+
 	t.Run("analyze multiple files", func(t *testing.T) {
 		req := newDefaultComplexityRequest(
 			"../testdata/python/simple/functions.py",
@@ -492,6 +522,8 @@ func TestComplexityService_BuildConfigForResponse(t *testing.T) {
 	assert.Equal(t, 20, configMap["max_complexity"])
 	assert.Equal(t, 5, configMap["low_threshold"])
 	assert.Equal(t, 10, configMap["medium_threshold"])
+	assert.Equal(t, true, configMap["enabled"])
+	assert.Equal(t, true, configMap["report_unchanged"])
 	assert.Equal(t, "complexity", configMap["sort_by"])
 	assert.Equal(t, true, configMap["show_details"])
 	assert.Equal(t, true, configMap["recursive"])

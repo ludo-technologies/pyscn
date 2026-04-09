@@ -26,10 +26,12 @@ type PyscnTomlConfig struct {
 
 // ComplexityTomlConfig represents the [complexity] section
 type ComplexityTomlConfig struct {
-	LowThreshold    *int `toml:"low_threshold"`    // pointer to detect unset
-	MediumThreshold *int `toml:"medium_threshold"` // pointer to detect unset
-	MaxComplexity   *int `toml:"max_complexity"`   // pointer to detect unset
-	MinComplexity   *int `toml:"min_complexity"`   // pointer to detect unset
+	Enabled         *bool `toml:"enabled"`          // pointer to detect unset
+	ReportUnchanged *bool `toml:"report_unchanged"` // pointer to detect unset
+	LowThreshold    *int  `toml:"low_threshold"`    // pointer to detect unset
+	MediumThreshold *int  `toml:"medium_threshold"` // pointer to detect unset
+	MaxComplexity   *int  `toml:"max_complexity"`   // pointer to detect unset
+	MinComplexity   *int  `toml:"min_complexity"`   // pointer to detect unset
 }
 
 // DeadCodeTomlConfig represents the [dead_code] section

@@ -26,6 +26,10 @@ func TestConfigurationLoader_LoadDefaultConfig(t *testing.T) {
 	assert.Equal(t, domain.DefaultComplexityMinFilter, req.MinComplexity)
 	assert.Equal(t, domain.DefaultComplexityLowThreshold, req.LowThreshold)
 	assert.Equal(t, domain.DefaultComplexityMediumThreshold, req.MediumThreshold)
+	require.NotNil(t, req.Enabled)
+	require.NotNil(t, req.ReportUnchanged)
+	assert.True(t, *req.Enabled)
+	assert.True(t, *req.ReportUnchanged)
 }
 
 func TestConfigurationLoader_MergeConfig(t *testing.T) {
@@ -129,12 +133,12 @@ func TestConfigurationLoader_LoadConfig_ValidFile(t *testing.T) {
 	configPath := filepath.Join(tmpDir, ".pyscn.toml")
 
 	configContent := `
-[complexity]
-min = 5
-max = 20
-low_threshold = 10
-medium_threshold = 15
-`
+	[complexity]
+	enabled = false
+	report_unchanged = false
+	low_threshold = 10
+	medium_threshold = 15
+	`
 	err := os.WriteFile(configPath, []byte(configContent), 0644)
 	require.NoError(t, err)
 
@@ -142,6 +146,31 @@ medium_threshold = 15
 	req, err := loader.LoadConfig(configPath)
 	require.NoError(t, err)
 	require.NotNil(t, req)
+	require.NotNil(t, req.Enabled)
+	require.NotNil(t, req.ReportUnchanged)
+	assert.False(t, *req.Enabled)
+	assert.False(t, *req.ReportUnchanged)
+}
+
+func TestConfigurationLoader_LoadConfig_MinComplexityPrecedence(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, ".pyscn.toml")
+
+	configContent := `
+	[complexity]
+	min_complexity = 3
+
+	[output]
+	min_complexity = 1
+	`
+	err := os.WriteFile(configPath, []byte(configContent), 0644)
+	require.NoError(t, err)
+
+	loader := NewConfigurationLoader()
+	req, err := loader.LoadConfig(configPath)
+	require.NoError(t, err)
+	require.NotNil(t, req)
+	assert.Equal(t, 1, req.MinComplexity)
 }
 
 func TestConfigurationLoader_FindDefaultConfigFile(t *testing.T) {
