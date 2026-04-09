@@ -369,6 +369,28 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 	}
 }
 
+func TestComplexityUseCase_analyzeResolvedRequest(t *testing.T) {
+	useCase, service, fileReader, _, configLoader := setupComplexityUseCaseMocks()
+	req := createValidComplexityRequest()
+	response := createMockComplexityResponse()
+
+	fileReader.On("FileExists", "/test/file.py").Return(true, nil)
+	service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
+		Return(response, nil)
+
+	result, err := useCase.analyzeResolvedRequest(context.Background(), req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, response, result)
+	if assert.NotNil(t, result.Request) {
+		assert.Equal(t, req.Paths, result.Request.Paths)
+		assert.Equal(t, req.MinComplexity, result.Request.MinComplexity)
+	}
+	configLoader.AssertNotCalled(t, "LoadDefaultConfig")
+	configLoader.AssertNotCalled(t, "LoadConfig", mock.Anything)
+	configLoader.AssertNotCalled(t, "MergeConfig", mock.Anything, mock.Anything)
+}
+
 func TestComplexityUseCase_AnalyzeAndReturn(t *testing.T) {
 	tests := []struct {
 		name        string
