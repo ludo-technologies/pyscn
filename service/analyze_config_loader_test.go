@@ -16,9 +16,6 @@ func TestAnalyzeConfigurationLoader_LoadAnalyzeExecutionConfig(t *testing.T) {
 		if err != nil {
 			t.Fatalf("LoadAnalyzeExecutionConfig returned error: %v", err)
 		}
-		if cfg == nil {
-			t.Fatal("expected non-nil execution config")
-		}
 
 		if cfg.ConfigPath != "" {
 			t.Errorf("expected empty config path, got %q", cfg.ConfigPath)
@@ -75,9 +72,6 @@ lsh_auto_threshold = 123
 		cfg, err := loader.LoadAnalyzeExecutionConfig("", targetDir)
 		if err != nil {
 			t.Fatalf("LoadAnalyzeExecutionConfig returned error: %v", err)
-		}
-		if cfg == nil {
-			t.Fatal("expected non-nil execution config")
 		}
 
 		if cfg.ConfigPath != configPath {

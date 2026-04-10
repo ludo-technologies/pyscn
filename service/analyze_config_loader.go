@@ -21,27 +21,26 @@ var defaultAnalyzeIncludePatterns = []string{"**/*.py", "*.pyi"}
 
 // LoadAnalyzeExecutionConfig resolves the effective config path and loads the
 // AnalyzeUseCase-specific settings it needs.
-func (l *AnalyzeConfigurationLoaderImpl) LoadAnalyzeExecutionConfig(configPath string, targetPath string) (*domain.AnalyzeExecutionConfig, error) {
+func (l *AnalyzeConfigurationLoaderImpl) LoadAnalyzeExecutionConfig(configPath string, targetPath string) (domain.AnalyzeExecutionConfig, error) {
 	tomlLoader := config.NewTomlConfigLoader()
 	resolvedConfigPath, err := tomlLoader.ResolveConfigPath(configPath, targetPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve configuration: %w", err)
+		return domain.AnalyzeExecutionConfig{}, fmt.Errorf("failed to resolve configuration: %w", err)
 	}
 
 	if resolvedConfigPath == "" {
-		cfg := defaultAnalyzeExecutionConfig()
-		return &cfg, nil
+		return defaultAnalyzeExecutionConfig(), nil
 	}
 
 	cfg, err := config.LoadConfig(resolvedConfigPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load configuration: %w", err)
+		return domain.AnalyzeExecutionConfig{}, fmt.Errorf("failed to load configuration: %w", err)
 	}
 
 	executionCfg := analyzeExecutionConfigFromConfig(cfg)
 	executionCfg.ConfigPath = resolvedConfigPath
 
-	return &executionCfg, nil
+	return executionCfg, nil
 }
 
 func defaultAnalyzeExecutionConfig() domain.AnalyzeExecutionConfig {

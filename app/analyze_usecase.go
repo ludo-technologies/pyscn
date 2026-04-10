@@ -640,24 +640,12 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 }
 
 func (uc *AnalyzeUseCase) loadExecutionConfig(configPath string, paths []string) (domain.AnalyzeExecutionConfig, error) {
-	if uc.configLoader == nil {
-		return domain.AnalyzeExecutionConfig{}, fmt.Errorf("analyze configuration loader is required")
-	}
-
 	targetPath := ""
 	if len(paths) > 0 {
 		targetPath = paths[0]
 	}
 
-	executionCfg, err := uc.configLoader.LoadAnalyzeExecutionConfig(configPath, targetPath)
-	if err != nil {
-		return domain.AnalyzeExecutionConfig{}, err
-	}
-	if executionCfg == nil {
-		return domain.AnalyzeExecutionConfig{}, fmt.Errorf("analyze configuration loader returned nil config")
-	}
-
-	return *executionCfg, nil
+	return uc.configLoader.LoadAnalyzeExecutionConfig(configPath, targetPath)
 }
 
 // calculateEstimatedTime estimates the total analysis time based on file count and enabled analyses

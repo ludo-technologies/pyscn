@@ -34,7 +34,7 @@ type AnalyzeExecutionConfig struct {
 
 // AnalyzeConfigurationLoader resolves and loads configuration for AnalyzeUseCase.
 type AnalyzeConfigurationLoader interface {
-	LoadAnalyzeExecutionConfig(configPath string, targetPath string) (*AnalyzeExecutionConfig, error)
+	LoadAnalyzeExecutionConfig(configPath string, targetPath string) (AnalyzeExecutionConfig, error)
 }
 
 // Health Score Calculation Constants
