@@ -234,6 +234,7 @@ func (c *AnalyzeCommand) buildAnalyzeUseCase(cmd *cobra.Command) (*app.AnalyzeUs
 	// Set up file reader
 	fileReader := service.NewFileReader()
 	builder.WithFileReader(fileReader)
+	builder.WithConfigLoader(service.NewAnalyzeConfigurationLoader())
 
 	// Set up formatter
 	formatter := service.NewAnalyzeFormatter()

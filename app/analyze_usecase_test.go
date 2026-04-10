@@ -157,41 +157,41 @@ enabled = false
 }
 
 func TestAnalyzeUseCase_LoadExecutionConfig(t *testing.T) {
-	useCase := &AnalyzeUseCase{}
+	useCase := &AnalyzeUseCase{configLoader: service.NewAnalyzeConfigurationLoader()}
 
 	t.Run("uses analyze defaults without config file", func(t *testing.T) {
-		executionCfg, err := useCase.loadExecutionConfig("")
+		executionCfg, err := useCase.loadExecutionConfig("", []string{t.TempDir()})
 		if err != nil {
 			t.Fatalf("loadExecutionConfig returned error: %v", err)
 		}
 
-		if !executionCfg.complexityEnabled {
+		if !executionCfg.ComplexityEnabled {
 			t.Error("Expected complexity to be enabled by default")
 		}
-		if !executionCfg.reportUnchanged {
+		if !executionCfg.ComplexityReportUnchanged {
 			t.Error("Expected report_unchanged to be true by default")
 		}
-		if executionCfg.complexityLowThreshold != domain.DefaultComplexityLowThreshold {
-			t.Errorf("Expected low threshold %d, got %d", domain.DefaultComplexityLowThreshold, executionCfg.complexityLowThreshold)
+		if executionCfg.ComplexityLowThreshold != domain.DefaultComplexityLowThreshold {
+			t.Errorf("Expected low threshold %d, got %d", domain.DefaultComplexityLowThreshold, executionCfg.ComplexityLowThreshold)
 		}
-		if executionCfg.complexityMediumThreshold != domain.DefaultComplexityMediumThreshold {
-			t.Errorf("Expected medium threshold %d, got %d", domain.DefaultComplexityMediumThreshold, executionCfg.complexityMediumThreshold)
+		if executionCfg.ComplexityMediumThreshold != domain.DefaultComplexityMediumThreshold {
+			t.Errorf("Expected medium threshold %d, got %d", domain.DefaultComplexityMediumThreshold, executionCfg.ComplexityMediumThreshold)
 		}
-		if executionCfg.complexityMaxComplexity != domain.DefaultComplexityMaxLimit {
-			t.Errorf("Expected max complexity %d, got %d", domain.DefaultComplexityMaxLimit, executionCfg.complexityMaxComplexity)
+		if executionCfg.ComplexityMaxComplexity != domain.DefaultComplexityMaxLimit {
+			t.Errorf("Expected max complexity %d, got %d", domain.DefaultComplexityMaxLimit, executionCfg.ComplexityMaxComplexity)
 		}
-		if executionCfg.complexityMinComplexity != domain.DefaultComplexityMinFilter {
-			t.Errorf("Expected min complexity %d, got %d", domain.DefaultComplexityMinFilter, executionCfg.complexityMinComplexity)
+		if executionCfg.ComplexityMinComplexity != domain.DefaultComplexityMinFilter {
+			t.Errorf("Expected min complexity %d, got %d", domain.DefaultComplexityMinFilter, executionCfg.ComplexityMinComplexity)
 		}
-		if len(executionCfg.includePatterns) != 2 || executionCfg.includePatterns[1] != "*.pyi" {
-			t.Errorf("Expected default include patterns to include .pyi files, got %v", executionCfg.includePatterns)
+		if len(executionCfg.IncludePatterns) != 2 || executionCfg.IncludePatterns[1] != "*.pyi" {
+			t.Errorf("Expected default include patterns to include .pyi files, got %v", executionCfg.IncludePatterns)
 		}
 		defaultCloneReq := domain.DefaultCloneRequest()
-		if executionCfg.lshEnabled != defaultCloneReq.LSHEnabled {
-			t.Errorf("Expected default LSH enabled %q, got %q", defaultCloneReq.LSHEnabled, executionCfg.lshEnabled)
+		if executionCfg.CloneLSHEnabled != defaultCloneReq.LSHEnabled {
+			t.Errorf("Expected default LSH enabled %q, got %q", defaultCloneReq.LSHEnabled, executionCfg.CloneLSHEnabled)
 		}
-		if executionCfg.lshThreshold != defaultCloneReq.LSHAutoThreshold {
-			t.Errorf("Expected default LSH threshold %d, got %d", defaultCloneReq.LSHAutoThreshold, executionCfg.lshThreshold)
+		if executionCfg.CloneLSHAutoThreshold != defaultCloneReq.LSHAutoThreshold {
+			t.Errorf("Expected default LSH threshold %d, got %d", defaultCloneReq.LSHAutoThreshold, executionCfg.CloneLSHAutoThreshold)
 		}
 	})
 
@@ -221,43 +221,43 @@ lsh_auto_threshold = 123
 			t.Fatalf("Failed to write config file: %v", err)
 		}
 
-		executionCfg, err := useCase.loadExecutionConfig(configPath)
+		executionCfg, err := useCase.loadExecutionConfig(configPath, []string{tempDir})
 		if err != nil {
 			t.Fatalf("loadExecutionConfig returned error: %v", err)
 		}
 
-		if executionCfg.complexityEnabled {
+		if executionCfg.ComplexityEnabled {
 			t.Error("Expected complexity to be disabled")
 		}
-		if executionCfg.reportUnchanged {
+		if executionCfg.ComplexityReportUnchanged {
 			t.Error("Expected report_unchanged to be false")
 		}
-		if executionCfg.complexityLowThreshold != 3 {
-			t.Errorf("Expected low threshold 3, got %d", executionCfg.complexityLowThreshold)
+		if executionCfg.ComplexityLowThreshold != 3 {
+			t.Errorf("Expected low threshold 3, got %d", executionCfg.ComplexityLowThreshold)
 		}
-		if executionCfg.complexityMediumThreshold != 7 {
-			t.Errorf("Expected medium threshold 7, got %d", executionCfg.complexityMediumThreshold)
+		if executionCfg.ComplexityMediumThreshold != 7 {
+			t.Errorf("Expected medium threshold 7, got %d", executionCfg.ComplexityMediumThreshold)
 		}
-		if executionCfg.complexityMaxComplexity != 11 {
-			t.Errorf("Expected max complexity 11, got %d", executionCfg.complexityMaxComplexity)
+		if executionCfg.ComplexityMaxComplexity != 11 {
+			t.Errorf("Expected max complexity 11, got %d", executionCfg.ComplexityMaxComplexity)
 		}
-		if executionCfg.complexityMinComplexity != 9 {
-			t.Errorf("Expected min complexity 9, got %d", executionCfg.complexityMinComplexity)
+		if executionCfg.ComplexityMinComplexity != 9 {
+			t.Errorf("Expected min complexity 9, got %d", executionCfg.ComplexityMinComplexity)
 		}
-		if executionCfg.recursive {
+		if executionCfg.Recursive {
 			t.Error("Expected recursive to be false")
 		}
-		if len(executionCfg.includePatterns) != 1 || executionCfg.includePatterns[0] != "pkg/**/*.py" {
-			t.Errorf("Expected custom include patterns, got %v", executionCfg.includePatterns)
+		if len(executionCfg.IncludePatterns) != 1 || executionCfg.IncludePatterns[0] != "pkg/**/*.py" {
+			t.Errorf("Expected custom include patterns, got %v", executionCfg.IncludePatterns)
 		}
-		if len(executionCfg.excludePatterns) != 1 || executionCfg.excludePatterns[0] != "tests/**/*.py" {
-			t.Errorf("Expected custom exclude patterns, got %v", executionCfg.excludePatterns)
+		if len(executionCfg.ExcludePatterns) != 1 || executionCfg.ExcludePatterns[0] != "tests/**/*.py" {
+			t.Errorf("Expected custom exclude patterns, got %v", executionCfg.ExcludePatterns)
 		}
-		if executionCfg.lshEnabled != "true" {
-			t.Errorf("Expected LSH enabled to be %q, got %q", "true", executionCfg.lshEnabled)
+		if executionCfg.CloneLSHEnabled != "true" {
+			t.Errorf("Expected LSH enabled to be %q, got %q", "true", executionCfg.CloneLSHEnabled)
 		}
-		if executionCfg.lshThreshold != 123 {
-			t.Errorf("Expected LSH threshold 123, got %d", executionCfg.lshThreshold)
+		if executionCfg.CloneLSHAutoThreshold != 123 {
+			t.Errorf("Expected LSH threshold 123, got %d", executionCfg.CloneLSHAutoThreshold)
 		}
 	})
 }
