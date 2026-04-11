@@ -147,6 +147,14 @@ func (f *AnalyzeFormatter) writeHTML(response *domain.AnalyzeResponse, writer io
 			}
 			return s[start:end]
 		},
+		"previewContent": func(content string) string {
+			const maxLines = 8
+			lines := strings.Split(content, "\n")
+			if len(lines) <= maxLines {
+				return content
+			}
+			return strings.Join(lines[:maxLines], "\n") + "\n..."
+		},
 		"scoreQuality": func(score int) string {
 			switch {
 			case score >= domain.ScoreThresholdExcellent:
@@ -285,6 +293,32 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         .table th {
             background: #f8f9fa;
             font-weight: 600;
+        }
+        .code-preview-card {
+            margin: 12px 0 0;
+            padding: 12px 14px;
+            border-radius: 8px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+        }
+        .code-preview-title {
+            margin-bottom: 8px;
+            color: #475569;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .code-preview {
+            margin: 0;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            background: #0f172a;
+            color: #e2e8f0;
+            font-size: 13px;
+            line-height: 1.5;
         }
         
         .risk-low { color: var(--color-success); }
@@ -829,6 +863,16 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                                 <td>{{$clone.Location.StartLine}}-{{$clone.Location.EndLine}}</td>
                                 <td>{{$clone.LineCount}} lines</td>
                             </tr>
+                            {{if and $.Clone.Request $.Clone.Request.ShowContent $clone.Content}}
+                            <tr>
+                                <td colspan="3" style="padding-top: 0;">
+                                    <div class="code-preview-card">
+                                        <div class="code-preview-title">Code Preview</div>
+                                        <pre class="code-preview">{{previewContent $clone.Content}}</pre>
+                                    </div>
+                                </td>
+                            </tr>
+                            {{end}}
                             {{end}}
                             {{end}}
                             {{if gt (len $group.Clones) 10}}
@@ -869,6 +913,26 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <td>{{printf "%.3f" $pair.Similarity}}</td>
                             <td>{{$pair.Type}}</td>
                         </tr>
+                        {{if and $.Clone.Request $.Clone.Request.ShowContent $pair.Clone1.Content}}
+                        <tr>
+                            <td colspan="6" style="padding-top: 0;">
+                                <div class="code-preview-card">
+                                    <div class="code-preview-title">Clone 1 Preview</div>
+                                    <pre class="code-preview">{{previewContent $pair.Clone1.Content}}</pre>
+                                </div>
+                            </td>
+                        </tr>
+                        {{end}}
+                        {{if and $.Clone.Request $.Clone.Request.ShowContent $pair.Clone2.Content}}
+                        <tr>
+                            <td colspan="6" style="padding-top: 0;">
+                                <div class="code-preview-card">
+                                    <div class="code-preview-title">Clone 2 Preview</div>
+                                    <pre class="code-preview">{{previewContent $pair.Clone2.Content}}</pre>
+                                </div>
+                            </td>
+                        </tr>
+                        {{end}}
                         {{end}}
                         {{end}}
                     </tbody>

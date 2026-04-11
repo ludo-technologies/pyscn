@@ -158,8 +158,8 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 
 	// Convert to domain objects
 	domainClones := s.convertFragmentsToDomainClones(allFragments)
-	domainClonePairs := s.convertClonePairsToDomain(clonePairs)
-	domainCloneGroups := s.convertCloneGroupsToDomain(cloneGroups)
+	domainClonePairs := s.convertClonePairsToDomain(clonePairs, req.ShowContent)
+	domainCloneGroups := s.convertCloneGroupsToDomain(cloneGroups, req.ShowContent)
 
 	// Filter results based on request criteria
 	domainClonePairs = s.filterClonePairs(domainClonePairs, req)
@@ -317,35 +317,42 @@ func (s *CloneService) convertFragmentsToDomainClones(fragments []*analyzer.Code
 	return domainClones
 }
 
-// convertClonePairsToDomain converts analyzer clone pairs to domain clone pairs
-func (s *CloneService) convertClonePairsToDomain(clonePairs []*analyzer.ClonePair) []*domain.ClonePair {
+// convertClonePairsToDomain converts analyzer clone pairs to domain clone pairs.
+func (s *CloneService) convertClonePairsToDomain(clonePairs []*analyzer.ClonePair, includeContent bool) []*domain.ClonePair {
 	domainPairs := make([]*domain.ClonePair, len(clonePairs))
 
 	for i, pair := range clonePairs {
+		clone1 := &domain.Clone{
+			Location: &domain.CloneLocation{
+				FilePath:  pair.Fragment1.Location.FilePath,
+				StartLine: pair.Fragment1.Location.StartLine,
+				EndLine:   pair.Fragment1.Location.EndLine,
+				StartCol:  pair.Fragment1.Location.StartCol,
+				EndCol:    pair.Fragment1.Location.EndCol,
+			},
+			Size:      pair.Fragment1.Size,
+			LineCount: pair.Fragment1.LineCount,
+		}
+		clone2 := &domain.Clone{
+			Location: &domain.CloneLocation{
+				FilePath:  pair.Fragment2.Location.FilePath,
+				StartLine: pair.Fragment2.Location.StartLine,
+				EndLine:   pair.Fragment2.Location.EndLine,
+				StartCol:  pair.Fragment2.Location.StartCol,
+				EndCol:    pair.Fragment2.Location.EndCol,
+			},
+			Size:      pair.Fragment2.Size,
+			LineCount: pair.Fragment2.LineCount,
+		}
+		if includeContent {
+			clone1.Content = pair.Fragment1.Content
+			clone2.Content = pair.Fragment2.Content
+		}
+
 		domainPairs[i] = &domain.ClonePair{
-			ID: i + 1,
-			Clone1: &domain.Clone{
-				Location: &domain.CloneLocation{
-					FilePath:  pair.Fragment1.Location.FilePath,
-					StartLine: pair.Fragment1.Location.StartLine,
-					EndLine:   pair.Fragment1.Location.EndLine,
-					StartCol:  pair.Fragment1.Location.StartCol,
-					EndCol:    pair.Fragment1.Location.EndCol,
-				},
-				Size:      pair.Fragment1.Size,
-				LineCount: pair.Fragment1.LineCount,
-			},
-			Clone2: &domain.Clone{
-				Location: &domain.CloneLocation{
-					FilePath:  pair.Fragment2.Location.FilePath,
-					StartLine: pair.Fragment2.Location.StartLine,
-					EndLine:   pair.Fragment2.Location.EndLine,
-					StartCol:  pair.Fragment2.Location.StartCol,
-					EndCol:    pair.Fragment2.Location.EndCol,
-				},
-				Size:      pair.Fragment2.Size,
-				LineCount: pair.Fragment2.LineCount,
-			},
+			ID:         i + 1,
+			Clone1:     clone1,
+			Clone2:     clone2,
 			Similarity: pair.Similarity,
 			Distance:   pair.Distance,
 			Type:       s.convertCloneType(pair.CloneType),
@@ -356,8 +363,8 @@ func (s *CloneService) convertClonePairsToDomain(clonePairs []*analyzer.ClonePai
 	return domainPairs
 }
 
-// convertCloneGroupsToDomain converts analyzer clone groups to domain clone groups
-func (s *CloneService) convertCloneGroupsToDomain(cloneGroups []*analyzer.CloneGroup) []*domain.CloneGroup {
+// convertCloneGroupsToDomain converts analyzer clone groups to domain clone groups.
+func (s *CloneService) convertCloneGroupsToDomain(cloneGroups []*analyzer.CloneGroup, includeContent bool) []*domain.CloneGroup {
 	domainGroups := make([]*domain.CloneGroup, len(cloneGroups))
 
 	for i, group := range cloneGroups {
@@ -381,6 +388,9 @@ func (s *CloneService) convertCloneGroupsToDomain(cloneGroups []*analyzer.CloneG
 				},
 				Size:      fragment.Size,
 				LineCount: fragment.LineCount,
+			}
+			if includeContent {
+				clone.Content = fragment.Content
 			}
 			domainGroup.AddClone(clone)
 		}
