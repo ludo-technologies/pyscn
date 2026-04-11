@@ -102,6 +102,14 @@ func (m *mockCloneConfigurationLoader) SaveCloneConfig(req *domain.CloneRequest,
 	return args.Error(0)
 }
 
+func (m *mockCloneConfigurationLoader) MergeConfig(base *domain.CloneRequest, override *domain.CloneRequest) *domain.CloneRequest {
+	args := m.Called(base, override)
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(*domain.CloneRequest)
+}
+
 // Helper functions for CloneUseCase tests
 func setupCloneUseCaseMocks() (*CloneUseCase, *mockCloneService, *mockFileReader, *mockCloneOutputFormatter, *mockCloneConfigurationLoader) {
 	service := &mockCloneService{}
@@ -348,13 +356,21 @@ func TestCloneUseCase_Execute(t *testing.T) {
 				configReq := &domain.CloneRequest{
 					MinLines:            10,
 					SimilarityThreshold: 0.9,
-					ShowDetails:         false,
+					ShowContent:         true,
 				}
+				mergedReq := createValidCloneRequest()
+				mergedReq.ConfigPath = "/config.yaml"
+				mergedReq.MinLines = 10
+				mergedReq.SimilarityThreshold = 0.9
+				mergedReq.ShowContent = true
 
 				configLoader.On("LoadCloneConfig", "/config.yaml").Return(configReq, nil)
+				configLoader.On("MergeConfig", configReq, mock.AnythingOfType("*domain.CloneRequest")).Return(&mergedReq)
 				fileReader.On("CollectPythonFiles", []string{"/test/file1.py", "/test/file2.py"}, true, []string{"**/*.py"}, []string{"*test*"}).
 					Return([]string{"/test/file1.py", "/test/file2.py"}, nil)
-				service.On("DetectClones", mock.Anything, mock.AnythingOfType("*domain.CloneRequest")).
+				service.On("DetectClones", mock.Anything, mock.MatchedBy(func(req *domain.CloneRequest) bool {
+					return req.MinLines == 10 && req.SimilarityThreshold == 0.9 && req.ShowContent
+				})).
 					Return(createMockCloneResponse(), nil)
 				formatter.On("FormatCloneResponse", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
 			},
@@ -546,6 +562,7 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 			name:      "successful analysis with specific files",
 			filePaths: []string{"/test/file1.py", "/test/file2.py"},
 			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
+				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 				fileReader.On("IsValidPythonFile", "/test/file1.py").Return(true)
 				fileReader.On("IsValidPythonFile", "/test/file2.py").Return(true)
 				service.On("DetectClonesInFiles", mock.Anything, []string{"/test/file1.py", "/test/file2.py"}, mock.AnythingOfType("*domain.CloneRequest")).
@@ -567,6 +584,7 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 			name:      "no valid python files",
 			filePaths: []string{"/test/file.txt", "/test/file.java"},
 			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
+				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 				fileReader.On("IsValidPythonFile", "/test/file.txt").Return(false)
 				fileReader.On("IsValidPythonFile", "/test/file.java").Return(false)
 				formatter.On("FormatCloneResponse", mock.MatchedBy(func(resp *domain.CloneResponse) bool {
@@ -579,6 +597,7 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 			name:      "mixed valid and invalid files",
 			filePaths: []string{"/test/file.py", "/test/file.txt"},
 			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
+				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 				fileReader.On("IsValidPythonFile", "/test/file.py").Return(true)
 				fileReader.On("IsValidPythonFile", "/test/file.txt").Return(false)
 				service.On("DetectClonesInFiles", mock.Anything, []string{"/test/file.py"}, mock.AnythingOfType("*domain.CloneRequest")).
@@ -588,9 +607,34 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name:      "loads and merges config before analyzing specific files",
+			filePaths: []string{"/test/file.py"},
+			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
+				configReq := &domain.CloneRequest{
+					ShowContent: true,
+					MinLines:    12,
+				}
+				mergedReq := createValidCloneRequest()
+				mergedReq.ConfigPath = "/config.yaml"
+				mergedReq.ShowContent = true
+				mergedReq.MinLines = 12
+
+				configLoader.On("LoadCloneConfig", "/config.yaml").Return(configReq, nil)
+				configLoader.On("MergeConfig", configReq, mock.AnythingOfType("*domain.CloneRequest")).Return(&mergedReq)
+				fileReader.On("IsValidPythonFile", "/test/file.py").Return(true)
+				service.On("DetectClonesInFiles", mock.Anything, []string{"/test/file.py"}, mock.MatchedBy(func(req *domain.CloneRequest) bool {
+					return req.ShowContent && req.MinLines == 12
+				})).
+					Return(createMockCloneResponse(), nil)
+				formatter.On("FormatCloneResponse", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
+			},
+			expectError: false,
+		},
+		{
 			name:      "clone detection service error",
 			filePaths: []string{"/test/file.py"},
 			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
+				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 				fileReader.On("IsValidPythonFile", "/test/file.py").Return(true)
 				service.On("DetectClonesInFiles", mock.Anything, []string{"/test/file.py"}, mock.AnythingOfType("*domain.CloneRequest")).
 					Return((*domain.CloneResponse)(nil), errors.New("tree comparison failed"))
@@ -602,6 +646,7 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 			name:      "invalid output writer error",
 			filePaths: []string{"/test/file.py"},
 			setupMocks: func(service *mockCloneService, fileReader *mockFileReader, formatter *mockCloneOutputFormatter, configLoader *mockCloneConfigurationLoader) {
+				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 				fileReader.On("IsValidPythonFile", "/test/file.py").Return(true)
 				service.On("DetectClonesInFiles", mock.Anything, []string{"/test/file.py"}, mock.AnythingOfType("*domain.CloneRequest")).
 					Return(createMockCloneResponse(), nil)
@@ -620,6 +665,9 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 			req := createValidCloneRequest()
 			if strings.Contains(tt.name, "validation error") {
 				req.MinLines = -1 // Invalid value
+			}
+			if strings.Contains(tt.name, "loads and merges config") {
+				req.ConfigPath = "/config.yaml"
 			}
 			if strings.Contains(tt.name, "invalid output writer") {
 				req.OutputWriter = nil
@@ -763,84 +811,28 @@ func TestCloneUseCase_SaveConfiguration(t *testing.T) {
 	}
 }
 
-func TestCloneUseCase_mergeConfiguration(t *testing.T) {
-	useCase := &CloneUseCase{}
-
-	tests := []struct {
-		name       string
-		configReq  domain.CloneRequest
-		requestReq domain.CloneRequest
-		expected   domain.CloneRequest
-	}{
-		{
-			name: "merge with request taking precedence",
-			configReq: domain.CloneRequest{
-				MinLines:            10,
-				SimilarityThreshold: 0.9,
-				ShowDetails:         true,
-				CloneTypes:          []domain.CloneType{domain.Type1Clone},
-			},
-			requestReq: domain.CloneRequest{
-				Paths:               []string{"/test/file.py"},
-				MinLines:            5,     // Should override config
-				ShowDetails:         false, // Should override config
-				SimilarityThreshold: 0.9,   // Matches new default, won't override config
-				OutputFormat:        domain.OutputFormatJSON,
-				OutputWriter:        os.Stdout,
-			},
-			expected: domain.CloneRequest{
-				Paths:               []string{"/test/file.py"},             // From request
-				MinLines:            10,                                    // From config (request matched default, didn't override)
-				SimilarityThreshold: 0.9,                                   // From config (request matched default, didn't override)
-				ShowDetails:         false,                                 // From request (overrides config)
-				CloneTypes:          []domain.CloneType{domain.Type1Clone}, // From config (not overridden)
-				OutputFormat:        domain.OutputFormatJSON,               // From request
-				OutputWriter:        os.Stdout,                             // From request
-			},
-		},
-		{
-			name: "merge with default values not overriding config",
-			configReq: domain.CloneRequest{
-				MinLines:            15,
-				SimilarityThreshold: 0.95,
-				Type1Threshold:      0.98,
-				CloneTypes:          []domain.CloneType{domain.Type1Clone, domain.Type2Clone},
-			},
-			requestReq: *domain.DefaultCloneRequest(), // All default values
-			expected: domain.CloneRequest{
-				MinLines:            15,                                                       // From config (not overridden by default)
-				SimilarityThreshold: 0.95,                                                     // From config (not overridden by default)
-				Type1Threshold:      0.98,                                                     // From config (not overridden by default)
-				CloneTypes:          []domain.CloneType{domain.Type1Clone, domain.Type2Clone}, // From config
-			},
-		},
+func TestCloneUseCase_loadAndMergeConfig(t *testing.T) {
+	useCase, _, _, _, configLoader := setupCloneUseCaseMocks()
+	configReq := &domain.CloneRequest{
+		MinLines:            10,
+		SimilarityThreshold: 0.9,
+		ShowContent:         true,
 	}
+	requestReq := createValidCloneRequest()
+	requestReq.ConfigPath = "/config.yaml"
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := useCase.mergeConfiguration(tt.configReq, tt.requestReq)
+	mergedReq := requestReq
+	mergedReq.MinLines = 10
+	mergedReq.SimilarityThreshold = 0.9
+	mergedReq.ShowContent = true
 
-			// Check key fields that should be merged correctly
-			if len(tt.expected.Paths) > 0 {
-				assert.Equal(t, tt.expected.Paths, result.Paths)
-			}
-			if tt.expected.MinLines != 0 {
-				assert.Equal(t, tt.expected.MinLines, result.MinLines)
-			}
-			if tt.expected.SimilarityThreshold != 0 {
-				assert.Equal(t, tt.expected.SimilarityThreshold, result.SimilarityThreshold)
-			}
-			if tt.expected.Type1Threshold != 0 {
-				assert.Equal(t, tt.expected.Type1Threshold, result.Type1Threshold)
-			}
-			if len(tt.expected.CloneTypes) > 0 {
-				assert.Equal(t, tt.expected.CloneTypes, result.CloneTypes)
-			}
+	configLoader.On("LoadCloneConfig", "/config.yaml").Return(configReq, nil)
+	configLoader.On("MergeConfig", configReq, mock.AnythingOfType("*domain.CloneRequest")).Return(&mergedReq)
 
-			// Output settings should always come from request
-			assert.Equal(t, tt.requestReq.OutputFormat, result.OutputFormat)
-			assert.Equal(t, tt.requestReq.OutputWriter, result.OutputWriter)
-			assert.Equal(t, tt.requestReq.SortBy, result.SortBy)
-		})
-	}
+	result, err := useCase.loadAndMergeConfig(requestReq)
+	assert.NoError(t, err)
+	assert.Equal(t, 10, result.MinLines)
+	assert.Equal(t, 0.9, result.SimilarityThreshold)
+	assert.True(t, result.ShowContent)
+	configLoader.AssertExpectations(t)
 }

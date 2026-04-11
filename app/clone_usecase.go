@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"slices"
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -47,22 +46,11 @@ func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) er
 	}
 
 	// Step 2: Load configuration if specified or try default config
-	if req.ConfigPath != "" {
-		configReq, err := uc.configLoader.LoadCloneConfig(req.ConfigPath)
-		if err != nil {
-			return fmt.Errorf("failed to load configuration: %w", err)
-		}
-
-		// Merge configuration with request (request takes precedence)
-		req = uc.mergeConfiguration(*configReq, req)
-	} else if uc.configLoader != nil {
-		// Try to load default configuration
-		defaultConfigReq := uc.configLoader.GetDefaultCloneConfig()
-		if defaultConfigReq != nil {
-			// Merge default configuration with request (request takes precedence)
-			req = uc.mergeConfiguration(*defaultConfigReq, req)
-		}
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return err
 	}
+	req = finalReq
 
 	// Step 3: Collect files to analyze
 	files, err := uc.fileReader.CollectPythonFiles(req.Paths, req.Recursive, req.IncludePatterns, req.ExcludePatterns)
@@ -120,22 +108,11 @@ func (uc *CloneUseCase) ExecuteAndReturn(ctx context.Context, req domain.CloneRe
 	}
 
 	// Step 2: Load configuration if specified or try default config
-	if req.ConfigPath != "" {
-		configReq, err := uc.configLoader.LoadCloneConfig(req.ConfigPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load configuration: %w", err)
-		}
-
-		// Merge configuration with request (request takes precedence)
-		req = uc.mergeConfiguration(*configReq, req)
-	} else if uc.configLoader != nil {
-		// Try to load default configuration
-		defaultConfigReq := uc.configLoader.GetDefaultCloneConfig()
-		if defaultConfigReq != nil {
-			// Merge default configuration with request (request takes precedence)
-			req = uc.mergeConfiguration(*defaultConfigReq, req)
-		}
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return nil, err
 	}
+	req = finalReq
 
 	// Step 3: Collect files to analyze
 	if uc.fileReader == nil {
@@ -182,6 +159,12 @@ func (uc *CloneUseCase) ExecuteWithFiles(ctx context.Context, filePaths []string
 	if err := req.Validate(); err != nil {
 		return fmt.Errorf("validation failed: %w", err)
 	}
+
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return err
+	}
+	req = finalReq
 
 	// Validate files exist and are Python files
 	validFiles := []string{}
@@ -236,82 +219,32 @@ func (uc *CloneUseCase) SaveConfiguration(req domain.CloneRequest, configPath st
 	return nil
 }
 
-// mergeConfiguration merges configuration from file with request parameters
-// Request parameters take precedence over configuration file values
-func (uc *CloneUseCase) mergeConfiguration(configReq, requestReq domain.CloneRequest) domain.CloneRequest {
-	// Start with configuration from file
-	merged := configReq
-
-	// Override with non-default request values
-	if len(requestReq.Paths) > 0 {
-		merged.Paths = requestReq.Paths
+// loadAndMergeConfig loads configuration from file and merges it with the request.
+func (uc *CloneUseCase) loadAndMergeConfig(req domain.CloneRequest) (domain.CloneRequest, error) {
+	if uc.configLoader == nil {
+		return req, nil
 	}
 
-	// Override boolean flags if explicitly set
-	merged.Recursive = requestReq.Recursive
-	merged.ShowDetails = requestReq.ShowDetails
-	merged.ShowContent = requestReq.ShowContent
-	merged.GroupClones = requestReq.GroupClones
+	var configReq *domain.CloneRequest
+	var err error
 
-	// Override numeric values if they differ from defaults
-	defaultReq := domain.DefaultCloneRequest()
-
-	if requestReq.MinLines != defaultReq.MinLines {
-		merged.MinLines = requestReq.MinLines
-	}
-	if requestReq.MinNodes != defaultReq.MinNodes {
-		merged.MinNodes = requestReq.MinNodes
-	}
-	if requestReq.SimilarityThreshold != defaultReq.SimilarityThreshold {
-		merged.SimilarityThreshold = requestReq.SimilarityThreshold
-	}
-	if requestReq.MaxEditDistance != defaultReq.MaxEditDistance {
-		merged.MaxEditDistance = requestReq.MaxEditDistance
+	if req.ConfigPath != "" {
+		configReq, err = uc.configLoader.LoadCloneConfig(req.ConfigPath)
+		if err != nil {
+			return req, fmt.Errorf("failed to load configuration: %w", err)
+		}
+	} else {
+		configReq = uc.configLoader.GetDefaultCloneConfig()
 	}
 
-	// Override threshold values if different from defaults
-	if requestReq.Type1Threshold != defaultReq.Type1Threshold {
-		merged.Type1Threshold = requestReq.Type1Threshold
-	}
-	if requestReq.Type2Threshold != defaultReq.Type2Threshold {
-		merged.Type2Threshold = requestReq.Type2Threshold
-	}
-	if requestReq.Type3Threshold != defaultReq.Type3Threshold {
-		merged.Type3Threshold = requestReq.Type3Threshold
-	}
-	if requestReq.Type4Threshold != defaultReq.Type4Threshold {
-		merged.Type4Threshold = requestReq.Type4Threshold
+	if configReq != nil {
+		merged := uc.configLoader.MergeConfig(configReq, &req)
+		if merged != nil {
+			return *merged, nil
+		}
 	}
 
-	// Always use request values for output settings
-	merged.OutputFormat = requestReq.OutputFormat
-	merged.OutputWriter = requestReq.OutputWriter
-	merged.OutputPath = requestReq.OutputPath
-	merged.NoOpen = requestReq.NoOpen
-	merged.SortBy = requestReq.SortBy
-
-	// Override patterns if provided
-	if len(requestReq.IncludePatterns) > 0 {
-		merged.IncludePatterns = requestReq.IncludePatterns
-	}
-	if len(requestReq.ExcludePatterns) > 0 {
-		merged.ExcludePatterns = requestReq.ExcludePatterns
-	}
-
-	// Override clone types if different from defaults (i.e., explicitly set via CLI)
-	if len(requestReq.CloneTypes) > 0 && !slices.Equal(requestReq.CloneTypes, defaultReq.CloneTypes) {
-		merged.CloneTypes = requestReq.CloneTypes
-	}
-
-	// Override grouping settings if config has empty/zero values
-	if merged.GroupMode == "" && requestReq.GroupMode != "" {
-		merged.GroupMode = requestReq.GroupMode
-	}
-	if merged.GroupThreshold == 0 && requestReq.GroupThreshold > 0 {
-		merged.GroupThreshold = requestReq.GroupThreshold
-	}
-
-	return merged
+	return req, nil
 }
 
 // outputEmptyResults outputs empty results when no files are found

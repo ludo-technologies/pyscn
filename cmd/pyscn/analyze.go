@@ -258,7 +258,7 @@ func (c *AnalyzeCommand) buildAnalyzeUseCase(cmd *cobra.Command) (*app.AnalyzeUs
 	builder.WithErrorCategorizer(errorCategorizer)
 
 	// Build individual use cases
-	if err := c.buildIndividualUseCases(builder); err != nil {
+	if err := c.buildIndividualUseCases(builder, cmd); err != nil {
 		return nil, err
 	}
 
@@ -266,7 +266,7 @@ func (c *AnalyzeCommand) buildAnalyzeUseCase(cmd *cobra.Command) (*app.AnalyzeUs
 }
 
 // buildIndividualUseCases builds and sets individual analysis use cases
-func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuilder) error {
+func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuilder, cmd *cobra.Command) error {
 	// Complexity use case
 	complexityService := service.NewComplexityService()
 	complexityFormatter := service.NewOutputFormatter()
@@ -294,7 +294,9 @@ func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuil
 	// Clone use case
 	cloneService := service.NewCloneService()
 	cloneFormatter := service.NewCloneOutputFormatter()
-	cloneConfigLoader := service.NewCloneConfigurationLoader()
+	cloneConfigLoader := service.NewCloneConfigurationLoaderWithFlags(map[string]bool{
+		"similarity": cmd.Flags().Changed("clone-threshold"),
+	})
 	cloneUseCase, err := app.NewCloneUseCaseBuilder().
 		WithService(cloneService).
 		WithFileReader(service.NewFileReader()).
