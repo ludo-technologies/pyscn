@@ -1,6 +1,8 @@
 package service
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -60,6 +62,23 @@ func TestCloneConfigurationLoader_MergeConfig(t *testing.T) {
 		assert.False(t, merged.GroupClones)
 		assert.Equal(t, []domain.CloneType{domain.Type1Clone, domain.Type4Clone}, merged.CloneTypes)
 	})
+}
+
+func TestCloneConfigurationLoader_GetDefaultCloneConfig_LoadsGroupingDefaults(t *testing.T) {
+	loader := NewCloneConfigurationLoader()
+	configPath := filepath.Join(t.TempDir(), ".pyscn.toml")
+	configContent := `[clones]
+show_content = true
+`
+	require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0644))
+
+	req, err := loader.LoadCloneConfig(configPath)
+	require.NoError(t, err)
+	require.NotNil(t, req)
+
+	assert.Equal(t, "connected", req.GroupMode)
+	assert.Equal(t, domain.DefaultCloneGroupingThreshold, req.GroupThreshold)
+	assert.Equal(t, 2, req.KCoreK)
 }
 
 func TestCloneConfigurationLoaderWithFlags_MergeConfig(t *testing.T) {
