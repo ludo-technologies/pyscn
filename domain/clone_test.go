@@ -356,7 +356,6 @@ func TestDefaultCloneRequest(t *testing.T) {
 	assert.Equal(t, DefaultType2CloneThreshold, request.Type2Threshold, "Default Type-2 threshold should match constant")
 	assert.Equal(t, DefaultType3CloneThreshold, request.Type3Threshold, "Default Type-3 threshold should match constant")
 	assert.Equal(t, DefaultType4CloneThreshold, request.Type4Threshold, "Default Type-4 threshold should match constant")
-	assert.True(t, request.EnableDFA, "Default DFA analysis should be enabled")
 	assert.Equal(t, OutputFormatText, request.OutputFormat, "Default output format should be text")
 	assert.False(t, request.ShowDetails, "Default show details should be false")
 	assert.False(t, request.ShowContent, "Default show content should be false")

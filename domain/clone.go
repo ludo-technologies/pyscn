@@ -350,7 +350,6 @@ func DefaultCloneRequest() *CloneRequest {
 		Type2Threshold:      DefaultType2CloneThreshold,
 		Type3Threshold:      DefaultType3CloneThreshold,
 		Type4Threshold:      DefaultType4CloneThreshold,
-		EnableDFA:           true,
 		OutputFormat:        OutputFormatText,
 		ShowDetails:         false,
 		ShowContent:         false,

@@ -111,9 +111,6 @@ func (c *CloneConfigurationLoader) MergeConfig(base *domain.CloneRequest, overri
 	if override.SkipDocstrings != defaultReq.SkipDocstrings {
 		merged.SkipDocstrings = override.SkipDocstrings
 	}
-	if override.EnableDFA != defaultReq.EnableDFA {
-		merged.EnableDFA = override.EnableDFA
-	}
 	if override.ShowDetails != defaultReq.ShowDetails {
 		merged.ShowDetails = override.ShowDetails
 	}
