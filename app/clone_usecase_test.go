@@ -600,7 +600,9 @@ func TestCloneUseCase_ExecuteWithFiles(t *testing.T) {
 				configLoader.On("GetDefaultCloneConfig").Return((*domain.CloneRequest)(nil))
 				fileReader.On("IsValidPythonFile", "/test/file.py").Return(true)
 				fileReader.On("IsValidPythonFile", "/test/file.txt").Return(false)
-				service.On("DetectClonesInFiles", mock.Anything, []string{"/test/file.py"}, mock.AnythingOfType("*domain.CloneRequest")).
+				service.On("DetectClonesInFiles", mock.Anything, []string{"/test/file.py"}, mock.MatchedBy(func(req *domain.CloneRequest) bool {
+					return len(req.Paths) == 1 && req.Paths[0] == "/test/file.py"
+				})).
 					Return(createMockCloneResponse(), nil)
 				formatter.On("FormatCloneResponse", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
 			},

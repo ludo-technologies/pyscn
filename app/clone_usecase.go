@@ -179,6 +179,8 @@ func (uc *CloneUseCase) ExecuteWithFiles(ctx context.Context, filePaths []string
 		return uc.outputEmptyResults(req)
 	}
 
+	req.Paths = validFiles
+
 	// Perform clone detection on specific files
 	response, err := uc.service.DetectClonesInFiles(ctx, validFiles, &req)
 	if err != nil {
