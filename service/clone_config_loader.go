@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
@@ -69,6 +70,138 @@ func (c *CloneConfigurationLoader) GetDefaultCloneConfig() *domain.CloneRequest 
 	return c.cloneConfigToCloneRequest(defaultCloneConfig)
 }
 
+// MergeConfig merges request values over loaded clone configuration.
+// Without explicit flag tracking, values that still match domain defaults are
+// treated as "not overridden" so config-backed values are preserved.
+func (c *CloneConfigurationLoader) MergeConfig(base *domain.CloneRequest, override *domain.CloneRequest) *domain.CloneRequest {
+	if base == nil {
+		return override
+	}
+	if override == nil {
+		return base
+	}
+
+	merged := *base
+	defaultReq := domain.DefaultCloneRequest()
+
+	if len(override.Paths) > 0 {
+		merged.Paths = append([]string(nil), override.Paths...)
+	}
+
+	if override.OutputFormat != "" {
+		merged.OutputFormat = override.OutputFormat
+	}
+	if override.OutputWriter != nil {
+		merged.OutputWriter = override.OutputWriter
+	}
+	if override.OutputPath != "" {
+		merged.OutputPath = override.OutputPath
+	}
+	merged.NoOpen = override.NoOpen
+
+	if override.Recursive != defaultReq.Recursive {
+		merged.Recursive = override.Recursive
+	}
+	if override.IgnoreLiterals != defaultReq.IgnoreLiterals {
+		merged.IgnoreLiterals = override.IgnoreLiterals
+	}
+	if override.IgnoreIdentifiers != defaultReq.IgnoreIdentifiers {
+		merged.IgnoreIdentifiers = override.IgnoreIdentifiers
+	}
+	if override.SkipDocstrings != defaultReq.SkipDocstrings {
+		merged.SkipDocstrings = override.SkipDocstrings
+	}
+	if override.ShowDetails != defaultReq.ShowDetails {
+		merged.ShowDetails = override.ShowDetails
+	}
+	if override.ShowContent != defaultReq.ShowContent {
+		merged.ShowContent = override.ShowContent
+	}
+	if override.GroupClones != defaultReq.GroupClones {
+		merged.GroupClones = override.GroupClones
+	}
+
+	if override.MinLines != defaultReq.MinLines {
+		merged.MinLines = override.MinLines
+	}
+	if override.MinNodes != defaultReq.MinNodes {
+		merged.MinNodes = override.MinNodes
+	}
+	if override.SimilarityThreshold != defaultReq.SimilarityThreshold {
+		merged.SimilarityThreshold = override.SimilarityThreshold
+	}
+	if override.MaxEditDistance != defaultReq.MaxEditDistance {
+		merged.MaxEditDistance = override.MaxEditDistance
+	}
+	if override.Type1Threshold != defaultReq.Type1Threshold {
+		merged.Type1Threshold = override.Type1Threshold
+	}
+	if override.Type2Threshold != defaultReq.Type2Threshold {
+		merged.Type2Threshold = override.Type2Threshold
+	}
+	if override.Type3Threshold != defaultReq.Type3Threshold {
+		merged.Type3Threshold = override.Type3Threshold
+	}
+	if override.Type4Threshold != defaultReq.Type4Threshold {
+		merged.Type4Threshold = override.Type4Threshold
+	}
+	if override.MinSimilarity != defaultReq.MinSimilarity {
+		merged.MinSimilarity = override.MinSimilarity
+	}
+	if override.MaxSimilarity != defaultReq.MaxSimilarity {
+		merged.MaxSimilarity = override.MaxSimilarity
+	}
+	if override.GroupThreshold != 0 && override.GroupThreshold != defaultReq.GroupThreshold {
+		merged.GroupThreshold = override.GroupThreshold
+	}
+	if override.KCoreK != 0 && override.KCoreK != defaultReq.KCoreK {
+		merged.KCoreK = override.KCoreK
+	}
+	if override.Timeout != 0 {
+		merged.Timeout = override.Timeout
+	}
+	if override.LSHAutoThreshold != 0 && override.LSHAutoThreshold != defaultReq.LSHAutoThreshold {
+		merged.LSHAutoThreshold = override.LSHAutoThreshold
+	}
+	if override.LSHSimilarityThreshold != 0 && override.LSHSimilarityThreshold != defaultReq.LSHSimilarityThreshold {
+		merged.LSHSimilarityThreshold = override.LSHSimilarityThreshold
+	}
+	if override.LSHBands != 0 && override.LSHBands != defaultReq.LSHBands {
+		merged.LSHBands = override.LSHBands
+	}
+	if override.LSHRows != 0 && override.LSHRows != defaultReq.LSHRows {
+		merged.LSHRows = override.LSHRows
+	}
+	if override.LSHHashes != 0 && override.LSHHashes != defaultReq.LSHHashes {
+		merged.LSHHashes = override.LSHHashes
+	}
+
+	if override.SortBy != "" && override.SortBy != defaultReq.SortBy {
+		merged.SortBy = override.SortBy
+	}
+	if override.GroupMode != "" && override.GroupMode != defaultReq.GroupMode {
+		merged.GroupMode = override.GroupMode
+	}
+	if override.LSHEnabled != "" && override.LSHEnabled != defaultReq.LSHEnabled {
+		merged.LSHEnabled = override.LSHEnabled
+	}
+	if override.ConfigPath != "" {
+		merged.ConfigPath = override.ConfigPath
+	}
+
+	if len(override.IncludePatterns) > 0 && !slices.Equal(override.IncludePatterns, defaultReq.IncludePatterns) {
+		merged.IncludePatterns = append([]string(nil), override.IncludePatterns...)
+	}
+	if len(override.ExcludePatterns) > 0 && !slices.Equal(override.ExcludePatterns, defaultReq.ExcludePatterns) {
+		merged.ExcludePatterns = append([]string(nil), override.ExcludePatterns...)
+	}
+	if len(override.CloneTypes) > 0 && !slices.Equal(override.CloneTypes, defaultReq.CloneTypes) {
+		merged.CloneTypes = append([]domain.CloneType(nil), override.CloneTypes...)
+	}
+
+	return &merged
+}
+
 // cloneConfigToCloneRequest converts a config.CloneConfig (TOML-based) to domain.CloneRequest
 func (c *CloneConfigurationLoader) cloneConfigToCloneRequest(cloneCfg *config.PyscnConfig) *domain.CloneRequest {
 	// Convert enabled clone types from string slice to domain clone types
@@ -117,6 +250,9 @@ func (c *CloneConfigurationLoader) cloneConfigToCloneRequest(cloneCfg *config.Py
 		ShowContent:         domain.BoolValue(cloneCfg.Output.ShowContent, false),
 		SortBy:              sortBy,
 		GroupClones:         domain.BoolValue(cloneCfg.Output.GroupClones, true),
+		GroupMode:           cloneCfg.Grouping.Mode,
+		GroupThreshold:      cloneCfg.Grouping.Threshold,
+		KCoreK:              cloneCfg.Grouping.KCoreK,
 		MinSimilarity:       cloneCfg.Filtering.MinSimilarity,
 		MaxSimilarity:       cloneCfg.Filtering.MaxSimilarity,
 		CloneTypes:          cloneTypes,

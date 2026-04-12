@@ -331,28 +331,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Name:    "Clone Detection",
 			Enabled: !config.SkipClones,
 			Execute: func(ctx context.Context) (interface{}, error) {
-				// Start with defaults to ensure all required fields are populated
-				defaultReq := domain.DefaultCloneRequest()
-				request := domain.CloneRequest{
-					Paths:               files,
-					Recursive:           false,
-					IncludePatterns:     []string{},
-					ExcludePatterns:     []string{},
-					OutputFormat:        domain.OutputFormatJSON,
-					OutputWriter:        io.Discard,
-					MinLines:            defaultReq.MinLines,
-					MinNodes:            defaultReq.MinNodes,
-					SimilarityThreshold: config.CloneSimilarity,
-					Type1Threshold:      defaultReq.Type1Threshold,
-					Type2Threshold:      defaultReq.Type2Threshold,
-					Type3Threshold:      defaultReq.Type3Threshold,
-					Type4Threshold:      defaultReq.Type4Threshold,
-					EnableDFA:           config.EnableDFA,
-					GroupClones:         defaultReq.GroupClones,
-					GroupMode:           defaultReq.GroupMode,
-					GroupThreshold:      defaultReq.GroupThreshold,
-					ConfigPath:          config.ConfigFile,
-				}
+				request := uc.buildCloneTaskRequest(config, files)
 				return uc.cloneUseCase.ExecuteAndReturn(ctx, request)
 			},
 		})
@@ -462,6 +441,17 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 		ReportUnchanged: domain.BoolPtr(executionCfg.ComplexityReportUnchanged),
 		ConfigPath:      config.ConfigFile,
 	}
+}
+
+func (uc *AnalyzeUseCase) buildCloneTaskRequest(config AnalyzeUseCaseConfig, files []string) domain.CloneRequest {
+	request := *domain.DefaultCloneRequest()
+	request.Paths = files
+	request.OutputFormat = domain.OutputFormatJSON
+	request.OutputWriter = io.Discard
+	request.SimilarityThreshold = config.CloneSimilarity
+	request.ConfigPath = config.ConfigFile
+
+	return request
 }
 
 // buildResponse builds the analyze response from task results

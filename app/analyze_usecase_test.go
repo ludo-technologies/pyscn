@@ -261,3 +261,122 @@ lsh_auto_threshold = 123
 		}
 	})
 }
+
+func TestAnalyzeUseCase_buildCloneTaskRequest_UsesCloneDefaults(t *testing.T) {
+	useCase := &AnalyzeUseCase{}
+	config := AnalyzeUseCaseConfig{
+		CloneSimilarity: 0.8,
+		ConfigFile:      "/tmp/.pyscn.toml",
+	}
+	files := []string{"a.py", "b.py"}
+
+	request := useCase.buildCloneTaskRequest(config, files)
+	defaultReq := domain.DefaultCloneRequest()
+
+	if len(request.Paths) != len(files) || request.Paths[0] != files[0] || request.Paths[1] != files[1] {
+		t.Fatalf("expected clone task paths %v, got %v", files, request.Paths)
+	}
+	if request.OutputFormat != domain.OutputFormatJSON {
+		t.Fatalf("expected JSON output format, got %q", request.OutputFormat)
+	}
+	if request.OutputWriter == nil {
+		t.Fatal("expected clone task output writer to be set")
+	}
+	if request.SimilarityThreshold != config.CloneSimilarity {
+		t.Fatalf("expected similarity threshold %.2f, got %.2f", config.CloneSimilarity, request.SimilarityThreshold)
+	}
+	if request.ConfigPath != config.ConfigFile {
+		t.Fatalf("expected config path %q, got %q", config.ConfigFile, request.ConfigPath)
+	}
+	if request.MaxSimilarity != defaultReq.MaxSimilarity {
+		t.Fatalf("expected max similarity %.2f, got %.2f", defaultReq.MaxSimilarity, request.MaxSimilarity)
+	}
+	if request.GroupMode != defaultReq.GroupMode {
+		t.Fatalf("expected group mode %q, got %q", defaultReq.GroupMode, request.GroupMode)
+	}
+	if request.GroupThreshold != defaultReq.GroupThreshold {
+		t.Fatalf("expected group threshold %.2f, got %.2f", defaultReq.GroupThreshold, request.GroupThreshold)
+	}
+	if request.KCoreK != defaultReq.KCoreK {
+		t.Fatalf("expected k-core %d, got %d", defaultReq.KCoreK, request.KCoreK)
+	}
+}
+
+func TestAnalyzeUseCase_Execute_PreservesCloneConfigDefaults(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, ".pyscn.toml")
+	configContent := `[clones]
+show_content = true
+`
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("failed to write config file: %v", err)
+	}
+
+	builder := NewAnalyzeUseCaseBuilder()
+	builder.WithFileReader(service.NewFileReader())
+	builder.WithFormatter(service.NewAnalyzeFormatter())
+	builder.WithProgressManager(service.NewProgressManager())
+	builder.WithParallelExecutor(service.NewParallelExecutor())
+	builder.WithErrorCategorizer(service.NewErrorCategorizer())
+
+	cloneUseCase, err := NewCloneUseCaseBuilder().
+		WithService(service.NewCloneService()).
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(service.NewCloneOutputFormatter()).
+		WithConfigLoader(service.NewCloneConfigurationLoaderWithFlags(map[string]bool{
+			"similarity": false,
+		})).
+		Build()
+	if err != nil {
+		t.Fatalf("failed to build clone use case: %v", err)
+	}
+	builder.WithCloneUseCase(cloneUseCase)
+
+	useCase, err := builder.Build()
+	if err != nil {
+		t.Fatalf("failed to build analyze use case: %v", err)
+	}
+
+	response, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipComplexity:  true,
+		SkipDeadCode:    true,
+		SkipClones:      false,
+		SkipCBO:         true,
+		SkipLCOM:        true,
+		SkipSystem:      true,
+		CloneSimilarity: domain.DefaultCloneSimilarityThreshold,
+		ConfigFile:      configPath,
+	}, []string{"../testdata/python/frameworks/actual_clones.py"})
+	if err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if response.Clone == nil {
+		t.Fatal("expected clone response")
+	}
+	if response.Clone.Request == nil {
+		t.Fatal("expected clone request in response")
+	}
+	if response.Clone.Statistics == nil {
+		t.Fatal("expected clone statistics")
+	}
+	if response.Clone.Statistics.TotalClonePairs == 0 {
+		t.Fatalf("expected at least one clone pair, got %+v", response.Clone.Statistics)
+	}
+
+	defaultReq := domain.DefaultCloneRequest()
+	if response.Clone.Request.MaxSimilarity != defaultReq.MaxSimilarity {
+		t.Fatalf("expected max similarity %.2f, got %.2f", defaultReq.MaxSimilarity, response.Clone.Request.MaxSimilarity)
+	}
+	if response.Clone.Request.GroupMode != defaultReq.GroupMode {
+		t.Fatalf("expected group mode %q, got %q", defaultReq.GroupMode, response.Clone.Request.GroupMode)
+	}
+	if response.Clone.Request.GroupThreshold != defaultReq.GroupThreshold {
+		t.Fatalf("expected group threshold %.2f, got %.2f", defaultReq.GroupThreshold, response.Clone.Request.GroupThreshold)
+	}
+	if response.Clone.Request.KCoreK != defaultReq.KCoreK {
+		t.Fatalf("expected k-core %d, got %d", defaultReq.KCoreK, response.Clone.Request.KCoreK)
+	}
+	if !response.Clone.Request.ShowContent {
+		t.Fatal("expected show_content from config to be preserved")
+	}
+}

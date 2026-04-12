@@ -31,40 +31,58 @@ func (cl *CloneConfigurationLoaderWithFlags) GetDefaultCloneConfig() *domain.Clo
 
 // MergeConfig merges CLI flags with configuration file, respecting explicit flags
 func (cl *CloneConfigurationLoaderWithFlags) MergeConfig(base *domain.CloneRequest, override *domain.CloneRequest) *domain.CloneRequest {
-	if base == nil {
-		return override
-	}
-	if override == nil {
-		return base
-	}
-
-	// Start with base config
-	merged := *base
-
-	// Always override paths as they come from command arguments
-	if len(override.Paths) > 0 {
-		merged.Paths = override.Paths
+	merged := cl.loader.MergeConfig(base, override)
+	if merged == nil || override == nil {
+		return merged
 	}
 
 	// Boolean flags
-	merged.Recursive = cl.flagTracker.MergeBool(merged.Recursive, override.Recursive, "recursive")
-	merged.ShowDetails = cl.flagTracker.MergeBool(merged.ShowDetails, override.ShowDetails, "show-details")
-	merged.ShowContent = cl.flagTracker.MergeBool(merged.ShowContent, override.ShowContent, "show-content")
-	merged.GroupClones = cl.flagTracker.MergeBool(merged.GroupClones, override.GroupClones, "group")
-	merged.IgnoreLiterals = cl.flagTracker.MergeBool(merged.IgnoreLiterals, override.IgnoreLiterals, "ignore-literals")
-	merged.IgnoreIdentifiers = cl.flagTracker.MergeBool(merged.IgnoreIdentifiers, override.IgnoreIdentifiers, "ignore-identifiers")
+	if cl.flagTracker.WasSet("recursive") {
+		merged.Recursive = override.Recursive
+	}
+	if cl.flagTracker.WasSet("show-details") {
+		merged.ShowDetails = override.ShowDetails
+	}
+	if cl.flagTracker.WasSet("show-content") {
+		merged.ShowContent = override.ShowContent
+	}
+	if cl.flagTracker.WasSet("group") {
+		merged.GroupClones = override.GroupClones
+	}
+	if cl.flagTracker.WasSet("ignore-literals") {
+		merged.IgnoreLiterals = override.IgnoreLiterals
+	}
+	if cl.flagTracker.WasSet("ignore-identifiers") {
+		merged.IgnoreIdentifiers = override.IgnoreIdentifiers
+	}
 
 	// Numeric values
-	merged.MinLines = cl.flagTracker.MergeInt(merged.MinLines, override.MinLines, "min-lines")
-	merged.MinNodes = cl.flagTracker.MergeInt(merged.MinNodes, override.MinNodes, "min-nodes")
-	merged.SimilarityThreshold = cl.flagTracker.MergeFloat64(merged.SimilarityThreshold, override.SimilarityThreshold, "similarity")
-	merged.MaxEditDistance = cl.flagTracker.MergeFloat64(merged.MaxEditDistance, override.MaxEditDistance, "max-edit-distance")
+	if cl.flagTracker.WasSet("min-lines") {
+		merged.MinLines = override.MinLines
+	}
+	if cl.flagTracker.WasSet("min-nodes") {
+		merged.MinNodes = override.MinNodes
+	}
+	if cl.flagTracker.WasSet("similarity") {
+		merged.SimilarityThreshold = override.SimilarityThreshold
+	}
+	if cl.flagTracker.WasSet("max-edit-distance") {
+		merged.MaxEditDistance = override.MaxEditDistance
+	}
 
 	// Threshold values
-	merged.Type1Threshold = cl.flagTracker.MergeFloat64(merged.Type1Threshold, override.Type1Threshold, "type1-threshold")
-	merged.Type2Threshold = cl.flagTracker.MergeFloat64(merged.Type2Threshold, override.Type2Threshold, "type2-threshold")
-	merged.Type3Threshold = cl.flagTracker.MergeFloat64(merged.Type3Threshold, override.Type3Threshold, "type3-threshold")
-	merged.Type4Threshold = cl.flagTracker.MergeFloat64(merged.Type4Threshold, override.Type4Threshold, "type4-threshold")
+	if cl.flagTracker.WasSet("type1-threshold") {
+		merged.Type1Threshold = override.Type1Threshold
+	}
+	if cl.flagTracker.WasSet("type2-threshold") {
+		merged.Type2Threshold = override.Type2Threshold
+	}
+	if cl.flagTracker.WasSet("type3-threshold") {
+		merged.Type3Threshold = override.Type3Threshold
+	}
+	if cl.flagTracker.WasSet("type4-threshold") {
+		merged.Type4Threshold = override.Type4Threshold
+	}
 
 	// Output settings - always use override format when explicitly set
 	// Since we removed --format flag, check for individual format flags or non-text format
@@ -97,16 +115,24 @@ func (cl *CloneConfigurationLoaderWithFlags) MergeConfig(base *domain.CloneReque
 	}
 
 	// Similarity filters
-	merged.MinSimilarity = cl.flagTracker.MergeFloat64(merged.MinSimilarity, override.MinSimilarity, "min-similarity")
-	merged.MaxSimilarity = cl.flagTracker.MergeFloat64(merged.MaxSimilarity, override.MaxSimilarity, "max-similarity")
+	if cl.flagTracker.WasSet("min-similarity") {
+		merged.MinSimilarity = override.MinSimilarity
+	}
+	if cl.flagTracker.WasSet("max-similarity") {
+		merged.MaxSimilarity = override.MaxSimilarity
+	}
 
 	// Patterns
-	merged.IncludePatterns = cl.flagTracker.MergeStringSlice(merged.IncludePatterns, override.IncludePatterns, "include")
-	merged.ExcludePatterns = cl.flagTracker.MergeStringSlice(merged.ExcludePatterns, override.ExcludePatterns, "exclude")
+	if cl.flagTracker.WasSet("include") && len(override.IncludePatterns) > 0 {
+		merged.IncludePatterns = append([]string(nil), override.IncludePatterns...)
+	}
+	if cl.flagTracker.WasSet("exclude") && len(override.ExcludePatterns) > 0 {
+		merged.ExcludePatterns = append([]string(nil), override.ExcludePatterns...)
+	}
 
 	// Clone types
 	if cl.flagTracker.WasSet("types") && len(override.CloneTypes) > 0 {
-		merged.CloneTypes = override.CloneTypes
+		merged.CloneTypes = append([]domain.CloneType(nil), override.CloneTypes...)
 	}
 
 	// Config path is always from override if provided
@@ -114,7 +140,7 @@ func (cl *CloneConfigurationLoaderWithFlags) MergeConfig(base *domain.CloneReque
 		merged.ConfigPath = override.ConfigPath
 	}
 
-	return &merged
+	return merged
 }
 
 // FindDefaultConfigFile looks for .pyscn.toml in the current directory
