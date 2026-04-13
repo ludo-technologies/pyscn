@@ -500,6 +500,41 @@ func TestReachabilityEdgeCases(t *testing.T) {
 	})
 }
 
+func TestReachabilityAfterReturn(t *testing.T) {
+	t.Run("ImmediateSuccessorMarkedUnreachable", func(t *testing.T) {
+		cfg := NewCFG("after_return")
+
+		returnBlock := cfg.CreateBlock("return_block")
+		deadBlock := cfg.CreateBlock("dead_block")
+
+		returnBlock.AddStatement(&parser.Node{Type: parser.NodeReturn})
+		deadBlock.AddStatement(&parser.Node{Type: "ExpressionStatement"})
+
+		cfg.Entry.AddSuccessor(returnBlock, EdgeNormal)
+		returnBlock.AddSuccessor(cfg.Exit, EdgeReturn)
+		returnBlock.AddSuccessor(deadBlock, EdgeNormal)
+		deadBlock.AddSuccessor(cfg.Exit, EdgeNormal)
+
+		analyzer := NewReachabilityAnalyzer(cfg)
+		result := analyzer.AnalyzeReachability()
+
+		if _, exists := result.UnreachableBlocks[deadBlock.ID]; !exists {
+			t.Fatalf("expected %s to be unreachable after return", deadBlock.ID)
+		}
+		if _, exists := result.ReachableBlocks[deadBlock.ID]; exists {
+			t.Fatalf("expected %s to be removed from reachable blocks", deadBlock.ID)
+		}
+		if !result.HasUnreachableCode() {
+			t.Fatal("expected unreachable code to be reported")
+		}
+
+		unreachableWithStatements := result.GetUnreachableBlocksWithStatements()
+		if len(unreachableWithStatements) != 1 || unreachableWithStatements[deadBlock.ID] == nil {
+			t.Fatalf("expected only %s to be reported as unreachable code, got %#v", deadBlock.ID, unreachableWithStatements)
+		}
+	})
+}
+
 // Helper function to parse source code for testing (reachability specific)
 func parseSourceForReachability(t *testing.T, source string) *parser.Node {
 	p := parser.New()
