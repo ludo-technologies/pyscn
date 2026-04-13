@@ -92,6 +92,14 @@ func (c *ConfigurationLoaderImpl) MergeConfig(base *domain.ComplexityRequest, ov
 		merged.MediumThreshold = override.MediumThreshold
 	}
 
+	if override.Enabled != nil {
+		merged.Enabled = override.Enabled
+	}
+
+	if override.ReportUnchanged != nil {
+		merged.ReportUnchanged = override.ReportUnchanged
+	}
+
 	// Config path is always from override if provided
 	if override.ConfigPath != "" {
 		merged.ConfigPath = override.ConfigPath
@@ -149,6 +157,8 @@ func (c *ConfigurationLoaderImpl) convertToComplexityRequest(cfg *config.Config)
 		SortBy:          sortBy,
 		LowThreshold:    cfg.Complexity.LowThreshold,
 		MediumThreshold: cfg.Complexity.MediumThreshold,
+		Enabled:         domain.BoolPtr(cfg.Complexity.Enabled),
+		ReportUnchanged: domain.BoolPtr(cfg.Complexity.ReportUnchanged),
 		Recursive:       cfg.Analysis.Recursive,
 		IncludePatterns: cfg.Analysis.IncludePatterns,
 		ExcludePatterns: cfg.Analysis.ExcludePatterns,
@@ -211,10 +221,12 @@ func (c *ConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.Py
 	cfg.Output.ShowDetails = domain.BoolValue(pyscnCfg.Output.ShowDetails, false)
 
 	// Map complexity settings from [complexity] section
+	cfg.Complexity.Enabled = domain.BoolValue(pyscnCfg.ComplexityEnabled, true)
+	cfg.Complexity.ReportUnchanged = domain.BoolValue(pyscnCfg.ComplexityReportUnchanged, true)
 	cfg.Complexity.LowThreshold = pyscnCfg.ComplexityLowThreshold
 	cfg.Complexity.MediumThreshold = pyscnCfg.ComplexityMediumThreshold
 	cfg.Complexity.MaxComplexity = pyscnCfg.ComplexityMaxComplexity
-	cfg.Output.MinComplexity = pyscnCfg.ComplexityMinComplexity
+	cfg.Output.MinComplexity = pyscnCfg.EffectiveOutputMinComplexity()
 
 	// Map dead code settings from [dead_code] section
 	cfg.DeadCode.Enabled = domain.BoolValue(pyscnCfg.DeadCodeEnabled, true)
@@ -243,10 +255,6 @@ func (c *ConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.Py
 	if pyscnCfg.OutputShowDetails != nil {
 		cfg.Output.ShowDetails = *pyscnCfg.OutputShowDetails
 	}
-	if pyscnCfg.OutputMinComplexity > 0 {
-		cfg.Output.MinComplexity = pyscnCfg.OutputMinComplexity
-	}
-
 	// Map general analysis settings from [analysis] section (override clone-specific if set)
 	if len(pyscnCfg.AnalysisIncludePatterns) > 0 {
 		cfg.Analysis.IncludePatterns = pyscnCfg.AnalysisIncludePatterns

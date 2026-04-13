@@ -37,7 +37,8 @@ func NewComplexityUseCase(
 
 // Execute performs the complete complexity analysis workflow
 func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityRequest) error {
-	// Validate input
+	// Validate input before attempting to load configuration to preserve
+	// the existing error precedence for malformed requests.
 	if err := uc.validateRequest(req); err != nil {
 		return domain.NewInvalidInputError("invalid request", err)
 	}
@@ -88,7 +89,8 @@ func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityR
 
 // AnalyzeAndReturn performs complexity analysis and returns the response without formatting
 func (uc *ComplexityUseCase) AnalyzeAndReturn(ctx context.Context, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
-	// Validate input
+	// Validate input before attempting to load configuration to preserve
+	// the existing error precedence for malformed requests.
 	if err := uc.validateRequest(req); err != nil {
 		return nil, domain.NewInvalidInputError("invalid request", err)
 	}
@@ -99,13 +101,23 @@ func (uc *ComplexityUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Co
 		return nil, domain.NewConfigError("failed to load configuration", err)
 	}
 
+	return uc.analyzeResolvedRequest(ctx, finalReq)
+}
+
+func (uc *ComplexityUseCase) analyzeResolvedRequest(ctx context.Context, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
+	// Validate again on the resolved request so internal callers that bypass the
+	// config loader still execute through the same request contract.
+	if err := uc.validateRequest(req); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
+
 	// Resolve file paths (use helper to avoid duplication)
 	files, err := ResolveFilePaths(
 		uc.fileReader,
-		finalReq.Paths,
-		finalReq.Recursive,
-		finalReq.IncludePatterns,
-		finalReq.ExcludePatterns,
+		req.Paths,
+		req.Recursive,
+		req.IncludePatterns,
+		req.ExcludePatterns,
 		false, // validatePythonFile: complexity doesn't need strict Python validation
 	)
 	if err != nil {
@@ -117,16 +129,16 @@ func (uc *ComplexityUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Co
 	}
 
 	// Update request with collected files
-	finalReq.Paths = files
+	req.Paths = files
 
 	// Perform analysis and return the response
-	response, err := uc.service.Analyze(ctx, finalReq)
+	response, err := uc.service.Analyze(ctx, req)
 	if err != nil {
 		return nil, domain.NewAnalysisError("complexity analysis failed", err)
 	}
 
 	// Store merged configuration in response for caller access
-	response.Request = &finalReq
+	response.Request = &req
 
 	return response, nil
 }

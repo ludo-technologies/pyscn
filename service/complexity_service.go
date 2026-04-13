@@ -29,6 +29,8 @@ func NewComplexityService() *ComplexityServiceImpl {
 // Analyze performs complexity analysis on multiple files
 func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
 	var allFunctions []domain.FunctionComplexity
+	var allRawMetrics []domain.RawMetrics
+	var rawMetricResults []*analyzer.RawMetricsResult
 	var warnings []string
 	var errors []string
 	filesProcessed := 0
@@ -44,7 +46,12 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 		// Progress reporting removed - file parsing is fast
 
 		// Analyze single file
-		functions, fileWarnings, fileErrors := s.analyzeFile(ctx, filePath, req)
+		functions, rawMetrics, fileWarnings, fileErrors := s.analyzeFile(ctx, filePath, req)
+
+		if rawMetrics != nil {
+			allRawMetrics = append(allRawMetrics, *s.convertRawMetrics(rawMetrics))
+			rawMetricResults = append(rawMetricResults, rawMetrics)
+		}
 
 		if len(fileErrors) > 0 {
 			errors = append(errors, fileErrors...)
@@ -56,7 +63,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 		filesProcessed++
 	}
 
-	if len(allFunctions) == 0 {
+	if len(allFunctions) == 0 && len(allRawMetrics) == 0 {
 		return nil, domain.NewAnalysisError("no functions found to analyze", nil)
 	}
 
@@ -66,15 +73,18 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 
 	// Generate summary
 	summary := s.generateSummary(sortedFunctions, filesProcessed, req)
+	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
 
 	return &domain.ComplexityResponse{
-		Functions:   sortedFunctions,
-		Summary:     summary,
-		Warnings:    warnings,
-		Errors:      errors,
-		GeneratedAt: time.Now().Format(time.RFC3339),
-		Version:     version.Version, // Get version from version package
-		Config:      s.buildConfigForResponse(req),
+		Functions:         sortedFunctions,
+		Summary:           summary,
+		RawMetrics:        allRawMetrics,
+		RawMetricsSummary: rawMetricsSummary,
+		Warnings:          warnings,
+		Errors:            errors,
+		GeneratedAt:       time.Now().Format(time.RFC3339),
+		Version:           version.Version, // Get version from version package
+		Config:            s.buildConfigForResponse(req),
 	}, nil
 }
 
@@ -88,7 +98,7 @@ func (s *ComplexityServiceImpl) AnalyzeFile(ctx context.Context, filePath string
 }
 
 // analyzeFile performs complexity analysis on a single file
-func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string, req domain.ComplexityRequest) ([]domain.FunctionComplexity, []string, []string) {
+func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string, req domain.ComplexityRequest) ([]domain.FunctionComplexity, *analyzer.RawMetricsResult, []string, []string) {
 	var functions []domain.FunctionComplexity
 	var warnings []string
 	var errors []string
@@ -97,15 +107,19 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 	content, err := s.readFile(filePath)
 	if err != nil {
 		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
-		return functions, warnings, errors
+		return functions, nil, warnings, errors
 	}
+
+	rawMetrics := analyzer.CalculateRawMetrics(content, filePath)
 
 	result, err := s.parser.Parse(ctx, content)
 	if err != nil {
 		// Enhanced error context with file path
 		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", filePath, err))
-		return functions, warnings, errors
+		return functions, rawMetrics, warnings, errors
 	}
+
+	analyzer.PopulateLogicalLines(rawMetrics, result.AST)
 
 	// Build CFGs for all functions
 	builder := analyzer.NewCFGBuilder()
@@ -113,12 +127,7 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 	if err != nil {
 		// Enhanced error context with file path
 		errors = append(errors, fmt.Sprintf("[%s] CFG construction failed: %v", filePath, err))
-		return functions, warnings, errors
-	}
-
-	if len(cfgs) == 0 {
-		warnings = append(warnings, fmt.Sprintf("[%s] No functions found in file", filePath))
-		return functions, warnings, errors
+		return functions, rawMetrics, warnings, errors
 	}
 
 	// Calculate complexity for each function
@@ -128,6 +137,9 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 		result := analyzer.CalculateComplexityWithConfig(cfg, complexityConfig)
 		if result == nil {
 			warnings = append(warnings, fmt.Sprintf("[%s:%s] Failed to calculate complexity for function", filePath, functionName))
+			continue
+		}
+		if !complexityConfig.ShouldReport(result.Complexity) {
 			continue
 		}
 
@@ -163,7 +175,7 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 		functions = append(functions, function)
 	}
 
-	return functions, warnings, errors
+	return functions, rawMetrics, warnings, errors
 }
 
 // filterFunctions filters functions based on complexity thresholds
@@ -319,8 +331,8 @@ func (s *ComplexityServiceImpl) buildComplexityConfig(req domain.ComplexityReque
 	return &config.ComplexityConfig{
 		LowThreshold:    req.LowThreshold,
 		MediumThreshold: req.MediumThreshold,
-		Enabled:         true,
-		ReportUnchanged: true,
+		Enabled:         domain.BoolValue(req.Enabled, true),
+		ReportUnchanged: domain.BoolValue(req.ReportUnchanged, true),
 		MaxComplexity:   req.MaxComplexity,
 	}
 }
@@ -332,11 +344,47 @@ func (s *ComplexityServiceImpl) buildConfigForResponse(req domain.ComplexityRequ
 		"max_complexity":   req.MaxComplexity,
 		"low_threshold":    req.LowThreshold,
 		"medium_threshold": req.MediumThreshold,
+		"enabled":          domain.BoolValue(req.Enabled, true),
+		"report_unchanged": domain.BoolValue(req.ReportUnchanged, true),
 		"sort_by":          string(req.SortBy),
 		"show_details":     req.ShowDetails,
 		"recursive":        req.Recursive,
 		"include_patterns": req.IncludePatterns,
 		"exclude_patterns": req.ExcludePatterns,
+	}
+}
+
+func (s *ComplexityServiceImpl) convertRawMetrics(result *analyzer.RawMetricsResult) *domain.RawMetrics {
+	if result == nil {
+		return nil
+	}
+
+	return &domain.RawMetrics{
+		FilePath:       result.FilePath,
+		SLOC:           result.SLOC,
+		LLOC:           result.LLOC,
+		CommentLines:   result.CommentLines,
+		DocstringLines: result.DocstringLines,
+		BlankLines:     result.BlankLines,
+		TotalLines:     result.TotalLines,
+		CommentRatio:   result.CommentRatio,
+	}
+}
+
+func (s *ComplexityServiceImpl) convertAggregateRawMetrics(result *analyzer.AggregateRawMetrics) *domain.RawMetricsSummary {
+	if result == nil {
+		return nil
+	}
+
+	return &domain.RawMetricsSummary{
+		FilesAnalyzed:  result.FilesAnalyzed,
+		SLOC:           result.SLOC,
+		LLOC:           result.LLOC,
+		CommentLines:   result.CommentLines,
+		DocstringLines: result.DocstringLines,
+		BlankLines:     result.BlankLines,
+		TotalLines:     result.TotalLines,
+		CommentRatio:   result.CommentRatio,
 	}
 }
 

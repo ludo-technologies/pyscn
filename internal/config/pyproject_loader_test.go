@@ -12,10 +12,12 @@ func TestLoadComplexityFromPyprojectToml(t *testing.T) {
 
 	// Create pyproject.toml with complexity settings
 	configContent := `[tool.pyscn.complexity]
-low_threshold = 4
-medium_threshold = 6
-max_complexity = 10
-min_complexity = 2
+	enabled = false
+	report_unchanged = false
+	low_threshold = 4
+	medium_threshold = 6
+	max_complexity = 10
+	min_complexity = 2
 `
 	configPath := filepath.Join(tempDir, "pyproject.toml")
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
@@ -29,6 +31,12 @@ min_complexity = 2
 	}
 
 	// Verify complexity settings were loaded
+	if config.ComplexityEnabled == nil || *config.ComplexityEnabled {
+		t.Errorf("Expected enabled false, got %v", config.ComplexityEnabled)
+	}
+	if config.ComplexityReportUnchanged == nil || *config.ComplexityReportUnchanged {
+		t.Errorf("Expected report_unchanged false, got %v", config.ComplexityReportUnchanged)
+	}
 	if config.ComplexityLowThreshold != 4 {
 		t.Errorf("Expected low_threshold 4, got %d", config.ComplexityLowThreshold)
 	}

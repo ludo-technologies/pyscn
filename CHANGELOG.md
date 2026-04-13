@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.15.0] - 2026-04-09
+
+### Added
+- Add raw code metrics to complexity analysis (#380)
+
+### Refactored
+- Use system analysis in check command (#379)
+
 ## [1.14.0] - 2026-04-01
 
 ### Added

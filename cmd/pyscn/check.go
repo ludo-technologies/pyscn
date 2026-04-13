@@ -8,7 +8,6 @@ import (
 
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
-	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	"github.com/ludo-technologies/pyscn/service"
 	"github.com/spf13/cobra"
 )
@@ -555,62 +554,61 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 
 // checkCircularDependencies runs circular dependency detection and returns issue count
 func (c *CheckCommand) checkCircularDependencies(cmd *cobra.Command, args []string) (int, error) {
-	// Determine project root (default to current directory if no args)
-	projectRoot := "."
-	if len(args) > 0 {
-		projectRoot = args[0]
+	request := domain.SystemAnalysisRequest{
+		Paths:               args,
+		OutputFormat:        domain.OutputFormatText,
+		OutputWriter:        io.Discard,
+		AnalyzeDependencies: domain.BoolPtr(true),
+		AnalyzeArchitecture: domain.BoolPtr(false),
+		IncludeStdLib:       domain.BoolPtr(false),
+		IncludeThirdParty:   domain.BoolPtr(false),
+		FollowRelative:      domain.BoolPtr(true),
+		ConfigPath:          c.configFile,
 	}
 
-	// Create module analyzer with check-optimized options
-	opts := &analyzer.ModuleAnalysisOptions{
-		ProjectRoot:       projectRoot,
-		IncludePatterns:   []string{"**/*.py"},
-		ExcludePatterns:   []string{"__pycache__", "*.pyc", ".venv", "venv"},
-		IncludeStdLib:     false, // Exclude standard library for faster analysis
-		IncludeThirdParty: false, // Exclude third-party for faster analysis
-		FollowRelative:    true,  // Follow relative imports
+	useCase := app.NewSystemAnalysisUseCase(
+		service.NewSystemAnalysisService(),
+		service.NewFileReader(),
+		service.NewSystemAnalysisFormatter(),
+		service.NewSystemAnalysisConfigurationLoader(),
+	)
+
+	ctx := cmd.Context()
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
-	moduleAnalyzer, err := analyzer.NewModuleAnalyzer(opts)
+	result, err := useCase.AnalyzeDependenciesOnly(ctx, request)
 	if err != nil {
-		return 0, fmt.Errorf("failed to create module analyzer: %w", err)
+		return 0, err
 	}
 
-	// Build dependency graph
-	graph, err := moduleAnalyzer.AnalyzeProject()
-	if err != nil {
-		return 0, fmt.Errorf("failed to analyze dependencies: %w", err)
-	}
-
-	// Detect circular dependencies
-	result := analyzer.DetectCircularDependencies(graph)
-
-	if !result.HasCircularDependencies {
+	cycles := result.CircularDependencies
+	if cycles == nil || !cycles.HasCircularDependencies {
 		return 0, nil
 	}
 
 	// Output circular dependencies in linter format
-	for _, cycle := range result.CircularDependencies {
+	for _, cycle := range cycles.CircularDependencies {
 		if len(cycle.Modules) == 0 {
 			continue
 		}
 
-		// Get the first module's file path
 		firstModule := cycle.Modules[0]
-		node := graph.Nodes[firstModule]
-		if node == nil {
-			continue
+		filePath := firstModule
+		if metric, ok := result.ModuleMetrics[firstModule]; ok && metric != nil && metric.FilePath != "" {
+			filePath = metric.FilePath
 		}
 
 		// Format: file:line:col: message
 		cyclePath := strings.Join(cycle.Modules, " -> ")
 		if !c.quiet {
 			fmt.Fprintf(cmd.ErrOrStderr(), "%s:1:1: circular dependency detected: %s\n",
-				node.FilePath, cyclePath)
+				filePath, cyclePath)
 		}
 	}
 
-	return result.TotalCycles, nil
+	return cycles.TotalCycles, nil
 }
 
 // checkMockdata runs mock data analysis and returns issue count

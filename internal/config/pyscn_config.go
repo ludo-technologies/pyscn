@@ -35,10 +35,12 @@ type PyscnConfig struct {
 	LSH LSHConfig `mapstructure:"lsh" yaml:"lsh" json:"lsh"`
 
 	// Complexity Configuration (from [complexity] section in TOML)
-	ComplexityLowThreshold    int `mapstructure:"complexity_low_threshold" yaml:"complexity_low_threshold" json:"complexity_low_threshold"`
-	ComplexityMediumThreshold int `mapstructure:"complexity_medium_threshold" yaml:"complexity_medium_threshold" json:"complexity_medium_threshold"`
-	ComplexityMaxComplexity   int `mapstructure:"complexity_max_complexity" yaml:"complexity_max_complexity" json:"complexity_max_complexity"`
-	ComplexityMinComplexity   int `mapstructure:"complexity_min_complexity" yaml:"complexity_min_complexity" json:"complexity_min_complexity"`
+	ComplexityEnabled         *bool `mapstructure:"complexity_enabled" yaml:"complexity_enabled" json:"complexity_enabled"`
+	ComplexityReportUnchanged *bool `mapstructure:"complexity_report_unchanged" yaml:"complexity_report_unchanged" json:"complexity_report_unchanged"`
+	ComplexityLowThreshold    int   `mapstructure:"complexity_low_threshold" yaml:"complexity_low_threshold" json:"complexity_low_threshold"`
+	ComplexityMediumThreshold int   `mapstructure:"complexity_medium_threshold" yaml:"complexity_medium_threshold" json:"complexity_medium_threshold"`
+	ComplexityMaxComplexity   int   `mapstructure:"complexity_max_complexity" yaml:"complexity_max_complexity" json:"complexity_max_complexity"`
+	ComplexityMinComplexity   int   `mapstructure:"complexity_min_complexity" yaml:"complexity_min_complexity" json:"complexity_min_complexity"`
 
 	// DeadCode Configuration (from [dead_code] section in TOML)
 	DeadCodeEnabled                   *bool    `mapstructure:"dead_code_enabled" yaml:"dead_code_enabled" json:"dead_code_enabled"`
@@ -146,6 +148,10 @@ type PyscnConfig struct {
 	DIEnabled                   *bool  `mapstructure:"di_enabled" yaml:"di_enabled" json:"di_enabled"`
 	DIMinSeverity               string `mapstructure:"di_min_severity" yaml:"di_min_severity" json:"di_min_severity"`
 	DIConstructorParamThreshold int    `mapstructure:"di_constructor_param_threshold" yaml:"di_constructor_param_threshold" json:"di_constructor_param_threshold"`
+
+	// Track whether [output].min_complexity was explicitly set so it can
+	// override [complexity].min_complexity even when both resolve to defaults.
+	outputMinComplexityExplicit bool `mapstructure:"-" yaml:"-" json:"-"`
 }
 
 // CloneAnalysisConfig holds core analysis parameters
@@ -325,6 +331,8 @@ func DefaultPyscnConfig() *PyscnConfig {
 		},
 
 		// Complexity defaults (from [complexity] section)
+		ComplexityEnabled:         domain.BoolPtr(true),
+		ComplexityReportUnchanged: domain.BoolPtr(true),
 		ComplexityLowThreshold:    DefaultLowComplexityThreshold,
 		ComplexityMediumThreshold: DefaultMediumComplexityThreshold,
 		ComplexityMaxComplexity:   DefaultMaxComplexityLimit,
@@ -434,6 +442,44 @@ func DefaultPyscnConfig() *PyscnConfig {
 		DIMinSeverity:               string(domain.DIAntipatternSeverityWarning),
 		DIConstructorParamThreshold: domain.DefaultDIConstructorParamThreshold,
 	}
+}
+
+func (c *PyscnConfig) setOutputMinComplexity(min int) {
+	c.OutputMinComplexity = min
+	c.outputMinComplexityExplicit = true
+}
+
+func (c *PyscnConfig) hasExplicitOutputMinComplexity() bool {
+	if c == nil {
+		return false
+	}
+
+	if c.outputMinComplexityExplicit {
+		return true
+	}
+
+	return c.OutputMinComplexity > 0 && c.OutputMinComplexity != DefaultMinComplexityFilter
+}
+
+// EffectiveOutputMinComplexity resolves the output filter precedence.
+// [output].min_complexity overrides [complexity].min_complexity only when
+// the output value was explicitly set.
+func (c *PyscnConfig) EffectiveOutputMinComplexity() int {
+	if c == nil {
+		return DefaultMinComplexityFilter
+	}
+
+	if c.hasExplicitOutputMinComplexity() {
+		return c.OutputMinComplexity
+	}
+	if c.ComplexityMinComplexity > 0 {
+		return c.ComplexityMinComplexity
+	}
+	if c.OutputMinComplexity > 0 {
+		return c.OutputMinComplexity
+	}
+
+	return DefaultMinComplexityFilter
 }
 
 // Validate checks if the configuration is valid

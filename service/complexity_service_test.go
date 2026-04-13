@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -51,6 +52,8 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.NotEmpty(t, response.GeneratedAt)
 		assert.NotEmpty(t, response.Version)
 		assert.NotNil(t, response.Config)
+		assert.NotEmpty(t, response.RawMetrics)
+		assert.NotNil(t, response.RawMetricsSummary)
 		assert.GreaterOrEqual(t, response.Summary.TotalFunctions, 1)
 		assert.GreaterOrEqual(t, response.Summary.FilesAnalyzed, 1)
 	})
@@ -98,6 +101,36 @@ func TestComplexityService_Analyze(t *testing.T) {
 		}
 	})
 
+	t.Run("report_unchanged false filters complexity one functions", func(t *testing.T) {
+		tempDir := t.TempDir()
+		filePath := tempDir + "/mixed.py"
+		content := []byte("def unchanged():\n    return 1\n\n\ndef branch(x):\n    if x:\n        return 1\n    return 0\n")
+		err := os.WriteFile(filePath, content, 0644)
+		require.NoError(t, err)
+
+		req := newDefaultComplexityRequest(filePath)
+		req.ReportUnchanged = domain.BoolPtr(false)
+
+		response, err := service.Analyze(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		require.Len(t, response.Functions, 1)
+		assert.Equal(t, "branch", response.Functions[0].Name)
+	})
+
+	t.Run("enabled false suppresses complexity results", func(t *testing.T) {
+		req := newDefaultComplexityRequest("../testdata/python/simple/functions.py")
+		req.Enabled = domain.BoolPtr(false)
+
+		response, err := service.Analyze(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Empty(t, response.Functions)
+		assert.NotEmpty(t, response.RawMetrics)
+	})
+
 	t.Run("analyze multiple files", func(t *testing.T) {
 		req := newDefaultComplexityRequest(
 			"../testdata/python/simple/functions.py",
@@ -109,6 +142,9 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Equal(t, 2, response.Summary.FilesAnalyzed)
+		require.NotNil(t, response.RawMetricsSummary)
+		assert.Len(t, response.RawMetrics, 2)
+		assert.Equal(t, 2, response.RawMetricsSummary.FilesAnalyzed)
 
 		// Should have functions from both files
 		filePathsFound := make(map[string]bool)
@@ -142,16 +178,65 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.Contains(t, err.Error(), "cancelled")
 	})
 
-	t.Run("no functions found returns error", func(t *testing.T) {
-		// Use a file that likely has no functions
-		req := newDefaultComplexityRequest("../testdata/python/simple/imports.py")
-		req.MinComplexity = 100 // Very high threshold to filter out all functions
+	t.Run("comment only files still return raw metrics", func(t *testing.T) {
+		req := newDefaultComplexityRequest("../testdata/python/edge_cases/syntax_errors.py")
 
-		_, err := service.Analyze(ctx, req)
+		response, err := service.Analyze(ctx, req)
 
-		if err != nil {
-			assert.Contains(t, err.Error(), "no functions found to analyze")
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Len(t, response.RawMetrics, 1)
+		require.NotNil(t, response.RawMetricsSummary)
+		assert.Equal(t, 1, response.RawMetricsSummary.FilesAnalyzed)
+		assert.NotZero(t, response.RawMetrics[0].TotalLines)
+		assert.Equal(t, 0, response.RawMetrics[0].LLOC)
+	})
+
+	t.Run("parse errors still return raw metrics", func(t *testing.T) {
+		tempDir := t.TempDir()
+		filePath := tempDir + "/invalid.py"
+		err := os.WriteFile(filePath, []byte("def broken(:\n    pass\n"), 0644)
+		require.NoError(t, err)
+
+		req := newDefaultComplexityRequest(filePath)
+
+		response, err := service.Analyze(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Empty(t, response.Functions)
+		assert.Len(t, response.RawMetrics, 1)
+		require.NotNil(t, response.RawMetricsSummary)
+		assert.Equal(t, 0, response.RawMetrics[0].LLOC)
+		assert.NotEmpty(t, response.Errors)
+	})
+
+	t.Run("raw metrics include parse failures without inflating analyzed file count", func(t *testing.T) {
+		tempDir := t.TempDir()
+		invalidPath := tempDir + "/invalid.py"
+		err := os.WriteFile(invalidPath, []byte("def broken(:\n    pass\n"), 0644)
+		require.NoError(t, err)
+
+		validPath := "../testdata/python/simple/functions.py"
+		req := newDefaultComplexityRequest(validPath, invalidPath)
+
+		response, err := service.Analyze(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		require.NotNil(t, response.RawMetricsSummary)
+		assert.NotEmpty(t, response.Functions)
+		assert.NotEmpty(t, response.Errors)
+		assert.Equal(t, 1, response.Summary.FilesAnalyzed)
+		assert.Equal(t, 2, response.RawMetricsSummary.FilesAnalyzed)
+		assert.Len(t, response.RawMetrics, 2)
+
+		rawMetricPaths := make(map[string]bool, len(response.RawMetrics))
+		for _, metrics := range response.RawMetrics {
+			rawMetricPaths[metrics.FilePath] = true
 		}
+		assert.True(t, rawMetricPaths[validPath])
+		assert.True(t, rawMetricPaths[invalidPath])
 	})
 }
 
@@ -437,6 +522,8 @@ func TestComplexityService_BuildConfigForResponse(t *testing.T) {
 	assert.Equal(t, 20, configMap["max_complexity"])
 	assert.Equal(t, 5, configMap["low_threshold"])
 	assert.Equal(t, 10, configMap["medium_threshold"])
+	assert.Equal(t, true, configMap["enabled"])
+	assert.Equal(t, true, configMap["report_unchanged"])
 	assert.Equal(t, "complexity", configMap["sort_by"])
 	assert.Equal(t, true, configMap["show_details"])
 	assert.Equal(t, true, configMap["recursive"])

@@ -239,6 +239,123 @@ func TestAnalyzeFormatter_Write_HTML(t *testing.T) {
 	assert.Contains(t, output, "Coupling")
 }
 
+func TestAnalyzeFormatter_WriteHTML_ShowsCloneGroupContentWhenEnabled(t *testing.T) {
+	formatter := NewAnalyzeFormatter()
+	response := createTestAnalyzeResponse()
+	response.Clone = &domain.CloneResponse{
+		Statistics: &domain.CloneStatistics{
+			TotalClones:      2,
+			TotalClonePairs:  0,
+			TotalCloneGroups: 1,
+		},
+		Request: &domain.CloneRequest{ShowContent: true},
+		CloneGroups: []*domain.CloneGroup{
+			{
+				ID:         1,
+				Type:       domain.Type2Clone,
+				Similarity: 0.93,
+				Size:       2,
+				Clones: []*domain.Clone{
+					{
+						Location:  &domain.CloneLocation{FilePath: "alpha.py", StartLine: 1, EndLine: 2},
+						LineCount: 2,
+						Content:   "def alpha():\n    return 1",
+					},
+					{
+						Location:  &domain.CloneLocation{FilePath: "beta.py", StartLine: 4, EndLine: 5},
+						LineCount: 2,
+						Content:   "def beta():\n    return 1",
+					},
+				},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	err := formatter.Write(response, domain.OutputFormatHTML, &buf)
+	require.NoError(t, err)
+
+	output := buf.String()
+	assert.Contains(t, output, "Code Preview")
+	assert.Contains(t, output, "def alpha():")
+	assert.Contains(t, output, "def beta():")
+}
+
+func TestAnalyzeFormatter_WriteHTML_ShowsClonePairContentWhenEnabled(t *testing.T) {
+	formatter := NewAnalyzeFormatter()
+	response := createTestAnalyzeResponse()
+	response.Clone = &domain.CloneResponse{
+		Statistics: &domain.CloneStatistics{
+			TotalClones:      2,
+			TotalClonePairs:  1,
+			TotalCloneGroups: 0,
+		},
+		Request: &domain.CloneRequest{ShowContent: true},
+		ClonePairs: []*domain.ClonePair{
+			{
+				Clone1: &domain.Clone{
+					Location:  &domain.CloneLocation{FilePath: "alpha.py", StartLine: 1, EndLine: 2},
+					LineCount: 2,
+					Content:   "def alpha():\n    return 1",
+				},
+				Clone2: &domain.Clone{
+					Location:  &domain.CloneLocation{FilePath: "beta.py", StartLine: 4, EndLine: 5},
+					LineCount: 2,
+					Content:   "def beta():\n    return 1",
+				},
+				Similarity: 0.94,
+				Type:       domain.Type1Clone,
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	err := formatter.Write(response, domain.OutputFormatHTML, &buf)
+	require.NoError(t, err)
+
+	output := buf.String()
+	assert.Contains(t, output, "Clone 1 Preview")
+	assert.Contains(t, output, "Clone 2 Preview")
+	assert.Contains(t, output, "def alpha():")
+	assert.Contains(t, output, "def beta():")
+}
+
+func TestAnalyzeFormatter_WriteHTML_HidesCloneContentWhenDisabled(t *testing.T) {
+	formatter := NewAnalyzeFormatter()
+	response := createTestAnalyzeResponse()
+	response.Clone = &domain.CloneResponse{
+		Statistics: &domain.CloneStatistics{
+			TotalClones:      2,
+			TotalClonePairs:  0,
+			TotalCloneGroups: 1,
+		},
+		Request: &domain.CloneRequest{ShowContent: false},
+		CloneGroups: []*domain.CloneGroup{
+			{
+				ID:         1,
+				Type:       domain.Type2Clone,
+				Similarity: 0.93,
+				Size:       2,
+				Clones: []*domain.Clone{
+					{
+						Location:  &domain.CloneLocation{FilePath: "alpha.py", StartLine: 1, EndLine: 2},
+						LineCount: 2,
+						Content:   "def alpha():\n    return 1",
+					},
+				},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	err := formatter.Write(response, domain.OutputFormatHTML, &buf)
+	require.NoError(t, err)
+
+	output := buf.String()
+	assert.NotContains(t, output, "Code Preview")
+	assert.NotContains(t, output, "def alpha():")
+}
+
 func TestAnalyzeFormatter_Write_UnsupportedFormat(t *testing.T) {
 	formatter := NewAnalyzeFormatter()
 	response := createTestAnalyzeResponse()

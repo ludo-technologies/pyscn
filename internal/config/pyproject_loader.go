@@ -86,6 +86,12 @@ func loadPyprojectConfigData(data []byte) (*PyscnConfig, error) {
 // mergeComplexitySection merges settings from the [complexity] section
 // This function is shared between .pyscn.toml and pyproject.toml loaders
 func mergeComplexitySection(defaults *PyscnConfig, complexity *ComplexityTomlConfig) {
+	if complexity.Enabled != nil {
+		defaults.ComplexityEnabled = complexity.Enabled
+	}
+	if complexity.ReportUnchanged != nil {
+		defaults.ComplexityReportUnchanged = complexity.ReportUnchanged
+	}
 	if complexity.LowThreshold != nil {
 		defaults.ComplexityLowThreshold = *complexity.LowThreshold
 	}
@@ -289,7 +295,7 @@ func mergeOutputSection(defaults *PyscnConfig, output *OutputTomlConfig) {
 		defaults.OutputSortBy = output.SortBy
 	}
 	if output.MinComplexity != nil {
-		defaults.OutputMinComplexity = *output.MinComplexity
+		defaults.setOutputMinComplexity(*output.MinComplexity)
 	}
 	if output.Directory != "" {
 		defaults.OutputDirectory = output.Directory

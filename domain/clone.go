@@ -254,6 +254,9 @@ type CloneConfigurationLoader interface {
 
 	// GetDefaultCloneConfig returns default clone detection configuration
 	GetDefaultCloneConfig() *CloneRequest
+
+	// MergeConfig merges request values over loaded configuration.
+	MergeConfig(base *CloneRequest, override *CloneRequest) *CloneRequest
 }
 
 // Validation methods

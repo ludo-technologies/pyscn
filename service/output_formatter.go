@@ -78,6 +78,34 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 		response.Summary.MediumRiskFunctions,
 		response.Summary.LowRiskFunctions))
 
+	if response.RawMetricsSummary != nil {
+		builder.WriteString(utils.FormatSectionHeader("RAW CODE METRICS"))
+		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Files Analyzed", response.RawMetricsSummary.FilesAnalyzed))
+		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "SLOC", response.RawMetricsSummary.SLOC))
+		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "LLOC", response.RawMetricsSummary.LLOC))
+		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Comment Lines", response.RawMetricsSummary.CommentLines))
+		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Docstring Lines", response.RawMetricsSummary.DocstringLines))
+		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Blank Lines", response.RawMetricsSummary.BlankLines))
+		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Total Lines", response.RawMetricsSummary.TotalLines))
+		builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Comment Ratio", utils.FormatPercentage(response.RawMetricsSummary.CommentRatio*100)))
+		builder.WriteString(utils.FormatSectionSeparator())
+
+		for _, metrics := range response.RawMetrics {
+			builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "File", metrics.FilePath))
+			builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "SLOC", metrics.SLOC))
+			builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "LLOC", metrics.LLOC))
+			builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Comment Lines", metrics.CommentLines))
+			builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Docstring Lines", metrics.DocstringLines))
+			builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Blank Lines", metrics.BlankLines))
+			builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Total Lines", metrics.TotalLines))
+			builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Comment Ratio", utils.FormatPercentage(metrics.CommentRatio*100)))
+		}
+
+		if len(response.RawMetrics) > 0 {
+			builder.WriteString(utils.FormatSectionSeparator())
+		}
+	}
+
 	// Function Details
 	if len(response.Functions) > 0 {
 		builder.WriteString(utils.FormatSectionHeader("FUNCTION DETAILS"))
@@ -239,6 +267,36 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 		"summary":  summary,
 		"results":  functions,
 		"metadata": metadata,
+	}
+
+	if response.RawMetricsSummary != nil {
+		result["raw_metrics_summary"] = map[string]interface{}{
+			"files_analyzed":  response.RawMetricsSummary.FilesAnalyzed,
+			"sloc":            response.RawMetricsSummary.SLOC,
+			"lloc":            response.RawMetricsSummary.LLOC,
+			"comment_lines":   response.RawMetricsSummary.CommentLines,
+			"docstring_lines": response.RawMetricsSummary.DocstringLines,
+			"blank_lines":     response.RawMetricsSummary.BlankLines,
+			"total_lines":     response.RawMetricsSummary.TotalLines,
+			"comment_ratio":   response.RawMetricsSummary.CommentRatio,
+		}
+	}
+
+	if len(response.RawMetrics) > 0 {
+		rawMetrics := make([]map[string]interface{}, len(response.RawMetrics))
+		for i, metrics := range response.RawMetrics {
+			rawMetrics[i] = map[string]interface{}{
+				"file_path":       metrics.FilePath,
+				"sloc":            metrics.SLOC,
+				"lloc":            metrics.LLOC,
+				"comment_lines":   metrics.CommentLines,
+				"docstring_lines": metrics.DocstringLines,
+				"blank_lines":     metrics.BlankLines,
+				"total_lines":     metrics.TotalLines,
+				"comment_ratio":   metrics.CommentRatio,
+			}
+		}
+		result["raw_metrics"] = rawMetrics
 	}
 
 	// Add warnings and errors if present

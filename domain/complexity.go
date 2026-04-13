@@ -62,6 +62,11 @@ type ComplexityRequest struct {
 	LowThreshold    int
 	MediumThreshold int
 
+	// Analysis toggles loaded from configuration when present.
+	// Nil means "use the default enabled behavior".
+	Enabled         *bool
+	ReportUnchanged *bool
+
 	// Configuration
 	ConfigPath string
 
@@ -109,6 +114,30 @@ type FunctionComplexity struct {
 	RiskLevel RiskLevel
 }
 
+// RawMetrics represents file-level raw code metrics.
+type RawMetrics struct {
+	FilePath       string  `json:"file_path" yaml:"file_path"`
+	SLOC           int     `json:"sloc" yaml:"sloc"`
+	LLOC           int     `json:"lloc" yaml:"lloc"`
+	CommentLines   int     `json:"comment_lines" yaml:"comment_lines"`
+	DocstringLines int     `json:"docstring_lines" yaml:"docstring_lines"`
+	BlankLines     int     `json:"blank_lines" yaml:"blank_lines"`
+	TotalLines     int     `json:"total_lines" yaml:"total_lines"`
+	CommentRatio   float64 `json:"comment_ratio" yaml:"comment_ratio"`
+}
+
+// RawMetricsSummary represents aggregated raw code metrics across files.
+type RawMetricsSummary struct {
+	FilesAnalyzed  int     `json:"files_analyzed" yaml:"files_analyzed"`
+	SLOC           int     `json:"sloc" yaml:"sloc"`
+	LLOC           int     `json:"lloc" yaml:"lloc"`
+	CommentLines   int     `json:"comment_lines" yaml:"comment_lines"`
+	DocstringLines int     `json:"docstring_lines" yaml:"docstring_lines"`
+	BlankLines     int     `json:"blank_lines" yaml:"blank_lines"`
+	TotalLines     int     `json:"total_lines" yaml:"total_lines"`
+	CommentRatio   float64 `json:"comment_ratio" yaml:"comment_ratio"`
+}
+
 // ComplexitySummary represents aggregate statistics
 type ComplexitySummary struct {
 	TotalFunctions    int
@@ -131,6 +160,10 @@ type ComplexityResponse struct {
 	// Analysis results
 	Functions []FunctionComplexity
 	Summary   ComplexitySummary
+
+	// File-level raw code metrics
+	RawMetrics        []RawMetrics       `json:"raw_metrics,omitempty" yaml:"raw_metrics,omitempty"`
+	RawMetricsSummary *RawMetricsSummary `json:"raw_metrics_summary,omitempty" yaml:"raw_metrics_summary,omitempty"`
 
 	// Warnings and issues
 	Warnings []string

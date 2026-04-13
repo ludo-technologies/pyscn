@@ -281,6 +281,53 @@ func TestPyscnConfigToConfigArchitectureLayersAndRules(t *testing.T) {
 	}
 }
 
+func TestPyscnConfigToConfigComplexitySettings(t *testing.T) {
+	pyscn := DefaultPyscnConfig()
+	enabled := false
+	reportUnchanged := false
+
+	pyscn.ComplexityEnabled = &enabled
+	pyscn.ComplexityReportUnchanged = &reportUnchanged
+	pyscn.ComplexityLowThreshold = 4
+	pyscn.ComplexityMediumThreshold = 8
+	pyscn.ComplexityMaxComplexity = 13
+	pyscn.ComplexityMinComplexity = 3
+
+	cfg := PyscnConfigToConfig(pyscn)
+
+	if cfg.Complexity.Enabled {
+		t.Error("Expected complexity to be disabled")
+	}
+	if cfg.Complexity.ReportUnchanged {
+		t.Error("Expected report_unchanged to be false")
+	}
+	if cfg.Complexity.LowThreshold != 4 {
+		t.Errorf("Expected low threshold 4, got %d", cfg.Complexity.LowThreshold)
+	}
+	if cfg.Complexity.MediumThreshold != 8 {
+		t.Errorf("Expected medium threshold 8, got %d", cfg.Complexity.MediumThreshold)
+	}
+	if cfg.Complexity.MaxComplexity != 13 {
+		t.Errorf("Expected max complexity 13, got %d", cfg.Complexity.MaxComplexity)
+	}
+	if cfg.Output.MinComplexity != 3 {
+		t.Errorf("Expected output min complexity 3, got %d", cfg.Output.MinComplexity)
+	}
+}
+
+func TestPyscnConfigToConfigExplicitOutputMinComplexityOverridesComplexity(t *testing.T) {
+	pyscn := DefaultPyscnConfig()
+	pyscn.ComplexityMinComplexity = 3
+	minComplexity := 1
+
+	mergeOutputSection(pyscn, &OutputTomlConfig{MinComplexity: &minComplexity})
+
+	cfg := PyscnConfigToConfig(pyscn)
+	if cfg.Output.MinComplexity != 1 {
+		t.Errorf("Expected explicit output min complexity 1, got %d", cfg.Output.MinComplexity)
+	}
+}
+
 func TestLoadConfig(t *testing.T) {
 	t.Run("LoadNonExistentConfig", func(t *testing.T) {
 		// Explicit config path must exist.
@@ -316,10 +363,12 @@ func TestLoadConfig(t *testing.T) {
 		configPath := filepath.Join(tempDir, ".pyscn.toml")
 
 		tomlContent := `
-[complexity]
-low_threshold = 5
-medium_threshold = 15
-max_complexity = 50
+	[complexity]
+	enabled = false
+	report_unchanged = false
+	low_threshold = 5
+	medium_threshold = 15
+	max_complexity = 50
 
 [output]
 format = "json"
@@ -351,8 +400,11 @@ follow_symlinks = false
 		if config.Complexity.MediumThreshold != 15 {
 			t.Errorf("Expected medium threshold 15, got %d", config.Complexity.MediumThreshold)
 		}
-		if !config.Complexity.ReportUnchanged {
-			t.Error("Expected report_unchanged to be true")
+		if config.Complexity.Enabled {
+			t.Error("Expected enabled to be false")
+		}
+		if config.Complexity.ReportUnchanged {
+			t.Error("Expected report_unchanged to be false")
 		}
 		if config.Complexity.MaxComplexity != 50 {
 			t.Errorf("Expected max complexity 50, got %d", config.Complexity.MaxComplexity)
@@ -403,6 +455,8 @@ func TestSaveConfig(t *testing.T) {
 	configPath := filepath.Join(tempDir, ".pyscn.toml")
 
 	config := DefaultConfig()
+	config.Complexity.Enabled = false
+	config.Complexity.ReportUnchanged = false
 	config.Complexity.LowThreshold = 7
 	config.Output.Format = "json"
 
@@ -424,6 +478,12 @@ func TestSaveConfig(t *testing.T) {
 
 	if loadedConfig.Complexity.LowThreshold != 7 {
 		t.Errorf("Expected saved low threshold 7, got %d", loadedConfig.Complexity.LowThreshold)
+	}
+	if loadedConfig.Complexity.Enabled {
+		t.Error("Expected saved enabled false")
+	}
+	if loadedConfig.Complexity.ReportUnchanged {
+		t.Error("Expected saved report_unchanged false")
 	}
 	if loadedConfig.Output.Format != "json" {
 		t.Errorf("Expected saved format json, got %s", loadedConfig.Output.Format)
