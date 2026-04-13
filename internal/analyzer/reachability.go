@@ -288,7 +288,6 @@ func (ra *ReachabilityAnalyzer) markSuccessorsUnreachableAfterReturn(block *Basi
 		return
 	}
 	visited[block.ID] = true
-	defer func() { visited[block.ID] = false }()
 
 	// If this block contains a return, its fall-through successors are unreachable
 	if ra.blockContainsReturn(block) {
