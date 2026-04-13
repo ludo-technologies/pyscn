@@ -319,12 +319,3 @@ func (ra *ReachabilityAnalyzer) blockContainsReturn(block *BasicBlock) bool {
 
 	return false
 }
-
-// copyVisited creates a copy of the visited map to avoid sharing state between recursive calls
-func copyVisited(visited map[string]bool) map[string]bool {
-	copy := make(map[string]bool)
-	for k, v := range visited {
-		copy[k] = v
-	}
-	return copy
-}
