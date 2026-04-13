@@ -66,6 +66,19 @@ func BenchmarkReachabilityAnalysis(b *testing.B) {
 				}
 			}
 		})
+
+		b.Run(fmt.Sprintf("AfterReturnTree_%d", size), func(b *testing.B) {
+			cfg := createAfterReturnTreeCFG(size)
+			analyzer := NewReachabilityAnalyzer(cfg)
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				result := analyzer.AnalyzeReachability()
+				if result.UnreachableCount == 0 {
+					b.Error("expected unreachable blocks after return-heavy traversal")
+				}
+			}
+		})
 	}
 }
 
@@ -300,6 +313,53 @@ func createComplexCFG(size int) *CFG {
 				block.AddSuccessor(backTarget, EdgeLoop)
 			}
 		}
+	}
+
+	return cfg
+}
+
+// createAfterReturnTreeCFG creates a return-heavy tree where each normal successor
+// represents dead code after a return. This specifically stresses the
+// all-paths-return post-processing traversal.
+func createAfterReturnTreeCFG(maxBlocks int) *CFG {
+	cfg := NewCFG("after_return_benchmark")
+	if maxBlocks <= 0 {
+		cfg.Entry.AddSuccessor(cfg.Exit, EdgeNormal)
+		return cfg
+	}
+
+	root := cfg.CreateBlock("return_root")
+	root.AddStatement(&parser.Node{Type: parser.NodeReturn})
+	cfg.Entry.AddSuccessor(root, EdgeNormal)
+
+	queue := []*BasicBlock{root}
+	created := 1
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		current.AddSuccessor(cfg.Exit, EdgeReturn)
+
+		if created >= maxBlocks {
+			continue
+		}
+
+		left := cfg.CreateBlock(fmt.Sprintf("return_left_%d", created))
+		left.AddStatement(&parser.Node{Type: parser.NodeReturn})
+		current.AddSuccessor(left, EdgeNormal)
+		queue = append(queue, left)
+		created++
+
+		if created >= maxBlocks {
+			continue
+		}
+
+		right := cfg.CreateBlock(fmt.Sprintf("return_right_%d", created))
+		right.AddStatement(&parser.Node{Type: parser.NodeReturn})
+		current.AddSuccessor(right, EdgeNormal)
+		queue = append(queue, right)
+		created++
 	}
 
 	return cfg

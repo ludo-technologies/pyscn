@@ -288,6 +288,7 @@ func (ra *ReachabilityAnalyzer) markSuccessorsUnreachableAfterReturn(block *Basi
 		return
 	}
 	visited[block.ID] = true
+	defer func() { visited[block.ID] = false }()
 
 	// If this block contains a return, its fall-through successors are unreachable
 	if ra.blockContainsReturn(block) {
@@ -298,7 +299,7 @@ func (ra *ReachabilityAnalyzer) markSuccessorsUnreachableAfterReturn(block *Basi
 				delete(result.ReachableBlocks, edge.To.ID)
 
 				// Recursively mark successors as unreachable
-				ra.markSuccessorsUnreachableAfterReturn(edge.To, result, copyVisited(visited))
+				ra.markSuccessorsUnreachableAfterReturn(edge.To, result, visited)
 			}
 		}
 	}
@@ -317,13 +318,4 @@ func (ra *ReachabilityAnalyzer) blockContainsReturn(block *BasicBlock) bool {
 	}
 
 	return false
-}
-
-// copyVisited creates a copy of the visited map to avoid sharing state between recursive calls
-func copyVisited(visited map[string]bool) map[string]bool {
-	copy := make(map[string]bool)
-	for k, v := range visited {
-		copy[k] = v
-	}
-	return copy
 }
