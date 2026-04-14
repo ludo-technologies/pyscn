@@ -279,6 +279,29 @@ class Service:
 	}
 }
 
+func TestHiddenDependencyDetector_MethodLocalImportDoesNotCountAsModuleVariable(t *testing.T) {
+	code := `
+settings = {}
+
+class Service:
+    def load(self):
+        import settings
+        return settings.load()
+`
+	p := parser.New()
+	result, err := p.Parse(context.Background(), []byte(code))
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	detector := NewHiddenDependencyDetector()
+	findings := filterBySubtype(detector.Analyze(result.AST, "test.py"), string(domain.HiddenDepModuleVariable))
+
+	if len(findings) != 0 {
+		t.Fatalf("expected no hidden dependency findings for method-local import, got %d", len(findings))
+	}
+}
+
 func TestConcreteDependencyDetector_TypeHint(t *testing.T) {
 	code := `
 class MySQLRepo:
@@ -301,6 +324,58 @@ class Service:
 	typeHintFindings := filterBySubtype(findings, string(domain.ConcreteDepTypeHint))
 	if len(typeHintFindings) == 0 {
 		t.Error("expected to find concrete type hint")
+	}
+}
+
+func TestConcreteDependencyDetector_TypeHintIncludesParameterNameAndLocation(t *testing.T) {
+	code := `
+class Repo:
+    pass
+
+class Service:
+    def __init__(self, repo: Repo):
+        self.repo = repo
+`
+	p := parser.New()
+	result, err := p.Parse(context.Background(), []byte(code))
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	detector := NewConcreteDependencyDetector()
+	findings := filterBySubtype(detector.Analyze(result.AST, "test.py"), string(domain.ConcreteDepTypeHint))
+
+	if len(findings) != 1 {
+		t.Fatalf("expected 1 type hint finding, got %d", len(findings))
+	}
+
+	if findings[0].Details["parameter_name"] != "repo" {
+		t.Fatalf("expected parameter name repo, got %v", findings[0].Details["parameter_name"])
+	}
+
+	if findings[0].Location.StartLine <= 0 {
+		t.Fatalf("expected positive start line, got %d", findings[0].Location.StartLine)
+	}
+}
+
+func TestConcreteDependencyDetector_GenericAbstractTypeHint(t *testing.T) {
+	code := `
+class Service:
+    def __init__(self, repo: Optional[AbstractRepo], logger: ILogger | None):
+        self.repo = repo
+        self.logger = logger
+`
+	p := parser.New()
+	result, err := p.Parse(context.Background(), []byte(code))
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	detector := NewConcreteDependencyDetector()
+	findings := filterBySubtype(detector.Analyze(result.AST, "test.py"), string(domain.ConcreteDepTypeHint))
+
+	if len(findings) > 0 {
+		t.Fatalf("unexpected findings for abstract generic types: %d", len(findings))
 	}
 }
 
@@ -455,6 +530,50 @@ class Service:
 
 	if len(findings) != 1 {
 		t.Fatalf("expected 1 nested service locator finding, got %d", len(findings))
+	}
+}
+
+func TestServiceLocatorDetector_DoesNotFlagOrdinaryResolveMethod(t *testing.T) {
+	code := `
+class Promise:
+    def resolve(self):
+        return None
+
+class Service:
+    def run(self, promise):
+        return promise.resolve()
+`
+	p := parser.New()
+	result, err := p.Parse(context.Background(), []byte(code))
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	detector := NewServiceLocatorDetector()
+	findings := detector.Analyze(result.AST, "test.py")
+
+	if len(findings) != 0 {
+		t.Fatalf("expected 0 findings for ordinary resolve method, got %d", len(findings))
+	}
+}
+
+func TestServiceLocatorDetector_DetectsContainerResolveMethod(t *testing.T) {
+	code := `
+class Service:
+    def run(self):
+        return self.container.resolve("executor")
+`
+	p := parser.New()
+	result, err := p.Parse(context.Background(), []byte(code))
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	detector := NewServiceLocatorDetector()
+	findings := detector.Analyze(result.AST, "test.py")
+
+	if len(findings) != 1 {
+		t.Fatalf("expected 1 finding for container resolve method, got %d", len(findings))
 	}
 }
 

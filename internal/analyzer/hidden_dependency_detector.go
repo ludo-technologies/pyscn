@@ -405,6 +405,16 @@ func (d *HiddenDependencyDetector) collectLocalVariables(funcNode *parser.Node) 
 				locals[node.Name] = true
 			}
 		}
+		if node.Type == parser.NodeImport {
+			for _, name := range d.importedLocalNames(node) {
+				locals[name] = true
+			}
+		}
+		if node.Type == parser.NodeImportFrom {
+			for _, name := range d.importedFromLocalNames(node) {
+				locals[name] = true
+			}
+		}
 		// For loop variables
 		if node.Type == parser.NodeFor || node.Type == parser.NodeAsyncFor {
 			for _, target := range node.Targets {
@@ -417,6 +427,84 @@ func (d *HiddenDependencyDetector) collectLocalVariables(funcNode *parser.Node) 
 	})
 
 	return locals
+}
+
+func (d *HiddenDependencyDetector) importedLocalNames(importNode *parser.Node) []string {
+	var names []string
+	aliasedOriginals := make(map[string]bool)
+
+	for _, child := range importNode.Children {
+		if child == nil || child.Type != parser.NodeAlias {
+			continue
+		}
+
+		if child.Name != "" {
+			aliasedOriginals[child.Name] = true
+		}
+
+		if alias, ok := child.Value.(string); ok && alias != "" {
+			names = append(names, alias)
+			continue
+		}
+
+		if child.Name != "" {
+			names = append(names, d.boundImportName(child.Name))
+		}
+	}
+
+	for _, imported := range importNode.Names {
+		if imported == "" || aliasedOriginals[imported] {
+			continue
+		}
+		names = append(names, d.boundImportName(imported))
+	}
+
+	return names
+}
+
+func (d *HiddenDependencyDetector) importedFromLocalNames(importNode *parser.Node) []string {
+	var names []string
+	aliasedOriginals := make(map[string]bool)
+
+	for _, child := range importNode.Children {
+		if child == nil || child.Type != parser.NodeAlias {
+			continue
+		}
+
+		if child.Name != "" {
+			aliasedOriginals[child.Name] = true
+		}
+
+		if alias, ok := child.Value.(string); ok && alias != "" {
+			names = append(names, alias)
+			continue
+		}
+
+		if child.Name != "" && child.Name != "*" {
+			names = append(names, child.Name)
+		}
+	}
+
+	for _, imported := range importNode.Names {
+		if imported == "" || imported == "*" || aliasedOriginals[imported] {
+			continue
+		}
+		names = append(names, imported)
+	}
+
+	return names
+}
+
+func (d *HiddenDependencyDetector) boundImportName(name string) string {
+	if name == "" {
+		return ""
+	}
+
+	if dot := strings.Index(name, "."); dot >= 0 {
+		return name[:dot]
+	}
+
+	return name
 }
 
 // isBuiltinOrSpecial checks if a name is a built-in or special name

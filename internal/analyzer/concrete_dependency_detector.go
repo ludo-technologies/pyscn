@@ -250,13 +250,6 @@ func (d *ConcreteDependencyDetector) isBuiltinType(name string) bool {
 
 // extractTypeHintName extracts the type name from an argument's type annotation
 func (d *ConcreteDependencyDetector) extractTypeHintName(arg *parser.Node) string {
-	// For typed parameters, the type is stored as a string in arg.Value
-	if arg.Value != nil {
-		if typeStr, ok := arg.Value.(string); ok && typeStr != "" {
-			return typeStr
-		}
-	}
-
 	// Check children for type annotation (tree-sitter AST structure)
 	for _, child := range arg.Children {
 		if child == nil {
@@ -272,12 +265,20 @@ func (d *ConcreteDependencyDetector) extractTypeHintName(arg *parser.Node) strin
 		}
 	}
 
+	// Fall back to the raw type annotation text when the AST shape is unsupported.
+	if arg.Value != nil {
+		if typeStr, ok := arg.Value.(string); ok && typeStr != "" {
+			return d.extractTypeNameFromString(typeStr)
+		}
+	}
+
 	return ""
 }
 
 // isTypeAnnotation checks if a node represents a type annotation
 func (d *ConcreteDependencyDetector) isTypeAnnotation(node *parser.Node) bool {
 	return node.Type == parser.NodeName ||
+		node.Type == parser.NodeBinOp ||
 		node.Type == parser.NodeSubscript ||
 		node.Type == parser.NodeAttribute ||
 		node.Type == parser.NodeTypeNode ||
@@ -293,11 +294,25 @@ func (d *ConcreteDependencyDetector) extractTypeNameRecursive(node *parser.Node)
 
 	switch node.Type {
 	case parser.NodeName:
+		if d.isGenericTypeName(node.Name) || node.Name == "None" {
+			return ""
+		}
 		return node.Name
 	case parser.NodeAttribute:
-		return d.extractAttributeClassName(node)
+		typeName := d.extractAttributeClassName(node)
+		if d.isGenericTypeName(typeName) || typeName == "None" {
+			return ""
+		}
+		return typeName
 	case parser.NodeSubscript:
 		return d.extractGenericInnerType(node)
+	case parser.NodeBinOp:
+		if node.Op == "|" {
+			if left := d.extractTypeNameRecursive(node.Left); left != "" {
+				return left
+			}
+			return d.extractTypeNameRecursive(node.Right)
+		}
 	case parser.NodeTypeNode, parser.NodeGenericType, parser.NodeTypeParameter:
 		// Recursively check children
 		for _, child := range node.Children {
@@ -315,22 +330,74 @@ func (d *ConcreteDependencyDetector) extractTypeNameRecursive(node *parser.Node)
 
 // extractGenericInnerType extracts the inner type from a generic type
 func (d *ConcreteDependencyDetector) extractGenericInnerType(subscriptNode *parser.Node) string {
-	// For Optional[Type], List[Type], etc., get the Type part
-	if subscriptNode.Right != nil {
-		if subscriptNode.Right.Type == parser.NodeName {
-			return subscriptNode.Right.Name
+	for _, child := range subscriptNode.Children {
+		if child == nil {
+			continue
+		}
+		if typeName := d.extractTypeNameRecursive(child); typeName != "" {
+			return typeName
 		}
 	}
 
-	// Check children for the type argument
-	if len(subscriptNode.Children) > 1 {
-		typeArg := subscriptNode.Children[1]
-		if typeArg != nil && typeArg.Type == parser.NodeName {
-			return typeArg.Name
-		}
+	if valueNode, ok := subscriptNode.Value.(*parser.Node); ok {
+		return d.extractTypeNameRecursive(valueNode)
 	}
 
 	return ""
+}
+
+func (d *ConcreteDependencyDetector) extractTypeNameFromString(typeName string) string {
+	typeName = strings.TrimSpace(typeName)
+	if typeName == "" {
+		return ""
+	}
+
+	if strings.Contains(typeName, "|") {
+		parts := strings.Split(typeName, "|")
+		for _, part := range parts {
+			if extracted := d.extractTypeNameFromString(part); extracted != "" {
+				return extracted
+			}
+		}
+		return ""
+	}
+
+	if open := strings.Index(typeName, "["); open >= 0 && strings.HasSuffix(typeName, "]") {
+		outer := strings.TrimSpace(typeName[:open])
+		inner := strings.TrimSpace(typeName[open+1 : len(typeName)-1])
+		if d.isGenericTypeName(d.lastTypeSegment(outer)) {
+			for _, part := range strings.Split(inner, ",") {
+				if extracted := d.extractTypeNameFromString(part); extracted != "" {
+					return extracted
+				}
+			}
+			return ""
+		}
+	}
+
+	return d.lastTypeSegment(typeName)
+}
+
+func (d *ConcreteDependencyDetector) lastTypeSegment(typeName string) string {
+	typeName = strings.TrimSpace(typeName)
+	if typeName == "" {
+		return ""
+	}
+
+	if idx := strings.LastIndex(typeName, "."); idx >= 0 {
+		return strings.TrimSpace(typeName[idx+1:])
+	}
+
+	return typeName
+}
+
+func (d *ConcreteDependencyDetector) isGenericTypeName(typeName string) bool {
+	switch typeName {
+	case "Optional", "List", "Dict", "Set", "Tuple", "Union", "Callable", "Type", "Any", "Sequence", "Mapping", "Iterable":
+		return true
+	default:
+		return false
+	}
 }
 
 // isConcreteType checks if a type name is likely a concrete class
@@ -353,12 +420,5 @@ func (d *ConcreteDependencyDetector) isConcreteType(typeName string) bool {
 		}
 	}
 
-	// Check for common generic container types
-	genericTypes := map[string]bool{
-		"Optional": true, "List": true, "Dict": true, "Set": true,
-		"Tuple": true, "Union": true, "Callable": true, "Type": true,
-		"Any": true, "Sequence": true, "Mapping": true, "Iterable": true,
-	}
-
-	return !genericTypes[typeName]
+	return !d.isGenericTypeName(typeName)
 }

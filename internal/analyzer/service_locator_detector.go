@@ -105,19 +105,10 @@ func (d *ServiceLocatorDetector) isServiceLocatorCall(callNode *parser.Node) *se
 			if valueNode.Type == parser.NodeAttribute {
 				methodName := d.extractMethodName(valueNode)
 				containerName := d.extractContainerName(valueNode)
-
-				if d.isLocatorMethodName(methodName) {
+				fullCall := d.buildFullCallName(valueNode)
+				if d.isServiceLocatorAttributeCall(containerName, methodName, fullCall) {
 					return &serviceLocatorInfo{
 						methodName:    methodName,
-						containerName: containerName,
-					}
-				}
-
-				// Check for common container patterns
-				fullCall := d.buildFullCallName(valueNode)
-				if d.isKnownLocatorPattern(fullCall) {
-					return &serviceLocatorInfo{
-						methodName:    fullCall,
 						containerName: containerName,
 					}
 				}
@@ -139,19 +130,10 @@ func (d *ServiceLocatorDetector) isServiceLocatorCall(callNode *parser.Node) *se
 	if callNode.Left != nil && callNode.Left.Type == parser.NodeAttribute {
 		methodName := d.extractMethodName(callNode.Left)
 		containerName := d.extractContainerName(callNode.Left)
-
-		if d.isLocatorMethodName(methodName) {
+		fullCall := d.buildFullCallName(callNode.Left)
+		if d.isServiceLocatorAttributeCall(containerName, methodName, fullCall) {
 			return &serviceLocatorInfo{
 				methodName:    methodName,
-				containerName: containerName,
-			}
-		}
-
-		// Check for common container patterns
-		fullCall := d.buildFullCallName(callNode.Left)
-		if d.isKnownLocatorPattern(fullCall) {
-			return &serviceLocatorInfo{
-				methodName:    fullCall,
 				containerName: containerName,
 			}
 		}
@@ -167,6 +149,18 @@ func (d *ServiceLocatorDetector) isServiceLocatorCall(callNode *parser.Node) *se
 	}
 
 	return nil
+}
+
+func (d *ServiceLocatorDetector) isServiceLocatorAttributeCall(containerName, methodName, fullCall string) bool {
+	if !d.isLocatorMethodName(methodName) {
+		return false
+	}
+
+	if d.isKnownLocatorPattern(fullCall) {
+		return true
+	}
+
+	return d.isLikelyLocatorContainer(containerName)
 }
 
 // extractMethodName extracts the method name from an attribute node
@@ -299,7 +293,8 @@ func (d *ServiceLocatorDetector) isLocatorMethodName(name string) bool {
 }
 
 // isKnownLocatorPattern checks if a full call matches known locator patterns.
-// Uses "." + pattern suffix matching to avoid false positives (e.g., "promise.resolve").
+// Exact matches are used here so arbitrary attribute calls like promise.resolve()
+// are not treated as DI issues.
 func (d *ServiceLocatorDetector) isKnownLocatorPattern(fullCall string) bool {
 	if fullCall == "" {
 		return false
@@ -307,29 +302,54 @@ func (d *ServiceLocatorDetector) isKnownLocatorPattern(fullCall string) bool {
 
 	fullCallLower := strings.ToLower(fullCall)
 
-	for _, pattern := range d.locatorMethods {
-		patternLower := strings.ToLower(pattern)
-
-		// Exact match
-		if fullCallLower == patternLower {
-			return true
-		}
-		// Suffix match with dot separator to avoid matching unrelated methods
-		// e.g., "container.resolve" matches but "promise.resolve" does not
-		if strings.HasSuffix(fullCallLower, "."+patternLower) {
-			return true
-		}
-	}
-
 	// Additional common patterns (excluding generic .get() which causes false positives)
 	commonPatterns := []string{
 		"container.resolve",
+		"container.get_service",
+		"container.get_instance",
+		"container.locate",
 		"locator.resolve",
+		"locator.get_service",
+		"locator.get_instance",
+		"locator.locate",
 		"ioc.resolve",
+		"ioc.get_service",
+		"ioc.get_instance",
+		"ioc.locate",
+		"resolver.resolve",
 	}
 
 	for _, pattern := range commonPatterns {
-		if strings.HasSuffix(fullCallLower, pattern) {
+		if fullCallLower == pattern {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (d *ServiceLocatorDetector) isLikelyLocatorContainer(containerName string) bool {
+	if containerName == "" {
+		return false
+	}
+
+	segments := strings.Split(strings.ToLower(containerName), ".")
+	for _, segment := range segments {
+		if segment == "" {
+			continue
+		}
+
+		switch segment {
+		case "container", "locator", "ioc", "resolver", "registry", "provider", "services", "dependencies", "injector":
+			return true
+		}
+
+		if strings.HasSuffix(segment, "_container") ||
+			strings.HasSuffix(segment, "_locator") ||
+			strings.HasSuffix(segment, "_resolver") ||
+			strings.HasSuffix(segment, "_provider") ||
+			strings.HasSuffix(segment, "_registry") ||
+			strings.HasSuffix(segment, "_injector") {
 			return true
 		}
 	}
