@@ -29,6 +29,7 @@ type PyprojectPyscnSection struct {
 	SystemAnalysis SystemAnalysisTomlConfig `toml:"system_analysis"`
 	Dependencies   DependenciesTomlConfig   `toml:"dependencies"`
 	Clones         ClonesConfig             `toml:"clones"`
+	DI             DITomlConfig             `toml:"di"`
 }
 
 // LoadPyprojectConfig loads pyscn configuration from pyproject.toml
@@ -77,6 +78,7 @@ func loadPyprojectConfigData(data []byte) (*PyscnConfig, error) {
 	mergeSystemAnalysisSection(config, &pyproject.Tool.Pyscn.SystemAnalysis)
 	mergeDependenciesSection(config, &pyproject.Tool.Pyscn.Dependencies)
 	mergeClonesSection(config, &pyproject.Tool.Pyscn.Clones)
+	mergeDISection(config, &pyproject.Tool.Pyscn.DI)
 
 	return config, nil
 }
@@ -542,6 +544,19 @@ func mergeMockDataSection(defaults *PyscnConfig, mockData *MockDataTomlConfig) {
 	}
 	if len(mockData.IgnorePatterns) > 0 {
 		defaults.MockDataIgnorePatterns = mockData.IgnorePatterns
+	}
+}
+
+// mergeDISection merges settings from the [di] section.
+func mergeDISection(defaults *PyscnConfig, di *DITomlConfig) {
+	if di.Enabled != nil {
+		defaults.DIEnabled = di.Enabled
+	}
+	if di.MinSeverity != "" {
+		defaults.DIMinSeverity = di.MinSeverity
+	}
+	if di.ConstructorParamThreshold != nil {
+		defaults.DIConstructorParamThreshold = *di.ConstructorParamThreshold
 	}
 }
 

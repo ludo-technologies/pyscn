@@ -1459,12 +1459,17 @@ func (b *ASTBuilder) buildParameters(tsNode *sitter.Node) []*Node {
 			switch child.Type() {
 			case "identifier":
 				arg := NewNode(NodeArg)
+				arg.Location = b.getLocation(child)
 				arg.Name = b.getNodeText(child)
 				params = append(params, arg)
 			case "default_parameter":
 				arg := NewNode(NodeArg)
+				arg.Location = b.getLocation(child)
 				if nameNode := b.getChildByFieldName(child, "name"); nameNode != nil {
 					arg.Name = b.getNodeText(nameNode)
+				}
+				if arg.Name == "" {
+					arg.Name = b.extractParameterName(child)
 				}
 				if valueNode := b.getChildByFieldName(child, "value"); valueNode != nil {
 					arg.Value = b.buildNode(valueNode)
@@ -1472,8 +1477,12 @@ func (b *ASTBuilder) buildParameters(tsNode *sitter.Node) []*Node {
 				params = append(params, arg)
 			case "typed_parameter", "typed_default_parameter":
 				arg := NewNode(NodeArg)
+				arg.Location = b.getLocation(child)
 				if nameNode := b.getChildByFieldName(child, "name"); nameNode != nil {
 					arg.Name = b.getNodeText(nameNode)
+				}
+				if arg.Name == "" {
+					arg.Name = b.extractParameterName(child)
 				}
 				// Store type annotation both as text (for backward compatibility) and as AST node
 				if typeNode := b.getChildByFieldName(child, "type"); typeNode != nil {
@@ -1488,10 +1497,12 @@ func (b *ASTBuilder) buildParameters(tsNode *sitter.Node) []*Node {
 				params = append(params, arg)
 			case "list_splat_pattern":
 				arg := NewNode(NodeArg)
+				arg.Location = b.getLocation(child)
 				arg.Name = "*" + b.getNodeTextExcluding(child, "*")
 				params = append(params, arg)
 			case "dictionary_splat_pattern":
 				arg := NewNode(NodeArg)
+				arg.Location = b.getLocation(child)
 				arg.Name = "**" + b.getNodeTextExcluding(child, "**")
 				params = append(params, arg)
 			}
@@ -1499,6 +1510,23 @@ func (b *ASTBuilder) buildParameters(tsNode *sitter.Node) []*Node {
 	}
 
 	return params
+}
+
+func (b *ASTBuilder) extractParameterName(tsNode *sitter.Node) string {
+	childCount := int(tsNode.ChildCount())
+	for i := 0; i < childCount; i++ {
+		child := tsNode.Child(i)
+		if child == nil {
+			continue
+		}
+
+		switch child.Type() {
+		case "identifier", "keyword_identifier":
+			return b.getNodeText(child)
+		}
+	}
+
+	return ""
 }
 
 // buildArgumentList builds a list of arguments (for base classes, etc.)
