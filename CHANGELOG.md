@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.16.0] - 2026-04-14
+
+### Added
+- DI (Dependency Injection) anti-pattern detection for Python code (#308)
+
+### Fixed
+- Honor complexity config settings in analyze (#382)
+- Preserve clone `show_content` config in analyze (#384)
+
+### Refactored
+- Remove internal/config import from AnalyzeUseCase (#383)
+- Reuse visited state in return reachability walk (#385)
+
 ## [1.15.0] - 2026-04-09
 
 ### Added
