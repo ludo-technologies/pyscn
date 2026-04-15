@@ -1,0 +1,243 @@
+site_name: pyscn
+site_description: An intelligent Python code quality analyzer with CFG-based static analysis
+site_url: https://ludo-technologies.github.io/pyscn/
+site_author: ludo-technologies
+repo_url: https://github.com/ludo-technologies/pyscn
+repo_name: ludo-technologies/pyscn
+edit_uri: edit/main/website/docs/
+copyright: Copyright &copy; 2024–2026 ludo-technologies
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  language: en
+  logo: assets/logo.svg
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - navigation.indexes
+    - navigation.tracking
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.action.edit
+    - content.tooltips
+    - announce.dismiss
+
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - i18n:
+      docs_structure: folder
+      reconfigure_material: true
+      reconfigure_search: true
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: ja
+          name: 日本語
+          build: true
+          site_name: pyscn
+          nav_translations:
+            Home: ホーム
+            Getting Started: はじめに
+            Installation: インストール
+            Quick Start: クイックスタート
+            Rules: ルール
+            Overview: 概要
+            Unreachable Code: 到達不能コード
+            Duplicate Code: 重複コード
+            Complexity: 複雑度
+            Class Design: クラス設計
+            Dependency Injection: 依存性注入
+            Module Structure: モジュール構造
+            Mock Data: モックデータ
+            CLI Reference: CLI リファレンス
+            Configuration: 設定
+            Config File Format: 設定ファイル形式
+            Reference: リファレンス
+            Examples: サンプル
+            Output Formats: 出力形式
+            HTML Report: HTML レポート
+            Schemas: スキーマ
+            Health Score: ヘルススコア
+            Integrations: インテグレーション
+            CI/CD: CI/CD
+            MCP: MCP
+            Python Packaging: Python パッケージ
+            FAQ: FAQ
+        - locale: zh
+          name: 简体中文
+          build: true
+          site_name: pyscn
+          nav_translations:
+            Home: 首页
+            Getting Started: 入门
+            Installation: 安装
+            Quick Start: 快速开始
+            Rules: 规则
+            Overview: 概览
+            Unreachable Code: 不可达代码
+            Duplicate Code: 重复代码
+            Complexity: 复杂度
+            Class Design: 类设计
+            Dependency Injection: 依赖注入
+            Module Structure: 模块结构
+            Mock Data: 模拟数据
+            CLI Reference: CLI 参考
+            Configuration: 配置
+            Config File Format: 配置文件格式
+            Reference: 参考
+            Examples: 示例
+            Output Formats: 输出格式
+            HTML Report: HTML 报告
+            Schemas: 结构
+            Health Score: 健康评分
+            Integrations: 集成
+            Python Packaging: Python 打包
+            FAQ: 常见问题
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/ludo-technologies/pyscn
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/pyscn/
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quick-start.md
+  - Rules:
+      - Overview: rules/index.md
+      - Unreachable Code:
+          - rules/unreachable-after-return.md
+          - rules/unreachable-after-raise.md
+          - rules/unreachable-after-break.md
+          - rules/unreachable-after-continue.md
+          - rules/unreachable-after-infinite-loop.md
+          - rules/unreachable-branch.md
+      - Duplicate Code:
+          - rules/duplicate-code-identical.md
+          - rules/duplicate-code-renamed.md
+          - rules/duplicate-code-modified.md
+          - rules/duplicate-code-semantic.md
+      - Complexity:
+          - rules/high-cyclomatic-complexity.md
+      - Class Design:
+          - rules/high-class-coupling.md
+          - rules/low-class-cohesion.md
+      - Dependency Injection:
+          - rules/too-many-constructor-parameters.md
+          - rules/global-state-dependency.md
+          - rules/module-variable-dependency.md
+          - rules/singleton-pattern-dependency.md
+          - rules/concrete-type-hint-dependency.md
+          - rules/concrete-instantiation-dependency.md
+          - rules/service-locator-pattern.md
+      - Module Structure:
+          - rules/circular-import.md
+          - rules/deep-import-chain.md
+          - rules/layer-violation.md
+          - rules/low-package-cohesion.md
+      - Mock Data:
+          - rules/mock-keyword-in-code.md
+          - rules/mock-domain-in-string.md
+          - rules/mock-email-address.md
+          - rules/placeholder-phone-number.md
+          - rules/placeholder-uuid.md
+          - rules/placeholder-comment.md
+          - rules/repetitive-string-literal.md
+          - rules/test-credential-in-code.md
+  - CLI Reference:
+      - cli/index.md
+      - analyze: cli/analyze.md
+      - check: cli/check.md
+      - init: cli/init.md
+      - version: cli/version.md
+  - Configuration:
+      - configuration/index.md
+      - Config File Format: configuration/format.md
+      - Reference: configuration/reference.md
+      - Examples: configuration/examples.md
+  - Output Formats:
+      - output/index.md
+      - HTML Report: output/html-report.md
+      - Schemas: output/schemas.md
+      - Health Score: output/health-score.md
+  - Integrations:
+      - integrations/index.md
+      - CI/CD: integrations/ci-cd.md
+      - MCP: integrations/mcp.md
+      - Python Packaging: integrations/python-packaging.md
+  - FAQ: faq.md
