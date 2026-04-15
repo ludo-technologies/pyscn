@@ -3755,7 +3755,7 @@
 <p>The install location isn't on PATH. Inspect with:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>show<span class="w"> </span>-f<span class="w"> </span>pyscn<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>bin/pyscn
 </span></code></pre></div>
-<p>On Linux/macOS, add <code>~/.local/bin</code> to PATH or use <code>pipx install pyscn</code>.</p>
+<p>On Linux/macOS, add <code>~/.local/bin</code> to PATH, or install with <code>uvx pyscn@latest &lt;command&gt;</code> (no install step), <code>uv tool install pyscn</code>, or <code>pipx install pyscn</code>.</p>
 <h3 id="the-report-shows-0-files-analyzed">The report shows 0 files analyzed.<a class="headerlink" href="#the-report-shows-0-files-analyzed" title="Permanent link">&para;</a></h3>
 <p>Include/exclude patterns excluded everything. Defaults: <code>include_patterns = ["**/*.py"]</code>; excludes include <code>test_*.py</code> and <code>*_test.py</code>. Override to analyze tests:</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[analysis]</span>

@@ -3220,28 +3220,28 @@
 </thead>
 <tbody>
 <tr>
-<td><code>pipx</code></td>
-<td>Standalone CLI use</td>
-<td>Isolated from project deps.</td>
+<td><code>uvx</code> (recommended)</td>
+<td>One-off runs, CI</td>
+<td>Runs without installing; caches after first call.</td>
 </tr>
 <tr>
 <td><code>uv tool install</code></td>
-<td>Modern tool management</td>
+<td>Persistent tool management</td>
 <td>Fast, isolated.</td>
 </tr>
 <tr>
-<td><code>uvx</code></td>
-<td>One-off runs</td>
-<td>Caches after first call.</td>
+<td><code>pipx</code></td>
+<td>Persistent CLI install</td>
+<td>Isolated from project deps.</td>
 </tr>
 <tr>
 <td><code>pip</code></td>
-<td>Inside a venv</td>
+<td>Installing into a venv</td>
 <td>No isolation.</td>
 </tr>
 </tbody>
 </table>
-<p>CI: <code>pip install pyscn</code>. Local dev: <code>pipx</code> or <code>uv tool install</code>.</p>
+<p>CI: <code>uvx pyscn@latest check .</code>. Local dev: <code>uv tool install pyscn</code> or <code>pipx install pyscn</code>.</p>
 <h2 id="platform-support">Platform support<a class="headerlink" href="#platform-support" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

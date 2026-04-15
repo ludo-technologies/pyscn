@@ -3121,29 +3121,32 @@
 
 <h1 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h1>
 <h2 id="run-an-analysis">Run an analysis<a class="headerlink" href="#run-an-analysis" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>.
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uvx<span class="w"> </span>pyscn@latest<span class="w"> </span>analyze<span class="w"> </span>.
+</span></code></pre></div>
+<p>If <code>pyscn</code> is already installed (via <code>uv tool install pyscn</code>, <code>pipx install pyscn</code>, or <code>pip install pyscn</code>), drop the <code>uvx pyscn@latest</code> prefix:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>.
 </span></code></pre></div>
 <p>Writes an HTML report to <code>.pyscn/reports/analyze_YYYYMMDD_HHMMSS.html</code> and opens it in the default browser.</p>
 <h2 id="select-output-format">Select output format<a class="headerlink" href="#select-output-format" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>.
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--yaml<span class="w"> </span>.
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--csv<span class="w"> </span>.
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--no-open<span class="w"> </span>.<span class="w">       </span><span class="c1"># suppress browser open</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>.
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--yaml<span class="w"> </span>.
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--csv<span class="w"> </span>.
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--no-open<span class="w"> </span>.<span class="w">       </span><span class="c1"># suppress browser open</span>
 </span></code></pre></div>
 <h2 id="run-specific-analyzers">Run specific analyzers<a class="headerlink" href="#run-specific-analyzers" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--select<span class="w"> </span>complexity<span class="w"> </span>.
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--select<span class="w"> </span>complexity,deadcode<span class="w"> </span>.
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--skip-clones<span class="w"> </span>.
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--select<span class="w"> </span>complexity<span class="w"> </span>.
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--select<span class="w"> </span>complexity,deadcode<span class="w"> </span>.
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--skip-clones<span class="w"> </span>.
 </span></code></pre></div>
 <p>See <a href="../../cli/analyze/"><code>analyze</code></a> for all flags.</p>
 <h2 id="ci-quality-gate">CI quality gate<a class="headerlink" href="#ci-quality-gate" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pyscn<span class="w"> </span>check<span class="w"> </span>.<span class="w">                              </span><span class="c1"># exit 0 pass, 1 fail</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--max-complexity<span class="w"> </span><span class="m">15</span><span class="w"> </span>src/
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--select<span class="w"> </span>complexity,deadcode,deps<span class="w"> </span>src/
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pyscn<span class="w"> </span>check<span class="w"> </span>.<span class="w">                              </span><span class="c1"># exit 0 pass, 1 fail</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--max-complexity<span class="w"> </span><span class="m">15</span><span class="w"> </span>src/
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--select<span class="w"> </span>complexity,deadcode,deps<span class="w"> </span>src/
 </span></code></pre></div>
 <p>See <a href="../../cli/check/"><code>check</code></a> and <a href="../../integrations/ci-cd/">CI/CD Integration</a>.</p>
 <h2 id="generate-a-config-file">Generate a config file<a class="headerlink" href="#generate-a-config-file" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pyscn<span class="w"> </span>init
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>pyscn<span class="w"> </span>init
 </span></code></pre></div>
 <p>Creates <code>.pyscn.toml</code> with every option commented. See the <a href="../../configuration/reference/">Configuration Reference</a>.</p>
 
