@@ -9,8 +9,7 @@ hide:
 A structural static analyzer for Python. Detects dead code, duplication, complexity, and coupling issues via control-flow and tree analysis.
 
 ```bash
-pip install pyscn
-pyscn analyze .
+uvx pyscn@latest analyze .
 ```
 
 ## Features
@@ -29,9 +28,10 @@ Written in Go. 100,000+ lines/sec on typical hardware. No Python runtime depende
 ## Installation
 
 ```bash
-pip install pyscn        # or pipx install pyscn
-                         # or uv tool install pyscn
-                         # or uvx pyscn@latest
+uvx pyscn@latest <command>   # run without installing (recommended)
+uv tool install pyscn        # install with uv
+pipx install pyscn           # install with pipx
+pip install pyscn            # install with pip
 ```
 
 See [Installation](getting-started/installation.md) for all options.

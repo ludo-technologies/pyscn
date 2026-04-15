@@ -3,6 +3,12 @@
 ## Run an analysis
 
 ```bash
+uvx pyscn@latest analyze .
+```
+
+If `pyscn` is already installed (via `uv tool install pyscn`, `pipx install pyscn`, or `pip install pyscn`), drop the `uvx pyscn@latest` prefix:
+
+```bash
 pyscn analyze .
 ```
 

@@ -6,12 +6,12 @@ pyscn is distributed on PyPI as a wheel containing a native Go binary. The Pytho
 
 | Tool | Good for | Notes |
 | --- | --- | --- |
-| `pipx` | Standalone CLI use | Isolated from project deps. |
-| `uv tool install` | Modern tool management | Fast, isolated. |
-| `uvx` | One-off runs | Caches after first call. |
-| `pip` | Inside a venv | No isolation. |
+| `uvx` (recommended) | One-off runs, CI | Runs without installing; caches after first call. |
+| `uv tool install` | Persistent tool management | Fast, isolated. |
+| `pipx` | Persistent CLI install | Isolated from project deps. |
+| `pip` | Installing into a venv | No isolation. |
 
-CI: `pip install pyscn`. Local dev: `pipx` or `uv tool install`.
+CI: `uvx pyscn@latest check .`. Local dev: `uv tool install pyscn` or `pipx install pyscn`.
 
 ## Platform support
 

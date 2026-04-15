@@ -131,7 +131,7 @@ The install location isn't on PATH. Inspect with:
 python -m pip show -f pyscn | grep bin/pyscn
 ```
 
-On Linux/macOS, add `~/.local/bin` to PATH or use `pipx install pyscn`.
+On Linux/macOS, add `~/.local/bin` to PATH, or install with `uvx pyscn@latest <command>` (no install step), `uv tool install pyscn`, or `pipx install pyscn`.
 
 ### The report shows 0 files analyzed.
 
