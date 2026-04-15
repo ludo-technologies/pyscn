@@ -12,7 +12,7 @@ Findings are written to **stderr** in linter format. Capture them with `2>` in s
 
 ## GitHub Actions
 
-Minimal:
+Minimal (recommended — uvx, no install step):
 
 ```yaml
 # .github/workflows/quality.yml
@@ -24,11 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: pip install pyscn
-      - run: pyscn check .
+      - uses: astral-sh/setup-uv@v3
+      - run: uvx pyscn@latest check .
 ```
 
 With full report as an artifact:
@@ -39,18 +36,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - run: pip install pyscn
+      - uses: astral-sh/setup-uv@v3
 
       - name: Quality gate
-        run: pyscn check --max-complexity 15 src/
+        run: uvx pyscn@latest check --max-complexity 15 src/
 
       - name: Full report
         if: always()
-        run: pyscn analyze --no-open --html src/
+        run: uvx pyscn@latest analyze --no-open --html src/
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -70,11 +63,14 @@ on:
       - 'pyproject.toml'
 ```
 
-With uvx (no install step):
+With `pip` instead of uvx:
 
 ```yaml
-      - uses: astral-sh/setup-uv@v3
-      - run: uvx pyscn@latest check .
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pyscn
+      - run: pyscn check .
 ```
 
 ## pre-commit
