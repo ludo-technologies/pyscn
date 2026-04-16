@@ -1,8 +1,6 @@
 package analyzer
 
-import (
-	"sort"
-)
+import "sort"
 
 // CompleteLinkageGrouping ensures all pairs in a group meet the threshold
 type CompleteLinkageGrouping struct {
@@ -27,28 +25,31 @@ func (c *CompleteLinkageGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup 
 	}
 
 	clusters := make([][]*CodeFragment, n)
-	active := make([]int, n)
+	active := make([]bool, n)
+	versions := make([]int, n)
 	for i, f := range fragments {
 		clusters[i] = []*CodeFragment{f}
-		active[i] = i
+		active[i] = true
 	}
 
 	// Cache complete-linkage similarities so merges only need O(k) updates via
 	// sim(AB, C) = min(sim(A, C), sim(B, C)).
 	clusterSims := c.buildClusterSimilarityMatrix(fragments, sims)
+	candidateHeap := c.buildCandidateHeap(clusterSims, versions)
 
 	for {
-		bestI, bestJ := c.findBestClusterPair(active, clusterSims)
-		if bestI == -1 || bestJ == -1 {
+		bestPair, ok := c.popBestClusterPair(candidateHeap, active, versions)
+		if !ok {
 			break
 		}
 
-		targetID := active[bestI]
-		sourceID := active[bestJ]
+		targetID := bestPair.leftID
+		sourceID := bestPair.rightID
 		clusters[targetID] = append(clusters[targetID], clusters[sourceID]...)
-		c.updateMergedClusterSimilarities(active, clusterSims, targetID, sourceID)
+		active[sourceID] = false
+		versions[targetID]++
+		c.updateMergedClusterSimilarities(active, clusterSims, versions, candidateHeap, targetID, sourceID)
 		clusters[sourceID] = nil
-		active = append(active[:bestJ], active[bestJ+1:]...)
 	}
 
 	return c.buildGroups(active, clusters, sims, types)
@@ -99,26 +100,54 @@ func (c *CompleteLinkageGrouping) buildClusterSimilarityMatrix(fragments []*Code
 	return clusterSims
 }
 
-func (c *CompleteLinkageGrouping) findBestClusterPair(active []int, clusterSims [][]float64) (int, int) {
-	bestI, bestJ := -1, -1
-	bestScore := -1.0
-	for i := 0; i < len(active); i++ {
-		for j := i + 1; j < len(active); j++ {
-			s := clusterSims[active[i]][active[j]]
-			if s >= c.threshold && s > bestScore {
-				bestScore = s
-				bestI = i
-				bestJ = j
-			}
+func (c *CompleteLinkageGrouping) buildCandidateHeap(clusterSims [][]float64, versions []int) *completeLinkageCandidateHeap {
+	pairHeap := &completeLinkageCandidateHeap{}
+	for i := 0; i < len(clusterSims); i++ {
+		for j := i + 1; j < len(clusterSims); j++ {
+			c.pushCandidate(pairHeap, versions, i, j, clusterSims[i][j])
 		}
 	}
-
-	return bestI, bestJ
+	return pairHeap
 }
 
-func (c *CompleteLinkageGrouping) updateMergedClusterSimilarities(active []int, clusterSims [][]float64, targetID, sourceID int) {
-	for _, otherID := range active {
-		if otherID == targetID || otherID == sourceID {
+func (c *CompleteLinkageGrouping) popBestClusterPair(pairHeap *completeLinkageCandidateHeap, active []bool, versions []int) (completeLinkageCandidate, bool) {
+	for pairHeap.Len() > 0 {
+		bestPair := pairHeap.pop()
+		if !active[bestPair.leftID] || !active[bestPair.rightID] {
+			continue
+		}
+		if versions[bestPair.leftID] != bestPair.leftVersion || versions[bestPair.rightID] != bestPair.rightVersion {
+			continue
+		}
+
+		return bestPair, true
+	}
+
+	return completeLinkageCandidate{}, false
+}
+
+func (c *CompleteLinkageGrouping) pushCandidate(pairHeap *completeLinkageCandidateHeap, versions []int, firstID, secondID int, score float64) {
+	if score < c.threshold {
+		return
+	}
+
+	leftID, rightID := orderClusterIDs(firstID, secondID)
+	pairHeap.push(completeLinkageCandidate{
+		leftID:       leftID,
+		rightID:      rightID,
+		score:        score,
+		leftVersion:  versions[leftID],
+		rightVersion: versions[rightID],
+	})
+}
+
+func (c *CompleteLinkageGrouping) updateMergedClusterSimilarities(active []bool, clusterSims [][]float64, versions []int, pairHeap *completeLinkageCandidateHeap, targetID, sourceID int) {
+	clusterSims[targetID][sourceID] = 0.0
+	clusterSims[sourceID][targetID] = 0.0
+	clusterSims[sourceID][sourceID] = 0.0
+
+	for otherID, isActive := range active {
+		if !isActive || otherID == targetID {
 			continue
 		}
 
@@ -128,14 +157,20 @@ func (c *CompleteLinkageGrouping) updateMergedClusterSimilarities(active []int, 
 		}
 		clusterSims[targetID][otherID] = mergedSim
 		clusterSims[otherID][targetID] = mergedSim
+		c.pushCandidate(pairHeap, versions, targetID, otherID, mergedSim)
 	}
+
 	clusterSims[targetID][targetID] = 1.0
 }
 
-func (c *CompleteLinkageGrouping) buildGroups(active []int, clusters [][]*CodeFragment, sims map[string]float64, types map[string]CloneType) []*CloneGroup {
+func (c *CompleteLinkageGrouping) buildGroups(active []bool, clusters [][]*CodeFragment, sims map[string]float64, types map[string]CloneType) []*CloneGroup {
 	groups := make([]*CloneGroup, 0)
 	groupID := 0
-	for _, clusterID := range active {
+	for clusterID, isActive := range active {
+		if !isActive {
+			continue
+		}
+
 		cl := clusters[clusterID]
 		if len(cl) < 2 {
 			continue

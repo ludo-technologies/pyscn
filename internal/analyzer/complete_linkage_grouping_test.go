@@ -2,7 +2,9 @@ package analyzer
 
 import (
 	"fmt"
+	"math/rand"
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -75,6 +77,67 @@ func BenchmarkCompleteLinkageGroupingDenseCliques(b *testing.B) {
 	}
 }
 
+func TestCompleteLinkageGrouping_PreservesScanOrderTieBreaks(t *testing.T) {
+	thr := 0.75
+
+	a := gf("a.py", 1, 3)
+	b := gf("b.py", 1, 3)
+	c := gf("c.py", 1, 3)
+	pairs := []*ClonePair{
+		gp(a, b, 0.90),
+		gp(a, c, 0.90),
+		gp(b, c, 0.70),
+	}
+
+	groups := NewCompleteLinkageGrouping(thr).GroupClones(pairs)
+	if len(groups) != 1 {
+		t.Fatalf("expected one group, got %d", len(groups))
+	}
+
+	got := generalGroupSignature(groups[0])
+	want := "a.py,b.py"
+	if got != want {
+		t.Fatalf("expected stable tie-break group %s, got %s", want, got)
+	}
+}
+
+func TestCompleteLinkageGrouping_MatchesReferenceImplementation(t *testing.T) {
+	t.Parallel()
+
+	thresholds := []float64{0.35, 0.65, 0.85}
+	for _, thr := range thresholds {
+		thr := thr
+		t.Run(fmt.Sprintf("threshold_%0.2f", thr), func(t *testing.T) {
+			t.Parallel()
+			for seed := int64(1); seed <= 24; seed++ {
+				pairs := buildRandomCompleteLinkagePairs(seed, 7)
+				got := NewCompleteLinkageGrouping(thr).GroupClones(pairs)
+				want := referenceCompleteLinkageGroups(thr, pairs)
+				assertCloneGroupsEqual(t, want, got, thr, seed)
+			}
+		})
+	}
+}
+
+func TestMajorityCloneType_TieBreaksDeterministically(t *testing.T) {
+	a := gf("a.py", 1, 3)
+	b := gf("b.py", 1, 3)
+	c := gf("c.py", 1, 3)
+	d := gf("d.py", 1, 3)
+	members := []*CodeFragment{a, b, c, d}
+	typeMap := map[string]CloneType{
+		pairKey(a, b): Type3Clone,
+		pairKey(a, c): Type1Clone,
+		pairKey(a, d): Type3Clone,
+		pairKey(b, c): Type1Clone,
+	}
+
+	got := majorityCloneType(typeMap, members)
+	if got != Type1Clone {
+		t.Fatalf("expected deterministic lower clone-type tie break, got %v", got)
+	}
+}
+
 func buildDenseCliquePairs(groupCount, cliqueSize int, intraSim, interSim float64) []*ClonePair {
 	fragments := make([][]*CodeFragment, groupCount)
 	for groupIndex := 0; groupIndex < groupCount; groupIndex++ {
@@ -119,4 +182,230 @@ func groupSignature(group *CloneGroup) string {
 	}
 	sort.Strings(paths)
 	return fmt.Sprintf("%s,%s,%s", paths[0], paths[1], paths[2])
+}
+
+func generalGroupSignature(group *CloneGroup) string {
+	paths := make([]string, 0, len(group.Fragments))
+	for _, fragment := range group.Fragments {
+		paths = append(paths, fragment.Location.FilePath)
+	}
+	sort.Strings(paths)
+	return strings.Join(paths, ",")
+}
+
+func buildRandomCompleteLinkagePairs(seed int64, fragmentCount int) []*ClonePair {
+	rng := rand.New(rand.NewSource(seed))
+	fragments := make([]*CodeFragment, fragmentCount)
+	for i := 0; i < fragmentCount; i++ {
+		fragments[i] = gf(fmt.Sprintf("fragment_%d.py", i), 1, 3)
+	}
+
+	pairs := make([]*ClonePair, 0, fragmentCount*fragmentCount)
+	for i := 0; i < len(fragments); i++ {
+		for j := i + 1; j < len(fragments); j++ {
+			if rng.Float64() < 0.2 {
+				continue
+			}
+
+			pairs = append(pairs, &ClonePair{
+				Fragment1:  fragments[i],
+				Fragment2:  fragments[j],
+				Similarity: rng.Float64(),
+				CloneType:  CloneType(rng.Intn(int(Type4Clone)) + 1),
+			})
+
+			if rng.Float64() < 0.35 {
+				pairs = append(pairs, &ClonePair{
+					Fragment1:  fragments[i],
+					Fragment2:  fragments[j],
+					Similarity: rng.Float64(),
+					CloneType:  CloneType(rng.Intn(int(Type4Clone)) + 1),
+				})
+			}
+		}
+	}
+
+	return pairs
+}
+
+func referenceCompleteLinkageGroups(threshold float64, pairs []*ClonePair) []*CloneGroup {
+	if len(pairs) == 0 {
+		return []*CloneGroup{}
+	}
+
+	fragments := make([]*CodeFragment, 0)
+	seen := make(map[*CodeFragment]struct{})
+	sims := make(map[string]float64)
+	types := make(map[string]CloneType)
+	for _, p := range pairs {
+		if p == nil || p.Fragment1 == nil || p.Fragment2 == nil {
+			continue
+		}
+		if _, ok := seen[p.Fragment1]; !ok {
+			seen[p.Fragment1] = struct{}{}
+			fragments = append(fragments, p.Fragment1)
+		}
+		if _, ok := seen[p.Fragment2]; !ok {
+			seen[p.Fragment2] = struct{}{}
+			fragments = append(fragments, p.Fragment2)
+		}
+		key := pairKey(p.Fragment1, p.Fragment2)
+		if old, ok := sims[key]; !ok || p.Similarity > old {
+			sims[key] = p.Similarity
+			types[key] = p.CloneType
+		}
+	}
+
+	if len(fragments) < 2 {
+		return []*CloneGroup{}
+	}
+
+	clusters := make([][]*CodeFragment, len(fragments))
+	for i, fragment := range fragments {
+		clusters[i] = []*CodeFragment{fragment}
+	}
+
+	clusterSim := func(firstCluster, secondCluster []*CodeFragment) float64 {
+		minSim := 1.0
+		hasPair := false
+		for _, firstFragment := range firstCluster {
+			for _, secondFragment := range secondCluster {
+				sim := similarity(sims, firstFragment, secondFragment)
+				if sim < threshold {
+					return 0.0
+				}
+				if sim < minSim {
+					minSim = sim
+				}
+				hasPair = true
+			}
+		}
+		if !hasPair {
+			return 0.0
+		}
+		return minSim
+	}
+
+	for {
+		bestI, bestJ := -1, -1
+		bestScore := -1.0
+		for i := 0; i < len(clusters); i++ {
+			for j := i + 1; j < len(clusters); j++ {
+				sim := clusterSim(clusters[i], clusters[j])
+				if sim >= threshold && sim > bestScore {
+					bestScore = sim
+					bestI = i
+					bestJ = j
+				}
+			}
+		}
+		if bestI == -1 || bestJ == -1 {
+			break
+		}
+
+		clusters[bestI] = append(clusters[bestI], clusters[bestJ]...)
+		clusters = append(clusters[:bestJ], clusters[bestJ+1:]...)
+	}
+
+	groups := make([]*CloneGroup, 0)
+	groupID := 0
+	for _, cluster := range clusters {
+		if len(cluster) < 2 {
+			continue
+		}
+
+		valid := true
+		for i := 0; i < len(cluster) && valid; i++ {
+			for j := i + 1; j < len(cluster); j++ {
+				if similarity(sims, cluster[i], cluster[j]) < threshold {
+					valid = false
+					break
+				}
+			}
+		}
+		if !valid {
+			continue
+		}
+
+		sort.Slice(cluster, func(i, j int) bool { return fragmentLess(cluster[i], cluster[j]) })
+		group := NewCloneGroup(groupID)
+		groupID++
+		for _, fragment := range cluster {
+			group.AddFragment(fragment)
+		}
+		group.Similarity = averageGroupSimilarity(sims, cluster)
+		group.CloneType = majorityCloneType(types, cluster)
+		groups = append(groups, group)
+	}
+
+	sort.Slice(groups, func(i, j int) bool {
+		if !almostEqual(groups[i].Similarity, groups[j].Similarity) {
+			return groups[i].Similarity > groups[j].Similarity
+		}
+		if groups[i].Size != groups[j].Size {
+			return groups[i].Size > groups[j].Size
+		}
+		if len(groups[i].Fragments) == 0 || len(groups[j].Fragments) == 0 {
+			return false
+		}
+		return fragmentLess(groups[i].Fragments[0], groups[j].Fragments[0])
+	})
+
+	return groups
+}
+
+func assertCloneGroupsEqual(t *testing.T, want, got []*CloneGroup, threshold float64, seed int64) {
+	t.Helper()
+
+	wantSnapshots := snapshotCloneGroups(want)
+	gotSnapshots := snapshotCloneGroups(got)
+	if len(wantSnapshots) != len(gotSnapshots) {
+		t.Fatalf("threshold %.2f seed %d: group count mismatch: want %d got %d", threshold, seed, len(wantSnapshots), len(gotSnapshots))
+	}
+
+	for i := range wantSnapshots {
+		if wantSnapshots[i].members != gotSnapshots[i].members {
+			t.Fatalf("threshold %.2f seed %d: members mismatch: want %s got %s", threshold, seed, wantSnapshots[i].members, gotSnapshots[i].members)
+		}
+		if wantSnapshots[i].cloneType != gotSnapshots[i].cloneType {
+			t.Fatalf("threshold %.2f seed %d: clone type mismatch for %s: want %v got %v", threshold, seed, wantSnapshots[i].members, wantSnapshots[i].cloneType, gotSnapshots[i].cloneType)
+		}
+		if !almostEqual(wantSnapshots[i].similarity, gotSnapshots[i].similarity) {
+			t.Fatalf("threshold %.2f seed %d: similarity mismatch for %s: want %f got %f", threshold, seed, wantSnapshots[i].members, wantSnapshots[i].similarity, gotSnapshots[i].similarity)
+		}
+	}
+}
+
+type cloneGroupSnapshot struct {
+	members    string
+	similarity float64
+	cloneType  CloneType
+}
+
+func snapshotCloneGroups(groups []*CloneGroup) []cloneGroupSnapshot {
+	snapshots := make([]cloneGroupSnapshot, 0, len(groups))
+	for _, group := range groups {
+		memberIDs := make([]string, 0, len(group.Fragments))
+		for _, fragment := range group.Fragments {
+			memberIDs = append(memberIDs, fragmentID(fragment))
+		}
+		sort.Strings(memberIDs)
+		snapshots = append(snapshots, cloneGroupSnapshot{
+			members:    strings.Join(memberIDs, "||"),
+			similarity: group.Similarity,
+			cloneType:  group.CloneType,
+		})
+	}
+
+	sort.Slice(snapshots, func(i, j int) bool {
+		if snapshots[i].members != snapshots[j].members {
+			return snapshots[i].members < snapshots[j].members
+		}
+		if !almostEqual(snapshots[i].similarity, snapshots[j].similarity) {
+			return snapshots[i].similarity < snapshots[j].similarity
+		}
+		return snapshots[i].cloneType < snapshots[j].cloneType
+	})
+
+	return snapshots
 }
