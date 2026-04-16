@@ -20,7 +20,41 @@ func (c *CompleteLinkageGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup 
 		return []*CloneGroup{}
 	}
 
-	// Collect unique fragments and build a similarity cache from pairs
+	fragments, sims, types := c.collectFragmentsAndSimilarities(pairs)
+	n := len(fragments)
+	if n < 2 {
+		return []*CloneGroup{}
+	}
+
+	clusters := make([][]*CodeFragment, n)
+	active := make([]int, n)
+	for i, f := range fragments {
+		clusters[i] = []*CodeFragment{f}
+		active[i] = i
+	}
+
+	// Cache complete-linkage similarities so merges only need O(k) updates via
+	// sim(AB, C) = min(sim(A, C), sim(B, C)).
+	clusterSims := c.buildClusterSimilarityMatrix(fragments, sims)
+
+	for {
+		bestI, bestJ := c.findBestClusterPair(active, clusterSims)
+		if bestI == -1 || bestJ == -1 {
+			break
+		}
+
+		targetID := active[bestI]
+		sourceID := active[bestJ]
+		clusters[targetID] = append(clusters[targetID], clusters[sourceID]...)
+		c.updateMergedClusterSimilarities(active, clusterSims, targetID, sourceID)
+		clusters[sourceID] = nil
+		active = append(active[:bestJ], active[bestJ+1:]...)
+	}
+
+	return c.buildGroups(active, clusters, sims, types)
+}
+
+func (c *CompleteLinkageGrouping) collectFragmentsAndSimilarities(pairs []*ClonePair) ([]*CodeFragment, map[string]float64, map[string]CloneType) {
 	fragments := make([]*CodeFragment, 0)
 	seen := make(map[*CodeFragment]struct{})
 	sims := make(map[string]float64)
@@ -44,72 +78,65 @@ func (c *CompleteLinkageGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup 
 		}
 	}
 
-	n := len(fragments)
-	if n < 2 {
-		return []*CloneGroup{}
+	return fragments, sims, types
+}
+
+func (c *CompleteLinkageGrouping) buildClusterSimilarityMatrix(fragments []*CodeFragment, sims map[string]float64) [][]float64 {
+	clusterSims := make([][]float64, len(fragments))
+	for i := range clusterSims {
+		clusterSims[i] = make([]float64, len(fragments))
+		clusterSims[i][i] = 1.0
 	}
 
-	// Initialize clusters: each fragment in its own cluster
-	clusters := make([][]*CodeFragment, n)
-	for i, f := range fragments {
-		clusters[i] = []*CodeFragment{f}
+	for i := 0; i < len(fragments); i++ {
+		for j := i + 1; j < len(fragments); j++ {
+			s := similarity(sims, fragments[i], fragments[j])
+			clusterSims[i][j] = s
+			clusterSims[j][i] = s
+		}
 	}
 
-	// Helper to compute complete-linkage similarity between two clusters
-	clusterSim := func(a, b []*CodeFragment) float64 {
-		// minimum similarity between any pair across clusters
-		// Early exit: if any pair falls below threshold, this cluster pair is invalid.
-		minSim := 1.0
-		hasPair := false
-		for _, x := range a {
-			for _, y := range b {
-				s := similarity(sims, x, y) // 0 if missing
-				if s < c.threshold {
-					// Early rejection for complete linkage
-					return 0.0
-				}
-				if s < minSim {
-					minSim = s
-				}
-				hasPair = true
+	return clusterSims
+}
+
+func (c *CompleteLinkageGrouping) findBestClusterPair(active []int, clusterSims [][]float64) (int, int) {
+	bestI, bestJ := -1, -1
+	bestScore := -1.0
+	for i := 0; i < len(active); i++ {
+		for j := i + 1; j < len(active); j++ {
+			s := clusterSims[active[i]][active[j]]
+			if s >= c.threshold && s > bestScore {
+				bestScore = s
+				bestI = i
+				bestJ = j
 			}
 		}
-		if !hasPair {
-			return 0.0
-		}
-		return minSim
 	}
 
-	// Repeatedly merge the best pair whose complete-linkage sim >= threshold
-	for {
-		bestI, bestJ := -1, -1
-		bestScore := -1.0
-		// Find best pair
-		for i := 0; i < len(clusters); i++ {
-			for j := i + 1; j < len(clusters); j++ {
-				s := clusterSim(clusters[i], clusters[j])
-				if s >= c.threshold {
-					if s > bestScore {
-						bestScore = s
-						bestI, bestJ = i, j
-					}
-				}
-			}
-		}
-		if bestI == -1 || bestJ == -1 {
-			break // no more merges possible
-		}
-		// Merge bestJ into bestI
-		merged := append(clusters[bestI], clusters[bestJ]...)
-		clusters[bestI] = merged
-		// Remove bestJ
-		clusters = append(clusters[:bestJ], clusters[bestJ+1:]...)
-	}
+	return bestI, bestJ
+}
 
-	// Build groups from clusters where all intra-pairs meet threshold
+func (c *CompleteLinkageGrouping) updateMergedClusterSimilarities(active []int, clusterSims [][]float64, targetID, sourceID int) {
+	for _, otherID := range active {
+		if otherID == targetID || otherID == sourceID {
+			continue
+		}
+
+		mergedSim := clusterSims[targetID][otherID]
+		if sourceSim := clusterSims[sourceID][otherID]; sourceSim < mergedSim {
+			mergedSim = sourceSim
+		}
+		clusterSims[targetID][otherID] = mergedSim
+		clusterSims[otherID][targetID] = mergedSim
+	}
+	clusterSims[targetID][targetID] = 1.0
+}
+
+func (c *CompleteLinkageGrouping) buildGroups(active []int, clusters [][]*CodeFragment, sims map[string]float64, types map[string]CloneType) []*CloneGroup {
 	groups := make([]*CloneGroup, 0)
 	groupID := 0
-	for _, cl := range clusters {
+	for _, clusterID := range active {
+		cl := clusters[clusterID]
 		if len(cl) < 2 {
 			continue
 		}
