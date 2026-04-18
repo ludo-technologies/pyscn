@@ -119,6 +119,39 @@ func TestCompleteLinkageGrouping_MatchesReferenceImplementation(t *testing.T) {
 	}
 }
 
+func TestCompleteLinkageGrouping_MatchesReferenceImplementationExhaustiveSmallGraphs(t *testing.T) {
+	threshold := 0.80
+	totalCases := 1
+	for i := 0; i < 6; i++ { // 4 fragments => 6 undirected pairs
+		totalCases *= 4
+	}
+
+	for caseID := 0; caseID < totalCases; caseID++ {
+		pairs := buildExhaustiveCompleteLinkagePairs(caseID, threshold)
+		got := NewCompleteLinkageGrouping(threshold).GroupClones(pairs)
+		want := referenceCompleteLinkageGroups(threshold, pairs)
+		assertCloneGroupsEqual(t, want, got, threshold, int64(caseID))
+	}
+}
+
+func TestCompleteLinkageGrouping_IsDeterministicAcrossRuns(t *testing.T) {
+	threshold := 0.80
+	pairs := buildDeterminismCompleteLinkagePairs()
+	want := snapshotCloneGroups(NewCompleteLinkageGrouping(threshold).GroupClones(pairs))
+
+	for run := 0; run < 32; run++ {
+		got := snapshotCloneGroups(NewCompleteLinkageGrouping(threshold).GroupClones(pairs))
+		if len(got) != len(want) {
+			t.Fatalf("run %d: group count mismatch: want %d got %d", run, len(want), len(got))
+		}
+		for i := range want {
+			if want[i] != got[i] {
+				t.Fatalf("run %d: deterministic snapshot mismatch at %d: want %+v got %+v", run, i, want[i], got[i])
+			}
+		}
+	}
+}
+
 func TestMajorityCloneType_TieBreaksDeterministically(t *testing.T) {
 	a := gf("a.py", 1, 3)
 	b := gf("b.py", 1, 3)
@@ -226,6 +259,58 @@ func buildRandomCompleteLinkagePairs(seed int64, fragmentCount int) []*ClonePair
 	}
 
 	return pairs
+}
+
+func buildExhaustiveCompleteLinkagePairs(caseID int, threshold float64) []*ClonePair {
+	fragments := []*CodeFragment{
+		gf("exhaustive_0.py", 1, 3),
+		gf("exhaustive_1.py", 1, 3),
+		gf("exhaustive_2.py", 1, 3),
+		gf("exhaustive_3.py", 1, 3),
+	}
+	stateScores := []float64{-1.0, threshold - 0.01, threshold, 0.95}
+
+	pairs := make([]*ClonePair, 0, 6)
+	stateIndex := caseID
+	for i := 0; i < len(fragments); i++ {
+		for j := i + 1; j < len(fragments); j++ {
+			score := stateScores[stateIndex%len(stateScores)]
+			stateIndex /= len(stateScores)
+			if score < 0.0 {
+				continue
+			}
+
+			pairs = append(pairs, &ClonePair{
+				Fragment1:  fragments[i],
+				Fragment2:  fragments[j],
+				Similarity: score,
+				CloneType:  Type1Clone,
+			})
+		}
+	}
+
+	return pairs
+}
+
+func buildDeterminismCompleteLinkagePairs() []*ClonePair {
+	a := gf("deterministic_a.py", 1, 3)
+	b := gf("deterministic_b.py", 1, 3)
+	c := gf("deterministic_c.py", 1, 3)
+	d := gf("deterministic_d.py", 1, 3)
+	e := gf("deterministic_e.py", 1, 3)
+
+	return []*ClonePair{
+		gp(a, b, 0.95),
+		gp(a, c, 0.95),
+		gp(b, c, 0.80),
+		gp(a, d, 0.81),
+		gp(b, d, 0.81),
+		gp(c, d, 0.79),
+		gp(a, e, 0.20),
+		gp(b, e, 0.82),
+		gp(c, e, 0.82),
+		gp(d, e, 0.82),
+	}
 }
 
 func referenceCompleteLinkageGroups(threshold float64, pairs []*ClonePair) []*CloneGroup {

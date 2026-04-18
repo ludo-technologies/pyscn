@@ -2,50 +2,91 @@ package analyzer
 
 import "container/heap"
 
-type completeLinkageCandidate struct {
-	leftID       int
-	rightID      int
-	score        float64
-	leftVersion  int
-	rightVersion int
+type completeLinkageBestNeighbor struct {
+	clusterID  int
+	neighborID int
+	score      float64
 }
 
-type completeLinkageCandidateHeap []completeLinkageCandidate
+type completeLinkageBestNeighborHeap struct {
+	entries   []completeLinkageBestNeighbor
+	positions []int
+}
 
-func (h completeLinkageCandidateHeap) Len() int { return len(h) }
-
-func (h completeLinkageCandidateHeap) Less(i, j int) bool {
-	if !almostEqual(h[i].score, h[j].score) {
-		return h[i].score > h[j].score
+func newCompleteLinkageBestNeighborHeap(clusterCount int) *completeLinkageBestNeighborHeap {
+	positions := make([]int, clusterCount)
+	for i := range positions {
+		positions[i] = -1
 	}
-	if h[i].leftID != h[j].leftID {
-		return h[i].leftID < h[j].leftID
+	return &completeLinkageBestNeighborHeap{positions: positions}
+}
+
+func (h *completeLinkageBestNeighborHeap) Len() int { return len(h.entries) }
+
+func (h *completeLinkageBestNeighborHeap) Less(i, j int) bool {
+	if !almostEqual(h.entries[i].score, h.entries[j].score) {
+		return h.entries[i].score > h.entries[j].score
 	}
-	return h[i].rightID < h[j].rightID
+
+	leftI, rightI := orderClusterIDs(h.entries[i].clusterID, h.entries[i].neighborID)
+	leftJ, rightJ := orderClusterIDs(h.entries[j].clusterID, h.entries[j].neighborID)
+	if leftI != leftJ {
+		return leftI < leftJ
+	}
+	if rightI != rightJ {
+		return rightI < rightJ
+	}
+	return h.entries[i].clusterID < h.entries[j].clusterID
 }
 
-func (h completeLinkageCandidateHeap) Swap(i, j int) {
-	h[i], h[j] = h[j], h[i]
+func (h *completeLinkageBestNeighborHeap) Swap(i, j int) {
+	h.entries[i], h.entries[j] = h.entries[j], h.entries[i]
+	h.positions[h.entries[i].clusterID] = i
+	h.positions[h.entries[j].clusterID] = j
 }
 
-func (h *completeLinkageCandidateHeap) Push(x any) {
-	*h = append(*h, x.(completeLinkageCandidate))
+func (h *completeLinkageBestNeighborHeap) Push(x any) {
+	entry := x.(completeLinkageBestNeighbor)
+	h.positions[entry.clusterID] = len(h.entries)
+	h.entries = append(h.entries, entry)
 }
 
-func (h *completeLinkageCandidateHeap) Pop() any {
-	old := *h
-	last := len(old) - 1
-	item := old[last]
-	*h = old[:last]
-	return item
+func (h *completeLinkageBestNeighborHeap) Pop() any {
+	last := len(h.entries) - 1
+	entry := h.entries[last]
+	h.entries = h.entries[:last]
+	h.positions[entry.clusterID] = -1
+	return entry
 }
 
-func (h *completeLinkageCandidateHeap) push(candidate completeLinkageCandidate) {
-	heap.Push(h, candidate)
+func (h *completeLinkageBestNeighborHeap) set(clusterID, neighborID int, score float64) {
+	if position := h.positions[clusterID]; position >= 0 {
+		h.entries[position].neighborID = neighborID
+		h.entries[position].score = score
+		heap.Fix(h, position)
+		return
+	}
+
+	heap.Push(h, completeLinkageBestNeighbor{
+		clusterID:  clusterID,
+		neighborID: neighborID,
+		score:      score,
+	})
 }
 
-func (h *completeLinkageCandidateHeap) pop() completeLinkageCandidate {
-	return heap.Pop(h).(completeLinkageCandidate)
+func (h *completeLinkageBestNeighborHeap) remove(clusterID int) {
+	position := h.positions[clusterID]
+	if position < 0 {
+		return
+	}
+	heap.Remove(h, position)
+}
+
+func (h *completeLinkageBestNeighborHeap) popBest() (completeLinkageBestNeighbor, bool) {
+	if h.Len() == 0 {
+		return completeLinkageBestNeighbor{}, false
+	}
+	return heap.Pop(h).(completeLinkageBestNeighbor), true
 }
 
 func orderClusterIDs(firstID, secondID int) (int, int) {
