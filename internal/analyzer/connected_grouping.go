@@ -152,7 +152,7 @@ func majorityCloneType(typeMap map[string]CloneType, members []*CodeFragment) Cl
 	var best CloneType
 	maxC := -1
 	for t, c := range counts {
-		if c > maxC || (c == maxC && t < best) {
+		if c > maxC {
 			maxC = c
 			best = t
 		}

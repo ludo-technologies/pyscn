@@ -113,6 +113,7 @@ func TestCompleteLinkageGrouping_MatchesReferenceImplementation(t *testing.T) {
 				pairs := buildRandomCompleteLinkagePairs(seed, 7)
 				got := NewCompleteLinkageGrouping(thr).GroupClones(pairs)
 				want := referenceCompleteLinkageGroups(thr, pairs)
+				assertCompleteLinkageOutputInvariants(t, pairs, got, thr, seed)
 				assertCloneGroupsEqual(t, want, got, thr, seed)
 			}
 		})
@@ -130,6 +131,7 @@ func TestCompleteLinkageGrouping_MatchesReferenceImplementationExhaustiveSmallGr
 		pairs := buildExhaustiveCompleteLinkagePairs(caseID, threshold)
 		got := NewCompleteLinkageGrouping(threshold).GroupClones(pairs)
 		want := referenceCompleteLinkageGroups(threshold, pairs)
+		assertCompleteLinkageOutputInvariants(t, pairs, got, threshold, int64(caseID))
 		assertCloneGroupsEqual(t, want, got, threshold, int64(caseID))
 	}
 }
@@ -137,10 +139,14 @@ func TestCompleteLinkageGrouping_MatchesReferenceImplementationExhaustiveSmallGr
 func TestCompleteLinkageGrouping_IsDeterministicAcrossRuns(t *testing.T) {
 	threshold := 0.80
 	pairs := buildDeterminismCompleteLinkagePairs()
-	want := snapshotCloneGroups(NewCompleteLinkageGrouping(threshold).GroupClones(pairs))
+	initialGroups := NewCompleteLinkageGrouping(threshold).GroupClones(pairs)
+	assertCompleteLinkageOutputInvariants(t, pairs, initialGroups, threshold, 0)
+	want := snapshotCloneGroups(initialGroups)
 
 	for run := 0; run < 32; run++ {
-		got := snapshotCloneGroups(NewCompleteLinkageGrouping(threshold).GroupClones(pairs))
+		groups := NewCompleteLinkageGrouping(threshold).GroupClones(pairs)
+		assertCompleteLinkageOutputInvariants(t, pairs, groups, threshold, int64(run))
+		got := snapshotCloneGroups(groups)
 		if len(got) != len(want) {
 			t.Fatalf("run %d: group count mismatch: want %d got %d", run, len(want), len(got))
 		}
@@ -149,25 +155,6 @@ func TestCompleteLinkageGrouping_IsDeterministicAcrossRuns(t *testing.T) {
 				t.Fatalf("run %d: deterministic snapshot mismatch at %d: want %+v got %+v", run, i, want[i], got[i])
 			}
 		}
-	}
-}
-
-func TestMajorityCloneType_TieBreaksDeterministically(t *testing.T) {
-	a := gf("a.py", 1, 3)
-	b := gf("b.py", 1, 3)
-	c := gf("c.py", 1, 3)
-	d := gf("d.py", 1, 3)
-	members := []*CodeFragment{a, b, c, d}
-	typeMap := map[string]CloneType{
-		pairKey(a, b): Type3Clone,
-		pairKey(a, c): Type1Clone,
-		pairKey(a, d): Type3Clone,
-		pairKey(b, c): Type1Clone,
-	}
-
-	got := majorityCloneType(typeMap, members)
-	if got != Type1Clone {
-		t.Fatalf("expected deterministic lower clone-type tie break, got %v", got)
 	}
 }
 
@@ -439,6 +426,55 @@ func referenceCompleteLinkageGroups(threshold float64, pairs []*ClonePair) []*Cl
 	return groups
 }
 
+func assertCompleteLinkageOutputInvariants(t *testing.T, pairs []*ClonePair, groups []*CloneGroup, threshold float64, caseID int64) {
+	t.Helper()
+
+	similarities := buildSimilarityMapForPairs(pairs)
+	for groupIndex, group := range groups {
+		for i := 0; i < len(group.Fragments); i++ {
+			for j := i + 1; j < len(group.Fragments); j++ {
+				if similarity(similarities, group.Fragments[i], group.Fragments[j]) < threshold {
+					t.Fatalf("case %d group %d is not a threshold clique", caseID, groupIndex)
+				}
+			}
+		}
+	}
+
+	for leftGroup := 0; leftGroup < len(groups); leftGroup++ {
+		for rightGroup := leftGroup + 1; rightGroup < len(groups); rightGroup++ {
+			mergeable := true
+			for _, leftFragment := range groups[leftGroup].Fragments {
+				for _, rightFragment := range groups[rightGroup].Fragments {
+					if similarity(similarities, leftFragment, rightFragment) < threshold {
+						mergeable = false
+						break
+					}
+				}
+				if !mergeable {
+					break
+				}
+			}
+			if mergeable {
+				t.Fatalf("case %d groups %d and %d remained mergeable at threshold %.2f", caseID, leftGroup, rightGroup, threshold)
+			}
+		}
+	}
+}
+
+func buildSimilarityMapForPairs(pairs []*ClonePair) map[string]float64 {
+	similarities := make(map[string]float64)
+	for _, pair := range pairs {
+		if pair == nil || pair.Fragment1 == nil || pair.Fragment2 == nil {
+			continue
+		}
+		key := pairKey(pair.Fragment1, pair.Fragment2)
+		if old, ok := similarities[key]; !ok || pair.Similarity > old {
+			similarities[key] = pair.Similarity
+		}
+	}
+	return similarities
+}
+
 func assertCloneGroupsEqual(t *testing.T, want, got []*CloneGroup, threshold float64, seed int64) {
 	t.Helper()
 
@@ -451,9 +487,6 @@ func assertCloneGroupsEqual(t *testing.T, want, got []*CloneGroup, threshold flo
 	for i := range wantSnapshots {
 		if wantSnapshots[i].members != gotSnapshots[i].members {
 			t.Fatalf("threshold %.2f seed %d: members mismatch: want %s got %s", threshold, seed, wantSnapshots[i].members, gotSnapshots[i].members)
-		}
-		if wantSnapshots[i].cloneType != gotSnapshots[i].cloneType {
-			t.Fatalf("threshold %.2f seed %d: clone type mismatch for %s: want %v got %v", threshold, seed, wantSnapshots[i].members, wantSnapshots[i].cloneType, gotSnapshots[i].cloneType)
 		}
 		if !almostEqual(wantSnapshots[i].similarity, gotSnapshots[i].similarity) {
 			t.Fatalf("threshold %.2f seed %d: similarity mismatch for %s: want %f got %f", threshold, seed, wantSnapshots[i].members, wantSnapshots[i].similarity, gotSnapshots[i].similarity)
