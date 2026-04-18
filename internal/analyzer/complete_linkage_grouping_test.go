@@ -491,6 +491,9 @@ func assertCloneGroupsEqual(t *testing.T, want, got []*CloneGroup, threshold flo
 		if !almostEqual(wantSnapshots[i].similarity, gotSnapshots[i].similarity) {
 			t.Fatalf("threshold %.2f seed %d: similarity mismatch for %s: want %f got %f", threshold, seed, wantSnapshots[i].members, wantSnapshots[i].similarity, gotSnapshots[i].similarity)
 		}
+		if wantSnapshots[i].cloneType != gotSnapshots[i].cloneType {
+			t.Fatalf("threshold %.2f seed %d: clone type mismatch for %s: want %v got %v", threshold, seed, wantSnapshots[i].members, wantSnapshots[i].cloneType, gotSnapshots[i].cloneType)
+		}
 	}
 }
 
