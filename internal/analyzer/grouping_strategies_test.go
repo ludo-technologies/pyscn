@@ -101,6 +101,26 @@ func TestGroupingStrategiesComparison(t *testing.T) {
 	}
 }
 
+func TestMajorityCloneType_TieBreaksDeterministically(t *testing.T) {
+	a := gf("a.py", 1, 3)
+	b := gf("b.py", 1, 3)
+	c := gf("c.py", 1, 3)
+	d := gf("d.py", 1, 3)
+
+	members := []*CodeFragment{a, b, c, d}
+	typeMap := map[string]CloneType{
+		pairKey(a, b): Type3Clone,
+		pairKey(a, c): Type1Clone,
+		pairKey(a, d): Type3Clone,
+		pairKey(b, c): Type1Clone,
+	}
+
+	got := majorityCloneType(typeMap, members)
+	if got != Type1Clone {
+		t.Fatalf("expected deterministic lower clone-type tie break, got %v", got)
+	}
+}
+
 func sizes(gs []*CloneGroup) []int {
 	out := make([]int, 0, len(gs))
 	for _, g := range gs {
