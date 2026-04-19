@@ -1,10 +1,8 @@
 package analyzer
 
-import (
-	"sort"
-)
+import "sort"
 
-// CompleteLinkageGrouping ensures all pairs in a group meet the threshold
+// CompleteLinkageGrouping ensures all pairs in a group meet the threshold.
 type CompleteLinkageGrouping struct {
 	threshold float64
 }
@@ -16,126 +14,131 @@ func NewCompleteLinkageGrouping(threshold float64) *CompleteLinkageGrouping {
 func (c *CompleteLinkageGrouping) GetName() string { return "Complete Linkage" }
 
 func (c *CompleteLinkageGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
-	if len(pairs) == 0 {
+	input := c.collectInput(pairs)
+	if len(input.fragments) < 2 {
 		return []*CloneGroup{}
 	}
 
-	// Collect unique fragments and build a similarity cache from pairs
-	fragments := make([]*CodeFragment, 0)
+	clusterer := newCompleteLinkageClusterer(input.fragments, input.edges)
+	clusterer.mergeUntilStable()
+
+	return c.buildGroups(clusterer.activeClusters(), input.similarities, input.types)
+}
+
+type completeLinkageInput struct {
+	fragments    []*CodeFragment
+	similarities map[string]float64
+	types        map[string]CloneType
+	edges        []completeLinkageEdge
+}
+
+type completeLinkagePairRecord struct {
+	left       *CodeFragment
+	right      *CodeFragment
+	similarity float64
+	cloneType  CloneType
+}
+
+type completeLinkageEdge struct {
+	leftID  int
+	rightID int
+	score   float64
+}
+
+func (c *CompleteLinkageGrouping) collectInput(pairs []*ClonePair) completeLinkageInput {
+	input := completeLinkageInput{
+		fragments:    make([]*CodeFragment, 0),
+		similarities: make(map[string]float64),
+		types:        make(map[string]CloneType),
+	}
+
 	seen := make(map[*CodeFragment]struct{})
-	sims := make(map[string]float64)
-	types := make(map[string]CloneType)
-	for _, p := range pairs {
-		if p == nil || p.Fragment1 == nil || p.Fragment2 == nil {
+	pairRecords := make(map[string]completeLinkagePairRecord)
+	for _, pair := range pairs {
+		if pair == nil || pair.Fragment1 == nil || pair.Fragment2 == nil {
 			continue
 		}
-		if _, ok := seen[p.Fragment1]; !ok {
-			seen[p.Fragment1] = struct{}{}
-			fragments = append(fragments, p.Fragment1)
-		}
-		if _, ok := seen[p.Fragment2]; !ok {
-			seen[p.Fragment2] = struct{}{}
-			fragments = append(fragments, p.Fragment2)
-		}
-		k := pairKey(p.Fragment1, p.Fragment2)
-		if old, ok := sims[k]; !ok || p.Similarity > old {
-			sims[k] = p.Similarity
-			types[k] = p.CloneType
-		}
-	}
 
-	n := len(fragments)
-	if n < 2 {
-		return []*CloneGroup{}
-	}
+		if _, ok := seen[pair.Fragment1]; !ok {
+			seen[pair.Fragment1] = struct{}{}
+			input.fragments = append(input.fragments, pair.Fragment1)
+		}
+		if _, ok := seen[pair.Fragment2]; !ok {
+			seen[pair.Fragment2] = struct{}{}
+			input.fragments = append(input.fragments, pair.Fragment2)
+		}
 
-	// Initialize clusters: each fragment in its own cluster
-	clusters := make([][]*CodeFragment, n)
-	for i, f := range fragments {
-		clusters[i] = []*CodeFragment{f}
-	}
-
-	// Helper to compute complete-linkage similarity between two clusters
-	clusterSim := func(a, b []*CodeFragment) float64 {
-		// minimum similarity between any pair across clusters
-		// Early exit: if any pair falls below threshold, this cluster pair is invalid.
-		minSim := 1.0
-		hasPair := false
-		for _, x := range a {
-			for _, y := range b {
-				s := similarity(sims, x, y) // 0 if missing
-				if s < c.threshold {
-					// Early rejection for complete linkage
-					return 0.0
-				}
-				if s < minSim {
-					minSim = s
-				}
-				hasPair = true
+		key := pairKey(pair.Fragment1, pair.Fragment2)
+		record, ok := pairRecords[key]
+		if !ok || pair.Similarity > record.similarity {
+			pairRecords[key] = completeLinkagePairRecord{
+				left:       pair.Fragment1,
+				right:      pair.Fragment2,
+				similarity: pair.Similarity,
+				cloneType:  pair.CloneType,
 			}
+			input.similarities[key] = pair.Similarity
+			input.types[key] = pair.CloneType
 		}
-		if !hasPair {
-			return 0.0
-		}
-		return minSim
 	}
 
-	// Repeatedly merge the best pair whose complete-linkage sim >= threshold
-	for {
-		bestI, bestJ := -1, -1
-		bestScore := -1.0
-		// Find best pair
-		for i := 0; i < len(clusters); i++ {
-			for j := i + 1; j < len(clusters); j++ {
-				s := clusterSim(clusters[i], clusters[j])
-				if s >= c.threshold {
-					if s > bestScore {
-						bestScore = s
-						bestI, bestJ = i, j
-					}
-				}
-			}
-		}
-		if bestI == -1 || bestJ == -1 {
-			break // no more merges possible
-		}
-		// Merge bestJ into bestI
-		merged := append(clusters[bestI], clusters[bestJ]...)
-		clusters[bestI] = merged
-		// Remove bestJ
-		clusters = append(clusters[:bestJ], clusters[bestJ+1:]...)
+	fragmentIDs := make(map[*CodeFragment]int, len(input.fragments))
+	for fragmentID, fragment := range input.fragments {
+		fragmentIDs[fragment] = fragmentID
 	}
 
-	// Build groups from clusters where all intra-pairs meet threshold
-	groups := make([]*CloneGroup, 0)
+	input.edges = make([]completeLinkageEdge, 0, len(pairRecords))
+	for _, record := range pairRecords {
+		if record.similarity < c.threshold {
+			continue
+		}
+
+		leftID, rightID := orderClusterIDs(fragmentIDs[record.left], fragmentIDs[record.right])
+		input.edges = append(input.edges, completeLinkageEdge{
+			leftID:  leftID,
+			rightID: rightID,
+			score:   record.similarity,
+		})
+	}
+
+	return input
+}
+
+func (c *CompleteLinkageGrouping) buildGroups(activeClusters []*completeLinkageCluster, similarities map[string]float64, types map[string]CloneType) []*CloneGroup {
+	groups := make([]*CloneGroup, 0, len(activeClusters))
 	groupID := 0
-	for _, cl := range clusters {
-		if len(cl) < 2 {
+	for _, cluster := range activeClusters {
+		members := cluster.members
+		if len(members) < 2 {
 			continue
 		}
-		// Verify complete linkage property within cluster
-		ok := true
-		for i := 0; i < len(cl) && ok; i++ {
-			for j := i + 1; j < len(cl); j++ {
-				if similarity(sims, cl[i], cl[j]) < c.threshold {
-					ok = false
+
+		// Keep a final safety check so the optimized clusterer cannot return a
+		// non-clique even if an internal update regresses later.
+		valid := true
+		for i := 0; i < len(members) && valid; i++ {
+			for j := i + 1; j < len(members); j++ {
+				if similarity(similarities, members[i], members[j]) < c.threshold {
+					valid = false
 					break
 				}
 			}
 		}
-		if !ok {
+		if !valid {
 			continue
 		}
 
-		sort.Slice(cl, func(i, j int) bool { return fragmentLess(cl[i], cl[j]) })
-		g := NewCloneGroup(groupID)
+		sortedMembers := append([]*CodeFragment(nil), members...)
+		sort.Slice(sortedMembers, func(i, j int) bool { return fragmentLess(sortedMembers[i], sortedMembers[j]) })
+
+		group := NewCloneGroup(groupID)
 		groupID++
-		for _, f := range cl {
-			g.AddFragment(f)
+		for _, fragment := range sortedMembers {
+			group.AddFragment(fragment)
 		}
-		g.Similarity = averageGroupSimilarity(sims, cl)
-		g.CloneType = majorityCloneType(types, cl)
-		groups = append(groups, g)
+		group.Similarity = averageGroupSimilarity(similarities, sortedMembers)
+		group.CloneType = majorityCloneType(types, sortedMembers)
+		groups = append(groups, group)
 	}
 
 	sort.Slice(groups, func(i, j int) bool {
