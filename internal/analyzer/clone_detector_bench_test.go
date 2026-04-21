@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"context"
 	"fmt"
 	"testing"
 )
@@ -19,25 +20,46 @@ func BenchmarkCloneDetector_DetectClones(b *testing.B) {
 	for _, dataset := range datasets {
 		fragments := buildCloneBenchmarkFragments(dataset.familyCount, dataset.variantsPerFamily, dataset.noiseCount)
 		b.Run(dataset.name, func(b *testing.B) {
-			b.ReportAllocs()
-			for i := 0; i < b.N; i++ {
-				detector := NewCloneDetector(cloneBenchmarkConfig())
-				pairs, groups := detector.DetectClones(fragments)
-				if len(pairs) == 0 || len(groups) == 0 {
-					b.Fatalf("expected clone detection benchmark dataset to produce pairs and groups")
-				}
-			}
+			benchmarkCloneDetectionMode(b, "standard", cloneBenchmarkConfig(false), fragments)
+			benchmarkCloneDetectionMode(b, "lsh", cloneBenchmarkConfig(true), fragments)
 		})
 	}
 }
 
-func cloneBenchmarkConfig() *CloneDetectorConfig {
+func benchmarkCloneDetectionMode(b *testing.B, name string, config *CloneDetectorConfig, fragments []*CodeFragment) {
+	b.Run(name, func(b *testing.B) {
+		b.ReportAllocs()
+		ctx := context.Background()
+		for i := 0; i < b.N; i++ {
+			detector := NewCloneDetector(config)
+
+			var pairs []*ClonePair
+			var groups []*CloneGroup
+			if config.UseLSH {
+				pairs, groups = detector.DetectClonesWithLSH(ctx, fragments)
+			} else {
+				pairs, groups = detector.DetectClones(fragments)
+			}
+
+			if len(pairs) == 0 || len(groups) == 0 {
+				b.Fatalf("expected clone detection benchmark dataset to produce pairs and groups")
+			}
+		}
+	})
+}
+
+func cloneBenchmarkConfig(useLSH bool) *CloneDetectorConfig {
 	config := DefaultCloneDetectorConfig()
 	config.MinLines = 2
 	config.MinNodes = 3
 	config.Type4Threshold = 0.60
 	config.GroupingThreshold = 0.70
 	config.MaxClonePairs = 5000
+	config.UseLSH = useLSH
+	config.LSHSimilarityThreshold = 0.35
+	config.LSHMinHashCount = 128
+	config.LSHBands = 32
+	config.LSHRows = 4
 	return config
 }
 
