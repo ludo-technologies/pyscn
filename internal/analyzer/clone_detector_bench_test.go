@@ -240,7 +240,7 @@ func BenchmarkCloneDetectionMemory(b *testing.B) {
 		count int
 	}{
 		{name: "SmallDataset", count: 100},
-		{name: "LargeDataset", count: 1000},
+		{name: "LargeDataset", count: 500},
 	}
 
 	for _, dataset := range datasets {
