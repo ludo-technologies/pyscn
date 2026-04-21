@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"testing"
+
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 func BenchmarkCloneDetector_DetectClones(b *testing.B) {
@@ -173,4 +175,84 @@ func benchmarkTreeSize(root *TreeNode) int {
 		size += benchmarkTreeSize(child)
 	}
 	return size
+}
+
+func BenchmarkCloneDetector_ExtractFragments(b *testing.B) {
+	config := DefaultCloneDetectorConfig()
+	detector := NewCloneDetector(config)
+
+	astNodes := make([]*parser.Node, 100)
+	for i := 0; i < 100; i++ {
+		astNodes[i] = &parser.Node{
+			Type:     parser.NodeFunctionDef,
+			Name:     fmt.Sprintf("function_%d", i),
+			Location: parser.Location{StartLine: i * 10, EndLine: (i * 10) + 8},
+			Children: []*parser.Node{
+				{Type: parser.NodeName, Name: fmt.Sprintf("param_%d", i)},
+			},
+		}
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		fragments := detector.ExtractFragments(astNodes, "/benchmark.py")
+		_ = fragments
+	}
+}
+
+func BenchmarkCloneDetector_CompareFragments(b *testing.B) {
+	config := DefaultCloneDetectorConfig()
+	detector := NewCloneDetector(config)
+
+	fragment1 := &CodeFragment{
+		Location:  &CodeLocation{FilePath: "/test1.py"},
+		Size:      20,
+		LineCount: 10,
+	}
+	fragment2 := &CodeFragment{
+		Location:  &CodeLocation{FilePath: "/test2.py"},
+		Size:      18,
+		LineCount: 9,
+	}
+
+	tree1 := NewTreeNode(1, "FunctionDef")
+	tree1.AddChild(NewTreeNode(2, "Body"))
+	fragment1.TreeNode = tree1
+	PrepareTreeForAPTED(tree1)
+
+	tree2 := NewTreeNode(1, "FunctionDef")
+	tree2.AddChild(NewTreeNode(2, "Body"))
+	fragment2.TreeNode = tree2
+	PrepareTreeForAPTED(tree2)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pair := detector.compareFragments(fragment1, fragment2)
+		_ = pair
+	}
+}
+
+func BenchmarkCloneDetectionMemory(b *testing.B) {
+	datasets := []struct {
+		name  string
+		count int
+	}{
+		{name: "SmallDataset", count: 100},
+		{name: "LargeDataset", count: 1000},
+	}
+
+	for _, dataset := range datasets {
+		fragments := createTestFragments(dataset.count, "bench")
+		b.Run(dataset.name, func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				detector := NewCloneDetector(cloneBenchmarkConfig(false))
+				detector.fragments = fragments
+				detector.clonePairs = nil
+				detector.DetectClones(detector.fragments)
+			}
+		})
+	}
 }

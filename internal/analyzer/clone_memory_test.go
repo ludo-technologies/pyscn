@@ -306,33 +306,3 @@ func createTestTreeNode(id, size int) *TreeNode {
 
 	return root
 }
-
-// BenchmarkCloneDetectionMemory benchmarks memory usage
-func BenchmarkCloneDetectionMemory(b *testing.B) {
-	config := DefaultCloneDetectorConfig()
-	config.MinLines = 2
-	config.MinNodes = 3
-	detector := NewCloneDetector(config)
-
-	b.Run("SmallDataset", func(b *testing.B) {
-		fragments := createTestFragments(100, "bench")
-		b.ResetTimer()
-
-		for i := 0; i < b.N; i++ {
-			detector.fragments = fragments
-			detector.clonePairs = nil
-			detector.DetectClones(detector.fragments)
-		}
-	})
-
-	b.Run("LargeDataset", func(b *testing.B) {
-		fragments := createTestFragments(1000, "bench")
-		b.ResetTimer()
-
-		for i := 0; i < b.N; i++ {
-			detector.fragments = fragments
-			detector.clonePairs = nil
-			detector.DetectClones(detector.fragments)
-		}
-	})
-}

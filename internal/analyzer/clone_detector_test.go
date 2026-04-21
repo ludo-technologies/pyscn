@@ -802,66 +802,6 @@ func TestCloneDetector_compareFragments(t *testing.T) {
 	}
 }
 
-// Benchmark tests
-func BenchmarkCloneDetector_ExtractFragments(b *testing.B) {
-	config := DefaultCloneDetectorConfig()
-	detector := NewCloneDetector(config)
-
-	// Create benchmark AST with many function nodes
-	astNodes := make([]*parser.Node, 100)
-	for i := 0; i < 100; i++ {
-		astNodes[i] = &parser.Node{
-			Type:     parser.NodeFunctionDef,
-			Name:     fmt.Sprintf("function_%d", i),
-			Location: parser.Location{StartLine: i * 10, EndLine: (i * 10) + 8},
-			Children: []*parser.Node{
-				{Type: parser.NodeName, Name: fmt.Sprintf("param_%d", i)},
-			},
-		}
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		fragments := detector.ExtractFragments(astNodes, "/benchmark.py")
-		_ = fragments // Prevent compiler optimization
-	}
-}
-
-func BenchmarkCloneDetector_CompareFragments(b *testing.B) {
-	config := DefaultCloneDetectorConfig()
-	detector := NewCloneDetector(config)
-
-	// Create two similar fragments
-	fragment1 := &CodeFragment{
-		Location:  &CodeLocation{FilePath: "/test1.py"},
-		Size:      20,
-		LineCount: 10,
-	}
-
-	fragment2 := &CodeFragment{
-		Location:  &CodeLocation{FilePath: "/test2.py"},
-		Size:      18,
-		LineCount: 9,
-	}
-
-	// Create simple tree nodes for comparison
-	tree1 := NewTreeNode(1, "FunctionDef")
-	tree1.AddChild(NewTreeNode(2, "Body"))
-	fragment1.TreeNode = tree1
-	PrepareTreeForAPTED(tree1)
-
-	tree2 := NewTreeNode(1, "FunctionDef")
-	tree2.AddChild(NewTreeNode(2, "Body"))
-	fragment2.TreeNode = tree2
-	PrepareTreeForAPTED(tree2)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		pair := detector.compareFragments(fragment1, fragment2)
-		_ = pair // Prevent compiler optimization
-	}
-}
-
 // Test error conditions and edge cases
 func TestCloneDetector_EdgeCases(t *testing.T) {
 	config := DefaultCloneDetectorConfig()
