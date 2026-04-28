@@ -64,13 +64,17 @@ func (s *SystemAnalysisServiceImpl) analyzeResponsibilityForRequest(
 		return nil, nil, nil
 	}
 
-	responsibility, cohesion, violations := s.analyzeResponsibility(graph, responsibilityOptionsFromRequest(req))
+	responsibility, cohesion, responsibilityViolations := s.analyzeResponsibility(graph, responsibilityOptionsFromRequest(req))
+	violations := make([]domain.ArchitectureViolation, 0, len(responsibilityViolations)+len(cohesion.LowCohesionPackages))
 	if !domain.BoolValue(req.ValidateResponsibility, true) {
 		responsibility = nil
-		violations = nil
+	} else {
+		violations = append(violations, responsibilityViolations...)
 	}
 	if !domain.BoolValue(req.ValidateCohesion, true) {
 		cohesion = nil
+	} else {
+		violations = append(violations, cohesionArchitectureViolations(cohesion)...)
 	}
 	return responsibility, cohesion, violations
 }
@@ -81,6 +85,27 @@ func responsibilitySeverityCounts(violations []domain.ArchitectureViolation) map
 		counts[violation.Severity]++
 	}
 	return counts
+}
+
+func cohesionArchitectureViolations(cohesion *domain.CohesionAnalysis) []domain.ArchitectureViolation {
+	if cohesion == nil || len(cohesion.LowCohesionPackages) == 0 {
+		return nil
+	}
+
+	violations := make([]domain.ArchitectureViolation, 0, len(cohesion.LowCohesionPackages))
+	for _, pkg := range cohesion.LowCohesionPackages {
+		score := cohesion.PackageCohesion[pkg]
+		suggestion := cohesion.CohesionSuggestions[pkg]
+		violations = append(violations, domain.ArchitectureViolation{
+			Type:        domain.ViolationTypeCohesion,
+			Severity:    domain.ViolationSeverityWarning,
+			Module:      pkg,
+			Rule:        "package-cohesion",
+			Description: fmt.Sprintf("Package '%s' has low cohesion (%.2f)", pkg, score),
+			Suggestion:  suggestion,
+		})
+	}
+	return violations
 }
 
 func (s *SystemAnalysisServiceImpl) analyzeResponsibility(

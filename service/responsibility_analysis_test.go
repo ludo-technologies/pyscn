@@ -84,6 +84,31 @@ func TestAnalyzePackageCohesionFlagsScatteredPackage(t *testing.T) {
 	assert.NotEmpty(t, cohesion.CohesionSuggestions["app.orders"])
 }
 
+func TestAnalyzeResponsibilityForRequestKeepsCohesionIndependent(t *testing.T) {
+	service := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/test/project")
+
+	graph.AddModule("app.orders.api", "/test/project/app/orders/api.py")
+	graph.AddModule("app.orders.worker", "/test/project/app/orders/worker.py")
+	graph.AddModule("app.billing.invoice", "/test/project/app/billing/invoice.py")
+	graph.AddModule("app.reporting.export", "/test/project/app/reporting/export.py")
+	graph.AddDependency("app.orders.api", "app.billing.invoice", analyzer.DependencyEdgeImport, nil)
+	graph.AddDependency("app.orders.worker", "app.reporting.export", analyzer.DependencyEdgeImport, nil)
+
+	validateResponsibility := false
+	validateCohesion := true
+	responsibility, cohesion, violations := service.analyzeResponsibilityForRequest(graph, domain.SystemAnalysisRequest{
+		ValidateResponsibility: &validateResponsibility,
+		ValidateCohesion:       &validateCohesion,
+	})
+
+	assert.Nil(t, responsibility)
+	require.NotNil(t, cohesion)
+	require.Len(t, violations, 1)
+	assert.Equal(t, domain.ViolationTypeCohesion, violations[0].Type)
+	assert.Equal(t, "app.orders", violations[0].Module)
+}
+
 func TestResponsibilityOptionsFromRequestUsesConfiguredThresholds(t *testing.T) {
 	options := responsibilityOptionsFromRequest(domain.SystemAnalysisRequest{
 		MinCohesion:                     0.75,
