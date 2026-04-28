@@ -29,11 +29,16 @@ type SystemAnalysisRequest struct {
 	ExcludePatterns []string
 
 	// Analysis options
-	IncludeStdLib        *bool // Include standard library dependencies
-	IncludeThirdParty    *bool // Include third-party dependencies
-	FollowRelative       *bool // Follow relative imports
-	DetectCycles         *bool // Detect circular dependencies
-	ValidateArchitecture *bool // Validate architecture rules
+	IncludeStdLib                   *bool             // Include standard library dependencies
+	IncludeThirdParty               *bool             // Include third-party dependencies
+	FollowRelative                  *bool             // Follow relative imports
+	DetectCycles                    *bool             // Detect circular dependencies
+	ValidateArchitecture            *bool             // Validate architecture rules
+	ValidateCohesion                *bool             // Validate package cohesion
+	ValidateResponsibility          *bool             // Validate single responsibility boundaries
+	MinCohesion                     float64           // Minimum acceptable package cohesion
+	MaxResponsibilities             int               // Maximum inferred responsibilities per module
+	ResponsibilityViolationSeverity ViolationSeverity // Severity for SRP violations
 
 	// Architecture rules (loaded from config or specified directly)
 	ArchitectureRules *ArchitectureRules

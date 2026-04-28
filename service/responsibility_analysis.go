@@ -29,6 +29,33 @@ func defaultResponsibilityOptions() responsibilityOptions {
 	}
 }
 
+func responsibilityOptionsFromRequest(req domain.SystemAnalysisRequest) responsibilityOptions {
+	options := defaultResponsibilityOptions()
+	if req.MinCohesion > 0 {
+		options.minPackageCohesion = req.MinCohesion
+	}
+	if req.MaxResponsibilities > 0 {
+		options.maxResponsibilities = req.MaxResponsibilities
+	}
+	if req.ResponsibilityViolationSeverity != "" {
+		options.severity = req.ResponsibilityViolationSeverity
+	}
+	return options
+}
+
+func parseViolationSeverity(value string) domain.ViolationSeverity {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case string(domain.ViolationSeverityInfo):
+		return domain.ViolationSeverityInfo
+	case string(domain.ViolationSeverityError):
+		return domain.ViolationSeverityError
+	case string(domain.ViolationSeverityCritical):
+		return domain.ViolationSeverityCritical
+	default:
+		return domain.ViolationSeverityWarning
+	}
+}
+
 func (s *SystemAnalysisServiceImpl) analyzeResponsibility(
 	graph *analyzer.DependencyGraph,
 	options responsibilityOptions,

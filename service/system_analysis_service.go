@@ -187,11 +187,24 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
 
 	// Calculate metrics
 	layerCohesion, problematic, layersAnalyzed := s.calculateLayerMetrics(layerCoupling)
-	responsibilityAnalysis, cohesionAnalysis, responsibilityViolations := s.analyzeResponsibility(graph, defaultResponsibilityOptions())
+	var responsibilityAnalysis *domain.ResponsibilityAnalysis
+	var cohesionAnalysis *domain.CohesionAnalysis
+	var responsibilityViolations []domain.ArchitectureViolation
+	if domain.BoolValue(req.ValidateResponsibility, true) || domain.BoolValue(req.ValidateCohesion, true) {
+		responsibilityAnalysis, cohesionAnalysis, responsibilityViolations = s.analyzeResponsibility(graph, responsibilityOptionsFromRequest(req))
+		if !domain.BoolValue(req.ValidateResponsibility, true) {
+			responsibilityAnalysis = nil
+			responsibilityViolations = nil
+		}
+		if !domain.BoolValue(req.ValidateCohesion, true) {
+			cohesionAnalysis = nil
+		}
+	}
 	for _, violation := range responsibilityViolations {
 		violations = append(violations, violation)
 		severityCounts[violation.Severity]++
 	}
+	checked += len(responsibilityViolations)
 	errorCount := severityCounts[domain.ViolationSeverityError]
 	warningCount := severityCounts[domain.ViolationSeverityWarning]
 	compliance := s.calculateComplianceWeighted(errorCount, warningCount, checked)

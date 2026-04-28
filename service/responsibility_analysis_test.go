@@ -80,3 +80,22 @@ func TestAnalyzePackageCohesionFlagsScatteredPackage(t *testing.T) {
 	assert.Equal(t, 0.0, cohesion.PackageCohesion["app.orders"])
 	assert.NotEmpty(t, cohesion.CohesionSuggestions["app.orders"])
 }
+
+func TestResponsibilityOptionsFromRequestUsesConfiguredThresholds(t *testing.T) {
+	options := responsibilityOptionsFromRequest(domain.SystemAnalysisRequest{
+		MinCohesion:                     0.75,
+		MaxResponsibilities:             2,
+		ResponsibilityViolationSeverity: domain.ViolationSeverityCritical,
+	})
+
+	assert.Equal(t, 0.75, options.minPackageCohesion)
+	assert.Equal(t, 2, options.maxResponsibilities)
+	assert.Equal(t, domain.ViolationSeverityCritical, options.severity)
+}
+
+func TestParseViolationSeverityFallsBackToWarning(t *testing.T) {
+	assert.Equal(t, domain.ViolationSeverityInfo, parseViolationSeverity("info"))
+	assert.Equal(t, domain.ViolationSeverityError, parseViolationSeverity("error"))
+	assert.Equal(t, domain.ViolationSeverityCritical, parseViolationSeverity("critical"))
+	assert.Equal(t, domain.ViolationSeverityWarning, parseViolationSeverity("unknown"))
+}
