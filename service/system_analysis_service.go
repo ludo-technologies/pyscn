@@ -961,6 +961,9 @@ func (s *SystemAnalysisServiceImpl) evaluateLayerEdge(rules *domain.Architecture
 func (s *SystemAnalysisServiceImpl) toLayerViolations(vs []domain.ArchitectureViolation, moduleToLayer map[string]string) []domain.LayerViolation {
 	out := make([]domain.LayerViolation, 0, len(vs))
 	for _, v := range vs {
+		if v.Type != domain.ViolationTypeLayer {
+			continue
+		}
 		out = append(out, domain.LayerViolation{
 			FromModule:  v.Module,
 			ToModule:    v.Target,
