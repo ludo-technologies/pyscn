@@ -1824,10 +1824,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -1835,10 +1835,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -1846,10 +1846,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -1857,10 +1857,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -1868,10 +1868,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -1879,10 +1879,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/deep-import-chain.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/zh/rules/deep-import-chain.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,22 +3181,22 @@
 
 
 <h1 id="deep-import-chain">deep-import-chain<a class="headerlink" href="#deep-import-chain" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Module Structure<br />
+<p><strong>Category</strong>: 模块结构<br />
 <strong>Severity</strong>: Info<br />
 <strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check --select deps</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Reports the longest acyclic import chain in the project when its depth exceeds the expected depth for a project of its size. pyscn uses <code>log₂(module_count) + 1</code> as the reference — a 64-module project is expected to have chains no longer than 7.</p>
-<p>A chain is a path through the module dependency graph: <code>a → b → c → …</code>, where each arrow is an <code>import</code>.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>Deep chains indicate poor layering. Every additional link is a module that must be loaded, parsed, and initialised before the bottom of the chain is usable, and every link is a place where an unrelated change can ripple downward.</p>
-<p>Symptoms of a too-deep chain:</p>
+<h2 id="_1">检测内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>当项目中最长的无环导入链深度超过该项目规模的预期深度时进行报告。pyscn 使用 <code>log₂(module_count) + 1</code> 作为参考——一个 64 个模块的项目预期链长度不超过 7。</p>
+<p>链是模块依赖图中的一条路径：<code>a → b → c → …</code>，其中每个箭头代表一个 <code>import</code>。</p>
+<h2 id="_2">为什么这是一个问题<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>过深的链表明分层不良。每增加一个环节就多一个必须被加载、解析和初始化后链底部才能使用的模块，而且每个环节都是无关更改可能向下传播的地方。</p>
+<p>链过深的症状：</p>
 <ul>
-<li><strong>Slow startup.</strong> Importing the leaf module triggers a cascade of top-level side effects.</li>
-<li><strong>Fragile tests.</strong> A unit test for the leaf pulls in the full chain and breaks when anything upstream changes.</li>
-<li><strong>Hidden coupling.</strong> Modules in the middle of the chain often exist only as pass-throughs, masking the real dependency.</li>
-<li><strong>Hard to reason about.</strong> There is no single "level" at which the code lives.</li>
+<li><strong>启动缓慢。</strong> 导入叶模块会触发一连串的顶层副作用。</li>
+<li><strong>测试脆弱。</strong> 叶模块的单元测试会拉入整条链，当上游任何内容发生变化时就会中断。</li>
+<li><strong>隐藏的耦合。</strong> 链中间的模块通常只是作为传递层存在，掩盖了真正的依赖关系。</li>
+<li><strong>难以推理。</strong> 代码没有单一的"层级"可以归属。</li>
 </ul>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<h2 id="_3">示例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>myapp.cli
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  → myapp.commands
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    → myapp.services
@@ -3205,42 +3205,42 @@
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>          → myapp.adapters
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>            → myapp.drivers
 </span></code></pre></div>
-<p>Seven levels to reach the driver. In practice the CLI layer doesn't need to know that workers exist, and workers don't need to know about the CLI — but a change to <code>drivers</code> can force re-testing every layer above it.</p>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Introduce a facade at the boundary so upper layers talk to one module, not a chain:</p>
+<p>到达驱动层需要七个层级。实际上 CLI 层不需要知道 workers 的存在，workers 也不需要知道 CLI 的存在——但 <code>drivers</code> 的更改可能迫使其上方的每一层都重新测试。</p>
+<h2 id="_4">修正示例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>在边界处引入门面，使上层与一个模块交互而非一条链：</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>myapp.cli
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  → myapp.commands
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    → myapp.services        # single entry point
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        (internally wires orchestrator / workers / adapters / drivers)
 </span></code></pre></div>
-<p>Or flatten: if <code>services</code>, <code>orchestrator</code>, and <code>workers</code> are all doing coordination, merge them into one layer and let it depend directly on <code>adapters</code>.</p>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<p>或者扁平化：如果 <code>services</code>、<code>orchestrator</code> 和 <code>workers</code> 都在做协调工作，将它们合并为一层，让其直接依赖 <code>adapters</code>。</p>
+<h2 id="_5">选项<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>选项</th>
+<th>默认值</th>
+<th>描述</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#dependencies"><code>dependencies.find_long_chains</code></a></td>
 <td><code>true</code></td>
-<td>Set to <code>false</code> to disable this rule.</td>
+<td>设为 <code>false</code> 可禁用此规则。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#dependencies"><code>dependencies.enabled</code></a></td>
 <td><code>false</code></td>
-<td>Opt-in for <code>pyscn check</code>; always on for <code>pyscn analyze</code>.</td>
+<td><code>pyscn check</code> 需要显式启用；<code>pyscn analyze</code> 始终开启。</td>
 </tr>
 </tbody>
 </table>
-<p>There is no explicit depth threshold — pyscn compares the longest chain against <code>log₂(module_count) + 1</code> and reports when it is exceeded.</p>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<p>没有显式的深度阈值——pyscn 将最长链与 <code>log₂(module_count) + 1</code> 进行比较，超出时进行报告。</p>
+<h2 id="_6">参考<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Longest-path search over the module DAG (<code>internal/analyzer/module_analyzer.go</code>, <code>internal/analyzer/coupling_metrics.go</code>).</li>
-<li><a href="../">Rule catalog</a> · <a href="../circular-import/">circular-import</a></li>
+<li>模块 DAG 上的最长路径搜索（<code>internal/analyzer/module_analyzer.go</code>、<code>internal/analyzer/coupling_metrics.go</code>）。</li>
+<li><a href="../">规则目录</a> · <a href="../circular-import/">circular-import</a></li>
 </ul>
 
 

@@ -1796,10 +1796,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -1807,10 +1807,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -1818,10 +1818,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -1829,10 +1829,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -1840,10 +1840,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -1851,10 +1851,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/circular-import.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/rules/circular-import.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,17 +3181,17 @@
 
 
 <h1 id="circular-import">circular-import<a class="headerlink" href="#circular-import" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Module Structure<br />
-<strong>Severity</strong>: Configurable by cycle size (Low / Medium / High / Critical)<br />
-<strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check --select circular</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags groups of modules that form an import cycle — module A imports B (directly or transitively) and B imports A. Cycles are found by running Tarjan's strongly-connected-components algorithm over the module dependency graph.</p>
-<p>Severity is assigned from the cycle's size and the fan-in of its members:</p>
+<p><strong>カテゴリ</strong>: モジュール構造<br />
+<strong>重大度</strong>: サイクルサイズに応じて設定可能 (Low / Medium / High / Critical)<br />
+<strong>トリガー</strong>: <code>pyscn analyze</code>, <code>pyscn check --select circular</code></p>
+<h2 id="_1">検出内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>インポートサイクルを形成するモジュールグループを検出します。モジュール A が B を（直接的または推移的に）インポートし、B が A をインポートしている状態です。サイクルはモジュール依存グラフに対して Tarjan の強連結成分アルゴリズムを実行することで検出されます。</p>
+<p>重大度はサイクルのサイズとメンバーのファンインから割り当てられます:</p>
 <table>
 <thead>
 <tr>
-<th>Cycle members</th>
-<th>Severity</th>
+<th>サイクルメンバー数</th>
+<th>重大度</th>
 </tr>
 </thead>
 <tbody>
@@ -3200,28 +3200,28 @@
 <td>Low</td>
 </tr>
 <tr>
-<td>3 – 5</td>
+<td>3 -- 5</td>
 <td>Medium</td>
 </tr>
 <tr>
-<td>6 – 9</td>
+<td>6 -- 9</td>
 <td>High</td>
 </tr>
 <tr>
-<td>10+, or any member with fan-in &gt; 10</td>
+<td>10以上、またはファンイン &gt; 10 のメンバーを含む場合</td>
 <td>Critical</td>
 </tr>
 </tbody>
 </table>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>A circular import means two or more modules cannot be understood, tested, or released independently. Concretely:</p>
+<h2 id="_2">なぜ問題なのか<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>循環インポートは、2つ以上のモジュールが独立して理解・テスト・リリースできないことを意味します。具体的には:</p>
 <ul>
-<li><strong>Import-time errors.</strong> Python partially initialises modules during circular imports; attribute access on the half-loaded module raises <code>ImportError</code> or <code>AttributeError</code> depending on statement order.</li>
-<li><strong>Tight coupling.</strong> The cycle's members share a single "logical module" split across files. A change in one tends to force a change in all of them.</li>
-<li><strong>Blocked refactoring.</strong> You cannot move, rename, or delete any member of the cycle without touching the others.</li>
-<li><strong>Worse as the cycle grows.</strong> A 2-module cycle is a nuisance; a 10-module cycle is an architectural failure — hence the severity ramp.</li>
+<li><strong>インポート時エラー。</strong> Python は循環インポート中にモジュールを部分的に初期化します。半分しか読み込まれていないモジュールへの属性アクセスは、文の順序に応じて <code>ImportError</code> または <code>AttributeError</code> を発生させます。</li>
+<li><strong>密結合。</strong> サイクルのメンバーはファイルに分割された単一の「論理モジュール」を共有しています。一つを変更すると、他のすべてにも変更が波及する傾向があります。</li>
+<li><strong>リファクタリングの阻害。</strong> サイクルのいずれのメンバーも、他のメンバーに手を加えずに移動・リネーム・削除することができません。</li>
+<li><strong>サイクルが大きくなるほど深刻化。</strong> 2モジュールのサイクルは煩わしい程度ですが、10モジュールのサイクルはアーキテクチャの破綻です。重大度が段階的に上がるのはそのためです。</li>
 </ul>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># myapp/orders.py</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">myapp.billing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Invoice</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
@@ -3236,9 +3236,9 @@
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="s2">&quot;Order&quot;</span><span class="p">):</span>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">=</span> <span class="n">order</span>
 </span></code></pre></div>
-<p><code>orders</code> imports <code>billing</code> for the return type; <code>billing</code> imports <code>orders</code> for the constructor parameter. Running either file top-level triggers the cycle.</p>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Extract the shared types to a third module so both depend on it instead of on each other:</p>
+<p><code>orders</code> は戻り値の型のために <code>billing</code> をインポートし、<code>billing</code> はコンストラクタパラメータのために <code>orders</code> をインポートしています。どちらのファイルをトップレベルで実行してもサイクルが発生します。</p>
+<h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>共有する型を第三のモジュールに抽出し、両方がお互いではなくそのモジュールに依存するようにします:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># myapp/domain.py</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">Order</span><span class="p">:</span> <span class="o">...</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">Invoice</span><span class="p">:</span> <span class="o">...</span>
@@ -3249,7 +3249,7 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># myapp/billing.py</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">myapp.domain</span><span class="w"> </span><span class="kn">import</span> <span class="n">Order</span><span class="p">,</span> <span class="n">Invoice</span>
 </span></code></pre></div>
-<p>If the back-edge is only needed for type annotations, guard it with <code>TYPE_CHECKING</code> so it isn't evaluated at runtime:</p>
+<p>逆方向のインポートが型アノテーションにのみ必要な場合は、<code>TYPE_CHECKING</code> でガードして実行時に評価されないようにします:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># myapp/billing.py</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
@@ -3260,47 +3260,47 @@
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">Invoice</span><span class="p">:</span>
 </span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="s2">&quot;Order&quot;</span><span class="p">):</span> <span class="o">...</span>
 </span></code></pre></div>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h2 id="_5">オプション<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>オプション</th>
+<th>デフォルト</th>
+<th>説明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#dependencies"><code>dependencies.detect_cycles</code></a></td>
 <td><code>true</code></td>
-<td>Set to <code>false</code> to disable this rule.</td>
+<td><code>false</code> に設定するとこのルールを無効にします。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#dependencies"><code>dependencies.cycle_reporting</code></a></td>
 <td><code>"summary"</code></td>
-<td><code>all</code>, <code>critical</code>, or <code>summary</code> — controls how many cycles appear in the report.</td>
+<td><code>all</code>、<code>critical</code>、または <code>summary</code> -- レポートに表示するサイクル数を制御します。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#dependencies"><code>dependencies.max_cycles_to_show</code></a></td>
 <td><code>10</code></td>
-<td>Cap on reported cycles.</td>
+<td>レポートに表示するサイクル数の上限。</td>
 </tr>
 <tr>
 <td><code>--max-cycles N</code> (check)</td>
 <td><code>0</code></td>
-<td>Fail the <code>check</code> command when cycle count exceeds <code>N</code>.</td>
+<td>サイクル数が <code>N</code> を超えた場合に <code>check</code> コマンドを失敗させます。</td>
 </tr>
 <tr>
 <td><code>--allow-circular-deps</code> (check)</td>
 <td>off</td>
-<td>Demote cycles to warnings instead of failures.</td>
+<td>サイクルを失敗ではなく警告に降格させます。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参照<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Tarjan SCC implementation (<code>internal/analyzer/circular_detector.go</code>), module graph construction (<code>internal/analyzer/module_analyzer.go</code>).</li>
-<li><a href="../">Rule catalog</a> · <a href="../deep-import-chain/">deep-import-chain</a></li>
+<li>Tarjan SCC の実装 (<code>internal/analyzer/circular_detector.go</code>)、モジュールグラフの構築 (<code>internal/analyzer/module_analyzer.go</code>)。</li>
+<li><a href="../">ルールカタログ</a> · <a href="../deep-import-chain/">deep-import-chain</a></li>
 </ul>
 
 

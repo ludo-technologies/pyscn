@@ -2159,10 +2159,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -2170,10 +2170,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -2181,10 +2181,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -2192,10 +2192,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -2203,10 +2203,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -2214,10 +2214,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/repetitive-string-literal.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/rules/repetitive-string-literal.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,59 +3181,59 @@
 
 
 <h1 id="repetitive-string-literal">repetitive-string-literal<a class="headerlink" href="#repetitive-string-literal" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Mock Data<br />
-<strong>Severity</strong>: Info<br />
-<strong>Triggered by</strong>: <code>pyscn check --select mockdata</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags string literals of length 4 to 20 with highly repetitive character patterns: <code>aaaa</code>, <code>1111</code>, <code>xxxxxxxx</code>, and similar single-character or two-character runs.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>A string like <code>"aaaaaaaaaaaaaaaa"</code> is almost never a real value — it's the shape of something typed to get past a validator while the developer was wiring something else up. Left in production, it becomes an API key, a hash input, or a token that looks like data and passes length checks but has no meaning.</p>
-<p>The rule is length-bounded (4–20 characters) to avoid flagging intentional fills like padding constants or test vectors that legitimately need repeated characters.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<p><strong>カテゴリ</strong>: モックデータ<br />
+<strong>重大度</strong>: Info<br />
+<strong>トリガー</strong>: <code>pyscn check --select mockdata</code></p>
+<h2 id="_1">検出内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>長さ4から20の、非常に反復的な文字パターンを持つ文字列リテラルを検出します: <code>aaaa</code>、<code>1111</code>、<code>xxxxxxxx</code>、および同様の単一文字または2文字の繰り返し。</p>
+<h2 id="_2">なぜ問題なのか<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p><code>"aaaaaaaaaaaaaaaa"</code> のような文字列が実際の値であることはほぼありません。これは、開発者が他の何かを配線している間にバリデーターを通過させるために入力した形のものです。本番に残ると、データに見え、長さチェックを通過するが意味を持たない API キー、ハッシュ入力、またはトークンになります。</p>
+<p>このルールは長さ制限付き（4--20文字）で、パディング定数や反復文字を正当に必要とするテストベクターなどの意図的な埋め込みを検出しないようにしています。</p>
+<h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">api_key</span> <span class="o">=</span> <span class="s2">&quot;aaaaaaaaaaaaaaaa&quot;</span>
 </span></code></pre></div>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Read secrets and tokens from configuration or a secret store. Don't bake placeholder values into the source.</p>
+<h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>シークレットやトークンは設定またはシークレットストアから読み取ります。プレースホルダー値をソースに埋め込まないでください。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">api_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;SERVICE_API_KEY&quot;</span><span class="p">]</span>
 </span></code></pre></div>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h2 id="_5">オプション<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>オプション</th>
+<th>デフォルト</th>
+<th>説明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.enabled</code></a></td>
 <td><code>false</code></td>
-<td>Opt-in.</td>
+<td>オプトイン。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.min_severity</code></a></td>
 <td><code>"info"</code></td>
-<td>Raise to <code>"warning"</code> to exclude this rule.</td>
+<td><code>"warning"</code> に上げると、このルールを除外します。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.ignore_tests</code></a></td>
 <td><code>true</code></td>
-<td>Skip test files.</td>
+<td>テストファイルをスキップします。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.ignore_patterns</code></a></td>
 <td><code>[]</code></td>
-<td>Regex patterns matched against file paths.</td>
+<td>ファイルパスに対してマッチする正規表現パターン。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参照<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Implementation: <code>internal/analyzer/mock_data_detector.go</code>.</li>
-<li><a href="../">Rule catalog</a> · <a href="../test-credential-in-code/">test-credential-in-code</a> · <a href="../placeholder-uuid/">placeholder-uuid</a></li>
+<li>実装: <code>internal/analyzer/mock_data_detector.go</code>。</li>
+<li><a href="../">ルールカタログ</a> · <a href="../test-credential-in-code/">test-credential-in-code</a> · <a href="../placeholder-uuid/">placeholder-uuid</a></li>
 </ul>
 
 

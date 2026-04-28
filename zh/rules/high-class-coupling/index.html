@@ -1388,10 +1388,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -1399,10 +1399,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -1410,10 +1410,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -1421,10 +1421,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -1432,10 +1432,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -1443,10 +1443,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/high-class-coupling.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/zh/rules/high-class-coupling.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,21 +3181,21 @@
 
 
 <h1 id="high-class-coupling">high-class-coupling<a class="headerlink" href="#high-class-coupling" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Class Design<br />
+<p><strong>Category</strong>: 类设计<br />
 <strong>Severity</strong>: Configurable by threshold<br />
 <strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags classes that depend on too many other classes (the Coupling Between Objects, or CBO, metric from Chidamber &amp; Kemerer). pyscn counts the number of distinct other classes a class references through inheritance, type hints, direct instantiation, attribute access on imported modules, and imports.</p>
-<p>In plain terms: <em>too many things have to be in place for this class to work.</em></p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>A highly coupled class is hard to live with:</p>
+<h2 id="_1">检测内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>标记依赖了过多其他类的类（即 Chidamber &amp; Kemerer 提出的对象间耦合度 CBO 指标）。pyscn 通过继承、类型提示、直接实例化、对导入模块的属性访问和导入语句来统计一个类引用的不同类的数量。</p>
+<p>简单来说：<em>这个类要正常工作需要太多前置条件。</em></p>
+<h2 id="_2">为什么这是一个问题<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>高度耦合的类难以维护：</p>
 <ul>
-<li><strong>Hard to test</strong> — constructing it in a unit test drags in a web of collaborators, so tests become integration tests or rely on heavy mocking.</li>
-<li><strong>Hard to change</strong> — a signature change in any one dependency ripples into this class.</li>
-<li><strong>Hard to reuse</strong> — you cannot lift it into another project without lifting its whole neighborhood.</li>
-<li><strong>A sign of missing abstraction</strong> — the class is probably orchestrating things that belong behind a smaller interface.</li>
+<li><strong>难以测试</strong> — 在单元测试中构造它需要引入大量协作对象，导致测试变成集成测试或依赖大量的 mock。</li>
+<li><strong>难以修改</strong> — 任何一个依赖项的签名变更都会波及到这个类。</li>
+<li><strong>难以复用</strong> — 你无法将它移到另一个项目中而不连带迁移它的整个关联体系。</li>
+<li><strong>缺少抽象的信号</strong> — 这个类很可能在编排一些本应隐藏在更小接口背后的东西。</li>
 </ul>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<h2 id="_3">示例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">billing.stripe_gateway</span><span class="w"> </span><span class="kn">import</span> <span class="n">StripeGateway</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">billing.paypal_gateway</span><span class="w"> </span><span class="kn">import</span> <span class="n">PayPalGateway</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">notifications.sendgrid</span><span class="w"> </span><span class="kn">import</span> <span class="n">SendGridClient</span>
@@ -3218,9 +3218,9 @@
 </span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
 </span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">cart</span><span class="p">):</span> <span class="o">...</span>
 </span></code></pre></div>
-<p><code>OrderService</code> is coupled to 8 concrete vendor classes. Swapping Stripe for Adyen, or running a test without a live Postgres, means editing <code>OrderService</code>.</p>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Depend on small protocols, and inject collaborators through <code>__init__</code>. The service no longer knows which vendor is on the other end.</p>
+<p><code>OrderService</code> 耦合了 8 个具体的供应商类。要将 Stripe 换成 Adyen，或者在没有实际 Postgres 的情况下运行测试，都意味着要修改 <code>OrderService</code>。</p>
+<h2 id="_4">修正示例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>依赖小型协议，并通过 <code>__init__</code> 注入协作对象。服务不再需要知道对面是哪个供应商。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Protocol</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">PaymentGateway</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
@@ -3245,49 +3245,49 @@
 </span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>
 </span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">cart</span><span class="p">):</span> <span class="o">...</span>
 </span></code></pre></div>
-<p>If one class still legitimately needs many collaborators, split it by responsibility (e.g. <code>Checkout</code>, <code>Fulfillment</code>, <code>Receipt</code>) and let an orchestrator call them.</p>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<p>如果一个类确实需要很多协作对象，可以按职责拆分（例如 <code>Checkout</code>、<code>Fulfillment</code>、<code>Receipt</code>），然后让一个编排器来调用它们。</p>
+<h2 id="_5">选项<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>选项</th>
+<th>默认值</th>
+<th>说明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#cbo"><code>cbo.low_threshold</code></a></td>
 <td><code>3</code></td>
-<td>At or below this, the class is reported as low risk.</td>
+<td>等于或低于此值，类报告为低风险。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#cbo"><code>cbo.medium_threshold</code></a></td>
 <td><code>7</code></td>
-<td>Above this, the class is high risk.</td>
+<td>高于此值，类为高风险。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#cbo"><code>cbo.min_cbo</code></a></td>
 <td><code>0</code></td>
-<td>Classes with coupling below this value are omitted from the report.</td>
+<td>耦合度低于此值的类将从报告中省略。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#cbo"><code>cbo.include_builtins</code></a></td>
 <td><code>false</code></td>
-<td>Count built-in types (<code>list</code>, <code>dict</code>, <code>Exception</code>, …) as dependencies.</td>
+<td>是否将内置类型（<code>list</code>、<code>dict</code>、<code>Exception</code> 等）计为依赖。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#cbo"><code>cbo.include_imports</code></a></td>
 <td><code>true</code></td>
-<td>Count classes reached only through <code>import</code> statements.</td>
+<td>是否将仅通过 <code>import</code> 语句引用的类计为依赖。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参考<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Chidamber, S. R. &amp; Kemerer, C. F. <em>A Metrics Suite for Object Oriented Design.</em> IEEE TSE, 1994.</li>
-<li>Implementation: <code>internal/analyzer/cbo.go</code>.</li>
-<li><a href="../">Rule catalog</a> · <a href="../low-class-cohesion/">low-class-cohesion</a></li>
+<li>实现：<code>internal/analyzer/cbo.go</code>。</li>
+<li><a href="../">规则目录</a> · <a href="../low-class-cohesion/">low-class-cohesion</a></li>
 </ul>
 
 

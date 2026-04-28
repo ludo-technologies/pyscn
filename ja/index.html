@@ -558,10 +558,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Features
+        機能
       
     </span>
   </a>
@@ -569,10 +569,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation
+        インストール
       
     </span>
   </a>
@@ -580,10 +580,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Quick start
+        クイックスタート
       
     </span>
   </a>
@@ -2969,10 +2969,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Features
+        機能
       
     </span>
   </a>
@@ -2980,10 +2980,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation
+        インストール
       
     </span>
   </a>
@@ -2991,10 +2991,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Quick start
+        クイックスタート
       
     </span>
   </a>
@@ -3030,7 +3030,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/index.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/index.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3039,34 +3039,34 @@
 
 
 <h1 id="pyscn">pyscn<a class="headerlink" href="#pyscn" title="Permanent link">&para;</a></h1>
-<p>A structural static analyzer for Python. Detects dead code, duplication, complexity, and coupling issues via control-flow and tree analysis.</p>
+<p>Python 向けの構造的静的解析ツールです。制御フローグラフとツリー解析を用いて、デッドコード・コード重複・複雑度・結合度の問題を検出します。</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uvx<span class="w"> </span>pyscn@latest<span class="w"> </span>analyze<span class="w"> </span>.
 </span></code></pre></div>
-<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
+<h2 id="_1">機能<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>32 rules</strong> across unreachable code, duplicate code, complexity, class design, dependency injection, module structure, and mock data.</li>
-<li><strong>CFG-based reachability</strong> finds dead code past <code>return</code> / <code>raise</code> / <code>break</code> / <code>continue</code> and unreachable branches.</li>
-<li><strong>APTED + LSH clone detection</strong> across four clone types (identical, renamed, modified, semantic).</li>
-<li><strong>CBO / LCOM4</strong> class coupling and cohesion metrics.</li>
-<li><strong>Circular import detection</strong> via Tarjan's SCC.</li>
-<li><strong>Health score</strong> (0–100) with per-category breakdown.</li>
-<li><strong>CI-ready</strong> with <code>pyscn check</code>, linter-style output, and deterministic exit codes.</li>
-<li><strong>MCP server</strong> (<code>pyscn-mcp</code>) for Claude Code, Cursor, and other MCP clients.</li>
+<li><strong>32 のルール</strong> — 到達不能コード、重複コード、複雑度、クラス設計、依存性注入、モジュール構造、モックデータにまたがるルールセット。</li>
+<li><strong>CFG ベースの到達可能性解析</strong> — <code>return</code> / <code>raise</code> / <code>break</code> / <code>continue</code> の後に残されたデッドコードや到達不能な分岐を検出します。</li>
+<li><strong>APTED + LSH クローン検出</strong> — 4 種類のクローン（完全一致、名前変更、構造変更、意味的類似）に対応します。</li>
+<li><strong>CBO / LCOM4</strong> — クラスの結合度と凝集度のメトリクスを計算します。</li>
+<li><strong>循環インポート検出</strong> — Tarjan の SCC アルゴリズムで循環依存を発見します。</li>
+<li><strong>ヘルススコア</strong>（0〜100）— カテゴリごとの内訳付き。</li>
+<li><strong>CI 対応</strong> — <code>pyscn check</code> によるリンター形式の出力と確定的な終了コード。</li>
+<li><strong>MCP サーバー</strong>（<code>pyscn-mcp</code>）— Claude Code、Cursor、その他の MCP クライアントから利用できます。</li>
 </ul>
-<p>Written in Go. 100,000+ lines/sec on typical hardware. No Python runtime dependencies.</p>
-<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
+<p>Go で実装されています。一般的なハードウェアで 100,000 行/秒以上の解析速度です。Python ランタイムへの依存はありません。</p>
+<h2 id="_2">インストール<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uvx<span class="w"> </span>pyscn@latest<span class="w"> </span>&lt;command&gt;<span class="w">   </span><span class="c1"># run without installing (recommended)</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>pyscn<span class="w">        </span><span class="c1"># install with uv</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>pipx<span class="w"> </span>install<span class="w"> </span>pyscn<span class="w">           </span><span class="c1"># install with pipx</span>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>pip<span class="w"> </span>install<span class="w"> </span>pyscn<span class="w">            </span><span class="c1"># install with pip</span>
 </span></code></pre></div>
-<p>See <a href="getting-started/installation/">Installation</a> for all options.</p>
-<h2 id="quick-start">Quick start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
+<p>詳しくは <a href="getting-started/installation/">Installation</a> をご覧ください。</p>
+<h2 id="_3">クイックスタート<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>.<span class="w">                         </span><span class="c1"># full analysis, HTML report</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--select<span class="w"> </span>complexity,deadcode<span class="w"> </span>src/<span class="w">   </span><span class="c1"># CI gate</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>pyscn<span class="w"> </span>init<span class="w">                              </span><span class="c1"># generate .pyscn.toml</span>
 </span></code></pre></div>
-<p>See <a href="getting-started/quick-start/">Quick Start</a> and the <a href="rules/">Rule catalog</a>.</p>
+<p>詳しくは <a href="getting-started/quick-start/">Quick Start</a> と <a href="rules/">Rule catalog</a> をご覧ください。</p>
 
 
 

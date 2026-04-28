@@ -1416,10 +1416,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -1427,10 +1427,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -1438,10 +1438,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -1449,10 +1449,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -1460,10 +1460,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -1471,10 +1471,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/low-class-cohesion.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/zh/rules/low-class-cohesion.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,22 +3181,22 @@
 
 
 <h1 id="low-class-cohesion">low-class-cohesion<a class="headerlink" href="#low-class-cohesion" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Class Design<br />
+<p><strong>Category</strong>: 类设计<br />
 <strong>Severity</strong>: Configurable by threshold<br />
 <strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags classes whose methods don't share instance state (the LCOM4 metric — Lack of Cohesion of Methods, version 4). pyscn builds a graph where two methods are connected if they touch a common <code>self.</code> attribute, then counts the connected components. <code>LCOM4 = 1</code> means every method is related to every other; <code>LCOM4 = N</code> means the class is really <code>N</code> unrelated sub-classes glued together.</p>
-<p>Methods decorated with <code>@staticmethod</code> or <code>@classmethod</code> do not reference <code>self</code> and are excluded from the graph.</p>
-<p>In plain terms: <em>this class is doing unrelated jobs — split it, or make it a module of functions.</em></p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>A class is meant to bundle state with the operations that act on it. When the methods don't touch the same state:</p>
+<h2 id="_1">检测内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>标记方法之间不共享实例状态的类（LCOM4 指标 — 方法内聚度缺失，第 4 版）。pyscn 构建一个图，如果两个方法访问了相同的 <code>self.</code> 属性，则将它们连接起来，然后计算连通分量的数量。<code>LCOM4 = 1</code> 表示每个方法都与其他方法相关；<code>LCOM4 = N</code> 表示该类实际上是 <code>N</code> 个无关的子类拼凑在一起。</p>
+<p>使用 <code>@staticmethod</code> 或 <code>@classmethod</code> 装饰的方法不引用 <code>self</code>，因此被排除在图之外。</p>
+<p>简单来说：<em>这个类在做不相关的工作 — 应该拆分它，或者把它变成一个函数模块。</em></p>
+<h2 id="_2">为什么这是一个问题<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>类的目的是将状态与操作该状态的操作捆绑在一起。当方法不触及相同的状态时：</p>
 <ul>
-<li><strong>The class name lies</strong> — it claims to be one thing but behaves like two or three.</li>
-<li><strong>Changes scatter</strong> — a bug in one responsibility can only be found by reading code that has nothing to do with it.</li>
-<li><strong>Reuse is blocked</strong> — you cannot lift out the part you need without dragging the rest along.</li>
-<li><strong>It often predates a real abstraction</strong> — the "Utilities" or "Manager" class is a classic symptom.</li>
+<li><strong>类名具有误导性</strong> — 它声称自己是一件事，但实际行为像两三件事。</li>
+<li><strong>变更分散</strong> — 一个职责中的缺陷只能通过阅读与之无关的代码才能发现。</li>
+<li><strong>复用受阻</strong> — 你无法只提取需要的部分而不连带其余部分。</li>
+<li><strong>它通常是真正抽象的前身</strong> — "Utilities"或"Manager"类是典型的症状。</li>
 </ul>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<h2 id="_3">示例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">UserUtility</span><span class="p">:</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db</span><span class="p">,</span> <span class="n">smtp</span><span class="p">,</span> <span class="n">clock</span><span class="p">):</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="n">db</span>
@@ -3227,9 +3227,9 @@
 </span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">format_joined_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">):</span>
 </span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">clock</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">joined_at</span><span class="p">)</span>
 </span></code></pre></div>
-<p><code>LCOM4 = 3</code>: <code>{load, save}</code> share <code>db</code> and <code>cache</code>, <code>{send_welcome, send_reset}</code> share <code>smtp</code>, <code>{format_joined_at}</code> stands alone. Three components, one class.</p>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Split into cohesive classes, and move the stateless part out to free functions.</p>
+<p><code>LCOM4 = 3</code>：<code>{load, save}</code> 共享 <code>db</code> 和 <code>cache</code>，<code>{send_welcome, send_reset}</code> 共享 <code>smtp</code>，<code>{format_joined_at}</code> 独立存在。三个分量，一个类。</p>
+<h2 id="_4">修正示例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>拆分为内聚的类，并将无状态的部分提取为自由函数。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">UserRepository</span><span class="p">:</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db</span><span class="p">):</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_db</span> <span class="o">=</span> <span class="n">db</span>
@@ -3262,34 +3262,34 @@
 </span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="k">def</span><span class="w"> </span><span class="nf">format_joined_at</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">clock</span><span class="p">):</span>
 </span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>    <span class="k">return</span> <span class="n">clock</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">joined_at</span><span class="p">)</span>
 </span></code></pre></div>
-<p>Each class now has <code>LCOM4 = 1</code>, and the formatter is a one-line function where it belongs.</p>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<p>每个类现在的 <code>LCOM4 = 1</code>，格式化函数也成为了它应有的一行函数。</p>
+<h2 id="_5">选项<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>选项</th>
+<th>默认值</th>
+<th>说明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#lcom"><code>lcom.low_threshold</code></a></td>
 <td><code>2</code></td>
-<td>At or below this, the class is reported as low risk.</td>
+<td>等于或低于此值，类报告为低风险。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#lcom"><code>lcom.medium_threshold</code></a></td>
 <td><code>5</code></td>
-<td>Above this, the class is high risk.</td>
+<td>高于此值，类为高风险。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参考<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Hitz, M. &amp; Montazeri, B. <em>Chidamber and Kemerer's Metrics Suite: A Measurement Theory Perspective.</em> IEEE TSE, 1996 (LCOM4 definition).</li>
-<li>Implementation: <code>internal/analyzer/lcom.go</code>.</li>
-<li><a href="../">Rule catalog</a> · <a href="../high-class-coupling/">high-class-coupling</a></li>
+<li>Hitz, M. &amp; Montazeri, B. <em>Chidamber and Kemerer's Metrics Suite: A Measurement Theory Perspective.</em> IEEE TSE, 1996（LCOM4 定义）。</li>
+<li>实现：<code>internal/analyzer/lcom.go</code>。</li>
+<li><a href="../">规则目录</a> · <a href="../high-class-coupling/">high-class-coupling</a></li>
 </ul>
 
 

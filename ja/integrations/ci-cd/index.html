@@ -86,7 +86,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cicd-integration" class="md-skip">
+        <a href="#cicd" class="md-skip">
           コンテンツにスキップ
         </a>
       
@@ -2867,10 +2867,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#exit-codes" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Exit codes
+        終了コード
       
     </span>
   </a>
@@ -2878,10 +2878,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#strategies" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Strategies
+        戦略
       
     </span>
   </a>
@@ -2889,10 +2889,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#pr-comment-from-json" class="md-nav__link">
+  <a href="#json-pr" class="md-nav__link">
     <span class="md-ellipsis">
       
-        PR comment from JSON
+        JSON からの PR コメント
       
     </span>
   </a>
@@ -2900,10 +2900,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#see-also" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        See also
+        関連項目
       
     </span>
   </a>
@@ -3091,10 +3091,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#exit-codes" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Exit codes
+        終了コード
       
     </span>
   </a>
@@ -3102,10 +3102,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#strategies" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Strategies
+        戦略
       
     </span>
   </a>
@@ -3113,10 +3113,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#pr-comment-from-json" class="md-nav__link">
+  <a href="#json-pr" class="md-nav__link">
     <span class="md-ellipsis">
       
-        PR comment from JSON
+        JSON からの PR コメント
       
     </span>
   </a>
@@ -3124,10 +3124,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#see-also" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        See also
+        関連項目
       
     </span>
   </a>
@@ -3199,7 +3199,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/integrations/ci-cd.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/integrations/ci-cd.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3207,15 +3207,15 @@
   
 
 
-<h1 id="cicd-integration">CI/CD Integration<a class="headerlink" href="#cicd-integration" title="Permanent link">&para;</a></h1>
-<p><code>pyscn check</code> exits non-zero on issues and produces linter-style output. See the <a href="../../cli/check/"><code>check</code> reference</a>.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pyscn<span class="w"> </span>check<span class="w"> </span>.<span class="w">                        </span><span class="c1"># exit 0 = pass, 1 = fail (issues or error)</span>
+<h1 id="cicd">CI/CD 連携<a class="headerlink" href="#cicd" title="Permanent link">&para;</a></h1>
+<p><code>pyscn check</code> は問題が見つかった場合に非ゼロで終了し、リンター形式の出力を生成します。<a href="../../cli/check/"><code>check</code> リファレンス</a>を参照してください。</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pyscn<span class="w"> </span>check<span class="w"> </span>.<span class="w">                        </span><span class="c1"># exit 0 = パス, 1 = 失敗（問題またはエラー）</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--max-complexity<span class="w"> </span><span class="m">15</span><span class="w"> </span>.
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--select<span class="w"> </span>complexity,deadcode,deps<span class="w"> </span>.
 </span></code></pre></div>
-<p>Findings are written to <strong>stderr</strong> in linter format. Capture them with <code>2&gt;</code> in shell; most CI systems log stderr by default.</p>
+<p>検出結果はリンター形式で <strong>stderr</strong> に書き込まれます。シェルで <code>2&gt;</code> を使用してキャプチャできます。ほとんどの CI システムはデフォルトで stderr をログに記録します。</p>
 <h2 id="github-actions">GitHub Actions<a class="headerlink" href="#github-actions" title="Permanent link">&para;</a></h2>
-<p>Minimal (recommended — uvx, no install step):</p>
+<p>最小構成（推奨 — uvx を使用、インストールステップ不要）:</p>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># .github/workflows/quality.yml</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Quality</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nt">on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">pull_request</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">push</span><span class="p p-Indicator">]</span>
@@ -3228,7 +3228,7 @@
 </span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">astral-sh/setup-uv@v3</span>
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uvx pyscn@latest check .</span>
 </span></code></pre></div>
-<p>With full report as an artifact:</p>
+<p>アーティファクトとして完全なレポートを含む構成:</p>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">jobs</span><span class="p">:</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">pyscn</span><span class="p">:</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
@@ -3249,7 +3249,7 @@
 </span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pyscn-report</span>
 </span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.pyscn/reports/*.html</span>
 </span></code></pre></div>
-<p>Run only on Python changes:</p>
+<p>Python ファイルの変更時のみ実行:</p>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">on</span><span class="p">:</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">pull_request</span><span class="p">:</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">paths</span><span class="p">:</span>
@@ -3257,7 +3257,7 @@
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&#39;.pyscn.toml&#39;</span>
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&#39;pyproject.toml&#39;</span>
 </span></code></pre></div>
-<p>With <code>pip</code> instead of uvx:</p>
+<p>uvx の代わりに <code>pip</code> を使用:</p>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/setup-python@v5</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">        </span><span class="nt">with</span><span class="p">:</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">          </span><span class="nt">python-version</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;3.12&#39;</span>
@@ -3277,7 +3277,7 @@
 </span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">        </span><span class="nt">pass_filenames</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 </span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">        </span><span class="nt">files</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;\.py$&#39;</span>
 </span></code></pre></div>
-<p>Scope to staged files:</p>
+<p>ステージされたファイルに限定:</p>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pyscn</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pyscn check (staged)</span>
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">        </span><span class="nt">entry</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bash -c &#39;pyscn check --quiet &quot;$@&quot;&#39; --</span>
@@ -3332,42 +3332,42 @@
 </span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="w">        </span><span class="nt">artifacts</span><span class="p">:</span>
 </span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.pyscn/reports/**</span>
 </span></code></pre></div>
-<h2 id="exit-codes">Exit codes<a class="headerlink" href="#exit-codes" title="Permanent link">&para;</a></h2>
+<h2 id="_1">終了コード<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Code</th>
-<th>Meaning</th>
-<th>Action</th>
+<th>コード</th>
+<th>意味</th>
+<th>アクション</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>0</code></td>
-<td>No issues</td>
-<td>Pass</td>
+<td>問題なし</td>
+<td>パス</td>
 </tr>
 <tr>
 <td><code>1</code></td>
-<td>Issues found or execution error</td>
-<td>Fail</td>
+<td>問題が見つかった、または実行エラー</td>
+<td>失敗</td>
 </tr>
 </tbody>
 </table>
-<p><code>check</code> returns exit <code>1</code> for both "issues exceeded thresholds" and "analysis could not complete" — the two cases are not distinguishable by exit code. Inspect stderr to tell them apart.</p>
-<h2 id="strategies">Strategies<a class="headerlink" href="#strategies" title="Permanent link">&para;</a></h2>
-<p>Green-field:</p>
+<p><code>check</code> は「閾値を超える問題が見つかった」場合と「分析を完了できなかった」場合の両方で終了コード <code>1</code> を返します。2つのケースは終了コードでは区別できません。stderr を確認して判別してください。</p>
+<h2 id="_2">戦略<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>グリーンフィールド:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--max-complexity<span class="w"> </span><span class="m">10</span><span class="w"> </span>--max-cycles<span class="w"> </span><span class="m">0</span><span class="w"> </span>.
 </span></code></pre></div>
-<p>Legacy adoption: start permissive and tighten each sprint:</p>
+<p>レガシーの導入: 寛容な設定から始めて、スプリントごとに厳しくしていきます:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--max-complexity<span class="w"> </span><span class="m">25</span><span class="w"> </span>.
 </span></code></pre></div>
-<p>Monorepo with mixed standards:</p>
+<p>異なる基準を持つモノレポ:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--config<span class="w"> </span>packages/backend/.pyscn.toml<span class="w"> </span>packages/backend
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--config<span class="w"> </span>packages/tooling/.pyscn.toml<span class="w"> </span>packages/tooling
 </span></code></pre></div>
-<h2 id="pr-comment-from-json">PR comment from JSON<a class="headerlink" href="#pr-comment-from-json" title="Permanent link">&para;</a></h2>
-<p><code>pyscn analyze --json</code> writes to a timestamped file in <code>.pyscn/reports/</code>, not stdout. Pick up the generated file:</p>
+<h2 id="json-pr">JSON からの PR コメント<a class="headerlink" href="#json-pr" title="Permanent link">&para;</a></h2>
+<p><code>pyscn analyze --json</code> は <code>.pyscn/reports/</code> 内のタイムスタンプ付きファイルに書き込みます（stdout ではありません）。生成されたファイルを取得します:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--no-open<span class="w"> </span>.
 </span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="nv">report</span><span class="o">=</span><span class="k">$(</span>ls<span class="w"> </span>-t<span class="w"> </span>.pyscn/reports/analyze_*.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="k">)</span>
 </span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;</span>
@@ -3379,11 +3379,11 @@
 </span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>
 </span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>gh<span class="w"> </span>pr<span class="w"> </span>comment<span class="w"> </span><span class="nv">$PR_NUMBER</span><span class="w"> </span>--body-file<span class="w"> </span>comment.md
 </span></code></pre></div>
-<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
+<h2 id="_3">関連項目<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../../cli/check/"><code>pyscn check</code></a></li>
-<li><a href="../../configuration/examples/#strict-ci-gate">Configuration Examples — Strict CI gate</a></li>
-<li><a href="../../output/health-score/">Health Score</a></li>
+<li><a href="../../configuration/examples/#strict-ci-gate">設定例 — 厳格な CI ゲート</a></li>
+<li><a href="../../output/health-score/">ヘルススコア</a></li>
 </ul>
 
 

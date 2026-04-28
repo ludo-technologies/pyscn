@@ -1553,10 +1553,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -1564,10 +1564,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -1575,10 +1575,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -1586,10 +1586,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -1597,10 +1597,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -1608,10 +1608,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/global-state-dependency.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/zh/rules/global-state-dependency.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,16 +3181,16 @@
 
 
 <h1 id="global-state-dependency">global-state-dependency<a class="headerlink" href="#global-state-dependency" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Dependency Injection<br />
+<p><strong>Category</strong>: 依赖注入<br />
 <strong>Severity</strong>: Error<br />
 <strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check --select di</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags a class method that uses a <code>global</code> statement to read or mutate module-level state.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>A <code>global</code> inside a method ties the class to a specific module variable that isn't visible from the class's interface. Nothing in <code>OrderService(...)</code> tells a reader that constructing it is not enough — some module-level value must also be primed, or the method will behave unexpectedly.</p>
-<p>Tests suffer the most. To exercise a method that touches global state, each test has to reach into the module, save the old value, install a new one, and restore it on teardown — and any test that forgets to clean up leaks state into the next one. Running tests in parallel becomes unsafe.</p>
-<p>The dependency is real; it's just hidden. Making it an explicit constructor parameter removes the surprise.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<h2 id="_1">检测内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>标记使用 <code>global</code> 语句读取或修改模块级状态的类方法。</p>
+<h2 id="_2">为什么这是一个问题<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>方法中的 <code>global</code> 将类绑定到一个特定的模块变量，而该变量在类的接口中不可见。<code>OrderService(...)</code> 的签名不会告诉阅读者仅构造它是不够的 — 还必须先准备好某个模块级的值，否则方法会出现意外行为。</p>
+<p>测试受到的影响最大。要测试一个触及全局状态的方法，每个测试都必须深入模块、保存旧值、设置新值，并在清理阶段恢复 — 任何忘记清理的测试都会将状态泄漏到下一个测试。并行运行测试也变得不安全。</p>
+<p>依赖是真实存在的；只是被隐藏了。将它作为显式的构造函数参数可以消除这种意外。</p>
+<h2 id="_3">示例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">_current_user</span> <span class="o">=</span> <span class="kc">None</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">AuditLog</span><span class="p">:</span>
@@ -3199,8 +3199,8 @@
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="n">entry</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">_current_user</span><span class="p">,</span> <span class="s2">&quot;action&quot;</span><span class="p">:</span> <span class="n">action</span><span class="p">}</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">db</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;audit&quot;</span><span class="p">,</span> <span class="n">entry</span><span class="p">)</span>
 </span></code></pre></div>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Pass the value in through <code>__init__</code> so the dependency is visible and swappable.</p>
+<h2 id="_4">修正示例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>通过 <code>__init__</code> 传入值，使依赖可见且可替换。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">AuditLog</span><span class="p">:</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">):</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">user</span> <span class="o">=</span> <span class="n">user</span>
@@ -3208,32 +3208,32 @@
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="n">db</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;audit&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="s2">&quot;action&quot;</span><span class="p">:</span> <span class="n">action</span><span class="p">})</span>
 </span></code></pre></div>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h2 id="_5">选项<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>选项</th>
+<th>默认值</th>
+<th>说明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#di"><code>di.enabled</code></a></td>
 <td><code>false</code></td>
-<td>Must be <code>true</code> for <code>analyze</code> to run DI rules.</td>
+<td>必须为 <code>true</code> 才能在 <code>analyze</code> 中运行 DI 规则。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#di"><code>di.min_severity</code></a></td>
 <td><code>"warning"</code></td>
-<td>This rule reports at <code>error</code>; it is surfaced unless <code>min_severity</code> is raised above <code>error</code>.</td>
+<td>此规则以 <code>error</code> 级别报告；除非将 <code>min_severity</code> 提高到 <code>error</code> 以上，否则会显示此规则。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参考<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Hidden dependency detection (<code>internal/analyzer/hidden_dependency_detector.go</code>).</li>
-<li><a href="../">Rule catalog</a> · <a href="../module-variable-dependency/">Module variable dependency</a> · <a href="../singleton-pattern-dependency/">Singleton pattern dependency</a></li>
+<li>隐式依赖检测（<code>internal/analyzer/hidden_dependency_detector.go</code>）。</li>
+<li><a href="../">规则目录</a> · <a href="../module-variable-dependency/">Module variable dependency</a> · <a href="../singleton-pattern-dependency/">Singleton pattern dependency</a></li>
 </ul>
 
 

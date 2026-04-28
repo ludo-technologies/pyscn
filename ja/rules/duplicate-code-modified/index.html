@@ -1164,10 +1164,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -1175,10 +1175,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -1186,10 +1186,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -1197,10 +1197,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -1208,10 +1208,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -1219,10 +1219,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/duplicate-code-modified.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/rules/duplicate-code-modified.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,16 +3181,16 @@
 
 
 <h1 id="duplicate-code-modified">duplicate-code-modified<a class="headerlink" href="#duplicate-code-modified" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Duplicate Code<br />
+<p><strong>Category</strong>: 重複コード<br />
 <strong>Severity</strong>: Info<br />
 <strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check --select clones</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags code blocks that share most of their structure but have added, removed, or modified statements (Type-3 clones, similarity ≥ 0.70). Disabled by default; enable by adding <code>"type3"</code> to <code>clones.enabled_clone_types</code>.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>Near-duplicates are the most common kind of clone in real codebases and often the hardest to clean up. Two functions do almost the same thing, but one has an extra validation step or a slightly different error path. The shared part should live in one place; the differences should be the only thing that varies between call sites.</p>
-<p>Left alone, modified clones drift: a bug gets fixed in one copy but not the other, a new feature is added to one but forgotten in the next. Reviewers stop trusting that similar-looking code behaves the same way.</p>
-<p>This rule is Info because the right refactoring is less mechanical than for Type-1 or Type-2 clones — sometimes the differences are the whole point, and merging would hurt clarity. Treat findings as candidates worth a look, not automatic defects.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<h2 id="_1">検出内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>構造の大部分を共有しながら、文の追加、削除、または変更があるコードブロックを検出します（Type-3 クローン、類似度 &gt;= 0.70）。デフォルトでは無効です。<code>clones.enabled_clone_types</code> に <code>"type3"</code> を追加して有効にしてください。</p>
+<h2 id="_2">なぜ問題なのか<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>ニアデュプリケートは実際のコードベースで最も一般的な種類のクローンであり、クリーンアップが最も困難なことが多いです。2つの関数がほぼ同じことをしていますが、一方には追加のバリデーションステップがあったり、エラーパスがわずかに異なっていたりします。共有部分は1箇所に存在すべきであり、異なる部分だけが呼び出し元ごとに変化すべきです。</p>
+<p>放置すると、変更されたクローンは乖離していきます。バグが一方のコピーで修正されてもう一方では修正されない、新機能が一方に追加されてもう一方では忘れられる、といったことが起こります。レビュアーは、似たように見えるコードが同じ振る舞いをすると信頼できなくなります。</p>
+<p>このルールは Info です。これは、正しいリファクタリングが Type-1 や Type-2 クローンほど機械的ではないためです。違いこそが重要なポイントである場合もあり、マージすると明確さを損なうことがあります。検出結果は確認する価値のある候補として扱い、自動的な欠陥とは見なさないでください。</p>
+<h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">export_users_csv</span><span class="p">(</span><span class="n">users</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
@@ -3206,8 +3206,8 @@
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>            <span class="k">if</span> <span class="n">o</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="s2">&quot;draft&quot;</span><span class="p">:</span>
 </span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>                <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span><span class="n">o</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">o</span><span class="o">.</span><span class="n">total</span><span class="p">,</span> <span class="n">o</span><span class="o">.</span><span class="n">status</span><span class="p">])</span>
 </span></code></pre></div>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Extract the common scaffolding and parameterize the header, row shape, and any filter.</p>
+<h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>共通のスキャフォールディングを抽出し、ヘッダー、行の形状、フィルターをパラメータ化してください。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">export_csv</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">to_row</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="kc">True</span><span class="p">):</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
@@ -3225,7 +3225,7 @@
 </span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>               <span class="k">lambda</span> <span class="n">o</span><span class="p">:</span> <span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">o</span><span class="o">.</span><span class="n">total</span><span class="p">,</span> <span class="n">o</span><span class="o">.</span><span class="n">status</span><span class="p">],</span>
 </span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>               <span class="n">keep</span><span class="o">=</span><span class="k">lambda</span> <span class="n">o</span><span class="p">:</span> <span class="n">o</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="s2">&quot;draft&quot;</span><span class="p">)</span>
 </span></code></pre></div>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h2 id="_5">オプション<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -3238,34 +3238,34 @@
 <tr>
 <td><a href="../../configuration/reference/#clones"><code>clones.type3_threshold</code></a></td>
 <td><code>0.70</code></td>
-<td>Minimum similarity for a pair to be reported as modified.</td>
+<td>変更ありとして報告されるための最小類似度。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#clones"><code>clones.enabled_clone_types</code></a></td>
 <td><code>["type1","type2","type4"]</code></td>
-<td>Add <code>"type3"</code> to enable this rule.</td>
+<td><code>"type3"</code> を追加するとこのルールが有効になります。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#clones"><code>clones.similarity_threshold</code></a></td>
 <td><code>0.65</code></td>
-<td>Global floor applied before per-type thresholds.</td>
+<td>タイプ別の閾値の前に適用されるグローバルな下限値。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#clones"><code>clones.min_lines</code></a></td>
 <td><code>5</code></td>
-<td>Minimum fragment size in lines.</td>
+<td>フラグメントの最小行数。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#clones"><code>clones.min_nodes</code></a></td>
 <td><code>10</code></td>
-<td>Minimum fragment size in AST nodes.</td>
+<td>フラグメントの最小ASTノード数。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参照<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Clone detection implementation (<code>internal/analyzer/clone_detector.go</code>, <code>internal/analyzer/apted.go</code>).</li>
-<li><a href="../">Rule catalog</a> · <a href="../duplicate-code-identical/">Identical clones</a> · <a href="../duplicate-code-renamed/">Renamed clones</a> · <a href="../duplicate-code-semantic/">Semantic clones</a></li>
+<li>クローン検出の実装 (<code>internal/analyzer/clone_detector.go</code>, <code>internal/analyzer/apted.go</code>)。</li>
+<li><a href="../">ルールカタログ</a> · <a href="../duplicate-code-identical/">同一クローン</a> · <a href="../duplicate-code-renamed/">リネームされたクローン</a> · <a href="../duplicate-code-semantic/">意味的クローン</a></li>
 </ul>
 
 

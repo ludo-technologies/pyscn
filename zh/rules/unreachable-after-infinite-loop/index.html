@@ -977,10 +977,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -988,10 +988,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -999,10 +999,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -1010,10 +1010,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -1021,10 +1021,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -1032,10 +1032,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/unreachable-after-infinite-loop.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/zh/rules/unreachable-after-infinite-loop.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,66 +3181,66 @@
 
 
 <h1 id="unreachable-after-infinite-loop">unreachable-after-infinite-loop<a class="headerlink" href="#unreachable-after-infinite-loop" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Unreachable Code<br />
-<strong>Severity</strong>: Warning<br />
-<strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags statements that follow a loop with no reachable exit, such as <code>while True:</code> without a <code>break</code> or <code>return</code>.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>If a loop has no path out, execution never proceeds past it. Anything written after the loop is dead.</p>
-<p>This is usually one of:</p>
+<p><strong>类别</strong>: 不可达代码<br />
+<strong>严重程度</strong>: Warning<br />
+<strong>触发方式</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
+<h2 id="_1">检测内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>标记没有可达出口的循环（例如不含 <code>break</code> 或 <code>return</code> 的 <code>while True:</code>）之后出现的语句。</p>
+<h2 id="_2">为什么这是一个问题<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>如果循环没有任何退出路径，执行将永远不会越过该循环。循环之后编写的任何代码都是死代码。</p>
+<p>这通常属于以下情况之一：</p>
 <ul>
-<li><strong>A forgotten exit condition</strong> — the loop was meant to terminate but the <code>break</code> was lost in a refactor.</li>
-<li><strong>A misplaced cleanup</strong> — shutdown or teardown code sitting after a worker loop that never returns.</li>
-<li><strong>A copy-paste error</strong> — post-loop logic left over from a previous version of the function.</li>
+<li><strong>遗忘的退出条件</strong> — 循环本应终止，但 <code>break</code> 在重构中丢失了。</li>
+<li><strong>错位的清理代码</strong> — 关闭或拆卸代码放在了一个永不返回的工作循环之后。</li>
+<li><strong>复制粘贴错误</strong> — 从函数的先前版本中遗留的循环后逻辑。</li>
 </ul>
-<p>The reader expects the trailing code to run eventually. It does not.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<p>读者期望尾部代码最终会执行。但实际上不会。</p>
+<h2 id="_3">示例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">run_worker</span><span class="p">(</span><span class="n">queue</span><span class="p">):</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="n">job</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="n">job</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">queue</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>   <span class="c1"># ← never executes</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">queue</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>   <span class="c1"># ← 永远不会执行</span>
 </span></code></pre></div>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Give the loop a reachable exit, or remove the unreachable tail.</p>
+<h2 id="_4">修正示例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>为循环添加可达的退出条件，或者移除不可达的尾部代码。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">run_worker</span><span class="p">(</span><span class="n">queue</span><span class="p">):</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">while</span> <span class="ow">not</span> <span class="n">queue</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="n">job</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="n">job</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">queue</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </span></code></pre></div>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h2 id="_5">选项<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>选项</th>
+<th>默认值</th>
+<th>说明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#dead_code"><code>dead_code.enabled</code></a></td>
 <td><code>true</code></td>
-<td>This rule has no dedicated toggle; it is controlled by <code>dead_code.enabled</code> and CFG analysis.</td>
+<td>此规则没有独立开关；由 <code>dead_code.enabled</code> 和 CFG 分析控制。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#dead_code"><code>dead_code.min_severity</code></a></td>
 <td><code>"warning"</code></td>
-<td>Raise to <code>"critical"</code> to hide these findings; lower to <code>"info"</code> to surface more.</td>
+<td>提高到 <code>"critical"</code> 可隐藏此类发现；降低到 <code>"info"</code> 可显示更多。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#dead_code"><code>dead_code.ignore_patterns</code></a></td>
 <td><code>[]</code></td>
-<td>Regex patterns matched against the source line; matches are suppressed.</td>
+<td>用于匹配源代码行的正则表达式模式；匹配项将被抑制。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参考<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Control-flow graph reachability analysis (<code>internal/analyzer/dead_code.go</code>).</li>
-<li><a href="../">Rule catalog</a> · <a href="../unreachable-after-return/">Unreachable after return</a> · <a href="../unreachable-branch/">Unreachable branch</a></li>
+<li>控制流图可达性分析 (<code>internal/analyzer/dead_code.go</code>)。</li>
+<li><a href="../">规则目录</a> · <a href="../unreachable-after-return/">return 后不可达</a> · <a href="../unreachable-branch/">不可达分支</a></li>
 </ul>
 
 

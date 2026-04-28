@@ -1880,10 +1880,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -1891,10 +1891,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -1902,10 +1902,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -1913,10 +1913,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -1924,10 +1924,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -1935,10 +1935,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/low-package-cohesion.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/rules/low-package-cohesion.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,70 +3181,70 @@
 
 
 <h1 id="low-package-cohesion">low-package-cohesion<a class="headerlink" href="#low-package-cohesion" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Module Structure<br />
-<strong>Severity</strong>: Warning<br />
-<strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check --select deps</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags a package whose internal cohesion score falls below <code>architecture.min_cohesion</code> (default <code>0.5</code>). Cohesion is measured as the ratio of actual intra-package imports to the number possible between its submodules — a package whose modules never import each other scores <code>0</code>.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>A package is supposed to be a single concept that happens to be split across files. When the files don't reference each other, the package is just a folder of unrelated code sharing a namespace:</p>
+<p><strong>カテゴリ</strong>: モジュール構造<br />
+<strong>重大度</strong>: Warning<br />
+<strong>トリガー</strong>: <code>pyscn analyze</code>, <code>pyscn check --select deps</code></p>
+<h2 id="_1">検出内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>パッケージの内部凝集度スコアが <code>architecture.min_cohesion</code>（デフォルト <code>0.5</code>）を下回る場合に検出します。凝集度は、サブモジュール間で可能なパッケージ内インポート数に対する実際のインポート数の比率として測定されます。モジュール同士が一切インポートし合わないパッケージのスコアは <code>0</code> です。</p>
+<h2 id="_2">なぜ問題なのか<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>パッケージとは、ファイルに分割された単一の概念であるべきです。ファイル同士が参照し合わない場合、そのパッケージは名前空間を共有しているだけの無関係なコードの寄せ集めにすぎません:</p>
 <ul>
-<li><strong>Misleading import paths.</strong> <code>from myapp.utils import X</code> suggests a relationship between <code>X</code> and everything else in <code>utils</code>; low cohesion means that promise is empty.</li>
-<li><strong>No natural owner.</strong> Nobody is responsible for "<code>utils</code>" as a whole, because there is no whole.</li>
-<li><strong>Grows without bound.</strong> Miscellaneous packages accumulate unrelated helpers until they become a dumping ground.</li>
-<li><strong>Hides a missing abstraction.</strong> Often the right move is not "keep adding", but to find the real concept that two of the submodules share and extract it.</li>
+<li><strong>誤解を招くインポートパス。</strong> <code>from myapp.utils import X</code> は、<code>X</code> と <code>utils</code> 内の他のすべてに関係があることを示唆しますが、凝集度が低いとその約束は空虚です。</li>
+<li><strong>明確なオーナーの不在。</strong> 「全体」が存在しないため、"<code>utils</code>" 全体の責任者がいません。</li>
+<li><strong>際限のない肥大化。</strong> 雑多なパッケージは、ゴミ捨て場になるまで無関係なヘルパーを蓄積し続けます。</li>
+<li><strong>欠落した抽象の隠蔽。</strong> 正しい対処は「追加し続ける」ことではなく、2つのサブモジュールが共有している本当の概念を見つけて抽出することである場合が多いです。</li>
 </ul>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>myapp/utils/
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    __init__.py
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    string_utils.py     # slugify, truncate
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    math_utils.py       # clamp, lerp
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    io_utils.py         # atomic_write, read_json
 </span></code></pre></div>
-<p>None of these three modules imports any of the others. The <code>utils</code> package has zero cohesion.</p>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Split the package into focused packages named after what they actually do:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>myapp/text/          # slugify, truncate, and the helpers they share
+<p>これら3つのモジュールは互いにインポートしていません。<code>utils</code> パッケージの凝集度はゼロです。</p>
+<h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>パッケージを、実際に行っていることに基づいた名前の焦点を絞ったパッケージに分割します:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>myapp/text/          # slugify, truncate、およびそれらが共有するヘルパー
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>myapp/geometry/      # clamp, lerp
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>myapp/fs/            # atomic_write, read_json
 </span></code></pre></div>
-<p>Or — if the contents really are unrelated one-off helpers — acknowledge that and stop pretending otherwise. Name the package <code>misc</code> or move each helper to the module that actually uses it, and exclude the dumping ground from cohesion checks.</p>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<p>あるいは、内容が本当に無関係な単発のヘルパーであるなら、そのことを認めて取り繕うのをやめましょう。パッケージを <code>misc</code> と名付けるか、各ヘルパーを実際に使用しているモジュールに移動し、そのゴミ捨て場を凝集度チェックから除外します。</p>
+<h2 id="_5">オプション<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>オプション</th>
+<th>デフォルト</th>
+<th>説明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#architecture"><code>architecture.validate_cohesion</code></a></td>
 <td><code>true</code></td>
-<td>Set to <code>false</code> to disable this rule.</td>
+<td><code>false</code> に設定するとこのルールを無効にします。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#architecture"><code>architecture.min_cohesion</code></a></td>
 <td><code>0.5</code></td>
-<td>Packages scoring below this are flagged.</td>
+<td>このスコアを下回るパッケージが検出されます。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#architecture"><code>architecture.enabled</code></a></td>
 <td><code>true</code></td>
-<td>Master switch for architecture analysis.</td>
+<td>アーキテクチャ解析のマスタースイッチ。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#architecture"><code>architecture.fail_on_violations</code></a></td>
 <td><code>false</code></td>
-<td>Non-zero exit code on violation.</td>
+<td>違反時にゼロ以外の終了コードを返します。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参照<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Package cohesion computation (<code>internal/analyzer/coupling_metrics.go</code>, <code>internal/analyzer/module_analyzer.go</code>).</li>
-<li><a href="../">Rule catalog</a> · <a href="../layer-violation/">layer-violation</a></li>
+<li>パッケージ凝集度の計算 (<code>internal/analyzer/coupling_metrics.go</code>, <code>internal/analyzer/module_analyzer.go</code>)。</li>
+<li><a href="../">ルールカタログ</a> · <a href="../layer-violation/">layer-violation</a></li>
 </ul>
 
 

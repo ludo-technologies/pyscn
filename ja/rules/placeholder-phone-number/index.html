@@ -2075,10 +2075,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -2086,10 +2086,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -2097,10 +2097,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -2108,10 +2108,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -2119,10 +2119,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -2130,10 +2130,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/placeholder-phone-number.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/rules/placeholder-phone-number.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,56 +3181,56 @@
 
 
 <h1 id="placeholder-phone-number">placeholder-phone-number<a class="headerlink" href="#placeholder-phone-number" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Mock Data<br />
-<strong>Severity</strong>: Warning<br />
-<strong>Triggered by</strong>: <code>pyscn check --select mockdata</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags phone numbers in string literals that follow obviously fake patterns: all zeros (<code>000-0000-0000</code>), sequential digits (<code>123-456-7890</code>, <code>012-345-6789</code>), or long runs of repeated digits.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>A placeholder phone number is the kind of value that survives from the first draft of a form and is never revisited. It validates, it formats, and it round-trips through the database — so nothing breaks until a real user sees it on a confirmation screen or a support agent tries to call it.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<p><strong>カテゴリ</strong>: モックデータ<br />
+<strong>重大度</strong>: Warning<br />
+<strong>トリガー</strong>: <code>pyscn check --select mockdata</code></p>
+<h2 id="_1">検出内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>明らかに偽のパターンに従う文字列リテラル内の電話番号を検出します: すべてゼロ（<code>000-0000-0000</code>）、連番（<code>123-456-7890</code>、<code>012-345-6789</code>）、または同じ数字の長い繰り返し。</p>
+<h2 id="_2">なぜ問題なのか<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>プレースホルダーの電話番号は、フォームの最初のドラフトから残り、二度と見直されない類の値です。バリデーションを通過し、フォーマットされ、データベースを往復します。そのため、実際のユーザーが確認画面でそれを見るか、サポート担当者がその番号に電話をかけようとするまで、何も壊れません。</p>
+<h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">default_phone</span> <span class="o">=</span> <span class="s2">&quot;000-0000-0000&quot;</span>
 </span></code></pre></div>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Leave the field empty, require it from the caller, or pull it from configuration. A phone number that isn't known should be absent, not faked.</p>
+<h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>フィールドを空のままにするか、呼び出し元に要求するか、設定から取得します。不明な電話番号は、偽の値ではなく不在であるべきです。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">default_phone</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span></code></pre></div>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h2 id="_5">オプション<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>オプション</th>
+<th>デフォルト</th>
+<th>説明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.enabled</code></a></td>
 <td><code>false</code></td>
-<td>Opt-in.</td>
+<td>オプトイン。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.min_severity</code></a></td>
 <td><code>"info"</code></td>
-<td>Raise to <code>"warning"</code> to keep only this-level findings.</td>
+<td><code>"warning"</code> に上げると、このレベルの検出結果のみを保持します。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.ignore_tests</code></a></td>
 <td><code>true</code></td>
-<td>Skip test files.</td>
+<td>テストファイルをスキップします。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.ignore_patterns</code></a></td>
 <td><code>[]</code></td>
-<td>Regex patterns matched against file paths.</td>
+<td>ファイルパスに対してマッチする正規表現パターン。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参照<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Implementation: <code>internal/analyzer/mock_data_detector.go</code>.</li>
-<li><a href="../">Rule catalog</a> · <a href="../placeholder-uuid/">placeholder-uuid</a> · <a href="../repetitive-string-literal/">repetitive-string-literal</a></li>
+<li>実装: <code>internal/analyzer/mock_data_detector.go</code>。</li>
+<li><a href="../">ルールカタログ</a> · <a href="../placeholder-uuid/">placeholder-uuid</a> · <a href="../repetitive-string-literal/">repetitive-string-literal</a></li>
 </ul>
 
 

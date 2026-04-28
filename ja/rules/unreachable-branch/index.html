@@ -1005,10 +1005,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -1016,10 +1016,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -1027,10 +1027,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -1038,10 +1038,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -1049,10 +1049,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -1060,10 +1060,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/unreachable-branch.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/rules/unreachable-branch.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,21 +3181,21 @@
 
 
 <h1 id="unreachable-branch">unreachable-branch<a class="headerlink" href="#unreachable-branch" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Unreachable Code<br />
+<p><strong>Category</strong>: 到達不能コード<br />
 <strong>Severity</strong>: Warning<br />
 <strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags an <code>if</code>, <code>elif</code>, or <code>else</code> branch that cannot be taken because every preceding branch terminates with <code>return</code>, <code>raise</code>, <code>break</code>, or <code>continue</code>.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>When each earlier branch already exits the function or loop, the remaining branch is logically dead. The guard still looks meaningful to a reader, which hides the real control flow.</p>
-<p>This usually indicates:</p>
+<h2 id="_1">検出内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>先行するすべての分岐が <code>return</code>、<code>raise</code>、<code>break</code>、または <code>continue</code> で終了するために、到達できない <code>if</code>、<code>elif</code>、または <code>else</code> 分岐を検出します。</p>
+<h2 id="_2">なぜ問題なのか<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>先行する各分岐がすでに関数やループを終了している場合、残りの分岐は論理的にデッドコードです。ガード条件は読者にとって意味があるように見えるため、実際の制御フローが隠されます。</p>
+<p>これは通常、以下を示します：</p>
 <ul>
-<li><strong>Redundant conditions</strong> — the <code>else</code> exists only because the <code>if</code> used to fall through.</li>
-<li><strong>A subtle bug</strong> — the author expected the later branch to run in some case, but the earlier exits make it impossible.</li>
-<li><strong>Stale defensive code</strong> — a fallback that can no longer be reached.</li>
+<li><strong>冗長な条件</strong> -- <code>if</code> がかつてフォールスルーしていたために <code>else</code> が存在している。</li>
+<li><strong>微妙なバグ</strong> -- 作者は後の分岐がある条件で実行されると期待していたが、先行する exit により不可能になった。</li>
+<li><strong>古い防御コード</strong> -- もはや到達できないフォールバック。</li>
 </ul>
-<p>Tests cannot cover the branch, and reviewers waste time reasoning about a path that never runs.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<p>テストはその分岐をカバーできず、レビュアーは決して実行されないパスについて推論する時間を浪費します。</p>
+<h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">classify</span><span class="p">(</span><span class="n">payment</span><span class="p">):</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">if</span> <span class="n">payment</span><span class="o">.</span><span class="n">amount</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;negative amount&quot;</span><span class="p">)</span>
@@ -3203,10 +3203,10 @@
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="k">return</span> <span class="s2">&quot;empty&quot;</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="k">else</span><span class="p">:</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="k">return</span> <span class="s2">&quot;normal&quot;</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="k">return</span> <span class="s2">&quot;unknown&quot;</span>   <span class="c1"># ← unreachable branch</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="k">return</span> <span class="s2">&quot;unknown&quot;</span>   <span class="c1"># ← 到達不能な分岐</span>
 </span></code></pre></div>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Remove the dead branch, or restructure the earlier branches so the fallback is actually reachable.</p>
+<h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>デッドブランチを削除するか、フォールバックが実際に到達可能になるように先行する分岐を再構成してください。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">classify</span><span class="p">(</span><span class="n">payment</span><span class="p">):</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">if</span> <span class="n">payment</span><span class="o">.</span><span class="n">amount</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;negative amount&quot;</span><span class="p">)</span>
@@ -3214,7 +3214,7 @@
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="k">return</span> <span class="s2">&quot;empty&quot;</span>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="k">return</span> <span class="s2">&quot;normal&quot;</span>
 </span></code></pre></div>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h2 id="_5">オプション<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -3227,24 +3227,24 @@
 <tr>
 <td><a href="../../configuration/reference/#dead_code"><code>dead_code.detect_unreachable_branches</code></a></td>
 <td><code>true</code></td>
-<td>Set to <code>false</code> to disable this rule.</td>
+<td><code>false</code> に設定するとこのルールを無効にします。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#dead_code"><code>dead_code.min_severity</code></a></td>
 <td><code>"warning"</code></td>
-<td>Raise to <code>"critical"</code> to hide these findings; lower to <code>"info"</code> to surface more.</td>
+<td><code>"critical"</code> に上げるとこれらの検出結果を非表示にします。<code>"info"</code> に下げるとより多く表示します。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#dead_code"><code>dead_code.ignore_patterns</code></a></td>
 <td><code>[]</code></td>
-<td>Regex patterns matched against the source line; matches are suppressed.</td>
+<td>ソース行に対してマッチする正規表現パターン。マッチした場合は抑制されます。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参照<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Control-flow graph reachability analysis (<code>internal/analyzer/dead_code.go</code>).</li>
-<li><a href="../">Rule catalog</a> · <a href="../unreachable-after-return/">Unreachable after return</a> · <a href="../unreachable-after-raise/">Unreachable after raise</a></li>
+<li>制御フローグラフの到達可能性分析 (<code>internal/analyzer/dead_code.go</code>)。</li>
+<li><a href="../">ルールカタログ</a> · <a href="../unreachable-after-return/">Unreachable after return</a> · <a href="../unreachable-after-raise/">Unreachable after raise</a></li>
 </ul>
 
 

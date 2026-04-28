@@ -1796,10 +1796,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -1807,10 +1807,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -1818,10 +1818,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -1829,10 +1829,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -1840,10 +1840,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -1851,10 +1851,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/circular-import.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/zh/rules/circular-import.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,17 +3181,17 @@
 
 
 <h1 id="circular-import">circular-import<a class="headerlink" href="#circular-import" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Module Structure<br />
+<p><strong>Category</strong>: 模块结构<br />
 <strong>Severity</strong>: Configurable by cycle size (Low / Medium / High / Critical)<br />
 <strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check --select circular</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags groups of modules that form an import cycle — module A imports B (directly or transitively) and B imports A. Cycles are found by running Tarjan's strongly-connected-components algorithm over the module dependency graph.</p>
-<p>Severity is assigned from the cycle's size and the fan-in of its members:</p>
+<h2 id="_1">检测内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>标记形成导入循环的模块组——模块 A 导入 B（直接或传递地），同时 B 也导入 A。循环通过在模块依赖图上运行 Tarjan 强连通分量算法来发现。</p>
+<p>严重程度根据循环的大小和成员的扇入数来分配：</p>
 <table>
 <thead>
 <tr>
-<th>Cycle members</th>
-<th>Severity</th>
+<th>循环成员数</th>
+<th>严重程度</th>
 </tr>
 </thead>
 <tbody>
@@ -3208,20 +3208,20 @@
 <td>High</td>
 </tr>
 <tr>
-<td>10+, or any member with fan-in &gt; 10</td>
+<td>10+，或任何成员的扇入 &gt; 10</td>
 <td>Critical</td>
 </tr>
 </tbody>
 </table>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>A circular import means two or more modules cannot be understood, tested, or released independently. Concretely:</p>
+<h2 id="_2">为什么这是一个问题<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>循环导入意味着两个或更多模块无法独立地被理解、测试或发布。具体而言：</p>
 <ul>
-<li><strong>Import-time errors.</strong> Python partially initialises modules during circular imports; attribute access on the half-loaded module raises <code>ImportError</code> or <code>AttributeError</code> depending on statement order.</li>
-<li><strong>Tight coupling.</strong> The cycle's members share a single "logical module" split across files. A change in one tends to force a change in all of them.</li>
-<li><strong>Blocked refactoring.</strong> You cannot move, rename, or delete any member of the cycle without touching the others.</li>
-<li><strong>Worse as the cycle grows.</strong> A 2-module cycle is a nuisance; a 10-module cycle is an architectural failure — hence the severity ramp.</li>
+<li><strong>导入时错误。</strong> Python 在循环导入期间会部分初始化模块；对半加载模块的属性访问会根据语句顺序引发 <code>ImportError</code> 或 <code>AttributeError</code>。</li>
+<li><strong>紧密耦合。</strong> 循环的成员共享一个分散在多个文件中的单一"逻辑模块"。其中一个的更改往往会迫使其他所有成员都进行更改。</li>
+<li><strong>阻碍重构。</strong> 你无法移动、重命名或删除循环中的任何成员而不触及其他成员。</li>
+<li><strong>循环越大越糟糕。</strong> 2 个模块的循环是个麻烦；10 个模块的循环是架构失败——因此严重程度会递增。</li>
 </ul>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<h2 id="_3">示例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># myapp/orders.py</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">myapp.billing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Invoice</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
@@ -3236,9 +3236,9 @@
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="s2">&quot;Order&quot;</span><span class="p">):</span>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">=</span> <span class="n">order</span>
 </span></code></pre></div>
-<p><code>orders</code> imports <code>billing</code> for the return type; <code>billing</code> imports <code>orders</code> for the constructor parameter. Running either file top-level triggers the cycle.</p>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Extract the shared types to a third module so both depend on it instead of on each other:</p>
+<p><code>orders</code> 为了返回类型导入了 <code>billing</code>；<code>billing</code> 为了构造函数参数导入了 <code>orders</code>。在顶层运行任一文件都会触发循环。</p>
+<h2 id="_4">修正示例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>将共享类型提取到第三个模块中，使两者都依赖于它而不是彼此：</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># myapp/domain.py</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">Order</span><span class="p">:</span> <span class="o">...</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">Invoice</span><span class="p">:</span> <span class="o">...</span>
@@ -3249,7 +3249,7 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># myapp/billing.py</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">myapp.domain</span><span class="w"> </span><span class="kn">import</span> <span class="n">Order</span><span class="p">,</span> <span class="n">Invoice</span>
 </span></code></pre></div>
-<p>If the back-edge is only needed for type annotations, guard it with <code>TYPE_CHECKING</code> so it isn't evaluated at runtime:</p>
+<p>如果反向边仅用于类型注解，请使用 <code>TYPE_CHECKING</code> 保护它，使其不在运行时被求值：</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># myapp/billing.py</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
@@ -3260,47 +3260,47 @@
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">Invoice</span><span class="p">:</span>
 </span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="s2">&quot;Order&quot;</span><span class="p">):</span> <span class="o">...</span>
 </span></code></pre></div>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h2 id="_5">选项<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>选项</th>
+<th>默认值</th>
+<th>描述</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#dependencies"><code>dependencies.detect_cycles</code></a></td>
 <td><code>true</code></td>
-<td>Set to <code>false</code> to disable this rule.</td>
+<td>设为 <code>false</code> 可禁用此规则。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#dependencies"><code>dependencies.cycle_reporting</code></a></td>
 <td><code>"summary"</code></td>
-<td><code>all</code>, <code>critical</code>, or <code>summary</code> — controls how many cycles appear in the report.</td>
+<td><code>all</code>、<code>critical</code> 或 <code>summary</code>——控制报告中显示多少循环。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#dependencies"><code>dependencies.max_cycles_to_show</code></a></td>
 <td><code>10</code></td>
-<td>Cap on reported cycles.</td>
+<td>报告循环数量的上限。</td>
 </tr>
 <tr>
 <td><code>--max-cycles N</code> (check)</td>
 <td><code>0</code></td>
-<td>Fail the <code>check</code> command when cycle count exceeds <code>N</code>.</td>
+<td>当循环数量超过 <code>N</code> 时使 <code>check</code> 命令失败。</td>
 </tr>
 <tr>
 <td><code>--allow-circular-deps</code> (check)</td>
 <td>off</td>
-<td>Demote cycles to warnings instead of failures.</td>
+<td>将循环降级为警告而非失败。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参考<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Tarjan SCC implementation (<code>internal/analyzer/circular_detector.go</code>), module graph construction (<code>internal/analyzer/module_analyzer.go</code>).</li>
-<li><a href="../">Rule catalog</a> · <a href="../deep-import-chain/">deep-import-chain</a></li>
+<li>Tarjan SCC 实现（<code>internal/analyzer/circular_detector.go</code>），模块图构建（<code>internal/analyzer/module_analyzer.go</code>）。</li>
+<li><a href="../">规则目录</a> · <a href="../deep-import-chain/">deep-import-chain</a></li>
 </ul>
 
 

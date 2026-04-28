@@ -2019,10 +2019,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -2030,10 +2030,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -2041,10 +2041,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -2052,10 +2052,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -2063,10 +2063,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -2074,10 +2074,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/mock-domain-in-string.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/zh/rules/mock-domain-in-string.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,68 +3181,68 @@
 
 
 <h1 id="mock-domain-in-string">mock-domain-in-string<a class="headerlink" href="#mock-domain-in-string" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Mock Data<br />
+<p><strong>Category</strong>: 模拟数据<br />
 <strong>Severity</strong>: Warning<br />
 <strong>Triggered by</strong>: <code>pyscn check --select mockdata</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags string literals containing domains reserved for documentation and testing: <code>example.com</code>, <code>example.org</code>, <code>example.net</code>, <code>test.com</code>, <code>localhost</code>, <code>invalid</code>, <code>foo.com</code>, <code>bar.com</code>, and similar RFC 2606 / RFC 6761 names.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>These domains exist precisely so that examples and tests can't collide with real traffic. That's useful while writing docs — and a problem once a literal ships. A hard-coded <code>example.com</code> URL in production is usually either:</p>
+<h2 id="_1">检测内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>标记包含为文档和测试保留的域名的字符串字面量：<code>example.com</code>、<code>example.org</code>、<code>example.net</code>、<code>test.com</code>、<code>localhost</code>、<code>invalid</code>、<code>foo.com</code>、<code>bar.com</code>，以及类似的 RFC 2606 / RFC 6761 名称。</p>
+<h2 id="_2">为什么这是一个问题<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>这些域名的存在正是为了让示例和测试不会与真实流量冲突。在编写文档时这很有用——但一旦字面量被发布就成了问题。生产环境中硬编码的 <code>example.com</code> URL 通常是以下情况之一：</p>
 <ul>
-<li>A placeholder that was meant to be replaced before release, or</li>
-<li>A config value that should never have been hard-coded in the first place.</li>
+<li>一个原本应在发布前被替换的占位符，或</li>
+<li>一个本不应该被硬编码的配置值。</li>
 </ul>
-<p>In both cases the failure mode is silent: requests succeed (the domain resolves to a documentation page or nothing at all), no exception is raised, and the bug is only noticed when someone asks why signups aren't arriving.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<p>在这两种情况下，失败模式都是静默的：请求成功（域名解析到文档页面或什么都没有），不会引发异常，只有当有人问为什么注册邮件没有到达时才会发现这个 bug。</p>
+<h2 id="_3">示例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">SIGNUP_URL</span> <span class="o">=</span> <span class="s2">&quot;https://example.com/signup&quot;</span>
 </span></code></pre></div>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Move the value to configuration, or inline the real URL.</p>
+<h2 id="_4">修正示例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>将值移到配置中，或内联真实 URL。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">SIGNUP_URL</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">signup_url</span>
 </span></code></pre></div>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h2 id="_5">选项<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>选项</th>
+<th>默认值</th>
+<th>描述</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.enabled</code></a></td>
 <td><code>false</code></td>
-<td>Opt-in.</td>
+<td>需要显式启用。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.domains</code></a></td>
-<td><em>(RFC 2606 list)</em></td>
-<td>Override or extend the reserved domain list.</td>
+<td><em>（RFC 2606 列表）</em></td>
+<td>覆盖或扩展保留域名列表。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.min_severity</code></a></td>
 <td><code>"info"</code></td>
-<td>Raise to <code>"warning"</code> to keep only this-level findings.</td>
+<td>提升至 <code>"warning"</code> 仅保留此级别的发现。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.ignore_tests</code></a></td>
 <td><code>true</code></td>
-<td>Skip test files.</td>
+<td>跳过测试文件。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.ignore_patterns</code></a></td>
 <td><code>[]</code></td>
-<td>Regex patterns matched against file paths.</td>
+<td>与文件路径匹配的正则表达式模式。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参考<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
 <li>RFC 2606: <em>Reserved Top Level DNS Names.</em></li>
 <li>RFC 6761: <em>Special-Use Domain Names.</em></li>
-<li>Implementation: <code>internal/analyzer/mock_data_detector.go</code>.</li>
-<li><a href="../">Rule catalog</a> · <a href="../mock-email-address/">mock-email-address</a> · <a href="../mock-keyword-in-code/">mock-keyword-in-code</a></li>
+<li>实现：<code>internal/analyzer/mock_data_detector.go</code>。</li>
+<li><a href="../">规则目录</a> · <a href="../mock-email-address/">mock-email-address</a> · <a href="../mock-keyword-in-code/">mock-keyword-in-code</a></li>
 </ul>
 
 

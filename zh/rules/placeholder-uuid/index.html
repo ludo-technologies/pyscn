@@ -2103,10 +2103,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -2114,10 +2114,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -2125,10 +2125,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -2136,10 +2136,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -2147,10 +2147,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -2158,10 +2158,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/placeholder-uuid.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/zh/rules/placeholder-uuid.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,59 +3181,59 @@
 
 
 <h1 id="placeholder-uuid">placeholder-uuid<a class="headerlink" href="#placeholder-uuid" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Mock Data<br />
+<p><strong>Category</strong>: 模拟数据<br />
 <strong>Severity</strong>: Warning<br />
 <strong>Triggered by</strong>: <code>pyscn check --select mockdata</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags UUID-shaped string literals with very low entropy: the nil UUID (<code>00000000-0000-0000-0000-000000000000</code>), all-ones, all-<code>f</code>, or long runs of repeated characters that nevertheless parse as a UUID.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>The nil UUID is a legitimate value in a few contexts, but in most application code it's a leftover from a stub <code>DEFAULT_USER_ID = "00..."</code> that was meant to be replaced. Because it parses and serialises like any other UUID, foreign-key lookups, log lines, and audit trails all accept it — and rows start collapsing onto the same "user" without anything raising an error.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<h2 id="_1">检测内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>标记熵值极低的 UUID 格式字符串字面量：全零 UUID（<code>00000000-0000-0000-0000-000000000000</code>）、全一、全 <code>f</code>，或虽然能解析为 UUID 但包含长段重复字符的值。</p>
+<h2 id="_2">为什么这是一个问题<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>全零 UUID 在少数场景中是合法值，但在大多数应用程序代码中，它是桩代码 <code>DEFAULT_USER_ID = "00..."</code> 的残留，本应被替换。因为它像其他 UUID 一样能被解析和序列化，外键查找、日志行和审计记录都会接受它——于是行记录开始汇聚到同一个"用户"上，而不会有任何错误被抛出。</p>
+<h2 id="_3">示例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DEFAULT_USER_ID</span> <span class="o">=</span> <span class="s2">&quot;00000000-0000-0000-0000-000000000000&quot;</span>
 </span></code></pre></div>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Generate a real UUID at the point of use, or require the caller to supply one. Don't carry a sentinel value that looks like data.</p>
+<h2 id="_4">修正示例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>在使用时生成真实的 UUID，或要求调用者提供。不要携带一个看起来像数据的哨兵值。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">new_user_id</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span><span class="p">:</span>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="k">return</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span>
 </span></code></pre></div>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h2 id="_5">选项<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>选项</th>
+<th>默认值</th>
+<th>描述</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.enabled</code></a></td>
 <td><code>false</code></td>
-<td>Opt-in.</td>
+<td>需要显式启用。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.min_severity</code></a></td>
 <td><code>"info"</code></td>
-<td>Raise to <code>"warning"</code> to keep only this-level findings.</td>
+<td>提升至 <code>"warning"</code> 仅保留此级别的发现。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.ignore_tests</code></a></td>
 <td><code>true</code></td>
-<td>Skip test files.</td>
+<td>跳过测试文件。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.ignore_patterns</code></a></td>
 <td><code>[]</code></td>
-<td>Regex patterns matched against file paths.</td>
+<td>与文件路径匹配的正则表达式模式。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参考<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Implementation: <code>internal/analyzer/mock_data_detector.go</code>.</li>
-<li><a href="../">Rule catalog</a> · <a href="../placeholder-phone-number/">placeholder-phone-number</a> · <a href="../repetitive-string-literal/">repetitive-string-literal</a></li>
+<li>实现：<code>internal/analyzer/mock_data_detector.go</code>。</li>
+<li><a href="../">规则目录</a> · <a href="../placeholder-phone-number/">placeholder-phone-number</a> · <a href="../repetitive-string-literal/">repetitive-string-literal</a></li>
 </ul>
 
 

@@ -1289,10 +1289,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -1300,10 +1300,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -1311,10 +1311,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -1322,10 +1322,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -1333,10 +1333,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -1344,10 +1344,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/high-cyclomatic-complexity.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/rules/high-cyclomatic-complexity.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,22 +3181,22 @@
 
 
 <h1 id="high-cyclomatic-complexity">high-cyclomatic-complexity<a class="headerlink" href="#high-cyclomatic-complexity" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Complexity<br />
-<strong>Severity</strong>: Configurable by threshold<br />
-<strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags functions whose McCabe cyclomatic complexity exceeds the configured threshold. Each <code>if</code>, <code>elif</code>, <code>for</code>, <code>while</code>, <code>except</code>, <code>match case</code>, and boolean clause inside a comprehension adds one to the count. A straight-line function starts at 1.</p>
-<p>pyscn does not count <code>and</code> / <code>or</code> short-circuit operators as separate branches.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>A high branch count means:</p>
+<p><strong>カテゴリ</strong>: 複雑度<br />
+<strong>重大度</strong>: しきい値により設定可能<br />
+<strong>検出コマンド</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
+<h2 id="_1">検出内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>McCabe サイクロマティック複雑度が設定されたしきい値を超える関数を検出します。<code>if</code>、<code>elif</code>、<code>for</code>、<code>while</code>、<code>except</code>、<code>match case</code>、および内包表記内のブール節がそれぞれカウントに1を加算します。直線的な関数の初期値は1です。</p>
+<p>pyscn は <code>and</code> / <code>or</code> 短絡演算子を個別の分岐としてカウントしません。</p>
+<h2 id="_2">なぜ問題なのか<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>分岐数が多いということは、以下を意味します:</p>
 <ul>
-<li><strong>More paths to read</strong> — every reviewer has to mentally simulate each branch to understand what the function does.</li>
-<li><strong>More paths to test</strong> — full branch coverage requires one test per path; most highly-branched functions are under-tested in practice.</li>
-<li><strong>Higher defect density</strong> — empirical studies since McCabe (1976) correlate complexity with bug rate.</li>
-<li><strong>Harder to change safely</strong> — a small edit in one branch can silently break another.</li>
+<li><strong>読むべきパスが増える</strong> — レビュアーは関数の動作を理解するために、すべての分岐を頭の中でシミュレーションしなければなりません。</li>
+<li><strong>テストすべきパスが増える</strong> — 完全な分岐カバレッジにはパスごとに1つのテストが必要であり、実際には分岐の多い関数のほとんどがテスト不足です。</li>
+<li><strong>欠陥密度が高くなる</strong> — McCabe (1976) 以降の実証研究で、複雑度とバグ率の相関が示されています。</li>
+<li><strong>安全な変更が困難になる</strong> — ある分岐での小さな修正が、別の分岐を気づかないうちに壊す可能性があります。</li>
 </ul>
-<p>Functions above ~10 are usually doing several jobs that could be named and separated.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<p>複雑度が約10を超える関数は、通常、名前を付けて分離できる複数の役割を担っています。</p>
+<h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">price_for</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">cart</span><span class="p">,</span> <span class="n">coupon</span><span class="p">,</span> <span class="n">region</span><span class="p">):</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">:</span>
@@ -3223,9 +3223,9 @@
 </span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>        <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
 </span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>    <span class="k">return</span> <span class="n">total</span>
 </span></code></pre></div>
-<p>Cyclomatic complexity: 13.</p>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Extract the per-item pricing and coupon handling, and replace the nested conditional with a dispatch table.</p>
+<p>サイクロマティック複雑度: 13。</p>
+<h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>商品ごとの価格計算とクーポン処理を抽出し、ネストした条件分岐をディスパッチテーブルに置き換えます。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">REGION_BOOK_MULTIPLIER</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;EU&quot;</span><span class="p">:</span> <span class="mf">0.95</span><span class="p">,</span> <span class="s2">&quot;US&quot;</span><span class="p">:</span> <span class="mf">1.00</span><span class="p">}</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">_book_price</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">region</span><span class="p">):</span>
@@ -3253,44 +3253,44 @@
 </span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>    <span class="n">subtotal</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">_item_price</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">region</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">)</span>
 </span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>    <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">_apply_coupon</span><span class="p">(</span><span class="n">subtotal</span><span class="p">,</span> <span class="n">coupon</span><span class="p">))</span>
 </span></code></pre></div>
-<p>Each helper now has complexity 1–3 and a single responsibility. Guard clauses (<code>if coupon is None: return</code>) flatten the remaining branches.</p>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<p>各ヘルパー関数の複雑度は1〜3で、単一の責任を持ちます。ガード節（<code>if coupon is None: return</code>）により、残りの分岐がフラットになります。</p>
+<h2 id="_5">オプション<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>オプション</th>
+<th>デフォルト</th>
+<th>説明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#complexity"><code>complexity.max_complexity</code></a></td>
 <td><code>0</code></td>
-<td>Hard limit enforced by <code>pyscn check</code>. <code>0</code> means no enforcement in <code>analyze</code>; <code>pyscn check --max-complexity</code> uses <code>10</code> if unset.</td>
+<td><code>pyscn check</code> で適用されるハードリミット。<code>0</code> は <code>analyze</code> での制限なしを意味します。<code>pyscn check --max-complexity</code> は未設定の場合 <code>10</code> を使用します。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#complexity"><code>complexity.low_threshold</code></a></td>
 <td><code>9</code></td>
-<td>Functions at or below this are reported as low risk.</td>
+<td>この値以下の関数は低リスクとして報告されます。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#complexity"><code>complexity.medium_threshold</code></a></td>
 <td><code>19</code></td>
-<td>Above this, a function is high risk.</td>
+<td>この値を超えると高リスクとなります。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#complexity"><code>complexity.min_complexity</code></a></td>
 <td><code>1</code></td>
-<td>Functions below this value are omitted from the report.</td>
+<td>この値未満の関数はレポートから除外されます。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参照<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
 <li>McCabe, T. J. <em>A Complexity Measure.</em> IEEE Transactions on Software Engineering, 1976.</li>
-<li>Control-flow graph construction and cyclomatic counting: <code>internal/analyzer/complexity.go</code>, <code>internal/analyzer/complexity_analyzer.go</code>, <code>internal/analyzer/cfg_builder.go</code>.</li>
-<li><a href="../">Rule catalog</a> · <a href="../too-many-constructor-parameters/">too-many-constructor-parameters</a></li>
+<li>制御フローグラフの構築とサイクロマティック複雑度の計算: <code>internal/analyzer/complexity.go</code>, <code>internal/analyzer/complexity_analyzer.go</code>, <code>internal/analyzer/cfg_builder.go</code>。</li>
+<li><a href="../">ルールカタログ</a> · <a href="../too-many-constructor-parameters/">too-many-constructor-parameters</a></li>
 </ul>
 
 

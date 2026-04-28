@@ -1416,10 +1416,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -1427,10 +1427,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -1438,10 +1438,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -1449,10 +1449,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -1460,10 +1460,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -1471,10 +1471,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/low-class-cohesion.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/rules/low-class-cohesion.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,22 +3181,22 @@
 
 
 <h1 id="low-class-cohesion">low-class-cohesion<a class="headerlink" href="#low-class-cohesion" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Class Design<br />
-<strong>Severity</strong>: Configurable by threshold<br />
-<strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags classes whose methods don't share instance state (the LCOM4 metric — Lack of Cohesion of Methods, version 4). pyscn builds a graph where two methods are connected if they touch a common <code>self.</code> attribute, then counts the connected components. <code>LCOM4 = 1</code> means every method is related to every other; <code>LCOM4 = N</code> means the class is really <code>N</code> unrelated sub-classes glued together.</p>
-<p>Methods decorated with <code>@staticmethod</code> or <code>@classmethod</code> do not reference <code>self</code> and are excluded from the graph.</p>
-<p>In plain terms: <em>this class is doing unrelated jobs — split it, or make it a module of functions.</em></p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>A class is meant to bundle state with the operations that act on it. When the methods don't touch the same state:</p>
+<p><strong>カテゴリ</strong>: クラス設計<br />
+<strong>重大度</strong>: しきい値により設定可能<br />
+<strong>検出コマンド</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
+<h2 id="_1">検出内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>メソッド間でインスタンス状態を共有していないクラスを検出します（LCOM4 メトリクス — Lack of Cohesion of Methods, バージョン4）。pyscn は、共通の <code>self.</code> 属性にアクセスする2つのメソッドを接続するグラフを構築し、連結成分の数をカウントします。<code>LCOM4 = 1</code> はすべてのメソッドが互いに関連していることを意味し、<code>LCOM4 = N</code> はそのクラスが実質的に <code>N</code> 個の無関係なサブクラスを1つにまとめたものであることを意味します。</p>
+<p><code>@staticmethod</code> または <code>@classmethod</code> で装飾されたメソッドは <code>self</code> を参照しないため、グラフから除外されます。</p>
+<p>簡単に言えば: <em>このクラスは無関係な仕事をしています — 分割するか、関数のモジュールにしましょう。</em></p>
+<h2 id="_2">なぜ問題なのか<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>クラスは状態とそれに対する操作をまとめるためのものです。メソッドが同じ状態にアクセスしない場合:</p>
 <ul>
-<li><strong>The class name lies</strong> — it claims to be one thing but behaves like two or three.</li>
-<li><strong>Changes scatter</strong> — a bug in one responsibility can only be found by reading code that has nothing to do with it.</li>
-<li><strong>Reuse is blocked</strong> — you cannot lift out the part you need without dragging the rest along.</li>
-<li><strong>It often predates a real abstraction</strong> — the "Utilities" or "Manager" class is a classic symptom.</li>
+<li><strong>クラス名が嘘をつく</strong> — 1つのものであると主張しながら、2つや3つのように振る舞います。</li>
+<li><strong>変更が分散する</strong> — ある責務のバグを見つけるために、それとは無関係なコードを読む必要が生じます。</li>
+<li><strong>再利用が阻害される</strong> — 必要な部分だけを取り出すことができず、残りも引きずることになります。</li>
+<li><strong>真の抽象化の前身であることが多い</strong> — 「Utilities」や「Manager」クラスは典型的な症状です。</li>
 </ul>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">UserUtility</span><span class="p">:</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db</span><span class="p">,</span> <span class="n">smtp</span><span class="p">,</span> <span class="n">clock</span><span class="p">):</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="n">db</span>
@@ -3204,7 +3204,7 @@
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">clock</span> <span class="o">=</span> <span class="n">clock</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="p">{}</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="c1"># --- persistence ---</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="c1"># --- 永続化 ---</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">):</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="k">if</span> <span class="n">user_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">:</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">user_id</span><span class="p">]</span>
@@ -3216,20 +3216,20 @@
 </span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">upsert</span><span class="p">(</span><span class="s2">&quot;users&quot;</span><span class="p">,</span> <span class="n">user</span><span class="p">)</span>
 </span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">user</span>
 </span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="c1"># --- email ---</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="c1"># --- メール ---</span>
 </span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">send_welcome</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">):</span>
 </span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">smtp</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="s2">&quot;Welcome&quot;</span><span class="p">)</span>
 </span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>
 </span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">send_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">,</span> <span class="n">token</span><span class="p">):</span>
 </span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">smtp</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Reset: </span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>    <span class="c1"># --- formatting ---</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>    <span class="c1"># --- フォーマット ---</span>
 </span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">format_joined_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">):</span>
 </span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">clock</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">joined_at</span><span class="p">)</span>
 </span></code></pre></div>
-<p><code>LCOM4 = 3</code>: <code>{load, save}</code> share <code>db</code> and <code>cache</code>, <code>{send_welcome, send_reset}</code> share <code>smtp</code>, <code>{format_joined_at}</code> stands alone. Three components, one class.</p>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Split into cohesive classes, and move the stateless part out to free functions.</p>
+<p><code>LCOM4 = 3</code>: <code>{load, save}</code> は <code>db</code> と <code>cache</code> を共有し、<code>{send_welcome, send_reset}</code> は <code>smtp</code> を共有し、<code>{format_joined_at}</code> は単独です。3つの成分、1つのクラス。</p>
+<h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>凝集度の高いクラスに分割し、ステートレスな部分はフリー関数に移動します。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">UserRepository</span><span class="p">:</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db</span><span class="p">):</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_db</span> <span class="o">=</span> <span class="n">db</span>
@@ -3258,38 +3258,38 @@
 </span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_smtp</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Reset: </span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>
 </span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>
-</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="c1"># user_formatting.py — no class, no state</span>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="c1"># user_formatting.py — クラスなし、状態なし</span>
 </span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="k">def</span><span class="w"> </span><span class="nf">format_joined_at</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">clock</span><span class="p">):</span>
 </span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>    <span class="k">return</span> <span class="n">clock</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">joined_at</span><span class="p">)</span>
 </span></code></pre></div>
-<p>Each class now has <code>LCOM4 = 1</code>, and the formatter is a one-line function where it belongs.</p>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<p>各クラスの <code>LCOM4 = 1</code> となり、フォーマッターは本来あるべき場所に1行の関数として配置されます。</p>
+<h2 id="_5">オプション<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>オプション</th>
+<th>デフォルト</th>
+<th>説明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#lcom"><code>lcom.low_threshold</code></a></td>
 <td><code>2</code></td>
-<td>At or below this, the class is reported as low risk.</td>
+<td>この値以下のクラスは低リスクとして報告されます。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#lcom"><code>lcom.medium_threshold</code></a></td>
 <td><code>5</code></td>
-<td>Above this, the class is high risk.</td>
+<td>この値を超えると高リスクとなります。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参照<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Hitz, M. &amp; Montazeri, B. <em>Chidamber and Kemerer's Metrics Suite: A Measurement Theory Perspective.</em> IEEE TSE, 1996 (LCOM4 definition).</li>
-<li>Implementation: <code>internal/analyzer/lcom.go</code>.</li>
-<li><a href="../">Rule catalog</a> · <a href="../high-class-coupling/">high-class-coupling</a></li>
+<li>Hitz, M. &amp; Montazeri, B. <em>Chidamber and Kemerer's Metrics Suite: A Measurement Theory Perspective.</em> IEEE TSE, 1996 (LCOM4 の定義).</li>
+<li>実装: <code>internal/analyzer/lcom.go</code>。</li>
+<li><a href="../">ルールカタログ</a> · <a href="../high-class-coupling/">high-class-coupling</a></li>
 </ul>
 
 

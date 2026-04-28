@@ -1289,10 +1289,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -1300,10 +1300,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -1311,10 +1311,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -1322,10 +1322,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -1333,10 +1333,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -1344,10 +1344,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/high-cyclomatic-complexity.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/zh/rules/high-cyclomatic-complexity.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,22 +3181,22 @@
 
 
 <h1 id="high-cyclomatic-complexity">high-cyclomatic-complexity<a class="headerlink" href="#high-cyclomatic-complexity" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Complexity<br />
+<p><strong>Category</strong>: 复杂度<br />
 <strong>Severity</strong>: Configurable by threshold<br />
 <strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags functions whose McCabe cyclomatic complexity exceeds the configured threshold. Each <code>if</code>, <code>elif</code>, <code>for</code>, <code>while</code>, <code>except</code>, <code>match case</code>, and boolean clause inside a comprehension adds one to the count. A straight-line function starts at 1.</p>
-<p>pyscn does not count <code>and</code> / <code>or</code> short-circuit operators as separate branches.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>A high branch count means:</p>
+<h2 id="_1">检测内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>标记 McCabe 圈复杂度超过配置阈值的函数。每个 <code>if</code>、<code>elif</code>、<code>for</code>、<code>while</code>、<code>except</code>、<code>match case</code> 以及推导式中的布尔子句都会使计数加一。一个没有分支的函数从 1 开始计数。</p>
+<p>pyscn 不会将 <code>and</code> / <code>or</code> 短路运算符计为单独的分支。</p>
+<h2 id="_2">为什么这是一个问题<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>高分支数意味着：</p>
 <ul>
-<li><strong>More paths to read</strong> — every reviewer has to mentally simulate each branch to understand what the function does.</li>
-<li><strong>More paths to test</strong> — full branch coverage requires one test per path; most highly-branched functions are under-tested in practice.</li>
-<li><strong>Higher defect density</strong> — empirical studies since McCabe (1976) correlate complexity with bug rate.</li>
-<li><strong>Harder to change safely</strong> — a small edit in one branch can silently break another.</li>
+<li><strong>需要阅读更多路径</strong> — 每个审查者都必须在脑中模拟每个分支才能理解函数的功能。</li>
+<li><strong>需要测试更多路径</strong> — 完整的分支覆盖要求每条路径都有一个测试；实际上大多数高分支函数的测试都不充分。</li>
+<li><strong>更高的缺陷密度</strong> — 自 McCabe（1976）以来的实证研究表明复杂度与缺陷率相关。</li>
+<li><strong>更难安全地修改</strong> — 在一个分支中的小改动可能会悄悄破坏另一个分支。</li>
 </ul>
-<p>Functions above ~10 are usually doing several jobs that could be named and separated.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<p>复杂度超过约 10 的函数通常在做多件可以命名并分离的工作。</p>
+<h2 id="_3">示例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">price_for</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">cart</span><span class="p">,</span> <span class="n">coupon</span><span class="p">,</span> <span class="n">region</span><span class="p">):</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">:</span>
@@ -3223,9 +3223,9 @@
 </span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>        <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
 </span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>    <span class="k">return</span> <span class="n">total</span>
 </span></code></pre></div>
-<p>Cyclomatic complexity: 13.</p>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Extract the per-item pricing and coupon handling, and replace the nested conditional with a dispatch table.</p>
+<p>圈复杂度：13。</p>
+<h2 id="_4">修正示例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>提取每项定价和优惠券处理逻辑，并用分派表替换嵌套的条件判断。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">REGION_BOOK_MULTIPLIER</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;EU&quot;</span><span class="p">:</span> <span class="mf">0.95</span><span class="p">,</span> <span class="s2">&quot;US&quot;</span><span class="p">:</span> <span class="mf">1.00</span><span class="p">}</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">_book_price</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">region</span><span class="p">):</span>
@@ -3253,44 +3253,44 @@
 </span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>    <span class="n">subtotal</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">_item_price</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">region</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">)</span>
 </span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>    <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">_apply_coupon</span><span class="p">(</span><span class="n">subtotal</span><span class="p">,</span> <span class="n">coupon</span><span class="p">))</span>
 </span></code></pre></div>
-<p>Each helper now has complexity 1–3 and a single responsibility. Guard clauses (<code>if coupon is None: return</code>) flatten the remaining branches.</p>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<p>每个辅助函数的复杂度现在只有 1-3，且各司其职。守卫子句（<code>if coupon is None: return</code>）展平了剩余的分支。</p>
+<h2 id="_5">选项<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>选项</th>
+<th>默认值</th>
+<th>说明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#complexity"><code>complexity.max_complexity</code></a></td>
 <td><code>0</code></td>
-<td>Hard limit enforced by <code>pyscn check</code>. <code>0</code> means no enforcement in <code>analyze</code>; <code>pyscn check --max-complexity</code> uses <code>10</code> if unset.</td>
+<td><code>pyscn check</code> 强制执行的硬限制。<code>0</code> 表示在 <code>analyze</code> 中不强制执行；如果未设置，<code>pyscn check --max-complexity</code> 使用 <code>10</code>。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#complexity"><code>complexity.low_threshold</code></a></td>
 <td><code>9</code></td>
-<td>Functions at or below this are reported as low risk.</td>
+<td>等于或低于此值的函数报告为低风险。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#complexity"><code>complexity.medium_threshold</code></a></td>
 <td><code>19</code></td>
-<td>Above this, a function is high risk.</td>
+<td>高于此值的函数为高风险。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#complexity"><code>complexity.min_complexity</code></a></td>
 <td><code>1</code></td>
-<td>Functions below this value are omitted from the report.</td>
+<td>低于此值的函数将从报告中省略。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参考<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
 <li>McCabe, T. J. <em>A Complexity Measure.</em> IEEE Transactions on Software Engineering, 1976.</li>
-<li>Control-flow graph construction and cyclomatic counting: <code>internal/analyzer/complexity.go</code>, <code>internal/analyzer/complexity_analyzer.go</code>, <code>internal/analyzer/cfg_builder.go</code>.</li>
-<li><a href="../">Rule catalog</a> · <a href="../too-many-constructor-parameters/">too-many-constructor-parameters</a></li>
+<li>控制流图构建和圈复杂度计算：<code>internal/analyzer/complexity.go</code>、<code>internal/analyzer/complexity_analyzer.go</code>、<code>internal/analyzer/cfg_builder.go</code>。</li>
+<li><a href="../">规则目录</a> · <a href="../too-many-constructor-parameters/">too-many-constructor-parameters</a></li>
 </ul>
 
 

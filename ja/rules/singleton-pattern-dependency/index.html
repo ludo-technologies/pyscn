@@ -1609,10 +1609,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -1620,10 +1620,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -1631,10 +1631,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -1642,10 +1642,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -1653,10 +1653,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -1664,10 +1664,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/singleton-pattern-dependency.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/rules/singleton-pattern-dependency.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,16 +3181,16 @@
 
 
 <h1 id="singleton-pattern-dependency">singleton-pattern-dependency<a class="headerlink" href="#singleton-pattern-dependency" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Dependency Injection<br />
-<strong>Severity</strong>: Warning<br />
-<strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check --select di</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags a class that implements the singleton pattern by caching itself on a class-level <code>_instance</code> attribute.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>A singleton is global state wearing a class-shaped costume. Every caller that writes <code>PaymentGateway.instance()</code> depends on the one object the class chooses to return, and that object survives across tests unless each test remembers to reset it. One forgetful test and the next one inherits stale state.</p>
-<p>Because the singleton decides its own lifetime, callers can't give it different collaborators in different contexts — a second configuration, a fake for tests, a per-tenant instance. Substitution requires reaching into the class and resetting <code>_instance</code>, which is exactly the coupling the singleton was supposed to hide.</p>
-<p>The pattern also obscures real dependencies: reading the code of a method that calls <code>X.instance()</code> tells you nothing about what <code>X</code> needs or where it was configured.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<p><strong>カテゴリ</strong>: 依存性注入<br />
+<strong>重大度</strong>: Warning<br />
+<strong>検出コマンド</strong>: <code>pyscn analyze</code>, <code>pyscn check --select di</code></p>
+<h2 id="_1">検出内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>クラスレベルの <code>_instance</code> 属性にキャッシュすることでシングルトンパターンを実装しているクラスを検出します。</p>
+<h2 id="_2">なぜ問題なのか<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>シングルトンは、クラスの形をしたグローバル状態です。<code>PaymentGateway.instance()</code> と書くすべての呼び出し元は、クラスが返すことを選んだ1つのオブジェクトに依存し、そのオブジェクトは各テストがリセットを忘れない限りテスト間で生き残ります。1つのテストがリセットを忘れると、次のテストが古い状態を引き継ぎます。</p>
+<p>シングルトンが自身のライフタイムを決定するため、呼び出し元は異なるコンテキストで異なる協調オブジェクトを与えることができません — 別の設定、テスト用のフェイク、テナントごとのインスタンスなど。代替するにはクラスの内部に手を伸ばして <code>_instance</code> をリセットする必要がありますが、これはまさにシングルトンが隠そうとしていた結合そのものです。</p>
+<p>このパターンは実際の依存も隠します。<code>X.instance()</code> を呼び出すメソッドのコードを読んでも、<code>X</code> が何を必要とし、どこで設定されたかについて何もわかりません。</p>
+<h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">PaymentGateway</span><span class="p">:</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">_instance</span> <span class="o">=</span> <span class="kc">None</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
@@ -3203,42 +3203,42 @@
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">charge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="o">...</span>
 </span></code></pre></div>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Construct the object once at the edge of the application and pass it to whatever needs it.</p>
+<h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>アプリケーションの境界でオブジェクトを一度構築し、必要な箇所に渡します。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">PaymentGateway</span><span class="p">:</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">charge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="o">...</span>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># wiring, done once at startup</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># ワイヤリング、起動時に一度だけ実行</span>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">gateway</span> <span class="o">=</span> <span class="n">PaymentGateway</span><span class="p">()</span>
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">order_service</span> <span class="o">=</span> <span class="n">OrderService</span><span class="p">(</span><span class="n">gateway</span><span class="p">)</span>
 </span></code></pre></div>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h2 id="_5">オプション<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>オプション</th>
+<th>デフォルト</th>
+<th>説明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#di"><code>di.enabled</code></a></td>
 <td><code>false</code></td>
-<td>Must be <code>true</code> for <code>analyze</code> to run DI rules.</td>
+<td><code>analyze</code> で DI ルールを実行するには <code>true</code> にする必要があります。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#di"><code>di.min_severity</code></a></td>
 <td><code>"warning"</code></td>
-<td>Raise to <code>"error"</code> to suppress this rule.</td>
+<td><code>"error"</code> に上げるとこのルールは非表示になります。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参照<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Hidden dependency detection (<code>internal/analyzer/hidden_dependency_detector.go</code>).</li>
-<li><a href="../">Rule catalog</a> · <a href="../global-state-dependency/">Global state dependency</a> · <a href="../module-variable-dependency/">Module variable dependency</a></li>
+<li>隠れた依存の検出 (<code>internal/analyzer/hidden_dependency_detector.go</code>)。</li>
+<li><a href="../">ルールカタログ</a> · <a href="../global-state-dependency/">Global state dependency</a> · <a href="../module-variable-dependency/">Module variable dependency</a></li>
 </ul>
 
 

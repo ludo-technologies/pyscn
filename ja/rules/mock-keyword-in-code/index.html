@@ -1991,10 +1991,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -2002,10 +2002,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -2013,10 +2013,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -2024,10 +2024,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -2035,10 +2035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -2046,10 +2046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/mock-keyword-in-code.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/rules/mock-keyword-in-code.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,67 +3181,67 @@
 
 
 <h1 id="mock-keyword-in-code">mock-keyword-in-code<a class="headerlink" href="#mock-keyword-in-code" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Mock Data<br />
-<strong>Severity</strong>: Info (in strings) / Warning (in identifiers)<br />
-<strong>Triggered by</strong>: <code>pyscn check --select mockdata</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags identifiers and string literals that contain common placeholder keywords: <code>mock</code>, <code>fake</code>, <code>dummy</code>, <code>test</code>, <code>sample</code>, <code>example</code>, <code>placeholder</code>, <code>stub</code>, <code>fixture</code>, <code>temp</code>, <code>foo</code>, <code>bar</code>, <code>baz</code>, <code>lorem</code>, <code>ipsum</code>.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>These words are what you type while you're still figuring something out. They're fine in a notebook, a test file, or a five-minute spike — but when one survives into production it usually means a stub was never replaced. The name <code>foo</code> in a checked-in module is almost never what the author meant to ship.</p>
-<p>Matches in <strong>identifiers</strong> are treated as warnings because a bound name (<code>foo = get_user()</code>) changes behaviour. Matches in <strong>string literals</strong> are info-level because a leftover <code>"fake_user"</code> is more often cosmetic than broken — but still worth reviewing before a release.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<p><strong>カテゴリ</strong>: モックデータ<br />
+<strong>重大度</strong>: Info（文字列内） / Warning（識別子内）<br />
+<strong>トリガー</strong>: <code>pyscn check --select mockdata</code></p>
+<h2 id="_1">検出内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>一般的なプレースホルダーキーワードを含む識別子および文字列リテラルを検出します: <code>mock</code>, <code>fake</code>, <code>dummy</code>, <code>test</code>, <code>sample</code>, <code>example</code>, <code>placeholder</code>, <code>stub</code>, <code>fixture</code>, <code>temp</code>, <code>foo</code>, <code>bar</code>, <code>baz</code>, <code>lorem</code>, <code>ipsum</code>。</p>
+<h2 id="_2">なぜ問題なのか<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>これらの単語は、まだ何かを検討中のときに入力するものです。ノートブック、テストファイル、5分間のスパイクでは問題ありませんが、本番コードに残ってしまった場合は、通常スタブが置き換えられなかったことを意味します。チェックインされたモジュール内の <code>foo</code> という名前は、作者が出荷しようとしたものではほぼありません。</p>
+<p><strong>識別子</strong>内の一致は、束縛された名前（<code>foo = get_user()</code>）が動作を変えるため、警告として扱われます。<strong>文字列リテラル</strong>内の一致は、残された <code>"fake_user"</code> が壊れているというよりは見た目の問題であることが多いため、情報レベルですが、リリース前にレビューする価値はあります。</p>
+<h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">create_user</span><span class="p">():</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;fake_user&quot;</span>    <span class="c1"># string literal matches</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">foo</span> <span class="o">=</span> <span class="n">get_user</span><span class="p">()</span>      <span class="c1"># identifier `foo` matches</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;fake_user&quot;</span>    <span class="c1"># 文字列リテラルが一致</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">foo</span> <span class="o">=</span> <span class="n">get_user</span><span class="p">()</span>      <span class="c1"># 識別子 `foo` が一致</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="k">return</span> <span class="n">foo</span>
 </span></code></pre></div>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Remove the placeholder. Use real data, read from configuration, or move the stub into a test fixture where it belongs.</p>
+<h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>プレースホルダーを削除します。実際のデータを使用するか、設定から読み取るか、スタブをテストフィクスチャに移動して適切な場所に配置します。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">create_user</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">user</span> <span class="o">=</span> <span class="n">get_user</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="k">return</span> <span class="n">user</span>
 </span></code></pre></div>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h2 id="_5">オプション<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>オプション</th>
+<th>デフォルト</th>
+<th>説明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.enabled</code></a></td>
 <td><code>false</code></td>
-<td>Opt-in; the whole category is off by default.</td>
+<td>オプトイン。カテゴリ全体がデフォルトで無効です。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.keywords</code></a></td>
-<td><em>(built-in list)</em></td>
-<td>Override the keyword list for this rule.</td>
+<td><em>（組み込みリスト）</em></td>
+<td>このルールのキーワードリストを上書きします。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.min_severity</code></a></td>
 <td><code>"info"</code></td>
-<td><code>"warning"</code> keeps only identifier matches.</td>
+<td><code>"warning"</code> にすると識別子の一致のみを保持します。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.ignore_tests</code></a></td>
 <td><code>true</code></td>
-<td>Skip files that look like tests.</td>
+<td>テストと思われるファイルをスキップします。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.ignore_patterns</code></a></td>
 <td><code>[]</code></td>
-<td>Regex patterns matched against file paths; matches are suppressed.</td>
+<td>ファイルパスに対してマッチする正規表現パターン。一致した場合は抑制されます。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参照<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Implementation: <code>internal/analyzer/mock_data_detector.go</code>.</li>
-<li><a href="../">Rule catalog</a> · <a href="../mock-domain-in-string/">mock-domain-in-string</a> · <a href="../test-credential-in-code/">test-credential-in-code</a> · <a href="../placeholder-comment/">placeholder-comment</a></li>
+<li>実装: <code>internal/analyzer/mock_data_detector.go</code>。</li>
+<li><a href="../">ルールカタログ</a> · <a href="../mock-domain-in-string/">mock-domain-in-string</a> · <a href="../test-credential-in-code/">test-credential-in-code</a> · <a href="../placeholder-comment/">placeholder-comment</a></li>
 </ul>
 
 

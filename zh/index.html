@@ -558,10 +558,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Features
+        功能
       
     </span>
   </a>
@@ -569,10 +569,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation
+        安装
       
     </span>
   </a>
@@ -580,10 +580,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Quick start
+        快速开始
       
     </span>
   </a>
@@ -2969,10 +2969,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Features
+        功能
       
     </span>
   </a>
@@ -2980,10 +2980,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation
+        安装
       
     </span>
   </a>
@@ -2991,10 +2991,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Quick start
+        快速开始
       
     </span>
   </a>
@@ -3030,7 +3030,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/index.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/zh/index.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3039,34 +3039,34 @@
 
 
 <h1 id="pyscn">pyscn<a class="headerlink" href="#pyscn" title="Permanent link">&para;</a></h1>
-<p>A structural static analyzer for Python. Detects dead code, duplication, complexity, and coupling issues via control-flow and tree analysis.</p>
+<p>Python 结构化静态分析工具。通过控制流和语法树分析检测死代码、重复代码、复杂度和耦合问题。</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uvx<span class="w"> </span>pyscn@latest<span class="w"> </span>analyze<span class="w"> </span>.
 </span></code></pre></div>
-<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
+<h2 id="_1">功能<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>32 rules</strong> across unreachable code, duplicate code, complexity, class design, dependency injection, module structure, and mock data.</li>
-<li><strong>CFG-based reachability</strong> finds dead code past <code>return</code> / <code>raise</code> / <code>break</code> / <code>continue</code> and unreachable branches.</li>
-<li><strong>APTED + LSH clone detection</strong> across four clone types (identical, renamed, modified, semantic).</li>
-<li><strong>CBO / LCOM4</strong> class coupling and cohesion metrics.</li>
-<li><strong>Circular import detection</strong> via Tarjan's SCC.</li>
-<li><strong>Health score</strong> (0–100) with per-category breakdown.</li>
-<li><strong>CI-ready</strong> with <code>pyscn check</code>, linter-style output, and deterministic exit codes.</li>
-<li><strong>MCP server</strong> (<code>pyscn-mcp</code>) for Claude Code, Cursor, and other MCP clients.</li>
+<li><strong>32 条规则</strong>，涵盖不可达代码、重复代码、复杂度、类设计、依赖注入、模块结构和 mock 数据。</li>
+<li><strong>基于 CFG 的可达性分析</strong>，可发现 <code>return</code> / <code>raise</code> / <code>break</code> / <code>continue</code> 之后的死代码和不可达分支。</li>
+<li><strong>APTED + LSH 克隆检测</strong>，支持四种克隆类型（完全相同、重命名、修改、语义）。</li>
+<li><strong>CBO / LCOM4</strong> 类耦合度和内聚度度量。</li>
+<li><strong>循环导入检测</strong>，基于 Tarjan 强连通分量算法。</li>
+<li><strong>健康评分</strong>（0-100），按类别分项评估。</li>
+<li><strong>CI 就绪</strong>，提供 <code>pyscn check</code> 命令、linter 风格输出和确定性退出码。</li>
+<li><strong>MCP 服务器</strong>（<code>pyscn-mcp</code>），支持 Claude Code、Cursor 及其他 MCP 客户端。</li>
 </ul>
-<p>Written in Go. 100,000+ lines/sec on typical hardware. No Python runtime dependencies.</p>
-<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uvx<span class="w"> </span>pyscn@latest<span class="w"> </span>&lt;command&gt;<span class="w">   </span><span class="c1"># run without installing (recommended)</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>pyscn<span class="w">        </span><span class="c1"># install with uv</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>pipx<span class="w"> </span>install<span class="w"> </span>pyscn<span class="w">           </span><span class="c1"># install with pipx</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>pip<span class="w"> </span>install<span class="w"> </span>pyscn<span class="w">            </span><span class="c1"># install with pip</span>
+<p>使用 Go 编写。在常见硬件上分析速度超过 100,000 行/秒。无 Python 运行时依赖。</p>
+<h2 id="_2">安装<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uvx<span class="w"> </span>pyscn@latest<span class="w"> </span>&lt;command&gt;<span class="w">   </span><span class="c1"># 免安装直接运行（推荐）</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>pyscn<span class="w">        </span><span class="c1"># 使用 uv 安装</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>pipx<span class="w"> </span>install<span class="w"> </span>pyscn<span class="w">           </span><span class="c1"># 使用 pipx 安装</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>pip<span class="w"> </span>install<span class="w"> </span>pyscn<span class="w">            </span><span class="c1"># 使用 pip 安装</span>
 </span></code></pre></div>
-<p>See <a href="getting-started/installation/">Installation</a> for all options.</p>
-<h2 id="quick-start">Quick start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>.<span class="w">                         </span><span class="c1"># full analysis, HTML report</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--select<span class="w"> </span>complexity,deadcode<span class="w"> </span>src/<span class="w">   </span><span class="c1"># CI gate</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>pyscn<span class="w"> </span>init<span class="w">                              </span><span class="c1"># generate .pyscn.toml</span>
+<p>详见<a href="getting-started/installation/">安装指南</a>。</p>
+<h2 id="_3">快速开始<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>.<span class="w">                         </span><span class="c1"># 完整分析，生成 HTML 报告</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--select<span class="w"> </span>complexity,deadcode<span class="w"> </span>src/<span class="w">   </span><span class="c1"># CI 质量门禁</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>pyscn<span class="w"> </span>init<span class="w">                              </span><span class="c1"># 生成 .pyscn.toml</span>
 </span></code></pre></div>
-<p>See <a href="getting-started/quick-start/">Quick Start</a> and the <a href="rules/">Rule catalog</a>.</p>
+<p>详见<a href="getting-started/quick-start/">快速开始</a>和<a href="rules/">规则目录</a>。</p>
 
 
 

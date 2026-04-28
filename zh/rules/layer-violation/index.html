@@ -1852,10 +1852,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -1863,10 +1863,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -1874,10 +1874,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -1885,10 +1885,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -1896,10 +1896,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -1907,10 +1907,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        检测内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        为什么这是一个问题
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        示例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正示例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        选项
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参考
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/layer-violation.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/zh/rules/layer-violation.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,21 +3181,21 @@
 
 
 <h1 id="layer-violation">layer-violation<a class="headerlink" href="#layer-violation" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Module Structure<br />
+<p><strong>Category</strong>: 模块结构<br />
 <strong>Severity</strong>: Configurable via <code>architecture.rules[].severity</code><br />
 <strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check --select deps</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags an <code>import</code> statement when the source module's layer is not permitted to depend on the target module's layer, according to the <code>[[architecture.rules]]</code> you configured. Layers are assigned to modules by matching package name fragments defined in <code>[[architecture.layers]]</code>.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>A layered architecture only pays off while the layers hold. A single shortcut from <code>presentation</code> into <code>infrastructure</code> is enough to:</p>
+<h2 id="_1">检测内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>当源模块所在层不允许依赖目标模块所在层时，标记该 <code>import</code> 语句。层的允许关系根据你配置的 <code>[[architecture.rules]]</code> 来判定。层通过匹配 <code>[[architecture.layers]]</code> 中定义的包名片段来分配给模块。</p>
+<h2 id="_2">为什么这是一个问题<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>分层架构只有在层级保持完整时才有价值。从 <code>presentation</code> 到 <code>infrastructure</code> 的一次捷径就足以：</p>
 <ul>
-<li><strong>Defeat testability.</strong> The presentation layer can now only be exercised with a real database / HTTP client behind it.</li>
-<li><strong>Create hidden coupling.</strong> Swapping the infrastructure implementation silently breaks UI code that was never supposed to know it existed.</li>
-<li><strong>Normalise the violation.</strong> Once one shortcut exists, the next one is easier to justify.</li>
+<li><strong>破坏可测试性。</strong> 表示层现在只能在背后有真实数据库/HTTP 客户端的情况下才能进行测试。</li>
+<li><strong>产生隐藏的耦合。</strong> 替换基础设施实现会悄悄破坏本不应知道其存在的 UI 代码。</li>
+<li><strong>使违规正常化。</strong> 一旦存在一个捷径，下一个就更容易被合理化。</li>
 </ul>
-<p>The rule is the automated enforcement of the architecture diagram you already drew in a design doc.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
-<p>Config:</p>
+<p>此规则是你在设计文档中已经画好的架构图的自动化执行。</p>
+<h2 id="_3">示例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<p>配置：</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[[architecture.layers]]</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;presentation&quot;</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">packages</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;api&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;handlers&quot;</span><span class="p">]</span>
@@ -3213,16 +3213,16 @@
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="n">allow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;application&quot;</span><span class="p">]</span>
 </span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="n">deny</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;infrastructure&quot;</span><span class="p">]</span>
 </span></code></pre></div>
-<p>Violating code:</p>
+<p>违规代码：</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># myapp/api/orders.py  (presentation)</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">myapp.repositories.orders</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderRepository</span>   <span class="c1"># ← forbidden</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">list_orders</span><span class="p">():</span>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="k">return</span> <span class="n">OrderRepository</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
 </span></code></pre></div>
-<p><code>presentation</code> reaches past <code>application</code> straight into <code>infrastructure</code>.</p>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Route the call through the application layer:</p>
+<p><code>presentation</code> 越过 <code>application</code> 直接访问了 <code>infrastructure</code>。</p>
+<h2 id="_4">修正示例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>通过应用层路由调用：</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># myapp/services/orders.py  (application)</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">myapp.repositories.orders</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderRepository</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
@@ -3235,49 +3235,49 @@
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">():</span>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="k">return</span> <span class="n">list_orders</span><span class="p">()</span>
 </span></code></pre></div>
-<p><code>api</code> now depends only on <code>services</code>, and the infrastructure is replaceable without touching the presentation layer.</p>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<p><code>api</code> 现在只依赖 <code>services</code>，基础设施可以在不触及表示层的情况下进行替换。</p>
+<h2 id="_5">选项<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>选项</th>
+<th>默认值</th>
+<th>描述</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#architecture"><code>[[architecture.layers]]</code></a></td>
 <td>—</td>
-<td>Defines layers and the package fragments that belong to each.</td>
+<td>定义层及属于每层的包名片段。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#architecture"><code>[[architecture.rules]]</code></a></td>
 <td>—</td>
-<td><code>from</code> / <code>allow</code> / <code>deny</code> / optional <code>severity</code> per rule.</td>
+<td><code>from</code> / <code>allow</code> / <code>deny</code> / 可选的每条规则 <code>severity</code>。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#architecture"><code>architecture.validate_layers</code></a></td>
 <td><code>true</code></td>
-<td>Set to <code>false</code> to disable this rule.</td>
+<td>设为 <code>false</code> 可禁用此规则。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#architecture"><code>architecture.strict_mode</code></a></td>
 <td><code>true</code></td>
-<td>In strict mode, anything not explicitly allowed is denied.</td>
+<td>严格模式下，未显式允许的依赖一律被拒绝。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#architecture"><code>architecture.fail_on_violations</code></a></td>
 <td><code>false</code></td>
-<td>Non-zero exit code when a violation is found.</td>
+<td>发现违规时以非零退出码退出。</td>
 </tr>
 </tbody>
 </table>
-<p>With no layers configured, the analyzer runs in permissive mode and this rule produces no findings.</p>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<p>未配置层时，分析器以宽松模式运行，此规则不会产生任何发现。</p>
+<h2 id="_6">参考<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Layer resolution and rule evaluation (<code>internal/analyzer/module_analyzer.go</code>).</li>
-<li><a href="../">Rule catalog</a> · <a href="../low-package-cohesion/">low-package-cohesion</a></li>
+<li>层解析和规则评估（<code>internal/analyzer/module_analyzer.go</code>）。</li>
+<li><a href="../">规则目录</a> · <a href="../low-package-cohesion/">low-package-cohesion</a></li>
 </ul>
 
 

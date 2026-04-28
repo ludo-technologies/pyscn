@@ -1388,10 +1388,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -1399,10 +1399,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -1410,10 +1410,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -1421,10 +1421,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -1432,10 +1432,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -1443,10 +1443,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/high-class-coupling.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/rules/high-class-coupling.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,21 +3181,21 @@
 
 
 <h1 id="high-class-coupling">high-class-coupling<a class="headerlink" href="#high-class-coupling" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Class Design<br />
-<strong>Severity</strong>: Configurable by threshold<br />
-<strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags classes that depend on too many other classes (the Coupling Between Objects, or CBO, metric from Chidamber &amp; Kemerer). pyscn counts the number of distinct other classes a class references through inheritance, type hints, direct instantiation, attribute access on imported modules, and imports.</p>
-<p>In plain terms: <em>too many things have to be in place for this class to work.</em></p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>A highly coupled class is hard to live with:</p>
+<p><strong>カテゴリ</strong>: クラス設計<br />
+<strong>重大度</strong>: しきい値により設定可能<br />
+<strong>検出コマンド</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
+<h2 id="_1">検出内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>他のクラスに過度に依存しているクラスを検出します（Chidamber &amp; Kemerer による CBO: Coupling Between Objects メトリクス）。pyscn は、継承、型ヒント、直接的なインスタンス化、インポートされたモジュールの属性アクセス、およびインポートを通じてクラスが参照する、異なるクラスの数をカウントします。</p>
+<p>簡単に言えば: <em>このクラスが動作するために、あまりにも多くのものが揃っていなければなりません。</em></p>
+<h2 id="_2">なぜ問題なのか<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>結合度の高いクラスは扱いにくいものです:</p>
 <ul>
-<li><strong>Hard to test</strong> — constructing it in a unit test drags in a web of collaborators, so tests become integration tests or rely on heavy mocking.</li>
-<li><strong>Hard to change</strong> — a signature change in any one dependency ripples into this class.</li>
-<li><strong>Hard to reuse</strong> — you cannot lift it into another project without lifting its whole neighborhood.</li>
-<li><strong>A sign of missing abstraction</strong> — the class is probably orchestrating things that belong behind a smaller interface.</li>
+<li><strong>テストが困難</strong> — ユニットテストでインスタンスを構築すると、多数の協調オブジェクトが連鎖的に必要となり、テストが統合テストになるか、大量のモックに依存することになります。</li>
+<li><strong>変更が困難</strong> — いずれかの依存先のシグネチャ変更が、このクラスに波及します。</li>
+<li><strong>再利用が困難</strong> — 近隣の全体を一緒に持ち出さなければ、別のプロジェクトに移すことができません。</li>
+<li><strong>抽象化の欠如の兆候</strong> — このクラスはおそらく、より小さなインターフェースの背後にあるべきものを直接扱っています。</li>
 </ul>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">billing.stripe_gateway</span><span class="w"> </span><span class="kn">import</span> <span class="n">StripeGateway</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">billing.paypal_gateway</span><span class="w"> </span><span class="kn">import</span> <span class="n">PayPalGateway</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">notifications.sendgrid</span><span class="w"> </span><span class="kn">import</span> <span class="n">SendGridClient</span>
@@ -3218,9 +3218,9 @@
 </span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
 </span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">cart</span><span class="p">):</span> <span class="o">...</span>
 </span></code></pre></div>
-<p><code>OrderService</code> is coupled to 8 concrete vendor classes. Swapping Stripe for Adyen, or running a test without a live Postgres, means editing <code>OrderService</code>.</p>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Depend on small protocols, and inject collaborators through <code>__init__</code>. The service no longer knows which vendor is on the other end.</p>
+<p><code>OrderService</code> は8つの具象ベンダークラスに結合しています。Stripe を Adyen に切り替えたり、ライブ Postgres なしでテストを実行するには、<code>OrderService</code> を編集する必要があります。</p>
+<h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>小さなプロトコルに依存し、<code>__init__</code> を通じて協調オブジェクトを注入します。サービスはもはやどのベンダーが相手側にいるかを知りません。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Protocol</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">PaymentGateway</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
@@ -3245,49 +3245,49 @@
 </span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>
 </span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">cart</span><span class="p">):</span> <span class="o">...</span>
 </span></code></pre></div>
-<p>If one class still legitimately needs many collaborators, split it by responsibility (e.g. <code>Checkout</code>, <code>Fulfillment</code>, <code>Receipt</code>) and let an orchestrator call them.</p>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<p>1つのクラスがそれでも多くの協調オブジェクトを正当に必要とする場合は、責務ごとに分割し（例: <code>Checkout</code>、<code>Fulfillment</code>、<code>Receipt</code>）、オーケストレーターがそれらを呼び出すようにします。</p>
+<h2 id="_5">オプション<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>オプション</th>
+<th>デフォルト</th>
+<th>説明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#cbo"><code>cbo.low_threshold</code></a></td>
 <td><code>3</code></td>
-<td>At or below this, the class is reported as low risk.</td>
+<td>この値以下のクラスは低リスクとして報告されます。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#cbo"><code>cbo.medium_threshold</code></a></td>
 <td><code>7</code></td>
-<td>Above this, the class is high risk.</td>
+<td>この値を超えると高リスクとなります。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#cbo"><code>cbo.min_cbo</code></a></td>
 <td><code>0</code></td>
-<td>Classes with coupling below this value are omitted from the report.</td>
+<td>結合度がこの値未満のクラスはレポートから除外されます。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#cbo"><code>cbo.include_builtins</code></a></td>
 <td><code>false</code></td>
-<td>Count built-in types (<code>list</code>, <code>dict</code>, <code>Exception</code>, …) as dependencies.</td>
+<td>組み込み型（<code>list</code>、<code>dict</code>、<code>Exception</code> など）を依存としてカウントします。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#cbo"><code>cbo.include_imports</code></a></td>
 <td><code>true</code></td>
-<td>Count classes reached only through <code>import</code> statements.</td>
+<td><code>import</code> 文を通じてのみ到達するクラスをカウントします。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参照<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Chidamber, S. R. &amp; Kemerer, C. F. <em>A Metrics Suite for Object Oriented Design.</em> IEEE TSE, 1994.</li>
-<li>Implementation: <code>internal/analyzer/cbo.go</code>.</li>
-<li><a href="../">Rule catalog</a> · <a href="../low-class-cohesion/">low-class-cohesion</a></li>
+<li>実装: <code>internal/analyzer/cbo.go</code>。</li>
+<li><a href="../">ルールカタログ</a> · <a href="../low-class-cohesion/">low-class-cohesion</a></li>
 </ul>
 
 

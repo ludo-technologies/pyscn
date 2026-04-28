@@ -2187,10 +2187,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -2198,10 +2198,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -2209,10 +2209,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -2220,10 +2220,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -2231,10 +2231,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -2242,10 +2242,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/test-credential-in-code.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/rules/test-credential-in-code.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,63 +3181,63 @@
 
 
 <h1 id="test-credential-in-code">test-credential-in-code<a class="headerlink" href="#test-credential-in-code" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Mock Data<br />
-<strong>Severity</strong>: Warning<br />
-<strong>Triggered by</strong>: <code>pyscn check --select mockdata</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags string literals that look like obvious placeholder credentials: <code>password123</code>, <code>secret123</code>, <code>testpassword</code>, <code>token0</code>, <code>api_key_test</code>, and similar patterns built from credential-shaped words plus trivial suffixes.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>These aren't real secrets — that's the problem. They're the values typed in while setting up a client, writing a first test, or filling a required field. Once checked in, they have two failure modes:</p>
+<p><strong>カテゴリ</strong>: モックデータ<br />
+<strong>重大度</strong>: Warning<br />
+<strong>トリガー</strong>: <code>pyscn check --select mockdata</code></p>
+<h2 id="_1">検出内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>明らかにプレースホルダーの認証情報に見える文字列リテラルを検出します: <code>password123</code>、<code>secret123</code>、<code>testpassword</code>、<code>token0</code>、<code>api_key_test</code>、および認証情報風の単語に単純な接尾辞を付けた類似パターン。</p>
+<h2 id="_2">なぜ問題なのか<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>これらは本物のシークレットではありません。それが問題なのです。クライアントのセットアップ中、最初のテストの作成中、または必須フィールドの入力中に打ち込まれた値です。チェックインされると、2つの失敗モードがあります:</p>
 <ul>
-<li><strong>Embarrassment / correctness</strong>: the literal is used as a default and ships to users, so the "default admin password" really is <code>password123</code>.</li>
-<li><strong>Missed rotation</strong>: a real secret was meant to replace the placeholder before release; nobody noticed that it didn't.</li>
+<li><strong>恥ずかしさ / 正確性</strong>: リテラルがデフォルトとして使用されてユーザーに出荷され、「デフォルト管理者パスワード」が本当に <code>password123</code> になります。</li>
+<li><strong>ローテーションの見落とし</strong>: リリース前にプレースホルダーを本物のシークレットに置き換えるはずだったのに、置き換えられなかったことに誰も気づきません。</li>
 </ul>
-<p>pyscn is not a security scanner and doesn't try to detect high-entropy secrets. This rule catches the opposite case: low-entropy, obviously-fake credentials that should never have been in source in the first place.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<p>pyscn はセキュリティスキャナーではなく、高エントロピーのシークレットの検出は試みません。このルールは逆のケースを捕捉します: そもそもソースに含まれるべきではなかった、低エントロピーの明らかに偽の認証情報です。</p>
+<h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DEFAULT_PASSWORD</span> <span class="o">=</span> <span class="s2">&quot;password123&quot;</span>
 </span></code></pre></div>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Read credentials from the environment or a secret manager. If a default is genuinely required for local development, keep it in a separate config file that isn't loaded in production.</p>
+<h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>認証情報は環境変数またはシークレットマネージャーから読み取ります。ローカル開発用にデフォルト値が本当に必要な場合は、本番では読み込まれない別の設定ファイルに保管します。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">DEFAULT_PASSWORD</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;APP_DEFAULT_PASSWORD&quot;</span><span class="p">]</span>
 </span></code></pre></div>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h2 id="_5">オプション<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Default</th>
-<th>Description</th>
+<th>オプション</th>
+<th>デフォルト</th>
+<th>説明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.enabled</code></a></td>
 <td><code>false</code></td>
-<td>Opt-in.</td>
+<td>オプトイン。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.min_severity</code></a></td>
 <td><code>"info"</code></td>
-<td>Raise to <code>"warning"</code> to keep only this-level findings.</td>
+<td><code>"warning"</code> に上げると、このレベルの検出結果のみを保持します。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.ignore_tests</code></a></td>
 <td><code>true</code></td>
-<td>Skip test files — test credentials belong in tests.</td>
+<td>テストファイルをスキップします。テスト用認証情報はテストに属します。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#mock_data"><code>mock_data.ignore_patterns</code></a></td>
 <td><code>[]</code></td>
-<td>Regex patterns matched against file paths.</td>
+<td>ファイルパスに対してマッチする正規表現パターン。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参照<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Implementation: <code>internal/analyzer/mock_data_detector.go</code>.</li>
-<li><a href="../">Rule catalog</a> · <a href="../repetitive-string-literal/">repetitive-string-literal</a> · <a href="../mock-keyword-in-code/">mock-keyword-in-code</a></li>
+<li>実装: <code>internal/analyzer/mock_data_detector.go</code>。</li>
+<li><a href="../">ルールカタログ</a> · <a href="../repetitive-string-literal/">repetitive-string-literal</a> · <a href="../mock-keyword-in-code/">mock-keyword-in-code</a></li>
 </ul>
 
 

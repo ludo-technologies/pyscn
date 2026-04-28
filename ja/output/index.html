@@ -35,7 +35,7 @@
     
     
       
-        <title>Output Formats - pyscn</title>
+        <title>出力形式 - pyscn</title>
       
     
     
@@ -86,7 +86,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#output-formats" class="md-skip">
+        <a href="#_1" class="md-skip">
           コンテンツにスキップ
         </a>
       
@@ -121,7 +121,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Output Formats
+              出力形式
             
           </span>
         </div>
@@ -2890,10 +2890,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#output-directory" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Output directory
+        出力ディレクトリ
       
     </span>
   </a>
@@ -2901,10 +2901,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#filename-pattern" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Filename pattern
+        ファイル名パターン
       
     </span>
   </a>
@@ -2912,10 +2912,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#supported-formats" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Supported formats
+        サポートされる形式
       
     </span>
   </a>
@@ -2923,10 +2923,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#stability-contract" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Stability contract
+        安定性の保証
       
     </span>
   </a>
@@ -2998,7 +2998,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/output/index.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/output/index.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3006,34 +3006,34 @@
   
 
 
-<h1 id="output-formats">Output Formats<a class="headerlink" href="#output-formats" title="Permanent link">&para;</a></h1>
-<p>pyscn writes analysis results to files under an output directory. All formats share stable field semantics across patch releases.</p>
-<h2 id="output-directory">Output directory<a class="headerlink" href="#output-directory" title="Permanent link">&para;</a></h2>
-<p>Default: <code>.pyscn/reports/</code> under the current working directory.</p>
-<p>Configurable via <code>.pyscn.toml</code>:</p>
+<h1 id="_1">出力形式<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<p>pyscn は分析結果を出力ディレクトリ内のファイルに書き込みます。すべての形式はパッチリリース間で安定したフィールドセマンティクスを共有します。</p>
+<h2 id="_2">出力ディレクトリ<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>デフォルト: カレントワーキングディレクトリ配下の <code>.pyscn/reports/</code>。</p>
+<p><code>.pyscn.toml</code> で設定可能です:</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[output]</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">directory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;build/reports&quot;</span>
 </span></code></pre></div>
-<h2 id="filename-pattern">Filename pattern<a class="headerlink" href="#filename-pattern" title="Permanent link">&para;</a></h2>
+<h2 id="_3">ファイル名パターン<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>{command}_YYYYMMDD_HHMMSS.{ext}
 </span></code></pre></div>
-<p><code>{command}</code> is <code>analyze</code> (the only pyscn command that writes reports). The timestamp is local time. Existing files are never overwritten.</p>
-<h2 id="supported-formats">Supported formats<a class="headerlink" href="#supported-formats" title="Permanent link">&para;</a></h2>
+<p><code>{command}</code> は <code>analyze</code>（レポートを書き込む唯一の pyscn コマンド）です。タイムスタンプはローカル時刻です。既存のファイルが上書きされることはありません。</p>
+<h2 id="_4">サポートされる形式<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Format</th>
-<th>Extension</th>
-<th>Flag</th>
-<th>Specification</th>
+<th>形式</th>
+<th>拡張子</th>
+<th>フラグ</th>
+<th>仕様</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>text</td>
 <td>—</td>
-<td>(terminal)</td>
-<td>human-readable, not stable</td>
+<td>(ターミナル)</td>
+<td>人間が読みやすい形式、安定性保証なし</td>
 </tr>
 <tr>
 <td>json</td>
@@ -3056,20 +3056,20 @@
 <tr>
 <td>html</td>
 <td><code>.html</code></td>
-<td><code>--html</code> (default)</td>
+<td><code>--html</code> (デフォルト)</td>
 <td><a href="html-report/">html-report.md</a></td>
 </tr>
 </tbody>
 </table>
-<p>The <code>text</code> format is intended for terminal display and has no stability contract; its layout may change between any releases.</p>
-<h2 id="stability-contract">Stability contract<a class="headerlink" href="#stability-contract" title="Permanent link">&para;</a></h2>
-<p>Across patch and minor releases within the same major version:</p>
+<p><code>text</code> 形式はターミナル表示を目的としており、安定性の保証はありません。レイアウトはリリース間で変更される可能性があります。</p>
+<h2 id="_5">安定性の保証<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
+<p>同一メジャーバージョン内のパッチおよびマイナーリリース間:</p>
 <ul>
-<li><strong>Stable</strong>: field names, types, and semantic meaning in <code>json</code>, <code>yaml</code>, and <code>csv</code>.</li>
-<li><strong>May change</strong>: ordering of array elements, addition of new fields, addition of new top-level sections, cosmetic changes to <code>text</code> and <code>html</code>.</li>
-<li><strong>Breaking changes</strong>: restricted to major version bumps (removal or rename of fields, change of field types).</li>
+<li><strong>安定</strong>: <code>json</code>, <code>yaml</code>, <code>csv</code> のフィールド名、型、セマンティクスの意味。</li>
+<li><strong>変更の可能性</strong>: 配列要素の順序、新しいフィールドの追加、新しいトップレベルセクションの追加、<code>text</code> および <code>html</code> の外観上の変更。</li>
+<li><strong>破壊的変更</strong>: メジャーバージョンアップに限定（フィールドの削除・名前変更、フィールド型の変更）。</li>
 </ul>
-<p>Third-party integrations should ignore unknown fields and not rely on field ordering within objects.</p>
+<p>サードパーティ連携では、未知のフィールドを無視し、オブジェクト内のフィールド順序に依存しないようにしてください。</p>
 
 
 

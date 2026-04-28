@@ -1192,10 +1192,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -1203,10 +1203,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -1214,10 +1214,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -1225,10 +1225,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -1236,10 +1236,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -1247,10 +1247,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3024,10 +3024,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-it-does" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What it does
+        検出内容
       
     </span>
   </a>
@@ -3035,10 +3035,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-is-this-a-problem" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why is this a problem?
+        なぜ問題なのか
       
     </span>
   </a>
@@ -3046,10 +3046,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        例
       
     </span>
   </a>
@@ -3057,10 +3057,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-instead" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use instead
+        修正例
       
     </span>
   </a>
@@ -3068,10 +3068,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options
+        オプション
       
     </span>
   </a>
@@ -3079,10 +3079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        References
+        参照
       
     </span>
   </a>
@@ -3172,7 +3172,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/rules/duplicate-code-semantic.md" title="編集" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/ja/rules/duplicate-code-semantic.md" title="編集" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3181,16 +3181,16 @@
 
 
 <h1 id="duplicate-code-semantic">duplicate-code-semantic<a class="headerlink" href="#duplicate-code-semantic" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: Duplicate Code<br />
+<p><strong>Category</strong>: 重複コード<br />
 <strong>Severity</strong>: Warning<br />
 <strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check --select clones</code></p>
-<h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags code blocks that are syntactically different but compute the same result (Type-4 clones, similarity ≥ 0.65). Uses data-flow analysis to compare behaviour rather than structure.</p>
-<h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
-<p>Semantic clones are the duplication you don't notice during review. One function uses a loop, the other a comprehension; one builds a dict via <code>update</code>, the other via merge syntax. The code looks different, so it passes visual inspection, but both implementations are doing the same job.</p>
-<p>The risks are the same as for any duplication — changes have to be made in multiple places — but there's an extra cost. Readers can't tell at a glance whether the two implementations agree on edge cases. Does the loop version also skip <code>None</code>? Does the comprehension raise on an empty input? The mental audit has to be done every time.</p>
-<p>Collapsing to a single implementation removes the audit and the drift.</p>
-<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<h2 id="_1">検出内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>構文的には異なるが同じ結果を計算するコードブロックを検出します（Type-4 クローン、類似度 &gt;= 0.65）。構造ではなく振る舞いを比較するためにデータフロー分析を使用します。</p>
+<h2 id="_2">なぜ問題なのか<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>意味的クローンは、レビュー時に気づかない重複です。一方の関数はループを使い、もう一方は内包表記を使います。一方は <code>update</code> で辞書を構築し、もう一方はマージ構文を使います。コードは異なるように見えるため目視チェックを通過しますが、両方の実装は同じ仕事をしています。</p>
+<p>リスクはあらゆる重複と同じで、変更を複数の場所で行わなければなりません。しかし追加のコストがあります。読者は2つの実装がエッジケースで一致するかどうかを一目で判断できません。ループ版も <code>None</code> をスキップするのか？内包表記版は空の入力で例外を発生させるのか？この精神的な検証を毎回行わなければなりません。</p>
+<p>単一の実装に統合すれば、検証作業と乖離を排除できます。</p>
+<h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">unique_emails</span><span class="p">(</span><span class="n">users</span><span class="p">):</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
@@ -3203,13 +3203,13 @@
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="k">def</span><span class="w"> </span><span class="nf">distinct_emails</span><span class="p">(</span><span class="n">users</span><span class="p">):</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="k">return</span> <span class="nb">list</span><span class="p">({</span><span class="n">u</span><span class="o">.</span><span class="n">email</span><span class="p">:</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">users</span><span class="p">}</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 </span></code></pre></div>
-<h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
-<p>Pick one implementation and use it everywhere. Prefer the clearer version; if both have merit, keep one and document why.</p>
+<h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>1つの実装を選び、すべての場所で使用してください。両方に利点がある場合は、1つを残してその理由をドキュメントに記載してください。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">unique_emails</span><span class="p">(</span><span class="n">users</span><span class="p">):</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return user emails in first-seen order, without duplicates.&quot;&quot;&quot;</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">email</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">users</span><span class="p">))</span>
 </span></code></pre></div>
-<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h2 id="_5">オプション<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -3222,34 +3222,34 @@
 <tr>
 <td><a href="../../configuration/reference/#clones"><code>clones.type4_threshold</code></a></td>
 <td><code>0.65</code></td>
-<td>Minimum similarity for a pair to be reported as semantic.</td>
+<td>意味的クローンとして報告されるための最小類似度。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#clones"><code>clones.enable_dfa</code></a></td>
 <td><code>true</code></td>
-<td>Enables the data-flow analysis that powers Type-4 detection.</td>
+<td>Type-4 検出を支えるデータフロー分析を有効にします。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#clones"><code>clones.similarity_threshold</code></a></td>
 <td><code>0.65</code></td>
-<td>Global floor applied before per-type thresholds.</td>
+<td>タイプ別の閾値の前に適用されるグローバルな下限値。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#clones"><code>clones.enabled_clone_types</code></a></td>
 <td><code>["type1","type2","type4"]</code></td>
-<td>Include <code>"type4"</code> to keep this rule active.</td>
+<td><code>"type4"</code> を含めることでこのルールを有効にします。</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#clones"><code>clones.min_lines</code></a></td>
 <td><code>5</code></td>
-<td>Minimum fragment size in lines.</td>
+<td>フラグメントの最小行数。</td>
 </tr>
 </tbody>
 </table>
-<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="_6">参照<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Clone detection implementation (<code>internal/analyzer/clone_detector.go</code>, <code>internal/analyzer/apted.go</code>).</li>
-<li><a href="../">Rule catalog</a> · <a href="../duplicate-code-identical/">Identical clones</a> · <a href="../duplicate-code-renamed/">Renamed clones</a> · <a href="../duplicate-code-modified/">Modified clones</a></li>
+<li>クローン検出の実装 (<code>internal/analyzer/clone_detector.go</code>, <code>internal/analyzer/apted.go</code>)。</li>
+<li><a href="../">ルールカタログ</a> · <a href="../duplicate-code-identical/">同一クローン</a> · <a href="../duplicate-code-renamed/">リネームされたクローン</a> · <a href="../duplicate-code-modified/">変更されたクローン</a></li>
 </ul>
 
 

@@ -35,7 +35,7 @@
     
     
       
-        <title>Output Formats - pyscn</title>
+        <title>输出格式 - pyscn</title>
       
     
     
@@ -86,7 +86,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#output-formats" class="md-skip">
+        <a href="#_1" class="md-skip">
           跳转至
         </a>
       
@@ -121,7 +121,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Output Formats
+              输出格式
             
           </span>
         </div>
@@ -2890,10 +2890,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#output-directory" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Output directory
+        输出目录
       
     </span>
   </a>
@@ -2901,10 +2901,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#filename-pattern" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Filename pattern
+        文件名模式
       
     </span>
   </a>
@@ -2912,10 +2912,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#supported-formats" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Supported formats
+        支持的格式
       
     </span>
   </a>
@@ -2923,10 +2923,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#stability-contract" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Stability contract
+        稳定性约定
       
     </span>
   </a>
@@ -2998,7 +2998,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/output/index.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/zh/output/index.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3006,34 +3006,34 @@
   
 
 
-<h1 id="output-formats">Output Formats<a class="headerlink" href="#output-formats" title="Permanent link">&para;</a></h1>
-<p>pyscn writes analysis results to files under an output directory. All formats share stable field semantics across patch releases.</p>
-<h2 id="output-directory">Output directory<a class="headerlink" href="#output-directory" title="Permanent link">&para;</a></h2>
-<p>Default: <code>.pyscn/reports/</code> under the current working directory.</p>
-<p>Configurable via <code>.pyscn.toml</code>:</p>
+<h1 id="_1">输出格式<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<p>pyscn 将分析结果写入输出目录下的文件。所有格式在补丁版本之间共享稳定的字段语义。</p>
+<h2 id="_2">输出目录<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>默认值：当前工作目录下的 <code>.pyscn/reports/</code>。</p>
+<p>可通过 <code>.pyscn.toml</code> 配置：</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[output]</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">directory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;build/reports&quot;</span>
 </span></code></pre></div>
-<h2 id="filename-pattern">Filename pattern<a class="headerlink" href="#filename-pattern" title="Permanent link">&para;</a></h2>
+<h2 id="_3">文件名模式<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>{command}_YYYYMMDD_HHMMSS.{ext}
 </span></code></pre></div>
-<p><code>{command}</code> is <code>analyze</code> (the only pyscn command that writes reports). The timestamp is local time. Existing files are never overwritten.</p>
-<h2 id="supported-formats">Supported formats<a class="headerlink" href="#supported-formats" title="Permanent link">&para;</a></h2>
+<p><code>{command}</code> 是 <code>analyze</code>（唯一写入报告的 pyscn 命令）。时间戳为本地时间。已有文件不会被覆盖。</p>
+<h2 id="_4">支持的格式<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Format</th>
-<th>Extension</th>
-<th>Flag</th>
-<th>Specification</th>
+<th>格式</th>
+<th>扩展名</th>
+<th>标志</th>
+<th>规范</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>text</td>
 <td>—</td>
-<td>(terminal)</td>
-<td>human-readable, not stable</td>
+<td>（终端）</td>
+<td>人类可读，不稳定</td>
 </tr>
 <tr>
 <td>json</td>
@@ -3056,20 +3056,20 @@
 <tr>
 <td>html</td>
 <td><code>.html</code></td>
-<td><code>--html</code> (default)</td>
+<td><code>--html</code>（默认）</td>
 <td><a href="html-report/">html-report.md</a></td>
 </tr>
 </tbody>
 </table>
-<p>The <code>text</code> format is intended for terminal display and has no stability contract; its layout may change between any releases.</p>
-<h2 id="stability-contract">Stability contract<a class="headerlink" href="#stability-contract" title="Permanent link">&para;</a></h2>
-<p>Across patch and minor releases within the same major version:</p>
+<p><code>text</code> 格式用于终端显示，没有稳定性保证；其布局可能在任何版本之间发生变化。</p>
+<h2 id="_5">稳定性约定<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
+<p>在同一主版本内的补丁和次要版本之间：</p>
 <ul>
-<li><strong>Stable</strong>: field names, types, and semantic meaning in <code>json</code>, <code>yaml</code>, and <code>csv</code>.</li>
-<li><strong>May change</strong>: ordering of array elements, addition of new fields, addition of new top-level sections, cosmetic changes to <code>text</code> and <code>html</code>.</li>
-<li><strong>Breaking changes</strong>: restricted to major version bumps (removal or rename of fields, change of field types).</li>
+<li><strong>稳定</strong>：<code>json</code>、<code>yaml</code> 和 <code>csv</code> 中的字段名称、类型和语义。</li>
+<li><strong>可能变更</strong>：数组元素的顺序、新字段的添加、新顶级部分的添加、<code>text</code> 和 <code>html</code> 的外观变化。</li>
+<li><strong>破坏性变更</strong>：仅限于主版本升级（字段的删除或重命名、字段类型的更改）。</li>
 </ul>
-<p>Third-party integrations should ignore unknown fields and not rely on field ordering within objects.</p>
+<p>第三方集成应忽略未知字段，且不应依赖对象内的字段顺序。</p>
 
 
 
