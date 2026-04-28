@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.17.0] - 2026-04-28
+
+### Performance
+- Optimize complete-linkage grouping with sparse matrix and cached similarities (#391)
+
+### Fixed
+- Make grouping clone-type tie breaks deterministic (#389)
+
+### Documentation
+- Add user-facing documentation site with MkDocs Material (#387)
+- Default to uvx and link README to docs site (#388)
+- Add Japanese and Simplified Chinese translations (#392)
+
+### Testing
+- Add clone detector benchmarks (#393)
+
+### CI
+- Auto-assign PR author on open/reopen (#390)
+
 ## [1.16.0] - 2026-04-14
 
 ### Added
