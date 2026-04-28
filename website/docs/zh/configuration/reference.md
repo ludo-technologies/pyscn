@@ -191,13 +191,13 @@
 | -------------------------- | ----- | ------- | --- |
 | `enabled`                  | bool  | `true`  | 运行分层验证。 |
 | `validate_layers`          | bool  | `true`  | 检查层间规则。 |
-| `validate_cohesion`        | bool  | `true`  | 检查层内聚性。 |
-| `validate_responsibility`  | bool  | `true`  | 检查每层的职责上限。 |
+| `validate_cohesion`        | bool  | `true`  | 检查包内聚性。 |
+| `validate_responsibility`  | bool  | `true`  | 检查每个模块的职责数量。 |
 | `strict_mode`              | bool  | `true`  | 严格验证。 |
 | `fail_on_violations`       | bool  | `false` | 违规时以非零退出码退出。 |
-| `min_cohesion`             | float | `0.5`   | 最小层内聚度。 |
+| `min_cohesion`             | float | `0.5`   | 最小包内聚度。 |
 | `max_coupling`             | int   | `10`    | 最大层间耦合度。 |
-| `max_responsibilities`     | int   | `3`     | 每层最大职责数。 |
+| `max_responsibilities`     | int   | `3`     | 每个模块最大职责数。 |
 
 ### 层定义
 

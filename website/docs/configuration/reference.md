@@ -191,13 +191,13 @@ Layer validation. All keys optional — if you don't define layers, architecture
 | -------------------------- | ----- | ------- | --- |
 | `enabled`                  | bool  | `true`  | Run layer validation. |
 | `validate_layers`          | bool  | `true`  | Check layer-to-layer rules. |
-| `validate_cohesion`        | bool  | `true`  | Check layer cohesion. |
-| `validate_responsibility`  | bool  | `true`  | Check concerns-per-layer cap. |
+| `validate_cohesion`        | bool  | `true`  | Check package cohesion. |
+| `validate_responsibility`  | bool  | `true`  | Check module responsibility count. |
 | `strict_mode`              | bool  | `true`  | Strict validation. |
 | `fail_on_violations`       | bool  | `false` | Non-zero exit on violation. |
-| `min_cohesion`             | float | `0.5`   | Minimum layer cohesion. |
+| `min_cohesion`             | float | `0.5`   | Minimum package cohesion. |
 | `max_coupling`             | int   | `10`    | Max inter-layer coupling. |
-| `max_responsibilities`     | int   | `3`     | Max concerns per layer. |
+| `max_responsibilities`     | int   | `3`     | Max concerns per module. |
 
 ### Layer definitions
 
