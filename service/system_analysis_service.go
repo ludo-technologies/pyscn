@@ -187,6 +187,11 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
 
 	// Calculate metrics
 	layerCohesion, problematic, layersAnalyzed := s.calculateLayerMetrics(layerCoupling)
+	responsibilityAnalysis, cohesionAnalysis, responsibilityViolations := s.analyzeResponsibility(graph, defaultResponsibilityOptions())
+	for _, violation := range responsibilityViolations {
+		violations = append(violations, violation)
+		severityCounts[violation.Severity]++
+	}
 	errorCount := severityCounts[domain.ViolationSeverityError]
 	warningCount := severityCounts[domain.ViolationSeverityWarning]
 	compliance := s.calculateComplianceWeighted(errorCount, warningCount, checked)
@@ -199,7 +204,8 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
 
 	// Build result
 	return s.buildArchitectureResultWithRecommendations(violations, severityCounts, layerCoupling, layerCohesion,
-		problematic, layersAnalyzed, compliance, checked, moduleToLayer, recommendations, refactoringTargets), nil
+		problematic, layersAnalyzed, compliance, checked, moduleToLayer, recommendations, refactoringTargets,
+		cohesionAnalysis, responsibilityAnalysis), nil
 }
 
 // emptyArchitectureResult returns an empty result when no rules are defined
@@ -346,7 +352,9 @@ func (s *SystemAnalysisServiceImpl) buildArchitectureResultWithRecommendations(
 	checked int,
 	moduleToLayer map[string]string,
 	recommendations []domain.ArchitectureRecommendation,
-	refactoringTargets []string) *domain.ArchitectureAnalysisResult {
+	refactoringTargets []string,
+	cohesionAnalysis *domain.CohesionAnalysis,
+	responsibilityAnalysis *domain.ResponsibilityAnalysis) *domain.ArchitectureAnalysisResult {
 
 	layerAnalysis := &domain.LayerAnalysis{
 		LayersAnalyzed:    layersAnalyzed,
@@ -361,8 +369,8 @@ func (s *SystemAnalysisServiceImpl) buildArchitectureResultWithRecommendations(
 		TotalViolations:        len(violations),
 		TotalRules:             checked,
 		LayerAnalysis:          layerAnalysis,
-		CohesionAnalysis:       nil,
-		ResponsibilityAnalysis: nil,
+		CohesionAnalysis:       cohesionAnalysis,
+		ResponsibilityAnalysis: responsibilityAnalysis,
 		Violations:             violations,
 		SeverityBreakdown:      severityCounts,
 		Recommendations:        recommendations,
