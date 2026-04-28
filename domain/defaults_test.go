@@ -125,6 +125,15 @@ func TestDefaultValueConsistency(t *testing.T) {
 				DefaultCloneGroupingThreshold, DefaultType4CloneThreshold)
 		}
 	})
+
+	t.Run("Architecture responsibility defaults are valid", func(t *testing.T) {
+		if DefaultArchitectureMinCohesion <= 0 || DefaultArchitectureMinCohesion > 1 {
+			t.Errorf("Architecture min cohesion (%.2f) should be in (0, 1]", DefaultArchitectureMinCohesion)
+		}
+		if DefaultArchitectureMaxResponsibilities <= 0 {
+			t.Errorf("Architecture max responsibilities (%d) should be > 0", DefaultArchitectureMaxResponsibilities)
+		}
+	})
 }
 
 // TestExpectedDefaultValues verifies that default values match expected industry standards
@@ -162,6 +171,15 @@ func TestExpectedDefaultValues(t *testing.T) {
 		}
 		if DefaultComplexityMediumThreshold != 19 {
 			t.Errorf("Complexity medium threshold should be 19, got %d", DefaultComplexityMediumThreshold)
+		}
+	})
+
+	t.Run("Architecture defaults match expected values", func(t *testing.T) {
+		if DefaultArchitectureMinCohesion != 0.5 {
+			t.Errorf("Architecture min cohesion should be 0.5, got %.2f", DefaultArchitectureMinCohesion)
+		}
+		if DefaultArchitectureMaxResponsibilities != 3 {
+			t.Errorf("Architecture max responsibilities should be 3, got %d", DefaultArchitectureMaxResponsibilities)
 		}
 	})
 }

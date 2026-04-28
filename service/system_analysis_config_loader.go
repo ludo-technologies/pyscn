@@ -63,6 +63,9 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) pyscnConfigToSystemAnalysisRequ
 	if cfg.ArchitectureMaxResponsibilities > 0 {
 		request.MaxResponsibilities = cfg.ArchitectureMaxResponsibilities
 	}
+	if cfg.ArchitectureCohesionViolationSeverity != "" {
+		request.CohesionViolationSeverity = parseViolationSeverity(cfg.ArchitectureCohesionViolationSeverity)
+	}
 	if cfg.ArchitectureResponsibilityViolationSeverity != "" {
 		request.ResponsibilityViolationSeverity = parseViolationSeverity(cfg.ArchitectureResponsibilityViolationSeverity)
 	}
@@ -120,8 +123,9 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) LoadDefaultConfig() *domain.Sys
 		ValidateArchitecture:            domain.BoolPtr(true),
 		ValidateCohesion:                domain.BoolPtr(true),
 		ValidateResponsibility:          domain.BoolPtr(true),
-		MinCohesion:                     defaultMinPackageCohesion,
-		MaxResponsibilities:             defaultMaxResponsibilities,
+		MinCohesion:                     domain.DefaultArchitectureMinCohesion,
+		MaxResponsibilities:             domain.DefaultArchitectureMaxResponsibilities,
+		CohesionViolationSeverity:       domain.ViolationSeverityWarning,
 		ResponsibilityViolationSeverity: domain.ViolationSeverityWarning,
 		Recursive:                       domain.BoolPtr(true),
 		IncludePatterns:                 []string{"**/*.py"},
@@ -196,6 +200,9 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
 	}
 	if override.MaxResponsibilities > 0 {
 		merged.MaxResponsibilities = override.MaxResponsibilities
+	}
+	if override.CohesionViolationSeverity != "" {
+		merged.CohesionViolationSeverity = override.CohesionViolationSeverity
 	}
 	if override.ResponsibilityViolationSeverity != "" {
 		merged.ResponsibilityViolationSeverity = override.ResponsibilityViolationSeverity

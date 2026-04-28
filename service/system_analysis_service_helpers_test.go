@@ -369,6 +369,7 @@ func TestPyscnConfigToSystemAnalysisRequest_PropagatesResponsibilitySettings(t *
 		ArchitectureValidateResponsibility:          &validateResponsibility,
 		ArchitectureMinCohesion:                     0.7,
 		ArchitectureMaxResponsibilities:             2,
+		ArchitectureCohesionViolationSeverity:       "error",
 		ArchitectureResponsibilityViolationSeverity: "critical",
 	}
 
@@ -380,6 +381,7 @@ func TestPyscnConfigToSystemAnalysisRequest_PropagatesResponsibilitySettings(t *
 	assert.True(t, *request.ValidateResponsibility)
 	assert.Equal(t, 0.7, request.MinCohesion)
 	assert.Equal(t, 2, request.MaxResponsibilities)
+	assert.Equal(t, domain.ViolationSeverityError, request.CohesionViolationSeverity)
 	assert.Equal(t, domain.ViolationSeverityCritical, request.ResponsibilityViolationSeverity)
 }
 

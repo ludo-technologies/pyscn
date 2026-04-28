@@ -11,13 +11,14 @@ import (
 )
 
 const (
-	defaultMinPackageCohesion  = 0.5
-	defaultMaxResponsibilities = 3
+	defaultMinPackageCohesion  = domain.DefaultArchitectureMinCohesion
+	defaultMaxResponsibilities = domain.DefaultArchitectureMaxResponsibilities
 )
 
 type responsibilityOptions struct {
 	minPackageCohesion  float64
 	maxResponsibilities int
+	cohesionSeverity    domain.ViolationSeverity
 	severity            domain.ViolationSeverity
 }
 
@@ -25,6 +26,7 @@ func defaultResponsibilityOptions() responsibilityOptions {
 	return responsibilityOptions{
 		minPackageCohesion:  defaultMinPackageCohesion,
 		maxResponsibilities: defaultMaxResponsibilities,
+		cohesionSeverity:    domain.ViolationSeverityWarning,
 		severity:            domain.ViolationSeverityWarning,
 	}
 }
@@ -36,6 +38,9 @@ func responsibilityOptionsFromRequest(req domain.SystemAnalysisRequest) responsi
 	}
 	if req.MaxResponsibilities > 0 {
 		options.maxResponsibilities = req.MaxResponsibilities
+	}
+	if req.CohesionViolationSeverity != "" {
+		options.cohesionSeverity = req.CohesionViolationSeverity
 	}
 	if req.ResponsibilityViolationSeverity != "" {
 		options.severity = req.ResponsibilityViolationSeverity
@@ -64,7 +69,8 @@ func (s *SystemAnalysisServiceImpl) analyzeResponsibilityForRequest(
 		return nil, nil, nil
 	}
 
-	responsibility, cohesion, responsibilityViolations := s.analyzeResponsibility(graph, responsibilityOptionsFromRequest(req))
+	options := responsibilityOptionsFromRequest(req)
+	responsibility, cohesion, responsibilityViolations := s.analyzeResponsibility(graph, options)
 	violations := make([]domain.ArchitectureViolation, 0, len(responsibilityViolations)+len(cohesion.LowCohesionPackages))
 	if !domain.BoolValue(req.ValidateResponsibility, true) {
 		responsibility = nil
@@ -74,7 +80,7 @@ func (s *SystemAnalysisServiceImpl) analyzeResponsibilityForRequest(
 	if !domain.BoolValue(req.ValidateCohesion, true) {
 		cohesion = nil
 	} else {
-		violations = append(violations, cohesionArchitectureViolations(cohesion)...)
+		violations = append(violations, cohesionArchitectureViolations(cohesion, options.cohesionSeverity)...)
 	}
 	return responsibility, cohesion, violations
 }
@@ -87,9 +93,12 @@ func responsibilitySeverityCounts(violations []domain.ArchitectureViolation) map
 	return counts
 }
 
-func cohesionArchitectureViolations(cohesion *domain.CohesionAnalysis) []domain.ArchitectureViolation {
+func cohesionArchitectureViolations(cohesion *domain.CohesionAnalysis, severity domain.ViolationSeverity) []domain.ArchitectureViolation {
 	if cohesion == nil || len(cohesion.LowCohesionPackages) == 0 {
 		return nil
+	}
+	if severity == "" {
+		severity = domain.ViolationSeverityWarning
 	}
 
 	violations := make([]domain.ArchitectureViolation, 0, len(cohesion.LowCohesionPackages))
@@ -98,7 +107,7 @@ func cohesionArchitectureViolations(cohesion *domain.CohesionAnalysis) []domain.
 		suggestion := cohesion.CohesionSuggestions[pkg]
 		violations = append(violations, domain.ArchitectureViolation{
 			Type:        domain.ViolationTypeCohesion,
-			Severity:    domain.ViolationSeverityWarning,
+			Severity:    severity,
 			Module:      pkg,
 			Rule:        "package-cohesion",
 			Description: fmt.Sprintf("Package '%s' has low cohesion (%.2f)", pkg, score),

@@ -35,6 +35,7 @@ func TestSystemAnalysisFormatterIncludesResponsibilityAnalysisHTML(t *testing.T)
 	assert.Contains(t, output, "api, auth, db")
 	assert.Contains(t, output, "Package Cohesion")
 	assert.Contains(t, output, "app.orders")
+	assert.Contains(t, output, `badge bg-danger`)
 	assert.False(t, strings.Contains(output, "<nil>"))
 }
 
@@ -61,7 +62,7 @@ func systemResponseWithResponsibilityViolation() *domain.SystemAnalysisResponse 
 					{
 						Module:           "app.core.hub",
 						Responsibilities: []string{"api", "auth", "db"},
-						Severity:         domain.ViolationSeverityWarning,
+						Severity:         domain.ViolationSeverityError,
 						Suggestion:       "Split hub module by concern",
 					},
 				},
@@ -73,11 +74,11 @@ func systemResponseWithResponsibilityViolation() *domain.SystemAnalysisResponse 
 			Violations: []domain.ArchitectureViolation{
 				{
 					Type:     domain.ViolationTypeResponsibility,
-					Severity: domain.ViolationSeverityWarning,
+					Severity: domain.ViolationSeverityError,
 					Module:   "app.core.hub",
 				},
 			},
-			SeverityBreakdown:  map[domain.ViolationSeverity]int{domain.ViolationSeverityWarning: 1},
+			SeverityBreakdown:  map[domain.ViolationSeverity]int{domain.ViolationSeverityError: 1},
 			Recommendations:    []domain.ArchitectureRecommendation{},
 			RefactoringTargets: []string{"app.core.hub"},
 		},

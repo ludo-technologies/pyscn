@@ -98,14 +98,16 @@ func TestAnalyzeResponsibilityForRequestKeepsCohesionIndependent(t *testing.T) {
 	validateResponsibility := false
 	validateCohesion := true
 	responsibility, cohesion, violations := service.analyzeResponsibilityForRequest(graph, domain.SystemAnalysisRequest{
-		ValidateResponsibility: &validateResponsibility,
-		ValidateCohesion:       &validateCohesion,
+		ValidateResponsibility:    &validateResponsibility,
+		ValidateCohesion:          &validateCohesion,
+		CohesionViolationSeverity: domain.ViolationSeverityError,
 	})
 
 	assert.Nil(t, responsibility)
 	require.NotNil(t, cohesion)
 	require.Len(t, violations, 1)
 	assert.Equal(t, domain.ViolationTypeCohesion, violations[0].Type)
+	assert.Equal(t, domain.ViolationSeverityError, violations[0].Severity)
 	assert.Equal(t, "app.orders", violations[0].Module)
 }
 
@@ -113,11 +115,13 @@ func TestResponsibilityOptionsFromRequestUsesConfiguredThresholds(t *testing.T) 
 	options := responsibilityOptionsFromRequest(domain.SystemAnalysisRequest{
 		MinCohesion:                     0.75,
 		MaxResponsibilities:             2,
+		CohesionViolationSeverity:       domain.ViolationSeverityError,
 		ResponsibilityViolationSeverity: domain.ViolationSeverityCritical,
 	})
 
 	assert.Equal(t, 0.75, options.minPackageCohesion)
 	assert.Equal(t, 2, options.maxResponsibilities)
+	assert.Equal(t, domain.ViolationSeverityError, options.cohesionSeverity)
 	assert.Equal(t, domain.ViolationSeverityCritical, options.severity)
 }
 

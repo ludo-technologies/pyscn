@@ -131,6 +131,29 @@ func TestAnalyzeSummary_Validate(t *testing.T) {
 	}
 }
 
+func TestDefaultSystemAnalysisRequestIncludesArchitectureResponsibilityDefaults(t *testing.T) {
+	req := domain.DefaultSystemAnalysisRequest()
+
+	if req.ValidateCohesion == nil || !*req.ValidateCohesion {
+		t.Fatal("ValidateCohesion should default to true")
+	}
+	if req.ValidateResponsibility == nil || !*req.ValidateResponsibility {
+		t.Fatal("ValidateResponsibility should default to true")
+	}
+	if req.MinCohesion != domain.DefaultArchitectureMinCohesion {
+		t.Fatalf("MinCohesion = %.2f, want %.2f", req.MinCohesion, domain.DefaultArchitectureMinCohesion)
+	}
+	if req.MaxResponsibilities != domain.DefaultArchitectureMaxResponsibilities {
+		t.Fatalf("MaxResponsibilities = %d, want %d", req.MaxResponsibilities, domain.DefaultArchitectureMaxResponsibilities)
+	}
+	if req.CohesionViolationSeverity != domain.ViolationSeverityWarning {
+		t.Fatalf("CohesionViolationSeverity = %q, want %q", req.CohesionViolationSeverity, domain.ViolationSeverityWarning)
+	}
+	if req.ResponsibilityViolationSeverity != domain.ViolationSeverityWarning {
+		t.Fatalf("ResponsibilityViolationSeverity = %q, want %q", req.ResponsibilityViolationSeverity, domain.ViolationSeverityWarning)
+	}
+}
+
 func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 	tests := []struct {
 		name                      string

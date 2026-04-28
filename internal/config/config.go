@@ -213,9 +213,9 @@ func DefaultConfig() *Config {
 			ValidateResponsibility:          true,
 			Layers:                          []LayerDefinition{}, // Empty by default
 			Rules:                           []LayerRule{},       // Empty by default
-			MinCohesion:                     0.5,
+			MinCohesion:                     domain.DefaultArchitectureMinCohesion,
 			MaxCoupling:                     10,
-			MaxResponsibilities:             3,
+			MaxResponsibilities:             domain.DefaultArchitectureMaxResponsibilities,
 			LayerViolationSeverity:          "error",
 			CohesionViolationSeverity:       "warning",
 			ResponsibilityViolationSeverity: "warning",

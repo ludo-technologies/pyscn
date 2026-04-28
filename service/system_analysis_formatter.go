@@ -767,19 +767,9 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLArchitectureContent(builder *stri
 					break
 				}
 
-				severityClass := "warning"
-				severityIcon := "⚠️"
-				if string(violation.Severity) == "error" {
-					severityClass = "danger"
-					severityIcon = "❌"
-				} else if string(violation.Severity) == "info" {
-					severityClass = "info"
-					severityIcon = "ℹ️"
-				}
-
 				builder.WriteString(`
                     <tr>
-                        <td><span class="badge bg-` + severityClass + `">` + severityIcon + ` ` + string(violation.Severity) + `</span></td>
+                        <td>` + architectureSeverityBadge(violation.Severity) + `</td>
                         <td>` + violation.Rule + `</td>
                         <td>` + violation.FromModule + `</td>
                         <td>` + violation.ToModule + `</td>
@@ -825,7 +815,7 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLArchitectureContent(builder *stri
 			}
 			builder.WriteString(`
                     <tr>
-                        <td><span class="badge bg-warning">` + string(violation.Severity) + `</span></td>
+                        <td>` + architectureSeverityBadge(violation.Severity) + `</td>
                         <td>` + violation.Module + `</td>
                         <td>` + strings.Join(violation.Responsibilities, ", ") + `</td>
                         <td>` + violation.Suggestion + `</td>
@@ -878,6 +868,20 @@ func (f *SystemAnalysisFormatterImpl) isInSlice(slice []string, item string) boo
 		}
 	}
 	return false
+}
+
+func architectureSeverityBadge(severity domain.ViolationSeverity) string {
+	severityClass := "warning"
+	severityIcon := "⚠️"
+	switch severity {
+	case domain.ViolationSeverityCritical, domain.ViolationSeverityError:
+		severityClass = "danger"
+		severityIcon = "❌"
+	case domain.ViolationSeverityInfo:
+		severityClass = "info"
+		severityIcon = "ℹ️"
+	}
+	return `<span class="badge bg-` + severityClass + `">` + severityIcon + ` ` + string(severity) + `</span>`
 }
 
 // min returns the minimum of two integers
