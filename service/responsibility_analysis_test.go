@@ -160,6 +160,12 @@ func TestParseViolationSeverityFallsBackToWarning(t *testing.T) {
 	assert.Equal(t, domain.ViolationSeverityWarning, parseViolationSeverity("unknown"))
 }
 
+func TestResponsibilitySeverityDoesNotDowngradeCritical(t *testing.T) {
+	severity := responsibilitySeverity(domain.ViolationSeverityCritical, 5, 3, true)
+
+	assert.Equal(t, domain.ViolationSeverityCritical, severity)
+}
+
 func TestAnalyzeArchitectureRunsResponsibilityWithoutLayerRules(t *testing.T) {
 	root := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(root, "pyproject.toml"), []byte("[project]\nname = \"srp-repro\"\n"), 0o644))

@@ -297,6 +297,9 @@ func responsibilitySeverity(
 	isHub bool,
 ) domain.ViolationSeverity {
 	if isHub && responsibilityCount > maxResponsibilities+1 {
+		if defaultSeverity == domain.ViolationSeverityCritical {
+			return defaultSeverity
+		}
 		return domain.ViolationSeverityError
 	}
 	if defaultSeverity != "" {
