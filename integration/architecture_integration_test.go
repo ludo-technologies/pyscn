@@ -13,6 +13,7 @@ import (
 )
 
 const fastapiLayersDir = "../testdata/python/fastapi_layers"
+const responsibilityAnalysisDir = "../testdata/python/responsibility_analysis"
 
 func newArchitectureUseCase() *app.SystemAnalysisUseCase {
 	return app.NewSystemAnalysisUseCase(
@@ -158,6 +159,28 @@ func TestArchitecture_AllowedDepsNotFlagged(t *testing.T) {
 				v.FromModule, v.ToModule)
 		}
 	}
+}
+
+func TestArchitecture_ResponsibilityAnalysisEndToEnd(t *testing.T) {
+	result := analyzeArchitecture(t, responsibilityAnalysisDir)
+
+	require.NotNil(t, result.ResponsibilityAnalysis)
+	require.Len(t, result.ResponsibilityAnalysis.SRPViolations, 1)
+
+	violation := result.ResponsibilityAnalysis.SRPViolations[0]
+	assert.Equal(t, "app.core.hub", violation.Module)
+	assert.ElementsMatch(t, []string{"api", "auth", "billing", "db", "reporting"}, violation.Responsibilities)
+	assert.Contains(t, result.ResponsibilityAnalysis.OverloadedModules, "app.core.hub")
+
+	require.NotNil(t, result.CohesionAnalysis)
+	assert.Contains(t, result.Violations, domain.ArchitectureViolation{
+		Type:        domain.ViolationTypeResponsibility,
+		Severity:    domain.ViolationSeverityError,
+		Module:      "app.core.hub",
+		Rule:        "single-responsibility",
+		Description: "Module 'app.core.hub' mixes 5 dependency concerns with fan-in 5 and fan-out 5",
+		Suggestion:  "Split 'app.core.hub' by concern so each module owns one stable responsibility boundary",
+	})
 }
 
 // TestArchitecture_NeutralPrefixesLayerClassification verifies that the
