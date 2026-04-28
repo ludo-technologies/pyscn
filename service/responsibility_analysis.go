@@ -13,13 +13,31 @@ import (
 const (
 	defaultMinPackageCohesion  = domain.DefaultArchitectureMinCohesion
 	defaultMaxResponsibilities = domain.DefaultArchitectureMaxResponsibilities
+	minLowCohesionModules      = 3
+	minLowCohesionEdges        = 2
 )
+
+var genericResponsibilitySegments = map[string]bool{
+	"base":    true,
+	"common":  true,
+	"helpers": true,
+	"node":    true,
+	"shared":  true,
+	"util":    true,
+	"utils":   true,
+}
 
 type responsibilityOptions struct {
 	minPackageCohesion  float64
 	maxResponsibilities int
 	cohesionSeverity    domain.ViolationSeverity
 	severity            domain.ViolationSeverity
+}
+
+type packageCohesionStats struct {
+	modules map[string]bool
+	intra   int
+	inter   int
 }
 
 func defaultResponsibilityOptions() responsibilityOptions {
@@ -244,10 +262,19 @@ func concernLabel(module, neighbor string) string {
 		i++
 	}
 	if i < len(neighborParts) {
-		return neighborParts[i]
+		return firstMeaningfulSegment(neighborParts[i:])
 	}
 	if len(neighborParts) > 0 {
-		return neighborParts[len(neighborParts)-1]
+		return firstMeaningfulSegment(neighborParts)
+	}
+	return ""
+}
+
+func firstMeaningfulSegment(parts []string) string {
+	for _, part := range parts {
+		if !genericResponsibilitySegments[part] {
+			return part
+		}
 	}
 	return ""
 }
@@ -279,20 +306,14 @@ func responsibilitySeverity(
 }
 
 func analyzePackageCohesion(graph *analyzer.DependencyGraph, minCohesion float64) *domain.CohesionAnalysis {
-	type packageStats struct {
-		modules map[string]bool
-		intra   int
-		inter   int
-	}
-
-	stats := make(map[string]*packageStats)
+	stats := make(map[string]*packageCohesionStats)
 	for module := range graph.Nodes {
 		pkg := packageNameForModule(module)
 		if pkg == "" {
 			continue
 		}
 		if stats[pkg] == nil {
-			stats[pkg] = &packageStats{modules: make(map[string]bool)}
+			stats[pkg] = &packageCohesionStats{modules: make(map[string]bool)}
 		}
 		stats[pkg].modules[module] = true
 	}
@@ -322,7 +343,7 @@ func analyzePackageCohesion(graph *analyzer.DependencyGraph, minCohesion float64
 		}
 		cohesion[pkg] = score
 
-		if len(stat.modules) > 1 && total > 0 && score < minCohesion {
+		if shouldFlagLowPackageCohesion(stat, total, score, minCohesion) {
 			lowCohesion = append(lowCohesion, pkg)
 			suggestions[pkg] = fmt.Sprintf("Move unrelated dependencies out of '%s' or split it around cohesive dependency groups", pkg)
 		}
@@ -334,6 +355,13 @@ func analyzePackageCohesion(graph *analyzer.DependencyGraph, minCohesion float64
 		LowCohesionPackages: lowCohesion,
 		CohesionSuggestions: suggestions,
 	}
+}
+
+func shouldFlagLowPackageCohesion(stat *packageCohesionStats, total int, score float64, minCohesion float64) bool {
+	if len(stat.modules) < minLowCohesionModules || stat.inter < minLowCohesionEdges || total == 0 {
+		return false
+	}
+	return score < minCohesion
 }
 
 func packageNameForModule(module string) string {

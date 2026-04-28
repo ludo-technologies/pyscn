@@ -71,11 +71,14 @@ func TestAnalyzePackageCohesionFlagsScatteredPackage(t *testing.T) {
 
 	graph.AddModule("app.orders.api", "/test/project/app/orders/api.py")
 	graph.AddModule("app.orders.worker", "/test/project/app/orders/worker.py")
+	graph.AddModule("app.orders.admin", "/test/project/app/orders/admin.py")
 	graph.AddModule("app.billing.invoice", "/test/project/app/billing/invoice.py")
 	graph.AddModule("app.reporting.export", "/test/project/app/reporting/export.py")
+	graph.AddModule("app.auth.policy", "/test/project/app/auth/policy.py")
 
 	graph.AddDependency("app.orders.api", "app.billing.invoice", analyzer.DependencyEdgeImport, nil)
 	graph.AddDependency("app.orders.worker", "app.reporting.export", analyzer.DependencyEdgeImport, nil)
+	graph.AddDependency("app.orders.admin", "app.auth.policy", analyzer.DependencyEdgeImport, nil)
 
 	cohesion := analyzePackageCohesion(graph, defaultMinPackageCohesion)
 
@@ -84,16 +87,41 @@ func TestAnalyzePackageCohesionFlagsScatteredPackage(t *testing.T) {
 	assert.NotEmpty(t, cohesion.CohesionSuggestions["app.orders"])
 }
 
-func TestAnalyzeResponsibilityForRequestKeepsCohesionIndependent(t *testing.T) {
-	service := NewSystemAnalysisService()
+func TestAnalyzePackageCohesionIgnoresTinyPackages(t *testing.T) {
 	graph := analyzer.NewDependencyGraph("/test/project")
 
 	graph.AddModule("app.orders.api", "/test/project/app/orders/api.py")
 	graph.AddModule("app.orders.worker", "/test/project/app/orders/worker.py")
 	graph.AddModule("app.billing.invoice", "/test/project/app/billing/invoice.py")
 	graph.AddModule("app.reporting.export", "/test/project/app/reporting/export.py")
+
 	graph.AddDependency("app.orders.api", "app.billing.invoice", analyzer.DependencyEdgeImport, nil)
 	graph.AddDependency("app.orders.worker", "app.reporting.export", analyzer.DependencyEdgeImport, nil)
+
+	cohesion := analyzePackageCohesion(graph, defaultMinPackageCohesion)
+
+	assert.NotContains(t, cohesion.LowCohesionPackages, "app.orders")
+}
+
+func TestConcernLabelSkipsGenericSegments(t *testing.T) {
+	label := concernLabel("app.core.hub", "app.common.utils.billing.node")
+
+	assert.Equal(t, "billing", label)
+}
+
+func TestAnalyzeResponsibilityForRequestKeepsCohesionIndependent(t *testing.T) {
+	service := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/test/project")
+
+	graph.AddModule("app.orders.api", "/test/project/app/orders/api.py")
+	graph.AddModule("app.orders.worker", "/test/project/app/orders/worker.py")
+	graph.AddModule("app.orders.admin", "/test/project/app/orders/admin.py")
+	graph.AddModule("app.billing.invoice", "/test/project/app/billing/invoice.py")
+	graph.AddModule("app.reporting.export", "/test/project/app/reporting/export.py")
+	graph.AddModule("app.auth.policy", "/test/project/app/auth/policy.py")
+	graph.AddDependency("app.orders.api", "app.billing.invoice", analyzer.DependencyEdgeImport, nil)
+	graph.AddDependency("app.orders.worker", "app.reporting.export", analyzer.DependencyEdgeImport, nil)
+	graph.AddDependency("app.orders.admin", "app.auth.policy", analyzer.DependencyEdgeImport, nil)
 
 	validateResponsibility := false
 	validateCohesion := true
