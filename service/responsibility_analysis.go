@@ -56,6 +56,33 @@ func parseViolationSeverity(value string) domain.ViolationSeverity {
 	}
 }
 
+func (s *SystemAnalysisServiceImpl) analyzeResponsibilityForRequest(
+	graph *analyzer.DependencyGraph,
+	req domain.SystemAnalysisRequest,
+) (*domain.ResponsibilityAnalysis, *domain.CohesionAnalysis, []domain.ArchitectureViolation) {
+	if !domain.BoolValue(req.ValidateResponsibility, true) && !domain.BoolValue(req.ValidateCohesion, true) {
+		return nil, nil, nil
+	}
+
+	responsibility, cohesion, violations := s.analyzeResponsibility(graph, responsibilityOptionsFromRequest(req))
+	if !domain.BoolValue(req.ValidateResponsibility, true) {
+		responsibility = nil
+		violations = nil
+	}
+	if !domain.BoolValue(req.ValidateCohesion, true) {
+		cohesion = nil
+	}
+	return responsibility, cohesion, violations
+}
+
+func responsibilitySeverityCounts(violations []domain.ArchitectureViolation) map[domain.ViolationSeverity]int {
+	counts := make(map[domain.ViolationSeverity]int)
+	for _, violation := range violations {
+		counts[violation.Severity]++
+	}
+	return counts
+}
+
 func (s *SystemAnalysisServiceImpl) analyzeResponsibility(
 	graph *analyzer.DependencyGraph,
 	options responsibilityOptions,

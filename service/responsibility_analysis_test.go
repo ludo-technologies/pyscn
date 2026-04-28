@@ -1,6 +1,9 @@
 package service
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -98,4 +101,48 @@ func TestParseViolationSeverityFallsBackToWarning(t *testing.T) {
 	assert.Equal(t, domain.ViolationSeverityError, parseViolationSeverity("error"))
 	assert.Equal(t, domain.ViolationSeverityCritical, parseViolationSeverity("critical"))
 	assert.Equal(t, domain.ViolationSeverityWarning, parseViolationSeverity("unknown"))
+}
+
+func TestAnalyzeArchitectureRunsResponsibilityWithoutLayerRules(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(root, "pyproject.toml"), []byte("[project]\nname = \"srp-repro\"\n"), 0o644))
+
+	files := map[string]string{
+		"app/__init__.py":        "",
+		"app/red/__init__.py":    "",
+		"app/blue/__init__.py":   "",
+		"app/green/__init__.py":  "",
+		"app/yellow/__init__.py": "",
+		"app/orange/__init__.py": "",
+		"app/red/hub.py":         "from ..blue.node import render\nfrom ..green.node import save\nfrom ..yellow.node import authorize\nfrom ..orange.node import export\n\ndef process(user, payload):\n    authorize(user)\n    result = render(payload)\n    save(result)\n    return export(result)\n",
+		"app/blue/node.py":       "from ..red.hub import process\n\ndef render(payload):\n    return payload\n",
+		"app/green/node.py":      "from ..red.hub import process\n\ndef save(row):\n    return row\n",
+		"app/yellow/node.py":     "from ..red.hub import process\n\ndef authorize(user):\n    return bool(user)\n",
+		"app/orange/node.py":     "from ..red.hub import process\n\ndef export(result):\n    return result\n",
+	}
+
+	paths := make([]string, 0, len(files))
+	for name, content := range files {
+		path := filepath.Join(root, name)
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+		require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
+		if filepath.Ext(path) == ".py" {
+			paths = append(paths, path)
+		}
+	}
+
+	service := NewSystemAnalysisService()
+	result, err := service.AnalyzeArchitecture(context.Background(), domain.SystemAnalysisRequest{
+		Paths:             paths,
+		IncludeStdLib:     domain.BoolPtr(false),
+		IncludeThirdParty: domain.BoolPtr(false),
+		FollowRelative:    domain.BoolPtr(true),
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, result.ResponsibilityAnalysis)
+	require.Len(t, result.ResponsibilityAnalysis.SRPViolations, 1)
+	assert.Equal(t, "app.red.hub", result.ResponsibilityAnalysis.SRPViolations[0].Module)
+	assert.Equal(t, 1, result.TotalViolations)
+	assert.Zero(t, result.LayerAnalysis.LayersAnalyzed)
 }

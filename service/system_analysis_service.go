@@ -160,12 +160,37 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
 	if err != nil {
 		return nil, err
 	}
+	responsibilityAnalysis, cohesionAnalysis, responsibilityViolations := s.analyzeResponsibilityForRequest(graph, req)
 
 	// Clone ArchitectureRules before modifying to avoid mutating the caller's object
 	// (the pointer is shared even though SystemAnalysisRequest is passed by value).
 	rules := s.resolveArchitectureRules(graph, req.ArchitectureRules)
 	if rules == nil || len(rules.Layers) == 0 {
-		return s.emptyArchitectureResult(), nil
+		if responsibilityAnalysis == nil && cohesionAnalysis == nil {
+			return s.emptyArchitectureResult(), nil
+		}
+		severityCounts := responsibilitySeverityCounts(responsibilityViolations)
+		checked := len(responsibilityViolations)
+		errorCount := severityCounts[domain.ViolationSeverityError]
+		warningCount := severityCounts[domain.ViolationSeverityWarning]
+		compliance := s.calculateComplianceWeighted(errorCount, warningCount, checked)
+		recommendations := s.generateArchitectureRecommendations(responsibilityViolations, map[string]float64{}, nil, compliance)
+		refactoringTargets := s.identifyArchitectureRefactoringTargets(responsibilityViolations, map[string]string{})
+		return s.buildArchitectureResultWithRecommendations(
+			responsibilityViolations,
+			severityCounts,
+			map[string]map[string]int{},
+			map[string]float64{},
+			nil,
+			0,
+			compliance,
+			checked,
+			map[string]string{},
+			recommendations,
+			refactoringTargets,
+			cohesionAnalysis,
+			responsibilityAnalysis,
+		), nil
 	}
 	req.ArchitectureRules = rules
 
@@ -187,19 +212,6 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
 
 	// Calculate metrics
 	layerCohesion, problematic, layersAnalyzed := s.calculateLayerMetrics(layerCoupling)
-	var responsibilityAnalysis *domain.ResponsibilityAnalysis
-	var cohesionAnalysis *domain.CohesionAnalysis
-	var responsibilityViolations []domain.ArchitectureViolation
-	if domain.BoolValue(req.ValidateResponsibility, true) || domain.BoolValue(req.ValidateCohesion, true) {
-		responsibilityAnalysis, cohesionAnalysis, responsibilityViolations = s.analyzeResponsibility(graph, responsibilityOptionsFromRequest(req))
-		if !domain.BoolValue(req.ValidateResponsibility, true) {
-			responsibilityAnalysis = nil
-			responsibilityViolations = nil
-		}
-		if !domain.BoolValue(req.ValidateCohesion, true) {
-			cohesionAnalysis = nil
-		}
-	}
 	for _, violation := range responsibilityViolations {
 		violations = append(violations, violation)
 		severityCounts[violation.Severity]++
