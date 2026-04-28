@@ -189,6 +189,29 @@ func (f *SystemAnalysisFormatterImpl) writeArchitectureSection(builder *strings.
 		}
 	}
 
+	if arch.ResponsibilityAnalysis != nil && len(arch.ResponsibilityAnalysis.SRPViolations) > 0 {
+		builder.WriteString(utils.FormatSectionHeader("RESPONSIBILITY VIOLATIONS"))
+		for i, violation := range arch.ResponsibilityAnalysis.SRPViolations {
+			if i >= 10 {
+				builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "...",
+					fmt.Sprintf("and %d more responsibility violations", len(arch.ResponsibilityAnalysis.SRPViolations)-i)))
+				break
+			}
+			builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, violation.Module,
+				fmt.Sprintf("%s responsibilities: %s", violation.Severity, strings.Join(violation.Responsibilities, ", "))))
+		}
+		builder.WriteString("\n")
+	}
+
+	if arch.CohesionAnalysis != nil && len(arch.CohesionAnalysis.LowCohesionPackages) > 0 {
+		builder.WriteString(utils.FormatSectionHeader("LOW PACKAGE COHESION"))
+		for _, pkg := range arch.CohesionAnalysis.LowCohesionPackages {
+			builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, pkg,
+				fmt.Sprintf("%.2f", arch.CohesionAnalysis.PackageCohesion[pkg])))
+		}
+		builder.WriteString("\n")
+	}
+
 	// Summary stats
 	stats := map[string]interface{}{
 		"Total Violations": arch.TotalViolations,
@@ -777,6 +800,52 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLArchitectureContent(builder *stri
 			}
 			builder.WriteString(`</div>`)
 		}
+	}
+
+	if arch.ResponsibilityAnalysis != nil && len(arch.ResponsibilityAnalysis.SRPViolations) > 0 {
+		builder.WriteString(GenerateSectionHeader("Responsibility Violations"))
+		builder.WriteString(`
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Severity</th>
+                        <th>Module</th>
+                        <th>Responsibilities</th>
+                        <th>Suggestion</th>
+                    </tr>
+                </thead>
+                <tbody>`)
+		for i, violation := range arch.ResponsibilityAnalysis.SRPViolations {
+			if i >= 20 {
+				builder.WriteString(`
+                    <tr>
+                        <td colspan="4"><em>... and ` + strconv.Itoa(len(arch.ResponsibilityAnalysis.SRPViolations)-20) + ` more responsibility violations</em></td>
+                    </tr>`)
+				break
+			}
+			builder.WriteString(`
+                    <tr>
+                        <td><span class="badge bg-warning">` + string(violation.Severity) + `</span></td>
+                        <td>` + violation.Module + `</td>
+                        <td>` + strings.Join(violation.Responsibilities, ", ") + `</td>
+                        <td>` + violation.Suggestion + `</td>
+                    </tr>`)
+		}
+		builder.WriteString(`
+                </tbody>
+            </table>`)
+	}
+
+	if arch.CohesionAnalysis != nil && len(arch.CohesionAnalysis.LowCohesionPackages) > 0 {
+		builder.WriteString(GenerateSectionHeader("Package Cohesion"))
+		builder.WriteString(`<div class="metric-grid">`)
+		for _, pkg := range arch.CohesionAnalysis.LowCohesionPackages {
+			builder.WriteString(GenerateMetricCard(
+				fmt.Sprintf("%.2f", arch.CohesionAnalysis.PackageCohesion[pkg]),
+				pkg,
+			))
+		}
+		builder.WriteString(`</div>`)
 	}
 
 	// Recommendations if available
