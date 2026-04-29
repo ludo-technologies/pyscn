@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.18.0] - 2026-04-30
+
+### Added
+- Package responsibility analysis with cohesion and SRP checks (#398)
+
+### Fixed
+- Require text match for Type-1 clones and cap non-textual similarity (#399)
+- Make clone trees expression-aware to avoid mismatched payloads (#401)
+
 ## [1.17.0] - 2026-04-28
 
 ### Performance
