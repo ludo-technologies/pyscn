@@ -36,6 +36,14 @@ func newDefaultCloneRequest(paths ...string) *domain.CloneRequest {
 	}
 }
 
+func clonePairTypes(pairs []*domain.ClonePair) []domain.CloneType {
+	types := make([]domain.CloneType, 0, len(pairs))
+	for _, pair := range pairs {
+		types = append(types, pair.Type)
+	}
+	return types
+}
+
 func TestNewCloneService(t *testing.T) {
 	service := NewCloneService()
 
@@ -262,6 +270,81 @@ func TestCloneService_DetectClonesInFiles(t *testing.T) {
 		assert.NotNil(t, response)
 		assert.NotNil(t, response.Statistics)
 		assert.Equal(t, 2, response.Statistics.FilesAnalyzed) // skips missing; counts only processed files
+	})
+
+	t.Run("identical source fragments are reported as type1", func(t *testing.T) {
+		tmp := t.TempDir()
+		f1 := filepath.Join(tmp, "a.py")
+		f2 := filepath.Join(tmp, "b.py")
+
+		source := `def calculate(value):
+    if value > 10:
+        result = value * 2
+    else:
+        result = value + 2
+    return result
+`
+		require.NoError(t, os.WriteFile(f1, []byte(source), 0o644))
+		require.NoError(t, os.WriteFile(f2, []byte(source), 0o644))
+
+		req := newDefaultCloneRequest(f1, f2)
+		req.MinLines = 3
+		req.MinNodes = 1
+		req.SimilarityThreshold = domain.DefaultType4CloneThreshold
+		req.Type1Threshold = domain.DefaultType1CloneThreshold
+		req.Type2Threshold = domain.DefaultType2CloneThreshold
+		req.Type3Threshold = domain.DefaultType3CloneThreshold
+		req.Type4Threshold = domain.DefaultType4CloneThreshold
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone, domain.Type4Clone}
+
+		response, err := service.DetectClonesInFiles(ctx, req.Paths, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Contains(t, clonePairTypes(response.ClonePairs), domain.Type1Clone)
+	})
+
+	t.Run("structural matches with different text are not type1", func(t *testing.T) {
+		tmp := t.TempDir()
+		f1 := filepath.Join(tmp, "a.py")
+		f2 := filepath.Join(tmp, "b.py")
+
+		source1 := `def scan_paths(items):
+    if items:
+        total = len(items)
+    else:
+        total = 0
+    return total
+`
+		source2 := `def measure_radius(values):
+    if values:
+        area = len(values)
+    else:
+        area = 0
+    return area
+`
+		require.NoError(t, os.WriteFile(f1, []byte(source1), 0o644))
+		require.NoError(t, os.WriteFile(f2, []byte(source2), 0o644))
+
+		req := newDefaultCloneRequest(f1, f2)
+		req.MinLines = 3
+		req.MinNodes = 1
+		req.SimilarityThreshold = domain.DefaultType4CloneThreshold
+		req.Type1Threshold = domain.DefaultType1CloneThreshold
+		req.Type2Threshold = domain.DefaultType2CloneThreshold
+		req.Type3Threshold = domain.DefaultType3CloneThreshold
+		req.Type4Threshold = domain.DefaultType4CloneThreshold
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone, domain.Type4Clone}
+
+		response, err := service.DetectClonesInFiles(ctx, req.Paths, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		require.NotEmpty(t, response.ClonePairs)
+		for _, pair := range response.ClonePairs {
+			assert.NotEqual(t, domain.Type1Clone, pair.Type)
+			assert.Less(t, pair.Similarity, 1.0)
+		}
 	})
 }
 

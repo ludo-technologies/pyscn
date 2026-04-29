@@ -7,6 +7,7 @@ import (
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCloneDetector_Creation(t *testing.T) {
@@ -233,29 +234,72 @@ func TestCloneDetector_ShouldIncludeFragment(t *testing.T) {
 	}
 }
 
-func TestCloneDetector_ClassifyCloneType(t *testing.T) {
+func TestCloneDetector_ClassifyClonePair(t *testing.T) {
 	config := DefaultCloneDetectorConfig()
 	detector := NewCloneDetector(config)
+	exact := &CodeFragment{Content: "def same():\n    return 1\n"}
+	different := &CodeFragment{Content: "def different():\n    return 2\n"}
 
 	tests := []struct {
 		name       string
 		similarity float64
+		fragment1  *CodeFragment
+		fragment2  *CodeFragment
 		expected   CloneType
 	}{
-		{"very high similarity", 0.99, Type1Clone},  // 0.99 >= 0.85 (Type1 threshold)
-		{"high similarity", 0.86, Type1Clone},       // 0.86 >= 0.85 (Type1 threshold)
-		{"medium similarity", 0.80, Type2Clone},     // 0.80 >= 0.75 (Type2 threshold)
-		{"type3 range", 0.72, Type3Clone},           // 0.72 >= 0.70 (Type3 threshold)
-		{"type4 range", 0.65, Type4Clone},           // 0.65 >= 0.60 (Type4 threshold)
-		{"very low similarity", 0.50, CloneType(0)}, // Not a clone
+		{"exact text at type1 threshold", 0.99, exact, exact, Type1Clone},
+		{"text mismatch at type1 threshold", 0.99, exact, different, Type2Clone},
+		{"medium similarity", 0.80, exact, different, Type2Clone},
+		{"type3 range", 0.72, exact, different, Type3Clone},
+		{"type4 range", 0.65, exact, different, Type4Clone},
+		{"very low similarity", 0.50, exact, different, CloneType(0)},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := detector.classifyCloneType(tt.similarity, 0.0)
+			result, _ := detector.classifyClonePair(tt.fragment1, tt.fragment2, tt.similarity)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func TestCloneDetector_Type1RequiresTextualMatch(t *testing.T) {
+	config := DefaultCloneDetectorConfig()
+	config.MinLines = 1
+	config.MinNodes = 1
+	detector := NewCloneDetector(config)
+
+	newFragment := func(content string) *CodeFragment {
+		root := NewTreeNode(1, "If")
+		root.AddChild(NewTreeNode(2, "Assign"))
+		root.AddChild(NewTreeNode(3, "Assign"))
+		PrepareTreeForAPTED(root)
+
+		return &CodeFragment{
+			Location:  &CodeLocation{FilePath: "test.py", StartLine: 1, EndLine: 4},
+			TreeNode:  root,
+			Content:   content,
+			Size:      3,
+			LineCount: 4,
+		}
+	}
+
+	clone := detector.compareWithAPTED(
+		newFragment("if enabled:\n    value = 1\nelse:\n    value = 2\n"),
+		newFragment("if enabled:\n value = 1 # same logic\nelse:\n value = 2\n"),
+	)
+	require.NotNil(t, clone)
+	assert.Equal(t, Type1Clone, clone.CloneType)
+
+	textMismatch := detector.compareWithAPTED(
+		newFragment("if path.endswith('.py'):\n    count += 1\nelse:\n    count -= 1\n"),
+		newFragment("if radius > 0:\n    area = radius * radius\nelse:\n    area = 0\n"),
+	)
+	require.NotNil(t, textMismatch)
+	assert.Equal(t, Type2Clone, textMismatch.CloneType)
+	assert.Less(t, textMismatch.Similarity, 1.0)
+	assert.Less(t, textMismatch.Similarity, config.Type1Threshold)
+	assert.GreaterOrEqual(t, textMismatch.Similarity, config.Type2Threshold)
 }
 
 func TestCloneDetector_IsSignificantClone(t *testing.T) {

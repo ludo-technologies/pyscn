@@ -123,7 +123,7 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 
 			// Convert single AST node to slice for ExtractFragments
 			astNodes := []*parser.Node{parseResult.AST}
-			fragments := detector.ExtractFragments(astNodes, filePath)
+			fragments := detector.ExtractFragmentsWithSource(astNodes, filePath, content)
 			allFragments = append(allFragments, fragments...)
 		}
 	}

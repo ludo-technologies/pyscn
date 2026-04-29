@@ -644,7 +644,7 @@ def goodbye():
 		}
 	})
 
-	t.Run("ExtractWithoutContent", func(t *testing.T) {
+	t.Run("ExtractWithContentWhenTextualAnalysisDisabled", func(t *testing.T) {
 		config := DefaultCloneDetectorConfig()
 		config.EnableTextualAnalysis = false
 		config.MinLines = 1
@@ -662,12 +662,11 @@ def goodbye():
 		result, err := p.Parse(ctx, []byte(source))
 		require.NoError(t, err)
 
-		// Even with source provided, content should not be populated when disabled
 		fragments := detector.ExtractFragmentsWithSource([]*parser.Node{result.AST}, "test.py", []byte(source))
 		require.NotEmpty(t, fragments)
 
 		for _, f := range fragments {
-			assert.Empty(t, f.Content, "Fragment content should be empty when textual analysis is disabled")
+			assert.NotEmpty(t, f.Content, "Source-aware extraction should populate fragment content")
 		}
 	})
 }
