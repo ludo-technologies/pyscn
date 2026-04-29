@@ -2,6 +2,8 @@ package analyzer
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -191,18 +193,78 @@ func orderedASTChildren(node *parser.Node, skipBodyNode func(parent, bodyNode *p
 		return nil
 	}
 
-	children := make([]*parser.Node, 0, len(node.Children)+len(node.Body)+len(node.Orelse)+len(node.Finalbody)+len(node.Handlers))
-	children = append(children, node.Children...)
+	children := make([]*parser.Node, 0, astChildCapacity(node))
+	seen := make(map[*parser.Node]struct{}, astChildCapacity(node))
+
+	appendNode := func(child *parser.Node) {
+		if child == nil {
+			return
+		}
+		if _, ok := seen[child]; ok {
+			return
+		}
+		seen[child] = struct{}{}
+		children = append(children, child)
+	}
+	appendNodes := func(nodes []*parser.Node) {
+		for _, child := range nodes {
+			appendNode(child)
+		}
+	}
+	appendValueNode := func(value interface{}) {
+		if child, ok := value.(*parser.Node); ok {
+			appendNode(child)
+		}
+	}
+
+	appendNodes(node.Children)
+	appendNodes(node.Decorator)
+	appendNodes(node.Bases)
+	appendNodes(node.Args)
+	appendNodes(node.Targets)
+	appendNode(node.Test)
+	appendNode(node.Iter)
+	appendNode(node.Left)
+	appendNode(node.Right)
+	appendValueNode(node.Value)
+	appendNodes(node.Keywords)
 	for i, bodyNode := range node.Body {
 		if skipBodyNode != nil && skipBodyNode(node, bodyNode, i) {
 			continue
 		}
-		children = append(children, bodyNode)
+		appendNode(bodyNode)
 	}
-	children = append(children, node.Orelse...)
-	children = append(children, node.Finalbody...)
-	children = append(children, node.Handlers...)
+	appendNodes(node.Handlers)
+	appendNodes(node.Orelse)
+	appendNodes(node.Finalbody)
+
 	return children
+}
+
+func astChildCapacity(node *parser.Node) int {
+	if node == nil {
+		return 0
+	}
+
+	capacity := len(node.Children) + len(node.Decorator) + len(node.Bases) + len(node.Args) +
+		len(node.Targets) + len(node.Keywords) + len(node.Body) + len(node.Handlers) +
+		len(node.Orelse) + len(node.Finalbody)
+	if node.Test != nil {
+		capacity++
+	}
+	if node.Iter != nil {
+		capacity++
+	}
+	if node.Left != nil {
+		capacity++
+	}
+	if node.Right != nil {
+		capacity++
+	}
+	if _, ok := node.Value.(*parser.Node); ok {
+		capacity++
+	}
+	return capacity
 }
 
 // canNodeHaveDocstring checks if a node type can have a docstring
@@ -237,6 +299,42 @@ func (tc *TreeConverter) getNodeLabel(astNode *parser.Node) string {
 	case parser.NodeClassDef:
 		if astNode.Name != "" {
 			label = fmt.Sprintf("ClassDef(%s)", astNode.Name)
+		}
+	case parser.NodeAttribute:
+		if astNode.Name != "" {
+			label = fmt.Sprintf("Attribute(%s)", astNode.Name)
+		}
+	case parser.NodeKeyword:
+		if astNode.Name != "" {
+			label = fmt.Sprintf("Keyword(%s)", astNode.Name)
+		}
+	case parser.NodeArg:
+		if astNode.Name != "" {
+			label = fmt.Sprintf("Arg(%s)", astNode.Name)
+		}
+	case parser.NodeAlias:
+		if astNode.Name != "" {
+			if alias, ok := astNode.Value.(string); ok && alias != "" {
+				label = fmt.Sprintf("Alias(%s as %s)", astNode.Name, alias)
+			} else {
+				label = fmt.Sprintf("Alias(%s)", astNode.Name)
+			}
+		}
+	case parser.NodeWithItem, parser.NodeExceptHandler:
+		if astNode.Name != "" {
+			label = fmt.Sprintf("%s(%s)", astNode.Type, astNode.Name)
+		}
+	case parser.NodeImport:
+		if len(astNode.Names) > 0 {
+			label = fmt.Sprintf("Import(%s)", strings.Join(astNode.Names, ","))
+		}
+	case parser.NodeImportFrom:
+		module := astNode.Module
+		if astNode.Level > 0 {
+			module = strings.Repeat(".", astNode.Level) + module
+		}
+		if module != "" || len(astNode.Names) > 0 {
+			label = fmt.Sprintf("ImportFrom(%s:%s)", module, strings.Join(astNode.Names, ","))
 		}
 	case parser.NodeBinOp, parser.NodeUnaryOp, parser.NodeBoolOp:
 		if astNode.Op != "" {

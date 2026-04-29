@@ -120,6 +120,33 @@ func TestCalculateASTSize(t *testing.T) {
 	}
 	size = calculateASTSize(parent)
 	assert.Equal(t, 3, size, "Node with 2 children should have size 3")
+
+	// Expression fields count as real AST size.
+	expressionNode := &parser.Node{
+		Type: parser.NodeAssign,
+		Targets: []*parser.Node{
+			{Type: parser.NodeName, Name: "value"},
+		},
+		Value: &parser.Node{
+			Type:  parser.NodeSubscript,
+			Value: &parser.Node{Type: parser.NodeName, Name: "items"},
+			Children: []*parser.Node{
+				{Type: parser.NodeName, Name: "index"},
+			},
+		},
+	}
+	size = calculateASTSize(expressionNode)
+	assert.Equal(t, 5, size, "Expression fields should be included in AST size")
+
+	// Shared nodes are counted once per parent, matching tree conversion.
+	shared := &parser.Node{Type: parser.NodeName, Name: "condition"}
+	duplicateReference := &parser.Node{
+		Type:     parser.NodeIf,
+		Children: []*parser.Node{shared},
+		Test:     shared,
+	}
+	size = calculateASTSize(duplicateReference)
+	assert.Equal(t, 2, size, "Duplicate child references should not inflate AST size")
 }
 
 func TestClonePair_String(t *testing.T) {

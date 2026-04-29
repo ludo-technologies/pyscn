@@ -389,16 +389,8 @@ func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, 
 	}
 
 	// Recursively process children
-	for _, child := range node.Children {
+	for _, child := range orderedASTChildren(node, nil) {
 		cd.extractFragmentsRecursiveWithSource(child, filePath, sourceCode, fragments)
-	}
-
-	for _, bodyNode := range node.Body {
-		cd.extractFragmentsRecursiveWithSource(bodyNode, filePath, sourceCode, fragments)
-	}
-
-	for _, orelseNode := range node.Orelse {
-		cd.extractFragmentsRecursiveWithSource(orelseNode, filePath, sourceCode, fragments)
 	}
 }
 
@@ -472,16 +464,8 @@ func (cd *CloneDetector) extractFragmentsRecursive(node *parser.Node, filePath s
 	}
 
 	// Recursively process children
-	for _, child := range node.Children {
+	for _, child := range orderedASTChildren(node, nil) {
 		cd.extractFragmentsRecursive(child, filePath, fragments)
-	}
-
-	for _, bodyNode := range node.Body {
-		cd.extractFragmentsRecursive(bodyNode, filePath, fragments)
-	}
-
-	for _, orelseNode := range node.Orelse {
-		cd.extractFragmentsRecursive(orelseNode, filePath, fragments)
 	}
 }
 

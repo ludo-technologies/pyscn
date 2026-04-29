@@ -6,6 +6,7 @@ import (
 
 	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewTreeNode(t *testing.T) {
@@ -241,6 +242,67 @@ func TestConvertAST(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestConvertASTIncludesExpressionFieldsInAPTEDDistance(t *testing.T) {
+	tests := []struct {
+		name  string
+		left  string
+		right string
+	}{
+		{
+			name: "subscript index",
+			left: `if cond:
+    value = items[i]
+`,
+			right: `if cond:
+    value = items[j]
+`,
+		},
+		{
+			name: "attribute name",
+			left: `if cond:
+    value = obj.left
+`,
+			right: `if cond:
+    value = obj.right
+`,
+		},
+		{
+			name: "keyword name",
+			left: `if cond:
+    value = build(x=1)
+`,
+			right: `if cond:
+    value = build(y=1)
+`,
+		},
+	}
+
+	analyzer := NewAPTEDAnalyzer(NewPythonCostModel())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			leftTree := parseFirstStatementTree(t, tt.left)
+			rightTree := parseFirstStatementTree(t, tt.right)
+			PrepareTreeForAPTED(leftTree)
+			PrepareTreeForAPTED(rightTree)
+
+			distance := analyzer.ComputeDistance(leftTree, rightTree)
+			assert.Greater(t, distance, 0.0, "expression-only differences must affect APTED distance")
+		})
+	}
+}
+
+func parseFirstStatementTree(t *testing.T, source string) *TreeNode {
+	t.Helper()
+
+	result, err := parser.New().Parse(context.Background(), []byte(source))
+	require.NoError(t, err)
+	require.NotEmpty(t, result.AST.Body)
+
+	tree := NewTreeConverter().ConvertAST(result.AST.Body[0])
+	require.NotNil(t, tree)
+	return tree
 }
 
 func TestPostOrderTraversal(t *testing.T) {
