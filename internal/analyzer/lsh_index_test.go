@@ -56,3 +56,19 @@ func TestLSHIndex_FindCandidatesSkipsOversizedBuckets(t *testing.T) {
 		t.Fatalf("expected oversized buckets to be skipped; got %v", cands)
 	}
 }
+
+func TestLSHIndex_FindCandidatesCapsTotalCandidates(t *testing.T) {
+	mh := NewMinHasher(128)
+	query := mh.ComputeSignature([]string{"shared", "query", "features"})
+
+	lsh := NewLSHIndex(32, 4).WithMaxBucketSize(2)
+	keys := lsh.computeBandKeys(query)
+	lsh.buckets[keys[0]] = []string{"A"}
+	lsh.buckets[keys[1]] = []string{"B"}
+	lsh.buckets[keys[2]] = []string{"C"}
+
+	cands := lsh.FindCandidates(query)
+	if len(cands) > 2 {
+		t.Fatalf("expected candidates to be capped at 2; got %v", cands)
+	}
+}

@@ -72,8 +72,14 @@ func (idx *LSHIndex) FindCandidates(signature *MinHashSignature) []string {
 				continue
 			}
 			for _, id := range bucket {
+				if idx.maxBucketSize > 0 && len(ids) >= idx.maxBucketSize {
+					break
+				}
 				ids[id] = struct{}{}
 			}
+		}
+		if idx.maxBucketSize > 0 && len(ids) >= idx.maxBucketSize {
+			break
 		}
 	}
 	out := make([]string, 0, len(ids))
