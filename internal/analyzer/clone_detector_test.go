@@ -257,7 +257,7 @@ func TestCloneDetector_ClassifyClonePair(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := detector.classifyClonePair(tt.fragment1, tt.fragment2, tt.similarity, 0.0)
+			result, _ := detector.classifyClonePair(tt.fragment1, tt.fragment2, tt.similarity)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -297,6 +297,9 @@ func TestCloneDetector_Type1RequiresTextualMatch(t *testing.T) {
 	)
 	require.NotNil(t, textMismatch)
 	assert.Equal(t, Type2Clone, textMismatch.CloneType)
+	assert.Less(t, textMismatch.Similarity, 1.0)
+	assert.Less(t, textMismatch.Similarity, config.Type1Threshold)
+	assert.GreaterOrEqual(t, textMismatch.Similarity, config.Type2Threshold)
 }
 
 func TestCloneDetector_IsSignificantClone(t *testing.T) {

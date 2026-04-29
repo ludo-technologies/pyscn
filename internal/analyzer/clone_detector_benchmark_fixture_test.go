@@ -38,7 +38,7 @@ func buildCloneBenchmarkFragments(familyCount, copiesPerFamily, noiseCount int) 
 					StartCol:  1,
 					EndCol:    80,
 				},
-				Content:    fmt.Sprintf("family_%02d_copy_%02d", family, copyIndex),
+				Content:    fmt.Sprintf("family_%02d", family),
 				Hash:       fmt.Sprintf("family_%02d_copy_%02d_hash", family, copyIndex),
 				Size:       benchmarkTreeSize(tree),
 				LineCount:  8,

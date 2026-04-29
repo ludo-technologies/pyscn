@@ -954,7 +954,7 @@ func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *Co
 	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
 	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
 
-	cloneType := cd.classifyClonePair(fragment1, fragment2, similarity, distance)
+	cloneType, similarity := cd.classifyClonePair(fragment1, fragment2, similarity)
 	if cloneType == 0 {
 		return nil
 	}
@@ -980,7 +980,7 @@ func (cd *CloneDetector) compareWithAPTED(fragment1, fragment2 *CodeFragment) *C
 	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
 	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
 
-	cloneType := cd.classifyClonePair(fragment1, fragment2, similarity, distance)
+	cloneType, similarity := cd.classifyClonePair(fragment1, fragment2, similarity)
 	if cloneType == 0 {
 		return nil
 	}
@@ -997,21 +997,34 @@ func (cd *CloneDetector) compareWithAPTED(fragment1, fragment2 *CodeFragment) *C
 	}
 }
 
-func (cd *CloneDetector) classifyClonePair(fragment1, fragment2 *CodeFragment, similarity, distance float64) CloneType {
+func (cd *CloneDetector) classifyClonePair(fragment1, fragment2 *CodeFragment, similarity float64) (CloneType, float64) {
 	if similarity >= cd.cloneDetectorConfig.Type1Threshold && cd.textualAnalyzer.IsExactMatch(fragment1, fragment2) {
-		return Type1Clone
+		return Type1Clone, similarity
 	}
+	similarity = cd.capNonTextualSimilarity(similarity)
 	if similarity >= cd.cloneDetectorConfig.Type2Threshold {
-		return Type2Clone
+		return Type2Clone, similarity
 	}
 	if similarity >= cd.cloneDetectorConfig.Type3Threshold {
-		return Type3Clone
+		return Type3Clone, similarity
 	}
 	if similarity >= cd.cloneDetectorConfig.Type4Threshold {
-		return Type4Clone
+		return Type4Clone, similarity
 	}
 
-	return 0
+	return 0, similarity
+}
+
+func (cd *CloneDetector) capNonTextualSimilarity(similarity float64) float64 {
+	if similarity < cd.cloneDetectorConfig.Type1Threshold {
+		return similarity
+	}
+
+	capped := math.Nextafter(cd.cloneDetectorConfig.Type1Threshold, 0)
+	if capped < cd.cloneDetectorConfig.Type2Threshold {
+		return cd.cloneDetectorConfig.Type2Threshold
+	}
+	return capped
 }
 
 // calculateConfidence calculates confidence in clone detection
