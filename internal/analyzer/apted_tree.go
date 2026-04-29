@@ -324,6 +324,10 @@ func (tc *TreeConverter) getNodeLabel(astNode *parser.Node) string {
 		if astNode.Name != "" {
 			label = fmt.Sprintf("%s(%s)", astNode.Type, astNode.Name)
 		}
+	case parser.NodeGlobal, parser.NodeNonlocal:
+		if len(astNode.Names) > 0 {
+			label = fmt.Sprintf("%s(%s)", astNode.Type, strings.Join(astNode.Names, ","))
+		}
 	case parser.NodeImport:
 		if len(astNode.Names) > 0 {
 			label = fmt.Sprintf("Import(%s)", strings.Join(astNode.Names, ","))
@@ -336,7 +340,7 @@ func (tc *TreeConverter) getNodeLabel(astNode *parser.Node) string {
 		if module != "" || len(astNode.Names) > 0 {
 			label = fmt.Sprintf("ImportFrom(%s:%s)", module, strings.Join(astNode.Names, ","))
 		}
-	case parser.NodeBinOp, parser.NodeUnaryOp, parser.NodeBoolOp:
+	case parser.NodeBinOp, parser.NodeUnaryOp, parser.NodeBoolOp, parser.NodeCompare, parser.NodeAugAssign:
 		if astNode.Op != "" {
 			label = fmt.Sprintf("%s(%s)", astNode.Type, astNode.Op)
 		}

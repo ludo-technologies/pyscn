@@ -277,6 +277,50 @@ func TestConvertASTIncludesExpressionFieldsInAPTEDDistance(t *testing.T) {
     value = build(y=1)
 `,
 		},
+		{
+			name: "comparison operator",
+			left: `if left < right:
+    value = 1
+`,
+			right: `if left > right:
+    value = 1
+`,
+		},
+		{
+			name: "augmented assignment operator",
+			left: `if cond:
+    value += step
+`,
+			right: `if cond:
+    value -= step
+`,
+		},
+		{
+			name: "global names",
+			left: `def update():
+    global left
+    left = 1
+`,
+			right: `def update():
+    global right
+    right = 1
+`,
+		},
+		{
+			name: "nonlocal names",
+			left: `def outer():
+    value = 0
+    def update():
+        nonlocal value
+        value = 1
+`,
+			right: `def outer():
+    other = 0
+    def update():
+        nonlocal other
+        other = 1
+`,
+		},
 	}
 
 	analyzer := NewAPTEDAnalyzer(NewPythonCostModel())
