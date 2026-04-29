@@ -30,7 +30,7 @@ func TestCloneDetectorConfig_Defaults(t *testing.T) {
 	assert.Equal(t, domain.DefaultType3CloneThreshold, config.Type3Threshold, "Default Type-3 threshold should match constant")
 	assert.Equal(t, domain.DefaultType4CloneThreshold, config.Type4Threshold, "Default Type-4 threshold should match constant")
 	assert.Equal(t, 50.0, config.MaxEditDistance, "Default max edit distance should be 50.0")
-	assert.Equal(t, defaultLSHMaxBucketSize, config.LSHMaxBucketSize, "Default LSH bucket cap should be set")
+	assert.Equal(t, defaultLSHMaxCandidates, config.LSHMaxCandidates, "Default LSH candidate cap should be set")
 	assert.False(t, config.IgnoreLiterals, "Default ignore literals should be false")
 	assert.False(t, config.IgnoreIdentifiers, "Default ignore identifiers should be false")
 	assert.True(t, config.SkipDocstrings, "Default skip docstrings should be true")
