@@ -51,6 +51,24 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) pyscnConfigToSystemAnalysisRequ
 	if cfg.DependenciesDetectCycles != nil {
 		request.DetectCycles = cfg.DependenciesDetectCycles
 	}
+	if cfg.ArchitectureValidateCohesion != nil {
+		request.ValidateCohesion = cfg.ArchitectureValidateCohesion
+	}
+	if cfg.ArchitectureValidateResponsibility != nil {
+		request.ValidateResponsibility = cfg.ArchitectureValidateResponsibility
+	}
+	if cfg.ArchitectureMinCohesion > 0 {
+		request.MinCohesion = cfg.ArchitectureMinCohesion
+	}
+	if cfg.ArchitectureMaxResponsibilities > 0 {
+		request.MaxResponsibilities = cfg.ArchitectureMaxResponsibilities
+	}
+	if cfg.ArchitectureCohesionViolationSeverity != "" {
+		request.CohesionViolationSeverity = parseViolationSeverity(cfg.ArchitectureCohesionViolationSeverity)
+	}
+	if cfg.ArchitectureResponsibilityViolationSeverity != "" {
+		request.ResponsibilityViolationSeverity = parseViolationSeverity(cfg.ArchitectureResponsibilityViolationSeverity)
+	}
 
 	// Architecture settings
 	if cfg.ArchitectureStrictMode != nil || len(cfg.ArchitectureAllowedPatterns) > 0 || len(cfg.ArchitectureForbiddenPatterns) > 0 ||
@@ -95,17 +113,23 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) pyscnConfigToSystemAnalysisRequ
 // LoadDefaultConfig loads the default configuration
 func (cl *SystemAnalysisConfigurationLoaderImpl) LoadDefaultConfig() *domain.SystemAnalysisRequest {
 	return &domain.SystemAnalysisRequest{
-		OutputFormat:         domain.OutputFormatText,
-		AnalyzeDependencies:  domain.BoolPtr(true),
-		AnalyzeArchitecture:  domain.BoolPtr(true),
-		IncludeStdLib:        domain.BoolPtr(false),
-		IncludeThirdParty:    domain.BoolPtr(true),
-		FollowRelative:       domain.BoolPtr(true),
-		DetectCycles:         domain.BoolPtr(true),
-		ValidateArchitecture: domain.BoolPtr(true),
-		Recursive:            domain.BoolPtr(true),
-		IncludePatterns:      []string{"**/*.py"},
-		ExcludePatterns:      []string{},
+		OutputFormat:                    domain.OutputFormatText,
+		AnalyzeDependencies:             domain.BoolPtr(true),
+		AnalyzeArchitecture:             domain.BoolPtr(true),
+		IncludeStdLib:                   domain.BoolPtr(false),
+		IncludeThirdParty:               domain.BoolPtr(true),
+		FollowRelative:                  domain.BoolPtr(true),
+		DetectCycles:                    domain.BoolPtr(true),
+		ValidateArchitecture:            domain.BoolPtr(true),
+		ValidateCohesion:                domain.BoolPtr(true),
+		ValidateResponsibility:          domain.BoolPtr(true),
+		MinCohesion:                     domain.DefaultArchitectureMinCohesion,
+		MaxResponsibilities:             domain.DefaultArchitectureMaxResponsibilities,
+		CohesionViolationSeverity:       domain.ViolationSeverityWarning,
+		ResponsibilityViolationSeverity: domain.ViolationSeverityWarning,
+		Recursive:                       domain.BoolPtr(true),
+		IncludePatterns:                 []string{"**/*.py"},
+		ExcludePatterns:                 []string{},
 	}
 }
 
@@ -164,6 +188,24 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
 	}
 	if override.ValidateArchitecture != nil {
 		merged.ValidateArchitecture = override.ValidateArchitecture
+	}
+	if override.ValidateCohesion != nil {
+		merged.ValidateCohesion = override.ValidateCohesion
+	}
+	if override.ValidateResponsibility != nil {
+		merged.ValidateResponsibility = override.ValidateResponsibility
+	}
+	if override.MinCohesion > 0 {
+		merged.MinCohesion = override.MinCohesion
+	}
+	if override.MaxResponsibilities > 0 {
+		merged.MaxResponsibilities = override.MaxResponsibilities
+	}
+	if override.CohesionViolationSeverity != "" {
+		merged.CohesionViolationSeverity = override.CohesionViolationSeverity
+	}
+	if override.ResponsibilityViolationSeverity != "" {
+		merged.ResponsibilityViolationSeverity = override.ResponsibilityViolationSeverity
 	}
 
 	// File selection - override if provided

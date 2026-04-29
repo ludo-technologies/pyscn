@@ -360,6 +360,31 @@ func TestPyscnConfigToSystemAnalysisRequest_PropagatesLayers(t *testing.T) {
 	assert.Equal(t, []string{"infrastructure"}, request.ArchitectureRules.Rules[0].Deny)
 }
 
+func TestPyscnConfigToSystemAnalysisRequest_PropagatesResponsibilitySettings(t *testing.T) {
+	loader := NewSystemAnalysisConfigurationLoader()
+	validateCohesion := false
+	validateResponsibility := true
+	cfg := &config.PyscnConfig{
+		ArchitectureValidateCohesion:                &validateCohesion,
+		ArchitectureValidateResponsibility:          &validateResponsibility,
+		ArchitectureMinCohesion:                     0.7,
+		ArchitectureMaxResponsibilities:             2,
+		ArchitectureCohesionViolationSeverity:       "error",
+		ArchitectureResponsibilityViolationSeverity: "critical",
+	}
+
+	request := loader.pyscnConfigToSystemAnalysisRequest(cfg)
+
+	require.NotNil(t, request.ValidateCohesion)
+	require.NotNil(t, request.ValidateResponsibility)
+	assert.False(t, *request.ValidateCohesion)
+	assert.True(t, *request.ValidateResponsibility)
+	assert.Equal(t, 0.7, request.MinCohesion)
+	assert.Equal(t, 2, request.MaxResponsibilities)
+	assert.Equal(t, domain.ViolationSeverityError, request.CohesionViolationSeverity)
+	assert.Equal(t, domain.ViolationSeverityCritical, request.ResponsibilityViolationSeverity)
+}
+
 func TestPyscnConfigToSystemAnalysisRequest_PropagatesLayersWithStrictMode(t *testing.T) {
 	loader := NewSystemAnalysisConfigurationLoader()
 	strictMode := true

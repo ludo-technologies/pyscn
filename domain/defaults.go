@@ -122,6 +122,18 @@ const (
 )
 
 // ============================================================================
+// Architecture Analysis Defaults
+// ============================================================================
+
+const (
+	// DefaultArchitectureMinCohesion is the minimum package cohesion score before a package is flagged.
+	DefaultArchitectureMinCohesion = 0.5
+
+	// DefaultArchitectureMaxResponsibilities is the maximum inferred responsibilities per module.
+	DefaultArchitectureMaxResponsibilities = 3
+)
+
+// ============================================================================
 // LCOM (Lack of Cohesion of Methods) Defaults
 // ============================================================================
 

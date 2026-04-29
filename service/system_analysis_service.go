@@ -160,12 +160,37 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
 	if err != nil {
 		return nil, err
 	}
+	responsibilityAnalysis, cohesionAnalysis, responsibilityViolations := s.analyzeResponsibilityForRequest(graph, req)
 
 	// Clone ArchitectureRules before modifying to avoid mutating the caller's object
 	// (the pointer is shared even though SystemAnalysisRequest is passed by value).
 	rules := s.resolveArchitectureRules(graph, req.ArchitectureRules)
 	if rules == nil || len(rules.Layers) == 0 {
-		return s.emptyArchitectureResult(), nil
+		if responsibilityAnalysis == nil && cohesionAnalysis == nil {
+			return s.emptyArchitectureResult(), nil
+		}
+		severityCounts := responsibilitySeverityCounts(responsibilityViolations)
+		checked := len(responsibilityViolations)
+		errorCount := severityCounts[domain.ViolationSeverityError]
+		warningCount := severityCounts[domain.ViolationSeverityWarning]
+		compliance := s.calculateComplianceWeighted(errorCount, warningCount, checked)
+		recommendations := s.generateArchitectureRecommendations(responsibilityViolations, map[string]float64{}, nil, compliance)
+		refactoringTargets := s.identifyArchitectureRefactoringTargets(responsibilityViolations, map[string]string{})
+		return s.buildArchitectureResultWithRecommendations(
+			responsibilityViolations,
+			severityCounts,
+			map[string]map[string]int{},
+			map[string]float64{},
+			nil,
+			0,
+			compliance,
+			checked,
+			map[string]string{},
+			recommendations,
+			refactoringTargets,
+			cohesionAnalysis,
+			responsibilityAnalysis,
+		), nil
 	}
 	req.ArchitectureRules = rules
 
@@ -187,6 +212,11 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
 
 	// Calculate metrics
 	layerCohesion, problematic, layersAnalyzed := s.calculateLayerMetrics(layerCoupling)
+	for _, violation := range responsibilityViolations {
+		violations = append(violations, violation)
+		severityCounts[violation.Severity]++
+	}
+	checked += len(responsibilityViolations)
 	errorCount := severityCounts[domain.ViolationSeverityError]
 	warningCount := severityCounts[domain.ViolationSeverityWarning]
 	compliance := s.calculateComplianceWeighted(errorCount, warningCount, checked)
@@ -199,7 +229,8 @@ func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req
 
 	// Build result
 	return s.buildArchitectureResultWithRecommendations(violations, severityCounts, layerCoupling, layerCohesion,
-		problematic, layersAnalyzed, compliance, checked, moduleToLayer, recommendations, refactoringTargets), nil
+		problematic, layersAnalyzed, compliance, checked, moduleToLayer, recommendations, refactoringTargets,
+		cohesionAnalysis, responsibilityAnalysis), nil
 }
 
 // emptyArchitectureResult returns an empty result when no rules are defined
@@ -346,7 +377,9 @@ func (s *SystemAnalysisServiceImpl) buildArchitectureResultWithRecommendations(
 	checked int,
 	moduleToLayer map[string]string,
 	recommendations []domain.ArchitectureRecommendation,
-	refactoringTargets []string) *domain.ArchitectureAnalysisResult {
+	refactoringTargets []string,
+	cohesionAnalysis *domain.CohesionAnalysis,
+	responsibilityAnalysis *domain.ResponsibilityAnalysis) *domain.ArchitectureAnalysisResult {
 
 	layerAnalysis := &domain.LayerAnalysis{
 		LayersAnalyzed:    layersAnalyzed,
@@ -361,8 +394,8 @@ func (s *SystemAnalysisServiceImpl) buildArchitectureResultWithRecommendations(
 		TotalViolations:        len(violations),
 		TotalRules:             checked,
 		LayerAnalysis:          layerAnalysis,
-		CohesionAnalysis:       nil,
-		ResponsibilityAnalysis: nil,
+		CohesionAnalysis:       cohesionAnalysis,
+		ResponsibilityAnalysis: responsibilityAnalysis,
 		Violations:             violations,
 		SeverityBreakdown:      severityCounts,
 		Recommendations:        recommendations,
@@ -928,6 +961,9 @@ func (s *SystemAnalysisServiceImpl) evaluateLayerEdge(rules *domain.Architecture
 func (s *SystemAnalysisServiceImpl) toLayerViolations(vs []domain.ArchitectureViolation, moduleToLayer map[string]string) []domain.LayerViolation {
 	out := make([]domain.LayerViolation, 0, len(vs))
 	for _, v := range vs {
+		if v.Type != domain.ViolationTypeLayer {
+			continue
+		}
 		out = append(out, domain.LayerViolation{
 			FromModule:  v.Module,
 			ToModule:    v.Target,

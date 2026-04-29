@@ -29,11 +29,17 @@ type SystemAnalysisRequest struct {
 	ExcludePatterns []string
 
 	// Analysis options
-	IncludeStdLib        *bool // Include standard library dependencies
-	IncludeThirdParty    *bool // Include third-party dependencies
-	FollowRelative       *bool // Follow relative imports
-	DetectCycles         *bool // Detect circular dependencies
-	ValidateArchitecture *bool // Validate architecture rules
+	IncludeStdLib                   *bool             // Include standard library dependencies
+	IncludeThirdParty               *bool             // Include third-party dependencies
+	FollowRelative                  *bool             // Follow relative imports
+	DetectCycles                    *bool             // Detect circular dependencies
+	ValidateArchitecture            *bool             // Validate architecture rules
+	ValidateCohesion                *bool             // Validate package cohesion
+	ValidateResponsibility          *bool             // Validate single responsibility boundaries
+	MinCohesion                     float64           // Minimum acceptable package cohesion
+	MaxResponsibilities             int               // Maximum inferred responsibilities per module
+	CohesionViolationSeverity       ViolationSeverity // Severity for package cohesion violations
+	ResponsibilityViolationSeverity ViolationSeverity // Severity for SRP violations
 
 	// Architecture rules (loaded from config or specified directly)
 	ArchitectureRules *ArchitectureRules
@@ -491,20 +497,26 @@ type SystemAnalysisOutputFormatter interface {
 // DefaultSystemAnalysisRequest returns a SystemAnalysisRequest with default values
 func DefaultSystemAnalysisRequest() *SystemAnalysisRequest {
 	return &SystemAnalysisRequest{
-		OutputFormat:         OutputFormatText,
-		AnalyzeDependencies:  BoolPtr(true),
-		AnalyzeArchitecture:  BoolPtr(true),
-		Recursive:            BoolPtr(true),
-		IncludeStdLib:        BoolPtr(false),
-		IncludeThirdParty:    BoolPtr(true),
-		FollowRelative:       BoolPtr(true),
-		DetectCycles:         BoolPtr(true),
-		ValidateArchitecture: BoolPtr(true),
-		IncludePatterns:      []string{"**/*.py"},
-		ExcludePatterns:      []string{"test_*.py", "*_test.py"},
-		ComplexityData:       make(map[string]int),
-		ClonesData:           make(map[string]float64),
-		DeadCodeData:         make(map[string]int),
+		OutputFormat:                    OutputFormatText,
+		AnalyzeDependencies:             BoolPtr(true),
+		AnalyzeArchitecture:             BoolPtr(true),
+		Recursive:                       BoolPtr(true),
+		IncludeStdLib:                   BoolPtr(false),
+		IncludeThirdParty:               BoolPtr(true),
+		FollowRelative:                  BoolPtr(true),
+		DetectCycles:                    BoolPtr(true),
+		ValidateArchitecture:            BoolPtr(true),
+		ValidateCohesion:                BoolPtr(true),
+		ValidateResponsibility:          BoolPtr(true),
+		MinCohesion:                     DefaultArchitectureMinCohesion,
+		MaxResponsibilities:             DefaultArchitectureMaxResponsibilities,
+		CohesionViolationSeverity:       ViolationSeverityWarning,
+		ResponsibilityViolationSeverity: ViolationSeverityWarning,
+		IncludePatterns:                 []string{"**/*.py"},
+		ExcludePatterns:                 []string{"test_*.py", "*_test.py"},
+		ComplexityData:                  make(map[string]int),
+		ClonesData:                      make(map[string]float64),
+		DeadCodeData:                    make(map[string]int),
 	}
 }
 

@@ -191,13 +191,13 @@ Lack of Cohesion of Methods（LCOM4）です。
 | -------------------------- | ----- | ------- | --- |
 | `enabled`                  | bool  | `true`  | レイヤーバリデーションを実行します。 |
 | `validate_layers`          | bool  | `true`  | レイヤー間ルールをチェックします。 |
-| `validate_cohesion`        | bool  | `true`  | レイヤーの凝集度をチェックします。 |
-| `validate_responsibility`  | bool  | `true`  | レイヤーごとの関心事上限をチェックします。 |
+| `validate_cohesion`        | bool  | `true`  | パッケージ凝集度をチェックします。 |
+| `validate_responsibility`  | bool  | `true`  | モジュールごとの責務数をチェックします。 |
 | `strict_mode`              | bool  | `true`  | 厳格なバリデーション。 |
 | `fail_on_violations`       | bool  | `false` | 違反時に非ゼロ終了します。 |
-| `min_cohesion`             | float | `0.5`   | 最小レイヤー凝集度。 |
+| `min_cohesion`             | float | `0.5`   | 最小パッケージ凝集度。 |
 | `max_coupling`             | int   | `10`    | レイヤー間結合度の最大値。 |
-| `max_responsibilities`     | int   | `3`     | レイヤーごとの関心事の最大数。 |
+| `max_responsibilities`     | int   | `3`     | モジュールごとの責務の最大数。 |
 
 ### レイヤー定義
 
