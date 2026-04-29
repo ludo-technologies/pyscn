@@ -173,44 +173,36 @@ func (tc *TreeConverter) ConvertAST(astNode *parser.Node) *TreeNode {
 	// Store reference to original AST node
 	treeNode.OriginalNode = astNode
 
-	// Convert children recursively
-	for _, child := range astNode.Children {
+	for _, child := range orderedASTChildren(astNode, tc.shouldSkipBodyNode) {
 		if childNode := tc.ConvertAST(child); childNode != nil {
 			treeNode.AddChild(childNode)
 		}
 	}
 
-	// Also convert body, orelse, and other AST-specific children
-	// Skip docstrings if configured (first Expr(Constant(str)) in body)
-	canHaveDocstring := tc.canNodeHaveDocstring(astNode.Type)
-	for i, bodyNode := range astNode.Body {
-		if canHaveDocstring && tc.isDocstring(bodyNode, i) {
+	return treeNode
+}
+
+func (tc *TreeConverter) shouldSkipBodyNode(parent *parser.Node, bodyNode *parser.Node, bodyIndex int) bool {
+	return tc.canNodeHaveDocstring(parent.Type) && tc.isDocstring(bodyNode, bodyIndex)
+}
+
+func orderedASTChildren(node *parser.Node, skipBodyNode func(parent, bodyNode *parser.Node, bodyIndex int) bool) []*parser.Node {
+	if node == nil {
+		return nil
+	}
+
+	children := make([]*parser.Node, 0, len(node.Children)+len(node.Body)+len(node.Orelse)+len(node.Finalbody)+len(node.Handlers))
+	children = append(children, node.Children...)
+	for i, bodyNode := range node.Body {
+		if skipBodyNode != nil && skipBodyNode(node, bodyNode, i) {
 			continue
 		}
-		if childNode := tc.ConvertAST(bodyNode); childNode != nil {
-			treeNode.AddChild(childNode)
-		}
+		children = append(children, bodyNode)
 	}
-
-	for _, orelseNode := range astNode.Orelse {
-		if childNode := tc.ConvertAST(orelseNode); childNode != nil {
-			treeNode.AddChild(childNode)
-		}
-	}
-
-	for _, finalbodyNode := range astNode.Finalbody {
-		if childNode := tc.ConvertAST(finalbodyNode); childNode != nil {
-			treeNode.AddChild(childNode)
-		}
-	}
-
-	for _, handlerNode := range astNode.Handlers {
-		if childNode := tc.ConvertAST(handlerNode); childNode != nil {
-			treeNode.AddChild(childNode)
-		}
-	}
-
-	return treeNode
+	children = append(children, node.Orelse...)
+	children = append(children, node.Finalbody...)
+	children = append(children, node.Handlers...)
+	return children
 }
 
 // canNodeHaveDocstring checks if a node type can have a docstring

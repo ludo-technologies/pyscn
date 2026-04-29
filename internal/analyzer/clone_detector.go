@@ -86,14 +86,8 @@ func calculateASTSize(node *parser.Node) int {
 	}
 
 	size := 1
-	for _, child := range node.Children {
+	for _, child := range orderedASTChildren(node, nil) {
 		size += calculateASTSize(child)
-	}
-	for _, bodyNode := range node.Body {
-		size += calculateASTSize(bodyNode)
-	}
-	for _, orelseNode := range node.Orelse {
-		size += calculateASTSize(orelseNode)
 	}
 
 	return size
