@@ -251,6 +251,51 @@ func TestConvertASTIncludesExpressionFieldsInAPTEDDistance(t *testing.T) {
 		right string
 	}{
 		{
+			name: "assignment target",
+			left: `if cond:
+    left = value
+`,
+			right: `if cond:
+    right = value
+`,
+		},
+		{
+			name: "literal value",
+			left: `if cond:
+    value = 1
+`,
+			right: `if cond:
+    value = 2
+`,
+		},
+		{
+			name: "call callee",
+			left: `if cond:
+    value = left(arg)
+`,
+			right: `if cond:
+    value = right(arg)
+`,
+		},
+		{
+			name: "call positional argument",
+			left: `if cond:
+    value = build(left)
+`,
+			right: `if cond:
+    value = build(right)
+`,
+		},
+		{
+			name: "keyword value",
+			left: `if cond:
+    value = build(flag=left)
+`,
+			right: `if cond:
+    value = build(flag=right)
+`,
+		},
+		{
 			name: "subscript index",
 			left: `if cond:
     value = items[i]
@@ -296,6 +341,120 @@ func TestConvertASTIncludesExpressionFieldsInAPTEDDistance(t *testing.T) {
 `,
 		},
 		{
+			name: "function parameter name default and annotation",
+			left: `def update(left: int = 1):
+    return left
+`,
+			right: `def update(right: str = 2):
+    return right
+`,
+		},
+		{
+			name: "function return annotation",
+			left: `def update() -> Left:
+    return value
+`,
+			right: `def update() -> Right:
+    return value
+`,
+		},
+		{
+			name: "decorator expression",
+			left: `@left.decorator
+def update():
+    pass
+`,
+			right: `@right.decorator
+def update():
+    pass
+`,
+		},
+		{
+			name: "class base",
+			left: `class Model(LeftBase):
+    pass
+`,
+			right: `class Model(RightBase):
+    pass
+`,
+		},
+		{
+			name: "return value",
+			left: `def update():
+    return left
+`,
+			right: `def update():
+    return right
+`,
+		},
+		{
+			name: "delete target",
+			left: `if cond:
+    del left
+`,
+			right: `if cond:
+    del right
+`,
+		},
+		{
+			name: "raise value",
+			left: `if cond:
+    raise LeftError
+`,
+			right: `if cond:
+    raise RightError
+`,
+		},
+		{
+			name: "assert test",
+			left: `if cond:
+    assert left, "same"
+`,
+			right: `if cond:
+    assert right, "same"
+`,
+		},
+		{
+			name: "for target and iterator",
+			left: `for left in values:
+    total = left
+`,
+			right: `for right in items:
+    total = right
+`,
+		},
+		{
+			name: "while test",
+			left: `while left:
+    break
+`,
+			right: `while right:
+    break
+`,
+		},
+		{
+			name: "with item alias",
+			left: `with open(path) as left:
+    value = left.read()
+`,
+			right: `with open(path) as right:
+    value = right.read()
+`,
+		},
+		{
+			name: "except handler alias",
+			left: `try:
+    risky()
+except Error as left:
+    handle(left)
+`,
+			right: `try:
+    risky()
+except Error as right:
+    handle(right)
+`,
+		},
+		{
 			name: "global names",
 			left: `def update():
     global left
@@ -319,6 +478,87 @@ func TestConvertASTIncludesExpressionFieldsInAPTEDDistance(t *testing.T) {
     def update():
         nonlocal other
         other = 1
+`,
+		},
+		{
+			name: "import names",
+			left: `if cond:
+    import left_module
+`,
+			right: `if cond:
+    import right_module
+`,
+		},
+		{
+			name: "import alias",
+			left: `if cond:
+    import package as left
+`,
+			right: `if cond:
+    import package as right
+`,
+		},
+		{
+			name: "from import module and names",
+			left: `if cond:
+    from left_package import thing
+`,
+			right: `if cond:
+    from right_package import other
+`,
+		},
+		{
+			name: "lambda args and body",
+			left: `if cond:
+    value = lambda left: left + 1
+`,
+			right: `if cond:
+    value = lambda right: right + 1
+`,
+		},
+		{
+			name: "conditional expression branches",
+			left: `if cond:
+    value = left if check else fallback
+`,
+			right: `if cond:
+    value = right if check else fallback
+`,
+		},
+		{
+			name: "collection element",
+			left: `if cond:
+    value = [left, shared]
+`,
+			right: `if cond:
+    value = [right, shared]
+`,
+		},
+		{
+			name: "dict key and value",
+			left: `if cond:
+    value = {"left": left}
+`,
+			right: `if cond:
+    value = {"right": right}
+`,
+		},
+		{
+			name: "comprehension target iterator and filter",
+			left: `if cond:
+    value = [left for left in values if left]
+`,
+			right: `if cond:
+    value = [right for right in items if right]
+`,
+		},
+		{
+			name: "formatted string interpolation",
+			left: `if cond:
+    value = f"{left}"
+`,
+			right: `if cond:
+    value = f"{right}"
 `,
 		},
 	}
