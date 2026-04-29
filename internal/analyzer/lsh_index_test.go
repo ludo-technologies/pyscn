@@ -39,3 +39,20 @@ func TestLSHIndex_FindCandidates(t *testing.T) {
 		t.Fatalf("expected Y to be a candidate for X; got %v", cands)
 	}
 }
+
+func TestLSHIndex_FindCandidatesSkipsOversizedBuckets(t *testing.T) {
+	mh := NewMinHasher(128)
+	sig := mh.ComputeSignature([]string{"same", "feature", "set"})
+
+	lsh := NewLSHIndex(32, 4).WithMaxBucketSize(2)
+	for _, id := range []string{"A", "B", "C"} {
+		if err := lsh.AddFragment(id, sig); err != nil {
+			t.Fatalf("add %s: %v", id, err)
+		}
+	}
+
+	cands := lsh.FindCandidates(sig)
+	if len(cands) != 0 {
+		t.Fatalf("expected oversized buckets to be skipped; got %v", cands)
+	}
+}

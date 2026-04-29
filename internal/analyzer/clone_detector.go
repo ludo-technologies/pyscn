@@ -186,6 +186,7 @@ type CloneDetectorConfig struct {
 	LSHBands               int     // Number of LSH bands (default: 32)
 	LSHRows                int     // Rows per band (default: 4)
 	LSHMinHashCount        int     // Number of MinHash functions (default: 128)
+	LSHMaxBucketSize       int     // Maximum bucket size before treating it as non-selective
 
 	// Multi-dimensional classification (optional, opt-in)
 	EnableMultiDimensionalAnalysis bool // Enable multi-dimensional clone type classification
@@ -230,6 +231,7 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 		LSHBands:               32,
 		LSHRows:                4,
 		LSHMinHashCount:        128,
+		LSHMaxBucketSize:       defaultLSHMaxBucketSize,
 
 		// Multi-dimensional classification defaults (opt-in)
 		EnableMultiDimensionalAnalysis: false,
@@ -637,7 +639,8 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 	}
 
 	// Stage 2: LSH indexing
-	lsh := NewLSHIndex(cd.cloneDetectorConfig.LSHBands, cd.cloneDetectorConfig.LSHRows)
+	lsh := NewLSHIndex(cd.cloneDetectorConfig.LSHBands, cd.cloneDetectorConfig.LSHRows).
+		WithMaxBucketSize(cd.cloneDetectorConfig.LSHMaxBucketSize)
 	for _, r := range records {
 		_ = lsh.AddFragment(r.id, r.sig)
 	}

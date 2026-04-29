@@ -120,6 +120,44 @@ func TestExtractFeatures_Config(t *testing.T) {
 	})
 }
 
+func TestExtractFeatures_SkipsLowEntropyExpressionLeaves(t *testing.T) {
+	extractor := NewASTFeatureExtractor()
+
+	root := NewTreeNode(1, "Assign")
+	root.AddChild(NewTreeNode(2, "Name(value)"))
+	call := NewTreeNode(3, "Call")
+	call.AddChild(NewTreeNode(4, "Name(build)"))
+	keyword := NewTreeNode(5, "Keyword(flag)")
+	keyword.AddChild(NewTreeNode(6, "Constant(true)"))
+	call.AddChild(keyword)
+	root.AddChild(call)
+
+	features, err := extractor.ExtractFeatures(root)
+	assert.NoError(t, err)
+
+	assert.NotContains(t, features, "type:Name")
+	assert.NotContains(t, features, "type:Constant")
+	assert.NotContains(t, features, "type:Keyword")
+	assert.NotContains(t, features, "typedist:Name:2-3")
+	assert.NotContains(t, features, "typedist:Constant:1")
+	assert.Contains(t, features, "type:Assign")
+	assert.Contains(t, features, "type:Call")
+}
+
+func TestExtractNodeSequences_SkipsLowEntropyExpressionLeaves(t *testing.T) {
+	extractor := NewASTFeatureExtractor()
+
+	root := NewTreeNode(1, "If")
+	root.AddChild(NewTreeNode(2, "Name(cond)"))
+	assign := NewTreeNode(3, "Assign")
+	assign.AddChild(NewTreeNode(4, "Name(value)"))
+	assign.AddChild(NewTreeNode(5, "Constant(1)"))
+	root.AddChild(assign)
+
+	seqs := extractor.ExtractNodeSequences(root, 2)
+	assert.Equal(t, []string{"If:Assign"}, seqs)
+}
+
 func TestExtractFeatures_Comprehensive(t *testing.T) {
 	tests := []struct {
 		name            string

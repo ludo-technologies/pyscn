@@ -6,12 +6,15 @@ import (
 	"hash/fnv"
 )
 
+const defaultLSHMaxBucketSize = 1024
+
 // LSHIndex implements MinHash LSH with banding
 type LSHIndex struct {
-	bands      int
-	rows       int
-	buckets    map[string][]string // band_hash -> fragment_ids
-	signatures map[string]*MinHashSignature
+	bands         int
+	rows          int
+	maxBucketSize int
+	buckets       map[string][]string // band_hash -> fragment_ids
+	signatures    map[string]*MinHashSignature
 }
 
 // NewLSHIndex creates an index with banding parameters
@@ -23,11 +26,21 @@ func NewLSHIndex(bands, rows int) *LSHIndex {
 		rows = 4
 	}
 	return &LSHIndex{
-		bands:      bands,
-		rows:       rows,
-		buckets:    make(map[string][]string),
-		signatures: make(map[string]*MinHashSignature),
+		bands:         bands,
+		rows:          rows,
+		maxBucketSize: defaultLSHMaxBucketSize,
+		buckets:       make(map[string][]string),
+		signatures:    make(map[string]*MinHashSignature),
 	}
+}
+
+// WithMaxBucketSize sets the maximum bucket size used for candidate lookup.
+// Buckets above the cap are treated as non-selective and skipped.
+func (idx *LSHIndex) WithMaxBucketSize(maxBucketSize int) *LSHIndex {
+	if maxBucketSize > 0 {
+		idx.maxBucketSize = maxBucketSize
+	}
+	return idx
 }
 
 // AddFragment inserts a fragment signature into the index
@@ -55,6 +68,9 @@ func (idx *LSHIndex) FindCandidates(signature *MinHashSignature) []string {
 	bands := idx.computeBandKeys(signature)
 	for _, key := range bands {
 		if bucket, ok := idx.buckets[key]; ok {
+			if idx.maxBucketSize > 0 && len(bucket) > idx.maxBucketSize {
+				continue
+			}
 			for _, id := range bucket {
 				ids[id] = struct{}{}
 			}
