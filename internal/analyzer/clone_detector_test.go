@@ -30,6 +30,7 @@ func TestCloneDetectorConfig_Defaults(t *testing.T) {
 	assert.Equal(t, domain.DefaultType3CloneThreshold, config.Type3Threshold, "Default Type-3 threshold should match constant")
 	assert.Equal(t, domain.DefaultType4CloneThreshold, config.Type4Threshold, "Default Type-4 threshold should match constant")
 	assert.Equal(t, 50.0, config.MaxEditDistance, "Default max edit distance should be 50.0")
+	assert.Equal(t, defaultLSHMaxCandidates, config.LSHMaxCandidates, "Default LSH candidate cap should be set")
 	assert.False(t, config.IgnoreLiterals, "Default ignore literals should be false")
 	assert.False(t, config.IgnoreIdentifiers, "Default ignore identifiers should be false")
 	assert.True(t, config.SkipDocstrings, "Default skip docstrings should be true")
@@ -120,6 +121,73 @@ func TestCalculateASTSize(t *testing.T) {
 	}
 	size = calculateASTSize(parent)
 	assert.Equal(t, 3, size, "Node with 2 children should have size 3")
+
+	// Expression fields count as real AST size.
+	expressionNode := &parser.Node{
+		Type: parser.NodeAssign,
+		Targets: []*parser.Node{
+			{Type: parser.NodeName, Name: "value"},
+		},
+		Value: &parser.Node{
+			Type:  parser.NodeSubscript,
+			Value: &parser.Node{Type: parser.NodeName, Name: "items"},
+			Children: []*parser.Node{
+				{Type: parser.NodeName, Name: "index"},
+			},
+		},
+	}
+	size = calculateASTSize(expressionNode)
+	assert.Equal(t, 5, size, "Expression fields should be included in AST size")
+
+	// Shared nodes are counted once per parent, matching tree conversion.
+	shared := &parser.Node{Type: parser.NodeName, Name: "condition"}
+	duplicateReference := &parser.Node{
+		Type:     parser.NodeIf,
+		Children: []*parser.Node{shared},
+		Test:     shared,
+	}
+	size = calculateASTSize(duplicateReference)
+	assert.Equal(t, 2, size, "Duplicate child references should not inflate AST size")
+}
+
+func TestCompareWithAPTEDExpressionOnlyDifferenceReportsDistance(t *testing.T) {
+	left := `if cond:
+    value = items[i]
+`
+	right := `if cond:
+    value = items[j]
+`
+
+	leftTree := parseFirstStatementTree(t, left)
+	rightTree := parseFirstStatementTree(t, right)
+	PrepareTreeForAPTED(leftTree)
+	PrepareTreeForAPTED(rightTree)
+
+	config := DefaultCloneDetectorConfig()
+	config.MinLines = 1
+	config.MinNodes = 1
+	detector := NewCloneDetector(config)
+
+	pair := detector.compareWithAPTED(
+		&CodeFragment{
+			Location:  &CodeLocation{FilePath: "left.py", StartLine: 1, EndLine: 2},
+			TreeNode:  leftTree,
+			Content:   left,
+			Size:      leftTree.Size(),
+			LineCount: 2,
+		},
+		&CodeFragment{
+			Location:  &CodeLocation{FilePath: "right.py", StartLine: 1, EndLine: 2},
+			TreeNode:  rightTree,
+			Content:   right,
+			Size:      rightTree.Size(),
+			LineCount: 2,
+		},
+	)
+
+	require.NotNil(t, pair)
+	assert.Greater(t, pair.Distance, 0.0)
+	assert.Equal(t, Type2Clone, pair.CloneType)
 }
 
 func TestClonePair_String(t *testing.T) {

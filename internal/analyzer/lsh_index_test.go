@@ -39,3 +39,36 @@ func TestLSHIndex_FindCandidates(t *testing.T) {
 		t.Fatalf("expected Y to be a candidate for X; got %v", cands)
 	}
 }
+
+func TestLSHIndex_FindCandidatesKeepsOversizedBucketCandidates(t *testing.T) {
+	mh := NewMinHasher(128)
+	sig := mh.ComputeSignature([]string{"same", "feature", "set"})
+
+	lsh := NewLSHIndex(32, 4).WithMaxCandidates(2)
+	for _, id := range []string{"A", "B", "C"} {
+		if err := lsh.AddFragment(id, sig); err != nil {
+			t.Fatalf("add %s: %v", id, err)
+		}
+	}
+
+	cands := lsh.FindCandidates(sig)
+	if len(cands) != 2 {
+		t.Fatalf("expected oversized bucket candidates capped at 2; got %v", cands)
+	}
+}
+
+func TestLSHIndex_FindCandidatesCapsTotalCandidates(t *testing.T) {
+	mh := NewMinHasher(128)
+	query := mh.ComputeSignature([]string{"shared", "query", "features"})
+
+	lsh := NewLSHIndex(32, 4).WithMaxCandidates(2)
+	keys := lsh.computeBandKeys(query)
+	lsh.buckets[keys[0]] = []string{"A"}
+	lsh.buckets[keys[1]] = []string{"B"}
+	lsh.buckets[keys[2]] = []string{"C"}
+
+	cands := lsh.FindCandidates(query)
+	if len(cands) > 2 {
+		t.Fatalf("expected candidates to be capped at 2; got %v", cands)
+	}
+}

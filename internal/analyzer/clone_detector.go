@@ -86,14 +86,8 @@ func calculateASTSize(node *parser.Node) int {
 	}
 
 	size := 1
-	for _, child := range node.Children {
+	for _, child := range orderedASTChildren(node, nil) {
 		size += calculateASTSize(child)
-	}
-	for _, bodyNode := range node.Body {
-		size += calculateASTSize(bodyNode)
-	}
-	for _, orelseNode := range node.Orelse {
-		size += calculateASTSize(orelseNode)
 	}
 
 	return size
@@ -192,6 +186,7 @@ type CloneDetectorConfig struct {
 	LSHBands               int     // Number of LSH bands (default: 32)
 	LSHRows                int     // Rows per band (default: 4)
 	LSHMinHashCount        int     // Number of MinHash functions (default: 128)
+	LSHMaxCandidates       int     // Maximum candidates returned per LSH query
 
 	// Multi-dimensional classification (optional, opt-in)
 	EnableMultiDimensionalAnalysis bool // Enable multi-dimensional clone type classification
@@ -236,6 +231,7 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 		LSHBands:               32,
 		LSHRows:                4,
 		LSHMinHashCount:        128,
+		LSHMaxCandidates:       defaultLSHMaxCandidates,
 
 		// Multi-dimensional classification defaults (opt-in)
 		EnableMultiDimensionalAnalysis: false,
@@ -395,16 +391,8 @@ func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, 
 	}
 
 	// Recursively process children
-	for _, child := range node.Children {
+	for _, child := range orderedASTChildren(node, nil) {
 		cd.extractFragmentsRecursiveWithSource(child, filePath, sourceCode, fragments)
-	}
-
-	for _, bodyNode := range node.Body {
-		cd.extractFragmentsRecursiveWithSource(bodyNode, filePath, sourceCode, fragments)
-	}
-
-	for _, orelseNode := range node.Orelse {
-		cd.extractFragmentsRecursiveWithSource(orelseNode, filePath, sourceCode, fragments)
 	}
 }
 
@@ -478,16 +466,8 @@ func (cd *CloneDetector) extractFragmentsRecursive(node *parser.Node, filePath s
 	}
 
 	// Recursively process children
-	for _, child := range node.Children {
+	for _, child := range orderedASTChildren(node, nil) {
 		cd.extractFragmentsRecursive(child, filePath, fragments)
-	}
-
-	for _, bodyNode := range node.Body {
-		cd.extractFragmentsRecursive(bodyNode, filePath, fragments)
-	}
-
-	for _, orelseNode := range node.Orelse {
-		cd.extractFragmentsRecursive(orelseNode, filePath, fragments)
 	}
 }
 
@@ -659,7 +639,8 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 	}
 
 	// Stage 2: LSH indexing
-	lsh := NewLSHIndex(cd.cloneDetectorConfig.LSHBands, cd.cloneDetectorConfig.LSHRows)
+	lsh := NewLSHIndex(cd.cloneDetectorConfig.LSHBands, cd.cloneDetectorConfig.LSHRows).
+		WithMaxCandidates(cd.cloneDetectorConfig.LSHMaxCandidates)
 	for _, r := range records {
 		_ = lsh.AddFragment(r.id, r.sig)
 	}

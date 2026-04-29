@@ -61,6 +61,29 @@ func TestCloneDetector_DetectClonesWithLSH_Simple(t *testing.T) {
 	}
 }
 
+func TestCloneDetector_DetectClonesWithLSH_CandidateCapDoesNotDropExactFamily(t *testing.T) {
+	fragments := make([]*CodeFragment, 0, 9)
+	for i := 0; i < 9; i++ {
+		fragments = append(fragments, &CodeFragment{
+			Location:  &CodeLocation{FilePath: "exact.py", StartLine: i*10 + 1, EndLine: i*10 + 5},
+			TreeNode:  buildSimpleTree("FunctionDef", "If", "Return"),
+			Size:      5,
+			LineCount: 5,
+		})
+	}
+
+	cfg := DefaultCloneDetectorConfig()
+	cfg.UseLSH = true
+	cfg.MinNodes = 1
+	cfg.LSHSimilarityThreshold = 0.5
+	cfg.LSHMaxCandidates = 8
+
+	pairs, groups := NewCloneDetector(cfg).DetectClonesWithLSH(context.Background(), fragments)
+	if len(pairs) == 0 || len(groups) == 0 {
+		t.Fatalf("candidate cap dropped every exact clone candidate")
+	}
+}
+
 func TestCloneDetector_DetectClonesWithLSH_MatchesStandardOnBenchmarkFixture(t *testing.T) {
 	fragments := buildCloneBenchmarkFragments(4, 4, 8)
 

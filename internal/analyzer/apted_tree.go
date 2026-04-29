@@ -2,6 +2,8 @@ package analyzer
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -173,44 +175,96 @@ func (tc *TreeConverter) ConvertAST(astNode *parser.Node) *TreeNode {
 	// Store reference to original AST node
 	treeNode.OriginalNode = astNode
 
-	// Convert children recursively
-	for _, child := range astNode.Children {
+	for _, child := range orderedASTChildren(astNode, tc.shouldSkipBodyNode) {
 		if childNode := tc.ConvertAST(child); childNode != nil {
 			treeNode.AddChild(childNode)
 		}
 	}
 
-	// Also convert body, orelse, and other AST-specific children
-	// Skip docstrings if configured (first Expr(Constant(str)) in body)
-	canHaveDocstring := tc.canNodeHaveDocstring(astNode.Type)
-	for i, bodyNode := range astNode.Body {
-		if canHaveDocstring && tc.isDocstring(bodyNode, i) {
+	return treeNode
+}
+
+func (tc *TreeConverter) shouldSkipBodyNode(parent *parser.Node, bodyNode *parser.Node, bodyIndex int) bool {
+	return tc.canNodeHaveDocstring(parent.Type) && tc.isDocstring(bodyNode, bodyIndex)
+}
+
+func orderedASTChildren(node *parser.Node, skipBodyNode func(parent, bodyNode *parser.Node, bodyIndex int) bool) []*parser.Node {
+	if node == nil {
+		return nil
+	}
+
+	children := make([]*parser.Node, 0, astChildCapacity(node))
+	seen := make(map[*parser.Node]struct{}, astChildCapacity(node))
+
+	appendNode := func(child *parser.Node) {
+		if child == nil {
+			return
+		}
+		if _, ok := seen[child]; ok {
+			return
+		}
+		seen[child] = struct{}{}
+		children = append(children, child)
+	}
+	appendNodes := func(nodes []*parser.Node) {
+		for _, child := range nodes {
+			appendNode(child)
+		}
+	}
+	appendValueNode := func(value interface{}) {
+		if child, ok := value.(*parser.Node); ok {
+			appendNode(child)
+		}
+	}
+
+	appendNodes(node.Children)
+	appendNodes(node.Decorator)
+	appendNodes(node.Bases)
+	appendNodes(node.Args)
+	appendNodes(node.Targets)
+	appendNode(node.Test)
+	appendNode(node.Iter)
+	appendNode(node.Left)
+	appendNode(node.Right)
+	appendValueNode(node.Value)
+	appendNodes(node.Keywords)
+	for i, bodyNode := range node.Body {
+		if skipBodyNode != nil && skipBodyNode(node, bodyNode, i) {
 			continue
 		}
-		if childNode := tc.ConvertAST(bodyNode); childNode != nil {
-			treeNode.AddChild(childNode)
-		}
+		appendNode(bodyNode)
+	}
+	appendNodes(node.Handlers)
+	appendNodes(node.Orelse)
+	appendNodes(node.Finalbody)
+
+	return children
+}
+
+func astChildCapacity(node *parser.Node) int {
+	if node == nil {
+		return 0
 	}
 
-	for _, orelseNode := range astNode.Orelse {
-		if childNode := tc.ConvertAST(orelseNode); childNode != nil {
-			treeNode.AddChild(childNode)
-		}
+	capacity := len(node.Children) + len(node.Decorator) + len(node.Bases) + len(node.Args) +
+		len(node.Targets) + len(node.Keywords) + len(node.Body) + len(node.Handlers) +
+		len(node.Orelse) + len(node.Finalbody)
+	if node.Test != nil {
+		capacity++
 	}
-
-	for _, finalbodyNode := range astNode.Finalbody {
-		if childNode := tc.ConvertAST(finalbodyNode); childNode != nil {
-			treeNode.AddChild(childNode)
-		}
+	if node.Iter != nil {
+		capacity++
 	}
-
-	for _, handlerNode := range astNode.Handlers {
-		if childNode := tc.ConvertAST(handlerNode); childNode != nil {
-			treeNode.AddChild(childNode)
-		}
+	if node.Left != nil {
+		capacity++
 	}
-
-	return treeNode
+	if node.Right != nil {
+		capacity++
+	}
+	if _, ok := node.Value.(*parser.Node); ok {
+		capacity++
+	}
+	return capacity
 }
 
 // canNodeHaveDocstring checks if a node type can have a docstring
@@ -246,7 +300,47 @@ func (tc *TreeConverter) getNodeLabel(astNode *parser.Node) string {
 		if astNode.Name != "" {
 			label = fmt.Sprintf("ClassDef(%s)", astNode.Name)
 		}
-	case parser.NodeBinOp, parser.NodeUnaryOp, parser.NodeBoolOp:
+	case parser.NodeAttribute:
+		if astNode.Name != "" {
+			label = fmt.Sprintf("Attribute(%s)", astNode.Name)
+		}
+	case parser.NodeKeyword:
+		if astNode.Name != "" {
+			label = fmt.Sprintf("Keyword(%s)", astNode.Name)
+		}
+	case parser.NodeArg:
+		if astNode.Name != "" {
+			label = fmt.Sprintf("Arg(%s)", astNode.Name)
+		}
+	case parser.NodeAlias:
+		if astNode.Name != "" {
+			if alias, ok := astNode.Value.(string); ok && alias != "" {
+				label = fmt.Sprintf("Alias(%s as %s)", astNode.Name, alias)
+			} else {
+				label = fmt.Sprintf("Alias(%s)", astNode.Name)
+			}
+		}
+	case parser.NodeWithItem, parser.NodeExceptHandler:
+		if astNode.Name != "" {
+			label = fmt.Sprintf("%s(%s)", astNode.Type, astNode.Name)
+		}
+	case parser.NodeGlobal, parser.NodeNonlocal:
+		if len(astNode.Names) > 0 {
+			label = fmt.Sprintf("%s(%s)", astNode.Type, strings.Join(astNode.Names, ","))
+		}
+	case parser.NodeImport:
+		if len(astNode.Names) > 0 {
+			label = fmt.Sprintf("Import(%s)", strings.Join(astNode.Names, ","))
+		}
+	case parser.NodeImportFrom:
+		module := astNode.Module
+		if astNode.Level > 0 {
+			module = strings.Repeat(".", astNode.Level) + module
+		}
+		if module != "" || len(astNode.Names) > 0 {
+			label = fmt.Sprintf("ImportFrom(%s:%s)", module, strings.Join(astNode.Names, ","))
+		}
+	case parser.NodeBinOp, parser.NodeUnaryOp, parser.NodeBoolOp, parser.NodeCompare, parser.NodeAugAssign:
 		if astNode.Op != "" {
 			label = fmt.Sprintf("%s(%s)", astNode.Type, astNode.Op)
 		}

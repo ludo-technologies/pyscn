@@ -72,6 +72,9 @@ func (a *ASTFeatureExtractor) ExtractFeatures(ast *TreeNode) ([]string, error) {
 	typeCounts := make(map[string]int)
 	preorder := a.preorderLabels(ast)
 	for _, lbl := range preorder {
+		if !a.shouldEmitLabelFeature(lbl) {
+			continue
+		}
 		base := a.baseType(lbl)
 		if a.includeTypes && base != "" {
 			typeCounts[base]++
@@ -132,7 +135,7 @@ func (a *ASTFeatureExtractor) ExtractSubtreeHashes(ast *TreeNode, maxHeight int)
 			_, _ = h.Write(b[:])
 		}
 		hv := h.Sum64()
-		if height <= maxHeight {
+		if height <= maxHeight && a.shouldEmitLabelFeature(n.Label) {
 			feats = append(feats, fmt.Sprintf("sub:%d:%016x", height, hv))
 		}
 		return hv, height
@@ -146,7 +149,7 @@ func (a *ASTFeatureExtractor) ExtractNodeSequences(ast *TreeNode, k int) []strin
 	if ast == nil || k <= 1 {
 		return []string{}
 	}
-	labels := a.preorderLabels(ast)
+	labels := a.preorderFeatureLabels(ast)
 	if len(labels) < k {
 		return []string{}
 	}
@@ -176,6 +179,38 @@ func (a *ASTFeatureExtractor) baseType(lbl string) string {
 	s := a.canonicalLabel(lbl)
 	// If canonical label is empty, skip
 	return s
+}
+
+func (a *ASTFeatureExtractor) shouldEmitLabelFeature(lbl string) bool {
+	if a.includeLiterals {
+		return true
+	}
+
+	switch a.baseType(lbl) {
+	case "Name", "Constant", "Arg", "Keyword":
+		return false
+	default:
+		return true
+	}
+}
+
+func (a *ASTFeatureExtractor) preorderFeatureLabels(ast *TreeNode) []string {
+	labels := []string{}
+	var walk func(n *TreeNode)
+	walk = func(n *TreeNode) {
+		if n == nil {
+			return
+		}
+		label := a.canonicalLabel(n.Label)
+		if a.shouldEmitLabelFeature(label) {
+			labels = append(labels, label)
+		}
+		for _, ch := range n.Children {
+			walk(ch)
+		}
+	}
+	walk(ast)
+	return labels
 }
 
 func (a *ASTFeatureExtractor) preorderLabels(ast *TreeNode) []string {
