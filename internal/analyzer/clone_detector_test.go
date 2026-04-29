@@ -150,6 +150,46 @@ func TestCalculateASTSize(t *testing.T) {
 	assert.Equal(t, 2, size, "Duplicate child references should not inflate AST size")
 }
 
+func TestCompareWithAPTEDExpressionOnlyDifferenceReportsDistance(t *testing.T) {
+	left := `if cond:
+    value = items[i]
+`
+	right := `if cond:
+    value = items[j]
+`
+
+	leftTree := parseFirstStatementTree(t, left)
+	rightTree := parseFirstStatementTree(t, right)
+	PrepareTreeForAPTED(leftTree)
+	PrepareTreeForAPTED(rightTree)
+
+	config := DefaultCloneDetectorConfig()
+	config.MinLines = 1
+	config.MinNodes = 1
+	detector := NewCloneDetector(config)
+
+	pair := detector.compareWithAPTED(
+		&CodeFragment{
+			Location:  &CodeLocation{FilePath: "left.py", StartLine: 1, EndLine: 2},
+			TreeNode:  leftTree,
+			Content:   left,
+			Size:      leftTree.Size(),
+			LineCount: 2,
+		},
+		&CodeFragment{
+			Location:  &CodeLocation{FilePath: "right.py", StartLine: 1, EndLine: 2},
+			TreeNode:  rightTree,
+			Content:   right,
+			Size:      rightTree.Size(),
+			LineCount: 2,
+		},
+	)
+
+	require.NotNil(t, pair)
+	assert.Greater(t, pair.Distance, 0.0)
+	assert.Equal(t, Type2Clone, pair.CloneType)
+}
+
 func TestClonePair_String(t *testing.T) {
 	fragment1 := &CodeFragment{
 		Location: &CodeLocation{
