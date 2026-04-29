@@ -71,6 +71,22 @@ func (t *TextualSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) floa
 	return t.computeLevenshteinSimilarity(content1, content2)
 }
 
+// IsExactMatch reports whether two fragments have identical source text after
+// Type-1 normalization. Near matches are deliberately not treated as Type-1.
+func (t *TextualSimilarityAnalyzer) IsExactMatch(f1, f2 *CodeFragment) bool {
+	if f1 == nil || f2 == nil {
+		return false
+	}
+
+	content1 := t.normalizeContent(f1.Content)
+	content2 := t.normalizeContent(f2.Content)
+	if content1 == "" || content2 == "" {
+		return false
+	}
+
+	return content1 == content2
+}
+
 // normalizeContent normalizes source code content for comparison.
 // This removes comments and normalizes whitespace based on configuration.
 func (t *TextualSimilarityAnalyzer) normalizeContent(content string) string {
