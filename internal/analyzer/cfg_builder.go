@@ -126,6 +126,8 @@ func (b *CFGBuilder) Build(node *parser.Node) (*CFG, error) {
 	// Store the function node for later use (nesting depth calculation)
 	if node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef {
 		b.cfg.FunctionNode = node
+	} else if node.Type == parser.NodeModule {
+		b.cfg.ModuleNode = node
 	}
 
 	// Build CFG based on node type
