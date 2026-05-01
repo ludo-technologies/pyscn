@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.18.1] - 2026-05-01
+
+### Fixed
+- Emit real line range for synthetic `__main__` complexity record (#403)
+
 ## [1.18.0] - 2026-04-30
 
 ### Added
