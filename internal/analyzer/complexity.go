@@ -165,6 +165,10 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 		startLine = cfg.FunctionNode.Location.StartLine
 		startCol = cfg.FunctionNode.Location.StartCol
 		endLine = cfg.FunctionNode.Location.EndLine
+	} else if cfg.ModuleNode != nil {
+		startLine = cfg.ModuleNode.Location.StartLine
+		startCol = cfg.ModuleNode.Location.StartCol
+		endLine = cfg.ModuleNode.Location.EndLine
 	}
 
 	result := &ComplexityResult{

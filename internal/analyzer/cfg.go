@@ -172,6 +172,9 @@ type CFG struct {
 	// FunctionNode is the original AST node for the function
 	FunctionNode *parser.Node
 
+	// ModuleNode is the original AST node for the module (set only on the synthetic __main__ CFG)
+	ModuleNode *parser.Node
+
 	// nextBlockID is used to generate unique block IDs
 	nextBlockID int
 }

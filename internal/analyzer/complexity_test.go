@@ -1,8 +1,11 @@
 package analyzer
 
 import (
-	"github.com/ludo-technologies/pyscn/internal/config"
+	"context"
 	"testing"
+
+	"github.com/ludo-technologies/pyscn/internal/config"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 func TestComplexityResult(t *testing.T) {
@@ -240,6 +243,48 @@ func TestCalculateComplexity(t *testing.T) {
 				t.Errorf("Expected %d edges, got %d", tc.expectedEdges, result.Edges)
 			}
 		})
+	}
+}
+
+// Regression test for issue #396: module-level CFGs (the synthetic __main__)
+// must report a real source span instead of 0-0.
+func TestCalculateComplexity_ModuleLevelHasRealLineRange(t *testing.T) {
+	source := `import sys
+
+count = 0
+for arg in sys.argv[1:]:
+    if arg.startswith("--"):
+        count += 1
+    else:
+        count -= 1
+print(count)
+`
+
+	p := parser.New()
+	result, err := p.Parse(context.Background(), []byte(source))
+	if err != nil {
+		t.Fatalf("Failed to parse source: %v", err)
+	}
+
+	cfgs, err := NewCFGBuilder().BuildAll(result.AST)
+	if err != nil {
+		t.Fatalf("Failed to build CFGs: %v", err)
+	}
+
+	mainCFG, ok := cfgs["__main__"]
+	if !ok {
+		t.Fatal("Expected __main__ CFG to be present")
+	}
+	if mainCFG.ModuleNode == nil {
+		t.Fatal("Expected ModuleNode to be set on the __main__ CFG")
+	}
+
+	res := CalculateComplexity(mainCFG)
+	if res.StartLine < 1 {
+		t.Errorf("StartLine should be >= 1 for non-empty module, got %d", res.StartLine)
+	}
+	if res.EndLine < res.StartLine {
+		t.Errorf("EndLine (%d) should be >= StartLine (%d)", res.EndLine, res.StartLine)
 	}
 }
 
