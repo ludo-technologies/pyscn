@@ -198,6 +198,7 @@ Layer validation. All keys optional — if you don't define layers, architecture
 | `min_cohesion`             | float | `0.5`   | Minimum package cohesion. |
 | `max_coupling`             | int   | `10`    | Max inter-layer coupling. |
 | `max_responsibilities`     | int   | `3`     | Max concerns per module. |
+| `neutral_prefixes`         | string[] | `[]` | Top-level module segments to strip before matching layer packages. Useful when every module starts with the same project prefix (e.g. `app`, `src`). |
 
 ### Layer definitions
 
@@ -231,6 +232,17 @@ deny = ["infrastructure"]
 from = "application"
 allow = ["domain"]
 ```
+
+### Neutral prefixes
+
+If every module in the project starts with the same root segment (`app.`, `src.`, ...), layer matching can fail because the project prefix shadows the layer name. List those segments under `neutral_prefixes` and pyscn will strip them before resolving a module to a layer:
+
+```toml
+[architecture]
+neutral_prefixes = ["app", "src"]
+```
+
+With this set, `app.routers.user_router` is matched as `routers.user_router` and resolves to the `presentation` layer.
 
 ---
 

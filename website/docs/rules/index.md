@@ -1,6 +1,6 @@
 # Rule catalog
 
-pyscn ships 32 rules across 7 categories. Every rule has a page that describes what it detects, why it's a problem, a bad example, and how to fix it.
+pyscn ships 33 rules across 7 categories. Every rule has a page that describes what it detects, why it's a problem, a bad example, and how to fix it.
 
 Click a rule name to open its page.
 
@@ -69,6 +69,7 @@ Import graph problems: cycles, long chains, layer violations.
 | [`deep-import-chain`](deep-import-chain.md) | Info |
 | [`layer-violation`](layer-violation.md) | By architecture rule |
 | [`low-package-cohesion`](low-package-cohesion.md) | Warning |
+| [`single-responsibility`](single-responsibility.md) | Warning / Error |
 
 ## Mock Data
 

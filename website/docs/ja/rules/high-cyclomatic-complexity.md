@@ -97,6 +97,13 @@ def price_for(user, cart, coupon, region):
 | [`complexity.medium_threshold`](../configuration/reference.md#complexity) | `19` | この値を超えると高リスクとなります。 |
 | [`complexity.min_complexity`](../configuration/reference.md#complexity) | `1` | この値未満の関数はレポートから除外されます。 |
 
+## 関連メトリクス
+
+pyscn は McCabe サイクロマティック複雑度に加えて、以下 2 つの複雑度系メトリクスを算出します。HTML レポートと JSON 出力に表示されますが、`complexity.max_complexity` のゲート対象には *なりません*:
+
+- **Cognitive Complexity**（SonarQube 形式）。線形フローの分断とネストを McCabe よりも重く罰するため、サイクロマティック値が中程度でも「読み解きにくい」関数を浮かび上がらせるのに有用です。JSON 出力では関数ごとに `CognitiveComplexity` フィールドとして含まれます。
+- **コード生メトリクス**（ファイル単位）。SLOC、LLOC、コメント行数、空行数、コメント密度などです。スキーマリファレンスの [`raw_metrics`](../output/schemas.md) を参照してください。
+
 ## 参照
 
 - McCabe, T. J. *A Complexity Measure.* IEEE Transactions on Software Engineering, 1976.

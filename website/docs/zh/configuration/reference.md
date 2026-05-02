@@ -198,6 +198,7 @@
 | `min_cohesion`             | float | `0.5`   | 最小包内聚度。 |
 | `max_coupling`             | int   | `10`    | 最大层间耦合度。 |
 | `max_responsibilities`     | int   | `3`     | 每个模块最大职责数。 |
+| `neutral_prefixes`         | string[] | `[]` | 在匹配层包名之前需要剥离的顶层模块段。当所有模块都以同一个项目前缀（例如 `app`、`src`）开头时很有用。 |
 
 ### 层定义
 
@@ -231,6 +232,17 @@ deny = ["infrastructure"]
 from = "application"
 allow = ["domain"]
 ```
+
+### 中性前缀（neutral prefixes）
+
+如果项目中每个模块都以同一个根段（`app.`、`src.` 等）开头，该项目前缀会遮盖层名导致层匹配失败。将这些段列在 `neutral_prefixes` 中，pyscn 在解析模块所属层之前会先剥离它们：
+
+```toml
+[architecture]
+neutral_prefixes = ["app", "src"]
+```
+
+设置后，`app.routers.user_router` 会按 `routers.user_router` 进行匹配，从而被解析到 `presentation` 层。
 
 ---
 

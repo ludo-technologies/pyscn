@@ -97,6 +97,13 @@ Each helper now has complexity 1–3 and a single responsibility. Guard clauses 
 | [`complexity.medium_threshold`](../configuration/reference.md#complexity) | `19` | Above this, a function is high risk. |
 | [`complexity.min_complexity`](../configuration/reference.md#complexity) | `1` | Functions below this value are omitted from the report. |
 
+## Related metrics
+
+pyscn computes two more complexity-flavored measurements alongside the McCabe count. They appear in the HTML report and JSON output but are *not* enforced by `complexity.max_complexity`:
+
+- **Cognitive Complexity** (SonarQube-style). Penalizes nesting and breaks in linear flow more heavily than McCabe — useful for spotting functions that *feel* hard to follow even when their cyclomatic count is moderate. Surfaces as `CognitiveComplexity` per function in the JSON output.
+- **Raw code metrics** per file (SLOC, LLOC, comment lines, blank lines, comment density). See [`raw_metrics`](../output/schemas.md) in the schema reference.
+
 ## References
 
 - McCabe, T. J. *A Complexity Measure.* IEEE Transactions on Software Engineering, 1976.
