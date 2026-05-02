@@ -1344,6 +1344,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#related-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related metrics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#references" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1792,6 +1803,8 @@
       
         
       
+        
+      
     
     
     
@@ -1941,6 +1954,34 @@
     
   
     low-package-cohesion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../single-responsibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    single-responsibility
   
 
     
@@ -3079,6 +3120,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#related-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related metrics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#references" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3286,6 +3338,12 @@
 </tr>
 </tbody>
 </table>
+<h2 id="related-metrics">Related metrics<a class="headerlink" href="#related-metrics" title="Permanent link">&para;</a></h2>
+<p>pyscn computes two more complexity-flavored measurements alongside the McCabe count. They appear in the HTML report and JSON output but are <em>not</em> enforced by <code>complexity.max_complexity</code>:</p>
+<ul>
+<li><strong>Cognitive Complexity</strong> (SonarQube-style). Penalizes nesting and breaks in linear flow more heavily than McCabe — useful for spotting functions that <em>feel</em> hard to follow even when their cyclomatic count is moderate. Surfaces as <code>CognitiveComplexity</code> per function in the JSON output.</li>
+<li><strong>Raw code metrics</strong> per file (SLOC, LLOC, comment lines, blank lines, comment density). See <a href="../../output/schemas/"><code>raw_metrics</code></a> in the schema reference.</li>
+</ul>
 <h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
 <ul>
 <li>McCabe, T. J. <em>A Complexity Measure.</em> IEEE Transactions on Software Engineering, 1976.</li>

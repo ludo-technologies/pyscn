@@ -1661,6 +1661,8 @@
       
         
       
+        
+      
     
     
     
@@ -1807,6 +1809,34 @@
     
   
     low-package-cohesion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/single-responsibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    single-responsibility
   
 
     
@@ -2701,6 +2731,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#neutral-prefixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Neutral prefixes（中立な接頭辞）
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3378,6 +3419,17 @@
     <span class="md-ellipsis">
       
         レイヤールール
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#neutral-prefixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Neutral prefixes（中立な接頭辞）
       
     </span>
   </a>
@@ -4199,6 +4251,12 @@
 <td><code>3</code></td>
 <td>モジュールごとの責務の最大数。</td>
 </tr>
+<tr>
+<td><code>neutral_prefixes</code></td>
+<td>string[]</td>
+<td><code>[]</code></td>
+<td>レイヤー判定の前に取り除くトップレベルのモジュールセグメント。すべてのモジュールが同じプロジェクト接頭辞（例: <code>app</code>, <code>src</code>）から始まる場合に便利です。</td>
+</tr>
 </tbody>
 </table>
 <h3 id="_7">レイヤー定義<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
@@ -4228,6 +4286,12 @@
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">from</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;application&quot;</span>
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">allow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
 </span></code></pre></div>
+<h3 id="neutral-prefixes">Neutral prefixes（中立な接頭辞）<a class="headerlink" href="#neutral-prefixes" title="Permanent link">&para;</a></h3>
+<p>プロジェクト内のすべてのモジュールが同じルートセグメント（<code>app.</code>, <code>src.</code> など）で始まる場合、その接頭辞がレイヤー名を覆い隠してしまいレイヤー判定に失敗することがあります。<code>neutral_prefixes</code> にそうしたセグメントを列挙すると、pyscn はモジュールをレイヤーに解決する前にそれらを取り除きます:</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[architecture]</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">neutral_prefixes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;app&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;src&quot;</span><span class="p">]</span>
+</span></code></pre></div>
+<p>この設定により、<code>app.routers.user_router</code> は <code>routers.user_router</code> として扱われ、<code>presentation</code> レイヤーに解決されます。</p>
 <hr />
 <h2 id="dependencies"><code>[dependencies]</code><a class="headerlink" href="#dependencies" title="Permanent link">&para;</a></h2>
 <p>モジュール依存関係分析です。<code>pyscn check</code> では <strong>オプトイン</strong>。<code>pyscn analyze</code> ではスキップしない限り常に実行されます。</p>

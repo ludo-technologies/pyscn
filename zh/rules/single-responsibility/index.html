@@ -12,19 +12,19 @@
         <meta name="author" content="ludo-technologies">
       
       
-        <link rel="canonical" href="https://ludo-technologies.github.io/pyscn/zh/rules/too-many-constructor-parameters/">
+        <link rel="canonical" href="https://ludo-technologies.github.io/pyscn/zh/rules/single-responsibility/">
       
       
-        <link rel="prev" href="../low-class-cohesion/">
+        <link rel="prev" href="../low-package-cohesion/">
       
       
-        <link rel="next" href="../global-state-dependency/">
+        <link rel="next" href="../mock-keyword-in-code/">
       
       
         
-          <link rel="alternate" href="../../../rules/too-many-constructor-parameters/" hreflang="en">
+          <link rel="alternate" href="../../../rules/single-responsibility/" hreflang="en">
         
-          <link rel="alternate" href="../../../ja/rules/too-many-constructor-parameters/" hreflang="ja">
+          <link rel="alternate" href="../../../ja/rules/single-responsibility/" hreflang="ja">
         
           <link rel="alternate" href="./" hreflang="zh">
         
@@ -35,7 +35,7 @@
     
     
       
-        <title>too-many-constructor-parameters - pyscn</title>
+        <title>single-responsibility - pyscn</title>
       
     
     
@@ -86,7 +86,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#too-many-constructor-parameters" class="md-skip">
+        <a href="#single-responsibility" class="md-skip">
           跳转至
         </a>
       
@@ -121,7 +121,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              too-many-constructor-parameters
+              single-responsibility
             
           </span>
         </div>
@@ -178,13 +178,13 @@
       <ul class="md-select__list">
         
           <li class="md-select__item">
-            <a href="../../../rules/too-many-constructor-parameters/" hreflang="en" class="md-select__link">
+            <a href="../../../rules/single-responsibility/" hreflang="en" class="md-select__link">
               English
             </a>
           </li>
         
           <li class="md-select__item">
-            <a href="../../../ja/rules/too-many-constructor-parameters/" hreflang="ja" class="md-select__link">
+            <a href="../../../ja/rules/single-responsibility/" hreflang="ja" class="md-select__link">
               日本語
             </a>
           </li>
@@ -1389,8 +1389,6 @@
                 
   
   
-    
-  
   
   
     
@@ -1422,11 +1420,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_6" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_6" >
         
           
           <label class="md-nav__link" for="__nav_3_6" id="__nav_3_6_label" tabindex="">
@@ -1447,7 +1447,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_6_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1462,37 +1462,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    too-many-constructor-parameters
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../too-many-constructor-parameters/" class="md-nav__link">
         
   
   
@@ -1508,92 +1481,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="目录">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      目录
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        检测内容
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        为什么这是一个问题
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        示例
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_4" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        修正示例
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_5" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        选项
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_6" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        参考
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1779,8 +1666,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -1806,13 +1695,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_7" checked>
         
           
           <label class="md-nav__link" for="__nav_3_7" id="__nav_3_7_label" tabindex="">
@@ -1833,7 +1720,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_7_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_7_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_7">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1960,10 +1847,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../single-responsibility/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    single-responsibility
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1979,6 +1893,92 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        检测内容
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        为什么这是一个问题
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        示例
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        修正示例
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        选项
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        参考
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -3180,10 +3180,10 @@
     
     
       <li class="md-path__item">
-        <a href="./" class="md-path__link">
+        <a href="../circular-import/" class="md-path__link">
           
   <span class="md-ellipsis">
-    依赖注入
+    模块结构
   </span>
 
         </a>
@@ -3202,7 +3202,7 @@
 
 
   
-    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/zh/rules/too-many-constructor-parameters.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/zh/rules/single-responsibility.md" title="编辑此页" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -3210,78 +3210,83 @@
   
 
 
-<h1 id="too-many-constructor-parameters">too-many-constructor-parameters<a class="headerlink" href="#too-many-constructor-parameters" title="Permanent link">&para;</a></h1>
-<p><strong>Category</strong>: 依赖注入<br />
-<strong>Severity</strong>: Warning<br />
-<strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check --select di</code></p>
+<h1 id="single-responsibility">single-responsibility<a class="headerlink" href="#single-responsibility" title="Permanent link">&para;</a></h1>
+<p><strong>Category</strong>: 模块结构<br />
+<strong>Severity</strong>: Warning（当模块同时是高扇入/扇出的枢纽时为 Error）<br />
+<strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check --select deps</code></p>
 <h2 id="_1">检测内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
-<p>标记 <code>__init__</code> 方法的参数数量（不含 <code>self</code>）超过 <code>di.constructor_param_threshold</code>（默认 <code>5</code>）的类。</p>
+<p>标记承担超过 <code>architecture.max_responsibilities</code>（默认 <code>3</code>）个不同依赖关注点的模块，或扇入扇出均高于项目平均水平的枢纽模块。</p>
+<p>"关注点"由邻居模块的名称推断而来：对于该模块导入的每个模块以及导入它的每个模块，分析器取邻居路径中与当前模块不重叠的第一个段，并跳过通用兜底名称（<code>base</code>、<code>common</code>、<code>helpers</code>、<code>node</code>、<code>shared</code>、<code>util</code>、<code>utils</code>）。去重后的段数即为 pyscn 归属于该模块的职责数量。</p>
+<p>满足以下任一条件即会报告:</p>
+<ul>
+<li>拥有的不同关注点数量超过 <code>max_responsibilities</code>。</li>
+<li>扇入（导入该模块的模块数）与扇出（被该模块导入的模块数）均高于项目的"均值 + 标准差"，并且承担多于一个的关注点。</li>
+</ul>
 <h2 id="_2">为什么这是一个问题<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
-<p>过长的构造函数签名是类承担了过多职责的症状。每个参数都是类需要了解的一个协作对象，而每个调用点都必须提供所有参数 — 包括测试，测试最终需要构建复杂的前置设置才能创建对象。</p>
-<p>随着时间推移，再加一个依赖看起来代价很小，因此列表不断增长。阅读者无法分辨类实际需要什么和哪些是附带的，重新排序或设置默认参数也变得有风险。</p>
-<p>当你看到超过五个依赖时，这个类通常在做两三件可以分离的工作，或者其中几个参数应该合并为一个对象。</p>
+<p>单一职责原则 (SRP) 关心的是"变化的轴"。横跨多个不相关依赖簇的模块拥有多个变化原因:</p>
+<ul>
+<li><strong>修改会扩散。</strong> 改动一个关注点，迫使你重新阅读和测试共享同一模块边界的其他关注点。</li>
+<li><strong>导入会撒谎。</strong> <code>from myapp.core import X</code> 没有告诉读者任何信息——<code>core</code> 在做好几件事。</li>
+<li><strong>枢纽会成为瓶颈。</strong> 一个被所有人导入、又导入所有人的模块，是变更、评审和合并的单点争用。</li>
+<li><strong>隐藏了缺失的接缝。</strong> 当两个关注点不断聚集在同一个文件中，正确的解决方案通常是新建一个模块来命名它们之间的关系。</li>
+</ul>
 <h2 id="_3">示例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">OrderService</span><span class="p">:</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="n">user_repo</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="n">order_repo</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="n">payment_gateway</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">inventory</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">notifier</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">audit_log</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">clock</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="p">):</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">user_repo</span> <span class="o">=</span> <span class="n">user_repo</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">order_repo</span> <span class="o">=</span> <span class="n">order_repo</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="o">...</span>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>myapp/core.py
 </span></code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># myapp/core.py</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">myapp.routers</span><span class="w"> </span><span class="kn">import</span> <span class="n">user_router</span><span class="p">,</span> <span class="n">order_router</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">myapp.services</span><span class="w"> </span><span class="kn">import</span> <span class="n">billing_service</span><span class="p">,</span> <span class="n">notification_service</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">myapp.repositories</span><span class="w"> </span><span class="kn">import</span> <span class="n">user_repo</span><span class="p">,</span> <span class="n">order_repo</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">myapp.telemetry</span><span class="w"> </span><span class="kn">import</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">tracing</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># ...将所有部分粘合到一起的代码...</span>
+</span></code></pre></div>
+<p><code>core</code> 混合了 <code>routers</code> / <code>services</code> / <code>repositories</code> / <code>telemetry</code> 四个关注点，并且 routers 和 services 都会导入它——扇入和扇出都很高。pyscn 将其标记为过载模块。</p>
 <h2 id="_4">修正示例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
-<p>将相关的协作对象分组为参数对象，或按职责拆分类。</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@dataclass</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">OrderDependencies</span><span class="p">:</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">users</span><span class="p">:</span> <span class="n">UserRepository</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">orders</span><span class="p">:</span> <span class="n">OrderRepository</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">payments</span><span class="p">:</span> <span class="n">PaymentGateway</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">inventory</span><span class="p">:</span> <span class="n">Inventory</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">notifier</span><span class="p">:</span> <span class="n">Notifier</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="k">class</span><span class="w"> </span><span class="nc">OrderService</span><span class="p">:</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deps</span><span class="p">:</span> <span class="n">OrderDependencies</span><span class="p">,</span> <span class="n">clock</span><span class="p">:</span> <span class="n">Clock</span><span class="p">):</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">deps</span> <span class="o">=</span> <span class="n">deps</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">clock</span> <span class="o">=</span> <span class="n">clock</span>
+<p>按已经存在的关注点拆分模块，每个新模块只命名<em>一个</em>变化轴。</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>myapp/wiring/web.py          # 路由层装配
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>myapp/wiring/services.py     # 服务层装配
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>myapp/wiring/persistence.py  # 仓储层装配
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>myapp/wiring/observability.py
 </span></code></pre></div>
+<p>或者，如果该模块确实是合理的组合根，请缩小其职责：它应当只负责<em>装配</em>各部分，而不是同时实现业务规则、定义类型或拥有遥测。</p>
 <h2 id="_5">选项<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>选项</th>
 <th>默认值</th>
-<th>说明</th>
+<th>描述</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><a href="../../configuration/reference/#di"><code>di.enabled</code></a></td>
+<td><a href="../../configuration/reference/#architecture"><code>architecture.validate_responsibility</code></a></td>
+<td><code>true</code></td>
+<td>设为 <code>false</code> 可禁用此规则。</td>
+</tr>
+<tr>
+<td><a href="../../configuration/reference/#architecture"><code>architecture.max_responsibilities</code></a></td>
+<td><code>3</code></td>
+<td>拥有更多关注点的模块将被标记。</td>
+</tr>
+<tr>
+<td><a href="../../configuration/reference/#architecture"><code>architecture.enabled</code></a></td>
+<td><code>true</code></td>
+<td>架构分析的主开关。</td>
+</tr>
+<tr>
+<td><a href="../../configuration/reference/#architecture"><code>architecture.fail_on_violations</code></a></td>
 <td><code>false</code></td>
-<td>必须为 <code>true</code> 才能在 <code>analyze</code> 中运行 DI 规则。<code>check --select di</code> 会隐式启用。</td>
-</tr>
-<tr>
-<td><a href="../../configuration/reference/#di"><code>di.min_severity</code></a></td>
-<td><code>"warning"</code></td>
-<td>提高到 <code>"error"</code> 可隐藏此规则，降低到 <code>"info"</code> 可显示更多。</td>
-</tr>
-<tr>
-<td><a href="../../configuration/reference/#di"><code>di.constructor_param_threshold</code></a></td>
-<td><code>5</code></td>
-<td><code>__init__</code> 参数数量超过此值时将被标记。</td>
+<td>发现违规时以非零退出码退出。</td>
 </tr>
 </tbody>
 </table>
 <h2 id="_6">参考<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>构造函数过度注入检测（<code>internal/analyzer/constructor_analyzer.go</code>）。</li>
-<li><a href="../">规则目录</a> · <a href="../concrete-instantiation-dependency/">Concrete instantiation dependency</a> · <a href="../service-locator-pattern/">Service locator pattern</a></li>
+<li>职责推断与严重程度规则：<code>service/responsibility_analysis.go</code>。</li>
+<li>Martin, R. C. <em>敏捷软件开发：原则、模式与实践</em>，2002 年（第 8 章 — SRP）。</li>
+<li><a href="../">规则目录</a> · <a href="../low-package-cohesion/">low-package-cohesion</a> · <a href="../layer-violation/">layer-violation</a></li>
 </ul>
 
 

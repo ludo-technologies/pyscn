@@ -1347,6 +1347,17 @@
   <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
+        関連メトリクス
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
         参照
       
     </span>
@@ -1792,6 +1803,8 @@
       
         
       
+        
+      
     
     
     
@@ -1941,6 +1954,34 @@
     
   
     low-package-cohesion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../single-responsibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    single-responsibility
   
 
     
@@ -3082,6 +3123,17 @@
   <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
+        関連メトリクス
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
         参照
       
     </span>
@@ -3286,7 +3338,13 @@
 </tr>
 </tbody>
 </table>
-<h2 id="_6">参照<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
+<h2 id="_6">関連メトリクス<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
+<p>pyscn は McCabe サイクロマティック複雑度に加えて、以下 2 つの複雑度系メトリクスを算出します。HTML レポートと JSON 出力に表示されますが、<code>complexity.max_complexity</code> のゲート対象には <em>なりません</em>:</p>
+<ul>
+<li><strong>Cognitive Complexity</strong>（SonarQube 形式）。線形フローの分断とネストを McCabe よりも重く罰するため、サイクロマティック値が中程度でも「読み解きにくい」関数を浮かび上がらせるのに有用です。JSON 出力では関数ごとに <code>CognitiveComplexity</code> フィールドとして含まれます。</li>
+<li><strong>コード生メトリクス</strong>（ファイル単位）。SLOC、LLOC、コメント行数、空行数、コメント密度などです。スキーマリファレンスの <a href="../../output/schemas/"><code>raw_metrics</code></a> を参照してください。</li>
+</ul>
+<h2 id="_7">参照<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
 <ul>
 <li>McCabe, T. J. <em>A Complexity Measure.</em> IEEE Transactions on Software Engineering, 1976.</li>
 <li>制御フローグラフの構築とサイクロマティック複雑度の計算: <code>internal/analyzer/complexity.go</code>, <code>internal/analyzer/complexity_analyzer.go</code>, <code>internal/analyzer/cfg_builder.go</code>。</li>

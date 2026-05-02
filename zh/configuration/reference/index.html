@@ -1661,6 +1661,8 @@
       
         
       
+        
+      
     
     
     
@@ -1807,6 +1809,34 @@
     
   
     low-package-cohesion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/single-responsibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    single-responsibility
   
 
     
@@ -2701,6 +2731,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#neutral-prefixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        中性前缀（neutral prefixes）
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3378,6 +3419,17 @@
     <span class="md-ellipsis">
       
         层规则
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#neutral-prefixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        中性前缀（neutral prefixes）
       
     </span>
   </a>
@@ -4199,6 +4251,12 @@
 <td><code>3</code></td>
 <td>每个模块最大职责数。</td>
 </tr>
+<tr>
+<td><code>neutral_prefixes</code></td>
+<td>string[]</td>
+<td><code>[]</code></td>
+<td>在匹配层包名之前需要剥离的顶层模块段。当所有模块都以同一个项目前缀（例如 <code>app</code>、<code>src</code>）开头时很有用。</td>
+</tr>
 </tbody>
 </table>
 <h3 id="_7">层定义<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
@@ -4228,6 +4286,12 @@
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">from</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;application&quot;</span>
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">allow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
 </span></code></pre></div>
+<h3 id="neutral-prefixes">中性前缀（neutral prefixes）<a class="headerlink" href="#neutral-prefixes" title="Permanent link">&para;</a></h3>
+<p>如果项目中每个模块都以同一个根段（<code>app.</code>、<code>src.</code> 等）开头，该项目前缀会遮盖层名导致层匹配失败。将这些段列在 <code>neutral_prefixes</code> 中，pyscn 在解析模块所属层之前会先剥离它们：</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[architecture]</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">neutral_prefixes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;app&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;src&quot;</span><span class="p">]</span>
+</span></code></pre></div>
+<p>设置后，<code>app.routers.user_router</code> 会按 <code>routers.user_router</code> 进行匹配，从而被解析到 <code>presentation</code> 层。</p>
 <hr />
 <h2 id="dependencies"><code>[dependencies]</code><a class="headerlink" href="#dependencies" title="Permanent link">&para;</a></h2>
 <p>模块依赖分析。对于 <code>pyscn check</code> 为<strong>可选启用</strong>；<code>pyscn analyze</code> 始终运行（除非跳过）。</p>
