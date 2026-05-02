@@ -1,9 +1,12 @@
 # Changelog
 
-## [1.18.1] - 2026-05-01
+## [1.18.1] - 2026-05-02
 
 ### Fixed
 - Emit real line range for synthetic `__main__` complexity record (#403)
+
+### Documentation
+- Sync rule catalog and config reference with v1.13–v1.18 releases (#406)
 
 ## [1.18.0] - 2026-04-30
 
