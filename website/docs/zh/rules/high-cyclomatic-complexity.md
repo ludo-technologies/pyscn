@@ -97,6 +97,13 @@ def price_for(user, cart, coupon, region):
 | [`complexity.medium_threshold`](../configuration/reference.md#complexity) | `19` | 高于此值的函数为高风险。 |
 | [`complexity.min_complexity`](../configuration/reference.md#complexity) | `1` | 低于此值的函数将从报告中省略。 |
 
+## 相关度量
+
+除圈复杂度以外，pyscn 还会同时计算以下两类与复杂度相关的度量。它们会出现在 HTML 报告和 JSON 输出中，但*不*受 `complexity.max_complexity` 阈值约束：
+
+- **认知复杂度（Cognitive Complexity，SonarQube 风格）**。相比 McCabe，认知复杂度对嵌套以及线性流程的中断给出更高的惩罚——适合用于识别那些圈复杂度并不算高、但读起来仍然难以跟随的函数。JSON 输出中以函数级 `CognitiveComplexity` 字段呈现。
+- **原始代码度量**（按文件统计）：SLOC、LLOC、注释行、空行、注释密度。详见 schema 参考中的 [`raw_metrics`](../output/schemas.md)。
+
 ## 参考
 
 - McCabe, T. J. *A Complexity Measure.* IEEE Transactions on Software Engineering, 1976.

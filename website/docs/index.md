@@ -14,7 +14,7 @@ uvx pyscn@latest analyze .
 
 ## Features
 
-- **32 rules** across unreachable code, duplicate code, complexity, class design, dependency injection, module structure, and mock data.
+- **33 rules** across unreachable code, duplicate code, complexity, class design, dependency injection, module structure, and mock data.
 - **CFG-based reachability** finds dead code past `return` / `raise` / `break` / `continue` and unreachable branches.
 - **APTED + LSH clone detection** across four clone types (identical, renamed, modified, semantic).
 - **CBO / LCOM4** class coupling and cohesion metrics.

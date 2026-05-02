@@ -333,6 +333,15 @@ The `ComplexityAnalyzer` (`internal/analyzer/complexity_analyzer.go`) coordinate
 - **Parallel file analysis**: Multiple files are analyzed concurrently (default: 4 goroutines), with each file independently parsed, CFG-built, and scored.
 - **Filtering**: `ShouldReport` filters out trivial functions (complexity = 1) when `report_unchanged` is false, reducing noise in reports for large codebases.
 
+## Related Metrics
+
+Alongside the McCabe count, pyscn computes two more measurements per analyzed file. They share the complexity output pipeline but use independent algorithms:
+
+- **Cognitive Complexity** (`internal/analyzer/cognitive_complexity.go`). SonarQube-style metric that increments per branch, applies an additional `+nestingLevel` penalty for nested branches, and counts boolean operator runs as a single increment. Walks the AST directly rather than the CFG. Surfaces as `CognitiveComplexity` per function in the JSON output and on the HTML complexity tab.
+- **Raw code metrics** (`internal/analyzer/raw_metrics.go`). Per-file line accounting: SLOC, LLOC, comment lines, docstring lines, blank lines, total lines, and comment ratio. Produced without AST parsing — a small state machine over source lines that tracks docstrings and multiline strings. Aggregates are exposed in the `raw_metrics` / `raw_metrics_summary` JSON fields.
+
+Neither metric participates in the `complexity.max_complexity` gate; both are reported for diagnostic context.
+
 ## Integration with Health Score
 
 The overall project health score (`docs/ANALYZE_SCORING.md`) uses average cyclomatic complexity as one of its penalty categories. The complexity penalty is a continuous linear function:

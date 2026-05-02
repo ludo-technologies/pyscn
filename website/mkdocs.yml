@@ -210,6 +210,7 @@ nav:
           - rules/deep-import-chain.md
           - rules/layer-violation.md
           - rules/low-package-cohesion.md
+          - rules/single-responsibility.md
       - Mock Data:
           - rules/mock-keyword-in-code.md
           - rules/mock-domain-in-string.md

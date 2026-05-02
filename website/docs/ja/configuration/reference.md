@@ -198,6 +198,7 @@ Lack of Cohesion of Methods（LCOM4）です。
 | `min_cohesion`             | float | `0.5`   | 最小パッケージ凝集度。 |
 | `max_coupling`             | int   | `10`    | レイヤー間結合度の最大値。 |
 | `max_responsibilities`     | int   | `3`     | モジュールごとの責務の最大数。 |
+| `neutral_prefixes`         | string[] | `[]` | レイヤー判定の前に取り除くトップレベルのモジュールセグメント。すべてのモジュールが同じプロジェクト接頭辞（例: `app`, `src`）から始まる場合に便利です。 |
 
 ### レイヤー定義
 
@@ -231,6 +232,17 @@ deny = ["infrastructure"]
 from = "application"
 allow = ["domain"]
 ```
+
+### Neutral prefixes（中立な接頭辞）
+
+プロジェクト内のすべてのモジュールが同じルートセグメント（`app.`, `src.` など）で始まる場合、その接頭辞がレイヤー名を覆い隠してしまいレイヤー判定に失敗することがあります。`neutral_prefixes` にそうしたセグメントを列挙すると、pyscn はモジュールをレイヤーに解決する前にそれらを取り除きます:
+
+```toml
+[architecture]
+neutral_prefixes = ["app", "src"]
+```
+
+この設定により、`app.routers.user_router` は `routers.user_router` として扱われ、`presentation` レイヤーに解決されます。
 
 ---
 
