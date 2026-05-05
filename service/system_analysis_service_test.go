@@ -23,6 +23,9 @@ class Entity:
 		"app/consumer.py": `
 import domain.core
 `,
+		"app/other_consumer.py": `
+import domain.core
+`,
 		"unused/contracts.py": `
 from abc import ABC
 import infra.db

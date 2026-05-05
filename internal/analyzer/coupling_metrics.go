@@ -176,6 +176,7 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics() {
 	})
 	systemMetrics.ZoneOfPain = calc.modulesMatching(func(metrics *ModuleMetrics) bool {
 		return metrics.Distance >= zoneMinDistance &&
+			metrics.AfferentCoupling >= 2 &&
 			metrics.Instability <= lowInstability &&
 			metrics.Abstractness <= lowAbstractness
 	})

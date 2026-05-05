@@ -651,7 +651,7 @@ func (ma *ModuleAnalyzer) nodeQualifiedName(node *parser.Node) string {
 				return ma.nodeQualifiedName(value)
 			}
 		}
-	case parser.NodeType("keyword_argument"):
+	case parser.NodeKeywordArgument:
 		if len(node.Children) >= 3 && ma.nodeQualifiedName(node.Children[0]) == "metaclass" {
 			return ma.nodeQualifiedName(node.Children[2])
 		}

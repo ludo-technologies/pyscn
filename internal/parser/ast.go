@@ -81,18 +81,19 @@ const (
 	NodeMatchOr        NodeType = "MatchOr"
 
 	// Other
-	NodeAlias         NodeType = "Alias"
-	NodeExceptHandler NodeType = "ExceptHandler"
-	NodeArguments     NodeType = "Arguments"
-	NodeArg           NodeType = "Arg"
-	NodeKeyword       NodeType = "Keyword"
-	NodeComprehension NodeType = "Comprehension"
-	NodeDecorator     NodeType = "Decorator"
-	NodeWithItem      NodeType = "WithItem"
-	NodeMatchCase     NodeType = "MatchCase"
-	NodeElseClause    NodeType = "else_clause" // Structural marker from parser
-	NodeElifClause    NodeType = "elif_clause" // Structural marker from parser
-	NodeBlock         NodeType = "block"       // Block of statements from parser
+	NodeAlias           NodeType = "Alias"
+	NodeExceptHandler   NodeType = "ExceptHandler"
+	NodeArguments       NodeType = "Arguments"
+	NodeArg             NodeType = "Arg"
+	NodeKeyword         NodeType = "Keyword"
+	NodeKeywordArgument NodeType = "keyword_argument"
+	NodeComprehension   NodeType = "Comprehension"
+	NodeDecorator       NodeType = "Decorator"
+	NodeWithItem        NodeType = "WithItem"
+	NodeMatchCase       NodeType = "MatchCase"
+	NodeElseClause      NodeType = "else_clause" // Structural marker from parser
+	NodeElifClause      NodeType = "elif_clause" // Structural marker from parser
+	NodeBlock           NodeType = "block"       // Block of statements from parser
 
 	// Tree-sitter specific nodes
 	NodeGenericType   NodeType = "generic_type"

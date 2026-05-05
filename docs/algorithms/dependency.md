@@ -302,7 +302,7 @@ pyscn reports zones with fixed thresholds:
 |---|---|
 | Stable module | `I <= 0.3` |
 | Unstable module | `I >= 0.7` |
-| Zone of Pain | `D >= 0.5`, `I <= 0.3`, and `A <= 0.3` |
+| Zone of Pain | `D >= 0.5`, `Ca >= 2`, `I <= 0.3`, and `A <= 0.3` |
 | Zone of Uselessness | `D >= 0.5`, `I >= 0.7`, and `A >= 0.7` |
 | Main Sequence | `D <= 0.2` |
 

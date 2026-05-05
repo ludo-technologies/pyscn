@@ -182,6 +182,8 @@ func TestExtractCouplingResult_ClassifiesMainSequenceZones(t *testing.T) {
 
 	consumer := graph.AddModule("app.consumer", "/test/app/consumer.py")
 	consumer.ClassCount = 1
+	otherConsumer := graph.AddModule("app.other_consumer", "/test/app/other_consumer.py")
+	otherConsumer.ClassCount = 1
 
 	useless := graph.AddModule("unused.contracts", "/test/unused/contracts.py")
 	useless.ClassCount = 2
@@ -197,6 +199,7 @@ func TestExtractCouplingResult_ClassifiesMainSequenceZones(t *testing.T) {
 	graph.AddModule("balanced.dep", "/test/balanced/dep.py")
 
 	graph.AddDependency("app.consumer", "domain.core", analyzer.DependencyEdgeImport, nil)
+	graph.AddDependency("app.other_consumer", "domain.core", analyzer.DependencyEdgeImport, nil)
 	graph.AddDependency("unused.contracts", "infra.db", analyzer.DependencyEdgeImport, nil)
 	graph.AddDependency("unused.contracts", "infra.cache", analyzer.DependencyEdgeImport, nil)
 	graph.AddDependency("balanced.client", "balanced.service", analyzer.DependencyEdgeImport, nil)
@@ -213,6 +216,9 @@ func TestExtractCouplingResult_ClassifiesMainSequenceZones(t *testing.T) {
 	assert.Contains(t, result.MainSequence, "balanced.service")
 	assert.Contains(t, result.StableModules, "domain.core")
 	assert.Contains(t, result.InstableModules, "unused.contracts")
+	assert.NotContains(t, result.ZoneOfPain, "infra.db")
+	assert.NotContains(t, result.ZoneOfPain, "infra.cache")
+	assert.NotContains(t, result.ZoneOfPain, "balanced.dep")
 }
 
 func TestExtractCouplingResult_DifferentGraphsProduceDifferentMetrics(t *testing.T) {
