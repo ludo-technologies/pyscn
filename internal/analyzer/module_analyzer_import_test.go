@@ -41,6 +41,65 @@ func TestModuleAnalyzerResolvesPlainImportWithinProject(t *testing.T) {
 	}
 }
 
+func TestModuleAnalyzerExtractsAbstractClassCount(t *testing.T) {
+	dir := t.TempDir()
+	modulePath := filepath.Join(dir, "contracts.py")
+	source := []byte(`
+from abc import ABC, ABCMeta, abstractmethod
+import abc
+
+class Repository(ABC):
+    pass
+
+class Service(abc.ABC):
+    pass
+
+class Controller(metaclass=ABCMeta):
+    pass
+
+class Worker:
+    @abstractmethod
+    def run(self):
+        pass
+
+class AsyncWorker:
+    @abc.abstractmethod
+    async def run(self):
+        pass
+
+class Concrete:
+    def run(self):
+        pass
+`)
+
+	if err := os.WriteFile(modulePath, source, 0o644); err != nil {
+		t.Fatalf("failed to write contracts module: %v", err)
+	}
+
+	analyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{ProjectRoot: dir})
+	if err != nil {
+		t.Fatalf("failed to create analyzer: %v", err)
+	}
+
+	graph, err := analyzer.AnalyzeFiles([]string{modulePath})
+	if err != nil {
+		t.Fatalf("AnalyzeFiles failed: %v", err)
+	}
+
+	moduleName := analyzer.filePathToModuleName(modulePath)
+	node := graph.Nodes[moduleName]
+	if node == nil {
+		t.Fatalf("expected module %s in graph", moduleName)
+	}
+
+	if node.ClassCount != 6 {
+		t.Fatalf("expected 6 classes, got %d", node.ClassCount)
+	}
+	if node.AbstractClassCount != 5 {
+		t.Fatalf("expected 5 abstract classes, got %d", node.AbstractClassCount)
+	}
+}
+
 func TestModuleAnalyzerResolvesImportWithAlias(t *testing.T) {
 	dir := t.TempDir()
 

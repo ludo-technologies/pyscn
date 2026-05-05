@@ -259,16 +259,17 @@ If `Ca + Ce = 0` (isolated module), instability defaults to 0.
 
 ### Abstractness (A)
 
-Abstractness measures the ratio of "abstract" public names to total public names in a module. A name is considered abstract if it matches one of these heuristics:
+Abstractness measures the ratio of abstract classes to total classes in a module. The analyzer reads the module AST and counts a class as abstract when it:
 
-- Ends with `Interface`, `Abstract`, `Base`, or `ABC`
-- Starts with `I` followed by an uppercase letter (e.g., `IRepository`)
+- Inherits from `ABC` or `abc.ABC`
+- Uses `ABCMeta` or `abc.ABCMeta` as its metaclass
+- Defines at least one method decorated with `@abstractmethod` or `@abc.abstractmethod`
 
 ```
-A = abstract_public_names / total_public_names
+A = abstract_classes / total_classes
 ```
 
-A value of 0 means entirely concrete; 1 means entirely abstract.
+A value of 0 means all classes are concrete. A value of 1 means all classes are abstract. Modules without classes use `A = 0`.
 
 ### Distance from Main Sequence (D)
 
@@ -294,6 +295,16 @@ quadrantChart
 | **Zone of Pain** | Low A, Low I (concrete + stable) | Hard to change because many modules depend on concrete implementations |
 | **Zone of Uselessness** | High A, High I (abstract + unstable) | Abstract modules that nobody uses |
 | **Main Sequence** | D close to 0 | Well-balanced -- abstractness matches stability |
+
+pyscn reports zones with fixed thresholds:
+
+| Classification | Condition |
+|---|---|
+| Stable module | `I <= 0.3` |
+| Unstable module | `I >= 0.7` |
+| Zone of Pain | `D >= 0.5`, `Ca >= 2`, `I <= 0.3`, and `A <= 0.3` |
+| Zone of Uselessness | `D >= 0.5`, `I >= 0.7`, and `A >= 0.7` |
+| Main Sequence | `D <= 0.2` |
 
 ### Risk Level Assignment
 

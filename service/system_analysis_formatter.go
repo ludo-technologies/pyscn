@@ -147,6 +147,15 @@ func (f *SystemAnalysisFormatterImpl) writeDependenciesSection(builder *strings.
 		if len(deps.CouplingAnalysis.HighlyCoupledModules) > 0 {
 			builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Highly Coupled", strings.Join(deps.CouplingAnalysis.HighlyCoupledModules[:min(3, len(deps.CouplingAnalysis.HighlyCoupledModules))], ", ")))
 		}
+		if len(deps.CouplingAnalysis.ZoneOfPain) > 0 {
+			builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Zone of Pain", strings.Join(deps.CouplingAnalysis.ZoneOfPain, ", ")))
+		}
+		if len(deps.CouplingAnalysis.ZoneOfUselessness) > 0 {
+			builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Zone of Uselessness", strings.Join(deps.CouplingAnalysis.ZoneOfUselessness, ", ")))
+		}
+		if len(deps.CouplingAnalysis.MainSequence) > 0 {
+			builder.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Main Sequence", strings.Join(deps.CouplingAnalysis.MainSequence, ", ")))
+		}
 		builder.WriteString("\n")
 	}
 
@@ -265,6 +274,10 @@ func (f *SystemAnalysisFormatterImpl) formatCSV(response *domain.SystemAnalysisR
 		if response.DependencyAnalysis.CouplingAnalysis != nil {
 			_ = writer.Write([]string{"Dependencies", "Average Coupling", fmt.Sprintf("%.2f", response.DependencyAnalysis.CouplingAnalysis.AverageCoupling)})
 			_ = writer.Write([]string{"Dependencies", "Average Instability", fmt.Sprintf("%.3f", response.DependencyAnalysis.CouplingAnalysis.AverageInstability)})
+			_ = writer.Write([]string{"Dependencies", "Main Sequence Deviation", fmt.Sprintf("%.3f", response.DependencyAnalysis.CouplingAnalysis.MainSequenceDeviation)})
+			_ = writer.Write([]string{"Dependencies", "Zone of Pain", strings.Join(response.DependencyAnalysis.CouplingAnalysis.ZoneOfPain, ";")})
+			_ = writer.Write([]string{"Dependencies", "Zone of Uselessness", strings.Join(response.DependencyAnalysis.CouplingAnalysis.ZoneOfUselessness, ";")})
+			_ = writer.Write([]string{"Dependencies", "Main Sequence", strings.Join(response.DependencyAnalysis.CouplingAnalysis.MainSequence, ";")})
 		}
 	}
 
@@ -488,6 +501,9 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
 		builder.WriteString(GenerateMetricCard(fmt.Sprintf("%.3f", deps.CouplingAnalysis.AverageInstability), "Average Instability"))
 		builder.WriteString(GenerateMetricCard(fmt.Sprintf("%.3f", deps.CouplingAnalysis.MainSequenceDeviation), "Main Sequence Deviation"))
 		builder.WriteString(`</div>`)
+		f.writeHTMLModuleList(builder, "Zone of Pain", deps.CouplingAnalysis.ZoneOfPain)
+		f.writeHTMLModuleList(builder, "Zone of Uselessness", deps.CouplingAnalysis.ZoneOfUselessness)
+		f.writeHTMLModuleList(builder, "Main Sequence", deps.CouplingAnalysis.MainSequence)
 	}
 
 	// Add detailed dependency list if available
@@ -675,6 +691,22 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
                 </tbody>
             </table>`)
 	}
+}
+
+func (f *SystemAnalysisFormatterImpl) writeHTMLModuleList(builder *strings.Builder, title string, modules []string) {
+	if len(modules) == 0 {
+		return
+	}
+
+	builder.WriteString(`<h4>`)
+	builder.WriteString(title)
+	builder.WriteString(`</h4><ul>`)
+	for _, module := range modules {
+		builder.WriteString(`<li><code>`)
+		builder.WriteString(module)
+		builder.WriteString(`</code></li>`)
+	}
+	builder.WriteString(`</ul>`)
 }
 
 func (f *SystemAnalysisFormatterImpl) writeHTMLArchitectureContent(builder *strings.Builder, arch *domain.ArchitectureAnalysisResult) {

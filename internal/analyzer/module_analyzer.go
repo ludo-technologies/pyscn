@@ -558,7 +558,7 @@ func (ma *ModuleAnalyzer) pathToModuleName(path string) string {
 
 // extractModuleInfo extracts information about the module from its AST
 func (ma *ModuleAnalyzer) extractModuleInfo(ast *parser.Node, module *ModuleNode) {
-	var functionCount, classCount int
+	var functionCount, classCount, abstractClassCount int
 	var publicNames []string
 
 	ma.walkNode(ast, func(node *parser.Node) bool {
@@ -570,6 +570,9 @@ func (ma *ModuleAnalyzer) extractModuleInfo(ast *parser.Node, module *ModuleNode
 			}
 		case parser.NodeClassDef:
 			classCount++
+			if ma.isAbstractClass(node) {
+				abstractClassCount++
+			}
 			if node.Name != "" && !strings.HasPrefix(node.Name, "_") {
 				publicNames = append(publicNames, node.Name)
 			}
@@ -580,12 +583,95 @@ func (ma *ModuleAnalyzer) extractModuleInfo(ast *parser.Node, module *ModuleNode
 	// Update module information
 	module.FunctionCount = functionCount
 	module.ClassCount = classCount
+	module.AbstractClassCount = abstractClassCount
 	module.PublicNames = publicNames
 
 	// Count lines (approximation)
 	if _, err := os.Stat(module.FilePath); err == nil {
 		module.LineCount = ma.estimateLineCount(module.FilePath)
 	}
+}
+
+func (ma *ModuleAnalyzer) isAbstractClass(classNode *parser.Node) bool {
+	for _, base := range classNode.Bases {
+		if ma.isAbstractClassName(ma.nodeQualifiedName(base)) {
+			return true
+		}
+	}
+
+	for _, child := range classNode.Body {
+		if ma.isAbstractMethod(child) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (ma *ModuleAnalyzer) isAbstractMethod(node *parser.Node) bool {
+	if node == nil || (node.Type != parser.NodeFunctionDef && node.Type != parser.NodeAsyncFunctionDef) {
+		return false
+	}
+
+	for _, decorator := range node.Decorator {
+		if ma.nodeQualifiedName(decorator) == "abstractmethod" || strings.HasSuffix(ma.nodeQualifiedName(decorator), ".abstractmethod") {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (ma *ModuleAnalyzer) isAbstractClassName(name string) bool {
+	switch name {
+	case "ABC", "abc.ABC", "ABCMeta", "abc.ABCMeta":
+		return true
+	default:
+		return false
+	}
+}
+
+func (ma *ModuleAnalyzer) nodeQualifiedName(node *parser.Node) string {
+	if node == nil {
+		return ""
+	}
+
+	switch node.Type {
+	case parser.NodeDecorator:
+		if value, ok := node.Value.(*parser.Node); ok {
+			return ma.nodeQualifiedName(value)
+		}
+	case parser.NodeCall:
+		if value, ok := node.Value.(*parser.Node); ok {
+			return ma.nodeQualifiedName(value)
+		}
+	case parser.NodeKeyword:
+		if node.Name == "metaclass" {
+			if value, ok := node.Value.(*parser.Node); ok {
+				return ma.nodeQualifiedName(value)
+			}
+		}
+	case parser.NodeKeywordArgument:
+		if len(node.Children) >= 3 && ma.nodeQualifiedName(node.Children[0]) == "metaclass" {
+			return ma.nodeQualifiedName(node.Children[2])
+		}
+	case parser.NodeName:
+		return node.Name
+	case parser.NodeAttribute:
+		left := ""
+		if value, ok := node.Value.(*parser.Node); ok {
+			left = ma.nodeQualifiedName(value)
+		}
+		if left == "" && node.Left != nil {
+			left = ma.nodeQualifiedName(node.Left)
+		}
+		if left == "" {
+			return node.Name
+		}
+		return left + "." + node.Name
+	}
+
+	return ""
 }
 
 // shouldIncludeDependency checks if a dependency should be included

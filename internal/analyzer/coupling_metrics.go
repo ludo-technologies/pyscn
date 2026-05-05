@@ -5,6 +5,15 @@ import (
 	"sort"
 )
 
+const (
+	mainSequenceMaxDistance = 0.2
+	zoneMinDistance         = 0.5
+	lowInstability          = 0.3
+	highInstability         = 0.7
+	lowAbstractness         = 0.3
+	highAbstractness        = 0.7
+)
+
 // CouplingMetricsCalculator calculates various coupling and quality metrics for modules
 type CouplingMetricsCalculator struct {
 	graph *DependencyGraph
@@ -89,6 +98,8 @@ func (calc *CouplingMetricsCalculator) calculateModuleMetrics(moduleName string,
 
 	// Size metrics
 	metrics.LinesOfCode = node.LineCount
+	metrics.ClassCount = node.ClassCount
+	metrics.AbstractClassCount = node.AbstractClassCount
 	metrics.PublicInterface = len(node.PublicNames)
 
 	// Quality metrics from external data
@@ -101,47 +112,11 @@ func (calc *CouplingMetricsCalculator) calculateModuleMetrics(moduleName string,
 
 // calculateAbstractness calculates the abstractness of a module
 func (calc *CouplingMetricsCalculator) calculateAbstractness(node *ModuleNode) float64 {
-	if len(node.PublicNames) == 0 {
-		return 0.0 // No public interface = not abstract
+	if node.ClassCount == 0 {
+		return 0.0
 	}
 
-	// Simple heuristic: count abstract/interface-like public names
-	abstractCount := 0
-	for _, name := range node.PublicNames {
-		// Heuristics for abstractness:
-		// - Names ending with "Interface", "Abstract", "Base"
-		// - Names starting with "I" followed by uppercase (IService)
-		// - Functions with "abc" decorators would need AST analysis
-		if calc.isAbstractName(name) {
-			abstractCount++
-		}
-	}
-
-	return float64(abstractCount) / float64(len(node.PublicNames))
-}
-
-// isAbstractName checks if a name suggests abstractness
-func (calc *CouplingMetricsCalculator) isAbstractName(name string) bool {
-	abstractPrefixes := []string{"I"} // Interface naming convention
-	abstractSuffixes := []string{"Interface", "Abstract", "Base", "ABC"}
-
-	// Check suffixes
-	for _, suffix := range abstractSuffixes {
-		if len(name) > len(suffix) && name[len(name)-len(suffix):] == suffix {
-			return true
-		}
-	}
-
-	// Check prefixes (IService, IRepository, etc.)
-	for _, prefix := range abstractPrefixes {
-		if len(name) > len(prefix)+1 &&
-			name[:len(prefix)] == prefix &&
-			name[len(prefix)] >= 'A' && name[len(prefix)] <= 'Z' {
-			return true
-		}
-	}
-
-	return false
+	return float64(node.AbstractClassCount) / float64(node.ClassCount)
 }
 
 // calculateSystemMetrics calculates system-wide metrics
@@ -193,6 +168,47 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics() {
 
 	// Identify refactoring priorities
 	systemMetrics.RefactoringPriority = calc.identifyRefactoringPriorities()
+	systemMetrics.StableModules = calc.modulesMatching(isStableModule)
+	systemMetrics.InstableModules = calc.modulesMatching(isInstableModule)
+	systemMetrics.ZoneOfPain = calc.modulesMatching(isZoneOfPain)
+	systemMetrics.ZoneOfUselessness = calc.modulesMatching(isZoneOfUselessness)
+	systemMetrics.MainSequence = calc.modulesMatching(isOnMainSequence)
+}
+
+func isStableModule(metrics *ModuleMetrics) bool {
+	return metrics.Instability <= lowInstability
+}
+
+func isInstableModule(metrics *ModuleMetrics) bool {
+	return metrics.Instability >= highInstability
+}
+
+func isZoneOfPain(metrics *ModuleMetrics) bool {
+	return metrics.Distance >= zoneMinDistance &&
+		metrics.AfferentCoupling >= 2 &&
+		metrics.Instability <= lowInstability &&
+		metrics.Abstractness <= lowAbstractness
+}
+
+func isZoneOfUselessness(metrics *ModuleMetrics) bool {
+	return metrics.Distance >= zoneMinDistance &&
+		metrics.Instability >= highInstability &&
+		metrics.Abstractness >= highAbstractness
+}
+
+func isOnMainSequence(metrics *ModuleMetrics) bool {
+	return metrics.Distance <= mainSequenceMaxDistance
+}
+
+func (calc *CouplingMetricsCalculator) modulesMatching(match func(*ModuleMetrics) bool) []string {
+	modules := make([]string, 0)
+	for moduleName, metrics := range calc.graph.ModuleMetrics {
+		if metrics != nil && match(metrics) {
+			modules = append(modules, moduleName)
+		}
+	}
+	sort.Strings(modules)
+	return modules
 }
 
 // calculateModularityIndex calculates the modularity index of the system

@@ -1102,6 +1102,50 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     {{end}}
                 </div>
 
+                {{if .System.DependencyAnalysis.CouplingAnalysis}}
+                <h3 style="margin-top: 30px;">Main Sequence</h3>
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">{{printf "%.3f" .System.DependencyAnalysis.CouplingAnalysis.AverageInstability}}</div>
+                        <div class="metric-label">Average Instability</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{printf "%.3f" .System.DependencyAnalysis.CouplingAnalysis.MainSequenceDeviation}}</div>
+                        <div class="metric-label">Main Sequence Deviation</div>
+                    </div>
+                </div>
+                {{if or .System.DependencyAnalysis.CouplingAnalysis.ZoneOfPain .System.DependencyAnalysis.CouplingAnalysis.ZoneOfUselessness .System.DependencyAnalysis.CouplingAnalysis.MainSequence}}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Zone</th>
+                            <th>Modules</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{if .System.DependencyAnalysis.CouplingAnalysis.ZoneOfPain}}
+                        <tr>
+                            <td>Zone of Pain</td>
+                            <td>{{join .System.DependencyAnalysis.CouplingAnalysis.ZoneOfPain ", "}}</td>
+                        </tr>
+                        {{end}}
+                        {{if .System.DependencyAnalysis.CouplingAnalysis.ZoneOfUselessness}}
+                        <tr>
+                            <td>Zone of Uselessness</td>
+                            <td>{{join .System.DependencyAnalysis.CouplingAnalysis.ZoneOfUselessness ", "}}</td>
+                        </tr>
+                        {{end}}
+                        {{if .System.DependencyAnalysis.CouplingAnalysis.MainSequence}}
+                        <tr>
+                            <td>Main Sequence</td>
+                            <td>{{join .System.DependencyAnalysis.CouplingAnalysis.MainSequence ", "}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+                {{end}}
+                {{end}}
+
                 {{/* Circular Dependencies Details Section */}}
                 {{if .System.DependencyAnalysis.CircularDependencies}}
                 <h3 style="margin-top: 30px;">Circular Dependencies</h3>

@@ -1,6 +1,10 @@
 package service
 
 import (
+	"context"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -8,6 +12,106 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestAnalyzeDependenciesReportsMainSequenceMetricsFromPythonProject(t *testing.T) {
+	dir := t.TempDir()
+	files := map[string]string{
+		"domain/core.py": `
+class Entity:
+    pass
+`,
+		"app/consumer.py": `
+import domain.core
+`,
+		"app/other_consumer.py": `
+import domain.core
+`,
+		"unused/contracts.py": `
+from abc import ABC
+import infra.db
+import infra.cache
+
+class Port(ABC):
+    pass
+
+class Gateway(ABC):
+    pass
+`,
+		"infra/db.py": `
+class Database:
+    pass
+`,
+		"infra/cache.py": `
+class Cache:
+    pass
+`,
+		"balanced/client.py": `
+import balanced.service
+`,
+		"balanced/service.py": `
+from abc import ABC
+import balanced.dep
+
+class Port(ABC):
+    pass
+
+class Service:
+    pass
+`,
+		"balanced/dep.py": `
+class Dependency:
+    pass
+`,
+	}
+
+	var paths []string
+	for name, content := range files {
+		path := filepath.Join(dir, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("failed to create directory for %s: %v", name, err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatalf("failed to write %s: %v", name, err)
+		}
+		paths = append(paths, path)
+	}
+
+	service := NewSystemAnalysisService()
+	response, err := service.AnalyzeDependencies(context.Background(), domain.SystemAnalysisRequest{
+		Paths:             paths,
+		IncludeThirdParty: domain.BoolPtr(false),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, response.CouplingAnalysis)
+
+	domainCore := moduleWithSuffix(t, response.ModuleMetrics, "domain.core")
+	unusedContracts := moduleWithSuffix(t, response.ModuleMetrics, "unused.contracts")
+	balancedService := moduleWithSuffix(t, response.ModuleMetrics, "balanced.service")
+
+	assert.Contains(t, response.CouplingAnalysis.ZoneOfPain, domainCore)
+	assert.Contains(t, response.CouplingAnalysis.ZoneOfUselessness, unusedContracts)
+	assert.Contains(t, response.CouplingAnalysis.MainSequence, balancedService)
+
+	assert.Equal(t, 2, response.ModuleMetrics[unusedContracts].ClassCount)
+	assert.Equal(t, 2, response.ModuleMetrics[unusedContracts].AbstractClassCount)
+	assert.InDelta(t, 1.0, response.ModuleMetrics[unusedContracts].Abstractness, 0.01)
+
+	assert.Equal(t, 2, response.ModuleMetrics[balancedService].ClassCount)
+	assert.Equal(t, 1, response.ModuleMetrics[balancedService].AbstractClassCount)
+	assert.InDelta(t, 0.5, response.ModuleMetrics[balancedService].Abstractness, 0.01)
+	assert.InDelta(t, 0.0, response.ModuleMetrics[balancedService].Distance, 0.01)
+}
+
+func moduleWithSuffix(t *testing.T, modules map[string]*domain.ModuleDependencyMetrics, suffix string) string {
+	t.Helper()
+	for module := range modules {
+		if strings.HasSuffix(module, suffix) {
+			return module
+		}
+	}
+	t.Fatalf("expected module ending with %q in %v", suffix, modules)
+	return ""
+}
 
 func TestExtractModuleMetrics(t *testing.T) {
 	tests := []struct {
@@ -27,6 +131,7 @@ func TestExtractModuleMetrics(t *testing.T) {
 				module.LineCount = 150
 				module.FunctionCount = 10
 				module.ClassCount = 3
+				module.AbstractClassCount = 1
 				module.PublicNames = []string{"TestClass", "test_function", "CONSTANT"}
 
 				// Add dependencies
@@ -49,6 +154,7 @@ func TestExtractModuleMetrics(t *testing.T) {
 				assert.Equal(t, 150, metrics.LinesOfCode)
 				assert.Equal(t, 10, metrics.FunctionCount)
 				assert.Equal(t, 3, metrics.ClassCount)
+				assert.Equal(t, 1, metrics.AbstractClassCount)
 				assert.Equal(t, []string{"TestClass", "test_function", "CONSTANT"}, metrics.PublicInterface)
 
 				// Dependencies
@@ -96,6 +202,7 @@ func TestExtractModuleMetrics(t *testing.T) {
 				module.LineCount = 200
 				module.FunctionCount = 15
 				module.ClassCount = 5
+				module.AbstractClassCount = 2
 				module.PublicNames = []string{"AnalyzedClass", "process", "validate"}
 				module.InDegree = 3
 				module.OutDegree = 2
@@ -109,6 +216,7 @@ func TestExtractModuleMetrics(t *testing.T) {
 					Abstractness:         0.3,
 					Distance:             0.5, // Medium risk threshold
 					LinesOfCode:          200,
+					AbstractClassCount:   2,
 					PublicInterface:      3,
 					CyclomaticComplexity: 10,
 				}
@@ -124,6 +232,7 @@ func TestExtractModuleMetrics(t *testing.T) {
 				assert.Equal(t, 200, metrics.LinesOfCode)
 				assert.Equal(t, 15, metrics.FunctionCount)
 				assert.Equal(t, 5, metrics.ClassCount)
+				assert.Equal(t, 2, metrics.AbstractClassCount)
 				assert.Equal(t, []string{"AnalyzedClass", "process", "validate"}, metrics.PublicInterface)
 
 				// Analyzer metrics should be used
