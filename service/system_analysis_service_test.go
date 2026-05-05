@@ -1,6 +1,10 @@
 package service
 
 import (
+	"context"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -8,6 +12,103 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestAnalyzeDependenciesReportsMainSequenceMetricsFromPythonProject(t *testing.T) {
+	dir := t.TempDir()
+	files := map[string]string{
+		"domain/core.py": `
+class Entity:
+    pass
+`,
+		"app/consumer.py": `
+import domain.core
+`,
+		"unused/contracts.py": `
+from abc import ABC
+import infra.db
+import infra.cache
+
+class Port(ABC):
+    pass
+
+class Gateway(ABC):
+    pass
+`,
+		"infra/db.py": `
+class Database:
+    pass
+`,
+		"infra/cache.py": `
+class Cache:
+    pass
+`,
+		"balanced/client.py": `
+import balanced.service
+`,
+		"balanced/service.py": `
+from abc import ABC
+import balanced.dep
+
+class Port(ABC):
+    pass
+
+class Service:
+    pass
+`,
+		"balanced/dep.py": `
+class Dependency:
+    pass
+`,
+	}
+
+	var paths []string
+	for name, content := range files {
+		path := filepath.Join(dir, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("failed to create directory for %s: %v", name, err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatalf("failed to write %s: %v", name, err)
+		}
+		paths = append(paths, path)
+	}
+
+	service := NewSystemAnalysisService()
+	response, err := service.AnalyzeDependencies(context.Background(), domain.SystemAnalysisRequest{
+		Paths:             paths,
+		IncludeThirdParty: domain.BoolPtr(false),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, response.CouplingAnalysis)
+
+	domainCore := moduleWithSuffix(t, response.ModuleMetrics, "domain.core")
+	unusedContracts := moduleWithSuffix(t, response.ModuleMetrics, "unused.contracts")
+	balancedService := moduleWithSuffix(t, response.ModuleMetrics, "balanced.service")
+
+	assert.Contains(t, response.CouplingAnalysis.ZoneOfPain, domainCore)
+	assert.Contains(t, response.CouplingAnalysis.ZoneOfUselessness, unusedContracts)
+	assert.Contains(t, response.CouplingAnalysis.MainSequence, balancedService)
+
+	assert.Equal(t, 2, response.ModuleMetrics[unusedContracts].ClassCount)
+	assert.Equal(t, 2, response.ModuleMetrics[unusedContracts].AbstractClassCount)
+	assert.InDelta(t, 1.0, response.ModuleMetrics[unusedContracts].Abstractness, 0.01)
+
+	assert.Equal(t, 2, response.ModuleMetrics[balancedService].ClassCount)
+	assert.Equal(t, 1, response.ModuleMetrics[balancedService].AbstractClassCount)
+	assert.InDelta(t, 0.5, response.ModuleMetrics[balancedService].Abstractness, 0.01)
+	assert.InDelta(t, 0.0, response.ModuleMetrics[balancedService].Distance, 0.01)
+}
+
+func moduleWithSuffix(t *testing.T, modules map[string]*domain.ModuleDependencyMetrics, suffix string) string {
+	t.Helper()
+	for module := range modules {
+		if strings.HasSuffix(module, suffix) {
+			return module
+		}
+	}
+	t.Fatalf("expected module ending with %q in %v", suffix, modules)
+	return ""
+}
 
 func TestExtractModuleMetrics(t *testing.T) {
 	tests := []struct {
