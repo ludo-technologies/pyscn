@@ -591,11 +591,12 @@ Mirrors `domain.SystemAnalysisResponse`. Nested field names are Go PascalCase.
 | `LinesOfCode`            | integer | Total lines of code.                                     |
 | `FunctionCount`          | integer | Number of functions.                                     |
 | `ClassCount`             | integer | Number of classes.                                       |
+| `AbstractClassCount`     | integer | Number of abstract classes.                              |
 | `PublicInterface`        | array of string | Names in `__all__` or top-level public names.    |
 | `AfferentCoupling`       | integer | Ca — modules depending on this one.                      |
 | `EfferentCoupling`       | integer | Ce — modules this one depends on.                        |
 | `Instability`            | number  | `I = Ce / (Ca + Ce)`, `0`–`1`.                           |
-| `Abstractness`           | number  | A — abstract elements / total elements, `0`–`1`.         |
+| `Abstractness`           | number  | A — abstract classes / total classes, `0`–`1`.           |
 | `Distance`               | number  | `D = |A + I - 1|`, `0`–`1`. Distance from main sequence. |
 | `Maintainability`        | number  | Maintainability index, `0`–`100`.                        |
 | `TechnicalDebt`          | number  | Estimated technical debt in hours.                       |
