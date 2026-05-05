@@ -1356,10 +1356,11 @@ func (s *SystemAnalysisServiceImpl) extractModuleMetrics(graph *analyzer.Depende
 			Package:    node.Package,
 
 			// Size metrics from node
-			LinesOfCode:     node.LineCount,
-			FunctionCount:   node.FunctionCount,
-			ClassCount:      node.ClassCount,
-			PublicInterface: node.PublicNames,
+			LinesOfCode:        node.LineCount,
+			FunctionCount:      node.FunctionCount,
+			ClassCount:         node.ClassCount,
+			AbstractClassCount: node.AbstractClassCount,
+			PublicInterface:    node.PublicNames,
 
 			// Dependencies
 			DirectDependencies:     s.getDirectDependencies(moduleName, node),
@@ -1374,6 +1375,7 @@ func (s *SystemAnalysisServiceImpl) extractModuleMetrics(graph *analyzer.Depende
 			metrics.Instability = analyzerMetrics.Instability
 			metrics.Abstractness = analyzerMetrics.Abstractness
 			metrics.Distance = analyzerMetrics.Distance
+			metrics.AbstractClassCount = analyzerMetrics.AbstractClassCount
 
 			// Determine risk level based on distance
 			if analyzerMetrics.Distance > 0.7 {

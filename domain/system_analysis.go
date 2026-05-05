@@ -132,10 +132,11 @@ type ModuleDependencyMetrics struct {
 	IsPackage  bool   // True if this is a package
 
 	// Size metrics
-	LinesOfCode     int      // Total lines of code
-	FunctionCount   int      // Number of functions
-	ClassCount      int      // Number of classes
-	PublicInterface []string // Public names exported
+	LinesOfCode        int      // Total lines of code
+	FunctionCount      int      // Number of functions
+	ClassCount         int      // Number of classes
+	AbstractClassCount int      // Number of abstract classes
+	PublicInterface    []string // Public names exported
 
 	// Coupling metrics (Robert Martin's metrics)
 	AfferentCoupling int     // Ca - modules that depend on this one

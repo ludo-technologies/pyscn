@@ -27,10 +27,11 @@ type ModuleNode struct {
 	OutDegree int // Number of outgoing dependencies
 
 	// Module information
-	LineCount     int      // Total lines in the module
-	FunctionCount int      // Number of functions defined
-	ClassCount    int      // Number of classes defined
-	PublicNames   []string // Public names exported by this module
+	LineCount          int      // Total lines in the module
+	FunctionCount      int      // Number of functions defined
+	ClassCount         int      // Number of classes defined
+	AbstractClassCount int      // Number of abstract classes defined
+	PublicNames        []string // Public names exported by this module
 }
 
 // DependencyEdge represents a dependency relationship between modules
@@ -91,8 +92,10 @@ type ModuleMetrics struct {
 	Distance         float64 // D - Distance from main sequence
 
 	// Size metrics
-	LinesOfCode     int // Total lines of code
-	PublicInterface int // Number of public functions/classes
+	LinesOfCode        int // Total lines of code
+	ClassCount         int // Number of classes
+	AbstractClassCount int // Number of abstract classes
+	PublicInterface    int // Number of public functions/classes
 
 	// Quality metrics
 	CyclomaticComplexity int // Average complexity of functions

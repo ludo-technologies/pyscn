@@ -27,6 +27,7 @@ func TestExtractModuleMetrics(t *testing.T) {
 				module.LineCount = 150
 				module.FunctionCount = 10
 				module.ClassCount = 3
+				module.AbstractClassCount = 1
 				module.PublicNames = []string{"TestClass", "test_function", "CONSTANT"}
 
 				// Add dependencies
@@ -49,6 +50,7 @@ func TestExtractModuleMetrics(t *testing.T) {
 				assert.Equal(t, 150, metrics.LinesOfCode)
 				assert.Equal(t, 10, metrics.FunctionCount)
 				assert.Equal(t, 3, metrics.ClassCount)
+				assert.Equal(t, 1, metrics.AbstractClassCount)
 				assert.Equal(t, []string{"TestClass", "test_function", "CONSTANT"}, metrics.PublicInterface)
 
 				// Dependencies
@@ -96,6 +98,7 @@ func TestExtractModuleMetrics(t *testing.T) {
 				module.LineCount = 200
 				module.FunctionCount = 15
 				module.ClassCount = 5
+				module.AbstractClassCount = 2
 				module.PublicNames = []string{"AnalyzedClass", "process", "validate"}
 				module.InDegree = 3
 				module.OutDegree = 2
@@ -109,6 +112,7 @@ func TestExtractModuleMetrics(t *testing.T) {
 					Abstractness:         0.3,
 					Distance:             0.5, // Medium risk threshold
 					LinesOfCode:          200,
+					AbstractClassCount:   2,
 					PublicInterface:      3,
 					CyclomaticComplexity: 10,
 				}
@@ -124,6 +128,7 @@ func TestExtractModuleMetrics(t *testing.T) {
 				assert.Equal(t, 200, metrics.LinesOfCode)
 				assert.Equal(t, 15, metrics.FunctionCount)
 				assert.Equal(t, 5, metrics.ClassCount)
+				assert.Equal(t, 2, metrics.AbstractClassCount)
 				assert.Equal(t, []string{"AnalyzedClass", "process", "validate"}, metrics.PublicInterface)
 
 				// Analyzer metrics should be used
