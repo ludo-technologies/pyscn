@@ -129,6 +129,11 @@ type SystemMetrics struct {
 
 	// Refactoring
 	RefactoringPriority []string // Modules needing refactoring (highest priority first)
+	StableModules       []string // Low instability modules
+	InstableModules     []string // High instability modules
+	ZoneOfPain          []string // Stable concrete modules far from the main sequence
+	ZoneOfUselessness   []string // Unstable abstract modules far from the main sequence
+	MainSequence        []string // Modules close to A + I = 1
 }
 
 // NewDependencyGraph creates a new dependency graph

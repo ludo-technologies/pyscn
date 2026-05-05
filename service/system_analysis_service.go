@@ -1187,8 +1187,11 @@ func (s *SystemAnalysisServiceImpl) convertCouplingResults(results *analyzer.Sys
 		AverageInstability:    results.AverageInstability,
 		MainSequenceDeviation: results.MainSequenceDeviation,
 		HighlyCoupledModules:  highlyCoupled,
-		ZoneOfPain:            s.extractZoneOfPain(results),
-		ZoneOfUselessness:     s.extractZoneOfUselessness(results),
+		StableModules:         results.StableModules,
+		InstableModules:       results.InstableModules,
+		ZoneOfPain:            results.ZoneOfPain,
+		ZoneOfUselessness:     results.ZoneOfUselessness,
+		MainSequence:          results.MainSequence,
 	}
 }
 
@@ -1242,21 +1245,6 @@ func (s *SystemAnalysisServiceImpl) convertCircularResults(result *analyzer.Circ
 // Removed legacy helpers for ad-hoc layer counting.
 
 // Removed helper methods that used undefined domain types
-
-func (s *SystemAnalysisServiceImpl) extractZoneOfPain(metrics *analyzer.SystemMetrics) []string {
-	// Zone of pain: high coupling, low abstractness
-	// For now, return refactoring priorities as a proxy
-	if len(metrics.RefactoringPriority) > 3 {
-		return metrics.RefactoringPriority[:3]
-	}
-	return metrics.RefactoringPriority
-}
-
-func (s *SystemAnalysisServiceImpl) extractZoneOfUselessness(metrics *analyzer.SystemMetrics) []string {
-	// Zone of uselessness: low coupling, high abstractness
-	// This would require more detailed analysis of individual modules
-	return []string{}
-}
 
 // convertDependencyChains converts analyzer.DependencyChain to domain.DependencyPath
 func (s *SystemAnalysisServiceImpl) convertDependencyChains(chains []analyzer.DependencyChain) []domain.DependencyPath {

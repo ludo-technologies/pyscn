@@ -5,6 +5,15 @@ import (
 	"sort"
 )
 
+const (
+	mainSequenceMaxDistance = 0.2
+	zoneMinDistance         = 0.5
+	lowInstability          = 0.3
+	highInstability         = 0.7
+	lowAbstractness         = 0.3
+	highAbstractness        = 0.7
+)
+
 // CouplingMetricsCalculator calculates various coupling and quality metrics for modules
 type CouplingMetricsCalculator struct {
 	graph *DependencyGraph
@@ -159,6 +168,36 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics() {
 
 	// Identify refactoring priorities
 	systemMetrics.RefactoringPriority = calc.identifyRefactoringPriorities()
+	systemMetrics.StableModules = calc.modulesMatching(func(metrics *ModuleMetrics) bool {
+		return metrics.Instability <= lowInstability
+	})
+	systemMetrics.InstableModules = calc.modulesMatching(func(metrics *ModuleMetrics) bool {
+		return metrics.Instability >= highInstability
+	})
+	systemMetrics.ZoneOfPain = calc.modulesMatching(func(metrics *ModuleMetrics) bool {
+		return metrics.Distance >= zoneMinDistance &&
+			metrics.Instability <= lowInstability &&
+			metrics.Abstractness <= lowAbstractness
+	})
+	systemMetrics.ZoneOfUselessness = calc.modulesMatching(func(metrics *ModuleMetrics) bool {
+		return metrics.Distance >= zoneMinDistance &&
+			metrics.Instability >= highInstability &&
+			metrics.Abstractness >= highAbstractness
+	})
+	systemMetrics.MainSequence = calc.modulesMatching(func(metrics *ModuleMetrics) bool {
+		return metrics.Distance <= mainSequenceMaxDistance
+	})
+}
+
+func (calc *CouplingMetricsCalculator) modulesMatching(match func(*ModuleMetrics) bool) []string {
+	modules := make([]string, 0)
+	for moduleName, metrics := range calc.graph.ModuleMetrics {
+		if metrics != nil && match(metrics) {
+			modules = append(modules, moduleName)
+		}
+	}
+	sort.Strings(modules)
+	return modules
 }
 
 // calculateModularityIndex calculates the modularity index of the system

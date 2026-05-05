@@ -173,6 +173,48 @@ func TestExtractCouplingResult_UsesCalculatedMetrics(t *testing.T) {
 	assert.Len(t, graph.ModuleMetrics, 3)
 }
 
+func TestExtractCouplingResult_ClassifiesMainSequenceZones(t *testing.T) {
+	service := &SystemAnalysisServiceImpl{}
+	graph := analyzer.NewDependencyGraph("/test/project")
+
+	pain := graph.AddModule("domain.core", "/test/domain/core.py")
+	pain.ClassCount = 2
+
+	consumer := graph.AddModule("app.consumer", "/test/app/consumer.py")
+	consumer.ClassCount = 1
+
+	useless := graph.AddModule("unused.contracts", "/test/unused/contracts.py")
+	useless.ClassCount = 2
+	useless.AbstractClassCount = 2
+
+	mainSequence := graph.AddModule("balanced.service", "/test/balanced/service.py")
+	mainSequence.ClassCount = 2
+	mainSequence.AbstractClassCount = 1
+
+	graph.AddModule("infra.db", "/test/infra/db.py")
+	graph.AddModule("infra.cache", "/test/infra/cache.py")
+	graph.AddModule("balanced.client", "/test/balanced/client.py")
+	graph.AddModule("balanced.dep", "/test/balanced/dep.py")
+
+	graph.AddDependency("app.consumer", "domain.core", analyzer.DependencyEdgeImport, nil)
+	graph.AddDependency("unused.contracts", "infra.db", analyzer.DependencyEdgeImport, nil)
+	graph.AddDependency("unused.contracts", "infra.cache", analyzer.DependencyEdgeImport, nil)
+	graph.AddDependency("balanced.client", "balanced.service", analyzer.DependencyEdgeImport, nil)
+	graph.AddDependency("balanced.service", "balanced.dep", analyzer.DependencyEdgeImport, nil)
+
+	calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
+	err := calculator.CalculateMetrics()
+	require.NoError(t, err)
+
+	result := service.convertCouplingResults(graph.SystemMetrics)
+	require.NotNil(t, result)
+	assert.Contains(t, result.ZoneOfPain, "domain.core")
+	assert.Contains(t, result.ZoneOfUselessness, "unused.contracts")
+	assert.Contains(t, result.MainSequence, "balanced.service")
+	assert.Contains(t, result.StableModules, "domain.core")
+	assert.Contains(t, result.InstableModules, "unused.contracts")
+}
+
 func TestExtractCouplingResult_DifferentGraphsProduceDifferentMetrics(t *testing.T) {
 	service := &SystemAnalysisServiceImpl{}
 
