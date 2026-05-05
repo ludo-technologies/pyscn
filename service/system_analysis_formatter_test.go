@@ -39,6 +39,46 @@ func TestSystemAnalysisFormatterIncludesResponsibilityAnalysisHTML(t *testing.T)
 	assert.False(t, strings.Contains(output, "<nil>"))
 }
 
+func TestSystemAnalysisFormatterIncludesMainSequenceZones(t *testing.T) {
+	formatter := NewSystemAnalysisFormatter()
+	response := &domain.SystemAnalysisResponse{
+		DependencyAnalysis: &domain.DependencyAnalysisResult{
+			TotalModules:      3,
+			TotalDependencies: 2,
+			CouplingAnalysis: &domain.CouplingAnalysis{
+				AverageCoupling:       1.5,
+				AverageInstability:    0.4,
+				MainSequenceDeviation: 0.2,
+				ZoneOfPain:            []string{"domain.core"},
+				ZoneOfUselessness:     []string{"unused.contracts"},
+				MainSequence:          []string{"balanced.service"},
+			},
+		},
+	}
+
+	textOutput, err := formatter.Format(response, domain.OutputFormatText)
+	require.NoError(t, err)
+	assert.Contains(t, textOutput, "Zone of Pain")
+	assert.Contains(t, textOutput, "domain.core")
+	assert.Contains(t, textOutput, "Zone of Uselessness")
+	assert.Contains(t, textOutput, "unused.contracts")
+	assert.Contains(t, textOutput, "Main Sequence")
+	assert.Contains(t, textOutput, "balanced.service")
+
+	htmlOutput, err := formatter.Format(response, domain.OutputFormatHTML)
+	require.NoError(t, err)
+	assert.Contains(t, htmlOutput, "Zone of Pain")
+	assert.Contains(t, htmlOutput, "domain.core")
+	assert.Contains(t, htmlOutput, "Zone of Uselessness")
+	assert.Contains(t, htmlOutput, "unused.contracts")
+
+	csvOutput, err := formatter.Format(response, domain.OutputFormatCSV)
+	require.NoError(t, err)
+	assert.Contains(t, csvOutput, "Zone of Pain,domain.core")
+	assert.Contains(t, csvOutput, "Zone of Uselessness,unused.contracts")
+	assert.Contains(t, csvOutput, "Main Sequence,balanced.service")
+}
+
 func systemResponseWithResponsibilityViolation() *domain.SystemAnalysisResponse {
 	return &domain.SystemAnalysisResponse{
 		ArchitectureAnalysis: &domain.ArchitectureAnalysisResult{
