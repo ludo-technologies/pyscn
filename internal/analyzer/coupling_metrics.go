@@ -168,26 +168,36 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics() {
 
 	// Identify refactoring priorities
 	systemMetrics.RefactoringPriority = calc.identifyRefactoringPriorities()
-	systemMetrics.StableModules = calc.modulesMatching(func(metrics *ModuleMetrics) bool {
-		return metrics.Instability <= lowInstability
-	})
-	systemMetrics.InstableModules = calc.modulesMatching(func(metrics *ModuleMetrics) bool {
-		return metrics.Instability >= highInstability
-	})
-	systemMetrics.ZoneOfPain = calc.modulesMatching(func(metrics *ModuleMetrics) bool {
-		return metrics.Distance >= zoneMinDistance &&
-			metrics.AfferentCoupling >= 2 &&
-			metrics.Instability <= lowInstability &&
-			metrics.Abstractness <= lowAbstractness
-	})
-	systemMetrics.ZoneOfUselessness = calc.modulesMatching(func(metrics *ModuleMetrics) bool {
-		return metrics.Distance >= zoneMinDistance &&
-			metrics.Instability >= highInstability &&
-			metrics.Abstractness >= highAbstractness
-	})
-	systemMetrics.MainSequence = calc.modulesMatching(func(metrics *ModuleMetrics) bool {
-		return metrics.Distance <= mainSequenceMaxDistance
-	})
+	systemMetrics.StableModules = calc.modulesMatching(isStableModule)
+	systemMetrics.InstableModules = calc.modulesMatching(isInstableModule)
+	systemMetrics.ZoneOfPain = calc.modulesMatching(isZoneOfPain)
+	systemMetrics.ZoneOfUselessness = calc.modulesMatching(isZoneOfUselessness)
+	systemMetrics.MainSequence = calc.modulesMatching(isOnMainSequence)
+}
+
+func isStableModule(metrics *ModuleMetrics) bool {
+	return metrics.Instability <= lowInstability
+}
+
+func isInstableModule(metrics *ModuleMetrics) bool {
+	return metrics.Instability >= highInstability
+}
+
+func isZoneOfPain(metrics *ModuleMetrics) bool {
+	return metrics.Distance >= zoneMinDistance &&
+		metrics.AfferentCoupling >= 2 &&
+		metrics.Instability <= lowInstability &&
+		metrics.Abstractness <= lowAbstractness
+}
+
+func isZoneOfUselessness(metrics *ModuleMetrics) bool {
+	return metrics.Distance >= zoneMinDistance &&
+		metrics.Instability >= highInstability &&
+		metrics.Abstractness >= highAbstractness
+}
+
+func isOnMainSequence(metrics *ModuleMetrics) bool {
+	return metrics.Distance <= mainSequenceMaxDistance
 }
 
 func (calc *CouplingMetricsCalculator) modulesMatching(match func(*ModuleMetrics) bool) []string {

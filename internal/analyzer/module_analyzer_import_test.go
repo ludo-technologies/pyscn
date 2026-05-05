@@ -62,6 +62,11 @@ class Worker:
     def run(self):
         pass
 
+class AsyncWorker:
+    @abc.abstractmethod
+    async def run(self):
+        pass
+
 class Concrete:
     def run(self):
         pass
@@ -87,11 +92,11 @@ class Concrete:
 		t.Fatalf("expected module %s in graph", moduleName)
 	}
 
-	if node.ClassCount != 5 {
-		t.Fatalf("expected 5 classes, got %d", node.ClassCount)
+	if node.ClassCount != 6 {
+		t.Fatalf("expected 6 classes, got %d", node.ClassCount)
 	}
-	if node.AbstractClassCount != 4 {
-		t.Fatalf("expected 4 abstract classes, got %d", node.AbstractClassCount)
+	if node.AbstractClassCount != 5 {
+		t.Fatalf("expected 5 abstract classes, got %d", node.AbstractClassCount)
 	}
 }
 
