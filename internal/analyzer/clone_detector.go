@@ -986,10 +986,11 @@ func (cd *CloneDetector) classifyClonePair(fragment1, fragment2 *CodeFragment, s
 	}
 
 	structuralSimilarity := cd.capNonTextualSimilarity(similarity)
-	syntacticSimilarity := cd.syntacticAnalyzer.ComputeSimilarity(fragment1, fragment2)
-	if structuralSimilarity >= cd.cloneDetectorConfig.Type2Threshold &&
-		syntacticSimilarity >= cd.cloneDetectorConfig.Type2Threshold {
-		return Type2Clone, math.Min(structuralSimilarity, syntacticSimilarity)
+	if structuralSimilarity >= cd.cloneDetectorConfig.Type2Threshold {
+		syntacticSimilarity := cd.syntacticAnalyzer.ComputeSimilarity(fragment1, fragment2)
+		if syntacticSimilarity >= cd.cloneDetectorConfig.Type2Threshold {
+			return Type2Clone, math.Min(structuralSimilarity, syntacticSimilarity)
+		}
 	}
 	if structuralSimilarity >= cd.cloneDetectorConfig.Type3Threshold {
 		return Type3Clone, structuralSimilarity

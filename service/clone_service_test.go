@@ -346,6 +346,44 @@ func TestCloneService_DetectClonesInFiles(t *testing.T) {
 			assert.Less(t, pair.Similarity, 1.0)
 		}
 	})
+
+	t.Run("unrelated cross-file class bodies are not reported as type2", func(t *testing.T) {
+		page := filepath.Join("..", "testdata", "python", "clones", "type2_false_positive", "parsera_page.py")
+		parsera := filepath.Join("..", "testdata", "python", "clones", "type2_false_positive", "parsera_parsera.py")
+
+		req := newDefaultCloneRequest(page, parsera)
+		req.MinLines = 5
+		req.MinNodes = 10
+		req.SimilarityThreshold = domain.DefaultType4CloneThreshold
+		req.Type1Threshold = domain.DefaultType1CloneThreshold
+		req.Type2Threshold = domain.DefaultType2CloneThreshold
+		req.Type3Threshold = domain.DefaultType3CloneThreshold
+		req.Type4Threshold = domain.DefaultType4CloneThreshold
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone, domain.Type4Clone}
+
+		response, err := service.DetectClonesInFiles(ctx, req.Paths, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		for _, pair := range response.ClonePairs {
+			if pair.Type != domain.Type2Clone {
+				continue
+			}
+			assert.False(t, isCrossFileLargeClonePair(pair), "unexpected cross-file class-body Type-2 clone: %s and %s",
+				pair.Clone1.Location.FilePath, pair.Clone2.Location.FilePath)
+		}
+	})
+}
+
+func isCrossFileLargeClonePair(pair *domain.ClonePair) bool {
+	if pair == nil || pair.Clone1 == nil || pair.Clone2 == nil ||
+		pair.Clone1.Location == nil || pair.Clone2.Location == nil {
+		return false
+	}
+	if pair.Clone1.Location.FilePath == pair.Clone2.Location.FilePath {
+		return false
+	}
+	return pair.Clone1.LineCount >= 50 && pair.Clone2.LineCount >= 50
 }
 
 func TestCloneService_ComputeSimilarity(t *testing.T) {
