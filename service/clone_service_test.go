@@ -369,21 +369,26 @@ func TestCloneService_DetectClonesInFiles(t *testing.T) {
 			if pair.Type != domain.Type2Clone {
 				continue
 			}
-			assert.False(t, isCrossFileLargeClonePair(pair), "unexpected cross-file class-body Type-2 clone: %s and %s",
+			assert.False(t, isParseraClassBodyPair(pair, page, parsera), "unexpected cross-file class-body Type-2 clone: %s and %s",
 				pair.Clone1.Location.FilePath, pair.Clone2.Location.FilePath)
 		}
 	})
 }
 
-func isCrossFileLargeClonePair(pair *domain.ClonePair) bool {
+func isParseraClassBodyPair(pair *domain.ClonePair, pagePath, parseraPath string) bool {
 	if pair == nil || pair.Clone1 == nil || pair.Clone2 == nil ||
 		pair.Clone1.Location == nil || pair.Clone2.Location == nil {
 		return false
 	}
-	if pair.Clone1.Location.FilePath == pair.Clone2.Location.FilePath {
-		return false
-	}
-	return pair.Clone1.LineCount >= 50 && pair.Clone2.LineCount >= 50
+
+	return (isWholeFileClass(pair.Clone1, pagePath, 168) && isWholeFileClass(pair.Clone2, parseraPath, 90)) ||
+		(isWholeFileClass(pair.Clone1, parseraPath, 90) && isWholeFileClass(pair.Clone2, pagePath, 168))
+}
+
+func isWholeFileClass(clone *domain.Clone, filePath string, endLine int) bool {
+	return clone.Location.FilePath == filePath &&
+		clone.Location.StartLine == 1 &&
+		clone.Location.EndLine == endLine
 }
 
 func TestCloneService_ComputeSimilarity(t *testing.T) {
