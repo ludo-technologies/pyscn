@@ -591,11 +591,12 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | `LinesOfCode`            | integer | 代码总行数。                                     |
 | `FunctionCount`          | integer | 函数数量。                                       |
 | `ClassCount`             | integer | 类数量。                                         |
+| `AbstractClassCount`     | integer | 抽象类数量。                                     |
 | `PublicInterface`        | array of string | `__all__` 中或顶级公共名称。             |
 | `AfferentCoupling`       | integer | Ca — 依赖此模块的模块数。                        |
 | `EfferentCoupling`       | integer | Ce — 此模块依赖的模块数。                        |
 | `Instability`            | number  | `I = Ce / (Ca + Ce)`，`0`–`1`。                  |
-| `Abstractness`           | number  | A — 抽象元素 / 总元素，`0`–`1`。                 |
+| `Abstractness`           | number  | A — 抽象类 / 总类数，`0`–`1`。                   |
 | `Distance`               | number  | `D = |A + I - 1|`，`0`–`1`。与主序列的距离。     |
 | `Maintainability`        | number  | 可维护性指数，`0`–`100`。                        |
 | `TechnicalDebt`          | number  | 估计的技术债务（小时）。                         |
