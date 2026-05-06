@@ -591,11 +591,12 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | `LinesOfCode`            | integer | コードの合計行数。                                       |
 | `FunctionCount`          | integer | 関数の数。                                               |
 | `ClassCount`             | integer | クラスの数。                                             |
+| `AbstractClassCount`     | integer | 抽象クラスの数。                                         |
 | `PublicInterface`        | array of string | `__all__` またはトップレベルのパブリック名。      |
 | `AfferentCoupling`       | integer | Ca — このモジュールに依存するモジュール。                |
 | `EfferentCoupling`       | integer | Ce — このモジュールが依存するモジュール。                |
 | `Instability`            | number  | `I = Ce / (Ca + Ce)`、`0`–`1`。                          |
-| `Abstractness`           | number  | A — 抽象要素 / 全要素、`0`–`1`。                         |
+| `Abstractness`           | number  | A — 抽象クラス / 全クラス、`0`–`1`。                     |
 | `Distance`               | number  | `D = |A + I - 1|`、`0`–`1`。メインシーケンスからの距離。 |
 | `Maintainability`        | number  | 保守性インデックス、`0`–`100`。                          |
 | `TechnicalDebt`          | number  | 推定技術的負債（時間単位）。                             |
