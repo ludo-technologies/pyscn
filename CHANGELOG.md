@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.19.0] - 2026-05-06
+
+### Added
+- Main sequence architecture metrics with abstractness, instability, and zone classification (#407)
+
+### Documentation
+- Sync ja/zh schemas with AbstractClassCount field (#409)
+
 ## [1.18.1] - 2026-05-02
 
 ### Fixed
