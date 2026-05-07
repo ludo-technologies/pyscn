@@ -332,3 +332,126 @@ if __name__ == "__main__":
 		t.Errorf("Expected at least 1 for loop, found %d", len(forLoops))
 	}
 }
+
+func TestASTBuilderFStringInterpolationsPreserveExpressions(t *testing.T) {
+	source := `
+class FStringExamples:
+    def embedded(self):
+        return f"x{self._sep}y"
+
+    def format_spec(self):
+        return f"x{1:{self._width}>5}y"
+
+    def right_aligned(self):
+        return f"{self._value:>5}"
+
+    def left_aligned(self):
+        return f"{self._value:<5}"
+
+    def conversion(self):
+        return f"{self._value!r}"
+
+    def debug_value(self):
+        return f"{self._value=}"
+
+    def nested(self):
+        return f"{f'{self._nested}'}"
+
+    def plain_string(self):
+        return "x{self._plain}y"
+`
+
+	result, err := New().Parse(context.Background(), []byte(source))
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
+
+	returns := result.AST.FindByType(NodeReturn)
+	if len(returns) != 8 {
+		t.Fatalf("Expected 8 return statements, got %d", len(returns))
+	}
+
+	tests := []struct {
+		name string
+		idx  int
+		attr string
+	}{
+		{name: "embedded interpolation", idx: 0, attr: "_sep"},
+		{name: "format spec expression", idx: 1, attr: "_width"},
+		{name: "right aligned static format spec", idx: 2, attr: "_value"},
+		{name: "left aligned static format spec", idx: 3, attr: "_value"},
+		{name: "conversion marker", idx: 4, attr: "_value"},
+		{name: "debug marker", idx: 5, attr: "_value"},
+		{name: "nested f-string expression", idx: 6, attr: "_nested"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			value, ok := returns[tt.idx].Value.(*Node)
+			if !ok {
+				t.Fatalf("Return value is %T, want *Node", returns[tt.idx].Value)
+			}
+			if value.Type != NodeJoinedStr {
+				t.Fatalf("Return value type = %s, want %s", value.Type, NodeJoinedStr)
+			}
+
+			formattedValues := 0
+			foundAttr := false
+			value.WalkDeep(func(node *Node) bool {
+				if node.Type == NodeFormattedValue {
+					formattedValues++
+				}
+				if node.Type == NodeAttribute && node.Name == tt.attr {
+					foundAttr = true
+				}
+				return true
+			})
+
+			if formattedValues == 0 {
+				t.Fatal("Expected at least one formatted value")
+			}
+			if !foundAttr {
+				t.Fatalf("Expected deep traversal to find self.%s", tt.attr)
+			}
+		})
+	}
+
+	for _, tt := range []struct {
+		name string
+		idx  int
+		want string
+	}{
+		{name: "dynamic format spec keeps static suffix", idx: 1, want: ">5"},
+		{name: "right aligned static format spec", idx: 2, want: ":>5"},
+		{name: "left aligned static format spec", idx: 3, want: ":<5"},
+		{name: "conversion marker", idx: 4, want: "!r"},
+		{name: "debug marker", idx: 5, want: "="},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			value, ok := returns[tt.idx].Value.(*Node)
+			if !ok {
+				t.Fatalf("Return value is %T, want *Node", returns[tt.idx].Value)
+			}
+
+			foundLiteral := false
+			value.WalkDeep(func(node *Node) bool {
+				if node.Type == NodeConstant && node.Value == tt.want {
+					foundLiteral = true
+				}
+				return true
+			})
+
+			if !foundLiteral {
+				t.Fatalf("Expected deep traversal to find format spec literal %q", tt.want)
+			}
+		})
+	}
+
+	plainValue, ok := returns[7].Value.(*Node)
+	if !ok {
+		t.Fatalf("Plain string return value is %T, want *Node", returns[7].Value)
+	}
+	if plainValue.Type != NodeConstant {
+		t.Fatalf("Plain string type = %s, want %s", plainValue.Type, NodeConstant)
+	}
+}
