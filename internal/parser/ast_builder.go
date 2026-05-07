@@ -166,7 +166,12 @@ func (b *ASTBuilder) buildNode(tsNode *sitter.Node) *Node {
 		return b.buildName(tsNode)
 	case "integer", "float", "true", "false", "none":
 		return b.buildConstant(tsNode)
-	case "string", "concatenated_string":
+	case "string":
+		if b.stringHasInterpolation(tsNode) {
+			return b.buildFormattedString(tsNode)
+		}
+		return b.buildConstant(tsNode)
+	case "concatenated_string":
 		if b.hasStringInterpolation(tsNode) {
 			return b.buildFormattedString(tsNode)
 		}
@@ -1554,14 +1559,56 @@ func (b *ASTBuilder) hasStringInterpolation(tsNode *sitter.Node) bool {
 	if tsNode == nil {
 		return false
 	}
-	if tsNode.Type() == "interpolation" {
+	switch tsNode.Type() {
+	case "interpolation":
 		return true
+	case "string":
+		return b.stringHasInterpolation(tsNode)
 	}
 
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		if b.hasStringInterpolation(tsNode.Child(i)) {
 			return true
+		}
+	}
+	return false
+}
+
+func (b *ASTBuilder) stringHasInterpolation(tsNode *sitter.Node) bool {
+	if !b.hasFormattedStringPrefix(tsNode) {
+		return false
+	}
+
+	childCount := int(tsNode.ChildCount())
+	for i := 0; i < childCount; i++ {
+		if b.hasStringInterpolation(tsNode.Child(i)) {
+			return true
+		}
+	}
+	return false
+}
+
+func (b *ASTBuilder) hasFormattedStringPrefix(tsNode *sitter.Node) bool {
+	start := int(tsNode.StartByte())
+	end := int(tsNode.EndByte())
+	if start < 0 || start >= len(b.source) {
+		return false
+	}
+	if end > len(b.source) {
+		end = len(b.source)
+	}
+
+	for i := start; i < end; i++ {
+		switch b.source[i] {
+		case 'f', 'F':
+			return true
+		case 'r', 'R', 'u', 'U', 'b', 'B':
+			continue
+		case '\'', '"':
+			return false
+		default:
+			return false
 		}
 	}
 	return false
