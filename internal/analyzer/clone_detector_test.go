@@ -2,6 +2,8 @@ package analyzer
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -190,6 +192,21 @@ func TestCompareWithAPTEDExpressionOnlyDifferenceReportsDistance(t *testing.T) {
 	assert.Equal(t, Type2Clone, pair.CloneType)
 }
 
+func TestCompareWithAPTEDDoesNotReportUnrelatedClassBodiesAsType2(t *testing.T) {
+	leftFragment := parseFirstFragmentFromFile(t, "parsera_page.py")
+	rightFragment := parseFirstFragmentFromFile(t, "parsera_parsera.py")
+
+	config := DefaultCloneDetectorConfig()
+	config.MinLines = 1
+	config.MinNodes = 1
+	detector := NewCloneDetector(config)
+
+	pair := detector.compareWithAPTED(leftFragment, rightFragment)
+	if pair != nil && pair.CloneType == Type2Clone {
+		t.Fatalf("unrelated class bodies should not be Type-2 clones, got similarity %.3f", pair.Similarity)
+	}
+}
+
 func TestClonePair_String(t *testing.T) {
 	fragment1 := &CodeFragment{
 		Location: &CodeLocation{
@@ -217,6 +234,44 @@ func TestClonePair_String(t *testing.T) {
 	result := pair.String()
 	expected := "Type-2 (Renamed) clone: /test1.py:1:0-5:0 <-> /test2.py:10:0-14:0 (similarity: 0.850)"
 	assert.Equal(t, expected, result)
+}
+
+func parseFirstFragmentWithContent(t *testing.T, filePath, source string) *CodeFragment {
+	t.Helper()
+
+	p := parser.New()
+	result, err := p.Parse(t.Context(), []byte(source))
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.AST)
+	require.NotEmpty(t, result.AST.Body)
+
+	classNode := result.AST.Body[0]
+	location := &CodeLocation{
+		FilePath:  filePath,
+		StartLine: classNode.Location.StartLine,
+		EndLine:   classNode.Location.EndLine,
+		StartCol:  classNode.Location.StartCol,
+		EndCol:    classNode.Location.EndCol,
+	}
+	fragment := NewCodeFragment(location, classNode, source)
+	converter := NewTreeConverterWithConfig(true)
+	fragment.TreeNode = converter.ConvertAST(classNode)
+	require.NotNil(t, fragment.TreeNode)
+	PrepareTreeForAPTED(fragment.TreeNode)
+	fragment.Size = fragment.TreeNode.Size()
+
+	return fragment
+}
+
+func parseFirstFragmentFromFile(t *testing.T, name string) *CodeFragment {
+	t.Helper()
+
+	path := filepath.Join("..", "..", "testdata", "python", "clones", "type2_false_positive", name)
+	content, err := os.ReadFile(path)
+	require.NoError(t, err)
+
+	return parseFirstFragmentWithContent(t, path, string(content))
 }
 
 func TestCloneGroup_Operations(t *testing.T) {
@@ -305,8 +360,8 @@ func TestCloneDetector_ShouldIncludeFragment(t *testing.T) {
 func TestCloneDetector_ClassifyClonePair(t *testing.T) {
 	config := DefaultCloneDetectorConfig()
 	detector := NewCloneDetector(config)
-	exact := &CodeFragment{Content: "def same():\n    return 1\n"}
-	different := &CodeFragment{Content: "def different():\n    return 2\n"}
+	exact := parseFirstFragmentWithContent(t, "same.py", "def same():\n    return 1\n")
+	different := parseFirstFragmentWithContent(t, "different.py", "def different():\n    return 2\n")
 
 	tests := []struct {
 		name       string

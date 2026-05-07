@@ -254,14 +254,15 @@ type CloneDetector struct {
 	// Embed config fields (private to maintain encapsulation)
 	cloneDetectorConfig CloneDetectorConfig
 
-	analyzer         *APTEDAnalyzer
-	converter        *TreeConverter
-	classifier       *CloneClassifier // Multi-dimensional classifier (optional)
-	textualAnalyzer  *TextualSimilarityAnalyzer
-	featureExtractor *ASTFeatureExtractor // Pre-filter feature extractor
-	fragments        []*CodeFragment
-	clonePairs       []*ClonePair
-	cloneGroups      []*CloneGroup
+	analyzer          *APTEDAnalyzer
+	converter         *TreeConverter
+	classifier        *CloneClassifier // Multi-dimensional classifier (optional)
+	textualAnalyzer   *TextualSimilarityAnalyzer
+	syntacticAnalyzer *SyntacticSimilarityAnalyzer
+	featureExtractor  *ASTFeatureExtractor // Pre-filter feature extractor
+	fragments         []*CodeFragment
+	clonePairs        []*ClonePair
+	cloneGroups       []*CloneGroup
 }
 
 // NewCloneDetector creates a new clone detector with the given configuration
@@ -320,6 +321,7 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 		converter:           NewTreeConverterWithConfig(config.SkipDocstrings),
 		classifier:          classifier,
 		textualAnalyzer:     NewTextualSimilarityAnalyzer(),
+		syntacticAnalyzer:   NewSyntacticSimilarityAnalyzer(),
 		featureExtractor:    NewASTFeatureExtractor(),
 		fragments:           []*CodeFragment{},
 		clonePairs:          []*ClonePair{},
@@ -982,18 +984,22 @@ func (cd *CloneDetector) classifyClonePair(fragment1, fragment2 *CodeFragment, s
 	if similarity >= cd.cloneDetectorConfig.Type1Threshold && cd.textualAnalyzer.IsExactMatch(fragment1, fragment2) {
 		return Type1Clone, similarity
 	}
-	similarity = cd.capNonTextualSimilarity(similarity)
-	if similarity >= cd.cloneDetectorConfig.Type2Threshold {
-		return Type2Clone, similarity
+
+	structuralSimilarity := cd.capNonTextualSimilarity(similarity)
+	if structuralSimilarity >= cd.cloneDetectorConfig.Type2Threshold {
+		syntacticSimilarity := cd.syntacticAnalyzer.ComputeSimilarity(fragment1, fragment2)
+		if syntacticSimilarity >= cd.cloneDetectorConfig.Type2Threshold {
+			return Type2Clone, math.Min(structuralSimilarity, syntacticSimilarity)
+		}
 	}
-	if similarity >= cd.cloneDetectorConfig.Type3Threshold {
-		return Type3Clone, similarity
+	if structuralSimilarity >= cd.cloneDetectorConfig.Type3Threshold {
+		return Type3Clone, structuralSimilarity
 	}
-	if similarity >= cd.cloneDetectorConfig.Type4Threshold {
-		return Type4Clone, similarity
+	if structuralSimilarity >= cd.cloneDetectorConfig.Type4Threshold {
+		return Type4Clone, structuralSimilarity
 	}
 
-	return 0, similarity
+	return 0, structuralSimilarity
 }
 
 func (cd *CloneDetector) capNonTextualSimilarity(similarity float64) float64 {
