@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.19.1] - 2026-05-07
+
+### Fixed
+- Tighten Type-2 clone classification to reduce class body false positives (#411)
+
 ## [1.19.0] - 2026-05-06
 
 ### Added
