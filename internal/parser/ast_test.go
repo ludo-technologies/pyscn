@@ -339,6 +339,9 @@ class FStringExamples:
     def embedded(self):
         return f"x{self._sep}y"
 
+    def simple(self):
+        return f"{self._value}"
+
     def format_spec(self):
         return f"x{1:{self._width}>5}y"
 
@@ -367,8 +370,8 @@ class FStringExamples:
 	}
 
 	returns := result.AST.FindByType(NodeReturn)
-	if len(returns) != 8 {
-		t.Fatalf("Expected 8 return statements, got %d", len(returns))
+	if len(returns) != 9 {
+		t.Fatalf("Expected 9 return statements, got %d", len(returns))
 	}
 
 	tests := []struct {
@@ -377,12 +380,13 @@ class FStringExamples:
 		attr string
 	}{
 		{name: "embedded interpolation", idx: 0, attr: "_sep"},
-		{name: "format spec expression", idx: 1, attr: "_width"},
-		{name: "right aligned static format spec", idx: 2, attr: "_value"},
-		{name: "left aligned static format spec", idx: 3, attr: "_value"},
-		{name: "conversion marker", idx: 4, attr: "_value"},
-		{name: "debug marker", idx: 5, attr: "_value"},
-		{name: "nested f-string expression", idx: 6, attr: "_nested"},
+		{name: "simple interpolation", idx: 1, attr: "_value"},
+		{name: "format spec expression", idx: 2, attr: "_width"},
+		{name: "right aligned static format spec", idx: 3, attr: "_value"},
+		{name: "left aligned static format spec", idx: 4, attr: "_value"},
+		{name: "conversion marker", idx: 5, attr: "_value"},
+		{name: "debug marker", idx: 6, attr: "_value"},
+		{name: "nested f-string expression", idx: 7, attr: "_nested"},
 	}
 
 	for _, tt := range tests {
@@ -421,11 +425,11 @@ class FStringExamples:
 		idx  int
 		want string
 	}{
-		{name: "dynamic format spec keeps static suffix", idx: 1, want: ">5"},
-		{name: "right aligned static format spec", idx: 2, want: ":>5"},
-		{name: "left aligned static format spec", idx: 3, want: ":<5"},
-		{name: "conversion marker", idx: 4, want: "!r"},
-		{name: "debug marker", idx: 5, want: "="},
+		{name: "dynamic format spec keeps static suffix", idx: 2, want: ">5"},
+		{name: "right aligned static format spec", idx: 3, want: ":>5"},
+		{name: "left aligned static format spec", idx: 4, want: ":<5"},
+		{name: "conversion marker", idx: 5, want: "!r"},
+		{name: "debug marker", idx: 6, want: "="},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			value, ok := returns[tt.idx].Value.(*Node)
@@ -447,11 +451,43 @@ class FStringExamples:
 		})
 	}
 
-	plainValue, ok := returns[7].Value.(*Node)
+	for _, tt := range []struct {
+		name string
+		idx  int
+		dup  string
+	}{
+		{name: "simple interpolation expression is not duplicated", idx: 1, dup: "self._value"},
+		{name: "static format spec expression is not duplicated", idx: 3, dup: "self._value"},
+		{name: "dynamic format spec outer expression is not duplicated", idx: 2, dup: "1"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			value, ok := returns[tt.idx].Value.(*Node)
+			if !ok {
+				t.Fatalf("Return value is %T, want *Node", returns[tt.idx].Value)
+			}
+
+			if countStringConstants(value, tt.dup) != 0 {
+				t.Fatalf("Expression literal %q was duplicated as a string constant", tt.dup)
+			}
+		})
+	}
+
+	plainValue, ok := returns[8].Value.(*Node)
 	if !ok {
-		t.Fatalf("Plain string return value is %T, want *Node", returns[7].Value)
+		t.Fatalf("Plain string return value is %T, want *Node", returns[8].Value)
 	}
 	if plainValue.Type != NodeConstant {
 		t.Fatalf("Plain string type = %s, want %s", plainValue.Type, NodeConstant)
 	}
+}
+
+func countStringConstants(node *Node, value string) int {
+	count := 0
+	node.WalkDeep(func(child *Node) bool {
+		if child.Type == NodeConstant && child.Value == value {
+			count++
+		}
+		return true
+	})
+	return count
 }

@@ -1480,12 +1480,12 @@ func (b *ASTBuilder) buildFormattedValue(tsNode *sitter.Node) *Node {
 		if expr == nil {
 			continue
 		}
+		cursor = child.EndByte()
 		if node.Value == nil {
 			node.Value = expr
 			continue
 		}
 		node.AddChild(expr)
-		cursor = child.EndByte()
 	}
 	b.addFormattedLiteral(node, cursor, tsNode.EndByte(), tsNode, true)
 
