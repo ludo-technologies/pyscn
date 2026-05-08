@@ -1,9 +1,10 @@
 # Changelog
 
-## [1.19.1] - 2026-05-07
+## [1.19.1] - 2026-05-08
 
 ### Fixed
 - Tighten Type-2 clone classification to reduce class body false positives (#411)
+- Preserve f-string interpolation expressions so LCOM4 detects `self.<ivar>` accesses (#415)
 
 ## [1.19.0] - 2026-05-06
 
