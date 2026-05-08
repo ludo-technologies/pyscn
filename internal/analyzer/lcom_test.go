@@ -442,3 +442,70 @@ class TwoGroupClass:
 	assert.Contains(t, r.MethodGroups[1], "get_b")
 	assert.Contains(t, r.MethodGroups[1], "set_b")
 }
+
+func TestLCOMAnalyzer_FStringInstanceVariableAccesses(t *testing.T) {
+	p := parser.New()
+	code := `
+class A:
+    def __init__(self):
+        self._sep = '/'
+    def render(self):
+        return f"x{self._sep}y"
+
+class B:
+    def __init__(self):
+        self._sep = '/'
+    def render(self):
+        return f"x{1:{self._sep}>5}y"
+
+class C:
+    def __init__(self):
+        self._sep = '/'
+    def render(self):
+        return "x" + self._sep + "y"
+
+class D:
+    def __init__(self):
+        self._x = 1
+    def m1(self):
+        return self._x
+    def m2(self):
+        return f"{self._x}"
+
+class E:
+    def __init__(self):
+        self._x = 1
+    def render(self):
+        return f"{f'{self._x}'}"
+`
+	result, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	analyzer := NewLCOMAnalyzer(nil)
+	results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 5)
+
+	byName := make(map[string]*LCOMResult, len(results))
+	for _, result := range results {
+		byName[result.ClassName] = result
+	}
+
+	expectedGroups := map[string][][]string{
+		"A": {{"__init__", "render"}},
+		"B": {{"__init__", "render"}},
+		"C": {{"__init__", "render"}},
+		"D": {{"__init__", "m1", "m2"}},
+		"E": {{"__init__", "render"}},
+	}
+
+	for className, groups := range expectedGroups {
+		t.Run(className, func(t *testing.T) {
+			result, ok := byName[className]
+			require.True(t, ok, "missing class %s", className)
+			assert.Equal(t, 1, result.LCOM4)
+			assert.Equal(t, 1, result.InstanceVariables)
+			assert.Equal(t, groups, result.MethodGroups)
+		})
+	}
+}

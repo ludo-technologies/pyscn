@@ -561,6 +561,33 @@ except Error as right:
     value = f"{right}"
 `,
 		},
+		{
+			name: "formatted string static format spec",
+			left: `if cond:
+    value = f"{item:>5}"
+`,
+			right: `if cond:
+    value = f"{item:<5}"
+`,
+		},
+		{
+			name: "formatted string conversion marker",
+			left: `if cond:
+    value = f"{item!r}"
+`,
+			right: `if cond:
+    value = f"{item!s}"
+`,
+		},
+		{
+			name: "formatted string debug marker",
+			left: `if cond:
+    value = f"{item}"
+`,
+			right: `if cond:
+    value = f"{item=}"
+`,
+		},
 	}
 
 	analyzer := NewAPTEDAnalyzer(NewPythonCostModel())

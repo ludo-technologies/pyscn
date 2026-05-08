@@ -294,7 +294,7 @@ func (a *LCOMAnalyzer) getDecoratorName(decorator *parser.Node) string {
 
 // extractMethodCalls walks a method's AST to find all self.xxx() method call targets
 func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls map[string]bool) {
-	a.walkNode(methodNode, func(node *parser.Node) bool {
+	methodNode.WalkDeep(func(node *parser.Node) bool {
 		if node.Type == parser.NodeCall && node.Value != nil {
 			if attrNode, ok := node.Value.(*parser.Node); ok {
 				if attrNode.Type == parser.NodeAttribute && a.isSelfAccess(attrNode) && attrNode.Name != "" {
@@ -308,7 +308,7 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls map[str
 
 // extractInstanceVars walks a method's AST to find all self.xxx attribute accesses
 func (a *LCOMAnalyzer) extractInstanceVars(methodNode *parser.Node, vars map[string]bool) {
-	a.walkNode(methodNode, func(node *parser.Node) bool {
+	methodNode.WalkDeep(func(node *parser.Node) bool {
 		if node.Type == parser.NodeAttribute {
 			// Check if this is self.xxx
 			if a.isSelfAccess(node) && node.Name != "" {
@@ -352,55 +352,13 @@ func (a *LCOMAnalyzer) assessRiskLevel(lcom4 int) string {
 // collectClasses collects all class definition nodes from the AST
 func (a *LCOMAnalyzer) collectClasses(ast *parser.Node) []*parser.Node {
 	var classes []*parser.Node
-	a.walkNode(ast, func(node *parser.Node) bool {
+	ast.WalkDeep(func(node *parser.Node) bool {
 		if node.Type == parser.NodeClassDef && node.Name != "" {
 			classes = append(classes, node)
 		}
 		return true
 	})
 	return classes
-}
-
-// walkNode performs a depth-first traversal of the AST
-func (a *LCOMAnalyzer) walkNode(node *parser.Node, visitor func(*parser.Node) bool) {
-	if node == nil || !visitor(node) {
-		return
-	}
-
-	for _, child := range node.Children {
-		a.walkNode(child, visitor)
-	}
-	for _, child := range node.Body {
-		a.walkNode(child, visitor)
-	}
-	for _, child := range node.Targets {
-		a.walkNode(child, visitor)
-	}
-	for _, child := range node.Args {
-		a.walkNode(child, visitor)
-	}
-	for _, child := range node.Keywords {
-		a.walkNode(child, visitor)
-	}
-	for _, child := range node.Orelse {
-		a.walkNode(child, visitor)
-	}
-	for _, child := range node.Finalbody {
-		a.walkNode(child, visitor)
-	}
-	for _, child := range node.Handlers {
-		a.walkNode(child, visitor)
-	}
-
-	if node.Value != nil {
-		if valueNode, ok := node.Value.(*parser.Node); ok {
-			a.walkNode(valueNode, visitor)
-		}
-	}
-	a.walkNode(node.Left, visitor)
-	a.walkNode(node.Right, visitor)
-	a.walkNode(node.Test, visitor)
-	a.walkNode(node.Iter, visitor)
 }
 
 // CalculateLCOM is a convenience function that creates an analyzer with defaults and runs it

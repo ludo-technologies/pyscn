@@ -164,10 +164,22 @@ func (b *ASTBuilder) buildNode(tsNode *sitter.Node) *Node {
 		return b.buildAwait(tsNode)
 	case "identifier":
 		return b.buildName(tsNode)
-	case "integer", "float", "string", "concatenated_string", "true", "false", "none":
+	case "integer", "float", "true", "false", "none":
 		return b.buildConstant(tsNode)
-	case "formatted_string", "interpolation":
+	case "string":
+		if b.stringHasInterpolation(tsNode) {
+			return b.buildFormattedString(tsNode)
+		}
+		return b.buildConstant(tsNode)
+	case "concatenated_string":
+		if b.hasStringInterpolation(tsNode) {
+			return b.buildFormattedString(tsNode)
+		}
+		return b.buildConstant(tsNode)
+	case "formatted_string":
 		return b.buildFormattedString(tsNode)
+	case "interpolation":
+		return b.buildFormattedValue(tsNode)
 
 	// Handle compound statements
 	case "block":
@@ -1399,33 +1411,223 @@ func (b *ASTBuilder) buildConstant(tsNode *sitter.Node) *Node {
 func (b *ASTBuilder) buildFormattedString(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeJoinedStr)
 	node.Location = b.getLocation(tsNode)
+	b.addFormattedStringChildren(node, tsNode)
+	return node
+}
 
+func (b *ASTBuilder) addFormattedStringChildren(node *Node, tsNode *sitter.Node) {
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
-		if child != nil {
-			switch child.Type() {
-			case "interpolation":
-				// Extract the expression inside the interpolation
-				exprCount := int(child.ChildCount())
-				for j := 0; j < exprCount; j++ {
-					exprChild := child.Child(j)
-					if exprChild != nil && exprChild.Type() != "{" && exprChild.Type() != "}" {
-						fmtValue := NewNode(NodeFormattedValue)
-						fmtValue.Value = b.buildNode(exprChild)
-						node.AddChild(fmtValue)
-					}
-				}
-			case "string_content":
-				// Regular string content
-				strNode := NewNode(NodeConstant)
-				strNode.Value = b.getNodeText(child)
-				node.AddChild(strNode)
+		if child == nil {
+			continue
+		}
+
+		switch child.Type() {
+		case "interpolation":
+			node.AddChild(b.buildFormattedValue(child))
+		case "string_content":
+			strNode := NewNode(NodeConstant)
+			strNode.Location = b.getLocation(child)
+			strNode.Value = b.getNodeText(child)
+			node.AddChild(strNode)
+		case "string", "concatenated_string", "formatted_string":
+			if b.hasStringInterpolation(child) {
+				b.addFormattedStringChildren(node, child)
+			} else {
+				node.AddChild(b.buildConstant(child))
 			}
 		}
 	}
+}
+
+func (b *ASTBuilder) buildFormattedValue(tsNode *sitter.Node) *Node {
+	node := NewNode(NodeFormattedValue)
+	node.Location = b.getLocation(tsNode)
+
+	cursor := tsNode.StartByte()
+	childCount := int(tsNode.ChildCount())
+	for i := 0; i < childCount; i++ {
+		child := tsNode.Child(i)
+		if child == nil {
+			continue
+		}
+		if b.isFormattedStringSyntax(child) {
+			if !child.IsNamed() {
+				b.addFormattedLiteral(node, cursor, child.StartByte(), tsNode, true)
+				b.addFormattedLiteral(node, child.StartByte(), child.EndByte(), tsNode, true)
+				cursor = child.EndByte()
+			}
+			continue
+		}
+
+		if child.Type() == "format_specifier" {
+			b.addFormattedLiteral(node, cursor, child.StartByte(), tsNode, true)
+			b.addFormatSpecifierParts(node, child)
+			cursor = child.EndByte()
+			continue
+		}
+		if child.Type() == "type_conversion" {
+			b.addFormattedLiteral(node, cursor, child.StartByte(), tsNode, true)
+			b.addFormattedLiteral(node, child.StartByte(), child.EndByte(), child, true)
+			cursor = child.EndByte()
+			continue
+		}
+
+		b.addFormattedLiteral(node, cursor, child.StartByte(), tsNode, true)
+
+		expr := b.buildNode(child)
+		if expr == nil {
+			continue
+		}
+		cursor = child.EndByte()
+		if node.Value == nil {
+			node.Value = expr
+			continue
+		}
+		node.AddChild(expr)
+	}
+	b.addFormattedLiteral(node, cursor, tsNode.EndByte(), tsNode, true)
 
 	return node
+}
+
+func (b *ASTBuilder) addFormatSpecifierParts(node *Node, tsNode *sitter.Node) {
+	cursor := tsNode.StartByte()
+	end := tsNode.EndByte()
+	childCount := int(tsNode.ChildCount())
+	for i := 0; i < childCount; i++ {
+		child := tsNode.Child(i)
+		if child == nil || b.isFormattedStringSyntax(child) {
+			continue
+		}
+
+		switch child.Type() {
+		case "format_expression":
+			b.addFormattedLiteral(node, cursor, child.StartByte(), tsNode, false)
+			b.addFormatExpression(node, child)
+			cursor = child.EndByte()
+		case "format_specifier":
+			b.addFormattedLiteral(node, cursor, child.StartByte(), tsNode, false)
+			b.addFormatSpecifierParts(node, child)
+			cursor = child.EndByte()
+		case "interpolation":
+			b.addFormattedLiteral(node, cursor, child.StartByte(), tsNode, false)
+			node.AddChild(b.buildFormattedValue(child))
+			cursor = child.EndByte()
+		}
+	}
+	b.addFormattedLiteral(node, cursor, end, tsNode, false)
+}
+
+func (b *ASTBuilder) addFormatExpression(node *Node, tsNode *sitter.Node) {
+	childCount := int(tsNode.ChildCount())
+	for i := 0; i < childCount; i++ {
+		child := tsNode.Child(i)
+		if child == nil || b.isFormattedStringSyntax(child) {
+			continue
+		}
+		if child.Type() == "format_specifier" {
+			b.addFormatSpecifierParts(node, child)
+			continue
+		}
+
+		expr := b.buildNode(child)
+		if expr != nil {
+			node.AddChild(expr)
+		}
+	}
+}
+
+func (b *ASTBuilder) addFormattedLiteral(node *Node, start, end uint32, locationNode *sitter.Node, skipBraces bool) {
+	if start >= end {
+		return
+	}
+
+	literal := string(b.source[start:end])
+	if literal == "" || (skipBraces && (literal == "{" || literal == "}")) {
+		return
+	}
+
+	strNode := NewNode(NodeConstant)
+	strNode.Location = b.getLocation(locationNode)
+	strNode.Value = literal
+	node.AddChild(strNode)
+}
+
+func (b *ASTBuilder) hasStringInterpolation(tsNode *sitter.Node) bool {
+	if tsNode == nil {
+		return false
+	}
+	switch tsNode.Type() {
+	case "interpolation":
+		return true
+	case "string":
+		return b.stringHasInterpolation(tsNode)
+	}
+
+	childCount := int(tsNode.ChildCount())
+	for i := 0; i < childCount; i++ {
+		if b.hasStringInterpolation(tsNode.Child(i)) {
+			return true
+		}
+	}
+	return false
+}
+
+func (b *ASTBuilder) stringHasInterpolation(tsNode *sitter.Node) bool {
+	if !b.hasFormattedStringPrefix(tsNode) {
+		return false
+	}
+
+	childCount := int(tsNode.ChildCount())
+	for i := 0; i < childCount; i++ {
+		if b.hasStringInterpolation(tsNode.Child(i)) {
+			return true
+		}
+	}
+	return false
+}
+
+func (b *ASTBuilder) hasFormattedStringPrefix(tsNode *sitter.Node) bool {
+	start := int(tsNode.StartByte())
+	end := int(tsNode.EndByte())
+	if start < 0 || start >= len(b.source) {
+		return false
+	}
+	if end > len(b.source) {
+		end = len(b.source)
+	}
+
+	for i := start; i < end; i++ {
+		switch b.source[i] {
+		case 'f', 'F':
+			return true
+		case 'r', 'R', 'u', 'U', 'b', 'B':
+			continue
+		case '\'', '"':
+			return false
+		default:
+			return false
+		}
+	}
+	return false
+}
+
+func (b *ASTBuilder) isFormattedStringSyntax(tsNode *sitter.Node) bool {
+	if tsNode == nil {
+		return true
+	}
+	if !tsNode.IsNamed() {
+		return true
+	}
+
+	switch tsNode.Type() {
+	case "string_start", "string_end", "string_content":
+		return true
+	default:
+		return b.isTrivia(tsNode)
+	}
 }
 
 // buildBlock builds a block of statements
