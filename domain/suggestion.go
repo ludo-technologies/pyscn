@@ -93,7 +93,7 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 
 		var title, desc string
 		var steps []string
-		isTopLevel := f.Name == "__main__"
+		isTopLevel := f.Name == ModuleFunctionName
 		basename := filepath.Base(f.FilePath)
 
 		if isTopLevel {

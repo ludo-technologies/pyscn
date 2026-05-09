@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -166,7 +167,7 @@ func DetectInFile(cfgs map[string]*CFG, filePath string) []*DeadCodeResult {
 
 	for functionName, cfg := range cfgs {
 		// Skip the main module CFG for now, focus on functions
-		if functionName == "__main__" {
+		if functionName == domain.ModuleFunctionName {
 			continue
 		}
 

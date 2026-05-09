@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -281,10 +282,10 @@ def foo():
 			require.NoError(t, err, "Failed to build CFGs")
 
 			// For these tests, we're testing function-level dead code
-			// Find the first function CFG (not __main__)
+			// Find the first function CFG (not the module CFG)
 			var cfg *CFG
 			for name, c := range cfgs {
-				if name != "__main__" {
+				if name != domain.ModuleFunctionName {
 					cfg = c
 					break
 				}
@@ -480,10 +481,10 @@ def foo():
 			require.NoError(t, err, "Failed to build CFGs")
 
 			// For these tests, we're testing function-level dead code
-			// Find the first function CFG (not __main__)
+			// Find the first function CFG (not the module CFG)
 			var cfg *CFG
 			for name, c := range cfgs {
-				if name != "__main__" {
+				if name != domain.ModuleFunctionName {
 					cfg = c
 					break
 				}
@@ -594,10 +595,10 @@ class MyClass:
 			require.NoError(t, err, "Failed to build CFGs")
 
 			// For these tests, we're testing function-level dead code
-			// Find the first function CFG (not __main__)
+			// Find the first function CFG (not the module CFG)
 			var cfg *CFG
 			for name, c := range cfgs {
-				if name != "__main__" {
+				if name != domain.ModuleFunctionName {
 					cfg = c
 					break
 				}
@@ -605,7 +606,7 @@ class MyClass:
 
 			// If no function CFG found, use the module CFG (for empty/comments-only tests)
 			if cfg == nil {
-				cfg = cfgs["__main__"]
+				cfg = cfgs[domain.ModuleFunctionName]
 				require.NotNil(t, cfg, "No CFG found at all")
 			}
 

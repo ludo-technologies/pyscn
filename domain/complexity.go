@@ -41,6 +41,12 @@ const (
 	RiskLevelHigh   RiskLevel = "high"
 )
 
+// ModuleFunctionName is the user-facing label used for module-scope (top-level) code
+// in places that key/display per-function results. The angle brackets follow Python's
+// own convention (e.g. tracebacks and `dis` output) and signal that this is not a real
+// function defined in the source.
+const ModuleFunctionName = "<module>"
+
 // ComplexityRequest represents a request for complexity analysis
 type ComplexityRequest struct {
 	// Input files or directories to analyze

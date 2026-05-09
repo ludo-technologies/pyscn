@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -41,8 +42,8 @@ print(z)
 		if cfg == nil {
 			t.Fatal("CFG is nil")
 		}
-		if cfg.Name != "main" {
-			t.Errorf("Expected CFG name 'main', got %s", cfg.Name)
+		if cfg.Name != domain.ModuleFunctionName {
+			t.Errorf("Expected CFG name %q, got %s", domain.ModuleFunctionName, cfg.Name)
 		}
 
 		// Check that entry is connected to exit
@@ -197,8 +198,8 @@ def outer():
 		}
 
 		// Check for main CFG
-		if _, ok := allCFGs["__main__"]; !ok {
-			t.Error("Missing __main__ CFG")
+		if _, ok := allCFGs[domain.ModuleFunctionName]; !ok {
+			t.Errorf("Missing %q CFG", domain.ModuleFunctionName)
 		}
 
 		// Check for outer function
@@ -368,7 +369,7 @@ if __name__ == "__main__":
 	}
 
 	// Check main CFG exists
-	mainCFG, ok := allCFGs["__main__"]
+	mainCFG, ok := allCFGs[domain.ModuleFunctionName]
 	if !ok {
 		t.Fatal("Main CFG not found")
 	}
@@ -659,10 +660,10 @@ def elif_with_return(x):
 				t.Fatalf("Failed to build CFGs: %v", err)
 			}
 
-			// Get the function CFG (not __main__)
+			// Get the function CFG (not the module CFG)
 			var cfg *CFG
 			for name, c := range cfgs {
-				if name != "__main__" {
+				if name != domain.ModuleFunctionName {
 					cfg = c
 					break
 				}
