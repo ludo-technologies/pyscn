@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -113,7 +114,7 @@ func TestCFGIntegrationWithRealFiles(t *testing.T) {
 			}
 
 			// Get the main module CFG for validation
-			cfg := cfgs["__main__"]
+			cfg := cfgs[domain.ModuleFunctionName]
 			require.NotNil(t, cfg, "Failed to find main CFG for %s", tc.file)
 
 			// Validate basic CFG properties
@@ -366,7 +367,7 @@ def exception_handler():
 			if tc.name == "SimpleFunction" || tc.name == "IfElseStatement" || tc.name == "ForLoop" || tc.name == "TryExcept" {
 				// These are function definitions, get the function CFG
 				for name, c := range cfgs {
-					if name != "__main__" {
+					if name != domain.ModuleFunctionName {
 						cfg = c
 						break
 					}
@@ -374,7 +375,7 @@ def exception_handler():
 				require.NotNil(t, cfg, "Failed to find function CFG")
 			} else {
 				// Module-level code
-				cfg = cfgs["__main__"]
+				cfg = cfgs[domain.ModuleFunctionName]
 				require.NotNil(t, cfg, "Failed to find module CFG")
 			}
 

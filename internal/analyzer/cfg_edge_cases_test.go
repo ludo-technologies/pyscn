@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -505,7 +506,7 @@ def nested_returns():
 			if tc.name == "OnlyReturns" || tc.name == "NestedReturns" {
 				// These tests define functions, get the function CFG
 				for name, c := range cfgs {
-					if name != "__main__" {
+					if name != domain.ModuleFunctionName {
 						cfg = c
 						break
 					}
@@ -513,7 +514,7 @@ def nested_returns():
 				require.NotNil(t, cfg, "Failed to find function CFG")
 			} else {
 				// Module-level tests
-				cfg = cfgs["__main__"]
+				cfg = cfgs[domain.ModuleFunctionName]
 				require.NotNil(t, cfg, "Failed to find main CFG")
 			}
 

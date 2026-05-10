@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
@@ -271,12 +272,12 @@ print(count)
 		t.Fatalf("Failed to build CFGs: %v", err)
 	}
 
-	mainCFG, ok := cfgs["__main__"]
+	mainCFG, ok := cfgs[domain.ModuleFunctionName]
 	if !ok {
-		t.Fatal("Expected __main__ CFG to be present")
+		t.Fatalf("Expected %q CFG to be present", domain.ModuleFunctionName)
 	}
 	if mainCFG.ModuleNode == nil {
-		t.Fatal("Expected ModuleNode to be set on the __main__ CFG")
+		t.Fatalf("Expected ModuleNode to be set on the %q CFG", domain.ModuleFunctionName)
 	}
 
 	res := CalculateComplexity(mainCFG)
@@ -285,6 +286,44 @@ print(count)
 	}
 	if res.EndLine < res.StartLine {
 		t.Errorf("EndLine (%d) should be >= StartLine (%d)", res.EndLine, res.StartLine)
+	}
+}
+
+// Regression test for issue #394: the user-facing name for module-scope code
+// must be the Python-conventional "<module>" label, not the internal "__main__"
+// sentinel that surfaces as a fictitious function in reports.
+func TestCalculateComplexity_ModuleLevelName(t *testing.T) {
+	source := `import os
+for path in os.listdir("."):
+    if path.endswith(".py"):
+        print(path)
+`
+
+	p := parser.New()
+	result, err := p.Parse(context.Background(), []byte(source))
+	if err != nil {
+		t.Fatalf("Failed to parse source: %v", err)
+	}
+
+	cfgs, err := NewCFGBuilder().BuildAll(result.AST)
+	if err != nil {
+		t.Fatalf("Failed to build CFGs: %v", err)
+	}
+
+	if _, ok := cfgs["__main__"]; ok {
+		t.Errorf("Module CFG must not be keyed as %q (user-facing leak); expected %q", "__main__", domain.ModuleFunctionName)
+	}
+	mainCFG, ok := cfgs[domain.ModuleFunctionName]
+	if !ok {
+		t.Fatalf("Expected module CFG keyed as %q", domain.ModuleFunctionName)
+	}
+	if mainCFG.Name != domain.ModuleFunctionName {
+		t.Errorf("CFG.Name = %q, want %q", mainCFG.Name, domain.ModuleFunctionName)
+	}
+
+	res := CalculateComplexity(mainCFG)
+	if res.FunctionName != domain.ModuleFunctionName {
+		t.Errorf("ComplexityResult.FunctionName = %q, want %q", res.FunctionName, domain.ModuleFunctionName)
 	}
 }
 

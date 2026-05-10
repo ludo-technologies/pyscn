@@ -166,7 +166,7 @@ func TestGenerateSuggestions_ComplexityTopLevel(t *testing.T) {
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
 				{
-					Name:     "__main__",
+					Name:     ModuleFunctionName,
 					FilePath: "src/comprehensions.py",
 					Metrics:  ComplexityMetrics{Complexity: 15},
 				},
@@ -182,14 +182,14 @@ func TestGenerateSuggestions_ComplexityTopLevel(t *testing.T) {
 	if !strings.Contains(s.Title, "comprehensions.py") {
 		t.Errorf("expected title to contain filename, got: %s", s.Title)
 	}
-	if strings.Contains(s.Title, "__main__") {
-		t.Errorf("title should not contain '__main__', got: %s", s.Title)
+	if strings.Contains(s.Title, ModuleFunctionName) {
+		t.Errorf("title should not contain %q, got: %s", ModuleFunctionName, s.Title)
 	}
 	if !strings.Contains(s.Description, "Top-level code") {
 		t.Errorf("expected description to mention top-level code, got: %s", s.Description)
 	}
-	if s.Function != "__main__" {
-		t.Errorf("expected Function field to remain '__main__', got: %s", s.Function)
+	if s.Function != ModuleFunctionName {
+		t.Errorf("expected Function field to remain %q, got: %s", ModuleFunctionName, s.Function)
 	}
 	if !strings.Contains(s.Steps[0], "Extract top-level logic") {
 		t.Errorf("expected top-level specific steps, got: %v", s.Steps)
