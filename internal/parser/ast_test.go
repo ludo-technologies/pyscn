@@ -481,6 +481,80 @@ class FStringExamples:
 	}
 }
 
+func TestASTBuilderWithItemsPreserveContextExpressions(t *testing.T) {
+	source := `
+def sync_copy(path_a, path_b, lock):
+    with open(path_a) as src, open(path_b, "w") as dst:
+        return dst.write(src.read())
+    with lock:
+        return None
+
+async def async_acquire(resource):
+    async with resource as ctx:
+        return ctx
+`
+
+	result, err := New().Parse(context.Background(), []byte(source))
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
+
+	withStmts := result.AST.FindByType(NodeWith)
+	if len(withStmts) != 2 {
+		t.Fatalf("Expected 2 with statements, got %d", len(withStmts))
+	}
+
+	if len(withStmts[0].Children) != 2 {
+		t.Fatalf("Expected first with statement to have 2 items, got %d", len(withStmts[0].Children))
+	}
+	for i, wantName := range []string{"src", "dst"} {
+		item := withStmts[0].Children[i]
+		if item.Type != NodeWithItem {
+			t.Fatalf("With child %d type = %s, want %s", i, item.Type, NodeWithItem)
+		}
+		if item.Name != wantName {
+			t.Fatalf("With item %d alias = %q, want %q", i, item.Name, wantName)
+		}
+		value, ok := item.Value.(*Node)
+		if !ok {
+			t.Fatalf("With item %d value is %T, want *Node", i, item.Value)
+		}
+		if value.Type != NodeCall {
+			t.Fatalf("With item %d value type = %s, want %s", i, value.Type, NodeCall)
+		}
+	}
+
+	if len(withStmts[1].Children) != 1 {
+		t.Fatalf("Expected second with statement to have 1 item, got %d", len(withStmts[1].Children))
+	}
+	lockValue, ok := withStmts[1].Children[0].Value.(*Node)
+	if !ok {
+		t.Fatalf("Direct with item value is %T, want *Node", withStmts[1].Children[0].Value)
+	}
+	if lockValue.Type != NodeName || lockValue.Name != "lock" {
+		t.Fatalf("Direct with item value = %s(%s), want Name(lock)", lockValue.Type, lockValue.Name)
+	}
+
+	asyncWithStmts := result.AST.FindByType(NodeAsyncWith)
+	if len(asyncWithStmts) != 1 {
+		t.Fatalf("Expected 1 async with statement, got %d", len(asyncWithStmts))
+	}
+	if len(asyncWithStmts[0].Children) != 1 {
+		t.Fatalf("Expected async with statement to have 1 item, got %d", len(asyncWithStmts[0].Children))
+	}
+	asyncItem := asyncWithStmts[0].Children[0]
+	if asyncItem.Name != "ctx" {
+		t.Fatalf("Async with item alias = %q, want %q", asyncItem.Name, "ctx")
+	}
+	asyncValue, ok := asyncItem.Value.(*Node)
+	if !ok {
+		t.Fatalf("Async with item value is %T, want *Node", asyncItem.Value)
+	}
+	if asyncValue.Type != NodeName || asyncValue.Name != "resource" {
+		t.Fatalf("Async with item value = %s(%s), want Name(resource)", asyncValue.Type, asyncValue.Name)
+	}
+}
+
 func countStringConstants(node *Node, value string) int {
 	count := 0
 	node.WalkDeep(func(child *Node) bool {
