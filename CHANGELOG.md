@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.19.2] - 2026-05-11
+
+### Fixed
+- Report module-scope code as `<module>` instead of `__main__` in complexity output (#417)
+- Include `with` context expressions in LCOM4 instance variable access detection (#419)
+
 ## [1.19.1] - 2026-05-08
 
 ### Fixed
