@@ -1820,31 +1820,12 @@ func (b *ASTBuilder) buildWithItem(tsNode *sitter.Node) *Node {
 	node.Location = b.getLocation(tsNode)
 
 	if tsNode.Type() == "as_pattern" {
-		if expr := b.getChildByFieldName(tsNode, "value"); expr != nil {
-			node.Value = b.buildNode(expr)
-		} else if expr := b.getChildByFieldName(tsNode, "expression"); expr != nil {
-			node.Value = b.buildNode(expr)
-		}
-		if node.Value == nil {
-			childCount := int(tsNode.ChildCount())
-			for i := 0; i < childCount; i++ {
-				child := tsNode.Child(i)
-				if child == nil || b.isTrivia(child) || !child.IsNamed() || tsNode.FieldNameForChild(i) == "alias" {
-					continue
-				}
-				node.Value = b.buildNode(child)
-				break
-			}
-		}
-		if alias := b.getChildByFieldName(tsNode, "alias"); alias != nil {
-			node.Name = b.getNodeText(alias)
-		}
-		return node
+		return b.populateWithItemFromAsPattern(node, tsNode)
 	}
 
 	if value := b.getChildByFieldName(tsNode, "value"); value != nil {
 		if value.Type() == "as_pattern" {
-			return b.buildWithItem(value)
+			return b.populateWithItemFromAsPattern(node, value)
 		}
 		node.Value = b.buildNode(value)
 		return node
@@ -1858,7 +1839,31 @@ func (b *ASTBuilder) buildWithItem(tsNode *sitter.Node) *Node {
 		return node
 	}
 
-	node.Value = b.buildNode(tsNode)
+	return nil
+}
+
+func (b *ASTBuilder) populateWithItemFromAsPattern(node *Node, tsNode *sitter.Node) *Node {
+	if node == nil || tsNode == nil {
+		return nil
+	}
+
+	// tree-sitter-python leaves the context expression unnamed; only the alias has a field name.
+	childCount := int(tsNode.ChildCount())
+	for i := 0; i < childCount; i++ {
+		child := tsNode.Child(i)
+		if child == nil || b.isTrivia(child) || !child.IsNamed() || tsNode.FieldNameForChild(i) == "alias" {
+			continue
+		}
+		node.Value = b.buildNode(child)
+		break
+	}
+	if node.Value == nil {
+		return nil
+	}
+
+	if alias := b.getChildByFieldName(tsNode, "alias"); alias != nil {
+		node.Name = b.getNodeText(alias)
+	}
 	return node
 }
 
