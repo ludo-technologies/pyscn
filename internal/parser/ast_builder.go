@@ -477,7 +477,7 @@ func (b *ASTBuilder) buildWithStatement(tsNode *sitter.Node) *Node {
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
 		if child != nil && child.Type() == "with_clause" {
-			if withItem := b.buildWithItem(child); withItem != nil {
+			for _, withItem := range b.buildWithItems(child) {
 				node.AddChild(withItem)
 			}
 		}
@@ -1776,25 +1776,94 @@ func (b *ASTBuilder) buildCallArguments(tsNode *sitter.Node) ([]*Node, []*Node) 
 	return args, keywords
 }
 
+// buildWithItems builds each context manager item from a with clause.
+func (b *ASTBuilder) buildWithItems(tsNode *sitter.Node) []*Node {
+	if tsNode == nil {
+		return nil
+	}
+
+	if tsNode.Type() != "with_clause" && tsNode.Type() != "parenthesized_expression" {
+		if item := b.buildWithItem(tsNode); item != nil {
+			return []*Node{item}
+		}
+		return nil
+	}
+
+	items := []*Node{}
+	childCount := int(tsNode.ChildCount())
+	for i := 0; i < childCount; i++ {
+		child := tsNode.Child(i)
+		if child == nil || b.isTrivia(child) || !child.IsNamed() {
+			continue
+		}
+
+		switch child.Type() {
+		case "as_pattern":
+			if item := b.buildWithItem(child); item != nil {
+				items = append(items, item)
+			}
+		case "parenthesized_expression":
+			items = append(items, b.buildWithItems(child)...)
+		default:
+			if item := b.buildWithItem(child); item != nil {
+				items = append(items, item)
+			}
+		}
+	}
+
+	return items
+}
+
 // buildWithItem builds a with item node
 func (b *ASTBuilder) buildWithItem(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeWithItem)
 	node.Location = b.getLocation(tsNode)
 
-	if item := b.getChildByFieldName(tsNode, "item"); item != nil {
-		node.Value = b.buildNode(item)
+	if tsNode.Type() == "as_pattern" {
+		return b.populateWithItemFromAsPattern(node, tsNode)
 	}
 
+	if value := b.getChildByFieldName(tsNode, "value"); value != nil {
+		if value.Type() == "as_pattern" {
+			return b.populateWithItemFromAsPattern(node, value)
+		}
+		node.Value = b.buildNode(value)
+		return node
+	}
+	if item := b.getChildByFieldName(tsNode, "item"); item != nil {
+		node.Value = b.buildNode(item)
+		return node
+	}
+	if expr := b.getChildByFieldName(tsNode, "expression"); expr != nil {
+		node.Value = b.buildNode(expr)
+		return node
+	}
+
+	return nil
+}
+
+func (b *ASTBuilder) populateWithItemFromAsPattern(node *Node, tsNode *sitter.Node) *Node {
+	if node == nil || tsNode == nil {
+		return nil
+	}
+
+	// tree-sitter-python leaves the context expression unnamed; only the alias has a field name.
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
-		if child != nil && child.Type() == "as_pattern" {
-			if alias := b.getChildByFieldName(child, "alias"); alias != nil {
-				node.Name = b.getNodeText(alias)
-			}
+		if child == nil || b.isTrivia(child) || !child.IsNamed() || tsNode.FieldNameForChild(i) == "alias" {
+			continue
 		}
+		node.Value = b.buildNode(child)
+		break
+	}
+	if node.Value == nil {
+		return nil
 	}
 
+	if alias := b.getChildByFieldName(tsNode, "alias"); alias != nil {
+		node.Name = b.getNodeText(alias)
+	}
 	return node
 }
 

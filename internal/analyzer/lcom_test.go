@@ -509,3 +509,76 @@ class E:
 		})
 	}
 }
+
+func TestLCOMAnalyzer_WithContextInstanceVariableAccesses(t *testing.T) {
+	p := parser.New()
+	code := `
+class B:
+    def __init__(self):
+        self._fname = 'x'
+    def write(self, t):
+        with open(self._fname, 'w') as f:
+            f.write(t)
+    def __del__(self):
+        with open(self._fname, 'w') as f:
+            f.write('done')
+
+class K:
+    def __init__(self):
+        self._x = 1
+    def m1(self):
+        with open(self._x, 'r') as f:
+            return f.read()
+    def m2(self):
+        return self._x
+
+class AsyncContext:
+    def __init__(self):
+        self._resource = None
+    async def acquire(self):
+        async with self._resource as ctx:
+            return ctx
+    def current(self):
+        return self._resource
+
+class MultipleItems:
+    def __init__(self):
+        self._a = 'a'
+        self._b = 'b'
+    def copy(self):
+        with open(self._a, 'r') as src, open(self._b, 'w') as dst:
+            dst.write(src.read())
+    def read_a(self):
+        return self._a
+    def read_b(self):
+        return self._b
+`
+	result, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	analyzer := NewLCOMAnalyzer(nil)
+	results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 4)
+
+	byName := make(map[string]*LCOMResult, len(results))
+	for _, result := range results {
+		byName[result.ClassName] = result
+	}
+
+	expectedGroups := map[string][][]string{
+		"B":             {{"__del__", "__init__", "write"}},
+		"K":             {{"__init__", "m1", "m2"}},
+		"AsyncContext":  {{"__init__", "acquire", "current"}},
+		"MultipleItems": {{"__init__", "copy", "read_a", "read_b"}},
+	}
+
+	for className, groups := range expectedGroups {
+		t.Run(className, func(t *testing.T) {
+			result, ok := byName[className]
+			require.True(t, ok, "missing class %s", className)
+			assert.Equal(t, 1, result.LCOM4)
+			assert.Equal(t, groups, result.MethodGroups)
+		})
+	}
+}
