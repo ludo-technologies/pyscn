@@ -532,10 +532,11 @@ func (b *DFABuilder) extractWithTargetDefs(stmt *parser.Node, block *BasicBlock,
 	// Look for WithItem children
 	for _, child := range stmt.Children {
 		if child != nil && child.Type == parser.NodeWithItem {
-			// The second child of WithItem is the optional target (as x)
-			if len(child.Children) > 1 && child.Children[1] != nil {
-				target := child.Children[1]
-				defs = append(defs, b.extractNamesFromTarget(target, DefKindWithTarget, block, stmt, pos)...)
+			// WithItem stores the alias in Name, not in Children[1]
+			// The parser populates node.Name with the alias from the "as" pattern
+			if child.Name != "" {
+				ref := NewVarReference(child.Name, DefKindWithTarget, block, stmt, pos)
+				defs = append(defs, ref)
 			}
 		}
 	}
