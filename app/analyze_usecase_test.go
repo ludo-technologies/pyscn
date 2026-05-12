@@ -290,9 +290,6 @@ enable_architecture = true
 [dependencies]
 enabled = true
 
-[architecture]
-enabled = false
-
 [output]
 min_complexity = 9
 
@@ -353,6 +350,32 @@ lsh_auto_threshold = 123
 		}
 		if executionCfg.CloneLSHAutoThreshold != 123 {
 			t.Errorf("Expected LSH threshold 123, got %d", executionCfg.CloneLSHAutoThreshold)
+		}
+	})
+
+	t.Run("keeps system defaults when config omits system sections", func(t *testing.T) {
+		tempDir := t.TempDir()
+		configPath := filepath.Join(tempDir, ".pyscn.toml")
+		configContent := `[complexity]
+enabled = false
+`
+		if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+			t.Fatalf("Failed to write config file: %v", err)
+		}
+
+		executionCfg, err := useCase.loadExecutionConfig(configPath, []string{tempDir})
+		if err != nil {
+			t.Fatalf("loadExecutionConfig returned error: %v", err)
+		}
+
+		if !executionCfg.SystemEnabled {
+			t.Error("Expected system analysis to remain enabled")
+		}
+		if !executionCfg.SystemAnalyzeDependencies {
+			t.Error("Expected dependency analysis to remain enabled")
+		}
+		if !executionCfg.SystemAnalyzeArchitecture {
+			t.Error("Expected architecture analysis to remain enabled")
 		}
 	})
 }
