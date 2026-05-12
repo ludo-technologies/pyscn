@@ -28,8 +28,14 @@ type AnalyzeExecutionConfig struct {
 	ComplexityMediumThreshold int
 	ComplexityMaxComplexity   int
 
+	DeadCodeEnabled bool
+
 	CloneLSHEnabled       string
 	CloneLSHAutoThreshold int
+
+	SystemEnabled             bool
+	SystemAnalyzeDependencies bool
+	SystemAnalyzeArchitecture bool
 }
 
 // AnalyzeConfigurationLoader resolves and loads configuration for AnalyzeUseCase.

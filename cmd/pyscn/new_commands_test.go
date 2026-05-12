@@ -330,6 +330,36 @@ func TestAnalyzeCommandValidation(t *testing.T) {
 	}
 }
 
+func TestAnalyzeCommandSelectValidation(t *testing.T) {
+	analyzeCmd := NewAnalyzeCommand()
+	analyzeCmd.selectAnalyses = []string{"complexity", "deps"}
+	if err := analyzeCmd.validateSelectedAnalyses(); err != nil {
+		t.Fatalf("expected valid selected analyses, got %v", err)
+	}
+
+	analyzeCmd.selectAnalyses = []string{"complexity", "nope"}
+	if err := analyzeCmd.validateSelectedAnalyses(); err == nil {
+		t.Fatal("expected invalid selected analysis to fail")
+	}
+}
+
+func TestAnalyzeCommandSelectComposesWithSkipFlags(t *testing.T) {
+	analyzeCmd := NewAnalyzeCommand()
+	analyzeCmd.selectAnalyses = []string{"complexity", "clones"}
+	analyzeCmd.skipClones = true
+
+	config := analyzeCmd.createUseCaseConfig()
+	if config.SkipComplexity {
+		t.Fatal("expected selected complexity to remain enabled")
+	}
+	if !config.SkipClones {
+		t.Fatal("expected skip-clones to disable selected clones")
+	}
+	if !config.SkipDeadCode {
+		t.Fatal("expected unselected dead code to be disabled")
+	}
+}
+
 // TestCheckCommandValidation tests check command input validation
 func TestCheckCommandValidation(t *testing.T) {
 	// Check command should default to current directory if no args

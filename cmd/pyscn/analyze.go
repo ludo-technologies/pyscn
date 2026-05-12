@@ -149,6 +149,12 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 		c.verbose, _ = cmd.Parent().Flags().GetBool("verbose")
 	}
 
+	if len(c.selectAnalyses) > 0 {
+		if err := c.validateSelectedAnalyses(); err != nil {
+			return fmt.Errorf("invalid --select flag: %w", err)
+		}
+	}
+
 	// Create use case configuration
 	config := c.createUseCaseConfig()
 
@@ -211,6 +217,12 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		config.SkipLCOM = c.skipLCOM
 		config.SkipSystem = c.skipSystem
 	}
+	config.SkipComplexity = config.SkipComplexity || c.skipComplexity
+	config.SkipDeadCode = config.SkipDeadCode || c.skipDeadCode
+	config.SkipClones = config.SkipClones || c.skipClones
+	config.SkipCBO = config.SkipCBO || c.skipCBO
+	config.SkipLCOM = config.SkipLCOM || c.skipLCOM
+	config.SkipSystem = config.SkipSystem || c.skipSystem
 
 	// Parse severity
 	switch c.minSeverity {
@@ -594,6 +606,23 @@ func (c *AnalyzeCommand) containsAnalysis(analysis string) bool {
 		}
 	}
 	return false
+}
+
+func (c *AnalyzeCommand) validateSelectedAnalyses() error {
+	validAnalyses := map[string]bool{
+		"complexity": true,
+		"deadcode":   true,
+		"clones":     true,
+		"cbo":        true,
+		"lcom":       true,
+		"deps":       true,
+	}
+	for _, analysis := range c.selectAnalyses {
+		if !validAnalyses[strings.ToLower(analysis)] {
+			return fmt.Errorf("invalid analysis type: %s. Valid options: complexity, deadcode, clones, cbo, lcom, deps", analysis)
+		}
+	}
+	return nil
 }
 
 // NewAnalyzeCmd creates and returns the analyze cobra command

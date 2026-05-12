@@ -2,9 +2,12 @@ package service
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
+	"github.com/pelletier/go-toml/v2"
 )
 
 // AnalyzeConfigurationLoaderImpl resolves and loads config for AnalyzeUseCase.
@@ -37,10 +40,23 @@ func (l *AnalyzeConfigurationLoaderImpl) LoadAnalyzeExecutionConfig(configPath s
 		return domain.AnalyzeExecutionConfig{}, fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	executionCfg := analyzeExecutionConfigFromConfig(cfg)
+	overrides, err := loadAnalyzeEnabledOverrides(resolvedConfigPath)
+	if err != nil {
+		return domain.AnalyzeExecutionConfig{}, fmt.Errorf("failed to load analyze enabled settings: %w", err)
+	}
+
+	executionCfg := analyzeExecutionConfigFromConfig(cfg, overrides)
 	executionCfg.ConfigPath = resolvedConfigPath
 
 	return executionCfg, nil
+}
+
+type analyzeEnabledOverrides struct {
+	SystemEnabled             *bool
+	SystemAnalyzeDependencies *bool
+	SystemAnalyzeArchitecture *bool
+	DependenciesEnabled       *bool
+	ArchitectureEnabled       *bool
 }
 
 func defaultAnalyzeExecutionConfig() domain.AnalyzeExecutionConfig {
@@ -58,12 +74,16 @@ func defaultAnalyzeExecutionConfig() domain.AnalyzeExecutionConfig {
 		ComplexityLowThreshold:    defaultCfg.Complexity.LowThreshold,
 		ComplexityMediumThreshold: defaultCfg.Complexity.MediumThreshold,
 		ComplexityMaxComplexity:   defaultCfg.Complexity.MaxComplexity,
+		DeadCodeEnabled:           defaultCfg.DeadCode.Enabled,
 		CloneLSHEnabled:           defaultCloneReq.LSHEnabled,
 		CloneLSHAutoThreshold:     defaultCloneReq.LSHAutoThreshold,
+		SystemEnabled:             true,
+		SystemAnalyzeDependencies: true,
+		SystemAnalyzeArchitecture: true,
 	}
 }
 
-func analyzeExecutionConfigFromConfig(cfg *config.Config) domain.AnalyzeExecutionConfig {
+func analyzeExecutionConfigFromConfig(cfg *config.Config, overrides analyzeEnabledOverrides) domain.AnalyzeExecutionConfig {
 	executionCfg := defaultAnalyzeExecutionConfig()
 	if cfg == nil {
 		return executionCfg
@@ -83,6 +103,7 @@ func analyzeExecutionConfigFromConfig(cfg *config.Config) domain.AnalyzeExecutio
 	executionCfg.ComplexityLowThreshold = cfg.Complexity.LowThreshold
 	executionCfg.ComplexityMediumThreshold = cfg.Complexity.MediumThreshold
 	executionCfg.ComplexityMaxComplexity = cfg.Complexity.MaxComplexity
+	executionCfg.DeadCodeEnabled = cfg.DeadCode.Enabled
 
 	if cfg.Clones != nil {
 		if cfg.Clones.LSH.Enabled != "" {
@@ -93,5 +114,82 @@ func analyzeExecutionConfigFromConfig(cfg *config.Config) domain.AnalyzeExecutio
 		}
 	}
 
+	applySystemEnabledOverrides(&executionCfg, overrides)
+
 	return executionCfg
+}
+
+func applySystemEnabledOverrides(executionCfg *domain.AnalyzeExecutionConfig, overrides analyzeEnabledOverrides) {
+	hasSystemOverride := overrides.SystemEnabled != nil ||
+		overrides.SystemAnalyzeDependencies != nil ||
+		overrides.SystemAnalyzeArchitecture != nil ||
+		overrides.DependenciesEnabled != nil ||
+		overrides.ArchitectureEnabled != nil
+	if !hasSystemOverride {
+		return
+	}
+
+	systemEnabled := true
+	if overrides.SystemEnabled != nil {
+		systemEnabled = *overrides.SystemEnabled
+	}
+
+	analyzeDependencies := systemEnabled
+	if overrides.SystemAnalyzeDependencies != nil {
+		analyzeDependencies = systemEnabled && *overrides.SystemAnalyzeDependencies
+	}
+	analyzeArchitecture := systemEnabled
+	if overrides.SystemAnalyzeArchitecture != nil {
+		analyzeArchitecture = systemEnabled && *overrides.SystemAnalyzeArchitecture
+	}
+
+	if overrides.DependenciesEnabled != nil {
+		analyzeDependencies = *overrides.DependenciesEnabled
+	}
+	if overrides.ArchitectureEnabled != nil {
+		analyzeArchitecture = *overrides.ArchitectureEnabled
+	}
+
+	executionCfg.SystemAnalyzeDependencies = analyzeDependencies
+	executionCfg.SystemAnalyzeArchitecture = analyzeArchitecture
+	executionCfg.SystemEnabled = analyzeDependencies || analyzeArchitecture
+}
+
+func loadAnalyzeEnabledOverrides(configPath string) (analyzeEnabledOverrides, error) {
+	if configPath == "" {
+		return analyzeEnabledOverrides{}, nil
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return analyzeEnabledOverrides{}, err
+	}
+
+	if filepath.Base(configPath) == "pyproject.toml" {
+		var parsed config.PyprojectToml
+		if err := toml.Unmarshal(data, &parsed); err != nil {
+			return analyzeEnabledOverrides{}, err
+		}
+		return enabledOverridesFromSections(
+			parsed.Tool.Pyscn.SystemAnalysis,
+			parsed.Tool.Pyscn.Dependencies,
+			parsed.Tool.Pyscn.Architecture,
+		), nil
+	}
+
+	var parsed config.PyscnTomlConfig
+	if err := toml.Unmarshal(data, &parsed); err != nil {
+		return analyzeEnabledOverrides{}, err
+	}
+	return enabledOverridesFromSections(parsed.SystemAnalysis, parsed.Dependencies, parsed.Architecture), nil
+}
+
+func enabledOverridesFromSections(system config.SystemAnalysisTomlConfig, dependencies config.DependenciesTomlConfig, architecture config.ArchitectureTomlConfig) analyzeEnabledOverrides {
+	return analyzeEnabledOverrides{
+		SystemEnabled:             system.Enabled,
+		SystemAnalyzeDependencies: system.EnableDependencies,
+		SystemAnalyzeArchitecture: system.EnableArchitecture,
+		DependenciesEnabled:       dependencies.Enabled,
+		ArchitectureEnabled:       architecture.Enabled,
+	}
 }
