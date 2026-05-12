@@ -58,8 +58,12 @@ func defaultAnalyzeExecutionConfig() domain.AnalyzeExecutionConfig {
 		ComplexityLowThreshold:    defaultCfg.Complexity.LowThreshold,
 		ComplexityMediumThreshold: defaultCfg.Complexity.MediumThreshold,
 		ComplexityMaxComplexity:   defaultCfg.Complexity.MaxComplexity,
+		DeadCodeEnabled:           defaultCfg.DeadCode.Enabled,
 		CloneLSHEnabled:           defaultCloneReq.LSHEnabled,
 		CloneLSHAutoThreshold:     defaultCloneReq.LSHAutoThreshold,
+		SystemEnabled:             true,
+		SystemAnalyzeDependencies: true,
+		SystemAnalyzeArchitecture: true,
 	}
 }
 
@@ -83,6 +87,7 @@ func analyzeExecutionConfigFromConfig(cfg *config.Config) domain.AnalyzeExecutio
 	executionCfg.ComplexityLowThreshold = cfg.Complexity.LowThreshold
 	executionCfg.ComplexityMediumThreshold = cfg.Complexity.MediumThreshold
 	executionCfg.ComplexityMaxComplexity = cfg.Complexity.MaxComplexity
+	executionCfg.DeadCodeEnabled = cfg.DeadCode.Enabled
 
 	if cfg.Clones != nil {
 		if cfg.Clones.LSH.Enabled != "" {
@@ -92,6 +97,10 @@ func analyzeExecutionConfigFromConfig(cfg *config.Config) domain.AnalyzeExecutio
 			executionCfg.CloneLSHAutoThreshold = cfg.Clones.LSH.AutoThreshold
 		}
 	}
+
+	executionCfg.SystemAnalyzeDependencies = (cfg.SystemAnalysis.Enabled && cfg.SystemAnalysis.EnableDependencies) || cfg.Dependencies.Enabled
+	executionCfg.SystemAnalyzeArchitecture = (cfg.SystemAnalysis.Enabled && cfg.SystemAnalysis.EnableArchitecture) || cfg.Architecture.Enabled
+	executionCfg.SystemEnabled = executionCfg.SystemAnalyzeDependencies || executionCfg.SystemAnalyzeArchitecture
 
 	return executionCfg
 }
