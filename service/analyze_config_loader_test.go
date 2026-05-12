@@ -29,6 +29,18 @@ func TestAnalyzeConfigurationLoader_LoadAnalyzeExecutionConfig(t *testing.T) {
 		if !cfg.ComplexityReportUnchanged {
 			t.Error("expected report_unchanged enabled by default")
 		}
+		if !cfg.DeadCodeEnabled {
+			t.Error("expected dead code enabled by default")
+		}
+		if !cfg.SystemEnabled {
+			t.Error("expected system analysis enabled by default")
+		}
+		if !cfg.SystemAnalyzeDependencies {
+			t.Error("expected dependency analysis enabled by default")
+		}
+		if !cfg.SystemAnalyzeArchitecture {
+			t.Error("expected architecture analysis enabled by default")
+		}
 		defaultCloneReq := domain.DefaultCloneRequest()
 		if cfg.CloneLSHEnabled != defaultCloneReq.LSHEnabled {
 			t.Errorf("expected default LSH enabled %q, got %q", defaultCloneReq.LSHEnabled, cfg.CloneLSHEnabled)
@@ -57,6 +69,20 @@ report_unchanged = false
 low_threshold = 3
 medium_threshold = 7
 max_complexity = 11
+
+[dead_code]
+enabled = false
+
+[system_analysis]
+enabled = true
+enable_dependencies = false
+enable_architecture = true
+
+[dependencies]
+enabled = true
+
+[architecture]
+enabled = false
 
 [output]
 min_complexity = 9
@@ -103,6 +129,18 @@ lsh_auto_threshold = 123
 		}
 		if cfg.ComplexityMinComplexity != 9 {
 			t.Errorf("expected min complexity 9, got %d", cfg.ComplexityMinComplexity)
+		}
+		if cfg.DeadCodeEnabled {
+			t.Error("expected dead code disabled")
+		}
+		if !cfg.SystemEnabled {
+			t.Error("expected system analysis enabled")
+		}
+		if !cfg.SystemAnalyzeDependencies {
+			t.Error("expected dependencies enabled through dependencies section")
+		}
+		if !cfg.SystemAnalyzeArchitecture {
+			t.Error("expected architecture enabled through system analysis section")
 		}
 		if cfg.CloneLSHEnabled != "true" {
 			t.Errorf("expected LSH enabled true, got %q", cfg.CloneLSHEnabled)

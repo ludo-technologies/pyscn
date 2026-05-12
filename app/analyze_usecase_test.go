@@ -156,6 +156,63 @@ enabled = false
 	}
 }
 
+func TestAnalyzeUseCase_Execute_DisablesAnalyzersFromConfig(t *testing.T) {
+	tempDir := t.TempDir()
+	sourcePath := filepath.Join(tempDir, "sample.py")
+	if err := os.WriteFile(sourcePath, []byte("def sample():\n    return 1\n"), 0644); err != nil {
+		t.Fatalf("Failed to write source file: %v", err)
+	}
+
+	configPath := filepath.Join(tempDir, ".pyscn.toml")
+	configContent := `[dead_code]
+enabled = false
+
+[system_analysis]
+enabled = false
+
+[dependencies]
+enabled = false
+
+[architecture]
+enabled = false
+`
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	useCase := &AnalyzeUseCase{
+		deadCodeUseCase: &DeadCodeUseCase{},
+		systemUseCase:   &SystemAnalysisUseCase{},
+		fileReader:      service.NewFileReader(),
+		configLoader:    service.NewAnalyzeConfigurationLoader(),
+	}
+
+	response, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		ConfigFile:      configPath,
+		MinSeverity:     domain.DeadCodeSeverityWarning,
+		CloneSimilarity: 0.8,
+	}, []string{tempDir})
+	if err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+
+	if response.Summary.DeadCodeEnabled {
+		t.Errorf("Expected dead code to be disabled, got %v", response.Summary.DeadCodeEnabled)
+	}
+	if response.Summary.DepsEnabled {
+		t.Errorf("Expected system dependencies to be disabled, got %v", response.Summary.DepsEnabled)
+	}
+	if response.Summary.ArchEnabled {
+		t.Errorf("Expected architecture to be disabled, got %v", response.Summary.ArchEnabled)
+	}
+	if response.DeadCode != nil {
+		t.Errorf("Expected no dead code response, got %+v", response.DeadCode)
+	}
+	if response.System != nil {
+		t.Errorf("Expected no system response, got %+v", response.System)
+	}
+}
+
 func TestAnalyzeUseCase_LoadExecutionConfig(t *testing.T) {
 	useCase := &AnalyzeUseCase{configLoader: service.NewAnalyzeConfigurationLoader()}
 
@@ -170,6 +227,18 @@ func TestAnalyzeUseCase_LoadExecutionConfig(t *testing.T) {
 		}
 		if !executionCfg.ComplexityReportUnchanged {
 			t.Error("Expected report_unchanged to be true by default")
+		}
+		if !executionCfg.DeadCodeEnabled {
+			t.Error("Expected dead code to be enabled by default")
+		}
+		if !executionCfg.SystemEnabled {
+			t.Error("Expected system analysis to be enabled by default")
+		}
+		if !executionCfg.SystemAnalyzeDependencies {
+			t.Error("Expected dependency analysis to be enabled by default")
+		}
+		if !executionCfg.SystemAnalyzeArchitecture {
+			t.Error("Expected architecture analysis to be enabled by default")
 		}
 		if executionCfg.ComplexityLowThreshold != domain.DefaultComplexityLowThreshold {
 			t.Errorf("Expected low threshold %d, got %d", domain.DefaultComplexityLowThreshold, executionCfg.ComplexityLowThreshold)
@@ -210,6 +279,20 @@ low_threshold = 3
 medium_threshold = 7
 max_complexity = 11
 
+[dead_code]
+enabled = false
+
+[system_analysis]
+enabled = true
+enable_dependencies = false
+enable_architecture = true
+
+[dependencies]
+enabled = true
+
+[architecture]
+enabled = false
+
 [output]
 min_complexity = 9
 
@@ -243,6 +326,18 @@ lsh_auto_threshold = 123
 		}
 		if executionCfg.ComplexityMinComplexity != 9 {
 			t.Errorf("Expected min complexity 9, got %d", executionCfg.ComplexityMinComplexity)
+		}
+		if executionCfg.DeadCodeEnabled {
+			t.Error("Expected dead code to be disabled")
+		}
+		if !executionCfg.SystemEnabled {
+			t.Error("Expected system analysis to be enabled")
+		}
+		if !executionCfg.SystemAnalyzeDependencies {
+			t.Error("Expected dependencies to be enabled through dependencies section")
+		}
+		if !executionCfg.SystemAnalyzeArchitecture {
+			t.Error("Expected architecture to be enabled through system analysis section")
 		}
 		if executionCfg.Recursive {
 			t.Error("Expected recursive to be false")
