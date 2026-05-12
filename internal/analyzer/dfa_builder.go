@@ -1,6 +1,8 @@
 package analyzer
 
 import (
+	"strings"
+
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -534,7 +536,8 @@ func (b *DFABuilder) extractWithTargetDefs(stmt *parser.Node, block *BasicBlock,
 		if child != nil && child.Type == parser.NodeWithItem {
 			// WithItem stores the alias in Name, not in Children[1]
 			// The parser populates node.Name with the alias from the "as" pattern
-			if child.Name != "" {
+			// Skip non-identifier names (e.g., tuple unpacking like `(a, b)`)
+			if child.Name != "" && !strings.ContainsAny(child.Name, "(),[]*") {
 				ref := NewVarReference(child.Name, DefKindWithTarget, block, stmt, pos)
 				defs = append(defs, ref)
 			}

@@ -314,8 +314,9 @@ with open(path) as f:
 		assert.Len(t, chainF.Defs, 1)
 		assert.Equal(t, DefKindWithTarget, chainF.Defs[0].Kind)
 
-		// f is correctly extracted as DefKindWithTarget
-		// Note: uses in attribute access may not be linked due to base identifier recognition in extractUsesFromExpression
+		// Note: attribute access like f.read() may not link the base identifier
+		// due to how extractUsesFromExpression handles identifiers in attribute chains.
+		// Follow-up issue to track: link attribute access bases to their definitions.
 	})
 
 	t.Run("Build_WithStatement_MultipleItems", func(t *testing.T) {
