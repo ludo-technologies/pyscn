@@ -296,6 +296,51 @@ z = y
 			assert.GreaterOrEqual(t, len(chainY.Defs), 1)
 		}
 	})
+
+	t.Run("Build_WithStatement_ExtractsAliasTarget", func(t *testing.T) {
+		source := `
+with open(path) as f:
+    data = f.read()
+`
+		cfg := buildCFGForDFA(t, source)
+		builder := NewDFABuilder()
+		info, err := builder.Build(cfg)
+
+		require.NoError(t, err)
+
+		// 'f' should be extracted as a DefKindWithTarget definition
+		chainF := info.Chains["f"]
+		require.NotNil(t, chainF, "'f' should be in variable chains")
+		assert.Len(t, chainF.Defs, 1)
+		assert.Equal(t, DefKindWithTarget, chainF.Defs[0].Kind)
+
+		// Note: attribute access like f.read() may not link the base identifier
+		// due to how extractUsesFromExpression handles identifiers in attribute chains.
+		// Follow-up issue to track: link attribute access bases to their definitions.
+	})
+
+	t.Run("Build_WithStatement_MultipleItems", func(t *testing.T) {
+		source := `
+with open(src) as inp, open(dst) as out:
+    out.write(inp.read())
+`
+		cfg := buildCFGForDFA(t, source)
+		builder := NewDFABuilder()
+		info, err := builder.Build(cfg)
+
+		require.NoError(t, err)
+
+		// Both 'inp' and 'out' should be extracted as DefKindWithTarget
+		chainInp := info.Chains["inp"]
+		require.NotNil(t, chainInp, "'inp' should be in variable chains")
+		assert.Len(t, chainInp.Defs, 1)
+		assert.Equal(t, DefKindWithTarget, chainInp.Defs[0].Kind)
+
+		chainOut := info.Chains["out"]
+		require.NotNil(t, chainOut, "'out' should be in variable chains")
+		assert.Len(t, chainOut.Defs, 1)
+		assert.Equal(t, DefKindWithTarget, chainOut.Defs[0].Kind)
+	})
 }
 
 func TestDFAFeatureComparison(t *testing.T) {
