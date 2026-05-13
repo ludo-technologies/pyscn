@@ -447,7 +447,7 @@ func (ma *ModuleAnalyzer) resolveAbsoluteImportWithProject(imp *ImportInfo, from
 		if moduleFile := modulePath + ".py"; ma.fileExists(moduleFile) {
 			// Calculate the module name based on project structure
 			resolvedName := ma.filePathToModuleName(moduleFile)
-			if resolvedName != "" {
+			if ma.importMatchesResolvedModule(moduleName, resolvedName) {
 				ma.resolvedModules[moduleName] = resolvedName
 				return resolvedName
 			}
@@ -459,14 +459,33 @@ func (ma *ModuleAnalyzer) resolveAbsoluteImportWithProject(imp *ImportInfo, from
 			if resolvedName != "" {
 				// For __init__.py files, use the package name (without __init__)
 				resolvedName = strings.TrimSuffix(resolvedName, ".__init__")
-				ma.resolvedModules[moduleName] = resolvedName
-				return resolvedName
+				if ma.importMatchesResolvedModule(moduleName, resolvedName) {
+					ma.resolvedModules[moduleName] = resolvedName
+					return resolvedName
+				}
 			}
 		}
 	}
 
 	// Fall back to the original resolveAbsoluteImport logic
 	return ma.resolveAbsoluteImport(imp)
+}
+
+// importMatchesResolvedModule verifies that an absolute import maps by
+// qualified module path, while still supporting script-style local imports for
+// non-stdlib modules. Bare stdlib imports must not bind to same-basename
+// project modules discovered under the current file's directory.
+func (ma *ModuleAnalyzer) importMatchesResolvedModule(importName, resolvedName string) bool {
+	if importName == "" || resolvedName == "" {
+		return false
+	}
+	if resolvedName == importName {
+		return true
+	}
+	if !strings.Contains(importName, ".") {
+		return !ma.isStandardLibrary(importName) && strings.HasSuffix(resolvedName, "."+importName)
+	}
+	return strings.HasSuffix(resolvedName, "."+importName)
 }
 
 // moduleNameFromImport normalizes the module name from an import statement
@@ -782,6 +801,7 @@ func (ma *ModuleAnalyzer) isStandardLibrary(moduleName string) bool {
 		"urllib": true, "http": true, "typing": true, "abc": true, "asyncio": true,
 		"contextlib": true, "dataclasses": true, "enum": true, "pickle": true,
 		"sqlite3": true, "csv": true, "xml": true, "html": true, "email": true,
+		"time": true, "socket": true, "subprocess": true, "multiprocessing": true,
 	}
 
 	// Check direct match

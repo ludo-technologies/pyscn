@@ -102,6 +102,44 @@ class Dependency:
 	assert.InDelta(t, 0.0, response.ModuleMetrics[balancedService].Distance, 0.01)
 }
 
+func TestAnalyzeArchitectureDoesNotReportStdlibShadowImport(t *testing.T) {
+	dir := t.TempDir()
+	files := map[string]string{
+		"pyproject.toml":      "[project]\nname = \"stdlib-shadow-repro\"\n",
+		"src/mypkg/time.py":   `"""Project-local time picker module."""`,
+		"src/mypkg/widget.py": "import time\n",
+		"utils/serve.py":      "import time\nprint(time.time())\n",
+	}
+
+	var paths []string
+	for name, content := range files {
+		path := filepath.Join(dir, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("failed to create directory for %s: %v", name, err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatalf("failed to write %s: %v", name, err)
+		}
+		if strings.HasSuffix(name, ".py") {
+			paths = append(paths, path)
+		}
+	}
+
+	service := NewSystemAnalysisService()
+	response, err := service.AnalyzeArchitecture(context.Background(), domain.SystemAnalysisRequest{
+		Paths:             paths,
+		IncludeThirdParty: domain.BoolPtr(false),
+		ArchitectureRules: &domain.ArchitectureRules{
+			Layers: []domain.Layer{
+				{Name: "tools", Packages: []string{"utils"}},
+			},
+			StrictMode: true,
+		},
+	})
+	require.NoError(t, err)
+	assert.Empty(t, response.Violations)
+}
+
 func moduleWithSuffix(t *testing.T, modules map[string]*domain.ModuleDependencyMetrics, suffix string) string {
 	t.Helper()
 	for module := range modules {
