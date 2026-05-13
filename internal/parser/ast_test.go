@@ -555,6 +555,92 @@ async def async_acquire(resource):
 	}
 }
 
+func TestASTBuilderWithItemTargetField(t *testing.T) {
+	source := `
+def unpack(cm):
+    with cm() as f:
+        pass
+    with cm() as (a, b):
+        pass
+    with cm() as [c, *rest]:
+        pass
+`
+
+	result, err := New().Parse(context.Background(), []byte(source))
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
+
+	withStmts := result.AST.FindByType(NodeWith)
+	if len(withStmts) != 3 {
+		t.Fatalf("Expected 3 with statements, got %d", len(withStmts))
+	}
+
+	// 1) simple identifier alias → Name is populated, Target stays nil
+	// (the alias is already represented by Name and the apted label; setting Target
+	// would duplicate it in generic AST traversal and inflate clone fingerprints).
+	itemSimple := withStmts[0].Children[0]
+	if itemSimple.Name != "f" {
+		t.Fatalf("Simple alias Name = %q, want %q", itemSimple.Name, "f")
+	}
+	if itemSimple.Target != nil {
+		t.Fatalf("Simple alias should not populate Target, got %s(%s)", itemSimple.Target.Type, itemSimple.Target.Name)
+	}
+
+	// 2) tuple alias → Target is a Tuple node containing two Name children
+	itemTuple := withStmts[1].Children[0]
+	if itemTuple.Target == nil {
+		t.Fatalf("Expected Target on tuple alias")
+	}
+	if itemTuple.Target.Type != NodeTuple {
+		t.Fatalf("Tuple alias Target type = %s, want %s", itemTuple.Target.Type, NodeTuple)
+	}
+	tupleNames := collectNameLeaves(itemTuple.Target)
+	if got, want := tupleNames, []string{"a", "b"}; !equalStringSlices(got, want) {
+		t.Fatalf("Tuple alias names = %v, want %v", got, want)
+	}
+	// Name should NOT be populated for compound aliases — that was the silent-drop case.
+	if itemTuple.Name != "" {
+		t.Fatalf("Compound alias should not populate Name, got %q", itemTuple.Name)
+	}
+
+	// 3) list alias with starred → Target is a List node; *rest is captured
+	itemList := withStmts[2].Children[0]
+	if itemList.Target == nil {
+		t.Fatalf("Expected Target on list alias")
+	}
+	if itemList.Target.Type != NodeList {
+		t.Fatalf("List alias Target type = %s, want %s", itemList.Target.Type, NodeList)
+	}
+	listNames := collectNameLeaves(itemList.Target)
+	if got, want := listNames, []string{"c", "rest"}; !equalStringSlices(got, want) {
+		t.Fatalf("List alias names = %v, want %v", got, want)
+	}
+}
+
+func collectNameLeaves(n *Node) []string {
+	var out []string
+	n.WalkDeep(func(child *Node) bool {
+		if child.Type == NodeName {
+			out = append(out, child.Name)
+		}
+		return true
+	})
+	return out
+}
+
+func equalStringSlices(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func countStringConstants(node *Node, value string) int {
 	count := 0
 	node.WalkDeep(func(child *Node) bool {

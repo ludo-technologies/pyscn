@@ -120,6 +120,7 @@ type Node struct {
 
 	// Additional fields for specific node types
 	Name      string   // For function/class definitions, variables
+	Target    *Node    // For with-item `as` alias (may be a name, tuple, list, or starred pattern)
 	Targets   []*Node  // For assignments
 	Body      []*Node  // For compound statements
 	Orelse    []*Node  // For if/for/while/try statements
@@ -188,6 +189,9 @@ func (n *Node) GetChildren() []*Node {
 	}
 	if n.Right != nil {
 		allChildren = append(allChildren, n.Right)
+	}
+	if n.Target != nil {
+		allChildren = append(allChildren, n.Target)
 	}
 
 	allChildren = append(allChildren, n.Targets...)
@@ -288,6 +292,9 @@ func (n *Node) WalkDeep(visitor func(*Node) bool) {
 	}
 	if n.Right != nil {
 		n.Right.WalkDeep(visitor)
+	}
+	if n.Target != nil {
+		n.Target.WalkDeep(visitor)
 	}
 
 	walkNodeList(n.Targets, visitor)
@@ -418,6 +425,11 @@ func (n *Node) Copy() *Node {
 	if n.Right != nil {
 		copied.Right = n.Right.Copy()
 		copied.Right.Parent = copied
+	}
+
+	if n.Target != nil {
+		copied.Target = n.Target.Copy()
+		copied.Target.Parent = copied
 	}
 
 	for _, node := range n.Targets {

@@ -1,8 +1,6 @@
 package analyzer
 
 import (
-	"strings"
-
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -533,14 +531,14 @@ func (b *DFABuilder) extractWithTargetDefs(stmt *parser.Node, block *BasicBlock,
 
 	// Look for WithItem children
 	for _, child := range stmt.Children {
-		if child != nil && child.Type == parser.NodeWithItem {
-			// WithItem stores the alias in Name, not in Children[1]
-			// The parser populates node.Name with the alias from the "as" pattern
-			// Skip non-identifier names (e.g., tuple unpacking like `(a, b)`)
-			if child.Name != "" && !strings.ContainsAny(child.Name, "(),[]*") {
-				ref := NewVarReference(child.Name, DefKindWithTarget, block, stmt, pos)
-				defs = append(defs, ref)
-			}
+		if child == nil || child.Type != parser.NodeWithItem {
+			continue
+		}
+		if child.Target != nil {
+			defs = append(defs, b.extractNamesFromTarget(child.Target, DefKindWithTarget, block, stmt, pos)...)
+		} else if child.Name != "" {
+			ref := NewVarReference(child.Name, DefKindWithTarget, block, stmt, pos)
+			defs = append(defs, ref)
 		}
 	}
 
@@ -602,12 +600,21 @@ func (b *DFABuilder) extractNamesFromTarget(target *parser.Node, kind DefUseKind
 		}
 
 	default:
-		// Handle pattern_list and other tree-sitter specific types
-		// pattern_list is used for tuple unpacking like: a, b = 1, 2
-		if string(target.Type) == "pattern_list" {
+		// Handle tree-sitter pattern node types that buildNode falls through as generic nodes:
+		//   - pattern_list:        a, b = 1, 2
+		//   - tuple_pattern:       with cm() as (a, b):
+		//   - list_pattern:        with cm() as [a, b]:
+		//   - list_splat_pattern:  *rest inside the above patterns
+		switch string(target.Type) {
+		case "pattern_list", "tuple_pattern", "list_pattern":
 			for _, elem := range target.Children {
-				// Skip comma separators
 				if elem != nil && elem.Type != "," && string(elem.Type) != "," {
+					defs = append(defs, b.extractNamesFromTarget(elem, kind, block, stmt, pos)...)
+				}
+			}
+		case "list_splat_pattern", "list_splat":
+			for _, elem := range target.Children {
+				if elem != nil && elem.Type != "*" && string(elem.Type) != "*" {
 					defs = append(defs, b.extractNamesFromTarget(elem, kind, block, stmt, pos)...)
 				}
 			}
