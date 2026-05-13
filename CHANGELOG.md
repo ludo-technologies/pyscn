@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.19.3] - 2026-05-14
+
+### Fixed
+- Fix DFA extraction for `with` statement alias targets (#424)
+- Honor analyze config flags by preserving system defaults and validating selection (#425)
+- Avoid resolving stdlib imports to shadowing project modules (#429)
+- Structurally model `with`-statement aliases in DFA via `NodeWithItem` (#430)
+
 ## [1.19.2] - 2026-05-11
 
 ### Fixed
