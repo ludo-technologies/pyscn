@@ -341,6 +341,66 @@ with open(src) as inp, open(dst) as out:
 		assert.Len(t, chainOut.Defs, 1)
 		assert.Equal(t, DefKindWithTarget, chainOut.Defs[0].Kind)
 	})
+
+	t.Run("Build_AsyncWithStatement_ExtractsAliasTarget", func(t *testing.T) {
+		source := `
+async def fetch(session, url):
+    async with session.get(url) as response:
+        return response
+`
+		ast := parseSourceForDFA(t, source)
+		cfgs, err := NewCFGBuilder().BuildAll(ast)
+		require.NoError(t, err)
+
+		cfg, ok := cfgs["fetch"]
+		require.True(t, ok, "expected CFG for async function 'fetch'")
+
+		info, err := NewDFABuilder().Build(cfg)
+		require.NoError(t, err)
+
+		chainResponse := info.Chains["response"]
+		require.NotNil(t, chainResponse, "'response' should be in variable chains")
+		assert.Len(t, chainResponse.Defs, 1)
+		assert.Equal(t, DefKindWithTarget, chainResponse.Defs[0].Kind)
+	})
+
+	t.Run("Build_WithStatement_TupleAliasUnpacks", func(t *testing.T) {
+		source := `
+with cm() as (a, b):
+    use(a, b)
+`
+		cfg := buildCFGForDFA(t, source)
+		builder := NewDFABuilder()
+		info, err := builder.Build(cfg)
+
+		require.NoError(t, err)
+
+		for _, name := range []string{"a", "b"} {
+			chain := info.Chains[name]
+			require.NotNil(t, chain, "%q should be in variable chains", name)
+			assert.Len(t, chain.Defs, 1)
+			assert.Equal(t, DefKindWithTarget, chain.Defs[0].Kind)
+		}
+	})
+
+	t.Run("Build_WithStatement_ListAliasWithStarredUnpacks", func(t *testing.T) {
+		source := `
+with cm() as [a, *rest]:
+    use(a, rest)
+`
+		cfg := buildCFGForDFA(t, source)
+		builder := NewDFABuilder()
+		info, err := builder.Build(cfg)
+
+		require.NoError(t, err)
+
+		for _, name := range []string{"a", "rest"} {
+			chain := info.Chains[name]
+			require.NotNil(t, chain, "%q should be in variable chains", name)
+			assert.Len(t, chain.Defs, 1)
+			assert.Equal(t, DefKindWithTarget, chain.Defs[0].Kind)
+		}
+	})
 }
 
 func TestDFAFeatureComparison(t *testing.T) {

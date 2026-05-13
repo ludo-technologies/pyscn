@@ -1862,7 +1862,30 @@ func (b *ASTBuilder) populateWithItemFromAsPattern(node *Node, tsNode *sitter.No
 	}
 
 	if alias := b.getChildByFieldName(tsNode, "alias"); alias != nil {
-		node.Name = b.getNodeText(alias)
+		// tree-sitter-python wraps the actual target in an `as_pattern_target` node;
+		// unwrap it so we build the inner identifier/tuple/list directly.
+		aliasTarget := alias
+		if alias.Type() == "as_pattern_target" {
+			for i := 0; i < int(alias.ChildCount()); i++ {
+				child := alias.Child(i)
+				if child == nil || b.isTrivia(child) || !child.IsNamed() {
+					continue
+				}
+				aliasTarget = child
+				break
+			}
+		}
+		if target := b.buildNode(aliasTarget); target != nil {
+			// Simple identifier aliases live in Name (apted/label fast path, generic
+			// traversal already covers them via the WithItem label). Compound aliases
+			// (tuple/list/starred) live in Target so generic AST traversal can reach
+			// the contained names instead of dropping them as a flattened string.
+			if target.Type == NodeName {
+				node.Name = target.Name
+			} else {
+				node.Target = target
+			}
+		}
 	}
 	return node
 }

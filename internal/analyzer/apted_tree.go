@@ -226,6 +226,7 @@ func orderedASTChildren(node *parser.Node, skipBodyNode func(parent, bodyNode *p
 	appendNode(node.Iter)
 	appendNode(node.Left)
 	appendNode(node.Right)
+	appendNode(node.Target)
 	appendValueNode(node.Value)
 	appendNodes(node.Keywords)
 	for i, bodyNode := range node.Body {
@@ -259,6 +260,9 @@ func astChildCapacity(node *parser.Node) int {
 		capacity++
 	}
 	if node.Right != nil {
+		capacity++
+	}
+	if node.Target != nil {
 		capacity++
 	}
 	if _, ok := node.Value.(*parser.Node); ok {
