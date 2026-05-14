@@ -147,8 +147,13 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 
 	// Starting actual clone detection (this is the slow part)
 
-	// Determine whether to use LSH based on configuration
-	useLSH := domain.ShouldUseLSH(req.LSHEnabled, len(allFragments), req.LSHAutoThreshold)
+	// Determine whether to use LSH based on configuration and estimated exact-pair cost.
+	useLSH := domain.ShouldUseLSHWithPairEstimate(
+		req.LSHEnabled,
+		len(allFragments),
+		req.LSHAutoThreshold,
+		detectorConfig.MaxClonePairs,
+	)
 
 	// Update detector with LSH decision
 	detector.SetUseLSH(useLSH)
