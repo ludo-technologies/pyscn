@@ -1070,7 +1070,7 @@ func (cd *CloneDetector) groupClonesWithStrategy(strategy GroupingStrategy) {
 		cd.cloneGroups = []*CloneGroup{}
 		return
 	}
-	cd.cloneGroups = strategy.GroupClones(cd.clonePairs)
+	cd.cloneGroups = dedupeStrictSubsetGroupMembers(strategy.GroupClones(cd.clonePairs))
 }
 
 // isSameLocation checks if two locations refer to the same code
