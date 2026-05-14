@@ -15,6 +15,14 @@ func makeGroup(id int, frags ...*CodeFragment) *CloneGroup {
 	return g
 }
 
+func dedupeGroups(groups []*CloneGroup, pairs ...*ClonePair) []*CloneGroup {
+	return dedupeStrictSubsetGroupMembers(groups, pairs).groups
+}
+
+func gpType(a, b *CodeFragment, sim float64, cloneType CloneType) *ClonePair {
+	return &ClonePair{Fragment1: a, Fragment2: b, Similarity: sim, CloneType: cloneType}
+}
+
 // rangesOf returns a sorted slice of "file:start-end" labels for a group's
 // fragments, providing order-independent comparison in assertions.
 func rangesOf(g *CloneGroup) []string {
@@ -48,7 +56,7 @@ func TestDedupe_AutofeatRepro(t *testing.T) {
 	c := gf("x.py", 548, 575)
 	g := makeGroup(1, a, b, c)
 
-	out := dedupeStrictSubsetGroupMembers([]*CloneGroup{g})
+	out := dedupeGroups([]*CloneGroup{g})
 
 	if len(out) != 1 {
 		t.Fatalf("expected 1 group, got %d", len(out))
@@ -73,7 +81,7 @@ func TestDedupe_EqualRangeKeepsFirst(t *testing.T) {
 	c := gf("y.py", 1, 10)
 	g := makeGroup(1, a, aDup, c)
 
-	out := dedupeStrictSubsetGroupMembers([]*CloneGroup{g})
+	out := dedupeGroups([]*CloneGroup{g})
 
 	if len(out) != 1 {
 		t.Fatalf("expected 1 group, got %d", len(out))
@@ -110,7 +118,7 @@ func TestDedupe_ChainCollapses(t *testing.T) {
 	d := gf("y.py", 1, 50)
 	g := makeGroup(1, a, b, c, d)
 
-	out := dedupeStrictSubsetGroupMembers([]*CloneGroup{g})
+	out := dedupeGroups([]*CloneGroup{g})
 
 	if len(out) != 1 || out[0].Size != 2 {
 		t.Fatalf("expected 1 group of size 2, got %+v", out)
@@ -130,7 +138,7 @@ func TestDedupe_DifferentFilesUntouched(t *testing.T) {
 	c := gf("z.py", 1, 10)
 	g := makeGroup(1, a, b, c)
 
-	out := dedupeStrictSubsetGroupMembers([]*CloneGroup{g})
+	out := dedupeGroups([]*CloneGroup{g})
 
 	if len(out) != 1 || out[0].Size != 3 {
 		t.Fatalf("expected 1 group of size 3, got %+v", out)
@@ -144,7 +152,7 @@ func TestDedupe_GroupShrinksToSingleton(t *testing.T) {
 	b := gf("x.py", 10, 90)
 	g := makeGroup(1, a, b)
 
-	out := dedupeStrictSubsetGroupMembers([]*CloneGroup{g})
+	out := dedupeGroups([]*CloneGroup{g})
 
 	if len(out) != 0 {
 		t.Fatalf("expected 0 groups after singleton drop, got %d", len(out))
@@ -158,7 +166,7 @@ func TestDedupe_DisjointSameFileBothKept(t *testing.T) {
 	b := gf("x.py", 20, 30)
 	g := makeGroup(1, a, b)
 
-	out := dedupeStrictSubsetGroupMembers([]*CloneGroup{g})
+	out := dedupeGroups([]*CloneGroup{g})
 
 	if len(out) != 1 || out[0].Size != 2 {
 		t.Fatalf("expected 1 group of size 2, got %+v", out)
@@ -168,16 +176,69 @@ func TestDedupe_DisjointSameFileBothKept(t *testing.T) {
 // TestDedupe_EmptyAndNilGroups verifies passthrough behavior for degenerate
 // inputs.
 func TestDedupe_EmptyAndNilGroups(t *testing.T) {
-	if got := dedupeStrictSubsetGroupMembers(nil); len(got) != 0 {
+	if got := dedupeGroups(nil); len(got) != 0 {
 		t.Fatalf("nil input should return empty result, got %d groups", len(got))
 	}
-	if got := dedupeStrictSubsetGroupMembers([]*CloneGroup{}); len(got) != 0 {
+	if got := dedupeGroups([]*CloneGroup{}); len(got) != 0 {
 		t.Fatalf("empty input should return empty result, got %d groups", len(got))
 	}
 	// A nil group entry should be skipped without panic.
-	out := dedupeStrictSubsetGroupMembers([]*CloneGroup{nil})
+	out := dedupeGroups([]*CloneGroup{nil})
 	if len(out) != 0 {
 		t.Fatalf("nil group entry should be skipped, got %d groups", len(out))
+	}
+}
+
+// TestDedupe_RecomputesMetadataAfterSuppression verifies group-level metadata
+// reflects the members that remain after pruning, not the larger pre-dedup set.
+func TestDedupe_RecomputesMetadataAfterSuppression(t *testing.T) {
+	a := gf("x.py", 1, 10)
+	b := gf("x.py", 2, 10)
+	c := gf("y.py", 1, 10)
+	g := makeGroup(1, a, b, c)
+	g.Similarity = 0.99
+	g.CloneType = Type1Clone
+	pairs := []*ClonePair{
+		gpType(a, c, 0.70, Type4Clone),
+		gpType(b, c, 0.99, Type1Clone),
+	}
+
+	out := dedupeStrictSubsetGroupMembers([]*CloneGroup{g}, pairs).groups
+
+	if len(out) != 1 {
+		t.Fatalf("expected 1 group, got %d", len(out))
+	}
+	if !almostEqual(out[0].Similarity, 0.70) {
+		t.Fatalf("expected recomputed similarity 0.70, got %.3f", out[0].Similarity)
+	}
+	if out[0].CloneType != Type4Clone {
+		t.Fatalf("expected recomputed clone type Type4, got %v", out[0].CloneType)
+	}
+}
+
+// TestGroupClonesWithStrategy_FiltersSuppressedClonePairs verifies pair output
+// cannot keep reporting a strict-subset member hidden from clone groups.
+func TestGroupClonesWithStrategy_FiltersSuppressedClonePairs(t *testing.T) {
+	a := gf("x.py", 1, 10)
+	b := gf("x.py", 2, 10)
+	c := gf("y.py", 1, 10)
+	cd := &CloneDetector{
+		clonePairs: []*ClonePair{
+			gpType(a, c, 0.95, Type2Clone),
+			gpType(b, c, 0.99, Type1Clone),
+		},
+	}
+
+	cd.groupClonesWithStrategy(NewConnectedGrouping(0.85))
+
+	if len(cd.cloneGroups) != 1 || cd.cloneGroups[0].Size != 2 {
+		t.Fatalf("expected one deduped group of size 2, got %+v", cd.cloneGroups)
+	}
+	if len(cd.clonePairs) != 1 {
+		t.Fatalf("expected suppressed-member pair to be filtered, got %d pairs", len(cd.clonePairs))
+	}
+	if cd.clonePairs[0].Fragment1 == b || cd.clonePairs[0].Fragment2 == b {
+		t.Fatalf("clonePairs still contains suppressed fragment")
 	}
 }
 
@@ -195,7 +256,7 @@ func TestDedupe_E2EThroughConnectedGrouping(t *testing.T) {
 	}
 
 	groups := NewConnectedGrouping(0.85).GroupClones(pairs)
-	out := dedupeStrictSubsetGroupMembers(groups)
+	out := dedupeGroups(groups, pairs...)
 
 	if len(out) != 1 {
 		t.Fatalf("expected 1 group end-to-end, got %d", len(out))
