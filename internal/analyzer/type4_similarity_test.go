@@ -1,95 +1,51 @@
 package analyzer
 
 import (
-	"context"
-	"os"
-	"path/filepath"
 	"testing"
 
-	"github.com/ludo-technologies/pyscn/internal/parser"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestType4SimilarityScores(t *testing.T) {
-	// Read test files
-	testDir := "../../testdata/python/clones/type4"
-
-	files := []string{
-		"sum_iterative.py",
-		"sum_recursive.py",
-		"find_max_a.py",
-		"find_max_b.py",
-	}
-
-	p := parser.New()
-	ctx := context.Background()
-
-	// Parse all files and extract functions
-	type funcInfo struct {
-		file string
-		name string
-		ast  *parser.Node
-	}
-	var functions []funcInfo
-
-	for _, file := range files {
-		path := filepath.Join(testDir, file)
-		content, err := os.ReadFile(path)
-		if err != nil {
-			t.Logf("Skipping %s: %v", file, err)
-			continue
-		}
-
-		result, err := p.Parse(ctx, content)
-		if err != nil {
-			t.Logf("Skipping %s: parse error: %v", file, err)
-			continue
-		}
-
-		// Extract function definitions
-		for _, node := range result.AST.Body {
-			if node.Type == parser.NodeFunctionDef {
-				functions = append(functions, funcInfo{
-					file: file,
-					name: node.Name,
-					ast:  node,
-				})
-			}
-		}
-	}
-
-	t.Logf("Found %d functions", len(functions))
-
-	// Create semantic analyzer with DFA
+	config := DefaultCloneDetectorConfig()
+	config.EnableDFAAnalysis = true
+	config.Type4Threshold = 0.70
+	detector := NewCloneDetector(config)
+	_, functions := loadType4FunctionFragments(t, detector)
 	analyzer := NewSemanticSimilarityAnalyzerWithDFA()
 
-	// Compare all pairs
-	t.Logf("\nSimilarity Matrix (with DFA):")
-	for i := 0; i < len(functions); i++ {
-		for j := i + 1; j < len(functions); j++ {
-			f1 := &CodeFragment{ASTNode: functions[i].ast}
-			f2 := &CodeFragment{ASTNode: functions[j].ast}
+	expectedPairs := [][2]string{
+		{"sum_iterative.py::sum_numbers", "sum_recursive.py::sum_numbers"},
+		{"sum_iterative.py::sum_range", "sum_recursive.py::sum_range"},
+		{"find_max_a.py::find_maximum", "find_max_b.py::find_maximum"},
+		{"find_max_a.py::find_min_max", "find_max_b.py::find_min_max"},
+		{"filter_transform_a.py::filter_and_double", "filter_transform_b.py::filter_and_double"},
+		{"filter_transform_a.py::process_data", "filter_transform_b.py::process_data"},
+		{"filter_transform_a.py::count_matching", "filter_transform_b.py::count_matching"},
+	}
+	for _, expected := range expectedPairs {
+		first := functions[expected[0]]
+		second := functions[expected[1]]
+		require.NotNil(t, first, "missing fixture function %s", expected[0])
+		require.NotNil(t, second, "missing fixture function %s", expected[1])
 
-			sim := analyzer.ComputeSimilarity(f1, f2)
-			t.Logf("  %s:%s vs %s:%s = %.3f",
-				functions[i].file, functions[i].name,
-				functions[j].file, functions[j].name,
-				sim)
-		}
+		similarity := analyzer.ComputeSimilarity(first, second)
+		assert.GreaterOrEqual(t, similarity, config.Type4Threshold, "%s <-> %s", expected[0], expected[1])
 	}
 
-	// Also test without DFA
-	analyzerNoDFA := NewSemanticSimilarityAnalyzer()
-	t.Logf("\nSimilarity Matrix (CFG only):")
-	for i := 0; i < len(functions); i++ {
-		for j := i + 1; j < len(functions); j++ {
-			f1 := &CodeFragment{ASTNode: functions[i].ast}
-			f2 := &CodeFragment{ASTNode: functions[j].ast}
+	negativePairs := [][2]string{
+		{"sum_iterative.py::sum_numbers", "find_max_b.py::find_maximum"},
+		{"sum_iterative.py::sum_range", "find_max_b.py::find_min_max"},
+		{"find_max_a.py::find_maximum", "find_max_b.py::find_min_max"},
+	}
+	for _, negative := range negativePairs {
+		first := functions[negative[0]]
+		second := functions[negative[1]]
+		require.NotNil(t, first, "missing fixture function %s", negative[0])
+		require.NotNil(t, second, "missing fixture function %s", negative[1])
 
-			sim := analyzerNoDFA.ComputeSimilarity(f1, f2)
-			t.Logf("  %s:%s vs %s:%s = %.3f",
-				functions[i].file, functions[i].name,
-				functions[j].file, functions[j].name,
-				sim)
-		}
+		similarity := analyzer.ComputeSimilarity(first, second)
+		assert.Less(t, similarity, config.Type4Threshold, "%s <-> %s", negative[0], negative[1])
 	}
 }

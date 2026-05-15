@@ -80,7 +80,7 @@ func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) flo
 
 	// If DFA is not enabled, return CFG similarity only
 	if !s.enableDFA {
-		return cfgSimilarity
+		return s.applySemanticEvidence(cfgSimilarity, f1, f2)
 	}
 
 	// Build DFA info for both CFGs
@@ -95,8 +95,134 @@ func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) flo
 	// Compare DFA features
 	dfaSimilarity := s.compareDFAFeatures(dfaFeatures1, dfaFeatures2)
 
-	// Combine CFG and DFA similarities with configured weights
-	return s.cfgFeatureWeight*cfgSimilarity + s.dfaFeatureWeight*dfaSimilarity
+	// Combine CFG and DFA similarities with configured weights.
+	baseSimilarity := s.cfgFeatureWeight*cfgSimilarity + s.dfaFeatureWeight*dfaSimilarity
+	return s.applySemanticEvidence(baseSimilarity, f1, f2)
+}
+
+const semanticMismatchPenalty = 0.75
+
+type semanticSignals struct {
+	strongSignals    map[string]struct{}
+	returnCategories map[string]struct{}
+}
+
+func (s *SemanticSimilarityAnalyzer) applySemanticEvidence(baseSimilarity float64, f1, f2 *CodeFragment) float64 {
+	if baseSimilarity == 0.0 {
+		return 0.0
+	}
+
+	signals1 := extractSemanticSignals(f1.ASTNode)
+	signals2 := extractSemanticSignals(f2.ASTNode)
+	if !hasSharedSemanticSignal(signals1.strongSignals, signals2.strongSignals) {
+		return baseSimilarity * semanticMismatchPenalty
+	}
+	if !hasCompatibleReturnCategories(signals1.returnCategories, signals2.returnCategories) {
+		return baseSimilarity * semanticMismatchPenalty
+	}
+	return baseSimilarity
+}
+
+func extractSemanticSignals(node *parser.Node) semanticSignals {
+	signals := semanticSignals{
+		strongSignals:    make(map[string]struct{}),
+		returnCategories: make(map[string]struct{}),
+	}
+	if node == nil {
+		return signals
+	}
+
+	node.Walk(func(current *parser.Node) bool {
+		switch current.Type {
+		case parser.NodeBinOp, parser.NodeAugAssign:
+			addSignal(signals.strongSignals, "binop", current.Op)
+		case parser.NodeCompare:
+			addSignal(signals.strongSignals, "compare", current.Op)
+		case parser.NodeUnaryOp:
+			addSignal(signals.strongSignals, "unary", current.Op)
+		case parser.NodeBoolOp:
+			addSignal(signals.strongSignals, "bool", current.Op)
+		case parser.NodeCall:
+			if signal := callSemanticSignal(current); signal != "" {
+				signals.strongSignals[signal] = struct{}{}
+			}
+		case parser.NodeReturn:
+			signals.returnCategories[returnCategory(current)] = struct{}{}
+		}
+		return true
+	})
+
+	return signals
+}
+
+func addSignal(signals map[string]struct{}, kind, value string) {
+	if value == "" {
+		return
+	}
+	signals[kind+":"+value] = struct{}{}
+}
+
+func callSemanticSignal(node *parser.Node) string {
+	callee := nodeValue(node)
+	if callee == nil {
+		return ""
+	}
+
+	switch callee.Type {
+	case parser.NodeAttribute:
+		if callee.Name != "" {
+			return "method:" + callee.Name
+		}
+	case parser.NodeName:
+		if callee.Name != "" && !isWeakSemanticCall(callee.Name) {
+			return "call:" + callee.Name
+		}
+	}
+	return ""
+}
+
+func isWeakSemanticCall(name string) bool {
+	switch name {
+	case "len", "range", "enumerate", "list", "dict", "set", "tuple", "int", "str", "float", "bool":
+		return true
+	default:
+		return false
+	}
+}
+
+func returnCategory(node *parser.Node) string {
+	value := nodeValue(node)
+	if value == nil {
+		return "none"
+	}
+	if value.Type == parser.NodeTuple || value.Type == parser.NodeType("expression_list") {
+		return "tuple"
+	}
+	return "scalar"
+}
+
+func hasSharedSemanticSignal(signals1, signals2 map[string]struct{}) bool {
+	if len(signals1) == 0 || len(signals2) == 0 {
+		return true
+	}
+	for signal := range signals1 {
+		if _, ok := signals2[signal]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasCompatibleReturnCategories(categories1, categories2 map[string]struct{}) bool {
+	if len(categories1) == 0 || len(categories2) == 0 {
+		return true
+	}
+	for category := range categories1 {
+		if _, ok := categories2[category]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 // buildCFGFromFragment builds a CFG from a code fragment

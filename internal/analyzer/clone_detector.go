@@ -901,6 +901,10 @@ func (cd *CloneDetector) compareFragments(fragment1, fragment2 *CodeFragment) *C
 		return nil
 	}
 
+	if cd.usesSemanticClassifier() {
+		return cd.compareFragmentsWithClassifier(fragment1, fragment2)
+	}
+
 	// Early filtering check
 	if !cd.shouldCompareFragments(fragment1, fragment2) {
 		return nil
@@ -924,6 +928,12 @@ func (cd *CloneDetector) compareFragments(fragment1, fragment2 *CodeFragment) *C
 	return cd.compareFragmentsSingleMetric(fragment1, fragment2)
 }
 
+func (cd *CloneDetector) usesSemanticClassifier() bool {
+	return cd.classifier != nil &&
+		cd.cloneDetectorConfig.EnableMultiDimensionalAnalysis &&
+		cd.cloneDetectorConfig.EnableSemanticAnalysis
+}
+
 // compareFragmentsWithClassifier uses the classifier as a gate and APTED for
 // final similarity/distance scoring and clone-type classification.
 func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *CodeFragment) *ClonePair {
@@ -936,6 +946,17 @@ func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *Co
 	// Distance is populated and clone type is derived from a consistent metric.
 	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
 	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
+
+	if result.CloneType == Type4Clone && result.Analyzer == "semantic" {
+		return &ClonePair{
+			Fragment1:  fragment1,
+			Fragment2:  fragment2,
+			Similarity: result.Similarity,
+			Distance:   distance,
+			CloneType:  result.CloneType,
+			Confidence: result.Confidence,
+		}
+	}
 
 	cloneType, similarity := cd.classifyClonePair(fragment1, fragment2, similarity)
 	if cloneType == 0 {
@@ -1052,7 +1073,7 @@ func (cd *CloneDetector) isSignificantClone(pair *ClonePair) bool {
 	}
 
 	// Check maximum distance threshold (0 means no limit)
-	if cd.cloneDetectorConfig.MaxEditDistance > 0 && pair.Distance > cd.cloneDetectorConfig.MaxEditDistance {
+	if pair.CloneType != Type4Clone && cd.cloneDetectorConfig.MaxEditDistance > 0 && pair.Distance > cd.cloneDetectorConfig.MaxEditDistance {
 		return false
 	}
 
