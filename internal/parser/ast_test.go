@@ -239,6 +239,110 @@ func TestNodeMethods(t *testing.T) {
 	}
 }
 
+func TestCanonicalTraversalIncludesValueNodes(t *testing.T) {
+	source := `
+async def load(client, items, idx):
+    result = client.fetch(items[idx])
+    await client.commit(result)
+    yield result
+    return client.done(result)
+`
+
+	result, err := New().Parse(context.Background(), []byte(source))
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
+
+	calls := result.AST.FindByType(NodeCall)
+	callByAttr := make(map[string]*Node)
+	for _, call := range calls {
+		callee, ok := call.Value.(*Node)
+		if ok && callee.Type == NodeAttribute {
+			callByAttr[callee.Name] = call
+			if callee.Parent != call {
+				t.Fatalf("Callee %s parent = %v, want call", callee.Name, callee.Parent)
+			}
+		}
+	}
+	for _, name := range []string{"fetch", "commit", "done"} {
+		if callByAttr[name] == nil {
+			t.Fatalf("FindByType(NodeCall) did not find call to client.%s", name)
+		}
+	}
+
+	if returnNode := callByAttr["done"].GetParentOfType(NodeReturn); returnNode == nil {
+		t.Fatal("Call stored in Return.Value should resolve its return parent")
+	}
+
+	subscripts := result.AST.FindByType(NodeSubscript)
+	if len(subscripts) != 1 {
+		t.Fatalf("Expected 1 subscript, got %d", len(subscripts))
+	}
+	base, ok := subscripts[0].Value.(*Node)
+	if !ok || base.Type != NodeName || base.Name != "items" {
+		t.Fatalf("Subscript base = %T %v, want Name(items)", subscripts[0].Value, subscripts[0].Value)
+	}
+	if base.Parent != subscripts[0] {
+		t.Fatal("Subscript base parent should point to the subscript node")
+	}
+
+	awaits := result.AST.FindByType(NodeAwait)
+	if len(awaits) != 1 {
+		t.Fatalf("Expected 1 await node, got %d", len(awaits))
+	}
+	if valueNode, ok := awaits[0].Value.(*Node); !ok || valueNode.Parent != awaits[0] {
+		t.Fatal("Await value should be traversable and parented")
+	}
+
+	yields := result.AST.FindByType(NodeYield)
+	if len(yields) != 1 {
+		t.Fatalf("Expected 1 yield node, got %d", len(yields))
+	}
+	if valueNode, ok := yields[0].Value.(*Node); !ok || valueNode.Parent != yields[0] {
+		t.Fatal("Yield value should be traversable and parented")
+	}
+}
+
+func TestCopyDeepCopiesValueNodes(t *testing.T) {
+	source := `
+def call():
+    return foo()
+`
+
+	result, err := New().Parse(context.Background(), []byte(source))
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
+
+	copied := result.AST.Copy()
+	originalCall := firstCallWithName(t, result.AST, "foo")
+	copiedCall := firstCallWithName(t, copied, "foo")
+
+	copiedCallee := copiedCall.Value.(*Node)
+	copiedCallee.Name = "bar"
+
+	originalCallee := originalCall.Value.(*Node)
+	if originalCallee.Name != "foo" {
+		t.Fatalf("Original callee mutated to %q", originalCallee.Name)
+	}
+	if copiedCallee.Parent != copiedCall {
+		t.Fatal("Copied value node should point to copied parent")
+	}
+}
+
+func firstCallWithName(t *testing.T, ast *Node, name string) *Node {
+	t.Helper()
+
+	for _, call := range ast.FindByType(NodeCall) {
+		callee, ok := call.Value.(*Node)
+		if ok && callee.Type == NodeName && callee.Name == name {
+			return call
+		}
+	}
+	t.Fatalf("Call %s() not found", name)
+	return nil
+}
+
 func TestASTBuilderComplexCode(t *testing.T) {
 	source := `
 import sys

@@ -51,6 +51,9 @@ func (b *ASTBuilder) Build(tree *sitter.Tree) (*Node, error) {
 	}
 
 	ast := b.buildNode(rootNode)
+	if ast != nil {
+		ast.RefreshParentLinks()
+	}
 	return ast, nil
 }
 
@@ -934,6 +937,23 @@ func (b *ASTBuilder) buildUnaryOp(tsNode *sitter.Node) *Node {
 	if operand := b.getChildByFieldName(tsNode, "operand"); operand != nil {
 		node.Value = b.buildNode(operand)
 	}
+	if node.Value == nil {
+		childCount := int(tsNode.ChildCount())
+		for i := 0; i < childCount; i++ {
+			child := tsNode.Child(i)
+			if child == nil || b.isTrivia(child) {
+				continue
+			}
+			if b.isUnaryOperatorToken(child) {
+				if node.Op == "" {
+					node.Op = b.getNodeText(child)
+				}
+				continue
+			}
+			node.Value = b.buildNode(child)
+			break
+		}
+	}
 
 	return node
 }
@@ -1086,12 +1106,26 @@ func (b *ASTBuilder) buildSubscript(tsNode *sitter.Node) *Node {
 	if value := b.getChildByFieldName(tsNode, "object"); value != nil {
 		node.Value = b.buildNode(value)
 	}
+	if node.Value == nil {
+		if value := b.getChildByFieldName(tsNode, "value"); value != nil {
+			node.Value = b.buildNode(value)
+		}
+	}
 
 	if subscript := b.getChildByFieldName(tsNode, "subscript"); subscript != nil {
 		node.AddChild(b.buildNode(subscript))
 	}
 
 	return node
+}
+
+func (b *ASTBuilder) isUnaryOperatorToken(tsNode *sitter.Node) bool {
+	switch tsNode.Type() {
+	case "+", "-", "~", "not":
+		return true
+	default:
+		return false
+	}
 }
 
 // buildSlice builds a slice node

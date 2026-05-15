@@ -169,38 +169,96 @@ func (n *Node) AddToBody(node *Node) {
 	}
 }
 
-// GetChildren returns all child nodes
+// BodyChildFilter decides whether a body child should be skipped while walking
+// a node's canonical children.
+type BodyChildFilter func(parent, bodyNode *Node, bodyIndex int) bool
+
+// GetChildren returns all child nodes in the parser's canonical order.
 func (n *Node) GetChildren() []*Node {
-	allChildren := []*Node{}
-	allChildren = append(allChildren, n.Children...)
-	allChildren = append(allChildren, n.Body...)
-	allChildren = append(allChildren, n.Orelse...)
-	allChildren = append(allChildren, n.Finalbody...)
-	allChildren = append(allChildren, n.Handlers...)
+	return OrderedChildren(n, nil)
+}
 
-	if n.Test != nil {
-		allChildren = append(allChildren, n.Test)
-	}
-	if n.Iter != nil {
-		allChildren = append(allChildren, n.Iter)
-	}
-	if n.Left != nil {
-		allChildren = append(allChildren, n.Left)
-	}
-	if n.Right != nil {
-		allChildren = append(allChildren, n.Right)
-	}
-	if n.Target != nil {
-		allChildren = append(allChildren, n.Target)
+// OrderedChildren returns every structural child exactly once in a stable order.
+// Value is included when it holds a *Node because many builders store core
+// expression children there.
+func OrderedChildren(node *Node, skipBodyNode BodyChildFilter) []*Node {
+	if node == nil {
+		return nil
 	}
 
-	allChildren = append(allChildren, n.Targets...)
-	allChildren = append(allChildren, n.Args...)
-	allChildren = append(allChildren, n.Keywords...)
-	allChildren = append(allChildren, n.Decorator...)
-	allChildren = append(allChildren, n.Bases...)
+	children := make([]*Node, 0, childCapacity(node))
+	seen := make(map[*Node]struct{}, childCapacity(node))
 
-	return allChildren
+	appendNode := func(child *Node) {
+		if child == nil {
+			return
+		}
+		if _, ok := seen[child]; ok {
+			return
+		}
+		seen[child] = struct{}{}
+		children = append(children, child)
+	}
+	appendNodes := func(nodes []*Node) {
+		for _, child := range nodes {
+			appendNode(child)
+		}
+	}
+
+	appendNodes(node.Children)
+	appendNodes(node.Decorator)
+	appendNodes(node.Bases)
+	appendNodes(node.Args)
+	appendNodes(node.Targets)
+	appendNode(node.Test)
+	appendNode(node.Iter)
+	appendNode(node.Left)
+	appendNode(node.Right)
+	appendNode(node.Target)
+	if valueNode, ok := node.Value.(*Node); ok {
+		appendNode(valueNode)
+	}
+	appendNodes(node.Keywords)
+	for i, bodyNode := range node.Body {
+		if skipBodyNode != nil && skipBodyNode(node, bodyNode, i) {
+			continue
+		}
+		appendNode(bodyNode)
+	}
+	appendNodes(node.Handlers)
+	appendNodes(node.Orelse)
+	appendNodes(node.Finalbody)
+
+	return children
+}
+
+func childCapacity(node *Node) int {
+	if node == nil {
+		return 0
+	}
+
+	capacity := len(node.Children) + len(node.Decorator) + len(node.Bases) + len(node.Args) +
+		len(node.Targets) + len(node.Keywords) + len(node.Body) + len(node.Handlers) +
+		len(node.Orelse) + len(node.Finalbody)
+	if node.Test != nil {
+		capacity++
+	}
+	if node.Iter != nil {
+		capacity++
+	}
+	if node.Left != nil {
+		capacity++
+	}
+	if node.Right != nil {
+		capacity++
+	}
+	if node.Target != nil {
+		capacity++
+	}
+	if _, ok := node.Value.(*Node); ok {
+		capacity++
+	}
+	return capacity
 }
 
 // IsStatement returns true if the node is a statement
@@ -267,53 +325,10 @@ func (n *Node) Walk(visitor func(*Node) bool) {
 	}
 }
 
-// WalkDeep traverses the AST including the Value field when it contains a *Node.
-// This is necessary because tree-sitter stores some child nodes in the Value field
-// (e.g., Call nodes store the callee in Value, Assign nodes store the RHS in Value).
+// WalkDeep is kept for callers that used the old explicit deep walk. Walk now
+// uses the same canonical child contract.
 func (n *Node) WalkDeep(visitor func(*Node) bool) {
-	if n == nil || !visitor(n) {
-		return
-	}
-
-	walkNodeList(n.Children, visitor)
-	walkNodeList(n.Body, visitor)
-	walkNodeList(n.Orelse, visitor)
-	walkNodeList(n.Finalbody, visitor)
-	walkNodeList(n.Handlers, visitor)
-
-	if n.Test != nil {
-		n.Test.WalkDeep(visitor)
-	}
-	if n.Iter != nil {
-		n.Iter.WalkDeep(visitor)
-	}
-	if n.Left != nil {
-		n.Left.WalkDeep(visitor)
-	}
-	if n.Right != nil {
-		n.Right.WalkDeep(visitor)
-	}
-	if n.Target != nil {
-		n.Target.WalkDeep(visitor)
-	}
-
-	walkNodeList(n.Targets, visitor)
-	walkNodeList(n.Args, visitor)
-	walkNodeList(n.Keywords, visitor)
-	walkNodeList(n.Decorator, visitor)
-	walkNodeList(n.Bases, visitor)
-
-	if valueNode, ok := n.Value.(*Node); ok {
-		valueNode.WalkDeep(visitor)
-	}
-}
-
-func walkNodeList(nodes []*Node, visitor func(*Node) bool) {
-	for _, child := range nodes {
-		if child != nil {
-			child.WalkDeep(visitor)
-		}
-	}
+	n.Walk(visitor)
 }
 
 // Find finds all nodes matching a predicate
@@ -355,13 +370,18 @@ func (n *Node) Copy() *Node {
 
 	copied := &Node{
 		Type:     n.Type,
-		Value:    n.Value,
 		Location: n.Location,
 		Name:     n.Name,
 		Op:       n.Op,
 		Module:   n.Module,
 		Names:    append([]string{}, n.Names...),
 		Level:    n.Level,
+	}
+	copied.Value = n.Value
+	if valueNode, ok := n.Value.(*Node); ok {
+		copiedValue := valueNode.Copy()
+		copiedValue.Parent = copied
+		copied.Value = copiedValue
 	}
 
 	// Copy children
@@ -473,4 +493,23 @@ func (n *Node) Copy() *Node {
 	}
 
 	return copied
+}
+
+// RefreshParentLinks rebuilds Parent pointers from the canonical child graph.
+func (n *Node) RefreshParentLinks() {
+	refreshParentLinks(n, nil, make(map[*Node]struct{}))
+}
+
+func refreshParentLinks(node, parent *Node, seen map[*Node]struct{}) {
+	if node == nil {
+		return
+	}
+	if _, ok := seen[node]; ok {
+		return
+	}
+	seen[node] = struct{}{}
+	node.Parent = parent
+	for _, child := range node.GetChildren() {
+		refreshParentLinks(child, node, seen)
+	}
 }

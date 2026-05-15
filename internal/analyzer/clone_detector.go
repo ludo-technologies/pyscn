@@ -86,7 +86,7 @@ func calculateASTSize(node *parser.Node) int {
 	}
 
 	size := 1
-	for _, child := range orderedASTChildren(node, nil) {
+	for _, child := range parser.OrderedChildren(node, nil) {
 		size += calculateASTSize(child)
 	}
 
@@ -393,7 +393,7 @@ func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, 
 	}
 
 	// Recursively process children
-	for _, child := range orderedASTChildren(node, nil) {
+	for _, child := range parser.OrderedChildren(node, nil) {
 		cd.extractFragmentsRecursiveWithSource(child, filePath, sourceCode, fragments)
 	}
 }
@@ -468,7 +468,7 @@ func (cd *CloneDetector) extractFragmentsRecursive(node *parser.Node, filePath s
 	}
 
 	// Recursively process children
-	for _, child := range orderedASTChildren(node, nil) {
+	for _, child := range parser.OrderedChildren(node, nil) {
 		cd.extractFragmentsRecursive(child, filePath, fragments)
 	}
 }

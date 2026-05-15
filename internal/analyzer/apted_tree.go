@@ -175,7 +175,7 @@ func (tc *TreeConverter) ConvertAST(astNode *parser.Node) *TreeNode {
 	// Store reference to original AST node
 	treeNode.OriginalNode = astNode
 
-	for _, child := range orderedASTChildren(astNode, tc.shouldSkipBodyNode) {
+	for _, child := range parser.OrderedChildren(astNode, tc.shouldSkipBodyNode) {
 		if childNode := tc.ConvertAST(child); childNode != nil {
 			treeNode.AddChild(childNode)
 		}
@@ -186,89 +186,6 @@ func (tc *TreeConverter) ConvertAST(astNode *parser.Node) *TreeNode {
 
 func (tc *TreeConverter) shouldSkipBodyNode(parent *parser.Node, bodyNode *parser.Node, bodyIndex int) bool {
 	return tc.canNodeHaveDocstring(parent.Type) && tc.isDocstring(bodyNode, bodyIndex)
-}
-
-func orderedASTChildren(node *parser.Node, skipBodyNode func(parent, bodyNode *parser.Node, bodyIndex int) bool) []*parser.Node {
-	if node == nil {
-		return nil
-	}
-
-	children := make([]*parser.Node, 0, astChildCapacity(node))
-	seen := make(map[*parser.Node]struct{}, astChildCapacity(node))
-
-	appendNode := func(child *parser.Node) {
-		if child == nil {
-			return
-		}
-		if _, ok := seen[child]; ok {
-			return
-		}
-		seen[child] = struct{}{}
-		children = append(children, child)
-	}
-	appendNodes := func(nodes []*parser.Node) {
-		for _, child := range nodes {
-			appendNode(child)
-		}
-	}
-	appendValueNode := func(value interface{}) {
-		if child, ok := value.(*parser.Node); ok {
-			appendNode(child)
-		}
-	}
-
-	appendNodes(node.Children)
-	appendNodes(node.Decorator)
-	appendNodes(node.Bases)
-	appendNodes(node.Args)
-	appendNodes(node.Targets)
-	appendNode(node.Test)
-	appendNode(node.Iter)
-	appendNode(node.Left)
-	appendNode(node.Right)
-	appendNode(node.Target)
-	appendValueNode(node.Value)
-	appendNodes(node.Keywords)
-	for i, bodyNode := range node.Body {
-		if skipBodyNode != nil && skipBodyNode(node, bodyNode, i) {
-			continue
-		}
-		appendNode(bodyNode)
-	}
-	appendNodes(node.Handlers)
-	appendNodes(node.Orelse)
-	appendNodes(node.Finalbody)
-
-	return children
-}
-
-func astChildCapacity(node *parser.Node) int {
-	if node == nil {
-		return 0
-	}
-
-	capacity := len(node.Children) + len(node.Decorator) + len(node.Bases) + len(node.Args) +
-		len(node.Targets) + len(node.Keywords) + len(node.Body) + len(node.Handlers) +
-		len(node.Orelse) + len(node.Finalbody)
-	if node.Test != nil {
-		capacity++
-	}
-	if node.Iter != nil {
-		capacity++
-	}
-	if node.Left != nil {
-		capacity++
-	}
-	if node.Right != nil {
-		capacity++
-	}
-	if node.Target != nil {
-		capacity++
-	}
-	if _, ok := node.Value.(*parser.Node); ok {
-		capacity++
-	}
-	return capacity
 }
 
 // canNodeHaveDocstring checks if a node type can have a docstring
