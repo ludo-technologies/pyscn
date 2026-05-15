@@ -33,6 +33,17 @@ func buildCFGForDFA(t *testing.T, source string) *CFG {
 	return cfg
 }
 
+func assertChainHasUseKind(t *testing.T, chain *DefUseChain, kind DefUseKind) {
+	t.Helper()
+
+	for _, use := range chain.Uses {
+		if use.Kind == kind {
+			return
+		}
+	}
+	t.Fatalf("Expected %s to have use kind %s, got %v", chain.Variable, kind, chain.Uses)
+}
+
 func TestDFABuilder(t *testing.T) {
 	t.Run("Build_NilCFG", func(t *testing.T) {
 		builder := NewDFABuilder()
@@ -189,15 +200,13 @@ def add(a, b):
 		chainA := info.Chains["a"]
 		chainB := info.Chains["b"]
 
-		if chainA != nil {
-			assert.Len(t, chainA.Defs, 1)
-			assert.Equal(t, DefKindParameter, chainA.Defs[0].Kind)
-		}
+		require.NotNil(t, chainA)
+		assert.Len(t, chainA.Defs, 1)
+		assert.Equal(t, DefKindParameter, chainA.Defs[0].Kind)
 
-		if chainB != nil {
-			assert.Len(t, chainB.Defs, 1)
-			assert.Equal(t, DefKindParameter, chainB.Defs[0].Kind)
-		}
+		require.NotNil(t, chainB)
+		assert.Len(t, chainB.Defs, 1)
+		assert.Equal(t, DefKindParameter, chainB.Defs[0].Kind)
 	})
 
 	t.Run("Build_Import", func(t *testing.T) {
@@ -230,17 +239,8 @@ value = obj.attr
 		require.NoError(t, err)
 
 		chainObj := info.Chains["obj"]
-		if chainObj != nil {
-			// obj.attr should create a UseKindAttribute
-			hasAttrUse := false
-			for _, use := range chainObj.Uses {
-				if use.Kind == UseKindAttribute {
-					hasAttrUse = true
-					break
-				}
-			}
-			assert.True(t, hasAttrUse, "Should have attribute access use")
-		}
+		require.NotNil(t, chainObj)
+		assertChainHasUseKind(t, chainObj, UseKindAttribute)
 	})
 
 	t.Run("Build_FunctionCall", func(t *testing.T) {
@@ -257,17 +257,29 @@ result = f(10)
 		require.NoError(t, err)
 
 		chainF := info.Chains["f"]
-		if chainF != nil {
-			// f(10) should create a UseKindCall
-			hasCallUse := false
-			for _, use := range chainF.Uses {
-				if use.Kind == UseKindCall {
-					hasCallUse = true
-					break
-				}
-			}
-			assert.True(t, hasCallUse, "Should have function call use")
-		}
+		require.NotNil(t, chainF)
+		assertChainHasUseKind(t, chainF, UseKindCall)
+	})
+
+	t.Run("Build_SubscriptExpression", func(t *testing.T) {
+		source := `
+items = [1, 2, 3]
+idx = 1
+value = items[idx]
+`
+		cfg := buildCFGForDFA(t, source)
+		builder := NewDFABuilder()
+		info, err := builder.Build(cfg)
+
+		require.NoError(t, err)
+
+		chainItems := info.Chains["items"]
+		require.NotNil(t, chainItems)
+		assertChainHasUseKind(t, chainItems, UseKindSubscript)
+
+		chainIdx := info.Chains["idx"]
+		require.NotNil(t, chainIdx)
+		assertChainHasUseKind(t, chainIdx, UseKindRead)
 	})
 
 	t.Run("Build_ControlFlowCrossBlock", func(t *testing.T) {
