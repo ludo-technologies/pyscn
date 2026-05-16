@@ -148,9 +148,10 @@ func (c *CloneClassifier) ClassifyClone(f1, f2 *CodeFragment) *ClassificationRes
 		}
 	}
 
-	// Fallback: check if cached structural similarity meets Type-4 threshold
-	// This maintains backward compatibility with single-metric classification
-	if c.structuralAnalyzer != nil && structuralSim >= c.type4Threshold {
+	// Fallback: check if cached structural similarity meets Type-4 threshold.
+	// This is only for classifier setups without semantic analysis; when semantic
+	// analysis is enabled, Type-4 must come from the semantic analyzer.
+	if !c.enableSemanticAnalysis && c.structuralAnalyzer != nil && structuralSim >= c.type4Threshold {
 		return &ClassificationResult{
 			CloneType:  Type4Clone,
 			Similarity: structuralSim,

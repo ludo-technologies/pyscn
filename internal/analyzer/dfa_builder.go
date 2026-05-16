@@ -27,16 +27,28 @@ func (b *DFABuilder) Build(cfg *CFG) (*DFAInfo, error) {
 	b.cfg = cfg
 	b.info = NewDFAInfo(cfg)
 
-	// Step 1: Collect all definitions
+	// Step 1: Seed function parameter definitions.
+	b.collectFunctionParameters()
+
+	// Step 2: Collect all definitions
 	b.collectDefinitions()
 
-	// Step 2: Collect all uses
+	// Step 3: Collect all uses
 	b.collectUses()
 
-	// Step 3: Link definitions to uses
+	// Step 4: Link definitions to uses
 	b.linkDefUse()
 
 	return b.info, nil
+}
+
+func (b *DFABuilder) collectFunctionParameters() {
+	if b.cfg == nil || b.cfg.FunctionNode == nil || b.cfg.Entry == nil {
+		return
+	}
+	for _, def := range b.extractParameterDefs(b.cfg.FunctionNode, b.cfg.Entry, -1) {
+		b.info.AddDef(def)
+	}
 }
 
 // collectDefinitions walks the CFG to find all variable definitions
@@ -238,8 +250,7 @@ func (b *DFABuilder) extractUses(stmt *parser.Node, block *BasicBlock, pos int) 
 
 	var uses []*VarReference
 
-	// For assignment statements, we need to extract uses from the Value field
-	// since Walk doesn't include it
+	// For assignment statements, only the right-hand side is a read.
 	if stmt.Type == parser.NodeAssign || stmt.Type == parser.NodeAnnAssign {
 		if valueNode, ok := stmt.Value.(*parser.Node); ok {
 			uses = append(uses, b.extractUsesFromExpression(valueNode, block, stmt, pos)...)
@@ -303,28 +314,25 @@ func (b *DFABuilder) extractUsesFromExpression(expr *parser.Node, block *BasicBl
 
 	case parser.NodeSubscript:
 		// x[i] - the base (x) is a use, and the index might contain uses too
-		if len(expr.Children) > 0 {
-			base := expr.Children[0]
-			if base != nil && base.Type == parser.NodeName {
+		if base := nodeValue(expr); base != nil {
+			if base.Type == parser.NodeName {
 				ref := NewVarReference(base.Name, UseKindSubscript, block, stmt, pos)
 				uses = append(uses, ref)
-			} else if base != nil {
+			} else {
 				uses = append(uses, b.extractUsesFromExpression(base, block, stmt, pos)...)
 			}
 		}
-		// Also check the subscript index
-		if len(expr.Children) > 1 {
-			uses = append(uses, b.extractUsesFromExpression(expr.Children[1], block, stmt, pos)...)
+		for _, child := range expr.Children {
+			uses = append(uses, b.extractUsesFromExpression(child, block, stmt, pos)...)
 		}
 
 	case parser.NodeCall:
 		// f(x) - the function and arguments are uses
-		if len(expr.Children) > 0 {
-			funcNode := expr.Children[0]
-			if funcNode != nil && funcNode.Type == parser.NodeName {
+		if funcNode := nodeValue(expr); funcNode != nil {
+			if funcNode.Type == parser.NodeName {
 				ref := NewVarReference(funcNode.Name, UseKindCall, block, stmt, pos)
 				uses = append(uses, ref)
-			} else if funcNode != nil {
+			} else {
 				uses = append(uses, b.extractUsesFromExpression(funcNode, block, stmt, pos)...)
 			}
 		}
@@ -334,8 +342,8 @@ func (b *DFABuilder) extractUsesFromExpression(expr *parser.Node, block *BasicBl
 		}
 		// Process keyword arguments
 		for _, kw := range expr.Keywords {
-			if len(kw.Children) > 0 {
-				uses = append(uses, b.extractUsesFromExpression(kw.Children[0], block, stmt, pos)...)
+			for _, child := range kw.GetChildren() {
+				uses = append(uses, b.extractUsesFromExpression(child, block, stmt, pos)...)
 			}
 		}
 
@@ -346,8 +354,8 @@ func (b *DFABuilder) extractUsesFromExpression(expr *parser.Node, block *BasicBl
 
 	case parser.NodeUnaryOp:
 		// -x, not x - the operand is a use
-		if len(expr.Children) > 0 {
-			uses = append(uses, b.extractUsesFromExpression(expr.Children[0], block, stmt, pos)...)
+		if value := nodeValue(expr); value != nil {
+			uses = append(uses, b.extractUsesFromExpression(value, block, stmt, pos)...)
 		}
 
 	case parser.NodeCompare:
@@ -359,36 +367,41 @@ func (b *DFABuilder) extractUsesFromExpression(expr *parser.Node, block *BasicBl
 
 	case parser.NodeTuple, parser.NodeList, parser.NodeSet:
 		// Collection literals - elements are uses
-		for _, child := range expr.Children {
+		for _, child := range expr.GetChildren() {
 			uses = append(uses, b.extractUsesFromExpression(child, block, stmt, pos)...)
 		}
 
 	case parser.NodeDict:
 		// Dict literal - keys and values are uses
-		for _, child := range expr.Children {
+		for _, child := range expr.GetChildren() {
 			uses = append(uses, b.extractUsesFromExpression(child, block, stmt, pos)...)
 		}
 
 	case parser.NodeIfExp:
 		// Ternary expression: a if b else c
-		uses = append(uses, b.extractUsesFromExpression(expr.Test, block, stmt, pos)...)
-		for _, child := range expr.Children {
+		for _, child := range expr.GetChildren() {
 			uses = append(uses, b.extractUsesFromExpression(child, block, stmt, pos)...)
 		}
 
 	case parser.NodeLambda:
-		// Lambda: lambda x: x + 1 - body contains uses, but parameters are local
-		// For simplicity, we skip lambda internals for now
+		// Lambda internals have local parameter scope.
+		return uses
 
 	case parser.NodeBoolOp:
 		// and/or - operands are uses
-		for _, child := range expr.Children {
+		for _, child := range expr.GetChildren() {
 			uses = append(uses, b.extractUsesFromExpression(child, block, stmt, pos)...)
+		}
+
+	case parser.NodeNamedExpr:
+		// x := value defines x and reads only the value side.
+		if value := nodeValue(expr); value != nil {
+			uses = append(uses, b.extractUsesFromExpression(value, block, stmt, pos)...)
 		}
 
 	default:
 		// For other expression types, recursively process children
-		for _, child := range expr.Children {
+		for _, child := range expr.GetChildren() {
 			uses = append(uses, b.extractUsesFromExpression(child, block, stmt, pos)...)
 		}
 	}
@@ -454,21 +467,22 @@ func (b *DFABuilder) extractForTargetDefs(stmt *parser.Node, block *BasicBlock, 
 func (b *DFABuilder) extractParameterDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	var defs []*VarReference
 
-	// Find Arguments node in children
-	for _, child := range stmt.Children {
-		if child != nil && child.Type == parser.NodeArguments {
-			// Extract parameter names from arguments
-			for _, arg := range child.Children {
-				if arg != nil && arg.Type == parser.NodeArg && arg.Name != "" {
-					ref := NewVarReference(arg.Name, DefKindParameter, block, stmt, pos)
-					defs = append(defs, ref)
-				}
-			}
-			break
+	for _, arg := range stmt.Args {
+		if arg != nil && arg.Type == parser.NodeArg && arg.Name != "" {
+			ref := NewVarReference(arg.Name, DefKindParameter, block, stmt, pos)
+			defs = append(defs, ref)
 		}
 	}
 
 	return defs
+}
+
+func nodeValue(node *parser.Node) *parser.Node {
+	if node == nil {
+		return nil
+	}
+	value, _ := node.Value.(*parser.Node)
+	return value
 }
 
 // extractImportDefs extracts definitions from an import statement
