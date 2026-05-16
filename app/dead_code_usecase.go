@@ -138,7 +138,7 @@ type snapshotDeadCodeService interface {
 
 func (uc *DeadCodeUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.DeadCodeRequest) (*domain.DeadCodeResponse, error) {
 	if snapshot == nil {
-		return uc.AnalyzeAndReturn(ctx, req)
+		return nil, domain.NewAnalysisError("dead code analysis failed", fmt.Errorf("project snapshot is required"))
 	}
 	if err := uc.validateRequest(req); err != nil {
 		return nil, domain.NewInvalidInputError("invalid request", err)
@@ -152,7 +152,7 @@ func (uc *DeadCodeUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot 
 
 	snapshotService, ok := uc.service.(snapshotDeadCodeService)
 	if !ok {
-		return uc.AnalyzeAndReturn(ctx, finalReq)
+		return nil, domain.NewAnalysisError("dead code analysis failed", fmt.Errorf("dead code service does not support project snapshots"))
 	}
 
 	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, finalReq)

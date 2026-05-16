@@ -120,7 +120,7 @@ type snapshotCBOService interface {
 
 func (uc *CBOUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.CBORequest) (*domain.CBOResponse, error) {
 	if snapshot == nil {
-		return uc.AnalyzeAndReturn(ctx, req)
+		return nil, domain.NewAnalysisError("CBO analysis failed", fmt.Errorf("project snapshot is required"))
 	}
 
 	if err := uc.validateRequest(req); err != nil {
@@ -135,7 +135,7 @@ func (uc *CBOUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.
 
 	snapshotService, ok := uc.service.(snapshotCBOService)
 	if !ok {
-		return uc.AnalyzeAndReturn(ctx, finalReq)
+		return nil, domain.NewAnalysisError("CBO analysis failed", fmt.Errorf("CBO service does not support project snapshots"))
 	}
 
 	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, finalReq)

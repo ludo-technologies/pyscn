@@ -231,7 +231,9 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 
 	var snapshot *service.ProjectSnapshot
 	if uc.needsProjectSnapshot(useCaseCfg) {
-		snapshot = service.BuildProjectSnapshot(ctx, files)
+		snapshot = service.BuildProjectSnapshotWithOptions(ctx, files, service.ProjectSnapshotOptions{
+			IncludeRawMetrics: uc.complexityUseCase != nil && !useCaseCfg.SkipComplexity,
+		})
 	}
 
 	// Start unified progress tracking with time-based estimation
@@ -292,7 +294,6 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 func (uc *AnalyzeUseCase) needsProjectSnapshot(config AnalyzeUseCaseConfig) bool {
 	return (uc.complexityUseCase != nil && !config.SkipComplexity) ||
 		(uc.deadCodeUseCase != nil && !config.SkipDeadCode) ||
-		(uc.cloneUseCase != nil && !config.SkipClones) ||
 		(uc.cboUseCase != nil && !config.SkipCBO) ||
 		(uc.lcomUseCase != nil && !config.SkipLCOM)
 }
@@ -351,7 +352,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Enabled: !config.SkipClones,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := uc.buildCloneTaskRequest(config, files)
-				return uc.cloneUseCase.executeSnapshotRequest(ctx, snapshot, request)
+				return uc.cloneUseCase.ExecuteAndReturn(ctx, request)
 			},
 		})
 	}

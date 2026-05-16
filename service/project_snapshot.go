@@ -17,14 +17,16 @@ type ProjectSnapshot struct {
 	Files []*ProjectFile
 }
 
+// ProjectSnapshotOptions controls which optional per-file analysis caches are built.
+type ProjectSnapshotOptions struct {
+	IncludeRawMetrics bool
+}
+
 // ProjectFile stores one Python file after read and parse.
 type ProjectFile struct {
 	Path       string
-	Content    []byte
 	AST        *parser.Node
 	RawMetrics *analyzer.RawMetricsResult
-	Lines      int
-	Nodes      int
 	ReadErr    error
 	ParseErr   error
 
@@ -35,6 +37,15 @@ type ProjectFile struct {
 
 // BuildProjectSnapshot reads and parses each file once for the full analyze command.
 func BuildProjectSnapshot(ctx context.Context, paths []string) *ProjectSnapshot {
+	return BuildProjectSnapshotWithOptions(ctx, paths, ProjectSnapshotOptions{IncludeRawMetrics: true})
+}
+
+// BuildProjectSnapshotWithOptions reads and parses each file once with analyzer-scoped caches.
+func BuildProjectSnapshotWithOptions(ctx context.Context, paths []string, options ProjectSnapshotOptions) *ProjectSnapshot {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	snapshot := &ProjectSnapshot{Files: make([]*ProjectFile, len(paths))}
 	if len(paths) == 0 {
 		return snapshot
@@ -56,7 +67,7 @@ func BuildProjectSnapshot(ctx context.Context, paths []string) *ProjectSnapshot 
 			pyParser := parser.New()
 			for idx := range jobs {
 				path := paths[idx]
-				snapshot.Files[idx] = buildProjectFile(ctx, pyParser, path)
+				snapshot.Files[idx] = buildProjectFile(ctx, pyParser, path, options)
 			}
 		}()
 	}
@@ -131,7 +142,7 @@ func (f *ProjectFile) CFGs() (map[string]*analyzer.CFG, error) {
 	return f.cfgs, f.cfgErr
 }
 
-func buildProjectFile(ctx context.Context, pyParser *parser.Parser, path string) *ProjectFile {
+func buildProjectFile(ctx context.Context, pyParser *parser.Parser, path string, options ProjectSnapshotOptions) *ProjectFile {
 	file := &ProjectFile{Path: path}
 
 	select {
@@ -147,9 +158,9 @@ func buildProjectFile(ctx context.Context, pyParser *parser.Parser, path string)
 		return file
 	}
 
-	file.Content = content
-	file.Lines = countSourceLines(content)
-	file.RawMetrics = analyzer.CalculateRawMetrics(content, path)
+	if options.IncludeRawMetrics {
+		file.RawMetrics = analyzer.CalculateRawMetrics(content, path)
+	}
 
 	result, err := pyParser.Parse(ctx, content)
 	if err != nil {
@@ -162,11 +173,9 @@ func buildProjectFile(ctx context.Context, pyParser *parser.Parser, path string)
 	}
 
 	file.AST = result.AST
-	analyzer.PopulateLogicalLines(file.RawMetrics, file.AST)
-
-	statsVisitor := parser.NewStatisticsVisitor()
-	file.AST.Accept(statsVisitor)
-	file.Nodes = statsVisitor.TotalNodes
+	if file.RawMetrics != nil {
+		analyzer.PopulateLogicalLines(file.RawMetrics, file.AST)
+	}
 
 	return file
 }

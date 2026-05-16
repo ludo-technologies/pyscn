@@ -160,6 +160,48 @@ import domain.core
 	assert.Equal(t, separateDependencies.MaxDepth, combined.DependencyAnalysis.MaxDepth)
 	assert.Equal(t, separateArchitecture.TotalViolations, combined.ArchitectureAnalysis.TotalViolations)
 	assert.Equal(t, separateArchitecture.ComplianceScore, combined.ArchitectureAnalysis.ComplianceScore)
+
+	dependencyOnlyReq := req
+	dependencyOnlyReq.AnalyzeArchitecture = domain.BoolPtr(false)
+	dependencyOnly, err := service.Analyze(context.Background(), dependencyOnlyReq)
+	require.NoError(t, err)
+	require.NotNil(t, dependencyOnly.DependencyAnalysis)
+	assert.Nil(t, dependencyOnly.ArchitectureAnalysis)
+	assert.Equal(t, separateDependencies.TotalModules, dependencyOnly.DependencyAnalysis.TotalModules)
+
+	architectureOnlyReq := req
+	architectureOnlyReq.AnalyzeDependencies = domain.BoolPtr(false)
+	architectureOnly, err := service.Analyze(context.Background(), architectureOnlyReq)
+	require.NoError(t, err)
+	assert.Nil(t, architectureOnly.DependencyAnalysis)
+	require.NotNil(t, architectureOnly.ArchitectureAnalysis)
+	assert.Equal(t, separateArchitecture.TotalViolations, architectureOnly.ArchitectureAnalysis.TotalViolations)
+	assert.Equal(t, separateArchitecture.ComplianceScore, architectureOnly.ArchitectureAnalysis.ComplianceScore)
+}
+
+func TestSystemAnalysisHonorsCanceledContextBeforeGraphBuild(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	service := NewSystemAnalysisService()
+	response, err := service.Analyze(ctx, domain.SystemAnalysisRequest{
+		Paths:               []string{"missing.py"},
+		AnalyzeDependencies: domain.BoolPtr(true),
+		AnalyzeArchitecture: domain.BoolPtr(true),
+	})
+	require.Error(t, err)
+	assert.Nil(t, response)
+	assert.Contains(t, err.Error(), "module graph cancelled")
+}
+
+func TestAnalyzeArchitectureGraphBuildErrorUsesModuleGraphWording(t *testing.T) {
+	service := NewSystemAnalysisService()
+	_, err := service.AnalyzeArchitecture(context.Background(), domain.SystemAnalysisRequest{
+		Paths: []string{"missing.txt"},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to build module graph")
+	assert.NotContains(t, err.Error(), "dependencies")
 }
 
 func TestAnalyzeArchitectureDoesNotReportStdlibShadowImport(t *testing.T) {

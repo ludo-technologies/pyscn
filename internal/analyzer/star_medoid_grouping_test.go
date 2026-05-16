@@ -102,6 +102,28 @@ func TestStarMedoidGrouping_MultipleGroups(t *testing.T) {
 	}
 }
 
+func TestStarMedoidGrouping_AssignsIDsAfterStableSort(t *testing.T) {
+	A1 := newFrag("a1.py", 1, 3)
+	A2 := newFrag("a2.py", 1, 3)
+	B1 := newFrag("b1.py", 1, 3)
+	B2 := newFrag("b2.py", 1, 3)
+
+	pairs := []*ClonePair{
+		newPair(A1, A2, 0.90),
+		newPair(B1, B2, 0.95),
+	}
+
+	groups := NewStarMedoidGrouping(0.85).GroupClones(pairs)
+	if !assert.Len(t, groups, 2) {
+		t.Fatalf("unexpected groups len: %d", len(groups))
+	}
+	for i, group := range groups {
+		assert.Equal(t, i, group.ID)
+	}
+	assert.Same(t, B1, groups[0].Fragments[0])
+	assert.Same(t, A1, groups[1].Fragments[0])
+}
+
 func TestStarMedoidGrouping_NoGroups(t *testing.T) {
 	A := newFrag("a.py", 1, 2)
 	B := newFrag("b.py", 1, 2)

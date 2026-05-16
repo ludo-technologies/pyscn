@@ -211,6 +211,10 @@ func (s *ComplexityServiceImpl) analyzeProjectFile(file *ProjectFile, req domain
 	}
 
 	rawMetrics := file.RawMetrics
+	if rawMetrics == nil {
+		errors = append(errors, fmt.Sprintf("[%s] Project snapshot is missing raw metrics", file.Path))
+		return functions, nil, warnings, errors
+	}
 	if file.ParseErr != nil {
 		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", file.Path, file.ParseErr))
 		return functions, rawMetrics, warnings, errors

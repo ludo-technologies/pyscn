@@ -74,40 +74,6 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	return s.buildCloneResponse(ctx, startTime, detectorConfig, detector, allFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed, req)
 }
 
-// DetectClonesInSnapshot performs clone detection using already parsed project files.
-func (s *CloneService) DetectClonesInSnapshot(ctx context.Context, snapshot *ProjectSnapshot, req *domain.CloneRequest) (*domain.CloneResponse, error) {
-	if ctx == nil {
-		return nil, fmt.Errorf("context cannot be nil")
-	}
-	if snapshot == nil {
-		return nil, fmt.Errorf("project snapshot cannot be nil")
-	}
-	if req == nil {
-		return nil, fmt.Errorf("clone request cannot be nil")
-	}
-	if err := req.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid clone request: %w", err)
-	}
-
-	startTime := time.Now()
-
-	if req.Timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, req.Timeout)
-		defer cancel()
-	}
-
-	detectorConfig := s.createDetectorConfig(req)
-	detector := analyzer.NewCloneDetector(detectorConfig)
-
-	allFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed, err := s.extractFragmentsFromSnapshot(ctx, snapshot, detector)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.buildCloneResponse(ctx, startTime, detectorConfig, detector, allFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed, req)
-}
-
 func (s *CloneService) extractFragmentsFromFiles(ctx context.Context, filePaths []string, detector *analyzer.CloneDetector) ([]*analyzer.CodeFragment, int, int, int, error) {
 	pyParser := parser.New()
 	var allFragments []*analyzer.CodeFragment
@@ -147,48 +113,6 @@ func (s *CloneService) extractFragmentsFromFiles(ctx context.Context, filePaths 
 
 		astNodes := []*parser.Node{parseResult.AST}
 		fragments := detector.ExtractFragmentsWithSource(astNodes, filePath, content)
-		allFragments = append(allFragments, fragments...)
-	}
-
-	return allFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed, nil
-}
-
-func (s *CloneService) extractFragmentsFromSnapshot(ctx context.Context, snapshot *ProjectSnapshot, detector *analyzer.CloneDetector) ([]*analyzer.CodeFragment, int, int, int, error) {
-	var allFragments []*analyzer.CodeFragment
-	linesAnalyzed := 0
-	nodesAnalyzed := 0
-	filesAnalyzed := 0
-
-	for _, file := range snapshot.Files {
-		select {
-		case <-ctx.Done():
-			return nil, 0, 0, 0, fmt.Errorf("clone analysis cancelled: %w", ctx.Err())
-		default:
-		}
-
-		if file == nil {
-			fmt.Fprintln(os.Stderr, "Warning: Invalid project file")
-			continue
-		}
-		if file.ReadErr != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to read file %s: %v\n", file.Path, file.ReadErr)
-			continue
-		}
-		if file.ParseErr != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to parse file %s: %v\n", file.Path, file.ParseErr)
-			continue
-		}
-		if file.AST == nil {
-			fmt.Fprintf(os.Stderr, "Warning: Invalid parse result for file %s\n", file.Path)
-			continue
-		}
-
-		filesAnalyzed++
-		linesAnalyzed += file.Lines
-		nodesAnalyzed += file.Nodes
-
-		astNodes := []*parser.Node{file.AST}
-		fragments := detector.ExtractFragmentsWithSource(astNodes, file.Path, file.Content)
 		allFragments = append(allFragments, fragments...)
 	}
 

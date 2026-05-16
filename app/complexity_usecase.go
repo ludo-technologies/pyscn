@@ -149,7 +149,7 @@ type snapshotComplexityService interface {
 
 func (uc *ComplexityUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
 	if snapshot == nil {
-		return uc.analyzeResolvedRequest(ctx, req)
+		return nil, domain.NewAnalysisError("complexity analysis failed", fmt.Errorf("project snapshot is required"))
 	}
 	if err := uc.validateRequest(req); err != nil {
 		return nil, domain.NewInvalidInputError("invalid request", err)
@@ -158,7 +158,7 @@ func (uc *ComplexityUseCase) analyzeSnapshotRequest(ctx context.Context, snapsho
 	req.Paths = snapshot.Paths()
 	snapshotService, ok := uc.service.(snapshotComplexityService)
 	if !ok {
-		return uc.analyzeResolvedRequest(ctx, req)
+		return nil, domain.NewAnalysisError("complexity analysis failed", fmt.Errorf("complexity service does not support project snapshots"))
 	}
 
 	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, req)

@@ -73,6 +73,28 @@ func TestLSHIndex_FindCandidatesCapsTotalCandidates(t *testing.T) {
 	}
 }
 
+func TestLSHIndex_FindCandidatesUsesDefaultCapAtBoundary(t *testing.T) {
+	mh := NewMinHasher(128)
+	sig := mh.ComputeSignature([]string{"same", "feature", "set"})
+
+	lsh := NewLSHIndex(32, 4)
+	for id := 0; id <= defaultLSHMaxCandidates; id++ {
+		if err := lsh.AddFragment(id, sig); err != nil {
+			t.Fatalf("add %d: %v", id, err)
+		}
+	}
+
+	cands := lsh.FindCandidates(sig)
+	if len(cands) != defaultLSHMaxCandidates {
+		t.Fatalf("candidate count mismatch: want %d got %d", defaultLSHMaxCandidates, len(cands))
+	}
+	for i, id := range cands {
+		if id != i {
+			t.Fatalf("candidate order mismatch at %d: got %d", i, id)
+		}
+	}
+}
+
 func TestLSHIndex_FindCandidatesReturnsDeterministicIndexes(t *testing.T) {
 	mh := NewMinHasher(128)
 	sig := mh.ComputeSignature([]string{"same", "feature", "set"})

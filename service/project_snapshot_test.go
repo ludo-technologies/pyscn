@@ -25,12 +25,6 @@ func TestProjectSnapshotCachesParsedFileState(t *testing.T) {
 	if file.RawMetrics == nil {
 		t.Fatal("expected raw metrics")
 	}
-	if file.Lines == 0 {
-		t.Fatal("expected line count")
-	}
-	if file.Nodes == 0 {
-		t.Fatal("expected node count")
-	}
 
 	firstCFGs, err := file.CFGs()
 	if err != nil {
@@ -45,6 +39,46 @@ func TestProjectSnapshotCachesParsedFileState(t *testing.T) {
 	}
 	if firstCFGs[domain.ModuleFunctionName] != secondCFGs[domain.ModuleFunctionName] {
 		t.Fatal("expected cached CFG objects to be reused")
+	}
+}
+
+func TestProjectSnapshotOptionsSkipRawMetrics(t *testing.T) {
+	ctx := context.Background()
+	sourcePath := writeSnapshotFixture(t)
+
+	snapshot := BuildProjectSnapshotWithOptions(ctx, []string{sourcePath}, ProjectSnapshotOptions{})
+	if len(snapshot.Files) != 1 {
+		t.Fatalf("expected 1 snapshot file, got %d", len(snapshot.Files))
+	}
+
+	file := snapshot.Files[0]
+	if !file.Parsed() {
+		t.Fatalf("expected parsed file, read err: %v, parse err: %v", file.ReadErr, file.ParseErr)
+	}
+	if file.RawMetrics != nil {
+		t.Fatal("expected raw metrics to be skipped")
+	}
+	if _, err := file.CFGs(); err != nil {
+		t.Fatalf("expected CFGs without raw metrics: %v", err)
+	}
+}
+
+func TestComplexitySnapshotRequiresRawMetrics(t *testing.T) {
+	ctx := context.Background()
+	sourcePath := writeSnapshotFixture(t)
+	paths := []string{sourcePath}
+	snapshot := BuildProjectSnapshotWithOptions(ctx, paths, ProjectSnapshotOptions{})
+
+	_, err := NewComplexityService().AnalyzeSnapshot(ctx, snapshot, domain.ComplexityRequest{
+		Paths:           paths,
+		OutputFormat:    domain.OutputFormatJSON,
+		MinComplexity:   1,
+		SortBy:          domain.SortByName,
+		LowThreshold:    domain.DefaultComplexityLowThreshold,
+		MediumThreshold: domain.DefaultComplexityMediumThreshold,
+	})
+	if err == nil {
+		t.Fatal("expected complexity snapshot without raw metrics to fail")
 	}
 }
 
@@ -107,27 +141,6 @@ func TestSnapshotServicesMatchFileServices(t *testing.T) {
 	}
 	if len(regularLCOM.Classes) != len(snapshotLCOM.Classes) {
 		t.Fatalf("LCOM class count mismatch: regular=%d snapshot=%d", len(regularLCOM.Classes), len(snapshotLCOM.Classes))
-	}
-
-	cloneReq := domain.DefaultCloneRequest()
-	cloneReq.Paths = paths
-	cloneReq.MinLines = 2
-	cloneReq.MinNodes = 1
-	cloneReq.LSHEnabled = "false"
-	cloneSvc := NewCloneService()
-	regularClones, err := cloneSvc.DetectClonesInFiles(ctx, paths, cloneReq)
-	if err != nil {
-		t.Fatalf("regular clone detection failed: %v", err)
-	}
-	snapshotClones, err := cloneSvc.DetectClonesInSnapshot(ctx, snapshot, cloneReq)
-	if err != nil {
-		t.Fatalf("snapshot clone detection failed: %v", err)
-	}
-	if regularClones.Statistics.TotalFragments != snapshotClones.Statistics.TotalFragments {
-		t.Fatalf("clone fragment mismatch: regular=%d snapshot=%d", regularClones.Statistics.TotalFragments, snapshotClones.Statistics.TotalFragments)
-	}
-	if regularClones.Statistics.TotalClonePairs != snapshotClones.Statistics.TotalClonePairs {
-		t.Fatalf("clone pair mismatch: regular=%d snapshot=%d", regularClones.Statistics.TotalClonePairs, snapshotClones.Statistics.TotalClonePairs)
 	}
 }
 

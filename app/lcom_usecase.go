@@ -114,7 +114,7 @@ type snapshotLCOMService interface {
 
 func (uc *LCOMUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.LCOMRequest) (*domain.LCOMResponse, error) {
 	if snapshot == nil {
-		return uc.AnalyzeAndReturn(ctx, req)
+		return nil, domain.NewAnalysisError("LCOM analysis failed", fmt.Errorf("project snapshot is required"))
 	}
 
 	finalReq, err := uc.loadAndMergeConfig(req)
@@ -128,7 +128,7 @@ func (uc *LCOMUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc
 
 	snapshotService, ok := uc.service.(snapshotLCOMService)
 	if !ok {
-		return uc.AnalyzeAndReturn(ctx, finalReq)
+		return nil, domain.NewAnalysisError("LCOM analysis failed", fmt.Errorf("LCOM service does not support project snapshots"))
 	}
 
 	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, finalReq)

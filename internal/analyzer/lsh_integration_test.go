@@ -82,6 +82,7 @@ func TestCloneDetector_DetectClonesWithLSH_CandidateCapDoesNotDropExactFamily(t 
 	if len(pairs) == 0 || len(groups) == 0 {
 		t.Fatalf("candidate cap dropped every exact clone candidate")
 	}
+	assertGroupContainsAllFragments(t, groups, fragments)
 }
 
 func TestCloneDetector_DetectClonesWithLSH_MatchesStandardOnBenchmarkFixture(t *testing.T) {
@@ -161,4 +162,34 @@ func assertCloneGroupSnapshotsEqual(t *testing.T, want, got []cloneGroupSnapshot
 			t.Fatalf("group mismatch at %d: want %+v got %+v", i, want[i], got[i])
 		}
 	}
+}
+
+func assertGroupContainsAllFragments(t *testing.T, groups []*CloneGroup, fragments []*CodeFragment) {
+	t.Helper()
+
+	want := make(map[*CodeFragment]struct{}, len(fragments))
+	for _, fragment := range fragments {
+		want[fragment] = struct{}{}
+	}
+
+	for _, group := range groups {
+		if len(group.Fragments) != len(fragments) {
+			continue
+		}
+		got := make(map[*CodeFragment]struct{}, len(group.Fragments))
+		for _, fragment := range group.Fragments {
+			got[fragment] = struct{}{}
+		}
+		if len(got) != len(want) {
+			continue
+		}
+		for fragment := range want {
+			if _, ok := got[fragment]; !ok {
+				t.Fatalf("group with all fragments is missing %s", fragmentID(fragment))
+			}
+		}
+		return
+	}
+
+	t.Fatalf("expected one clone group to contain all %d exact fragments; got %d groups", len(fragments), len(groups))
 }

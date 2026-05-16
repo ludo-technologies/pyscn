@@ -183,6 +183,9 @@ func (s *StarMedoidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 		}
 		return fragmentLess(result[i].Fragments[0], result[j].Fragments[0])
 	})
+	for i, group := range result {
+		group.ID = i
+	}
 
 	return result
 }
