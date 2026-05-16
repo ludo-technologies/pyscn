@@ -335,7 +335,7 @@ LSH activation is controlled by the `LSHEnabled` setting:
 |-------|----------|
 | `"true"` | Always use LSH |
 | `"false"` | Never use LSH |
-| `"auto"` (default) | Enable LSH when fragment count >= `LSHAutoThreshold` (default: 500) |
+| `"auto"` (default) | Enable LSH when fragment count >= `LSHAutoThreshold` (default: 500), or when estimated exact pairwise comparisons exceed 10,000 |
 
 ## Grouping Algorithms
 

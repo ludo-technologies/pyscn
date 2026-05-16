@@ -600,3 +600,70 @@ func TestShouldUseLSH(t *testing.T) {
 		})
 	}
 }
+
+func TestShouldUseLSHWithPairEstimate(t *testing.T) {
+	tests := []struct {
+		name          string
+		lshEnabled    string
+		fragmentCount int
+		autoThreshold int
+		pairThreshold int
+		want          bool
+	}{
+		{
+			name:          "explicit true ignores thresholds",
+			lshEnabled:    "true",
+			fragmentCount: 10,
+			autoThreshold: 500,
+			pairThreshold: 10000,
+			want:          true,
+		},
+		{
+			name:          "explicit false ignores pair explosion",
+			lshEnabled:    "false",
+			fragmentCount: 259,
+			autoThreshold: 500,
+			pairThreshold: 10000,
+			want:          false,
+		},
+		{
+			name:          "auto below fragment threshold but above pair threshold",
+			lshEnabled:    "auto",
+			fragmentCount: 259,
+			autoThreshold: 500,
+			pairThreshold: 10000,
+			want:          true,
+		},
+		{
+			name:          "auto below both thresholds",
+			lshEnabled:    "auto",
+			fragmentCount: 100,
+			autoThreshold: 500,
+			pairThreshold: 10000,
+			want:          false,
+		},
+		{
+			name:          "auto at fragment threshold",
+			lshEnabled:    "auto",
+			fragmentCount: 500,
+			autoThreshold: 500,
+			pairThreshold: 10000,
+			want:          true,
+		},
+		{
+			name:          "zero pair threshold uses default",
+			lshEnabled:    "auto",
+			fragmentCount: 259,
+			autoThreshold: 500,
+			pairThreshold: 0,
+			want:          true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ShouldUseLSHWithPairEstimate(tt.lshEnabled, tt.fragmentCount, tt.autoThreshold, tt.pairThreshold)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

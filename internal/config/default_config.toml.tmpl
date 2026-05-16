@@ -78,8 +78,8 @@ grouping_threshold = {{ .GroupingThreshold }}        # Threshold for grouping
 k_core_k = 2                     # K-core parameter
 
 # LSH acceleration settings
-lsh_enabled = "auto"             # Enable LSH: true, false, auto (based on project size)
-lsh_auto_threshold = {{ .LSHAutoThreshold }}         # Auto-enable LSH for projects with >{{ .LSHAutoThreshold }} fragments
+lsh_enabled = "auto"             # Enable LSH: true, false, auto (based on fragment or pair count)
+lsh_auto_threshold = {{ .LSHAutoThreshold }}         # Auto-enable LSH at >= {{ .LSHAutoThreshold }} fragments, or >10,000 estimated pairs
 lsh_similarity_threshold = {{ .LSHSimilarityThreshold }}  # LSH similarity threshold
 lsh_bands = {{ .LSHBands }}                   # Number of LSH bands
 lsh_rows = {{ .LSHRows }}                     # Number of rows per band

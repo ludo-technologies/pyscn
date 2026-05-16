@@ -670,8 +670,13 @@ func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUs
 		// Estimate fragment count (empirical average: ~5.0 fragments per file)
 		estimatedFragments := n * 5.0
 
-		// Determine LSH usage using centralized logic
-		useLSH := domain.ShouldUseLSH(executionCfg.CloneLSHEnabled, int(estimatedFragments), executionCfg.CloneLSHAutoThreshold)
+		// Determine LSH usage using centralized logic.
+		useLSH := domain.ShouldUseLSHWithPairEstimate(
+			executionCfg.CloneLSHEnabled,
+			int(estimatedFragments),
+			executionCfg.CloneLSHAutoThreshold,
+			domain.DefaultLSHAutoPairThreshold,
+		)
 
 		if useLSH {
 			// LSH enabled: Near-linear O(n^1.1) complexity

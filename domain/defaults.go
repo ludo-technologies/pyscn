@@ -194,9 +194,14 @@ const (
 // ============================================================================
 
 const (
-	// DefaultLSHAutoThreshold is the file count threshold for automatic LSH activation.
-	// When file count exceeds this, LSH acceleration is automatically enabled.
+	// DefaultLSHAutoThreshold is the fragment count threshold for automatic LSH activation.
+	// When fragment count exceeds this, LSH acceleration is automatically enabled.
 	DefaultLSHAutoThreshold = 500
+
+	// DefaultLSHAutoPairThreshold is the estimated pair count threshold for
+	// automatic LSH activation. This catches small repos with enough fragments
+	// to make exact pairwise APTED comparisons too expensive.
+	DefaultLSHAutoPairThreshold = 10000
 
 	// DefaultLSHSimilarityThreshold is the minimum similarity for LSH candidate filtering.
 	DefaultLSHSimilarityThreshold = 0.50

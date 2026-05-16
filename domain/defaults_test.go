@@ -96,6 +96,9 @@ func TestDefaultValueConsistency(t *testing.T) {
 		if DefaultLSHAutoThreshold <= 0 {
 			t.Errorf("LSHAutoThreshold (%d) should be > 0", DefaultLSHAutoThreshold)
 		}
+		if DefaultLSHAutoPairThreshold <= 0 {
+			t.Errorf("LSHAutoPairThreshold (%d) should be > 0", DefaultLSHAutoPairThreshold)
+		}
 		if DefaultLSHBands <= 0 {
 			t.Errorf("LSHBands (%d) should be > 0", DefaultLSHBands)
 		}

@@ -92,8 +92,8 @@ Clone detection (the most configurable analyzer).
 
 | Key                        | Type           | Default  | Description |
 | -------------------------- | -------------- | -------- | --- |
-| `lsh_enabled`              | `true\|false\|"auto"` | `"auto"` | Enable LSH (`auto` = based on fragment count). |
-| `lsh_auto_threshold`       | int            | `500`    | Fragment count threshold for auto-enable. |
+| `lsh_enabled`              | `true\|false\|"auto"` | `"auto"` | Enable LSH (`auto` = based on fragment count or estimated pair count). |
+| `lsh_auto_threshold`       | int            | `500`    | Fragment count threshold for auto-enable; auto also enables above 10,000 estimated pairs. |
 | `lsh_similarity_threshold` | float          | `0.50`   | LSH candidate pre-filter. |
 | `lsh_bands`                | int            | `32`     | LSH bands. |
 | `lsh_rows`                 | int            | `4`      | Rows per band. |

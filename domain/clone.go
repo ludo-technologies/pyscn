@@ -378,8 +378,8 @@ func NewCloneStatistics() *CloneStatistics {
 	}
 }
 
-// ShouldUseLSH determines whether to use LSH based on configuration and fragment count
-// This centralizes the LSH decision logic used by both clone detection and progress estimation
+// ShouldUseLSH determines whether to use LSH based on configuration and fragment count.
+// This centralizes the legacy LSH decision logic used by callers that only know fragment count.
 func ShouldUseLSH(lshEnabled string, fragmentCount int, autoThreshold int) bool {
 	if lshEnabled == "true" {
 		return true
@@ -393,4 +393,33 @@ func ShouldUseLSH(lshEnabled string, fragmentCount int, autoThreshold int) bool 
 		threshold = 500 // Default threshold
 	}
 	return fragmentCount >= threshold
+}
+
+// ShouldUseLSHWithPairEstimate determines whether to use LSH based on explicit
+// configuration, fragment count, and the estimated number of pairwise comparisons.
+func ShouldUseLSHWithPairEstimate(lshEnabled string, fragmentCount int, autoThreshold int, pairThreshold int) bool {
+	if lshEnabled == "true" {
+		return true
+	}
+	if lshEnabled == "false" {
+		return false
+	}
+	if ShouldUseLSH(lshEnabled, fragmentCount, autoThreshold) {
+		return true
+	}
+
+	threshold := pairThreshold
+	if threshold <= 0 {
+		threshold = DefaultLSHAutoPairThreshold
+	}
+
+	return estimatedClonePairs(fragmentCount) > int64(threshold)
+}
+
+func estimatedClonePairs(fragmentCount int) int64 {
+	if fragmentCount <= 1 {
+		return 0
+	}
+	n := int64(fragmentCount)
+	return n * (n - 1) / 2
 }

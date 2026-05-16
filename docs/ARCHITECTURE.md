@@ -280,7 +280,7 @@ type CostModel interface {
 }
 ```
 
-**LSH Acceleration (for large projects):**
+**LSH Acceleration (for many fragments or high pair counts):**
 
 ```go
 // LSH (Locality-Sensitive Hashing) for candidate filtering
@@ -301,7 +301,7 @@ type FeatureExtractor struct {
 
 **Two-Stage Detection Process:**
 
-**Stage 1: LSH Candidate Generation (for large projects)**
+**Stage 1: LSH Candidate Generation (for many fragments or high pair counts)**
 1. Extract AST features (subtree hashes, k-grams, patterns)
 2. Apply MinHash + LSH banding to find candidate pairs
 3. Filter candidates by similarity threshold
@@ -554,7 +554,7 @@ type BatchProcessor struct {
 
 ### 2. LSH Acceleration
 
-- Automatic LSH activation for large projects (>500 files)
+- Automatic LSH activation for >=500 fragments or >10,000 estimated pairs
 - Two-stage detection: LSH candidates + APTED verification
 - Configurable hash functions and banding parameters
 - Early termination for dissimilar pairs
@@ -946,7 +946,7 @@ All tests run automatically on:
 
 **Recently Completed:**
 - ✅ TOML-only configuration system (.pyscn.toml, pyproject.toml)
-- ✅ LSH-based clone detection acceleration for large projects
+- ✅ LSH-based clone detection acceleration for high fragment or pair counts
 - ✅ Multiple grouping modes (connected, star, complete linkage, k-core)
 - ✅ Performance optimizations and batch processing
 
@@ -1031,7 +1031,7 @@ type3_threshold = 0.85
 type4_threshold = 0.70
 max_results = 1000
 
-# LSH acceleration for large projects
+# LSH acceleration for large or high-pair-count projects
 [clones.lsh]
 enabled = "auto"
 auto_threshold = 500
