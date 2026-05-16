@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math"
@@ -354,16 +355,17 @@ func (cd *CloneDetector) ExtractFragments(astNodes []*parser.Node, filePath stri
 // Source content is needed for Type-1 clone classification and optional report output.
 func (cd *CloneDetector) ExtractFragmentsWithSource(astNodes []*parser.Node, filePath string, sourceCode []byte) []*CodeFragment {
 	var fragments []*CodeFragment
+	lines := splitLines(sourceCode)
 
 	for _, node := range astNodes {
-		cd.extractFragmentsRecursiveWithSource(node, filePath, sourceCode, &fragments)
+		cd.extractFragmentsRecursiveWithSource(node, filePath, lines, &fragments)
 	}
 
 	return fragments
 }
 
 // extractFragmentsRecursiveWithSource recursively extracts fragments with source content
-func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, filePath string, sourceCode []byte, fragments *[]*CodeFragment) {
+func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, filePath string, lines [][]byte, fragments *[]*CodeFragment) {
 	if node == nil {
 		return
 	}
@@ -380,8 +382,8 @@ func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, 
 
 		// Extract content from source code if textual analysis is enabled
 		content := ""
-		if len(sourceCode) > 0 {
-			content = cd.extractSourceContent(sourceCode, &node.Location)
+		if len(lines) > 0 {
+			content = cd.extractSourceContent(lines, &node.Location)
 		}
 
 		fragment := NewCodeFragment(location, node, content)
@@ -394,17 +396,16 @@ func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, 
 
 	// Recursively process children
 	for _, child := range parser.OrderedChildren(node, nil) {
-		cd.extractFragmentsRecursiveWithSource(child, filePath, sourceCode, fragments)
+		cd.extractFragmentsRecursiveWithSource(child, filePath, lines, fragments)
 	}
 }
 
 // extractSourceContent extracts source code content for a given location
-func (cd *CloneDetector) extractSourceContent(sourceCode []byte, loc *parser.Location) string {
-	if loc == nil || len(sourceCode) == 0 {
+func (cd *CloneDetector) extractSourceContent(lines [][]byte, loc *parser.Location) string {
+	if loc == nil || len(lines) == 0 {
 		return ""
 	}
 
-	lines := splitLines(sourceCode)
 	if loc.StartLine < 1 || loc.EndLine > len(lines) {
 		return ""
 	}
@@ -423,23 +424,21 @@ func (cd *CloneDetector) extractSourceContent(sourceCode []byte, loc *parser.Loc
 
 // splitLines splits source code into lines
 func splitLines(sourceCode []byte) [][]byte {
-	var lines [][]byte
-	var currentLine []byte
+	if len(sourceCode) == 0 {
+		return nil
+	}
 
-	for _, b := range sourceCode {
+	lines := make([][]byte, 0, bytes.Count(sourceCode, []byte{'\n'})+1)
+	start := 0
+	for idx, b := range sourceCode {
 		if b == '\n' {
-			lines = append(lines, currentLine)
-			currentLine = nil
-		} else {
-			currentLine = append(currentLine, b)
+			lines = append(lines, sourceCode[start:idx])
+			start = idx + 1
 		}
 	}
-
-	// Add last line if it doesn't end with newline
-	if len(currentLine) > 0 {
-		lines = append(lines, currentLine)
+	if start < len(sourceCode) {
+		lines = append(lines, sourceCode[start:])
 	}
-
 	return lines
 }
 
@@ -475,8 +474,9 @@ func (cd *CloneDetector) extractFragmentsRecursive(node *parser.Node, filePath s
 
 // isFragmentCandidate checks if a node should be considered as a fragment candidate
 func (cd *CloneDetector) isFragmentCandidate(node *parser.Node) bool {
-	// Consider functions, classes, and compound statements as fragment candidates
-	candidateTypes := []parser.NodeType{
+	switch node.Type {
+	// Consider functions, classes, and compound statements as fragment candidates.
+	case
 		parser.NodeFunctionDef,
 		parser.NodeAsyncFunctionDef,
 		parser.NodeClassDef,
@@ -486,13 +486,8 @@ func (cd *CloneDetector) isFragmentCandidate(node *parser.Node) bool {
 		parser.NodeIf,
 		parser.NodeTry,
 		parser.NodeWith,
-		parser.NodeAsyncWith,
-	}
-
-	for _, candidateType := range candidateTypes {
-		if node.Type == candidateType {
-			return true
-		}
+		parser.NodeAsyncWith:
+		return true
 	}
 
 	return false
