@@ -944,8 +944,7 @@ func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *Co
 
 	// Always run APTED with the detector's cost model (boilerplate-aware) so that
 	// Distance is populated and clone type is derived from a consistent metric.
-	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
-	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
+	distance, similarity := cd.analyzer.ComputeDistanceAndSimilarity(fragment1.TreeNode, fragment2.TreeNode)
 
 	if result.CloneType == Type4Clone && result.Analyzer == "semantic" {
 		return &ClonePair{
@@ -981,8 +980,7 @@ func (cd *CloneDetector) compareFragmentsSingleMetric(fragment1, fragment2 *Code
 
 // compareWithAPTED uses the APTED algorithm for precise similarity measurement.
 func (cd *CloneDetector) compareWithAPTED(fragment1, fragment2 *CodeFragment) *ClonePair {
-	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
-	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
+	distance, similarity := cd.analyzer.ComputeDistanceAndSimilarity(fragment1.TreeNode, fragment2.TreeNode)
 
 	cloneType, similarity := cd.classifyClonePair(fragment1, fragment2, similarity)
 	if cloneType == 0 {
