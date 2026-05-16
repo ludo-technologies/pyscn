@@ -170,10 +170,12 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 	response, analysisErr := useCase.Execute(ctx, config, args)
 
 	// Generate output even if there were partial failures
+	var outputErr error
 	if response != nil {
 		// Generate output
 		if err := c.generateOutput(cmd, response, args); err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Failed to generate output: %v\n", err)
+			outputErr = err
 		}
 
 		// Print summary
@@ -183,6 +185,11 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 	// Return the analysis error so CLI exits with non-zero status
 	if analysisErr != nil {
 		return analysisErr
+	}
+
+	// Return output error if analysis succeeded but output generation failed
+	if outputErr != nil {
+		return outputErr
 	}
 
 	return nil
