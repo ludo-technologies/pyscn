@@ -108,6 +108,37 @@ func (uc *LCOMUseCase) AnalyzeAndReturn(ctx context.Context, req domain.LCOMRequ
 	return response, nil
 }
 
+type snapshotLCOMService interface {
+	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.LCOMRequest) (*domain.LCOMResponse, error)
+}
+
+func (uc *LCOMUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.LCOMRequest) (*domain.LCOMResponse, error) {
+	if snapshot == nil {
+		return uc.AnalyzeAndReturn(ctx, req)
+	}
+
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return nil, domain.NewConfigError("failed to load configuration", err)
+	}
+	if err := uc.validateRequest(finalReq); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
+	finalReq.Paths = snapshot.Paths()
+
+	snapshotService, ok := uc.service.(snapshotLCOMService)
+	if !ok {
+		return uc.AnalyzeAndReturn(ctx, finalReq)
+	}
+
+	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, finalReq)
+	if err != nil {
+		return nil, domain.NewAnalysisError("LCOM analysis failed", err)
+	}
+
+	return response, nil
+}
+
 // validateRequest validates the LCOM request
 func (uc *LCOMUseCase) validateRequest(req domain.LCOMRequest) error {
 	if len(req.Paths) == 0 {

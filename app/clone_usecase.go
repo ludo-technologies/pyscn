@@ -151,6 +151,44 @@ func (uc *CloneUseCase) ExecuteAndReturn(ctx context.Context, req domain.CloneRe
 	return response, nil
 }
 
+type snapshotCloneService interface {
+	DetectClonesInSnapshot(context.Context, *svc.ProjectSnapshot, *domain.CloneRequest) (*domain.CloneResponse, error)
+}
+
+func (uc *CloneUseCase) executeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.CloneRequest) (*domain.CloneResponse, error) {
+	if snapshot == nil {
+		return uc.ExecuteAndReturn(ctx, req)
+	}
+
+	startTime := time.Now()
+
+	if err := req.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid request: %w", err)
+	}
+	if len(req.Paths) == 0 {
+		return nil, fmt.Errorf("no paths specified for clone detection")
+	}
+
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return nil, err
+	}
+	finalReq.Paths = snapshot.Paths()
+
+	snapshotService, ok := uc.service.(snapshotCloneService)
+	if !ok {
+		return uc.ExecuteAndReturn(ctx, finalReq)
+	}
+
+	response, err := snapshotService.DetectClonesInSnapshot(ctx, snapshot, &finalReq)
+	if err != nil {
+		return nil, fmt.Errorf("clone detection failed: %w", err)
+	}
+
+	response.Duration = time.Since(startTime).Milliseconds()
+	return response, nil
+}
+
 // ExecuteWithFiles executes clone detection on specific files
 func (uc *CloneUseCase) ExecuteWithFiles(ctx context.Context, filePaths []string, req domain.CloneRequest) error {
 	startTime := time.Now()

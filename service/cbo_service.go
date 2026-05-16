@@ -87,6 +87,64 @@ func (s *CBOServiceImpl) Analyze(ctx context.Context, req domain.CBORequest) (*d
 	}, nil
 }
 
+// AnalyzeSnapshot performs CBO analysis using already parsed project files.
+func (s *CBOServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectSnapshot, req domain.CBORequest) (*domain.CBOResponse, error) {
+	if snapshot == nil {
+		return nil, fmt.Errorf("project snapshot cannot be nil")
+	}
+
+	var allClasses []domain.ClassCoupling
+	var warnings []string
+	var errors []string
+	filesProcessed := 0
+
+	for _, file := range snapshot.Files {
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("CBO analysis cancelled: %w", ctx.Err())
+		default:
+		}
+
+		classes, fileWarnings, fileErrors := s.analyzeProjectFile(file, req)
+
+		if len(fileErrors) > 0 {
+			errors = append(errors, fileErrors...)
+			continue
+		}
+
+		allClasses = append(allClasses, classes...)
+		warnings = append(warnings, fileWarnings...)
+		filesProcessed++
+	}
+
+	if len(allClasses) == 0 {
+		warnings = append(warnings, "No classes found to analyze")
+		return &domain.CBOResponse{
+			Classes:     []domain.ClassCoupling{},
+			Summary:     s.generateSummary([]domain.ClassCoupling{}, filesProcessed, req),
+			Warnings:    warnings,
+			Errors:      errors,
+			GeneratedAt: time.Now().Format(time.RFC3339),
+			Version:     version.Version,
+			Config:      s.buildConfigForResponse(req),
+		}, nil
+	}
+
+	filteredClasses := s.filterClasses(allClasses, req)
+	sortedClasses := s.sortClasses(filteredClasses, req.SortBy)
+	summary := s.generateSummary(sortedClasses, filesProcessed, req)
+
+	return &domain.CBOResponse{
+		Classes:     sortedClasses,
+		Summary:     summary,
+		Warnings:    warnings,
+		Errors:      errors,
+		GeneratedAt: time.Now().Format(time.RFC3339),
+		Version:     version.Version,
+		Config:      s.buildConfigForResponse(req),
+	}, nil
+}
+
 // AnalyzeFile analyzes a single Python file
 func (s *CBOServiceImpl) AnalyzeFile(ctx context.Context, filePath string, req domain.CBORequest) (*domain.CBOResponse, error) {
 	// Update the request to analyze only this file
@@ -130,7 +188,47 @@ func (s *CBOServiceImpl) analyzeFile(ctx context.Context, filePath string, req d
 		return classes, warnings, errors
 	}
 
-	// Convert analyzer results to domain objects
+	classes = s.convertCBOResults(cboResults)
+	return classes, warnings, errors
+}
+
+func (s *CBOServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.CBORequest) ([]domain.ClassCoupling, []string, []string) {
+	var classes []domain.ClassCoupling
+	var warnings []string
+	var errors []string
+
+	if file == nil {
+		errors = append(errors, "[unknown] Invalid project file")
+		return classes, warnings, errors
+	}
+	if file.ReadErr != nil {
+		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", file.Path, file.ReadErr))
+		return classes, warnings, errors
+	}
+	if file.ParseErr != nil {
+		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", file.Path, file.ParseErr))
+		return classes, warnings, errors
+	}
+
+	options := s.buildCBOOptions(req)
+	cboResults, err := analyzer.CalculateCBOWithConfig(file.AST, file.Path, options)
+	if err != nil {
+		errors = append(errors, fmt.Sprintf("[%s] CBO analysis failed: %v", file.Path, err))
+		return classes, warnings, errors
+	}
+
+	if len(cboResults) == 0 {
+		warnings = append(warnings, fmt.Sprintf("[%s] No classes found in file", file.Path))
+		return classes, warnings, errors
+	}
+
+	classes = s.convertCBOResults(cboResults)
+	return classes, warnings, errors
+}
+
+func (s *CBOServiceImpl) convertCBOResults(cboResults []*analyzer.CBOResult) []domain.ClassCoupling {
+	classes := make([]domain.ClassCoupling, 0, len(cboResults))
+
 	for _, cboResult := range cboResults {
 		class := domain.ClassCoupling{
 			Name:      cboResult.ClassName,
@@ -154,7 +252,7 @@ func (s *CBOServiceImpl) analyzeFile(ctx context.Context, filePath string, req d
 		classes = append(classes, class)
 	}
 
-	return classes, warnings, errors
+	return classes
 }
 
 // filterClasses filters classes based on request criteria

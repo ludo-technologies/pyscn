@@ -88,6 +88,65 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 	}, nil
 }
 
+// AnalyzeSnapshot performs complexity analysis using already parsed project files.
+func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectSnapshot, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
+	if snapshot == nil {
+		return nil, fmt.Errorf("project snapshot cannot be nil")
+	}
+
+	var allFunctions []domain.FunctionComplexity
+	var allRawMetrics []domain.RawMetrics
+	var rawMetricResults []*analyzer.RawMetricsResult
+	var warnings []string
+	var errors []string
+	filesProcessed := 0
+
+	for _, file := range snapshot.Files {
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("complexity analysis cancelled: %w", ctx.Err())
+		default:
+		}
+
+		functions, rawMetrics, fileWarnings, fileErrors := s.analyzeProjectFile(file, req)
+
+		if rawMetrics != nil {
+			allRawMetrics = append(allRawMetrics, *s.convertRawMetrics(rawMetrics))
+			rawMetricResults = append(rawMetricResults, rawMetrics)
+		}
+
+		if len(fileErrors) > 0 {
+			errors = append(errors, fileErrors...)
+			continue
+		}
+
+		allFunctions = append(allFunctions, functions...)
+		warnings = append(warnings, fileWarnings...)
+		filesProcessed++
+	}
+
+	if len(allFunctions) == 0 && len(allRawMetrics) == 0 {
+		return nil, domain.NewAnalysisError("no functions found to analyze", nil)
+	}
+
+	filteredFunctions := s.filterFunctions(allFunctions, req)
+	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
+	summary := s.generateSummary(sortedFunctions, filesProcessed, req)
+	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
+
+	return &domain.ComplexityResponse{
+		Functions:         sortedFunctions,
+		Summary:           summary,
+		RawMetrics:        allRawMetrics,
+		RawMetricsSummary: rawMetricsSummary,
+		Warnings:          warnings,
+		Errors:            errors,
+		GeneratedAt:       time.Now().Format(time.RFC3339),
+		Version:           version.Version,
+		Config:            s.buildConfigForResponse(req),
+	}, nil
+}
+
 // AnalyzeFile analyzes a single Python file
 func (s *ComplexityServiceImpl) AnalyzeFile(ctx context.Context, filePath string, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
 	// Update the request to analyze only this file
@@ -132,6 +191,45 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 
 	// Calculate complexity for each function
 	complexityConfig := s.buildComplexityConfig(req)
+	functions, warnings = s.calculateFunctionComplexities(filePath, cfgs, complexityConfig, req)
+
+	return functions, rawMetrics, warnings, errors
+}
+
+func (s *ComplexityServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.ComplexityRequest) ([]domain.FunctionComplexity, *analyzer.RawMetricsResult, []string, []string) {
+	var functions []domain.FunctionComplexity
+	var warnings []string
+	var errors []string
+
+	if file == nil {
+		errors = append(errors, "[unknown] Invalid project file")
+		return functions, nil, warnings, errors
+	}
+	if file.ReadErr != nil {
+		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", file.Path, file.ReadErr))
+		return functions, nil, warnings, errors
+	}
+
+	rawMetrics := file.RawMetrics
+	if file.ParseErr != nil {
+		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", file.Path, file.ParseErr))
+		return functions, rawMetrics, warnings, errors
+	}
+
+	cfgs, err := file.CFGs()
+	if err != nil {
+		errors = append(errors, fmt.Sprintf("[%s] CFG construction failed: %v", file.Path, err))
+		return functions, rawMetrics, warnings, errors
+	}
+
+	complexityConfig := s.buildComplexityConfig(req)
+	functions, warnings = s.calculateFunctionComplexities(file.Path, cfgs, complexityConfig, req)
+	return functions, rawMetrics, warnings, errors
+}
+
+func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, cfgs map[string]*analyzer.CFG, complexityConfig *config.ComplexityConfig, req domain.ComplexityRequest) ([]domain.FunctionComplexity, []string) {
+	var functions []domain.FunctionComplexity
+	var warnings []string
 
 	for functionName, cfg := range cfgs {
 		result := analyzer.CalculateComplexityWithConfig(cfg, complexityConfig)
@@ -143,7 +241,6 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 			continue
 		}
 
-		// Calculate cognitive complexity independently from CFG-based McCabe calculation
 		cognitiveComplexity := 0
 		if cfg.FunctionNode != nil {
 			cognitiveResult := analyzer.CalculateCognitiveComplexity(cfg.FunctionNode)
@@ -175,7 +272,7 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 		functions = append(functions, function)
 	}
 
-	return functions, rawMetrics, warnings, errors
+	return functions, warnings
 }
 
 // filterFunctions filters functions based on complexity thresholds

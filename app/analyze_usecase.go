@@ -229,6 +229,11 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	// Calculate estimated time based on file count and enabled analyses
 	estimatedTime := uc.calculateEstimatedTime(len(files), useCaseCfg, executionCfg)
 
+	var snapshot *service.ProjectSnapshot
+	if uc.needsProjectSnapshot(useCaseCfg) {
+		snapshot = service.BuildProjectSnapshot(ctx, files)
+	}
+
 	// Start unified progress tracking with time-based estimation
 	var progressDone chan struct{}
 	if uc.progressManager != nil {
@@ -237,7 +242,7 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 
 	// Create analysis tasks
-	tasks := uc.createAnalysisTasks(useCaseCfg, files, executionCfg)
+	tasks := uc.createAnalysisTasks(useCaseCfg, files, snapshot, executionCfg)
 
 	// Execute tasks in parallel
 	var wg sync.WaitGroup
@@ -284,8 +289,16 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	return response, nil
 }
 
+func (uc *AnalyzeUseCase) needsProjectSnapshot(config AnalyzeUseCaseConfig) bool {
+	return (uc.complexityUseCase != nil && !config.SkipComplexity) ||
+		(uc.deadCodeUseCase != nil && !config.SkipDeadCode) ||
+		(uc.cloneUseCase != nil && !config.SkipClones) ||
+		(uc.cboUseCase != nil && !config.SkipCBO) ||
+		(uc.lcomUseCase != nil && !config.SkipLCOM)
+}
+
 // createAnalysisTasks creates the analysis tasks based on configuration
-func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files []string, executionCfg domain.AnalyzeExecutionConfig) []*AnalysisTask {
+func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files []string, snapshot *service.ProjectSnapshot, executionCfg domain.AnalyzeExecutionConfig) []*AnalysisTask {
 	tasks := []*AnalysisTask{}
 
 	// Complexity analysis task
@@ -295,7 +308,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Enabled: !config.SkipComplexity,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := uc.buildComplexityTaskRequest(config, files, executionCfg)
-				return uc.complexityUseCase.analyzeResolvedRequest(ctx, request)
+				return uc.complexityUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
 			},
 		})
 	}
@@ -326,7 +339,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 					DetectAfterRaise:          nil,
 					DetectUnreachableBranches: nil,
 				}
-				return uc.deadCodeUseCase.AnalyzeAndReturn(ctx, request)
+				return uc.deadCodeUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
 			},
 		})
 	}
@@ -338,7 +351,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Enabled: !config.SkipClones,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := uc.buildCloneTaskRequest(config, files)
-				return uc.cloneUseCase.ExecuteAndReturn(ctx, request)
+				return uc.cloneUseCase.executeSnapshotRequest(ctx, snapshot, request)
 			},
 		})
 	}
@@ -366,7 +379,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 					IncludeBuiltins: nil,
 					IncludeImports:  nil,
 				}
-				return uc.cboUseCase.AnalyzeAndReturn(ctx, request)
+				return uc.cboUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
 			},
 		})
 	}
@@ -389,7 +402,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 					SortBy:          domain.SortByCohesion,
 					ConfigPath:      config.ConfigFile,
 				}
-				return uc.lcomUseCase.AnalyzeAndReturn(ctx, request)
+				return uc.lcomUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
 			},
 		})
 	}

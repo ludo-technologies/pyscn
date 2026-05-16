@@ -77,6 +77,54 @@ func (s *DeadCodeServiceImpl) Analyze(ctx context.Context, req domain.DeadCodeRe
 	}, nil
 }
 
+// AnalyzeSnapshot performs dead code analysis using already parsed project files.
+func (s *DeadCodeServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectSnapshot, req domain.DeadCodeRequest) (*domain.DeadCodeResponse, error) {
+	if snapshot == nil {
+		return nil, fmt.Errorf("project snapshot cannot be nil")
+	}
+
+	var allFiles []domain.FileDeadCode
+	var warnings []string
+	var errors []string
+	filesProcessed := 0
+
+	for _, file := range snapshot.Files {
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("dead code analysis cancelled: %w", ctx.Err())
+		default:
+		}
+
+		fileResult, fileWarnings, fileErrors := s.analyzeProjectFile(file, req)
+
+		if len(fileErrors) > 0 {
+			errors = append(errors, fileErrors...)
+			continue
+		}
+
+		if fileResult != nil && (len(fileResult.Functions) > 0 || fileResult.TotalFindings > 0) {
+			allFiles = append(allFiles, *fileResult)
+		}
+
+		warnings = append(warnings, fileWarnings...)
+		filesProcessed++
+	}
+
+	filteredFiles := s.filterFiles(allFiles, req)
+	sortedFiles := s.sortFiles(filteredFiles, req.SortBy)
+	summary := s.generateSummary(sortedFiles, filesProcessed, req)
+
+	return &domain.DeadCodeResponse{
+		Files:       sortedFiles,
+		Summary:     summary,
+		Warnings:    warnings,
+		Errors:      errors,
+		GeneratedAt: time.Now().Format(time.RFC3339),
+		Version:     version.Version,
+		Config:      s.buildConfigForResponse(req),
+	}, nil
+}
+
 // AnalyzeFile analyzes a single Python file for dead code
 func (s *DeadCodeServiceImpl) AnalyzeFile(ctx context.Context, filePath string, req domain.DeadCodeRequest) (*domain.FileDeadCode, error) {
 	fileResult, _, fileErrors := s.analyzeFile(ctx, filePath, req)
@@ -142,7 +190,54 @@ func (s *DeadCodeServiceImpl) analyzeFile(ctx context.Context, filePath string, 
 		}, warnings, errors
 	}
 
-	// Analyze dead code for each function
+	fileResult, fileWarnings := s.analyzeCFGs(filePath, cfgs, req)
+	warnings = append(warnings, fileWarnings...)
+
+	return fileResult, warnings, errors
+}
+
+func (s *DeadCodeServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.DeadCodeRequest) (*domain.FileDeadCode, []string, []string) {
+	var warnings []string
+	var errors []string
+
+	if file == nil {
+		errors = append(errors, "[unknown] Invalid project file")
+		return nil, warnings, errors
+	}
+	if file.ReadErr != nil {
+		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", file.Path, file.ReadErr))
+		return nil, warnings, errors
+	}
+	if file.ParseErr != nil {
+		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", file.Path, file.ParseErr))
+		return nil, warnings, errors
+	}
+
+	cfgs, err := file.CFGs()
+	if err != nil {
+		errors = append(errors, fmt.Sprintf("[%s] CFG construction failed: %v", file.Path, err))
+		return nil, warnings, errors
+	}
+
+	if len(cfgs) == 0 {
+		warnings = append(warnings, fmt.Sprintf("[%s] No functions found in file", file.Path))
+		return &domain.FileDeadCode{
+			FilePath:          file.Path,
+			Functions:         []domain.FunctionDeadCode{},
+			TotalFindings:     0,
+			TotalFunctions:    0,
+			AffectedFunctions: 0,
+			DeadCodeRatio:     0.0,
+		}, warnings, errors
+	}
+
+	fileResult, fileWarnings := s.analyzeCFGs(file.Path, cfgs, req)
+	warnings = append(warnings, fileWarnings...)
+	return fileResult, warnings, errors
+}
+
+func (s *DeadCodeServiceImpl) analyzeCFGs(filePath string, cfgs map[string]*analyzer.CFG, req domain.DeadCodeRequest) (*domain.FileDeadCode, []string) {
+	var warnings []string
 	var functions []domain.FunctionDeadCode
 	totalFindings := 0
 	affectedFunctions := 0
@@ -175,7 +270,6 @@ func (s *DeadCodeServiceImpl) analyzeFile(ctx context.Context, filePath string, 
 		}
 	}
 
-	// Calculate file-level metrics
 	deadCodeRatio := 0.0
 	if len(cfgs) > 0 {
 		totalDeadBlocks := 0
@@ -198,7 +292,7 @@ func (s *DeadCodeServiceImpl) analyzeFile(ctx context.Context, filePath string, 
 		DeadCodeRatio:     deadCodeRatio,
 	}
 
-	return fileResult, warnings, errors
+	return fileResult, warnings
 }
 
 // convertToFunctionDeadCode converts analyzer results to domain model
