@@ -13,13 +13,46 @@ import (
 // so rare distinguishing features contribute more to similarity than common
 // boilerplate features.
 type TFIDFCalculator struct {
-	idfCache map[string]float64
+	idfCache   map[string]float64
+	totalDocs  int
+	docFreq    map[string]int // how many documents contain each feature
 }
 
 // NewTFIDFCalculator creates a new TF-IDF calculator with an empty cache.
 func NewTFIDFCalculator() *TFIDFCalculator {
 	return &TFIDFCalculator{
 		idfCache: make(map[string]float64),
+		docFreq:  make(map[string]int),
+	}
+}
+
+// BuildFromCorpus computes IDF values from a corpus of code fragments.
+// Call this once before using ToWeightedVector with real TF-IDF weights.
+// Each fragment's Features field is used to compute document frequency.
+func (calc *TFIDFCalculator) BuildFromCorpus(fragments []*CodeFragment) {
+	calc.totalDocs = len(fragments)
+	if calc.totalDocs == 0 {
+		return
+	}
+
+	// Count document frequency: how many docs contain each unique feature
+	for _, frag := range fragments {
+		if frag == nil || len(frag.Features) == 0 {
+			continue
+		}
+		// Use a map to count each feature once per document
+		seen := make(map[string]bool)
+		for _, f := range frag.Features {
+			if !seen[f] {
+				calc.docFreq[f]++
+				seen[f] = true
+			}
+		}
+	}
+
+	// Pre-compute IDF for all seen features
+	for feature := range calc.docFreq {
+		calc.idfCache[feature] = calc.IDF(calc.totalDocs, calc.docFreq[feature])
 	}
 }
 
@@ -47,8 +80,9 @@ func (calc *TFIDFCalculator) IDF(totalDocs int, docFreq int) float64 {
 }
 
 // ToWeightedVector converts a slice of features to a TF-IDF weighted vector.
-// Each feature's TF is its frequency in the document, weighted by its IDF.
-// Empty feature slices return an empty vector.
+// Each feature's weight is TF * IDF, where IDF is sourced from the pre-computed
+// corpus cache (call BuildFromCorpus first). Features not in the IDF cache use
+// IDF=1.0 (pure TF weighting). Empty feature slices return an empty vector.
 func (calc *TFIDFCalculator) ToWeightedVector(features []string) map[string]float64 {
 	weighted := make(map[string]float64)
 	if len(features) == 0 {
@@ -61,14 +95,14 @@ func (calc *TFIDFCalculator) ToWeightedVector(features []string) map[string]floa
 		tf[f]++
 	}
 
-	// Apply TF-IDF weighting
+	// Apply TF-IDF weighting: TF * IDF
 	for feature, count := range tf {
-		// Use 1 + log(tf) for term frequency to dampen high frequencies
 		tfWeight := 1.0 + math.Log(float64(count))
-		// IDF is set to 1.0 during vector conversion since corpus stats
-		// are not available at this stage; caller should use ComputeIDF
-		// with corpus-wide statistics for proper IDF weighting
-		weighted[feature] = tfWeight
+		idf := 1.0 // default to pure TF if no corpus built
+		if cached, ok := calc.idfCache[feature]; ok {
+			idf = cached
+		}
+		weighted[feature] = tfWeight * idf
 	}
 
 	return weighted
