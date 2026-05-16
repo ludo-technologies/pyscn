@@ -92,8 +92,8 @@
 
 | 键                         | 类型           | 默认值   | 说明 |
 | -------------------------- | -------------- | -------- | --- |
-| `lsh_enabled`              | `true\|false\|"auto"` | `"auto"` | 启用 LSH（`auto` = 根据片段数量决定）。 |
-| `lsh_auto_threshold`       | int            | `500`    | 自动启用的片段数量阈值。 |
+| `lsh_enabled`              | `true\|false\|"auto"` | `"auto"` | 启用 LSH（`auto` = 根据片段数量或估算配对数量决定）。 |
+| `lsh_auto_threshold`       | int            | `500`    | 自动启用的片段数量阈值；估算配对数量超过 10,000 时也会自动启用。 |
 | `lsh_similarity_threshold` | float          | `0.50`   | LSH 候选预过滤阈值。 |
 | `lsh_bands`                | int            | `32`     | LSH 分段数。 |
 | `lsh_rows`                 | int            | `4`      | 每段的行数。 |

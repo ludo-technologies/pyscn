@@ -92,8 +92,8 @@
 
 | キー                        | 型           | デフォルト  | 説明 |
 | -------------------------- | -------------- | -------- | --- |
-| `lsh_enabled`              | `true\|false\|"auto"` | `"auto"` | LSH を有効にします（`auto` = フラグメント数に基づく）。 |
-| `lsh_auto_threshold`       | int            | `500`    | 自動有効化のフラグメント数閾値。 |
+| `lsh_enabled`              | `true\|false\|"auto"` | `"auto"` | LSH を有効にします（`auto` = フラグメント数または推定ペア数に基づく）。 |
+| `lsh_auto_threshold`       | int            | `500`    | 自動有効化のフラグメント数閾値。推定ペア数が 10,000 を超える場合も自動有効化されます。 |
 | `lsh_similarity_threshold` | float          | `0.50`   | LSH 候補のプレフィルター。 |
 | `lsh_bands`                | int            | `32`     | LSH バンド数。 |
 | `lsh_rows`                 | int            | `4`      | バンドあたりの行数。 |

@@ -322,7 +322,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 			KCoreK:    2,
 		},
 		LSH: LSHConfig{
-			Enabled:             "auto", // Auto-enable based on project size
+			Enabled:             "auto", // Auto-enable based on fragment or estimated pair count
 			AutoThreshold:       domain.DefaultLSHAutoThreshold,
 			SimilarityThreshold: domain.DefaultLSHSimilarityThreshold,
 			Bands:               domain.DefaultLSHBands,
