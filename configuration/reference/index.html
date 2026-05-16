@@ -3884,13 +3884,13 @@
 <td><code>lsh_enabled</code></td>
 <td><code>true\|false\|"auto"</code></td>
 <td><code>"auto"</code></td>
-<td>Enable LSH (<code>auto</code> = based on fragment count).</td>
+<td>Enable LSH (<code>auto</code> = based on fragment count or estimated pair count).</td>
 </tr>
 <tr>
 <td><code>lsh_auto_threshold</code></td>
 <td>int</td>
 <td><code>500</code></td>
-<td>Fragment count threshold for auto-enable.</td>
+<td>Fragment count threshold for auto-enable; auto also enables above 10,000 estimated pairs.</td>
 </tr>
 <tr>
 <td><code>lsh_similarity_threshold</code></td>
