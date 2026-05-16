@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.20.0] - 2026-05-16
+
+### Added
+- Honor semantic Type-4 clone classification with unified parser traversal and DFA field contracts (#435)
+
+### Fixed
+- Drop strict-subset members from clone groups and keep dedupe outputs consistent (#432, #416)
+- Auto-enable LSH for high pair counts in clone detection (#433, #427)
+
 ## [1.19.3] - 2026-05-14
 
 ### Fixed
