@@ -102,6 +102,66 @@ class Dependency:
 	assert.InDelta(t, 0.0, response.ModuleMetrics[balancedService].Distance, 0.01)
 }
 
+func TestAnalyzeBuildsEquivalentDependencyAndArchitectureResults(t *testing.T) {
+	dir := t.TempDir()
+	files := map[string]string{
+		"domain/core.py": `
+class Entity:
+    pass
+`,
+		"app/service.py": `
+import domain.core
+`,
+		"infra/repo.py": `
+import domain.core
+`,
+	}
+
+	var paths []string
+	for name, content := range files {
+		path := filepath.Join(dir, name)
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+		require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
+		paths = append(paths, path)
+	}
+
+	rules := &domain.ArchitectureRules{
+		Layers: []domain.Layer{
+			{Name: "app", Packages: []string{"app"}},
+			{Name: "domain", Packages: []string{"domain"}},
+			{Name: "infra", Packages: []string{"infra"}},
+		},
+		Rules: []domain.LayerRule{
+			{From: "infra", Deny: []string{"domain"}},
+		},
+	}
+	req := domain.SystemAnalysisRequest{
+		Paths:                  paths,
+		AnalyzeDependencies:    domain.BoolPtr(true),
+		AnalyzeArchitecture:    domain.BoolPtr(true),
+		IncludeThirdParty:      domain.BoolPtr(false),
+		ArchitectureRules:      rules,
+		ValidateCohesion:       domain.BoolPtr(false),
+		ValidateResponsibility: domain.BoolPtr(false),
+	}
+
+	service := NewSystemAnalysisService()
+	combined, err := service.Analyze(context.Background(), req)
+	require.NoError(t, err)
+	separateDependencies, err := service.AnalyzeDependencies(context.Background(), req)
+	require.NoError(t, err)
+	separateArchitecture, err := service.AnalyzeArchitecture(context.Background(), req)
+	require.NoError(t, err)
+
+	require.NotNil(t, combined.DependencyAnalysis)
+	require.NotNil(t, combined.ArchitectureAnalysis)
+	assert.Equal(t, separateDependencies.TotalModules, combined.DependencyAnalysis.TotalModules)
+	assert.Equal(t, separateDependencies.TotalDependencies, combined.DependencyAnalysis.TotalDependencies)
+	assert.Equal(t, separateDependencies.MaxDepth, combined.DependencyAnalysis.MaxDepth)
+	assert.Equal(t, separateArchitecture.TotalViolations, combined.ArchitectureAnalysis.TotalViolations)
+	assert.Equal(t, separateArchitecture.ComplianceScore, combined.ArchitectureAnalysis.ComplianceScore)
+}
+
 func TestAnalyzeArchitectureDoesNotReportStdlibShadowImport(t *testing.T) {
 	dir := t.TempDir()
 	files := map[string]string{
