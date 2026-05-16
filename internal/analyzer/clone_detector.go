@@ -195,7 +195,7 @@ type CloneDetectorConfig struct {
 	EnableDFAAnalysis              bool // Enable Data Flow Analysis for enhanced Type-4 detection
 
 	// TF-IDF for Type-2 clone detection (optional, opt-in)
-	UseTFIDF                        bool // Use TF-IDF + Cosine similarity for Type-2 instead of Jaccard
+	UseTFIDF bool // Use TF-IDF + Cosine similarity for Type-2 instead of Jaccard
 
 	// Framework pattern handling (reduces false positives for dataclass, Pydantic, etc.)
 	ReduceBoilerplateSimilarity bool    // Apply lower weight to boilerplate nodes (default: true)
