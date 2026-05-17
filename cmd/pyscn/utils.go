@@ -31,14 +31,13 @@ func resolveOutputDirectory(targetPath string) (string, error) {
 	}
 
 	// Default output directory when not specified in config
-	// Use a tool-specific hidden directory under the current working directory
-	// (avoids writing into analyzed source directories by default)
+	// Uses a visible reports/ directory under the current working directory.
 	cwd, err := os.Getwd()
 	if err != nil {
 		// Fallback to relative path if CWD not available
-		return filepath.Join(".pyscn", "reports"), nil
+		return filepath.Join("reports"), nil
 	}
-	return filepath.Join(cwd, ".pyscn", "reports"), nil
+	return filepath.Join(cwd, "reports"), nil
 }
 
 // generateOutputFilePath combines filename generation and directory resolution
@@ -53,7 +52,7 @@ func generateOutputFilePath(command, extension, targetPath string) (string, erro
 
 	// Ensure the directory exists before returning the path. At this point,
 	// outputDir is always non-empty because resolveOutputDirectory provides
-	// a default (e.g., .pyscn/reports under CWD) when config is unset.
+	// a default (e.g., reports/ under CWD) when config is unset.
 	if mkErr := os.MkdirAll(outputDir, 0o755); mkErr != nil {
 		return "", fmt.Errorf("failed to create output directory %s: %w", outputDir, mkErr)
 	}

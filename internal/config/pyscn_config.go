@@ -356,7 +356,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 		OutputShowDetails:   domain.BoolPtr(false),
 		OutputSortBy:        "complexity",
 		OutputMinComplexity: DefaultMinComplexityFilter,
-		OutputDirectory:     "", // empty = tool default (.pyscn/reports)
+		OutputDirectory:     "", // empty = tool default (reports)
 
 		// Analysis defaults (from [analysis] section - general analysis settings)
 		AnalysisIncludePatterns: []string{"**/*.py"},
