@@ -174,7 +174,6 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 	if response != nil {
 		// Generate output
 		if err := c.generateOutput(cmd, response, args); err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Failed to generate output: %v\n", err)
 			outputErr = err
 		}
 

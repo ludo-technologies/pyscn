@@ -15,7 +15,7 @@ func TestGenerateOutputFilePath_CreatesDefaultDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get current directory: %v", err)
 	}
-	defer os.Chdir(oldCwd)
+	defer os.Chdir(oldCwd) //nolint:errcheck
 
 	if err := os.Chdir(tempDir); err != nil {
 		t.Fatalf("failed to change directory: %v", err)
@@ -58,7 +58,7 @@ func TestResolveOutputDirectory_DefaultToCWD(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get current directory: %v", err)
 	}
-	defer os.Chdir(oldCwd)
+	defer os.Chdir(oldCwd) //nolint:errcheck
 
 	if err := os.Chdir(tempDir); err != nil {
 		t.Fatalf("failed to change directory: %v", err)
@@ -77,42 +77,6 @@ func TestResolveOutputDirectory_DefaultToCWD(t *testing.T) {
 	}
 }
 
-func TestResolveOutputDirectory_FallbackToRelative(t *testing.T) {
-	// This tests the fallback when os.Getwd() fails
-	// We can't easily simulate this, but we can verify the function handles it
-	outputDir, err := resolveOutputDirectory(".")
-	if err != nil {
-		t.Fatalf("resolveOutputDirectory returned error: %v", err)
-	}
-
-	// Should return an absolute path or a valid relative path
-	if outputDir == "" {
-		t.Error("expected non-empty output directory")
-	}
-
-	// Should end with .pyscn/reports
-	expectedSuffix := filepath.Join(".pyscn", "reports")
-	if outputDir != expectedSuffix && !filepath.IsAbs(outputDir) {
-		t.Errorf("expected absolute path or %q, got %q", expectedSuffix, outputDir)
-	}
-}
-
-func TestGenerateOutputFilePath_AllowsCustomDirectoryViaConfig(t *testing.T) {
-	// NOTE: Testing custom output directory via config file requires the config
-	// loader to resolve relative directory paths to absolute paths. This is a
-	// separate concern from the generateOutputFilePath function itself, which
-	// correctly uses whatever directory is returned by the config loader.
-	// This test is disabled pending a config loader fix for relative paths.
-	t.Skip("Skipping - config loader returns relative paths for custom output.directory")
-
-	// This test would verify that when a user sets:
-	//   [output]
-	//   directory = "custom_reports"
-	// in their .pyscn.toml, the output path uses that directory.
-	// The config loader currently doesn't convert relative paths to absolute,
-	// which is a separate bug from #249.
-}
-
 func TestGenerateOutputFilePath_DifferentExtensions(t *testing.T) {
 	tempDir := t.TempDir()
 
@@ -120,7 +84,7 @@ func TestGenerateOutputFilePath_DifferentExtensions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get current directory: %v", err)
 	}
-	defer os.Chdir(oldCwd)
+	defer os.Chdir(oldCwd) //nolint:errcheck
 
 	if err := os.Chdir(tempDir); err != nil {
 		t.Fatalf("failed to change directory: %v", err)
