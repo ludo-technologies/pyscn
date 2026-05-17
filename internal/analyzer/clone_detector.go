@@ -327,6 +327,8 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 		textualAnalyzer:     NewTextualSimilarityAnalyzer(),
 		syntacticAnalyzer:   NewSyntacticSimilarityAnalyzer(),
 		featureExtractor:    NewASTFeatureExtractor(),
+		// Initialize TF-IDF calculator if UseTFIDF is set
+		tfidfCalculator:     newTFIDFCalculatorFromConfig(config),
 		fragments:           []*CodeFragment{},
 		clonePairs:          []*ClonePair{},
 		cloneGroups:         []*CloneGroup{},
@@ -749,6 +751,10 @@ func (cd *CloneDetector) prepareFragments() {
 				fragment.Features = features
 			}
 		}
+	}
+	// Build TF-IDF corpus if enabled, so ComputeSimilarity uses weighted cosine similarity
+	if cd.tfidfCalculator != nil {
+		cd.tfidfCalculator.BuildFromCorpus(cd.fragments)
 	}
 }
 
@@ -1218,4 +1224,12 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// newTFIDFCalculatorFromConfig creates a TF-IDF calculator if UseTFIDF is enabled.
+func newTFIDFCalculatorFromConfig(config *CloneDetectorConfig) *TFIDFCalculator {
+	if config.UseTFIDF {
+		return NewTFIDFCalculator()
+	}
+	return nil
 }
