@@ -31,15 +31,30 @@ func NewSystemAnalysisService() *SystemAnalysisServiceImpl {
 
 // Analyze performs comprehensive system analysis including dependencies, architecture, and quality metrics
 func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.SystemAnalysisRequest) (*domain.SystemAnalysisResponse, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	var allResults []interface{}
 	var warnings []string
 	var errors []string
 	startTime := time.Now()
+	analyzeDependencies := domain.BoolValue(req.AnalyzeDependencies, true)
+	analyzeArchitecture := domain.BoolValue(req.AnalyzeArchitecture, true)
+
+	var graph *analyzer.DependencyGraph
+	if analyzeDependencies || analyzeArchitecture {
+		var err error
+		graph, err = s.buildDependencyGraph(ctx, req)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("Module graph failed: %v", err))
+		}
+	}
 
 	// Analyze dependencies if requested
 	var dependencyResult *domain.DependencyAnalysisResult
-	if domain.BoolValue(req.AnalyzeDependencies, true) {
-		result, err := s.AnalyzeDependencies(ctx, req)
+	if analyzeDependencies && graph != nil {
+		result, err := s.buildDependencyAnalysisResult(ctx, graph)
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("Dependency analysis failed: %v", err))
 		} else {
@@ -50,8 +65,8 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 
 	// Analyze architecture if requested
 	var architectureResult *domain.ArchitectureAnalysisResult
-	if domain.BoolValue(req.AnalyzeArchitecture, true) {
-		result, err := s.AnalyzeArchitecture(ctx, req)
+	if analyzeArchitecture && graph != nil {
+		result, err := s.analyzeArchitectureGraph(ctx, graph, req)
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("Architecture analysis failed: %v", err))
 		} else {
@@ -81,28 +96,20 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 
 // AnalyzeDependencies performs dependency analysis only
 func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req domain.SystemAnalysisRequest) (*domain.DependencyAnalysisResult, error) {
-	// Determine project root from common parent of paths
-	projectRoot := s.findProjectRoot(req.Paths)
-
-	// Create module analyzer with options
-	options := &analyzer.ModuleAnalysisOptions{
-		ProjectRoot:       projectRoot,
-		IncludeStdLib:     domain.BoolValue(req.IncludeStdLib, false),
-		IncludeThirdParty: domain.BoolValue(req.IncludeThirdParty, true),
-		FollowRelative:    domain.BoolValue(req.FollowRelative, true),
-		IncludePatterns:   req.IncludePatterns,
-		ExcludePatterns:   req.ExcludePatterns,
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
-	moduleAnalyzer, err := analyzer.NewModuleAnalyzer(options)
+	graph, err := s.buildDependencyGraph(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create module analyzer: %w", err)
+		return nil, err
 	}
+	return s.buildDependencyAnalysisResult(ctx, graph)
+}
 
-	// Analyze files using ModuleAnalyzer
-	graph, err := moduleAnalyzer.AnalyzeFiles(req.Paths)
-	if err != nil {
-		return nil, fmt.Errorf("failed to analyze dependencies: %w", err)
+func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Context, graph *analyzer.DependencyGraph) (*domain.DependencyAnalysisResult, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
 
 	// Check if any modules were processed
@@ -119,22 +126,37 @@ func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req
 	// Detect circular dependencies
 	circularDetector := analyzer.NewCircularDependencyDetector(graph)
 	circularResult := circularDetector.DetectCircularDependencies()
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
+	}
 
 	// Calculate coupling metrics
 	metricsCalculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-	if err = metricsCalculator.CalculateMetrics(); err != nil {
+	if err := metricsCalculator.CalculateMetrics(); err != nil {
 		return nil, err
 	}
 	couplingResults := s.extractCouplingResult(graph)
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
+	}
 
 	// Build dependency matrix
 	matrix := s.buildDependencyMatrix(graph)
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
+	}
 
 	// Find longest dependency chains
 	longestChains := s.findLongestChains(graph, 10) // Top 10 chains
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
+	}
 
 	// Extract module metrics
 	moduleMetrics := s.extractModuleMetrics(graph)
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
+	}
 
 	// Create dependency analysis result
 	result := &domain.DependencyAnalysisResult{
@@ -155,12 +177,26 @@ func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req
 
 // AnalyzeArchitecture performs architecture validation only
 func (s *SystemAnalysisServiceImpl) AnalyzeArchitecture(ctx context.Context, req domain.SystemAnalysisRequest) (*domain.ArchitectureAnalysisResult, error) {
-	// Build dependency graph
-	graph, err := s.buildDependencyGraph(req)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	graph, err := s.buildDependencyGraph(ctx, req)
 	if err != nil {
 		return nil, err
 	}
+	return s.analyzeArchitectureGraph(ctx, graph, req)
+}
+
+func (s *SystemAnalysisServiceImpl) analyzeArchitectureGraph(ctx context.Context, graph *analyzer.DependencyGraph, req domain.SystemAnalysisRequest) (*domain.ArchitectureAnalysisResult, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("architecture analysis cancelled: %w", err)
+	}
+
 	responsibilityAnalysis, cohesionAnalysis, responsibilityViolations := s.analyzeResponsibilityForRequest(graph, req)
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("architecture analysis cancelled: %w", err)
+	}
 
 	// Clone ArchitectureRules before modifying to avoid mutating the caller's object
 	// (the pointer is shared even though SystemAnalysisRequest is passed by value).
@@ -256,7 +292,11 @@ func (s *SystemAnalysisServiceImpl) emptyArchitectureResult() *domain.Architectu
 }
 
 // buildDependencyGraph creates the dependency graph using ModuleAnalyzer
-func (s *SystemAnalysisServiceImpl) buildDependencyGraph(req domain.SystemAnalysisRequest) (*analyzer.DependencyGraph, error) {
+func (s *SystemAnalysisServiceImpl) buildDependencyGraph(ctx context.Context, req domain.SystemAnalysisRequest) (*analyzer.DependencyGraph, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("module graph cancelled: %w", err)
+	}
+
 	projectRoot := s.findProjectRoot(req.Paths)
 	options := &analyzer.ModuleAnalysisOptions{
 		ProjectRoot:       projectRoot,
@@ -272,7 +312,10 @@ func (s *SystemAnalysisServiceImpl) buildDependencyGraph(req domain.SystemAnalys
 	}
 	graph, err := ma.AnalyzeFiles(req.Paths)
 	if err != nil {
-		return nil, fmt.Errorf("failed to analyze architecture dependencies: %w", err)
+		return nil, fmt.Errorf("failed to build module graph: %w", err)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("module graph cancelled: %w", err)
 	}
 	return graph, nil
 }

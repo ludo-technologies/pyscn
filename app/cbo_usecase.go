@@ -114,6 +114,38 @@ func (uc *CBOUseCase) AnalyzeAndReturn(ctx context.Context, req domain.CBOReques
 	return response, nil
 }
 
+type snapshotCBOService interface {
+	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.CBORequest) (*domain.CBOResponse, error)
+}
+
+func (uc *CBOUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.CBORequest) (*domain.CBOResponse, error) {
+	if snapshot == nil {
+		return nil, domain.NewAnalysisError("CBO analysis failed", fmt.Errorf("project snapshot is required"))
+	}
+
+	if err := uc.validateRequest(req); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
+
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return nil, domain.NewConfigError("failed to load configuration", err)
+	}
+	finalReq.Paths = snapshot.Paths()
+
+	snapshotService, ok := uc.service.(snapshotCBOService)
+	if !ok {
+		return nil, domain.NewAnalysisError("CBO analysis failed", fmt.Errorf("CBO service does not support project snapshots"))
+	}
+
+	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, finalReq)
+	if err != nil {
+		return nil, domain.NewAnalysisError("CBO analysis failed", err)
+	}
+
+	return response, nil
+}
+
 // AnalyzeFile analyzes a single file
 func (uc *CBOUseCase) AnalyzeFile(ctx context.Context, filePath string, req domain.CBORequest) error {
 	// Validate file

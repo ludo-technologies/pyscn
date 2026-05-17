@@ -3,6 +3,7 @@ package analyzer
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/internal/parser"
@@ -70,6 +71,36 @@ func BenchmarkCloneDetector_ExtractFragments(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		fragments := detector.ExtractFragments(astNodes, "/benchmark.py")
+		_ = fragments
+	}
+}
+
+func BenchmarkCloneDetector_ExtractFragmentsWithSource(b *testing.B) {
+	config := DefaultCloneDetectorConfig()
+	detector := NewCloneDetector(config)
+
+	astNodes := make([]*parser.Node, 100)
+	for i := 0; i < 100; i++ {
+		astNodes[i] = &parser.Node{
+			Type:     parser.NodeFunctionDef,
+			Name:     fmt.Sprintf("function_%d", i),
+			Location: parser.Location{StartLine: i*10 + 1, EndLine: (i * 10) + 8},
+			Children: []*parser.Node{
+				{Type: parser.NodeName, Name: fmt.Sprintf("param_%d", i)},
+			},
+		}
+	}
+
+	var source strings.Builder
+	for i := 0; i < 1000; i++ {
+		source.WriteString("    value = value + 1\n")
+	}
+	sourceCode := []byte(source.String())
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		fragments := detector.ExtractFragmentsWithSource(astNodes, "/benchmark.py", sourceCode)
 		_ = fragments
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -67,67 +66,70 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	detectorConfig := s.createDetectorConfig(req)
 	detector := analyzer.NewCloneDetector(detectorConfig)
 
-	// Performance optimizations are built into the detector
+	allFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed, err := s.extractFragmentsFromFiles(ctx, filePaths, detector)
+	if err != nil {
+		return nil, err
+	}
 
-	// Create Python parser
+	return s.buildCloneResponse(ctx, startTime, detectorConfig, detector, allFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed, req)
+}
+
+func (s *CloneService) extractFragmentsFromFiles(ctx context.Context, filePaths []string, detector *analyzer.CloneDetector) ([]*analyzer.CodeFragment, int, int, int, error) {
 	pyParser := parser.New()
-
-	// Parse files and extract fragments
 	var allFragments []*analyzer.CodeFragment
 	linesAnalyzed := 0
 	nodesAnalyzed := 0
 	filesAnalyzed := 0
 
 	for _, filePath := range filePaths {
-		// Check for context cancellation periodically
 		select {
 		case <-ctx.Done():
-			return nil, fmt.Errorf("clone analysis cancelled: %w", ctx.Err())
+			return nil, 0, 0, 0, fmt.Errorf("clone analysis cancelled: %w", ctx.Err())
 		default:
 		}
 
-		// Progress reporting removed - file parsing is fast
-
-		// Read file content
 		content, err := readFileContent(filePath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Failed to read file %s: %v\n", filePath, err)
-			continue // Skip files that cannot be read
+			continue
 		}
 
-		// Parse Python file
 		parseResult, err := pyParser.Parse(ctx, content)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Failed to parse file %s: %v\n", filePath, err)
-			continue // Skip files that cannot be parsed
+			continue
 		}
-
-		// Validate parse result
 		if parseResult == nil || parseResult.AST == nil {
 			fmt.Fprintf(os.Stderr, "Warning: Invalid parse result for file %s\n", filePath)
-			continue // Skip files with invalid parse results
+			continue
 		}
 
-		// Count only files that were successfully read and parsed
 		filesAnalyzed++
+		linesAnalyzed += countSourceLines(content)
 
-		// Count lines for statistics
-		linesAnalyzed += len(strings.Split(string(content), "\n"))
+		statsVisitor := parser.NewStatisticsVisitor()
+		parseResult.AST.Accept(statsVisitor)
+		nodesAnalyzed += statsVisitor.TotalNodes
 
-		// Extract code fragments from AST
-		if parseResult.AST != nil {
-			// Count total AST nodes in the file
-			statsVisitor := parser.NewStatisticsVisitor()
-			parseResult.AST.Accept(statsVisitor)
-			nodesAnalyzed += statsVisitor.TotalNodes
-
-			// Convert single AST node to slice for ExtractFragments
-			astNodes := []*parser.Node{parseResult.AST}
-			fragments := detector.ExtractFragmentsWithSource(astNodes, filePath, content)
-			allFragments = append(allFragments, fragments...)
-		}
+		astNodes := []*parser.Node{parseResult.AST}
+		fragments := detector.ExtractFragmentsWithSource(astNodes, filePath, content)
+		allFragments = append(allFragments, fragments...)
 	}
 
+	return allFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed, nil
+}
+
+func (s *CloneService) buildCloneResponse(
+	ctx context.Context,
+	startTime time.Time,
+	detectorConfig *analyzer.CloneDetectorConfig,
+	detector *analyzer.CloneDetector,
+	allFragments []*analyzer.CodeFragment,
+	filesAnalyzed int,
+	linesAnalyzed int,
+	nodesAnalyzed int,
+	req *domain.CloneRequest,
+) (*domain.CloneResponse, error) {
 	if len(allFragments) == 0 {
 		return &domain.CloneResponse{
 			Clones:      []*domain.Clone{},
@@ -144,8 +146,6 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 			Success:  true,
 		}, nil
 	}
-
-	// Starting actual clone detection (this is the slow part)
 
 	// Determine whether to use LSH based on configuration and estimated exact-pair cost.
 	useLSH := domain.ShouldUseLSHWithPairEstimate(

@@ -1,9 +1,6 @@
 package analyzer
 
-import (
-	"strconv"
-	"testing"
-)
+import "testing"
 
 func BenchmarkMinHasher_Signature(b *testing.B) {
 	mh := NewMinHasher(128)
@@ -26,7 +23,7 @@ func BenchmarkLSHIndex_Candidates(b *testing.B) {
 		for j := 0; j < 30; j++ {
 			feats = append(feats, string(rune('a')+rune((i+j)%26))+"/"+string(rune('A')+rune((i+2*j)%26)))
 		}
-		_ = idx.AddFragment("id-"+strconv.Itoa(i), mh.ComputeSignature(feats))
+		_ = idx.AddFragment(i, mh.ComputeSignature(feats))
 	}
 	_ = idx.BuildIndex()
 	// Query signature similar to mid entries

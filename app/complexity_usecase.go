@@ -143,6 +143,33 @@ func (uc *ComplexityUseCase) analyzeResolvedRequest(ctx context.Context, req dom
 	return response, nil
 }
 
+type snapshotComplexityService interface {
+	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.ComplexityRequest) (*domain.ComplexityResponse, error)
+}
+
+func (uc *ComplexityUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
+	if snapshot == nil {
+		return nil, domain.NewAnalysisError("complexity analysis failed", fmt.Errorf("project snapshot is required"))
+	}
+	if err := uc.validateRequest(req); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
+
+	req.Paths = snapshot.Paths()
+	snapshotService, ok := uc.service.(snapshotComplexityService)
+	if !ok {
+		return nil, domain.NewAnalysisError("complexity analysis failed", fmt.Errorf("complexity service does not support project snapshots"))
+	}
+
+	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, req)
+	if err != nil {
+		return nil, domain.NewAnalysisError("complexity analysis failed", err)
+	}
+
+	response.Request = &req
+	return response, nil
+}
+
 // AnalyzeFile analyzes a single file
 func (uc *ComplexityUseCase) AnalyzeFile(ctx context.Context, filePath string, req domain.ComplexityRequest) error {
 	// Validate file

@@ -13,6 +13,11 @@ type StarMedoidGrouping struct {
 	noChangeLimit int
 }
 
+type fragmentSimilarity struct {
+	fragment   *CodeFragment
+	similarity float64
+}
+
 // NewStarMedoidGrouping creates a new Star/Medoid grouping with a similarity threshold.
 // Default: maxIterations=10, early-stop after 3 consecutive no-change iterations.
 func NewStarMedoidGrouping(threshold float64) *StarMedoidGrouping {
@@ -37,6 +42,7 @@ func (s *StarMedoidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 		return []*CloneGroup{}
 	}
 	simMap := s.buildSimilarityMap(pairs)
+	graph := s.buildSimilarityGraph(pairs)
 
 	// 2. Initialize clusters: each fragment alone, with union-find to merge via medoids
 	parent := make(map[*CodeFragment]*CodeFragment, len(fragments))
@@ -91,7 +97,7 @@ func (s *StarMedoidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 		// a) compute medoids for each cluster
 		medoids := make([]*CodeFragment, len(clusters))
 		for i, members := range clusters {
-			medoids[i] = s.findMedoid(members, simMap)
+			medoids[i] = s.findMedoid(members, graph)
 		}
 
 		// b) connect each non-medoid fragment to the most similar medoid (union-find)
@@ -107,18 +113,7 @@ func (s *StarMedoidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 			if iter > 0 && isMedoid[f] {
 				continue
 			}
-			bestMedoid := (*CodeFragment)(nil)
-			bestSim := -1.0
-			for _, m := range medoids {
-				if m == nil || m == f { // skip self-medoid
-					continue
-				}
-				sim := similarity(simMap, f, m)
-				if sim > bestSim || (almostEqual(sim, bestSim) && bestMedoid != nil && fragmentLess(m, bestMedoid)) {
-					bestSim = sim
-					bestMedoid = m
-				}
-			}
+			bestMedoid, bestSim := s.mostSimilarMedoid(f, isMedoid, graph)
 			if bestMedoid != nil && bestSim > 0.0 {
 				if ufUnion(f, bestMedoid) {
 					changed = true
@@ -146,7 +141,7 @@ func (s *StarMedoidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 		if len(members) < 2 {
 			continue // skip singletons
 		}
-		medoid := s.findMedoid(members, simMap)
+		medoid := s.findMedoid(members, graph)
 		filtered := make([]*CodeFragment, 0, len(members))
 		for _, f := range members {
 			if f == medoid {
@@ -188,13 +183,16 @@ func (s *StarMedoidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 		}
 		return fragmentLess(result[i].Fragments[0], result[j].Fragments[0])
 	})
+	for i, group := range result {
+		group.ID = i
+	}
 
 	return result
 }
 
 // findMedoid selects the member with the maximum average similarity to others.
 // Ties are broken by smaller location order.
-func (s *StarMedoidGrouping) findMedoid(fragments []*CodeFragment, sims map[string]float64) *CodeFragment {
+func (s *StarMedoidGrouping) findMedoid(fragments []*CodeFragment, graph map[*CodeFragment][]fragmentSimilarity) *CodeFragment {
 	if len(fragments) == 0 {
 		return nil
 	}
@@ -204,13 +202,19 @@ func (s *StarMedoidGrouping) findMedoid(fragments []*CodeFragment, sims map[stri
 
 	var best *CodeFragment
 	bestAvg := -1.0
+	memberSet := make(map[*CodeFragment]struct{}, len(fragments))
+	for _, fragment := range fragments {
+		memberSet[fragment] = struct{}{}
+	}
 	for _, cand := range fragments {
 		sum := 0.0
-		for _, other := range fragments {
-			if cand == other {
+		for _, edge := range graph[cand] {
+			if edge.fragment == cand {
 				continue
 			}
-			sum += similarity(sims, cand, other)
+			if _, ok := memberSet[edge.fragment]; ok {
+				sum += edge.similarity
+			}
 		}
 		avg := sum / float64(len(fragments)-1)
 		if avg > bestAvg || (almostEqual(avg, bestAvg) && best != nil && fragmentLess(cand, best)) {
@@ -222,6 +226,26 @@ func (s *StarMedoidGrouping) findMedoid(fragments []*CodeFragment, sims map[stri
 		}
 	}
 	return best
+}
+
+func (s *StarMedoidGrouping) mostSimilarMedoid(
+	fragment *CodeFragment,
+	medoids map[*CodeFragment]bool,
+	graph map[*CodeFragment][]fragmentSimilarity,
+) (*CodeFragment, float64) {
+	var best *CodeFragment
+	bestSim := -1.0
+	for _, edge := range graph[fragment] {
+		candidate := edge.fragment
+		if candidate == nil || candidate == fragment || !medoids[candidate] {
+			continue
+		}
+		if edge.similarity > bestSim || (almostEqual(edge.similarity, bestSim) && best != nil && fragmentLess(candidate, best)) {
+			bestSim = edge.similarity
+			best = candidate
+		}
+	}
+	return best, bestSim
 }
 
 // Helper: collect unique fragments from pairs
@@ -258,6 +282,44 @@ func (s *StarMedoidGrouping) buildSimilarityMap(pairs []*ClonePair) map[string]f
 		}
 	}
 	return sims
+}
+
+func (s *StarMedoidGrouping) buildSimilarityGraph(pairs []*ClonePair) map[*CodeFragment][]fragmentSimilarity {
+	best := make(map[*CodeFragment]map[*CodeFragment]float64)
+	for _, p := range pairs {
+		if p.Fragment1 == nil || p.Fragment2 == nil || p.Similarity <= 0 {
+			continue
+		}
+		addBestSimilarity(best, p.Fragment1, p.Fragment2, p.Similarity)
+		addBestSimilarity(best, p.Fragment2, p.Fragment1, p.Similarity)
+	}
+
+	graph := make(map[*CodeFragment][]fragmentSimilarity, len(best))
+	for fragment, neighbors := range best {
+		edges := make([]fragmentSimilarity, 0, len(neighbors))
+		for neighbor, sim := range neighbors {
+			edges = append(edges, fragmentSimilarity{fragment: neighbor, similarity: sim})
+		}
+		sort.Slice(edges, func(i, j int) bool {
+			if !almostEqual(edges[i].similarity, edges[j].similarity) {
+				return edges[i].similarity > edges[j].similarity
+			}
+			return fragmentLess(edges[i].fragment, edges[j].fragment)
+		})
+		graph[fragment] = edges
+	}
+	return graph
+}
+
+func addBestSimilarity(graph map[*CodeFragment]map[*CodeFragment]float64, from, to *CodeFragment, sim float64) {
+	neighbors := graph[from]
+	if neighbors == nil {
+		neighbors = make(map[*CodeFragment]float64)
+		graph[from] = neighbors
+	}
+	if old, ok := neighbors[to]; !ok || sim > old {
+		neighbors[to] = sim
+	}
 }
 
 // similarity returns cached similarity, or 0 if not present.

@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math"
@@ -354,16 +355,17 @@ func (cd *CloneDetector) ExtractFragments(astNodes []*parser.Node, filePath stri
 // Source content is needed for Type-1 clone classification and optional report output.
 func (cd *CloneDetector) ExtractFragmentsWithSource(astNodes []*parser.Node, filePath string, sourceCode []byte) []*CodeFragment {
 	var fragments []*CodeFragment
+	lines := splitLines(sourceCode)
 
 	for _, node := range astNodes {
-		cd.extractFragmentsRecursiveWithSource(node, filePath, sourceCode, &fragments)
+		cd.extractFragmentsRecursiveWithSource(node, filePath, lines, &fragments)
 	}
 
 	return fragments
 }
 
 // extractFragmentsRecursiveWithSource recursively extracts fragments with source content
-func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, filePath string, sourceCode []byte, fragments *[]*CodeFragment) {
+func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, filePath string, lines [][]byte, fragments *[]*CodeFragment) {
 	if node == nil {
 		return
 	}
@@ -380,8 +382,8 @@ func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, 
 
 		// Extract content from source code if textual analysis is enabled
 		content := ""
-		if len(sourceCode) > 0 {
-			content = cd.extractSourceContent(sourceCode, &node.Location)
+		if len(lines) > 0 {
+			content = cd.extractSourceContent(lines, &node.Location)
 		}
 
 		fragment := NewCodeFragment(location, node, content)
@@ -394,17 +396,16 @@ func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, 
 
 	// Recursively process children
 	for _, child := range parser.OrderedChildren(node, nil) {
-		cd.extractFragmentsRecursiveWithSource(child, filePath, sourceCode, fragments)
+		cd.extractFragmentsRecursiveWithSource(child, filePath, lines, fragments)
 	}
 }
 
 // extractSourceContent extracts source code content for a given location
-func (cd *CloneDetector) extractSourceContent(sourceCode []byte, loc *parser.Location) string {
-	if loc == nil || len(sourceCode) == 0 {
+func (cd *CloneDetector) extractSourceContent(lines [][]byte, loc *parser.Location) string {
+	if loc == nil || len(lines) == 0 {
 		return ""
 	}
 
-	lines := splitLines(sourceCode)
 	if loc.StartLine < 1 || loc.EndLine > len(lines) {
 		return ""
 	}
@@ -423,23 +424,21 @@ func (cd *CloneDetector) extractSourceContent(sourceCode []byte, loc *parser.Loc
 
 // splitLines splits source code into lines
 func splitLines(sourceCode []byte) [][]byte {
-	var lines [][]byte
-	var currentLine []byte
+	if len(sourceCode) == 0 {
+		return nil
+	}
 
-	for _, b := range sourceCode {
+	lines := make([][]byte, 0, bytes.Count(sourceCode, []byte{'\n'})+1)
+	start := 0
+	for idx, b := range sourceCode {
 		if b == '\n' {
-			lines = append(lines, currentLine)
-			currentLine = nil
-		} else {
-			currentLine = append(currentLine, b)
+			lines = append(lines, sourceCode[start:idx])
+			start = idx + 1
 		}
 	}
-
-	// Add last line if it doesn't end with newline
-	if len(currentLine) > 0 {
-		lines = append(lines, currentLine)
+	if start < len(sourceCode) {
+		lines = append(lines, sourceCode[start:])
 	}
-
 	return lines
 }
 
@@ -475,8 +474,9 @@ func (cd *CloneDetector) extractFragmentsRecursive(node *parser.Node, filePath s
 
 // isFragmentCandidate checks if a node should be considered as a fragment candidate
 func (cd *CloneDetector) isFragmentCandidate(node *parser.Node) bool {
-	// Consider functions, classes, and compound statements as fragment candidates
-	candidateTypes := []parser.NodeType{
+	switch node.Type {
+	// Consider functions, classes, and compound statements as fragment candidates.
+	case
 		parser.NodeFunctionDef,
 		parser.NodeAsyncFunctionDef,
 		parser.NodeClassDef,
@@ -486,13 +486,8 @@ func (cd *CloneDetector) isFragmentCandidate(node *parser.Node) bool {
 		parser.NodeIf,
 		parser.NodeTry,
 		parser.NodeWith,
-		parser.NodeAsyncWith,
-	}
-
-	for _, candidateType := range candidateTypes {
-		if node.Type == candidateType {
-			return true
-		}
+		parser.NodeAsyncWith:
+		return true
 	}
 
 	return false
@@ -614,25 +609,20 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 	hasher := NewMinHasher(cd.cloneDetectorConfig.LSHMinHashCount)
 
 	type fragRec struct {
-		id  string
 		idx int
 		sig *MinHashSignature
 	}
 	records := make([]fragRec, 0, len(cd.fragments))
 	sigByIndex := make(map[int]*MinHashSignature, len(cd.fragments))
-	idToIndex := make(map[string]int, len(cd.fragments))
 	for i, f := range cd.fragments {
 		if f == nil || f.TreeNode == nil {
 			continue
 		}
-		// Build a stable ID for the fragment
-		id := fmt.Sprintf("%s:%d-%d", f.Location.FilePath, f.Location.StartLine, f.Location.EndLine)
 		// Very short fragments: still create minimal features
 		feats, _ := extractor.ExtractFeatures(f.TreeNode)
 		sig := hasher.ComputeSignature(feats)
-		records = append(records, fragRec{id: id, idx: i, sig: sig})
+		records = append(records, fragRec{idx: i, sig: sig})
 		sigByIndex[i] = sig
-		idToIndex[id] = i
 	}
 
 	// Edge case: if signatures cannot be built, fallback
@@ -644,7 +634,7 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 	lsh := NewLSHIndex(cd.cloneDetectorConfig.LSHBands, cd.cloneDetectorConfig.LSHRows).
 		WithMaxCandidates(cd.cloneDetectorConfig.LSHMaxCandidates)
 	for _, r := range records {
-		_ = lsh.AddFragment(r.id, r.sig)
+		_ = lsh.AddFragment(r.idx, r.sig)
 	}
 	_ = lsh.BuildIndex()
 
@@ -663,8 +653,7 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 			break
 		}
 		cands := lsh.FindCandidates(r.sig)
-		for _, cid := range cands {
-			j := idToIndex[cid]
+		for _, j := range cands {
 			i := r.idx
 			if j == i || j < 0 || i < 0 {
 				continue
@@ -944,8 +933,7 @@ func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *Co
 
 	// Always run APTED with the detector's cost model (boilerplate-aware) so that
 	// Distance is populated and clone type is derived from a consistent metric.
-	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
-	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
+	distance, similarity := cd.analyzer.ComputeDistanceAndSimilarity(fragment1.TreeNode, fragment2.TreeNode)
 
 	if result.CloneType == Type4Clone && result.Analyzer == "semantic" {
 		return &ClonePair{
@@ -981,8 +969,7 @@ func (cd *CloneDetector) compareFragmentsSingleMetric(fragment1, fragment2 *Code
 
 // compareWithAPTED uses the APTED algorithm for precise similarity measurement.
 func (cd *CloneDetector) compareWithAPTED(fragment1, fragment2 *CodeFragment) *ClonePair {
-	distance := cd.analyzer.ComputeDistance(fragment1.TreeNode, fragment2.TreeNode)
-	similarity := cd.analyzer.ComputeSimilarity(fragment1.TreeNode, fragment2.TreeNode)
+	distance, similarity := cd.analyzer.ComputeDistanceAndSimilarity(fragment1.TreeNode, fragment2.TreeNode)
 
 	cloneType, similarity := cd.classifyClonePair(fragment1, fragment2, similarity)
 	if cloneType == 0 {

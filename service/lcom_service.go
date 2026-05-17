@@ -79,6 +79,64 @@ func (s *LCOMServiceImpl) Analyze(ctx context.Context, req domain.LCOMRequest) (
 	}, nil
 }
 
+// AnalyzeSnapshot performs LCOM analysis using already parsed project files.
+func (s *LCOMServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectSnapshot, req domain.LCOMRequest) (*domain.LCOMResponse, error) {
+	if snapshot == nil {
+		return nil, fmt.Errorf("project snapshot cannot be nil")
+	}
+
+	var allClasses []domain.ClassCohesion
+	var warnings []string
+	var errors []string
+	filesProcessed := 0
+
+	for _, file := range snapshot.Files {
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("LCOM analysis cancelled: %w", ctx.Err())
+		default:
+		}
+
+		classes, fileWarnings, fileErrors := s.analyzeProjectFile(file, req)
+
+		if len(fileErrors) > 0 {
+			errors = append(errors, fileErrors...)
+			continue
+		}
+
+		allClasses = append(allClasses, classes...)
+		warnings = append(warnings, fileWarnings...)
+		filesProcessed++
+	}
+
+	if len(allClasses) == 0 {
+		warnings = append(warnings, "No classes found to analyze")
+		return &domain.LCOMResponse{
+			Classes:     []domain.ClassCohesion{},
+			Summary:     s.generateSummary([]domain.ClassCohesion{}, filesProcessed, req),
+			Warnings:    warnings,
+			Errors:      errors,
+			GeneratedAt: time.Now().Format(time.RFC3339),
+			Version:     version.Version,
+			Config:      s.buildConfigForResponse(req),
+		}, nil
+	}
+
+	filteredClasses := s.filterClasses(allClasses, req)
+	sortedClasses := s.sortClasses(filteredClasses, req.SortBy)
+	summary := s.generateSummary(sortedClasses, filesProcessed, req)
+
+	return &domain.LCOMResponse{
+		Classes:     sortedClasses,
+		Summary:     summary,
+		Warnings:    warnings,
+		Errors:      errors,
+		GeneratedAt: time.Now().Format(time.RFC3339),
+		Version:     version.Version,
+		Config:      s.buildConfigForResponse(req),
+	}, nil
+}
+
 // AnalyzeFile analyzes a single Python file
 func (s *LCOMServiceImpl) AnalyzeFile(ctx context.Context, filePath string, req domain.LCOMRequest) (*domain.LCOMResponse, error) {
 	singleFileReq := req
@@ -116,6 +174,47 @@ func (s *LCOMServiceImpl) analyzeFile(ctx context.Context, filePath string, req 
 		return classes, warnings, errors
 	}
 
+	classes = s.convertLCOMResults(lcomResults)
+	return classes, warnings, errors
+}
+
+func (s *LCOMServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.LCOMRequest) ([]domain.ClassCohesion, []string, []string) {
+	var classes []domain.ClassCohesion
+	var warnings []string
+	var errors []string
+
+	if file == nil {
+		errors = append(errors, "[unknown] Invalid project file")
+		return classes, warnings, errors
+	}
+	if file.ReadErr != nil {
+		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", file.Path, file.ReadErr))
+		return classes, warnings, errors
+	}
+	if file.ParseErr != nil {
+		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", file.Path, file.ParseErr))
+		return classes, warnings, errors
+	}
+
+	options := s.buildLCOMOptions(req)
+	lcomResults, err := analyzer.CalculateLCOMWithConfig(file.AST, file.Path, options)
+	if err != nil {
+		errors = append(errors, fmt.Sprintf("[%s] LCOM analysis failed: %v", file.Path, err))
+		return classes, warnings, errors
+	}
+
+	if len(lcomResults) == 0 {
+		warnings = append(warnings, fmt.Sprintf("[%s] No classes found in file", file.Path))
+		return classes, warnings, errors
+	}
+
+	classes = s.convertLCOMResults(lcomResults)
+	return classes, warnings, errors
+}
+
+func (s *LCOMServiceImpl) convertLCOMResults(lcomResults []*analyzer.LCOMResult) []domain.ClassCohesion {
+	classes := make([]domain.ClassCohesion, 0, len(lcomResults))
+
 	for _, lcomResult := range lcomResults {
 		class := domain.ClassCohesion{
 			Name:      lcomResult.ClassName,
@@ -134,7 +233,7 @@ func (s *LCOMServiceImpl) analyzeFile(ctx context.Context, filePath string, req 
 		classes = append(classes, class)
 	}
 
-	return classes, warnings, errors
+	return classes
 }
 
 // filterClasses filters classes based on request criteria
