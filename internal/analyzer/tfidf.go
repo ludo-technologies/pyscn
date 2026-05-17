@@ -13,9 +13,9 @@ import (
 // so rare distinguishing features contribute more to similarity than common
 // boilerplate features.
 type TFIDFCalculator struct {
-	idfCache   map[string]float64
-	totalDocs  int
-	docFreq    map[string]int // how many documents contain each feature
+	idfCache  map[string]float64
+	totalDocs int
+	docFreq   map[string]int // how many documents contain each feature
 }
 
 // NewTFIDFCalculator creates a new TF-IDF calculator with an empty cache.
