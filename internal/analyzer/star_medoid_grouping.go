@@ -243,9 +243,6 @@ func (s *StarMedoidGrouping) mostSimilarMedoid(
 		if edge.similarity > bestSim || (almostEqual(edge.similarity, bestSim) && best != nil && fragmentLess(candidate, best)) {
 			bestSim = edge.similarity
 			best = candidate
-		} else if best == nil {
-			bestSim = edge.similarity
-			best = candidate
 		}
 	}
 	return best, bestSim
