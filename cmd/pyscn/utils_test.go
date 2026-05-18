@@ -7,8 +7,13 @@ import (
 )
 
 func TestGenerateOutputFilePath_CreatesDefaultDirectory(t *testing.T) {
-	// Create a temporary directory to work in
+	// macOS: t.TempDir() returns /var/folders/... but os.Getwd() after Chdir
+	// returns /private/var/folders/... — normalise with EvalSymlinks
 	tempDir := t.TempDir()
+	tempDir, err := filepath.EvalSymlinks(tempDir)
+	if err != nil {
+		t.Fatalf("failed to eval symlinks on tempDir: %v", err)
+	}
 
 	// Change to the temp directory
 	oldCwd, err := os.Getwd()
@@ -50,8 +55,13 @@ func TestGenerateOutputFilePath_CreatesDefaultDirectory(t *testing.T) {
 }
 
 func TestResolveOutputDirectory_DefaultToCWD(t *testing.T) {
-	// Create a temporary directory to work in
+	// macOS: t.TempDir() returns /var/folders/... but os.Getwd() after Chdir
+	// returns /private/var/folders/... — normalise with EvalSymlinks
 	tempDir := t.TempDir()
+	tempDir, err := filepath.EvalSymlinks(tempDir)
+	if err != nil {
+		t.Fatalf("failed to eval symlinks on tempDir: %v", err)
+	}
 
 	// Change to the temp directory
 	oldCwd, err := os.Getwd()
@@ -78,7 +88,13 @@ func TestResolveOutputDirectory_DefaultToCWD(t *testing.T) {
 }
 
 func TestGenerateOutputFilePath_DifferentExtensions(t *testing.T) {
+	// macOS: t.TempDir() returns /var/folders/... but os.Getwd() after Chdir
+	// returns /private/var/folders/... — normalise with EvalSymlinks
 	tempDir := t.TempDir()
+	tempDir, err := filepath.EvalSymlinks(tempDir)
+	if err != nil {
+		t.Fatalf("failed to eval symlinks on tempDir: %v", err)
+	}
 
 	oldCwd, err := os.Getwd()
 	if err != nil {
