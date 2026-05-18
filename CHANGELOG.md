@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.21.0] - 2026-05-19
+
+### Performance
+- Speed up the full `analyze` pipeline by reusing parsed files and the system dependency graph, scoring APTED pairs once, and using integer LSH candidates (#438)
+
+### Fixed
+- Count rule invocations (not violations) in architecture `ComplianceScore` denominator (#448, #426)
+- Exit non-zero when output generation fails in the `analyze` command (#437, #249)
+
 ## [1.20.0] - 2026-05-16
 
 ### Added
