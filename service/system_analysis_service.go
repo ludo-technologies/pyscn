@@ -193,7 +193,7 @@ func (s *SystemAnalysisServiceImpl) analyzeArchitectureGraph(ctx context.Context
 		return nil, fmt.Errorf("architecture analysis cancelled: %w", err)
 	}
 
-	responsibilityAnalysis, cohesionAnalysis, responsibilityViolations := s.analyzeResponsibilityForRequest(graph, req)
+	responsibilityAnalysis, cohesionAnalysis, responsibilityViolations, responsibilityChecks := s.analyzeResponsibilityForRequest(graph, req)
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("architecture analysis cancelled: %w", err)
 	}
@@ -206,7 +206,7 @@ func (s *SystemAnalysisServiceImpl) analyzeArchitectureGraph(ctx context.Context
 			return s.emptyArchitectureResult(), nil
 		}
 		severityCounts := responsibilitySeverityCounts(responsibilityViolations)
-		checked := len(responsibilityViolations)
+		checked := responsibilityChecks
 		errorCount := severityCounts[domain.ViolationSeverityError]
 		warningCount := severityCounts[domain.ViolationSeverityWarning]
 		compliance := s.calculateComplianceWeighted(errorCount, warningCount, checked)
@@ -252,7 +252,7 @@ func (s *SystemAnalysisServiceImpl) analyzeArchitectureGraph(ctx context.Context
 		violations = append(violations, violation)
 		severityCounts[violation.Severity]++
 	}
-	checked += len(responsibilityViolations)
+	checked += responsibilityChecks
 	errorCount := severityCounts[domain.ViolationSeverityError]
 	warningCount := severityCounts[domain.ViolationSeverityWarning]
 	compliance := s.calculateComplianceWeighted(errorCount, warningCount, checked)

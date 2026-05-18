@@ -82,25 +82,30 @@ func parseViolationSeverity(value string) domain.ViolationSeverity {
 func (s *SystemAnalysisServiceImpl) analyzeResponsibilityForRequest(
 	graph *analyzer.DependencyGraph,
 	req domain.SystemAnalysisRequest,
-) (*domain.ResponsibilityAnalysis, *domain.CohesionAnalysis, []domain.ArchitectureViolation) {
+) (*domain.ResponsibilityAnalysis, *domain.CohesionAnalysis, []domain.ArchitectureViolation, int) {
 	if !domain.BoolValue(req.ValidateResponsibility, true) && !domain.BoolValue(req.ValidateCohesion, true) {
-		return nil, nil, nil
+		return nil, nil, nil, 0
 	}
 
 	options := responsibilityOptionsFromRequest(req)
 	responsibility, cohesion, responsibilityViolations := s.analyzeResponsibility(graph, options)
 	violations := make([]domain.ArchitectureViolation, 0, len(responsibilityViolations)+len(cohesion.LowCohesionPackages))
+	checks := 0
 	if !domain.BoolValue(req.ValidateResponsibility, true) {
 		responsibility = nil
 	} else {
 		violations = append(violations, responsibilityViolations...)
+		// Every module in the graph is evaluated against the SRP rule once.
+		checks += len(graph.GetModuleNames())
 	}
 	if !domain.BoolValue(req.ValidateCohesion, true) {
 		cohesion = nil
 	} else {
 		violations = append(violations, cohesionArchitectureViolations(cohesion, options.cohesionSeverity)...)
+		// Every package whose cohesion was computed counts as one invocation.
+		checks += len(cohesion.PackageCohesion)
 	}
-	return responsibility, cohesion, violations
+	return responsibility, cohesion, violations, checks
 }
 
 func responsibilitySeverityCounts(violations []domain.ArchitectureViolation) map[domain.ViolationSeverity]int {

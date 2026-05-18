@@ -125,7 +125,7 @@ func TestAnalyzeResponsibilityForRequestKeepsCohesionIndependent(t *testing.T) {
 
 	validateResponsibility := false
 	validateCohesion := true
-	responsibility, cohesion, violations := service.analyzeResponsibilityForRequest(graph, domain.SystemAnalysisRequest{
+	responsibility, cohesion, violations, checks := service.analyzeResponsibilityForRequest(graph, domain.SystemAnalysisRequest{
 		ValidateResponsibility:    &validateResponsibility,
 		ValidateCohesion:          &validateCohesion,
 		CohesionViolationSeverity: domain.ViolationSeverityError,
@@ -134,6 +134,8 @@ func TestAnalyzeResponsibilityForRequestKeepsCohesionIndependent(t *testing.T) {
 	assert.Nil(t, responsibility)
 	require.NotNil(t, cohesion)
 	require.Len(t, violations, 1)
+	assert.Equal(t, len(cohesion.PackageCohesion), checks,
+		"checks should equal the number of packages whose cohesion was evaluated")
 	assert.Equal(t, domain.ViolationTypeCohesion, violations[0].Type)
 	assert.Equal(t, domain.ViolationSeverityError, violations[0].Severity)
 	assert.Equal(t, "app.orders", violations[0].Module)
@@ -208,4 +210,12 @@ func TestAnalyzeArchitectureRunsResponsibilityWithoutLayerRules(t *testing.T) {
 	assert.Equal(t, "app.red.hub", result.ResponsibilityAnalysis.SRPViolations[0].Module)
 	assert.Equal(t, 1, result.TotalViolations)
 	assert.Zero(t, result.LayerAnalysis.LayersAnalyzed)
+
+	// The repo has many modules and only one SRP violation, so TotalRules
+	// (rule invocations) must exceed TotalViolations and ComplianceScore must
+	// not collapse to zero. Regression test for #426.
+	assert.Greater(t, result.TotalRules, result.TotalViolations,
+		"TotalRules should count every module checked against the SRP rule, not just the violations")
+	assert.Greater(t, result.ComplianceScore, 0.0,
+		"ComplianceScore should not be zero when most modules pass the responsibility rule")
 }
