@@ -84,14 +84,8 @@ func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) flo
 	cfgFeatures1 := s.extractCFGFeatures(cfg1)
 	cfgFeatures2 := s.extractCFGFeatures(cfg2)
 
-	// Control-flow gate: fragments with V(G) = 1 are fully linear and produce
-	// saturated, indiscriminate CFG similarity scores. Audit data across 57 repos
-	// showed 81% of Type-4 pairs landing at similarity ≥ 0.975 — overwhelmingly
-	// small linear fragments matching each other. Gating on cyclomatic complexity
-	// instead of raw block count is robust to the synthetic-block differences
-	// between function and statement-level fragments (e.g. `NodeIf` without `else`
-	// has fewer blocks than the same `if` inside a function but the same V(G)).
-	// Rejected fragments remain eligible for Type-1/2/3 via the upstream classifier.
+	// Control-flow gate; see domain.DefaultSemanticMinCyclomaticComplexity for
+	// rationale. Rejected fragments remain eligible for Type-1/2/3 upstream.
 	if s.minCyclomatic > 0 && (cfgFeatures1.CyclomaticNumber < s.minCyclomatic || cfgFeatures2.CyclomaticNumber < s.minCyclomatic) {
 		return 0.0
 	}

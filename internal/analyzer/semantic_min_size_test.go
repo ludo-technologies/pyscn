@@ -1,7 +1,6 @@
 package analyzer
 
 import (
-	"context"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -9,29 +8,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// firstNodeOfType parses src and returns the first node of the given type.
-// Used to exercise the semantic analyzer on small, hand-written snippets without
-// going through the full clone detector pipeline.
 func firstNodeOfType(t *testing.T, src string, nt parser.NodeType) *parser.Node {
 	t.Helper()
-	p := parser.New()
-	result, err := p.Parse(context.Background(), []byte(src))
-	require.NoError(t, err)
-	require.NotNil(t, result.AST)
-
-	var out *parser.Node
-	result.AST.Walk(func(n *parser.Node) bool {
-		if out != nil {
-			return false
-		}
-		if n.Type == nt {
-			out = n
-			return false
-		}
-		return true
-	})
-	require.NotNil(t, out, "no node of type %v found in source", nt)
-	return out
+	nodes := parseSourceForDFA(t, src).FindByType(nt)
+	require.NotEmpty(t, nodes, "no node of type %v found in source", nt)
+	return nodes[0]
 }
 
 func fragmentFor(t *testing.T, src string, nt parser.NodeType) *CodeFragment {
