@@ -20,7 +20,11 @@ func TestGenerateOutputFilePath_CreatesDefaultDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get current directory: %v", err)
 	}
-	defer os.Chdir(oldCwd) //nolint:errcheck
+	t.Cleanup(func() {
+		if err := os.Chdir(oldCwd); err != nil {
+			t.Errorf("failed to restore working directory: %v", err)
+		}
+	})
 
 	if err := os.Chdir(tempDir); err != nil {
 		t.Fatalf("failed to change directory: %v", err)
@@ -68,7 +72,11 @@ func TestResolveOutputDirectory_DefaultToCWD(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get current directory: %v", err)
 	}
-	defer os.Chdir(oldCwd) //nolint:errcheck
+	t.Cleanup(func() {
+		if err := os.Chdir(oldCwd); err != nil {
+			t.Errorf("failed to restore working directory: %v", err)
+		}
+	})
 
 	if err := os.Chdir(tempDir); err != nil {
 		t.Fatalf("failed to change directory: %v", err)
@@ -100,7 +108,11 @@ func TestGenerateOutputFilePath_DifferentExtensions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get current directory: %v", err)
 	}
-	defer os.Chdir(oldCwd) //nolint:errcheck
+	t.Cleanup(func() {
+		if err := os.Chdir(oldCwd); err != nil {
+			t.Errorf("failed to restore working directory: %v", err)
+		}
+	})
 
 	if err := os.Chdir(tempDir); err != nil {
 		t.Fatalf("failed to change directory: %v", err)
