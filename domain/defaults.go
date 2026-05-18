@@ -79,6 +79,18 @@ const (
 	// DefaultDFAFeatureWeight is the weight for DFA-based features in semantic similarity.
 	// DFA captures data flow patterns (variable definitions and uses).
 	DefaultDFAFeatureWeight = 0.40
+
+	// DefaultSemanticMinCFGBlocks is the minimum number of basic blocks a fragment's
+	// CFG must contain to be eligible for Type-4 (semantic) clone classification.
+	// Smaller CFGs are dominated by entry/linear/exit shapes and produce saturated,
+	// indiscriminate similarity scores (the "tiny linear function looks like every
+	// other tiny linear function" problem).
+	//
+	// Calibration against pyscn's CFG builder: linear function bodies emit 4 blocks
+	// (V(G)=1) regardless of statement count; the first decision (if / for / while)
+	// jumps to 7 blocks (V(G)=2). A threshold of 5 therefore rejects every purely
+	// linear fragment while admitting any function with at least one branch or loop.
+	DefaultSemanticMinCFGBlocks = 5
 )
 
 // ============================================================================

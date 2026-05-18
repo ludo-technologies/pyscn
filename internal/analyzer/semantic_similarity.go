@@ -14,6 +14,7 @@ type SemanticSimilarityAnalyzer struct {
 	enableDFA        bool    // Enable DFA-based analysis
 	cfgFeatureWeight float64 // Weight for CFG features (default: 0.6)
 	dfaFeatureWeight float64 // Weight for DFA features (default: 0.4)
+	minCFGBlocks     int     // Minimum CFG block count required on both sides
 }
 
 // NewSemanticSimilarityAnalyzer creates a new semantic similarity analyzer
@@ -22,6 +23,7 @@ func NewSemanticSimilarityAnalyzer() *SemanticSimilarityAnalyzer {
 		enableDFA:        false,
 		cfgFeatureWeight: domain.DefaultCFGFeatureWeight,
 		dfaFeatureWeight: domain.DefaultDFAFeatureWeight,
+		minCFGBlocks:     domain.DefaultSemanticMinCFGBlocks,
 	}
 }
 
@@ -31,6 +33,7 @@ func NewSemanticSimilarityAnalyzerWithDFA() *SemanticSimilarityAnalyzer {
 		enableDFA:        true,
 		cfgFeatureWeight: domain.DefaultCFGFeatureWeight,
 		dfaFeatureWeight: domain.DefaultDFAFeatureWeight,
+		minCFGBlocks:     domain.DefaultSemanticMinCFGBlocks,
 	}
 }
 
@@ -43,6 +46,12 @@ func (s *SemanticSimilarityAnalyzer) SetEnableDFA(enable bool) {
 func (s *SemanticSimilarityAnalyzer) SetWeights(cfgWeight, dfaWeight float64) {
 	s.cfgFeatureWeight = cfgWeight
 	s.dfaFeatureWeight = dfaWeight
+}
+
+// SetMinCFGBlocks sets the minimum CFG block count required for Type-4 classification.
+// A value <= 0 disables the gate (any size eligible).
+func (s *SemanticSimilarityAnalyzer) SetMinCFGBlocks(n int) {
+	s.minCFGBlocks = n
 }
 
 // CFGFeatures captures key structural properties of a control flow graph
@@ -74,6 +83,16 @@ func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) flo
 	// Extract CFG features from both CFGs
 	cfgFeatures1 := s.extractCFGFeatures(cfg1)
 	cfgFeatures2 := s.extractCFGFeatures(cfg2)
+
+	// Minimum-size gate: small CFGs (sub-branch linear shapes) produce saturated,
+	// indiscriminate similarity scores. Audit data across 57 repos showed 81% of
+	// Type-4 pairs landing at similarity ≥ 0.975 — overwhelmingly small linear
+	// fragments matching each other. Rejecting them here keeps Type-4 focused on
+	// fragments with enough control flow to compare meaningfully. They can still
+	// be classified as Type-1/2/3 by the upstream classifier.
+	if s.minCFGBlocks > 0 && (cfgFeatures1.BlockCount < s.minCFGBlocks || cfgFeatures2.BlockCount < s.minCFGBlocks) {
+		return 0.0
+	}
 
 	// Compare CFG features to compute similarity
 	cfgSimilarity := s.compareCFGFeatures(cfgFeatures1, cfgFeatures2)

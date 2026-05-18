@@ -545,6 +545,12 @@ def compute(x, y):
 		analyzerWithDFA := NewSemanticSimilarityAnalyzerWithDFA()
 		analyzerWithoutDFA := NewSemanticSimilarityAnalyzer()
 
+		// This test exercises the DFA/non-DFA code paths on small linear fragments;
+		// disable the min-CFG-blocks gate so both paths can produce a score (the
+		// gate itself is exercised in semantic_min_size_test.go).
+		analyzerWithDFA.SetMinCFGBlocks(0)
+		analyzerWithoutDFA.SetMinCFGBlocks(0)
+
 		simWithDFA := analyzerWithDFA.ComputeSimilarity(f1, f2)
 		simWithoutDFA := analyzerWithoutDFA.ComputeSimilarity(f1, f2)
 

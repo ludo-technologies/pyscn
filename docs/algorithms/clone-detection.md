@@ -232,6 +232,18 @@ similarity = 0.60 * cfgSimilarity + 0.40 * dfaSimilarity
 
 Type-4 analysis is opt-in (`EnableSemanticAnalysis`) due to its higher CPU cost.
 
+#### Minimum CFG size gate
+
+Fragments whose CFG has fewer than `DefaultSemanticMinCFGBlocks` basic blocks
+(default: 5) are skipped at the Type-4 stage and return a similarity of `0.0`.
+Calibration against pyscn's CFG builder: purely linear function bodies emit
+4 blocks (V(G)=1) regardless of statement count, while the first decision
+(`if` / `for` / `while`) jumps to 7 blocks (V(G)=2). The default of 5 therefore
+rejects every linear-only fragment — which dominated the saturated 0.975–1.000
+similarity band observed in cross-repo audits — while admitting any function
+with at least one branch or loop. Fragments rejected at this gate remain
+eligible for Type-1/2/3 classification via the upstream cascading classifier.
+
 ## Multi-dimensional Classification
 
 **Implementation:** `similarity_analyzer.go` (`CloneClassifier`)
@@ -404,6 +416,7 @@ All thresholds are defined in `domain/defaults.go`:
 | `DefaultType2CloneThreshold` | 0.75 | Type-2 (renamed) minimum similarity |
 | `DefaultType3CloneThreshold` | 0.70 | Type-3 (near-miss) minimum similarity |
 | `DefaultType4CloneThreshold` | 0.65 | Type-4 (semantic) minimum similarity |
+| `DefaultSemanticMinCFGBlocks` | 5 | Minimum CFG basic-block count for Type-4 eligibility |
 | `DefaultCloneSimilarityThreshold` | 0.65 | General minimum for reporting (aligned with Type-4) |
 | `DefaultCloneGroupingThreshold` | 0.65 | Minimum for group membership (= Type-4 threshold) |
 | `DefaultLSHSimilarityThreshold` | 0.50 | MinHash pre-filter for LSH candidates |
