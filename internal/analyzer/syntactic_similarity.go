@@ -104,6 +104,13 @@ func (s *SyntacticSimilarityAnalyzer) ComputeDistance(f1, f2 *CodeFragment) floa
 	return 1.0 - s.ComputeSimilarity(f1, f2, nil)
 }
 
+// ComputeDistanceAndSimilarity computes both distance and similarity in one call.
+// For syntactic analyzer, this is simply distance = 1 - similarity.
+func (s *SyntacticSimilarityAnalyzer) ComputeDistanceAndSimilarity(f1, f2 *CodeFragment, calc *TFIDFCalculator) (float64, float64) {
+	similarity := s.ComputeSimilarity(f1, f2, calc)
+	return 1.0 - similarity, similarity
+}
+
 // jaccardSimilarity computes the Jaccard coefficient between two string slices.
 // Jaccard(A, B) = |A ∩ B| / |A ∪ B|
 // If both slices are sorted (as produced by ASTFeatureExtractor.ExtractFeatures),
