@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+const maxSameShapeAlignmentCells = 20000
+
 // APTEDAnalyzer implements the APTED (All Path Tree Edit Distance) algorithm
 // Based on Pawlik & Augsten's optimal O(n² log n) algorithm
 type APTEDAnalyzer struct {
@@ -74,11 +76,13 @@ func (a *APTEDAnalyzer) computeDistanceOptimized(tree1, tree2 *TreeNode) float64
 	if sizeDiff > maxDistance*0.8 {
 		return sizeDiff // Conservative estimate
 	}
-
-	profileDistance := a.computeApproximateDistance(tree1, tree2)
-	if profileDistance == 0 && sameTreeShapeAndLabels(tree1, tree2) {
-		return 0
+	if size1 == size2 {
+		if sameShapeDistance, ok := a.computeBoundedSameShapeDistance(tree1, tree2); ok {
+			return sameShapeDistance
+		}
 	}
+
+	profileDistance := a.computeApproximateDistanceWithSizes(tree1, tree2, size1, size2)
 	if profileDistance >= maxDistance {
 		return profileDistance
 	}
@@ -114,38 +118,50 @@ func (a *APTEDAnalyzer) computeDistanceOptimized(tree1, tree2 *TreeNode) float64
 
 // computeApproximateDistance computes an approximate distance for very large trees
 func (a *APTEDAnalyzer) computeApproximateDistance(tree1, tree2 *TreeNode) float64 {
+	size1, size2 := 0, 0
+	if tree1 != nil {
+		size1 = tree1.Size()
+	}
+	if tree2 != nil {
+		size2 = tree2.Size()
+	}
+	return a.computeApproximateDistanceWithSizes(tree1, tree2, size1, size2)
+}
+
+func (a *APTEDAnalyzer) computeApproximateDistanceWithSizes(tree1, tree2 *TreeNode, size1, size2 int) float64 {
 	// Handle nil cases
 	if tree1 == nil && tree2 == nil {
 		return 0.0
 	}
 	if tree1 == nil {
-		return float64(tree2.Size())
+		return float64(size2)
 	}
 	if tree2 == nil {
-		return float64(tree1.Size())
+		return float64(size1)
 	}
 
-	// Use a simplified structural similarity measure
-	depth1, depth2 := tree1.Height(), tree2.Height()
-	size1, size2 := tree1.Size(), tree2.Size()
+	profile1 := collectTreeProfile(tree1)
+	profile2 := collectTreeProfile(tree2)
 
 	// Compute structural differences
-	depthDiff := math.Abs(float64(depth1 - depth2))
+	depthDiff := math.Abs(float64(profile1.height - profile2.height))
 	sizeDiff := math.Abs(float64(size1 - size2))
 
 	structuralDistance := (depthDiff * 2.0) + (sizeDiff * 0.5)
-	labelDistance := a.computeLabelProfileDistance(tree1, tree2)
+	labelDistance := a.computeLabelProfileDistance(profile1.labels, profile2.labels)
+	distance := math.Max(structuralDistance, labelDistance)
+	if distance > 0 {
+		return distance
+	}
 
-	return math.Max(structuralDistance, labelDistance)
+	return computeShapeProfileDistance(tree1, tree2)
 }
 
-func (a *APTEDAnalyzer) computeLabelProfileDistance(tree1, tree2 *TreeNode) float64 {
-	labels1 := collectLabelProfile(tree1)
-	labels2 := collectLabelProfile(tree2)
+func (a *APTEDAnalyzer) computeLabelProfileDistance(labels1, labels2 map[string]*labelProfile) float64 {
 	cancelSharedLabels(labels1, labels2)
 
-	targetCandidates := buildLabelProfileCandidates(labels2)
-	sourceCandidates := buildLabelProfileCandidates(labels1)
+	targetCandidates := buildLabelProfileIndex(labels2)
+	sourceCandidates := buildLabelProfileIndex(labels1)
 
 	deleteDistance := a.unmatchedSourceCost(labels1, targetCandidates)
 	insertDistance := a.unmatchedTargetCost(sourceCandidates, labels2)
@@ -157,32 +173,43 @@ type labelProfile struct {
 	count int
 }
 
-type labelProfileCandidates struct {
-	byProfileKey map[string]*labelProfile
-	fallback     []*labelProfile
+type treeProfile struct {
+	labels map[string]*labelProfile
+	height int
 }
 
-func collectLabelProfile(root *TreeNode) map[string]*labelProfile {
-	profile := make(map[string]*labelProfile)
+func collectTreeProfile(root *TreeNode) treeProfile {
+	profile := treeProfile{
+		labels: make(map[string]*labelProfile),
+	}
 	if root == nil {
 		return profile
 	}
 
-	stack := []*TreeNode{root}
+	type profileStackEntry struct {
+		node  *TreeNode
+		depth int
+	}
+	stack := []profileStackEntry{{node: root}}
 	for len(stack) > 0 {
 		last := len(stack) - 1
-		node := stack[last]
+		item := stack[last]
 		stack = stack[:last]
 
-		entry := profile[node.Label]
+		node := item.node
+		if item.depth > profile.height {
+			profile.height = item.depth
+		}
+
+		entry := profile.labels[node.Label]
 		if entry == nil {
 			entry = &labelProfile{node: node}
-			profile[node.Label] = entry
+			profile.labels[node.Label] = entry
 		}
 		entry.count++
 		for _, child := range node.Children {
 			if child != nil {
-				stack = append(stack, child)
+				stack = append(stack, profileStackEntry{node: child, depth: item.depth + 1})
 			}
 		}
 	}
@@ -190,29 +217,100 @@ func collectLabelProfile(root *TreeNode) map[string]*labelProfile {
 	return profile
 }
 
-func buildLabelProfileCandidates(profile map[string]*labelProfile) labelProfileCandidates {
-	const fallbackLimit = 8
+type shapeProfile struct {
+	levelCounts map[int]int
+	childCounts map[int]int
+}
 
-	candidates := labelProfileCandidates{
-		byProfileKey: make(map[string]*labelProfile),
-		fallback:     make([]*labelProfile, 0, fallbackLimit),
+func computeShapeProfileDistance(tree1, tree2 *TreeNode) float64 {
+	profile1 := collectShapeProfile(tree1)
+	profile2 := collectShapeProfile(tree2)
+	return math.Max(
+		profileCountDistance(profile1.levelCounts, profile2.levelCounts),
+		profileCountDistance(profile1.childCounts, profile2.childCounts),
+	)
+}
+
+func collectShapeProfile(root *TreeNode) shapeProfile {
+	profile := shapeProfile{
+		levelCounts: make(map[int]int),
+		childCounts: make(map[int]int),
+	}
+	if root == nil {
+		return profile
 	}
 
-	for _, entry := range profile {
+	type shapeStackEntry struct {
+		node  *TreeNode
+		depth int
+	}
+	stack := []shapeStackEntry{{node: root}}
+	for len(stack) > 0 {
+		last := len(stack) - 1
+		item := stack[last]
+		stack = stack[:last]
+
+		node := item.node
+		profile.levelCounts[item.depth]++
+		profile.childCounts[len(node.Children)]++
+
+		for _, child := range node.Children {
+			if child != nil {
+				stack = append(stack, shapeStackEntry{node: child, depth: item.depth + 1})
+			}
+		}
+	}
+
+	return profile
+}
+
+func profileCountDistance(profile1, profile2 map[int]int) float64 {
+	difference := 0
+	for key, count1 := range profile1 {
+		difference += absInt(count1 - profile2[key])
+	}
+	for key, count2 := range profile2 {
+		if _, ok := profile1[key]; !ok {
+			difference += count2
+		}
+	}
+	return float64(difference) * 0.5
+}
+
+func absInt(value int) int {
+	if value < 0 {
+		return -value
+	}
+	return value
+}
+
+type labelProfileIndex map[string]*labelProfile
+
+func buildLabelProfileIndex(profile map[string]*labelProfile) labelProfileIndex {
+	index := make(labelProfileIndex)
+
+	for label, entry := range profile {
 		if entry.count <= 0 {
 			continue
 		}
 
-		key := labelProfileKey(entry.node.Label)
-		if candidates.byProfileKey[key] == nil {
-			candidates.byProfileKey[key] = entry
-		}
-		if len(candidates.fallback) < fallbackLimit {
-			candidates.fallback = append(candidates.fallback, entry)
+		key := labelProfileKey(label)
+		if betterLabelProfile(entry, index[key]) {
+			index[key] = entry
 		}
 	}
 
-	return candidates
+	return index
+}
+
+func betterLabelProfile(candidate, current *labelProfile) bool {
+	if current == nil {
+		return true
+	}
+	if candidate.count != current.count {
+		return candidate.count > current.count
+	}
+	return candidate.node.Label < current.node.Label
 }
 
 func labelProfileKey(label string) string {
@@ -235,7 +333,7 @@ func cancelSharedLabels(profile1, profile2 map[string]*labelProfile) {
 	}
 }
 
-func (a *APTEDAnalyzer) unmatchedSourceCost(sources map[string]*labelProfile, targets labelProfileCandidates) float64 {
+func (a *APTEDAnalyzer) unmatchedSourceCost(sources map[string]*labelProfile, targets labelProfileIndex) float64 {
 	total := 0.0
 	for _, source := range sources {
 		if source.count <= 0 {
@@ -243,10 +341,7 @@ func (a *APTEDAnalyzer) unmatchedSourceCost(sources map[string]*labelProfile, ta
 		}
 
 		best := a.costModel.Delete(source.node)
-		if target := targets.byProfileKey[labelProfileKey(source.node.Label)]; target != nil {
-			best = math.Min(best, a.costModel.Rename(source.node, target.node))
-		}
-		for _, target := range targets.fallback {
+		if target := targets[labelProfileKey(source.node.Label)]; target != nil {
 			best = math.Min(best, a.costModel.Rename(source.node, target.node))
 		}
 		total += float64(source.count) * best
@@ -254,7 +349,7 @@ func (a *APTEDAnalyzer) unmatchedSourceCost(sources map[string]*labelProfile, ta
 	return total
 }
 
-func (a *APTEDAnalyzer) unmatchedTargetCost(sources labelProfileCandidates, targets map[string]*labelProfile) float64 {
+func (a *APTEDAnalyzer) unmatchedTargetCost(sources labelProfileIndex, targets map[string]*labelProfile) float64 {
 	total := 0.0
 	for _, target := range targets {
 		if target.count <= 0 {
@@ -262,10 +357,7 @@ func (a *APTEDAnalyzer) unmatchedTargetCost(sources labelProfileCandidates, targ
 		}
 
 		best := a.costModel.Insert(target.node)
-		if source := sources.byProfileKey[labelProfileKey(target.node.Label)]; source != nil {
-			best = math.Min(best, a.costModel.Rename(source.node, target.node))
-		}
-		for _, source := range sources.fallback {
+		if source := sources[labelProfileKey(target.node.Label)]; source != nil {
 			best = math.Min(best, a.costModel.Rename(source.node, target.node))
 		}
 		total += float64(target.count) * best
@@ -280,7 +372,21 @@ func minLabelCount(a, b int) int {
 	return b
 }
 
-func sameTreeShapeAndLabels(tree1, tree2 *TreeNode) bool {
+func (a *APTEDAnalyzer) computeBoundedSameShapeDistance(tree1, tree2 *TreeNode) (float64, bool) {
+	if !sameTreeShape(tree1, tree2) {
+		return 0, false
+	}
+
+	state := sameShapeDistanceState{
+		distances:               make(map[nodePair]float64),
+		deleteCosts:             make(map[*TreeNode]float64),
+		insertCosts:             make(map[*TreeNode]float64),
+		alignmentCellsRemaining: maxSameShapeAlignmentCells,
+	}
+	return a.sameShapeNodeDistance(tree1, tree2, &state), true
+}
+
+func sameTreeShape(tree1, tree2 *TreeNode) bool {
 	stack := [][2]*TreeNode{{tree1, tree2}}
 	for len(stack) > 0 {
 		last := len(stack) - 1
@@ -292,15 +398,271 @@ func sameTreeShapeAndLabels(tree1, tree2 *TreeNode) bool {
 		if left == nil || right == nil {
 			return left == right
 		}
-		if left.Label != right.Label || len(left.Children) != len(right.Children) {
+		if len(left.Children) != len(right.Children) {
 			return false
 		}
+
 		for i := range left.Children {
 			stack = append(stack, [2]*TreeNode{left.Children[i], right.Children[i]})
 		}
 	}
 
 	return true
+}
+
+type nodePair struct {
+	left  *TreeNode
+	right *TreeNode
+}
+
+type sameShapeDistanceState struct {
+	distances               map[nodePair]float64
+	deleteCosts             map[*TreeNode]float64
+	insertCosts             map[*TreeNode]float64
+	alignmentCellsRemaining int
+}
+
+func (a *APTEDAnalyzer) sameShapeNodeDistance(left, right *TreeNode, state *sameShapeDistanceState) float64 {
+	if left == nil && right == nil {
+		return 0
+	}
+	if left == nil {
+		return a.cachedInsertCost(right, state)
+	}
+	if right == nil {
+		return a.cachedDeleteCost(left, state)
+	}
+
+	if len(left.Children) == 0 && len(right.Children) == 0 {
+		return math.Min(
+			a.costModel.Rename(left, right),
+			a.costModel.Delete(left)+a.costModel.Insert(right),
+		)
+	}
+
+	key := nodePair{left: left, right: right}
+	if distance, ok := state.distances[key]; ok {
+		return distance
+	}
+
+	rootCost := math.Min(
+		a.costModel.Rename(left, right),
+		a.costModel.Delete(left)+a.costModel.Insert(right),
+	)
+	childrenCost := a.sameShapeChildrenDistance(left.Children, right.Children, state)
+	distance := rootCost + childrenCost
+	state.distances[key] = distance
+	return distance
+}
+
+func (a *APTEDAnalyzer) sameShapeChildrenDistance(left, right []*TreeNode, state *sameShapeDistanceState) float64 {
+	if len(left) == 0 && len(right) == 0 {
+		return 0
+	}
+
+	positionalDistance := a.positionalChildrenDistance(left, right, state)
+	if positionalDistance == 0 || !canRealignChildren(left, right) {
+		return positionalDistance
+	}
+	if len(left) == len(right) {
+		if shiftDistance, exact := a.singleChildShiftDistance(left, right, state); exact && shiftDistance < positionalDistance {
+			return shiftDistance
+		}
+	}
+
+	if !state.reserveAlignmentCells(len(left) * len(right)) {
+		return positionalDistance
+	}
+	alignedDistance := a.alignChildSequences(left, right, state)
+	if len(left) == len(right) {
+		return math.Min(positionalDistance, alignedDistance)
+	}
+	return alignedDistance
+}
+
+func (a *APTEDAnalyzer) positionalChildrenDistance(left, right []*TreeNode, state *sameShapeDistanceState) float64 {
+	total := 0.0
+	shared := minLabelCount(len(left), len(right))
+	for i := 0; i < shared; i++ {
+		total += a.sameShapeNodeDistance(left[i], right[i], state)
+	}
+	for _, child := range left[shared:] {
+		total += a.cachedDeleteCost(child, state)
+	}
+	for _, child := range right[shared:] {
+		total += a.cachedInsertCost(child, state)
+	}
+	return total
+}
+
+func canRealignChildren(left, right []*TreeNode) bool {
+	if len(left) < 2 || len(right) < 2 {
+		return false
+	}
+
+	rightLabels := make(map[string]childPosition, len(right))
+	needsProfileKeys := false
+	for i, child := range right {
+		rightLabels[child.Label] = addChildPosition(rightLabels[child.Label], i)
+		needsProfileKeys = needsProfileKeys || labelProfileKey(child.Label) != child.Label
+	}
+	for i, child := range left {
+		position, ok := rightLabels[child.Label]
+		if ok && (position.count > 1 || position.index != i) {
+			return true
+		}
+		needsProfileKeys = needsProfileKeys || labelProfileKey(child.Label) != child.Label
+	}
+
+	if !needsProfileKeys {
+		return false
+	}
+
+	rightKeys := make(map[string]childPosition, len(right))
+	for i, child := range right {
+		key := labelProfileKey(child.Label)
+		rightKeys[key] = addChildPosition(rightKeys[key], i)
+	}
+	for i, child := range left {
+		key := labelProfileKey(child.Label)
+		position, ok := rightKeys[key]
+		if ok && (position.count > 1 || position.index != i) {
+			return true
+		}
+	}
+
+	return false
+}
+
+type childPosition struct {
+	index int
+	count int
+}
+
+func addChildPosition(position childPosition, index int) childPosition {
+	if position.count == 0 {
+		position.index = index
+	}
+	position.count++
+	return position
+}
+
+func (a *APTEDAnalyzer) singleChildShiftDistance(left, right []*TreeNode, state *sameShapeDistanceState) (float64, bool) {
+	if len(left) != len(right) || len(left) < 2 {
+		return 0, false
+	}
+
+	start := 0
+	for start < len(left) && a.sameShapeNodeDistance(left[start], right[start], state) == 0 {
+		start++
+	}
+	if start == len(left) {
+		return 0, true
+	}
+
+	end := len(left) - 1
+	for end > start && a.sameShapeNodeDistance(left[end], right[end], state) == 0 {
+		end--
+	}
+	if start == end {
+		return 0, false
+	}
+
+	forwardCost, forwardExact := a.childShiftDistance(left, right, start, end, true, state)
+	backwardCost, backwardExact := a.childShiftDistance(left, right, start, end, false, state)
+	if forwardExact && (!backwardExact || forwardCost <= backwardCost) {
+		return forwardCost, true
+	}
+	if backwardExact {
+		return backwardCost, true
+	}
+	return 0, false
+}
+
+func (a *APTEDAnalyzer) childShiftDistance(
+	left, right []*TreeNode,
+	start, end int,
+	leftDeletion bool,
+	state *sameShapeDistanceState,
+) (float64, bool) {
+	matchedDistance := 0.0
+	if leftDeletion {
+		for i := start; i < end; i++ {
+			matchedDistance += a.sameShapeNodeDistance(left[i+1], right[i], state)
+		}
+		return a.cachedDeleteCost(left[start], state) + a.cachedInsertCost(right[end], state) + matchedDistance, matchedDistance == 0
+	}
+
+	for i := start; i < end; i++ {
+		matchedDistance += a.sameShapeNodeDistance(left[i], right[i+1], state)
+	}
+	return a.cachedDeleteCost(left[end], state) + a.cachedInsertCost(right[start], state) + matchedDistance, matchedDistance == 0
+}
+
+func (state *sameShapeDistanceState) reserveAlignmentCells(cells int) bool {
+	if cells <= 0 {
+		return true
+	}
+	if cells > state.alignmentCellsRemaining {
+		return false
+	}
+	state.alignmentCellsRemaining -= cells
+	return true
+}
+
+func (a *APTEDAnalyzer) alignChildSequences(left, right []*TreeNode, state *sameShapeDistanceState) float64 {
+	prev := make([]float64, len(right)+1)
+	for j, child := range right {
+		prev[j+1] = prev[j] + a.cachedInsertCost(child, state)
+	}
+
+	for _, leftChild := range left {
+		curr := make([]float64, len(right)+1)
+		curr[0] = prev[0] + a.cachedDeleteCost(leftChild, state)
+
+		for j, rightChild := range right {
+			deleteCost := prev[j+1] + a.cachedDeleteCost(leftChild, state)
+			insertCost := curr[j] + a.cachedInsertCost(rightChild, state)
+			matchCost := prev[j] + a.sameShapeNodeDistance(leftChild, rightChild, state)
+			curr[j+1] = math.Min(deleteCost, math.Min(insertCost, matchCost))
+		}
+
+		prev = curr
+	}
+
+	return prev[len(right)]
+}
+
+func (a *APTEDAnalyzer) cachedDeleteCost(node *TreeNode, state *sameShapeDistanceState) float64 {
+	if node == nil {
+		return 0
+	}
+	if cost, ok := state.deleteCosts[node]; ok {
+		return cost
+	}
+
+	cost := a.costModel.Delete(node)
+	for _, child := range node.Children {
+		cost += a.cachedDeleteCost(child, state)
+	}
+	state.deleteCosts[node] = cost
+	return cost
+}
+
+func (a *APTEDAnalyzer) cachedInsertCost(node *TreeNode, state *sameShapeDistanceState) float64 {
+	if node == nil {
+		return 0
+	}
+	if cost, ok := state.insertCosts[node]; ok {
+		return cost
+	}
+
+	cost := a.costModel.Insert(node)
+	for _, child := range node.Children {
+		cost += a.cachedInsertCost(child, state)
+	}
+	state.insertCosts[node] = cost
+	return cost
 }
 
 // aptedOptimized implements the optimized APTED algorithm with early termination
