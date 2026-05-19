@@ -33,12 +33,12 @@ func TestSemanticMinCyclomatic_GateBlocksLinearFunctions(t *testing.T) {
 
 	analyzer := NewSemanticSimilarityAnalyzer()
 
-	require.Equal(t, 0.0, analyzer.ComputeSimilarity(f1, f2, nil),
+	require.Equal(t, 0.0, analyzer.ComputeSimilarity(f1, f2),
 		"expected gated similarity to be 0.0 for V(G)=1 fragments")
 
 	// Sanity-check the gate is the reason: disabling restores the saturated score.
 	analyzer.SetMinCyclomaticComplexity(0)
-	require.Greater(t, analyzer.ComputeSimilarity(f1, f2, nil), 0.0,
+	require.Greater(t, analyzer.ComputeSimilarity(f1, f2), 0.0,
 		"expected non-zero similarity once gate is disabled")
 }
 
@@ -53,7 +53,7 @@ func TestSemanticMinCyclomatic_GatePassesBranchingFunctions(t *testing.T) {
 		parser.NodeFunctionDef)
 
 	analyzer := NewSemanticSimilarityAnalyzer()
-	require.Greater(t, analyzer.ComputeSimilarity(f1, f2, nil), 0.0,
+	require.Greater(t, analyzer.ComputeSimilarity(f1, f2), 0.0,
 		"fragments with branching/looping CFGs must clear the min-cyclomatic gate")
 }
 
@@ -80,7 +80,7 @@ func TestSemanticMinCyclomatic_GatePassesStandaloneControlFlow(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			f1 := fragmentFor(t, c.src, c.nt)
 			f2 := fragmentFor(t, c.src, c.nt)
-			require.Greater(t, analyzer.ComputeSimilarity(f1, f2, nil), 0.0,
+			require.Greater(t, analyzer.ComputeSimilarity(f1, f2), 0.0,
 				"standalone control-flow fragment must clear the gate (V(G) should be >= 2)")
 		})
 	}

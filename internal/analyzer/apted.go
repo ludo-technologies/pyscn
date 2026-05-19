@@ -551,7 +551,7 @@ func (a *APTEDAnalyzer) ComputeDistanceAndSimilarityTrees(tree1, tree2 *TreeNode
 // ComputeDistanceAndSimilarity computes both distance and similarity between two code
 // fragments in a single traversal. This satisfies the SimilarityAnalyzer interface
 // and is more efficient than calling ComputeDistance and ComputeSimilarity separately.
-func (a *APTEDAnalyzer) ComputeDistanceAndSimilarity(f1, f2 *CodeFragment, _ *TFIDFCalculator) (float64, float64) {
+func (a *APTEDAnalyzer) ComputeDistanceAndSimilarity(f1, f2 *CodeFragment) (float64, float64) {
 	if f1 == nil || f2 == nil {
 		return 0.0, 0.0
 	}
@@ -677,7 +677,7 @@ func (a *APTEDAnalyzer) GetName() string {
 
 // ComputeSimilarity computes similarity between two CodeFragments using APTED.
 // This satisfies the SimilarityAnalyzer interface.
-func (a *APTEDAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment, _ *TFIDFCalculator) float64 {
+func (a *APTEDAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) float64 {
 	if f1 == nil || f2 == nil {
 		return 0.0
 	}

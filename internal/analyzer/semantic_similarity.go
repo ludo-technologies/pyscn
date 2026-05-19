@@ -67,7 +67,7 @@ type CFGFeatures struct {
 
 // ComputeSimilarity computes the semantic similarity between two code fragments
 // by comparing their CFG structures and optionally DFA features.
-func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment, _ *TFIDFCalculator) float64 {
+func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) float64 {
 	if f1 == nil || f2 == nil {
 		return 0.0
 	}
@@ -457,14 +457,14 @@ func (s *SemanticSimilarityAnalyzer) GetName() string {
 
 // ComputeDistance computes semantic distance (1 - similarity).
 func (s *SemanticSimilarityAnalyzer) ComputeDistance(f1, f2 *CodeFragment) float64 {
-	return 1.0 - s.ComputeSimilarity(f1, f2, nil)
+	return 1.0 - s.ComputeSimilarity(f1, f2)
 }
 
 // ComputeDistanceAndSimilarity computes both distance and similarity in one call.
 // For semantic analyzer, this requires computing similarity first (CFG/DFA analysis
 // is expensive), then deriving distance as 1 - similarity.
-func (s *SemanticSimilarityAnalyzer) ComputeDistanceAndSimilarity(f1, f2 *CodeFragment, _ *TFIDFCalculator) (float64, float64) {
-	similarity := s.ComputeSimilarity(f1, f2, nil)
+func (s *SemanticSimilarityAnalyzer) ComputeDistanceAndSimilarity(f1, f2 *CodeFragment) (float64, float64) {
+	similarity := s.ComputeSimilarity(f1, f2)
 	return 1.0 - similarity, similarity
 }
 
