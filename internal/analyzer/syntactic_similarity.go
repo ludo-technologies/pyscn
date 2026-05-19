@@ -48,18 +48,14 @@ func NewSyntacticSimilarityAnalyzerWithOptions(ignoreLiterals, ignoreIdentifiers
 	}
 }
 
-// ComputeSimilarity computes the syntactic similarity between two code fragments
-// using Jaccard coefficient of normalized AST hash sets.
-// It ignores differences in identifier names and literal values, focusing only
-// on the structural syntax pattern.
-func (s *SyntacticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) float64 {
+// ComputeSimilarity computes the syntactic similarity between two code fragments.
+// When tfidfCalc is provided and features are non-empty, uses TF-IDF weighted cosine
+// similarity for better accuracy; otherwise falls back to Jaccard coefficient of
+// normalized AST hash sets. Ignores differences in identifier names and literal values,
+// focusing only on the structural syntax pattern.
+func (s *SyntacticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment, calc *TFIDFCalculator) float64 {
 	if f1 == nil || f2 == nil {
 		return 0.0
-	}
-
-	// Use pre-computed features if available (avoids redundant tree traversal)
-	if len(f1.Features) > 0 && len(f2.Features) > 0 {
-		return jaccardSimilarity(f1.Features, f2.Features)
 	}
 
 	// Get or build tree nodes for fragments
@@ -78,7 +74,18 @@ func (s *SyntacticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) fl
 		return 0.0
 	}
 
-	// Compute Jaccard similarity
+	if len(features1) == 0 || len(features2) == 0 {
+		return 0.0
+	}
+
+	// Use TF-IDF weighted cosine similarity if calculator is provided
+	if calc != nil {
+		v1 := calc.ToWeightedVector(features1)
+		v2 := calc.ToWeightedVector(features2)
+		return CosineSimilarity(v1, v2)
+	}
+
+	// Fall back to Jaccard similarity
 	return jaccardSimilarity(features1, features2)
 }
 
@@ -89,7 +96,7 @@ func (s *SyntacticSimilarityAnalyzer) ComputeDistance(f1, f2 *CodeFragment) floa
 	if f1 == nil || f2 == nil {
 		return 0.0
 	}
-	return 1.0 - s.ComputeSimilarity(f1, f2)
+	return 1.0 - s.ComputeSimilarity(f1, f2, nil)
 }
 
 // jaccardSimilarity computes the Jaccard coefficient between two string slices.
