@@ -12,6 +12,11 @@ type SimilarityAnalyzer interface {
 	// This is used by CloneDetector for scoring clone pairs.
 	ComputeDistance(fragment1, fragment2 *CodeFragment) float64
 
+	// ComputeDistanceAndSimilarity computes both distance and similarity in a single
+	// traversal, which is more efficient than calling ComputeDistance and
+	// ComputeSimilarity separately when both values are needed.
+	ComputeDistanceAndSimilarity(fragment1, fragment2 *CodeFragment, tfidfCalc *TFIDFCalculator) (float64, float64)
+
 	// GetName returns the name of this analyzer
 	GetName() string
 }

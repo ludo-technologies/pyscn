@@ -1069,6 +1069,47 @@ func (a *APTEDAnalyzer) BatchComputeDistances(pairs [][2]*TreeNode) []float64 {
 	return distances
 }
 
+// ComputeDistanceAndSimilarityTrees computes both distance and similarity between two trees
+// in a single traversal. This is more efficient than calling ComputeDistanceTrees and
+// ComputeSimilarityTrees separately when both values are needed.
+func (a *APTEDAnalyzer) ComputeDistanceAndSimilarityTrees(tree1, tree2 *TreeNode) (float64, float64) {
+	if tree1 == nil && tree2 == nil {
+		return 0.0, 1.0
+	}
+	if tree1 == nil || tree2 == nil {
+		return math.Max(float64(tree1.Size()), float64(tree2.Size())), 0.0
+	}
+
+	distance := a.ComputeDistanceTrees(tree1, tree2)
+
+	size1 := float64(tree1.Size())
+	size2 := float64(tree2.Size())
+	maxSize := math.Max(size1, size2)
+
+	if maxSize == 0 {
+		return 0.0, 1.0
+	}
+
+	normalizedDistance := math.Min(distance, maxSize) / maxSize
+	similarity := 1.0 - normalizedDistance
+	similarity = math.Max(0.0, math.Min(1.0, similarity))
+
+	return distance, similarity
+}
+
+// ComputeDistanceAndSimilarity computes both distance and similarity between two code
+// fragments in a single traversal. This satisfies the SimilarityAnalyzer interface
+// and is more efficient than calling ComputeDistance and ComputeSimilarity separately.
+func (a *APTEDAnalyzer) ComputeDistanceAndSimilarity(f1, f2 *CodeFragment, _ *TFIDFCalculator) (float64, float64) {
+	if f1 == nil || f2 == nil {
+		return 0.0, 0.0
+	}
+	if f1.TreeNode == nil || f2.TreeNode == nil {
+		return 0.0, 0.0
+	}
+	return a.ComputeDistanceAndSimilarityTrees(f1.TreeNode, f2.TreeNode)
+}
+
 // ClusterResult represents the result of tree clustering
 type ClusterResult struct {
 	Groups    [][]int     // Groups of tree indices that are similar

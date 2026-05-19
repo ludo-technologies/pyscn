@@ -460,6 +460,14 @@ func (s *SemanticSimilarityAnalyzer) ComputeDistance(f1, f2 *CodeFragment) float
 	return 1.0 - s.ComputeSimilarity(f1, f2, nil)
 }
 
+// ComputeDistanceAndSimilarity computes both distance and similarity in one call.
+// For semantic analyzer, this requires computing similarity first (CFG/DFA analysis
+// is expensive), then deriving distance as 1 - similarity.
+func (s *SemanticSimilarityAnalyzer) ComputeDistanceAndSimilarity(f1, f2 *CodeFragment, _ *TFIDFCalculator) (float64, float64) {
+	similarity := s.ComputeSimilarity(f1, f2, nil)
+	return 1.0 - similarity, similarity
+}
+
 // BuildCFG builds a CFG from a parser.Node (exposed for testing)
 func (s *SemanticSimilarityAnalyzer) BuildCFG(node *parser.Node) (*CFG, error) {
 	builder := NewCFGBuilder()

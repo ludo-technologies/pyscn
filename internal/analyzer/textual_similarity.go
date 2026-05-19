@@ -292,6 +292,13 @@ func (t *TextualSimilarityAnalyzer) ComputeDistance(f1, f2 *CodeFragment) float6
 	return 1.0 - t.ComputeSimilarity(f1, f2, nil)
 }
 
+// ComputeDistanceAndSimilarity computes both distance and similarity in one call.
+// For textual analyzer, distance = 1 - similarity.
+func (t *TextualSimilarityAnalyzer) ComputeDistanceAndSimilarity(f1, f2 *CodeFragment, _ *TFIDFCalculator) (float64, float64) {
+	similarity := t.ComputeSimilarity(f1, f2, nil)
+	return 1.0 - similarity, similarity
+}
+
 // min3 returns the minimum of three integers
 func min3(a, b, c int) int {
 	if a <= b && a <= c {
