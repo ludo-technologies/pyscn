@@ -1,7 +1,6 @@
 package analyzer
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"math"
@@ -195,6 +194,9 @@ type CloneDetectorConfig struct {
 	EnableSemanticAnalysis         bool // Enable Type-4 semantic/CFG analysis (increases CPU usage)
 	EnableDFAAnalysis              bool // Enable Data Flow Analysis for enhanced Type-4 detection
 
+	// TF-IDF for Type-2 clone detection (optional, opt-in)
+	UseTFIDF bool // Use TF-IDF + Cosine similarity for Type-2 instead of Jaccard
+
 	// Framework pattern handling (reduces false positives for dataclass, Pydantic, etc.)
 	ReduceBoilerplateSimilarity bool    // Apply lower weight to boilerplate nodes (default: true)
 	BoilerplateMultiplier       float64 // Cost multiplier for boilerplate nodes (default: 0.1)
@@ -255,11 +257,12 @@ type CloneDetector struct {
 	// Embed config fields (private to maintain encapsulation)
 	cloneDetectorConfig CloneDetectorConfig
 
-	analyzer          *APTEDAnalyzer
+	analyzer          SimilarityAnalyzer
 	converter         *TreeConverter
 	classifier        *CloneClassifier // Multi-dimensional classifier (optional)
 	textualAnalyzer   *TextualSimilarityAnalyzer
 	syntacticAnalyzer *SyntacticSimilarityAnalyzer
+	tfidfCalculator   *TFIDFCalculator
 	featureExtractor  *ASTFeatureExtractor // Pre-filter feature extractor
 	fragments         []*CodeFragment
 	clonePairs        []*ClonePair
@@ -355,17 +358,16 @@ func (cd *CloneDetector) ExtractFragments(astNodes []*parser.Node, filePath stri
 // Source content is needed for Type-1 clone classification and optional report output.
 func (cd *CloneDetector) ExtractFragmentsWithSource(astNodes []*parser.Node, filePath string, sourceCode []byte) []*CodeFragment {
 	var fragments []*CodeFragment
-	lines := splitLines(sourceCode)
 
 	for _, node := range astNodes {
-		cd.extractFragmentsRecursiveWithSource(node, filePath, lines, &fragments)
+		cd.extractFragmentsRecursiveWithSource(node, filePath, sourceCode, &fragments)
 	}
 
 	return fragments
 }
 
 // extractFragmentsRecursiveWithSource recursively extracts fragments with source content
-func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, filePath string, lines [][]byte, fragments *[]*CodeFragment) {
+func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, filePath string, sourceCode []byte, fragments *[]*CodeFragment) {
 	if node == nil {
 		return
 	}
@@ -382,8 +384,8 @@ func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, 
 
 		// Extract content from source code if textual analysis is enabled
 		content := ""
-		if len(lines) > 0 {
-			content = cd.extractSourceContent(lines, &node.Location)
+		if len(sourceCode) > 0 {
+			content = cd.extractSourceContent(sourceCode, &node.Location)
 		}
 
 		fragment := NewCodeFragment(location, node, content)
@@ -396,16 +398,17 @@ func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, 
 
 	// Recursively process children
 	for _, child := range parser.OrderedChildren(node, nil) {
-		cd.extractFragmentsRecursiveWithSource(child, filePath, lines, fragments)
+		cd.extractFragmentsRecursiveWithSource(child, filePath, sourceCode, fragments)
 	}
 }
 
 // extractSourceContent extracts source code content for a given location
-func (cd *CloneDetector) extractSourceContent(lines [][]byte, loc *parser.Location) string {
-	if loc == nil || len(lines) == 0 {
+func (cd *CloneDetector) extractSourceContent(sourceCode []byte, loc *parser.Location) string {
+	if loc == nil || len(sourceCode) == 0 {
 		return ""
 	}
 
+	lines := splitLines(sourceCode)
 	if loc.StartLine < 1 || loc.EndLine > len(lines) {
 		return ""
 	}
@@ -424,21 +427,23 @@ func (cd *CloneDetector) extractSourceContent(lines [][]byte, loc *parser.Locati
 
 // splitLines splits source code into lines
 func splitLines(sourceCode []byte) [][]byte {
-	if len(sourceCode) == 0 {
-		return nil
-	}
+	var lines [][]byte
+	var currentLine []byte
 
-	lines := make([][]byte, 0, bytes.Count(sourceCode, []byte{'\n'})+1)
-	start := 0
-	for idx, b := range sourceCode {
+	for _, b := range sourceCode {
 		if b == '\n' {
-			lines = append(lines, sourceCode[start:idx])
-			start = idx + 1
+			lines = append(lines, currentLine)
+			currentLine = nil
+		} else {
+			currentLine = append(currentLine, b)
 		}
 	}
-	if start < len(sourceCode) {
-		lines = append(lines, sourceCode[start:])
+
+	// Add last line if it doesn't end with newline
+	if len(currentLine) > 0 {
+		lines = append(lines, currentLine)
 	}
+
 	return lines
 }
 
@@ -474,9 +479,8 @@ func (cd *CloneDetector) extractFragmentsRecursive(node *parser.Node, filePath s
 
 // isFragmentCandidate checks if a node should be considered as a fragment candidate
 func (cd *CloneDetector) isFragmentCandidate(node *parser.Node) bool {
-	switch node.Type {
-	// Consider functions, classes, and compound statements as fragment candidates.
-	case
+	// Consider functions, classes, and compound statements as fragment candidates
+	candidateTypes := []parser.NodeType{
 		parser.NodeFunctionDef,
 		parser.NodeAsyncFunctionDef,
 		parser.NodeClassDef,
@@ -486,8 +490,13 @@ func (cd *CloneDetector) isFragmentCandidate(node *parser.Node) bool {
 		parser.NodeIf,
 		parser.NodeTry,
 		parser.NodeWith,
-		parser.NodeAsyncWith:
-		return true
+		parser.NodeAsyncWith,
+	}
+
+	for _, candidateType := range candidateTypes {
+		if node.Type == candidateType {
+			return true
+		}
 	}
 
 	return false
@@ -926,14 +935,15 @@ func (cd *CloneDetector) usesSemanticClassifier() bool {
 // compareFragmentsWithClassifier uses the classifier as a gate and APTED for
 // final similarity/distance scoring and clone-type classification.
 func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *CodeFragment) *ClonePair {
-	result := cd.classifier.ClassifyClone(fragment1, fragment2)
+	result := cd.classifier.ClassifyClone(fragment1, fragment2, cd.tfidfCalculator)
 	if result == nil {
 		return nil
 	}
 
 	// Always run APTED with the detector's cost model (boilerplate-aware) so that
 	// Distance is populated and clone type is derived from a consistent metric.
-	distance, similarity := cd.analyzer.ComputeDistanceAndSimilarity(fragment1.TreeNode, fragment2.TreeNode)
+	distance := cd.analyzer.ComputeDistance(fragment1, fragment2)
+	similarity := cd.analyzer.ComputeSimilarity(fragment1, fragment2, cd.tfidfCalculator)
 
 	if result.CloneType == Type4Clone && result.Analyzer == "semantic" {
 		return &ClonePair{
@@ -969,7 +979,8 @@ func (cd *CloneDetector) compareFragmentsSingleMetric(fragment1, fragment2 *Code
 
 // compareWithAPTED uses the APTED algorithm for precise similarity measurement.
 func (cd *CloneDetector) compareWithAPTED(fragment1, fragment2 *CodeFragment) *ClonePair {
-	distance, similarity := cd.analyzer.ComputeDistanceAndSimilarity(fragment1.TreeNode, fragment2.TreeNode)
+	distance := cd.analyzer.ComputeDistance(fragment1, fragment2)
+	similarity := cd.analyzer.ComputeSimilarity(fragment1, fragment2, cd.tfidfCalculator)
 
 	cloneType, similarity := cd.classifyClonePair(fragment1, fragment2, similarity)
 	if cloneType == 0 {
@@ -995,7 +1006,7 @@ func (cd *CloneDetector) classifyClonePair(fragment1, fragment2 *CodeFragment, s
 
 	structuralSimilarity := cd.capNonTextualSimilarity(similarity)
 	if structuralSimilarity >= cd.cloneDetectorConfig.Type2Threshold {
-		syntacticSimilarity := cd.syntacticAnalyzer.ComputeSimilarity(fragment1, fragment2)
+		syntacticSimilarity := cd.syntacticAnalyzer.ComputeSimilarity(fragment1, fragment2, cd.tfidfCalculator)
 		if syntacticSimilarity >= cd.cloneDetectorConfig.Type2Threshold {
 			return Type2Clone, math.Min(structuralSimilarity, syntacticSimilarity)
 		}

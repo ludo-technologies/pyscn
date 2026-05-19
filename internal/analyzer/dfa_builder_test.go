@@ -551,8 +551,8 @@ def compute(x, y):
 		analyzerWithDFA.SetMinCyclomaticComplexity(0)
 		analyzerWithoutDFA.SetMinCyclomaticComplexity(0)
 
-		simWithDFA := analyzerWithDFA.ComputeSimilarity(f1, f2)
-		simWithoutDFA := analyzerWithoutDFA.ComputeSimilarity(f1, f2)
+		simWithDFA := analyzerWithDFA.ComputeSimilarity(f1, f2, nil)
+		simWithoutDFA := analyzerWithoutDFA.ComputeSimilarity(f1, f2, nil)
 
 		// Both should produce valid similarity scores
 		assert.Greater(t, simWithDFA, 0.0)
