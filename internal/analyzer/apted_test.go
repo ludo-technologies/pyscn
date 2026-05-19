@@ -574,6 +574,32 @@ func BenchmarkAPTED_LargeTrees(b *testing.B) {
 	}
 }
 
+func BenchmarkAPTED_LargeTreeLabelDistance(b *testing.B) {
+	for _, size := range []int{501, 2001} {
+		b.Run(fmt.Sprintf("different_labels_%d", size), func(b *testing.B) {
+			analyzer := NewAPTEDAnalyzer(NewDefaultCostModel())
+			tree1 := createWideTreeWithLabels(size, "left")
+			tree2 := createWideTreeWithLabels(size, "right")
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_ = analyzer.ComputeDistance(tree1, tree2)
+			}
+		})
+
+		b.Run(fmt.Sprintf("identical_labels_%d", size), func(b *testing.B) {
+			analyzer := NewAPTEDAnalyzer(NewDefaultCostModel())
+			tree1 := createWideTreeWithLabels(size, "same")
+			tree2 := createWideTreeWithLabels(size, "same")
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_ = analyzer.ComputeDistance(tree1, tree2)
+			}
+		})
+	}
+}
+
 func BenchmarkTreePreparation(b *testing.B) {
 	tree := createBenchmarkTree("BenchmarkTree", 1000)
 
