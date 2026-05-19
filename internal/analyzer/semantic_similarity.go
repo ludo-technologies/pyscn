@@ -14,6 +14,7 @@ type SemanticSimilarityAnalyzer struct {
 	enableDFA        bool    // Enable DFA-based analysis
 	cfgFeatureWeight float64 // Weight for CFG features (default: 0.6)
 	dfaFeatureWeight float64 // Weight for DFA features (default: 0.4)
+	minCyclomatic    int     // Minimum cyclomatic complexity V(G) required on both sides
 }
 
 // NewSemanticSimilarityAnalyzer creates a new semantic similarity analyzer
@@ -22,6 +23,7 @@ func NewSemanticSimilarityAnalyzer() *SemanticSimilarityAnalyzer {
 		enableDFA:        false,
 		cfgFeatureWeight: domain.DefaultCFGFeatureWeight,
 		dfaFeatureWeight: domain.DefaultDFAFeatureWeight,
+		minCyclomatic:    domain.DefaultSemanticMinCyclomaticComplexity,
 	}
 }
 
@@ -31,6 +33,7 @@ func NewSemanticSimilarityAnalyzerWithDFA() *SemanticSimilarityAnalyzer {
 		enableDFA:        true,
 		cfgFeatureWeight: domain.DefaultCFGFeatureWeight,
 		dfaFeatureWeight: domain.DefaultDFAFeatureWeight,
+		minCyclomatic:    domain.DefaultSemanticMinCyclomaticComplexity,
 	}
 }
 
@@ -43,6 +46,12 @@ func (s *SemanticSimilarityAnalyzer) SetEnableDFA(enable bool) {
 func (s *SemanticSimilarityAnalyzer) SetWeights(cfgWeight, dfaWeight float64) {
 	s.cfgFeatureWeight = cfgWeight
 	s.dfaFeatureWeight = dfaWeight
+}
+
+// SetMinCyclomaticComplexity sets the minimum CFG cyclomatic complexity V(G)
+// required for Type-4 classification. A value <= 0 disables the gate.
+func (s *SemanticSimilarityAnalyzer) SetMinCyclomaticComplexity(n int) {
+	s.minCyclomatic = n
 }
 
 // CFGFeatures captures key structural properties of a control flow graph
@@ -74,6 +83,12 @@ func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) flo
 	// Extract CFG features from both CFGs
 	cfgFeatures1 := s.extractCFGFeatures(cfg1)
 	cfgFeatures2 := s.extractCFGFeatures(cfg2)
+
+	// Control-flow gate; see domain.DefaultSemanticMinCyclomaticComplexity for
+	// rationale. Rejected fragments remain eligible for Type-1/2/3 upstream.
+	if s.minCyclomatic > 0 && (cfgFeatures1.CyclomaticNumber < s.minCyclomatic || cfgFeatures2.CyclomaticNumber < s.minCyclomatic) {
+		return 0.0
+	}
 
 	// Compare CFG features to compute similarity
 	cfgSimilarity := s.compareCFGFeatures(cfgFeatures1, cfgFeatures2)

@@ -79,6 +79,21 @@ const (
 	// DefaultDFAFeatureWeight is the weight for DFA-based features in semantic similarity.
 	// DFA captures data flow patterns (variable definitions and uses).
 	DefaultDFAFeatureWeight = 0.40
+
+	// DefaultSemanticMinCyclomaticComplexity is the minimum cyclomatic complexity
+	// (McCabe's V(G) = E - N + 2) a fragment's CFG must have to be eligible for
+	// Type-4 (semantic) clone classification. Fully linear fragments (V(G)=1)
+	// produce saturated, indiscriminate CFG similarity scores — the "tiny linear
+	// function looks like every other tiny linear function" problem observed in
+	// cross-repo audits — because pyscn's CFG builder emits the same handful of
+	// entry/linear/exit blocks regardless of how many statements the body has.
+	//
+	// Gating on V(G) >= 2 cleanly admits any fragment with at least one decision
+	// (if / for / while / try / with) while rejecting purely linear shapes. Using
+	// cyclomatic complexity instead of raw block count avoids penalising standalone
+	// control-flow statement fragments (e.g. `NodeIf` without `else`), whose CFG
+	// happens to have fewer synthetic blocks than the equivalent function body.
+	DefaultSemanticMinCyclomaticComplexity = 2
 )
 
 // ============================================================================
