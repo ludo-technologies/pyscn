@@ -58,6 +58,11 @@ func (s *SyntacticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment, ca
 		return 0.0
 	}
 
+	// Use pre-computed features if available (avoids redundant tree traversal)
+	if len(f1.Features) > 0 && len(f2.Features) > 0 {
+		return jaccardSimilarity(f1.Features, f2.Features)
+	}
+
 	// Get or build tree nodes for fragments
 	tree1 := s.getTreeNode(f1)
 	tree2 := s.getTreeNode(f2)
