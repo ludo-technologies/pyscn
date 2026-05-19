@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.21.1] - 2026-05-19
+
+### Fixed
+- Gate Type-4 clone classification on minimum CFG cyclomatic complexity to cut linear-shape false positives (#450)
+
 ## [1.21.0] - 2026-05-19
 
 ### Performance
