@@ -19,10 +19,10 @@ func TestIDF(t *testing.T) {
 	calc := NewTFIDFCalculator()
 
 	tests := []struct {
-		name     string
+		name      string
 		totalDocs int
-		docFreq  int
-		want     float64
+		docFreq   int
+		want      float64
 	}{
 		{"valid docs", 100, 10, 2.302585092994046}, // log(10)
 		{"single doc", 10, 1, 2.302585092994046},
