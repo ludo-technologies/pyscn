@@ -489,6 +489,17 @@ func TestAPTEDAnalyzer_LargeTreesPreserveLabelDistance(t *testing.T) {
 			assert.Equal(t, 0.0, distance)
 			assert.Equal(t, 1.0, similarity)
 		})
+
+		t.Run(fmt.Sprintf("ignored_identifier_labels_size_%d", size), func(t *testing.T) {
+			tree1 := createWideNameTree(size, "left")
+			tree2 := createWideNameTree(size, "right")
+			analyzer := NewAPTEDAnalyzer(NewPythonCostModelWithConfig(false, true))
+
+			distance, similarity := analyzer.ComputeDistanceAndSimilarity(tree1, tree2)
+
+			assert.Equal(t, 0.0, distance)
+			assert.Equal(t, 1.0, similarity)
+		})
 	}
 }
 
@@ -847,6 +858,14 @@ func createWideTreeWithLabels(nodeCount int, labelPrefix string) *TreeNode {
 	root := NewTreeNode(1, fmt.Sprintf("%s_root", labelPrefix))
 	for i := 2; i <= nodeCount; i++ {
 		root.AddChild(NewTreeNode(i, fmt.Sprintf("%s_%d", labelPrefix, i)))
+	}
+	return root
+}
+
+func createWideNameTree(nodeCount int, namePrefix string) *TreeNode {
+	root := NewTreeNode(1, "Module")
+	for i := 2; i <= nodeCount; i++ {
+		root.AddChild(NewTreeNode(i, fmt.Sprintf("Name(%s_%d)", namePrefix, i)))
 	}
 	return root
 }

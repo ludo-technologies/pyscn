@@ -3,6 +3,7 @@ package analyzer
 import (
 	"math"
 	"sort"
+	"strings"
 )
 
 // APTEDAnalyzer implements the APTED (All Path Tree Edit Distance) algorithm
@@ -139,28 +140,32 @@ func (a *APTEDAnalyzer) computeApproximateDistance(tree1, tree2 *TreeNode) float
 }
 
 func (a *APTEDAnalyzer) computeLabelProfileDistance(tree1, tree2 *TreeNode) float64 {
-	deltas := make(map[string]int)
-	collectLabelDeltas(tree1, 1, deltas)
-	collectLabelDeltas(tree2, -1, deltas)
+	labels1 := collectLabelProfile(tree1)
+	labels2 := collectLabelProfile(tree2)
+	cancelSharedLabels(labels1, labels2)
 
-	deletes := 0
-	inserts := 0
-	for _, delta := range deltas {
-		if delta > 0 {
-			deletes += delta
-		} else {
-			inserts -= delta
-		}
-	}
+	targetCandidates := buildLabelProfileCandidates(labels2)
+	sourceCandidates := buildLabelProfileCandidates(labels1)
 
-	renames := math.Min(float64(deletes), float64(inserts))
-	leftovers := math.Abs(float64(deletes - inserts))
-	return renames + leftovers
+	deleteDistance := a.unmatchedSourceCost(labels1, targetCandidates)
+	insertDistance := a.unmatchedTargetCost(sourceCandidates, labels2)
+	return math.Max(deleteDistance, insertDistance)
 }
 
-func collectLabelDeltas(root *TreeNode, sign int, deltas map[string]int) {
+type labelProfile struct {
+	node  *TreeNode
+	count int
+}
+
+type labelProfileCandidates struct {
+	byProfileKey map[string]*labelProfile
+	fallback     []*labelProfile
+}
+
+func collectLabelProfile(root *TreeNode) map[string]*labelProfile {
+	profile := make(map[string]*labelProfile)
 	if root == nil {
-		return
+		return profile
 	}
 
 	stack := []*TreeNode{root}
@@ -169,13 +174,110 @@ func collectLabelDeltas(root *TreeNode, sign int, deltas map[string]int) {
 		node := stack[last]
 		stack = stack[:last]
 
-		deltas[node.Label] += sign
+		entry := profile[node.Label]
+		if entry == nil {
+			entry = &labelProfile{node: node}
+			profile[node.Label] = entry
+		}
+		entry.count++
 		for _, child := range node.Children {
 			if child != nil {
 				stack = append(stack, child)
 			}
 		}
 	}
+
+	return profile
+}
+
+func buildLabelProfileCandidates(profile map[string]*labelProfile) labelProfileCandidates {
+	const fallbackLimit = 8
+
+	candidates := labelProfileCandidates{
+		byProfileKey: make(map[string]*labelProfile),
+		fallback:     make([]*labelProfile, 0, fallbackLimit),
+	}
+
+	for _, entry := range profile {
+		if entry.count <= 0 {
+			continue
+		}
+
+		key := labelProfileKey(entry.node.Label)
+		if candidates.byProfileKey[key] == nil {
+			candidates.byProfileKey[key] = entry
+		}
+		if len(candidates.fallback) < fallbackLimit {
+			candidates.fallback = append(candidates.fallback, entry)
+		}
+	}
+
+	return candidates
+}
+
+func labelProfileKey(label string) string {
+	if idx := strings.Index(label, "("); idx >= 0 {
+		return label[:idx]
+	}
+	return label
+}
+
+func cancelSharedLabels(profile1, profile2 map[string]*labelProfile) {
+	for label, entry1 := range profile1 {
+		entry2 := profile2[label]
+		if entry2 == nil {
+			continue
+		}
+
+		shared := minLabelCount(entry1.count, entry2.count)
+		entry1.count -= shared
+		entry2.count -= shared
+	}
+}
+
+func (a *APTEDAnalyzer) unmatchedSourceCost(sources map[string]*labelProfile, targets labelProfileCandidates) float64 {
+	total := 0.0
+	for _, source := range sources {
+		if source.count <= 0 {
+			continue
+		}
+
+		best := a.costModel.Delete(source.node)
+		if target := targets.byProfileKey[labelProfileKey(source.node.Label)]; target != nil {
+			best = math.Min(best, a.costModel.Rename(source.node, target.node))
+		}
+		for _, target := range targets.fallback {
+			best = math.Min(best, a.costModel.Rename(source.node, target.node))
+		}
+		total += float64(source.count) * best
+	}
+	return total
+}
+
+func (a *APTEDAnalyzer) unmatchedTargetCost(sources labelProfileCandidates, targets map[string]*labelProfile) float64 {
+	total := 0.0
+	for _, target := range targets {
+		if target.count <= 0 {
+			continue
+		}
+
+		best := a.costModel.Insert(target.node)
+		if source := sources.byProfileKey[labelProfileKey(target.node.Label)]; source != nil {
+			best = math.Min(best, a.costModel.Rename(source.node, target.node))
+		}
+		for _, source := range sources.fallback {
+			best = math.Min(best, a.costModel.Rename(source.node, target.node))
+		}
+		total += float64(target.count) * best
+	}
+	return total
+}
+
+func minLabelCount(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func sameTreeShapeAndLabels(tree1, tree2 *TreeNode) bool {
