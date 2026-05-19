@@ -466,6 +466,32 @@ func TestOptimizedAPTEDAnalyzer(t *testing.T) {
 	assert.Greater(t, distance, maxDistance, "Distance should exceed threshold for early termination")
 }
 
+func TestAPTEDAnalyzer_LargeTreesPreserveLabelDistance(t *testing.T) {
+	for _, size := range []int{501, 2001} {
+		t.Run(fmt.Sprintf("different_labels_size_%d", size), func(t *testing.T) {
+			tree1 := createWideTreeWithLabels(size, "left")
+			tree2 := createWideTreeWithLabels(size, "right")
+			analyzer := NewAPTEDAnalyzer(NewDefaultCostModel())
+
+			distance, similarity := analyzer.ComputeDistanceAndSimilarity(tree1, tree2)
+
+			assert.Equal(t, float64(size), distance, "every node label differs, so each node needs one rename")
+			assert.Equal(t, 0.0, similarity, "fully different labels must not produce clone similarity")
+		})
+
+		t.Run(fmt.Sprintf("identical_labels_size_%d", size), func(t *testing.T) {
+			tree1 := createWideTreeWithLabels(size, "same")
+			tree2 := createWideTreeWithLabels(size, "same")
+			analyzer := NewAPTEDAnalyzer(NewDefaultCostModel())
+
+			distance, similarity := analyzer.ComputeDistanceAndSimilarity(tree1, tree2)
+
+			assert.Equal(t, 0.0, distance)
+			assert.Equal(t, 1.0, similarity)
+		})
+	}
+}
+
 func TestClusterSimilarTrees(t *testing.T) {
 	costModel := NewDefaultCostModel()
 	analyzer := NewAPTEDAnalyzer(costModel)
@@ -788,6 +814,14 @@ func createBenchmarkTree(prefix string, nodeCount int) *TreeNode {
 		}
 	}
 
+	return root
+}
+
+func createWideTreeWithLabels(nodeCount int, labelPrefix string) *TreeNode {
+	root := NewTreeNode(1, fmt.Sprintf("%s_root", labelPrefix))
+	for i := 2; i <= nodeCount; i++ {
+		root.AddChild(NewTreeNode(i, fmt.Sprintf("%s_%d", labelPrefix, i)))
+	}
 	return root
 }
 

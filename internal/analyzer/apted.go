@@ -61,7 +61,8 @@ func (a *APTEDAnalyzer) ComputeDistanceAndSimilarity(tree1, tree2 *TreeNode) (fl
 	return distance, normalizeAPTEDSimilarity(distance, tree1, tree2)
 }
 
-// computeDistanceOptimized uses an optimized version with early termination and pruning
+// computeDistanceOptimized keeps the large-tree path fast without letting the
+// optimization erase real label or shape differences.
 func (a *APTEDAnalyzer) computeDistanceOptimized(tree1, tree2 *TreeNode) float64 {
 	// Early termination based on size difference
 	size1, size2 := tree1.Size(), tree2.Size()
@@ -73,12 +74,21 @@ func (a *APTEDAnalyzer) computeDistanceOptimized(tree1, tree2 *TreeNode) float64
 		return sizeDiff // Conservative estimate
 	}
 
-	// Use a simplified dynamic programming approach for very large trees
-	if size1 > 2000 || size2 > 2000 {
-		return a.computeApproximateDistance(tree1, tree2)
+	profileDistance := a.computeApproximateDistance(tree1, tree2)
+	if profileDistance == 0 && sameTreeShapeAndLabels(tree1, tree2) {
+		return 0
+	}
+	if profileDistance >= maxDistance {
+		return profileDistance
 	}
 
-	// Clear cache and use standard algorithm with optimizations
+	// Use a simplified dynamic programming approach for very large trees
+	if size1 > 2000 || size2 > 2000 {
+		return profileDistance
+	}
+
+	// Clear cache and use the capped optimized algorithm. The profile distance
+	// below is a lower bound that keeps capped key roots from undercounting.
 	a.cache = make(map[string]float64)
 
 	// Prepare both trees for APTED
@@ -97,8 +107,8 @@ func (a *APTEDAnalyzer) computeDistanceOptimized(tree1, tree2 *TreeNode) float64
 	sort.Ints(keyRoots1)
 	sort.Ints(keyRoots2)
 
-	// Compute distance using optimized APTED algorithm
-	return a.aptedOptimized(tree1, tree2, keyRoots1, keyRoots2, maxDistance*0.5)
+	optimizedDistance := a.aptedOptimized(tree1, tree2, keyRoots1, keyRoots2, maxDistance*0.5)
+	return math.Max(optimizedDistance, profileDistance)
 }
 
 // computeApproximateDistance computes an approximate distance for very large trees
@@ -122,8 +132,73 @@ func (a *APTEDAnalyzer) computeApproximateDistance(tree1, tree2 *TreeNode) float
 	depthDiff := math.Abs(float64(depth1 - depth2))
 	sizeDiff := math.Abs(float64(size1 - size2))
 
-	// Simple heuristic based on structural properties
-	return (depthDiff * 2.0) + (sizeDiff * 0.5)
+	structuralDistance := (depthDiff * 2.0) + (sizeDiff * 0.5)
+	labelDistance := a.computeLabelProfileDistance(tree1, tree2)
+
+	return math.Max(structuralDistance, labelDistance)
+}
+
+func (a *APTEDAnalyzer) computeLabelProfileDistance(tree1, tree2 *TreeNode) float64 {
+	deltas := make(map[string]int)
+	collectLabelDeltas(tree1, 1, deltas)
+	collectLabelDeltas(tree2, -1, deltas)
+
+	deletes := 0
+	inserts := 0
+	for _, delta := range deltas {
+		if delta > 0 {
+			deletes += delta
+		} else {
+			inserts -= delta
+		}
+	}
+
+	renames := math.Min(float64(deletes), float64(inserts))
+	leftovers := math.Abs(float64(deletes - inserts))
+	return renames + leftovers
+}
+
+func collectLabelDeltas(root *TreeNode, sign int, deltas map[string]int) {
+	if root == nil {
+		return
+	}
+
+	stack := []*TreeNode{root}
+	for len(stack) > 0 {
+		last := len(stack) - 1
+		node := stack[last]
+		stack = stack[:last]
+
+		deltas[node.Label] += sign
+		for _, child := range node.Children {
+			if child != nil {
+				stack = append(stack, child)
+			}
+		}
+	}
+}
+
+func sameTreeShapeAndLabels(tree1, tree2 *TreeNode) bool {
+	stack := [][2]*TreeNode{{tree1, tree2}}
+	for len(stack) > 0 {
+		last := len(stack) - 1
+		pair := stack[last]
+		stack = stack[:last]
+
+		left := pair[0]
+		right := pair[1]
+		if left == nil || right == nil {
+			return left == right
+		}
+		if left.Label != right.Label || len(left.Children) != len(right.Children) {
+			return false
+		}
+		for i := range left.Children {
+			stack = append(stack, [2]*TreeNode{left.Children[i], right.Children[i]})
+		}
+	}
+
+	return true
 }
 
 // aptedOptimized implements the optimized APTED algorithm with early termination
