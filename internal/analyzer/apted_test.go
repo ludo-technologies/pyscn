@@ -40,7 +40,7 @@ func TestAPTEDAnalyzer_ComputeDistance_EmptyTrees(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			distance := analyzer.ComputeDistance(tt.tree1, tt.tree2)
+			distance := analyzer.ComputeDistanceTrees(tt.tree1, tt.tree2)
 			assert.Equal(t, tt.expected, distance, "Distance should match expected value")
 		})
 	}
@@ -59,10 +59,10 @@ func TestAPTEDAnalyzer_ComputeDistance_IdenticalTrees(t *testing.T) {
 	costModel := NewDefaultCostModel()
 	analyzer := NewAPTEDAnalyzer(costModel)
 
-	distance := analyzer.ComputeDistance(tree1, tree2)
+	distance := analyzer.ComputeDistanceTrees(tree1, tree2)
 	assert.Equal(t, 0.0, distance, "Identical trees should have zero distance")
 
-	similarity := analyzer.ComputeSimilarity(tree1, tree2)
+	similarity := analyzer.ComputeSimilarityTrees(tree1, tree2)
 	assert.Equal(t, 1.0, similarity, "Identical trees should have similarity of 1.0")
 }
 
@@ -95,7 +95,7 @@ func TestAPTEDAnalyzer_ComputeDistance_SingleNodeTrees(t *testing.T) {
 			tree1 := NewTreeNode(1, tt.label1)
 			tree2 := NewTreeNode(1, tt.label2)
 
-			distance := analyzer.ComputeDistance(tree1, tree2)
+			distance := analyzer.ComputeDistanceTrees(tree1, tree2)
 			assert.Equal(t, tt.expected, distance, "Distance should match expected value")
 		})
 	}
@@ -112,11 +112,11 @@ func TestAPTEDAnalyzer_ComputeDistance_SimpleTreeOperations(t *testing.T) {
 	childB := NewTreeNode(2, "B")
 	tree2.AddChild(childB)
 
-	distance := analyzer.ComputeDistance(tree1, tree2)
+	distance := analyzer.ComputeDistanceTrees(tree1, tree2)
 	assert.Equal(t, 1.0, distance, "Inserting one child should cost 1.0")
 
 	// Test deletion: A -> B to A
-	distance = analyzer.ComputeDistance(tree2, tree1)
+	distance = analyzer.ComputeDistanceTrees(tree2, tree1)
 	assert.Equal(t, 1.0, distance, "Deleting one child should cost 1.0")
 }
 
@@ -138,11 +138,11 @@ func TestAPTEDAnalyzer_ComputeDistance_ComplexTrees(t *testing.T) {
 	tree2.AddChild(childD2)
 	tree2.AddChild(childE2)
 
-	distance := analyzer.ComputeDistance(tree1, tree2)
+	distance := analyzer.ComputeDistanceTrees(tree1, tree2)
 	// Optimal distance: rename B→D and C→E = 2.0 (root A matches)
 	assert.Equal(t, 2.0, distance, "APTED algorithm computes optimal distance")
 
-	similarity := analyzer.ComputeSimilarity(tree1, tree2)
+	similarity := analyzer.ComputeSimilarityTrees(tree1, tree2)
 	// With max-based normalization: similarity = 1.0 - (distance / max(size1, size2))
 	// distance = 2.0, size1 = 3, size2 = 3
 	// similarity = 1.0 - (2.0 / 3.0) = 0.3333...
@@ -280,7 +280,7 @@ func TestAPTEDAnalyzer_ComputeSimilarity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			similarity := analyzer.ComputeSimilarity(tt.tree1, tt.tree2)
+			similarity := analyzer.ComputeSimilarityTrees(tt.tree1, tt.tree2)
 			assert.InDelta(t, tt.expectedSimilarity, similarity, tt.delta,
 				"Similarity should be %f but got %f", tt.expectedSimilarity, similarity)
 
@@ -289,7 +289,7 @@ func TestAPTEDAnalyzer_ComputeSimilarity(t *testing.T) {
 			assert.LessOrEqual(t, similarity, 1.0, "Similarity should be <= 1")
 
 			// Verify symmetry: similarity(A, B) == similarity(B, A)
-			reverseSimilarity := analyzer.ComputeSimilarity(tt.tree2, tt.tree1)
+			reverseSimilarity := analyzer.ComputeSimilarityTrees(tt.tree2, tt.tree1)
 			assert.InDelta(t, similarity, reverseSimilarity, 0.001,
 				"Similarity should be symmetric")
 		})
@@ -462,7 +462,7 @@ func TestOptimizedAPTEDAnalyzer(t *testing.T) {
 		largeTree.AddChild(child)
 	}
 
-	distance := analyzer.ComputeDistance(smallTree, largeTree)
+	distance := analyzer.ComputeDistanceTrees(smallTree, largeTree)
 	assert.Greater(t, distance, maxDistance, "Distance should exceed threshold for early termination")
 }
 
@@ -677,7 +677,7 @@ func BenchmarkAPTED_SmallTrees(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = analyzer.ComputeDistance(tree1, tree2)
+		_ = analyzer.ComputeDistanceTrees(tree1, tree2)
 	}
 }
 
@@ -694,7 +694,7 @@ func BenchmarkAPTED_MediumTrees(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = analyzer.ComputeDistance(tree1, tree2)
+		_ = analyzer.ComputeDistanceTrees(tree1, tree2)
 	}
 }
 
@@ -711,7 +711,7 @@ func BenchmarkAPTED_LargeTrees(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = analyzer.ComputeDistance(tree1, tree2)
+		_ = analyzer.ComputeDistanceTrees(tree1, tree2)
 	}
 }
 
@@ -1092,7 +1092,7 @@ func TestAPTED_EdgeCases(t *testing.T) {
 	shallowTree.AddChild(NewTreeNode(2, "Child"))
 
 	// Should not crash or cause stack overflow
-	distance := analyzer.ComputeDistance(deepTree, shallowTree)
+	distance := analyzer.ComputeDistanceTrees(deepTree, shallowTree)
 	assert.Greater(t, distance, 0.0, "Distance should be positive for different trees")
 
 	// Test with very wide tree
@@ -1102,7 +1102,7 @@ func TestAPTED_EdgeCases(t *testing.T) {
 		wideTree.AddChild(child)
 	}
 
-	distance = analyzer.ComputeDistance(wideTree, shallowTree)
+	distance = analyzer.ComputeDistanceTrees(wideTree, shallowTree)
 	assert.Greater(t, distance, 0.0, "Distance should be positive for different trees")
 }
 

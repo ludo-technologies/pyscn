@@ -195,6 +195,9 @@ type CloneDetectorConfig struct {
 	EnableSemanticAnalysis         bool // Enable Type-4 semantic/CFG analysis (increases CPU usage)
 	EnableDFAAnalysis              bool // Enable Data Flow Analysis for enhanced Type-4 detection
 
+	// TF-IDF for Type-2 clone detection (optional, opt-in)
+	UseTFIDF bool // Use TF-IDF + Cosine similarity for Type-2 instead of Jaccard
+
 	// Framework pattern handling (reduces false positives for dataclass, Pydantic, etc.)
 	ReduceBoilerplateSimilarity bool    // Apply lower weight to boilerplate nodes (default: true)
 	BoilerplateMultiplier       float64 // Cost multiplier for boilerplate nodes (default: 0.1)
@@ -255,11 +258,12 @@ type CloneDetector struct {
 	// Embed config fields (private to maintain encapsulation)
 	cloneDetectorConfig CloneDetectorConfig
 
-	analyzer          *APTEDAnalyzer
+	analyzer          SimilarityAnalyzer
 	converter         *TreeConverter
 	classifier        *CloneClassifier // Multi-dimensional classifier (optional)
 	textualAnalyzer   *TextualSimilarityAnalyzer
 	syntacticAnalyzer *SyntacticSimilarityAnalyzer
+	tfidfCalculator   *TFIDFCalculator
 	featureExtractor  *ASTFeatureExtractor // Pre-filter feature extractor
 	fragments         []*CodeFragment
 	clonePairs        []*ClonePair
@@ -926,14 +930,14 @@ func (cd *CloneDetector) usesSemanticClassifier() bool {
 // compareFragmentsWithClassifier uses the classifier as a gate and APTED for
 // final similarity/distance scoring and clone-type classification.
 func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *CodeFragment) *ClonePair {
-	result := cd.classifier.ClassifyClone(fragment1, fragment2)
+	result := cd.classifier.ClassifyClone(fragment1, fragment2, cd.tfidfCalculator)
 	if result == nil {
 		return nil
 	}
 
 	// Always run APTED with the detector's cost model (boilerplate-aware) so that
 	// Distance is populated and clone type is derived from a consistent metric.
-	distance, similarity := cd.analyzer.ComputeDistanceAndSimilarity(fragment1.TreeNode, fragment2.TreeNode)
+	distance, similarity := cd.analyzer.ComputeDistanceAndSimilarity(fragment1, fragment2, cd.tfidfCalculator)
 
 	if result.CloneType == Type4Clone && result.Analyzer == "semantic" {
 		return &ClonePair{
@@ -969,7 +973,7 @@ func (cd *CloneDetector) compareFragmentsSingleMetric(fragment1, fragment2 *Code
 
 // compareWithAPTED uses the APTED algorithm for precise similarity measurement.
 func (cd *CloneDetector) compareWithAPTED(fragment1, fragment2 *CodeFragment) *ClonePair {
-	distance, similarity := cd.analyzer.ComputeDistanceAndSimilarity(fragment1.TreeNode, fragment2.TreeNode)
+	distance, similarity := cd.analyzer.ComputeDistanceAndSimilarity(fragment1, fragment2, cd.tfidfCalculator)
 
 	cloneType, similarity := cd.classifyClonePair(fragment1, fragment2, similarity)
 	if cloneType == 0 {
@@ -995,7 +999,7 @@ func (cd *CloneDetector) classifyClonePair(fragment1, fragment2 *CodeFragment, s
 
 	structuralSimilarity := cd.capNonTextualSimilarity(similarity)
 	if structuralSimilarity >= cd.cloneDetectorConfig.Type2Threshold {
-		syntacticSimilarity := cd.syntacticAnalyzer.ComputeSimilarity(fragment1, fragment2)
+		syntacticSimilarity := cd.syntacticAnalyzer.ComputeSimilarity(fragment1, fragment2, cd.tfidfCalculator)
 		if syntacticSimilarity >= cd.cloneDetectorConfig.Type2Threshold {
 			return Type2Clone, math.Min(structuralSimilarity, syntacticSimilarity)
 		}
