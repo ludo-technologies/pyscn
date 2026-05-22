@@ -216,17 +216,19 @@ When the CFG has its original AST node, user-facing statement counters are deriv
 The total decision points are computed by `countDecisionPoints`:
 
 ```go
-func countDecisionPoints(visitor *complexityVisitor, astMetrics astComplexityMetrics, hasASTMetrics bool) int {
+func countDecisionPoints(visitor *complexityVisitor, metrics astComplexityMetrics, hasASTMetrics bool) int {
     conditionalDecisions := len(visitor.decisionPoints)
-    exceptionHandlers := visitor.exceptionHandlers
-    switchCases := visitor.switchCases
-    if hasASTMetrics {
-        exceptionHandlers = astMetrics.ExceptionHandlers
-        switchCases = astMetrics.SwitchCases
+    if hasASTMetrics && metrics.MatchStatements > 0 {
+        conditionalDecisions -= metrics.MatchStatements
+        if conditionalDecisions < 0 {
+            conditionalDecisions = 0
+        }
     }
-    return conditionalDecisions + exceptionHandlers + switchCases
+    return conditionalDecisions + metrics.ExceptionHandlers + metrics.SwitchCases
 }
 ```
+
+For parser-backed CFGs, `metrics` replaces the synthetic single match decision with the actual number of `case` clauses. CFG-only callers keep the older edge-based fallback.
 
 The final complexity is then:
 

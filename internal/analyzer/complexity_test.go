@@ -405,6 +405,52 @@ func TestCalculateComplexity_ComputesCognitiveComplexityInAnalyzer(t *testing.T)
 	}
 }
 
+func TestCalculateComplexity_CFGOnlyKeepsDecisionFallback(t *testing.T) {
+	cfg := NewCFG("manual")
+	cond := cfg.CreateBlock("condition")
+	thenBlock := cfg.CreateBlock("then")
+	elseBlock := cfg.CreateBlock("else")
+
+	cfg.ConnectBlocks(cfg.Entry, cond, EdgeNormal)
+	cfg.ConnectBlocks(cond, thenBlock, EdgeCondTrue)
+	cfg.ConnectBlocks(cond, elseBlock, EdgeCondFalse)
+	cfg.ConnectBlocks(thenBlock, cfg.Exit, EdgeNormal)
+	cfg.ConnectBlocks(elseBlock, cfg.Exit, EdgeNormal)
+
+	res := CalculateComplexity(cfg)
+
+	if res.Complexity != 2 {
+		t.Fatalf("Complexity = %d, want 2", res.Complexity)
+	}
+	if res.IfStatements != 1 {
+		t.Fatalf("IfStatements = %d, want 1 for CFG-only fallback", res.IfStatements)
+	}
+}
+
+func TestCalculateComplexity_MatchCasesReplaceSingleCFGDecision(t *testing.T) {
+	source := `def handle(value):
+    match value:
+        case 0:
+            return "zero"
+        case 1:
+            return "one"
+        case _:
+            return "other"
+`
+
+	res := calculateFunctionComplexityForSource(t, source, "handle")
+
+	if res.SwitchCases != 3 {
+		t.Fatalf("SwitchCases = %d, want 3", res.SwitchCases)
+	}
+	if res.IfStatements != 0 {
+		t.Fatalf("IfStatements = %d, want 0", res.IfStatements)
+	}
+	if res.Complexity != 4 {
+		t.Fatalf("Complexity = %d, want 4", res.Complexity)
+	}
+}
+
 func calculateFunctionComplexityForSource(t *testing.T, source, functionName string) *ComplexityResult {
 	t.Helper()
 

@@ -146,7 +146,8 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 	// Primary method: count decision points + 1
 	// This is more reliable for CFGs with entry/exit nodes
 	astMetrics, hasASTMetrics := calculateASTComplexityMetrics(complexitySourceNode(cfg))
-	decisionPoints := countDecisionPoints(visitor, astMetrics, hasASTMetrics)
+	reportedMetrics := resolveComplexityMetrics(visitor, astMetrics, hasASTMetrics)
+	decisionPoints := countDecisionPoints(visitor, reportedMetrics, hasASTMetrics)
 	complexity := decisionPoints + 1
 
 	// Ensure minimum complexity of 1 for any function
@@ -185,40 +186,32 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 		StartCol:            startCol,
 		EndLine:             endLine,
 		NestingDepth:        nestingDepth,
-		CognitiveComplexity: astMetrics.CognitiveComplexity,
-		IfStatements:        astMetrics.IfStatements,
-		LoopStatements:      visitor.loopStatements,
-		ExceptionHandlers:   visitor.exceptionHandlers,
-		SwitchCases:         visitor.switchCases,
+		CognitiveComplexity: reportedMetrics.CognitiveComplexity,
+		IfStatements:        reportedMetrics.IfStatements,
+		LoopStatements:      reportedMetrics.LoopStatements,
+		ExceptionHandlers:   reportedMetrics.ExceptionHandlers,
+		SwitchCases:         reportedMetrics.SwitchCases,
 		RiskLevel:           complexityConfig.AssessRiskLevel(complexity),
-	}
-	if hasASTMetrics {
-		result.LoopStatements = astMetrics.LoopStatements
-		result.ExceptionHandlers = astMetrics.ExceptionHandlers
-		result.SwitchCases = astMetrics.SwitchCases
 	}
 
 	return result
 }
 
 // countDecisionPoints counts the number of decision points in the CFG
-func countDecisionPoints(visitor *complexityVisitor, astMetrics astComplexityMetrics, hasASTMetrics bool) int {
+func countDecisionPoints(visitor *complexityVisitor, metrics astComplexityMetrics, hasASTMetrics bool) int {
 	// Decision points are nodes that have multiple outgoing edges
 	// For McCabe complexity, each decision point adds 1 to complexity
 
 	// Count actual conditional decisions (unique blocks with conditional edges)
 	conditionalDecisions := len(visitor.decisionPoints)
-
-	// Add other decision types
-	// Note: loops without conditions are just jumps, not decisions
-	// But loops with conditions are already counted in conditionals
-	exceptionHandlers := visitor.exceptionHandlers
-	switchCases := visitor.switchCases
-	if hasASTMetrics {
-		exceptionHandlers = astMetrics.ExceptionHandlers
-		switchCases = astMetrics.SwitchCases
+	if hasASTMetrics && metrics.MatchStatements > 0 {
+		conditionalDecisions -= metrics.MatchStatements
+		if conditionalDecisions < 0 {
+			conditionalDecisions = 0
+		}
 	}
-	return conditionalDecisions + exceptionHandlers + switchCases
+
+	return conditionalDecisions + metrics.ExceptionHandlers + metrics.SwitchCases
 }
 
 type astComplexityMetrics struct {
@@ -226,6 +219,7 @@ type astComplexityMetrics struct {
 	IfStatements        int
 	LoopStatements      int
 	ExceptionHandlers   int
+	MatchStatements     int
 	SwitchCases         int
 }
 
@@ -237,6 +231,18 @@ func complexitySourceNode(cfg *CFG) *parser.Node {
 		return cfg.FunctionNode
 	}
 	return cfg.ModuleNode
+}
+
+func resolveComplexityMetrics(visitor *complexityVisitor, astMetrics astComplexityMetrics, hasASTMetrics bool) astComplexityMetrics {
+	if hasASTMetrics {
+		return astMetrics
+	}
+	return astComplexityMetrics{
+		IfStatements:      len(visitor.decisionPoints),
+		LoopStatements:    visitor.loopStatements,
+		ExceptionHandlers: visitor.exceptionHandlers,
+		SwitchCases:       visitor.switchCases,
+	}
 }
 
 func calculateASTComplexityMetrics(root *parser.Node) (astComplexityMetrics, bool) {
@@ -260,6 +266,10 @@ func collectASTStatementMetrics(node *parser.Node, metrics *astComplexityMetrics
 	switch node.Type {
 	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef, parser.NodeClassDef:
 		return
+	case parser.NodeMatch:
+		if len(node.Body) > 0 {
+			metrics.MatchStatements++
+		}
 	case parser.NodeIf, parser.NodeElifClause:
 		metrics.IfStatements++
 	case parser.NodeFor, parser.NodeAsyncFor, parser.NodeWhile:
