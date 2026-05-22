@@ -245,15 +245,6 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 			continue
 		}
 
-		cognitiveComplexity := 0
-		if complexityNode := cfg.FunctionNode; complexityNode != nil {
-			cognitiveResult := analyzer.CalculateCognitiveComplexity(complexityNode)
-			cognitiveComplexity = cognitiveResult.Total
-		} else if cfg.ModuleNode != nil {
-			cognitiveResult := analyzer.CalculateCognitiveComplexity(cfg.ModuleNode)
-			cognitiveComplexity = cognitiveResult.Total
-		}
-
 		riskLevel := s.calculateRiskLevel(result.Complexity, req)
 
 		function := domain.FunctionComplexity{
@@ -264,7 +255,7 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 			EndLine:     result.EndLine,
 			Metrics: domain.ComplexityMetrics{
 				Complexity:          result.Complexity,
-				CognitiveComplexity: cognitiveComplexity,
+				CognitiveComplexity: result.CognitiveComplexity,
 				Nodes:               result.Nodes,
 				Edges:               result.Edges,
 				NestingDepth:        result.NestingDepth,
