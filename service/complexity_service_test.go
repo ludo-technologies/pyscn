@@ -30,6 +30,15 @@ func newDefaultComplexityRequest(paths ...string) domain.ComplexityRequest {
 	}
 }
 
+func findFunctionComplexity(functions []domain.FunctionComplexity, name string) *domain.FunctionComplexity {
+	for i := range functions {
+		if functions[i].Name == name {
+			return &functions[i]
+		}
+	}
+	return nil
+}
+
 func TestNewComplexityService(t *testing.T) {
 	service := NewComplexityService()
 
@@ -117,6 +126,55 @@ func TestComplexityService_Analyze(t *testing.T) {
 		require.NotNil(t, response)
 		require.Len(t, response.Functions, 1)
 		assert.Equal(t, "branch", response.Functions[0].Name)
+	})
+
+	t.Run("public metrics use literal statement counts", func(t *testing.T) {
+		tempDir := t.TempDir()
+		filePath := tempDir + "/literal_counts.py"
+		content := []byte(`def debug_no_ifs():
+    values = []
+    for var in [1, 2, 3]:
+        values.append(var)
+    for factor in [1, 2, 3]:
+        for var in [1, 2, 3]:
+            values.append(var * factor)
+    for factor in [1, 2, 3]:
+        for var in [1, 2, 3]:
+            values.append(factor - var)
+    return values
+
+def handle(value):
+    try:
+        risky(value)
+    except ValueError:
+        if value == 1:
+            return 1
+        elif value == 2:
+            return 2
+    except TypeError:
+        return 3
+`)
+		err := os.WriteFile(filePath, content, 0644)
+		require.NoError(t, err)
+
+		req := newDefaultComplexityRequest(filePath)
+
+		response, err := service.Analyze(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		noIfs := findFunctionComplexity(response.Functions, "debug_no_ifs")
+		require.NotNil(t, noIfs)
+		assert.Equal(t, 0, noIfs.Metrics.IfStatements)
+		assert.Equal(t, 5, noIfs.Metrics.LoopStatements)
+		assert.Equal(t, 0, noIfs.Metrics.ExceptionHandlers)
+
+		handler := findFunctionComplexity(response.Functions, "handle")
+		require.NotNil(t, handler)
+		assert.Equal(t, 2, handler.Metrics.IfStatements)
+		assert.Equal(t, 0, handler.Metrics.LoopStatements)
+		assert.Equal(t, 2, handler.Metrics.ExceptionHandlers)
+		assert.Equal(t, 5, handler.Metrics.CognitiveComplexity)
 	})
 
 	t.Run("module-level complexity includes cognitive and nesting metrics", func(t *testing.T) {
