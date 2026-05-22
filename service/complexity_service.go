@@ -246,8 +246,11 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 		}
 
 		cognitiveComplexity := 0
-		if cfg.FunctionNode != nil {
-			cognitiveResult := analyzer.CalculateCognitiveComplexity(cfg.FunctionNode)
+		if complexityNode := cfg.FunctionNode; complexityNode != nil {
+			cognitiveResult := analyzer.CalculateCognitiveComplexity(complexityNode)
+			cognitiveComplexity = cognitiveResult.Total
+		} else if cfg.ModuleNode != nil {
+			cognitiveResult := analyzer.CalculateCognitiveComplexity(cfg.ModuleNode)
 			cognitiveComplexity = cognitiveResult.Total
 		}
 

@@ -153,7 +153,7 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 	// Count actual conditional decisions (blocks with conditional outgoing edges)
 	conditionalDecisions := len(visitor.decisionPoints)
 
-	// Calculate nesting depth if function node is available
+	// Calculate nesting depth if the original AST node is available.
 	nestingDepth := 0
 	startLine := 0
 	startCol := 0
@@ -166,6 +166,9 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 		startCol = cfg.FunctionNode.Location.StartCol
 		endLine = cfg.FunctionNode.Location.EndLine
 	} else if cfg.ModuleNode != nil {
+		nestingResult := CalculateMaxNestingDepth(cfg.ModuleNode)
+		nestingDepth = nestingResult.MaxDepth
+
 		startLine = cfg.ModuleNode.Location.StartLine
 		startCol = cfg.ModuleNode.Location.StartCol
 		endLine = cfg.ModuleNode.Location.EndLine
