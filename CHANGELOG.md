@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.22.0] - 2026-05-23
+
+### Fixed
+- Preserve complexity metric fallbacks and use AST counts for consistent reporting (#466)
+- Compute module-level cognitive complexity metrics (#464)
+- Honor APTED cost model and tighten distance handling for large trees (#454)
+
+### Documentation
+- Clarify that large-tree APTED is a bounded heuristic for clone detection (#467)
+
+### Testing
+- Add LCOM use case unit tests (#459)
+- Add unit tests for `app/di_antipattern_usecase.go` (#461)
+
 ## [1.21.1] - 2026-05-19
 
 ### Fixed
