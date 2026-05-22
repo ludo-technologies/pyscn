@@ -200,16 +200,31 @@ A decision point is any CFG node that produces a branching choice. This is equiv
 | Counter | What it tracks |
 |---|---|
 | `decisionPoints` map | Unique blocks with `EdgeCondTrue`/`EdgeCondFalse` outgoing edges |
-| `loopStatements` | Edges of type `EdgeLoop` |
-| `exceptionHandlers` | Edges of type `EdgeException` |
-| `switchCases` | Match/switch case edges |
+| `loopStatements` | Edges of type `EdgeLoop` for CFG-only callers |
+| `exceptionHandlers` | Edges of type `EdgeException` for CFG-only callers |
+| `switchCases` | Match/switch case edges for CFG-only callers |
+
+When the CFG has its original AST node, user-facing statement counters are derived from the AST instead of CFG edge types:
+
+| Public field | AST source |
+|---|---|
+| `IfStatements` | `if` / `elif` syntax nodes |
+| `LoopStatements` | `for`, `async for`, and `while` syntax nodes |
+| `ExceptionHandlers` | `except` clauses |
+| `SwitchCases` | `match` cases |
 
 The total decision points are computed by `countDecisionPoints`:
 
 ```go
-func countDecisionPoints(visitor *complexityVisitor) int {
+func countDecisionPoints(visitor *complexityVisitor, astMetrics astComplexityMetrics, hasASTMetrics bool) int {
     conditionalDecisions := len(visitor.decisionPoints)
-    return conditionalDecisions + visitor.exceptionHandlers + visitor.switchCases
+    exceptionHandlers := visitor.exceptionHandlers
+    switchCases := visitor.switchCases
+    if hasASTMetrics {
+        exceptionHandlers = astMetrics.ExceptionHandlers
+        switchCases = astMetrics.SwitchCases
+    }
+    return conditionalDecisions + exceptionHandlers + switchCases
 }
 ```
 
@@ -308,10 +323,11 @@ Each analyzed function produces a `ComplexityResult` (`internal/analyzer/complex
 | `FunctionName` | Fully qualified function name |
 | `StartLine`, `StartCol`, `EndLine` | Source location |
 | `NestingDepth` | Maximum nesting depth |
-| `IfStatements` | Count of conditional decision points |
-| `LoopStatements` | Count of loop back-edges |
-| `ExceptionHandlers` | Count of exception handler edges |
-| `SwitchCases` | Count of match/case edges |
+| `CognitiveComplexity` | SonarQube-style cognitive complexity |
+| `IfStatements` | Count of `if` / `elif` syntax nodes |
+| `LoopStatements` | Count of `for`, `async for`, and `while` syntax nodes |
+| `ExceptionHandlers` | Count of `except` clauses |
+| `SwitchCases` | Count of `match` cases |
 | `RiskLevel` | `"low"`, `"medium"`, or `"high"` |
 
 ### Aggregate Metrics
