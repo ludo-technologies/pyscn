@@ -119,6 +119,45 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.Equal(t, "branch", response.Functions[0].Name)
 	})
 
+	t.Run("module-level complexity includes cognitive and nesting metrics", func(t *testing.T) {
+		tempDir := t.TempDir()
+		filePath := tempDir + "/module_control_flow.py"
+		content := []byte(`for i in range(10):
+    if i % 2 == 0:
+        for j in range(i):
+            if j > 0:
+                print(i, j)
+            else:
+                print("zero")
+    elif i % 3 == 0:
+        print("three")
+    else:
+        print("other")
+`)
+		err := os.WriteFile(filePath, content, 0644)
+		require.NoError(t, err)
+
+		req := newDefaultComplexityRequest(filePath)
+
+		response, err := service.Analyze(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		var module *domain.FunctionComplexity
+		for i := range response.Functions {
+			if response.Functions[i].Name == domain.ModuleFunctionName {
+				module = &response.Functions[i]
+				break
+			}
+		}
+		require.NotNil(t, module, "expected module-level complexity result")
+		assert.Greater(t, module.Metrics.Complexity, 1)
+		assert.Greater(t, module.Metrics.IfStatements, 0)
+		assert.Greater(t, module.Metrics.LoopStatements, 0)
+		assert.Greater(t, module.Metrics.CognitiveComplexity, 0)
+		assert.Greater(t, module.Metrics.NestingDepth, 0)
+	})
+
 	t.Run("enabled false suppresses complexity results", func(t *testing.T) {
 		req := newDefaultComplexityRequest("../testdata/python/simple/functions.py")
 		req.Enabled = domain.BoolPtr(false)
