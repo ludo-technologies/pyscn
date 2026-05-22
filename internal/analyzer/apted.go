@@ -64,8 +64,9 @@ func (a *APTEDAnalyzer) ComputeDistanceAndSimilarity(tree1, tree2 *TreeNode) (fl
 	return distance, normalizeAPTEDSimilarity(distance, tree1, tree2)
 }
 
-// computeDistanceOptimized keeps the large-tree path fast without letting the
-// optimization erase real label or shape differences.
+// computeDistanceOptimized keeps the large-tree clone-detection path fast
+// without letting the optimization erase real label or shape differences. This
+// is a bounded heuristic for large inputs, not an exact APTED replacement.
 func (a *APTEDAnalyzer) computeDistanceOptimized(tree1, tree2 *TreeNode) float64 {
 	// Early termination based on size difference
 	size1, size2 := tree1.Size(), tree2.Size()
@@ -471,6 +472,8 @@ func (a *APTEDAnalyzer) sameShapeChildrenDistance(left, right []*TreeNode, state
 	}
 
 	if !state.reserveAlignmentCells(len(left) * len(right)) {
+		// Keep the large-tree path bounded. This may overestimate exact APTED
+		// for complex sibling reorders, but avoids hiding differences as zero.
 		return positionalDistance
 	}
 	alignedDistance := a.alignChildSequences(left, right, state)

@@ -612,6 +612,9 @@ func TestAPTEDAnalyzer_SameShapeDistanceMatchesExactAPTED(t *testing.T) {
 
 	t.Run("budget_exhaustion_keeps_positional_child_cost", func(t *testing.T) {
 		analyzer := NewAPTEDAnalyzer(NewDefaultCostModel())
+		// The large-tree same-shape path is a bounded clone-detection heuristic:
+		// when alignment budget is gone, it returns the positional signal rather
+		// than pretending the children are identical.
 		state := &sameShapeDistanceState{
 			distances:               make(map[nodePair]float64),
 			deleteCosts:             make(map[*TreeNode]float64),
