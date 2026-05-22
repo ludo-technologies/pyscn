@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ludo-technologies/pyscn/internal/config"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 // ComplexityResult holds cyclomatic complexity metrics for a function or method
@@ -23,7 +24,8 @@ type ComplexityResult struct {
 	EndLine      int
 
 	// Nesting depth
-	NestingDepth int
+	NestingDepth        int
+	CognitiveComplexity int
 
 	// Decision points breakdown
 	IfStatements      int
@@ -51,12 +53,13 @@ func (cr *ComplexityResult) GetRiskLevel() string {
 
 func (cr *ComplexityResult) GetDetailedMetrics() map[string]int {
 	return map[string]int{
-		"nodes":              cr.Nodes,
-		"edges":              cr.Edges,
-		"if_statements":      cr.IfStatements,
-		"loop_statements":    cr.LoopStatements,
-		"exception_handlers": cr.ExceptionHandlers,
-		"switch_cases":       cr.SwitchCases,
+		"nodes":                cr.Nodes,
+		"edges":                cr.Edges,
+		"cognitive_complexity": cr.CognitiveComplexity,
+		"if_statements":        cr.IfStatements,
+		"loop_statements":      cr.LoopStatements,
+		"exception_handlers":   cr.ExceptionHandlers,
+		"switch_cases":         cr.SwitchCases,
 	}
 }
 
@@ -142,16 +145,14 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 
 	// Primary method: count decision points + 1
 	// This is more reliable for CFGs with entry/exit nodes
-	decisionPoints := countDecisionPoints(visitor)
+	astMetrics, hasASTMetrics := calculateASTComplexityMetrics(complexitySourceNode(cfg))
+	decisionPoints := countDecisionPoints(visitor, astMetrics, hasASTMetrics)
 	complexity := decisionPoints + 1
 
 	// Ensure minimum complexity of 1 for any function
 	if complexity < 1 {
 		complexity = 1
 	}
-
-	// Count actual conditional decisions (blocks with conditional outgoing edges)
-	conditionalDecisions := len(visitor.decisionPoints)
 
 	// Calculate nesting depth if the original AST node is available.
 	nestingDepth := 0
@@ -184,18 +185,24 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 		StartCol:            startCol,
 		EndLine:             endLine,
 		NestingDepth:        nestingDepth,
-		IfStatements:        conditionalDecisions, // Accurate count of decision points
+		CognitiveComplexity: astMetrics.CognitiveComplexity,
+		IfStatements:        astMetrics.IfStatements,
 		LoopStatements:      visitor.loopStatements,
 		ExceptionHandlers:   visitor.exceptionHandlers,
 		SwitchCases:         visitor.switchCases,
 		RiskLevel:           complexityConfig.AssessRiskLevel(complexity),
+	}
+	if hasASTMetrics {
+		result.LoopStatements = astMetrics.LoopStatements
+		result.ExceptionHandlers = astMetrics.ExceptionHandlers
+		result.SwitchCases = astMetrics.SwitchCases
 	}
 
 	return result
 }
 
 // countDecisionPoints counts the number of decision points in the CFG
-func countDecisionPoints(visitor *complexityVisitor) int {
+func countDecisionPoints(visitor *complexityVisitor, astMetrics astComplexityMetrics, hasASTMetrics bool) int {
 	// Decision points are nodes that have multiple outgoing edges
 	// For McCabe complexity, each decision point adds 1 to complexity
 
@@ -205,7 +212,67 @@ func countDecisionPoints(visitor *complexityVisitor) int {
 	// Add other decision types
 	// Note: loops without conditions are just jumps, not decisions
 	// But loops with conditions are already counted in conditionals
-	return conditionalDecisions + visitor.exceptionHandlers + visitor.switchCases
+	exceptionHandlers := visitor.exceptionHandlers
+	switchCases := visitor.switchCases
+	if hasASTMetrics {
+		exceptionHandlers = astMetrics.ExceptionHandlers
+		switchCases = astMetrics.SwitchCases
+	}
+	return conditionalDecisions + exceptionHandlers + switchCases
+}
+
+type astComplexityMetrics struct {
+	CognitiveComplexity int
+	IfStatements        int
+	LoopStatements      int
+	ExceptionHandlers   int
+	SwitchCases         int
+}
+
+func complexitySourceNode(cfg *CFG) *parser.Node {
+	if cfg == nil {
+		return nil
+	}
+	if cfg.FunctionNode != nil {
+		return cfg.FunctionNode
+	}
+	return cfg.ModuleNode
+}
+
+func calculateASTComplexityMetrics(root *parser.Node) (astComplexityMetrics, bool) {
+	if root == nil {
+		return astComplexityMetrics{}, false
+	}
+
+	metrics := astComplexityMetrics{}
+	metrics.CognitiveComplexity = CalculateCognitiveComplexity(root).Total
+	for _, stmt := range root.Body {
+		collectASTStatementMetrics(stmt, &metrics)
+	}
+	return metrics, true
+}
+
+func collectASTStatementMetrics(node *parser.Node, metrics *astComplexityMetrics) {
+	if node == nil {
+		return
+	}
+
+	switch node.Type {
+	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef, parser.NodeClassDef:
+		return
+	case parser.NodeIf, parser.NodeElifClause:
+		metrics.IfStatements++
+	case parser.NodeFor, parser.NodeAsyncFor, parser.NodeWhile:
+		metrics.LoopStatements++
+	case parser.NodeExceptHandler:
+		metrics.ExceptionHandlers++
+	case parser.NodeMatchCase:
+		metrics.SwitchCases++
+	}
+
+	for _, child := range node.GetChildren() {
+		collectASTStatementMetrics(child, metrics)
+	}
 }
 
 // CalculateFileComplexity calculates complexity for all functions in a collection of CFGs

@@ -327,6 +327,106 @@ for path in os.listdir("."):
 	}
 }
 
+func TestCalculateComplexity_StatementMetricsUseASTCounts(t *testing.T) {
+	source := `def debug_no_ifs():
+    values = []
+    for var in [1, 2, 3]:
+        values.append(var)
+    for factor in [1, 2, 3]:
+        for var in [1, 2, 3]:
+            values.append(var * factor)
+    for factor in [1, 2, 3]:
+        for var in [1, 2, 3]:
+            values.append(factor - var)
+    return values
+`
+
+	res := calculateFunctionComplexityForSource(t, source, "debug_no_ifs")
+
+	if res.Complexity != 6 {
+		t.Fatalf("Complexity = %d, want 6", res.Complexity)
+	}
+	if res.IfStatements != 0 {
+		t.Fatalf("IfStatements = %d, want 0", res.IfStatements)
+	}
+	if res.LoopStatements != 5 {
+		t.Fatalf("LoopStatements = %d, want 5", res.LoopStatements)
+	}
+	if res.ExceptionHandlers != 0 {
+		t.Fatalf("ExceptionHandlers = %d, want 0", res.ExceptionHandlers)
+	}
+}
+
+func TestCalculateComplexity_ExceptionHandlersUseClauses(t *testing.T) {
+	source := `def handle(value):
+    try:
+        risky(value)
+    except ValueError:
+        if value == 1:
+            return 1
+        elif value == 2:
+            return 2
+        return 3
+    except TypeError:
+        for item in value:
+            print(item)
+    except Exception:
+        return 4
+    return 0
+`
+
+	res := calculateFunctionComplexityForSource(t, source, "handle")
+
+	if res.ExceptionHandlers != 3 {
+		t.Fatalf("ExceptionHandlers = %d, want 3", res.ExceptionHandlers)
+	}
+	if res.IfStatements != 2 {
+		t.Fatalf("IfStatements = %d, want 2", res.IfStatements)
+	}
+	if res.LoopStatements != 1 {
+		t.Fatalf("LoopStatements = %d, want 1", res.LoopStatements)
+	}
+	if res.Complexity != 7 {
+		t.Fatalf("Complexity = %d, want 7", res.Complexity)
+	}
+}
+
+func TestCalculateComplexity_ComputesCognitiveComplexityInAnalyzer(t *testing.T) {
+	source := `def branch(value):
+    if value:
+        return 1
+    return 0
+`
+
+	res := calculateFunctionComplexityForSource(t, source, "branch")
+
+	if res.CognitiveComplexity != 1 {
+		t.Fatalf("CognitiveComplexity = %d, want 1", res.CognitiveComplexity)
+	}
+}
+
+func calculateFunctionComplexityForSource(t *testing.T, source, functionName string) *ComplexityResult {
+	t.Helper()
+
+	p := parser.New()
+	result, err := p.Parse(context.Background(), []byte(source))
+	if err != nil {
+		t.Fatalf("Failed to parse source: %v", err)
+	}
+
+	cfgs, err := NewCFGBuilder().BuildAll(result.AST)
+	if err != nil {
+		t.Fatalf("Failed to build CFGs: %v", err)
+	}
+
+	cfg, ok := cfgs[functionName]
+	if !ok {
+		t.Fatalf("Expected CFG for %q", functionName)
+	}
+
+	return CalculateComplexity(cfg)
+}
+
 func TestAssessRiskLevel(t *testing.T) {
 	// Test using config.ComplexityConfig.AssessRiskLevel instead of deprecated function
 	defaultConfig := config.DefaultConfig()
