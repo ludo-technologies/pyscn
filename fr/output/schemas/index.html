@@ -1,0 +1,6702 @@
+
+<!doctype html>
+<html lang="fr" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="An intelligent Python code quality analyzer with CFG-based static analysis">
+      
+      
+        <meta name="author" content="ludo-technologies">
+      
+      
+        <link rel="canonical" href="https://ludo-technologies.github.io/pyscn/fr/output/schemas/">
+      
+      
+        <link rel="prev" href="../html-report/">
+      
+      
+        <link rel="next" href="../health-score/">
+      
+      
+        
+          <link rel="alternate" href="../../../output/schemas/" hreflang="en">
+        
+          <link rel="alternate" href="../../../ja/output/schemas/" hreflang="ja">
+        
+          <link rel="alternate" href="../../../zh/output/schemas/" hreflang="zh">
+        
+          <link rel="alternate" href="./" hreflang="fr">
+        
+      
+      
+      <link rel="icon" href="../../../assets/icon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Schémas - pyscn</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-HXRTV60KJ8"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-HXRTV60KJ8",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-HXRTV60KJ8",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#schemas-de-sortie" class="md-skip">
+          Aller au contenu
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="En-tête">
+    <a href="../../" title="pyscn" class="md-header__button md-logo" aria-label="pyscn" data-md-component="logo">
+      
+  <img src="../../../assets/icon.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            pyscn
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Schémas
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Sélectionner la langue">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../output/schemas/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../ja/output/schemas/" hreflang="ja" class="md-select__link">
+              日本語
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../zh/output/schemas/" hreflang="zh" class="md-select__link">
+              简体中文
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="fr" class="md-select__link">
+              Français
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Rechercher" placeholder="Rechercher" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Recherche">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Partager" aria-label="Partager" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Effacer" aria-label="Effacer" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initialisation de la recherche
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ludo-technologies/pyscn" title="Aller au dépôt" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ludo-technologies/pyscn
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Onglets" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Accueil
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Démarrage
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../rules/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Règles
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../cli/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Référence CLI
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../configuration/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Formats de sortie
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../integrations/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Intégrations
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../faq/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  FAQ
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="pyscn" class="md-nav__button md-logo" aria-label="pyscn" data-md-component="logo">
+      
+  <img src="../../../assets/icon.svg" alt="logo">
+
+    </a>
+    pyscn
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ludo-technologies/pyscn" title="Aller au dépôt" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ludo-technologies/pyscn
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accueil
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Démarrage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Démarrage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quick-start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Démarrage rapide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../rules/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Règles
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Règles
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code inatteignable
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Code inatteignable
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/unreachable-after-return/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    unreachable-after-return
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/unreachable-after-raise/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    unreachable-after-raise
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/unreachable-after-break/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    unreachable-after-break
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/unreachable-after-continue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    unreachable-after-continue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/unreachable-after-infinite-loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    unreachable-after-infinite-loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/unreachable-branch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    unreachable-branch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code dupliqué
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Code dupliqué
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/duplicate-code-identical/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    duplicate-code-identical
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/duplicate-code-renamed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    duplicate-code-renamed
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/duplicate-code-modified/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    duplicate-code-modified
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/duplicate-code-semantic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    duplicate-code-semantic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Complexité
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Complexité
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/high-cyclomatic-complexity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    high-cyclomatic-complexity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conception de classe
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Conception de classe
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/high-class-coupling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    high-class-coupling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/low-class-cohesion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    low-class-cohesion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_6" id="__nav_3_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Injection de dépendances
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Injection de dépendances
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/too-many-constructor-parameters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    too-many-constructor-parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/global-state-dependency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    global-state-dependency
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/module-variable-dependency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    module-variable-dependency
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/singleton-pattern-dependency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    singleton-pattern-dependency
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/concrete-type-hint-dependency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    concrete-type-hint-dependency
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/concrete-instantiation-dependency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    concrete-instantiation-dependency
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/service-locator-pattern/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    service-locator-pattern
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_7" id="__nav_3_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structure des modules
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structure des modules
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/circular-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    circular-import
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/deep-import-chain/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    deep-import-chain
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/layer-violation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    layer-violation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/low-package-cohesion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    low-package-cohesion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/single-responsibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    single-responsibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_8" id="__nav_3_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Données fictives
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Données fictives
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/mock-keyword-in-code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mock-keyword-in-code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/mock-domain-in-string/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mock-domain-in-string
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/mock-email-address/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mock-email-address
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/placeholder-phone-number/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    placeholder-phone-number
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/placeholder-uuid/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    placeholder-uuid
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/placeholder-comment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    placeholder-comment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/repetitive-string-literal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    repetitive-string-literal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/test-credential-in-code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    test-credential-in-code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../cli/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Référence CLI
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Référence CLI
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/analyze/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    analyze
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/check/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    check
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/init/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    init
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/version/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    version
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../configuration/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Format du fichier de configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Référence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exemples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Formats de sortie
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Formats de sortie
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../html-report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rapport HTML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Schémas
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Schémas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#contrat-de-stabilite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contrat de stabilité
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#structure-de-premier-niveau-pyscn-analyze" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Structure de premier niveau (pyscn analyze)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet summary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objet summary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#statistiques-de-fichiers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistiques de fichiers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#indicateurs-detat-des-analyseurs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Indicateurs d'état des analyseurs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-de-complexite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques de complexité
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-de-code-mort" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques de code mort
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-de-clones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques de clones
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-cbo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques CBO
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-lcom" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques LCOM
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-de-dependances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques de dépendances
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-darchitecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques d'architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-de-donnees-fictives" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques de données fictives
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notation-de-sante" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notation de santé
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objet-complexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet complexity
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objet complexity">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#element-de-functions-functioncomplexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de Functions[] (FunctionComplexity)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#complexitymetrics-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet ComplexityMetrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-summary-complexitysummary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet Summary (ComplexitySummary)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#element-de-raw_metrics-rawmetrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de raw_metrics[] (RawMetrics)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objet-dead_code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet dead_code
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objet dead_code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#element-de-files-filedeadcode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de files[] (FileDeadCode)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#element-de-filesfunctions-functiondeadcode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de files[].functions[] (FunctionDeadCode)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#element-de-filesfunctionsfindings-deadcodefinding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de files[].functions[].findings[] (DeadCodeFinding)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deadcodelocation-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet DeadCodeLocation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-summary-deadcodesummary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet summary (DeadCodeSummary)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objet-clone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet clone
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objet clone">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#element-de-clones-clone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de clones[] (Clone)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clonelocation-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet CloneLocation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#element-de-clone_pairs-clonepair" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de clone_pairs[] (ClonePair)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#element-de-clone_groups-clonegroup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de clone_groups[] (CloneGroup)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-statistics-clonestatistics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet statistics (CloneStatistics)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objet-cbo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet cbo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objet cbo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#element-de-classes-classcoupling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de Classes[] (ClassCoupling)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cbometrics-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet CBOMetrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-summary-cbosummary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet Summary (CBOSummary)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objet-lcom" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet lcom
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objet lcom">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#element-de-classes-classcohesion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de Classes[] (ClassCohesion)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lcommetrics-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet LCOMMetrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-summary-lcomsummary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet Summary (LCOMSummary)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objet-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet system
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objet system">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#objet-summary-systemanalysissummary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet Summary (SystemAnalysisSummary)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-dependencyanalysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet DependencyAnalysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-moduledependencymetrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet ModuleDependencyMetrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-circulardependencyanalysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet CircularDependencyAnalysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-couplinganalysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet CouplingAnalysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-architectureanalysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet ArchitectureAnalysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tableau-suggestions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tableau suggestions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#schemas-csv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schémas CSV
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Schémas CSV">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pyscn-analyze-csv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pyscn analyze --csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#horodatages-et-versionnage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Horodatages et versionnage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#invoquer-chaque-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Invoquer chaque format
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#voir-aussi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Voir aussi
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../health-score/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Score de santé
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../integrations/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Intégrations
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7" id="__nav_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Intégrations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrations/ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrations/mcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrations/python-packaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packaging Python
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#contrat-de-stabilite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contrat de stabilité
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#structure-de-premier-niveau-pyscn-analyze" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Structure de premier niveau (pyscn analyze)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet summary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objet summary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#statistiques-de-fichiers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistiques de fichiers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#indicateurs-detat-des-analyseurs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Indicateurs d'état des analyseurs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-de-complexite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques de complexité
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-de-code-mort" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques de code mort
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-de-clones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques de clones
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-cbo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques CBO
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-lcom" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques LCOM
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-de-dependances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques de dépendances
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-darchitecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques d'architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metriques-de-donnees-fictives" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métriques de données fictives
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notation-de-sante" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notation de santé
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objet-complexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet complexity
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objet complexity">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#element-de-functions-functioncomplexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de Functions[] (FunctionComplexity)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#complexitymetrics-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet ComplexityMetrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-summary-complexitysummary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet Summary (ComplexitySummary)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#element-de-raw_metrics-rawmetrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de raw_metrics[] (RawMetrics)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objet-dead_code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet dead_code
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objet dead_code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#element-de-files-filedeadcode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de files[] (FileDeadCode)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#element-de-filesfunctions-functiondeadcode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de files[].functions[] (FunctionDeadCode)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#element-de-filesfunctionsfindings-deadcodefinding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de files[].functions[].findings[] (DeadCodeFinding)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deadcodelocation-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet DeadCodeLocation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-summary-deadcodesummary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet summary (DeadCodeSummary)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objet-clone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet clone
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objet clone">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#element-de-clones-clone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de clones[] (Clone)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clonelocation-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet CloneLocation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#element-de-clone_pairs-clonepair" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de clone_pairs[] (ClonePair)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#element-de-clone_groups-clonegroup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de clone_groups[] (CloneGroup)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-statistics-clonestatistics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet statistics (CloneStatistics)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objet-cbo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet cbo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objet cbo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#element-de-classes-classcoupling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de Classes[] (ClassCoupling)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cbometrics-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet CBOMetrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-summary-cbosummary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet Summary (CBOSummary)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objet-lcom" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet lcom
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objet lcom">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#element-de-classes-classcohesion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Élément de Classes[] (ClassCohesion)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lcommetrics-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet LCOMMetrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-summary-lcomsummary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet Summary (LCOMSummary)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objet-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet system
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objet system">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#objet-summary-systemanalysissummary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet Summary (SystemAnalysisSummary)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-dependencyanalysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet DependencyAnalysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-moduledependencymetrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet ModuleDependencyMetrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-circulardependencyanalysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet CircularDependencyAnalysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-couplinganalysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet CouplingAnalysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objet-architectureanalysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objet ArchitectureAnalysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tableau-suggestions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tableau suggestions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#schemas-csv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schémas CSV
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Schémas CSV">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pyscn-analyze-csv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pyscn analyze --csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#horodatages-et-versionnage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Horodatages et versionnage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#invoquer-chaque-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Invoquer chaque format
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#voir-aussi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Voir aussi
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../../" class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Accueil
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Formats de sortie
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/ludo-technologies/pyscn/edit/main/website/docs/fr/output/schemas.md" title="Editer cette page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="schemas-de-sortie">Schémas de sortie<a class="headerlink" href="#schemas-de-sortie" title="Permanent link">&para;</a></h1>
+<p>Cette spécification définit la forme exacte des sorties JSON, YAML et CSV produites par pyscn. Tous les noms de champs, types et sémantiques documentés ici sont stables d'une version corrective à l'autre au sein d'une même version majeure.</p>
+<h2 id="contrat-de-stabilite">Contrat de stabilité<a class="headerlink" href="#contrat-de-stabilite" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Garantie</th>
+<th>Portée</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stable</td>
+<td>noms de champs, types de champs, sémantique des champs, valeurs d'énumération</td>
+</tr>
+<tr>
+<td>Peut changer</td>
+<td>ordre des champs au sein d'un objet, ordre des éléments d'un tableau, ajout de nouveaux champs</td>
+</tr>
+<tr>
+<td>Incompatible</td>
+<td>suppression ou renommage de champs, modification du type d'un champ, suppression de valeurs d'énumération</td>
+</tr>
+</tbody>
+</table>
+<p>Les changements incompatibles sont limités aux changements de version majeure. Les consommateurs DOIVENT ignorer les champs inconnus.</p>
+<!-- Field naming note: in `pyscn analyze` JSON/YAML, nested analyzer objects (`complexity`, `cbo`, `lcom`, `system`) use Go-style PascalCase field names because their response structs do not carry JSON tags. Top-level keys, `dead_code`, `clone`, `suggestions`, and `summary` use snake_case. -->
+
+<h2 id="structure-de-premier-niveau-pyscn-analyze">Structure de premier niveau (<code>pyscn analyze</code>)<a class="headerlink" href="#structure-de-premier-niveau-pyscn-analyze" title="Permanent link">&para;</a></h2>
+<p>Les sorties JSON et YAML sérialisent la structure Go <code>AnalyzeResponse</code> définie dans <code>domain/analyze.go</code>. Les clés de premier niveau sont :</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;complexity&quot;</span><span class="p">:</span><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ComplexityResponse, present when enabled */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">&quot;dead_code&quot;</span><span class="p">:</span><span class="w">     </span><span class="p">{</span><span class="w"> </span><span class="cm">/* DeadCodeResponse, present when enabled */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">&quot;clone&quot;</span><span class="p">:</span><span class="w">         </span><span class="p">{</span><span class="w"> </span><span class="cm">/* CloneResponse, present when enabled */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">&quot;cbo&quot;</span><span class="p">:</span><span class="w">           </span><span class="p">{</span><span class="w"> </span><span class="cm">/* CBOResponse, present when enabled */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">&quot;lcom&quot;</span><span class="p">:</span><span class="w">          </span><span class="p">{</span><span class="w"> </span><span class="cm">/* LCOMResponse, present when enabled */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="nt">&quot;system&quot;</span><span class="p">:</span><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="cm">/* SystemAnalysisResponse, present when deps/arch enabled */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="nt">&quot;mock_data&quot;</span><span class="p">:</span><span class="w">     </span><span class="p">{</span><span class="w"> </span><span class="cm">/* MockDataResponse, present when enabled */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="nt">&quot;suggestions&quot;</span><span class="p">:</span><span class="w">   </span><span class="p">[</span><span class="w"> </span><span class="cm">/* Suggestion array, omitted when empty */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span><span class="nt">&quot;summary&quot;</span><span class="p">:</span><span class="w">       </span><span class="p">{</span><span class="w"> </span><span class="cm">/* AnalyzeSummary, always present */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">  </span><span class="nt">&quot;generated_at&quot;</span><span class="p">:</span><span class="w">  </span><span class="s2">&quot;2026-04-14T10:18:23Z&quot;</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="nt">&quot;duration_ms&quot;</span><span class="p">:</span><span class="w">   </span><span class="mi">2347</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w">       </span><span class="s2">&quot;0.14.0&quot;</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">}</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+<th>Stabilité</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>complexity</code></td>
+<td>object | absent</td>
+<td>Présent lorsque l'analyse de complexité a été exécutée.</td>
+<td>stable</td>
+</tr>
+<tr>
+<td><code>dead_code</code></td>
+<td>object | absent</td>
+<td>Présent lorsque l'analyse de code mort a été exécutée.</td>
+<td>stable</td>
+</tr>
+<tr>
+<td><code>clone</code></td>
+<td>object | absent</td>
+<td>Présent lorsque la détection de clones a été exécutée.</td>
+<td>stable</td>
+</tr>
+<tr>
+<td><code>cbo</code></td>
+<td>object | absent</td>
+<td>Présent lorsque l'analyse CBO a été exécutée.</td>
+<td>stable</td>
+</tr>
+<tr>
+<td><code>lcom</code></td>
+<td>object | absent</td>
+<td>Présent lorsque l'analyse LCOM a été exécutée.</td>
+<td>stable</td>
+</tr>
+<tr>
+<td><code>system</code></td>
+<td>object | absent</td>
+<td>Présent lorsque l'analyse des dépendances ou de l'architecture a été exécutée.</td>
+<td>stable</td>
+</tr>
+<tr>
+<td><code>mock_data</code></td>
+<td>object | absent</td>
+<td>Présent lorsque la détection de données fictives a été exécutée.</td>
+<td>stable</td>
+</tr>
+<tr>
+<td><code>suggestions</code></td>
+<td>array | absent</td>
+<td>Suggestions dérivées. Omis lorsque vide.</td>
+<td>stable</td>
+</tr>
+<tr>
+<td><code>summary</code></td>
+<td>object</td>
+<td>Toujours présent. Voir <a href="#summary-object"><code>summary</code></a>.</td>
+<td>stable</td>
+</tr>
+<tr>
+<td><code>generated_at</code></td>
+<td>string (RFC 3339)</td>
+<td>Heure de fin d'analyse.</td>
+<td>stable</td>
+</tr>
+<tr>
+<td><code>duration_ms</code></td>
+<td>integer</td>
+<td>Durée totale d'analyse en millisecondes.</td>
+<td>stable</td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td>string</td>
+<td>Version sémantique de pyscn.</td>
+<td>stable</td>
+</tr>
+</tbody>
+</table>
+<h2 id="summary-object">Objet <code>summary</code><a class="headerlink" href="#summary-object" title="Permanent link">&para;</a></h2>
+<p>Reflet de <code>domain.AnalyzeSummary</code>. Tous les compteurs numériques valent <code>0</code> par défaut lorsque l'analyseur correspondant est désactivé. Tous les champs sont toujours présents.</p>
+<h3 id="statistiques-de-fichiers">Statistiques de fichiers<a class="headerlink" href="#statistiques-de-fichiers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>total_files</code></td>
+<td>integer</td>
+<td>Nombre de fichiers Python découverts.</td>
+</tr>
+<tr>
+<td><code>analyzed_files</code></td>
+<td>integer</td>
+<td>Nombre de fichiers analysés avec succès.</td>
+</tr>
+<tr>
+<td><code>skipped_files</code></td>
+<td>integer</td>
+<td>Fichiers ignorés à cause d'erreurs de parsing ou de filtres.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="indicateurs-detat-des-analyseurs">Indicateurs d'état des analyseurs<a class="headerlink" href="#indicateurs-detat-des-analyseurs" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>complexity_enabled</code></td>
+<td>boolean</td>
+<td><code>true</code> si l'analyse de complexité a produit des résultats.</td>
+</tr>
+<tr>
+<td><code>dead_code_enabled</code></td>
+<td>boolean</td>
+<td><code>true</code> si l'analyse de code mort a produit des résultats.</td>
+</tr>
+<tr>
+<td><code>clone_enabled</code></td>
+<td>boolean</td>
+<td><code>true</code> si la détection de clones a produit des résultats.</td>
+</tr>
+<tr>
+<td><code>cbo_enabled</code></td>
+<td>boolean</td>
+<td><code>true</code> si l'analyse CBO a produit des résultats.</td>
+</tr>
+<tr>
+<td><code>lcom_enabled</code></td>
+<td>boolean</td>
+<td><code>true</code> si l'analyse LCOM a produit des résultats.</td>
+</tr>
+<tr>
+<td><code>deps_enabled</code></td>
+<td>boolean</td>
+<td><code>true</code> si l'analyse des dépendances a produit des résultats.</td>
+</tr>
+<tr>
+<td><code>arch_enabled</code></td>
+<td>boolean</td>
+<td><code>true</code> si la validation d'architecture a produit des résultats.</td>
+</tr>
+<tr>
+<td><code>mock_data_enabled</code></td>
+<td>boolean</td>
+<td><code>true</code> si la détection de données fictives a produit des résultats.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="metriques-de-complexite">Métriques de complexité<a class="headerlink" href="#metriques-de-complexite" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>total_functions</code></td>
+<td>integer</td>
+<td>Total des fonctions analysées.</td>
+</tr>
+<tr>
+<td><code>average_complexity</code></td>
+<td>number</td>
+<td>Complexité cyclomatique moyenne. <code>0</code> quand il n'y a aucune fonction.</td>
+</tr>
+<tr>
+<td><code>high_complexity_count</code></td>
+<td>integer</td>
+<td>Fonctions avec complexité &gt; 10 (seuil moyen).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="metriques-de-code-mort">Métriques de code mort<a class="headerlink" href="#metriques-de-code-mort" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dead_code_count</code></td>
+<td>integer</td>
+<td>Total des constats.</td>
+</tr>
+<tr>
+<td><code>critical_dead_code</code></td>
+<td>integer</td>
+<td>Constats de sévérité <code>critical</code>.</td>
+</tr>
+<tr>
+<td><code>warning_dead_code</code></td>
+<td>integer</td>
+<td>Constats de sévérité <code>warning</code>.</td>
+</tr>
+<tr>
+<td><code>info_dead_code</code></td>
+<td>integer</td>
+<td>Constats de sévérité <code>info</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="metriques-de-clones">Métriques de clones<a class="headerlink" href="#metriques-de-clones" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>total_clones</code></td>
+<td>integer</td>
+<td>Fragments de code distincts identifiés comme clones.</td>
+</tr>
+<tr>
+<td><code>clone_pairs</code></td>
+<td>integer</td>
+<td>Nombre de paires de clones.</td>
+</tr>
+<tr>
+<td><code>clone_groups</code></td>
+<td>integer</td>
+<td>Nombre de groupes de clones.</td>
+</tr>
+<tr>
+<td><code>code_duplication_percentage</code></td>
+<td>number</td>
+<td>Taux de duplication estimé, <code>0</code>–<code>100</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="metriques-cbo">Métriques CBO<a class="headerlink" href="#metriques-cbo" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cbo_classes</code></td>
+<td>integer</td>
+<td>Total des classes analysées.</td>
+</tr>
+<tr>
+<td><code>high_coupling_classes</code></td>
+<td>integer</td>
+<td>Classes avec CBO &gt; 7.</td>
+</tr>
+<tr>
+<td><code>medium_coupling_classes</code></td>
+<td>integer</td>
+<td>Classes avec 3 &lt; CBO ≤ 7.</td>
+</tr>
+<tr>
+<td><code>average_coupling</code></td>
+<td>number</td>
+<td>Valeur CBO moyenne.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="metriques-lcom">Métriques LCOM<a class="headerlink" href="#metriques-lcom" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lcom_classes</code></td>
+<td>integer</td>
+<td>Total des classes analysées.</td>
+</tr>
+<tr>
+<td><code>high_lcom_classes</code></td>
+<td>integer</td>
+<td>Classes avec LCOM4 &gt; 5.</td>
+</tr>
+<tr>
+<td><code>medium_lcom_classes</code></td>
+<td>integer</td>
+<td>Classes avec 2 &lt; LCOM4 ≤ 5.</td>
+</tr>
+<tr>
+<td><code>average_lcom</code></td>
+<td>number</td>
+<td>Valeur LCOM4 moyenne.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="metriques-de-dependances">Métriques de dépendances<a class="headerlink" href="#metriques-de-dependances" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>deps_total_modules</code></td>
+<td>integer</td>
+<td>Total des modules analysés.</td>
+</tr>
+<tr>
+<td><code>deps_modules_in_cycles</code></td>
+<td>integer</td>
+<td>Modules participant à au moins une dépendance circulaire.</td>
+</tr>
+<tr>
+<td><code>deps_max_depth</code></td>
+<td>integer</td>
+<td>Longueur de la plus longue chaîne de dépendances.</td>
+</tr>
+<tr>
+<td><code>deps_main_sequence_deviation</code></td>
+<td>number</td>
+<td>Distance moyenne à la séquence principale de Martin, <code>0</code>–<code>1</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="metriques-darchitecture">Métriques d'architecture<a class="headerlink" href="#metriques-darchitecture" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>arch_compliance</code></td>
+<td>number</td>
+<td>Taux de conformité architecturale, <code>0</code>–<code>1</code>. <code>1.0</code> = entièrement conforme.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="metriques-de-donnees-fictives">Métriques de données fictives<a class="headerlink" href="#metriques-de-donnees-fictives" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mock_data_count</code></td>
+<td>integer</td>
+<td>Total des constats de données fictives.</td>
+</tr>
+<tr>
+<td><code>mock_data_error_count</code></td>
+<td>integer</td>
+<td>Constats de sévérité error.</td>
+</tr>
+<tr>
+<td><code>mock_data_warning_count</code></td>
+<td>integer</td>
+<td>Constats de sévérité warning.</td>
+</tr>
+<tr>
+<td><code>mock_data_info_count</code></td>
+<td>integer</td>
+<td>Constats de sévérité info.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="notation-de-sante">Notation de santé<a class="headerlink" href="#notation-de-sante" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>health_score</code></td>
+<td>integer</td>
+<td>Score composite, <code>0</code>–<code>100</code>. Voir <a href="../health-score/">Score de santé</a>.</td>
+</tr>
+<tr>
+<td><code>grade</code></td>
+<td>string</td>
+<td>Note littérale. L'une de : <code>A</code>, <code>B</code>, <code>C</code>, <code>D</code>, <code>F</code>, <code>N/A</code>.</td>
+</tr>
+<tr>
+<td><code>complexity_score</code></td>
+<td>integer</td>
+<td>Score par catégorie, <code>0</code>–<code>100</code>.</td>
+</tr>
+<tr>
+<td><code>dead_code_score</code></td>
+<td>integer</td>
+<td>Score par catégorie, <code>0</code>–<code>100</code>.</td>
+</tr>
+<tr>
+<td><code>duplication_score</code></td>
+<td>integer</td>
+<td>Score par catégorie, <code>0</code>–<code>100</code>.</td>
+</tr>
+<tr>
+<td><code>coupling_score</code></td>
+<td>integer</td>
+<td>Score par catégorie, <code>0</code>–<code>100</code>.</td>
+</tr>
+<tr>
+<td><code>cohesion_score</code></td>
+<td>integer</td>
+<td>Score par catégorie, <code>0</code>–<code>100</code>.</td>
+</tr>
+<tr>
+<td><code>dependency_score</code></td>
+<td>integer</td>
+<td>Score par catégorie, <code>0</code>–<code>100</code>.</td>
+</tr>
+<tr>
+<td><code>architecture_score</code></td>
+<td>integer</td>
+<td>Score par catégorie, <code>0</code>–<code>100</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="objet-complexity">Objet <code>complexity</code><a class="headerlink" href="#objet-complexity" title="Permanent link">&para;</a></h2>
+<p>Reflet de <code>domain.ComplexityResponse</code>. Les noms de champs imbriqués sont en PascalCase Go.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;Functions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* FunctionComplexity array */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">&quot;Summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ComplexitySummary */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">&quot;raw_metrics&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* RawMetrics array, present when computed */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">&quot;raw_metrics_summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* RawMetricsSummary, present when computed */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">&quot;Warnings&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">&quot;Errors&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">&quot;GeneratedAt&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-04-14T10:18:23Z&quot;</span><span class="p">,</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0.14.0&quot;</span><span class="p">,</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">&quot;Config&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="element-de-functions-functioncomplexity">Élément de <code>Functions[]</code> (<code>FunctionComplexity</code>)<a class="headerlink" href="#element-de-functions-functioncomplexity" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Name</code></td>
+<td>string</td>
+<td>Nom de la fonction. <code>__main__</code> pour le code au niveau du module.</td>
+</tr>
+<tr>
+<td><code>FilePath</code></td>
+<td>string</td>
+<td>Chemin du fichier source.</td>
+</tr>
+<tr>
+<td><code>StartLine</code></td>
+<td>integer</td>
+<td>Ligne de début, base 1.</td>
+</tr>
+<tr>
+<td><code>StartColumn</code></td>
+<td>integer</td>
+<td>Colonne de début, base 0.</td>
+</tr>
+<tr>
+<td><code>EndLine</code></td>
+<td>integer</td>
+<td>Ligne de fin, base 1.</td>
+</tr>
+<tr>
+<td><code>Metrics</code></td>
+<td>object</td>
+<td>Voir <a href="#complexitymetrics-object"><code>ComplexityMetrics</code></a>.</td>
+</tr>
+<tr>
+<td><code>RiskLevel</code></td>
+<td>string</td>
+<td>L'une de : <code>low</code>, <code>medium</code>, <code>high</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="complexitymetrics-object">Objet <code>ComplexityMetrics</code><a class="headerlink" href="#complexitymetrics-object" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Complexity</code></td>
+<td>integer</td>
+<td>Complexité cyclomatique de McCabe.</td>
+</tr>
+<tr>
+<td><code>CognitiveComplexity</code></td>
+<td>integer</td>
+<td>Complexité cognitive (style SonarQube).</td>
+</tr>
+<tr>
+<td><code>Nodes</code></td>
+<td>integer</td>
+<td>Nombre de nœuds du CFG.</td>
+</tr>
+<tr>
+<td><code>Edges</code></td>
+<td>integer</td>
+<td>Nombre d'arêtes du CFG.</td>
+</tr>
+<tr>
+<td><code>NestingDepth</code></td>
+<td>integer</td>
+<td>Profondeur d'imbrication maximale.</td>
+</tr>
+<tr>
+<td><code>IfStatements</code></td>
+<td>integer</td>
+<td>Nombre d'instructions <code>if</code>.</td>
+</tr>
+<tr>
+<td><code>LoopStatements</code></td>
+<td>integer</td>
+<td>Nombre de boucles <code>for</code>/<code>while</code>.</td>
+</tr>
+<tr>
+<td><code>ExceptionHandlers</code></td>
+<td>integer</td>
+<td>Nombre de clauses <code>except</code>.</td>
+</tr>
+<tr>
+<td><code>SwitchCases</code></td>
+<td>integer</td>
+<td>Nombre de cas <code>match</code> (Python 3.10+).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="objet-summary-complexitysummary">Objet <code>Summary</code> (<code>ComplexitySummary</code>)<a class="headerlink" href="#objet-summary-complexitysummary" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TotalFunctions</code></td>
+<td>integer</td>
+<td>Total des fonctions analysées.</td>
+</tr>
+<tr>
+<td><code>AverageComplexity</code></td>
+<td>number</td>
+<td>Moyenne arithmétique de <code>Complexity</code> sur toutes les fonctions.</td>
+</tr>
+<tr>
+<td><code>MaxComplexity</code></td>
+<td>integer</td>
+<td>Complexité maximale observée.</td>
+</tr>
+<tr>
+<td><code>MinComplexity</code></td>
+<td>integer</td>
+<td>Complexité minimale observée.</td>
+</tr>
+<tr>
+<td><code>FilesAnalyzed</code></td>
+<td>integer</td>
+<td>Fichiers contribuant au moins une fonction.</td>
+</tr>
+<tr>
+<td><code>LowRiskFunctions</code></td>
+<td>integer</td>
+<td>Fonctions avec <code>RiskLevel = low</code>.</td>
+</tr>
+<tr>
+<td><code>MediumRiskFunctions</code></td>
+<td>integer</td>
+<td>Fonctions avec <code>RiskLevel = medium</code>.</td>
+</tr>
+<tr>
+<td><code>HighRiskFunctions</code></td>
+<td>integer</td>
+<td>Fonctions avec <code>RiskLevel = high</code>.</td>
+</tr>
+<tr>
+<td><code>ComplexityDistribution</code></td>
+<td>object</td>
+<td>Histogramme indexé par tranche de complexité (string) vers compteur (integer), ou <code>null</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="element-de-raw_metrics-rawmetrics">Élément de <code>raw_metrics[]</code> (<code>RawMetrics</code>)<a class="headerlink" href="#element-de-raw_metrics-rawmetrics" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>file_path</code></td>
+<td>string</td>
+<td>Chemin du fichier source.</td>
+</tr>
+<tr>
+<td><code>sloc</code></td>
+<td>integer</td>
+<td>Lignes de code source (non vides, non commentaires).</td>
+</tr>
+<tr>
+<td><code>lloc</code></td>
+<td>integer</td>
+<td>Lignes de code logiques.</td>
+</tr>
+<tr>
+<td><code>comment_lines</code></td>
+<td>integer</td>
+<td>Lignes contenant des commentaires.</td>
+</tr>
+<tr>
+<td><code>docstring_lines</code></td>
+<td>integer</td>
+<td>Lignes à l'intérieur de docstrings.</td>
+</tr>
+<tr>
+<td><code>blank_lines</code></td>
+<td>integer</td>
+<td>Lignes vides ou ne contenant que des espaces.</td>
+</tr>
+<tr>
+<td><code>total_lines</code></td>
+<td>integer</td>
+<td>Total des lignes physiques.</td>
+</tr>
+<tr>
+<td><code>comment_ratio</code></td>
+<td>number</td>
+<td><code>(comment_lines + docstring_lines) / total_lines</code>, <code>0</code>–<code>1</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="objet-dead_code">Objet <code>dead_code</code><a class="headerlink" href="#objet-dead_code" title="Permanent link">&para;</a></h2>
+<p>Reflet de <code>domain.DeadCodeResponse</code>. Utilise des noms de champs en snake_case partout.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* FileDeadCode array */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">&quot;summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* DeadCodeSummary */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">&quot;warnings&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">&quot;errors&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nt">&quot;generated_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="nt">&quot;config&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="element-de-files-filedeadcode">Élément de <code>files[]</code> (<code>FileDeadCode</code>)<a class="headerlink" href="#element-de-files-filedeadcode" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>file_path</code></td>
+<td>string</td>
+<td>Chemin du fichier source.</td>
+</tr>
+<tr>
+<td><code>functions</code></td>
+<td>array</td>
+<td>Résultats par fonction (voir ci-dessous).</td>
+</tr>
+<tr>
+<td><code>total_findings</code></td>
+<td>integer</td>
+<td>Somme des constats sur les fonctions de ce fichier.</td>
+</tr>
+<tr>
+<td><code>total_functions</code></td>
+<td>integer</td>
+<td>Fonctions analysées dans ce fichier.</td>
+</tr>
+<tr>
+<td><code>affected_functions</code></td>
+<td>integer</td>
+<td>Fonctions avec au moins un constat.</td>
+</tr>
+<tr>
+<td><code>dead_code_ratio</code></td>
+<td>number</td>
+<td>Blocs morts / blocs totaux, <code>0</code>–<code>1</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="element-de-filesfunctions-functiondeadcode">Élément de <code>files[].functions[]</code> (<code>FunctionDeadCode</code>)<a class="headerlink" href="#element-de-filesfunctions-functiondeadcode" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>string</td>
+<td>Nom de la fonction.</td>
+</tr>
+<tr>
+<td><code>file_path</code></td>
+<td>string</td>
+<td>Chemin du fichier source.</td>
+</tr>
+<tr>
+<td><code>findings</code></td>
+<td>array</td>
+<td>Constats dans cette fonction (voir ci-dessous).</td>
+</tr>
+<tr>
+<td><code>total_blocks</code></td>
+<td>integer</td>
+<td>Total des blocs CFG dans la fonction.</td>
+</tr>
+<tr>
+<td><code>dead_blocks</code></td>
+<td>integer</td>
+<td>Blocs CFG inatteignables.</td>
+</tr>
+<tr>
+<td><code>reachable_ratio</code></td>
+<td>number</td>
+<td><code>(total_blocks - dead_blocks) / total_blocks</code>, <code>0</code>–<code>1</code>.</td>
+</tr>
+<tr>
+<td><code>critical_count</code></td>
+<td>integer</td>
+<td>Constats de sévérité <code>critical</code>.</td>
+</tr>
+<tr>
+<td><code>warning_count</code></td>
+<td>integer</td>
+<td>Constats de sévérité <code>warning</code>.</td>
+</tr>
+<tr>
+<td><code>info_count</code></td>
+<td>integer</td>
+<td>Constats de sévérité <code>info</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="element-de-filesfunctionsfindings-deadcodefinding">Élément de <code>files[].functions[].findings[]</code> (<code>DeadCodeFinding</code>)<a class="headerlink" href="#element-de-filesfunctionsfindings-deadcodefinding" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>location</code></td>
+<td>object</td>
+<td>Voir <a href="#deadcodelocation-object"><code>DeadCodeLocation</code></a>.</td>
+</tr>
+<tr>
+<td><code>function_name</code></td>
+<td>string</td>
+<td>Nom de la fonction englobante.</td>
+</tr>
+<tr>
+<td><code>code</code></td>
+<td>string</td>
+<td>Extrait du code source mort.</td>
+</tr>
+<tr>
+<td><code>reason</code></td>
+<td>string</td>
+<td>Classification — voir l'énumération ci-dessous.</td>
+</tr>
+<tr>
+<td><code>severity</code></td>
+<td>string</td>
+<td>L'une de : <code>critical</code>, <code>warning</code>, <code>info</code>.</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>string</td>
+<td>Description lisible par un humain.</td>
+</tr>
+<tr>
+<td><code>context</code></td>
+<td>array of string | absent</td>
+<td>Lignes de code environnantes. Présent avec <code>--show-context</code>.</td>
+</tr>
+<tr>
+<td><code>block_id</code></td>
+<td>string | absent</td>
+<td>Identifiant du bloc CFG.</td>
+</tr>
+</tbody>
+</table>
+<p>Énumération <code>reason</code> :</p>
+<table>
+<thead>
+<tr>
+<th>Valeur</th>
+<th>Signification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>after_return</code></td>
+<td>Code suivant une instruction <code>return</code>.</td>
+</tr>
+<tr>
+<td><code>after_break</code></td>
+<td>Code suivant une instruction <code>break</code>.</td>
+</tr>
+<tr>
+<td><code>after_continue</code></td>
+<td>Code suivant une instruction <code>continue</code>.</td>
+</tr>
+<tr>
+<td><code>after_raise</code></td>
+<td>Code suivant une instruction <code>raise</code>.</td>
+</tr>
+<tr>
+<td><code>unreachable_branch</code></td>
+<td>Branche conditionnelle jamais empruntée.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="deadcodelocation-object">Objet <code>DeadCodeLocation</code><a class="headerlink" href="#deadcodelocation-object" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>file_path</code></td>
+<td>string</td>
+<td>Chemin du fichier source.</td>
+</tr>
+<tr>
+<td><code>start_line</code></td>
+<td>integer</td>
+<td>Ligne de début, base 1.</td>
+</tr>
+<tr>
+<td><code>end_line</code></td>
+<td>integer</td>
+<td>Ligne de fin, base 1.</td>
+</tr>
+<tr>
+<td><code>start_column</code></td>
+<td>integer</td>
+<td>Colonne de début, base 0.</td>
+</tr>
+<tr>
+<td><code>end_column</code></td>
+<td>integer</td>
+<td>Colonne de fin, base 0.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="objet-summary-deadcodesummary">Objet <code>summary</code> (<code>DeadCodeSummary</code>)<a class="headerlink" href="#objet-summary-deadcodesummary" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>total_files</code></td>
+<td>integer</td>
+<td>Fichiers analysés.</td>
+</tr>
+<tr>
+<td><code>total_functions</code></td>
+<td>integer</td>
+<td>Fonctions analysées.</td>
+</tr>
+<tr>
+<td><code>total_findings</code></td>
+<td>integer</td>
+<td>Total des constats sur tous les fichiers.</td>
+</tr>
+<tr>
+<td><code>files_with_dead_code</code></td>
+<td>integer</td>
+<td>Fichiers avec au moins un constat.</td>
+</tr>
+<tr>
+<td><code>functions_with_dead_code</code></td>
+<td>integer</td>
+<td>Fonctions avec au moins un constat.</td>
+</tr>
+<tr>
+<td><code>critical_findings</code></td>
+<td>integer</td>
+<td>Constats de sévérité <code>critical</code>.</td>
+</tr>
+<tr>
+<td><code>warning_findings</code></td>
+<td>integer</td>
+<td>Constats de sévérité <code>warning</code>.</td>
+</tr>
+<tr>
+<td><code>info_findings</code></td>
+<td>integer</td>
+<td>Constats de sévérité <code>info</code>.</td>
+</tr>
+<tr>
+<td><code>findings_by_reason</code></td>
+<td>object | null</td>
+<td>Histogramme indexé par valeur de <code>reason</code>.</td>
+</tr>
+<tr>
+<td><code>total_blocks</code></td>
+<td>integer</td>
+<td>Blocs CFG sur toutes les fonctions.</td>
+</tr>
+<tr>
+<td><code>dead_blocks</code></td>
+<td>integer</td>
+<td>Blocs CFG inatteignables sur toutes les fonctions.</td>
+</tr>
+<tr>
+<td><code>overall_dead_ratio</code></td>
+<td>number</td>
+<td><code>dead_blocks / total_blocks</code>, <code>0</code>–<code>1</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="objet-clone">Objet <code>clone</code><a class="headerlink" href="#objet-clone" title="Permanent link">&para;</a></h2>
+<p>Reflet de <code>domain.CloneResponse</code>. Utilise des noms de champs en snake_case partout.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;clones&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* Clone array, or null */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">&quot;clone_pairs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* ClonePair array, or null */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">&quot;clone_groups&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* CloneGroup array, or null */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">&quot;statistics&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* CloneStatistics */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">&quot;duration_ms&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">123</span><span class="p">,</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="nt">&quot;success&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="element-de-clones-clone">Élément de <code>clones[]</code> (<code>Clone</code>)<a class="headerlink" href="#element-de-clones-clone" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>integer</td>
+<td>Identifiant du clone, unique dans la réponse.</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>integer</td>
+<td>Type de clone en entier : <code>1</code>, <code>2</code>, <code>3</code> ou <code>4</code>.</td>
+</tr>
+<tr>
+<td><code>location</code></td>
+<td>object</td>
+<td>Voir <a href="#clonelocation-object"><code>CloneLocation</code></a>.</td>
+</tr>
+<tr>
+<td><code>content</code></td>
+<td>string</td>
+<td>Texte source brut. Présent uniquement si <code>--show-content</code> est défini.</td>
+</tr>
+<tr>
+<td><code>hash</code></td>
+<td>string</td>
+<td>Hachage d'empreinte (algorithme dépendant du type de clone).</td>
+</tr>
+<tr>
+<td><code>size</code></td>
+<td>integer</td>
+<td>Nombre de nœuds AST.</td>
+</tr>
+<tr>
+<td><code>line_count</code></td>
+<td>integer</td>
+<td>Nombre de lignes du fragment.</td>
+</tr>
+<tr>
+<td><code>complexity</code></td>
+<td>integer</td>
+<td>Complexité cyclomatique du fragment.</td>
+</tr>
+</tbody>
+</table>
+<p>Énumération <code>type</code> (valeurs entières) :</p>
+<table>
+<thead>
+<tr>
+<th>Valeur</th>
+<th>Signification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>1</code></td>
+<td>Type-1 : identiques aux espaces/commentaires près.</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>Type-2 : syntaxiquement identiques, identifiants/littéraux différents.</td>
+</tr>
+<tr>
+<td><code>3</code></td>
+<td>Type-3 : structurellement similaires avec modifications.</td>
+</tr>
+<tr>
+<td><code>4</code></td>
+<td>Type-4 : sémantiquement équivalents, syntaxiquement différents.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="clonelocation-object">Objet <code>CloneLocation</code><a class="headerlink" href="#clonelocation-object" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>file_path</code></td>
+<td>string</td>
+<td>Chemin du fichier source.</td>
+</tr>
+<tr>
+<td><code>start_line</code></td>
+<td>integer</td>
+<td>Ligne de début, base 1.</td>
+</tr>
+<tr>
+<td><code>end_line</code></td>
+<td>integer</td>
+<td>Ligne de fin, base 1.</td>
+</tr>
+<tr>
+<td><code>start_col</code></td>
+<td>integer</td>
+<td>Colonne de début, base 0.</td>
+</tr>
+<tr>
+<td><code>end_col</code></td>
+<td>integer</td>
+<td>Colonne de fin, base 0.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="element-de-clone_pairs-clonepair">Élément de <code>clone_pairs[]</code> (<code>ClonePair</code>)<a class="headerlink" href="#element-de-clone_pairs-clonepair" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>integer</td>
+<td>Identifiant de paire.</td>
+</tr>
+<tr>
+<td><code>clone1</code></td>
+<td>object</td>
+<td>Premier clone (objet <code>Clone</code>).</td>
+</tr>
+<tr>
+<td><code>clone2</code></td>
+<td>object</td>
+<td>Second clone (objet <code>Clone</code>).</td>
+</tr>
+<tr>
+<td><code>similarity</code></td>
+<td>number</td>
+<td>Score de similarité, <code>0</code>–<code>1</code>.</td>
+</tr>
+<tr>
+<td><code>distance</code></td>
+<td>number</td>
+<td>Distance d'édition d'arbre (Type-3) ou <code>0</code> sinon.</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>integer</td>
+<td>Type de clone (même énumération que <code>clones[].type</code>).</td>
+</tr>
+<tr>
+<td><code>confidence</code></td>
+<td>number</td>
+<td>Confiance du détecteur, <code>0</code>–<code>1</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="element-de-clone_groups-clonegroup">Élément de <code>clone_groups[]</code> (<code>CloneGroup</code>)<a class="headerlink" href="#element-de-clone_groups-clonegroup" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>integer</td>
+<td>Identifiant du groupe.</td>
+</tr>
+<tr>
+<td><code>clones</code></td>
+<td>array</td>
+<td>Objets <code>Clone</code> membres.</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>integer</td>
+<td>Type de clone dominant.</td>
+</tr>
+<tr>
+<td><code>similarity</code></td>
+<td>number</td>
+<td>Similarité représentative, <code>0</code>–<code>1</code>.</td>
+</tr>
+<tr>
+<td><code>size</code></td>
+<td>integer</td>
+<td>Nombre de membres (<code>len(clones)</code>).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="objet-statistics-clonestatistics">Objet <code>statistics</code> (<code>CloneStatistics</code>)<a class="headerlink" href="#objet-statistics-clonestatistics" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>total_fragments</code></td>
+<td>integer</td>
+<td>Tous les fragments extraits (fonctions, classes, etc.).</td>
+</tr>
+<tr>
+<td><code>total_clones</code></td>
+<td>integer</td>
+<td>Fragments classés comme clones.</td>
+</tr>
+<tr>
+<td><code>total_clone_pairs</code></td>
+<td>integer</td>
+<td>Nombre de paires détectées.</td>
+</tr>
+<tr>
+<td><code>total_clone_groups</code></td>
+<td>integer</td>
+<td>Nombre de groupes.</td>
+</tr>
+<tr>
+<td><code>clones_by_type</code></td>
+<td>object | null</td>
+<td>Map de l'étiquette de type (<code>Type-1</code>…<code>Type-4</code>) vers le compteur.</td>
+</tr>
+<tr>
+<td><code>average_similarity</code></td>
+<td>number</td>
+<td>Similarité moyenne sur les paires, <code>0</code>–<code>1</code>.</td>
+</tr>
+<tr>
+<td><code>lines_analyzed</code></td>
+<td>integer</td>
+<td>Total des lignes source considérées.</td>
+</tr>
+<tr>
+<td><code>nodes_analyzed</code></td>
+<td>integer</td>
+<td>Total des nœuds AST considérés.</td>
+</tr>
+<tr>
+<td><code>files_analyzed</code></td>
+<td>integer</td>
+<td>Fichiers distincts contribuant à des fragments.</td>
+</tr>
+</tbody>
+</table>
+<p>Autres champs de <code>CloneResponse</code> :</p>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>duration_ms</code></td>
+<td>integer</td>
+<td>Durée de détection de clones en millisecondes.</td>
+</tr>
+<tr>
+<td><code>success</code></td>
+<td>boolean</td>
+<td><code>true</code> en cas d'achèvement normal.</td>
+</tr>
+<tr>
+<td><code>error</code></td>
+<td>string | absent</td>
+<td>Message d'erreur si <code>success=false</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="objet-cbo">Objet <code>cbo</code><a class="headerlink" href="#objet-cbo" title="Permanent link">&para;</a></h2>
+<p>Reflet de <code>domain.CBOResponse</code>. Les noms de champs imbriqués sont en PascalCase Go.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;Classes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* ClassCoupling array */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;Summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* CBOSummary */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;Warnings&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">&quot;Errors&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="nt">&quot;GeneratedAt&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span><span class="nt">&quot;Config&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="element-de-classes-classcoupling">Élément de <code>Classes[]</code> (<code>ClassCoupling</code>)<a class="headerlink" href="#element-de-classes-classcoupling" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Name</code></td>
+<td>string</td>
+<td>Nom de la classe.</td>
+</tr>
+<tr>
+<td><code>FilePath</code></td>
+<td>string</td>
+<td>Chemin du fichier source.</td>
+</tr>
+<tr>
+<td><code>StartLine</code></td>
+<td>integer</td>
+<td>Ligne de début, base 1.</td>
+</tr>
+<tr>
+<td><code>EndLine</code></td>
+<td>integer</td>
+<td>Ligne de fin, base 1.</td>
+</tr>
+<tr>
+<td><code>Metrics</code></td>
+<td>object</td>
+<td>Voir <a href="#cbometrics-object"><code>CBOMetrics</code></a>.</td>
+</tr>
+<tr>
+<td><code>RiskLevel</code></td>
+<td>string</td>
+<td>L'une de : <code>low</code>, <code>medium</code>, <code>high</code>.</td>
+</tr>
+<tr>
+<td><code>IsAbstract</code></td>
+<td>boolean</td>
+<td><code>true</code> si la classe est abstraite.</td>
+</tr>
+<tr>
+<td><code>BaseClasses</code></td>
+<td>array of string | null</td>
+<td>Classes de base directes.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cbometrics-object">Objet <code>CBOMetrics</code><a class="headerlink" href="#cbometrics-object" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CouplingCount</code></td>
+<td>integer</td>
+<td>Valeur CBO : classes distinctes dont dépend cette classe.</td>
+</tr>
+<tr>
+<td><code>InheritanceDependencies</code></td>
+<td>integer</td>
+<td>Dépendances par classes de base.</td>
+</tr>
+<tr>
+<td><code>TypeHintDependencies</code></td>
+<td>integer</td>
+<td>Dépendances par annotations de type.</td>
+</tr>
+<tr>
+<td><code>InstantiationDependencies</code></td>
+<td>integer</td>
+<td>Dépendances par instanciation d'objets.</td>
+</tr>
+<tr>
+<td><code>AttributeAccessDependencies</code></td>
+<td>integer</td>
+<td>Dépendances par appels de méthodes et accès aux attributs.</td>
+</tr>
+<tr>
+<td><code>ImportDependencies</code></td>
+<td>integer</td>
+<td>Dépendances par imports explicites.</td>
+</tr>
+<tr>
+<td><code>DependentClasses</code></td>
+<td>array of string | null</td>
+<td>Noms des classes couplées.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="objet-summary-cbosummary">Objet <code>Summary</code> (<code>CBOSummary</code>)<a class="headerlink" href="#objet-summary-cbosummary" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TotalClasses</code></td>
+<td>integer</td>
+<td>Total des classes analysées.</td>
+</tr>
+<tr>
+<td><code>AverageCBO</code></td>
+<td>number</td>
+<td>CBO moyen.</td>
+</tr>
+<tr>
+<td><code>MaxCBO</code></td>
+<td>integer</td>
+<td>CBO maximal observé.</td>
+</tr>
+<tr>
+<td><code>MinCBO</code></td>
+<td>integer</td>
+<td>CBO minimal observé.</td>
+</tr>
+<tr>
+<td><code>ClassesAnalyzed</code></td>
+<td>integer</td>
+<td>Classes avec des métriques valides.</td>
+</tr>
+<tr>
+<td><code>FilesAnalyzed</code></td>
+<td>integer</td>
+<td>Fichiers contribuant au moins une classe.</td>
+</tr>
+<tr>
+<td><code>LowRiskClasses</code></td>
+<td>integer</td>
+<td>Classes avec CBO ≤ seuil bas (par défaut <code>3</code>).</td>
+</tr>
+<tr>
+<td><code>MediumRiskClasses</code></td>
+<td>integer</td>
+<td>Classes avec seuil bas &lt; CBO ≤ seuil moyen.</td>
+</tr>
+<tr>
+<td><code>HighRiskClasses</code></td>
+<td>integer</td>
+<td>Classes avec CBO &gt; seuil moyen (par défaut <code>7</code>).</td>
+</tr>
+<tr>
+<td><code>CBODistribution</code></td>
+<td>object | null</td>
+<td>Histogramme indexé par étiquette de tranche vers compteur.</td>
+</tr>
+<tr>
+<td><code>MostCoupledClasses</code></td>
+<td>array | null</td>
+<td>Top 10 des classes par CBO (<code>ClassCoupling</code>).</td>
+</tr>
+<tr>
+<td><code>MostDependedUponClasses</code></td>
+<td>array of string | null</td>
+<td>Classes avec le plus fort degré entrant.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="objet-lcom">Objet <code>lcom</code><a class="headerlink" href="#objet-lcom" title="Permanent link">&para;</a></h2>
+<p>Reflet de <code>domain.LCOMResponse</code>. Les noms de champs imbriqués sont en PascalCase Go.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">&quot;Classes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* ClassCohesion array */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">&quot;Summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* LCOMSummary */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">&quot;Warnings&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">&quot;Errors&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="nt">&quot;GeneratedAt&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span><span class="nt">&quot;Config&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="element-de-classes-classcohesion">Élément de <code>Classes[]</code> (<code>ClassCohesion</code>)<a class="headerlink" href="#element-de-classes-classcohesion" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Name</code></td>
+<td>string</td>
+<td>Nom de la classe.</td>
+</tr>
+<tr>
+<td><code>FilePath</code></td>
+<td>string</td>
+<td>Chemin du fichier source.</td>
+</tr>
+<tr>
+<td><code>StartLine</code></td>
+<td>integer</td>
+<td>Ligne de début, base 1.</td>
+</tr>
+<tr>
+<td><code>EndLine</code></td>
+<td>integer</td>
+<td>Ligne de fin, base 1.</td>
+</tr>
+<tr>
+<td><code>Metrics</code></td>
+<td>object</td>
+<td>Voir <a href="#lcommetrics-object"><code>LCOMMetrics</code></a>.</td>
+</tr>
+<tr>
+<td><code>RiskLevel</code></td>
+<td>string</td>
+<td>L'une de : <code>low</code>, <code>medium</code>, <code>high</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="lcommetrics-object">Objet <code>LCOMMetrics</code><a class="headerlink" href="#lcommetrics-object" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LCOM4</code></td>
+<td>integer</td>
+<td>Composantes connexes dans le graphe méthodes-variables.</td>
+</tr>
+<tr>
+<td><code>TotalMethods</code></td>
+<td>integer</td>
+<td>Toutes les méthodes de la classe.</td>
+</tr>
+<tr>
+<td><code>ExcludedMethods</code></td>
+<td>integer</td>
+<td>Méthodes exclues de LCOM4 (<code>@classmethod</code>, <code>@staticmethod</code>).</td>
+</tr>
+<tr>
+<td><code>InstanceVariables</code></td>
+<td>integer</td>
+<td>Variables <code>self.x</code> distinctes accédées.</td>
+</tr>
+<tr>
+<td><code>MethodGroups</code></td>
+<td>array of array of string | null</td>
+<td>Noms de méthodes groupés par composante connexe.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="objet-summary-lcomsummary">Objet <code>Summary</code> (<code>LCOMSummary</code>)<a class="headerlink" href="#objet-summary-lcomsummary" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TotalClasses</code></td>
+<td>integer</td>
+<td>Classes analysées.</td>
+</tr>
+<tr>
+<td><code>AverageLCOM</code></td>
+<td>number</td>
+<td>LCOM4 moyen.</td>
+</tr>
+<tr>
+<td><code>MaxLCOM</code></td>
+<td>integer</td>
+<td>LCOM4 maximal observé.</td>
+</tr>
+<tr>
+<td><code>MinLCOM</code></td>
+<td>integer</td>
+<td>LCOM4 minimal observé.</td>
+</tr>
+<tr>
+<td><code>ClassesAnalyzed</code></td>
+<td>integer</td>
+<td>Classes avec des métriques valides.</td>
+</tr>
+<tr>
+<td><code>FilesAnalyzed</code></td>
+<td>integer</td>
+<td>Fichiers contribuant au moins une classe.</td>
+</tr>
+<tr>
+<td><code>LowRiskClasses</code></td>
+<td>integer</td>
+<td>Classes avec LCOM4 ≤ seuil bas (par défaut <code>2</code>).</td>
+</tr>
+<tr>
+<td><code>MediumRiskClasses</code></td>
+<td>integer</td>
+<td>Classes avec seuil bas &lt; LCOM4 ≤ seuil moyen.</td>
+</tr>
+<tr>
+<td><code>HighRiskClasses</code></td>
+<td>integer</td>
+<td>Classes avec LCOM4 &gt; seuil moyen (par défaut <code>5</code>).</td>
+</tr>
+<tr>
+<td><code>LCOMDistribution</code></td>
+<td>object | null</td>
+<td>Histogramme indexé par étiquette de tranche vers compteur.</td>
+</tr>
+<tr>
+<td><code>LeastCohesiveClasses</code></td>
+<td>array | null</td>
+<td>Top 10 des classes par LCOM4 (<code>ClassCohesion</code>).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="objet-system">Objet <code>system</code><a class="headerlink" href="#objet-system" title="Permanent link">&para;</a></h2>
+<p>Reflet de <code>domain.SystemAnalysisResponse</code>. Les noms de champs imbriqués sont en PascalCase Go.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">&quot;DependencyAnalysis&quot;</span><span class="p">:</span><span class="w">   </span><span class="p">{</span><span class="w"> </span><span class="cm">/* DependencyAnalysisResult, or null */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">&quot;ArchitectureAnalysis&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ArchitectureAnalysisResult, or null */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="nt">&quot;Summary&quot;</span><span class="p">:</span><span class="w">              </span><span class="p">{</span><span class="w"> </span><span class="cm">/* SystemAnalysisSummary */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="nt">&quot;Issues&quot;</span><span class="p">:</span><span class="w">               </span><span class="p">[</span><span class="w"> </span><span class="cm">/* SystemIssue array */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="nt">&quot;Recommendations&quot;</span><span class="p">:</span><span class="w">      </span><span class="p">[</span><span class="w"> </span><span class="cm">/* SystemRecommendation array */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span><span class="nt">&quot;Warnings&quot;</span><span class="p">:</span><span class="w">             </span><span class="p">[</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">  </span><span class="nt">&quot;Errors&quot;</span><span class="p">:</span><span class="w">               </span><span class="p">[</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">  </span><span class="nt">&quot;GeneratedAt&quot;</span><span class="p">:</span><span class="w">          </span><span class="s2">&quot;0001-01-01T00:00:00Z&quot;</span><span class="p">,</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">  </span><span class="nt">&quot;Duration&quot;</span><span class="p">:</span><span class="w">             </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">  </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w">              </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">  </span><span class="nt">&quot;Config&quot;</span><span class="p">:</span><span class="w">               </span><span class="kc">null</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="objet-summary-systemanalysissummary">Objet <code>Summary</code> (<code>SystemAnalysisSummary</code>)<a class="headerlink" href="#objet-summary-systemanalysissummary" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TotalModules</code></td>
+<td>integer</td>
+<td>Total des modules analysés.</td>
+</tr>
+<tr>
+<td><code>TotalPackages</code></td>
+<td>integer</td>
+<td>Total des paquets.</td>
+</tr>
+<tr>
+<td><code>TotalDependencies</code></td>
+<td>integer</td>
+<td>Total des arêtes de dépendances.</td>
+</tr>
+<tr>
+<td><code>ProjectRoot</code></td>
+<td>string</td>
+<td>Répertoire racine du projet.</td>
+</tr>
+<tr>
+<td><code>OverallQualityScore</code></td>
+<td>number</td>
+<td>Score de qualité composite, <code>0</code>–<code>100</code>.</td>
+</tr>
+<tr>
+<td><code>MaintainabilityScore</code></td>
+<td>number</td>
+<td>Indice de maintenabilité moyen.</td>
+</tr>
+<tr>
+<td><code>ArchitectureScore</code></td>
+<td>number</td>
+<td>Score de conformité architecturale.</td>
+</tr>
+<tr>
+<td><code>ModularityScore</code></td>
+<td>number</td>
+<td>Score de modularité du système.</td>
+</tr>
+<tr>
+<td><code>TechnicalDebtHours</code></td>
+<td>number</td>
+<td>Dette technique totale estimée en heures.</td>
+</tr>
+<tr>
+<td><code>AverageCoupling</code></td>
+<td>number</td>
+<td>Couplage moyen entre modules.</td>
+</tr>
+<tr>
+<td><code>AverageInstability</code></td>
+<td>number</td>
+<td>Instabilité moyenne (I).</td>
+</tr>
+<tr>
+<td><code>CyclicDependencies</code></td>
+<td>integer</td>
+<td>Modules participant à des cycles.</td>
+</tr>
+<tr>
+<td><code>ArchitectureViolations</code></td>
+<td>integer</td>
+<td>Nombre de violations des règles architecturales.</td>
+</tr>
+<tr>
+<td><code>HighRiskModules</code></td>
+<td>integer</td>
+<td>Modules signalés à risque élevé.</td>
+</tr>
+<tr>
+<td><code>CriticalIssues</code></td>
+<td>integer</td>
+<td>Nombre de problèmes critiques.</td>
+</tr>
+<tr>
+<td><code>RefactoringCandidates</code></td>
+<td>integer</td>
+<td>Modules nécessitant un refactoring.</td>
+</tr>
+<tr>
+<td><code>ArchitectureImprovements</code></td>
+<td>integer</td>
+<td>Améliorations architecturales suggérées.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="objet-dependencyanalysis">Objet <code>DependencyAnalysis</code><a class="headerlink" href="#objet-dependencyanalysis" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TotalModules</code></td>
+<td>integer</td>
+<td>Total des modules dans le graphe de dépendances.</td>
+</tr>
+<tr>
+<td><code>TotalDependencies</code></td>
+<td>integer</td>
+<td>Total des arêtes.</td>
+</tr>
+<tr>
+<td><code>RootModules</code></td>
+<td>array of string</td>
+<td>Modules sans dépendance sortante.</td>
+</tr>
+<tr>
+<td><code>LeafModules</code></td>
+<td>array of string</td>
+<td>Modules sans dépendance entrante.</td>
+</tr>
+<tr>
+<td><code>ModuleMetrics</code></td>
+<td>object</td>
+<td>Map du nom de module vers <code>ModuleDependencyMetrics</code>.</td>
+</tr>
+<tr>
+<td><code>DependencyMatrix</code></td>
+<td>object</td>
+<td>Map de module vers map de module vers booléen.</td>
+</tr>
+<tr>
+<td><code>CircularDependencies</code></td>
+<td>object</td>
+<td>Résultats de détection de cycles ; contient <code>Cycles</code> (array) et <code>TotalCycles</code> (integer).</td>
+</tr>
+<tr>
+<td><code>CouplingAnalysis</code></td>
+<td>object</td>
+<td>Métriques de couplage par module : <code>Ca</code>, <code>Ce</code>, <code>Instability</code>, <code>Abstractness</code>, <code>Distance</code>.</td>
+</tr>
+<tr>
+<td><code>LongestChains</code></td>
+<td>array</td>
+<td>Tableau d'objets <code>DependencyPath</code>.</td>
+</tr>
+<tr>
+<td><code>MaxDepth</code></td>
+<td>integer</td>
+<td>Profondeur de dépendance maximale.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="objet-moduledependencymetrics">Objet <code>ModuleDependencyMetrics</code><a class="headerlink" href="#objet-moduledependencymetrics" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ModuleName</code></td>
+<td>string</td>
+<td>Nom complet du module.</td>
+</tr>
+<tr>
+<td><code>Package</code></td>
+<td>string</td>
+<td>Paquet parent.</td>
+</tr>
+<tr>
+<td><code>FilePath</code></td>
+<td>string</td>
+<td>Chemin du fichier source.</td>
+</tr>
+<tr>
+<td><code>IsPackage</code></td>
+<td>boolean</td>
+<td><code>true</code> s'il s'agit d'un paquet (possède <code>__init__.py</code>).</td>
+</tr>
+<tr>
+<td><code>LinesOfCode</code></td>
+<td>integer</td>
+<td>Total des lignes de code.</td>
+</tr>
+<tr>
+<td><code>FunctionCount</code></td>
+<td>integer</td>
+<td>Nombre de fonctions.</td>
+</tr>
+<tr>
+<td><code>ClassCount</code></td>
+<td>integer</td>
+<td>Nombre de classes.</td>
+</tr>
+<tr>
+<td><code>AbstractClassCount</code></td>
+<td>integer</td>
+<td>Nombre de classes abstraites.</td>
+</tr>
+<tr>
+<td><code>PublicInterface</code></td>
+<td>array of string</td>
+<td>Noms dans <code>__all__</code> ou noms publics de haut niveau.</td>
+</tr>
+<tr>
+<td><code>AfferentCoupling</code></td>
+<td>integer</td>
+<td>Ca — modules dépendant de celui-ci.</td>
+</tr>
+<tr>
+<td><code>EfferentCoupling</code></td>
+<td>integer</td>
+<td>Ce — modules dont celui-ci dépend.</td>
+</tr>
+<tr>
+<td><code>Instability</code></td>
+<td>number</td>
+<td><code>I = Ce / (Ca + Ce)</code>, <code>0</code>–<code>1</code>.</td>
+</tr>
+<tr>
+<td><code>Abstractness</code></td>
+<td>number</td>
+<td>A — classes abstraites / classes totales, <code>0</code>–<code>1</code>.</td>
+</tr>
+<tr>
+<td><code>Distance</code></td>
+<td>number</td>
+<td><code>D = |A + I - 1|</code>, <code>0</code>–<code>1</code>. Distance à la séquence principale.</td>
+</tr>
+<tr>
+<td><code>Maintainability</code></td>
+<td>number</td>
+<td>Indice de maintenabilité, <code>0</code>–<code>100</code>.</td>
+</tr>
+<tr>
+<td><code>TechnicalDebt</code></td>
+<td>number</td>
+<td>Dette technique estimée en heures.</td>
+</tr>
+<tr>
+<td><code>RiskLevel</code></td>
+<td>string</td>
+<td>L'une de : <code>low</code>, <code>medium</code>, <code>high</code>.</td>
+</tr>
+<tr>
+<td><code>DirectDependencies</code></td>
+<td>array of string</td>
+<td>Dépendances directes.</td>
+</tr>
+<tr>
+<td><code>TransitiveDependencies</code></td>
+<td>array of string</td>
+<td>Toutes les dépendances transitives.</td>
+</tr>
+<tr>
+<td><code>Dependents</code></td>
+<td>array of string</td>
+<td>Modules dépendant de celui-ci.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="objet-circulardependencyanalysis">Objet <code>CircularDependencyAnalysis</code><a class="headerlink" href="#objet-circulardependencyanalysis" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HasCircularDependencies</code></td>
+<td>boolean</td>
+<td><code>true</code> s'il existe au moins un cycle.</td>
+</tr>
+<tr>
+<td><code>TotalCycles</code></td>
+<td>integer</td>
+<td>Nombre de cycles.</td>
+</tr>
+<tr>
+<td><code>TotalModulesInCycles</code></td>
+<td>integer</td>
+<td>Modules impliqués dans des cycles.</td>
+</tr>
+<tr>
+<td><code>CircularDependencies</code></td>
+<td>array</td>
+<td>Tableau d'objets <code>CircularDependency</code>.</td>
+</tr>
+<tr>
+<td><code>CycleBreakingSuggestions</code></td>
+<td>array of string</td>
+<td>Suggestions pour briser les cycles.</td>
+</tr>
+<tr>
+<td><code>CoreInfrastructure</code></td>
+<td>array of string</td>
+<td>Modules apparaissant dans plusieurs cycles.</td>
+</tr>
+</tbody>
+</table>
+<p>Énumération <code>CircularDependency.Severity</code> : <code>low</code>, <code>medium</code>, <code>high</code>, <code>critical</code>.</p>
+<h3 id="objet-couplinganalysis">Objet <code>CouplingAnalysis</code><a class="headerlink" href="#objet-couplinganalysis" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AverageCoupling</code></td>
+<td>number</td>
+<td>Couplage moyen entre les modules.</td>
+</tr>
+<tr>
+<td><code>CouplingDistribution</code></td>
+<td>object</td>
+<td>Map de la valeur de couplage (clé entière) vers compteur.</td>
+</tr>
+<tr>
+<td><code>HighlyCoupledModules</code></td>
+<td>array of string</td>
+<td>Modules à fort couplage.</td>
+</tr>
+<tr>
+<td><code>LooselyCoupledModules</code></td>
+<td>array of string</td>
+<td>Modules à faible couplage.</td>
+</tr>
+<tr>
+<td><code>AverageInstability</code></td>
+<td>number</td>
+<td>Instabilité moyenne.</td>
+</tr>
+<tr>
+<td><code>StableModules</code></td>
+<td>array of string</td>
+<td>Modules à faible instabilité.</td>
+</tr>
+<tr>
+<td><code>InstableModules</code></td>
+<td>array of string</td>
+<td>Modules à forte instabilité.</td>
+</tr>
+<tr>
+<td><code>MainSequenceDeviation</code></td>
+<td>number</td>
+<td>Distance moyenne à la séquence principale, <code>0</code>–<code>1</code>.</td>
+</tr>
+<tr>
+<td><code>ZoneOfPain</code></td>
+<td>array of string</td>
+<td>Modules stables + concrets.</td>
+</tr>
+<tr>
+<td><code>ZoneOfUselessness</code></td>
+<td>array of string</td>
+<td>Modules instables + abstraits.</td>
+</tr>
+<tr>
+<td><code>MainSequence</code></td>
+<td>array of string</td>
+<td>Modules bien positionnés.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="objet-architectureanalysis">Objet <code>ArchitectureAnalysis</code><a class="headerlink" href="#objet-architectureanalysis" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ComplianceScore</code></td>
+<td>number</td>
+<td>Score de conformité, <code>0</code>–<code>1</code>. <code>1.0</code> = entièrement conforme.</td>
+</tr>
+<tr>
+<td><code>TotalViolations</code></td>
+<td>integer</td>
+<td>Total des violations trouvées.</td>
+</tr>
+<tr>
+<td><code>TotalRules</code></td>
+<td>integer</td>
+<td>Total des règles évaluées.</td>
+</tr>
+<tr>
+<td><code>LayerAnalysis</code></td>
+<td>object | null</td>
+<td>Résultats d'analyse par couches.</td>
+</tr>
+<tr>
+<td><code>CohesionAnalysis</code></td>
+<td>object | null</td>
+<td>Analyse de cohésion des paquets.</td>
+</tr>
+<tr>
+<td><code>ResponsibilityAnalysis</code></td>
+<td>object | null</td>
+<td>Analyse des violations du principe SRP.</td>
+</tr>
+<tr>
+<td><code>Violations</code></td>
+<td>array</td>
+<td>Tableau d'objets <code>ArchitectureViolation</code>.</td>
+</tr>
+<tr>
+<td><code>SeverityBreakdown</code></td>
+<td>object</td>
+<td>Map de la sévérité vers le compteur.</td>
+</tr>
+<tr>
+<td><code>Recommendations</code></td>
+<td>array</td>
+<td>Tableau d'objets <code>ArchitectureRecommendation</code>.</td>
+</tr>
+<tr>
+<td><code>RefactoringTargets</code></td>
+<td>array of string</td>
+<td>Modules nécessitant un refactoring.</td>
+</tr>
+</tbody>
+</table>
+<p>Énumération <code>ArchitectureViolation.Type</code> : <code>layer</code>, <code>cycle</code>, <code>coupling</code>, <code>responsibility</code>, <code>cohesion</code>.</p>
+<p>Énumération <code>ArchitectureViolation.Severity</code> : <code>info</code>, <code>warning</code>, <code>error</code>, <code>critical</code>.</p>
+<h2 id="tableau-suggestions">Tableau <code>suggestions</code><a class="headerlink" href="#tableau-suggestions" title="Permanent link">&para;</a></h2>
+<p>Tableau d'objets <code>Suggestion</code>. Utilise des noms de champs en snake_case.</p>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Requis</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>category</code></td>
+<td>string</td>
+<td>oui</td>
+<td>Voir l'énumération ci-dessous.</td>
+</tr>
+<tr>
+<td><code>severity</code></td>
+<td>string</td>
+<td>oui</td>
+<td>L'une de : <code>critical</code>, <code>warning</code>, <code>info</code>.</td>
+</tr>
+<tr>
+<td><code>effort</code></td>
+<td>string</td>
+<td>oui</td>
+<td>L'une de : <code>easy</code>, <code>moderate</code>, <code>hard</code>.</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td>string</td>
+<td>oui</td>
+<td>Titre court lisible par un humain.</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>string</td>
+<td>oui</td>
+<td>Description complète.</td>
+</tr>
+<tr>
+<td><code>steps</code></td>
+<td>array of string</td>
+<td>non</td>
+<td>Étapes concrètes. Omis lorsque vide.</td>
+</tr>
+<tr>
+<td><code>file_path</code></td>
+<td>string</td>
+<td>non</td>
+<td>Référence vers le fichier source.</td>
+</tr>
+<tr>
+<td><code>function</code></td>
+<td>string</td>
+<td>non</td>
+<td>Référence vers un nom de fonction.</td>
+</tr>
+<tr>
+<td><code>class_name</code></td>
+<td>string</td>
+<td>non</td>
+<td>Référence vers un nom de classe.</td>
+</tr>
+<tr>
+<td><code>start_line</code></td>
+<td>integer</td>
+<td>non</td>
+<td>Référence de ligne, base 1. Omis lorsque <code>0</code>.</td>
+</tr>
+<tr>
+<td><code>metric_value</code></td>
+<td>string</td>
+<td>non</td>
+<td>Valeur observée de la métrique sous forme de chaîne.</td>
+</tr>
+<tr>
+<td><code>threshold</code></td>
+<td>string</td>
+<td>non</td>
+<td>Valeur du seuil sous forme de chaîne.</td>
+</tr>
+</tbody>
+</table>
+<p>Énumération <code>category</code> : <code>complexity</code>, <code>dead_code</code>, <code>clone</code>, <code>coupling</code>, <code>cohesion</code>, <code>dependency</code>, <code>architecture</code>.</p>
+<p>Les suggestions sont triées par priorité (sévérité × effort). Voir <code>domain/suggestion.go</code> pour la fonction de tri exacte.</p>
+<h2 id="schemas-csv">Schémas CSV<a class="headerlink" href="#schemas-csv" title="Permanent link">&para;</a></h2>
+<p>Les sorties CSV sont écrites avec les règles de mise en guillemets RFC 4180 via le paquet Go <code>encoding/csv</code>.</p>
+<h3 id="pyscn-analyze-csv"><code>pyscn analyze --csv</code><a class="headerlink" href="#pyscn-analyze-csv" title="Permanent link">&para;</a></h3>
+<p>Résumé uniquement. Deux colonnes. Chaînes UTF-8 littérales, sans annotation de type.</p>
+<table>
+<thead>
+<tr>
+<th>Colonne</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Metric</code></td>
+<td>string</td>
+<td>Nom de la métrique.</td>
+</tr>
+<tr>
+<td><code>Value</code></td>
+<td>string</td>
+<td>Valeur de la métrique sous forme de chaîne.</td>
+</tr>
+</tbody>
+</table>
+<p>Lignes (dans cet ordre fixe) :</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>Metric,Value
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>Health Score,&lt;integer&gt;
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>Grade,&lt;A|B|C|D|F|N/A&gt;
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>Total Files,&lt;integer&gt;
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>Analyzed Files,&lt;integer&gt;
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>Average Complexity,&lt;float with 2 decimals&gt;
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>High Complexity Count,&lt;integer&gt;
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>Dead Code Count,&lt;integer&gt;
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>Critical Dead Code,&lt;integer&gt;
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>Unique Fragments,&lt;integer&gt;
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>Clone Groups,&lt;integer&gt;
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>Code Duplication,&lt;float with 2 decimals&gt;
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>Total Classes Analyzed,&lt;integer&gt;
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>High Coupling (CBO) Classes,&lt;integer&gt;
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>Average CBO,&lt;float with 2 decimals&gt;
+</span></code></pre></div>
+<p>pyscn n'expose actuellement pas de schémas CSV par analyseur via le CLI — <code>--csv</code> ne produit que le résumé ci-dessus. Pour les détails par constat, utilisez <code>--json</code> ou <code>--yaml</code>.</p>
+<h2 id="horodatages-et-versionnage">Horodatages et versionnage<a class="headerlink" href="#horodatages-et-versionnage" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Format</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>generated_at</code></td>
+<td>RFC 3339 (ISO 8601)</td>
+<td>Sérialisation <code>time.Time</code> ; peut inclure une précision sous-seconde et un décalage de fuseau horaire.</td>
+</tr>
+<tr>
+<td><code>duration_ms</code></td>
+<td>integer (millisecondes)</td>
+<td>Durée d'analyse en horloge murale.</td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td>string (version sémantique)</td>
+<td>Version de pyscn, par exemple <code>"0.14.0"</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="invoquer-chaque-format">Invoquer chaque format<a class="headerlink" href="#invoquer-chaque-format" title="Permanent link">&para;</a></h2>
+<p><code>pyscn analyze</code> accepte l'un de <code>--json</code>, <code>--yaml</code>, <code>--csv</code>, <code>--html</code> (défaut). Il n'existe pas de drapeau <code>--format</code>, et il n'y a pas de sous-commandes autonomes <code>complexity</code> / <code>deadcode</code> / <code>clone</code> / <code>deps</code>. Exécutez un seul analyseur via <code>--select</code>.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>src/
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--yaml<span class="w"> </span>src/
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--csv<span class="w">  </span>src/
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--html<span class="w"> </span>src/<span class="w">    </span><span class="c1"># default</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>complexity<span class="w"> </span>src/
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--csv<span class="w">  </span>--select<span class="w"> </span>deadcode<span class="w">   </span>src/
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--yaml<span class="w"> </span>--select<span class="w"> </span>clones<span class="w">     </span>src/
+</span></code></pre></div>
+<p>Les fichiers de sortie sont placés dans <code>.pyscn/reports/</code> ; voir <a href="../">Formats de sortie</a> pour les détails de chemin et de nom de fichier.</p>
+<h2 id="voir-aussi">Voir aussi<a class="headerlink" href="#voir-aussi" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../html-report/">Rapport HTML</a> — spécification de la sortie HTML.</li>
+<li><a href="../health-score/">Score de santé</a> — dérivation de <code>summary.health_score</code> et des scores par catégorie.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Retour en haut de la page
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024–2026 ludo-technologies
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/ludo-technologies/pyscn" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://pypi.org/project/pyscn/" target="_blank" rel="noopener" title="pypi.org" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.top", "navigation.indexes", "navigation.tracking", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.tooltips", "announce.dismiss"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

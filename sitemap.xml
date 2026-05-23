@@ -5,6 +5,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/"/>
     </url>
@@ -13,6 +14,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/faq/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/faq/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/faq/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/faq/"/>
     </url>
@@ -21,6 +23,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/"/>
     </url>
@@ -29,6 +32,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/analyze/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/analyze/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/analyze/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/analyze/"/>
     </url>
@@ -37,6 +41,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/check/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/check/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/check/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/check/"/>
     </url>
@@ -45,6 +50,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/init/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/init/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/init/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/init/"/>
     </url>
@@ -53,6 +59,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/version/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/version/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/version/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/version/"/>
     </url>
@@ -61,6 +68,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/"/>
     </url>
@@ -69,6 +77,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/examples/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/examples/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/examples/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/examples/"/>
     </url>
@@ -77,6 +86,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/format/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/format/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/format/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/format/"/>
     </url>
@@ -85,6 +95,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/reference/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/reference/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/reference/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/reference/"/>
     </url>
@@ -93,6 +104,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/getting-started/installation/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/getting-started/installation/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/getting-started/installation/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/getting-started/installation/"/>
     </url>
@@ -101,6 +113,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/getting-started/quick-start/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/getting-started/quick-start/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/getting-started/quick-start/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/getting-started/quick-start/"/>
     </url>
@@ -109,6 +122,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/"/>
     </url>
@@ -117,6 +131,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/ci-cd/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/ci-cd/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/ci-cd/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/ci-cd/"/>
     </url>
@@ -125,6 +140,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/mcp/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/mcp/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/mcp/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/mcp/"/>
     </url>
@@ -133,6 +149,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/python-packaging/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/python-packaging/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/python-packaging/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/python-packaging/"/>
     </url>
@@ -141,6 +158,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/"/>
     </url>
@@ -149,6 +167,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/health-score/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/health-score/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/health-score/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/health-score/"/>
     </url>
@@ -157,6 +176,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/html-report/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/html-report/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/html-report/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/html-report/"/>
     </url>
@@ -165,6 +185,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/schemas/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/schemas/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/schemas/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/schemas/"/>
     </url>
@@ -173,6 +194,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/"/>
     </url>
@@ -181,6 +203,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/circular-import/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/circular-import/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/circular-import/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/circular-import/"/>
     </url>
@@ -189,6 +212,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/concrete-instantiation-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/concrete-instantiation-dependency/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/concrete-instantiation-dependency/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/concrete-instantiation-dependency/"/>
     </url>
@@ -197,6 +221,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/concrete-type-hint-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/concrete-type-hint-dependency/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/concrete-type-hint-dependency/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/concrete-type-hint-dependency/"/>
     </url>
@@ -205,6 +230,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/deep-import-chain/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/deep-import-chain/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/deep-import-chain/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/deep-import-chain/"/>
     </url>
@@ -213,6 +239,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-identical/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-identical/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-identical/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-identical/"/>
     </url>
@@ -221,6 +248,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-modified/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-modified/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-modified/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-modified/"/>
     </url>
@@ -229,6 +257,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-renamed/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-renamed/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-renamed/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-renamed/"/>
     </url>
@@ -237,6 +266,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-semantic/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-semantic/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-semantic/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-semantic/"/>
     </url>
@@ -245,6 +275,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/global-state-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/global-state-dependency/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/global-state-dependency/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/global-state-dependency/"/>
     </url>
@@ -253,6 +284,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/high-class-coupling/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/high-class-coupling/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/high-class-coupling/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/high-class-coupling/"/>
     </url>
@@ -261,6 +293,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/high-cyclomatic-complexity/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/high-cyclomatic-complexity/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/high-cyclomatic-complexity/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/high-cyclomatic-complexity/"/>
     </url>
@@ -269,6 +302,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/layer-violation/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/layer-violation/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/layer-violation/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/layer-violation/"/>
     </url>
@@ -277,6 +311,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/low-class-cohesion/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/low-class-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/low-class-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/low-class-cohesion/"/>
     </url>
@@ -285,6 +320,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/low-package-cohesion/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/low-package-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/low-package-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/low-package-cohesion/"/>
     </url>
@@ -293,6 +329,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/mock-domain-in-string/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/mock-domain-in-string/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/mock-domain-in-string/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/mock-domain-in-string/"/>
     </url>
@@ -301,6 +338,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/mock-email-address/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/mock-email-address/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/mock-email-address/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/mock-email-address/"/>
     </url>
@@ -309,6 +347,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/mock-keyword-in-code/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/mock-keyword-in-code/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/mock-keyword-in-code/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/mock-keyword-in-code/"/>
     </url>
@@ -317,6 +356,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/module-variable-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/module-variable-dependency/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/module-variable-dependency/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/module-variable-dependency/"/>
     </url>
@@ -325,6 +365,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/placeholder-comment/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/placeholder-comment/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/placeholder-comment/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/placeholder-comment/"/>
     </url>
@@ -333,6 +374,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/placeholder-phone-number/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/placeholder-phone-number/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/placeholder-phone-number/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/placeholder-phone-number/"/>
     </url>
@@ -341,6 +383,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/placeholder-uuid/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/placeholder-uuid/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/placeholder-uuid/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/placeholder-uuid/"/>
     </url>
@@ -349,6 +392,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/repetitive-string-literal/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/repetitive-string-literal/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/repetitive-string-literal/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/repetitive-string-literal/"/>
     </url>
@@ -357,6 +401,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/service-locator-pattern/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/service-locator-pattern/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/service-locator-pattern/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/service-locator-pattern/"/>
     </url>
@@ -365,6 +410,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/single-responsibility/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/single-responsibility/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/single-responsibility/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/single-responsibility/"/>
     </url>
@@ -373,6 +419,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/singleton-pattern-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/singleton-pattern-dependency/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/singleton-pattern-dependency/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/singleton-pattern-dependency/"/>
     </url>
@@ -381,6 +428,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/test-credential-in-code/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/test-credential-in-code/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/test-credential-in-code/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/test-credential-in-code/"/>
     </url>
@@ -389,6 +437,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/too-many-constructor-parameters/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/too-many-constructor-parameters/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/too-many-constructor-parameters/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/too-many-constructor-parameters/"/>
     </url>
@@ -397,6 +446,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-break/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-break/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-break/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-break/"/>
     </url>
@@ -405,6 +455,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-continue/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-continue/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-continue/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-continue/"/>
     </url>
@@ -413,6 +464,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-infinite-loop/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-infinite-loop/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-infinite-loop/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-infinite-loop/"/>
     </url>
@@ -421,6 +473,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-raise/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-raise/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-raise/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-raise/"/>
     </url>
@@ -429,6 +482,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-return/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-return/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-return/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-return/"/>
     </url>
@@ -437,6 +491,7 @@
         <lastmod>2026-05-23</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-branch/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-branch/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-branch/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-branch/"/>
     </url>
@@ -446,6 +501,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/"/>
     </url>
     <url>
@@ -454,6 +510,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/faq/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/faq/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/faq/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/faq/"/>
     </url>
     <url>
@@ -462,6 +519,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/"/>
     </url>
     <url>
@@ -470,6 +528,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/analyze/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/analyze/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/analyze/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/analyze/"/>
     </url>
     <url>
@@ -478,6 +537,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/check/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/check/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/check/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/check/"/>
     </url>
     <url>
@@ -486,6 +546,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/init/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/init/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/init/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/init/"/>
     </url>
     <url>
@@ -494,6 +555,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/version/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/version/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/version/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/version/"/>
     </url>
     <url>
@@ -502,6 +564,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/"/>
     </url>
     <url>
@@ -510,6 +573,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/examples/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/examples/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/examples/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/examples/"/>
     </url>
     <url>
@@ -518,6 +582,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/format/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/format/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/format/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/format/"/>
     </url>
     <url>
@@ -526,6 +591,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/reference/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/reference/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/reference/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/reference/"/>
     </url>
     <url>
@@ -534,6 +600,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/getting-started/installation/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/getting-started/installation/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/getting-started/installation/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/getting-started/installation/"/>
     </url>
     <url>
@@ -542,6 +609,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/getting-started/quick-start/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/getting-started/quick-start/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/getting-started/quick-start/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/getting-started/quick-start/"/>
     </url>
     <url>
@@ -550,6 +618,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/"/>
     </url>
     <url>
@@ -558,6 +627,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/ci-cd/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/ci-cd/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/ci-cd/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/ci-cd/"/>
     </url>
     <url>
@@ -566,6 +636,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/mcp/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/mcp/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/mcp/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/mcp/"/>
     </url>
     <url>
@@ -574,6 +645,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/python-packaging/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/python-packaging/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/python-packaging/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/python-packaging/"/>
     </url>
     <url>
@@ -582,6 +654,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/"/>
     </url>
     <url>
@@ -590,6 +663,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/health-score/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/health-score/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/health-score/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/health-score/"/>
     </url>
     <url>
@@ -598,6 +672,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/html-report/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/html-report/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/html-report/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/html-report/"/>
     </url>
     <url>
@@ -606,6 +681,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/schemas/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/schemas/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/schemas/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/schemas/"/>
     </url>
     <url>
@@ -614,6 +690,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/"/>
     </url>
     <url>
@@ -622,6 +699,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/circular-import/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/circular-import/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/circular-import/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/circular-import/"/>
     </url>
     <url>
@@ -630,6 +708,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/concrete-instantiation-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/concrete-instantiation-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/concrete-instantiation-dependency/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/concrete-instantiation-dependency/"/>
     </url>
     <url>
@@ -638,6 +717,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/concrete-type-hint-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/concrete-type-hint-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/concrete-type-hint-dependency/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/concrete-type-hint-dependency/"/>
     </url>
     <url>
@@ -646,6 +726,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/deep-import-chain/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/deep-import-chain/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/deep-import-chain/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/deep-import-chain/"/>
     </url>
     <url>
@@ -654,6 +735,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-identical/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-identical/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-identical/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-identical/"/>
     </url>
     <url>
@@ -662,6 +744,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-modified/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-modified/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-modified/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-modified/"/>
     </url>
     <url>
@@ -670,6 +753,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-renamed/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-renamed/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-renamed/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-renamed/"/>
     </url>
     <url>
@@ -678,6 +762,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-semantic/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-semantic/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-semantic/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-semantic/"/>
     </url>
     <url>
@@ -686,6 +771,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/global-state-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/global-state-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/global-state-dependency/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/global-state-dependency/"/>
     </url>
     <url>
@@ -694,6 +780,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/high-class-coupling/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/high-class-coupling/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/high-class-coupling/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/high-class-coupling/"/>
     </url>
     <url>
@@ -702,6 +789,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/high-cyclomatic-complexity/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/high-cyclomatic-complexity/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/high-cyclomatic-complexity/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/high-cyclomatic-complexity/"/>
     </url>
     <url>
@@ -710,6 +798,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/layer-violation/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/layer-violation/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/layer-violation/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/layer-violation/"/>
     </url>
     <url>
@@ -718,6 +807,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/low-class-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/low-class-cohesion/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/low-class-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/low-class-cohesion/"/>
     </url>
     <url>
@@ -726,6 +816,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/low-package-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/low-package-cohesion/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/low-package-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/low-package-cohesion/"/>
     </url>
     <url>
@@ -734,6 +825,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/mock-domain-in-string/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/mock-domain-in-string/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/mock-domain-in-string/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/mock-domain-in-string/"/>
     </url>
     <url>
@@ -742,6 +834,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/mock-email-address/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/mock-email-address/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/mock-email-address/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/mock-email-address/"/>
     </url>
     <url>
@@ -750,6 +843,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/mock-keyword-in-code/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/mock-keyword-in-code/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/mock-keyword-in-code/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/mock-keyword-in-code/"/>
     </url>
     <url>
@@ -758,6 +852,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/module-variable-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/module-variable-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/module-variable-dependency/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/module-variable-dependency/"/>
     </url>
     <url>
@@ -766,6 +861,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/placeholder-comment/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/placeholder-comment/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/placeholder-comment/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/placeholder-comment/"/>
     </url>
     <url>
@@ -774,6 +870,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/placeholder-phone-number/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/placeholder-phone-number/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/placeholder-phone-number/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/placeholder-phone-number/"/>
     </url>
     <url>
@@ -782,6 +879,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/placeholder-uuid/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/placeholder-uuid/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/placeholder-uuid/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/placeholder-uuid/"/>
     </url>
     <url>
@@ -790,6 +888,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/repetitive-string-literal/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/repetitive-string-literal/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/repetitive-string-literal/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/repetitive-string-literal/"/>
     </url>
     <url>
@@ -798,6 +897,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/service-locator-pattern/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/service-locator-pattern/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/service-locator-pattern/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/service-locator-pattern/"/>
     </url>
     <url>
@@ -806,6 +906,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/single-responsibility/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/single-responsibility/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/single-responsibility/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/single-responsibility/"/>
     </url>
     <url>
@@ -814,6 +915,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/singleton-pattern-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/singleton-pattern-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/singleton-pattern-dependency/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/singleton-pattern-dependency/"/>
     </url>
     <url>
@@ -822,6 +924,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/test-credential-in-code/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/test-credential-in-code/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/test-credential-in-code/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/test-credential-in-code/"/>
     </url>
     <url>
@@ -830,6 +933,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/too-many-constructor-parameters/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/too-many-constructor-parameters/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/too-many-constructor-parameters/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/too-many-constructor-parameters/"/>
     </url>
     <url>
@@ -838,6 +942,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-break/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-break/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-break/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-break/"/>
     </url>
     <url>
@@ -846,6 +951,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-continue/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-continue/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-continue/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-continue/"/>
     </url>
     <url>
@@ -854,6 +960,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-infinite-loop/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-infinite-loop/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-infinite-loop/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-infinite-loop/"/>
     </url>
     <url>
@@ -862,6 +969,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-raise/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-raise/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-raise/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-raise/"/>
     </url>
     <url>
@@ -870,6 +978,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-return/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-return/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-return/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-return/"/>
     </url>
     <url>
@@ -878,6 +987,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-branch/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-branch/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-branch/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-branch/"/>
     </url>
     <url>
@@ -886,6 +996,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/"/>
     </url>
     <url>
@@ -894,6 +1005,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/faq/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/faq/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/faq/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/faq/"/>
     </url>
     <url>
@@ -902,6 +1014,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/"/>
     </url>
     <url>
@@ -910,6 +1023,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/analyze/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/analyze/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/analyze/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/analyze/"/>
     </url>
     <url>
@@ -918,6 +1032,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/check/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/check/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/check/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/check/"/>
     </url>
     <url>
@@ -926,6 +1041,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/init/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/init/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/init/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/init/"/>
     </url>
     <url>
@@ -934,6 +1050,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/version/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/version/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/version/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/version/"/>
     </url>
     <url>
@@ -942,6 +1059,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/"/>
     </url>
     <url>
@@ -950,6 +1068,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/examples/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/examples/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/examples/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/examples/"/>
     </url>
     <url>
@@ -958,6 +1077,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/format/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/format/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/format/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/format/"/>
     </url>
     <url>
@@ -966,6 +1086,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/reference/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/reference/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/reference/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/reference/"/>
     </url>
     <url>
@@ -974,6 +1095,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/getting-started/installation/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/getting-started/installation/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/getting-started/installation/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/getting-started/installation/"/>
     </url>
     <url>
@@ -982,6 +1104,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/getting-started/quick-start/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/getting-started/quick-start/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/getting-started/quick-start/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/getting-started/quick-start/"/>
     </url>
     <url>
@@ -990,6 +1113,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/"/>
     </url>
     <url>
@@ -998,6 +1122,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/ci-cd/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/ci-cd/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/ci-cd/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/ci-cd/"/>
     </url>
     <url>
@@ -1006,6 +1131,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/mcp/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/mcp/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/mcp/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/mcp/"/>
     </url>
     <url>
@@ -1014,6 +1140,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/python-packaging/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/python-packaging/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/python-packaging/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/python-packaging/"/>
     </url>
     <url>
@@ -1022,6 +1149,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/"/>
     </url>
     <url>
@@ -1030,6 +1158,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/health-score/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/health-score/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/health-score/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/health-score/"/>
     </url>
     <url>
@@ -1038,6 +1167,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/html-report/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/html-report/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/html-report/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/html-report/"/>
     </url>
     <url>
@@ -1046,6 +1176,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/schemas/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/schemas/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/schemas/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/schemas/"/>
     </url>
     <url>
@@ -1054,6 +1185,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/"/>
     </url>
     <url>
@@ -1062,6 +1194,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/circular-import/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/circular-import/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/circular-import/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/circular-import/"/>
     </url>
     <url>
@@ -1070,6 +1203,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/concrete-instantiation-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/concrete-instantiation-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/concrete-instantiation-dependency/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/concrete-instantiation-dependency/"/>
     </url>
     <url>
@@ -1078,6 +1212,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/concrete-type-hint-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/concrete-type-hint-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/concrete-type-hint-dependency/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/concrete-type-hint-dependency/"/>
     </url>
     <url>
@@ -1086,6 +1221,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/deep-import-chain/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/deep-import-chain/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/deep-import-chain/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/deep-import-chain/"/>
     </url>
     <url>
@@ -1094,6 +1230,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-identical/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-identical/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-identical/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-identical/"/>
     </url>
     <url>
@@ -1102,6 +1239,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-modified/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-modified/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-modified/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-modified/"/>
     </url>
     <url>
@@ -1110,6 +1248,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-renamed/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-renamed/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-renamed/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-renamed/"/>
     </url>
     <url>
@@ -1118,6 +1257,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-semantic/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-semantic/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-semantic/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-semantic/"/>
     </url>
     <url>
@@ -1126,6 +1266,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/global-state-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/global-state-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/global-state-dependency/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/global-state-dependency/"/>
     </url>
     <url>
@@ -1134,6 +1275,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/high-class-coupling/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/high-class-coupling/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/high-class-coupling/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/high-class-coupling/"/>
     </url>
     <url>
@@ -1142,6 +1284,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/high-cyclomatic-complexity/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/high-cyclomatic-complexity/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/high-cyclomatic-complexity/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/high-cyclomatic-complexity/"/>
     </url>
     <url>
@@ -1150,6 +1293,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/layer-violation/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/layer-violation/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/layer-violation/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/layer-violation/"/>
     </url>
     <url>
@@ -1158,6 +1302,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/low-class-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/low-class-cohesion/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/low-class-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/low-class-cohesion/"/>
     </url>
     <url>
@@ -1166,6 +1311,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/low-package-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/low-package-cohesion/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/low-package-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/low-package-cohesion/"/>
     </url>
     <url>
@@ -1174,6 +1320,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/mock-domain-in-string/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/mock-domain-in-string/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/mock-domain-in-string/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/mock-domain-in-string/"/>
     </url>
     <url>
@@ -1182,6 +1329,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/mock-email-address/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/mock-email-address/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/mock-email-address/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/mock-email-address/"/>
     </url>
     <url>
@@ -1190,6 +1338,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/mock-keyword-in-code/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/mock-keyword-in-code/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/mock-keyword-in-code/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/mock-keyword-in-code/"/>
     </url>
     <url>
@@ -1198,6 +1347,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/module-variable-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/module-variable-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/module-variable-dependency/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/module-variable-dependency/"/>
     </url>
     <url>
@@ -1206,6 +1356,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/placeholder-comment/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/placeholder-comment/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/placeholder-comment/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/placeholder-comment/"/>
     </url>
     <url>
@@ -1214,6 +1365,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/placeholder-phone-number/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/placeholder-phone-number/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/placeholder-phone-number/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/placeholder-phone-number/"/>
     </url>
     <url>
@@ -1222,6 +1374,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/placeholder-uuid/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/placeholder-uuid/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/placeholder-uuid/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/placeholder-uuid/"/>
     </url>
     <url>
@@ -1230,6 +1383,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/repetitive-string-literal/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/repetitive-string-literal/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/repetitive-string-literal/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/repetitive-string-literal/"/>
     </url>
     <url>
@@ -1238,6 +1392,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/service-locator-pattern/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/service-locator-pattern/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/service-locator-pattern/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/service-locator-pattern/"/>
     </url>
     <url>
@@ -1246,6 +1401,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/single-responsibility/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/single-responsibility/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/single-responsibility/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/single-responsibility/"/>
     </url>
     <url>
@@ -1254,6 +1410,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/singleton-pattern-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/singleton-pattern-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/singleton-pattern-dependency/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/singleton-pattern-dependency/"/>
     </url>
     <url>
@@ -1262,6 +1419,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/test-credential-in-code/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/test-credential-in-code/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/test-credential-in-code/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/test-credential-in-code/"/>
     </url>
     <url>
@@ -1270,6 +1428,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/too-many-constructor-parameters/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/too-many-constructor-parameters/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/too-many-constructor-parameters/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/too-many-constructor-parameters/"/>
     </url>
     <url>
@@ -1278,6 +1437,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-break/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-break/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-break/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-break/"/>
     </url>
     <url>
@@ -1286,6 +1446,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-continue/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-continue/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-continue/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-continue/"/>
     </url>
     <url>
@@ -1294,6 +1455,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-infinite-loop/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-infinite-loop/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-infinite-loop/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-infinite-loop/"/>
     </url>
     <url>
@@ -1302,6 +1464,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-raise/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-raise/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-raise/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-raise/"/>
     </url>
     <url>
@@ -1310,6 +1473,7 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-return/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-return/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-return/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-return/"/>
     </url>
     <url>
@@ -1318,6 +1482,502 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-branch/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-branch/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-branch/"/>
         <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-branch/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/faq/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/faq/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/faq/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/faq/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/faq/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/cli/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/cli/analyze/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/analyze/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/analyze/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/analyze/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/analyze/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/cli/check/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/check/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/check/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/check/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/check/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/cli/init/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/init/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/init/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/init/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/init/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/cli/version/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/cli/version/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/cli/version/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/cli/version/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/cli/version/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/configuration/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/configuration/examples/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/examples/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/examples/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/examples/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/examples/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/configuration/format/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/format/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/format/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/format/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/format/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/configuration/reference/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/configuration/reference/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/configuration/reference/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/configuration/reference/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/configuration/reference/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/getting-started/installation/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/getting-started/installation/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/getting-started/installation/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/getting-started/installation/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/getting-started/installation/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/getting-started/quick-start/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/getting-started/quick-start/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/getting-started/quick-start/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/getting-started/quick-start/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/getting-started/quick-start/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/integrations/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/integrations/ci-cd/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/ci-cd/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/ci-cd/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/ci-cd/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/ci-cd/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/integrations/mcp/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/mcp/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/mcp/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/mcp/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/mcp/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/integrations/python-packaging/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/integrations/python-packaging/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/integrations/python-packaging/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/integrations/python-packaging/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/integrations/python-packaging/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/output/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/output/health-score/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/health-score/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/health-score/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/health-score/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/health-score/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/output/html-report/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/html-report/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/html-report/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/html-report/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/html-report/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/output/schemas/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/output/schemas/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/output/schemas/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/output/schemas/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/output/schemas/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/circular-import/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/circular-import/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/circular-import/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/circular-import/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/circular-import/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/concrete-instantiation-dependency/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/concrete-instantiation-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/concrete-instantiation-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/concrete-instantiation-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/concrete-instantiation-dependency/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/concrete-type-hint-dependency/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/concrete-type-hint-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/concrete-type-hint-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/concrete-type-hint-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/concrete-type-hint-dependency/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/deep-import-chain/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/deep-import-chain/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/deep-import-chain/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/deep-import-chain/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/deep-import-chain/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-identical/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-identical/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-identical/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-identical/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-identical/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-modified/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-modified/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-modified/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-modified/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-modified/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-renamed/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-renamed/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-renamed/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-renamed/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-renamed/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-semantic/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/duplicate-code-semantic/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/duplicate-code-semantic/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/duplicate-code-semantic/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/duplicate-code-semantic/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/global-state-dependency/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/global-state-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/global-state-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/global-state-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/global-state-dependency/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/high-class-coupling/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/high-class-coupling/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/high-class-coupling/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/high-class-coupling/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/high-class-coupling/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/high-cyclomatic-complexity/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/high-cyclomatic-complexity/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/high-cyclomatic-complexity/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/high-cyclomatic-complexity/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/high-cyclomatic-complexity/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/layer-violation/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/layer-violation/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/layer-violation/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/layer-violation/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/layer-violation/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/low-class-cohesion/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/low-class-cohesion/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/low-class-cohesion/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/low-class-cohesion/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/low-class-cohesion/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/low-package-cohesion/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/low-package-cohesion/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/low-package-cohesion/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/low-package-cohesion/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/low-package-cohesion/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/mock-domain-in-string/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/mock-domain-in-string/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/mock-domain-in-string/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/mock-domain-in-string/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/mock-domain-in-string/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/mock-email-address/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/mock-email-address/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/mock-email-address/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/mock-email-address/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/mock-email-address/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/mock-keyword-in-code/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/mock-keyword-in-code/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/mock-keyword-in-code/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/mock-keyword-in-code/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/mock-keyword-in-code/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/module-variable-dependency/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/module-variable-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/module-variable-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/module-variable-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/module-variable-dependency/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/placeholder-comment/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/placeholder-comment/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/placeholder-comment/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/placeholder-comment/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/placeholder-comment/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/placeholder-phone-number/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/placeholder-phone-number/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/placeholder-phone-number/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/placeholder-phone-number/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/placeholder-phone-number/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/placeholder-uuid/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/placeholder-uuid/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/placeholder-uuid/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/placeholder-uuid/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/placeholder-uuid/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/repetitive-string-literal/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/repetitive-string-literal/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/repetitive-string-literal/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/repetitive-string-literal/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/repetitive-string-literal/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/service-locator-pattern/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/service-locator-pattern/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/service-locator-pattern/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/service-locator-pattern/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/service-locator-pattern/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/single-responsibility/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/single-responsibility/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/single-responsibility/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/single-responsibility/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/single-responsibility/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/singleton-pattern-dependency/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/singleton-pattern-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/singleton-pattern-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/singleton-pattern-dependency/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/singleton-pattern-dependency/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/test-credential-in-code/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/test-credential-in-code/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/test-credential-in-code/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/test-credential-in-code/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/test-credential-in-code/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/too-many-constructor-parameters/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/too-many-constructor-parameters/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/too-many-constructor-parameters/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/too-many-constructor-parameters/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/too-many-constructor-parameters/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-break/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-break/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-break/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-break/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-break/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-continue/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-continue/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-continue/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-continue/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-continue/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-infinite-loop/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-infinite-loop/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-infinite-loop/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-infinite-loop/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-infinite-loop/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-raise/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-raise/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-raise/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-raise/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-raise/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-return/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-after-return/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-after-return/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-after-return/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-after-return/"/>
+    </url>
+    <url>
+        <loc>https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-branch/</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://ludo-technologies.github.io/pyscn/fr/rules/unreachable-branch/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://ludo-technologies.github.io/pyscn/rules/unreachable-branch/"/>
+        <xhtml:link rel="alternate" hreflang="ja" href="https://ludo-technologies.github.io/pyscn/ja/rules/unreachable-branch/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://ludo-technologies.github.io/pyscn/zh/rules/unreachable-branch/"/>
     </url>
 </urlset>
