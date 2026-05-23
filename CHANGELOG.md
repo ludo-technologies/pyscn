@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.22.1] - 2026-05-23
+
+### Fixed
+- Populate `SystemAnalysisResponse.Summary` so analyze reports aggregate system metrics correctly (#472)
+
+### Documentation
+- Add French translation (#470)
+- Tidy mkdocs header logo (#469)
+
 ## [1.22.0] - 2026-05-23
 
 ### Fixed
