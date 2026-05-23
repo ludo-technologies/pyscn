@@ -130,6 +130,38 @@ plugins:
             Integrations: 集成
             Python Packaging: Python 打包
             FAQ: 常见问题
+        - locale: fr
+          name: Français
+          build: true
+          site_name: pyscn
+          nav_translations:
+            Home: Accueil
+            Getting Started: Démarrage
+            Installation: Installation
+            Quick Start: Démarrage rapide
+            Rules: Règles
+            Overview: Vue d'ensemble
+            Unreachable Code: Code inatteignable
+            Duplicate Code: Code dupliqué
+            Complexity: Complexité
+            Class Design: Conception de classe
+            Dependency Injection: Injection de dépendances
+            Module Structure: Structure des modules
+            Mock Data: Données fictives
+            CLI Reference: Référence CLI
+            Configuration: Configuration
+            Config File Format: Format du fichier de configuration
+            Reference: Référence
+            Examples: Exemples
+            Output Formats: Formats de sortie
+            HTML Report: Rapport HTML
+            Schemas: Schémas
+            Health Score: Score de santé
+            Integrations: Intégrations
+            CI/CD: CI/CD
+            MCP: MCP
+            Python Packaging: Packaging Python
+            FAQ: FAQ
 
 markdown_extensions:
   - abbr

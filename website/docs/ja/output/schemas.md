@@ -45,12 +45,12 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | `system`      | object \| absent  | 依存関係またはアーキテクチャ分析が実行された場合に存在します。 | stable    |
 | `mock_data`   | object \| absent  | モックデータ検出が実行された場合に存在します。         | stable    |
 | `suggestions` | array \| absent   | 導出された提案。空の場合は省略されます。               | stable    |
-| `summary`     | object            | 常に存在します。[`summary`](#summary-オブジェクト) を参照してください。 | stable    |
+| `summary`     | object            | 常に存在します。[`summary`](#summary-object) を参照してください。 | stable    |
 | `generated_at`| string (RFC 3339) | 分析完了時刻。                                         | stable    |
 | `duration_ms` | integer           | 分析の合計所要時間（ミリ秒）。                         | stable    |
 | `version`     | string            | pyscn のセマンティックバージョン。                     | stable    |
 
-## `summary` オブジェクト
+## `summary` オブジェクト { #summary-object }
 
 `domain.AnalyzeSummary` に対応します。対応するアナライザが無効の場合、すべての数値カウンタはデフォルト値 `0` になります。すべてのフィールドは常に存在します。
 
@@ -184,10 +184,10 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | `StartLine`   | integer | 1始まりの開始行。                                            |
 | `StartColumn` | integer | 0始まりの開始列。                                            |
 | `EndLine`     | integer | 1始まりの終了行。                                            |
-| `Metrics`     | object  | [`ComplexityMetrics`](#complexitymetrics-オブジェクト) を参照。 |
+| `Metrics`     | object  | [`ComplexityMetrics`](#complexitymetrics-object) を参照。 |
 | `RiskLevel`   | string  | `low`、`medium`、`high` のいずれか。                         |
 
-### `ComplexityMetrics` オブジェクト
+### `ComplexityMetrics` オブジェクト { #complexitymetrics-object }
 
 | フィールド             | 型      | 説明                                               |
 | --------------------- | ------- | -------------------------------------------------- |
@@ -274,7 +274,7 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 
 | フィールド       | 型      | 説明                                                          |
 | --------------- | ------- | ------------------------------------------------------------- |
-| `location`      | object  | [`DeadCodeLocation`](#deadcodelocation-オブジェクト) を参照。 |
+| `location`      | object  | [`DeadCodeLocation`](#deadcodelocation-object) を参照。 |
 | `function_name` | string  | 包含する関数名。                                              |
 | `code`          | string  | デッドコードのソースコード断片。                              |
 | `reason`        | string  | 分類 — 下記の列挙を参照。                                    |
@@ -293,7 +293,7 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | `after_raise`         | `raise` 文の後のコード。                     |
 | `unreachable_branch`  | 到達されない条件分岐。                       |
 
-### `DeadCodeLocation` オブジェクト
+### `DeadCodeLocation` オブジェクト { #deadcodelocation-object }
 
 | フィールド      | 型      | 説明                       |
 | -------------- | ------- | -------------------------- |
@@ -342,7 +342,7 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | ------------ | ------- | ------------------------------------------------------------ |
 | `id`         | integer | レスポンス内で一意のクローン識別子。                         |
 | `type`       | integer | 整数値のクローンタイプ: `1`、`2`、`3`、または `4`。          |
-| `location`   | object  | [`CloneLocation`](#clonelocation-オブジェクト) を参照。      |
+| `location`   | object  | [`CloneLocation`](#clonelocation-object) を参照。      |
 | `content`    | string  | 生のソーステキスト。`--show-content` 設定時のみ存在。        |
 | `hash`       | string  | フィンガープリントハッシュ（アルゴリズムはクローンタイプに依存）。 |
 | `size`       | integer | AST ノード数。                                               |
@@ -358,7 +358,7 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | `3`   | Type-3: 変更を伴う構造的類似。                                       |
 | `4`   | Type-4: 意味的に等価、構文的に異なる。                               |
 
-### `CloneLocation` オブジェクト
+### `CloneLocation` オブジェクト { #clonelocation-object }
 
 | フィールド    | 型      | 説明                     |
 | ------------ | ------- | ------------------------ |
@@ -436,12 +436,12 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | `FilePath`    | string  | ソースファイルのパス。                      |
 | `StartLine`   | integer | 1始まりの開始行。                           |
 | `EndLine`     | integer | 1始まりの終了行。                           |
-| `Metrics`     | object  | [`CBOMetrics`](#cbometrics-オブジェクト) を参照。 |
+| `Metrics`     | object  | [`CBOMetrics`](#cbometrics-object) を参照。 |
 | `RiskLevel`   | string  | `low`、`medium`、`high` のいずれか。        |
 | `IsAbstract`  | boolean | クラスが抽象クラスの場合に `true`。         |
 | `BaseClasses` | array of string \| null | 直接の基底クラス。          |
 
-### `CBOMetrics` オブジェクト
+### `CBOMetrics` オブジェクト { #cbometrics-object }
 
 | フィールド                     | 型      | 説明                                                      |
 | ----------------------------- | ------- | --------------------------------------------------------- |
@@ -494,10 +494,10 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | `FilePath`  | string  | ソースファイルのパス。                           |
 | `StartLine` | integer | 1始まりの開始行。                                |
 | `EndLine`   | integer | 1始まりの終了行。                                |
-| `Metrics`   | object  | [`LCOMMetrics`](#lcommetrics-オブジェクト) を参照。 |
+| `Metrics`   | object  | [`LCOMMetrics`](#lcommetrics-object) を参照。 |
 | `RiskLevel` | string  | `low`、`medium`、`high` のいずれか。             |
 
-### `LCOMMetrics` オブジェクト
+### `LCOMMetrics` オブジェクト { #lcommetrics-object }
 
 | フィールド           | 型      | 説明                                                        |
 | ------------------- | ------- | ----------------------------------------------------------- |

@@ -15,7 +15,7 @@ max_complexity = 15
 min_severity = "critical"
 ```
 
-## 厳格な CI ゲート
+## 厳格な CI ゲート { #strict-ci-gate }
 
 品質低下があればビルドを失敗させます。`pyscn check` と組み合わせて使用します。
 
