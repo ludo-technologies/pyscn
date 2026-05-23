@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -169,6 +171,86 @@ func TestCBOService_Analyze(t *testing.T) {
 		assert.NotNil(t, response)
 		// When including builtins, CBO counts may be higher
 	})
+}
+
+func TestCBOService_AnalyzeDependencyIdentityContract(t *testing.T) {
+	source := `
+from abc import ABC
+from typing import Protocol, TypedDict
+
+class Dependency:
+    pass
+
+class Payload(TypedDict):
+    name: str
+
+class Contract(Protocol):
+    def handle(self, item: Dependency) -> Dependency:
+        ...
+
+class AbstractBase(ABC):
+    pass
+
+class Widget:
+    other: Widget
+
+    def adopt(self, owner: Widget) -> Widget:
+        return Widget()
+
+class Service:
+    field: Dependency
+
+    def set_one(self, item: Dependency) -> Dependency:
+        return item
+
+    def set_two(self, item: Dependency) -> Dependency:
+        return item
+`
+
+	filePath := filepath.Join(t.TempDir(), "contract.py")
+	require.NoError(t, os.WriteFile(filePath, []byte(source), 0o600))
+
+	response, err := NewCBOService().Analyze(context.Background(), newDefaultCBORequest(filePath))
+	require.NoError(t, err)
+	require.NotNil(t, response)
+	assert.Empty(t, response.Errors)
+
+	classes := make(map[string]domain.ClassCoupling, len(response.Classes))
+	for _, class := range response.Classes {
+		classes[class.Name] = class
+	}
+
+	payload, ok := classes["Payload"]
+	require.True(t, ok)
+	assert.Equal(t, 0, payload.Metrics.CouplingCount)
+	assert.Equal(t, 0, payload.Metrics.InheritanceDependencies)
+	assert.Equal(t, []string{"TypedDict"}, payload.BaseClasses)
+	assert.Empty(t, payload.Metrics.DependentClasses)
+
+	contract, ok := classes["Contract"]
+	require.True(t, ok)
+	assert.Equal(t, 1, contract.Metrics.CouplingCount)
+	assert.Equal(t, 1, contract.Metrics.TypeHintDependencies)
+	assert.Equal(t, []string{"Dependency"}, contract.Metrics.DependentClasses)
+	assert.Equal(t, []string{"Protocol"}, contract.BaseClasses)
+
+	abstractBase, ok := classes["AbstractBase"]
+	require.True(t, ok)
+	assert.Equal(t, 0, abstractBase.Metrics.CouplingCount)
+	assert.Equal(t, 0, abstractBase.Metrics.InheritanceDependencies)
+	assert.Equal(t, []string{"ABC"}, abstractBase.BaseClasses)
+	assert.Empty(t, abstractBase.Metrics.DependentClasses)
+
+	widget, ok := classes["Widget"]
+	require.True(t, ok)
+	assert.Equal(t, 0, widget.Metrics.CouplingCount)
+	assert.Empty(t, widget.Metrics.DependentClasses)
+
+	service, ok := classes["Service"]
+	require.True(t, ok)
+	assert.Equal(t, 1, service.Metrics.CouplingCount)
+	assert.Equal(t, 1, service.Metrics.TypeHintDependencies)
+	assert.Equal(t, []string{"Dependency"}, service.Metrics.DependentClasses)
 }
 
 func TestCBOService_AnalyzeFile(t *testing.T) {
