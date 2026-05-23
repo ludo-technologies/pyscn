@@ -248,6 +248,128 @@ func TestConvertCircularResults(t *testing.T) {
 	require.Contains(t, result.CoreInfrastructure, "moduleB")
 }
 
+func TestBuildSystemAnalysisSummaryAggregatesSystemResults(t *testing.T) {
+	service := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+	dependencies := &domain.DependencyAnalysisResult{
+		TotalModules:      3,
+		TotalDependencies: 2,
+		ModuleMetrics: map[string]*domain.ModuleDependencyMetrics{
+			"pkg.a": {
+				Package:         "pkg",
+				RiskLevel:       domain.RiskLevelHigh,
+				Maintainability: 60,
+				TechnicalDebt:   2.5,
+			},
+			"pkg.b": {
+				Package:         "pkg",
+				RiskLevel:       domain.RiskLevelLow,
+				Maintainability: 80,
+				TechnicalDebt:   1.5,
+			},
+			"other.c": {
+				Package:         "other",
+				RiskLevel:       domain.RiskLevelMedium,
+				Maintainability: 70,
+				TechnicalDebt:   2.5,
+			},
+		},
+		CouplingAnalysis: &domain.CouplingAnalysis{
+			AverageCoupling:       1.25,
+			AverageInstability:    0.4,
+			HighlyCoupledModules:  []string{"pkg.a", "pkg.b"},
+			MainSequenceDeviation: 0.2,
+		},
+		CircularDependencies: &domain.CircularDependencyAnalysis{
+			TotalModulesInCycles: 2,
+			CircularDependencies: []domain.CircularDependency{
+				{Severity: domain.CycleSeverityCritical},
+				{Severity: domain.CycleSeverityLow},
+			},
+		},
+	}
+	architecture := &domain.ArchitectureAnalysisResult{
+		ComplianceScore: 0.75,
+		TotalViolations: 3,
+		SeverityBreakdown: map[domain.ViolationSeverity]int{
+			domain.ViolationSeverityCritical: 1,
+			domain.ViolationSeverityError:    2,
+		},
+		Recommendations: []domain.ArchitectureRecommendation{
+			{Type: domain.RecommendationTypeRefactor},
+			{Type: domain.RecommendationTypeInterface},
+		},
+		RefactoringTargets: []string{"other.c", "pkg.a"},
+	}
+
+	summary := service.buildSystemAnalysisSummary(graph, dependencies, architecture)
+
+	assert.Equal(t, 3, summary.TotalModules)
+	assert.Equal(t, 2, summary.TotalPackages)
+	assert.Equal(t, 2, summary.TotalDependencies)
+	assert.Equal(t, "/project", summary.ProjectRoot)
+	assert.Equal(t, 75.0, summary.ArchitectureScore)
+	assert.Equal(t, 70.0, summary.MaintainabilityScore)
+	assert.InDelta(t, 60.83, summary.ModularityScore, 0.01)
+	assert.InDelta(t, 68.75, summary.OverallQualityScore, 0.01)
+	assert.Equal(t, 6.5, summary.TechnicalDebtHours)
+	assert.Equal(t, 1.25, summary.AverageCoupling)
+	assert.Equal(t, 0.4, summary.AverageInstability)
+	assert.Equal(t, 2, summary.CyclicDependencies)
+	assert.Equal(t, 3, summary.ArchitectureViolations)
+	assert.Equal(t, 1, summary.HighRiskModules)
+	assert.Equal(t, 2, summary.CriticalIssues)
+	assert.Equal(t, 3, summary.RefactoringCandidates)
+	assert.Equal(t, 2, summary.ArchitectureImprovements)
+}
+
+func TestBuildSystemAnalysisSummaryCountsCriticalViolationsFromDetails(t *testing.T) {
+	service := NewSystemAnalysisService()
+	architecture := &domain.ArchitectureAnalysisResult{
+		TotalViolations:   0,
+		SeverityBreakdown: map[domain.ViolationSeverity]int{},
+		Violations: []domain.ArchitectureViolation{
+			{Severity: domain.ViolationSeverityCritical},
+			{Severity: domain.ViolationSeverityError},
+		},
+	}
+
+	summary := service.buildSystemAnalysisSummary(nil, nil, architecture)
+
+	assert.Equal(t, 2, summary.ArchitectureViolations)
+	assert.Equal(t, 1, summary.CriticalIssues)
+}
+
+func TestBuildSystemAnalysisSummaryKeepsCriticalIssuesConsistentWithBreakdownOnlyData(t *testing.T) {
+	service := NewSystemAnalysisService()
+	architecture := &domain.ArchitectureAnalysisResult{
+		TotalViolations: 0,
+		SeverityBreakdown: map[domain.ViolationSeverity]int{
+			domain.ViolationSeverityCritical: 2,
+		},
+	}
+
+	summary := service.buildSystemAnalysisSummary(nil, nil, architecture)
+
+	assert.Equal(t, 2, summary.ArchitectureViolations)
+	assert.Equal(t, 2, summary.CriticalIssues)
+}
+
+func TestBuildSystemAnalysisSummaryUsesArchitectureOnlyOverallScoreWithoutDependencyResult(t *testing.T) {
+	service := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+	graph.AddModule("app.main", "/project/app/main.py")
+	architecture := &domain.ArchitectureAnalysisResult{
+		ComplianceScore: 0.9,
+	}
+
+	summary := service.buildSystemAnalysisSummary(graph, nil, architecture)
+
+	assert.Equal(t, 1, summary.TotalModules)
+	assert.Equal(t, 90.0, summary.ArchitectureScore)
+	assert.Equal(t, 90.0, summary.OverallQualityScore)
+}
+
 func TestGenerateArchitectureRecommendations(t *testing.T) {
 	service := NewSystemAnalysisService()
 

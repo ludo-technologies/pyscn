@@ -124,6 +124,7 @@ import domain.core
 		require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
 		paths = append(paths, path)
 	}
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"summary-test\"\n"), 0o644))
 
 	rules := &domain.ArchitectureRules{
 		Layers: []domain.Layer{
@@ -160,6 +161,17 @@ import domain.core
 	assert.Equal(t, separateDependencies.MaxDepth, combined.DependencyAnalysis.MaxDepth)
 	assert.Equal(t, separateArchitecture.TotalViolations, combined.ArchitectureAnalysis.TotalViolations)
 	assert.Equal(t, separateArchitecture.ComplianceScore, combined.ArchitectureAnalysis.ComplianceScore)
+	assert.Equal(t, combined.DependencyAnalysis.TotalModules, combined.Summary.TotalModules)
+	assert.Equal(t, combined.DependencyAnalysis.TotalDependencies, combined.Summary.TotalDependencies)
+	assert.Equal(t, 3, combined.Summary.TotalPackages)
+	assert.Equal(t, dir, combined.Summary.ProjectRoot)
+	assert.Equal(t, combined.ArchitectureAnalysis.TotalViolations, combined.Summary.ArchitectureViolations)
+	assert.InDelta(t, combined.ArchitectureAnalysis.ComplianceScore*100, combined.Summary.ArchitectureScore, 0.01)
+	assert.InDelta(t, combined.DependencyAnalysis.CouplingAnalysis.AverageCoupling, combined.Summary.AverageCoupling, 0.01)
+	assert.InDelta(t, combined.DependencyAnalysis.CouplingAnalysis.AverageInstability, combined.Summary.AverageInstability, 0.01)
+	assert.Greater(t, combined.Summary.OverallQualityScore, 0.0)
+	assert.Greater(t, combined.Summary.MaintainabilityScore, 0.0)
+	assert.Greater(t, combined.Summary.ModularityScore, 0.0)
 
 	dependencyOnlyReq := req
 	dependencyOnlyReq.AnalyzeArchitecture = domain.BoolPtr(false)

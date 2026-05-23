@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -84,6 +85,7 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 	response := &domain.SystemAnalysisResponse{
 		DependencyAnalysis:   dependencyResult,
 		ArchitectureAnalysis: architectureResult,
+		Summary:              s.buildSystemAnalysisSummary(graph, dependencyResult, architectureResult),
 		GeneratedAt:          time.Now(),
 		Duration:             time.Since(startTime).Milliseconds(),
 		Version:              version.Version,
@@ -92,6 +94,251 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 	}
 
 	return response, nil
+}
+
+func (s *SystemAnalysisServiceImpl) buildSystemAnalysisSummary(
+	graph *analyzer.DependencyGraph,
+	dependencyResult *domain.DependencyAnalysisResult,
+	architectureResult *domain.ArchitectureAnalysisResult,
+) domain.SystemAnalysisSummary {
+	summary := domain.SystemAnalysisSummary{}
+
+	if graph != nil {
+		summary.ProjectRoot = graph.ProjectRoot
+		summary.TotalModules = graph.TotalModules
+		summary.TotalDependencies = graph.TotalEdges
+		summary.TotalPackages = len(graph.GetPackages())
+	}
+
+	refactoringCandidates := make(map[string]struct{})
+
+	if dependencyResult != nil {
+		summary.TotalModules = dependencyResult.TotalModules
+		summary.TotalDependencies = dependencyResult.TotalDependencies
+		if packageCount := countSystemAnalysisPackages(dependencyResult.ModuleMetrics); packageCount > 0 {
+			summary.TotalPackages = packageCount
+		}
+
+		if dependencyResult.CouplingAnalysis != nil {
+			summary.AverageCoupling = dependencyResult.CouplingAnalysis.AverageCoupling
+			summary.AverageInstability = dependencyResult.CouplingAnalysis.AverageInstability
+			for _, module := range dependencyResult.CouplingAnalysis.HighlyCoupledModules {
+				refactoringCandidates[module] = struct{}{}
+			}
+		}
+
+		if dependencyResult.CircularDependencies != nil {
+			summary.CyclicDependencies = dependencyResult.CircularDependencies.TotalModulesInCycles
+			summary.CriticalIssues += countCriticalCycles(dependencyResult.CircularDependencies)
+		}
+
+		for module, metrics := range dependencyResult.ModuleMetrics {
+			if metrics == nil {
+				continue
+			}
+			if metrics.RiskLevel == domain.RiskLevelHigh {
+				summary.HighRiskModules++
+				refactoringCandidates[module] = struct{}{}
+			}
+		}
+	}
+
+	if architectureResult != nil {
+		architectureViolations, criticalArchitectureViolations := countArchitectureViolations(architectureResult)
+		summary.ArchitectureScore = clampSystemScore(architectureResult.ComplianceScore * 100)
+		summary.ArchitectureViolations = architectureViolations
+		summary.CriticalIssues += criticalArchitectureViolations
+		summary.ArchitectureImprovements = len(architectureResult.Recommendations)
+		for _, module := range architectureResult.RefactoringTargets {
+			refactoringCandidates[module] = struct{}{}
+		}
+	}
+
+	summary.RefactoringCandidates = len(refactoringCandidates)
+	summary.MaintainabilityScore = s.calculateSystemMaintainabilityScore(summary, dependencyResult)
+	summary.ModularityScore = s.calculateSystemModularityScore(summary, graph)
+	summary.TechnicalDebtHours = s.estimateSystemTechnicalDebtHours(summary, dependencyResult)
+	summary.OverallQualityScore = calculateOverallSystemQualityScore(summary, dependencyResult != nil, architectureResult != nil)
+
+	return summary
+}
+
+func countSystemAnalysisPackages(moduleMetrics map[string]*domain.ModuleDependencyMetrics) int {
+	if len(moduleMetrics) == 0 {
+		return 0
+	}
+
+	packages := make(map[string]struct{})
+	for _, metrics := range moduleMetrics {
+		if metrics == nil || metrics.Package == "" {
+			continue
+		}
+		packages[metrics.Package] = struct{}{}
+	}
+	return len(packages)
+}
+
+func countCriticalCycles(cycles *domain.CircularDependencyAnalysis) int {
+	count := 0
+	for _, cycle := range cycles.CircularDependencies {
+		if cycle.Severity == domain.CycleSeverityCritical {
+			count++
+		}
+	}
+	return count
+}
+
+func countArchitectureViolations(result *domain.ArchitectureAnalysisResult) (int, int) {
+	if result == nil {
+		return 0, 0
+	}
+
+	if len(result.Violations) > 0 {
+		critical := 0
+		for _, violation := range result.Violations {
+			if violation.Severity == domain.ViolationSeverityCritical {
+				critical++
+			}
+		}
+		return len(result.Violations), critical
+	}
+
+	total := result.TotalViolations
+	critical := 0
+	if result.SeverityBreakdown != nil {
+		breakdownTotal := 0
+		for severity, count := range result.SeverityBreakdown {
+			breakdownTotal += count
+			if severity == domain.ViolationSeverityCritical {
+				critical = count
+			}
+		}
+		if breakdownTotal > total {
+			total = breakdownTotal
+		}
+	}
+
+	return total, critical
+}
+
+func (s *SystemAnalysisServiceImpl) calculateSystemMaintainabilityScore(
+	summary domain.SystemAnalysisSummary,
+	dependencyResult *domain.DependencyAnalysisResult,
+) float64 {
+	if dependencyResult != nil {
+		total := 0.0
+		count := 0
+		for _, metrics := range dependencyResult.ModuleMetrics {
+			if metrics == nil || metrics.Maintainability <= 0 {
+				continue
+			}
+			total += clampSystemScore(metrics.Maintainability)
+			count++
+		}
+		if count > 0 {
+			return roundSystemScore(total / float64(count))
+		}
+	}
+
+	if summary.TotalModules == 0 {
+		return 0
+	}
+
+	score := 100.0
+	score -= math.Min(30, summary.AverageCoupling*8)
+	score -= math.Min(25, moduleRatio(summary.HighRiskModules, summary.TotalModules)*25)
+	score -= math.Min(20, moduleRatio(summary.CyclicDependencies, summary.TotalModules)*20)
+	score -= math.Min(25, moduleRatio(summary.ArchitectureViolations, summary.TotalModules)*10)
+	return roundSystemScore(clampSystemScore(score))
+}
+
+func (s *SystemAnalysisServiceImpl) calculateSystemModularityScore(
+	summary domain.SystemAnalysisSummary,
+	graph *analyzer.DependencyGraph,
+) float64 {
+	if graph != nil && graph.SystemMetrics != nil && graph.SystemMetrics.ModularityIndex > 0 {
+		return roundSystemScore(clampSystemScore(graph.SystemMetrics.ModularityIndex * 100))
+	}
+
+	if summary.TotalModules == 0 {
+		return 0
+	}
+
+	score := 100.0
+	score -= math.Min(40, summary.AverageCoupling*10)
+	score -= math.Min(40, moduleRatio(summary.CyclicDependencies, summary.TotalModules)*40)
+	if summary.TotalPackages <= 1 && summary.TotalModules > 1 {
+		score -= 10
+	}
+	return roundSystemScore(clampSystemScore(score))
+}
+
+func (s *SystemAnalysisServiceImpl) estimateSystemTechnicalDebtHours(
+	summary domain.SystemAnalysisSummary,
+	dependencyResult *domain.DependencyAnalysisResult,
+) float64 {
+	if dependencyResult != nil {
+		total := 0.0
+		for _, metrics := range dependencyResult.ModuleMetrics {
+			if metrics != nil {
+				total += metrics.TechnicalDebt
+			}
+		}
+		if total > 0 {
+			return roundSystemScore(total)
+		}
+	}
+
+	debt := float64(summary.HighRiskModules*4 +
+		summary.CyclicDependencies*2 +
+		summary.ArchitectureViolations +
+		summary.RefactoringCandidates*2 +
+		summary.CriticalIssues*4)
+	return roundSystemScore(debt)
+}
+
+func calculateOverallSystemQualityScore(
+	summary domain.SystemAnalysisSummary,
+	hasDependencyData bool,
+	hasArchitectureData bool,
+) float64 {
+	totalScore := 0.0
+	totalWeight := 0.0
+
+	if hasDependencyData {
+		totalScore += summary.MaintainabilityScore * 0.4
+		totalScore += summary.ModularityScore * 0.3
+		totalWeight += 0.7
+	}
+	if hasArchitectureData {
+		totalScore += summary.ArchitectureScore * 0.3
+		totalWeight += 0.3
+	}
+	if totalWeight == 0 {
+		return 0
+	}
+	return roundSystemScore(clampSystemScore(totalScore / totalWeight))
+}
+
+func moduleRatio(count, total int) float64 {
+	if total <= 0 {
+		return 0
+	}
+	return float64(count) / float64(total)
+}
+
+func clampSystemScore(score float64) float64 {
+	if score < 0 {
+		return 0
+	}
+	if score > 100 {
+		return 100
+	}
+	return score
+}
+
+func roundSystemScore(score float64) float64 {
+	return math.Round(score*100) / 100
 }
 
 // AnalyzeDependencies performs dependency analysis only
