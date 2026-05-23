@@ -416,21 +416,29 @@ func (a *CBOAnalyzer) collectImports(ast *parser.Node) map[string]string {
 		switch node.Type {
 		case parser.NodeImport:
 			// import module as alias
+			aliasedNames := make(map[string]bool)
 			for _, child := range node.Children {
 				if child.Type == parser.NodeAlias {
 					module := child.Name
-					alias := child.Name // Default to module name
+					alias := importBindingName(module)
 					if child.Value != nil {
 						if aliasStr, ok := child.Value.(string); ok {
 							alias = aliasStr
+							aliasedNames[module] = true
 						}
 					}
 					imports[alias] = module
 				}
 			}
+			for _, name := range node.Names {
+				if !aliasedNames[name] {
+					imports[importBindingName(name)] = name
+				}
+			}
 		case parser.NodeImportFrom:
 			// from module import name as alias
 			module := node.Module
+			aliasedNames := make(map[string]bool)
 			for _, child := range node.Children {
 				if child.Type == parser.NodeAlias {
 					name := child.Name
@@ -438,9 +446,15 @@ func (a *CBOAnalyzer) collectImports(ast *parser.Node) map[string]string {
 					if child.Value != nil {
 						if aliasStr, ok := child.Value.(string); ok {
 							alias = aliasStr
+							aliasedNames[name] = true
 						}
 					}
 					imports[alias] = module + "." + name
+				}
+			}
+			for _, name := range node.Names {
+				if !aliasedNames[name] {
+					imports[name] = module + "." + name
 				}
 			}
 		}
@@ -448,6 +462,13 @@ func (a *CBOAnalyzer) collectImports(ast *parser.Node) map[string]string {
 	})
 
 	return imports
+}
+
+func importBindingName(module string) string {
+	if strings.Contains(module, ".") {
+		return strings.SplitN(module, ".", 2)[0]
+	}
+	return module
 }
 
 // extractClassName extracts class name from a node
@@ -577,14 +598,11 @@ func (a *CBOAnalyzer) isStandardLibraryDependency(className string) bool {
 		return false
 	}
 
-	if a.isTypeSystemName(className) {
-		return true
-	}
-	if a.standardLibraryRoot(className) {
-		return true
-	}
 	if imported, exists := a.importedNames[className]; exists {
 		return a.isTypeSystemName(imported) || a.standardLibraryRoot(imported)
+	}
+	if strings.Contains(className, ".") {
+		return a.isTypeSystemName(className) || a.standardLibraryRoot(className)
 	}
 
 	return false

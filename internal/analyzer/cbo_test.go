@@ -397,6 +397,52 @@ class Service:
 	assert.Equal(t, []string{"Dependency"}, service.DependentClasses)
 }
 
+func TestCBOAnalyzer_ImportedTypingNamesDoNotHideLocalClasses(t *testing.T) {
+	firstFile := `
+from typing import TypedDict
+
+class Payload(TypedDict):
+    name: str
+`
+
+	secondFile := `
+class TypedDict:
+    pass
+
+class UsesLocal:
+    payload: TypedDict
+`
+
+	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
+
+	firstAST, err := parseCode(firstFile)
+	require.NoError(t, err)
+
+	firstResults, err := analyzer.AnalyzeClasses(firstAST, "first.py")
+	require.NoError(t, err)
+	require.Len(t, firstResults, 1)
+	assert.Equal(t, "Payload", firstResults[0].ClassName)
+	assert.Equal(t, 0, firstResults[0].CouplingCount)
+	assert.Empty(t, firstResults[0].DependentClasses)
+
+	secondAST, err := parseCode(secondFile)
+	require.NoError(t, err)
+
+	secondResults, err := analyzer.AnalyzeClasses(secondAST, "second.py")
+	require.NoError(t, err)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range secondResults {
+		resultMap[result.ClassName] = result
+	}
+
+	usesLocal := resultMap["UsesLocal"]
+	require.NotNil(t, usesLocal)
+	assert.Equal(t, 1, usesLocal.CouplingCount)
+	assert.Equal(t, 1, usesLocal.TypeHintDependencies)
+	assert.Equal(t, []string{"TypedDict"}, usesLocal.DependentClasses)
+}
+
 func TestCBOAnalyzer_ExcludePatterns(t *testing.T) {
 	pythonCode := `
 class TestClass:
