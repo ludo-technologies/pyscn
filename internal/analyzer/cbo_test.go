@@ -315,6 +315,88 @@ class MyClass:
 	}
 }
 
+func TestCBOAnalyzer_DependencyIdentityContract(t *testing.T) {
+	pythonCode := `
+from __future__ import annotations
+from abc import ABC
+from typing import Protocol, TypedDict
+
+class Dependency:
+    pass
+
+class Payload(TypedDict):
+    name: str
+
+class Contract(Protocol):
+    def handle(self, item: Dependency) -> Dependency:
+        ...
+
+class AbstractBase(ABC):
+    pass
+
+class Widget:
+    other: Widget
+
+    def adopt(self, owner: Widget) -> Widget:
+        return Widget()
+
+class Service:
+    field: Dependency
+
+    def set_one(self, item: Dependency) -> Dependency:
+        return item
+
+    def set_two(self, item: Dependency) -> Dependency:
+        return item
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
+	results, err := analyzer.AnalyzeClasses(ast, "test.py")
+	require.NoError(t, err)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range results {
+		resultMap[result.ClassName] = result
+	}
+
+	payload := resultMap["Payload"]
+	require.NotNil(t, payload)
+	assert.Equal(t, 0, payload.CouplingCount)
+	assert.Equal(t, 0, payload.InheritanceDependencies)
+	assert.Equal(t, []string{"TypedDict"}, payload.BaseClasses)
+	assert.Empty(t, payload.DependentClasses)
+
+	contract := resultMap["Contract"]
+	require.NotNil(t, contract)
+	assert.Equal(t, 1, contract.CouplingCount)
+	assert.Equal(t, 1, contract.TypeHintDependencies)
+	assert.Equal(t, []string{"Dependency"}, contract.DependentClasses)
+	assert.Equal(t, []string{"Protocol"}, contract.BaseClasses)
+
+	abstractBase := resultMap["AbstractBase"]
+	require.NotNil(t, abstractBase)
+	assert.Equal(t, 0, abstractBase.CouplingCount)
+	assert.Equal(t, 0, abstractBase.InheritanceDependencies)
+	assert.Equal(t, []string{"ABC"}, abstractBase.BaseClasses)
+	assert.Empty(t, abstractBase.DependentClasses)
+
+	widget := resultMap["Widget"]
+	require.NotNil(t, widget)
+	assert.Equal(t, 0, widget.CouplingCount)
+	assert.Equal(t, 0, widget.TypeHintDependencies)
+	assert.Equal(t, 0, widget.InstantiationDependencies)
+	assert.Empty(t, widget.DependentClasses)
+
+	service := resultMap["Service"]
+	require.NotNil(t, service)
+	assert.Equal(t, 1, service.CouplingCount)
+	assert.Equal(t, 1, service.TypeHintDependencies)
+	assert.Equal(t, []string{"Dependency"}, service.DependentClasses)
+}
+
 func TestCBOAnalyzer_ExcludePatterns(t *testing.T) {
 	pythonCode := `
 class TestClass:
