@@ -50,7 +50,7 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
 | `duration_ms` | integer           | Total analysis duration in milliseconds.               | stable    |
 | `version`     | string            | pyscn semantic version.                                | stable    |
 
-## `summary` object
+## `summary` object { #summary-object }
 
 Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the corresponding analyzer is disabled. All fields are always present.
 
@@ -187,7 +187,7 @@ Mirrors `domain.ComplexityResponse`. Nested field names are Go PascalCase.
 | `Metrics`     | object  | See [`ComplexityMetrics`](#complexitymetrics-object).        |
 | `RiskLevel`   | string  | One of: `low`, `medium`, `high`.                             |
 
-### `ComplexityMetrics` object
+### `ComplexityMetrics` object { #complexitymetrics-object }
 
 | Field                 | Type    | Description                                        |
 | --------------------- | ------- | -------------------------------------------------- |
@@ -293,7 +293,7 @@ Mirrors `domain.DeadCodeResponse`. Uses snake_case field names throughout.
 | `after_raise`         | Code following a `raise` statement.          |
 | `unreachable_branch`  | Conditional branch that is never taken.      |
 
-### `DeadCodeLocation` object
+### `DeadCodeLocation` object { #deadcodelocation-object }
 
 | Field          | Type    | Description                |
 | -------------- | ------- | -------------------------- |
@@ -358,7 +358,7 @@ Mirrors `domain.CloneResponse`. Uses snake_case field names throughout.
 | `3`   | Type-3: structurally similar with modifications.                     |
 | `4`   | Type-4: semantically equivalent, syntactically different.            |
 
-### `CloneLocation` object
+### `CloneLocation` object { #clonelocation-object }
 
 | Field        | Type    | Description              |
 | ------------ | ------- | ------------------------ |
@@ -441,7 +441,7 @@ Mirrors `domain.CBOResponse`. Nested field names are Go PascalCase.
 | `IsAbstract`  | boolean | `true` if the class is abstract.            |
 | `BaseClasses` | array of string \| null | Direct base classes.        |
 
-### `CBOMetrics` object
+### `CBOMetrics` object { #cbometrics-object }
 
 | Field                         | Type    | Description                                               |
 | ----------------------------- | ------- | --------------------------------------------------------- |
@@ -497,7 +497,7 @@ Mirrors `domain.LCOMResponse`. Nested field names are Go PascalCase.
 | `Metrics`   | object  | See [`LCOMMetrics`](#lcommetrics-object).        |
 | `RiskLevel` | string  | One of: `low`, `medium`, `high`.                 |
 
-### `LCOMMetrics` object
+### `LCOMMetrics` object { #lcommetrics-object }
 
 | Field               | Type    | Description                                                 |
 | ------------------- | ------- | ----------------------------------------------------------- |

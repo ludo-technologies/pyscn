@@ -50,7 +50,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | `duration_ms` | integer           | 总分析耗时（毫秒）。                                   | 稳定      |
 | `version`     | string            | pyscn 语义版本号。                                     | 稳定      |
 
-## `summary` 对象
+## `summary` 对象 { #summary-object }
 
 对应 `domain.AnalyzeSummary`。当对应分析器未启用时，所有数值计数器默认为 `0`。所有字段始终存在。
 
@@ -187,7 +187,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | `Metrics`     | object  | 见 [`ComplexityMetrics`](#complexitymetrics-object)。|
 | `RiskLevel`   | string  | 取值：`low`、`medium`、`high`。                      |
 
-### `ComplexityMetrics` 对象
+### `ComplexityMetrics` 对象 { #complexitymetrics-object }
 
 | 字段                  | 类型    | 说明                                       |
 | --------------------- | ------- | ------------------------------------------ |
@@ -293,7 +293,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | `after_raise`         | `raise` 语句之后的代码。                     |
 | `unreachable_branch`  | 永远不会执行的条件分支。                     |
 
-### `DeadCodeLocation` 对象
+### `DeadCodeLocation` 对象 { #deadcodelocation-object }
 
 | 字段           | 类型    | 说明               |
 | -------------- | ------- | ------------------ |
@@ -358,7 +358,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | `3`   | Type-3：结构相似但有修改。                                   |
 | `4`   | Type-4：语义等价，语法不同。                                 |
 
-### `CloneLocation` 对象
+### `CloneLocation` 对象 { #clonelocation-object }
 
 | 字段         | 类型    | 说明               |
 | ------------ | ------- | ------------------ |
@@ -441,7 +441,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | `IsAbstract`  | boolean | 抽象类时为 `true`。                 |
 | `BaseClasses` | array of string \| null | 直接基类。          |
 
-### `CBOMetrics` 对象
+### `CBOMetrics` 对象 { #cbometrics-object }
 
 | 字段                          | 类型    | 说明                                              |
 | ----------------------------- | ------- | ------------------------------------------------- |
@@ -497,7 +497,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | `Metrics`   | object  | 见 [`LCOMMetrics`](#lcommetrics-object)。|
 | `RiskLevel` | string  | 取值：`low`、`medium`、`high`。          |
 
-### `LCOMMetrics` 对象
+### `LCOMMetrics` 对象 { #lcommetrics-object }
 
 | 字段                | 类型    | 说明                                                |
 | ------------------- | ------- | --------------------------------------------------- |

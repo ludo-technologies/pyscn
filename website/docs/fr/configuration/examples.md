@@ -1,10 +1,10 @@
-# 配置示例
+# Exemples de configuration
 
-适用于常见场景的可复制粘贴的起始配置。
+Points de départ à copier-coller pour les scénarios courants.
 
-## 最小覆盖
+## Surcharge minimale
 
-仅设置几个严格的阈值；其余保持默认值。
+Juste quelques seuils stricts ; tout le reste reste par défaut.
 
 ```toml
 # .pyscn.toml
@@ -15,9 +15,9 @@ max_complexity = 15
 min_severity = "critical"
 ```
 
-## 严格 CI 门禁 { #strict-ci-gate }
+## Garde-fou CI strict { #strict-ci-gate }
 
-在任何质量退化时使构建失败。与 `pyscn check` 配合使用。
+Faites échouer le build en cas de régression de qualité. À associer à `pyscn check`.
 
 ```toml
 [complexity]
@@ -30,7 +30,7 @@ detect_after_raise = true
 detect_unreachable_branches = true
 
 [clones]
-# 仅标记几乎完全相同的代码
+# Ne signaler que du code quasi-identique
 similarity_threshold = 0.90
 min_lines = 15
 
@@ -42,40 +42,40 @@ enabled = true
 detect_cycles = true
 ```
 
-运行：
+Exécution :
 
 ```bash
 pyscn check --select complexity,deadcode,deps --max-cycles 0 src/
 ```
 
-## 遗留代码库过渡期
+## Période de grâce pour un codebase hérité
 
-你正在旧项目上引入 pyscn — 你希望获得分析信号而不会被大量失败所淹没。
+Vous adoptez pyscn sur un projet plus ancien — vous voulez du signal sans un déluge immédiat d'échecs.
 
 ```toml
 [complexity]
-max_complexity = 25    # 允许现有的复杂度
+max_complexity = 25    # autorise la complexité existante
 
 [dead_code]
-min_severity = "critical"   # 仅报告最严重的问题
+min_severity = "critical"   # uniquement le pire
 
 [clones]
-min_lines = 20              # 仅报告较长的重复代码
+min_lines = 20              # uniquement les duplications longues
 similarity_threshold = 0.90
 
 [analysis]
 exclude_patterns = [
-  "legacy/**",     # 隔离旧代码
+  "legacy/**",     # mettre en quarantaine l'ancien code
   "**/_archive/*",
   "generated/**",
 ]
 ```
 
-随着时间推移逐步收紧阈值。
+Resserrez les seuils progressivement au fil du temps.
 
-## 大型代码库（10k+ 文件）
+## Gros codebase (10 000+ fichiers)
 
-优化吞吐量。LSH 会自动启用，但需要提高并行度。
+Optimisez pour le débit. LSH s'active automatiquement, mais poussez le parallélisme.
 
 ```toml
 [clones]
@@ -84,7 +84,7 @@ max_goroutines = 16
 max_memory_mb = 2048
 batch_size = 500
 timeout_seconds = 600
-min_lines = 15           # 更少但更有意义的候选片段
+min_lines = 15           # candidats moins nombreux et plus significatifs
 
 [analysis]
 exclude_patterns = [
@@ -96,9 +96,9 @@ exclude_patterns = [
 ]
 ```
 
-## 整洁架构验证
+## Validation d'architecture en couches
 
-强制分层架构：表现层 → 应用层 → 领域层，基础设施层在边缘。
+Imposez une architecture en couches : presentation → application → domain, infrastructure à la périphérie.
 
 ```toml
 [architecture]
@@ -137,20 +137,20 @@ from = "domain"
 deny = ["presentation", "application", "infrastructure"]
 ```
 
-## 数据密集型 ML / 研究代码库
+## Codebase ML / recherche orienté données
 
-在 notebook 转化而来的模块中，高复杂度是正常的。重点关注代码重复和死代码。
+Une forte complexité est attendue dans les modules issus de notebooks. Concentrez-vous sur la duplication et le code mort.
 
 ```toml
 [complexity]
-max_complexity = 30    # 数据管道天然具有较多分支
+max_complexity = 30    # les pipelines de données sont naturellement très branchés
 
 [dead_code]
 min_severity = "critical"
 
 [clones]
-# 研究代码常常有几乎相同的实验变体；
-# 提高阈值以避免被大量结果淹没
+# Le code de recherche comporte souvent des variantes d'expérience quasi-identiques ;
+# relevez les seuils pour ne pas être submergé
 min_lines = 20
 similarity_threshold = 0.85
 
@@ -161,15 +161,15 @@ exclude_patterns = [
 ]
 ```
 
-## 与 `pyproject.toml` 共存
+## Cohabitation avec `pyproject.toml`
 
-如果你已经有 `pyproject.toml`，可以将 pyscn 配置放在其中，而无需创建新文件：
+Si vous avez déjà un `pyproject.toml`, vous pouvez y placer la configuration pyscn au lieu de créer un nouveau fichier :
 
 ```toml
 # pyproject.toml
 [project]
 name = "my-package"
-# ... 其他项目元数据
+# ... autres métadonnées du projet
 
 [tool.pyscn.complexity]
 max_complexity = 15
@@ -182,9 +182,9 @@ similarity_threshold = 0.85
 ```
 
 !!! note
-    如果两者都存在，`.pyscn.toml` 优先于 `pyproject.toml`。建议只使用其中一个以避免混淆。
+    `.pyscn.toml` est prioritaire sur `pyproject.toml` si les deux existent. Choisissez-en un pour éviter la confusion.
 
-## 另请参阅
+## Voir aussi
 
-- [配置文件格式](format.md)
-- [配置参考手册](reference.md)
+- [Format du fichier de configuration](format.md)
+- [Référence de configuration](reference.md)

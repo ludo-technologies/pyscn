@@ -15,7 +15,7 @@ max_complexity = 15
 min_severity = "critical"
 ```
 
-## Strict CI gate
+## Strict CI gate { #strict-ci-gate }
 
 Fail the build on any quality regression. Pair with `pyscn check`.
 
