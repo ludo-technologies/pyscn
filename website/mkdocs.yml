@@ -13,7 +13,8 @@ site_dir: site
 theme:
   name: material
   language: en
-  logo: assets/logo.svg
+  logo: assets/icon.svg
+  favicon: assets/icon.svg
   icon:
     repo: fontawesome/brands/github
   palette:
@@ -167,6 +168,9 @@ markdown_extensions:
   - pymdownx.tilde
 
 extra:
+  analytics:
+    provider: google
+    property: G-HXRTV60KJ8
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/ludo-technologies/pyscn
