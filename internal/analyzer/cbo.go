@@ -482,12 +482,23 @@ func (a *CBOAnalyzer) extractClassName(node *parser.Node) string {
 		return node.Name
 	case parser.NodeAttribute:
 		// Handle module.ClassName
-		if node.Left != nil && node.Right != nil {
-			left := a.extractClassName(node.Left)
-			right := a.extractClassName(node.Right)
-			if left != "" && right != "" {
-				return left + "." + right
+		left := a.extractClassName(node.Left)
+		if left == "" {
+			if valueNode, ok := node.Value.(*parser.Node); ok {
+				left = a.extractClassName(valueNode)
 			}
+		}
+
+		right := a.extractClassName(node.Right)
+		if right == "" {
+			right = node.Name
+		}
+
+		if left != "" && right != "" {
+			return left + "." + right
+		}
+		if right != "" {
+			return right
 		}
 	case parser.NodeSubscript:
 		// Handle generic types like List[User], Dict[str, User]
@@ -526,21 +537,6 @@ func (a *CBOAnalyzer) shouldIncludeDependency(className string) bool {
 		return false
 	}
 
-	// Skip standard library if not included
-	if !a.options.IncludeImports {
-		// Check both direct match and root module for qualified names like json.JSONDecoder
-		if a.standardLibs[className] {
-			return false
-		}
-		// Check root module for fully qualified names
-		if strings.Contains(className, ".") {
-			rootModule := strings.SplitN(className, ".", 2)[0]
-			if a.standardLibs[rootModule] {
-				return false
-			}
-		}
-	}
-
 	return true
 }
 
@@ -551,7 +547,13 @@ func (a *CBOAnalyzer) shouldIncludeDependencyForClass(className, ownerClass stri
 	if ownerClass != "" && a.sameDependencyIdentity(className, ownerClass) {
 		return false
 	}
-	return !a.isStandardLibraryDependency(className)
+	if a.isTypeSystemDependency(className) {
+		return false
+	}
+	if !a.options.IncludeImports && a.isStandardLibraryDependency(className) {
+		return false
+	}
+	return true
 }
 
 func (a *CBOAnalyzer) addDependency(dependencies *cboDependencies, className string, kind cboDependencyKind) {
@@ -584,13 +586,25 @@ func (a *CBOAnalyzer) sameDependencyIdentity(className, ownerClass string) bool 
 	if className == ownerClass {
 		return true
 	}
-	if strings.HasSuffix(className, "."+ownerClass) {
-		return true
-	}
 	if imported, exists := a.importedNames[className]; exists {
-		return imported == ownerClass || strings.HasSuffix(imported, "."+ownerClass)
+		return imported == ownerClass
 	}
 	return false
+}
+
+func (a *CBOAnalyzer) isTypeSystemDependency(className string) bool {
+	if className == "" {
+		return false
+	}
+
+	dependencyName := className
+	if imported, exists := a.importedNames[className]; exists {
+		dependencyName = imported
+	} else if !strings.Contains(className, ".") {
+		return false
+	}
+
+	return a.typeSystemRoot(dependencyName) && a.isTypeSystemName(dependencyName)
 }
 
 func (a *CBOAnalyzer) isStandardLibraryDependency(className string) bool {
@@ -599,10 +613,10 @@ func (a *CBOAnalyzer) isStandardLibraryDependency(className string) bool {
 	}
 
 	if imported, exists := a.importedNames[className]; exists {
-		return a.isTypeSystemName(imported) || a.standardLibraryRoot(imported)
+		return a.standardLibraryRoot(imported)
 	}
 	if strings.Contains(className, ".") {
-		return a.isTypeSystemName(className) || a.standardLibraryRoot(className)
+		return a.standardLibraryRoot(className)
 	}
 
 	return false
@@ -614,6 +628,20 @@ func (a *CBOAnalyzer) standardLibraryRoot(className string) bool {
 		root = strings.SplitN(root, ".", 2)[0]
 	}
 	return a.standardLibs[root]
+}
+
+func (a *CBOAnalyzer) typeSystemRoot(className string) bool {
+	root := className
+	if strings.Contains(root, ".") {
+		root = strings.SplitN(root, ".", 2)[0]
+	}
+
+	switch root {
+	case "abc", "typing", "typing_extensions":
+		return true
+	default:
+		return false
+	}
 }
 
 func (a *CBOAnalyzer) isTypeSystemName(className string) bool {
@@ -670,8 +698,11 @@ func (a *CBOAnalyzer) extractClassNameFromCallNode(callNode *parser.Node) string
 	// Method 3: Check Value field if it's a Node with Name type
 	if callNode.Value != nil {
 		if valueNode, ok := callNode.Value.(*parser.Node); ok {
-			if valueNode.Type == parser.NodeName && valueNode.Name != "" {
+			switch valueNode.Type {
+			case parser.NodeName:
 				return valueNode.Name
+			case parser.NodeAttribute:
+				return a.extractClassNameFromAttribute(valueNode)
 			}
 		}
 	}
@@ -685,25 +716,25 @@ func (a *CBOAnalyzer) extractClassNameFromAttribute(attrNode *parser.Node) strin
 		return ""
 	}
 
-	// For module.Class pattern, we want the rightmost name (Class)
-	// but for full qualification, we might want module.Class
-
-	// Get the rightmost part (the actual class name)
+	rightName := attrNode.Name
 	if attrNode.Right != nil && attrNode.Right.Type == parser.NodeName {
-		rightName := attrNode.Right.Name
-
-		// Get the left part (module name) if needed
-		if attrNode.Left != nil && attrNode.Left.Type == parser.NodeName {
-			leftName := attrNode.Left.Name
-			// Return full qualification for better accuracy
-			return leftName + "." + rightName
-		}
-
-		// Return just the class name if no module prefix
-		return rightName
+		rightName = attrNode.Right.Name
+	}
+	if rightName == "" {
+		return ""
 	}
 
-	return ""
+	leftName := a.extractClassName(attrNode.Left)
+	if leftName == "" {
+		if valueNode, ok := attrNode.Value.(*parser.Node); ok {
+			leftName = a.extractClassName(valueNode)
+		}
+	}
+	if leftName != "" {
+		return leftName + "." + rightName
+	}
+
+	return rightName
 }
 
 // isImportedDependency checks if a dependency comes from imports
