@@ -345,13 +345,7 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 					if valueNode.Type == parser.NodeCall {
 						className := a.extractClassNameFromCallNode(valueNode)
 						if className != "" && a.shouldIncludeDependencyForClass(className, result.ClassName) {
-							if a.isImportedDependency(className) {
-								a.addDependency(dependencies, className, dependencyKindImport)
-							} else if _, isClass := allClasses[className]; isClass {
-								// Known local class (instantiation)
-								a.addDependency(dependencies, className, dependencyKindInstantiation)
-							} else if a.options.IncludeBuiltins && a.builtinTypes[className] {
-								// Builtin type (only if explicitly enabled)
+							if a.isCallDependency(className, allClasses) {
 								a.addDependency(dependencies, className, dependencyKindInstantiation)
 							}
 							// Note: function calls are NOT added to dependencies
@@ -364,13 +358,7 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 			// Use structural AST analysis instead of string parsing
 			className := a.extractClassNameFromCallNode(node)
 			if className != "" && a.shouldIncludeDependencyForClass(className, result.ClassName) {
-				if a.isImportedDependency(className) {
-					a.addDependency(dependencies, className, dependencyKindImport)
-				} else if _, isClass := allClasses[className]; isClass {
-					// Known local class (instantiation)
-					a.addDependency(dependencies, className, dependencyKindInstantiation)
-				} else if a.options.IncludeBuiltins && a.builtinTypes[className] {
-					// Builtin type (only if explicitly enabled)
+				if a.isCallDependency(className, allClasses) {
 					a.addDependency(dependencies, className, dependencyKindInstantiation)
 				}
 				// Note: function calls are NOT added to dependencies
@@ -380,11 +368,7 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 			if objNode := node.Left; objNode != nil {
 				objType := a.inferObjectType(objNode)
 				if objType != "" && a.shouldIncludeDependencyForClass(objType, result.ClassName) {
-					if a.isImportedDependency(objType) {
-						a.addDependency(dependencies, objType, dependencyKindImport)
-					} else {
-						a.addDependency(dependencies, objType, dependencyKindAttributeAccess)
-					}
+					a.addDependency(dependencies, objType, dependencyKindAttributeAccess)
 				}
 			}
 		}
@@ -538,6 +522,16 @@ func (a *CBOAnalyzer) shouldIncludeDependency(className string) bool {
 	}
 
 	return true
+}
+
+func (a *CBOAnalyzer) isCallDependency(className string, allClasses map[string]*parser.Node) bool {
+	if a.isImportedDependency(className) {
+		return true
+	}
+	if _, isClass := allClasses[className]; isClass {
+		return true
+	}
+	return a.options.IncludeBuiltins && a.builtinTypes[className]
 }
 
 func (a *CBOAnalyzer) shouldIncludeDependencyForClass(className, ownerClass string) bool {
