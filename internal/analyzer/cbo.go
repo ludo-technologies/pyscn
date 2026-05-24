@@ -581,9 +581,17 @@ func (a *CBOAnalyzer) sameDependencyIdentity(className, ownerClass string) bool 
 		return true
 	}
 	if imported, exists := a.importedNames[className]; exists {
-		return imported == ownerClass
+		return dependencyLeafName(imported) == ownerClass
 	}
 	return false
+}
+
+func dependencyLeafName(className string) string {
+	if strings.Contains(className, ".") {
+		parts := strings.Split(className, ".")
+		return parts[len(parts)-1]
+	}
+	return className
 }
 
 func (a *CBOAnalyzer) isTypeSystemDependency(className string) bool {

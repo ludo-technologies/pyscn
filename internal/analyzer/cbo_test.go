@@ -520,6 +520,31 @@ class Widget:
 	assert.Equal(t, []string{"models.Widget"}, widget.DependentClasses)
 }
 
+func TestCBOAnalyzer_ImportedSameNameDependencyIsSelfReference(t *testing.T) {
+	pythonCode := `
+from pkg import Widget
+
+class Widget:
+    parent: Widget
+
+    def clone(self) -> Widget:
+        return Widget()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "widget.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	widget := results[0]
+	assert.Equal(t, "Widget", widget.ClassName)
+	assert.Equal(t, 0, widget.CouplingCount)
+	assert.Equal(t, 0, widget.ImportDependencies)
+	assert.Empty(t, widget.DependentClasses)
+}
+
 func TestCBOAnalyzer_QualifiedProjectTypeSystemNameStillCounts(t *testing.T) {
 	pythonCode := `
 import models
