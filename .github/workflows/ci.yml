@@ -38,16 +38,9 @@ jobs:
     # - name: Run staticcheck
     #   run: staticcheck ./...
     
-    - name: Run tests with coverage
-      run: go test -v -coverprofile=coverage.txt -covermode=atomic ./...
+    - name: Run tests
+      run: go test -v ./...
       timeout-minutes: 5
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.txt
-        flags: unittests
-        name: codecov-umbrella
 
   build:
     runs-on: ubuntu-latest
