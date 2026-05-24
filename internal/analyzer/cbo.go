@@ -3,6 +3,7 @@ package analyzer
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -73,6 +74,36 @@ type CBOAnalyzer struct {
 	regexCache       map[string]*regexp.Regexp // pattern -> compiled regex cache
 }
 
+type cboDependencyKind int
+
+const (
+	dependencyKindInheritance cboDependencyKind = iota
+	dependencyKindTypeHint
+	dependencyKindInstantiation
+	dependencyKindAttributeAccess
+	dependencyKindImport
+)
+
+type cboDependencies struct {
+	all               map[string]bool
+	inheritance       map[string]bool
+	typeHints         map[string]bool
+	instantiations    map[string]bool
+	attributeAccesses map[string]bool
+	imports           map[string]bool
+}
+
+func newCBODependencies() *cboDependencies {
+	return &cboDependencies{
+		all:               make(map[string]bool),
+		inheritance:       make(map[string]bool),
+		typeHints:         make(map[string]bool),
+		instantiations:    make(map[string]bool),
+		attributeAccesses: make(map[string]bool),
+		imports:           make(map[string]bool),
+	}
+}
+
 // NewCBOAnalyzer creates a new CBO analyzer
 func NewCBOAnalyzer(options *CBOOptions) *CBOAnalyzer {
 	if options == nil {
@@ -104,10 +135,9 @@ func (a *CBOAnalyzer) AnalyzeClasses(ast *parser.Node, filePath string) ([]*CBOR
 	classes := a.collectClasses(ast)
 	imports := a.collectImports(ast)
 
-	// Update imported names mapping
-	for alias, module := range imports {
-		a.importedNames[alias] = module
-	}
+	// Import aliases are file-local. Reset the map on each AST so one analyzed file
+	// cannot change dependency identity in the next file.
+	a.importedNames = imports
 
 	var results []*CBOResult
 
@@ -145,8 +175,7 @@ func (a *CBOAnalyzer) analyzeClass(classNode *parser.Node, filePath string, allC
 		Attributes:       []string{},
 	}
 
-	// Track unique dependencies
-	dependencies := make(map[string]bool)
+	dependencies := newCBODependencies()
 
 	// 1. Analyze inheritance dependencies
 	a.analyzeInheritance(classNode, dependencies, result)
@@ -158,8 +187,13 @@ func (a *CBOAnalyzer) analyzeClass(classNode *parser.Node, filePath string, allC
 	a.analyzeInstantiationAndAccess(classNode, dependencies, result, allClasses)
 
 	// 4. Calculate final metrics
-	result.CouplingCount = len(dependencies)
-	result.DependentClasses = a.mapToSlice(dependencies)
+	result.CouplingCount = len(dependencies.all)
+	result.DependentClasses = a.mapToSlice(dependencies.all)
+	result.InheritanceDependencies = len(dependencies.inheritance)
+	result.TypeHintDependencies = len(dependencies.typeHints)
+	result.InstantiationDependencies = len(dependencies.instantiations)
+	result.AttributeAccessDependencies = len(dependencies.attributeAccesses)
+	result.ImportDependencies = len(dependencies.imports)
 	result.RiskLevel = a.assessRiskLevel(result.CouplingCount)
 
 	// 5. Check if class is abstract
@@ -169,27 +203,23 @@ func (a *CBOAnalyzer) analyzeClass(classNode *parser.Node, filePath string, allC
 }
 
 // analyzeInheritance analyzes inheritance-based coupling
-func (a *CBOAnalyzer) analyzeInheritance(classNode *parser.Node, dependencies map[string]bool, result *CBOResult) {
+func (a *CBOAnalyzer) analyzeInheritance(classNode *parser.Node, dependencies *cboDependencies, result *CBOResult) {
 	// Analyze base classes from Bases field
 	for _, baseNode := range classNode.Bases {
 		if baseNode != nil {
 			baseName := a.extractClassName(baseNode)
-			if baseName != "" && a.shouldIncludeDependency(baseName) {
-				dependencies[baseName] = true
+			if baseName != "" {
 				result.BaseClasses = append(result.BaseClasses, baseName)
-				// Check if this is an imported dependency
-				if a.isImportedDependency(baseName) {
-					result.ImportDependencies++
-				} else {
-					result.InheritanceDependencies++
-				}
+			}
+			if baseName != "" && a.shouldIncludeDependencyForClass(baseName, result.ClassName) {
+				a.addDependency(dependencies, baseName, dependencyKindInheritance)
 			}
 		}
 	}
 }
 
 // analyzeTypeHints analyzes type annotation dependencies
-func (a *CBOAnalyzer) analyzeTypeHints(classNode *parser.Node, dependencies map[string]bool, result *CBOResult) {
+func (a *CBOAnalyzer) analyzeTypeHints(classNode *parser.Node, dependencies *cboDependencies, result *CBOResult) {
 	// Walk through class body looking for type annotations
 	a.walkNode(classNode, func(node *parser.Node) bool {
 		switch node.Type {
@@ -221,18 +251,12 @@ func (a *CBOAnalyzer) isTypeAnnotation(node *parser.Node) bool {
 }
 
 // extractTypeAnnotationDependencies extracts class dependencies from type annotations
-func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, dependencies map[string]bool, result *CBOResult) {
+func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, dependencies *cboDependencies, result *CBOResult) {
 	switch node.Type {
 	case parser.NodeName:
 		// Simple type: User
-		if node.Name != "" && a.shouldIncludeDependency(node.Name) {
-			dependencies[node.Name] = true
-			// Check if this is an imported dependency
-			if a.isImportedDependency(node.Name) {
-				result.ImportDependencies++
-			} else {
-				result.TypeHintDependencies++
-			}
+		if node.Name != "" && a.shouldIncludeDependencyForClass(node.Name, result.ClassName) {
+			a.addDependency(dependencies, node.Name, dependencyKindTypeHint)
 		}
 	case parser.NodeSubscript:
 		// Generic type: List[User], Dict[str, User]
@@ -245,14 +269,8 @@ func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, depen
 	case parser.NodeAttribute:
 		// Module.Type: typing.List, mymodule.MyClass
 		typeName := a.extractClassName(node)
-		if typeName != "" && a.shouldIncludeDependency(typeName) {
-			dependencies[typeName] = true
-			// Check if this is an imported dependency
-			if a.isImportedDependency(typeName) {
-				result.ImportDependencies++
-			} else {
-				result.TypeHintDependencies++
-			}
+		if typeName != "" && a.shouldIncludeDependencyForClass(typeName, result.ClassName) {
+			a.addDependency(dependencies, typeName, dependencyKindTypeHint)
 		}
 	case parser.NodeTypeNode:
 		// Tree-sitter 'type' node - recurse into children
@@ -291,7 +309,7 @@ func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, depen
 }
 
 // analyzeMethodTypeHints analyzes type hints in method signatures
-func (a *CBOAnalyzer) analyzeMethodTypeHints(methodNode *parser.Node, dependencies map[string]bool, result *CBOResult) {
+func (a *CBOAnalyzer) analyzeMethodTypeHints(methodNode *parser.Node, dependencies *cboDependencies, result *CBOResult) {
 	if methodNode.Name != "" {
 		result.Methods = append(result.Methods, methodNode.Name)
 	}
@@ -316,7 +334,7 @@ func (a *CBOAnalyzer) analyzeMethodTypeHints(methodNode *parser.Node, dependenci
 }
 
 // analyzeInstantiationAndAccess analyzes object instantiation and attribute access
-func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, dependencies map[string]bool, result *CBOResult, allClasses map[string]*parser.Node) {
+func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, dependencies *cboDependencies, result *CBOResult, allClasses map[string]*parser.Node) {
 	a.walkNode(classNode, func(node *parser.Node) bool {
 		switch node.Type {
 		case parser.NodeAssign:
@@ -326,19 +344,9 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 				if valueNode, ok := node.Value.(*parser.Node); ok {
 					if valueNode.Type == parser.NodeCall {
 						className := a.extractClassNameFromCallNode(valueNode)
-						if className != "" && a.shouldIncludeDependency(className) {
-							// Check if this is an imported dependency
-							if a.isImportedDependency(className) {
-								dependencies[className] = true
-								result.ImportDependencies++
-							} else if _, isClass := allClasses[className]; isClass {
-								// Known local class (instantiation)
-								dependencies[className] = true
-								result.InstantiationDependencies++
-							} else if a.options.IncludeBuiltins && a.builtinTypes[className] {
-								// Builtin type (only if explicitly enabled)
-								dependencies[className] = true
-								result.InstantiationDependencies++
+						if className != "" && a.shouldIncludeDependencyForClass(className, result.ClassName) {
+							if a.isCallDependency(className, allClasses) {
+								a.addDependency(dependencies, className, dependencyKindInstantiation)
 							}
 							// Note: function calls are NOT added to dependencies
 						}
@@ -349,19 +357,9 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 			// Function/class call - could be instantiation
 			// Use structural AST analysis instead of string parsing
 			className := a.extractClassNameFromCallNode(node)
-			if className != "" && a.shouldIncludeDependency(className) {
-				// Check if this is an imported dependency
-				if a.isImportedDependency(className) {
-					dependencies[className] = true
-					result.ImportDependencies++
-				} else if _, isClass := allClasses[className]; isClass {
-					// Known local class (instantiation)
-					dependencies[className] = true
-					result.InstantiationDependencies++
-				} else if a.options.IncludeBuiltins && a.builtinTypes[className] {
-					// Builtin type (only if explicitly enabled)
-					dependencies[className] = true
-					result.InstantiationDependencies++
+			if className != "" && a.shouldIncludeDependencyForClass(className, result.ClassName) {
+				if a.isCallDependency(className, allClasses) {
+					a.addDependency(dependencies, className, dependencyKindInstantiation)
 				}
 				// Note: function calls are NOT added to dependencies
 			}
@@ -369,14 +367,8 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 			// Attribute access: obj.method() or obj.attr
 			if objNode := node.Left; objNode != nil {
 				objType := a.inferObjectType(objNode)
-				if objType != "" && a.shouldIncludeDependency(objType) {
-					dependencies[objType] = true
-					// Check if this is an imported dependency
-					if a.isImportedDependency(objType) {
-						result.ImportDependencies++
-					} else {
-						result.AttributeAccessDependencies++
-					}
+				if objType != "" && a.shouldIncludeDependencyForClass(objType, result.ClassName) {
+					a.addDependency(dependencies, objType, dependencyKindAttributeAccess)
 				}
 			}
 		}
@@ -408,21 +400,29 @@ func (a *CBOAnalyzer) collectImports(ast *parser.Node) map[string]string {
 		switch node.Type {
 		case parser.NodeImport:
 			// import module as alias
+			aliasedNames := make(map[string]bool)
 			for _, child := range node.Children {
 				if child.Type == parser.NodeAlias {
 					module := child.Name
-					alias := child.Name // Default to module name
+					alias := importBindingName(module)
 					if child.Value != nil {
 						if aliasStr, ok := child.Value.(string); ok {
 							alias = aliasStr
+							aliasedNames[module] = true
 						}
 					}
 					imports[alias] = module
 				}
 			}
+			for _, name := range node.Names {
+				if !aliasedNames[name] {
+					imports[importBindingName(name)] = name
+				}
+			}
 		case parser.NodeImportFrom:
 			// from module import name as alias
 			module := node.Module
+			aliasedNames := make(map[string]bool)
 			for _, child := range node.Children {
 				if child.Type == parser.NodeAlias {
 					name := child.Name
@@ -430,9 +430,15 @@ func (a *CBOAnalyzer) collectImports(ast *parser.Node) map[string]string {
 					if child.Value != nil {
 						if aliasStr, ok := child.Value.(string); ok {
 							alias = aliasStr
+							aliasedNames[name] = true
 						}
 					}
 					imports[alias] = module + "." + name
+				}
+			}
+			for _, name := range node.Names {
+				if !aliasedNames[name] {
+					imports[name] = module + "." + name
 				}
 			}
 		}
@@ -440,6 +446,13 @@ func (a *CBOAnalyzer) collectImports(ast *parser.Node) map[string]string {
 	})
 
 	return imports
+}
+
+func importBindingName(module string) string {
+	if strings.Contains(module, ".") {
+		return strings.SplitN(module, ".", 2)[0]
+	}
+	return module
 }
 
 // extractClassName extracts class name from a node
@@ -453,12 +466,23 @@ func (a *CBOAnalyzer) extractClassName(node *parser.Node) string {
 		return node.Name
 	case parser.NodeAttribute:
 		// Handle module.ClassName
-		if node.Left != nil && node.Right != nil {
-			left := a.extractClassName(node.Left)
-			right := a.extractClassName(node.Right)
-			if left != "" && right != "" {
-				return left + "." + right
+		left := a.extractClassName(node.Left)
+		if left == "" {
+			if valueNode, ok := node.Value.(*parser.Node); ok {
+				left = a.extractClassName(valueNode)
 			}
+		}
+
+		right := a.extractClassName(node.Right)
+		if right == "" {
+			right = node.Name
+		}
+
+		if left != "" && right != "" {
+			return left + "." + right
+		}
+		if right != "" {
+			return right
 		}
 	case parser.NodeSubscript:
 		// Handle generic types like List[User], Dict[str, User]
@@ -497,22 +521,129 @@ func (a *CBOAnalyzer) shouldIncludeDependency(className string) bool {
 		return false
 	}
 
-	// Skip standard library if not included
-	if !a.options.IncludeImports {
-		// Check both direct match and root module for qualified names like json.JSONDecoder
-		if a.standardLibs[className] {
-			return false
-		}
-		// Check root module for fully qualified names
-		if strings.Contains(className, ".") {
-			rootModule := strings.SplitN(className, ".", 2)[0]
-			if a.standardLibs[rootModule] {
-				return false
-			}
-		}
+	return true
+}
+
+func (a *CBOAnalyzer) isCallDependency(className string, allClasses map[string]*parser.Node) bool {
+	if a.isImportedDependency(className) {
+		return true
+	}
+	if _, isClass := allClasses[className]; isClass {
+		return true
+	}
+	return a.options.IncludeBuiltins && a.builtinTypes[className]
+}
+
+func (a *CBOAnalyzer) shouldIncludeDependencyForClass(className, ownerClass string) bool {
+	if !a.shouldIncludeDependency(className) {
+		return false
+	}
+	if ownerClass != "" && a.sameDependencyIdentity(className, ownerClass) {
+		return false
+	}
+	if a.isTypeSystemDependency(className) {
+		return false
+	}
+	if !a.options.IncludeImports && a.isStandardLibraryDependency(className) {
+		return false
+	}
+	return true
+}
+
+func (a *CBOAnalyzer) addDependency(dependencies *cboDependencies, className string, kind cboDependencyKind) {
+	if dependencies == nil || className == "" {
+		return
 	}
 
-	return true
+	dependencies.all[className] = true
+
+	if a.isImportedDependency(className) {
+		dependencies.imports[className] = true
+		return
+	}
+
+	switch kind {
+	case dependencyKindInheritance:
+		dependencies.inheritance[className] = true
+	case dependencyKindTypeHint:
+		dependencies.typeHints[className] = true
+	case dependencyKindInstantiation:
+		dependencies.instantiations[className] = true
+	case dependencyKindAttributeAccess:
+		dependencies.attributeAccesses[className] = true
+	case dependencyKindImport:
+		dependencies.imports[className] = true
+	}
+}
+
+func (a *CBOAnalyzer) sameDependencyIdentity(className, ownerClass string) bool {
+	if className == ownerClass {
+		return true
+	}
+	if imported, exists := a.importedNames[className]; exists {
+		return dependencyLeafName(imported) == ownerClass
+	}
+	return false
+}
+
+func dependencyLeafName(className string) string {
+	if strings.Contains(className, ".") {
+		parts := strings.Split(className, ".")
+		return parts[len(parts)-1]
+	}
+	return className
+}
+
+func (a *CBOAnalyzer) isTypeSystemDependency(className string) bool {
+	if className == "" {
+		return false
+	}
+
+	if imported, exists := a.importedNames[className]; exists {
+		return a.typeSystemRoot(imported)
+	}
+	if strings.Contains(className, ".") {
+		return a.typeSystemRoot(className)
+	}
+
+	return false
+}
+
+func (a *CBOAnalyzer) isStandardLibraryDependency(className string) bool {
+	if className == "" {
+		return false
+	}
+
+	if imported, exists := a.importedNames[className]; exists {
+		return a.standardLibraryRoot(imported)
+	}
+	if strings.Contains(className, ".") {
+		return a.standardLibraryRoot(className)
+	}
+
+	return false
+}
+
+func (a *CBOAnalyzer) standardLibraryRoot(className string) bool {
+	root := className
+	if strings.Contains(root, ".") {
+		root = strings.SplitN(root, ".", 2)[0]
+	}
+	return a.standardLibs[root]
+}
+
+func (a *CBOAnalyzer) typeSystemRoot(className string) bool {
+	root := className
+	if strings.Contains(root, ".") {
+		root = strings.SplitN(root, ".", 2)[0]
+	}
+
+	switch root {
+	case "abc", "typing", "typing_extensions":
+		return true
+	default:
+		return false
+	}
 }
 
 // isBuiltinFunction checks if a name is a built-in function
@@ -549,8 +680,11 @@ func (a *CBOAnalyzer) extractClassNameFromCallNode(callNode *parser.Node) string
 	// Method 3: Check Value field if it's a Node with Name type
 	if callNode.Value != nil {
 		if valueNode, ok := callNode.Value.(*parser.Node); ok {
-			if valueNode.Type == parser.NodeName && valueNode.Name != "" {
+			switch valueNode.Type {
+			case parser.NodeName:
 				return valueNode.Name
+			case parser.NodeAttribute:
+				return a.extractClassNameFromAttribute(valueNode)
 			}
 		}
 	}
@@ -564,25 +698,25 @@ func (a *CBOAnalyzer) extractClassNameFromAttribute(attrNode *parser.Node) strin
 		return ""
 	}
 
-	// For module.Class pattern, we want the rightmost name (Class)
-	// but for full qualification, we might want module.Class
-
-	// Get the rightmost part (the actual class name)
+	rightName := attrNode.Name
 	if attrNode.Right != nil && attrNode.Right.Type == parser.NodeName {
-		rightName := attrNode.Right.Name
-
-		// Get the left part (module name) if needed
-		if attrNode.Left != nil && attrNode.Left.Type == parser.NodeName {
-			leftName := attrNode.Left.Name
-			// Return full qualification for better accuracy
-			return leftName + "." + rightName
-		}
-
-		// Return just the class name if no module prefix
-		return rightName
+		rightName = attrNode.Right.Name
+	}
+	if rightName == "" {
+		return ""
 	}
 
-	return ""
+	leftName := a.extractClassName(attrNode.Left)
+	if leftName == "" {
+		if valueNode, ok := attrNode.Value.(*parser.Node); ok {
+			leftName = a.extractClassName(valueNode)
+		}
+	}
+	if leftName != "" {
+		return leftName + "." + rightName
+	}
+
+	return rightName
 }
 
 // isImportedDependency checks if a dependency comes from imports
@@ -723,6 +857,7 @@ func (a *CBOAnalyzer) mapToSlice(m map[string]bool) []string {
 	for key := range m {
 		result = append(result, key)
 	}
+	sort.Strings(result)
 	return result
 }
 
@@ -763,6 +898,7 @@ func (a *CBOAnalyzer) initializeStandardLibs() {
 		"os", "sys", "re", "json", "datetime", "collections", "itertools",
 		"functools", "operator", "math", "random", "string", "io", "pathlib",
 		"unittest", "logging", "argparse", "configparser", "urllib", "http",
+		"abc", "typing", "typing_extensions",
 	}
 
 	for _, stdlib := range stdlibs {

@@ -315,6 +315,289 @@ class MyClass:
 	}
 }
 
+func TestCBOAnalyzer_DependencyIdentityContract(t *testing.T) {
+	pythonCode := `
+from __future__ import annotations
+from abc import ABC
+from typing import Protocol, TypedDict
+
+class Dependency:
+    pass
+
+class Payload(TypedDict):
+    name: str
+
+class Contract(Protocol):
+    def handle(self, item: Dependency) -> Dependency:
+        ...
+
+class AbstractBase(ABC):
+    pass
+
+class Widget:
+    other: Widget
+
+    def adopt(self, owner: Widget) -> Widget:
+        return Widget()
+
+class Service:
+    field: Dependency
+
+    def set_one(self, item: Dependency) -> Dependency:
+        return item
+
+    def set_two(self, item: Dependency) -> Dependency:
+        return item
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
+	results, err := analyzer.AnalyzeClasses(ast, "test.py")
+	require.NoError(t, err)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range results {
+		resultMap[result.ClassName] = result
+	}
+
+	payload := resultMap["Payload"]
+	require.NotNil(t, payload)
+	assert.Equal(t, 0, payload.CouplingCount)
+	assert.Equal(t, 0, payload.InheritanceDependencies)
+	assert.Equal(t, []string{"TypedDict"}, payload.BaseClasses)
+	assert.Empty(t, payload.DependentClasses)
+
+	contract := resultMap["Contract"]
+	require.NotNil(t, contract)
+	assert.Equal(t, 1, contract.CouplingCount)
+	assert.Equal(t, 1, contract.TypeHintDependencies)
+	assert.Equal(t, []string{"Dependency"}, contract.DependentClasses)
+	assert.Equal(t, []string{"Protocol"}, contract.BaseClasses)
+
+	abstractBase := resultMap["AbstractBase"]
+	require.NotNil(t, abstractBase)
+	assert.Equal(t, 0, abstractBase.CouplingCount)
+	assert.Equal(t, 0, abstractBase.InheritanceDependencies)
+	assert.Equal(t, []string{"ABC"}, abstractBase.BaseClasses)
+	assert.Empty(t, abstractBase.DependentClasses)
+
+	widget := resultMap["Widget"]
+	require.NotNil(t, widget)
+	assert.Equal(t, 0, widget.CouplingCount)
+	assert.Equal(t, 0, widget.TypeHintDependencies)
+	assert.Equal(t, 0, widget.InstantiationDependencies)
+	assert.Empty(t, widget.DependentClasses)
+
+	service := resultMap["Service"]
+	require.NotNil(t, service)
+	assert.Equal(t, 1, service.CouplingCount)
+	assert.Equal(t, 1, service.TypeHintDependencies)
+	assert.Equal(t, []string{"Dependency"}, service.DependentClasses)
+}
+
+func TestCBOAnalyzer_ImportedTypingNamesDoNotHideLocalClasses(t *testing.T) {
+	firstFile := `
+from typing import TypedDict
+
+class Payload(TypedDict):
+    name: str
+`
+
+	secondFile := `
+class TypedDict:
+    pass
+
+class UsesLocal:
+    payload: TypedDict
+`
+
+	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
+
+	firstAST, err := parseCode(firstFile)
+	require.NoError(t, err)
+
+	firstResults, err := analyzer.AnalyzeClasses(firstAST, "first.py")
+	require.NoError(t, err)
+	require.Len(t, firstResults, 1)
+	assert.Equal(t, "Payload", firstResults[0].ClassName)
+	assert.Equal(t, 0, firstResults[0].CouplingCount)
+	assert.Empty(t, firstResults[0].DependentClasses)
+
+	secondAST, err := parseCode(secondFile)
+	require.NoError(t, err)
+
+	secondResults, err := analyzer.AnalyzeClasses(secondAST, "second.py")
+	require.NoError(t, err)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range secondResults {
+		resultMap[result.ClassName] = result
+	}
+
+	usesLocal := resultMap["UsesLocal"]
+	require.NotNil(t, usesLocal)
+	assert.Equal(t, 1, usesLocal.CouplingCount)
+	assert.Equal(t, 1, usesLocal.TypeHintDependencies)
+	assert.Equal(t, []string{"TypedDict"}, usesLocal.DependentClasses)
+}
+
+func TestCBOAnalyzer_IncludeImportsControlsStandardLibraryDependencies(t *testing.T) {
+	pythonCode := `
+from pathlib import Path as FilePath
+
+class Reader:
+    path: FilePath
+
+    def make_path(self) -> FilePath:
+        return FilePath("data.txt")
+`
+
+	tests := []struct {
+		name                     string
+		includeImports           bool
+		expectedCBO              int
+		expectedImportDeps       int
+		expectedDependentClasses []string
+	}{
+		{
+			name:                     "include stdlib imports",
+			includeImports:           true,
+			expectedCBO:              1,
+			expectedImportDeps:       1,
+			expectedDependentClasses: []string{"FilePath"},
+		},
+		{
+			name:                     "exclude stdlib imports",
+			includeImports:           false,
+			expectedCBO:              0,
+			expectedImportDeps:       0,
+			expectedDependentClasses: []string{},
+		},
+	}
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			options := DefaultCBOOptions()
+			options.IncludeImports = tt.includeImports
+
+			results, err := NewCBOAnalyzer(options).AnalyzeClasses(ast, "reader.py")
+			require.NoError(t, err)
+			require.Len(t, results, 1)
+
+			reader := results[0]
+			assert.Equal(t, "Reader", reader.ClassName)
+			assert.Equal(t, tt.expectedCBO, reader.CouplingCount)
+			assert.Equal(t, tt.expectedImportDeps, reader.ImportDependencies)
+			assert.Equal(t, tt.expectedDependentClasses, reader.DependentClasses)
+		})
+	}
+}
+
+func TestCBOAnalyzer_QualifiedSameNameDependencyIsNotSelfReference(t *testing.T) {
+	pythonCode := `
+import models
+
+class Widget:
+    parent: models.Widget
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "widget.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	widget := results[0]
+	assert.Equal(t, "Widget", widget.ClassName)
+	assert.Equal(t, 1, widget.CouplingCount)
+	assert.Equal(t, 1, widget.ImportDependencies)
+	assert.Equal(t, []string{"models.Widget"}, widget.DependentClasses)
+}
+
+func TestCBOAnalyzer_ImportedSameNameDependencyIsSelfReference(t *testing.T) {
+	pythonCode := `
+from pkg import Widget
+
+class Widget:
+    parent: Widget
+
+    def clone(self) -> Widget:
+        return Widget()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "widget.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	widget := results[0]
+	assert.Equal(t, "Widget", widget.ClassName)
+	assert.Equal(t, 0, widget.CouplingCount)
+	assert.Equal(t, 0, widget.ImportDependencies)
+	assert.Empty(t, widget.DependentClasses)
+}
+
+func TestCBOAnalyzer_TypeSystemImportRootExcludesTypingNames(t *testing.T) {
+	pythonCode := `
+import typing
+from abc import ABCMeta
+from typing_extensions import NotRequired
+
+class Contract(ABCMeta):
+    mapping: typing.MutableMapping
+    task: typing.Awaitable
+    coro: typing.Coroutine
+    gen: typing.Generator
+    annotated: typing.Annotated
+    missing: NotRequired
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "contract.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	contract := results[0]
+	assert.Equal(t, "Contract", contract.ClassName)
+	assert.Equal(t, 0, contract.CouplingCount)
+	assert.Equal(t, 0, contract.InheritanceDependencies)
+	assert.Equal(t, 0, contract.TypeHintDependencies)
+	assert.Equal(t, []string{"ABCMeta"}, contract.BaseClasses)
+	assert.Empty(t, contract.DependentClasses)
+}
+
+func TestCBOAnalyzer_QualifiedProjectTypeSystemNameStillCounts(t *testing.T) {
+	pythonCode := `
+import models
+
+class Service:
+    contract: models.Protocol
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "service.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	service := results[0]
+	assert.Equal(t, "Service", service.ClassName)
+	assert.Equal(t, 1, service.CouplingCount)
+	assert.Equal(t, 1, service.ImportDependencies)
+	assert.Equal(t, []string{"models.Protocol"}, service.DependentClasses)
+}
+
 func TestCBOAnalyzer_ExcludePatterns(t *testing.T) {
 	pythonCode := `
 class TestClass:
