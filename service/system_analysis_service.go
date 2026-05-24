@@ -456,7 +456,7 @@ func (s *SystemAnalysisServiceImpl) analyzeArchitectureGraph(ctx context.Context
 		checked := responsibilityChecks
 		errorCount := severityCounts[domain.ViolationSeverityError]
 		warningCount := severityCounts[domain.ViolationSeverityWarning]
-		compliance := s.calculateComplianceWeighted(errorCount, warningCount, checked)
+		compliance, weighted := s.calculateComplianceWeighted(errorCount, warningCount, checked)
 		recommendations := s.generateArchitectureRecommendations(responsibilityViolations, map[string]float64{}, nil, compliance)
 		refactoringTargets := s.identifyArchitectureRefactoringTargets(responsibilityViolations, map[string]string{})
 		return s.buildArchitectureResultWithRecommendations(
@@ -467,6 +467,7 @@ func (s *SystemAnalysisServiceImpl) analyzeArchitectureGraph(ctx context.Context
 			nil,
 			0,
 			compliance,
+			weighted,
 			checked,
 			map[string]string{},
 			recommendations,
@@ -502,7 +503,7 @@ func (s *SystemAnalysisServiceImpl) analyzeArchitectureGraph(ctx context.Context
 	checked += responsibilityChecks
 	errorCount := severityCounts[domain.ViolationSeverityError]
 	warningCount := severityCounts[domain.ViolationSeverityWarning]
-	compliance := s.calculateComplianceWeighted(errorCount, warningCount, checked)
+	compliance, weighted := s.calculateComplianceWeighted(errorCount, warningCount, checked)
 
 	// Generate architecture recommendations
 	recommendations := s.generateArchitectureRecommendations(violations, layerCohesion, problematic, compliance)
@@ -512,7 +513,7 @@ func (s *SystemAnalysisServiceImpl) analyzeArchitectureGraph(ctx context.Context
 
 	// Build result
 	return s.buildArchitectureResultWithRecommendations(violations, severityCounts, layerCoupling, layerCohesion,
-		problematic, layersAnalyzed, compliance, checked, moduleToLayer, recommendations, refactoringTargets,
+		problematic, layersAnalyzed, compliance, weighted, checked, moduleToLayer, recommendations, refactoringTargets,
 		cohesionAnalysis, responsibilityAnalysis), nil
 }
 
@@ -642,17 +643,19 @@ func (s *SystemAnalysisServiceImpl) calculateLayerMetrics(layerCoupling map[stri
 }
 
 // calculateComplianceWeighted calculates compliance with severity weights.
-// Error = 5 points, Warning = 1 point.
-func (s *SystemAnalysisServiceImpl) calculateComplianceWeighted(errorCount, warningCount, checked int) float64 {
+// Error = 5 points, Warning = 1 point. Returns the compliance score and the
+// weighted violation count used as its numerator, so callers can expose both
+// in the result struct and keep ComplianceScore reproducible from JSON.
+func (s *SystemAnalysisServiceImpl) calculateComplianceWeighted(errorCount, warningCount, checked int) (float64, int) {
+	weighted := errorCount*5 + warningCount*1
 	if checked == 0 {
-		return 1.0
+		return 1.0, weighted
 	}
-	weightedViolations := float64(errorCount*5 + warningCount*1)
-	compliance := 1.0 - (weightedViolations / float64(checked))
+	compliance := 1.0 - (float64(weighted) / float64(checked))
 	if compliance < 0 {
 		compliance = 0
 	}
-	return compliance
+	return compliance, weighted
 }
 
 // buildArchitectureResultWithRecommendations constructs the final result with recommendations
@@ -664,6 +667,7 @@ func (s *SystemAnalysisServiceImpl) buildArchitectureResultWithRecommendations(
 	problematic []string,
 	layersAnalyzed int,
 	compliance float64,
+	weightedViolations int,
 	checked int,
 	moduleToLayer map[string]string,
 	recommendations []domain.ArchitectureRecommendation,
@@ -682,6 +686,7 @@ func (s *SystemAnalysisServiceImpl) buildArchitectureResultWithRecommendations(
 	return &domain.ArchitectureAnalysisResult{
 		ComplianceScore:        compliance,
 		TotalViolations:        len(violations),
+		WeightedViolations:     weightedViolations,
 		TotalRules:             checked,
 		LayerAnalysis:          layerAnalysis,
 		CohesionAnalysis:       cohesionAnalysis,
