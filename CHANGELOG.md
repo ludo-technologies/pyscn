@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.22.2] - 2026-05-24
+
+### Fixed
+- Resolve CBO dependency identity and tighten import contracts to fix coupling miscounts (#474)
+- Expose `WeightedViolations` so architecture `ComplianceScore` is reproducible (#476)
+
 ## [1.22.1] - 2026-05-23
 
 ### Fixed
