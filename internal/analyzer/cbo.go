@@ -599,14 +599,14 @@ func (a *CBOAnalyzer) isTypeSystemDependency(className string) bool {
 		return false
 	}
 
-	dependencyName := className
 	if imported, exists := a.importedNames[className]; exists {
-		dependencyName = imported
-	} else if !strings.Contains(className, ".") {
-		return false
+		return a.typeSystemRoot(imported)
+	}
+	if strings.Contains(className, ".") {
+		return a.typeSystemRoot(className)
 	}
 
-	return a.typeSystemRoot(dependencyName) && a.isTypeSystemName(dependencyName)
+	return false
 }
 
 func (a *CBOAnalyzer) isStandardLibraryDependency(className string) bool {
@@ -640,26 +640,6 @@ func (a *CBOAnalyzer) typeSystemRoot(className string) bool {
 
 	switch root {
 	case "abc", "typing", "typing_extensions":
-		return true
-	default:
-		return false
-	}
-}
-
-func (a *CBOAnalyzer) isTypeSystemName(className string) bool {
-	if strings.Contains(className, ".") {
-		parts := strings.Split(className, ".")
-		className = parts[len(parts)-1]
-	}
-
-	switch className {
-	case "ABC", "ABCMeta", "Any", "BinaryIO", "Callable", "ClassVar",
-		"Concatenate", "Dict", "Final", "Generic", "IO", "Iterable",
-		"Iterator", "List", "Literal", "Mapping", "NamedTuple", "Never",
-		"NewType", "NoReturn", "NotRequired", "Optional", "ParamSpec",
-		"Protocol", "Required", "Self", "Sequence", "Set", "Tuple",
-		"Type", "TypeAlias", "TypedDict", "TypeGuard", "TypeVar",
-		"TypeVarTuple", "Union":
 		return true
 	default:
 		return false

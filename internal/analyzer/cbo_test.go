@@ -545,6 +545,37 @@ class Widget:
 	assert.Empty(t, widget.DependentClasses)
 }
 
+func TestCBOAnalyzer_TypeSystemImportRootExcludesTypingNames(t *testing.T) {
+	pythonCode := `
+import typing
+from abc import ABCMeta
+from typing_extensions import NotRequired
+
+class Contract(ABCMeta):
+    mapping: typing.MutableMapping
+    task: typing.Awaitable
+    coro: typing.Coroutine
+    gen: typing.Generator
+    annotated: typing.Annotated
+    missing: NotRequired
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "contract.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	contract := results[0]
+	assert.Equal(t, "Contract", contract.ClassName)
+	assert.Equal(t, 0, contract.CouplingCount)
+	assert.Equal(t, 0, contract.InheritanceDependencies)
+	assert.Equal(t, 0, contract.TypeHintDependencies)
+	assert.Equal(t, []string{"ABCMeta"}, contract.BaseClasses)
+	assert.Empty(t, contract.DependentClasses)
+}
+
 func TestCBOAnalyzer_QualifiedProjectTypeSystemNameStillCounts(t *testing.T) {
 	pythonCode := `
 import models
