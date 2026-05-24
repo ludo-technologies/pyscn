@@ -132,7 +132,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 
 | 字段              | 类型   | 说明                                                      |
 | ----------------- | ------ | --------------------------------------------------------- |
-| `arch_compliance` | number | 架构合规率，`0`–`1`。`1.0` = 完全合规。                   |
+| `arch_compliance` | number | 架构合规率，`0`–`1`。按严重度加权（`error × 5 + warning × 1`）；分子参见 `system.ArchitectureAnalysis.WeightedViolations`。 |
 
 ### 模拟数据指标
 
@@ -638,9 +638,10 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 
 | 字段                  | 类型    | 说明                                                |
 | --------------------- | ------- | --------------------------------------------------- |
-| `ComplianceScore`     | number  | 合规评分，`0`–`1`。`1.0` = 完全合规。               |
-| `TotalViolations`     | integer | 发现的违规总数。                                    |
-| `TotalRules`          | integer | 评估的规则总数。                                    |
+| `ComplianceScore`     | number  | 合规评分，`0`–`1`。按 `max(0, 1 - WeightedViolations / TotalRules)` 计算；无规则评估时为 `1.0`。 |
+| `TotalViolations`     | integer | 原始违规计数（与 `Violations` 数组长度一致）。      |
+| `WeightedViolations`  | integer | 用作 `ComplianceScore` 分子的加权违规数：`error × 5 + warning × 1`。 |
+| `TotalRules`          | integer | 评估的规则调用总数（`ComplianceScore` 的分母）。    |
 | `LayerAnalysis`       | object \| null | 分层分析结果。                               |
 | `CohesionAnalysis`    | object \| null | 包内聚性分析。                               |
 | `ResponsibilityAnalysis` | object \| null | 单一职责原则违规分析。                    |

@@ -132,7 +132,7 @@ Reflet de `domain.AnalyzeSummary`. Tous les compteurs numériques valent `0` par
 
 | Champ             | Type   | Description                                                            |
 | ----------------- | ------ | ---------------------------------------------------------------------- |
-| `arch_compliance` | number | Taux de conformité architecturale, `0`–`1`. `1.0` = entièrement conforme. |
+| `arch_compliance` | number | Taux de conformité architecturale, `0`–`1`. Pondéré par sévérité (`error × 5 + warning × 1`) ; voir `system.ArchitectureAnalysis.WeightedViolations` pour le numérateur. |
 
 ### Métriques de données fictives
 
@@ -638,9 +638,10 @@ Reflet de `domain.SystemAnalysisResponse`. Les noms de champs imbriqués sont en
 
 | Champ                 | Type    | Description                                                 |
 | --------------------- | ------- | ----------------------------------------------------------- |
-| `ComplianceScore`     | number  | Score de conformité, `0`–`1`. `1.0` = entièrement conforme. |
-| `TotalViolations`     | integer | Total des violations trouvées.                              |
-| `TotalRules`          | integer | Total des règles évaluées.                                  |
+| `ComplianceScore`     | number  | Score de conformité, `0`–`1`. Calculé comme `max(0, 1 - WeightedViolations / TotalRules)` ; `1.0` si aucune règle évaluée. |
+| `TotalViolations`     | integer | Nombre brut de violations (une par entrée de `Violations`). |
+| `WeightedViolations`  | integer | Nombre de violations pondéré par sévérité, utilisé comme numérateur de `ComplianceScore` : `error × 5 + warning × 1`. |
+| `TotalRules`          | integer | Total des invocations de règles évaluées (dénominateur de `ComplianceScore`). |
 | `LayerAnalysis`       | object \| null | Résultats d'analyse par couches.                     |
 | `CohesionAnalysis`    | object \| null | Analyse de cohésion des paquets.                     |
 | `ResponsibilityAnalysis` | object \| null | Analyse des violations du principe SRP.           |

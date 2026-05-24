@@ -218,4 +218,20 @@ func TestAnalyzeArchitectureRunsResponsibilityWithoutLayerRules(t *testing.T) {
 		"TotalRules should count every module checked against the SRP rule, not just the violations")
 	assert.Greater(t, result.ComplianceScore, 0.0,
 		"ComplianceScore should not be zero when most modules pass the responsibility rule")
+
+	// Regression for #444: ComplianceScore must be reproducible from the
+	// WeightedViolations / TotalRules fields exposed in the result, so JSON
+	// consumers can rebuild the score without knowing the severity weights.
+	severities := result.SeverityBreakdown
+	expectedWeighted := severities[domain.ViolationSeverityError]*5 + severities[domain.ViolationSeverityWarning]*1
+	assert.Equal(t, expectedWeighted, result.WeightedViolations,
+		"WeightedViolations should equal error*5 + warning*1")
+	if result.TotalRules > 0 {
+		expectedScore := 1.0 - float64(result.WeightedViolations)/float64(result.TotalRules)
+		if expectedScore < 0 {
+			expectedScore = 0
+		}
+		assert.InDelta(t, expectedScore, result.ComplianceScore, 1e-9,
+			"ComplianceScore must match 1 - WeightedViolations/TotalRules (clamped)")
+	}
 }

@@ -132,7 +132,7 @@ Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the co
 
 | Field             | Type   | Description                                                       |
 | ----------------- | ------ | ----------------------------------------------------------------- |
-| `arch_compliance` | number | Architecture compliance ratio, `0`–`1`. `1.0` = fully compliant.  |
+| `arch_compliance` | number | Architecture compliance ratio, `0`–`1`. Severity-weighted (`error × 5 + warning × 1`); see `system.ArchitectureAnalysis.WeightedViolations` for the numerator. |
 
 ### Mock data metrics
 
@@ -638,9 +638,10 @@ Mirrors `domain.SystemAnalysisResponse`. Nested field names are Go PascalCase.
 
 | Field                 | Type    | Description                                                 |
 | --------------------- | ------- | ----------------------------------------------------------- |
-| `ComplianceScore`     | number  | Compliance score, `0`–`1`. `1.0` = fully compliant.         |
-| `TotalViolations`     | integer | Total violations found.                                     |
-| `TotalRules`          | integer | Total rules evaluated.                                      |
+| `ComplianceScore`     | number  | Compliance score, `0`–`1`. Computed as `max(0, 1 - WeightedViolations / TotalRules)`; `1.0` when no rules were evaluated. |
+| `TotalViolations`     | integer | Raw count of violations (one per entry in `Violations`).    |
+| `WeightedViolations`  | integer | Severity-weighted violation count used as the `ComplianceScore` numerator: `error × 5 + warning × 1`. |
+| `TotalRules`          | integer | Total rule invocations evaluated (the `ComplianceScore` denominator). |
 | `LayerAnalysis`       | object \| null | Layer analysis results.                              |
 | `CohesionAnalysis`    | object \| null | Package cohesion analysis.                           |
 | `ResponsibilityAnalysis` | object \| null | SRP violation analysis.                           |

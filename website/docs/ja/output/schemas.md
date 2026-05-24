@@ -132,7 +132,7 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 
 | フィールド         | 型     | 説明                                                              |
 | ----------------- | ------ | ----------------------------------------------------------------- |
-| `arch_compliance` | number | アーキテクチャ準拠率、`0`–`1`。`1.0` = 完全準拠。                 |
+| `arch_compliance` | number | アーキテクチャ準拠率、`0`–`1`。重大度重み付き（`error × 5 + warning × 1`）。分子は `system.ArchitectureAnalysis.WeightedViolations` を参照。 |
 
 ### モックデータメトリクス
 
@@ -638,9 +638,10 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 
 | フィールド                 | 型      | 説明                                                        |
 | ------------------------- | ------- | ----------------------------------------------------------- |
-| `ComplianceScore`         | number  | 準拠スコア、`0`–`1`。`1.0` = 完全準拠。                     |
-| `TotalViolations`         | integer | 検出された違反の合計数。                                    |
-| `TotalRules`              | integer | 評価されたルールの合計数。                                  |
+| `ComplianceScore`         | number  | 準拠スコア、`0`–`1`。`max(0, 1 - WeightedViolations / TotalRules)` で計算。ルール未評価時は `1.0`。 |
+| `TotalViolations`         | integer | 違反の生カウント（`Violations` 配列の要素数と一致）。       |
+| `WeightedViolations`      | integer | `ComplianceScore` の分子に用いる重み付き違反数：`error × 5 + warning × 1`。 |
+| `TotalRules`              | integer | 評価されたルール呼び出しの合計数（`ComplianceScore` の分母）。 |
 | `LayerAnalysis`           | object \| null | レイヤー分析結果。                                   |
 | `CohesionAnalysis`        | object \| null | パッケージ凝集度分析。                               |
 | `ResponsibilityAnalysis`  | object \| null | SRP 違反分析。                                       |

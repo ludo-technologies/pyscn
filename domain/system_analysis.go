@@ -216,9 +216,10 @@ type CouplingAnalysis struct {
 // ArchitectureAnalysisResult contains architecture validation results
 type ArchitectureAnalysisResult struct {
 	// Overall architecture compliance
-	ComplianceScore float64 // Overall compliance score (0-1, where 1.0 = 100% compliant)
-	TotalViolations int     // Total number of violations
-	TotalRules      int     // Total number of rules checked
+	ComplianceScore    float64 // Overall compliance score (0-1, where 1.0 = 100% compliant). Computed as 1 - WeightedViolations/TotalRules (clamped to [0,1]).
+	TotalViolations    int     // Raw number of violations (one per ArchitectureViolation entry).
+	WeightedViolations int     // Severity-weighted violation count used as the ComplianceScore numerator: error * 5 + warning * 1.
+	TotalRules         int     // Total number of rule invocations checked (ComplianceScore denominator).
 
 	// Layer analysis
 	LayerAnalysis          *LayerAnalysis          // Layer violation analysis
