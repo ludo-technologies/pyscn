@@ -4707,7 +4707,7 @@
 <tr>
 <td><code>arch_compliance</code></td>
 <td>number</td>
-<td>架构合规率，<code>0</code>–<code>1</code>。<code>1.0</code> = 完全合规。</td>
+<td>架构合规率，<code>0</code>–<code>1</code>。按严重度加权（<code>error × 5 + warning × 1</code>）；分子参见 <code>system.ArchitectureAnalysis.WeightedViolations</code>。</td>
 </tr>
 </tbody>
 </table>
@@ -6377,17 +6377,22 @@
 <tr>
 <td><code>ComplianceScore</code></td>
 <td>number</td>
-<td>合规评分，<code>0</code>–<code>1</code>。<code>1.0</code> = 完全合规。</td>
+<td>合规评分，<code>0</code>–<code>1</code>。按 <code>max(0, 1 - WeightedViolations / TotalRules)</code> 计算；无规则评估时为 <code>1.0</code>。</td>
 </tr>
 <tr>
 <td><code>TotalViolations</code></td>
 <td>integer</td>
-<td>发现的违规总数。</td>
+<td>原始违规计数（与 <code>Violations</code> 数组长度一致）。</td>
+</tr>
+<tr>
+<td><code>WeightedViolations</code></td>
+<td>integer</td>
+<td>用作 <code>ComplianceScore</code> 分子的加权违规数：<code>error × 5 + warning × 1</code>。</td>
 </tr>
 <tr>
 <td><code>TotalRules</code></td>
 <td>integer</td>
-<td>评估的规则总数。</td>
+<td>评估的规则调用总数（<code>ComplianceScore</code> 的分母）。</td>
 </tr>
 <tr>
 <td><code>LayerAnalysis</code></td>

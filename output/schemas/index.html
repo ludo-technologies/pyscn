@@ -4707,7 +4707,7 @@
 <tr>
 <td><code>arch_compliance</code></td>
 <td>number</td>
-<td>Architecture compliance ratio, <code>0</code>–<code>1</code>. <code>1.0</code> = fully compliant.</td>
+<td>Architecture compliance ratio, <code>0</code>–<code>1</code>. Severity-weighted (<code>error × 5 + warning × 1</code>); see <code>system.ArchitectureAnalysis.WeightedViolations</code> for the numerator.</td>
 </tr>
 </tbody>
 </table>
@@ -6377,17 +6377,22 @@
 <tr>
 <td><code>ComplianceScore</code></td>
 <td>number</td>
-<td>Compliance score, <code>0</code>–<code>1</code>. <code>1.0</code> = fully compliant.</td>
+<td>Compliance score, <code>0</code>–<code>1</code>. Computed as <code>max(0, 1 - WeightedViolations / TotalRules)</code>; <code>1.0</code> when no rules were evaluated.</td>
 </tr>
 <tr>
 <td><code>TotalViolations</code></td>
 <td>integer</td>
-<td>Total violations found.</td>
+<td>Raw count of violations (one per entry in <code>Violations</code>).</td>
+</tr>
+<tr>
+<td><code>WeightedViolations</code></td>
+<td>integer</td>
+<td>Severity-weighted violation count used as the <code>ComplianceScore</code> numerator: <code>error × 5 + warning × 1</code>.</td>
 </tr>
 <tr>
 <td><code>TotalRules</code></td>
 <td>integer</td>
-<td>Total rules evaluated.</td>
+<td>Total rule invocations evaluated (the <code>ComplianceScore</code> denominator).</td>
 </tr>
 <tr>
 <td><code>LayerAnalysis</code></td>

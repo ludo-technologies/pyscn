@@ -4707,7 +4707,7 @@
 <tr>
 <td><code>arch_compliance</code></td>
 <td>number</td>
-<td>アーキテクチャ準拠率、<code>0</code>–<code>1</code>。<code>1.0</code> = 完全準拠。</td>
+<td>アーキテクチャ準拠率、<code>0</code>–<code>1</code>。重大度重み付き（<code>error × 5 + warning × 1</code>）。分子は <code>system.ArchitectureAnalysis.WeightedViolations</code> を参照。</td>
 </tr>
 </tbody>
 </table>
@@ -6377,17 +6377,22 @@
 <tr>
 <td><code>ComplianceScore</code></td>
 <td>number</td>
-<td>準拠スコア、<code>0</code>–<code>1</code>。<code>1.0</code> = 完全準拠。</td>
+<td>準拠スコア、<code>0</code>–<code>1</code>。<code>max(0, 1 - WeightedViolations / TotalRules)</code> で計算。ルール未評価時は <code>1.0</code>。</td>
 </tr>
 <tr>
 <td><code>TotalViolations</code></td>
 <td>integer</td>
-<td>検出された違反の合計数。</td>
+<td>違反の生カウント（<code>Violations</code> 配列の要素数と一致）。</td>
+</tr>
+<tr>
+<td><code>WeightedViolations</code></td>
+<td>integer</td>
+<td><code>ComplianceScore</code> の分子に用いる重み付き違反数：<code>error × 5 + warning × 1</code>。</td>
 </tr>
 <tr>
 <td><code>TotalRules</code></td>
 <td>integer</td>
-<td>評価されたルールの合計数。</td>
+<td>評価されたルール呼び出しの合計数（<code>ComplianceScore</code> の分母）。</td>
 </tr>
 <tr>
 <td><code>LayerAnalysis</code></td>

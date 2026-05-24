@@ -4707,7 +4707,7 @@
 <tr>
 <td><code>arch_compliance</code></td>
 <td>number</td>
-<td>Taux de conformité architecturale, <code>0</code>–<code>1</code>. <code>1.0</code> = entièrement conforme.</td>
+<td>Taux de conformité architecturale, <code>0</code>–<code>1</code>. Pondéré par sévérité (<code>error × 5 + warning × 1</code>) ; voir <code>system.ArchitectureAnalysis.WeightedViolations</code> pour le numérateur.</td>
 </tr>
 </tbody>
 </table>
@@ -6377,17 +6377,22 @@
 <tr>
 <td><code>ComplianceScore</code></td>
 <td>number</td>
-<td>Score de conformité, <code>0</code>–<code>1</code>. <code>1.0</code> = entièrement conforme.</td>
+<td>Score de conformité, <code>0</code>–<code>1</code>. Calculé comme <code>max(0, 1 - WeightedViolations / TotalRules)</code> ; <code>1.0</code> si aucune règle évaluée.</td>
 </tr>
 <tr>
 <td><code>TotalViolations</code></td>
 <td>integer</td>
-<td>Total des violations trouvées.</td>
+<td>Nombre brut de violations (une par entrée de <code>Violations</code>).</td>
+</tr>
+<tr>
+<td><code>WeightedViolations</code></td>
+<td>integer</td>
+<td>Nombre de violations pondéré par sévérité, utilisé comme numérateur de <code>ComplianceScore</code> : <code>error × 5 + warning × 1</code>.</td>
 </tr>
 <tr>
 <td><code>TotalRules</code></td>
 <td>integer</td>
-<td>Total des règles évaluées.</td>
+<td>Total des invocations de règles évaluées (dénominateur de <code>ComplianceScore</code>).</td>
 </tr>
 <tr>
 <td><code>LayerAnalysis</code></td>
