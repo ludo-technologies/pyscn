@@ -76,7 +76,7 @@ func (a *LCOMAnalyzer) AnalyzeClasses(ast *parser.Node, filePath string) ([]*LCO
 
 	var results []*LCOMResult
 	for _, classNode := range classes {
-		result, err := a.analyzeClass(classNode, filePath, ctypesFields[classNode.Name])
+		result, err := a.analyzeClass(classNode, filePath, ctypesFields[classNode])
 		if err != nil {
 			continue
 		}
@@ -428,19 +428,32 @@ func (a *LCOMAnalyzer) collectClasses(ast *parser.Node) []*parser.Node {
 	return classes
 }
 
-func (a *LCOMAnalyzer) collectCtypesFields(ast *parser.Node, classes []*parser.Node) map[string]map[string]bool {
-	fieldsByClass := make(map[string]map[string]bool)
-	ctypesClasses := make(map[string]*parser.Node, len(classes))
+func (a *LCOMAnalyzer) collectCtypesFields(ast *parser.Node, classes []*parser.Node) map[*parser.Node]map[string]bool {
+	fieldsByClass := make(map[*parser.Node]map[string]bool)
+	// Map class name -> node, with nil marking names that resolve ambiguously
+	// (e.g. two ctypes classes share a name across scopes). Ambiguous names are
+	// skipped for external `<Name>._fields_ = ...` assignments since we cannot
+	// safely attribute them to a specific class.
+	ctypesByName := make(map[string]*parser.Node, len(classes))
+	var ctypesClasses []*parser.Node
 	for _, classNode := range classes {
-		if a.isCtypesStructureClass(classNode) {
-			ctypesClasses[classNode.Name] = classNode
+		if !a.isCtypesStructureClass(classNode) {
+			continue
 		}
+		ctypesClasses = append(ctypesClasses, classNode)
+		if existing, ok := ctypesByName[classNode.Name]; ok {
+			if existing != nil {
+				ctypesByName[classNode.Name] = nil
+			}
+			continue
+		}
+		ctypesByName[classNode.Name] = classNode
 	}
 	if len(ctypesClasses) == 0 {
 		return fieldsByClass
 	}
 
-	for className, classNode := range ctypesClasses {
+	for _, classNode := range ctypesClasses {
 		for _, bodyNode := range classNode.Body {
 			if bodyNode == nil {
 				continue
@@ -448,7 +461,7 @@ func (a *LCOMAnalyzer) collectCtypesFields(ast *parser.Node, classes []*parser.N
 			if !isAssignmentNode(bodyNode) || !a.assignmentTargetsName(bodyNode, "_fields_") {
 				continue
 			}
-			a.addFields(fieldsByClass, className, a.extractCtypesFieldNames(bodyNode.Value))
+			a.addFields(fieldsByClass, classNode, a.extractCtypesFieldNames(bodyNode.Value))
 		}
 	}
 
@@ -461,15 +474,28 @@ func (a *LCOMAnalyzer) collectCtypesFields(ast *parser.Node, classes []*parser.N
 			if className == "" {
 				continue
 			}
-			if _, ok := ctypesClasses[className]; !ok {
+			classNode, ok := ctypesByName[className]
+			if !ok || classNode == nil {
 				continue
 			}
-			a.addFields(fieldsByClass, className, a.extractCtypesFieldNames(node.Value))
+			a.addFields(fieldsByClass, classNode, a.extractCtypesFieldNames(node.Value))
 		}
 		return true
 	})
 
 	return fieldsByClass
+}
+
+// ctypesStructureBases lists the ctypes base classes whose subclasses declare
+// fields via the _fields_ class attribute (often assigned outside the class
+// body to allow self-referential pointer types).
+var ctypesStructureBases = map[string]bool{
+	"Structure":             true,
+	"Union":                 true,
+	"BigEndianStructure":    true,
+	"LittleEndianStructure": true,
+	"BigEndianUnion":        true,
+	"LittleEndianUnion":     true,
 }
 
 func (a *LCOMAnalyzer) isCtypesStructureClass(classNode *parser.Node) bool {
@@ -480,11 +506,11 @@ func (a *LCOMAnalyzer) isCtypesStructureClass(classNode *parser.Node) bool {
 		if base == nil {
 			continue
 		}
-		if base.Type == parser.NodeName && base.Name == "Structure" {
-			return true
-		}
-		if base.Type == parser.NodeAttribute && base.Name == "Structure" {
-			return true
+		switch base.Type {
+		case parser.NodeName, parser.NodeAttribute:
+			if ctypesStructureBases[base.Name] {
+				return true
+			}
 		}
 	}
 	return false
@@ -534,15 +560,15 @@ func (a *LCOMAnalyzer) extractCtypesFieldNames(value interface{}) []string {
 	return fields
 }
 
-func (a *LCOMAnalyzer) addFields(fieldsByClass map[string]map[string]bool, className string, fields []string) {
-	if len(fields) == 0 {
+func (a *LCOMAnalyzer) addFields(fieldsByClass map[*parser.Node]map[string]bool, classNode *parser.Node, fields []string) {
+	if len(fields) == 0 || classNode == nil {
 		return
 	}
-	if fieldsByClass[className] == nil {
-		fieldsByClass[className] = make(map[string]bool, len(fields))
+	if fieldsByClass[classNode] == nil {
+		fieldsByClass[classNode] = make(map[string]bool, len(fields))
 	}
 	for _, field := range fields {
-		fieldsByClass[className][field] = true
+		fieldsByClass[classNode][field] = true
 	}
 }
 
