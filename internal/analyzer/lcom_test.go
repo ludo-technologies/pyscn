@@ -582,3 +582,83 @@ class MultipleItems:
 		})
 	}
 }
+
+func TestLCOMAnalyzer_CtypesFieldsAssignedOutsideClass(t *testing.T) {
+	p := parser.New()
+	code := `
+import ctypes
+
+class Image(ctypes.Structure):
+    def __init__(self, data=None, width=None, height=None, mipmaps=None, format_=None):
+        super(Image, self).__init__(
+            data,
+            width or 0,
+            height or 0,
+            mipmaps or 1,
+            format_ or 7,
+        )
+
+    @property
+    def is_ready(self):
+        return _IsImageReady(self)
+
+    def resize(self, width, height):
+        _ImageResize(self, width, height)
+
+    def export(self, file_name):
+        return _ExportImage(self, file_name)
+
+Image._fields_ = [
+    ("data", ctypes.c_void_p),
+    ("width", ctypes.c_int),
+    ("height", ctypes.c_int),
+    ("mipmaps", ctypes.c_int),
+    ("format", ctypes.c_int),
+]
+`
+	result, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	analyzer := NewLCOMAnalyzer(nil)
+	results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	r := results[0]
+	assert.Equal(t, "Image", r.ClassName)
+	assert.Equal(t, 1, r.LCOM4)
+	assert.Equal(t, 5, r.InstanceVariables)
+	assert.Equal(t, [][]string{{"__init__", "export", "is_ready", "resize"}}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_CtypesFieldsDoNotTreatSelfParameterAsFieldAccess(t *testing.T) {
+	p := parser.New()
+	code := `
+import ctypes
+
+class Packet(ctypes.Structure):
+    def touches_state(self):
+        _TouchPacket(self)
+
+    def utility(self):
+        return 42
+
+Packet._fields_ = [
+    ("kind", ctypes.c_int),
+    ("size", ctypes.c_int),
+]
+`
+	result, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	analyzer := NewLCOMAnalyzer(nil)
+	results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	r := results[0]
+	assert.Equal(t, "Packet", r.ClassName)
+	assert.Equal(t, 2, r.LCOM4)
+	assert.Equal(t, 2, r.InstanceVariables)
+	assert.Equal(t, [][]string{{"touches_state"}, {"utility"}}, r.MethodGroups)
+}

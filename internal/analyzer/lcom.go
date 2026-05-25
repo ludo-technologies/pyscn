@@ -72,10 +72,11 @@ func (a *LCOMAnalyzer) AnalyzeClasses(ast *parser.Node, filePath string) ([]*LCO
 
 	// Collect all class definitions
 	classes := a.collectClasses(ast)
+	ctypesFields := a.collectCtypesFields(ast, classes)
 
 	var results []*LCOMResult
 	for _, classNode := range classes {
-		result, err := a.analyzeClass(classNode, filePath)
+		result, err := a.analyzeClass(classNode, filePath, ctypesFields[classNode.Name])
 		if err != nil {
 			continue
 		}
@@ -86,7 +87,7 @@ func (a *LCOMAnalyzer) AnalyzeClasses(ast *parser.Node, filePath string) ([]*LCO
 }
 
 // analyzeClass computes LCOM4 for a single class using connected components
-func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string) (*LCOMResult, error) {
+func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string, declaredFields map[string]bool) (*LCOMResult, error) {
 	if classNode.Type != parser.NodeClassDef {
 		return nil, fmt.Errorf("node is not a class definition")
 	}
@@ -100,9 +101,21 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string) (*L
 	}
 
 	// Step 1: Collect methods, their instance variable accesses, and intra-class calls
-	methods, excluded, methodCalls := a.collectMethods(classNode)
+	methods, excluded, methodCalls := a.collectMethods(classNode, declaredFields)
 	result.TotalMethods = len(methods) + excluded
 	result.ExcludedMethods = excluded
+
+	// Step 2: Collect all distinct instance variables
+	allVars := make(map[string]bool)
+	for _, vars := range methods {
+		for v := range vars {
+			allVars[v] = true
+		}
+	}
+	for v := range declaredFields {
+		allVars[v] = true
+	}
+	result.InstanceVariables = len(allVars)
 
 	// Classes with 0 or 1 methods are trivially cohesive
 	if len(methods) <= 1 {
@@ -115,15 +128,6 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string) (*L
 		result.RiskLevel = a.assessRiskLevel(1)
 		return result, nil
 	}
-
-	// Step 2: Collect all distinct instance variables
-	allVars := make(map[string]bool)
-	for _, vars := range methods {
-		for v := range vars {
-			allVars[v] = true
-		}
-	}
-	result.InstanceVariables = len(allVars)
 
 	// Step 3: Compute connected components using Union-Find
 	methodNames := make([]string, 0, len(methods))
@@ -215,7 +219,7 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string) (*L
 //   - methods: methodName -> set of instance variable names
 //   - excluded: count of excluded methods (@classmethod/@staticmethod)
 //   - calls: methodName -> set of called method names (self.xxx() intra-class calls)
-func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node) (map[string]map[string]bool, int, map[string]map[string]bool) {
+func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map[string]bool) (map[string]map[string]bool, int, map[string]map[string]bool) {
 	methods := make(map[string]map[string]bool)
 	calls := make(map[string]map[string]bool)
 	excluded := 0
@@ -238,6 +242,11 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node) (map[string]map[st
 		// Extract self.xxx accesses from method body
 		vars := make(map[string]bool)
 		a.extractInstanceVars(node, vars)
+		if len(declaredFields) > 0 && a.hasBareSelfAccess(node) {
+			for field := range declaredFields {
+				vars[field] = true
+			}
+		}
 		methods[node.Name] = vars
 
 		// Extract self.xxx() method calls
@@ -319,6 +328,64 @@ func (a *LCOMAnalyzer) extractInstanceVars(methodNode *parser.Node, vars map[str
 	})
 }
 
+// hasBareSelfAccess reports whether a method uses self as a value rather than
+// only as the base object in self.attr. ctypes.Structure methods commonly pass
+// self to C functions that read or mutate fields declared in _fields_.
+func (a *LCOMAnalyzer) hasBareSelfAccess(node *parser.Node) bool {
+	if node == nil {
+		return false
+	}
+
+	switch node.Type {
+	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
+		for _, bodyNode := range node.Body {
+			if a.hasBareSelfAccess(bodyNode) {
+				return true
+			}
+		}
+		return false
+	case parser.NodeName:
+		return node.Name == "self"
+	case parser.NodeAttribute:
+		if valueNode := nodeValue(node); valueNode != nil {
+			if valueNode.Type == parser.NodeName && valueNode.Name == "self" {
+				return false
+			}
+			if a.hasBareSelfAccess(valueNode) {
+				return true
+			}
+		}
+		for _, child := range parser.OrderedChildren(node, nil) {
+			if child != nodeValue(node) && a.hasBareSelfAccess(child) {
+				return true
+			}
+		}
+		return false
+	case parser.NodeCall:
+		if valueNode := nodeValue(node); valueNode != nil && a.hasBareSelfAccess(valueNode) {
+			return true
+		}
+		for _, arg := range node.Args {
+			if a.hasBareSelfAccess(arg) {
+				return true
+			}
+		}
+		for _, keyword := range node.Keywords {
+			if a.hasBareSelfAccess(keyword) {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, child := range parser.OrderedChildren(node, nil) {
+		if a.hasBareSelfAccess(child) {
+			return true
+		}
+	}
+	return false
+}
+
 // isSelfAccess checks if an attribute node represents self.xxx access
 func (a *LCOMAnalyzer) isSelfAccess(attrNode *parser.Node) bool {
 	// The object (self) can be in Value or Left field
@@ -359,6 +426,128 @@ func (a *LCOMAnalyzer) collectClasses(ast *parser.Node) []*parser.Node {
 		return true
 	})
 	return classes
+}
+
+func (a *LCOMAnalyzer) collectCtypesFields(ast *parser.Node, classes []*parser.Node) map[string]map[string]bool {
+	fieldsByClass := make(map[string]map[string]bool)
+	ctypesClasses := make(map[string]*parser.Node, len(classes))
+	for _, classNode := range classes {
+		if a.isCtypesStructureClass(classNode) {
+			ctypesClasses[classNode.Name] = classNode
+		}
+	}
+	if len(ctypesClasses) == 0 {
+		return fieldsByClass
+	}
+
+	for className, classNode := range ctypesClasses {
+		for _, bodyNode := range classNode.Body {
+			if bodyNode == nil {
+				continue
+			}
+			if !isAssignmentNode(bodyNode) || !a.assignmentTargetsName(bodyNode, "_fields_") {
+				continue
+			}
+			a.addFields(fieldsByClass, className, a.extractCtypesFieldNames(bodyNode.Value))
+		}
+	}
+
+	ast.WalkDeep(func(node *parser.Node) bool {
+		if node == nil || !isAssignmentNode(node) {
+			return true
+		}
+		for _, target := range node.Targets {
+			className := a.ctypesFieldsAssignmentClass(target)
+			if className == "" {
+				continue
+			}
+			if _, ok := ctypesClasses[className]; !ok {
+				continue
+			}
+			a.addFields(fieldsByClass, className, a.extractCtypesFieldNames(node.Value))
+		}
+		return true
+	})
+
+	return fieldsByClass
+}
+
+func (a *LCOMAnalyzer) isCtypesStructureClass(classNode *parser.Node) bool {
+	if classNode == nil || classNode.Type != parser.NodeClassDef {
+		return false
+	}
+	for _, base := range classNode.Bases {
+		if base == nil {
+			continue
+		}
+		if base.Type == parser.NodeName && base.Name == "Structure" {
+			return true
+		}
+		if base.Type == parser.NodeAttribute && base.Name == "Structure" {
+			return true
+		}
+	}
+	return false
+}
+
+func (a *LCOMAnalyzer) assignmentTargetsName(assignNode *parser.Node, name string) bool {
+	for _, target := range assignNode.Targets {
+		if target != nil && target.Type == parser.NodeName && target.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func (a *LCOMAnalyzer) ctypesFieldsAssignmentClass(target *parser.Node) string {
+	if target == nil || target.Type != parser.NodeAttribute || target.Name != "_fields_" {
+		return ""
+	}
+	valueNode := nodeValue(target)
+	if valueNode == nil || valueNode.Type != parser.NodeName {
+		return ""
+	}
+	return valueNode.Name
+}
+
+func (a *LCOMAnalyzer) extractCtypesFieldNames(value interface{}) []string {
+	valueNode, ok := value.(*parser.Node)
+	if !ok || valueNode == nil {
+		return nil
+	}
+
+	var fields []string
+	for _, fieldNode := range valueNode.Children {
+		if fieldNode == nil || fieldNode.Type != parser.NodeTuple || len(fieldNode.Children) == 0 {
+			continue
+		}
+		nameNode := fieldNode.Children[0]
+		if nameNode == nil || nameNode.Type != parser.NodeConstant {
+			continue
+		}
+		fieldName, ok := nameNode.Value.(string)
+		if !ok || fieldName == "" {
+			continue
+		}
+		fields = append(fields, fieldName)
+	}
+	return fields
+}
+
+func (a *LCOMAnalyzer) addFields(fieldsByClass map[string]map[string]bool, className string, fields []string) {
+	if len(fields) == 0 {
+		return
+	}
+	if fieldsByClass[className] == nil {
+		fieldsByClass[className] = make(map[string]bool, len(fields))
+	}
+	for _, field := range fields {
+		fieldsByClass[className][field] = true
+	}
+}
+
+func isAssignmentNode(node *parser.Node) bool {
+	return node != nil && (node.Type == parser.NodeAssign || node.Type == parser.NodeAnnAssign)
 }
 
 // CalculateLCOM is a convenience function that creates an analyzer with defaults and runs it
