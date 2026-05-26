@@ -639,12 +639,6 @@ func TestCloneService_FilterCloneGroups(t *testing.T) {
 func TestCloneService_CreateStatistics(t *testing.T) {
 	service := NewCloneService()
 
-	clones := []*domain.Clone{
-		{ID: 1},
-		{ID: 2},
-		{ID: 3},
-	}
-
 	pairs := []*domain.ClonePair{
 		{ID: 1, Similarity: 0.8, Type: domain.Type1Clone},
 		{ID: 2, Similarity: 0.9, Type: domain.Type2Clone},
@@ -652,8 +646,14 @@ func TestCloneService_CreateStatistics(t *testing.T) {
 	}
 
 	groups := []*domain.CloneGroup{
-		{ID: 1},
-		{ID: 2},
+		{ID: 1, Clones: []*domain.Clone{
+			{ID: 1, Location: &domain.CloneLocation{FilePath: "a.py", StartLine: 1, EndLine: 10}},
+			{ID: 2, Location: &domain.CloneLocation{FilePath: "b.py", StartLine: 1, EndLine: 10}},
+		}},
+		{ID: 2, Clones: []*domain.Clone{
+			{ID: 2, Location: &domain.CloneLocation{FilePath: "b.py", StartLine: 1, EndLine: 10}},
+			{ID: 3, Location: &domain.CloneLocation{FilePath: "c.py", StartLine: 1, EndLine: 10}},
+		}},
 	}
 
 	totalFragments := 10
@@ -661,11 +661,11 @@ func TestCloneService_CreateStatistics(t *testing.T) {
 	linesAnalyzed := 1000
 	nodesAnalyzed := 500
 
-	stats := service.createStatistics(clones, pairs, groups, totalFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
+	stats := service.createStatistics(pairs, groups, totalFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
 
 	assert.NotNil(t, stats)
 	assert.Equal(t, 10, stats.TotalFragments)
-	assert.Equal(t, 3, stats.TotalClones)
+	assert.Equal(t, 3, stats.TotalClones) // 3 unique fragments across 2 groups (IDs: 1, 2, 3)
 	assert.Equal(t, 3, stats.TotalClonePairs)
 	assert.Equal(t, 2, stats.TotalCloneGroups)
 	assert.Equal(t, 5, stats.FilesAnalyzed)
