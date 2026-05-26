@@ -488,7 +488,7 @@ func (s *CloneService) sortResults(clones []*domain.Clone, pairs []*domain.Clone
 func (s *CloneService) createStatistics(pairs []*domain.ClonePair, groups []*domain.CloneGroup, totalFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed int) *domain.CloneStatistics {
 	stats := domain.NewCloneStatistics()
 	stats.TotalFragments = totalFragments
-	stats.TotalClones = countUniqueCloneFragments(groups)
+	stats.TotalClones = countUniqueCloneFragments(pairs, groups)
 	stats.TotalClonePairs = len(pairs)
 	stats.TotalCloneGroups = len(groups)
 	stats.FilesAnalyzed = filesAnalyzed
@@ -513,19 +513,26 @@ func (s *CloneService) createStatistics(pairs []*domain.ClonePair, groups []*dom
 	return stats
 }
 
-// countUniqueCloneFragments counts distinct fragments that participate in at least one clone group.
-func countUniqueCloneFragments(groups []*domain.CloneGroup) int {
+// countUniqueCloneFragments counts distinct fragments that participate in at least one clone pair or group.
+func countUniqueCloneFragments(pairs []*domain.ClonePair, groups []*domain.CloneGroup) int {
 	type locKey struct {
 		file      string
 		startLine int
 		endLine   int
 	}
 	seen := make(map[locKey]struct{})
+	addClone := func(c *domain.Clone) {
+		if c != nil && c.Location != nil {
+			seen[locKey{c.Location.FilePath, c.Location.StartLine, c.Location.EndLine}] = struct{}{}
+		}
+	}
+	for _, p := range pairs {
+		addClone(p.Clone1)
+		addClone(p.Clone2)
+	}
 	for _, g := range groups {
 		for _, c := range g.Clones {
-			if c.Location != nil {
-				seen[locKey{c.Location.FilePath, c.Location.StartLine, c.Location.EndLine}] = struct{}{}
-			}
+			addClone(c)
 		}
 	}
 	return len(seen)
