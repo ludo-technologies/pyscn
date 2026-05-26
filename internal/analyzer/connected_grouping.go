@@ -145,6 +145,9 @@ func majorityCloneType(typeMap map[string]CloneType, members []*CodeFragment) Cl
 		for j := i + 1; j < len(members); j++ {
 			key := pairKey(members[i], members[j])
 			if t, ok := typeMap[key]; ok {
+				if t == 0 {
+					continue
+				}
 				counts[t]++
 			}
 		}
@@ -158,7 +161,7 @@ func majorityCloneType(typeMap map[string]CloneType, members []*CodeFragment) Cl
 		}
 	}
 	if maxC < 0 {
-		return Type3Clone // fallback reasonable default
+		return Type4Clone // conservative fallback: never report unknown as Type-1
 	}
 	return best
 }
