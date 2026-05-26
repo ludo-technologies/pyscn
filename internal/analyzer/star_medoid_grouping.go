@@ -270,21 +270,6 @@ func (s *StarMedoidGrouping) collectFragments(pairs []*ClonePair) []*CodeFragmen
 	return order
 }
 
-// Helper: build similarity cache from given pairs
-func (s *StarMedoidGrouping) buildSimilarityMap(pairs []*ClonePair) map[string]float64 {
-	sims := make(map[string]float64, len(pairs)*2)
-	for _, p := range pairs {
-		if p.Fragment1 == nil || p.Fragment2 == nil {
-			continue
-		}
-		k := pairKey(p.Fragment1, p.Fragment2)
-		if old, ok := sims[k]; !ok || p.Similarity > old {
-			sims[k] = p.Similarity // keep the highest if duplicates exist
-		}
-	}
-	return sims
-}
-
 func (s *StarMedoidGrouping) buildSimilarityGraph(pairs []*ClonePair) map[*CodeFragment][]fragmentSimilarity {
 	best := make(map[*CodeFragment]map[*CodeFragment]float64)
 	for _, p := range pairs {
