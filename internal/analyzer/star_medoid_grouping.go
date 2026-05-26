@@ -41,7 +41,7 @@ func (s *StarMedoidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 	if len(fragments) == 0 {
 		return []*CloneGroup{}
 	}
-	simMap := s.buildSimilarityMap(pairs)
+	simMap, typeMap := clonePairMetadata(pairs)
 	graph := s.buildSimilarityGraph(pairs)
 
 	// 2. Initialize clusters: each fragment alone, with union-find to merge via medoids
@@ -166,6 +166,7 @@ func (s *StarMedoidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 		}
 		// Compute average similarity from cache among group members
 		group.Similarity = averageGroupSimilarity(simMap, filtered)
+		group.CloneType = majorityCloneType(typeMap, filtered)
 		result = append(result, group)
 	}
 

@@ -418,7 +418,7 @@ func (s *CloneService) convertCloneType(cloneType analyzer.CloneType) domain.Clo
 	case analyzer.Type4Clone:
 		return domain.Type4Clone
 	default:
-		return domain.Type1Clone
+		return domain.Type4Clone
 	}
 }
 

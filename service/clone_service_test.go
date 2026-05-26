@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -503,22 +504,20 @@ func TestCloneService_CreateDetectorConfig(t *testing.T) {
 func TestCloneService_ConvertCloneType(t *testing.T) {
 	testCases := []struct {
 		name               string
-		analyzerType       int // Using int since analyzer types are in internal package
+		analyzerType       analyzer.CloneType
 		expectedDomainType domain.CloneType
 	}{
-		{"Type1", 1, domain.Type1Clone},
-		{"Type2", 2, domain.Type2Clone},
-		{"Type3", 3, domain.Type3Clone},
-		{"Type4", 4, domain.Type4Clone},
-		{"Unknown", 99, domain.Type1Clone}, // Default case
+		{"Type1", analyzer.Type1Clone, domain.Type1Clone},
+		{"Type2", analyzer.Type2Clone, domain.Type2Clone},
+		{"Type3", analyzer.Type3Clone, domain.Type3Clone},
+		{"Type4", analyzer.Type4Clone, domain.Type4Clone},
+		{"Unknown", analyzer.CloneType(99), domain.Type4Clone},
 	}
 
-	// Note: We can't directly test the convertCloneType method since it uses internal types
-	// but we can test the domain.CloneType.String() method instead
+	service := NewCloneService()
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			str := tc.expectedDomainType.String()
-			assert.Contains(t, str, "Type-")
+			assert.Equal(t, tc.expectedDomainType, service.convertCloneType(tc.analyzerType))
 		})
 	}
 }

@@ -13,7 +13,11 @@ func newFrag(path string, sl, el int) *CodeFragment {
 }
 
 func newPair(a, b *CodeFragment, sim float64) *ClonePair {
-	return &ClonePair{Fragment1: a, Fragment2: b, Similarity: sim}
+	return newPairWithType(a, b, sim, Type4Clone)
+}
+
+func newPairWithType(a, b *CodeFragment, sim float64, cloneType CloneType) *ClonePair {
+	return &ClonePair{Fragment1: a, Fragment2: b, Similarity: sim, CloneType: cloneType}
 }
 
 func TestStarMedoidGrouping_SimpleCase(t *testing.T) {
@@ -122,6 +126,21 @@ func TestStarMedoidGrouping_AssignsIDsAfterStableSort(t *testing.T) {
 	}
 	assert.Same(t, B1, groups[0].Fragments[0])
 	assert.Same(t, A1, groups[1].Fragments[0])
+}
+
+func TestStarMedoidGrouping_PreservesPairCloneType(t *testing.T) {
+	A := newFrag("a.py", 1, 10)
+	B := newFrag("b.py", 1, 10)
+
+	groups := NewStarMedoidGrouping(0.85).GroupClones([]*ClonePair{
+		newPairWithType(A, B, 1.0, Type4Clone),
+	})
+
+	if !assert.Len(t, groups, 1) {
+		t.Fatalf("unexpected groups len: %d", len(groups))
+	}
+	assert.Equal(t, Type4Clone, groups[0].CloneType)
+	assert.Equal(t, 1.0, groups[0].Similarity)
 }
 
 func TestStarMedoidGrouping_NoGroups(t *testing.T) {
