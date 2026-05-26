@@ -79,6 +79,22 @@ show_content = true
 	assert.Equal(t, "connected", req.GroupMode)
 	assert.Equal(t, domain.DefaultCloneGroupingThreshold, req.GroupThreshold)
 	assert.Equal(t, 2, req.KCoreK)
+	assert.True(t, req.SkipDocstrings)
+}
+
+func TestCloneConfigurationLoader_LoadCloneConfig_HonorsSkipDocstrings(t *testing.T) {
+	loader := NewCloneConfigurationLoader()
+	configPath := filepath.Join(t.TempDir(), ".pyscn.toml")
+	configContent := `[clones]
+skip_docstrings = false
+`
+	require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0644))
+
+	req, err := loader.LoadCloneConfig(configPath)
+	require.NoError(t, err)
+	require.NotNil(t, req)
+
+	assert.False(t, req.SkipDocstrings)
 }
 
 func TestCloneConfigurationLoaderWithFlags_MergeConfig(t *testing.T) {
