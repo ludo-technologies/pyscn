@@ -175,7 +175,7 @@ func (s *CloneService) buildCloneResponse(
 
 	// Create statistics
 	totalFragments := len(allFragments)
-	statistics := s.createStatistics(domainClones, domainClonePairs, domainCloneGroups, totalFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
+	statistics := s.createStatistics(domainClonePairs, domainCloneGroups, totalFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
 
 	duration := time.Since(startTime).Milliseconds()
 	// s.progress.Complete(fmt.Sprintf("Clone detection completed in %dms. Found %d clone pairs in %d groups.",
@@ -485,10 +485,10 @@ func (s *CloneService) sortResults(clones []*domain.Clone, pairs []*domain.Clone
 }
 
 // createStatistics creates clone detection statistics
-func (s *CloneService) createStatistics(clones []*domain.Clone, pairs []*domain.ClonePair, groups []*domain.CloneGroup, totalFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed int) *domain.CloneStatistics {
+func (s *CloneService) createStatistics(pairs []*domain.ClonePair, groups []*domain.CloneGroup, totalFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed int) *domain.CloneStatistics {
 	stats := domain.NewCloneStatistics()
 	stats.TotalFragments = totalFragments
-	stats.TotalClones = len(clones)
+	stats.TotalClones = countUniqueCloneFragments(pairs, groups)
 	stats.TotalClonePairs = len(pairs)
 	stats.TotalCloneGroups = len(groups)
 	stats.FilesAnalyzed = filesAnalyzed
@@ -511,6 +511,31 @@ func (s *CloneService) createStatistics(clones []*domain.Clone, pairs []*domain.
 	}
 
 	return stats
+}
+
+// countUniqueCloneFragments counts distinct fragments that participate in at least one clone pair or group.
+func countUniqueCloneFragments(pairs []*domain.ClonePair, groups []*domain.CloneGroup) int {
+	type locKey struct {
+		file      string
+		startLine int
+		endLine   int
+	}
+	seen := make(map[locKey]struct{})
+	addClone := func(c *domain.Clone) {
+		if c != nil && c.Location != nil {
+			seen[locKey{c.Location.FilePath, c.Location.StartLine, c.Location.EndLine}] = struct{}{}
+		}
+	}
+	for _, p := range pairs {
+		addClone(p.Clone1)
+		addClone(p.Clone2)
+	}
+	for _, g := range groups {
+		for _, c := range g.Clones {
+			addClone(c)
+		}
+	}
+	return len(seen)
 }
 
 // readFileContent reads the content of a file

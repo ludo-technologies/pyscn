@@ -144,11 +144,10 @@ func TestCloneService_Basic(t *testing.T) {
 
 	// Test statistics creation
 	t.Run("createStatistics handles empty data", func(t *testing.T) {
-		var clones []*domain.Clone
 		var pairs []*domain.ClonePair
 		var groups []*domain.CloneGroup
 
-		stats := service.createStatistics(clones, pairs, groups, 0, 0, 0, 0)
+		stats := service.createStatistics(pairs, groups, 0, 0, 0, 0)
 
 		assert.Equal(t, 0, stats.TotalFragments)
 		assert.Equal(t, 0, stats.TotalClones)

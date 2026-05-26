@@ -639,21 +639,19 @@ func TestCloneService_FilterCloneGroups(t *testing.T) {
 func TestCloneService_CreateStatistics(t *testing.T) {
 	service := NewCloneService()
 
-	clones := []*domain.Clone{
-		{ID: 1},
-		{ID: 2},
-		{ID: 3},
-	}
+	cloneA := &domain.Clone{ID: 1, Location: &domain.CloneLocation{FilePath: "a.py", StartLine: 1, EndLine: 10}}
+	cloneB := &domain.Clone{ID: 2, Location: &domain.CloneLocation{FilePath: "b.py", StartLine: 1, EndLine: 10}}
+	cloneC := &domain.Clone{ID: 3, Location: &domain.CloneLocation{FilePath: "c.py", StartLine: 1, EndLine: 10}}
 
 	pairs := []*domain.ClonePair{
-		{ID: 1, Similarity: 0.8, Type: domain.Type1Clone},
-		{ID: 2, Similarity: 0.9, Type: domain.Type2Clone},
-		{ID: 3, Similarity: 0.7, Type: domain.Type1Clone},
+		{ID: 1, Clone1: cloneA, Clone2: cloneB, Similarity: 0.8, Type: domain.Type1Clone},
+		{ID: 2, Clone1: cloneB, Clone2: cloneC, Similarity: 0.9, Type: domain.Type2Clone},
+		{ID: 3, Clone1: cloneA, Clone2: cloneC, Similarity: 0.7, Type: domain.Type1Clone},
 	}
 
 	groups := []*domain.CloneGroup{
-		{ID: 1},
-		{ID: 2},
+		{ID: 1, Clones: []*domain.Clone{cloneA, cloneB}},
+		{ID: 2, Clones: []*domain.Clone{cloneB, cloneC}},
 	}
 
 	totalFragments := 10
@@ -661,11 +659,11 @@ func TestCloneService_CreateStatistics(t *testing.T) {
 	linesAnalyzed := 1000
 	nodesAnalyzed := 500
 
-	stats := service.createStatistics(clones, pairs, groups, totalFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
+	stats := service.createStatistics(pairs, groups, totalFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
 
 	assert.NotNil(t, stats)
 	assert.Equal(t, 10, stats.TotalFragments)
-	assert.Equal(t, 3, stats.TotalClones)
+	assert.Equal(t, 3, stats.TotalClones) // 3 unique fragments from union of pairs and groups
 	assert.Equal(t, 3, stats.TotalClonePairs)
 	assert.Equal(t, 2, stats.TotalCloneGroups)
 	assert.Equal(t, 5, stats.FilesAnalyzed)
@@ -676,6 +674,10 @@ func TestCloneService_CreateStatistics(t *testing.T) {
 	// Check clone type counts
 	assert.Equal(t, 2, stats.ClonesByType["Type-1"])
 	assert.Equal(t, 1, stats.ClonesByType["Type-2"])
+
+	// When groups are pruned but pairs exist, TotalClones should still count pair endpoints
+	statsNilGroups := service.createStatistics(pairs, nil, totalFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
+	assert.Equal(t, 3, statsNilGroups.TotalClones)
 }
 
 func TestCloneService_ResponseStructure(t *testing.T) {
