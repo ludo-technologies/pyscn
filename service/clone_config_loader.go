@@ -242,6 +242,7 @@ func (c *CloneConfigurationLoader) cloneConfigToCloneRequest(cloneCfg *config.Py
 		MaxEditDistance:     cloneCfg.Analysis.MaxEditDistance,
 		IgnoreLiterals:      domain.BoolValue(cloneCfg.Analysis.IgnoreLiterals, false),
 		IgnoreIdentifiers:   domain.BoolValue(cloneCfg.Analysis.IgnoreIdentifiers, false),
+		SkipDocstrings:      domain.BoolValue(cloneCfg.Analysis.SkipDocstrings, true),
 		Type1Threshold:      cloneCfg.Thresholds.Type1Threshold,
 		Type2Threshold:      cloneCfg.Thresholds.Type2Threshold,
 		Type3Threshold:      cloneCfg.Thresholds.Type3Threshold,
@@ -313,6 +314,7 @@ func (c *CloneConfigurationLoader) updateConfigFromCloneRequest(cfg *config.Conf
 	cfg.Clones.Analysis.CostModelType = "python" // Default cost model
 	cfg.Clones.Analysis.IgnoreLiterals = domain.BoolPtr(req.IgnoreLiterals)
 	cfg.Clones.Analysis.IgnoreIdentifiers = domain.BoolPtr(req.IgnoreIdentifiers)
+	cfg.Clones.Analysis.SkipDocstrings = domain.BoolPtr(req.SkipDocstrings)
 
 	cfg.Clones.Thresholds.Type1Threshold = req.Type1Threshold
 	cfg.Clones.Thresholds.Type2Threshold = req.Type2Threshold
