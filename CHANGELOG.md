@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.22.3] - 2026-05-26
+
+### Fixed
+- Preserve clone group type classification (#484)
+- Preserve `skip_docstrings` config in clone detection (#483)
+- Detect external ctypes fields and broaden ctypes base detection in LCOM (#480)
+
 ## [1.22.2] - 2026-05-24
 
 ### Fixed
