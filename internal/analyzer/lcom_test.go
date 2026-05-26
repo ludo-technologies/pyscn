@@ -582,3 +582,166 @@ class MultipleItems:
 		})
 	}
 }
+
+func TestLCOMAnalyzer_CtypesFieldsAssignedOutsideClass(t *testing.T) {
+	p := parser.New()
+	code := `
+import ctypes
+
+class Image(ctypes.Structure):
+    def __init__(self, data=None, width=None, height=None, mipmaps=None, format_=None):
+        super(Image, self).__init__(
+            data,
+            width or 0,
+            height or 0,
+            mipmaps or 1,
+            format_ or 7,
+        )
+
+    @property
+    def is_ready(self):
+        return _IsImageReady(self)
+
+    def resize(self, width, height):
+        _ImageResize(self, width, height)
+
+    def export(self, file_name):
+        return _ExportImage(self, file_name)
+
+Image._fields_ = [
+    ("data", ctypes.c_void_p),
+    ("width", ctypes.c_int),
+    ("height", ctypes.c_int),
+    ("mipmaps", ctypes.c_int),
+    ("format", ctypes.c_int),
+]
+`
+	result, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	analyzer := NewLCOMAnalyzer(nil)
+	results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	r := results[0]
+	assert.Equal(t, "Image", r.ClassName)
+	assert.Equal(t, 1, r.LCOM4)
+	assert.Equal(t, 5, r.InstanceVariables)
+	assert.Equal(t, [][]string{{"__init__", "export", "is_ready", "resize"}}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_CtypesFieldsDoNotTreatSelfParameterAsFieldAccess(t *testing.T) {
+	p := parser.New()
+	code := `
+import ctypes
+
+class Packet(ctypes.Structure):
+    def touches_state(self):
+        _TouchPacket(self)
+
+    def utility(self):
+        return 42
+
+Packet._fields_ = [
+    ("kind", ctypes.c_int),
+    ("size", ctypes.c_int),
+]
+`
+	result, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	analyzer := NewLCOMAnalyzer(nil)
+	results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	r := results[0]
+	assert.Equal(t, "Packet", r.ClassName)
+	assert.Equal(t, 2, r.LCOM4)
+	assert.Equal(t, 2, r.InstanceVariables)
+	assert.Equal(t, [][]string{{"touches_state"}, {"utility"}}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_CtypesUnionAndEndianBases(t *testing.T) {
+	p := parser.New()
+	code := `
+import ctypes
+from ctypes import Union, BigEndianStructure
+
+class Payload(Union):
+    def as_int(self):
+        return _AsInt(self)
+
+    def as_float(self):
+        return _AsFloat(self)
+
+Payload._fields_ = [
+    ("i", ctypes.c_int),
+    ("f", ctypes.c_float),
+]
+
+class NetHeader(BigEndianStructure):
+    def serialize(self):
+        return _Serialize(self)
+
+NetHeader._fields_ = [
+    ("magic", ctypes.c_uint32),
+    ("length", ctypes.c_uint16),
+]
+`
+	result, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	analyzer := NewLCOMAnalyzer(nil)
+	results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 2)
+
+	byName := map[string]*LCOMResult{}
+	for _, r := range results {
+		byName[r.ClassName] = r
+	}
+	require.Contains(t, byName, "Payload")
+	require.Contains(t, byName, "NetHeader")
+	assert.Equal(t, 1, byName["Payload"].LCOM4)
+	assert.Equal(t, 2, byName["Payload"].InstanceVariables)
+	assert.Equal(t, 2, byName["NetHeader"].InstanceVariables)
+}
+
+func TestLCOMAnalyzer_CtypesAmbiguousClassNameSkipsExternalFields(t *testing.T) {
+	p := parser.New()
+	// Two ctypes Structure classes share the name "Inner" at different scopes.
+	// External `Inner._fields_ = ...` cannot be safely attributed to either, so
+	// neither should receive the declared fields.
+	code := `
+import ctypes
+
+def factory_a():
+    class Inner(ctypes.Structure):
+        def use(self):
+            _Use(self)
+    return Inner
+
+def factory_b():
+    class Inner(ctypes.Structure):
+        def use(self):
+            _Use(self)
+    return Inner
+
+Inner._fields_ = [
+    ("x", ctypes.c_int),
+]
+`
+	result, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	analyzer := NewLCOMAnalyzer(nil)
+	results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+	require.NoError(t, err)
+	for _, r := range results {
+		if r.ClassName == "Inner" {
+			assert.Equal(t, 0, r.InstanceVariables, "ambiguous external _fields_ must not be attributed")
+		}
+	}
+}
