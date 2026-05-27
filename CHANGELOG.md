@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.22.4] - 2026-05-28
+
+### Fixed
+- Exclude Django migration files from analysis defaults (#489)
+- Compute TotalClones from clone group membership, not all fragments (#487)
+
 ## [1.22.3] - 2026-05-26
 
 ### Fixed
