@@ -129,7 +129,7 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) LoadDefaultConfig() *domain.Sys
 		ResponsibilityViolationSeverity: domain.ViolationSeverityWarning,
 		Recursive:                       domain.BoolPtr(true),
 		IncludePatterns:                 []string{"**/*.py"},
-		ExcludePatterns:                 []string{},
+		ExcludePatterns:                 domain.DefaultAnalysisExcludePatterns(),
 	}
 }
 

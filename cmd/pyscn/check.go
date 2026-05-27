@@ -347,7 +347,7 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 		SortBy:          domain.SortByComplexity,
 		Recursive:       true,
 		IncludePatterns: []string{"**/*.py"},
-		ExcludePatterns: []string{"__pycache__/*", "*.pyc"},
+		ExcludePatterns: domain.DefaultAnalysisExcludePatterns(),
 		ConfigPath:      c.configFile,
 	}
 
@@ -410,7 +410,7 @@ func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, er
 		SortBy:                    domain.DeadCodeSortBySeverity,
 		Recursive:                 true,
 		IncludePatterns:           []string{"**/*.py"},
-		ExcludePatterns:           []string{"__pycache__/*", "*.pyc"},
+		ExcludePatterns:           domain.DefaultAnalysisExcludePatterns(),
 		IgnorePatterns:            []string{},
 		DetectAfterReturn:         domain.BoolPtr(true),
 		DetectAfterBreak:          domain.BoolPtr(true),
@@ -500,7 +500,7 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 		CloneTypes:          domain.DefaultEnabledCloneTypes,
 		Recursive:           true,
 		IncludePatterns:     []string{"**/*.py"},
-		ExcludePatterns:     []string{"__pycache__/*", "*.pyc"},
+		ExcludePatterns:     domain.DefaultAnalysisExcludePatterns(),
 		ConfigPath:          c.configFile,
 	}
 
@@ -622,7 +622,7 @@ func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, er
 		SortBy:          domain.MockDataSortBySeverity,
 		Recursive:       true,
 		IncludePatterns: []string{"**/*.py"},
-		ExcludePatterns: []string{"__pycache__/*", "*.pyc"},
+		ExcludePatterns: domain.DefaultAnalysisExcludePatterns(),
 		IgnoreTests:     domain.BoolPtr(true),
 		Keywords:        domain.DefaultMockDataKeywords(),
 		Domains:         domain.DefaultMockDataDomains(),
