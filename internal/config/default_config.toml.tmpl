@@ -128,7 +128,8 @@ exclude_patterns = [             # File patterns to exclude
     "venv/",
     "env/",
     ".venv/",
-    ".env/"
+    ".env/",
+    "**/migrations/**"           # Django/Alembic auto-generated migration files
 ]
 # =============================================================================
 # ARCHITECTURE VALIDATION

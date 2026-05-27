@@ -238,7 +238,7 @@ func DefaultConfig() *Config {
 		},
 		Analysis: AnalysisConfig{
 			IncludePatterns: []string{"**/*.py"},
-			ExcludePatterns: []string{"test_*.py", "*_test.py"},
+			ExcludePatterns: domain.DefaultAnalysisExcludePatterns(),
 			Recursive:       true,
 			FollowSymlinks:  false,
 		},

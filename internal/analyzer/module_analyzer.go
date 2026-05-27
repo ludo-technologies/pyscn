@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/bmatcuk/doublestar/v4"
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -46,7 +47,7 @@ type ModuleAnalysisOptions struct {
 func DefaultModuleAnalysisOptions() *ModuleAnalysisOptions {
 	return &ModuleAnalysisOptions{
 		IncludePatterns:   []string{"**/*.py"},
-		ExcludePatterns:   []string{"test_*.py", "*_test.py", "__pycache__", "*.pyc"},
+		ExcludePatterns:   domain.DefaultAnalysisExcludePatterns(),
 		IncludeStdLib:     false,
 		IncludeThirdParty: true,
 		FollowRelative:    true,

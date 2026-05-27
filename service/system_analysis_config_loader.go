@@ -314,7 +314,7 @@ analyze_dependencies = true
 analyze_architecture = true
 recursive = true
 include_patterns = ["**/*.py"]
-exclude_patterns = ["test_*.py", "*_test.py"]
+exclude_patterns = ["test_*.py", "*_test.py", "**/migrations/**"]
 
 [dependencies]
 include_stdlib = false
