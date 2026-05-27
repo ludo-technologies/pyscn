@@ -515,7 +515,7 @@ func DefaultSystemAnalysisRequest() *SystemAnalysisRequest {
 		CohesionViolationSeverity:       ViolationSeverityWarning,
 		ResponsibilityViolationSeverity: ViolationSeverityWarning,
 		IncludePatterns:                 []string{"**/*.py"},
-		ExcludePatterns:                 []string{"test_*.py", "*_test.py"},
+		ExcludePatterns:                 DefaultAnalysisExcludePatterns(),
 		ComplexityData:                  make(map[string]int),
 		ClonesData:                      make(map[string]float64),
 		DeadCodeData:                    make(map[string]int),

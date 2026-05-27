@@ -317,6 +317,17 @@ func DefaultMockDataDomains() []string {
 	}
 }
 
+// DefaultAnalysisExcludePatterns returns the canonical default file-glob
+// patterns excluded from all analyses (CBO, complexity, dead code, clones,
+// LCOM, system analysis). Callers must copy before mutating.
+func DefaultAnalysisExcludePatterns() []string {
+	return []string{
+		"test_*.py",
+		"*_test.py",
+		"**/migrations/**",
+	}
+}
+
 // DefaultMockDataTestPatterns returns the default patterns for test files to ignore.
 func DefaultMockDataTestPatterns() []string {
 	return []string{

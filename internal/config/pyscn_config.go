@@ -300,7 +300,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 			Paths:           []string{"."},
 			Recursive:       domain.BoolPtr(true),
 			IncludePatterns: []string{"**/*.py"},
-			ExcludePatterns: []string{"test_*.py", "*_test.py"},
+			ExcludePatterns: domain.DefaultAnalysisExcludePatterns(),
 		},
 		Output: CloneOutputConfig{
 			Format:      "text",
@@ -360,7 +360,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 
 		// Analysis defaults (from [analysis] section - general analysis settings)
 		AnalysisIncludePatterns: []string{"**/*.py"},
-		AnalysisExcludePatterns: []string{"test_*.py", "*_test.py"},
+		AnalysisExcludePatterns: domain.DefaultAnalysisExcludePatterns(),
 		AnalysisRecursive:       domain.BoolPtr(true),
 		AnalysisFollowSymlinks:  domain.BoolPtr(false),
 

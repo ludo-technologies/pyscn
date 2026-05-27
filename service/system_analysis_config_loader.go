@@ -129,7 +129,7 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) LoadDefaultConfig() *domain.Sys
 		ResponsibilityViolationSeverity: domain.ViolationSeverityWarning,
 		Recursive:                       domain.BoolPtr(true),
 		IncludePatterns:                 []string{"**/*.py"},
-		ExcludePatterns:                 []string{},
+		ExcludePatterns:                 domain.DefaultAnalysisExcludePatterns(),
 	}
 }
 
@@ -314,7 +314,7 @@ analyze_dependencies = true
 analyze_architecture = true
 recursive = true
 include_patterns = ["**/*.py"]
-exclude_patterns = ["test_*.py", "*_test.py"]
+exclude_patterns = ["test_*.py", "*_test.py", "**/migrations/**"]
 
 [dependencies]
 include_stdlib = false
