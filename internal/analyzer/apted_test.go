@@ -473,7 +473,7 @@ func TestAPTEDAnalyzer_LargeTreesPreserveLabelDistance(t *testing.T) {
 			tree2 := createWideTreeWithLabels(size, "right")
 			analyzer := NewAPTEDAnalyzer(NewDefaultCostModel())
 
-			distance, similarity := analyzer.ComputeDistanceAndSimilarity(tree1, tree2)
+			distance, similarity := analyzer.ComputeDistanceAndSimilarityTrees(tree1, tree2)
 
 			assert.Equal(t, float64(size), distance, "every node label differs, so each node needs one rename")
 			assert.Equal(t, 0.0, similarity, "fully different labels must not produce clone similarity")
@@ -484,7 +484,7 @@ func TestAPTEDAnalyzer_LargeTreesPreserveLabelDistance(t *testing.T) {
 			tree2 := createWideTreeWithLabels(size, "same")
 			analyzer := NewAPTEDAnalyzer(NewDefaultCostModel())
 
-			distance, similarity := analyzer.ComputeDistanceAndSimilarity(tree1, tree2)
+			distance, similarity := analyzer.ComputeDistanceAndSimilarityTrees(tree1, tree2)
 
 			assert.Equal(t, 0.0, distance)
 			assert.Equal(t, 1.0, similarity)
@@ -495,7 +495,7 @@ func TestAPTEDAnalyzer_LargeTreesPreserveLabelDistance(t *testing.T) {
 			tree2 := createWideNameTree(size, "right")
 			analyzer := NewAPTEDAnalyzer(NewPythonCostModelWithConfig(false, true))
 
-			distance, similarity := analyzer.ComputeDistanceAndSimilarity(tree1, tree2)
+			distance, similarity := analyzer.ComputeDistanceAndSimilarityTrees(tree1, tree2)
 
 			assert.Equal(t, 0.0, distance)
 			assert.Equal(t, 1.0, similarity)
@@ -507,7 +507,7 @@ func TestAPTEDAnalyzer_LargeTreesPreserveLabelDistance(t *testing.T) {
 			costModel := NewWeightedCostModel(3.0, 3.0, 0.25, NewDefaultCostModel())
 			analyzer := NewAPTEDAnalyzer(costModel)
 
-			distance, similarity := analyzer.ComputeDistanceAndSimilarity(tree1, tree2)
+			distance, similarity := analyzer.ComputeDistanceAndSimilarityTrees(tree1, tree2)
 
 			assert.Equal(t, float64(size)*0.25, distance, "large-tree profiles should use rename cost when it is cheaper")
 			assert.Equal(t, 0.75, similarity)
@@ -518,7 +518,7 @@ func TestAPTEDAnalyzer_LargeTreesPreserveLabelDistance(t *testing.T) {
 			tree2 := createWideTreeWithShiftedChildren(size, 1)
 			analyzer := NewAPTEDAnalyzer(NewDefaultCostModel())
 
-			distance, similarity := analyzer.ComputeDistanceAndSimilarity(tree1, tree2)
+			distance, similarity := analyzer.ComputeDistanceAndSimilarityTrees(tree1, tree2)
 
 			assert.Equal(t, 2.0, distance, "same-shape sibling shifts should use delete/insert alignment")
 			assert.InDelta(t, 1.0-(2.0/float64(size)), similarity, 0.001)
@@ -529,7 +529,7 @@ func TestAPTEDAnalyzer_LargeTreesPreserveLabelDistance(t *testing.T) {
 			tree2 := createWideTreeWithReversedChildren(size)
 			analyzer := NewAPTEDAnalyzer(NewDefaultCostModel())
 
-			distance, similarity := analyzer.ComputeDistanceAndSimilarity(tree1, tree2)
+			distance, similarity := analyzer.ComputeDistanceAndSimilarityTrees(tree1, tree2)
 
 			assert.Equal(t, float64(size-1), distance, "complex wide reorders should stay bounded")
 			assert.InDelta(t, 1.0-(float64(size-1)/float64(size)), similarity, 0.001)
@@ -541,7 +541,7 @@ func TestAPTEDAnalyzer_LargeTreesPreserveLabelDistance(t *testing.T) {
 		tree2 := createTwoLevelTreeWithLabel(500, 3, "same")
 		analyzer := NewAPTEDAnalyzer(NewDefaultCostModel())
 
-		distance, similarity := analyzer.ComputeDistanceAndSimilarity(tree1, tree2)
+		distance, similarity := analyzer.ComputeDistanceAndSimilarityTrees(tree1, tree2)
 
 		assert.Greater(t, distance, 0.0, "large trees with different shape must not look identical")
 		assert.Less(t, similarity, 1.0)
@@ -590,7 +590,7 @@ func TestAPTEDAnalyzer_SameShapeDistanceMatchesExactAPTED(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			analyzer := NewAPTEDAnalyzer(tt.costModel)
-			exactDistance := analyzer.ComputeDistance(tt.tree1, tt.tree2)
+			exactDistance := analyzer.ComputeDistanceTrees(tt.tree1, tt.tree2)
 
 			sameShapeDistance, ok := analyzer.computeBoundedSameShapeDistance(tt.tree1, tt.tree2)
 
@@ -727,7 +727,7 @@ func BenchmarkAPTED_LargeTreeLabelDistance(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_ = analyzer.ComputeDistance(tree1, tree2)
+				_ = analyzer.ComputeDistanceTrees(tree1, tree2)
 			}
 		})
 
@@ -738,7 +738,7 @@ func BenchmarkAPTED_LargeTreeLabelDistance(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_ = analyzer.ComputeDistance(tree1, tree2)
+				_ = analyzer.ComputeDistanceTrees(tree1, tree2)
 			}
 		})
 
@@ -749,7 +749,7 @@ func BenchmarkAPTED_LargeTreeLabelDistance(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_ = analyzer.ComputeDistance(tree1, tree2)
+				_ = analyzer.ComputeDistanceTrees(tree1, tree2)
 			}
 		})
 
@@ -760,7 +760,7 @@ func BenchmarkAPTED_LargeTreeLabelDistance(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_ = analyzer.ComputeDistance(tree1, tree2)
+				_ = analyzer.ComputeDistanceTrees(tree1, tree2)
 			}
 		})
 	}

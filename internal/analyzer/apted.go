@@ -57,13 +57,6 @@ func (a *APTEDAnalyzer) ComputeDistanceTrees(tree1, tree2 *TreeNode) float64 {
 	return a.apted(tree1, tree2, keyRoots1, keyRoots2)
 }
 
-// ComputeDistanceAndSimilarity computes both APTED distance and normalized
-// similarity from one distance pass.
-func (a *APTEDAnalyzer) ComputeDistanceAndSimilarity(tree1, tree2 *TreeNode) (float64, float64) {
-	distance := a.ComputeDistanceTrees(tree1, tree2)
-	return distance, a.ComputeSimilarityTrees(tree1, tree2)
-}
-
 // computeDistanceOptimized keeps the large-tree clone-detection path fast
 // without letting the optimization erase real label or shape differences. This
 // is a bounded heuristic for large inputs, not an exact APTED replacement.
