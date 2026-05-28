@@ -30,7 +30,7 @@ func TestType4SimilarityScores(t *testing.T) {
 		require.NotNil(t, first, "missing fixture function %s", expected[0])
 		require.NotNil(t, second, "missing fixture function %s", expected[1])
 
-		similarity := analyzer.ComputeSimilarity(first, second)
+		similarity := analyzer.ComputeSimilarity(first, second, nil)
 		assert.GreaterOrEqual(t, similarity, config.Type4Threshold, "%s <-> %s", expected[0], expected[1])
 	}
 
@@ -45,7 +45,7 @@ func TestType4SimilarityScores(t *testing.T) {
 		require.NotNil(t, first, "missing fixture function %s", negative[0])
 		require.NotNil(t, second, "missing fixture function %s", negative[1])
 
-		similarity := analyzer.ComputeSimilarity(first, second)
+		similarity := analyzer.ComputeSimilarity(first, second, nil)
 		assert.Less(t, similarity, config.Type4Threshold, "%s <-> %s", negative[0], negative[1])
 	}
 }

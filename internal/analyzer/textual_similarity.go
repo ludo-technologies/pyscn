@@ -45,7 +45,7 @@ func NewTextualSimilarityAnalyzerWithConfig(config *TextualSimilarityConfig) *Te
 // ComputeSimilarity computes the textual similarity between two code fragments.
 // Returns 1.0 for identical content (after normalization), or a Levenshtein-based
 // similarity score for near-matches.
-func (t *TextualSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) float64 {
+func (t *TextualSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment, _ *TFIDFCalculator) float64 {
 	if f1 == nil || f2 == nil {
 		return 0.0
 	}
@@ -285,6 +285,18 @@ func (t *TextualSimilarityAnalyzer) levenshteinDistance(s1, s2 string) int {
 // GetName returns the name of this analyzer
 func (t *TextualSimilarityAnalyzer) GetName() string {
 	return "textual"
+}
+
+// ComputeDistance computes textual edit distance (1 - similarity).
+func (t *TextualSimilarityAnalyzer) ComputeDistance(f1, f2 *CodeFragment) float64 {
+	return 1.0 - t.ComputeSimilarity(f1, f2, nil)
+}
+
+// ComputeDistanceAndSimilarity computes both distance and similarity in one call.
+// For textual analyzer, distance = 1 - similarity.
+func (t *TextualSimilarityAnalyzer) ComputeDistanceAndSimilarity(f1, f2 *CodeFragment, _ *TFIDFCalculator) (float64, float64) {
+	similarity := t.ComputeSimilarity(f1, f2, nil)
+	return 1.0 - similarity, similarity
 }
 
 // min3 returns the minimum of three integers
