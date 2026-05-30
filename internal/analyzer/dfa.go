@@ -15,6 +15,7 @@ const (
 	DefKindImport                         // import x / from m import x
 	DefKindWithTarget                     // with ... as x:
 	DefKindExceptTarget                   // except E as x:
+	DefKindPattern                        // case x:
 	DefKindAugmented                      // x += 1 (both def and use)
 
 	// Use kinds
@@ -39,6 +40,8 @@ func (k DefUseKind) String() string {
 		return "with_target"
 	case DefKindExceptTarget:
 		return "except_target"
+	case DefKindPattern:
+		return "pattern"
 	case DefKindAugmented:
 		return "augmented"
 	case UseKindRead:

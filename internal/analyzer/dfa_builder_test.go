@@ -64,6 +64,13 @@ func assertUsesOnlyInBlockLabel(t *testing.T, chain *DefUseChain, wantUses int, 
 	}
 }
 
+func assertSingleDefKind(t *testing.T, chain *DefUseChain, kind DefUseKind) {
+	t.Helper()
+
+	require.Len(t, chain.Defs, 1, "unexpected defs for %q", chain.Variable)
+	assert.Equal(t, kind, chain.Defs[0].Kind)
+}
+
 func TestDFABuilder(t *testing.T) {
 	t.Run("Build_NilCFG", func(t *testing.T) {
 		builder := NewDFABuilder()
@@ -620,6 +627,95 @@ def nested():
 		require.NoError(t, err)
 
 		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "outer_value"), 1, LabelFunctionBody)
+	})
+
+	t.Run("Build_MatchCase_BindsCapturePatternWithoutPhantomRead", func(t *testing.T) {
+		source := `
+subject = object()
+guard_value = 1
+match subject:
+    case captured if captured == guard_value:
+        sink(captured)
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		captured := requireDFAChain(t, info, "captured")
+		assertSingleDefKind(t, captured, DefKindPattern)
+		assertUsesOnlyInBlockLabel(t, captured, 2, LabelMatchCase)
+		assert.Len(t, captured.Pairs, 2)
+
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "subject"), 1, LabelMatchEval)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "guard_value"), 1, LabelMatchCase)
+	})
+
+	t.Run("Build_MatchCase_UsesDottedValuePatternBaseOnly", func(t *testing.T) {
+		source := `
+subject = object()
+match subject:
+    case constants.OK:
+        pass
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "constants"), 1, LabelMatchCase)
+		assert.Nil(t, info.Chains["OK"], "attribute names are not standalone variable reads")
+	})
+
+	t.Run("Build_MatchCase_BindsClassPatternCaptures", func(t *testing.T) {
+		source := `
+subject = object()
+match subject:
+    case Point(x, y):
+        sink(x, y)
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "Point"), 1, LabelMatchCase)
+		assertSingleDefKind(t, requireDFAChain(t, info, "x"), DefKindPattern)
+		assertSingleDefKind(t, requireDFAChain(t, info, "y"), DefKindPattern)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "x"), 1, LabelMatchCase)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "y"), 1, LabelMatchCase)
+	})
+
+	t.Run("Build_MatchCase_BindsMappingPatternCaptures", func(t *testing.T) {
+		source := `
+subject = object()
+match subject:
+    case {"id": user_id, "items": [first, *rest]} if rest:
+        sink(user_id, first, rest)
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		for _, name := range []string{"user_id", "first", "rest"} {
+			chain := requireDFAChain(t, info, name)
+			assertSingleDefKind(t, chain, DefKindPattern)
+		}
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "user_id"), 1, LabelMatchCase)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "first"), 1, LabelMatchCase)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "rest"), 2, LabelMatchCase)
+	})
+
+	t.Run("Build_MatchCase_BindsSequenceStarPatternCaptures", func(t *testing.T) {
+		source := `
+subject = object()
+match subject:
+    case [first, *rest]:
+        sink(first, rest)
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		first := requireDFAChain(t, info, "first")
+		assertSingleDefKind(t, first, DefKindPattern)
+		assertUsesOnlyInBlockLabel(t, first, 1, LabelMatchCase)
+
+		rest := requireDFAChain(t, info, "rest")
+		assertSingleDefKind(t, rest, DefKindPattern)
+		assertUsesOnlyInBlockLabel(t, rest, 1, LabelMatchCase)
 	})
 }
 

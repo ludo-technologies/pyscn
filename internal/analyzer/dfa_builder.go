@@ -131,13 +131,17 @@ func (b *DFABuilder) findReachingDef(varName string, use *VarReference) *VarRefe
 func (b *DFABuilder) findDefInBlockBefore(defs []*VarReference, blockID string, usePos int) *VarReference {
 	var lastDef *VarReference
 	for _, def := range defs {
-		if def.Block != nil && def.Block.ID == blockID && def.Position < usePos {
+		if def.Block != nil && def.Block.ID == blockID && defReachesUseAtPosition(def, usePos) {
 			if lastDef == nil || def.Position > lastDef.Position {
 				lastDef = def
 			}
 		}
 	}
 	return lastDef
+}
+
+func defReachesUseAtPosition(def *VarReference, usePos int) bool {
+	return def.Position < usePos || (def.Kind == DefKindPattern && def.Position == usePos)
 }
 
 // findDefInPredecessors finds a definition in predecessor blocks using BFS
@@ -238,6 +242,10 @@ func (b *DFABuilder) extractDefinitions(stmt *parser.Node, block *BasicBlock, po
 		// except E as x:
 		defs = append(defs, b.extractExceptTargetDefs(stmt, block, pos)...)
 
+	case parser.NodeMatchCase:
+		// case x: binds x for the case body and guard.
+		defs = append(defs, b.extractMatchPatternDefs(stmt.Test, block, stmt, pos)...)
+
 	case parser.NodeNamedExpr:
 		// x := value (walrus operator)
 		defs = append(defs, b.extractNamedExprDefs(stmt, block, pos)...)
@@ -294,7 +302,7 @@ func (b *DFABuilder) extractStatementHeaderUses(stmt *parser.Node, block *BasicB
 		uses = append(uses, b.extractUsesFromExpression(stmt.Test, block, stmt, pos)...)
 
 	case parser.NodeMatchCase:
-		uses = append(uses, b.extractUsesFromExpression(stmt.Test, block, stmt, pos)...)
+		uses = append(uses, b.extractMatchPatternUses(stmt.Test, block, stmt, pos)...)
 		if guard := nodeValue(stmt); guard != nil {
 			uses = append(uses, b.extractUsesFromExpression(guard, block, stmt, pos)...)
 		}
@@ -353,6 +361,123 @@ func (b *DFABuilder) extractWithContextUses(stmt *parser.Node, block *BasicBlock
 		}
 	}
 	return uses
+}
+
+func (b *DFABuilder) extractMatchPatternUses(pattern *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+	if pattern == nil {
+		return nil
+	}
+
+	var uses []*VarReference
+	switch pattern.Type {
+	case parser.NodeName, parser.NodeConstant, parser.NodeMatchSingleton, parser.NodeMatchStar:
+		return nil
+	case parser.NodeAttribute, parser.NodeSubscript, parser.NodeMatchValue:
+		uses = append(uses, b.extractPatternValueUses(pattern, block, stmt, pos)...)
+	case parser.NodeCall, parser.NodeMatchClass:
+		if funcNode := nodeValue(pattern); funcNode != nil {
+			uses = append(uses, b.extractClassPatternHeadUses(funcNode, block, stmt, pos)...)
+		}
+		uses = append(uses, b.extractMatchPatternUsesFromNodes(pattern.Args, block, stmt, pos)...)
+		for _, keyword := range pattern.Keywords {
+			if keyword == nil {
+				continue
+			}
+			if value := nodeValue(keyword); value != nil {
+				uses = append(uses, b.extractMatchPatternUses(value, block, stmt, pos)...)
+			}
+		}
+	case parser.NodeTuple, parser.NodeList, parser.NodeDict, parser.NodeStarred,
+		parser.NodeMatchSequence, parser.NodeMatchMapping, parser.NodeMatchAs,
+		parser.NodeMatchOr:
+		uses = append(uses, b.extractMatchPatternUsesFromNodes(pattern.GetChildren(), block, stmt, pos)...)
+	default:
+		switch string(pattern.Type) {
+		case "attribute":
+			uses = append(uses, b.extractDottedPatternUses(pattern, block, stmt, pos)...)
+		case "dotted_name":
+			if len(pattern.Children) > 1 {
+				uses = append(uses, b.extractDottedPatternUses(pattern, block, stmt, pos)...)
+			}
+		case "class_pattern":
+			if len(pattern.Children) > 0 {
+				uses = append(uses, b.extractClassPatternHeadUses(pattern.Children[0], block, stmt, pos)...)
+				uses = append(uses, b.extractMatchPatternUsesFromNodes(pattern.Children[1:], block, stmt, pos)...)
+			}
+		case "value_pattern":
+			uses = append(uses, b.extractPatternValueUsesFromNodes(pattern.GetChildren(), block, stmt, pos)...)
+		case "keyword_pattern":
+			if len(pattern.Children) > 0 {
+				uses = append(uses, b.extractMatchPatternUses(pattern.Children[len(pattern.Children)-1], block, stmt, pos)...)
+			}
+		case "wildcard_pattern", "_":
+			return nil
+		default:
+			uses = append(uses, b.extractMatchPatternUsesFromNodes(pattern.GetChildren(), block, stmt, pos)...)
+		}
+	}
+
+	return uses
+}
+
+func (b *DFABuilder) extractMatchPatternUsesFromNodes(nodes []*parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+	var uses []*VarReference
+	for _, node := range nodes {
+		uses = append(uses, b.extractMatchPatternUses(node, block, stmt, pos)...)
+	}
+	return uses
+}
+
+func (b *DFABuilder) extractPatternValueUsesFromNodes(nodes []*parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+	var uses []*VarReference
+	for _, node := range nodes {
+		uses = append(uses, b.extractPatternValueUses(node, block, stmt, pos)...)
+	}
+	return uses
+}
+
+func (b *DFABuilder) extractPatternValueUses(expr *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+	if expr == nil {
+		return nil
+	}
+	if expr.Type == parser.NodeName {
+		return []*VarReference{NewVarReference(expr.Name, UseKindRead, block, stmt, pos)}
+	}
+	if expr.Type == parser.NodeAttribute || string(expr.Type) == "attribute" || string(expr.Type) == "dotted_name" {
+		return b.extractDottedPatternUses(expr, block, stmt, pos)
+	}
+	return b.extractUsesFromExpression(expr, block, stmt, pos)
+}
+
+func (b *DFABuilder) extractClassPatternHeadUses(expr *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+	if expr == nil {
+		return nil
+	}
+	if expr.Type == parser.NodeName {
+		return []*VarReference{NewVarReference(expr.Name, UseKindCall, block, stmt, pos)}
+	}
+	return b.extractPatternValueUses(expr, block, stmt, pos)
+}
+
+func (b *DFABuilder) extractDottedPatternUses(expr *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+	if expr == nil {
+		return nil
+	}
+	if expr.Type == parser.NodeAttribute {
+		return b.extractUsesFromExpression(expr, block, stmt, pos)
+	}
+	for _, child := range expr.GetChildren() {
+		if child == nil {
+			continue
+		}
+		if child.Type == parser.NodeName {
+			return []*VarReference{NewVarReference(child.Name, UseKindAttribute, block, stmt, pos)}
+		}
+		if uses := b.extractDottedPatternUses(child, block, stmt, pos); len(uses) > 0 {
+			return uses
+		}
+	}
+	return nil
 }
 
 // extractUsesFromExpression recursively extracts variable uses from an expression
@@ -560,6 +685,70 @@ func (b *DFABuilder) extractParameterDefs(stmt *parser.Node, block *BasicBlock, 
 	}
 
 	return defs
+}
+
+func (b *DFABuilder) extractMatchPatternDefs(pattern *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+	var defs []*VarReference
+	b.collectMatchPatternDefs(pattern, block, stmt, pos, &defs)
+	return defs
+}
+
+func (b *DFABuilder) collectMatchPatternDefs(pattern *parser.Node, block *BasicBlock, stmt *parser.Node, pos int, defs *[]*VarReference) {
+	if pattern == nil {
+		return
+	}
+
+	switch pattern.Type {
+	case parser.NodeName:
+		if isPatternCaptureName(pattern.Name) {
+			*defs = append(*defs, NewVarReference(pattern.Name, DefKindPattern, block, stmt, pos))
+		}
+	case parser.NodeAttribute, parser.NodeSubscript, parser.NodeMatchValue, parser.NodeMatchSingleton:
+		return
+	case parser.NodeCall:
+		b.collectMatchPatternDefsFromNodes(pattern.Args, block, stmt, pos, defs)
+		for _, keyword := range pattern.Keywords {
+			if keyword == nil {
+				continue
+			}
+			if value := nodeValue(keyword); value != nil {
+				b.collectMatchPatternDefs(value, block, stmt, pos, defs)
+			}
+		}
+	case parser.NodeTuple, parser.NodeList, parser.NodeDict, parser.NodeStarred,
+		parser.NodeMatchSequence, parser.NodeMatchMapping, parser.NodeMatchAs,
+		parser.NodeMatchOr, parser.NodeMatchStar:
+		b.collectMatchPatternDefsFromNodes(pattern.GetChildren(), block, stmt, pos, defs)
+	default:
+		switch string(pattern.Type) {
+		case "attribute", "wildcard_pattern", "_":
+			return
+		case "dotted_name":
+			if len(pattern.Children) == 1 {
+				b.collectMatchPatternDefs(pattern.Children[0], block, stmt, pos, defs)
+			}
+		case "class_pattern":
+			if len(pattern.Children) > 1 {
+				b.collectMatchPatternDefsFromNodes(pattern.Children[1:], block, stmt, pos, defs)
+			}
+		case "keyword_pattern":
+			if len(pattern.Children) > 0 {
+				b.collectMatchPatternDefs(pattern.Children[len(pattern.Children)-1], block, stmt, pos, defs)
+			}
+		default:
+			b.collectMatchPatternDefsFromNodes(pattern.GetChildren(), block, stmt, pos, defs)
+		}
+	}
+}
+
+func (b *DFABuilder) collectMatchPatternDefsFromNodes(nodes []*parser.Node, block *BasicBlock, stmt *parser.Node, pos int, defs *[]*VarReference) {
+	for _, node := range nodes {
+		b.collectMatchPatternDefs(node, block, stmt, pos, defs)
+	}
+}
+
+func isPatternCaptureName(name string) bool {
+	return name != "" && name != "_"
 }
 
 func nodeValue(node *parser.Node) *parser.Node {
