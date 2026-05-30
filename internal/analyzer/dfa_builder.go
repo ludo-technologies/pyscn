@@ -215,8 +215,12 @@ func (b *DFABuilder) extractDefinitions(stmt *parser.Node, block *BasicBlock, po
 		defs = append(defs, b.extractForTargetDefs(stmt, block, pos)...)
 
 	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
-		// def f(x, y): (parameters are definitions)
-		defs = append(defs, b.extractParameterDefs(stmt, block, pos)...)
+		// def f(...): binds f in the containing CFG. Parameters belong to the function CFG.
+		defs = append(defs, b.extractNamedBindingDef(stmt, block, pos)...)
+
+	case parser.NodeClassDef:
+		// class C(...): binds C in the containing CFG.
+		defs = append(defs, b.extractNamedBindingDef(stmt, block, pos)...)
 
 	case parser.NodeImport:
 		// import x, y
@@ -535,6 +539,13 @@ func (b *DFABuilder) extractForTargetDefs(stmt *parser.Node, block *BasicBlock, 
 	}
 
 	return defs
+}
+
+func (b *DFABuilder) extractNamedBindingDef(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+	if stmt.Name == "" {
+		return nil
+	}
+	return []*VarReference{NewVarReference(stmt.Name, DefKindAssign, block, stmt, pos)}
 }
 
 // extractParameterDefs extracts parameter definitions from a function

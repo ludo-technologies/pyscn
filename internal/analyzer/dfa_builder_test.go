@@ -558,6 +558,51 @@ def nested(arg=default_value):
 		assertUsesOnlyInBlockLabel(t, chain, 1, LabelEntry)
 	})
 
+	t.Run("Build_FunctionDef_UsesTypedDefaultArgumentsInOuterBlock", func(t *testing.T) {
+		source := `
+default_value = 1
+def nested(arg: int = default_value):
+    return arg
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		chain := requireDFAChain(t, info, "default_value")
+		require.Len(t, chain.Defs, 1)
+		assertUsesOnlyInBlockLabel(t, chain, 1, LabelEntry)
+	})
+
+	t.Run("Build_FunctionDef_BindsFunctionNameWithoutLeakingParameters", func(t *testing.T) {
+		source := `
+def nested(arg):
+    return arg
+alias = nested
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		nested := requireDFAChain(t, info, "nested")
+		require.Len(t, nested.Defs, 1)
+		assert.Equal(t, DefKindAssign, nested.Defs[0].Kind)
+		assertUsesOnlyInBlockLabel(t, nested, 1, LabelEntry)
+		assert.Nil(t, info.Chains["arg"], "function parameters belong to the function CFG, not the parent CFG")
+	})
+
+	t.Run("Build_ClassDef_BindsClassName", func(t *testing.T) {
+		source := `
+class Thing:
+    value = 1
+alias = Thing
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		thing := requireDFAChain(t, info, "Thing")
+		require.Len(t, thing.Defs, 1)
+		assert.Equal(t, DefKindAssign, thing.Defs[0].Kind)
+		assertUsesOnlyInBlockLabel(t, thing, 1, LabelClassBody)
+	})
+
 	t.Run("Build_NestedFunctionCFG_RetainsBodyUses", func(t *testing.T) {
 		source := `
 outer_value = 1
