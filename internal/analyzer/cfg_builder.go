@@ -112,6 +112,13 @@ func (b *CFGBuilder) Build(node *parser.Node) (*CFG, error) {
 		return nil, fmt.Errorf("cannot build CFG from nil node")
 	}
 
+	if len(b.scopeStack) == 0 {
+		b.functionCFGs = make(map[string]*CFG)
+	}
+	b.blockCounter = 0
+	b.loopStack = b.loopStack[:0]
+	b.exceptionStack = b.exceptionStack[:0]
+
 	// Initialize CFG based on node type
 	cfgName := domain.ModuleFunctionName
 	if node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef {
@@ -169,27 +176,6 @@ func (b *CFGBuilder) BuildAll(node *parser.Node) (map[string]*CFG, error) {
 	// Add all function CFGs (including nested ones)
 	for name, cfg := range b.functionCFGs {
 		allCFGs[name] = cfg
-	}
-
-	// Also process top-level functions directly
-	if node.Type == parser.NodeModule {
-		for _, stmt := range node.Body {
-			if stmt.Type == parser.NodeFunctionDef || stmt.Type == parser.NodeAsyncFunctionDef {
-				// Check if we already have this function
-				if _, exists := allCFGs[stmt.Name]; !exists {
-					funcBuilder := NewCFGBuilder()
-					funcCFG, err := funcBuilder.Build(stmt)
-					if err == nil {
-						allCFGs[stmt.Name] = funcCFG
-						// Add nested functions from this function
-						for nestedName, nestedCFG := range funcBuilder.functionCFGs {
-							fullName := stmt.Name + "." + nestedName
-							allCFGs[fullName] = nestedCFG
-						}
-					}
-				}
-			}
-		}
 	}
 
 	return allCFGs, nil
@@ -270,7 +256,13 @@ func (b *CFGBuilder) buildNestedFunction(node *parser.Node) error {
 		return fmt.Errorf("failed to build nested function %s: %w", node.Name, err)
 	}
 
-	// Store the function CFG
+	// Store descendant CFGs produced while building this function before the
+	// function itself. Their names are already fully scoped by nestedBuilder.
+	for nestedName, nestedCFG := range nestedBuilder.functionCFGs {
+		b.functionCFGs[nestedName] = nestedCFG
+	}
+
+	// Store the function CFG.
 	fullName := b.getFullScopeName(node.Name)
 	b.functionCFGs[fullName] = funcCFG
 
