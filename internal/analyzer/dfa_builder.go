@@ -248,10 +248,9 @@ func (b *DFABuilder) extractUses(stmt *parser.Node, block *BasicBlock, pos int) 
 		return nil
 	}
 
-	var uses []*VarReference
-
 	switch stmt.Type {
 	case parser.NodeAssign, parser.NodeAnnAssign:
+		var uses []*VarReference
 		// For assignment statements, only the right-hand side is a read.
 		if valueNode, ok := stmt.Value.(*parser.Node); ok {
 			uses = append(uses, b.extractUsesFromExpression(valueNode, block, stmt, pos)...)
@@ -259,6 +258,7 @@ func (b *DFABuilder) extractUses(stmt *parser.Node, block *BasicBlock, pos int) 
 		return uses
 
 	case parser.NodeAugAssign:
+		var uses []*VarReference
 		// For augmented assignment, the target is both a def and a use.
 		if len(stmt.Targets) > 0 && stmt.Targets[0] != nil && stmt.Targets[0].Type == parser.NodeName {
 			ref := NewVarReference(stmt.Targets[0].Name, UseKindRead, block, stmt, pos)
@@ -268,7 +268,15 @@ func (b *DFABuilder) extractUses(stmt *parser.Node, block *BasicBlock, pos int) 
 			uses = append(uses, b.extractUsesFromExpression(valueNode, block, stmt, pos)...)
 		}
 		return uses
+	}
 
+	return b.extractStatementHeaderUses(stmt, block, pos)
+}
+
+func (b *DFABuilder) extractStatementHeaderUses(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+	var uses []*VarReference
+
+	switch stmt.Type {
 	case parser.NodeIf, parser.NodeElifClause, parser.NodeWhile:
 		uses = append(uses, b.extractUsesFromExpression(stmt.Test, block, stmt, pos)...)
 
@@ -293,14 +301,11 @@ func (b *DFABuilder) extractUses(stmt *parser.Node, block *BasicBlock, pos int) 
 		}
 
 	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
-		for _, decorator := range stmt.Decorator {
-			uses = append(uses, b.extractUsesFromExpression(decorator, block, stmt, pos)...)
-		}
+		uses = append(uses, b.extractDecoratorUses(stmt, block, pos)...)
+		uses = append(uses, b.extractFunctionDefaultUses(stmt, block, pos)...)
 
 	case parser.NodeClassDef:
-		for _, decorator := range stmt.Decorator {
-			uses = append(uses, b.extractUsesFromExpression(decorator, block, stmt, pos)...)
-		}
+		uses = append(uses, b.extractDecoratorUses(stmt, block, pos)...)
 		for _, base := range stmt.Bases {
 			uses = append(uses, b.extractUsesFromExpression(base, block, stmt, pos)...)
 		}
@@ -309,6 +314,27 @@ func (b *DFABuilder) extractUses(stmt *parser.Node, block *BasicBlock, pos int) 
 		uses = append(uses, b.extractUsesFromExpression(stmt, block, stmt, pos)...)
 	}
 
+	return uses
+}
+
+func (b *DFABuilder) extractDecoratorUses(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+	var uses []*VarReference
+	for _, decorator := range stmt.Decorator {
+		uses = append(uses, b.extractUsesFromExpression(decorator, block, stmt, pos)...)
+	}
+	return uses
+}
+
+func (b *DFABuilder) extractFunctionDefaultUses(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+	var uses []*VarReference
+	for _, arg := range stmt.Args {
+		if arg == nil {
+			continue
+		}
+		if defaultExpr, ok := arg.Value.(*parser.Node); ok {
+			uses = append(uses, b.extractUsesFromExpression(defaultExpr, block, stmt, pos)...)
+		}
+	}
 	return uses
 }
 

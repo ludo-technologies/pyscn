@@ -445,7 +445,7 @@ if cond:
 		require.NoError(t, err)
 
 		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "cond"), 1, LabelEntry)
-		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "body_value"), 1, "if_then")
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "body_value"), 1, LabelIfThen)
 	})
 
 	t.Run("Build_ForStatement_UsesIterableWithoutReadingTargetOrBodyInHeader", func(t *testing.T) {
@@ -512,7 +512,7 @@ match subject:
 		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
 		require.NoError(t, err)
 
-		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "subject"), 1, "match_eval")
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "subject"), 1, LabelMatchEval)
 		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "body_value"), 1, LabelMatchCase)
 	})
 
@@ -542,6 +542,39 @@ def nested():
 		chain := requireDFAChain(t, info, "outer_value")
 		require.Len(t, chain.Defs, 1)
 		assert.Empty(t, chain.Uses, "function body uses belong to the nested function CFG")
+	})
+
+	t.Run("Build_FunctionDef_UsesDefaultArgumentsInOuterBlock", func(t *testing.T) {
+		source := `
+default_value = 1
+def nested(arg=default_value):
+    return arg
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		chain := requireDFAChain(t, info, "default_value")
+		require.Len(t, chain.Defs, 1)
+		assertUsesOnlyInBlockLabel(t, chain, 1, LabelEntry)
+	})
+
+	t.Run("Build_NestedFunctionCFG_RetainsBodyUses", func(t *testing.T) {
+		source := `
+outer_value = 1
+def nested():
+    sink(outer_value)
+`
+		ast := parseSourceForDFA(t, source)
+		cfgs, err := NewCFGBuilder().BuildAll(ast)
+		require.NoError(t, err)
+
+		nestedCFG, ok := cfgs["nested"]
+		require.True(t, ok, "expected nested function CFG")
+
+		info, err := NewDFABuilder().Build(nestedCFG)
+		require.NoError(t, err)
+
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "outer_value"), 1, LabelFunctionBody)
 	})
 }
 
