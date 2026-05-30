@@ -270,7 +270,13 @@ func (b *CFGBuilder) buildNestedFunction(node *parser.Node) error {
 		return fmt.Errorf("failed to build nested function %s: %w", node.Name, err)
 	}
 
-	// Store the function CFG
+	// Store descendant CFGs produced while building this function before the
+	// function itself. Their names are already fully scoped by nestedBuilder.
+	for nestedName, nestedCFG := range nestedBuilder.functionCFGs {
+		b.functionCFGs[nestedName] = nestedCFG
+	}
+
+	// Store the function CFG.
 	fullName := b.getFullScopeName(node.Name)
 	b.functionCFGs[fullName] = funcCFG
 

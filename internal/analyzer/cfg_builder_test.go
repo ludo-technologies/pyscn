@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"log"
+	"sort"
 	"strings"
 	"testing"
 
@@ -179,6 +180,55 @@ def early_return(x):
 	t.Run("BuildNestedFunctions", func(t *testing.T) {
 		source := `
 def outer():
+    def middle():
+        def inner():
+            return 42
+        return inner()
+    return middle()
+`
+		ast := parseSource(t, source)
+
+		builder := NewCFGBuilder()
+		allCFGs, err := builder.BuildAll(ast)
+
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		for _, name := range []string{domain.ModuleFunctionName, "outer", "outer.middle", "outer.middle.inner"} {
+			if _, ok := allCFGs[name]; !ok {
+				t.Fatalf("Missing %q CFG; got %v", name, mapKeys(allCFGs))
+			}
+		}
+	})
+
+	t.Run("BuildNestedMethodFunctions", func(t *testing.T) {
+		source := `
+class Factory:
+    def build(self):
+        def make_value():
+            return 42
+        return make_value()
+`
+		ast := parseSource(t, source)
+
+		builder := NewCFGBuilder()
+		allCFGs, err := builder.BuildAll(ast)
+
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		for _, name := range []string{domain.ModuleFunctionName, "Factory.build", "Factory.build.make_value"} {
+			if _, ok := allCFGs[name]; !ok {
+				t.Fatalf("Missing %q CFG; got %v", name, mapKeys(allCFGs))
+			}
+		}
+	})
+
+	t.Run("BuildTopLevelFunctions", func(t *testing.T) {
+		source := `
+def outer():
     def inner():
         return 42
     return inner()
@@ -214,10 +264,6 @@ def outer():
 		if !hasOuter {
 			t.Error("Function 'outer' not found in CFGs")
 		}
-
-		// For now, nested functions inside other functions are a complex feature
-		// that will be fully handled in later improvements
-		// The important thing is that we handle top-level functions correctly
 	})
 
 	t.Run("BuildSequentialStatements", func(t *testing.T) {
@@ -432,6 +478,15 @@ func countStatements(cfg *CFG) int {
 		onEdge: func(e *Edge) bool { return true },
 	})
 	return count
+}
+
+func mapKeys(cfgs map[string]*CFG) []string {
+	keys := make([]string, 0, len(cfgs))
+	for key := range cfgs {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 // Removed custom contains function - now using strings.Contains from stdlib
