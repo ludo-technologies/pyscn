@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.22.5] - 2026-05-31
+
+### Fixed
+- Fix analyzer import and report contracts (dependency traversal, module imports, comprehension fields) (#495)
+- Escape HTML report output to prevent markup injection (#495)
+
 ## [1.22.4] - 2026-05-28
 
 ### Fixed
