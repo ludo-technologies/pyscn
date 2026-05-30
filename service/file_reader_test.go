@@ -138,6 +138,22 @@ func TestFileReader_CollectPythonFiles(t *testing.T) {
 			expectError:     false,
 		},
 		{
+			name: "include nested stub files",
+			setupFiles: func(t *testing.T) (string, []string) {
+				tmpDir := createTempDir(t)
+				createTestFile(t, tmpDir, "pkg/module.py", "class Module: pass")
+				createTestFile(t, tmpDir, "pkg/types.pyi", "class Type: ...")
+				createTestFile(t, tmpDir, "pkg/readme.txt", "text")
+				return tmpDir, []string{tmpDir}
+			},
+			recursive:       true,
+			includePatterns: []string{"**/*.py", "**/*.pyi"},
+			excludePatterns: []string{},
+			expectedCount:   2,
+			expectedFiles:   []string{"module.py", "types.pyi"},
+			expectError:     false,
+		},
+		{
 			name: "exclude patterns filtering",
 			setupFiles: func(t *testing.T) (string, []string) {
 				tmpDir := createTestDirectoryStructure(t)

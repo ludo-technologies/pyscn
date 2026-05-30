@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"html"
 	"strings"
 	"time"
 )
@@ -18,14 +19,18 @@ type HTMLTemplate struct {
 	ShowScore   bool
 }
 
+type trustedHTML string
+
 // GenerateHTMLHeader generates the standard HTML header with consistent styling
 func (t *HTMLTemplate) GenerateHTMLHeader() string {
 	var scoreHTML string
 	if t.ShowScore {
+		scoreGrade := EscapeHTML(t.ScoreGrade)
+		scoreGradeClass := SafeHTMLID(strings.ToLower(t.ScoreGrade))
 		scoreHTML = fmt.Sprintf(`
         <div class="score-badge grade-%s">
             Health Score: %d/100 (Grade: %s)
-        </div>`, strings.ToLower(t.ScoreGrade), t.ScoreValue, t.ScoreGrade)
+        </div>`, scoreGradeClass, t.ScoreValue, scoreGrade)
 	}
 
 	return fmt.Sprintf(`<!DOCTYPE html>
@@ -219,12 +224,12 @@ func (t *HTMLTemplate) GenerateHTMLHeader() string {
             <p>%s</p>
             <p>Generated: %s | Duration: %dms | Version: %s</p>%s
         </div>`,
-		t.Title,
-		t.Title,
-		t.Subtitle,
+		EscapeHTML(t.Title),
+		EscapeHTML(t.Title),
+		EscapeHTML(t.Subtitle),
 		t.GeneratedAt.Format("2006-01-02 15:04:05"),
 		t.Duration,
-		t.Version,
+		EscapeHTML(t.Version),
 		scoreHTML)
 }
 
@@ -241,9 +246,10 @@ func GenerateTabButton(id, label string, active bool) string {
 	if active {
 		activeClass = " active"
 	}
+	safeID := SafeHTMLID(id)
 	return fmt.Sprintf(`
                 <button class="tab-button%s" onclick="showTab('%s', this)">%s</button>`,
-		activeClass, id, label)
+		activeClass, safeID, EscapeHTML(label))
 }
 
 // GenerateTabsMiddle generates the middle section between tab buttons and content
@@ -258,10 +264,11 @@ func GenerateTabContent(id string, active bool, content string) string {
 	if active {
 		activeClass = " active"
 	}
+	safeID := SafeHTMLID(id)
 	return fmt.Sprintf(`
             <div id="%s" class="tab-content%s">
                 %s
-            </div>`, id, activeClass, content)
+            </div>`, safeID, activeClass, content)
 }
 
 // GenerateTabsEnd generates the end of a tabbed interface
@@ -312,17 +319,21 @@ func GenerateHTMLFooter() string {
 
 // GenerateMetricCard generates a metric card HTML
 func GenerateMetricCard(value, label string) string {
+	return generateMetricCardHTML(trustedHTML(EscapeHTML(value)), label)
+}
+
+func generateMetricCardHTML(valueHTML trustedHTML, label string) string {
 	return fmt.Sprintf(`
         <div class="metric-card">
             <div class="metric-value">%s</div>
             <div class="metric-label">%s</div>
-        </div>`, value, label)
+        </div>`, valueHTML, EscapeHTML(label))
 }
 
 // GenerateSectionHeader generates a section header
 func GenerateSectionHeader(title string) string {
 	return fmt.Sprintf(`
-        <h2 class="section-header">%s</h2>`, title)
+        <h2 class="section-header">%s</h2>`, EscapeHTML(title))
 }
 
 // GenerateStatusBadge generates a status badge based on severity
@@ -336,5 +347,40 @@ func GenerateStatusBadge(text, severity string) string {
 	case "danger", "high", "critical":
 		class = "status-danger"
 	}
-	return fmt.Sprintf(`<span class="status-badge %s">%s</span>`, class, text)
+	return fmt.Sprintf(`<span class="status-badge %s">%s</span>`, class, EscapeHTML(text))
+}
+
+func EscapeHTML(value string) string {
+	return html.EscapeString(value)
+}
+
+func SafeHTMLID(value string) string {
+	var builder strings.Builder
+	for _, r := range value {
+		if (r >= 'a' && r <= 'z') ||
+			(r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') ||
+			r == '-' ||
+			r == '_' {
+			builder.WriteRune(r)
+			continue
+		}
+		builder.WriteByte('_')
+	}
+	if builder.Len() == 0 {
+		return "id"
+	}
+	return builder.String()
+}
+
+func EscapeHTMLSlice(values []string) []string {
+	escaped := make([]string, 0, len(values))
+	for _, value := range values {
+		escaped = append(escaped, EscapeHTML(value))
+	}
+	return escaped
+}
+
+func JoinEscapedHTML(values []string, separator string) string {
+	return strings.Join(EscapeHTMLSlice(values), separator)
 }

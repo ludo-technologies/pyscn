@@ -161,6 +161,33 @@ func TestCBOFormatter_Format_HTML(t *testing.T) {
 	assert.Contains(t, result, "CBO")
 }
 
+func TestCBOFormatter_Format_HTML_EscapesCodeStrings(t *testing.T) {
+	formatter := NewCBOFormatter()
+	response := &domain.CBOResponse{
+		Classes: []domain.ClassCoupling{
+			{
+				Name:      `<script>alert("x")</script>`,
+				FilePath:  `pkg/<bad>.py`,
+				StartLine: 1,
+				Metrics: domain.CBOMetrics{
+					CouplingCount:    1,
+					DependentClasses: []string{`Dep<script>`},
+				},
+				RiskLevel: domain.RiskLevelHigh,
+			},
+		},
+		Summary: domain.CBOSummary{TotalClasses: 1, HighRiskClasses: 1},
+	}
+
+	result, err := formatter.Format(response, domain.OutputFormatHTML)
+	require.NoError(t, err)
+
+	assert.NotContains(t, result, `<script>alert("x")</script>`)
+	assert.NotContains(t, result, `Dep<script>`)
+	assert.Contains(t, result, `&lt;script&gt;alert(&#34;x&#34;)&lt;/script&gt;`)
+	assert.Contains(t, result, `Dep&lt;script&gt;`)
+}
+
 func TestCBOFormatter_Format_UnsupportedFormat(t *testing.T) {
 	formatter := NewCBOFormatter()
 	response := createTestCBOResponse()

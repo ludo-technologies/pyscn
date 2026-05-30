@@ -270,8 +270,8 @@ th { background: #f8f9fa; font-weight: 600; }
 				riskClass = "risk-medium"
 			}
 			builder.WriteString(fmt.Sprintf(`<tr><td>%s</td><td>%s:%d</td><td>%d</td><td class="%s">%s</td><td>%d</td><td>%d</td></tr>`,
-				class.Name, class.FilePath, class.StartLine,
-				class.Metrics.LCOM4, riskClass, class.RiskLevel,
+				EscapeHTML(class.Name), EscapeHTML(class.FilePath), class.StartLine,
+				class.Metrics.LCOM4, riskClass, EscapeHTML(string(class.RiskLevel)),
 				class.Metrics.TotalMethods-class.Metrics.ExcludedMethods,
 				class.Metrics.InstanceVariables))
 		}
