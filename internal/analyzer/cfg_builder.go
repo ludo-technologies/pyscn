@@ -112,6 +112,13 @@ func (b *CFGBuilder) Build(node *parser.Node) (*CFG, error) {
 		return nil, fmt.Errorf("cannot build CFG from nil node")
 	}
 
+	if len(b.scopeStack) == 0 {
+		b.functionCFGs = make(map[string]*CFG)
+	}
+	b.blockCounter = 0
+	b.loopStack = b.loopStack[:0]
+	b.exceptionStack = b.exceptionStack[:0]
+
 	// Initialize CFG based on node type
 	cfgName := domain.ModuleFunctionName
 	if node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef {

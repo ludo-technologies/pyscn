@@ -196,10 +196,13 @@ def outer():
 		}
 
 		for _, name := range []string{domain.ModuleFunctionName, "outer", "outer.middle", "outer.middle.inner"} {
-			if _, ok := allCFGs[name]; !ok {
-				t.Fatalf("Missing %q CFG; got %v", name, mapKeys(allCFGs))
-			}
+			requireCFG(t, allCFGs, name)
 		}
+
+		assertFunctionCFG(t, allCFGs, "outer", "outer")
+		assertFunctionCFG(t, allCFGs, "outer.middle", "middle")
+		assertFunctionCFG(t, allCFGs, "outer.middle.inner", "inner")
+		assertHasReturnEdge(t, allCFGs["outer.middle.inner"])
 	})
 
 	t.Run("BuildNestedMethodFunctions", func(t *testing.T) {
@@ -220,10 +223,12 @@ class Factory:
 		}
 
 		for _, name := range []string{domain.ModuleFunctionName, "Factory.build", "Factory.build.make_value"} {
-			if _, ok := allCFGs[name]; !ok {
-				t.Fatalf("Missing %q CFG; got %v", name, mapKeys(allCFGs))
-			}
+			requireCFG(t, allCFGs, name)
 		}
+
+		assertFunctionCFG(t, allCFGs, "Factory.build", "build")
+		assertFunctionCFG(t, allCFGs, "Factory.build.make_value", "make_value")
+		assertHasReturnEdge(t, allCFGs["Factory.build.make_value"])
 	})
 
 	t.Run("BuildTopLevelFunctions", func(t *testing.T) {
@@ -252,17 +257,37 @@ def outer():
 			t.Errorf("Missing %q CFG", domain.ModuleFunctionName)
 		}
 
-		// Check for outer function
-		hasOuter := false
-		for name := range allCFGs {
-			if name == "outer" || strings.Contains(name, "outer") {
-				hasOuter = true
-				break
-			}
+		requireCFG(t, allCFGs, "outer")
+		requireCFG(t, allCFGs, "outer.inner")
+	})
+
+	t.Run("BuildAllResetsCollectedFunctions", func(t *testing.T) {
+		builder := NewCFGBuilder()
+
+		firstAST := parseSource(t, `
+def first():
+    def stale():
+        return 1
+    return stale()
+`)
+		firstCFGs, err := builder.BuildAll(firstAST)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		requireCFG(t, firstCFGs, "first.stale")
+
+		secondAST := parseSource(t, `
+def second():
+    return 2
+`)
+		secondCFGs, err := builder.BuildAll(secondAST)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
 		}
 
-		if !hasOuter {
-			t.Error("Function 'outer' not found in CFGs")
+		requireCFG(t, secondCFGs, "second")
+		if _, ok := secondCFGs["first.stale"]; ok {
+			t.Fatalf("BuildAll leaked stale CFGs across builds; got %v", mapKeys(secondCFGs))
 		}
 	})
 
@@ -478,6 +503,52 @@ func countStatements(cfg *CFG) int {
 		onEdge: func(e *Edge) bool { return true },
 	})
 	return count
+}
+
+func requireCFG(t *testing.T, cfgs map[string]*CFG, name string) *CFG {
+	t.Helper()
+
+	cfg, ok := cfgs[name]
+	if !ok {
+		t.Fatalf("Missing %q CFG; got %v", name, mapKeys(cfgs))
+	}
+	if cfg == nil {
+		t.Fatalf("CFG %q is nil", name)
+	}
+	return cfg
+}
+
+func assertFunctionCFG(t *testing.T, cfgs map[string]*CFG, key, functionName string) {
+	t.Helper()
+
+	cfg := requireCFG(t, cfgs, key)
+	if cfg.Name != functionName {
+		t.Fatalf("CFG %q has name %q, want %q", key, cfg.Name, functionName)
+	}
+	if cfg.FunctionNode == nil {
+		t.Fatalf("CFG %q has nil function node", key)
+	}
+	if cfg.FunctionNode.Name != functionName {
+		t.Fatalf("CFG %q function node name = %q, want %q", key, cfg.FunctionNode.Name, functionName)
+	}
+}
+
+func assertHasReturnEdge(t *testing.T, cfg *CFG) {
+	t.Helper()
+
+	hasReturnEdge := false
+	cfg.Walk(&testVisitor{
+		onBlock: func(b *BasicBlock) bool { return true },
+		onEdge: func(e *Edge) bool {
+			if e.Type == EdgeReturn && e.To == cfg.Exit {
+				hasReturnEdge = true
+			}
+			return true
+		},
+	})
+	if !hasReturnEdge {
+		t.Fatalf("CFG %q has no return edge to exit", cfg.Name)
+	}
 }
 
 func mapKeys(cfgs map[string]*CFG) []string {
