@@ -250,28 +250,9 @@ func (d *ConcreteDependencyDetector) isBuiltinType(name string) bool {
 
 // extractTypeHintName extracts the type name from an argument's type annotation
 func (d *ConcreteDependencyDetector) extractTypeHintName(arg *parser.Node) string {
-	// Check children for type annotation (tree-sitter AST structure)
-	for _, child := range arg.Children {
-		if child == nil {
-			continue
-		}
-
-		// Recursively look for type annotations
-		if d.isTypeAnnotation(child) {
-			typeName := d.extractTypeNameRecursive(child)
-			if typeName != "" {
-				return typeName
-			}
-		}
+	if arg.Right != nil && d.isTypeAnnotation(arg.Right) {
+		return d.extractTypeNameRecursive(arg.Right)
 	}
-
-	// Fall back to the raw type annotation text when the AST shape is unsupported.
-	if arg.Value != nil {
-		if typeStr, ok := arg.Value.(string); ok && typeStr != "" {
-			return d.extractTypeNameFromString(typeStr)
-		}
-	}
-
 	return ""
 }
 
@@ -344,51 +325,6 @@ func (d *ConcreteDependencyDetector) extractGenericInnerType(subscriptNode *pars
 	}
 
 	return ""
-}
-
-func (d *ConcreteDependencyDetector) extractTypeNameFromString(typeName string) string {
-	typeName = strings.TrimSpace(typeName)
-	if typeName == "" {
-		return ""
-	}
-
-	if strings.Contains(typeName, "|") {
-		parts := strings.Split(typeName, "|")
-		for _, part := range parts {
-			if extracted := d.extractTypeNameFromString(part); extracted != "" {
-				return extracted
-			}
-		}
-		return ""
-	}
-
-	if open := strings.Index(typeName, "["); open >= 0 && strings.HasSuffix(typeName, "]") {
-		outer := strings.TrimSpace(typeName[:open])
-		inner := strings.TrimSpace(typeName[open+1 : len(typeName)-1])
-		if d.isGenericTypeName(d.lastTypeSegment(outer)) {
-			for _, part := range strings.Split(inner, ",") {
-				if extracted := d.extractTypeNameFromString(part); extracted != "" {
-					return extracted
-				}
-			}
-			return ""
-		}
-	}
-
-	return d.lastTypeSegment(typeName)
-}
-
-func (d *ConcreteDependencyDetector) lastTypeSegment(typeName string) string {
-	typeName = strings.TrimSpace(typeName)
-	if typeName == "" {
-		return ""
-	}
-
-	if idx := strings.LastIndex(typeName, "."); idx >= 0 {
-		return strings.TrimSpace(typeName[idx+1:])
-	}
-
-	return typeName
 }
 
 func (d *ConcreteDependencyDetector) isGenericTypeName(typeName string) bool {

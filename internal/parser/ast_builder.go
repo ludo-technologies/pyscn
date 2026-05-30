@@ -1729,15 +1729,11 @@ func (b *ASTBuilder) buildParameters(tsNode *sitter.Node) []*Node {
 				if arg.Name == "" {
 					arg.Name = b.extractParameterName(child)
 				}
-				// Store type annotation both as text (for backward compatibility) and as AST node
 				if typeNode := b.getChildByFieldName(child, "type"); typeNode != nil {
-					arg.Value = b.getNodeText(typeNode)
-					// Also build the type annotation as an AST node and add to Children
-					// This allows proper analysis of complex types like Union (X | Y)
-					typeASTNode := b.buildNode(typeNode)
-					if typeASTNode != nil {
-						arg.Children = append(arg.Children, typeASTNode)
-					}
+					arg.Right = b.buildNode(typeNode)
+				}
+				if valueNode := b.getChildByFieldName(child, "value"); valueNode != nil {
+					arg.Value = b.buildNode(valueNode)
 				}
 				params = append(params, arg)
 			case "list_splat_pattern":
@@ -1975,11 +1971,12 @@ func (b *ASTBuilder) buildMatchCase(tsNode *sitter.Node) *Node {
 
 	if pattern := b.getChildByFieldName(tsNode, "pattern"); pattern != nil {
 		node.Test = b.buildNode(pattern)
+	} else if pattern := b.getFirstChildByType(tsNode, "case_pattern"); pattern != nil {
+		node.Test = b.buildNode(pattern)
 	}
 
 	if guard := b.getChildByFieldName(tsNode, "guard"); guard != nil {
-		// Store guard in Value field
-		node.Value = b.buildNode(guard)
+		node.Value = b.buildCaseGuard(guard)
 	}
 
 	if consequence := b.getChildByFieldName(tsNode, "consequence"); consequence != nil {
@@ -1989,6 +1986,18 @@ func (b *ASTBuilder) buildMatchCase(tsNode *sitter.Node) *Node {
 	}
 
 	return node
+}
+
+func (b *ASTBuilder) buildCaseGuard(tsNode *sitter.Node) *Node {
+	childCount := int(tsNode.ChildCount())
+	for i := 0; i < childCount; i++ {
+		child := tsNode.Child(i)
+		if child == nil || child.Type() == "if" || b.isTrivia(child) {
+			continue
+		}
+		return b.buildNode(child)
+	}
+	return nil
 }
 
 // buildDecorator builds a decorator node
@@ -2068,6 +2077,17 @@ func (b *ASTBuilder) hasChildOfType(tsNode *sitter.Node, childType string) bool 
 		}
 	}
 	return false
+}
+
+func (b *ASTBuilder) getFirstChildByType(tsNode *sitter.Node, childType string) *sitter.Node {
+	childCount := int(tsNode.ChildCount())
+	for i := 0; i < childCount; i++ {
+		child := tsNode.Child(i)
+		if child != nil && child.Type() == childType {
+			return child
+		}
+	}
+	return nil
 }
 
 // isTrivia checks if a node is trivia (comments, whitespace)

@@ -722,6 +722,73 @@ def unpack(cm):
 	}
 }
 
+func TestASTBuilderTypedDefaultParameterPreservesDefaultExpression(t *testing.T) {
+	result, err := New().Parse(context.Background(), []byte(`
+def configure(limit: int = default_limit):
+    return limit
+`))
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
+
+	functions := result.AST.FindByType(NodeFunctionDef)
+	if len(functions) != 1 {
+		t.Fatalf("Expected 1 function, got %d", len(functions))
+	}
+	if len(functions[0].Args) != 1 {
+		t.Fatalf("Expected 1 argument, got %d", len(functions[0].Args))
+	}
+
+	arg := functions[0].Args[0]
+	if arg.Name != "limit" {
+		t.Fatalf("Arg name = %q, want %q", arg.Name, "limit")
+	}
+	typeNames := collectNameLeaves(arg.Right)
+	if got, want := typeNames, []string{"int"}; !equalStringSlices(got, want) {
+		t.Fatalf("Arg type annotation names = %v, want %v", got, want)
+	}
+	defaultExpr, ok := arg.Value.(*Node)
+	if !ok {
+		t.Fatalf("Arg default is %T, want *Node", arg.Value)
+	}
+	if defaultExpr.Type != NodeName || defaultExpr.Name != "default_limit" {
+		t.Fatalf("Arg default = %s(%s), want Name(default_limit)", defaultExpr.Type, defaultExpr.Name)
+	}
+}
+
+func TestASTBuilderMatchCasePreservesPatternAndGuard(t *testing.T) {
+	result, err := New().Parse(context.Background(), []byte(`
+match subject:
+    case captured if captured == guard_value:
+        sink(captured)
+`))
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
+
+	matches := result.AST.FindByType(NodeMatch)
+	if len(matches) != 1 {
+		t.Fatalf("Expected 1 match statement, got %d", len(matches))
+	}
+	if len(matches[0].Body) != 1 {
+		t.Fatalf("Expected 1 match case, got %d", len(matches[0].Body))
+	}
+
+	matchCase := matches[0].Body[0]
+	patternNames := collectNameLeaves(matchCase.Test)
+	if got, want := patternNames, []string{"captured"}; !equalStringSlices(got, want) {
+		t.Fatalf("Pattern names = %v, want %v", got, want)
+	}
+	guard, ok := matchCase.Value.(*Node)
+	if !ok {
+		t.Fatalf("Guard is %T, want *Node", matchCase.Value)
+	}
+	guardNames := collectNameLeaves(guard)
+	if got, want := guardNames, []string{"captured", "guard_value"}; !equalStringSet(got, want) {
+		t.Fatalf("Guard names = %v, want %v", got, want)
+	}
+}
+
 func TestComprehensionIteratorAndTargetFields(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -805,6 +872,23 @@ func equalStringSlices(a, b []string) bool {
 	}
 	for i := range a {
 		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func equalStringSet(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	counts := make(map[string]int, len(a))
+	for _, item := range a {
+		counts[item]++
+	}
+	for _, item := range b {
+		counts[item]--
+		if counts[item] < 0 {
 			return false
 		}
 	}
