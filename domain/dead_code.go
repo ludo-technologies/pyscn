@@ -225,7 +225,7 @@ func DefaultDeadCodeRequest() *DeadCodeRequest {
 		MinSeverity:     DeadCodeSeverityWarning,
 		SortBy:          DeadCodeSortBySeverity,
 		Recursive:       true,
-		IncludePatterns: []string{"**/*.py"},
+		IncludePatterns: DefaultAnalysisIncludePatterns(),
 		ExcludePatterns: DefaultAnalysisExcludePatterns(),
 		IgnorePatterns:  []string{},
 

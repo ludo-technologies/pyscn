@@ -145,7 +145,7 @@ func (b *ASTBuilder) buildNode(tsNode *sitter.Node) *Node {
 		return b.buildSlice(tsNode)
 	case "list":
 		return b.buildList(tsNode)
-	case "tuple":
+	case "tuple", "pattern_list":
 		return b.buildTuple(tsNode)
 	case "dictionary":
 		return b.buildDict(tsNode)
@@ -1297,26 +1297,35 @@ func (b *ASTBuilder) buildComprehension(tsNode *sitter.Node, node *Node) {
 			// Create new comprehension node for each for clause
 			comp := NewNode(NodeComprehension)
 
-			// Extract target variable(s)
-			for j := 0; j < int(child.ChildCount()); j++ {
-				subChild := child.Child(j)
-				if subChild != nil && subChild.Type() == "identifier" {
-					// First identifier after "for" is the target
-					comp.Targets = []*Node{b.buildNode(subChild)}
-					break
-				}
+			// Extract target expression from the grammar field. This handles names,
+			// tuple unpacking, and other valid assignment targets.
+			if target := b.getChildByFieldName(child, "left"); target != nil {
+				comp.Targets = []*Node{b.buildNode(target)}
 			}
 
-			// Extract iterator expression (after "in")
-			foundIn := false
-			for j := 0; j < int(child.ChildCount()); j++ {
-				subChild := child.Child(j)
-				if subChild != nil {
-					if subChild.Type() == "in" {
+			// Extract iterator expression from the grammar field. Bare identifiers
+			// like `data` must remain valid iterator expressions.
+			if iter := b.getChildByFieldName(child, "right"); iter != nil {
+				comp.Iter = b.buildNode(iter)
+			}
+
+			// Fallback for parser shapes without field metadata.
+			if len(comp.Targets) == 0 || comp.Iter == nil {
+				foundIn := false
+				for j := 0; j < int(child.ChildCount()); j++ {
+					subChild := child.Child(j)
+					if subChild == nil || b.isTrivia(subChild) {
+						continue
+					}
+					switch {
+					case subChild.Type() == "for":
+						continue
+					case subChild.Type() == "in":
 						foundIn = true
-					} else if foundIn && subChild.Type() != "identifier" {
+					case !foundIn && len(comp.Targets) == 0:
+						comp.Targets = []*Node{b.buildNode(subChild)}
+					case foundIn && comp.Iter == nil:
 						comp.Iter = b.buildNode(subChild)
-						break
 					}
 				}
 			}

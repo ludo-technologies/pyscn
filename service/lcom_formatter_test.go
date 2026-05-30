@@ -140,6 +140,29 @@ func TestLCOMFormatter_Format(t *testing.T) {
 	}
 }
 
+func TestLCOMFormatter_Format_HTML_EscapesCodeStrings(t *testing.T) {
+	formatter := NewLCOMFormatter()
+	response := &domain.LCOMResponse{
+		Classes: []domain.ClassCohesion{
+			{
+				Name:      `<script>alert("x")</script>`,
+				FilePath:  `pkg/<bad>.py`,
+				StartLine: 1,
+				Metrics:   domain.LCOMMetrics{LCOM4: 2, TotalMethods: 2},
+				RiskLevel: domain.RiskLevelMedium,
+			},
+		},
+		Summary: domain.LCOMSummary{TotalClasses: 1, MediumRiskClasses: 1},
+	}
+
+	output, err := formatter.Format(response, domain.OutputFormatHTML)
+	require.NoError(t, err)
+
+	assert.NotContains(t, output, `<script>alert("x")</script>`)
+	assert.Contains(t, output, `&lt;script&gt;alert(&#34;x&#34;)&lt;/script&gt;`)
+	assert.Contains(t, output, `pkg/&lt;bad&gt;.py`)
+}
+
 func TestLCOMFormatter_Write(t *testing.T) {
 	formatter := NewLCOMFormatter()
 	response := newTestLCOMResponse()

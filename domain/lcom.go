@@ -145,7 +145,7 @@ func DefaultLCOMRequest() *LCOMRequest {
 		LowThreshold:    DefaultLCOMLowThreshold,    // LCOM4 <= 2 is low risk
 		MediumThreshold: DefaultLCOMMediumThreshold, // LCOM4 3-5 is medium risk
 		Recursive:       BoolPtr(true),
-		IncludePatterns: []string{"**/*.py"},
+		IncludePatterns: DefaultAnalysisIncludePatterns(),
 		ExcludePatterns: []string{},
 	}
 }

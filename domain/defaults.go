@@ -317,6 +317,24 @@ func DefaultMockDataDomains() []string {
 	}
 }
 
+// DefaultAnalysisIncludePatterns returns the canonical runtime source-file
+// globs used by implementation analyses.
+func DefaultAnalysisIncludePatterns() []string {
+	return DefaultPythonSourceIncludePatterns()
+}
+
+// DefaultPythonSourceIncludePatterns returns runtime Python implementation
+// files. Analyses that score executable code should use this contract.
+func DefaultPythonSourceIncludePatterns() []string {
+	return []string{"**/*.py"}
+}
+
+// DefaultPythonModuleIncludePatterns returns the full Python module surface.
+// Dependency analysis uses this because stub files define importable modules.
+func DefaultPythonModuleIncludePatterns() []string {
+	return []string{"**/*.py", "**/*.pyi"}
+}
+
 // DefaultAnalysisExcludePatterns returns the canonical default file-glob
 // patterns excluded from all analyses (CBO, complexity, dead code, clones,
 // LCOM, system analysis). Callers must copy before mutating.

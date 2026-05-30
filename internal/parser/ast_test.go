@@ -722,6 +722,72 @@ def unpack(cm):
 	}
 }
 
+func TestComprehensionIteratorAndTargetFields(t *testing.T) {
+	tests := []struct {
+		name           string
+		source         string
+		wantIter       string
+		wantTargetType NodeType
+		wantTargets    []string
+	}{
+		{
+			name:           "bare identifier iterable",
+			source:         `result = [x for x in data]`,
+			wantIter:       "data",
+			wantTargetType: NodeName,
+			wantTargets:    []string{"x"},
+		},
+		{
+			name:           "tuple target",
+			source:         `result = [v for k, v in items]`,
+			wantIter:       "items",
+			wantTargetType: NodeTuple,
+			wantTargets:    []string{"k", "v"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := New().Parse(context.Background(), []byte(tt.source))
+			if err != nil {
+				t.Fatalf("Parse() unexpected error: %v", err)
+			}
+
+			comps := result.AST.FindByType(NodeComprehension)
+			if len(comps) != 1 {
+				t.Fatalf("Expected 1 comprehension, got %d", len(comps))
+			}
+
+			comp := comps[0]
+			if comp.Iter == nil || comp.Iter.Type != NodeName || comp.Iter.Name != tt.wantIter {
+				t.Fatalf("Iter = %#v, want name %q", comp.Iter, tt.wantIter)
+			}
+			if len(comp.Targets) != 1 {
+				t.Fatalf("Expected 1 target expression, got %d", len(comp.Targets))
+			}
+			if comp.Targets[0].Type != tt.wantTargetType {
+				t.Fatalf("Target type = %s, want %s", comp.Targets[0].Type, tt.wantTargetType)
+			}
+
+			var gotTargets []string
+			comp.Targets[0].Walk(func(node *Node) bool {
+				if node.Type == NodeName {
+					gotTargets = append(gotTargets, node.Name)
+				}
+				return true
+			})
+			if len(gotTargets) != len(tt.wantTargets) {
+				t.Fatalf("Target names = %v, want %v", gotTargets, tt.wantTargets)
+			}
+			for i := range tt.wantTargets {
+				if gotTargets[i] != tt.wantTargets[i] {
+					t.Fatalf("Target names = %v, want %v", gotTargets, tt.wantTargets)
+				}
+			}
+		})
+	}
+}
+
 func collectNameLeaves(n *Node) []string {
 	var out []string
 	n.WalkDeep(func(child *Node) bool {

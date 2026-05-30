@@ -487,7 +487,7 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
 			statusText = fmt.Sprintf("❌ %d Cycles", deps.CircularDependencies.TotalCycles)
 			severity = "danger"
 		}
-		builder.WriteString(GenerateMetricCard(GenerateStatusBadge(statusText, severity), "Circular Dependencies"))
+		builder.WriteString(generateMetricCardHTML(trustedHTML(GenerateStatusBadge(statusText, severity)), "Circular Dependencies"))
 	}
 
 	builder.WriteString(`
@@ -539,13 +539,13 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
 				sort.Strings(dependencies)
 				builder.WriteString(`
                         <tr>
-                            <td><strong>` + module + `</strong></td>
+                            <td><strong>` + EscapeHTML(module) + `</strong></td>
                             <td>`)
 				for i, dep := range dependencies {
 					if i > 0 {
 						builder.WriteString(`<br>`)
 					}
-					builder.WriteString(dep)
+					builder.WriteString(EscapeHTML(dep))
 				}
 				builder.WriteString(`</td>
                         </tr>`)
@@ -608,7 +608,7 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
 
 					// Format path with arrows
 					pathStr := strings.Join(path.Path, " → ")
-					pathsHTML.WriteString(`<code style="font-size: 11px;">` + pathStr + `</code>`)
+					pathsHTML.WriteString(`<code style="font-size: 11px;">` + EscapeHTML(pathStr) + `</code>`)
 				}
 
 				if pathCount > 5 {
@@ -632,7 +632,7 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
 				builder.WriteString(`
             <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin: 20px 0;">
                 <strong style="color: #856404;">⚠️ Core Infrastructure Modules (appear in multiple cycles):</strong>
-                <p style="color: #856404; margin: 10px 0 0 0;">` + strings.Join(deps.CircularDependencies.CoreInfrastructure, ", ") + `</p>
+                <p style="color: #856404; margin: 10px 0 0 0;">` + JoinEscapedHTML(deps.CircularDependencies.CoreInfrastructure, ", ") + `</p>
             </div>`)
 			}
 
@@ -643,7 +643,7 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
                 <strong style="color: #0c5460;">💡 Suggestions for Breaking Cycles:</strong>
                 <ul style="margin: 10px 0 0 20px; color: #0c5460;">`)
 				for _, suggestion := range deps.CircularDependencies.CycleBreakingSuggestions {
-					builder.WriteString(`<li>` + suggestion + `</li>`)
+					builder.WriteString(`<li>` + EscapeHTML(suggestion) + `</li>`)
 				}
 				builder.WriteString(`</ul>
             </div>`)
@@ -679,10 +679,10 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
 				}
 				// Show only first 3 and last module for long chains
 				if len(chain.Path) > 5 && j == 3 {
-					builder.WriteString(`... → ` + chain.Path[len(chain.Path)-1])
+					builder.WriteString(`... → ` + EscapeHTML(chain.Path[len(chain.Path)-1]))
 					break
 				}
-				builder.WriteString(module)
+				builder.WriteString(EscapeHTML(module))
 			}
 			builder.WriteString(`</td>
                     </tr>`)
@@ -699,11 +699,11 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLModuleList(builder *strings.Build
 	}
 
 	builder.WriteString(`<h4>`)
-	builder.WriteString(title)
+	builder.WriteString(EscapeHTML(title))
 	builder.WriteString(`</h4><ul>`)
 	for _, module := range modules {
 		builder.WriteString(`<li><code>`)
-		builder.WriteString(module)
+		builder.WriteString(EscapeHTML(module))
 		builder.WriteString(`</code></li>`)
 	}
 	builder.WriteString(`</ul>`)
@@ -739,8 +739,8 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLArchitectureContent(builder *stri
 	if complianceScore < 60 {
 		scoreColor = "danger"
 	}
-	builder.WriteString(GenerateMetricCard(
-		`<span class="badge bg-`+scoreColor+`">`+fmt.Sprintf("%.1f%%", complianceScore)+`</span>`,
+	builder.WriteString(generateMetricCardHTML(
+		trustedHTML(`<span class="badge bg-`+scoreColor+`">`+fmt.Sprintf("%.1f%%", complianceScore)+`</span>`),
 		"Compliance Score"))
 	builder.WriteString(`</div>`)
 
@@ -764,8 +764,8 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLArchitectureContent(builder *stri
 				for toLayer, count := range toMap {
 					builder.WriteString(`
                     <tr>
-                        <td><strong>` + fromLayer + `</strong></td>
-                        <td>` + toLayer + `</td>
+                        <td><strong>` + EscapeHTML(fromLayer) + `</strong></td>
+                        <td>` + EscapeHTML(toLayer) + `</td>
                         <td>` + strconv.Itoa(count) + `</td>
                     </tr>`)
 				}
@@ -802,9 +802,9 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLArchitectureContent(builder *stri
 				builder.WriteString(`
                     <tr>
                         <td>` + architectureSeverityBadge(violation.Severity) + `</td>
-                        <td>` + violation.Rule + `</td>
-                        <td>` + violation.FromModule + `</td>
-                        <td>` + violation.ToModule + `</td>
+                        <td>` + EscapeHTML(violation.Rule) + `</td>
+                        <td>` + EscapeHTML(violation.FromModule) + `</td>
+                        <td>` + EscapeHTML(violation.ToModule) + `</td>
                     </tr>`)
 			}
 			builder.WriteString(`
@@ -848,9 +848,9 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLArchitectureContent(builder *stri
 			builder.WriteString(`
                     <tr>
                         <td>` + architectureSeverityBadge(violation.Severity) + `</td>
-                        <td>` + violation.Module + `</td>
-                        <td>` + strings.Join(violation.Responsibilities, ", ") + `</td>
-                        <td>` + violation.Suggestion + `</td>
+                        <td>` + EscapeHTML(violation.Module) + `</td>
+                        <td>` + JoinEscapedHTML(violation.Responsibilities, ", ") + `</td>
+                        <td>` + EscapeHTML(violation.Suggestion) + `</td>
                     </tr>`)
 		}
 		builder.WriteString(`
@@ -875,7 +875,7 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLArchitectureContent(builder *stri
 		builder.WriteString(GenerateSectionHeader("Recommendations"))
 		builder.WriteString(`<ul class="list-group">`)
 		for _, rec := range arch.Recommendations {
-			builder.WriteString(`<li class="list-group-item">` + rec.Description + `</li>`)
+			builder.WriteString(`<li class="list-group-item">` + EscapeHTML(rec.Description) + `</li>`)
 		}
 		builder.WriteString(`</ul>`)
 	}

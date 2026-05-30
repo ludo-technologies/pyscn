@@ -215,6 +215,53 @@ func TestReExportResolutionInGraph(t *testing.T) {
 	}
 }
 
+func TestRelativePackageImportReExportResolutionInGraph(t *testing.T) {
+	dir := t.TempDir()
+
+	pkgADir := filepath.Join(dir, "pkg_a")
+	if err := os.MkdirAll(pkgADir, 0o755); err != nil {
+		t.Fatalf("failed to create pkg_a directory: %v", err)
+	}
+
+	pkgAInit := `from . import module_x
+`
+	if err := os.WriteFile(filepath.Join(pkgADir, "__init__.py"), []byte(pkgAInit), 0o644); err != nil {
+		t.Fatalf("failed to write pkg_a/__init__.py: %v", err)
+	}
+
+	moduleX := `class SomeClass:
+    pass
+`
+	if err := os.WriteFile(filepath.Join(pkgADir, "module_x.py"), []byte(moduleX), 0o644); err != nil {
+		t.Fatalf("failed to write pkg_a/module_x.py: %v", err)
+	}
+
+	consumer := `from pkg_a import module_x
+`
+	if err := os.WriteFile(filepath.Join(dir, "consumer.py"), []byte(consumer), 0o644); err != nil {
+		t.Fatalf("failed to write consumer.py: %v", err)
+	}
+
+	analyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{ProjectRoot: dir})
+	if err != nil {
+		t.Fatalf("failed to create analyzer: %v", err)
+	}
+
+	graph, err := analyzer.AnalyzeProject()
+	if err != nil {
+		t.Fatalf("AnalyzeProject failed: %v", err)
+	}
+
+	consumerNode := graph.GetModule("consumer")
+	if consumerNode == nil {
+		t.Fatalf("consumer module not found in graph")
+	}
+	if !consumerNode.Dependencies["pkg_a.module_x"] {
+		t.Errorf("expected consumer to depend on pkg_a.module_x")
+		t.Logf("Consumer dependencies: %v", consumerNode.Dependencies)
+	}
+}
+
 func TestMultipleNamesReExportResolution(t *testing.T) {
 	dir := t.TempDir()
 

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -480,6 +482,46 @@ func TestPyscnConfigToSystemAnalysisRequest_PropagatesLayers(t *testing.T) {
 	assert.Equal(t, "api", request.ArchitectureRules.Rules[0].From)
 	assert.Equal(t, []string{"domain"}, request.ArchitectureRules.Rules[0].Allow)
 	assert.Equal(t, []string{"infrastructure"}, request.ArchitectureRules.Rules[0].Deny)
+}
+
+func TestSystemAnalysisConfigUsesModuleSurfaceByDefault(t *testing.T) {
+	loader := NewSystemAnalysisConfigurationLoader()
+
+	request := loader.pyscnConfigToSystemAnalysisRequest(config.DefaultPyscnConfig())
+
+	assert.Equal(t, domain.DefaultPythonModuleIncludePatterns(), request.IncludePatterns)
+}
+
+func TestSystemAnalysisConfigHonorsExplicitAnalysisIncludes(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, ".pyscn.toml")
+	if err := os.WriteFile(configPath, []byte(`
+[analysis]
+include_patterns = ["src/**/*.py"]
+`), 0o644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	request, err := NewSystemAnalysisConfigurationLoader().LoadConfig(configPath)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"src/**/*.py"}, request.IncludePatterns)
+}
+
+func TestSystemAnalysisConfigHonorsExplicitEmptyAnalysisIncludes(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, ".pyscn.toml")
+	if err := os.WriteFile(configPath, []byte(`
+[analysis]
+include_patterns = []
+`), 0o644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	request, err := NewSystemAnalysisConfigurationLoader().LoadConfig(configPath)
+	require.NoError(t, err)
+
+	assert.Empty(t, request.IncludePatterns)
 }
 
 func TestPyscnConfigToSystemAnalysisRequest_PropagatesResponsibilitySettings(t *testing.T) {

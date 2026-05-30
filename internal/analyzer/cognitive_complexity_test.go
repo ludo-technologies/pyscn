@@ -44,6 +44,60 @@ func TestCalculateCognitiveComplexity_SimpleFunction(t *testing.T) {
 	}
 }
 
+func TestCalculateCognitiveComplexity_TraversesStatementValue(t *testing.T) {
+	tests := []struct {
+		name string
+		stmt *parser.Node
+		want int
+	}{
+		{
+			name: "return ternary",
+			stmt: &parser.Node{
+				Type: parser.NodeReturn,
+				Value: &parser.Node{
+					Type: parser.NodeIfExp,
+					Test: &parser.Node{Type: parser.NodeName, Name: "flag"},
+					Body: []*parser.Node{{Type: parser.NodeName, Name: "left"}},
+					Orelse: []*parser.Node{
+						{Type: parser.NodeName, Name: "right"},
+					},
+				},
+			},
+			want: 1,
+		},
+		{
+			name: "assignment boolean expression",
+			stmt: &parser.Node{
+				Type: parser.NodeAssign,
+				Value: &parser.Node{
+					Type: parser.NodeBoolOp,
+					Op:   "and",
+					Children: []*parser.Node{
+						{Type: parser.NodeName, Name: "left"},
+						{Type: parser.NodeName, Name: "right"},
+					},
+				},
+			},
+			want: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			funcNode := &parser.Node{
+				Type: parser.NodeFunctionDef,
+				Name: "value_expr",
+				Body: []*parser.Node{tt.stmt},
+			}
+
+			result := CalculateCognitiveComplexity(funcNode)
+			if result.Total != tt.want {
+				t.Fatalf("Expected cognitive complexity %d, got %d", tt.want, result.Total)
+			}
+		})
+	}
+}
+
 func TestCalculateCognitiveComplexity_SingleIf(t *testing.T) {
 	// def func_with_if(x):
 	//     if x > 0:       # +1 (base, nesting=0)

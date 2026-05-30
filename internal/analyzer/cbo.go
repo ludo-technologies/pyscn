@@ -244,6 +244,8 @@ func (a *CBOAnalyzer) isTypeAnnotation(node *parser.Node) bool {
 	return node.Type == parser.NodeName ||
 		node.Type == parser.NodeSubscript ||
 		node.Type == parser.NodeAttribute ||
+		node.Type == parser.NodeTuple ||
+		node.Type == parser.NodeList ||
 		node.Type == parser.NodeTypeNode ||
 		node.Type == parser.NodeGenericType ||
 		node.Type == parser.NodeTypeParameter ||
@@ -261,16 +263,21 @@ func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, depen
 	case parser.NodeSubscript:
 		// Generic type: List[User], Dict[str, User]
 		// For generics, we want to extract the type parameters, not the container
-		if node.Right != nil {
-			a.extractTypeAnnotationDependencies(node.Right, dependencies, result)
-		} else if len(node.Children) > 1 {
-			a.extractTypeAnnotationDependencies(node.Children[1], dependencies, result)
+		for _, typeArg := range a.typeArgumentNodes(node) {
+			a.extractTypeAnnotationDependencies(typeArg, dependencies, result)
 		}
 	case parser.NodeAttribute:
 		// Module.Type: typing.List, mymodule.MyClass
 		typeName := a.extractClassName(node)
 		if typeName != "" && a.shouldIncludeDependencyForClass(typeName, result.ClassName) {
 			a.addDependency(dependencies, typeName, dependencyKindTypeHint)
+		}
+	case parser.NodeTuple, parser.NodeList:
+		// Multi-argument generic parameters: dict[str, User], tuple[A, B].
+		for _, child := range node.Children {
+			if child != nil && a.isTypeAnnotation(child) {
+				a.extractTypeAnnotationDependencies(child, dependencies, result)
+			}
 		}
 	case parser.NodeTypeNode:
 		// Tree-sitter 'type' node - recurse into children
@@ -365,9 +372,19 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 			}
 		case parser.NodeAttribute:
 			// Attribute access: obj.method() or obj.attr
-			if objNode := node.Left; objNode != nil {
+			if a.shouldSkipAttributeAccess(node) {
+				return true
+			}
+
+			objNode := node.Left
+			if objNode == nil {
+				if valueNode, ok := node.Value.(*parser.Node); ok {
+					objNode = valueNode
+				}
+			}
+			if objNode != nil {
 				objType := a.inferObjectType(objNode)
-				if objType != "" && a.shouldIncludeDependencyForClass(objType, result.ClassName) {
+				if a.isAttributeReceiverDependency(objType, allClasses) && a.shouldIncludeDependencyForClass(objType, result.ClassName) {
 					a.addDependency(dependencies, objType, dependencyKindAttributeAccess)
 				}
 			}
@@ -486,17 +503,28 @@ func (a *CBOAnalyzer) extractClassName(node *parser.Node) string {
 		}
 	case parser.NodeSubscript:
 		// Handle generic types like List[User], Dict[str, User]
-		// For subscripts, the type parameter is typically in Right field or Children
-		if node.Right != nil {
-			return a.extractClassName(node.Right)
+		if valueNode, ok := node.Value.(*parser.Node); ok {
+			return a.extractClassName(valueNode)
 		}
-		// Fallback to checking children for the subscript content
-		if len(node.Children) > 1 {
-			return a.extractClassName(node.Children[1])
+	case parser.NodeTuple, parser.NodeList:
+		for _, child := range node.Children {
+			if name := a.extractClassName(child); name != "" {
+				return name
+			}
 		}
 	}
 
 	return ""
+}
+
+func (a *CBOAnalyzer) typeArgumentNodes(node *parser.Node) []*parser.Node {
+	if node == nil || node.Type != parser.NodeSubscript {
+		return nil
+	}
+	if node.Right != nil {
+		return []*parser.Node{node.Right}
+	}
+	return node.Children
 }
 
 // shouldIncludeDependency checks if a dependency should be included
@@ -531,7 +559,83 @@ func (a *CBOAnalyzer) isCallDependency(className string, allClasses map[string]*
 	if _, isClass := allClasses[className]; isClass {
 		return true
 	}
+	return false
+}
+
+func (a *CBOAnalyzer) isAttributeReceiverDependency(className string, allClasses map[string]*parser.Node) bool {
+	if className == "" || className == "self" || className == "cls" {
+		return false
+	}
+	if a.isImportedDependency(className) {
+		return true
+	}
+	if _, isClass := allClasses[className]; isClass {
+		return true
+	}
 	return a.options.IncludeBuiltins && a.builtinTypes[className]
+}
+
+func (a *CBOAnalyzer) shouldSkipAttributeAccess(node *parser.Node) bool {
+	if node == nil {
+		return true
+	}
+	if node.Parent != nil && node.Parent.Type == parser.NodeCall {
+		return true
+	}
+	if a.isWithinTypeAnnotation(node) || a.isWithinClassBase(node) {
+		return true
+	}
+	return false
+}
+
+func (a *CBOAnalyzer) isWithinTypeAnnotation(node *parser.Node) bool {
+	for current := node.Parent; current != nil; current = current.Parent {
+		switch current.Type {
+		case parser.NodeAnnAssign:
+			for _, child := range current.Children {
+				if child != nil && a.isTypeAnnotation(child) && nodeDescendsFrom(node, child) {
+					return true
+				}
+			}
+			return false
+		case parser.NodeArg:
+			for _, child := range current.Children {
+				if child != nil && a.isTypeAnnotation(child) && nodeDescendsFrom(node, child) {
+					return true
+				}
+			}
+			return false
+		case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
+			return current.Right != nil && nodeDescendsFrom(node, current.Right)
+		case parser.NodeTypeNode, parser.NodeGenericType, parser.NodeTypeParameter:
+			return true
+		}
+	}
+	return false
+}
+
+func (a *CBOAnalyzer) isWithinClassBase(node *parser.Node) bool {
+	for current := node.Parent; current != nil; current = current.Parent {
+		if current.Type != parser.NodeClassDef {
+			continue
+		}
+		for _, base := range current.Bases {
+			if nodeDescendsFrom(node, base) {
+				return true
+			}
+		}
+		return false
+	}
+	return false
+}
+
+func nodeDescendsFrom(node, ancestor *parser.Node) bool {
+	for current := node; current != nil; current = current.Parent {
+		if current == ancestor {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *CBOAnalyzer) shouldIncludeDependencyForClass(className, ownerClass string) bool {
@@ -768,28 +872,10 @@ func (a *CBOAnalyzer) assessRiskLevel(cbo int) string {
 
 // walkNode recursively walks AST nodes
 func (a *CBOAnalyzer) walkNode(node *parser.Node, visitor func(*parser.Node) bool) {
-	if node == nil || !visitor(node) {
+	if node == nil {
 		return
 	}
-
-	for _, child := range node.Children {
-		a.walkNode(child, visitor)
-	}
-
-	for _, child := range node.Body {
-		a.walkNode(child, visitor)
-	}
-
-	for _, child := range node.Args {
-		a.walkNode(child, visitor)
-	}
-
-	// Also traverse Value field if it contains a Node
-	if node.Value != nil {
-		if valueNode, ok := node.Value.(*parser.Node); ok {
-			a.walkNode(valueNode, visitor)
-		}
-	}
+	node.Walk(visitor)
 }
 
 // inferObjectType tries to infer the type of an object from context

@@ -67,6 +67,7 @@ type PyscnConfig struct {
 	AnalysisExcludePatterns []string `mapstructure:"analysis_exclude_patterns" yaml:"analysis_exclude_patterns" json:"analysis_exclude_patterns"`
 	AnalysisRecursive       *bool    `mapstructure:"analysis_recursive" yaml:"analysis_recursive" json:"analysis_recursive"`
 	AnalysisFollowSymlinks  *bool    `mapstructure:"analysis_follow_symlinks" yaml:"analysis_follow_symlinks" json:"analysis_follow_symlinks"`
+	analysisIncludeExplicit bool     `mapstructure:"-" yaml:"-" json:"-"`
 
 	// CBO Configuration (from [cbo] section in TOML)
 	CboLowThreshold    int   `mapstructure:"cbo_low_threshold" yaml:"cbo_low_threshold" json:"cbo_low_threshold"`
@@ -152,6 +153,10 @@ type PyscnConfig struct {
 	// Track whether [output].min_complexity was explicitly set so it can
 	// override [complexity].min_complexity even when both resolve to defaults.
 	outputMinComplexityExplicit bool `mapstructure:"-" yaml:"-" json:"-"`
+}
+
+func (c *PyscnConfig) HasExplicitAnalysisIncludePatterns() bool {
+	return c != nil && c.analysisIncludeExplicit
 }
 
 // CloneAnalysisConfig holds core analysis parameters
@@ -299,7 +304,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 		Input: InputConfig{
 			Paths:           []string{"."},
 			Recursive:       domain.BoolPtr(true),
-			IncludePatterns: []string{"**/*.py"},
+			IncludePatterns: domain.DefaultAnalysisIncludePatterns(),
 			ExcludePatterns: domain.DefaultAnalysisExcludePatterns(),
 		},
 		Output: CloneOutputConfig{
@@ -359,7 +364,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 		OutputDirectory:     "", // empty = tool default (.pyscn/reports)
 
 		// Analysis defaults (from [analysis] section - general analysis settings)
-		AnalysisIncludePatterns: []string{"**/*.py"},
+		AnalysisIncludePatterns: domain.DefaultAnalysisIncludePatterns(),
 		AnalysisExcludePatterns: domain.DefaultAnalysisExcludePatterns(),
 		AnalysisRecursive:       domain.BoolPtr(true),
 		AnalysisFollowSymlinks:  domain.BoolPtr(false),

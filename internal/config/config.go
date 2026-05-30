@@ -237,7 +237,7 @@ func DefaultConfig() *Config {
 			MinComplexity: DefaultMinComplexityFilter,
 		},
 		Analysis: AnalysisConfig{
-			IncludePatterns: []string{"**/*.py"},
+			IncludePatterns: domain.DefaultAnalysisIncludePatterns(),
 			ExcludePatterns: domain.DefaultAnalysisExcludePatterns(),
 			Recursive:       true,
 			FollowSymlinks:  false,
@@ -358,8 +358,8 @@ func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
 	}
 
 	// Analysis settings
-	if len(pyscn.AnalysisIncludePatterns) > 0 {
-		cfg.Analysis.IncludePatterns = pyscn.AnalysisIncludePatterns
+	if pyscn.HasExplicitAnalysisIncludePatterns() {
+		cfg.Analysis.IncludePatterns = append([]string(nil), pyscn.AnalysisIncludePatterns...)
 	}
 	if len(pyscn.AnalysisExcludePatterns) > 0 {
 		cfg.Analysis.ExcludePatterns = pyscn.AnalysisExcludePatterns

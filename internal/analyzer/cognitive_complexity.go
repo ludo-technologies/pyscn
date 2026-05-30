@@ -231,41 +231,8 @@ func traverseForCognitive(node *parser.Node, nestingLevel int, result *Cognitive
 
 // traverseChildrenForCognitive traverses all children of a node
 func traverseChildrenForCognitive(node *parser.Node, nestingLevel int, result *CognitiveComplexityResult) {
-	for _, child := range node.Body {
+	for _, child := range parser.OrderedChildren(node, nil) {
 		traverseForCognitive(child, nestingLevel, result)
-	}
-	for _, child := range node.Orelse {
-		traverseForCognitive(child, nestingLevel, result)
-	}
-	for _, child := range node.Handlers {
-		traverseForCognitive(child, nestingLevel, result)
-	}
-	for _, child := range node.Finalbody {
-		traverseForCognitive(child, nestingLevel, result)
-	}
-	for _, child := range node.Children {
-		traverseForCognitive(child, nestingLevel, result)
-	}
-	if node.Test != nil {
-		traverseForCognitive(node.Test, nestingLevel, result)
-	}
-	if node.Iter != nil {
-		traverseForCognitive(node.Iter, nestingLevel, result)
-	}
-	if node.Left != nil {
-		traverseForCognitive(node.Left, nestingLevel, result)
-	}
-	if node.Right != nil {
-		traverseForCognitive(node.Right, nestingLevel, result)
-	}
-	for _, arg := range node.Args {
-		traverseForCognitive(arg, nestingLevel, result)
-	}
-	for _, kw := range node.Keywords {
-		traverseForCognitive(kw, nestingLevel, result)
-	}
-	for _, target := range node.Targets {
-		traverseForCognitive(target, nestingLevel, result)
 	}
 }
 

@@ -514,7 +514,7 @@ func DefaultSystemAnalysisRequest() *SystemAnalysisRequest {
 		MaxResponsibilities:             DefaultArchitectureMaxResponsibilities,
 		CohesionViolationSeverity:       ViolationSeverityWarning,
 		ResponsibilityViolationSeverity: ViolationSeverityWarning,
-		IncludePatterns:                 []string{"**/*.py"},
+		IncludePatterns:                 DefaultPythonModuleIncludePatterns(),
 		ExcludePatterns:                 DefaultAnalysisExcludePatterns(),
 		ComplexityData:                  make(map[string]int),
 		ClonesData:                      make(map[string]float64),

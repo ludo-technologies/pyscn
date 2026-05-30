@@ -179,7 +179,7 @@ func DefaultMockDataRequest() *MockDataRequest {
 		MinSeverity:     MockDataSeverityWarning,
 		SortBy:          MockDataSortBySeverity,
 		Recursive:       true,
-		IncludePatterns: []string{"**/*.py"},
+		IncludePatterns: DefaultAnalysisIncludePatterns(),
 		ExcludePatterns: []string{},
 		IgnoreTests:     BoolPtr(true),
 		Keywords:        DefaultMockDataKeywords(),

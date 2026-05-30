@@ -159,8 +159,8 @@ func (g *DependencyGraph) AddModule(moduleName, filePath string) *ModuleNode {
 	// Determine package name
 	packageName := g.extractPackageName(moduleName)
 
-	// Check if this is a package (__init__.py)
-	isPackage := strings.HasSuffix(filePath, "__init__.py")
+	// Check if this is a package init module.
+	isPackage := isPythonPackageInit(filePath)
 
 	node := &ModuleNode{
 		Name:         moduleName,

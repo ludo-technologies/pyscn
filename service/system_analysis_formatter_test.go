@@ -39,6 +39,85 @@ func TestSystemAnalysisFormatterIncludesResponsibilityAnalysisHTML(t *testing.T)
 	assert.False(t, strings.Contains(output, "<nil>"))
 }
 
+func TestSystemAnalysisFormatterEscapesHTMLReportStrings(t *testing.T) {
+	formatter := NewSystemAnalysisFormatter()
+	response := &domain.SystemAnalysisResponse{
+		DependencyAnalysis: &domain.DependencyAnalysisResult{
+			TotalModules:      2,
+			TotalDependencies: 1,
+			DependencyMatrix: map[string]map[string]bool{
+				`mod<script>`: {`dep<bad>`: true},
+			},
+			CircularDependencies: &domain.CircularDependencyAnalysis{
+				HasCircularDependencies: true,
+				TotalCycles:             1,
+				CircularDependencies: []domain.CircularDependency{
+					{
+						Severity: domain.CycleSeverityHigh,
+						Size:     2,
+						Dependencies: []domain.DependencyPath{
+							{Path: []string{`cycle<script>`, `target<bad>`}, Length: 2},
+						},
+					},
+				},
+				CoreInfrastructure:       []string{`core<script>`},
+				CycleBreakingSuggestions: []string{`split <core>`},
+			},
+			LongestChains: []domain.DependencyPath{
+				{Path: []string{`start<script>`, `end<bad>`}, Length: 2},
+			},
+		},
+		ArchitectureAnalysis: &domain.ArchitectureAnalysisResult{
+			ComplianceScore: 0.5,
+			TotalRules:      1,
+			TotalViolations: 1,
+			LayerAnalysis: &domain.LayerAnalysis{
+				LayersAnalyzed: 1,
+				LayerCoupling: map[string]map[string]int{
+					`layer<script>`: {`dep<layer>`: 1},
+				},
+				LayerViolations: []domain.LayerViolation{
+					{
+						Severity:   domain.ViolationSeverityWarning,
+						Rule:       `no <deps>`,
+						FromModule: `from<script>`,
+						ToModule:   `to<script>`,
+					},
+				},
+				LayerCohesion: map[string]float64{`cohesion<script>`: 0.4},
+			},
+			ResponsibilityAnalysis: &domain.ResponsibilityAnalysis{
+				SRPViolations: []domain.SRPViolation{
+					{
+						Module:           `hub<script>`,
+						Responsibilities: []string{`api<script>`},
+						Severity:         domain.ViolationSeverityError,
+						Suggestion:       `split <hub>`,
+					},
+				},
+			},
+			CohesionAnalysis: &domain.CohesionAnalysis{
+				PackageCohesion:     map[string]float64{`pkg<script>`: 0.25},
+				LowCohesionPackages: []string{`pkg<script>`},
+			},
+			Recommendations: []domain.ArchitectureRecommendation{
+				{Description: `extract <thing>`},
+			},
+		},
+	}
+
+	output, err := formatter.Format(response, domain.OutputFormatHTML)
+	require.NoError(t, err)
+
+	assert.NotContains(t, output, `mod<script>`)
+	assert.NotContains(t, output, `dep<bad>`)
+	assert.NotContains(t, output, `split <core>`)
+	assert.Contains(t, output, `mod&lt;script&gt;`)
+	assert.Contains(t, output, `dep&lt;bad&gt;`)
+	assert.Contains(t, output, `split &lt;core&gt;`)
+	assert.Contains(t, output, `extract &lt;thing&gt;`)
+}
+
 func TestSystemAnalysisFormatterIncludesMainSequenceZones(t *testing.T) {
 	formatter := NewSystemAnalysisFormatter()
 	response := &domain.SystemAnalysisResponse{

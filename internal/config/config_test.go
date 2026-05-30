@@ -43,8 +43,9 @@ func TestDefaultConfig(t *testing.T) {
 	}
 
 	// Test analysis defaults
-	if len(config.Analysis.IncludePatterns) != 1 || config.Analysis.IncludePatterns[0] != "**/*.py" {
-		t.Errorf("Expected include patterns ['*.py'], got %v", config.Analysis.IncludePatterns)
+	if len(config.Analysis.IncludePatterns) != 1 ||
+		config.Analysis.IncludePatterns[0] != "**/*.py" {
+		t.Errorf("Expected include patterns ['**/*.py'], got %v", config.Analysis.IncludePatterns)
 	}
 	if len(config.Analysis.ExcludePatterns) != 3 {
 		t.Errorf("Expected 3 exclude patterns, got %d", len(config.Analysis.ExcludePatterns))

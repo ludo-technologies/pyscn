@@ -319,7 +319,14 @@ func (f *MockDataFormatterImpl) formatHTML(response *domain.MockDataResponse) (s
                     <td class="value-cell" title="%s">%s</td>
                     <td>%s</td>
                 </tr>
-`, file.FilePath, finding.Location.StartLine, finding.Type, severityClass, finding.Severity, finding.Value, value, finding.Rationale))
+`, EscapeHTML(file.FilePath),
+					finding.Location.StartLine,
+					EscapeHTML(string(finding.Type)),
+					severityClass,
+					EscapeHTML(string(finding.Severity)),
+					EscapeHTML(finding.Value),
+					EscapeHTML(value),
+					EscapeHTML(finding.Rationale)))
 			}
 		}
 		output.WriteString(`
@@ -330,7 +337,7 @@ func (f *MockDataFormatterImpl) formatHTML(response *domain.MockDataResponse) (s
 
 	output.WriteString(`
         <footer style="margin-top: 40px; color: #666; font-size: 12px;">
-            Generated at: ` + response.GeneratedAt + ` | Version: ` + response.Version + `
+            Generated at: ` + EscapeHTML(response.GeneratedAt) + ` | Version: ` + EscapeHTML(response.Version) + `
         </footer>
     </div>
 </body>

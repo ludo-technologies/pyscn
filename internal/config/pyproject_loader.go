@@ -65,6 +65,7 @@ func loadPyprojectConfigData(data []byte) (*PyscnConfig, error) {
 	if err := toml.Unmarshal(data, &pyproject); err != nil {
 		return nil, err
 	}
+	markTomlFieldPresence(data, &pyproject.Tool.Pyscn.Analysis, "tool", "pyscn", "analysis", "include_patterns")
 
 	// Merge with defaults using shared merge logic
 	config := DefaultPyscnConfig()
@@ -304,8 +305,9 @@ func mergeOutputSection(defaults *PyscnConfig, output *OutputTomlConfig) {
 
 // mergeAnalysisSection merges settings from the [analysis] section
 func mergeAnalysisSection(defaults *PyscnConfig, analysis *AnalysisTomlConfig) {
-	if len(analysis.IncludePatterns) > 0 {
-		defaults.AnalysisIncludePatterns = analysis.IncludePatterns
+	if analysis.hasIncludePatterns() {
+		defaults.AnalysisIncludePatterns = append([]string(nil), analysis.IncludePatterns...)
+		defaults.analysisIncludeExplicit = true
 	}
 	if len(analysis.ExcludePatterns) > 0 {
 		defaults.AnalysisExcludePatterns = analysis.ExcludePatterns

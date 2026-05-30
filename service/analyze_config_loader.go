@@ -18,10 +18,6 @@ func NewAnalyzeConfigurationLoader() *AnalyzeConfigurationLoaderImpl {
 	return &AnalyzeConfigurationLoaderImpl{}
 }
 
-// analyze includes stub files by default because they participate in the same
-// module surface as runtime Python files.
-var defaultAnalyzeIncludePatterns = []string{"**/*.py", "*.pyi"}
-
 // LoadAnalyzeExecutionConfig resolves the effective config path and loads the
 // AnalyzeUseCase-specific settings it needs.
 func (l *AnalyzeConfigurationLoaderImpl) LoadAnalyzeExecutionConfig(configPath string, targetPath string) (domain.AnalyzeExecutionConfig, error) {
@@ -65,7 +61,7 @@ func defaultAnalyzeExecutionConfig() domain.AnalyzeExecutionConfig {
 
 	return domain.AnalyzeExecutionConfig{
 		ConfigPath:                "",
-		IncludePatterns:           append([]string(nil), defaultAnalyzeIncludePatterns...),
+		IncludePatterns:           domain.DefaultAnalysisIncludePatterns(),
 		ExcludePatterns:           append([]string(nil), defaultCfg.Analysis.ExcludePatterns...),
 		Recursive:                 defaultCfg.Analysis.Recursive,
 		ComplexityEnabled:         defaultCfg.Complexity.Enabled,

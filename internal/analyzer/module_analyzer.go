@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/bmatcuk/doublestar/v4"
@@ -21,7 +22,6 @@ type ModuleAnalyzer struct {
 
 	// Module resolution cache
 	resolvedModules map[string]string // module name -> file path
-	packageCache    map[string]bool   // package name -> is valid package
 
 	// Re-export resolution
 	reExportResolver *ReExportResolver // Resolves re-exports in __init__.py files
@@ -32,32 +32,36 @@ type ModuleAnalyzer struct {
 	followRelative    bool
 }
 
+var pythonModuleExtensions = [...]string{".py", ".pyi"}
+var pythonPackageInitFiles = [...]string{"__init__.py", "__init__.pyi"}
+
 // ModuleAnalysisOptions configures module analysis behavior
 type ModuleAnalysisOptions struct {
 	ProjectRoot       string   // Project root directory
 	PythonPath        []string // Additional Python path entries
-	ExcludePatterns   []string // Module patterns to exclude
-	IncludePatterns   []string // Module patterns to include (default: ["**/*.py"])
-	IncludeStdLib     bool     // Include standard library dependencies
-	IncludeThirdParty bool     // Include third-party dependencies
-	FollowRelative    bool     // Follow relative imports
+	ExcludePatterns   []string // Module patterns to exclude; nil uses defaults, empty disables excludes
+	IncludePatterns   []string // Module patterns to include; nil uses defaults, empty includes all files
+	IncludeStdLib     *bool    // Include standard library dependencies
+	IncludeThirdParty *bool    // Include third-party dependencies
+	FollowRelative    *bool    // Follow relative imports
 }
 
 // DefaultModuleAnalysisOptions returns default analysis options
 func DefaultModuleAnalysisOptions() *ModuleAnalysisOptions {
 	return &ModuleAnalysisOptions{
-		IncludePatterns:   []string{"**/*.py"},
+		IncludePatterns:   domain.DefaultPythonModuleIncludePatterns(),
 		ExcludePatterns:   domain.DefaultAnalysisExcludePatterns(),
-		IncludeStdLib:     false,
-		IncludeThirdParty: true,
-		FollowRelative:    true,
+		IncludeStdLib:     domain.BoolPtr(false),
+		IncludeThirdParty: domain.BoolPtr(true),
+		FollowRelative:    domain.BoolPtr(true),
 	}
 }
 
 // NewModuleAnalyzer creates a new module analyzer
 func NewModuleAnalyzer(options *ModuleAnalysisOptions) (*ModuleAnalyzer, error) {
+	defaults := DefaultModuleAnalysisOptions()
 	if options == nil {
-		options = DefaultModuleAnalysisOptions()
+		options = defaults
 	}
 
 	// Determine project root
@@ -80,16 +84,23 @@ func NewModuleAnalyzer(options *ModuleAnalysisOptions) (*ModuleAnalyzer, error) 
 		projectRoot:       absRoot,
 		pythonPath:        append([]string{absRoot}, options.PythonPath...),
 		resolvedModules:   make(map[string]string),
-		packageCache:      make(map[string]bool),
 		reExportResolver:  NewReExportResolver(absRoot),
-		includeStdLib:     options.IncludeStdLib,
-		includeThirdParty: options.IncludeThirdParty,
-		followRelative:    options.FollowRelative,
+		includeStdLib:     domain.BoolValue(options.IncludeStdLib, domain.BoolValue(defaults.IncludeStdLib, false)),
+		includeThirdParty: domain.BoolValue(options.IncludeThirdParty, domain.BoolValue(defaults.IncludeThirdParty, true)),
+		followRelative:    domain.BoolValue(options.FollowRelative, domain.BoolValue(defaults.FollowRelative, true)),
 	}
 
-	analyzer.excludePatterns = append(analyzer.excludePatterns, options.ExcludePatterns...)
+	if options.ExcludePatterns != nil {
+		analyzer.excludePatterns = append(analyzer.excludePatterns, options.ExcludePatterns...)
+	} else {
+		analyzer.excludePatterns = append(analyzer.excludePatterns, defaults.ExcludePatterns...)
+	}
 
-	analyzer.includePatterns = append(analyzer.includePatterns, options.IncludePatterns...)
+	if options.IncludePatterns != nil {
+		analyzer.includePatterns = append(analyzer.includePatterns, options.IncludePatterns...)
+	} else {
+		analyzer.includePatterns = append(analyzer.includePatterns, defaults.IncludePatterns...)
+	}
 
 	return analyzer, nil
 }
@@ -101,6 +112,7 @@ func (ma *ModuleAnalyzer) AnalyzeProject() (*DependencyGraph, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to collect Python files: %w", err)
 	}
+	files = ma.canonicalModuleFiles(files)
 
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no Python files found in project")
@@ -146,6 +158,7 @@ func (ma *ModuleAnalyzer) AnalyzeFiles(filePaths []string) (*DependencyGraph, er
 	if len(validFiles) == 0 {
 		return nil, fmt.Errorf("no valid Python files provided")
 	}
+	validFiles = ma.canonicalModuleFiles(validFiles)
 
 	// Add modules to graph
 	for _, filePath := range validFiles {
@@ -206,49 +219,84 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 		}
 
 		targetModule := ma.resolveImport(imp, filePath)
-		if targetModule != "" && ma.shouldIncludeDependency(targetModule) {
-			// Skip dependencies from __init__.py to its own submodules
-			// This is a common Python pattern for re-exporting (internal structure)
-			if strings.HasSuffix(filePath, "__init__.py") {
-				// Check if target is a submodule of the current package
-				if strings.HasPrefix(targetModule, moduleName+".") {
-					continue // Skip this dependency
-				}
-			}
+		if targetModule == "" {
+			continue
+		}
 
-			// Determine edge type
-			edgeType := DependencyEdgeImport
-			if imp.IsRelative {
-				edgeType = DependencyEdgeRelative
-			} else if len(imp.ImportedNames) > 0 {
-				edgeType = DependencyEdgeFromImport
+		edgeType := ma.dependencyEdgeType(imp)
+		for _, resolvedModule := range ma.importDependencyTargets(graph, imp, targetModule) {
+			if ma.shouldSkipPackageInitDependency(filePath, moduleName, resolvedModule) {
+				continue
 			}
-
-			// For "from package import name" style imports, resolve through re-exports
-			// to find the actual source module. Each imported name may come from a
-			// different source module, so we need to add edges for each.
-			if len(imp.ImportedNames) > 0 && !imp.IsRelative {
-				resolvedModules := make(map[string]bool)
-				for _, importedName := range imp.ImportedNames {
-					if resolvedModule, found := ma.reExportResolver.ResolveReExport(targetModule, importedName); found {
-						resolvedModules[resolvedModule] = true
-					} else {
-						// Not a re-export, use the original target
-						resolvedModules[targetModule] = true
-					}
-				}
-				// Add dependency for each unique resolved module
-				for resolvedModule := range resolvedModules {
-					graph.AddDependency(moduleName, resolvedModule, edgeType, imp)
-				}
-			} else {
-				// Add dependency to graph
-				graph.AddDependency(moduleName, targetModule, edgeType, imp)
+			if ma.shouldIncludeDependency(resolvedModule) {
+				graph.AddDependency(moduleName, resolvedModule, edgeType, imp)
 			}
 		}
 	}
 
 	return nil
+}
+
+func (ma *ModuleAnalyzer) dependencyEdgeType(imp *ImportInfo) DependencyEdgeType {
+	if imp.IsRelative {
+		return DependencyEdgeRelative
+	}
+	if len(imp.ImportedNames) > 0 {
+		return DependencyEdgeFromImport
+	}
+	return DependencyEdgeImport
+}
+
+func (ma *ModuleAnalyzer) importDependencyTargets(graph *DependencyGraph, imp *ImportInfo, targetModule string) []string {
+	if len(imp.ImportedNames) == 0 {
+		return []string{targetModule}
+	}
+
+	targets := make(map[string]bool, len(imp.ImportedNames))
+	for _, importedName := range imp.ImportedNames {
+		if importedName == "*" {
+			targets[targetModule] = true
+			continue
+		}
+
+		if !imp.IsRelative {
+			if resolvedModule, found := ma.reExportResolver.ResolveReExport(targetModule, importedName); found {
+				targets[resolvedModule] = true
+				continue
+			}
+		}
+
+		if concreteModule := importedNameModule(targetModule, importedName); graph.GetModule(concreteModule) != nil {
+			targets[concreteModule] = true
+			continue
+		}
+
+		targets[targetModule] = true
+	}
+
+	return sortedModuleNames(targets)
+}
+
+func importedNameModule(moduleName, importedName string) string {
+	if moduleName == "" || importedName == "" {
+		return ""
+	}
+	return moduleName + "." + importedName
+}
+
+func sortedModuleNames(moduleSet map[string]bool) []string {
+	modules := make([]string, 0, len(moduleSet))
+	for moduleName := range moduleSet {
+		if moduleName != "" {
+			modules = append(modules, moduleName)
+		}
+	}
+	sort.Strings(modules)
+	return modules
+}
+
+func (ma *ModuleAnalyzer) shouldSkipPackageInitDependency(filePath, moduleName, targetModule string) bool {
+	return isPythonPackageInit(filePath) && strings.HasPrefix(targetModule, moduleName+".")
 }
 
 // collectModuleImports collects all import statements from AST
@@ -296,7 +344,7 @@ func (ma *ModuleAnalyzer) collectModuleImports(ast *parser.Node, filePath string
 			// Handle "from module import name" statements
 			isTypeChecking := ma.isInTypeCheckingBlock(node)
 			module := node.Module
-			level := ma.calculateRelativeLevel(node.Module)
+			level := node.Level
 
 			// Get imported names - use map to deduplicate since names may appear
 			// in both node.Names and child Alias nodes depending on parser version
@@ -358,7 +406,7 @@ func (ma *ModuleAnalyzer) resolveRelativeImport(imp *ImportInfo, fromFile string
 
 	// Navigate up the directory tree based on the level
 	targetDir := currentDir
-	for i := 0; i < imp.Level; i++ {
+	for i := 1; i < imp.Level; i++ {
 		targetDir = filepath.Dir(targetDir)
 	}
 
@@ -378,8 +426,10 @@ func (ma *ModuleAnalyzer) resolveAbsoluteImport(imp *ImportInfo) string {
 		return ""
 	}
 
+	cacheKey := pythonPathImportCacheKey(moduleName)
+
 	// Check cache first
-	if resolved, exists := ma.resolvedModules[moduleName]; exists {
+	if resolved, exists := ma.resolvedModules[cacheKey]; exists {
 		return resolved
 	}
 
@@ -387,15 +437,13 @@ func (ma *ModuleAnalyzer) resolveAbsoluteImport(imp *ImportInfo) string {
 	for _, pathEntry := range ma.pythonPath {
 		modulePath := filepath.Join(pathEntry, strings.ReplaceAll(moduleName, ".", string(filepath.Separator)))
 
-		// Check for package (__init__.py)
-		if initFile := filepath.Join(modulePath, "__init__.py"); ma.fileExists(initFile) {
-			ma.resolvedModules[moduleName] = moduleName
+		if initFile := ma.resolvePackageInit(modulePath); initFile != "" {
+			ma.resolvedModules[cacheKey] = moduleName
 			return moduleName
 		}
 
-		// Check for module file
-		if moduleFile := modulePath + ".py"; ma.fileExists(moduleFile) {
-			ma.resolvedModules[moduleName] = moduleName
+		if moduleFile := ma.resolveModuleFile(modulePath); moduleFile != "" {
+			ma.resolvedModules[cacheKey] = moduleName
 			return moduleName
 		}
 	}
@@ -403,14 +451,14 @@ func (ma *ModuleAnalyzer) resolveAbsoluteImport(imp *ImportInfo) string {
 	// Check if it's a standard library or third-party module
 	if ma.isStandardLibrary(moduleName) {
 		if ma.includeStdLib {
-			ma.resolvedModules[moduleName] = moduleName
+			ma.resolvedModules[cacheKey] = moduleName
 			return moduleName
 		}
 		return ""
 	}
 
 	if ma.includeThirdParty {
-		ma.resolvedModules[moduleName] = moduleName
+		ma.resolvedModules[cacheKey] = moduleName
 		return moduleName
 	}
 
@@ -424,8 +472,10 @@ func (ma *ModuleAnalyzer) resolveAbsoluteImportWithProject(imp *ImportInfo, from
 		return ""
 	}
 
+	cacheKey := projectImportCacheKey(moduleName, fromFile)
+
 	// Check cache first
-	if resolved, exists := ma.resolvedModules[moduleName]; exists {
+	if resolved, exists := ma.resolvedModules[cacheKey]; exists {
 		return resolved
 	}
 
@@ -444,24 +494,22 @@ func (ma *ModuleAnalyzer) resolveAbsoluteImportWithProject(imp *ImportInfo, from
 		// Try to build module path from the import name
 		modulePath := filepath.Join(searchPath, strings.ReplaceAll(moduleName, ".", string(filepath.Separator)))
 
-		// Check if it's a Python file
-		if moduleFile := modulePath + ".py"; ma.fileExists(moduleFile) {
+		if moduleFile := ma.resolveModuleFile(modulePath); moduleFile != "" {
 			// Calculate the module name based on project structure
 			resolvedName := ma.filePathToModuleName(moduleFile)
 			if ma.importMatchesResolvedModule(moduleName, resolvedName) {
-				ma.resolvedModules[moduleName] = resolvedName
+				ma.resolvedModules[cacheKey] = resolvedName
 				return resolvedName
 			}
 		}
 
-		// Check if it's a package (directory with __init__.py)
-		if initFile := filepath.Join(modulePath, "__init__.py"); ma.fileExists(initFile) {
+		if initFile := ma.resolvePackageInit(modulePath); initFile != "" {
 			resolvedName := ma.filePathToModuleName(initFile)
 			if resolvedName != "" {
-				// For __init__.py files, use the package name (without __init__)
+				// For __init__ files, use the package name.
 				resolvedName = strings.TrimSuffix(resolvedName, ".__init__")
 				if ma.importMatchesResolvedModule(moduleName, resolvedName) {
-					ma.resolvedModules[moduleName] = resolvedName
+					ma.resolvedModules[cacheKey] = resolvedName
 					return resolvedName
 				}
 			}
@@ -487,6 +535,18 @@ func (ma *ModuleAnalyzer) importMatchesResolvedModule(importName, resolvedName s
 		return !ma.isStandardLibrary(importName) && strings.HasSuffix(resolvedName, "."+importName)
 	}
 	return strings.HasSuffix(resolvedName, "."+importName)
+}
+
+func projectImportCacheKey(moduleName, fromFile string) string {
+	dir := filepath.Dir(fromFile)
+	if absDir, err := filepath.Abs(dir); err == nil {
+		dir = absDir
+	}
+	return "project\x00" + dir + "\x00" + moduleName
+}
+
+func pythonPathImportCacheKey(moduleName string) string {
+	return "pythonpath\x00" + moduleName
 }
 
 // moduleNameFromImport normalizes the module name from an import statement
@@ -528,8 +588,8 @@ func (ma *ModuleAnalyzer) collectPythonFiles() ([]string, error) {
 			return nil
 		}
 
-		// Check if file matches include patterns
-		if ma.matchesIncludePatterns(path) && !ma.matchesExcludePatterns(path) {
+		// Check if file is a Python module and matches include patterns
+		if ma.isValidPythonFile(path) && ma.matchesIncludePatterns(path) && !ma.matchesExcludePatterns(path) {
 			files = append(files, path)
 		}
 
@@ -537,6 +597,32 @@ func (ma *ModuleAnalyzer) collectPythonFiles() ([]string, error) {
 	})
 
 	return files, err
+}
+
+func (ma *ModuleAnalyzer) canonicalModuleFiles(filePaths []string) []string {
+	selected := make(map[string]string, len(filePaths))
+	for _, filePath := range filePaths {
+		moduleName := ma.filePathToModuleName(filePath)
+		if moduleName == "" {
+			continue
+		}
+		current, exists := selected[moduleName]
+		if !exists || preferPythonModuleFile(filePath, current) {
+			selected[moduleName] = filePath
+		}
+	}
+
+	moduleNames := make([]string, 0, len(selected))
+	for moduleName := range selected {
+		moduleNames = append(moduleNames, moduleName)
+	}
+	sort.Strings(moduleNames)
+
+	files := make([]string, 0, len(moduleNames))
+	for _, moduleName := range moduleNames {
+		files = append(files, selected[moduleName])
+	}
+	return files
 }
 
 // filePathToModuleName converts a file path to a Python module name
@@ -547,8 +633,7 @@ func (ma *ModuleAnalyzer) filePathToModuleName(filePath string) string {
 		return ""
 	}
 
-	// Remove .py extension
-	relPath = strings.TrimSuffix(relPath, ".py")
+	relPath = stripPythonModuleExtension(relPath)
 
 	// Handle __init__.py files
 	if strings.HasSuffix(relPath, "__init__") {
@@ -727,19 +812,6 @@ func (ma *ModuleAnalyzer) walkNode(node *parser.Node, visitor func(*parser.Node)
 	}
 }
 
-// calculateRelativeLevel calculates the level of relative import (number of dots)
-func (ma *ModuleAnalyzer) calculateRelativeLevel(module string) int {
-	level := 0
-	for _, char := range module {
-		if char == '.' {
-			level++
-		} else {
-			break
-		}
-	}
-	return level
-}
-
 // buildImportStatement builds the original import statement string
 func (ma *ModuleAnalyzer) buildImportStatement(node *parser.Node) string {
 	if node.Type == parser.NodeImportFrom {
@@ -756,7 +828,7 @@ func (ma *ModuleAnalyzer) buildImportStatement(node *parser.Node) string {
 
 // isValidPythonFile checks if a file is a valid Python file
 func (ma *ModuleAnalyzer) isValidPythonFile(filePath string) bool {
-	return strings.HasSuffix(filePath, ".py") || strings.HasSuffix(filePath, ".pyi")
+	return hasPythonModuleExtension(filePath)
 }
 
 // fileExists checks if a file exists
@@ -765,13 +837,81 @@ func (ma *ModuleAnalyzer) fileExists(filePath string) bool {
 	return !os.IsNotExist(err)
 }
 
+func (ma *ModuleAnalyzer) resolveModuleFile(modulePath string) string {
+	for _, ext := range pythonModuleExtensions {
+		filePath := modulePath + ext
+		if ma.fileExists(filePath) {
+			return filePath
+		}
+	}
+	return ""
+}
+
+func (ma *ModuleAnalyzer) resolvePackageInit(packagePath string) string {
+	for _, name := range pythonPackageInitFiles {
+		filePath := filepath.Join(packagePath, name)
+		if ma.fileExists(filePath) {
+			return filePath
+		}
+	}
+	return ""
+}
+
+func hasPythonModuleExtension(filePath string) bool {
+	for _, ext := range pythonModuleExtensions {
+		if strings.HasSuffix(filePath, ext) {
+			return true
+		}
+	}
+	return false
+}
+
+func stripPythonModuleExtension(filePath string) string {
+	for _, ext := range pythonModuleExtensions {
+		if strings.HasSuffix(filePath, ext) {
+			return strings.TrimSuffix(filePath, ext)
+		}
+	}
+	return filePath
+}
+
+func preferPythonModuleFile(candidate, current string) bool {
+	candidatePriority := pythonModuleFilePriority(candidate)
+	currentPriority := pythonModuleFilePriority(current)
+	if candidatePriority != currentPriority {
+		return candidatePriority < currentPriority
+	}
+	return candidate < current
+}
+
+func pythonModuleFilePriority(filePath string) int {
+	switch {
+	case strings.HasSuffix(filePath, ".py"):
+		return 0
+	case strings.HasSuffix(filePath, ".pyi"):
+		return 1
+	default:
+		return 2
+	}
+}
+
+func isPythonPackageInit(filePath string) bool {
+	base := filepath.Base(filePath)
+	for _, name := range pythonPackageInitFiles {
+		if base == name {
+			return true
+		}
+	}
+	return false
+}
+
 // matchesIncludePatterns checks if path matches any include pattern
 func (ma *ModuleAnalyzer) matchesIncludePatterns(path string) bool {
 	if len(ma.includePatterns) == 0 {
 		return true
 	}
 	for _, pattern := range ma.includePatterns {
-		if matched, _ := doublestar.Match(pattern, filepath.Base(path)); matched {
+		if matchPathPattern(pattern, ma.projectRoot, path) {
 			return true
 		}
 	}
@@ -781,14 +921,31 @@ func (ma *ModuleAnalyzer) matchesIncludePatterns(path string) bool {
 // matchesExcludePatterns checks if path matches any exclude pattern
 func (ma *ModuleAnalyzer) matchesExcludePatterns(path string) bool {
 	for _, pattern := range ma.excludePatterns {
-		if matched, _ := doublestar.Match(pattern, path); matched {
-			return true
-		}
-		if matched, _ := doublestar.Match(pattern, filepath.Base(path)); matched {
+		if matchPathPattern(pattern, ma.projectRoot, path) {
 			return true
 		}
 	}
 	return false
+}
+
+func matchPathPattern(pattern, root, path string) bool {
+	for _, candidate := range pathPatternCandidates(root, path) {
+		if matched, _ := doublestar.Match(pattern, candidate); matched {
+			return true
+		}
+	}
+	return false
+}
+
+func pathPatternCandidates(root, path string) []string {
+	candidates := []string{
+		filepath.ToSlash(path),
+		filepath.Base(path),
+	}
+	if rel, err := filepath.Rel(root, path); err == nil {
+		candidates = append(candidates, filepath.ToSlash(rel))
+	}
+	return candidates
 }
 
 // isStandardLibrary checks if a module is part of the Python standard library

@@ -65,6 +65,12 @@ type AnalysisTomlConfig struct {
 	ExcludePatterns []string `toml:"exclude_patterns"`
 	Recursive       *bool    `toml:"recursive"`
 	FollowSymlinks  *bool    `toml:"follow_symlinks"`
+
+	includePatternsSet bool
+}
+
+func (c *AnalysisTomlConfig) hasIncludePatterns() bool {
+	return c != nil && c.includePatternsSet
 }
 
 // CboTomlConfig represents the [cbo] section
@@ -301,6 +307,7 @@ func (l *TomlConfigLoader) loadFromFile(filePath string) (*PyscnConfig, error) {
 	if err := toml.Unmarshal(data, &parsed); err != nil {
 		return nil, err
 	}
+	markTomlFieldPresence(data, &parsed.Analysis, "analysis", "include_patterns")
 
 	defaults := DefaultPyscnConfig()
 	l.mergePyscnTomlConfigs(defaults, &parsed)
@@ -334,6 +341,7 @@ func (l *TomlConfigLoader) loadFromPyscnToml(startDir string) (*PyscnConfig, err
 	if err := toml.Unmarshal(data, &config); err != nil {
 		return nil, err
 	}
+	markTomlFieldPresence(data, &config.Analysis, "analysis", "include_patterns")
 
 	// Merge with defaults
 	defaults := DefaultPyscnConfig()
@@ -503,6 +511,32 @@ func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *PyscnConfig, pyscnTom
 
 	// Merge from [di] section
 	mergeDISection(defaults, &pyscnToml.DI)
+}
+
+func markTomlFieldPresence(data []byte, analysis *AnalysisTomlConfig, path ...string) {
+	if analysis != nil && tomlPathExists(data, path...) {
+		analysis.includePatternsSet = true
+	}
+}
+
+func tomlPathExists(data []byte, path ...string) bool {
+	var raw map[string]interface{}
+	if err := toml.Unmarshal(data, &raw); err != nil {
+		return false
+	}
+
+	var current interface{} = raw
+	for _, key := range path {
+		values, ok := current.(map[string]interface{})
+		if !ok {
+			return false
+		}
+		current, ok = values[key]
+		if !ok {
+			return false
+		}
+	}
+	return true
 }
 
 // mergeClonesSection is moved to pyproject_loader.go and is now shared

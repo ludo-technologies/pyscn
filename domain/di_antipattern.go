@@ -186,7 +186,7 @@ func DefaultDIAntipatternRequest() *DIAntipatternRequest {
 	return &DIAntipatternRequest{
 		OutputFormat:              OutputFormatJSON,
 		Recursive:                 BoolPtr(true),
-		IncludePatterns:           []string{"**/*.py"},
+		IncludePatterns:           DefaultAnalysisIncludePatterns(),
 		ExcludePatterns:           []string{},
 		ConstructorParamThreshold: DefaultDIConstructorParamThreshold,
 		MinSeverity:               DIAntipatternSeverityWarning,

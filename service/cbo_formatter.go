@@ -308,14 +308,14 @@ func (f *CBOFormatterImpl) formatHTML(response *domain.CBOResponse) (string, err
 	// Risk distribution
 	content.WriteString(GenerateSectionHeader("🚦 Risk Distribution"))
 	content.WriteString(`<div class="metric-grid">`)
-	content.WriteString(GenerateMetricCard(
-		GenerateStatusBadge(strconv.Itoa(response.Summary.LowRiskClasses), "success"),
+	content.WriteString(generateMetricCardHTML(
+		trustedHTML(GenerateStatusBadge(strconv.Itoa(response.Summary.LowRiskClasses), "success")),
 		"Low Risk Classes"))
-	content.WriteString(GenerateMetricCard(
-		GenerateStatusBadge(strconv.Itoa(response.Summary.MediumRiskClasses), "warning"),
+	content.WriteString(generateMetricCardHTML(
+		trustedHTML(GenerateStatusBadge(strconv.Itoa(response.Summary.MediumRiskClasses), "warning")),
 		"Medium Risk Classes"))
-	content.WriteString(GenerateMetricCard(
-		GenerateStatusBadge(strconv.Itoa(response.Summary.HighRiskClasses), "danger"),
+	content.WriteString(generateMetricCardHTML(
+		trustedHTML(GenerateStatusBadge(strconv.Itoa(response.Summary.HighRiskClasses), "danger")),
 		"High Risk Classes"))
 	content.WriteString(`</div>`)
 
@@ -347,22 +347,23 @@ func (f *CBOFormatterImpl) formatHTML(response *domain.CBOResponse) (string, err
 				riskSeverity = "danger"
 			}
 
+			dependencies := "No dependencies"
+			if len(class.Metrics.DependentClasses) > 0 {
+				dependencies = JoinEscapedHTML(class.Metrics.DependentClasses, ", ")
+			}
+
 			content.WriteString(fmt.Sprintf(`                <tr>
                     <td><strong>%s</strong></td>
                     <td>%s</td>
                     <td>%s</td>
                     <td>%s:%d</td>
                     <td>
-`, class.Name,
+`, EscapeHTML(class.Name),
 				GenerateStatusBadge(strconv.Itoa(class.Metrics.CouplingCount), riskSeverity),
 				GenerateStatusBadge(string(class.RiskLevel), riskSeverity),
-				class.FilePath, class.StartLine))
+				EscapeHTML(class.FilePath), class.StartLine))
 
-			if len(class.Metrics.DependentClasses) > 0 {
-				content.WriteString(strings.Join(class.Metrics.DependentClasses, ", "))
-			} else {
-				content.WriteString("No dependencies")
-			}
+			content.WriteString(dependencies)
 
 			// Add dependency breakdown
 			if class.Metrics.CouplingCount > 0 {
