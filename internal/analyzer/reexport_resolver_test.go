@@ -88,6 +88,34 @@ from .module_y import ClassC
 	}
 }
 
+func TestReExportResolverRelativePackageImport(t *testing.T) {
+	dir := t.TempDir()
+
+	pkgDir := filepath.Join(dir, "pkg_a")
+	if err := os.MkdirAll(pkgDir, 0o755); err != nil {
+		t.Fatalf("failed to create pkg_a directory: %v", err)
+	}
+
+	initContent := `from . import module_x
+`
+	if err := os.WriteFile(filepath.Join(pkgDir, "__init__.py"), []byte(initContent), 0o644); err != nil {
+		t.Fatalf("failed to write __init__.py: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(pkgDir, "module_x.py"), []byte("class SomeClass: pass\n"), 0o644); err != nil {
+		t.Fatalf("failed to write module_x.py: %v", err)
+	}
+
+	resolver := NewReExportResolver(dir)
+
+	sourceModule, found := resolver.ResolveReExport("pkg_a", "module_x")
+	if !found {
+		t.Fatal("expected to find module_x in pkg_a re-exports")
+	}
+	if sourceModule != "pkg_a.module_x" {
+		t.Fatalf("expected source module 'pkg_a.module_x', got '%s'", sourceModule)
+	}
+}
+
 func TestReExportResolverWithAll(t *testing.T) {
 	dir := t.TempDir()
 

@@ -86,14 +86,16 @@ func (r *ReExportResolver) ResolveReExport(packageName, importedName string) (st
 	return entry.SourceModule, true
 }
 
-// findInitFile finds the __init__.py file for a package
+// findInitFile finds the package init file for a package.
 func (r *ReExportResolver) findInitFile(packageName string) string {
 	// Convert package name to path
 	packagePath := filepath.Join(r.projectRoot, strings.ReplaceAll(packageName, ".", string(filepath.Separator)))
 
-	initPath := filepath.Join(packagePath, "__init__.py")
-	if _, err := os.Stat(initPath); err == nil {
-		return initPath
+	for _, name := range pythonPackageInitFiles {
+		initPath := filepath.Join(packagePath, name)
+		if _, err := os.Stat(initPath); err == nil {
+			return initPath
+		}
 	}
 
 	return ""
@@ -159,20 +161,19 @@ func (r *ReExportResolver) extractReExports(ast *parser.Node, packageName string
 func (r *ReExportResolver) processImportFrom(node *parser.Node, packageName string, exports map[string]*ReExportEntry) {
 	// Get the module being imported from
 	module := node.Module
-	if module == "" {
-		return
-	}
 
 	// Determine the source module
 	var sourceModule string
+	sourceByName := false
 	if node.Level > 0 {
 		// Relative import: from .module import name
 		// Level 1 means from current package, level 2 means from parent, etc.
 		if node.Level == 1 && module != "" {
 			sourceModule = packageName + "." + module
 		} else if node.Level == 1 && module == "" {
-			// from . import something - importing from same package
+			// from . import module_x - each imported name is a submodule.
 			sourceModule = packageName
+			sourceByName = true
 		} else {
 			// Handle deeper relative imports (Level 2+)
 			// Example: from ..sibling import Thing in pkg_a.sub
@@ -186,6 +187,7 @@ func (r *ReExportResolver) processImportFrom(node *parser.Node, packageName stri
 					sourceModule = parentPkg + "." + module
 				} else {
 					sourceModule = parentPkg
+					sourceByName = true
 				}
 			}
 			// If Level > len(parts), the relative import goes beyond the project root
@@ -201,7 +203,7 @@ func (r *ReExportResolver) processImportFrom(node *parser.Node, packageName stri
 		}
 	}
 
-	if sourceModule == "" || sourceModule == packageName {
+	if sourceModule == "" {
 		return
 	}
 
@@ -230,9 +232,17 @@ func (r *ReExportResolver) processImportFrom(node *parser.Node, packageName stri
 			}
 		}
 
+		actualSourceModule := sourceModule
+		if sourceByName {
+			actualSourceModule = sourceModule + "." + sourceName
+		}
+		if actualSourceModule == "" || actualSourceModule == packageName {
+			continue
+		}
+
 		exports[exportedName] = &ReExportEntry{
 			Name:         exportedName,
-			SourceModule: sourceModule,
+			SourceModule: actualSourceModule,
 			SourceName:   sourceName,
 		}
 	}

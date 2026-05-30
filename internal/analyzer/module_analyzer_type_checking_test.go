@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -67,9 +68,9 @@ if TYPE_CHECKING and sys.version_info >= (3, 9):
 		ProjectRoot:       tmpDir,
 		IncludePatterns:   []string{"**/*.py"},
 		ExcludePatterns:   []string{},
-		IncludeStdLib:     false,
-		IncludeThirdParty: true,
-		FollowRelative:    true,
+		IncludeStdLib:     domain.BoolPtr(false),
+		IncludeThirdParty: domain.BoolPtr(true),
+		FollowRelative:    domain.BoolPtr(true),
 	}
 
 	analyzer, err := NewModuleAnalyzer(options)
@@ -191,9 +192,9 @@ class ClassB:
 		ProjectRoot:       tmpDir,
 		IncludePatterns:   []string{"**/*.py"},
 		ExcludePatterns:   []string{},
-		IncludeStdLib:     false,
-		IncludeThirdParty: true,
-		FollowRelative:    true,
+		IncludeStdLib:     domain.BoolPtr(false),
+		IncludeThirdParty: domain.BoolPtr(true),
+		FollowRelative:    domain.BoolPtr(true),
 	}
 
 	analyzer, err := NewModuleAnalyzer(options)
