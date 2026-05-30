@@ -548,9 +548,9 @@ func (s *SystemAnalysisServiceImpl) buildDependencyGraph(ctx context.Context, re
 	projectRoot := s.findProjectRoot(req.Paths)
 	options := &analyzer.ModuleAnalysisOptions{
 		ProjectRoot:       projectRoot,
-		IncludeStdLib:     domain.BoolValue(req.IncludeStdLib, false),
-		IncludeThirdParty: domain.BoolValue(req.IncludeThirdParty, true),
-		FollowRelative:    domain.BoolValue(req.FollowRelative, true),
+		IncludeStdLib:     req.IncludeStdLib,
+		IncludeThirdParty: req.IncludeThirdParty,
+		FollowRelative:    req.FollowRelative,
 		IncludePatterns:   req.IncludePatterns,
 		ExcludePatterns:   req.ExcludePatterns,
 	}

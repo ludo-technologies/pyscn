@@ -148,7 +148,7 @@ func (cl *CBOConfigurationLoaderImpl) configToRequest(pyscnCfg *config.PyscnConf
 			SortBy:          domain.SortByComplexity,
 			OutputFormat:    domain.OutputFormatText,
 			Recursive:       domain.BoolPtr(true),
-			IncludePatterns: []string{"**/*.py"},
+			IncludePatterns: domain.DefaultAnalysisIncludePatterns(),
 			ExcludePatterns: []string{},
 		}
 	}

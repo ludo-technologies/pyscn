@@ -20,8 +20,8 @@ func TestAnalyzeConfigurationLoader_LoadAnalyzeExecutionConfig(t *testing.T) {
 		if cfg.ConfigPath != "" {
 			t.Errorf("expected empty config path, got %q", cfg.ConfigPath)
 		}
-		if len(cfg.IncludePatterns) != 2 || cfg.IncludePatterns[1] != "*.pyi" {
-			t.Errorf("expected default include patterns to include .pyi files, got %v", cfg.IncludePatterns)
+		if len(cfg.IncludePatterns) != 1 || cfg.IncludePatterns[0] != "**/*.py" {
+			t.Errorf("expected default include patterns to include runtime Python files, got %v", cfg.IncludePatterns)
 		}
 		if !cfg.ComplexityEnabled {
 			t.Error("expected complexity enabled by default")

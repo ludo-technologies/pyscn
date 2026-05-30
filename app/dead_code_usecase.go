@@ -479,7 +479,7 @@ func (uc *DeadCodeUseCase) QuickAnalysis(ctx context.Context, filePaths []string
 		ShowContext:     domain.BoolPtr(false),
 		ContextLines:    0,
 		Recursive:       false,
-		IncludePatterns: []string{"**/*.py"},
+		IncludePatterns: domain.DefaultAnalysisIncludePatterns(),
 		ExcludePatterns: []string{},
 		IgnorePatterns:  []string{},
 

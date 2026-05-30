@@ -97,7 +97,7 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) pyscnConfigToSystemAnalysisRequ
 	}
 
 	// Analysis settings (include/exclude patterns)
-	if len(cfg.AnalysisIncludePatterns) > 0 {
+	if cfg.HasExplicitAnalysisIncludePatterns() {
 		request.IncludePatterns = cfg.AnalysisIncludePatterns
 	}
 	if len(cfg.AnalysisExcludePatterns) > 0 {
@@ -128,7 +128,7 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) LoadDefaultConfig() *domain.Sys
 		CohesionViolationSeverity:       domain.ViolationSeverityWarning,
 		ResponsibilityViolationSeverity: domain.ViolationSeverityWarning,
 		Recursive:                       domain.BoolPtr(true),
-		IncludePatterns:                 []string{"**/*.py"},
+		IncludePatterns:                 domain.DefaultPythonModuleIncludePatterns(),
 		ExcludePatterns:                 domain.DefaultAnalysisExcludePatterns(),
 	}
 }

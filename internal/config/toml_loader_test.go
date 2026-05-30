@@ -289,6 +289,52 @@ include_patterns = ["quoted"]
 	}
 }
 
+func TestTomlLoaderPreservesExplicitEmptyAnalysisIncludes(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, ".pyscn.toml")
+	content := `[analysis]
+include_patterns = []
+`
+	if err := os.WriteFile(configPath, []byte(content), 0644); err != nil {
+		t.Fatalf("Failed to write .pyscn.toml: %v", err)
+	}
+
+	cfg, err := NewTomlConfigLoader().LoadConfig(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if !cfg.HasExplicitAnalysisIncludePatterns() {
+		t.Fatal("Expected explicit analysis include patterns")
+	}
+	if len(cfg.AnalysisIncludePatterns) != 0 {
+		t.Fatalf("Expected empty include patterns, got %v", cfg.AnalysisIncludePatterns)
+	}
+}
+
+func TestPyprojectLoaderPreservesExplicitEmptyAnalysisIncludes(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "pyproject.toml")
+	content := `[tool.pyscn.analysis]
+include_patterns = []
+`
+	if err := os.WriteFile(configPath, []byte(content), 0644); err != nil {
+		t.Fatalf("Failed to write pyproject.toml: %v", err)
+	}
+
+	cfg, err := NewTomlConfigLoader().LoadConfig(configPath)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if !cfg.HasExplicitAnalysisIncludePatterns() {
+		t.Fatal("Expected explicit analysis include patterns")
+	}
+	if len(cfg.AnalysisIncludePatterns) != 0 {
+		t.Fatalf("Expected empty include patterns, got %v", cfg.AnalysisIncludePatterns)
+	}
+}
+
 func TestResolveConfigPath_MissingTomlReturnsError(t *testing.T) {
 	loader := NewTomlConfigLoader()
 

@@ -252,8 +252,8 @@ func TestAnalyzeUseCase_LoadExecutionConfig(t *testing.T) {
 		if executionCfg.ComplexityMinComplexity != domain.DefaultComplexityMinFilter {
 			t.Errorf("Expected min complexity %d, got %d", domain.DefaultComplexityMinFilter, executionCfg.ComplexityMinComplexity)
 		}
-		if len(executionCfg.IncludePatterns) != 2 || executionCfg.IncludePatterns[1] != "*.pyi" {
-			t.Errorf("Expected default include patterns to include .pyi files, got %v", executionCfg.IncludePatterns)
+		if len(executionCfg.IncludePatterns) != 1 || executionCfg.IncludePatterns[0] != "**/*.py" {
+			t.Errorf("Expected default include patterns to include runtime Python files, got %v", executionCfg.IncludePatterns)
 		}
 		defaultCloneReq := domain.DefaultCloneRequest()
 		if executionCfg.CloneLSHEnabled != defaultCloneReq.LSHEnabled {
