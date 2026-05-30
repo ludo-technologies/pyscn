@@ -598,7 +598,7 @@ except Error as right:
 			PrepareTreeForAPTED(leftTree)
 			PrepareTreeForAPTED(rightTree)
 
-			distance := analyzer.ComputeDistance(leftTree, rightTree)
+			distance := analyzer.ComputeDistanceTrees(leftTree, rightTree)
 			assert.Greater(t, distance, 0.0, "expression-only differences must affect APTED distance")
 		})
 	}

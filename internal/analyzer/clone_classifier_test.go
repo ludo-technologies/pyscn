@@ -40,15 +40,15 @@ func TestCloneClassifier(t *testing.T) {
 		classifier := NewCloneClassifier(config)
 
 		// Both nil
-		result := classifier.ClassifyClone(nil, nil)
+		result := classifier.ClassifyClone(nil, nil, nil)
 		assert.Nil(t, result)
 
 		// One nil
 		fragment := &CodeFragment{Content: "test"}
-		result = classifier.ClassifyClone(fragment, nil)
+		result = classifier.ClassifyClone(fragment, nil, nil)
 		assert.Nil(t, result)
 
-		result = classifier.ClassifyClone(nil, fragment)
+		result = classifier.ClassifyClone(nil, fragment, nil)
 		assert.Nil(t, result)
 	})
 
@@ -83,7 +83,7 @@ func TestTextualSimilarityAnalyzer(t *testing.T) {
 		f1 := &CodeFragment{Content: "def hello():\n    return 'world'"}
 		f2 := &CodeFragment{Content: "def hello():\n    return 'world'"}
 
-		similarity := analyzer.ComputeSimilarity(f1, f2)
+		similarity := analyzer.ComputeSimilarity(f1, f2, nil)
 		assert.Equal(t, 1.0, similarity)
 	})
 
@@ -94,7 +94,7 @@ func TestTextualSimilarityAnalyzer(t *testing.T) {
 		f2 := &CodeFragment{Content: "def hello():\n        return 'world'"}
 
 		// After normalization, whitespace differences should result in high similarity
-		similarity := analyzer.ComputeSimilarity(f1, f2)
+		similarity := analyzer.ComputeSimilarity(f1, f2, nil)
 		assert.Greater(t, similarity, 0.9)
 	})
 
@@ -105,7 +105,7 @@ func TestTextualSimilarityAnalyzer(t *testing.T) {
 		f2 := &CodeFragment{Content: "def hello():  # greeting\n    return 'world'"}
 
 		// After comment removal, should be identical
-		similarity := analyzer.ComputeSimilarity(f1, f2)
+		similarity := analyzer.ComputeSimilarity(f1, f2, nil)
 		assert.Equal(t, 1.0, similarity)
 	})
 
@@ -115,12 +115,12 @@ func TestTextualSimilarityAnalyzer(t *testing.T) {
 		// Both empty
 		f1 := &CodeFragment{Content: ""}
 		f2 := &CodeFragment{Content: ""}
-		similarity := analyzer.ComputeSimilarity(f1, f2)
+		similarity := analyzer.ComputeSimilarity(f1, f2, nil)
 		assert.Equal(t, 1.0, similarity)
 
 		// One empty
 		f3 := &CodeFragment{Content: "def hello(): pass"}
-		similarity = analyzer.ComputeSimilarity(f1, f3)
+		similarity = analyzer.ComputeSimilarity(f1, f3, nil)
 		assert.Equal(t, 0.0, similarity)
 	})
 
@@ -128,10 +128,10 @@ func TestTextualSimilarityAnalyzer(t *testing.T) {
 		analyzer := NewTextualSimilarityAnalyzer()
 
 		f1 := &CodeFragment{Content: "test"}
-		similarity := analyzer.ComputeSimilarity(f1, nil)
+		similarity := analyzer.ComputeSimilarity(f1, nil, nil)
 		assert.Equal(t, 0.0, similarity)
 
-		similarity = analyzer.ComputeSimilarity(nil, f1)
+		similarity = analyzer.ComputeSimilarity(nil, f1, nil)
 		assert.Equal(t, 0.0, similarity)
 	})
 
@@ -141,7 +141,7 @@ func TestTextualSimilarityAnalyzer(t *testing.T) {
 		f1 := &CodeFragment{Content: "def calculate_sum(a, b):"}
 		f2 := &CodeFragment{Content: "def calculate_total(x, y):"}
 
-		similarity := analyzer.ComputeSimilarity(f1, f2)
+		similarity := analyzer.ComputeSimilarity(f1, f2, nil)
 		// Should be similar but not identical
 		assert.Greater(t, similarity, 0.5)
 		assert.Less(t, similarity, 1.0)
@@ -164,11 +164,11 @@ func TestSyntacticSimilarityAnalyzer(t *testing.T) {
 	t.Run("NilFragments", func(t *testing.T) {
 		analyzer := NewSyntacticSimilarityAnalyzer()
 
-		similarity := analyzer.ComputeSimilarity(nil, nil)
+		similarity := analyzer.ComputeSimilarity(nil, nil, nil)
 		assert.Equal(t, 0.0, similarity)
 
 		fragment := &CodeFragment{}
-		similarity = analyzer.ComputeSimilarity(fragment, nil)
+		similarity = analyzer.ComputeSimilarity(fragment, nil, nil)
 		assert.Equal(t, 0.0, similarity)
 	})
 
@@ -204,8 +204,8 @@ func TestSyntacticSimilarityAnalyzer(t *testing.T) {
 		PrepareTreeForAPTED(f1.TreeNode)
 		PrepareTreeForAPTED(f2.TreeNode)
 
-		similarity := analyzer.ComputeSimilarity(f1, f2)
-		// Type-2 clones should have high similarity (>= 0.80)
+		similarity := analyzer.ComputeSimilarity(f1, f2, nil)
+		// Type-2 clones should have high similarity (>= 0.80, nil)
 		assert.GreaterOrEqual(t, similarity, 0.80,
 			"Type-2 clones (renamed identifiers/literals) should have high similarity")
 	})
@@ -250,7 +250,7 @@ func TestSyntacticSimilarityAnalyzer(t *testing.T) {
 			Type4Threshold: domain.DefaultType4CloneThreshold,
 		})
 
-		result := classifier.ClassifyClone(f1, f2)
+		result := classifier.ClassifyClone(f1, f2, nil)
 
 		// These ARE Type-2 clones and MUST be detected
 		require.NotNil(t, result, "Type-2 clones should be detected")
@@ -285,8 +285,8 @@ func TestSyntacticSimilarityAnalyzer(t *testing.T) {
 		PrepareTreeForAPTED(f1.TreeNode)
 		PrepareTreeForAPTED(f2.TreeNode)
 
-		similarity := analyzer.ComputeSimilarity(f1, f2)
-		// Different structures should have low similarity (< 0.50)
+		similarity := analyzer.ComputeSimilarity(f1, f2, nil)
+		// Different structures should have low similarity (< 0.50, nil)
 		assert.Less(t, similarity, 0.50,
 			"Structurally different code should have low similarity")
 	})
@@ -361,7 +361,7 @@ class InMemoryMetrics:
 			Type4Threshold: domain.DefaultType4CloneThreshold,
 		})
 
-		result := classifier.ClassifyClone(f1, f2)
+		result := classifier.ClassifyClone(f1, f2, nil)
 
 		// Issue #292: These were incorrectly reported as 97.6% similar Type-2 clones.
 		// With Jaccard coefficient, they should NOT be classified as Type-2 clones.
@@ -372,7 +372,7 @@ class InMemoryMetrics:
 
 		// Also verify the raw syntactic similarity is well below the threshold
 		syntacticAnalyzer := NewSyntacticSimilarityAnalyzer()
-		similarity := syntacticAnalyzer.ComputeSimilarity(f1, f2)
+		similarity := syntacticAnalyzer.ComputeSimilarity(f1, f2, nil)
 		assert.Less(t, similarity, domain.DefaultType2CloneThreshold,
 			"Syntactic similarity should be below Type-2 threshold (issue #292)")
 	})
@@ -458,7 +458,7 @@ class InMemoryMetrics:
 			Type4Threshold: domain.DefaultType4CloneThreshold,
 		})
 
-		result := classifier.ClassifyClone(f1, f2)
+		result := classifier.ClassifyClone(f1, f2, nil)
 
 		// Issue #292: These were incorrectly reported as 98.9% similar Type-2 clones.
 		// With Jaccard coefficient, they should NOT be classified as Type-2 clones.
@@ -469,7 +469,7 @@ class InMemoryMetrics:
 
 		// Also verify the raw syntactic similarity is well below the threshold
 		syntacticAnalyzer := NewSyntacticSimilarityAnalyzer()
-		similarity := syntacticAnalyzer.ComputeSimilarity(f1, f2)
+		similarity := syntacticAnalyzer.ComputeSimilarity(f1, f2, nil)
 		assert.Less(t, similarity, domain.DefaultType2CloneThreshold,
 			"Syntactic similarity should be below Type-2 threshold (issue #292)")
 	})
@@ -493,7 +493,7 @@ func TestStructuralSimilarityAnalyzer(t *testing.T) {
 	t.Run("NilFragments", func(t *testing.T) {
 		analyzer := NewStructuralSimilarityAnalyzer()
 
-		similarity := analyzer.ComputeSimilarity(nil, nil)
+		similarity := analyzer.ComputeSimilarity(nil, nil, nil)
 		assert.Equal(t, 0.0, similarity)
 	})
 
@@ -516,11 +516,11 @@ func TestSemanticSimilarityAnalyzer(t *testing.T) {
 	t.Run("NilFragments", func(t *testing.T) {
 		analyzer := NewSemanticSimilarityAnalyzer()
 
-		similarity := analyzer.ComputeSimilarity(nil, nil)
+		similarity := analyzer.ComputeSimilarity(nil, nil, nil)
 		assert.Equal(t, 0.0, similarity)
 
 		fragment := &CodeFragment{}
-		similarity = analyzer.ComputeSimilarity(fragment, nil)
+		similarity = analyzer.ComputeSimilarity(fragment, nil, nil)
 		assert.Equal(t, 0.0, similarity)
 	})
 
@@ -602,7 +602,7 @@ def helper():
 		}
 
 		// Compare with classifier
-		result := detector.classifier.ClassifyClone(fragments1[0], fragments2[0])
+		result := detector.classifier.ClassifyClone(fragments1[0], fragments2[0], nil)
 		require.NotNil(t, result)
 		assert.Greater(t, result.Similarity, 0.9)
 	})
@@ -822,7 +822,7 @@ class ProductInventory:
 			// Check that raw APTED similarity is not perfect (1.0)
 			// With relaxed thresholds, framework boilerplate may exceed type thresholds
 			// but should still show structural differences (similarity < 0.95)
-			similarity := detector.analyzer.ComputeSimilarity(class1.TreeNode, class2.TreeNode)
+			similarity := detector.analyzer.ComputeSimilarity(class1, class2, nil)
 			assert.Less(t, similarity, 0.95,
 				"Different dataclasses should have noticeably different structure (issue #310)")
 		}
@@ -892,7 +892,7 @@ class ProductInventory:
 			// Check that raw APTED similarity is not perfect (1.0)
 			// With relaxed thresholds, framework boilerplate may exceed type thresholds
 			// but should still show structural differences (similarity < 0.95)
-			similarity := detector.analyzer.ComputeSimilarity(class1.TreeNode, class2.TreeNode)
+			similarity := detector.analyzer.ComputeSimilarity(class1, class2, nil)
 			assert.Less(t, similarity, 0.95,
 				"Different Pydantic models should have noticeably different structure (issue #310)")
 		}
@@ -969,8 +969,8 @@ class UserMetricsV2:
 		}
 
 		if method1 != nil && method2 != nil {
-			similarity := detector.analyzer.ComputeSimilarity(method1.TreeNode, method2.TreeNode)
-			// These identical methods SHOULD be detected as clones (Type-2 at minimum)
+			similarity := detector.analyzer.ComputeSimilarity(method1, method2, nil)
+			// These identical methods SHOULD be detected as clones (Type-2 at minimum, nil)
 			assert.GreaterOrEqual(t, similarity, domain.DefaultType3CloneThreshold,
 				"Identical methods within dataclasses SHOULD be detected as clones")
 		}
