@@ -443,6 +443,93 @@ class UsesLocal:
 	assert.Equal(t, []string{"TypedDict"}, usesLocal.DependentClasses)
 }
 
+func TestCBOAnalyzer_MultiArgumentGenericTypeHints(t *testing.T) {
+	pythonCode := `
+class User:
+    pass
+
+class Account:
+    pass
+
+class Service:
+    cache: dict[str, User]
+    pair: tuple[User, Account]
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "service.py")
+	require.NoError(t, err)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range results {
+		resultMap[result.ClassName] = result
+	}
+
+	service := resultMap["Service"]
+	require.NotNil(t, service)
+	assert.Equal(t, 2, service.CouplingCount)
+	assert.Equal(t, 2, service.TypeHintDependencies)
+	assert.Equal(t, []string{"Account", "User"}, service.DependentClasses)
+}
+
+func TestCBOAnalyzer_GenericInheritanceUsesBaseClassIdentity(t *testing.T) {
+	pythonCode := `
+class Base:
+    pass
+
+class User:
+    pass
+
+class Repo(Base[User]):
+    pass
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "repo.py")
+	require.NoError(t, err)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range results {
+		resultMap[result.ClassName] = result
+	}
+
+	repo := resultMap["Repo"]
+	require.NotNil(t, repo)
+	assert.Equal(t, []string{"Base"}, repo.BaseClasses)
+	assert.Equal(t, 1, repo.CouplingCount)
+	assert.Equal(t, 1, repo.InheritanceDependencies)
+	assert.Equal(t, []string{"Base"}, repo.DependentClasses)
+}
+
+func TestCBOAnalyzer_QualifiedTypeStructureDoesNotAddReceiverDependency(t *testing.T) {
+	pythonCode := `
+import contracts
+
+class Service(contracts.Base):
+    item: contracts.Item
+
+    def build(self) -> contracts.Result:
+        pass
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "service.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	service := results[0]
+	assert.Equal(t, "Service", service.ClassName)
+	assert.Equal(t, []string{"contracts.Base"}, service.BaseClasses)
+	assert.Equal(t, []string{"contracts.Base", "contracts.Item", "contracts.Result"}, service.DependentClasses)
+	assert.NotContains(t, service.DependentClasses, "contracts")
+}
+
 func TestCBOAnalyzer_IncludeImportsControlsStandardLibraryDependencies(t *testing.T) {
 	pythonCode := `
 from pathlib import Path as FilePath
@@ -750,6 +837,38 @@ class DerivedClass(SimpleClass):
 	assert.Equal(t, 0, simpleResult.CouplingCount)
 	assert.Equal(t, 1, derivedResult.CouplingCount) // Depends on SimpleClass
 	assert.Contains(t, derivedResult.DependentClasses, "SimpleClass")
+}
+
+func TestCBOAnalyzer_UsesCanonicalASTChildren(t *testing.T) {
+	pythonCode := `
+class Logger:
+    pass
+
+class Service:
+    def build(self, flag):
+        if flag:
+            return None
+        else:
+            return Logger()
+`
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := CalculateCBO(ast, "test.py")
+	require.NoError(t, err)
+
+	var serviceResult *CBOResult
+	for _, result := range results {
+		if result.ClassName == "Service" {
+			serviceResult = result
+			break
+		}
+	}
+
+	require.NotNil(t, serviceResult)
+	assert.Equal(t, 1, serviceResult.CouplingCount)
+	assert.Equal(t, 1, serviceResult.InstantiationDependencies)
+	assert.Contains(t, serviceResult.DependentClasses, "Logger")
 }
 
 // Helper function to parse Python code into AST
