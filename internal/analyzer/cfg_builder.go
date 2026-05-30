@@ -171,27 +171,6 @@ func (b *CFGBuilder) BuildAll(node *parser.Node) (map[string]*CFG, error) {
 		allCFGs[name] = cfg
 	}
 
-	// Also process top-level functions directly
-	if node.Type == parser.NodeModule {
-		for _, stmt := range node.Body {
-			if stmt.Type == parser.NodeFunctionDef || stmt.Type == parser.NodeAsyncFunctionDef {
-				// Check if we already have this function
-				if _, exists := allCFGs[stmt.Name]; !exists {
-					funcBuilder := NewCFGBuilder()
-					funcCFG, err := funcBuilder.Build(stmt)
-					if err == nil {
-						allCFGs[stmt.Name] = funcCFG
-						// Add nested functions from this function
-						for nestedName, nestedCFG := range funcBuilder.functionCFGs {
-							fullName := stmt.Name + "." + nestedName
-							allCFGs[fullName] = nestedCFG
-						}
-					}
-				}
-			}
-		}
-	}
-
 	return allCFGs, nil
 }
 
