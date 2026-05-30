@@ -250,30 +250,78 @@ func (b *DFABuilder) extractUses(stmt *parser.Node, block *BasicBlock, pos int) 
 
 	var uses []*VarReference
 
-	// For assignment statements, only the right-hand side is a read.
-	if stmt.Type == parser.NodeAssign || stmt.Type == parser.NodeAnnAssign {
+	switch stmt.Type {
+	case parser.NodeAssign, parser.NodeAnnAssign:
+		// For assignment statements, only the right-hand side is a read.
 		if valueNode, ok := stmt.Value.(*parser.Node); ok {
 			uses = append(uses, b.extractUsesFromExpression(valueNode, block, stmt, pos)...)
 		}
 		return uses
-	}
 
-	// For augmented assignment, the target is both a def and a use
-	if stmt.Type == parser.NodeAugAssign {
+	case parser.NodeAugAssign:
+		// For augmented assignment, the target is both a def and a use.
 		if len(stmt.Targets) > 0 && stmt.Targets[0] != nil && stmt.Targets[0].Type == parser.NodeName {
 			ref := NewVarReference(stmt.Targets[0].Name, UseKindRead, block, stmt, pos)
 			uses = append(uses, ref)
 		}
-		// Also extract uses from the right-hand side
 		if valueNode, ok := stmt.Value.(*parser.Node); ok {
 			uses = append(uses, b.extractUsesFromExpression(valueNode, block, stmt, pos)...)
 		}
 		return uses
+
+	case parser.NodeIf, parser.NodeElifClause, parser.NodeWhile:
+		uses = append(uses, b.extractUsesFromExpression(stmt.Test, block, stmt, pos)...)
+
+	case parser.NodeFor, parser.NodeAsyncFor:
+		uses = append(uses, b.extractUsesFromExpression(stmt.Iter, block, stmt, pos)...)
+
+	case parser.NodeWith, parser.NodeAsyncWith:
+		uses = append(uses, b.extractWithContextUses(stmt, block, pos)...)
+
+	case parser.NodeMatch:
+		uses = append(uses, b.extractUsesFromExpression(stmt.Test, block, stmt, pos)...)
+
+	case parser.NodeMatchCase:
+		uses = append(uses, b.extractUsesFromExpression(stmt.Test, block, stmt, pos)...)
+		if guard := nodeValue(stmt); guard != nil {
+			uses = append(uses, b.extractUsesFromExpression(guard, block, stmt, pos)...)
+		}
+
+	case parser.NodeExceptHandler:
+		if exceptionType := nodeValue(stmt); exceptionType != nil {
+			uses = append(uses, b.extractUsesFromExpression(exceptionType, block, stmt, pos)...)
+		}
+
+	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
+		for _, decorator := range stmt.Decorator {
+			uses = append(uses, b.extractUsesFromExpression(decorator, block, stmt, pos)...)
+		}
+
+	case parser.NodeClassDef:
+		for _, decorator := range stmt.Decorator {
+			uses = append(uses, b.extractUsesFromExpression(decorator, block, stmt, pos)...)
+		}
+		for _, base := range stmt.Bases {
+			uses = append(uses, b.extractUsesFromExpression(base, block, stmt, pos)...)
+		}
+
+	default:
+		uses = append(uses, b.extractUsesFromExpression(stmt, block, stmt, pos)...)
 	}
 
-	// For other statements, walk the entire statement tree
-	uses = append(uses, b.extractUsesFromExpression(stmt, block, stmt, pos)...)
+	return uses
+}
 
+func (b *DFABuilder) extractWithContextUses(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+	var uses []*VarReference
+	for _, child := range stmt.Children {
+		if child == nil || child.Type != parser.NodeWithItem {
+			continue
+		}
+		if contextExpr := nodeValue(child); contextExpr != nil {
+			uses = append(uses, b.extractUsesFromExpression(contextExpr, block, stmt, pos)...)
+		}
+	}
 	return uses
 }
 
