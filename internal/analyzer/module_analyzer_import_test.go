@@ -139,6 +139,88 @@ func TestModuleAnalyzerResolvesImportWithAlias(t *testing.T) {
 	}
 }
 
+func TestModuleAnalyzerCollectsImportsFromCompoundBranches(t *testing.T) {
+	dir := t.TempDir()
+
+	consumer := filepath.Join(dir, "consumer.py")
+
+	source := []byte(`
+if ready:
+    pass
+else:
+    import else_target
+
+try:
+    pass
+except Exception:
+    import except_target
+finally:
+    import finally_target
+`)
+	if err := os.WriteFile(consumer, source, 0o644); err != nil {
+		t.Fatalf("failed to write consumer: %v", err)
+	}
+
+	analyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{ProjectRoot: dir})
+	if err != nil {
+		t.Fatalf("failed to create analyzer: %v", err)
+	}
+
+	imports := collectImportsForTest(t, analyzer, consumer)
+	statements := make(map[string]bool, len(imports))
+	for _, imp := range imports {
+		statements[imp.Statement] = true
+	}
+
+	for _, statement := range []string{"import else_target", "import except_target", "import finally_target"} {
+		if !statements[statement] {
+			t.Fatalf("expected import %s, got %v", statement, statements)
+		}
+	}
+}
+
+func TestModuleAnalyzerDetectsCycleThroughCompoundBranchImport(t *testing.T) {
+	dir := t.TempDir()
+
+	moduleA := filepath.Join(dir, "a.py")
+	moduleB := filepath.Join(dir, "b.py")
+
+	sourceA := []byte(`
+if ready:
+    pass
+else:
+    import b
+`)
+	if err := os.WriteFile(moduleA, sourceA, 0o644); err != nil {
+		t.Fatalf("failed to write module a: %v", err)
+	}
+	if err := os.WriteFile(moduleB, []byte("import a\n"), 0o644); err != nil {
+		t.Fatalf("failed to write module b: %v", err)
+	}
+
+	analyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{ProjectRoot: dir})
+	if err != nil {
+		t.Fatalf("failed to create analyzer: %v", err)
+	}
+
+	graph, err := analyzer.AnalyzeFiles([]string{moduleA, moduleB})
+	if err != nil {
+		t.Fatalf("AnalyzeFiles failed: %v", err)
+	}
+
+	result := DetectCircularDependencies(graph)
+	if !result.HasCircularDependencies {
+		aNode := graph.GetModule("a")
+		bNode := graph.GetModule("b")
+		if aNode == nil || bNode == nil {
+			t.Fatalf("expected modules a and b in graph")
+		}
+		t.Fatalf("expected cycle through else import, got dependencies a=%v b=%v",
+			aNode.Dependencies,
+			bNode.Dependencies)
+	}
+}
+
 func TestModuleAnalyzerResolvesSingleDotRelativeImportInCurrentPackage(t *testing.T) {
 	dir := t.TempDir()
 
@@ -654,5 +736,5 @@ func collectImportsForTest(t *testing.T, analyzer *ModuleAnalyzer, path string) 
 	if err != nil {
 		t.Fatalf("failed to parse %s: %v", path, err)
 	}
-	return analyzer.collectModuleImports(result.AST, path)
+	return analyzer.collectModuleFacts(result.AST).imports
 }
