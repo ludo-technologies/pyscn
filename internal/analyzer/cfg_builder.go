@@ -18,6 +18,10 @@ const (
 	LabelEntry        = "ENTRY"
 	LabelExit         = "EXIT"
 
+	// Conditional labels
+	LabelIfThen  = "if_then"
+	LabelIfMerge = "if_merge"
+
 	// Loop-related labels
 	LabelLoopHeader = "loop_header"
 	LabelLoopBody   = "loop_body"
@@ -34,6 +38,7 @@ const (
 	LabelWithSetup    = "with_setup"
 	LabelWithBody     = "with_body"
 	LabelWithTeardown = "with_teardown"
+	LabelMatchEval    = "match_eval"
 	LabelMatchCase    = "match_case"
 	LabelMatchMerge   = "match_merge"
 )
@@ -488,11 +493,11 @@ func (b *CFGBuilder) processIfStatement(stmt *parser.Node) {
 	conditionBlock.AddStatement(stmt)
 
 	// Create blocks for the then branch
-	thenBlock := b.createBlock("if_then")
+	thenBlock := b.createBlock(LabelIfThen)
 
 	// Create merge block only for the outermost if
 	// elif chains will share the same final merge block
-	mergeBlock := b.createBlock("if_merge")
+	mergeBlock := b.createBlock(LabelIfMerge)
 
 	// Connect condition block to then block (true branch)
 	b.cfg.ConnectBlocks(conditionBlock, thenBlock, EdgeCondTrue)
@@ -1216,7 +1221,7 @@ func (b *CFGBuilder) processWithStatement(stmt *parser.Node) {
 // processMatchStatement handles match statements (Python 3.10+)
 func (b *CFGBuilder) processMatchStatement(stmt *parser.Node) {
 	// Create match evaluation block
-	matchBlock := b.createBlock("match_eval")
+	matchBlock := b.createBlock(LabelMatchEval)
 	b.cfg.ConnectBlocks(b.currentBlock, matchBlock, EdgeNormal)
 
 	// Add the match statement (subject evaluation) to match block

@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/internal/parser"
@@ -42,6 +43,32 @@ func assertChainHasUseKind(t *testing.T, chain *DefUseChain, kind DefUseKind) {
 		}
 	}
 	t.Fatalf("Expected %s to have use kind %s, got %v", chain.Variable, kind, chain.Uses)
+}
+
+func requireDFAChain(t *testing.T, info *DFAInfo, variable string) *DefUseChain {
+	t.Helper()
+
+	chain := info.Chains[variable]
+	require.NotNil(t, chain, "%q should be in variable chains", variable)
+	return chain
+}
+
+func assertUsesOnlyInBlockLabel(t *testing.T, chain *DefUseChain, wantUses int, label string) {
+	t.Helper()
+
+	require.Len(t, chain.Uses, wantUses, "unexpected uses for %q", chain.Variable)
+	for _, use := range chain.Uses {
+		require.NotNil(t, use.Block, "use for %q has nil block", chain.Variable)
+		assert.Truef(t, strings.HasPrefix(use.Block.Label, label),
+			"use for %q is in block %q, want prefix %q", chain.Variable, use.Block.Label, label)
+	}
+}
+
+func assertSingleDefKind(t *testing.T, chain *DefUseChain, kind DefUseKind) {
+	t.Helper()
+
+	require.Len(t, chain.Defs, 1, "unexpected defs for %q", chain.Variable)
+	assert.Equal(t, kind, chain.Defs[0].Kind)
 }
 
 func TestDFABuilder(t *testing.T) {
@@ -412,6 +439,283 @@ with cm() as [a, *rest]:
 			assert.Len(t, chain.Defs, 1)
 			assert.Equal(t, DefKindWithTarget, chain.Defs[0].Kind)
 		}
+	})
+
+	t.Run("Build_IfStatement_UsesBodyOnlyInBodyBlock", func(t *testing.T) {
+		source := `
+cond = True
+body_value = 1
+if cond:
+    sink(body_value)
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "cond"), 1, LabelEntry)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "body_value"), 1, LabelIfThen)
+	})
+
+	t.Run("Build_ForStatement_UsesIterableWithoutReadingTargetOrBodyInHeader", func(t *testing.T) {
+		source := `
+items = [1, 2, 3]
+body_value = 1
+for item in items:
+    sink(body_value)
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		item := requireDFAChain(t, info, "item")
+		require.Len(t, item.Defs, 1)
+		assert.Equal(t, DefKindForTarget, item.Defs[0].Kind)
+		assert.Empty(t, item.Uses, "loop targets should not be phantom reads")
+
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "items"), 1, LabelLoopHeader)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "body_value"), 1, LabelLoopBody)
+	})
+
+	t.Run("Build_WhileStatement_UsesConditionWithoutReadingBodyInHeader", func(t *testing.T) {
+		source := `
+cond = True
+body_value = 1
+while cond:
+    sink(body_value)
+    cond = False
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "body_value"), 1, LabelLoopBody)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "cond"), 1, LabelLoopHeader)
+	})
+
+	t.Run("Build_WithStatement_UsesContextExprWithoutReadingBodyInSetup", func(t *testing.T) {
+		source := `
+path = "data.txt"
+body_value = 1
+with open(path) as handle:
+    sink(body_value)
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "path"), 1, LabelWithSetup)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "body_value"), 1, LabelWithBody)
+
+		handle := requireDFAChain(t, info, "handle")
+		require.Len(t, handle.Defs, 1)
+		assert.Equal(t, DefKindWithTarget, handle.Defs[0].Kind)
+		assert.Empty(t, handle.Uses, "with targets should not be phantom reads")
+	})
+
+	t.Run("Build_MatchStatement_UsesSubjectWithoutDoubleCountingCaseBody", func(t *testing.T) {
+		source := `
+subject = 1
+body_value = 1
+match subject:
+    case _:
+        sink(body_value)
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "subject"), 1, LabelMatchEval)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "body_value"), 1, LabelMatchCase)
+	})
+
+	t.Run("Build_ExceptHandler_DoesNotDoubleCountHandlerBody", func(t *testing.T) {
+		source := `
+body_value = 1
+try:
+    raise ValueError()
+except ValueError as exc:
+    sink(body_value)
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "body_value"), 1, LabelExceptBlock)
+	})
+
+	t.Run("Build_FunctionDef_DoesNotAttributeBodyUsesToOuterBlock", func(t *testing.T) {
+		source := `
+outer_value = 1
+def nested():
+    sink(outer_value)
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		chain := requireDFAChain(t, info, "outer_value")
+		require.Len(t, chain.Defs, 1)
+		assert.Empty(t, chain.Uses, "function body uses belong to the nested function CFG")
+	})
+
+	t.Run("Build_FunctionDef_UsesDefaultArgumentsInOuterBlock", func(t *testing.T) {
+		source := `
+default_value = 1
+def nested(arg=default_value):
+    return arg
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		chain := requireDFAChain(t, info, "default_value")
+		require.Len(t, chain.Defs, 1)
+		assertUsesOnlyInBlockLabel(t, chain, 1, LabelEntry)
+	})
+
+	t.Run("Build_FunctionDef_UsesTypedDefaultArgumentsInOuterBlock", func(t *testing.T) {
+		source := `
+default_value = 1
+def nested(arg: int = default_value):
+    return arg
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		chain := requireDFAChain(t, info, "default_value")
+		require.Len(t, chain.Defs, 1)
+		assertUsesOnlyInBlockLabel(t, chain, 1, LabelEntry)
+	})
+
+	t.Run("Build_FunctionDef_BindsFunctionNameWithoutLeakingParameters", func(t *testing.T) {
+		source := `
+def nested(arg):
+    return arg
+alias = nested
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		nested := requireDFAChain(t, info, "nested")
+		require.Len(t, nested.Defs, 1)
+		assert.Equal(t, DefKindAssign, nested.Defs[0].Kind)
+		assertUsesOnlyInBlockLabel(t, nested, 1, LabelEntry)
+		assert.Nil(t, info.Chains["arg"], "function parameters belong to the function CFG, not the parent CFG")
+	})
+
+	t.Run("Build_ClassDef_BindsClassName", func(t *testing.T) {
+		source := `
+class Thing:
+    value = 1
+alias = Thing
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		thing := requireDFAChain(t, info, "Thing")
+		require.Len(t, thing.Defs, 1)
+		assert.Equal(t, DefKindAssign, thing.Defs[0].Kind)
+		assertUsesOnlyInBlockLabel(t, thing, 1, LabelClassBody)
+	})
+
+	t.Run("Build_NestedFunctionCFG_RetainsBodyUses", func(t *testing.T) {
+		source := `
+outer_value = 1
+def nested():
+    sink(outer_value)
+`
+		ast := parseSourceForDFA(t, source)
+		cfgs, err := NewCFGBuilder().BuildAll(ast)
+		require.NoError(t, err)
+
+		nestedCFG, ok := cfgs["nested"]
+		require.True(t, ok, "expected nested function CFG")
+
+		info, err := NewDFABuilder().Build(nestedCFG)
+		require.NoError(t, err)
+
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "outer_value"), 1, LabelFunctionBody)
+	})
+
+	t.Run("Build_MatchCase_BindsCapturePatternWithoutPhantomRead", func(t *testing.T) {
+		source := `
+subject = object()
+guard_value = 1
+match subject:
+    case captured if captured == guard_value:
+        sink(captured)
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		captured := requireDFAChain(t, info, "captured")
+		assertSingleDefKind(t, captured, DefKindPattern)
+		assertUsesOnlyInBlockLabel(t, captured, 2, LabelMatchCase)
+		assert.Len(t, captured.Pairs, 2)
+
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "subject"), 1, LabelMatchEval)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "guard_value"), 1, LabelMatchCase)
+	})
+
+	t.Run("Build_MatchCase_UsesDottedValuePatternBaseOnly", func(t *testing.T) {
+		source := `
+subject = object()
+match subject:
+    case constants.OK:
+        pass
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "constants"), 1, LabelMatchCase)
+		assert.Nil(t, info.Chains["OK"], "attribute names are not standalone variable reads")
+	})
+
+	t.Run("Build_MatchCase_BindsClassPatternCaptures", func(t *testing.T) {
+		source := `
+subject = object()
+match subject:
+    case Point(x, y):
+        sink(x, y)
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "Point"), 1, LabelMatchCase)
+		assertSingleDefKind(t, requireDFAChain(t, info, "x"), DefKindPattern)
+		assertSingleDefKind(t, requireDFAChain(t, info, "y"), DefKindPattern)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "x"), 1, LabelMatchCase)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "y"), 1, LabelMatchCase)
+	})
+
+	t.Run("Build_MatchCase_BindsMappingPatternCaptures", func(t *testing.T) {
+		source := `
+subject = object()
+match subject:
+    case {"id": user_id, "items": [first, *rest]} if rest:
+        sink(user_id, first, rest)
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		for _, name := range []string{"user_id", "first", "rest"} {
+			chain := requireDFAChain(t, info, name)
+			assertSingleDefKind(t, chain, DefKindPattern)
+		}
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "user_id"), 1, LabelMatchCase)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "first"), 1, LabelMatchCase)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "rest"), 2, LabelMatchCase)
+	})
+
+	t.Run("Build_MatchCase_BindsSequenceStarPatternCaptures", func(t *testing.T) {
+		source := `
+subject = object()
+match subject:
+    case [first, *rest]:
+        sink(first, rest)
+`
+		info, err := NewDFABuilder().Build(buildCFGForDFA(t, source))
+		require.NoError(t, err)
+
+		first := requireDFAChain(t, info, "first")
+		assertSingleDefKind(t, first, DefKindPattern)
+		assertUsesOnlyInBlockLabel(t, first, 1, LabelMatchCase)
+
+		rest := requireDFAChain(t, info, "rest")
+		assertSingleDefKind(t, rest, DefKindPattern)
+		assertUsesOnlyInBlockLabel(t, rest, 1, LabelMatchCase)
 	})
 }
 

@@ -324,11 +324,8 @@ func (a *CBOAnalyzer) analyzeMethodTypeHints(methodNode *parser.Node, dependenci
 	// Analyze parameter types
 	for _, arg := range methodNode.Args {
 		if arg != nil && arg.Type == parser.NodeArg {
-			// Look for type annotation in argument children
-			for _, child := range arg.Children {
-				if child != nil && a.isTypeAnnotation(child) {
-					a.extractTypeAnnotationDependencies(child, dependencies, result)
-				}
+			if arg.Right != nil && a.isTypeAnnotation(arg.Right) {
+				a.extractTypeAnnotationDependencies(arg.Right, dependencies, result)
 			}
 		}
 	}
@@ -599,12 +596,7 @@ func (a *CBOAnalyzer) isWithinTypeAnnotation(node *parser.Node) bool {
 			}
 			return false
 		case parser.NodeArg:
-			for _, child := range current.Children {
-				if child != nil && a.isTypeAnnotation(child) && nodeDescendsFrom(node, child) {
-					return true
-				}
-			}
-			return false
+			return current.Right != nil && nodeDescendsFrom(node, current.Right)
 		case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
 			return current.Right != nil && nodeDescendsFrom(node, current.Right)
 		case parser.NodeTypeNode, parser.NodeGenericType, parser.NodeTypeParameter:
