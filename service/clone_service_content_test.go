@@ -3,6 +3,7 @@ package service
 import (
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -76,4 +77,46 @@ func TestCloneService_convertCloneGroupsToDomain_Content(t *testing.T) {
 	require.Len(t, withoutContent[0].Clones, 2)
 	assert.Empty(t, withoutContent[0].Clones[0].Content)
 	assert.Empty(t, withoutContent[0].Clones[1].Content)
+}
+
+// Regression for #488: group fragments were emitted with id=0 and type=0 for
+// every fragment, leaving them indistinguishable and untyped even though the
+// parent group carried the correct id and clone type.
+func TestCloneService_convertCloneGroupsToDomain_FragmentIDAndType(t *testing.T) {
+	service := NewCloneService()
+	groups := []*analyzer.CloneGroup{
+		{
+			ID:         1,
+			CloneType:  analyzer.Type2Clone,
+			Similarity: 0.91,
+			Size:       2,
+			Fragments: []*analyzer.CodeFragment{
+				{
+					Location:  &analyzer.CodeLocation{FilePath: "a.py", StartLine: 1, EndLine: 2},
+					Content:   "value = 1\nprint(value)",
+					Size:      3,
+					LineCount: 2,
+				},
+				{
+					Location:  &analyzer.CodeLocation{FilePath: "b.py", StartLine: 5, EndLine: 6},
+					Content:   "count = 1\nprint(count)",
+					Size:      3,
+					LineCount: 2,
+				},
+			},
+		},
+	}
+
+	result := service.convertCloneGroupsToDomain(groups, false)
+	require.Len(t, result, 1)
+	require.Len(t, result[0].Clones, 2)
+
+	// Each fragment gets a stable id, unique within the group.
+	assert.Equal(t, 1, result[0].Clones[0].ID)
+	assert.Equal(t, 2, result[0].Clones[1].ID)
+
+	// Each fragment inherits the group's clone type instead of the zero value.
+	for _, clone := range result[0].Clones {
+		assert.Equal(t, domain.Type2Clone, clone.Type, "fragment type should match the group clone type")
+	}
 }

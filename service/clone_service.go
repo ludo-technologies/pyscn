@@ -382,8 +382,10 @@ func (s *CloneService) convertCloneGroupsToDomain(cloneGroups []*analyzer.CloneG
 		}
 
 		// Convert fragments to clones
-		for _, fragment := range group.Fragments {
+		for i, fragment := range group.Fragments {
 			clone := &domain.Clone{
+				ID:   i + 1,
+				Type: s.convertCloneType(group.CloneType),
 				Location: &domain.CloneLocation{
 					FilePath:  fragment.Location.FilePath,
 					StartLine: fragment.Location.StartLine,
@@ -391,6 +393,7 @@ func (s *CloneService) convertCloneGroupsToDomain(cloneGroups []*analyzer.CloneG
 					StartCol:  fragment.Location.StartCol,
 					EndCol:    fragment.Location.EndCol,
 				},
+				Hash:      fragment.Hash,
 				Size:      fragment.Size,
 				LineCount: fragment.LineCount,
 			}
