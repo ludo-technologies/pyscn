@@ -91,7 +91,7 @@ if TYPE_CHECKING and sys.version_info >= (3, 9):
 		t.Fatalf("Failed to parse file: %v", err)
 	}
 
-	imports := analyzer.collectModuleImports(result.AST, testFile)
+	imports := analyzer.collectModuleFacts(result.AST).imports
 
 	// Verify the imports
 	typeCheckingImports := 0
@@ -259,5 +259,83 @@ class ClassB:
 	if graph.HasCycle() {
 		cyclicModules := graph.GetModulesInCycles()
 		t.Errorf("Found unexpected cycles with modules: %v", cyclicModules)
+	}
+}
+
+func TestModuleAnalyzerTreatsTypeCheckingElseAsRuntime(t *testing.T) {
+	dir := t.TempDir()
+
+	moduleA := filepath.Join(dir, "module_a.py")
+	moduleB := filepath.Join(dir, "module_b.py")
+	moduleC := filepath.Join(dir, "module_c.py")
+	moduleD := filepath.Join(dir, "module_d.py")
+	moduleE := filepath.Join(dir, "module_e.py")
+	moduleF := filepath.Join(dir, "module_f.py")
+
+	sourceA := []byte(`
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import module_b
+elif TYPE_CHECKING:
+    import module_c
+else:
+    import module_d
+
+if TYPE_CHECKING or enable_plugin:
+    import module_e
+
+if TYPE_CHECKING == False:
+    import module_f
+`)
+	if err := os.WriteFile(moduleA, sourceA, 0o644); err != nil {
+		t.Fatalf("failed to write module_a: %v", err)
+	}
+	writeSimpleModule(t, moduleB)
+	writeSimpleModule(t, moduleC)
+	writeSimpleModule(t, moduleD)
+	writeSimpleModule(t, moduleE)
+	writeSimpleModule(t, moduleF)
+
+	analyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{
+		ProjectRoot:       dir,
+		IncludeStdLib:     domain.BoolPtr(false),
+		IncludeThirdParty: domain.BoolPtr(true),
+		FollowRelative:    domain.BoolPtr(true),
+	})
+	if err != nil {
+		t.Fatalf("failed to create analyzer: %v", err)
+	}
+
+	graph, err := analyzer.AnalyzeFiles([]string{moduleA, moduleB, moduleC, moduleD, moduleE, moduleF})
+	if err != nil {
+		t.Fatalf("AnalyzeFiles failed: %v", err)
+	}
+
+	node := graph.GetModule("module_a")
+	if node == nil {
+		t.Fatalf("module_a not found in graph")
+	}
+	if node.Dependencies["module_b"] {
+		t.Fatalf("did not expect TYPE_CHECKING body dependency, got %v", node.Dependencies)
+	}
+	if node.Dependencies["module_c"] {
+		t.Fatalf("did not expect TYPE_CHECKING elif dependency, got %v", node.Dependencies)
+	}
+	if !node.Dependencies["module_d"] {
+		t.Fatalf("expected runtime else dependency on module_d, got %v", node.Dependencies)
+	}
+	if !node.Dependencies["module_e"] {
+		t.Fatalf("expected runtime or dependency on module_e, got %v", node.Dependencies)
+	}
+	if !node.Dependencies["module_f"] {
+		t.Fatalf("expected runtime comparison dependency on module_f, got %v", node.Dependencies)
+	}
+}
+
+func writeSimpleModule(t *testing.T, path string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte("value = 1\n"), 0o644); err != nil {
+		t.Fatalf("failed to write %s: %v", path, err)
 	}
 }

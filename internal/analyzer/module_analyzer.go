@@ -205,14 +205,15 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 		return fmt.Errorf("module not found in graph: %s", moduleName)
 	}
 
-	// Extract module information
-	ma.extractModuleInfo(result.AST, module)
-
-	// Collect import statements
-	imports := ma.collectModuleImports(result.AST, filePath)
+	facts := ma.collectModuleFacts(result.AST)
+	module.FunctionCount = facts.functionCount
+	module.ClassCount = facts.classCount
+	module.AbstractClassCount = facts.abstractClassCount
+	module.PublicNames = facts.publicNames
+	module.LineCount = countSourceLines(content)
 
 	// Process each import
-	for _, imp := range imports {
+	for _, imp := range facts.imports {
 		// Skip TYPE_CHECKING imports for circular dependency detection
 		if imp.IsTypeChecking {
 			continue
@@ -299,91 +300,137 @@ func (ma *ModuleAnalyzer) shouldSkipPackageInitDependency(filePath, moduleName, 
 	return isPythonPackageInit(filePath) && strings.HasPrefix(targetModule, moduleName+".")
 }
 
-// collectModuleImports collects all import statements from AST
-func (ma *ModuleAnalyzer) collectModuleImports(ast *parser.Node, filePath string) []*ImportInfo {
-	var imports []*ImportInfo
+type moduleFacts struct {
+	imports            []*ImportInfo
+	functionCount      int
+	classCount         int
+	abstractClassCount int
+	publicNames        []string
+}
 
-	ma.walkNode(ast, func(node *parser.Node) bool {
+func (ma *ModuleAnalyzer) collectModuleFacts(ast *parser.Node) moduleFacts {
+	var facts moduleFacts
+	if ast == nil {
+		return facts
+	}
+
+	ast.Walk(func(node *parser.Node) bool {
 		switch node.Type {
-		case parser.NodeImport:
-			// Handle "import module" statements
-			isTypeChecking := ma.isInTypeCheckingBlock(node)
-
-			if len(node.Children) > 0 {
-				for _, child := range node.Children {
-					if child.Type == parser.NodeAlias {
-						imp := &ImportInfo{
-							Statement:      fmt.Sprintf("import %s", child.Name),
-							ImportedNames:  []string{child.Name},
-							IsRelative:     false,
-							Line:           node.Location.StartLine,
-							IsTypeChecking: isTypeChecking,
-						}
-						if child.Value != nil {
-							if alias, ok := child.Value.(string); ok {
-								imp.Alias = alias
-							}
-						}
-						imports = append(imports, imp)
-					}
-				}
-			} else if len(node.Names) > 0 {
-				for _, name := range node.Names {
-					imp := &ImportInfo{
-						Statement:      fmt.Sprintf("import %s", name),
-						ImportedNames:  []string{name},
-						IsRelative:     false,
-						Line:           node.Location.StartLine,
-						IsTypeChecking: isTypeChecking,
-					}
-					imports = append(imports, imp)
-				}
+		case parser.NodeImport, parser.NodeImportFrom:
+			facts.imports = append(facts.imports, ma.importsFromNode(node)...)
+		case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
+			facts.functionCount++
+			if isPublicName(node.Name) {
+				facts.publicNames = append(facts.publicNames, node.Name)
 			}
-
-		case parser.NodeImportFrom:
-			// Handle "from module import name" statements
-			isTypeChecking := ma.isInTypeCheckingBlock(node)
-			module := node.Module
-			level := node.Level
-
-			// Get imported names - use map to deduplicate since names may appear
-			// in both node.Names and child Alias nodes depending on parser version
-			nameSet := make(map[string]bool)
-			for _, name := range node.Names {
-				nameSet[name] = true
+		case parser.NodeClassDef:
+			facts.classCount++
+			if ma.isAbstractClass(node) {
+				facts.abstractClassCount++
 			}
-			for _, child := range node.Children {
-				if child.Type == parser.NodeAlias {
-					nameSet[child.Name] = true
-				}
+			if isPublicName(node.Name) {
+				facts.publicNames = append(facts.publicNames, node.Name)
 			}
-			importedNames := make([]string, 0, len(nameSet))
-			for name := range nameSet {
-				importedNames = append(importedNames, name)
-			}
-
-			imp := &ImportInfo{
-				Statement:      ma.buildImportStatement(node),
-				ImportedNames:  importedNames,
-				IsRelative:     level > 0,
-				Level:          level,
-				Line:           node.Location.StartLine,
-				IsTypeChecking: isTypeChecking,
-			}
-
-			// Clean module name for relative imports
-			if imp.IsRelative {
-				imp.Statement = strings.TrimLeft(module, ".")
-			} else {
-				imp.Statement = module
-			}
-
-			imports = append(imports, imp)
 		}
 		return true
 	})
 
-	return imports
+	return facts
+}
+
+func isPublicName(name string) bool {
+	return name != "" && !strings.HasPrefix(name, "_")
+}
+
+func countSourceLines(content []byte) int {
+	lines := 1
+	for _, b := range content {
+		if b == '\n' {
+			lines++
+		}
+	}
+	return lines
+}
+
+func (ma *ModuleAnalyzer) importsFromNode(node *parser.Node) []*ImportInfo {
+	isTypeChecking := ma.isInTypeCheckingBlock(node)
+
+	switch node.Type {
+	case parser.NodeImport:
+		var imports []*ImportInfo
+		if len(node.Children) > 0 {
+			for _, child := range node.Children {
+				if child.Type != parser.NodeAlias {
+					continue
+				}
+				imp := &ImportInfo{
+					Statement:      fmt.Sprintf("import %s", child.Name),
+					ImportedNames:  []string{child.Name},
+					IsRelative:     false,
+					Line:           node.Location.StartLine,
+					IsTypeChecking: isTypeChecking,
+				}
+				if alias, ok := child.Value.(string); ok {
+					imp.Alias = alias
+				}
+				imports = append(imports, imp)
+			}
+			return imports
+		}
+
+		imports = make([]*ImportInfo, 0, len(node.Names))
+		for _, name := range node.Names {
+			imports = append(imports, &ImportInfo{
+				Statement:      fmt.Sprintf("import %s", name),
+				ImportedNames:  []string{name},
+				IsRelative:     false,
+				Line:           node.Location.StartLine,
+				IsTypeChecking: isTypeChecking,
+			})
+		}
+		return imports
+
+	case parser.NodeImportFrom:
+		module := node.Module
+		level := node.Level
+
+		seenNames := make(map[string]bool, len(node.Names)+len(node.Children))
+		importedNames := make([]string, 0, len(node.Names)+len(node.Children))
+		addName := func(name string) {
+			if name == "" || seenNames[name] {
+				return
+			}
+			seenNames[name] = true
+			importedNames = append(importedNames, name)
+		}
+		for _, name := range node.Names {
+			addName(name)
+		}
+		for _, child := range node.Children {
+			if child.Type == parser.NodeAlias {
+				addName(child.Name)
+			}
+		}
+
+		imp := &ImportInfo{
+			Statement:      ma.buildImportStatement(node),
+			ImportedNames:  importedNames,
+			IsRelative:     level > 0,
+			Level:          level,
+			Line:           node.Location.StartLine,
+			IsTypeChecking: isTypeChecking,
+		}
+
+		if imp.IsRelative {
+			imp.Statement = strings.TrimLeft(module, ".")
+		} else {
+			imp.Statement = module
+		}
+
+		return []*ImportInfo{imp}
+	default:
+		return nil
+	}
 }
 
 // resolveImport resolves an import to a module name
@@ -661,42 +708,6 @@ func (ma *ModuleAnalyzer) pathToModuleName(path string) string {
 	return strings.ReplaceAll(relPath, string(filepath.Separator), ".")
 }
 
-// extractModuleInfo extracts information about the module from its AST
-func (ma *ModuleAnalyzer) extractModuleInfo(ast *parser.Node, module *ModuleNode) {
-	var functionCount, classCount, abstractClassCount int
-	var publicNames []string
-
-	ma.walkNode(ast, func(node *parser.Node) bool {
-		switch node.Type {
-		case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
-			functionCount++
-			if node.Name != "" && !strings.HasPrefix(node.Name, "_") {
-				publicNames = append(publicNames, node.Name)
-			}
-		case parser.NodeClassDef:
-			classCount++
-			if ma.isAbstractClass(node) {
-				abstractClassCount++
-			}
-			if node.Name != "" && !strings.HasPrefix(node.Name, "_") {
-				publicNames = append(publicNames, node.Name)
-			}
-		}
-		return true
-	})
-
-	// Update module information
-	module.FunctionCount = functionCount
-	module.ClassCount = classCount
-	module.AbstractClassCount = abstractClassCount
-	module.PublicNames = publicNames
-
-	// Count lines (approximation)
-	if _, err := os.Stat(module.FilePath); err == nil {
-		module.LineCount = ma.estimateLineCount(module.FilePath)
-	}
-}
-
 func (ma *ModuleAnalyzer) isAbstractClass(classNode *parser.Node) bool {
 	for _, base := range classNode.Bases {
 		if ma.isAbstractClassName(ma.nodeQualifiedName(base)) {
@@ -793,23 +804,6 @@ func (ma *ModuleAnalyzer) shouldIncludeDependency(moduleName string) bool {
 	}
 
 	return true
-}
-
-// Utility methods
-
-// walkNode recursively walks AST nodes
-func (ma *ModuleAnalyzer) walkNode(node *parser.Node, visitor func(*parser.Node) bool) {
-	if node == nil || !visitor(node) {
-		return
-	}
-
-	for _, child := range node.Children {
-		ma.walkNode(child, visitor)
-	}
-
-	for _, child := range node.Body {
-		ma.walkNode(child, visitor)
-	}
 }
 
 // buildImportStatement builds the original import statement string
@@ -976,78 +970,71 @@ func (ma *ModuleAnalyzer) isStandardLibrary(moduleName string) bool {
 	return false
 }
 
-// estimateLineCount estimates line count for a file
-func (ma *ModuleAnalyzer) estimateLineCount(filePath string) int {
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		return 0
-	}
-	return strings.Count(string(content), "\n") + 1
-}
-
 // isInTypeCheckingBlock checks if a node is inside a TYPE_CHECKING conditional block
 func (ma *ModuleAnalyzer) isInTypeCheckingBlock(node *parser.Node) bool {
-	// Walk up the parent chain to find if we're inside an if statement
+	child := node
 	current := node.Parent
 	for current != nil {
-		if current.Type == parser.NodeIf {
-			// Check if this is a TYPE_CHECKING condition
-			if ma.isTypeCheckingCondition(current.Test) {
+		if current.Type == parser.NodeIf || current.Type == parser.NodeElifClause {
+			if ma.isTypeCheckingCondition(current.Test) && containsDirectNode(current.Body, child) {
 				return true
 			}
 		}
+		child = current
 		current = current.Parent
 	}
 	return false
 }
 
-// isTypeCheckingCondition checks if an expression is a TYPE_CHECKING condition
+func containsDirectNode(nodes []*parser.Node, target *parser.Node) bool {
+	for _, node := range nodes {
+		if node == target {
+			return true
+		}
+	}
+	return false
+}
+
 func (ma *ModuleAnalyzer) isTypeCheckingCondition(expr *parser.Node) bool {
 	if expr == nil {
 		return false
 	}
 
-	// Handle simple case: just TYPE_CHECKING
 	if expr.Type == parser.NodeName && expr.Name == "TYPE_CHECKING" {
 		return true
 	}
 
-	// Handle attribute access: typing.TYPE_CHECKING
 	if expr.Type == parser.NodeAttribute && expr.Name == "TYPE_CHECKING" {
 		return true
 	}
 
-	// Handle binary operations that include TYPE_CHECKING
-	// e.g., "TYPE_CHECKING and sys.version_info >= (3, 9)"
 	if expr.Type == parser.NodeBoolOp {
-		return ma.containsTypeChecking(expr)
-	}
-
-	// Handle comparisons and other complex expressions
-	if expr.Type == parser.NodeCompare {
-		return ma.containsTypeChecking(expr)
+		return ma.isTypeCheckingBoolOp(expr)
 	}
 
 	return false
 }
 
-// containsTypeChecking recursively checks if an expression contains TYPE_CHECKING
-func (ma *ModuleAnalyzer) containsTypeChecking(node *parser.Node) bool {
-	if node == nil {
+func (ma *ModuleAnalyzer) isTypeCheckingBoolOp(expr *parser.Node) bool {
+	children := expr.GetChildren()
+	if len(children) == 0 {
 		return false
 	}
 
-	// Check current node
-	if (node.Type == parser.NodeName && node.Name == "TYPE_CHECKING") ||
-		(node.Type == parser.NodeAttribute && node.Name == "TYPE_CHECKING") {
-		return true
-	}
-
-	// Recursively check all children
-	for _, child := range node.GetChildren() {
-		if ma.containsTypeChecking(child) {
-			return true
+	switch expr.Op {
+	case "and":
+		for _, child := range children {
+			if ma.isTypeCheckingCondition(child) {
+				return true
+			}
 		}
+	case "or":
+		for _, child := range children {
+			if !ma.isTypeCheckingCondition(child) {
+				return false
+			}
+		}
+		return true
 	}
 
 	return false
