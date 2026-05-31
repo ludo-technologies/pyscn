@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.22.6] - 2026-05-31
+
+### Fixed
+- Propagate nested function CFGs and reset builder state between builds (#497)
+- Fix DFA compound-statement use contracts: match pattern bindings, definition scopes, and parameter/function-header uses (#498)
+- Skip trailing-semicolon empty statements in dead code detection (#500)
+
 ## [1.22.5] - 2026-05-31
 
 ### Fixed
