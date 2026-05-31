@@ -674,3 +674,60 @@ def complex_function():
 	expectedRatio := float64(reachableCount) / float64(totalBlocks)
 	assert.InDelta(t, expectedRatio, ratio, 0.01, "Ratio calculation should be consistent")
 }
+
+// TestDeadCodeSkipsTrailingSemicolonNoise ensures the dead-code detector does
+// not emit `unreachable_branch` findings for the empty statement produced by a
+// trailing `;` after a terminating statement (raise/return). Regression test
+// for https://github.com/ludo-technologies/pyscn/issues/499.
+func TestDeadCodeSkipsTrailingSemicolonNoise(t *testing.T) {
+	code := `
+def f(x):
+    if x is None:
+        raise ValueError("nope");
+    return x
+
+
+def g(y):
+    return y;
+`
+
+	p := parser.New()
+	ctx := context.Background()
+	parseResult, err := p.Parse(ctx, []byte(code))
+	require.NoError(t, err)
+
+	builder := NewCFGBuilder()
+	cfgs, err := builder.BuildAll(parseResult.AST)
+	require.NoError(t, err)
+
+	for _, fnName := range []string{"f", "g"} {
+		cfg, ok := cfgs[fnName]
+		require.True(t, ok, "expected CFG for %s", fnName)
+
+		result := DetectInFunction(cfg)
+		require.NotNil(t, result)
+
+		for _, finding := range result.Findings {
+			assert.NotEqual(t, ";", finding.Code,
+				"function %s: dead-code finding for a bare ';' (trailing-semicolon empty statement) should be filtered out; got %+v",
+				fnName, finding)
+		}
+	}
+}
+
+func TestIsOnlyEmptyStatements(t *testing.T) {
+	assert.False(t, isOnlyEmptyStatements(nil), "nil block")
+	assert.False(t, isOnlyEmptyStatements(&BasicBlock{}), "empty block")
+
+	semi := &parser.Node{Type: parser.NodeType(";")}
+	ret := &parser.Node{Type: parser.NodeReturn}
+
+	assert.True(t, isOnlyEmptyStatements(&BasicBlock{Statements: []*parser.Node{semi}}),
+		"block with only a separator")
+	assert.True(t, isOnlyEmptyStatements(&BasicBlock{Statements: []*parser.Node{semi, semi}}),
+		"block with multiple separators")
+	assert.False(t, isOnlyEmptyStatements(&BasicBlock{Statements: []*parser.Node{ret}}),
+		"block with a real statement")
+	assert.False(t, isOnlyEmptyStatements(&BasicBlock{Statements: []*parser.Node{semi, ret}}),
+		"block mixing separators and a real statement")
+}

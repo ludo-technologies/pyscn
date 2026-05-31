@@ -194,6 +194,16 @@ func (dcd *DeadCodeDetector) analyzeDeadBlock(block *BasicBlock) []*DeadCodeFind
 		return findings
 	}
 
+	// Skip blocks whose only "statements" are empty separators (a bare `;`).
+	// In Python a trailing semicolon (`raise X;` or `return y;`) parses as the
+	// terminating statement followed by an empty statement. That empty statement
+	// is technically unreachable, but reporting it as `unreachable_branch` with
+	// `code: ";"` and a `0-0` column range is noise — there's nothing for the
+	// user to act on beyond a stylistic trailing semicolon.
+	if isOnlyEmptyStatements(block) {
+		return findings
+	}
+
 	// Determine the reason for the dead code
 	reason, severity := dcd.determineDeadCodeReason(block)
 
@@ -537,4 +547,21 @@ func GroupFindingsByReason(findings []*DeadCodeFinding) map[DeadCodeReason][]*De
 	}
 
 	return groups
+}
+
+// isOnlyEmptyStatements reports whether every statement in the block is an
+// empty separator node (a bare `;`). Tree-sitter emits a node with
+// `Type == ";"` for the no-op produced by a trailing semicolon. Such blocks
+// are unreachable but carry no actionable signal, so they should not produce
+// dead-code findings.
+func isOnlyEmptyStatements(block *BasicBlock) bool {
+	if block == nil || len(block.Statements) == 0 {
+		return false
+	}
+	for _, stmt := range block.Statements {
+		if stmt == nil || string(stmt.Type) != ";" {
+			return false
+		}
+	}
+	return true
 }
