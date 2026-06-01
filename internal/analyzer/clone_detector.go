@@ -66,7 +66,7 @@ type CodeFragment struct {
 	Size       int      // Number of AST nodes
 	LineCount  int      // Number of source lines
 	Complexity int      // Cyclomatic complexity (if applicable)
-	Features   []string // Cached clone feature tokens for this fragment's tree
+	Features   []string // Detector-populated clone feature cache for this fragment's tree
 }
 
 // NewCodeFragment creates a new code fragment
@@ -250,12 +250,6 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 // are missed while the vast majority of non-clone pairs are skipped.
 const jaccardRejectionThreshold = 0.10
 
-// newCloneFeatureExtractor owns the CodeFragment.Features contract shared by
-// the Jaccard pre-filter and LSH candidate generation.
-func newCloneFeatureExtractor() *ASTFeatureExtractor {
-	return NewASTFeatureExtractor()
-}
-
 // CloneDetector detects code clones using APTED algorithm
 type CloneDetector struct {
 	// Embed config fields (private to maintain encapsulation)
@@ -329,7 +323,7 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 		classifier:          classifier,
 		textualAnalyzer:     NewTextualSimilarityAnalyzer(),
 		syntacticAnalyzer:   NewSyntacticSimilarityAnalyzer(),
-		featureExtractor:    newCloneFeatureExtractor(),
+		featureExtractor:    NewASTFeatureExtractor(),
 		fragments:           []*CodeFragment{},
 		clonePairs:          []*ClonePair{},
 		cloneGroups:         []*CloneGroup{},
@@ -727,19 +721,15 @@ func (cd *CloneDetector) prepareFragments() {
 		if fragment == nil {
 			continue
 		}
-		treeBuiltFromAST := false
 		if fragment.TreeNode == nil && fragment.ASTNode != nil {
 			fragment.TreeNode = cd.converter.ConvertAST(fragment.ASTNode)
-			treeBuiltFromAST = fragment.TreeNode != nil
 		}
 		if fragment.TreeNode == nil {
 			continue
 		}
 		PrepareTreeForAPTED(fragment.TreeNode)
-		if treeBuiltFromAST || len(fragment.Features) == 0 {
-			features, _ := cd.featureExtractor.ExtractFeatures(fragment.TreeNode)
-			fragment.Features = features
-		}
+		features, _ := cd.featureExtractor.ExtractFeatures(fragment.TreeNode)
+		fragment.Features = features
 	}
 }
 

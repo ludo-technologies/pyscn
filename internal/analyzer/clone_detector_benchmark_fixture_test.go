@@ -20,7 +20,6 @@ func cloneBenchmarkConfig(useLSH bool) *CloneDetectorConfig {
 }
 
 func buildCloneBenchmarkFragments(familyCount, copiesPerFamily, noiseCount int) []*CodeFragment {
-	extractor := newCloneFeatureExtractor()
 	fragments := make([]*CodeFragment, 0, familyCount*copiesPerFamily+noiseCount)
 
 	for family := 0; family < familyCount; family++ {
@@ -29,7 +28,6 @@ func buildCloneBenchmarkFragments(familyCount, copiesPerFamily, noiseCount int) 
 		for copyIndex := 0; copyIndex < copiesPerFamily; copyIndex++ {
 			tree := buildCloneBenchmarkTree(family)
 			PrepareTreeForAPTED(tree)
-			features, _ := extractor.ExtractFeatures(tree)
 			fragments = append(fragments, &CodeFragment{
 				Location: &CodeLocation{
 					FilePath:  fmt.Sprintf("family_%02d_copy_%02d.py", family, copyIndex),
@@ -44,7 +42,6 @@ func buildCloneBenchmarkFragments(familyCount, copiesPerFamily, noiseCount int) 
 				LineCount:  8,
 				Complexity: complexity,
 				TreeNode:   tree,
-				Features:   features,
 			})
 		}
 	}
@@ -52,7 +49,6 @@ func buildCloneBenchmarkFragments(familyCount, copiesPerFamily, noiseCount int) 
 	for noise := 0; noise < noiseCount; noise++ {
 		tree := buildCloneBenchmarkNoiseTree(familyCount + noise)
 		PrepareTreeForAPTED(tree)
-		features, _ := extractor.ExtractFeatures(tree)
 
 		lineCount := 5 + (noise % 4)
 		fragments = append(fragments, &CodeFragment{
@@ -69,7 +65,6 @@ func buildCloneBenchmarkFragments(familyCount, copiesPerFamily, noiseCount int) 
 			LineCount:  lineCount,
 			Complexity: 1 + (noise % 5),
 			TreeNode:   tree,
-			Features:   features,
 		})
 	}
 
