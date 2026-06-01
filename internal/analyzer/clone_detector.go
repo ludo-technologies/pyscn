@@ -66,7 +66,7 @@ type CodeFragment struct {
 	Size       int      // Number of AST nodes
 	LineCount  int      // Number of source lines
 	Complexity int      // Cyclomatic complexity (if applicable)
-	Features   []string // Pre-computed features for Jaccard and LSH similarity
+	Features   []string // Cached clone feature tokens for this fragment's tree
 }
 
 // NewCodeFragment creates a new code fragment
@@ -250,6 +250,12 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 // are missed while the vast majority of non-clone pairs are skipped.
 const jaccardRejectionThreshold = 0.10
 
+// newCloneFeatureExtractor owns the CodeFragment.Features contract shared by
+// the Jaccard pre-filter and LSH candidate generation.
+func newCloneFeatureExtractor() *ASTFeatureExtractor {
+	return NewASTFeatureExtractor()
+}
+
 // CloneDetector detects code clones using APTED algorithm
 type CloneDetector struct {
 	// Embed config fields (private to maintain encapsulation)
@@ -260,7 +266,7 @@ type CloneDetector struct {
 	classifier        *CloneClassifier // Multi-dimensional classifier (optional)
 	textualAnalyzer   *TextualSimilarityAnalyzer
 	syntacticAnalyzer *SyntacticSimilarityAnalyzer
-	featureExtractor  *ASTFeatureExtractor // Pre-filter feature extractor
+	featureExtractor  *ASTFeatureExtractor // Source for CodeFragment.Features
 	fragments         []*CodeFragment
 	clonePairs        []*ClonePair
 	cloneGroups       []*CloneGroup
@@ -323,7 +329,7 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 		classifier:          classifier,
 		textualAnalyzer:     NewTextualSimilarityAnalyzer(),
 		syntacticAnalyzer:   NewSyntacticSimilarityAnalyzer(),
-		featureExtractor:    NewASTFeatureExtractor(),
+		featureExtractor:    newCloneFeatureExtractor(),
 		fragments:           []*CodeFragment{},
 		clonePairs:          []*ClonePair{},
 		cloneGroups:         []*CloneGroup{},
@@ -715,20 +721,22 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 	return cd.clonePairs, cd.cloneGroups
 }
 
-// prepareFragments converts AST fragments to tree nodes and pre-computes features
+// prepareFragments converts AST fragments to tree nodes and populates clone features.
 func (cd *CloneDetector) prepareFragments() {
 	for _, fragment := range cd.fragments {
 		if fragment == nil {
 			continue
 		}
+		treeBuiltFromAST := false
 		if fragment.TreeNode == nil && fragment.ASTNode != nil {
 			fragment.TreeNode = cd.converter.ConvertAST(fragment.ASTNode)
+			treeBuiltFromAST = fragment.TreeNode != nil
 		}
 		if fragment.TreeNode == nil {
 			continue
 		}
 		PrepareTreeForAPTED(fragment.TreeNode)
-		if len(fragment.Features) == 0 {
+		if treeBuiltFromAST || len(fragment.Features) == 0 {
 			features, _ := cd.featureExtractor.ExtractFeatures(fragment.TreeNode)
 			fragment.Features = features
 		}

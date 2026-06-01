@@ -20,7 +20,7 @@ func cloneBenchmarkConfig(useLSH bool) *CloneDetectorConfig {
 }
 
 func buildCloneBenchmarkFragments(familyCount, copiesPerFamily, noiseCount int) []*CodeFragment {
-	extractor := NewASTFeatureExtractor()
+	extractor := newCloneFeatureExtractor()
 	fragments := make([]*CodeFragment, 0, familyCount*copiesPerFamily+noiseCount)
 
 	for family := 0; family < familyCount; family++ {
