@@ -66,7 +66,7 @@ type CodeFragment struct {
 	Size       int      // Number of AST nodes
 	LineCount  int      // Number of source lines
 	Complexity int      // Cyclomatic complexity (if applicable)
-	Features   []string // Pre-computed features for Jaccard similarity
+	Features   []string // Pre-computed features for Jaccard and LSH similarity
 }
 
 // NewCodeFragment creates a new code fragment
@@ -599,13 +599,7 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 		return cd.clonePairs, cd.cloneGroups
 	}
 
-	// Stage 1: Feature extraction and MinHash signatures
-	extractor := NewASTFeatureExtractor().WithOptions(
-		max(1, cd.cloneDetectorConfig.LSHRows), // reuse rows for subtree height if >0
-		max(2, 4),                              // keep default k=4
-		true,
-		false,
-	)
+	// Stage 1: MinHash signatures from prepared clone features
 	hasher := NewMinHasher(cd.cloneDetectorConfig.LSHMinHashCount)
 
 	type fragRec struct {
@@ -618,9 +612,7 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 		if f == nil || f.TreeNode == nil {
 			continue
 		}
-		// Very short fragments: still create minimal features
-		feats, _ := extractor.ExtractFeatures(f.TreeNode)
-		sig := hasher.ComputeSignature(feats)
+		sig := hasher.ComputeSignature(f.Features)
 		records = append(records, fragRec{idx: i, sig: sig})
 		sigByIndex[i] = sig
 	}
@@ -726,13 +718,19 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 // prepareFragments converts AST fragments to tree nodes and pre-computes features
 func (cd *CloneDetector) prepareFragments() {
 	for _, fragment := range cd.fragments {
-		if fragment.ASTNode != nil {
+		if fragment == nil {
+			continue
+		}
+		if fragment.TreeNode == nil && fragment.ASTNode != nil {
 			fragment.TreeNode = cd.converter.ConvertAST(fragment.ASTNode)
-			if fragment.TreeNode != nil {
-				PrepareTreeForAPTED(fragment.TreeNode)
-				features, _ := cd.featureExtractor.ExtractFeatures(fragment.TreeNode)
-				fragment.Features = features
-			}
+		}
+		if fragment.TreeNode == nil {
+			continue
+		}
+		PrepareTreeForAPTED(fragment.TreeNode)
+		if len(fragment.Features) == 0 {
+			features, _ := cd.featureExtractor.ExtractFeatures(fragment.TreeNode)
+			fragment.Features = features
 		}
 	}
 }

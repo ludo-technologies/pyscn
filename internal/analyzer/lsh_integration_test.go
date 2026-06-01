@@ -61,6 +61,41 @@ func TestCloneDetector_DetectClonesWithLSH_Simple(t *testing.T) {
 	}
 }
 
+func TestCloneDetectorPrepareFragmentsBuildsTreeBackedFeatures(t *testing.T) {
+	fragment := &CodeFragment{
+		Location:  &CodeLocation{FilePath: "tree.py", StartLine: 1, EndLine: 5},
+		TreeNode:  buildSimpleTree("FunctionDef", "If", "Return"),
+		Size:      3,
+		LineCount: 5,
+	}
+
+	detector := NewCloneDetector(DefaultCloneDetectorConfig())
+	detector.fragments = []*CodeFragment{fragment}
+	detector.prepareFragments()
+
+	if len(fragment.Features) == 0 {
+		t.Fatalf("expected prepareFragments to populate features for tree-backed fragment")
+	}
+}
+
+func TestCloneDetectorPrepareFragmentsKeepsPrecomputedFeatures(t *testing.T) {
+	fragment := &CodeFragment{
+		Location:  &CodeLocation{FilePath: "tree.py", StartLine: 1, EndLine: 5},
+		TreeNode:  buildSimpleTree("FunctionDef", "If", "Return"),
+		Size:      3,
+		LineCount: 5,
+		Features:  []string{"precomputed:feature"},
+	}
+
+	detector := NewCloneDetector(DefaultCloneDetectorConfig())
+	detector.fragments = []*CodeFragment{fragment}
+	detector.prepareFragments()
+
+	if len(fragment.Features) != 1 || fragment.Features[0] != "precomputed:feature" {
+		t.Fatalf("expected precomputed features to be preserved, got %v", fragment.Features)
+	}
+}
+
 func TestCloneDetector_DetectClonesWithLSH_CandidateCapDoesNotDropExactFamily(t *testing.T) {
 	fragments := make([]*CodeFragment, 0, 9)
 	for i := 0; i < 9; i++ {
