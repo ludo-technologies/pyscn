@@ -162,9 +162,9 @@ func (s *CloneService) buildCloneResponse(
 	clonePairs, cloneGroups := detector.DetectClonesWithLSH(ctx, allFragments)
 
 	// Convert to domain objects
-	domainClones := s.convertFragmentsToDomainClones(allFragments)
+	domainClones, fragmentIDs := s.convertFragmentsToDomainClones(allFragments)
 	domainClonePairs := s.convertClonePairsToDomain(clonePairs, req.ShowContent)
-	domainCloneGroups := s.convertCloneGroupsToDomain(cloneGroups, req.ShowContent)
+	domainCloneGroups := s.convertCloneGroupsToDomain(cloneGroups, req.ShowContent, fragmentIDs)
 
 	// Filter results based on request criteria
 	domainClonePairs = s.filterClonePairs(domainClonePairs, req)
@@ -297,13 +297,23 @@ func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.
 	}
 }
 
-// convertFragmentsToDomainClones converts analyzer fragments to domain clones
-func (s *CloneService) convertFragmentsToDomainClones(fragments []*analyzer.CodeFragment) []*domain.Clone {
+// convertFragmentsToDomainClones converts analyzer fragments to domain clones.
+//
+// It also returns a fragment -> id map so that the same fragment receives the
+// same id everywhere it appears in the response (top-level clones[] and the
+// per-group clone_groups[].clones[]). The id is the fragment's 1-based index in
+// the analyzed fragment set, which is response-unique and stable.
+func (s *CloneService) convertFragmentsToDomainClones(
+	fragments []*analyzer.CodeFragment,
+) ([]*domain.Clone, map[*analyzer.CodeFragment]int) {
 	domainClones := make([]*domain.Clone, len(fragments))
+	fragmentIDs := make(map[*analyzer.CodeFragment]int, len(fragments))
 
 	for i, fragment := range fragments {
+		id := i + 1
+		fragmentIDs[fragment] = id
 		domainClones[i] = &domain.Clone{
-			ID: i + 1,
+			ID: id,
 			Location: &domain.CloneLocation{
 				FilePath:  fragment.Location.FilePath,
 				StartLine: fragment.Location.StartLine,
@@ -319,7 +329,7 @@ func (s *CloneService) convertFragmentsToDomainClones(fragments []*analyzer.Code
 		}
 	}
 
-	return domainClones
+	return domainClones, fragmentIDs
 }
 
 // convertClonePairsToDomain converts analyzer clone pairs to domain clone pairs.
@@ -369,7 +379,11 @@ func (s *CloneService) convertClonePairsToDomain(clonePairs []*analyzer.ClonePai
 }
 
 // convertCloneGroupsToDomain converts analyzer clone groups to domain clone groups.
-func (s *CloneService) convertCloneGroupsToDomain(cloneGroups []*analyzer.CloneGroup, includeContent bool) []*domain.CloneGroup {
+func (s *CloneService) convertCloneGroupsToDomain(
+	cloneGroups []*analyzer.CloneGroup,
+	includeContent bool,
+	fragmentIDs map[*analyzer.CodeFragment]int,
+) []*domain.CloneGroup {
 	domainGroups := make([]*domain.CloneGroup, len(cloneGroups))
 
 	for i, group := range cloneGroups {
@@ -384,6 +398,11 @@ func (s *CloneService) convertCloneGroupsToDomain(cloneGroups []*analyzer.CloneG
 		// Convert fragments to clones
 		for _, fragment := range group.Fragments {
 			clone := &domain.Clone{
+				// Reuse the fragment's response-wide id so a group fragment
+				// matches the same fragment in top-level clones[] and ids stay
+				// unique across the response (not reset per group).
+				ID:   fragmentIDs[fragment],
+				Type: s.convertCloneType(group.CloneType),
 				Location: &domain.CloneLocation{
 					FilePath:  fragment.Location.FilePath,
 					StartLine: fragment.Location.StartLine,
@@ -391,6 +410,7 @@ func (s *CloneService) convertCloneGroupsToDomain(cloneGroups []*analyzer.CloneG
 					StartCol:  fragment.Location.StartCol,
 					EndCol:    fragment.Location.EndCol,
 				},
+				Hash:      fragment.Hash,
 				Size:      fragment.Size,
 				LineCount: fragment.LineCount,
 			}

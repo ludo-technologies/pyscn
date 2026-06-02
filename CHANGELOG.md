@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.22.7] - 2026-06-02
+
+### Fixed
+- Collect module imports from else/except/finally branches with branch-aware TYPE_CHECKING filtering (#502)
+- Populate per-fragment `id` and `type` in clone group output (#503)
+- Reuse detector-owned clone feature cache when building LSH MinHash signatures (#505)
+
 ## [1.22.6] - 2026-05-31
 
 ### Fixed

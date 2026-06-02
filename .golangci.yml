@@ -1,12 +1,29 @@
-linters-settings:
-  staticcheck:
-    checks:
-      - "all"
-      - "-SA5011" # Disable false positives for nil checks before dereferencing
-
+version: "2"
 linters:
+  settings:
+    staticcheck:
+      checks:
+        - all
+        - -SA5011 # Disable false positives for nil checks before dereferencing
+        - -ST1*   # Style checks (separate stylecheck linter in v1, not enabled here)
+        - -QF1*   # Quickfix suggestions (not enabled in v1)
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
   enable:
-    - staticcheck
-    - unused
     - gofmt
-    - govet
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

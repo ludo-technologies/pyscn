@@ -2,9 +2,12 @@ package analyzer
 
 import (
 	"context"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 // buildSimpleTree builds a small ordered tree with labels
@@ -21,6 +24,27 @@ func buildSimpleTree(labels ...string) *TreeNode {
 	}
 	PrepareTreeForAPTED(root)
 	return root
+}
+
+func buildSimpleAST(types ...parser.NodeType) *parser.Node {
+	if len(types) == 0 {
+		return nil
+	}
+	root := parser.NewNode(types[0])
+	cur := root
+	for i := 1; i < len(types); i++ {
+		child := parser.NewNode(types[i])
+		cur.AddChild(child)
+		cur = child
+	}
+	return root
+}
+
+func prepareTestFragment(t *testing.T, cfg *CloneDetectorConfig, fragment *CodeFragment) {
+	t.Helper()
+	detector := NewCloneDetector(cfg)
+	detector.fragments = []*CodeFragment{fragment}
+	detector.prepareFragments()
 }
 
 func TestCloneDetector_DetectClonesWithLSH_Simple(t *testing.T) {
@@ -58,6 +82,125 @@ func TestCloneDetector_DetectClonesWithLSH_Simple(t *testing.T) {
 		_ = lsh.BuildIndex()
 		cands := lsh.FindCandidates(s1)
 		t.Fatalf("expected at least one clone pair, got 0 (minhash est=%.3f, cands=%v)", est, cands)
+	}
+}
+
+func TestCloneDetectorPrepareFragmentsBuildsTreeBackedFeatures(t *testing.T) {
+	fragment := &CodeFragment{
+		Location:  &CodeLocation{FilePath: "tree.py", StartLine: 1, EndLine: 5},
+		TreeNode:  buildSimpleTree("FunctionDef", "If", "Return"),
+		Size:      3,
+		LineCount: 5,
+	}
+
+	prepareTestFragment(t, DefaultCloneDetectorConfig(), fragment)
+
+	if len(fragment.Features) == 0 {
+		t.Fatalf("expected prepareFragments to populate features for tree-backed fragment")
+	}
+}
+
+func TestCloneDetectorPrepareFragmentsRefreshesTreeBackedFeatures(t *testing.T) {
+	staleFeatures := []string{"stale:feature"}
+	fragment := &CodeFragment{
+		Location:  &CodeLocation{FilePath: "tree.py", StartLine: 1, EndLine: 5},
+		TreeNode:  buildSimpleTree("FunctionDef", "If", "Return"),
+		Size:      3,
+		LineCount: 5,
+		Features:  staleFeatures,
+	}
+
+	prepareTestFragment(t, DefaultCloneDetectorConfig(), fragment)
+
+	if slices.Equal(fragment.Features, staleFeatures) {
+		t.Fatalf("expected tree-backed fragment features to be refreshed")
+	}
+	expected, _ := NewASTFeatureExtractor().ExtractFeatures(fragment.TreeNode)
+	if !slices.Equal(fragment.Features, expected) {
+		t.Fatalf("expected tree-backed features %v, got %v", expected, fragment.Features)
+	}
+}
+
+func TestCloneDetectorPrepareFragmentsRefreshesConvertedASTFeatures(t *testing.T) {
+	staleFeatures := []string{"stale:feature"}
+	fragment := &CodeFragment{
+		Location:  &CodeLocation{FilePath: "ast.py", StartLine: 1, EndLine: 5},
+		ASTNode:   buildSimpleAST(parser.NodeFunctionDef, parser.NodeIf, parser.NodeReturn),
+		Size:      3,
+		LineCount: 5,
+		Features:  staleFeatures,
+	}
+
+	prepareTestFragment(t, DefaultCloneDetectorConfig(), fragment)
+
+	if fragment.TreeNode == nil {
+		t.Fatalf("expected prepareFragments to convert AST to tree")
+	}
+	if slices.Equal(fragment.Features, staleFeatures) {
+		t.Fatalf("expected AST conversion to refresh stale features")
+	}
+	expected, _ := NewASTFeatureExtractor().ExtractFeatures(fragment.TreeNode)
+	if !slices.Equal(fragment.Features, expected) {
+		t.Fatalf("expected converted AST features %v, got %v", expected, fragment.Features)
+	}
+}
+
+func TestCloneDetectorPrepareFragmentsFeatureContractIgnoresLSHRows(t *testing.T) {
+	featuresForRows := func(rows int) []string {
+		cfg := DefaultCloneDetectorConfig()
+		cfg.LSHRows = rows
+		fragment := &CodeFragment{
+			Location:  &CodeLocation{FilePath: "rows.py", StartLine: 1, EndLine: 5},
+			TreeNode:  buildSimpleTree("FunctionDef", "If", "Return"),
+			Size:      3,
+			LineCount: 5,
+		}
+		prepareTestFragment(t, cfg, fragment)
+		return fragment.Features
+	}
+
+	rowsOneFeatures := featuresForRows(1)
+	rowsNineFeatures := featuresForRows(9)
+	if !slices.Equal(rowsOneFeatures, rowsNineFeatures) {
+		t.Fatalf("LSHRows must not change clone features: rows=1 %v rows=9 %v", rowsOneFeatures, rowsNineFeatures)
+	}
+}
+
+func TestCloneDetectorDetectClonesWithLSHRefreshesStaleFeatureCache(t *testing.T) {
+	fragments := []*CodeFragment{
+		{
+			Location:  &CodeLocation{FilePath: "cached_a.py", StartLine: 1, EndLine: 5},
+			TreeNode:  buildSimpleTree("FunctionDef", "Return", "Name"),
+			Size:      3,
+			LineCount: 5,
+			Features:  []string{"stale:left"},
+		},
+		{
+			Location:  &CodeLocation{FilePath: "cached_b.py", StartLine: 1, EndLine: 5},
+			TreeNode:  buildSimpleTree("FunctionDef", "Return", "Name"),
+			Size:      3,
+			LineCount: 5,
+			Features:  []string{"stale:right"},
+		},
+	}
+
+	cfg := DefaultCloneDetectorConfig()
+	cfg.UseLSH = true
+	cfg.MinNodes = 1
+	cfg.LSHSimilarityThreshold = 1
+
+	hasher := NewMinHasher(cfg.LSHMinHashCount)
+	staleSimilarity := hasher.EstimateJaccardSimilarity(
+		hasher.ComputeSignature(fragments[0].Features),
+		hasher.ComputeSignature(fragments[1].Features),
+	)
+	if staleSimilarity == 1 {
+		t.Fatalf("test setup needs stale features below strict LSH threshold")
+	}
+
+	pairs, _ := NewCloneDetector(cfg).DetectClonesWithLSH(context.Background(), fragments)
+	if len(pairs) != 1 {
+		t.Fatalf("expected LSH to refresh stale cached features before candidate generation, got %d pairs", len(pairs))
 	}
 }
 
