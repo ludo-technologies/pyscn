@@ -3,6 +3,11 @@ package analyzer
 import (
 	"hash/fnv"
 	"math"
+	// nosemgrep: go.lang.security.audit.crypto.math_random.math-random-used
+	// math/rand is intentional here: it is seeded with a fixed value (see
+	// generateHashFunctions) to produce reproducible MinHash/LSH coefficients
+	// for clone detection. This is not a security context, and crypto/rand
+	// cannot be seeded deterministically.
 	"math/rand"
 )
 
