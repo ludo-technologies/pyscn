@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.22.8] - 2026-06-03
+
+### Fixed
+- Register plugin MCP server by moving the manifest into a nested `.claude-plugin/` directory (#509)
+
+### Changed
+- Bump Go dependencies (#504)
+- Upgrade golangci-lint-action to v7 (#507)
+
 ## [1.22.7] - 2026-06-02
 
 ### Fixed
