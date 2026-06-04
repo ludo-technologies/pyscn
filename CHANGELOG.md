@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.22.9] - 2026-06-04
+
+### Fixed
+- Clear dependency CVEs and suppress math/rand false positive in security report (#513)
+- Exclude lazy function-body imports from circular dependency detection while retaining them as edges (#514)
+
+### Changed
+- Consolidate cognitive complexity into the analyzer layer (#515)
+
 ## [1.22.8] - 2026-06-03
 
 ### Fixed
