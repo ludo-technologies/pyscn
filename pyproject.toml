@@ -142,3 +142,12 @@ batch_size = 100
 enable_batching = true
 max_goroutines = 4
 timeout_seconds = 300
+
+[tool.uv]
+# Restrict the dev/build toolchain lock (uv.lock) to Python >= 3.10.
+# pyscn ships as a Go binary with zero Python runtime dependencies, so the
+# wheel keeps requires-python = ">=3.8" (see [project]); this only affects the
+# dev environment resolved by `uv sync`. Older Python forks (3.8/3.9, both EOL)
+# pinned dev tools such as urllib3/requests/pytest to versions that can no
+# longer receive security fixes, since the patched releases require >= 3.10.
+environments = ["python_full_version >= '3.10'"]
