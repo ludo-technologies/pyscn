@@ -219,6 +219,15 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 			continue
 		}
 
+		// Skip lazy (function/method-body) imports: they are not executed at
+		// module load time, so they cannot form a load-time circular dependency.
+		// Counting them inflates the dependency graph and produces misleading
+		// "critical direct circular dependency" reports for the idiomatic
+		// lazy-import workaround. See issue #460.
+		if imp.IsLazy {
+			continue
+		}
+
 		targetModule := ma.resolveImport(imp, filePath)
 		if targetModule == "" {
 			continue
@@ -354,6 +363,7 @@ func countSourceLines(content []byte) int {
 
 func (ma *ModuleAnalyzer) importsFromNode(node *parser.Node) []*ImportInfo {
 	isTypeChecking := ma.isInTypeCheckingBlock(node)
+	isLazy := ma.isInFunctionScope(node)
 
 	switch node.Type {
 	case parser.NodeImport:
@@ -369,6 +379,7 @@ func (ma *ModuleAnalyzer) importsFromNode(node *parser.Node) []*ImportInfo {
 					IsRelative:     false,
 					Line:           node.Location.StartLine,
 					IsTypeChecking: isTypeChecking,
+					IsLazy:         isLazy,
 				}
 				if alias, ok := child.Value.(string); ok {
 					imp.Alias = alias
@@ -386,6 +397,7 @@ func (ma *ModuleAnalyzer) importsFromNode(node *parser.Node) []*ImportInfo {
 				IsRelative:     false,
 				Line:           node.Location.StartLine,
 				IsTypeChecking: isTypeChecking,
+				IsLazy:         isLazy,
 			})
 		}
 		return imports
@@ -419,6 +431,7 @@ func (ma *ModuleAnalyzer) importsFromNode(node *parser.Node) []*ImportInfo {
 			Level:          level,
 			Line:           node.Location.StartLine,
 			IsTypeChecking: isTypeChecking,
+			IsLazy:         isLazy,
 		}
 
 		if imp.IsRelative {
@@ -982,6 +995,21 @@ func (ma *ModuleAnalyzer) isInTypeCheckingBlock(node *parser.Node) bool {
 		}
 		child = current
 		current = current.Parent
+	}
+	return false
+}
+
+// isInFunctionScope reports whether the node is nested inside a function or
+// method body. Such imports are "lazy": they run only when the function is
+// called, not at module load time, so they cannot create a load-time circular
+// dependency. A class body, by contrast, executes at definition (load) time,
+// so imports directly in a class body are not considered lazy.
+func (ma *ModuleAnalyzer) isInFunctionScope(node *parser.Node) bool {
+	for current := node.Parent; current != nil; current = current.Parent {
+		switch current.Type {
+		case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
+			return true
+		}
 	}
 	return false
 }

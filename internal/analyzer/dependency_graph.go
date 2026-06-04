@@ -61,6 +61,7 @@ type ImportInfo struct {
 	Level          int      // Level for relative imports (number of dots)
 	Line           int      // Line number where import occurs
 	IsTypeChecking bool     // True if import is inside a TYPE_CHECKING block
+	IsLazy         bool     // True if import is inside a function/method body (not executed at module load)
 }
 
 // DependencyGraph represents the complete module dependency graph
