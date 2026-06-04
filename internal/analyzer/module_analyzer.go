@@ -214,19 +214,17 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 
 	// Process each import
 	for _, imp := range facts.imports {
-		// Skip TYPE_CHECKING imports for circular dependency detection
+		// Skip TYPE_CHECKING imports entirely: they never execute at runtime,
+		// so they are not real dependencies for any analysis.
 		if imp.IsTypeChecking {
 			continue
 		}
 
-		// Skip lazy (function/method-body) imports: they are not executed at
-		// module load time, so they cannot form a load-time circular dependency.
-		// Counting them inflates the dependency graph and produces misleading
-		// "critical direct circular dependency" reports for the idiomatic
-		// lazy-import workaround. See issue #460.
-		if imp.IsLazy {
-			continue
-		}
+		// NOTE: lazy (function/method-body) imports are still recorded as edges
+		// because they are real runtime dependencies that matter for coupling
+		// metrics, dependency matrices, and architecture layer checks. They are
+		// flagged via ImportInfo.IsLazy and excluded only from load-time
+		// circular-dependency detection. See issue #460.
 
 		targetModule := ma.resolveImport(imp, filePath)
 		if targetModule == "" {

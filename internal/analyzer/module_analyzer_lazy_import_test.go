@@ -91,7 +91,9 @@ async def async_helper():
 
 // TestModuleAnalyzerIgnoresLazyImportsForCircularDeps reproduces issue #460:
 // a module pair where one side imports the other only via a function-body lazy
-// import must not be reported as a load-time circular dependency.
+// import must not be reported as a load-time circular dependency. The lazy edge
+// is still retained in the graph (it is a real runtime dependency that matters
+// for coupling/architecture analyses) but flagged so cycle detection skips it.
 func TestModuleAnalyzerIgnoresLazyImportsForCircularDeps(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -139,28 +141,86 @@ def use():
 		t.Fatalf("Failed to analyze project: %v", err)
 	}
 
-	// b.a -> a must NOT be recorded (lazy import).
-	bDeps := graph.GetDependencies("foo.b")
-	for _, dep := range bDeps {
-		if dep == "foo.a" {
-			t.Errorf("foo.b should not depend on foo.a (the import is lazy / function-body)")
-		}
+	// Both directions must remain as real runtime edges in the graph, so that
+	// coupling metrics, dependency matrices, and architecture layer checks
+	// still see the dependency.
+	if !graph.Nodes["foo.b"].Dependencies["foo.a"] {
+		t.Errorf("foo.b -> foo.a edge should be retained in the graph (real runtime dependency)")
+	}
+	if !graph.Nodes["foo.a"].Dependencies["foo.b"] {
+		t.Errorf("foo.a -> foo.b edge should be present (top-level import)")
 	}
 
-	// a -> b must still be recorded (top-level import).
-	aDeps := graph.GetDependencies("foo.a")
-	hasAToB := false
-	for _, dep := range aDeps {
-		if dep == "foo.b" {
-			hasAToB = true
-		}
+	// foo.b -> foo.a must be flagged lazy; foo.a -> foo.b must not be.
+	if !graph.Nodes["foo.b"].LazyDependencies["foo.a"] {
+		t.Errorf("foo.b -> foo.a should be flagged as a lazy dependency")
 	}
-	if !hasAToB {
-		t.Errorf("foo.a should depend on foo.b (top-level import)")
+	if graph.Nodes["foo.a"].LazyDependencies["foo.b"] {
+		t.Errorf("foo.a -> foo.b (top-level import) should NOT be flagged lazy")
 	}
 
-	// No load-time cycle should exist.
-	if graph.HasCycle() {
-		t.Errorf("Found unexpected cycle: %v", graph.GetModulesInCycles())
+	// Cycle detection must NOT report a cycle, because the only edge closing the
+	// loop is lazy (function-body).
+	result := NewCircularDependencyDetector(graph).DetectCircularDependencies()
+	if result.HasCircularDependencies {
+		t.Errorf("expected no load-time cycle, got %d: %+v", result.TotalCycles, result.CircularDependencies)
+	}
+}
+
+// TestLazyImportPromotedToLoadTimeWhenAlsoImportedAtModuleLevel verifies that a
+// pair which has BOTH a lazy and a module-level import to the same target is
+// treated as a real load-time dependency (and so can form a cycle).
+func TestLazyImportPromotedToLoadTimeWhenAlsoImportedAtModuleLevel(t *testing.T) {
+	tmpDir := t.TempDir()
+	pkgDir := filepath.Join(tmpDir, "foo")
+	if err := os.MkdirAll(pkgDir, 0755); err != nil {
+		t.Fatalf("Failed to create package dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(pkgDir, "__init__.py"), []byte(""), 0644); err != nil {
+		t.Fatalf("Failed to write __init__.py: %v", err)
+	}
+
+	moduleA := `from .b import B   # top-level
+
+def use():
+    return B()
+`
+	// b.py imports a both lazily AND at the top level -> real load-time cycle.
+	moduleB := `from .a import use   # top-level
+
+class B:
+    def expand(self):
+        from .a import use   # also lazy
+        return use()
+`
+	if err := os.WriteFile(filepath.Join(pkgDir, "a.py"), []byte(moduleA), 0644); err != nil {
+		t.Fatalf("Failed to write a.py: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(pkgDir, "b.py"), []byte(moduleB), 0644); err != nil {
+		t.Fatalf("Failed to write b.py: %v", err)
+	}
+
+	analyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{
+		ProjectRoot:       tmpDir,
+		IncludeStdLib:     domain.BoolPtr(false),
+		IncludeThirdParty: domain.BoolPtr(true),
+		FollowRelative:    domain.BoolPtr(true),
+	})
+	if err != nil {
+		t.Fatalf("Failed to create module analyzer: %v", err)
+	}
+	graph, err := analyzer.AnalyzeProject()
+	if err != nil {
+		t.Fatalf("Failed to analyze project: %v", err)
+	}
+
+	// The module-level import must promote the pair out of lazy-only status.
+	if graph.Nodes["foo.b"].LazyDependencies["foo.a"] {
+		t.Errorf("foo.b -> foo.a should NOT be lazy-only (it also has a top-level import)")
+	}
+
+	result := NewCircularDependencyDetector(graph).DetectCircularDependencies()
+	if !result.HasCircularDependencies {
+		t.Errorf("expected a load-time cycle because both modules import each other at module level")
 	}
 }

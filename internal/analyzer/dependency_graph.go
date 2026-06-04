@@ -22,6 +22,14 @@ type ModuleNode struct {
 	Dependencies map[string]bool // Set of modules this module depends on
 	Dependents   map[string]bool // Set of modules that depend on this module
 
+	// LazyDependencies is the subset of Dependencies that is reachable ONLY via
+	// lazy (function/method-body) imports — i.e. no module-load-time import to
+	// the target exists. These edges are real runtime dependencies but cannot
+	// form a load-time circular import, so circular-dependency detection skips
+	// them. As soon as a module-level import to the same target is seen, the
+	// entry is removed. See issue #460.
+	LazyDependencies map[string]bool
+
 	// Metrics
 	InDegree  int // Number of incoming dependencies
 	OutDegree int // Number of outgoing dependencies
@@ -40,6 +48,7 @@ type DependencyEdge struct {
 	To         string             // Target module name
 	EdgeType   DependencyEdgeType // Type of dependency
 	ImportInfo *ImportInfo        // Details about the import
+	IsLazy     bool               // True if every import forming this edge is lazy (function/method-body)
 }
 
 // DependencyEdgeType represents the type of dependency relationship
@@ -164,16 +173,17 @@ func (g *DependencyGraph) AddModule(moduleName, filePath string) *ModuleNode {
 	isPackage := isPythonPackageInit(filePath)
 
 	node := &ModuleNode{
-		Name:         moduleName,
-		FilePath:     filePath,
-		RelativePath: relativePath,
-		Package:      packageName,
-		IsPackage:    isPackage,
-		Dependencies: make(map[string]bool),
-		Dependents:   make(map[string]bool),
-		Imports:      make([]string, 0),
-		ImportedBy:   make([]string, 0),
-		PublicNames:  make([]string, 0),
+		Name:             moduleName,
+		FilePath:         filePath,
+		RelativePath:     relativePath,
+		Package:          packageName,
+		IsPackage:        isPackage,
+		Dependencies:     make(map[string]bool),
+		Dependents:       make(map[string]bool),
+		LazyDependencies: make(map[string]bool),
+		Imports:          make([]string, 0),
+		ImportedBy:       make([]string, 0),
+		PublicNames:      make([]string, 0),
 	}
 
 	g.Nodes[moduleName] = node
@@ -196,8 +206,19 @@ func (g *DependencyGraph) AddDependency(from, to string, edgeType DependencyEdge
 		return
 	}
 
+	isLazy := importInfo != nil && importInfo.IsLazy
+
 	// Check if dependency already exists
 	if fromNode.Dependencies[to] {
+		// A pair is only treated as lazy when EVERY import forming it is lazy.
+		// If a module-level (non-lazy) import to the same target arrives later,
+		// promote the existing edge to a real load-time dependency.
+		if !isLazy && fromNode.LazyDependencies[to] {
+			delete(fromNode.LazyDependencies, to)
+			if edge := g.findEdge(from, to); edge != nil {
+				edge.IsLazy = false
+			}
+		}
 		return
 	}
 
@@ -207,18 +228,32 @@ func (g *DependencyGraph) AddDependency(from, to string, edgeType DependencyEdge
 		To:         to,
 		EdgeType:   edgeType,
 		ImportInfo: importInfo,
+		IsLazy:     isLazy,
 	}
 	g.Edges = append(g.Edges, edge)
 	g.TotalEdges++
 
 	// Update node relationships
 	fromNode.Dependencies[to] = true
+	if isLazy {
+		fromNode.LazyDependencies[to] = true
+	}
 	fromNode.Imports = append(fromNode.Imports, to)
 	fromNode.OutDegree++
 
 	toNode.Dependents[from] = true
 	toNode.ImportedBy = append(toNode.ImportedBy, from)
 	toNode.InDegree++
+}
+
+// findEdge returns the dependency edge for the given (from, to) pair, or nil.
+func (g *DependencyGraph) findEdge(from, to string) *DependencyEdge {
+	for _, edge := range g.Edges {
+		if edge.From == from && edge.To == to {
+			return edge
+		}
+	}
+	return nil
 }
 
 // GetModule retrieves a module node by name
@@ -410,21 +445,22 @@ func (g *DependencyGraph) Clone() *DependencyGraph {
 	// Copy nodes
 	for name, node := range g.Nodes {
 		newNode := &ModuleNode{
-			Name:          node.Name,
-			FilePath:      node.FilePath,
-			RelativePath:  node.RelativePath,
-			Package:       node.Package,
-			IsPackage:     node.IsPackage,
-			Dependencies:  make(map[string]bool),
-			Dependents:    make(map[string]bool),
-			Imports:       make([]string, len(node.Imports)),
-			ImportedBy:    make([]string, len(node.ImportedBy)),
-			InDegree:      node.InDegree,
-			OutDegree:     node.OutDegree,
-			LineCount:     node.LineCount,
-			FunctionCount: node.FunctionCount,
-			ClassCount:    node.ClassCount,
-			PublicNames:   make([]string, len(node.PublicNames)),
+			Name:             node.Name,
+			FilePath:         node.FilePath,
+			RelativePath:     node.RelativePath,
+			Package:          node.Package,
+			IsPackage:        node.IsPackage,
+			Dependencies:     make(map[string]bool),
+			Dependents:       make(map[string]bool),
+			LazyDependencies: make(map[string]bool),
+			Imports:          make([]string, len(node.Imports)),
+			ImportedBy:       make([]string, len(node.ImportedBy)),
+			InDegree:         node.InDegree,
+			OutDegree:        node.OutDegree,
+			LineCount:        node.LineCount,
+			FunctionCount:    node.FunctionCount,
+			ClassCount:       node.ClassCount,
+			PublicNames:      make([]string, len(node.PublicNames)),
 		}
 
 		// Copy maps and slices
@@ -433,6 +469,9 @@ func (g *DependencyGraph) Clone() *DependencyGraph {
 		}
 		for dep := range node.Dependents {
 			newNode.Dependents[dep] = true
+		}
+		for dep := range node.LazyDependencies {
+			newNode.LazyDependencies[dep] = true
 		}
 		copy(newNode.Imports, node.Imports)
 		copy(newNode.ImportedBy, node.ImportedBy)
@@ -453,6 +492,7 @@ func (g *DependencyGraph) Clone() *DependencyGraph {
 			To:         edge.To,
 			EdgeType:   edge.EdgeType,
 			ImportInfo: newImportInfo,
+			IsLazy:     edge.IsLazy,
 		}
 		clone.Edges = append(clone.Edges, newEdge)
 	}
