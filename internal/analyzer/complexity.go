@@ -155,25 +155,18 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 		complexity = 1
 	}
 
-	// Calculate nesting depth if the original AST node is available.
+	// Calculate nesting depth and location from the original AST node if available.
+	// The same node feeds CalculateCognitiveComplexity above via complexitySourceNode.
 	nestingDepth := 0
 	startLine := 0
 	startCol := 0
 	endLine := 0
-	if cfg.FunctionNode != nil {
-		nestingResult := CalculateMaxNestingDepth(cfg.FunctionNode)
-		nestingDepth = nestingResult.MaxDepth
+	if sourceNode := complexitySourceNode(cfg); sourceNode != nil {
+		nestingDepth = CalculateMaxNestingDepth(sourceNode).MaxDepth
 
-		startLine = cfg.FunctionNode.Location.StartLine
-		startCol = cfg.FunctionNode.Location.StartCol
-		endLine = cfg.FunctionNode.Location.EndLine
-	} else if cfg.ModuleNode != nil {
-		nestingResult := CalculateMaxNestingDepth(cfg.ModuleNode)
-		nestingDepth = nestingResult.MaxDepth
-
-		startLine = cfg.ModuleNode.Location.StartLine
-		startCol = cfg.ModuleNode.Location.StartCol
-		endLine = cfg.ModuleNode.Location.EndLine
+		startLine = sourceNode.Location.StartLine
+		startCol = sourceNode.Location.StartCol
+		endLine = sourceNode.Location.EndLine
 	}
 
 	result := &ComplexityResult{
