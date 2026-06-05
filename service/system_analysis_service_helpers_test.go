@@ -696,3 +696,75 @@ func TestMergeLayerRules_UserOverridesDefaultForSameFrom(t *testing.T) {
 	assert.Equal(t, []string{"domain", "infrastructure"}, rulesByFrom["application"].Allow,
 		"base rule for 'application' should be preserved")
 }
+
+// TestResolveArchitectureRules_StyleLayeredMatchesAutoDetect verifies that
+// selecting style "layered" produces the same rules as the legacy auto-detection
+// path (which loads the embedded default config). This guards backward
+// compatibility for the default preset.
+func TestResolveArchitectureRules_StyleLayeredMatchesAutoDetect(t *testing.T) {
+	svc := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+	graph.AddModule("app.api.users.router", "/project/app/api/users/router.py")
+	graph.AddModule("app.services.user_service", "/project/app/services/user_service.py")
+	graph.AddModule("app.domain.user_model", "/project/app/domain/user_model.py")
+	graph.AddModule("app.repositories.user_repo", "/project/app/repositories/user_repo.py")
+
+	styled := svc.resolveArchitectureRules(graph, &domain.ArchitectureRules{Style: "layered"})
+
+	require.NotNil(t, styled)
+	// The layered preset must define the four canonical layers and their rules.
+	require.Len(t, styled.Rules, 4, "layered preset should define four layer rules")
+
+	rulesByFrom := make(map[string]domain.LayerRule)
+	for _, r := range styled.Rules {
+		rulesByFrom[r.From] = r
+	}
+	assert.Equal(t, []string{"domain", "infrastructure"}, rulesByFrom["domain"].Allow,
+		"layered preset preserves legacy domain->infrastructure allowance")
+	assert.Equal(t, []string{"presentation", "application"}, rulesByFrom["domain"].Deny)
+}
+
+// TestResolveArchitectureRules_StyleWithUserRuleOverride verifies that explicit
+// user rules win over the preset for matching From values, while the rest of the
+// preset rules are preserved.
+func TestResolveArchitectureRules_StyleWithUserRuleOverride(t *testing.T) {
+	svc := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+	graph.AddModule("app.domain.user_model", "/project/app/domain/user_model.py")
+
+	original := &domain.ArchitectureRules{
+		Style: "layered",
+		Rules: []domain.LayerRule{
+			{From: "domain", Allow: []string{"domain"}}, // stricter than preset
+		},
+	}
+
+	resolved := svc.resolveArchitectureRules(graph, original)
+
+	require.NotNil(t, resolved)
+	rulesByFrom := make(map[string]domain.LayerRule)
+	for _, r := range resolved.Rules {
+		rulesByFrom[r.From] = r
+	}
+	assert.Equal(t, []string{"domain"}, rulesByFrom["domain"].Allow,
+		"user rule for 'domain' should override the preset")
+	assert.Contains(t, rulesByFrom, "presentation",
+		"non-overridden preset rules should be preserved")
+
+	// Original must not be mutated.
+	require.Len(t, original.Rules, 1)
+}
+
+// TestResolveArchitectureRules_UnknownStyleFallsBackToAutoDetect verifies that an
+// unrecognized style with no explicit config falls back to auto-detection rather
+// than disabling architecture validation.
+func TestResolveArchitectureRules_UnknownStyleFallsBackToAutoDetect(t *testing.T) {
+	svc := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+	graph.AddModule("app.domain.user_model", "/project/app/domain/user_model.py")
+
+	resolved := svc.resolveArchitectureRules(graph, &domain.ArchitectureRules{Style: "bogus"})
+
+	require.NotNil(t, resolved)
+	assert.NotEmpty(t, resolved.Rules, "unknown style should fall back to auto-detected rules")
+}

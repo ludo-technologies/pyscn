@@ -1015,18 +1015,44 @@ func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.Depen
 // in missing layers or rules from auto-detection / embedded defaults.
 func (s *SystemAnalysisServiceImpl) resolveArchitectureRules(graph *analyzer.DependencyGraph, orig *domain.ArchitectureRules) *domain.ArchitectureRules {
 	// No user config at all — fully auto-detect
-	if orig == nil || (len(orig.Layers) == 0 && len(orig.Rules) == 0) {
+	if orig == nil || (len(orig.Layers) == 0 && len(orig.Rules) == 0 && orig.Style == "") {
 		return s.autoDetectArchitecture(graph)
 	}
 
 	// Clone to avoid mutating the caller's object
 	resolved := &domain.ArchitectureRules{
+		Style:             orig.Style,
 		Layers:            append([]domain.Layer(nil), orig.Layers...),
 		Rules:             append([]domain.LayerRule(nil), orig.Rules...),
 		NeutralPrefixes:   append([]string(nil), orig.NeutralPrefixes...),
 		StrictMode:        orig.StrictMode,
 		AllowedPatterns:   orig.AllowedPatterns,
 		ForbiddenPatterns: orig.ForbiddenPatterns,
+	}
+
+	// A style preset is selected — apply its layers/rules. Explicit user-defined
+	// layers/rules take precedence over the preset. An unrecognized style yields
+	// no preset; fall through to the explicit-config / auto-detect handling below.
+	if resolved.Style != "" {
+		presetLayers, presetRules := config.ArchitectureStylePreset(resolved.Style)
+		if presetLayers != nil || presetRules != nil {
+			if len(resolved.Layers) == 0 {
+				resolved.Layers = convertLayerDefinitions(presetLayers)
+			}
+			presetDomainRules := convertLayerRules(presetRules)
+			if len(resolved.Rules) == 0 {
+				resolved.Rules = presetDomainRules
+			} else {
+				// User provided some rules — merge on top of the preset; user
+				// rules win for any matching From value.
+				resolved.Rules = s.mergeLayerRules(presetDomainRules, resolved.Rules)
+			}
+			return resolved
+		}
+		// Unknown style with no explicit config — fall back to auto-detection.
+		if len(resolved.Layers) == 0 && len(resolved.Rules) == 0 {
+			return s.autoDetectArchitecture(graph)
+		}
 	}
 
 	if len(resolved.Layers) > 0 && len(resolved.Rules) == 0 {

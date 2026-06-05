@@ -112,6 +112,7 @@ type ArchitectureTomlConfig struct {
 	StrictMode                      *bool                 `toml:"strict_mode"`
 	FailOnViolations                *bool                 `toml:"fail_on_violations"`
 	NeutralPrefixes                 []string              `toml:"neutral_prefixes"`
+	Style                           string                `toml:"style"`
 	Layers                          []LayerDefinitionToml `toml:"layers"`
 	Rules                           []LayerRuleToml       `toml:"rules"`
 }

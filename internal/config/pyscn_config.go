@@ -103,6 +103,7 @@ type PyscnConfig struct {
 	ArchitectureStrictMode                      *bool             `mapstructure:"architecture_strict_mode" yaml:"architecture_strict_mode" json:"architecture_strict_mode"`
 	ArchitectureFailOnViolations                *bool             `mapstructure:"architecture_fail_on_violations" yaml:"architecture_fail_on_violations" json:"architecture_fail_on_violations"`
 	ArchitectureNeutralPrefixes                 []string          `mapstructure:"architecture_neutral_prefixes" yaml:"architecture_neutral_prefixes" json:"architecture_neutral_prefixes"`
+	ArchitectureStyle                           string            `mapstructure:"architecture_style" yaml:"architecture_style" json:"architecture_style"`
 	ArchitectureLayers                          []LayerDefinition `mapstructure:"architecture_layers" yaml:"architecture_layers" json:"architecture_layers"`
 	ArchitectureRules                           []LayerRule       `mapstructure:"architecture_rules" yaml:"architecture_rules" json:"architecture_rules"`
 

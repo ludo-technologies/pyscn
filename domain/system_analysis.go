@@ -411,6 +411,11 @@ const (
 
 // ArchitectureRules defines architecture validation rules
 type ArchitectureRules struct {
+	// Style is an optional preset name: "layered", "hexagonal", "clean", "mvc".
+	// When non-empty and Layers/Rules are empty, the service loads the matching
+	// preset's layers and rules. Empty/"layered" preserves the legacy behavior.
+	Style string `json:"style" yaml:"style"`
+
 	// Layer rules
 	Layers []Layer     `json:"layers" yaml:"layers"`
 	Rules  []LayerRule `json:"rules" yaml:"rules"`

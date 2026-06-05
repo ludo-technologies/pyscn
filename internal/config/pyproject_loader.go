@@ -417,6 +417,9 @@ func mergeArchitectureSection(defaults *PyscnConfig, arch *ArchitectureTomlConfi
 	if len(arch.NeutralPrefixes) > 0 {
 		defaults.ArchitectureNeutralPrefixes = arch.NeutralPrefixes
 	}
+	if arch.Style != "" {
+		defaults.ArchitectureStyle = arch.Style
+	}
 	if len(arch.Layers) > 0 {
 		layers := make([]LayerDefinition, len(arch.Layers))
 		for i, l := range arch.Layers {
