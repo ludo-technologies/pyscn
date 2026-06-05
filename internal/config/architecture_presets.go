@@ -7,6 +7,14 @@ const (
 	// ArchitectureStyleLayered is the default, backward-compatible preset.
 	// An empty style is treated as layered.
 	ArchitectureStyleLayered = "layered"
+
+	// ArchitectureStyleHexagonal enforces Hexagonal / Onion architecture: the
+	// domain has no outward dependencies (Dependency Inversion).
+	ArchitectureStyleHexagonal = "hexagonal"
+
+	// ArchitectureStyleClean enforces Clean Architecture: inner layers never
+	// depend on outer ones.
+	ArchitectureStyleClean = "clean"
 )
 
 // ArchitectureStylePreset returns the layer definitions and dependency rules
@@ -17,6 +25,10 @@ func ArchitectureStylePreset(style string) ([]LayerDefinition, []LayerRule) {
 	switch style {
 	case "", ArchitectureStyleLayered:
 		return layeredPresetLayers(), layeredPresetRules()
+	case ArchitectureStyleHexagonal:
+		return hexagonalPresetLayers(), hexagonalPresetRules()
+	case ArchitectureStyleClean:
+		return cleanPresetLayers(), cleanPresetRules()
 	default:
 		return nil, nil
 	}
@@ -71,6 +83,98 @@ func layeredPresetRules() []LayerRule {
 		{
 			From:  "infrastructure",
 			Allow: []string{"infrastructure", "domain", "application"},
+		},
+	}
+}
+
+// hexagonalPresetLayers defines the layers for Hexagonal / Onion architecture.
+// Ports (interfaces) live on the domain side; adapters (implementations) live on
+// the infrastructure side.
+func hexagonalPresetLayers() []LayerDefinition {
+	return []LayerDefinition{
+		{
+			Name:     "domain",
+			Packages: []string{"domain", "domains", "model", "models", "entity", "entities", "core", "business", "aggregate", "aggregates", "valueobject", "valueobjects"},
+		},
+		{
+			Name:     "ports",
+			Packages: []string{"port", "ports", "interface", "interfaces", "contract", "contracts", "usecase", "usecases", "use_case", "use_cases", "service", "services"},
+		},
+		{
+			Name:     "adapters",
+			Packages: []string{"adapter", "adapters", "handler", "handlers", "controller", "controllers", "router", "routers", "api", "apis", "repository", "repositories", "repo", "repos", "db", "database", "persistence", "storage", "client", "clients", "external", "web", "rest", "graphql"},
+		},
+	}
+}
+
+// hexagonalPresetRules enforces the Dependency Inversion Principle: the domain
+// depends on nothing outward, ports depend only on the domain, and adapters may
+// depend on ports and the domain.
+func hexagonalPresetRules() []LayerRule {
+	return []LayerRule{
+		{
+			From:  "domain",
+			Allow: []string{"domain"},
+			Deny:  []string{"ports", "adapters"},
+		},
+		{
+			From:  "ports",
+			Allow: []string{"ports", "domain"},
+			Deny:  []string{"adapters"},
+		},
+		{
+			From:  "adapters",
+			Allow: []string{"adapters", "ports", "domain"},
+		},
+	}
+}
+
+// cleanPresetLayers defines the four concentric layers of Clean Architecture,
+// from innermost (entities) to outermost (frameworks).
+func cleanPresetLayers() []LayerDefinition {
+	return []LayerDefinition{
+		{
+			Name:     "entities",
+			Packages: []string{"entity", "entities", "model", "models", "domain", "domains", "core", "aggregate", "aggregates", "valueobject", "valueobjects"},
+		},
+		{
+			Name:     "use_cases",
+			Packages: []string{"usecase", "usecases", "use_case", "use_cases", "interactor", "interactors", "service", "services", "workflow", "workflows", "command", "commands", "query", "queries"},
+		},
+		{
+			Name:     "interface_adapters",
+			Packages: []string{"interface_adapter", "interface_adapters", "adapter", "adapters", "controller", "controllers", "presenter", "presenters", "gateway", "gateways", "repository", "repositories", "repo", "repos", "router", "routers"},
+		},
+		{
+			Name:     "frameworks",
+			Packages: []string{"framework", "frameworks", "infrastructure", "db", "database", "web", "api", "apis", "external", "client", "clients", "persistence", "storage", "ui"},
+		},
+	}
+}
+
+// cleanPresetRules enforces the dependency rule of Clean Architecture: source
+// code dependencies point only inward. Each layer may depend on itself and any
+// inner layer, never an outer one.
+func cleanPresetRules() []LayerRule {
+	return []LayerRule{
+		{
+			From:  "entities",
+			Allow: []string{"entities"},
+			Deny:  []string{"use_cases", "interface_adapters", "frameworks"},
+		},
+		{
+			From:  "use_cases",
+			Allow: []string{"use_cases", "entities"},
+			Deny:  []string{"interface_adapters", "frameworks"},
+		},
+		{
+			From:  "interface_adapters",
+			Allow: []string{"interface_adapters", "use_cases", "entities"},
+			Deny:  []string{"frameworks"},
+		},
+		{
+			From:  "frameworks",
+			Allow: []string{"frameworks", "interface_adapters", "use_cases", "entities"},
 		},
 	}
 }

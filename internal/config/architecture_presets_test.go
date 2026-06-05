@@ -2,6 +2,7 @@ package config
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -58,6 +59,78 @@ func TestArchitectureStylePreset_LayeredBackwardCompat(t *testing.T) {
 		}
 		if !reflect.DeepEqual(r.Deny, d.Deny) {
 			t.Errorf("rule[%d] (%s) deny mismatch:\n preset=%v\ndefault=%v", i, r.From, r.Deny, d.Deny)
+		}
+	}
+}
+
+// rulesByFrom indexes a preset's rules by their From layer.
+func rulesByFrom(rules []LayerRule) map[string]LayerRule {
+	m := make(map[string]LayerRule, len(rules))
+	for _, r := range rules {
+		m[r.From] = r
+	}
+	return m
+}
+
+// TestArchitectureStylePreset_HexagonalDomainIsolated verifies that the
+// hexagonal preset enforces the Dependency Inversion Principle: the domain may
+// depend only on itself and explicitly denies ports and adapters.
+func TestArchitectureStylePreset_HexagonalDomainIsolated(t *testing.T) {
+	_, rules := ArchitectureStylePreset(ArchitectureStyleHexagonal)
+	byFrom := rulesByFrom(rules)
+
+	domain, ok := byFrom["domain"]
+	if !ok {
+		t.Fatal("hexagonal preset must define a 'domain' rule")
+	}
+	if !reflect.DeepEqual(domain.Allow, []string{"domain"}) {
+		t.Errorf("domain should allow only itself, got %v", domain.Allow)
+	}
+	for _, forbidden := range []string{"ports", "adapters"} {
+		if !slices.Contains(domain.Deny, forbidden) {
+			t.Errorf("domain should deny %q, deny=%v", forbidden, domain.Deny)
+		}
+	}
+}
+
+// TestArchitectureStylePreset_CleanEntitiesIsolated verifies that the clean
+// preset keeps the innermost layer (entities) free of outward dependencies.
+func TestArchitectureStylePreset_CleanEntitiesIsolated(t *testing.T) {
+	_, rules := ArchitectureStylePreset(ArchitectureStyleClean)
+	byFrom := rulesByFrom(rules)
+
+	entities, ok := byFrom["entities"]
+	if !ok {
+		t.Fatal("clean preset must define an 'entities' rule")
+	}
+	if !reflect.DeepEqual(entities.Allow, []string{"entities"}) {
+		t.Errorf("entities should allow only itself, got %v", entities.Allow)
+	}
+	for _, forbidden := range []string{"use_cases", "interface_adapters", "frameworks"} {
+		if !slices.Contains(entities.Deny, forbidden) {
+			t.Errorf("entities should deny %q, deny=%v", forbidden, entities.Deny)
+		}
+	}
+
+	// frameworks (outermost) may depend on every inner layer.
+	frameworks := byFrom["frameworks"]
+	for _, inner := range []string{"interface_adapters", "use_cases", "entities"} {
+		if !slices.Contains(frameworks.Allow, inner) {
+			t.Errorf("frameworks should allow %q, allow=%v", inner, frameworks.Allow)
+		}
+	}
+}
+
+// TestArchitectureStylePreset_AllStylesNonEmpty verifies every named style
+// returns a non-empty preset.
+func TestArchitectureStylePreset_AllStylesNonEmpty(t *testing.T) {
+	for _, style := range []string{ArchitectureStyleLayered, ArchitectureStyleHexagonal, ArchitectureStyleClean} {
+		layers, rules := ArchitectureStylePreset(style)
+		if len(layers) == 0 {
+			t.Errorf("style %q returned no layers", style)
+		}
+		if len(rules) == 0 {
+			t.Errorf("style %q returned no rules", style)
 		}
 	}
 }

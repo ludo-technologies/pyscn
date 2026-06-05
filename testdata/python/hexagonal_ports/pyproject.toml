@@ -1,0 +1,3 @@
+[project]
+name = "hexagonal-ports-test"
+version = "0.1.0"
