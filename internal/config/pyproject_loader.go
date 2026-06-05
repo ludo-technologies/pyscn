@@ -435,7 +435,13 @@ func mergeArchitectureSection(defaults *PyscnConfig, arch *ArchitectureTomlConfi
 	if len(arch.Rules) > 0 {
 		rules := make([]LayerRule, len(arch.Rules))
 		for i, r := range arch.Rules {
-			rules[i] = LayerRule(r)
+			rules[i] = LayerRule{
+				From:        r.From,
+				Allow:       r.Allow,
+				Deny:        r.Deny,
+				Warn:        r.Warn,
+				Description: r.Description,
+			}
 		}
 		defaults.ArchitectureRules = rules
 	}

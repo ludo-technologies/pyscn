@@ -15,6 +15,10 @@ const (
 	// ArchitectureStyleClean enforces Clean Architecture: inner layers never
 	// depend on outer ones.
 	ArchitectureStyleClean = "clean"
+
+	// ArchitectureStyleMVC enforces MVC/MVT: the view may not depend directly on
+	// the model (such a dependency is discouraged and emits a warning).
+	ArchitectureStyleMVC = "mvc"
 )
 
 // ArchitectureStylePreset returns the layer definitions and dependency rules
@@ -29,6 +33,8 @@ func ArchitectureStylePreset(style string) ([]LayerDefinition, []LayerRule) {
 		return hexagonalPresetLayers(), hexagonalPresetRules()
 	case ArchitectureStyleClean:
 		return cleanPresetLayers(), cleanPresetRules()
+	case ArchitectureStyleMVC:
+		return mvcPresetLayers(), mvcPresetRules()
 	default:
 		return nil, nil
 	}
@@ -175,6 +181,47 @@ func cleanPresetRules() []LayerRule {
 		{
 			From:  "frameworks",
 			Allow: []string{"frameworks", "interface_adapters", "use_cases", "entities"},
+		},
+	}
+}
+
+// mvcPresetLayers defines the three layers of the MVC / MVT pattern. Template
+// engines (MVT) are treated as views.
+func mvcPresetLayers() []LayerDefinition {
+	return []LayerDefinition{
+		{
+			Name:     "model",
+			Packages: []string{"model", "models", "entity", "entities", "schema", "schemas", "domain", "domains"},
+		},
+		{
+			Name:     "view",
+			Packages: []string{"view", "views", "template", "templates", "serializer", "serializers", "form", "forms"},
+		},
+		{
+			Name:     "controller",
+			Packages: []string{"controller", "controllers", "handler", "handlers", "router", "routers", "route", "routes", "viewset", "viewsets"},
+		},
+	}
+}
+
+// mvcPresetRules enforces MVC/MVT boundaries. A view depending directly on the
+// model is permitted but discouraged (emits a warning); routing data through a
+// controller is preferred.
+func mvcPresetRules() []LayerRule {
+	return []LayerRule{
+		{
+			From:  "model",
+			Allow: []string{"model"},
+			Deny:  []string{"view", "controller"},
+		},
+		{
+			From:  "view",
+			Allow: []string{"view", "controller"},
+			Warn:  []string{"model"},
+		},
+		{
+			From:  "controller",
+			Allow: []string{"controller", "model", "view"},
 		},
 	}
 }

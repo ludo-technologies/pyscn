@@ -861,5 +861,6 @@ type LayerRule struct {
 	From        string   `mapstructure:"from" yaml:"from"`
 	Allow       []string `mapstructure:"allow" yaml:"allow"`
 	Deny        []string `mapstructure:"deny" yaml:"deny"`
+	Warn        []string `mapstructure:"warn" yaml:"warn"`
 	Description string   `mapstructure:"description" yaml:"description"`
 }
