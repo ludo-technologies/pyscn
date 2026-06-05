@@ -14,6 +14,8 @@ import (
 
 const fastapiLayersDir = "../testdata/python/fastapi_layers"
 const responsibilityAnalysisDir = "../testdata/python/responsibility_analysis"
+const hexagonalPortsDir = "../testdata/python/hexagonal_ports"
+const cleanLayersDir = "../testdata/python/clean_layers"
 
 func newArchitectureUseCase() *app.SystemAnalysisUseCase {
 	return app.NewSystemAnalysisUseCase(
@@ -157,6 +159,77 @@ func TestArchitecture_AllowedDepsNotFlagged(t *testing.T) {
 		if v.FromLayer == "infrastructure" && v.ToLayer == "domain" {
 			t.Errorf("unexpected violation: infrastructure -> domain: %s -> %s",
 				v.FromModule, v.ToModule)
+		}
+	}
+}
+
+// hasLayerViolation reports whether the result contains a violation with the
+// given from/to layers.
+func hasLayerViolation(result *domain.ArchitectureAnalysisResult, fromLayer, toLayer string) bool {
+	if result.LayerAnalysis == nil {
+		return false
+	}
+	for _, v := range result.LayerAnalysis.LayerViolations {
+		if v.FromLayer == fromLayer && v.ToLayer == toLayer {
+			return true
+		}
+	}
+	return false
+}
+
+// TestArchitecture_HexagonalPreset verifies that selecting style = "hexagonal"
+// applies the preset rules and flags a domain -> adapters dependency as a
+// Dependency Inversion violation, while leaving allowed edges (ports -> domain,
+// adapters -> ports/domain) untouched.
+func TestArchitecture_HexagonalPreset(t *testing.T) {
+	// The style is loaded from the fixture's .pyscn.toml.
+	configLoader := service.NewSystemAnalysisConfigurationLoader()
+	cfg, err := configLoader.LoadConfig(hexagonalPortsDir)
+	require.NoError(t, err)
+	require.NotNil(t, cfg.ArchitectureRules)
+	assert.Equal(t, "hexagonal", cfg.ArchitectureRules.Style,
+		"style should be loaded from .pyscn.toml")
+
+	result := analyzeArchitecture(t, hexagonalPortsDir)
+	require.NotNil(t, result.LayerAnalysis)
+
+	assert.True(t, hasLayerViolation(result, "domain", "adapters"),
+		"domain -> adapters must be flagged by the hexagonal preset")
+
+	// Allowed edges must not be flagged.
+	for _, v := range result.LayerAnalysis.LayerViolations {
+		if v.FromLayer == "ports" && v.ToLayer == "domain" {
+			t.Errorf("ports -> domain should be allowed, got violation: %s -> %s", v.FromModule, v.ToModule)
+		}
+		if v.FromLayer == "adapters" {
+			t.Errorf("adapters -> %s should be allowed, got violation: %s -> %s", v.ToLayer, v.FromModule, v.ToModule)
+		}
+	}
+}
+
+// TestArchitecture_CleanPreset verifies that selecting style = "clean" applies
+// the preset rules and flags an outward use_cases -> interface_adapters
+// dependency, while leaving inward dependencies untouched.
+func TestArchitecture_CleanPreset(t *testing.T) {
+	configLoader := service.NewSystemAnalysisConfigurationLoader()
+	cfg, err := configLoader.LoadConfig(cleanLayersDir)
+	require.NoError(t, err)
+	require.NotNil(t, cfg.ArchitectureRules)
+	assert.Equal(t, "clean", cfg.ArchitectureRules.Style)
+
+	result := analyzeArchitecture(t, cleanLayersDir)
+	require.NotNil(t, result.LayerAnalysis)
+
+	assert.True(t, hasLayerViolation(result, "use_cases", "interface_adapters"),
+		"use_cases -> interface_adapters must be flagged by the clean preset")
+
+	// Inward dependencies must not be flagged.
+	for _, v := range result.LayerAnalysis.LayerViolations {
+		if v.FromLayer == "frameworks" {
+			t.Errorf("frameworks -> %s should be allowed, got violation: %s -> %s", v.ToLayer, v.FromModule, v.ToModule)
+		}
+		if v.FromLayer == "interface_adapters" && (v.ToLayer == "use_cases" || v.ToLayer == "entities") {
+			t.Errorf("interface_adapters -> %s should be allowed, got violation: %s -> %s", v.ToLayer, v.FromModule, v.ToModule)
 		}
 	}
 }
