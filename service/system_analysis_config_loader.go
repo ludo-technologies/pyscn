@@ -306,6 +306,7 @@ func convertLayerRules(rules []config.LayerRule) []domain.LayerRule {
 			From:  r.From,
 			Allow: r.Allow,
 			Deny:  r.Deny,
+			Warn:  r.Warn,
 		}
 	}
 	return out

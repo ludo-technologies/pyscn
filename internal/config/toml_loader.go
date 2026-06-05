@@ -130,6 +130,7 @@ type LayerRuleToml struct {
 	From        string   `toml:"from"`
 	Allow       []string `toml:"allow"`
 	Deny        []string `toml:"deny"`
+	Warn        []string `toml:"warn"`
 	Description string   `toml:"description"`
 }
 

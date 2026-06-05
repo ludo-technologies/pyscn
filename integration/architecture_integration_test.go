@@ -16,6 +16,7 @@ const fastapiLayersDir = "../testdata/python/fastapi_layers"
 const responsibilityAnalysisDir = "../testdata/python/responsibility_analysis"
 const hexagonalPortsDir = "../testdata/python/hexagonal_ports"
 const cleanLayersDir = "../testdata/python/clean_layers"
+const mvcAppDir = "../testdata/python/mvc_app"
 
 func newArchitectureUseCase() *app.SystemAnalysisUseCase {
 	return app.NewSystemAnalysisUseCase(
@@ -232,6 +233,34 @@ func TestArchitecture_CleanPreset(t *testing.T) {
 			t.Errorf("interface_adapters -> %s should be allowed, got violation: %s -> %s", v.ToLayer, v.FromModule, v.ToModule)
 		}
 	}
+}
+
+// TestArchitecture_MVCPreset verifies that selecting style = "mvc" flags a
+// direct view -> model dependency as a warning (not an error), and leaves
+// controller-mediated dependencies untouched.
+func TestArchitecture_MVCPreset(t *testing.T) {
+	configLoader := service.NewSystemAnalysisConfigurationLoader()
+	cfg, err := configLoader.LoadConfig(mvcAppDir)
+	require.NoError(t, err)
+	require.NotNil(t, cfg.ArchitectureRules)
+	assert.Equal(t, "mvc", cfg.ArchitectureRules.Style)
+
+	result := analyzeArchitecture(t, mvcAppDir)
+	require.NotNil(t, result.LayerAnalysis)
+
+	var found bool
+	for _, v := range result.LayerAnalysis.LayerViolations {
+		if v.FromLayer == "view" && v.ToLayer == "model" {
+			found = true
+			assert.Equal(t, domain.ViolationSeverityWarning, v.Severity,
+				"view -> model must be a warning, not an error")
+		}
+		// Controller depending on model/view is allowed.
+		if v.FromLayer == "controller" {
+			t.Errorf("controller -> %s should be allowed, got violation: %s -> %s", v.ToLayer, v.FromModule, v.ToModule)
+		}
+	}
+	assert.True(t, found, "should flag the direct view -> model dependency")
 }
 
 func TestArchitecture_ResponsibilityAnalysisEndToEnd(t *testing.T) {

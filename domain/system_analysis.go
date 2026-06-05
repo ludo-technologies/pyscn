@@ -447,6 +447,10 @@ type LayerRule struct {
 	From  string   `json:"from" yaml:"from"`
 	Allow []string `json:"allow" yaml:"allow"`
 	Deny  []string `json:"deny" yaml:"deny"`
+	// Warn lists target layers that are permitted but discouraged: a dependency
+	// on one of these emits a warning instead of an error. Used e.g. by the MVC
+	// preset for view -> model direct access.
+	Warn []string `json:"warn" yaml:"warn"`
 }
 
 // PackageRule defines rules for packages

@@ -161,6 +161,7 @@ func LoadDefaultConfigFromTOML() (*Config, error) {
 				From:  rule.From,
 				Allow: rule.Allow,
 				Deny:  rule.Deny,
+				Warn:  rule.Warn,
 			}
 		}
 	}
