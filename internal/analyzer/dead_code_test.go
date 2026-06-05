@@ -715,6 +715,104 @@ def g(y):
 	}
 }
 
+func TestDeadCodeNoOverlappingFindings(t *testing.T) {
+	// A compound statement (if) spans its body, so the body's own block used to
+	// emit a finding whose range was nested inside the if's finding range,
+	// double-counting the same source line. The whole region after `raise` is
+	// one contiguous dead region and should produce non-overlapping findings.
+	code := `
+def do_flip(self, show_widgets=True):
+    raise NotImplementedError
+    self.widget_tooltip = None
+    if show_widgets:
+        self.render_widgets()
+    if self.notifications:
+        self.render_notifications()
+`
+
+	p := parser.New()
+	ctx := context.Background()
+	parseResult, err := p.Parse(ctx, []byte(code))
+	require.NoError(t, err)
+
+	builder := NewCFGBuilder()
+	cfgs, err := builder.BuildAll(parseResult.AST)
+	require.NoError(t, err)
+
+	cfg, ok := cfgs["do_flip"]
+	require.True(t, ok, "expected CFG for do_flip")
+
+	result := DetectInFunction(cfg)
+	require.NotNil(t, result)
+	require.NotEmpty(t, result.Findings)
+
+	// Findings must not have overlapping line ranges: each finding's start line
+	// must be strictly after the previous finding's end line.
+	for i := 1; i < len(result.Findings); i++ {
+		prev := result.Findings[i-1]
+		cur := result.Findings[i]
+		assert.Greater(t, cur.StartLine, prev.EndLine,
+			"findings overlap: %+v then %+v", prev, cur)
+	}
+
+	// The contiguous dead region collapses to a single finding.
+	assert.Len(t, result.Findings, 1, "contiguous dead region should be one finding")
+}
+
+func TestMergeContiguousFindings(t *testing.T) {
+	mk := func(start, end int, reason DeadCodeReason, sev SeverityLevel) *DeadCodeFinding {
+		return &DeadCodeFinding{StartLine: start, EndLine: end, Reason: reason, Severity: sev, Code: "x"}
+	}
+
+	t.Run("merges overlapping same-reason findings", func(t *testing.T) {
+		in := []*DeadCodeFinding{
+			mk(4, 6, ReasonUnreachableAfterRaise, SeverityLevelWarning),
+			mk(6, 6, ReasonUnreachableAfterRaise, SeverityLevelCritical),
+		}
+		out := mergeContiguousFindings(in)
+		require.Len(t, out, 1)
+		assert.Equal(t, 4, out[0].StartLine)
+		assert.Equal(t, 6, out[0].EndLine)
+		assert.Equal(t, SeverityLevelCritical, out[0].Severity, "keeps highest severity")
+	})
+
+	t.Run("merges adjacent same-reason findings", func(t *testing.T) {
+		in := []*DeadCodeFinding{
+			mk(4, 6, ReasonUnreachableAfterRaise, SeverityLevelCritical),
+			mk(7, 8, ReasonUnreachableAfterRaise, SeverityLevelCritical),
+		}
+		out := mergeContiguousFindings(in)
+		require.Len(t, out, 1)
+		assert.Equal(t, 8, out[0].EndLine)
+	})
+
+	t.Run("does not merge across a gap", func(t *testing.T) {
+		in := []*DeadCodeFinding{
+			mk(4, 4, ReasonUnreachableAfterRaise, SeverityLevelCritical),
+			mk(6, 6, ReasonUnreachableAfterRaise, SeverityLevelCritical),
+		}
+		out := mergeContiguousFindings(in)
+		assert.Len(t, out, 2)
+	})
+
+	t.Run("does not merge different reasons", func(t *testing.T) {
+		in := []*DeadCodeFinding{
+			mk(4, 6, ReasonUnreachableAfterRaise, SeverityLevelCritical),
+			mk(6, 6, ReasonUnreachableBranch, SeverityLevelWarning),
+		}
+		out := mergeContiguousFindings(in)
+		assert.Len(t, out, 2)
+	})
+}
+
+func TestMergeCodeLines(t *testing.T) {
+	assert.Equal(t, "b", mergeCodeLines("", "b"))
+	assert.Equal(t, "a", mergeCodeLines("a", ""))
+	assert.Equal(t, "a\nb", mergeCodeLines("a", "b"))
+	// Duplicate boundary line (nested body repeats enclosing line) is collapsed.
+	assert.Equal(t, "if\nCall", mergeCodeLines("if\nCall", "Call"))
+}
+
 func TestIsOnlyEmptyStatements(t *testing.T) {
 	assert.False(t, isOnlyEmptyStatements(nil), "nil block")
 	assert.False(t, isOnlyEmptyStatements(&BasicBlock{}), "empty block")
