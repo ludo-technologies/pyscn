@@ -121,10 +121,37 @@ func TestArchitectureStylePreset_CleanEntitiesIsolated(t *testing.T) {
 	}
 }
 
+// TestArchitectureStylePreset_MVCViewWarnsOnModel verifies that the mvc preset
+// treats a direct view -> model dependency as discouraged (Warn) rather than
+// allowed or denied.
+func TestArchitectureStylePreset_MVCViewWarnsOnModel(t *testing.T) {
+	_, rules := ArchitectureStylePreset(ArchitectureStyleMVC)
+	byFrom := rulesByFrom(rules)
+
+	view, ok := byFrom["view"]
+	if !ok {
+		t.Fatal("mvc preset must define a 'view' rule")
+	}
+	if !slices.Contains(view.Warn, "model") {
+		t.Errorf("view should warn on 'model', warn=%v", view.Warn)
+	}
+	if slices.Contains(view.Allow, "model") {
+		t.Errorf("view should not directly allow 'model', allow=%v", view.Allow)
+	}
+
+	// The model must not depend on view or controller.
+	model := byFrom["model"]
+	for _, forbidden := range []string{"view", "controller"} {
+		if !slices.Contains(model.Deny, forbidden) {
+			t.Errorf("model should deny %q, deny=%v", forbidden, model.Deny)
+		}
+	}
+}
+
 // TestArchitectureStylePreset_AllStylesNonEmpty verifies every named style
 // returns a non-empty preset.
 func TestArchitectureStylePreset_AllStylesNonEmpty(t *testing.T) {
-	for _, style := range []string{ArchitectureStyleLayered, ArchitectureStyleHexagonal, ArchitectureStyleClean} {
+	for _, style := range []string{ArchitectureStyleLayered, ArchitectureStyleHexagonal, ArchitectureStyleClean, ArchitectureStyleMVC} {
 		layers, rules := ArchitectureStylePreset(style)
 		if len(layers) == 0 {
 			t.Errorf("style %q returned no layers", style)

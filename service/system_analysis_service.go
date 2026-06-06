@@ -1127,6 +1127,7 @@ func (s *SystemAnalysisServiceImpl) loadDefaultRulesForLayers(layers []domain.La
 			From:  rule.From,
 			Allow: rule.Allow,
 			Deny:  rule.Deny,
+			Warn:  rule.Warn,
 		})
 	}
 	return s.filterLayerRulesForLayers(defaultRules, layers)
@@ -1262,6 +1263,21 @@ func (s *SystemAnalysisServiceImpl) evaluateLayerEdge(rules *domain.Architecture
 				Rule:        fmt.Sprintf("%s !> %s", fromLayer, toLayer),
 				Description: fmt.Sprintf("Dependency from '%s' to '%s' is denied by rule", fromLayer, toLayer),
 				Suggestion:  "Introduce an interface or move code to respect layer boundaries",
+			}
+		}
+	}
+	// Warn: the dependency is permitted but discouraged. Emit a warning and
+	// stop before the allow-list check so it is not also reported as an error.
+	for _, w := range layerRule.Warn {
+		if w == toLayer {
+			return &domain.ArchitectureViolation{
+				Type:        domain.ViolationTypeLayer,
+				Severity:    domain.ViolationSeverityWarning,
+				Module:      fromModule,
+				Target:      toModule,
+				Rule:        fmt.Sprintf("%s ~> %s", fromLayer, toLayer),
+				Description: fmt.Sprintf("Dependency from '%s' to '%s' is discouraged", fromLayer, toLayer),
+				Suggestion:  "Route this dependency through an intermediary layer if possible",
 			}
 		}
 	}

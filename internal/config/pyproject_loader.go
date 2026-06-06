@@ -435,6 +435,8 @@ func mergeArchitectureSection(defaults *PyscnConfig, arch *ArchitectureTomlConfi
 	if len(arch.Rules) > 0 {
 		rules := make([]LayerRule, len(arch.Rules))
 		for i, r := range arch.Rules {
+			// LayerRuleToml and LayerRule share an identical layout; the cast
+			// fails to compile if they ever diverge, surfacing a dropped field.
 			rules[i] = LayerRule(r)
 		}
 		defaults.ArchitectureRules = rules

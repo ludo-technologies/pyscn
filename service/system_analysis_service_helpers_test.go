@@ -98,6 +98,32 @@ func TestEvaluateLayerEdge(t *testing.T) {
 
 		assert.Nil(t, service.evaluateLayerEdge(rules, "app.presentation.view", "app.domain.model", "presentation", "domain"))
 	})
+
+	t.Run("warn list emits warning, not error", func(t *testing.T) {
+		rules := &domain.ArchitectureRules{
+			Rules: []domain.LayerRule{
+				{From: "view", Allow: []string{"view", "controller"}, Warn: []string{"model"}},
+			},
+		}
+
+		violation := service.evaluateLayerEdge(rules, "app.view.profile", "app.model.user", "view", "model")
+		require.NotNil(t, violation)
+		assert.Equal(t, domain.ViolationSeverityWarning, violation.Severity)
+		assert.Equal(t, "view ~> model", violation.Rule)
+	})
+
+	t.Run("warn target preferred over allow-list error", func(t *testing.T) {
+		// "model" is in Warn but not Allow; it must warn rather than error.
+		rules := &domain.ArchitectureRules{
+			Rules: []domain.LayerRule{
+				{From: "view", Allow: []string{"view", "controller"}, Warn: []string{"model"}},
+			},
+		}
+
+		violation := service.evaluateLayerEdge(rules, "app.view.profile", "app.model.user", "view", "model")
+		require.NotNil(t, violation)
+		assert.Equal(t, domain.ViolationSeverityWarning, violation.Severity)
+	})
 }
 
 func TestAutoDetectArchitecture(t *testing.T) {
