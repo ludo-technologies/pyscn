@@ -755,6 +755,45 @@ func TestResolveArchitectureRules_StyleWithUserRuleOverride(t *testing.T) {
 	require.Len(t, original.Rules, 1)
 }
 
+// TestResolveArchitectureRules_StyleWithCustomLayersFiltersPresetRules verifies
+// that style presets do not inject rules for built-in layer names when the user
+// provides custom layer names.
+func TestResolveArchitectureRules_StyleWithCustomLayersFiltersPresetRules(t *testing.T) {
+	svc := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+	graph.AddModule("app.api.handler", "/project/app/api/handler.py")
+	graph.AddModule("app.core.model", "/project/app/core/model.py")
+
+	resolved := svc.resolveArchitectureRules(graph, &domain.ArchitectureRules{
+		Style: "layered",
+		Layers: []domain.Layer{
+			{Name: "api", Packages: []string{"api"}},
+			{Name: "core", Packages: []string{"core"}},
+		},
+	})
+
+	require.NotNil(t, resolved)
+	assert.Empty(t, resolved.Rules, "custom layer names should not receive unmatched layered preset rules")
+}
+
+func TestResolveArchitectureRules_StyleWithBuiltinLayerSubsetFiltersPresetRules(t *testing.T) {
+	svc := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+	graph.AddModule("app.domain.user_model", "/project/app/domain/user_model.py")
+
+	resolved := svc.resolveArchitectureRules(graph, &domain.ArchitectureRules{
+		Style: "layered",
+		Layers: []domain.Layer{
+			{Name: "domain", Packages: []string{"domain"}},
+		},
+	})
+
+	require.NotNil(t, resolved)
+	require.Len(t, resolved.Rules, 1)
+	assert.Equal(t, "domain", resolved.Rules[0].From)
+	assert.Equal(t, []string{"domain", "infrastructure"}, resolved.Rules[0].Allow)
+}
+
 // TestResolveArchitectureRules_UnknownStyleFallsBackToAutoDetect verifies that an
 // unrecognized style with no explicit config falls back to auto-detection rather
 // than disabling architecture validation.

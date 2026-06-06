@@ -1036,10 +1036,12 @@ func (s *SystemAnalysisServiceImpl) resolveArchitectureRules(graph *analyzer.Dep
 	if resolved.Style != "" {
 		presetLayers, presetRules := config.ArchitectureStylePreset(resolved.Style)
 		if presetLayers != nil || presetRules != nil {
+			presetDomainRules := convertLayerRules(presetRules)
 			if len(resolved.Layers) == 0 {
 				resolved.Layers = convertLayerDefinitions(presetLayers)
+			} else {
+				presetDomainRules = s.filterLayerRulesForLayers(presetDomainRules, resolved.Layers)
 			}
-			presetDomainRules := convertLayerRules(presetRules)
 			if len(resolved.Rules) == 0 {
 				resolved.Rules = presetDomainRules
 			} else {
@@ -1093,6 +1095,22 @@ func (s *SystemAnalysisServiceImpl) mergeLayerRules(base, overrides []domain.Lay
 	return merged
 }
 
+// filterLayerRulesForLayers returns only rules whose From layer exists in layers.
+func (s *SystemAnalysisServiceImpl) filterLayerRulesForLayers(rules []domain.LayerRule, layers []domain.Layer) []domain.LayerRule {
+	layerNames := make(map[string]struct{}, len(layers))
+	for _, l := range layers {
+		layerNames[l.Name] = struct{}{}
+	}
+
+	filtered := make([]domain.LayerRule, 0, len(rules))
+	for _, rule := range rules {
+		if _, ok := layerNames[rule.From]; ok {
+			filtered = append(filtered, rule)
+		}
+	}
+	return filtered
+}
+
 // loadDefaultRulesForLayers loads the embedded default layer rules and returns
 // only those whose From field matches one of the given layer names. This avoids
 // injecting rules that reference built-in layer names (e.g. "presentation") when
@@ -1103,23 +1121,15 @@ func (s *SystemAnalysisServiceImpl) loadDefaultRulesForLayers(layers []domain.La
 		return nil
 	}
 
-	// Build a set of user-defined layer names for fast lookup
-	layerNames := make(map[string]struct{}, len(layers))
-	for _, l := range layers {
-		layerNames[l.Name] = struct{}{}
-	}
-
-	var filtered []domain.LayerRule
+	defaultRules := make([]domain.LayerRule, 0, len(defaultConfig.Architecture.Rules))
 	for _, rule := range defaultConfig.Architecture.Rules {
-		if _, ok := layerNames[rule.From]; ok {
-			filtered = append(filtered, domain.LayerRule{
-				From:  rule.From,
-				Allow: rule.Allow,
-				Deny:  rule.Deny,
-			})
-		}
+		defaultRules = append(defaultRules, domain.LayerRule{
+			From:  rule.From,
+			Allow: rule.Allow,
+			Deny:  rule.Deny,
+		})
 	}
-	return filtered
+	return s.filterLayerRulesForLayers(defaultRules, layers)
 }
 
 // isTestModule checks if a module represents test code
