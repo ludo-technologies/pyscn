@@ -358,3 +358,25 @@ func TestResolveConfigPath_MissingNonTomlPathReturnsError(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 }
+
+func TestLoadArchitectureStyleFromPyscnToml(t *testing.T) {
+	tempDir := t.TempDir()
+
+	configContent := `[architecture]
+style = "hexagonal"
+`
+	configPath := filepath.Join(tempDir, ".pyscn.toml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	loader := NewTomlConfigLoader()
+	cfg, err := loader.LoadConfig(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if cfg.ArchitectureStyle != "hexagonal" {
+		t.Errorf("Expected architecture style 'hexagonal', got %q", cfg.ArchitectureStyle)
+	}
+}

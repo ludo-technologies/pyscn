@@ -1015,18 +1015,46 @@ func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.Depen
 // in missing layers or rules from auto-detection / embedded defaults.
 func (s *SystemAnalysisServiceImpl) resolveArchitectureRules(graph *analyzer.DependencyGraph, orig *domain.ArchitectureRules) *domain.ArchitectureRules {
 	// No user config at all — fully auto-detect
-	if orig == nil || (len(orig.Layers) == 0 && len(orig.Rules) == 0) {
+	if orig == nil || (len(orig.Layers) == 0 && len(orig.Rules) == 0 && orig.Style == "") {
 		return s.autoDetectArchitecture(graph)
 	}
 
 	// Clone to avoid mutating the caller's object
 	resolved := &domain.ArchitectureRules{
+		Style:             orig.Style,
 		Layers:            append([]domain.Layer(nil), orig.Layers...),
 		Rules:             append([]domain.LayerRule(nil), orig.Rules...),
 		NeutralPrefixes:   append([]string(nil), orig.NeutralPrefixes...),
 		StrictMode:        orig.StrictMode,
 		AllowedPatterns:   orig.AllowedPatterns,
 		ForbiddenPatterns: orig.ForbiddenPatterns,
+	}
+
+	// A style preset is selected — apply its layers/rules. Explicit user-defined
+	// layers/rules take precedence over the preset. An unrecognized style yields
+	// no preset; fall through to the explicit-config / auto-detect handling below.
+	if resolved.Style != "" {
+		presetLayers, presetRules := config.ArchitectureStylePreset(resolved.Style)
+		if presetLayers != nil || presetRules != nil {
+			presetDomainRules := convertLayerRules(presetRules)
+			if len(resolved.Layers) == 0 {
+				resolved.Layers = convertLayerDefinitions(presetLayers)
+			} else {
+				presetDomainRules = s.filterLayerRulesForLayers(presetDomainRules, resolved.Layers)
+			}
+			if len(resolved.Rules) == 0 {
+				resolved.Rules = presetDomainRules
+			} else {
+				// User provided some rules — merge on top of the preset; user
+				// rules win for any matching From value.
+				resolved.Rules = s.mergeLayerRules(presetDomainRules, resolved.Rules)
+			}
+			return resolved
+		}
+		// Unknown style with no explicit config — fall back to auto-detection.
+		if len(resolved.Layers) == 0 && len(resolved.Rules) == 0 {
+			return s.autoDetectArchitecture(graph)
+		}
 	}
 
 	if len(resolved.Layers) > 0 && len(resolved.Rules) == 0 {
@@ -1067,6 +1095,22 @@ func (s *SystemAnalysisServiceImpl) mergeLayerRules(base, overrides []domain.Lay
 	return merged
 }
 
+// filterLayerRulesForLayers returns only rules whose From layer exists in layers.
+func (s *SystemAnalysisServiceImpl) filterLayerRulesForLayers(rules []domain.LayerRule, layers []domain.Layer) []domain.LayerRule {
+	layerNames := make(map[string]struct{}, len(layers))
+	for _, l := range layers {
+		layerNames[l.Name] = struct{}{}
+	}
+
+	filtered := make([]domain.LayerRule, 0, len(rules))
+	for _, rule := range rules {
+		if _, ok := layerNames[rule.From]; ok {
+			filtered = append(filtered, rule)
+		}
+	}
+	return filtered
+}
+
 // loadDefaultRulesForLayers loads the embedded default layer rules and returns
 // only those whose From field matches one of the given layer names. This avoids
 // injecting rules that reference built-in layer names (e.g. "presentation") when
@@ -1077,23 +1121,15 @@ func (s *SystemAnalysisServiceImpl) loadDefaultRulesForLayers(layers []domain.La
 		return nil
 	}
 
-	// Build a set of user-defined layer names for fast lookup
-	layerNames := make(map[string]struct{}, len(layers))
-	for _, l := range layers {
-		layerNames[l.Name] = struct{}{}
-	}
-
-	var filtered []domain.LayerRule
+	defaultRules := make([]domain.LayerRule, 0, len(defaultConfig.Architecture.Rules))
 	for _, rule := range defaultConfig.Architecture.Rules {
-		if _, ok := layerNames[rule.From]; ok {
-			filtered = append(filtered, domain.LayerRule{
-				From:  rule.From,
-				Allow: rule.Allow,
-				Deny:  rule.Deny,
-			})
-		}
+		defaultRules = append(defaultRules, domain.LayerRule{
+			From:  rule.From,
+			Allow: rule.Allow,
+			Deny:  rule.Deny,
+		})
 	}
-	return filtered
+	return s.filterLayerRulesForLayers(defaultRules, layers)
 }
 
 // isTestModule checks if a module represents test code

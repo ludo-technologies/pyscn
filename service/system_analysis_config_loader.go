@@ -71,10 +71,13 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) pyscnConfigToSystemAnalysisRequ
 	}
 
 	// Architecture settings
-	if cfg.ArchitectureStrictMode != nil || len(cfg.ArchitectureAllowedPatterns) > 0 || len(cfg.ArchitectureForbiddenPatterns) > 0 ||
+	if cfg.ArchitectureStrictMode != nil || cfg.ArchitectureStyle != "" || len(cfg.ArchitectureAllowedPatterns) > 0 || len(cfg.ArchitectureForbiddenPatterns) > 0 ||
 		len(cfg.ArchitectureLayers) > 0 || len(cfg.ArchitectureRules) > 0 || len(cfg.ArchitectureNeutralPrefixes) > 0 {
 		if request.ArchitectureRules == nil {
 			request.ArchitectureRules = &domain.ArchitectureRules{}
+		}
+		if cfg.ArchitectureStyle != "" {
+			request.ArchitectureRules.Style = cfg.ArchitectureStyle
 		}
 		if cfg.ArchitectureStrictMode != nil {
 			request.ArchitectureRules.StrictMode = *cfg.ArchitectureStrictMode
@@ -228,6 +231,9 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
 			// Merge: apply StrictMode from CLI while preserving config rules
 			if override.ArchitectureRules.StrictMode {
 				merged.ArchitectureRules.StrictMode = true
+			}
+			if override.ArchitectureRules.Style != "" {
+				merged.ArchitectureRules.Style = override.ArchitectureRules.Style
 			}
 			// If CLI provides layers/rules, they override config (unlikely in deps command)
 			if len(override.ArchitectureRules.Layers) > 0 {

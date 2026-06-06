@@ -517,6 +517,9 @@ func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
 	if len(pyscn.ArchitectureNeutralPrefixes) > 0 {
 		cfg.Architecture.NeutralPrefixes = pyscn.ArchitectureNeutralPrefixes
 	}
+	if pyscn.ArchitectureStyle != "" {
+		cfg.Architecture.Style = pyscn.ArchitectureStyle
+	}
 	if len(pyscn.ArchitectureLayers) > 0 {
 		cfg.Architecture.Layers = pyscn.ArchitectureLayers
 	}
@@ -810,6 +813,9 @@ type ArchitectureConfig struct {
 	ValidateLayers         bool `mapstructure:"validate_layers" yaml:"validate_layers"`
 	ValidateCohesion       bool `mapstructure:"validate_cohesion" yaml:"validate_cohesion"`
 	ValidateResponsibility bool `mapstructure:"validate_responsibility" yaml:"validate_responsibility"`
+
+	// Style is an optional architecture preset: "layered", "hexagonal", "clean", "mvc".
+	Style string `mapstructure:"style" yaml:"style"`
 
 	// Layer definitions
 	Layers          []LayerDefinition `mapstructure:"layers" yaml:"layers"`
