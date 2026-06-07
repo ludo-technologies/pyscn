@@ -38,10 +38,17 @@ take precedence over the preset (see [Resolution order](#resolution-order)).
 
 ### `layered` (default)
 
-The backward-compatible default. An empty/unset `style` is treated as
-`layered`, and the preset mirrors the `[architecture]` section of
-`internal/config/default_config.toml.tmpl` exactly so that pre-preset projects
-see no behavior change.
+The backward-compatible baseline. Selecting `style = "layered"` reproduces the
+behavior projects had before presets existed: the preset mirrors the
+`[architecture]` section of `internal/config/default_config.toml.tmpl` exactly,
+so the generated default config (which ships those layers/rules explicitly)
+sees no change.
+
+> **Note on the empty style.** `ArchitectureStylePreset("")` returns the
+> `layered` definitions, but the resolver only consults a preset when `style`
+> is non-empty. A project with **no** `style`, layers, or rules at all is
+> auto-detected from its dependency graph, not silently given the `layered`
+> preset — see [Resolution order](#resolution-order).
 
 | Layer | Example packages |
 | --- | --- |
@@ -185,7 +192,7 @@ In `.pyscn.toml` (or `pyproject.toml` under `[tool.pyscn.architecture]`):
 ```toml
 [architecture]
 enabled = true
-style = "clean"        # one of: layered (default), hexagonal, clean, mvc
+style = "clean"        # one of: layered, hexagonal, clean, mvc (empty → auto-detect)
 strict_mode = true
 ```
 

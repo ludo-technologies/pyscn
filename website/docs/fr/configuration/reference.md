@@ -190,7 +190,7 @@ Validation des couches. Toutes les clés sont facultatives — si vous ne défin
 | Clé                        | Type  | Défaut | Description |
 | -------------------------- | ----- | ------- | --- |
 | `enabled`                  | bool  | `true`  | Exécute la validation des couches. |
-| `style`                    | string | `""`   | Applique un préréglage intégré de couches + règles : `layered` (par défaut), `hexagonal`, `clean`, `mvc`. Les `layers`/`rules` explicites ci-dessous remplacent le préréglage. |
+| `style`                    | string | `""`   | Applique un préréglage intégré de couches + règles : `layered`, `hexagonal`, `clean`, `mvc`. Les `layers`/`rules` explicites ci-dessous remplacent le préréglage. Sans aucun `style`, `layers` ni `rules`, pyscn détecte automatiquement l'architecture au lieu d'appliquer un préréglage. |
 | `validate_layers`          | bool  | `true`  | Vérifie les règles inter-couches. |
 | `validate_cohesion`        | bool  | `true`  | Vérifie la cohésion des paquets. |
 | `validate_responsibility`  | bool  | `true`  | Vérifie le nombre de responsabilités des modules. |
@@ -203,11 +203,11 @@ Validation des couches. Toutes les clés sont facultatives — si vous ne défin
 
 ### Préréglages de style
 
-Définissez `style` pour appliquer un ensemble prêt à l'emploi de définitions de couches et de règles plutôt que de les écrire à la main. Le préréglage est le point de départ ; tout `[[architecture.layers]]` ou `[[architecture.rules]]` que vous ajoutez le remplace (les règles utilisateur l'emportent par couche `from`).
+Définissez `style` pour appliquer un ensemble prêt à l'emploi de définitions de couches et de règles plutôt que de les écrire à la main. Le préréglage est le point de départ ; tout `[[architecture.layers]]` ou `[[architecture.rules]]` que vous ajoutez le remplace (les règles utilisateur l'emportent par couche `from`). `layered` reproduit les couches/règles de la configuration par défaut générée ; sans aucun `style`, `layers` ni `rules`, pyscn détecte automatiquement l'architecture au lieu d'appliquer `layered`.
 
 | Préréglage | Impose | Règle notable |
 | --- | --- | --- |
-| `layered` (par défaut) | `presentation → application → domain → infrastructure` classique. | `domain` peut encore atteindre `infrastructure` (DIP souple). |
+| `layered` | `presentation → application → domain → infrastructure` classique (base de la configuration par défaut générée). | `domain` peut encore atteindre `infrastructure` (DIP souple). |
 | `hexagonal` | Ports & Adapters / Onion : `domain` ne dépend de rien vers l'extérieur. | `domain → ports`/`adapters` refusé. |
 | `clean` | Clean Architecture : les dépendances ne pointent que vers l'intérieur sur `entities → use_cases → interface_adapters → frameworks`. | Toute dépendance vers l'extérieur refusée. |
 | `mvc` | MVC / MVT : `model` / `view` / `controller`. | Une dépendance directe `view → model` est **déconseillée** (avertissement), pas refusée. |
@@ -217,7 +217,7 @@ Définissez `style` pour appliquer un ensemble prêt à l'emploi de définitions
 style = "hexagonal"
 ```
 
-Les règles utilisent trois listes, évaluées dans l'ordre : `deny` (erreur), `warn` (autorisé mais signalé comme avertissement — utilisé par `mvc` pour `view → model`), puis `allow` (tout ce qui n'est pas listé devient une erreur). Un avertissement réduit moins le score de conformité d'architecture qu'une erreur.
+Les règles utilisent trois listes, évaluées dans l'ordre : `deny` (erreur), `warn` (autorisé mais signalé comme avertissement — utilisé par `mvc` pour `view → model`), puis `allow` (lorsqu'une liste allow non vide est présente, tout ce qui n'est pas listé devient une erreur). Un avertissement réduit moins le score de conformité d'architecture qu'une erreur.
 
 ### Définitions de couches
 
