@@ -190,6 +190,7 @@ Lack of Cohesion of Methods（LCOM4）です。
 | キー                        | 型  | デフォルト | 説明 |
 | -------------------------- | ----- | ------- | --- |
 | `enabled`                  | bool  | `true`  | レイヤーバリデーションを実行します。 |
+| `style`                    | string | `""`   | レイヤーとルールの組み込みプリセットを適用します: `layered`, `hexagonal`, `clean`, `mvc`。下で明示した `layers`/`rules` がプリセットより優先されます。`style`・`layers`・`rules` をいずれも指定しない場合は、プリセットではなくアーキテクチャの自動検出が行われます。 |
 | `validate_layers`          | bool  | `true`  | レイヤー間ルールをチェックします。 |
 | `validate_cohesion`        | bool  | `true`  | パッケージ凝集度をチェックします。 |
 | `validate_responsibility`  | bool  | `true`  | モジュールごとの責務数をチェックします。 |
@@ -199,6 +200,24 @@ Lack of Cohesion of Methods（LCOM4）です。
 | `max_coupling`             | int   | `10`    | レイヤー間結合度の最大値。 |
 | `max_responsibilities`     | int   | `3`     | モジュールごとの責務の最大数。 |
 | `neutral_prefixes`         | string[] | `[]` | レイヤー判定の前に取り除くトップレベルのモジュールセグメント。すべてのモジュールが同じプロジェクト接頭辞（例: `app`, `src`）から始まる場合に便利です。 |
+
+### スタイルプリセット
+
+`style` を指定すると、レイヤー定義とルールを手書きする代わりに、出来合いのセットを適用できます。プリセットは出発点であり、追加した `[[architecture.layers]]` や `[[architecture.rules]]` がプリセットを上書きします（`from` レイヤー単位でユーザールールが優先）。`layered` は生成されるデフォルト設定のレイヤー／ルールを再現したものです。`style`・`layers`・`rules` をいずれも指定しない場合は、`layered` ではなくアーキテクチャの自動検出が行われます。
+
+| プリセット | 強制する内容 | 特徴的なルール |
+| --- | --- | --- |
+| `layered` | 従来の `presentation → application → domain → infrastructure`（生成されるデフォルト設定の基準）。 | `domain` から `infrastructure` への依存は許容（DIP は緩め）。 |
+| `hexagonal` | ポート＆アダプター / オニオン: `domain` は外側に一切依存しない。 | `domain → ports`/`adapters` は拒否。 |
+| `clean` | クリーンアーキテクチャ: `entities → use_cases → interface_adapters → frameworks` で依存は内側のみ。 | 外側への依存はすべて拒否。 |
+| `mvc` | MVC / MVT: `model` / `view` / `controller`。 | `view → model` への直接依存は**非推奨**（警告）であり拒否ではない。 |
+
+```toml
+[architecture]
+style = "hexagonal"
+```
+
+ルールは 3 つのリストを順に評価します: `deny`（エラー）、`warn`（許可されるが警告として報告。`mvc` の `view → model` で使用）、`allow`（空でない allow リストがある場合、列挙外はエラー）。警告はエラーよりもアーキテクチャ適合スコアの低下が小さくなります。
 
 ### レイヤー定義
 

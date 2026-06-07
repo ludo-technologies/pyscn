@@ -190,6 +190,7 @@
 | 键                         | 类型  | 默认值 | 说明 |
 | -------------------------- | ----- | ------- | --- |
 | `enabled`                  | bool  | `true`  | 运行分层验证。 |
+| `style`                    | string | `""`   | 应用内置的层与规则预设：`layered`、`hexagonal`、`clean`、`mvc`。下方显式定义的 `layers`/`rules` 会覆盖预设。若完全不设置 `style`、`layers` 或 `rules`，pyscn 会自动检测架构而非套用预设。 |
 | `validate_layers`          | bool  | `true`  | 检查层间规则。 |
 | `validate_cohesion`        | bool  | `true`  | 检查包内聚性。 |
 | `validate_responsibility`  | bool  | `true`  | 检查每个模块的职责数量。 |
@@ -199,6 +200,24 @@
 | `max_coupling`             | int   | `10`    | 最大层间耦合度。 |
 | `max_responsibilities`     | int   | `3`     | 每个模块最大职责数。 |
 | `neutral_prefixes`         | string[] | `[]` | 在匹配层包名之前需要剥离的顶层模块段。当所有模块都以同一个项目前缀（例如 `app`、`src`）开头时很有用。 |
+
+### 风格预设
+
+设置 `style` 即可应用现成的层定义与规则组合，无需手写。预设是起点；你额外添加的 `[[architecture.layers]]` 或 `[[architecture.rules]]` 会覆盖预设（按 `from` 层，用户规则优先）。`layered` 复刻了生成的默认配置的层与规则；若完全不设置 `style`、`layers` 或 `rules`，pyscn 会自动检测架构，而不会套用 `layered`。
+
+| 预设 | 强制约束 | 关键规则 |
+| --- | --- | --- |
+| `layered` | 经典的 `presentation → application → domain → infrastructure`（生成的默认配置所采用的基准）。 | `domain` 仍可依赖 `infrastructure`（宽松的 DIP）。 |
+| `hexagonal` | 端口与适配器 / 洋葱架构：`domain` 不向外依赖任何内容。 | 拒绝 `domain → ports`/`adapters`。 |
+| `clean` | 整洁架构：`entities → use_cases → interface_adapters → frameworks` 依赖只能向内。 | 拒绝任何向外的依赖。 |
+| `mvc` | MVC / MVT：`model` / `view` / `controller`。 | 直接的 `view → model` 被**不推荐**（警告），而非拒绝。 |
+
+```toml
+[architecture]
+style = "hexagonal"
+```
+
+规则按顺序评估三个列表：`deny`（错误）、`warn`（允许但报告为警告，`mvc` 的 `view → model` 即用此）、`allow`（当 allow 列表非空时，未列出的视为错误）。警告对架构合规分数的影响小于错误。
 
 ### 层定义
 

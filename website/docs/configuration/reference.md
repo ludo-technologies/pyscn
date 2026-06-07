@@ -190,6 +190,7 @@ Layer validation. All keys optional — if you don't define layers, architecture
 | Key                        | Type  | Default | Description |
 | -------------------------- | ----- | ------- | --- |
 | `enabled`                  | bool  | `true`  | Run layer validation. |
+| `style`                    | string | `""`   | Apply a built-in preset of layers + rules: `layered`, `hexagonal`, `clean`, `mvc`. Explicit `layers`/`rules` below override the preset. With no `style`, layers, or rules at all, pyscn auto-detects the architecture instead. |
 | `validate_layers`          | bool  | `true`  | Check layer-to-layer rules. |
 | `validate_cohesion`        | bool  | `true`  | Check package cohesion. |
 | `validate_responsibility`  | bool  | `true`  | Check module responsibility count. |
@@ -199,6 +200,24 @@ Layer validation. All keys optional — if you don't define layers, architecture
 | `max_coupling`             | int   | `10`    | Max inter-layer coupling. |
 | `max_responsibilities`     | int   | `3`     | Max concerns per module. |
 | `neutral_prefixes`         | string[] | `[]` | Top-level module segments to strip before matching layer packages. Useful when every module starts with the same project prefix (e.g. `app`, `src`). |
+
+### Style presets
+
+Set `style` to apply a ready-made bundle of layer definitions and rules instead of writing them by hand. The preset is the starting point; any `[[architecture.layers]]` or `[[architecture.rules]]` you add override it (user rules win per `from` layer). `layered` reproduces the layers/rules of the generated default config; with no `style`, layers, or rules set at all, pyscn auto-detects the architecture rather than applying `layered`.
+
+| Preset | Enforces | Notable rule |
+| --- | --- | --- |
+| `layered` | Classic `presentation → application → domain → infrastructure` (the generated default config's baseline). | `domain` may still reach `infrastructure` (lenient DIP). |
+| `hexagonal` | Ports & Adapters / Onion: `domain` depends on nothing outward. | `domain → ports`/`adapters` denied. |
+| `clean` | Clean Architecture: dependencies point only inward across `entities → use_cases → interface_adapters → frameworks`. | Any outward dependency denied. |
+| `mvc` | MVC / MVT: `model` / `view` / `controller`. | A direct `view → model` is **discouraged** (warning), not denied. |
+
+```toml
+[architecture]
+style = "hexagonal"
+```
+
+Rules use three lists, checked in order: `deny` (error), `warn` (allowed but reported as a warning — used by `mvc` for `view → model`), then `allow` (when a non-empty allow list is present, anything not listed becomes an error). A warning lowers the architecture compliance score less than an error does.
 
 ### Layer definitions
 
