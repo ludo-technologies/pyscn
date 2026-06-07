@@ -24,6 +24,7 @@ reference, configuration), see:
 | [`ANALYZE_SCORING.md`](ANALYZE_SCORING.md)     | Health Score design rationale. See also the user-facing spec page. |
 | [`MCP_INTEGRATION.md`](MCP_INTEGRATION.md)     | MCP server design. |
 | [`algorithms/`](algorithms/)                   | Per-analyzer algorithm descriptions (CFG, APTED, LSH, Main Sequence, etc.). |
+| [`algorithms/architecture-presets.md`](algorithms/architecture-presets.md) | Architecture style presets (layered/hexagonal/clean/mvc) and `allow`/`deny`/`warn` rule semantics. |
 
 For the user-facing **rule catalog** (problem-based rule names and fixes), see
 <https://ludo-technologies.github.io/pyscn/rules/>.
