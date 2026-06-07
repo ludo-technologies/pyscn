@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.23.0] - 2026-06-07
+
+### Added
+- Architecture style presets (`layered`, `hexagonal`, `clean`, `mvc`) for dependency rule configuration (#520, #521, #523, #526)
+
+### Fixed
+- Merge overlapping unreachable findings in dead code detection (#519)
+
 ## [1.22.9] - 2026-06-04
 
 ### Fixed
