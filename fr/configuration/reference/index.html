@@ -2728,6 +2728,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#prereglages-de-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Préréglages de style
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#definitions-de-couches" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3420,6 +3431,17 @@
   
     <nav class="md-nav" aria-label="[architecture]">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prereglages-de-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Préréglages de style
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#definitions-de-couches" class="md-nav__link">
@@ -4222,6 +4244,12 @@
 <td>Exécute la validation des couches.</td>
 </tr>
 <tr>
+<td><code>style</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Applique un préréglage intégré de couches + règles : <code>layered</code>, <code>hexagonal</code>, <code>clean</code>, <code>mvc</code>. Les <code>layers</code>/<code>rules</code> explicites ci-dessous remplacent le préréglage. Sans aucun <code>style</code>, <code>layers</code> ni <code>rules</code>, pyscn détecte automatiquement l'architecture au lieu d'appliquer un préréglage.</td>
+</tr>
+<tr>
 <td><code>validate_layers</code></td>
 <td>bool</td>
 <td><code>true</code></td>
@@ -4277,37 +4305,74 @@
 </tr>
 </tbody>
 </table>
+<h3 id="prereglages-de-style">Préréglages de style<a class="headerlink" href="#prereglages-de-style" title="Permanent link">&para;</a></h3>
+<p>Définissez <code>style</code> pour appliquer un ensemble prêt à l'emploi de définitions de couches et de règles plutôt que de les écrire à la main. Le préréglage est le point de départ ; tout <code>[[architecture.layers]]</code> ou <code>[[architecture.rules]]</code> que vous ajoutez le remplace (les règles utilisateur l'emportent par couche <code>from</code>). <code>layered</code> reproduit les couches/règles de la configuration par défaut générée ; sans aucun <code>style</code>, <code>layers</code> ni <code>rules</code>, pyscn détecte automatiquement l'architecture au lieu d'appliquer <code>layered</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Préréglage</th>
+<th>Impose</th>
+<th>Règle notable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>layered</code></td>
+<td><code>presentation → application → domain → infrastructure</code> classique (base de la configuration par défaut générée).</td>
+<td><code>domain</code> peut encore atteindre <code>infrastructure</code> (DIP souple).</td>
+</tr>
+<tr>
+<td><code>hexagonal</code></td>
+<td>Ports &amp; Adapters / Onion : <code>domain</code> ne dépend de rien vers l'extérieur.</td>
+<td><code>domain → ports</code>/<code>adapters</code> refusé.</td>
+</tr>
+<tr>
+<td><code>clean</code></td>
+<td>Clean Architecture : les dépendances ne pointent que vers l'intérieur sur <code>entities → use_cases → interface_adapters → frameworks</code>.</td>
+<td>Toute dépendance vers l'extérieur refusée.</td>
+</tr>
+<tr>
+<td><code>mvc</code></td>
+<td>MVC / MVT : <code>model</code> / <code>view</code> / <code>controller</code>.</td>
+<td>Une dépendance directe <code>view → model</code> est <strong>déconseillée</strong> (avertissement), pas refusée.</td>
+</tr>
+</tbody>
+</table>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">[architecture]</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;hexagonal&quot;</span>
+</span></code></pre></div>
+<p>Les règles utilisent trois listes, évaluées dans l'ordre : <code>deny</code> (erreur), <code>warn</code> (autorisé mais signalé comme avertissement — utilisé par <code>mvc</code> pour <code>view → model</code>), puis <code>allow</code> (lorsqu'une liste allow non vide est présente, tout ce qui n'est pas listé devient une erreur). Un avertissement réduit moins le score de conformité d'architecture qu'une erreur.</p>
 <h3 id="definitions-de-couches">Définitions de couches<a class="headerlink" href="#definitions-de-couches" title="Permanent link">&para;</a></h3>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">[[architecture.layers]]</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;presentation&quot;</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">packages</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;router&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;routers&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;handler&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;handlers&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;controller&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;api&quot;</span><span class="p">]</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="k">[[architecture.layers]]</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;application&quot;</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">packages</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;service&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;services&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;usecase&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;usecases&quot;</span><span class="p">]</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="k">[[architecture.layers]]</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;domain&quot;</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">packages</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;models&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;entity&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;entities&quot;</span><span class="p">]</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="k">[[architecture.layers]]</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;infrastructure&quot;</span>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">packages</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;repository&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;repositories&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;db&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;database&quot;</span><span class="p">]</span>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[[architecture.layers]]</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;presentation&quot;</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">packages</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;router&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;routers&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;handler&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;handlers&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;controller&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;api&quot;</span><span class="p">]</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">[[architecture.layers]]</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;application&quot;</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">packages</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;service&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;services&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;usecase&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;usecases&quot;</span><span class="p">]</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="k">[[architecture.layers]]</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;domain&quot;</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">packages</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;models&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;entity&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;entities&quot;</span><span class="p">]</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="k">[[architecture.layers]]</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;infrastructure&quot;</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="n">packages</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;repository&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;repositories&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;db&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;database&quot;</span><span class="p">]</span>
 </span></code></pre></div>
 <h3 id="regles-de-couches">Règles de couches<a class="headerlink" href="#regles-de-couches" title="Permanent link">&para;</a></h3>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[[architecture.rules]]</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">from</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;presentation&quot;</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">allow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;application&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">deny</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;infrastructure&quot;</span><span class="p">]</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">[[architecture.rules]]</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">from</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;application&quot;</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">allow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[[architecture.rules]]</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">from</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;presentation&quot;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">allow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;application&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">deny</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;infrastructure&quot;</span><span class="p">]</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="k">[[architecture.rules]]</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">from</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;application&quot;</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">allow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
 </span></code></pre></div>
 <h3 id="prefixes-neutres">Préfixes neutres<a class="headerlink" href="#prefixes-neutres" title="Permanent link">&para;</a></h3>
 <p>Si chaque module du projet commence par le même segment racine (<code>app.</code>, <code>src.</code>, ...), la correspondance des couches peut échouer car le préfixe projet masque le nom de la couche. Listez ces segments sous <code>neutral_prefixes</code> et pyscn les retirera avant de résoudre un module vers une couche :</p>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[architecture]</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">neutral_prefixes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;app&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;src&quot;</span><span class="p">]</span>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[architecture]</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">neutral_prefixes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;app&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;src&quot;</span><span class="p">]</span>
 </span></code></pre></div>
 <p>Avec ce réglage, <code>app.routers.user_router</code> est mis en correspondance comme <code>routers.user_router</code> et résolu vers la couche <code>presentation</code>.</p>
 <hr />
