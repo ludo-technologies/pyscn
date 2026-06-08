@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.23.1] - 2026-06-09
+
+### Changed
+- Soften CBO coupling scoring calibration (#528)
+- Soften LCOM cohesion scoring calibration (#530)
+
 ## [1.23.0] - 2026-06-07
 
 ### Added
