@@ -69,13 +69,11 @@ const (
 	GroupDensityMinLines    = 1.0    // Minimum lines in thousands (for small projects)
 	GroupDensityCoefficient = 20.0   // Multiplier to convert density to percentage
 
-	// CBO coupling thresholds and penalties
-	CouplingRatioHigh     = 0.30 // 30% or more classes with high coupling
-	CouplingRatioMedium   = 0.15 // 15-30% classes with high coupling
-	CouplingRatioLow      = 0.05 // 5-15% classes with high coupling
-	CouplingPenaltyHigh   = 20   // Aligned with other high penalties
-	CouplingPenaltyMedium = 12   // Aligned with other medium penalties
-	CouplingPenaltyLow    = 6    // Aligned with other low penalties
+	// CBO coupling scoring curve (used by calculateCouplingPenalty)
+	// Penalty grows linearly with the weighted ratio of problematic classes
+	// and saturates (reaches the max penalty) at CouplingSaturationRatio.
+	CouplingMediumWeight    = 0.3  // Medium-risk classes count 0.3 vs High = 1.0
+	CouplingSaturationRatio = 0.40 // weighted ratio at which the penalty maxes out
 
 	// Maximum penalties
 	MaxDeadCodePenalty = 20
@@ -327,13 +325,13 @@ func (s *AnalyzeSummary) calculateCouplingPenalty() int {
 	}
 
 	// Calculate combined problematic classes ratio
-	// Weight: High Risk = 1.0, Medium Risk = 0.5
-	weightedProblematicClasses := float64(s.HighCouplingClasses) + (0.5 * float64(s.MediumCouplingClasses))
+	// Weight: High Risk = 1.0, Medium Risk = CouplingMediumWeight
+	weightedProblematicClasses := float64(s.HighCouplingClasses) + (CouplingMediumWeight * float64(s.MediumCouplingClasses))
 	ratio := weightedProblematicClasses / float64(s.CBOClasses)
 
-	// Linear penalty: starts at 0%, reaches max (20) at 25%
-	// Formula: penalty = ratio / 0.25 * 20
-	penalty := ratio / 0.25 * 20.0
+	// Linear penalty: starts at 0%, reaches max (20) at CouplingSaturationRatio
+	// Formula: penalty = ratio / CouplingSaturationRatio * 20
+	penalty := ratio / CouplingSaturationRatio * 20.0
 	if penalty > 20.0 {
 		penalty = 20.0
 	}
