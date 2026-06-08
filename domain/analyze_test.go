@@ -165,6 +165,7 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 		expectedDeadCodeScore     int
 		expectedDuplicationScore  int
 		expectedCouplingScore     int
+		expectedCohesionScore     int
 		expectedDependencyScore   int
 		expectedArchitectureScore int
 	}{
@@ -300,6 +301,21 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 			expectError:   false,
 		},
 		{
+			// Softened cohesion curve (#529): a repo with a healthy average LCOM
+			// and ~10% high-LCOM classes should not floor. Mirrors CBO fix #528.
+			name: "cohesion calibration - healthy repo not floored",
+			summary: domain.AnalyzeSummary{
+				LCOMClasses:       100,
+				HighLCOMClasses:   10, // 10%
+				MediumLCOMClasses: 20,
+				// weighted = 10 + 0.3*20 = 16; ratio = 0.16; penalty = 0.16/0.40*20 = 8
+			},
+			expectedScore:         92, // 100 - 8
+			expectedGrade:         "A",
+			expectedCohesionScore: 60, // 100 - (8/20)*100 = 60
+			expectError:           false,
+		},
+		{
 			name: "grade D threshold",
 			summary: domain.AnalyzeSummary{
 				AverageComplexity:   22.0, // Capped at 20
@@ -406,6 +422,11 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				if tt.expectedCouplingScore > 0 {
 					if tt.summary.CouplingScore != tt.expectedCouplingScore {
 						t.Errorf("CouplingScore = %d, want %d", tt.summary.CouplingScore, tt.expectedCouplingScore)
+					}
+				}
+				if tt.expectedCohesionScore > 0 {
+					if tt.summary.CohesionScore != tt.expectedCohesionScore {
+						t.Errorf("CohesionScore = %d, want %d", tt.summary.CohesionScore, tt.expectedCohesionScore)
 					}
 				}
 				if tt.expectedDependencyScore > 0 {
