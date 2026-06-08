@@ -75,6 +75,12 @@ const (
 	CouplingMediumWeight    = 0.3  // Medium-risk classes count 0.3 vs High = 1.0
 	CouplingSaturationRatio = 0.40 // weighted ratio at which the penalty maxes out
 
+	// LCOM cohesion scoring curve (used by calculateCohesionPenalty)
+	// Penalty grows linearly with the weighted ratio of low-cohesion classes
+	// and saturates (reaches the max penalty) at CohesionSaturationRatio.
+	CohesionMediumWeight    = 0.3  // Medium-risk classes count 0.3 vs High = 1.0
+	CohesionSaturationRatio = 0.40 // weighted ratio at which the penalty maxes out
+
 	// Maximum penalties
 	MaxDeadCodePenalty = 20
 	MaxCriticalPenalty = 10
@@ -347,13 +353,13 @@ func (s *AnalyzeSummary) calculateCohesionPenalty() int {
 	}
 
 	// Calculate combined problematic classes ratio
-	// Weight: High Risk (LCOM4 > 5) = 1.0, Medium Risk (LCOM4 3-5) = 0.5
-	weightedProblematicClasses := float64(s.HighLCOMClasses) + (0.5 * float64(s.MediumLCOMClasses))
+	// Weight: High Risk (LCOM4 > 5) = 1.0, Medium Risk (LCOM4 3-5) = CohesionMediumWeight
+	weightedProblematicClasses := float64(s.HighLCOMClasses) + (CohesionMediumWeight * float64(s.MediumLCOMClasses))
 	ratio := weightedProblematicClasses / float64(s.LCOMClasses)
 
-	// Linear penalty: starts at 0%, reaches max (20) at 30%
-	// Formula: penalty = ratio / 0.30 * 20
-	penalty := ratio / 0.30 * 20.0
+	// Linear penalty: starts at 0%, reaches max (20) at CohesionSaturationRatio
+	// Formula: penalty = ratio / CohesionSaturationRatio * 20
+	penalty := ratio / CohesionSaturationRatio * 20.0
 	if penalty > 20.0 {
 		penalty = 20.0
 	}
