@@ -349,12 +349,10 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 				if valueNode, ok := node.Value.(*parser.Node); ok {
 					if valueNode.Type == parser.NodeCall {
 						className := a.extractClassNameFromCallNode(valueNode)
-						if className != "" && a.shouldIncludeDependencyForClass(className, result.ClassName) {
-							if a.isCallDependency(className, allClasses) {
-								a.addDependency(dependencies, className, dependencyKindInstantiation)
-							}
-							// Note: function calls are NOT added to dependencies
+						if dep := a.callDependencyName(className, allClasses); dep != "" && a.shouldIncludeDependencyForClass(dep, result.ClassName) {
+							a.addDependency(dependencies, dep, dependencyKindInstantiation)
 						}
+						// Note: function calls are NOT added to dependencies
 					}
 				}
 			}
@@ -362,12 +360,10 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 			// Function/class call - could be instantiation
 			// Use structural AST analysis instead of string parsing
 			className := a.extractClassNameFromCallNode(node)
-			if className != "" && a.shouldIncludeDependencyForClass(className, result.ClassName) {
-				if a.isCallDependency(className, allClasses) {
-					a.addDependency(dependencies, className, dependencyKindInstantiation)
-				}
-				// Note: function calls are NOT added to dependencies
+			if dep := a.callDependencyName(className, allClasses); dep != "" && a.shouldIncludeDependencyForClass(dep, result.ClassName) {
+				a.addDependency(dependencies, dep, dependencyKindInstantiation)
 			}
+			// Note: function calls are NOT added to dependencies
 		case parser.NodeAttribute:
 			// Attribute access: obj.method() or obj.attr
 			if a.shouldSkipAttributeAccess(node) {
@@ -550,18 +546,31 @@ func (a *CBOAnalyzer) shouldIncludeDependency(className string) bool {
 	return true
 }
 
-func (a *CBOAnalyzer) isCallDependency(className string, allClasses map[string]*parser.Node) bool {
-	if _, isClass := allClasses[className]; isClass {
-		return true
+// callDependencyName returns the portion of a called dotted name that refers
+// to a class, or "" when the call does not read as class coupling. The class
+// part is found by trying dotted prefixes from longest to shortest, so
+// class-method calls couple to the class itself: Path.cwd() -> Path,
+// datetime.datetime.now() -> datetime.datetime. Locally defined classes are
+// matched structurally; imported names carry no type information in
+// single-file analysis, so they only count when a prefix reads as a class —
+// otherwise function calls like os.getcwd() or suppress() would be reported
+// as class coupling.
+func (a *CBOAnalyzer) callDependencyName(className string, allClasses map[string]*parser.Node) string {
+	if className == "" {
+		return ""
 	}
-	// Imported names carry no type information in single-file analysis, so a
-	// called import only counts as instantiation when the name itself reads as
-	// a class; otherwise function calls like os.getcwd() or suppress() would
-	// be reported as class coupling.
-	if a.isImportedDependency(className) {
-		return a.looksLikeClassReference(className)
+	imported := a.isImportedDependency(className)
+	parts := strings.Split(className, ".")
+	for end := len(parts); end > 0; end-- {
+		prefix := strings.Join(parts[:end], ".")
+		if _, isClass := allClasses[prefix]; isClass {
+			return prefix
+		}
+		if imported && a.looksLikeClassReference(prefix) {
+			return prefix
+		}
 	}
-	return false
+	return ""
 }
 
 // knownLowercaseClasses lists well-known standard library classes that do not
@@ -620,7 +629,7 @@ func (a *CBOAnalyzer) isAttributeReceiverDependency(className string, allClasses
 	if _, isClass := allClasses[className]; isClass {
 		return true
 	}
-	// Same reasoning as isCallDependency: an imported receiver is only class
+	// Same reasoning as callDependencyName: an imported receiver is only class
 	// coupling when the name reads as a class; plain modules (os, json, ...)
 	// are not classes.
 	if a.isImportedDependency(className) {

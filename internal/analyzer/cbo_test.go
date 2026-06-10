@@ -993,6 +993,86 @@ class Consumer:
 	assert.Equal(t, 1, consumer.CouplingCount)
 }
 
+func TestCBOAnalyzer_ImportedClassMethodCallsCountClassCoupling(t *testing.T) {
+	// Class-method/static-method calls on an imported class are real class
+	// coupling: the dependency is recorded as the class part of the dotted
+	// name, not the method and not nothing.
+	pythonCode := `
+from pathlib import Path
+import datetime
+
+class Worker:
+    def run(self):
+        here = Path.cwd()
+        now = datetime.datetime.now()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "worker.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	worker := results[0]
+	assert.Equal(t, "Worker", worker.ClassName)
+	assert.Equal(t, []string{"Path", "datetime.datetime"}, worker.DependentClasses)
+	assert.Equal(t, 2, worker.CouplingCount)
+}
+
+func TestCBOAnalyzer_LocalClassMethodCallsCountClassCoupling(t *testing.T) {
+	pythonCode := `
+class Widget:
+    @classmethod
+    def create(cls):
+        return cls()
+
+class Consumer:
+    def build(self):
+        return Widget.create()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "consumer.py")
+	require.NoError(t, err)
+
+	var consumer *CBOResult
+	for _, result := range results {
+		if result.ClassName == "Consumer" {
+			consumer = result
+			break
+		}
+	}
+
+	require.NotNil(t, consumer)
+	assert.Equal(t, []string{"Widget"}, consumer.DependentClasses)
+	assert.Equal(t, 1, consumer.CouplingCount)
+}
+
+func TestCBOAnalyzer_OwnClassMethodCallIsNotSelfCoupling(t *testing.T) {
+	pythonCode := `
+from models import Widget
+
+class Widget:
+    def clone(self):
+        return Widget.create()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "widget.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	widget := results[0]
+	assert.Equal(t, "Widget", widget.ClassName)
+	assert.Empty(t, widget.DependentClasses)
+	assert.Equal(t, 0, widget.CouplingCount)
+}
+
 // Helper function to parse Python code into AST
 func parseCode(code string) (*parser.Node, error) {
 	p := parser.New()
