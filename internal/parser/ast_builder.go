@@ -314,9 +314,12 @@ func (b *ASTBuilder) buildIfStatement(tsNode *sitter.Node) *Node {
 		}
 	}
 
-	// Get alternatives (else/elif) - there may be multiple with the same field name
-	// Tree-sitter can have both elif_clause and else_clause as "alternative"
-	var elifNode *Node
+	// Get alternatives (else/elif). Tree-sitter exposes every elif_clause and
+	// the else_clause as separate "alternative" children of the same
+	// if_statement. Collect the elif clauses in order so the whole chain is
+	// preserved; keeping only the last one (the previous behavior) dropped the
+	// middle branches and undercounted complexity (#511).
+	var elifNodes []*Node
 	var elseNode *Node
 
 	childCount := int(tsNode.ChildCount())
@@ -326,7 +329,7 @@ func (b *ASTBuilder) buildIfStatement(tsNode *sitter.Node) *Node {
 			alt := b.buildNode(child)
 			if alt != nil {
 				if alt.Type == NodeIf || alt.Type == NodeElifClause {
-					elifNode = alt
+					elifNodes = append(elifNodes, alt)
 				} else if alt.Type == NodeElseClause {
 					elseNode = alt
 				}
@@ -334,30 +337,23 @@ func (b *ASTBuilder) buildIfStatement(tsNode *sitter.Node) *Node {
 		}
 	}
 
-	// If we have an elif, attach the else to it
-	if elifNode != nil {
-		if elseNode != nil {
-			// Attach else to the elif chain
-			b.attachElseToElifChain(elifNode, elseNode)
+	if len(elifNodes) > 0 {
+		// Link each elif to the next through Orelse so the parent if owns a
+		// nested elif/else chain that the CFG builder can walk end to end.
+		for i := 0; i+1 < len(elifNodes); i++ {
+			elifNodes[i].Orelse = []*Node{elifNodes[i+1]}
 		}
-		node.Orelse = []*Node{elifNode}
+		if elseNode != nil {
+			last := elifNodes[len(elifNodes)-1]
+			last.Orelse = b.extractBlockBody(elseNode, last)
+		}
+		node.Orelse = []*Node{elifNodes[0]}
 	} else if elseNode != nil {
 		// Just an else clause, no elif
 		node.Orelse = b.extractBlockBody(elseNode, node)
 	}
 
 	return node
-}
-
-// attachElseToElifChain attaches an else clause to the end of an elif chain
-func (b *ASTBuilder) attachElseToElifChain(elifNode *Node, elseNode *Node) {
-	current := elifNode
-	// Find the last elif in the chain
-	for len(current.Orelse) > 0 && current.Orelse[0].Type == NodeElifClause {
-		current = current.Orelse[0]
-	}
-	// Attach the else clause
-	current.Orelse = b.extractBlockBody(elseNode, current)
 }
 
 // buildElifClause builds an elif clause node (similar to if statement)
