@@ -38,6 +38,7 @@ func TestType4SimilarityScores(t *testing.T) {
 		{"sum_iterative.py::sum_numbers", "find_max_b.py::find_maximum"},
 		{"sum_iterative.py::sum_range", "find_max_b.py::find_min_max"},
 		{"find_max_a.py::find_maximum", "find_max_b.py::find_min_max"},
+		{"field_converter_a.py::delimited_list2param", "field_converter_b.py::uploadfield2properties"},
 	}
 	for _, negative := range negativePairs {
 		first := functions[negative[0]]

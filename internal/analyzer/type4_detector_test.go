@@ -64,6 +64,14 @@ func TestType4CloneDetection(t *testing.T) {
 		require.NotNil(t, pair, "direct comparison missed %s <-> %s", expected[0], expected[1])
 		assert.Equal(t, Type4Clone, pair.CloneType)
 	}
+
+	// Issue #482: same control-flow template, disjoint literal vocabulary.
+	// The pair may legitimately surface as a syntactic (Type-2/3) clone, but
+	// must never be classified as a semantic Type-4 clone.
+	if pair := pairByID[type4PairID("field_converter_a.py::delimited_list2param", "field_converter_b.py::uploadfield2properties")]; pair != nil {
+		assert.NotEqual(t, Type4Clone, pair.CloneType,
+			"field converters with disjoint spec keys must not be Type-4 clones")
+	}
 }
 
 func loadType4FunctionFragments(t *testing.T, detector *CloneDetector) ([]*CodeFragment, map[string]*CodeFragment) {

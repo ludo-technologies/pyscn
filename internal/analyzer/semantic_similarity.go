@@ -117,9 +117,25 @@ func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) flo
 
 const semanticMismatchPenalty = 0.75
 
+// literalMismatchPenalty is applied when both fragments carry enough string
+// literals to compare and the sets are completely disjoint. Matching control
+// flow combined with a fully different literal vocabulary (dict keys, format
+// names, config values) is strong counter-evidence for semantic equivalence:
+// true Type-4 clones compute the same result, so the constants they emit
+// overlap. Calibrated to pull a saturated CFG score (1.0) below the default
+// Type-4 threshold (see issue #482).
+const literalMismatchPenalty = 0.5
+
+// minStringLiteralEvidence is the number of distinct meaningful string
+// literals each fragment must contain before disjoint literal sets are
+// treated as counter-evidence. Docstrings and other bare string statements
+// are excluded from the count.
+const minStringLiteralEvidence = 2
+
 type semanticSignals struct {
 	strongSignals    map[string]struct{}
 	returnCategories map[string]struct{}
+	stringLiterals   map[string]struct{}
 }
 
 func (s *SemanticSimilarityAnalyzer) applySemanticEvidence(baseSimilarity float64, f1, f2 *CodeFragment) float64 {
@@ -129,6 +145,9 @@ func (s *SemanticSimilarityAnalyzer) applySemanticEvidence(baseSimilarity float6
 
 	signals1 := extractSemanticSignals(f1.ASTNode)
 	signals2 := extractSemanticSignals(f2.ASTNode)
+	if hasDisjointStringLiterals(signals1.stringLiterals, signals2.stringLiterals) {
+		return baseSimilarity * literalMismatchPenalty
+	}
 	if !hasSharedSemanticSignal(signals1.strongSignals, signals2.strongSignals) {
 		return baseSimilarity * semanticMismatchPenalty
 	}
@@ -142,12 +161,30 @@ func extractSemanticSignals(node *parser.Node) semanticSignals {
 	signals := semanticSignals{
 		strongSignals:    make(map[string]struct{}),
 		returnCategories: make(map[string]struct{}),
+		stringLiterals:   make(map[string]struct{}),
 	}
 	if node == nil {
 		return signals
 	}
 
+	// Bare string statements (docstrings, string "comments") carry no
+	// executable semantics, so they must not count as literal evidence.
+	// Walk is pre-order, so a statement's parent is always visited first
+	// and marking here is sufficient.
+	inertStrings := make(map[*parser.Node]struct{})
+	markInertStrings := func(stmts []*parser.Node) {
+		for _, stmt := range stmts {
+			if isStringConstant(stmt) {
+				inertStrings[stmt] = struct{}{}
+			}
+		}
+	}
+
 	node.Walk(func(current *parser.Node) bool {
+		markInertStrings(current.Body)
+		markInertStrings(current.Orelse)
+		markInertStrings(current.Finalbody)
+
 		switch current.Type {
 		case parser.NodeBinOp, parser.NodeAugAssign:
 			addSignal(signals.strongSignals, "binop", current.Op)
@@ -163,11 +200,26 @@ func extractSemanticSignals(node *parser.Node) semanticSignals {
 			}
 		case parser.NodeReturn:
 			signals.returnCategories[returnCategory(current)] = struct{}{}
+		case parser.NodeConstant:
+			if _, inert := inertStrings[current]; inert {
+				break
+			}
+			if value, ok := current.Value.(string); ok && value != "" {
+				signals.stringLiterals[value] = struct{}{}
+			}
 		}
 		return true
 	})
 
 	return signals
+}
+
+func isStringConstant(node *parser.Node) bool {
+	if node == nil || node.Type != parser.NodeConstant {
+		return false
+	}
+	_, ok := node.Value.(string)
+	return ok
 }
 
 func addSignal(signals map[string]struct{}, kind, value string) {
@@ -226,6 +278,22 @@ func hasSharedSemanticSignal(signals1, signals2 map[string]struct{}) bool {
 		}
 	}
 	return false
+}
+
+// hasDisjointStringLiterals reports whether both fragments contain enough
+// distinct string literals to compare (minStringLiteralEvidence each) while
+// sharing none of them. Partial overlap or insufficient evidence on either
+// side is given the benefit of the doubt.
+func hasDisjointStringLiterals(literals1, literals2 map[string]struct{}) bool {
+	if len(literals1) < minStringLiteralEvidence || len(literals2) < minStringLiteralEvidence {
+		return false
+	}
+	for literal := range literals1 {
+		if _, ok := literals2[literal]; ok {
+			return false
+		}
+	}
+	return true
 }
 
 func hasCompatibleReturnCategories(categories1, categories2 map[string]struct{}) bool {
