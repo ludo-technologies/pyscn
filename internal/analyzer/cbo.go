@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
@@ -348,12 +349,10 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 				if valueNode, ok := node.Value.(*parser.Node); ok {
 					if valueNode.Type == parser.NodeCall {
 						className := a.extractClassNameFromCallNode(valueNode)
-						if className != "" && a.shouldIncludeDependencyForClass(className, result.ClassName) {
-							if a.isCallDependency(className, allClasses) {
-								a.addDependency(dependencies, className, dependencyKindInstantiation)
-							}
-							// Note: function calls are NOT added to dependencies
+						if dep := a.callDependencyName(className, allClasses); dep != "" && a.shouldIncludeDependencyForClass(dep, result.ClassName) {
+							a.addDependency(dependencies, dep, dependencyKindInstantiation)
 						}
+						// Note: function calls are NOT added to dependencies
 					}
 				}
 			}
@@ -361,12 +360,10 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 			// Function/class call - could be instantiation
 			// Use structural AST analysis instead of string parsing
 			className := a.extractClassNameFromCallNode(node)
-			if className != "" && a.shouldIncludeDependencyForClass(className, result.ClassName) {
-				if a.isCallDependency(className, allClasses) {
-					a.addDependency(dependencies, className, dependencyKindInstantiation)
-				}
-				// Note: function calls are NOT added to dependencies
+			if dep := a.callDependencyName(className, allClasses); dep != "" && a.shouldIncludeDependencyForClass(dep, result.ClassName) {
+				a.addDependency(dependencies, dep, dependencyKindInstantiation)
 			}
+			// Note: function calls are NOT added to dependencies
 		case parser.NodeAttribute:
 			// Attribute access: obj.method() or obj.attr
 			if a.shouldSkipAttributeAccess(node) {
@@ -549,12 +546,78 @@ func (a *CBOAnalyzer) shouldIncludeDependency(className string) bool {
 	return true
 }
 
-func (a *CBOAnalyzer) isCallDependency(className string, allClasses map[string]*parser.Node) bool {
-	if a.isImportedDependency(className) {
+// callDependencyName returns the portion of a called dotted name that refers
+// to a class, or "" when the call does not read as class coupling. The class
+// part is found by trying dotted prefixes from longest to shortest, so
+// class-method calls couple to the class itself: Path.cwd() -> Path,
+// datetime.datetime.now() -> datetime.datetime. Locally defined classes are
+// matched structurally; imported names carry no type information in
+// single-file analysis, so they only count when a prefix reads as a class —
+// otherwise function calls like os.getcwd() or suppress() would be reported
+// as class coupling.
+func (a *CBOAnalyzer) callDependencyName(className string, allClasses map[string]*parser.Node) string {
+	if className == "" {
+		return ""
+	}
+	imported := a.isImportedDependency(className)
+	parts := strings.Split(className, ".")
+	for end := len(parts); end > 0; end-- {
+		prefix := strings.Join(parts[:end], ".")
+		if _, isClass := allClasses[prefix]; isClass {
+			return prefix
+		}
+		if imported && a.looksLikeClassReference(prefix) {
+			return prefix
+		}
+	}
+	return ""
+}
+
+// knownLowercaseClasses lists well-known standard library classes that do not
+// follow the PEP 8 CapWords convention and would otherwise be rejected by the
+// capitalization heuristic in looksLikeClassReference.
+var knownLowercaseClasses = map[string]bool{
+	"datetime.datetime":       true,
+	"datetime.date":           true,
+	"datetime.time":           true,
+	"datetime.timedelta":      true,
+	"datetime.timezone":       true,
+	"collections.defaultdict": true,
+	"collections.deque":       true,
+	"array.array":             true,
+	"socket.socket":           true,
+	"threading.local":         true,
+}
+
+// resolveImportedName expands an alias or module-qualified name to the full
+// imported path (e.g. "FilePath" -> "pathlib.Path", "os.getcwd" -> "os.getcwd").
+func (a *CBOAnalyzer) resolveImportedName(name string) string {
+	if full, exists := a.importedNames[name]; exists {
+		return full
+	}
+	if strings.Contains(name, ".") {
+		parts := strings.SplitN(name, ".", 2)
+		if full, exists := a.importedNames[parts[0]]; exists {
+			return full + "." + parts[1]
+		}
+	}
+	return name
+}
+
+// looksLikeClassReference applies the PEP 8 naming convention to decide
+// whether an imported name refers to a class (CapWords) rather than a
+// function (snake_case). Aliases resolve to their original imported name so
+// the convention is judged on the name the defining module chose.
+func (a *CBOAnalyzer) looksLikeClassReference(name string) bool {
+	resolved := a.resolveImportedName(name)
+	if knownLowercaseClasses[resolved] {
 		return true
 	}
-	if _, isClass := allClasses[className]; isClass {
-		return true
+	leaf := strings.TrimLeft(dependencyLeafName(resolved), "_")
+	for _, r := range leaf {
+		// Only a clearly lower-case leading letter marks a function; uncased
+		// scripts keep counting as classes to stay conservative.
+		return !unicode.IsLower(r)
 	}
 	return false
 }
@@ -563,11 +626,14 @@ func (a *CBOAnalyzer) isAttributeReceiverDependency(className string, allClasses
 	if className == "" || className == "self" || className == "cls" {
 		return false
 	}
-	if a.isImportedDependency(className) {
-		return true
-	}
 	if _, isClass := allClasses[className]; isClass {
 		return true
+	}
+	// Same reasoning as callDependencyName: an imported receiver is only class
+	// coupling when the name reads as a class; plain modules (os, json, ...)
+	// are not classes.
+	if a.isImportedDependency(className) {
+		return a.looksLikeClassReference(className)
 	}
 	return a.options.IncludeBuiltins && a.builtinTypes[className]
 }
