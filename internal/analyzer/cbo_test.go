@@ -871,6 +871,128 @@ class Service:
 	assert.Contains(t, serviceResult.DependentClasses, "Logger")
 }
 
+func TestCBOAnalyzer_FunctionCallsAreNotClassDependencies(t *testing.T) {
+	// Regression test for #494: imported function calls (os.getcwd, suppress,
+	// escape) must not be counted as class dependencies.
+	pythonCode := `
+import os
+from contextlib import suppress
+from rich.markup import escape
+
+
+class Widget:
+    pass
+
+
+class MyThing:
+    def run(self):
+        cwd = os.getcwd()
+        path = os.path.realpath(cwd)
+        with suppress(KeyError):
+            x = escape("hi")
+        return Widget()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "mything.py")
+	require.NoError(t, err)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range results {
+		resultMap[result.ClassName] = result
+	}
+
+	myThing, found := resultMap["MyThing"]
+	require.True(t, found, "MyThing not found in results")
+	assert.Equal(t, []string{"Widget"}, myThing.DependentClasses)
+	assert.Equal(t, 1, myThing.CouplingCount)
+	assert.Equal(t, "low", myThing.RiskLevel)
+}
+
+func TestCBOAnalyzer_LowercaseLocalClassInstantiationStillCounts(t *testing.T) {
+	// Locally defined classes are known to be classes regardless of naming.
+	pythonCode := `
+class widget_factory:
+    pass
+
+class Consumer:
+    def build(self):
+        return widget_factory()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "consumer.py")
+	require.NoError(t, err)
+
+	var consumer *CBOResult
+	for _, result := range results {
+		if result.ClassName == "Consumer" {
+			consumer = result
+			break
+		}
+	}
+
+	require.NotNil(t, consumer)
+	assert.Equal(t, []string{"widget_factory"}, consumer.DependentClasses)
+	assert.Equal(t, 1, consumer.CouplingCount)
+}
+
+func TestCBOAnalyzer_KnownLowercaseStdlibClassesStillCount(t *testing.T) {
+	// Well-known stdlib classes that break the CapWords convention remain
+	// counted via the explicit allowlist.
+	pythonCode := `
+import datetime
+from collections import deque
+
+class Scheduler:
+    def setup(self):
+        self.queue = deque()
+        self.started = datetime.datetime(2024, 1, 1)
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "scheduler.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	scheduler := results[0]
+	assert.Equal(t, "Scheduler", scheduler.ClassName)
+	assert.Contains(t, scheduler.DependentClasses, "deque")
+	assert.Contains(t, scheduler.DependentClasses, "datetime.datetime")
+}
+
+func TestCBOAnalyzer_CallHeuristicJudgesOriginalImportedName(t *testing.T) {
+	// Aliases resolve to the original imported name before applying the
+	// CapWords heuristic: a function aliased to CapWords stays excluded and a
+	// class aliased to snake_case stays counted.
+	pythonCode := `
+from helpers import make_widget as WidgetFactory
+from models import Widget as widget_cls
+
+class Consumer:
+    def build(self):
+        a = WidgetFactory()
+        return widget_cls()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "consumer.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	consumer := results[0]
+	assert.Equal(t, []string{"widget_cls"}, consumer.DependentClasses)
+	assert.Equal(t, 1, consumer.CouplingCount)
+}
+
 // Helper function to parse Python code into AST
 func parseCode(code string) (*parser.Node, error) {
 	p := parser.New()
