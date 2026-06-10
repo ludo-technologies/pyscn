@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.23.2] - 2026-06-10
+
+### Fixed
+- Stop counting imported function calls as class dependencies in CBO analysis (#535)
+- Penalize Type-4 similarity for disjoint string literal vocabularies (#534)
+
 ## [1.23.1] - 2026-06-09
 
 ### Changed
