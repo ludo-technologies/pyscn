@@ -18,7 +18,7 @@ GREEN := \033[0;32m
 YELLOW := \033[1;33m
 NC := \033[0m # No Color
 
-.PHONY: all build test clean install run version help build-python python-wheel python-test python-clean build-mcp install-mcp clean-mcp
+.PHONY: all build test clean install run version help build-python python-wheel python-test python-clean build-mcp install-mcp clean-mcp docs-serve docs-build
 
 ## help: Show this help message
 help:
@@ -111,6 +111,16 @@ release:
 	git tag -a $(VERSION) -m "Release $(VERSION)"
 	git push origin $(VERSION)
 	@printf "$(GREEN)Release $(VERSION) created and pushed!$(NC)\n"
+
+## docs-serve: Serve the documentation site locally with live reload (requires uv)
+docs-serve:
+	@which uvx > /dev/null || (printf "$(YELLOW)uv is required: https://docs.astral.sh/uv/getting-started/installation/$(NC)\n" && exit 1)
+	cd website && uvx --with-requirements requirements.txt --from mkdocs mkdocs serve
+
+## docs-build: Build the documentation site in strict mode (requires uv)
+docs-build:
+	@which uvx > /dev/null || (printf "$(YELLOW)uv is required: https://docs.astral.sh/uv/getting-started/installation/$(NC)\n" && exit 1)
+	cd website && uvx --with-requirements requirements.txt --from mkdocs mkdocs build --strict
 
 ## dev: Development build with hot reload (requires air)
 dev:
