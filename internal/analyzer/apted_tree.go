@@ -49,6 +49,15 @@ func (t *TreeNode) AddChild(child *TreeNode) {
 	if child != nil {
 		child.Parent = t
 		t.Children = append(t.Children, child)
+
+		// Mutating the structure invalidates any cached APTED preparation:
+		// post-order IDs of every root above the insertion point are stale,
+		// and the attached subtree's own IDs will be rewritten on the next
+		// preparation of its new root.
+		child.cachedKeyRoots = nil
+		for n := t; n != nil; n = n.Parent {
+			n.cachedKeyRoots = nil
+		}
 	}
 }
 

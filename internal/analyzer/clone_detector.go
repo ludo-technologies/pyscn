@@ -706,11 +706,37 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 		minhashThreshold = 1
 	}
 
-	// Collect deduplicated candidate pairs that survive the cheap pre-filters,
-	// then run the expensive APTED verification in parallel.
+	// Stream deduplicated candidate pairs that survive the cheap pre-filters
+	// to a pool of workers for the expensive APTED verification. Streaming
+	// keeps memory bounded: the full candidate list is never materialized.
 	type candidatePair struct{ a, b int }
 	seenPairs := make(map[[2]int]struct{})
-	var candidates []candidatePair
+
+	workers := cd.effectiveWorkers(len(records))
+	candCh := make(chan candidatePair, 4*workers)
+	verified := make([][]*ClonePair, workers)
+	var wg sync.WaitGroup
+	for w := 0; w < workers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			wd := cd
+			if workers > 1 {
+				wd = cd.newWorkerDetector()
+			}
+			for c := range candCh {
+				// Keep draining on cancellation so the producer never blocks.
+				if isCancelled(ctx) {
+					continue
+				}
+				pair := wd.compareFragments(cd.fragments[c.a], cd.fragments[c.b])
+				if pair != nil && wd.isSignificantClone(pair) {
+					verified[w] = append(verified[w], pair)
+				}
+			}
+		}()
+	}
+
 	for _, r := range records {
 		if isCancelled(ctx) {
 			break
@@ -747,24 +773,14 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 			if f1.TreeNode == nil || f2.TreeNode == nil {
 				continue
 			}
-			candidates = append(candidates, candidatePair{a: a, b: b})
+			candCh <- candidatePair{a: a, b: b}
 		}
 	}
+	close(candCh)
+	wg.Wait()
 
-	// APTED verification on surviving candidates
-	verified := make([]*ClonePair, len(candidates))
-	workers := cd.effectiveWorkers(len(candidates))
-	cd.runParallelIndexed(ctx, workers, len(candidates), func(wd *CloneDetector, _, k int) {
-		c := candidates[k]
-		pair := wd.compareFragments(cd.fragments[c.a], cd.fragments[c.b])
-		if pair != nil && wd.isSignificantClone(pair) {
-			verified[k] = pair
-		}
-	})
-	for _, pair := range verified {
-		if pair != nil {
-			cd.clonePairs = append(cd.clonePairs, pair)
-		}
+	for _, pairs := range verified {
+		cd.clonePairs = append(cd.clonePairs, pairs...)
 	}
 
 	// Finalize results
