@@ -1275,3 +1275,24 @@ func TestSkipDocstrings_Integration(t *testing.T) {
 			"Functions with different docstrings should have same tree size when skipping docstrings")
 	})
 }
+
+// TestComputeDistanceAfterTreeMutation verifies that mutating a tree after it
+// has been compared (and its APTED preparation cached) invalidates the cache,
+// so later distance computations see the new structure.
+func TestComputeDistanceAfterTreeMutation(t *testing.T) {
+	analyzer := NewAPTEDAnalyzer(NewDefaultCostModel())
+
+	tree1 := NewTreeNode(0, "A")
+	tree1.AddChild(NewTreeNode(1, "B"))
+	tree2 := NewTreeNode(0, "A")
+	tree2.AddChild(NewTreeNode(1, "B"))
+
+	assert.Equal(t, 0.0, analyzer.ComputeDistance(tree1, tree2),
+		"Identical trees should have zero distance")
+
+	// Mutate tree1 after the comparison above cached its key roots
+	tree1.AddChild(NewTreeNode(2, "C"))
+
+	assert.Equal(t, 1.0, analyzer.ComputeDistance(tree1, tree2),
+		"Distance after mutation should reflect the inserted node")
+}
