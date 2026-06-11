@@ -2,11 +2,14 @@ package analyzer
 
 import (
 	"bytes"
+	"container/heap"
 	"context"
 	"fmt"
 	"math"
 	"runtime"
 	"sort"
+	"sync"
+	"sync/atomic"
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
@@ -175,6 +178,7 @@ type CloneDetectorConfig struct {
 	BatchSizeLarge     int // Batch size for normal projects
 	BatchSizeSmall     int // Batch size for large projects
 	LargeProjectSize   int // Fragment count threshold for large projects
+	MaxGoroutines      int // Goroutines for parallel pair comparison (0 = all CPUs)
 
 	// Grouping configuration
 	GroupingMode      GroupingMode // デフォルト: GroupingModeConnected
@@ -266,16 +270,14 @@ type CloneDetector struct {
 	cloneGroups       []*CloneGroup
 }
 
-// NewCloneDetector creates a new clone detector with the given configuration
-func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
-	// Create appropriate cost model based on configuration
-	var costModel CostModel
+// buildCloneCostModel creates the APTED cost model for the given configuration.
+func buildCloneCostModel(config *CloneDetectorConfig) CostModel {
 	switch config.CostModelType {
 	case "default":
-		costModel = NewDefaultCostModel()
+		return NewDefaultCostModel()
 	case "python":
 		// Use boilerplate-aware cost model if enabled
-		costModel = NewPythonCostModelWithBoilerplateConfig(
+		return NewPythonCostModelWithBoilerplateConfig(
 			config.IgnoreLiterals,
 			config.IgnoreIdentifiers,
 			config.ReduceBoilerplateSimilarity,
@@ -288,39 +290,41 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 			config.ReduceBoilerplateSimilarity,
 			config.BoilerplateMultiplier,
 		)
-		costModel = NewWeightedCostModel(1.0, 1.0, 0.8, baseCostModel)
+		return NewWeightedCostModel(1.0, 1.0, 0.8, baseCostModel)
 	default:
-		costModel = NewPythonCostModel()
+		return NewPythonCostModel()
 	}
+}
 
-	analyzer := NewAPTEDAnalyzer(costModel)
+// buildCloneClassifier creates the multi-dimensional classifier, or nil if disabled.
+func buildCloneClassifier(config *CloneDetectorConfig) *CloneClassifier {
+	if !config.EnableMultiDimensionalAnalysis {
+		return nil
+	}
+	return NewCloneClassifier(&CloneClassifierConfig{
+		Type1Threshold:         config.Type1Threshold,
+		Type2Threshold:         config.Type2Threshold,
+		Type3Threshold:         config.Type3Threshold,
+		Type4Threshold:         config.Type4Threshold,
+		EnableTextualAnalysis:  config.EnableTextualAnalysis,
+		EnableSemanticAnalysis: config.EnableSemanticAnalysis,
+		EnableDFAAnalysis:      config.EnableDFAAnalysis,
+	})
+}
 
+// NewCloneDetector creates a new clone detector with the given configuration
+func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 	// If DFA is enabled, automatically enable multi-dimensional analysis and semantic analysis
 	if config.EnableDFAAnalysis {
 		config.EnableMultiDimensionalAnalysis = true
 		config.EnableSemanticAnalysis = true
 	}
 
-	// Initialize multi-dimensional classifier if enabled
-	var classifier *CloneClassifier
-	if config.EnableMultiDimensionalAnalysis {
-		classifierConfig := &CloneClassifierConfig{
-			Type1Threshold:         config.Type1Threshold,
-			Type2Threshold:         config.Type2Threshold,
-			Type3Threshold:         config.Type3Threshold,
-			Type4Threshold:         config.Type4Threshold,
-			EnableTextualAnalysis:  config.EnableTextualAnalysis,
-			EnableSemanticAnalysis: config.EnableSemanticAnalysis,
-			EnableDFAAnalysis:      config.EnableDFAAnalysis,
-		}
-		classifier = NewCloneClassifier(classifierConfig)
-	}
-
 	return &CloneDetector{
 		cloneDetectorConfig: *config,
-		analyzer:            analyzer,
+		analyzer:            NewAPTEDAnalyzer(buildCloneCostModel(config)),
 		converter:           NewTreeConverterWithConfig(config.SkipDocstrings),
-		classifier:          classifier,
+		classifier:          buildCloneClassifier(config),
 		textualAnalyzer:     NewTextualSimilarityAnalyzer(),
 		syntacticAnalyzer:   NewSyntacticSimilarityAnalyzer(),
 		featureExtractor:    NewASTFeatureExtractor(),
@@ -328,6 +332,69 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 		clonePairs:          []*ClonePair{},
 		cloneGroups:         []*CloneGroup{},
 	}
+}
+
+// newWorkerDetector returns a shallow copy of cd with private instances of the
+// stateful analyzers (the APTED analyzer's scratch buffers, the classifier's
+// internal analyzers, and the syntactic analyzer's tree converter), so that
+// fragment comparisons can run concurrently across goroutines. Immutable state
+// (config, fragments, textual analyzer, feature extractor) is shared.
+func (cd *CloneDetector) newWorkerDetector() *CloneDetector {
+	w := *cd
+	w.analyzer = NewAPTEDAnalyzer(buildCloneCostModel(&cd.cloneDetectorConfig))
+	w.classifier = buildCloneClassifier(&cd.cloneDetectorConfig)
+	w.syntacticAnalyzer = NewSyntacticSimilarityAnalyzer()
+	return &w
+}
+
+// effectiveWorkers returns how many goroutines to use for n independent work
+// items, honoring MaxGoroutines (0 means use all available CPUs).
+func (cd *CloneDetector) effectiveWorkers(n int) int {
+	workers := cd.cloneDetectorConfig.MaxGoroutines
+	if workers <= 0 {
+		workers = runtime.GOMAXPROCS(0)
+	}
+	if workers > n {
+		workers = n
+	}
+	if workers < 1 {
+		workers = 1
+	}
+	return workers
+}
+
+// runParallelIndexed distributes indices [0, n) across workers goroutines.
+// Each goroutine receives a private worker detector plus its worker slot, so
+// callers can keep per-worker state without locking. With workers <= 1 the
+// indices run inline on cd itself.
+func (cd *CloneDetector) runParallelIndexed(ctx context.Context, workers, n int, fn func(wd *CloneDetector, worker, index int)) {
+	if workers <= 1 {
+		for i := 0; i < n; i++ {
+			if isCancelled(ctx) {
+				return
+			}
+			fn(cd, 0, i)
+		}
+		return
+	}
+
+	var next atomic.Int64
+	var wg sync.WaitGroup
+	for w := 0; w < workers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			wd := cd.newWorkerDetector()
+			for {
+				i := int(next.Add(1)) - 1
+				if i >= n || isCancelled(ctx) {
+					return
+				}
+				fn(wd, w, i)
+			}
+		}()
+	}
+	wg.Wait()
 }
 
 // SetUseLSH enables or disables LSH acceleration for clone detection
@@ -639,7 +706,11 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 		minhashThreshold = 1
 	}
 
+	// Collect deduplicated candidate pairs that survive the cheap pre-filters,
+	// then run the expensive APTED verification in parallel.
+	type candidatePair struct{ a, b int }
 	seenPairs := make(map[[2]int]struct{})
+	var candidates []candidatePair
 	for _, r := range records {
 		if isCancelled(ctx) {
 			break
@@ -668,21 +739,31 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 			}
 
 			// MinHash similarity pre-filter
-			sig1 := sigByIndex[a]
-			sig2 := sigByIndex[b]
-			est := hasher.EstimateJaccardSimilarity(sig1, sig2)
+			est := hasher.EstimateJaccardSimilarity(sigByIndex[a], sigByIndex[b])
 			if est < minhashThreshold {
 				continue
 			}
 
-			// APTED verification
 			if f1.TreeNode == nil || f2.TreeNode == nil {
 				continue
 			}
-			pair := cd.compareFragments(f1, f2)
-			if pair != nil && cd.isSignificantClone(pair) {
-				cd.clonePairs = append(cd.clonePairs, pair)
-			}
+			candidates = append(candidates, candidatePair{a: a, b: b})
+		}
+	}
+
+	// APTED verification on surviving candidates
+	verified := make([]*ClonePair, len(candidates))
+	workers := cd.effectiveWorkers(len(candidates))
+	cd.runParallelIndexed(ctx, workers, len(candidates), func(wd *CloneDetector, _, k int) {
+		c := candidates[k]
+		pair := wd.compareFragments(cd.fragments[c.a], cd.fragments[c.b])
+		if pair != nil && wd.isSignificantClone(pair) {
+			verified[k] = pair
+		}
+	})
+	for _, pair := range verified {
+		if pair != nil {
+			cd.clonePairs = append(cd.clonePairs, pair)
 		}
 	}
 
@@ -733,17 +814,6 @@ func (cd *CloneDetector) prepareFragments() {
 	}
 }
 
-// calculateBatchSize determines the optimal batch size based on fragment count
-func (cd *CloneDetector) calculateBatchSize(fragmentCount int) int {
-	if fragmentCount < cd.cloneDetectorConfig.BatchSizeThreshold {
-		return fragmentCount // No batching needed
-	}
-	if fragmentCount > cd.cloneDetectorConfig.LargeProjectSize {
-		return cd.cloneDetectorConfig.BatchSizeSmall
-	}
-	return cd.cloneDetectorConfig.BatchSizeLarge
-}
-
 // detectClonePairsWithContext detects pairs with context support
 func (cd *CloneDetector) detectClonePairsWithContext(ctx context.Context) {
 	n := len(cd.fragments)
@@ -753,112 +823,74 @@ func (cd *CloneDetector) detectClonePairsWithContext(ctx context.Context) {
 		return
 	}
 
-	// Determine if batching is needed based on fragment count and estimated pairs
-	estimatedPairs := (n * (n - 1)) / 2
-	needsBatching := n > cd.cloneDetectorConfig.BatchSizeThreshold || estimatedPairs > cd.cloneDetectorConfig.MaxClonePairs
-
-	if needsBatching {
-		batchSize := cd.calculateBatchSize(n)
-		cd.detectClonePairsWithBatchingContext(ctx, cd.cloneDetectorConfig.MaxClonePairs, batchSize)
-	} else {
-		cd.detectClonePairsStandardWithContext(ctx)
-	}
-
-	// Sort and limit final results
-	cd.limitAndSortClonePairs(cd.cloneDetectorConfig.MaxClonePairs)
-}
-
-// detectClonePairsStandardWithContext uses standard approach with context
-func (cd *CloneDetector) detectClonePairsStandardWithContext(ctx context.Context) {
-	n := len(cd.fragments)
-	const checkInterval = 10 // Check context every 10 comparisons
-
-	for i := 0; i < n; i++ {
-		for j := i + 1; j < n; j++ {
-
-			// Check for cancellation periodically (every 10 comparisons)
-			if (i*n+j)%checkInterval == 0 && isCancelled(ctx) {
-				return
-			}
-			fragment1 := cd.fragments[i]
-			fragment2 := cd.fragments[j]
-
-			// Skip if both fragments are from the same location or overlap in the same file
-			if cd.isOverlappingLocation(fragment1.Location, fragment2.Location) {
-				continue
-			}
-
-			// Compute similarity
-			pair := cd.compareFragments(fragment1, fragment2)
-			if pair != nil && cd.isSignificantClone(pair) {
-				cd.clonePairs = append(cd.clonePairs, pair)
-			}
-		}
-	}
-}
-
-// detectClonePairsWithBatchingContext processes batches with context support
-func (cd *CloneDetector) detectClonePairsWithBatchingContext(ctx context.Context, maxPairs, batchSize int) {
-	n := len(cd.fragments)
-
-	// Ensure maxPairs has a reasonable minimum value
+	maxPairs := cd.cloneDetectorConfig.MaxClonePairs
 	if maxPairs <= 0 {
 		maxPairs = 10000
 	}
-	if batchSize <= 0 {
-		batchSize = 100
-	}
 
-	// Priority queue to keep only the best pairs
-	topPairs := make([]*ClonePair, 0, maxPairs)
-	minSimilarity := cd.cloneDetectorConfig.Type4Threshold // Use the lowest threshold as minimum
+	cd.detectClonePairsParallel(ctx, maxPairs)
 
-	// Process in batches to limit memory usage
-	for batchStart := 0; batchStart < n; batchStart += batchSize {
-		// Check for cancellation at batch start
-		if isCancelled(ctx) {
-			cd.clonePairs = topPairs
-			return
-		}
-		batchEnd := batchStart + batchSize
-		if batchEnd > n {
-			batchEnd = n
-		}
+	// Sort and limit final results
+	cd.limitAndSortClonePairs(maxPairs)
+}
 
-		// Process current batch against all previous and current fragments
-		for i := batchStart; i < batchEnd; i++ {
-			// Compare with fragments in current batch
-			for j := i + 1; j < batchEnd; j++ {
-				if pair := cd.tryCreateClonePair(i, j, minSimilarity); pair != nil {
-					topPairs = cd.addPairWithLimit(topPairs, pair, maxPairs)
-					// Update minimum similarity threshold
-					if len(topPairs) >= maxPairs {
-						minSimilarity = topPairs[len(topPairs)-1].Similarity
-					}
-				}
+// clonePairMinHeap is a min-heap on Similarity: the root is the worst retained
+// pair, so a better candidate can replace it in O(log n). Used to keep the
+// best maxPairs candidates per worker with bounded memory.
+type clonePairMinHeap []*ClonePair
+
+func (h clonePairMinHeap) Len() int           { return len(h) }
+func (h clonePairMinHeap) Less(i, j int) bool { return h[i].Similarity < h[j].Similarity }
+func (h clonePairMinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *clonePairMinHeap) Push(x any)        { *h = append(*h, x.(*ClonePair)) }
+func (h *clonePairMinHeap) Pop() any {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[:n-1]
+	return x
+}
+
+// detectClonePairsParallel enumerates all unordered fragment pairs row by row,
+// fanning rows out across workers. Each worker keeps a bounded min-heap of its
+// best pairs, so memory stays O(workers * maxPairs) regardless of input size.
+// The union of per-worker top-maxPairs always contains the global top-maxPairs.
+func (cd *CloneDetector) detectClonePairsParallel(ctx context.Context, maxPairs int) {
+	n := len(cd.fragments)
+	workers := cd.effectiveWorkers(n - 1)
+	heaps := make([]clonePairMinHeap, workers)
+
+	cd.runParallelIndexed(ctx, workers, n, func(wd *CloneDetector, worker, i int) {
+		h := &heaps[worker]
+		for j := i + 1; j < n; j++ {
+			// Once the heap is full, the worst retained similarity becomes a
+			// pruning floor for this worker.
+			floor := 0.0
+			if h.Len() >= maxPairs {
+				floor = (*h)[0].Similarity
 			}
-
-			// Compare with all previous fragments
-			for j := 0; j < batchStart; j++ {
-				if pair := cd.tryCreateClonePair(i, j, minSimilarity); pair != nil {
-					topPairs = cd.addPairWithLimit(topPairs, pair, maxPairs)
-					// Update minimum similarity threshold
-					if len(topPairs) >= maxPairs {
-						minSimilarity = topPairs[len(topPairs)-1].Similarity
-					}
-				}
+			pair := wd.tryCreateClonePair(i, j, floor)
+			if pair == nil {
+				continue
+			}
+			if h.Len() < maxPairs {
+				heap.Push(h, pair)
+			} else if pair.Similarity > (*h)[0].Similarity {
+				(*h)[0] = pair
+				heap.Fix(h, 0)
 			}
 		}
+	})
 
-		// Periodic garbage collection hint for large batches
-		if batchStart%5000 == 0 {
-			// Force garbage collection to prevent memory buildup
-			runtime.GC()
-		}
+	total := 0
+	for w := range heaps {
+		total += heaps[w].Len()
 	}
-
-	// Replace clone pairs with the best ones found
-	cd.clonePairs = topPairs
+	merged := make([]*ClonePair, 0, total)
+	for w := range heaps {
+		merged = append(merged, heaps[w]...)
+	}
+	cd.clonePairs = merged
 }
 
 // shouldCompareFragments performs early filtering to determine if two fragments should be compared
@@ -1144,31 +1176,6 @@ func (cd *CloneDetector) tryCreateClonePair(i, j int, minSimilarity float64) *Cl
 		return pair
 	}
 	return nil
-}
-
-// addPairWithLimit adds a pair to the collection while maintaining size limit
-func (cd *CloneDetector) addPairWithLimit(pairs []*ClonePair, newPair *ClonePair, maxPairs int) []*ClonePair {
-	// If under limit, just add
-	if len(pairs) < maxPairs {
-		pairs = append(pairs, newPair)
-		// Keep sorted by similarity (descending)
-		sort.Slice(pairs, func(i, j int) bool {
-			return pairs[i].Similarity > pairs[j].Similarity
-		})
-		return pairs
-	}
-
-	// If at limit, check if new pair is better than the worst
-	if newPair.Similarity > pairs[len(pairs)-1].Similarity {
-		// Replace worst pair
-		pairs[len(pairs)-1] = newPair
-		// Re-sort to maintain order
-		sort.Slice(pairs, func(i, j int) bool {
-			return pairs[i].Similarity > pairs[j].Similarity
-		})
-	}
-
-	return pairs
 }
 
 // limitAndSortClonePairs ensures final results are sorted and limited

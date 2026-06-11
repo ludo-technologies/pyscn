@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/ludo-technologies/pyscn/internal/parser"
@@ -23,6 +24,12 @@ type TreeNode struct {
 	PostOrderID  int  // Post-order traversal position
 	LeftMostLeaf int  // Left-most leaf descendant
 	KeyRoot      bool // Whether this node is a key root
+
+	// cachedKeyRoots holds the sorted key roots computed by PrepareTreeForAPTED
+	// (set on the root node only). It lets concurrent readers reuse a prepared
+	// tree without re-running the mutating preparation. Callers that modify the
+	// tree structure must call PrepareTreeForAPTED again to refresh it.
+	cachedKeyRoots []int
 
 	// Optional metadata from original AST
 	OriginalNode *parser.Node
@@ -356,7 +363,8 @@ func computeKeyRootsRecursive(node *TreeNode, keyRoots *[]int, visited map[int]b
 	}
 }
 
-// PrepareTreeForAPTED prepares a tree for APTED algorithm by computing all necessary indices
+// PrepareTreeForAPTED prepares a tree for APTED algorithm by computing all necessary indices.
+// The returned key roots are sorted ascending (leaves before parents) and cached on the root.
 func PrepareTreeForAPTED(root *TreeNode) []int {
 	if root == nil {
 		return []int{}
@@ -370,8 +378,21 @@ func PrepareTreeForAPTED(root *TreeNode) []int {
 
 	// Step 3: Identify key roots
 	keyRoots := ComputeKeyRoots(root)
+	sort.Ints(keyRoots)
 
+	root.cachedKeyRoots = keyRoots
 	return keyRoots
+}
+
+// ensurePreparedForAPTED returns the cached key roots for an already-prepared
+// tree, preparing it once if needed. Reads of an already-prepared tree are
+// safe from multiple goroutines; preparation itself mutates the tree and must
+// happen before concurrent use (the clone detector does this in prepareFragments).
+func ensurePreparedForAPTED(root *TreeNode) []int {
+	if root.cachedKeyRoots == nil {
+		return PrepareTreeForAPTED(root)
+	}
+	return root.cachedKeyRoots
 }
 
 // GetNodeByPostOrderID finds a node by its post-order ID

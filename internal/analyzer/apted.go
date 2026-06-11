@@ -2,7 +2,6 @@ package analyzer
 
 import (
 	"math"
-	"sort"
 	"strings"
 )
 
@@ -10,17 +9,35 @@ const maxSameShapeAlignmentCells = 20000
 
 // APTEDAnalyzer implements the APTED (All Path Tree Edit Distance) algorithm
 // Based on Pawlik & Augsten's optimal O(n² log n) algorithm
+//
+// An APTEDAnalyzer is NOT safe for concurrent use: it reuses internal scratch
+// buffers across ComputeDistance calls. Create one analyzer per goroutine.
 type APTEDAnalyzer struct {
 	costModel CostModel
-	cache     map[string]float64 // Memoization cache for subproblems
+
+	// Scratch buffers reused across distance computations to avoid
+	// re-allocating the DP matrices for every tree pair.
+	td        []float64
+	fd        []float64
+	nodesBuf1 []*TreeNode
+	nodesBuf2 []*TreeNode
 }
 
 // NewAPTEDAnalyzer creates a new APTED analyzer with the given cost model
 func NewAPTEDAnalyzer(costModel CostModel) *APTEDAnalyzer {
 	return &APTEDAnalyzer{
 		costModel: costModel,
-		cache:     make(map[string]float64),
 	}
+}
+
+// scratchFloats returns a length-n slice backed by *buf, growing it if needed.
+// Contents are unspecified; callers must initialize the cells they read.
+func scratchFloats(buf *[]float64, n int) []float64 {
+	if cap(*buf) < n {
+		*buf = make([]float64, n)
+	}
+	*buf = (*buf)[:n]
+	return *buf
 }
 
 // ComputeDistance computes the tree edit distance between two trees
@@ -39,19 +56,13 @@ func (a *APTEDAnalyzer) ComputeDistance(tree1, tree2 *TreeNode) float64 {
 	// Use optimized version for large trees
 	size1, size2 := tree1.Size(), tree2.Size()
 	if size1 > 500 || size2 > 500 {
-		return a.computeDistanceOptimized(tree1, tree2)
+		return a.computeDistanceOptimized(tree1, tree2, size1, size2)
 	}
 
-	// Clear cache for new computation
-	a.cache = make(map[string]float64)
-
-	// Prepare both trees for APTED
-	keyRoots1 := PrepareTreeForAPTED(tree1)
-	keyRoots2 := PrepareTreeForAPTED(tree2)
-
-	// Sort key roots in ascending order (leaves before parents)
-	sort.Ints(keyRoots1)
-	sort.Ints(keyRoots2)
+	// Reuse the prepared tree indices (key roots are cached sorted ascending,
+	// leaves before parents). Trees prepared once can be compared concurrently.
+	keyRoots1 := ensurePreparedForAPTED(tree1)
+	keyRoots2 := ensurePreparedForAPTED(tree2)
 
 	// Compute distance using APTED algorithm
 	return a.apted(tree1, tree2, keyRoots1, keyRoots2)
@@ -67,9 +78,8 @@ func (a *APTEDAnalyzer) ComputeDistanceAndSimilarity(tree1, tree2 *TreeNode) (fl
 // computeDistanceOptimized keeps the large-tree clone-detection path fast
 // without letting the optimization erase real label or shape differences. This
 // is a bounded heuristic for large inputs, not an exact APTED replacement.
-func (a *APTEDAnalyzer) computeDistanceOptimized(tree1, tree2 *TreeNode) float64 {
+func (a *APTEDAnalyzer) computeDistanceOptimized(tree1, tree2 *TreeNode, size1, size2 int) float64 {
 	// Early termination based on size difference
-	size1, size2 := tree1.Size(), tree2.Size()
 	sizeDiff := math.Abs(float64(size1 - size2))
 
 	// If size difference is too large, return early upper bound
@@ -93,25 +103,20 @@ func (a *APTEDAnalyzer) computeDistanceOptimized(tree1, tree2 *TreeNode) float64
 		return profileDistance
 	}
 
-	// Clear cache and use the capped optimized algorithm. The profile distance
-	// below is a lower bound that keeps capped key roots from undercounting.
-	a.cache = make(map[string]float64)
+	// Use the capped optimized algorithm. The profile distance below is a
+	// lower bound that keeps capped key roots from undercounting.
+	keyRoots1 := ensurePreparedForAPTED(tree1)
+	keyRoots2 := ensurePreparedForAPTED(tree2)
 
-	// Prepare both trees for APTED
-	keyRoots1 := PrepareTreeForAPTED(tree1)
-	keyRoots2 := PrepareTreeForAPTED(tree2)
-
-	// Limit key roots to reduce computation
+	// Limit key roots to reduce computation. Key roots are sorted ascending,
+	// so keep the tail: the largest post-order IDs cover the root and the
+	// upper tree structure, which dominate the distance for this heuristic.
 	if len(keyRoots1) > 100 {
-		keyRoots1 = keyRoots1[:100]
+		keyRoots1 = keyRoots1[len(keyRoots1)-100:]
 	}
 	if len(keyRoots2) > 100 {
-		keyRoots2 = keyRoots2[:100]
+		keyRoots2 = keyRoots2[len(keyRoots2)-100:]
 	}
-
-	// Sort key roots in ascending order (leaves before parents)
-	sort.Ints(keyRoots1)
-	sort.Ints(keyRoots2)
 
 	optimizedDistance := a.aptedOptimized(tree1, tree2, keyRoots1, keyRoots2, maxDistance*0.5)
 	return math.Max(optimizedDistance, profileDistance)
@@ -671,60 +676,80 @@ func (a *APTEDAnalyzer) cachedInsertCost(node *TreeNode, state *sameShapeDistanc
 // aptedOptimized implements the optimized APTED algorithm with early termination
 func (a *APTEDAnalyzer) aptedOptimized(tree1, tree2 *TreeNode, keyRoots1, keyRoots2 []int, maxDistance float64) float64 {
 	// Get all nodes in post-order
-	nodes1 := a.getPostOrderNodes(tree1)
-	nodes2 := a.getPostOrderNodes(tree2)
+	nodes1 := a.getPostOrderNodes(tree1, &a.nodesBuf1)
+	nodes2 := a.getPostOrderNodes(tree2, &a.nodesBuf2)
 
 	size1 := len(nodes1)
 	size2 := len(nodes2)
+	stride := size2 + 1
 
-	// Initialize distance matrix
-	td := make([][]float64, size1+1)
-	for i := range td {
-		td[i] = make([]float64, size2+1)
+	// Tree distance matrix, flat (size1+1) x (size2+1). Must start zeroed:
+	// subtree distances are filled in as key roots are processed.
+	td := scratchFloats(&a.td, (size1+1)*stride)
+	for k := range td {
+		td[k] = 0
 	}
+	fd := scratchFloats(&a.fd, (size1+1)*stride)
 
 	// Main APTED loop with early termination
 	for _, i := range keyRoots1 {
 		for _, j := range keyRoots2 {
-			a.computeForestDistanceOptimized(nodes1, nodes2, i, j, td, maxDistance)
+			a.computeForestDistanceOptimized(nodes1, nodes2, i, j, td, fd, stride, maxDistance)
 
 			// Early termination if distance exceeds threshold
-			if td[size1][size2] > maxDistance {
-				return td[size1][size2]
+			if td[size1*stride+size2] > maxDistance {
+				return td[size1*stride+size2]
 			}
 		}
 	}
 
-	return td[size1][size2]
+	return td[size1*stride+size2]
 }
 
 // apted implements the main APTED algorithm
 func (a *APTEDAnalyzer) apted(tree1, tree2 *TreeNode, keyRoots1, keyRoots2 []int) float64 {
 	// Get all nodes in post-order
-	nodes1 := a.getPostOrderNodes(tree1)
-	nodes2 := a.getPostOrderNodes(tree2)
+	nodes1 := a.getPostOrderNodes(tree1, &a.nodesBuf1)
+	nodes2 := a.getPostOrderNodes(tree2, &a.nodesBuf2)
 
 	size1 := len(nodes1)
 	size2 := len(nodes2)
+	stride := size2 + 1
 
-	// Initialize distance matrix
-	td := make([][]float64, size1+1)
-	for i := range td {
-		td[i] = make([]float64, size2+1)
+	// Tree distance matrix, flat (size1+1) x (size2+1). Must start zeroed:
+	// subtree distances are filled in as key roots are processed.
+	td := scratchFloats(&a.td, (size1+1)*stride)
+	for k := range td {
+		td[k] = 0
 	}
+	fd := scratchFloats(&a.fd, (size1+1)*stride)
 
 	// Main APTED loop
 	for _, i := range keyRoots1 {
 		for _, j := range keyRoots2 {
-			a.computeForestDistance(nodes1, nodes2, i, j, td)
+			a.computeForestDistance(nodes1, nodes2, i, j, td, fd, stride)
 		}
 	}
 
-	return td[size1][size2]
+	return td[size1*stride+size2]
 }
 
-// computeForestDistanceOptimized computes the distance between two forests with early termination
-func (a *APTEDAnalyzer) computeForestDistanceOptimized(nodes1, nodes2 []*TreeNode, i, j int, td [][]float64, maxDistance float64) {
+// zeroForestRegion clears the cells of the flat forest-distance matrix that
+// the (i, j) key-root computation reads and writes: rows lml_i..i+1, columns
+// lml_j..j+1. Equivalent to allocating a fresh zeroed matrix, without the
+// allocation.
+func zeroForestRegion(fd []float64, stride, lml_i, i, lml_j, j int) {
+	for x := lml_i; x <= i+1; x++ {
+		row := fd[x*stride+lml_j : x*stride+j+2]
+		for k := range row {
+			row[k] = 0
+		}
+	}
+}
+
+// computeForestDistanceOptimized computes the distance between two forests with early termination.
+// td and fd are flat (len(nodes1)+1) x stride matrices with stride = len(nodes2)+1.
+func (a *APTEDAnalyzer) computeForestDistanceOptimized(nodes1, nodes2 []*TreeNode, i, j int, td, fd []float64, stride int, maxDistance float64) {
 	// Bounds checking to prevent array access violations
 	if i < 0 || i >= len(nodes1) || j < 0 || j >= len(nodes2) {
 		return
@@ -734,80 +759,65 @@ func (a *APTEDAnalyzer) computeForestDistanceOptimized(nodes1, nodes2 []*TreeNod
 	lml_i := nodes1[i].LeftMostLeaf
 	lml_j := nodes2[j].LeftMostLeaf
 
-	// Initialize forest distance matrix
-	fd := make([][]float64, i+2)
-	for k := range fd {
-		fd[k] = make([]float64, j+2)
-	}
+	zeroForestRegion(fd, stride, lml_i, i, lml_j, j)
 
-	// Base cases for forest distance with bounds checking
+	// Base cases for forest distance
 	for x := lml_i; x <= i; x++ {
-		// Ensure x is within bounds
-		if x < 0 || x >= len(nodes1) {
-			continue
-		}
-		fd[x+1][lml_j] = fd[x][lml_j] + a.costModel.Delete(nodes1[x])
+		fd[(x+1)*stride+lml_j] = fd[x*stride+lml_j] + a.costModel.Delete(nodes1[x])
 		// Early termination check
-		if fd[x+1][lml_j] > maxDistance {
+		if fd[(x+1)*stride+lml_j] > maxDistance {
 			return
 		}
 	}
 
 	for y := lml_j; y <= j; y++ {
-		// Ensure y is within bounds
-		if y < 0 || y >= len(nodes2) {
-			continue
-		}
-		fd[lml_i][y+1] = fd[lml_i][y] + a.costModel.Insert(nodes2[y])
+		fd[lml_i*stride+y+1] = fd[lml_i*stride+y] + a.costModel.Insert(nodes2[y])
 		// Early termination check
-		if fd[lml_i][y+1] > maxDistance {
+		if fd[lml_i*stride+y+1] > maxDistance {
 			return
 		}
 	}
 
-	// Main computation with bounds checking
+	// Main computation
 	for x := lml_i; x <= i; x++ {
-		// Ensure x is within bounds
-		if x < 0 || x >= len(nodes1) {
-			continue
-		}
+		node1 := nodes1[x]
+		lml_x := node1.LeftMostLeaf
 		for y := lml_j; y <= j; y++ {
-			// Ensure y is within bounds
-			if y < 0 || y >= len(nodes2) {
-				continue
-			}
-			lml_x := nodes1[x].LeftMostLeaf
-			lml_y := nodes2[y].LeftMostLeaf
+			node2 := nodes2[y]
+			lml_y := node2.LeftMostLeaf
 
+			var dist float64
 			if lml_x == lml_i && lml_y == lml_j {
 				// Both nodes are at the leftmost leaf of their respective forests
-				deleteCost := fd[x][y+1] + a.costModel.Delete(nodes1[x])
-				insertCost := fd[x+1][y] + a.costModel.Insert(nodes2[y])
-				renameCost := fd[x][y] + a.costModel.Rename(nodes1[x], nodes2[y])
+				deleteCost := fd[x*stride+y+1] + a.costModel.Delete(node1)
+				insertCost := fd[(x+1)*stride+y] + a.costModel.Insert(node2)
+				renameCost := fd[x*stride+y] + a.costModel.Rename(node1, node2)
 
-				fd[x+1][y+1] = math.Min(deleteCost, math.Min(insertCost, renameCost))
-				td[x+1][y+1] = fd[x+1][y+1]
+				dist = math.Min(deleteCost, math.Min(insertCost, renameCost))
+				td[(x+1)*stride+y+1] = dist
 			} else {
 				// At least one node is not at the leftmost leaf
-				deleteCost := fd[x][y+1] + a.costModel.Delete(nodes1[x])
-				insertCost := fd[x+1][y] + a.costModel.Insert(nodes2[y])
+				deleteCost := fd[x*stride+y+1] + a.costModel.Delete(node1)
+				insertCost := fd[(x+1)*stride+y] + a.costModel.Insert(node2)
 
 				// td[x+1][y+1] was already computed during a previous key root iteration
-				subtreeCost := fd[lml_x][lml_y] + td[x+1][y+1]
+				subtreeCost := fd[lml_x*stride+lml_y] + td[(x+1)*stride+y+1]
 
-				fd[x+1][y+1] = math.Min(deleteCost, math.Min(insertCost, subtreeCost))
+				dist = math.Min(deleteCost, math.Min(insertCost, subtreeCost))
 			}
+			fd[(x+1)*stride+y+1] = dist
 
 			// Early termination check
-			if fd[x+1][y+1] > maxDistance {
+			if dist > maxDistance {
 				return
 			}
 		}
 	}
 }
 
-// computeForestDistance computes the distance between two forests
-func (a *APTEDAnalyzer) computeForestDistance(nodes1, nodes2 []*TreeNode, i, j int, td [][]float64) {
+// computeForestDistance computes the distance between two forests.
+// td and fd are flat (len(nodes1)+1) x stride matrices with stride = len(nodes2)+1.
+func (a *APTEDAnalyzer) computeForestDistance(nodes1, nodes2 []*TreeNode, i, j int, td, fd []float64, stride int) {
 	// Bounds checking to prevent array access violations
 	if i < 0 || i >= len(nodes1) || j < 0 || j >= len(nodes2) {
 		return
@@ -817,80 +827,59 @@ func (a *APTEDAnalyzer) computeForestDistance(nodes1, nodes2 []*TreeNode, i, j i
 	lml_i := nodes1[i].LeftMostLeaf
 	lml_j := nodes2[j].LeftMostLeaf
 
-	// Initialize forest distance matrix
-	fd := make([][]float64, i+2)
-	for k := range fd {
-		fd[k] = make([]float64, j+2)
-	}
+	zeroForestRegion(fd, stride, lml_i, i, lml_j, j)
 
-	// Base cases for forest distance with bounds checking
+	// Base cases for forest distance
 	for x := lml_i; x <= i; x++ {
-		// Ensure x is within bounds
-		if x < 0 || x >= len(nodes1) {
-			continue
-		}
-		fd[x+1][lml_j] = fd[x][lml_j] + a.costModel.Delete(nodes1[x])
+		fd[(x+1)*stride+lml_j] = fd[x*stride+lml_j] + a.costModel.Delete(nodes1[x])
 	}
 
 	for y := lml_j; y <= j; y++ {
-		// Ensure y is within bounds
-		if y < 0 || y >= len(nodes2) {
-			continue
-		}
-		fd[lml_i][y+1] = fd[lml_i][y] + a.costModel.Insert(nodes2[y])
+		fd[lml_i*stride+y+1] = fd[lml_i*stride+y] + a.costModel.Insert(nodes2[y])
 	}
 
-	// Main computation with bounds checking
+	// Main computation
 	for x := lml_i; x <= i; x++ {
-		// Ensure x is within bounds
-		if x < 0 || x >= len(nodes1) {
-			continue
-		}
+		node1 := nodes1[x]
+		lml_x := node1.LeftMostLeaf
 		for y := lml_j; y <= j; y++ {
-			// Ensure y is within bounds
-			if y < 0 || y >= len(nodes2) {
-				continue
-			}
-			lml_x := nodes1[x].LeftMostLeaf
-			lml_y := nodes2[y].LeftMostLeaf
+			node2 := nodes2[y]
+			lml_y := node2.LeftMostLeaf
 
 			if lml_x == lml_i && lml_y == lml_j {
 				// Both nodes are at the leftmost leaf of their respective forests
-				deleteCost := fd[x][y+1] + a.costModel.Delete(nodes1[x])
-				insertCost := fd[x+1][y] + a.costModel.Insert(nodes2[y])
-				renameCost := fd[x][y] + a.costModel.Rename(nodes1[x], nodes2[y])
+				deleteCost := fd[x*stride+y+1] + a.costModel.Delete(node1)
+				insertCost := fd[(x+1)*stride+y] + a.costModel.Insert(node2)
+				renameCost := fd[x*stride+y] + a.costModel.Rename(node1, node2)
 
-				fd[x+1][y+1] = math.Min(deleteCost, math.Min(insertCost, renameCost))
-				td[x+1][y+1] = fd[x+1][y+1]
+				dist := math.Min(deleteCost, math.Min(insertCost, renameCost))
+				fd[(x+1)*stride+y+1] = dist
+				td[(x+1)*stride+y+1] = dist
 			} else {
 				// At least one node is not at the leftmost leaf
-				deleteCost := fd[x][y+1] + a.costModel.Delete(nodes1[x])
-				insertCost := fd[x+1][y] + a.costModel.Insert(nodes2[y])
+				deleteCost := fd[x*stride+y+1] + a.costModel.Delete(node1)
+				insertCost := fd[(x+1)*stride+y] + a.costModel.Insert(node2)
 
 				// td[x+1][y+1] was already computed during a previous key root iteration
-				subtreeCost := fd[lml_x][lml_y] + td[x+1][y+1]
+				subtreeCost := fd[lml_x*stride+lml_y] + td[(x+1)*stride+y+1]
 
-				fd[x+1][y+1] = math.Min(deleteCost, math.Min(insertCost, subtreeCost))
+				fd[(x+1)*stride+y+1] = math.Min(deleteCost, math.Min(insertCost, subtreeCost))
 			}
 		}
 	}
 }
 
-// getPostOrderNodes returns all nodes in post-order traversal
-func (a *APTEDAnalyzer) getPostOrderNodes(root *TreeNode) []*TreeNode {
+// getPostOrderNodes returns all nodes in post-order traversal, reusing buf as
+// backing storage. The traversal emits nodes in the same order PostOrderTraversal
+// assigns PostOrderIDs, so the result is already sorted by PostOrderID.
+func (a *APTEDAnalyzer) getPostOrderNodes(root *TreeNode, buf *[]*TreeNode) []*TreeNode {
+	*buf = (*buf)[:0]
 	if root == nil {
-		return []*TreeNode{}
+		return *buf
 	}
 
-	var nodes []*TreeNode
-	a.postOrderTraversal(root, &nodes)
-
-	// Sort by post-order ID to ensure correct ordering
-	sort.Slice(nodes, func(i, j int) bool {
-		return nodes[i].PostOrderID < nodes[j].PostOrderID
-	})
-
-	return nodes
+	a.postOrderTraversal(root, buf)
+	return *buf
 }
 
 // postOrderTraversal performs post-order traversal
