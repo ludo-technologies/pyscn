@@ -182,6 +182,16 @@ func (b *AnalyzeUseCaseBuilder) Build() (*AnalyzeUseCase, error) {
 	}, nil
 }
 
+// Task names used both for display and as keys for progress estimation
+const (
+	taskNameComplexity = "Complexity Analysis"
+	taskNameDeadCode   = "Dead Code Detection"
+	taskNameClones     = "Clone Detection"
+	taskNameCBO        = "Class Coupling (CBO)"
+	taskNameLCOM       = "Class Cohesion (LCOM)"
+	taskNameSystem     = "System Analysis"
+)
+
 // AnalysisTask represents a single analysis task
 type AnalysisTask struct {
 	Name    string
@@ -226,8 +236,9 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 		return nil, fmt.Errorf("no Python files found in the specified paths")
 	}
 
-	// Calculate estimated time based on file count and enabled analyses
-	estimatedTime := uc.calculateEstimatedTime(len(files), useCaseCfg, executionCfg)
+	// Estimate per-task durations from file count, then calibrate with actual
+	// timings recorded by previous runs on this project (if any)
+	estimatedSeconds := uc.estimateTaskSeconds(len(files), useCaseCfg, executionCfg)
 
 	var snapshot *service.ProjectSnapshot
 	if uc.needsProjectSnapshot(useCaseCfg) {
@@ -236,11 +247,14 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 		})
 	}
 
-	// Start unified progress tracking with time-based estimation
+	// Start unified progress tracking; task completions feed back into the
+	// estimate so the bar recalibrates to actual machine/codebase speed
+	var tracker *analysisProgressTracker
 	var progressDone chan struct{}
 	if uc.progressManager != nil {
+		tracker = newAnalysisProgressTracker(applyTimingFactors(estimatedSeconds, service.LoadAnalysisTimingFactors()))
 		uc.progressManager.Initialize(100) // 100% based progress
-		progressDone = uc.startTimeBasedProgressUpdater(estimatedTime)
+		progressDone = uc.startProgressUpdater(tracker)
 	}
 
 	// Create analysis tasks
@@ -259,6 +273,9 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 			result, err := t.Execute(ctx)
 			t.Result = result
 			t.Error = err
+			if tracker != nil {
+				tracker.TaskCompleted(t.Name)
+			}
 		}(task)
 	}
 
@@ -270,6 +287,11 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 		close(progressDone)
 		uc.progressManager.Update(100, 100)
 		uc.progressManager.Complete(true)
+	}
+
+	// Persist observed timings to improve the initial estimate of future runs
+	if tracker != nil {
+		service.UpdateAnalysisTimingFactors(estimatedSeconds, tracker.CompletedDurations())
 	}
 
 	// Check for errors
@@ -305,7 +327,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 	// Complexity analysis task
 	if uc.complexityUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
-			Name:    "Complexity Analysis",
+			Name:    taskNameComplexity,
 			Enabled: !config.SkipComplexity,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := uc.buildComplexityTaskRequest(config, files, executionCfg)
@@ -317,7 +339,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 	// Dead code analysis task
 	if uc.deadCodeUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
-			Name:    "Dead Code Detection",
+			Name:    taskNameDeadCode,
 			Enabled: !config.SkipDeadCode,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.DeadCodeRequest{
@@ -348,7 +370,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 	// Clone detection task
 	if uc.cloneUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
-			Name:    "Clone Detection",
+			Name:    taskNameClones,
 			Enabled: !config.SkipClones,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := uc.buildCloneTaskRequest(config, files)
@@ -360,7 +382,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 	// CBO analysis task
 	if uc.cboUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
-			Name:    "Class Coupling (CBO)",
+			Name:    taskNameCBO,
 			Enabled: !config.SkipCBO,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.CBORequest{
@@ -388,7 +410,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 	// LCOM analysis task
 	if uc.lcomUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
-			Name:    "Class Cohesion (LCOM)",
+			Name:    taskNameLCOM,
 			Enabled: !config.SkipLCOM,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.LCOMRequest{
@@ -411,7 +433,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 	// System analysis task
 	if uc.systemUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
-			Name:    "System Analysis",
+			Name:    taskNameSystem,
 			Enabled: !config.SkipSystem,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.SystemAnalysisRequest{
@@ -657,30 +679,33 @@ func (uc *AnalyzeUseCase) loadExecutionConfig(configPath string, paths []string)
 	return uc.configLoader.LoadAnalyzeExecutionConfig(configPath, targetPath)
 }
 
-// calculateEstimatedTime estimates the total analysis time based on file count and enabled analyses
-func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUseCaseConfig, executionCfg domain.AnalyzeExecutionConfig) float64 {
+// estimateTaskSeconds estimates the duration of each enabled analysis task in
+// seconds, keyed by task name. The formulas capture how each analysis scales
+// with file count; absolute accuracy comes from calibration against actual
+// timings (see applyTimingFactors and UpdateAnalysisTimingFactors).
+func (uc *AnalyzeUseCase) estimateTaskSeconds(fileCount int, config AnalyzeUseCaseConfig, executionCfg domain.AnalyzeExecutionConfig) map[string]float64 {
 	n := float64(fileCount)
-	totalTime := 0.0
+	estimates := map[string]float64{}
 
 	// Linear analyses (fast)
-	if !config.SkipComplexity {
-		totalTime += 0.01 * n // Complexity: ~0.01s per file
+	if uc.complexityUseCase != nil && !config.SkipComplexity {
+		estimates[taskNameComplexity] = 0.01 * n // Complexity: ~0.01s per file
 	}
-	if !config.SkipDeadCode {
-		totalTime += 0.01 * n // Dead Code: ~0.01s per file
+	if uc.deadCodeUseCase != nil && !config.SkipDeadCode {
+		estimates[taskNameDeadCode] = 0.01 * n // Dead Code: ~0.01s per file
 	}
-	if !config.SkipCBO {
-		totalTime += 0.01 * n // CBO: ~0.01s per file
+	if uc.cboUseCase != nil && !config.SkipCBO {
+		estimates[taskNameCBO] = 0.01 * n // CBO: ~0.01s per file
 	}
-	if !config.SkipLCOM {
-		totalTime += 0.01 * n // LCOM: ~0.01s per file
+	if uc.lcomUseCase != nil && !config.SkipLCOM {
+		estimates[taskNameLCOM] = 0.01 * n // LCOM: ~0.01s per file
 	}
-	if !config.SkipSystem {
-		totalTime += 0.02 * n // System: ~0.02s per file (slightly heavier)
+	if uc.systemUseCase != nil && !config.SkipSystem {
+		estimates[taskNameSystem] = 0.02 * n // System: ~0.02s per file (slightly heavier)
 	}
 
 	// Clone detection - account for LSH configuration
-	if !config.SkipClones {
+	if uc.cloneUseCase != nil && !config.SkipClones {
 		// Estimate fragment count (empirical average: ~5.0 fragments per file)
 		estimatedFragments := n * 5.0
 
@@ -695,30 +720,21 @@ func (uc *AnalyzeUseCase) calculateEstimatedTime(fileCount int, config AnalyzeUs
 		if useLSH {
 			// LSH enabled: Near-linear O(n^1.1) complexity
 			// LSH candidate filtering significantly reduces the number of APTED comparisons
-			// Exponent 1.1 and coefficient 0.01 are empirically tuned
-			// Note: Actual performance varies by environment and code characteristics
-			totalTime += 0.01 * math.Pow(estimatedFragments, 1.1)
+			estimates[taskNameClones] = 0.01 * math.Pow(estimatedFragments, 1.1)
 		} else {
 			// LSH disabled: Quadratic O(n²) complexity - full pairwise comparison
 			// All fragment pairs are compared via expensive APTED tree edit distance
-			// This becomes the bottleneck for codebases with many fragments
-			// Coefficient 0.001 accounts for fragment count estimation
-			totalTime += 0.001 * estimatedFragments * estimatedFragments
+			estimates[taskNameClones] = 0.001 * estimatedFragments * estimatedFragments
 		}
 	}
 
-	// Minimum time to avoid division by zero
-	if totalTime < 0.1 {
-		totalTime = 0.1
-	}
-
-	return totalTime
+	return estimates
 }
 
-// startTimeBasedProgressUpdater starts a background goroutine that updates progress based on elapsed time
-func (uc *AnalyzeUseCase) startTimeBasedProgressUpdater(estimatedTime float64) chan struct{} {
+// startProgressUpdater starts a background goroutine that periodically renders
+// the tracker's current progress estimate
+func (uc *AnalyzeUseCase) startProgressUpdater(tracker *analysisProgressTracker) chan struct{} {
 	done := make(chan struct{})
-	startTime := time.Now()
 
 	// Start progress bar
 	uc.progressManager.Start()
@@ -730,14 +746,7 @@ func (uc *AnalyzeUseCase) startTimeBasedProgressUpdater(estimatedTime float64) c
 		for {
 			select {
 			case <-ticker.C:
-				elapsed := time.Since(startTime).Seconds()
-				// Progress increases with elapsed time, but caps at 99%
-				// (we'll set it to 100% when tasks actually complete)
-				progress := int((elapsed / estimatedTime) * 100)
-				if progress > 99 {
-					progress = 99
-				}
-				uc.progressManager.Update(progress, 100)
+				uc.progressManager.Update(tracker.Percent(), 100)
 
 			case <-done:
 				return
