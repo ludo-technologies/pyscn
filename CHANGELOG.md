@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.24.0] - 2026-06-11
+
+### Changed
+- Speed up clone detection by reusing APTED DP matrices and parallelizing pair comparison (#538)
+
+### Fixed
+- Preserve every elif in a chain so complexity isn't undercounted (#537)
+
 ## [1.23.2] - 2026-06-10
 
 ### Fixed
