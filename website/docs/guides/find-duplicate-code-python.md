@@ -1,4 +1,5 @@
 ---
+title: How to Find Duplicate Code in Python
 description: A practical guide to finding duplicate code in Python. Learn what code clones are (Type 1-4), which tools detect them, and how to automate detection in CI.
 ---
 

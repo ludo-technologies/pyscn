@@ -1,4 +1,5 @@
 ---
+title: Comment détecter le code dupliqué en Python
 description: Un guide pratique pour détecter le code dupliqué en Python. Découvrez ce que sont les clones de code (Types 1 à 4), quels outils les détectent et comment automatiser la détection en CI.
 ---
 
