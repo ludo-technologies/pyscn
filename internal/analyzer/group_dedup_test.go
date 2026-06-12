@@ -242,6 +242,183 @@ func TestGroupClonesWithStrategy_FiltersSuppressedClonePairs(t *testing.T) {
 	}
 }
 
+// TestCoveredGroups_Issue518Repro reproduces issue #518: the same duplication
+// emitted as two near-identical groups whose member windows differ by exactly
+// one line (the enclosing `with` header). The group with the smaller windows
+// must be suppressed.
+func TestCoveredGroups_Issue518Repro(t *testing.T) {
+	inner := makeGroup(6, gf("smoke.py", 299, 315), gf("smoke.py", 318, 334))
+	inner.Similarity = 0.9692
+	outer := makeGroup(14, gf("smoke.py", 298, 315), gf("smoke.py", 317, 334))
+	outer.Similarity = 0.9613
+
+	out := dedupeCoveredGroups([]*CloneGroup{inner, outer})
+
+	if len(out.groups) != 1 {
+		t.Fatalf("expected 1 group after covered-group dedup, got %d", len(out.groups))
+	}
+	if out.groups[0] != outer {
+		t.Fatalf("expected the larger-window group to survive, got %v", rangesOf(out.groups[0]))
+	}
+	if len(out.suppressed) != 2 {
+		t.Fatalf("expected both members of the covered group suppressed, got %d", len(out.suppressed))
+	}
+}
+
+// TestCoveredGroups_IdenticalGroupsKeepFirst verifies the deterministic
+// tiebreak for mutual coverage: groups with identical member ranges collapse
+// to the earlier one in the slice.
+func TestCoveredGroups_IdenticalGroupsKeepFirst(t *testing.T) {
+	g1 := makeGroup(1, gf("x.py", 1, 10), gf("y.py", 1, 10))
+	g2 := makeGroup(2, gf("x.py", 1, 10), gf("y.py", 1, 10))
+
+	out := dedupeCoveredGroups([]*CloneGroup{g1, g2})
+
+	if len(out.groups) != 1 || out.groups[0] != g1 {
+		t.Fatalf("expected only the first of two identical groups to survive, got %+v", out.groups)
+	}
+}
+
+// TestCoveredGroups_ChainCollapsesToOutermost verifies transitivity: with
+// g1 ⊂ g2 ⊂ g3 member-wise, only the outermost group survives even though g2
+// is itself suppressed.
+func TestCoveredGroups_ChainCollapsesToOutermost(t *testing.T) {
+	g1 := makeGroup(1, gf("x.py", 3, 8), gf("y.py", 3, 8))
+	g2 := makeGroup(2, gf("x.py", 2, 9), gf("y.py", 2, 9))
+	g3 := makeGroup(3, gf("x.py", 1, 10), gf("y.py", 1, 10))
+
+	out := dedupeCoveredGroups([]*CloneGroup{g1, g2, g3})
+
+	if len(out.groups) != 1 || out.groups[0] != g3 {
+		t.Fatalf("expected only outermost group to survive, got %+v", out.groups)
+	}
+}
+
+// TestCoveredGroups_PartialCoverageKeptBoth verifies a group is kept when any
+// member falls outside the other group's windows: it carries information the
+// covering group does not.
+func TestCoveredGroups_PartialCoverageKeptBoth(t *testing.T) {
+	g1 := makeGroup(1, gf("x.py", 2, 9), gf("z.py", 1, 8))
+	g2 := makeGroup(2, gf("x.py", 1, 10), gf("y.py", 1, 10))
+
+	out := dedupeCoveredGroups([]*CloneGroup{g1, g2})
+
+	if len(out.groups) != 2 {
+		t.Fatalf("expected both groups kept, got %d", len(out.groups))
+	}
+	if len(out.suppressed) != 0 {
+		t.Fatalf("expected no suppressed fragments, got %d", len(out.suppressed))
+	}
+}
+
+// TestCoveredGroups_DistinctMembersRequired verifies the injective-matching
+// constraint: two disjoint blocks inside ONE member of another group describe
+// duplication within that member, which the outer group does not report, so
+// the inner group must be kept.
+func TestCoveredGroups_DistinctMembersRequired(t *testing.T) {
+	inner := makeGroup(1, gf("x.py", 10, 20), gf("x.py", 30, 40))
+	outer := makeGroup(2, gf("x.py", 1, 100), gf("y.py", 1, 100))
+
+	out := dedupeCoveredGroups([]*CloneGroup{inner, outer})
+
+	if len(out.groups) != 2 {
+		t.Fatalf("expected both groups kept (no injective cover), got %d", len(out.groups))
+	}
+}
+
+// TestCoveredGroups_NestedDistinctFilesSuppressed verifies the general nested
+// case: a group of inner blocks each inside a distinct cloned member of a
+// larger group, with comparable similarity, is redundant with it.
+func TestCoveredGroups_NestedDistinctFilesSuppressed(t *testing.T) {
+	inner := makeGroup(1, gf("x.py", 20, 30), gf("y.py", 20, 30))
+	inner.Similarity = 0.93
+	outer := makeGroup(2, gf("x.py", 1, 100), gf("y.py", 1, 100))
+	outer.Similarity = 0.91
+
+	out := dedupeCoveredGroups([]*CloneGroup{inner, outer})
+
+	if len(out.groups) != 1 || out.groups[0] != outer {
+		t.Fatalf("expected nested group suppressed in favor of covering group, got %+v", out.groups)
+	}
+}
+
+// TestCoveredGroups_StrongerInnerFindingKept verifies the similarity guard:
+// an inner group that matches much more strongly than its covering group
+// (e.g., a near-identical block inside loosely similar functions) is a
+// distinct finding and must survive.
+func TestCoveredGroups_StrongerInnerFindingKept(t *testing.T) {
+	inner := makeGroup(1, gf("x.py", 2, 5), gf("y.py", 2, 5))
+	inner.Similarity = 0.95
+	outer := makeGroup(2, gf("x.py", 1, 6), gf("y.py", 1, 6))
+	outer.Similarity = 0.65
+
+	out := dedupeCoveredGroups([]*CloneGroup{inner, outer})
+
+	if len(out.groups) != 2 {
+		t.Fatalf("expected both groups kept when inner is the stronger finding, got %d", len(out.groups))
+	}
+	if len(out.suppressed) != 0 {
+		t.Fatalf("expected no suppressed fragments, got %d", len(out.suppressed))
+	}
+}
+
+// TestCoveredGroups_SharedFragmentKeepsPairs verifies that a fragment also
+// present in a surviving group is not marked suppressed, so its clone pairs
+// stay in the output.
+func TestCoveredGroups_SharedFragmentKeepsPairs(t *testing.T) {
+	shared := gf("x.py", 5, 9)
+	covered := makeGroup(1, shared, gf("y.py", 5, 9))
+	covering := makeGroup(2, gf("x.py", 1, 10), gf("y.py", 1, 10))
+	keeper := makeGroup(3, shared, gf("z.py", 50, 90))
+
+	out := dedupeCoveredGroups([]*CloneGroup{covered, covering, keeper})
+
+	if len(out.groups) != 2 {
+		t.Fatalf("expected covering+keeper groups to survive, got %d", len(out.groups))
+	}
+	if _, ok := out.suppressed[shared]; ok {
+		t.Fatalf("fragment shared with a surviving group must not be suppressed")
+	}
+	if len(out.suppressed) != 1 {
+		t.Fatalf("expected only the non-shared member suppressed, got %d", len(out.suppressed))
+	}
+}
+
+// TestCoveredGroups_E2EThroughGroupClonesWithStrategy verifies the full
+// pipeline: two duplications reported through overlapping windows produce two
+// groups via connected grouping, and the covered one is dropped along with its
+// clone pairs.
+func TestCoveredGroups_E2EThroughGroupClonesWithStrategy(t *testing.T) {
+	innerA := gf("smoke.py", 299, 315)
+	innerB := gf("smoke.py", 318, 334)
+	outerA := gf("smoke.py", 298, 315)
+	outerB := gf("smoke.py", 317, 334)
+	cd := &CloneDetector{
+		clonePairs: []*ClonePair{
+			gpType(innerA, innerB, 0.9692, Type2Clone),
+			gpType(outerA, outerB, 0.9613, Type2Clone),
+		},
+	}
+
+	cd.groupClonesWithStrategy(NewConnectedGrouping(0.85))
+
+	if len(cd.cloneGroups) != 1 {
+		t.Fatalf("expected 1 group after covered-group dedup, got %d", len(cd.cloneGroups))
+	}
+	got := rangesOf(cd.cloneGroups[0])
+	want := []string{outerA.Location.String(), outerB.Location.String()}
+	sort.Strings(want)
+	if !equalStringSlices(got, want) {
+		t.Fatalf("expected larger-window group %v to survive, got %v", want, got)
+	}
+	if len(cd.clonePairs) != 1 {
+		t.Fatalf("expected covered group's pair to be filtered, got %d pairs", len(cd.clonePairs))
+	}
+	if cd.clonePairs[0].Fragment1 != outerA || cd.clonePairs[0].Fragment2 != outerB {
+		t.Fatalf("surviving pair should be the larger-window pair")
+	}
+}
+
 // TestDedupe_E2EThroughConnectedGrouping is the end-to-end integration test:
 // pairs (A, C) and (B, C) where A and B are overlapping same-file fragments
 // — isOverlappingLocation prevents a direct (A, B) pair, but Union-Find unites

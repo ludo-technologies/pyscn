@@ -67,6 +67,158 @@ func dedupeStrictSubsetGroupMembers(groups []*CloneGroup, pairs []*ClonePair) gr
 	return result
 }
 
+// coveredGroupSimilarityTolerance bounds how much weaker (in average
+// similarity) a covering group may be while still subsuming a covered group.
+// Overlapping windows of the same duplication shift similarity only slightly
+// (issue #518: 0.9692 vs 0.9613); a covered group that matches much more
+// strongly than its covering group is a distinct, sharper finding (e.g., a
+// near-identical inner block inside loosely similar functions) and is kept.
+const coveredGroupSimilarityTolerance = 0.05
+
+// dedupeCoveredGroups suppresses whole clone groups that are covered by
+// another group: every member of the covered group fits inside a distinct
+// member of the covering group (same file, containing line range), and the
+// covering group's similarity is comparable or better. Such groups describe
+// the same duplication relationship through slightly smaller windows — e.g.,
+// the same two blocks reported once with and once without their enclosing
+// `with` header line (issue #518) — and double-count it.
+//
+// Why dedupeStrictSubsetGroupMembers does not catch this: that pass compares
+// members *within* one group. Here the overlapping windows sit in *different*
+// groups, which stay disconnected because isOverlappingLocation forbids the
+// direct same-file pair that would have linked them.
+//
+// The group with the larger (covering) windows is kept, mirroring the
+// maximal-window policy of filterMaximalPerFile. When two groups cover each
+// other (identical member ranges), the earlier one in the slice wins.
+func dedupeCoveredGroups(groups []*CloneGroup) groupDedupeResult {
+	result := groupDedupeResult{
+		groups:     groups,
+		suppressed: make(map[*CodeFragment]struct{}),
+	}
+	if len(groups) < 2 {
+		return result
+	}
+
+	suppressed := make([]bool, len(groups))
+	for i, gi := range groups {
+		if gi == nil {
+			continue
+		}
+		// Compare against every other group, including already-suppressed
+		// ones: coverage is transitive, so a chain g1 ⊂ g2 ⊂ g3 still
+		// resolves to keeping only g3.
+		for j, gj := range groups {
+			if i == j || gj == nil {
+				continue
+			}
+			if !groupCoveredBy(gi, gj) {
+				continue
+			}
+			if groupCoveredBy(gj, gi) {
+				if j > i {
+					continue // mutual coverage: the earlier group survives
+				}
+			} else if gi.Similarity > gj.Similarity+coveredGroupSimilarityTolerance {
+				continue // gi is a distinctly stronger match than its cover
+			}
+			suppressed[i] = true
+			break
+		}
+	}
+
+	out := make([]*CloneGroup, 0, len(groups))
+	keptFragments := make(map[*CodeFragment]struct{})
+	for i, g := range groups {
+		if g == nil || suppressed[i] {
+			continue
+		}
+		out = append(out, g)
+		for _, f := range g.Fragments {
+			keptFragments[f] = struct{}{}
+		}
+	}
+	for i, g := range groups {
+		if g == nil || !suppressed[i] {
+			continue
+		}
+		for _, f := range g.Fragments {
+			if f == nil {
+				continue
+			}
+			// A fragment shared with a surviving group keeps its pairs.
+			if _, ok := keptFragments[f]; ok {
+				continue
+			}
+			result.suppressed[f] = struct{}{}
+		}
+	}
+	result.groups = out
+	return result
+}
+
+// groupCoveredBy reports whether every member of inner can be matched to a
+// distinct member of outer that covers it (same file, containing range,
+// equality included). Distinctness matters: two disjoint inner blocks inside
+// one outer member describe duplication *within* that member, which the outer
+// group does not report.
+func groupCoveredBy(inner, outer *CloneGroup) bool {
+	n := len(inner.Fragments)
+	if n == 0 || n > len(outer.Fragments) {
+		return false
+	}
+	candidates := make([][]int, n)
+	for i, f := range inner.Fragments {
+		if f == nil || f.Location == nil {
+			return false
+		}
+		for j, of := range outer.Fragments {
+			if of == nil || of.Location == nil {
+				continue
+			}
+			if locationCovers(of.Location, f.Location) {
+				candidates[i] = append(candidates[i], j)
+			}
+		}
+		if len(candidates[i]) == 0 {
+			return false
+		}
+	}
+	// Bipartite matching via augmenting paths; group sizes are small.
+	matchedInner := make([]int, len(outer.Fragments))
+	for j := range matchedInner {
+		matchedInner[j] = -1
+	}
+	var assign func(i int, visited []bool) bool
+	assign = func(i int, visited []bool) bool {
+		for _, j := range candidates[i] {
+			if visited[j] {
+				continue
+			}
+			visited[j] = true
+			if matchedInner[j] == -1 || assign(matchedInner[j], visited) {
+				matchedInner[j] = i
+				return true
+			}
+		}
+		return false
+	}
+	for i := 0; i < n; i++ {
+		if !assign(i, make([]bool, len(outer.Fragments))) {
+			return false
+		}
+	}
+	return true
+}
+
+// locationCovers reports whether outer contains inner (same file, inclusive
+// line ranges; equal ranges count as covered).
+func locationCovers(outer, inner *CodeLocation) bool {
+	return outer.FilePath == inner.FilePath &&
+		outer.StartLine <= inner.StartLine &&
+		outer.EndLine >= inner.EndLine
+}
+
 // filterMaximalPerFile returns the subset of fragments that are maximal under
 // the same-file containment order. A fragment is suppressed if any other
 // kept fragment in the same file strictly covers it, or if it duplicates an
