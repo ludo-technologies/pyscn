@@ -1122,9 +1122,13 @@ func (cd *CloneDetector) groupClonesWithStrategy(strategy GroupingStrategy) {
 		cd.cloneGroups = []*CloneGroup{}
 		return
 	}
-	dedupeResult := dedupeStrictSubsetGroupMembers(strategy.GroupClones(cd.clonePairs), cd.clonePairs)
-	cd.cloneGroups = dedupeResult.groups
-	cd.clonePairs = filterClonePairsWithSuppressedMembers(cd.clonePairs, dedupeResult.suppressed)
+	memberResult := dedupeStrictSubsetGroupMembers(strategy.GroupClones(cd.clonePairs), cd.clonePairs)
+	groupResult := dedupeCoveredGroups(memberResult.groups)
+	cd.cloneGroups = groupResult.groups
+	for fragment := range memberResult.suppressed {
+		groupResult.suppressed[fragment] = struct{}{}
+	}
+	cd.clonePairs = filterClonePairsWithSuppressedMembers(cd.clonePairs, groupResult.suppressed)
 }
 
 // isSameLocation checks if two locations refer to the same code
