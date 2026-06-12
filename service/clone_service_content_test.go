@@ -126,3 +126,36 @@ func TestCloneService_convertCloneGroupsToDomain_FragmentIDAndType(t *testing.T)
 		assert.Equal(t, domain.Type2Clone, clone.Type, "fragment type should match the group clone type")
 	}
 }
+
+// Regression for #488: the fragment hash must be forwarded to both pair-level
+// and group-level clone output instead of being dropped.
+func TestCloneService_convertClonesToDomain_Hash(t *testing.T) {
+	service := NewCloneService()
+	frag0 := &analyzer.CodeFragment{
+		Location:  &analyzer.CodeLocation{FilePath: "a.py", StartLine: 1, EndLine: 2},
+		Hash:      "00000000aaaaaaaa",
+		Size:      3,
+		LineCount: 2,
+	}
+	frag1 := &analyzer.CodeFragment{
+		Location:  &analyzer.CodeLocation{FilePath: "b.py", StartLine: 5, EndLine: 6},
+		Hash:      "00000000bbbbbbbb",
+		Size:      3,
+		LineCount: 2,
+	}
+
+	pairs := service.convertClonePairsToDomain([]*analyzer.ClonePair{
+		{Fragment1: frag0, Fragment2: frag1, Similarity: 1.0, CloneType: analyzer.Type1Clone},
+	}, false)
+	require.Len(t, pairs, 1)
+	assert.Equal(t, "00000000aaaaaaaa", pairs[0].Clone1.Hash)
+	assert.Equal(t, "00000000bbbbbbbb", pairs[0].Clone2.Hash)
+
+	groups := service.convertCloneGroupsToDomain([]*analyzer.CloneGroup{
+		{ID: 1, CloneType: analyzer.Type1Clone, Similarity: 1.0, Size: 2, Fragments: []*analyzer.CodeFragment{frag0, frag1}},
+	}, false, nil)
+	require.Len(t, groups, 1)
+	require.Len(t, groups[0].Clones, 2)
+	assert.Equal(t, "00000000aaaaaaaa", groups[0].Clones[0].Hash)
+	assert.Equal(t, "00000000bbbbbbbb", groups[0].Clones[1].Hash)
+}

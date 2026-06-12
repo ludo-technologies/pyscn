@@ -97,6 +97,41 @@ func TestCodeFragment_Creation(t *testing.T) {
 	assert.Equal(t, content, fragment.Content, "Content should be set")
 	assert.Equal(t, 10, fragment.LineCount, "Line count should be calculated correctly")
 	assert.Greater(t, fragment.Size, 0, "Size should be calculated")
+	assert.NotEmpty(t, fragment.Hash, "Hash should be computed from content")
+}
+
+func TestCodeFragment_Hash(t *testing.T) {
+	location := &CodeLocation{FilePath: "/test/file.py", StartLine: 1, EndLine: 2}
+	astNode := &parser.Node{Type: parser.NodeFunctionDef, Name: "f"}
+
+	newFragment := func(content string) *CodeFragment {
+		return NewCodeFragment(location, astNode, content)
+	}
+
+	t.Run("non-empty content produces 16-char hex hash", func(t *testing.T) {
+		fragment := newFragment("def f():\n    return 1")
+		assert.Regexp(t, "^[0-9a-f]{16}$", fragment.Hash)
+	})
+
+	t.Run("empty content produces empty hash", func(t *testing.T) {
+		fragment := newFragment("")
+		assert.Empty(t, fragment.Hash, "Fragments extracted without source content should have no hash")
+	})
+
+	t.Run("Type-1 variants share the same hash", func(t *testing.T) {
+		original := newFragment("def f():\n    return 1")
+		reformatted := newFragment("def f():\n        return  1")
+		commented := newFragment("def f():  # comment\n    return 1")
+
+		assert.Equal(t, original.Hash, reformatted.Hash, "Whitespace differences should not change the hash")
+		assert.Equal(t, original.Hash, commented.Hash, "Comments should not change the hash")
+	})
+
+	t.Run("different code produces different hashes", func(t *testing.T) {
+		f1 := newFragment("def f():\n    return 1")
+		f2 := newFragment("def f():\n    return 2")
+		assert.NotEqual(t, f1.Hash, f2.Hash)
+	})
 }
 
 func TestCalculateASTSize(t *testing.T) {

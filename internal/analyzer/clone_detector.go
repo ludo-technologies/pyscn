@@ -65,7 +65,7 @@ type CodeFragment struct {
 	ASTNode    *parser.Node
 	TreeNode   *TreeNode
 	Content    string   // Original source code content
-	Hash       string   // Hash for quick comparison
+	Hash       string   // FNV-64a hex hash of Type-1 normalized content; "" when no source content
 	Size       int      // Number of AST nodes
 	LineCount  int      // Number of source lines
 	Complexity int      // Cyclomatic complexity (if applicable)
@@ -78,6 +78,7 @@ func NewCodeFragment(location *CodeLocation, astNode *parser.Node, content strin
 		Location:  location,
 		ASTNode:   astNode,
 		Content:   content,
+		Hash:      hashFragmentContent(content),
 		Size:      calculateASTSize(astNode),
 		LineCount: location.EndLine - location.StartLine + 1,
 	}
