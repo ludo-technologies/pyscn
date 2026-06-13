@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"fmt"
 	"hash/fnv"
 	"regexp"
 	"strings"
@@ -213,6 +214,23 @@ func (t *TextualSimilarityAnalyzer) hashContent(content string) uint64 {
 	h := fnv.New64a()
 	h.Write([]byte(content))
 	return h.Sum64()
+}
+
+// fragmentHashNormalizer applies the default Type-1 normalization (remove
+// comments, collapse whitespace) for fragment fingerprinting, independent of
+// any per-detector similarity configuration.
+var fragmentHashNormalizer = NewTextualSimilarityAnalyzer()
+
+// hashFragmentContent returns a hex-encoded FNV-64a hash of the Type-1
+// normalized content. Two fragments with the same hash are Type-1 clones of
+// each other. Returns "" when the content is empty after normalization (e.g.
+// the fragment was extracted without source content).
+func hashFragmentContent(content string) string {
+	normalized := fragmentHashNormalizer.normalizeContent(content)
+	if normalized == "" {
+		return ""
+	}
+	return fmt.Sprintf("%016x", fragmentHashNormalizer.hashContent(normalized))
 }
 
 // computeLevenshteinSimilarity computes similarity based on Levenshtein distance.

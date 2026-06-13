@@ -345,6 +345,7 @@ func (s *CloneService) convertClonePairsToDomain(clonePairs []*analyzer.ClonePai
 				StartCol:  pair.Fragment1.Location.StartCol,
 				EndCol:    pair.Fragment1.Location.EndCol,
 			},
+			Hash:      pair.Fragment1.Hash,
 			Size:      pair.Fragment1.Size,
 			LineCount: pair.Fragment1.LineCount,
 		}
@@ -356,6 +357,7 @@ func (s *CloneService) convertClonePairsToDomain(clonePairs []*analyzer.ClonePai
 				StartCol:  pair.Fragment2.Location.StartCol,
 				EndCol:    pair.Fragment2.Location.EndCol,
 			},
+			Hash:      pair.Fragment2.Hash,
 			Size:      pair.Fragment2.Size,
 			LineCount: pair.Fragment2.LineCount,
 		}
