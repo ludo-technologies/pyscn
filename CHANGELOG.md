@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.24.1] - 2026-06-13
+
+### Fixed
+- Populate fragment hash in clone output (#549)
+- Suppress clone groups covered by another group's larger windows (#548)
+- Calibrate progress bar with actual task timings (#541)
+
 ## [1.24.0] - 2026-06-11
 
 ### Changed
