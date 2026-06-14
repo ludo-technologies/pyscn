@@ -245,7 +245,8 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 			continue
 		}
 
-		riskLevel := s.calculateRiskLevel(result.Complexity, req)
+		riskLevel := s.calculateRiskLevel(result.Complexity, result.CognitiveComplexity, result.NestingDepth, req)
+		warnings = append(warnings, s.metricThresholdWarnings(filePath, functionName, result, req)...)
 
 		function := domain.FunctionComplexity{
 			Name:        functionName,
@@ -351,6 +352,8 @@ func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionCompl
 	}
 
 	var totalComplexity int
+	var totalCognitiveComplexity int
+	var totalNestingDepth int
 	var maxComplexity int
 	minComplexity := functions[0].Metrics.Complexity
 	var lowCount, mediumCount, highCount int
@@ -359,6 +362,8 @@ func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionCompl
 	for _, function := range functions {
 		complexity := function.Metrics.Complexity
 		totalComplexity += complexity
+		totalCognitiveComplexity += function.Metrics.CognitiveComplexity
+		totalNestingDepth += function.Metrics.NestingDepth
 
 		if complexity > maxComplexity {
 			maxComplexity = complexity
@@ -383,28 +388,44 @@ func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionCompl
 	}
 
 	avgComplexity := float64(totalComplexity) / float64(len(functions))
+	avgCognitiveComplexity := float64(totalCognitiveComplexity) / float64(len(functions))
+	avgNestingDepth := float64(totalNestingDepth) / float64(len(functions))
 
 	return domain.ComplexitySummary{
-		TotalFunctions:         len(functions),
-		AverageComplexity:      avgComplexity,
-		MaxComplexity:          maxComplexity,
-		MinComplexity:          minComplexity,
-		FilesAnalyzed:          filesAnalyzed,
-		LowRiskFunctions:       lowCount,
-		MediumRiskFunctions:    mediumCount,
-		HighRiskFunctions:      highCount,
-		ComplexityDistribution: complexityDist,
+		TotalFunctions:             len(functions),
+		AverageComplexity:          avgComplexity,
+		AverageCognitiveComplexity: avgCognitiveComplexity,
+		AverageNestingDepth:        avgNestingDepth,
+		MaxComplexity:              maxComplexity,
+		MinComplexity:              minComplexity,
+		FilesAnalyzed:              filesAnalyzed,
+		LowRiskFunctions:           lowCount,
+		MediumRiskFunctions:        mediumCount,
+		HighRiskFunctions:          highCount,
+		ComplexityDistribution:     complexityDist,
 	}
 }
 
 // Helper methods
-func (s *ComplexityServiceImpl) calculateRiskLevel(complexity int, req domain.ComplexityRequest) domain.RiskLevel {
-	if complexity <= req.LowThreshold {
-		return domain.RiskLevelLow
-	} else if complexity <= req.MediumThreshold {
-		return domain.RiskLevelMedium
+func (s *ComplexityServiceImpl) calculateRiskLevel(complexity, cognitiveComplexity, nestingDepth int, req domain.ComplexityRequest) domain.RiskLevel {
+	cfg := s.buildComplexityConfig(req)
+	return domain.RiskLevel(cfg.AssessRiskLevel(complexity, cognitiveComplexity, nestingDepth))
+}
+
+func (s *ComplexityServiceImpl) metricThresholdWarnings(filePath string, functionName string, result *analyzer.ComplexityResult, req domain.ComplexityRequest) []string {
+	var warnings []string
+	complexityConfig := s.buildComplexityConfig(req)
+
+	if result.CognitiveComplexity > complexityConfig.CognitiveComplexityThreshold {
+		warnings = append(warnings, fmt.Sprintf("[%s:%d:%d] %s cognitive complexity too high (%d > %d)",
+			filePath, result.StartLine, result.StartCol+1, functionName, result.CognitiveComplexity, complexityConfig.CognitiveComplexityThreshold))
 	}
-	return domain.RiskLevelHigh
+	if result.NestingDepth > complexityConfig.NestingDepthThreshold {
+		warnings = append(warnings, fmt.Sprintf("[%s:%d:%d] %s nesting depth too high (%d > %d)",
+			filePath, result.StartLine, result.StartCol+1, functionName, result.NestingDepth, complexityConfig.NestingDepthThreshold))
+	}
+
+	return warnings
 }
 
 func (s *ComplexityServiceImpl) getComplexityDistributionKey(complexity int) string {
@@ -423,29 +444,42 @@ func (s *ComplexityServiceImpl) getComplexityDistributionKey(complexity int) str
 func (s *ComplexityServiceImpl) buildComplexityConfig(req domain.ComplexityRequest) *config.ComplexityConfig {
 	// Convert domain request to internal complexity config
 	// This bridges the domain layer with the internal implementation
+	cognitiveThreshold := req.CognitiveComplexityThreshold
+	if cognitiveThreshold <= 0 {
+		cognitiveThreshold = domain.DefaultCognitiveComplexityThreshold
+	}
+	nestingThreshold := req.NestingDepthThreshold
+	if nestingThreshold <= 0 {
+		nestingThreshold = domain.DefaultNestingDepthThreshold
+	}
+
 	return &config.ComplexityConfig{
-		LowThreshold:    req.LowThreshold,
-		MediumThreshold: req.MediumThreshold,
-		Enabled:         domain.BoolValue(req.Enabled, true),
-		ReportUnchanged: domain.BoolValue(req.ReportUnchanged, true),
-		MaxComplexity:   req.MaxComplexity,
+		LowThreshold:                 req.LowThreshold,
+		MediumThreshold:              req.MediumThreshold,
+		CognitiveComplexityThreshold: cognitiveThreshold,
+		NestingDepthThreshold:        nestingThreshold,
+		Enabled:                      domain.BoolValue(req.Enabled, true),
+		ReportUnchanged:              domain.BoolValue(req.ReportUnchanged, true),
+		MaxComplexity:                req.MaxComplexity,
 	}
 }
 
 func (s *ComplexityServiceImpl) buildConfigForResponse(req domain.ComplexityRequest) interface{} {
 	return map[string]interface{}{
-		"output_format":    string(req.OutputFormat),
-		"min_complexity":   req.MinComplexity,
-		"max_complexity":   req.MaxComplexity,
-		"low_threshold":    req.LowThreshold,
-		"medium_threshold": req.MediumThreshold,
-		"enabled":          domain.BoolValue(req.Enabled, true),
-		"report_unchanged": domain.BoolValue(req.ReportUnchanged, true),
-		"sort_by":          string(req.SortBy),
-		"show_details":     req.ShowDetails,
-		"recursive":        req.Recursive,
-		"include_patterns": req.IncludePatterns,
-		"exclude_patterns": req.ExcludePatterns,
+		"output_format":                  string(req.OutputFormat),
+		"min_complexity":                 req.MinComplexity,
+		"max_complexity":                 req.MaxComplexity,
+		"low_threshold":                  req.LowThreshold,
+		"medium_threshold":               req.MediumThreshold,
+		"cognitive_complexity_threshold": req.CognitiveComplexityThreshold,
+		"nesting_depth_threshold":        req.NestingDepthThreshold,
+		"enabled":                        domain.BoolValue(req.Enabled, true),
+		"report_unchanged":               domain.BoolValue(req.ReportUnchanged, true),
+		"sort_by":                        string(req.SortBy),
+		"show_details":                   req.ShowDetails,
+		"recursive":                      req.Recursive,
+		"include_patterns":               req.IncludePatterns,
+		"exclude_patterns":               req.ExcludePatterns,
 	}
 }
 

@@ -467,20 +467,22 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 	}
 
 	return domain.ComplexityRequest{
-		Paths:           files,
-		Recursive:       false,
-		IncludePatterns: []string{},
-		ExcludePatterns: []string{},
-		OutputFormat:    domain.OutputFormatJSON,
-		OutputWriter:    io.Discard,
-		MinComplexity:   minComplexity,
-		MaxComplexity:   executionCfg.ComplexityMaxComplexity,
-		SortBy:          domain.SortByComplexity,
-		LowThreshold:    executionCfg.ComplexityLowThreshold,
-		MediumThreshold: executionCfg.ComplexityMediumThreshold,
-		Enabled:         domain.BoolPtr(executionCfg.ComplexityEnabled),
-		ReportUnchanged: domain.BoolPtr(executionCfg.ComplexityReportUnchanged),
-		ConfigPath:      config.ConfigFile,
+		Paths:                        files,
+		Recursive:                    false,
+		IncludePatterns:              []string{},
+		ExcludePatterns:              []string{},
+		OutputFormat:                 domain.OutputFormatJSON,
+		OutputWriter:                 io.Discard,
+		MinComplexity:                minComplexity,
+		MaxComplexity:                executionCfg.ComplexityMaxComplexity,
+		SortBy:                       domain.SortByComplexity,
+		LowThreshold:                 executionCfg.ComplexityLowThreshold,
+		MediumThreshold:              executionCfg.ComplexityMediumThreshold,
+		CognitiveComplexityThreshold: executionCfg.CognitiveComplexityThreshold,
+		NestingDepthThreshold:        executionCfg.NestingDepthThreshold,
+		Enabled:                      domain.BoolPtr(executionCfg.ComplexityEnabled),
+		ReportUnchanged:              domain.BoolPtr(executionCfg.ComplexityReportUnchanged),
+		ConfigPath:                   config.ConfigFile,
 	}
 }
 
@@ -584,6 +586,8 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		summary.AnalyzedFiles = response.Complexity.Summary.FilesAnalyzed
 		summary.TotalFunctions = len(response.Complexity.Functions)
 		summary.AverageComplexity = response.Complexity.Summary.AverageComplexity
+		summary.AverageCognitiveComplexity = response.Complexity.Summary.AverageCognitiveComplexity
+		summary.AverageNestingDepth = response.Complexity.Summary.AverageNestingDepth
 		summary.HighComplexityCount = response.Complexity.Summary.HighRiskFunctions
 	}
 

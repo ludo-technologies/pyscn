@@ -35,12 +35,14 @@ type PyscnConfig struct {
 	LSH LSHConfig `mapstructure:"lsh" yaml:"lsh" json:"lsh"`
 
 	// Complexity Configuration (from [complexity] section in TOML)
-	ComplexityEnabled         *bool `mapstructure:"complexity_enabled" yaml:"complexity_enabled" json:"complexity_enabled"`
-	ComplexityReportUnchanged *bool `mapstructure:"complexity_report_unchanged" yaml:"complexity_report_unchanged" json:"complexity_report_unchanged"`
-	ComplexityLowThreshold    int   `mapstructure:"complexity_low_threshold" yaml:"complexity_low_threshold" json:"complexity_low_threshold"`
-	ComplexityMediumThreshold int   `mapstructure:"complexity_medium_threshold" yaml:"complexity_medium_threshold" json:"complexity_medium_threshold"`
-	ComplexityMaxComplexity   int   `mapstructure:"complexity_max_complexity" yaml:"complexity_max_complexity" json:"complexity_max_complexity"`
-	ComplexityMinComplexity   int   `mapstructure:"complexity_min_complexity" yaml:"complexity_min_complexity" json:"complexity_min_complexity"`
+	ComplexityEnabled            *bool `mapstructure:"complexity_enabled" yaml:"complexity_enabled" json:"complexity_enabled"`
+	ComplexityReportUnchanged    *bool `mapstructure:"complexity_report_unchanged" yaml:"complexity_report_unchanged" json:"complexity_report_unchanged"`
+	ComplexityLowThreshold       int   `mapstructure:"complexity_low_threshold" yaml:"complexity_low_threshold" json:"complexity_low_threshold"`
+	ComplexityMediumThreshold    int   `mapstructure:"complexity_medium_threshold" yaml:"complexity_medium_threshold" json:"complexity_medium_threshold"`
+	CognitiveComplexityThreshold int   `mapstructure:"cognitive_complexity_threshold" yaml:"cognitive_complexity_threshold" json:"cognitive_complexity_threshold"`
+	NestingDepthThreshold        int   `mapstructure:"nesting_depth_threshold" yaml:"nesting_depth_threshold" json:"nesting_depth_threshold"`
+	ComplexityMaxComplexity      int   `mapstructure:"complexity_max_complexity" yaml:"complexity_max_complexity" json:"complexity_max_complexity"`
+	ComplexityMinComplexity      int   `mapstructure:"complexity_min_complexity" yaml:"complexity_min_complexity" json:"complexity_min_complexity"`
 
 	// DeadCode Configuration (from [dead_code] section in TOML)
 	DeadCodeEnabled                   *bool    `mapstructure:"dead_code_enabled" yaml:"dead_code_enabled" json:"dead_code_enabled"`
@@ -337,12 +339,14 @@ func DefaultPyscnConfig() *PyscnConfig {
 		},
 
 		// Complexity defaults (from [complexity] section)
-		ComplexityEnabled:         domain.BoolPtr(true),
-		ComplexityReportUnchanged: domain.BoolPtr(true),
-		ComplexityLowThreshold:    DefaultLowComplexityThreshold,
-		ComplexityMediumThreshold: DefaultMediumComplexityThreshold,
-		ComplexityMaxComplexity:   DefaultMaxComplexityLimit,
-		ComplexityMinComplexity:   DefaultMinComplexityFilter,
+		ComplexityEnabled:            domain.BoolPtr(true),
+		ComplexityReportUnchanged:    domain.BoolPtr(true),
+		ComplexityLowThreshold:       DefaultLowComplexityThreshold,
+		ComplexityMediumThreshold:    DefaultMediumComplexityThreshold,
+		CognitiveComplexityThreshold: DefaultCognitiveComplexityThreshold,
+		NestingDepthThreshold:        DefaultNestingDepthThreshold,
+		ComplexityMaxComplexity:      DefaultMaxComplexityLimit,
+		ComplexityMinComplexity:      DefaultMinComplexityFilter,
 
 		// DeadCode defaults (from [dead_code] section)
 		DeadCodeEnabled:                   domain.BoolPtr(true),

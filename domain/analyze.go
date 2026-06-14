@@ -21,12 +21,14 @@ type AnalyzeExecutionConfig struct {
 	ExcludePatterns []string
 	Recursive       bool
 
-	ComplexityEnabled         bool
-	ComplexityReportUnchanged bool
-	ComplexityMinComplexity   int
-	ComplexityLowThreshold    int
-	ComplexityMediumThreshold int
-	ComplexityMaxComplexity   int
+	ComplexityEnabled            bool
+	ComplexityReportUnchanged    bool
+	ComplexityMinComplexity      int
+	ComplexityLowThreshold       int
+	ComplexityMediumThreshold    int
+	ComplexityMaxComplexity      int
+	CognitiveComplexityThreshold int
+	NestingDepthThreshold        int
 
 	DeadCodeEnabled bool
 
@@ -162,9 +164,11 @@ type AnalyzeSummary struct {
 	ArchCompliance            float64 `json:"arch_compliance" yaml:"arch_compliance"`
 
 	// Key metrics
-	TotalFunctions      int     `json:"total_functions" yaml:"total_functions"`
-	AverageComplexity   float64 `json:"average_complexity" yaml:"average_complexity"`
-	HighComplexityCount int     `json:"high_complexity_count" yaml:"high_complexity_count"`
+	TotalFunctions             int     `json:"total_functions" yaml:"total_functions"`
+	AverageComplexity          float64 `json:"average_complexity" yaml:"average_complexity"`
+	AverageCognitiveComplexity float64 `json:"average_cognitive_complexity" yaml:"average_cognitive_complexity"`
+	AverageNestingDepth        float64 `json:"average_nesting_depth" yaml:"average_nesting_depth"`
+	HighComplexityCount        int     `json:"high_complexity_count" yaml:"high_complexity_count"`
 
 	DeadCodeCount    int `json:"dead_code_count" yaml:"dead_code_count"`
 	CriticalDeadCode int `json:"critical_dead_code" yaml:"critical_dead_code"`
@@ -211,6 +215,14 @@ func (s *AnalyzeSummary) Validate() error {
 	// Basic range checks
 	if s.AverageComplexity < 0 {
 		return fmt.Errorf("AverageComplexity cannot be negative: %f", s.AverageComplexity)
+	}
+
+	if s.AverageCognitiveComplexity < 0 {
+		return fmt.Errorf("AverageCognitiveComplexity cannot be negative: %f", s.AverageCognitiveComplexity)
+	}
+
+	if s.AverageNestingDepth < 0 {
+		return fmt.Errorf("AverageNestingDepth cannot be negative: %f", s.AverageNestingDepth)
 	}
 
 	if s.CodeDuplication < 0 || s.CodeDuplication > 100 {
@@ -276,16 +288,37 @@ func (s *AnalyzeSummary) Validate() error {
 func (s *AnalyzeSummary) calculateComplexityPenalty() int {
 	// Linear penalty: starts at avg=2, reaches max (20) at avg=15
 	// Formula: penalty = (avg - 2) / 13 * 20
-	if s.AverageComplexity <= 2.0 {
+	mccabePenalty := calculateLinearPenalty(s.AverageComplexity, 2.0, 15.0)
+	cognitivePenalty := calculateLinearPenalty(s.AverageCognitiveComplexity, 15.0, float64(DefaultCognitiveComplexityThreshold))
+	nestingPenalty := calculateLinearPenalty(s.AverageNestingDepth, 3.0, float64(DefaultNestingDepthThreshold))
+
+	return maxInt(mccabePenalty, cognitivePenalty, nestingPenalty)
+}
+
+func calculateLinearPenalty(value, start, saturation float64) int {
+	if value <= start {
 		return 0
 	}
+	if saturation <= start {
+		return MaxScoreBase
+	}
 
-	penalty := (s.AverageComplexity - 2.0) / 13.0 * 20.0
-	if penalty > 20.0 {
-		penalty = 20.0
+	penalty := (value - start) / (saturation - start) * float64(MaxScoreBase)
+	if penalty > float64(MaxScoreBase) {
+		penalty = float64(MaxScoreBase)
 	}
 
 	return int(math.Round(penalty))
+}
+
+func maxInt(values ...int) int {
+	max := 0
+	for _, value := range values {
+		if value > max {
+			max = value
+		}
+	}
+	return max
 }
 
 // calculateDeadCodePenalty calculates the penalty for dead code (max 20)

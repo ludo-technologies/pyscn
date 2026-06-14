@@ -65,8 +65,10 @@ type ComplexityRequest struct {
 	SortBy        SortCriteria
 
 	// Complexity thresholds
-	LowThreshold    int
-	MediumThreshold int
+	LowThreshold                 int
+	MediumThreshold              int
+	CognitiveComplexityThreshold int
+	NestingDepthThreshold        int
 
 	// Analysis toggles loaded from configuration when present.
 	// Nil means "use the default enabled behavior".
@@ -146,11 +148,13 @@ type RawMetricsSummary struct {
 
 // ComplexitySummary represents aggregate statistics
 type ComplexitySummary struct {
-	TotalFunctions    int
-	AverageComplexity float64
-	MaxComplexity     int
-	MinComplexity     int
-	FilesAnalyzed     int
+	TotalFunctions             int
+	AverageComplexity          float64
+	AverageCognitiveComplexity float64
+	AverageNestingDepth        float64
+	MaxComplexity              int
+	MinComplexity              int
+	FilesAnalyzed              int
 
 	// Risk distribution
 	LowRiskFunctions    int
