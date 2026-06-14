@@ -3757,12 +3757,12 @@
 <p><strong>Edge cases.</strong> Zero findings yields penalty 0. The truncation is <code>int()</code> (toward zero), not <code>math.Round</code> — so a computed value of <code>1.99</code> becomes <code>1</code>.</p>
 <p>Source: <code>domain/analyze.go:283-296</code>. Normalization factor derived in <code>CalculateHealthScore()</code> at <code>domain/analyze.go:474-477</code>.</p>
 <h3 id="duplication">Duplication<a class="headerlink" href="#duplication" title="Permanent link">&para;</a></h3>
-<p><strong>Inputs.</strong> <code>CodeDuplication</code> (float64). This field is a pre-computed duplication percentage, capped at 10 by the upstream calculation.</p>
+<p><strong>Inputs.</strong> <code>CodeDuplication</code> (float64). This field is the fragment ratio: the percentage of all extracted code fragments that participate in clone pairs or groups, capped at 30 by the upstream calculation.</p>
 <p><strong>Formula.</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>if CodeDuplication &lt;= 0:
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    penalty = 0
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>else:
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    penalty = min(20, round(CodeDuplication / 10.0 * 20.0))
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    penalty = min(20, round(CodeDuplication / 30.0 * 20.0))
 </span></code></pre></div>
 <p><strong>Constants.</strong></p>
 <table>
@@ -3777,12 +3777,12 @@
 <tr>
 <td><code>DuplicationThresholdLow</code></td>
 <td>0.0</td>
-<td>0% duplication = 0 penalty</td>
+<td>0% fragments cloned = 0 penalty</td>
 </tr>
 <tr>
 <td><code>DuplicationThresholdHigh</code></td>
-<td>10.0</td>
-<td>10% duplication = max penalty</td>
+<td>30.0</td>
+<td>30% fragments cloned = max penalty</td>
 </tr>
 <tr>
 <td>max</td>
@@ -3791,15 +3791,13 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Upstream computation.</strong> <code>CodeDuplication</code> itself is computed in <code>app/analyze_usecase.go:570-583</code>:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>lines_in_thousands = max(GroupDensityMinLines, total_lines / GroupDensityLinesUnit)
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>group_density      = clone_groups / lines_in_thousands
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>CodeDuplication    = min(DuplicationThresholdHigh, group_density * GroupDensityCoefficient)
+<p><strong>Upstream computation.</strong> <code>CodeDuplication</code> itself is computed in <code>app/analyze_usecase.go</code>:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = min(DuplicationThresholdHigh, TotalClones / TotalFragments * 100)
 </span></code></pre></div>
-<p>Where <code>GroupDensityLinesUnit = 1000.0</code>, <code>GroupDensityMinLines = 1.0</code>, <code>GroupDensityCoefficient = 20.0</code>, <code>DuplicationThresholdHigh = 10.0</code> (<code>domain/analyze.go:52, 62-64</code>).</p>
-<p><strong>Saturation.</strong> Reaches 20 when <code>CodeDuplication &gt;= 10.0</code>. Since the upstream caps at 10, saturation is reached at exactly 0.5 clone groups per 1000 analyzed lines.</p>
-<p><strong>Edge cases.</strong> No clone groups or no analyzed lines → <code>CodeDuplication = 0</code> → penalty 0. <code>Validate()</code> rejects values outside <code>[0, 100]</code>.</p>
-<p>Source: <code>domain/analyze.go:300-314</code>.</p>
+<p>Where <code>TotalClones</code> is the number of unique fragments that participate in at least one clone pair or group, and <code>TotalFragments</code> is the total number of extracted code fragments (<code>domain/clone.go:128-131</code>).</p>
+<p><strong>Saturation.</strong> Reaches 20 when <code>CodeDuplication &gt;= 30.0</code>.</p>
+<p><strong>Edge cases.</strong> No clone fragments or no fragments analyzed → <code>CodeDuplication = 0</code> → penalty 0. <code>Validate()</code> rejects values outside <code>[0, 100]</code>.</p>
+<p>Source: <code>domain/analyze.go:336-350</code>.</p>
 <h3 id="coupling-cbo">Coupling (CBO)<a class="headerlink" href="#coupling-cbo" title="Permanent link">&para;</a></h3>
 <p><strong>Inputs.</strong> <code>CBOClasses</code>, <code>HighCouplingClasses</code> (CBO &gt; 7), <code>MediumCouplingClasses</code> (3 &lt; CBO ≤ 7).</p>
 <p><strong>Formula.</strong></p>

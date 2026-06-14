@@ -3757,12 +3757,12 @@
 <p><strong>边界情况。</strong> 零发现时惩罚为 0。截断使用 <code>int()</code>（向零截断），而非 <code>math.Round</code> — 因此计算值 <code>1.99</code> 变为 <code>1</code>。</p>
 <p>来源：<code>domain/analyze.go:283-296</code>。归一化因子在 <code>CalculateHealthScore()</code> 的 <code>domain/analyze.go:474-477</code> 中计算。</p>
 <h3 id="_8">代码重复<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
-<p><strong>输入。</strong> <code>CodeDuplication</code>（float64）。此字段是预先计算的重复百分比，上游计算限制为 10。</p>
+<p><strong>输入。</strong> <code>CodeDuplication</code>（float64）。此字段是片段比率：所有提取出的代码片段中，参与克隆对或克隆组的唯一片段所占百分比，上游计算限制为 30。</p>
 <p><strong>公式。</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>if CodeDuplication &lt;= 0:
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    penalty = 0
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>else:
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    penalty = min(20, round(CodeDuplication / 10.0 * 20.0))
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    penalty = min(20, round(CodeDuplication / 30.0 * 20.0))
 </span></code></pre></div>
 <p><strong>常量。</strong></p>
 <table>
@@ -3777,12 +3777,12 @@
 <tr>
 <td><code>DuplicationThresholdLow</code></td>
 <td>0.0</td>
-<td>0% 重复 = 0 惩罚</td>
+<td>0% 片段被克隆 = 0 惩罚</td>
 </tr>
 <tr>
 <td><code>DuplicationThresholdHigh</code></td>
-<td>10.0</td>
-<td>10% 重复 = 最大惩罚</td>
+<td>30.0</td>
+<td>30% 片段被克隆 = 最大惩罚</td>
 </tr>
 <tr>
 <td>max</td>
@@ -3791,15 +3791,13 @@
 </tr>
 </tbody>
 </table>
-<p><strong>上游计算。</strong> <code>CodeDuplication</code> 本身在 <code>app/analyze_usecase.go:570-583</code> 中计算：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>lines_in_thousands = max(GroupDensityMinLines, total_lines / GroupDensityLinesUnit)
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>group_density      = clone_groups / lines_in_thousands
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>CodeDuplication    = min(DuplicationThresholdHigh, group_density * GroupDensityCoefficient)
+<p><strong>上游计算。</strong> <code>CodeDuplication</code> 本身在 <code>app/analyze_usecase.go</code> 中计算：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = min(DuplicationThresholdHigh, TotalClones / TotalFragments * 100)
 </span></code></pre></div>
-<p>其中 <code>GroupDensityLinesUnit = 1000.0</code>、<code>GroupDensityMinLines = 1.0</code>、<code>GroupDensityCoefficient = 20.0</code>、<code>DuplicationThresholdHigh = 10.0</code>（<code>domain/analyze.go:52, 62-64</code>）。</p>
-<p><strong>饱和。</strong> 当 <code>CodeDuplication &gt;= 10.0</code> 时达到 20。由于上游限制为 10，饱和恰好在每 1000 行分析代码有 0.5 个克隆组时达到。</p>
-<p><strong>边界情况。</strong> 无克隆组或无分析行 → <code>CodeDuplication = 0</code> → 惩罚 0。<code>Validate()</code> 拒绝 <code>[0, 100]</code> 范围外的值。</p>
-<p>来源：<code>domain/analyze.go:300-314</code>。</p>
+<p>其中 <code>TotalClones</code> 是至少参与一个克隆对或克隆组的唯一片段数量，<code>TotalFragments</code> 是提取出的代码片段总数（<code>domain/clone.go:128-131</code>）。</p>
+<p><strong>饱和。</strong> 当 <code>CodeDuplication &gt;= 30.0</code> 时达到 20。</p>
+<p><strong>边界情况。</strong> 无克隆片段或无分析片段 → <code>CodeDuplication = 0</code> → 惩罚 0。<code>Validate()</code> 拒绝 <code>[0, 100]</code> 范围外的值。</p>
+<p>来源：<code>domain/analyze.go:336-350</code>。</p>
 <h3 id="cbo">耦合度（CBO）<a class="headerlink" href="#cbo" title="Permanent link">&para;</a></h3>
 <p><strong>输入。</strong> <code>CBOClasses</code>、<code>HighCouplingClasses</code>（CBO &gt; 7）、<code>MediumCouplingClasses</code>（3 &lt; CBO ≤ 7）。</p>
 <p><strong>公式。</strong></p>

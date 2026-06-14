@@ -3757,12 +3757,12 @@
 <p><strong>エッジケース.</strong> 検出結果がゼロの場合、ペナルティは 0 です。切り捨ては <code>int()</code>（ゼロ方向）であり、<code>math.Round</code> ではありません。計算値 <code>1.99</code> は <code>1</code> になります。</p>
 <p>ソース: <code>domain/analyze.go:283-296</code>。正規化係数は <code>CalculateHealthScore()</code> の <code>domain/analyze.go:474-477</code> で導出されます。</p>
 <h3 id="_8">重複<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
-<p><strong>入力.</strong> <code>CodeDuplication</code> (float64)。このフィールドは事前計算された重複率で、上流の計算で 10 に上限が設定されています。</p>
+<p><strong>入力.</strong> <code>CodeDuplication</code> (float64)。このフィールドはフラグメント比率で、抽出されたコードフラグメントのうちクローンペアまたはグループに含まれるユニークなフラグメントの割合を表します。上流の計算で 30 に上限が設定されています。</p>
 <p><strong>計算式.</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>if CodeDuplication &lt;= 0:
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    penalty = 0
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>else:
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    penalty = min(20, round(CodeDuplication / 10.0 * 20.0))
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    penalty = min(20, round(CodeDuplication / 30.0 * 20.0))
 </span></code></pre></div>
 <p><strong>定数.</strong></p>
 <table>
@@ -3777,12 +3777,12 @@
 <tr>
 <td><code>DuplicationThresholdLow</code></td>
 <td>0.0</td>
-<td>重複 0% = ペナルティ 0</td>
+<td>クローン対象 0% = ペナルティ 0</td>
 </tr>
 <tr>
 <td><code>DuplicationThresholdHigh</code></td>
-<td>10.0</td>
-<td>重複 10% = 最大ペナルティ</td>
+<td>30.0</td>
+<td>クローン対象 30% = 最大ペナルティ</td>
 </tr>
 <tr>
 <td>max</td>
@@ -3791,15 +3791,13 @@
 </tr>
 </tbody>
 </table>
-<p><strong>上流の計算.</strong> <code>CodeDuplication</code> 自体は <code>app/analyze_usecase.go:570-583</code> で計算されます:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>lines_in_thousands = max(GroupDensityMinLines, total_lines / GroupDensityLinesUnit)
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>group_density      = clone_groups / lines_in_thousands
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>CodeDuplication    = min(DuplicationThresholdHigh, group_density * GroupDensityCoefficient)
+<p><strong>上流の計算.</strong> <code>CodeDuplication</code> 自体は <code>app/analyze_usecase.go</code> で計算されます:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = min(DuplicationThresholdHigh, TotalClones / TotalFragments * 100)
 </span></code></pre></div>
-<p>ここで <code>GroupDensityLinesUnit = 1000.0</code>, <code>GroupDensityMinLines = 1.0</code>, <code>GroupDensityCoefficient = 20.0</code>, <code>DuplicationThresholdHigh = 10.0</code>（<code>domain/analyze.go:52, 62-64</code>）です。</p>
-<p><strong>飽和.</strong> <code>CodeDuplication &gt;= 10.0</code> で 20 に到達します。上流が 10 で上限を設定するため、分析対象 1000 行あたり 0.5 クローングループで飽和に達します。</p>
-<p><strong>エッジケース.</strong> クローングループなしまたは分析対象行なしの場合 → <code>CodeDuplication = 0</code> → ペナルティ 0。<code>Validate()</code> は <code>[0, 100]</code> の範囲外の値を拒否します。</p>
-<p>ソース: <code>domain/analyze.go:300-314</code>。</p>
+<p>ここで <code>TotalClones</code> はクローンペアまたはグループに含まれるユニークなフラグメント数、<code>TotalFragments</code> は抽出されたコードフラグメントの総数です（<code>domain/clone.go:128-131</code>）。</p>
+<p><strong>飽和.</strong> <code>CodeDuplication &gt;= 30.0</code> で 20 に到達します。</p>
+<p><strong>エッジケース.</strong> クローン対象フラグメントなし、または分析対象フラグメントなしの場合 → <code>CodeDuplication = 0</code> → ペナルティ 0。<code>Validate()</code> は <code>[0, 100]</code> の範囲外の値を拒否します。</p>
+<p>ソース: <code>domain/analyze.go:336-350</code>。</p>
 <h3 id="cbo">結合度（CBO）<a class="headerlink" href="#cbo" title="Permanent link">&para;</a></h3>
 <p><strong>入力.</strong> <code>CBOClasses</code>, <code>HighCouplingClasses</code>（CBO &gt; 7）, <code>MediumCouplingClasses</code>（3 &lt; CBO ≤ 7）。</p>
 <p><strong>計算式.</strong></p>
