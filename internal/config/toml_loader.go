@@ -77,13 +77,14 @@ func (c *AnalysisTomlConfig) hasIncludePatterns() bool {
 
 // CboTomlConfig represents the [cbo] section
 type CboTomlConfig struct {
-	LowThreshold    *int  `toml:"low_threshold"`
-	MediumThreshold *int  `toml:"medium_threshold"`
-	MinCbo          *int  `toml:"min_cbo"`
-	MaxCbo          *int  `toml:"max_cbo"`
-	ShowZeros       *bool `toml:"show_zeros"`
-	IncludeBuiltins *bool `toml:"include_builtins"`
-	IncludeImports  *bool `toml:"include_imports"`
+	LowThreshold          *int  `toml:"low_threshold"`
+	MediumThreshold       *int  `toml:"medium_threshold"`
+	MinCbo                *int  `toml:"min_cbo"`
+	MaxCbo                *int  `toml:"max_cbo"`
+	ShowZeros             *bool `toml:"show_zeros"`
+	IncludeBuiltins       *bool `toml:"include_builtins"`
+	IncludeImports        *bool `toml:"include_imports"`
+	GroupNamespaceImports *bool `toml:"group_namespace_imports"`
 }
 
 // LcomTomlConfig represents the [lcom] section

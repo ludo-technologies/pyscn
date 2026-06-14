@@ -543,11 +543,12 @@ func TestCBOService_BuildCBOOptions(t *testing.T) {
 	service := NewCBOService()
 
 	req := domain.CBORequest{
-		IncludeBuiltins: domain.BoolPtr(true),
-		IncludeImports:  domain.BoolPtr(false),
-		ExcludePatterns: []string{"test_*.py"},
-		LowThreshold:    3,
-		MediumThreshold: 8,
+		IncludeBuiltins:       domain.BoolPtr(true),
+		IncludeImports:        domain.BoolPtr(false),
+		GroupNamespaceImports: domain.BoolPtr(false),
+		ExcludePatterns:       []string{"test_*.py"},
+		LowThreshold:          3,
+		MediumThreshold:       8,
 	}
 
 	options := service.buildCBOOptions(req)
@@ -555,6 +556,7 @@ func TestCBOService_BuildCBOOptions(t *testing.T) {
 	assert.NotNil(t, options)
 	assert.Equal(t, true, options.IncludeBuiltins)
 	assert.Equal(t, false, options.IncludeImports)
+	assert.Equal(t, false, options.GroupNamespaceImports)
 	assert.Equal(t, false, options.PublicClassesOnly)
 	assert.Equal(t, []string{"test_*.py"}, options.ExcludePatterns)
 	assert.Equal(t, 3, options.LowThreshold)
@@ -565,15 +567,16 @@ func TestCBOService_BuildConfigForResponse(t *testing.T) {
 	service := NewCBOService()
 
 	req := domain.CBORequest{
-		MinCBO:          1,
-		MaxCBO:          20,
-		ShowZeros:       domain.BoolPtr(false),
-		LowThreshold:    5,
-		MediumThreshold: 10,
-		IncludeBuiltins: domain.BoolPtr(true),
-		IncludeImports:  domain.BoolPtr(false),
-		OutputFormat:    domain.OutputFormatJSON,
-		SortBy:          domain.SortByCoupling,
+		MinCBO:                1,
+		MaxCBO:                20,
+		ShowZeros:             domain.BoolPtr(false),
+		LowThreshold:          5,
+		MediumThreshold:       10,
+		IncludeBuiltins:       domain.BoolPtr(true),
+		IncludeImports:        domain.BoolPtr(false),
+		GroupNamespaceImports: domain.BoolPtr(false),
+		OutputFormat:          domain.OutputFormatJSON,
+		SortBy:                domain.SortByCoupling,
 	}
 
 	config := service.buildConfigForResponse(req)
@@ -588,6 +591,7 @@ func TestCBOService_BuildConfigForResponse(t *testing.T) {
 	assert.Equal(t, 10, configMap["mediumThreshold"])
 	assert.Equal(t, true, configMap["includeBuiltins"])
 	assert.Equal(t, false, configMap["includeImports"])
+	assert.Equal(t, false, configMap["groupNamespaceImports"])
 	assert.Equal(t, domain.OutputFormatJSON, configMap["outputFormat"])
 	assert.Equal(t, domain.SortByCoupling, configMap["sortBy"])
 }

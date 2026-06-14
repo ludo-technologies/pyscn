@@ -44,24 +44,26 @@ type CBOResult struct {
 
 // CBOOptions configures CBO analysis behavior
 type CBOOptions struct {
-	IncludeBuiltins   bool
-	IncludeImports    bool
-	PublicClassesOnly bool
-	ExcludePatterns   []string
-	LowThreshold      int // Default: 3 (industry standard)
-	MediumThreshold   int // Default: 7 (industry standard)
+	IncludeBuiltins       bool
+	IncludeImports        bool
+	PublicClassesOnly     bool
+	GroupNamespaceImports bool
+	ExcludePatterns       []string
+	LowThreshold          int // Default: 3 (industry standard)
+	MediumThreshold       int // Default: 7 (industry standard)
 }
 
 // DefaultCBOOptions returns default CBO analysis options
 // Threshold values are sourced from domain/defaults.go
 func DefaultCBOOptions() *CBOOptions {
 	return &CBOOptions{
-		IncludeBuiltins:   false,
-		IncludeImports:    true,
-		PublicClassesOnly: false,
-		ExcludePatterns:   []string{"test_*", "*_test", "__*__"},
-		LowThreshold:      domain.DefaultCBOLowThreshold,    // Industry standard: CBO <= 3 is low risk
-		MediumThreshold:   domain.DefaultCBOMediumThreshold, // Industry standard: 3 < CBO <= 7 is medium risk
+		IncludeBuiltins:       false,
+		IncludeImports:        true,
+		PublicClassesOnly:     false,
+		GroupNamespaceImports: true,
+		ExcludePatterns:       []string{"test_*", "*_test", "__*__"},
+		LowThreshold:          domain.DefaultCBOLowThreshold,    // Industry standard: CBO <= 3 is low risk
+		MediumThreshold:       domain.DefaultCBOMediumThreshold, // Industry standard: 3 < CBO <= 7 is medium risk
 	}
 }
 
@@ -72,6 +74,7 @@ type CBOAnalyzer struct {
 	builtinFunctions map[string]bool
 	standardLibs     map[string]bool
 	importedNames    map[string]string         // alias -> module.name mapping
+	namespaceAliases map[string]string         // module.name -> alias mapping (only for alias imports)
 	regexCache       map[string]*regexp.Regexp // pattern -> compiled regex cache
 }
 
@@ -84,6 +87,11 @@ const (
 	dependencyKindAttributeAccess
 	dependencyKindImport
 )
+
+type cboImportMaps struct {
+	importedNames    map[string]string
+	namespaceAliases map[string]string
+}
 
 type cboDependencies struct {
 	all               map[string]bool
@@ -117,6 +125,7 @@ func NewCBOAnalyzer(options *CBOOptions) *CBOAnalyzer {
 		builtinFunctions: make(map[string]bool),
 		standardLibs:     make(map[string]bool),
 		importedNames:    make(map[string]string),
+		namespaceAliases: make(map[string]string),
 		regexCache:       make(map[string]*regexp.Regexp),
 	}
 
@@ -136,9 +145,10 @@ func (a *CBOAnalyzer) AnalyzeClasses(ast *parser.Node, filePath string) ([]*CBOR
 	classes := a.collectClasses(ast)
 	imports := a.collectImports(ast)
 
-	// Import aliases are file-local. Reset the map on each AST so one analyzed file
+	// Import aliases are file-local. Reset the maps on each AST so one analyzed file
 	// cannot change dependency identity in the next file.
-	a.importedNames = imports
+	a.importedNames = imports.importedNames
+	a.namespaceAliases = imports.namespaceAliases
 
 	var results []*CBOResult
 
@@ -370,6 +380,15 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 				return true
 			}
 
+			// Handle imported namespace members (e.g. cst.Arg): if the dotted
+			// name resolves to a class reference, count it as coupling. The same
+			// heuristic used for calls avoids counting functions like os.getcwd.
+			attrName := a.extractClassName(node)
+			if dep := a.callDependencyName(attrName, allClasses); dep != "" && a.shouldIncludeDependencyForClass(dep, result.ClassName) {
+				a.addDependency(dependencies, dep, dependencyKindAttributeAccess)
+				break
+			}
+
 			objNode := node.Left
 			if objNode == nil {
 				if valueNode, ok := node.Value.(*parser.Node); ok {
@@ -403,9 +422,14 @@ func (a *CBOAnalyzer) collectClasses(ast *parser.Node) map[string]*parser.Node {
 	return classes
 }
 
-// collectImports collects import statements and their aliases
-func (a *CBOAnalyzer) collectImports(ast *parser.Node) map[string]string {
-	imports := make(map[string]string)
+// collectImports collects import statements and their aliases.
+// It returns both the alias -> module.name map and a reverse map of
+// module.name -> alias for namespace aliases created by "import ... as ...".
+func (a *CBOAnalyzer) collectImports(ast *parser.Node) cboImportMaps {
+	imports := cboImportMaps{
+		importedNames:    make(map[string]string),
+		namespaceAliases: make(map[string]string),
+	}
 
 	a.walkNode(ast, func(node *parser.Node) bool {
 		switch node.Type {
@@ -422,12 +446,17 @@ func (a *CBOAnalyzer) collectImports(ast *parser.Node) map[string]string {
 							aliasedNames[module] = true
 						}
 					}
-					imports[alias] = module
+					imports.importedNames[alias] = module
+					// Only true aliases (different from the module binding) form a
+					// namespace that should be collapsed.
+					if alias != module {
+						imports.namespaceAliases[module] = alias
+					}
 				}
 			}
 			for _, name := range node.Names {
 				if !aliasedNames[name] {
-					imports[importBindingName(name)] = name
+					imports.importedNames[importBindingName(name)] = name
 				}
 			}
 		case parser.NodeImportFrom:
@@ -444,12 +473,12 @@ func (a *CBOAnalyzer) collectImports(ast *parser.Node) map[string]string {
 							aliasedNames[name] = true
 						}
 					}
-					imports[alias] = module + "." + name
+					imports.importedNames[alias] = module + "." + name
 				}
 			}
 			for _, name := range node.Names {
 				if !aliasedNames[name] {
-					imports[name] = module + "." + name
+					imports.importedNames[name] = module + "." + name
 				}
 			}
 		}
@@ -717,6 +746,8 @@ func (a *CBOAnalyzer) addDependency(dependencies *cboDependencies, className str
 		return
 	}
 
+	className = a.canonicalDependencyName(className)
+
 	dependencies.all[className] = true
 
 	if a.isImportedDependency(className) {
@@ -736,6 +767,37 @@ func (a *CBOAnalyzer) addDependency(dependencies *cboDependencies, className str
 	case dependencyKindImport:
 		dependencies.imports[className] = true
 	}
+}
+
+// canonicalDependencyName collapses references through a namespace alias to the
+// alias itself when GroupNamespaceImports is enabled. This prevents a single
+// "import libcst as cst" from inflating CBO by one edge per cst.Member usage.
+func (a *CBOAnalyzer) canonicalDependencyName(className string) string {
+	if !a.options.GroupNamespaceImports {
+		return className
+	}
+	if className == "" {
+		return className
+	}
+
+	// If the name is a direct reference to an aliased module, prefer the alias.
+	if alias, exists := a.namespaceAliases[className]; exists {
+		return alias
+	}
+
+	// If the name is alias.Member and the leading part is a real namespace
+	// alias (created by "import ... as ..."), collapse to the alias.
+	if strings.Contains(className, ".") {
+		parts := strings.SplitN(className, ".", 2)
+		alias := parts[0]
+		if module, exists := a.importedNames[alias]; exists {
+			if canonicalAlias, aliased := a.namespaceAliases[module]; aliased && canonicalAlias == alias {
+				return alias
+			}
+		}
+	}
+
+	return className
 }
 
 func (a *CBOAnalyzer) sameDependencyIdentity(className, ownerClass string) bool {
@@ -936,14 +998,12 @@ func (a *CBOAnalyzer) walkNode(node *parser.Node, visitor func(*parser.Node) boo
 	node.Walk(visitor)
 }
 
-// inferObjectType tries to infer the type of an object from context
+// inferObjectType tries to infer the type of an object from context.
+// We return the local binding name so that namespace aliases like
+// "import libcst as cst" collapse consistently in addDependency.
 func (a *CBOAnalyzer) inferObjectType(node *parser.Node) string {
 	// Simple heuristic - try to extract type from variable name or method call
 	if node.Type == parser.NodeName {
-		// Look up in imported names
-		if fullName, exists := a.importedNames[node.Name]; exists {
-			return fullName
-		}
 		return node.Name
 	}
 

@@ -72,13 +72,14 @@ type PyscnConfig struct {
 	analysisIncludeExplicit bool     `mapstructure:"-" yaml:"-" json:"-"`
 
 	// CBO Configuration (from [cbo] section in TOML)
-	CboLowThreshold    int   `mapstructure:"cbo_low_threshold" yaml:"cbo_low_threshold" json:"cbo_low_threshold"`
-	CboMediumThreshold int   `mapstructure:"cbo_medium_threshold" yaml:"cbo_medium_threshold" json:"cbo_medium_threshold"`
-	CboMinCbo          int   `mapstructure:"cbo_min_cbo" yaml:"cbo_min_cbo" json:"cbo_min_cbo"`
-	CboMaxCbo          int   `mapstructure:"cbo_max_cbo" yaml:"cbo_max_cbo" json:"cbo_max_cbo"`
-	CboShowZeros       *bool `mapstructure:"cbo_show_zeros" yaml:"cbo_show_zeros" json:"cbo_show_zeros"`
-	CboIncludeBuiltins *bool `mapstructure:"cbo_include_builtins" yaml:"cbo_include_builtins" json:"cbo_include_builtins"`
-	CboIncludeImports  *bool `mapstructure:"cbo_include_imports" yaml:"cbo_include_imports" json:"cbo_include_imports"`
+	CboLowThreshold          int   `mapstructure:"cbo_low_threshold" yaml:"cbo_low_threshold" json:"cbo_low_threshold"`
+	CboMediumThreshold       int   `mapstructure:"cbo_medium_threshold" yaml:"cbo_medium_threshold" json:"cbo_medium_threshold"`
+	CboMinCbo                int   `mapstructure:"cbo_min_cbo" yaml:"cbo_min_cbo" json:"cbo_min_cbo"`
+	CboMaxCbo                int   `mapstructure:"cbo_max_cbo" yaml:"cbo_max_cbo" json:"cbo_max_cbo"`
+	CboShowZeros             *bool `mapstructure:"cbo_show_zeros" yaml:"cbo_show_zeros" json:"cbo_show_zeros"`
+	CboIncludeBuiltins       *bool `mapstructure:"cbo_include_builtins" yaml:"cbo_include_builtins" json:"cbo_include_builtins"`
+	CboIncludeImports        *bool `mapstructure:"cbo_include_imports" yaml:"cbo_include_imports" json:"cbo_include_imports"`
+	CboGroupNamespaceImports *bool `mapstructure:"cbo_group_namespace_imports" yaml:"cbo_group_namespace_imports" json:"cbo_group_namespace_imports"`
 
 	// LCOM Configuration (from [lcom] section in TOML)
 	LcomLowThreshold    int `mapstructure:"lcom_low_threshold" yaml:"lcom_low_threshold" json:"lcom_low_threshold"`
@@ -375,13 +376,14 @@ func DefaultPyscnConfig() *PyscnConfig {
 		AnalysisFollowSymlinks:  domain.BoolPtr(false),
 
 		// CBO defaults (from [cbo] section)
-		CboLowThreshold:    domain.DefaultCBOLowThreshold,
-		CboMediumThreshold: domain.DefaultCBOMediumThreshold,
-		CboMinCbo:          0,
-		CboMaxCbo:          0, // No limit
-		CboShowZeros:       domain.BoolPtr(false),
-		CboIncludeBuiltins: domain.BoolPtr(false),
-		CboIncludeImports:  domain.BoolPtr(true),
+		CboLowThreshold:          domain.DefaultCBOLowThreshold,
+		CboMediumThreshold:       domain.DefaultCBOMediumThreshold,
+		CboMinCbo:                0,
+		CboMaxCbo:                0, // No limit
+		CboShowZeros:             domain.BoolPtr(false),
+		CboIncludeBuiltins:       domain.BoolPtr(false),
+		CboIncludeImports:        domain.BoolPtr(true),
+		CboGroupNamespaceImports: domain.BoolPtr(true),
 
 		// LCOM defaults (from [lcom] section)
 		LcomLowThreshold:    domain.DefaultLCOMLowThreshold,

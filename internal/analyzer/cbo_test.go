@@ -871,6 +871,101 @@ class Service:
 	assert.Contains(t, serviceResult.DependentClasses, "Logger")
 }
 
+func TestCBOAnalyzer_NamespaceImportMembersAreGrouped(t *testing.T) {
+	pythonCode := `
+import libcst as cst
+import libcst.matchers as m
+
+class Foo:
+    a = cst.Name
+    b = cst.Call
+    c = cst.Arg
+    d = m.Comparison
+    e = m.ComparisonTarget
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	t.Run("group namespace imports", func(t *testing.T) {
+		options := DefaultCBOOptions()
+		options.GroupNamespaceImports = true
+
+		results, err := NewCBOAnalyzer(options).AnalyzeClasses(ast, "foo.py")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		foo := results[0]
+		assert.Equal(t, 2, foo.CouplingCount, "cst.* and m.* should collapse to two edges")
+		assert.Equal(t, []string{"cst", "m"}, foo.DependentClasses)
+		assert.Equal(t, 2, foo.ImportDependencies)
+	})
+
+	t.Run("keep per-member edges when disabled", func(t *testing.T) {
+		options := DefaultCBOOptions()
+		options.GroupNamespaceImports = false
+
+		results, err := NewCBOAnalyzer(options).AnalyzeClasses(ast, "foo.py")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		foo := results[0]
+		assert.Equal(t, 5, foo.CouplingCount, "each alias.Member should be a separate edge")
+		assert.Equal(t, []string{"cst.Arg", "cst.Call", "cst.Name", "m.Comparison", "m.ComparisonTarget"}, foo.DependentClasses)
+	})
+}
+
+func TestCBOAnalyzer_NamespaceImportCallsAreGrouped(t *testing.T) {
+	pythonCode := `
+import libcst as cst
+
+class Builder:
+    def build(self):
+        name = cst.Name()
+        call = cst.Call()
+        arg = cst.Arg()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	options := DefaultCBOOptions()
+	options.GroupNamespaceImports = true
+
+	results, err := NewCBOAnalyzer(options).AnalyzeClasses(ast, "builder.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	builder := results[0]
+	assert.Equal(t, 1, builder.CouplingCount)
+	assert.Equal(t, []string{"cst"}, builder.DependentClasses)
+	assert.Equal(t, 1, builder.ImportDependencies)
+}
+
+func TestCBOAnalyzer_NonAliasedModuleMembersAreNotGrouped(t *testing.T) {
+	pythonCode := `
+import datetime
+
+class Scheduler:
+    def now(self):
+        return datetime.datetime.now()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	options := DefaultCBOOptions()
+	options.GroupNamespaceImports = true
+
+	results, err := NewCBOAnalyzer(options).AnalyzeClasses(ast, "scheduler.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	scheduler := results[0]
+	assert.Equal(t, []string{"datetime.datetime"}, scheduler.DependentClasses)
+	assert.Equal(t, 1, scheduler.CouplingCount)
+}
+
 func TestCBOAnalyzer_FunctionCallsAreNotClassDependencies(t *testing.T) {
 	// Regression test for #494: imported function calls (os.getcwd, suppress,
 	// escape) must not be counted as class dependencies.

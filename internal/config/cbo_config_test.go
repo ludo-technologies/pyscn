@@ -21,6 +21,7 @@ max_cbo = 20
 show_zeros = true
 include_builtins = true
 include_imports = false
+group_namespace_imports = false
 `
 	configPath := filepath.Join(tempDir, ".pyscn.toml")
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
@@ -43,6 +44,7 @@ include_imports = false
 	t.Logf("  CboShowZeros: %v", config.CboShowZeros)
 	t.Logf("  CboIncludeBuiltins: %v", config.CboIncludeBuiltins)
 	t.Logf("  CboIncludeImports: %v", config.CboIncludeImports)
+	t.Logf("  CboGroupNamespaceImports: %v", config.CboGroupNamespaceImports)
 
 	// Verify cbo settings were loaded
 	if config.CboLowThreshold != 5 {
@@ -65,6 +67,9 @@ include_imports = false
 	}
 	if domain.BoolValue(config.CboIncludeImports, true) {
 		t.Errorf("Expected include_imports false, got %v", config.CboIncludeImports)
+	}
+	if domain.BoolValue(config.CboGroupNamespaceImports, true) {
+		t.Errorf("Expected group_namespace_imports false, got %v", config.CboGroupNamespaceImports)
 	}
 }
 
@@ -113,6 +118,9 @@ medium_threshold = 8
 	if !domain.BoolValue(config.CboIncludeImports, true) {
 		t.Errorf("Expected default include_imports true, got %v", config.CboIncludeImports)
 	}
+	if !domain.BoolValue(config.CboGroupNamespaceImports, true) {
+		t.Errorf("Expected default group_namespace_imports true, got %v", config.CboGroupNamespaceImports)
+	}
 }
 
 func TestMergeCboSection(t *testing.T) {
@@ -121,13 +129,14 @@ func TestMergeCboSection(t *testing.T) {
 
 	// Create cbo settings
 	cbo := CboTomlConfig{
-		LowThreshold:    intPtr(4),
-		MediumThreshold: intPtr(9),
-		MinCbo:          intPtr(1),
-		MaxCbo:          intPtr(15),
-		ShowZeros:       boolPtr(true),
-		IncludeBuiltins: boolPtr(true),
-		IncludeImports:  boolPtr(false),
+		LowThreshold:          intPtr(4),
+		MediumThreshold:       intPtr(9),
+		MinCbo:                intPtr(1),
+		MaxCbo:                intPtr(15),
+		ShowZeros:             boolPtr(true),
+		IncludeBuiltins:       boolPtr(true),
+		IncludeImports:        boolPtr(false),
+		GroupNamespaceImports: boolPtr(false),
 	}
 
 	// Merge cbo settings
@@ -155,6 +164,9 @@ func TestMergeCboSection(t *testing.T) {
 	if domain.BoolValue(config.CboIncludeImports, true) {
 		t.Errorf("Expected include_imports false, got %v", config.CboIncludeImports)
 	}
+	if domain.BoolValue(config.CboGroupNamespaceImports, true) {
+		t.Errorf("Expected group_namespace_imports false, got %v", config.CboGroupNamespaceImports)
+	}
 }
 
 func TestMergeCboSectionNilValues(t *testing.T) {
@@ -164,13 +176,14 @@ func TestMergeCboSectionNilValues(t *testing.T) {
 
 	// Create cbo settings with nil values
 	cbo := CboTomlConfig{
-		LowThreshold:    nil,
-		MediumThreshold: nil,
-		MinCbo:          nil,
-		MaxCbo:          nil,
-		ShowZeros:       nil,
-		IncludeBuiltins: nil,
-		IncludeImports:  nil,
+		LowThreshold:          nil,
+		MediumThreshold:       nil,
+		MinCbo:                nil,
+		MaxCbo:                nil,
+		ShowZeros:             nil,
+		IncludeBuiltins:       nil,
+		IncludeImports:        nil,
+		GroupNamespaceImports: nil,
 	}
 
 	// Merge cbo settings
