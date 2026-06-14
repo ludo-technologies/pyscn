@@ -108,6 +108,7 @@ medium_threshold = {{ .CBOMediumThreshold }}             # CBO values {{ .CBOLow
                                 # CBO values > {{ .CBOMediumThreshold }} are high risk
 include_builtins = false         # Include built-in type dependencies
 include_imports = true           # Include imported module dependencies
+group_namespace_imports = true   # Collapse alias.Member references to one edge per namespace
 min_cbo = 0                      # Minimum CBO to report
 show_zeros = false               # Include classes with CBO = 0
 

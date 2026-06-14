@@ -116,6 +116,9 @@ func (cl *CBOConfigurationLoaderImpl) MergeConfig(base *domain.CBORequest, overr
 	if override.IncludeImports != nil {
 		merged.IncludeImports = override.IncludeImports
 	}
+	if override.GroupNamespaceImports != nil {
+		merged.GroupNamespaceImports = override.GroupNamespaceImports
+	}
 
 	// Analysis options
 	if override.Recursive != nil {
@@ -137,36 +140,38 @@ func (cl *CBOConfigurationLoaderImpl) MergeConfig(base *domain.CBORequest, overr
 func (cl *CBOConfigurationLoaderImpl) configToRequest(pyscnCfg *config.PyscnConfig) *domain.CBORequest {
 	if pyscnCfg == nil {
 		return &domain.CBORequest{
-			LowThreshold:    domain.DefaultCBOLowThreshold,
-			MediumThreshold: domain.DefaultCBOMediumThreshold,
-			MinCBO:          0,
-			MaxCBO:          0,
-			ShowZeros:       domain.BoolPtr(false),
-			ShowDetails:     false,
-			IncludeBuiltins: domain.BoolPtr(false),
-			IncludeImports:  domain.BoolPtr(true),
-			SortBy:          domain.SortByComplexity,
-			OutputFormat:    domain.OutputFormatText,
-			Recursive:       domain.BoolPtr(true),
-			IncludePatterns: domain.DefaultAnalysisIncludePatterns(),
-			ExcludePatterns: []string{},
+			LowThreshold:          domain.DefaultCBOLowThreshold,
+			MediumThreshold:       domain.DefaultCBOMediumThreshold,
+			MinCBO:                0,
+			MaxCBO:                0,
+			ShowZeros:             domain.BoolPtr(false),
+			ShowDetails:           false,
+			IncludeBuiltins:       domain.BoolPtr(false),
+			IncludeImports:        domain.BoolPtr(true),
+			GroupNamespaceImports: domain.BoolPtr(true),
+			SortBy:                domain.SortByComplexity,
+			OutputFormat:          domain.OutputFormatText,
+			Recursive:             domain.BoolPtr(true),
+			IncludePatterns:       domain.DefaultAnalysisIncludePatterns(),
+			ExcludePatterns:       []string{},
 		}
 	}
 
 	return &domain.CBORequest{
-		OutputFormat:    domain.OutputFormat(pyscnCfg.Output.Format),
-		ShowDetails:     domain.BoolValue(pyscnCfg.Output.ShowDetails, false),
-		LowThreshold:    pyscnCfg.CboLowThreshold,
-		MediumThreshold: pyscnCfg.CboMediumThreshold,
-		MinCBO:          pyscnCfg.CboMinCbo,
-		MaxCBO:          pyscnCfg.CboMaxCbo,
-		ShowZeros:       pyscnCfg.CboShowZeros,
-		IncludeBuiltins: pyscnCfg.CboIncludeBuiltins,
-		IncludeImports:  pyscnCfg.CboIncludeImports,
-		SortBy:          domain.SortByComplexity, // Default, can be overridden
-		Recursive:       pyscnCfg.AnalysisRecursive,
-		IncludePatterns: pyscnCfg.AnalysisIncludePatterns,
-		ExcludePatterns: pyscnCfg.AnalysisExcludePatterns,
+		OutputFormat:          domain.OutputFormat(pyscnCfg.Output.Format),
+		ShowDetails:           domain.BoolValue(pyscnCfg.Output.ShowDetails, false),
+		LowThreshold:          pyscnCfg.CboLowThreshold,
+		MediumThreshold:       pyscnCfg.CboMediumThreshold,
+		MinCBO:                pyscnCfg.CboMinCbo,
+		MaxCBO:                pyscnCfg.CboMaxCbo,
+		ShowZeros:             pyscnCfg.CboShowZeros,
+		IncludeBuiltins:       pyscnCfg.CboIncludeBuiltins,
+		IncludeImports:        pyscnCfg.CboIncludeImports,
+		GroupNamespaceImports: pyscnCfg.CboGroupNamespaceImports,
+		SortBy:                domain.SortByComplexity, // Default, can be overridden
+		Recursive:             pyscnCfg.AnalysisRecursive,
+		IncludePatterns:       pyscnCfg.AnalysisIncludePatterns,
+		ExcludePatterns:       pyscnCfg.AnalysisExcludePatterns,
 	}
 }
 
