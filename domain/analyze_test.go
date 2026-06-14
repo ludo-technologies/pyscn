@@ -303,10 +303,10 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				ArchEnabled:         true,
 				ArchCompliance:      0.9, // (1-0.9)*12 = 1.2 → 1
 			},
-			expectedScore:             90,  // Updated: 100-3-1-5-0-1 = 90
-			expectedGrade:             "A", // 90 ≤ 100 = A
-			expectError:               false,
-			expectedDuplicationScore:  95, // penalty=1, 100-(1/20)*100=95
+			expectedScore:            90,  // Updated: 100-3-1-5-0-1 = 90
+			expectedGrade:            "A", // 90 ≤ 100 = A
+			expectError:              false,
+			expectedDuplicationScore: 95, // penalty=1, 100-(1/20)*100=95
 		},
 		{
 			name: "grade C threshold",
@@ -319,9 +319,9 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 				CriticalDeadCode:    0, // No critical issues, so no dead code penalty
 				TotalFiles:          1,
 			},
-			expectedScore: 58,  // Updated: 100-20-17-5 = 58
-			expectedGrade: "D", // 45 ≤ 58 < 60 = D
-			expectError:   false,
+			expectedScore:            58,  // Updated: 100-20-17-5 = 58
+			expectedGrade:            "D", // 45 ≤ 58 < 60 = D
+			expectError:              false,
 			expectedDuplicationScore: 15, // 100 - (17/20)*100 = 15
 		},
 		{

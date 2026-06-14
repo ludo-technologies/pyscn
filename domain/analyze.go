@@ -334,13 +334,13 @@ func (s *AnalyzeSummary) calculateDeadCodePenalty(normalizationFactor float64) i
 // calculateDuplicationPenalty calculates the penalty for code duplication (max 20)
 // Uses continuous linear function based on defined thresholds
 func (s *AnalyzeSummary) calculateDuplicationPenalty() int {
-	// Linear penalty: 0% = 0 penalty, 5% = max penalty (20)
+	// Linear penalty: 0% = 0 penalty, 30% = max penalty (20)
 	if s.CodeDuplication <= DuplicationThresholdLow {
 		return 0
 	}
 
 	// Formula: penalty = (duplication - low) / (high - low) * 20
-	penaltyRange := DuplicationThresholdHigh - DuplicationThresholdLow // 5%
+	penaltyRange := DuplicationThresholdHigh - DuplicationThresholdLow // 30%
 	penalty := (s.CodeDuplication - DuplicationThresholdLow) / penaltyRange * 20.0
 	if penalty > 20.0 {
 		penalty = 20.0
