@@ -578,7 +578,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{printf "%.1f%%" .Summary.CodeDuplication}}</div>
-                        <div class="metric-label">Code Duplication</div>
+                        <div class="metric-label">Fragments Cloned</div>
                     </div>
                     {{if .Summary.CBOEnabled}}
                     <div class="metric-card">

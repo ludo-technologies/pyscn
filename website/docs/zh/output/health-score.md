@@ -116,7 +116,7 @@ else:
 
 ### 代码重复
 
-**输入。** `CodeDuplication`（float64）。此字段是预先计算的重复百分比，上游计算限制为 10。
+**输入。** `CodeDuplication`（float64）。此字段是片段比率：所有提取出的代码片段中，参与克隆对或克隆组的唯一片段所占百分比，上游计算限制为 30。
 
 **公式。**
 
@@ -124,32 +124,30 @@ else:
 if CodeDuplication <= 0:
     penalty = 0
 else:
-    penalty = min(20, round(CodeDuplication / 10.0 * 20.0))
+    penalty = min(20, round(CodeDuplication / 30.0 * 20.0))
 ```
 
 **常量。**
 
 | 名称                         | 值    | 含义                        |
 | ---------------------------- | ----- | --------------------------- |
-| `DuplicationThresholdLow`    | 0.0   | 0% 重复 = 0 惩罚           |
-| `DuplicationThresholdHigh`   | 10.0  | 10% 重复 = 最大惩罚        |
+| `DuplicationThresholdLow`    | 0.0   | 0% 片段被克隆 = 0 惩罚     |
+| `DuplicationThresholdHigh`   | 30.0  | 30% 片段被克隆 = 最大惩罚  |
 | max                          | 20.0  | 惩罚上限                    |
 
-**上游计算。** `CodeDuplication` 本身在 `app/analyze_usecase.go:570-583` 中计算：
+**上游计算。** `CodeDuplication` 本身在 `app/analyze_usecase.go` 中计算：
 
 ```
-lines_in_thousands = max(GroupDensityMinLines, total_lines / GroupDensityLinesUnit)
-group_density      = clone_groups / lines_in_thousands
-CodeDuplication    = min(DuplicationThresholdHigh, group_density * GroupDensityCoefficient)
+CodeDuplication = min(DuplicationThresholdHigh, TotalClones / TotalFragments * 100)
 ```
 
-其中 `GroupDensityLinesUnit = 1000.0`、`GroupDensityMinLines = 1.0`、`GroupDensityCoefficient = 20.0`、`DuplicationThresholdHigh = 10.0`（`domain/analyze.go:52, 62-64`）。
+其中 `TotalClones` 是至少参与一个克隆对或克隆组的唯一片段数量，`TotalFragments` 是提取出的代码片段总数（`domain/clone.go:128-131`）。
 
-**饱和。** 当 `CodeDuplication >= 10.0` 时达到 20。由于上游限制为 10，饱和恰好在每 1000 行分析代码有 0.5 个克隆组时达到。
+**饱和。** 当 `CodeDuplication >= 30.0` 时达到 20。
 
-**边界情况。** 无克隆组或无分析行 → `CodeDuplication = 0` → 惩罚 0。`Validate()` 拒绝 `[0, 100]` 范围外的值。
+**边界情况。** 无克隆片段或无分析片段 → `CodeDuplication = 0` → 惩罚 0。`Validate()` 拒绝 `[0, 100]` 范围外的值。
 
-来源：`domain/analyze.go:300-314`。
+来源：`domain/analyze.go:336-350`。
 
 ### 耦合度（CBO）
 

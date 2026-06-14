@@ -116,7 +116,7 @@ Source: `domain/analyze.go:283-296`. Normalization factor derived in `CalculateH
 
 ### Duplication
 
-**Inputs.** `CodeDuplication` (float64). This field is a pre-computed duplication percentage, capped at 10 by the upstream calculation.
+**Inputs.** `CodeDuplication` (float64). This field is the fragment ratio: the percentage of all extracted code fragments that participate in clone pairs or groups, capped at 30 by the upstream calculation.
 
 **Formula.**
 
@@ -124,32 +124,30 @@ Source: `domain/analyze.go:283-296`. Normalization factor derived in `CalculateH
 if CodeDuplication <= 0:
     penalty = 0
 else:
-    penalty = min(20, round(CodeDuplication / 10.0 * 20.0))
+    penalty = min(20, round(CodeDuplication / 30.0 * 20.0))
 ```
 
 **Constants.**
 
-| Name                         | Value | Meaning                     |
-| ---------------------------- | ----- | --------------------------- |
-| `DuplicationThresholdLow`    | 0.0   | 0% duplication = 0 penalty  |
-| `DuplicationThresholdHigh`   | 10.0  | 10% duplication = max penalty |
-| max                          | 20.0  | Penalty cap                 |
+| Name                         | Value | Meaning                          |
+| ---------------------------- | ----- | -------------------------------- |
+| `DuplicationThresholdLow`    | 0.0   | 0% fragments cloned = 0 penalty  |
+| `DuplicationThresholdHigh`   | 30.0  | 30% fragments cloned = max penalty |
+| max                          | 20.0  | Penalty cap                      |
 
-**Upstream computation.** `CodeDuplication` itself is computed in `app/analyze_usecase.go:570-583`:
+**Upstream computation.** `CodeDuplication` itself is computed in `app/analyze_usecase.go`:
 
 ```
-lines_in_thousands = max(GroupDensityMinLines, total_lines / GroupDensityLinesUnit)
-group_density      = clone_groups / lines_in_thousands
-CodeDuplication    = min(DuplicationThresholdHigh, group_density * GroupDensityCoefficient)
+CodeDuplication = min(DuplicationThresholdHigh, TotalClones / TotalFragments * 100)
 ```
 
-Where `GroupDensityLinesUnit = 1000.0`, `GroupDensityMinLines = 1.0`, `GroupDensityCoefficient = 20.0`, `DuplicationThresholdHigh = 10.0` (`domain/analyze.go:52, 62-64`).
+Where `TotalClones` is the number of unique fragments that participate in at least one clone pair or group, and `TotalFragments` is the total number of extracted code fragments (`domain/clone.go:128-131`).
 
-**Saturation.** Reaches 20 when `CodeDuplication >= 10.0`. Since the upstream caps at 10, saturation is reached at exactly 0.5 clone groups per 1000 analyzed lines.
+**Saturation.** Reaches 20 when `CodeDuplication >= 30.0`.
 
-**Edge cases.** No clone groups or no analyzed lines → `CodeDuplication = 0` → penalty 0. `Validate()` rejects values outside `[0, 100]`.
+**Edge cases.** No clone fragments or no fragments analyzed → `CodeDuplication = 0` → penalty 0. `Validate()` rejects values outside `[0, 100]`.
 
-Source: `domain/analyze.go:300-314`.
+Source: `domain/analyze.go:336-350`.
 
 ### Coupling (CBO)
 

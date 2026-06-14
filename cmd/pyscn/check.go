@@ -146,19 +146,6 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check (%s)...\n", strings.Join(c.getEnabledAnalyses(skipComplexity, skipDeadCode, skipClones, skipDeps, skipMockdata, skipDI), ", "))
 	}
 
-	// No Python files to check is not a failure: report success and exit 0,
-	// consistent with clone detection's empty-input handling.
-	if files, err := service.NewFileReader().CollectPythonFiles(
-		args, true,
-		domain.DefaultAnalysisIncludePatterns(),
-		domain.DefaultAnalysisExcludePatterns(),
-	); err == nil && len(files) == 0 {
-		if !c.quiet {
-			fmt.Fprintf(cmd.ErrOrStderr(), "✅ No Python files found to check\n")
-		}
-		return nil
-	}
-
 	// Run complexity check if enabled
 	if !skipComplexity {
 		complexityIssues, err := c.checkComplexity(cmd, args)

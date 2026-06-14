@@ -116,7 +116,7 @@ else:
 
 ### 重複
 
-**入力.** `CodeDuplication` (float64)。このフィールドは事前計算された重複率で、上流の計算で 10 に上限が設定されています。
+**入力.** `CodeDuplication` (float64)。このフィールドはフラグメント比率で、抽出されたコードフラグメントのうちクローンペアまたはグループに含まれるユニークなフラグメントの割合を表します。上流の計算で 30 に上限が設定されています。
 
 **計算式.**
 
@@ -124,32 +124,30 @@ else:
 if CodeDuplication <= 0:
     penalty = 0
 else:
-    penalty = min(20, round(CodeDuplication / 10.0 * 20.0))
+    penalty = min(20, round(CodeDuplication / 30.0 * 20.0))
 ```
 
 **定数.**
 
-| 名前                         | 値 | 意味                     |
-| ---------------------------- | ----- | --------------------------- |
-| `DuplicationThresholdLow`    | 0.0   | 重複 0% = ペナルティ 0  |
-| `DuplicationThresholdHigh`   | 10.0  | 重複 10% = 最大ペナルティ |
-| max                          | 20.0  | ペナルティ上限                 |
+| 名前                         | 値    | 意味                          |
+| ---------------------------- | ----- | ----------------------------- |
+| `DuplicationThresholdLow`    | 0.0   | クローン対象 0% = ペナルティ 0 |
+| `DuplicationThresholdHigh`   | 30.0  | クローン対象 30% = 最大ペナルティ |
+| max                          | 20.0  | ペナルティ上限                |
 
-**上流の計算.** `CodeDuplication` 自体は `app/analyze_usecase.go:570-583` で計算されます:
+**上流の計算.** `CodeDuplication` 自体は `app/analyze_usecase.go` で計算されます:
 
 ```
-lines_in_thousands = max(GroupDensityMinLines, total_lines / GroupDensityLinesUnit)
-group_density      = clone_groups / lines_in_thousands
-CodeDuplication    = min(DuplicationThresholdHigh, group_density * GroupDensityCoefficient)
+CodeDuplication = min(DuplicationThresholdHigh, TotalClones / TotalFragments * 100)
 ```
 
-ここで `GroupDensityLinesUnit = 1000.0`, `GroupDensityMinLines = 1.0`, `GroupDensityCoefficient = 20.0`, `DuplicationThresholdHigh = 10.0`（`domain/analyze.go:52, 62-64`）です。
+ここで `TotalClones` はクローンペアまたはグループに含まれるユニークなフラグメント数、`TotalFragments` は抽出されたコードフラグメントの総数です（`domain/clone.go:128-131`）。
 
-**飽和.** `CodeDuplication >= 10.0` で 20 に到達します。上流が 10 で上限を設定するため、分析対象 1000 行あたり 0.5 クローングループで飽和に達します。
+**飽和.** `CodeDuplication >= 30.0` で 20 に到達します。
 
-**エッジケース.** クローングループなしまたは分析対象行なしの場合 → `CodeDuplication = 0` → ペナルティ 0。`Validate()` は `[0, 100]` の範囲外の値を拒否します。
+**エッジケース.** クローン対象フラグメントなし、または分析対象フラグメントなしの場合 → `CodeDuplication = 0` → ペナルティ 0。`Validate()` は `[0, 100]` の範囲外の値を拒否します。
 
-ソース: `domain/analyze.go:300-314`。
+ソース: `domain/analyze.go:336-350`。
 
 ### 結合度（CBO）
 

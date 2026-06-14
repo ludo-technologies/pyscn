@@ -233,10 +233,7 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 
 	if len(files) == 0 {
-		// No Python files to analyze is not a failure: emit an empty report and
-		// exit successfully, consistent with clone detection's empty-input handling.
-		tasks := uc.createAnalysisTasks(useCaseCfg, files, nil, executionCfg)
-		return uc.buildResponse(tasks, startTime), nil
+		return nil, fmt.Errorf("no Python files found in the specified paths")
 	}
 
 	// Estimate per-task durations from file count, then calibrate with actual

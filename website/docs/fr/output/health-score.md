@@ -116,7 +116,7 @@ Source : `domain/analyze.go:283-296`. Facteur de normalisation dérivé dans `Ca
 
 ### Duplication
 
-**Entrées.** `CodeDuplication` (float64). Ce champ est un pourcentage de duplication pré-calculé, plafonné à 10 par le calcul en amont.
+**Entrées.** `CodeDuplication` (float64). Ce champ est le ratio de fragments : le pourcentage de tous les fragments de code extraits qui participent à une paire ou un groupe de clones, plafonné à 30 par le calcul en amont.
 
 **Formule.**
 
@@ -124,32 +124,30 @@ Source : `domain/analyze.go:283-296`. Facteur de normalisation dérivé dans `Ca
 if CodeDuplication <= 0:
     penalty = 0
 else:
-    penalty = min(20, round(CodeDuplication / 10.0 * 20.0))
+    penalty = min(20, round(CodeDuplication / 30.0 * 20.0))
 ```
 
 **Constantes.**
 
-| Nom                          | Valeur | Signification                  |
-| ---------------------------- | ------ | ------------------------------ |
-| `DuplicationThresholdLow`    | 0.0    | 0 % de duplication = pénalité 0 |
-| `DuplicationThresholdHigh`   | 10.0   | 10 % de duplication = pénalité max |
-| max                          | 20.0   | Plafond de pénalité            |
+| Nom                          | Valeur | Signification                       |
+| ---------------------------- | ------ | ----------------------------------- |
+| `DuplicationThresholdLow`    | 0.0    | 0 % de fragments clonés = pénalité 0 |
+| `DuplicationThresholdHigh`   | 30.0   | 30 % de fragments clonés = pénalité max |
+| max                          | 20.0   | Plafond de pénalité                 |
 
-**Calcul en amont.** `CodeDuplication` est calculé dans `app/analyze_usecase.go:570-583` :
+**Calcul en amont.** `CodeDuplication` est calculé dans `app/analyze_usecase.go` :
 
 ```
-lines_in_thousands = max(GroupDensityMinLines, total_lines / GroupDensityLinesUnit)
-group_density      = clone_groups / lines_in_thousands
-CodeDuplication    = min(DuplicationThresholdHigh, group_density * GroupDensityCoefficient)
+CodeDuplication = min(DuplicationThresholdHigh, TotalClones / TotalFragments * 100)
 ```
 
-Où `GroupDensityLinesUnit = 1000.0`, `GroupDensityMinLines = 1.0`, `GroupDensityCoefficient = 20.0`, `DuplicationThresholdHigh = 10.0` (`domain/analyze.go:52, 62-64`).
+Où `TotalClones` est le nombre de fragments uniques participant à au moins une paire ou un groupe de clones, et `TotalFragments` est le nombre total de fragments de code extraits (`domain/clone.go:128-131`).
 
-**Saturation.** Atteint 20 lorsque `CodeDuplication >= 10.0`. Comme la valeur en amont est plafonnée à 10, la saturation est atteinte à exactement 0,5 groupe de clones pour 1000 lignes analysées.
+**Saturation.** Atteint 20 lorsque `CodeDuplication >= 30.0`.
 
-**Cas limites.** Aucun groupe de clones ou aucune ligne analysée → `CodeDuplication = 0` → pénalité 0. `Validate()` rejette les valeurs hors de `[0, 100]`.
+**Cas limites.** Aucun fragment cloné ou aucun fragment analysé → `CodeDuplication = 0` → pénalité 0. `Validate()` rejette les valeurs hors de `[0, 100]`.
 
-Source : `domain/analyze.go:300-314`.
+Source : `domain/analyze.go:336-350`.
 
 ### Couplage (CBO)
 
