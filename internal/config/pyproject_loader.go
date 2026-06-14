@@ -99,6 +99,12 @@ func mergeComplexitySection(defaults *PyscnConfig, complexity *ComplexityTomlCon
 	if complexity.MediumThreshold != nil {
 		defaults.ComplexityMediumThreshold = *complexity.MediumThreshold
 	}
+	if complexity.CognitiveComplexityThreshold != nil {
+		defaults.CognitiveComplexityThreshold = *complexity.CognitiveComplexityThreshold
+	}
+	if complexity.NestingDepthThreshold != nil {
+		defaults.NestingDepthThreshold = *complexity.NestingDepthThreshold
+	}
 	if complexity.MaxComplexity != nil {
 		defaults.ComplexityMaxComplexity = *complexity.MaxComplexity
 	}

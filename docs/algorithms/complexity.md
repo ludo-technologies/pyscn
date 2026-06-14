@@ -290,6 +290,8 @@ Thresholds are configurable via `.pyscn.toml` or `pyproject.toml`:
 [complexity]
 low_threshold = 9       # Upper bound for "low" risk (inclusive)
 medium_threshold = 19   # Upper bound for "medium" risk (inclusive)
+cognitive_complexity_threshold = 25 # High-risk cognitive complexity threshold
+nesting_depth_threshold = 7         # High-risk nesting depth threshold
 enabled = true          # Enable/disable complexity analysis
 report_unchanged = true # Report functions with complexity 1
 max_complexity = 0      # Maximum allowed complexity (0 = no limit)
@@ -298,7 +300,10 @@ max_complexity = 0      # Maximum allowed complexity (0 = no limit)
 The `AssessRiskLevel` method determines the category:
 
 ```go
-func (c *ComplexityConfig) AssessRiskLevel(complexity int) string {
+func (c *ComplexityConfig) AssessRiskLevel(complexity, cognitiveComplexity, nestingDepth int) string {
+    if cognitiveComplexity > c.CognitiveComplexityThreshold || nestingDepth > c.NestingDepthThreshold {
+        return "high"
+    }
     if complexity <= c.LowThreshold {
         return "low"
     } else if complexity <= c.MediumThreshold {
@@ -356,16 +361,19 @@ The `ComplexityAnalyzer` (`internal/analyzer/complexity_analyzer.go`) coordinate
 Alongside the McCabe count, pyscn computes two more measurements per analyzed file. They share the complexity output pipeline but use independent algorithms:
 
 - **Cognitive Complexity** (`internal/analyzer/cognitive_complexity.go`). SonarQube-style metric that increments per branch, applies an additional `+nestingLevel` penalty for nested branches, and counts boolean operator runs as a single increment. Walks the AST directly rather than the CFG. Surfaces as `CognitiveComplexity` per function in the JSON output and on the HTML complexity tab.
+- **Nesting Depth** (`internal/analyzer/nesting_depth.go`). Maximum depth of nested branch, loop, exception, context-manager, lambda, comprehension, and function scopes. Surfaces as `NestingDepth` per function in reports.
 - **Raw code metrics** (`internal/analyzer/raw_metrics.go`). Per-file line accounting: SLOC, LLOC, comment lines, docstring lines, blank lines, total lines, and comment ratio. Produced without AST parsing — a small state machine over source lines that tracks docstrings and multiline strings. Aggregates are exposed in the `raw_metrics` / `raw_metrics_summary` JSON fields.
 
-Neither metric participates in the `complexity.max_complexity` gate; both are reported for diagnostic context.
+Cognitive complexity and nesting depth participate in risk classification. A function is high risk if either value exceeds its configured threshold, even when McCabe complexity is low. The `complexity.max_complexity` gate remains a McCabe-only limit.
 
 ## Integration with Health Score
 
-The overall project health score (`docs/ANALYZE_SCORING.md`) uses average cyclomatic complexity as one of its penalty categories. The complexity penalty is a continuous linear function:
+The overall project health score (`docs/ANALYZE_SCORING.md`) uses the strongest complexity penalty from average cyclomatic complexity, average cognitive complexity, and average nesting depth:
 
 ```
-penalty = min(20, max(0, (avg_complexity - 2) / 13 * 20))
+penalty = max(
+  linear(avg_complexity, start=2, max=15),
+  linear(avg_cognitive_complexity, start=15, max=25),
+  linear(avg_nesting_depth, start=3, max=7),
+)
 ```
-
-This starts penalizing at an average complexity of 2 and reaches the maximum 20-point penalty at an average of 15.

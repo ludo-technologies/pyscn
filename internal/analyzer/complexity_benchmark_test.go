@@ -144,7 +144,7 @@ func BenchmarkAggregateComplexityCalculation(b *testing.B) {
 		results[i] = &ComplexityResult{
 			Complexity:   complexity,
 			FunctionName: "test_function",
-			RiskLevel:    defaultConfig.Complexity.AssessRiskLevel(complexity),
+			RiskLevel:    defaultConfig.Complexity.AssessRiskLevel(complexity, 0, 0),
 		}
 	}
 

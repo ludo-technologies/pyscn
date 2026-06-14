@@ -494,7 +494,7 @@ func TestAssessRiskLevel(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run("", func(t *testing.T) {
-			result := defaultConfig.Complexity.AssessRiskLevel(tc.complexity)
+			result := defaultConfig.Complexity.AssessRiskLevel(tc.complexity, 0, 0)
 			if result != tc.expected {
 				t.Errorf("For complexity %d, expected %q, got %q", tc.complexity, tc.expected, result)
 			}

@@ -184,7 +184,7 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 		LoopStatements:      reportedMetrics.LoopStatements,
 		ExceptionHandlers:   reportedMetrics.ExceptionHandlers,
 		SwitchCases:         reportedMetrics.SwitchCases,
-		RiskLevel:           complexityConfig.AssessRiskLevel(complexity),
+		RiskLevel:           complexityConfig.AssessRiskLevel(complexity, reportedMetrics.CognitiveComplexity, nestingDepth),
 	}
 
 	return result

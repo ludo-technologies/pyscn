@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -467,18 +468,30 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 
 	functions := []domain.FunctionComplexity{
 		{
-			Name:      "func1",
-			Metrics:   domain.ComplexityMetrics{Complexity: 2},
+			Name: "func1",
+			Metrics: domain.ComplexityMetrics{
+				Complexity:          2,
+				CognitiveComplexity: 3,
+				NestingDepth:        1,
+			},
 			RiskLevel: domain.RiskLevelLow,
 		},
 		{
-			Name:      "func2",
-			Metrics:   domain.ComplexityMetrics{Complexity: 8},
+			Name: "func2",
+			Metrics: domain.ComplexityMetrics{
+				Complexity:          8,
+				CognitiveComplexity: 12,
+				NestingDepth:        2,
+			},
 			RiskLevel: domain.RiskLevelMedium,
 		},
 		{
-			Name:      "func3",
-			Metrics:   domain.ComplexityMetrics{Complexity: 15},
+			Name: "func3",
+			Metrics: domain.ComplexityMetrics{
+				Complexity:          15,
+				CognitiveComplexity: 30,
+				NestingDepth:        6,
+			},
 			RiskLevel: domain.RiskLevelHigh,
 		},
 	}
@@ -490,6 +503,8 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 		assert.Equal(t, 3, summary.TotalFunctions)
 		assert.Equal(t, 2, summary.FilesAnalyzed)
 		assert.Equal(t, 8.333333333333334, summary.AverageComplexity) // (2+8+15)/3
+		assert.Equal(t, 15.0, summary.AverageCognitiveComplexity)
+		assert.Equal(t, 3.0, summary.AverageNestingDepth)
 		assert.Equal(t, 15, summary.MaxComplexity)
 		assert.Equal(t, 2, summary.MinComplexity)
 		assert.Equal(t, 1, summary.LowRiskFunctions)
@@ -514,11 +529,13 @@ func TestComplexityService_CalculateRiskLevel(t *testing.T) {
 	service := NewComplexityService()
 
 	testCases := []struct {
-		name              string
-		complexity        int
-		lowThreshold      int
-		mediumThreshold   int
-		expectedRiskLevel domain.RiskLevel
+		name                string
+		complexity          int
+		cognitiveComplexity int
+		nestingDepth        int
+		lowThreshold        int
+		mediumThreshold     int
+		expectedRiskLevel   domain.RiskLevel
 	}{
 		{
 			name:              "low risk",
@@ -555,6 +572,22 @@ func TestComplexityService_CalculateRiskLevel(t *testing.T) {
 			mediumThreshold:   10,
 			expectedRiskLevel: domain.RiskLevelMedium,
 		},
+		{
+			name:                "high risk from cognitive complexity",
+			complexity:          3,
+			cognitiveComplexity: domain.DefaultCognitiveComplexityThreshold + 1,
+			lowThreshold:        5,
+			mediumThreshold:     10,
+			expectedRiskLevel:   domain.RiskLevelHigh,
+		},
+		{
+			name:              "high risk from nesting depth",
+			complexity:        3,
+			nestingDepth:      domain.DefaultNestingDepthThreshold + 1,
+			lowThreshold:      5,
+			mediumThreshold:   10,
+			expectedRiskLevel: domain.RiskLevelHigh,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -564,10 +597,32 @@ func TestComplexityService_CalculateRiskLevel(t *testing.T) {
 				MediumThreshold: tc.mediumThreshold,
 			}
 
-			riskLevel := service.calculateRiskLevel(tc.complexity, req)
+			riskLevel := service.calculateRiskLevel(tc.complexity, tc.cognitiveComplexity, tc.nestingDepth, req)
 			assert.Equal(t, tc.expectedRiskLevel, riskLevel)
 		})
 	}
+}
+
+func TestComplexityService_MetricThresholdWarnings(t *testing.T) {
+	service := NewComplexityService()
+	result := &analyzer.ComplexityResult{
+		FunctionName:        "dense",
+		StartLine:           12,
+		StartCol:            4,
+		CognitiveComplexity: 30,
+		NestingDepth:        8,
+	}
+	req := domain.ComplexityRequest{
+		CognitiveComplexityThreshold: 25,
+		NestingDepthThreshold:        7,
+	}
+
+	warnings := service.metricThresholdWarnings("sample.py", "dense", result, req)
+
+	require.Len(t, warnings, 2)
+	assert.Contains(t, warnings[0], "sample.py:12:5")
+	assert.Contains(t, warnings[0], "dense cognitive complexity too high (30 > 25)")
+	assert.Contains(t, warnings[1], "dense nesting depth too high (8 > 7)")
 }
 
 func TestComplexityService_GetComplexityDistributionKey(t *testing.T) {

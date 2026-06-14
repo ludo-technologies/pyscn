@@ -232,6 +232,28 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 			expectError:   false,
 		},
 		{
+			name: "high cognitive complexity affects complexity score",
+			summary: domain.AnalyzeSummary{
+				AverageComplexity:          1.0,
+				AverageCognitiveComplexity: float64(domain.DefaultCognitiveComplexityThreshold),
+			},
+			expectedScore:           80,
+			expectedGrade:           "B",
+			expectedComplexityScore: 0,
+			expectError:             false,
+		},
+		{
+			name: "high nesting depth affects complexity score",
+			summary: domain.AnalyzeSummary{
+				AverageComplexity:   1.0,
+				AverageNestingDepth: float64(domain.DefaultNestingDepthThreshold),
+			},
+			expectedScore:           80,
+			expectedGrade:           "B",
+			expectedComplexityScore: 0,
+			expectError:             false,
+		},
+		{
 			name: "invalid data - negative complexity",
 			summary: domain.AnalyzeSummary{
 				ArchEnabled:       true,
