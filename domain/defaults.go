@@ -118,6 +118,14 @@ const (
 	// DefaultComplexityMaxLimit is the maximum complexity limit for enforcement.
 	// 0 means no limit is enforced.
 	DefaultComplexityMaxLimit = 0
+
+	// DefaultCognitiveComplexityThreshold is the high-risk threshold for
+	// SonarQube-style cognitive complexity.
+	DefaultCognitiveComplexityThreshold = 25
+
+	// DefaultNestingDepthThreshold is the high-risk threshold for maximum
+	// nesting depth.
+	DefaultNestingDepthThreshold = 7
 )
 
 // ============================================================================

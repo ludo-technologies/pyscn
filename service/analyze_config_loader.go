@@ -60,22 +60,24 @@ func defaultAnalyzeExecutionConfig() domain.AnalyzeExecutionConfig {
 	defaultCloneReq := domain.DefaultCloneRequest()
 
 	return domain.AnalyzeExecutionConfig{
-		ConfigPath:                "",
-		IncludePatterns:           domain.DefaultAnalysisIncludePatterns(),
-		ExcludePatterns:           append([]string(nil), defaultCfg.Analysis.ExcludePatterns...),
-		Recursive:                 defaultCfg.Analysis.Recursive,
-		ComplexityEnabled:         defaultCfg.Complexity.Enabled,
-		ComplexityReportUnchanged: defaultCfg.Complexity.ReportUnchanged,
-		ComplexityMinComplexity:   defaultCfg.Output.MinComplexity,
-		ComplexityLowThreshold:    defaultCfg.Complexity.LowThreshold,
-		ComplexityMediumThreshold: defaultCfg.Complexity.MediumThreshold,
-		ComplexityMaxComplexity:   defaultCfg.Complexity.MaxComplexity,
-		DeadCodeEnabled:           defaultCfg.DeadCode.Enabled,
-		CloneLSHEnabled:           defaultCloneReq.LSHEnabled,
-		CloneLSHAutoThreshold:     defaultCloneReq.LSHAutoThreshold,
-		SystemEnabled:             true,
-		SystemAnalyzeDependencies: true,
-		SystemAnalyzeArchitecture: true,
+		ConfigPath:                   "",
+		IncludePatterns:              domain.DefaultAnalysisIncludePatterns(),
+		ExcludePatterns:              append([]string(nil), defaultCfg.Analysis.ExcludePatterns...),
+		Recursive:                    defaultCfg.Analysis.Recursive,
+		ComplexityEnabled:            defaultCfg.Complexity.Enabled,
+		ComplexityReportUnchanged:    defaultCfg.Complexity.ReportUnchanged,
+		ComplexityMinComplexity:      defaultCfg.Output.MinComplexity,
+		ComplexityLowThreshold:       defaultCfg.Complexity.LowThreshold,
+		ComplexityMediumThreshold:    defaultCfg.Complexity.MediumThreshold,
+		ComplexityMaxComplexity:      defaultCfg.Complexity.MaxComplexity,
+		CognitiveComplexityThreshold: defaultCfg.Complexity.CognitiveComplexityThreshold,
+		NestingDepthThreshold:        defaultCfg.Complexity.NestingDepthThreshold,
+		DeadCodeEnabled:              defaultCfg.DeadCode.Enabled,
+		CloneLSHEnabled:              defaultCloneReq.LSHEnabled,
+		CloneLSHAutoThreshold:        defaultCloneReq.LSHAutoThreshold,
+		SystemEnabled:                true,
+		SystemAnalyzeDependencies:    true,
+		SystemAnalyzeArchitecture:    true,
 	}
 }
 
@@ -99,6 +101,8 @@ func analyzeExecutionConfigFromConfig(cfg *config.Config, overrides analyzeEnabl
 	executionCfg.ComplexityLowThreshold = cfg.Complexity.LowThreshold
 	executionCfg.ComplexityMediumThreshold = cfg.Complexity.MediumThreshold
 	executionCfg.ComplexityMaxComplexity = cfg.Complexity.MaxComplexity
+	executionCfg.CognitiveComplexityThreshold = cfg.Complexity.CognitiveComplexityThreshold
+	executionCfg.NestingDepthThreshold = cfg.Complexity.NestingDepthThreshold
 	executionCfg.DeadCodeEnabled = cfg.DeadCode.Enabled
 
 	if cfg.Clones != nil {

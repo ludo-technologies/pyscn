@@ -242,6 +242,14 @@ func (uc *ComplexityUseCase) validateRequest(req domain.ComplexityRequest) error
 		return fmt.Errorf("medium threshold must be greater than low threshold")
 	}
 
+	if req.CognitiveComplexityThreshold < 0 {
+		return fmt.Errorf("cognitive complexity threshold cannot be negative")
+	}
+
+	if req.NestingDepthThreshold < 0 {
+		return fmt.Errorf("nesting depth threshold cannot be negative")
+	}
+
 	// Validate output format
 	switch req.OutputFormat {
 	case domain.OutputFormatText, domain.OutputFormatJSON, domain.OutputFormatYAML, domain.OutputFormatCSV, domain.OutputFormatHTML:

@@ -167,21 +167,25 @@ func TestComplexityConfigMethods(t *testing.T) {
 
 	t.Run("AssessRiskLevel", func(t *testing.T) {
 		testCases := []struct {
-			complexity int
-			expected   string
+			complexity          int
+			cognitiveComplexity int
+			nestingDepth        int
+			expected            string
 		}{
-			{1, "low"},
-			{5, "low"},
-			{DefaultLowComplexityThreshold, "low"},
-			{DefaultLowComplexityThreshold + 1, "medium"},
-			{15, "medium"},
-			{DefaultMediumComplexityThreshold, "medium"},
-			{DefaultMediumComplexityThreshold + 1, "high"},
-			{50, "high"},
+			{complexity: 1, expected: "low"},
+			{complexity: 5, expected: "low"},
+			{complexity: DefaultLowComplexityThreshold, expected: "low"},
+			{complexity: DefaultLowComplexityThreshold + 1, expected: "medium"},
+			{complexity: 15, expected: "medium"},
+			{complexity: DefaultMediumComplexityThreshold, expected: "medium"},
+			{complexity: DefaultMediumComplexityThreshold + 1, expected: "high"},
+			{complexity: 50, expected: "high"},
+			{complexity: 3, cognitiveComplexity: DefaultCognitiveComplexityThreshold + 1, expected: "high"},
+			{complexity: 3, nestingDepth: DefaultNestingDepthThreshold + 1, expected: "high"},
 		}
 
 		for _, tc := range testCases {
-			result := config.Complexity.AssessRiskLevel(tc.complexity)
+			result := config.Complexity.AssessRiskLevel(tc.complexity, tc.cognitiveComplexity, tc.nestingDepth)
 			if result != tc.expected {
 				t.Errorf("For complexity %d, expected risk '%s', got '%s'",
 					tc.complexity, tc.expected, result)
@@ -539,7 +543,7 @@ func TestConfigRaceConditions(t *testing.T) {
 			defer func() { done <- true }()
 
 			// Read operations
-			_ = config.Complexity.AssessRiskLevel(10)
+			_ = config.Complexity.AssessRiskLevel(10, 0, 0)
 			_ = config.Complexity.ShouldReport(5)
 			_ = config.Complexity.ExceedsMaxComplexity(25)
 			_ = config.Validate()
@@ -571,13 +575,13 @@ func TestConfigEdgeCases(t *testing.T) {
 		}
 
 		// Test edge cases
-		if config.Complexity.AssessRiskLevel(1) != "low" {
+		if config.Complexity.AssessRiskLevel(1, 0, 0) != "low" {
 			t.Error("Boundary case failed for low risk")
 		}
-		if config.Complexity.AssessRiskLevel(2) != "medium" {
+		if config.Complexity.AssessRiskLevel(2, 0, 0) != "medium" {
 			t.Error("Boundary case failed for medium risk")
 		}
-		if config.Complexity.AssessRiskLevel(3) != "high" {
+		if config.Complexity.AssessRiskLevel(3, 0, 0) != "high" {
 			t.Error("Boundary case failed for high risk")
 		}
 	})

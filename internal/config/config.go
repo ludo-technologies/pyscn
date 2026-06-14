@@ -23,6 +23,12 @@ const (
 
 	// DefaultMaxComplexityLimit defines no upper limit for complexity analysis
 	DefaultMaxComplexityLimit = domain.DefaultComplexityMaxLimit
+
+	// DefaultCognitiveComplexityThreshold defines the high-risk threshold for cognitive complexity
+	DefaultCognitiveComplexityThreshold = domain.DefaultCognitiveComplexityThreshold
+
+	// DefaultNestingDepthThreshold defines the high-risk threshold for nesting depth
+	DefaultNestingDepthThreshold = domain.DefaultNestingDepthThreshold
 )
 
 // Default dead code detection settings - re-exported from domain for backward compatibility
@@ -72,6 +78,12 @@ type ComplexityConfig struct {
 	// MediumThreshold is the upper bound for medium complexity (inclusive)
 	// Values above this are considered high complexity
 	MediumThreshold int `mapstructure:"medium_threshold" yaml:"medium_threshold"`
+
+	// CognitiveComplexityThreshold is the high-risk threshold for cognitive complexity.
+	CognitiveComplexityThreshold int `mapstructure:"cognitive_complexity_threshold" yaml:"cognitive_complexity_threshold"`
+
+	// NestingDepthThreshold is the high-risk threshold for maximum nesting depth.
+	NestingDepthThreshold int `mapstructure:"nesting_depth_threshold" yaml:"nesting_depth_threshold"`
 
 	// Enabled controls whether complexity analysis is performed
 	Enabled bool `mapstructure:"enabled" yaml:"enabled"`
@@ -149,11 +161,13 @@ type AnalysisConfig struct {
 func DefaultConfig() *Config {
 	config := &Config{
 		Complexity: ComplexityConfig{
-			LowThreshold:    DefaultLowComplexityThreshold,
-			MediumThreshold: DefaultMediumComplexityThreshold,
-			Enabled:         true,
-			ReportUnchanged: true,
-			MaxComplexity:   DefaultMaxComplexityLimit,
+			LowThreshold:                 DefaultLowComplexityThreshold,
+			MediumThreshold:              DefaultMediumComplexityThreshold,
+			CognitiveComplexityThreshold: DefaultCognitiveComplexityThreshold,
+			NestingDepthThreshold:        DefaultNestingDepthThreshold,
+			Enabled:                      true,
+			ReportUnchanged:              true,
+			MaxComplexity:                DefaultMaxComplexityLimit,
 		},
 		DeadCode: DeadCodeConfig{
 			Enabled:                   true,
@@ -302,6 +316,12 @@ func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
 	}
 	if pyscn.ComplexityMediumThreshold > 0 {
 		cfg.Complexity.MediumThreshold = pyscn.ComplexityMediumThreshold
+	}
+	if pyscn.CognitiveComplexityThreshold > 0 {
+		cfg.Complexity.CognitiveComplexityThreshold = pyscn.CognitiveComplexityThreshold
+	}
+	if pyscn.NestingDepthThreshold > 0 {
+		cfg.Complexity.NestingDepthThreshold = pyscn.NestingDepthThreshold
 	}
 	if pyscn.ComplexityMaxComplexity > 0 {
 		cfg.Complexity.MaxComplexity = pyscn.ComplexityMaxComplexity
@@ -551,6 +571,16 @@ func (c *Config) Validate() error {
 			c.Complexity.MaxComplexity, c.Complexity.MediumThreshold)
 	}
 
+	if c.Complexity.CognitiveComplexityThreshold < 1 {
+		return fmt.Errorf("complexity.cognitive_complexity_threshold must be >= 1, got %d",
+			c.Complexity.CognitiveComplexityThreshold)
+	}
+
+	if c.Complexity.NestingDepthThreshold < 1 {
+		return fmt.Errorf("complexity.nesting_depth_threshold must be >= 1, got %d",
+			c.Complexity.NestingDepthThreshold)
+	}
+
 	// Validate output format
 	validFormats := map[string]bool{
 		"text": true,
@@ -599,8 +629,13 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// AssessRiskLevel determines risk level based on complexity and thresholds
-func (c *ComplexityConfig) AssessRiskLevel(complexity int) string {
+// AssessRiskLevel determines risk level based on cyclomatic complexity,
+// cognitive complexity, nesting depth, and their thresholds.
+func (c *ComplexityConfig) AssessRiskLevel(complexity, cognitiveComplexity, nestingDepth int) string {
+	if cognitiveComplexity > c.CognitiveComplexityThreshold || nestingDepth > c.NestingDepthThreshold {
+		return "high"
+	}
+
 	if complexity <= c.LowThreshold {
 		return "low"
 	} else if complexity <= c.MediumThreshold {
@@ -652,11 +687,13 @@ func SaveConfig(config *Config, path string) error {
 func ConfigToPyscnTomlConfig(cfg *Config) *PyscnTomlConfig {
 	return &PyscnTomlConfig{
 		Complexity: ComplexityTomlConfig{
-			Enabled:         &cfg.Complexity.Enabled,
-			ReportUnchanged: &cfg.Complexity.ReportUnchanged,
-			LowThreshold:    &cfg.Complexity.LowThreshold,
-			MediumThreshold: &cfg.Complexity.MediumThreshold,
-			MaxComplexity:   &cfg.Complexity.MaxComplexity,
+			Enabled:                      &cfg.Complexity.Enabled,
+			ReportUnchanged:              &cfg.Complexity.ReportUnchanged,
+			LowThreshold:                 &cfg.Complexity.LowThreshold,
+			MediumThreshold:              &cfg.Complexity.MediumThreshold,
+			CognitiveComplexityThreshold: &cfg.Complexity.CognitiveComplexityThreshold,
+			NestingDepthThreshold:        &cfg.Complexity.NestingDepthThreshold,
+			MaxComplexity:                &cfg.Complexity.MaxComplexity,
 		},
 		DeadCode: DeadCodeTomlConfig{
 			Enabled:                   &cfg.DeadCode.Enabled,
