@@ -85,7 +85,7 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 		fmt.Fprint(writer, utils.FormatSectionHeader("CLONE DETECTION"))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Unique Fragments", response.Summary.TotalClones))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Clone Groups", response.Summary.CloneGroups))
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Code Duplication", utils.FormatPercentage(response.Summary.CodeDuplication)))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Fragments Cloned", utils.FormatPercentage(response.Summary.CodeDuplication)))
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
 
@@ -497,7 +497,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         <div class="score-bar-container">
                             <div class="score-bar-fill score-{{scoreQuality .Summary.DuplicationScore}}" style="width: {{.Summary.DuplicationScore}}%"></div>
                         </div>
-                        <div class="score-detail">{{printf "%.1f%%" .Summary.CodeDuplication}} duplication, {{.Summary.CloneGroups}} groups</div>
+                        <div class="score-detail">{{printf "%.1f%%" .Summary.CodeDuplication}} of fragments cloned, {{.Summary.CloneGroups}} groups</div>
                     </div>
                     {{end}}
 
@@ -578,7 +578,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{printf "%.1f%%" .Summary.CodeDuplication}}</div>
-                        <div class="metric-label">Code Duplication</div>
+                        <div class="metric-label">Fragments Cloned</div>
                     </div>
                     {{if .Summary.CBOEnabled}}
                     <div class="metric-card">
