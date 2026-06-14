@@ -21,6 +21,7 @@ max_cbo = 20
 show_zeros = true
 include_builtins = true
 include_imports = false
+group_namespace_imports = false
 `
 	configPath := filepath.Join(tempDir, ".pyscn.toml")
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
@@ -56,6 +57,9 @@ include_imports = false
 	if domain.BoolValue(req.IncludeImports, true) {
 		t.Errorf("Expected IncludeImports false, got %v", req.IncludeImports)
 	}
+	if domain.BoolValue(req.GroupNamespaceImports, true) {
+		t.Errorf("Expected GroupNamespaceImports false, got %v", req.GroupNamespaceImports)
+	}
 }
 
 func TestCBOConfigurationLoader_LoadDefaultConfig(t *testing.T) {
@@ -87,6 +91,9 @@ func TestCBOConfigurationLoader_LoadDefaultConfig(t *testing.T) {
 	}
 	if !domain.BoolValue(req.IncludeImports, true) {
 		t.Errorf("Expected default IncludeImports true, got %v", req.IncludeImports)
+	}
+	if !domain.BoolValue(req.GroupNamespaceImports, true) {
+		t.Errorf("Expected default GroupNamespaceImports true, got %v", req.GroupNamespaceImports)
 	}
 }
 
@@ -123,19 +130,22 @@ func TestCBOConfigurationLoader_MergeConfig(t *testing.T) {
 		{
 			name: "override boolean flags",
 			base: &domain.CBORequest{
-				ShowZeros:       domain.BoolPtr(false),
-				IncludeBuiltins: domain.BoolPtr(false),
-				IncludeImports:  domain.BoolPtr(true),
+				ShowZeros:             domain.BoolPtr(false),
+				IncludeBuiltins:       domain.BoolPtr(false),
+				IncludeImports:        domain.BoolPtr(true),
+				GroupNamespaceImports: domain.BoolPtr(true),
 			},
 			override: &domain.CBORequest{
-				ShowZeros:       domain.BoolPtr(true),
-				IncludeBuiltins: domain.BoolPtr(true),
-				IncludeImports:  domain.BoolPtr(false),
+				ShowZeros:             domain.BoolPtr(true),
+				IncludeBuiltins:       domain.BoolPtr(true),
+				IncludeImports:        domain.BoolPtr(false),
+				GroupNamespaceImports: domain.BoolPtr(false),
 			},
 			expected: &domain.CBORequest{
-				ShowZeros:       domain.BoolPtr(true),
-				IncludeBuiltins: domain.BoolPtr(true),
-				IncludeImports:  domain.BoolPtr(false),
+				ShowZeros:             domain.BoolPtr(true),
+				IncludeBuiltins:       domain.BoolPtr(true),
+				IncludeImports:        domain.BoolPtr(false),
+				GroupNamespaceImports: domain.BoolPtr(false),
 			},
 		},
 		{
@@ -193,6 +203,18 @@ func TestCBOConfigurationLoader_MergeConfig(t *testing.T) {
 				if len(result.Paths) != len(tt.expected.Paths) {
 					t.Errorf("Expected %d paths, got %d", len(tt.expected.Paths), len(result.Paths))
 				}
+			}
+			if tt.expected.ShowZeros != nil && domain.BoolValue(result.ShowZeros, false) != domain.BoolValue(tt.expected.ShowZeros, false) {
+				t.Errorf("Expected ShowZeros %v, got %v", domain.BoolValue(tt.expected.ShowZeros, false), domain.BoolValue(result.ShowZeros, false))
+			}
+			if tt.expected.IncludeBuiltins != nil && domain.BoolValue(result.IncludeBuiltins, false) != domain.BoolValue(tt.expected.IncludeBuiltins, false) {
+				t.Errorf("Expected IncludeBuiltins %v, got %v", domain.BoolValue(tt.expected.IncludeBuiltins, false), domain.BoolValue(result.IncludeBuiltins, false))
+			}
+			if tt.expected.IncludeImports != nil && domain.BoolValue(result.IncludeImports, true) != domain.BoolValue(tt.expected.IncludeImports, true) {
+				t.Errorf("Expected IncludeImports %v, got %v", domain.BoolValue(tt.expected.IncludeImports, true), domain.BoolValue(result.IncludeImports, true))
+			}
+			if tt.expected.GroupNamespaceImports != nil && domain.BoolValue(result.GroupNamespaceImports, true) != domain.BoolValue(tt.expected.GroupNamespaceImports, true) {
+				t.Errorf("Expected GroupNamespaceImports %v, got %v", domain.BoolValue(tt.expected.GroupNamespaceImports, true), domain.BoolValue(result.GroupNamespaceImports, true))
 			}
 		})
 	}

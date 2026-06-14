@@ -398,9 +398,10 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 					SortBy:          domain.SortByCoupling,
 					ConfigPath:      config.ConfigFile,
 					// Boolean options left as nil to allow config file values to take precedence
-					ShowZeros:       nil,
-					IncludeBuiltins: nil,
-					IncludeImports:  nil,
+					ShowZeros:             nil,
+					IncludeBuiltins:       nil,
+					IncludeImports:        nil,
+					GroupNamespaceImports: nil,
 				}
 				return uc.cboUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
 			},

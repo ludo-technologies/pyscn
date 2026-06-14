@@ -349,6 +349,9 @@ func mergeCboSection(defaults *PyscnConfig, cbo *CboTomlConfig) {
 	if cbo.IncludeImports != nil {
 		defaults.CboIncludeImports = cbo.IncludeImports
 	}
+	if cbo.GroupNamespaceImports != nil {
+		defaults.CboGroupNamespaceImports = cbo.GroupNamespaceImports
+	}
 }
 
 // mergeLcomSection merges settings from the [lcom] section

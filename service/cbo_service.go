@@ -409,27 +409,29 @@ func (s *CBOServiceImpl) getCBORange(cbo int) string {
 // buildCBOOptions converts domain request to analyzer options
 func (s *CBOServiceImpl) buildCBOOptions(req domain.CBORequest) *analyzer.CBOOptions {
 	return &analyzer.CBOOptions{
-		IncludeBuiltins:   domain.BoolValue(req.IncludeBuiltins, false),
-		IncludeImports:    domain.BoolValue(req.IncludeImports, true),
-		PublicClassesOnly: false, // Could add this to domain.CBORequest later
-		ExcludePatterns:   req.ExcludePatterns,
-		LowThreshold:      req.LowThreshold,
-		MediumThreshold:   req.MediumThreshold,
+		IncludeBuiltins:       domain.BoolValue(req.IncludeBuiltins, false),
+		IncludeImports:        domain.BoolValue(req.IncludeImports, true),
+		GroupNamespaceImports: domain.BoolValue(req.GroupNamespaceImports, true),
+		PublicClassesOnly:     false, // Could add this to domain.CBORequest later
+		ExcludePatterns:       req.ExcludePatterns,
+		LowThreshold:          req.LowThreshold,
+		MediumThreshold:       req.MediumThreshold,
 	}
 }
 
 // buildConfigForResponse creates config info for response
 func (s *CBOServiceImpl) buildConfigForResponse(req domain.CBORequest) interface{} {
 	return map[string]interface{}{
-		"minCBO":          req.MinCBO,
-		"maxCBO":          req.MaxCBO,
-		"showZeros":       domain.BoolValue(req.ShowZeros, false),
-		"lowThreshold":    req.LowThreshold,
-		"mediumThreshold": req.MediumThreshold,
-		"includeBuiltins": domain.BoolValue(req.IncludeBuiltins, false),
-		"includeImports":  domain.BoolValue(req.IncludeImports, true),
-		"outputFormat":    req.OutputFormat,
-		"sortBy":          req.SortBy,
+		"minCBO":                req.MinCBO,
+		"maxCBO":                req.MaxCBO,
+		"showZeros":             domain.BoolValue(req.ShowZeros, false),
+		"lowThreshold":          req.LowThreshold,
+		"mediumThreshold":       req.MediumThreshold,
+		"includeBuiltins":       domain.BoolValue(req.IncludeBuiltins, false),
+		"includeImports":        domain.BoolValue(req.IncludeImports, true),
+		"groupNamespaceImports": domain.BoolValue(req.GroupNamespaceImports, true),
+		"outputFormat":          req.OutputFormat,
+		"sortBy":                req.SortBy,
 	}
 }
 

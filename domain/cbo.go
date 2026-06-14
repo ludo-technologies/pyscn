@@ -36,8 +36,9 @@ type CBORequest struct {
 	ExcludePatterns []string
 
 	// Analysis scope
-	IncludeBuiltins *bool // Include dependencies on built-in types
-	IncludeImports  *bool // Include imported modules in dependency count
+	IncludeBuiltins       *bool // Include dependencies on built-in types
+	IncludeImports        *bool // Include imported modules in dependency count
+	GroupNamespaceImports *bool // Collapse alias.Member references to a single alias edge
 }
 
 // CBOMetrics represents detailed CBO metrics for a class
@@ -164,18 +165,19 @@ type CBOAnalysisOptions struct {
 // Threshold values are sourced from domain/defaults.go
 func DefaultCBORequest() *CBORequest {
 	return &CBORequest{
-		OutputFormat:    OutputFormatText,
-		ShowDetails:     false,
-		MinCBO:          0,
-		MaxCBO:          0,              // No limit
-		SortBy:          SortByCoupling, // Sort by CBO value
-		ShowZeros:       BoolPtr(false),
-		LowThreshold:    DefaultCBOLowThreshold,    // Industry standard: CBO <= 3 is low risk
-		MediumThreshold: DefaultCBOMediumThreshold, // Industry standard: 3 < CBO <= 7 is medium risk
-		Recursive:       BoolPtr(true),
-		IncludeBuiltins: BoolPtr(false),
-		IncludeImports:  BoolPtr(true),
-		IncludePatterns: DefaultAnalysisIncludePatterns(),
-		ExcludePatterns: []string{},
+		OutputFormat:          OutputFormatText,
+		ShowDetails:           false,
+		MinCBO:                0,
+		MaxCBO:                0,              // No limit
+		SortBy:                SortByCoupling, // Sort by CBO value
+		ShowZeros:             BoolPtr(false),
+		LowThreshold:          DefaultCBOLowThreshold,    // Industry standard: CBO <= 3 is low risk
+		MediumThreshold:       DefaultCBOMediumThreshold, // Industry standard: 3 < CBO <= 7 is medium risk
+		Recursive:             BoolPtr(true),
+		IncludeBuiltins:       BoolPtr(false),
+		IncludeImports:        BoolPtr(true),
+		GroupNamespaceImports: BoolPtr(true),
+		IncludePatterns:       DefaultAnalysisIncludePatterns(),
+		ExcludePatterns:       []string{},
 	}
 }
