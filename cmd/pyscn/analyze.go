@@ -474,7 +474,7 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 
 	if response.Summary.CloneEnabled {
 		icon := getScoreIcon(response.Summary.DuplicationScore)
-		fmt.Fprintf(cmd.ErrOrStderr(), "  Duplication:    %3d/100 %s  (%.1f%% duplication, %d groups)\n",
+		fmt.Fprintf(cmd.ErrOrStderr(), "  Duplication:    %3d/100 %s  (%.1f%% fragments cloned, %d groups)\n",
 			response.Summary.DuplicationScore, icon,
 			response.Summary.CodeDuplication, response.Summary.CloneGroups)
 	}

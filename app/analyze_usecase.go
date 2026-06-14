@@ -233,7 +233,10 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 
 	if len(files) == 0 {
-		return nil, fmt.Errorf("no Python files found in the specified paths")
+		// No Python files to analyze is not a failure: emit an empty report and
+		// exit successfully, consistent with clone detection's empty-input handling.
+		tasks := uc.createAnalysisTasks(useCaseCfg, files, nil, executionCfg)
+		return uc.buildResponse(tasks, startTime), nil
 	}
 
 	// Estimate per-task durations from file count, then calibrate with actual
@@ -605,26 +608,13 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		summary.ClonePairs = response.Clone.Statistics.TotalClonePairs
 		summary.CloneGroups = response.Clone.Statistics.TotalCloneGroups
 
-		// Calculate code duplication based on K-Core clone groups
-		// K-Core groups represent true duplication clusters where each fragment
-		// is similar to at least k other fragments (default k=2)
-		// This filters out false positives from structural similarity
-		totalLines := response.Clone.Statistics.LinesAnalyzed
-		groupCount := response.Clone.Statistics.TotalCloneGroups
+		// Calculate code duplication based on fragment ratio
+		// Measures what proportion of all code fragments are involved in duplication
+		totalFragments := response.Clone.Statistics.TotalFragments
+		totalClones := response.Clone.Statistics.TotalClones
 
-		if totalLines > 0 && groupCount > 0 {
-			// Calculate group density: groups per 1000 lines of code
-			// This normalizes for project size
-			linesInThousands := float64(totalLines) / domain.GroupDensityLinesUnit
-			if linesInThousands < domain.GroupDensityMinLines {
-				linesInThousands = domain.GroupDensityMinLines
-			}
-			groupDensity := float64(groupCount) / linesInThousands
-
-			// Convert density to percentage for penalty calculation
-			// 0.5 groups/1000 lines = 10% duplication (max penalty)
-			// This makes the scoring stricter for duplicate code clusters
-			summary.CodeDuplication = math.Min(domain.DuplicationThresholdHigh, groupDensity*domain.GroupDensityCoefficient)
+		if totalFragments > 0 && totalClones > 0 {
+			summary.CodeDuplication = math.Min(domain.DuplicationThresholdHigh, float64(totalClones)/float64(totalFragments)*100)
 		}
 	}
 

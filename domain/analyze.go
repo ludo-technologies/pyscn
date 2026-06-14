@@ -56,20 +56,13 @@ const (
 	ComplexityPenaltyLow      = 6
 
 	// Code duplication thresholds and penalties
-	// 0% = perfect, 10% = max penalty
-	DuplicationThresholdHigh   = 10.0
-	DuplicationThresholdMedium = 5.0
+	// 0% = perfect, 30% = max penalty (using fragment ratio: clonedFragments/totalFragments)
+	DuplicationThresholdHigh   = 30.0
+	DuplicationThresholdMedium = 15.0
 	DuplicationThresholdLow    = 0.0
 	DuplicationPenaltyHigh     = 20
 	DuplicationPenaltyMedium   = 12
 	DuplicationPenaltyLow      = 6
-
-	// K-Core group density calculation constants
-	// Group density = groups / (lines / GroupDensityLinesUnit)
-	// CodeDuplication% = min(DuplicationThresholdHigh, density * GroupDensityCoefficient)
-	GroupDensityLinesUnit   = 1000.0 // Calculate density per 1000 lines
-	GroupDensityMinLines    = 1.0    // Minimum lines in thousands (for small projects)
-	GroupDensityCoefficient = 20.0   // Multiplier to convert density to percentage
 
 	// CBO coupling scoring curve (used by calculateCouplingPenalty)
 	// Penalty grows linearly with the weighted ratio of problematic classes
