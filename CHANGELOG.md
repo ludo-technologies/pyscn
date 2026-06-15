@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.24.2] - 2026-06-15
+
+### Changed
+- Use cognitive complexity metrics for complexity risk assessment (#552)
+- Change duplication metric from group density to fragment ratio (#555)
+
+### Fixed
+- Prefer highest-similarity clone type for group classification (#556)
+- Group namespace import members so CBO isn't inflated by member explosion (#554)
+
 ## [1.24.1] - 2026-06-13
 
 ### Fixed
