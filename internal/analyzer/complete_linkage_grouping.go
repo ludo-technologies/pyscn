@@ -137,7 +137,7 @@ func (c *CompleteLinkageGrouping) buildGroups(activeClusters []*completeLinkageC
 			group.AddFragment(fragment)
 		}
 		group.Similarity = averageGroupSimilarity(similarities, sortedMembers)
-		group.CloneType = majorityCloneType(types, sortedMembers)
+		group.CloneType = majorityCloneType(types, similarities, sortedMembers)
 		groups = append(groups, group)
 	}
 

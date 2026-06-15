@@ -142,7 +142,7 @@ func (k *KCoreGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 			g.AddFragment(f)
 		}
 		g.Similarity = averageGroupSimilarity(simMap, component)
-		g.CloneType = majorityCloneType(typeMap, component)
+		g.CloneType = majorityCloneType(typeMap, simMap, component)
 		groups = append(groups, g)
 	}
 

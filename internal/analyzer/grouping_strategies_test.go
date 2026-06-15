@@ -114,10 +114,52 @@ func TestMajorityCloneType_TieBreaksDeterministically(t *testing.T) {
 		pairKey(a, d): Type3Clone,
 		pairKey(b, c): Type1Clone,
 	}
+	simMap := map[string]float64{
+		pairKey(a, b): 0.9,
+		pairKey(a, c): 0.9,
+		pairKey(a, d): 0.9,
+		pairKey(b, c): 0.9,
+	}
 
-	got := majorityCloneType(typeMap, members)
+	got := majorityCloneType(typeMap, simMap, members)
 	if got != Type1Clone {
 		t.Fatalf("expected deterministic lower clone-type tie break, got %v", got)
+	}
+}
+
+// TestMajorityCloneType_PrefersHighSimilarityPair ensures a connected component
+// whose strongest edge is a high-similarity Type-2 pair is reported as Type-2
+// even when weaker Type-3 transitive edges outnumber it. This is the core
+// classification fix for issue #525 (clone pairs lost as Type-3 groups).
+func TestMajorityCloneType_PrefersHighSimilarityPair(t *testing.T) {
+	a := gf("a.py", 1, 3)
+	b := gf("b.py", 1, 3)
+	c := gf("c.py", 1, 3)
+	d := gf("d.py", 1, 3)
+
+	members := []*CodeFragment{a, b, c, d}
+	// One strong Type-2 edge (the real clone pair) and many weaker Type-3 edges
+	// that happen to transitively connect the same component.
+	typeMap := map[string]CloneType{
+		pairKey(a, b): Type2Clone,
+		pairKey(a, c): Type3Clone,
+		pairKey(a, d): Type3Clone,
+		pairKey(b, c): Type3Clone,
+		pairKey(b, d): Type3Clone,
+		pairKey(c, d): Type3Clone,
+	}
+	simMap := map[string]float64{
+		pairKey(a, b): 0.96, // high-sim Type-2 clone pair
+		pairKey(a, c): 0.85,
+		pairKey(a, d): 0.85,
+		pairKey(b, c): 0.85,
+		pairKey(b, d): 0.85,
+		pairKey(c, d): 0.85,
+	}
+
+	got := majorityCloneType(typeMap, simMap, members)
+	if got != Type2Clone {
+		t.Fatalf("expected Type-2 from the highest-similarity edge, got %v", got)
 	}
 }
 

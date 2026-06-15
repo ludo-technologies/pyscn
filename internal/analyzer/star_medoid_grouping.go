@@ -166,7 +166,7 @@ func (s *StarMedoidGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 		}
 		// Compute average similarity from cache among group members
 		group.Similarity = averageGroupSimilarity(simMap, filtered)
-		group.CloneType = majorityCloneType(typeMap, filtered)
+		group.CloneType = majorityCloneType(typeMap, simMap, filtered)
 		result = append(result, group)
 	}
 

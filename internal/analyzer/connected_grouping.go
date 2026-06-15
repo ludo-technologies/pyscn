@@ -117,7 +117,7 @@ func (c *ConnectedGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 		// Compute average similarity using cached pairs among members
 		g.Similarity = averageGroupSimilarity(simMap, members)
 		// Determine predominant clone type from within-group available pairs
-		g.CloneType = majorityCloneType(typeMap, members)
+		g.CloneType = majorityCloneType(typeMap, simMap, members)
 		groups = append(groups, g)
 	}
 
@@ -138,29 +138,31 @@ func (c *ConnectedGrouping) GroupClones(pairs []*ClonePair) []*CloneGroup {
 	return groups
 }
 
-// majorityCloneType chooses the most frequent CloneType among all pair edges in members.
-func majorityCloneType(typeMap map[string]CloneType, members []*CodeFragment) CloneType {
-	counts := make(map[CloneType]int)
+// majorityCloneType chooses the CloneType of the highest-similarity pair edge in
+// members. When several pairs share the maximum similarity, the most strict
+// (lowest enum) type wins. This prevents a high-similarity Type-2/Type-4 pair
+// from being hidden when lower-similarity Type-3 transitive edges outnumber it
+// in the same connected component (issue #525).
+func majorityCloneType(typeMap map[string]CloneType, simMap map[string]float64, members []*CodeFragment) CloneType {
+	maxSim := -1.0
+	var best CloneType
+	found := false
 	for i := 0; i < len(members); i++ {
 		for j := i + 1; j < len(members); j++ {
 			key := pairKey(members[i], members[j])
-			if t, ok := typeMap[key]; ok {
-				if t == 0 {
-					continue
-				}
-				counts[t]++
+			t, tok := typeMap[key]
+			s, sok := simMap[key]
+			if !tok || !sok || t == 0 {
+				continue
+			}
+			found = true
+			if s > maxSim || (almostEqual(s, maxSim) && t < best) {
+				maxSim = s
+				best = t
 			}
 		}
 	}
-	var best CloneType
-	maxC := -1
-	for t, c := range counts {
-		if c > maxC || (c == maxC && t < best) {
-			maxC = c
-			best = t
-		}
-	}
-	if maxC < 0 {
+	if !found {
 		return Type4Clone // conservative fallback: never report unknown as Type-1
 	}
 	return best

@@ -1037,3 +1037,120 @@ func TestCloneDetector_EdgeCases(t *testing.T) {
 	assert.Empty(t, pairs, "Should handle fragments without tree nodes gracefully")
 	assert.Empty(t, groups, "Should handle fragments without tree nodes gracefully")
 }
+
+// TestCloneDetector_PairsPromotedToGroups is a regression test for issue #525.
+// Every detected clone pair whose similarity is at or above the configured
+// grouping threshold must have both of its fragments present in at least one
+// emitted clone group. Otherwise the pair is silently lost from the
+// refactoring-facing group output.
+func TestCloneDetector_PairsPromotedToGroups(t *testing.T) {
+	src := `class Agg:
+    async def sum(self, field, session=None, ignore_cache=False):
+        pipeline = [
+            {"$match": self._build_match(session, ignore_cache)},
+            {"$group": {"_id": None, "v": {"$sum": f"${field}"}}},
+        ]
+        result = await self.aggregate(pipeline, session=session)
+        if result and len(result) > 0:
+            return result[0]["v"]
+        return None
+
+    async def avg(self, field, session=None, ignore_cache=False):
+        pipeline = [
+            {"$match": self._build_match(session, ignore_cache)},
+            {"$group": {"_id": None, "v": {"$avg": f"${field}"}}},
+        ]
+        result = await self.aggregate(pipeline, session=session)
+        if result and len(result) > 0:
+            return result[0]["v"]
+        return None
+
+    async def max(self, field, session=None, ignore_cache=False):
+        pipeline = [
+            {"$match": self._build_match(session, ignore_cache)},
+            {"$group": {"_id": None, "v": {"$max": f"${field}"}}},
+        ]
+        result = await self.aggregate(pipeline, session=session)
+        if result and len(result) > 0:
+            return result[0]["v"]
+        return None
+
+    async def min(self, field, session=None, ignore_cache=False):
+        pipeline = [
+            {"$match": self._build_match(session, ignore_cache)},
+            {"$group": {"_id": None, "v": {"$min": f"${field}"}}},
+        ]
+        result = await self.aggregate(pipeline, session=session)
+        if result and len(result) > 0:
+            return result[0]["v"]
+        return None
+`
+
+	pyParser := parser.New()
+	parseResult, err := pyParser.Parse(t.Context(), []byte(src))
+	require.NoError(t, err)
+	require.NotNil(t, parseResult)
+	require.NotNil(t, parseResult.AST)
+
+	cfg := DefaultCloneDetectorConfig()
+	cfg.GroupingThreshold = domain.DefaultType4CloneThreshold
+	detector := NewCloneDetector(cfg)
+	fragments := detector.ExtractFragmentsWithSource([]*parser.Node{parseResult.AST}, "/test/aggregation.py", []byte(src))
+	require.GreaterOrEqual(t, len(fragments), 4, "expected at least the four aggregation methods as fragments")
+
+	pairs, groups := detector.DetectClones(fragments)
+	require.NotEmpty(t, pairs, "expected clone pairs to be detected")
+	require.NotEmpty(t, groups, "expected clone groups to be emitted")
+
+	// Build a location-keyed set of group members.
+	groupMemberKeys := make(map[string]struct{})
+	for _, g := range groups {
+		for _, f := range g.Fragments {
+			groupMemberKeys[fragmentLocationKey(f)] = struct{}{}
+		}
+	}
+
+	missing := 0
+	for _, p := range pairs {
+		if p == nil || p.Fragment1 == nil || p.Fragment2 == nil {
+			continue
+		}
+		if p.Similarity < cfg.GroupingThreshold {
+			continue
+		}
+		pairInGroup := false
+		for _, g := range groups {
+			if groupContainsFragment(g, p.Fragment1) && groupContainsFragment(g, p.Fragment2) {
+				pairInGroup = true
+				break
+			}
+		}
+		if !pairInGroup {
+			missing++
+			t.Logf("pair not in any group: %s <-> %s (sim=%.3f type=%v)",
+				fragmentLocationKey(p.Fragment1), fragmentLocationKey(p.Fragment2), p.Similarity, p.CloneType)
+		}
+	}
+	require.Zero(t, missing, "%d clone pair(s) above the grouping threshold are absent from all groups", missing)
+}
+
+func fragmentLocationKey(f *CodeFragment) string {
+	if f == nil || f.Location == nil {
+		return ""
+	}
+	loc := f.Location
+	return fmt.Sprintf("%s|%d|%d", loc.FilePath, loc.StartLine, loc.EndLine)
+}
+
+func groupContainsFragment(g *CloneGroup, f *CodeFragment) bool {
+	if g == nil || f == nil {
+		return false
+	}
+	key := fragmentLocationKey(f)
+	for _, member := range g.Fragments {
+		if fragmentLocationKey(member) == key {
+			return true
+		}
+	}
+	return false
+}
