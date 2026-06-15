@@ -152,6 +152,24 @@ class ClassWithProperty:
 			expectedRisk:  map[string]string{"ClassWithProperty": "low"},
 		},
 		{
+			name: "method consuming a property is connected via property-call edge",
+			pythonCode: `
+class PropertyConsumer:
+    def __init__(self):
+        self._x = 1
+
+    @property
+    def value(self):
+        return self._x
+
+    def use(self):
+        return self.value + 1
+`,
+			expectedCount: 1,
+			expectedLCOM:  map[string]int{"PropertyConsumer": 1},
+			expectedRisk:  map[string]string{"PropertyConsumer": "low"},
+		},
+		{
 			name: "single method class is trivially cohesive",
 			pythonCode: `
 class SingleMethodClass:
