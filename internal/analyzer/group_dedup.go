@@ -290,7 +290,7 @@ func clonePairMetadata(pairs []*ClonePair) (map[string]float64, map[string]Clone
 
 func refreshGroupMetadata(group *CloneGroup, similarities map[string]float64, cloneTypes map[string]CloneType) {
 	group.Similarity = averageGroupSimilarity(similarities, group.Fragments)
-	group.CloneType = majorityCloneType(cloneTypes, group.Fragments)
+	group.CloneType = majorityCloneType(cloneTypes, similarities, group.Fragments)
 }
 
 func filterClonePairsWithSuppressedMembers(pairs []*ClonePair, suppressed map[*CodeFragment]struct{}) []*ClonePair {

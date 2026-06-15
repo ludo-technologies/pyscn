@@ -406,7 +406,7 @@ func referenceCompleteLinkageGroups(threshold float64, pairs []*ClonePair) []*Cl
 			group.AddFragment(fragment)
 		}
 		group.Similarity = averageGroupSimilarity(sims, cluster)
-		group.CloneType = majorityCloneType(types, cluster)
+		group.CloneType = majorityCloneType(types, sims, cluster)
 		groups = append(groups, group)
 	}
 
