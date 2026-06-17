@@ -83,20 +83,23 @@ func (c *ConfigurationLoaderImpl) MergeConfig(base *domain.ComplexityRequest, ov
 		merged.SortBy = override.SortBy
 	}
 
-	// Complexity thresholds - override if non-default
-	if override.LowThreshold != domain.DefaultComplexityLowThreshold && override.LowThreshold > 0 {
+	// Complexity thresholds - override whenever a positive value is supplied.
+	// A zero value means the caller did not set the field, so the base wins.
+	// Do NOT compare against domain defaults: an explicit override that happens
+	// to equal the default must still take precedence (issue #553).
+	if override.LowThreshold > 0 {
 		merged.LowThreshold = override.LowThreshold
 	}
 
-	if override.MediumThreshold != domain.DefaultComplexityMediumThreshold && override.MediumThreshold > 0 {
+	if override.MediumThreshold > 0 {
 		merged.MediumThreshold = override.MediumThreshold
 	}
 
-	if override.CognitiveComplexityThreshold != domain.DefaultCognitiveComplexityThreshold && override.CognitiveComplexityThreshold > 0 {
+	if override.CognitiveComplexityThreshold > 0 {
 		merged.CognitiveComplexityThreshold = override.CognitiveComplexityThreshold
 	}
 
-	if override.NestingDepthThreshold != domain.DefaultNestingDepthThreshold && override.NestingDepthThreshold > 0 {
+	if override.NestingDepthThreshold > 0 {
 		merged.NestingDepthThreshold = override.NestingDepthThreshold
 	}
 

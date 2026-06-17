@@ -86,6 +86,8 @@ func (c *ConfigurationLoaderWithFlags) MergeConfig(base *domain.ComplexityReques
 	// Complexity thresholds
 	merged.LowThreshold = c.flagTracker.MergeInt(merged.LowThreshold, override.LowThreshold, "low-threshold")
 	merged.MediumThreshold = c.flagTracker.MergeInt(merged.MediumThreshold, override.MediumThreshold, "medium-threshold")
+	merged.CognitiveComplexityThreshold = c.flagTracker.MergeInt(merged.CognitiveComplexityThreshold, override.CognitiveComplexityThreshold, "cognitive-complexity-threshold")
+	merged.NestingDepthThreshold = c.flagTracker.MergeInt(merged.NestingDepthThreshold, override.NestingDepthThreshold, "nesting-depth-threshold")
 
 	// Config path is always from override if provided
 	if override.ConfigPath != "" {
