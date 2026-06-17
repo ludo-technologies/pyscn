@@ -498,3 +498,76 @@ show_content = true
 		t.Fatal("expected show_content from config to be preserved")
 	}
 }
+
+// TestBuildComplexityTaskRequest_ThresholdOverrides verifies that CLI flag
+// values (> 0) in AnalyzeUseCaseConfig take precedence over execution config
+// values, and that zero (unset) falls back to execution config. This is the
+// runtime counterpart to the MergeConfig fix for issue #553.
+func TestBuildComplexityTaskRequest_ThresholdOverrides(t *testing.T) {
+	uc := &AnalyzeUseCase{}
+
+	executionCfg := domain.AnalyzeExecutionConfig{
+		ComplexityLowThreshold:       10,
+		ComplexityMediumThreshold:    20,
+		CognitiveComplexityThreshold: 30,
+		NestingDepthThreshold:        11,
+	}
+
+	t.Run("CLI flags override execution config", func(t *testing.T) {
+		config := AnalyzeUseCaseConfig{
+			LowThreshold:                 9,
+			MediumThreshold:              19,
+			CognitiveComplexityThreshold: 25,
+			NestingDepthThreshold:        7,
+		}
+		req := uc.buildComplexityTaskRequest(config, []string{"test.py"}, executionCfg)
+
+		if req.LowThreshold != 9 {
+			t.Errorf("LowThreshold: expected 9 (CLI), got %d", req.LowThreshold)
+		}
+		if req.MediumThreshold != 19 {
+			t.Errorf("MediumThreshold: expected 19 (CLI), got %d", req.MediumThreshold)
+		}
+		if req.CognitiveComplexityThreshold != 25 {
+			t.Errorf("CognitiveComplexityThreshold: expected 25 (CLI), got %d", req.CognitiveComplexityThreshold)
+		}
+		if req.NestingDepthThreshold != 7 {
+			t.Errorf("NestingDepthThreshold: expected 7 (CLI), got %d", req.NestingDepthThreshold)
+		}
+	})
+
+	t.Run("zero flags fall back to execution config", func(t *testing.T) {
+		config := AnalyzeUseCaseConfig{}
+		req := uc.buildComplexityTaskRequest(config, []string{"test.py"}, executionCfg)
+
+		if req.LowThreshold != 10 {
+			t.Errorf("LowThreshold: expected 10 (exec), got %d", req.LowThreshold)
+		}
+		if req.MediumThreshold != 20 {
+			t.Errorf("MediumThreshold: expected 20 (exec), got %d", req.MediumThreshold)
+		}
+		if req.CognitiveComplexityThreshold != 30 {
+			t.Errorf("CognitiveComplexityThreshold: expected 30 (exec), got %d", req.CognitiveComplexityThreshold)
+		}
+		if req.NestingDepthThreshold != 11 {
+			t.Errorf("NestingDepthThreshold: expected 11 (exec), got %d", req.NestingDepthThreshold)
+		}
+	})
+
+	t.Run("partial override only affects set flags", func(t *testing.T) {
+		config := AnalyzeUseCaseConfig{
+			CognitiveComplexityThreshold: 25,
+		}
+		req := uc.buildComplexityTaskRequest(config, []string{"test.py"}, executionCfg)
+
+		if req.LowThreshold != 10 {
+			t.Errorf("LowThreshold: expected 10 (exec), got %d", req.LowThreshold)
+		}
+		if req.CognitiveComplexityThreshold != 25 {
+			t.Errorf("CognitiveComplexityThreshold: expected 25 (CLI), got %d", req.CognitiveComplexityThreshold)
+		}
+		if req.NestingDepthThreshold != 11 {
+			t.Errorf("NestingDepthThreshold: expected 11 (exec), got %d", req.NestingDepthThreshold)
+		}
+	})
+}
