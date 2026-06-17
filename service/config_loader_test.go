@@ -109,6 +109,58 @@ func TestConfigurationLoader_MergeConfig_Thresholds(t *testing.T) {
 	assert.Equal(t, 25, merged.MediumThreshold)
 }
 
+// TestConfigurationLoader_MergeConfig_ThresholdOverrideMatchesDefault is a
+// regression test for issue #553: an explicit override that happens to equal
+// the domain default must still win over the base value.
+func TestConfigurationLoader_MergeConfig_ThresholdOverrideMatchesDefault(t *testing.T) {
+	loader := NewConfigurationLoader()
+
+	base := &domain.ComplexityRequest{
+		LowThreshold:                 10,
+		MediumThreshold:              20,
+		CognitiveComplexityThreshold: 30,
+		NestingDepthThreshold:        11,
+	}
+
+	override := &domain.ComplexityRequest{
+		LowThreshold:                 domain.DefaultComplexityLowThreshold,       // 9
+		MediumThreshold:              domain.DefaultComplexityMediumThreshold,    // 19
+		CognitiveComplexityThreshold: domain.DefaultCognitiveComplexityThreshold, // 25
+		NestingDepthThreshold:        domain.DefaultNestingDepthThreshold,        // 7
+	}
+
+	merged := loader.MergeConfig(base, override)
+	assert.Equal(t, domain.DefaultComplexityLowThreshold, merged.LowThreshold,
+		"explicit override matching default should win over base")
+	assert.Equal(t, domain.DefaultComplexityMediumThreshold, merged.MediumThreshold,
+		"explicit override matching default should win over base")
+	assert.Equal(t, domain.DefaultCognitiveComplexityThreshold, merged.CognitiveComplexityThreshold,
+		"explicit override matching default should win over base")
+	assert.Equal(t, domain.DefaultNestingDepthThreshold, merged.NestingDepthThreshold,
+		"explicit override matching default should win over base")
+}
+
+// TestConfigurationLoader_MergeConfig_ThresholdZeroPreservesBase verifies that
+// a zero (unset) override leaves the base value intact.
+func TestConfigurationLoader_MergeConfig_ThresholdZeroPreservesBase(t *testing.T) {
+	loader := NewConfigurationLoader()
+
+	base := &domain.ComplexityRequest{
+		LowThreshold:                 10,
+		MediumThreshold:              20,
+		CognitiveComplexityThreshold: 30,
+		NestingDepthThreshold:        11,
+	}
+
+	override := &domain.ComplexityRequest{}
+
+	merged := loader.MergeConfig(base, override)
+	assert.Equal(t, 10, merged.LowThreshold)
+	assert.Equal(t, 20, merged.MediumThreshold)
+	assert.Equal(t, 30, merged.CognitiveComplexityThreshold)
+	assert.Equal(t, 11, merged.NestingDepthThreshold)
+}
+
 func TestConfigurationLoader_MergeConfig_Patterns(t *testing.T) {
 	loader := NewConfigurationLoader()
 
