@@ -20,7 +20,8 @@ func TestType4CloneDetection(t *testing.T) {
 	detector := NewCloneDetector(config)
 	allFragments, functionFragments := loadType4FunctionFragments(t, detector)
 
-	pairs, groups := detector.DetectClones(allFragments)
+	result := detector.DetectClones(allFragments)
+	pairs, groups := result.Pairs, result.Groups
 	require.NotEmpty(t, pairs)
 	require.NotEmpty(t, groups)
 

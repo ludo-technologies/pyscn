@@ -831,7 +831,8 @@ func TestCloneDetector_DetectClones(t *testing.T) {
 			detector := NewCloneDetector(tt.config)
 
 			// Detect clones
-			pairs, groups := detector.DetectClones(tt.fragments)
+			result := detector.DetectClones(tt.fragments)
+			pairs, groups := result.Pairs, result.Groups
 
 			assert.Len(t, pairs, tt.expectedPairs, tt.description+" - pairs count")
 			assert.Len(t, groups, tt.expectedGroups, tt.description+" - groups count")
@@ -1011,7 +1012,8 @@ func TestCloneDetector_EdgeCases(t *testing.T) {
 
 	// Test with empty fragments
 	emptyFragments := []*CodeFragment{}
-	pairs, groups := detector.DetectClones(emptyFragments)
+	result := detector.DetectClones(emptyFragments)
+	pairs, groups := result.Pairs, result.Groups
 	assert.Empty(t, pairs, "Should return empty pairs for empty input")
 	assert.Empty(t, groups, "Should return empty groups for empty input")
 
@@ -1024,7 +1026,8 @@ func TestCloneDetector_EdgeCases(t *testing.T) {
 			LineCount: 5,
 		},
 	}
-	pairs, groups = detector.DetectClones(singleFragment)
+	result = detector.DetectClones(singleFragment)
+	pairs, groups = result.Pairs, result.Groups
 	assert.Empty(t, pairs, "Should return empty pairs for single fragment")
 	assert.Empty(t, groups, "Should return empty groups for single fragment")
 
@@ -1033,7 +1036,8 @@ func TestCloneDetector_EdgeCases(t *testing.T) {
 		{Location: &CodeLocation{FilePath: "/test1.py"}, TreeNode: nil},
 		{Location: &CodeLocation{FilePath: "/test2.py"}, TreeNode: nil},
 	}
-	pairs, groups = detector.DetectClones(fragmentsWithoutTrees)
+	result = detector.DetectClones(fragmentsWithoutTrees)
+	pairs, groups = result.Pairs, result.Groups
 	assert.Empty(t, pairs, "Should handle fragments without tree nodes gracefully")
 	assert.Empty(t, groups, "Should handle fragments without tree nodes gracefully")
 }
@@ -1098,7 +1102,8 @@ func TestCloneDetector_PairsPromotedToGroups(t *testing.T) {
 	fragments := detector.ExtractFragmentsWithSource([]*parser.Node{parseResult.AST}, "/test/aggregation.py", []byte(src))
 	require.GreaterOrEqual(t, len(fragments), 4, "expected at least the four aggregation methods as fragments")
 
-	pairs, groups := detector.DetectClones(fragments)
+	result := detector.DetectClones(fragments)
+	pairs, groups := result.Pairs, result.Groups
 	require.NotEmpty(t, pairs, "expected clone pairs to be detected")
 	require.NotEmpty(t, groups, "expected clone groups to be emitted")
 

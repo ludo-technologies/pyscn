@@ -39,9 +39,11 @@ func benchmarkCloneDetectionMode(b *testing.B, name string, config *CloneDetecto
 			var pairs []*ClonePair
 			var groups []*CloneGroup
 			if config.UseLSH {
-				pairs, groups = detector.DetectClonesWithLSH(ctx, fragments)
+				result := detector.DetectClonesWithLSH(ctx, fragments)
+				pairs, groups = result.Pairs, result.Groups
 			} else {
-				pairs, groups = detector.DetectClones(fragments)
+				result := detector.DetectClones(fragments)
+				pairs, groups = result.Pairs, result.Groups
 			}
 
 			if len(pairs) == 0 || len(groups) == 0 {
@@ -155,7 +157,7 @@ func BenchmarkCloneDetectionMemory(b *testing.B) {
 				detector := NewCloneDetector(cloneBenchmarkConfig(false))
 				detector.fragments = fragments
 				detector.clonePairs = nil
-				detector.DetectClones(detector.fragments)
+				_ = detector.DetectClones(detector.fragments)
 			}
 		})
 	}

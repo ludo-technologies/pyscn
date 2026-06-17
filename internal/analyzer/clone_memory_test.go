@@ -30,7 +30,7 @@ func TestCloneDetectorMemoryManagement(t *testing.T) {
 		runtime.ReadMemStats(&m1)
 
 		// Run detection
-		detector.DetectClones(detector.fragments)
+		_ = detector.DetectClones(detector.fragments)
 
 		// Measure memory after
 		runtime.ReadMemStats(&m2)
@@ -61,7 +61,7 @@ func TestCloneDetectorMemoryManagement(t *testing.T) {
 		startTime := time.Now()
 
 		// Run detection
-		detector.DetectClones(detector.fragments)
+		_ = detector.DetectClones(detector.fragments)
 		duration := time.Since(startTime)
 
 		// Measure memory after
@@ -104,7 +104,7 @@ func TestCloneDetectorMemoryManagement(t *testing.T) {
 			detector.cloneGroups = nil
 
 			// Run detection
-			detector.DetectClones(detector.fragments)
+			_ = detector.DetectClones(detector.fragments)
 
 			// Clear references to allow garbage collection
 			detector.fragments = nil
@@ -149,7 +149,7 @@ func TestCloneDetectorMemoryManagement(t *testing.T) {
 		detector.cloneGroups = nil
 
 		// Run detection
-		detector.DetectClones(detector.fragments)
+		_ = detector.DetectClones(detector.fragments)
 
 		// Should find pairs between similar-sized fragments
 		// and skip pairs between very different-sized fragments
@@ -190,14 +190,14 @@ func TestBatchingAlgorithmCorrectness(t *testing.T) {
 	// Test standard algorithm
 	detector1 := NewCloneDetector(config)
 	detector1.fragments = fragments
-	detector1.DetectClones(detector1.fragments)
+	_ = detector1.DetectClones(detector1.fragments)
 	standardPairs := detector1.clonePairs
 
 	// Test batching algorithm with small batch size
 	detector2 := NewCloneDetector(config)
 	detector2.fragments = fragments
 	detector2.SetBatchSizeLarge(30) // Small batch size for testing
-	detector2.DetectClones(detector2.fragments)
+	_ = detector2.DetectClones(detector2.fragments)
 	batchedPairs := detector2.clonePairs
 
 	// Both should find similar high-quality clone pairs
