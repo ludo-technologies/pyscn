@@ -188,14 +188,19 @@ func (a *CBOAnalyzer) analyzeClass(classNode *parser.Node, filePath string, allC
 
 	dependencies := newCBODependencies()
 
-	// 1. Analyze inheritance dependencies
+	// References that resolve, per Python scoping, to a class defined within
+	// this class are internal helpers, not coupling. See #547.
+	resolver := a.newNestedClassResolver(classNode)
+
+	// 1. Analyze inheritance dependencies (a base never resolves to a class
+	// nested inside its own body, so no exclusion is needed here).
 	a.analyzeInheritance(classNode, dependencies, result)
 
 	// 2. Analyze type hints in class body
-	a.analyzeTypeHints(classNode, dependencies, result)
+	a.analyzeTypeHints(classNode, dependencies, result, resolver)
 
 	// 3. Analyze instantiation and attribute access
-	a.analyzeInstantiationAndAccess(classNode, dependencies, result, allClasses)
+	a.analyzeInstantiationAndAccess(classNode, dependencies, result, allClasses, resolver)
 
 	// 4. Calculate final metrics
 	result.CouplingCount = len(dependencies.all)
@@ -230,7 +235,7 @@ func (a *CBOAnalyzer) analyzeInheritance(classNode *parser.Node, dependencies *c
 }
 
 // analyzeTypeHints analyzes type annotation dependencies
-func (a *CBOAnalyzer) analyzeTypeHints(classNode *parser.Node, dependencies *cboDependencies, result *CBOResult) {
+func (a *CBOAnalyzer) analyzeTypeHints(classNode *parser.Node, dependencies *cboDependencies, result *CBOResult, resolver *nestedClassResolver) {
 	// Walk through class body looking for type annotations
 	a.walkNode(classNode, func(node *parser.Node) bool {
 		switch node.Type {
@@ -239,12 +244,12 @@ func (a *CBOAnalyzer) analyzeTypeHints(classNode *parser.Node, dependencies *cbo
 			// Look for type annotation node - could be Name, Subscript, Attribute, etc.
 			for _, child := range node.Children {
 				if child != nil && a.isTypeAnnotation(child) {
-					a.extractTypeAnnotationDependencies(child, dependencies, result)
+					a.extractTypeAnnotationDependencies(child, dependencies, result, resolver)
 				}
 			}
 		case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
 			// Method with type annotations
-			a.analyzeMethodTypeHints(node, dependencies, result)
+			a.analyzeMethodTypeHints(node, dependencies, result, resolver)
 		}
 		return true
 	})
@@ -264,37 +269,37 @@ func (a *CBOAnalyzer) isTypeAnnotation(node *parser.Node) bool {
 }
 
 // extractTypeAnnotationDependencies extracts class dependencies from type annotations
-func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, dependencies *cboDependencies, result *CBOResult) {
+func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, dependencies *cboDependencies, result *CBOResult, resolver *nestedClassResolver) {
 	switch node.Type {
 	case parser.NodeName:
 		// Simple type: User
-		if node.Name != "" && a.shouldIncludeDependencyForClass(node.Name, result.ClassName) {
+		if node.Name != "" && a.shouldIncludeDependencyForClass(node.Name, result.ClassName) && !resolver.excludes(node, node.Name) {
 			a.addDependency(dependencies, node.Name, dependencyKindTypeHint)
 		}
 	case parser.NodeSubscript:
 		// Generic type: List[User], Dict[str, User]
 		// For generics, we want to extract the type parameters, not the container
 		for _, typeArg := range a.typeArgumentNodes(node) {
-			a.extractTypeAnnotationDependencies(typeArg, dependencies, result)
+			a.extractTypeAnnotationDependencies(typeArg, dependencies, result, resolver)
 		}
 	case parser.NodeAttribute:
 		// Module.Type: typing.List, mymodule.MyClass
 		typeName := a.extractClassName(node)
-		if typeName != "" && a.shouldIncludeDependencyForClass(typeName, result.ClassName) {
+		if typeName != "" && a.shouldIncludeDependencyForClass(typeName, result.ClassName) && !resolver.excludes(node, typeName) {
 			a.addDependency(dependencies, typeName, dependencyKindTypeHint)
 		}
 	case parser.NodeTuple, parser.NodeList:
 		// Multi-argument generic parameters: dict[str, User], tuple[A, B].
 		for _, child := range node.Children {
 			if child != nil && a.isTypeAnnotation(child) {
-				a.extractTypeAnnotationDependencies(child, dependencies, result)
+				a.extractTypeAnnotationDependencies(child, dependencies, result, resolver)
 			}
 		}
 	case parser.NodeTypeNode:
 		// Tree-sitter 'type' node - recurse into children
 		for _, child := range node.Children {
 			if child != nil && a.isTypeAnnotation(child) {
-				a.extractTypeAnnotationDependencies(child, dependencies, result)
+				a.extractTypeAnnotationDependencies(child, dependencies, result, resolver)
 			}
 		}
 	case parser.NodeGenericType:
@@ -302,14 +307,14 @@ func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, depen
 		// Look for type_parameter children to get the actual types we depend on
 		for _, child := range node.Children {
 			if child != nil && child.Type == parser.NodeTypeParameter {
-				a.extractTypeAnnotationDependencies(child, dependencies, result)
+				a.extractTypeAnnotationDependencies(child, dependencies, result, resolver)
 			}
 		}
 	case parser.NodeTypeParameter:
 		// Tree-sitter type_parameter node - recurse into children
 		for _, child := range node.Children {
 			if child != nil && a.isTypeAnnotation(child) {
-				a.extractTypeAnnotationDependencies(child, dependencies, result)
+				a.extractTypeAnnotationDependencies(child, dependencies, result, resolver)
 			}
 		}
 	case parser.NodeBinOp:
@@ -317,17 +322,17 @@ func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, depen
 		if node.Op == "|" {
 			// Extract dependencies from both sides of the union
 			if node.Left != nil {
-				a.extractTypeAnnotationDependencies(node.Left, dependencies, result)
+				a.extractTypeAnnotationDependencies(node.Left, dependencies, result, resolver)
 			}
 			if node.Right != nil {
-				a.extractTypeAnnotationDependencies(node.Right, dependencies, result)
+				a.extractTypeAnnotationDependencies(node.Right, dependencies, result, resolver)
 			}
 		}
 	}
 }
 
 // analyzeMethodTypeHints analyzes type hints in method signatures
-func (a *CBOAnalyzer) analyzeMethodTypeHints(methodNode *parser.Node, dependencies *cboDependencies, result *CBOResult) {
+func (a *CBOAnalyzer) analyzeMethodTypeHints(methodNode *parser.Node, dependencies *cboDependencies, result *CBOResult, resolver *nestedClassResolver) {
 	if methodNode.Name != "" {
 		result.Methods = append(result.Methods, methodNode.Name)
 	}
@@ -336,7 +341,7 @@ func (a *CBOAnalyzer) analyzeMethodTypeHints(methodNode *parser.Node, dependenci
 	for _, arg := range methodNode.Args {
 		if arg != nil && arg.Type == parser.NodeArg {
 			if arg.Right != nil && a.isTypeAnnotation(arg.Right) {
-				a.extractTypeAnnotationDependencies(arg.Right, dependencies, result)
+				a.extractTypeAnnotationDependencies(arg.Right, dependencies, result, resolver)
 			}
 		}
 	}
@@ -344,12 +349,20 @@ func (a *CBOAnalyzer) analyzeMethodTypeHints(methodNode *parser.Node, dependenci
 	// Analyze return type annotation
 	// Return type is stored in Right field (not Children) to avoid DFA interference
 	if methodNode.Right != nil && a.isTypeAnnotation(methodNode.Right) {
-		a.extractTypeAnnotationDependencies(methodNode.Right, dependencies, result)
+		a.extractTypeAnnotationDependencies(methodNode.Right, dependencies, result, resolver)
 	}
 }
 
 // analyzeInstantiationAndAccess analyzes object instantiation and attribute access
-func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, dependencies *cboDependencies, result *CBOResult, allClasses map[string]*parser.Node) {
+func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, dependencies *cboDependencies, result *CBOResult, allClasses map[string]*parser.Node, resolver *nestedClassResolver) {
+	// A reference that resolves to a class defined within this class (a local
+	// helper) is internal implementation, not coupling. Resolution is
+	// scope-aware, so a same-named class reached from a different scope still
+	// counts (see #547).
+	include := func(ref *parser.Node, dep string) bool {
+		return a.shouldIncludeDependencyForClass(dep, result.ClassName) && !resolver.excludes(ref, dep)
+	}
+
 	a.walkNode(classNode, func(node *parser.Node) bool {
 		switch node.Type {
 		case parser.NodeAssign:
@@ -359,7 +372,7 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 				if valueNode, ok := node.Value.(*parser.Node); ok {
 					if valueNode.Type == parser.NodeCall {
 						className := a.extractClassNameFromCallNode(valueNode)
-						if dep := a.callDependencyName(className, allClasses); dep != "" && a.shouldIncludeDependencyForClass(dep, result.ClassName) {
+						if dep := a.callDependencyName(className, allClasses); dep != "" && include(node, dep) {
 							a.addDependency(dependencies, dep, dependencyKindInstantiation)
 						}
 						// Note: function calls are NOT added to dependencies
@@ -370,7 +383,7 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 			// Function/class call - could be instantiation
 			// Use structural AST analysis instead of string parsing
 			className := a.extractClassNameFromCallNode(node)
-			if dep := a.callDependencyName(className, allClasses); dep != "" && a.shouldIncludeDependencyForClass(dep, result.ClassName) {
+			if dep := a.callDependencyName(className, allClasses); dep != "" && include(node, dep) {
 				a.addDependency(dependencies, dep, dependencyKindInstantiation)
 			}
 			// Note: function calls are NOT added to dependencies
@@ -384,7 +397,7 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 			// name resolves to a class reference, count it as coupling. The same
 			// heuristic used for calls avoids counting functions like os.getcwd.
 			attrName := a.extractClassName(node)
-			if dep := a.callDependencyName(attrName, allClasses); dep != "" && a.shouldIncludeDependencyForClass(dep, result.ClassName) {
+			if dep := a.callDependencyName(attrName, allClasses); dep != "" && include(node, dep) {
 				a.addDependency(dependencies, dep, dependencyKindAttributeAccess)
 				break
 			}
@@ -397,7 +410,7 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 			}
 			if objNode != nil {
 				objType := a.inferObjectType(objNode)
-				if a.isAttributeReceiverDependency(objType, allClasses) && a.shouldIncludeDependencyForClass(objType, result.ClassName) {
+				if a.isAttributeReceiverDependency(objType, allClasses) && include(node, objType) {
 					a.addDependency(dependencies, objType, dependencyKindAttributeAccess)
 				}
 			}
@@ -420,6 +433,112 @@ func (a *CBOAnalyzer) collectClasses(ast *parser.Node) map[string]*parser.Node {
 	})
 
 	return classes
+}
+
+// nestedClassDefs maps each class name to the class-definition nodes for
+// classes defined within classNode's subtree (its body, methods and nested
+// functions), excluding classNode itself.
+func (a *CBOAnalyzer) nestedClassDefs(classNode *parser.Node) map[string][]*parser.Node {
+	defs := make(map[string][]*parser.Node)
+	a.walkNode(classNode, func(node *parser.Node) bool {
+		if node != classNode && node.Type == parser.NodeClassDef && node.Name != "" {
+			defs[node.Name] = append(defs[node.Name], node)
+		}
+		return true
+	})
+	return defs
+}
+
+// buildParentMap records each node's parent across classNode's subtree so a
+// reference's lexical scope can be resolved without relying on
+// parser-populated Parent pointers.
+func (a *CBOAnalyzer) buildParentMap(classNode *parser.Node) map[*parser.Node]*parser.Node {
+	parents := make(map[*parser.Node]*parser.Node)
+	a.walkNode(classNode, func(node *parser.Node) bool {
+		for _, child := range node.GetChildren() {
+			if child != nil {
+				parents[child] = node
+			}
+		}
+		return true
+	})
+	return parents
+}
+
+// enclosingScope returns the nearest enclosing function of node, or classNode
+// if node is in the class body. Python class scope does not enclose its
+// methods, so the class body and a method are distinct scopes.
+func enclosingScope(node, classNode *parser.Node, parents map[*parser.Node]*parser.Node) *parser.Node {
+	for p := parents[node]; p != nil; p = parents[p] {
+		if p == classNode {
+			return classNode
+		}
+		if p.Type == parser.NodeFunctionDef || p.Type == parser.NodeAsyncFunctionDef {
+			return p
+		}
+	}
+	return classNode
+}
+
+// isWithin reports whether node lies in ancestor's subtree.
+func isWithin(node, ancestor *parser.Node, parents map[*parser.Node]*parser.Node) bool {
+	for p := parents[node]; p != nil; p = parents[p] {
+		if p == ancestor {
+			return true
+		}
+	}
+	return false
+}
+
+// resolvesToNestedClass reports whether a reference to name at ref resolves,
+// per Python scoping, to a class defined within classNode rather than to an
+// outer or top-level class. A function-local class is visible only within
+// its enclosing function's subtree; a class defined directly in classNode's
+// body is visible only in the class body, not in its methods. Only such
+// references are internal coupling and should be excluded (see #547); a
+// same-named class reached from a different scope is real coupling.
+func resolvesToNestedClass(ref *parser.Node, name string, classNode *parser.Node, nestedDefs map[string][]*parser.Node, parents map[*parser.Node]*parser.Node) bool {
+	for _, def := range nestedDefs[name] {
+		owner := enclosingScope(def, classNode, parents)
+		if owner == classNode {
+			// Defined in the class body: only class-body references resolve to it.
+			if enclosingScope(ref, classNode, parents) == classNode {
+				return true
+			}
+		} else if isWithin(ref, owner, parents) {
+			// Defined in a function: visible throughout that function's subtree.
+			return true
+		}
+	}
+	return false
+}
+
+// nestedClassResolver decides, scope-aware, whether a reference is to a class
+// defined within the analyzed class (internal coupling to exclude, see #547).
+// It is built once per class and shared across the dependency passes.
+type nestedClassResolver struct {
+	classNode  *parser.Node
+	nestedDefs map[string][]*parser.Node
+	parents    map[*parser.Node]*parser.Node
+}
+
+func (a *CBOAnalyzer) newNestedClassResolver(classNode *parser.Node) *nestedClassResolver {
+	nestedDefs := a.nestedClassDefs(classNode)
+	var parents map[*parser.Node]*parser.Node
+	if len(nestedDefs) > 0 {
+		// Only needed when there is something to exclude.
+		parents = a.buildParentMap(classNode)
+	}
+	return &nestedClassResolver{classNode: classNode, nestedDefs: nestedDefs, parents: parents}
+}
+
+// excludes reports whether a reference to name at ref resolves to a class
+// nested within the analyzed class and so must not be counted as coupling.
+func (r *nestedClassResolver) excludes(ref *parser.Node, name string) bool {
+	if len(r.nestedDefs) == 0 {
+		return false
+	}
+	return resolvesToNestedClass(ref, name, r.classNode, r.nestedDefs, r.parents)
 }
 
 // collectImports collects import statements and their aliases.
