@@ -224,6 +224,11 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 	calls := make(map[string]map[string]bool)
 	excluded := 0
 
+	// A bare `self.<name>` read of a @property is a method invocation via the
+	// descriptor protocol, not a field access. Collect property names first so
+	// such reads can be recorded as call edges instead of instance variables.
+	propertyNames := a.collectPropertyNames(classNode)
+
 	for _, node := range classNode.Body {
 		if node == nil {
 			continue
@@ -252,6 +257,18 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 		// Extract self.xxx() method calls
 		methodCalls := make(map[string]bool)
 		a.extractMethodCalls(node, methodCalls)
+
+		// Reclassify bare `self.<prop>` reads: a property access invokes the
+		// getter via the descriptor protocol, so it is a call edge to that
+		// property, not an instance-variable access. Leaving it as a variable
+		// isolates the consuming method and overcounts LCOM4.
+		for name := range propertyNames {
+			if name != node.Name && vars[name] {
+				methodCalls[name] = true
+				delete(vars, name)
+			}
+		}
+
 		calls[node.Name] = methodCalls
 	}
 
@@ -266,6 +283,43 @@ func (a *LCOMAnalyzer) isClassOrStaticMethod(funcNode *parser.Node) bool {
 		}
 		name := a.getDecoratorName(decorator)
 		if name == "classmethod" || name == "staticmethod" {
+			return true
+		}
+	}
+	return false
+}
+
+// collectPropertyNames returns the set of method names decorated with @property
+// in the class body. Reads of these via `self.<name>` are descriptor-protocol
+// method invocations rather than instance-variable accesses.
+func (a *LCOMAnalyzer) collectPropertyNames(classNode *parser.Node) map[string]bool {
+	names := make(map[string]bool)
+	for _, node := range classNode.Body {
+		if node == nil {
+			continue
+		}
+		if node.Type != parser.NodeFunctionDef && node.Type != parser.NodeAsyncFunctionDef {
+			continue
+		}
+		if a.isProperty(node) {
+			names[node.Name] = true
+		}
+	}
+	return names
+}
+
+// isProperty reports whether a method is a @property getter. Like
+// isClassOrStaticMethod, this matches the bare decorator name "property" only;
+// other property-like descriptors (cached_property, or dotted forms like
+// @functools.cached_property) are out of scope, matching how the rest of the
+// analyzer resolves decorators.
+func (a *LCOMAnalyzer) isProperty(funcNode *parser.Node) bool {
+	for _, decorator := range funcNode.Decorator {
+		if decorator == nil {
+			continue
+		}
+		name := a.getDecoratorName(decorator)
+		if name == "property" {
 			return true
 		}
 	}
