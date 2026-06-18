@@ -140,6 +140,28 @@ func (cg *CloneGroup) AddFragment(fragment *CodeFragment) {
 	cg.Size = len(cg.Fragments)
 }
 
+// CloneDetectionStatistics provides statistics computed during clone detection.
+// It tracks only the data the detector itself can derive from the fragment and
+// pair/group collections. Callers (e.g. service/clone_service.go) augment it
+// with file/line/node counts gathered while reading sources.
+type CloneDetectionStatistics struct {
+	TotalFragments    int
+	TotalClones       int
+	TotalClonePairs   int
+	TotalCloneGroups  int
+	ClonesByType      map[string]int
+	AverageSimilarity float64
+}
+
+// CloneDetectionResult bundles the detected clone pairs and groups with the
+// statistics derived from them. Wrapping the output prevents accidental use of
+// raw fragment counts where detected clone counts are required.
+type CloneDetectionResult struct {
+	Pairs      []*ClonePair
+	Groups     []*CloneGroup
+	Statistics *CloneDetectionStatistics
+}
+
 // CloneDetectorConfig holds configuration for clone detection
 type CloneDetectorConfig struct {
 	// Minimum number of lines for a code fragment to be considered
@@ -586,19 +608,19 @@ func isCancelled(ctx context.Context) bool {
 }
 
 // DetectClones detects clones in the given code fragments
-func (cd *CloneDetector) DetectClones(fragments []*CodeFragment) ([]*ClonePair, []*CloneGroup) {
+func (cd *CloneDetector) DetectClones(fragments []*CodeFragment) *CloneDetectionResult {
 	return cd.DetectClonesWithContext(context.Background(), fragments)
 }
 
 // DetectClonesWithContext detects clones with context support for cancellation
-func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments []*CodeFragment) ([]*ClonePair, []*CloneGroup) {
+func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments []*CodeFragment) *CloneDetectionResult {
 	cd.fragments = fragments
 	cd.clonePairs = []*ClonePair{}
 	cd.cloneGroups = []*CloneGroup{}
 
 	// Check for cancellation before starting
 	if isCancelled(ctx) {
-		return cd.clonePairs, cd.cloneGroups
+		return cd.buildCloneDetectionResult()
 	}
 
 	// Convert AST fragments to tree nodes
@@ -606,7 +628,7 @@ func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments 
 
 	// Check for cancellation after preparation
 	if isCancelled(ctx) {
-		return cd.clonePairs, cd.cloneGroups
+		return cd.buildCloneDetectionResult()
 	}
 
 	// Detect clone pairs with context
@@ -614,7 +636,7 @@ func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments 
 
 	// Check for cancellation before grouping
 	if isCancelled(ctx) {
-		return cd.clonePairs, cd.cloneGroups
+		return cd.buildCloneDetectionResult()
 	}
 
 	// Group related clones using configured strategy
@@ -641,12 +663,12 @@ func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments 
 	strategy := CreateGroupingStrategy(groupingConfig)
 	cd.groupClonesWithStrategy(strategy)
 
-	return cd.clonePairs, cd.cloneGroups
+	return cd.buildCloneDetectionResult()
 }
 
 // DetectClonesWithLSH runs a two-stage pipeline using LSH for candidate generation,
 // followed by APTED verification on candidates only. Falls back to exhaustive if misconfigured.
-func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*CodeFragment) ([]*ClonePair, []*CloneGroup) {
+func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*CodeFragment) *CloneDetectionResult {
 	// If not enabled, delegate to standard path
 	if cd == nil || !cd.cloneDetectorConfig.UseLSH {
 		return cd.DetectClonesWithContext(ctx, fragments)
@@ -657,14 +679,14 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 	cd.cloneGroups = []*CloneGroup{}
 
 	if isCancelled(ctx) {
-		return cd.clonePairs, cd.cloneGroups
+		return cd.buildCloneDetectionResult()
 	}
 
 	// Prepare TreeNodes for APTED and feature extraction
 	cd.prepareFragments()
 
 	if isCancelled(ctx) {
-		return cd.clonePairs, cd.cloneGroups
+		return cd.buildCloneDetectionResult()
 	}
 
 	// Stage 1: MinHash signatures from prepared clone features
@@ -810,7 +832,54 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 	strategy := CreateGroupingStrategy(groupingConfig)
 	cd.groupClonesWithStrategy(strategy)
 
-	return cd.clonePairs, cd.cloneGroups
+	return cd.buildCloneDetectionResult()
+}
+
+// buildCloneDetectionResult builds a CloneDetectionResult from the detector's
+// current state. It derives all statistics directly from the detected pairs and
+// groups so callers cannot accidentally pass a raw fragment count in their place.
+func (cd *CloneDetector) buildCloneDetectionResult() *CloneDetectionResult {
+	stats := &CloneDetectionStatistics{
+		TotalFragments:   len(cd.fragments),
+		TotalClonePairs:  len(cd.clonePairs),
+		TotalCloneGroups: len(cd.cloneGroups),
+		ClonesByType:     make(map[string]int),
+	}
+
+	seenFragments := make(map[*CodeFragment]struct{})
+	countFragment := func(f *CodeFragment) {
+		if f != nil {
+			seenFragments[f] = struct{}{}
+		}
+	}
+	for _, pair := range cd.clonePairs {
+		countFragment(pair.Fragment1)
+		countFragment(pair.Fragment2)
+		stats.ClonesByType[pair.CloneType.String()]++
+	}
+	for _, group := range cd.cloneGroups {
+		if group == nil {
+			continue
+		}
+		for _, f := range group.Fragments {
+			countFragment(f)
+		}
+	}
+	stats.TotalClones = len(seenFragments)
+
+	if len(cd.clonePairs) > 0 {
+		totalSim := 0.0
+		for _, pair := range cd.clonePairs {
+			totalSim += pair.Similarity
+		}
+		stats.AverageSimilarity = totalSim / float64(len(cd.clonePairs))
+	}
+
+	return &CloneDetectionResult{
+		Pairs:      cd.clonePairs,
+		Groups:     cd.cloneGroups,
+		Statistics: stats,
+	}
 }
 
 // prepareFragments converts AST fragments to tree nodes and populates clone features.
@@ -1149,31 +1218,21 @@ func (cd *CloneDetector) isOverlappingLocation(loc1, loc2 *CodeLocation) bool {
 	return !(loc1.EndLine < loc2.StartLine || loc2.EndLine < loc1.StartLine)
 }
 
-// GetStatistics returns clone detection statistics
+// GetStatistics returns clone detection statistics as a map for backward
+// compatibility with existing callers and tests. New code should prefer the
+// structured CloneDetectionResult returned by DetectClones* methods.
 func (cd *CloneDetector) GetStatistics() map[string]interface{} {
-	stats := make(map[string]interface{})
+	result := cd.buildCloneDetectionResult()
+	stats := result.Statistics
 
-	stats["total_fragments"] = len(cd.fragments)
-	stats["total_clone_pairs"] = len(cd.clonePairs)
-	stats["total_clone_groups"] = len(cd.cloneGroups)
+	m := make(map[string]interface{})
+	m["total_fragments"] = stats.TotalFragments
+	m["total_clone_pairs"] = stats.TotalClonePairs
+	m["total_clone_groups"] = stats.TotalCloneGroups
+	m["clone_types"] = stats.ClonesByType
+	m["average_similarity"] = stats.AverageSimilarity
 
-	// Count by clone type
-	typeCounts := make(map[string]int)
-	for _, pair := range cd.clonePairs {
-		typeCounts[pair.CloneType.String()]++
-	}
-	stats["clone_types"] = typeCounts
-
-	// Average similarity
-	if len(cd.clonePairs) > 0 {
-		totalSim := 0.0
-		for _, pair := range cd.clonePairs {
-			totalSim += pair.Similarity
-		}
-		stats["average_similarity"] = totalSim / float64(len(cd.clonePairs))
-	}
-
-	return stats
+	return m
 }
 
 // tryCreateClonePair attempts to create a clone pair if it meets similarity threshold
