@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.24.3] - 2026-06-21
+
+### Changed
+- Integrate clone statistics into detector result types (#561)
+
+### Fixed
+- Count self.<property> reads as method-call edges in LCOM (#558)
+
 ## [1.24.2] - 2026-06-15
 
 ### Changed
