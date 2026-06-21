@@ -240,11 +240,12 @@ func (a *CBOAnalyzer) analyzeTypeHints(classNode *parser.Node, dependencies *cbo
 	a.walkNode(classNode, func(node *parser.Node) bool {
 		switch node.Type {
 		case parser.NodeAnnAssign:
-			// Variable with type annotation: x: SomeType = value
-			// Look for type annotation node - could be Name, Subscript, Attribute, etc.
+			// Variable with type annotation: x: SomeType = value. A class-body
+			// or method-body annotation resolves at its own lexical scope, so
+			// no signature scope is forced here.
 			for _, child := range node.Children {
 				if child != nil && a.isTypeAnnotation(child) {
-					a.extractTypeAnnotationDependencies(child, dependencies, result, resolver)
+					a.extractTypeAnnotationDependencies(child, dependencies, result, resolver, nil)
 				}
 			}
 		case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
@@ -268,38 +269,42 @@ func (a *CBOAnalyzer) isTypeAnnotation(node *parser.Node) bool {
 		node.Type == parser.NodeBinOp // Union type: X | Y (Python 3.10+)
 }
 
-// extractTypeAnnotationDependencies extracts class dependencies from type annotations
-func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, dependencies *cboDependencies, result *CBOResult, resolver *nestedClassResolver) {
+// extractTypeAnnotationDependencies extracts class dependencies from type
+// annotations. sigScope is the Python evaluation scope for the annotation: nil
+// for a class-body or method-body annotation (resolved at the reference's own
+// lexical scope), or the method's defining scope for a method *signature*
+// annotation, which Python evaluates while the class body executes (see #547).
+func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, dependencies *cboDependencies, result *CBOResult, resolver *nestedClassResolver, sigScope *parser.Node) {
 	switch node.Type {
 	case parser.NodeName:
 		// Simple type: User
-		if node.Name != "" && a.shouldIncludeDependencyForClass(node.Name, result.ClassName) && !resolver.excludes(node, node.Name) {
+		if node.Name != "" && a.shouldIncludeDependencyForClass(node.Name, result.ClassName) && !resolver.annotationExcluded(node, node.Name, sigScope) {
 			a.addDependency(dependencies, node.Name, dependencyKindTypeHint)
 		}
 	case parser.NodeSubscript:
 		// Generic type: List[User], Dict[str, User]
 		// For generics, we want to extract the type parameters, not the container
 		for _, typeArg := range a.typeArgumentNodes(node) {
-			a.extractTypeAnnotationDependencies(typeArg, dependencies, result, resolver)
+			a.extractTypeAnnotationDependencies(typeArg, dependencies, result, resolver, sigScope)
 		}
 	case parser.NodeAttribute:
 		// Module.Type: typing.List, mymodule.MyClass
 		typeName := a.extractClassName(node)
-		if typeName != "" && a.shouldIncludeDependencyForClass(typeName, result.ClassName) && !resolver.excludes(node, typeName) {
+		if typeName != "" && a.shouldIncludeDependencyForClass(typeName, result.ClassName) && !resolver.annotationExcluded(node, typeName, sigScope) {
 			a.addDependency(dependencies, typeName, dependencyKindTypeHint)
 		}
 	case parser.NodeTuple, parser.NodeList:
 		// Multi-argument generic parameters: dict[str, User], tuple[A, B].
 		for _, child := range node.Children {
 			if child != nil && a.isTypeAnnotation(child) {
-				a.extractTypeAnnotationDependencies(child, dependencies, result, resolver)
+				a.extractTypeAnnotationDependencies(child, dependencies, result, resolver, sigScope)
 			}
 		}
 	case parser.NodeTypeNode:
 		// Tree-sitter 'type' node - recurse into children
 		for _, child := range node.Children {
 			if child != nil && a.isTypeAnnotation(child) {
-				a.extractTypeAnnotationDependencies(child, dependencies, result, resolver)
+				a.extractTypeAnnotationDependencies(child, dependencies, result, resolver, sigScope)
 			}
 		}
 	case parser.NodeGenericType:
@@ -307,14 +312,14 @@ func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, depen
 		// Look for type_parameter children to get the actual types we depend on
 		for _, child := range node.Children {
 			if child != nil && child.Type == parser.NodeTypeParameter {
-				a.extractTypeAnnotationDependencies(child, dependencies, result, resolver)
+				a.extractTypeAnnotationDependencies(child, dependencies, result, resolver, sigScope)
 			}
 		}
 	case parser.NodeTypeParameter:
 		// Tree-sitter type_parameter node - recurse into children
 		for _, child := range node.Children {
 			if child != nil && a.isTypeAnnotation(child) {
-				a.extractTypeAnnotationDependencies(child, dependencies, result, resolver)
+				a.extractTypeAnnotationDependencies(child, dependencies, result, resolver, sigScope)
 			}
 		}
 	case parser.NodeBinOp:
@@ -322,13 +327,24 @@ func (a *CBOAnalyzer) extractTypeAnnotationDependencies(node *parser.Node, depen
 		if node.Op == "|" {
 			// Extract dependencies from both sides of the union
 			if node.Left != nil {
-				a.extractTypeAnnotationDependencies(node.Left, dependencies, result, resolver)
+				a.extractTypeAnnotationDependencies(node.Left, dependencies, result, resolver, sigScope)
 			}
 			if node.Right != nil {
-				a.extractTypeAnnotationDependencies(node.Right, dependencies, result, resolver)
+				a.extractTypeAnnotationDependencies(node.Right, dependencies, result, resolver, sigScope)
 			}
 		}
 	}
+}
+
+// annotationExcluded reports whether a type-annotation reference resolves to a
+// nested class and so must not be counted as coupling. When sigScope is set
+// (a method signature annotation) the name is resolved in that fixed scope;
+// otherwise it is resolved at the reference's own lexical scope.
+func (r *nestedClassResolver) annotationExcluded(ref *parser.Node, name string, sigScope *parser.Node) bool {
+	if sigScope != nil {
+		return r.excludesInScope(name, sigScope)
+	}
+	return r.excludes(ref, name)
 }
 
 // analyzeMethodTypeHints analyzes type hints in method signatures
@@ -337,11 +353,17 @@ func (a *CBOAnalyzer) analyzeMethodTypeHints(methodNode *parser.Node, dependenci
 		result.Methods = append(result.Methods, methodNode.Name)
 	}
 
+	// Parameter and return annotations are evaluated in the scope that *defines*
+	// the method (the class body for a normal method), not in the method body,
+	// so resolve their names there rather than at the annotation's lexical
+	// position under the FunctionDef (see #547).
+	sigScope := resolver.signatureScope(methodNode)
+
 	// Analyze parameter types
 	for _, arg := range methodNode.Args {
 		if arg != nil && arg.Type == parser.NodeArg {
 			if arg.Right != nil && a.isTypeAnnotation(arg.Right) {
-				a.extractTypeAnnotationDependencies(arg.Right, dependencies, result, resolver)
+				a.extractTypeAnnotationDependencies(arg.Right, dependencies, result, resolver, sigScope)
 			}
 		}
 	}
@@ -349,7 +371,7 @@ func (a *CBOAnalyzer) analyzeMethodTypeHints(methodNode *parser.Node, dependenci
 	// Analyze return type annotation
 	// Return type is stored in Right field (not Children) to avoid DFA interference
 	if methodNode.Right != nil && a.isTypeAnnotation(methodNode.Right) {
-		a.extractTypeAnnotationDependencies(methodNode.Right, dependencies, result, resolver)
+		a.extractTypeAnnotationDependencies(methodNode.Right, dependencies, result, resolver, sigScope)
 	}
 }
 
@@ -498,14 +520,26 @@ func isWithin(node, ancestor *parser.Node, parents map[*parser.Node]*parser.Node
 // references are internal coupling and should be excluded (see #547); a
 // same-named class reached from a different scope is real coupling.
 func resolvesToNestedClass(ref *parser.Node, name string, classNode *parser.Node, nestedDefs map[string][]*parser.Node, parents map[*parser.Node]*parser.Node) bool {
+	return resolvesInScope(enclosingScope(ref, classNode, parents), name, classNode, nestedDefs, parents)
+}
+
+// resolvesInScope reports whether a reference whose Python evaluation scope is
+// evalScope resolves to a class defined within classNode (internal coupling to
+// exclude) rather than to an outer or top-level class. evalScope is where the
+// name is actually looked up: a method body resolves in the method's own scope,
+// but a method signature annotation resolves in the method's defining scope.
+func resolvesInScope(evalScope *parser.Node, name string, classNode *parser.Node, nestedDefs map[string][]*parser.Node, parents map[*parser.Node]*parser.Node) bool {
 	for _, def := range nestedDefs[name] {
 		owner := enclosingScope(def, classNode, parents)
 		if owner == classNode {
-			// Defined in the class body: only class-body references resolve to it.
-			if enclosingScope(ref, classNode, parents) == classNode {
+			// Defined in the class body: visible only to class-body-scope refs.
+			// Python class scope does not enclose its methods, so a method body
+			// cannot see it; a signature annotation (evaluated in the class body)
+			// can.
+			if evalScope == classNode {
 				return true
 			}
-		} else if isWithin(ref, owner, parents) {
+		} else if evalScope == owner || isWithin(evalScope, owner, parents) {
 			// Defined in a function: visible throughout that function's subtree.
 			return true
 		}
@@ -534,11 +568,30 @@ func (a *CBOAnalyzer) newNestedClassResolver(classNode *parser.Node) *nestedClas
 
 // excludes reports whether a reference to name at ref resolves to a class
 // nested within the analyzed class and so must not be counted as coupling.
+// The reference is resolved at its own lexical scope.
 func (r *nestedClassResolver) excludes(ref *parser.Node, name string) bool {
 	if len(r.nestedDefs) == 0 {
 		return false
 	}
 	return resolvesToNestedClass(ref, name, r.classNode, r.nestedDefs, r.parents)
+}
+
+// excludesInScope is like excludes but resolves name in a caller-supplied
+// evaluation scope rather than at a reference's lexical position. It is used
+// for method signature annotations, which Python evaluates in the method's
+// defining scope (see signatureScope).
+func (r *nestedClassResolver) excludesInScope(name string, evalScope *parser.Node) bool {
+	if len(r.nestedDefs) == 0 {
+		return false
+	}
+	return resolvesInScope(evalScope, name, r.classNode, r.nestedDefs, r.parents)
+}
+
+// signatureScope returns the scope in which methodNode's signature annotations
+// are evaluated: the scope that defines the method (the class body for a
+// normal method), not the method body.
+func (r *nestedClassResolver) signatureScope(methodNode *parser.Node) *parser.Node {
+	return enclosingScope(methodNode, r.classNode, r.parents)
 }
 
 // collectImports collects import statements and their aliases.
