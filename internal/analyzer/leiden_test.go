@@ -215,3 +215,117 @@ func TestDetectCommunitiesLeiden_IsolatedNodesNoEdges(t *testing.T) {
 	assert.Equal(t, 0.0, result.Modularity)
 	assert.Equal(t, []int{0, 1, 2}, result.Membership)
 }
+
+func TestDetectCommunitiesLeiden_EmptyResultMembershipNotNil(t *testing.T) {
+	result := DetectCommunitiesLeiden(nil, nil)
+	require.NotNil(t, result.Membership)
+	assert.Empty(t, result.Membership)
+}
+
+func TestDetectCommunitiesLeiden_OptionsNotMutated(t *testing.T) {
+	opts := &LeidenOptions{
+		Resolution:       -1,
+		MinCommunitySize: 0,
+		MaxIterations:    0,
+		MaxPasses:        0,
+	}
+	cg := buildTestCommunityGraph([]string{"a", "b"}, [][2]string{{"a", "b"}})
+
+	DetectCommunitiesLeiden(cg, opts)
+
+	assert.Equal(t, -1.0, opts.Resolution)
+	assert.Equal(t, 0, opts.MinCommunitySize)
+	assert.Equal(t, 0, opts.MaxIterations)
+	assert.Equal(t, 0, opts.MaxPasses)
+}
+
+func TestDetectCommunitiesLeiden_MultiPassAggregationPreservesLoops(t *testing.T) {
+	nodes := []string{"a1", "a2", "a3", "b1", "b2", "b3"}
+	edges := [][2]string{
+		{"a1", "a2"}, {"a2", "a1"},
+		{"a1", "a3"}, {"a3", "a1"},
+		{"a2", "a3"}, {"a3", "a2"},
+		{"b1", "b2"}, {"b2", "b1"},
+		{"b1", "b3"}, {"b3", "b1"},
+		{"b2", "b3"}, {"b3", "b2"},
+	}
+	cg := buildTestCommunityGraph(nodes, edges)
+
+	result := DetectCommunitiesLeiden(cg, &LeidenOptions{
+		Resolution: 1.0,
+		MaxPasses:  8,
+	})
+	require.Len(t, result.Membership, 6)
+	assert.Equal(t, 2, result.NumCommunities)
+	assert.Greater(t, result.Modularity, 0.3)
+	assertSamePartition(t, cg, result, [][]string{
+		{"a1", "a2", "a3"},
+		{"b1", "b2", "b3"},
+	})
+}
+
+func TestDetectCommunitiesLeiden_DeterministicMinCommunitySize(t *testing.T) {
+	nodes := []string{"hub", "s1", "s2", "core1", "core2"}
+	edges := [][2]string{
+		{"hub", "s1"}, {"hub", "s2"},
+		{"hub", "core1"}, {"core1", "core2"}, {"core2", "core1"},
+	}
+	cg := buildTestCommunityGraph(nodes, edges)
+	opts := &LeidenOptions{
+		Resolution:       1.0,
+		MinCommunitySize: 2,
+		MaxPasses:        16,
+	}
+
+	first := DetectCommunitiesLeiden(cg, opts)
+	second := DetectCommunitiesLeiden(cg, opts)
+
+	assert.Equal(t, first.Membership, second.Membership)
+	assert.Equal(t, first.NumCommunities, second.NumCommunities)
+	assert.InDelta(t, first.Modularity, second.Modularity, 1e-12)
+}
+
+func TestDetectCommunitiesLeiden_ResolutionParameter(t *testing.T) {
+	nodes := []string{"a1", "a2", "a3", "b1", "b2", "b3"}
+	edges := [][2]string{
+		{"a1", "a2"}, {"a2", "a1"},
+		{"a1", "a3"}, {"a3", "a1"},
+		{"a2", "a3"}, {"a3", "a2"},
+		{"b1", "b2"}, {"b2", "b1"},
+		{"b1", "b3"}, {"b3", "b1"},
+		{"b2", "b3"}, {"b3", "b2"},
+	}
+	cg := buildTestCommunityGraph(nodes, edges)
+
+	lowRes := DetectCommunitiesLeiden(cg, &LeidenOptions{Resolution: 0.5})
+	highRes := DetectCommunitiesLeiden(cg, &LeidenOptions{Resolution: 2.0})
+
+	assert.Equal(t, 2, lowRes.NumCommunities)
+	assert.Equal(t, 2, highRes.NumCommunities)
+	assert.Greater(t, lowRes.Modularity, 0.0)
+	assert.GreaterOrEqual(t, highRes.Modularity, 0.0)
+}
+
+func TestLeidenAggregate_PropagatesLoopWeight(t *testing.T) {
+	g := &leidenGraph{
+		n: 3,
+		adj: [][]WeightedNeighbor{
+			{{Index: 1, Weight: 1}},
+			{{Index: 0, Weight: 1}, {Index: 2, Weight: 1}},
+			{{Index: 1, Weight: 1}},
+		},
+		deg:    []float64{1, 2, 1},
+		loop:   []float64{3, 0, 0},
+		m2:     10,
+		lifted: []int{0, 1, 2},
+	}
+	parent := []int{0, 0, 1}
+	refined := []int{0, 0, 1}
+
+	nextG, nextComm := g.aggregate(parent, refined)
+	require.Equal(t, 2, nextG.n)
+	// Prior loop mass (3) plus the internal edge between collapsed nodes 0 and 1.
+	assert.InDelta(t, 4.0, nextG.loop[0], 1e-12)
+	assert.Equal(t, 0.0, nextG.loop[1])
+	assert.Len(t, nextComm, 2)
+}

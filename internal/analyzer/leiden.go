@@ -41,36 +41,44 @@ type LeidenResult struct {
 	NumCommunities int
 }
 
+func emptyLeidenResult() *LeidenResult {
+	return &LeidenResult{Membership: []int{}}
+}
+
+func normalizeLeidenOptions(opts *LeidenOptions) LeidenOptions {
+	var out LeidenOptions
+	if opts != nil {
+		out = *opts
+	} else {
+		out = *DefaultLeidenOptions()
+	}
+	if out.Resolution <= 0 {
+		out.Resolution = 1.0
+	}
+	if out.MinCommunitySize <= 0 {
+		out.MinCommunitySize = 1
+	}
+	if out.MaxIterations <= 0 {
+		out.MaxIterations = 64
+	}
+	if out.MaxPasses <= 0 {
+		out.MaxPasses = 16
+	}
+	return out
+}
+
 // DetectCommunitiesLeiden runs the Traag-Waltman-van Eck Leiden algorithm on
 // a CommunityGraph. The implementation is pure Leiden (singleton start, no
 // Louvain-style warm-up pass) with deterministic node iteration in sorted
 // index order and lowest-community-id tie-breaking on equal modularity gain.
 func DetectCommunitiesLeiden(cg *CommunityGraph, opts *LeidenOptions) *LeidenResult {
 	if cg == nil || cg.NodeCount == 0 {
-		return &LeidenResult{}
+		return emptyLeidenResult()
 	}
 
-	if opts == nil {
-		opts = DefaultLeidenOptions()
-	}
-	if opts.Resolution <= 0 {
-		opts.Resolution = 1.0
-	}
-	if opts.MinCommunitySize <= 0 {
-		opts.MinCommunitySize = 1
-	}
-	if opts.MaxIterations <= 0 {
-		opts.MaxIterations = 64
-	}
-	if opts.MaxPasses <= 0 {
-		opts.MaxPasses = 16
-	}
+	normalized := normalizeLeidenOptions(opts)
 
 	original := newLeidenGraph(cg)
-	if original.n == 0 {
-		return &LeidenResult{}
-	}
-
 	g := original
 	comm := make([]int, g.n)
 	for i := range comm {
@@ -86,18 +94,18 @@ func DetectCommunitiesLeiden(cg *CommunityGraph, opts *LeidenOptions) *LeidenRes
 	}
 
 	bestMembership := project(g, comm)
-	bestQ := original.modularity(bestMembership, opts.Resolution)
+	bestQ := original.modularity(bestMembership, normalized.Resolution)
 
-	prevQ := g.modularity(comm, opts.Resolution)
-	for pass := 0; pass < opts.MaxPasses; pass++ {
-		moved := g.localMove(comm, opts)
-		refined := g.refine(comm, opts)
+	prevQ := g.modularity(comm, normalized.Resolution)
+	for pass := 0; pass < normalized.MaxPasses; pass++ {
+		moved := g.localMove(comm, &normalized)
+		refined := g.refine(comm, &normalized)
 		nextG, nextComm := g.aggregate(comm, refined)
-		nextQ := nextG.modularity(nextComm, opts.Resolution)
+		nextQ := nextG.modularity(nextComm, normalized.Resolution)
 
 		projected := project(nextG, nextComm)
 		projected = relabelDense(projected)
-		if q := original.modularity(projected, opts.Resolution); q > bestQ {
+		if q := original.modularity(projected, normalized.Resolution); q > bestQ {
 			bestQ = q
 			bestMembership = projected
 		}
@@ -112,11 +120,11 @@ func DetectCommunitiesLeiden(cg *CommunityGraph, opts *LeidenOptions) *LeidenRes
 
 	membership := bestMembership
 	membership, numCommunities := compactCommunityIDs(membership)
-	if opts.MinCommunitySize > 1 {
-		membership, numCommunities = mergeSmallCommunities(original, membership, opts.MinCommunitySize)
+	if normalized.MinCommunitySize > 1 {
+		membership, numCommunities = mergeSmallCommunities(original, membership, normalized.MinCommunitySize)
 	}
 
-	modularity := original.modularity(membership, opts.Resolution)
+	modularity := original.modularity(membership, normalized.Resolution)
 	return &LeidenResult{
 		Membership:     membership,
 		Modularity:     modularity,
@@ -165,6 +173,12 @@ func newLeidenGraph(cg *CommunityGraph) *leidenGraph {
 	}
 }
 
+// nodeStrength is the weighted degree used in the modularity null model,
+// including self-loop mass (counted twice to match m2 bookkeeping).
+func (g *leidenGraph) nodeStrength(v int) float64 {
+	return g.deg[v] + 2*g.loop[v]
+}
+
 func (g *leidenGraph) modularity(comm []int, resolution float64) float64 {
 	if g.m2 == 0 {
 		return 0
@@ -181,7 +195,7 @@ func (g *leidenGraph) modularity(comm []int, resolution float64) float64 {
 	sigmaTot := make([]float64, cMax)
 	for v := 0; v < g.n; v++ {
 		c := comm[v]
-		sigmaTot[c] += g.deg[v]
+		sigmaTot[c] += g.nodeStrength(v)
 		sigmaIn[c] += g.loop[v]
 		for _, nb := range g.adj[v] {
 			if comm[nb.Index] == c {
@@ -206,7 +220,7 @@ func (g *leidenGraph) localMove(comm []int, opts *LeidenOptions) bool {
 	cMax := maxCommunityID(comm) + 1
 	sigmaTot := make([]float64, cMax)
 	for v := 0; v < g.n; v++ {
-		sigmaTot[comm[v]] += g.deg[v]
+		sigmaTot[comm[v]] += g.nodeStrength(v)
 	}
 
 	kvcArr := make([]float64, cMax)
@@ -230,12 +244,13 @@ func (g *leidenGraph) localMove(comm []int, opts *LeidenOptions) bool {
 				kvcArr[cu] += nb.Weight
 			}
 
-			sigmaTot[cv] -= g.deg[v]
+			nodeStr := g.nodeStrength(v)
+			sigmaTot[cv] -= nodeStr
 			bestC := cv
 			bestDelta := 0.0
 			invM2 := 1.0 / g.m2
 			twoInvM2 := 2 * invM2
-			vFactor := opts.Resolution * 2 * g.deg[v] * invM2 * invM2
+			vFactor := opts.Resolution * 2 * nodeStr * invM2 * invM2
 
 			for _, c := range touched {
 				delta := twoInvM2*kvcArr[c] - vFactor*sigmaTot[c]
@@ -248,7 +263,7 @@ func (g *leidenGraph) localMove(comm []int, opts *LeidenOptions) bool {
 				kvcArr[c] = 0
 			}
 
-			sigmaTot[bestC] += g.deg[v]
+			sigmaTot[bestC] += nodeStr
 			if bestC != cv {
 				comm[v] = bestC
 				moved = true
@@ -276,7 +291,7 @@ func (g *leidenGraph) refine(parent []int, opts *LeidenOptions) []int {
 
 	sigmaTot := make([]float64, g.n)
 	for v := 0; v < g.n; v++ {
-		sigmaTot[v] += g.deg[v]
+		sigmaTot[v] += g.nodeStrength(v)
 	}
 
 	kvcArr := make([]float64, g.n)
@@ -303,12 +318,13 @@ func (g *leidenGraph) refine(parent []int, opts *LeidenOptions) []int {
 				kvcArr[ru] += nb.Weight
 			}
 
-			sigmaTot[cv] -= g.deg[v]
+			nodeStr := g.nodeStrength(v)
+			sigmaTot[cv] -= nodeStr
 			bestC := cv
 			bestDelta := 0.0
 			invM2 := 1.0 / g.m2
 			twoInvM2 := 2 * invM2
-			vFactor := opts.Resolution * 2 * g.deg[v] * invM2 * invM2
+			vFactor := opts.Resolution * 2 * nodeStr * invM2 * invM2
 
 			for _, c := range touched {
 				delta := twoInvM2*kvcArr[c] - vFactor*sigmaTot[c]
@@ -321,7 +337,7 @@ func (g *leidenGraph) refine(parent []int, opts *LeidenOptions) []int {
 				kvcArr[c] = 0
 			}
 
-			sigmaTot[bestC] += g.deg[v]
+			sigmaTot[bestC] += nodeStr
 			if bestC != cv {
 				refined[v] = bestC
 				moved = true
@@ -351,13 +367,23 @@ func (g *leidenGraph) aggregate(parent, refined []int) (*leidenGraph, []int) {
 
 	parentRemap := make(map[int]int)
 	newComm := make([]int, nNew)
+	newCommSet := make([]bool, nNew)
 	for v := 0; v < g.n; v++ {
 		super := refinedRemap[v]
 		p := parent[v]
 		if _, ok := parentRemap[p]; !ok {
 			parentRemap[p] = len(parentRemap)
 		}
-		newComm[super] = parentRemap[p]
+		mapped := parentRemap[p]
+		if !newCommSet[super] {
+			newComm[super] = mapped
+			newCommSet[super] = true
+			continue
+		}
+		if newComm[super] != mapped {
+			// Deterministic fallback: keep the first parent seen in node-index order.
+			continue
+		}
 	}
 
 	type edgeKey struct {
@@ -366,6 +392,10 @@ func (g *leidenGraph) aggregate(parent, refined []int) (*leidenGraph, []int) {
 	}
 	edgeWeights := make(map[edgeKey]float64)
 	loop := make([]float64, nNew)
+
+	for v := 0; v < g.n; v++ {
+		loop[refinedRemap[v]] += g.loop[v]
+	}
 
 	for v := 0; v < g.n; v++ {
 		sv := refinedRemap[v]
@@ -463,10 +493,14 @@ func mergeSmallCommunities(g *leidenGraph, membership []int, minSize int) ([]int
 	for changed {
 		changed = false
 		sizes := communitySizes(out)
+		commIDs := make([]int, 0, len(sizes))
 		for commID, size := range sizes {
-			if size >= minSize {
-				continue
+			if size < minSize {
+				commIDs = append(commIDs, commID)
 			}
+		}
+		sort.Ints(commIDs)
+		for _, commID := range commIDs {
 			target := bestMergeTarget(g, out, commID)
 			if target < 0 {
 				continue
@@ -516,9 +550,16 @@ func bestMergeTarget(g *leidenGraph, membership []int, commID int) int {
 		return -1
 	}
 
+	targets := make([]int, 0, len(weights))
+	for target := range weights {
+		targets = append(targets, target)
+	}
+	sort.Ints(targets)
+
 	best := -1
 	bestWeight := -1.0
-	for target, weight := range weights {
+	for _, target := range targets {
+		weight := weights[target]
 		if weight > bestWeight || (weight == bestWeight && (best < 0 || target < best)) {
 			bestWeight = weight
 			best = target
