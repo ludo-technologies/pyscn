@@ -45,6 +45,12 @@ type AnalyzeCommand struct {
 	cloneSimilarity float64
 	minCBO          int
 
+	// Complexity thresholds (0 = unset, use config/default)
+	lowThreshold                 int
+	mediumThreshold              int
+	cognitiveComplexityThreshold int
+	nestingDepthThreshold        int
+
 	// Clone detection options
 	enableDFA bool // Enable Data Flow Analysis for enhanced Type-4 detection
 
@@ -139,6 +145,12 @@ Examples:
 	cmd.Flags().Float64Var(&c.cloneSimilarity, "clone-threshold", 0.65, "Minimum similarity for clone detection (0.0-1.0)")
 	cmd.Flags().IntVar(&c.minCBO, "min-cbo", 0, "Minimum CBO to report")
 
+	// Complexity threshold flags (0 = unset, use config file or default)
+	cmd.Flags().IntVar(&c.lowThreshold, "low-threshold", 0, "Upper bound for low-risk complexity (default: 9)")
+	cmd.Flags().IntVar(&c.mediumThreshold, "medium-threshold", 0, "Upper bound for medium-risk complexity (default: 19)")
+	cmd.Flags().IntVar(&c.cognitiveComplexityThreshold, "cognitive-complexity-threshold", 0, "High-risk threshold for cognitive complexity (default: 25)")
+	cmd.Flags().IntVar(&c.nestingDepthThreshold, "nesting-depth-threshold", 0, "High-risk threshold for maximum nesting depth (default: 7)")
+
 	return cmd
 }
 
@@ -203,6 +215,11 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		CloneSimilarity: c.cloneSimilarity,
 		MinCBO:          c.minCBO,
 		EnableDFA:       c.enableDFA,
+
+		LowThreshold:                 c.lowThreshold,
+		MediumThreshold:              c.mediumThreshold,
+		CognitiveComplexityThreshold: c.cognitiveComplexityThreshold,
+		NestingDepthThreshold:        c.nestingDepthThreshold,
 	}
 
 	// Handle analysis selection

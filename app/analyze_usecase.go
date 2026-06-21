@@ -27,6 +27,12 @@ type AnalyzeUseCaseConfig struct {
 	CloneSimilarity float64
 	MinCBO          int
 
+	// Complexity thresholds (0 = unset, use config file or default)
+	LowThreshold                 int
+	MediumThreshold              int
+	CognitiveComplexityThreshold int
+	NestingDepthThreshold        int
+
 	// Clone detection options
 	EnableDFA bool // Enable Data Flow Analysis for enhanced Type-4 detection
 
@@ -467,6 +473,25 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 		minComplexity = executionCfg.ComplexityMinComplexity
 	}
 
+	// CLI flag values take precedence over config file when explicitly set (> 0).
+	// Otherwise fall back to execution config (from config file or defaults).
+	lowThreshold := executionCfg.ComplexityLowThreshold
+	if config.LowThreshold > 0 {
+		lowThreshold = config.LowThreshold
+	}
+	mediumThreshold := executionCfg.ComplexityMediumThreshold
+	if config.MediumThreshold > 0 {
+		mediumThreshold = config.MediumThreshold
+	}
+	cognitiveThreshold := executionCfg.CognitiveComplexityThreshold
+	if config.CognitiveComplexityThreshold > 0 {
+		cognitiveThreshold = config.CognitiveComplexityThreshold
+	}
+	nestingThreshold := executionCfg.NestingDepthThreshold
+	if config.NestingDepthThreshold > 0 {
+		nestingThreshold = config.NestingDepthThreshold
+	}
+
 	return domain.ComplexityRequest{
 		Paths:                        files,
 		Recursive:                    false,
@@ -477,10 +502,10 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 		MinComplexity:                minComplexity,
 		MaxComplexity:                executionCfg.ComplexityMaxComplexity,
 		SortBy:                       domain.SortByComplexity,
-		LowThreshold:                 executionCfg.ComplexityLowThreshold,
-		MediumThreshold:              executionCfg.ComplexityMediumThreshold,
-		CognitiveComplexityThreshold: executionCfg.CognitiveComplexityThreshold,
-		NestingDepthThreshold:        executionCfg.NestingDepthThreshold,
+		LowThreshold:                 lowThreshold,
+		MediumThreshold:              mediumThreshold,
+		CognitiveComplexityThreshold: cognitiveThreshold,
+		NestingDepthThreshold:        nestingThreshold,
 		Enabled:                      domain.BoolPtr(executionCfg.ComplexityEnabled),
 		ReportUnchanged:              domain.BoolPtr(executionCfg.ComplexityReportUnchanged),
 		ConfigPath:                   config.ConfigFile,
