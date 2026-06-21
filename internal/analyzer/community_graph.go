@@ -4,10 +4,10 @@ import "sort"
 
 // CommunityGraphBuildOptions configures construction of a CommunityGraph.
 type CommunityGraphBuildOptions struct {
-	// IncludeLazyEdges controls whether lazy (function-body) import edges are
-	// included. Default true. When false, edges are excluded using the same
-	// criterion as circular dependency detection (issue #460).
-	IncludeLazyEdges bool
+	// ExcludeLazyEdges omits lazy (function-body) import edges when true.
+	// Default false (lazy edges included). Exclusion uses the same criterion
+	// as circular dependency detection (issue #460).
+	ExcludeLazyEdges bool
 
 	// EdgeWeightFunc assigns a weight to each dependency edge. When nil, every
 	// edge has weight 1.0. Reserved for future weighting by import type,
@@ -17,9 +17,7 @@ type CommunityGraphBuildOptions struct {
 
 // DefaultCommunityGraphBuildOptions returns the default build options.
 func DefaultCommunityGraphBuildOptions() *CommunityGraphBuildOptions {
-	return &CommunityGraphBuildOptions{
-		IncludeLazyEdges: true,
-	}
+	return &CommunityGraphBuildOptions{}
 }
 
 // CommunityGraph is a compact, integer-indexed graph derived from a
@@ -99,7 +97,7 @@ func BuildCommunityGraph(graph *DependencyGraph, opts *CommunityGraphBuildOption
 			continue
 		}
 
-		if !opts.IncludeLazyEdges && edge.IsLazy {
+		if opts.ExcludeLazyEdges && edge.IsLazy {
 			continue
 		}
 

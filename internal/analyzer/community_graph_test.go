@@ -114,7 +114,7 @@ func TestBuildCommunityGraph_ExcludeLazyEdges(t *testing.T) {
 	graph.AddDependency("mod.a", "mod.b", DependencyEdgeImport, lazyInfo)
 	graph.AddDependency("mod.b", "mod.c", DependencyEdgeImport, nil)
 
-	cg := BuildCommunityGraph(graph, &CommunityGraphBuildOptions{IncludeLazyEdges: false})
+	cg := BuildCommunityGraph(graph, &CommunityGraphBuildOptions{ExcludeLazyEdges: true})
 
 	assert.Equal(t, 1, len(cg.DirectedEdges))
 	assert.Equal(t, cg.NameToIndex["mod.b"], cg.DirectedEdges[0].FromIndex)
@@ -136,6 +136,29 @@ func TestBuildCommunityGraph_BidirectionalAggregation(t *testing.T) {
 	assert.Equal(t, 2, len(cg.DirectedEdges))
 	assert.Equal(t, 2.0, undirectedWeight(cg, "mod.a", "mod.b"))
 	assert.Equal(t, 2.0, cg.TotalUndirectedWeight)
+}
+
+func TestBuildCommunityGraph_DefaultIncludesLazyEdges(t *testing.T) {
+	graph := NewDependencyGraph("/project")
+	graph.AddModule("mod.a", "/project/mod/a.py")
+	graph.AddModule("mod.b", "/project/mod/b.py")
+
+	lazyInfo := &ImportInfo{IsLazy: true}
+	graph.AddDependency("mod.a", "mod.b", DependencyEdgeImport, lazyInfo)
+
+	t.Run("empty options struct", func(t *testing.T) {
+		cg := BuildCommunityGraph(graph, &CommunityGraphBuildOptions{})
+		require.Len(t, cg.DirectedEdges, 1)
+		assert.True(t, cg.DirectedEdges[0].IsLazy)
+	})
+
+	t.Run("only EdgeWeightFunc set", func(t *testing.T) {
+		cg := BuildCommunityGraph(graph, &CommunityGraphBuildOptions{
+			EdgeWeightFunc: func(*DependencyEdge) float64 { return 1.0 },
+		})
+		require.Len(t, cg.DirectedEdges, 1)
+		assert.True(t, cg.DirectedEdges[0].IsLazy)
+	})
 }
 
 func TestBuildCommunityGraph_CustomEdgeWeightFunc(t *testing.T) {
