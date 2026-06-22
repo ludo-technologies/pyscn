@@ -170,6 +170,18 @@ const (
 	// DefaultLCOMMediumThreshold is the upper bound for medium-risk LCOM.
 	// Classes with LCOM4 3-5 have acceptable cohesion.
 	DefaultLCOMMediumThreshold = 5
+
+	// DefaultCommunityAlgorithm is the community detection algorithm identifier.
+	DefaultCommunityAlgorithm = "leiden"
+
+	// DefaultCommunityScope is the graph scope for community detection.
+	DefaultCommunityScope = "module"
+
+	// DefaultCommunityMinSize is the minimum community size after detection.
+	DefaultCommunityMinSize = 1
+
+	// DefaultCommunityResolution is the Leiden resolution parameter.
+	DefaultCommunityResolution = 1.0
 )
 
 // ============================================================================
