@@ -73,7 +73,7 @@ func TestAnalyzeUseCase_CommunityTaskSkippedByDefault(t *testing.T) {
 		SkipLCOM:        true,
 		SkipSystem:      true,
 		SkipCommunities: true,
-	}, []string{"."}, nil, domain.AnalyzeExecutionConfig{})
+	}, []string{"."}, []string{"."}, nil, domain.AnalyzeExecutionConfig{})
 
 	var communityTask *AnalysisTask
 	for _, task := range tasks {
@@ -109,7 +109,7 @@ func TestAnalyzeUseCase_CommunityTaskRequestUsesDiscardWriter(t *testing.T) {
 		SkipLCOM:        true,
 		SkipSystem:      true,
 		SkipCommunities: false,
-	}, []string{filepath.Join("..", "testdata", "python", "mvc_app")}, nil, domain.AnalyzeExecutionConfig{})
+	}, []string{filepath.Join("..", "testdata", "python", "mvc_app")}, []string{filepath.Join("..", "testdata", "python", "mvc_app")}, nil, domain.AnalyzeExecutionConfig{})
 
 	var communityTask *AnalysisTask
 	for _, task := range tasks {

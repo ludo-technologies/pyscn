@@ -60,6 +60,9 @@ func (uc *CommunityUseCase) prepareAnalysis(ctx context.Context, req domain.Comm
 		return req, domain.NewInvalidInputError("no Python files found in the specified paths", nil)
 	}
 
+	if len(finalReq.SourcePaths) == 0 {
+		finalReq.SourcePaths = append([]string(nil), finalReq.Paths...)
+	}
 	finalReq.Paths = files
 	return finalReq, nil
 }

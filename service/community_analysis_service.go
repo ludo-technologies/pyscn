@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sort"
 	"time"
 
@@ -78,7 +76,11 @@ func (s *CommunityAnalysisServiceImpl) buildDependencyGraph(ctx context.Context,
 		return nil, fmt.Errorf("module graph cancelled: %w", err)
 	}
 
-	projectRoot := s.findProjectRoot(req.Paths)
+	rootPaths := req.SourcePaths
+	if len(rootPaths) == 0 {
+		rootPaths = req.Paths
+	}
+	projectRoot := FindProjectRoot(rootPaths)
 	options := &analyzer.ModuleAnalysisOptions{
 		ProjectRoot:       projectRoot,
 		IncludeStdLib:     req.IncludeStdLib,
@@ -101,64 +103,6 @@ func (s *CommunityAnalysisServiceImpl) buildDependencyGraph(ctx context.Context,
 		return nil, fmt.Errorf("module graph cancelled: %w", err)
 	}
 	return graph, nil
-}
-
-func (s *CommunityAnalysisServiceImpl) findProjectRoot(paths []string) string {
-	if len(paths) == 0 {
-		cwd, _ := os.Getwd()
-		return cwd
-	}
-
-	absPaths := make([]string, 0, len(paths))
-	for _, p := range paths {
-		absPath, err := filepath.Abs(p)
-		if err != nil {
-			continue
-		}
-		info, err := os.Stat(absPath)
-		if err != nil {
-			continue
-		}
-		if !info.IsDir() {
-			absPath = filepath.Dir(absPath)
-		}
-		absPaths = append(absPaths, absPath)
-	}
-
-	if len(absPaths) == 0 {
-		cwd, _ := os.Getwd()
-		return cwd
-	}
-
-	common := absPaths[0]
-	for _, p := range absPaths[1:] {
-		common = longestCommonDir(common, p)
-	}
-	return common
-}
-
-func longestCommonDir(a, b string) string {
-	a = filepath.Clean(a)
-	b = filepath.Clean(b)
-
-	minLen := len(a)
-	if len(b) < minLen {
-		minLen = len(b)
-	}
-
-	i := 0
-	for i < minLen && a[i] == b[i] {
-		i++
-	}
-
-	common := a[:i]
-	if common == "" {
-		return string(filepath.Separator)
-	}
-	if info, err := os.Stat(common); err != nil || !info.IsDir() {
-		return filepath.Dir(common)
-	}
-	return common
 }
 
 func (s *CommunityAnalysisServiceImpl) resolveAlgorithm(algorithm string) string {

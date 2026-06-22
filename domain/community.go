@@ -10,6 +10,10 @@ type CommunityAnalysisRequest struct {
 	// Input files or directories to analyze
 	Paths []string
 
+	// SourcePaths preserves the original user-provided paths before file expansion.
+	// Used for project-root detection when Paths contains only resolved files.
+	SourcePaths []string
+
 	// Output configuration
 	OutputFormat OutputFormat
 	OutputWriter io.Writer

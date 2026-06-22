@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -545,7 +543,7 @@ func (s *SystemAnalysisServiceImpl) buildDependencyGraph(ctx context.Context, re
 		return nil, fmt.Errorf("module graph cancelled: %w", err)
 	}
 
-	projectRoot := s.findProjectRoot(req.Paths)
+	projectRoot := FindProjectRoot(req.Paths)
 	options := &analyzer.ModuleAnalysisOptions{
 		ProjectRoot:       projectRoot,
 		IncludeStdLib:     req.IncludeStdLib,
@@ -1326,74 +1324,6 @@ func (s *SystemAnalysisServiceImpl) toLayerViolations(vs []domain.ArchitectureVi
 }
 
 // Helper methods
-
-// findProjectRoot finds the common parent directory of all given paths
-func (s *SystemAnalysisServiceImpl) findProjectRoot(paths []string) string {
-	if len(paths) == 0 {
-		cwd, _ := os.Getwd()
-		return cwd
-	}
-
-	// Get absolute paths
-	absPaths := make([]string, 0, len(paths))
-	for _, p := range paths {
-		absPath, err := filepath.Abs(p)
-		if err != nil {
-			continue
-		}
-
-		// If it's a file, get its directory
-		info, err := os.Stat(absPath)
-		if err == nil && !info.IsDir() {
-			absPath = filepath.Dir(absPath)
-		}
-
-		absPaths = append(absPaths, absPath)
-	}
-
-	if len(absPaths) == 0 {
-		cwd, _ := os.Getwd()
-		return cwd
-	}
-
-	// Find common parent
-	commonParent := absPaths[0]
-	for _, path := range absPaths[1:] {
-		for !strings.HasPrefix(path, commonParent) {
-			commonParent = filepath.Dir(commonParent)
-			if commonParent == "/" || commonParent == "." {
-				break
-			}
-		}
-	}
-
-	// If common parent has __init__.py, it's a Python package root
-	// Otherwise, look for common markers like setup.py, pyproject.toml, etc.
-	for {
-		// Check for Python project markers
-		markers := []string{"setup.py", "pyproject.toml", "setup.cfg", ".git", "requirements.txt"}
-		for _, marker := range markers {
-			if _, err := os.Stat(filepath.Join(commonParent, marker)); err == nil {
-				return commonParent
-			}
-		}
-
-		// Check if we've reached the root
-		parent := filepath.Dir(commonParent)
-		if parent == commonParent || parent == "/" || parent == "." {
-			break
-		}
-
-		// Don't go above the original common parent too much
-		if !strings.HasPrefix(absPaths[0], parent) {
-			break
-		}
-
-		commonParent = parent
-	}
-
-	return commonParent
-}
 
 func (s *SystemAnalysisServiceImpl) buildDependencyMatrix(graph *analyzer.DependencyGraph) map[string]map[string]bool {
 	matrix := make(map[string]map[string]bool)

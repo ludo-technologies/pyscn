@@ -269,7 +269,7 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 
 	// Create analysis tasks
-	tasks := uc.createAnalysisTasks(useCaseCfg, files, snapshot, executionCfg)
+	tasks := uc.createAnalysisTasks(useCaseCfg, paths, files, snapshot, executionCfg)
 
 	// Execute tasks in parallel
 	var wg sync.WaitGroup
@@ -332,7 +332,7 @@ func (uc *AnalyzeUseCase) needsProjectSnapshot(config AnalyzeUseCaseConfig) bool
 }
 
 // createAnalysisTasks creates the analysis tasks based on configuration
-func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files []string, snapshot *service.ProjectSnapshot, executionCfg domain.AnalyzeExecutionConfig) []*AnalysisTask {
+func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourcePaths []string, files []string, snapshot *service.ProjectSnapshot, executionCfg domain.AnalyzeExecutionConfig) []*AnalysisTask {
 	tasks := []*AnalysisTask{}
 
 	// Complexity analysis task
@@ -477,6 +477,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.CommunityAnalysisRequest{
 					Paths:           files,
+					SourcePaths:     append([]string(nil), sourcePaths...),
 					Recursive:       nil,
 					IncludePatterns: []string{},
 					ExcludePatterns: []string{},

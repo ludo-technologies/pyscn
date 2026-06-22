@@ -203,6 +203,7 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		CloneSimilarity: c.cloneSimilarity,
 		MinCBO:          c.minCBO,
 		EnableDFA:       c.enableDFA,
+		SkipCommunities: true, // opt-in until --select/config wiring (#583)
 	}
 
 	// Handle analysis selection
@@ -214,6 +215,7 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		config.SkipCBO = !c.containsAnalysis("cbo")
 		config.SkipLCOM = !c.containsAnalysis("lcom")
 		config.SkipSystem = !c.containsAnalysis("deps")
+		config.SkipCommunities = !c.containsAnalysis("communities")
 	} else {
 		// Otherwise use skip flags
 		config.SkipComplexity = c.skipComplexity
@@ -370,6 +372,19 @@ func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuil
 		return fmt.Errorf("failed to build system analysis use case: %w", err)
 	}
 	builder.WithSystemUseCase(systemUseCase)
+
+	// Community analysis use case
+	communityService := service.NewCommunityAnalysisService()
+	communityFormatter := service.NewCommunityFormatter()
+	communityUseCase, err := app.NewCommunityUseCaseBuilder().
+		WithService(communityService).
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(communityFormatter).
+		Build()
+	if err != nil {
+		return fmt.Errorf("failed to build community analysis use case: %w", err)
+	}
+	builder.WithCommunityUseCase(communityUseCase)
 
 	return nil
 }
