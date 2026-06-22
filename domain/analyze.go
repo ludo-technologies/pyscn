@@ -113,13 +113,14 @@ const (
 // AnalyzeResponse represents the combined results of all analyses
 type AnalyzeResponse struct {
 	// Analysis results
-	Complexity *ComplexityResponse     `json:"complexity,omitempty" yaml:"complexity,omitempty"`
-	DeadCode   *DeadCodeResponse       `json:"dead_code,omitempty" yaml:"dead_code,omitempty"`
-	Clone      *CloneResponse          `json:"clone,omitempty" yaml:"clone,omitempty"`
-	CBO        *CBOResponse            `json:"cbo,omitempty" yaml:"cbo,omitempty"`
-	LCOM       *LCOMResponse           `json:"lcom,omitempty" yaml:"lcom,omitempty"`
-	System     *SystemAnalysisResponse `json:"system,omitempty" yaml:"system,omitempty"`
-	MockData   *MockDataResponse       `json:"mock_data,omitempty" yaml:"mock_data,omitempty"`
+	Complexity  *ComplexityResponse      `json:"complexity,omitempty" yaml:"complexity,omitempty"`
+	DeadCode    *DeadCodeResponse        `json:"dead_code,omitempty" yaml:"dead_code,omitempty"`
+	Clone       *CloneResponse           `json:"clone,omitempty" yaml:"clone,omitempty"`
+	CBO         *CBOResponse             `json:"cbo,omitempty" yaml:"cbo,omitempty"`
+	LCOM        *LCOMResponse            `json:"lcom,omitempty" yaml:"lcom,omitempty"`
+	System      *SystemAnalysisResponse  `json:"system,omitempty" yaml:"system,omitempty"`
+	Communities *CommunityAnalysisResult `json:"community_analysis,omitempty" yaml:"community_analysis,omitempty"`
+	MockData    *MockDataResponse        `json:"mock_data,omitempty" yaml:"mock_data,omitempty"`
 
 	// Actionable suggestions derived from analysis results
 	Suggestions []Suggestion `json:"suggestions,omitempty" yaml:"suggestions,omitempty"`
@@ -150,6 +151,7 @@ type AnalyzeSummary struct {
 	// System-level (module dependencies & architecture) summary used for scoring
 	DepsEnabled               bool    `json:"deps_enabled" yaml:"deps_enabled"`
 	ArchEnabled               bool    `json:"arch_enabled" yaml:"arch_enabled"`
+	CommunitiesEnabled        bool    `json:"communities_enabled" yaml:"communities_enabled"`
 	DepsTotalModules          int     `json:"deps_total_modules" yaml:"deps_total_modules"`
 	DepsModulesInCycles       int     `json:"deps_modules_in_cycles" yaml:"deps_modules_in_cycles"`
 	DepsMaxDepth              int     `json:"deps_max_depth" yaml:"deps_max_depth"`

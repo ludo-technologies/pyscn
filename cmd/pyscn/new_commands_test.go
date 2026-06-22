@@ -332,7 +332,7 @@ func TestAnalyzeCommandValidation(t *testing.T) {
 
 func TestAnalyzeCommandSelectValidation(t *testing.T) {
 	analyzeCmd := NewAnalyzeCommand()
-	analyzeCmd.selectAnalyses = []string{"complexity", "deps"}
+	analyzeCmd.selectAnalyses = []string{"complexity", "deps", "communities"}
 	if err := analyzeCmd.validateSelectedAnalyses(); err != nil {
 		t.Fatalf("expected valid selected analyses, got %v", err)
 	}
@@ -340,6 +340,16 @@ func TestAnalyzeCommandSelectValidation(t *testing.T) {
 	analyzeCmd.selectAnalyses = []string{"complexity", "nope"}
 	if err := analyzeCmd.validateSelectedAnalyses(); err == nil {
 		t.Fatal("expected invalid selected analysis to fail")
+	}
+}
+
+func TestAnalyzeCommandSelectCommunitiesEnablesAnalysis(t *testing.T) {
+	analyzeCmd := NewAnalyzeCommand()
+	analyzeCmd.selectAnalyses = []string{"communities"}
+
+	config := analyzeCmd.createUseCaseConfig()
+	if config.SkipCommunities {
+		t.Fatal("expected --select communities to enable community analysis")
 	}
 }
 

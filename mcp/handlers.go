@@ -62,6 +62,7 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 		SkipCBO:         !contains(analyses, "cbo") && len(analyses) > 0,
 		SkipLCOM:        !contains(analyses, "lcom") && len(analyses) > 0,
 		SkipSystem:      !contains(analyses, "deps") && len(analyses) > 0,
+		SkipCommunities: shouldSkipCommunitiesAnalysis(analyses),
 		MinComplexity:   1,
 		MinSeverity:     domain.DeadCodeSeverityWarning,
 		CloneSimilarity: 0.8,
@@ -780,6 +781,12 @@ func (h *HandlerSet) HandleGetHealthScore(ctx context.Context, request mcp.CallT
 
 // Helper functions
 
+func shouldSkipCommunitiesAnalysis(analyses []string) bool {
+	// Communities remain opt-in: omitted analyses lists and explicit subsets
+	// without "communities" must not run community detection.
+	return len(analyses) == 0 || !contains(analyses, "communities")
+}
+
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
 		if s == item {
@@ -1393,6 +1400,18 @@ func buildAnalyzeUseCase(fileReader domain.FileReader) (*app.AnalyzeUseCase, err
 	systemFormatter := service.NewSystemAnalysisFormatter()
 	systemUC := app.NewSystemAnalysisUseCase(systemService, fileReader, systemFormatter, systemConfigLoader)
 
+	// Build community analysis use case
+	communityService := service.NewCommunityAnalysisService()
+	communityFormatter := service.NewCommunityFormatter()
+	communityUC, err := app.NewCommunityUseCaseBuilder().
+		WithService(communityService).
+		WithFileReader(fileReader).
+		WithFormatter(communityFormatter).
+		Build()
+	if err != nil {
+		return nil, err
+	}
+
 	// Build analyze use case
 	return app.NewAnalyzeUseCaseBuilder().
 		WithComplexityUseCase(complexityUC).
@@ -1401,6 +1420,7 @@ func buildAnalyzeUseCase(fileReader domain.FileReader) (*app.AnalyzeUseCase, err
 		WithCBOUseCase(cboUC).
 		WithLCOMUseCase(lcomUC).
 		WithSystemUseCase(systemUC).
+		WithCommunityUseCase(communityUC).
 		WithFileReader(fileReader).
 		WithProgressManager(service.NewProgressManager()).
 		WithParallelExecutor(service.NewParallelExecutor()).
