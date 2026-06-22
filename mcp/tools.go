@@ -14,8 +14,8 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 			mcp.Required(),
 			mcp.Description("Path to Python code (file or directory) to analyze")),
 		mcp.WithArray("analyses",
-			mcp.WithStringEnumItems([]string{"complexity", "dead_code", "clone", "cbo", "lcom", "deps"}),
-			mcp.Description("Array of analyses to run. Options: complexity, dead_code, clone, cbo, lcom, deps. Default: all analyses")),
+			mcp.WithStringEnumItems([]string{"complexity", "dead_code", "clone", "cbo", "lcom", "deps", "communities"}),
+			mcp.Description("Array of analyses to run. Options: complexity, dead_code, clone, cbo, lcom, deps, communities. Default: all analyses")),
 		mcp.WithBoolean("recursive",
 			mcp.Description("Recursively analyze directories (default: true)")),
 	), handlers.HandleAnalyzeCode)

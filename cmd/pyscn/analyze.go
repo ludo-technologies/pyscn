@@ -131,7 +131,7 @@ Examples:
 	cmd.Flags().BoolVar(&c.skipCBO, "skip-cbo", false, "Skip class coupling (CBO) analysis")
 	cmd.Flags().BoolVar(&c.skipLCOM, "skip-lcom", false, "Skip class cohesion (LCOM4) analysis")
 	cmd.Flags().BoolVar(&c.skipSystem, "skip-deps", false, "Skip module dependencies and architecture analysis")
-	cmd.Flags().StringSliceVar(&c.selectAnalyses, "select", []string{}, "Only run specified analyses (complexity,deadcode,clones,cbo,lcom,deps)")
+	cmd.Flags().StringSliceVar(&c.selectAnalyses, "select", []string{}, "Only run specified analyses (complexity,deadcode,clones,cbo,lcom,deps,communities)")
 
 	// Quick filter flags
 	cmd.Flags().IntVar(&c.minComplexity, "min-complexity", 5, "Minimum complexity to report")
@@ -631,16 +631,17 @@ func (c *AnalyzeCommand) containsAnalysis(analysis string) bool {
 
 func (c *AnalyzeCommand) validateSelectedAnalyses() error {
 	validAnalyses := map[string]bool{
-		"complexity": true,
-		"deadcode":   true,
-		"clones":     true,
-		"cbo":        true,
-		"lcom":       true,
-		"deps":       true,
+		"complexity":   true,
+		"deadcode":     true,
+		"clones":       true,
+		"cbo":          true,
+		"lcom":         true,
+		"deps":         true,
+		"communities":  true,
 	}
 	for _, analysis := range c.selectAnalyses {
 		if !validAnalyses[strings.ToLower(analysis)] {
-			return fmt.Errorf("invalid analysis type: %s. Valid options: complexity, deadcode, clones, cbo, lcom, deps", analysis)
+			return fmt.Errorf("invalid analysis type: %s. Valid options: complexity, deadcode, clones, cbo, lcom, deps, communities", analysis)
 		}
 	}
 	return nil
