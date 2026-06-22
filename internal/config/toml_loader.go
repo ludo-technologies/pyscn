@@ -20,6 +20,7 @@ type PyscnTomlConfig struct {
 	Architecture   ArchitectureTomlConfig   `toml:"architecture"`    // [architecture] section
 	SystemAnalysis SystemAnalysisTomlConfig `toml:"system_analysis"` // [system_analysis] section
 	Dependencies   DependenciesTomlConfig   `toml:"dependencies"`    // [dependencies] section
+	Communities    CommunitiesTomlConfig    `toml:"communities"`     // [communities] section
 	Clones         ClonesConfig             `toml:"clones"`          // [clones] section - unified flat structure
 	MockData       MockDataTomlConfig       `toml:"mock_data"`       // [mock_data] section
 	DI             DITomlConfig             `toml:"di"`              // [di] section
@@ -146,6 +147,17 @@ type SystemAnalysisTomlConfig struct {
 	UseClonesData         *bool `toml:"use_clones_data"`
 	UseDeadCodeData       *bool `toml:"use_dead_code_data"`
 	GenerateUnifiedReport *bool `toml:"generate_unified_report"`
+}
+
+// CommunitiesTomlConfig represents the [communities] section
+type CommunitiesTomlConfig struct {
+	Enabled             *bool    `toml:"enabled"`
+	Algorithm           string   `toml:"algorithm"`
+	Scope               string   `toml:"scope"`
+	MinCommunitySize    *int     `toml:"min_community_size"`
+	IncludeLazyEdges    *bool    `toml:"include_lazy_edges"`
+	ReportBridgeModules *bool    `toml:"report_bridge_modules"`
+	Resolution          *float64 `toml:"resolution"`
 }
 
 // DependenciesTomlConfig represents the [dependencies] section
@@ -507,6 +519,9 @@ func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *PyscnConfig, pyscnTom
 
 	// Merge from [dependencies] section
 	mergeDependenciesSection(defaults, &pyscnToml.Dependencies)
+
+	// Merge from [communities] section
+	mergeCommunitiesSection(defaults, &pyscnToml.Communities)
 
 	// Merge from [clones] section (unified flat structure)
 	mergeClonesSection(defaults, &pyscnToml.Clones)

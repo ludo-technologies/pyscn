@@ -31,13 +31,14 @@ type AnalyzeCommand struct {
 	verbose    bool
 
 	// Analysis selection
-	skipComplexity bool
-	skipDeadCode   bool
-	skipClones     bool
-	skipCBO        bool
-	skipLCOM       bool
-	skipSystem     bool
-	selectAnalyses []string // Only run specified analyses
+	skipComplexity  bool
+	skipDeadCode    bool
+	skipClones      bool
+	skipCBO         bool
+	skipLCOM        bool
+	skipSystem      bool
+	skipCommunities bool
+	selectAnalyses  []string // Only run specified analyses
 
 	// Quick filters
 	minComplexity   int
@@ -131,6 +132,7 @@ Examples:
 	cmd.Flags().BoolVar(&c.skipCBO, "skip-cbo", false, "Skip class coupling (CBO) analysis")
 	cmd.Flags().BoolVar(&c.skipLCOM, "skip-lcom", false, "Skip class cohesion (LCOM4) analysis")
 	cmd.Flags().BoolVar(&c.skipSystem, "skip-deps", false, "Skip module dependencies and architecture analysis")
+	cmd.Flags().BoolVar(&c.skipCommunities, "skip-communities", false, "Skip module community detection (overrides config-enabled communities)")
 	cmd.Flags().StringSliceVar(&c.selectAnalyses, "select", []string{}, "Only run specified analyses (complexity,deadcode,clones,cbo,lcom,deps,communities)")
 
 	// Quick filter flags
@@ -197,13 +199,15 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 // createUseCaseConfig creates the use case configuration from command flags
 func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 	config := app.AnalyzeUseCaseConfig{
-		ConfigFile:      c.configFile,
-		Verbose:         c.verbose,
-		MinComplexity:   c.minComplexity,
-		CloneSimilarity: c.cloneSimilarity,
-		MinCBO:          c.minCBO,
-		EnableDFA:       c.enableDFA,
-		SkipCommunities: true, // opt-in until --select/config wiring (#583)
+		ConfigFile:              c.configFile,
+		Verbose:                 c.verbose,
+		MinComplexity:           c.minComplexity,
+		CloneSimilarity:         c.cloneSimilarity,
+		MinCBO:                  c.minCBO,
+		EnableDFA:               c.enableDFA,
+		SkipCommunities:         true, // opt-in: enable via --select communities or [communities] enabled=true
+		SelectAnalysesUsed:      len(c.selectAnalyses) > 0,
+		SkipCommunitiesExplicit: c.skipCommunities,
 	}
 
 	// Handle analysis selection
@@ -231,6 +235,9 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 	config.SkipCBO = config.SkipCBO || c.skipCBO
 	config.SkipLCOM = config.SkipLCOM || c.skipLCOM
 	config.SkipSystem = config.SkipSystem || c.skipSystem
+	if c.skipCommunities {
+		config.SkipCommunities = true
+	}
 
 	// Parse severity
 	switch c.minSeverity {
@@ -376,10 +383,12 @@ func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuil
 	// Community analysis use case
 	communityService := service.NewCommunityAnalysisService()
 	communityFormatter := service.NewCommunityFormatter()
+	communityConfigLoader := service.NewCommunityConfigurationLoader()
 	communityUseCase, err := app.NewCommunityUseCaseBuilder().
 		WithService(communityService).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(communityFormatter).
+		WithConfigLoader(communityConfigLoader).
 		Build()
 	if err != nil {
 		return fmt.Errorf("failed to build community analysis use case: %w", err)

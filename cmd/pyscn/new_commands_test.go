@@ -353,6 +353,33 @@ func TestAnalyzeCommandSelectCommunitiesEnablesAnalysis(t *testing.T) {
 	}
 }
 
+func TestAnalyzeCommandSelectDepsCommunities(t *testing.T) {
+	analyzeCmd := NewAnalyzeCommand()
+	analyzeCmd.selectAnalyses = []string{"deps", "communities"}
+
+	config := analyzeCmd.createUseCaseConfig()
+	if config.SkipSystem {
+		t.Fatal("expected --select deps to enable system analysis")
+	}
+	if config.SkipCommunities {
+		t.Fatal("expected --select communities to enable community analysis")
+	}
+}
+
+func TestAnalyzeCommandSkipCommunitiesOverridesSelect(t *testing.T) {
+	analyzeCmd := NewAnalyzeCommand()
+	analyzeCmd.selectAnalyses = []string{"communities"}
+	analyzeCmd.skipCommunities = true
+
+	config := analyzeCmd.createUseCaseConfig()
+	if !config.SkipCommunities {
+		t.Fatal("expected --skip-communities to disable community analysis")
+	}
+	if !config.SkipCommunitiesExplicit {
+		t.Fatal("expected skip-communities explicit flag to be set")
+	}
+}
+
 func TestAnalyzeCommandSelectComposesWithSkipFlags(t *testing.T) {
 	analyzeCmd := NewAnalyzeCommand()
 	analyzeCmd.selectAnalyses = []string{"complexity", "clones"}

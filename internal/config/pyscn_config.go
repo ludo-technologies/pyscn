@@ -119,6 +119,15 @@ type PyscnConfig struct {
 	SystemAnalysisUseDeadCodeData       *bool `mapstructure:"system_analysis_use_dead_code_data" yaml:"system_analysis_use_dead_code_data" json:"system_analysis_use_dead_code_data"`
 	SystemAnalysisGenerateUnifiedReport *bool `mapstructure:"system_analysis_generate_unified_report" yaml:"system_analysis_generate_unified_report" json:"system_analysis_generate_unified_report"`
 
+	// Communities Configuration (from [communities] section in TOML)
+	CommunitiesEnabled             *bool   `mapstructure:"communities_enabled" yaml:"communities_enabled" json:"communities_enabled"`
+	CommunitiesAlgorithm           string  `mapstructure:"communities_algorithm" yaml:"communities_algorithm" json:"communities_algorithm"`
+	CommunitiesScope               string  `mapstructure:"communities_scope" yaml:"communities_scope" json:"communities_scope"`
+	CommunitiesMinCommunitySize    int     `mapstructure:"communities_min_community_size" yaml:"communities_min_community_size" json:"communities_min_community_size"`
+	CommunitiesIncludeLazyEdges    *bool   `mapstructure:"communities_include_lazy_edges" yaml:"communities_include_lazy_edges" json:"communities_include_lazy_edges"`
+	CommunitiesReportBridgeModules *bool   `mapstructure:"communities_report_bridge_modules" yaml:"communities_report_bridge_modules" json:"communities_report_bridge_modules"`
+	CommunitiesResolution          float64 `mapstructure:"communities_resolution" yaml:"communities_resolution" json:"communities_resolution"`
+
 	// Dependencies Configuration (from [dependencies] section in TOML)
 	DependenciesEnabled           *bool   `mapstructure:"dependencies_enabled" yaml:"dependencies_enabled" json:"dependencies_enabled"`
 	DependenciesIncludeStdLib     *bool   `mapstructure:"dependencies_include_stdlib" yaml:"dependencies_include_stdlib" json:"dependencies_include_stdlib"`
@@ -418,6 +427,15 @@ func DefaultPyscnConfig() *PyscnConfig {
 		SystemAnalysisUseClonesData:         domain.BoolPtr(true),
 		SystemAnalysisUseDeadCodeData:       domain.BoolPtr(true),
 		SystemAnalysisGenerateUnifiedReport: domain.BoolPtr(true),
+
+		// Communities defaults (from [communities] section)
+		CommunitiesEnabled:             domain.BoolPtr(false), // Disabled by default - opt-in
+		CommunitiesAlgorithm:           domain.DefaultCommunityAlgorithm,
+		CommunitiesScope:               domain.DefaultCommunityScope,
+		CommunitiesMinCommunitySize:    2,
+		CommunitiesIncludeLazyEdges:    domain.BoolPtr(true),
+		CommunitiesReportBridgeModules: domain.BoolPtr(true),
+		CommunitiesResolution:          domain.DefaultCommunityResolution,
 
 		// Dependencies defaults (from [dependencies] section)
 		DependenciesEnabled:           domain.BoolPtr(false), // Disabled by default - opt-in

@@ -60,6 +60,9 @@ type Config struct {
 	// Dependencies holds dependency analysis configuration
 	Dependencies DependencyAnalysisConfig `mapstructure:"dependencies" yaml:"dependencies"`
 
+	// Communities holds module community detection configuration
+	Communities CommunitiesConfig `mapstructure:"communities" yaml:"communities"`
+
 	// Architecture holds architecture validation configuration
 	Architecture ArchitectureConfig `mapstructure:"architecture" yaml:"architecture"`
 
@@ -194,6 +197,17 @@ func DefaultConfig() *Config {
 			UseClonesData:         true,
 			UseDeadCodeData:       true,
 			GenerateUnifiedReport: true,
+		},
+
+		// Community detection configuration
+		Communities: CommunitiesConfig{
+			Enabled:             false,
+			Algorithm:           domain.DefaultCommunityAlgorithm,
+			Scope:               domain.DefaultCommunityScope,
+			MinCommunitySize:    2,
+			IncludeLazyEdges:    true,
+			ReportBridgeModules: true,
+			Resolution:          domain.DefaultCommunityResolution,
 		},
 
 		// Dependency analysis configuration
@@ -415,6 +429,29 @@ func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
 	}
 	if pyscn.SystemAnalysisGenerateUnifiedReport != nil {
 		cfg.SystemAnalysis.GenerateUnifiedReport = *pyscn.SystemAnalysisGenerateUnifiedReport
+	}
+
+	// Communities settings
+	if pyscn.CommunitiesEnabled != nil {
+		cfg.Communities.Enabled = *pyscn.CommunitiesEnabled
+	}
+	if pyscn.CommunitiesAlgorithm != "" {
+		cfg.Communities.Algorithm = pyscn.CommunitiesAlgorithm
+	}
+	if pyscn.CommunitiesScope != "" {
+		cfg.Communities.Scope = pyscn.CommunitiesScope
+	}
+	if pyscn.CommunitiesMinCommunitySize > 0 {
+		cfg.Communities.MinCommunitySize = pyscn.CommunitiesMinCommunitySize
+	}
+	if pyscn.CommunitiesIncludeLazyEdges != nil {
+		cfg.Communities.IncludeLazyEdges = *pyscn.CommunitiesIncludeLazyEdges
+	}
+	if pyscn.CommunitiesReportBridgeModules != nil {
+		cfg.Communities.ReportBridgeModules = *pyscn.CommunitiesReportBridgeModules
+	}
+	if pyscn.CommunitiesResolution > 0 {
+		cfg.Communities.Resolution = pyscn.CommunitiesResolution
 	}
 
 	// Dependencies settings
@@ -805,6 +842,17 @@ type SystemAnalysisConfig struct {
 
 	// Output options
 	GenerateUnifiedReport bool `mapstructure:"generate_unified_report" yaml:"generate_unified_report"`
+}
+
+// CommunitiesConfig holds configuration for module community detection
+type CommunitiesConfig struct {
+	Enabled             bool    `mapstructure:"enabled" yaml:"enabled"`
+	Algorithm           string  `mapstructure:"algorithm" yaml:"algorithm"`
+	Scope               string  `mapstructure:"scope" yaml:"scope"`
+	MinCommunitySize    int     `mapstructure:"min_community_size" yaml:"min_community_size"`
+	IncludeLazyEdges    bool    `mapstructure:"include_lazy_edges" yaml:"include_lazy_edges"`
+	ReportBridgeModules bool    `mapstructure:"report_bridge_modules" yaml:"report_bridge_modules"`
+	Resolution          float64 `mapstructure:"resolution" yaml:"resolution"`
 }
 
 // DependencyAnalysisConfig holds configuration for dependency analysis

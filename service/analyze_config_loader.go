@@ -53,6 +53,7 @@ type analyzeEnabledOverrides struct {
 	SystemAnalyzeArchitecture *bool
 	DependenciesEnabled       *bool
 	ArchitectureEnabled       *bool
+	CommunitiesEnabled        *bool
 }
 
 func defaultAnalyzeExecutionConfig() domain.AnalyzeExecutionConfig {
@@ -78,6 +79,7 @@ func defaultAnalyzeExecutionConfig() domain.AnalyzeExecutionConfig {
 		SystemEnabled:                true,
 		SystemAnalyzeDependencies:    true,
 		SystemAnalyzeArchitecture:    true,
+		CommunitiesEnabled:           false,
 	}
 }
 
@@ -115,8 +117,19 @@ func analyzeExecutionConfigFromConfig(cfg *config.Config, overrides analyzeEnabl
 	}
 
 	applySystemEnabledOverrides(&executionCfg, overrides)
+	applyCommunitiesEnabledOverrides(&executionCfg, overrides, cfg)
 
 	return executionCfg
+}
+
+func applyCommunitiesEnabledOverrides(executionCfg *domain.AnalyzeExecutionConfig, overrides analyzeEnabledOverrides, cfg *config.Config) {
+	if overrides.CommunitiesEnabled != nil {
+		executionCfg.CommunitiesEnabled = *overrides.CommunitiesEnabled
+		return
+	}
+	if cfg != nil {
+		executionCfg.CommunitiesEnabled = cfg.Communities.Enabled
+	}
 }
 
 func applySystemEnabledOverrides(executionCfg *domain.AnalyzeExecutionConfig, overrides analyzeEnabledOverrides) {
@@ -174,6 +187,7 @@ func loadAnalyzeEnabledOverrides(configPath string) (analyzeEnabledOverrides, er
 			parsed.Tool.Pyscn.SystemAnalysis,
 			parsed.Tool.Pyscn.Dependencies,
 			parsed.Tool.Pyscn.Architecture,
+			parsed.Tool.Pyscn.Communities,
 		), nil
 	}
 
@@ -181,15 +195,16 @@ func loadAnalyzeEnabledOverrides(configPath string) (analyzeEnabledOverrides, er
 	if err := toml.Unmarshal(data, &parsed); err != nil {
 		return analyzeEnabledOverrides{}, err
 	}
-	return enabledOverridesFromSections(parsed.SystemAnalysis, parsed.Dependencies, parsed.Architecture), nil
+	return enabledOverridesFromSections(parsed.SystemAnalysis, parsed.Dependencies, parsed.Architecture, parsed.Communities), nil
 }
 
-func enabledOverridesFromSections(system config.SystemAnalysisTomlConfig, dependencies config.DependenciesTomlConfig, architecture config.ArchitectureTomlConfig) analyzeEnabledOverrides {
+func enabledOverridesFromSections(system config.SystemAnalysisTomlConfig, dependencies config.DependenciesTomlConfig, architecture config.ArchitectureTomlConfig, communities config.CommunitiesTomlConfig) analyzeEnabledOverrides {
 	return analyzeEnabledOverrides{
 		SystemEnabled:             system.Enabled,
 		SystemAnalyzeDependencies: system.EnableDependencies,
 		SystemAnalyzeArchitecture: system.EnableArchitecture,
 		DependenciesEnabled:       dependencies.Enabled,
 		ArchitectureEnabled:       architecture.Enabled,
+		CommunitiesEnabled:        communities.Enabled,
 	}
 }
