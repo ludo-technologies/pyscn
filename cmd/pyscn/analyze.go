@@ -631,13 +631,13 @@ func (c *AnalyzeCommand) containsAnalysis(analysis string) bool {
 
 func (c *AnalyzeCommand) validateSelectedAnalyses() error {
 	validAnalyses := map[string]bool{
-		"complexity":   true,
-		"deadcode":     true,
-		"clones":       true,
-		"cbo":          true,
-		"lcom":         true,
-		"deps":         true,
-		"communities":  true,
+		"complexity":  true,
+		"deadcode":    true,
+		"clones":      true,
+		"cbo":         true,
+		"lcom":        true,
+		"deps":        true,
+		"communities": true,
 	}
 	for _, analysis := range c.selectAnalyses {
 		if !validAnalyses[strings.ToLower(analysis)] {
