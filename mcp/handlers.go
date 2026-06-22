@@ -62,7 +62,7 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 		SkipCBO:         !contains(analyses, "cbo") && len(analyses) > 0,
 		SkipLCOM:        !contains(analyses, "lcom") && len(analyses) > 0,
 		SkipSystem:      !contains(analyses, "deps") && len(analyses) > 0,
-		SkipCommunities: !contains(analyses, "communities") && len(analyses) > 0,
+		SkipCommunities: shouldSkipCommunitiesAnalysis(analyses),
 		MinComplexity:   1,
 		MinSeverity:     domain.DeadCodeSeverityWarning,
 		CloneSimilarity: 0.8,
@@ -780,6 +780,12 @@ func (h *HandlerSet) HandleGetHealthScore(ctx context.Context, request mcp.CallT
 }
 
 // Helper functions
+
+func shouldSkipCommunitiesAnalysis(analyses []string) bool {
+	// Communities remain opt-in: omitted analyses lists and explicit subsets
+	// without "communities" must not run community detection.
+	return len(analyses) == 0 || !contains(analyses, "communities")
+}
 
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
