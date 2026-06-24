@@ -29,18 +29,27 @@ func (f *CommunityFormatter) Format(response *domain.CommunityAnalysisResult, fo
 	case domain.OutputFormatJSON:
 		return f.formatJSON(response)
 	default:
-		return "", fmt.Errorf("community formatter does not yet support format %s", format)
+		return "", fmt.Errorf("community formatter does not support format %s", format)
 	}
 }
 
 // Write formats and writes community analysis output.
 func (f *CommunityFormatter) Write(response *domain.CommunityAnalysisResult, format domain.OutputFormat, writer io.Writer) error {
-	content, err := f.Format(response, format)
-	if err != nil {
+	if response == nil {
+		return fmt.Errorf("community analysis result is nil")
+	}
+
+	switch format {
+	case domain.OutputFormatJSON:
+		return WriteJSON(writer, normalizeCommunityResult(response))
+	default:
+		content, err := f.Format(response, format)
+		if err != nil {
+			return err
+		}
+		_, err = io.WriteString(writer, content)
 		return err
 	}
-	_, err = io.WriteString(writer, content)
-	return err
 }
 
 func (f *CommunityFormatter) formatText(response *domain.CommunityAnalysisResult) string {
@@ -54,7 +63,11 @@ func (f *CommunityFormatter) formatText(response *domain.CommunityAnalysisResult
 
 func (f *CommunityFormatter) formatJSON(response *domain.CommunityAnalysisResult) (string, error) {
 	normalized := normalizeCommunityResult(response)
-	return EncodeJSON(normalized)
+	data, err := EncodeJSON(normalized)
+	if err != nil {
+		return "", err
+	}
+	return data + "\n", nil
 }
 
 // normalizeCommunityResult returns a schema-stable copy with sorted lists and rounded ratios.
@@ -109,4 +122,17 @@ func roundCommunityFloat(value float64) float64 {
 		return 0
 	}
 	return math.Round(value*10000) / 10000
+}
+
+func normalizeAnalyzeResponseForJSON(response *domain.AnalyzeResponse) *domain.AnalyzeResponse {
+	if response == nil {
+		return nil
+	}
+	if response.Communities == nil {
+		return response
+	}
+
+	out := *response
+	out.Communities = normalizeCommunityResult(response.Communities)
+	return &out
 }

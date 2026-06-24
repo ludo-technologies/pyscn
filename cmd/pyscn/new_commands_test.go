@@ -388,6 +388,13 @@ func TestAnalyzeCommandShouldWriteStandaloneCommunityJSON(t *testing.T) {
 	if analyzeCmd.shouldWriteStandaloneCommunityJSON(response) {
 		t.Fatal("expected unified analyze output for non-JSON formats")
 	}
+
+	if analyzeCmd.shouldWriteStandaloneCommunityJSON(nil) {
+		t.Fatal("expected false when response is nil")
+	}
+	if analyzeCmd.shouldWriteStandaloneCommunityJSON(&domain.AnalyzeResponse{}) {
+		t.Fatal("expected false when community analysis is nil")
+	}
 }
 
 func TestAnalyzeCommandSkipCommunitiesOverridesSelect(t *testing.T) {

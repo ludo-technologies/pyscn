@@ -32,7 +32,7 @@ func (f *AnalyzeFormatter) Write(response *domain.AnalyzeResponse, format domain
 	case domain.OutputFormatText:
 		return f.writeText(response, writer)
 	case domain.OutputFormatJSON:
-		return WriteJSON(writer, response)
+		return WriteJSON(writer, normalizeAnalyzeResponseForJSON(response))
 	case domain.OutputFormatYAML:
 		return WriteYAML(writer, response)
 	case domain.OutputFormatCSV:

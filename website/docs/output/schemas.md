@@ -43,9 +43,9 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
 | `clone`       | object \| absent  | Present when clone detection ran.                      | stable    |
 | `cbo`         | object \| absent  | Present when CBO analysis ran.                         | stable    |
 | `lcom`        | object \| absent  | Present when LCOM analysis ran.                        | stable    |
-| `system`             | object \| absent  | Present when dependency or architecture analysis ran.       | stable    |
-| `community_analysis` | object \| absent  | Present when module community detection ran.                | stable    |
-| `mock_data`          | object \| absent  | Present when mock data detection ran.                       | stable    |
+| `system`             | object \| absent | Present when dependency or architecture analysis ran. | stable |
+| `community_analysis` | object \| absent | Present when module community detection ran.          | stable |
+| `mock_data`          | object \| absent | Present when mock data detection ran.                 | stable |
 | `suggestions` | array \| absent   | Derived suggestions. Omitted when empty.               | stable    |
 | `summary`     | object            | Always present. See [`summary`](#summary-object).      | stable    |
 | `generated_at`| string (RFC 3339) | Analysis completion time.                              | stable    |
@@ -74,9 +74,9 @@ Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the co
 | `cbo_enabled`        | boolean | `true` if CBO analysis produced results.                   |
 | `lcom_enabled`       | boolean | `true` if LCOM analysis produced results.                  |
 | `deps_enabled`       | boolean | `true` if dependency analysis produced results.            |
-| `arch_enabled`          | boolean | `true` if architecture validation produced results.        |
-| `communities_enabled` | boolean | `true` if module community detection produced results.     |
-| `mock_data_enabled`   | boolean | `true` if mock data detection produced results.            |
+| `arch_enabled`        | boolean | `true` if architecture validation produced results.    |
+| `communities_enabled` | boolean | `true` if module community detection produced results. |
+| `mock_data_enabled`   | boolean | `true` if mock data detection produced results.      |
 
 ### Complexity metrics
 
@@ -779,7 +779,7 @@ pyscn analyze --yaml --select clones        src/
 pyscn analyze --json --select communities   src/
 ```
 
-`--select communities` with `--json` writes standalone community JSON (not the unified `AnalyzeResponse` wrapper).
+`--select communities` with `--json` writes standalone community JSON (not the unified `AnalyzeResponse` wrapper). YAML standalone output is not supported yet; use unified `pyscn analyze --yaml` or `--json --select communities`.
 
 Output files land in `.pyscn/reports/`; see [Output Formats](index.md) for path and filename details.
 
