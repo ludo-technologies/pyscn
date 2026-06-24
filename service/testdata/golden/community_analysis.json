@@ -1,0 +1,72 @@
+{
+  "algorithm": "leiden",
+  "scope": "module",
+  "total_communities": 2,
+  "modularity": 0.2188,
+  "communities": [
+    {
+      "id": "community_1",
+      "modules": [
+        "bridge",
+        "mod.a",
+        "mod.b"
+      ],
+      "packages": [
+        "mod"
+      ],
+      "internal_edges": 2,
+      "external_edges": 1,
+      "external_dependency_ratio": 0.3333,
+      "incoming_cross_community_edges": 0,
+      "outgoing_cross_community_edges": 1,
+      "size": 3
+    },
+    {
+      "id": "community_2",
+      "modules": [
+        "mod.c",
+        "mod.d"
+      ],
+      "packages": [
+        "mod"
+      ],
+      "internal_edges": 1,
+      "external_edges": 1,
+      "external_dependency_ratio": 0.5,
+      "incoming_cross_community_edges": 1,
+      "outgoing_cross_community_edges": 0,
+      "size": 2
+    }
+  ],
+  "bridge_modules": [
+    {
+      "module": "bridge",
+      "community": "community_1",
+      "cross_community_edges": 1,
+      "target_communities": [
+        "community_2"
+      ]
+    },
+    {
+      "module": "mod.c",
+      "community": "community_2",
+      "cross_community_edges": 1,
+      "target_communities": [
+        "community_1"
+      ]
+    }
+  ],
+  "generated_at": "2026-01-15T12:00:00Z",
+  "version": "0.0.0-test",
+  "config": {
+    "algorithm": "leiden",
+    "followRelative": true,
+    "includeLazyEdges": true,
+    "includeStdLib": false,
+    "includeThirdParty": true,
+    "minCommunitySize": 2,
+    "reportBridgeModules": true,
+    "resolution": 1,
+    "scope": "module"
+  }
+}
