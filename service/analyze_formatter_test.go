@@ -178,6 +178,41 @@ func TestAnalyzeFormatter_Write_JSON(t *testing.T) {
 	assert.Equal(t, response.Summary.TotalFiles, decoded.Summary.TotalFiles)
 }
 
+func TestAnalyzeFormatter_Write_JSON_IncludesCommunityAnalysis(t *testing.T) {
+	formatter := NewAnalyzeFormatter()
+	response := createTestAnalyzeResponse()
+	response.Summary.CommunitiesEnabled = true
+	response.Communities = &domain.CommunityAnalysisResult{
+		Algorithm:        "leiden",
+		Scope:            "module",
+		TotalCommunities: 2,
+		Modularity:       0.42,
+		Communities: []domain.CommunityMetrics{
+			{ID: "community_1", Modules: []string{"mod.a"}, Size: 1},
+			{ID: "community_2", Modules: []string{"mod.b"}, Size: 1},
+		},
+		BridgeModules: []domain.BridgeModule{
+			{
+				Module:              "bridge",
+				Community:           "community_1",
+				CrossCommunityEdges: 1,
+				TargetCommunities:   []string{"community_2"},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	require.NoError(t, formatter.Write(response, domain.OutputFormatJSON, &buf))
+
+	var decoded map[string]any
+	require.NoError(t, json.Unmarshal(buf.Bytes(), &decoded))
+	require.Contains(t, decoded, "community_analysis")
+
+	communityAnalysis := decoded["community_analysis"].(map[string]any)
+	assert.Equal(t, "leiden", communityAnalysis["algorithm"])
+	assert.Equal(t, float64(2), communityAnalysis["total_communities"])
+}
+
 func TestAnalyzeFormatter_Write_YAML(t *testing.T) {
 	formatter := NewAnalyzeFormatter()
 	response := createTestAnalyzeResponse()

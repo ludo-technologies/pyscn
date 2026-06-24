@@ -366,6 +366,30 @@ func TestAnalyzeCommandSelectDepsCommunities(t *testing.T) {
 	}
 }
 
+func TestAnalyzeCommandShouldWriteStandaloneCommunityJSON(t *testing.T) {
+	analyzeCmd := NewAnalyzeCommand()
+	analyzeCmd.json = true
+	analyzeCmd.selectAnalyses = []string{"communities"}
+
+	response := &domain.AnalyzeResponse{
+		Communities: &domain.CommunityAnalysisResult{TotalCommunities: 2},
+	}
+	if !analyzeCmd.shouldWriteStandaloneCommunityJSON(response) {
+		t.Fatal("expected standalone community JSON for --json --select communities")
+	}
+
+	analyzeCmd.selectAnalyses = []string{"deps", "communities"}
+	if analyzeCmd.shouldWriteStandaloneCommunityJSON(response) {
+		t.Fatal("expected unified analyze JSON when multiple analyses are selected")
+	}
+
+	analyzeCmd.selectAnalyses = []string{"communities"}
+	analyzeCmd.json = false
+	if analyzeCmd.shouldWriteStandaloneCommunityJSON(response) {
+		t.Fatal("expected unified analyze output for non-JSON formats")
+	}
+}
+
 func TestAnalyzeCommandSkipCommunitiesOverridesSelect(t *testing.T) {
 	analyzeCmd := NewAnalyzeCommand()
 	analyzeCmd.selectAnalyses = []string{"communities"}

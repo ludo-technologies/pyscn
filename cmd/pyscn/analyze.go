@@ -426,9 +426,14 @@ func (c *AnalyzeCommand) generateOutput(cmd *cobra.Command, response *domain.Ana
 	}
 	defer file.Close()
 
-	// Write the unified report
+	// Write standalone community JSON when only communities were selected.
 	formatType := domain.OutputFormat(format)
-	if err := formatter.Write(response, formatType, file); err != nil {
+	if c.shouldWriteStandaloneCommunityJSON(response) {
+		communityFormatter := service.NewCommunityFormatter()
+		if err := communityFormatter.Write(response.Communities, formatType, file); err != nil {
+			return fmt.Errorf("failed to write community analysis report: %w", err)
+		}
+	} else if err := formatter.Write(response, formatType, file); err != nil {
 		return fmt.Errorf("failed to write unified report: %w", err)
 	}
 
@@ -626,6 +631,16 @@ func (c *AnalyzeCommand) shouldUseProgressBars(cmd *cobra.Command) bool {
 	}
 
 	return false
+}
+
+// shouldWriteStandaloneCommunityJSON returns true when community analysis is the
+// only selected analyzer and JSON output is requested.
+func (c *AnalyzeCommand) shouldWriteStandaloneCommunityJSON(response *domain.AnalyzeResponse) bool {
+	return c.json &&
+		len(c.selectAnalyses) == 1 &&
+		c.containsAnalysis("communities") &&
+		response != nil &&
+		response.Communities != nil
 }
 
 // containsAnalysis checks if the given analysis is in the selectAnalyses list
