@@ -38,6 +38,8 @@ type AnalyzeExecutionConfig struct {
 	SystemEnabled             bool
 	SystemAnalyzeDependencies bool
 	SystemAnalyzeArchitecture bool
+
+	CommunitiesEnabled bool
 }
 
 // AnalyzeConfigurationLoader resolves and loads configuration for AnalyzeUseCase.

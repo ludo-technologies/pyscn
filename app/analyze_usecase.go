@@ -23,6 +23,11 @@ type AnalyzeUseCaseConfig struct {
 	SkipSystem      bool
 	SkipCommunities bool
 
+	// SelectAnalysesUsed is true when --select was provided on the CLI.
+	SelectAnalysesUsed bool
+	// SkipCommunitiesExplicit is true when --skip-communities was provided.
+	SkipCommunitiesExplicit bool
+
 	MinComplexity   int
 	MinSeverity     domain.DeadCodeSeverity
 	CloneSimilarity float64
@@ -230,6 +235,13 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 	if !executionCfg.SystemEnabled {
 		useCaseCfg.SkipSystem = true
+	}
+
+	if !useCaseCfg.SelectAnalysesUsed && executionCfg.CommunitiesEnabled {
+		useCaseCfg.SkipCommunities = false
+	}
+	if useCaseCfg.SkipCommunitiesExplicit {
+		useCaseCfg.SkipCommunities = true
 	}
 
 	// Validate and collect files using configured patterns
