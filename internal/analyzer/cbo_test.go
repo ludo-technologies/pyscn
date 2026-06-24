@@ -1115,6 +1115,49 @@ class Worker:
 	assert.Equal(t, 2, worker.CouplingCount)
 }
 
+func TestCBOAnalyzer_ImportedEnumMembersCollapseToEnumClass(t *testing.T) {
+	pythonCode := `
+from rules import RuleGranularity, RuleMode, RuleRisk
+from parameters import Parameter
+
+class Rule:
+    DEFAULT_MODE = RuleMode.BLOCKING
+    FALLBACK_MODE = RuleMode.ALLOWED
+    GRANULARITY = RuleGranularity.STACK
+    RISK = RuleRisk.MEDIUM
+
+class HardcodedRDSPasswordRule:
+    CHECKS = (
+        Parameter.NO_ECHO_NO_DEFAULT,
+        Parameter.NO_ECHO_WITH_DEFAULT,
+        Parameter.NO_ECHO_WITH_VALUE,
+    )
+    GRANULARITY = RuleGranularity.RESOURCE
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "rules.py")
+	require.NoError(t, err)
+	require.Len(t, results, 2)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range results {
+		resultMap[result.ClassName] = result
+	}
+
+	rule := resultMap["Rule"]
+	require.NotNil(t, rule)
+	assert.Equal(t, []string{"RuleGranularity", "RuleMode", "RuleRisk"}, rule.DependentClasses)
+	assert.Equal(t, 3, rule.CouplingCount)
+
+	hardcoded := resultMap["HardcodedRDSPasswordRule"]
+	require.NotNil(t, hardcoded)
+	assert.Equal(t, []string{"Parameter", "RuleGranularity"}, hardcoded.DependentClasses)
+	assert.Equal(t, 2, hardcoded.CouplingCount)
+}
+
 func TestCBOAnalyzer_LocalClassMethodCallsCountClassCoupling(t *testing.T) {
 	pythonCode := `
 class Widget:
