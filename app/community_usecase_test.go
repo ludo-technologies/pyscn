@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"os"
@@ -96,4 +97,42 @@ func TestCommunityUseCase_ValidateRequest(t *testing.T) {
 		MinCommunitySize: -1,
 	})
 	require.Error(t, err)
+
+	err = uc.validateRequest(domain.CommunityAnalysisRequest{
+		Paths:        []string{"."},
+		OutputWriter: io.Discard,
+		OutputFormat: domain.OutputFormatDOT,
+	})
+	require.NoError(t, err)
+}
+
+func TestCommunityUseCase_Execute_DOT(t *testing.T) {
+	fixtureRoot := filepath.Join("..", "testdata", "python", "community_bridge")
+	absRoot, err := filepath.Abs(fixtureRoot)
+	require.NoError(t, err)
+
+	uc, err := NewCommunityUseCaseBuilder().
+		WithService(service.NewCommunityAnalysisService()).
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(service.NewCommunityFormatter()).
+		Build()
+	require.NoError(t, err)
+
+	var buf bytes.Buffer
+	req := domain.CommunityAnalysisRequest{
+		Paths:            []string{absRoot},
+		SourcePaths:      []string{absRoot},
+		OutputFormat:     domain.OutputFormatDOT,
+		OutputWriter:     &buf,
+		Recursive:        domain.BoolPtr(true),
+		MinCommunitySize: 2,
+	}
+
+	err = uc.Execute(context.Background(), req)
+	require.NoError(t, err)
+
+	output := buf.String()
+	assert.Contains(t, output, "digraph ModuleCommunities")
+	assert.Contains(t, output, "bridge")
+	assert.Contains(t, output, "->")
 }

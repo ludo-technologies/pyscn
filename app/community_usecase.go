@@ -121,7 +121,7 @@ func (uc *CommunityUseCase) validateRequest(req domain.CommunityAnalysisRequest)
 		return fmt.Errorf("resolution cannot be negative")
 	}
 	switch req.OutputFormat {
-	case domain.OutputFormatText, domain.OutputFormatJSON, domain.OutputFormatYAML, domain.OutputFormatCSV, domain.OutputFormatHTML:
+	case domain.OutputFormatText, domain.OutputFormatJSON, domain.OutputFormatYAML, domain.OutputFormatCSV, domain.OutputFormatHTML, domain.OutputFormatDOT:
 	default:
 		return fmt.Errorf("unsupported output format: %s", req.OutputFormat)
 	}
