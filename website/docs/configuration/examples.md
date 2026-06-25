@@ -184,6 +184,23 @@ similarity_threshold = 0.85
 !!! note
     `.pyscn.toml` takes priority over `pyproject.toml` if both exist. Pick one to avoid confusion.
 
+## Architecture exploration with communities { #architecture-communities }
+
+Surface natural module clusters and cross-community bridge modules alongside dependency analysis:
+
+```toml
+[communities]
+enabled = true
+min_community_size = 2
+report_bridge_modules = true
+```
+
+```bash
+pyscn analyze --json --select deps,communities src/
+```
+
+Interpretation guide: [Module Community Detection](../guides/module-community-detection.md).
+
 ## See also
 
 - [Config File Format](format.md)

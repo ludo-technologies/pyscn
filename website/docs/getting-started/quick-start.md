@@ -29,9 +29,10 @@ pyscn analyze --no-open .       # suppress browser open
 pyscn analyze --select complexity .
 pyscn analyze --select complexity,deadcode .
 pyscn analyze --skip-clones .
+pyscn analyze --json --select communities src/   # module community detection (opt-in)
 ```
 
-See [`analyze`](../cli/analyze.md) for all flags.
+See [`analyze`](../cli/analyze.md) for all flags. Community output: [Module Community Detection](../guides/module-community-detection.md).
 
 ## CI quality gate
 

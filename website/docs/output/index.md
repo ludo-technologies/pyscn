@@ -42,3 +42,13 @@ Across patch and minor releases within the same major version:
 - **Breaking changes**: restricted to major version bumps (removal or rename of fields, change of field types).
 
 Third-party integrations should ignore unknown fields and not rely on field ordering within objects.
+
+## Standalone analyzer output
+
+`pyscn analyze --json --select <analyzer>` can write a single-analyzer JSON file instead of the unified `AnalyzeResponse` wrapper. Community detection uses this path:
+
+```bash
+pyscn analyze --json --select communities src/
+```
+
+The report contains only the [`community_analysis`](schemas.md#community-analysis-object) object. See [Module Community Detection](../guides/module-community-detection.md) for interpretation.

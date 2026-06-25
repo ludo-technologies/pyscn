@@ -756,6 +756,10 @@ Mirrors `domain.CommunityAnalysisResult`. Emitted as a top-level field in unifie
 | `cross_community_edges`| integer | Edges that connect to other communities.              |
 | `target_communities`   | array   | Destination community ids (sorted for stable diffs).  |
 
+### Determinism
+
+Community detection is deterministic for a fixed codebase snapshot and configuration: repeated runs yield identical `communities`, `bridge_modules`, and `modularity`. Module and community ordering in JSON is stable (sorted ids and module names). Numeric fields are rounded to four decimal places for diff-friendly output. Results may change across pyscn versions or when `min_community_size`, `resolution`, or `include_lazy_edges` change. See [Module Community Detection](../guides/module-community-detection.md#determinism) for details.
+
 ## Timestamps and versioning
 
 | Field          | Format                    | Notes                                                   |
