@@ -286,6 +286,31 @@ Module dependency analysis. **Opt-in** for `pyscn check`; always on for `pyscn a
 
 ---
 
+## `[communities]` { #communities }
+
+Module community detection over the import dependency graph. **Opt-in** — disabled by default until you enable it here or pass `--select communities`.
+
+| Key                    | Type   | Default   | Description |
+| ---------------------- | ------ | --------- | --- |
+| `enabled`              | bool   | `false`   | Run community detection in unified `pyscn analyze`. |
+| `algorithm`            | string | `"leiden"`| Community detection algorithm (currently only `leiden`). |
+| `scope`                | string | `"module"`| Graph scope. Module-level only in Phase 1. |
+| `min_community_size`   | int    | `2`       | Minimum community size; smaller partitions stay as singletons. |
+| `include_lazy_edges`   | bool   | `true`    | Include lazy / `TYPE_CHECKING` imports as graph edges. |
+| `report_bridge_modules`| bool   | `true`    | Emit `bridge_modules` cross-community coupling list. |
+| `resolution`           | float  | `1.0`     | Leiden resolution parameter (higher tends to produce more communities). |
+
+```toml
+[communities]
+enabled = true
+min_community_size = 2
+report_bridge_modules = true
+```
+
+See [Module Community Detection](../guides/module-community-detection.md) for interpretation, determinism guarantees, and JSON field reference.
+
+---
+
 ## `[mock_data]`
 
 Mock/placeholder data detection. **Opt-in**.
@@ -326,6 +351,8 @@ Flags that don't map directly to a config key (`--select`, `--skip-*`, `--no-ope
 | `--min-severity`        | `[dead_code] min_severity`        |
 | `--clone-threshold`     | `[clones] similarity_threshold`   |
 | `--min-cbo`             | `[cbo] min_cbo`                   |
+| `--select communities`  | `[communities] enabled` (per-run) |
+| `--skip-communities`    | overrides `[communities] enabled` |
 | `--max-cycles`          | — (check command only)            |
 
 ## See also
