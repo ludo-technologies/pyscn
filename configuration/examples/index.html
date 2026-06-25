@@ -692,6 +692,8 @@
       
         
       
+        
+      
     
     
     
@@ -754,6 +756,34 @@
     
   
     Find Duplicate Code in Python
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/module-community-detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Community Detection
   
 
     
@@ -2776,6 +2806,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#architecture-communities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture exploration with communities
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#see-also" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3265,6 +3306,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#architecture-communities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture exploration with communities
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#see-also" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3501,6 +3553,16 @@
 <p class="admonition-title">Note</p>
 <p><code>.pyscn.toml</code> takes priority over <code>pyproject.toml</code> if both exist. Pick one to avoid confusion.</p>
 </div>
+<h2 id="architecture-communities">Architecture exploration with communities<a class="headerlink" href="#architecture-communities" title="Permanent link">&para;</a></h2>
+<p>Surface natural module clusters and cross-community bridge modules alongside dependency analysis:</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">[communities]</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">min_community_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">report_bridge_modules</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+</span></code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>deps,communities<span class="w"> </span>src/
+</span></code></pre></div>
+<p>Interpretation guide: <a href="../../guides/module-community-detection/">Module Community Detection</a>.</p>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../format/">Config File Format</a></li>

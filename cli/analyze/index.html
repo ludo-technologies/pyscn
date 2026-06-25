@@ -692,6 +692,8 @@
       
         
       
+        
+      
     
     
     
@@ -754,6 +756,34 @@
     
   
     Find Duplicate Code in Python
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/module-community-detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Community Detection
   
 
     
@@ -3419,6 +3449,7 @@
 <li>Class cohesion (LCOM4)</li>
 <li>Module dependencies</li>
 <li>Architecture layer validation</li>
+<li>Module community detection (opt-in)</li>
 </ul>
 <p>Results are combined into a single report with a <a href="../../output/health-score/">Health Score</a>.</p>
 <h2 id="flags">Flags<a class="headerlink" href="#flags" title="Permanent link">&para;</a></h2>
@@ -3466,7 +3497,7 @@
 <tbody>
 <tr>
 <td><code>--select &lt;list&gt;</code></td>
-<td>Only run the listed analyses. Comma-separated: <code>complexity,deadcode,clones,cbo,lcom,deps</code>.</td>
+<td>Only run the listed analyses. Comma-separated: <code>complexity,deadcode,clones,cbo,lcom,deps,communities</code>.</td>
 </tr>
 <tr>
 <td><code>--skip-complexity</code></td>
@@ -3491,6 +3522,10 @@
 <tr>
 <td><code>--skip-deps</code></td>
 <td>Skip module dependency analysis.</td>
+</tr>
+<tr>
+<td><code>--skip-communities</code></td>
+<td>Skip module community detection (overrides <code>[communities] enabled</code>).</td>
 </tr>
 </tbody>
 </table>
@@ -3579,14 +3614,17 @@
 </span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># Only complexity and dead code</span>
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--select<span class="w"> </span>complexity,deadcode<span class="w"> </span>src/
 </span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Stricter thresholds</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--min-complexity<span class="w"> </span><span class="m">10</span><span class="w"> </span>--min-severity<span class="w"> </span>critical<span class="w"> </span>src/
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Module community detection (standalone JSON)</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>communities<span class="w"> </span>src/
 </span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
-</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1"># Use a specific config file</span>
-</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--config<span class="w"> </span>./configs/strict.toml<span class="w"> </span>src/
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1"># Stricter thresholds</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--min-complexity<span class="w"> </span><span class="m">10</span><span class="w"> </span>--min-severity<span class="w"> </span>critical<span class="w"> </span>src/
 </span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
-</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="c1"># Don&#39;t open the browser (useful in sandboxes or containers)</span>
-</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--no-open<span class="w"> </span>.
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="c1"># Use a specific config file</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--config<span class="w"> </span>./configs/strict.toml<span class="w"> </span>src/
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="c1"># Don&#39;t open the browser (useful in sandboxes or containers)</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--no-open<span class="w"> </span>.
 </span></code></pre></div>
 <h2 id="when-to-use-analyze-vs-check">When to use <code>analyze</code> vs <code>check</code><a class="headerlink" href="#when-to-use-analyze-vs-check" title="Permanent link">&para;</a></h2>
 <table>
@@ -3614,6 +3652,7 @@
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../../configuration/reference/">Configuration Reference</a> — every knob.</li>
+<li><a href="../../guides/module-community-detection/">Module Community Detection</a> — interpret communities, bridge modules, and modularity.</li>
 <li><a href="../../output/health-score/">Health Score</a> — how the 0–100 number is computed.</li>
 <li><a href="../../output/schemas/">Output Schemas</a> — JSON / YAML / CSV field definitions.</li>
 </ul>

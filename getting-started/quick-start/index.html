@@ -797,6 +797,8 @@
       
         
       
+        
+      
     
     
     
@@ -859,6 +861,34 @@
     
   
     Find Duplicate Code in Python
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/module-community-detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Community Detection
   
 
     
@@ -3300,8 +3330,9 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--select<span class="w"> </span>complexity<span class="w"> </span>.
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--select<span class="w"> </span>complexity,deadcode<span class="w"> </span>.
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--skip-clones<span class="w"> </span>.
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>communities<span class="w"> </span>src/<span class="w">   </span><span class="c1"># module community detection (opt-in)</span>
 </span></code></pre></div>
-<p>See <a href="../../cli/analyze/"><code>analyze</code></a> for all flags.</p>
+<p>See <a href="../../cli/analyze/"><code>analyze</code></a> for all flags. Community output: <a href="../../guides/module-community-detection/">Module Community Detection</a>.</p>
 <h2 id="ci-quality-gate">CI quality gate<a class="headerlink" href="#ci-quality-gate" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pyscn<span class="w"> </span>check<span class="w"> </span>.<span class="w">                              </span><span class="c1"># exit 0 pass, 1 fail</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--max-complexity<span class="w"> </span><span class="m">15</span><span class="w"> </span>src/

@@ -692,6 +692,8 @@
       
         
       
+        
+      
     
     
     
@@ -754,6 +756,34 @@
     
   
     Find Duplicate Code in Python
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/module-community-detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Community Detection
   
 
     
@@ -3096,6 +3126,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#standalone-analyzer-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Standalone analyzer output
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3233,6 +3274,11 @@
 <li><strong>Breaking changes</strong>: restricted to major version bumps (removal or rename of fields, change of field types).</li>
 </ul>
 <p>Third-party integrations should ignore unknown fields and not rely on field ordering within objects.</p>
+<h2 id="standalone-analyzer-output">Standalone analyzer output<a class="headerlink" href="#standalone-analyzer-output" title="Permanent link">&para;</a></h2>
+<p><code>pyscn analyze --json --select &lt;analyzer&gt;</code> can write a single-analyzer JSON file instead of the unified <code>AnalyzeResponse</code> wrapper. Community detection uses this path:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>communities<span class="w"> </span>src/
+</span></code></pre></div>
+<p>The report contains only the <a href="schemas/#community-analysis-object"><code>community_analysis</code></a> object. See <a href="../guides/module-community-detection/">Module Community Detection</a> for interpretation.</p>
 
 
 

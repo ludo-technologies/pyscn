@@ -692,6 +692,8 @@
       
         
       
+        
+      
     
     
     
@@ -754,6 +756,34 @@
     
   
     Find Duplicate Code in Python
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/module-community-detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Community Detection
   
 
     
@@ -2903,6 +2933,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#communities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [communities]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#mock_data" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3601,6 +3642,17 @@
     <span class="md-ellipsis">
       
         [dependencies]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#communities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [communities]
       
     </span>
   </a>
@@ -4578,6 +4630,69 @@
 </tbody>
 </table>
 <hr />
+<h2 id="communities"><code>[communities]</code><a class="headerlink" href="#communities" title="Permanent link">&para;</a></h2>
+<p>Module community detection over the import dependency graph. <strong>Opt-in</strong> — disabled by default until you enable it here or pass <code>--select communities</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>enabled</code></td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>Run community detection in unified <code>pyscn analyze</code>.</td>
+</tr>
+<tr>
+<td><code>algorithm</code></td>
+<td>string</td>
+<td><code>"leiden"</code></td>
+<td>Community detection algorithm (currently only <code>leiden</code>).</td>
+</tr>
+<tr>
+<td><code>scope</code></td>
+<td>string</td>
+<td><code>"module"</code></td>
+<td>Graph scope. Module-level only in Phase 1.</td>
+</tr>
+<tr>
+<td><code>min_community_size</code></td>
+<td>int</td>
+<td><code>2</code></td>
+<td>Minimum community size; smaller partitions stay as singletons.</td>
+</tr>
+<tr>
+<td><code>include_lazy_edges</code></td>
+<td>bool</td>
+<td><code>true</code></td>
+<td>Include lazy / <code>TYPE_CHECKING</code> imports as graph edges.</td>
+</tr>
+<tr>
+<td><code>report_bridge_modules</code></td>
+<td>bool</td>
+<td><code>true</code></td>
+<td>Emit <code>bridge_modules</code> cross-community coupling list.</td>
+</tr>
+<tr>
+<td><code>resolution</code></td>
+<td>float</td>
+<td><code>1.0</code></td>
+<td>Leiden resolution parameter (higher tends to produce more communities).</td>
+</tr>
+</tbody>
+</table>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">[communities]</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">min_community_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">report_bridge_modules</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+</span></code></pre></div>
+<p>See <a href="../../guides/module-community-detection/">Module Community Detection</a> for interpretation, determinism guarantees, and JSON field reference.</p>
+<hr />
 <h2 id="mock_data"><code>[mock_data]</code><a class="headerlink" href="#mock_data" title="Permanent link">&para;</a></h2>
 <p>Mock/placeholder data detection. <strong>Opt-in</strong>.</p>
 <table>
@@ -4699,6 +4814,14 @@
 <tr>
 <td><code>--min-cbo</code></td>
 <td><code>[cbo] min_cbo</code></td>
+</tr>
+<tr>
+<td><code>--select communities</code></td>
+<td><code>[communities] enabled</code> (per-run)</td>
+</tr>
+<tr>
+<td><code>--skip-communities</code></td>
+<td>overrides <code>[communities] enabled</code></td>
 </tr>
 <tr>
 <td><code>--max-cycles</code></td>
