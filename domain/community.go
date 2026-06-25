@@ -53,6 +53,12 @@ type CommunityMetrics struct {
 	Size                        int      `json:"size" yaml:"size"`
 }
 
+// CommunityModuleDependency is a directed module dependency edge used for graph export.
+type CommunityModuleDependency struct {
+	From string
+	To   string
+}
+
 // BridgeModule describes a module that couples multiple communities.
 type BridgeModule struct {
 	Module              string   `json:"module" yaml:"module"`
@@ -69,6 +75,9 @@ type CommunityAnalysisResult struct {
 	Modularity       float64            `json:"modularity" yaml:"modularity"`
 	Communities      []CommunityMetrics `json:"communities" yaml:"communities"`
 	BridgeModules    []BridgeModule     `json:"bridge_modules" yaml:"bridge_modules"`
+
+	// ModuleDependencies holds directed edges for DOT export and is omitted from JSON/YAML.
+	ModuleDependencies []CommunityModuleDependency `json:"-" yaml:"-"`
 
 	Warnings []string `json:"warnings,omitempty" yaml:"warnings,omitempty"`
 	Errors   []string `json:"errors,omitempty" yaml:"errors,omitempty"`

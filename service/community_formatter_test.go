@@ -142,14 +142,68 @@ func TestCommunityFormatter_Format_Text(t *testing.T) {
 	formatter := NewCommunityFormatter()
 	result := &domain.CommunityAnalysisResult{
 		Algorithm:        "leiden",
+		Scope:            "module",
 		TotalCommunities: 2,
 		Modularity:       0.42,
+		Communities: []domain.CommunityMetrics{
+			{ID: "community_1", Size: 3, InternalEdges: 2, ExternalEdges: 1},
+			{ID: "community_2", Size: 2, InternalEdges: 1, ExternalEdges: 1},
+		},
+		BridgeModules: []domain.BridgeModule{
+			{
+				Module:              "bridge",
+				Community:           "community_1",
+				CrossCommunityEdges: 2,
+				TargetCommunities:   []string{"community_2"},
+			},
+		},
 	}
 
 	output, err := formatter.Format(result, domain.OutputFormatText)
 	require.NoError(t, err)
-	assert.Contains(t, output, "2 communities")
+	assert.Contains(t, output, "Module Community Analysis")
+	assert.Contains(t, output, "Total Communities")
 	assert.Contains(t, output, "0.420")
+	assert.Contains(t, output, "LARGEST COMMUNITIES")
+	assert.Contains(t, output, "BRIDGE MODULES")
+	assert.Contains(t, output, "bridge")
+}
+
+func TestCommunityFormatter_Format_AllFormats_BridgeFixture(t *testing.T) {
+	result := analyzeCommunityBridgeFixture(t)
+	result.GeneratedAt = "2026-01-15T12:00:00Z"
+	result.Version = "0.0.0-test"
+
+	formatter := NewCommunityFormatter()
+
+	text, err := formatter.Format(result, domain.OutputFormatText)
+	require.NoError(t, err)
+	assert.Contains(t, text, "2")
+	assert.Contains(t, text, "BRIDGE MODULES")
+	assert.NotContains(t, text, "mod.a")
+
+	yamlOutput, err := formatter.Format(result, domain.OutputFormatYAML)
+	require.NoError(t, err)
+	assert.Contains(t, yamlOutput, "total_communities: 2")
+	assert.Contains(t, yamlOutput, "bridge_modules:")
+
+	csvOutput, err := formatter.Format(result, domain.OutputFormatCSV)
+	require.NoError(t, err)
+	assert.Contains(t, csvOutput, "Summary,Total Communities,2")
+	assert.Contains(t, csvOutput, "Bridge,bridge")
+
+	htmlOutput, err := formatter.Format(result, domain.OutputFormatHTML)
+	require.NoError(t, err)
+	assert.Contains(t, htmlOutput, "Community Analysis Report")
+	assert.Contains(t, htmlOutput, "Bridge Modules")
+	assert.Contains(t, htmlOutput, "bridge")
+	assert.NotContains(t, htmlOutput, "<nil>")
+
+	dotOutput, err := formatter.Format(result, domain.OutputFormatDOT)
+	require.NoError(t, err)
+	assert.Contains(t, dotOutput, "digraph ModuleCommunities")
+	assert.Contains(t, dotOutput, "bridge")
+	assert.Contains(t, dotOutput, "->")
 }
 
 func analyzeCommunityBridgeFixture(t *testing.T) *domain.CommunityAnalysisResult {

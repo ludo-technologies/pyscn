@@ -64,6 +64,8 @@ func (s *CommunityAnalysisServiceImpl) Analyze(ctx context.Context, req domain.C
 		result.BridgeModules = s.convertBridgeModules(metrics.BridgeModules)
 	}
 
+	result.ModuleDependencies = s.convertModuleDependencies(graph)
+
 	if graph.TotalModules == 0 {
 		result.Warnings = append(result.Warnings, "No modules found to analyze")
 	}
@@ -141,6 +143,37 @@ func (s *CommunityAnalysisServiceImpl) convertCommunities(partitions []analyzer.
 
 	sort.Slice(out, func(i, j int) bool {
 		return out[i].ID < out[j].ID
+	})
+	return out
+}
+
+func (s *CommunityAnalysisServiceImpl) convertModuleDependencies(graph *analyzer.DependencyGraph) []domain.CommunityModuleDependency {
+	if graph == nil || len(graph.Edges) == 0 {
+		return nil
+	}
+
+	out := make([]domain.CommunityModuleDependency, 0, len(graph.Edges))
+	seen := make(map[string]struct{}, len(graph.Edges))
+	for _, edge := range graph.Edges {
+		if edge == nil || edge.From == "" || edge.To == "" {
+			continue
+		}
+		key := edge.From + "->" + edge.To
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, domain.CommunityModuleDependency{
+			From: edge.From,
+			To:   edge.To,
+		})
+	}
+
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].From == out[j].From {
+			return out[i].To < out[j].To
+		}
+		return out[i].From < out[j].From
 	})
 	return out
 }
