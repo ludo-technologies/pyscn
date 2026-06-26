@@ -88,6 +88,21 @@ Community detection groups modules by import topology. Package mismatch metrics 
 
 This is distinct from `SystemMetrics.ModularityIndex` in dependency analysis (an intra-package edge ratio), which measures a different cohesion signal.
 
+### Layer mismatch
+
+When `[architecture]` layers are configured (explicit `style`, `[[architecture.layers]]`, or `[[architecture.rules]]`), community detection also compares inferred clusters to configured layer boundaries. Layer mismatch is omitted when no architecture rules are configured — community analysis still succeeds.
+
+Enable both dependency graph construction and architecture config, e.g. `pyscn analyze --select deps,communities .` or `[communities] enabled = true` with `[architecture]` configured.
+
+| Field | What it suggests |
+| --- | --- |
+| `layer_alignment_score` (0–1) | How well communities respect configured layers. **1.0** means every layer's modules live in exactly one community; **0.0** means every layer is split. Distinct from architecture `compliance_score` / violation counts. |
+| `cross_layer_communities` | Communities containing modules from two or more configured layers — clusters that span layer boundaries. |
+| `layer_bridge_modules` | Bridge modules whose home community layer differs from a target community's dominant layer. |
+| `dominant_layer` / `layer_count` / `layers[]` / `layer_alignment` | Per-community layer composition and internal edge cohesion within the community. |
+
+**Example:** A bridge fixture with `api` and `infra` layers where `api.a`/`api.b` cluster separately from `infra.c`/`infra.d` yields `layer_alignment_score: 1` and `layer_bridge_modules: ["bridge", "infra.c"]` because the bridge couples api and infra communities. A fixture where both layers appear inside each community yields `layer_alignment_score: 0` and populates `cross_layer_communities`.
+
 ## Configuration
 
 All keys live under `[communities]` in `.pyscn.toml` or `[tool.pyscn.communities]` in `pyproject.toml`. Full reference: [Configuration Reference](../configuration/reference.md#communities).
@@ -167,9 +182,7 @@ Read this as: two natural clusters exist, and `bridge` is the coupling point bet
 
 ## Follow-up work (Phase 2 and 3)
 
-Module-level community detection is Phase 1 of [GitHub issue #564](https://github.com/ludo-technologies/pyscn/issues/564). Package mismatch scoring (Phase 2) is available via `package_alignment_score`, `split_packages`, and `mixed_communities`. Remaining planned extensions include:
-
-- Layer/community mismatch scoring
+Module-level community detection is Phase 1 of [GitHub issue #564](https://github.com/ludo-technologies/pyscn/issues/564). Phase 2 mismatch scoring is available via package fields (`package_alignment_score`, `split_packages`, `mixed_communities`) and layer fields (`layer_alignment_score`, `cross_layer_communities`, `layer_bridge_modules`) when architecture layers are configured. Remaining planned extensions include:
 - DOT export with community-colored subgraphs
 - HTML macro-architecture visualization
 - AI-agent context maps

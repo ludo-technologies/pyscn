@@ -22,7 +22,7 @@ func TestComputePackageMismatchMetrics_SplitPackage(t *testing.T) {
 
 	cg := BuildCommunityGraph(graph, nil)
 	leiden := DetectCommunitiesLeiden(cg, nil)
-	metrics := ComputeCommunityMetrics(graph, cg, leiden)
+	metrics := ComputeCommunityMetrics(graph, cg, leiden, nil)
 	mismatch := ComputePackageMismatchMetrics(metrics.Communities)
 
 	require.NotNil(t, mismatch)
@@ -52,7 +52,7 @@ func TestComputePackageMismatchMetrics_AlignedPackages(t *testing.T) {
 
 	cg := BuildCommunityGraph(graph, nil)
 	leiden := DetectCommunitiesLeiden(cg, nil)
-	metrics := ComputeCommunityMetrics(graph, cg, leiden)
+	metrics := ComputeCommunityMetrics(graph, cg, leiden, nil)
 	mismatch := ComputePackageMismatchMetrics(metrics.Communities)
 
 	require.NotNil(t, mismatch)
@@ -85,7 +85,7 @@ func TestComputePackageMismatchMetrics_MixedCommunity(t *testing.T) {
 		NumCommunities: 1,
 		Modularity:     0.1,
 	}
-	metrics := ComputeCommunityMetrics(graph, cg, leiden)
+	metrics := ComputeCommunityMetrics(graph, cg, leiden, nil)
 	mismatch := ComputePackageMismatchMetrics(metrics.Communities)
 
 	require.NotNil(t, mismatch)
@@ -109,7 +109,7 @@ func TestComputePackageMismatchMetrics_NoPackageMetadata(t *testing.T) {
 		Membership:     []int{0},
 		NumCommunities: 1,
 	}
-	metrics := ComputeCommunityMetrics(graph, cg, leiden)
+	metrics := ComputeCommunityMetrics(graph, cg, leiden, nil)
 	mismatch := ComputePackageMismatchMetrics(metrics.Communities)
 
 	require.NotNil(t, mismatch)
