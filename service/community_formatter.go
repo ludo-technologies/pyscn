@@ -355,6 +355,9 @@ func (f *CommunityFormatter) writeHTMLSummary(builder *strings.Builder, response
                         <th>External</th>
                         <th>Cross-In</th>
                         <th>Cross-Out</th>
+                        <th>Dominant Package</th>
+                        <th>Packages</th>
+                        <th>Package Alignment</th>
                     </tr>
                 </thead>
                 <tbody>`)
@@ -369,6 +372,9 @@ func (f *CommunityFormatter) writeHTMLSummary(builder *strings.Builder, response
                         <td>%d</td>
                         <td>%d</td>
                         <td>%d</td>
+                        <td>%s</td>
+                        <td>%s</td>
+                        <td>%s</td>
                     </tr>`,
 				EscapeHTML(community.ID),
 				community.Size,
@@ -376,12 +382,15 @@ func (f *CommunityFormatter) writeHTMLSummary(builder *strings.Builder, response
 				community.ExternalEdges,
 				community.IncomingCrossCommunityEdges,
 				community.OutgoingCrossCommunityEdges,
+				formatCommunityDominantPackageHTML(community),
+				formatCommunityPackageCountHTML(community),
+				formatCommunityPackageAlignmentHTML(community),
 			))
 		}
 		if len(communities) > limit {
 			builder.WriteString(fmt.Sprintf(`
                     <tr>
-                        <td colspan="6"><em>... and %d more communities</em></td>
+                        <td colspan="9"><em>... and %d more communities</em></td>
                     </tr>`, len(communities)-limit))
 		}
 		builder.WriteString(`
@@ -504,6 +513,27 @@ func (f *CommunityFormatter) formatDOT(response *domain.CommunityAnalysisResult)
 	builder.WriteString("}\n")
 
 	return builder.String(), nil
+}
+
+func formatCommunityDominantPackageHTML(community domain.CommunityMetrics) string {
+	if community.PackageCount == 0 {
+		return "—"
+	}
+	return EscapeHTML(community.DominantPackage)
+}
+
+func formatCommunityPackageCountHTML(community domain.CommunityMetrics) string {
+	if community.PackageCount == 0 {
+		return "—"
+	}
+	return strconv.Itoa(community.PackageCount)
+}
+
+func formatCommunityPackageAlignmentHTML(community domain.CommunityMetrics) string {
+	if community.PackageCount == 0 {
+		return "—"
+	}
+	return fmt.Sprintf("%.3f", community.PackageAlignment)
 }
 
 func communitiesBySize(communities []domain.CommunityMetrics) []domain.CommunityMetrics {
