@@ -399,7 +399,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 		LcomMediumThreshold: domain.DefaultLCOMMediumThreshold,
 
 		// Architecture defaults (from [architecture] section)
-		ArchitectureEnabled:                         domain.BoolPtr(false), // Disabled by default - opt-in
+		ArchitectureEnabled:                         domain.BoolPtr(false), // Config model default only; analyze uses SystemAnalyzeArchitecture as the effective gate.
 		ArchitectureValidateLayers:                  domain.BoolPtr(true),
 		ArchitectureValidateCohesion:                domain.BoolPtr(true),
 		ArchitectureValidateResponsibility:          domain.BoolPtr(true),

@@ -235,7 +235,7 @@ func DefaultConfig() *Config {
 
 		// Architecture validation configuration
 		Architecture: ArchitectureConfig{
-			Enabled:                         false, // Disabled by default - opt-in feature
+			Enabled:                         false, // Config model default only; analyze uses SystemAnalyzeArchitecture as the effective gate.
 			ValidateLayers:                  true,
 			ValidateCohesion:                true,
 			ValidateResponsibility:          true,
