@@ -78,6 +78,83 @@ func TestCommunityAnalysisService_Analyze_IsolatedModulesNoEdges(t *testing.T) {
 	assert.Empty(t, result.BridgeModules)
 }
 
+func TestCommunityAnalysisService_Analyze_PackageMismatch_BridgeFixture(t *testing.T) {
+	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", "community_bridge"))
+	require.NoError(t, err)
+
+	fileReader := NewFileReader()
+	files, err := fileReader.CollectPythonFiles([]string{fixtureRoot}, true, nil, nil)
+	require.NoError(t, err)
+
+	service := NewCommunityAnalysisService()
+	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
+		Paths:            files,
+		SourcePaths:      []string{fixtureRoot},
+		MinCommunitySize: 2,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.PackageAlignmentScore)
+	assert.InDelta(t, 0.0, *result.PackageAlignmentScore, 1e-9)
+	assert.Equal(t, []string{"mod"}, result.SplitPackages)
+	assert.Empty(t, result.MixedCommunities)
+
+	for _, community := range result.Communities {
+		assert.Equal(t, 1, community.PackageCount)
+		assert.Equal(t, "mod", community.DominantPackage)
+		assert.InDelta(t, 1.0, community.PackageAlignment, 1e-9)
+	}
+}
+
+func TestCommunityAnalysisService_Analyze_PackageMismatch_SeparatedFixture(t *testing.T) {
+	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", "community_separated"))
+	require.NoError(t, err)
+
+	fileReader := NewFileReader()
+	files, err := fileReader.CollectPythonFiles([]string{fixtureRoot}, true, nil, nil)
+	require.NoError(t, err)
+
+	service := NewCommunityAnalysisService()
+	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
+		Paths:            files,
+		SourcePaths:      []string{fixtureRoot},
+		MinCommunitySize: 2,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.PackageAlignmentScore)
+	assert.InDelta(t, 1.0, *result.PackageAlignmentScore, 1e-9)
+	assert.Empty(t, result.SplitPackages)
+	assert.Empty(t, result.MixedCommunities)
+}
+
+func TestCommunityAnalysisService_Analyze_PackageMismatch_MixedFixture(t *testing.T) {
+	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", "community_package_mismatch"))
+	require.NoError(t, err)
+
+	fileReader := NewFileReader()
+	files, err := fileReader.CollectPythonFiles([]string{fixtureRoot}, true, nil, nil)
+	require.NoError(t, err)
+
+	service := NewCommunityAnalysisService()
+	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
+		Paths:            files,
+		SourcePaths:      []string{fixtureRoot},
+		MinCommunitySize: 2,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.PackageAlignmentScore)
+	assert.InDelta(t, 0.0, *result.PackageAlignmentScore, 1e-9)
+	assert.Equal(t, []string{"pkg_alpha", "pkg_beta"}, result.SplitPackages)
+	assert.Equal(t, []string{"community_1", "community_2"}, result.MixedCommunities)
+
+	for _, community := range result.Communities {
+		assert.Equal(t, 2, community.PackageCount)
+		assert.Contains(t, []string{"pkg_alpha", "pkg_beta"}, community.DominantPackage)
+	}
+}
+
 func TestCommunityAnalysisService_Analyze_Deterministic(t *testing.T) {
 	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", "community_bridge"))
 	require.NoError(t, err)
@@ -102,6 +179,9 @@ func TestCommunityAnalysisService_Analyze_Deterministic(t *testing.T) {
 	assert.InDelta(t, first.Modularity, second.Modularity, 1e-12)
 	assert.Equal(t, first.Communities, second.Communities)
 	assert.Equal(t, first.BridgeModules, second.BridgeModules)
+	assert.Equal(t, first.PackageAlignmentScore, second.PackageAlignmentScore)
+	assert.Equal(t, first.SplitPackages, second.SplitPackages)
+	assert.Equal(t, first.MixedCommunities, second.MixedCommunities)
 }
 
 func TestCommunityAnalysisService_Analyze_UsesSourcePathsForProjectRoot(t *testing.T) {

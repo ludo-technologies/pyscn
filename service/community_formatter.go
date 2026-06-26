@@ -110,7 +110,29 @@ func (f *CommunityFormatter) writeTextSummary(builder *strings.Builder, response
 		"Algorithm":         response.Algorithm,
 		"Scope":             response.Scope,
 	}
+	if response.PackageAlignmentScore != nil {
+		stats["Package Alignment"] = fmt.Sprintf("%.3f", *response.PackageAlignmentScore)
+	}
 	builder.WriteString(utils.FormatSummaryStats(stats))
+
+	if len(response.SplitPackages) > 0 || len(response.MixedCommunities) > 0 {
+		builder.WriteString(utils.FormatSectionHeader("PACKAGE MISMATCH"))
+		if len(response.SplitPackages) > 0 {
+			builder.WriteString(utils.FormatLabelWithIndent(
+				SectionPadding,
+				"Split Packages",
+				strings.Join(response.SplitPackages, ", "),
+			))
+		}
+		if len(response.MixedCommunities) > 0 {
+			builder.WriteString(utils.FormatLabelWithIndent(
+				SectionPadding,
+				"Mixed Communities",
+				strings.Join(response.MixedCommunities, ", "),
+			))
+		}
+		builder.WriteString("\n")
+	}
 
 	communities := communitiesBySize(response.Communities)
 	if len(communities) > 0 {
@@ -118,17 +140,26 @@ func (f *CommunityFormatter) writeTextSummary(builder *strings.Builder, response
 		limit := min(len(communities), communitySummaryLimit)
 		for i := 0; i < limit; i++ {
 			community := communities[i]
+			detail := fmt.Sprintf(
+				"%d modules (internal: %d, external: %d, cross-in: %d, cross-out: %d)",
+				community.Size,
+				community.InternalEdges,
+				community.ExternalEdges,
+				community.IncomingCrossCommunityEdges,
+				community.OutgoingCrossCommunityEdges,
+			)
+			if community.PackageCount > 0 {
+				detail += fmt.Sprintf(
+					", pkg-align: %.3f (%s, %d pkgs)",
+					community.PackageAlignment,
+					community.DominantPackage,
+					community.PackageCount,
+				)
+			}
 			builder.WriteString(utils.FormatLabelWithIndent(
 				SectionPadding,
 				community.ID,
-				fmt.Sprintf(
-					"%d modules (internal: %d, external: %d, cross-in: %d, cross-out: %d)",
-					community.Size,
-					community.InternalEdges,
-					community.ExternalEdges,
-					community.IncomingCrossCommunityEdges,
-					community.OutgoingCrossCommunityEdges,
-				),
+				detail,
 			))
 		}
 		if len(communities) > limit {
@@ -288,7 +319,28 @@ func (f *CommunityFormatter) writeHTMLSummary(builder *strings.Builder, response
 	builder.WriteString(GenerateMetricCard(fmt.Sprintf("%.3f", response.Modularity), "Modularity (Q)"))
 	builder.WriteString(GenerateMetricCard(response.Algorithm, "Algorithm"))
 	builder.WriteString(GenerateMetricCard(strconv.Itoa(len(response.BridgeModules)), "Bridge Modules"))
+	if response.PackageAlignmentScore != nil {
+		builder.WriteString(GenerateMetricCard(fmt.Sprintf("%.3f", *response.PackageAlignmentScore), "Package Alignment"))
+	}
 	builder.WriteString(`</div>`)
+
+	if len(response.SplitPackages) > 0 || len(response.MixedCommunities) > 0 {
+		builder.WriteString(GenerateSectionHeader("Package Mismatch"))
+		builder.WriteString(`<ul>`)
+		if len(response.SplitPackages) > 0 {
+			builder.WriteString(fmt.Sprintf(
+				`<li><strong>Split packages:</strong> %s</li>`,
+				JoinEscapedHTML(response.SplitPackages, ", "),
+			))
+		}
+		if len(response.MixedCommunities) > 0 {
+			builder.WriteString(fmt.Sprintf(
+				`<li><strong>Mixed communities:</strong> %s</li>`,
+				JoinEscapedHTML(response.MixedCommunities, ", "),
+			))
+		}
+		builder.WriteString(`</ul>`)
+	}
 
 	communities := communitiesBySize(response.Communities)
 	if len(communities) > 0 {
@@ -303,6 +355,9 @@ func (f *CommunityFormatter) writeHTMLSummary(builder *strings.Builder, response
                         <th>External</th>
                         <th>Cross-In</th>
                         <th>Cross-Out</th>
+                        <th>Dominant Package</th>
+                        <th>Packages</th>
+                        <th>Package Alignment</th>
                     </tr>
                 </thead>
                 <tbody>`)
@@ -317,6 +372,9 @@ func (f *CommunityFormatter) writeHTMLSummary(builder *strings.Builder, response
                         <td>%d</td>
                         <td>%d</td>
                         <td>%d</td>
+                        <td>%s</td>
+                        <td>%s</td>
+                        <td>%s</td>
                     </tr>`,
 				EscapeHTML(community.ID),
 				community.Size,
@@ -324,12 +382,15 @@ func (f *CommunityFormatter) writeHTMLSummary(builder *strings.Builder, response
 				community.ExternalEdges,
 				community.IncomingCrossCommunityEdges,
 				community.OutgoingCrossCommunityEdges,
+				formatCommunityDominantPackageHTML(community),
+				formatCommunityPackageCountHTML(community),
+				formatCommunityPackageAlignmentHTML(community),
 			))
 		}
 		if len(communities) > limit {
 			builder.WriteString(fmt.Sprintf(`
                     <tr>
-                        <td colspan="6"><em>... and %d more communities</em></td>
+                        <td colspan="9"><em>... and %d more communities</em></td>
                     </tr>`, len(communities)-limit))
 		}
 		builder.WriteString(`
@@ -454,6 +515,27 @@ func (f *CommunityFormatter) formatDOT(response *domain.CommunityAnalysisResult)
 	return builder.String(), nil
 }
 
+func formatCommunityDominantPackageHTML(community domain.CommunityMetrics) string {
+	if community.PackageCount == 0 {
+		return "—"
+	}
+	return EscapeHTML(community.DominantPackage)
+}
+
+func formatCommunityPackageCountHTML(community domain.CommunityMetrics) string {
+	if community.PackageCount == 0 {
+		return "—"
+	}
+	return strconv.Itoa(community.PackageCount)
+}
+
+func formatCommunityPackageAlignmentHTML(community domain.CommunityMetrics) string {
+	if community.PackageCount == 0 {
+		return "—"
+	}
+	return fmt.Sprintf("%.3f", community.PackageAlignment)
+}
+
 func communitiesBySize(communities []domain.CommunityMetrics) []domain.CommunityMetrics {
 	out := append([]domain.CommunityMetrics(nil), communities...)
 	sort.Slice(out, func(i, j int) bool {
@@ -513,6 +595,12 @@ func normalizeCommunityResult(response *domain.CommunityAnalysisResult) *domain.
 
 	out := *response
 	out.Modularity = roundCommunityFloat(response.Modularity)
+	if response.PackageAlignmentScore != nil {
+		score := roundCommunityFloat(*response.PackageAlignmentScore)
+		out.PackageAlignmentScore = &score
+	}
+	out.SplitPackages = sortedStringCopy(response.SplitPackages)
+	out.MixedCommunities = sortedStringCopy(response.MixedCommunities)
 
 	communities := make([]domain.CommunityMetrics, len(response.Communities))
 	copy(communities, response.Communities)
@@ -524,6 +612,9 @@ func normalizeCommunityResult(response *domain.CommunityAnalysisResult) *domain.
 		communities[i].Modules = sortedStringCopy(communities[i].Modules)
 		communities[i].Packages = sortedStringCopy(communities[i].Packages)
 		communities[i].ExternalDependencyRatio = roundCommunityFloat(communities[i].ExternalDependencyRatio)
+		if communities[i].PackageCount > 0 {
+			communities[i].PackageAlignment = roundCommunityFloat(communities[i].PackageAlignment)
+		}
 	}
 	out.Communities = communities
 

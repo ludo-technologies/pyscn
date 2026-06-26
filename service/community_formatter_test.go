@@ -169,6 +169,87 @@ func TestCommunityFormatter_Format_Text(t *testing.T) {
 	assert.Contains(t, output, "bridge")
 }
 
+func TestCommunityFormatter_Format_HTML_PackageMismatch(t *testing.T) {
+	score := 0.0
+	result := &domain.CommunityAnalysisResult{
+		Algorithm:             "leiden",
+		Scope:                 "module",
+		TotalCommunities:      2,
+		Modularity:            0.42,
+		PackageAlignmentScore: &score,
+		SplitPackages:         []string{"mod"},
+		MixedCommunities:      []string{"community_2"},
+		Communities: []domain.CommunityMetrics{
+			{
+				ID:                          "community_1",
+				Size:                        3,
+				InternalEdges:               2,
+				ExternalEdges:               1,
+				IncomingCrossCommunityEdges: 0,
+				OutgoingCrossCommunityEdges: 1,
+				DominantPackage:             "mod",
+				PackageCount:                1,
+				PackageAlignment:            1.0,
+			},
+			{
+				ID:                          "community_2",
+				Size:                        2,
+				InternalEdges:               1,
+				ExternalEdges:               1,
+				IncomingCrossCommunityEdges: 1,
+				OutgoingCrossCommunityEdges: 0,
+				DominantPackage:             "billing",
+				PackageCount:                2,
+				PackageAlignment:            0.5,
+			},
+		},
+	}
+
+	formatter := NewCommunityFormatter()
+	output, err := formatter.Format(result, domain.OutputFormatHTML)
+	require.NoError(t, err)
+	assert.Contains(t, output, "Package Alignment")
+	assert.Contains(t, output, "Package Mismatch")
+	assert.Contains(t, output, "<th>Dominant Package</th>")
+	assert.Contains(t, output, "<th>Packages</th>")
+	assert.Contains(t, output, "<th>Package Alignment</th>")
+	assert.Contains(t, output, ">mod<")
+	assert.Contains(t, output, ">billing<")
+	assert.Contains(t, output, ">1.000<")
+	assert.Contains(t, output, ">0.500<")
+	assert.Contains(t, output, "Split packages:")
+	assert.Contains(t, output, "Mixed communities:")
+}
+
+func TestCommunityFormatter_Format_Text_PackageMismatch(t *testing.T) {
+	score := 0.0
+	result := &domain.CommunityAnalysisResult{
+		Algorithm:             "leiden",
+		Scope:                 "module",
+		TotalCommunities:      2,
+		Modularity:            0.42,
+		PackageAlignmentScore: &score,
+		SplitPackages:         []string{"mod"},
+		Communities: []domain.CommunityMetrics{
+			{
+				ID:               "community_1",
+				Size:             3,
+				DominantPackage:  "mod",
+				PackageCount:     1,
+				PackageAlignment: 1.0,
+			},
+		},
+	}
+
+	formatter := NewCommunityFormatter()
+	output, err := formatter.Format(result, domain.OutputFormatText)
+	require.NoError(t, err)
+	assert.Contains(t, output, "Package Alignment")
+	assert.Contains(t, output, "PACKAGE MISMATCH")
+	assert.Contains(t, output, "Split Packages")
+	assert.Contains(t, output, "pkg-align")
+}
+
 func TestCommunityFormatter_Format_AllFormats_BridgeFixture(t *testing.T) {
 	result := analyzeCommunityBridgeFixture(t)
 	result.GeneratedAt = "2026-01-15T12:00:00Z"
@@ -197,6 +278,10 @@ func TestCommunityFormatter_Format_AllFormats_BridgeFixture(t *testing.T) {
 	assert.Contains(t, htmlOutput, "Community Analysis Report")
 	assert.Contains(t, htmlOutput, "Bridge Modules")
 	assert.Contains(t, htmlOutput, "bridge")
+	assert.Contains(t, htmlOutput, "<th>Dominant Package</th>")
+	assert.Contains(t, htmlOutput, "<th>Package Alignment</th>")
+	assert.Contains(t, htmlOutput, ">mod<")
+	assert.Contains(t, htmlOutput, "Split packages:")
 	assert.NotContains(t, htmlOutput, "<nil>")
 
 	dotOutput, err := formatter.Format(result, domain.OutputFormatDOT)

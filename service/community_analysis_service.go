@@ -48,6 +48,7 @@ func (s *CommunityAnalysisServiceImpl) Analyze(ctx context.Context, req domain.C
 
 	leiden := analyzer.DetectCommunitiesLeiden(cg, leidenOpts)
 	metrics := analyzer.ComputeCommunityMetrics(graph, cg, leiden)
+	packageMismatch := analyzer.ComputePackageMismatchMetrics(metrics.Communities)
 
 	result := &domain.CommunityAnalysisResult{
 		Algorithm:        s.resolveAlgorithm(req.Algorithm),
@@ -58,6 +59,12 @@ func (s *CommunityAnalysisServiceImpl) Analyze(ctx context.Context, req domain.C
 		GeneratedAt:      time.Now().Format(time.RFC3339),
 		Version:          version.Version,
 		Config:           s.buildConfigForResponse(req),
+	}
+	if packageMismatch != nil && s.hasPackageMismatchData(metrics.Communities) {
+		score := packageMismatch.PackageAlignmentScore
+		result.PackageAlignmentScore = &score
+		result.SplitPackages = append([]string(nil), packageMismatch.SplitPackages...)
+		result.MixedCommunities = append([]string(nil), packageMismatch.MixedCommunities...)
 	}
 
 	if domain.BoolValue(req.ReportBridgeModules, true) {
@@ -128,7 +135,7 @@ func (s *CommunityAnalysisServiceImpl) convertCommunities(partitions []analyzer.
 
 	out := make([]domain.CommunityMetrics, 0, len(partitions))
 	for _, partition := range partitions {
-		out = append(out, domain.CommunityMetrics{
+		community := domain.CommunityMetrics{
 			ID:                          partition.ID,
 			Modules:                     append([]string(nil), partition.Modules...),
 			Packages:                    append([]string(nil), partition.Packages...),
@@ -138,7 +145,13 @@ func (s *CommunityAnalysisServiceImpl) convertCommunities(partitions []analyzer.
 			IncomingCrossCommunityEdges: partition.IncomingCrossCommunityEdges,
 			OutgoingCrossCommunityEdges: partition.OutgoingCrossCommunityEdges,
 			Size:                        partition.Size,
-		})
+		}
+		if partition.PackageCount > 0 {
+			community.DominantPackage = partition.DominantPackage
+			community.PackageCount = partition.PackageCount
+			community.PackageAlignment = partition.PackageAlignment
+		}
+		out = append(out, community)
 	}
 
 	sort.Slice(out, func(i, j int) bool {
@@ -193,6 +206,15 @@ func (s *CommunityAnalysisServiceImpl) convertBridgeModules(bridges []analyzer.B
 		})
 	}
 	return out
+}
+
+func (s *CommunityAnalysisServiceImpl) hasPackageMismatchData(partitions []analyzer.CommunityPartition) bool {
+	for _, partition := range partitions {
+		if partition.PackageCount > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *CommunityAnalysisServiceImpl) buildConfigForResponse(req domain.CommunityAnalysisRequest) any {

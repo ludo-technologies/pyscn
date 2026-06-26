@@ -51,6 +51,11 @@ type CommunityMetrics struct {
 	IncomingCrossCommunityEdges int      `json:"incoming_cross_community_edges" yaml:"incoming_cross_community_edges"`
 	OutgoingCrossCommunityEdges int      `json:"outgoing_cross_community_edges" yaml:"outgoing_cross_community_edges"`
 	Size                        int      `json:"size" yaml:"size"`
+
+	// Package mismatch metrics (omitted when package metadata is unavailable).
+	DominantPackage  string  `json:"dominant_package,omitempty" yaml:"dominant_package,omitempty"`
+	PackageCount     int     `json:"package_count,omitempty" yaml:"package_count,omitempty"`
+	PackageAlignment float64 `json:"package_alignment,omitempty" yaml:"package_alignment,omitempty"`
 }
 
 // CommunityModuleDependency is a directed module dependency edge used for graph export.
@@ -75,6 +80,11 @@ type CommunityAnalysisResult struct {
 	Modularity       float64            `json:"modularity" yaml:"modularity"`
 	Communities      []CommunityMetrics `json:"communities" yaml:"communities"`
 	BridgeModules    []BridgeModule     `json:"bridge_modules" yaml:"bridge_modules"`
+
+	// Package mismatch metrics compare inferred communities to declared package boundaries.
+	PackageAlignmentScore *float64 `json:"package_alignment_score,omitempty" yaml:"package_alignment_score,omitempty"`
+	SplitPackages         []string `json:"split_packages,omitempty" yaml:"split_packages,omitempty"`
+	MixedCommunities      []string `json:"mixed_communities,omitempty" yaml:"mixed_communities,omitempty"`
 
 	// ModuleDependencies holds directed edges for DOT export and is omitted from JSON/YAML.
 	ModuleDependencies []CommunityModuleDependency `json:"-" yaml:"-"`
