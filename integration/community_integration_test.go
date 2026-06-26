@@ -16,11 +16,12 @@ import (
 )
 
 const (
-	communityBridgeDir    = "../testdata/python/community_bridge"
-	communitySeparatedDir = "../testdata/python/community_separated"
-	communityCycleDir     = "../testdata/python/community_cycle"
-	communityMinimalDir   = "../testdata/python/community_minimal"
-	communityIsolatedDir  = "../testdata/python/community_isolated"
+	communityBridgeDir          = "../testdata/python/community_bridge"
+	communitySeparatedDir       = "../testdata/python/community_separated"
+	communityPackageMismatchDir = "../testdata/python/community_package_mismatch"
+	communityCycleDir           = "../testdata/python/community_cycle"
+	communityMinimalDir         = "../testdata/python/community_minimal"
+	communityIsolatedDir        = "../testdata/python/community_isolated"
 )
 
 func newCommunityUseCase() *app.CommunityUseCase {
@@ -94,6 +95,38 @@ func TestCommunity_BridgeModules(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, 1, modC.CrossCommunityEdges)
 	assert.Contains(t, modC.TargetCommunities, "community_1")
+}
+
+func TestCommunity_PackageMismatchSplitPackage(t *testing.T) {
+	result := analyzeCommunityFixture(t, communityBridgeDir)
+
+	require.NotNil(t, result.PackageAlignmentScore)
+	assert.InDelta(t, 0.0, *result.PackageAlignmentScore, 1e-9)
+	assert.Equal(t, []string{"mod"}, result.SplitPackages)
+	assert.Empty(t, result.MixedCommunities)
+}
+
+func TestCommunity_PackageMismatchAlignedPackages(t *testing.T) {
+	result := analyzeCommunityFixture(t, communitySeparatedDir)
+
+	require.NotNil(t, result.PackageAlignmentScore)
+	assert.InDelta(t, 1.0, *result.PackageAlignmentScore, 1e-9)
+	assert.Empty(t, result.SplitPackages)
+	assert.Empty(t, result.MixedCommunities)
+}
+
+func TestCommunity_PackageMismatchMixedCommunities(t *testing.T) {
+	result := analyzeCommunityFixture(t, communityPackageMismatchDir)
+
+	require.Equal(t, 2, result.TotalCommunities)
+	require.NotNil(t, result.PackageAlignmentScore)
+	assert.InDelta(t, 0.0, *result.PackageAlignmentScore, 1e-9)
+	assert.Equal(t, []string{"pkg_alpha", "pkg_beta"}, result.SplitPackages)
+	assert.Equal(t, []string{"community_1", "community_2"}, result.MixedCommunities)
+
+	for _, community := range result.Communities {
+		assert.Equal(t, 2, community.PackageCount)
+	}
 }
 
 func TestCommunity_CycleGraph(t *testing.T) {

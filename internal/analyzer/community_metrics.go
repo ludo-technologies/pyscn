@@ -25,6 +25,18 @@ type CommunityPartition struct {
 	IncomingCrossCommunityEdges int
 	OutgoingCrossCommunityEdges int
 	Size                        int
+
+	DominantPackage  string
+	PackageCount     int
+	PackageAlignment float64
+}
+
+// PackageMismatchMetrics summarizes how well detected communities align with
+// declared package boundaries.
+type PackageMismatchMetrics struct {
+	PackageAlignmentScore float64
+	SplitPackages         []string
+	MixedCommunities      []string
 }
 
 // BridgeModuleMetrics describes a module that couples multiple communities.
@@ -108,12 +120,169 @@ func ComputeCommunityMetrics(graph *DependencyGraph, cg *CommunityGraph, leiden 
 	}
 
 	bridgeModules := computeBridgeModules(cg, nodeCommunity)
+	applyPackageMismatchMetrics(graph, cg, nodeCommunity, partitions)
 
 	return &CommunityPartitionMetrics{
 		Communities:      partitions,
 		BridgeModules:    bridgeModules,
 		TotalCommunities: leiden.NumCommunities,
 		Modularity:       leiden.Modularity,
+	}
+}
+
+// ComputePackageMismatchMetrics derives system-level package alignment metrics
+// from per-community partitions that already include package mismatch fields.
+func ComputePackageMismatchMetrics(partitions []CommunityPartition) *PackageMismatchMetrics {
+	if len(partitions) == 0 {
+		return &PackageMismatchMetrics{}
+	}
+
+	packageCommunities := make(map[string]map[string]struct{})
+	mixedCommunities := make([]string, 0)
+	var alignedPackages int
+	var totalPackages int
+
+	for _, partition := range partitions {
+		if partition.PackageCount >= 2 {
+			mixedCommunities = append(mixedCommunities, partition.ID)
+		}
+
+		for _, pkg := range partition.Packages {
+			if pkg == "" {
+				continue
+			}
+			if packageCommunities[pkg] == nil {
+				packageCommunities[pkg] = make(map[string]struct{})
+			}
+			packageCommunities[pkg][partition.ID] = struct{}{}
+		}
+	}
+
+	splitPackages := make([]string, 0)
+	for pkg, communities := range packageCommunities {
+		totalPackages++
+		if len(communities) >= 2 {
+			splitPackages = append(splitPackages, pkg)
+			continue
+		}
+		alignedPackages++
+	}
+	sort.Strings(splitPackages)
+	sort.Strings(mixedCommunities)
+
+	score := 0.0
+	if totalPackages > 0 {
+		score = float64(alignedPackages) / float64(totalPackages)
+	}
+
+	return &PackageMismatchMetrics{
+		PackageAlignmentScore: score,
+		SplitPackages:         splitPackages,
+		MixedCommunities:      mixedCommunities,
+	}
+}
+
+func applyPackageMismatchMetrics(
+	graph *DependencyGraph,
+	cg *CommunityGraph,
+	nodeCommunity []string,
+	partitions []CommunityPartition,
+) {
+	if graph == nil || cg == nil || len(partitions) == 0 {
+		return
+	}
+
+	modulePackage := make(map[string]string, len(cg.NodeNames))
+	for i, name := range cg.NodeNames {
+		if i >= len(nodeCommunity) || nodeCommunity[i] == "" {
+			continue
+		}
+		if node, ok := graph.Nodes[name]; ok && node.Package != "" {
+			modulePackage[name] = node.Package
+		}
+	}
+	if len(modulePackage) == 0 {
+		return
+	}
+
+	commIndex := make(map[string]int, len(partitions))
+	for i := range partitions {
+		commIndex[partitions[i].ID] = i
+	}
+
+	type edgeCohesion struct {
+		samePackage int
+		total       int
+	}
+	cohesionByCommunity := make(map[string]*edgeCohesion, len(partitions))
+
+	for i := range partitions {
+		packageCounts := make(map[string]int)
+		modulesWithPackage := 0
+		for _, module := range partitions[i].Modules {
+			pkg, ok := modulePackage[module]
+			if !ok || pkg == "" {
+				continue
+			}
+			modulesWithPackage++
+			packageCounts[pkg]++
+		}
+		if modulesWithPackage == 0 {
+			continue
+		}
+
+		partitions[i].PackageCount = len(packageCounts)
+
+		dominantPackage := ""
+		dominantCount := 0
+		for pkg, count := range packageCounts {
+			if count > dominantCount || (count == dominantCount && (dominantPackage == "" || pkg < dominantPackage)) {
+				dominantPackage = pkg
+				dominantCount = count
+			}
+		}
+		partitions[i].DominantPackage = dominantPackage
+		partitions[i].PackageAlignment = float64(dominantCount) / float64(modulesWithPackage)
+	}
+
+	for _, edge := range cg.DirectedEdges {
+		if edge.FromIndex >= len(nodeCommunity) || edge.ToIndex >= len(nodeCommunity) {
+			continue
+		}
+		fromComm := nodeCommunity[edge.FromIndex]
+		toComm := nodeCommunity[edge.ToIndex]
+		if fromComm == "" || toComm == "" || fromComm != toComm {
+			continue
+		}
+
+		fromName := cg.NodeNames[edge.FromIndex]
+		toName := cg.NodeNames[edge.ToIndex]
+		fromPkg, fromOK := modulePackage[fromName]
+		toPkg, toOK := modulePackage[toName]
+		if !fromOK || !toOK {
+			continue
+		}
+
+		acc, ok := cohesionByCommunity[fromComm]
+		if !ok {
+			acc = &edgeCohesion{}
+			cohesionByCommunity[fromComm] = acc
+		}
+		acc.total++
+		if fromPkg == toPkg {
+			acc.samePackage++
+		}
+	}
+
+	for commID, acc := range cohesionByCommunity {
+		if acc.total == 0 {
+			continue
+		}
+		idx, ok := commIndex[commID]
+		if !ok {
+			continue
+		}
+		partitions[idx].PackageAlignment = float64(acc.samePackage) / float64(acc.total)
 	}
 }
 

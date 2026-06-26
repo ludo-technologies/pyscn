@@ -19,7 +19,10 @@
       "external_dependency_ratio": 0.3333,
       "incoming_cross_community_edges": 0,
       "outgoing_cross_community_edges": 1,
-      "size": 3
+      "size": 3,
+      "dominant_package": "mod",
+      "package_count": 1,
+      "package_alignment": 1
     },
     {
       "id": "community_2",
@@ -35,7 +38,10 @@
       "external_dependency_ratio": 0.5,
       "incoming_cross_community_edges": 1,
       "outgoing_cross_community_edges": 0,
-      "size": 2
+      "size": 2,
+      "dominant_package": "mod",
+      "package_count": 1,
+      "package_alignment": 1
     }
   ],
   "bridge_modules": [
@@ -55,6 +61,10 @@
         "community_1"
       ]
     }
+  ],
+  "package_alignment_score": 0,
+  "split_packages": [
+    "mod"
   ],
   "generated_at": "2026-01-15T12:00:00Z",
   "version": "0.0.0-test",
