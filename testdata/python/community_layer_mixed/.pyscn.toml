@@ -1,0 +1,18 @@
+[architecture]
+enabled = true
+
+[[architecture.layers]]
+name = "api"
+packages = ["api"]
+
+[[architecture.layers]]
+name = "infra"
+packages = ["infra"]
+
+[[architecture.rules]]
+from = "api"
+allow = ["infra"]
+
+[[architecture.rules]]
+from = "infra"
+allow = ["api"]
