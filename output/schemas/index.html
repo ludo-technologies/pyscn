@@ -6863,6 +6863,21 @@
 <td>Cross-community coupling modules. See <a href="#bridge-module-object"><code>bridge_module</code></a>.</td>
 </tr>
 <tr>
+<td><code>package_alignment_score</code></td>
+<td>number | absent</td>
+<td>Share of packages whose modules all reside in one community (0–1). Omitted when package metadata is unavailable.</td>
+</tr>
+<tr>
+<td><code>split_packages</code></td>
+<td>array | absent</td>
+<td>Packages whose modules appear in two or more communities (sorted).</td>
+</tr>
+<tr>
+<td><code>mixed_communities</code></td>
+<td>array | absent</td>
+<td>Community ids containing modules from two or more packages (sorted).</td>
+</tr>
+<tr>
 <td><code>warnings</code></td>
 <td>array | absent</td>
 <td>Non-fatal analysis warnings.</td>
@@ -6943,6 +6958,21 @@
 <td><code>size</code></td>
 <td>integer</td>
 <td>Number of modules in the community.</td>
+</tr>
+<tr>
+<td><code>dominant_package</code></td>
+<td>string | absent</td>
+<td>Package with the most modules in this community.</td>
+</tr>
+<tr>
+<td><code>package_count</code></td>
+<td>integer | absent</td>
+<td>Distinct packages represented in this community.</td>
+</tr>
+<tr>
+<td><code>package_alignment</code></td>
+<td>number | absent</td>
+<td>Cohesion within the community: share of internal edges whose endpoints share a package, or dominant-package module ratio when no qualifying internal edges exist.</td>
 </tr>
 </tbody>
 </table>

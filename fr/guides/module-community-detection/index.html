@@ -905,6 +905,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#package-mismatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Package mismatch
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3334,6 +3345,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#package-mismatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Package mismatch
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3548,6 +3570,36 @@
 <li><strong>0.3 – 0.7</strong> — typical for repositories with identifiable subsystems.</li>
 <li><strong>Very high</strong> — strong separation; verify the graph is not trivially disconnected.</li>
 </ul>
+<h3 id="package-mismatch">Package mismatch<a class="headerlink" href="#package-mismatch" title="Permanent link">&para;</a></h3>
+<p>Community detection groups modules by import topology. Package mismatch metrics compare that partition to declared package boundaries (from module paths and <code>ModuleNode.Package</code> metadata).</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it suggests</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>package_alignment_score</code> (0–1)</td>
+<td>How well communities respect package boundaries. <strong>1.0</strong> means every package's modules live in exactly one community; <strong>0.0</strong> means every package is split.</td>
+</tr>
+<tr>
+<td><code>split_packages</code></td>
+<td>Packages whose modules appear in two or more communities — refactor candidates when you expect package = subsystem.</td>
+</tr>
+<tr>
+<td><code>mixed_communities</code></td>
+<td>Communities that contain modules from two or more packages — cross-cutting clusters that span declared boundaries.</td>
+</tr>
+<tr>
+<td><code>dominant_package</code> / <code>package_count</code> / <code>package_alignment</code></td>
+<td>Per-community composition: which package dominates, how many packages are represented, and how cohesive internal edges are within that community.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example:</strong> A bridge fixture where <code>mod.a</code>/<code>mod.b</code> cluster separately from <code>mod.c</code>/<code>mod.d</code> yields <code>package_alignment_score: 0</code> and <code>split_packages: ["mod"]</code> even though each community is internally cohesive. A billing/inventory fixture with no cross-package imports yields <code>package_alignment_score: 1</code>.</p>
+<p>This is distinct from <code>SystemMetrics.ModularityIndex</code> in dependency analysis (an intra-package edge ratio), which measures a different cohesion signal.</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <p>All keys live under <code>[communities]</code> in <code>.pyscn.toml</code> or <code>[tool.pyscn.communities]</code> in <code>pyproject.toml</code>. Full reference: <a href="../../configuration/reference/#communities">Configuration Reference</a>.</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[communities]</span>
@@ -3628,21 +3680,23 @@
 <div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;total_communities&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">&quot;modularity&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2188</span><span class="p">,</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">&quot;bridge_modules&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="p">{</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">      </span><span class="nt">&quot;module&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bridge&quot;</span><span class="p">,</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">      </span><span class="nt">&quot;community&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;community_1&quot;</span><span class="p">,</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">      </span><span class="nt">&quot;cross_community_edges&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">      </span><span class="nt">&quot;target_communities&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;community_2&quot;</span><span class="p">]</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">  </span><span class="p">]</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="p">}</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">&quot;package_alignment_score&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">&quot;split_packages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;mod&quot;</span><span class="p">],</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">&quot;bridge_modules&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">      </span><span class="nt">&quot;module&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bridge&quot;</span><span class="p">,</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">      </span><span class="nt">&quot;community&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;community_1&quot;</span><span class="p">,</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">      </span><span class="nt">&quot;cross_community_edges&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">      </span><span class="nt">&quot;target_communities&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;community_2&quot;</span><span class="p">]</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="p">}</span>
 </span></code></pre></div>
-<p>Read this as: two natural clusters exist, and <code>bridge</code> is the coupling point between them. Extracting shared logic from <code>bridge</code> or inverting dependencies may improve modularity.</p>
+<p>Read this as: two natural clusters exist, and <code>bridge</code> is the coupling point between them. The <code>mod</code> package is split across both communities (<code>package_alignment_score: 0</code>), so import topology disagrees with the declared package boundary. Extracting shared logic from <code>bridge</code> or regrouping <code>mod</code> modules may improve alignment.</p>
 <h2 id="follow-up-work-phase-2-and-3">Follow-up work (Phase 2 and 3)<a class="headerlink" href="#follow-up-work-phase-2-and-3" title="Permanent link">&para;</a></h2>
-<p>Module-level community detection is Phase 1 of <a href="https://github.com/ludo-technologies/pyscn/issues/564">GitHub issue #564</a>. Planned extensions include:</p>
+<p>Module-level community detection is Phase 1 of <a href="https://github.com/ludo-technologies/pyscn/issues/564">GitHub issue #564</a>. Package mismatch scoring (Phase 2) is available via <code>package_alignment_score</code>, <code>split_packages</code>, and <code>mixed_communities</code>. Remaining planned extensions include:</p>
 <ul>
-<li>Community vs package/layer mismatch scoring</li>
+<li>Layer/community mismatch scoring</li>
 <li>DOT export with community-colored subgraphs</li>
 <li>HTML macro-architecture visualization</li>
 <li>AI-agent context maps</li>
