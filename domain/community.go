@@ -65,7 +65,7 @@ type CommunityMetrics struct {
 	DominantLayer  string   `json:"dominant_layer,omitempty" yaml:"dominant_layer,omitempty"`
 	LayerCount     int      `json:"layer_count,omitempty" yaml:"layer_count,omitempty"`
 	Layers         []string `json:"layers,omitempty" yaml:"layers,omitempty"`
-	LayerAlignment float64  `json:"layer_alignment,omitempty" yaml:"layer_alignment,omitempty"`
+	LayerAlignment *float64 `json:"layer_alignment,omitempty" yaml:"layer_alignment,omitempty"`
 }
 
 // CommunityModuleDependency is a directed module dependency edge used for graph export.

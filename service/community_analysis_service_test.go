@@ -254,7 +254,13 @@ func TestCommunityAnalysisService_Analyze_LayerMismatch_MixedFixture(t *testing.
 
 	for _, community := range result.Communities {
 		assert.Equal(t, 2, community.LayerCount)
+		require.NotNil(t, community.LayerAlignment, "layer_alignment must be present when layer_count > 0")
 	}
+
+	formatter := NewCommunityFormatter()
+	output, err := formatter.Format(result, domain.OutputFormatJSON)
+	require.NoError(t, err)
+	assert.Contains(t, output, `"layer_alignment": 0`)
 }
 
 func TestCommunityAnalysisService_Analyze_LayerMismatch_OmittedWithoutArchitecture(t *testing.T) {

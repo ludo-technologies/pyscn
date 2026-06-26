@@ -178,10 +178,10 @@ func (f *CommunityFormatter) writeTextSummary(builder *strings.Builder, response
 					community.PackageCount,
 				)
 			}
-			if community.LayerCount > 0 {
+			if community.LayerCount > 0 && community.LayerAlignment != nil {
 				detail += fmt.Sprintf(
 					", layer-align: %.3f (%s, %d layers)",
-					community.LayerAlignment,
+					*community.LayerAlignment,
 					community.DominantLayer,
 					community.LayerCount,
 				)
@@ -673,8 +673,9 @@ func normalizeCommunityResult(response *domain.CommunityAnalysisResult) *domain.
 		if communities[i].PackageCount > 0 {
 			communities[i].PackageAlignment = roundCommunityFloat(communities[i].PackageAlignment)
 		}
-		if communities[i].LayerCount > 0 {
-			communities[i].LayerAlignment = roundCommunityFloat(communities[i].LayerAlignment)
+		if communities[i].LayerCount > 0 && communities[i].LayerAlignment != nil {
+			alignment := roundCommunityFloat(*communities[i].LayerAlignment)
+			communities[i].LayerAlignment = &alignment
 		}
 	}
 	out.Communities = communities

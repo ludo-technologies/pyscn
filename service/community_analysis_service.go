@@ -164,7 +164,8 @@ func (s *CommunityAnalysisServiceImpl) convertCommunities(partitions []analyzer.
 			community.DominantLayer = partition.DominantLayer
 			community.LayerCount = partition.LayerCount
 			community.Layers = append([]string(nil), partition.Layers...)
-			community.LayerAlignment = partition.LayerAlignment
+			alignment := partition.LayerAlignment
+			community.LayerAlignment = &alignment
 		}
 		out = append(out, community)
 	}

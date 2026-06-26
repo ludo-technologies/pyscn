@@ -238,7 +238,7 @@ func TestCommunityFormatter_Format_HTML_LayerMismatch(t *testing.T) {
 				DominantLayer:  "api",
 				LayerCount:     1,
 				Layers:         []string{"api"},
-				LayerAlignment: 1.0,
+				LayerAlignment: domain.Float64Ptr(1.0),
 			},
 			{
 				ID:             "community_2",
@@ -246,7 +246,7 @@ func TestCommunityFormatter_Format_HTML_LayerMismatch(t *testing.T) {
 				DominantLayer:  "api",
 				LayerCount:     2,
 				Layers:         []string{"api", "infra"},
-				LayerAlignment: 0.5,
+				LayerAlignment: domain.Float64Ptr(0.5),
 			},
 		},
 	}
@@ -258,6 +258,30 @@ func TestCommunityFormatter_Format_HTML_LayerMismatch(t *testing.T) {
 	assert.Contains(t, output, "Layer Mismatch")
 	assert.Contains(t, output, "Cross-layer communities:")
 	assert.Contains(t, output, "Layer bridge modules:")
+}
+
+func TestCommunityFormatter_Format_JSON_LayerAlignmentZeroPreserved(t *testing.T) {
+	result := &domain.CommunityAnalysisResult{
+		Algorithm:        "leiden",
+		Scope:            "module",
+		TotalCommunities: 1,
+		Communities: []domain.CommunityMetrics{
+			{
+				ID:             "community_1",
+				Size:           2,
+				DominantLayer:  "api",
+				LayerCount:     2,
+				Layers:         []string{"api", "infra"},
+				LayerAlignment: domain.Float64Ptr(0.0),
+			},
+		},
+	}
+
+	formatter := NewCommunityFormatter()
+	output, err := formatter.Format(result, domain.OutputFormatJSON)
+	require.NoError(t, err)
+	assert.Contains(t, output, `"layer_alignment": 0`)
+	assert.Contains(t, output, `"layer_count": 2`)
 }
 
 func TestCommunityFormatter_Format_Text_LayerMismatch(t *testing.T) {
@@ -276,7 +300,7 @@ func TestCommunityFormatter_Format_Text_LayerMismatch(t *testing.T) {
 				Size:           2,
 				DominantLayer:  "api",
 				LayerCount:     2,
-				LayerAlignment: 0.5,
+				LayerAlignment: domain.Float64Ptr(0.5),
 			},
 		},
 	}
