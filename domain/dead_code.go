@@ -207,6 +207,11 @@ func BoolPtr(b bool) *bool {
 	return &b
 }
 
+// Float64Ptr creates a pointer to a float64 value.
+func Float64Ptr(v float64) *float64 {
+	return &v
+}
+
 // BoolValue safely dereferences a boolean pointer, returning defaultVal if nil
 // This allows safe access to pointer booleans with explicit defaults
 func BoolValue(b *bool, defaultVal bool) bool {

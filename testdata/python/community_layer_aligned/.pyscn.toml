@@ -1,0 +1,18 @@
+[architecture]
+enabled = true
+
+[[architecture.layers]]
+name = "billing"
+packages = ["billing"]
+
+[[architecture.layers]]
+name = "inventory"
+packages = ["inventory"]
+
+[[architecture.rules]]
+from = "billing"
+allow = ["inventory"]
+
+[[architecture.rules]]
+from = "inventory"
+allow = ["billing"]

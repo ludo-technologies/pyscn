@@ -730,6 +730,9 @@ Mirrors `domain.CommunityAnalysisResult`. Emitted as a top-level field in unifie
 | `package_alignment_score` | number \| absent | Share of packages whose modules all reside in one community (0–1). Omitted when package metadata is unavailable. |
 | `split_packages`    | array \| absent | Packages whose modules appear in two or more communities (sorted). |
 | `mixed_communities` | array \| absent | Community ids containing modules from two or more packages (sorted). |
+| `layer_alignment_score` | number \| absent | Share of configured layers whose modules all reside in one community (0–1). Omitted when architecture layers are not configured. |
+| `cross_layer_communities` | array \| absent | Community ids containing modules from two or more configured layers (sorted). |
+| `layer_bridge_modules` | array \| absent | Bridge modules coupling communities mapped to different layers (sorted). |
 | `warnings`          | array \| absent | Non-fatal analysis warnings.                              |
 | `errors`            | array \| absent | Fatal analysis errors.                                    |
 | `generated_at`      | string (RFC 3339) | Community analysis completion time.                 |
@@ -752,6 +755,10 @@ Mirrors `domain.CommunityAnalysisResult`. Emitted as a top-level field in unifie
 | `dominant_package`                 | string \| absent | Package with the most modules in this community.   |
 | `package_count`                    | integer \| absent | Distinct packages represented in this community.  |
 | `package_alignment`                | number \| absent | Cohesion within the community: share of internal edges whose endpoints share a package, or dominant-package module ratio when no qualifying internal edges exist. |
+| `dominant_layer`                   | string \| absent | Configured layer with the most modules in this community. |
+| `layer_count`                      | integer \| absent | Distinct configured layers represented in this community. |
+| `layers`                           | array \| absent | Configured layer names present in this community (sorted). |
+| `layer_alignment`                  | number \| absent | Cohesion within the community: share of internal edges whose endpoints share a layer, or dominant-layer module ratio when no qualifying internal edges exist. |
 
 ### `bridge_module` object { #bridge-module-object }
 

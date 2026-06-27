@@ -221,6 +221,99 @@ func TestCommunityFormatter_Format_HTML_PackageMismatch(t *testing.T) {
 	assert.Contains(t, output, "Mixed communities:")
 }
 
+func TestCommunityFormatter_Format_HTML_LayerMismatch(t *testing.T) {
+	score := 1.0
+	result := &domain.CommunityAnalysisResult{
+		Algorithm:             "leiden",
+		Scope:                 "module",
+		TotalCommunities:      2,
+		Modularity:            0.42,
+		LayerAlignmentScore:   &score,
+		CrossLayerCommunities: []string{"community_2"},
+		LayerBridgeModules:    []string{"bridge"},
+		Communities: []domain.CommunityMetrics{
+			{
+				ID:             "community_1",
+				Size:           3,
+				DominantLayer:  "api",
+				LayerCount:     1,
+				Layers:         []string{"api"},
+				LayerAlignment: domain.Float64Ptr(1.0),
+			},
+			{
+				ID:             "community_2",
+				Size:           2,
+				DominantLayer:  "api",
+				LayerCount:     2,
+				Layers:         []string{"api", "infra"},
+				LayerAlignment: domain.Float64Ptr(0.5),
+			},
+		},
+	}
+
+	formatter := NewCommunityFormatter()
+	output, err := formatter.Format(result, domain.OutputFormatHTML)
+	require.NoError(t, err)
+	assert.Contains(t, output, "Layer Alignment")
+	assert.Contains(t, output, "Layer Mismatch")
+	assert.Contains(t, output, "Cross-layer communities:")
+	assert.Contains(t, output, "Layer bridge modules:")
+}
+
+func TestCommunityFormatter_Format_JSON_LayerAlignmentZeroPreserved(t *testing.T) {
+	result := &domain.CommunityAnalysisResult{
+		Algorithm:        "leiden",
+		Scope:            "module",
+		TotalCommunities: 1,
+		Communities: []domain.CommunityMetrics{
+			{
+				ID:             "community_1",
+				Size:           2,
+				DominantLayer:  "api",
+				LayerCount:     2,
+				Layers:         []string{"api", "infra"},
+				LayerAlignment: domain.Float64Ptr(0.0),
+			},
+		},
+	}
+
+	formatter := NewCommunityFormatter()
+	output, err := formatter.Format(result, domain.OutputFormatJSON)
+	require.NoError(t, err)
+	assert.Contains(t, output, `"layer_alignment": 0`)
+	assert.Contains(t, output, `"layer_count": 2`)
+}
+
+func TestCommunityFormatter_Format_Text_LayerMismatch(t *testing.T) {
+	score := 0.0
+	result := &domain.CommunityAnalysisResult{
+		Algorithm:             "leiden",
+		Scope:                 "module",
+		TotalCommunities:      2,
+		Modularity:            0.42,
+		LayerAlignmentScore:   &score,
+		CrossLayerCommunities: []string{"community_1", "community_2"},
+		LayerBridgeModules:    []string{"bridge"},
+		Communities: []domain.CommunityMetrics{
+			{
+				ID:             "community_1",
+				Size:           2,
+				DominantLayer:  "api",
+				LayerCount:     2,
+				LayerAlignment: domain.Float64Ptr(0.5),
+			},
+		},
+	}
+
+	formatter := NewCommunityFormatter()
+	output, err := formatter.Format(result, domain.OutputFormatText)
+	require.NoError(t, err)
+	assert.Contains(t, output, "Layer Alignment")
+	assert.Contains(t, output, "LAYER MISMATCH")
+	assert.Contains(t, output, "Cross-Layer Communities")
+	assert.Contains(t, output, "layer-align")
+}
+
 func TestCommunityFormatter_Format_Text_PackageMismatch(t *testing.T) {
 	score := 0.0
 	result := &domain.CommunityAnalysisResult{

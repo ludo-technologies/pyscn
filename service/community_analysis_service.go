@@ -8,6 +8,7 @@ import (
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/analyzer"
+	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/internal/version"
 )
 
@@ -47,8 +48,10 @@ func (s *CommunityAnalysisServiceImpl) Analyze(ctx context.Context, req domain.C
 	}
 
 	leiden := analyzer.DetectCommunitiesLeiden(cg, leidenOpts)
-	metrics := analyzer.ComputeCommunityMetrics(graph, cg, leiden)
+	moduleToLayer := s.resolveModuleLayerMap(graph, req)
+	metrics := analyzer.ComputeCommunityMetrics(graph, cg, leiden, moduleToLayer)
 	packageMismatch := analyzer.ComputePackageMismatchMetrics(metrics.Communities)
+	layerMismatch := analyzer.ComputeLayerMismatchMetrics(metrics.Communities, metrics.BridgeModules)
 
 	result := &domain.CommunityAnalysisResult{
 		Algorithm:        s.resolveAlgorithm(req.Algorithm),
@@ -65,6 +68,12 @@ func (s *CommunityAnalysisServiceImpl) Analyze(ctx context.Context, req domain.C
 		result.PackageAlignmentScore = &score
 		result.SplitPackages = append([]string(nil), packageMismatch.SplitPackages...)
 		result.MixedCommunities = append([]string(nil), packageMismatch.MixedCommunities...)
+	}
+	if moduleToLayer != nil && layerMismatch != nil && s.hasLayerMismatchData(metrics.Communities) {
+		score := layerMismatch.LayerAlignmentScore
+		result.LayerAlignmentScore = &score
+		result.CrossLayerCommunities = append([]string(nil), layerMismatch.CrossLayerCommunities...)
+		result.LayerBridgeModules = append([]string(nil), layerMismatch.LayerBridgeModules...)
 	}
 
 	if domain.BoolValue(req.ReportBridgeModules, true) {
@@ -151,6 +160,13 @@ func (s *CommunityAnalysisServiceImpl) convertCommunities(partitions []analyzer.
 			community.PackageCount = partition.PackageCount
 			community.PackageAlignment = partition.PackageAlignment
 		}
+		if partition.LayerCount > 0 {
+			community.DominantLayer = partition.DominantLayer
+			community.LayerCount = partition.LayerCount
+			community.Layers = append([]string(nil), partition.Layers...)
+			alignment := partition.LayerAlignment
+			community.LayerAlignment = &alignment
+		}
 		out = append(out, community)
 	}
 
@@ -215,6 +231,56 @@ func (s *CommunityAnalysisServiceImpl) hasPackageMismatchData(partitions []analy
 		}
 	}
 	return false
+}
+
+func (s *CommunityAnalysisServiceImpl) hasLayerMismatchData(partitions []analyzer.CommunityPartition) bool {
+	for _, partition := range partitions {
+		if partition.LayerCount > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *CommunityAnalysisServiceImpl) resolveModuleLayerMap(graph *analyzer.DependencyGraph, req domain.CommunityAnalysisRequest) map[string]string {
+	rules := req.ArchitectureRules
+	if rules == nil {
+		rules = s.loadArchitectureRules(req)
+	}
+	if !HasExplicitArchitectureConfig(rules) {
+		return nil
+	}
+
+	systemService := NewSystemAnalysisService()
+	resolved := systemService.ResolveArchitectureRules(graph, rules)
+	if resolved == nil || len(resolved.Layers) == 0 {
+		return nil
+	}
+	return systemService.BuildModuleLayerMap(graph, resolved)
+}
+
+func (s *CommunityAnalysisServiceImpl) loadArchitectureRules(req domain.CommunityAnalysisRequest) *domain.ArchitectureRules {
+	configPath := req.ConfigPath
+	if configPath == "" {
+		rootPaths := req.SourcePaths
+		if len(rootPaths) == 0 {
+			rootPaths = req.Paths
+		}
+		if len(rootPaths) > 0 {
+			tomlLoader := config.NewTomlConfigLoader()
+			configPath = tomlLoader.FindConfigFileFromPath(rootPaths[0])
+		}
+	}
+	if configPath == "" {
+		return nil
+	}
+
+	tomlLoader := config.NewTomlConfigLoader()
+	pyscnCfg, err := tomlLoader.LoadConfig(configPath)
+	if err != nil {
+		return nil
+	}
+	return ArchitectureRulesFromPyscnConfig(pyscnCfg)
 }
 
 func (s *CommunityAnalysisServiceImpl) buildConfigForResponse(req domain.CommunityAnalysisRequest) any {

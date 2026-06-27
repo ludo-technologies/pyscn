@@ -113,7 +113,29 @@ func (f *CommunityFormatter) writeTextSummary(builder *strings.Builder, response
 	if response.PackageAlignmentScore != nil {
 		stats["Package Alignment"] = fmt.Sprintf("%.3f", *response.PackageAlignmentScore)
 	}
+	if response.LayerAlignmentScore != nil {
+		stats["Layer Alignment"] = fmt.Sprintf("%.3f", *response.LayerAlignmentScore)
+	}
 	builder.WriteString(utils.FormatSummaryStats(stats))
+
+	if len(response.CrossLayerCommunities) > 0 || len(response.LayerBridgeModules) > 0 {
+		builder.WriteString(utils.FormatSectionHeader("LAYER MISMATCH"))
+		if len(response.CrossLayerCommunities) > 0 {
+			builder.WriteString(utils.FormatLabelWithIndent(
+				SectionPadding,
+				"Cross-Layer Communities",
+				strings.Join(response.CrossLayerCommunities, ", "),
+			))
+		}
+		if len(response.LayerBridgeModules) > 0 {
+			builder.WriteString(utils.FormatLabelWithIndent(
+				SectionPadding,
+				"Layer Bridge Modules",
+				strings.Join(response.LayerBridgeModules, ", "),
+			))
+		}
+		builder.WriteString("\n")
+	}
 
 	if len(response.SplitPackages) > 0 || len(response.MixedCommunities) > 0 {
 		builder.WriteString(utils.FormatSectionHeader("PACKAGE MISMATCH"))
@@ -154,6 +176,14 @@ func (f *CommunityFormatter) writeTextSummary(builder *strings.Builder, response
 					community.PackageAlignment,
 					community.DominantPackage,
 					community.PackageCount,
+				)
+			}
+			if community.LayerCount > 0 && community.LayerAlignment != nil {
+				detail += fmt.Sprintf(
+					", layer-align: %.3f (%s, %d layers)",
+					*community.LayerAlignment,
+					community.DominantLayer,
+					community.LayerCount,
 				)
 			}
 			builder.WriteString(utils.FormatLabelWithIndent(
@@ -322,7 +352,28 @@ func (f *CommunityFormatter) writeHTMLSummary(builder *strings.Builder, response
 	if response.PackageAlignmentScore != nil {
 		builder.WriteString(GenerateMetricCard(fmt.Sprintf("%.3f", *response.PackageAlignmentScore), "Package Alignment"))
 	}
+	if response.LayerAlignmentScore != nil {
+		builder.WriteString(GenerateMetricCard(fmt.Sprintf("%.3f", *response.LayerAlignmentScore), "Layer Alignment"))
+	}
 	builder.WriteString(`</div>`)
+
+	if len(response.CrossLayerCommunities) > 0 || len(response.LayerBridgeModules) > 0 {
+		builder.WriteString(GenerateSectionHeader("Layer Mismatch"))
+		builder.WriteString(`<ul>`)
+		if len(response.CrossLayerCommunities) > 0 {
+			builder.WriteString(fmt.Sprintf(
+				`<li><strong>Cross-layer communities:</strong> %s</li>`,
+				JoinEscapedHTML(response.CrossLayerCommunities, ", "),
+			))
+		}
+		if len(response.LayerBridgeModules) > 0 {
+			builder.WriteString(fmt.Sprintf(
+				`<li><strong>Layer bridge modules:</strong> %s</li>`,
+				JoinEscapedHTML(response.LayerBridgeModules, ", "),
+			))
+		}
+		builder.WriteString(`</ul>`)
+	}
 
 	if len(response.SplitPackages) > 0 || len(response.MixedCommunities) > 0 {
 		builder.WriteString(GenerateSectionHeader("Package Mismatch"))
@@ -601,6 +652,12 @@ func normalizeCommunityResult(response *domain.CommunityAnalysisResult) *domain.
 	}
 	out.SplitPackages = sortedStringCopy(response.SplitPackages)
 	out.MixedCommunities = sortedStringCopy(response.MixedCommunities)
+	if response.LayerAlignmentScore != nil {
+		score := roundCommunityFloat(*response.LayerAlignmentScore)
+		out.LayerAlignmentScore = &score
+	}
+	out.CrossLayerCommunities = sortedStringCopy(response.CrossLayerCommunities)
+	out.LayerBridgeModules = sortedStringCopy(response.LayerBridgeModules)
 
 	communities := make([]domain.CommunityMetrics, len(response.Communities))
 	copy(communities, response.Communities)
@@ -611,9 +668,14 @@ func normalizeCommunityResult(response *domain.CommunityAnalysisResult) *domain.
 	for i := range communities {
 		communities[i].Modules = sortedStringCopy(communities[i].Modules)
 		communities[i].Packages = sortedStringCopy(communities[i].Packages)
+		communities[i].Layers = sortedStringCopy(communities[i].Layers)
 		communities[i].ExternalDependencyRatio = roundCommunityFloat(communities[i].ExternalDependencyRatio)
 		if communities[i].PackageCount > 0 {
 			communities[i].PackageAlignment = roundCommunityFloat(communities[i].PackageAlignment)
+		}
+		if communities[i].LayerCount > 0 && communities[i].LayerAlignment != nil {
+			alignment := roundCommunityFloat(*communities[i].LayerAlignment)
+			communities[i].LayerAlignment = &alignment
 		}
 	}
 	out.Communities = communities

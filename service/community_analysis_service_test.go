@@ -182,6 +182,106 @@ func TestCommunityAnalysisService_Analyze_Deterministic(t *testing.T) {
 	assert.Equal(t, first.PackageAlignmentScore, second.PackageAlignmentScore)
 	assert.Equal(t, first.SplitPackages, second.SplitPackages)
 	assert.Equal(t, first.MixedCommunities, second.MixedCommunities)
+	assert.Equal(t, first.LayerAlignmentScore, second.LayerAlignmentScore)
+	assert.Equal(t, first.CrossLayerCommunities, second.CrossLayerCommunities)
+	assert.Equal(t, first.LayerBridgeModules, second.LayerBridgeModules)
+}
+
+func TestCommunityAnalysisService_Analyze_LayerMismatch_BridgeFixture(t *testing.T) {
+	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", "community_layer_bridge"))
+	require.NoError(t, err)
+
+	fileReader := NewFileReader()
+	files, err := fileReader.CollectPythonFiles([]string{fixtureRoot}, true, nil, nil)
+	require.NoError(t, err)
+
+	service := NewCommunityAnalysisService()
+	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
+		Paths:            files,
+		SourcePaths:      []string{fixtureRoot},
+		MinCommunitySize: 2,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.LayerAlignmentScore)
+	assert.InDelta(t, 1.0, *result.LayerAlignmentScore, 1e-9)
+	assert.Empty(t, result.CrossLayerCommunities)
+	assert.Equal(t, []string{"bridge", "infra.c"}, result.LayerBridgeModules)
+}
+
+func TestCommunityAnalysisService_Analyze_LayerMismatch_AlignedFixture(t *testing.T) {
+	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", "community_layer_aligned"))
+	require.NoError(t, err)
+
+	fileReader := NewFileReader()
+	files, err := fileReader.CollectPythonFiles([]string{fixtureRoot}, true, nil, nil)
+	require.NoError(t, err)
+
+	service := NewCommunityAnalysisService()
+	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
+		Paths:            files,
+		SourcePaths:      []string{fixtureRoot},
+		MinCommunitySize: 2,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.LayerAlignmentScore)
+	assert.InDelta(t, 1.0, *result.LayerAlignmentScore, 1e-9)
+	assert.Empty(t, result.CrossLayerCommunities)
+	assert.Empty(t, result.LayerBridgeModules)
+}
+
+func TestCommunityAnalysisService_Analyze_LayerMismatch_MixedFixture(t *testing.T) {
+	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", "community_layer_mixed"))
+	require.NoError(t, err)
+
+	fileReader := NewFileReader()
+	files, err := fileReader.CollectPythonFiles([]string{fixtureRoot}, true, nil, nil)
+	require.NoError(t, err)
+
+	service := NewCommunityAnalysisService()
+	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
+		Paths:            files,
+		SourcePaths:      []string{fixtureRoot},
+		MinCommunitySize: 2,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, 2, result.TotalCommunities)
+	require.NotNil(t, result.LayerAlignmentScore)
+	assert.InDelta(t, 0.0, *result.LayerAlignmentScore, 1e-9)
+	assert.Equal(t, []string{"community_1", "community_2"}, result.CrossLayerCommunities)
+
+	for _, community := range result.Communities {
+		assert.Equal(t, 2, community.LayerCount)
+		require.NotNil(t, community.LayerAlignment, "layer_alignment must be present when layer_count > 0")
+	}
+
+	formatter := NewCommunityFormatter()
+	output, err := formatter.Format(result, domain.OutputFormatJSON)
+	require.NoError(t, err)
+	assert.Contains(t, output, `"layer_alignment": 0`)
+}
+
+func TestCommunityAnalysisService_Analyze_LayerMismatch_OmittedWithoutArchitecture(t *testing.T) {
+	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", "community_bridge"))
+	require.NoError(t, err)
+
+	fileReader := NewFileReader()
+	files, err := fileReader.CollectPythonFiles([]string{fixtureRoot}, true, nil, nil)
+	require.NoError(t, err)
+
+	service := NewCommunityAnalysisService()
+	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
+		Paths:            files,
+		SourcePaths:      []string{fixtureRoot},
+		MinCommunitySize: 2,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Nil(t, result.LayerAlignmentScore)
+	assert.Empty(t, result.CrossLayerCommunities)
+	assert.Empty(t, result.LayerBridgeModules)
 }
 
 func TestCommunityAnalysisService_Analyze_UsesSourcePathsForProjectRoot(t *testing.T) {

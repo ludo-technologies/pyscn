@@ -696,6 +696,16 @@ func (s *SystemAnalysisServiceImpl) buildArchitectureResultWithRecommendations(
 	}
 }
 
+// BuildModuleLayerMap maps each module to a layer based on ArchitectureRules.
+func (s *SystemAnalysisServiceImpl) BuildModuleLayerMap(graph *analyzer.DependencyGraph, rules *domain.ArchitectureRules) map[string]string {
+	return s.buildModuleLayerMap(graph, rules)
+}
+
+// ResolveArchitectureRules returns resolved architecture rules with style presets applied.
+func (s *SystemAnalysisServiceImpl) ResolveArchitectureRules(graph *analyzer.DependencyGraph, rules *domain.ArchitectureRules) *domain.ArchitectureRules {
+	return s.resolveArchitectureRules(graph, rules)
+}
+
 // buildModuleLayerMap maps each module to a layer based on ArchitectureRules.
 // compiledPattern keeps the compiled regexes and its original pattern with simple specificity info.
 // It uses two regexes to distinguish prefix (position 0) and suffix (position 1+) matches.
