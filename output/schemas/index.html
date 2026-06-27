@@ -6878,6 +6878,21 @@
 <td>Community ids containing modules from two or more packages (sorted).</td>
 </tr>
 <tr>
+<td><code>layer_alignment_score</code></td>
+<td>number | absent</td>
+<td>Share of configured layers whose modules all reside in one community (0–1). Omitted when architecture layers are not configured.</td>
+</tr>
+<tr>
+<td><code>cross_layer_communities</code></td>
+<td>array | absent</td>
+<td>Community ids containing modules from two or more configured layers (sorted).</td>
+</tr>
+<tr>
+<td><code>layer_bridge_modules</code></td>
+<td>array | absent</td>
+<td>Bridge modules coupling communities mapped to different layers (sorted).</td>
+</tr>
+<tr>
 <td><code>warnings</code></td>
 <td>array | absent</td>
 <td>Non-fatal analysis warnings.</td>
@@ -6973,6 +6988,26 @@
 <td><code>package_alignment</code></td>
 <td>number | absent</td>
 <td>Cohesion within the community: share of internal edges whose endpoints share a package, or dominant-package module ratio when no qualifying internal edges exist.</td>
+</tr>
+<tr>
+<td><code>dominant_layer</code></td>
+<td>string | absent</td>
+<td>Configured layer with the most modules in this community.</td>
+</tr>
+<tr>
+<td><code>layer_count</code></td>
+<td>integer | absent</td>
+<td>Distinct configured layers represented in this community.</td>
+</tr>
+<tr>
+<td><code>layers</code></td>
+<td>array | absent</td>
+<td>Configured layer names present in this community (sorted).</td>
+</tr>
+<tr>
+<td><code>layer_alignment</code></td>
+<td>number | absent</td>
+<td>Cohesion within the community: share of internal edges whose endpoints share a layer, or dominant-layer module ratio when no qualifying internal edges exist.</td>
 </tr>
 </tbody>
 </table>

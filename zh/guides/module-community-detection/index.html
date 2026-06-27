@@ -916,6 +916,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#layer-mismatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer mismatch
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3356,6 +3367,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#layer-mismatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer mismatch
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3600,6 +3622,36 @@
 </table>
 <p><strong>Example:</strong> A bridge fixture where <code>mod.a</code>/<code>mod.b</code> cluster separately from <code>mod.c</code>/<code>mod.d</code> yields <code>package_alignment_score: 0</code> and <code>split_packages: ["mod"]</code> even though each community is internally cohesive. A billing/inventory fixture with no cross-package imports yields <code>package_alignment_score: 1</code>.</p>
 <p>This is distinct from <code>SystemMetrics.ModularityIndex</code> in dependency analysis (an intra-package edge ratio), which measures a different cohesion signal.</p>
+<h3 id="layer-mismatch">Layer mismatch<a class="headerlink" href="#layer-mismatch" title="Permanent link">&para;</a></h3>
+<p>When <code>[architecture]</code> layers are configured (explicit <code>style</code>, <code>[[architecture.layers]]</code>, or <code>[[architecture.rules]]</code>), community detection also compares inferred clusters to configured layer boundaries. Layer mismatch is omitted when no architecture rules are configured — community analysis still succeeds.</p>
+<p>Enable both dependency graph construction and architecture config, e.g. <code>pyscn analyze --select deps,communities .</code> or <code>[communities] enabled = true</code> with <code>[architecture]</code> configured.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it suggests</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>layer_alignment_score</code> (0–1)</td>
+<td>How well communities respect configured layers. <strong>1.0</strong> means every layer's modules live in exactly one community; <strong>0.0</strong> means every layer is split. Distinct from architecture <code>compliance_score</code> / violation counts.</td>
+</tr>
+<tr>
+<td><code>cross_layer_communities</code></td>
+<td>Communities containing modules from two or more configured layers — clusters that span layer boundaries.</td>
+</tr>
+<tr>
+<td><code>layer_bridge_modules</code></td>
+<td>Bridge modules whose home community layer differs from a target community's dominant layer.</td>
+</tr>
+<tr>
+<td><code>dominant_layer</code> / <code>layer_count</code> / <code>layers[]</code> / <code>layer_alignment</code></td>
+<td>Per-community layer composition and internal edge cohesion within the community.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example:</strong> A bridge fixture with <code>api</code> and <code>infra</code> layers where <code>api.a</code>/<code>api.b</code> cluster separately from <code>infra.c</code>/<code>infra.d</code> yields <code>layer_alignment_score: 1</code> and <code>layer_bridge_modules: ["bridge", "infra.c"]</code> because the bridge couples api and infra communities. A fixture where both layers appear inside each community yields <code>layer_alignment_score: 0</code> and populates <code>cross_layer_communities</code>.</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <p>All keys live under <code>[communities]</code> in <code>.pyscn.toml</code> or <code>[tool.pyscn.communities]</code> in <code>pyproject.toml</code>. Full reference: <a href="../../configuration/reference/#communities">Configuration Reference</a>.</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[communities]</span>
@@ -3694,15 +3746,12 @@
 </span></code></pre></div>
 <p>Read this as: two natural clusters exist, and <code>bridge</code> is the coupling point between them. The <code>mod</code> package is split across both communities (<code>package_alignment_score: 0</code>), so import topology disagrees with the declared package boundary. Extracting shared logic from <code>bridge</code> or regrouping <code>mod</code> modules may improve alignment.</p>
 <h2 id="follow-up-work-phase-2-and-3">Follow-up work (Phase 2 and 3)<a class="headerlink" href="#follow-up-work-phase-2-and-3" title="Permanent link">&para;</a></h2>
-<p>Module-level community detection is Phase 1 of <a href="https://github.com/ludo-technologies/pyscn/issues/564">GitHub issue #564</a>. Package mismatch scoring (Phase 2) is available via <code>package_alignment_score</code>, <code>split_packages</code>, and <code>mixed_communities</code>. Remaining planned extensions include:</p>
-<ul>
-<li>Layer/community mismatch scoring</li>
-<li>DOT export with community-colored subgraphs</li>
-<li>HTML macro-architecture visualization</li>
-<li>AI-agent context maps</li>
-<li>Richer edge weights from call/type/reference data</li>
-<li>Function- and class-level clustering</li>
-</ul>
+<p>Module-level community detection is Phase 1 of <a href="https://github.com/ludo-technologies/pyscn/issues/564">GitHub issue #564</a>. Phase 2 mismatch scoring is available via package fields (<code>package_alignment_score</code>, <code>split_packages</code>, <code>mixed_communities</code>) and layer fields (<code>layer_alignment_score</code>, <code>cross_layer_communities</code>, <code>layer_bridge_modules</code>) when architecture layers are configured. Remaining planned extensions include:
+- DOT export with community-colored subgraphs
+- HTML macro-architecture visualization
+- AI-agent context maps
+- Richer edge weights from call/type/reference data
+- Function- and class-level clustering</p>
 <p>Track progress on issue #564.</p>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
