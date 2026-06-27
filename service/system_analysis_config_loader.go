@@ -71,32 +71,8 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) pyscnConfigToSystemAnalysisRequ
 	}
 
 	// Architecture settings
-	if cfg.ArchitectureStrictMode != nil || cfg.ArchitectureStyle != "" || len(cfg.ArchitectureAllowedPatterns) > 0 || len(cfg.ArchitectureForbiddenPatterns) > 0 ||
-		len(cfg.ArchitectureLayers) > 0 || len(cfg.ArchitectureRules) > 0 || len(cfg.ArchitectureNeutralPrefixes) > 0 {
-		if request.ArchitectureRules == nil {
-			request.ArchitectureRules = &domain.ArchitectureRules{}
-		}
-		if cfg.ArchitectureStyle != "" {
-			request.ArchitectureRules.Style = cfg.ArchitectureStyle
-		}
-		if cfg.ArchitectureStrictMode != nil {
-			request.ArchitectureRules.StrictMode = *cfg.ArchitectureStrictMode
-		}
-		if len(cfg.ArchitectureAllowedPatterns) > 0 {
-			request.ArchitectureRules.AllowedPatterns = cfg.ArchitectureAllowedPatterns
-		}
-		if len(cfg.ArchitectureForbiddenPatterns) > 0 {
-			request.ArchitectureRules.ForbiddenPatterns = cfg.ArchitectureForbiddenPatterns
-		}
-		if len(cfg.ArchitectureLayers) > 0 {
-			request.ArchitectureRules.Layers = convertLayerDefinitions(cfg.ArchitectureLayers)
-		}
-		if len(cfg.ArchitectureRules) > 0 {
-			request.ArchitectureRules.Rules = convertLayerRules(cfg.ArchitectureRules)
-		}
-		if len(cfg.ArchitectureNeutralPrefixes) > 0 {
-			request.ArchitectureRules.NeutralPrefixes = cfg.ArchitectureNeutralPrefixes
-		}
+	if rules := ArchitectureRulesFromPyscnConfig(cfg); rules != nil {
+		request.ArchitectureRules = rules
 	}
 
 	// Analysis settings (include/exclude patterns)

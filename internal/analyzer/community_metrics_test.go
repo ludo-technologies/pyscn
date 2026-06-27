@@ -21,7 +21,7 @@ func TestComputeCommunityMetrics_SeparatedCommunities(t *testing.T) {
 
 	cg := BuildCommunityGraph(graph, nil)
 	leiden := DetectCommunitiesLeiden(cg, nil)
-	metrics := ComputeCommunityMetrics(graph, cg, leiden)
+	metrics := ComputeCommunityMetrics(graph, cg, leiden, nil)
 
 	require.Equal(t, 2, metrics.TotalCommunities)
 	require.Len(t, metrics.Communities, 2)
@@ -51,7 +51,7 @@ func TestComputeCommunityMetrics_BridgeModule(t *testing.T) {
 
 	cg := BuildCommunityGraph(graph, nil)
 	leiden := DetectCommunitiesLeiden(cg, nil)
-	metrics := ComputeCommunityMetrics(graph, cg, leiden)
+	metrics := ComputeCommunityMetrics(graph, cg, leiden, nil)
 
 	require.NotEmpty(t, metrics.BridgeModules)
 
@@ -101,7 +101,7 @@ func TestComputeCommunityMetrics_CrossCommunityEdgeCounts(t *testing.T) {
 		NumCommunities: 3,
 		Modularity:     0.42,
 	}
-	metrics := ComputeCommunityMetrics(graph, cg, leiden)
+	metrics := ComputeCommunityMetrics(graph, cg, leiden, nil)
 
 	byID := make(map[string]CommunityPartition)
 	for _, comm := range metrics.Communities {
@@ -123,7 +123,7 @@ func TestComputeCommunityMetrics_CrossCommunityEdgeCounts(t *testing.T) {
 }
 
 func TestComputeCommunityMetrics_EmptyInput(t *testing.T) {
-	metrics := ComputeCommunityMetrics(nil, nil, nil)
+	metrics := ComputeCommunityMetrics(nil, nil, nil, nil)
 	assert.Empty(t, metrics.Communities)
 	assert.Empty(t, metrics.BridgeModules)
 	assert.Equal(t, 0, metrics.TotalCommunities)

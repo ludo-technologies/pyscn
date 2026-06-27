@@ -108,6 +108,10 @@ func (cl *CommunityConfigurationLoaderImpl) MergeConfig(base *domain.CommunityAn
 		merged.FollowRelative = override.FollowRelative
 	}
 
+	if override.ArchitectureRules != nil {
+		merged.ArchitectureRules = override.ArchitectureRules
+	}
+
 	return &merged
 }
 
@@ -139,6 +143,8 @@ func (cl *CommunityConfigurationLoaderImpl) configToRequest(pyscnCfg *config.Pys
 	if req.Resolution <= 0 {
 		req.Resolution = domain.DefaultCommunityResolution
 	}
+
+	req.ArchitectureRules = ArchitectureRulesFromPyscnConfig(pyscnCfg)
 
 	return req
 }

@@ -73,6 +73,36 @@ A bridge module belongs to one community but has import edges into other communi
 - **0.3 – 0.7** — typical for repositories with identifiable subsystems.
 - **Very high** — strong separation; verify the graph is not trivially disconnected.
 
+### Package mismatch
+
+Community detection groups modules by import topology. Package mismatch metrics compare that partition to declared package boundaries (from module paths and `ModuleNode.Package` metadata).
+
+| Field | What it suggests |
+| --- | --- |
+| `package_alignment_score` (0–1) | How well communities respect package boundaries. **1.0** means every package's modules live in exactly one community; **0.0** means every package is split. |
+| `split_packages` | Packages whose modules appear in two or more communities — refactor candidates when you expect package = subsystem. |
+| `mixed_communities` | Communities that contain modules from two or more packages — cross-cutting clusters that span declared boundaries. |
+| `dominant_package` / `package_count` / `package_alignment` | Per-community composition: which package dominates, how many packages are represented, and how cohesive internal edges are within that community. |
+
+**Example:** A bridge fixture where `mod.a`/`mod.b` cluster separately from `mod.c`/`mod.d` yields `package_alignment_score: 0` and `split_packages: ["mod"]` even though each community is internally cohesive. A billing/inventory fixture with no cross-package imports yields `package_alignment_score: 1`.
+
+This is distinct from `SystemMetrics.ModularityIndex` in dependency analysis (an intra-package edge ratio), which measures a different cohesion signal.
+
+### Layer mismatch
+
+When `[architecture]` layers are configured (explicit `style`, `[[architecture.layers]]`, or `[[architecture.rules]]`), community detection also compares inferred clusters to configured layer boundaries. Layer mismatch is omitted when no architecture rules are configured — community analysis still succeeds.
+
+Enable both dependency graph construction and architecture config, e.g. `pyscn analyze --select deps,communities .` or `[communities] enabled = true` with `[architecture]` configured.
+
+| Field | What it suggests |
+| --- | --- |
+| `layer_alignment_score` (0–1) | How well communities respect configured layers. **1.0** means every layer's modules live in exactly one community; **0.0** means every layer is split. Distinct from architecture `compliance_score` / violation counts. |
+| `cross_layer_communities` | Communities containing modules from two or more configured layers — clusters that span layer boundaries. |
+| `layer_bridge_modules` | Bridge modules whose home community layer differs from a target community's dominant layer. |
+| `dominant_layer` / `layer_count` / `layers[]` / `layer_alignment` | Per-community layer composition and internal edge cohesion within the community. |
+
+**Example:** A bridge fixture with `api` and `infra` layers where `api.a`/`api.b` cluster separately from `infra.c`/`infra.d` yields `layer_alignment_score: 1` and `layer_bridge_modules: ["bridge", "infra.c"]` because the bridge couples api and infra communities. A fixture where both layers appear inside each community yields `layer_alignment_score: 0` and populates `cross_layer_communities`.
+
 ## Configuration
 
 All keys live under `[communities]` in `.pyscn.toml` or `[tool.pyscn.communities]` in `pyproject.toml`. Full reference: [Configuration Reference](../configuration/reference.md#communities).
@@ -135,6 +165,8 @@ Given a bridge fixture where `bridge.py` imports one cluster and is imported by 
 {
   "total_communities": 2,
   "modularity": 0.2188,
+  "package_alignment_score": 0,
+  "split_packages": ["mod"],
   "bridge_modules": [
     {
       "module": "bridge",
@@ -146,13 +178,11 @@ Given a bridge fixture where `bridge.py` imports one cluster and is imported by 
 }
 ```
 
-Read this as: two natural clusters exist, and `bridge` is the coupling point between them. Extracting shared logic from `bridge` or inverting dependencies may improve modularity.
+Read this as: two natural clusters exist, and `bridge` is the coupling point between them. The `mod` package is split across both communities (`package_alignment_score: 0`), so import topology disagrees with the declared package boundary. Extracting shared logic from `bridge` or regrouping `mod` modules may improve alignment.
 
 ## Follow-up work (Phase 2 and 3)
 
-Module-level community detection is Phase 1 of [GitHub issue #564](https://github.com/ludo-technologies/pyscn/issues/564). Planned extensions include:
-
-- Community vs package/layer mismatch scoring
+Module-level community detection is Phase 1 of [GitHub issue #564](https://github.com/ludo-technologies/pyscn/issues/564). Phase 2 mismatch scoring is available via package fields (`package_alignment_score`, `split_packages`, `mixed_communities`) and layer fields (`layer_alignment_score`, `cross_layer_communities`, `layer_bridge_modules`) when architecture layers are configured. Remaining planned extensions include:
 - DOT export with community-colored subgraphs
 - HTML macro-architecture visualization
 - AI-agent context maps

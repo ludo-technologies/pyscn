@@ -16,11 +16,15 @@ import (
 )
 
 const (
-	communityBridgeDir    = "../testdata/python/community_bridge"
-	communitySeparatedDir = "../testdata/python/community_separated"
-	communityCycleDir     = "../testdata/python/community_cycle"
-	communityMinimalDir   = "../testdata/python/community_minimal"
-	communityIsolatedDir  = "../testdata/python/community_isolated"
+	communityBridgeDir          = "../testdata/python/community_bridge"
+	communitySeparatedDir       = "../testdata/python/community_separated"
+	communityPackageMismatchDir = "../testdata/python/community_package_mismatch"
+	communityLayerBridgeDir     = "../testdata/python/community_layer_bridge"
+	communityLayerAlignedDir    = "../testdata/python/community_layer_aligned"
+	communityLayerMixedDir      = "../testdata/python/community_layer_mixed"
+	communityCycleDir           = "../testdata/python/community_cycle"
+	communityMinimalDir         = "../testdata/python/community_minimal"
+	communityIsolatedDir        = "../testdata/python/community_isolated"
 )
 
 func newCommunityUseCase() *app.CommunityUseCase {
@@ -94,6 +98,76 @@ func TestCommunity_BridgeModules(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, 1, modC.CrossCommunityEdges)
 	assert.Contains(t, modC.TargetCommunities, "community_1")
+}
+
+func TestCommunity_PackageMismatchSplitPackage(t *testing.T) {
+	result := analyzeCommunityFixture(t, communityBridgeDir)
+
+	require.NotNil(t, result.PackageAlignmentScore)
+	assert.InDelta(t, 0.0, *result.PackageAlignmentScore, 1e-9)
+	assert.Equal(t, []string{"mod"}, result.SplitPackages)
+	assert.Empty(t, result.MixedCommunities)
+}
+
+func TestCommunity_PackageMismatchAlignedPackages(t *testing.T) {
+	result := analyzeCommunityFixture(t, communitySeparatedDir)
+
+	require.NotNil(t, result.PackageAlignmentScore)
+	assert.InDelta(t, 1.0, *result.PackageAlignmentScore, 1e-9)
+	assert.Empty(t, result.SplitPackages)
+	assert.Empty(t, result.MixedCommunities)
+}
+
+func TestCommunity_LayerMismatchBridgeFixture(t *testing.T) {
+	result := analyzeCommunityFixture(t, communityLayerBridgeDir)
+
+	require.NotNil(t, result.LayerAlignmentScore)
+	assert.InDelta(t, 1.0, *result.LayerAlignmentScore, 1e-9)
+	assert.Empty(t, result.CrossLayerCommunities)
+	assert.Equal(t, []string{"bridge", "infra.c"}, result.LayerBridgeModules)
+}
+
+func TestCommunity_LayerMismatchAlignedLayers(t *testing.T) {
+	result := analyzeCommunityFixture(t, communityLayerAlignedDir)
+
+	require.NotNil(t, result.LayerAlignmentScore)
+	assert.InDelta(t, 1.0, *result.LayerAlignmentScore, 1e-9)
+	assert.Empty(t, result.CrossLayerCommunities)
+	assert.Empty(t, result.LayerBridgeModules)
+}
+
+func TestCommunity_LayerMismatchCrossLayerCommunity(t *testing.T) {
+	result := analyzeCommunityFixture(t, communityLayerMixedDir)
+
+	require.Equal(t, 2, result.TotalCommunities)
+	require.NotNil(t, result.LayerAlignmentScore)
+	assert.InDelta(t, 0.0, *result.LayerAlignmentScore, 1e-9)
+	assert.Equal(t, []string{"community_1", "community_2"}, result.CrossLayerCommunities)
+	for _, community := range result.Communities {
+		assert.Equal(t, 2, community.LayerCount)
+	}
+}
+
+func TestCommunity_LayerMismatchOmittedWithoutArchitecture(t *testing.T) {
+	result := analyzeCommunityFixture(t, communityBridgeDir)
+
+	assert.Nil(t, result.LayerAlignmentScore)
+	assert.Empty(t, result.CrossLayerCommunities)
+	assert.Empty(t, result.LayerBridgeModules)
+}
+
+func TestCommunity_PackageMismatchMixedCommunities(t *testing.T) {
+	result := analyzeCommunityFixture(t, communityPackageMismatchDir)
+
+	require.Equal(t, 2, result.TotalCommunities)
+	require.NotNil(t, result.PackageAlignmentScore)
+	assert.InDelta(t, 0.0, *result.PackageAlignmentScore, 1e-9)
+	assert.Equal(t, []string{"pkg_alpha", "pkg_beta"}, result.SplitPackages)
+	assert.Equal(t, []string{"community_1", "community_2"}, result.MixedCommunities)
+
+	for _, community := range result.Communities {
+		assert.Equal(t, 2, community.PackageCount)
+	}
 }
 
 func TestCommunity_CycleGraph(t *testing.T) {

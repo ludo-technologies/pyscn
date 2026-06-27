@@ -25,6 +25,31 @@ type CommunityPartition struct {
 	IncomingCrossCommunityEdges int
 	OutgoingCrossCommunityEdges int
 	Size                        int
+
+	DominantPackage  string
+	PackageCount     int
+	PackageAlignment float64
+
+	DominantLayer  string
+	LayerCount     int
+	Layers         []string
+	LayerAlignment float64
+}
+
+// PackageMismatchMetrics summarizes how well detected communities align with
+// declared package boundaries.
+type PackageMismatchMetrics struct {
+	PackageAlignmentScore float64
+	SplitPackages         []string
+	MixedCommunities      []string
+}
+
+// LayerMismatchMetrics summarizes how well detected communities align with
+// configured architecture layers.
+type LayerMismatchMetrics struct {
+	LayerAlignmentScore   float64
+	CrossLayerCommunities []string
+	LayerBridgeModules    []string
 }
 
 // BridgeModuleMetrics describes a module that couples multiple communities.
@@ -37,7 +62,8 @@ type BridgeModuleMetrics struct {
 
 // ComputeCommunityMetrics derives per-community and bridge-module metrics from
 // a Leiden partition. graph supplies package metadata; cg supplies directed edges.
-func ComputeCommunityMetrics(graph *DependencyGraph, cg *CommunityGraph, leiden *LeidenResult) *CommunityPartitionMetrics {
+// moduleToLayer maps modules to configured layers; pass nil to skip layer mismatch.
+func ComputeCommunityMetrics(graph *DependencyGraph, cg *CommunityGraph, leiden *LeidenResult, moduleToLayer map[string]string) *CommunityPartitionMetrics {
 	if cg == nil || leiden == nil || cg.NodeCount == 0 || len(leiden.Membership) == 0 {
 		return &CommunityPartitionMetrics{}
 	}
@@ -108,12 +134,342 @@ func ComputeCommunityMetrics(graph *DependencyGraph, cg *CommunityGraph, leiden 
 	}
 
 	bridgeModules := computeBridgeModules(cg, nodeCommunity)
+	applyPackageMismatchMetrics(graph, cg, nodeCommunity, partitions)
+	applyLayerMismatchMetrics(moduleToLayer, cg, nodeCommunity, partitions)
 
 	return &CommunityPartitionMetrics{
 		Communities:      partitions,
 		BridgeModules:    bridgeModules,
 		TotalCommunities: leiden.NumCommunities,
 		Modularity:       leiden.Modularity,
+	}
+}
+
+// ComputePackageMismatchMetrics derives system-level package alignment metrics
+// from per-community partitions that already include package mismatch fields.
+func ComputePackageMismatchMetrics(partitions []CommunityPartition) *PackageMismatchMetrics {
+	if len(partitions) == 0 {
+		return &PackageMismatchMetrics{}
+	}
+
+	packageCommunities := make(map[string]map[string]struct{})
+	mixedCommunities := make([]string, 0)
+	var alignedPackages int
+	var totalPackages int
+
+	for _, partition := range partitions {
+		if partition.PackageCount >= 2 {
+			mixedCommunities = append(mixedCommunities, partition.ID)
+		}
+
+		for _, pkg := range partition.Packages {
+			if pkg == "" {
+				continue
+			}
+			if packageCommunities[pkg] == nil {
+				packageCommunities[pkg] = make(map[string]struct{})
+			}
+			packageCommunities[pkg][partition.ID] = struct{}{}
+		}
+	}
+
+	splitPackages := make([]string, 0)
+	for pkg, communities := range packageCommunities {
+		totalPackages++
+		if len(communities) >= 2 {
+			splitPackages = append(splitPackages, pkg)
+			continue
+		}
+		alignedPackages++
+	}
+	sort.Strings(splitPackages)
+	sort.Strings(mixedCommunities)
+
+	score := 0.0
+	if totalPackages > 0 {
+		score = float64(alignedPackages) / float64(totalPackages)
+	}
+
+	return &PackageMismatchMetrics{
+		PackageAlignmentScore: score,
+		SplitPackages:         splitPackages,
+		MixedCommunities:      mixedCommunities,
+	}
+}
+
+func applyPackageMismatchMetrics(
+	graph *DependencyGraph,
+	cg *CommunityGraph,
+	nodeCommunity []string,
+	partitions []CommunityPartition,
+) {
+	if graph == nil || cg == nil || len(partitions) == 0 {
+		return
+	}
+
+	modulePackage := make(map[string]string, len(cg.NodeNames))
+	for i, name := range cg.NodeNames {
+		if i >= len(nodeCommunity) || nodeCommunity[i] == "" {
+			continue
+		}
+		if node, ok := graph.Nodes[name]; ok && node.Package != "" {
+			modulePackage[name] = node.Package
+		}
+	}
+	if len(modulePackage) == 0 {
+		return
+	}
+
+	commIndex := make(map[string]int, len(partitions))
+	for i := range partitions {
+		commIndex[partitions[i].ID] = i
+	}
+
+	type edgeCohesion struct {
+		samePackage int
+		total       int
+	}
+	cohesionByCommunity := make(map[string]*edgeCohesion, len(partitions))
+
+	for i := range partitions {
+		packageCounts := make(map[string]int)
+		modulesWithPackage := 0
+		for _, module := range partitions[i].Modules {
+			pkg, ok := modulePackage[module]
+			if !ok || pkg == "" {
+				continue
+			}
+			modulesWithPackage++
+			packageCounts[pkg]++
+		}
+		if modulesWithPackage == 0 {
+			continue
+		}
+
+		partitions[i].PackageCount = len(packageCounts)
+
+		dominantPackage := ""
+		dominantCount := 0
+		for pkg, count := range packageCounts {
+			if count > dominantCount || (count == dominantCount && (dominantPackage == "" || pkg < dominantPackage)) {
+				dominantPackage = pkg
+				dominantCount = count
+			}
+		}
+		partitions[i].DominantPackage = dominantPackage
+		partitions[i].PackageAlignment = float64(dominantCount) / float64(modulesWithPackage)
+	}
+
+	for _, edge := range cg.DirectedEdges {
+		if edge.FromIndex >= len(nodeCommunity) || edge.ToIndex >= len(nodeCommunity) {
+			continue
+		}
+		fromComm := nodeCommunity[edge.FromIndex]
+		toComm := nodeCommunity[edge.ToIndex]
+		if fromComm == "" || toComm == "" || fromComm != toComm {
+			continue
+		}
+
+		fromName := cg.NodeNames[edge.FromIndex]
+		toName := cg.NodeNames[edge.ToIndex]
+		fromPkg, fromOK := modulePackage[fromName]
+		toPkg, toOK := modulePackage[toName]
+		if !fromOK || !toOK {
+			continue
+		}
+
+		acc, ok := cohesionByCommunity[fromComm]
+		if !ok {
+			acc = &edgeCohesion{}
+			cohesionByCommunity[fromComm] = acc
+		}
+		acc.total++
+		if fromPkg == toPkg {
+			acc.samePackage++
+		}
+	}
+
+	for commID, acc := range cohesionByCommunity {
+		if acc.total == 0 {
+			continue
+		}
+		idx, ok := commIndex[commID]
+		if !ok {
+			continue
+		}
+		partitions[idx].PackageAlignment = float64(acc.samePackage) / float64(acc.total)
+	}
+}
+
+// ComputeLayerMismatchMetrics derives system-level layer alignment metrics from
+// per-community partitions that already include layer mismatch fields.
+func ComputeLayerMismatchMetrics(partitions []CommunityPartition, bridges []BridgeModuleMetrics) *LayerMismatchMetrics {
+	if len(partitions) == 0 {
+		return &LayerMismatchMetrics{}
+	}
+
+	layerCommunities := make(map[string]map[string]struct{})
+	crossLayerCommunities := make([]string, 0)
+	var alignedLayers int
+	var totalLayers int
+
+	for _, partition := range partitions {
+		if partition.LayerCount >= 2 {
+			crossLayerCommunities = append(crossLayerCommunities, partition.ID)
+		}
+
+		for _, layer := range partition.Layers {
+			if layer == "" || layer == "unknown" {
+				continue
+			}
+			if layerCommunities[layer] == nil {
+				layerCommunities[layer] = make(map[string]struct{})
+			}
+			layerCommunities[layer][partition.ID] = struct{}{}
+		}
+	}
+
+	for layer, communities := range layerCommunities {
+		totalLayers++
+		if len(communities) == 1 {
+			alignedLayers++
+			_ = layer
+		}
+	}
+	sort.Strings(crossLayerCommunities)
+
+	communityDominantLayer := make(map[string]string, len(partitions))
+	for _, partition := range partitions {
+		if partition.LayerCount > 0 {
+			communityDominantLayer[partition.ID] = partition.DominantLayer
+		}
+	}
+
+	layerBridgeModules := make([]string, 0)
+	for _, bridge := range bridges {
+		homeLayer, homeOK := communityDominantLayer[bridge.CommunityID]
+		if !homeOK || homeLayer == "" || homeLayer == "unknown" {
+			continue
+		}
+		spansLayers := false
+		for _, targetComm := range bridge.TargetCommunities {
+			targetLayer, ok := communityDominantLayer[targetComm]
+			if !ok || targetLayer == "" || targetLayer == "unknown" {
+				continue
+			}
+			if targetLayer != homeLayer {
+				spansLayers = true
+				break
+			}
+		}
+		if spansLayers {
+			layerBridgeModules = append(layerBridgeModules, bridge.Module)
+		}
+	}
+	sort.Strings(layerBridgeModules)
+
+	score := 0.0
+	if totalLayers > 0 {
+		score = float64(alignedLayers) / float64(totalLayers)
+	}
+
+	return &LayerMismatchMetrics{
+		LayerAlignmentScore:   score,
+		CrossLayerCommunities: crossLayerCommunities,
+		LayerBridgeModules:    layerBridgeModules,
+	}
+}
+
+func applyLayerMismatchMetrics(
+	moduleToLayer map[string]string,
+	cg *CommunityGraph,
+	nodeCommunity []string,
+	partitions []CommunityPartition,
+) {
+	if len(moduleToLayer) == 0 || cg == nil || len(partitions) == 0 {
+		return
+	}
+
+	commIndex := make(map[string]int, len(partitions))
+	for i := range partitions {
+		commIndex[partitions[i].ID] = i
+	}
+
+	type edgeCohesion struct {
+		sameLayer int
+		total     int
+	}
+	cohesionByCommunity := make(map[string]*edgeCohesion, len(partitions))
+
+	for i := range partitions {
+		layerCounts := make(map[string]int)
+		modulesWithLayer := 0
+		for _, module := range partitions[i].Modules {
+			layer, ok := moduleToLayer[module]
+			if !ok || layer == "" || layer == "unknown" {
+				continue
+			}
+			modulesWithLayer++
+			layerCounts[layer]++
+			partitions[i].Layers = appendUniqueString(partitions[i].Layers, layer)
+		}
+		if modulesWithLayer == 0 {
+			continue
+		}
+
+		sort.Strings(partitions[i].Layers)
+		partitions[i].LayerCount = len(partitions[i].Layers)
+
+		dominantLayer := ""
+		dominantCount := 0
+		for layer, count := range layerCounts {
+			if count > dominantCount || (count == dominantCount && (dominantLayer == "" || layer < dominantLayer)) {
+				dominantLayer = layer
+				dominantCount = count
+			}
+		}
+		partitions[i].DominantLayer = dominantLayer
+		partitions[i].LayerAlignment = float64(dominantCount) / float64(modulesWithLayer)
+	}
+
+	for _, edge := range cg.DirectedEdges {
+		if edge.FromIndex >= len(nodeCommunity) || edge.ToIndex >= len(nodeCommunity) {
+			continue
+		}
+		fromComm := nodeCommunity[edge.FromIndex]
+		toComm := nodeCommunity[edge.ToIndex]
+		if fromComm == "" || toComm == "" || fromComm != toComm {
+			continue
+		}
+
+		fromName := cg.NodeNames[edge.FromIndex]
+		toName := cg.NodeNames[edge.ToIndex]
+		fromLayer, fromOK := moduleToLayer[fromName]
+		toLayer, toOK := moduleToLayer[toName]
+		if !fromOK || !toOK || fromLayer == "" || toLayer == "" || fromLayer == "unknown" || toLayer == "unknown" {
+			continue
+		}
+
+		acc, ok := cohesionByCommunity[fromComm]
+		if !ok {
+			acc = &edgeCohesion{}
+			cohesionByCommunity[fromComm] = acc
+		}
+		acc.total++
+		if fromLayer == toLayer {
+			acc.sameLayer++
+		}
+	}
+
+	for commID, acc := range cohesionByCommunity {
+		if acc.total == 0 {
+			continue
+		}
+		idx, ok := commIndex[commID]
+		if !ok {
+			continue
+		}
+		partitions[idx].LayerAlignment = float64(acc.sameLayer) / float64(acc.total)
 	}
 }
 
