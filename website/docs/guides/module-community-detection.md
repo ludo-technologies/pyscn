@@ -157,6 +157,23 @@ There is no random seed or sampling step in the current Leiden implementation.
 
 Field-level schema documentation: [community_analysis object](../output/schemas.md#community-analysis-object).
 
+## Macro-architecture visualization
+
+When communities are enabled, the unified HTML report's **Communities** tab includes an interactive macro-architecture graph above the existing metric cards and tables (the tables stay for accessibility and CI assertions).
+
+- **Nodes** are modules, colored by community.
+- **Bridge modules** are outlined in red and filled with a light tint so coupling points stand out.
+- **Edges** that cross community boundaries are drawn in red; intra-community edges are gray.
+- **Hover** a node for its name, community id, bridge flag, cross-edge count, target communities, and the dominant package/layer (when package/layer mismatch data is available).
+- **Click** a node to highlight it and its direct neighbors; click again to clear.
+- **Drag** a node to reposition it.
+
+Filters above the canvas let you focus on one community, show only bridge modules, or hide isolated nodes.
+
+The graph is rendered client-side from a compact JSON blob embedded in the report (`<script id="community-graph-data">`), so reports stay self-contained and work offline. No external graph viewer is required, and `--no-open` behavior is unchanged.
+
+**Performance guard.** To keep the layout responsive, the graph collapses to one node per community (sized by module count) when a project exceeds the display threshold of `100` modules. Below that, every module is rendered individually. This visualization complements—and does not replace—the [DOT export](#output-formats), which remains available for large graphs and external tooling.
+
 ## Example interpretation
 
 Given a bridge fixture where `bridge.py` imports one cluster and is imported by another:
@@ -182,9 +199,7 @@ Read this as: two natural clusters exist, and `bridge` is the coupling point bet
 
 ## Follow-up work (Phase 2 and 3)
 
-Module-level community detection is Phase 1 of [GitHub issue #564](https://github.com/ludo-technologies/pyscn/issues/564). Phase 2 mismatch scoring is available via package fields (`package_alignment_score`, `split_packages`, `mixed_communities`) and layer fields (`layer_alignment_score`, `cross_layer_communities`, `layer_bridge_modules`) when architecture layers are configured. Remaining planned extensions include:
-- DOT export with community-colored subgraphs
-- HTML macro-architecture visualization
+Module-level community detection is Phase 1 of [GitHub issue #564](https://github.com/ludo-technologies/pyscn/issues/564). Phase 2 mismatch scoring is available via package fields (`package_alignment_score`, `split_packages`, `mixed_communities`) and layer fields (`layer_alignment_score`, `cross_layer_communities`, `layer_bridge_modules`) when architecture layers are configured. DOT export with community-colored subgraphs and the [HTML macro-architecture visualization](#macro-architecture-visualization) are also available. Remaining planned extensions include:
 - AI-agent context maps
 - Richer edge weights from call/type/reference data
 - Function- and class-level clustering
