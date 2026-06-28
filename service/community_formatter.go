@@ -360,6 +360,8 @@ func (f *CommunityFormatter) writeHTMLSummary(builder *strings.Builder, response
 	}
 	builder.WriteString(`</div>`)
 
+	writeCommunityGraphHTML(builder, response)
+
 	if len(response.CrossLayerCommunities) > 0 || len(response.LayerBridgeModules) > 0 {
 		builder.WriteString(GenerateSectionHeader("Layer Mismatch"))
 		builder.WriteString(`<ul>`)
