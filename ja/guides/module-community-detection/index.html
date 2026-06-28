@@ -966,6 +966,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#macro-architecture-visualization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Macro-architecture visualization
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#example-interpretation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3417,6 +3428,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#macro-architecture-visualization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Macro-architecture visualization
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#example-interpretation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3727,6 +3749,19 @@
 </tbody>
 </table>
 <p>Field-level schema documentation: <a href="../../output/schemas/#community-analysis-object">community_analysis object</a>.</p>
+<h2 id="macro-architecture-visualization">Macro-architecture visualization<a class="headerlink" href="#macro-architecture-visualization" title="Permanent link">&para;</a></h2>
+<p>When communities are enabled, the unified HTML report's <strong>Communities</strong> tab includes an interactive macro-architecture graph above the existing metric cards and tables (the tables stay for accessibility and CI assertions).</p>
+<ul>
+<li><strong>Nodes</strong> are modules, colored by community.</li>
+<li><strong>Bridge modules</strong> are outlined in red and filled with a light tint so coupling points stand out.</li>
+<li><strong>Edges</strong> that cross community boundaries are drawn in red; intra-community edges are gray.</li>
+<li><strong>Hover</strong> a node for its name, community id, bridge flag, cross-edge count, target communities, and the dominant package/layer (when package/layer mismatch data is available).</li>
+<li><strong>Click</strong> a node to highlight it and its direct neighbors; click again to clear.</li>
+<li><strong>Drag</strong> a node to reposition it.</li>
+</ul>
+<p>Filters above the canvas let you focus on one community, show only bridge modules, or hide isolated nodes.</p>
+<p>The graph is rendered client-side from a compact JSON blob embedded in the report (<code>&lt;script id="community-graph-data"&gt;</code>), so reports stay self-contained and work offline. No external graph viewer is required, and <code>--no-open</code> behavior is unchanged.</p>
+<p><strong>Performance guard.</strong> To keep the layout responsive, the graph collapses to one node per community (sized by module count) when a project exceeds the display threshold of <code>100</code> modules. Below that, every module is rendered individually. This visualization complements—and does not replace—the <a href="#output-formats">DOT export</a>, which remains available for large graphs and external tooling.</p>
 <h2 id="example-interpretation">Example interpretation<a class="headerlink" href="#example-interpretation" title="Permanent link">&para;</a></h2>
 <p>Given a bridge fixture where <code>bridge.py</code> imports one cluster and is imported by another:</p>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
@@ -3746,9 +3781,7 @@
 </span></code></pre></div>
 <p>Read this as: two natural clusters exist, and <code>bridge</code> is the coupling point between them. The <code>mod</code> package is split across both communities (<code>package_alignment_score: 0</code>), so import topology disagrees with the declared package boundary. Extracting shared logic from <code>bridge</code> or regrouping <code>mod</code> modules may improve alignment.</p>
 <h2 id="follow-up-work-phase-2-and-3">Follow-up work (Phase 2 and 3)<a class="headerlink" href="#follow-up-work-phase-2-and-3" title="Permanent link">&para;</a></h2>
-<p>Module-level community detection is Phase 1 of <a href="https://github.com/ludo-technologies/pyscn/issues/564">GitHub issue #564</a>. Phase 2 mismatch scoring is available via package fields (<code>package_alignment_score</code>, <code>split_packages</code>, <code>mixed_communities</code>) and layer fields (<code>layer_alignment_score</code>, <code>cross_layer_communities</code>, <code>layer_bridge_modules</code>) when architecture layers are configured. Remaining planned extensions include:
-- DOT export with community-colored subgraphs
-- HTML macro-architecture visualization
+<p>Module-level community detection is Phase 1 of <a href="https://github.com/ludo-technologies/pyscn/issues/564">GitHub issue #564</a>. Phase 2 mismatch scoring is available via package fields (<code>package_alignment_score</code>, <code>split_packages</code>, <code>mixed_communities</code>) and layer fields (<code>layer_alignment_score</code>, <code>cross_layer_communities</code>, <code>layer_bridge_modules</code>) when architecture layers are configured. DOT export with community-colored subgraphs and the <a href="#macro-architecture-visualization">HTML macro-architecture visualization</a> are also available. Remaining planned extensions include:
 - AI-agent context maps
 - Richer edge weights from call/type/reference data
 - Function- and class-level clustering</p>
