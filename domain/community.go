@@ -2,8 +2,11 @@ package domain
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"math"
+	"sort"
+	"strings"
 )
 
 // CommunityAnalysisRequest represents a request for module community detection.
@@ -73,6 +76,206 @@ type CommunityMetrics struct {
 	RiskLevel string `json:"risk_level,omitempty" yaml:"risk_level,omitempty"`
 }
 
+// CommunityContextMapVersion is the schema version of CommunityContextMap.
+// Bump it when the shape of the context map changes in a breaking way.
+const CommunityContextMapVersion = 1
+
+// CommunityContextMapModuleLimit caps how many modules are listed per bundle
+// before the remainder is collapsed into a "... +N more" marker, keeping the
+// map token-efficient for AI agents on large repositories.
+const CommunityContextMapModuleLimit = 10
+
+// CommunityContextMap is a compact, agent-optimized view of the community
+// analysis. It tells AI coding/review agents which modules to inspect together
+// and which modules bridge otherwise-separate clusters. It is derived entirely
+// from CommunityAnalysisResult and carries no LLM-generated content.
+type CommunityContextMap struct {
+	Version       int                   `json:"version" yaml:"version"`
+	Bundles       []CommunityBundle     `json:"bundles" yaml:"bundles"`
+	BridgeModules []ContextBridgeModule `json:"bridge_modules" yaml:"bridge_modules"`
+}
+
+// CommunityBundle is a single cluster of modules an agent should review together.
+type CommunityBundle struct {
+	CommunityID          string   `json:"community_id" yaml:"community_id"`
+	Modules              []string `json:"modules" yaml:"modules"`
+	ModuleCount          int      `json:"module_count" yaml:"module_count"`
+	Packages             []string `json:"packages" yaml:"packages"`
+	RiskLevel            string   `json:"risk_level" yaml:"risk_level"`
+	BridgeModules        []string `json:"bridge_modules" yaml:"bridge_modules"`
+	SuggestedReviewScope string   `json:"suggested_review_scope,omitempty" yaml:"suggested_review_scope,omitempty"`
+	Summary              string   `json:"summary" yaml:"summary"`
+}
+
+// ContextBridgeModule is a module that couples two or more communities, surfaced
+// at the top level so agents widen review scope across cluster boundaries.
+type ContextBridgeModule struct {
+	Module   string   `json:"module" yaml:"module"`
+	Connects []string `json:"connects" yaml:"connects"`
+	Reason   string   `json:"reason" yaml:"reason"`
+}
+
+// BuildCommunityContextMap derives a compact, deterministic context map from a
+// scored community analysis result. It returns nil when there is nothing to map
+// (no result or no communities). Call ScoreCommunityResult first so per-community
+// risk levels are populated.
+func BuildCommunityContextMap(result *CommunityAnalysisResult) *CommunityContextMap {
+	if result == nil || len(result.Communities) == 0 {
+		return nil
+	}
+
+	// Group bridge modules by their owning community for per-bundle listing.
+	bridgesByCommunity := make(map[string][]string, len(result.BridgeModules))
+	for _, b := range result.BridgeModules {
+		bridgesByCommunity[b.Community] = append(bridgesByCommunity[b.Community], b.Module)
+	}
+
+	bundles := make([]CommunityBundle, 0, len(result.Communities))
+	for i := range result.Communities {
+		c := &result.Communities[i]
+
+		modules := append([]string(nil), c.Modules...)
+		sort.Strings(modules)
+		packages := append([]string(nil), c.Packages...)
+		sort.Strings(packages)
+
+		bridges := append([]string(nil), bridgesByCommunity[c.ID]...)
+		sort.Strings(bridges)
+
+		bundles = append(bundles, CommunityBundle{
+			CommunityID:          c.ID,
+			Modules:              capModuleList(modules, CommunityContextMapModuleLimit),
+			ModuleCount:          len(modules),
+			Packages:             packages,
+			RiskLevel:            c.RiskLevel,
+			BridgeModules:        bridges,
+			SuggestedReviewScope: suggestedReviewScope(modules),
+			Summary:              bundleSummary(c, len(bridges)),
+		})
+	}
+	sort.Slice(bundles, func(i, j int) bool {
+		return bundles[i].CommunityID < bundles[j].CommunityID
+	})
+
+	bridgeModules := make([]ContextBridgeModule, 0, len(result.BridgeModules))
+	for _, b := range result.BridgeModules {
+		connects := append([]string{b.Community}, b.TargetCommunities...)
+		connects = sortedUnique(connects)
+		bridgeModules = append(bridgeModules, ContextBridgeModule{
+			Module:   b.Module,
+			Connects: connects,
+			Reason:   pluralizeEdges(b.CrossCommunityEdges, "cross-community import edge"),
+		})
+	}
+	sort.Slice(bridgeModules, func(i, j int) bool {
+		return bridgeModules[i].Module < bridgeModules[j].Module
+	})
+
+	return &CommunityContextMap{
+		Version:       CommunityContextMapVersion,
+		Bundles:       bundles,
+		BridgeModules: bridgeModules,
+	}
+}
+
+// capModuleList truncates a sorted module list to limit entries, appending a
+// "... +N more" marker when modules are omitted. A non-positive limit disables
+// truncation.
+func capModuleList(modules []string, limit int) []string {
+	if limit <= 0 || len(modules) <= limit {
+		return modules
+	}
+	out := append([]string(nil), modules[:limit]...)
+	return append(out, fmt.Sprintf("... +%d more", len(modules)-limit))
+}
+
+// suggestedReviewScope derives a filesystem-style review scope from the longest
+// common dotted prefix of the member modules (e.g. ["app.orders.service",
+// "app.orders.repository"] -> "app/orders/"). For a single module it drops the
+// leaf so the scope points at the containing package. Returns "" when modules
+// share no common package prefix.
+func suggestedReviewScope(modules []string) string {
+	if len(modules) == 0 {
+		return ""
+	}
+
+	split := func(m string) []string { return strings.Split(m, ".") }
+	common := split(modules[0])
+	for _, m := range modules[1:] {
+		common = commonPrefix(common, split(m))
+		if len(common) == 0 {
+			return ""
+		}
+	}
+
+	// A single module's "common prefix" is the whole module; drop the leaf to
+	// land on its package directory.
+	if len(modules) == 1 && len(common) > 0 {
+		common = common[:len(common)-1]
+	}
+	if len(common) == 0 {
+		return ""
+	}
+	return strings.Join(common, "/") + "/"
+}
+
+func commonPrefix(a, b []string) []string {
+	n := min(len(a), len(b))
+	i := 0
+	for i < n && a[i] == b[i] {
+		i++
+	}
+	return a[:i]
+}
+
+// bundleSummary produces a short, deterministic, fact-based description of a
+// community for agent consumption (no natural-language inference).
+func bundleSummary(c *CommunityMetrics, bridgeCount int) string {
+	cross := c.IncomingCrossCommunityEdges + c.OutgoingCrossCommunityEdges
+	parts := []string{
+		pluralize(c.Size, "module"),
+		pluralize(len(c.Packages), "package"),
+		fmt.Sprintf("risk %s", riskLevelOrUnknown(c.RiskLevel)),
+		pluralizeEdges(cross, "cross-community edge"),
+	}
+	if bridgeCount > 0 {
+		parts = append(parts, pluralize(bridgeCount, "bridge module"))
+	}
+	return strings.Join(parts, "; ") + "."
+}
+
+func riskLevelOrUnknown(level string) string {
+	if level == "" {
+		return "unknown"
+	}
+	return level
+}
+
+func pluralize(n int, noun string) string {
+	if n == 1 {
+		return fmt.Sprintf("%d %s", n, noun)
+	}
+	return fmt.Sprintf("%d %ss", n, noun)
+}
+
+func pluralizeEdges(n int, noun string) string {
+	return pluralize(n, noun)
+}
+
+func sortedUnique(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	out := make([]string, 0, len(values))
+	for _, v := range values {
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		out = append(out, v)
+	}
+	sort.Strings(out)
+	return out
+}
+
 // CommunityModuleDependency is a directed module dependency edge used for graph export.
 type CommunityModuleDependency struct {
 	From string
@@ -111,6 +314,11 @@ type CommunityAnalysisResult struct {
 	// detected (no meaningful modular structure to score).
 	RiskScore *int `json:"community_risk_score,omitempty" yaml:"community_risk_score,omitempty"`
 
+	// ContextMap is a compact, agent-optimized view of the communities (which
+	// modules to inspect together, which modules bridge clusters). Populated by
+	// ScoreCommunityResult whenever at least one community was detected.
+	ContextMap *CommunityContextMap `json:"community_context_map,omitempty" yaml:"community_context_map,omitempty"`
+
 	// ModuleDependencies holds directed edges for DOT export and is omitted from JSON/YAML.
 	ModuleDependencies []CommunityModuleDependency `json:"-" yaml:"-"`
 
@@ -141,6 +349,9 @@ func ScoreCommunityResult(result *CommunityAnalysisResult) {
 	for i := range result.Communities {
 		result.Communities[i].RiskLevel = communityRiskLevel(&result.Communities[i])
 	}
+
+	// Build the agent-facing context map once risk levels are populated.
+	result.ContextMap = BuildCommunityContextMap(result)
 
 	// The system risk score needs at least two communities to be meaningful.
 	if result.TotalCommunities < 2 {

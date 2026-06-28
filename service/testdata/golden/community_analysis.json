@@ -69,6 +69,63 @@
     "mod"
   ],
   "community_risk_score": 65,
+  "community_context_map": {
+    "version": 1,
+    "bundles": [
+      {
+        "community_id": "community_1",
+        "modules": [
+          "bridge",
+          "mod.a",
+          "mod.b"
+        ],
+        "module_count": 3,
+        "packages": [
+          "mod"
+        ],
+        "risk_level": "low",
+        "bridge_modules": [
+          "bridge"
+        ],
+        "summary": "3 modules; 1 package; risk low; 1 cross-community edge; 1 bridge module."
+      },
+      {
+        "community_id": "community_2",
+        "modules": [
+          "mod.c",
+          "mod.d"
+        ],
+        "module_count": 2,
+        "packages": [
+          "mod"
+        ],
+        "risk_level": "medium",
+        "bridge_modules": [
+          "mod.c"
+        ],
+        "suggested_review_scope": "mod/",
+        "summary": "2 modules; 1 package; risk medium; 1 cross-community edge; 1 bridge module."
+      }
+    ],
+    "bridge_modules": [
+      {
+        "module": "bridge",
+        "connects": [
+          "community_1",
+          "community_2"
+        ],
+        "reason": "1 cross-community import edge"
+      },
+      {
+        "module": "mod.c",
+        "connects": [
+          "community_1",
+          "community_2"
+        ],
+        "reason": "1 cross-community import edge"
+      }
+    ]
+  },
   "generated_at": "2026-01-15T12:00:00Z",
   "version": "0.0.0-test",
   "config": {

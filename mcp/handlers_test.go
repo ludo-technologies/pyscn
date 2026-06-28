@@ -153,6 +153,37 @@ func TestHandleAnalyzeCode(t *testing.T) {
 				},
 			},
 		},
+		"communities_full_context_map": {
+			args: args{
+				setupFS: func(t *testing.T) string {
+					rootDir, err := os.Getwd()
+					require.NoError(t, err)
+					return filepath.Join(filepath.Dir(rootDir), "testdata", "python", "community_bridge")
+				},
+				arguments: map[string]interface{}{
+					"analyses":    []interface{}{"communities"},
+					"output_mode": "full",
+				},
+			},
+			want: want{
+				isError: &errFalse,
+				check: func(t *testing.T, res *mcplib.CallToolResult) {
+					text := mcplib.GetTextFromContent(res.Content[0])
+					var result map[string]interface{}
+					require.NoError(t, json.Unmarshal([]byte(text), &result))
+
+					community, ok := result["community_analysis"].(map[string]interface{})
+					require.True(t, ok, "expected community_analysis in full output")
+
+					contextMap, ok := community["community_context_map"].(map[string]interface{})
+					require.True(t, ok, "expected community_context_map in community_analysis")
+					assert.Equal(t, float64(1), contextMap["version"])
+					bundles, ok := contextMap["bundles"].([]interface{})
+					require.True(t, ok)
+					assert.NotEmpty(t, bundles)
+				},
+			},
+		},
 		"analyses_complexity_only": {
 			args: args{
 				setupFS: func(t *testing.T) string { return setupTestFile(t, "classes.py") },
