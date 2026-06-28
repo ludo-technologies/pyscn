@@ -114,6 +114,12 @@ type CommunityAnalysisResult struct {
 	// ModuleDependencies holds directed edges for DOT export and is omitted from JSON/YAML.
 	ModuleDependencies []CommunityModuleDependency `json:"-" yaml:"-"`
 
+	// BridgeModuleCount is the number of detected bridge modules from the
+	// underlying analysis. It is tracked independently of BridgeModules (which is
+	// only populated when bridge reporting is enabled) so risk scoring does not
+	// depend on a presentation option. Omitted from JSON/YAML.
+	BridgeModuleCount int `json:"-" yaml:"-"`
+
 	Warnings []string `json:"warnings,omitempty" yaml:"warnings,omitempty"`
 	Errors   []string `json:"errors,omitempty" yaml:"errors,omitempty"`
 
@@ -151,7 +157,7 @@ func ScoreCommunityResult(result *CommunityAnalysisResult) {
 	ratio := computeCommunityRiskRatio(communityRiskInputs{
 		communityCount:   result.TotalCommunities,
 		modularity:       result.Modularity,
-		bridgeModules:    len(result.BridgeModules),
+		bridgeModules:    result.BridgeModuleCount,
 		internalEdges:    internalEdges,
 		crossEdges:       crossEdges,
 		packageAlignment: result.PackageAlignmentScore,

@@ -76,6 +76,10 @@ func (s *CommunityAnalysisServiceImpl) Analyze(ctx context.Context, req domain.C
 		result.LayerBridgeModules = append([]string(nil), layerMismatch.LayerBridgeModules...)
 	}
 
+	// Track the bridge-module count from the analysis independently of whether
+	// bridge modules are emitted, so risk scoring is unaffected by the reporting
+	// option.
+	result.BridgeModuleCount = len(metrics.BridgeModules)
 	if domain.BoolValue(req.ReportBridgeModules, true) {
 		result.BridgeModules = s.convertBridgeModules(metrics.BridgeModules)
 	}

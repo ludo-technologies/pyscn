@@ -707,7 +707,9 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		c := response.Communities
 		summary.CommunityCount = c.TotalCommunities
 		summary.CommunityModularity = c.Modularity
-		summary.CommunityBridgeModules = len(c.BridgeModules)
+		// Use the analysis bridge count, not the emitted list, so the health
+		// penalty is independent of whether bridge modules are reported.
+		summary.CommunityBridgeModules = c.BridgeModuleCount
 		internalEdges, crossEdges := 0, 0
 		for i := range c.Communities {
 			internalEdges += c.Communities[i].InternalEdges

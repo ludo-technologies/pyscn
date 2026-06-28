@@ -194,6 +194,43 @@ func TestCommunityAnalysisService_RiskScore_BridgeWorseThanSeparated(t *testing.
 	assert.LessOrEqual(t, *separated.RiskScore, 10)
 }
 
+// Risk scoring must not depend on the bridge-module reporting option: disabling
+// report_bridge_modules omits the emitted list but must leave the score intact.
+func TestCommunityAnalysisService_RiskScore_IndependentOfBridgeReporting(t *testing.T) {
+	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", "community_bridge"))
+	require.NoError(t, err)
+
+	fileReader := NewFileReader()
+	files, err := fileReader.CollectPythonFiles([]string{fixtureRoot}, true, nil, nil)
+	require.NoError(t, err)
+
+	service := NewCommunityAnalysisService()
+	base := domain.CommunityAnalysisRequest{
+		Paths:            files,
+		SourcePaths:      []string{fixtureRoot},
+		MinCommunitySize: 2,
+	}
+
+	withReport := base
+	withReport.ReportBridgeModules = domain.BoolPtr(true)
+	reported, err := service.Analyze(context.Background(), withReport)
+	require.NoError(t, err)
+
+	withoutReport := base
+	withoutReport.ReportBridgeModules = domain.BoolPtr(false)
+	suppressed, err := service.Analyze(context.Background(), withoutReport)
+	require.NoError(t, err)
+
+	// The emitted list differs, but the analysis bridge count and risk score must not.
+	assert.NotEmpty(t, reported.BridgeModules)
+	assert.Empty(t, suppressed.BridgeModules)
+	assert.Equal(t, reported.BridgeModuleCount, suppressed.BridgeModuleCount)
+	assert.Positive(t, suppressed.BridgeModuleCount)
+	require.NotNil(t, reported.RiskScore)
+	require.NotNil(t, suppressed.RiskScore)
+	assert.Equal(t, *reported.RiskScore, *suppressed.RiskScore)
+}
+
 func TestCommunityAnalysisService_Analyze_Deterministic(t *testing.T) {
 	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", "community_bridge"))
 	require.NoError(t, err)
