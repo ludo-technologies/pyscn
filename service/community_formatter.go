@@ -116,6 +116,9 @@ func (f *CommunityFormatter) writeTextSummary(builder *strings.Builder, response
 	if response.LayerAlignmentScore != nil {
 		stats["Layer Alignment"] = fmt.Sprintf("%.3f", *response.LayerAlignmentScore)
 	}
+	if response.RiskScore != nil {
+		stats["Risk Score"] = fmt.Sprintf("%d/100", *response.RiskScore)
+	}
 	builder.WriteString(utils.FormatSummaryStats(stats))
 
 	if len(response.CrossLayerCommunities) > 0 || len(response.LayerBridgeModules) > 0 {

@@ -132,6 +132,8 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 		fmt.Fprintf(writer, "Total Communities,%d\n", communities.TotalCommunities)
 		fmt.Fprintf(writer, "Community Modularity,%.4f\n", communities.Modularity)
 		fmt.Fprintf(writer, "Bridge Modules,%d\n", len(communities.BridgeModules))
+		fmt.Fprintf(writer, "Community Score,%d\n", response.Summary.CommunityScore)
+		fmt.Fprintf(writer, "Community Risk Score,%d\n", response.Summary.CommunityRiskScore)
 	}
 
 	return nil
@@ -580,12 +582,12 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     <div class="score-bar-item">
                         <div class="score-bar-header">
                             <span class="score-label">Communities</span>
-                            <span class="score-value">{{.Communities.TotalCommunities}}</span>
+                            <span class="score-value">{{.Summary.CommunityScore}}/100</span>
                         </div>
                         <div class="score-bar-container">
-                            <div class="score-bar-fill score-good" style="width: 100%"></div>
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.CommunityScore}}" style="width: {{.Summary.CommunityScore}}%"></div>
                         </div>
-                        <div class="score-detail">Q={{printf "%.3f" .Communities.Modularity}}, {{len .Communities.BridgeModules}} bridge modules</div>
+                        <div class="score-detail">{{.Communities.TotalCommunities}} communities, Q={{printf "%.3f" .Communities.Modularity}}, {{len .Communities.BridgeModules}} bridge modules</div>
                     </div>
                     {{end}}
                 </div>

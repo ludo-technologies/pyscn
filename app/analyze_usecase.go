@@ -702,6 +702,23 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		}
 	}
 
+	// Community detection statistics (feed the community risk score / health penalty)
+	if response.Communities != nil {
+		c := response.Communities
+		summary.CommunityCount = c.TotalCommunities
+		summary.CommunityModularity = c.Modularity
+		summary.CommunityBridgeModules = len(c.BridgeModules)
+		internalEdges, crossEdges := 0, 0
+		for i := range c.Communities {
+			internalEdges += c.Communities[i].InternalEdges
+			crossEdges += c.Communities[i].OutgoingCrossCommunityEdges
+		}
+		summary.CommunityInternalEdges = internalEdges
+		summary.CommunityCrossEdges = crossEdges
+		summary.CommunityPackageAlignment = c.PackageAlignmentScore
+		summary.CommunityLayerAlignment = c.LayerAlignmentScore
+	}
+
 	// Calculate health score with error handling
 	if err := summary.CalculateHealthScore(); err != nil {
 		// Log warning

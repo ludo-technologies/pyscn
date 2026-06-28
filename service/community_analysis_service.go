@@ -82,6 +82,9 @@ func (s *CommunityAnalysisServiceImpl) Analyze(ctx context.Context, req domain.C
 
 	result.ModuleDependencies = s.convertModuleDependencies(graph)
 
+	// Derive the community risk score and per-community risk levels.
+	domain.ScoreCommunityResult(result)
+
 	if graph.TotalModules == 0 {
 		result.Warnings = append(result.Warnings, "No modules found to analyze")
 	}

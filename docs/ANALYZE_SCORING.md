@@ -22,8 +22,35 @@ Penalties are additive. Each category subtracts up to the maximum listed points 
 | Coupling (CBO)      | Weighted ratio of high-risk (`CBO > 7`) and medium-risk (`3 < CBO ≤ 7`) classes using weight 1.0 and 0.5 respectively, divided by total measured classes | Continuous linear: `min(20, ratio / 0.12 * 20)`<br/>Starts at 0%, reaches max at 12%                                  | 20          |
 | Dependencies        | Module dependency graph: proportion of modules in cycles, dependency depth above `log₂(N)+1`, Main Sequence Deviation                                    | Cycles: up to 10 pts (proportional)<br/>Depth: up to 3 pts (excess over expected)<br/>MSD: up to 3 pts (proportional) | 16          |
 | Architecture        | Architecture rules compliance ratio (0–1)                                                                                                                | `round((1 - compliance) * 12)`                                                                                         | 12          |
+| Communities         | Module community structure: low modularity Q, cross-community edge ratio, bridge-module count, and (when available) package/layer alignment              | `round(riskRatio * 10)` where `riskRatio` is the weighted risk blend below                                            | 10          |
 
 When a category is disabled (e.g., `--skip-clones`), its penalty is zero and the prior score (100) carries forward so the missing analysis does not hurt the overall grade.
+
+## Community Risk Score
+
+Community detection is opt-in. The community penalty only applies when communities ran **and** at least two communities were detected; otherwise the category scores 100 with a zero penalty, so enabling or disabling communities never changes existing grades (backward compatible).
+
+The system-level **community risk score** (`community_risk_score`, 0–100, higher = worse) is a weighted blend of normalised risk factors. The category quality score is its inverse: `CommunityScore = 100 - community_risk_score`. The health-score penalty is `round(riskRatio * 10)`.
+
+Each factor is normalised to `0..1` (1 = worst). The blend is a weighted average that is renormalised over whichever factors are available, so optional factors only count when their metadata exists:
+
+| Factor                      | Weight | Formula                                                                 | Availability                       |
+|-----------------------------|--------|------------------------------------------------------------------------|------------------------------------|
+| Low modularity Q            | 0.40   | `clamp01((0.30 - Q) / 0.30)` — risk rises as Q falls below 0.30        | Always (when ≥ 2 communities)      |
+| Cross-community edge ratio  | 0.30   | `clamp01(crossRatio / 0.50)`, `crossRatio = crossEdges / (internal + cross)` | When the graph has edges     |
+| Bridge-module count         | 0.30   | `clamp01(bridgeModules / communityCount)` — saturates at ~1 per community | When communities exist          |
+| Low package alignment       | 0.25   | `clamp01(1 - package_alignment_score)`                                 | When package metadata is present   |
+| Low layer alignment         | 0.25   | `clamp01(1 - layer_alignment_score)`                                   | When architecture layers configured |
+
+The cross-community edge ratio also captures the aggregate `external_dependency_ratio` at the system level, so that signal is not double-counted.
+
+### Per-community `risk_level`
+
+Each community is also classified `low` / `medium` / `high` from a local risk ratio blending its `external_dependency_ratio` (weight 0.5) with `1 - package_alignment` (0.25, when available) and `1 - layer_alignment` (0.25, when available):
+
+- `high`: ratio ≥ 0.60
+- `medium`: 0.30 ≤ ratio < 0.60
+- `low`: ratio < 0.30
 
 ## Overall Health Score and Grade
 

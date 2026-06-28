@@ -480,6 +480,126 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 	}
 }
 
+func floatPtr(v float64) *float64 { return &v }
+
+func TestAnalyzeSummary_CommunityScoring(t *testing.T) {
+	tests := []struct {
+		name               string
+		summary            domain.AnalyzeSummary
+		expectedScore      int // CommunityScore (category quality)
+		expectedRiskScore  int // CommunityRiskScore (system risk)
+		expectHealthChange bool
+	}{
+		{
+			name: "communities disabled - no effect",
+			summary: domain.AnalyzeSummary{
+				AverageComplexity:   2.0,
+				CommunitiesEnabled:  false,
+				CommunityCount:      5,
+				CommunityModularity: 0.0,
+			},
+			expectedScore:      100,
+			expectedRiskScore:  0,
+			expectHealthChange: false,
+		},
+		{
+			name: "single community - not scored",
+			summary: domain.AnalyzeSummary{
+				AverageComplexity:   2.0,
+				CommunitiesEnabled:  true,
+				CommunityCount:      1,
+				CommunityModularity: 0.0,
+			},
+			expectedScore:      100,
+			expectedRiskScore:  0,
+			expectHealthChange: false,
+		},
+		{
+			name: "clean separation - high modularity, no bridges",
+			summary: domain.AnalyzeSummary{
+				AverageComplexity:      2.0,
+				CommunitiesEnabled:     true,
+				CommunityCount:         4,
+				CommunityModularity:    0.45, // >= target 0.30 -> 0 modularity risk
+				CommunityBridgeModules: 0,
+				CommunityInternalEdges: 40,
+				CommunityCrossEdges:    0,
+			},
+			expectedScore:      100,
+			expectedRiskScore:  0,
+			expectHealthChange: false,
+		},
+		{
+			name: "tangled - low Q, many bridges, high cross ratio",
+			summary: domain.AnalyzeSummary{
+				AverageComplexity:      2.0,
+				CommunitiesEnabled:     true,
+				CommunityCount:         4,
+				CommunityModularity:    0.0, // modularity risk = 1.0
+				CommunityBridgeModules: 4,   // bridge risk = 1.0
+				CommunityInternalEdges: 10,
+				CommunityCrossEdges:    10, // crossRatio 0.5 -> /0.5 = 1.0 risk
+			},
+			// All three core factors at 1.0 -> ratio 1.0 -> risk 100, score 0, penalty 10.
+			expectedScore:      0,
+			expectedRiskScore:  100,
+			expectHealthChange: true,
+		},
+		{
+			name: "low package and layer alignment increase risk",
+			summary: domain.AnalyzeSummary{
+				AverageComplexity:         2.0,
+				CommunitiesEnabled:        true,
+				CommunityCount:            3,
+				CommunityModularity:       0.30, // 0 modularity risk
+				CommunityBridgeModules:    0,
+				CommunityInternalEdges:    30,
+				CommunityCrossEdges:       0,
+				CommunityPackageAlignment: floatPtr(0.0), // risk 1.0
+				CommunityLayerAlignment:   floatPtr(0.0), // risk 1.0
+			},
+			// All factors count toward the weight denominator even at zero risk:
+			// modularity .4 (0), cross .3 (0), bridge .3 (0), package .25 (1), layer .25 (1)
+			// ratio = (0.25+0.25)/(0.4+0.3+0.3+0.25+0.25) = 0.5/1.5 = 0.3333 -> 33
+			expectedScore:      67,
+			expectedRiskScore:  33,
+			expectHealthChange: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.summary
+			baseline := s
+			baseline.CommunitiesEnabled = false
+			if err := baseline.CalculateHealthScore(); err != nil {
+				t.Fatalf("baseline CalculateHealthScore() error: %v", err)
+			}
+
+			if err := s.CalculateHealthScore(); err != nil {
+				t.Fatalf("CalculateHealthScore() error: %v", err)
+			}
+
+			if s.CommunityScore != tt.expectedScore {
+				t.Errorf("CommunityScore = %d, want %d", s.CommunityScore, tt.expectedScore)
+			}
+			if s.CommunityRiskScore != tt.expectedRiskScore {
+				t.Errorf("CommunityRiskScore = %d, want %d", s.CommunityRiskScore, tt.expectedRiskScore)
+			}
+			if s.CommunityScore+s.CommunityRiskScore != 100 {
+				t.Errorf("CommunityScore (%d) + CommunityRiskScore (%d) should equal 100",
+					s.CommunityScore, s.CommunityRiskScore)
+			}
+
+			healthChanged := s.HealthScore != baseline.HealthScore
+			if healthChanged != tt.expectHealthChange {
+				t.Errorf("health change = %v (community=%d, baseline=%d), want %v",
+					healthChanged, s.HealthScore, baseline.HealthScore, tt.expectHealthChange)
+			}
+		})
+	}
+}
+
 func TestAnalyzeSummary_IsHealthy(t *testing.T) {
 	tests := []struct {
 		name        string

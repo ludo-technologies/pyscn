@@ -22,7 +22,8 @@
       "size": 3,
       "dominant_package": "mod",
       "package_count": 1,
-      "package_alignment": 1
+      "package_alignment": 1,
+      "risk_level": "low"
     },
     {
       "id": "community_2",
@@ -41,7 +42,8 @@
       "size": 2,
       "dominant_package": "mod",
       "package_count": 1,
-      "package_alignment": 1
+      "package_alignment": 1,
+      "risk_level": "medium"
     }
   ],
   "bridge_modules": [
@@ -66,6 +68,7 @@
   "split_packages": [
     "mod"
   ],
+  "community_risk_score": 65,
   "generated_at": "2026-01-15T12:00:00Z",
   "version": "0.0.0-test",
   "config": {

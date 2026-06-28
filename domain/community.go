@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"io"
+	"math"
 )
 
 // CommunityAnalysisRequest represents a request for module community detection.
@@ -66,6 +67,10 @@ type CommunityMetrics struct {
 	LayerCount     int      `json:"layer_count,omitempty" yaml:"layer_count,omitempty"`
 	Layers         []string `json:"layers,omitempty" yaml:"layers,omitempty"`
 	LayerAlignment *float64 `json:"layer_alignment,omitempty" yaml:"layer_alignment,omitempty"`
+
+	// RiskLevel classifies the community as low/medium/high using documented
+	// thresholds (see docs/ANALYZE_SCORING.md). Populated by ScoreCommunityResult.
+	RiskLevel string `json:"risk_level,omitempty" yaml:"risk_level,omitempty"`
 }
 
 // CommunityModuleDependency is a directed module dependency edge used for graph export.
@@ -101,6 +106,11 @@ type CommunityAnalysisResult struct {
 	CrossLayerCommunities []string `json:"cross_layer_communities,omitempty" yaml:"cross_layer_communities,omitempty"`
 	LayerBridgeModules    []string `json:"layer_bridge_modules,omitempty" yaml:"layer_bridge_modules,omitempty"`
 
+	// RiskScore is a system-level community risk score (0-100, higher = worse),
+	// populated by ScoreCommunityResult. Nil when fewer than two communities were
+	// detected (no meaningful modular structure to score).
+	RiskScore *int `json:"community_risk_score,omitempty" yaml:"community_risk_score,omitempty"`
+
 	// ModuleDependencies holds directed edges for DOT export and is omitted from JSON/YAML.
 	ModuleDependencies []CommunityModuleDependency `json:"-" yaml:"-"`
 
@@ -110,6 +120,78 @@ type CommunityAnalysisResult struct {
 	GeneratedAt string      `json:"generated_at" yaml:"generated_at"`
 	Version     string      `json:"version" yaml:"version"`
 	Config      interface{} `json:"config,omitempty" yaml:"config,omitempty"`
+}
+
+// ScoreCommunityResult computes the system-level community risk score and the
+// per-community risk_level, mutating the result in place. It is the single entry
+// point used by both the standalone community command and the analyze health
+// score, so the numbers stay consistent. Safe to call with a nil result.
+func ScoreCommunityResult(result *CommunityAnalysisResult) {
+	if result == nil {
+		return
+	}
+
+	// Per-community risk levels are always classifiable from local metrics.
+	for i := range result.Communities {
+		result.Communities[i].RiskLevel = communityRiskLevel(&result.Communities[i])
+	}
+
+	// The system risk score needs at least two communities to be meaningful.
+	if result.TotalCommunities < 2 {
+		result.RiskScore = nil
+		return
+	}
+
+	internalEdges, crossEdges := 0, 0
+	for i := range result.Communities {
+		internalEdges += result.Communities[i].InternalEdges
+		crossEdges += result.Communities[i].OutgoingCrossCommunityEdges
+	}
+
+	ratio := computeCommunityRiskRatio(communityRiskInputs{
+		communityCount:   result.TotalCommunities,
+		modularity:       result.Modularity,
+		bridgeModules:    len(result.BridgeModules),
+		internalEdges:    internalEdges,
+		crossEdges:       crossEdges,
+		packageAlignment: result.PackageAlignmentScore,
+		layerAlignment:   result.LayerAlignmentScore,
+	})
+	score := int(math.Round(ratio * 100))
+	result.RiskScore = &score
+}
+
+// communityRiskLevel classifies a single community as low/medium/high. It blends
+// the community's external dependency ratio with its package and layer alignment
+// (each included only when the underlying metadata is available).
+func communityRiskLevel(c *CommunityMetrics) string {
+	var weightedSum, totalWeight float64
+
+	weightedSum += 0.5 * clamp01(c.ExternalDependencyRatio)
+	totalWeight += 0.5
+
+	if c.PackageCount > 0 {
+		weightedSum += 0.25 * clamp01(1-c.PackageAlignment)
+		totalWeight += 0.25
+	}
+	if c.LayerAlignment != nil {
+		weightedSum += 0.25 * clamp01(1-*c.LayerAlignment)
+		totalWeight += 0.25
+	}
+
+	ratio := 0.0
+	if totalWeight > 0 {
+		ratio = weightedSum / totalWeight
+	}
+
+	switch {
+	case ratio >= CommunityRiskHighRatio:
+		return "high"
+	case ratio >= CommunityRiskMediumRatio:
+		return "medium"
+	default:
+		return "low"
+	}
 }
 
 // CommunityAnalysisService defines the core business logic for community analysis.
