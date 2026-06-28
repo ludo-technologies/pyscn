@@ -155,6 +155,82 @@ func TestCommunityAnalysisService_Analyze_PackageMismatch_MixedFixture(t *testin
 	}
 }
 
+// analyzeCommunityFixtureForRisk runs community analysis against a fixture and
+// returns the scored result (RiskScore and per-community risk levels populated).
+func analyzeCommunityFixtureForRisk(t *testing.T, fixture string) *domain.CommunityAnalysisResult {
+	t.Helper()
+	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", fixture))
+	require.NoError(t, err)
+
+	fileReader := NewFileReader()
+	files, err := fileReader.CollectPythonFiles([]string{fixtureRoot}, true, nil, nil)
+	require.NoError(t, err)
+
+	service := NewCommunityAnalysisService()
+	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
+		Paths:            files,
+		SourcePaths:      []string{fixtureRoot},
+		MinCommunitySize: 2,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	return result
+}
+
+// A high-bridge / low-Q project must carry more community risk (a lower
+// community score) than a cleanly separated one.
+func TestCommunityAnalysisService_RiskScore_BridgeWorseThanSeparated(t *testing.T) {
+	bridge := analyzeCommunityFixtureForRisk(t, "community_bridge")
+	separated := analyzeCommunityFixtureForRisk(t, "community_separated")
+
+	require.NotNil(t, bridge.RiskScore, "bridge fixture should be scored (>= 2 communities)")
+	require.NotNil(t, separated.RiskScore, "separated fixture should be scored (>= 2 communities)")
+
+	assert.Greater(t, *bridge.RiskScore, *separated.RiskScore,
+		"high-bridge/low-Q fixture (Q=%.3f) should score riskier than clean separation (Q=%.3f)",
+		bridge.Modularity, separated.Modularity)
+
+	// The cleanly separated fixture should be essentially risk-free.
+	assert.LessOrEqual(t, *separated.RiskScore, 10)
+}
+
+// Risk scoring must not depend on the bridge-module reporting option: disabling
+// report_bridge_modules omits the emitted list but must leave the score intact.
+func TestCommunityAnalysisService_RiskScore_IndependentOfBridgeReporting(t *testing.T) {
+	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", "community_bridge"))
+	require.NoError(t, err)
+
+	fileReader := NewFileReader()
+	files, err := fileReader.CollectPythonFiles([]string{fixtureRoot}, true, nil, nil)
+	require.NoError(t, err)
+
+	service := NewCommunityAnalysisService()
+	base := domain.CommunityAnalysisRequest{
+		Paths:            files,
+		SourcePaths:      []string{fixtureRoot},
+		MinCommunitySize: 2,
+	}
+
+	withReport := base
+	withReport.ReportBridgeModules = domain.BoolPtr(true)
+	reported, err := service.Analyze(context.Background(), withReport)
+	require.NoError(t, err)
+
+	withoutReport := base
+	withoutReport.ReportBridgeModules = domain.BoolPtr(false)
+	suppressed, err := service.Analyze(context.Background(), withoutReport)
+	require.NoError(t, err)
+
+	// The emitted list differs, but the analysis bridge count and risk score must not.
+	assert.NotEmpty(t, reported.BridgeModules)
+	assert.Empty(t, suppressed.BridgeModules)
+	assert.Equal(t, reported.BridgeModuleCount, suppressed.BridgeModuleCount)
+	assert.Positive(t, suppressed.BridgeModuleCount)
+	require.NotNil(t, reported.RiskScore)
+	require.NotNil(t, suppressed.RiskScore)
+	assert.Equal(t, *reported.RiskScore, *suppressed.RiskScore)
+}
+
 func TestCommunityAnalysisService_Analyze_Deterministic(t *testing.T) {
 	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", "community_bridge"))
 	require.NoError(t, err)

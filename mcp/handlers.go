@@ -134,6 +134,14 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 		}
 	}
 
+	// Surface community scores in summary mode only when communities ran.
+	if m, ok := responseData.(map[string]interface{}); ok && result.Summary.CommunitiesEnabled {
+		if sum, ok := m["summary"].(map[string]interface{}); ok {
+			sum["community_score"] = result.Summary.CommunityScore
+			sum["community_risk_score"] = result.Summary.CommunityRiskScore
+		}
+	}
+
 	// Convert result to JSON
 	jsonData, err := json.Marshal(responseData)
 	if err != nil {
@@ -768,6 +776,16 @@ func (h *HandlerSet) HandleGetHealthScore(ctx context.Context, request mcp.CallT
 			"high_coupling_classes": result.Summary.HighCouplingClasses,
 			"high_lcom_classes":     result.Summary.HighLCOMClasses,
 		},
+	}
+
+	// Include the community score only when community detection ran.
+	if result.Summary.CommunitiesEnabled {
+		if cs, ok := healthScoreResult["category_scores"].(map[string]int); ok {
+			cs["community_score"] = result.Summary.CommunityScore
+		}
+		if sum, ok := healthScoreResult["summary"].(map[string]interface{}); ok {
+			sum["community_risk_score"] = result.Summary.CommunityRiskScore
+		}
 	}
 
 	// Convert to JSON
