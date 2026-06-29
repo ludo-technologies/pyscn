@@ -733,6 +733,8 @@ Mirrors `domain.CommunityAnalysisResult`. Emitted as a top-level field in unifie
 | `layer_alignment_score` | number \| absent | Share of configured layers whose modules all reside in one community (0–1). Omitted when architecture layers are not configured. |
 | `cross_layer_communities` | array \| absent | Community ids containing modules from two or more configured layers (sorted). |
 | `layer_bridge_modules` | array \| absent | Bridge modules coupling communities mapped to different layers (sorted). |
+| `community_risk_score` | integer \| absent | System-level community risk score (0–100, higher = worse). Absent when fewer than two communities were detected. |
+| `community_context_map` | object \| absent | Compact, agent-optimized map of which modules to inspect together. See [`community_context_map`](#community-context-map-object). Absent when no communities were detected. |
 | `warnings`          | array \| absent | Non-fatal analysis warnings.                              |
 | `errors`            | array \| absent | Fatal analysis errors.                                    |
 | `generated_at`      | string (RFC 3339) | Community analysis completion time.                 |
@@ -759,6 +761,7 @@ Mirrors `domain.CommunityAnalysisResult`. Emitted as a top-level field in unifie
 | `layer_count`                      | integer \| absent | Distinct configured layers represented in this community. |
 | `layers`                           | array \| absent | Configured layer names present in this community (sorted). |
 | `layer_alignment`                  | number \| absent | Cohesion within the community: share of internal edges whose endpoints share a layer, or dominant-layer module ratio when no qualifying internal edges exist. |
+| `risk_level`                       | string \| absent | Per-community risk classification (`low`, `medium`, `high`). |
 
 ### `bridge_module` object { #bridge-module-object }
 
@@ -768,6 +771,37 @@ Mirrors `domain.CommunityAnalysisResult`. Emitted as a top-level field in unifie
 | `community`            | string  | Home community id for the module.                     |
 | `cross_community_edges`| integer | Edges that connect to other communities.              |
 | `target_communities`   | array   | Destination community ids (sorted for stable diffs).  |
+
+### `community_context_map` object { #community-context-map-object }
+
+A compact, deterministic view of the communities optimized for AI coding/review agents: which modules to inspect together, and which modules bridge otherwise-separate clusters. Derived entirely from the community analysis (no LLM-generated content).
+
+| Field           | Type   | Description                                              |
+| --------------- | ------ | -------------------------------------------------------- |
+| `version`       | integer | Schema version of the context map (currently `1`).     |
+| `bundles`       | array  | Module clusters to review together. See [`context_bundle`](#context-bundle-object). |
+| `bridge_modules`| array  | Modules coupling two or more communities. See [`context_bridge_module`](#context-bridge-module-object). |
+
+#### `context_bundle` object { #context-bundle-object }
+
+| Field                    | Type            | Description                                              |
+| ------------------------ | --------------- | -------------------------------------------------------- |
+| `community_id`           | string          | Community identifier this bundle maps to.               |
+| `modules`                | array           | Member module names (sorted). Capped at 10 entries; the remainder is collapsed into a `... +N more` marker. |
+| `module_count`           | integer         | True number of modules in the community (before capping). |
+| `packages`               | array           | Package names represented in the community (sorted).    |
+| `risk_level`             | string          | Per-community risk classification (`low`, `medium`, `high`). |
+| `bridge_modules`         | array           | Member modules that bridge to other communities (sorted). |
+| `suggested_review_scope` | string \| absent | Filesystem-style path prefix derived from the longest common module prefix (e.g. `app/orders/`). Omitted when members share no common package. |
+| `summary`                | string          | One-line, fact-based description of the cluster.        |
+
+#### `context_bridge_module` object { #context-bridge-module-object }
+
+| Field      | Type   | Description                                              |
+| ---------- | ------ | -------------------------------------------------------- |
+| `module`   | string | Module name acting as a bridge.                         |
+| `connects` | array  | Community ids this module couples (sorted, includes its home community). |
+| `reason`   | string | Human-readable reason (e.g. `3 cross-community import edges`). |
 
 ### Determinism
 
