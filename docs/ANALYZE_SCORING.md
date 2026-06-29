@@ -28,7 +28,7 @@ When a category is disabled (e.g., `--skip-clones`), its penalty is zero and the
 
 ## Community Risk Score
 
-Community detection is opt-in. The community penalty only applies when communities ran **and** at least two communities were detected; otherwise the category scores 100 with a zero penalty, so enabling or disabling communities never changes existing grades (backward compatible).
+Community detection runs in default analyze unless disabled. The community penalty only applies when communities ran **and** at least two communities were detected; otherwise the category scores 100 with a zero penalty, so disabling communities or analyzing trivial graphs never changes existing grades (backward compatible).
 
 The system-level **community risk score** (`community_risk_score`, 0–100, higher = worse) is a weighted blend of normalised risk factors. The category quality score is its inverse: `CommunityScore = 100 - community_risk_score`. The health-score penalty is `round(riskRatio * 10)`.
 

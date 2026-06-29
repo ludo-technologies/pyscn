@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- Run module community detection in default `pyscn analyze`; use `--skip-communities` or `[communities] enabled = false` to opt out (#605).
+
 ## [1.24.3] - 2026-06-21
 
 ### Changed

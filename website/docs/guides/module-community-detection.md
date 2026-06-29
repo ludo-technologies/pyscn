@@ -1,6 +1,6 @@
 ---
 title: Module Community Detection
-description: Discover natural architectural boundaries in a Python codebase from import dependencies. Learn when to run community detection, how to interpret modularity and bridge modules, and how to enable it in CI.
+description: Discover natural architectural boundaries in a Python codebase from import dependencies. Learn how to interpret modularity and bridge modules, configure community detection, and use it in CI.
 ---
 
 # Module Community Detection
@@ -14,7 +14,7 @@ Use it when you want answers like:
 - Do import communities leak dependencies across boundaries?
 - Which files should an agent or reviewer inspect together?
 
-Community detection is **opt-in**. It does not run in a default `pyscn analyze` invocation until you enable it through `--select communities` or `[communities] enabled = true`.
+Community detection runs in default `pyscn analyze` invocations. Use `--skip-communities` or `[communities] enabled = false` to disable it. When `--select` is used, include `communities` in the selected list to run only that subset with community detection.
 
 ## Quick start
 
@@ -23,16 +23,16 @@ Community detection is **opt-in**. It does not run in a default `pyscn analyze` 
 pyscn analyze --json --select communities src/
 
 # Include communities in a full unified report
-pyscn analyze --json --select deps,communities src/
+pyscn analyze --json src/
 ```
 
 Standalone `--json --select communities` writes only the `community_analysis` object to `.pyscn/reports/`. Unified `pyscn analyze --json` embeds the same object under the top-level `community_analysis` key. See [Output Schemas](../output/schemas.md#community-analysis-object).
 
-Enable by default in config:
+Disable in default analyze runs:
 
 ```toml
 [communities]
-enabled = true
+enabled = false
 ```
 
 ## How it works
@@ -92,7 +92,7 @@ This is distinct from `SystemMetrics.ModularityIndex` in dependency analysis (an
 
 When `[architecture]` layers are configured (explicit `style`, `[[architecture.layers]]`, or `[[architecture.rules]]`), community detection also compares inferred clusters to configured layer boundaries. Layer mismatch is omitted when no architecture rules are configured — community analysis still succeeds.
 
-Enable both dependency graph construction and architecture config, e.g. `pyscn analyze --select deps,communities .` or `[communities] enabled = true` with `[architecture]` configured.
+Enable both dependency graph construction and architecture config, e.g. `pyscn analyze .` with `[architecture]` configured or `pyscn analyze --select deps,communities .` when using `--select`.
 
 | Field | What it suggests |
 | --- | --- |
@@ -109,7 +109,7 @@ All keys live under `[communities]` in `.pyscn.toml` or `[tool.pyscn.communities
 
 ```toml
 [communities]
-enabled = false                  # opt-in; CLI --select communities also enables per run
+enabled = false                  # disables default analyze community detection
 algorithm = "leiden"             # currently the only supported value
 scope = "module"                 # module-level graph (function/class scope is future work)
 min_community_size = 2           # communities smaller than this remain as singleton partitions
@@ -123,10 +123,10 @@ CLI equivalents:
 | Goal | Command |
 | --- | --- |
 | Run only communities | `pyscn analyze --select communities .` |
-| Skip even if config enables | `pyscn analyze --skip-communities .` |
+| Skip communities for one run | `pyscn analyze --skip-communities .` |
 | Standalone JSON artifact | `pyscn analyze --json --select communities .` |
 
-`--select` takes precedence: `[communities] enabled = true` does not run communities unless `communities` appears in `--select` when `--select` is used.
+`--select` takes precedence: communities run only when `communities` appears in `--select` when `--select` is used.
 
 ## Determinism
 
@@ -199,7 +199,7 @@ Read this as: two natural clusters exist, and `bridge` is the coupling point bet
 
 ## Follow-up work (Phase 2 and 3)
 
-Module-level community detection is Phase 1 of [GitHub issue #564](https://github.com/ludo-technologies/pyscn/issues/564). Phase 2 mismatch scoring is available via package fields (`package_alignment_score`, `split_packages`, `mixed_communities`) and layer fields (`layer_alignment_score`, `cross_layer_communities`, `layer_bridge_modules`) when architecture layers are configured. DOT export with community-colored subgraphs and the [HTML macro-architecture visualization](#macro-architecture-visualization) are also available. Remaining planned extensions include:
+Module-level community detection is part of [GitHub issue #564](https://github.com/ludo-technologies/pyscn/issues/564). Phase 2 mismatch scoring is available via package fields (`package_alignment_score`, `split_packages`, `mixed_communities`) and layer fields (`layer_alignment_score`, `cross_layer_communities`, `layer_bridge_modules`) when architecture layers are configured. DOT export with community-colored subgraphs and the [HTML macro-architecture visualization](#macro-architecture-visualization) are also available. Remaining planned extensions include:
 - AI-agent context maps
 - Richer edge weights from call/type/reference data
 - Function- and class-level clustering

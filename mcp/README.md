@@ -181,9 +181,9 @@ Try asking your AI assistant:
 - `path` (required): Path to Python code (file or directory)
 - `analyses` (optional): Array of analyses to run
   - Options: `["complexity", "dead_code", "clone", "cbo", "lcom", "deps", "communities"]`
-  - Default: all analyses except `communities` (community detection is opt-in)
+  - Default: all analyses, including `communities`
 - `recursive` (optional): Recursively analyze directories (default: `true`)
-- `output_mode` (optional): `"summary"` (default) returns the health score and high-level metrics; `"full"` returns the complete report, including `community_analysis` and its `community_context_map` when `analyses` includes `communities`
+- `output_mode` (optional): `"summary"` (default) returns the health score and high-level metrics; `"full"` returns the complete report, including `community_analysis` and its `community_context_map` when community detection runs
 
 **Example**:
 ```
@@ -210,7 +210,7 @@ Analyze the code at /home/user/project with all metrics
 
 #### Module communities (context map for AI agents)
 
-Community detection groups modules into clusters by their import structure so an agent knows which files to inspect together. It is opt-in — request it explicitly with `analyses: ["communities"]` and `output_mode: "full"`.
+Community detection groups modules into clusters by their import structure so an agent knows which files to inspect together. It runs by default; when `analyses` is provided, include `"communities"` in that list and set `output_mode: "full"` to retrieve the full context map.
 
 **Example**:
 ```

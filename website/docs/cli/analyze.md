@@ -19,7 +19,7 @@ By default `analyze` runs every enabled analyzer concurrently:
 - Class cohesion (LCOM4)
 - Module dependencies
 - Architecture layer validation
-- Module community detection (opt-in)
+- Module community detection
 
 Results are combined into a single report with a [Health Score](../output/health-score.md).
 
@@ -50,7 +50,7 @@ Output files land in `.pyscn/reports/` by default, named `analyze_YYYYMMDD_HHMMS
 | `--skip-cbo`        | Skip class coupling analysis. |
 | `--skip-lcom`       | Skip class cohesion analysis. |
 | `--skip-deps`       | Skip module dependency analysis. |
-| `--skip-communities` | Skip module community detection (overrides `[communities] enabled`). |
+| `--skip-communities` | Skip module community detection. |
 
 `--select` and `--skip-*` can be combined; selection applies first, then skips.
 

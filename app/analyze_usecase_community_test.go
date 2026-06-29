@@ -97,6 +97,52 @@ enabled = true
 	require.NotNil(t, response.Communities)
 }
 
+func TestAnalyzeUseCase_CommunityDisabledFromConfig(t *testing.T) {
+	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", "mvc_app"))
+	require.NoError(t, err)
+
+	configDir := t.TempDir()
+	configPath := filepath.Join(configDir, ".pyscn.toml")
+	configContent := `[communities]
+enabled = false
+`
+	require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0644))
+
+	communityUC, err := NewCommunityUseCaseBuilder().
+		WithService(service.NewCommunityAnalysisService()).
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(noopCommunityFormatter{}).
+		WithConfigLoader(service.NewCommunityConfigurationLoader()).
+		Build()
+	require.NoError(t, err)
+
+	useCase, err := NewAnalyzeUseCaseBuilder().
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(service.NewAnalyzeFormatter()).
+		WithConfigLoader(service.NewAnalyzeConfigurationLoader()).
+		WithCommunityUseCase(communityUC).
+		Build()
+	require.NoError(t, err)
+
+	config := AnalyzeUseCaseConfig{
+		SkipComplexity:  true,
+		SkipDeadCode:    true,
+		SkipClones:      true,
+		SkipCBO:         true,
+		SkipLCOM:        true,
+		SkipSystem:      true,
+		SkipCommunities: false,
+		ConfigFile:      configPath,
+	}
+
+	response, err := useCase.Execute(context.Background(), config, []string{fixtureRoot})
+	require.NoError(t, err)
+	require.NotNil(t, response)
+
+	assert.False(t, response.Summary.CommunitiesEnabled)
+	assert.Nil(t, response.Communities)
+}
+
 func TestAnalyzeUseCase_CommunityConfigSkippedWhenSelectOmitsCommunities(t *testing.T) {
 	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", "mvc_app"))
 	require.NoError(t, err)

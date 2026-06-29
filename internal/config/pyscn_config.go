@@ -428,8 +428,9 @@ func DefaultPyscnConfig() *PyscnConfig {
 		SystemAnalysisUseDeadCodeData:       domain.BoolPtr(true),
 		SystemAnalysisGenerateUnifiedReport: domain.BoolPtr(true),
 
-		// Communities defaults (from [communities] section)
-		CommunitiesEnabled:             domain.BoolPtr(false), // Disabled by default - opt-in
+		// Communities defaults (from [communities] section). Analyze treats this
+		// value as an override only when the config file sets it explicitly.
+		CommunitiesEnabled:             domain.BoolPtr(false),
 		CommunitiesAlgorithm:           domain.DefaultCommunityAlgorithm,
 		CommunitiesScope:               domain.DefaultCommunityScope,
 		CommunitiesMinCommunitySize:    2,

@@ -132,7 +132,7 @@ Examples:
 	cmd.Flags().BoolVar(&c.skipCBO, "skip-cbo", false, "Skip class coupling (CBO) analysis")
 	cmd.Flags().BoolVar(&c.skipLCOM, "skip-lcom", false, "Skip class cohesion (LCOM4) analysis")
 	cmd.Flags().BoolVar(&c.skipSystem, "skip-deps", false, "Skip module dependencies and architecture analysis")
-	cmd.Flags().BoolVar(&c.skipCommunities, "skip-communities", false, "Skip module community detection (overrides config-enabled communities)")
+	cmd.Flags().BoolVar(&c.skipCommunities, "skip-communities", false, "Skip module community detection")
 	cmd.Flags().StringSliceVar(&c.selectAnalyses, "select", []string{}, "Only run specified analyses (complexity,deadcode,clones,cbo,lcom,deps,communities)")
 
 	// Quick filter flags
@@ -205,22 +205,13 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		CloneSimilarity:         c.cloneSimilarity,
 		MinCBO:                  c.minCBO,
 		EnableDFA:               c.enableDFA,
-		SkipCommunities:         true, // opt-in: enable via --select communities or [communities] enabled=true
-		SelectAnalysesUsed:      len(c.selectAnalyses) > 0,
+		SkipCommunities:         false,
 		SkipCommunitiesExplicit: c.skipCommunities,
 	}
+	config = app.ApplyAnalyzeSelection(config, c.selectAnalyses)
 
 	// Handle analysis selection
-	if len(c.selectAnalyses) > 0 {
-		// If --select is used, only run selected analyses
-		config.SkipComplexity = !c.containsAnalysis("complexity")
-		config.SkipDeadCode = !c.containsAnalysis("deadcode")
-		config.SkipClones = !c.containsAnalysis("clones")
-		config.SkipCBO = !c.containsAnalysis("cbo")
-		config.SkipLCOM = !c.containsAnalysis("lcom")
-		config.SkipSystem = !c.containsAnalysis("deps")
-		config.SkipCommunities = !c.containsAnalysis("communities")
-	} else {
+	if len(c.selectAnalyses) == 0 {
 		// Otherwise use skip flags
 		config.SkipComplexity = c.skipComplexity
 		config.SkipDeadCode = c.skipDeadCode
