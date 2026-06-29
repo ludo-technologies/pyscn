@@ -3488,6 +3488,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#community-context-map-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        community_context_map object
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#determinism" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4414,6 +4425,17 @@
     <span class="md-ellipsis">
       
         bridge_module object
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#community-context-map-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        community_context_map object
       
     </span>
   </a>
@@ -6893,6 +6915,16 @@
 <td>Bridge modules coupling communities mapped to different layers (sorted).</td>
 </tr>
 <tr>
+<td><code>community_risk_score</code></td>
+<td>integer | absent</td>
+<td>System-level community risk score (0–100, higher = worse). Absent when fewer than two communities were detected.</td>
+</tr>
+<tr>
+<td><code>community_context_map</code></td>
+<td>object | absent</td>
+<td>Compact, agent-optimized map of which modules to inspect together. See <a href="#community-context-map-object"><code>community_context_map</code></a>. Absent when no communities were detected.</td>
+</tr>
+<tr>
 <td><code>warnings</code></td>
 <td>array | absent</td>
 <td>Non-fatal analysis warnings.</td>
@@ -7009,6 +7041,11 @@
 <td>number | absent</td>
 <td>Cohesion within the community: share of internal edges whose endpoints share a layer, or dominant-layer module ratio when no qualifying internal edges exist.</td>
 </tr>
+<tr>
+<td><code>risk_level</code></td>
+<td>string | absent</td>
+<td>Per-community risk classification (<code>low</code>, <code>medium</code>, <code>high</code>).</td>
+</tr>
 </tbody>
 </table>
 <h3 id="bridge-module-object"><code>bridge_module</code> object<a class="headerlink" href="#bridge-module-object" title="Permanent link">&para;</a></h3>
@@ -7040,6 +7077,113 @@
 <td><code>target_communities</code></td>
 <td>array</td>
 <td>Destination community ids (sorted for stable diffs).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="community-context-map-object"><code>community_context_map</code> object<a class="headerlink" href="#community-context-map-object" title="Permanent link">&para;</a></h3>
+<p>A compact, deterministic view of the communities optimized for AI coding/review agents: which modules to inspect together, and which modules bridge otherwise-separate clusters. Derived entirely from the community analysis (no LLM-generated content).</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>version</code></td>
+<td>integer</td>
+<td>Schema version of the context map (currently <code>1</code>).</td>
+</tr>
+<tr>
+<td><code>bundles</code></td>
+<td>array</td>
+<td>Module clusters to review together. See <a href="#context-bundle-object"><code>context_bundle</code></a>.</td>
+</tr>
+<tr>
+<td><code>bridge_modules</code></td>
+<td>array</td>
+<td>Modules coupling two or more communities. See <a href="#context-bridge-module-object"><code>context_bridge_module</code></a>.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="context-bundle-object"><code>context_bundle</code> object<a class="headerlink" href="#context-bundle-object" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>community_id</code></td>
+<td>string</td>
+<td>Community identifier this bundle maps to.</td>
+</tr>
+<tr>
+<td><code>modules</code></td>
+<td>array</td>
+<td>Member module names (sorted). Capped at 10 entries; the remainder is collapsed into a <code>... +N more</code> marker.</td>
+</tr>
+<tr>
+<td><code>module_count</code></td>
+<td>integer</td>
+<td>True number of modules in the community (before capping).</td>
+</tr>
+<tr>
+<td><code>packages</code></td>
+<td>array</td>
+<td>Package names represented in the community (sorted).</td>
+</tr>
+<tr>
+<td><code>risk_level</code></td>
+<td>string</td>
+<td>Per-community risk classification (<code>low</code>, <code>medium</code>, <code>high</code>).</td>
+</tr>
+<tr>
+<td><code>bridge_modules</code></td>
+<td>array</td>
+<td>Member modules that bridge to other communities (sorted).</td>
+</tr>
+<tr>
+<td><code>suggested_review_scope</code></td>
+<td>string | absent</td>
+<td>Filesystem-style path prefix derived from the longest common module prefix (e.g. <code>app/orders/</code>). Omitted when members share no common package.</td>
+</tr>
+<tr>
+<td><code>summary</code></td>
+<td>string</td>
+<td>One-line, fact-based description of the cluster.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="context-bridge-module-object"><code>context_bridge_module</code> object<a class="headerlink" href="#context-bridge-module-object" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>module</code></td>
+<td>string</td>
+<td>Module name acting as a bridge.</td>
+</tr>
+<tr>
+<td><code>connects</code></td>
+<td>array</td>
+<td>Community ids this module couples (sorted, includes its home community).</td>
+</tr>
+<tr>
+<td><code>reason</code></td>
+<td>string</td>
+<td>Human-readable reason (e.g. <code>3 cross-community import edges</code>).</td>
 </tr>
 </tbody>
 </table>
