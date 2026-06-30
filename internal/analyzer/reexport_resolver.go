@@ -27,13 +27,34 @@ type ReExportMap struct {
 // ReExportResolver resolves re-exports in __init__.py files
 type ReExportResolver struct {
 	projectRoot string
+	roots       []string
 	cache       map[string]*ReExportMap // package name -> re-export map
 }
 
 // NewReExportResolver creates a new resolver
 func NewReExportResolver(projectRoot string) *ReExportResolver {
+	return NewReExportResolverWithRoots(projectRoot, []string{projectRoot})
+}
+
+// NewReExportResolverWithRoots creates a resolver using one or more import roots.
+func NewReExportResolverWithRoots(projectRoot string, roots []string) *ReExportResolver {
+	cleanRoots := make([]string, 0, len(roots))
+	for _, root := range roots {
+		if root == "" {
+			continue
+		}
+		abs, err := filepath.Abs(root)
+		if err != nil {
+			continue
+		}
+		cleanRoots = append(cleanRoots, abs)
+	}
+	if len(cleanRoots) == 0 {
+		cleanRoots = append(cleanRoots, projectRoot)
+	}
 	return &ReExportResolver{
 		projectRoot: projectRoot,
+		roots:       cleanRoots,
 		cache:       make(map[string]*ReExportMap),
 	}
 }
@@ -89,12 +110,13 @@ func (r *ReExportResolver) ResolveReExport(packageName, importedName string) (st
 // findInitFile finds the package init file for a package.
 func (r *ReExportResolver) findInitFile(packageName string) string {
 	// Convert package name to path
-	packagePath := filepath.Join(r.projectRoot, strings.ReplaceAll(packageName, ".", string(filepath.Separator)))
-
-	for _, name := range pythonPackageInitFiles {
-		initPath := filepath.Join(packagePath, name)
-		if _, err := os.Stat(initPath); err == nil {
-			return initPath
+	for _, root := range r.roots {
+		packagePath := filepath.Join(root, strings.ReplaceAll(packageName, ".", string(filepath.Separator)))
+		for _, name := range pythonPackageInitFiles {
+			initPath := filepath.Join(packagePath, name)
+			if _, err := os.Stat(initPath); err == nil {
+				return initPath
+			}
 		}
 	}
 

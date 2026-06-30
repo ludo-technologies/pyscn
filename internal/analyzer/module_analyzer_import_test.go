@@ -725,6 +725,77 @@ func TestModuleAnalyzerDoesNotResolveStdlibImportToShadowingProjectModule(t *tes
 	}
 }
 
+func TestModuleAnalyzerResolvesSrcLayoutAbsoluteImport(t *testing.T) {
+	dir := t.TempDir()
+
+	serviceModule := filepath.Join(dir, "src", "myapp", "service.py")
+	repoModule := filepath.Join(dir, "src", "myapp", "repo.py")
+	for _, path := range []string{serviceModule, repoModule} {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("failed to create directory for %s: %v", path, err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(dir, "src", "myapp", "__init__.py"), []byte(""), 0o644); err != nil {
+		t.Fatalf("failed to write package init: %v", err)
+	}
+	if err := os.WriteFile(serviceModule, []byte("from myapp import repo\n"), 0o644); err != nil {
+		t.Fatalf("failed to write service module: %v", err)
+	}
+	if err := os.WriteFile(repoModule, []byte("value = 1\n"), 0o644); err != nil {
+		t.Fatalf("failed to write repo module: %v", err)
+	}
+
+	analyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{ProjectRoot: dir})
+	if err != nil {
+		t.Fatalf("failed to create analyzer: %v", err)
+	}
+
+	graph, err := analyzer.AnalyzeFiles([]string{serviceModule, repoModule})
+	if err != nil {
+		t.Fatalf("AnalyzeFiles failed: %v", err)
+	}
+
+	serviceNode := graph.GetModule("myapp.service")
+	if serviceNode == nil {
+		t.Fatalf("expected myapp.service module, got %v", graph.GetModuleNames())
+	}
+	if !serviceNode.Dependencies["myapp.repo"] {
+		t.Fatalf("expected myapp.service to depend on myapp.repo; dependencies: %v", serviceNode.Dependencies)
+	}
+	if graph.GetModule("src.myapp.service") != nil {
+		t.Fatalf("did not expect src-prefixed module name in src-layout graph")
+	}
+}
+
+func TestModuleAnalyzerKeepsSrcPackagePrefixWhenSrcIsPackage(t *testing.T) {
+	dir := t.TempDir()
+
+	srcInit := filepath.Join(dir, "src", "__init__.py")
+	module := filepath.Join(dir, "src", "module.py")
+	if err := os.MkdirAll(filepath.Dir(module), 0o755); err != nil {
+		t.Fatalf("failed to create src package: %v", err)
+	}
+	if err := os.WriteFile(srcInit, []byte(""), 0o644); err != nil {
+		t.Fatalf("failed to write src init: %v", err)
+	}
+	if err := os.WriteFile(module, []byte("value = 1\n"), 0o644); err != nil {
+		t.Fatalf("failed to write module: %v", err)
+	}
+
+	analyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{ProjectRoot: dir})
+	if err != nil {
+		t.Fatalf("failed to create analyzer: %v", err)
+	}
+
+	graph, err := analyzer.AnalyzeFiles([]string{srcInit, module})
+	if err != nil {
+		t.Fatalf("AnalyzeFiles failed: %v", err)
+	}
+	if graph.GetModule("src.module") == nil {
+		t.Fatalf("expected src.module in graph, got %v", graph.GetModuleNames())
+	}
+}
+
 func collectImportsForTest(t *testing.T, analyzer *ModuleAnalyzer, path string) []*ImportInfo {
 	t.Helper()
 
