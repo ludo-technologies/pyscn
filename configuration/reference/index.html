@@ -4631,7 +4631,7 @@
 </table>
 <hr />
 <h2 id="communities"><code>[communities]</code><a class="headerlink" href="#communities" title="Permanent link">&para;</a></h2>
-<p>Module community detection over the import dependency graph. <strong>Opt-in</strong> — disabled by default until you enable it here or pass <code>--select communities</code>.</p>
+<p>Module community detection over the import dependency graph. It runs in default <code>pyscn analyze</code>; set <code>enabled = false</code> to disable it for default analyze runs.</p>
 <table>
 <thead>
 <tr>
@@ -4645,8 +4645,8 @@
 <tr>
 <td><code>enabled</code></td>
 <td>bool</td>
-<td><code>false</code></td>
-<td>Run community detection in unified <code>pyscn analyze</code>.</td>
+<td><code>true</code> for default analyze</td>
+<td>Set to <code>false</code> to disable community detection in default <code>pyscn analyze</code>.</td>
 </tr>
 <tr>
 <td><code>algorithm</code></td>
@@ -4687,7 +4687,7 @@
 </tbody>
 </table>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">[communities]</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">min_community_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">report_bridge_modules</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </span></code></pre></div>
@@ -4817,11 +4817,11 @@
 </tr>
 <tr>
 <td><code>--select communities</code></td>
-<td><code>[communities] enabled</code> (per-run)</td>
+<td>explicit per-run selection</td>
 </tr>
 <tr>
 <td><code>--skip-communities</code></td>
-<td>overrides <code>[communities] enabled</code></td>
+<td>disables communities for the run</td>
 </tr>
 <tr>
 <td><code>--max-cycles</code></td>

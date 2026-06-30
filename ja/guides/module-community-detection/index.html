@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Discover natural architectural boundaries in a Python codebase from import dependencies. Learn when to run community detection, how to interpret modularity and bridge modules, and how to enable it in CI.">
+        <meta name="description" content="Discover natural architectural boundaries in a Python codebase from import dependencies. Learn how to interpret modularity and bridge modules, configure community detection, and use it in CI.">
       
       
         <meta name="author" content="ludo-technologies">
@@ -3553,18 +3553,18 @@
 <li>Do import communities leak dependencies across boundaries?</li>
 <li>Which files should an agent or reviewer inspect together?</li>
 </ul>
-<p>Community detection is <strong>opt-in</strong>. It does not run in a default <code>pyscn analyze</code> invocation until you enable it through <code>--select communities</code> or <code>[communities] enabled = true</code>.</p>
+<p>Community detection runs in default <code>pyscn analyze</code> invocations. Use <code>--skip-communities</code> or <code>[communities] enabled = false</code> to disable it. When <code>--select</code> is used, include <code>communities</code> in the selected list to run only that subset with community detection.</p>
 <h2 id="quick-start">Quick start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Standalone community JSON (machine-readable, stable field names)</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>communities<span class="w"> </span>src/
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Include communities in a full unified report</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>deps,communities<span class="w"> </span>src/
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>src/
 </span></code></pre></div>
 <p>Standalone <code>--json --select communities</code> writes only the <code>community_analysis</code> object to <code>.pyscn/reports/</code>. Unified <code>pyscn analyze --json</code> embeds the same object under the top-level <code>community_analysis</code> key. See <a href="../../output/schemas/#community-analysis-object">Output Schemas</a>.</p>
-<p>Enable by default in config:</p>
+<p>Disable in default analyze runs:</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">[communities]</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
 </span></code></pre></div>
 <h2 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <ol>
@@ -3646,7 +3646,7 @@
 <p>This is distinct from <code>SystemMetrics.ModularityIndex</code> in dependency analysis (an intra-package edge ratio), which measures a different cohesion signal.</p>
 <h3 id="layer-mismatch">Layer mismatch<a class="headerlink" href="#layer-mismatch" title="Permanent link">&para;</a></h3>
 <p>When <code>[architecture]</code> layers are configured (explicit <code>style</code>, <code>[[architecture.layers]]</code>, or <code>[[architecture.rules]]</code>), community detection also compares inferred clusters to configured layer boundaries. Layer mismatch is omitted when no architecture rules are configured — community analysis still succeeds.</p>
-<p>Enable both dependency graph construction and architecture config, e.g. <code>pyscn analyze --select deps,communities .</code> or <code>[communities] enabled = true</code> with <code>[architecture]</code> configured.</p>
+<p>Enable both dependency graph construction and architecture config, e.g. <code>pyscn analyze .</code> with <code>[architecture]</code> configured or <code>pyscn analyze --select deps,communities .</code> when using <code>--select</code>.</p>
 <table>
 <thead>
 <tr>
@@ -3677,7 +3677,7 @@
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <p>All keys live under <code>[communities]</code> in <code>.pyscn.toml</code> or <code>[tool.pyscn.communities]</code> in <code>pyproject.toml</code>. Full reference: <a href="../../configuration/reference/#communities">Configuration Reference</a>.</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[communities]</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="w">                  </span><span class="c1"># opt-in; CLI --select communities also enables per run</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="w">                  </span><span class="c1"># disables default analyze community detection</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">algorithm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;leiden&quot;</span><span class="w">             </span><span class="c1"># currently the only supported value</span>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">scope</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;module&quot;</span><span class="w">                 </span><span class="c1"># module-level graph (function/class scope is future work)</span>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">min_community_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="w">           </span><span class="c1"># communities smaller than this remain as singleton partitions</span>
@@ -3699,7 +3699,7 @@
 <td><code>pyscn analyze --select communities .</code></td>
 </tr>
 <tr>
-<td>Skip even if config enables</td>
+<td>Skip communities for one run</td>
 <td><code>pyscn analyze --skip-communities .</code></td>
 </tr>
 <tr>
@@ -3708,7 +3708,7 @@
 </tr>
 </tbody>
 </table>
-<p><code>--select</code> takes precedence: <code>[communities] enabled = true</code> does not run communities unless <code>communities</code> appears in <code>--select</code> when <code>--select</code> is used.</p>
+<p><code>--select</code> takes precedence: communities run only when <code>communities</code> appears in <code>--select</code> when <code>--select</code> is used.</p>
 <h2 id="determinism">Determinism<a class="headerlink" href="#determinism" title="Permanent link">&para;</a></h2>
 <p>For a fixed repository snapshot and configuration, pyscn guarantees <strong>deterministic</strong> community detection:</p>
 <ul>
@@ -3781,7 +3781,7 @@
 </span></code></pre></div>
 <p>Read this as: two natural clusters exist, and <code>bridge</code> is the coupling point between them. The <code>mod</code> package is split across both communities (<code>package_alignment_score: 0</code>), so import topology disagrees with the declared package boundary. Extracting shared logic from <code>bridge</code> or regrouping <code>mod</code> modules may improve alignment.</p>
 <h2 id="follow-up-work-phase-2-and-3">Follow-up work (Phase 2 and 3)<a class="headerlink" href="#follow-up-work-phase-2-and-3" title="Permanent link">&para;</a></h2>
-<p>Module-level community detection is Phase 1 of <a href="https://github.com/ludo-technologies/pyscn/issues/564">GitHub issue #564</a>. Phase 2 mismatch scoring is available via package fields (<code>package_alignment_score</code>, <code>split_packages</code>, <code>mixed_communities</code>) and layer fields (<code>layer_alignment_score</code>, <code>cross_layer_communities</code>, <code>layer_bridge_modules</code>) when architecture layers are configured. DOT export with community-colored subgraphs and the <a href="#macro-architecture-visualization">HTML macro-architecture visualization</a> are also available. Remaining planned extensions include:
+<p>Module-level community detection is part of <a href="https://github.com/ludo-technologies/pyscn/issues/564">GitHub issue #564</a>. Phase 2 mismatch scoring is available via package fields (<code>package_alignment_score</code>, <code>split_packages</code>, <code>mixed_communities</code>) and layer fields (<code>layer_alignment_score</code>, <code>cross_layer_communities</code>, <code>layer_bridge_modules</code>) when architecture layers are configured. DOT export with community-colored subgraphs and the <a href="#macro-architecture-visualization">HTML macro-architecture visualization</a> are also available. Remaining planned extensions include:
 - AI-agent context maps
 - Richer edge weights from call/type/reference data
 - Function- and class-level clustering</p>
