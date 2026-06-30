@@ -375,9 +375,23 @@ func TestCommunityAnalysisService_Analyze_UsesSourcePathsForProjectRoot(t *testi
 	service := NewCommunityAnalysisService()
 	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
 		Paths:       []string{fileA, fileB},
-		SourcePaths: []string{srcDir},
+		SourcePaths: []string{root},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Greater(t, result.TotalCommunities, 0)
+	assert.Contains(t, communityModuleNames(result), "myapp.service")
+	assert.Contains(t, communityModuleNames(result), "myapp.repo")
+	assert.Contains(t, result.ModuleDependencies, domain.CommunityModuleDependency{From: "myapp.service", To: "myapp.repo"})
+}
+
+func communityModuleNames(result *domain.CommunityAnalysisResult) []string {
+	if result == nil {
+		return nil
+	}
+	names := make([]string, 0)
+	for _, community := range result.Communities {
+		names = append(names, community.Modules...)
+	}
+	return names
 }

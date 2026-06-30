@@ -16,6 +16,7 @@ import (
 // ModuleAnalyzer analyzes module-level dependencies and builds dependency graphs
 type ModuleAnalyzer struct {
 	projectRoot     string
+	moduleRoots     []string
 	pythonPath      []string
 	excludePatterns []string
 	includePatterns []string
@@ -82,13 +83,14 @@ func NewModuleAnalyzer(options *ModuleAnalysisOptions) (*ModuleAnalyzer, error) 
 
 	analyzer := &ModuleAnalyzer{
 		projectRoot:       absRoot,
-		pythonPath:        append([]string{absRoot}, options.PythonPath...),
+		moduleRoots:       moduleRoots(absRoot, options.PythonPath),
 		resolvedModules:   make(map[string]string),
-		reExportResolver:  NewReExportResolver(absRoot),
 		includeStdLib:     domain.BoolValue(options.IncludeStdLib, domain.BoolValue(defaults.IncludeStdLib, false)),
 		includeThirdParty: domain.BoolValue(options.IncludeThirdParty, domain.BoolValue(defaults.IncludeThirdParty, true)),
 		followRelative:    domain.BoolValue(options.FollowRelative, domain.BoolValue(defaults.FollowRelative, true)),
 	}
+	analyzer.pythonPath = append([]string(nil), analyzer.moduleRoots...)
+	analyzer.reExportResolver = NewReExportResolverWithRoots(absRoot, analyzer.moduleRoots)
 
 	if options.ExcludePatterns != nil {
 		analyzer.excludePatterns = append(analyzer.excludePatterns, options.ExcludePatterns...)
@@ -103,6 +105,56 @@ func NewModuleAnalyzer(options *ModuleAnalysisOptions) (*ModuleAnalyzer, error) 
 	}
 
 	return analyzer, nil
+}
+
+func moduleRoots(projectRoot string, pythonPath []string) []string {
+	roots := make([]string, 0, 2+len(pythonPath))
+	addRoot := func(path string) {
+		if path == "" {
+			return
+		}
+		abs, err := filepath.Abs(path)
+		if err != nil {
+			return
+		}
+		for _, existing := range roots {
+			if existing == abs {
+				return
+			}
+		}
+		roots = append(roots, abs)
+	}
+
+	if isSrcLayoutRoot(projectRoot) {
+		addRoot(filepath.Join(projectRoot, "src"))
+	}
+	addRoot(projectRoot)
+	for _, path := range pythonPath {
+		addRoot(path)
+	}
+
+	sort.SliceStable(roots, func(i, j int) bool {
+		return len(roots[i]) > len(roots[j])
+	})
+	return roots
+}
+
+func isDirectory(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
+}
+
+func isSrcLayoutRoot(projectRoot string) bool {
+	srcRoot := filepath.Join(projectRoot, "src")
+	if !isDirectory(srcRoot) {
+		return false
+	}
+	for _, name := range pythonPackageInitFiles {
+		if _, err := os.Stat(filepath.Join(srcRoot, name)); err == nil {
+			return false
+		}
+	}
+	return true
 }
 
 // AnalyzeProject analyzes all Python modules in the project and builds a dependency graph
@@ -542,11 +594,10 @@ func (ma *ModuleAnalyzer) resolveAbsoluteImportWithProject(imp *ImportInfo, from
 	currentDir := filepath.Dir(fromFile)
 
 	// Try to find the module in the same directory or project root
-	searchPaths := []string{
+	searchPaths := append([]string{
 		currentDir,               // Current directory
-		ma.projectRoot,           // Project root
 		filepath.Dir(currentDir), // Parent directory
-	}
+	}, ma.pythonPath...)
 
 	for _, searchPath := range searchPaths {
 		// Try to build module path from the import name
@@ -686,7 +737,8 @@ func (ma *ModuleAnalyzer) canonicalModuleFiles(filePaths []string) []string {
 // filePathToModuleName converts a file path to a Python module name
 func (ma *ModuleAnalyzer) filePathToModuleName(filePath string) string {
 	// Make path relative to project root
-	relPath, err := filepath.Rel(ma.projectRoot, filePath)
+	root := ma.moduleRootForFile(filePath)
+	relPath, err := filepath.Rel(root, filePath)
 	if err != nil {
 		return ""
 	}
@@ -712,11 +764,33 @@ func (ma *ModuleAnalyzer) filePathToModuleName(filePath string) string {
 
 // pathToModuleName converts a directory path to a module name
 func (ma *ModuleAnalyzer) pathToModuleName(path string) string {
-	relPath, err := filepath.Rel(ma.projectRoot, path)
+	root := ma.moduleRootForFile(path)
+	relPath, err := filepath.Rel(root, path)
 	if err != nil {
 		return ""
 	}
 	return strings.ReplaceAll(relPath, string(filepath.Separator), ".")
+}
+
+func (ma *ModuleAnalyzer) moduleRootForFile(path string) string {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return ma.projectRoot
+	}
+	for _, root := range ma.moduleRoots {
+		if pathWithinRoot(absPath, root) {
+			return root
+		}
+	}
+	return ma.projectRoot
+}
+
+func pathWithinRoot(path, root string) bool {
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return false
+	}
+	return rel == "." || (rel != "" && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && rel != "..")
 }
 
 func (ma *ModuleAnalyzer) isAbstractClass(classNode *parser.Node) bool {
