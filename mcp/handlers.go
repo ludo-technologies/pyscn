@@ -55,19 +55,12 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 	}
 
 	// Create config for analyze use case
-	config := app.AnalyzeUseCaseConfig{
-		SkipComplexity:  !contains(analyses, "complexity") && len(analyses) > 0,
-		SkipDeadCode:    !contains(analyses, "dead_code") && len(analyses) > 0,
-		SkipClones:      !contains(analyses, "clone") && len(analyses) > 0,
-		SkipCBO:         !contains(analyses, "cbo") && len(analyses) > 0,
-		SkipLCOM:        !contains(analyses, "lcom") && len(analyses) > 0,
-		SkipSystem:      !contains(analyses, "deps") && len(analyses) > 0,
-		SkipCommunities: shouldSkipCommunitiesAnalysis(analyses),
+	config := app.ApplyAnalyzeSelection(app.AnalyzeUseCaseConfig{
 		MinComplexity:   1,
 		MinSeverity:     domain.DeadCodeSeverityWarning,
 		CloneSimilarity: 0.8,
 		ConfigFile:      h.deps.ConfigPath(),
-	}
+	}, analyses)
 	if cfg := h.deps.Config(); cfg != nil {
 		if cfg.Output.MinComplexity > 0 {
 			config.MinComplexity = cfg.Output.MinComplexity
@@ -798,21 +791,6 @@ func (h *HandlerSet) HandleGetHealthScore(ctx context.Context, request mcp.CallT
 }
 
 // Helper functions
-
-func shouldSkipCommunitiesAnalysis(analyses []string) bool {
-	// Communities remain opt-in: omitted analyses lists and explicit subsets
-	// without "communities" must not run community detection.
-	return len(analyses) == 0 || !contains(analyses, "communities")
-}
-
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
-}
 
 // formatComplexitySummary formats complexity results in compact summary mode
 func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, maxResults int) map[string]interface{} {

@@ -237,8 +237,8 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 		useCaseCfg.SkipSystem = true
 	}
 
-	if !useCaseCfg.SelectAnalysesUsed && executionCfg.CommunitiesEnabled {
-		useCaseCfg.SkipCommunities = false
+	if !useCaseCfg.SelectAnalysesUsed && executionCfg.CommunitiesEnabledExplicit {
+		useCaseCfg.SkipCommunities = !executionCfg.CommunitiesEnabled
 	}
 	if useCaseCfg.SkipCommunitiesExplicit {
 		useCaseCfg.SkipCommunities = true
@@ -481,7 +481,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 		})
 	}
 
-	// Community detection task (opt-in via SkipCommunities until CLI/config #583)
+	// Community detection task.
 	if uc.communityUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
 			Name:    taskNameCommunities,

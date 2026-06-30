@@ -39,7 +39,8 @@ type AnalyzeExecutionConfig struct {
 	SystemAnalyzeDependencies bool
 	SystemAnalyzeArchitecture bool
 
-	CommunitiesEnabled bool
+	CommunitiesEnabled         bool
+	CommunitiesEnabledExplicit bool
 }
 
 // AnalyzeConfigurationLoader resolves and loads configuration for AnalyzeUseCase.
@@ -86,7 +87,7 @@ const (
 	MaxArchPenalty     = 12 // Increased from 8 for stricter scoring
 	MaxMSDPenalty      = 3  // Increased from 2 for stricter scoring
 
-	// Community detection scoring (opt-in; only applied when communities ran
+	// Community detection scoring only applies when communities ran
 	// with at least two detected communities). The risk score is a weighted
 	// blend of the factors below; the health-score penalty is bounded at
 	// MaxCommunityPenalty so disabling communities cannot move existing grades.

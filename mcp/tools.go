@@ -15,12 +15,12 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 			mcp.Description("Path to Python code (file or directory) to analyze")),
 		mcp.WithArray("analyses",
 			mcp.WithStringEnumItems([]string{"complexity", "dead_code", "clone", "cbo", "lcom", "deps", "communities"}),
-			mcp.Description("Array of analyses to run. Options: complexity, dead_code, clone, cbo, lcom, deps, communities. Default: all analyses except communities (opt-in)")),
+			mcp.Description("Array of analyses to run. Options: complexity, dead_code, clone, cbo, lcom, deps, communities. Default: all analyses, including communities")),
 		mcp.WithBoolean("recursive",
 			mcp.Description("Recursively analyze directories (default: true)")),
 		mcp.WithString("output_mode",
 			mcp.Enum("summary", "full"),
-			mcp.Description("Response detail level. \"summary\" (default) returns health score and high-level metrics. \"full\" returns the complete report including, when analyses=[\"communities\"], the community_analysis result and its compact community_context_map (which modules to inspect together, which modules bridge clusters) for AI agents")),
+			mcp.Description("Response detail level. \"summary\" (default) returns health score and high-level metrics. \"full\" returns the complete report including community_analysis and its compact community_context_map when community detection runs")),
 	), handlers.HandleAnalyzeCode)
 
 	// Tool 2: check_complexity - Cyclomatic complexity analysis

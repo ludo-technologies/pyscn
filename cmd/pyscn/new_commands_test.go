@@ -353,6 +353,25 @@ func TestAnalyzeCommandSelectCommunitiesEnablesAnalysis(t *testing.T) {
 	}
 }
 
+func TestAnalyzeCommandDefaultEnablesCommunities(t *testing.T) {
+	analyzeCmd := NewAnalyzeCommand()
+
+	config := analyzeCmd.createUseCaseConfig()
+	if config.SkipCommunities {
+		t.Fatal("expected default analyze to enable community analysis")
+	}
+}
+
+func TestAnalyzeCommandSelectWithoutCommunitiesSkipsAnalysis(t *testing.T) {
+	analyzeCmd := NewAnalyzeCommand()
+	analyzeCmd.selectAnalyses = []string{"complexity", "deps"}
+
+	config := analyzeCmd.createUseCaseConfig()
+	if !config.SkipCommunities {
+		t.Fatal("expected --select without communities to disable community analysis")
+	}
+}
+
 func TestAnalyzeCommandSelectDepsCommunities(t *testing.T) {
 	analyzeCmd := NewAnalyzeCommand()
 	analyzeCmd.selectAnalyses = []string{"deps", "communities"}

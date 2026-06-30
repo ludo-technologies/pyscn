@@ -22,6 +22,7 @@ reference, configuration), see:
 | [`COMMIT_CONVENTION.md`](COMMIT_CONVENTION.md) | Commit message format. |
 | [`BRANCHING.md`](BRANCHING.md)                 | Branching and release flow. |
 | [`ANALYZE_SCORING.md`](ANALYZE_SCORING.md)     | Health Score design rationale. See also the user-facing spec page. |
+| [`COMMUNITY_DETECTION_GRADUATION.md`](COMMUNITY_DETECTION_GRADUATION.md) | Default-on graduation criteria and benchmarks for module community detection. |
 | [`MCP_INTEGRATION.md`](MCP_INTEGRATION.md)     | MCP server design. |
 | [`algorithms/`](algorithms/)                   | Per-analyzer algorithm descriptions (CFG, APTED, LSH, Main Sequence, etc.). |
 | [`algorithms/architecture-presets.md`](algorithms/architecture-presets.md) | Architecture style presets (layered/hexagonal/clean/mvc) and `allow`/`deny`/`warn` rule semantics. |

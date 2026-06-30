@@ -42,7 +42,10 @@ func TestAnalyzeConfigurationLoader_LoadAnalyzeExecutionConfig(t *testing.T) {
 			t.Error("expected architecture analysis enabled by default")
 		}
 		if cfg.CommunitiesEnabled {
-			t.Error("expected communities disabled by default")
+			t.Error("expected communities config default to be false")
+		}
+		if cfg.CommunitiesEnabledExplicit {
+			t.Error("expected communities config default to be implicit")
 		}
 		defaultCloneReq := domain.DefaultCloneRequest()
 		if cfg.CloneLSHEnabled != defaultCloneReq.LSHEnabled {
@@ -166,6 +169,31 @@ enabled = true
 		}
 		if !cfg.CommunitiesEnabled {
 			t.Error("expected communities enabled from config")
+		}
+		if !cfg.CommunitiesEnabledExplicit {
+			t.Error("expected communities enabled setting to be explicit")
+		}
+	})
+
+	t.Run("loads communities disabled setting from config", func(t *testing.T) {
+		projectDir := t.TempDir()
+		configPath := filepath.Join(projectDir, ".pyscn.toml")
+		configContent := `[communities]
+enabled = false
+`
+		if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config file: %v", err)
+		}
+
+		cfg, err := loader.LoadAnalyzeExecutionConfig("", projectDir)
+		if err != nil {
+			t.Fatalf("LoadAnalyzeExecutionConfig returned error: %v", err)
+		}
+		if cfg.CommunitiesEnabled {
+			t.Error("expected communities disabled from config")
+		}
+		if !cfg.CommunitiesEnabledExplicit {
+			t.Error("expected communities disabled setting to be explicit")
 		}
 	})
 

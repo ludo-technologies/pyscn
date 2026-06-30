@@ -80,6 +80,7 @@ func defaultAnalyzeExecutionConfig() domain.AnalyzeExecutionConfig {
 		SystemAnalyzeDependencies:    true,
 		SystemAnalyzeArchitecture:    true,
 		CommunitiesEnabled:           false,
+		CommunitiesEnabledExplicit:   false,
 	}
 }
 
@@ -125,6 +126,7 @@ func analyzeExecutionConfigFromConfig(cfg *config.Config, overrides analyzeEnabl
 func applyCommunitiesEnabledOverrides(executionCfg *domain.AnalyzeExecutionConfig, overrides analyzeEnabledOverrides, cfg *config.Config) {
 	if overrides.CommunitiesEnabled != nil {
 		executionCfg.CommunitiesEnabled = *overrides.CommunitiesEnabled
+		executionCfg.CommunitiesEnabledExplicit = true
 		return
 	}
 	if cfg != nil {
