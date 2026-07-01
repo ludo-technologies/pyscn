@@ -1194,7 +1194,7 @@ func (cd *CloneDetector) groupClonesWithStrategy(strategy GroupingStrategy) {
 	}
 	memberResult := dedupeStrictSubsetGroupMembers(strategy.GroupClones(cd.clonePairs), cd.clonePairs)
 	groupResult := dedupeCoveredGroups(memberResult.groups)
-	cd.cloneGroups = groupResult.groups
+	cd.cloneGroups = filterCloneGroupsWithoutBackingPairs(groupResult.groups, cd.clonePairs)
 	for fragment := range memberResult.suppressed {
 		groupResult.suppressed[fragment] = struct{}{}
 	}
