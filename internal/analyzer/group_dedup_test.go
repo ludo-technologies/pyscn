@@ -216,6 +216,27 @@ func TestDedupe_RecomputesMetadataAfterSuppression(t *testing.T) {
 	}
 }
 
+func TestFilterCloneGroupsWithoutBackingPairs_DropsUnbackedGroup(t *testing.T) {
+	a := gf("x.py", 1, 10)
+	b := gf("x.py", 20, 30)
+	c := gf("y.py", 1, 10)
+	unbacked := makeGroup(1, a, b)
+	backed := makeGroup(2, a, c)
+	pairs := []*ClonePair{gpType(a, c, 0.92, Type4Clone)}
+
+	out := filterCloneGroupsWithoutBackingPairs([]*CloneGroup{unbacked, backed}, pairs)
+
+	if len(out) != 1 {
+		t.Fatalf("expected only the backed group to remain, got %d groups", len(out))
+	}
+	if out[0] != backed {
+		t.Fatalf("expected backed group to remain")
+	}
+	if !almostEqual(out[0].Similarity, 0.92) {
+		t.Fatalf("expected refreshed similarity 0.92, got %.3f", out[0].Similarity)
+	}
+}
+
 // TestGroupClonesWithStrategy_FiltersSuppressedClonePairs verifies pair output
 // cannot keep reporting a strict-subset member hidden from clone groups.
 func TestGroupClonesWithStrategy_FiltersSuppressedClonePairs(t *testing.T) {

@@ -293,6 +293,25 @@ func refreshGroupMetadata(group *CloneGroup, similarities map[string]float64, cl
 	group.CloneType = majorityCloneType(cloneTypes, similarities, group.Fragments)
 }
 
+func filterCloneGroupsWithoutBackingPairs(groups []*CloneGroup, pairs []*ClonePair) []*CloneGroup {
+	if len(groups) == 0 {
+		return groups
+	}
+	similarities, cloneTypes := clonePairMetadata(pairs)
+	out := make([]*CloneGroup, 0, len(groups))
+	for _, group := range groups {
+		if group == nil || len(group.Fragments) < 2 {
+			continue
+		}
+		refreshGroupMetadata(group, similarities, cloneTypes)
+		if group.Similarity <= 0 {
+			continue
+		}
+		out = append(out, group)
+	}
+	return out
+}
+
 func filterClonePairsWithSuppressedMembers(pairs []*ClonePair, suppressed map[*CodeFragment]struct{}) []*ClonePair {
 	if len(pairs) == 0 || len(suppressed) == 0 {
 		return pairs
