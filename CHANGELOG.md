@@ -2,8 +2,29 @@
 
 ## [Unreleased]
 
+## [1.25.0] - 2026-07-02
+
+### Added
+- Build a community graph from the dependency graph (#579)
+- Deterministic Leiden community detection (#580)
+- Domain types, service, and use-case wiring for community analysis (#582)
+- CLI `--select communities` and `[communities]` config, opt-in (#583)
+- Community analysis JSON formatter (#584)
+- Text/HTML/YAML/CSV/DOT community summary output (#585)
+- Package mismatch scoring (#600)
+- Layer mismatch scoring (#601)
+- Community risk score with Health Score integration (#602)
+- Interactive macro-architecture graph in the HTML report (#603)
+- AI-agent context map and MCP documentation (#604)
+
 ### Changed
-- Run module community detection in default `pyscn analyze`; use `--skip-communities` or `[communities] enabled = false` to opt out (#605).
+- Run module community detection in default `pyscn analyze`; opt out with `--skip-communities` or `[communities] enabled = false` (#605)
+- Bump Go dependencies (#614)
+
+### Fixed
+- Drop clone groups without backing pairs (#615)
+- Resolve src-layout community graph imports (#613)
+- Collapse enum member CBO dependencies (#594)
 
 ## [1.24.3] - 2026-06-21
 
