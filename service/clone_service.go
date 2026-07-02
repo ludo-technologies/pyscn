@@ -159,12 +159,12 @@ func (s *CloneService) buildCloneResponse(
 	detector.SetUseLSH(useLSH)
 
 	// Detect clones (detector will automatically use LSH or standard algorithm based on UseLSH setting)
-	clonePairs, cloneGroups := detector.DetectClonesWithLSH(ctx, allFragments)
+	detectionResult := detector.DetectClonesWithLSH(ctx, allFragments)
 
 	// Convert to domain objects
 	domainClones, fragmentIDs := s.convertFragmentsToDomainClones(allFragments)
-	domainClonePairs := s.convertClonePairsToDomain(clonePairs, req.ShowContent)
-	domainCloneGroups := s.convertCloneGroupsToDomain(cloneGroups, req.ShowContent, fragmentIDs)
+	domainClonePairs := s.convertClonePairsToDomain(detectionResult.Pairs, req.ShowContent)
+	domainCloneGroups := s.convertCloneGroupsToDomain(detectionResult.Groups, req.ShowContent, fragmentIDs)
 
 	// Filter results based on request criteria
 	domainClonePairs = s.filterClonePairs(domainClonePairs, req)
@@ -173,9 +173,11 @@ func (s *CloneService) buildCloneResponse(
 	// Sort results
 	s.sortResults(domainClones, domainClonePairs, domainCloneGroups, req)
 
-	// Create statistics
-	totalFragments := len(allFragments)
-	statistics := s.createStatistics(domainClonePairs, domainCloneGroups, totalFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
+	// Build statistics from the filtered results so that counts always match the
+	// returned clone pairs and groups. The detector's result already separates
+	// raw candidates from detected items; we derive final numbers only from the
+	// detected items exposed in the response.
+	statistics := s.buildCloneStatistics(detectionResult, domainClonePairs, domainCloneGroups, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
 
 	duration := time.Since(startTime).Milliseconds()
 	// s.progress.Complete(fmt.Sprintf("Clone detection completed in %dms. Found %d clone pairs in %d groups.",
@@ -506,10 +508,17 @@ func (s *CloneService) sortResults(clones []*domain.Clone, pairs []*domain.Clone
 	// For now, we'll keep the default ordering from the detector
 }
 
-// createStatistics creates clone detection statistics
-func (s *CloneService) createStatistics(pairs []*domain.ClonePair, groups []*domain.CloneGroup, totalFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed int) *domain.CloneStatistics {
+// buildCloneStatistics converts analyzer-level detection statistics into the
+// domain statistics attached to the response. All counts are derived from the
+// filtered results so that reported numbers always match what is returned.
+func (s *CloneService) buildCloneStatistics(
+	result *analyzer.CloneDetectionResult,
+	pairs []*domain.ClonePair,
+	groups []*domain.CloneGroup,
+	filesAnalyzed, linesAnalyzed, nodesAnalyzed int,
+) *domain.CloneStatistics {
 	stats := domain.NewCloneStatistics()
-	stats.TotalFragments = totalFragments
+	stats.TotalFragments = result.Statistics.TotalFragments
 	stats.TotalClones = countUniqueCloneFragments(pairs, groups)
 	stats.TotalClonePairs = len(pairs)
 	stats.TotalCloneGroups = len(groups)
@@ -535,7 +544,9 @@ func (s *CloneService) createStatistics(pairs []*domain.ClonePair, groups []*dom
 	return stats
 }
 
-// countUniqueCloneFragments counts distinct fragments that participate in at least one clone pair or group.
+// countUniqueCloneFragments counts distinct domain clones that participate in
+// at least one clone pair or group. Counting detected items separately from the
+// raw fragment collection prevents accidentally reporting the candidate count.
 func countUniqueCloneFragments(pairs []*domain.ClonePair, groups []*domain.CloneGroup) int {
 	type locKey struct {
 		file      string

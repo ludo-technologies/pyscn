@@ -332,7 +332,7 @@ func TestAnalyzeCommandValidation(t *testing.T) {
 
 func TestAnalyzeCommandSelectValidation(t *testing.T) {
 	analyzeCmd := NewAnalyzeCommand()
-	analyzeCmd.selectAnalyses = []string{"complexity", "deps"}
+	analyzeCmd.selectAnalyses = []string{"complexity", "deps", "communities"}
 	if err := analyzeCmd.validateSelectedAnalyses(); err != nil {
 		t.Fatalf("expected valid selected analyses, got %v", err)
 	}
@@ -340,6 +340,93 @@ func TestAnalyzeCommandSelectValidation(t *testing.T) {
 	analyzeCmd.selectAnalyses = []string{"complexity", "nope"}
 	if err := analyzeCmd.validateSelectedAnalyses(); err == nil {
 		t.Fatal("expected invalid selected analysis to fail")
+	}
+}
+
+func TestAnalyzeCommandSelectCommunitiesEnablesAnalysis(t *testing.T) {
+	analyzeCmd := NewAnalyzeCommand()
+	analyzeCmd.selectAnalyses = []string{"communities"}
+
+	config := analyzeCmd.createUseCaseConfig()
+	if config.SkipCommunities {
+		t.Fatal("expected --select communities to enable community analysis")
+	}
+}
+
+func TestAnalyzeCommandDefaultEnablesCommunities(t *testing.T) {
+	analyzeCmd := NewAnalyzeCommand()
+
+	config := analyzeCmd.createUseCaseConfig()
+	if config.SkipCommunities {
+		t.Fatal("expected default analyze to enable community analysis")
+	}
+}
+
+func TestAnalyzeCommandSelectWithoutCommunitiesSkipsAnalysis(t *testing.T) {
+	analyzeCmd := NewAnalyzeCommand()
+	analyzeCmd.selectAnalyses = []string{"complexity", "deps"}
+
+	config := analyzeCmd.createUseCaseConfig()
+	if !config.SkipCommunities {
+		t.Fatal("expected --select without communities to disable community analysis")
+	}
+}
+
+func TestAnalyzeCommandSelectDepsCommunities(t *testing.T) {
+	analyzeCmd := NewAnalyzeCommand()
+	analyzeCmd.selectAnalyses = []string{"deps", "communities"}
+
+	config := analyzeCmd.createUseCaseConfig()
+	if config.SkipSystem {
+		t.Fatal("expected --select deps to enable system analysis")
+	}
+	if config.SkipCommunities {
+		t.Fatal("expected --select communities to enable community analysis")
+	}
+}
+
+func TestAnalyzeCommandShouldWriteStandaloneCommunityJSON(t *testing.T) {
+	analyzeCmd := NewAnalyzeCommand()
+	analyzeCmd.json = true
+	analyzeCmd.selectAnalyses = []string{"communities"}
+
+	response := &domain.AnalyzeResponse{
+		Communities: &domain.CommunityAnalysisResult{TotalCommunities: 2},
+	}
+	if !analyzeCmd.shouldWriteStandaloneCommunityJSON(response) {
+		t.Fatal("expected standalone community JSON for --json --select communities")
+	}
+
+	analyzeCmd.selectAnalyses = []string{"deps", "communities"}
+	if analyzeCmd.shouldWriteStandaloneCommunityJSON(response) {
+		t.Fatal("expected unified analyze JSON when multiple analyses are selected")
+	}
+
+	analyzeCmd.selectAnalyses = []string{"communities"}
+	analyzeCmd.json = false
+	if analyzeCmd.shouldWriteStandaloneCommunityJSON(response) {
+		t.Fatal("expected unified analyze output for non-JSON formats")
+	}
+
+	if analyzeCmd.shouldWriteStandaloneCommunityJSON(nil) {
+		t.Fatal("expected false when response is nil")
+	}
+	if analyzeCmd.shouldWriteStandaloneCommunityJSON(&domain.AnalyzeResponse{}) {
+		t.Fatal("expected false when community analysis is nil")
+	}
+}
+
+func TestAnalyzeCommandSkipCommunitiesOverridesSelect(t *testing.T) {
+	analyzeCmd := NewAnalyzeCommand()
+	analyzeCmd.selectAnalyses = []string{"communities"}
+	analyzeCmd.skipCommunities = true
+
+	config := analyzeCmd.createUseCaseConfig()
+	if !config.SkipCommunities {
+		t.Fatal("expected --skip-communities to disable community analysis")
+	}
+	if !config.SkipCommunitiesExplicit {
+		t.Fatal("expected skip-communities explicit flag to be set")
 	}
 }
 

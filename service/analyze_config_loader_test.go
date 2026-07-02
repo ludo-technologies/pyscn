@@ -41,6 +41,12 @@ func TestAnalyzeConfigurationLoader_LoadAnalyzeExecutionConfig(t *testing.T) {
 		if !cfg.SystemAnalyzeArchitecture {
 			t.Error("expected architecture analysis enabled by default")
 		}
+		if cfg.CommunitiesEnabled {
+			t.Error("expected communities config default to be false")
+		}
+		if cfg.CommunitiesEnabledExplicit {
+			t.Error("expected communities config default to be implicit")
+		}
 		defaultCloneReq := domain.DefaultCloneRequest()
 		if cfg.CloneLSHEnabled != defaultCloneReq.LSHEnabled {
 			t.Errorf("expected default LSH enabled %q, got %q", defaultCloneReq.LSHEnabled, cfg.CloneLSHEnabled)
@@ -144,6 +150,50 @@ lsh_auto_threshold = 123
 		}
 		if cfg.CloneLSHAutoThreshold != 123 {
 			t.Errorf("expected LSH threshold 123, got %d", cfg.CloneLSHAutoThreshold)
+		}
+	})
+
+	t.Run("loads communities enabled setting from config", func(t *testing.T) {
+		projectDir := t.TempDir()
+		configPath := filepath.Join(projectDir, ".pyscn.toml")
+		configContent := `[communities]
+enabled = true
+`
+		if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config file: %v", err)
+		}
+
+		cfg, err := loader.LoadAnalyzeExecutionConfig("", projectDir)
+		if err != nil {
+			t.Fatalf("LoadAnalyzeExecutionConfig returned error: %v", err)
+		}
+		if !cfg.CommunitiesEnabled {
+			t.Error("expected communities enabled from config")
+		}
+		if !cfg.CommunitiesEnabledExplicit {
+			t.Error("expected communities enabled setting to be explicit")
+		}
+	})
+
+	t.Run("loads communities disabled setting from config", func(t *testing.T) {
+		projectDir := t.TempDir()
+		configPath := filepath.Join(projectDir, ".pyscn.toml")
+		configContent := `[communities]
+enabled = false
+`
+		if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to write config file: %v", err)
+		}
+
+		cfg, err := loader.LoadAnalyzeExecutionConfig("", projectDir)
+		if err != nil {
+			t.Fatalf("LoadAnalyzeExecutionConfig returned error: %v", err)
+		}
+		if cfg.CommunitiesEnabled {
+			t.Error("expected communities disabled from config")
+		}
+		if !cfg.CommunitiesEnabledExplicit {
+			t.Error("expected communities disabled setting to be explicit")
 		}
 	})
 

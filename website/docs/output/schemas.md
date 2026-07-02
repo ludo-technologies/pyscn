@@ -25,8 +25,9 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
   "clone":         { /* CloneResponse, present when enabled */ },
   "cbo":           { /* CBOResponse, present when enabled */ },
   "lcom":          { /* LCOMResponse, present when enabled */ },
-  "system":        { /* SystemAnalysisResponse, present when deps/arch enabled */ },
-  "mock_data":     { /* MockDataResponse, present when enabled */ },
+  "system":             { /* SystemAnalysisResponse, present when deps/arch enabled */ },
+  "community_analysis": { /* CommunityAnalysisResult, present when communities enabled */ },
+  "mock_data":          { /* MockDataResponse, present when enabled */ },
   "suggestions":   [ /* Suggestion array, omitted when empty */ ],
   "summary":       { /* AnalyzeSummary, always present */ },
   "generated_at":  "2026-04-14T10:18:23Z",
@@ -42,8 +43,9 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
 | `clone`       | object \| absent  | Present when clone detection ran.                      | stable    |
 | `cbo`         | object \| absent  | Present when CBO analysis ran.                         | stable    |
 | `lcom`        | object \| absent  | Present when LCOM analysis ran.                        | stable    |
-| `system`      | object \| absent  | Present when dependency or architecture analysis ran.  | stable    |
-| `mock_data`   | object \| absent  | Present when mock data detection ran.                  | stable    |
+| `system`             | object \| absent | Present when dependency or architecture analysis ran. | stable |
+| `community_analysis` | object \| absent | Present when module community detection ran.          | stable |
+| `mock_data`          | object \| absent | Present when mock data detection ran.                 | stable |
 | `suggestions` | array \| absent   | Derived suggestions. Omitted when empty.               | stable    |
 | `summary`     | object            | Always present. See [`summary`](#summary-object).      | stable    |
 | `generated_at`| string (RFC 3339) | Analysis completion time.                              | stable    |
@@ -72,8 +74,9 @@ Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the co
 | `cbo_enabled`        | boolean | `true` if CBO analysis produced results.                   |
 | `lcom_enabled`       | boolean | `true` if LCOM analysis produced results.                  |
 | `deps_enabled`       | boolean | `true` if dependency analysis produced results.            |
-| `arch_enabled`       | boolean | `true` if architecture validation produced results.        |
-| `mock_data_enabled`  | boolean | `true` if mock data detection produced results.            |
+| `arch_enabled`        | boolean | `true` if architecture validation produced results.    |
+| `communities_enabled` | boolean | `true` if module community detection produced results. |
+| `mock_data_enabled`   | boolean | `true` if mock data detection produced results.      |
 
 ### Complexity metrics
 
@@ -712,6 +715,98 @@ Average CBO,<float with 2 decimals>
 
 pyscn does not currently expose per-analyzer CSV schemas through the CLI — `--csv` produces only the summary above. For per-finding detail, use `--json` or `--yaml`.
 
+## `community_analysis` object { #community-analysis-object }
+
+Mirrors `domain.CommunityAnalysisResult`. Emitted as a top-level field in unified `pyscn analyze` JSON/YAML when community detection runs. When `pyscn analyze --json --select communities` is used, the report file contains only this object (standalone JSON).
+
+| Field               | Type    | Description                                                       |
+| ------------------- | ------- | ----------------------------------------------------------------- |
+| `algorithm`         | string  | Community detection algorithm (currently `leiden`).               |
+| `scope`             | string  | Graph scope (currently `module`).                                 |
+| `total_communities` | integer | Number of detected communities.                                   |
+| `modularity`        | number  | Partition modularity score.                                         |
+| `communities`       | array   | Per-community metrics. See [`community`](#community-object).      |
+| `bridge_modules`    | array   | Cross-community coupling modules. See [`bridge_module`](#bridge-module-object). |
+| `package_alignment_score` | number \| absent | Share of packages whose modules all reside in one community (0–1). Omitted when package metadata is unavailable. |
+| `split_packages`    | array \| absent | Packages whose modules appear in two or more communities (sorted). |
+| `mixed_communities` | array \| absent | Community ids containing modules from two or more packages (sorted). |
+| `layer_alignment_score` | number \| absent | Share of configured layers whose modules all reside in one community (0–1). Omitted when architecture layers are not configured. |
+| `cross_layer_communities` | array \| absent | Community ids containing modules from two or more configured layers (sorted). |
+| `layer_bridge_modules` | array \| absent | Bridge modules coupling communities mapped to different layers (sorted). |
+| `community_risk_score` | integer \| absent | System-level community risk score (0–100, higher = worse). Absent when fewer than two communities were detected. |
+| `community_context_map` | object \| absent | Compact, agent-optimized map of which modules to inspect together. See [`community_context_map`](#community-context-map-object). Absent when no communities were detected. |
+| `warnings`          | array \| absent | Non-fatal analysis warnings.                              |
+| `errors`            | array \| absent | Fatal analysis errors.                                    |
+| `generated_at`      | string (RFC 3339) | Community analysis completion time.                 |
+| `version`           | string  | pyscn semantic version.                                           |
+| `config`            | object \| absent | Effective community-detection settings.                    |
+
+### `community` object { #community-object }
+
+| Field                              | Type    | Description                                              |
+| ---------------------------------- | ------- | -------------------------------------------------------- |
+| `id`                               | string  | Stable community identifier (`community_1`, `community_2`, …). |
+| `modules`                          | array   | Module names in this community (sorted for stable diffs). |
+| `packages`                         | array   | Package names represented in this community.             |
+| `internal_edges`                   | integer | Dependency edges within the community.                   |
+| `external_edges`                   | integer | Dependency edges crossing community boundaries.        |
+| `external_dependency_ratio`        | number  | `external_edges / (internal_edges + external_edges)`.    |
+| `incoming_cross_community_edges`   | integer | Incoming edges from other communities.                   |
+| `outgoing_cross_community_edges`   | integer | Outgoing edges to other communities.                   |
+| `size`                             | integer | Number of modules in the community.                      |
+| `dominant_package`                 | string \| absent | Package with the most modules in this community.   |
+| `package_count`                    | integer \| absent | Distinct packages represented in this community.  |
+| `package_alignment`                | number \| absent | Cohesion within the community: share of internal edges whose endpoints share a package, or dominant-package module ratio when no qualifying internal edges exist. |
+| `dominant_layer`                   | string \| absent | Configured layer with the most modules in this community. |
+| `layer_count`                      | integer \| absent | Distinct configured layers represented in this community. |
+| `layers`                           | array \| absent | Configured layer names present in this community (sorted). |
+| `layer_alignment`                  | number \| absent | Cohesion within the community: share of internal edges whose endpoints share a layer, or dominant-layer module ratio when no qualifying internal edges exist. |
+| `risk_level`                       | string \| absent | Per-community risk classification (`low`, `medium`, `high`). |
+
+### `bridge_module` object { #bridge-module-object }
+
+| Field                  | Type    | Description                                           |
+| ---------------------- | ------- | ----------------------------------------------------- |
+| `module`               | string  | Module name acting as a bridge.                       |
+| `community`            | string  | Home community id for the module.                     |
+| `cross_community_edges`| integer | Edges that connect to other communities.              |
+| `target_communities`   | array   | Destination community ids (sorted for stable diffs).  |
+
+### `community_context_map` object { #community-context-map-object }
+
+A compact, deterministic view of the communities optimized for AI coding/review agents: which modules to inspect together, and which modules bridge otherwise-separate clusters. Derived entirely from the community analysis (no LLM-generated content).
+
+| Field           | Type   | Description                                              |
+| --------------- | ------ | -------------------------------------------------------- |
+| `version`       | integer | Schema version of the context map (currently `1`).     |
+| `bundles`       | array  | Module clusters to review together. See [`context_bundle`](#context-bundle-object). |
+| `bridge_modules`| array  | Modules coupling two or more communities. See [`context_bridge_module`](#context-bridge-module-object). |
+
+#### `context_bundle` object { #context-bundle-object }
+
+| Field                    | Type            | Description                                              |
+| ------------------------ | --------------- | -------------------------------------------------------- |
+| `community_id`           | string          | Community identifier this bundle maps to.               |
+| `modules`                | array           | Member module names (sorted). Capped at 10 entries; the remainder is collapsed into a `... +N more` marker. |
+| `module_count`           | integer         | True number of modules in the community (before capping). |
+| `packages`               | array           | Package names represented in the community (sorted).    |
+| `risk_level`             | string          | Per-community risk classification (`low`, `medium`, `high`). |
+| `bridge_modules`         | array           | Member modules that bridge to other communities (sorted). |
+| `suggested_review_scope` | string \| absent | Filesystem-style path prefix derived from the longest common module prefix (e.g. `app/orders/`). Omitted when members share no common package. |
+| `summary`                | string          | One-line, fact-based description of the cluster.        |
+
+#### `context_bridge_module` object { #context-bridge-module-object }
+
+| Field      | Type   | Description                                              |
+| ---------- | ------ | -------------------------------------------------------- |
+| `module`   | string | Module name acting as a bridge.                         |
+| `connects` | array  | Community ids this module couples (sorted, includes its home community). |
+| `reason`   | string | Human-readable reason (e.g. `3 cross-community import edges`). |
+
+### Determinism
+
+Community detection is deterministic for a fixed codebase snapshot and configuration: repeated runs yield identical `communities`, `bridge_modules`, and `modularity`. Module and community ordering in JSON is stable (sorted ids and module names). Numeric fields are rounded to four decimal places for diff-friendly output. Results may change across pyscn versions or when `min_community_size`, `resolution`, or `include_lazy_edges` change. See [Module Community Detection](../guides/module-community-detection.md#determinism) for details.
+
 ## Timestamps and versioning
 
 | Field          | Format                    | Notes                                                   |
@@ -731,8 +826,11 @@ pyscn analyze --csv  src/
 pyscn analyze --html src/    # default
 pyscn analyze --json --select complexity src/
 pyscn analyze --csv  --select deadcode   src/
-pyscn analyze --yaml --select clones     src/
+pyscn analyze --yaml --select clones        src/
+pyscn analyze --json --select communities   src/
 ```
+
+`--select communities` with `--json` writes standalone community JSON (not the unified `AnalyzeResponse` wrapper). YAML standalone output is not supported yet; use unified `pyscn analyze --yaml` or `--json --select communities`.
 
 Output files land in `.pyscn/reports/`; see [Output Formats](index.md) for path and filename details.
 

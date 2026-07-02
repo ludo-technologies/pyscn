@@ -32,7 +32,7 @@ func (f *AnalyzeFormatter) Write(response *domain.AnalyzeResponse, format domain
 	case domain.OutputFormatText:
 		return f.writeText(response, writer)
 	case domain.OutputFormatJSON:
-		return WriteJSON(writer, response)
+		return WriteJSON(writer, normalizeAnalyzeResponseForJSON(response))
 	case domain.OutputFormatYAML:
 		return WriteYAML(writer, response)
 	case domain.OutputFormatCSV:
@@ -97,6 +97,10 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
 
+	if response.Summary.CommunitiesEnabled && response.Communities != nil {
+		WriteCommunityTextSummary(writer, response.Communities)
+	}
+
 	return nil
 }
 
@@ -121,6 +125,16 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	fmt.Fprintf(writer, "Total Classes Analyzed,%d\n", response.Summary.CBOClasses)
 	fmt.Fprintf(writer, "High Coupling (CBO) Classes,%d\n", response.Summary.HighCouplingClasses)
 	fmt.Fprintf(writer, "Average CBO,%.2f\n", response.Summary.AverageCoupling)
+
+	if response.Summary.CommunitiesEnabled && response.Communities != nil {
+		communities := response.Communities
+		fmt.Fprintf(writer, "Communities Enabled,true\n")
+		fmt.Fprintf(writer, "Total Communities,%d\n", communities.TotalCommunities)
+		fmt.Fprintf(writer, "Community Modularity,%.4f\n", communities.Modularity)
+		fmt.Fprintf(writer, "Bridge Modules,%d\n", len(communities.BridgeModules))
+		fmt.Fprintf(writer, "Community Score,%d\n", response.Summary.CommunityScore)
+		fmt.Fprintf(writer, "Community Risk Score,%d\n", response.Summary.CommunityRiskScore)
+	}
 
 	return nil
 }
@@ -166,6 +180,14 @@ func (f *AnalyzeFormatter) writeHTML(response *domain.AnalyzeResponse, writer io
 			default:
 				return "poor"
 			}
+		},
+		"communitySummaryHTML": func(result *domain.CommunityAnalysisResult) template.HTML {
+			if result == nil {
+				return ""
+			}
+			var builder strings.Builder
+			WriteCommunityHTMLSummary(&builder, result)
+			return template.HTML(builder.String())
 		},
 	}
 	tmpl := template.Must(template.New("analyze").Funcs(funcMap).Parse(analyzeHTMLTemplate))
@@ -455,6 +477,9 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 <button class="tab-button" onclick="showTab('sys-arch', this)">Architecture</button>
                 {{end}}
                 {{end}}
+                {{if and .Summary.CommunitiesEnabled .Communities}}
+                <button class="tab-button" onclick="showTab('communities', this)">Communities</button>
+                {{end}}
             </div>
 
             <div id="summary" class="tab-content active">
@@ -550,6 +575,19 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <div class="score-bar-fill score-{{scoreQuality .Summary.ArchitectureScore}}" style="width: {{.Summary.ArchitectureScore}}%"></div>
                         </div>
                         <div class="score-detail">{{printf "%.0f%%" (mul100 .Summary.ArchCompliance)}} compliant</div>
+                    </div>
+                    {{end}}
+
+                    {{if and .Summary.CommunitiesEnabled .Communities}}
+                    <div class="score-bar-item">
+                        <div class="score-bar-header">
+                            <span class="score-label">Communities</span>
+                            <span class="score-value">{{.Summary.CommunityScore}}/100</span>
+                        </div>
+                        <div class="score-bar-container">
+                            <div class="score-bar-fill score-{{scoreQuality .Summary.CommunityScore}}" style="width: {{.Summary.CommunityScore}}%"></div>
+                        </div>
+                        <div class="score-detail">{{.Communities.TotalCommunities}} communities, Q={{printf "%.3f" .Communities.Modularity}}, {{len .Communities.BridgeModules}} bridge modules</div>
                     </div>
                     {{end}}
                 </div>
@@ -657,6 +695,28 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </div>
                 </div>
                 {{end}}
+                {{end}}
+
+                {{if and .Summary.CommunitiesEnabled .Communities}}
+                <h3 style="margin-top: 8px; color: var(--color-text);">Communities</h3>
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">{{.Communities.TotalCommunities}}</div>
+                        <div class="metric-label">Communities</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{printf "%.3f" .Communities.Modularity}}</div>
+                        <div class="metric-label">Modularity (Q)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{len .Communities.BridgeModules}}</div>
+                        <div class="metric-label">Bridge Modules</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.Communities.Algorithm}}</div>
+                        <div class="metric-label">Algorithm</div>
+                    </div>
+                </div>
                 {{end}}
             </div>
 
@@ -1300,6 +1360,14 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{end}}
             </div>
             {{end}}
+            {{end}}
+
+            {{if and .Summary.CommunitiesEnabled .Communities}}
+            <div id="communities" class="tab-content">
+                <h2>Module Communities</h2>
+                <p style="margin-bottom: 20px; color: #666;">Detected module communities and bridge modules coupling them</p>
+                {{communitySummaryHTML .Communities}}
+            </div>
             {{end}}
         </div>
     </div>

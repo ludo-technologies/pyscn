@@ -15,12 +15,18 @@ import (
 
 // AnalyzeUseCaseConfig holds configuration for the analyze use case
 type AnalyzeUseCaseConfig struct {
-	SkipComplexity bool
-	SkipDeadCode   bool
-	SkipClones     bool
-	SkipCBO        bool
-	SkipLCOM       bool
-	SkipSystem     bool
+	SkipComplexity  bool
+	SkipDeadCode    bool
+	SkipClones      bool
+	SkipCBO         bool
+	SkipLCOM        bool
+	SkipSystem      bool
+	SkipCommunities bool
+
+	// SelectAnalysesUsed is true when --select was provided on the CLI.
+	SelectAnalysesUsed bool
+	// SkipCommunitiesExplicit is true when --skip-communities was provided.
+	SkipCommunitiesExplicit bool
 
 	MinComplexity   int
 	MinSeverity     domain.DeadCodeSeverity
@@ -42,6 +48,7 @@ type AnalyzeUseCase struct {
 	cboUseCase        *CBOUseCase
 	lcomUseCase       *LCOMUseCase
 	systemUseCase     *SystemAnalysisUseCase
+	communityUseCase  *CommunityUseCase
 
 	fileReader       domain.FileReader
 	configLoader     domain.AnalyzeConfigurationLoader
@@ -59,6 +66,7 @@ type AnalyzeUseCaseBuilder struct {
 	cboUseCase        *CBOUseCase
 	lcomUseCase       *LCOMUseCase
 	systemUseCase     *SystemAnalysisUseCase
+	communityUseCase  *CommunityUseCase
 
 	fileReader       domain.FileReader
 	configLoader     domain.AnalyzeConfigurationLoader
@@ -106,6 +114,12 @@ func (b *AnalyzeUseCaseBuilder) WithLCOMUseCase(uc *LCOMUseCase) *AnalyzeUseCase
 // WithSystemUseCase sets the system analysis use case
 func (b *AnalyzeUseCaseBuilder) WithSystemUseCase(uc *SystemAnalysisUseCase) *AnalyzeUseCaseBuilder {
 	b.systemUseCase = uc
+	return b
+}
+
+// WithCommunityUseCase sets the community analysis use case
+func (b *AnalyzeUseCaseBuilder) WithCommunityUseCase(uc *CommunityUseCase) *AnalyzeUseCaseBuilder {
+	b.communityUseCase = uc
 	return b
 }
 
@@ -173,6 +187,7 @@ func (b *AnalyzeUseCaseBuilder) Build() (*AnalyzeUseCase, error) {
 		cboUseCase:        b.cboUseCase,
 		lcomUseCase:       b.lcomUseCase,
 		systemUseCase:     b.systemUseCase,
+		communityUseCase:  b.communityUseCase,
 		fileReader:        b.fileReader,
 		configLoader:      b.configLoader,
 		formatter:         b.formatter,
@@ -184,12 +199,13 @@ func (b *AnalyzeUseCaseBuilder) Build() (*AnalyzeUseCase, error) {
 
 // Task names used both for display and as keys for progress estimation
 const (
-	taskNameComplexity = "Complexity Analysis"
-	taskNameDeadCode   = "Dead Code Detection"
-	taskNameClones     = "Clone Detection"
-	taskNameCBO        = "Class Coupling (CBO)"
-	taskNameLCOM       = "Class Cohesion (LCOM)"
-	taskNameSystem     = "System Analysis"
+	taskNameComplexity  = "Complexity Analysis"
+	taskNameDeadCode    = "Dead Code Detection"
+	taskNameClones      = "Clone Detection"
+	taskNameCBO         = "Class Coupling (CBO)"
+	taskNameLCOM        = "Class Cohesion (LCOM)"
+	taskNameSystem      = "System Analysis"
+	taskNameCommunities = "Community Detection"
 )
 
 // AnalysisTask represents a single analysis task
@@ -219,6 +235,13 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 	if !executionCfg.SystemEnabled {
 		useCaseCfg.SkipSystem = true
+	}
+
+	if !useCaseCfg.SelectAnalysesUsed && executionCfg.CommunitiesEnabledExplicit {
+		useCaseCfg.SkipCommunities = !executionCfg.CommunitiesEnabled
+	}
+	if useCaseCfg.SkipCommunitiesExplicit {
+		useCaseCfg.SkipCommunities = true
 	}
 
 	// Validate and collect files using configured patterns
@@ -258,7 +281,7 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 
 	// Create analysis tasks
-	tasks := uc.createAnalysisTasks(useCaseCfg, files, snapshot, executionCfg)
+	tasks := uc.createAnalysisTasks(useCaseCfg, paths, files, snapshot, executionCfg)
 
 	// Execute tasks in parallel
 	var wg sync.WaitGroup
@@ -321,7 +344,7 @@ func (uc *AnalyzeUseCase) needsProjectSnapshot(config AnalyzeUseCaseConfig) bool
 }
 
 // createAnalysisTasks creates the analysis tasks based on configuration
-func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files []string, snapshot *service.ProjectSnapshot, executionCfg domain.AnalyzeExecutionConfig) []*AnalysisTask {
+func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourcePaths []string, files []string, snapshot *service.ProjectSnapshot, executionCfg domain.AnalyzeExecutionConfig) []*AnalysisTask {
 	tasks := []*AnalysisTask{}
 
 	// Complexity analysis task
@@ -458,6 +481,27 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, files
 		})
 	}
 
+	// Community detection task.
+	if uc.communityUseCase != nil {
+		tasks = append(tasks, &AnalysisTask{
+			Name:    taskNameCommunities,
+			Enabled: !config.SkipCommunities,
+			Execute: func(ctx context.Context) (interface{}, error) {
+				request := domain.CommunityAnalysisRequest{
+					Paths:           files,
+					SourcePaths:     append([]string(nil), sourcePaths...),
+					Recursive:       nil,
+					IncludePatterns: []string{},
+					ExcludePatterns: []string{},
+					OutputFormat:    domain.OutputFormatJSON,
+					OutputWriter:    io.Discard,
+					ConfigPath:      config.ConfigFile,
+				}
+				return uc.communityUseCase.AnalyzeAndReturn(ctx, request)
+			},
+		})
+	}
+
 	return tasks
 }
 
@@ -545,6 +589,11 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 					response.Summary.ArchEnabled = true
 				}
 			}
+		case *domain.CommunityAnalysisResult:
+			response.Summary.CommunitiesEnabled = true
+			if result != nil {
+				response.Communities = result
+			}
 		case nil:
 			uc.markSummaryForTask(&response.Summary, task.Name)
 		default:
@@ -576,6 +625,8 @@ func (uc *AnalyzeUseCase) markSummaryForTask(summary *domain.AnalyzeSummary, tas
 		summary.LCOMEnabled = true
 	case "System Analysis":
 		summary.DepsEnabled = true
+	case taskNameCommunities:
+		summary.CommunitiesEnabled = true
 	}
 }
 
@@ -651,6 +702,25 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		}
 	}
 
+	// Community detection statistics (feed the community risk score / health penalty)
+	if response.Communities != nil {
+		c := response.Communities
+		summary.CommunityCount = c.TotalCommunities
+		summary.CommunityModularity = c.Modularity
+		// Use the analysis bridge count, not the emitted list, so the health
+		// penalty is independent of whether bridge modules are reported.
+		summary.CommunityBridgeModules = c.BridgeModuleCount
+		internalEdges, crossEdges := 0, 0
+		for i := range c.Communities {
+			internalEdges += c.Communities[i].InternalEdges
+			crossEdges += c.Communities[i].OutgoingCrossCommunityEdges
+		}
+		summary.CommunityInternalEdges = internalEdges
+		summary.CommunityCrossEdges = crossEdges
+		summary.CommunityPackageAlignment = c.PackageAlignmentScore
+		summary.CommunityLayerAlignment = c.LayerAlignmentScore
+	}
+
 	// Calculate health score with error handling
 	if err := summary.CalculateHealthScore(); err != nil {
 		// Log warning
@@ -694,6 +764,9 @@ func (uc *AnalyzeUseCase) estimateTaskSeconds(fileCount int, config AnalyzeUseCa
 	}
 	if uc.systemUseCase != nil && !config.SkipSystem {
 		estimates[taskNameSystem] = 0.02 * n // System: ~0.02s per file (slightly heavier)
+	}
+	if uc.communityUseCase != nil && !config.SkipCommunities {
+		estimates[taskNameCommunities] = 0.02 * n
 	}
 
 	// Clone detection - account for LSH configuration

@@ -178,6 +178,41 @@ func TestAnalyzeFormatter_Write_JSON(t *testing.T) {
 	assert.Equal(t, response.Summary.TotalFiles, decoded.Summary.TotalFiles)
 }
 
+func TestAnalyzeFormatter_Write_JSON_IncludesCommunityAnalysis(t *testing.T) {
+	formatter := NewAnalyzeFormatter()
+	response := createTestAnalyzeResponse()
+	response.Summary.CommunitiesEnabled = true
+	response.Communities = &domain.CommunityAnalysisResult{
+		Algorithm:        "leiden",
+		Scope:            "module",
+		TotalCommunities: 2,
+		Modularity:       0.42,
+		Communities: []domain.CommunityMetrics{
+			{ID: "community_1", Modules: []string{"mod.a"}, Size: 1},
+			{ID: "community_2", Modules: []string{"mod.b"}, Size: 1},
+		},
+		BridgeModules: []domain.BridgeModule{
+			{
+				Module:              "bridge",
+				Community:           "community_1",
+				CrossCommunityEdges: 1,
+				TargetCommunities:   []string{"community_2"},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	require.NoError(t, formatter.Write(response, domain.OutputFormatJSON, &buf))
+
+	var decoded map[string]any
+	require.NoError(t, json.Unmarshal(buf.Bytes(), &decoded))
+	require.Contains(t, decoded, "community_analysis")
+
+	communityAnalysis := decoded["community_analysis"].(map[string]any)
+	assert.Equal(t, "leiden", communityAnalysis["algorithm"])
+	assert.Equal(t, float64(2), communityAnalysis["total_communities"])
+}
+
 func TestAnalyzeFormatter_Write_YAML(t *testing.T) {
 	formatter := NewAnalyzeFormatter()
 	response := createTestAnalyzeResponse()
@@ -364,6 +399,51 @@ func TestAnalyzeFormatter_Write_UnsupportedFormat(t *testing.T) {
 	err := formatter.Write(response, domain.OutputFormat("invalid"), &buf)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid")
+}
+
+func TestAnalyzeFormatter_Write_IncludesCommunitySummary(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.Summary.CommunitiesEnabled = true
+	response.Communities = &domain.CommunityAnalysisResult{
+		Algorithm:        "leiden",
+		Scope:            "module",
+		TotalCommunities: 2,
+		Modularity:       0.42,
+		Communities: []domain.CommunityMetrics{
+			{ID: "community_1", Size: 3, InternalEdges: 2, ExternalEdges: 1},
+			{ID: "community_2", Size: 2, InternalEdges: 1, ExternalEdges: 1},
+		},
+		BridgeModules: []domain.BridgeModule{
+			{
+				Module:              "bridge",
+				Community:           "community_1",
+				CrossCommunityEdges: 1,
+				TargetCommunities:   []string{"community_2"},
+			},
+		},
+	}
+
+	formatter := NewAnalyzeFormatter()
+
+	var textBuf bytes.Buffer
+	require.NoError(t, formatter.Write(response, domain.OutputFormatText, &textBuf))
+	text := textBuf.String()
+	assert.Contains(t, text, "COMMUNITY DETECTION")
+	assert.Contains(t, text, "BRIDGE MODULES")
+	assert.Contains(t, text, "bridge")
+
+	var csvBuf bytes.Buffer
+	require.NoError(t, formatter.Write(response, domain.OutputFormatCSV, &csvBuf))
+	csv := csvBuf.String()
+	assert.Contains(t, csv, "Communities Enabled,true")
+	assert.Contains(t, csv, "Total Communities,2")
+
+	var htmlBuf bytes.Buffer
+	require.NoError(t, formatter.Write(response, domain.OutputFormatHTML, &htmlBuf))
+	html := htmlBuf.String()
+	assert.Contains(t, html, "Communities")
+	assert.Contains(t, html, "Module Communities")
+	assert.Contains(t, html, "bridge")
 }
 
 func TestAnalyzeFormatter_WriteHTML_ScoreQuality(t *testing.T) {

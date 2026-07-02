@@ -55,18 +55,12 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 	}
 
 	// Create config for analyze use case
-	config := app.AnalyzeUseCaseConfig{
-		SkipComplexity:  !contains(analyses, "complexity") && len(analyses) > 0,
-		SkipDeadCode:    !contains(analyses, "dead_code") && len(analyses) > 0,
-		SkipClones:      !contains(analyses, "clone") && len(analyses) > 0,
-		SkipCBO:         !contains(analyses, "cbo") && len(analyses) > 0,
-		SkipLCOM:        !contains(analyses, "lcom") && len(analyses) > 0,
-		SkipSystem:      !contains(analyses, "deps") && len(analyses) > 0,
+	config := app.ApplyAnalyzeSelection(app.AnalyzeUseCaseConfig{
 		MinComplexity:   1,
 		MinSeverity:     domain.DeadCodeSeverityWarning,
 		CloneSimilarity: 0.8,
 		ConfigFile:      h.deps.ConfigPath(),
-	}
+	}, analyses)
 	if cfg := h.deps.Config(); cfg != nil {
 		if cfg.Output.MinComplexity > 0 {
 			config.MinComplexity = cfg.Output.MinComplexity
@@ -130,6 +124,14 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 				"high_coupling_classes": result.Summary.HighCouplingClasses,
 				"high_lcom_classes":     result.Summary.HighLCOMClasses,
 			},
+		}
+	}
+
+	// Surface community scores in summary mode only when communities ran.
+	if m, ok := responseData.(map[string]interface{}); ok && result.Summary.CommunitiesEnabled {
+		if sum, ok := m["summary"].(map[string]interface{}); ok {
+			sum["community_score"] = result.Summary.CommunityScore
+			sum["community_risk_score"] = result.Summary.CommunityRiskScore
 		}
 	}
 
@@ -769,6 +771,16 @@ func (h *HandlerSet) HandleGetHealthScore(ctx context.Context, request mcp.CallT
 		},
 	}
 
+	// Include the community score only when community detection ran.
+	if result.Summary.CommunitiesEnabled {
+		if cs, ok := healthScoreResult["category_scores"].(map[string]int); ok {
+			cs["community_score"] = result.Summary.CommunityScore
+		}
+		if sum, ok := healthScoreResult["summary"].(map[string]interface{}); ok {
+			sum["community_risk_score"] = result.Summary.CommunityRiskScore
+		}
+	}
+
 	// Convert to JSON
 	jsonData, err := json.Marshal(healthScoreResult)
 	if err != nil {
@@ -779,15 +791,6 @@ func (h *HandlerSet) HandleGetHealthScore(ctx context.Context, request mcp.CallT
 }
 
 // Helper functions
-
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
-}
 
 // formatComplexitySummary formats complexity results in compact summary mode
 func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, maxResults int) map[string]interface{} {
@@ -1393,6 +1396,18 @@ func buildAnalyzeUseCase(fileReader domain.FileReader) (*app.AnalyzeUseCase, err
 	systemFormatter := service.NewSystemAnalysisFormatter()
 	systemUC := app.NewSystemAnalysisUseCase(systemService, fileReader, systemFormatter, systemConfigLoader)
 
+	// Build community analysis use case
+	communityService := service.NewCommunityAnalysisService()
+	communityFormatter := service.NewCommunityFormatter()
+	communityUC, err := app.NewCommunityUseCaseBuilder().
+		WithService(communityService).
+		WithFileReader(fileReader).
+		WithFormatter(communityFormatter).
+		Build()
+	if err != nil {
+		return nil, err
+	}
+
 	// Build analyze use case
 	return app.NewAnalyzeUseCaseBuilder().
 		WithComplexityUseCase(complexityUC).
@@ -1401,6 +1416,7 @@ func buildAnalyzeUseCase(fileReader domain.FileReader) (*app.AnalyzeUseCase, err
 		WithCBOUseCase(cboUC).
 		WithLCOMUseCase(lcomUC).
 		WithSystemUseCase(systemUC).
+		WithCommunityUseCase(communityUC).
 		WithFileReader(fileReader).
 		WithProgressManager(service.NewProgressManager()).
 		WithParallelExecutor(service.NewParallelExecutor()).

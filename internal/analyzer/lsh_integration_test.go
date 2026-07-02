@@ -66,7 +66,8 @@ func TestCloneDetector_DetectClonesWithLSH_Simple(t *testing.T) {
 	cfg.LSHMinHashCount = 128
 
 	det := NewCloneDetector(cfg)
-	pairs, _ := det.DetectClonesWithLSH(context.Background(), []*CodeFragment{f1, f2, f3})
+	result := det.DetectClonesWithLSH(context.Background(), []*CodeFragment{f1, f2, f3})
+	pairs := result.Pairs
 	if len(pairs) == 0 {
 		// As a sanity check, verify MinHash similarity and LSH candidate retrieval
 		ext := NewASTFeatureExtractor()
@@ -198,7 +199,8 @@ func TestCloneDetectorDetectClonesWithLSHRefreshesStaleFeatureCache(t *testing.T
 		t.Fatalf("test setup needs stale features below strict LSH threshold")
 	}
 
-	pairs, _ := NewCloneDetector(cfg).DetectClonesWithLSH(context.Background(), fragments)
+	result := NewCloneDetector(cfg).DetectClonesWithLSH(context.Background(), fragments)
+	pairs := result.Pairs
 	if len(pairs) != 1 {
 		t.Fatalf("expected LSH to refresh stale cached features before candidate generation, got %d pairs", len(pairs))
 	}
@@ -221,7 +223,8 @@ func TestCloneDetector_DetectClonesWithLSH_CandidateCapDoesNotDropExactFamily(t 
 	cfg.LSHSimilarityThreshold = 0.5
 	cfg.LSHMaxCandidates = 8
 
-	pairs, groups := NewCloneDetector(cfg).DetectClonesWithLSH(context.Background(), fragments)
+	result := NewCloneDetector(cfg).DetectClonesWithLSH(context.Background(), fragments)
+	pairs, groups := result.Pairs, result.Groups
 	if len(pairs) == 0 || len(groups) == 0 {
 		t.Fatalf("candidate cap dropped every exact clone candidate")
 	}
@@ -232,13 +235,15 @@ func TestCloneDetector_DetectClonesWithLSH_MatchesStandardOnBenchmarkFixture(t *
 	fragments := buildCloneBenchmarkFragments(4, 4, 8)
 
 	standardDetector := NewCloneDetector(cloneBenchmarkConfig(false))
-	standardPairs, standardGroups := standardDetector.DetectClones(fragments)
+	standardResult := standardDetector.DetectClones(fragments)
+	standardPairs, standardGroups := standardResult.Pairs, standardResult.Groups
 	if len(standardPairs) == 0 || len(standardGroups) == 0 {
 		t.Fatalf("expected standard benchmark fixture run to produce pairs and groups")
 	}
 
 	lshDetector := NewCloneDetector(cloneBenchmarkConfig(true))
-	lshPairs, lshGroups := lshDetector.DetectClonesWithLSH(context.Background(), fragments)
+	lshResult := lshDetector.DetectClonesWithLSH(context.Background(), fragments)
+	lshPairs, lshGroups := lshResult.Pairs, lshResult.Groups
 	if len(lshPairs) == 0 || len(lshGroups) == 0 {
 		t.Fatalf("expected LSH benchmark fixture run to produce pairs and groups")
 	}

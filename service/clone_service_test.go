@@ -636,7 +636,7 @@ func TestCloneService_FilterCloneGroups(t *testing.T) {
 	})
 }
 
-func TestCloneService_CreateStatistics(t *testing.T) {
+func TestCloneService_BuildCloneStatistics(t *testing.T) {
 	service := NewCloneService()
 
 	cloneA := &domain.Clone{ID: 1, Location: &domain.CloneLocation{FilePath: "a.py", StartLine: 1, EndLine: 10}}
@@ -654,12 +654,28 @@ func TestCloneService_CreateStatistics(t *testing.T) {
 		{ID: 2, Clones: []*domain.Clone{cloneB, cloneC}},
 	}
 
-	totalFragments := 10
+	fragA := &analyzer.CodeFragment{Location: &analyzer.CodeLocation{FilePath: "a.py", StartLine: 1, EndLine: 10}}
+	fragB := &analyzer.CodeFragment{Location: &analyzer.CodeLocation{FilePath: "b.py", StartLine: 1, EndLine: 10}}
+	fragC := &analyzer.CodeFragment{Location: &analyzer.CodeLocation{FilePath: "c.py", StartLine: 1, EndLine: 10}}
+
+	result := &analyzer.CloneDetectionResult{
+		Pairs: []*analyzer.ClonePair{
+			{Fragment1: fragA, Fragment2: fragB, Similarity: 0.8, CloneType: analyzer.Type1Clone},
+			{Fragment1: fragB, Fragment2: fragC, Similarity: 0.9, CloneType: analyzer.Type2Clone},
+			{Fragment1: fragA, Fragment2: fragC, Similarity: 0.7, CloneType: analyzer.Type1Clone},
+		},
+		Groups: []*analyzer.CloneGroup{
+			{Fragments: []*analyzer.CodeFragment{fragA, fragB}},
+			{Fragments: []*analyzer.CodeFragment{fragB, fragC}},
+		},
+		Statistics: &analyzer.CloneDetectionStatistics{TotalFragments: 10},
+	}
+
 	filesAnalyzed := 5
 	linesAnalyzed := 1000
 	nodesAnalyzed := 500
 
-	stats := service.createStatistics(pairs, groups, totalFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
+	stats := service.buildCloneStatistics(result, pairs, groups, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
 
 	assert.NotNil(t, stats)
 	assert.Equal(t, 10, stats.TotalFragments)
@@ -676,7 +692,7 @@ func TestCloneService_CreateStatistics(t *testing.T) {
 	assert.Equal(t, 1, stats.ClonesByType["Type-2"])
 
 	// When groups are pruned but pairs exist, TotalClones should still count pair endpoints
-	statsNilGroups := service.createStatistics(pairs, nil, totalFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
+	statsNilGroups := service.buildCloneStatistics(result, pairs, nil, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
 	assert.Equal(t, 3, statsNilGroups.TotalClones)
 }
 

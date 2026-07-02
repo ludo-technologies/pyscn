@@ -180,9 +180,10 @@ Try asking your AI assistant:
 **Parameters**:
 - `path` (required): Path to Python code (file or directory)
 - `analyses` (optional): Array of analyses to run
-  - Options: `["complexity", "dead_code", "clone", "cbo", "deps"]`
-  - Default: All analyses
+  - Options: `["complexity", "dead_code", "clone", "cbo", "lcom", "deps", "communities"]`
+  - Default: all analyses, including `communities`
 - `recursive` (optional): Recursively analyze directories (default: `true`)
+- `output_mode` (optional): `"summary"` (default) returns the health score and high-level metrics; `"full"` returns the complete report, including `community_analysis` and its `community_context_map` when community detection runs
 
 **Example**:
 ```
@@ -206,6 +207,51 @@ Analyze the code at /home/user/project with all metrics
   }
 }
 ```
+
+#### Module communities (context map for AI agents)
+
+Community detection groups modules into clusters by their import structure so an agent knows which files to inspect together. It runs by default; when `analyses` is provided, include `"communities"` in that list and set `output_mode: "full"` to retrieve the full context map.
+
+**Example**:
+```
+Map the module architecture of /home/user/project and tell me which files to review together
+```
+
+The full response embeds a compact, deterministic `community_context_map` under `community_analysis`:
+```json
+{
+  "community_analysis": {
+    "total_communities": 2,
+    "community_risk_score": 65,
+    "community_context_map": {
+      "version": 1,
+      "bundles": [
+        {
+          "community_id": "community_1",
+          "modules": ["app.orders.service", "app.orders.repository"],
+          "module_count": 2,
+          "packages": ["app.orders"],
+          "risk_level": "low",
+          "bridge_modules": [],
+          "suggested_review_scope": "app/orders/",
+          "summary": "2 modules; 1 package; risk low; 0 cross-community edges."
+        }
+      ],
+      "bridge_modules": [
+        {
+          "module": "app.core.hub",
+          "connects": ["community_1", "community_3"],
+          "reason": "3 cross-community import edges"
+        }
+      ]
+    }
+  }
+}
+```
+
+Field notes:
+- `bundles[]` are clusters to review together. `modules` is capped for large clusters with a `... +N more` marker; `module_count` always holds the true total. `suggested_review_scope` (a path prefix) is omitted when members share no common package.
+- `bridge_modules[]` couple two or more communities. Pull them into the review scope before changing cluster boundaries.
 
 ### check_complexity
 

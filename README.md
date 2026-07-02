@@ -1,5 +1,9 @@
 <div align="center">
 
+[English](README.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [Français](README.fr.md)
+
+<br>
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/logo.svg">
   <source media="(prefers-color-scheme: light)" srcset="assets/logo-light.svg">

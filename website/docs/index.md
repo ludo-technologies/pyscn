@@ -19,6 +19,7 @@ uvx pyscn@latest analyze .
 - **APTED + LSH clone detection** across four clone types (identical, renamed, modified, semantic).
 - **CBO / LCOM4** class coupling and cohesion metrics.
 - **Circular import detection** via Tarjan's SCC.
+- **Module community detection** via Leiden clustering over the import graph.
 - **Health score** (0–100) with per-category breakdown.
 - **CI-ready** with `pyscn check`, linter-style output, and deterministic exit codes.
 - **MCP server** (`pyscn-mcp`) for Claude Code, Cursor, and other MCP clients.

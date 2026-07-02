@@ -79,6 +79,7 @@ plugins:
             Quick Start: クイックスタート
             Guides: ガイド
             Find Duplicate Code in Python: Pythonの重複コードを検出する
+            Module Community Detection: モジュールコミュニティ検出
             Rules: ルール
             Overview: 概要
             Unreachable Code: 到達不能コード
@@ -113,6 +114,7 @@ plugins:
             Quick Start: 快速开始
             Guides: 指南
             Find Duplicate Code in Python: 检测 Python 中的重复代码
+            Module Community Detection: 模块社区检测
             Rules: 规则
             Overview: 概览
             Unreachable Code: 不可达代码
@@ -145,6 +147,7 @@ plugins:
             Quick Start: Démarrage rapide
             Guides: Guides
             Find Duplicate Code in Python: Trouver le code dupliqué en Python
+            Module Community Detection: Détection de communautés de modules
             Rules: Règles
             Overview: Vue d'ensemble
             Unreachable Code: Code inatteignable
@@ -222,6 +225,7 @@ nav:
       - Quick Start: getting-started/quick-start.md
   - Guides:
       - Find Duplicate Code in Python: guides/find-duplicate-code-python.md
+      - Module Community Detection: guides/module-community-detection.md
   - Rules:
       - Overview: rules/index.md
       - Unreachable Code:

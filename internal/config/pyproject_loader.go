@@ -28,6 +28,7 @@ type PyprojectPyscnSection struct {
 	Architecture   ArchitectureTomlConfig   `toml:"architecture"`
 	SystemAnalysis SystemAnalysisTomlConfig `toml:"system_analysis"`
 	Dependencies   DependenciesTomlConfig   `toml:"dependencies"`
+	Communities    CommunitiesTomlConfig    `toml:"communities"`
 	Clones         ClonesConfig             `toml:"clones"`
 	DI             DITomlConfig             `toml:"di"`
 }
@@ -78,6 +79,7 @@ func loadPyprojectConfigData(data []byte) (*PyscnConfig, error) {
 	mergeArchitectureSection(config, &pyproject.Tool.Pyscn.Architecture)
 	mergeSystemAnalysisSection(config, &pyproject.Tool.Pyscn.SystemAnalysis)
 	mergeDependenciesSection(config, &pyproject.Tool.Pyscn.Dependencies)
+	mergeCommunitiesSection(config, &pyproject.Tool.Pyscn.Communities)
 	mergeClonesSection(config, &pyproject.Tool.Pyscn.Clones)
 	mergeDISection(config, &pyproject.Tool.Pyscn.DI)
 
@@ -474,6 +476,31 @@ func mergeSystemAnalysisSection(defaults *PyscnConfig, sa *SystemAnalysisTomlCon
 	}
 	if sa.GenerateUnifiedReport != nil {
 		defaults.SystemAnalysisGenerateUnifiedReport = sa.GenerateUnifiedReport
+	}
+}
+
+// mergeCommunitiesSection merges settings from the [communities] section
+func mergeCommunitiesSection(defaults *PyscnConfig, communities *CommunitiesTomlConfig) {
+	if communities.Enabled != nil {
+		defaults.CommunitiesEnabled = communities.Enabled
+	}
+	if communities.Algorithm != "" {
+		defaults.CommunitiesAlgorithm = communities.Algorithm
+	}
+	if communities.Scope != "" {
+		defaults.CommunitiesScope = communities.Scope
+	}
+	if communities.MinCommunitySize != nil {
+		defaults.CommunitiesMinCommunitySize = *communities.MinCommunitySize
+	}
+	if communities.IncludeLazyEdges != nil {
+		defaults.CommunitiesIncludeLazyEdges = communities.IncludeLazyEdges
+	}
+	if communities.ReportBridgeModules != nil {
+		defaults.CommunitiesReportBridgeModules = communities.ReportBridgeModules
+	}
+	if communities.Resolution != nil {
+		defaults.CommunitiesResolution = *communities.Resolution
 	}
 }
 

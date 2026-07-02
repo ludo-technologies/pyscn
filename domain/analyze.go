@@ -38,6 +38,9 @@ type AnalyzeExecutionConfig struct {
 	SystemEnabled             bool
 	SystemAnalyzeDependencies bool
 	SystemAnalyzeArchitecture bool
+
+	CommunitiesEnabled         bool
+	CommunitiesEnabledExplicit bool
 }
 
 // AnalyzeConfigurationLoader resolves and loads configuration for AnalyzeUseCase.
@@ -84,6 +87,24 @@ const (
 	MaxArchPenalty     = 12 // Increased from 8 for stricter scoring
 	MaxMSDPenalty      = 3  // Increased from 2 for stricter scoring
 
+	// Community detection scoring only applies when communities ran
+	// with at least two detected communities). The risk score is a weighted
+	// blend of the factors below; the health-score penalty is bounded at
+	// MaxCommunityPenalty so disabling communities cannot move existing grades.
+	MaxCommunityPenalty          = 10   // bounded contribution to the overall health score
+	CommunityModularityTarget    = 0.30 // Q at or above which modularity risk is zero
+	CommunityCrossEdgeSaturation = 0.50 // cross-community edge ratio at which that risk maxes out
+	// Risk-factor weights (core factors sum to 1.0; optional factors are added
+	// and the blend is renormalised over whatever factors are available).
+	CommunityModularityWeight = 0.40
+	CommunityCrossEdgeWeight  = 0.30
+	CommunityBridgeWeight     = 0.30
+	CommunityPackageWeight    = 0.25
+	CommunityLayerWeight      = 0.25
+	// Per-community risk_level thresholds, expressed as risk ratios (0..1).
+	CommunityRiskHighRatio   = 0.60 // >= high
+	CommunityRiskMediumRatio = 0.30 // >= medium, otherwise low
+
 	// Score display scale - all categories normalized to this base
 	MaxScoreBase = 20
 
@@ -113,13 +134,14 @@ const (
 // AnalyzeResponse represents the combined results of all analyses
 type AnalyzeResponse struct {
 	// Analysis results
-	Complexity *ComplexityResponse     `json:"complexity,omitempty" yaml:"complexity,omitempty"`
-	DeadCode   *DeadCodeResponse       `json:"dead_code,omitempty" yaml:"dead_code,omitempty"`
-	Clone      *CloneResponse          `json:"clone,omitempty" yaml:"clone,omitempty"`
-	CBO        *CBOResponse            `json:"cbo,omitempty" yaml:"cbo,omitempty"`
-	LCOM       *LCOMResponse           `json:"lcom,omitempty" yaml:"lcom,omitempty"`
-	System     *SystemAnalysisResponse `json:"system,omitempty" yaml:"system,omitempty"`
-	MockData   *MockDataResponse       `json:"mock_data,omitempty" yaml:"mock_data,omitempty"`
+	Complexity  *ComplexityResponse      `json:"complexity,omitempty" yaml:"complexity,omitempty"`
+	DeadCode    *DeadCodeResponse        `json:"dead_code,omitempty" yaml:"dead_code,omitempty"`
+	Clone       *CloneResponse           `json:"clone,omitempty" yaml:"clone,omitempty"`
+	CBO         *CBOResponse             `json:"cbo,omitempty" yaml:"cbo,omitempty"`
+	LCOM        *LCOMResponse            `json:"lcom,omitempty" yaml:"lcom,omitempty"`
+	System      *SystemAnalysisResponse  `json:"system,omitempty" yaml:"system,omitempty"`
+	Communities *CommunityAnalysisResult `json:"community_analysis,omitempty" yaml:"community_analysis,omitempty"`
+	MockData    *MockDataResponse        `json:"mock_data,omitempty" yaml:"mock_data,omitempty"`
 
 	// Actionable suggestions derived from analysis results
 	Suggestions []Suggestion `json:"suggestions,omitempty" yaml:"suggestions,omitempty"`
@@ -150,11 +172,21 @@ type AnalyzeSummary struct {
 	// System-level (module dependencies & architecture) summary used for scoring
 	DepsEnabled               bool    `json:"deps_enabled" yaml:"deps_enabled"`
 	ArchEnabled               bool    `json:"arch_enabled" yaml:"arch_enabled"`
+	CommunitiesEnabled        bool    `json:"communities_enabled" yaml:"communities_enabled"`
 	DepsTotalModules          int     `json:"deps_total_modules" yaml:"deps_total_modules"`
 	DepsModulesInCycles       int     `json:"deps_modules_in_cycles" yaml:"deps_modules_in_cycles"`
 	DepsMaxDepth              int     `json:"deps_max_depth" yaml:"deps_max_depth"`
 	DepsMainSequenceDeviation float64 `json:"deps_main_sequence_deviation" yaml:"deps_main_sequence_deviation"`
 	ArchCompliance            float64 `json:"arch_compliance" yaml:"arch_compliance"`
+
+	// Community detection metrics used for scoring (populated when CommunitiesEnabled).
+	CommunityCount            int      `json:"community_count" yaml:"community_count"`
+	CommunityModularity       float64  `json:"community_modularity" yaml:"community_modularity"`
+	CommunityBridgeModules    int      `json:"community_bridge_modules" yaml:"community_bridge_modules"`
+	CommunityInternalEdges    int      `json:"community_internal_edges" yaml:"community_internal_edges"`
+	CommunityCrossEdges       int      `json:"community_cross_edges" yaml:"community_cross_edges"`
+	CommunityPackageAlignment *float64 `json:"community_package_alignment,omitempty" yaml:"community_package_alignment,omitempty"`
+	CommunityLayerAlignment   *float64 `json:"community_layer_alignment,omitempty" yaml:"community_layer_alignment,omitempty"`
 
 	// Key metrics
 	TotalFunctions             int     `json:"total_functions" yaml:"total_functions"`
@@ -201,6 +233,11 @@ type AnalyzeSummary struct {
 	CohesionScore     int `json:"cohesion_score" yaml:"cohesion_score"`
 	DependencyScore   int `json:"dependency_score" yaml:"dependency_score"`
 	ArchitectureScore int `json:"architecture_score" yaml:"architecture_score"`
+	CommunityScore    int `json:"community_score" yaml:"community_score"`
+
+	// CommunityRiskScore is a system-level 0-100 risk signal (higher = worse).
+	// It is the inverse of CommunityScore and only meaningful when communities ran.
+	CommunityRiskScore int `json:"community_risk_score" yaml:"community_risk_score"`
 }
 
 // Validate checks if the summary contains valid values
@@ -238,6 +275,19 @@ func (s *AnalyzeSummary) Validate() error {
 		if s.DepsTotalModules > 0 && s.DepsModulesInCycles > s.DepsTotalModules {
 			return fmt.Errorf("DepsModulesInCycles (%d) cannot exceed DepsTotalModules (%d)",
 				s.DepsModulesInCycles, s.DepsTotalModules)
+		}
+	}
+
+	// Community metric checks (when enabled)
+	if s.CommunitiesEnabled {
+		if s.CommunityModularity < -1 || s.CommunityModularity > 1 {
+			return fmt.Errorf("CommunityModularity must be -1..1, got %f", s.CommunityModularity)
+		}
+		if s.CommunityPackageAlignment != nil && (*s.CommunityPackageAlignment < 0 || *s.CommunityPackageAlignment > 1) {
+			return fmt.Errorf("CommunityPackageAlignment must be 0-1, got %f", *s.CommunityPackageAlignment)
+		}
+		if s.CommunityLayerAlignment != nil && (*s.CommunityLayerAlignment < 0 || *s.CommunityLayerAlignment > 1) {
+			return fmt.Errorf("CommunityLayerAlignment must be 0-1, got %f", *s.CommunityLayerAlignment)
 		}
 	}
 
@@ -457,6 +507,97 @@ func (s *AnalyzeSummary) calculateArchitecturePenalty() int {
 	return int(math.Round(float64(MaxArchPenalty) * (1 - comp)))
 }
 
+// clamp01 bounds a value to the [0, 1] interval.
+func clamp01(v float64) float64 {
+	if v < 0 {
+		return 0
+	}
+	if v > 1 {
+		return 1
+	}
+	return v
+}
+
+// communityRiskInputs collects the raw signals used to derive the community
+// risk score. It is shared by the AnalyzeSummary path (health scoring) and the
+// CommunityAnalysisResult path (standalone community command) so both produce
+// identical numbers.
+type communityRiskInputs struct {
+	communityCount   int
+	modularity       float64
+	bridgeModules    int
+	internalEdges    int
+	crossEdges       int
+	packageAlignment *float64 // nil when package metadata is unavailable
+	layerAlignment   *float64 // nil when architecture layers are not configured
+}
+
+// computeCommunityRiskRatio blends the community risk factors into a single
+// 0..1 ratio (0 = healthy, 1 = worst). Optional factors (package/layer
+// alignment) are only included when available, and the weighted average is
+// renormalised over whichever factors contributed. See docs/ANALYZE_SCORING.md.
+func computeCommunityRiskRatio(in communityRiskInputs) float64 {
+	var weightedSum, totalWeight float64
+
+	// Low modularity Q: risk rises as Q falls below the "good separation" target.
+	modularityRisk := clamp01((CommunityModularityTarget - in.modularity) / CommunityModularityTarget)
+	weightedSum += CommunityModularityWeight * modularityRisk
+	totalWeight += CommunityModularityWeight
+
+	// Cross-community edge ratio: how tangled the partitions are. This also
+	// captures the aggregate external_dependency_ratio at the system level.
+	if denom := in.internalEdges + in.crossEdges; denom > 0 {
+		crossRatio := float64(in.crossEdges) / float64(denom)
+		crossRisk := clamp01(crossRatio / CommunityCrossEdgeSaturation)
+		weightedSum += CommunityCrossEdgeWeight * crossRisk
+		totalWeight += CommunityCrossEdgeWeight
+	}
+
+	// Bridge modules: count relative to the number of communities, saturating at
+	// roughly one bridge module per community.
+	if in.communityCount > 0 {
+		bridgeRisk := clamp01(float64(in.bridgeModules) / float64(in.communityCount))
+		weightedSum += CommunityBridgeWeight * bridgeRisk
+		totalWeight += CommunityBridgeWeight
+	}
+
+	// Low package alignment (when available).
+	if in.packageAlignment != nil {
+		weightedSum += CommunityPackageWeight * clamp01(1-*in.packageAlignment)
+		totalWeight += CommunityPackageWeight
+	}
+
+	// Low layer alignment (when available).
+	if in.layerAlignment != nil {
+		weightedSum += CommunityLayerWeight * clamp01(1-*in.layerAlignment)
+		totalWeight += CommunityLayerWeight
+	}
+
+	if totalWeight == 0 {
+		return 0
+	}
+	return weightedSum / totalWeight
+}
+
+// communityRiskRatio returns the system community risk ratio (0..1) for the
+// summary and whether community scoring applies. Scoring is skipped unless
+// communities ran and at least two communities were detected (a single
+// community has no meaningful modular structure to score).
+func (s *AnalyzeSummary) communityRiskRatio() (float64, bool) {
+	if !s.CommunitiesEnabled || s.CommunityCount < 2 {
+		return 0, false
+	}
+	return computeCommunityRiskRatio(communityRiskInputs{
+		communityCount:   s.CommunityCount,
+		modularity:       s.CommunityModularity,
+		bridgeModules:    s.CommunityBridgeModules,
+		internalEdges:    s.CommunityInternalEdges,
+		crossEdges:       s.CommunityCrossEdges,
+		packageAlignment: s.CommunityPackageAlignment,
+		layerAlignment:   s.CommunityLayerAlignment,
+	}), true
+}
+
 // normalizeToScoreBase normalizes a penalty value to the MaxScoreBase scale (0-20)
 // This ensures all category scores use a consistent display scale
 func normalizeToScoreBase(penalty int, maxPenalty int) int {
@@ -502,6 +643,8 @@ func (s *AnalyzeSummary) CalculateHealthScore() error {
 		s.CohesionScore = 0
 		s.DependencyScore = 0
 		s.ArchitectureScore = 0
+		s.CommunityScore = 0
+		s.CommunityRiskScore = 0
 		return fmt.Errorf("invalid summary data: %w", err)
 	}
 	score := 100
@@ -545,6 +688,18 @@ func (s *AnalyzeSummary) CalculateHealthScore() error {
 	// Use compliance directly as score (98% compliance = 98 points)
 	s.ArchitectureScore = int(math.Round(s.ArchCompliance * 100))
 	score -= architecturePenalty
+
+	// Community detection: only penalises when communities ran with >= 2
+	// communities. Disabled or trivial cases score 100 / risk 0 so existing
+	// grades are unaffected (backward compatible).
+	if communityRatio, scored := s.communityRiskRatio(); scored {
+		s.CommunityRiskScore = int(math.Round(communityRatio * 100))
+		s.CommunityScore = 100 - s.CommunityRiskScore
+		score -= int(math.Round(communityRatio * float64(MaxCommunityPenalty)))
+	} else {
+		s.CommunityScore = 100
+		s.CommunityRiskScore = 0
+	}
 
 	// Minimum score floor
 	if score < MinimumScore {

@@ -63,6 +63,8 @@ Constructor and collaborator patterns that hurt testability.
 
 Import graph problems: cycles, long chains, layer violations.
 
+Community detection clusters modules by import topology and surfaces bridge modules between clusters. It is an analysis, not a pass/fail rule — see [Module Community Detection](../guides/module-community-detection.md).
+
 | Rule | Severity |
 | ---- | -------- |
 | [`circular-import`](circular-import.md) | By cycle size |

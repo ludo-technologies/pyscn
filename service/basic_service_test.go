@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -143,11 +144,16 @@ func TestCloneService_Basic(t *testing.T) {
 	})
 
 	// Test statistics creation
-	t.Run("createStatistics handles empty data", func(t *testing.T) {
+	t.Run("buildCloneStatistics handles empty data", func(t *testing.T) {
 		var pairs []*domain.ClonePair
 		var groups []*domain.CloneGroup
 
-		stats := service.createStatistics(pairs, groups, 0, 0, 0, 0)
+		result := &analyzer.CloneDetectionResult{
+			Pairs:      []*analyzer.ClonePair{},
+			Groups:     []*analyzer.CloneGroup{},
+			Statistics: &analyzer.CloneDetectionStatistics{TotalFragments: 0},
+		}
+		stats := service.buildCloneStatistics(result, pairs, groups, 0, 0, 0)
 
 		assert.Equal(t, 0, stats.TotalFragments)
 		assert.Equal(t, 0, stats.TotalClones)

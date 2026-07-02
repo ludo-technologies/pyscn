@@ -31,13 +31,14 @@ type AnalyzeCommand struct {
 	verbose    bool
 
 	// Analysis selection
-	skipComplexity bool
-	skipDeadCode   bool
-	skipClones     bool
-	skipCBO        bool
-	skipLCOM       bool
-	skipSystem     bool
-	selectAnalyses []string // Only run specified analyses
+	skipComplexity  bool
+	skipDeadCode    bool
+	skipClones      bool
+	skipCBO         bool
+	skipLCOM        bool
+	skipSystem      bool
+	skipCommunities bool
+	selectAnalyses  []string // Only run specified analyses
 
 	// Quick filters
 	minComplexity   int
@@ -131,7 +132,8 @@ Examples:
 	cmd.Flags().BoolVar(&c.skipCBO, "skip-cbo", false, "Skip class coupling (CBO) analysis")
 	cmd.Flags().BoolVar(&c.skipLCOM, "skip-lcom", false, "Skip class cohesion (LCOM4) analysis")
 	cmd.Flags().BoolVar(&c.skipSystem, "skip-deps", false, "Skip module dependencies and architecture analysis")
-	cmd.Flags().StringSliceVar(&c.selectAnalyses, "select", []string{}, "Only run specified analyses (complexity,deadcode,clones,cbo,lcom,deps)")
+	cmd.Flags().BoolVar(&c.skipCommunities, "skip-communities", false, "Skip module community detection")
+	cmd.Flags().StringSliceVar(&c.selectAnalyses, "select", []string{}, "Only run specified analyses (complexity,deadcode,clones,cbo,lcom,deps,communities)")
 
 	// Quick filter flags
 	cmd.Flags().IntVar(&c.minComplexity, "min-complexity", 5, "Minimum complexity to report")
@@ -197,24 +199,19 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 // createUseCaseConfig creates the use case configuration from command flags
 func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 	config := app.AnalyzeUseCaseConfig{
-		ConfigFile:      c.configFile,
-		Verbose:         c.verbose,
-		MinComplexity:   c.minComplexity,
-		CloneSimilarity: c.cloneSimilarity,
-		MinCBO:          c.minCBO,
-		EnableDFA:       c.enableDFA,
+		ConfigFile:              c.configFile,
+		Verbose:                 c.verbose,
+		MinComplexity:           c.minComplexity,
+		CloneSimilarity:         c.cloneSimilarity,
+		MinCBO:                  c.minCBO,
+		EnableDFA:               c.enableDFA,
+		SkipCommunities:         false,
+		SkipCommunitiesExplicit: c.skipCommunities,
 	}
+	config = app.ApplyAnalyzeSelection(config, c.selectAnalyses)
 
 	// Handle analysis selection
-	if len(c.selectAnalyses) > 0 {
-		// If --select is used, only run selected analyses
-		config.SkipComplexity = !c.containsAnalysis("complexity")
-		config.SkipDeadCode = !c.containsAnalysis("deadcode")
-		config.SkipClones = !c.containsAnalysis("clones")
-		config.SkipCBO = !c.containsAnalysis("cbo")
-		config.SkipLCOM = !c.containsAnalysis("lcom")
-		config.SkipSystem = !c.containsAnalysis("deps")
-	} else {
+	if len(c.selectAnalyses) == 0 {
 		// Otherwise use skip flags
 		config.SkipComplexity = c.skipComplexity
 		config.SkipDeadCode = c.skipDeadCode
@@ -229,6 +226,9 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 	config.SkipCBO = config.SkipCBO || c.skipCBO
 	config.SkipLCOM = config.SkipLCOM || c.skipLCOM
 	config.SkipSystem = config.SkipSystem || c.skipSystem
+	if c.skipCommunities {
+		config.SkipCommunities = true
+	}
 
 	// Parse severity
 	switch c.minSeverity {
@@ -371,6 +371,21 @@ func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuil
 	}
 	builder.WithSystemUseCase(systemUseCase)
 
+	// Community analysis use case
+	communityService := service.NewCommunityAnalysisService()
+	communityFormatter := service.NewCommunityFormatter()
+	communityConfigLoader := service.NewCommunityConfigurationLoader()
+	communityUseCase, err := app.NewCommunityUseCaseBuilder().
+		WithService(communityService).
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(communityFormatter).
+		WithConfigLoader(communityConfigLoader).
+		Build()
+	if err != nil {
+		return fmt.Errorf("failed to build community analysis use case: %w", err)
+	}
+	builder.WithCommunityUseCase(communityUseCase)
+
 	return nil
 }
 
@@ -402,9 +417,14 @@ func (c *AnalyzeCommand) generateOutput(cmd *cobra.Command, response *domain.Ana
 	}
 	defer file.Close()
 
-	// Write the unified report
+	// Write standalone community JSON when only communities were selected.
 	formatType := domain.OutputFormat(format)
-	if err := formatter.Write(response, formatType, file); err != nil {
+	if c.shouldWriteStandaloneCommunityJSON(response) {
+		communityFormatter := service.NewCommunityFormatter()
+		if err := communityFormatter.Write(response.Communities, formatType, file); err != nil {
+			return fmt.Errorf("failed to write community analysis report: %w", err)
+		}
+	} else if err := formatter.Write(response, formatType, file); err != nil {
 		return fmt.Errorf("failed to write unified report: %w", err)
 	}
 
@@ -604,6 +624,16 @@ func (c *AnalyzeCommand) shouldUseProgressBars(cmd *cobra.Command) bool {
 	return false
 }
 
+// shouldWriteStandaloneCommunityJSON returns true when community analysis is the
+// only selected analyzer and JSON output is requested.
+func (c *AnalyzeCommand) shouldWriteStandaloneCommunityJSON(response *domain.AnalyzeResponse) bool {
+	return c.json &&
+		len(c.selectAnalyses) == 1 &&
+		c.containsAnalysis("communities") &&
+		response != nil &&
+		response.Communities != nil
+}
+
 // containsAnalysis checks if the given analysis is in the selectAnalyses list
 func (c *AnalyzeCommand) containsAnalysis(analysis string) bool {
 	for _, a := range c.selectAnalyses {
@@ -616,16 +646,17 @@ func (c *AnalyzeCommand) containsAnalysis(analysis string) bool {
 
 func (c *AnalyzeCommand) validateSelectedAnalyses() error {
 	validAnalyses := map[string]bool{
-		"complexity": true,
-		"deadcode":   true,
-		"clones":     true,
-		"cbo":        true,
-		"lcom":       true,
-		"deps":       true,
+		"complexity":  true,
+		"deadcode":    true,
+		"clones":      true,
+		"cbo":         true,
+		"lcom":        true,
+		"deps":        true,
+		"communities": true,
 	}
 	for _, analysis := range c.selectAnalyses {
 		if !validAnalyses[strings.ToLower(analysis)] {
-			return fmt.Errorf("invalid analysis type: %s. Valid options: complexity, deadcode, clones, cbo, lcom, deps", analysis)
+			return fmt.Errorf("invalid analysis type: %s. Valid options: complexity, deadcode, clones, cbo, lcom, deps, communities", analysis)
 		}
 	}
 	return nil

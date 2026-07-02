@@ -762,6 +762,17 @@ func (a *CBOAnalyzer) callDependencyName(className string, allClasses map[string
 	}
 	imported := a.isImportedDependency(className)
 	parts := strings.Split(className, ".")
+
+	// Enum members and other class constants are attribute reads on the imported
+	// class, not distinct classes. Prefer the imported class binding before the
+	// generic dotted-name heuristic has a chance to treat ALL_CAPS members as
+	// CapWords-style class references.
+	if imported && len(parts) > 1 {
+		if binding := parts[0]; a.isImportedDependency(binding) && a.looksLikeClassReference(binding) {
+			return binding
+		}
+	}
+
 	for end := len(parts); end > 0; end-- {
 		prefix := strings.Join(parts[:end], ".")
 		if _, isClass := allClasses[prefix]; isClass {

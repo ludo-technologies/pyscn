@@ -52,6 +52,18 @@ func runToolTest(
 
 	t.Helper()
 	configFile := setupConfig(t)
+	return runToolTestWithConfig(t, setupFS, arguments, configFile, handlerFunc)
+}
+
+func runToolTestWithConfig(
+	t *testing.T,
+	setupFS func(t *testing.T) string,
+	arguments interface{},
+	configFile string,
+	handlerFunc func(*mcp.HandlerSet, context.Context, mcplib.CallToolRequest) (*mcplib.CallToolResult, error),
+) *mcplib.CallToolResult {
+
+	t.Helper()
 	deps := mcp.NewTestDependencies(service.NewFileReader(), nil, configFile)
 	h := mcp.NewHandlerSet(deps)
 
@@ -76,6 +88,15 @@ func runToolTest(
 	require.NoError(t, err)
 
 	return res
+}
+
+func setupCommunitiesDisabledConfig(t *testing.T) string {
+	t.Helper()
+	configDir := t.TempDir()
+	configFile := filepath.Join(configDir, ".pyscn.toml")
+	err := os.WriteFile(configFile, []byte("[communities]\nenabled = false\n"), 0o644)
+	require.NoError(t, err)
+	return configFile
 }
 
 func TestHandleAnalyzeCode(t *testing.T) {
@@ -153,6 +174,37 @@ func TestHandleAnalyzeCode(t *testing.T) {
 				},
 			},
 		},
+		"communities_full_context_map": {
+			args: args{
+				setupFS: func(t *testing.T) string {
+					rootDir, err := os.Getwd()
+					require.NoError(t, err)
+					return filepath.Join(filepath.Dir(rootDir), "testdata", "python", "community_bridge")
+				},
+				arguments: map[string]interface{}{
+					"analyses":    []interface{}{"communities"},
+					"output_mode": "full",
+				},
+			},
+			want: want{
+				isError: &errFalse,
+				check: func(t *testing.T, res *mcplib.CallToolResult) {
+					text := mcplib.GetTextFromContent(res.Content[0])
+					var result map[string]interface{}
+					require.NoError(t, json.Unmarshal([]byte(text), &result))
+
+					community, ok := result["community_analysis"].(map[string]interface{})
+					require.True(t, ok, "expected community_analysis in full output")
+
+					contextMap, ok := community["community_context_map"].(map[string]interface{})
+					require.True(t, ok, "expected community_context_map in community_analysis")
+					assert.Equal(t, float64(1), contextMap["version"])
+					bundles, ok := contextMap["bundles"].([]interface{})
+					require.True(t, ok)
+					assert.NotEmpty(t, bundles)
+				},
+			},
+		},
 		"analyses_complexity_only": {
 			args: args{
 				setupFS: func(t *testing.T) string { return setupTestFile(t, "classes.py") },
@@ -199,6 +251,35 @@ func TestHandleAnalyzeCode(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHandleAnalyzeCodeExplicitCommunitiesOverrideDisabledConfig(t *testing.T) {
+	t.Parallel()
+
+	fixtureRoot := func(t *testing.T) string {
+		rootDir, err := os.Getwd()
+		require.NoError(t, err)
+		return filepath.Join(filepath.Dir(rootDir), "testdata", "python", "community_bridge")
+	}
+	arguments := map[string]interface{}{
+		"analyses":    []interface{}{"communities"},
+		"output_mode": "full",
+	}
+
+	res := runToolTestWithConfig(
+		t,
+		fixtureRoot,
+		arguments,
+		setupCommunitiesDisabledConfig(t),
+		(*mcp.HandlerSet).HandleAnalyzeCode,
+	)
+
+	require.False(t, res.IsError)
+	require.Greater(t, len(res.Content), 0)
+	text := mcplib.GetTextFromContent(res.Content[0])
+	var result map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(text), &result))
+	require.Contains(t, result, "community_analysis")
 }
 
 func TestHandleCheckComplexity(t *testing.T) {

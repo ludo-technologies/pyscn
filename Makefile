@@ -18,7 +18,7 @@ GREEN := \033[0;32m
 YELLOW := \033[1;33m
 NC := \033[0m # No Color
 
-.PHONY: all build test clean install run version help build-python python-wheel python-test python-clean build-mcp install-mcp clean-mcp docs-serve docs-build
+.PHONY: all build test clean install run version help build-python python-wheel python-test python-clean build-mcp install-mcp clean-mcp docs-serve docs-build bench-communities
 
 ## help: Show this help message
 help:
@@ -47,6 +47,11 @@ test:
 bench:
 	@printf "$(GREEN)Running benchmarks...$(NC)\n"
 	go test -bench=. -benchmem ./...
+
+## bench-communities: Run community detection graduation benchmarks
+bench-communities:
+	@printf "$(GREEN)Running community detection benchmarks...$(NC)\n"
+	go test -run '^$$' -bench 'BenchmarkDetectCommunitiesLeiden_MediumGraph' -benchmem -count=10 ./internal/analyzer
 
 ## coverage: Generate coverage report
 coverage:

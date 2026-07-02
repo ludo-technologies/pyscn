@@ -19,6 +19,7 @@ By default `analyze` runs every enabled analyzer concurrently:
 - Class cohesion (LCOM4)
 - Module dependencies
 - Architecture layer validation
+- Module community detection
 
 Results are combined into a single report with a [Health Score](../output/health-score.md).
 
@@ -42,13 +43,14 @@ Output files land in `.pyscn/reports/` by default, named `analyze_YYYYMMDD_HHMMS
 
 | Flag | Description |
 | --- | --- |
-| `--select <list>` | Only run the listed analyses. Comma-separated: `complexity,deadcode,clones,cbo,lcom,deps`. |
+| `--select <list>` | Only run the listed analyses. Comma-separated: `complexity,deadcode,clones,cbo,lcom,deps,communities`. |
 | `--skip-complexity` | Skip complexity analysis. |
 | `--skip-deadcode`   | Skip dead code detection. |
 | `--skip-clones`     | Skip clone detection (the slowest analysis). |
 | `--skip-cbo`        | Skip class coupling analysis. |
 | `--skip-lcom`       | Skip class cohesion analysis. |
 | `--skip-deps`       | Skip module dependency analysis. |
+| `--skip-communities` | Skip module community detection. |
 
 `--select` and `--skip-*` can be combined; selection applies first, then skips.
 
@@ -92,6 +94,9 @@ pyscn analyze --skip-clones src/
 # Only complexity and dead code
 pyscn analyze --select complexity,deadcode src/
 
+# Module community detection (standalone JSON)
+pyscn analyze --json --select communities src/
+
 # Stricter thresholds
 pyscn analyze --min-complexity 10 --min-severity critical src/
 
@@ -113,5 +118,6 @@ pyscn analyze --no-open .
 ## See also
 
 - [Configuration Reference](../configuration/reference.md) — every knob.
+- [Module Community Detection](../guides/module-community-detection.md) — interpret communities, bridge modules, and modularity.
 - [Health Score](../output/health-score.md) — how the 0–100 number is computed.
 - [Output Schemas](../output/schemas.md) — JSON / YAML / CSV field definitions.
