@@ -1,13 +1,13 @@
 ---
 name: cli-analysis
-description: Run the pyscn command-line tool for Python code quality analysis - CI/CD quality gates, HTML/JSON/CSV reports, and full analysis runs. Use when the pyscn MCP tools are unavailable, or when user wants a CI check, a shareable report file, or to configure pyscn for a project.
+description: Run the pyscn command-line tool for Python code quality analysis - CI/CD quality gates, HTML/JSON/CSV reports, full analysis runs, and project configuration. Use when user wants a CI check, a shareable report file, or to configure pyscn for a project.
 ---
 
 # Python Code Quality Analysis with the pyscn CLI
 
-Use the `pyscn` command-line tool when MCP tools are not connected or when the task needs report files, CI integration, or project configuration.
+Use the `pyscn` command-line tool when the task needs report files, CI integration, or project configuration.
 
-Install if missing: `pip install pyscn` (or `uvx pyscn <command>` without installing).
+No install needed: `uvx pyscn@latest <command>` (or `pip install pyscn` for a permanent install).
 
 ## Commands
 

@@ -46,13 +46,19 @@ https://github.com/user-attachments/assets/71d7a126-9c5e-4254-99f4-f2cdedd526ad
 
 **100 000+ lignes/s** • Construit avec Go + tree-sitter
 
-## Intégration MCP
+## Intégration avec les agents IA
 
-Exécutez les analyses pyscn directement depuis vos assistants de codage IA via le Model Context Protocol (MCP). Le serveur `pyscn-mcp` intégré expose les mêmes outils que le CLI à Claude Code, Cursor, ChatGPT et autres clients MCP.
+pyscn fournit des Agent Skills qui apprennent aux agents de codage IA quand et comment lancer chaque analyse : bilan de santé, refactorisation, revue d'architecture et rapports adaptés à la CI.
 
-### Cas d'usage MCP
+### Agent Skills (recommandé)
 
-Vous pouvez interagir avec pyscn via vos outils de codage IA :
+```bash
+uvx add-skills ludo-technologies/pyscn
+```
+
+Cette commande installe les Skills dans votre projet. Elles fonctionnent avec Claude Code, Cursor, Codex, Gemini CLI et [de nombreux autres agents](https://github.com/ludo-technologies/add-skills) (ajoutez `--agent cursor` pour cibler un agent, `--global` pour tous vos projets).
+
+Il suffit ensuite de demander à votre agent :
 
 1. « Analyse la qualité du code du répertoire app/ »
 
@@ -60,26 +66,24 @@ Vous pouvez interagir avec pyscn via vos outils de codage IA :
 
 3. « Montre-moi le code complexe et aide-moi à le simplifier »
 
-### Configuration Claude Code
+### Serveur MCP (optionnel)
 
-**Option 1 : Installation via le marketplace de plugins (recommandé)**
+Pour une intégration plus poussée, le serveur `pyscn-mcp` intégré expose les mêmes analyses sous forme d'outils MCP à Claude Code, Cursor, ChatGPT et autres clients MCP.
+
+**Plugin Claude Code (configure le serveur MCP et les Skills ensemble) :**
 
 ```bash
 claude plugin marketplace add ludo-technologies/pyscn
 claude plugin install pyscn-mcp@pyscn-marketplace
 ```
 
-Le plugin configure le serveur MCP et ajoute aussi des Agent Skills qui apprennent à Claude quand utiliser chaque analyse : bilan de santé, refactorisation, revue d'architecture et utilisation du CLI pour la CI et les rapports.
-
-**Option 2 : Configuration MCP manuelle**
+**Configuration manuelle pour Claude Code :**
 
 ```bash
 claude mcp add pyscn-mcp uvx -- pyscn-mcp
 ```
 
-### Configuration Cursor / Claude Desktop
-
-Ajoutez à vos paramètres MCP (`~/.config/claude-desktop/config.json` ou les paramètres Cursor) :
+**Cursor / Claude Desktop :** ajoutez à vos paramètres MCP (`~/.config/claude-desktop/config.json` ou les paramètres Cursor) :
 
 ```json
 {
@@ -94,8 +98,6 @@ Ajoutez à vos paramètres MCP (`~/.config/claude-desktop/config.json` ou les pa
   }
 }
 ```
-
-Des instructions comme « Analyse la qualité du code » déclenchent pyscn via MCP.
 
 Consultez `mcp/README.md` pour les guides de configuration et `docs/MCP_INTEGRATION.md` pour les détails d'architecture.
 
