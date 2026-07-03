@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.26.0] - 2026-07-03
 
 ### Added
 - Add `cli-analysis` Agent Skill for CI setup and report generation without MCP
@@ -11,6 +11,7 @@
 ### Fixed
 - Move the plugin skill into `skills/<name>/SKILL.md` so Claude Code discovers it; the previous flat `skills/SKILL.md` layout was never loaded
 - Document the plugin install path on the website MCP page and correct the Claude Code setup instructions (`claude mcp add`, not `claude_desktop_config.json`)
+- Don't count a class defined within a class as CBO coupling (#562)
 
 ## [1.25.0] - 2026-07-02
 
