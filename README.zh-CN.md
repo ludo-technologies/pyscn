@@ -69,6 +69,8 @@ claude plugin marketplace add ludo-technologies/pyscn
 claude plugin install pyscn-mcp@pyscn-marketplace
 ```
 
+插件除了配置 MCP 服务器外，还会添加 Agent Skills，教 Claude 何时使用各项分析：健康检查、重构、架构评审，以及面向 CI 和报告的 CLI 用法。
+
 **选项 2：手动 MCP 配置**
 
 ```bash

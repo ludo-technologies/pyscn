@@ -21,6 +21,17 @@ pyscn MCP Server exposes pyscn's code analysis capabilities as MCP tools, allowi
 
 ## Quick Start
 
+### Claude Code: Plugin Install (Recommended)
+
+For Claude Code, install the plugin. It registers the MCP server and also adds Agent Skills that teach Claude when to use each analysis:
+
+```bash
+claude plugin marketplace add ludo-technologies/pyscn
+claude plugin install pyscn-mcp@pyscn-marketplace
+```
+
+For other MCP clients, or to set up only the MCP server, use one of the options below.
+
 ### Option 1: Using uvx (Recommended)
 
 The simplest way to use pyscn-mcp is with `uvx`, which automatically handles installation and execution:

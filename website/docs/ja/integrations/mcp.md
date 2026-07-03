@@ -26,7 +26,22 @@
 
 ## クライアント設定
 
-### Claude Code / Claude Desktop
+### Claude Code
+
+推奨はプラグインでのセットアップです。MCP サーバーに加えて、各分析の使いどころを Claude に教える Agent Skills もインストールされます:
+
+```bash
+claude plugin marketplace add ludo-technologies/pyscn
+claude plugin install pyscn-mcp@pyscn-marketplace
+```
+
+MCP サーバーのみをセットアップする場合:
+
+```bash
+claude mcp add pyscn-mcp uvx -- pyscn-mcp
+```
+
+### Claude Desktop
 
 `~/Library/Application Support/Claude/claude_desktop_config.json`（macOS）または `%APPDATA%/Claude/claude_desktop_config.json`（Windows）を編集します:
 

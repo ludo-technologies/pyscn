@@ -26,7 +26,22 @@
 
 ## 客户端配置
 
-### Claude Code / Claude Desktop
+### Claude Code
+
+推荐通过插件配置。插件会安装 MCP 服务器，并附带 Agent Skills，教 Claude 何时使用各项分析：
+
+```bash
+claude plugin marketplace add ludo-technologies/pyscn
+claude plugin install pyscn-mcp@pyscn-marketplace
+```
+
+如只需配置 MCP 服务器：
+
+```bash
+claude mcp add pyscn-mcp uvx -- pyscn-mcp
+```
+
+### Claude Desktop
 
 编辑 `~/Library/Application Support/Claude/claude_desktop_config.json`（macOS）或 `%APPDATA%/Claude/claude_desktop_config.json`（Windows）：
 

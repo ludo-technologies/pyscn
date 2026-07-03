@@ -69,6 +69,8 @@ claude plugin marketplace add ludo-technologies/pyscn
 claude plugin install pyscn-mcp@pyscn-marketplace
 ```
 
+The plugin sets up the MCP server and also adds Agent Skills that teach Claude when to use each analysis: health checks, refactoring, architecture review, and CLI usage for CI and reports.
+
 **Option 2: Manual MCP Setup**
 
 ```bash
