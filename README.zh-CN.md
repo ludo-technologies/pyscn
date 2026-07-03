@@ -46,13 +46,19 @@ https://github.com/user-attachments/assets/71d7a126-9c5e-4254-99f4-f2cdedd526ad
 
 **100,000+ 行/秒** • 基于 Go + tree-sitter 构建
 
-## MCP 集成
+## AI 智能体集成
 
-通过 Model Context Protocol（MCP）直接从 AI 编程助手运行 pyscn 分析。内置的 `pyscn-mcp` 服务器将 CLI 使用的相同工具暴露给 Claude Code、Cursor、ChatGPT 及其他 MCP 客户端。
+pyscn 内置 Agent Skills，教 AI 编程智能体何时以及如何运行各项分析：健康检查、重构、架构评审，以及面向 CI 的报告。
 
-### MCP 使用场景
+### Agent Skills（推荐）
 
-你可以通过 AI 编程工具与 pyscn 交互：
+```bash
+uvx add-skills ludo-technologies/pyscn
+```
+
+该命令会将 Skills 安装到你的项目中。支持 Claude Code、Cursor、Codex、Gemini CLI 等[众多智能体](https://github.com/ludo-technologies/add-skills)（用 `--agent cursor` 等指定目标，用 `--global` 安装到所有项目）。
+
+然后直接向你的智能体提问：
 
 1. "分析 app/ 目录的代码质量"
 
@@ -60,26 +66,24 @@ https://github.com/user-attachments/assets/71d7a126-9c5e-4254-99f4-f2cdedd526ad
 
 3. "展示复杂代码并帮我简化"
 
-### Claude Code 配置
+### MCP 服务器（可选）
 
-**选项 1：通过插件市场安装（推荐）**
+如需更深度的集成，内置的 `pyscn-mcp` 服务器会将相同的分析以 MCP 工具的形式暴露给 Claude Code、Cursor、ChatGPT 及其他 MCP 客户端。
+
+**Claude Code 插件（同时配置 MCP 服务器和 Skills）：**
 
 ```bash
 claude plugin marketplace add ludo-technologies/pyscn
 claude plugin install pyscn-mcp@pyscn-marketplace
 ```
 
-插件除了配置 MCP 服务器外，还会添加 Agent Skills，教 Claude 何时使用各项分析：健康检查、重构、架构评审，以及面向 CI 和报告的 CLI 用法。
-
-**选项 2：手动 MCP 配置**
+**Claude Code 手动配置：**
 
 ```bash
 claude mcp add pyscn-mcp uvx -- pyscn-mcp
 ```
 
-### Cursor / Claude Desktop 配置
-
-添加到 MCP 设置（`~/.config/claude-desktop/config.json` 或 Cursor 设置）：
+**Cursor / Claude Desktop：** 添加到 MCP 设置（`~/.config/claude-desktop/config.json` 或 Cursor 设置）：
 
 ```json
 {
@@ -94,8 +98,6 @@ claude mcp add pyscn-mcp uvx -- pyscn-mcp
   }
 }
 ```
-
-"分析代码质量"等指令会通过 MCP 触发 pyscn。
 
 详细配置步骤请参阅 `mcp/README.md`，架构详情请参阅 `docs/MCP_INTEGRATION.md`。
 

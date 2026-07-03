@@ -1,32 +1,27 @@
 ---
 name: health-check
-description: Get an overall Python code quality health score using pyscn MCP tools. Use when user asks how healthy or good the code is, wants a quality overview, a grade, a summary of technical debt, or a before/after quality comparison.
+description: Get an overall Python code quality health score using pyscn. Use when user asks how healthy or good the code is, wants a quality overview, a grade, a summary of technical debt, or a before/after quality comparison.
 ---
 
-# Python Code Health Check with pyscn MCP
+# Python Code Health Check with pyscn
 
-Use the pyscn MCP tools to give a quick, quantified picture of code quality.
+Run the pyscn CLI to give a quick, quantified picture of code quality. No install needed:
 
-## Tools
+```bash
+uvx pyscn@latest analyze <path>
+```
 
-| Tool | Purpose |
-|------|---------|
-| `get_health_score` | Overall code health score (0-100) with letter grade (A-F) |
-| `analyze_code` | Comprehensive analysis; `output_mode: "summary"` gives health score plus high-level metrics per category |
+The summary output includes a health score (0-100), a letter grade (A-F), and per-category metrics.
 
-## Tool Selection
+## Commands
 
-| User Request | Tool |
-|-------------|------|
-| "How healthy is this code?" | `get_health_score` |
-| "Give me a quality overview" | `analyze_code` (defaults) |
-| "Did my refactoring improve quality?" | `get_health_score` before and after, compare |
+| User Request | Command |
+|-------------|---------|
+| "How healthy is this code?" | `uvx pyscn@latest analyze <path>` |
+| "Give me a quality overview" | Same command; walk through the category breakdown |
+| "Did my refactoring improve quality?" | Run before and after, compare scores |
 
-## Parameters
-
-- `path` (required): Path to Python file or directory
-- `recursive` (analyze_code): Recursively analyze directories (default: true)
-- `output_mode` (analyze_code): `summary` (default) or `full`
+For machine-readable detail add `--json`. **Report files are NOT written to stdout.** They go to `.pyscn/reports/` under the current working directory and the path is printed on completion; read that file.
 
 ## Interpreting Results
 
@@ -35,3 +30,7 @@ Use the pyscn MCP tools to give a quick, quantified picture of code quality.
 - For deeper follow-up, hand off to the focused skills: refactoring targets → `refactoring`, module structure → `architecture-review`.
 
 Always explain the score in plain terms and suggest the highest-impact next step.
+
+## MCP Alternative
+
+If the `pyscn-mcp` MCP server is connected, you can use its tools instead of the CLI: `get_health_score` (score + grade) or `analyze_code` (`output_mode: "summary"` gives the health score plus high-level metrics per category). Results are returned inline with no report files.

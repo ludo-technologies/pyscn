@@ -46,13 +46,19 @@ https://github.com/user-attachments/assets/71d7a126-9c5e-4254-99f4-f2cdedd526ad
 
 **100,000+ lines/sec** • Built with Go + tree-sitter
 
-## MCP Integration
+## AI Agent Integration
 
-Run pyscn analyses straight from AI coding assistants via the Model Context Protocol (MCP). The bundled `pyscn-mcp` server exposes the same tools used in the CLI to Claude Code, Cursor, ChatGPT, and other MCP clients.
+pyscn ships Agent Skills that teach AI coding agents when and how to run each analysis: health checks, refactoring, architecture review, and CI-friendly reports.
 
-### MCP Use Cases
+### Agent Skills (Recommended)
 
-You can interact with pyscn with your AI coding tools:
+```bash
+uvx add-skills ludo-technologies/pyscn
+```
+
+This installs the Skills into your project. They work with Claude Code, Cursor, Codex, Gemini CLI, and [many other agents](https://github.com/ludo-technologies/add-skills) (add `--agent cursor` etc. to target one, `--global` for all projects).
+
+Then just ask your agent:
 
 1. "Analyze the code quality of the app/ directory"
 
@@ -60,26 +66,24 @@ You can interact with pyscn with your AI coding tools:
 
 3. "Show me complex code and help me simplify it"
 
-### Claude Code Setup
+### MCP Server (Optional)
 
-**Option 1: Install via Plugin Marketplace (Recommended)**
+For tighter integration, the bundled `pyscn-mcp` server exposes the same analyses as MCP tools to Claude Code, Cursor, ChatGPT, and other MCP clients.
+
+**Claude Code plugin (sets up the MCP server and the Skills together):**
 
 ```bash
 claude plugin marketplace add ludo-technologies/pyscn
 claude plugin install pyscn-mcp@pyscn-marketplace
 ```
 
-The plugin sets up the MCP server and also adds Agent Skills that teach Claude when to use each analysis: health checks, refactoring, architecture review, and CLI usage for CI and reports.
-
-**Option 2: Manual MCP Setup**
+**Manual setup for Claude Code:**
 
 ```bash
 claude mcp add pyscn-mcp uvx -- pyscn-mcp
 ```
 
-### Cursor / Claude Desktop Setup
-
-Add to your MCP settings (`~/.config/claude-desktop/config.json` or Cursor settings):
+**Cursor / Claude Desktop:** add to your MCP settings (`~/.config/claude-desktop/config.json` or Cursor settings):
 
 ```json
 {
@@ -94,8 +98,6 @@ Add to your MCP settings (`~/.config/claude-desktop/config.json` or Cursor setti
   }
 }
 ```
-
-The instructions like "Analyze the code quality" trigger pyscn via MCP.
 
 Dive deeper in `mcp/README.md` for setup walkthroughs and `docs/MCP_INTEGRATION.md` for architecture details.
 
