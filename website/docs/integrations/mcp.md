@@ -26,7 +26,22 @@ All tools accept path arguments and optional threshold overrides. Results are st
 
 ## Client configuration
 
-### Claude Code / Claude Desktop
+### Claude Code
+
+The recommended setup is the plugin. It installs the MCP server together with Agent Skills that teach Claude when to use each analysis:
+
+```bash
+claude plugin marketplace add ludo-technologies/pyscn
+claude plugin install pyscn-mcp@pyscn-marketplace
+```
+
+To set up only the MCP server:
+
+```bash
+claude mcp add pyscn-mcp uvx -- pyscn-mcp
+```
+
+### Claude Desktop
 
 Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%/Claude/claude_desktop_config.json` (Windows):
 

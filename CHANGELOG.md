@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Added
+- Add `cli-analysis` Agent Skill for CI setup and report generation without MCP
+
+### Changed
+- Split the plugin's single skill into `health-check`, `refactoring`, and `architecture-review` skills for better trigger accuracy
+
+### Fixed
+- Move the plugin skill into `skills/<name>/SKILL.md` so Claude Code discovers it; the previous flat `skills/SKILL.md` layout was never loaded
+- Document the plugin install path on the website MCP page and correct the Claude Code setup instructions (`claude mcp add`, not `claude_desktop_config.json`)
+
 ## [1.25.0] - 2026-07-02
 
 ### Added
