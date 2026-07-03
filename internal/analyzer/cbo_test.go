@@ -1212,6 +1212,224 @@ class Widget:
 }
 
 // Helper function to parse Python code into AST
+func TestCBOAnalyzer_LocalHelperClassNotCounted(t *testing.T) {
+	// Regression test for https://github.com/ludo-technologies/pyscn/issues/547
+	// A class defined inside the analyzed class's own method (including a
+	// nested function) is internal implementation, not coupling. A genuine
+	// external dependency must still be counted.
+	pythonCode := `
+class External:
+    pass
+
+class Outer:
+    def parse(self):
+        def grouper():
+            class Helper:
+                def __init__(self):
+                    self.last = None
+            return Helper()
+        return grouper()
+
+    def use_external(self) -> External:
+        return External()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
+	results, err := analyzer.AnalyzeClasses(ast, "test.py")
+	require.NoError(t, err)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range results {
+		resultMap[result.ClassName] = result
+	}
+
+	outer := resultMap["Outer"]
+	require.NotNil(t, outer)
+	assert.NotContains(t, outer.DependentClasses, "Helper", "local helper class must not count as coupling")
+	assert.Contains(t, outer.DependentClasses, "External", "genuine external coupling must still count")
+	assert.Equal(t, 1, outer.CouplingCount)
+}
+
+func TestCBOAnalyzer_SameNameClassInDifferentScopeStillCounts(t *testing.T) {
+	// Regression test for the review on #547: excluding nested classes must
+	// be scope-aware. A method-local `Helper` in parse() must not suppress a
+	// call to the top-level `Helper` from a different method, build().
+	pythonCode := `
+class Helper:
+    pass
+
+class Outer:
+    def parse(self):
+        class Helper:
+            pass
+        return Helper()
+
+    def build(self):
+        return Helper()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
+	results, err := analyzer.AnalyzeClasses(ast, "test.py")
+	require.NoError(t, err)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range results {
+		resultMap[result.ClassName] = result
+	}
+
+	outer := resultMap["Outer"]
+	require.NotNil(t, outer)
+	// parse() uses its own local Helper (internal), but build() calls the
+	// top-level Helper, which is genuine coupling.
+	assert.Contains(t, outer.DependentClasses, "Helper", "top-level Helper called from build() must count")
+	assert.Equal(t, 1, outer.CouplingCount)
+}
+
+func TestCBOAnalyzer_LocalHelperNotCountedViaAnnotation(t *testing.T) {
+	// Regression test for the second review on #547: a type annotation that
+	// resolves to a method-local class must also be excluded, not just
+	// instantiations and attribute access.
+	pythonCode := `
+class Outer:
+    def parse(self):
+        class Helper:
+            pass
+        item: Helper = Helper()
+        return item
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
+	results, err := analyzer.AnalyzeClasses(ast, "test.py")
+	require.NoError(t, err)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range results {
+		resultMap[result.ClassName] = result
+	}
+
+	outer := resultMap["Outer"]
+	require.NotNil(t, outer)
+	assert.NotContains(t, outer.DependentClasses, "Helper", "local helper referenced in an annotation must not count")
+	assert.Equal(t, 0, outer.TypeHintDependencies)
+	assert.Equal(t, 0, outer.CouplingCount)
+}
+
+func TestCBOAnalyzer_ClassBodyNestedClassInSignatureAnnotationNotCounted(t *testing.T) {
+	// Regression test for the third review on #547: a function *signature*
+	// annotation is evaluated while the class body executes, so a class-body
+	// nested class IS visible there and must be excluded. This differs from a
+	// method *body* reference, which cannot see the class-body nested class
+	// (covered by the complement test below).
+	pythonCode := `
+class Outer:
+    class Helper:
+        pass
+
+    def make(self) -> Helper:
+        return None
+
+    def take(self, h: Helper) -> None:
+        return None
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
+	results, err := analyzer.AnalyzeClasses(ast, "test.py")
+	require.NoError(t, err)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range results {
+		resultMap[result.ClassName] = result
+	}
+
+	outer := resultMap["Outer"]
+	require.NotNil(t, outer)
+	assert.NotContains(t, outer.DependentClasses, "Helper", "a class-body nested class in a signature annotation must not count as coupling")
+	assert.Equal(t, 0, outer.TypeHintDependencies)
+	assert.Equal(t, 0, outer.CouplingCount)
+}
+
+func TestCBOAnalyzer_ClassBodyNestedClassInMethodBodyStillCounts(t *testing.T) {
+	// Complement / over-exclusion guard: Python class scope does not enclose its
+	// methods, so a class-body nested class is NOT visible from a method body. A
+	// reference to it there is genuine external coupling and must still count —
+	// the asymmetry with the signature-annotation case above is the whole point.
+	pythonCode := `
+class Outer:
+    class Helper:
+        pass
+
+    def make(self):
+        return Helper()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
+	results, err := analyzer.AnalyzeClasses(ast, "test.py")
+	require.NoError(t, err)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range results {
+		resultMap[result.ClassName] = result
+	}
+
+	outer := resultMap["Outer"]
+	require.NotNil(t, outer)
+	assert.Contains(t, outer.DependentClasses, "Helper", "a method-body reference to a class-body nested class must still count as coupling")
+	assert.Equal(t, 1, outer.CouplingCount)
+}
+
+func TestCBOAnalyzer_ClassBodyNestedClassInGenericSignatureAnnotationNotCounted(t *testing.T) {
+	// The signature-annotation scope must survive the recursion through generic
+	// and union annotations, not just a bare name: list[Helper], Helper | None,
+	// and dict[str, Helper] all resolve to the class-body nested class and must
+	// be excluded. Guards the sigScope-forwarding in extractTypeAnnotationDependencies.
+	pythonCode := `
+class Outer:
+    class Helper:
+        pass
+
+    def a(self) -> list[Helper]:
+        return []
+
+    def b(self, x: Helper | None) -> None:
+        return None
+
+    def c(self) -> dict[str, Helper]:
+        return {}
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
+	results, err := analyzer.AnalyzeClasses(ast, "test.py")
+	require.NoError(t, err)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range results {
+		resultMap[result.ClassName] = result
+	}
+
+	outer := resultMap["Outer"]
+	require.NotNil(t, outer)
+	assert.NotContains(t, outer.DependentClasses, "Helper", "a class-body nested class inside a generic/union signature annotation must not count")
+	assert.Equal(t, 0, outer.CouplingCount)
+}
+
 func parseCode(code string) (*parser.Node, error) {
 	p := parser.New()
 	ctx := context.Background()
