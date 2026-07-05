@@ -124,7 +124,7 @@ func (f *FileReaderImpl) collectFromDirectory(dirPath string, recursive bool, in
 func (f *FileReaderImpl) shouldIncludeFile(path string, includePatterns, excludePatterns []string) bool {
 	// Check exclude patterns first
 	for _, pattern := range excludePatterns {
-		if matched, _ := doublestar.Match(pattern, path); matched {
+		if patternMatches(pattern, path, true) {
 			return false
 		}
 	}
@@ -136,11 +136,31 @@ func (f *FileReaderImpl) shouldIncludeFile(path string, includePatterns, exclude
 
 	// Check include patterns
 	for _, pattern := range includePatterns {
-		if matched, _ := doublestar.Match(pattern, path); matched {
+		if patternMatches(pattern, path, false) {
 			return true
 		}
 	}
 
+	return false
+}
+
+// patternMatches checks whether a glob pattern matches a file path.
+// Paths are normalized to forward slashes so directory globs behave
+// consistently across platforms. When matchBasename is true and the
+// pattern has no path separators (bare-filename patterns like "test_*.py"),
+// matching also tries the file basename so exclude patterns work at any depth.
+func patternMatches(pattern, path string, matchBasename bool) bool {
+	// ToSlash only replaces the platform separator; also fold backslashes so
+	// directory globs work for Windows-style paths on every platform.
+	normalized := strings.ReplaceAll(filepath.ToSlash(path), "\\", "/")
+	if matched, _ := doublestar.Match(pattern, normalized); matched {
+		return true
+	}
+	if matchBasename && !strings.ContainsAny(pattern, "/\\") {
+		if matched, _ := doublestar.Match(pattern, filepath.Base(normalized)); matched {
+			return true
+		}
+	}
 	return false
 }
 

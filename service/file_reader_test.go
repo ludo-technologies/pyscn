@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -239,6 +240,25 @@ func TestFileReader_CollectPythonFiles(t *testing.T) {
 			excludePatterns: []string{},
 			expectedCount:   1, // Only src/main.py
 			expectedFiles:   []string{"main.py"},
+			expectError:     false,
+		},
+		{
+			name: "default analysis exclude patterns omit nested test files",
+			setupFiles: func(t *testing.T) (string, []string) {
+				tmpDir := createTempDir(t)
+				createTestFile(t, tmpDir, "src/app.py", "def app(): pass")
+				createTestFile(t, tmpDir, "tests/plugins/test_foo.py", "def test_foo(): pass")
+				createTestFile(t, tmpDir, "pkg/utils/helper_test.py", "def test_helper(): pass")
+				createTestFile(t, tmpDir, "my_package/tests/demo.py", "def demo(): pass")
+				createTestFile(t, tmpDir, "testing/suite.py", "def suite(): pass")
+				createTestFile(t, tmpDir, "mytests/utils.py", "def util(): pass")
+				return tmpDir, []string{tmpDir}
+			},
+			recursive:       true,
+			includePatterns: []string{},
+			excludePatterns: domain.DefaultAnalysisExcludePatterns(),
+			expectedCount:   2,
+			expectedFiles:   []string{"app.py", "utils.py"},
 			expectError:     false,
 		},
 		{
@@ -544,11 +564,59 @@ func TestFileReader_shouldIncludeFile(t *testing.T) {
 		{
 			name:            "full path pattern matching",
 			path:            "/project/src/main.py",
-			includePatterns: []string{"**/main*"}, // Match on basename instead
+			includePatterns: []string{"**/main*"},
 			excludePatterns: []string{},
 			expected:        true,
 		},
-		// Skip complex path matching test - behavior depends on implementation details
+		{
+			name:            "bare test_*.py exclude matches basename in nested path",
+			path:            "tests/plugins_tests/test_certificate_info_plugin.py",
+			includePatterns: []string{},
+			excludePatterns: []string{"test_*.py"},
+			expected:        false,
+		},
+		{
+			name:            "bare *_test.py exclude matches basename in nested path",
+			path:            "pkg/utils/helper_test.py",
+			includePatterns: []string{},
+			excludePatterns: []string{"*_test.py"},
+			expected:        false,
+		},
+		{
+			name:            "directory pattern **/tests/** excludes nested test file",
+			path:            "my_package/tests/test_demo.py",
+			includePatterns: []string{},
+			excludePatterns: []string{"**/tests/**"},
+			expected:        false,
+		},
+		{
+			name:            "bare pattern does not falsely exclude non-test file with similar name",
+			path:            "mytests/utils.py",
+			includePatterns: []string{},
+			excludePatterns: []string{"**/tests/**"},
+			expected:        true,
+		},
+		{
+			name:            "directory exclude matches Windows-style nested path",
+			path:            `my_package\tests\test_demo.py`,
+			includePatterns: []string{},
+			excludePatterns: []string{"**/tests/**"},
+			expected:        false,
+		},
+		{
+			name:            "bare include pattern does not match nested basename",
+			path:            "pkg/main.py",
+			includePatterns: []string{"main*"},
+			excludePatterns: []string{},
+			expected:        false,
+		},
+		{
+			name:            "testing directory excluded by default pattern",
+			path:            "project/testing/suite.py",
+			includePatterns: []string{},
+			excludePatterns: []string{"**/testing/**"},
+			expected:        false,
+		},
 	}
 
 	for _, tt := range tests {
