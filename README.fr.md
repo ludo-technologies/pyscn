@@ -39,10 +39,15 @@ https://github.com/user-attachments/assets/71d7a126-9c5e-4254-99f4-f2cdedd526ad
 
 ## Fonctionnalités
 
-- 🔍 **Détection de code mort basée sur le CFG** – Trouve le code inatteignable après des chaînes if-elif-else exhaustives
-- 📋 **Détection de clones multi-algorithmes (Type 1-4)** – Identifie les opportunités de refactorisation avec accélération LSH
-- 🔗 **Métriques de couplage (CBO)** – Suivez la qualité architecturale et les dépendances entre modules
-- 📊 **Analyse de complexité cyclomatique** – Repérez les fonctions à découper
+Une seule commande note l'ensemble de votre base de code (0-100 avec une note de A à F) et génère un rapport HTML qui montre quoi corriger en premier.
+
+pyscn analyse votre code sous cinq angles :
+
+- 🧹 **Code mort** - le code inatteignable que vous pouvez supprimer sans risque
+- 📋 **Code dupliqué** - le code copié-collé ou structurellement similaire qui mérite d'être fusionné (détection de clones Type 1-4)
+- 🌀 **Complexité** - les fonctions difficiles à lire et à tester (complexité cyclomatique et cognitive)
+- 🏗️ **Architecture** - imports circulaires, violations de règles de couches (préréglages clean / layered / hexagonal / MVC) et détection automatique de communautés de modules qui révèlent la structure réelle de votre code
+- 🧩 **Conception des classes** - les classes qui en font trop ou dépendent de trop de choses (couplage CBO, cohésion LCOM4, anti-patterns d'injection de dépendances)
 
 **100 000+ lignes/s** • Construit avec Go + tree-sitter
 
@@ -138,6 +143,7 @@ pyscn analyze --json .                       # Générer un rapport JSON
 pyscn analyze --select complexity .          # Analyse de complexité uniquement
 pyscn analyze --select deps .                # Analyse de dépendances uniquement
 pyscn analyze --select complexity,deps,deadcode . # Analyses multiples
+pyscn analyze --skip-communities .           # Ignorer la détection de communautés de modules
 ```
 
 ### `pyscn check`

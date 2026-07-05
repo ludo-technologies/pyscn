@@ -39,10 +39,15 @@ https://github.com/user-attachments/assets/71d7a126-9c5e-4254-99f4-f2cdedd526ad
 
 ## Features
 
-- 🔍 **CFG-based dead code detection** – Find unreachable code after exhaustive if-elif-else chains
-- 📋 **Multi-algorithm clone detection (Type 1-4)** – Identify refactoring opportunities with LSH acceleration
-- 🔗 **Coupling metrics (CBO)** – Track architecture quality and module dependencies
-- 📊 **Cyclomatic complexity analysis** – Spot functions that need breaking down
+One command scores your whole codebase (0-100 with an A-F grade) and generates an HTML report that shows what to fix first.
+
+pyscn looks at your code from five angles:
+
+- 🧹 **Dead code** - unreachable code you can safely delete
+- 📋 **Duplicate code** - copy-pasted and structurally similar code worth merging (Type 1-4 clone detection)
+- 🌀 **Complexity** - functions that are hard to read and test (cyclomatic and cognitive complexity)
+- 🏗️ **Architecture** - circular imports, layer rule violations (clean / layered / hexagonal / MVC presets), and auto-detected module communities that reveal how your code is actually structured
+- 🧩 **Class design** - classes that do too much or depend on too much (CBO coupling, LCOM4 cohesion, DI anti-patterns)
 
 **100,000+ lines/sec** • Built with Go + tree-sitter
 
@@ -138,6 +143,7 @@ pyscn analyze --json .                       # Generate JSON report
 pyscn analyze --select complexity .          # Only complexity analysis
 pyscn analyze --select deps .                # Only dependency analysis
 pyscn analyze --select complexity,deps,deadcode . # Multiple analyses
+pyscn analyze --skip-communities .           # Skip module community detection
 ```
 
 ### `pyscn check`
