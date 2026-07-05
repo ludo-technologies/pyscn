@@ -39,10 +39,15 @@ https://github.com/user-attachments/assets/71d7a126-9c5e-4254-99f4-f2cdedd526ad
 
 ## 功能
 
-- 🔍 **基于 CFG 的死代码检测** – 发现穷尽 if-elif-else 链之后的不可达代码
-- 📋 **多算法克隆检测（Type 1-4）** – 借助 LSH 加速识别重构机会
-- 🔗 **耦合度指标（CBO）** – 追踪架构质量和模块依赖
-- 📊 **圈复杂度分析** – 发现需要拆分的函数
+一条命令即可为整个代码库打分（0-100 分 + A-F 等级），并生成 HTML 报告，告诉你应该先修什么。
+
+pyscn 从五个角度分析你的代码：
+
+- 🧹 **死代码** - 找出可以安全删除的不可达代码
+- 📋 **重复代码** - 检测复制粘贴和结构相似的代码，提示合并候选（Type 1-4 克隆检测）
+- 🌀 **复杂度** - 定位难读、难测试的函数（圈复杂度 + 认知复杂度）
+- 🏗️ **架构** - 发现循环导入、分层规则违规（clean / layered / hexagonal / MVC 预设），并自动检测模块社区，展示代码的实际结构
+- 🧩 **类设计** - 发现职责过多、依赖过多的类（耦合度 CBO、内聚度 LCOM4、DI 反模式）
 
 **100,000+ 行/秒** • 基于 Go + tree-sitter 构建
 
@@ -138,6 +143,7 @@ pyscn analyze --json .                       # 生成 JSON 报告
 pyscn analyze --select complexity .          # 仅复杂度分析
 pyscn analyze --select deps .                # 仅依赖分析
 pyscn analyze --select complexity,deps,deadcode . # 多项分析
+pyscn analyze --skip-communities .           # 跳过模块社区检测
 ```
 
 ### `pyscn check`
