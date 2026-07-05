@@ -47,7 +47,7 @@ pyscn analyse votre code sous cinq angles :
 - 📋 **Code dupliqué** - le code copié-collé ou structurellement similaire qui mérite d'être fusionné (détection de clones Type 1-4)
 - 🌀 **Complexité** - les fonctions difficiles à lire et à tester (complexité cyclomatique et cognitive)
 - 🏗️ **Architecture** - imports circulaires, violations de règles de couches (préréglages clean / layered / hexagonal / MVC) et détection automatique de communautés de modules qui révèlent la structure réelle de votre code
-- 🧩 **Conception des classes** - les classes qui en font trop ou dépendent de trop de choses (couplage CBO, cohésion LCOM4, anti-patterns d'injection de dépendances)
+- 🧩 **Conception des classes** - les classes qui en font trop ou dépendent de trop de choses (couplage CBO, cohésion LCOM4)
 
 **100 000+ lignes/s** • Construit avec Go + tree-sitter
 
@@ -153,6 +153,7 @@ pyscn check .                         # Vérification rapide réussite/échec
 pyscn check --max-complexity 15 .     # Seuils personnalisés
 pyscn check --max-cycles 0 .          # Autoriser uniquement 0 dépendance cyclique
 pyscn check --select deps .           # Vérifier uniquement les dépendances circulaires
+pyscn check --select di .             # Détecter les anti-patterns d'injection de dépendances (optionnel)
 pyscn check --allow-circular-deps .   # Autoriser les dépendances circulaires (avertissement uniquement)
 ```
 
