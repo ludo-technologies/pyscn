@@ -364,6 +364,7 @@ func DefaultAnalysisExcludePatterns() []string {
 		"*_test.py",
 		"**/tests/**",
 		"**/test/**",
+		"**/testing/**",
 		"**/migrations/**",
 	}
 }

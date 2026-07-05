@@ -124,7 +124,7 @@ func (f *FileReaderImpl) collectFromDirectory(dirPath string, recursive bool, in
 func (f *FileReaderImpl) shouldIncludeFile(path string, includePatterns, excludePatterns []string) bool {
 	// Check exclude patterns first
 	for _, pattern := range excludePatterns {
-		if f.patternMatches(pattern, path) {
+		if patternMatches(pattern, path, true) {
 			return false
 		}
 	}
@@ -136,7 +136,7 @@ func (f *FileReaderImpl) shouldIncludeFile(path string, includePatterns, exclude
 
 	// Check include patterns
 	for _, pattern := range includePatterns {
-		if f.patternMatches(pattern, path) {
+		if patternMatches(pattern, path, false) {
 			return true
 		}
 	}
@@ -145,15 +145,19 @@ func (f *FileReaderImpl) shouldIncludeFile(path string, includePatterns, exclude
 }
 
 // patternMatches checks whether a glob pattern matches a file path.
-// For patterns without path separators (bare-filename patterns like "test_*.py"),
-// it also attempts to match against the file's basename so that patterns
-// intended to exclude test files work regardless of directory depth.
-func (f *FileReaderImpl) patternMatches(pattern, path string) bool {
-	if matched, _ := doublestar.Match(pattern, path); matched {
+// Paths are normalized to forward slashes so directory globs behave
+// consistently across platforms. When matchBasename is true and the
+// pattern has no path separators (bare-filename patterns like "test_*.py"),
+// matching also tries the file basename so exclude patterns work at any depth.
+func patternMatches(pattern, path string, matchBasename bool) bool {
+	// ToSlash only replaces the platform separator; also fold backslashes so
+	// directory globs work for Windows-style paths on every platform.
+	normalized := strings.ReplaceAll(filepath.ToSlash(path), "\\", "/")
+	if matched, _ := doublestar.Match(pattern, normalized); matched {
 		return true
 	}
-	if !strings.ContainsAny(pattern, "/\\") {
-		if matched, _ := doublestar.Match(pattern, filepath.Base(path)); matched {
+	if matchBasename && !strings.ContainsAny(pattern, "/\\") {
+		if matched, _ := doublestar.Match(pattern, filepath.Base(normalized)); matched {
 			return true
 		}
 	}
