@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.26.1] - 2026-07-06
+
+### Fixed
+- Test-file exclude patterns (`test_*.py`, `*_test.py`) not matching files in nested directories (#532)
+
+### Changed
+- Refresh README Features section with five analysis angles (#621)
+- Clarify DI anti-pattern detection is opt-in in README (#622)
+
 ## [1.26.0] - 2026-07-03
 
 ### Added
