@@ -47,7 +47,7 @@ pyscn looks at your code from five angles:
 - 📋 **Duplicate code** - copy-pasted and structurally similar code worth merging (Type 1-4 clone detection)
 - 🌀 **Complexity** - functions that are hard to read and test (cyclomatic and cognitive complexity)
 - 🏗️ **Architecture** - circular imports, layer rule violations (clean / layered / hexagonal / MVC presets), and auto-detected module communities that reveal how your code is actually structured
-- 🧩 **Class design** - classes that do too much or depend on too much (CBO coupling, LCOM4 cohesion, DI anti-patterns)
+- 🧩 **Class design** - classes that do too much or depend on too much (CBO coupling, LCOM4 cohesion)
 
 **100,000+ lines/sec** • Built with Go + tree-sitter
 
@@ -153,6 +153,7 @@ pyscn check .                         # Quick pass/fail check
 pyscn check --max-complexity 15 .     # Custom thresholds
 pyscn check --max-cycles 0 .          # Only allow 0 cycle dependency
 pyscn check --select deps .           # Check only for circular dependencies
+pyscn check --select di .             # Detect DI anti-patterns (opt-in)
 pyscn check --allow-circular-deps .   # Allow circular dependencies (warning only)
 ```
 

@@ -47,7 +47,7 @@ pyscn 从五个角度分析你的代码：
 - 📋 **重复代码** - 检测复制粘贴和结构相似的代码，提示合并候选（Type 1-4 克隆检测）
 - 🌀 **复杂度** - 定位难读、难测试的函数（圈复杂度 + 认知复杂度）
 - 🏗️ **架构** - 发现循环导入、分层规则违规（clean / layered / hexagonal / MVC 预设），并自动检测模块社区，展示代码的实际结构
-- 🧩 **类设计** - 发现职责过多、依赖过多的类（耦合度 CBO、内聚度 LCOM4、DI 反模式）
+- 🧩 **类设计** - 发现职责过多、依赖过多的类（耦合度 CBO、内聚度 LCOM4）
 
 **100,000+ 行/秒** • 基于 Go + tree-sitter 构建
 
@@ -153,6 +153,7 @@ pyscn check .                         # 快速通过/失败检查
 pyscn check --max-complexity 15 .     # 自定义阈值
 pyscn check --max-cycles 0 .          # 仅允许 0 个循环依赖
 pyscn check --select deps .           # 仅检查循环依赖
+pyscn check --select di .             # 检测 DI 反模式（可选）
 pyscn check --allow-circular-deps .   # 允许循环依赖（仅警告）
 ```
 
