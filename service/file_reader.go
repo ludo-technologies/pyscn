@@ -124,7 +124,7 @@ func (f *FileReaderImpl) collectFromDirectory(dirPath string, recursive bool, in
 func (f *FileReaderImpl) shouldIncludeFile(path string, includePatterns, excludePatterns []string) bool {
 	// Check exclude patterns first
 	for _, pattern := range excludePatterns {
-		if matched, _ := doublestar.Match(pattern, path); matched {
+		if f.patternMatches(pattern, path) {
 			return false
 		}
 	}
@@ -136,11 +136,27 @@ func (f *FileReaderImpl) shouldIncludeFile(path string, includePatterns, exclude
 
 	// Check include patterns
 	for _, pattern := range includePatterns {
-		if matched, _ := doublestar.Match(pattern, path); matched {
+		if f.patternMatches(pattern, path) {
 			return true
 		}
 	}
 
+	return false
+}
+
+// patternMatches checks whether a glob pattern matches a file path.
+// For patterns without path separators (bare-filename patterns like "test_*.py"),
+// it also attempts to match against the file's basename so that patterns
+// intended to exclude test files work regardless of directory depth.
+func (f *FileReaderImpl) patternMatches(pattern, path string) bool {
+	if matched, _ := doublestar.Match(pattern, path); matched {
+		return true
+	}
+	if !strings.ContainsAny(pattern, "/\\") {
+		if matched, _ := doublestar.Match(pattern, filepath.Base(path)); matched {
+			return true
+		}
+	}
 	return false
 }
 

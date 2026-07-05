@@ -544,11 +544,38 @@ func TestFileReader_shouldIncludeFile(t *testing.T) {
 		{
 			name:            "full path pattern matching",
 			path:            "/project/src/main.py",
-			includePatterns: []string{"**/main*"}, // Match on basename instead
+			includePatterns: []string{"**/main*"},
 			excludePatterns: []string{},
 			expected:        true,
 		},
-		// Skip complex path matching test - behavior depends on implementation details
+		{
+			name:            "bare test_*.py exclude matches basename in nested path",
+			path:            "tests/plugins_tests/test_certificate_info_plugin.py",
+			includePatterns: []string{},
+			excludePatterns: []string{"test_*.py"},
+			expected:        false,
+		},
+		{
+			name:            "bare *_test.py exclude matches basename in nested path",
+			path:            "pkg/utils/helper_test.py",
+			includePatterns: []string{},
+			excludePatterns: []string{"*_test.py"},
+			expected:        false,
+		},
+		{
+			name:            "directory pattern **/tests/** excludes nested test file",
+			path:            "my_package/tests/test_demo.py",
+			includePatterns: []string{},
+			excludePatterns: []string{"**/tests/**"},
+			expected:        false,
+		},
+		{
+			name:            "bare pattern does not falsely exclude non-test file with similar name",
+			path:            "mytests/utils.py",
+			includePatterns: []string{},
+			excludePatterns: []string{"**/tests/**"},
+			expected:        true,
+		},
 	}
 
 	for _, tt := range tests {

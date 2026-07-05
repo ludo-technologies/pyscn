@@ -47,8 +47,8 @@ func TestDefaultConfig(t *testing.T) {
 		config.Analysis.IncludePatterns[0] != "**/*.py" {
 		t.Errorf("Expected include patterns ['**/*.py'], got %v", config.Analysis.IncludePatterns)
 	}
-	if len(config.Analysis.ExcludePatterns) != 3 {
-		t.Errorf("Expected 3 exclude patterns, got %d", len(config.Analysis.ExcludePatterns))
+	if len(config.Analysis.ExcludePatterns) != 5 {
+		t.Errorf("Expected 5 exclude patterns, got %d", len(config.Analysis.ExcludePatterns))
 	}
 	if !config.Analysis.Recursive {
 		t.Error("Expected recursive to be true by default")
