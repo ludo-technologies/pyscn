@@ -21,7 +21,7 @@ type LCOMResult struct {
 
 	// Method statistics
 	TotalMethods    int // All methods found in class
-	ExcludedMethods int // @staticmethod and @classmethod excluded
+	ExcludedMethods int // @staticmethod, @classmethod, and @abstractmethod excluded
 
 	// Instance variable count
 	InstanceVariables int // Distinct self.xxx variables
@@ -275,14 +275,17 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 	return methods, excluded, calls
 }
 
-// isClassOrStaticMethod checks if a method has a @classmethod or @staticmethod decorator.
+// isClassOrStaticMethod checks if a method has a @classmethod, @staticmethod, or
+// @abstractmethod decorator. Abstract methods are excluded because they do not
+// access instance variables and inflate LCOM4 in abstract base classes that use
+// the Template Method pattern.
 func (a *LCOMAnalyzer) isClassOrStaticMethod(funcNode *parser.Node) bool {
 	for _, decorator := range funcNode.Decorator {
 		if decorator == nil {
 			continue
 		}
 		name := a.getDecoratorName(decorator)
-		if name == "classmethod" || name == "staticmethod" {
+		if name == "classmethod" || name == "staticmethod" || name == "abstractmethod" {
 			return true
 		}
 	}
