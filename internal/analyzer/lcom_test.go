@@ -158,6 +158,24 @@ class MyEndpoint(ABC):
 			expectedExcluded: map[string]int{"MyEndpoint": 2},
 		},
 		{
+			name: "dotted abstract methods excluded from LCOM4 grouping",
+			pythonCode: `
+import abc
+
+class MyProvider:
+    @abc.abstractmethod
+    def provide(self):
+        raise NotImplementedError
+
+    def status(self):
+        return self.state
+`,
+			expectedCount:    1,
+			expectedLCOM:     map[string]int{"MyProvider": 1},
+			expectedRisk:     map[string]string{"MyProvider": "low"},
+			expectedExcluded: map[string]int{"MyProvider": 1},
+		},
+		{
 			name: "class with property included",
 			pythonCode: `
 class ClassWithProperty:
