@@ -2,6 +2,7 @@ package app
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/ludo-technologies/pyscn/domain"
@@ -80,13 +81,15 @@ func ResolveFilePaths(
 }
 
 func matchesExcludePattern(path string, excludePatterns []string) bool {
-	normalized := filepath.ToSlash(filepath.Clean(path))
+	normalized := strings.ReplaceAll(filepath.ToSlash(path), "\\", "/")
 	for _, pattern := range excludePatterns {
 		if matched, _ := doublestar.Match(pattern, normalized); matched {
 			return true
 		}
-		if matched, _ := doublestar.Match(pattern, filepath.Base(normalized)); matched {
-			return true
+		if !strings.ContainsAny(pattern, "/\\") {
+			if matched, _ := doublestar.Match(pattern, filepath.Base(normalized)); matched {
+				return true
+			}
 		}
 	}
 	return false
