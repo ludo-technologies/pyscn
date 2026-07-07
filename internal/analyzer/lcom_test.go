@@ -763,3 +763,117 @@ Inner._fields_ = [
 		}
 	}
 }
+
+// TestLCOMAnalyzer_Issue627Repro pins the two classes cited in
+// https://github.com/ludo-technologies/pyscn/issues/627, which claimed
+// InstanceVariables is always 0. Both already reported correct non-zero
+// values on this code path (the report did not reproduce); this guards
+// against a future regression on these real-world shapes.
+func TestLCOMAnalyzer_Issue627Repro(t *testing.T) {
+	t.Run("Point", func(t *testing.T) {
+		p := parser.New()
+		code := `
+def my_decorator(func):
+    return func
+
+class Point:
+    def __init__(self, x: int, y: int) -> None:
+        self.x = x
+        self.y = y
+
+    def abs(self) -> 'Point':
+        return Point(abs(self.x), abs(self.y))
+
+    def add(self, other: 'Point'):
+        self.x += other.x
+        self.y += other.y
+
+    def to_origin(self):
+        self.x = 0
+        self.y = 0
+
+    def ignored(self):
+        self.foo = 'bar'
+
+    def __len__(self):
+        return 0
+
+    @staticmethod
+    def from_coords(coords) -> 'Point':
+        return Point(coords[0], coords[1])
+
+    @property
+    def coords(self):
+        return self.x, self.y
+
+    @staticmethod
+    def skip_static_decorator_pragma(a: int, b: int) -> int:
+        return a + b * 2
+
+    @classmethod
+    def skip_class_decorator_pragma(cls, value: int) -> "Point":
+        return cls(value + 1, value * 2)
+
+    def skip_instance_method_pragma(self) -> int:
+        return self.x + self.y * 2
+
+    @staticmethod
+    def pragma_on_staticmethod_decorator(a: int, b: int) -> int:
+        return a + b * 2
+
+    @classmethod
+    def pragma_on_classmethod_decorator(cls, value: int) -> "Point":
+        return cls(value + 1, value * 2)
+
+    @my_decorator
+    @classmethod
+    def skip_multi_decorator(cls, value: int) -> "Point":
+        return cls(value + 1, value * 2)
+`
+		result, err := p.Parse(context.Background(), []byte(code))
+		require.NoError(t, err)
+
+		analyzer := NewLCOMAnalyzer(nil)
+		results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		r := results[0]
+		assert.Equal(t, "Point", r.ClassName)
+		assert.Equal(t, 14, r.TotalMethods)
+		assert.Equal(t, 6, r.ExcludedMethods)
+		assert.Equal(t, 3, r.InstanceVariables, "self.x, self.y, self.foo")
+		assert.Equal(t, 3, r.LCOM4)
+	})
+
+	t.Run("HammettRunner", func(t *testing.T) {
+		p := parser.New()
+		code := `
+class TestRunner:
+    pass
+
+class HammettRunner(TestRunner):
+    def __init__(self, config) -> None:
+        self.hammett_kwargs = None
+
+    def other_method(self):
+        return self.hammett_kwargs
+`
+		result, err := p.Parse(context.Background(), []byte(code))
+		require.NoError(t, err)
+
+		analyzer := NewLCOMAnalyzer(nil)
+		results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+		require.NoError(t, err)
+
+		byName := make(map[string]*LCOMResult, len(results))
+		for _, res := range results {
+			byName[res.ClassName] = res
+		}
+
+		r, ok := byName["HammettRunner"]
+		require.True(t, ok, "missing class HammettRunner")
+		assert.Equal(t, 1, r.InstanceVariables, "self.hammett_kwargs")
+		assert.Equal(t, [][]string{{"__init__", "other_method"}}, r.MethodGroups)
+	})
+}
