@@ -21,7 +21,7 @@ type LCOMResult struct {
 
 	// Method statistics
 	TotalMethods    int // All methods found in class
-	ExcludedMethods int // @staticmethod and @classmethod excluded
+	ExcludedMethods int // @staticmethod, @classmethod, and @abstractmethod excluded
 
 	// Instance variable count
 	InstanceVariables int // Distinct self.xxx variables
@@ -275,18 +275,30 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 	return methods, excluded, calls
 }
 
-// isClassOrStaticMethod checks if a method has a @classmethod or @staticmethod decorator.
+// isClassOrStaticMethod checks if a method has a @classmethod, @staticmethod, or
+// @abstractmethod decorator. Abstract methods are excluded because they do not
+// access instance variables and inflate LCOM4 in abstract base classes that use
+// the Template Method pattern.
 func (a *LCOMAnalyzer) isClassOrStaticMethod(funcNode *parser.Node) bool {
 	for _, decorator := range funcNode.Decorator {
 		if decorator == nil {
 			continue
 		}
 		name := a.getDecoratorName(decorator)
-		if name == "classmethod" || name == "staticmethod" {
+		if isExcludedLCOMDecorator(name) {
 			return true
 		}
 	}
 	return false
+}
+
+func isExcludedLCOMDecorator(name string) bool {
+	switch name {
+	case "classmethod", "staticmethod", "abstractmethod":
+		return true
+	default:
+		return hasDecoratorSuffix(name, ".abstractmethod")
+	}
 }
 
 // collectPropertyNames returns the set of method names decorated with @property
@@ -328,31 +340,52 @@ func (a *LCOMAnalyzer) isProperty(funcNode *parser.Node) bool {
 
 // getDecoratorName extracts the decorator name from a decorator node
 func (a *LCOMAnalyzer) getDecoratorName(decorator *parser.Node) string {
+	return decoratorQualifiedName(decorator)
+}
+
+func decoratorQualifiedName(node *parser.Node) string {
+	if node == nil {
+		return ""
+	}
+
 	// Check Name field first (used by some paths)
-	if decorator.Name != "" {
-		return decorator.Name
+	if node.Name != "" && node.Type != parser.NodeAttribute {
+		return node.Name
 	}
 	// Check Value field (set by buildDecorator)
-	if decorator.Value != nil {
-		if nameNode, ok := decorator.Value.(*parser.Node); ok {
-			if nameNode.Type == parser.NodeName {
-				return nameNode.Name
-			}
-			// For decorator calls like @decorator(args), extract function name
-			if nameNode.Type == parser.NodeCall {
-				if nameNode.Value != nil {
-					if funcNode, ok := nameNode.Value.(*parser.Node); ok && funcNode.Type == parser.NodeName {
-						return funcNode.Name
-					}
+	if node.Value != nil {
+		if valueNode, ok := node.Value.(*parser.Node); ok {
+			switch node.Type {
+			case parser.NodeDecorator, parser.NodeCall:
+				return decoratorQualifiedName(valueNode)
+			case parser.NodeAttribute:
+				left := decoratorQualifiedName(valueNode)
+				if left == "" {
+					return node.Name
 				}
-				// Also check Name field on Call node
-				if nameNode.Name != "" {
-					return nameNode.Name
-				}
+				return left + "." + node.Name
+			default:
+				return decoratorQualifiedName(valueNode)
 			}
 		}
 	}
+
+	switch node.Type {
+	case parser.NodeName:
+		return node.Name
+	case parser.NodeAttribute:
+		left := decoratorQualifiedName(node.Left)
+		if left == "" {
+			return node.Name
+		}
+		return left + "." + node.Name
+	}
+
 	return ""
+}
+
+func hasDecoratorSuffix(name, suffix string) bool {
+	return len(name) > len(suffix) && name[len(name)-len(suffix):] == suffix
 }
 
 // extractMethodCalls walks a method's AST to find all self.xxx() method call targets
