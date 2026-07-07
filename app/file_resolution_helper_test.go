@@ -259,6 +259,31 @@ func TestResolveFilePaths_RecursiveWithPatterns(t *testing.T) {
 	mockReader.AssertCalled(t, "CollectPythonFiles", paths, true, includePatterns, excludePatterns)
 }
 
+func TestResolveFilePaths_AllFilesAreFiles_WithExcludePattern(t *testing.T) {
+	mockReader := new(MockFileReader)
+	paths := []string{"src/main.py", "src/utils.py", "src/test_main.py", "src/test_utils.py"}
+
+	for _, path := range paths {
+		mockReader.On("FileExists", path).Return(true, nil)
+	}
+
+	excludePatterns := []string{"test_*.py"}
+	result, err := ResolveFilePaths(
+		mockReader,
+		paths,
+		false,
+		[]string{"*.py"},
+		excludePatterns,
+		false,
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"src/main.py", "src/utils.py"}, result,
+		"Should exclude test_*.py files when all paths are pre-resolved files")
+	mockReader.AssertExpectations(t)
+	mockReader.AssertNotCalled(t, "CollectPythonFiles")
+}
+
 func TestResolveFilePaths_NoFilesCollected(t *testing.T) {
 	// Setup
 	mockReader := new(MockFileReader)
