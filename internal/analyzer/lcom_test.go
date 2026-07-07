@@ -134,6 +134,48 @@ class ClassWithDecorators:
 			expectedExcluded: map[string]int{"ClassWithDecorators": 2},
 		},
 		{
+			name: "abstract methods excluded from LCOM4 grouping",
+			pythonCode: `
+from abc import ABC, abstractmethod
+
+class MyEndpoint(ABC):
+    @property
+    @abstractmethod
+    def _x(self):
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def _y(self):
+        raise NotImplementedError
+
+    def get(self):
+        return self._x, self._y
+`,
+			expectedCount:    1,
+			expectedLCOM:     map[string]int{"MyEndpoint": 1},
+			expectedRisk:     map[string]string{"MyEndpoint": "low"},
+			expectedExcluded: map[string]int{"MyEndpoint": 2},
+		},
+		{
+			name: "dotted abstract methods excluded from LCOM4 grouping",
+			pythonCode: `
+import abc
+
+class MyProvider:
+    @abc.abstractmethod
+    def provide(self):
+        raise NotImplementedError
+
+    def status(self):
+        return self.state
+`,
+			expectedCount:    1,
+			expectedLCOM:     map[string]int{"MyProvider": 1},
+			expectedRisk:     map[string]string{"MyProvider": "low"},
+			expectedExcluded: map[string]int{"MyProvider": 1},
+		},
+		{
 			name: "class with property included",
 			pythonCode: `
 class ClassWithProperty:
