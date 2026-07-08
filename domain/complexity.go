@@ -149,6 +149,7 @@ type RawMetricsSummary struct {
 // ComplexitySummary represents aggregate statistics
 type ComplexitySummary struct {
 	TotalFunctions             int
+	FunctionsTotal             int // pre-filter count (all parsed functions before min_complexity filtering)
 	AverageComplexity          float64
 	AverageCognitiveComplexity float64
 	AverageNestingDepth        float64

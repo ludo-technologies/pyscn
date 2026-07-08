@@ -63,6 +63,7 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 	// Summary
 	stats := map[string]interface{}{
 		"Total Functions": response.Summary.TotalFunctions,
+		"Functions Total": response.Summary.FunctionsTotal,
 		"Files Analyzed":  response.Summary.FilesAnalyzed,
 	}
 	if response.Summary.TotalFunctions > 0 {
@@ -241,6 +242,7 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 	// Create summary
 	summary := map[string]interface{}{
 		"total_functions":         response.Summary.TotalFunctions,
+		"functions_total":         response.Summary.FunctionsTotal,
 		"files_analyzed":          response.Summary.FilesAnalyzed,
 		"risk_distribution":       riskDistribution,
 		"complexity_distribution": response.Summary.ComplexityDistribution,
@@ -331,6 +333,7 @@ func (f *OutputFormatterImpl) formatSummaryText(response *domain.ComplexityRespo
 
 	builder.WriteString("Summary:\n")
 	builder.WriteString(fmt.Sprintf("  Total Functions: %d\n", response.Summary.TotalFunctions))
+	builder.WriteString(fmt.Sprintf("  Functions Total: %d\n", response.Summary.FunctionsTotal))
 	if response.Summary.TotalFunctions > 0 {
 		builder.WriteString(fmt.Sprintf("  Average Complexity: %.2f\n", response.Summary.AverageComplexity))
 		builder.WriteString(fmt.Sprintf("  Max Complexity: %d\n", response.Summary.MaxComplexity))
