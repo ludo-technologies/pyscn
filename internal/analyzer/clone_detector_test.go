@@ -540,6 +540,37 @@ func TestCloneDetector_CalculateConfidence(t *testing.T) {
 	assert.LessOrEqual(t, confidence, 1.0, "Confidence should not exceed 1.0")
 }
 
+func TestCloneDetector_limitAndSortClonePairs_DeduplicatesByLocation(t *testing.T) {
+	fragmentA := &CodeFragment{
+		Location: &CodeLocation{FilePath: "type_checking.py", StartLine: 44, EndLine: 58},
+		Size:     12,
+	}
+	fragmentB := &CodeFragment{
+		Location: &CodeLocation{FilePath: "type_checking.py", StartLine: 61, EndLine: 76},
+		Size:     12,
+	}
+	fragmentC := &CodeFragment{
+		Location: &CodeLocation{FilePath: "type_checking.py", StartLine: 79, EndLine: 93},
+		Size:     12,
+	}
+
+	detector := NewCloneDetector(DefaultCloneDetectorConfig())
+	detector.clonePairs = []*ClonePair{
+		{Fragment1: fragmentA, Fragment2: fragmentB, Similarity: 0.91, CloneType: Type4Clone},
+		{Fragment1: fragmentB, Fragment2: fragmentC, Similarity: 0.88, CloneType: Type4Clone},
+		{Fragment1: fragmentB, Fragment2: fragmentA, Similarity: 0.93, CloneType: Type4Clone},
+	}
+
+	detector.limitAndSortClonePairs(10)
+
+	require.Len(t, detector.clonePairs, 2)
+	assert.Same(t, fragmentB, detector.clonePairs[0].Fragment1)
+	assert.Same(t, fragmentA, detector.clonePairs[0].Fragment2)
+	assert.Equal(t, 0.93, detector.clonePairs[0].Similarity)
+	assert.Same(t, fragmentB, detector.clonePairs[1].Fragment1)
+	assert.Same(t, fragmentC, detector.clonePairs[1].Fragment2)
+}
+
 func TestCloneDetector_GetStatistics(t *testing.T) {
 	config := DefaultCloneDetectorConfig()
 	detector := NewCloneDetector(config)

@@ -1258,8 +1258,10 @@ func (cd *CloneDetector) tryCreateClonePair(i, j int, minSimilarity float64) *Cl
 	return nil
 }
 
-// limitAndSortClonePairs ensures final results are sorted and limited
+// limitAndSortClonePairs ensures final results are unique, sorted, and limited.
 func (cd *CloneDetector) limitAndSortClonePairs(maxPairs int) {
+	cd.clonePairs = dedupeClonePairs(cd.clonePairs)
+
 	// Sort clone pairs by similarity (descending)
 	sort.Slice(cd.clonePairs, func(i, j int) bool {
 		return cd.clonePairs[i].Similarity > cd.clonePairs[j].Similarity
@@ -1269,6 +1271,36 @@ func (cd *CloneDetector) limitAndSortClonePairs(maxPairs int) {
 	if len(cd.clonePairs) > maxPairs {
 		cd.clonePairs = cd.clonePairs[:maxPairs]
 	}
+}
+
+func dedupeClonePairs(pairs []*ClonePair) []*ClonePair {
+	if len(pairs) < 2 {
+		return pairs
+	}
+
+	byLocation := make(map[string]*ClonePair, len(pairs))
+	order := make([]string, 0, len(pairs))
+	for _, pair := range pairs {
+		if pair == nil || pair.Fragment1 == nil || pair.Fragment2 == nil {
+			continue
+		}
+		key := pairKey(pair.Fragment1, pair.Fragment2)
+		existing, ok := byLocation[key]
+		if !ok {
+			byLocation[key] = pair
+			order = append(order, key)
+			continue
+		}
+		if pair.Similarity > existing.Similarity {
+			byLocation[key] = pair
+		}
+	}
+
+	unique := make([]*ClonePair, 0, len(order))
+	for _, key := range order {
+		unique = append(unique, byLocation[key])
+	}
+	return unique
 }
 
 // Helper functions
