@@ -828,10 +828,14 @@ func (a *CBOAnalyzer) callDependencyName(className string, allClasses map[string
 	// Enum members and other class constants are attribute reads on the imported
 	// class, not distinct classes. Prefer the imported class binding before the
 	// generic dotted-name heuristic has a chance to treat ALL_CAPS members as
-	// CapWords-style class references.
+	// CapWords-style class references. Module constants such as re.DOTALL and
+	// subprocess.PIPE are not classes and should not count as coupling.
 	if imported && len(parts) > 1 {
 		if binding := parts[0]; a.isImportedDependency(binding) && a.looksLikeClassReference(binding) {
 			return binding
+		}
+		if isUppercaseConstant(parts[len(parts)-1]) {
+			return ""
 		}
 	}
 
@@ -1069,6 +1073,22 @@ func dependencyLeafName(className string) string {
 		return parts[len(parts)-1]
 	}
 	return className
+}
+
+func isUppercaseConstant(name string) bool {
+	if name == "" {
+		return false
+	}
+	hasLetter := false
+	for _, r := range name {
+		if unicode.IsLetter(r) {
+			hasLetter = true
+			if unicode.IsLower(r) {
+				return false
+			}
+		}
+	}
+	return hasLetter
 }
 
 func (a *CBOAnalyzer) isTypeSystemDependency(className string) bool {

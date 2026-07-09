@@ -315,6 +315,32 @@ class MyClass:
 	}
 }
 
+func TestCBOAnalyzer_IgnoresImportedModuleConstants(t *testing.T) {
+	pythonCode := `
+import re
+import subprocess
+from pathlib import Path
+
+class UsesModuleConstants:
+    def search_content(self, path: Path, pattern: str) -> bool:
+        return re.compile(pattern, re.DOTALL | re.MULTILINE).search(path.read_text()) is not None
+
+    def spawn(self) -> None:
+        subprocess.run(["python", "--version"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
+	results, err := analyzer.AnalyzeClasses(ast, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	assert.Equal(t, 1, results[0].CouplingCount)
+	assert.Equal(t, []string{"Path"}, results[0].DependentClasses)
+}
+
 func TestCBOAnalyzer_DependencyIdentityContract(t *testing.T) {
 	pythonCode := `
 from __future__ import annotations
