@@ -74,4 +74,35 @@ func TestLCOMConfigurationLoader_MergeConfig(t *testing.T) {
 		result := loader.MergeConfig(base, override)
 		assert.Equal(t, []string{"base.py"}, result.Paths)
 	})
+
+	// Regression: an explicit override equal to a default value must still win
+	// over the base. Zero-value fields mean "not set" and keep the base.
+	t.Run("override matching default value wins", func(t *testing.T) {
+		base := &domain.LCOMRequest{
+			SortBy:       domain.SortByName,
+			LowThreshold: 5,
+		}
+		override := &domain.LCOMRequest{
+			SortBy:       domain.SortByCohesion,
+			LowThreshold: domain.DefaultLCOMLowThreshold,
+		}
+		result := loader.MergeConfig(base, override)
+		assert.Equal(t, domain.SortByCohesion, result.SortBy,
+			"explicit SortBy override matching default should win over base")
+		assert.Equal(t, domain.DefaultLCOMLowThreshold, result.LowThreshold,
+			"explicit LowThreshold override matching default should win over base")
+	})
+
+	t.Run("zero override preserves base", func(t *testing.T) {
+		base := &domain.LCOMRequest{
+			SortBy:          domain.SortByName,
+			LowThreshold:    5,
+			MediumThreshold: 9,
+		}
+		override := &domain.LCOMRequest{}
+		result := loader.MergeConfig(base, override)
+		assert.Equal(t, domain.SortByName, result.SortBy)
+		assert.Equal(t, 5, result.LowThreshold)
+		assert.Equal(t, 9, result.MediumThreshold)
+	})
 }

@@ -650,6 +650,9 @@ func TestHandleGetHealthScore(t *testing.T) {
 				return
 			}
 
+			if res.IsError && len(res.Content) > 0 {
+				t.Logf("unexpected error content: %s", mcplib.GetTextFromContent(res.Content[0]))
+			}
 			require.False(t, res.IsError)
 			require.NotEmpty(t, res.Content)
 

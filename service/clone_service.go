@@ -163,12 +163,13 @@ func (s *CloneService) buildCloneResponse(
 
 	// Convert to domain objects
 	domainClones, fragmentIDs := s.convertFragmentsToDomainClones(allFragments)
-	domainClonePairs := s.convertClonePairsToDomain(detectionResult.Pairs, req.ShowContent)
-	domainCloneGroups := s.convertCloneGroupsToDomain(detectionResult.Groups, req.ShowContent, fragmentIDs)
+	domainClonePairs := s.convertClonePairsToDomain(detectionResult.Pairs, req.ShouldShowContent(), fragmentIDs)
+	domainCloneGroups := s.convertCloneGroupsToDomain(detectionResult.Groups, req.ShouldShowContent(), fragmentIDs)
 
 	// Filter results based on request criteria
 	domainClonePairs = s.filterClonePairs(domainClonePairs, req)
 	domainCloneGroups = s.filterCloneGroups(domainCloneGroups, req)
+	domainClones = filterClonesToReferencedFragments(domainClones, domainClonePairs, domainCloneGroups)
 
 	// Sort results
 	s.sortResults(domainClones, domainClonePairs, domainCloneGroups, req)
@@ -276,9 +277,9 @@ func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.
 		Type4Threshold:      req.Type4Threshold,
 		SimilarityThreshold: req.SimilarityThreshold, // User-configurable minimum similarity
 		MaxEditDistance:     req.MaxEditDistance,
-		IgnoreLiterals:      req.IgnoreLiterals,
-		IgnoreIdentifiers:   req.IgnoreIdentifiers,
-		SkipDocstrings:      req.SkipDocstrings,
+		IgnoreLiterals:      domain.BoolValue(req.IgnoreLiterals, false),
+		IgnoreIdentifiers:   domain.BoolValue(req.IgnoreIdentifiers, false),
+		SkipDocstrings:      domain.BoolValue(req.SkipDocstrings, true),
 		CostModelType:       "python", // Default to Python cost model
 		MaxClonePairs:       10000,    // Default max pairs
 		BatchSizeThreshold:  50,       // Default batch size threshold
@@ -335,11 +336,17 @@ func (s *CloneService) convertFragmentsToDomainClones(
 }
 
 // convertClonePairsToDomain converts analyzer clone pairs to domain clone pairs.
-func (s *CloneService) convertClonePairsToDomain(clonePairs []*analyzer.ClonePair, includeContent bool) []*domain.ClonePair {
+func (s *CloneService) convertClonePairsToDomain(
+	clonePairs []*analyzer.ClonePair,
+	includeContent bool,
+	fragmentIDs map[*analyzer.CodeFragment]int,
+) []*domain.ClonePair {
 	domainPairs := make([]*domain.ClonePair, len(clonePairs))
 
 	for i, pair := range clonePairs {
 		clone1 := &domain.Clone{
+			ID:   fragmentIDs[pair.Fragment1],
+			Type: s.convertCloneType(pair.CloneType),
 			Location: &domain.CloneLocation{
 				FilePath:  pair.Fragment1.Location.FilePath,
 				StartLine: pair.Fragment1.Location.StartLine,
@@ -352,6 +359,8 @@ func (s *CloneService) convertClonePairsToDomain(clonePairs []*analyzer.ClonePai
 			LineCount: pair.Fragment1.LineCount,
 		}
 		clone2 := &domain.Clone{
+			ID:   fragmentIDs[pair.Fragment2],
+			Type: s.convertCloneType(pair.CloneType),
 			Location: &domain.CloneLocation{
 				FilePath:  pair.Fragment2.Location.FilePath,
 				StartLine: pair.Fragment2.Location.StartLine,
@@ -380,6 +389,44 @@ func (s *CloneService) convertClonePairsToDomain(clonePairs []*analyzer.ClonePai
 	}
 
 	return domainPairs
+}
+
+// filterClonesToReferencedFragments keeps the top-level clones list aligned
+// with the clone pairs/groups returned to users. Raw extracted fragments remain
+// available via statistics.total_fragments; clones[] should contain only
+// fragments that actually participate in a detected clone result.
+func filterClonesToReferencedFragments(
+	clones []*domain.Clone,
+	pairs []*domain.ClonePair,
+	groups []*domain.CloneGroup,
+) []*domain.Clone {
+	referenced := make(map[int]struct{})
+	add := func(clone *domain.Clone) {
+		if clone != nil && clone.ID > 0 {
+			referenced[clone.ID] = struct{}{}
+		}
+	}
+
+	for _, pair := range pairs {
+		add(pair.Clone1)
+		add(pair.Clone2)
+	}
+	for _, group := range groups {
+		for _, clone := range group.Clones {
+			add(clone)
+		}
+	}
+
+	filtered := make([]*domain.Clone, 0, len(referenced))
+	for _, clone := range clones {
+		if clone == nil {
+			continue
+		}
+		if _, ok := referenced[clone.ID]; ok {
+			filtered = append(filtered, clone)
+		}
+	}
+	return filtered
 }
 
 // convertCloneGroupsToDomain converts analyzer clone groups to domain clone groups.

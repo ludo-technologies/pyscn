@@ -40,20 +40,21 @@ func NewCloneUseCase(
 func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) error {
 	startTime := time.Now()
 
-	// Step 1: Validate the request
-	if err := req.Validate(); err != nil {
-		return fmt.Errorf("validation failed: %w", err)
-	}
-
-	// Step 2: Load configuration if specified or try default config
+	// Step 1: Load configuration if specified or try default config
 	finalReq, err := uc.loadAndMergeConfig(req)
 	if err != nil {
 		return err
 	}
 	req = finalReq
 
+	// Step 2: Validate the merged request (CLI overrides are sparse; only
+	// the merged result is a complete, validatable configuration)
+	if err := req.Validate(); err != nil {
+		return fmt.Errorf("validation failed: %w", err)
+	}
+
 	// Step 3: Collect files to analyze
-	files, err := uc.fileReader.CollectPythonFiles(req.Paths, req.Recursive, req.IncludePatterns, req.ExcludePatterns)
+	files, err := uc.fileReader.CollectPythonFiles(req.Paths, domain.BoolValue(req.Recursive, true), req.IncludePatterns, req.ExcludePatterns)
 	if err != nil {
 		return fmt.Errorf("failed to collect files: %w", err)
 	}
@@ -98,21 +99,21 @@ func (uc *CloneUseCase) Execute(ctx context.Context, req domain.CloneRequest) er
 func (uc *CloneUseCase) ExecuteAndReturn(ctx context.Context, req domain.CloneRequest) (*domain.CloneResponse, error) {
 	startTime := time.Now()
 
-	// Step 1: Basic validation
-	if err := req.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid request: %w", err)
-	}
-
 	if len(req.Paths) == 0 {
 		return nil, fmt.Errorf("no paths specified for clone detection")
 	}
 
-	// Step 2: Load configuration if specified or try default config
+	// Step 1: Load configuration if specified or try default config
 	finalReq, err := uc.loadAndMergeConfig(req)
 	if err != nil {
 		return nil, err
 	}
 	req = finalReq
+
+	// Step 2: Validate the merged request
+	if err := req.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid request: %w", err)
+	}
 
 	// Step 3: Collect files to analyze
 	if uc.fileReader == nil {
@@ -123,7 +124,7 @@ func (uc *CloneUseCase) ExecuteAndReturn(ctx context.Context, req domain.CloneRe
 	files, err := ResolveFilePaths(
 		uc.fileReader,
 		req.Paths,
-		req.Recursive,
+		domain.BoolValue(req.Recursive, true),
 		req.IncludePatterns,
 		req.ExcludePatterns,
 		true, // validatePythonFile: clone detection requires strict Python validation
@@ -155,16 +156,16 @@ func (uc *CloneUseCase) ExecuteAndReturn(ctx context.Context, req domain.CloneRe
 func (uc *CloneUseCase) ExecuteWithFiles(ctx context.Context, filePaths []string, req domain.CloneRequest) error {
 	startTime := time.Now()
 
-	// Validate the request
-	if err := req.Validate(); err != nil {
-		return fmt.Errorf("validation failed: %w", err)
-	}
-
 	finalReq, err := uc.loadAndMergeConfig(req)
 	if err != nil {
 		return err
 	}
 	req = finalReq
+
+	// Validate the merged request
+	if err := req.Validate(); err != nil {
+		return fmt.Errorf("validation failed: %w", err)
+	}
 
 	// Validate files exist and are Python files
 	validFiles := []string{}

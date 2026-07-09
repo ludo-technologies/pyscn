@@ -76,6 +76,13 @@ type CBOAnalyzer struct {
 	importedNames    map[string]string         // alias -> module.name mapping
 	namespaceAliases map[string]string         // module.name -> alias mapping (only for alias imports)
 	regexCache       map[string]*regexp.Regexp // pattern -> compiled regex cache
+
+	// futureAnnotations is true when the file being analyzed has
+	// `from __future__ import annotations` (PEP 563) at module scope. Under
+	// PEP 563 all annotations are evaluated as strings at runtime, so a class
+	// referenced only inside a type annotation is never actually imported or
+	// resolved and imposes zero coupling cost. File-local, reset per AST. See #628.
+	futureAnnotations bool
 }
 
 type cboDependencyKind int
@@ -149,6 +156,7 @@ func (a *CBOAnalyzer) AnalyzeClasses(ast *parser.Node, filePath string) ([]*CBOR
 	// cannot change dependency identity in the next file.
 	a.importedNames = imports.importedNames
 	a.namespaceAliases = imports.namespaceAliases
+	a.futureAnnotations = a.hasFutureAnnotations(ast)
 
 	var results []*CBOResult
 
@@ -660,6 +668,60 @@ func (a *CBOAnalyzer) collectImports(ast *parser.Node) cboImportMaps {
 	return imports
 }
 
+// hasFutureAnnotations reports whether the module contains
+// `from __future__ import annotations` (PEP 563). When present, every
+// annotation in the file is evaluated as a string at runtime rather than
+// resolved eagerly, so annotation-only references carry no import cost.
+//
+// Tree-sitter's Python grammar parses `from __future__ import ...` as its
+// own "future_import_statement" node rather than the general
+// import_from_statement, and pyscn's AST builder has no dedicated case for
+// it, so it falls through to a generic node whose Type is the raw grammar
+// name and whose children are the raw parse-tree tokens. We detect it by
+// that raw type and look for an "annotations" name among its children
+// rather than relying on node.Module/node.Names, which only ImportFrom
+// nodes populate.
+func (a *CBOAnalyzer) hasFutureAnnotations(ast *parser.Node) bool {
+	found := false
+	a.walkNode(ast, func(node *parser.Node) bool {
+		if found {
+			return false
+		}
+		if node.Type == parser.NodeImportFrom && node.Module == "__future__" {
+			for _, name := range node.Names {
+				if name == "annotations" {
+					found = true
+					return false
+				}
+			}
+		}
+		if string(node.Type) == "future_import_statement" && importsAnnotationsName(node) {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
+}
+
+// importsAnnotationsName reports whether an "annotations" Name token appears
+// anywhere among node's descendants. Used to inspect the raw children of a
+// future_import_statement node (see hasFutureAnnotations).
+func importsAnnotationsName(node *parser.Node) bool {
+	if node == nil {
+		return false
+	}
+	if node.Type == parser.NodeName && node.Name == "annotations" {
+		return true
+	}
+	for _, child := range node.Children {
+		if importsAnnotationsName(child) {
+			return true
+		}
+	}
+	return false
+}
+
 func importBindingName(module string) string {
 	if strings.Contains(module, ".") {
 		return strings.SplitN(module, ".", 2)[0]
@@ -926,6 +988,14 @@ func (a *CBOAnalyzer) shouldIncludeDependencyForClass(className, ownerClass stri
 
 func (a *CBOAnalyzer) addDependency(dependencies *cboDependencies, className string, kind cboDependencyKind) {
 	if dependencies == nil || className == "" {
+		return
+	}
+
+	// Under PEP 563 (`from __future__ import annotations`), annotations are
+	// stored as strings and never evaluated at runtime. A reference that
+	// appears only inside a type annotation therefore has zero import cost
+	// and should not be counted as coupling. See #628.
+	if kind == dependencyKindTypeHint && a.futureAnnotations {
 		return
 	}
 

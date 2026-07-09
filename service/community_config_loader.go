@@ -49,68 +49,32 @@ func (cl *CommunityConfigurationLoaderImpl) MergeConfig(base *domain.CommunityAn
 
 	merged := *base
 
-	if len(override.Paths) > 0 {
-		merged.Paths = override.Paths
-	}
-	if len(override.SourcePaths) > 0 {
-		merged.SourcePaths = override.SourcePaths
-	}
-	if override.OutputFormat != "" {
-		merged.OutputFormat = override.OutputFormat
-	}
+	merged.Paths = config.MergeSlice(merged.Paths, override.Paths)
+	merged.SourcePaths = config.MergeSlice(merged.SourcePaths, override.SourcePaths)
+	merged.OutputFormat = config.Merge(merged.OutputFormat, override.OutputFormat)
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
-	if override.OutputPath != "" {
-		merged.OutputPath = override.OutputPath
-	}
+	merged.OutputPath = config.Merge(merged.OutputPath, override.OutputPath)
 	merged.NoOpen = override.NoOpen
 
-	if override.ConfigPath != "" {
-		merged.ConfigPath = override.ConfigPath
-	}
-	if override.Recursive != nil {
-		merged.Recursive = override.Recursive
-	}
-	if len(override.IncludePatterns) > 0 {
-		merged.IncludePatterns = override.IncludePatterns
-	}
-	if len(override.ExcludePatterns) > 0 {
-		merged.ExcludePatterns = override.ExcludePatterns
-	}
+	merged.ConfigPath = config.Merge(merged.ConfigPath, override.ConfigPath)
+	merged.Recursive = config.MergePtr(merged.Recursive, override.Recursive)
+	merged.IncludePatterns = config.MergeSlice(merged.IncludePatterns, override.IncludePatterns)
+	merged.ExcludePatterns = config.MergeSlice(merged.ExcludePatterns, override.ExcludePatterns)
 
-	if override.Algorithm != "" {
-		merged.Algorithm = override.Algorithm
-	}
-	if override.Scope != "" {
-		merged.Scope = override.Scope
-	}
-	if override.MinCommunitySize > 0 {
-		merged.MinCommunitySize = override.MinCommunitySize
-	}
-	if override.IncludeLazyEdges != nil {
-		merged.IncludeLazyEdges = override.IncludeLazyEdges
-	}
-	if override.ReportBridgeModules != nil {
-		merged.ReportBridgeModules = override.ReportBridgeModules
-	}
-	if override.Resolution > 0 {
-		merged.Resolution = override.Resolution
-	}
+	merged.Algorithm = config.Merge(merged.Algorithm, override.Algorithm)
+	merged.Scope = config.Merge(merged.Scope, override.Scope)
+	merged.MinCommunitySize = config.Merge(merged.MinCommunitySize, override.MinCommunitySize)
+	merged.IncludeLazyEdges = config.MergePtr(merged.IncludeLazyEdges, override.IncludeLazyEdges)
+	merged.ReportBridgeModules = config.MergePtr(merged.ReportBridgeModules, override.ReportBridgeModules)
+	merged.Resolution = config.Merge(merged.Resolution, override.Resolution)
 
-	if override.IncludeStdLib != nil {
-		merged.IncludeStdLib = override.IncludeStdLib
-	}
-	if override.IncludeThirdParty != nil {
-		merged.IncludeThirdParty = override.IncludeThirdParty
-	}
-	if override.FollowRelative != nil {
-		merged.FollowRelative = override.FollowRelative
-	}
+	merged.IncludeStdLib = config.MergePtr(merged.IncludeStdLib, override.IncludeStdLib)
+	merged.IncludeThirdParty = config.MergePtr(merged.IncludeThirdParty, override.IncludeThirdParty)
+	merged.FollowRelative = config.MergePtr(merged.FollowRelative, override.FollowRelative)
 
-	if override.ArchitectureRules != nil {
-		merged.ArchitectureRules = override.ArchitectureRules
-	}
+	merged.ArchitectureRules = config.MergePtr(merged.ArchitectureRules, override.ArchitectureRules)
 
 	return &merged
 }

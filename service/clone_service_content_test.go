@@ -30,12 +30,12 @@ func TestCloneService_convertClonePairsToDomain_Content(t *testing.T) {
 		},
 	}
 
-	withContent := service.convertClonePairsToDomain(pairs, true)
+	withContent := service.convertClonePairsToDomain(pairs, true, nil)
 	require.Len(t, withContent, 1)
 	assert.Equal(t, "def a():\n    return 1", withContent[0].Clone1.Content)
 	assert.Equal(t, "def b():\n    return 1", withContent[0].Clone2.Content)
 
-	withoutContent := service.convertClonePairsToDomain(pairs, false)
+	withoutContent := service.convertClonePairsToDomain(pairs, false, nil)
 	require.Len(t, withoutContent, 1)
 	assert.Empty(t, withoutContent[0].Clone1.Content)
 	assert.Empty(t, withoutContent[0].Clone2.Content)
@@ -146,7 +146,7 @@ func TestCloneService_convertClonesToDomain_Hash(t *testing.T) {
 
 	pairs := service.convertClonePairsToDomain([]*analyzer.ClonePair{
 		{Fragment1: frag0, Fragment2: frag1, Similarity: 1.0, CloneType: analyzer.Type1Clone},
-	}, false)
+	}, false, nil)
 	require.Len(t, pairs, 1)
 	assert.Equal(t, "00000000aaaaaaaa", pairs[0].Clone1.Hash)
 	assert.Equal(t, "00000000bbbbbbbb", pairs[0].Clone2.Hash)
@@ -158,4 +158,24 @@ func TestCloneService_convertClonesToDomain_Hash(t *testing.T) {
 	require.Len(t, groups[0].Clones, 2)
 	assert.Equal(t, "00000000aaaaaaaa", groups[0].Clones[0].Hash)
 	assert.Equal(t, "00000000bbbbbbbb", groups[0].Clones[1].Hash)
+}
+
+func TestCloneService_FilterClonesToReferencedFragments(t *testing.T) {
+	service := NewCloneService()
+	frag0 := &analyzer.CodeFragment{Location: &analyzer.CodeLocation{FilePath: "a.py", StartLine: 1, EndLine: 2}}
+	frag1 := &analyzer.CodeFragment{Location: &analyzer.CodeLocation{FilePath: "b.py", StartLine: 5, EndLine: 6}}
+	frag2 := &analyzer.CodeFragment{Location: &analyzer.CodeLocation{FilePath: "c.py", StartLine: 9, EndLine: 10}}
+
+	clones, fragmentIDs := service.convertFragmentsToDomainClones([]*analyzer.CodeFragment{frag0, frag1, frag2})
+	pairs := service.convertClonePairsToDomain([]*analyzer.ClonePair{
+		{Fragment1: frag0, Fragment2: frag2, Similarity: 0.95, CloneType: analyzer.Type2Clone},
+	}, false, fragmentIDs)
+
+	filtered := filterClonesToReferencedFragments(clones, pairs, nil)
+	require.Len(t, filtered, 2)
+	assert.Equal(t, []int{1, 3}, []int{filtered[0].ID, filtered[1].ID})
+	assert.Equal(t, 1, pairs[0].Clone1.ID)
+	assert.Equal(t, 3, pairs[0].Clone2.ID)
+	assert.Equal(t, domain.Type2Clone, pairs[0].Clone1.Type)
+	assert.Equal(t, domain.Type2Clone, pairs[0].Clone2.Type)
 }
