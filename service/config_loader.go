@@ -50,83 +50,46 @@ func (c *ConfigurationLoaderImpl) MergeConfig(base *domain.ComplexityRequest, ov
 	// Start with base configuration
 	merged := *base
 
-	// Override with non-zero values from override
-	// Always override paths as they come from command arguments
-	if len(override.Paths) > 0 {
-		merged.Paths = override.Paths
-	}
+	// A zero-value override field means "not set", so the base wins. Never
+	// compare against domain defaults: an explicit override that happens to
+	// equal a default must still take precedence (issue #553).
+	merged.Paths = config.MergeSlice(merged.Paths, override.Paths)
 
 	// Output configuration
-	if override.OutputFormat != "" {
-		merged.OutputFormat = override.OutputFormat
-	}
+	merged.OutputFormat = config.Merge(merged.OutputFormat, override.OutputFormat)
 
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
 
-	// Only override if values differ from defaults
+	// Plain bool: only a true override flips the value on.
 	if override.ShowDetails {
 		merged.ShowDetails = override.ShowDetails
 	}
 
-	// Filtering and sorting - override if non-default
-	if override.MinComplexity != 1 {
-		merged.MinComplexity = override.MinComplexity
-	}
+	// Filtering and sorting
+	merged.MinComplexity = config.Merge(merged.MinComplexity, override.MinComplexity)
+	merged.MaxComplexity = config.Merge(merged.MaxComplexity, override.MaxComplexity)
+	merged.SortBy = config.Merge(merged.SortBy, override.SortBy)
 
-	if override.MaxComplexity != 0 {
-		merged.MaxComplexity = override.MaxComplexity
-	}
+	// Complexity thresholds
+	merged.LowThreshold = config.Merge(merged.LowThreshold, override.LowThreshold)
+	merged.MediumThreshold = config.Merge(merged.MediumThreshold, override.MediumThreshold)
+	merged.CognitiveComplexityThreshold = config.Merge(merged.CognitiveComplexityThreshold, override.CognitiveComplexityThreshold)
+	merged.NestingDepthThreshold = config.Merge(merged.NestingDepthThreshold, override.NestingDepthThreshold)
 
-	if override.SortBy != "" && override.SortBy != "complexity" {
-		merged.SortBy = override.SortBy
-	}
-
-	// Complexity thresholds - override whenever a positive value is supplied.
-	// A zero value means the caller did not set the field, so the base wins.
-	// Do NOT compare against domain defaults: an explicit override that happens
-	// to equal the default must still take precedence (issue #553).
-	if override.LowThreshold > 0 {
-		merged.LowThreshold = override.LowThreshold
-	}
-
-	if override.MediumThreshold > 0 {
-		merged.MediumThreshold = override.MediumThreshold
-	}
-
-	if override.CognitiveComplexityThreshold > 0 {
-		merged.CognitiveComplexityThreshold = override.CognitiveComplexityThreshold
-	}
-
-	if override.NestingDepthThreshold > 0 {
-		merged.NestingDepthThreshold = override.NestingDepthThreshold
-	}
-
-	if override.Enabled != nil {
-		merged.Enabled = override.Enabled
-	}
-
-	if override.ReportUnchanged != nil {
-		merged.ReportUnchanged = override.ReportUnchanged
-	}
+	merged.Enabled = config.MergePtr(merged.Enabled, override.Enabled)
+	merged.ReportUnchanged = config.MergePtr(merged.ReportUnchanged, override.ReportUnchanged)
 
 	// Config path is always from override if provided
-	if override.ConfigPath != "" {
-		merged.ConfigPath = override.ConfigPath
-	}
+	merged.ConfigPath = config.Merge(merged.ConfigPath, override.ConfigPath)
 
 	// For recursive, preserve the override value
 	merged.Recursive = override.Recursive
 
-	// Patterns - override if provided and different from defaults
-	if len(override.IncludePatterns) > 0 {
-		merged.IncludePatterns = override.IncludePatterns
-	}
-
-	if len(override.ExcludePatterns) > 0 {
-		merged.ExcludePatterns = override.ExcludePatterns
-	}
+	// Patterns
+	merged.IncludePatterns = config.MergeSlice(merged.IncludePatterns, override.IncludePatterns)
+	merged.ExcludePatterns = config.MergeSlice(merged.ExcludePatterns, override.ExcludePatterns)
 
 	return &merged
 }

@@ -73,3 +73,69 @@ func TestCommunityConfigurationLoader_LoadDefaultConfigUsesDefaults(t *testing.T
 		t.Errorf("expected resolution %f, got %f", domain.DefaultCommunityResolution, req.Resolution)
 	}
 }
+
+func TestCommunityConfigurationLoader_MergeConfigOverrideEqualsDefault(t *testing.T) {
+	loader := NewCommunityConfigurationLoader()
+
+	base := domain.DefaultCommunityAnalysisRequest()
+	base.Algorithm = "leiden"
+	base.MinCommunitySize = 5
+	base.Resolution = 2.0
+
+	// Override carries values that happen to equal the domain defaults.
+	// They must still take precedence over the base config.
+	override := &domain.CommunityAnalysisRequest{
+		Algorithm:        domain.DefaultCommunityAlgorithm,
+		Scope:            domain.DefaultCommunityScope,
+		MinCommunitySize: 2,
+		Resolution:       domain.DefaultCommunityResolution,
+	}
+
+	merged := loader.MergeConfig(base, override)
+
+	if merged.Algorithm != domain.DefaultCommunityAlgorithm {
+		t.Errorf("expected algorithm %q, got %q", domain.DefaultCommunityAlgorithm, merged.Algorithm)
+	}
+	if merged.Scope != domain.DefaultCommunityScope {
+		t.Errorf("expected scope %q, got %q", domain.DefaultCommunityScope, merged.Scope)
+	}
+	if merged.MinCommunitySize != 2 {
+		t.Errorf("expected min_community_size 2, got %d", merged.MinCommunitySize)
+	}
+	if merged.Resolution != domain.DefaultCommunityResolution {
+		t.Errorf("expected resolution %f, got %f", domain.DefaultCommunityResolution, merged.Resolution)
+	}
+}
+
+func TestCommunityConfigurationLoader_MergeConfigZeroValueKeepsBase(t *testing.T) {
+	loader := NewCommunityConfigurationLoader()
+
+	base := domain.DefaultCommunityAnalysisRequest()
+	base.Algorithm = "leiden"
+	base.Scope = "module"
+	base.MinCommunitySize = 5
+	base.Resolution = 2.0
+	base.Recursive = domain.BoolPtr(false)
+
+	// A fully zero-valued override represents "no CLI flags set" and must
+	// preserve every base value.
+	override := &domain.CommunityAnalysisRequest{}
+
+	merged := loader.MergeConfig(base, override)
+
+	if merged.Algorithm != "leiden" {
+		t.Errorf("expected algorithm leiden preserved, got %q", merged.Algorithm)
+	}
+	if merged.Scope != "module" {
+		t.Errorf("expected scope module preserved, got %q", merged.Scope)
+	}
+	if merged.MinCommunitySize != 5 {
+		t.Errorf("expected min_community_size 5 preserved, got %d", merged.MinCommunitySize)
+	}
+	if merged.Resolution != 2.0 {
+		t.Errorf("expected resolution 2.0 preserved, got %f", merged.Resolution)
+	}
+	if domain.BoolValue(merged.Recursive, true) {
+		t.Errorf("expected recursive false preserved, got %v", merged.Recursive)
+	}
+}

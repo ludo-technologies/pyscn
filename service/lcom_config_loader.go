@@ -49,50 +49,31 @@ func (cl *LCOMConfigurationLoaderImpl) MergeConfig(base *domain.LCOMRequest, ove
 
 	merged := *base
 
-	if len(override.Paths) > 0 {
-		merged.Paths = override.Paths
-	}
-	if override.OutputFormat != "" {
-		merged.OutputFormat = override.OutputFormat
-	}
+	// A zero-value override field means "not set", so the base wins. Never
+	// compare against domain defaults: an explicit override that happens to
+	// equal a default must still take precedence (issue #553).
+	merged.Paths = config.MergeSlice(merged.Paths, override.Paths)
+	merged.OutputFormat = config.Merge(merged.OutputFormat, override.OutputFormat)
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
-	if override.OutputPath != "" {
-		merged.OutputPath = override.OutputPath
-	}
+	merged.OutputPath = config.Merge(merged.OutputPath, override.OutputPath)
+	// NoOpen flag - plain bool, always take override
 	merged.NoOpen = override.NoOpen
 
-	if override.MinLCOM > 0 {
-		merged.MinLCOM = override.MinLCOM
-	}
-	if override.MaxLCOM > 0 {
-		merged.MaxLCOM = override.MaxLCOM
-	}
-	if override.SortBy != "" {
-		merged.SortBy = override.SortBy
-	}
-	if override.LowThreshold > 0 {
-		merged.LowThreshold = override.LowThreshold
-	}
-	if override.MediumThreshold > 0 {
-		merged.MediumThreshold = override.MediumThreshold
-	}
-	if override.ConfigPath != "" {
-		merged.ConfigPath = override.ConfigPath
-	}
+	merged.MinLCOM = config.Merge(merged.MinLCOM, override.MinLCOM)
+	merged.MaxLCOM = config.Merge(merged.MaxLCOM, override.MaxLCOM)
+	merged.SortBy = config.Merge(merged.SortBy, override.SortBy)
+	merged.LowThreshold = config.Merge(merged.LowThreshold, override.LowThreshold)
+	merged.MediumThreshold = config.Merge(merged.MediumThreshold, override.MediumThreshold)
+	merged.ConfigPath = config.Merge(merged.ConfigPath, override.ConfigPath)
+	// ShowDetails: plain bool, only a true override flips it on.
 	if override.ShowDetails {
 		merged.ShowDetails = true
 	}
-	if override.Recursive != nil {
-		merged.Recursive = override.Recursive
-	}
-	if len(override.IncludePatterns) > 0 {
-		merged.IncludePatterns = override.IncludePatterns
-	}
-	if len(override.ExcludePatterns) > 0 {
-		merged.ExcludePatterns = override.ExcludePatterns
-	}
+	merged.Recursive = config.MergePtr(merged.Recursive, override.Recursive)
+	merged.IncludePatterns = config.MergeSlice(merged.IncludePatterns, override.IncludePatterns)
+	merged.ExcludePatterns = config.MergeSlice(merged.ExcludePatterns, override.ExcludePatterns)
 
 	return &merged
 }

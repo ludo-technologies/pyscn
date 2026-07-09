@@ -36,8 +36,12 @@ func NewCBOUseCase(
 
 // prepareAnalysis handles common preparation steps for analysis
 func (uc *CBOUseCase) prepareAnalysis(ctx context.Context, req domain.CBORequest) (domain.CBORequest, error) {
-	// Validate input
-	if err := uc.validateRequest(req); err != nil {
+	// Fail fast on inputs that only the caller can provide, before any
+	// config loading; full validation runs on the merged request below.
+	if err := uc.validatePaths(req); err != nil {
+		return req, domain.NewInvalidInputError("invalid request", err)
+	}
+	if err := uc.validateOutput(req); err != nil {
 		return req, domain.NewInvalidInputError("invalid request", err)
 	}
 
@@ -45,6 +49,12 @@ func (uc *CBOUseCase) prepareAnalysis(ctx context.Context, req domain.CBORequest
 	finalReq, err := uc.loadAndMergeConfig(req)
 	if err != nil {
 		return req, domain.NewConfigError("failed to load configuration", err)
+	}
+
+	// Validate the merged request (CLI overrides are sparse; only the
+	// merged result is a complete, validatable configuration)
+	if err := uc.validateRequest(finalReq); err != nil {
+		return req, domain.NewInvalidInputError("invalid request", err)
 	}
 
 	// Resolve file paths (use helper to avoid duplication)
@@ -123,15 +133,16 @@ func (uc *CBOUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.
 		return nil, domain.NewAnalysisError("CBO analysis failed", fmt.Errorf("project snapshot is required"))
 	}
 
-	if err := uc.validateRequest(req); err != nil {
-		return nil, domain.NewInvalidInputError("invalid request", err)
-	}
-
 	finalReq, err := uc.loadAndMergeConfig(req)
 	if err != nil {
 		return nil, domain.NewConfigError("failed to load configuration", err)
 	}
 	finalReq.Paths = snapshot.Paths()
+
+	// Validate the merged request (paths come from the snapshot)
+	if err := uc.validateRequest(finalReq); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
 
 	snapshotService, ok := uc.service.(snapshotCBOService)
 	if !ok {

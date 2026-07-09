@@ -379,7 +379,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					OutputFormat:    domain.OutputFormatJSON,
 					OutputWriter:    io.Discard,
 					MinSeverity:     config.MinSeverity,
-					SortBy:          domain.DeadCodeSortBySeverity,
+					SortBy:          "", // Zero: let config file values take precedence via merge
 					ConfigPath:      config.ConfigFile,
 					// Detection options left as nil to allow config file values to take precedence
 					// If not set in config, defaults from DefaultDeadCodeRequest() will be used
@@ -422,8 +422,8 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					OutputFormat:    domain.OutputFormatJSON,
 					OutputWriter:    io.Discard,
 					MinCBO:          config.MinCBO,
-					LowThreshold:    domain.DefaultCBOLowThreshold,
-					MediumThreshold: domain.DefaultCBOMediumThreshold,
+					LowThreshold:    0, // Zero: let config file values take precedence via merge
+					MediumThreshold: 0, // Zero: let config file values take precedence via merge
 					SortBy:          domain.SortByCoupling,
 					ConfigPath:      config.ConfigFile,
 					// Boolean options left as nil to allow config file values to take precedence
@@ -557,14 +557,15 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 }
 
 func (uc *AnalyzeUseCase) buildCloneTaskRequest(config AnalyzeUseCaseConfig, files []string) domain.CloneRequest {
-	request := *domain.DefaultCloneRequest()
-	request.Paths = files
-	request.OutputFormat = domain.OutputFormatJSON
-	request.OutputWriter = io.Discard
-	request.SimilarityThreshold = config.CloneSimilarity
-	request.ConfigPath = config.ConfigFile
-
-	return request
+	// Sparse request: zero values mean "not set" and are filled from the
+	// config file (or defaults) during MergeConfig inside the use case.
+	return domain.CloneRequest{
+		Paths:               files,
+		OutputFormat:        domain.OutputFormatJSON,
+		OutputWriter:        io.Discard,
+		SimilarityThreshold: config.CloneSimilarity,
+		ConfigPath:          config.ConfigFile,
+	}
 }
 
 // buildResponse builds the analyze response from task results
