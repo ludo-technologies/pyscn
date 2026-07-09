@@ -303,52 +303,21 @@ func (h *HandlerSet) HandleDetectClones(ctx context.Context, request mcp.CallToo
 		return mcp.NewToolResultError(fmt.Sprintf("path does not exist: %s", path)), nil
 	}
 
-	// Load defaults from configuration
-	cfg := h.deps.Config()
-	req := domain.DefaultCloneRequest()
-	if cfg != nil && cfg.Clones != nil {
-		req.SimilarityThreshold = cfg.Clones.Thresholds.SimilarityThreshold
-		req.MinLines = cfg.Clones.Analysis.MinLines
-		req.MinNodes = cfg.Clones.Analysis.MinNodes
-		req.GroupClones = domain.BoolPtr(domain.BoolValue(cfg.Clones.Output.GroupClones, true))
-		req.Recursive = domain.BoolPtr(domain.BoolValue(cfg.Clones.Input.Recursive, true))
-		if len(cfg.Clones.Input.IncludePatterns) > 0 {
-			req.IncludePatterns = cfg.Clones.Input.IncludePatterns
-		}
-		if len(cfg.Clones.Input.ExcludePatterns) > 0 {
-			req.ExcludePatterns = cfg.Clones.Input.ExcludePatterns
-		}
-	} else if cfg != nil {
-		req.Recursive = domain.BoolPtr(cfg.Analysis.Recursive)
-		if len(cfg.Analysis.IncludePatterns) > 0 {
-			req.IncludePatterns = cfg.Analysis.IncludePatterns
-		}
-		if len(cfg.Analysis.ExcludePatterns) > 0 {
-			req.ExcludePatterns = cfg.Analysis.ExcludePatterns
-		}
-	}
-
-	// Parse optional parameters
-	similarityThreshold := req.SimilarityThreshold
+	// Sparse request: only tool arguments are explicit overrides; zero
+	// values are filled from the config file (or defaults) during
+	// MergeConfig inside the use case.
+	req := &domain.CloneRequest{}
 	if st, ok := args["similarity_threshold"].(float64); ok {
-		similarityThreshold = st
+		req.SimilarityThreshold = st
 	}
-
-	minLines := req.MinLines
 	if ml, ok := args["min_lines"].(float64); ok {
-		minLines = int(ml)
+		req.MinLines = int(ml)
 	}
-
-	groupClones := req.GroupClones
 	if gc, ok := args["group_clones"].(bool); ok {
-		groupClones = domain.BoolPtr(gc)
+		req.GroupClones = domain.BoolPtr(gc)
 	}
 
 	req.Paths = []string{path}
-	req.SimilarityThreshold = similarityThreshold
-	req.MinLines = minLines
-	req.GroupClones = groupClones
-	// Preserve MinNodes from defaults/config
 	req.OutputFormat = domain.OutputFormatJSON
 	req.OutputWriter = io.Discard
 	req.ConfigPath = h.deps.ConfigPath()
@@ -1383,7 +1352,7 @@ func buildAnalyzeUseCase(fileReader domain.FileReader) (*app.AnalyzeUseCase, err
 	// Build CBO use case
 	cboService := service.NewCBOService()
 	cboFormatter := service.NewCBOFormatter()
-	cboUC := app.NewCBOUseCase(cboService, fileReader, cboFormatter, nil) // CBO config loader is optional
+	cboUC := app.NewCBOUseCase(cboService, fileReader, cboFormatter, service.NewCBOConfigurationLoader())
 
 	// Build LCOM use case
 	lcomService := service.NewLCOMService()

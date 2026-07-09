@@ -379,7 +379,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					OutputFormat:    domain.OutputFormatJSON,
 					OutputWriter:    io.Discard,
 					MinSeverity:     config.MinSeverity,
-					SortBy:          domain.DeadCodeSortBySeverity,
+					SortBy:          "", // Zero: let config file values take precedence via merge
 					ConfigPath:      config.ConfigFile,
 					// Detection options left as nil to allow config file values to take precedence
 					// If not set in config, defaults from DefaultDeadCodeRequest() will be used
@@ -422,8 +422,8 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					OutputFormat:    domain.OutputFormatJSON,
 					OutputWriter:    io.Discard,
 					MinCBO:          config.MinCBO,
-					LowThreshold:    domain.DefaultCBOLowThreshold,
-					MediumThreshold: domain.DefaultCBOMediumThreshold,
+					LowThreshold:    0, // Zero: let config file values take precedence via merge
+					MediumThreshold: 0, // Zero: let config file values take precedence via merge
 					SortBy:          domain.SortByCoupling,
 					ConfigPath:      config.ConfigFile,
 					// Boolean options left as nil to allow config file values to take precedence
