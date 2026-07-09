@@ -210,7 +210,25 @@ func (a *CBOAnalyzer) analyzeClass(classNode *parser.Node, filePath string, allC
 	// 3. Analyze instantiation and attribute access
 	a.analyzeInstantiationAndAccess(classNode, dependencies, result, allClasses, resolver)
 
-	// 4. Calculate final metrics
+	// 4. Remove same-file top-level peer classes: a class defined at module scope
+	//    in the same file is an internal implementation detail, not external
+	//    coupling (see #637). Nested classes are handled by the scope-aware
+	//    nestedClassResolver below; they are excluded only when they truly
+	//    resolve to the class body (for which Python scope rules differ).
+	for depName := range dependencies.all {
+		if depNode, ok := allClasses[depName]; ok && !a.isImportedDependency(depName) && depName != result.ClassName {
+			if depNode.Parent != nil && depNode.Parent.Type == parser.NodeModule {
+				delete(dependencies.all, depName)
+				delete(dependencies.inheritance, depName)
+				delete(dependencies.typeHints, depName)
+				delete(dependencies.instantiations, depName)
+				delete(dependencies.attributeAccesses, depName)
+				delete(dependencies.imports, depName)
+			}
+		}
+	}
+
+	// 5. Calculate final metrics
 	result.CouplingCount = len(dependencies.all)
 	result.DependentClasses = a.mapToSlice(dependencies.all)
 	result.InheritanceDependencies = len(dependencies.inheritance)

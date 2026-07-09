@@ -91,7 +91,7 @@ class DerivedClass(BaseClass):
         super().__init__()
 `,
 			expectedCount: 2,
-			expectedCBO:   map[string]int{"BaseClass": 0, "DerivedClass": 1},
+			expectedCBO:   map[string]int{"BaseClass": 0, "DerivedClass": 0},
 			expectedRisk:  map[string]string{"BaseClass": "low", "DerivedClass": "low"},
 		},
 		{
@@ -107,7 +107,7 @@ class MultipleInheritance(MixinA, MixinB):
     pass
 `,
 			expectedCount: 3,
-			expectedCBO:   map[string]int{"MixinA": 0, "MixinB": 0, "MultipleInheritance": 2},
+			expectedCBO:   map[string]int{"MixinA": 0, "MixinB": 0, "MultipleInheritance": 0},
 			expectedRisk:  map[string]string{"MixinA": "low", "MixinB": "low", "MultipleInheritance": "low"},
 		},
 		{
@@ -127,7 +127,7 @@ class UserManager:
         self.users.append(user)
 `,
 			expectedCount: 2,
-			expectedCBO:   map[string]int{"User": 0, "UserManager": 1}, // UserManager depends on User
+			expectedCBO:   map[string]int{"User": 0, "UserManager": 0},
 			expectedRisk:  map[string]string{"User": "low", "UserManager": "low"},
 		},
 		{
@@ -145,8 +145,25 @@ class Service:
         self.logger.log("Working...")
 `,
 			expectedCount: 2,
-			expectedCBO:   map[string]int{"Logger": 0, "Service": 1},
+			expectedCBO:   map[string]int{"Logger": 0, "Service": 0},
 			expectedRisk:  map[string]string{"Logger": "low", "Service": "low"},
+		},
+		{
+			name: "same-file peer class is not a dependency (issue #637)",
+			pythonCode: `
+class Helper:
+    def do(self) -> str:
+        return "done"
+
+class Main:
+    def __init__(self, h: Helper) -> None:
+        self.h = h
+    def execute(self) -> str:
+        return self.h.do()
+`,
+			expectedCount: 2,
+			expectedCBO:   map[string]int{"Helper": 0, "Main": 0},
+			expectedRisk:  map[string]string{"Helper": "low", "Main": "low"},
 		},
 		{
 			name: "high coupling class",
@@ -171,8 +188,8 @@ class HighlyCoupled(A):
 				MediumThreshold: 5,
 			},
 			expectedCount: 7,
-			expectedCBO:   map[string]int{"HighlyCoupled": 6}, // Inherits from A + instantiates B,C,D,E,F
-			expectedRisk:  map[string]string{"HighlyCoupled": "high"},
+			expectedCBO:   map[string]int{"HighlyCoupled": 0},
+			expectedRisk:  map[string]string{"HighlyCoupled": "low"},
 		},
 		{
 			name: "class with union type annotations (Python 3.10+)",
@@ -194,7 +211,7 @@ class Command:
         return 0
 `,
 			expectedCount: 3,
-			expectedCBO:   map[string]int{"Context": 0, "Parameter": 0, "Command": 2}, // Command depends on Context and Parameter
+			expectedCBO:   map[string]int{"Context": 0, "Parameter": 0, "Command": 0},
 			expectedRisk:  map[string]string{"Context": "low", "Parameter": "low", "Command": "low"},
 		},
 		{
@@ -217,7 +234,7 @@ class AccessControl:
         return True
 `,
 			expectedCount: 4,
-			expectedCBO:   map[string]int{"User": 0, "Admin": 0, "Guest": 0, "AccessControl": 3}, // Depends on User, Admin, Guest
+			expectedCBO:   map[string]int{"User": 0, "Admin": 0, "Guest": 0, "AccessControl": 0},
 			expectedRisk:  map[string]string{"User": "low", "Admin": "low", "Guest": "low", "AccessControl": "low"},
 		},
 	}
@@ -446,9 +463,9 @@ class UsesLocal:
 
 	usesLocal := resultMap["UsesLocal"]
 	require.NotNil(t, usesLocal)
-	assert.Equal(t, 1, usesLocal.CouplingCount)
-	assert.Equal(t, 1, usesLocal.TypeHintDependencies)
-	assert.Equal(t, []string{"TypedDict"}, usesLocal.DependentClasses)
+	assert.Equal(t, 0, usesLocal.CouplingCount)
+	assert.Equal(t, 0, usesLocal.TypeHintDependencies)
+	assert.Empty(t, usesLocal.DependentClasses)
 }
 
 func TestCBOAnalyzer_MultiArgumentGenericTypeHints(t *testing.T) {
@@ -477,9 +494,9 @@ class Service:
 
 	service := resultMap["Service"]
 	require.NotNil(t, service)
-	assert.Equal(t, 2, service.CouplingCount)
-	assert.Equal(t, 2, service.TypeHintDependencies)
-	assert.Equal(t, []string{"Account", "User"}, service.DependentClasses)
+	assert.Equal(t, 0, service.CouplingCount)
+	assert.Equal(t, 0, service.TypeHintDependencies)
+	assert.Empty(t, service.DependentClasses)
 }
 
 func TestCBOAnalyzer_GenericInheritanceUsesBaseClassIdentity(t *testing.T) {
@@ -508,9 +525,9 @@ class Repo(Base[User]):
 	repo := resultMap["Repo"]
 	require.NotNil(t, repo)
 	assert.Equal(t, []string{"Base"}, repo.BaseClasses)
-	assert.Equal(t, 1, repo.CouplingCount)
-	assert.Equal(t, 1, repo.InheritanceDependencies)
-	assert.Equal(t, []string{"Base"}, repo.DependentClasses)
+	assert.Equal(t, 0, repo.CouplingCount)
+	assert.Equal(t, 0, repo.InheritanceDependencies)
+	assert.Empty(t, repo.DependentClasses)
 }
 
 func TestCBOAnalyzer_QualifiedTypeStructureDoesNotAddReceiverDependency(t *testing.T) {
@@ -843,8 +860,8 @@ class DerivedClass(SimpleClass):
 	require.NotNil(t, derivedResult)
 
 	assert.Equal(t, 0, simpleResult.CouplingCount)
-	assert.Equal(t, 1, derivedResult.CouplingCount) // Depends on SimpleClass
-	assert.Contains(t, derivedResult.DependentClasses, "SimpleClass")
+	assert.Equal(t, 0, derivedResult.CouplingCount)
+	assert.Empty(t, derivedResult.DependentClasses)
 }
 
 func TestCBOAnalyzer_UsesCanonicalASTChildren(t *testing.T) {
@@ -874,9 +891,9 @@ class Service:
 	}
 
 	require.NotNil(t, serviceResult)
-	assert.Equal(t, 1, serviceResult.CouplingCount)
-	assert.Equal(t, 1, serviceResult.InstantiationDependencies)
-	assert.Contains(t, serviceResult.DependentClasses, "Logger")
+	assert.Equal(t, 0, serviceResult.CouplingCount)
+	assert.Equal(t, 0, serviceResult.InstantiationDependencies)
+	assert.Empty(t, serviceResult.DependentClasses)
 }
 
 func TestCBOAnalyzer_NamespaceImportMembersAreGrouped(t *testing.T) {
@@ -1009,8 +1026,8 @@ class MyThing:
 
 	myThing, found := resultMap["MyThing"]
 	require.True(t, found, "MyThing not found in results")
-	assert.Equal(t, []string{"Widget"}, myThing.DependentClasses)
-	assert.Equal(t, 1, myThing.CouplingCount)
+	assert.Empty(t, myThing.DependentClasses)
+	assert.Equal(t, 0, myThing.CouplingCount)
 	assert.Equal(t, "low", myThing.RiskLevel)
 }
 
@@ -1040,8 +1057,8 @@ class Consumer:
 	}
 
 	require.NotNil(t, consumer)
-	assert.Equal(t, []string{"widget_factory"}, consumer.DependentClasses)
-	assert.Equal(t, 1, consumer.CouplingCount)
+	assert.Empty(t, consumer.DependentClasses)
+	assert.Equal(t, 0, consumer.CouplingCount)
 }
 
 func TestCBOAnalyzer_KnownLowercaseStdlibClassesStillCount(t *testing.T) {
@@ -1193,8 +1210,8 @@ class Consumer:
 	}
 
 	require.NotNil(t, consumer)
-	assert.Equal(t, []string{"Widget"}, consumer.DependentClasses)
-	assert.Equal(t, 1, consumer.CouplingCount)
+	assert.Empty(t, consumer.DependentClasses)
+	assert.Equal(t, 0, consumer.CouplingCount)
 }
 
 func TestCBOAnalyzer_OwnClassMethodCallIsNotSelfCoupling(t *testing.T) {
@@ -1257,8 +1274,8 @@ class Outer:
 	outer := resultMap["Outer"]
 	require.NotNil(t, outer)
 	assert.NotContains(t, outer.DependentClasses, "Helper", "local helper class must not count as coupling")
-	assert.Contains(t, outer.DependentClasses, "External", "genuine external coupling must still count")
-	assert.Equal(t, 1, outer.CouplingCount)
+	assert.NotContains(t, outer.DependentClasses, "External", "same-file top-level peer is not external coupling (see #637)")
+	assert.Equal(t, 0, outer.CouplingCount)
 }
 
 func TestCBOAnalyzer_SameNameClassInDifferentScopeStillCounts(t *testing.T) {
