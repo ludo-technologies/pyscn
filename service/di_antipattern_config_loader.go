@@ -56,54 +56,34 @@ func (cl *DIAntipatternConfigurationLoaderImpl) MergeConfig(base *domain.DIAntip
 	merged := *base
 
 	// Always override paths as they come from command arguments
-	if len(override.Paths) > 0 {
-		merged.Paths = override.Paths
-	}
+	merged.Paths = config.MergeSlice(merged.Paths, override.Paths)
 
 	// Output configuration
-	if override.OutputFormat != "" {
-		merged.OutputFormat = override.OutputFormat
-	}
+	merged.OutputFormat = config.Merge(merged.OutputFormat, override.OutputFormat)
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
-	if override.OutputPath != "" {
-		merged.OutputPath = override.OutputPath
-	}
+	merged.OutputPath = config.Merge(merged.OutputPath, override.OutputPath)
 
 	// NoOpen flag
 	merged.NoOpen = override.NoOpen
 
-	// Filtering - only override if explicitly set
-	if override.MinSeverity != "" {
-		merged.MinSeverity = override.MinSeverity
-	}
-	if override.SortBy != "" {
-		merged.SortBy = override.SortBy
-	}
+	// Filtering
+	merged.MinSeverity = config.Merge(merged.MinSeverity, override.MinSeverity)
+	merged.SortBy = config.Merge(merged.SortBy, override.SortBy)
 
-	// ConfigPath - always override if provided
-	if override.ConfigPath != "" {
-		merged.ConfigPath = override.ConfigPath
-	}
+	// ConfigPath
+	merged.ConfigPath = config.Merge(merged.ConfigPath, override.ConfigPath)
 
 	// DI-specific options
-	if override.ConstructorParamThreshold > 0 {
-		merged.ConstructorParamThreshold = override.ConstructorParamThreshold
-	}
+	merged.ConstructorParamThreshold = config.Merge(merged.ConstructorParamThreshold, override.ConstructorParamThreshold)
 
 	// Analysis options
-	if override.Recursive != nil {
-		merged.Recursive = override.Recursive
-	}
+	merged.Recursive = config.MergePtr(merged.Recursive, override.Recursive)
 
-	// Array values - override if provided
-	if len(override.IncludePatterns) > 0 {
-		merged.IncludePatterns = override.IncludePatterns
-	}
-	if len(override.ExcludePatterns) > 0 {
-		merged.ExcludePatterns = override.ExcludePatterns
-	}
+	// Array values
+	merged.IncludePatterns = config.MergeSlice(merged.IncludePatterns, override.IncludePatterns)
+	merged.ExcludePatterns = config.MergeSlice(merged.ExcludePatterns, override.ExcludePatterns)
 
 	return &merged
 }

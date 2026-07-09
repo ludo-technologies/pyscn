@@ -1,49 +1,31 @@
 package config
 
-// WasExplicitlySet checks if a flag was explicitly set by the user
-func WasExplicitlySet(flags map[string]bool, flagName string) bool {
-	if flags == nil {
-		return false
+// Merge returns override unless it is the zero value for its type, in which
+// case base is returned. The zero value (0, "", 0.0, ...) means "not set";
+// actual defaults live in the config layer, never in override values.
+func Merge[T comparable](base, override T) T {
+	var zero T
+	if override == zero {
+		return base
 	}
-	return flags[flagName]
+	return override
 }
 
-// MergeString merges a string value, using override only if explicitly set
-func MergeString(base, override, flagName string, flags map[string]bool) string {
-	if WasExplicitlySet(flags, flagName) {
-		return override
+// MergePtr returns override unless it is nil, in which case base is returned.
+// nil means "not set"; a non-nil pointer is an explicit value, including the
+// zero value (e.g. explicit false for *bool).
+func MergePtr[T any](base, override *T) *T {
+	if override == nil {
+		return base
 	}
-	return base
+	return override
 }
 
-// MergeInt merges an int value, using override only if explicitly set
-func MergeInt(base, override int, flagName string, flags map[string]bool) int {
-	if WasExplicitlySet(flags, flagName) {
-		return override
+// MergeSlice returns override unless it is empty, in which case base is
+// returned. An empty slice means "not set".
+func MergeSlice[T any](base, override []T) []T {
+	if len(override) == 0 {
+		return base
 	}
-	return base
-}
-
-// MergeBool merges a bool value, using override only if explicitly set
-func MergeBool(base, override bool, flagName string, flags map[string]bool) bool {
-	if WasExplicitlySet(flags, flagName) {
-		return override
-	}
-	return base
-}
-
-// MergeFloat64 merges a float64 value, using override only if explicitly set
-func MergeFloat64(base, override float64, flagName string, flags map[string]bool) float64 {
-	if WasExplicitlySet(flags, flagName) {
-		return override
-	}
-	return base
-}
-
-// MergeStringSlice merges a string slice, using override only if explicitly set
-func MergeStringSlice(base, override []string, flagName string, flags map[string]bool) []string {
-	if WasExplicitlySet(flags, flagName) && len(override) > 0 {
-		return override
-	}
-	return base
+	return override
 }

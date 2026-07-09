@@ -57,95 +57,40 @@ func (cl *DeadCodeConfigurationLoaderImpl) MergeConfig(base *domain.DeadCodeRequ
 	// Start with base config
 	merged := *base
 
-	// Always override paths as they come from command arguments
-	if len(override.Paths) > 0 {
-		merged.Paths = override.Paths
-	}
+	// A zero-value override field means "not set", so the base wins. Never
+	// compare against domain defaults: an explicit override that happens to
+	// equal a default must still take precedence (issue #553).
+	merged.Paths = config.MergeSlice(merged.Paths, override.Paths)
 
 	// Output configuration
-	if override.OutputFormat != "" {
-		merged.OutputFormat = override.OutputFormat
-	}
+	merged.OutputFormat = config.Merge(merged.OutputFormat, override.OutputFormat)
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
 
-	// MinSeverity - override only if non-default
-	if override.MinSeverity != "" && override.MinSeverity != domain.DeadCodeSeverityWarning {
-		merged.MinSeverity = override.MinSeverity
-	}
-
-	// SortBy - override only if non-default
-	if override.SortBy != "" && override.SortBy != domain.DeadCodeSortBySeverity {
-		merged.SortBy = override.SortBy
-	}
-
-	// ConfigPath - always override if provided
-	if override.ConfigPath != "" {
-		merged.ConfigPath = override.ConfigPath
-	}
+	merged.MinSeverity = config.Merge(merged.MinSeverity, override.MinSeverity)
+	merged.SortBy = config.Merge(merged.SortBy, override.SortBy)
+	merged.ConfigPath = config.Merge(merged.ConfigPath, override.ConfigPath)
 
 	// Boolean pointer values - nil means not set, non-nil means explicitly set
-	// With pointer types, we can now distinguish between "not set" and "set to default value"
-	// This allows proper precedence: CLI override > config file > defaults
+	// (including an explicit false). This preserves the precedence
+	// CLI override > config file > defaults.
+	merged.ShowContext = config.MergePtr(merged.ShowContext, override.ShowContext)
+	merged.DetectAfterReturn = config.MergePtr(merged.DetectAfterReturn, override.DetectAfterReturn)
+	merged.DetectAfterBreak = config.MergePtr(merged.DetectAfterBreak, override.DetectAfterBreak)
+	merged.DetectAfterContinue = config.MergePtr(merged.DetectAfterContinue, override.DetectAfterContinue)
+	merged.DetectAfterRaise = config.MergePtr(merged.DetectAfterRaise, override.DetectAfterRaise)
+	merged.DetectUnreachableBranches = config.MergePtr(merged.DetectUnreachableBranches, override.DetectUnreachableBranches)
 
-	// ShowContext: use override if explicitly set (non-nil), otherwise use base
-	if override.ShowContext != nil {
-		merged.ShowContext = override.ShowContext
-	} else {
-		merged.ShowContext = base.ShowContext
-	}
-
-	// Detection flags: use override if explicitly set (non-nil), otherwise use base
-	if override.DetectAfterReturn != nil {
-		merged.DetectAfterReturn = override.DetectAfterReturn
-	} else {
-		merged.DetectAfterReturn = base.DetectAfterReturn
-	}
-
-	if override.DetectAfterBreak != nil {
-		merged.DetectAfterBreak = override.DetectAfterBreak
-	} else {
-		merged.DetectAfterBreak = base.DetectAfterBreak
-	}
-
-	if override.DetectAfterContinue != nil {
-		merged.DetectAfterContinue = override.DetectAfterContinue
-	} else {
-		merged.DetectAfterContinue = base.DetectAfterContinue
-	}
-
-	if override.DetectAfterRaise != nil {
-		merged.DetectAfterRaise = override.DetectAfterRaise
-	} else {
-		merged.DetectAfterRaise = base.DetectAfterRaise
-	}
-
-	if override.DetectUnreachableBranches != nil {
-		merged.DetectUnreachableBranches = override.DetectUnreachableBranches
-	} else {
-		merged.DetectUnreachableBranches = base.DetectUnreachableBranches
-	}
-
-	// ContextLines - override only if explicitly set (non-zero)
-	// 0 means "use config file or default value"
-	if override.ContextLines > 0 {
-		merged.ContextLines = override.ContextLines
-	}
+	merged.ContextLines = config.Merge(merged.ContextLines, override.ContextLines)
 
 	// Recursive - preserve override value
 	merged.Recursive = override.Recursive
 
-	// Array values - override if provided
-	if len(override.IncludePatterns) > 0 {
-		merged.IncludePatterns = override.IncludePatterns
-	}
-	if len(override.ExcludePatterns) > 0 {
-		merged.ExcludePatterns = override.ExcludePatterns
-	}
-	if len(override.IgnorePatterns) > 0 {
-		merged.IgnorePatterns = override.IgnorePatterns
-	}
+	// Array values
+	merged.IncludePatterns = config.MergeSlice(merged.IncludePatterns, override.IncludePatterns)
+	merged.ExcludePatterns = config.MergeSlice(merged.ExcludePatterns, override.ExcludePatterns)
+	merged.IgnorePatterns = config.MergeSlice(merged.IgnorePatterns, override.IgnorePatterns)
 
 	return &merged
 }
