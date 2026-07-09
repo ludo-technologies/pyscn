@@ -33,6 +33,12 @@ type AnalyzeUseCaseConfig struct {
 	CloneSimilarity float64
 	MinCBO          int
 
+	// Complexity thresholds (0 = unset, use config file or default)
+	LowThreshold                 int
+	MediumThreshold              int
+	CognitiveComplexityThreshold int
+	NestingDepthThreshold        int
+
 	// Clone detection options
 	EnableDFA bool // Enable Data Flow Analysis for enhanced Type-4 detection
 
@@ -373,7 +379,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					OutputFormat:    domain.OutputFormatJSON,
 					OutputWriter:    io.Discard,
 					MinSeverity:     config.MinSeverity,
-					SortBy:          domain.DeadCodeSortBySeverity,
+					SortBy:          "", // Zero: let config file values take precedence via merge
 					ConfigPath:      config.ConfigFile,
 					// Detection options left as nil to allow config file values to take precedence
 					// If not set in config, defaults from DefaultDeadCodeRequest() will be used
@@ -416,8 +422,8 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					OutputFormat:    domain.OutputFormatJSON,
 					OutputWriter:    io.Discard,
 					MinCBO:          config.MinCBO,
-					LowThreshold:    domain.DefaultCBOLowThreshold,
-					MediumThreshold: domain.DefaultCBOMediumThreshold,
+					LowThreshold:    0, // Zero: let config file values take precedence via merge
+					MediumThreshold: 0, // Zero: let config file values take precedence via merge
 					SortBy:          domain.SortByCoupling,
 					ConfigPath:      config.ConfigFile,
 					// Boolean options left as nil to allow config file values to take precedence
@@ -511,6 +517,25 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 		minComplexity = executionCfg.ComplexityMinComplexity
 	}
 
+	// CLI flag values take precedence over config file when explicitly set (> 0).
+	// Otherwise fall back to execution config (from config file or defaults).
+	lowThreshold := executionCfg.ComplexityLowThreshold
+	if config.LowThreshold > 0 {
+		lowThreshold = config.LowThreshold
+	}
+	mediumThreshold := executionCfg.ComplexityMediumThreshold
+	if config.MediumThreshold > 0 {
+		mediumThreshold = config.MediumThreshold
+	}
+	cognitiveThreshold := executionCfg.CognitiveComplexityThreshold
+	if config.CognitiveComplexityThreshold > 0 {
+		cognitiveThreshold = config.CognitiveComplexityThreshold
+	}
+	nestingThreshold := executionCfg.NestingDepthThreshold
+	if config.NestingDepthThreshold > 0 {
+		nestingThreshold = config.NestingDepthThreshold
+	}
+
 	return domain.ComplexityRequest{
 		Paths:                        files,
 		Recursive:                    false,
@@ -521,10 +546,10 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 		MinComplexity:                minComplexity,
 		MaxComplexity:                executionCfg.ComplexityMaxComplexity,
 		SortBy:                       domain.SortByComplexity,
-		LowThreshold:                 executionCfg.ComplexityLowThreshold,
-		MediumThreshold:              executionCfg.ComplexityMediumThreshold,
-		CognitiveComplexityThreshold: executionCfg.CognitiveComplexityThreshold,
-		NestingDepthThreshold:        executionCfg.NestingDepthThreshold,
+		LowThreshold:                 lowThreshold,
+		MediumThreshold:              mediumThreshold,
+		CognitiveComplexityThreshold: cognitiveThreshold,
+		NestingDepthThreshold:        nestingThreshold,
 		Enabled:                      domain.BoolPtr(executionCfg.ComplexityEnabled),
 		ReportUnchanged:              domain.BoolPtr(executionCfg.ComplexityReportUnchanged),
 		ConfigPath:                   config.ConfigFile,
@@ -532,14 +557,15 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 }
 
 func (uc *AnalyzeUseCase) buildCloneTaskRequest(config AnalyzeUseCaseConfig, files []string) domain.CloneRequest {
-	request := *domain.DefaultCloneRequest()
-	request.Paths = files
-	request.OutputFormat = domain.OutputFormatJSON
-	request.OutputWriter = io.Discard
-	request.SimilarityThreshold = config.CloneSimilarity
-	request.ConfigPath = config.ConfigFile
-
-	return request
+	// Sparse request: zero values mean "not set" and are filled from the
+	// config file (or defaults) during MergeConfig inside the use case.
+	return domain.CloneRequest{
+		Paths:               files,
+		OutputFormat:        domain.OutputFormatJSON,
+		OutputWriter:        io.Discard,
+		SimilarityThreshold: config.CloneSimilarity,
+		ConfigPath:          config.ConfigFile,
+	}
 }
 
 // buildResponse builds the analyze response from task results

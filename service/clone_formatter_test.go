@@ -76,7 +76,7 @@ func createTestCloneResponse() *domain.CloneResponse {
 			},
 		},
 		Request: &domain.CloneRequest{
-			GroupClones: true,
+			GroupClones: domain.BoolPtr(true),
 		},
 	}
 }

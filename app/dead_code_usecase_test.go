@@ -210,9 +210,34 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 			expectError: false,
 		},
 		{
+			// Regression for the sparse-override model: a CLI request that
+			// leaves MinSeverity/SortBy/OutputFormat unset (zero values) must
+			// be completed by the config merge before validation, not
+			// rejected up front.
+			name: "sparse request is validated after config merge",
+			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
+				base := createValidDeadCodeRequest()
+				configLoader.On("LoadDefaultConfig").Return(&base)
+				// Merging the sparse override into the complete base yields a
+				// complete request; validation must run on that result.
+				configLoader.On("MergeConfig", mock.Anything, mock.Anything).Return(&base)
+				fileReader.On("CollectPythonFiles", []string{"/test/file.py"}, true, []string{"**/*.py"}, []string{}).
+					Return([]string{"/test/file.py"}, nil)
+				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.DeadCodeRequest")).
+					Return(createMockDeadCodeResponse(), nil)
+				formatter.On("Write", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
+			},
+			request: domain.DeadCodeRequest{
+				Paths:        []string{"/test/file.py"},
+				OutputWriter: os.Stdout,
+			},
+			expectError: false,
+		},
+		{
 			name: "validation error - empty paths",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
-				// No mocks needed - validation fails before any service calls
+				// Validation runs on the merged request, after config loading
+				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil)).Maybe()
 			},
 			request: domain.DeadCodeRequest{
 				Paths:        []string{},
@@ -225,7 +250,8 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		{
 			name: "validation error - nil output writer",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
-				// No mocks needed - validation fails before any service calls
+				// Validation runs on the merged request, after config loading
+				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil)).Maybe()
 			},
 			request: domain.DeadCodeRequest{
 				Paths:        []string{"/test/file.py"},
@@ -238,7 +264,8 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		{
 			name: "validation error - negative context lines",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
-				// No mocks needed - validation fails before any service calls
+				// Validation runs on the merged request, after config loading
+				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil)).Maybe()
 			},
 			request: domain.DeadCodeRequest{
 				Paths:        []string{"/test/file.py"},
@@ -255,7 +282,8 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		{
 			name: "validation error - invalid severity level",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
-				// No mocks needed - validation fails before any service calls
+				// Validation runs on the merged request, after config loading
+				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil)).Maybe()
 			},
 			request: domain.DeadCodeRequest{
 				Paths:        []string{"/test/file.py"},
@@ -272,7 +300,8 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		{
 			name: "validation error - invalid output format",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
-				// No mocks needed - validation fails before any service calls
+				// Validation runs on the merged request, after config loading
+				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil)).Maybe()
 			},
 			request: domain.DeadCodeRequest{
 				Paths:        []string{"/test/file.py"},
@@ -289,7 +318,8 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 		{
 			name: "validation error - invalid sort criteria",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
-				// No mocks needed - validation fails before any service calls
+				// Validation runs on the merged request, after config loading
+				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil)).Maybe()
 			},
 			request: domain.DeadCodeRequest{
 				Paths:        []string{"/test/file.py"},
@@ -477,7 +507,8 @@ func TestDeadCodeUseCase_AnalyzeAndReturn(t *testing.T) {
 		{
 			name: "validation error in analyze and return",
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
-				// No mocks needed - validation fails before any service calls
+				// Validation runs on the merged request, after config loading
+				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil)).Maybe()
 			},
 			request: domain.DeadCodeRequest{
 				Paths:        []string{},
@@ -727,7 +758,8 @@ func TestDeadCodeUseCase_AnalyzeFunction(t *testing.T) {
 			name:        "nil function CFG",
 			functionCFG: nil,
 			setupMocks: func(service *mockDeadCodeService, fileReader *mockFileReader, formatter *mockDeadCodeFormatter, configLoader *mockDeadCodeConfigurationLoader) {
-				// No mocks needed - validation fails before any service calls
+				// Validation runs on the merged request, after config loading
+				configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil)).Maybe()
 			},
 			expectError: true,
 			errorMsg:    "function CFG cannot be nil",

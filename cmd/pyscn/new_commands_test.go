@@ -761,3 +761,66 @@ func TestCountDIAntipatternIssuesFailsOnAnalysisErrors(t *testing.T) {
 		t.Fatalf("expected parse error to be preserved, got: %v", err)
 	}
 }
+
+// TestAnalyzeCommandThresholdFlags verifies that complexity threshold flags
+// on the analyze command are mapped into AnalyzeUseCaseConfig. This is the CLI
+// counterpart to the MergeConfig fix for issue #553.
+func TestAnalyzeCommandThresholdFlags(t *testing.T) {
+	t.Run("default values are zero (unset)", func(t *testing.T) {
+		analyzeCmd := NewAnalyzeCommand()
+		config := analyzeCmd.createUseCaseConfig()
+
+		if config.LowThreshold != 0 {
+			t.Errorf("expected LowThreshold 0, got %d", config.LowThreshold)
+		}
+		if config.MediumThreshold != 0 {
+			t.Errorf("expected MediumThreshold 0, got %d", config.MediumThreshold)
+		}
+		if config.CognitiveComplexityThreshold != 0 {
+			t.Errorf("expected CognitiveComplexityThreshold 0, got %d", config.CognitiveComplexityThreshold)
+		}
+		if config.NestingDepthThreshold != 0 {
+			t.Errorf("expected NestingDepthThreshold 0, got %d", config.NestingDepthThreshold)
+		}
+	})
+
+	t.Run("explicit flag values are mapped", func(t *testing.T) {
+		analyzeCmd := NewAnalyzeCommand()
+		analyzeCmd.lowThreshold = 9
+		analyzeCmd.mediumThreshold = 19
+		analyzeCmd.cognitiveComplexityThreshold = 25
+		analyzeCmd.nestingDepthThreshold = 7
+
+		config := analyzeCmd.createUseCaseConfig()
+
+		if config.LowThreshold != 9 {
+			t.Errorf("expected LowThreshold 9, got %d", config.LowThreshold)
+		}
+		if config.MediumThreshold != 19 {
+			t.Errorf("expected MediumThreshold 19, got %d", config.MediumThreshold)
+		}
+		if config.CognitiveComplexityThreshold != 25 {
+			t.Errorf("expected CognitiveComplexityThreshold 25, got %d", config.CognitiveComplexityThreshold)
+		}
+		if config.NestingDepthThreshold != 7 {
+			t.Errorf("expected NestingDepthThreshold 7, got %d", config.NestingDepthThreshold)
+		}
+	})
+
+	t.Run("flags are registered on cobra command", func(t *testing.T) {
+		analyzeCmd := NewAnalyzeCommand()
+		cobraCmd := analyzeCmd.CreateCobraCommand()
+
+		expectedFlags := []string{
+			"low-threshold",
+			"medium-threshold",
+			"cognitive-complexity-threshold",
+			"nesting-depth-threshold",
+		}
+		for _, name := range expectedFlags {
+			if cobraCmd.Flags().Lookup(name) == nil {
+				t.Errorf("expected flag --%s to be registered", name)
+			}
+		}
+	})
+}

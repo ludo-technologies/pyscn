@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"os"
-	"slices"
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
@@ -71,8 +70,8 @@ func (c *CloneConfigurationLoader) GetDefaultCloneConfig() *domain.CloneRequest 
 }
 
 // MergeConfig merges request values over loaded clone configuration.
-// Without explicit flag tracking, values that still match domain defaults are
-// treated as "not overridden" so config-backed values are preserved.
+// Zero values (0, "", nil) in override mean "not set" and preserve the
+// config-backed base value; any other value is an explicit override.
 func (c *CloneConfigurationLoader) MergeConfig(base *domain.CloneRequest, override *domain.CloneRequest) *domain.CloneRequest {
 	if base == nil {
 		return override
@@ -82,122 +81,51 @@ func (c *CloneConfigurationLoader) MergeConfig(base *domain.CloneRequest, overri
 	}
 
 	merged := *base
-	defaultReq := domain.DefaultCloneRequest()
 
-	if len(override.Paths) > 0 {
-		merged.Paths = append([]string(nil), override.Paths...)
-	}
+	merged.Paths = config.MergeSlice(merged.Paths, override.Paths)
 
-	if override.OutputFormat != "" {
-		merged.OutputFormat = override.OutputFormat
-	}
+	merged.OutputFormat = config.Merge(merged.OutputFormat, override.OutputFormat)
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
-	if override.OutputPath != "" {
-		merged.OutputPath = override.OutputPath
-	}
+	merged.OutputPath = config.Merge(merged.OutputPath, override.OutputPath)
 	merged.NoOpen = override.NoOpen
 
-	if override.Recursive != defaultReq.Recursive {
-		merged.Recursive = override.Recursive
-	}
-	if override.IgnoreLiterals != defaultReq.IgnoreLiterals {
-		merged.IgnoreLiterals = override.IgnoreLiterals
-	}
-	if override.IgnoreIdentifiers != defaultReq.IgnoreIdentifiers {
-		merged.IgnoreIdentifiers = override.IgnoreIdentifiers
-	}
-	if override.SkipDocstrings != defaultReq.SkipDocstrings {
-		merged.SkipDocstrings = override.SkipDocstrings
-	}
-	if override.ShowDetails != defaultReq.ShowDetails {
-		merged.ShowDetails = override.ShowDetails
-	}
-	if override.ShowContent != defaultReq.ShowContent {
-		merged.ShowContent = override.ShowContent
-	}
-	if override.GroupClones != defaultReq.GroupClones {
-		merged.GroupClones = override.GroupClones
-	}
+	merged.Recursive = config.MergePtr(merged.Recursive, override.Recursive)
+	merged.IgnoreLiterals = config.MergePtr(merged.IgnoreLiterals, override.IgnoreLiterals)
+	merged.IgnoreIdentifiers = config.MergePtr(merged.IgnoreIdentifiers, override.IgnoreIdentifiers)
+	merged.SkipDocstrings = config.MergePtr(merged.SkipDocstrings, override.SkipDocstrings)
+	merged.ShowDetails = config.MergePtr(merged.ShowDetails, override.ShowDetails)
+	merged.ShowContent = config.MergePtr(merged.ShowContent, override.ShowContent)
+	merged.GroupClones = config.MergePtr(merged.GroupClones, override.GroupClones)
 
-	if override.MinLines != defaultReq.MinLines {
-		merged.MinLines = override.MinLines
-	}
-	if override.MinNodes != defaultReq.MinNodes {
-		merged.MinNodes = override.MinNodes
-	}
-	if override.SimilarityThreshold != defaultReq.SimilarityThreshold {
-		merged.SimilarityThreshold = override.SimilarityThreshold
-	}
-	if override.MaxEditDistance != defaultReq.MaxEditDistance {
-		merged.MaxEditDistance = override.MaxEditDistance
-	}
-	if override.Type1Threshold != defaultReq.Type1Threshold {
-		merged.Type1Threshold = override.Type1Threshold
-	}
-	if override.Type2Threshold != defaultReq.Type2Threshold {
-		merged.Type2Threshold = override.Type2Threshold
-	}
-	if override.Type3Threshold != defaultReq.Type3Threshold {
-		merged.Type3Threshold = override.Type3Threshold
-	}
-	if override.Type4Threshold != defaultReq.Type4Threshold {
-		merged.Type4Threshold = override.Type4Threshold
-	}
-	if override.MinSimilarity != defaultReq.MinSimilarity {
-		merged.MinSimilarity = override.MinSimilarity
-	}
-	if override.MaxSimilarity != defaultReq.MaxSimilarity {
-		merged.MaxSimilarity = override.MaxSimilarity
-	}
-	if override.GroupThreshold != 0 && override.GroupThreshold != defaultReq.GroupThreshold {
-		merged.GroupThreshold = override.GroupThreshold
-	}
-	if override.KCoreK != 0 && override.KCoreK != defaultReq.KCoreK {
-		merged.KCoreK = override.KCoreK
-	}
-	if override.Timeout != 0 {
-		merged.Timeout = override.Timeout
-	}
-	if override.LSHAutoThreshold != 0 && override.LSHAutoThreshold != defaultReq.LSHAutoThreshold {
-		merged.LSHAutoThreshold = override.LSHAutoThreshold
-	}
-	if override.LSHSimilarityThreshold != 0 && override.LSHSimilarityThreshold != defaultReq.LSHSimilarityThreshold {
-		merged.LSHSimilarityThreshold = override.LSHSimilarityThreshold
-	}
-	if override.LSHBands != 0 && override.LSHBands != defaultReq.LSHBands {
-		merged.LSHBands = override.LSHBands
-	}
-	if override.LSHRows != 0 && override.LSHRows != defaultReq.LSHRows {
-		merged.LSHRows = override.LSHRows
-	}
-	if override.LSHHashes != 0 && override.LSHHashes != defaultReq.LSHHashes {
-		merged.LSHHashes = override.LSHHashes
-	}
+	merged.MinLines = config.Merge(merged.MinLines, override.MinLines)
+	merged.MinNodes = config.Merge(merged.MinNodes, override.MinNodes)
+	merged.SimilarityThreshold = config.Merge(merged.SimilarityThreshold, override.SimilarityThreshold)
+	merged.MaxEditDistance = config.Merge(merged.MaxEditDistance, override.MaxEditDistance)
+	merged.Type1Threshold = config.Merge(merged.Type1Threshold, override.Type1Threshold)
+	merged.Type2Threshold = config.Merge(merged.Type2Threshold, override.Type2Threshold)
+	merged.Type3Threshold = config.Merge(merged.Type3Threshold, override.Type3Threshold)
+	merged.Type4Threshold = config.Merge(merged.Type4Threshold, override.Type4Threshold)
+	merged.MinSimilarity = config.Merge(merged.MinSimilarity, override.MinSimilarity)
+	merged.MaxSimilarity = config.Merge(merged.MaxSimilarity, override.MaxSimilarity)
+	merged.GroupThreshold = config.Merge(merged.GroupThreshold, override.GroupThreshold)
+	merged.KCoreK = config.Merge(merged.KCoreK, override.KCoreK)
+	merged.Timeout = config.Merge(merged.Timeout, override.Timeout)
+	merged.LSHAutoThreshold = config.Merge(merged.LSHAutoThreshold, override.LSHAutoThreshold)
+	merged.LSHSimilarityThreshold = config.Merge(merged.LSHSimilarityThreshold, override.LSHSimilarityThreshold)
+	merged.LSHBands = config.Merge(merged.LSHBands, override.LSHBands)
+	merged.LSHRows = config.Merge(merged.LSHRows, override.LSHRows)
+	merged.LSHHashes = config.Merge(merged.LSHHashes, override.LSHHashes)
 
-	if override.SortBy != "" && override.SortBy != defaultReq.SortBy {
-		merged.SortBy = override.SortBy
-	}
-	if override.GroupMode != "" && override.GroupMode != defaultReq.GroupMode {
-		merged.GroupMode = override.GroupMode
-	}
-	if override.LSHEnabled != "" && override.LSHEnabled != defaultReq.LSHEnabled {
-		merged.LSHEnabled = override.LSHEnabled
-	}
-	if override.ConfigPath != "" {
-		merged.ConfigPath = override.ConfigPath
-	}
+	merged.SortBy = config.Merge(merged.SortBy, override.SortBy)
+	merged.GroupMode = config.Merge(merged.GroupMode, override.GroupMode)
+	merged.LSHEnabled = config.Merge(merged.LSHEnabled, override.LSHEnabled)
+	merged.ConfigPath = config.Merge(merged.ConfigPath, override.ConfigPath)
 
-	if len(override.IncludePatterns) > 0 && !slices.Equal(override.IncludePatterns, defaultReq.IncludePatterns) {
-		merged.IncludePatterns = append([]string(nil), override.IncludePatterns...)
-	}
-	if len(override.ExcludePatterns) > 0 && !slices.Equal(override.ExcludePatterns, defaultReq.ExcludePatterns) {
-		merged.ExcludePatterns = append([]string(nil), override.ExcludePatterns...)
-	}
-	if len(override.CloneTypes) > 0 && !slices.Equal(override.CloneTypes, defaultReq.CloneTypes) {
-		merged.CloneTypes = append([]domain.CloneType(nil), override.CloneTypes...)
-	}
+	merged.IncludePatterns = config.MergeSlice(merged.IncludePatterns, override.IncludePatterns)
+	merged.ExcludePatterns = config.MergeSlice(merged.ExcludePatterns, override.ExcludePatterns)
+	merged.CloneTypes = config.MergeSlice(merged.CloneTypes, override.CloneTypes)
 
 	return &merged
 }
@@ -240,17 +168,17 @@ func (c *CloneConfigurationLoader) cloneConfigToCloneRequest(cloneCfg *config.Py
 		MinNodes:            cloneCfg.Analysis.MinNodes,
 		SimilarityThreshold: cloneCfg.Thresholds.SimilarityThreshold,
 		MaxEditDistance:     cloneCfg.Analysis.MaxEditDistance,
-		IgnoreLiterals:      domain.BoolValue(cloneCfg.Analysis.IgnoreLiterals, false),
-		IgnoreIdentifiers:   domain.BoolValue(cloneCfg.Analysis.IgnoreIdentifiers, false),
-		SkipDocstrings:      domain.BoolValue(cloneCfg.Analysis.SkipDocstrings, true),
+		IgnoreLiterals:      domain.BoolPtr(domain.BoolValue(cloneCfg.Analysis.IgnoreLiterals, false)),
+		IgnoreIdentifiers:   domain.BoolPtr(domain.BoolValue(cloneCfg.Analysis.IgnoreIdentifiers, false)),
+		SkipDocstrings:      domain.BoolPtr(domain.BoolValue(cloneCfg.Analysis.SkipDocstrings, true)),
 		Type1Threshold:      cloneCfg.Thresholds.Type1Threshold,
 		Type2Threshold:      cloneCfg.Thresholds.Type2Threshold,
 		Type3Threshold:      cloneCfg.Thresholds.Type3Threshold,
 		Type4Threshold:      cloneCfg.Thresholds.Type4Threshold,
-		ShowDetails:         domain.BoolValue(cloneCfg.Output.ShowDetails, false),
-		ShowContent:         domain.BoolValue(cloneCfg.Output.ShowContent, false),
+		ShowDetails:         domain.BoolPtr(domain.BoolValue(cloneCfg.Output.ShowDetails, false)),
+		ShowContent:         domain.BoolPtr(domain.BoolValue(cloneCfg.Output.ShowContent, false)),
 		SortBy:              sortBy,
-		GroupClones:         domain.BoolValue(cloneCfg.Output.GroupClones, true),
+		GroupClones:         domain.BoolPtr(domain.BoolValue(cloneCfg.Output.GroupClones, true)),
 		GroupMode:           cloneCfg.Grouping.Mode,
 		GroupThreshold:      cloneCfg.Grouping.Threshold,
 		KCoreK:              cloneCfg.Grouping.KCoreK,
@@ -258,7 +186,7 @@ func (c *CloneConfigurationLoader) cloneConfigToCloneRequest(cloneCfg *config.Py
 		MaxSimilarity:       cloneCfg.Filtering.MaxSimilarity,
 		CloneTypes:          cloneTypes,
 		OutputFormat:        domain.OutputFormatText, // Default, overridden by CLI
-		Recursive:           domain.BoolValue(cloneCfg.Input.Recursive, true),
+		Recursive:           domain.BoolPtr(domain.BoolValue(cloneCfg.Input.Recursive, true)),
 		IncludePatterns:     cloneCfg.Input.IncludePatterns,
 		ExcludePatterns:     cloneCfg.Input.ExcludePatterns,
 		// DFA (Data Flow Analysis) - default enabled for multi-dimensional classification
@@ -312,9 +240,9 @@ func (c *CloneConfigurationLoader) updateConfigFromCloneRequest(cfg *config.Conf
 	cfg.Clones.Analysis.MinNodes = req.MinNodes
 	cfg.Clones.Analysis.MaxEditDistance = req.MaxEditDistance
 	cfg.Clones.Analysis.CostModelType = "python" // Default cost model
-	cfg.Clones.Analysis.IgnoreLiterals = domain.BoolPtr(req.IgnoreLiterals)
-	cfg.Clones.Analysis.IgnoreIdentifiers = domain.BoolPtr(req.IgnoreIdentifiers)
-	cfg.Clones.Analysis.SkipDocstrings = domain.BoolPtr(req.SkipDocstrings)
+	cfg.Clones.Analysis.IgnoreLiterals = domain.BoolPtr(domain.BoolValue(req.IgnoreLiterals, false))
+	cfg.Clones.Analysis.IgnoreIdentifiers = domain.BoolPtr(domain.BoolValue(req.IgnoreIdentifiers, false))
+	cfg.Clones.Analysis.SkipDocstrings = domain.BoolPtr(domain.BoolValue(req.SkipDocstrings, true))
 
 	cfg.Clones.Thresholds.Type1Threshold = req.Type1Threshold
 	cfg.Clones.Thresholds.Type2Threshold = req.Type2Threshold
@@ -322,8 +250,8 @@ func (c *CloneConfigurationLoader) updateConfigFromCloneRequest(cfg *config.Conf
 	cfg.Clones.Thresholds.Type4Threshold = req.Type4Threshold
 	cfg.Clones.Thresholds.SimilarityThreshold = req.SimilarityThreshold
 
-	cfg.Clones.Output.ShowContent = domain.BoolPtr(req.ShowContent)
-	cfg.Clones.Output.GroupClones = domain.BoolPtr(req.GroupClones)
+	cfg.Clones.Output.ShowContent = domain.BoolPtr(req.ShouldShowContent())
+	cfg.Clones.Output.GroupClones = domain.BoolPtr(req.ShouldGroupClones())
 	cfg.Clones.Output.SortBy = sortBy
 
 	cfg.Clones.Filtering.MinSimilarity = req.MinSimilarity
@@ -337,7 +265,7 @@ func (c *CloneConfigurationLoader) updateConfigFromCloneRequest(cfg *config.Conf
 	if len(req.ExcludePatterns) > 0 {
 		cfg.Analysis.ExcludePatterns = req.ExcludePatterns
 	}
-	cfg.Analysis.Recursive = req.Recursive
+	cfg.Analysis.Recursive = domain.BoolValue(req.Recursive, true)
 }
 
 // FindDefaultConfigFile looks for TOML config files from the current directory upward.

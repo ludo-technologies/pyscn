@@ -183,7 +183,8 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 		{
 			name: "validation error - negative min complexity",
 			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
-				// No mocks needed - validation fails before any service calls
+				// Validation runs on the merged request, after config loading
+				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 			},
 			request: domain.ComplexityRequest{
 				Paths:           []string{"/test/file.py"},
@@ -201,7 +202,8 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 		{
 			name: "validation error - invalid output format",
 			setupMocks: func(service *mockComplexityService, fileReader *mockFileReader, formatter *mockComplexityOutputFormatter, configLoader *mockComplexityConfigurationLoader) {
-				// No mocks needed - validation fails before any service calls
+				// Validation runs on the merged request, after config loading
+				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 			},
 			request: domain.ComplexityRequest{
 				Paths:           []string{"/test/file.py"},
