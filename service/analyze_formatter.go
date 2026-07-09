@@ -923,7 +923,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                                 <td>{{$clone.Location.StartLine}}-{{$clone.Location.EndLine}}</td>
                                 <td>{{$clone.LineCount}} lines</td>
                             </tr>
-                            {{if and $.Clone.Request $.Clone.Request.ShowContent $clone.Content}}
+                            {{if and $.Clone.Request $.Clone.Request.ShouldShowContent $clone.Content}}
                             <tr>
                                 <td colspan="3" style="padding-top: 0;">
                                     <div class="code-preview-card">
@@ -973,7 +973,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <td>{{printf "%.3f" $pair.Similarity}}</td>
                             <td>{{$pair.Type}}</td>
                         </tr>
-                        {{if and $.Clone.Request $.Clone.Request.ShowContent $pair.Clone1.Content}}
+                        {{if and $.Clone.Request $.Clone.Request.ShouldShowContent $pair.Clone1.Content}}
                         <tr>
                             <td colspan="6" style="padding-top: 0;">
                                 <div class="code-preview-card">
@@ -983,7 +983,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             </td>
                         </tr>
                         {{end}}
-                        {{if and $.Clone.Request $.Clone.Request.ShowContent $pair.Clone2.Content}}
+                        {{if and $.Clone.Request $.Clone.Request.ShouldShowContent $pair.Clone2.Content}}
                         <tr>
                             <td colspan="6" style="padding-top: 0;">
                                 <div class="code-preview-card">

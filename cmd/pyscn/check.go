@@ -335,15 +335,12 @@ func (c *CheckCommand) validateSelectedAnalyses() error {
 // checkComplexity runs complexity analysis and returns issue count
 func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, error) {
 	// Create request with check-specific settings
+	// Sparse request: zero values mean "not set" and are filled from the
+	// config file (or defaults) during MergeConfig inside the use case.
 	request := &domain.ComplexityRequest{
 		Paths:           args,
 		OutputFormat:    domain.OutputFormatText,
 		OutputWriter:    io.Discard,
-		MinComplexity:   1,
-		MaxComplexity:   0, // No filter
-		LowThreshold:    5,
-		MediumThreshold: 9,
-		ShowDetails:     false,
 		SortBy:          domain.SortByComplexity,
 		Recursive:       true,
 		IncludePatterns: domain.DefaultAnalysisIncludePatterns(),
@@ -477,36 +474,14 @@ func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, er
 func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, error) {
 	// Create request with check-specific settings
 	// All threshold values are sourced from domain/defaults.go
+	// Sparse request: zero values mean "not set" and are filled from the
+	// config file (or defaults) during MergeConfig inside the use case.
 	request := &domain.CloneRequest{
-		Paths:               args,
-		OutputFormat:        domain.OutputFormatText,
-		OutputWriter:        io.Discard,
-		MinLines:            domain.DefaultCloneMinLines,
-		MinNodes:            domain.DefaultCloneMinNodes,
-		SimilarityThreshold: domain.DefaultCloneSimilarityThreshold,
-		MaxEditDistance:     domain.DefaultCloneMaxEditDistance,
-		IgnoreLiterals:      false,
-		IgnoreIdentifiers:   false,
-		Type1Threshold:      domain.DefaultType1CloneThreshold,
-		Type2Threshold:      domain.DefaultType2CloneThreshold,
-		Type3Threshold:      domain.DefaultType3CloneThreshold,
-		Type4Threshold:      domain.DefaultType4CloneThreshold,
-		ShowDetails:         false,
-		ShowContent:         false,
-		SortBy:              domain.SortBySimilarity,
-		GroupClones:         true,
-		MinSimilarity:       0.0,
-		MaxSimilarity:       1.0,
-		CloneTypes:          domain.DefaultEnabledCloneTypes,
-		Recursive:           true,
-		IncludePatterns:     domain.DefaultAnalysisIncludePatterns(),
-		ExcludePatterns:     domain.DefaultAnalysisExcludePatterns(),
-		ConfigPath:          c.configFile,
-	}
-
-	// Validate request
-	if err := request.Validate(); err != nil {
-		return 0, fmt.Errorf("invalid clone request: %w", err)
+		Paths:        args,
+		OutputFormat: domain.OutputFormatText,
+		OutputWriter: io.Discard,
+		SortBy:       domain.SortBySimilarity,
+		ConfigPath:   c.configFile,
 	}
 
 	// Create use case with services

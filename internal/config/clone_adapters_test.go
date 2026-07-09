@@ -45,7 +45,7 @@ func TestCloneConfig_ToCloneRequest(t *testing.T) {
 
 	// Verify input parameters
 	assert.Equal(t, []string{"/test/path"}, request.Paths)
-	assert.True(t, request.Recursive)
+	assert.True(t, domain.BoolValue(request.Recursive, false))
 	assert.Equal(t, []string{"**/*.py"}, request.IncludePatterns)
 	assert.Equal(t, []string{"*_test.py"}, request.ExcludePatterns)
 
@@ -54,9 +54,9 @@ func TestCloneConfig_ToCloneRequest(t *testing.T) {
 	assert.Equal(t, cloneConfig.Analysis.MinNodes, request.MinNodes)
 	assert.Equal(t, cloneConfig.Thresholds.SimilarityThreshold, request.SimilarityThreshold)
 	assert.Equal(t, cloneConfig.Analysis.MaxEditDistance, request.MaxEditDistance)
-	assert.Equal(t, domain.BoolValue(cloneConfig.Analysis.IgnoreLiterals, false), request.IgnoreLiterals)
-	assert.Equal(t, domain.BoolValue(cloneConfig.Analysis.IgnoreIdentifiers, false), request.IgnoreIdentifiers)
-	assert.Equal(t, domain.BoolValue(cloneConfig.Analysis.SkipDocstrings, true), request.SkipDocstrings)
+	assert.Equal(t, domain.BoolValue(cloneConfig.Analysis.IgnoreLiterals, false), domain.BoolValue(request.IgnoreLiterals, false))
+	assert.Equal(t, domain.BoolValue(cloneConfig.Analysis.IgnoreIdentifiers, false), domain.BoolValue(request.IgnoreIdentifiers, false))
+	assert.Equal(t, domain.BoolValue(cloneConfig.Analysis.SkipDocstrings, true), domain.BoolValue(request.SkipDocstrings, true))
 
 	// Verify thresholds
 	assert.Equal(t, cloneConfig.Thresholds.Type1Threshold, request.Type1Threshold)
@@ -86,7 +86,7 @@ func TestFromCloneRequest(t *testing.T) {
 	outputWriter := io.Discard
 	request := &domain.CloneRequest{
 		Paths:           []string{"/test/path1", "/test/path2"},
-		Recursive:       false,
+		Recursive:       domain.BoolPtr(false),
 		IncludePatterns: []string{"**/*.py", "*.pyx"},
 		ExcludePatterns: []string{"test_*.py"},
 
@@ -94,9 +94,9 @@ func TestFromCloneRequest(t *testing.T) {
 		MinNodes:            25,
 		SimilarityThreshold: 0.8,
 		MaxEditDistance:     45.0,
-		IgnoreLiterals:      false,
-		IgnoreIdentifiers:   true,
-		SkipDocstrings:      true,
+		IgnoreLiterals:      domain.BoolPtr(false),
+		IgnoreIdentifiers:   domain.BoolPtr(true),
+		SkipDocstrings:      domain.BoolPtr(true),
 
 		Type1Threshold: 0.96,
 		Type2Threshold: 0.86,
@@ -105,10 +105,10 @@ func TestFromCloneRequest(t *testing.T) {
 
 		OutputFormat: domain.OutputFormatYAML,
 		OutputWriter: outputWriter,
-		ShowDetails:  true,
-		ShowContent:  false,
+		ShowDetails:  domain.BoolPtr(true),
+		ShowContent:  domain.BoolPtr(false),
 		SortBy:       domain.SortBySize,
-		GroupClones:  true,
+		GroupClones:  domain.BoolPtr(true),
 
 		MinSimilarity: 0.5,
 		MaxSimilarity: 0.9,
@@ -119,7 +119,7 @@ func TestFromCloneRequest(t *testing.T) {
 
 	// Verify input conversion
 	assert.Equal(t, request.Paths, cloneConfig.Input.Paths)
-	assert.Equal(t, domain.BoolPtr(request.Recursive), cloneConfig.Input.Recursive)
+	assert.Equal(t, request.Recursive, cloneConfig.Input.Recursive)
 	assert.Equal(t, request.IncludePatterns, cloneConfig.Input.IncludePatterns)
 	assert.Equal(t, request.ExcludePatterns, cloneConfig.Input.ExcludePatterns)
 
@@ -127,9 +127,9 @@ func TestFromCloneRequest(t *testing.T) {
 	assert.Equal(t, request.MinLines, cloneConfig.Analysis.MinLines)
 	assert.Equal(t, request.MinNodes, cloneConfig.Analysis.MinNodes)
 	assert.Equal(t, request.MaxEditDistance, cloneConfig.Analysis.MaxEditDistance)
-	assert.Equal(t, domain.BoolPtr(request.IgnoreLiterals), cloneConfig.Analysis.IgnoreLiterals)
-	assert.Equal(t, domain.BoolPtr(request.IgnoreIdentifiers), cloneConfig.Analysis.IgnoreIdentifiers)
-	assert.Equal(t, domain.BoolPtr(request.SkipDocstrings), cloneConfig.Analysis.SkipDocstrings)
+	assert.Equal(t, request.IgnoreLiterals, cloneConfig.Analysis.IgnoreLiterals)
+	assert.Equal(t, request.IgnoreIdentifiers, cloneConfig.Analysis.IgnoreIdentifiers)
+	assert.Equal(t, request.SkipDocstrings, cloneConfig.Analysis.SkipDocstrings)
 
 	// Verify thresholds conversion
 	assert.Equal(t, request.Type1Threshold, cloneConfig.Thresholds.Type1Threshold)
@@ -141,10 +141,10 @@ func TestFromCloneRequest(t *testing.T) {
 	// Verify output conversion
 	assert.Equal(t, "yaml", cloneConfig.Output.Format)
 	assert.Equal(t, outputWriter, cloneConfig.Output.Writer)
-	assert.Equal(t, domain.BoolPtr(request.ShowDetails), cloneConfig.Output.ShowDetails)
-	assert.Equal(t, domain.BoolPtr(request.ShowContent), cloneConfig.Output.ShowContent)
+	assert.Equal(t, request.ShowDetails, cloneConfig.Output.ShowDetails)
+	assert.Equal(t, request.ShowContent, cloneConfig.Output.ShowContent)
 	assert.Equal(t, "size", cloneConfig.Output.SortBy)
-	assert.Equal(t, domain.BoolPtr(request.GroupClones), cloneConfig.Output.GroupClones)
+	assert.Equal(t, request.GroupClones, cloneConfig.Output.GroupClones)
 
 	// Verify filtering conversion
 	assert.Equal(t, request.MinSimilarity, cloneConfig.Filtering.MinSimilarity)

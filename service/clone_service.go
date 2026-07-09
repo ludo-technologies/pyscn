@@ -163,8 +163,8 @@ func (s *CloneService) buildCloneResponse(
 
 	// Convert to domain objects
 	domainClones, fragmentIDs := s.convertFragmentsToDomainClones(allFragments)
-	domainClonePairs := s.convertClonePairsToDomain(detectionResult.Pairs, req.ShowContent, fragmentIDs)
-	domainCloneGroups := s.convertCloneGroupsToDomain(detectionResult.Groups, req.ShowContent, fragmentIDs)
+	domainClonePairs := s.convertClonePairsToDomain(detectionResult.Pairs, req.ShouldShowContent(), fragmentIDs)
+	domainCloneGroups := s.convertCloneGroupsToDomain(detectionResult.Groups, req.ShouldShowContent(), fragmentIDs)
 
 	// Filter results based on request criteria
 	domainClonePairs = s.filterClonePairs(domainClonePairs, req)
@@ -277,9 +277,9 @@ func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.
 		Type4Threshold:      req.Type4Threshold,
 		SimilarityThreshold: req.SimilarityThreshold, // User-configurable minimum similarity
 		MaxEditDistance:     req.MaxEditDistance,
-		IgnoreLiterals:      req.IgnoreLiterals,
-		IgnoreIdentifiers:   req.IgnoreIdentifiers,
-		SkipDocstrings:      req.SkipDocstrings,
+		IgnoreLiterals:      domain.BoolValue(req.IgnoreLiterals, false),
+		IgnoreIdentifiers:   domain.BoolValue(req.IgnoreIdentifiers, false),
+		SkipDocstrings:      domain.BoolValue(req.SkipDocstrings, true),
 		CostModelType:       "python", // Default to Python cost model
 		MaxClonePairs:       10000,    // Default max pairs
 		BatchSizeThreshold:  50,       // Default batch size threshold

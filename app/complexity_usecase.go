@@ -37,16 +37,25 @@ func NewComplexityUseCase(
 
 // Execute performs the complete complexity analysis workflow
 func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityRequest) error {
-	// Validate input before attempting to load configuration to preserve
-	// the existing error precedence for malformed requests.
-	if err := uc.validateRequest(req); err != nil {
-		return domain.NewInvalidInputError("invalid request", err)
+	// Fail fast on inputs that only the caller can provide, before any
+	// config loading; full validation runs on the merged request below.
+	if len(req.Paths) == 0 {
+		return domain.NewInvalidInputError("invalid request", fmt.Errorf("no input paths specified"))
+	}
+	if req.OutputWriter == nil && req.OutputPath == "" {
+		return domain.NewInvalidInputError("invalid request", fmt.Errorf("output writer or output path is required"))
 	}
 
 	// Load configuration if specified
 	finalReq, err := uc.loadAndMergeConfig(req)
 	if err != nil {
 		return domain.NewConfigError("failed to load configuration", err)
+	}
+
+	// Validate the merged request (CLI overrides are sparse; only the
+	// merged result is a complete, validatable configuration)
+	if err := uc.validateRequest(finalReq); err != nil {
+		return domain.NewInvalidInputError("invalid request", err)
 	}
 
 	// Collect Python files
@@ -89,10 +98,13 @@ func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityR
 
 // AnalyzeAndReturn performs complexity analysis and returns the response without formatting
 func (uc *ComplexityUseCase) AnalyzeAndReturn(ctx context.Context, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
-	// Validate input before attempting to load configuration to preserve
-	// the existing error precedence for malformed requests.
-	if err := uc.validateRequest(req); err != nil {
-		return nil, domain.NewInvalidInputError("invalid request", err)
+	// Fail fast on inputs that only the caller can provide; full
+	// validation runs on the merged request in analyzeResolvedRequest.
+	if len(req.Paths) == 0 {
+		return nil, domain.NewInvalidInputError("invalid request", fmt.Errorf("no input paths specified"))
+	}
+	if req.OutputWriter == nil && req.OutputPath == "" {
+		return nil, domain.NewInvalidInputError("invalid request", fmt.Errorf("output writer or output path is required"))
 	}
 
 	// Load configuration if specified

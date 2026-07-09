@@ -140,7 +140,7 @@ type CloneStatistics struct {
 type CloneRequest struct {
 	// Input parameters
 	Paths           []string `json:"paths"`
-	Recursive       bool     `json:"recursive"`
+	Recursive       *bool    `json:"recursive"`
 	IncludePatterns []string `json:"include_patterns"`
 	ExcludePatterns []string `json:"exclude_patterns"`
 
@@ -149,9 +149,9 @@ type CloneRequest struct {
 	MinNodes            int     `json:"min_nodes"`
 	SimilarityThreshold float64 `json:"similarity_threshold"`
 	MaxEditDistance     float64 `json:"max_edit_distance"`
-	IgnoreLiterals      bool    `json:"ignore_literals"`
-	IgnoreIdentifiers   bool    `json:"ignore_identifiers"`
-	SkipDocstrings      bool    `json:"skip_docstrings"`
+	IgnoreLiterals      *bool   `json:"ignore_literals"`
+	IgnoreIdentifiers   *bool   `json:"ignore_identifiers"`
+	SkipDocstrings      *bool   `json:"skip_docstrings"`
 
 	// Type-specific thresholds
 	Type1Threshold float64 `json:"type1_threshold"`
@@ -167,10 +167,10 @@ type CloneRequest struct {
 	OutputWriter io.Writer    `json:"-"`
 	OutputPath   string       `json:"output_path"` // Path to save output file (for HTML format)
 	NoOpen       bool         `json:"no_open"`     // Don't auto-open HTML in browser
-	ShowDetails  bool         `json:"show_details"`
-	ShowContent  bool         `json:"show_content"`
+	ShowDetails  *bool        `json:"show_details"`
+	ShowContent  *bool        `json:"show_content"`
 	SortBy       SortCriteria `json:"sort_by"`
-	GroupClones  bool         `json:"group_clones"`
+	GroupClones  *bool        `json:"group_clones"`
 
 	// Grouping options
 	GroupMode      string  `json:"group_mode"`      // connected, star, complete_linkage, k_core
@@ -324,37 +324,37 @@ func (req *CloneRequest) HasValidOutputWriter() bool {
 
 // ShouldShowContent determines if content should be included in output
 func (req *CloneRequest) ShouldShowContent() bool {
-	return req.ShowContent
+	return BoolValue(req.ShowContent, false)
 }
 
 // ShouldGroupClones determines if clones should be grouped
 func (req *CloneRequest) ShouldGroupClones() bool {
-	return req.GroupClones
+	return BoolValue(req.GroupClones, true)
 }
 
 // DefaultCloneRequest returns a default clone request
 func DefaultCloneRequest() *CloneRequest {
 	return &CloneRequest{
 		Paths:               []string{"."},
-		Recursive:           true,
+		Recursive:           BoolPtr(true),
 		IncludePatterns:     DefaultAnalysisIncludePatterns(),
 		ExcludePatterns:     DefaultAnalysisExcludePatterns(),
 		MinLines:            5,
 		MinNodes:            10,
 		SimilarityThreshold: DefaultCloneSimilarityThreshold,
 		MaxEditDistance:     50.0,
-		IgnoreLiterals:      false,
-		IgnoreIdentifiers:   false,
-		SkipDocstrings:      true,
+		IgnoreLiterals:      BoolPtr(false),
+		IgnoreIdentifiers:   BoolPtr(false),
+		SkipDocstrings:      BoolPtr(true),
 		Type1Threshold:      DefaultType1CloneThreshold,
 		Type2Threshold:      DefaultType2CloneThreshold,
 		Type3Threshold:      DefaultType3CloneThreshold,
 		Type4Threshold:      DefaultType4CloneThreshold,
 		OutputFormat:        OutputFormatText,
-		ShowDetails:         false,
-		ShowContent:         false,
+		ShowDetails:         BoolPtr(false),
+		ShowContent:         BoolPtr(false),
 		SortBy:              SortBySimilarity,
-		GroupClones:         true,
+		GroupClones:         BoolPtr(true),
 		GroupMode:           "connected",
 		GroupThreshold:      DefaultType4CloneThreshold,
 		KCoreK:              2,

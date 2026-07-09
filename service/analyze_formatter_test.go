@@ -283,7 +283,7 @@ func TestAnalyzeFormatter_WriteHTML_ShowsCloneGroupContentWhenEnabled(t *testing
 			TotalClonePairs:  0,
 			TotalCloneGroups: 1,
 		},
-		Request: &domain.CloneRequest{ShowContent: true},
+		Request: &domain.CloneRequest{ShowContent: domain.BoolPtr(true)},
 		CloneGroups: []*domain.CloneGroup{
 			{
 				ID:         1,
@@ -325,7 +325,7 @@ func TestAnalyzeFormatter_WriteHTML_ShowsClonePairContentWhenEnabled(t *testing.
 			TotalClonePairs:  1,
 			TotalCloneGroups: 0,
 		},
-		Request: &domain.CloneRequest{ShowContent: true},
+		Request: &domain.CloneRequest{ShowContent: domain.BoolPtr(true)},
 		ClonePairs: []*domain.ClonePair{
 			{
 				Clone1: &domain.Clone{
@@ -364,7 +364,7 @@ func TestAnalyzeFormatter_WriteHTML_HidesCloneContentWhenDisabled(t *testing.T) 
 			TotalClonePairs:  0,
 			TotalCloneGroups: 1,
 		},
-		Request: &domain.CloneRequest{ShowContent: false},
+		Request: &domain.CloneRequest{ShowContent: domain.BoolPtr(false)},
 		CloneGroups: []*domain.CloneGroup{
 			{
 				ID:         1,

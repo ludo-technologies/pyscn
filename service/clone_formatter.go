@@ -94,7 +94,7 @@ func (f *CloneOutputFormatter) formatAsText(response *domain.CloneResponse, writ
 	}
 
 	// Detailed clone information
-	if response.Request != nil && response.Request.GroupClones && len(response.CloneGroups) > 0 {
+	if response.Request != nil && response.Request.ShouldGroupClones() && len(response.CloneGroups) > 0 {
 		fmt.Fprint(writer, utils.FormatSectionHeader("CLONE GROUPS"))
 
 		for _, group := range response.CloneGroups {
@@ -133,7 +133,7 @@ func (f *CloneOutputFormatter) formatAsText(response *domain.CloneResponse, writ
 					fmt.Sprintf("%s (%d lines, %d nodes)", pair.Clone2.Location.String(), pair.Clone2.LineCount, pair.Clone2.Size)))
 			}
 
-			if response.Request != nil && response.Request.ShowContent && pair.Clone1 != nil && pair.Clone1.Content != "" {
+			if response.Request != nil && response.Request.ShouldShowContent() && pair.Clone1 != nil && pair.Clone1.Content != "" {
 				fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Preview", ""))
 				lines := strings.Split(pair.Clone1.Content, "\n")
 				for j, line := range lines {

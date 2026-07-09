@@ -557,14 +557,15 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 }
 
 func (uc *AnalyzeUseCase) buildCloneTaskRequest(config AnalyzeUseCaseConfig, files []string) domain.CloneRequest {
-	request := *domain.DefaultCloneRequest()
-	request.Paths = files
-	request.OutputFormat = domain.OutputFormatJSON
-	request.OutputWriter = io.Discard
-	request.SimilarityThreshold = config.CloneSimilarity
-	request.ConfigPath = config.ConfigFile
-
-	return request
+	// Sparse request: zero values mean "not set" and are filled from the
+	// config file (or defaults) during MergeConfig inside the use case.
+	return domain.CloneRequest{
+		Paths:               files,
+		OutputFormat:        domain.OutputFormatJSON,
+		OutputWriter:        io.Discard,
+		SimilarityThreshold: config.CloneSimilarity,
+		ConfigPath:          config.ConfigFile,
+	}
 }
 
 // buildResponse builds the analyze response from task results

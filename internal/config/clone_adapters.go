@@ -53,7 +53,7 @@ func (c *PyscnConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 	return &domain.CloneRequest{
 		// Input parameters
 		Paths:           c.Input.Paths,
-		Recursive:       domain.BoolValue(c.Input.Recursive, true),
+		Recursive:       domain.BoolPtr(domain.BoolValue(c.Input.Recursive, true)),
 		IncludePatterns: c.Input.IncludePatterns,
 		ExcludePatterns: c.Input.ExcludePatterns,
 
@@ -62,9 +62,9 @@ func (c *PyscnConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 		MinNodes:            c.Analysis.MinNodes,
 		SimilarityThreshold: c.Thresholds.SimilarityThreshold,
 		MaxEditDistance:     c.Analysis.MaxEditDistance,
-		IgnoreLiterals:      domain.BoolValue(c.Analysis.IgnoreLiterals, false),
-		IgnoreIdentifiers:   domain.BoolValue(c.Analysis.IgnoreIdentifiers, false),
-		SkipDocstrings:      domain.BoolValue(c.Analysis.SkipDocstrings, true),
+		IgnoreLiterals:      domain.BoolPtr(domain.BoolValue(c.Analysis.IgnoreLiterals, false)),
+		IgnoreIdentifiers:   domain.BoolPtr(domain.BoolValue(c.Analysis.IgnoreIdentifiers, false)),
+		SkipDocstrings:      domain.BoolPtr(domain.BoolValue(c.Analysis.SkipDocstrings, true)),
 
 		// Type-specific thresholds
 		Type1Threshold: c.Thresholds.Type1Threshold,
@@ -78,10 +78,10 @@ func (c *PyscnConfig) ToCloneRequest(outputWriter io.Writer) *domain.CloneReques
 		// Output configuration
 		OutputFormat: outputFormat,
 		OutputWriter: outputWriter,
-		ShowDetails:  domain.BoolValue(c.Output.ShowDetails, false),
-		ShowContent:  domain.BoolValue(c.Output.ShowContent, false),
+		ShowDetails:  domain.BoolPtr(domain.BoolValue(c.Output.ShowDetails, false)),
+		ShowContent:  domain.BoolPtr(domain.BoolValue(c.Output.ShowContent, false)),
 		SortBy:       sortBy,
-		GroupClones:  domain.BoolValue(c.Output.GroupClones, true),
+		GroupClones:  domain.BoolPtr(domain.BoolValue(c.Output.GroupClones, true)),
 
 		// Filtering
 		MinSimilarity: c.Filtering.MinSimilarity,
@@ -96,7 +96,7 @@ func FromCloneRequest(request *domain.CloneRequest) *PyscnConfig {
 
 	// Input parameters
 	config.Input.Paths = request.Paths
-	config.Input.Recursive = domain.BoolPtr(request.Recursive)
+	config.Input.Recursive = request.Recursive
 	config.Input.IncludePatterns = request.IncludePatterns
 	config.Input.ExcludePatterns = request.ExcludePatterns
 
@@ -104,9 +104,9 @@ func FromCloneRequest(request *domain.CloneRequest) *PyscnConfig {
 	config.Analysis.MinLines = request.MinLines
 	config.Analysis.MinNodes = request.MinNodes
 	config.Analysis.MaxEditDistance = request.MaxEditDistance
-	config.Analysis.IgnoreLiterals = domain.BoolPtr(request.IgnoreLiterals)
-	config.Analysis.IgnoreIdentifiers = domain.BoolPtr(request.IgnoreIdentifiers)
-	config.Analysis.SkipDocstrings = domain.BoolPtr(request.SkipDocstrings)
+	config.Analysis.IgnoreLiterals = request.IgnoreLiterals
+	config.Analysis.IgnoreIdentifiers = request.IgnoreIdentifiers
+	config.Analysis.SkipDocstrings = request.SkipDocstrings
 	config.Analysis.EnableDFA = domain.BoolPtr(request.EnableDFA)
 
 	// Thresholds
@@ -128,9 +128,9 @@ func FromCloneRequest(request *domain.CloneRequest) *PyscnConfig {
 		config.Output.Format = "text"
 	}
 
-	config.Output.ShowDetails = domain.BoolPtr(request.ShowDetails)
-	config.Output.ShowContent = domain.BoolPtr(request.ShowContent)
-	config.Output.GroupClones = domain.BoolPtr(request.GroupClones)
+	config.Output.ShowDetails = request.ShowDetails
+	config.Output.ShowContent = request.ShowContent
+	config.Output.GroupClones = request.GroupClones
 	config.Output.Writer = request.OutputWriter
 
 	switch request.SortBy {

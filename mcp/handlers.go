@@ -310,8 +310,8 @@ func (h *HandlerSet) HandleDetectClones(ctx context.Context, request mcp.CallToo
 		req.SimilarityThreshold = cfg.Clones.Thresholds.SimilarityThreshold
 		req.MinLines = cfg.Clones.Analysis.MinLines
 		req.MinNodes = cfg.Clones.Analysis.MinNodes
-		req.GroupClones = domain.BoolValue(cfg.Clones.Output.GroupClones, true)
-		req.Recursive = domain.BoolValue(cfg.Clones.Input.Recursive, true)
+		req.GroupClones = domain.BoolPtr(domain.BoolValue(cfg.Clones.Output.GroupClones, true))
+		req.Recursive = domain.BoolPtr(domain.BoolValue(cfg.Clones.Input.Recursive, true))
 		if len(cfg.Clones.Input.IncludePatterns) > 0 {
 			req.IncludePatterns = cfg.Clones.Input.IncludePatterns
 		}
@@ -319,7 +319,7 @@ func (h *HandlerSet) HandleDetectClones(ctx context.Context, request mcp.CallToo
 			req.ExcludePatterns = cfg.Clones.Input.ExcludePatterns
 		}
 	} else if cfg != nil {
-		req.Recursive = cfg.Analysis.Recursive
+		req.Recursive = domain.BoolPtr(cfg.Analysis.Recursive)
 		if len(cfg.Analysis.IncludePatterns) > 0 {
 			req.IncludePatterns = cfg.Analysis.IncludePatterns
 		}
@@ -341,7 +341,7 @@ func (h *HandlerSet) HandleDetectClones(ctx context.Context, request mcp.CallToo
 
 	groupClones := req.GroupClones
 	if gc, ok := args["group_clones"].(bool); ok {
-		groupClones = gc
+		groupClones = domain.BoolPtr(gc)
 	}
 
 	req.Paths = []string{path}
