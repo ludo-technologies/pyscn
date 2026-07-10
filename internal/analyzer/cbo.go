@@ -402,7 +402,7 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 				if valueNode, ok := node.Value.(*parser.Node); ok {
 					if valueNode.Type == parser.NodeCall {
 						className := a.extractClassNameFromCallNode(valueNode)
-						if dep := a.callDependencyName(className, allClasses); dep != "" && include(node, dep) {
+						if dep := a.callDependencyName(className, allClasses, false); dep != "" && include(node, dep) {
 							a.addDependency(dependencies, dep, dependencyKindInstantiation)
 						}
 						// Note: function calls are NOT added to dependencies
@@ -413,7 +413,7 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 			// Function/class call - could be instantiation
 			// Use structural AST analysis instead of string parsing
 			className := a.extractClassNameFromCallNode(node)
-			if dep := a.callDependencyName(className, allClasses); dep != "" && include(node, dep) {
+			if dep := a.callDependencyName(className, allClasses, false); dep != "" && include(node, dep) {
 				a.addDependency(dependencies, dep, dependencyKindInstantiation)
 			}
 			// Note: function calls are NOT added to dependencies
@@ -427,7 +427,7 @@ func (a *CBOAnalyzer) analyzeInstantiationAndAccess(classNode *parser.Node, depe
 			// name resolves to a class reference, count it as coupling. The same
 			// heuristic used for calls avoids counting functions like os.getcwd.
 			attrName := a.extractClassName(node)
-			if dep := a.callDependencyName(attrName, allClasses); dep != "" && include(node, dep) {
+			if dep := a.callDependencyName(attrName, allClasses, true); dep != "" && include(node, dep) {
 				a.addDependency(dependencies, dep, dependencyKindAttributeAccess)
 				break
 			}
@@ -810,15 +810,15 @@ func (a *CBOAnalyzer) shouldIncludeDependency(className string) bool {
 }
 
 // callDependencyName returns the portion of a called dotted name that refers
-// to a class, or "" when the call does not read as class coupling. The class
-// part is found by trying dotted prefixes from longest to shortest, so
+// to a class, or "" when the reference does not read as class coupling. The
+// class part is found by trying dotted prefixes from longest to shortest, so
 // class-method calls couple to the class itself: Path.cwd() -> Path,
 // datetime.datetime.now() -> datetime.datetime. Locally defined classes are
 // matched structurally; imported names carry no type information in
 // single-file analysis, so they only count when a prefix reads as a class —
 // otherwise function calls like os.getcwd() or suppress() would be reported
 // as class coupling.
-func (a *CBOAnalyzer) callDependencyName(className string, allClasses map[string]*parser.Node) string {
+func (a *CBOAnalyzer) callDependencyName(className string, allClasses map[string]*parser.Node, suppressUppercaseLeaf bool) string {
 	if className == "" {
 		return ""
 	}
@@ -828,10 +828,16 @@ func (a *CBOAnalyzer) callDependencyName(className string, allClasses map[string
 	// Enum members and other class constants are attribute reads on the imported
 	// class, not distinct classes. Prefer the imported class binding before the
 	// generic dotted-name heuristic has a chance to treat ALL_CAPS members as
-	// CapWords-style class references.
+	// CapWords-style class references. For non-call attribute reads, module
+	// constants such as re.DOTALL and subprocess.PIPE are not classes and should
+	// not count as coupling. Keep call targets such as uuid.UUID() or httpx.URL()
+	// eligible because they are constructor-shaped references.
 	if imported && len(parts) > 1 {
 		if binding := parts[0]; a.isImportedDependency(binding) && a.looksLikeClassReference(binding) {
 			return binding
+		}
+		if suppressUppercaseLeaf && isUppercaseConstant(parts[len(parts)-1]) {
+			return ""
 		}
 	}
 
@@ -1069,6 +1075,22 @@ func dependencyLeafName(className string) string {
 		return parts[len(parts)-1]
 	}
 	return className
+}
+
+func isUppercaseConstant(name string) bool {
+	if name == "" {
+		return false
+	}
+	hasLetter := false
+	for _, r := range name {
+		if unicode.IsLetter(r) {
+			hasLetter = true
+			if unicode.IsLower(r) {
+				return false
+			}
+		}
+	}
+	return hasLetter
 }
 
 func (a *CBOAnalyzer) isTypeSystemDependency(className string) bool {
