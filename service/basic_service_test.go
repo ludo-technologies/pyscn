@@ -82,7 +82,7 @@ func TestComplexityService_Basic(t *testing.T) {
 	t.Run("generateSummary handles empty data", func(t *testing.T) {
 		var functions []domain.FunctionComplexity
 		req := domain.ComplexityRequest{LowThreshold: 3, MediumThreshold: 7}
-		summary := service.generateSummary(functions, 0, req)
+		summary := service.generateSummary(functions, 0, req, 0)
 
 		assert.Equal(t, 0, summary.TotalFunctions)
 		assert.Equal(t, 0.0, summary.AverageComplexity)

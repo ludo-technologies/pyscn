@@ -189,7 +189,10 @@ type AnalyzeSummary struct {
 	CommunityLayerAlignment   *float64 `json:"community_layer_alignment,omitempty" yaml:"community_layer_alignment,omitempty"`
 
 	// Key metrics
-	TotalFunctions             int     `json:"total_functions" yaml:"total_functions"`
+	// TotalFunctions is the post-filter count (functions included after min_complexity filtering).
+	TotalFunctions int `json:"total_functions" yaml:"total_functions"`
+	// FunctionsParsed is the pre-filter count of all functions parsed before min_complexity filtering.
+	FunctionsParsed            int     `json:"functions_parsed" yaml:"functions_parsed"`
 	AverageComplexity          float64 `json:"average_complexity" yaml:"average_complexity"`
 	AverageCognitiveComplexity float64 `json:"average_cognitive_complexity" yaml:"average_cognitive_complexity"`
 	AverageNestingDepth        float64 `json:"average_nesting_depth" yaml:"average_nesting_depth"`

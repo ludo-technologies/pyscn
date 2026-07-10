@@ -112,6 +112,7 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 			"summary": map[string]interface{}{
 				"total_files":           result.Summary.TotalFiles,
 				"total_functions":       result.Summary.TotalFunctions,
+				"functions_parsed":      result.Summary.FunctionsParsed,
 				"complexity_score":      result.Summary.ComplexityScore,
 				"dead_code_score":       result.Summary.DeadCodeScore,
 				"duplication_score":     result.Summary.DuplicationScore,
@@ -792,6 +793,7 @@ func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, m
 		"summary": map[string]interface{}{
 			"total_issues":       totalIssues,
 			"total_functions":    result.Summary.TotalFunctions,
+			"functions_parsed":   result.Summary.FunctionsParsed,
 			"max_complexity":     result.Summary.MaxComplexity,
 			"average_complexity": result.Summary.AverageComplexity,
 			"threshold":          threshold,
@@ -843,6 +845,7 @@ func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, 
 		"summary": map[string]interface{}{
 			"total_issues":       totalIssues,
 			"total_functions":    result.Summary.TotalFunctions,
+			"functions_parsed":   result.Summary.FunctionsParsed,
 			"max_complexity":     result.Summary.MaxComplexity,
 			"average_complexity": result.Summary.AverageComplexity,
 			"threshold":          threshold,

@@ -68,11 +68,12 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 	}
 
 	// Filter and sort results
+	functionsParsed := len(allFunctions)
 	filteredFunctions := s.filterFunctions(allFunctions, req)
 	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
 
 	// Generate summary
-	summary := s.generateSummary(sortedFunctions, filesProcessed, req)
+	summary := s.generateSummary(sortedFunctions, filesProcessed, req, functionsParsed)
 	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
 
 	return &domain.ComplexityResponse{
@@ -129,9 +130,10 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 		return nil, domain.NewAnalysisError("no functions found to analyze", nil)
 	}
 
+	functionsParsed := len(allFunctions)
 	filteredFunctions := s.filterFunctions(allFunctions, req)
 	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
-	summary := s.generateSummary(sortedFunctions, filesProcessed, req)
+	summary := s.generateSummary(sortedFunctions, filesProcessed, req, functionsParsed)
 	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
 
 	return &domain.ComplexityResponse{
@@ -343,11 +345,13 @@ func (s *ComplexityServiceImpl) sortByRisk(functions []domain.FunctionComplexity
 	})
 }
 
-// generateSummary creates summary statistics
-func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionComplexity, filesAnalyzed int, req domain.ComplexityRequest) domain.ComplexitySummary {
+// generateSummary creates summary statistics.
+// functionsParsed is the pre-filter function count (all functions parsed before min_complexity filtering).
+func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionComplexity, filesAnalyzed int, req domain.ComplexityRequest, functionsParsed int) domain.ComplexitySummary {
 	if len(functions) == 0 {
 		return domain.ComplexitySummary{
-			FilesAnalyzed: filesAnalyzed,
+			FilesAnalyzed:   filesAnalyzed,
+			FunctionsParsed: functionsParsed,
 		}
 	}
 
@@ -393,6 +397,7 @@ func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionCompl
 
 	return domain.ComplexitySummary{
 		TotalFunctions:             len(functions),
+		FunctionsParsed:            functionsParsed,
 		AverageComplexity:          avgComplexity,
 		AverageCognitiveComplexity: avgCognitiveComplexity,
 		AverageNestingDepth:        avgNestingDepth,
