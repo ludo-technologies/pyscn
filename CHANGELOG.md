@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.26.3] - 2026-07-11
+
+### Added
+- Report pre-filter function count (`functions_total`) in complexity summary (#635)
+
+### Fixed
+- Ignore imported module constants (e.g. `re.DOTALL`) in CBO dependencies (#638)
+
 ## [1.26.2] - 2026-07-09
 
 ### Changed
