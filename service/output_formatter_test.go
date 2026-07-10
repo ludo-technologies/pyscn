@@ -10,6 +10,7 @@ import (
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
@@ -46,6 +47,7 @@ func createTestComplexityResponse() *domain.ComplexityResponse {
 		},
 		Summary: domain.ComplexitySummary{
 			TotalFunctions:      2,
+			FunctionsParsed:     2,
 			AverageComplexity:   5.0,
 			MaxComplexity:       8,
 			MinComplexity:       2,
@@ -561,6 +563,7 @@ func TestOutputFormatter_formatJSON(t *testing.T) {
 	// Verify summary structure
 	summary := parsed["summary"].(map[string]interface{})
 	assert.Equal(t, float64(2), summary["total_functions"])
+	assert.Equal(t, float64(2), summary["functions_parsed"])
 	assert.Equal(t, 5.0, summary["average_complexity"])
 
 	// Verify metadata structure
@@ -667,4 +670,37 @@ func TestOutputFormatter_ErrorHandling(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFormatFunctionCoverage(t *testing.T) {
+	assert.Equal(t, "3", formatFunctionCoverage(3, 3))
+	assert.Equal(t, "3", formatFunctionCoverage(3, 0))
+	assert.Equal(t, "1 reported / 3 parsed", formatFunctionCoverage(1, 3))
+	assert.Equal(t, "0 reported / 5 parsed", formatFunctionCoverage(0, 5))
+}
+
+func TestOutputFormatter_FunctionCoverageDisclosure(t *testing.T) {
+	formatter := NewOutputFormatter()
+	response := createTestComplexityResponse()
+	response.Summary.TotalFunctions = 1
+	response.Summary.FunctionsParsed = 3
+
+	t.Run("text shows reported vs parsed", func(t *testing.T) {
+		output, err := formatter.Format(response, domain.OutputFormatText)
+		assert.NoError(t, err)
+		assert.Contains(t, output, "Total Functions: 1 reported / 3 parsed")
+		assert.NotContains(t, output, "Functions Total")
+	})
+
+	t.Run("json exposes functions_parsed distinctly", func(t *testing.T) {
+		output, err := formatter.Format(response, domain.OutputFormatJSON)
+		assert.NoError(t, err)
+
+		var result map[string]interface{}
+		require.NoError(t, json.Unmarshal([]byte(output), &result))
+		summary := result["summary"].(map[string]interface{})
+		assert.Equal(t, float64(1), summary["total_functions"])
+		assert.Equal(t, float64(3), summary["functions_parsed"])
+		assert.NotContains(t, summary, "functions_total")
+	})
 }

@@ -501,6 +501,7 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 		summary := service.generateSummary(functions, 2, req, 3)
 
 		assert.Equal(t, 3, summary.TotalFunctions)
+		assert.Equal(t, 3, summary.FunctionsParsed)
 		assert.Equal(t, 2, summary.FilesAnalyzed)
 		assert.Equal(t, 8.333333333333334, summary.AverageComplexity) // (2+8+15)/3
 		assert.Equal(t, 15.0, summary.AverageCognitiveComplexity)
@@ -518,14 +519,14 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 		summary := service.generateSummary([]domain.FunctionComplexity{}, 5, req, 0)
 
 		assert.Equal(t, 0, summary.TotalFunctions)
-		assert.Equal(t, 0, summary.FunctionsTotal)
+		assert.Equal(t, 0, summary.FunctionsParsed)
 		assert.Equal(t, 5, summary.FilesAnalyzed)
 		assert.Equal(t, 0.0, summary.AverageComplexity)
 		assert.Equal(t, 0, summary.MaxComplexity)
 		assert.Equal(t, 0, summary.MinComplexity)
 	})
 
-	t.Run("FunctionsTotal tracks pre-filter count when min_complexity drops functions", func(t *testing.T) {
+	t.Run("FunctionsParsed tracks pre-filter count when min_complexity drops functions", func(t *testing.T) {
 		allFunctions := []domain.FunctionComplexity{
 			{Name: "trivial", Metrics: domain.ComplexityMetrics{Complexity: 1}},
 			{Name: "trivial2", Metrics: domain.ComplexityMetrics{Complexity: 2}},
@@ -537,7 +538,7 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 		summary := service.generateSummary(filtered, 1, req, len(allFunctions))
 
 		assert.Equal(t, 1, summary.TotalFunctions, "post-filter count is 1")
-		assert.Equal(t, 3, summary.FunctionsTotal, "pre-filter total is 3 (2 dropped by min_complexity=5)")
+		assert.Equal(t, 3, summary.FunctionsParsed, "pre-filter total is 3 (2 dropped by min_complexity=5)")
 	})
 }
 

@@ -662,7 +662,8 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 	if response.Complexity != nil {
 		summary.TotalFiles = response.Complexity.Summary.FilesAnalyzed
 		summary.AnalyzedFiles = response.Complexity.Summary.FilesAnalyzed
-		summary.TotalFunctions = len(response.Complexity.Functions)
+		summary.TotalFunctions = response.Complexity.Summary.TotalFunctions
+		summary.FunctionsParsed = response.Complexity.Summary.FunctionsParsed
 		summary.AverageComplexity = response.Complexity.Summary.AverageComplexity
 		summary.AverageCognitiveComplexity = response.Complexity.Summary.AverageCognitiveComplexity
 		summary.AverageNestingDepth = response.Complexity.Summary.AverageNestingDepth

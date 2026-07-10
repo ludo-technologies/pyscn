@@ -60,10 +60,9 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 	// Header
 	builder.WriteString(utils.FormatMainHeader("Complexity Analysis Report"))
 
-	// Summary
+	// Summary — single "reported vs parsed" line when min_complexity filtering dropped functions
 	stats := map[string]interface{}{
-		"Total Functions": response.Summary.TotalFunctions,
-		"Functions Total": response.Summary.FunctionsTotal,
+		"Total Functions": formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed),
 		"Files Analyzed":  response.Summary.FilesAnalyzed,
 	}
 	if response.Summary.TotalFunctions > 0 {
@@ -240,9 +239,10 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 	}
 
 	// Create summary
+	// total_functions = post-filter (reported); functions_parsed = pre-filter (all parsed)
 	summary := map[string]interface{}{
 		"total_functions":         response.Summary.TotalFunctions,
-		"functions_total":         response.Summary.FunctionsTotal,
+		"functions_parsed":        response.Summary.FunctionsParsed,
 		"files_analyzed":          response.Summary.FilesAnalyzed,
 		"risk_distribution":       riskDistribution,
 		"complexity_distribution": response.Summary.ComplexityDistribution,
@@ -332,8 +332,7 @@ func (f *OutputFormatterImpl) formatSummaryText(response *domain.ComplexityRespo
 	var builder strings.Builder
 
 	builder.WriteString("Summary:\n")
-	builder.WriteString(fmt.Sprintf("  Total Functions: %d\n", response.Summary.TotalFunctions))
-	builder.WriteString(fmt.Sprintf("  Functions Total: %d\n", response.Summary.FunctionsTotal))
+	builder.WriteString(fmt.Sprintf("  Total Functions: %s\n", formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed)))
 	if response.Summary.TotalFunctions > 0 {
 		builder.WriteString(fmt.Sprintf("  Average Complexity: %.2f\n", response.Summary.AverageComplexity))
 		builder.WriteString(fmt.Sprintf("  Max Complexity: %d\n", response.Summary.MaxComplexity))
@@ -368,4 +367,14 @@ func (f *OutputFormatterImpl) formatHTML(response *domain.ComplexityResponse) (s
 	htmlFormatter := NewHTMLFormatter()
 	projectName := "Python Project" // Default project name, could be configurable
 	return htmlFormatter.FormatComplexityAsHTML(response, projectName)
+}
+
+// formatFunctionCoverage returns a single "reported vs parsed" display string.
+// When min_complexity filtering dropped functions, shows "N reported / M parsed";
+// otherwise returns just the reported count.
+func formatFunctionCoverage(reported, parsed int) string {
+	if parsed > 0 && parsed != reported {
+		return fmt.Sprintf("%d reported / %d parsed", reported, parsed)
+	}
+	return fmt.Sprintf("%d", reported)
 }
