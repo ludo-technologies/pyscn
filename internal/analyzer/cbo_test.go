@@ -166,14 +166,34 @@ class Main:
 			expectedRisk:  map[string]string{"Helper": "low", "Main": "low"},
 		},
 		{
-			name: "high coupling class",
+			name: "imported class still counts alongside same-file peers (issue #637)",
 			pythonCode: `
-class A: pass
-class B: pass
-class C: pass
-class D: pass
-class E: pass
-class F: pass
+from models import Widget
+
+class Helper:
+    def do(self) -> str:
+        return "done"
+
+class Main:
+    def __init__(self, h: Helper, w: Widget) -> None:
+        self.h = h
+        self.w = w
+`,
+			expectedCount: 2,
+			expectedCBO:   map[string]int{"Helper": 0, "Main": 1},
+			expectedRisk:  map[string]string{"Helper": "low", "Main": "low"},
+		},
+		{
+			name: "high coupling class",
+			// Dependencies must be imports: same-file peers no longer contribute
+			// to CBO (see #637), so risk-threshold coverage needs external edges.
+			pythonCode: `
+from pkg_a import A
+from pkg_b import B
+from pkg_c import C
+from pkg_d import D
+from pkg_e import E
+from pkg_f import F
 
 class HighlyCoupled(A):
     def __init__(self):
@@ -187,9 +207,9 @@ class HighlyCoupled(A):
 				LowThreshold:    2,
 				MediumThreshold: 5,
 			},
-			expectedCount: 7,
-			expectedCBO:   map[string]int{"HighlyCoupled": 0},
-			expectedRisk:  map[string]string{"HighlyCoupled": "low"},
+			expectedCount: 1,
+			expectedCBO:   map[string]int{"HighlyCoupled": 6}, // A..F via import
+			expectedRisk:  map[string]string{"HighlyCoupled": "high"},
 		},
 		{
 			name: "class with union type annotations (Python 3.10+)",
@@ -1278,10 +1298,13 @@ class Outer:
 	assert.Equal(t, 0, outer.CouplingCount)
 }
 
-func TestCBOAnalyzer_SameNameClassInDifferentScopeStillCounts(t *testing.T) {
-	// Regression test for the review on #547: excluding nested classes must
-	// be scope-aware. A method-local `Helper` in parse() must not suppress a
-	// call to the top-level `Helper` from a different method, build().
+func TestCBOAnalyzer_SameNameClassInDifferentScopeIsSameFilePeer(t *testing.T) {
+	// Combined regression for #547 (scope-aware nested exclusion) and #637
+	// (same-file top-level peers are not external coupling).
+	// parse() uses a method-local Helper (internal via nested resolver).
+	// build() resolves to the module-scope Helper, which is a same-file peer
+	// and must also be excluded — including when collectClasses last-wins
+	// the name to the nested definition.
 	pythonCode := `
 class Helper:
     pass
@@ -1310,10 +1333,40 @@ class Outer:
 
 	outer := resultMap["Outer"]
 	require.NotNil(t, outer)
-	// parse() uses its own local Helper (internal), but build() calls the
-	// top-level Helper, which is genuine coupling.
-	assert.Contains(t, outer.DependentClasses, "Helper", "top-level Helper called from build() must count")
-	assert.Equal(t, 1, outer.CouplingCount)
+	assert.NotContains(t, outer.DependentClasses, "Helper",
+		"method-local and same-file top-level Helper must not count as external coupling")
+	assert.Equal(t, 0, outer.CouplingCount)
+}
+
+func TestCBOAnalyzer_LocalClassShadowsImportedName(t *testing.T) {
+	// A local top-level class rebinds a name that was also imported. The
+	// peer is the local definition, so it must not inflate CBO (#637).
+	pythonCode := `
+from models import Helper
+
+class Helper:
+    pass
+
+class Main:
+    def use(self) -> Helper:
+        return Helper()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "test.py")
+	require.NoError(t, err)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range results {
+		resultMap[result.ClassName] = result
+	}
+
+	main := resultMap["Main"]
+	require.NotNil(t, main)
+	assert.NotContains(t, main.DependentClasses, "Helper")
+	assert.Equal(t, 0, main.CouplingCount)
 }
 
 func TestCBOAnalyzer_LocalHelperNotCountedViaAnnotation(t *testing.T) {
