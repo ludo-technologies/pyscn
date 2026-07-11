@@ -56,64 +56,38 @@ func (cl *MockDataConfigurationLoaderImpl) MergeConfig(base *domain.MockDataRequ
 	merged := *base
 
 	// Always override paths as they come from command arguments
-	if len(override.Paths) > 0 {
-		merged.Paths = override.Paths
-	}
+	merged.Paths = config.MergeSlice(merged.Paths, override.Paths)
 
 	// Output configuration
-	if override.OutputFormat != "" {
-		merged.OutputFormat = override.OutputFormat
-	}
+	merged.OutputFormat = config.Merge(merged.OutputFormat, override.OutputFormat)
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
-	if override.OutputPath != "" {
-		merged.OutputPath = override.OutputPath
-	}
+	merged.OutputPath = config.Merge(merged.OutputPath, override.OutputPath)
 
 	// NoOpen flag
 	merged.NoOpen = override.NoOpen
 
-	// Filtering - only override if explicitly set
-	if override.MinSeverity != "" {
-		merged.MinSeverity = override.MinSeverity
-	}
-	if override.SortBy != "" {
-		merged.SortBy = override.SortBy
-	}
+	// Filtering
+	merged.MinSeverity = config.Merge(merged.MinSeverity, override.MinSeverity)
+	merged.SortBy = config.Merge(merged.SortBy, override.SortBy)
 
-	// ConfigPath - always override if provided
-	if override.ConfigPath != "" {
-		merged.ConfigPath = override.ConfigPath
-	}
+	// ConfigPath
+	merged.ConfigPath = config.Merge(merged.ConfigPath, override.ConfigPath)
 
 	// Boolean flags - use pointer type to distinguish "not set" (nil) from "set to false"
-	if override.IgnoreTests != nil {
-		merged.IgnoreTests = override.IgnoreTests
-	}
+	merged.IgnoreTests = config.MergePtr(merged.IgnoreTests, override.IgnoreTests)
 
 	// Analysis options
 	merged.Recursive = override.Recursive
 
-	// Array values - override if provided
-	if len(override.IncludePatterns) > 0 {
-		merged.IncludePatterns = override.IncludePatterns
-	}
-	if len(override.ExcludePatterns) > 0 {
-		merged.ExcludePatterns = override.ExcludePatterns
-	}
-	if len(override.Keywords) > 0 {
-		merged.Keywords = override.Keywords
-	}
-	if len(override.Domains) > 0 {
-		merged.Domains = override.Domains
-	}
-	if len(override.IgnorePatterns) > 0 {
-		merged.IgnorePatterns = override.IgnorePatterns
-	}
-	if len(override.EnabledTypes) > 0 {
-		merged.EnabledTypes = override.EnabledTypes
-	}
+	// Array values
+	merged.IncludePatterns = config.MergeSlice(merged.IncludePatterns, override.IncludePatterns)
+	merged.ExcludePatterns = config.MergeSlice(merged.ExcludePatterns, override.ExcludePatterns)
+	merged.Keywords = config.MergeSlice(merged.Keywords, override.Keywords)
+	merged.Domains = config.MergeSlice(merged.Domains, override.Domains)
+	merged.IgnorePatterns = config.MergeSlice(merged.IgnorePatterns, override.IgnorePatterns)
+	merged.EnabledTypes = config.MergeSlice(merged.EnabledTypes, override.EnabledTypes)
 
 	return &merged
 }

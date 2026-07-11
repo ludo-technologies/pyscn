@@ -56,82 +56,51 @@ func (cl *CBOConfigurationLoaderImpl) MergeConfig(base *domain.CBORequest, overr
 	// Start with base config
 	merged := *base
 
-	// Always override paths as they come from command arguments
-	if len(override.Paths) > 0 {
-		merged.Paths = override.Paths
-	}
+	// A zero-value override field means "not set", so the base wins. Never
+	// compare against domain defaults: an explicit override that happens to
+	// equal a default must still take precedence (issue #553).
+	merged.Paths = config.MergeSlice(merged.Paths, override.Paths)
 
 	// Output configuration
-	if override.OutputFormat != "" {
-		merged.OutputFormat = override.OutputFormat
-	}
+	merged.OutputFormat = config.Merge(merged.OutputFormat, override.OutputFormat)
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
-	if override.OutputPath != "" {
-		merged.OutputPath = override.OutputPath
-	}
+	merged.OutputPath = config.Merge(merged.OutputPath, override.OutputPath)
 
-	// NoOpen flag
+	// NoOpen flag - plain bool, always take override
 	merged.NoOpen = override.NoOpen
 
-	// Filtering - only override if explicitly set (non-zero values)
-	if override.MinCBO > 0 {
-		merged.MinCBO = override.MinCBO
-	}
-	if override.MaxCBO > 0 {
-		merged.MaxCBO = override.MaxCBO
-	}
+	// Filtering
+	merged.MinCBO = config.Merge(merged.MinCBO, override.MinCBO)
+	merged.MaxCBO = config.Merge(merged.MaxCBO, override.MaxCBO)
 
-	// SortBy - override only if non-default
-	if override.SortBy != "" && override.SortBy != domain.SortByComplexity {
-		merged.SortBy = override.SortBy
-	}
+	merged.SortBy = config.Merge(merged.SortBy, override.SortBy)
 
-	// Thresholds - only override if explicitly set (non-zero values)
-	if override.LowThreshold > 0 {
-		merged.LowThreshold = override.LowThreshold
-	}
-	if override.MediumThreshold > 0 {
-		merged.MediumThreshold = override.MediumThreshold
-	}
+	// Thresholds
+	merged.LowThreshold = config.Merge(merged.LowThreshold, override.LowThreshold)
+	merged.MediumThreshold = config.Merge(merged.MediumThreshold, override.MediumThreshold)
 
 	// ConfigPath - always override if provided
-	if override.ConfigPath != "" {
-		merged.ConfigPath = override.ConfigPath
-	}
+	merged.ConfigPath = config.Merge(merged.ConfigPath, override.ConfigPath)
 
-	// Boolean flags - use pointer type to distinguish "not set" (nil) from "set to false"
-	// Only override if explicitly set (non-nil)
-	if override.ShowZeros != nil {
-		merged.ShowZeros = override.ShowZeros
-	}
-	// ShowDetails: default is false, so if override is true, use it
+	// Boolean flags - pointer type distinguishes "not set" (nil) from an
+	// explicit value (including false).
+	merged.ShowZeros = config.MergePtr(merged.ShowZeros, override.ShowZeros)
+	// ShowDetails: plain bool, only a true override flips it on.
 	if override.ShowDetails {
 		merged.ShowDetails = true
 	}
-	if override.IncludeBuiltins != nil {
-		merged.IncludeBuiltins = override.IncludeBuiltins
-	}
-	if override.IncludeImports != nil {
-		merged.IncludeImports = override.IncludeImports
-	}
-	if override.GroupNamespaceImports != nil {
-		merged.GroupNamespaceImports = override.GroupNamespaceImports
-	}
+	merged.IncludeBuiltins = config.MergePtr(merged.IncludeBuiltins, override.IncludeBuiltins)
+	merged.IncludeImports = config.MergePtr(merged.IncludeImports, override.IncludeImports)
+	merged.GroupNamespaceImports = config.MergePtr(merged.GroupNamespaceImports, override.GroupNamespaceImports)
 
 	// Analysis options
-	if override.Recursive != nil {
-		merged.Recursive = override.Recursive
-	}
+	merged.Recursive = config.MergePtr(merged.Recursive, override.Recursive)
 
-	// Array values - override if provided
-	if len(override.IncludePatterns) > 0 {
-		merged.IncludePatterns = override.IncludePatterns
-	}
-	if len(override.ExcludePatterns) > 0 {
-		merged.ExcludePatterns = override.ExcludePatterns
-	}
+	// Array values
+	merged.IncludePatterns = config.MergeSlice(merged.IncludePatterns, override.IncludePatterns)
+	merged.ExcludePatterns = config.MergeSlice(merged.ExcludePatterns, override.ExcludePatterns)
 
 	return &merged
 }

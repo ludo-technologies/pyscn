@@ -322,19 +322,27 @@ func TestCloneRequest_HasValidOutputWriter(t *testing.T) {
 }
 
 func TestCloneRequest_ShouldShowContent(t *testing.T) {
-	request := &CloneRequest{ShowContent: false}
+	request := &CloneRequest{ShowContent: BoolPtr(false)}
 	assert.False(t, request.ShouldShowContent(), "Should return false when ShowContent is false")
 
-	request.ShowContent = true
+	request.ShowContent = BoolPtr(true)
 	assert.True(t, request.ShouldShowContent(), "Should return true when ShowContent is true")
+
+	// nil ShowContent defaults to false
+	request.ShowContent = nil
+	assert.False(t, request.ShouldShowContent(), "Should default to false when ShowContent is unset")
 }
 
 func TestCloneRequest_ShouldGroupClones(t *testing.T) {
-	request := &CloneRequest{GroupClones: false}
+	request := &CloneRequest{GroupClones: BoolPtr(false)}
 	assert.False(t, request.ShouldGroupClones(), "Should return false when GroupClones is false")
 
-	request.GroupClones = true
+	request.GroupClones = BoolPtr(true)
 	assert.True(t, request.ShouldGroupClones(), "Should return true when GroupClones is true")
+
+	// nil GroupClones defaults to true
+	request.GroupClones = nil
+	assert.True(t, request.ShouldGroupClones(), "Should default to true when GroupClones is unset")
 }
 
 func TestDefaultCloneRequest(t *testing.T) {
@@ -342,7 +350,7 @@ func TestDefaultCloneRequest(t *testing.T) {
 
 	assert.NotNil(t, request, "Default request should not be nil")
 	assert.Equal(t, []string{"."}, request.Paths, "Default paths should be current directory")
-	assert.True(t, request.Recursive, "Default recursive should be true")
+	assert.True(t, BoolValue(request.Recursive, false), "Default recursive should be true")
 	assert.Equal(t, DefaultAnalysisIncludePatterns(), request.IncludePatterns, "Default include patterns should use static analysis defaults")
 	assert.Contains(t, request.ExcludePatterns, "test_*.py", "Default exclude patterns should contain test files")
 	assert.Contains(t, request.ExcludePatterns, "*_test.py", "Default exclude patterns should contain test files")
@@ -350,17 +358,17 @@ func TestDefaultCloneRequest(t *testing.T) {
 	assert.Equal(t, 10, request.MinNodes, "Default min nodes should be 10")
 	assert.Equal(t, 0.65, request.SimilarityThreshold, "Default similarity threshold should be 0.65")
 	assert.Equal(t, 50.0, request.MaxEditDistance, "Default max edit distance should be 50.0")
-	assert.False(t, request.IgnoreLiterals, "Default ignore literals should be false")
-	assert.False(t, request.IgnoreIdentifiers, "Default ignore identifiers should be false")
+	assert.False(t, BoolValue(request.IgnoreLiterals, true), "Default ignore literals should be false")
+	assert.False(t, BoolValue(request.IgnoreIdentifiers, true), "Default ignore identifiers should be false")
 	assert.Equal(t, DefaultType1CloneThreshold, request.Type1Threshold, "Default Type-1 threshold should match constant")
 	assert.Equal(t, DefaultType2CloneThreshold, request.Type2Threshold, "Default Type-2 threshold should match constant")
 	assert.Equal(t, DefaultType3CloneThreshold, request.Type3Threshold, "Default Type-3 threshold should match constant")
 	assert.Equal(t, DefaultType4CloneThreshold, request.Type4Threshold, "Default Type-4 threshold should match constant")
 	assert.Equal(t, OutputFormatText, request.OutputFormat, "Default output format should be text")
-	assert.False(t, request.ShowDetails, "Default show details should be false")
-	assert.False(t, request.ShowContent, "Default show content should be false")
+	assert.False(t, BoolValue(request.ShowDetails, true), "Default show details should be false")
+	assert.False(t, BoolValue(request.ShowContent, true), "Default show content should be false")
 	assert.Equal(t, SortBySimilarity, request.SortBy, "Default sort by should be similarity")
-	assert.True(t, request.GroupClones, "Default group clones should be true")
+	assert.True(t, BoolValue(request.GroupClones, false), "Default group clones should be true")
 	assert.Equal(t, 0.0, request.MinSimilarity, "Default min similarity should be 0.0")
 	assert.Equal(t, 1.0, request.MaxSimilarity, "Default max similarity should be 1.0")
 	assert.Len(t, request.CloneTypes, 3, "Default clone types should include Type-1/2/4 only")

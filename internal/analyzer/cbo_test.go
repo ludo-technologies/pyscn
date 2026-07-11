@@ -352,6 +352,54 @@ class MyClass:
 	}
 }
 
+func TestCBOAnalyzer_IgnoresImportedModuleConstants(t *testing.T) {
+	pythonCode := `
+import re
+import subprocess
+from pathlib import Path
+
+class UsesModuleConstants:
+    def search_content(self, path: Path, pattern: str) -> bool:
+        return re.compile(pattern, re.DOTALL | re.MULTILINE).search(path.read_text()) is not None
+
+    def spawn(self) -> None:
+        subprocess.run(["python", "--version"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
+	results, err := analyzer.AnalyzeClasses(ast, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	assert.Equal(t, 1, results[0].CouplingCount)
+	assert.Equal(t, []string{"Path"}, results[0].DependentClasses)
+}
+
+func TestCBOAnalyzer_KeepsUppercaseConstructorDependencies(t *testing.T) {
+	pythonCode := `
+import httpx
+import uuid
+
+class BuildsAcronymClasses:
+    def create(self) -> tuple[uuid.UUID, httpx.URL]:
+        return uuid.UUID("12345678-1234-5678-1234-567812345678"), httpx.URL("https://example.com")
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
+	results, err := analyzer.AnalyzeClasses(ast, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	assert.Equal(t, 2, results[0].CouplingCount)
+	assert.Equal(t, []string{"httpx.URL", "uuid.UUID"}, results[0].DependentClasses)
+}
+
 func TestCBOAnalyzer_DependencyIdentityContract(t *testing.T) {
 	pythonCode := `
 from __future__ import annotations

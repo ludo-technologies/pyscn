@@ -109,6 +109,103 @@ func TestConfigurationLoader_MergeConfig_Thresholds(t *testing.T) {
 	assert.Equal(t, 25, merged.MediumThreshold)
 }
 
+// TestConfigurationLoader_MergeConfig_ThresholdOverrideMatchesDefault is a
+// regression test for issue #553: an explicit override that happens to equal
+// the domain default must still win over the base value.
+func TestConfigurationLoader_MergeConfig_ThresholdOverrideMatchesDefault(t *testing.T) {
+	loader := NewConfigurationLoader()
+
+	base := &domain.ComplexityRequest{
+		LowThreshold:                 10,
+		MediumThreshold:              20,
+		CognitiveComplexityThreshold: 30,
+		NestingDepthThreshold:        11,
+	}
+
+	override := &domain.ComplexityRequest{
+		LowThreshold:                 domain.DefaultComplexityLowThreshold,       // 9
+		MediumThreshold:              domain.DefaultComplexityMediumThreshold,    // 19
+		CognitiveComplexityThreshold: domain.DefaultCognitiveComplexityThreshold, // 25
+		NestingDepthThreshold:        domain.DefaultNestingDepthThreshold,        // 7
+	}
+
+	merged := loader.MergeConfig(base, override)
+	assert.Equal(t, domain.DefaultComplexityLowThreshold, merged.LowThreshold,
+		"explicit override matching default should win over base")
+	assert.Equal(t, domain.DefaultComplexityMediumThreshold, merged.MediumThreshold,
+		"explicit override matching default should win over base")
+	assert.Equal(t, domain.DefaultCognitiveComplexityThreshold, merged.CognitiveComplexityThreshold,
+		"explicit override matching default should win over base")
+	assert.Equal(t, domain.DefaultNestingDepthThreshold, merged.NestingDepthThreshold,
+		"explicit override matching default should win over base")
+}
+
+// TestConfigurationLoader_MergeConfig_ThresholdZeroPreservesBase verifies that
+// a zero (unset) override leaves the base value intact.
+func TestConfigurationLoader_MergeConfig_ThresholdZeroPreservesBase(t *testing.T) {
+	loader := NewConfigurationLoader()
+
+	base := &domain.ComplexityRequest{
+		LowThreshold:                 10,
+		MediumThreshold:              20,
+		CognitiveComplexityThreshold: 30,
+		NestingDepthThreshold:        11,
+	}
+
+	override := &domain.ComplexityRequest{}
+
+	merged := loader.MergeConfig(base, override)
+	assert.Equal(t, 10, merged.LowThreshold)
+	assert.Equal(t, 20, merged.MediumThreshold)
+	assert.Equal(t, 30, merged.CognitiveComplexityThreshold)
+	assert.Equal(t, 11, merged.NestingDepthThreshold)
+}
+
+// TestConfigurationLoader_MergeConfig_MinComplexityOverrideMatchesDefault is a
+// regression test: an explicit MinComplexity override equal to the default (1)
+// must still win over the base value. The old guard (!= 1) dropped it.
+func TestConfigurationLoader_MergeConfig_MinComplexityOverrideMatchesDefault(t *testing.T) {
+	loader := NewConfigurationLoader()
+
+	base := &domain.ComplexityRequest{MinComplexity: 5}
+	override := &domain.ComplexityRequest{MinComplexity: domain.DefaultComplexityMinFilter}
+
+	merged := loader.MergeConfig(base, override)
+	assert.Equal(t, domain.DefaultComplexityMinFilter, merged.MinComplexity,
+		"explicit MinComplexity override matching default should win over base")
+}
+
+// TestConfigurationLoader_MergeConfig_SortByOverrideMatchesDefault is a
+// regression test: an explicit SortBy override equal to the default
+// (complexity) must still win over the base value. The old guard
+// (!= "complexity") dropped it.
+func TestConfigurationLoader_MergeConfig_SortByOverrideMatchesDefault(t *testing.T) {
+	loader := NewConfigurationLoader()
+
+	base := &domain.ComplexityRequest{SortBy: domain.SortByName}
+	override := &domain.ComplexityRequest{SortBy: domain.SortByComplexity}
+
+	merged := loader.MergeConfig(base, override)
+	assert.Equal(t, domain.SortByComplexity, merged.SortBy,
+		"explicit SortBy override matching default should win over base")
+}
+
+// TestConfigurationLoader_MergeConfig_ZeroOverridePreservesBase verifies that
+// unset (zero-value) override fields leave the base values intact.
+func TestConfigurationLoader_MergeConfig_ZeroOverridePreservesBase(t *testing.T) {
+	loader := NewConfigurationLoader()
+
+	base := &domain.ComplexityRequest{
+		MinComplexity: 5,
+		SortBy:        domain.SortByName,
+	}
+	override := &domain.ComplexityRequest{}
+
+	merged := loader.MergeConfig(base, override)
+	assert.Equal(t, 5, merged.MinComplexity)
+	assert.Equal(t, domain.SortByName, merged.SortBy)
+}
+
 func TestConfigurationLoader_MergeConfig_Patterns(t *testing.T) {
 	loader := NewConfigurationLoader()
 

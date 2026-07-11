@@ -36,7 +36,7 @@ func TestCloneDetectionIntegration(t *testing.T) {
 	var outputBuffer bytes.Buffer
 	request := domain.CloneRequest{
 		Paths:               []string{"../testdata/python/simple"}, // Use existing test data
-		Recursive:           true,
+		Recursive:           domain.BoolPtr(true),
 		IncludePatterns:     []string{"**/*.py"},
 		ExcludePatterns:     []string{"*test*.py"},
 		MinLines:            3,
@@ -48,8 +48,8 @@ func TestCloneDetectionIntegration(t *testing.T) {
 		Type4Threshold:      domain.DefaultType4CloneThreshold,
 		OutputFormat:        domain.OutputFormatText,
 		OutputWriter:        &outputBuffer,
-		ShowDetails:         true,
-		GroupClones:         false,
+		ShowDetails:         domain.BoolPtr(true),
+		GroupClones:         domain.BoolPtr(false),
 		MaxEditDistance:     50.0,
 		CloneTypes:          []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone, domain.Type4Clone},
 	}

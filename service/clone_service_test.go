@@ -29,11 +29,11 @@ func newDefaultCloneRequest(paths ...string) *domain.CloneRequest {
 		Type4Threshold:    0.65,
 		CloneTypes:        []domain.CloneType{domain.Type1Clone, domain.Type2Clone},
 		OutputFormat:      domain.OutputFormatJSON,
-		ShowDetails:       true,
-		ShowContent:       false,
-		GroupClones:       true,
-		IgnoreLiterals:    true,
-		IgnoreIdentifiers: false,
+		ShowDetails:       domain.BoolPtr(true),
+		ShowContent:       domain.BoolPtr(false),
+		GroupClones:       domain.BoolPtr(true),
+		IgnoreLiterals:    domain.BoolPtr(true),
+		IgnoreIdentifiers: domain.BoolPtr(false),
 	}
 }
 
@@ -68,11 +68,11 @@ func TestCloneService_DetectClones(t *testing.T) {
 			Type4Threshold:    0.65,
 			CloneTypes:        []domain.CloneType{domain.Type1Clone, domain.Type2Clone},
 			OutputFormat:      domain.OutputFormatJSON,
-			ShowDetails:       true,
-			ShowContent:       false,
-			GroupClones:       true,
-			IgnoreLiterals:    true,
-			IgnoreIdentifiers: false,
+			ShowDetails:       domain.BoolPtr(true),
+			ShowContent:       domain.BoolPtr(false),
+			GroupClones:       domain.BoolPtr(true),
+			IgnoreLiterals:    domain.BoolPtr(true),
+			IgnoreIdentifiers: domain.BoolPtr(false),
 		}
 
 		//nolint:staticcheck // Intentionally testing nil context error handling
@@ -482,7 +482,7 @@ func TestCloneService_CreateDetectorConfig(t *testing.T) {
 	req.MinLines = 5
 	req.MinNodes = 20
 	req.MaxEditDistance = 15.0
-	req.IgnoreIdentifiers = false
+	req.IgnoreIdentifiers = domain.BoolPtr(false)
 
 	config := service.createDetectorConfig(req)
 
@@ -705,7 +705,7 @@ func TestCloneService_ResponseStructure(t *testing.T) {
 	req.MinNodes = 1
 	req.MinSimilarity = 0.0
 	req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone, domain.Type4Clone}
-	req.ShowContent = true
+	req.ShowContent = domain.BoolPtr(true)
 
 	response, err := service.DetectClonesInFiles(ctx, req.Paths, req)
 

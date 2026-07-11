@@ -124,79 +124,39 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
 	// Start with base configuration
 	merged := *base
 
-	// Override with CLI flags (non-zero values take precedence)
-	if len(override.Paths) > 0 {
-		merged.Paths = override.Paths
-	}
-	if override.OutputFormat != "" && override.OutputFormat != domain.OutputFormatText {
-		merged.OutputFormat = override.OutputFormat
-	}
+	// Override with CLI flags (zero values mean "not set")
+	merged.Paths = config.MergeSlice(merged.Paths, override.Paths)
+	merged.OutputFormat = config.Merge(merged.OutputFormat, override.OutputFormat)
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
-	if override.OutputPath != "" {
-		merged.OutputPath = override.OutputPath
-	}
-	if override.ConfigPath != "" {
-		merged.ConfigPath = override.ConfigPath
-	}
+	merged.OutputPath = config.Merge(merged.OutputPath, override.OutputPath)
+	merged.ConfigPath = config.Merge(merged.ConfigPath, override.ConfigPath)
 
 	// Boolean flags - CLI always takes precedence for explicit settings
 	merged.NoOpen = override.NoOpen
 
 	// Analysis type overrides - only override if explicitly set (non-nil)
-	if override.AnalyzeDependencies != nil {
-		merged.AnalyzeDependencies = override.AnalyzeDependencies
-	}
-	if override.AnalyzeArchitecture != nil {
-		merged.AnalyzeArchitecture = override.AnalyzeArchitecture
-	}
+	merged.AnalyzeDependencies = config.MergePtr(merged.AnalyzeDependencies, override.AnalyzeDependencies)
+	merged.AnalyzeArchitecture = config.MergePtr(merged.AnalyzeArchitecture, override.AnalyzeArchitecture)
 
 	// Analysis options - only override if explicitly set (non-nil)
-	if override.IncludeStdLib != nil {
-		merged.IncludeStdLib = override.IncludeStdLib
-	}
-	if override.IncludeThirdParty != nil {
-		merged.IncludeThirdParty = override.IncludeThirdParty
-	}
-	if override.FollowRelative != nil {
-		merged.FollowRelative = override.FollowRelative
-	}
-	if override.DetectCycles != nil {
-		merged.DetectCycles = override.DetectCycles
-	}
-	if override.ValidateArchitecture != nil {
-		merged.ValidateArchitecture = override.ValidateArchitecture
-	}
-	if override.ValidateCohesion != nil {
-		merged.ValidateCohesion = override.ValidateCohesion
-	}
-	if override.ValidateResponsibility != nil {
-		merged.ValidateResponsibility = override.ValidateResponsibility
-	}
-	if override.MinCohesion > 0 {
-		merged.MinCohesion = override.MinCohesion
-	}
-	if override.MaxResponsibilities > 0 {
-		merged.MaxResponsibilities = override.MaxResponsibilities
-	}
-	if override.CohesionViolationSeverity != "" {
-		merged.CohesionViolationSeverity = override.CohesionViolationSeverity
-	}
-	if override.ResponsibilityViolationSeverity != "" {
-		merged.ResponsibilityViolationSeverity = override.ResponsibilityViolationSeverity
-	}
+	merged.IncludeStdLib = config.MergePtr(merged.IncludeStdLib, override.IncludeStdLib)
+	merged.IncludeThirdParty = config.MergePtr(merged.IncludeThirdParty, override.IncludeThirdParty)
+	merged.FollowRelative = config.MergePtr(merged.FollowRelative, override.FollowRelative)
+	merged.DetectCycles = config.MergePtr(merged.DetectCycles, override.DetectCycles)
+	merged.ValidateArchitecture = config.MergePtr(merged.ValidateArchitecture, override.ValidateArchitecture)
+	merged.ValidateCohesion = config.MergePtr(merged.ValidateCohesion, override.ValidateCohesion)
+	merged.ValidateResponsibility = config.MergePtr(merged.ValidateResponsibility, override.ValidateResponsibility)
+	merged.MinCohesion = config.Merge(merged.MinCohesion, override.MinCohesion)
+	merged.MaxResponsibilities = config.Merge(merged.MaxResponsibilities, override.MaxResponsibilities)
+	merged.CohesionViolationSeverity = config.Merge(merged.CohesionViolationSeverity, override.CohesionViolationSeverity)
+	merged.ResponsibilityViolationSeverity = config.Merge(merged.ResponsibilityViolationSeverity, override.ResponsibilityViolationSeverity)
 
-	// File selection - override if provided
-	if len(override.IncludePatterns) > 0 {
-		merged.IncludePatterns = override.IncludePatterns
-	}
-	if len(override.ExcludePatterns) > 0 {
-		merged.ExcludePatterns = override.ExcludePatterns
-	}
-	if override.Recursive != nil {
-		merged.Recursive = override.Recursive
-	}
+	// File selection
+	merged.IncludePatterns = config.MergeSlice(merged.IncludePatterns, override.IncludePatterns)
+	merged.ExcludePatterns = config.MergeSlice(merged.ExcludePatterns, override.ExcludePatterns)
+	merged.Recursive = config.MergePtr(merged.Recursive, override.Recursive)
 
 	// Architecture rules - merge carefully to preserve config while applying CLI overrides
 	if override.ArchitectureRules != nil {

@@ -68,7 +68,7 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 	// Analysis modules results
 	if response.Summary.ComplexityEnabled {
 		fmt.Fprint(writer, utils.FormatSectionHeader("COMPLEXITY ANALYSIS"))
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Total Functions", response.Summary.TotalFunctions))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Total Functions", formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed)))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Average Complexity", fmt.Sprintf("%.1f", response.Summary.AverageComplexity)))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "High Complexity Count", response.Summary.HighComplexityCount))
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
@@ -765,8 +765,8 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{if .Complexity}}
                 <div class="metric-grid">
                     <div class="metric-card">
-                        <div class="metric-value">{{len .Complexity.Functions}}</div>
-                        <div class="metric-label">Total Functions</div>
+                        <div class="metric-value">{{if and (gt .Complexity.Summary.FunctionsParsed 0) (ne .Complexity.Summary.FunctionsParsed .Complexity.Summary.TotalFunctions)}}{{.Complexity.Summary.TotalFunctions}} / {{.Complexity.Summary.FunctionsParsed}}{{else}}{{.Complexity.Summary.TotalFunctions}}{{end}}</div>
+                        <div class="metric-label">{{if and (gt .Complexity.Summary.FunctionsParsed 0) (ne .Complexity.Summary.FunctionsParsed .Complexity.Summary.TotalFunctions)}}Reported / Parsed{{else}}Total Functions{{end}}</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{printf "%.2f" .Complexity.Summary.AverageComplexity}}</div>
@@ -923,7 +923,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                                 <td>{{$clone.Location.StartLine}}-{{$clone.Location.EndLine}}</td>
                                 <td>{{$clone.LineCount}} lines</td>
                             </tr>
-                            {{if and $.Clone.Request $.Clone.Request.ShowContent $clone.Content}}
+                            {{if and $.Clone.Request $.Clone.Request.ShouldShowContent $clone.Content}}
                             <tr>
                                 <td colspan="3" style="padding-top: 0;">
                                     <div class="code-preview-card">
@@ -973,7 +973,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <td>{{printf "%.3f" $pair.Similarity}}</td>
                             <td>{{$pair.Type}}</td>
                         </tr>
-                        {{if and $.Clone.Request $.Clone.Request.ShowContent $pair.Clone1.Content}}
+                        {{if and $.Clone.Request $.Clone.Request.ShouldShowContent $pair.Clone1.Content}}
                         <tr>
                             <td colspan="6" style="padding-top: 0;">
                                 <div class="code-preview-card">
@@ -983,7 +983,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             </td>
                         </tr>
                         {{end}}
-                        {{if and $.Clone.Request $.Clone.Request.ShowContent $pair.Clone2.Content}}
+                        {{if and $.Clone.Request $.Clone.Request.ShouldShowContent $pair.Clone2.Content}}
                         <tr>
                             <td colspan="6" style="padding-top: 0;">
                                 <div class="code-preview-card">

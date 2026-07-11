@@ -38,15 +38,25 @@ func NewDeadCodeUseCase(
 
 // Execute performs the complete dead code analysis workflow
 func (uc *DeadCodeUseCase) Execute(ctx context.Context, req domain.DeadCodeRequest) error {
-	// Validate input
-	if err := uc.validateRequest(req); err != nil {
-		return domain.NewInvalidInputError("invalid request", err)
+	// Fail fast on inputs that only the caller can provide, before any
+	// config loading; full validation runs on the merged request below.
+	if len(req.Paths) == 0 {
+		return domain.NewInvalidInputError("invalid request", fmt.Errorf("no input paths specified"))
+	}
+	if req.OutputWriter == nil && req.OutputPath == "" {
+		return domain.NewInvalidInputError("invalid request", fmt.Errorf("output writer or output path is required"))
 	}
 
 	// Load configuration if specified
 	finalReq, err := uc.loadAndMergeConfig(req)
 	if err != nil {
 		return domain.NewConfigError("failed to load configuration", err)
+	}
+
+	// Validate the merged request (CLI overrides are sparse; only the
+	// merged result is a complete, validatable configuration)
+	if err := uc.validateRequest(finalReq); err != nil {
+		return domain.NewInvalidInputError("invalid request", err)
 	}
 
 	// Collect Python files
@@ -89,15 +99,24 @@ func (uc *DeadCodeUseCase) Execute(ctx context.Context, req domain.DeadCodeReque
 
 // AnalyzeAndReturn performs dead code analysis and returns the response without formatting
 func (uc *DeadCodeUseCase) AnalyzeAndReturn(ctx context.Context, req domain.DeadCodeRequest) (*domain.DeadCodeResponse, error) {
-	// Validate input
-	if err := uc.validateRequest(req); err != nil {
-		return nil, domain.NewInvalidInputError("invalid request", err)
+	// Fail fast on inputs that only the caller can provide, before any
+	// config loading; full validation runs on the merged request below.
+	if len(req.Paths) == 0 {
+		return nil, domain.NewInvalidInputError("invalid request", fmt.Errorf("no input paths specified"))
+	}
+	if req.OutputWriter == nil && req.OutputPath == "" {
+		return nil, domain.NewInvalidInputError("invalid request", fmt.Errorf("output writer or output path is required"))
 	}
 
 	// Load configuration if specified
 	finalReq, err := uc.loadAndMergeConfig(req)
 	if err != nil {
 		return nil, domain.NewConfigError("failed to load configuration", err)
+	}
+
+	// Validate the merged request
+	if err := uc.validateRequest(finalReq); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
 	}
 
 	// Resolve file paths (use helper to avoid duplication)
@@ -140,15 +159,16 @@ func (uc *DeadCodeUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot 
 	if snapshot == nil {
 		return nil, domain.NewAnalysisError("dead code analysis failed", fmt.Errorf("project snapshot is required"))
 	}
-	if err := uc.validateRequest(req); err != nil {
-		return nil, domain.NewInvalidInputError("invalid request", err)
-	}
-
 	finalReq, err := uc.loadAndMergeConfig(req)
 	if err != nil {
 		return nil, domain.NewConfigError("failed to load configuration", err)
 	}
 	finalReq.Paths = snapshot.Paths()
+
+	// Validate the merged request (paths come from the snapshot)
+	if err := uc.validateRequest(finalReq); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
 
 	snapshotService, ok := uc.service.(snapshotDeadCodeService)
 	if !ok {

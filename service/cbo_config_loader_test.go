@@ -220,6 +220,43 @@ func TestCBOConfigurationLoader_MergeConfig(t *testing.T) {
 	}
 }
 
+// TestCBOConfigurationLoader_MergeConfig_SortByOverrideMatchesDefault is a
+// regression test: an explicit SortBy override equal to the default
+// (complexity) must still win over the base value. The old guard
+// (!= domain.SortByComplexity) dropped it.
+func TestCBOConfigurationLoader_MergeConfig_SortByOverrideMatchesDefault(t *testing.T) {
+	loader := NewCBOConfigurationLoader()
+
+	base := &domain.CBORequest{SortBy: domain.SortByName}
+	override := &domain.CBORequest{SortBy: domain.SortByComplexity}
+
+	merged := loader.MergeConfig(base, override)
+	if merged.SortBy != domain.SortByComplexity {
+		t.Errorf("explicit SortBy override matching default should win: expected %v, got %v",
+			domain.SortByComplexity, merged.SortBy)
+	}
+}
+
+// TestCBOConfigurationLoader_MergeConfig_ZeroOverridePreservesBase verifies that
+// unset (zero-value) override fields leave the base values intact.
+func TestCBOConfigurationLoader_MergeConfig_ZeroOverridePreservesBase(t *testing.T) {
+	loader := NewCBOConfigurationLoader()
+
+	base := &domain.CBORequest{
+		LowThreshold: 5,
+		SortBy:       domain.SortByName,
+	}
+	override := &domain.CBORequest{}
+
+	merged := loader.MergeConfig(base, override)
+	if merged.LowThreshold != 5 {
+		t.Errorf("expected base LowThreshold 5, got %d", merged.LowThreshold)
+	}
+	if merged.SortBy != domain.SortByName {
+		t.Errorf("expected base SortBy %v, got %v", domain.SortByName, merged.SortBy)
+	}
+}
+
 func TestCBOConfigurationLoader_FindDefaultConfigFile(t *testing.T) {
 	// Create temporary directory
 	tempDir := t.TempDir()

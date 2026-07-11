@@ -160,7 +160,8 @@ func TestCBOUseCase_Execute(t *testing.T) {
 		{
 			name: "validation error - empty paths",
 			setupMocks: func(service *mockCBOService, fileReader *mockFileReader, formatter *mockCBOOutputFormatter, configLoader *mockCBOConfigurationLoader) {
-				// No mocks needed - validation fails before any service calls
+				// Validation runs on the merged request, after config loading
+				configLoader.On("LoadDefaultConfig").Return((*domain.CBORequest)(nil)).Maybe()
 			},
 			request: domain.CBORequest{
 				Paths:        []string{},
@@ -173,7 +174,8 @@ func TestCBOUseCase_Execute(t *testing.T) {
 		{
 			name: "validation error - nil output writer",
 			setupMocks: func(service *mockCBOService, fileReader *mockFileReader, formatter *mockCBOOutputFormatter, configLoader *mockCBOConfigurationLoader) {
-				// No mocks needed - validation fails before any service calls
+				// Validation runs on the merged request, after config loading
+				configLoader.On("LoadDefaultConfig").Return((*domain.CBORequest)(nil)).Maybe()
 			},
 			request: domain.CBORequest{
 				Paths:        []string{"/test/file.py"},
@@ -186,7 +188,8 @@ func TestCBOUseCase_Execute(t *testing.T) {
 		{
 			name: "validation error - negative min CBO",
 			setupMocks: func(service *mockCBOService, fileReader *mockFileReader, formatter *mockCBOOutputFormatter, configLoader *mockCBOConfigurationLoader) {
-				// No mocks needed - validation fails before any service calls
+				// Validation runs on the merged request, after config loading
+				configLoader.On("LoadDefaultConfig").Return((*domain.CBORequest)(nil))
 			},
 			request: domain.CBORequest{
 				Paths:           []string{"/test/file.py"},
@@ -204,7 +207,8 @@ func TestCBOUseCase_Execute(t *testing.T) {
 		{
 			name: "validation error - invalid output format",
 			setupMocks: func(service *mockCBOService, fileReader *mockFileReader, formatter *mockCBOOutputFormatter, configLoader *mockCBOConfigurationLoader) {
-				// No mocks needed - validation fails before any service calls
+				// Validation runs on the merged request, after config loading
+				configLoader.On("LoadDefaultConfig").Return((*domain.CBORequest)(nil)).Maybe()
 			},
 			request: domain.CBORequest{
 				Paths:           []string{"/test/file.py"},
@@ -393,7 +397,8 @@ func TestCBOUseCase_AnalyzeAndReturn(t *testing.T) {
 		{
 			name: "validation error in analyze and return",
 			setupMocks: func(service *mockCBOService, fileReader *mockFileReader, formatter *mockCBOOutputFormatter, configLoader *mockCBOConfigurationLoader) {
-				// No mocks needed - validation fails before any service calls
+				// Validation runs on the merged request, after config loading
+				configLoader.On("LoadDefaultConfig").Return((*domain.CBORequest)(nil)).Maybe()
 			},
 			request: domain.CBORequest{
 				Paths:        []string{},

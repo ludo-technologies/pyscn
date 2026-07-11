@@ -46,6 +46,12 @@ type AnalyzeCommand struct {
 	cloneSimilarity float64
 	minCBO          int
 
+	// Complexity thresholds (0 = unset, use config/default)
+	lowThreshold                 int
+	mediumThreshold              int
+	cognitiveComplexityThreshold int
+	nestingDepthThreshold        int
+
 	// Clone detection options
 	enableDFA bool // Enable Data Flow Analysis for enhanced Type-4 detection
 
@@ -70,9 +76,9 @@ func NewAnalyzeCommand() *AnalyzeCommand {
 		skipCBO:         false,
 		skipLCOM:        false,
 		skipSystem:      false,
-		minComplexity:   5,
-		minSeverity:     "warning",
-		cloneSimilarity: 0.65,
+		minComplexity:   0,
+		minSeverity:     "",
+		cloneSimilarity: 0,
 		minCBO:          0,
 		enableDFA:       true,
 		detectCycles:    true,
@@ -136,10 +142,16 @@ Examples:
 	cmd.Flags().StringSliceVar(&c.selectAnalyses, "select", []string{}, "Only run specified analyses (complexity,deadcode,clones,cbo,lcom,deps,communities)")
 
 	// Quick filter flags
-	cmd.Flags().IntVar(&c.minComplexity, "min-complexity", 5, "Minimum complexity to report")
-	cmd.Flags().StringVar(&c.minSeverity, "min-severity", "warning", "Minimum dead code severity (critical, warning, info)")
-	cmd.Flags().Float64Var(&c.cloneSimilarity, "clone-threshold", 0.65, "Minimum similarity for clone detection (0.0-1.0)")
+	cmd.Flags().IntVar(&c.minComplexity, "min-complexity", 0, "Minimum complexity to report (default: 1)")
+	cmd.Flags().StringVar(&c.minSeverity, "min-severity", "", "Minimum dead code severity: critical, warning, info (default: warning)")
+	cmd.Flags().Float64Var(&c.cloneSimilarity, "clone-threshold", 0, "Minimum similarity for clone detection, 0.0-1.0 (default: 0.65)")
 	cmd.Flags().IntVar(&c.minCBO, "min-cbo", 0, "Minimum CBO to report")
+
+	// Complexity threshold flags (0 = unset, use config file or default)
+	cmd.Flags().IntVar(&c.lowThreshold, "low-threshold", 0, "Upper bound for low-risk complexity (default: 9)")
+	cmd.Flags().IntVar(&c.mediumThreshold, "medium-threshold", 0, "Upper bound for medium-risk complexity (default: 19)")
+	cmd.Flags().IntVar(&c.cognitiveComplexityThreshold, "cognitive-complexity-threshold", 0, "High-risk threshold for cognitive complexity (default: 25)")
+	cmd.Flags().IntVar(&c.nestingDepthThreshold, "nesting-depth-threshold", 0, "High-risk threshold for maximum nesting depth (default: 7)")
 
 	return cmd
 }
@@ -155,6 +167,12 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 		if err := c.validateSelectedAnalyses(); err != nil {
 			return fmt.Errorf("invalid --select flag: %w", err)
 		}
+	}
+
+	switch c.minSeverity {
+	case "", "critical", "warning", "info":
+	default:
+		return fmt.Errorf("invalid --min-severity value %q (expected: critical, warning, info)", c.minSeverity)
 	}
 
 	// Create use case configuration
@@ -207,6 +225,11 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		EnableDFA:               c.enableDFA,
 		SkipCommunities:         false,
 		SkipCommunitiesExplicit: c.skipCommunities,
+
+		LowThreshold:                 c.lowThreshold,
+		MediumThreshold:              c.mediumThreshold,
+		CognitiveComplexityThreshold: c.cognitiveComplexityThreshold,
+		NestingDepthThreshold:        c.nestingDepthThreshold,
 	}
 	config = app.ApplyAnalyzeSelection(config, c.selectAnalyses)
 
@@ -230,7 +253,9 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		config.SkipCommunities = true
 	}
 
-	// Parse severity
+	// Parse severity; empty means "not set" and is resolved from the
+	// config file (or defaults) during merge. Invalid values are rejected
+	// in runAnalyze before this is called.
 	switch c.minSeverity {
 	case "critical":
 		config.MinSeverity = domain.DeadCodeSeverityCritical
@@ -238,8 +263,6 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		config.MinSeverity = domain.DeadCodeSeverityWarning
 	case "info":
 		config.MinSeverity = domain.DeadCodeSeverityInfo
-	default:
-		config.MinSeverity = domain.DeadCodeSeverityWarning
 	}
 
 	return config
@@ -312,9 +335,7 @@ func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuil
 	// Clone use case
 	cloneService := service.NewCloneService()
 	cloneFormatter := service.NewCloneOutputFormatter()
-	cloneConfigLoader := service.NewCloneConfigurationLoaderWithFlags(map[string]bool{
-		"similarity": cmd.Flags().Changed("clone-threshold"),
-	})
+	cloneConfigLoader := service.NewCloneConfigurationLoader()
 	cloneUseCase, err := app.NewCloneUseCaseBuilder().
 		WithService(cloneService).
 		WithFileReader(service.NewFileReader()).
