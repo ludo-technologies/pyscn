@@ -315,6 +315,72 @@ class MyClass:
 	}
 }
 
+func TestCBOAnalyzer_CythonPrimitiveExclusion(t *testing.T) {
+	pythonCode := `
+import cython
+import numpy as np
+
+@cython.cclass
+class MyClass:
+    x: cython.int = 0
+    y: cython.float = 0.0
+    data: np.ndarray
+
+    def __init__(self):
+        self.data = np.zeros(10)
+`
+
+	tests := []struct {
+		name            string
+		includeBuiltins bool
+		minExpectedCBO  int
+		maxExpectedCBO  int
+	}{
+		{
+			name:            "exclude Cython primitives by default",
+			includeBuiltins: false,
+			minExpectedCBO:  0,
+			maxExpectedCBO:  1,
+		},
+		{
+			name:            "include Cython primitives when IncludeBuiltins",
+			includeBuiltins: true,
+			minExpectedCBO:  3,
+			maxExpectedCBO:  9,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ast, err := parseCode(pythonCode)
+			require.NoError(t, err)
+
+			options := DefaultCBOOptions()
+			options.IncludeBuiltins = tt.includeBuiltins
+
+			analyzer := NewCBOAnalyzer(options)
+			results, err := analyzer.AnalyzeClasses(ast, "test.py")
+			require.NoError(t, err)
+
+			require.Len(t, results, 1)
+			cbo := results[0].CouplingCount
+
+			if cbo < tt.minExpectedCBO || cbo > tt.maxExpectedCBO {
+				t.Errorf("CBO = %d, expected between %d and %d. DependentClasses: %v",
+					cbo, tt.minExpectedCBO, tt.maxExpectedCBO, results[0].DependentClasses)
+			}
+
+			if !tt.includeBuiltins {
+				for _, dep := range results[0].DependentClasses {
+					if strings.HasPrefix(dep, "cython.") {
+						t.Errorf("cython primitive %q should not appear in DependentClasses when IncludeBuiltins=false", dep)
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestCBOAnalyzer_IgnoresImportedModuleConstants(t *testing.T) {
 	pythonCode := `
 import re
