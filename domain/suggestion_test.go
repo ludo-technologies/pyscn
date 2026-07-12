@@ -532,6 +532,130 @@ func TestGenerateSuggestions_SystemArchViolation(t *testing.T) {
 	}
 }
 
+func TestGenerateSuggestions_SystemArchViolation_Deduplication(t *testing.T) {
+	resp := &AnalyzeResponse{
+		System: &SystemAnalysisResponse{
+			ArchitectureAnalysis: &ArchitectureAnalysisResult{
+				Violations: []ArchitectureViolation{
+					{
+						Module:     "service.users",
+						Severity:   ViolationSeverityCritical,
+						Suggestion: "Fix A",
+					},
+					{
+						Module:     "service.users",
+						Severity:   ViolationSeverityWarning,
+						Suggestion: "Fix B",
+					},
+					{
+						Module:     "utils.helpers",
+						Severity:   ViolationSeverityWarning,
+						Suggestion: "Fix C",
+					},
+				},
+			},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != 2 {
+		t.Fatalf("expected 2 suggestions (duplicate module deduplicated), got %d", len(suggestions))
+	}
+	modules := make(map[string]bool)
+	for _, s := range suggestions {
+		if strings.Contains(s.Title, "service.users") {
+			modules["service.users"] = true
+		}
+		if strings.Contains(s.Title, "utils.helpers") {
+			modules["utils.helpers"] = true
+		}
+	}
+	if !modules["service.users"] || !modules["utils.helpers"] {
+		t.Errorf("expected both module suggestions to appear, got service.users=%v utils.helpers=%v",
+			modules["service.users"], modules["utils.helpers"])
+	}
+}
+
+func TestGenerateSuggestions_SystemArchViolation_FilePathFromMetrics(t *testing.T) {
+	resp := &AnalyzeResponse{
+		System: &SystemAnalysisResponse{
+			DependencyAnalysis: &DependencyAnalysisResult{
+				ModuleMetrics: map[string]*ModuleDependencyMetrics{
+					"service.users": {FilePath: "service/users.py"},
+					"utils.helpers": {FilePath: "utils/helpers.py"},
+				},
+			},
+			ArchitectureAnalysis: &ArchitectureAnalysisResult{
+				Violations: []ArchitectureViolation{
+					{
+						Module:     "service.users",
+						Severity:   ViolationSeverityCritical,
+						Suggestion: "Fix A",
+					},
+					{
+						Module:     "utils.helpers",
+						Severity:   ViolationSeverityWarning,
+						Suggestion: "Fix B",
+					},
+					{
+						Module:     "core.model",
+						Severity:   ViolationSeverityInfo,
+						Suggestion: "Fix C",
+					},
+				},
+			},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != 3 {
+		t.Fatalf("expected 3 suggestions, got %d", len(suggestions))
+	}
+
+	found := make(map[string]Suggestion)
+	for _, s := range suggestions {
+		if s.Category != SuggestionCategoryArchitecture {
+			continue
+		}
+		found[s.Title] = s
+	}
+
+	// Module with metrics → FilePath + StartLine populated
+	if s, ok := found["Fix architecture violation in 'service.users'"]; ok {
+		if s.FilePath != "service/users.py" {
+			t.Errorf("expected FilePath 'service/users.py', got '%s'", s.FilePath)
+		}
+		if s.StartLine != 1 {
+			t.Errorf("expected StartLine 1, got %d", s.StartLine)
+		}
+	} else {
+		t.Error("missing suggestion for service.users")
+	}
+
+	if s, ok := found["Fix architecture violation in 'utils.helpers'"]; ok {
+		if s.FilePath != "utils/helpers.py" {
+			t.Errorf("expected FilePath 'utils/helpers.py', got '%s'", s.FilePath)
+		}
+		if s.StartLine != 1 {
+			t.Errorf("expected StartLine 1, got %d", s.StartLine)
+		}
+	} else {
+		t.Error("missing suggestion for utils.helpers")
+	}
+
+	// Module without metrics → FilePath and StartLine remain zero
+	if s, ok := found["Fix architecture violation in 'core.model'"]; ok {
+		if s.FilePath != "" {
+			t.Errorf("expected empty FilePath for module without metrics, got '%s'", s.FilePath)
+		}
+		if s.StartLine != 0 {
+			t.Errorf("expected StartLine 0 for module without metrics, got %d", s.StartLine)
+		}
+	} else {
+		t.Error("missing suggestion for core.model")
+	}
+}
+
 func TestGenerateSuggestions_AllAnalysesEnabled_SortOrder(t *testing.T) {
 	resp := &AnalyzeResponse{
 		Complexity: &ComplexityResponse{

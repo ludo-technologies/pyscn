@@ -430,6 +430,7 @@ func generateSystemSuggestions(resp *SystemAnalysisResponse) []Suggestion {
 	// Architecture violations (own limit, independent of dependency count)
 	if resp.ArchitectureAnalysis != nil {
 		archCount := 0
+		seenModules := make(map[string]bool)
 		for _, v := range resp.ArchitectureAnalysis.Violations {
 			if archCount >= maxSuggestionsPerCategory {
 				break
@@ -437,11 +438,27 @@ func generateSystemSuggestions(resp *SystemAnalysisResponse) []Suggestion {
 			if v.Suggestion == "" {
 				continue
 			}
+			if seenModules[v.Module] {
+				continue
+			}
+			seenModules[v.Module] = true
 
 			sev := mapViolationSeverity(v.Severity)
 			effort := SuggestionEffortModerate
 			if sev == SuggestionSeverityCritical {
 				effort = SuggestionEffortHard
+			}
+
+			filePath := ""
+			startLine := 0
+			if v.Location != nil {
+				filePath = v.Location.FilePath
+				startLine = v.Location.StartLine
+			} else if resp.DependencyAnalysis != nil {
+				if metrics, ok := resp.DependencyAnalysis.ModuleMetrics[v.Module]; ok && metrics != nil {
+					filePath = metrics.FilePath
+					startLine = 1
+				}
 			}
 
 			suggestions = append(suggestions, Suggestion{
@@ -450,6 +467,8 @@ func generateSystemSuggestions(resp *SystemAnalysisResponse) []Suggestion {
 				Effort:      effort,
 				Title:       fmt.Sprintf("Fix architecture violation in '%s'", v.Module),
 				Description: v.Suggestion,
+				FilePath:    filePath,
+				StartLine:   startLine,
 			})
 			archCount++
 		}
