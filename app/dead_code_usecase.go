@@ -146,6 +146,7 @@ func (uc *DeadCodeUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Dead
 	}
 
 	// Store merged configuration in response for caller access
+	resolveDeadCodeRequestForResponse(&finalReq)
 	response.Request = &finalReq
 
 	return response, nil
@@ -180,8 +181,15 @@ func (uc *DeadCodeUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot 
 		return nil, domain.NewAnalysisError("dead code analysis failed", err)
 	}
 
+	resolveDeadCodeRequestForResponse(&finalReq)
 	response.Request = &finalReq
 	return response, nil
+}
+
+// resolveDeadCodeRequestForResponse keeps fields that were concrete booleans
+// before the sparse-override migration concrete in public response metadata.
+func resolveDeadCodeRequestForResponse(req *domain.DeadCodeRequest) {
+	req.Recursive = domain.BoolPtr(domain.BoolValue(req.Recursive, true))
 }
 
 // AnalyzeFile analyzes a single file for dead code

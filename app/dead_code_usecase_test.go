@@ -563,6 +563,29 @@ func TestDeadCodeUseCase_AnalyzeAndReturn(t *testing.T) {
 	}
 }
 
+func TestDeadCodeUseCase_AnalyzeAndReturnResolvesRecursiveForResponse(t *testing.T) {
+	useCase, service, fileReader, _, configLoader := setupDeadCodeUseCaseMocks()
+	request := createValidDeadCodeRequest()
+	request.Recursive = nil
+
+	configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
+	fileReader.On("FileExists", "/test/file.py").Return(true, nil)
+	service.On("Analyze", mock.Anything, mock.MatchedBy(func(req domain.DeadCodeRequest) bool {
+		return req.Recursive == nil
+	})).Return(createMockDeadCodeResponse(), nil)
+
+	response, err := useCase.AnalyzeAndReturn(context.Background(), request)
+
+	assert.NoError(t, err)
+	if assert.NotNil(t, response) && assert.NotNil(t, response.Request) {
+		assert.NotNil(t, response.Request.Recursive)
+		assert.True(t, domain.BoolValue(response.Request.Recursive, false))
+	}
+	service.AssertExpectations(t)
+	fileReader.AssertExpectations(t)
+	configLoader.AssertExpectations(t)
+}
+
 func TestDeadCodeUseCase_validateRequest(t *testing.T) {
 	useCase := &DeadCodeUseCase{}
 

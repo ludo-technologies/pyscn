@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"github.com/ludo-technologies/pyscn/domain"
-	"github.com/ludo-technologies/pyscn/internal/config"
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
@@ -394,16 +393,16 @@ func (n *noOpSystemAnalysisConfigLoader) MergeConfig(base *domain.SystemAnalysis
 
 	// Pointer booleans are sparse: nil keeps the base, including a base value
 	// of false, while a non-nil override can explicitly select either value.
-	merged.AnalyzeDependencies = config.MergePtr(merged.AnalyzeDependencies, override.AnalyzeDependencies)
-	merged.AnalyzeArchitecture = config.MergePtr(merged.AnalyzeArchitecture, override.AnalyzeArchitecture)
-	merged.IncludeStdLib = config.MergePtr(merged.IncludeStdLib, override.IncludeStdLib)
-	merged.IncludeThirdParty = config.MergePtr(merged.IncludeThirdParty, override.IncludeThirdParty)
-	merged.FollowRelative = config.MergePtr(merged.FollowRelative, override.FollowRelative)
-	merged.DetectCycles = config.MergePtr(merged.DetectCycles, override.DetectCycles)
-	merged.ValidateArchitecture = config.MergePtr(merged.ValidateArchitecture, override.ValidateArchitecture)
-	merged.ValidateCohesion = config.MergePtr(merged.ValidateCohesion, override.ValidateCohesion)
-	merged.ValidateResponsibility = config.MergePtr(merged.ValidateResponsibility, override.ValidateResponsibility)
-	merged.Recursive = config.MergePtr(merged.Recursive, override.Recursive)
+	merged.AnalyzeDependencies = mergeOptional(merged.AnalyzeDependencies, override.AnalyzeDependencies)
+	merged.AnalyzeArchitecture = mergeOptional(merged.AnalyzeArchitecture, override.AnalyzeArchitecture)
+	merged.IncludeStdLib = mergeOptional(merged.IncludeStdLib, override.IncludeStdLib)
+	merged.IncludeThirdParty = mergeOptional(merged.IncludeThirdParty, override.IncludeThirdParty)
+	merged.FollowRelative = mergeOptional(merged.FollowRelative, override.FollowRelative)
+	merged.DetectCycles = mergeOptional(merged.DetectCycles, override.DetectCycles)
+	merged.ValidateArchitecture = mergeOptional(merged.ValidateArchitecture, override.ValidateArchitecture)
+	merged.ValidateCohesion = mergeOptional(merged.ValidateCohesion, override.ValidateCohesion)
+	merged.ValidateResponsibility = mergeOptional(merged.ValidateResponsibility, override.ValidateResponsibility)
+	merged.Recursive = mergeOptional(merged.Recursive, override.Recursive)
 
 	// (Numeric overrides removed - fields no longer exist)
 
@@ -416,4 +415,11 @@ func (n *noOpSystemAnalysisConfigLoader) MergeConfig(base *domain.SystemAnalysis
 	}
 
 	return &merged
+}
+
+func mergeOptional[T any](base, override *T) *T {
+	if override != nil {
+		return override
+	}
+	return base
 }
