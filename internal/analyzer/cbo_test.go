@@ -381,6 +381,20 @@ class MyClass:
 			includeBuiltins: true,
 			includedClasses: []string{"cython.int"},
 		},
+		{
+			name: "function-local Cython import does not overwrite module binding",
+			pythonCode: `
+import other_types as cython
+
+class MyClass:
+    x: cython.int = 0
+
+def unrelated_function():
+    import cython
+`,
+			includeBuiltins: true,
+			includedClasses: []string{"cython.int"},
+		},
 	}
 
 	for _, tt := range tests {

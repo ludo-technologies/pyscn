@@ -75,6 +75,7 @@ type CBOAnalyzer struct {
 	standardLibs     map[string]bool
 	importedNames    map[string]string         // alias -> module.name mapping
 	namespaceAliases map[string]string         // module.name -> alias mapping (only for alias imports)
+	cythonImports    map[string]string         // module-scope bindings visible to the class being analyzed
 	regexCache       map[string]*regexp.Regexp // pattern -> compiled regex cache
 
 	// futureAnnotations is true when the file being analyzed has
@@ -133,6 +134,7 @@ func NewCBOAnalyzer(options *CBOOptions) *CBOAnalyzer {
 		standardLibs:     make(map[string]bool),
 		importedNames:    make(map[string]string),
 		namespaceAliases: make(map[string]string),
+		cythonImports:    make(map[string]string),
 		regexCache:       make(map[string]*regexp.Regexp),
 	}
 
@@ -162,6 +164,10 @@ func (a *CBOAnalyzer) AnalyzeClasses(ast *parser.Node, filePath string) ([]*CBOR
 
 	// Second pass: analyze coupling for each class
 	for _, classNode := range classes {
+		// Cython primitive resolution must use bindings visible when the class
+		// body executes. A later import inside an unrelated function is a local
+		// binding and must not overwrite the module binding used by this class.
+		a.cythonImports = a.collectModuleImportsBefore(ast, classNode.Location.StartLine)
 		result, err := a.analyzeClass(classNode, filePath, classes)
 		if err != nil {
 			// Log warning but continue with other classes
@@ -668,6 +674,63 @@ func (a *CBOAnalyzer) collectImports(ast *parser.Node) cboImportMaps {
 	return imports
 }
 
+// collectModuleImportsBefore returns import bindings established at module
+// scope before the given source line. It intentionally does not descend into
+// classes or functions: those imports belong to different lexical scopes.
+func (a *CBOAnalyzer) collectModuleImportsBefore(ast *parser.Node, beforeLine int) map[string]string {
+	imports := make(map[string]string)
+	for _, node := range ast.Body {
+		if node == nil {
+			continue
+		}
+		if beforeLine > 0 && node.Location.StartLine > 0 && node.Location.StartLine >= beforeLine {
+			continue
+		}
+
+		switch node.Type {
+		case parser.NodeImport:
+			aliasedNames := make(map[string]bool)
+			for _, child := range node.Children {
+				if child == nil || child.Type != parser.NodeAlias {
+					continue
+				}
+				module := child.Name
+				alias := importBindingName(module)
+				if aliasStr, ok := child.Value.(string); ok {
+					alias = aliasStr
+					aliasedNames[module] = true
+				}
+				imports[alias] = module
+			}
+			for _, name := range node.Names {
+				if !aliasedNames[name] {
+					imports[importBindingName(name)] = name
+				}
+			}
+		case parser.NodeImportFrom:
+			aliasedNames := make(map[string]bool)
+			for _, child := range node.Children {
+				if child == nil || child.Type != parser.NodeAlias {
+					continue
+				}
+				name := child.Name
+				alias := name
+				if aliasStr, ok := child.Value.(string); ok {
+					alias = aliasStr
+					aliasedNames[name] = true
+				}
+				imports[alias] = node.Module + "." + name
+			}
+			for _, name := range node.Names {
+				if !aliasedNames[name] {
+					imports[name] = node.Module + "." + name
+				}
+			}
+		}
+	}
+	return imports
+}
+
 // hasFutureAnnotations reports whether the module contains
 // `from __future__ import annotations` (PEP 563). When present, every
 // annotation in the file is evaluated as a string at runtime rather than
@@ -829,10 +892,10 @@ var cythonPrimitiveTypes = map[string]bool{
 // cython module must be handled.
 func (a *CBOAnalyzer) isCythonPrimitive(className string) bool {
 	canonicalName := ""
-	if importedName, ok := a.importedNames[className]; ok {
+	if importedName, ok := a.cythonImports[className]; ok {
 		canonicalName = importedName
 	} else if qualifier, member, ok := strings.Cut(className, "."); ok {
-		if importedModule, exists := a.importedNames[qualifier]; exists {
+		if importedModule, exists := a.cythonImports[qualifier]; exists {
 			canonicalName = importedModule + "." + member
 		}
 	}
