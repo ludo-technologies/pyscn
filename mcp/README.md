@@ -156,10 +156,13 @@ home-directory-specific configuration locations are not searched.
 2. **Server working directory** - When `PYSCN_CONFIG` is unset, the server
    searches upward from its current working directory. A `.pyscn.toml` file
    takes priority over `pyproject.toml` with a `[tool.pyscn]` section.
-3. **Analysis target** - With no explicit `PYSCN_CONFIG`, `analyze_code` also
-   resolves project analysis settings from the target path upward. The
-   individual metric tools use the configuration snapshot loaded at server
-   startup.
+3. **Per-tool loading** - Configuration is not consumed uniformly by every
+   tool. `analyze_code` resolves project analysis settings from the target path
+   upward when no explicit path is set. `check_complexity`, `detect_clones`,
+   `check_cohesion`, and `find_dead_code` pass the configured path to their
+   use-case loaders and may reload it for each request. `check_coupling` uses
+   selected values from the startup snapshot together with domain defaults; it
+   does not construct a CBO configuration loader.
 4. **Built-in defaults** - Used when no supported configuration is found.
 
 **Best Practice**: Set `PYSCN_CONFIG` when the MCP server may start outside the
