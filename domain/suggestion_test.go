@@ -539,11 +539,19 @@ func TestGenerateSuggestions_SystemArchViolation_Deduplication(t *testing.T) {
 				Violations: []ArchitectureViolation{
 					{
 						Module:     "service.users",
+						Target:     "database.primary",
 						Severity:   ViolationSeverityCritical,
 						Suggestion: "Fix A",
 					},
 					{
 						Module:     "service.users",
+						Target:     "database.primary",
+						Severity:   ViolationSeverityCritical,
+						Suggestion: "Fix A",
+					},
+					{
+						Module:     "service.users",
+						Target:     "events.publisher",
 						Severity:   ViolationSeverityWarning,
 						Suggestion: "Fix B",
 					},
@@ -558,21 +566,31 @@ func TestGenerateSuggestions_SystemArchViolation_Deduplication(t *testing.T) {
 	}
 
 	suggestions := GenerateSuggestions(resp)
-	if len(suggestions) != 2 {
-		t.Fatalf("expected 2 suggestions (duplicate module deduplicated), got %d", len(suggestions))
+	if len(suggestions) != 3 {
+		t.Fatalf("expected only the exact duplicate to be removed, got %d suggestions", len(suggestions))
 	}
-	modules := make(map[string]bool)
+	serviceSuggestions := make(map[string]Suggestion)
 	for _, s := range suggestions {
 		if strings.Contains(s.Title, "service.users") {
-			modules["service.users"] = true
-		}
-		if strings.Contains(s.Title, "utils.helpers") {
-			modules["utils.helpers"] = true
+			serviceSuggestions[s.Description] = s
 		}
 	}
-	if !modules["service.users"] || !modules["utils.helpers"] {
-		t.Errorf("expected both module suggestions to appear, got service.users=%v utils.helpers=%v",
-			modules["service.users"], modules["utils.helpers"])
+	if len(serviceSuggestions) != 2 {
+		t.Fatalf("expected both distinct service.users violations, got %#v", serviceSuggestions)
+	}
+	critical, ok := serviceSuggestions["Fix A (target: database.primary)"]
+	if !ok {
+		t.Fatal("expected database.primary violation to be retained")
+	}
+	if critical.Severity != SuggestionSeverityCritical {
+		t.Errorf("expected critical severity, got %s", critical.Severity)
+	}
+	warning, ok := serviceSuggestions["Fix B (target: events.publisher)"]
+	if !ok {
+		t.Fatal("expected events.publisher violation to be retained")
+	}
+	if warning.Severity != SuggestionSeverityWarning {
+		t.Errorf("expected warning severity, got %s", warning.Severity)
 	}
 }
 
