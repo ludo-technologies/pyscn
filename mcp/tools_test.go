@@ -38,7 +38,13 @@ func TestRegisterTools_AdvertisesImplementedOutputControls(t *testing.T) {
 			assert.ElementsMatch(t, []interface{}{"summary", "detailed", "full"}, outputMode["enum"])
 
 			maxResults := properties["max_results"].(map[string]interface{})
+			assert.Equal(t, "integer", maxResults["type"])
 			assert.Equal(t, float64(0), maxResults["minimum"])
+
+			if minCBO, ok := properties["min_cbo"].(map[string]interface{}); ok {
+				assert.Equal(t, "integer", minCBO["type"])
+				assert.Equal(t, float64(0), minCBO["minimum"])
+			}
 		})
 	}
 }

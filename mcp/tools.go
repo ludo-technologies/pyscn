@@ -38,7 +38,7 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 		mcp.WithString("output_mode",
 			mcp.Enum("summary", "detailed", "full"),
 			mcp.Description("Response detail level (default: summary)")),
-		mcp.WithNumber("max_results",
+		mcp.WithInteger("max_results",
 			mcp.Min(0),
 			mcp.Description("Maximum findings in summary or detailed output; 0 means unlimited (default: 0)")),
 	), handlers.HandleCheckComplexity)
@@ -58,7 +58,7 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 		mcp.WithString("output_mode",
 			mcp.Enum("summary", "detailed", "full"),
 			mcp.Description("Response detail level (default: summary)")),
-		mcp.WithNumber("max_results",
+		mcp.WithInteger("max_results",
 			mcp.Min(0),
 			mcp.Description("Maximum findings in summary or detailed output; 0 means unlimited (default: 0)")),
 	), handlers.HandleDetectClones)
@@ -69,13 +69,13 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 		mcp.WithString("path",
 			mcp.Required(),
 			mcp.Description("Path to Python code to analyze")),
-		mcp.WithNumber("min_cbo",
+		mcp.WithInteger("min_cbo",
 			mcp.Min(0),
 			mcp.Description("Minimum CBO for high-coupling findings (default: 10)")),
 		mcp.WithString("output_mode",
 			mcp.Enum("summary", "detailed", "full"),
 			mcp.Description("Response detail level (default: summary)")),
-		mcp.WithNumber("max_results",
+		mcp.WithInteger("max_results",
 			mcp.Min(0),
 			mcp.Description("Maximum findings in summary or detailed output; 0 means unlimited (default: 0)")),
 	), handlers.HandleCheckCoupling)
@@ -89,7 +89,7 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 		mcp.WithString("output_mode",
 			mcp.Enum("summary", "detailed", "full"),
 			mcp.Description("Response detail level (default: summary)")),
-		mcp.WithNumber("max_results",
+		mcp.WithInteger("max_results",
 			mcp.Min(0),
 			mcp.Description("Maximum findings in summary or detailed output; 0 means unlimited (default: 0)")),
 	), handlers.HandleCheckCohesion)
@@ -105,7 +105,7 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 		mcp.WithString("output_mode",
 			mcp.Enum("summary", "detailed", "full"),
 			mcp.Description("Response detail level (default: summary)")),
-		mcp.WithNumber("max_results",
+		mcp.WithInteger("max_results",
 			mcp.Min(0),
 			mcp.Description("Maximum findings in summary or detailed output; 0 means unlimited (default: 0)")),
 	), handlers.HandleFindDeadCode)
