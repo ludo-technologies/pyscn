@@ -570,3 +570,20 @@ func TestBuildComplexityTaskRequest_ThresholdOverrides(t *testing.T) {
 		}
 	})
 }
+
+func TestBuildComplexityTaskRequest_UsesExecutionConfigBooleans(t *testing.T) {
+	uc := &AnalyzeUseCase{}
+	executionCfg := domain.AnalyzeExecutionConfig{
+		Recursive:   false,
+		ShowDetails: true,
+	}
+
+	req := uc.buildComplexityTaskRequest(AnalyzeUseCaseConfig{}, []string{"test.py"}, executionCfg)
+
+	if req.Recursive == nil || *req.Recursive {
+		t.Error("Recursive: expected explicit false from execution config")
+	}
+	if req.ShowDetails == nil || !*req.ShowDetails {
+		t.Error("ShowDetails: expected explicit true from execution config")
+	}
+}

@@ -539,6 +539,7 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 	return domain.ComplexityRequest{
 		Paths:                        files,
 		Recursive:                    domain.BoolPtr(executionCfg.Recursive),
+		ShowDetails:                  domain.BoolPtr(executionCfg.ShowDetails),
 		IncludePatterns:              []string{},
 		ExcludePatterns:              []string{},
 		OutputFormat:                 domain.OutputFormatJSON,
