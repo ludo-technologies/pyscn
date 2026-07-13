@@ -147,8 +147,12 @@ pyscn-mcp uses the TOML-only configuration loader. YAML, JSON, XDG, and
 home-directory-specific configuration locations are not searched.
 
 1. **`PYSCN_CONFIG`** - When set, this explicit file path is loaded at server
-   startup. A load failure is logged and the server starts with built-in
-   defaults; it does not continue searching other locations.
+   startup. A load failure is logged and the server registers its tools with a
+   built-in-default configuration snapshot; it does not continue searching
+   other locations. The explicit path is still retained, however, so tools
+   that load configuration while handling a request (including
+   `analyze_code`) report that configuration error instead of silently
+   analyzing with defaults. Fix or unset an invalid `PYSCN_CONFIG` value.
 2. **Server working directory** - When `PYSCN_CONFIG` is unset, the server
    searches upward from its current working directory. A `.pyscn.toml` file
    takes priority over `pyproject.toml` with a `[tool.pyscn]` section.
