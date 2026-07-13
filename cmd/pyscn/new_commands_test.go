@@ -817,6 +817,41 @@ func TestCheckIgnoresMalformedPyprojectWithoutPyscnSection(t *testing.T) {
 	}
 }
 
+func TestCheckFailsOnMalformedDiscoveredPyscnPyproject(t *testing.T) {
+	tempDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(tempDir, "pyproject.toml"), []byte("[tool.pyscn.analysis\nrecursive = false\n"), 0o644); err != nil {
+		t.Fatalf("failed to write malformed pyproject.toml: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "sample.py"), []byte("def sample():\n    return 1\n"), 0o644); err != nil {
+		t.Fatalf("failed to write source file: %v", err)
+	}
+
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current directory: %v", err)
+	}
+	defer func() {
+		if chdirErr := os.Chdir(originalDir); chdirErr != nil {
+			t.Errorf("failed to restore current directory: %v", chdirErr)
+		}
+	}()
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("failed to change directory: %v", err)
+	}
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	cobraCmd.SetArgs([]string{"--select", "complexity", "."})
+
+	err = cobraCmd.Execute()
+	if err == nil {
+		t.Fatal("expected malformed discovered pyscn pyproject.toml to fail the check")
+	}
+	if !strings.Contains(err.Error(), "invalid pyscn configuration") {
+		t.Fatalf("expected pyscn configuration error, got: %v", err)
+	}
+}
+
 func TestCountDIAntipatternIssuesFailsOnAnalysisErrors(t *testing.T) {
 	checkCmd := NewCheckCommand()
 	response := &domain.DIAntipatternResponse{

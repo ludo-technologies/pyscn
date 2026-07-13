@@ -1,8 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -630,21 +632,47 @@ func findPyprojectToml(startDir string) (string, error) {
 }
 
 func hasPyscnSection(filePath string) bool {
+	hasSection, _ := inspectPyscnSection(filePath)
+	return hasSection
+}
+
+// inspectPyscnSection distinguishes an unrelated pyproject from a valid pyscn
+// configuration and from a malformed TOML file that appears intended to
+// configure pyscn. The latter must not be silently treated as "no config".
+func inspectPyscnSection(filePath string) (bool, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return false
+		return false, err
 	}
 
 	var root map[string]interface{}
 	if err := toml.Unmarshal(data, &root); err != nil {
-		return false
+		if containsPyscnSectionHeader(data) {
+			return false, fmt.Errorf("invalid pyscn configuration in %s: %w", filePath, err)
+		}
+		return false, nil
 	}
 
 	tool, ok := root["tool"].(map[string]interface{})
 	if !ok {
-		return false
+		return false, nil
 	}
 
 	_, ok = tool["pyscn"]
-	return ok
+	return ok, nil
+}
+
+func containsPyscnSectionHeader(data []byte) bool {
+	for _, line := range strings.Split(string(data), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if !strings.HasPrefix(trimmed, "[tool.pyscn") {
+			continue
+		}
+		remainder := strings.TrimPrefix(trimmed, "[tool.pyscn")
+		if remainder == "" || strings.HasPrefix(remainder, "]") || strings.HasPrefix(remainder, ".") ||
+			strings.HasPrefix(remainder, " ") || strings.HasPrefix(remainder, "\t") {
+			return true
+		}
+	}
+	return false
 }

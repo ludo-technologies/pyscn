@@ -410,7 +410,7 @@ func (l *TomlConfigLoader) ResolveConfigPath(configPath string, targetPath strin
 			return configPath, nil
 		}
 
-		return l.FindConfigFileFromPath(configPath), nil
+		return l.findConfigFileFromPath(configPath)
 	}
 
 	searchPath := targetPath
@@ -418,7 +418,7 @@ func (l *TomlConfigLoader) ResolveConfigPath(configPath string, targetPath strin
 		searchPath = "."
 	}
 
-	return l.FindConfigFileFromPath(searchPath), nil
+	return l.findConfigFileFromPath(searchPath)
 }
 
 // FindConfigFileFromPath discovers a config file from the given path.
@@ -426,9 +426,14 @@ func (l *TomlConfigLoader) ResolveConfigPath(configPath string, targetPath strin
 // 1. .pyscn.toml
 // 2. pyproject.toml containing [tool.pyscn]
 func (l *TomlConfigLoader) FindConfigFileFromPath(startPath string) string {
+	configPath, _ := l.findConfigFileFromPath(startPath)
+	return configPath
+}
+
+func (l *TomlConfigLoader) findConfigFileFromPath(startPath string) (string, error) {
 	dir, err := normalizeSearchDir(startPath)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
 	// Dedicated file takes precedence across the entire search tree.
@@ -436,7 +441,7 @@ func (l *TomlConfigLoader) FindConfigFileFromPath(startPath string) string {
 	for {
 		pyscnPath := filepath.Join(current, ".pyscn.toml")
 		if _, err := os.Stat(pyscnPath); err == nil {
-			return pyscnPath
+			return pyscnPath, nil
 		}
 
 		parent := filepath.Dir(current)
@@ -450,8 +455,14 @@ func (l *TomlConfigLoader) FindConfigFileFromPath(startPath string) string {
 	current = dir
 	for {
 		pyprojectPath := filepath.Join(current, "pyproject.toml")
-		if _, err := os.Stat(pyprojectPath); err == nil && hasPyscnSection(pyprojectPath) {
-			return pyprojectPath
+		if _, err := os.Stat(pyprojectPath); err == nil {
+			hasSection, inspectErr := inspectPyscnSection(pyprojectPath)
+			if inspectErr != nil {
+				return "", inspectErr
+			}
+			if hasSection {
+				return pyprojectPath, nil
+			}
 		}
 
 		parent := filepath.Dir(current)
@@ -461,7 +472,7 @@ func (l *TomlConfigLoader) FindConfigFileFromPath(startPath string) string {
 		current = parent
 	}
 
-	return ""
+	return "", nil
 }
 
 func isLikelyConfigFilePath(path string) bool {
