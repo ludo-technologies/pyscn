@@ -595,6 +595,43 @@ func TestGenerateSuggestions_SystemArchViolation_Deduplication(t *testing.T) {
 	}
 }
 
+func TestGenerateSuggestions_SystemArchViolation_DistinctIdentityFields(t *testing.T) {
+	tests := []struct {
+		name       string
+		violations []ArchitectureViolation
+	}{
+		{
+			name: "target only differs",
+			violations: []ArchitectureViolation{
+				{Module: "service.users", Target: "database.primary", Severity: ViolationSeverityWarning, Suggestion: "Use an adapter"},
+				{Module: "service.users", Target: "database.replica", Severity: ViolationSeverityWarning, Suggestion: "Use an adapter"},
+			},
+		},
+		{
+			name: "severity only differs",
+			violations: []ArchitectureViolation{
+				{Module: "service.users", Target: "database.primary", Severity: ViolationSeverityWarning, Suggestion: "Use an adapter"},
+				{Module: "service.users", Target: "database.primary", Severity: ViolationSeverityCritical, Suggestion: "Use an adapter"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := &AnalyzeResponse{
+				System: &SystemAnalysisResponse{
+					ArchitectureAnalysis: &ArchitectureAnalysisResult{Violations: tt.violations},
+				},
+			}
+
+			suggestions := GenerateSuggestions(resp)
+			if len(suggestions) != 2 {
+				t.Fatalf("expected both distinct violations, got %d suggestions", len(suggestions))
+			}
+		})
+	}
+}
+
 func TestGenerateSuggestions_SystemArchViolation_CriticalSurvivesLimit(t *testing.T) {
 	violations := make([]ArchitectureViolation, 0, maxSuggestionsPerCategory+1)
 	for i := 0; i < maxSuggestionsPerCategory; i++ {
