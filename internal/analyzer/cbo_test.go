@@ -316,66 +316,92 @@ class MyClass:
 }
 
 func TestCBOAnalyzer_CythonPrimitiveExclusion(t *testing.T) {
-	pythonCode := `
+	tests := []struct {
+		name            string
+		pythonCode      string
+		includeBuiltins bool
+		excludedClasses []string
+		includedClasses []string
+	}{
+		{
+			name: "exclude direct Cython primitives by default",
+			pythonCode: `
 import cython
-import numpy as np
 
-@cython.cclass
 class MyClass:
     x: cython.int = 0
     y: cython.float = 0.0
-    data: np.ndarray
-
-    def __init__(self):
-        self.data = np.zeros(10)
-`
-
-	tests := []struct {
-		name            string
-		includeBuiltins bool
-		minExpectedCBO  int
-		maxExpectedCBO  int
-	}{
-		{
-			name:            "exclude Cython primitives by default",
+`,
 			includeBuiltins: false,
-			minExpectedCBO:  0,
-			maxExpectedCBO:  1,
+			excludedClasses: []string{"cython.int", "cython.float"},
 		},
 		{
-			name:            "include Cython primitives when IncludeBuiltins",
+			name: "exclude direct Cython primitives when builtins are included",
+			pythonCode: `
+import cython
+
+class MyClass:
+    x: cython.int = 0
+    y: cython.float = 0.0
+`,
 			includeBuiltins: true,
-			minExpectedCBO:  3,
-			maxExpectedCBO:  9,
+			excludedClasses: []string{"cython.int", "cython.float"},
+		},
+		{
+			name: "exclude primitives through a Cython module alias",
+			pythonCode: `
+import cython as cy
+
+class MyClass:
+    x: cy.int = 0
+    y: cy.double = 0.0
+`,
+			includeBuiltins: true,
+			excludedClasses: []string{"cy.int", "cy.double"},
+		},
+		{
+			name: "exclude primitives imported by name",
+			pythonCode: `
+from cython import int as cyint
+
+class MyClass:
+    x: cyint = 0
+`,
+			includeBuiltins: true,
+			excludedClasses: []string{"cyint"},
+		},
+		{
+			name: "preserve a different module aliased as Cython",
+			pythonCode: `
+import other_types as cython
+
+class MyClass:
+    x: cython.int = 0
+`,
+			includeBuiltins: true,
+			includedClasses: []string{"cython.int"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ast, err := parseCode(pythonCode)
+			ast, err := parseCode(tt.pythonCode)
 			require.NoError(t, err)
 
 			options := DefaultCBOOptions()
 			options.IncludeBuiltins = tt.includeBuiltins
+			options.GroupNamespaceImports = false
 
 			analyzer := NewCBOAnalyzer(options)
 			results, err := analyzer.AnalyzeClasses(ast, "test.py")
 			require.NoError(t, err)
 
 			require.Len(t, results, 1)
-			cbo := results[0].CouplingCount
-
-			if cbo < tt.minExpectedCBO || cbo > tt.maxExpectedCBO {
-				t.Errorf("CBO = %d, expected between %d and %d. DependentClasses: %v",
-					cbo, tt.minExpectedCBO, tt.maxExpectedCBO, results[0].DependentClasses)
+			for _, className := range tt.excludedClasses {
+				assert.NotContains(t, results[0].DependentClasses, className)
 			}
-
-			if !tt.includeBuiltins {
-				for _, dep := range results[0].DependentClasses {
-					if strings.HasPrefix(dep, "cython.") {
-						t.Errorf("cython primitive %q should not appear in DependentClasses when IncludeBuiltins=false", dep)
-					}
-				}
+			for _, className := range tt.includedClasses {
+				assert.Contains(t, results[0].DependentClasses, className)
 			}
 		})
 	}

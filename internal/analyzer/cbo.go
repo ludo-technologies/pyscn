@@ -790,6 +790,9 @@ func (a *CBOAnalyzer) shouldIncludeDependency(className string) bool {
 	if className == "" {
 		return false
 	}
+	if a.isCythonPrimitive(className) {
+		return false
+	}
 
 	// Check exclude patterns
 	for _, pattern := range a.options.ExcludePatterns {
@@ -807,6 +810,35 @@ func (a *CBOAnalyzer) shouldIncludeDependency(className string) bool {
 	}
 
 	return true
+}
+
+var cythonPrimitiveTypes = map[string]bool{
+	"int":       true,
+	"float":     true,
+	"long":      true,
+	"uint":      true,
+	"ulong":     true,
+	"ulonglong": true,
+	"ushort":    true,
+	"double":    true,
+}
+
+// isCythonPrimitive reports whether className resolves through this file's
+// imports to a Cython C-level primitive. Import provenance matters: a different
+// module aliased as "cython" must not be filtered, while aliases of the real
+// cython module must be handled.
+func (a *CBOAnalyzer) isCythonPrimitive(className string) bool {
+	canonicalName := ""
+	if importedName, ok := a.importedNames[className]; ok {
+		canonicalName = importedName
+	} else if qualifier, member, ok := strings.Cut(className, "."); ok {
+		if importedModule, exists := a.importedNames[qualifier]; exists {
+			canonicalName = importedModule + "." + member
+		}
+	}
+
+	module, primitive, ok := strings.Cut(canonicalName, ".")
+	return ok && module == "cython" && cythonPrimitiveTypes[primitive]
 }
 
 // callDependencyName returns the portion of a called dotted name that refers
@@ -1350,9 +1382,6 @@ func (a *CBOAnalyzer) initializeBuiltinTypes() {
 		"Exception", "BaseException", "ValueError", "TypeError", "KeyError",
 		"IndexError", "AttributeError", "NameError", "RuntimeError",
 		"memoryview", "slice",
-		// Cython primitive type qualifiers
-		"cython.int", "cython.float", "cython.long", "cython.uint",
-		"cython.ulong", "cython.ulonglong", "cython.ushort", "cython.double",
 	}
 
 	// Built-in functions (never counted as dependencies)
