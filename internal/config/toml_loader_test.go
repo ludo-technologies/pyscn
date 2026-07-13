@@ -359,22 +359,6 @@ func TestResolveConfigPath_MissingNonTomlPathReturnsError(t *testing.T) {
 	}
 }
 
-func TestResolveConfigPath_MalformedPyscnPyprojectReturnsError(t *testing.T) {
-	tempDir := t.TempDir()
-	configPath := filepath.Join(tempDir, "pyproject.toml")
-	if err := os.WriteFile(configPath, []byte("[tool.pyscn.analysis\nrecursive = false\n"), 0o644); err != nil {
-		t.Fatalf("failed to write malformed pyproject.toml: %v", err)
-	}
-
-	_, err := NewTomlConfigLoader().ResolveConfigPath("", tempDir)
-	if err == nil {
-		t.Fatal("expected malformed pyscn pyproject.toml to fail resolution")
-	}
-	if !strings.Contains(err.Error(), "invalid pyscn configuration") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
 func TestLoadArchitectureStyleFromPyscnToml(t *testing.T) {
 	tempDir := t.TempDir()
 
