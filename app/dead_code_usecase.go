@@ -62,7 +62,7 @@ func (uc *DeadCodeUseCase) Execute(ctx context.Context, req domain.DeadCodeReque
 	// Collect Python files
 	files, err := uc.fileReader.CollectPythonFiles(
 		finalReq.Paths,
-		finalReq.Recursive,
+		domain.BoolValue(finalReq.Recursive, true),
 		finalReq.IncludePatterns,
 		finalReq.ExcludePatterns,
 	)
@@ -123,7 +123,7 @@ func (uc *DeadCodeUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Dead
 	files, err := ResolveFilePaths(
 		uc.fileReader,
 		finalReq.Paths,
-		finalReq.Recursive,
+		domain.BoolValue(finalReq.Recursive, true),
 		finalReq.IncludePatterns,
 		finalReq.ExcludePatterns,
 		false, // validatePythonFile: dead code doesn't need strict Python validation
@@ -498,7 +498,7 @@ func (uc *DeadCodeUseCase) QuickAnalysis(ctx context.Context, filePaths []string
 		SortBy:          domain.DeadCodeSortBySeverity,
 		ShowContext:     domain.BoolPtr(false),
 		ContextLines:    0,
-		Recursive:       false,
+		Recursive:       domain.BoolPtr(false),
 		IncludePatterns: domain.DefaultAnalysisIncludePatterns(),
 		ExcludePatterns: []string{},
 		IgnorePatterns:  []string{},

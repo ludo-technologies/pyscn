@@ -54,8 +54,8 @@ def simple():
 		LowThreshold:    3,
 		MediumThreshold: 7,
 		SortBy:          domain.SortByName,
-		ShowDetails:     true,
-		Recursive:       true,
+		ShowDetails:     domain.BoolPtr(true),
+		Recursive:       domain.BoolPtr(true),
 		IncludePatterns: []string{"**/*.py", "**/*.pyi"},
 		ExcludePatterns: []string{},
 	}
@@ -139,8 +139,8 @@ def complex_function(n):
 		LowThreshold:    3,
 		MediumThreshold: 7,
 		SortBy:          domain.SortByName,
-		ShowDetails:     true,
-		Recursive:       true,
+		ShowDetails:     domain.BoolPtr(true),
+		Recursive:       domain.BoolPtr(true),
 		IncludePatterns: []string{"**/*.py", "**/*.pyi"},
 		ExcludePatterns: []string{},
 	}
@@ -212,8 +212,8 @@ def test_function(x):
 				LowThreshold:    3,
 				MediumThreshold: 7,
 				SortBy:          domain.SortByName,
-				ShowDetails:     true,
-				Recursive:       true,
+				ShowDetails:     domain.BoolPtr(true),
+				Recursive:       domain.BoolPtr(true),
 				IncludePatterns: []string{"**/*.py", "**/*.pyi"},
 				ExcludePatterns: []string{},
 			}

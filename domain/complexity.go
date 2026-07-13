@@ -57,7 +57,7 @@ type ComplexityRequest struct {
 	OutputWriter io.Writer
 	OutputPath   string // Path to save output file (for HTML format)
 	NoOpen       bool   // Don't auto-open HTML in browser
-	ShowDetails  bool
+	ShowDetails  *bool  // nil = unset, non-nil = explicitly set
 
 	// Filtering and sorting
 	MinComplexity int
@@ -79,7 +79,7 @@ type ComplexityRequest struct {
 	ConfigPath string
 
 	// Analysis options
-	Recursive       bool
+	Recursive       *bool // nil = unset, non-nil = explicitly set
 	IncludePatterns []string
 	ExcludePatterns []string
 }

@@ -373,7 +373,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.DeadCodeRequest{
 					Paths:           files,
-					Recursive:       false,
+					Recursive:       nil, // Let config file values take precedence
 					IncludePatterns: []string{},
 					ExcludePatterns: []string{},
 					OutputFormat:    domain.OutputFormatJSON,
@@ -538,7 +538,7 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 
 	return domain.ComplexityRequest{
 		Paths:                        files,
-		Recursive:                    false,
+		Recursive:                    domain.BoolPtr(executionCfg.Recursive),
 		IncludePatterns:              []string{},
 		ExcludePatterns:              []string{},
 		OutputFormat:                 domain.OutputFormatJSON,
