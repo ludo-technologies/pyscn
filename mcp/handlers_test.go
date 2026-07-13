@@ -43,6 +43,16 @@ func setupTestFile(t *testing.T, filename string) string {
 	return dst
 }
 
+func setupNestedTestProject(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	nested := filepath.Join(root, "nested")
+	require.NoError(t, os.Mkdir(nested, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "root.py"), []byte("def root():\n    return 1\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(nested, "child.py"), []byte("def child():\n    return 2\n"), 0o644))
+	return root
+}
+
 func runToolTest(
 	t *testing.T,
 	setupFS func(t *testing.T) string,
@@ -174,6 +184,64 @@ func TestHandleAnalyzeCode(t *testing.T) {
 				},
 			},
 		},
+		"recursive_false_limits_directory_to_root": {
+			args: args{
+				setupFS: setupNestedTestProject,
+				arguments: map[string]interface{}{
+					"analyses":    []interface{}{"complexity"},
+					"output_mode": "full",
+					"recursive":   false,
+				},
+			},
+			want: want{
+				isError: &errFalse,
+				check: func(t *testing.T, res *mcplib.CallToolResult) {
+					text := mcplib.GetTextFromContent(res.Content[0])
+					var result struct {
+						Summary struct {
+							TotalFiles int `json:"total_files"`
+						} `json:"summary"`
+					}
+					require.NoError(t, json.Unmarshal([]byte(text), &result))
+					assert.Equal(t, 1, result.Summary.TotalFiles)
+				},
+			},
+		},
+		"recursive_true_includes_nested_files": {
+			args: args{
+				setupFS: setupNestedTestProject,
+				arguments: map[string]interface{}{
+					"analyses":    []interface{}{"complexity"},
+					"output_mode": "full",
+					"recursive":   true,
+				},
+			},
+			want: want{
+				isError: &errFalse,
+				check: func(t *testing.T, res *mcplib.CallToolResult) {
+					text := mcplib.GetTextFromContent(res.Content[0])
+					var result struct {
+						Summary struct {
+							TotalFiles int `json:"total_files"`
+						} `json:"summary"`
+					}
+					require.NoError(t, json.Unmarshal([]byte(text), &result))
+					assert.Equal(t, 2, result.Summary.TotalFiles)
+				},
+			},
+		},
+		"recursive_rejects_non_boolean": {
+			args: args{
+				setupFS: setupNestedTestProject,
+				arguments: map[string]interface{}{
+					"recursive": "false",
+				},
+			},
+			want: want{
+				isError:      &errTrue,
+				expectPrefix: "recursive parameter must be a boolean",
+			},
+		},
 		"communities_full_context_map": {
 			args: args{
 				setupFS: func(t *testing.T) string {
@@ -251,6 +319,34 @@ func TestHandleAnalyzeCode(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHandleAnalyzeCode_RecursiveOmittedUsesProjectConfig(t *testing.T) {
+	configDir := t.TempDir()
+	configFile := filepath.Join(configDir, ".pyscn.toml")
+	require.NoError(t, os.WriteFile(configFile, []byte("[analysis]\nrecursive = false\n"), 0o644))
+
+	arguments := map[string]interface{}{
+		"analyses":    []interface{}{"complexity"},
+		"output_mode": "full",
+	}
+	res := runToolTestWithConfig(
+		t,
+		setupNestedTestProject,
+		arguments,
+		configFile,
+		(*mcp.HandlerSet).HandleAnalyzeCode,
+	)
+	require.False(t, res.IsError)
+
+	text := mcplib.GetTextFromContent(res.Content[0])
+	var result struct {
+		Summary struct {
+			TotalFiles int `json:"total_files"`
+		} `json:"summary"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(text), &result))
+	assert.Equal(t, 1, result.Summary.TotalFiles)
 }
 
 func TestHandleAnalyzeCodeExplicitCommunitiesOverrideDisabledConfig(t *testing.T) {

@@ -54,6 +54,15 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 		}
 	}
 
+	var recursiveOverride *bool
+	if rawRecursive, exists := args["recursive"]; exists {
+		recursive, ok := rawRecursive.(bool)
+		if !ok {
+			return mcp.NewToolResultError("recursive parameter must be a boolean"), nil
+		}
+		recursiveOverride = &recursive
+	}
+
 	// Create config for analyze use case
 	config := app.ApplyAnalyzeSelection(app.AnalyzeUseCaseConfig{
 		MinComplexity:   1,
@@ -79,7 +88,7 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 	}
 
 	// Build analyze use case using builder pattern
-	analyzeUC, err := h.deps.BuildAnalyzeUseCase()
+	analyzeUC, err := h.deps.buildAnalyzeUseCaseWithRecursiveOverride(recursiveOverride)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to create analyzer: %v", err)), nil
 	}

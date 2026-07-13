@@ -41,3 +41,31 @@ func (d *Dependencies) ConfigPath() string {
 func (d *Dependencies) BuildAnalyzeUseCase() (*app.AnalyzeUseCase, error) {
 	return buildAnalyzeUseCase(d.fileReader)
 }
+
+// buildAnalyzeUseCaseWithRecursiveOverride builds an analyze use case whose
+// file collection honors an explicit MCP recursive argument. A nil override
+// preserves the recursive value resolved from project configuration.
+func (d *Dependencies) buildAnalyzeUseCaseWithRecursiveOverride(recursive *bool) (*app.AnalyzeUseCase, error) {
+	fileReader := d.fileReader
+	if recursive != nil {
+		fileReader = &recursiveOverrideFileReader{
+			FileReader: d.fileReader,
+			recursive:  *recursive,
+		}
+	}
+
+	return buildAnalyzeUseCase(fileReader)
+}
+
+type recursiveOverrideFileReader struct {
+	domain.FileReader
+	recursive bool
+}
+
+func (r *recursiveOverrideFileReader) CollectPythonFiles(
+	paths []string,
+	_ bool,
+	includePatterns, excludePatterns []string,
+) ([]string, error) {
+	return r.FileReader.CollectPythonFiles(paths, r.recursive, includePatterns, excludePatterns)
+}
