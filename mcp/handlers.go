@@ -69,6 +69,7 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 		MinSeverity:     domain.DeadCodeSeverityWarning,
 		CloneSimilarity: 0.8,
 		ConfigFile:      h.deps.ConfigPath(),
+		Recursive:       recursiveOverride,
 	}, analyses)
 	if cfg := h.deps.Config(); cfg != nil {
 		if cfg.Output.MinComplexity > 0 {
@@ -88,7 +89,7 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 	}
 
 	// Build analyze use case using builder pattern
-	analyzeUC, err := h.deps.buildAnalyzeUseCaseWithRecursiveOverride(recursiveOverride)
+	analyzeUC, err := h.deps.BuildAnalyzeUseCase()
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to create analyzer: %v", err)), nil
 	}

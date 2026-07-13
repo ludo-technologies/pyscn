@@ -349,6 +349,41 @@ func TestHandleAnalyzeCode_RecursiveOmittedUsesProjectConfig(t *testing.T) {
 	assert.Equal(t, 1, result.Summary.TotalFiles)
 }
 
+func TestHandleAnalyzeCode_RecursiveOverrideUpdatesFullResponse(t *testing.T) {
+	configDir := t.TempDir()
+	configFile := filepath.Join(configDir, ".pyscn.toml")
+	require.NoError(t, os.WriteFile(configFile, []byte("[analysis]\nrecursive = false\n"), 0o644))
+
+	arguments := map[string]interface{}{
+		"analyses":    []interface{}{"complexity"},
+		"output_mode": "full",
+		"recursive":   true,
+	}
+	res := runToolTestWithConfig(
+		t,
+		setupNestedTestProject,
+		arguments,
+		configFile,
+		(*mcp.HandlerSet).HandleAnalyzeCode,
+	)
+	require.False(t, res.IsError)
+
+	text := mcplib.GetTextFromContent(res.Content[0])
+	var result struct {
+		Complexity struct {
+			Request struct {
+				Recursive bool `json:"recursive"`
+			} `json:"request"`
+		} `json:"complexity"`
+		Summary struct {
+			TotalFiles int `json:"total_files"`
+		} `json:"summary"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(text), &result))
+	assert.Equal(t, 2, result.Summary.TotalFiles)
+	assert.True(t, result.Complexity.Request.Recursive)
+}
+
 func TestHandleAnalyzeCodeExplicitCommunitiesOverrideDisabledConfig(t *testing.T) {
 	t.Parallel()
 
