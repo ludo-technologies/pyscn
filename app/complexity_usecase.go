@@ -61,7 +61,7 @@ func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityR
 	// Collect Python files
 	files, err := uc.fileReader.CollectPythonFiles(
 		finalReq.Paths,
-		finalReq.Recursive,
+		domain.BoolValue(finalReq.Recursive, true),
 		finalReq.IncludePatterns,
 		finalReq.ExcludePatterns,
 	)
@@ -127,7 +127,7 @@ func (uc *ComplexityUseCase) analyzeResolvedRequest(ctx context.Context, req dom
 	files, err := ResolveFilePaths(
 		uc.fileReader,
 		req.Paths,
-		req.Recursive,
+		domain.BoolValue(req.Recursive, true),
 		req.IncludePatterns,
 		req.ExcludePatterns,
 		false, // validatePythonFile: complexity doesn't need strict Python validation

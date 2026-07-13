@@ -42,7 +42,7 @@ type DeadCodeRequest struct {
 	SortBy      DeadCodeSortCriteria
 
 	// Analysis options
-	Recursive       bool
+	Recursive       *bool // nil = unset, non-nil = explicitly set
 	IncludePatterns []string
 	ExcludePatterns []string
 	IgnorePatterns  []string // Patterns for code to ignore (e.g., comments, debug code)
@@ -229,7 +229,7 @@ func DefaultDeadCodeRequest() *DeadCodeRequest {
 		ContextLines:    3,
 		MinSeverity:     DeadCodeSeverityWarning,
 		SortBy:          DeadCodeSortBySeverity,
-		Recursive:       true,
+		Recursive:       BoolPtr(true),
 		IncludePatterns: DefaultAnalysisIncludePatterns(),
 		ExcludePatterns: DefaultAnalysisExcludePatterns(),
 		IgnorePatterns:  []string{},

@@ -50,7 +50,7 @@ func (uc *MockDataUseCase) Execute(ctx context.Context, req domain.MockDataReque
 	// Collect Python files
 	files, err := uc.fileReader.CollectPythonFiles(
 		finalReq.Paths,
-		finalReq.Recursive,
+		domain.BoolValue(finalReq.Recursive, true),
 		finalReq.IncludePatterns,
 		finalReq.ExcludePatterns,
 	)
@@ -102,7 +102,7 @@ func (uc *MockDataUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Mock
 	files, err := ResolveFilePaths(
 		uc.fileReader,
 		finalReq.Paths,
-		finalReq.Recursive,
+		domain.BoolValue(finalReq.Recursive, true),
 		finalReq.IncludePatterns,
 		finalReq.ExcludePatterns,
 		false, // validatePythonFile: mock data doesn't need strict Python validation

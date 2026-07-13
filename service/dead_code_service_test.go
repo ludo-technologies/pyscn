@@ -21,7 +21,7 @@ func newDefaultDeadCodeRequest(paths ...string) domain.DeadCodeRequest {
 		SortBy:                    domain.DeadCodeSortByFile,
 		ShowContext:               domain.BoolPtr(false),
 		ContextLines:              2,
-		Recursive:                 false,
+		Recursive:                 domain.BoolPtr(false),
 		DetectAfterReturn:         domain.BoolPtr(true),
 		DetectAfterBreak:          domain.BoolPtr(true),
 		DetectAfterContinue:       domain.BoolPtr(true),
