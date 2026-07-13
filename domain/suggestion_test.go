@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -592,6 +593,39 @@ func TestGenerateSuggestions_SystemArchViolation_Deduplication(t *testing.T) {
 	if warning.Severity != SuggestionSeverityWarning {
 		t.Errorf("expected warning severity, got %s", warning.Severity)
 	}
+}
+
+func TestGenerateSuggestions_SystemArchViolation_CriticalSurvivesLimit(t *testing.T) {
+	violations := make([]ArchitectureViolation, 0, maxSuggestionsPerCategory+1)
+	for i := 0; i < maxSuggestionsPerCategory; i++ {
+		violations = append(violations, ArchitectureViolation{
+			Module:     fmt.Sprintf("warning_%d", i),
+			Severity:   ViolationSeverityWarning,
+			Suggestion: "Fix warning",
+		})
+	}
+	violations = append(violations, ArchitectureViolation{
+		Module:     "critical_last",
+		Severity:   ViolationSeverityCritical,
+		Suggestion: "Fix critical violation",
+	})
+
+	resp := &AnalyzeResponse{
+		System: &SystemAnalysisResponse{
+			ArchitectureAnalysis: &ArchitectureAnalysisResult{Violations: violations},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != maxSuggestionsPerCategory {
+		t.Fatalf("expected %d architecture suggestions, got %d", maxSuggestionsPerCategory, len(suggestions))
+	}
+	for _, suggestion := range suggestions {
+		if suggestion.Title == "Fix architecture violation in 'critical_last'" {
+			return
+		}
+	}
+	t.Fatal("critical architecture suggestion was dropped by the category limit")
 }
 
 func TestGenerateSuggestions_SystemArchViolation_FilePathFromMetrics(t *testing.T) {

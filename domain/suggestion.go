@@ -429,12 +429,9 @@ func generateSystemSuggestions(resp *SystemAnalysisResponse) []Suggestion {
 
 	// Architecture violations (own limit, independent of dependency count)
 	if resp.ArchitectureAnalysis != nil {
-		archCount := 0
-		seenSuggestions := make(map[architectureSuggestionKey]bool)
+		architectureSuggestions := make([]Suggestion, 0, len(resp.ArchitectureAnalysis.Violations))
+		seenSuggestions := make(map[architectureSuggestionKey]struct{})
 		for _, v := range resp.ArchitectureAnalysis.Violations {
-			if archCount >= maxSuggestionsPerCategory {
-				break
-			}
 			if v.Suggestion == "" {
 				continue
 			}
@@ -471,14 +468,31 @@ func generateSystemSuggestions(resp *SystemAnalysisResponse) []Suggestion {
 				StartLine:   startLine,
 			}
 			key := newArchitectureSuggestionKey(suggestion)
-			if seenSuggestions[key] {
+			if _, seen := seenSuggestions[key]; seen {
 				continue
 			}
-			seenSuggestions[key] = true
+			seenSuggestions[key] = struct{}{}
 
-			suggestions = append(suggestions, suggestion)
-			archCount++
+			architectureSuggestions = append(architectureSuggestions, suggestion)
 		}
+
+		// Apply the category cap only after generation and deduplication. Severity
+		// takes precedence for admission to the capped set so a critical finding
+		// is never discarded merely because it requires more effort than an
+		// earlier warning. GenerateSuggestions applies the normal presentation
+		// ordering to the retained suggestions afterward.
+		sort.SliceStable(architectureSuggestions, func(i, j int) bool {
+			iSeverity := suggestionSeverityPriority(architectureSuggestions[i].Severity)
+			jSeverity := suggestionSeverityPriority(architectureSuggestions[j].Severity)
+			if iSeverity != jSeverity {
+				return iSeverity < jSeverity
+			}
+			return suggestionPriority(architectureSuggestions[i]) < suggestionPriority(architectureSuggestions[j])
+		})
+		if len(architectureSuggestions) > maxSuggestionsPerCategory {
+			architectureSuggestions = architectureSuggestions[:maxSuggestionsPerCategory]
+		}
+		suggestions = append(suggestions, architectureSuggestions...)
 	}
 
 	return suggestions
@@ -551,6 +565,17 @@ func suggestionPriority(s Suggestion) int {
 		return 6 + effortWeight
 	}
 	return sevWeight*2 + effortWeight
+}
+
+func suggestionSeverityPriority(severity SuggestionSeverity) int {
+	switch severity {
+	case SuggestionSeverityCritical:
+		return 0
+	case SuggestionSeverityWarning:
+		return 1
+	default:
+		return 2
+	}
 }
 
 // Helper functions
