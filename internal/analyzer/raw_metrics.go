@@ -365,3 +365,31 @@ func isDocstringNode(node *parser.Node, docstringLines map[int]bool) bool {
 func isLogicalSeparator(node *parser.Node) bool {
 	return node != nil && string(node.Type) == ";"
 }
+
+// CalculateFunctionSLOC computes SLOC for a function's line range within a file.
+// startLine and endLine are 1-indexed, inclusive.
+func CalculateFunctionSLOC(content []byte, startLine, endLine int) int {
+	if len(content) == 0 || startLine <= 0 || endLine <= 0 || startLine > endLine {
+		return 0
+	}
+
+	lines := splitRawLines(content)
+	if startLine > len(lines) {
+		return 0
+	}
+	if endLine > len(lines) {
+		endLine = len(lines)
+	}
+
+	sloc := 0
+	state := rawMetricsState{moduleDocstringReady: true}
+	docstringLines := make(map[int]bool, 1)
+
+	for i := startLine - 1; i < endLine; i++ {
+		result := &RawMetricsResult{}
+		state.classifyLine(lines[i], i, docstringLines, result)
+		sloc += result.SLOC
+	}
+
+	return sloc
+}

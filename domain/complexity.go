@@ -70,6 +70,10 @@ type ComplexityRequest struct {
 	CognitiveComplexityThreshold int
 	NestingDepthThreshold        int
 
+	// Function SLOC thresholds
+	FunctionSLOCWarnThreshold     int
+	FunctionSLOCCriticalThreshold int
+
 	// Analysis toggles loaded from configuration when present.
 	// Nil means "use the default enabled behavior".
 	Enabled         *bool
@@ -104,6 +108,10 @@ type ComplexityMetrics struct {
 	LoopStatements    int
 	ExceptionHandlers int
 	SwitchCases       int
+
+	// SLOC is the source lines of code within this function's line range.
+	// Computed using the same line-classification logic as raw_metrics.
+	SLOC int
 }
 
 // FunctionComplexity represents complexity analysis result for a single function
