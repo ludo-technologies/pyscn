@@ -231,10 +231,11 @@ func (s *CBOServiceImpl) convertCBOResults(cboResults []*analyzer.CBOResult) []d
 
 	for _, cboResult := range cboResults {
 		class := domain.ClassCoupling{
-			Name:      cboResult.ClassName,
-			FilePath:  cboResult.FilePath,
-			StartLine: cboResult.StartLine,
-			EndLine:   cboResult.EndLine,
+			Name:                   cboResult.ClassName,
+			FilePath:               cboResult.FilePath,
+			StartLine:              cboResult.StartLine,
+			EndLine:                cboResult.EndLine,
+			CouplingBetweenObjects: cboResult.CouplingCount,
 			Metrics: domain.CBOMetrics{
 				CouplingCount:               cboResult.CouplingCount,
 				InheritanceDependencies:     cboResult.InheritanceDependencies,

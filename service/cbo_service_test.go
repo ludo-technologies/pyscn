@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -278,6 +279,20 @@ func TestCBOService_AnalyzeFile(t *testing.T) {
 		assert.NotNil(t, response)
 		assert.Equal(t, 1, response.Summary.FilesAnalyzed)
 	})
+}
+
+func TestCBOService_ConvertCBOResultsExposesTopLevelCBO(t *testing.T) {
+	service := NewCBOService()
+	classes := service.convertCBOResults([]*analyzer.CBOResult{
+		{
+			ClassName:     "Example",
+			CouplingCount: 4,
+		},
+	})
+
+	require.Len(t, classes, 1)
+	assert.Equal(t, 4, classes[0].CouplingBetweenObjects)
+	assert.Equal(t, classes[0].Metrics.CouplingCount, classes[0].CouplingBetweenObjects)
 }
 
 func TestCBOService_FilterClasses(t *testing.T) {

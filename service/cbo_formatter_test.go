@@ -16,9 +16,10 @@ func createTestCBOResponse() *domain.CBOResponse {
 	return &domain.CBOResponse{
 		Classes: []domain.ClassCoupling{
 			{
-				Name:      "MyClass",
-				FilePath:  "test.py",
-				StartLine: 10,
+				Name:                   "MyClass",
+				FilePath:               "test.py",
+				StartLine:              10,
+				CouplingBetweenObjects: 5,
 				Metrics: domain.CBOMetrics{
 					CouplingCount:    5,
 					DependentClasses: []string{"ClassA", "ClassB", "ClassC"},
@@ -116,6 +117,7 @@ func TestCBOFormatter_Format_JSON(t *testing.T) {
 	assert.Equal(t, response.Summary.TotalClasses, decoded.Summary.TotalClasses)
 	assert.Equal(t, response.Summary.AverageCBO, decoded.Summary.AverageCBO)
 	assert.Len(t, decoded.Classes, 2)
+	assert.Equal(t, 5, decoded.Classes[0].CouplingBetweenObjects)
 }
 
 func TestCBOFormatter_Format_YAML(t *testing.T) {

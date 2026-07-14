@@ -66,7 +66,8 @@ type ClassCoupling struct {
 	EndLine   int
 
 	// CBO metrics
-	Metrics CBOMetrics
+	CouplingBetweenObjects int
+	Metrics                CBOMetrics
 
 	// Risk assessment
 	RiskLevel RiskLevel
