@@ -211,17 +211,12 @@ func traverseForCognitive(node *parser.Node, nestingLevel int, result *Cognitive
 		return
 
 	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
-		// Nested function definition: increases nesting (no base increment)
-		for _, bodyNode := range node.Body {
-			traverseForCognitive(bodyNode, nestingLevel+1, result)
-		}
+		// Nested function/class definition is a scope boundary.
+		// Control flow inside nested scopes is computed independently
+		// and must not be aggregated into the parent scope's score.
 		return
 
 	case parser.NodeClassDef:
-		// Nested class definition: increases nesting (no base increment)
-		for _, bodyNode := range node.Body {
-			traverseForCognitive(bodyNode, nestingLevel+1, result)
-		}
 		return
 	}
 
