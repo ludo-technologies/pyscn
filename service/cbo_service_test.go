@@ -229,9 +229,9 @@ class Service:
 
 	contract, ok := classes["Contract"]
 	require.True(t, ok)
-	assert.Equal(t, 1, contract.Metrics.CouplingCount)
-	assert.Equal(t, 1, contract.Metrics.TypeHintDependencies)
-	assert.Equal(t, []string{"Dependency"}, contract.Metrics.DependentClasses)
+	assert.Equal(t, 0, contract.Metrics.CouplingCount)
+	assert.Equal(t, 0, contract.Metrics.TypeHintDependencies)
+	assert.Empty(t, contract.Metrics.DependentClasses)
 	assert.Equal(t, []string{"Protocol"}, contract.BaseClasses)
 
 	abstractBase, ok := classes["AbstractBase"]
@@ -248,9 +248,9 @@ class Service:
 
 	service, ok := classes["Service"]
 	require.True(t, ok)
-	assert.Equal(t, 1, service.Metrics.CouplingCount)
-	assert.Equal(t, 1, service.Metrics.TypeHintDependencies)
-	assert.Equal(t, []string{"Dependency"}, service.Metrics.DependentClasses)
+	assert.Equal(t, 0, service.Metrics.CouplingCount)
+	assert.Equal(t, 0, service.Metrics.TypeHintDependencies)
+	assert.Empty(t, service.Metrics.DependentClasses)
 }
 
 func TestCBOService_AnalyzeFile(t *testing.T) {

@@ -150,6 +150,10 @@ func (a *CBOAnalyzer) AnalyzeClasses(ast *parser.Node, filePath string) ([]*CBOR
 
 	// First pass: collect all imports and class definitions
 	classes := a.collectClasses(ast)
+	// Module-scope class names only. collectClasses is last-wins by name and
+	// can be overwritten by a nested class of the same name, so peer filtering
+	// must not consult that map for "is this a top-level peer?" (see #637).
+	topLevelPeers := a.collectTopLevelClassNames(ast)
 	imports := a.collectImports(ast)
 
 	// Import aliases are file-local. Reset the maps on each AST so one analyzed file
@@ -162,7 +166,7 @@ func (a *CBOAnalyzer) AnalyzeClasses(ast *parser.Node, filePath string) ([]*CBOR
 
 	// Second pass: analyze coupling for each class
 	for _, classNode := range classes {
-		result, err := a.analyzeClass(classNode, filePath, classes)
+		result, err := a.analyzeClass(classNode, filePath, classes, topLevelPeers)
 		if err != nil {
 			// Log warning but continue with other classes
 			continue
@@ -178,7 +182,7 @@ func (a *CBOAnalyzer) AnalyzeClasses(ast *parser.Node, filePath string) ([]*CBOR
 }
 
 // analyzeClass analyzes CBO for a single class
-func (a *CBOAnalyzer) analyzeClass(classNode *parser.Node, filePath string, allClasses map[string]*parser.Node) (*CBOResult, error) {
+func (a *CBOAnalyzer) analyzeClass(classNode *parser.Node, filePath string, allClasses map[string]*parser.Node, topLevelPeers map[string]bool) (*CBOResult, error) {
 	if classNode.Type != parser.NodeClassDef {
 		return nil, fmt.Errorf("node is not a class definition")
 	}
@@ -210,7 +214,13 @@ func (a *CBOAnalyzer) analyzeClass(classNode *parser.Node, filePath string, allC
 	// 3. Analyze instantiation and attribute access
 	a.analyzeInstantiationAndAccess(classNode, dependencies, result, allClasses, resolver)
 
-	// 4. Calculate final metrics
+	// 4. Remove same-file top-level peer classes: a class defined at module
+	// scope in the same file is an internal implementation detail, not
+	// external coupling (see #637). Nested classes remain handled by the
+	// scope-aware nestedClassResolver above.
+	a.removeSameFileTopLevelPeers(dependencies, result.ClassName, topLevelPeers)
+
+	// 5. Calculate final metrics
 	result.CouplingCount = len(dependencies.all)
 	result.DependentClasses = a.mapToSlice(dependencies.all)
 	result.InheritanceDependencies = len(dependencies.inheritance)
@@ -220,10 +230,31 @@ func (a *CBOAnalyzer) analyzeClass(classNode *parser.Node, filePath string, allC
 	result.ImportDependencies = len(dependencies.imports)
 	result.RiskLevel = a.assessRiskLevel(result.CouplingCount)
 
-	// 5. Check if class is abstract
+	// 6. Check if class is abstract
 	result.IsAbstract = a.isAbstractClass(classNode)
 
 	return result, nil
+}
+
+// removeSameFileTopLevelPeers drops dependencies that name a class defined at
+// module scope in the same file. Local definitions shadow imports of the same
+// name, so a top-level peer is always treated as internal even when an import
+// also binds that identifier.
+func (a *CBOAnalyzer) removeSameFileTopLevelPeers(dependencies *cboDependencies, ownerClass string, topLevelPeers map[string]bool) {
+	if dependencies == nil || len(topLevelPeers) == 0 {
+		return
+	}
+	for depName := range dependencies.all {
+		if depName == ownerClass || !topLevelPeers[depName] {
+			continue
+		}
+		delete(dependencies.all, depName)
+		delete(dependencies.inheritance, depName)
+		delete(dependencies.typeHints, depName)
+		delete(dependencies.instantiations, depName)
+		delete(dependencies.attributeAccesses, depName)
+		delete(dependencies.imports, depName)
+	}
 }
 
 // analyzeInheritance analyzes inheritance-based coupling
@@ -463,6 +494,22 @@ func (a *CBOAnalyzer) collectClasses(ast *parser.Node) map[string]*parser.Node {
 	})
 
 	return classes
+}
+
+// collectTopLevelClassNames returns names of classes defined at module scope.
+// Nested classes (inside functions or other classes) are omitted. Used to
+// exclude same-file peer coupling without consulting collectClasses, which
+// can lose a top-level definition when a nested class reuses its name.
+func (a *CBOAnalyzer) collectTopLevelClassNames(ast *parser.Node) map[string]bool {
+	names := make(map[string]bool)
+	a.walkNode(ast, func(node *parser.Node) bool {
+		if node.Type == parser.NodeClassDef && node.Name != "" &&
+			node.Parent != nil && node.Parent.Type == parser.NodeModule {
+			names[node.Name] = true
+		}
+		return true
+	})
+	return names
 }
 
 // nestedClassDefs maps each class name to the class-definition nodes for

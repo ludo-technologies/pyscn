@@ -35,6 +35,12 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 			mcp.Description("Maximum allowed complexity, 0 = no limit (default: 0)")),
 		mcp.WithBoolean("show_details",
 			mcp.Description("Include detailed metrics (default: true)")),
+		mcp.WithString("output_mode",
+			mcp.Enum("summary", "detailed", "full"),
+			mcp.Description("Response detail level (default: summary)")),
+		mcp.WithInteger("max_results",
+			mcp.Min(0),
+			mcp.Description("Maximum findings in summary or detailed output; 0 means unlimited (default: 0)")),
 	), handlers.HandleCheckComplexity)
 
 	// Tool 3: detect_clones - Code clone detection
@@ -49,6 +55,12 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 			mcp.Description("Minimum lines to consider as clone (default: 5)")),
 		mcp.WithBoolean("group_clones",
 			mcp.Description("Group related clones together (default: true)")),
+		mcp.WithString("output_mode",
+			mcp.Enum("summary", "detailed", "full"),
+			mcp.Description("Response detail level (default: summary)")),
+		mcp.WithInteger("max_results",
+			mcp.Min(0),
+			mcp.Description("Maximum findings in summary or detailed output; 0 means unlimited (default: 0)")),
 	), handlers.HandleDetectClones)
 
 	// Tool 4: check_coupling - Class coupling analysis
@@ -57,6 +69,15 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 		mcp.WithString("path",
 			mcp.Required(),
 			mcp.Description("Path to Python code to analyze")),
+		mcp.WithInteger("min_cbo",
+			mcp.Min(0),
+			mcp.Description("Minimum CBO for high-coupling findings (default: 10)")),
+		mcp.WithString("output_mode",
+			mcp.Enum("summary", "detailed", "full"),
+			mcp.Description("Response detail level (default: summary)")),
+		mcp.WithInteger("max_results",
+			mcp.Min(0),
+			mcp.Description("Maximum findings in summary or detailed output; 0 means unlimited (default: 0)")),
 	), handlers.HandleCheckCoupling)
 
 	// Tool 5: check_cohesion - Class cohesion (LCOM4) analysis
@@ -65,6 +86,12 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 		mcp.WithString("path",
 			mcp.Required(),
 			mcp.Description("Path to Python code to analyze")),
+		mcp.WithString("output_mode",
+			mcp.Enum("summary", "detailed", "full"),
+			mcp.Description("Response detail level (default: summary)")),
+		mcp.WithInteger("max_results",
+			mcp.Min(0),
+			mcp.Description("Maximum findings in summary or detailed output; 0 means unlimited (default: 0)")),
 	), handlers.HandleCheckCohesion)
 
 	// Tool 6: find_dead_code - Dead code detection
@@ -75,6 +102,12 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 			mcp.Description("Path to Python code to analyze")),
 		mcp.WithString("min_severity",
 			mcp.Description("Minimum severity: info, warning, error (default: warning)")),
+		mcp.WithString("output_mode",
+			mcp.Enum("summary", "detailed", "full"),
+			mcp.Description("Response detail level (default: summary)")),
+		mcp.WithInteger("max_results",
+			mcp.Min(0),
+			mcp.Description("Maximum findings in summary or detailed output; 0 means unlimited (default: 0)")),
 	), handlers.HandleFindDeadCode)
 
 	// Tool 7: get_health_score - Overall code health score
