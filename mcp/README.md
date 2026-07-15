@@ -143,29 +143,30 @@ Add to Cursor settings (Settings → Features → Model Context Protocol):
 
 ### Configuration File Priority
 
-pyscn-mcp searches for configuration files in the following order:
+pyscn-mcp uses the TOML-only configuration loader. YAML, JSON, XDG, and
+home-directory-specific configuration locations are not searched.
 
-1. **Project configuration** - Searches from analysis target directory upward:
-   - `pyscn.yaml`
-   - `pyscn.yml`
-   - `.pyscn.toml`
-   - `.pyscn.yml`
-   - `pyscn.json`
-   - `.pyscn.json`
+1. **`PYSCN_CONFIG`** - When set, this explicit file path is loaded at server
+   startup. A load failure is logged and the server registers its tools with a
+   built-in-default configuration snapshot; it does not continue searching
+   other locations. The explicit path is still retained, however, so tools
+   that load configuration while handling a request (including
+   `analyze_code`) report that configuration error instead of silently
+   analyzing with defaults. Fix or unset an invalid `PYSCN_CONFIG` value.
+2. **Server working directory** - When `PYSCN_CONFIG` is unset, the server
+   searches upward from its current working directory. A `.pyscn.toml` file
+   takes priority over `pyproject.toml` with a `[tool.pyscn]` section.
+3. **Per-tool loading** - Configuration is not consumed uniformly by every
+   tool. `analyze_code` resolves project analysis settings from the target path
+   upward when no explicit path is set. `check_complexity`, `detect_clones`,
+   `check_cohesion`, and `find_dead_code` pass the configured path to their
+   use-case loaders and may reload it for each request. `check_coupling` uses
+   selected values from the startup snapshot together with domain defaults; it
+   does not construct a CBO configuration loader.
+4. **Built-in defaults** - Used when no supported configuration is found.
 
-2. **Current directory** - Same file names as above
-
-3. **XDG config directory** - `$XDG_CONFIG_HOME/pyscn/`
-
-4. **User config directory** - `~/.config/pyscn/`
-
-5. **Home directory** - `~/`
-
-6. **Environment variable** - `PYSCN_CONFIG` (if set and file exists)
-
-7. **Default configuration** - Built-in defaults
-
-**Best Practice**: Place `.pyscn.toml` in your project root for project-specific settings.
+**Best Practice**: Set `PYSCN_CONFIG` when the MCP server may start outside the
+project directory. Otherwise, place `.pyscn.toml` in the project root.
 
 ## Testing
 
