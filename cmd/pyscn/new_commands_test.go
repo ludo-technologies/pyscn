@@ -746,6 +746,77 @@ constructor_param_threshold = 10
 	}
 }
 
+func TestCheckFailsOnMalformedDiscoveredPyscnConfig(t *testing.T) {
+	tempDir := t.TempDir()
+	projectDir := filepath.Join(tempDir, "project")
+	subDir := filepath.Join(projectDir, "pkg")
+	if err := os.MkdirAll(subDir, 0o755); err != nil {
+		t.Fatalf("failed to create test directories: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, ".pyscn.toml"), []byte("[analysis\nrecursive = false\n"), 0o644); err != nil {
+		t.Fatalf("failed to write malformed config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(subDir, "sample.py"), []byte("def sample():\n    return 1\n"), 0o644); err != nil {
+		t.Fatalf("failed to write source file: %v", err)
+	}
+
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current directory: %v", err)
+	}
+	defer func() {
+		if chdirErr := os.Chdir(originalDir); chdirErr != nil {
+			t.Errorf("failed to restore current directory: %v", chdirErr)
+		}
+	}()
+	if err := os.Chdir(subDir); err != nil {
+		t.Fatalf("failed to change directory: %v", err)
+	}
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	cobraCmd.SetArgs([]string{"--select", "complexity", "."})
+
+	err = cobraCmd.Execute()
+	if err == nil {
+		t.Fatal("expected malformed discovered .pyscn.toml to fail the check")
+	}
+	if !strings.Contains(err.Error(), "failed to load configuration") {
+		t.Fatalf("expected configuration load error, got: %v", err)
+	}
+}
+
+func TestCheckIgnoresMalformedPyprojectWithoutPyscnSection(t *testing.T) {
+	tempDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(tempDir, "pyproject.toml"), []byte("[project\nname = 'broken'\n"), 0o644); err != nil {
+		t.Fatalf("failed to write unrelated pyproject.toml: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "sample.py"), []byte("def sample():\n    return 1\n"), 0o644); err != nil {
+		t.Fatalf("failed to write source file: %v", err)
+	}
+
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current directory: %v", err)
+	}
+	defer func() {
+		if chdirErr := os.Chdir(originalDir); chdirErr != nil {
+			t.Errorf("failed to restore current directory: %v", chdirErr)
+		}
+	}()
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("failed to change directory: %v", err)
+	}
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	cobraCmd.SetArgs([]string{"--select", "complexity", "."})
+
+	if err := cobraCmd.Execute(); err != nil {
+		t.Fatalf("unrelated pyproject.toml should not affect check: %v", err)
+	}
+}
+
 func TestCountDIAntipatternIssuesFailsOnAnalysisErrors(t *testing.T) {
 	checkCmd := NewCheckCommand()
 	response := &domain.DIAntipatternResponse{

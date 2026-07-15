@@ -8,6 +8,7 @@ import (
 
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
+	internalconfig "github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/service"
 	"github.com/spf13/cobra"
 )
@@ -128,6 +129,20 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		args = []string{"."}
 	}
 
+	// Resolve the current configuration discovery result once and load it
+	// explicitly. This preserves check's existing cwd-based discovery while
+	// ensuring a discovered but malformed config fails the quality gate instead
+	// of being silently replaced with defaults by individual loaders.
+	originalConfigFile := c.configFile
+	resolvedConfigFile, err := resolveCheckConfig(c.configFile)
+	if err != nil {
+		return err
+	}
+	c.configFile = resolvedConfigFile
+	defer func() {
+		c.configFile = originalConfigFile
+	}()
+
 	// Validate selected analyses before creating config
 	if len(c.selectAnalyses) > 0 {
 		if err := c.validateSelectedAnalyses(); err != nil {
@@ -246,6 +261,23 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func resolveCheckConfig(configPath string) (string, error) {
+	loader := internalconfig.NewTomlConfigLoader()
+	resolvedPath, err := loader.ResolveConfigPath(configPath, "")
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve configuration: %w", err)
+	}
+	if resolvedPath == "" {
+		return "", nil
+	}
+
+	if _, err := loader.LoadConfig(resolvedPath); err != nil {
+		return "", fmt.Errorf("failed to load configuration from %s: %w", resolvedPath, err)
+	}
+
+	return resolvedPath, nil
 }
 
 // determineEnabledAnalyses determines which analyses should run based on flags
