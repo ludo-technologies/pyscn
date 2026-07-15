@@ -274,6 +274,8 @@ Field notes:
 - `min_complexity` (optional): Minimum complexity to report (default: `1`)
 - `max_complexity` (optional): Maximum allowed complexity, 0 = no limit (default: `0`)
 - `show_details` (optional): Include detailed metrics (default: `true`)
+- `output_mode` (optional): `"summary"`, `"detailed"`, or `"full"` (default: `"summary"`)
+- `max_results` (optional): Maximum findings in summary or detailed output; `0` means unlimited (default: `0`)
 
 **Example**:
 ```
@@ -311,6 +313,8 @@ Check complexity of functions with complexity > 10 in src/
 - `similarity_threshold` (optional): Minimum similarity 0.0-1.0 (default: `0.8`)
 - `min_lines` (optional): Minimum lines to consider (default: `5`)
 - `group_clones` (optional): Group related clones (default: `true`)
+- `output_mode` (optional): `"summary"`, `"detailed"`, or `"full"` (default: `"summary"`)
+- `max_results` (optional): Maximum findings in summary or detailed output; `0` means unlimited (default: `0`)
 
 **Example**:
 ```
@@ -349,6 +353,9 @@ Find duplicate code with similarity > 0.85 in my project
 
 **Parameters**:
 - `path` (required): Path to Python code
+- `min_cbo` (optional): Minimum CBO for high-coupling findings (default: `10`)
+- `output_mode` (optional): `"summary"`, `"detailed"`, or `"full"` (default: `"summary"`)
+- `max_results` (optional): Maximum findings in summary or detailed output; `0` means unlimited (default: `0`)
 
 **Example**:
 ```
@@ -374,6 +381,15 @@ Check the coupling of classes in src/
 }
 ```
 
+### check_cohesion
+
+**Description**: Analyze class cohesion using LCOM4
+
+**Parameters**:
+- `path` (required): Path to Python code
+- `output_mode` (optional): `"summary"`, `"detailed"`, or `"full"` (default: `"summary"`)
+- `max_results` (optional): Maximum findings in summary or detailed output; `0` means unlimited (default: `0`)
+
 ### find_dead_code
 
 **Description**: Find unreachable code using CFG analysis
@@ -381,6 +397,8 @@ Check the coupling of classes in src/
 **Parameters**:
 - `path` (required): Path to Python code
 - `min_severity` (optional): Minimum severity: `info`, `warning`, `error` (default: `warning`)
+- `output_mode` (optional): `"summary"`, `"detailed"`, or `"full"` (default: `"summary"`)
+- `max_results` (optional): Maximum findings in summary or detailed output; `0` means unlimited (default: `0`)
 
 **Example**:
 ```
