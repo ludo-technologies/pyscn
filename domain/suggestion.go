@@ -429,20 +429,12 @@ func generateSystemSuggestions(resp *SystemAnalysisResponse) []Suggestion {
 
 	// Architecture violations (own limit, independent of dependency count)
 	if resp.ArchitectureAnalysis != nil {
-		archCount := 0
-		seenModules := make(map[string]bool)
+		architectureSuggestions := make([]Suggestion, 0, len(resp.ArchitectureAnalysis.Violations))
+		seenSuggestions := make(map[architectureSuggestionKey]struct{})
 		for _, v := range resp.ArchitectureAnalysis.Violations {
-			if archCount >= maxSuggestionsPerCategory {
-				break
-			}
 			if v.Suggestion == "" {
 				continue
 			}
-			if seenModules[v.Module] {
-				continue
-			}
-			seenModules[v.Module] = true
-
 			sev := mapViolationSeverity(v.Severity)
 			effort := SuggestionEffortModerate
 			if sev == SuggestionSeverityCritical {
@@ -461,20 +453,69 @@ func generateSystemSuggestions(resp *SystemAnalysisResponse) []Suggestion {
 				}
 			}
 
-			suggestions = append(suggestions, Suggestion{
+			description := v.Suggestion
+			if v.Target != "" {
+				description = fmt.Sprintf("%s (target: %s)", description, v.Target)
+			}
+
+			suggestion := Suggestion{
 				Category:    SuggestionCategoryArchitecture,
 				Severity:    sev,
 				Effort:      effort,
 				Title:       fmt.Sprintf("Fix architecture violation in '%s'", v.Module),
-				Description: v.Suggestion,
+				Description: description,
 				FilePath:    filePath,
 				StartLine:   startLine,
-			})
-			archCount++
+			}
+			key := newArchitectureSuggestionKey(suggestion)
+			if _, seen := seenSuggestions[key]; seen {
+				continue
+			}
+			seenSuggestions[key] = struct{}{}
+
+			architectureSuggestions = append(architectureSuggestions, suggestion)
 		}
+
+		// Apply the category cap only after generation and deduplication. Severity
+		// takes precedence for admission to the capped set so a critical finding
+		// is never discarded merely because it requires more effort than an
+		// earlier warning. GenerateSuggestions applies the normal presentation
+		// ordering to the retained suggestions afterward.
+		sort.SliceStable(architectureSuggestions, func(i, j int) bool {
+			iSeverity := suggestionSeverityPriority(architectureSuggestions[i].Severity)
+			jSeverity := suggestionSeverityPriority(architectureSuggestions[j].Severity)
+			if iSeverity != jSeverity {
+				return iSeverity < jSeverity
+			}
+			return suggestionPriority(architectureSuggestions[i]) < suggestionPriority(architectureSuggestions[j])
+		})
+		if len(architectureSuggestions) > maxSuggestionsPerCategory {
+			architectureSuggestions = architectureSuggestions[:maxSuggestionsPerCategory]
+		}
+		suggestions = append(suggestions, architectureSuggestions...)
 	}
 
 	return suggestions
+}
+
+type architectureSuggestionKey struct {
+	severity    SuggestionSeverity
+	effort      SuggestionEffort
+	title       string
+	description string
+	filePath    string
+	startLine   int
+}
+
+func newArchitectureSuggestionKey(s Suggestion) architectureSuggestionKey {
+	return architectureSuggestionKey{
+		severity:    s.Severity,
+		effort:      s.Effort,
+		title:       s.Title,
+		description: s.Description,
+		filePath:    s.FilePath,
+		startLine:   s.StartLine,
+	}
 }
 
 // sortSuggestions sorts suggestions by priority:
@@ -524,6 +565,17 @@ func suggestionPriority(s Suggestion) int {
 		return 6 + effortWeight
 	}
 	return sevWeight*2 + effortWeight
+}
+
+func suggestionSeverityPriority(severity SuggestionSeverity) int {
+	switch severity {
+	case SuggestionSeverityCritical:
+		return 0
+	case SuggestionSeverityWarning:
+		return 1
+	default:
+		return 2
+	}
 }
 
 // Helper functions
