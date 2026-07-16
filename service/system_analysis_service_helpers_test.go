@@ -196,6 +196,10 @@ func TestEvaluateLayerEdge_AutoDetectDoesNotFlagUnknownLayers(t *testing.T) {
 	assert.Nil(t, service.evaluateLayerEdge(rules,
 		"lib.utils", "scripts.tool", "unknown", "unknown"),
 		"unknown→unknown edge must not flag with StrictMode=false")
+
+	assert.Nil(t, service.evaluateLayerEdge(rules,
+		"app.api", "lib.utils", "presentation", "unknown"),
+		"known→unknown edge must not flag with StrictMode=false")
 }
 
 func TestAutoDetectArchitecture_FlatUnderscoreModules(t *testing.T) {
@@ -630,6 +634,14 @@ func TestPyscnConfigToSystemAnalysisRequest_PropagatesLayersWithStrictMode(t *te
 	assert.Equal(t, "api", request.ArchitectureRules.Layers[0].Name)
 }
 
+func TestPyscnConfigToSystemAnalysisRequest_DefaultStrictModeIsNotExplicit(t *testing.T) {
+	loader := NewSystemAnalysisConfigurationLoader()
+
+	request := loader.pyscnConfigToSystemAnalysisRequest(config.DefaultPyscnConfig())
+
+	assert.Nil(t, request.ArchitectureRules)
+}
+
 func TestPyscnConfigToSystemAnalysisRequest_LayersOnlyPreservesDefaultRules(t *testing.T) {
 	loader := NewSystemAnalysisConfigurationLoader()
 
@@ -728,6 +740,19 @@ func TestResolveArchitectureRules_DoesNotMutateOriginal(t *testing.T) {
 	assert.Equal(t, origRulesLen, len(original.Rules), "original Rules must not be mutated")
 	assert.Equal(t, origLayersLen, len(original.Layers), "original Layers must not be mutated")
 	assert.NotSame(t, original, resolved, "resolved should be a new object")
+}
+
+func TestResolveArchitectureRules_PreservesExplicitStrictModeDuringAutoDetection(t *testing.T) {
+	svc := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+	graph.AddModule("app.api.routes", "/project/app/api/routes.py")
+
+	resolved := svc.resolveArchitectureRules(graph, &domain.ArchitectureRules{StrictMode: true})
+
+	require.NotNil(t, resolved)
+	assert.True(t, resolved.StrictMode)
+	require.NotEmpty(t, resolved.Layers)
+	require.NotEmpty(t, resolved.Rules)
 }
 
 func TestMergeLayerRules_UserOverridesDefaultForSameFrom(t *testing.T) {

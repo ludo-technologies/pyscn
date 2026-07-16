@@ -1023,7 +1023,7 @@ func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.Depen
 // in missing layers or rules from auto-detection / embedded defaults.
 func (s *SystemAnalysisServiceImpl) resolveArchitectureRules(graph *analyzer.DependencyGraph, orig *domain.ArchitectureRules) *domain.ArchitectureRules {
 	// No user config at all — fully auto-detect
-	if orig == nil || (len(orig.Layers) == 0 && len(orig.Rules) == 0 && orig.Style == "") {
+	if orig == nil {
 		return s.autoDetectArchitecture(graph)
 	}
 
@@ -1036,6 +1036,16 @@ func (s *SystemAnalysisServiceImpl) resolveArchitectureRules(graph *analyzer.Dep
 		StrictMode:        orig.StrictMode,
 		AllowedPatterns:   orig.AllowedPatterns,
 		ForbiddenPatterns: orig.ForbiddenPatterns,
+	}
+
+	// Settings such as strict_mode can be configured without defining layers or
+	// rules. Auto-detect the missing structure while preserving those settings.
+	if len(resolved.Layers) == 0 && len(resolved.Rules) == 0 && resolved.Style == "" {
+		if autoDetected := s.autoDetectArchitecture(graph); autoDetected != nil {
+			resolved.Layers = autoDetected.Layers
+			resolved.Rules = autoDetected.Rules
+		}
+		return resolved
 	}
 
 	// A style preset is selected — apply its layers/rules. Explicit user-defined
@@ -1227,16 +1237,19 @@ func (s *SystemAnalysisServiceImpl) extractPackagePrefixes(modules []string) []s
 
 // evaluateLayerEdge evaluates a single dependency edge against rules and returns a violation if any.
 func (s *SystemAnalysisServiceImpl) evaluateLayerEdge(rules *domain.ArchitectureRules, fromModule, toModule, fromLayer, toLayer string) *domain.ArchitectureViolation {
-	if (fromLayer == "unknown" || toLayer == "unknown") && rules.StrictMode {
-		return &domain.ArchitectureViolation{
-			Type:        domain.ViolationTypeLayer,
-			Severity:    domain.ViolationSeverityWarning,
-			Module:      fromModule,
-			Target:      toModule,
-			Rule:        "strict_mode",
-			Description: "Dependency involves unknown layer(s)",
-			Suggestion:  "Assign modules to defined layers or relax strict_mode",
+	if fromLayer == "unknown" || toLayer == "unknown" {
+		if rules.StrictMode {
+			return &domain.ArchitectureViolation{
+				Type:        domain.ViolationTypeLayer,
+				Severity:    domain.ViolationSeverityWarning,
+				Module:      fromModule,
+				Target:      toModule,
+				Rule:        "strict_mode",
+				Description: "Dependency involves unknown layer(s)",
+				Suggestion:  "Assign modules to defined layers or relax strict_mode",
+			}
 		}
+		return nil
 	}
 	// Find rule for fromLayer
 	var layerRule *domain.LayerRule

@@ -416,8 +416,9 @@ func DefaultPyscnConfig() *PyscnConfig {
 		ArchitectureCustomPatterns:                  []string{},
 		ArchitectureAllowedPatterns:                 []string{},
 		ArchitectureForbiddenPatterns:               []string{},
-		ArchitectureStrictMode:                      domain.BoolPtr(true),
-		ArchitectureFailOnViolations:                domain.BoolPtr(false),
+		// Keep nil so consumers can distinguish an omitted strict_mode from an explicit value.
+		ArchitectureStrictMode:       nil,
+		ArchitectureFailOnViolations: domain.BoolPtr(false),
 
 		// SystemAnalysis defaults (from [system_analysis] section)
 		SystemAnalysisEnabled:               domain.BoolPtr(false), // Disabled by default - opt-in
