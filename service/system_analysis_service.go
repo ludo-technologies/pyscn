@@ -1014,7 +1014,7 @@ func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.Depen
 	return &domain.ArchitectureRules{
 		Layers:     layers,
 		Rules:      rules,
-		StrictMode: defaultConfig.Architecture.StrictMode,
+		StrictMode: false,
 	}
 }
 
