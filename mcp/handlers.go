@@ -236,8 +236,8 @@ func (h *HandlerSet) HandleCheckComplexity(ctx context.Context, request mcp.Call
 		Paths:           []string{path},
 		MinComplexity:   minComplexity,
 		MaxComplexity:   maxComplexity,
-		ShowDetails:     showDetails,
-		Recursive:       cfg == nil || cfg.Analysis.Recursive,
+		ShowDetails:     domain.BoolPtr(showDetails),
+		Recursive:       domain.BoolPtr(cfg == nil || cfg.Analysis.Recursive),
 		OutputFormat:    domain.OutputFormatJSON,
 		OutputWriter:    io.Discard,
 		LowThreshold:    lowThreshold,
@@ -605,14 +605,14 @@ func (h *HandlerSet) HandleFindDeadCode(ctx context.Context, request mcp.CallToo
 	req := domain.DeadCodeRequest{
 		Paths:        []string{path},
 		MinSeverity:  minSeverity,
-		Recursive:    true,
+		Recursive:    domain.BoolPtr(true),
 		OutputFormat: domain.OutputFormatJSON,
 		OutputWriter: io.Discard,
 		SortBy:       domain.DeadCodeSortBySeverity,
 		ConfigPath:   h.deps.ConfigPath(),
 	}
 	if cfg != nil {
-		req.Recursive = cfg.Analysis.Recursive
+		req.Recursive = domain.BoolPtr(cfg.Analysis.Recursive)
 		if len(cfg.Analysis.IncludePatterns) > 0 {
 			req.IncludePatterns = cfg.Analysis.IncludePatterns
 		}

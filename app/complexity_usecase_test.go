@@ -94,7 +94,7 @@ func createValidComplexityRequest() domain.ComplexityRequest {
 		MaxComplexity:   10,
 		LowThreshold:    3,
 		MediumThreshold: 7,
-		Recursive:       true,
+		Recursive:       domain.BoolPtr(true),
 		IncludePatterns: []string{"**/*.py"},
 		ExcludePatterns: []string{},
 	}
@@ -250,7 +250,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 				SortBy:          domain.SortByComplexity,
 				LowThreshold:    3,
 				MediumThreshold: 7,
-				Recursive:       true,
+				Recursive:       domain.BoolPtr(true),
 				IncludePatterns: []string{"**/*.py"},
 				ExcludePatterns: []string{},
 			},
@@ -272,7 +272,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 				SortBy:          domain.SortByComplexity,
 				LowThreshold:    3,
 				MediumThreshold: 7,
-				Recursive:       true,
+				Recursive:       domain.BoolPtr(true),
 				IncludePatterns: []string{"**/*.py"},
 				ExcludePatterns: []string{},
 			},
@@ -374,6 +374,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 func TestComplexityUseCase_analyzeResolvedRequest(t *testing.T) {
 	useCase, service, fileReader, _, configLoader := setupComplexityUseCaseMocks()
 	req := createValidComplexityRequest()
+	req.Recursive = nil
 	response := createMockComplexityResponse()
 
 	fileReader.On("FileExists", "/test/file.py").Return(true, nil)
@@ -387,6 +388,12 @@ func TestComplexityUseCase_analyzeResolvedRequest(t *testing.T) {
 	if assert.NotNil(t, result.Request) {
 		assert.Equal(t, req.Paths, result.Request.Paths)
 		assert.Equal(t, req.MinComplexity, result.Request.MinComplexity)
+		if assert.NotNil(t, result.Request.ShowDetails) {
+			assert.False(t, *result.Request.ShowDetails)
+		}
+		if assert.NotNil(t, result.Request.Recursive) {
+			assert.True(t, *result.Request.Recursive)
+		}
 	}
 	configLoader.AssertNotCalled(t, "LoadDefaultConfig")
 	configLoader.AssertNotCalled(t, "LoadConfig", mock.Anything)
