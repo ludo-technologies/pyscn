@@ -29,6 +29,9 @@ func TestAnalyzeConfigurationLoader_LoadAnalyzeExecutionConfig(t *testing.T) {
 		if !cfg.ComplexityReportUnchanged {
 			t.Error("expected report_unchanged enabled by default")
 		}
+		if cfg.ShowDetails {
+			t.Error("expected show_details disabled by default")
+		}
 		if !cfg.DeadCodeEnabled {
 			t.Error("expected dead code enabled by default")
 		}
@@ -89,6 +92,7 @@ enabled = true
 
 [output]
 min_complexity = 9
+show_details = true
 
 [clones]
 lsh_enabled = "true"
@@ -132,6 +136,9 @@ lsh_auto_threshold = 123
 		}
 		if cfg.ComplexityMinComplexity != 9 {
 			t.Errorf("expected min complexity 9, got %d", cfg.ComplexityMinComplexity)
+		}
+		if !cfg.ShowDetails {
+			t.Error("expected show_details true")
 		}
 		if cfg.DeadCodeEnabled {
 			t.Error("expected dead code disabled")

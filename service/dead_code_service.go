@@ -300,6 +300,9 @@ func (s *DeadCodeServiceImpl) convertToFunctionDeadCode(result *analyzer.DeadCod
 	var findings []domain.DeadCodeFinding
 
 	for _, analyzerFinding := range result.Findings {
+		if !shouldIncludeDeadCodeFinding(analyzerFinding.Reason, req) {
+			continue
+		}
 		finding := domain.DeadCodeFinding{
 			Location: domain.DeadCodeLocation{
 				FilePath:  analyzerFinding.FilePath,
@@ -330,6 +333,23 @@ func (s *DeadCodeServiceImpl) convertToFunctionDeadCode(result *analyzer.DeadCod
 	functionResult.CalculateSeverityCounts()
 
 	return functionResult
+}
+
+func shouldIncludeDeadCodeFinding(reason analyzer.DeadCodeReason, req domain.DeadCodeRequest) bool {
+	switch reason {
+	case analyzer.ReasonUnreachableAfterReturn:
+		return domain.BoolValue(req.DetectAfterReturn, true)
+	case analyzer.ReasonUnreachableAfterBreak:
+		return domain.BoolValue(req.DetectAfterBreak, true)
+	case analyzer.ReasonUnreachableAfterContinue:
+		return domain.BoolValue(req.DetectAfterContinue, true)
+	case analyzer.ReasonUnreachableAfterRaise:
+		return domain.BoolValue(req.DetectAfterRaise, true)
+	case analyzer.ReasonUnreachableBranch:
+		return domain.BoolValue(req.DetectUnreachableBranches, true)
+	default:
+		return true
+	}
 }
 
 // convertSeverity converts analyzer severity to domain severity

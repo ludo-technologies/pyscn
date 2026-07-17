@@ -54,6 +54,15 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 		}
 	}
 
+	var recursiveOverride *bool
+	if rawRecursive, exists := args["recursive"]; exists {
+		recursive, ok := rawRecursive.(bool)
+		if !ok {
+			return mcp.NewToolResultError("recursive parameter must be a boolean"), nil
+		}
+		recursiveOverride = &recursive
+	}
+
 	// Create config for analyze use case
 	config := app.ApplyAnalyzeSelection(app.AnalyzeUseCaseConfig{
 		MinComplexity:   1,
@@ -88,7 +97,9 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 	paths := []string{path}
 
 	// Execute analysis
-	result, err := analyzeUC.Execute(ctx, config, paths)
+	result, err := analyzeUC.ExecuteWithOverrides(ctx, config, paths, app.AnalyzeRequestOverrides{
+		Recursive: recursiveOverride,
+	})
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("analysis failed: %v", err)), nil
 	}
@@ -225,8 +236,8 @@ func (h *HandlerSet) HandleCheckComplexity(ctx context.Context, request mcp.Call
 		Paths:           []string{path},
 		MinComplexity:   minComplexity,
 		MaxComplexity:   maxComplexity,
-		ShowDetails:     showDetails,
-		Recursive:       cfg == nil || cfg.Analysis.Recursive,
+		ShowDetails:     domain.BoolPtr(showDetails),
+		Recursive:       domain.BoolPtr(cfg == nil || cfg.Analysis.Recursive),
 		OutputFormat:    domain.OutputFormatJSON,
 		OutputWriter:    io.Discard,
 		LowThreshold:    lowThreshold,
@@ -594,14 +605,14 @@ func (h *HandlerSet) HandleFindDeadCode(ctx context.Context, request mcp.CallToo
 	req := domain.DeadCodeRequest{
 		Paths:        []string{path},
 		MinSeverity:  minSeverity,
-		Recursive:    true,
+		Recursive:    domain.BoolPtr(true),
 		OutputFormat: domain.OutputFormatJSON,
 		OutputWriter: io.Discard,
 		SortBy:       domain.DeadCodeSortBySeverity,
 		ConfigPath:   h.deps.ConfigPath(),
 	}
 	if cfg != nil {
-		req.Recursive = cfg.Analysis.Recursive
+		req.Recursive = domain.BoolPtr(cfg.Analysis.Recursive)
 		if len(cfg.Analysis.IncludePatterns) > 0 {
 			req.IncludePatterns = cfg.Analysis.IncludePatterns
 		}

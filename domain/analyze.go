@@ -20,6 +20,7 @@ type AnalyzeExecutionConfig struct {
 	IncludePatterns []string
 	ExcludePatterns []string
 	Recursive       bool
+	ShowDetails     bool
 
 	ComplexityEnabled            bool
 	ComplexityReportUnchanged    bool

@@ -380,7 +380,7 @@ enabled = false
 	})
 }
 
-func TestAnalyzeUseCase_buildCloneTaskRequest_ProducesSparseRequest(t *testing.T) {
+func TestAnalyzeUseCase_buildCloneTaskRequest_PropagatesExecutionConfig(t *testing.T) {
 	useCase := &AnalyzeUseCase{}
 	config := AnalyzeUseCaseConfig{
 		CloneSimilarity: 0.8,
@@ -388,10 +388,10 @@ func TestAnalyzeUseCase_buildCloneTaskRequest_ProducesSparseRequest(t *testing.T
 	}
 	files := []string{"a.py", "b.py"}
 
-	request := useCase.buildCloneTaskRequest(config, files)
+	request := useCase.buildCloneTaskRequest(config, files, domain.AnalyzeExecutionConfig{Recursive: true})
 
-	// Only the fields the CLI explicitly provides are set; the rest stay at
-	// their zero values so MergeConfig fills them from the config file/defaults.
+	// Values already resolved by the unified analyze configuration are explicit;
+	// unrelated fields stay sparse so MergeConfig can fill them as usual.
 	if len(request.Paths) != len(files) || request.Paths[0] != files[0] || request.Paths[1] != files[1] {
 		t.Fatalf("expected clone task paths %v, got %v", files, request.Paths)
 	}
@@ -406,6 +406,9 @@ func TestAnalyzeUseCase_buildCloneTaskRequest_ProducesSparseRequest(t *testing.T
 	}
 	if request.ConfigPath != config.ConfigFile {
 		t.Fatalf("expected config path %q, got %q", config.ConfigFile, request.ConfigPath)
+	}
+	if !domain.BoolValue(request.Recursive, false) {
+		t.Fatal("expected effective recursive setting to be propagated")
 	}
 	if request.MaxSimilarity != 0 {
 		t.Fatalf("expected max similarity to be unset (0), got %.2f", request.MaxSimilarity)
@@ -569,4 +572,21 @@ func TestBuildComplexityTaskRequest_ThresholdOverrides(t *testing.T) {
 			t.Errorf("NestingDepthThreshold: expected 11 (exec), got %d", req.NestingDepthThreshold)
 		}
 	})
+}
+
+func TestBuildComplexityTaskRequest_UsesExecutionConfigBooleans(t *testing.T) {
+	uc := &AnalyzeUseCase{}
+	executionCfg := domain.AnalyzeExecutionConfig{
+		Recursive:   false,
+		ShowDetails: true,
+	}
+
+	req := uc.buildComplexityTaskRequest(AnalyzeUseCaseConfig{}, []string{"test.py"}, executionCfg)
+
+	if req.Recursive == nil || *req.Recursive {
+		t.Error("Recursive: expected explicit false from execution config")
+	}
+	if req.ShowDetails == nil || !*req.ShowDetails {
+		t.Error("ShowDetails: expected explicit true from execution config")
+	}
 }

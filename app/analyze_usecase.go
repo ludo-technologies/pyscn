@@ -46,6 +46,12 @@ type AnalyzeUseCaseConfig struct {
 	Verbose    bool
 }
 
+// AnalyzeRequestOverrides contains request-scoped values that take precedence
+// over the resolved project configuration.
+type AnalyzeRequestOverrides struct {
+	Recursive *bool
+}
+
 // AnalyzeUseCase orchestrates comprehensive analysis
 type AnalyzeUseCase struct {
 	complexityUseCase *ComplexityUseCase
@@ -225,11 +231,24 @@ type AnalysisTask struct {
 
 // Execute performs comprehensive analysis
 func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string) (*domain.AnalyzeResponse, error) {
+	return uc.execute(ctx, useCaseCfg, paths, AnalyzeRequestOverrides{})
+}
+
+// ExecuteWithOverrides performs comprehensive analysis with request-scoped
+// overrides applied after project configuration is resolved.
+func (uc *AnalyzeUseCase) ExecuteWithOverrides(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string, overrides AnalyzeRequestOverrides) (*domain.AnalyzeResponse, error) {
+	return uc.execute(ctx, useCaseCfg, paths, overrides)
+}
+
+func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string, overrides AnalyzeRequestOverrides) (*domain.AnalyzeResponse, error) {
 	startTime := time.Now()
 
 	executionCfg, err := uc.loadExecutionConfig(useCaseCfg.ConfigFile, paths)
 	if err != nil {
 		return nil, err
+	}
+	if overrides.Recursive != nil {
+		executionCfg.Recursive = *overrides.Recursive
 	}
 	useCaseCfg.ConfigFile = executionCfg.ConfigPath
 
@@ -373,7 +392,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.DeadCodeRequest{
 					Paths:           files,
-					Recursive:       false,
+					Recursive:       domain.BoolPtr(executionCfg.Recursive),
 					IncludePatterns: []string{},
 					ExcludePatterns: []string{},
 					OutputFormat:    domain.OutputFormatJSON,
@@ -402,7 +421,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 			Name:    taskNameClones,
 			Enabled: !config.SkipClones,
 			Execute: func(ctx context.Context) (interface{}, error) {
-				request := uc.buildCloneTaskRequest(config, files)
+				request := uc.buildCloneTaskRequest(config, files, executionCfg)
 				return uc.cloneUseCase.ExecuteAndReturn(ctx, request)
 			},
 		})
@@ -416,7 +435,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.CBORequest{
 					Paths:           files,
-					Recursive:       nil, // Let config file values take precedence
+					Recursive:       domain.BoolPtr(executionCfg.Recursive),
 					IncludePatterns: []string{},
 					ExcludePatterns: []string{},
 					OutputFormat:    domain.OutputFormatJSON,
@@ -445,7 +464,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.LCOMRequest{
 					Paths:           files,
-					Recursive:       nil, // Let config file values take precedence
+					Recursive:       domain.BoolPtr(executionCfg.Recursive),
 					IncludePatterns: []string{},
 					ExcludePatterns: []string{},
 					OutputFormat:    domain.OutputFormatJSON,
@@ -468,7 +487,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.SystemAnalysisRequest{
 					Paths:                files,
-					Recursive:            nil, // Let config file values take precedence
+					Recursive:            domain.BoolPtr(executionCfg.Recursive),
 					IncludePatterns:      []string{},
 					ExcludePatterns:      []string{},
 					OutputFormat:         domain.OutputFormatJSON,
@@ -496,7 +515,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 				request := domain.CommunityAnalysisRequest{
 					Paths:           files,
 					SourcePaths:     append([]string(nil), sourcePaths...),
-					Recursive:       nil,
+					Recursive:       domain.BoolPtr(executionCfg.Recursive),
 					IncludePatterns: []string{},
 					ExcludePatterns: []string{},
 					OutputFormat:    domain.OutputFormatJSON,
@@ -538,7 +557,8 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 
 	return domain.ComplexityRequest{
 		Paths:                        files,
-		Recursive:                    false,
+		Recursive:                    domain.BoolPtr(executionCfg.Recursive),
+		ShowDetails:                  domain.BoolPtr(executionCfg.ShowDetails),
 		IncludePatterns:              []string{},
 		ExcludePatterns:              []string{},
 		OutputFormat:                 domain.OutputFormatJSON,
@@ -556,11 +576,12 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 	}
 }
 
-func (uc *AnalyzeUseCase) buildCloneTaskRequest(config AnalyzeUseCaseConfig, files []string) domain.CloneRequest {
+func (uc *AnalyzeUseCase) buildCloneTaskRequest(config AnalyzeUseCaseConfig, files []string, executionCfg domain.AnalyzeExecutionConfig) domain.CloneRequest {
 	// Sparse request: zero values mean "not set" and are filled from the
 	// config file (or defaults) during MergeConfig inside the use case.
 	return domain.CloneRequest{
 		Paths:               files,
+		Recursive:           domain.BoolPtr(executionCfg.Recursive),
 		OutputFormat:        domain.OutputFormatJSON,
 		OutputWriter:        io.Discard,
 		SimilarityThreshold: config.CloneSimilarity,

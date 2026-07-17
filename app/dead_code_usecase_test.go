@@ -109,7 +109,7 @@ func createValidDeadCodeRequest() domain.DeadCodeRequest {
 		MinSeverity:               domain.DeadCodeSeverityWarning,
 		ContextLines:              3,
 		ShowContext:               domain.BoolPtr(true),
-		Recursive:                 true,
+		Recursive:                 domain.BoolPtr(true),
 		IncludePatterns:           []string{"**/*.py"},
 		ExcludePatterns:           []string{},
 		IgnorePatterns:            []string{},
@@ -366,7 +366,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 				OutputFormat:    domain.OutputFormatText,
 				SortBy:          domain.DeadCodeSortBySeverity,
 				MinSeverity:     domain.DeadCodeSeverityWarning,
-				Recursive:       true,
+				Recursive:       domain.BoolPtr(true),
 				IncludePatterns: []string{"**/*.py"},
 				ExcludePatterns: []string{},
 			},
@@ -388,7 +388,7 @@ func TestDeadCodeUseCase_Execute(t *testing.T) {
 				OutputFormat:    domain.OutputFormatText,
 				SortBy:          domain.DeadCodeSortBySeverity,
 				MinSeverity:     domain.DeadCodeSeverityWarning,
-				Recursive:       true,
+				Recursive:       domain.BoolPtr(true),
 				IncludePatterns: []string{"**/*.py"},
 				ExcludePatterns: []string{},
 			},
@@ -561,6 +561,29 @@ func TestDeadCodeUseCase_AnalyzeAndReturn(t *testing.T) {
 			configLoader.AssertExpectations(t)
 		})
 	}
+}
+
+func TestDeadCodeUseCase_AnalyzeAndReturnResolvesRecursiveForResponse(t *testing.T) {
+	useCase, service, fileReader, _, configLoader := setupDeadCodeUseCaseMocks()
+	request := createValidDeadCodeRequest()
+	request.Recursive = nil
+
+	configLoader.On("LoadDefaultConfig").Return((*domain.DeadCodeRequest)(nil))
+	fileReader.On("FileExists", "/test/file.py").Return(true, nil)
+	service.On("Analyze", mock.Anything, mock.MatchedBy(func(req domain.DeadCodeRequest) bool {
+		return req.Recursive == nil
+	})).Return(createMockDeadCodeResponse(), nil)
+
+	response, err := useCase.AnalyzeAndReturn(context.Background(), request)
+
+	assert.NoError(t, err)
+	if assert.NotNil(t, response) && assert.NotNil(t, response.Request) {
+		assert.NotNil(t, response.Request.Recursive)
+		assert.True(t, domain.BoolValue(response.Request.Recursive, false))
+	}
+	service.AssertExpectations(t)
+	fileReader.AssertExpectations(t)
+	configLoader.AssertExpectations(t)
 }
 
 func TestDeadCodeUseCase_validateRequest(t *testing.T) {

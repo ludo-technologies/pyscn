@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.26.4] - 2026-07-17
+
+### Changed
+- Unify request bool override semantics with sparse optional fields (#649)
+- Correct MCP configuration discovery documentation (#650)
+
+### Fixed
+- Default architecture strict mode to false when auto-detecting layers without user config (#662)
+- Propagate `recursive` override in MCP analyze tool (#656)
+- Fail `check` command on malformed discovered `.pyscn.toml` (#654)
+- Publish only implemented output controls in MCP tool schemas (#651)
+- Exclude same-file top-level peer classes from CBO coupling (#639)
+
 ## [1.26.3] - 2026-07-11
 
 ### Added
