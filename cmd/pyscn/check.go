@@ -370,14 +370,10 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 	// Sparse request: zero values mean "not set" and are filled from the
 	// config file (or defaults) during MergeConfig inside the use case.
 	request := &domain.ComplexityRequest{
-		Paths:           args,
-		OutputFormat:    domain.OutputFormatText,
-		OutputWriter:    io.Discard,
-		SortBy:          domain.SortByComplexity,
-		Recursive:       nil,
-		IncludePatterns: domain.DefaultAnalysisIncludePatterns(),
-		ExcludePatterns: domain.DefaultAnalysisExcludePatterns(),
-		ConfigPath:      c.configFile,
+		Paths:        args,
+		OutputFormat: domain.OutputFormatText,
+		OutputWriter: io.Discard,
+		ConfigPath:   c.configFile,
 	}
 
 	// Create use case with services
@@ -430,23 +426,13 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, error) {
 	// Create request with check-specific settings
 	request := &domain.DeadCodeRequest{
-		Paths:                     args,
-		OutputFormat:              domain.OutputFormatText,
-		OutputWriter:              io.Discard,
-		ShowContext:               domain.BoolPtr(false),
-		ContextLines:              0,
-		MinSeverity:               domain.DeadCodeSeverityCritical,
-		SortBy:                    domain.DeadCodeSortBySeverity,
-		Recursive:                 nil,
-		IncludePatterns:           domain.DefaultAnalysisIncludePatterns(),
-		ExcludePatterns:           domain.DefaultAnalysisExcludePatterns(),
-		IgnorePatterns:            []string{},
-		DetectAfterReturn:         domain.BoolPtr(true),
-		DetectAfterBreak:          domain.BoolPtr(true),
-		DetectAfterContinue:       domain.BoolPtr(true),
-		DetectAfterRaise:          domain.BoolPtr(true),
-		DetectUnreachableBranches: domain.BoolPtr(true),
-		ConfigPath:                c.configFile,
+		Paths:        args,
+		OutputFormat: domain.OutputFormatText,
+		OutputWriter: io.Discard,
+		// Critical severity is the check command's quality-gate policy.
+		// All analyzer behavior remains sparse so project config can override defaults.
+		MinSeverity: domain.DeadCodeSeverityCritical,
+		ConfigPath:  c.configFile,
 	}
 
 	// Create use case with services
@@ -622,22 +608,10 @@ func (c *CheckCommand) checkCircularDependencies(cmd *cobra.Command, args []stri
 func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, error) {
 	// Create request with check-specific settings
 	request := &domain.MockDataRequest{
-		Paths:           args,
-		OutputFormat:    domain.OutputFormatText,
-		OutputWriter:    io.Discard,
-		MinSeverity:     domain.MockDataSeverityWarning,
-		SortBy:          domain.MockDataSortBySeverity,
-		Recursive:       nil,
-		IncludePatterns: domain.DefaultAnalysisIncludePatterns(),
-		ExcludePatterns: domain.DefaultAnalysisExcludePatterns(),
-		IgnoreTests:     domain.BoolPtr(true),
-		Keywords:        domain.DefaultMockDataKeywords(),
-		Domains:         domain.DefaultMockDataDomains(),
-	}
-
-	// Validate request
-	if err := request.Validate(); err != nil {
-		return 0, fmt.Errorf("invalid mock data request: %w", err)
+		Paths:        args,
+		OutputFormat: domain.OutputFormatText,
+		OutputWriter: io.Discard,
+		ConfigPath:   c.configFile,
 	}
 
 	// Create service components
