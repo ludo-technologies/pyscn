@@ -192,3 +192,72 @@ b = 2
 		assert.InDelta(t, float64(1)/float64(3), aggregate.CommentRatio, 0.0001)
 	})
 }
+
+func TestCalculateFunctionSLOC(t *testing.T) {
+	t.Run("empty content", func(t *testing.T) {
+		assert.Equal(t, 0, CalculateFunctionSLOC(nil, 1, 10))
+		assert.Equal(t, 0, CalculateFunctionSLOC([]byte(""), 1, 10))
+	})
+
+	t.Run("invalid line range", func(t *testing.T) {
+		content := []byte("a = 1\nb = 2\n")
+		assert.Equal(t, 0, CalculateFunctionSLOC(content, 0, 2))
+		assert.Equal(t, 0, CalculateFunctionSLOC(content, 2, 1))
+		assert.Equal(t, 0, CalculateFunctionSLOC(content, -1, 2))
+	})
+
+	t.Run("start line beyond content", func(t *testing.T) {
+		content := []byte("a = 1\nb = 2\n")
+		assert.Equal(t, 0, CalculateFunctionSLOC(content, 100, 200))
+	})
+
+	t.Run("end line clamped to content length", func(t *testing.T) {
+		content := []byte("a = 1\nb = 2\nc = 3\n")
+		result := CalculateFunctionSLOC(content, 2, 100)
+		assert.Equal(t, 2, result)
+	})
+
+	t.Run("counts only source lines, excluding comments and blanks", func(t *testing.T) {
+		content := []byte(`"""module docstring"""
+# comment
+a = 1
+
+def f():
+    # inner comment
+
+    return 42
+`)
+		sloc := CalculateFunctionSLOC(content, 5, 9)
+		assert.Equal(t, 2, sloc)
+	})
+
+	t.Run("long flat function returns correct SLOC", func(t *testing.T) {
+		content := []byte(`def build_table():
+    rows = []
+    rows.append(1)
+    rows.append(2)
+    rows.append(3)
+    rows.append(4)
+    rows.append(5)
+    rows.append(6)
+    rows.append(7)
+    rows.append(8)
+    rows.append(9)
+    rows.append(10)
+    return rows
+`)
+		sloc := CalculateFunctionSLOC(content, 1, 13)
+		assert.Equal(t, 13, sloc)
+	})
+
+	t.Run("function with comment lines excluded", func(t *testing.T) {
+		content := []byte(`def greet(name):
+    # Say hello
+    # This is a comment
+    message = "Hello, " + name
+    return message
+`)
+		sloc := CalculateFunctionSLOC(content, 1, 5)
+		assert.Equal(t, 3, sloc)
+	})
+}

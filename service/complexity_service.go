@@ -193,7 +193,7 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 
 	// Calculate complexity for each function
 	complexityConfig := s.buildComplexityConfig(req)
-	functions, warnings = s.calculateFunctionComplexities(filePath, cfgs, complexityConfig, req)
+	functions, warnings = s.calculateFunctionComplexities(filePath, cfgs, complexityConfig, req, content)
 
 	return functions, rawMetrics, warnings, errors
 }
@@ -229,11 +229,16 @@ func (s *ComplexityServiceImpl) analyzeProjectFile(file *ProjectFile, req domain
 	}
 
 	complexityConfig := s.buildComplexityConfig(req)
-	functions, warnings = s.calculateFunctionComplexities(file.Path, cfgs, complexityConfig, req)
+	content, readErr := s.readFile(file.Path)
+	if readErr != nil {
+		functions, warnings = s.calculateFunctionComplexities(file.Path, cfgs, complexityConfig, req, nil)
+	} else {
+		functions, warnings = s.calculateFunctionComplexities(file.Path, cfgs, complexityConfig, req, content)
+	}
 	return functions, rawMetrics, warnings, errors
 }
 
-func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, cfgs map[string]*analyzer.CFG, complexityConfig *config.ComplexityConfig, req domain.ComplexityRequest) ([]domain.FunctionComplexity, []string) {
+func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, cfgs map[string]*analyzer.CFG, complexityConfig *config.ComplexityConfig, req domain.ComplexityRequest, content []byte) ([]domain.FunctionComplexity, []string) {
 	var functions []domain.FunctionComplexity
 	var warnings []string
 
@@ -243,6 +248,9 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 			warnings = append(warnings, fmt.Sprintf("[%s:%s] Failed to calculate complexity for function", filePath, functionName))
 			continue
 		}
+
+		result.SLOC = analyzer.CalculateFunctionSLOC(content, result.StartLine, result.EndLine)
+
 		if !complexityConfig.ShouldReport(result.Complexity) {
 			continue
 		}
@@ -266,6 +274,7 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 				LoopStatements:      result.LoopStatements,
 				ExceptionHandlers:   result.ExceptionHandlers,
 				SwitchCases:         result.SwitchCases,
+				SLOC:                result.SLOC,
 			},
 			RiskLevel: riskLevel,
 		}
@@ -428,6 +437,22 @@ func (s *ComplexityServiceImpl) metricThresholdWarnings(filePath string, functio
 	if result.NestingDepth > complexityConfig.NestingDepthThreshold {
 		warnings = append(warnings, fmt.Sprintf("[%s:%d:%d] %s nesting depth too high (%d > %d)",
 			filePath, result.StartLine, result.StartCol+1, functionName, result.NestingDepth, complexityConfig.NestingDepthThreshold))
+	}
+
+	warnThreshold := req.FunctionSLOCWarnThreshold
+	if warnThreshold <= 0 {
+		warnThreshold = domain.DefaultFunctionSLOCWarnThreshold
+	}
+	criticalThreshold := req.FunctionSLOCCriticalThreshold
+	if criticalThreshold <= 0 {
+		criticalThreshold = domain.DefaultFunctionSLOCCriticalThreshold
+	}
+	if result.SLOC > criticalThreshold {
+		warnings = append(warnings, fmt.Sprintf("[%s:%d:%d] %s function SLOC critical (%d > %d)",
+			filePath, result.StartLine, result.StartCol+1, functionName, result.SLOC, criticalThreshold))
+	} else if result.SLOC > warnThreshold {
+		warnings = append(warnings, fmt.Sprintf("[%s:%d:%d] %s function SLOC warning (%d > %d)",
+			filePath, result.StartLine, result.StartCol+1, functionName, result.SLOC, warnThreshold))
 	}
 
 	return warnings
