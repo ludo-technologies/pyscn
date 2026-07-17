@@ -15,7 +15,7 @@ type LCOMRequest struct {
 	OutputWriter io.Writer
 	OutputPath   string // Path to save output file (for HTML format)
 	NoOpen       bool   // Don't auto-open HTML in browser
-	ShowDetails  bool
+	ShowDetails  *bool  // nil = unset, non-nil = explicitly set
 
 	// Filtering and sorting
 	MinLCOM int
@@ -138,7 +138,7 @@ type LCOMOutputFormatter interface {
 func DefaultLCOMRequest() *LCOMRequest {
 	return &LCOMRequest{
 		OutputFormat:    OutputFormatText,
-		ShowDetails:     false,
+		ShowDetails:     BoolPtr(false),
 		MinLCOM:         0,
 		MaxLCOM:         0,                          // No limit
 		SortBy:          SortByCohesion,             // Sort by LCOM value

@@ -61,7 +61,7 @@ func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityR
 	// Collect Python files
 	files, err := uc.fileReader.CollectPythonFiles(
 		finalReq.Paths,
-		finalReq.Recursive,
+		domain.BoolValue(finalReq.Recursive, true),
 		finalReq.IncludePatterns,
 		finalReq.ExcludePatterns,
 	)
@@ -127,7 +127,7 @@ func (uc *ComplexityUseCase) analyzeResolvedRequest(ctx context.Context, req dom
 	files, err := ResolveFilePaths(
 		uc.fileReader,
 		req.Paths,
-		req.Recursive,
+		domain.BoolValue(req.Recursive, true),
 		req.IncludePatterns,
 		req.ExcludePatterns,
 		false, // validatePythonFile: complexity doesn't need strict Python validation
@@ -150,6 +150,7 @@ func (uc *ComplexityUseCase) analyzeResolvedRequest(ctx context.Context, req dom
 	}
 
 	// Store merged configuration in response for caller access
+	resolveComplexityRequestForResponse(&req)
 	response.Request = &req
 
 	return response, nil
@@ -178,8 +179,16 @@ func (uc *ComplexityUseCase) analyzeSnapshotRequest(ctx context.Context, snapsho
 		return nil, domain.NewAnalysisError("complexity analysis failed", err)
 	}
 
+	resolveComplexityRequestForResponse(&req)
 	response.Request = &req
 	return response, nil
+}
+
+// resolveComplexityRequestForResponse keeps the public response metadata
+// concrete while requests remain sparse for configuration merging.
+func resolveComplexityRequestForResponse(req *domain.ComplexityRequest) {
+	req.ShowDetails = domain.BoolPtr(domain.BoolValue(req.ShowDetails, false))
+	req.Recursive = domain.BoolPtr(domain.BoolValue(req.Recursive, true))
 }
 
 // AnalyzeFile analyzes a single file

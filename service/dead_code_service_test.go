@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +22,7 @@ func newDefaultDeadCodeRequest(paths ...string) domain.DeadCodeRequest {
 		SortBy:                    domain.DeadCodeSortByFile,
 		ShowContext:               domain.BoolPtr(false),
 		ContextLines:              2,
-		Recursive:                 false,
+		Recursive:                 domain.BoolPtr(false),
 		DetectAfterReturn:         domain.BoolPtr(true),
 		DetectAfterBreak:          domain.BoolPtr(true),
 		DetectAfterContinue:       domain.BoolPtr(true),
@@ -566,6 +567,22 @@ func TestDeadCodeService_BuildConfigForResponse(t *testing.T) {
 	assert.Equal(t, []string{"**/*.py"}, configMap["include_patterns"])
 	assert.Equal(t, []string{"test_*.py"}, configMap["exclude_patterns"])
 	assert.Equal(t, []string{"# TODO"}, configMap["ignore_patterns"])
+}
+
+func TestDeadCodeService_DetectionFlagsFilterFindings(t *testing.T) {
+	service := NewDeadCodeService()
+	req := newDefaultDeadCodeRequest("../testdata/python/simple/dead_code_simple.py")
+	req.DetectAfterReturn = domain.BoolPtr(false)
+
+	response, err := service.Analyze(context.Background(), req)
+	require.NoError(t, err)
+	for _, file := range response.Files {
+		for _, function := range file.Functions {
+			for _, finding := range function.Findings {
+				assert.NotEqual(t, string(analyzer.ReasonUnreachableAfterReturn), finding.Reason)
+			}
+		}
+	}
 }
 
 func TestDeadCodeService_ResponseMetadata(t *testing.T) {

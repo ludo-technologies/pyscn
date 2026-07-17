@@ -481,8 +481,8 @@ func (s *ComplexityServiceImpl) buildConfigForResponse(req domain.ComplexityRequ
 		"enabled":                        domain.BoolValue(req.Enabled, true),
 		"report_unchanged":               domain.BoolValue(req.ReportUnchanged, true),
 		"sort_by":                        string(req.SortBy),
-		"show_details":                   req.ShowDetails,
-		"recursive":                      req.Recursive,
+		"show_details":                   domain.BoolValue(req.ShowDetails, false),
+		"recursive":                      domain.BoolValue(req.Recursive, true),
 		"include_patterns":               req.IncludePatterns,
 		"exclude_patterns":               req.ExcludePatterns,
 	}
