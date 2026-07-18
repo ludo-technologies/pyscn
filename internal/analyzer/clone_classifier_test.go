@@ -156,11 +156,6 @@ func TestSyntacticSimilarityAnalyzer(t *testing.T) {
 		assert.Equal(t, "syntactic", analyzer.GetName())
 	})
 
-	t.Run("WithOptions", func(t *testing.T) {
-		analyzer := NewSyntacticSimilarityAnalyzerWithOptions(true, false)
-		require.NotNil(t, analyzer)
-	})
-
 	t.Run("NilFragments", func(t *testing.T) {
 		analyzer := NewSyntacticSimilarityAnalyzer()
 
@@ -170,14 +165,6 @@ func TestSyntacticSimilarityAnalyzer(t *testing.T) {
 		fragment := &CodeFragment{}
 		similarity = analyzer.ComputeSimilarity(fragment, nil)
 		assert.Equal(t, 0.0, similarity)
-	})
-
-	t.Run("ComputeDistance", func(t *testing.T) {
-		analyzer := NewSyntacticSimilarityAnalyzer()
-
-		// Test with nil
-		distance := analyzer.ComputeDistance(nil, nil)
-		assert.Equal(t, 0.0, distance)
 	})
 
 	t.Run("JaccardSimilarity_Type2Clones", func(t *testing.T) {
@@ -289,12 +276,6 @@ func TestSyntacticSimilarityAnalyzer(t *testing.T) {
 		// Different structures should have low similarity (< 0.50)
 		assert.Less(t, similarity, 0.50,
 			"Structurally different code should have low similarity")
-	})
-
-	t.Run("GetExtractor", func(t *testing.T) {
-		analyzer := NewSyntacticSimilarityAnalyzer()
-		extractor := analyzer.GetExtractor()
-		assert.NotNil(t, extractor)
 	})
 
 	// Issue #292: False positives for structurally different dataclasses

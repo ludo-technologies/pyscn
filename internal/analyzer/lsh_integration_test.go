@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"sort"
 	"strings"
@@ -70,9 +71,9 @@ func TestCloneDetector_DetectClonesWithLSH_Simple(t *testing.T) {
 	pairs := result.Pairs
 	if len(pairs) == 0 {
 		// As a sanity check, verify MinHash similarity and LSH candidate retrieval
-		ext := NewASTFeatureExtractor()
-		feats1, _ := ext.ExtractFeatures(f1.TreeNode)
-		feats2, _ := ext.ExtractFeatures(f2.TreeNode)
+		ext := newPythonCloneFeatureExtractor()
+		feats1, _ := ext.ExtractFeatures(toCoreTree(f1.TreeNode))
+		feats2, _ := ext.ExtractFeatures(toCoreTree(f2.TreeNode))
 		mh := NewMinHasher(128)
 		s1 := mh.ComputeSignature(feats1)
 		s2 := mh.ComputeSignature(feats2)
@@ -116,7 +117,7 @@ func TestCloneDetectorPrepareFragmentsRefreshesTreeBackedFeatures(t *testing.T) 
 	if slices.Equal(fragment.Features, staleFeatures) {
 		t.Fatalf("expected tree-backed fragment features to be refreshed")
 	}
-	expected, _ := NewASTFeatureExtractor().ExtractFeatures(fragment.TreeNode)
+	expected, _ := newPythonCloneFeatureExtractor().ExtractFeatures(toCoreTree(fragment.TreeNode))
 	if !slices.Equal(fragment.Features, expected) {
 		t.Fatalf("expected tree-backed features %v, got %v", expected, fragment.Features)
 	}
@@ -140,7 +141,7 @@ func TestCloneDetectorPrepareFragmentsRefreshesConvertedASTFeatures(t *testing.T
 	if slices.Equal(fragment.Features, staleFeatures) {
 		t.Fatalf("expected AST conversion to refresh stale features")
 	}
-	expected, _ := NewASTFeatureExtractor().ExtractFeatures(fragment.TreeNode)
+	expected, _ := newPythonCloneFeatureExtractor().ExtractFeatures(toCoreTree(fragment.TreeNode))
 	if !slices.Equal(fragment.Features, expected) {
 		t.Fatalf("expected converted AST features %v, got %v", expected, fragment.Features)
 	}
@@ -340,4 +341,56 @@ func assertGroupContainsAllFragments(t *testing.T, groups []*CloneGroup, fragmen
 	}
 
 	t.Fatalf("expected one clone group to contain all %d exact fragments; got %d groups", len(fragments), len(groups))
+}
+
+// fragmentID returns a stable identifier for a fragment based on its location.
+func fragmentID(f *CodeFragment) string {
+	if f == nil || f.Location == nil {
+		return fmt.Sprintf("%p", f)
+	}
+	loc := f.Location
+	return fmt.Sprintf("%s|%d|%d|%d|%d", loc.FilePath, loc.StartLine, loc.EndLine, loc.StartCol, loc.EndCol)
+}
+
+func almostEqual(a, b float64) bool {
+	const eps = 1e-9
+	d := a - b
+	if d < 0 {
+		d = -d
+	}
+	return d <= eps
+}
+
+type cloneGroupSnapshot struct {
+	members    string
+	similarity float64
+	cloneType  CloneType
+}
+
+func snapshotCloneGroups(groups []*CloneGroup) []cloneGroupSnapshot {
+	snapshots := make([]cloneGroupSnapshot, 0, len(groups))
+	for _, group := range groups {
+		memberIDs := make([]string, 0, len(group.Fragments))
+		for _, fragment := range group.Fragments {
+			memberIDs = append(memberIDs, fragmentID(fragment))
+		}
+		sort.Strings(memberIDs)
+		snapshots = append(snapshots, cloneGroupSnapshot{
+			members:    strings.Join(memberIDs, "||"),
+			similarity: group.Similarity,
+			cloneType:  group.CloneType,
+		})
+	}
+
+	sort.Slice(snapshots, func(i, j int) bool {
+		if snapshots[i].members != snapshots[j].members {
+			return snapshots[i].members < snapshots[j].members
+		}
+		if !almostEqual(snapshots[i].similarity, snapshots[j].similarity) {
+			return snapshots[i].similarity < snapshots[j].similarity
+		}
+		return snapshots[i].cloneType < snapshots[j].cloneType
+	})
+
+	return snapshots
 }

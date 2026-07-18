@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	coreclone "github.com/ludo-technologies/polyscan/core/clone"
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/stretchr/testify/assert"
@@ -521,9 +522,6 @@ func TestCloneDetector_IsSameLocation(t *testing.T) {
 }
 
 func TestCloneDetector_CalculateConfidence(t *testing.T) {
-	config := DefaultCloneDetectorConfig()
-	detector := NewCloneDetector(config)
-
 	fragment1 := &CodeFragment{
 		Size:       50,
 		Complexity: 5,
@@ -534,7 +532,7 @@ func TestCloneDetector_CalculateConfidence(t *testing.T) {
 		Complexity: 5,
 	}
 
-	confidence := detector.calculateConfidence(fragment1, fragment2, 0.8)
+	confidence := coreclone.CalculateConfidence(fragment1.coreFragment(), fragment2.coreFragment(), 0.8)
 
 	assert.GreaterOrEqual(t, confidence, 0.8, "Confidence should be at least the similarity")
 	assert.LessOrEqual(t, confidence, 1.0, "Confidence should not exceed 1.0")
