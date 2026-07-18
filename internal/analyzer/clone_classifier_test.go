@@ -197,6 +197,22 @@ func TestSyntacticSimilarityAnalyzer(t *testing.T) {
 			"Type-2 clones (renamed identifiers/literals) should have high similarity")
 	})
 
+	t.Run("ASTOnlyFragments", func(t *testing.T) {
+		p := parser.New()
+		ctx := context.Background()
+		result1, err := p.Parse(ctx, []byte("def foo(x):\n    return x + 1"))
+		require.NoError(t, err)
+		result2, err := p.Parse(ctx, []byte("def bar(y):\n    return y + 2"))
+		require.NoError(t, err)
+
+		f1 := &CodeFragment{ASTNode: result1.AST}
+		f2 := &CodeFragment{ASTNode: result2.AST}
+		similarity := NewSyntacticSimilarityAnalyzer().ComputeSimilarity(f1, f2)
+
+		assert.GreaterOrEqual(t, similarity, 0.80,
+			"AST-only fragments should retain Type-2 syntactic analysis")
+	})
+
 	// True positive test: Type-2 clones SHOULD be detected via CloneClassifier
 	t.Run("Type2Clone_TruePositive_DetectedViaClassifier", func(t *testing.T) {
 		// Type-2 clones: structurally identical code with only identifier/literal differences.

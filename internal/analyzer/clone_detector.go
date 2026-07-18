@@ -115,11 +115,16 @@ func toCoreFragment(fragment *CodeFragment, id int) *coreclone.CodeFragment {
 	if fragment == nil {
 		return nil
 	}
+	tree := fragment.TreeNode
+	if tree == nil && fragment.ASTNode != nil {
+		tree = NewTreeConverter().ConvertAST(fragment.ASTNode)
+		PrepareTreeForAPTED(tree)
+	}
 	result := &coreclone.CodeFragment{
 		ID:         id,
 		Content:    fragment.Content,
 		Hash:       fragment.Hash,
-		ASTNode:    toCoreTree(fragment.TreeNode),
+		ASTNode:    toCoreTree(tree),
 		NodeCount:  fragment.Size,
 		LineCount:  fragment.LineCount,
 		Complexity: fragment.Complexity,
@@ -750,12 +755,7 @@ func (cd *CloneDetector) DetectClonesWithContext(ctx context.Context, fragments 
 	if k < 2 {
 		k = 2
 	}
-	strategy := coreclone.NewGroupingStrategy[*CodeFragment](coreclone.GroupingConfig{
-		Mode:      cd.cloneDetectorConfig.GroupingMode.coreMode(),
-		Threshold: thr,
-		KCoreK:    k,
-	})
-	cd.groupClonesWithStrategy(strategy)
+	cd.groupClones(thr, k)
 
 	return cd.buildCloneDetectionResult()
 }
@@ -914,12 +914,7 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 	if k < 2 {
 		k = 2
 	}
-	strategy := coreclone.NewGroupingStrategy[*CodeFragment](coreclone.GroupingConfig{
-		Mode:      cd.cloneDetectorConfig.GroupingMode.coreMode(),
-		Threshold: thr,
-		KCoreK:    k,
-	})
-	cd.groupClonesWithStrategy(strategy)
+	cd.groupClones(thr, k)
 
 	return cd.buildCloneDetectionResult()
 }
@@ -1207,9 +1202,23 @@ func (cd *CloneDetector) isSignificantClone(pair *ClonePair) bool {
 	return minSize >= float64(cd.cloneDetectorConfig.MinNodes)
 }
 
+func (cd *CloneDetector) groupClones(threshold float64, k int) {
+	var strategy coreclone.GroupingStrategy[*CodeFragment]
+	if cd.cloneDetectorConfig.GroupingMode == GroupingModeCentroid {
+		strategy = newCentroidCompatibilityStrategy(cd, threshold)
+	} else {
+		strategy = coreclone.NewGroupingStrategy[*CodeFragment](coreclone.GroupingConfig{
+			Mode:      cd.cloneDetectorConfig.GroupingMode.coreMode(),
+			Threshold: threshold,
+			KCoreK:    k,
+		})
+	}
+	cd.groupClonesWithStrategy(strategy, threshold)
+}
+
 // groupClonesWithStrategy groups clone pairs using a core/clone grouping
 // strategy, then applies the shared dedup and suppression passes.
-func (cd *CloneDetector) groupClonesWithStrategy(strategy coreclone.GroupingStrategy[*CodeFragment]) {
+func (cd *CloneDetector) groupClonesWithStrategy(strategy coreclone.GroupingStrategy[*CodeFragment], threshold float64) {
 	if strategy == nil {
 		cd.cloneGroups = []*CloneGroup{}
 		return
@@ -1245,9 +1254,16 @@ func (cd *CloneDetector) groupClonesWithStrategy(strategy coreclone.GroupingStra
 		originals[converted] = pair
 	}
 
-	memberResult := coreclone.DedupeStrictSubsetGroupMembers(strategy.GroupItems(corePairs), corePairs)
+	groups := strategy.GroupItems(corePairs)
+	if cd.cloneDetectorConfig.GroupingMode == GroupingModeStar {
+		groups = filterStarGroupsByMedoid(groups, corePairs, threshold)
+	}
+	memberResult := coreclone.DedupeStrictSubsetGroupMembers(groups, corePairs)
 	groupResult := coreclone.DedupeCoveredGroups(memberResult.Groups)
-	groups := coreclone.FilterGroupsWithoutBackingPairs(groupResult.Groups, corePairs)
+	groups = coreclone.FilterGroupsWithoutBackingPairs(groupResult.Groups, corePairs)
+	if cd.cloneDetectorConfig.GroupingMode == GroupingModeCentroid {
+		cd.refreshCentroidGroupMetadata(groups)
+	}
 	for key := range memberResult.Suppressed {
 		groupResult.Suppressed[key] = struct{}{}
 	}
