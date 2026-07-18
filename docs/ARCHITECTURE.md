@@ -263,10 +263,9 @@ Each clone type uses a specialized algorithm optimized for its detection charact
 
 ```go
 // Type-2: Normalized AST Hash with Jaccard Coefficient
-// internal/analyzer/syntactic_similarity.go
+// core/clone (github.com/ludo-technologies/polyscan/core)
 type SyntacticSimilarityAnalyzer struct {
     extractor *ASTFeatureExtractor  // Extracts normalized node hashes
-    converter *TreeConverter
 }
 
 // Jaccard(A, B) = |A ∩ B| / |A ∪ B|
