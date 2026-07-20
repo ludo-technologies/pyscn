@@ -65,6 +65,7 @@ func defaultAnalyzeExecutionConfig() domain.AnalyzeExecutionConfig {
 		IncludePatterns:              domain.DefaultAnalysisIncludePatterns(),
 		ExcludePatterns:              append([]string(nil), defaultCfg.Analysis.ExcludePatterns...),
 		Recursive:                    defaultCfg.Analysis.Recursive,
+		ShowDetails:                  defaultCfg.Output.ShowDetails,
 		ComplexityEnabled:            defaultCfg.Complexity.Enabled,
 		ComplexityReportUnchanged:    defaultCfg.Complexity.ReportUnchanged,
 		ComplexityMinComplexity:      defaultCfg.Output.MinComplexity,
@@ -98,6 +99,7 @@ func analyzeExecutionConfigFromConfig(cfg *config.Config, overrides analyzeEnabl
 	}
 
 	executionCfg.Recursive = cfg.Analysis.Recursive
+	executionCfg.ShowDetails = cfg.Output.ShowDetails
 	executionCfg.ComplexityEnabled = cfg.Complexity.Enabled
 	executionCfg.ComplexityReportUnchanged = cfg.Complexity.ReportUnchanged
 	executionCfg.ComplexityMinComplexity = cfg.Output.MinComplexity

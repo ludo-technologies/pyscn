@@ -392,7 +392,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.DeadCodeRequest{
 					Paths:           files,
-					Recursive:       executionCfg.Recursive,
+					Recursive:       domain.BoolPtr(executionCfg.Recursive),
 					IncludePatterns: []string{},
 					ExcludePatterns: []string{},
 					OutputFormat:    domain.OutputFormatJSON,
@@ -557,7 +557,8 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 
 	return domain.ComplexityRequest{
 		Paths:                        files,
-		Recursive:                    executionCfg.Recursive,
+		Recursive:                    domain.BoolPtr(executionCfg.Recursive),
+		ShowDetails:                  domain.BoolPtr(executionCfg.ShowDetails),
 		IncludePatterns:              []string{},
 		ExcludePatterns:              []string{},
 		OutputFormat:                 domain.OutputFormatJSON,

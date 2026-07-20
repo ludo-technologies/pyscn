@@ -26,8 +26,8 @@ func newDefaultComplexityRequest(paths ...string) domain.ComplexityRequest {
 		SortBy:          domain.SortByComplexity,
 		LowThreshold:    5,
 		MediumThreshold: 10,
-		ShowDetails:     true,
-		Recursive:       false,
+		ShowDetails:     domain.BoolPtr(true),
+		Recursive:       domain.BoolPtr(false),
 	}
 }
 
@@ -677,7 +677,7 @@ func TestComplexityService_BuildConfigForResponse(t *testing.T) {
 	req := newDefaultComplexityRequest()
 	req.MinComplexity = 2
 	req.MaxComplexity = 20
-	req.Recursive = true
+	req.Recursive = domain.BoolPtr(true)
 	req.IncludePatterns = []string{"**/*.py"}
 	req.ExcludePatterns = []string{"test_*.py"}
 

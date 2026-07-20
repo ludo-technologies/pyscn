@@ -28,8 +28,12 @@ func TestConfigurationLoader_LoadDefaultConfig(t *testing.T) {
 	assert.Equal(t, domain.DefaultComplexityMediumThreshold, req.MediumThreshold)
 	require.NotNil(t, req.Enabled)
 	require.NotNil(t, req.ReportUnchanged)
+	require.NotNil(t, req.ShowDetails)
+	require.NotNil(t, req.Recursive)
 	assert.True(t, *req.Enabled)
 	assert.True(t, *req.ReportUnchanged)
+	assert.False(t, *req.ShowDetails)
+	assert.True(t, *req.Recursive)
 }
 
 func TestConfigurationLoader_MergeConfig(t *testing.T) {
@@ -41,15 +45,16 @@ func TestConfigurationLoader_MergeConfig(t *testing.T) {
 		MaxComplexity:   0,
 		LowThreshold:    10,
 		MediumThreshold: 20,
-		ShowDetails:     false,
-		Recursive:       true,
+		ShowDetails:     domain.BoolPtr(false),
+		Recursive:       domain.BoolPtr(true),
 	}
 
 	override := &domain.ComplexityRequest{
 		Paths:         []string{"override/path"},
 		MinComplexity: 5,
 		MaxComplexity: 15,
-		ShowDetails:   true,
+		NoOpen:        true,
+		ShowDetails:   domain.BoolPtr(true),
 	}
 
 	merged := loader.MergeConfig(base, override)
@@ -57,7 +62,8 @@ func TestConfigurationLoader_MergeConfig(t *testing.T) {
 	assert.Equal(t, []string{"override/path"}, merged.Paths)
 	assert.Equal(t, 5, merged.MinComplexity)
 	assert.Equal(t, 15, merged.MaxComplexity)
-	assert.True(t, merged.ShowDetails)
+	assert.True(t, merged.NoOpen)
+	assert.True(t, domain.BoolValue(merged.ShowDetails, false))
 	// Base values should be preserved when not overridden
 	assert.Equal(t, 10, merged.LowThreshold)
 	assert.Equal(t, 20, merged.MediumThreshold)
@@ -198,12 +204,32 @@ func TestConfigurationLoader_MergeConfig_ZeroOverridePreservesBase(t *testing.T)
 	base := &domain.ComplexityRequest{
 		MinComplexity: 5,
 		SortBy:        domain.SortByName,
+		ShowDetails:   domain.BoolPtr(true),
+		Recursive:     domain.BoolPtr(false),
 	}
 	override := &domain.ComplexityRequest{}
 
 	merged := loader.MergeConfig(base, override)
 	assert.Equal(t, 5, merged.MinComplexity)
 	assert.Equal(t, domain.SortByName, merged.SortBy)
+	assert.True(t, domain.BoolValue(merged.ShowDetails, false))
+	assert.False(t, domain.BoolValue(merged.Recursive, true))
+}
+
+func TestConfigurationLoader_MergeConfig_ExplicitFalseBoolWins(t *testing.T) {
+	loader := NewConfigurationLoader()
+	base := &domain.ComplexityRequest{
+		ShowDetails: domain.BoolPtr(true),
+		Recursive:   domain.BoolPtr(true),
+	}
+	override := &domain.ComplexityRequest{
+		ShowDetails: domain.BoolPtr(false),
+		Recursive:   domain.BoolPtr(false),
+	}
+
+	merged := loader.MergeConfig(base, override)
+	assert.False(t, domain.BoolValue(merged.ShowDetails, true))
+	assert.False(t, domain.BoolValue(merged.Recursive, true))
 }
 
 func TestConfigurationLoader_MergeConfig_Patterns(t *testing.T) {

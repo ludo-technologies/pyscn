@@ -91,11 +91,11 @@ Detected clone pairs are assembled into clone groups using a configurable strate
 
 ### Type-1: Textual Comparison with FNV Hash
 
-**Implementation:** `textual_similarity.go` (`TextualSimilarityAnalyzer`)
+**Implementation:** `core/clone` (`TextualSimilarityAnalyzer`, from [polyscan](https://github.com/ludo-technologies/polyscan)) with pyscn's Python comment stripper (`python_comments.go`)
 
 Type-1 detection identifies code fragments that are textually identical after normalization. The algorithm:
 
-1. **Normalize content**: Remove Python comments (single-line `#` and multi-line `'''`/`"""`) and collapse whitespace to single spaces using a precompiled regex.
+1. **Normalize content**: Remove Python comments (single-line `#` and multi-line `'''`/`"""`) and collapse whitespace, keeping a single separator only between word-token boundaries.
 2. **FNV-64a hash comparison**: Compute a 64-bit FNV hash of each normalized string. If the hashes match, the fragments are identical (similarity = 1.0).
 3. **Levenshtein fallback**: If hashes differ, compute Levenshtein edit distance between the normalized strings and convert to similarity: `1.0 - distance / max(len(s1), len(s2))`. This uses a space-optimized O(min(m,n)) dynamic programming implementation.
 
@@ -103,7 +103,7 @@ Type-1 analysis is opt-in (`EnableTextualAnalysis`) because it requires storing 
 
 ### Type-2: Normalized AST Hash with Jaccard Coefficient
 
-**Implementation:** `syntactic_similarity.go` (`SyntacticSimilarityAnalyzer`)
+**Implementation:** `core/clone` (`SyntacticSimilarityAnalyzer`, configured with Python pattern and literal-like label names)
 
 Type-2 detection identifies fragments that share the same syntactic structure but differ in identifier names and literal values. Instead of tree edit distance, it compares **sets of normalized AST features** using the Jaccard coefficient.
 
@@ -287,7 +287,7 @@ When multi-dimensional analysis is disabled (the default), only the APTED struct
 
 ## LSH Acceleration
 
-**Implementation:** `lsh_index.go` (`LSHIndex`), `minhash.go` (`MinHasher`), `ast_features.go` (`ASTFeatureExtractor`)
+**Implementation:** `lsh_index.go` (`LSHIndex`), `minhash.go` (`MinHasher`), `core/clone` (`ASTFeatureExtractor`)
 
 For large codebases, exhaustive O(n^2) pairwise comparison becomes prohibitive. LSH (Locality-Sensitive Hashing) reduces the number of pairs that need expensive APTED verification.
 
@@ -361,7 +361,7 @@ After detecting clone pairs, the detector groups related fragments into clone gr
 
 ### Connected Components (default)
 
-**Implementation:** `connected_grouping.go` (`ConnectedGrouping`)
+**Implementation:** `core/clone` (`ConnectedGrouping`)
 
 Uses Union-Find to build connected components from all pairs whose similarity meets the grouping threshold. This has the highest recall -- any transitive chain of similarities connects fragments into the same group.
 
@@ -370,7 +370,7 @@ Uses Union-Find to build connected components from all pairs whose similarity me
 
 ### Star/Medoid
 
-**Implementation:** `star_medoid_grouping.go` (`StarMedoidGrouping`)
+**Implementation:** `core/clone` (`StarMedoidGrouping`)
 
 Iteratively selects medoids (the member with highest average similarity to others) and reassigns fragments to their most similar medoid. Runs up to 10 iterations with early stopping after 3 consecutive no-change iterations.
 
@@ -385,7 +385,7 @@ Iteratively selects medoids (the member with highest average similarity to other
 
 ### Complete Linkage
 
-**Implementation:** `complete_linkage_grouping.go` (`CompleteLinkageGrouping`)
+**Implementation:** `core/clone` (`CompleteLinkageGrouping`)
 
 Agglomerative hierarchical clustering that only merges two clusters when the *minimum* pairwise similarity between any member of cluster A and any member of cluster B meets the threshold.
 
@@ -394,7 +394,7 @@ Agglomerative hierarchical clustering that only merges two clusters when the *mi
 
 ### k-Core
 
-**Implementation:** `k_core_grouping.go` (`KCoreGrouping`)
+**Implementation:** `core/clone` (`KCoreGrouping`)
 
 Builds a similarity graph where edges connect pairs meeting the threshold, then iteratively removes vertices with fewer than k neighbors (default k=2). The remaining vertices form the k-core subgraph. Connected components within the k-core become groups.
 
@@ -403,7 +403,7 @@ Builds a similarity graph where edges connect pairs meeting the threshold, then 
 
 ### Centroid
 
-**Implementation:** `centroid_grouping.go` (`CentroidGrouping`)
+**Implementation:** `core/clone` (`CentroidGrouping`)
 
 BFS-based grouping that grows groups from a seed fragment by adding neighbors that meet the similarity threshold. Avoids the transitivity problem by directly comparing candidates to existing members.
 

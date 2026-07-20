@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	coreclone "github.com/ludo-technologies/polyscan/core/clone"
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/stretchr/testify/assert"
@@ -521,9 +522,6 @@ func TestCloneDetector_IsSameLocation(t *testing.T) {
 }
 
 func TestCloneDetector_CalculateConfidence(t *testing.T) {
-	config := DefaultCloneDetectorConfig()
-	detector := NewCloneDetector(config)
-
 	fragment1 := &CodeFragment{
 		Size:       50,
 		Complexity: 5,
@@ -534,10 +532,62 @@ func TestCloneDetector_CalculateConfidence(t *testing.T) {
 		Complexity: 5,
 	}
 
-	confidence := detector.calculateConfidence(fragment1, fragment2, 0.8)
+	confidence := coreclone.CalculateConfidence(fragment1.coreFragment(), fragment2.coreFragment(), 0.8)
 
 	assert.GreaterOrEqual(t, confidence, 0.8, "Confidence should be at least the similarity")
 	assert.LessOrEqual(t, confidence, 1.0, "Confidence should not exceed 1.0")
+}
+
+func TestCloneDetector_StarGroupingFiltersMembersBelowMedoidThreshold(t *testing.T) {
+	config := DefaultCloneDetectorConfig()
+	config.GroupingMode = GroupingModeStar
+	config.GroupingThreshold = 0.80
+	detector := NewCloneDetector(config)
+
+	fragment := func(path string) *CodeFragment {
+		return &CodeFragment{Location: &CodeLocation{FilePath: path, StartLine: 1, EndLine: 10}}
+	}
+	a, b, c, d := fragment("a.py"), fragment("b.py"), fragment("c.py"), fragment("d.py")
+	detector.clonePairs = []*ClonePair{
+		{Fragment1: a, Fragment2: b, Similarity: 0.90, CloneType: Type3Clone},
+		{Fragment1: b, Fragment2: c, Similarity: 0.81, CloneType: Type3Clone},
+		{Fragment1: c, Fragment2: d, Similarity: 0.90, CloneType: Type3Clone},
+	}
+
+	detector.groupClones(0.80, 2)
+
+	require.Len(t, detector.cloneGroups, 1)
+	assert.Equal(t, []*CodeFragment{a, b, c}, detector.cloneGroups[0].Fragments)
+}
+
+func TestCloneDetector_CentroidGroupingComputesMissingSimilarities(t *testing.T) {
+	config := DefaultCloneDetectorConfig()
+	config.GroupingMode = GroupingModeCentroid
+	config.GroupingThreshold = 0.80
+	detector := NewCloneDetector(config)
+
+	fragment := func(path string) *CodeFragment {
+		tree := NewTreeNode(0, "FunctionDef")
+		tree.AddChild(NewTreeNode(1, "Return"))
+		PrepareTreeForAPTED(tree)
+		return &CodeFragment{
+			Location: &CodeLocation{FilePath: path, StartLine: 1, EndLine: 10},
+			TreeNode: tree,
+			Size:     2,
+		}
+	}
+	a, b, c := fragment("a.py"), fragment("b.py"), fragment("c.py")
+	detector.clonePairs = []*ClonePair{
+		{Fragment1: a, Fragment2: b, Similarity: 0.90, CloneType: Type3Clone},
+		{Fragment1: b, Fragment2: c, Similarity: 0.90, CloneType: Type3Clone},
+	}
+
+	detector.groupClones(0.80, 2)
+
+	require.Len(t, detector.cloneGroups, 1)
+	assert.Equal(t, []*CodeFragment{a, b, c}, detector.cloneGroups[0].Fragments)
+	assert.Equal(t, Type1Clone, detector.cloneGroups[0].CloneType)
+	assert.Equal(t, 1.0, detector.cloneGroups[0].Similarity)
 }
 
 func TestCloneDetector_GetStatistics(t *testing.T) {

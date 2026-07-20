@@ -86,6 +86,9 @@ func TestCBOConfigurationLoader_LoadDefaultConfig(t *testing.T) {
 	if domain.BoolValue(req.ShowZeros, false) {
 		t.Errorf("Expected default ShowZeros false, got %v", req.ShowZeros)
 	}
+	if domain.BoolValue(req.ShowDetails, true) {
+		t.Errorf("Expected default ShowDetails false, got %v", req.ShowDetails)
+	}
 	if domain.BoolValue(req.IncludeBuiltins, false) {
 		t.Errorf("Expected default IncludeBuiltins false, got %v", req.IncludeBuiltins)
 	}
@@ -130,18 +133,21 @@ func TestCBOConfigurationLoader_MergeConfig(t *testing.T) {
 		{
 			name: "override boolean flags",
 			base: &domain.CBORequest{
+				ShowDetails:           domain.BoolPtr(true),
 				ShowZeros:             domain.BoolPtr(false),
 				IncludeBuiltins:       domain.BoolPtr(false),
 				IncludeImports:        domain.BoolPtr(true),
 				GroupNamespaceImports: domain.BoolPtr(true),
 			},
 			override: &domain.CBORequest{
+				ShowDetails:           domain.BoolPtr(false),
 				ShowZeros:             domain.BoolPtr(true),
 				IncludeBuiltins:       domain.BoolPtr(true),
 				IncludeImports:        domain.BoolPtr(false),
 				GroupNamespaceImports: domain.BoolPtr(false),
 			},
 			expected: &domain.CBORequest{
+				ShowDetails:           domain.BoolPtr(false),
 				ShowZeros:             domain.BoolPtr(true),
 				IncludeBuiltins:       domain.BoolPtr(true),
 				IncludeImports:        domain.BoolPtr(false),
@@ -207,6 +213,9 @@ func TestCBOConfigurationLoader_MergeConfig(t *testing.T) {
 			if tt.expected.ShowZeros != nil && domain.BoolValue(result.ShowZeros, false) != domain.BoolValue(tt.expected.ShowZeros, false) {
 				t.Errorf("Expected ShowZeros %v, got %v", domain.BoolValue(tt.expected.ShowZeros, false), domain.BoolValue(result.ShowZeros, false))
 			}
+			if tt.expected.ShowDetails != nil && domain.BoolValue(result.ShowDetails, false) != domain.BoolValue(tt.expected.ShowDetails, false) {
+				t.Errorf("Expected ShowDetails %v, got %v", domain.BoolValue(tt.expected.ShowDetails, false), domain.BoolValue(result.ShowDetails, false))
+			}
 			if tt.expected.IncludeBuiltins != nil && domain.BoolValue(result.IncludeBuiltins, false) != domain.BoolValue(tt.expected.IncludeBuiltins, false) {
 				t.Errorf("Expected IncludeBuiltins %v, got %v", domain.BoolValue(tt.expected.IncludeBuiltins, false), domain.BoolValue(result.IncludeBuiltins, false))
 			}
@@ -245,6 +254,7 @@ func TestCBOConfigurationLoader_MergeConfig_ZeroOverridePreservesBase(t *testing
 	base := &domain.CBORequest{
 		LowThreshold: 5,
 		SortBy:       domain.SortByName,
+		ShowDetails:  domain.BoolPtr(true),
 	}
 	override := &domain.CBORequest{}
 
@@ -254,6 +264,9 @@ func TestCBOConfigurationLoader_MergeConfig_ZeroOverridePreservesBase(t *testing
 	}
 	if merged.SortBy != domain.SortByName {
 		t.Errorf("expected base SortBy %v, got %v", domain.SortByName, merged.SortBy)
+	}
+	if !domain.BoolValue(merged.ShowDetails, false) {
+		t.Errorf("expected base ShowDetails true, got %v", merged.ShowDetails)
 	}
 }
 

@@ -632,6 +632,216 @@ exclude_patterns = ["**/physics.py"]
 	}
 }
 
+func TestCheckMockdataUsesExplicitConfigPath(t *testing.T) {
+	tempDir := t.TempDir()
+	projectDir := filepath.Join(tempDir, "project")
+	nestedDir := filepath.Join(projectDir, "nested")
+	configDir := filepath.Join(tempDir, "config")
+	if err := os.MkdirAll(nestedDir, 0o755); err != nil {
+		t.Fatalf("failed to create project directory: %v", err)
+	}
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatalf("failed to create config directory: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(projectDir, "main.py"), []byte("value = 42\n"), 0o644); err != nil {
+		t.Fatalf("failed to write root source file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(nestedDir, "data.py"), []byte("email = \"test@example.com\"\n"), 0o644); err != nil {
+		t.Fatalf("failed to write nested source file: %v", err)
+	}
+
+	// The auto-discovered config enables recursion, while the explicitly selected
+	// config disables it. The nested finding must therefore not be analyzed.
+	if err := os.WriteFile(filepath.Join(projectDir, ".pyscn.toml"), []byte("[analysis]\nrecursive = true\n"), 0o644); err != nil {
+		t.Fatalf("failed to write auto-discovered config: %v", err)
+	}
+	explicitConfigPath := filepath.Join(configDir, "explicit.toml")
+	if err := os.WriteFile(explicitConfigPath, []byte("[analysis]\nrecursive = false\n"), 0o644); err != nil {
+		t.Fatalf("failed to write explicit config: %v", err)
+	}
+
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current directory: %v", err)
+	}
+	defer func() {
+		if chdirErr := os.Chdir(originalDir); chdirErr != nil {
+			t.Errorf("failed to restore current directory: %v", chdirErr)
+		}
+	}()
+	if err := os.Chdir(projectDir); err != nil {
+		t.Fatalf("failed to change directory: %v", err)
+	}
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+
+	var stdout, stderr bytes.Buffer
+	cobraCmd.SetOut(&stdout)
+	cobraCmd.SetErr(&stderr)
+	cobraCmd.SetArgs([]string{"--select", "mockdata", "--config", explicitConfigPath, projectDir})
+
+	err = cobraCmd.Execute()
+	if err != nil {
+		output := stdout.String() + stderr.String()
+		t.Fatalf("expected mockdata check to use the explicit non-recursive config, got: %v, output: %s", err, output)
+	}
+}
+
+func TestCheckComplexityUsesConfigExcludePatterns(t *testing.T) {
+	tempDir := t.TempDir()
+	projectDir := filepath.Join(tempDir, "project")
+	configDir := filepath.Join(tempDir, "config")
+	if err := os.MkdirAll(projectDir, 0o755); err != nil {
+		t.Fatalf("failed to create project directory: %v", err)
+	}
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatalf("failed to create config directory: %v", err)
+	}
+
+	complexSource := `def complex_function(value):
+    result = 0
+    if value > 0: result += 1
+    if value > 1: result += 1
+    if value > 2: result += 1
+    if value > 3: result += 1
+    if value > 4: result += 1
+    if value > 5: result += 1
+    if value > 6: result += 1
+    if value > 7: result += 1
+    if value > 8: result += 1
+    if value > 9: result += 1
+    if value > 10: result += 1
+    return result
+`
+	if err := os.WriteFile(filepath.Join(projectDir, "complex.py"), []byte(complexSource), 0o644); err != nil {
+		t.Fatalf("failed to write complex source file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, "safe.py"), []byte("def safe():\n    return 1\n"), 0o644); err != nil {
+		t.Fatalf("failed to write safe source file: %v", err)
+	}
+
+	baseline := NewCheckCommand().CreateCobraCommand()
+	baseline.SetOut(&bytes.Buffer{})
+	baseline.SetErr(&bytes.Buffer{})
+	baseline.SetArgs([]string{"--select", "complexity", projectDir})
+	if err := baseline.Execute(); err == nil {
+		t.Fatal("expected the unfiltered complexity fixture to fail the quality gate")
+	}
+
+	configPath := filepath.Join(configDir, "explicit.toml")
+	if err := os.WriteFile(configPath, []byte("[analysis]\nexclude_patterns = [\"**/complex.py\"]\n"), 0o644); err != nil {
+		t.Fatalf("failed to write config file: %v", err)
+	}
+
+	checkCmd := NewCheckCommand().CreateCobraCommand()
+	var output bytes.Buffer
+	checkCmd.SetOut(&output)
+	checkCmd.SetErr(&output)
+	checkCmd.SetArgs([]string{"--select", "complexity", "--config", configPath, projectDir})
+	if err := checkCmd.Execute(); err != nil {
+		t.Fatalf("expected complexity check to honor config exclude_patterns, got: %v, output: %s", err, output.String())
+	}
+}
+
+func TestCheckDeadCodeUsesConfigBooleanOverrides(t *testing.T) {
+	tempDir := t.TempDir()
+	sourcePath := filepath.Join(tempDir, "dead.py")
+	source := "def sample():\n    return 1\n    print('unreachable')\n"
+	if err := os.WriteFile(sourcePath, []byte(source), 0o644); err != nil {
+		t.Fatalf("failed to write source file: %v", err)
+	}
+
+	baseline := NewCheckCommand().CreateCobraCommand()
+	baseline.SetOut(&bytes.Buffer{})
+	baseline.SetErr(&bytes.Buffer{})
+	baseline.SetArgs([]string{"--select", "deadcode", sourcePath})
+	if err := baseline.Execute(); err == nil {
+		t.Fatal("expected the unreachable-code fixture to fail the quality gate")
+	}
+
+	configPath := filepath.Join(tempDir, "explicit.toml")
+	config := "[dead_code]\ndetect_after_return = false\n"
+	if err := os.WriteFile(configPath, []byte(config), 0o644); err != nil {
+		t.Fatalf("failed to write config file: %v", err)
+	}
+
+	checkCmd := NewCheckCommand().CreateCobraCommand()
+	var output bytes.Buffer
+	checkCmd.SetOut(&output)
+	checkCmd.SetErr(&output)
+	checkCmd.SetArgs([]string{"--select", "deadcode", "--config", configPath, sourcePath})
+	if err := checkCmd.Execute(); err != nil {
+		t.Fatalf("expected dead-code check to honor detect_after_return=false, got: %v, output: %s", err, output.String())
+	}
+}
+
+func TestCheckMockdataUsesConfiguredKeyword(t *testing.T) {
+	tempDir := t.TempDir()
+	sourcePath := filepath.Join(tempDir, "data.py")
+	if err := os.WriteFile(sourcePath, []byte("productionfixture = 42\n"), 0o644); err != nil {
+		t.Fatalf("failed to write source file: %v", err)
+	}
+
+	baseline := NewCheckCommand().CreateCobraCommand()
+	baseline.SetOut(&bytes.Buffer{})
+	baseline.SetErr(&bytes.Buffer{})
+	baseline.SetArgs([]string{"--select", "mockdata", sourcePath})
+	if err := baseline.Execute(); err != nil {
+		t.Fatalf("expected the custom keyword fixture to pass with defaults, got: %v", err)
+	}
+
+	configPath := filepath.Join(tempDir, "explicit.toml")
+	config := "[mock_data]\nkeywords = [\"productionfixture\"]\n"
+	if err := os.WriteFile(configPath, []byte(config), 0o644); err != nil {
+		t.Fatalf("failed to write config file: %v", err)
+	}
+
+	checkCmd := NewCheckCommand().CreateCobraCommand()
+	var output bytes.Buffer
+	checkCmd.SetOut(&output)
+	checkCmd.SetErr(&output)
+	checkCmd.SetArgs([]string{"--select", "mockdata", "--config", configPath, sourcePath})
+	if err := checkCmd.Execute(); err == nil {
+		t.Fatalf("expected configured mockdata keyword to fail the quality gate, output: %s", output.String())
+	}
+	if !strings.Contains(output.String(), "productionfixture") {
+		t.Fatalf("expected custom keyword finding in output, got: %s", output.String())
+	}
+}
+
+func TestCheckMockdataUsesConfiguredIgnorePatterns(t *testing.T) {
+	tempDir := t.TempDir()
+	sourcePath := filepath.Join(tempDir, "ignored.py")
+	if err := os.WriteFile(sourcePath, []byte("email = \"test@example.com\"\n"), 0o644); err != nil {
+		t.Fatalf("failed to write source file: %v", err)
+	}
+
+	baseline := NewCheckCommand().CreateCobraCommand()
+	baseline.SetOut(&bytes.Buffer{})
+	baseline.SetErr(&bytes.Buffer{})
+	baseline.SetArgs([]string{"--select", "mockdata", sourcePath})
+	if err := baseline.Execute(); err == nil {
+		t.Fatal("expected the unignored mockdata fixture to fail the quality gate")
+	}
+
+	configPath := filepath.Join(tempDir, "explicit.toml")
+	config := "[mock_data]\nignore_patterns = ['ignored\\.py$']\n"
+	if err := os.WriteFile(configPath, []byte(config), 0o644); err != nil {
+		t.Fatalf("failed to write config file: %v", err)
+	}
+
+	checkCmd := NewCheckCommand().CreateCobraCommand()
+	var output bytes.Buffer
+	checkCmd.SetOut(&output)
+	checkCmd.SetErr(&output)
+	checkCmd.SetArgs([]string{"--select", "mockdata", "--config", configPath, sourcePath})
+	if err := checkCmd.Execute(); err != nil {
+		t.Fatalf("expected mockdata check to honor ignore_patterns, got: %v, output: %s", err, output.String())
+	}
+}
+
 // TestCheckNoDepsAnalysis tests that deps analysis is opt-in by default
 func TestCheckNoDepsAnalysis(t *testing.T) {
 	checkCmd := NewCheckCommand()
@@ -743,6 +953,77 @@ constructor_param_threshold = 10
 	}
 	if strings.Contains(output, "constructor_over_injection") {
 		t.Fatalf("expected parent config threshold to suppress the finding, output: %s", output)
+	}
+}
+
+func TestCheckFailsOnMalformedDiscoveredPyscnConfig(t *testing.T) {
+	tempDir := t.TempDir()
+	projectDir := filepath.Join(tempDir, "project")
+	subDir := filepath.Join(projectDir, "pkg")
+	if err := os.MkdirAll(subDir, 0o755); err != nil {
+		t.Fatalf("failed to create test directories: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, ".pyscn.toml"), []byte("[analysis\nrecursive = false\n"), 0o644); err != nil {
+		t.Fatalf("failed to write malformed config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(subDir, "sample.py"), []byte("def sample():\n    return 1\n"), 0o644); err != nil {
+		t.Fatalf("failed to write source file: %v", err)
+	}
+
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current directory: %v", err)
+	}
+	defer func() {
+		if chdirErr := os.Chdir(originalDir); chdirErr != nil {
+			t.Errorf("failed to restore current directory: %v", chdirErr)
+		}
+	}()
+	if err := os.Chdir(subDir); err != nil {
+		t.Fatalf("failed to change directory: %v", err)
+	}
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	cobraCmd.SetArgs([]string{"--select", "complexity", "."})
+
+	err = cobraCmd.Execute()
+	if err == nil {
+		t.Fatal("expected malformed discovered .pyscn.toml to fail the check")
+	}
+	if !strings.Contains(err.Error(), "failed to load configuration") {
+		t.Fatalf("expected configuration load error, got: %v", err)
+	}
+}
+
+func TestCheckIgnoresMalformedPyprojectWithoutPyscnSection(t *testing.T) {
+	tempDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(tempDir, "pyproject.toml"), []byte("[project\nname = 'broken'\n"), 0o644); err != nil {
+		t.Fatalf("failed to write unrelated pyproject.toml: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "sample.py"), []byte("def sample():\n    return 1\n"), 0o644); err != nil {
+		t.Fatalf("failed to write source file: %v", err)
+	}
+
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current directory: %v", err)
+	}
+	defer func() {
+		if chdirErr := os.Chdir(originalDir); chdirErr != nil {
+			t.Errorf("failed to restore current directory: %v", chdirErr)
+		}
+	}()
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("failed to change directory: %v", err)
+	}
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	cobraCmd.SetArgs([]string{"--select", "complexity", "."})
+
+	if err := cobraCmd.Execute(); err != nil {
+		t.Fatalf("unrelated pyproject.toml should not affect check: %v", err)
 	}
 }
 

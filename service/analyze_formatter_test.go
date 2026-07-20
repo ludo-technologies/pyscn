@@ -163,6 +163,10 @@ func TestAnalyzeFormatter_Write_Text(t *testing.T) {
 func TestAnalyzeFormatter_Write_JSON(t *testing.T) {
 	formatter := NewAnalyzeFormatter()
 	response := createTestAnalyzeResponse()
+	response.Complexity.Request = &domain.ComplexityRequest{
+		ShowDetails: domain.BoolPtr(false),
+		Recursive:   domain.BoolPtr(true),
+	}
 	var buf bytes.Buffer
 
 	err := formatter.Write(response, domain.OutputFormatJSON, &buf)
@@ -176,6 +180,14 @@ func TestAnalyzeFormatter_Write_JSON(t *testing.T) {
 	assert.Equal(t, response.Summary.HealthScore, decoded.Summary.HealthScore)
 	assert.Equal(t, response.Summary.Grade, decoded.Summary.Grade)
 	assert.Equal(t, response.Summary.TotalFiles, decoded.Summary.TotalFiles)
+	require.NotNil(t, decoded.Complexity)
+	require.NotNil(t, decoded.Complexity.Request)
+	if assert.NotNil(t, decoded.Complexity.Request.ShowDetails) {
+		assert.False(t, *decoded.Complexity.Request.ShowDetails)
+	}
+	if assert.NotNil(t, decoded.Complexity.Request.Recursive) {
+		assert.True(t, *decoded.Complexity.Request.Recursive)
+	}
 }
 
 func TestAnalyzeFormatter_Write_JSON_IncludesCommunityAnalysis(t *testing.T) {

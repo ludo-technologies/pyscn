@@ -72,11 +72,17 @@ type ComplexityRequest struct {
     SortBy          SortCriteria
     LowThreshold    int
     MediumThreshold int
-    ShowDetails     bool
-    Recursive       bool
+    ShowDetails     *bool
+    Recursive       *bool
     IncludePatterns []string
     ExcludePatterns []string
     ConfigPath      string
+}
+
+// Pointer booleans distinguish an omitted override from an explicit false.
+request := domain.ComplexityRequest{
+    ShowDetails: domain.BoolPtr(false),
+    Recursive:   domain.BoolPtr(true),
 }
 ```
 
@@ -257,10 +263,9 @@ Each clone type uses a specialized algorithm optimized for its detection charact
 
 ```go
 // Type-2: Normalized AST Hash with Jaccard Coefficient
-// internal/analyzer/syntactic_similarity.go
+// core/clone (github.com/ludo-technologies/polyscan/core)
 type SyntacticSimilarityAnalyzer struct {
     extractor *ASTFeatureExtractor  // Extracts normalized node hashes
-    converter *TreeConverter
 }
 
 // Jaccard(A, B) = |A ∩ B| / |A ∪ B|

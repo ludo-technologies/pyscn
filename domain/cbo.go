@@ -15,7 +15,7 @@ type CBORequest struct {
 	OutputWriter io.Writer
 	OutputPath   string // Path to save output file (for HTML format)
 	NoOpen       bool   // Don't auto-open HTML in browser
-	ShowDetails  bool
+	ShowDetails  *bool  // nil = unset, non-nil = explicitly set
 
 	// Filtering and sorting
 	MinCBO    int
@@ -166,7 +166,7 @@ type CBOAnalysisOptions struct {
 func DefaultCBORequest() *CBORequest {
 	return &CBORequest{
 		OutputFormat:          OutputFormatText,
-		ShowDetails:           false,
+		ShowDetails:           BoolPtr(false),
 		MinCBO:                0,
 		MaxCBO:                0,              // No limit
 		SortBy:                SortByCoupling, // Sort by CBO value
