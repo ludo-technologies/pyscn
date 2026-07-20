@@ -359,8 +359,14 @@ import numpy as np
 
 @cython.cclass
 class MyClass:
-    x: cython.int = 0
-    y: cython.float = 0.0
+    a: cython.int = 0
+    b: cython.float = 0.0
+    c: cython.long = 0
+    d: cython.uint = 0
+    e: cython.ulong = 0
+    f: cython.ulonglong = 0
+    g: cython.ushort = 0
+    h: cython.double = 0.0
     data: np.ndarray
 
     def __init__(self):
@@ -368,22 +374,26 @@ class MyClass:
 `
 
 	tests := []struct {
-		name            string
-		includeBuiltins bool
-		minExpectedCBO  int
-		maxExpectedCBO  int
+		name               string
+		includeBuiltins    bool
+		expectedCBO        int
+		expectedDependents []string
 	}{
 		{
-			name:            "exclude Cython primitives by default",
-			includeBuiltins: false,
-			minExpectedCBO:  0,
-			maxExpectedCBO:  1,
+			name:               "exclude Cython primitives by default",
+			includeBuiltins:    false,
+			expectedCBO:        1,
+			expectedDependents: []string{"np"},
 		},
 		{
 			name:            "include Cython primitives when IncludeBuiltins",
 			includeBuiltins: true,
-			minExpectedCBO:  3,
-			maxExpectedCBO:  9,
+			expectedCBO:     9,
+			expectedDependents: []string{
+				"cython.int", "cython.float", "cython.long", "cython.uint",
+				"cython.ulong", "cython.ulonglong", "cython.ushort", "cython.double",
+				"np",
+			},
 		},
 	}
 
@@ -400,20 +410,8 @@ class MyClass:
 			require.NoError(t, err)
 
 			require.Len(t, results, 1)
-			cbo := results[0].CouplingCount
-
-			if cbo < tt.minExpectedCBO || cbo > tt.maxExpectedCBO {
-				t.Errorf("CBO = %d, expected between %d and %d. DependentClasses: %v",
-					cbo, tt.minExpectedCBO, tt.maxExpectedCBO, results[0].DependentClasses)
-			}
-
-			if !tt.includeBuiltins {
-				for _, dep := range results[0].DependentClasses {
-					if strings.HasPrefix(dep, "cython.") {
-						t.Errorf("cython primitive %q should not appear in DependentClasses when IncludeBuiltins=false", dep)
-					}
-				}
-			}
+			assert.Equal(t, tt.expectedCBO, results[0].CouplingCount)
+			assert.ElementsMatch(t, tt.expectedDependents, results[0].DependentClasses)
 		})
 	}
 }
