@@ -352,6 +352,70 @@ class MyClass:
 	}
 }
 
+func TestCBOAnalyzer_CythonPrimitiveExclusion(t *testing.T) {
+	pythonCode := `
+import cython
+import numpy as np
+
+@cython.cclass
+class MyClass:
+    a: cython.int = 0
+    b: cython.float = 0.0
+    c: cython.long = 0
+    d: cython.uint = 0
+    e: cython.ulong = 0
+    f: cython.ulonglong = 0
+    g: cython.ushort = 0
+    h: cython.double = 0.0
+    data: np.ndarray
+
+    def __init__(self):
+        self.data = np.zeros(10)
+`
+
+	tests := []struct {
+		name               string
+		includeBuiltins    bool
+		expectedCBO        int
+		expectedDependents []string
+	}{
+		{
+			name:               "exclude Cython primitives by default",
+			includeBuiltins:    false,
+			expectedCBO:        1,
+			expectedDependents: []string{"np"},
+		},
+		{
+			name:            "include Cython primitives when IncludeBuiltins",
+			includeBuiltins: true,
+			expectedCBO:     9,
+			expectedDependents: []string{
+				"cython.int", "cython.float", "cython.long", "cython.uint",
+				"cython.ulong", "cython.ulonglong", "cython.ushort", "cython.double",
+				"np",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ast, err := parseCode(pythonCode)
+			require.NoError(t, err)
+
+			options := DefaultCBOOptions()
+			options.IncludeBuiltins = tt.includeBuiltins
+
+			analyzer := NewCBOAnalyzer(options)
+			results, err := analyzer.AnalyzeClasses(ast, "test.py")
+			require.NoError(t, err)
+
+			require.Len(t, results, 1)
+			assert.Equal(t, tt.expectedCBO, results[0].CouplingCount)
+			assert.ElementsMatch(t, tt.expectedDependents, results[0].DependentClasses)
+		})
+	}
+}
+
 func TestCBOAnalyzer_IgnoresImportedModuleConstants(t *testing.T) {
 	pythonCode := `
 import re

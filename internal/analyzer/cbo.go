@@ -1397,6 +1397,9 @@ func (a *CBOAnalyzer) initializeBuiltinTypes() {
 		"Exception", "BaseException", "ValueError", "TypeError", "KeyError",
 		"IndexError", "AttributeError", "NameError", "RuntimeError",
 		"memoryview", "slice",
+		// Cython primitive type qualifiers
+		"cython.int", "cython.float", "cython.long", "cython.uint",
+		"cython.ulong", "cython.ulonglong", "cython.ushort", "cython.double",
 	}
 
 	// Built-in functions (never counted as dependencies)
