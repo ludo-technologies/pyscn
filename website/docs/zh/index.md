@@ -21,7 +21,7 @@ uvx pyscn@latest analyze .
 - **循环导入检测**，基于 Tarjan 强连通分量算法。
 - **健康评分**（0-100），按类别分项评估。
 - **CI 就绪**，提供 `pyscn check` 命令、linter 风格输出和确定性退出码。
-- **MCP 服务器**（`pyscn-mcp`），支持 Claude Code、Cursor 及其他 MCP 客户端。
+- **Agent Skills** 和 **MCP 服务器**（`pyscn-mcp`），支持 Claude Code、Cursor 及其他 AI 编码代理。
 
 使用 Go 编写。在常见硬件上分析速度超过 100,000 行/秒。无 Python 运行时依赖。
 
@@ -45,3 +45,11 @@ pyscn init                              # 生成 .pyscn.toml
 ```
 
 详见[快速开始](getting-started/quick-start.md)和[规则目录](rules/index.md)。
+
+## AI 代理集成
+
+```bash
+uvx add-skills ludo-technologies/pyscn
+```
+
+安装 Agent Skills，教 Claude Code、Cursor、Codex、Gemini CLI 及其他编码代理何时以及如何运行每种分析。详见 [Agent Skills](integrations/skills.md)；如需结构化的工具调用，可改用 [MCP 服务器](integrations/mcp.md)。
