@@ -7,6 +7,15 @@ import (
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
+func requirePythonNode(t *testing.T, value any) *parser.Node {
+	t.Helper()
+	node, ok := pythonNode(value)
+	if !ok {
+		t.Fatalf("CFG value has type %T, want *parser.Node", value)
+	}
+	return node
+}
+
 func TestBasicBlock(t *testing.T) {
 	t.Run("NewBasicBlock", func(t *testing.T) {
 		block := NewBasicBlock("test")

@@ -3,6 +3,7 @@ package analyzer
 import (
 	"fmt"
 
+	corecfg "github.com/ludo-technologies/polyscan/core/cfg"
 	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
@@ -69,60 +70,6 @@ func (cr *ComplexityResult) String() string {
 		cr.FunctionName, cr.Complexity, cr.RiskLevel)
 }
 
-// complexityVisitor implements CFGVisitor to count edges and nodes
-type complexityVisitor struct {
-	edgeCount         int
-	nodeCount         int
-	decisionPoints    map[*BasicBlock]int // Track decision points per block
-	loopStatements    int
-	exceptionHandlers int
-	switchCases       int
-}
-
-// VisitBlock counts nodes and analyzes decision points
-func (cv *complexityVisitor) VisitBlock(block *BasicBlock) bool {
-	if block == nil {
-		return true
-	}
-
-	// Count all blocks except entry/exit for accurate complexity
-	if !block.IsEntry && !block.IsExit {
-		cv.nodeCount++
-	}
-
-	return true
-}
-
-// VisitEdge counts edges and categorizes decision points
-func (cv *complexityVisitor) VisitEdge(edge *Edge) bool {
-	if edge == nil {
-		return true
-	}
-
-	cv.edgeCount++
-
-	// Count decision points accurately by source block
-	// A decision point is a block with multiple outgoing edges
-	if edge.From != nil {
-		if cv.decisionPoints == nil {
-			cv.decisionPoints = make(map[*BasicBlock]int)
-		}
-
-		switch edge.Type {
-		case EdgeCondTrue, EdgeCondFalse:
-			// Mark this block as having conditional edges
-			// We only count the block once, regardless of number of edges
-			cv.decisionPoints[edge.From] = 1
-		case EdgeLoop:
-			cv.loopStatements++
-		case EdgeException:
-			cv.exceptionHandlers++
-		}
-	}
-
-	return true
-}
-
 // CalculateComplexity computes McCabe cyclomatic complexity for a CFG using default thresholds
 func CalculateComplexity(cfg *CFG) *ComplexityResult {
 	defaultConfig := config.DefaultConfig()
@@ -138,16 +85,14 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 		}
 	}
 
-	visitor := &complexityVisitor{
-		decisionPoints: make(map[*BasicBlock]int),
-	}
-	cfg.Walk(visitor)
+	coreResult, reachableBlocks := computeCoreComplexity(cfg)
+	conditionalDecisions := countConditionalDecisionBlocks(reachableBlocks)
 
 	// Primary method: count decision points + 1
 	// This is more reliable for CFGs with entry/exit nodes
 	astMetrics, hasASTMetrics := calculateASTComplexityMetrics(complexitySourceNode(cfg))
-	reportedMetrics := resolveComplexityMetrics(visitor, astMetrics, hasASTMetrics)
-	decisionPoints := countDecisionPoints(visitor, reportedMetrics, hasASTMetrics)
+	reportedMetrics := resolveCoreComplexityMetrics(coreResult, conditionalDecisions, astMetrics, hasASTMetrics)
+	decisionPoints := countCoreDecisionPoints(conditionalDecisions, reportedMetrics, hasASTMetrics)
 	complexity := decisionPoints + 1
 
 	// Ensure minimum complexity of 1 for any function
@@ -171,8 +116,8 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 
 	result := &ComplexityResult{
 		Complexity:          complexity,
-		Edges:               visitor.edgeCount,
-		Nodes:               visitor.nodeCount,
+		Edges:               countCoreEdges(coreResult),
+		Nodes:               countCoreNodes(reachableBlocks),
 		ConnectedComponents: 1,
 		FunctionName:        cfg.Name,
 		StartLine:           startLine,
@@ -190,21 +135,75 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 	return result
 }
 
-// countDecisionPoints counts the number of decision points in the CFG
-func countDecisionPoints(visitor *complexityVisitor, metrics astComplexityMetrics, hasASTMetrics bool) int {
-	// Decision points are nodes that have multiple outgoing edges
-	// For McCabe complexity, each decision point adds 1 to complexity
+func computeCoreComplexity(graph *CFG) (*corecfg.ComplexityResult, map[string]*BasicBlock) {
+	reachability := corecfg.AnalyzeReachability(graph, corecfg.ReachabilityConfig{})
+	reachableBlocks := make(map[string]*BasicBlock, reachability.ReachableCount)
+	for id := range reachability.Reachable {
+		reachableBlocks[id] = graph.Blocks[id]
+	}
 
-	// Count actual conditional decisions (unique blocks with conditional edges)
-	conditionalDecisions := len(visitor.decisionPoints)
-	if hasASTMetrics && metrics.MatchStatements > 0 {
+	result, err := corecfg.ComputeComplexity(&corecfg.CFG{Blocks: reachableBlocks}, corecfg.ComplexityConfig{})
+	if err != nil {
+		panic(fmt.Sprintf("compute core CFG complexity: %v", err))
+	}
+	return result, reachableBlocks
+}
+
+func countConditionalDecisionBlocks(blocks map[string]*BasicBlock) int {
+	count := 0
+	for _, block := range blocks {
+		for _, edge := range block.Successors {
+			if edge.Type == EdgeCondTrue || edge.Type == EdgeCondFalse {
+				count++
+				break
+			}
+		}
+	}
+	return count
+}
+
+func resolveCoreComplexityMetrics(
+	result *corecfg.ComplexityResult,
+	conditionalDecisions int,
+	astMetrics astComplexityMetrics,
+	hasASTMetrics bool,
+) astComplexityMetrics {
+	if hasASTMetrics {
+		return astMetrics
+	}
+	return astComplexityMetrics{
+		IfStatements:      conditionalDecisions,
+		LoopStatements:    result.EdgeBreakdown[corecfg.EdgeLoop],
+		ExceptionHandlers: result.EdgeBreakdown[corecfg.EdgeException],
+	}
+}
+
+func countCoreDecisionPoints(conditionalDecisions int, metrics astComplexityMetrics, hasASTMetrics bool) int {
+	if hasASTMetrics {
 		conditionalDecisions -= metrics.MatchStatements
 		if conditionalDecisions < 0 {
 			conditionalDecisions = 0
 		}
 	}
-
 	return conditionalDecisions + metrics.ExceptionHandlers + metrics.SwitchCases
+}
+
+func countCoreEdges(result *corecfg.ComplexityResult) int {
+	count := 0
+	for _, edgeCount := range result.EdgeBreakdown {
+		count += edgeCount
+	}
+	return count
+}
+
+func countCoreNodes(blocks map[string]*BasicBlock) int {
+	count := 0
+	for _, block := range blocks {
+		if !block.IsEntry && !block.IsExit {
+			count++
+		}
+	}
+	return count
 }
 
 type astComplexityMetrics struct {
@@ -217,25 +216,10 @@ type astComplexityMetrics struct {
 }
 
 func complexitySourceNode(cfg *CFG) *parser.Node {
-	if cfg == nil {
+	if cfg == nil || cfg.FunctionNode == nil {
 		return nil
 	}
-	if cfg.FunctionNode != nil {
-		return cfg.FunctionNode
-	}
-	return cfg.ModuleNode
-}
-
-func resolveComplexityMetrics(visitor *complexityVisitor, astMetrics astComplexityMetrics, hasASTMetrics bool) astComplexityMetrics {
-	if hasASTMetrics {
-		return astMetrics
-	}
-	return astComplexityMetrics{
-		IfStatements:      len(visitor.decisionPoints),
-		LoopStatements:    visitor.loopStatements,
-		ExceptionHandlers: visitor.exceptionHandlers,
-		SwitchCases:       visitor.switchCases,
-	}
+	return mustPythonNode(cfg.FunctionNode)
 }
 
 func calculateASTComplexityMetrics(root *parser.Node) (astComplexityMetrics, bool) {

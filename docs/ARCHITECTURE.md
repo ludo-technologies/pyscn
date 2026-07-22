@@ -186,24 +186,15 @@ type Location struct {
 
 ### 2. Analyzer Module (`internal/analyzer`)
 
-The analyzer module contains the core analysis algorithms.
+The analyzer module contains Python adapters and language-specific analysis. Language-neutral CFG, clone, and APTED kernels come from `github.com/ludo-technologies/polyscan/core`.
 
 #### 2.1 Control Flow Graph (CFG)
 
 ```go
-// internal/analyzer/cfg.go
-type CFG struct {
-    Entry  *BasicBlock
-    Exit   *BasicBlock
-    Blocks map[string]*BasicBlock
-}
-
-type BasicBlock struct {
-    ID          string
-    Statements  []ast.Node
-    Successors  []*BasicBlock
-    Predecessors []*BasicBlock
-}
+// internal/analyzer/cfg.go aliases polyscan/core/cfg.
+type CFG = corecfg.CFG
+type BasicBlock = corecfg.BasicBlock
+type Edge = corecfg.Edge
 
 type CFGBuilder struct {
     current *BasicBlock
@@ -242,11 +233,11 @@ type Finding struct {
 ```
 
 **Algorithm:**
-1. Mark entry block as reachable
-2. Perform breadth-first traversal
-3. Mark all visited blocks as reachable
-4. Report unreachable blocks as dead code
-5. Analyze variable usage for unused detection
+1. Classify Python terminators and no-op statements
+2. Run `core/cfg` terminator-aware reachability
+3. Select dead blocks with `core/cfg`
+4. Enrich findings with Python source locations, reasons, and severities
+5. Merge line ranges with the shared core post-processing pass
 
 #### 2.3 Clone Detection with Multi-Algorithm Approach
 

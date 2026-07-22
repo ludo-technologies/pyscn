@@ -46,7 +46,8 @@ func (b *DFABuilder) collectFunctionParameters() {
 	if b.cfg == nil || b.cfg.FunctionNode == nil || b.cfg.Entry == nil {
 		return
 	}
-	for _, def := range b.extractParameterDefs(b.cfg.FunctionNode, b.cfg.Entry, -1) {
+	functionNode := mustPythonNode(b.cfg.FunctionNode)
+	for _, def := range b.extractParameterDefs(functionNode, b.cfg.Entry, -1) {
 		b.info.AddDef(def)
 	}
 }
@@ -61,7 +62,8 @@ func (b *DFABuilder) collectDefinitions() {
 		}
 
 		for pos, stmt := range block.Statements {
-			defs := b.extractDefinitions(stmt, block, pos)
+			node := mustPythonNode(stmt)
+			defs := b.extractDefinitions(node, block, pos)
 			for _, def := range defs {
 				b.info.AddDef(def)
 			}
@@ -79,7 +81,8 @@ func (b *DFABuilder) collectUses() {
 		}
 
 		for pos, stmt := range block.Statements {
-			uses := b.extractUses(stmt, block, pos)
+			node := mustPythonNode(stmt)
+			uses := b.extractUses(node, block, pos)
 			for _, use := range uses {
 				b.info.AddUse(use)
 			}
