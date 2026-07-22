@@ -1,0 +1,37 @@
+<div class="pyscn-hero__art">
+<svg class="pyscn-cfg" viewBox="0 0 330 226" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pyscn-cfg-title pyscn-cfg-desc">
+  <title id="pyscn-cfg-title">Control-flow graph for a function with unreachable code</title>
+  <desc id="pyscn-cfg-desc">After the conditional, both branches return. A logging call written after the conditional is never reached, so pyscn flags it as unreachable-after-return.</desc>
+  <defs>
+    <marker id="pyscn-arrow" viewBox="0 0 8 8" refX="6.5" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path class="pyscn-cfg-arrowhead" d="M0,0 L8,4 L0,8 z" />
+    </marker>
+  </defs>
+
+  <circle class="pyscn-cfg-node--entry" cx="24" cy="16" r="4" />
+  <text x="36" y="19">def process(x):</text>
+  <path class="pyscn-cfg-edge pyscn-cfg-edge--live" d="M24,20 L24,50" />
+
+  <path class="pyscn-cfg-decision" d="M24,40 L34,50 L24,60 L14,50 Z" />
+  <text x="52" y="63">if x is None:</text>
+
+  <path class="pyscn-cfg-edge pyscn-cfg-edge--live" d="M31,53 C 130,16 170,16 186,22" />
+  <rect class="pyscn-cfg-chip" x="136" y="8" width="28" height="12" rx="3" />
+  <text class="pyscn-cfg-branch-label" x="150" y="17" text-anchor="middle">True</text>
+  <circle class="pyscn-cfg-node--exit" cx="192" cy="22" r="4" />
+  <text x="202" y="25">return None</text>
+
+  <path class="pyscn-cfg-edge pyscn-cfg-edge--live" d="M31,67 C 130,156 170,156 186,124" />
+  <rect class="pyscn-cfg-chip" x="134" y="150" width="34" height="12" rx="3" />
+  <text class="pyscn-cfg-branch-label" x="151" y="159" text-anchor="middle">False</text>
+  <circle class="pyscn-cfg-node--exit" cx="192" cy="124" r="4" />
+  <text x="202" y="127">return compute(x)</text>
+
+  <path class="pyscn-cfg-edge--guide" d="M24,70 C 24,150 110,180 186,188" />
+  <text x="76" y="160" fill="#475569" font-size="9">✕</text>
+  <circle class="pyscn-cfg-node--dead" cx="192" cy="188" r="6" />
+  <line class="pyscn-cfg-node--dead-mark" x1="188.5" y1="184.5" x2="195.5" y2="191.5" />
+  <text class="pyscn-cfg-label--dead" x="204" y="191">log("done")</text>
+  <text class="pyscn-cfg-caption" x="24" y="212">&#8594; flagged: unreachable-after-return</text>
+</svg>
+</div>

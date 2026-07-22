@@ -4,48 +4,111 @@ hide:
   - toc
 ---
 
+<div class="pyscn-hero" markdown="1">
+
+<div class="pyscn-hero__copy" markdown="1">
+
+<p class="pyscn-hero__eyebrow">Structural static analysis for Python</p>
+
 # pyscn
 
-A structural static analyzer for Python. Detects dead code, duplication, complexity, and coupling issues via control-flow and tree analysis.
+<p class="pyscn-hero__lede">pyscn reads Python the way a compiler does — control-flow graphs, syntax trees, import graphs — to catch what line-by-line linters miss: dead code stranded after a <code>return</code>, logic duplicated under a different name, and modules wired into silent cycles.</p>
 
 ```bash
 uvx pyscn@latest analyze .
 ```
 
-## Features
+[Get started :material-arrow-right:](getting-started/quick-start.md){ .md-button .md-button--primary } [View on GitHub :fontawesome-brands-github:](https://github.com/ludo-technologies/pyscn){ .md-button }
 
-- **33 rules** across unreachable code, duplicate code, complexity, class design, dependency injection, module structure, and mock data.
-- **CFG-based reachability** finds dead code past `return` / `raise` / `break` / `continue` and unreachable branches.
-- **APTED + LSH clone detection** across four clone types (identical, renamed, modified, semantic).
-- **CBO / LCOM4** class coupling and cohesion metrics.
-- **Circular import detection** via Tarjan's SCC.
-- **Module community detection** via Leiden clustering over the import graph.
-- **Health score** (0–100) with per-category breakdown.
-- **CI-ready** with `pyscn check`, linter-style output, and deterministic exit codes.
-- **Agent Skills** and an **MCP server** (`pyscn-mcp`) for Claude Code, Cursor, and other AI coding agents.
+<p class="pyscn-hero__meta">Go binary · zero Python runtime deps · 100,000+ lines/sec · 33 rules</p>
 
-Written in Go. 100,000+ lines/sec on typical hardware. No Python runtime dependencies.
+</div>
 
-## Installation
+--8<-- "includes/cfg-diagram.html"
 
-```bash
-uvx pyscn@latest <command>   # run without installing (recommended)
-uv tool install pyscn        # install with uv
-pipx install pyscn           # install with pipx
-pip install pyscn            # install with pip
-```
+</div>
+
+## What it finds
+
+<div class="grid cards" markdown="1">
+
+-   :material-source-branch:{ .lg .middle } __Unreachable code__
+
+    ---
+
+    CFG-based reachability finds dead code stranded after `return`, `raise`, `break`, `continue`, or an always-true branch.
+
+-   :material-content-duplicate:{ .lg .middle } __Duplicate code__
+
+    ---
+
+    APTED tree-edit distance plus LSH catches four clone types: identical, renamed, modified, and semantic.
+
+-   :material-gauge:{ .lg .middle } __Complexity__
+
+    ---
+
+    Cyclomatic complexity per function, with thresholds you tune per project.
+
+-   :material-shape-outline:{ .lg .middle } __Class design__
+
+    ---
+
+    CBO coupling and LCOM4 cohesion metrics surface classes doing too much, or too little, together.
+
+-   :material-sync:{ .lg .middle } __Circular imports__
+
+    ---
+
+    Tarjan's SCC algorithm finds import cycles before they turn into an `ImportError` at runtime.
+
+-   :material-sitemap:{ .lg .middle } __Module structure__
+
+    ---
+
+    Leiden clustering over the import graph shows which modules actually belong together — and which don't.
+
+</div>
+
+## Install
+
+=== "uvx (recommended)"
+
+    ```bash
+    uvx pyscn@latest analyze .
+    ```
+
+    Runs the latest release without installing anything.
+
+=== "uv"
+
+    ```bash
+    uv tool install pyscn
+    ```
+
+=== "pipx"
+
+    ```bash
+    pipx install pyscn
+    ```
+
+=== "pip"
+
+    ```bash
+    pip install pyscn
+    ```
 
 See [Installation](getting-started/installation.md) for all options.
 
 ## Quick start
 
 ```bash
-pyscn analyze .                         # full analysis, HTML report
-pyscn check --select complexity,deadcode src/   # CI gate
-pyscn init                              # generate .pyscn.toml
+pyscn analyze .                                  # full analysis, HTML report
+pyscn check --select complexity,deadcode src/    # CI gate
+pyscn init                                       # generate .pyscn.toml
 ```
 
-See [Quick Start](getting-started/quick-start.md) and the [Rule catalog](rules/index.md).
+See [Quick Start](getting-started/quick-start.md) and the [rule catalog](rules/index.md).
 
 ## AI agent integration
 
