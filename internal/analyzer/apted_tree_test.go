@@ -4,198 +4,24 @@ import (
 	"context"
 	"testing"
 
+	coreapted "github.com/ludo-technologies/polyscan/core/apted"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewTreeNode(t *testing.T) {
-	node := NewTreeNode(1, "test")
-	assert.Equal(t, 1, node.ID)
-	assert.Equal(t, "test", node.Label)
-	assert.Empty(t, node.Children)
-}
+type TreeNode = coreapted.TreeNode
 
-func TestAddChild(t *testing.T) {
-	parent := NewTreeNode(1, "parent")
-	child := NewTreeNode(2, "child")
-	parent.AddChild(child)
-
-	assert.Len(t, parent.Children, 1)
-	assert.Equal(t, parent, child.Parent)
-}
-
-func TestIsLeaf(t *testing.T) {
-	leaf := NewTreeNode(1, "leaf")
-	assert.True(t, leaf.IsLeaf())
-
-	parent := NewTreeNode(1, "parent")
-	parent.AddChild(NewTreeNode(2, "child"))
-	assert.False(t, parent.IsLeaf())
-}
-
-func TestSize_SingleNode(t *testing.T) {
-	node := NewTreeNode(1, "root")
-	assert.Equal(t, 1, node.Size())
-}
-
-func TestSize_TreeWithChildren(t *testing.T) {
-	//     root
-	//    /    \
-	//  child1  child2
-	//    |
-	//  grandchild
-	root := NewTreeNode(1, "root")
-	child1 := NewTreeNode(2, "child1")
-	child2 := NewTreeNode(3, "child2")
-	grandchild := NewTreeNode(4, "grandchild")
-
-	root.AddChild(child1)
-	root.AddChild(child2)
-	child1.AddChild(grandchild)
-
-	assert.Equal(t, 4, root.Size())
-}
-
-func TestSizeWithDepthLimit_apted(t *testing.T) {
-	tests := []struct {
-		name     string
-		maxDepth int
-		expected int
-	}{
-		{
-			name:     "negative depth returns 1",
-			maxDepth: -1,
-			expected: 1,
-		},
-		{
-			name:     "zero depth returns 1",
-			maxDepth: 0,
-			expected: 1,
-		},
-		{
-			name:     "depth 1 includes direct children",
-			maxDepth: 1,
-			expected: 3, // root + child1 + child2
-		},
-		{
-			name:     "depth 2 includes all nodes",
-			maxDepth: 2,
-			expected: 4, // root + child1 + child2 + grandchild
-		},
-		{
-			name:     "large depth includes all nodes",
-			maxDepth: 100,
-			expected: 4,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			//     root
-			//    /    \
-			//  child1  child2
-			//    |
-			//  grandchild
-			root := NewTreeNode(1, "root")
-			child1 := NewTreeNode(2, "child1")
-			child2 := NewTreeNode(3, "child2")
-			grandchild := NewTreeNode(4, "grandchild")
-
-			root.AddChild(child1)
-			root.AddChild(child2)
-			child1.AddChild(grandchild)
-
-			assert.Equal(t, tt.expected, root.SizeWithDepthLimit(tt.maxDepth))
-		})
-	}
-}
-
-func TestHeight_Leaf(t *testing.T) {
-	leaf := NewTreeNode(1, "leaf")
-	assert.Equal(t, 0, leaf.Height())
-}
-
-func TestHeight_Tree(t *testing.T) {
-	root := NewTreeNode(1, "root")
-	child := NewTreeNode(2, "child")
-	grandchild := NewTreeNode(3, "grandchild")
-
-	root.AddChild(child)
-	child.AddChild(grandchild)
-
-	assert.Equal(t, 2, root.Height())
-}
-
-func TestHeightWithDepthLimit_apted(t *testing.T) {
-	tests := []struct {
-		name     string
-		maxDepth int
-		expected int
-	}{
-		{
-			name:     "negative depth returns 0",
-			maxDepth: -1,
-			expected: 0,
-		},
-		{
-			name:     "zero depth returns 0",
-			maxDepth: 0,
-			expected: 0,
-		},
-		{
-			name:     "depth 1 includes direct child",
-			maxDepth: 1,
-			expected: 1,
-		},
-		{
-			name:     "depth 2 includes all nodes",
-			maxDepth: 2,
-			expected: 2,
-		},
-		{
-			name:     "large depth includes all nodes",
-			maxDepth: 100,
-			expected: 2,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			root := NewTreeNode(1, "root")
-			child := NewTreeNode(2, "child")
-			grandchild := NewTreeNode(3, "grandchild")
-
-			root.AddChild(child)
-			child.AddChild(grandchild)
-
-			assert.Equal(t, tt.expected, root.HeightWithDepthLimit(tt.maxDepth))
-		})
-	}
-}
-
-func TestString_SingleNode(t *testing.T) {
-	root := NewTreeNode(1, "root")
-	assert.Equal(t, "Node{ID: 1, Label: root, Children: 0}", root.String())
-}
-
-func TestString_TreeWithChildren(t *testing.T) {
-	//     root
-	//    /    \
-	//  child1  child2
-	//    |
-	//  grandchild
-	root := NewTreeNode(1, "root")
-	child1 := NewTreeNode(2, "child1")
-	child2 := NewTreeNode(3, "child2")
-	grandchild := NewTreeNode(4, "grandchild")
-
-	root.AddChild(child1)
-	root.AddChild(child2)
-	child1.AddChild(grandchild)
-
-	assert.Equal(t, "Node{ID: 1, Label: root, Children: 2}", root.String()) // Children = child1 + child2
-}
+var (
+	NewTreeNode                   = coreapted.NewTreeNode
+	PostOrderTraversal            = coreapted.PostOrderTraversal
+	ComputeLeftMostLeaves         = coreapted.ComputeLeftMostLeaves
+	ComputeKeyRoots               = coreapted.ComputeKeyRoots
+	PrepareTreeForAPTED           = coreapted.PrepareTreeForAPTED
+	GetNodeByPostOrderID          = coreapted.GetNodeByPostOrderID
+	GetSubtreeNodes               = coreapted.GetSubtreeNodes
+	GetSubtreeNodesWithDepthLimit = coreapted.GetSubtreeNodesWithDepthLimit
+)
 
 func TestNewTreeConverter(t *testing.T) {
 	converter := NewTreeConverter()
@@ -590,13 +416,13 @@ except Error as right:
 		},
 	}
 
-	analyzer := NewAPTEDAnalyzer(NewPythonCostModel())
+	analyzer := coreapted.NewAPTEDAnalyzerWithNormalization(NewPythonCostModel(), coreapted.NormalizeByMax)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			leftTree := parseFirstStatementTree(t, tt.left)
 			rightTree := parseFirstStatementTree(t, tt.right)
-			PrepareTreeForAPTED(leftTree)
-			PrepareTreeForAPTED(rightTree)
+			coreapted.PrepareTreeForAPTED(leftTree)
+			coreapted.PrepareTreeForAPTED(rightTree)
 
 			distance := analyzer.ComputeDistance(leftTree, rightTree)
 			assert.Greater(t, distance, 0.0, "expression-only differences must affect APTED distance")
@@ -604,7 +430,7 @@ except Error as right:
 	}
 }
 
-func parseFirstStatementTree(t *testing.T, source string) *TreeNode {
+func parseFirstStatementTree(t *testing.T, source string) *coreapted.TreeNode {
 	t.Helper()
 
 	result, err := parser.New().Parse(context.Background(), []byte(source))
@@ -1280,7 +1106,7 @@ func TestSkipDocstrings_Integration(t *testing.T) {
 // has been compared (and its APTED preparation cached) invalidates the cache,
 // so later distance computations see the new structure.
 func TestComputeDistanceAfterTreeMutation(t *testing.T) {
-	analyzer := NewAPTEDAnalyzer(NewDefaultCostModel())
+	analyzer := coreapted.NewAPTEDAnalyzerWithNormalization(coreapted.NewDefaultCostModel(), coreapted.NormalizeByMax)
 
 	tree1 := NewTreeNode(0, "A")
 	tree1.AddChild(NewTreeNode(1, "B"))

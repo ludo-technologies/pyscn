@@ -52,7 +52,8 @@ pyscn/
 │   ├── analyzer/      # Analysis algorithms
 │   │   ├── cfg.go     # Control Flow Graph
 │   │   ├── dead.go    # Dead code detection
-│   │   └── apted.go   # Clone detection
+│   │   ├── apted_tree.go # Python adapter for core/apted
+│   │   └── apted_cost.go # Python APTED cost model
 │   └── config/        # Configuration
 ├── pkg/               # Public packages
 │   └── api/           # Public API

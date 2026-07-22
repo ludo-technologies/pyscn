@@ -64,7 +64,7 @@ pyscn/
 ├── cmd/pyscn/       # CLI entry point
 ├── internal/        # Private packages
 │   ├── parser/      # Tree-sitter integration
-│   ├── analyzer/    # CFG and APTED implementations
+│   ├── analyzer/    # CFG implementation and APTED Python adapters
 │   └── config/      # Configuration management
 ├── pkg/             # Public packages
 ├── testdata/        # Test fixtures

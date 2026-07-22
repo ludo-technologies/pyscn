@@ -272,17 +272,13 @@ type SyntacticSimilarityAnalyzer struct {
 // Compares sets of normalized AST node hashes
 
 // Type-3: APTED for structural similarity
-// internal/analyzer/apted.go
-type APTEDAnalyzer struct {
-    threshold float64
-    costModel CostModel
-}
+// core/apted (github.com/ludo-technologies/polyscan/core)
+apted.NewAPTEDAnalyzerWithNormalization(
+    NewPythonCostModel(),
+    apted.NormalizeByMax,
+)
 
-type CostModel interface {
-    Insert(node *TreeNode) float64
-    Delete(node *TreeNode) float64
-    Rename(node1, node2 *TreeNode) float64
-}
+// pyscn retains only the Python AST converter and PythonCostModel adapters.
 ```
 
 **LSH Acceleration (for many fragments or high pair counts):**

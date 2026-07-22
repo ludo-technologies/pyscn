@@ -72,8 +72,8 @@ func TestCloneDetector_DetectClonesWithLSH_Simple(t *testing.T) {
 	if len(pairs) == 0 {
 		// As a sanity check, verify MinHash similarity and LSH candidate retrieval
 		ext := newPythonCloneFeatureExtractor()
-		feats1, _ := ext.ExtractFeatures(toCoreTree(f1.TreeNode))
-		feats2, _ := ext.ExtractFeatures(toCoreTree(f2.TreeNode))
+		feats1, _ := ext.ExtractFeatures(f1.TreeNode)
+		feats2, _ := ext.ExtractFeatures(f2.TreeNode)
 		mh := NewMinHasher(128)
 		s1 := mh.ComputeSignature(feats1)
 		s2 := mh.ComputeSignature(feats2)
@@ -117,7 +117,7 @@ func TestCloneDetectorPrepareFragmentsRefreshesTreeBackedFeatures(t *testing.T) 
 	if slices.Equal(fragment.Features, staleFeatures) {
 		t.Fatalf("expected tree-backed fragment features to be refreshed")
 	}
-	expected, _ := newPythonCloneFeatureExtractor().ExtractFeatures(toCoreTree(fragment.TreeNode))
+	expected, _ := newPythonCloneFeatureExtractor().ExtractFeatures(fragment.TreeNode)
 	if !slices.Equal(fragment.Features, expected) {
 		t.Fatalf("expected tree-backed features %v, got %v", expected, fragment.Features)
 	}
@@ -141,7 +141,7 @@ func TestCloneDetectorPrepareFragmentsRefreshesConvertedASTFeatures(t *testing.T
 	if slices.Equal(fragment.Features, staleFeatures) {
 		t.Fatalf("expected AST conversion to refresh stale features")
 	}
-	expected, _ := newPythonCloneFeatureExtractor().ExtractFeatures(toCoreTree(fragment.TreeNode))
+	expected, _ := newPythonCloneFeatureExtractor().ExtractFeatures(fragment.TreeNode)
 	if !slices.Equal(fragment.Features, expected) {
 		t.Fatalf("expected converted AST features %v, got %v", expected, fragment.Features)
 	}

@@ -3,6 +3,7 @@ package analyzer
 import (
 	"sort"
 
+	coreapted "github.com/ludo-technologies/polyscan/core/apted"
 	coreclone "github.com/ludo-technologies/polyscan/core/clone"
 	coredomain "github.com/ludo-technologies/polyscan/core/domain"
 )
@@ -101,13 +102,15 @@ func fragmentLocationLess(first, second *CodeFragment) bool {
 
 type centroidCompatibilityStrategy struct {
 	threshold float64
-	analyzer  *APTEDAnalyzer
+	analyzer  *coreapted.APTEDAnalyzer
 }
 
 func newCentroidCompatibilityStrategy(cd *CloneDetector, threshold float64) *centroidCompatibilityStrategy {
 	return &centroidCompatibilityStrategy{
 		threshold: threshold,
-		analyzer:  NewAPTEDAnalyzer(buildCloneCostModel(&cd.cloneDetectorConfig)),
+		analyzer: coreapted.NewAPTEDAnalyzerWithNormalization(
+			buildCloneCostModel(&cd.cloneDetectorConfig), coreapted.NormalizeByMax,
+		),
 	}
 }
 
@@ -172,7 +175,9 @@ func (s *centroidCompatibilityStrategy) GroupItems(pairs []*coreclone.ItemPair[*
 }
 
 func (cd *CloneDetector) refreshCentroidGroupMetadata(groups []*coreclone.ItemGroup[*CodeFragment]) {
-	analyzer := NewAPTEDAnalyzer(buildCloneCostModel(&cd.cloneDetectorConfig))
+	analyzer := coreapted.NewAPTEDAnalyzerWithNormalization(
+		buildCloneCostModel(&cd.cloneDetectorConfig), coreapted.NormalizeByMax,
+	)
 	for _, group := range groups {
 		total := 0.0
 		count := 0

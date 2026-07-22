@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	coreapted "github.com/ludo-technologies/polyscan/core/apted"
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	"github.com/ludo-technologies/pyscn/internal/parser"
@@ -242,7 +243,7 @@ func (s *CloneService) ComputeSimilarity(ctx context.Context, fragment1, fragmen
 
 	// Use APTED to compute similarity
 	costModel := analyzer.NewPythonCostModel()
-	aptedAnalyzer := analyzer.NewAPTEDAnalyzer(costModel)
+	aptedAnalyzer := coreapted.NewAPTEDAnalyzerWithNormalization(costModel, coreapted.NormalizeByMax)
 
 	similarity := aptedAnalyzer.ComputeSimilarity(tree1, tree2)
 	return similarity, nil
