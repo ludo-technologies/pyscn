@@ -4,44 +4,108 @@ hide:
   - toc
 ---
 
+<div class="pyscn-hero" markdown="1">
+
+<div class="pyscn-hero__copy" markdown="1">
+
+<p class="pyscn-hero__eyebrow">Analyse statique structurelle pour Python</p>
+
 # pyscn
 
-Analyseur statique structurel pour Python. Détecte le code mort, la duplication, la complexité et les problèmes de couplage via l'analyse du flux de contrôle et d'arbres.
+<p class="pyscn-hero__lede">pyscn lit Python comme un compilateur — graphes de flux de contrôle, arbres syntaxiques, graphes d'imports. C'est ainsi qu'il détecte ce que les linters ligne par ligne ne voient pas : du code mort laissé après un <code>return</code>, de la logique dupliquée sous un autre nom, et des modules pris dans des cycles silencieux.</p>
 
 ```bash
 uvx pyscn@latest analyze .
 ```
 
-## Fonctionnalités
+[Commencer :material-arrow-right:](getting-started/quick-start.md){ .md-button .md-button--primary } [Voir sur GitHub :fontawesome-brands-github:](https://github.com/ludo-technologies/pyscn){ .md-button }
 
-- **33 règles** couvrant le code inatteignable, le code dupliqué, la complexité, la conception de classes, l'injection de dépendances, la structure des modules et les données factices.
-- **Accessibilité basée sur le CFG** qui détecte le code mort après `return` / `raise` / `break` / `continue` ainsi que les branches inatteignables.
-- **Détection de clones APTED + LSH** sur les quatre types de clones (identique, renommé, modifié, sémantique).
-- **Métriques de couplage et de cohésion de classes** CBO / LCOM4.
-- **Détection des imports circulaires** via l'algorithme SCC de Tarjan.
-- **Score de santé** (0–100) avec décomposition par catégorie.
-- **Prêt pour la CI** grâce à `pyscn check`, une sortie de type linter et des codes de sortie déterministes.
-- **Agent Skills** et **serveur MCP** (`pyscn-mcp`) pour Claude Code, Cursor et autres agents de codage IA.
+<p class="pyscn-hero__meta">Binaire Go · aucune dépendance runtime Python · 100 000+ lignes/s · 33 règles</p>
 
-Écrit en Go. Plus de 100 000 lignes/s sur du matériel courant. Aucune dépendance d'exécution Python.
+</div>
+
+--8<-- "includes/cfg-diagram.html"
+
+</div>
+
+## Ce qu'il détecte
+
+<div class="grid cards" markdown>
+
+-   :material-source-branch:{ .lg .middle } __Code inatteignable__
+
+    ---
+
+    L'analyse d'accessibilité basée sur le CFG détecte le code mort laissé après `return`, `raise`, `break`, `continue`, ou après une branche toujours vraie.
+
+-   :material-content-duplicate:{ .lg .middle } __Code dupliqué__
+
+    ---
+
+    La distance d'édition d'arbres APTED combinée au LSH détecte quatre types de clones : identique, renommé, modifié, sémantique.
+
+-   :material-gauge:{ .lg .middle } __Complexité__
+
+    ---
+
+    Complexité cyclomatique par fonction, avec des seuils ajustables par projet.
+
+-   :material-shape-outline:{ .lg .middle } __Conception de classes__
+
+    ---
+
+    Les métriques de couplage CBO et de cohésion LCOM4 révèlent les classes qui font trop, ou trop peu, ensemble.
+
+-   :material-sync:{ .lg .middle } __Imports circulaires__
+
+    ---
+
+    L'algorithme SCC de Tarjan détecte les cycles d'imports avant qu'ils ne provoquent une `ImportError` à l'exécution.
+
+-   :material-sitemap:{ .lg .middle } __Structure des modules__
+
+    ---
+
+    Le clustering de Leiden sur le graphe d'imports révèle quels modules devraient vraiment être ensemble — et lesquels non.
+
+</div>
 
 ## Installation
 
-```bash
-uvx pyscn@latest <command>   # exécution sans installation (recommandé)
-uv tool install pyscn        # installation via uv
-pipx install pyscn           # installation via pipx
-pip install pyscn            # installation via pip
-```
+=== "uvx (recommandé)"
+
+    ```bash
+    uvx pyscn@latest analyze .
+    ```
+
+    Exécute la dernière version sans rien installer.
+
+=== "uv"
+
+    ```bash
+    uv tool install pyscn
+    ```
+
+=== "pipx"
+
+    ```bash
+    pipx install pyscn
+    ```
+
+=== "pip"
+
+    ```bash
+    pip install pyscn
+    ```
 
 Voir [Installation](getting-started/installation.md) pour toutes les options.
 
 ## Démarrage rapide
 
 ```bash
-pyscn analyze .                         # analyse complète, rapport HTML
-pyscn check --select complexity,deadcode src/   # garde-fou CI
-pyscn init                              # génère .pyscn.toml
+pyscn analyze .                                  # analyse complète, rapport HTML
+pyscn check --select complexity,deadcode src/    # garde-fou CI
+pyscn init                                       # génère .pyscn.toml
 ```
 
 Voir [Démarrage rapide](getting-started/quick-start.md) et le [Catalogue de règles](rules/index.md).

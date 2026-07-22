@@ -17,6 +17,9 @@ theme:
   favicon: assets/icon.svg
   icon:
     repo: fontawesome/brands/github
+  font:
+    text: Inter
+    code: JetBrains Mono
   palette:
     - media: "(prefers-color-scheme)"
       toggle:
@@ -24,15 +27,15 @@ theme:
         name: Switch to light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
-      accent: indigo
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-4
         name: Switch to system preference
@@ -45,6 +48,7 @@ theme:
     - navigation.top
     - navigation.indexes
     - navigation.tracking
+    - header.autohide
     - toc.follow
     - search.suggest
     - search.highlight
@@ -55,6 +59,9 @@ theme:
     - content.action.edit
     - content.tooltips
     - announce.dismiss
+
+extra_css:
+  - stylesheets/extra.css
 
 plugins:
   - search:

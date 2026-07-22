@@ -1,0 +1,303 @@
+/* pyscn docs theme — brand tokens, typography, and the homepage hero/CFG diagram. */
+
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap");
+
+:root {
+  --pyscn-blue: #2563eb;
+  --pyscn-blue-dark: #1d4ed8;
+  --pyscn-blue-light: #60a5fa;
+  --pyscn-header: #1e3a8a;
+  --pyscn-violet: #7c3aed;
+  --pyscn-amber: #f59e0b;
+  --pyscn-ink: #0b1120;
+  --pyscn-ink-line: rgba(148, 163, 184, 0.16);
+  --pyscn-ink-text: #cbd5e1;
+
+  /* Wire the custom Material palette to the pyscn brand colors. */
+  --md-primary-fg-color: var(--pyscn-blue);
+  --md-primary-fg-color--light: var(--pyscn-blue-light);
+  --md-primary-fg-color--dark: var(--pyscn-blue-dark);
+  --md-primary-bg-color: #ffffff;
+  --md-primary-bg-color--light: rgba(255, 255, 255, 0.7);
+
+  --md-accent-fg-color: var(--pyscn-violet);
+  --md-accent-fg-color--transparent: rgba(124, 58, 237, 0.1);
+  --md-accent-bg-color: #ffffff;
+  --md-accent-bg-color--light: rgba(255, 255, 255, 0.7);
+}
+
+/* ---------- Header & tabs ---------- */
+/* A shade darker than the logo's own blue (#2563eb) so the mark doesn't
+   blend into the bar it sits on. */
+
+.md-header,
+.md-tabs {
+  background-color: var(--pyscn-header);
+}
+
+.md-tabs__item {
+  position: relative;
+}
+
+.md-tabs__item::after {
+  content: "";
+  position: absolute;
+  left: 0.6rem;
+  right: 0.6rem;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--pyscn-amber);
+  transform: scaleX(0);
+  transition: transform 0.2s ease;
+}
+
+.md-tabs__item--active::after,
+.md-tabs__item:hover::after {
+  transform: scaleX(1);
+}
+
+.md-tabs__link {
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+/* ---------- Typography ---------- */
+/* Space Grotesk is reserved for large content headings — at small UI sizes
+   (tabs, nav titles) it reads worse than the body font, so chrome stays on Inter. */
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4,
+.md-header__title,
+.pyscn-hero__eyebrow {
+  font-family: "Space Grotesk", "Inter", var(--md-text-font-family), sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.md-typeset h1 {
+  font-weight: 700;
+}
+
+.md-typeset h2 {
+  font-weight: 600;
+}
+
+.md-typeset {
+  line-height: 1.65;
+}
+
+.md-typeset code {
+  border-radius: 0.25rem;
+}
+
+.md-typeset pre > code {
+  border-radius: 0.5rem;
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 0.5rem;
+}
+
+/* ---------- Buttons ---------- */
+
+.md-typeset .md-button {
+  border-radius: 0.4rem;
+  font-weight: 600;
+  padding: 0.5em 1.2em;
+}
+
+.md-typeset .md-button--primary {
+  background-color: var(--pyscn-blue);
+  border-color: var(--pyscn-blue);
+}
+
+.md-typeset .md-button--primary:hover {
+  background-color: var(--pyscn-blue-dark);
+  border-color: var(--pyscn-blue-dark);
+}
+
+/* ---------- Grid cards (feature grid on the homepage) ---------- */
+
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid.cards > ol > li {
+  border-radius: 0.6rem;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.md-typeset .grid.cards > ul > li:hover,
+.md-typeset .grid.cards > ol > li:hover {
+  border-color: var(--pyscn-blue);
+  transform: translateY(-2px);
+}
+
+.md-typeset .grid.cards > ul > li > p:first-child .twemoji {
+  color: var(--pyscn-blue);
+}
+
+/* ---------- Hero (homepage) ---------- */
+
+.pyscn-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2rem;
+  align-items: center;
+  margin: 1.5rem 0 3rem;
+}
+
+@media screen and (max-width: 76.1875em) {
+  .pyscn-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pyscn-hero__copy .md-typeset h1 {
+  margin: 0.4rem 0 1rem;
+  font-size: 2.4rem;
+}
+
+.pyscn-hero__eyebrow {
+  display: inline-block;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pyscn-blue);
+}
+
+[data-md-color-scheme="slate"] .pyscn-hero__eyebrow {
+  color: var(--pyscn-blue-light);
+}
+
+.pyscn-hero__lede {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--md-default-fg-color--light);
+  max-width: 42rem;
+}
+
+.pyscn-hero__copy .highlight {
+  margin: 1.25rem 0;
+}
+
+.pyscn-hero__copy .md-button {
+  margin: 1rem 0.75rem 0.5rem 0;
+}
+
+.pyscn-hero__meta {
+  font-size: 0.75rem;
+  color: var(--md-default-fg-color--light);
+  font-family: var(--md-code-font-family);
+}
+
+/* ---------- CFG diagram panel ---------- */
+
+.pyscn-hero__art {
+  background: var(--pyscn-ink);
+  border-radius: 0.75rem;
+  padding: 1.5rem 1.5rem 1.25rem;
+  background-image:
+    linear-gradient(var(--pyscn-ink-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--pyscn-ink-line) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.pyscn-cfg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pyscn-cfg text {
+  font-family: var(--md-code-font-family);
+  font-size: 9px;
+  fill: var(--pyscn-ink-text);
+}
+
+.pyscn-cfg-arrowhead {
+  fill: var(--pyscn-blue-light);
+}
+
+.pyscn-cfg-chip {
+  fill: var(--pyscn-ink);
+}
+
+.pyscn-cfg .pyscn-cfg-caption {
+  fill: #64748b;
+  font-size: 8px;
+}
+
+.pyscn-cfg-node--entry {
+  fill: var(--pyscn-ink);
+  stroke: var(--pyscn-ink-text);
+  stroke-width: 1.5;
+}
+
+.pyscn-cfg-decision {
+  fill: var(--pyscn-ink);
+  stroke: var(--pyscn-blue-light);
+  stroke-width: 1.5;
+}
+
+.pyscn-cfg-node--exit {
+  fill: var(--pyscn-blue-light);
+  stroke: var(--pyscn-blue-light);
+}
+
+.pyscn-cfg-node--dead {
+  fill: none;
+  stroke: var(--pyscn-amber);
+  stroke-width: 1.5;
+  stroke-dasharray: 2.5 2.5;
+}
+
+.pyscn-cfg-node--dead-mark {
+  stroke: var(--pyscn-amber);
+  stroke-width: 1.5;
+}
+
+.pyscn-cfg-label--dead {
+  fill: var(--pyscn-amber);
+  text-decoration: line-through;
+  text-decoration-color: rgba(245, 158, 11, 0.6);
+}
+
+.pyscn-cfg-edge {
+  fill: none;
+  stroke: var(--pyscn-blue-light);
+  stroke-width: 1.5;
+  marker-end: url(#pyscn-arrow);
+}
+
+.pyscn-cfg-edge--live {
+  stroke-dasharray: 4 3;
+  animation: pyscn-flow 1.4s linear infinite;
+}
+
+.pyscn-cfg-edge--guide {
+  stroke: #475569;
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  fill: none;
+  marker-end: none;
+}
+
+.pyscn-cfg-branch-label {
+  fill: #64748b;
+  font-size: 8px;
+}
+
+@keyframes pyscn-flow {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pyscn-cfg-edge--live {
+    animation: none;
+  }
+}

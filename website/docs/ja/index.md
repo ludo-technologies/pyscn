@@ -4,47 +4,111 @@ hide:
   - toc
 ---
 
+<div class="pyscn-hero" markdown="1">
+
+<div class="pyscn-hero__copy" markdown="1">
+
+<p class="pyscn-hero__eyebrow">Python 向けの構造的静的解析</p>
+
 # pyscn
 
-Python 向けの構造的静的解析ツールです。制御フローグラフとツリー解析を用いて、デッドコード・コード重複・複雑度・結合度の問題を検出します。
+<p class="pyscn-hero__lede">pyscn はコンパイラのように Python を読みます — 制御フローグラフ、構文木、インポートグラフ。行単位のリンターでは見つからないもの、<code>return</code> の後に取り残されたデッドコード、別名で複製されたロジック、静かに循環するモジュール依存を検出します。</p>
 
 ```bash
 uvx pyscn@latest analyze .
 ```
 
-## 機能
+[はじめる :material-arrow-right:](getting-started/quick-start.md){ .md-button .md-button--primary } [GitHub で見る :fontawesome-brands-github:](https://github.com/ludo-technologies/pyscn){ .md-button }
 
-- **33 のルール** — 到達不能コード、重複コード、複雑度、クラス設計、依存性注入、モジュール構造、モックデータにまたがるルールセット。
-- **CFG ベースの到達可能性解析** — `return` / `raise` / `break` / `continue` の後に残されたデッドコードや到達不能な分岐を検出します。
-- **APTED + LSH クローン検出** — 4 種類のクローン（完全一致、名前変更、構造変更、意味的類似）に対応します。
-- **CBO / LCOM4** — クラスの結合度と凝集度のメトリクスを計算します。
-- **循環インポート検出** — Tarjan の SCC アルゴリズムで循環依存を発見します。
-- **ヘルススコア**（0〜100）— カテゴリごとの内訳付き。
-- **CI 対応** — `pyscn check` によるリンター形式の出力と確定的な終了コード。
-- **Agent Skills** と **MCP サーバー**（`pyscn-mcp`）— Claude Code、Cursor、その他の AI コーディングエージェントから利用できます。
+<p class="pyscn-hero__meta">Go 製バイナリ · Python ランタイム依存なし · 100,000+ 行/秒 · 33 のルール</p>
 
-Go で実装されています。一般的なハードウェアで 100,000 行/秒以上の解析速度です。Python ランタイムへの依存はありません。
+</div>
+
+--8<-- "includes/cfg-diagram.html"
+
+</div>
+
+## 検出内容
+
+<div class="grid cards" markdown>
+
+-   :material-source-branch:{ .lg .middle } __到達不能コード__
+
+    ---
+
+    CFG ベースの到達可能性解析で、`return` / `raise` / `break` / `continue` の後や常に真になる分岐の先に残されたデッドコードを検出します。
+
+-   :material-content-duplicate:{ .lg .middle } __重複コード__
+
+    ---
+
+    APTED の木編集距離と LSH の組み合わせで、完全一致・名前変更・構造変更・意味的類似の4種類のクローンを検出します。
+
+-   :material-gauge:{ .lg .middle } __複雑度__
+
+    ---
+
+    関数ごとのサイクロマティック複雑度を計測します。しきい値はプロジェクトごとに調整できます。
+
+-   :material-shape-outline:{ .lg .middle } __クラス設計__
+
+    ---
+
+    CBO 結合度と LCOM4 凝集度のメトリクスで、責務を持ちすぎる、あるいは持たなすぎるクラスを可視化します。
+
+-   :material-sync:{ .lg .middle } __循環インポート__
+
+    ---
+
+    Tarjan の SCC アルゴリズムで、実行時に `ImportError` になる前に循環依存を発見します。
+
+-   :material-sitemap:{ .lg .middle } __モジュール構造__
+
+    ---
+
+    インポートグラフに対する Leiden クラスタリングで、本来ひとまとまりであるべきモジュールとそうでないモジュールを明らかにします。
+
+</div>
 
 ## インストール
 
-```bash
-uvx pyscn@latest <command>   # run without installing (recommended)
-uv tool install pyscn        # install with uv
-pipx install pyscn           # install with pipx
-pip install pyscn            # install with pip
-```
+=== "uvx（推奨）"
+
+    ```bash
+    uvx pyscn@latest analyze .
+    ```
+
+    インストールせずに最新版を実行します。
+
+=== "uv"
+
+    ```bash
+    uv tool install pyscn
+    ```
+
+=== "pipx"
+
+    ```bash
+    pipx install pyscn
+    ```
+
+=== "pip"
+
+    ```bash
+    pip install pyscn
+    ```
 
 詳しくは [Installation](getting-started/installation.md) をご覧ください。
 
 ## クイックスタート
 
 ```bash
-pyscn analyze .                         # full analysis, HTML report
-pyscn check --select complexity,deadcode src/   # CI gate
-pyscn init                              # generate .pyscn.toml
+pyscn analyze .                                  # full analysis, HTML report
+pyscn check --select complexity,deadcode src/    # CI gate
+pyscn init                                       # generate .pyscn.toml
 ```
 
-詳しくは [Quick Start](getting-started/quick-start.md) と [Rule catalog](rules/index.md) をご覧ください。
+詳しくは [Quick Start](getting-started/quick-start.md) と [ルールカタログ](rules/index.md) をご覧ください。
 
 ## AI エージェント連携
 
