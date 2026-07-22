@@ -194,11 +194,6 @@ func DetectInFile(cfgs map[string]*CFG, filePath string) []*DeadCodeResult {
 	return results
 }
 
-// analyzeDeadBlock analyzes a dead block and creates appropriate findings
-func (dcd *DeadCodeDetector) analyzeDeadBlock(block *BasicBlock) []*DeadCodeFinding {
-	return dcd.analyzeCoreDeadBlock(block, "")
-}
-
 func (dcd *DeadCodeDetector) analyzeCoreDeadBlock(block *BasicBlock, coreReason string) []*DeadCodeFinding {
 	var findings []*DeadCodeFinding
 

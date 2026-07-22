@@ -118,30 +118,3 @@ func (result *ReachabilityResult) GetReachabilityRatio() float64 {
 func (result *ReachabilityResult) HasUnreachableCode() bool {
 	return len(result.GetUnreachableBlocksWithStatements()) > 0
 }
-
-// reachabilityVisitor remains for traversal benchmarks and compatibility tests.
-type reachabilityVisitor struct {
-	reachableBlocks map[string]*BasicBlock
-}
-
-func (rv *reachabilityVisitor) VisitBlock(block *BasicBlock) bool {
-	if block != nil {
-		rv.reachableBlocks[block.ID] = block
-	}
-	return true
-}
-
-func (rv *reachabilityVisitor) VisitEdge(_ *Edge) bool { return true }
-
-func (ra *ReachabilityAnalyzer) blockContainsReturn(block *BasicBlock) bool {
-	if block == nil {
-		return false
-	}
-	classifier := pythonCFGClassifier{}
-	for _, statement := range block.Statements {
-		if classifier.IsReturn(statement) {
-			return true
-		}
-	}
-	return false
-}

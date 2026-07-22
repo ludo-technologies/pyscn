@@ -70,60 +70,6 @@ func (cr *ComplexityResult) String() string {
 		cr.FunctionName, cr.Complexity, cr.RiskLevel)
 }
 
-// complexityVisitor implements CFGVisitor to count edges and nodes
-type complexityVisitor struct {
-	edgeCount         int
-	nodeCount         int
-	decisionPoints    map[*BasicBlock]int // Track decision points per block
-	loopStatements    int
-	exceptionHandlers int
-	switchCases       int
-}
-
-// VisitBlock counts nodes and analyzes decision points
-func (cv *complexityVisitor) VisitBlock(block *BasicBlock) bool {
-	if block == nil {
-		return true
-	}
-
-	// Count all blocks except entry/exit for accurate complexity
-	if !block.IsEntry && !block.IsExit {
-		cv.nodeCount++
-	}
-
-	return true
-}
-
-// VisitEdge counts edges and categorizes decision points
-func (cv *complexityVisitor) VisitEdge(edge *Edge) bool {
-	if edge == nil {
-		return true
-	}
-
-	cv.edgeCount++
-
-	// Count decision points accurately by source block
-	// A decision point is a block with multiple outgoing edges
-	if edge.From != nil {
-		if cv.decisionPoints == nil {
-			cv.decisionPoints = make(map[*BasicBlock]int)
-		}
-
-		switch edge.Type {
-		case EdgeCondTrue, EdgeCondFalse:
-			// Mark this block as having conditional edges
-			// We only count the block once, regardless of number of edges
-			cv.decisionPoints[edge.From] = 1
-		case EdgeLoop:
-			cv.loopStatements++
-		case EdgeException:
-			cv.exceptionHandlers++
-		}
-	}
-
-	return true
-}
-
 // CalculateComplexity computes McCabe cyclomatic complexity for a CFG using default thresholds
 func CalculateComplexity(cfg *CFG) *ComplexityResult {
 	defaultConfig := config.DefaultConfig()
@@ -262,23 +208,6 @@ func countCoreNodes(blocks map[string]*BasicBlock) int {
 	return count
 }
 
-// countDecisionPoints counts the number of decision points in the CFG
-func countDecisionPoints(visitor *complexityVisitor, metrics astComplexityMetrics, hasASTMetrics bool) int {
-	// Decision points are nodes that have multiple outgoing edges
-	// For McCabe complexity, each decision point adds 1 to complexity
-
-	// Count actual conditional decisions (unique blocks with conditional edges)
-	conditionalDecisions := len(visitor.decisionPoints)
-	if hasASTMetrics && metrics.MatchStatements > 0 {
-		conditionalDecisions -= metrics.MatchStatements
-		if conditionalDecisions < 0 {
-			conditionalDecisions = 0
-		}
-	}
-
-	return conditionalDecisions + metrics.ExceptionHandlers + metrics.SwitchCases
-}
-
 type astComplexityMetrics struct {
 	CognitiveComplexity int
 	IfStatements        int
@@ -293,18 +222,6 @@ func complexitySourceNode(cfg *CFG) *parser.Node {
 		return nil
 	}
 	return mustPythonNode(cfg.FunctionNode)
-}
-
-func resolveComplexityMetrics(visitor *complexityVisitor, astMetrics astComplexityMetrics, hasASTMetrics bool) astComplexityMetrics {
-	if hasASTMetrics {
-		return astMetrics
-	}
-	return astComplexityMetrics{
-		IfStatements:      len(visitor.decisionPoints),
-		LoopStatements:    visitor.loopStatements,
-		ExceptionHandlers: visitor.exceptionHandlers,
-		SwitchCases:       visitor.switchCases,
-	}
 }
 
 func calculateASTComplexityMetrics(root *parser.Node) (astComplexityMetrics, bool) {
