@@ -99,6 +99,7 @@ plugins:
             Schemas: スキーマ
             Health Score: ヘルススコア
             Integrations: インテグレーション
+            Skills: Skills
             CI/CD: CI/CD
             MCP: MCP
             Python Packaging: Python パッケージ
@@ -134,6 +135,7 @@ plugins:
             Schemas: 结构
             Health Score: 健康评分
             Integrations: 集成
+            Skills: Skills
             Python Packaging: Python 打包
             FAQ: 常见问题
         - locale: fr
@@ -167,6 +169,7 @@ plugins:
             Schemas: Schémas
             Health Score: Score de santé
             Integrations: Intégrations
+            Skills: Skills
             CI/CD: CI/CD
             MCP: MCP
             Python Packaging: Packaging Python
@@ -286,7 +289,8 @@ nav:
       - Health Score: output/health-score.md
   - Integrations:
       - integrations/index.md
-      - CI/CD: integrations/ci-cd.md
+      - Skills: integrations/skills.md
       - MCP: integrations/mcp.md
+      - CI/CD: integrations/ci-cd.md
       - Python Packaging: integrations/python-packaging.md
   - FAQ: faq.md

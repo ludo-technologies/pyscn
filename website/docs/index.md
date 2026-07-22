@@ -22,7 +22,7 @@ uvx pyscn@latest analyze .
 - **Module community detection** via Leiden clustering over the import graph.
 - **Health score** (0–100) with per-category breakdown.
 - **CI-ready** with `pyscn check`, linter-style output, and deterministic exit codes.
-- **MCP server** (`pyscn-mcp`) for Claude Code, Cursor, and other MCP clients.
+- **Agent Skills** and an **MCP server** (`pyscn-mcp`) for Claude Code, Cursor, and other AI coding agents.
 
 Written in Go. 100,000+ lines/sec on typical hardware. No Python runtime dependencies.
 
@@ -46,3 +46,11 @@ pyscn init                              # generate .pyscn.toml
 ```
 
 See [Quick Start](getting-started/quick-start.md) and the [Rule catalog](rules/index.md).
+
+## AI agent integration
+
+```bash
+uvx add-skills ludo-technologies/pyscn
+```
+
+Installs Agent Skills that teach Claude Code, Cursor, Codex, Gemini CLI, and other coding agents when and how to run each analysis. See [Agent Skills](integrations/skills.md), or use the [MCP server](integrations/mcp.md) for structured tool calls instead.

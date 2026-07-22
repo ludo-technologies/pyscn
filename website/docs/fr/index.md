@@ -21,7 +21,7 @@ uvx pyscn@latest analyze .
 - **Détection des imports circulaires** via l'algorithme SCC de Tarjan.
 - **Score de santé** (0–100) avec décomposition par catégorie.
 - **Prêt pour la CI** grâce à `pyscn check`, une sortie de type linter et des codes de sortie déterministes.
-- **Serveur MCP** (`pyscn-mcp`) pour Claude Code, Cursor et autres clients MCP.
+- **Agent Skills** et **serveur MCP** (`pyscn-mcp`) pour Claude Code, Cursor et autres agents de codage IA.
 
 Écrit en Go. Plus de 100 000 lignes/s sur du matériel courant. Aucune dépendance d'exécution Python.
 
@@ -45,3 +45,11 @@ pyscn init                              # génère .pyscn.toml
 ```
 
 Voir [Démarrage rapide](getting-started/quick-start.md) et le [Catalogue de règles](rules/index.md).
+
+## Intégration avec les agents IA
+
+```bash
+uvx add-skills ludo-technologies/pyscn
+```
+
+Installe des Agent Skills qui apprennent à Claude Code, Cursor, Codex, Gemini CLI et autres agents de codage quand et comment lancer chaque analyse. Voir [Agent Skills](integrations/skills.md), ou utilisez le [serveur MCP](integrations/mcp.md) pour des appels d'outils structurés.

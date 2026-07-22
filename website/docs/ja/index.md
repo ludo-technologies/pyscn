@@ -21,7 +21,7 @@ uvx pyscn@latest analyze .
 - **循環インポート検出** — Tarjan の SCC アルゴリズムで循環依存を発見します。
 - **ヘルススコア**（0〜100）— カテゴリごとの内訳付き。
 - **CI 対応** — `pyscn check` によるリンター形式の出力と確定的な終了コード。
-- **MCP サーバー**（`pyscn-mcp`）— Claude Code、Cursor、その他の MCP クライアントから利用できます。
+- **Agent Skills** と **MCP サーバー**（`pyscn-mcp`）— Claude Code、Cursor、その他の AI コーディングエージェントから利用できます。
 
 Go で実装されています。一般的なハードウェアで 100,000 行/秒以上の解析速度です。Python ランタイムへの依存はありません。
 
@@ -45,3 +45,11 @@ pyscn init                              # generate .pyscn.toml
 ```
 
 詳しくは [Quick Start](getting-started/quick-start.md) と [Rule catalog](rules/index.md) をご覧ください。
+
+## AI エージェント連携
+
+```bash
+uvx add-skills ludo-technologies/pyscn
+```
+
+Claude Code, Cursor, Codex, Gemini CLI、その他のコーディングエージェントに、各分析の使いどころを教える Agent Skills をインストールします。詳しくは [Agent Skills](integrations/skills.md) をご覧ください。構造化されたツール呼び出しが必要な場合は [MCP サーバー](integrations/mcp.md) を使用してください。
