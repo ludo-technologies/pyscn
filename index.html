@@ -31,7 +31,7 @@
       
       
       <link rel="icon" href="assets/icon.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -39,7 +39,7 @@
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
@@ -624,6 +624,17 @@
     <span class="md-ellipsis">
       
         Quick start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ai-agent-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI agent integration
       
     </span>
   </a>
@@ -2959,6 +2970,8 @@
       
         
       
+        
+      
     
     
     
@@ -3022,14 +3035,14 @@
   
   
     <li class="md-nav__item">
-      <a href="integrations/ci-cd/" class="md-nav__link">
+      <a href="integrations/skills/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    CI/CD
+    Skills
   
 
     
@@ -3058,6 +3071,34 @@
     
   
     MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="integrations/ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
   
 
     
@@ -3194,6 +3235,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#ai-agent-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI agent integration
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3245,7 +3297,7 @@
 <li><strong>Module community detection</strong> via Leiden clustering over the import graph.</li>
 <li><strong>Health score</strong> (0–100) with per-category breakdown.</li>
 <li><strong>CI-ready</strong> with <code>pyscn check</code>, linter-style output, and deterministic exit codes.</li>
-<li><strong>MCP server</strong> (<code>pyscn-mcp</code>) for Claude Code, Cursor, and other MCP clients.</li>
+<li><strong>Agent Skills</strong> and an <strong>MCP server</strong> (<code>pyscn-mcp</code>) for Claude Code, Cursor, and other AI coding agents.</li>
 </ul>
 <p>Written in Go. 100,000+ lines/sec on typical hardware. No Python runtime dependencies.</p>
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
@@ -3261,6 +3313,10 @@
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>pyscn<span class="w"> </span>init<span class="w">                              </span><span class="c1"># generate .pyscn.toml</span>
 </span></code></pre></div>
 <p>See <a href="getting-started/quick-start/">Quick Start</a> and the <a href="rules/">Rule catalog</a>.</p>
+<h2 id="ai-agent-integration">AI agent integration<a class="headerlink" href="#ai-agent-integration" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uvx<span class="w"> </span>add-skills<span class="w"> </span>ludo-technologies/pyscn
+</span></code></pre></div>
+<p>Installs Agent Skills that teach Claude Code, Cursor, Codex, Gemini CLI, and other coding agents when and how to run each analysis. See <a href="integrations/skills/">Agent Skills</a>, or use the <a href="integrations/mcp/">MCP server</a> for structured tool calls instead.</p>
 
 
 
@@ -3359,7 +3415,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.top", "navigation.indexes", "navigation.tracking", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.tooltips", "announce.dismiss"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

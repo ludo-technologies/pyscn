@@ -31,7 +31,7 @@
       
       
       <link rel="icon" href="../assets/icon.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -39,7 +39,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -624,6 +624,17 @@
     <span class="md-ellipsis">
       
         クイックスタート
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI エージェント連携
       
     </span>
   </a>
@@ -2959,6 +2970,8 @@
       
         
       
+        
+      
     
     
     
@@ -3022,14 +3035,14 @@
   
   
     <li class="md-nav__item">
-      <a href="integrations/ci-cd/" class="md-nav__link">
+      <a href="integrations/skills/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    CI/CD
+    Skills
   
 
     
@@ -3058,6 +3071,34 @@
     
   
     MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="integrations/ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
   
 
     
@@ -3194,6 +3235,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI エージェント連携
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3244,7 +3296,7 @@
 <li><strong>循環インポート検出</strong> — Tarjan の SCC アルゴリズムで循環依存を発見します。</li>
 <li><strong>ヘルススコア</strong>（0〜100）— カテゴリごとの内訳付き。</li>
 <li><strong>CI 対応</strong> — <code>pyscn check</code> によるリンター形式の出力と確定的な終了コード。</li>
-<li><strong>MCP サーバー</strong>（<code>pyscn-mcp</code>）— Claude Code、Cursor、その他の MCP クライアントから利用できます。</li>
+<li><strong>Agent Skills</strong> と <strong>MCP サーバー</strong>（<code>pyscn-mcp</code>）— Claude Code、Cursor、その他の AI コーディングエージェントから利用できます。</li>
 </ul>
 <p>Go で実装されています。一般的なハードウェアで 100,000 行/秒以上の解析速度です。Python ランタイムへの依存はありません。</p>
 <h2 id="_2">インストール<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
@@ -3260,6 +3312,10 @@
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>pyscn<span class="w"> </span>init<span class="w">                              </span><span class="c1"># generate .pyscn.toml</span>
 </span></code></pre></div>
 <p>詳しくは <a href="getting-started/quick-start/">Quick Start</a> と <a href="rules/">Rule catalog</a> をご覧ください。</p>
+<h2 id="ai">AI エージェント連携<a class="headerlink" href="#ai" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uvx<span class="w"> </span>add-skills<span class="w"> </span>ludo-technologies/pyscn
+</span></code></pre></div>
+<p>Claude Code, Cursor, Codex, Gemini CLI、その他のコーディングエージェントに、各分析の使いどころを教える Agent Skills をインストールします。詳しくは <a href="integrations/skills/">Agent Skills</a> をご覧ください。構造化されたツール呼び出しが必要な場合は <a href="integrations/mcp/">MCP サーバー</a> を使用してください。</p>
 
 
 
@@ -3358,7 +3414,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.top", "navigation.indexes", "navigation.tracking", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.tooltips", "announce.dismiss"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u30b3\u30d4\u30fc\u3057\u307e\u3057\u305f", "clipboard.copy": "\u30af\u30ea\u30c3\u30d7\u30dc\u30fc\u30c9\u3078\u30b3\u30d4\u30fc", "search.result.more.one": "\u3053\u306e\u30da\u30fc\u30b8\u5185\u306b\u3082\u30461\u4ef6\u898b\u3064\u304b\u308a\u307e\u3057\u305f", "search.result.more.other": "\u3053\u306e\u30da\u30fc\u30b8\u5185\u306b\u3042\u3068#\u4ef6\u898b\u3064\u304b\u308a\u307e\u3057\u305f", "search.result.none": "\u4f55\u3082\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f", "search.result.one": "1\u4ef6\u898b\u3064\u304b\u308a\u307e\u3057\u305f", "search.result.other": "#\u4ef6\u898b\u3064\u304b\u308a\u307e\u3057\u305f", "search.result.placeholder": "\u691c\u7d22\u30ad\u30fc\u30ef\u30fc\u30c9\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044", "search.result.term.missing": "\u691c\u7d22\u306b\u542b\u307e\u308c\u306a\u3044", "select.version": "\u30d0\u30fc\u30b8\u30e7\u30f3\u5207\u308a\u66ff\u3048"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

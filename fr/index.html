@@ -31,7 +31,7 @@
       
       
       <link rel="icon" href="../assets/icon.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -39,7 +39,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -624,6 +624,17 @@
     <span class="md-ellipsis">
       
         Démarrage rapide
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integration-avec-les-agents-ia" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intégration avec les agents IA
       
     </span>
   </a>
@@ -2959,6 +2970,8 @@
       
         
       
+        
+      
     
     
     
@@ -3022,14 +3035,14 @@
   
   
     <li class="md-nav__item">
-      <a href="integrations/ci-cd/" class="md-nav__link">
+      <a href="integrations/skills/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    CI/CD
+    Skills
   
 
     
@@ -3058,6 +3071,34 @@
     
   
     MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="integrations/ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
   
 
     
@@ -3194,6 +3235,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#integration-avec-les-agents-ia" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intégration avec les agents IA
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3244,7 +3296,7 @@
 <li><strong>Détection des imports circulaires</strong> via l'algorithme SCC de Tarjan.</li>
 <li><strong>Score de santé</strong> (0–100) avec décomposition par catégorie.</li>
 <li><strong>Prêt pour la CI</strong> grâce à <code>pyscn check</code>, une sortie de type linter et des codes de sortie déterministes.</li>
-<li><strong>Serveur MCP</strong> (<code>pyscn-mcp</code>) pour Claude Code, Cursor et autres clients MCP.</li>
+<li><strong>Agent Skills</strong> et <strong>serveur MCP</strong> (<code>pyscn-mcp</code>) pour Claude Code, Cursor et autres agents de codage IA.</li>
 </ul>
 <p>Écrit en Go. Plus de 100 000 lignes/s sur du matériel courant. Aucune dépendance d'exécution Python.</p>
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
@@ -3260,6 +3312,10 @@
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>pyscn<span class="w"> </span>init<span class="w">                              </span><span class="c1"># génère .pyscn.toml</span>
 </span></code></pre></div>
 <p>Voir <a href="getting-started/quick-start/">Démarrage rapide</a> et le <a href="rules/">Catalogue de règles</a>.</p>
+<h2 id="integration-avec-les-agents-ia">Intégration avec les agents IA<a class="headerlink" href="#integration-avec-les-agents-ia" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uvx<span class="w"> </span>add-skills<span class="w"> </span>ludo-technologies/pyscn
+</span></code></pre></div>
+<p>Installe des Agent Skills qui apprennent à Claude Code, Cursor, Codex, Gemini CLI et autres agents de codage quand et comment lancer chaque analyse. Voir <a href="integrations/skills/">Agent Skills</a>, ou utilisez le <a href="integrations/mcp/">serveur MCP</a> pour des appels d'outils structurés.</p>
 
 
 
@@ -3358,7 +3414,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.top", "navigation.indexes", "navigation.tracking", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.tooltips", "announce.dismiss"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
