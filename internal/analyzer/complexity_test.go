@@ -276,8 +276,8 @@ print(count)
 	if !ok {
 		t.Fatalf("Expected %q CFG to be present", domain.ModuleFunctionName)
 	}
-	if mainCFG.ModuleNode == nil {
-		t.Fatalf("Expected ModuleNode to be set on the %q CFG", domain.ModuleFunctionName)
+	if sourceNode, ok := pythonNode(mainCFG.FunctionNode); !ok || sourceNode.Type != parser.NodeModule {
+		t.Fatalf("Expected module source node to be set on the %q CFG", domain.ModuleFunctionName)
 	}
 
 	res := CalculateComplexity(mainCFG)

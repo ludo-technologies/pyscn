@@ -1,10 +1,10 @@
 package analyzer
 
 import (
-	"sort"
 	"strings"
 	"time"
 
+	corecfg "github.com/ludo-technologies/polyscan/core/cfg"
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
@@ -125,28 +125,26 @@ func (dcd *DeadCodeDetector) Detect() *DeadCodeResult {
 
 	result.TotalBlocks = len(dcd.cfg.Blocks)
 
-	// Use reachability analyzer to find unreachable blocks
-	analyzer := NewReachabilityAnalyzer(dcd.cfg)
-	reachResult := analyzer.AnalyzeReachability()
-
-	result.ReachableRatio = reachResult.GetReachabilityRatio()
-
-	// Convert unreachable blocks to dead code findings
-	unreachableWithStatements := reachResult.GetUnreachableBlocksWithStatements()
-	result.DeadBlocks = len(unreachableWithStatements)
-
-	for _, block := range unreachableWithStatements {
-		findings := dcd.analyzeDeadBlock(block)
-		result.Findings = append(result.Findings, findings...)
+	classifier := pythonCFGClassifier{}
+	reachResult := corecfg.AnalyzeReachability(dcd.cfg, corecfg.ReachabilityConfig{Classifier: classifier})
+	if result.TotalBlocks > 0 {
+		result.ReachableRatio = float64(reachResult.ReachableCount) / float64(result.TotalBlocks)
 	}
+	coreResult := corecfg.DetectDeadCode(dcd.cfg, corecfg.DeadCodeConfig{Classifier: classifier})
 
-	// Sort findings by line number for consistent output
-	sort.Slice(result.Findings, func(i, j int) bool {
-		if result.Findings[i].StartLine != result.Findings[j].StartLine {
-			return result.Findings[i].StartLine < result.Findings[j].StartLine
+	reportedBlocks := make(map[string]bool)
+	for _, coreFinding := range coreResult.Findings {
+		if reportedBlocks[coreFinding.BlockID] {
+			continue
 		}
-		return result.Findings[i].EndLine < result.Findings[j].EndLine
-	})
+		block := dcd.cfg.GetBlock(coreFinding.BlockID)
+		findings := dcd.analyzeCoreDeadBlock(block, coreFinding.Reason)
+		result.Findings = append(result.Findings, findings...)
+		if len(findings) > 0 {
+			reportedBlocks[coreFinding.BlockID] = true
+			result.DeadBlocks++
+		}
+	}
 
 	// Merge overlapping/contiguous findings that share a reason. A compound
 	// statement (e.g. `if`) spans its body, so the body's own block produces a
@@ -198,6 +196,10 @@ func DetectInFile(cfgs map[string]*CFG, filePath string) []*DeadCodeResult {
 
 // analyzeDeadBlock analyzes a dead block and creates appropriate findings
 func (dcd *DeadCodeDetector) analyzeDeadBlock(block *BasicBlock) []*DeadCodeFinding {
+	return dcd.analyzeCoreDeadBlock(block, "")
+}
+
+func (dcd *DeadCodeDetector) analyzeCoreDeadBlock(block *BasicBlock, coreReason string) []*DeadCodeFinding {
 	var findings []*DeadCodeFinding
 
 	if block == nil || len(block.Statements) == 0 {
@@ -210,12 +212,21 @@ func (dcd *DeadCodeDetector) analyzeDeadBlock(block *BasicBlock) []*DeadCodeFind
 	// is technically unreachable, but reporting it as `unreachable_branch` with
 	// `code: ";"` and a `0-0` column range is noise — there's nothing for the
 	// user to act on beyond a stylistic trailing semicolon.
-	if isOnlyEmptyStatements(block) {
+	if isOnlyNoOpStatements(block) {
 		return findings
 	}
 
-	// Determine the reason for the dead code
 	reason, severity := dcd.determineDeadCodeReason(block)
+	switch coreReason {
+	case "after_return":
+		reason, severity = ReasonUnreachableAfterReturn, SeverityLevelCritical
+	case "after_break":
+		reason, severity = ReasonUnreachableAfterBreak, SeverityLevelCritical
+	case "after_continue":
+		reason, severity = ReasonUnreachableAfterContinue, SeverityLevelCritical
+	case "after_throw":
+		reason, severity = ReasonUnreachableAfterRaise, SeverityLevelCritical
+	}
 
 	// Create a finding for this dead block
 	finding := &DeadCodeFinding{
@@ -321,8 +332,9 @@ func (dcd *DeadCodeDetector) findTerminatorInPredecessors(block *BasicBlock) (De
 
 // blockContainsReturn checks if a block contains a return statement
 func (dcd *DeadCodeDetector) blockContainsReturn(block *BasicBlock) bool {
+	classifier := pythonCFGClassifier{}
 	for _, stmt := range block.Statements {
-		if stmt.Type == parser.NodeReturn {
+		if classifier.IsReturn(stmt) {
 			return true
 		}
 	}
@@ -331,8 +343,9 @@ func (dcd *DeadCodeDetector) blockContainsReturn(block *BasicBlock) bool {
 
 // blockContainsBreak checks if a block contains a break statement
 func (dcd *DeadCodeDetector) blockContainsBreak(block *BasicBlock) bool {
+	classifier := pythonCFGClassifier{}
 	for _, stmt := range block.Statements {
-		if stmt.Type == parser.NodeBreak {
+		if classifier.IsBreak(stmt) {
 			return true
 		}
 	}
@@ -341,8 +354,9 @@ func (dcd *DeadCodeDetector) blockContainsBreak(block *BasicBlock) bool {
 
 // blockContainsContinue checks if a block contains a continue statement
 func (dcd *DeadCodeDetector) blockContainsContinue(block *BasicBlock) bool {
+	classifier := pythonCFGClassifier{}
 	for _, stmt := range block.Statements {
-		if stmt.Type == parser.NodeContinue {
+		if classifier.IsContinue(stmt) {
 			return true
 		}
 	}
@@ -351,8 +365,9 @@ func (dcd *DeadCodeDetector) blockContainsContinue(block *BasicBlock) bool {
 
 // blockContainsRaise checks if a block contains a raise statement
 func (dcd *DeadCodeDetector) blockContainsRaise(block *BasicBlock) bool {
+	classifier := pythonCFGClassifier{}
 	for _, stmt := range block.Statements {
-		if stmt.Type == parser.NodeRaise {
+		if classifier.IsThrow(stmt) {
 			return true
 		}
 	}
@@ -417,7 +432,8 @@ func (dcd *DeadCodeDetector) getBlockStartLine(block *BasicBlock) int {
 	if block == nil || len(block.Statements) == 0 {
 		return 0
 	}
-	return block.Statements[0].Location.StartLine
+	node := mustPythonNode(block.Statements[0])
+	return node.Location.StartLine
 }
 
 // getBlockEndLine gets the ending line number of a block
@@ -425,7 +441,8 @@ func (dcd *DeadCodeDetector) getBlockEndLine(block *BasicBlock) int {
 	if block == nil || len(block.Statements) == 0 {
 		return 0
 	}
-	return block.Statements[len(block.Statements)-1].Location.EndLine
+	node := mustPythonNode(block.Statements[len(block.Statements)-1])
+	return node.Location.EndLine
 }
 
 // getBlockCode extracts the code from a block
@@ -435,7 +452,8 @@ func (dcd *DeadCodeDetector) getBlockCode(block *BasicBlock) string {
 	}
 
 	var codes []string
-	for _, stmt := range block.Statements {
+	for _, value := range block.Statements {
+		stmt := mustPythonNode(value)
 		// Create a simple representation of the statement
 		nodeDesc := dcd.getNodeDescription(stmt)
 		codes = append(codes, strings.TrimSpace(nodeDesc))
@@ -510,13 +528,7 @@ func (dcd *DeadCodeDetector) generateDescription(reason DeadCodeReason, block *B
 
 // HasDeadCode checks if the CFG contains any dead code
 func (dcd *DeadCodeDetector) HasDeadCode() bool {
-	if dcd.cfg == nil {
-		return false
-	}
-
-	analyzer := NewReachabilityAnalyzer(dcd.cfg)
-	result := analyzer.AnalyzeReachability()
-	return result.HasUnreachableCode()
+	return dcd.Detect().DeadBlocks > 0
 }
 
 // GetDeadCodeRatio returns the ratio of dead blocks to total blocks
@@ -566,76 +578,67 @@ func GroupFindingsByReason(findings []*DeadCodeFinding) map[DeadCodeReason][]*De
 // compound statement's finding spans its body while the body's block emits its
 // own nested finding.
 func mergeContiguousFindings(findings []*DeadCodeFinding) []*DeadCodeFinding {
-	if len(findings) <= 1 {
-		return findings
-	}
-
-	severityRank := map[SeverityLevel]int{
-		SeverityLevelInfo:     1,
-		SeverityLevelWarning:  2,
-		SeverityLevelCritical: 3,
-	}
-
-	merged := make([]*DeadCodeFinding, 0, len(findings))
-	current := findings[0]
-
-	for _, next := range findings[1:] {
-		// Contiguous if the next finding starts at or before the line right after
-		// the current region's end (overlapping or back-to-back lines).
-		contiguous := next.StartLine <= current.EndLine+1
-		if contiguous && next.Reason == current.Reason {
-			if next.EndLine > current.EndLine {
-				current.EndLine = next.EndLine
-			}
-			current.Code = mergeCodeLines(current.Code, next.Code)
-			if severityRank[next.Severity] > severityRank[current.Severity] {
-				current.Severity = next.Severity
-				current.Description = next.Description
-			}
-			continue
+	lineFindings := make([]*corecfg.LineFinding, 0, len(findings))
+	origins := make(map[*corecfg.LineFinding]*DeadCodeFinding, len(findings))
+	for _, finding := range findings {
+		lineFinding := &corecfg.LineFinding{
+			StartLine:   finding.StartLine,
+			EndLine:     finding.EndLine,
+			Reason:      string(finding.Reason),
+			Severity:    toCoreSeverity(finding.Severity),
+			Description: finding.Description,
+			Code:        finding.Code,
 		}
-		merged = append(merged, current)
-		current = next
+		lineFindings = append(lineFindings, lineFinding)
+		origins[lineFinding] = finding
 	}
-	merged = append(merged, current)
-
+	corecfg.SortLineFindings(lineFindings)
+	mergedLines := corecfg.MergeContiguousFindings(lineFindings)
+	merged := make([]*DeadCodeFinding, 0, len(mergedLines))
+	for _, lineFinding := range mergedLines {
+		finding := origins[lineFinding]
+		finding.StartLine = lineFinding.StartLine
+		finding.EndLine = lineFinding.EndLine
+		finding.Severity = fromCoreSeverity(lineFinding.Severity)
+		finding.Description = lineFinding.Description
+		finding.Code = lineFinding.Code
+		merged = append(merged, finding)
+	}
 	return merged
 }
 
-// mergeCodeLines appends the lines of b to a, skipping a leading line of b that
-// duplicates the trailing line of a. This keeps the merged snippet readable when
-// a nested-body block repeats the line already shown by its enclosing statement.
-func mergeCodeLines(a, b string) string {
-	if a == "" {
-		return b
-	}
-	if b == "" {
-		return a
-	}
-	aLines := strings.Split(a, "\n")
-	bLines := strings.Split(b, "\n")
-	if len(aLines) > 0 && len(bLines) > 0 && aLines[len(aLines)-1] == bLines[0] {
-		bLines = bLines[1:]
-	}
-	if len(bLines) == 0 {
-		return a
-	}
-	return a + "\n" + strings.Join(bLines, "\n")
-}
-
-// isOnlyEmptyStatements reports whether every statement in the block is an
-// empty separator node (a bare `;`). Tree-sitter emits a node with
-// `Type == ";"` for the no-op produced by a trailing semicolon. Such blocks
-// are unreachable but carry no actionable signal, so they should not produce
-// dead-code findings.
-func isOnlyEmptyStatements(block *BasicBlock) bool {
+// isOnlyNoOpStatements reports whether every statement is pass or a bare `;`.
+func isOnlyNoOpStatements(block *BasicBlock) bool {
 	if block == nil || len(block.Statements) == 0 {
 		return false
 	}
+	classifier := pythonCFGClassifier{}
 	for _, stmt := range block.Statements {
-		if stmt == nil || string(stmt.Type) != ";" {
+		if !classifier.IsNoOp(stmt) {
 			return false
 		}
 	}
 	return true
+}
+
+func toCoreSeverity(severity SeverityLevel) corecfg.DeadCodeSeverity {
+	switch severity {
+	case SeverityLevelCritical:
+		return corecfg.SeverityCritical
+	case SeverityLevelWarning:
+		return corecfg.SeverityWarning
+	default:
+		return corecfg.SeverityInfo
+	}
+}
+
+func fromCoreSeverity(severity corecfg.DeadCodeSeverity) SeverityLevel {
+	switch severity {
+	case corecfg.SeverityCritical:
+		return SeverityLevelCritical
+	case corecfg.SeverityWarning:
+		return SeverityLevelWarning
+	default:
+		return SeverityLevelInfo
+	}
 }

@@ -805,27 +805,23 @@ func TestMergeContiguousFindings(t *testing.T) {
 	})
 }
 
-func TestMergeCodeLines(t *testing.T) {
-	assert.Equal(t, "b", mergeCodeLines("", "b"))
-	assert.Equal(t, "a", mergeCodeLines("a", ""))
-	assert.Equal(t, "a\nb", mergeCodeLines("a", "b"))
-	// Duplicate boundary line (nested body repeats enclosing line) is collapsed.
-	assert.Equal(t, "if\nCall", mergeCodeLines("if\nCall", "Call"))
-}
-
-func TestIsOnlyEmptyStatements(t *testing.T) {
-	assert.False(t, isOnlyEmptyStatements(nil), "nil block")
-	assert.False(t, isOnlyEmptyStatements(&BasicBlock{}), "empty block")
+func TestIsOnlyNoOpStatements(t *testing.T) {
+	assert.False(t, isOnlyNoOpStatements(nil), "nil block")
+	assert.False(t, isOnlyNoOpStatements(&BasicBlock{}), "empty block")
 
 	semi := &parser.Node{Type: parser.NodeType(";")}
 	ret := &parser.Node{Type: parser.NodeReturn}
 
-	assert.True(t, isOnlyEmptyStatements(&BasicBlock{Statements: []*parser.Node{semi}}),
+	pass := &parser.Node{Type: parser.NodePass}
+
+	assert.True(t, isOnlyNoOpStatements(&BasicBlock{Statements: []any{semi}}),
 		"block with only a separator")
-	assert.True(t, isOnlyEmptyStatements(&BasicBlock{Statements: []*parser.Node{semi, semi}}),
+	assert.True(t, isOnlyNoOpStatements(&BasicBlock{Statements: []any{semi, semi}}),
 		"block with multiple separators")
-	assert.False(t, isOnlyEmptyStatements(&BasicBlock{Statements: []*parser.Node{ret}}),
+	assert.True(t, isOnlyNoOpStatements(&BasicBlock{Statements: []any{pass}}),
+		"block with only pass")
+	assert.False(t, isOnlyNoOpStatements(&BasicBlock{Statements: []any{ret}}),
 		"block with a real statement")
-	assert.False(t, isOnlyEmptyStatements(&BasicBlock{Statements: []*parser.Node{semi, ret}}),
+	assert.False(t, isOnlyNoOpStatements(&BasicBlock{Statements: []any{semi, ret}}),
 		"block mixing separators and a real statement")
 }
