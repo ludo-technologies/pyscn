@@ -8,12 +8,18 @@ import (
 
 // ReachabilityResult preserves pyscn's enriched projection of core reachability.
 type ReachabilityResult struct {
-	ReachableBlocks   map[string]*BasicBlock
+	// ReachableBlocks contains blocks reachable from the CFG entry.
+	ReachableBlocks map[string]*BasicBlock
+	// UnreachableBlocks contains registered blocks not reachable from the CFG entry.
 	UnreachableBlocks map[string]*BasicBlock
-	TotalBlocks       int
-	ReachableCount    int
-	UnreachableCount  int
-	AnalysisTime      time.Duration
+	// TotalBlocks is the total number of registered CFG blocks.
+	TotalBlocks int
+	// ReachableCount is the number of reachable registered blocks.
+	ReachableCount int
+	// UnreachableCount is the number of unreachable registered blocks.
+	UnreachableCount int
+	// AnalysisTime is the duration of the reachability analysis.
+	AnalysisTime time.Duration
 }
 
 // ReachabilityAnalyzer performs reachability analysis on CFGs.

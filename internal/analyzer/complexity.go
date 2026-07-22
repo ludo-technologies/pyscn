@@ -93,9 +93,7 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 	astMetrics, hasASTMetrics := calculateASTComplexityMetrics(complexitySourceNode(cfg))
 	reportedMetrics := resolveCoreComplexityMetrics(coreResult, conditionalDecisions, astMetrics, hasASTMetrics)
 	decisionPoints := countCoreDecisionPoints(conditionalDecisions, reportedMetrics, hasASTMetrics)
-	// Adjust core's language-neutral decision count for pyscn's established
-	// per-except-clause and per-match-case semantics.
-	complexity := coreResult.McCabe + decisionPoints - coreResult.DecisionPoints
+	complexity := decisionPoints + 1
 
 	// Ensure minimum complexity of 1 for any function
 	if complexity < 1 {

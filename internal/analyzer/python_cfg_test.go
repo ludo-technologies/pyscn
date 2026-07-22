@@ -68,3 +68,36 @@ func TestDeadCodeSuppressesUnreachablePassBlock(t *testing.T) {
 		t.Fatal("unreachable pass should not make HasDeadCode true")
 	}
 }
+
+func TestDeadCodeMapsCoreSameBlockTerminatorReasons(t *testing.T) {
+	tests := []struct {
+		name       string
+		terminator parser.NodeType
+		edgeType   EdgeType
+		reason     DeadCodeReason
+	}{
+		{name: "return", terminator: parser.NodeReturn, edgeType: EdgeReturn, reason: ReasonUnreachableAfterReturn},
+		{name: "break", terminator: parser.NodeBreak, edgeType: EdgeBreak, reason: ReasonUnreachableAfterBreak},
+		{name: "continue", terminator: parser.NodeContinue, edgeType: EdgeContinue, reason: ReasonUnreachableAfterContinue},
+		{name: "raise", terminator: parser.NodeRaise, edgeType: EdgeException, reason: ReasonUnreachableAfterRaise},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			graph := NewCFG(test.name)
+			block := graph.CreateBlock("same_block_dead_code")
+			block.AddStatement(&parser.Node{Type: test.terminator})
+			block.AddStatement(&parser.Node{Type: parser.NodeExpr})
+			graph.ConnectBlocks(graph.Entry, block, EdgeNormal)
+			graph.ConnectBlocks(block, graph.Exit, test.edgeType)
+
+			result := NewDeadCodeDetector(graph).Detect()
+			if len(result.Findings) != 1 {
+				t.Fatalf("got %d findings, want 1: %+v", len(result.Findings), result.Findings)
+			}
+			if result.Findings[0].Reason != test.reason {
+				t.Fatalf("reason = %q, want %q", result.Findings[0].Reason, test.reason)
+			}
+		})
+	}
+}
