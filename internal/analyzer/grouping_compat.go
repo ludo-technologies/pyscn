@@ -108,9 +108,7 @@ type centroidCompatibilityStrategy struct {
 func newCentroidCompatibilityStrategy(cd *CloneDetector, threshold float64) *centroidCompatibilityStrategy {
 	return &centroidCompatibilityStrategy{
 		threshold: threshold,
-		analyzer: coreapted.NewAPTEDAnalyzerWithNormalization(
-			buildCloneCostModel(&cd.cloneDetectorConfig), coreapted.NormalizeByMax,
-		),
+		analyzer:  newAPTEDAnalyzer(buildCloneCostModel(&cd.cloneDetectorConfig)),
 	}
 }
 
@@ -175,9 +173,7 @@ func (s *centroidCompatibilityStrategy) GroupItems(pairs []*coreclone.ItemPair[*
 }
 
 func (cd *CloneDetector) refreshCentroidGroupMetadata(groups []*coreclone.ItemGroup[*CodeFragment]) {
-	analyzer := coreapted.NewAPTEDAnalyzerWithNormalization(
-		buildCloneCostModel(&cd.cloneDetectorConfig), coreapted.NormalizeByMax,
-	)
+	analyzer := newAPTEDAnalyzer(buildCloneCostModel(&cd.cloneDetectorConfig))
 	for _, group := range groups {
 		total := 0.0
 		count := 0

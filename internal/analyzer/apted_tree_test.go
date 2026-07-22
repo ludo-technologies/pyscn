@@ -416,7 +416,7 @@ except Error as right:
 		},
 	}
 
-	analyzer := coreapted.NewAPTEDAnalyzerWithNormalization(NewPythonCostModel(), coreapted.NormalizeByMax)
+	analyzer := newAPTEDAnalyzer(NewPythonCostModel())
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			leftTree := parseFirstStatementTree(t, tt.left)
@@ -1106,7 +1106,7 @@ func TestSkipDocstrings_Integration(t *testing.T) {
 // has been compared (and its APTED preparation cached) invalidates the cache,
 // so later distance computations see the new structure.
 func TestComputeDistanceAfterTreeMutation(t *testing.T) {
-	analyzer := coreapted.NewAPTEDAnalyzerWithNormalization(coreapted.NewDefaultCostModel(), coreapted.NormalizeByMax)
+	analyzer := newAPTEDAnalyzer(coreapted.NewDefaultCostModel())
 
 	tree1 := NewTreeNode(0, "A")
 	tree1.AddChild(NewTreeNode(1, "B"))

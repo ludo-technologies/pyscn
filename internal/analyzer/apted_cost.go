@@ -28,6 +28,10 @@ type PythonCostModel struct {
 
 var _ coreapted.CostModel = (*PythonCostModel)(nil)
 
+func newAPTEDAnalyzer(costModel coreapted.CostModel) *coreapted.APTEDAnalyzer {
+	return coreapted.NewAPTEDAnalyzerWithNormalization(costModel, coreapted.NormalizeByMax)
+}
+
 // NewPythonCostModel creates a new Python-aware cost model with default settings
 func NewPythonCostModel() *PythonCostModel {
 	return &PythonCostModel{

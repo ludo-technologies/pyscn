@@ -438,17 +438,15 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 
 	return &CloneDetector{
 		cloneDetectorConfig: *config,
-		analyzer: coreapted.NewAPTEDAnalyzerWithNormalization(
-			buildCloneCostModel(config), coreapted.NormalizeByMax,
-		),
-		converter:        NewTreeConverterWithConfig(config.SkipDocstrings),
-		classifier:       buildCloneClassifier(config),
-		textualAnalyzer:  textualAnalyzer,
-		featureExtractor: newPythonCloneFeatureExtractor(),
-		pairClassifier:   pairClassifier,
-		fragments:        []*CodeFragment{},
-		clonePairs:       []*ClonePair{},
-		cloneGroups:      []*CloneGroup{},
+		analyzer:            newAPTEDAnalyzer(buildCloneCostModel(config)),
+		converter:           NewTreeConverterWithConfig(config.SkipDocstrings),
+		classifier:          buildCloneClassifier(config),
+		textualAnalyzer:     textualAnalyzer,
+		featureExtractor:    newPythonCloneFeatureExtractor(),
+		pairClassifier:      pairClassifier,
+		fragments:           []*CodeFragment{},
+		clonePairs:          []*ClonePair{},
+		cloneGroups:         []*CloneGroup{},
 	}
 }
 
@@ -459,9 +457,7 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 // analyzers, pair classifier, and feature extractor) is shared.
 func (cd *CloneDetector) newWorkerDetector() *CloneDetector {
 	w := *cd
-	w.analyzer = coreapted.NewAPTEDAnalyzerWithNormalization(
-		buildCloneCostModel(&cd.cloneDetectorConfig), coreapted.NormalizeByMax,
-	)
+	w.analyzer = newAPTEDAnalyzer(buildCloneCostModel(&cd.cloneDetectorConfig))
 	w.classifier = buildCloneClassifier(&cd.cloneDetectorConfig)
 	return &w
 }

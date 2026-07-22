@@ -14,7 +14,7 @@ type StructuralSimilarityAnalyzer struct {
 func NewStructuralSimilarityAnalyzer() *StructuralSimilarityAnalyzer {
 	costModel := NewPythonCostModel()
 	return &StructuralSimilarityAnalyzer{
-		analyzer:  coreapted.NewAPTEDAnalyzerWithNormalization(costModel, coreapted.NormalizeByMax),
+		analyzer:  newAPTEDAnalyzer(costModel),
 		converter: NewTreeConverter(),
 	}
 }
@@ -23,7 +23,7 @@ func NewStructuralSimilarityAnalyzer() *StructuralSimilarityAnalyzer {
 // with a custom cost model.
 func NewStructuralSimilarityAnalyzerWithCostModel(costModel coreapted.CostModel) *StructuralSimilarityAnalyzer {
 	return &StructuralSimilarityAnalyzer{
-		analyzer:  coreapted.NewAPTEDAnalyzerWithNormalization(costModel, coreapted.NormalizeByMax),
+		analyzer:  newAPTEDAnalyzer(costModel),
 		converter: NewTreeConverter(),
 	}
 }
