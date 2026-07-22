@@ -50,8 +50,9 @@ pyscn/
 │   │   ├── python.go  # Python-specific parsing
 │   │   └── ast.go     # AST definitions
 │   ├── analyzer/      # Analysis algorithms
-│   │   ├── cfg.go     # Control Flow Graph
-│   │   ├── dead.go    # Dead code detection
+│   │   ├── cfg.go     # Aliases for core/cfg data structures
+│   │   ├── python_cfg.go # Python classifiers for core/cfg analyses
+│   │   ├── dead_code.go # Python dead-code result enrichment
 │   │   ├── apted_tree.go # Python adapter for core/apted
 │   │   └── apted_cost.go # Python APTED cost model
 │   └── config/        # Configuration
