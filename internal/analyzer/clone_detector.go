@@ -66,7 +66,7 @@ func (cl *CodeLocation) String() string {
 type CodeFragment struct {
 	Location   *CodeLocation
 	ASTNode    *parser.Node
-	TreeNode   *TreeNode
+	TreeNode   *coreapted.TreeNode
 	Content    string   // Original source code content
 	Hash       string   // FNV-64a hex hash of Type-1 normalized content; "" when no source content
 	Size       int      // Number of AST nodes
@@ -118,13 +118,13 @@ func toCoreFragment(fragment *CodeFragment, id int) *coreclone.CodeFragment {
 	tree := fragment.TreeNode
 	if tree == nil && fragment.ASTNode != nil {
 		tree = NewTreeConverter().ConvertAST(fragment.ASTNode)
-		PrepareTreeForAPTED(tree)
+		coreapted.PrepareTreeForAPTED(tree)
 	}
 	result := &coreclone.CodeFragment{
 		ID:         id,
 		Content:    fragment.Content,
 		Hash:       fragment.Hash,
-		ASTNode:    toCoreTree(tree),
+		ASTNode:    tree,
 		NodeCount:  fragment.Size,
 		LineCount:  fragment.LineCount,
 		Complexity: fragment.Complexity,
@@ -136,18 +136,6 @@ func toCoreFragment(fragment *CodeFragment, id int) *coreclone.CodeFragment {
 		result.EndLine = fragment.Location.EndLine
 		result.StartCol = fragment.Location.StartCol
 		result.EndCol = fragment.Location.EndCol
-	}
-	return result
-}
-
-// toCoreTree converts a local APTED tree to a core/apted tree.
-func toCoreTree(node *TreeNode) *coreapted.TreeNode {
-	if node == nil {
-		return nil
-	}
-	result := coreapted.NewTreeNode(node.ID, node.Label)
-	for _, child := range node.Children {
-		result.AddChild(toCoreTree(child))
 	}
 	return result
 }
@@ -378,7 +366,7 @@ type CloneDetector struct {
 	// Embed config fields (private to maintain encapsulation)
 	cloneDetectorConfig CloneDetectorConfig
 
-	analyzer         *APTEDAnalyzer
+	analyzer         *coreapted.APTEDAnalyzer
 	converter        *TreeConverter
 	classifier       *CloneClassifier // Multi-dimensional classifier (optional)
 	textualAnalyzer  *coreclone.TextualSimilarityAnalyzer
@@ -390,10 +378,10 @@ type CloneDetector struct {
 }
 
 // buildCloneCostModel creates the APTED cost model for the given configuration.
-func buildCloneCostModel(config *CloneDetectorConfig) CostModel {
+func buildCloneCostModel(config *CloneDetectorConfig) coreapted.CostModel {
 	switch config.CostModelType {
 	case "default":
-		return NewDefaultCostModel()
+		return coreapted.NewDefaultCostModel()
 	case "python":
 		// Use boilerplate-aware cost model if enabled
 		return NewPythonCostModelWithBoilerplateConfig(
@@ -409,7 +397,7 @@ func buildCloneCostModel(config *CloneDetectorConfig) CostModel {
 			config.ReduceBoilerplateSimilarity,
 			config.BoilerplateMultiplier,
 		)
-		return NewWeightedCostModel(1.0, 1.0, 0.8, baseCostModel)
+		return coreapted.NewWeightedCostModel(1.0, 1.0, 0.8, baseCostModel)
 	default:
 		return NewPythonCostModel()
 	}
@@ -450,7 +438,7 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 
 	return &CloneDetector{
 		cloneDetectorConfig: *config,
-		analyzer:            NewAPTEDAnalyzer(buildCloneCostModel(config)),
+		analyzer:            newAPTEDAnalyzer(buildCloneCostModel(config)),
 		converter:           NewTreeConverterWithConfig(config.SkipDocstrings),
 		classifier:          buildCloneClassifier(config),
 		textualAnalyzer:     textualAnalyzer,
@@ -469,7 +457,7 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 // analyzers, pair classifier, and feature extractor) is shared.
 func (cd *CloneDetector) newWorkerDetector() *CloneDetector {
 	w := *cd
-	w.analyzer = NewAPTEDAnalyzer(buildCloneCostModel(&cd.cloneDetectorConfig))
+	w.analyzer = newAPTEDAnalyzer(buildCloneCostModel(&cd.cloneDetectorConfig))
 	w.classifier = buildCloneClassifier(&cd.cloneDetectorConfig)
 	return &w
 }
@@ -980,7 +968,7 @@ func (cd *CloneDetector) prepareFragments() {
 		if fragment.TreeNode == nil {
 			continue
 		}
-		PrepareTreeForAPTED(fragment.TreeNode)
+		coreapted.PrepareTreeForAPTED(fragment.TreeNode)
 		fragment.id = i
 		fragment.core = toCoreFragment(fragment, i)
 		features, _ := cd.featureExtractor.ExtractFeatures(fragment.core.ASTNode)

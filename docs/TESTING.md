@@ -257,54 +257,9 @@ func TestCLIAnalyzeCommand(t *testing.T) {
 
 ### 5. Benchmark Tests
 
-Measure and track performance.
-
-```go
-// apted_bench_test.go
-package analyzer
-
-import (
-    "testing"
-)
-
-func BenchmarkAPTEDSmallTree(b *testing.B) {
-    tree1 := buildTree(10)  // 10 nodes
-    tree2 := buildTree(10)
-    
-    analyzer := NewAPTEDAnalyzer()
-    
-    b.ResetTimer()
-    for i := 0; i < b.N; i++ {
-        _ = analyzer.Distance(tree1, tree2)
-    }
-}
-
-func BenchmarkAPTEDMediumTree(b *testing.B) {
-    tree1 := buildTree(100)  // 100 nodes
-    tree2 := buildTree(100)
-    
-    analyzer := NewAPTEDAnalyzer()
-    
-    b.ResetTimer()
-    for i := 0; i < b.N; i++ {
-        _ = analyzer.Distance(tree1, tree2)
-    }
-}
-
-func BenchmarkAPTEDLargeTree(b *testing.B) {
-    tree1 := buildTree(1000)  // 1000 nodes
-    tree2 := buildTree(1000)
-    
-    analyzer := NewAPTEDAnalyzer()
-    
-    b.ResetTimer()
-    for i := 0; i < b.N; i++ {
-        _ = analyzer.Distance(tree1, tree2)
-    }
-}
-
-// Run with: go test -bench=APTED -benchmem
-```
+Measure and track performance. Generic APTED benchmarks live in
+[`polyscan/core/apted`](https://github.com/ludo-technologies/polyscan/tree/main/core/apted);
+pyscn benchmarks should cover Python conversion, cost-model integration, and the clone pipeline.
 
 ### 6. Fuzz Tests
 

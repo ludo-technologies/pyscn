@@ -1,9 +1,11 @@
 package analyzer
 
+import coreapted "github.com/ludo-technologies/polyscan/core/apted"
+
 // StructuralSimilarityAnalyzer computes structural similarity using APTED tree edit distance.
 // This is used for Type-3 clone detection (near-miss clones with modifications).
 type StructuralSimilarityAnalyzer struct {
-	analyzer  *APTEDAnalyzer
+	analyzer  *coreapted.APTEDAnalyzer
 	converter *TreeConverter
 }
 
@@ -12,16 +14,16 @@ type StructuralSimilarityAnalyzer struct {
 func NewStructuralSimilarityAnalyzer() *StructuralSimilarityAnalyzer {
 	costModel := NewPythonCostModel()
 	return &StructuralSimilarityAnalyzer{
-		analyzer:  NewAPTEDAnalyzer(costModel),
+		analyzer:  newAPTEDAnalyzer(costModel),
 		converter: NewTreeConverter(),
 	}
 }
 
 // NewStructuralSimilarityAnalyzerWithCostModel creates a structural similarity analyzer
 // with a custom cost model.
-func NewStructuralSimilarityAnalyzerWithCostModel(costModel CostModel) *StructuralSimilarityAnalyzer {
+func NewStructuralSimilarityAnalyzerWithCostModel(costModel coreapted.CostModel) *StructuralSimilarityAnalyzer {
 	return &StructuralSimilarityAnalyzer{
-		analyzer:  NewAPTEDAnalyzer(costModel),
+		analyzer:  newAPTEDAnalyzer(costModel),
 		converter: NewTreeConverter(),
 	}
 }
@@ -63,7 +65,7 @@ func (s *StructuralSimilarityAnalyzer) ComputeDistance(f1, f2 *CodeFragment) flo
 }
 
 // getTreeNode retrieves or builds the tree node for a code fragment
-func (s *StructuralSimilarityAnalyzer) getTreeNode(f *CodeFragment) *TreeNode {
+func (s *StructuralSimilarityAnalyzer) getTreeNode(f *CodeFragment) *coreapted.TreeNode {
 	// Use cached TreeNode if available
 	if f.TreeNode != nil {
 		return f.TreeNode
@@ -73,7 +75,7 @@ func (s *StructuralSimilarityAnalyzer) getTreeNode(f *CodeFragment) *TreeNode {
 	if f.ASTNode != nil {
 		tree := s.converter.ConvertAST(f.ASTNode)
 		if tree != nil {
-			PrepareTreeForAPTED(tree)
+			coreapted.PrepareTreeForAPTED(tree)
 		}
 		return tree
 	}
@@ -87,6 +89,6 @@ func (s *StructuralSimilarityAnalyzer) GetName() string {
 }
 
 // GetAnalyzer returns the underlying APTED analyzer (for advanced usage)
-func (s *StructuralSimilarityAnalyzer) GetAnalyzer() *APTEDAnalyzer {
+func (s *StructuralSimilarityAnalyzer) GetAnalyzer() *coreapted.APTEDAnalyzer {
 	return s.analyzer
 }

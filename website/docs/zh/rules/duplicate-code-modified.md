@@ -70,5 +70,5 @@ def export_orders_csv(orders, path):
 
 ## 参考
 
-- 克隆检测实现 (`internal/analyzer/clone_detector.go`, `internal/analyzer/apted.go`)。
+- 克隆检测实现 (`internal/analyzer/clone_detector.go`, `internal/analyzer/apted_tree.go`, `internal/analyzer/apted_cost.go`, `polyscan/core/apted`)。
 - [规则目录](index.md) · [完全相同克隆](duplicate-code-identical.md) · [重命名克隆](duplicate-code-renamed.md) · [语义克隆](duplicate-code-semantic.md)

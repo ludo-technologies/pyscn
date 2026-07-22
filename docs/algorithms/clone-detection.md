@@ -65,7 +65,7 @@ Fragments that fail either threshold are discarded before any comparison.
 
 ### Stage 2: Tree Conversion
 
-AST nodes from the parser are converted into ordered labeled trees (`TreeNode`) suitable for the APTED algorithm. The conversion:
+AST nodes from the parser are converted into ordered labeled trees (`apted.TreeNode`) suitable for the APTED algorithm. The conversion:
 
 1. Creates a `TreeNode` for each AST node with a label encoding the node type and, for some node types, the associated value (e.g., `FunctionDef(my_func)`, `Name(x)`, `Constant(42)`).
 2. Recursively converts children, body, orelse, finalbody, and handler nodes.
@@ -120,7 +120,7 @@ This approach eliminates false positives from the APTED-based approach, since on
 
 ### Type-3: APTED Tree Edit Distance
 
-**Implementation:** `structural_similarity.go` (`StructuralSimilarityAnalyzer`), `apted.go` (`APTEDAnalyzer`), `apted_tree.go`, `apted_cost.go`
+**Implementation:** [`polyscan/core/apted`](https://github.com/ludo-technologies/polyscan/tree/main/core/apted) provides the generic tree and algorithm; `apted_tree.go` provides Python AST conversion and `apted_cost.go` provides `PythonCostModel`.
 
 Type-3 detection is the core algorithm, using APTED (All Path Tree Edit Distance) based on Pawlik & Augsten's O(n^2 log n) algorithm to compute the minimum-cost sequence of edit operations that transforms one tree into another.
 
@@ -177,7 +177,7 @@ flowchart TD
 
 1. **Preparation**: Assign post-order IDs to every node, compute left-most leaf descendants, and identify key roots (nodes whose left-most leaf has not yet been visited during traversal).
 2. **Forest distance**: For each pair of key roots, compute the forest distance using dynamic programming. The recurrence considers three operations (insert, delete, rename) and selects the minimum cost.
-3. **Optimization**: Trees larger than 500 nodes use an optimized path with early termination. Trees larger than 2000 nodes use an approximate distance based on structural properties (height difference and size difference).
+3. **Optimization**: Trees larger than 500 nodes use a bounded path with label and shape profile floors. Trees larger than 2000 nodes use the profile distance directly.
 4. **Normalization**: Distance is converted to similarity: `similarity = 1.0 - min(distance, maxSize) / maxSize`, where `maxSize = max(size1, size2)`. This normalization is stricter than the common `(size1 + size2)` divisor and reduces false positives.
 
 #### Batch Processing
