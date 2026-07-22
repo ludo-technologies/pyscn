@@ -56,10 +56,12 @@
         
         
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
       
     
+    
+      <link rel="stylesheet" href="stylesheets/extra.css">
     
     <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -154,7 +156,7 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
     
       <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
@@ -164,7 +166,7 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
     
       <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
@@ -598,10 +600,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#what-it-finds" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Features
+        What it finds
       
     </span>
   </a>
@@ -609,10 +611,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#install" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation
+        Install
       
     </span>
   </a>
@@ -3203,10 +3205,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#what-it-finds" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Features
+        What it finds
       
     </span>
   </a>
@@ -3214,10 +3216,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#install" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation
+        Install
       
     </span>
   </a>
@@ -3283,38 +3285,120 @@
   
 
 
+<div class="pyscn-hero">
+<div class="pyscn-hero__copy">
+<p class="pyscn-hero__eyebrow">Structural static analysis for Python</p>
 <h1 id="pyscn">pyscn<a class="headerlink" href="#pyscn" title="Permanent link">&para;</a></h1>
-<p>A structural static analyzer for Python. Detects dead code, duplication, complexity, and coupling issues via control-flow and tree analysis.</p>
+<p class="pyscn-hero__lede">pyscn reads Python the way a compiler does — control-flow graphs, syntax trees, import graphs — to catch what line-by-line linters miss: dead code stranded after a <code>return</code>, logic duplicated under a different name, and modules wired into silent cycles.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uvx<span class="w"> </span>pyscn@latest<span class="w"> </span>analyze<span class="w"> </span>.
 </span></code></pre></div>
-<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
+<p><a class="md-button md-button--primary" href="getting-started/quick-start/">Get started <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg></span></a> <a class="md-button" href="https://github.com/ludo-technologies/pyscn">View on GitHub <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg></span></a></p>
+<p class="pyscn-hero__meta">Go binary · zero Python runtime deps · 100,000+ lines/sec · 33 rules</p>
+</div>
+<div class="pyscn-hero__art">
+<svg class="pyscn-cfg" viewBox="0 0 330 226" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pyscn-cfg-title pyscn-cfg-desc">
+  <title id="pyscn-cfg-title">Control-flow graph for a function with unreachable code</title>
+  <desc id="pyscn-cfg-desc">After the conditional, both branches return. A logging call written after the conditional is never reached, so pyscn flags it as unreachable-after-return.</desc>
+  <defs>
+    <marker id="pyscn-arrow" viewBox="0 0 8 8" refX="6.5" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path class="pyscn-cfg-arrowhead" d="M0,0 L8,4 L0,8 z" />
+    </marker>
+  </defs>
+
+  <circle class="pyscn-cfg-node--entry" cx="24" cy="16" r="4" />
+  <text x="36" y="19">def process(x):</text>
+  <path class="pyscn-cfg-edge pyscn-cfg-edge--live" d="M24,20 L24,50" />
+
+  <path class="pyscn-cfg-decision" d="M24,40 L34,50 L24,60 L14,50 Z" />
+  <text x="52" y="63">if x is None:</text>
+
+  <path class="pyscn-cfg-edge pyscn-cfg-edge--live" d="M31,53 C 130,16 170,16 186,22" />
+  <rect class="pyscn-cfg-chip" x="136" y="8" width="28" height="12" rx="3" />
+  <text class="pyscn-cfg-branch-label" x="150" y="17" text-anchor="middle">True</text>
+  <circle class="pyscn-cfg-node--exit" cx="192" cy="22" r="4" />
+  <text x="202" y="25">return None</text>
+
+  <path class="pyscn-cfg-edge pyscn-cfg-edge--live" d="M31,67 C 130,156 170,156 186,124" />
+  <rect class="pyscn-cfg-chip" x="134" y="150" width="34" height="12" rx="3" />
+  <text class="pyscn-cfg-branch-label" x="151" y="159" text-anchor="middle">False</text>
+  <circle class="pyscn-cfg-node--exit" cx="192" cy="124" r="4" />
+  <text x="202" y="127">return compute(x)</text>
+
+  <path class="pyscn-cfg-edge--guide" d="M24,70 C 24,150 110,180 186,188" />
+  <text x="76" y="160" fill="#475569" font-size="9">✕</text>
+  <circle class="pyscn-cfg-node--dead" cx="192" cy="188" r="6" />
+  <line class="pyscn-cfg-node--dead-mark" x1="188.5" y1="184.5" x2="195.5" y2="191.5" />
+  <text class="pyscn-cfg-label--dead" x="204" y="191">log("done")</text>
+  <text class="pyscn-cfg-caption" x="24" y="212">&#8594; flagged: unreachable-after-return</text>
+</svg>
+</div>
+</div>
+<h2 id="what-it-finds">What it finds<a class="headerlink" href="#what-it-finds" title="Permanent link">&para;</a></h2>
+<div class="grid cards">
 <ul>
-<li><strong>33 rules</strong> across unreachable code, duplicate code, complexity, class design, dependency injection, module structure, and mock data.</li>
-<li><strong>CFG-based reachability</strong> finds dead code past <code>return</code> / <code>raise</code> / <code>break</code> / <code>continue</code> and unreachable branches.</li>
-<li><strong>APTED + LSH clone detection</strong> across four clone types (identical, renamed, modified, semantic).</li>
-<li><strong>CBO / LCOM4</strong> class coupling and cohesion metrics.</li>
-<li><strong>Circular import detection</strong> via Tarjan's SCC.</li>
-<li><strong>Module community detection</strong> via Leiden clustering over the import graph.</li>
-<li><strong>Health score</strong> (0–100) with per-category breakdown.</li>
-<li><strong>CI-ready</strong> with <code>pyscn check</code>, linter-style output, and deterministic exit codes.</li>
-<li><strong>Agent Skills</strong> and an <strong>MCP server</strong> (<code>pyscn-mcp</code>) for Claude Code, Cursor, and other AI coding agents.</li>
+<li>
+<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 14c-3.36 0-4.46 1.35-4.82 2.24C9.25 16.7 10 17.76 10 19a3 3 0 0 1-3 3 3 3 0 0 1-3-3c0-1.31.83-2.42 2-2.83V7.83A2.99 2.99 0 0 1 4 5a3 3 0 0 1 3-3 3 3 0 0 1 3 3c0 1.31-.83 2.42-2 2.83v5.29c.88-.65 2.16-1.12 4-1.12 2.67 0 3.56-1.34 3.85-2.23A3.01 3.01 0 0 1 14 7a3 3 0 0 1 3-3 3 3 0 0 1 3 3c0 1.34-.88 2.5-2.09 2.86C17.65 11.29 16.68 14 13 14m-6 4a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1M7 4a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m10 2a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1"/></svg></span> <strong>Unreachable code</strong></p>
+<hr />
+<p>CFG-based reachability finds dead code stranded after <code>return</code>, <code>raise</code>, <code>break</code>, <code>continue</code>, or an always-true branch.</p>
+</li>
+<li>
+<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11 17H4a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h12v2H4v12h7v-2l4 3-4 3zm8 4V7H8v6H6V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-2h2v2z"/></svg></span> <strong>Duplicate code</strong></p>
+<hr />
+<p>APTED tree-edit distance plus LSH catches four clone types: identical, renamed, modified, and semantic.</p>
+</li>
+<li>
+<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 2a8 8 0 0 1 8 8c0 2.4-1 4.5-2.7 6-1.4-1.3-3.3-2-5.3-2s-3.8.7-5.3 2C5 16.5 4 14.4 4 12a8 8 0 0 1 8-8m2 1.89c-.38.01-.74.26-.9.65l-1.29 3.23-.1.23c-.71.13-1.3.6-1.57 1.26-.41 1.03.09 2.19 1.12 2.6s2.19-.09 2.6-1.12c.26-.66.14-1.42-.29-1.98l.1-.26 1.29-3.21.01-.03c.2-.51-.05-1.09-.56-1.3-.13-.05-.26-.07-.41-.07M10 6a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1M7 9a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m10 0a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1"/></svg></span> <strong>Complexity</strong></p>
+<hr />
+<p>Cyclomatic complexity per function, with thresholds you tune per project.</p>
+</li>
+<li>
+<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11 13.5v8H3v-8zm-2 2H5v4h4zM12 2l5.5 9h-11zm0 3.86L10.08 9h3.84zM17.5 13c2.5 0 4.5 2 4.5 4.5S20 22 17.5 22 13 20 13 17.5s2-4.5 4.5-4.5m0 2a2.5 2.5 0 0 0-2.5 2.5 2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5 2.5 2.5 0 0 0-2.5-2.5"/></svg></span> <strong>Class design</strong></p>
+<hr />
+<p>CBO coupling and LCOM4 cohesion metrics surface classes doing too much, or too little, together.</p>
+</li>
+<li>
+<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18a6 6 0 0 1-6-6c0-1 .25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12a8 8 0 0 0 8 8v3l4-4-4-4m0-11V1L8 5l4 4V6a6 6 0 0 1 6 6c0 1-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12a8 8 0 0 0-8-8"/></svg></span> <strong>Circular imports</strong></p>
+<hr />
+<p>Tarjan's SCC algorithm finds import cycles before they turn into an <code>ImportError</code> at runtime.</p>
+</li>
+<li>
+<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 2v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6h-2v-3c0-1.11-.89-2-2-2h-6V8h2V2z"/></svg></span> <strong>Module structure</strong></p>
+<hr />
+<p>Leiden clustering over the import graph shows which modules actually belong together — and which don't.</p>
+</li>
 </ul>
-<p>Written in Go. 100,000+ lines/sec on typical hardware. No Python runtime dependencies.</p>
-<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uvx<span class="w"> </span>pyscn@latest<span class="w"> </span>&lt;command&gt;<span class="w">   </span><span class="c1"># run without installing (recommended)</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>pyscn<span class="w">        </span><span class="c1"># install with uv</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>pipx<span class="w"> </span>install<span class="w"> </span>pyscn<span class="w">           </span><span class="c1"># install with pipx</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>pip<span class="w"> </span>install<span class="w"> </span>pyscn<span class="w">            </span><span class="c1"># install with pip</span>
+</div>
+<h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:4"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">uvx (recommended)</label><label for="__tabbed_1_2">uv</label><label for="__tabbed_1_3">pipx</label><label for="__tabbed_1_4">pip</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uvx<span class="w"> </span>pyscn@latest<span class="w"> </span>analyze<span class="w"> </span>.
 </span></code></pre></div>
+<p>Runs the latest release without installing anything.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>pyscn
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pipx<span class="w"> </span>install<span class="w"> </span>pyscn
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pip<span class="w"> </span>install<span class="w"> </span>pyscn
+</span></code></pre></div>
+</div>
+</div>
+</div>
 <p>See <a href="getting-started/installation/">Installation</a> for all options.</p>
 <h2 id="quick-start">Quick start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>.<span class="w">                         </span><span class="c1"># full analysis, HTML report</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--select<span class="w"> </span>complexity,deadcode<span class="w"> </span>src/<span class="w">   </span><span class="c1"># CI gate</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>pyscn<span class="w"> </span>init<span class="w">                              </span><span class="c1"># generate .pyscn.toml</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>.<span class="w">                                  </span><span class="c1"># full analysis, HTML report</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--select<span class="w"> </span>complexity,deadcode<span class="w"> </span>src/<span class="w">    </span><span class="c1"># CI gate</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>pyscn<span class="w"> </span>init<span class="w">                                       </span><span class="c1"># generate .pyscn.toml</span>
 </span></code></pre></div>
-<p>See <a href="getting-started/quick-start/">Quick Start</a> and the <a href="rules/">Rule catalog</a>.</p>
+<p>See <a href="getting-started/quick-start/">Quick Start</a> and the <a href="rules/">rule catalog</a>.</p>
 <h2 id="ai-agent-integration">AI agent integration<a class="headerlink" href="#ai-agent-integration" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uvx<span class="w"> </span>add-skills<span class="w"> </span>ludo-technologies/pyscn
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uvx<span class="w"> </span>add-skills<span class="w"> </span>ludo-technologies/pyscn
 </span></code></pre></div>
 <p>Installs Agent Skills that teach Claude Code, Cursor, Codex, Gemini CLI, and other coding agents when and how to run each analysis. See <a href="integrations/skills/">Agent Skills</a>, or use the <a href="integrations/mcp/">MCP server</a> for structured tool calls instead.</p>
 
@@ -3412,7 +3496,7 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.top", "navigation.indexes", "navigation.tracking", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.tooltips", "announce.dismiss"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.top", "navigation.indexes", "navigation.tracking", "header.autohide", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.tooltips", "announce.dismiss"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
