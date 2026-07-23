@@ -1,6 +1,6 @@
 # Dependency Analysis
 
-This document describes the algorithms and data structures behind pyscn's module dependency analysis. The implementation lives primarily in `internal/analyzer/dependency_graph.go`, `internal/analyzer/module_analyzer.go`, `internal/analyzer/circular_detector.go`, and `internal/analyzer/coupling_metrics.go`, with domain types defined in `domain/system_analysis.go`.
+This document describes the algorithms and data structures behind pyscn's module dependency analysis. Language-neutral coupling and cycle detection come from `github.com/ludo-technologies/polyscan/core/graph`; pyscn builds the Python module graph and enriches core results in `internal/analyzer/dependency_graph.go`, `internal/analyzer/module_analyzer.go`, `internal/analyzer/circular_detector.go`, and `internal/analyzer/coupling_metrics.go`, with domain types defined in `domain/system_analysis.go`.
 
 ## Overview
 
@@ -134,7 +134,7 @@ When an `__init__.py` file imports from its own submodules (a standard Python re
 
 ### Tarjan's Strongly Connected Components
 
-Circular dependency detection uses **Tarjan's algorithm** to find all strongly connected components (SCCs) in the dependency graph. An SCC with more than one node represents a circular dependency.
+Circular dependency detection uses **Tarjan's algorithm** from `polyscan/core/graph` to find all strongly connected components (SCCs) in the dependency graph. An SCC with more than one node represents a circular dependency. pyscn supplies a load-time graph view that excludes lazy function-body imports, then enriches each core SCC with Python-specific dependency chains, severity, and descriptions.
 
 The algorithm runs in O(V + E) time where V is the number of modules and E is the number of edges.
 
@@ -230,7 +230,7 @@ Exceeding this threshold suggests that the dependency chain is deeper than neces
 
 ## Robert C. Martin's Package Metrics
 
-The coupling metrics calculator (`CouplingMetricsCalculator`) computes metrics from Robert C. Martin's package design principles for each module.
+The coupling metrics calculator (`CouplingMetricsCalculator`) delegates Robert C. Martin's per-module metrics to `polyscan/core/graph`, supplying Python abstract-class ratios through the core callback. pyscn then adds source metrics and aggregates the system-wide results described below.
 
 ### Afferent Coupling (Ca)
 
@@ -433,8 +433,9 @@ With 4 modules and no cycles:
 |---|---|
 | `internal/analyzer/dependency_graph.go` | Graph data structures (`DependencyGraph`, `ModuleNode`, `DependencyEdge`) |
 | `internal/analyzer/module_analyzer.go` | Import parsing, resolution, and graph construction |
-| `internal/analyzer/circular_detector.go` | Tarjan's SCC algorithm and cycle analysis |
-| `internal/analyzer/coupling_metrics.go` | Robert C. Martin's metrics and system-wide calculations |
+| `github.com/ludo-technologies/polyscan/core/graph` | Tarjan SCC detection and Robert C. Martin's coupling metrics |
+| `internal/analyzer/circular_detector.go` | Python load-time graph adapter and cycle result enrichment |
+| `internal/analyzer/coupling_metrics.go` | Python abstractness adapter and system-wide calculations |
 | `internal/analyzer/reexport_resolver.go` | Re-export resolution for `__init__.py` files |
 | `domain/system_analysis.go` | Domain types for analysis results |
 | `domain/analyze.go` | Health score dependency penalty calculation |
