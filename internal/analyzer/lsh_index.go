@@ -34,7 +34,7 @@ func (idx *lshCandidateIndex) AddFragment(id int, signature *corelsh.MinHashSign
 }
 
 func (idx *lshCandidateIndex) FindCandidates(signature *corelsh.MinHashSignature) []int {
-	candidates := idx.index.FindCandidates(signature)
+	candidates := idx.index.FindCandidatesLimit(signature, idx.maxCandidates)
 	ids := make([]int, 0, len(candidates))
 	for _, candidate := range candidates {
 		id, err := strconv.Atoi(candidate)
@@ -43,8 +43,5 @@ func (idx *lshCandidateIndex) FindCandidates(signature *corelsh.MinHashSignature
 		}
 	}
 	sort.Ints(ids)
-	if len(ids) > idx.maxCandidates {
-		ids = ids[:idx.maxCandidates]
-	}
 	return ids
 }

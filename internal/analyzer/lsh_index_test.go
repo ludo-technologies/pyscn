@@ -53,8 +53,27 @@ func TestLSHIndex_FindCandidatesKeepsOversizedBucketCandidates(t *testing.T) {
 	}
 
 	cands := lsh.FindCandidates(sig)
-	if len(cands) != 2 {
-		t.Fatalf("expected oversized bucket candidates capped at 2; got %v", cands)
+	if len(cands) != 2 || cands[0] != 1 || cands[1] != 2 {
+		t.Fatalf("expected first-traversed candidates [1 2]; got %v", cands)
+	}
+}
+
+func TestLSHIndex_FindCandidatesCapKeepsTraversalOrderSelection(t *testing.T) {
+	mh := corelsh.NewMinHasher(128)
+	sig := mh.ComputeSignature([]string{"same", "feature", "set"})
+
+	lsh := newLSHCandidateIndex(32, 4, 2)
+	for _, id := range []int{10, 20, 1} {
+		if err := lsh.AddFragment(id, sig); err != nil {
+			t.Fatalf("add %d: %v", id, err)
+		}
+	}
+
+	// The cap must keep the first candidates in band/insertion traversal
+	// order ({10, 20}), not the smallest IDs ({1, 10}); output is sorted.
+	cands := lsh.FindCandidates(sig)
+	if len(cands) != 2 || cands[0] != 10 || cands[1] != 20 {
+		t.Fatalf("expected capped selection [10 20]; got %v", cands)
 	}
 }
 
