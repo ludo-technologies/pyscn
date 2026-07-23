@@ -159,6 +159,18 @@ def use():
 		t.Errorf("foo.a -> foo.b (top-level import) should NOT be flagged lazy")
 	}
 
+	loadTimeGraph := loadTimeDependencyGraph{graph}
+	if successors := loadTimeGraph.Successors("foo.b"); len(successors) != 0 {
+		t.Errorf("load-time successors of foo.b = %v, want none", successors)
+	}
+	if predecessors := loadTimeGraph.Predecessors("foo.a"); len(predecessors) != 0 {
+		t.Errorf("load-time predecessors of foo.a = %v, want none", predecessors)
+	}
+	predecessors := loadTimeGraph.Predecessors("foo.b")
+	if len(predecessors) != 1 || predecessors[0] != "foo.a" {
+		t.Errorf("load-time predecessors of foo.b = %v, want [foo.a]", predecessors)
+	}
+
 	// Cycle detection must NOT report a cycle, because the only edge closing the
 	// loop is lazy (function-body).
 	result := NewCircularDependencyDetector(graph).DetectCircularDependencies()

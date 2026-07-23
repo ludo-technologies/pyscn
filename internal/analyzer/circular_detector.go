@@ -35,6 +35,24 @@ func (g loadTimeDependencyGraph) Successors(moduleName string) []string {
 	return dependencies
 }
 
+// Predecessors excludes modules whose edge to moduleName is a lazy import.
+func (g loadTimeDependencyGraph) Predecessors(moduleName string) []string {
+	node := g.Nodes[moduleName]
+	if node == nil {
+		return nil
+	}
+
+	dependents := make([]string, 0, len(node.Dependents))
+	for dependent := range node.Dependents {
+		dependentNode := g.Nodes[dependent]
+		if dependentNode != nil && !dependentNode.LazyDependencies[moduleName] {
+			dependents = append(dependents, dependent)
+		}
+	}
+	sort.Strings(dependents)
+	return dependents
+}
+
 // CircularDependency represents a circular dependency relationship
 type CircularDependency struct {
 	Modules      []string          // Modules involved in the cycle
