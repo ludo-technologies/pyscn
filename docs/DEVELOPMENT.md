@@ -53,6 +53,9 @@ pyscn/
 │   │   ├── cfg.go     # Aliases for core/cfg data structures
 │   │   ├── python_cfg.go # Python classifiers for core/cfg analyses
 │   │   ├── dead_code.go # Python dead-code result enrichment
+│   │   ├── dependency_graph.go # Python module graph adapter for core/graph
+│   │   ├── circular_detector.go # Python cycle result enrichment
+│   │   ├── coupling_metrics.go # Python system metric aggregation
 │   │   ├── apted_tree.go # Python adapter for core/apted
 │   │   └── apted_cost.go # Python APTED cost model
 │   └── config/        # Configuration

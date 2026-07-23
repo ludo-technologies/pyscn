@@ -5,7 +5,11 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	coregraph "github.com/ludo-technologies/polyscan/core/graph"
 )
+
+var _ coregraph.DirectedGraph = (*DependencyGraph)(nil)
 
 // ModuleNode represents a module in the dependency graph
 type ModuleNode struct {
@@ -285,6 +289,52 @@ func (g *DependencyGraph) GetModuleNames() []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+// NodeIDs returns all module names in deterministic order for core graph analyses.
+func (g *DependencyGraph) NodeIDs() []string {
+	return g.GetModuleNames()
+}
+
+// Successors returns the modules directly imported by moduleName.
+func (g *DependencyGraph) Successors(moduleName string) []string {
+	node := g.Nodes[moduleName]
+	if node == nil {
+		return nil
+	}
+
+	dependencies := make([]string, 0, len(node.Dependencies))
+	for dependency := range node.Dependencies {
+		dependencies = append(dependencies, dependency)
+	}
+	sort.Strings(dependencies)
+	return dependencies
+}
+
+// Predecessors returns the modules that directly import moduleName.
+func (g *DependencyGraph) Predecessors(moduleName string) []string {
+	node := g.Nodes[moduleName]
+	if node == nil {
+		return nil
+	}
+
+	dependents := make([]string, 0, len(node.Dependents))
+	for dependent := range node.Dependents {
+		dependents = append(dependents, dependent)
+	}
+	sort.Strings(dependents)
+	return dependents
+}
+
+// NodeCount returns the number of modules in the graph.
+func (g *DependencyGraph) NodeCount() int {
+	return len(g.Nodes)
+}
+
+// HasNode reports whether moduleName exists in the graph.
+func (g *DependencyGraph) HasNode(moduleName string) bool {
+	_, exists := g.Nodes[moduleName]
+	return exists
 }
 
 // GetPackages returns all unique package names

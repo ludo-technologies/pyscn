@@ -4,21 +4,35 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	coregraph "github.com/ludo-technologies/polyscan/core/graph"
 )
 
-// CircularDependencyDetector detects circular dependencies using Tarjan's algorithm
+// CircularDependencyDetector enriches cycles detected by polyscan core.
 type CircularDependencyDetector struct {
-	graph *DependencyGraph
-
-	// Tarjan's algorithm state
-	index    int
-	stack    []string
-	inStack  map[string]bool
-	indices  map[string]int
-	lowLinks map[string]int
-
-	// Results
+	graph      *DependencyGraph
 	components [][]string // Strongly connected components
+}
+
+type loadTimeDependencyGraph struct {
+	*DependencyGraph
+}
+
+// Successors excludes lazy imports because they cannot form load-time cycles.
+func (g loadTimeDependencyGraph) Successors(moduleName string) []string {
+	node := g.Nodes[moduleName]
+	if node == nil {
+		return nil
+	}
+
+	dependencies := make([]string, 0, len(node.Dependencies))
+	for dependency := range node.Dependencies {
+		if !node.LazyDependencies[dependency] {
+			dependencies = append(dependencies, dependency)
+		}
+	}
+	sort.Strings(dependencies)
+	return dependencies
 }
 
 // CircularDependency represents a circular dependency relationship
@@ -70,21 +84,17 @@ type CircularDependencyResult struct {
 // NewCircularDependencyDetector creates a new circular dependency detector
 func NewCircularDependencyDetector(graph *DependencyGraph) *CircularDependencyDetector {
 	return &CircularDependencyDetector{
-		graph:      graph,
-		inStack:    make(map[string]bool),
-		indices:    make(map[string]int),
-		lowLinks:   make(map[string]int),
-		components: make([][]string, 0),
+		graph: graph,
 	}
 }
 
 // DetectCircularDependencies detects all circular dependencies in the graph
 func (cdd *CircularDependencyDetector) DetectCircularDependencies() *CircularDependencyResult {
-	// Reset state
-	cdd.resetState()
-
-	// Run Tarjan's algorithm to find strongly connected components
-	cdd.findStronglyConnectedComponents()
+	coreResult := coregraph.NewCycleDetector().DetectCycles(loadTimeDependencyGraph{cdd.graph})
+	cdd.components = coreResult.Cycles
+	for _, component := range cdd.components {
+		sort.Strings(component)
+	}
 
 	// Process components to identify circular dependencies
 	circularDeps := cdd.processComponents()
@@ -103,80 +113,6 @@ func (cdd *CircularDependencyDetector) DetectCircularDependencies() *CircularDep
 	cdd.updateGraphWithCycles()
 
 	return result
-}
-
-// resetState resets the detector state for a new analysis
-func (cdd *CircularDependencyDetector) resetState() {
-	cdd.index = 0
-	cdd.stack = make([]string, 0)
-	cdd.inStack = make(map[string]bool)
-	cdd.indices = make(map[string]int)
-	cdd.lowLinks = make(map[string]int)
-	cdd.components = make([][]string, 0)
-}
-
-// findStronglyConnectedComponents implements Tarjan's algorithm
-func (cdd *CircularDependencyDetector) findStronglyConnectedComponents() {
-	// Run Tarjan's algorithm on each unvisited node
-	for moduleName := range cdd.graph.Nodes {
-		if _, visited := cdd.indices[moduleName]; !visited {
-			cdd.strongConnect(moduleName)
-		}
-	}
-}
-
-// strongConnect is the core of Tarjan's algorithm
-func (cdd *CircularDependencyDetector) strongConnect(module string) {
-	// Set the depth index for this node to the smallest unused index
-	cdd.indices[module] = cdd.index
-	cdd.lowLinks[module] = cdd.index
-	cdd.index++
-
-	// Push the node onto the stack
-	cdd.stack = append(cdd.stack, module)
-	cdd.inStack[module] = true
-
-	// Consider successors of the current module
-	if node := cdd.graph.Nodes[module]; node != nil {
-		for dependency := range node.Dependencies {
-			// Lazy (function-body) imports do not run at module load time, so
-			// they cannot form a load-time cycle. Skip them. See issue #460.
-			if node.LazyDependencies[dependency] {
-				continue
-			}
-			if _, visited := cdd.indices[dependency]; !visited {
-				// Successor has not yet been visited; recurse on it
-				cdd.strongConnect(dependency)
-				cdd.lowLinks[module] = minLowLink(cdd.lowLinks[module], cdd.lowLinks[dependency])
-			} else if cdd.inStack[dependency] {
-				// Successor is in stack and hence in the current SCC
-				cdd.lowLinks[module] = minLowLink(cdd.lowLinks[module], cdd.indices[dependency])
-			}
-		}
-	}
-
-	// If this is a root node, pop the stack and create an SCC
-	if cdd.lowLinks[module] == cdd.indices[module] {
-		var component []string
-		for {
-			// Pop from stack
-			top := cdd.stack[len(cdd.stack)-1]
-			cdd.stack = cdd.stack[:len(cdd.stack)-1]
-			cdd.inStack[top] = false
-			component = append(component, top)
-
-			if top == module {
-				break
-			}
-		}
-
-		// Only add components with more than one module (cycles)
-		if len(component) > 1 {
-			// Sort component for consistent ordering
-			sort.Strings(component)
-			cdd.components = append(cdd.components, component)
-		}
-	}
 }
 
 // processComponents converts strongly connected components to circular dependencies
@@ -423,16 +359,6 @@ func (cdd *CircularDependencyDetector) severityOrder(severity CycleSeverity) int
 	default:
 		return 0
 	}
-}
-
-// Utility functions
-
-// minLowLink returns the minimum of two integers for low-link calculation
-func minLowLink(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 // DetectCircularDependencies is a convenience function for detecting cycles in a graph
