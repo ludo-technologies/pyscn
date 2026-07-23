@@ -536,11 +536,11 @@ func TestCalculateCognitiveComplexity_MixedBooleanOperators(t *testing.T) {
 
 func TestCalculateCognitiveComplexity_NestedFunction(t *testing.T) {
 	// def outer():
-	//     def inner():            # (nesting increase)
-	//         if condition:       # +2 (base + nesting=1)
+	//     def inner():            # scope boundary, not traversed
+	//         if condition:       # NOT counted against outer
 	//             return True
 	//     return inner()
-	// Cognitive complexity: 2
+	// Cognitive complexity: 0 (outer's own body has no control flow)
 	funcNode := &parser.Node{
 		Type: parser.NodeFunctionDef,
 		Name: "outer",
@@ -584,8 +584,158 @@ func TestCalculateCognitiveComplexity_NestedFunction(t *testing.T) {
 
 	result := CalculateCognitiveComplexity(funcNode)
 
-	if result.Total != 2 {
-		t.Errorf("Expected cognitive complexity 2 for nested function with if, got %d", result.Total)
+	if result.Total != 0 {
+		t.Errorf("Expected cognitive complexity 0 for outer function (nested scopes are boundaries), got %d", result.Total)
+	}
+}
+
+func TestCalculateCognitiveComplexity_NestedScopeBoundary(t *testing.T) {
+	// def outer():
+	//     for i in items:            # +1 (loop)
+	//         if i > 0:              # +2 (base + nesting=1 from loop)
+	//             pass
+	//     def inner():               # scope boundary
+	//         for j in range(10):    # NOT counted against outer
+	//             pass
+	//     return
+	// Cognitive complexity: 3 (only outer's own control flow)
+	funcNode := &parser.Node{
+		Type: parser.NodeFunctionDef,
+		Name: "outer",
+		Location: parser.Location{
+			StartLine: 1,
+			EndLine:   8,
+		},
+		Body: []*parser.Node{
+			{
+				Type:     parser.NodeFor,
+				Location: parser.Location{StartLine: 2},
+				Iter: &parser.Node{
+					Type: parser.NodeName,
+				},
+				Body: []*parser.Node{
+					{
+						Type:     parser.NodeIf,
+						Location: parser.Location{StartLine: 3},
+						Test: &parser.Node{
+							Type: parser.NodeCompare,
+						},
+						Body: []*parser.Node{
+							{
+								Type: parser.NodePass,
+							},
+						},
+					},
+				},
+			},
+			{
+				Type: parser.NodeFunctionDef,
+				Name: "inner",
+				Location: parser.Location{
+					StartLine: 5,
+					EndLine:   7,
+				},
+				Body: []*parser.Node{
+					{
+						Type:     parser.NodeFor,
+						Location: parser.Location{StartLine: 6},
+						Iter: &parser.Node{
+							Type: parser.NodeCall,
+						},
+						Body: []*parser.Node{
+							{
+								Type: parser.NodePass,
+							},
+						},
+					},
+				},
+			},
+			{
+				Type: parser.NodeReturn,
+				Location: parser.Location{
+					StartLine: 8,
+				},
+			},
+		},
+	}
+
+	result := CalculateCognitiveComplexity(funcNode)
+
+	if result.Total != 3 {
+		t.Errorf("Expected cognitive complexity 3 for outer function (nested scopes not traversed), got %d", result.Total)
+	}
+}
+
+func TestCalculateCognitiveComplexity_NestedClassScopeBoundary(t *testing.T) {
+	// def outer():
+	//     for i in items:          # +1 (loop)
+	//         pass
+	//     class InnerClass:        # scope boundary
+	//         def method():        # NOT counted against outer
+	//             if True:        # NOT counted against outer
+	//                 pass
+	//     return
+	// Cognitive complexity: 1 (only outer's own loop)
+	funcNode := &parser.Node{
+		Type: parser.NodeFunctionDef,
+		Name: "outer",
+		Location: parser.Location{
+			StartLine: 1,
+			EndLine:   8,
+		},
+		Body: []*parser.Node{
+			{
+				Type:     parser.NodeFor,
+				Location: parser.Location{StartLine: 2},
+				Iter: &parser.Node{
+					Type: parser.NodeName,
+				},
+				Body: []*parser.Node{
+					{
+						Type: parser.NodePass,
+					},
+				},
+			},
+			{
+				Type: parser.NodeClassDef,
+				Name: "InnerClass",
+				Location: parser.Location{
+					StartLine: 4,
+					EndLine:   7,
+				},
+				Body: []*parser.Node{
+					{
+						Type: parser.NodeFunctionDef,
+						Name: "method",
+						Body: []*parser.Node{
+							{
+								Type: parser.NodeIf,
+								Test: &parser.Node{
+									Type: parser.NodeConstant,
+								},
+								Body: []*parser.Node{
+									{
+										Type: parser.NodePass,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				Type: parser.NodeReturn,
+				Location: parser.Location{
+					StartLine: 8,
+				},
+			},
+		},
+	}
+
+	result := CalculateCognitiveComplexity(funcNode)
+
+	if result.Total != 1 {
+		t.Errorf("Expected cognitive complexity 1 for outer function (class scope not traversed), got %d", result.Total)
 	}
 }
 
