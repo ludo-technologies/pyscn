@@ -5,6 +5,8 @@ import (
 	"io"
 	"math"
 	"time"
+
+	coredomain "github.com/ludo-technologies/polyscan/core/domain"
 )
 
 // AnalyzeOutputFormatter defines the interface for formatting unified analysis results
@@ -50,29 +52,32 @@ type AnalyzeConfigurationLoader interface {
 }
 
 // Health Score Calculation Constants
+// Shared thresholds, penalties, and grade mapping come from polyscan core so
+// grade computation stays identical across language analyzers. pyscn-specific
+// categories (cohesion, community) keep their constants here.
 const (
 	// Complexity thresholds and penalties
-	ComplexityThresholdHigh   = 20
-	ComplexityThresholdMedium = 10
-	ComplexityThresholdLow    = 5
-	ComplexityPenaltyHigh     = 20
-	ComplexityPenaltyMedium   = 12
-	ComplexityPenaltyLow      = 6
+	ComplexityThresholdHigh   = coredomain.ComplexityThresholdHigh
+	ComplexityThresholdMedium = coredomain.ComplexityThresholdMedium
+	ComplexityThresholdLow    = coredomain.ComplexityThresholdLow
+	ComplexityPenaltyHigh     = coredomain.ComplexityPenaltyHigh
+	ComplexityPenaltyMedium   = coredomain.ComplexityPenaltyMedium
+	ComplexityPenaltyLow      = coredomain.ComplexityPenaltyLow
 
 	// Code duplication thresholds and penalties
 	// 0% = perfect, 30% = max penalty (using fragment ratio: clonedFragments/totalFragments)
-	DuplicationThresholdHigh   = 30.0
-	DuplicationThresholdMedium = 15.0
-	DuplicationThresholdLow    = 0.0
-	DuplicationPenaltyHigh     = 20
-	DuplicationPenaltyMedium   = 12
-	DuplicationPenaltyLow      = 6
+	DuplicationThresholdHigh   = coredomain.DuplicationThresholdHigh
+	DuplicationThresholdMedium = coredomain.DuplicationThresholdMedium
+	DuplicationThresholdLow    = coredomain.DuplicationThresholdLow
+	DuplicationPenaltyHigh     = coredomain.DuplicationPenaltyHigh
+	DuplicationPenaltyMedium   = coredomain.DuplicationPenaltyMedium
+	DuplicationPenaltyLow      = coredomain.DuplicationPenaltyLow
 
 	// CBO coupling scoring curve (used by calculateCouplingPenalty)
 	// Penalty grows linearly with the weighted ratio of problematic classes
 	// and saturates (reaches the max penalty) at CouplingSaturationRatio.
-	CouplingMediumWeight    = 0.3  // Medium-risk classes count 0.3 vs High = 1.0
-	CouplingSaturationRatio = 0.40 // weighted ratio at which the penalty maxes out
+	CouplingMediumWeight    = coredomain.CouplingMediumWeight
+	CouplingSaturationRatio = coredomain.CouplingSaturationRatio
 
 	// LCOM cohesion scoring curve (used by calculateCohesionPenalty)
 	// Penalty grows linearly with the weighted ratio of low-cohesion classes
@@ -81,12 +86,12 @@ const (
 	CohesionSaturationRatio = 0.40 // weighted ratio at which the penalty maxes out
 
 	// Maximum penalties
-	MaxDeadCodePenalty = 20
-	MaxCriticalPenalty = 10
-	MaxCyclesPenalty   = 10 // Increased from 8 for stricter scoring
-	MaxDepthPenalty    = 3  // Increased from 2 for stricter scoring
-	MaxArchPenalty     = 12 // Increased from 8 for stricter scoring
-	MaxMSDPenalty      = 3  // Increased from 2 for stricter scoring
+	MaxDeadCodePenalty = coredomain.MaxDeadCodePenalty
+	MaxCriticalPenalty = coredomain.MaxCriticalPenalty
+	MaxCyclesPenalty   = coredomain.MaxCyclesPenalty
+	MaxDepthPenalty    = coredomain.MaxDepthPenalty
+	MaxArchPenalty     = coredomain.MaxArchPenalty
+	MaxMSDPenalty      = coredomain.MaxMSDPenalty
 
 	// Community detection scoring only applies when communities ran
 	// with at least two detected communities). The risk score is a weighted
@@ -107,29 +112,29 @@ const (
 	CommunityRiskMediumRatio = 0.30 // >= medium, otherwise low
 
 	// Score display scale - all categories normalized to this base
-	MaxScoreBase = 20
+	MaxScoreBase = coredomain.MaxScoreBase
 
 	// Actual maximum penalty values for normalization
-	MaxDependencyPenalty   = MaxCyclesPenalty + MaxDepthPenalty + MaxMSDPenalty // 16
-	MaxArchitecturePenalty = MaxArchPenalty                                     // 12
+	MaxDependencyPenalty   = coredomain.MaxDependencyPenalty   // 16
+	MaxArchitecturePenalty = coredomain.MaxArchitecturePenalty // 12
 
-	// Grade thresholds (stricter than before)
-	GradeAThreshold = 90 // Increased from 85
-	GradeBThreshold = 75 // Increased from 70
-	GradeCThreshold = 60 // Increased from 55
-	GradeDThreshold = 45 // Increased from 40
+	// Grade thresholds
+	GradeAThreshold = coredomain.GradeAThreshold
+	GradeBThreshold = coredomain.GradeBThreshold
+	GradeCThreshold = coredomain.GradeCThreshold
+	GradeDThreshold = coredomain.GradeDThreshold
 
 	// Score quality thresholds (aligned with grade thresholds)
-	ScoreThresholdExcellent = 90 // Excellent: 90-100 (increased from 85)
-	ScoreThresholdGood      = 75 // Good: 75-89 (increased from 70)
-	ScoreThresholdFair      = 60 // Fair: 60-74 (increased from 55)
+	ScoreThresholdExcellent = coredomain.ScoreThresholdExcellent // Excellent: 90-100
+	ScoreThresholdGood      = coredomain.ScoreThresholdGood      // Good: 75-89
+	ScoreThresholdFair      = coredomain.ScoreThresholdFair      // Fair: 60-74
 	// Poor: 0-59 (below ScoreThresholdFair)
 
 	// Other constants
-	MinimumScore                = 0 // Changed from 10 to allow truly low scores for severely problematic code
-	HealthyThreshold            = 70
-	FallbackComplexityThreshold = 10
-	FallbackPenalty             = 5
+	MinimumScore                = coredomain.MinimumScore
+	HealthyThreshold            = coredomain.HealthyThreshold
+	FallbackComplexityThreshold = coredomain.FallbackComplexityThreshold
+	FallbackPenalty             = coredomain.FallbackPenalty
 )
 
 // AnalyzeResponse represents the combined results of all analyses
@@ -335,37 +340,11 @@ func (s *AnalyzeSummary) Validate() error {
 func (s *AnalyzeSummary) calculateComplexityPenalty() int {
 	// Linear penalty: starts at avg=2, reaches max (20) at avg=15
 	// Formula: penalty = (avg - 2) / 13 * 20
-	mccabePenalty := calculateLinearPenalty(s.AverageComplexity, 2.0, 15.0)
-	cognitivePenalty := calculateLinearPenalty(s.AverageCognitiveComplexity, 15.0, float64(DefaultCognitiveComplexityThreshold))
-	nestingPenalty := calculateLinearPenalty(s.AverageNestingDepth, 3.0, float64(DefaultNestingDepthThreshold))
+	mccabePenalty := coredomain.LinearPenalty(s.AverageComplexity, 2.0, 15.0)
+	cognitivePenalty := coredomain.LinearPenalty(s.AverageCognitiveComplexity, 15.0, float64(DefaultCognitiveComplexityThreshold))
+	nestingPenalty := coredomain.LinearPenalty(s.AverageNestingDepth, 3.0, float64(DefaultNestingDepthThreshold))
 
-	return maxInt(mccabePenalty, cognitivePenalty, nestingPenalty)
-}
-
-func calculateLinearPenalty(value, start, saturation float64) int {
-	if value <= start {
-		return 0
-	}
-	if saturation <= start {
-		return MaxScoreBase
-	}
-
-	penalty := (value - start) / (saturation - start) * float64(MaxScoreBase)
-	if penalty > float64(MaxScoreBase) {
-		penalty = float64(MaxScoreBase)
-	}
-
-	return int(math.Round(penalty))
-}
-
-func maxInt(values ...int) int {
-	max := 0
-	for _, value := range values {
-		if value > max {
-			max = value
-		}
-	}
-	return max
+	return max(mccabePenalty, cognitivePenalty, nestingPenalty)
 }
 
 // calculateDeadCodePenalty calculates the penalty for dead code (max 20)
@@ -388,41 +367,13 @@ func (s *AnalyzeSummary) calculateDeadCodePenalty(normalizationFactor float64) i
 // calculateDuplicationPenalty calculates the penalty for code duplication (max 20)
 // Uses continuous linear function based on defined thresholds
 func (s *AnalyzeSummary) calculateDuplicationPenalty() int {
-	// Linear penalty: 0% = 0 penalty, 30% = max penalty (20)
-	if s.CodeDuplication <= DuplicationThresholdLow {
-		return 0
-	}
-
-	// Formula: penalty = (duplication - low) / (high - low) * 20
-	penaltyRange := DuplicationThresholdHigh - DuplicationThresholdLow // 30%
-	penalty := (s.CodeDuplication - DuplicationThresholdLow) / penaltyRange * 20.0
-	if penalty > 20.0 {
-		penalty = 20.0
-	}
-
-	return int(math.Round(penalty))
+	return coredomain.DuplicationPenalty(s.CodeDuplication)
 }
 
 // calculateCouplingPenalty calculates the penalty for class coupling (max 20)
 // Uses continuous linear function based on weighted ratio of problematic classes
 func (s *AnalyzeSummary) calculateCouplingPenalty() int {
-	if s.CBOClasses == 0 {
-		return 0
-	}
-
-	// Calculate combined problematic classes ratio
-	// Weight: High Risk = 1.0, Medium Risk = CouplingMediumWeight
-	weightedProblematicClasses := float64(s.HighCouplingClasses) + (CouplingMediumWeight * float64(s.MediumCouplingClasses))
-	ratio := weightedProblematicClasses / float64(s.CBOClasses)
-
-	// Linear penalty: starts at 0%, reaches max (20) at CouplingSaturationRatio
-	// Formula: penalty = ratio / CouplingSaturationRatio * 20
-	penalty := ratio / CouplingSaturationRatio * 20.0
-	if penalty > 20.0 {
-		penalty = 20.0
-	}
-
-	return int(math.Round(penalty))
+	return coredomain.CouplingPenalty(s.HighCouplingClasses, s.MediumCouplingClasses, s.CBOClasses)
 }
 
 // calculateCohesionPenalty calculates the penalty for class cohesion (max 20)
@@ -448,51 +399,19 @@ func (s *AnalyzeSummary) calculateCohesionPenalty() int {
 }
 
 // calculateDependencyPenalty calculates the penalty for module dependencies (max 16: cycles=10, depth=3, MSD=3)
+// The cycles component uses the larger of the proportion-based penalty and a
+// log-scaled floor, so circular dependencies always register in large codebases.
 func (s *AnalyzeSummary) calculateDependencyPenalty() int {
 	if !s.DepsEnabled {
 		return 0
 	}
 
-	penalty := 0
-
-	// Cycles penalty (max 10): proportion of modules in cycles
-	if s.DepsTotalModules > 0 {
-		ratio := float64(s.DepsModulesInCycles) / float64(s.DepsTotalModules)
-		if ratio < 0 {
-			ratio = 0
-		}
-		if ratio > 1 {
-			ratio = 1
-		}
-		penalty += int(math.Round(float64(MaxCyclesPenalty) * ratio))
-	}
-
-	// Depth penalty (max 3): excess over expected depth ~ O(log N)
-	if s.DepsTotalModules > 0 {
-		expected := int(math.Max(3, math.Ceil(math.Log2(float64(s.DepsTotalModules)+1))+1))
-		excess := s.DepsMaxDepth - expected
-		if excess < 0 {
-			excess = 0
-		}
-		if excess > MaxDepthPenalty {
-			excess = MaxDepthPenalty
-		}
-		penalty += excess
-	}
-
-	// Main sequence deviation penalty (max 3)
-	if s.DepsMainSequenceDeviation > 0 {
-		msd := s.DepsMainSequenceDeviation
-		if msd < 0 {
-			msd = 0
-		}
-		if msd > 1 {
-			msd = 1
-		}
-		penalty += int(math.Round(msd * float64(MaxMSDPenalty)))
-	}
-
-	return penalty
+	return coredomain.DependencyPenalty(
+		s.DepsTotalModules,
+		s.DepsModulesInCycles,
+		s.DepsMaxDepth,
+		s.DepsMainSequenceDeviation,
+	)
 }
 
 // calculateArchitecturePenalty calculates the penalty for architecture compliance (max 12)
@@ -501,14 +420,7 @@ func (s *AnalyzeSummary) calculateArchitecturePenalty() int {
 		return 0
 	}
 
-	comp := s.ArchCompliance
-	if comp < 0 {
-		comp = 0
-	}
-	if comp > 1 {
-		comp = 1
-	}
-	return int(math.Round(float64(MaxArchPenalty) * (1 - comp)))
+	return coredomain.ArchitecturePenalty(s.ArchCompliance)
 }
 
 // clamp01 bounds a value to the [0, 1] interval.
@@ -605,32 +517,12 @@ func (s *AnalyzeSummary) communityRiskRatio() (float64, bool) {
 // normalizeToScoreBase normalizes a penalty value to the MaxScoreBase scale (0-20)
 // This ensures all category scores use a consistent display scale
 func normalizeToScoreBase(penalty int, maxPenalty int) int {
-	if maxPenalty == 0 {
-		return 0
-	}
-	normalized := int(math.Round(float64(penalty) / float64(maxPenalty) * float64(MaxScoreBase)))
-	if normalized < 0 {
-		normalized = 0
-	}
-	if normalized > MaxScoreBase {
-		normalized = MaxScoreBase
-	}
-	return normalized
+	return coredomain.NormalizeToScoreBase(penalty, maxPenalty)
 }
 
 // penaltyToScore converts a penalty value to a 0-100 score
 func penaltyToScore(penalty int, maxPenalty int) int {
-	if maxPenalty == 0 {
-		return 100
-	}
-	score := 100 - int(math.Round(float64(penalty)*100.0/float64(maxPenalty)))
-	if score < 0 {
-		score = 0
-	}
-	if score > 100 {
-		score = 100
-	}
-	return score
+	return coredomain.PenaltyToScore(penalty, maxPenalty)
 }
 
 // CalculateHealthScore calculates an overall health score based on analysis results
@@ -651,7 +543,6 @@ func (s *AnalyzeSummary) CalculateHealthScore() error {
 		s.CommunityRiskScore = 0
 		return fmt.Errorf("invalid summary data: %w", err)
 	}
-	score := 100
 
 	// Project size normalization (affects dead code penalties)
 	normalizationFactor := 1.0
@@ -664,66 +555,53 @@ func (s *AnalyzeSummary) CalculateHealthScore() error {
 
 	complexityPenalty := s.calculateComplexityPenalty()
 	s.ComplexityScore = penaltyToScore(complexityPenalty, MaxScoreBase)
-	score -= complexityPenalty
 
 	deadCodePenalty := s.calculateDeadCodePenalty(normalizationFactor)
 	s.DeadCodeScore = penaltyToScore(deadCodePenalty, MaxScoreBase)
-	score -= deadCodePenalty
 
 	duplicationPenalty := s.calculateDuplicationPenalty()
 	s.DuplicationScore = penaltyToScore(duplicationPenalty, MaxScoreBase)
-	score -= duplicationPenalty
 
 	couplingPenalty := s.calculateCouplingPenalty()
 	s.CouplingScore = penaltyToScore(couplingPenalty, MaxScoreBase)
-	score -= couplingPenalty
 
 	cohesionPenalty := s.calculateCohesionPenalty()
 	s.CohesionScore = penaltyToScore(cohesionPenalty, MaxScoreBase)
-	score -= cohesionPenalty
 
 	// Dependencies and Architecture need normalization since their max penalties differ from MaxScoreBase
 	dependencyPenalty := s.calculateDependencyPenalty()
 	normalizedDepPenalty := normalizeToScoreBase(dependencyPenalty, MaxDependencyPenalty)
 	s.DependencyScore = penaltyToScore(normalizedDepPenalty, MaxScoreBase)
-	score -= dependencyPenalty
 
 	architecturePenalty := s.calculateArchitecturePenalty()
 	// Use compliance directly as score (98% compliance = 98 points)
 	s.ArchitectureScore = int(math.Round(s.ArchCompliance * 100))
-	score -= architecturePenalty
 
 	// Community detection: only penalises when communities ran with >= 2
 	// communities. Disabled or trivial cases score 100 / risk 0 so existing
 	// grades are unaffected (backward compatible).
+	communityPenalty := 0
 	if communityRatio, scored := s.communityRiskRatio(); scored {
 		s.CommunityRiskScore = int(math.Round(communityRatio * 100))
 		s.CommunityScore = 100 - s.CommunityRiskScore
-		score -= int(math.Round(communityRatio * float64(MaxCommunityPenalty)))
+		communityPenalty = int(math.Round(communityRatio * float64(MaxCommunityPenalty)))
 	} else {
 		s.CommunityScore = 100
 		s.CommunityRiskScore = 0
 	}
 
-	// Minimum score floor
-	if score < MinimumScore {
-		score = MinimumScore
-	}
+	score := coredomain.HealthScoreFromPenalties(
+		complexityPenalty,
+		deadCodePenalty,
+		duplicationPenalty,
+		couplingPenalty,
+		cohesionPenalty,
+		dependencyPenalty,
+		architecturePenalty,
+		communityPenalty,
+	)
 	s.HealthScore = score
-
-	// Grade mapping
-	switch {
-	case score >= GradeAThreshold:
-		s.Grade = "A"
-	case score >= GradeBThreshold:
-		s.Grade = "B"
-	case score >= GradeCThreshold:
-		s.Grade = "C"
-	case score >= GradeDThreshold:
-		s.Grade = "D"
-	default:
-		s.Grade = "F"
-	}
+	s.Grade = coredomain.GradeFromScore(score)
 
 	return nil
 }
@@ -762,23 +640,12 @@ func (s *AnalyzeSummary) CalculateFallbackScore() int {
 
 // GetGradeFromScore maps a health score to a letter grade
 func GetGradeFromScore(score int) string {
-	switch {
-	case score >= GradeAThreshold:
-		return "A"
-	case score >= GradeBThreshold:
-		return "B"
-	case score >= GradeCThreshold:
-		return "C"
-	case score >= GradeDThreshold:
-		return "D"
-	default:
-		return "F"
-	}
+	return coredomain.GradeFromScore(score)
 }
 
 // IsHealthy returns true if the codebase is considered healthy
 func (s *AnalyzeSummary) IsHealthy() bool {
-	return s.HealthScore >= HealthyThreshold
+	return coredomain.IsHealthyScore(s.HealthScore)
 }
 
 // HasIssues returns true if any issues were found
