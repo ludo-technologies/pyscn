@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	corelsh "github.com/ludo-technologies/polyscan/core/lsh"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -74,14 +75,13 @@ func TestCloneDetector_DetectClonesWithLSH_Simple(t *testing.T) {
 		ext := newPythonCloneFeatureExtractor()
 		feats1, _ := ext.ExtractFeatures(f1.TreeNode)
 		feats2, _ := ext.ExtractFeatures(f2.TreeNode)
-		mh := NewMinHasher(128)
+		mh := corelsh.NewMinHasher(128)
 		s1 := mh.ComputeSignature(feats1)
 		s2 := mh.ComputeSignature(feats2)
 		est := mh.EstimateJaccardSimilarity(s1, s2)
-		lsh := NewLSHIndex(32, 4)
+		lsh := newLSHCandidateIndex(32, 4, 0)
 		_ = lsh.AddFragment(0, s1)
 		_ = lsh.AddFragment(1, s2)
-		_ = lsh.BuildIndex()
 		cands := lsh.FindCandidates(s1)
 		t.Fatalf("expected at least one clone pair, got 0 (minhash est=%.3f, cands=%v)", est, cands)
 	}
@@ -191,7 +191,7 @@ func TestCloneDetectorDetectClonesWithLSHRefreshesStaleFeatureCache(t *testing.T
 	cfg.MinNodes = 1
 	cfg.LSHSimilarityThreshold = 1
 
-	hasher := NewMinHasher(cfg.LSHMinHashCount)
+	hasher := corelsh.NewMinHasher(cfg.LSHMinHashCount)
 	staleSimilarity := hasher.EstimateJaccardSimilarity(
 		hasher.ComputeSignature(fragments[0].Features),
 		hasher.ComputeSignature(fragments[1].Features),

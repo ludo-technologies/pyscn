@@ -2,8 +2,8 @@ package analyzer
 
 import (
 	"fmt"
-	"sort"
 
+	corelcom "github.com/ludo-technologies/polyscan/core/lcom"
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
@@ -37,7 +37,6 @@ type LCOMResult struct {
 type LCOMOptions struct {
 	LowThreshold    int // Default: 2 (LCOM4 <= 2 is low risk)
 	MediumThreshold int // Default: 5 (LCOM4 3-5 is medium risk)
-	ExcludePatterns []string
 }
 
 // DefaultLCOMOptions returns default LCOM analysis options
@@ -45,7 +44,6 @@ func DefaultLCOMOptions() *LCOMOptions {
 	return &LCOMOptions{
 		LowThreshold:    domain.DefaultLCOMLowThreshold,
 		MediumThreshold: domain.DefaultLCOMMediumThreshold,
-		ExcludePatterns: []string{},
 	}
 }
 
@@ -105,7 +103,8 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string, dec
 	result.TotalMethods = len(methods) + excluded
 	result.ExcludedMethods = excluded
 
-	// Step 2: Collect all distinct instance variables
+	// Step 2: Collect all distinct instance variables, including ctypes-declared
+	// fields that no method accesses
 	allVars := make(map[string]bool)
 	for _, vars := range methods {
 		for v := range vars {
@@ -117,100 +116,32 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string, dec
 	}
 	result.InstanceVariables = len(allVars)
 
-	// Classes with 0 or 1 methods are trivially cohesive
-	if len(methods) <= 1 {
+	config := corelcom.Config{
+		LowThreshold:    a.options.LowThreshold,
+		MediumThreshold: a.options.MediumThreshold,
+	}
+
+	// Classes without methods are trivially cohesive (core reports LCOM4=0 for empty input)
+	if len(methods) == 0 {
 		result.LCOM4 = 1
-		if len(methods) == 1 {
-			for name := range methods {
-				result.MethodGroups = [][]string{{name}}
-			}
-		}
-		result.RiskLevel = a.assessRiskLevel(1)
+		result.RiskLevel = string(corelcom.AssessRisk(result.LCOM4, config))
 		return result, nil
 	}
 
-	// Step 3: Compute connected components using Union-Find
-	methodNames := make([]string, 0, len(methods))
-	for name := range methods {
-		methodNames = append(methodNames, name)
+	// Steps 3+4: Connected components via shared-variable and call-edge unions
+	accesses := make([]corelcom.MethodAccess, 0, len(methods))
+	for name, vars := range methods {
+		accesses = append(accesses, corelcom.MethodAccess{
+			MethodName:   name,
+			InstanceVars: vars,
+			Calls:        methodCalls[name],
+		})
 	}
-	sort.Strings(methodNames) // Deterministic ordering
+	coreResult := corelcom.ComputeLCOM4(accesses, config)
 
-	// Initialize Union-Find
-	parent := make(map[string]string, len(methodNames))
-	rank := make(map[string]int, len(methodNames))
-	for _, name := range methodNames {
-		parent[name] = name
-		rank[name] = 0
-	}
-
-	var find func(string) string
-	find = func(x string) string {
-		if parent[x] != x {
-			parent[x] = find(parent[x]) // Path compression
-		}
-		return parent[x]
-	}
-
-	union := func(x, y string) {
-		rx := find(x)
-		ry := find(y)
-		if rx == ry {
-			return
-		}
-		// Union by rank
-		if rank[rx] < rank[ry] {
-			parent[rx] = ry
-		} else if rank[rx] > rank[ry] {
-			parent[ry] = rx
-		} else {
-			parent[ry] = rx
-			rank[rx]++
-		}
-	}
-
-	// Build variable -> methods mapping for efficient edge detection
-	varToMethods := make(map[string][]string)
-	for _, name := range methodNames {
-		for v := range methods[name] {
-			varToMethods[v] = append(varToMethods[v], name)
-		}
-	}
-
-	// Union methods that share instance variables
-	for _, methodList := range varToMethods {
-		for i := 1; i < len(methodList); i++ {
-			union(methodList[0], methodList[i])
-		}
-	}
-
-	// Union methods connected by intra-class method calls (self.xxx())
-	for caller, callees := range methodCalls {
-		for callee := range callees {
-			if _, exists := methods[callee]; exists {
-				union(caller, callee)
-			}
-		}
-	}
-
-	// Step 4: Count connected components and build groups
-	components := make(map[string][]string) // root -> method names
-	for _, name := range methodNames {
-		root := find(name)
-		components[root] = append(components[root], name)
-	}
-
-	result.LCOM4 = len(components)
-	for _, group := range components {
-		sort.Strings(group)
-		result.MethodGroups = append(result.MethodGroups, group)
-	}
-	// Sort groups for deterministic output
-	sort.Slice(result.MethodGroups, func(i, j int) bool {
-		return result.MethodGroups[i][0] < result.MethodGroups[j][0]
-	})
-
-	result.RiskLevel = a.assessRiskLevel(result.LCOM4)
+	result.LCOM4 = coreResult.LCOM4
+	result.MethodGroups = coreResult.MethodGroups
+	result.RiskLevel = string(coreResult.RiskLevel)
 	return result, nil
 }
 
@@ -489,18 +420,6 @@ func (a *LCOMAnalyzer) isSelfAccess(attrNode *parser.Node) bool {
 		}
 	}
 	return false
-}
-
-// assessRiskLevel determines the risk level based on LCOM4 value
-func (a *LCOMAnalyzer) assessRiskLevel(lcom4 int) string {
-	switch {
-	case lcom4 <= a.options.LowThreshold:
-		return string(domain.RiskLevelLow)
-	case lcom4 <= a.options.MediumThreshold:
-		return string(domain.RiskLevelMedium)
-	default:
-		return string(domain.RiskLevelHigh)
-	}
 }
 
 // collectClasses collects all class definition nodes from the AST

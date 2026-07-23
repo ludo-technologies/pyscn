@@ -1,203 +1,45 @@
 package analyzer
 
 import (
+	coredfa "github.com/ludo-technologies/polyscan/core/dfa"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
-// DFABuilder constructs def-use chain information from a CFG
-type DFABuilder struct {
-	// cfg is the control flow graph to analyze
-	cfg *CFG
+// paramDefPosition places parameter definitions before all statement
+// positions so they reach uses at position 0.
+const paramDefPosition = -1
 
-	// info is the DFA information being built
-	info *DFAInfo
-}
+// pythonRefExtractor extracts Python variable definitions and uses for
+// core's DFA builder. Def-use linking itself lives in core.
+type pythonRefExtractor struct{}
 
-// NewDFABuilder creates a new DFA builder
+var (
+	_ coredfa.RefExtractor   = (*pythonRefExtractor)(nil)
+	_ coredfa.ParamExtractor = (*pythonRefExtractor)(nil)
+)
+
+// NewDFABuilder creates a DFA builder wired to Python reference extraction
 func NewDFABuilder() *DFABuilder {
-	return &DFABuilder{}
+	return coredfa.NewDFABuilder(&pythonRefExtractor{})
 }
 
-// Build creates DFA information for the given CFG
-func (b *DFABuilder) Build(cfg *CFG) (*DFAInfo, error) {
-	if cfg == nil {
-		return nil, nil
-	}
-
-	b.cfg = cfg
-	b.info = NewDFAInfo(cfg)
-
-	// Step 1: Seed function parameter definitions.
-	b.collectFunctionParameters()
-
-	// Step 2: Collect all definitions
-	b.collectDefinitions()
-
-	// Step 3: Collect all uses
-	b.collectUses()
-
-	// Step 4: Link definitions to uses
-	b.linkDefUse()
-
-	return b.info, nil
+// ExtractDefinitions implements coredfa.RefExtractor
+func (b *pythonRefExtractor) ExtractDefinitions(stmt any, block *BasicBlock, pos int) []*VarReference {
+	return b.extractDefinitions(mustPythonNode(stmt), block, pos)
 }
 
-func (b *DFABuilder) collectFunctionParameters() {
-	if b.cfg == nil || b.cfg.FunctionNode == nil || b.cfg.Entry == nil {
-		return
-	}
-	functionNode := mustPythonNode(b.cfg.FunctionNode)
-	for _, def := range b.extractParameterDefs(functionNode, b.cfg.Entry, -1) {
-		b.info.AddDef(def)
-	}
+// ExtractUses implements coredfa.RefExtractor
+func (b *pythonRefExtractor) ExtractUses(stmt any, block *BasicBlock, pos int) []*VarReference {
+	return b.extractUses(mustPythonNode(stmt), block, pos)
 }
 
-// collectDefinitions walks the CFG to find all variable definitions
-func (b *DFABuilder) collectDefinitions() {
-	for _, block := range b.cfg.Blocks {
-		// Skip exit block (never has statements)
-		// Entry block may have statements (module-level code)
-		if block.IsExit {
-			continue
-		}
-
-		for pos, stmt := range block.Statements {
-			node := mustPythonNode(stmt)
-			defs := b.extractDefinitions(node, block, pos)
-			for _, def := range defs {
-				b.info.AddDef(def)
-			}
-		}
-	}
-}
-
-// collectUses walks the CFG to find all variable uses
-func (b *DFABuilder) collectUses() {
-	for _, block := range b.cfg.Blocks {
-		// Skip exit block (never has statements)
-		// Entry block may have statements (module-level code)
-		if block.IsExit {
-			continue
-		}
-
-		for pos, stmt := range block.Statements {
-			node := mustPythonNode(stmt)
-			uses := b.extractUses(node, block, pos)
-			for _, use := range uses {
-				b.info.AddUse(use)
-			}
-		}
-	}
-}
-
-// linkDefUse connects definitions to their uses
-// Uses simplified reaching-definitions approximation:
-// - Within same block: def at position i reaches use at position j if i < j and no intervening def
-// - Cross-block: use CFG reachability with simple forward analysis
-func (b *DFABuilder) linkDefUse() {
-	for varName, chain := range b.info.Chains {
-		// Sort definitions and uses by block order (approximation)
-		// Link each use to the most recent definition that can reach it
-
-		for _, use := range chain.Uses {
-			def := b.findReachingDef(varName, use)
-			if def != nil {
-				pair := NewDefUsePair(def, use)
-				chain.AddPair(pair)
-			}
-		}
-	}
-}
-
-// findReachingDef finds the definition that reaches this use
-func (b *DFABuilder) findReachingDef(varName string, use *VarReference) *VarReference {
-	if use == nil || use.Block == nil {
-		return nil
-	}
-
-	chain := b.info.Chains[varName]
-	if chain == nil {
-		return nil
-	}
-
-	// First, check for definitions in the same block before this use
-	sameBlockDef := b.findDefInBlockBefore(chain.Defs, use.Block.ID, use.Position)
-	if sameBlockDef != nil {
-		return sameBlockDef
-	}
-
-	// Then, look for definitions in predecessor blocks using BFS
-	return b.findDefInPredecessors(chain.Defs, use.Block)
-}
-
-// findDefInBlockBefore finds the last definition in the same block before the given position
-func (b *DFABuilder) findDefInBlockBefore(defs []*VarReference, blockID string, usePos int) *VarReference {
-	var lastDef *VarReference
-	for _, def := range defs {
-		if def.Block != nil && def.Block.ID == blockID && defReachesUseAtPosition(def, usePos) {
-			if lastDef == nil || def.Position > lastDef.Position {
-				lastDef = def
-			}
-		}
-	}
-	return lastDef
-}
-
-func defReachesUseAtPosition(def *VarReference, usePos int) bool {
-	return def.Position < usePos || (def.Kind == DefKindPattern && def.Position == usePos)
-}
-
-// findDefInPredecessors finds a definition in predecessor blocks using BFS
-func (b *DFABuilder) findDefInPredecessors(defs []*VarReference, startBlock *BasicBlock) *VarReference {
-	if startBlock == nil {
-		return nil
-	}
-
-	// BFS to find nearest definition in predecessors
-	visited := make(map[string]bool)
-	queue := []*BasicBlock{}
-
-	// Add all predecessors to queue
-	for _, edge := range startBlock.Predecessors {
-		if edge.From != nil && !visited[edge.From.ID] {
-			queue = append(queue, edge.From)
-			visited[edge.From.ID] = true
-		}
-	}
-
-	for len(queue) > 0 {
-		block := queue[0]
-		queue = queue[1:]
-
-		// Find the last definition in this block
-		var lastDef *VarReference
-		for _, def := range defs {
-			if def.Block != nil && def.Block.ID == block.ID {
-				// We want the definition with the highest position in this block
-				if lastDef == nil || def.Position > lastDef.Position {
-					lastDef = def
-				}
-			}
-		}
-
-		if lastDef != nil {
-			return lastDef
-		}
-
-		// Add predecessors to queue
-		for _, edge := range block.Predecessors {
-			if edge.From != nil && !visited[edge.From.ID] {
-				queue = append(queue, edge.From)
-				visited[edge.From.ID] = true
-			}
-		}
-	}
-
-	return nil
+// ExtractParameterDefs implements coredfa.ParamExtractor
+func (b *pythonRefExtractor) ExtractParameterDefs(functionNode any, entry *BasicBlock) []*VarReference {
+	return b.extractParameterDefs(mustPythonNode(functionNode), entry, paramDefPosition)
 }
 
 // extractDefinitions extracts all definitions from a statement
-func (b *DFABuilder) extractDefinitions(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractDefinitions(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	if stmt == nil {
 		return nil
 	}
@@ -258,7 +100,7 @@ func (b *DFABuilder) extractDefinitions(stmt *parser.Node, block *BasicBlock, po
 }
 
 // extractUses extracts all uses from a statement
-func (b *DFABuilder) extractUses(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractUses(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	if stmt == nil {
 		return nil
 	}
@@ -276,7 +118,7 @@ func (b *DFABuilder) extractUses(stmt *parser.Node, block *BasicBlock, pos int) 
 		var uses []*VarReference
 		// For augmented assignment, the target is both a def and a use.
 		if len(stmt.Targets) > 0 && stmt.Targets[0] != nil && stmt.Targets[0].Type == parser.NodeName {
-			ref := NewVarReference(stmt.Targets[0].Name, UseKindRead, block, stmt, pos)
+			ref := NewVarReference(stmt.Targets[0].Name, UseKindLoad, block, stmt, pos)
 			uses = append(uses, ref)
 		}
 		if valueNode, ok := stmt.Value.(*parser.Node); ok {
@@ -288,7 +130,7 @@ func (b *DFABuilder) extractUses(stmt *parser.Node, block *BasicBlock, pos int) 
 	return b.extractStatementHeaderUses(stmt, block, pos)
 }
 
-func (b *DFABuilder) extractStatementHeaderUses(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractStatementHeaderUses(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	var uses []*VarReference
 
 	switch stmt.Type {
@@ -332,7 +174,7 @@ func (b *DFABuilder) extractStatementHeaderUses(stmt *parser.Node, block *BasicB
 	return uses
 }
 
-func (b *DFABuilder) extractDecoratorUses(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractDecoratorUses(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	var uses []*VarReference
 	for _, decorator := range stmt.Decorator {
 		uses = append(uses, b.extractUsesFromExpression(decorator, block, stmt, pos)...)
@@ -340,7 +182,7 @@ func (b *DFABuilder) extractDecoratorUses(stmt *parser.Node, block *BasicBlock, 
 	return uses
 }
 
-func (b *DFABuilder) extractFunctionDefaultUses(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractFunctionDefaultUses(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	var uses []*VarReference
 	for _, arg := range stmt.Args {
 		if arg == nil {
@@ -353,7 +195,7 @@ func (b *DFABuilder) extractFunctionDefaultUses(stmt *parser.Node, block *BasicB
 	return uses
 }
 
-func (b *DFABuilder) extractWithContextUses(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractWithContextUses(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	var uses []*VarReference
 	for _, child := range stmt.Children {
 		if child == nil || child.Type != parser.NodeWithItem {
@@ -366,7 +208,7 @@ func (b *DFABuilder) extractWithContextUses(stmt *parser.Node, block *BasicBlock
 	return uses
 }
 
-func (b *DFABuilder) extractMatchPatternUses(pattern *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractMatchPatternUses(pattern *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
 	if pattern == nil {
 		return nil
 	}
@@ -423,7 +265,7 @@ func (b *DFABuilder) extractMatchPatternUses(pattern *parser.Node, block *BasicB
 	return uses
 }
 
-func (b *DFABuilder) extractMatchPatternUsesFromNodes(nodes []*parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractMatchPatternUsesFromNodes(nodes []*parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
 	var uses []*VarReference
 	for _, node := range nodes {
 		uses = append(uses, b.extractMatchPatternUses(node, block, stmt, pos)...)
@@ -431,7 +273,7 @@ func (b *DFABuilder) extractMatchPatternUsesFromNodes(nodes []*parser.Node, bloc
 	return uses
 }
 
-func (b *DFABuilder) extractPatternValueUsesFromNodes(nodes []*parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractPatternValueUsesFromNodes(nodes []*parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
 	var uses []*VarReference
 	for _, node := range nodes {
 		uses = append(uses, b.extractPatternValueUses(node, block, stmt, pos)...)
@@ -439,12 +281,12 @@ func (b *DFABuilder) extractPatternValueUsesFromNodes(nodes []*parser.Node, bloc
 	return uses
 }
 
-func (b *DFABuilder) extractPatternValueUses(expr *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractPatternValueUses(expr *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
 	if expr == nil {
 		return nil
 	}
 	if expr.Type == parser.NodeName {
-		return []*VarReference{NewVarReference(expr.Name, UseKindRead, block, stmt, pos)}
+		return []*VarReference{NewVarReference(expr.Name, UseKindLoad, block, stmt, pos)}
 	}
 	if expr.Type == parser.NodeAttribute || string(expr.Type) == "attribute" || string(expr.Type) == "dotted_name" {
 		return b.extractDottedPatternUses(expr, block, stmt, pos)
@@ -452,7 +294,7 @@ func (b *DFABuilder) extractPatternValueUses(expr *parser.Node, block *BasicBloc
 	return b.extractUsesFromExpression(expr, block, stmt, pos)
 }
 
-func (b *DFABuilder) extractClassPatternHeadUses(expr *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractClassPatternHeadUses(expr *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
 	if expr == nil {
 		return nil
 	}
@@ -462,7 +304,7 @@ func (b *DFABuilder) extractClassPatternHeadUses(expr *parser.Node, block *Basic
 	return b.extractPatternValueUses(expr, block, stmt, pos)
 }
 
-func (b *DFABuilder) extractDottedPatternUses(expr *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractDottedPatternUses(expr *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
 	if expr == nil {
 		return nil
 	}
@@ -484,7 +326,7 @@ func (b *DFABuilder) extractDottedPatternUses(expr *parser.Node, block *BasicBlo
 }
 
 // extractUsesFromExpression recursively extracts variable uses from an expression
-func (b *DFABuilder) extractUsesFromExpression(expr *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractUsesFromExpression(expr *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
 	if expr == nil {
 		return nil
 	}
@@ -493,7 +335,7 @@ func (b *DFABuilder) extractUsesFromExpression(expr *parser.Node, block *BasicBl
 
 	switch expr.Type {
 	case parser.NodeName:
-		ref := NewVarReference(expr.Name, UseKindRead, block, stmt, pos)
+		ref := NewVarReference(expr.Name, UseKindLoad, block, stmt, pos)
 		uses = append(uses, ref)
 
 	case parser.NodeAttribute:
@@ -616,7 +458,7 @@ func (b *DFABuilder) extractUsesFromExpression(expr *parser.Node, block *BasicBl
 }
 
 // extractAssignmentDefs extracts definitions from an assignment statement
-func (b *DFABuilder) extractAssignmentDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractAssignmentDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	var defs []*VarReference
 
 	for _, target := range stmt.Targets {
@@ -627,13 +469,13 @@ func (b *DFABuilder) extractAssignmentDefs(stmt *parser.Node, block *BasicBlock,
 }
 
 // extractAugAssignDefs extracts definitions from an augmented assignment
-func (b *DFABuilder) extractAugAssignDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractAugAssignDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	var defs []*VarReference
 
 	if len(stmt.Targets) > 0 && stmt.Targets[0] != nil {
 		target := stmt.Targets[0]
 		if target.Type == parser.NodeName {
-			ref := NewVarReference(target.Name, DefKindAugmented, block, stmt, pos)
+			ref := NewVarReference(target.Name, DefKindAugAssign, block, stmt, pos)
 			defs = append(defs, ref)
 		}
 	}
@@ -642,7 +484,7 @@ func (b *DFABuilder) extractAugAssignDefs(stmt *parser.Node, block *BasicBlock, 
 }
 
 // extractAnnAssignDefs extracts definitions from an annotated assignment
-func (b *DFABuilder) extractAnnAssignDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractAnnAssignDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	var defs []*VarReference
 
 	// AnnAssign: target is usually in Targets[0] or Children[0]
@@ -658,18 +500,18 @@ func (b *DFABuilder) extractAnnAssignDefs(stmt *parser.Node, block *BasicBlock, 
 }
 
 // extractForTargetDefs extracts definitions from a for loop target
-func (b *DFABuilder) extractForTargetDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractForTargetDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	var defs []*VarReference
 
 	// For loop target is stored in Targets
 	for _, target := range stmt.Targets {
-		defs = append(defs, b.extractNamesFromTarget(target, DefKindForTarget, block, stmt, pos)...)
+		defs = append(defs, b.extractNamesFromTarget(target, DefKindFor, block, stmt, pos)...)
 	}
 
 	return defs
 }
 
-func (b *DFABuilder) extractNamedBindingDef(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractNamedBindingDef(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	if stmt.Name == "" {
 		return nil
 	}
@@ -677,12 +519,12 @@ func (b *DFABuilder) extractNamedBindingDef(stmt *parser.Node, block *BasicBlock
 }
 
 // extractParameterDefs extracts parameter definitions from a function
-func (b *DFABuilder) extractParameterDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractParameterDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	var defs []*VarReference
 
 	for _, arg := range stmt.Args {
 		if arg != nil && arg.Type == parser.NodeArg && arg.Name != "" {
-			ref := NewVarReference(arg.Name, DefKindParameter, block, stmt, pos)
+			ref := NewVarReference(arg.Name, DefKindParam, block, stmt, pos)
 			defs = append(defs, ref)
 		}
 	}
@@ -690,13 +532,13 @@ func (b *DFABuilder) extractParameterDefs(stmt *parser.Node, block *BasicBlock, 
 	return defs
 }
 
-func (b *DFABuilder) extractMatchPatternDefs(pattern *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractMatchPatternDefs(pattern *parser.Node, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
 	var defs []*VarReference
 	b.collectMatchPatternDefs(pattern, block, stmt, pos, &defs)
 	return defs
 }
 
-func (b *DFABuilder) collectMatchPatternDefs(pattern *parser.Node, block *BasicBlock, stmt *parser.Node, pos int, defs *[]*VarReference) {
+func (b *pythonRefExtractor) collectMatchPatternDefs(pattern *parser.Node, block *BasicBlock, stmt *parser.Node, pos int, defs *[]*VarReference) {
 	if pattern == nil {
 		return
 	}
@@ -744,7 +586,7 @@ func (b *DFABuilder) collectMatchPatternDefs(pattern *parser.Node, block *BasicB
 	}
 }
 
-func (b *DFABuilder) collectMatchPatternDefsFromNodes(nodes []*parser.Node, block *BasicBlock, stmt *parser.Node, pos int, defs *[]*VarReference) {
+func (b *pythonRefExtractor) collectMatchPatternDefsFromNodes(nodes []*parser.Node, block *BasicBlock, stmt *parser.Node, pos int, defs *[]*VarReference) {
 	for _, node := range nodes {
 		b.collectMatchPatternDefs(node, block, stmt, pos, defs)
 	}
@@ -763,7 +605,7 @@ func nodeValue(node *parser.Node) *parser.Node {
 }
 
 // extractImportDefs extracts definitions from an import statement
-func (b *DFABuilder) extractImportDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractImportDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	var defs []*VarReference
 
 	// Import names from Names field or Alias children
@@ -790,7 +632,7 @@ func (b *DFABuilder) extractImportDefs(stmt *parser.Node, block *BasicBlock, pos
 }
 
 // extractImportFromDefs extracts definitions from a from-import statement
-func (b *DFABuilder) extractImportFromDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractImportFromDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	var defs []*VarReference
 
 	// Import names
@@ -817,7 +659,7 @@ func (b *DFABuilder) extractImportFromDefs(stmt *parser.Node, block *BasicBlock,
 }
 
 // extractWithTargetDefs extracts definitions from a with statement
-func (b *DFABuilder) extractWithTargetDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractWithTargetDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	var defs []*VarReference
 
 	// Look for WithItem children
@@ -826,9 +668,9 @@ func (b *DFABuilder) extractWithTargetDefs(stmt *parser.Node, block *BasicBlock,
 			continue
 		}
 		if child.Target != nil {
-			defs = append(defs, b.extractNamesFromTarget(child.Target, DefKindWithTarget, block, stmt, pos)...)
+			defs = append(defs, b.extractNamesFromTarget(child.Target, DefKindWith, block, stmt, pos)...)
 		} else if child.Name != "" {
-			ref := NewVarReference(child.Name, DefKindWithTarget, block, stmt, pos)
+			ref := NewVarReference(child.Name, DefKindWith, block, stmt, pos)
 			defs = append(defs, ref)
 		}
 	}
@@ -837,12 +679,12 @@ func (b *DFABuilder) extractWithTargetDefs(stmt *parser.Node, block *BasicBlock,
 }
 
 // extractExceptTargetDefs extracts definitions from an except handler
-func (b *DFABuilder) extractExceptTargetDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractExceptTargetDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	var defs []*VarReference
 
 	// ExceptHandler has a name field for "as x"
 	if stmt.Name != "" {
-		ref := NewVarReference(stmt.Name, DefKindExceptTarget, block, stmt, pos)
+		ref := NewVarReference(stmt.Name, DefKindExcept, block, stmt, pos)
 		defs = append(defs, ref)
 	}
 
@@ -850,7 +692,7 @@ func (b *DFABuilder) extractExceptTargetDefs(stmt *parser.Node, block *BasicBloc
 }
 
 // extractNamedExprDefs extracts definitions from a named expression (walrus operator)
-func (b *DFABuilder) extractNamedExprDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractNamedExprDefs(stmt *parser.Node, block *BasicBlock, pos int) []*VarReference {
 	var defs []*VarReference
 
 	// First child is the target name
@@ -866,7 +708,7 @@ func (b *DFABuilder) extractNamedExprDefs(stmt *parser.Node, block *BasicBlock, 
 }
 
 // extractNamesFromTarget extracts all names from an assignment target (handles tuples)
-func (b *DFABuilder) extractNamesFromTarget(target *parser.Node, kind DefUseKind, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
+func (b *pythonRefExtractor) extractNamesFromTarget(target *parser.Node, kind DefUseKind, block *BasicBlock, stmt *parser.Node, pos int) []*VarReference {
 	if target == nil {
 		return nil
 	}

@@ -3,6 +3,7 @@ package analyzer
 import (
 	"math"
 
+	coresemantic "github.com/ludo-technologies/polyscan/core/semantic"
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
@@ -115,29 +116,9 @@ func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) flo
 	return s.applySemanticEvidence(baseSimilarity, f1, f2)
 }
 
-const semanticMismatchPenalty = 0.75
-
-// literalMismatchPenalty is applied when both fragments carry enough string
-// literals to compare and the sets are completely disjoint. Matching control
-// flow combined with a fully different literal vocabulary (dict keys, format
-// names, config values) is strong counter-evidence for semantic equivalence:
-// true Type-4 clones compute the same result, so the constants they emit
-// overlap. Calibrated to pull a saturated CFG score (1.0) below the default
-// Type-4 threshold (see issue #482).
-const literalMismatchPenalty = 0.5
-
-// minStringLiteralEvidence is the number of distinct meaningful string
-// literals each fragment must contain before disjoint literal sets are
-// treated as counter-evidence. Docstrings and other bare string statements
-// are excluded from the count.
-const minStringLiteralEvidence = 2
-
-type semanticSignals struct {
-	strongSignals    map[string]struct{}
-	returnCategories map[string]struct{}
-	stringLiterals   map[string]struct{}
-}
-
+// applySemanticEvidence extracts Python semantic signals from both fragments
+// and delegates the evidence penalties (disjoint literals, missing shared
+// strong signals, incompatible return categories) to core.
 func (s *SemanticSimilarityAnalyzer) applySemanticEvidence(baseSimilarity float64, f1, f2 *CodeFragment) float64 {
 	if baseSimilarity == 0.0 {
 		return 0.0
@@ -145,24 +126,11 @@ func (s *SemanticSimilarityAnalyzer) applySemanticEvidence(baseSimilarity float6
 
 	signals1 := extractSemanticSignals(f1.ASTNode)
 	signals2 := extractSemanticSignals(f2.ASTNode)
-	if hasDisjointStringLiterals(signals1.stringLiterals, signals2.stringLiterals) {
-		return baseSimilarity * literalMismatchPenalty
-	}
-	if !hasSharedSemanticSignal(signals1.strongSignals, signals2.strongSignals) {
-		return baseSimilarity * semanticMismatchPenalty
-	}
-	if !hasCompatibleReturnCategories(signals1.returnCategories, signals2.returnCategories) {
-		return baseSimilarity * semanticMismatchPenalty
-	}
-	return baseSimilarity
+	return coresemantic.ApplySemanticEvidence(baseSimilarity, signals1, signals2)
 }
 
-func extractSemanticSignals(node *parser.Node) semanticSignals {
-	signals := semanticSignals{
-		strongSignals:    make(map[string]struct{}),
-		returnCategories: make(map[string]struct{}),
-		stringLiterals:   make(map[string]struct{}),
-	}
+func extractSemanticSignals(node *parser.Node) coresemantic.SemanticSignals {
+	signals := coresemantic.NewSemanticSignals()
 	if node == nil {
 		return signals
 	}
@@ -187,25 +155,25 @@ func extractSemanticSignals(node *parser.Node) semanticSignals {
 
 		switch current.Type {
 		case parser.NodeBinOp, parser.NodeAugAssign:
-			addSignal(signals.strongSignals, "binop", current.Op)
+			addSignal(signals.StrongSignals, "binop", current.Op)
 		case parser.NodeCompare:
-			addSignal(signals.strongSignals, "compare", current.Op)
+			addSignal(signals.StrongSignals, "compare", current.Op)
 		case parser.NodeUnaryOp:
-			addSignal(signals.strongSignals, "unary", current.Op)
+			addSignal(signals.StrongSignals, "unary", current.Op)
 		case parser.NodeBoolOp:
-			addSignal(signals.strongSignals, "bool", current.Op)
+			addSignal(signals.StrongSignals, "bool", current.Op)
 		case parser.NodeCall:
 			if signal := callSemanticSignal(current); signal != "" {
-				signals.strongSignals[signal] = struct{}{}
+				signals.StrongSignals[signal] = struct{}{}
 			}
 		case parser.NodeReturn:
-			signals.returnCategories[returnCategory(current)] = struct{}{}
+			signals.ReturnCategories[returnCategory(current)] = struct{}{}
 		case parser.NodeConstant:
 			if _, inert := inertStrings[current]; inert {
 				break
 			}
 			if value, ok := current.Value.(string); ok && value != "" {
-				signals.stringLiterals[value] = struct{}{}
+				signals.StringLiterals[value] = struct{}{}
 			}
 		}
 		return true
@@ -266,46 +234,6 @@ func returnCategory(node *parser.Node) string {
 		return "tuple"
 	}
 	return "scalar"
-}
-
-func hasSharedSemanticSignal(signals1, signals2 map[string]struct{}) bool {
-	if len(signals1) == 0 || len(signals2) == 0 {
-		return true
-	}
-	for signal := range signals1 {
-		if _, ok := signals2[signal]; ok {
-			return true
-		}
-	}
-	return false
-}
-
-// hasDisjointStringLiterals reports whether both fragments contain enough
-// distinct string literals to compare (minStringLiteralEvidence each) while
-// sharing none of them. Partial overlap or insufficient evidence on either
-// side is given the benefit of the doubt.
-func hasDisjointStringLiterals(literals1, literals2 map[string]struct{}) bool {
-	if len(literals1) < minStringLiteralEvidence || len(literals2) < minStringLiteralEvidence {
-		return false
-	}
-	for literal := range literals1 {
-		if _, ok := literals2[literal]; ok {
-			return false
-		}
-	}
-	return true
-}
-
-func hasCompatibleReturnCategories(categories1, categories2 map[string]struct{}) bool {
-	if len(categories1) == 0 || len(categories2) == 0 {
-		return true
-	}
-	for category := range categories1 {
-		if _, ok := categories2[category]; ok {
-			return true
-		}
-	}
-	return false
 }
 
 // buildCFGFromFragment builds a CFG from a code fragment

@@ -129,8 +129,8 @@ func TestLiteralEvidence_DocstringsAreNotEvidence(t *testing.T) {
 
 	signals1 := extractSemanticSignals(f1.ASTNode)
 	signals2 := extractSemanticSignals(f2.ASTNode)
-	require.Empty(t, signals1.stringLiterals, "docstrings and bare string statements must be ignored")
-	require.Empty(t, signals2.stringLiterals, "docstrings and bare string statements must be ignored")
+	require.Empty(t, signals1.StringLiterals, "docstrings and bare string statements must be ignored")
+	require.Empty(t, signals2.StringLiterals, "docstrings and bare string statements must be ignored")
 
 	analyzer := NewSemanticSimilarityAnalyzer()
 	similarity := analyzer.ComputeSimilarity(f1, f2)
@@ -160,8 +160,8 @@ func TestLiteralEvidence_InsufficientLiteralsNoPenalty(t *testing.T) {
 
 	signals1 := extractSemanticSignals(f1.ASTNode)
 	signals2 := extractSemanticSignals(f2.ASTNode)
-	require.Len(t, signals1.stringLiterals, 1)
-	require.Len(t, signals2.stringLiterals, 1)
+	require.Len(t, signals1.StringLiterals, 1)
+	require.Len(t, signals2.StringLiterals, 1)
 
 	analyzer := NewSemanticSimilarityAnalyzer()
 	similarity := analyzer.ComputeSimilarity(f1, f2)
