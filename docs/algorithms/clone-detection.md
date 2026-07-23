@@ -193,7 +193,7 @@ For large codebases, pairwise comparison uses batch processing to limit memory:
 
 ### Type-4: CFG-based Semantic Analysis
 
-**Implementation:** `semantic_similarity.go` (`SemanticSimilarityAnalyzer`), `dfa.go`, `dfa_builder.go`
+**Implementation:** `semantic_similarity.go` (`SemanticSimilarityAnalyzer`), `dfa_builder.go` (Python def/use extraction), `core/dfa` (def-use chain construction), `core/semantic` (evidence penalties)
 
 Type-4 detection identifies functionally similar code that uses different syntax. It builds Control Flow Graphs (CFGs) and optionally performs Data Flow Analysis (DFA) for each fragment.
 
@@ -287,7 +287,7 @@ When multi-dimensional analysis is disabled (the default), only the APTED struct
 
 ## LSH Acceleration
 
-**Implementation:** `lsh_index.go` (`LSHIndex`), `minhash.go` (`MinHasher`), `core/clone` (`ASTFeatureExtractor`)
+**Implementation:** `core/lsh` (`MinHasher`, `LSHIndex`), `lsh_index.go` (candidate-index adapter), `core/clone` (`ASTFeatureExtractor`)
 
 For large codebases, exhaustive O(n^2) pairwise comparison becomes prohibitive. LSH (Locality-Sensitive Hashing) reduces the number of pairs that need expensive APTED verification.
 

@@ -186,7 +186,7 @@ type Location struct {
 
 ### 2. Analyzer Module (`internal/analyzer`)
 
-The analyzer module contains Python adapters and language-specific analysis. Language-neutral CFG, dependency graph, clone, and APTED kernels come from `github.com/ludo-technologies/polyscan/core`.
+The analyzer module contains Python adapters and language-specific analysis. Language-neutral CFG, dependency graph, clone, APTED, LSH, LCOM, DFA, and semantic-evidence kernels come from `github.com/ludo-technologies/polyscan/core`.
 
 #### 2.1 Control Flow Graph (CFG)
 
