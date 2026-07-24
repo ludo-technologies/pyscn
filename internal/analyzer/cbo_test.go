@@ -1315,6 +1315,65 @@ class HardcodedRDSPasswordRule:
 	assert.Equal(t, 2, hardcoded.CouplingCount)
 }
 
+func TestCBOAnalyzer_ModuleQualifiedEnumMembersCollapseToEnumClass(t *testing.T) {
+	pythonCode := `
+from pkg import _enums as reflection
+
+class Foo:
+    def bar(self, card):
+        if card == reflection.Cardinality.One:
+            return 1
+        elif card == reflection.Cardinality.Many:
+            return 2
+        return 0
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	options := DefaultCBOOptions()
+	options.GroupNamespaceImports = false
+	results, err := NewCBOAnalyzer(options).AnalyzeClasses(ast, "main.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	foo := results[0]
+	assert.Equal(t, "Foo", foo.ClassName)
+	assert.Equal(t, []string{"reflection.Cardinality"}, foo.DependentClasses)
+	assert.Equal(t, 1, foo.CouplingCount)
+}
+
+func TestCBOAnalyzer_ModuleQualifiedEnumFixPreservesOtherReferences(t *testing.T) {
+	pythonCode := `
+import models as model_types
+import settings
+from rules import DirectMode
+
+class Consumer:
+    DIRECT = DirectMode.BLOCKING
+    TIMEOUT = settings.DEFAULT_TIMEOUT
+
+    def build(self):
+        first = model_types.Widget()
+        second = model_types.Outer.Inner()
+        return model_types.Widget.create(first, second)
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	options := DefaultCBOOptions()
+	options.GroupNamespaceImports = false
+	results, err := NewCBOAnalyzer(options).AnalyzeClasses(ast, "consumer.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	consumer := results[0]
+	assert.Equal(t, "Consumer", consumer.ClassName)
+	assert.Equal(t, []string{"DirectMode", "model_types.Outer", "model_types.Outer.Inner", "model_types.Widget"}, consumer.DependentClasses)
+	assert.Equal(t, 4, consumer.CouplingCount)
+}
+
 func TestCBOAnalyzer_LocalClassMethodCallsCountClassCoupling(t *testing.T) {
 	pythonCode := `
 class Widget:

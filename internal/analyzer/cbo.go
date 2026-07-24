@@ -883,6 +883,12 @@ func (a *CBOAnalyzer) callDependencyName(className string, allClasses map[string
 		if binding := parts[0]; a.isImportedDependency(binding) && a.looksLikeClassReference(binding) {
 			return binding
 		}
+		if suppressUppercaseLeaf && len(parts) > 2 {
+			owner := strings.Join(parts[:len(parts)-1], ".")
+			if a.looksLikeClassReference(owner) {
+				return owner
+			}
+		}
 		if suppressUppercaseLeaf && isUppercaseConstant(parts[len(parts)-1]) {
 			return ""
 		}
