@@ -558,7 +558,9 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 	c.printBadge(cmd, response.Summary.Grade)
 }
 
-const badgeLandingURL = "https://pyscn.ludo-tech.org"
+// badgeLandingURL is where the README badge points. It targets the repository
+// so that a click from someone else's README lands on the project itself.
+const badgeLandingURL = service.RepositoryURL
 
 // printBadge prints a Markdown badge snippet for the user's README
 func (c *AnalyzeCommand) printBadge(cmd *cobra.Command, grade string) {
@@ -569,6 +571,7 @@ func (c *AnalyzeCommand) printBadge(cmd *cobra.Command, grade string) {
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n--------------------------------------------------\n")
 	fmt.Fprintf(cmd.ErrOrStderr(), "[Badge] Add this to your README to show off your score:\n")
 	fmt.Fprintf(cmd.ErrOrStderr(), "%s\n", badge)
+	fmt.Fprintf(cmd.ErrOrStderr(), "\n[Star] Finding pyscn useful? %s\n", service.RepositoryURL)
 	fmt.Fprintf(cmd.ErrOrStderr(), "--------------------------------------------------\n")
 }
 
