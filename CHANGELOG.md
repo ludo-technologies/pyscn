@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.27.0] - 2026-07-25
+
+### Added
+- Link HTML reports and CLI output back to the pyscn GitHub repository (#679)
+
+### Changed
+- Adopt polyscan core clone grouping, dedup, similarity gates, and classification (#664)
+- Adopt polyscan core APTED tree edit distance (#669)
+- Adopt polyscan core CFG analyses (#670)
+- Adopt polyscan core graph analyses (#672)
+- Adopt polyscan core LSH, LCOM, DFA, and semantic evidence (#673)
+- Adopt polyscan core scoring and grade mapping (#674)
+- Redesign the website homepage with a CFG diagram hero (#671)
+- Document Agent Skills as a recommended AI integration on the website (#668)
+
+### Fixed
+- Exclude Cython primitive types from CBO dependent classes (#646)
+- Fix module-qualified enum coupling in CBO (#675)
+
 ## [1.26.4] - 2026-07-17
 
 ### Changed
