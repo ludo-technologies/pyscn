@@ -1,6 +1,6 @@
 site_name: pyscn
 site_description: An intelligent Python code quality analyzer with CFG-based static analysis
-site_url: https://ludo-technologies.github.io/pyscn/
+site_url: https://docs.codescan.dev/
 site_author: ludo-technologies
 repo_url: https://github.com/ludo-technologies/pyscn
 repo_name: ludo-technologies/pyscn

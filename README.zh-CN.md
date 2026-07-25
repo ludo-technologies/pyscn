@@ -196,7 +196,7 @@ directory = "reports"
 
 ## 文档
 
-📖 **[pyscn 文档站点](https://ludo-technologies.github.io/pyscn/zh/)** — 安装、规则目录、CLI 参考、配置、输出规范
+📖 **[pyscn 文档站点](https://docs.codescan.dev/zh/)** — 安装、规则目录、CLI 参考、配置、输出规范
 
 贡献者请参阅：**[开发指南](docs/DEVELOPMENT.md)** • **[架构](docs/ARCHITECTURE.md)** • **[测试](docs/TESTING.md)**
 

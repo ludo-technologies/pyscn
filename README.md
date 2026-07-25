@@ -196,7 +196,7 @@ directory = "reports"
 
 ## Documentation
 
-📖 **[pyscn documentation site](https://ludo-technologies.github.io/pyscn/)** — installation, rule catalog, CLI reference, configuration, output specification
+📖 **[pyscn documentation site](https://docs.codescan.dev/)** — installation, rule catalog, CLI reference, configuration, output specification
 
 For contributors: **[Development Guide](docs/DEVELOPMENT.md)** • **[Architecture](docs/ARCHITECTURE.md)** • **[Testing](docs/TESTING.md)**
 
