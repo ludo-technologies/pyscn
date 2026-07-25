@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/csv"
 	"fmt"
 	"html/template"
 	"io"
@@ -136,33 +137,64 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 // writeJSON formats the response as JSON
 // writeCSV formats the response as CSV (summary only)
 func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.Writer) error {
-	// Write header
-	fmt.Fprintf(writer, "Metric,Value\n")
+	rows := [][]string{
+		{"Metric", "Value"},
+		{"Health Score", fmt.Sprint(response.Summary.HealthScore)},
+		{"Grade", response.Summary.Grade},
+		{"Total Files", fmt.Sprint(response.Summary.TotalFiles)},
+		{"Analyzed Files", fmt.Sprint(response.Summary.AnalyzedFiles)},
+		{"Average Complexity", fmt.Sprintf("%.2f", response.Summary.AverageComplexity)},
+		{"High Complexity Count", fmt.Sprint(response.Summary.HighComplexityCount)},
+		{"Dead Code Count", fmt.Sprint(response.Summary.DeadCodeCount)},
+		{"Critical Dead Code", fmt.Sprint(response.Summary.CriticalDeadCode)},
+		{"Unique Fragments", fmt.Sprint(response.Summary.TotalClones)},
+		{"Clone Groups", fmt.Sprint(response.Summary.CloneGroups)},
+		{"Code Duplication", fmt.Sprintf("%.2f", response.Summary.CodeDuplication)},
+		{"Total Classes Analyzed", fmt.Sprint(response.Summary.CBOClasses)},
+		{"High Coupling (CBO) Classes", fmt.Sprint(response.Summary.HighCouplingClasses)},
+		{"Average CBO", fmt.Sprintf("%.2f", response.Summary.AverageCoupling)},
+		{"Module Quality Count", fmt.Sprint(len(response.ModuleQuality))},
+	}
 
-	// Write summary metrics
-	fmt.Fprintf(writer, "Health Score,%d\n", response.Summary.HealthScore)
-	fmt.Fprintf(writer, "Grade,%s\n", response.Summary.Grade)
-	fmt.Fprintf(writer, "Total Files,%d\n", response.Summary.TotalFiles)
-	fmt.Fprintf(writer, "Analyzed Files,%d\n", response.Summary.AnalyzedFiles)
-	fmt.Fprintf(writer, "Average Complexity,%.2f\n", response.Summary.AverageComplexity)
-	fmt.Fprintf(writer, "High Complexity Count,%d\n", response.Summary.HighComplexityCount)
-	fmt.Fprintf(writer, "Dead Code Count,%d\n", response.Summary.DeadCodeCount)
-	fmt.Fprintf(writer, "Critical Dead Code,%d\n", response.Summary.CriticalDeadCode)
-	fmt.Fprintf(writer, "Unique Fragments,%d\n", response.Summary.TotalClones)
-	fmt.Fprintf(writer, "Clone Groups,%d\n", response.Summary.CloneGroups)
-	fmt.Fprintf(writer, "Code Duplication,%.2f\n", response.Summary.CodeDuplication)
-	fmt.Fprintf(writer, "Total Classes Analyzed,%d\n", response.Summary.CBOClasses)
-	fmt.Fprintf(writer, "High Coupling (CBO) Classes,%d\n", response.Summary.HighCouplingClasses)
-	fmt.Fprintf(writer, "Average CBO,%.2f\n", response.Summary.AverageCoupling)
+	for index, module := range response.ModuleQuality {
+		prefix := fmt.Sprintf("Module %d ", index+1)
+		rows = append(rows,
+			[]string{prefix + "Name", module.ModuleName},
+			[]string{prefix + "File Path", module.FilePath},
+			[]string{prefix + "Lines of Code", fmt.Sprint(module.LinesOfCode)},
+			[]string{prefix + "Function Count", fmt.Sprint(module.FunctionCount)},
+			[]string{prefix + "Analyzed Function Count", fmt.Sprint(module.AnalyzedFunctionCount)},
+			[]string{prefix + "Average Complexity", fmt.Sprintf("%.2f", module.AverageComplexity)},
+			[]string{prefix + "Average Cognitive Complexity", fmt.Sprintf("%.2f", module.AverageCognitiveComplexity)},
+			[]string{prefix + "Max Complexity", fmt.Sprint(module.MaxComplexity)},
+			[]string{prefix + "High Risk Function Count", fmt.Sprint(module.HighRiskFunctionCount)},
+			[]string{prefix + "Exception Handler Count", fmt.Sprint(module.ExceptionHandlerCount)},
+			[]string{prefix + "Dead Code Findings", fmt.Sprint(module.DeadCodeFindingCount)},
+			[]string{prefix + "Dead Code Blocks", fmt.Sprint(module.DeadCodeBlockCount)},
+		)
+	}
 
 	if response.Summary.CommunitiesEnabled && response.Communities != nil {
 		communities := response.Communities
-		fmt.Fprintf(writer, "Communities Enabled,true\n")
-		fmt.Fprintf(writer, "Total Communities,%d\n", communities.TotalCommunities)
-		fmt.Fprintf(writer, "Community Modularity,%.4f\n", communities.Modularity)
-		fmt.Fprintf(writer, "Bridge Modules,%d\n", len(communities.BridgeModules))
-		fmt.Fprintf(writer, "Community Score,%d\n", response.Summary.CommunityScore)
-		fmt.Fprintf(writer, "Community Risk Score,%d\n", response.Summary.CommunityRiskScore)
+		rows = append(rows,
+			[]string{"Communities Enabled", "true"},
+			[]string{"Total Communities", fmt.Sprint(communities.TotalCommunities)},
+			[]string{"Community Modularity", fmt.Sprintf("%.4f", communities.Modularity)},
+			[]string{"Bridge Modules", fmt.Sprint(len(communities.BridgeModules))},
+			[]string{"Community Score", fmt.Sprint(response.Summary.CommunityScore)},
+			[]string{"Community Risk Score", fmt.Sprint(response.Summary.CommunityRiskScore)},
+		)
+	}
+
+	csvWriter := csv.NewWriter(writer)
+	for _, row := range rows {
+		if err := csvWriter.Write(row); err != nil {
+			return domain.NewOutputError("failed to write CSV output", err)
+		}
+	}
+	csvWriter.Flush()
+	if err := csvWriter.Error(); err != nil {
+		return domain.NewOutputError("failed to write CSV output", err)
 	}
 
 	return nil

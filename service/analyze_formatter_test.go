@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -316,6 +317,45 @@ func TestAnalyzeFormatter_Write_CSV(t *testing.T) {
 	assert.Contains(t, output, "Grade,B")
 	assert.Contains(t, output, "Total Files,10")
 	assert.Contains(t, output, "Analyzed Files,10")
+}
+
+func TestAnalyzeFormatter_Write_CSVIncludesModuleQuality(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.ModuleQuality = []domain.ModuleQualityMetrics{
+		{
+			ModuleName:                 "pkg.hotspot",
+			FilePath:                   "pkg/hot,spot.py",
+			LinesOfCode:                120,
+			FunctionCount:              4,
+			AnalyzedFunctionCount:      2,
+			AverageComplexity:          6.5,
+			AverageCognitiveComplexity: 8,
+			MaxComplexity:              9,
+			HighRiskFunctionCount:      1,
+			ExceptionHandlerCount:      3,
+			DeadCodeFindingCount:       2,
+			DeadCodeBlockCount:         3,
+		},
+	}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatCSV, &output))
+
+	records, err := csv.NewReader(strings.NewReader(output.String())).ReadAll()
+	require.NoError(t, err)
+
+	metrics := make(map[string]string, len(records))
+	for _, record := range records[1:] {
+		require.Len(t, record, 2)
+		metrics[record[0]] = record[1]
+	}
+
+	assert.Equal(t, "1", metrics["Module Quality Count"])
+	assert.Equal(t, "pkg.hotspot", metrics["Module 1 Name"])
+	assert.Equal(t, "pkg/hot,spot.py", metrics["Module 1 File Path"])
+	assert.Equal(t, "6.50", metrics["Module 1 Average Complexity"])
+	assert.Equal(t, "8.00", metrics["Module 1 Average Cognitive Complexity"])
+	assert.Equal(t, "2", metrics["Module 1 Dead Code Findings"])
 }
 
 func TestAnalyzeFormatter_Write_HTML(t *testing.T) {
