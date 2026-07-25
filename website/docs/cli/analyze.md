@@ -23,6 +23,8 @@ By default `analyze` runs every enabled analyzer concurrently:
 
 Results are combined into a single report with a [Health Score](../output/health-score.md).
 
+Module hotspot rollups use the complete analyzer results before `--min-complexity`, `report_unchanged`, and `--min-severity` presentation filters. This keeps file-to-file comparisons stable when detail thresholds change.
+
 ## Flags
 
 ### Output format

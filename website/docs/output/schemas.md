@@ -164,22 +164,22 @@ Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the co
 
 ## `module_quality` array
 
-Each entry joins module identity and size from dependency analysis with the function-level complexity and file-level dead-code results already produced by the unified analysis. It does not run another analysis pass and does not contribute a new health-score category.
+Each entry joins module identity and size from dependency analysis with analyzer-owned complexity and dead-code rollups. The rollups are calculated before presentation filters, do not run another source-analysis pass, and do not contribute a new health-score category.
 
 | Field | Type | Description |
 | --- | --- | --- |
 | `module_name` | string \| absent | Importable Python module name when dependency analysis resolved it. |
-| `file_path` | string | Source path as reported by complexity or dead-code analysis; otherwise the dependency-analysis path. |
+| `file_path` | string | Canonical absolute source path used by every unified-analysis task. |
 | `lines_of_code` | integer | Physical module line count from dependency analysis, or `0` when unavailable. |
 | `function_count` | integer | Total module function count from dependency analysis, or `0` when unavailable. |
-| `analyzed_function_count` | integer | Functions present in the complexity response after `min_complexity` filtering. |
-| `average_complexity` | number | Mean cyclomatic complexity across analyzed functions. |
-| `average_cognitive_complexity` | number | Mean cognitive complexity across analyzed functions. |
-| `max_complexity` | integer | Maximum cyclomatic complexity across analyzed functions. |
-| `high_risk_function_count` | integer | Analyzed functions classified as high risk. |
-| `exception_handler_count` | integer | Sum of exception handlers across analyzed functions. |
-| `dead_code_finding_count` | integer | Dead-code findings reported for the module. |
-| `dead_code_block_count` | integer | Unreachable CFG blocks reported for the module. |
+| `analyzed_function_count` | integer | Complexity records before `min_complexity` and `report_unchanged` filters, including the `<module>` record for top-level code. |
+| `average_complexity` | number | Mean cyclomatic complexity across all complexity records. |
+| `average_cognitive_complexity` | number | Mean cognitive complexity across all complexity records. |
+| `max_complexity` | integer | Maximum cyclomatic complexity before presentation filters. |
+| `high_risk_function_count` | integer | Complexity records classified as high risk before presentation filters. |
+| `exception_handler_count` | integer | Sum of exception handlers across all complexity records. |
+| `dead_code_finding_count` | integer | Detector findings before `min_severity` filtering. |
+| `dead_code_block_count` | integer | Unreachable CFG blocks before `min_severity` filtering. |
 
 Entries are ordered by high-risk function count, maximum complexity, average complexity, dead-code findings, then file path. This places the most actionable modules first while retaining deterministic ties.
 
@@ -627,6 +627,14 @@ Mirrors `domain.SystemAnalysisResponse`. Nested field names are Go PascalCase.
 | `Maintainability`        | number  | Maintainability index, `0`–`100`.                        |
 | `TechnicalDebt`          | number  | Estimated technical debt in hours.                       |
 | `RiskLevel`              | string  | One of: `low`, `medium`, `high`.                         |
+| `AnalyzedFunctionCount`  | integer | Complexity records before presentation filters.          |
+| `AverageComplexity`      | number  | Mean cyclomatic complexity for the module.                |
+| `AverageCognitiveComplexity` | number | Mean cognitive complexity for the module.             |
+| `MaxComplexity`          | integer | Highest cyclomatic complexity in the module.              |
+| `HighRiskFunctionCount`  | integer | Complexity records assessed as high risk.                 |
+| `ExceptionHandlerCount`  | integer | Exception handlers across all complexity records.         |
+| `DeadCodeFindingCount`   | integer | Findings before severity filtering.                       |
+| `DeadCodeBlockCount`     | integer | Dead CFG blocks before severity filtering.                |
 | `DirectDependencies`     | array of string | Direct dependencies.                             |
 | `TransitiveDependencies` | array of string | All transitive dependencies.                     |
 | `Dependents`             | array of string | Modules depending on this one.                   |

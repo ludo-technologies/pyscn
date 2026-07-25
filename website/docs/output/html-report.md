@@ -31,7 +31,7 @@ Category score cards and tabs only appear for analyzers that ran. Architecture a
 | Tab | Contents |
 | --- | --- |
 | Summary | High-level numbers and grade. |
-| Modules | Sortable per-module complexity, cognitive-complexity, size, high-risk, and dead-code rollups. |
+| Modules | Sortable per-module size, analyzed-record count, complexity, cognitive complexity, high-risk count, exception handlers, dead-code findings, and dead CFG blocks. |
 | Complexity | Sortable table of functions with McCabe / cognitive complexity, nesting depth, risk. |
 | Dead Code | Findings grouped by severity with file:line and reason. |
 | Clones | Clone groups with similarity and clone type. |
@@ -43,6 +43,8 @@ Category score cards and tabs only appear for analyzers that ran. Architecture a
 ## JavaScript
 
 Two inline functions execute: `showTab(id)` switches between tabs and `sortModuleQuality(...)` sorts the module table. No network requests are made.
+
+Module rollups use the full analyzer population before `min_complexity`, `report_unchanged`, or `min_severity` presentation filters. Changing those filters changes the detail tabs, not the hotspot totals.
 
 ## CSS
 
