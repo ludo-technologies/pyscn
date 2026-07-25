@@ -1,0 +1,30 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ludo-technologies/pyscn",
+  "title": "pyscn",
+  "description": "Python code analysis for AI agents: complexity, dead code, clones, coupling, and a health score.",
+  "repository": {
+    "url": "https://github.com/ludo-technologies/pyscn",
+    "source": "github"
+  },
+  "websiteUrl": "https://pyscn.ludo-tech.org",
+  "version": "1.27.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "pyscn-mcp",
+      "version": "1.27.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "PYSCN_CONFIG",
+          "description": "Path to a .pyscn.toml configuration file. Defaults to the usual config discovery (.pyscn.toml, then pyproject.toml) starting from the analyzed directory.",
+          "isRequired": false,
+          "format": "filepath"
+        }
+      ]
+    }
+  ]
+}
