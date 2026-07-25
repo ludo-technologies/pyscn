@@ -109,6 +109,22 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 		}
 	})
 
+	t.Run("module rollups ignore severity filters", func(t *testing.T) {
+		filePath := "../testdata/python/edge_cases/dead_code_examples.py"
+		infoRequest := newDefaultDeadCodeRequest(filePath)
+		infoRequest.MinSeverity = domain.DeadCodeSeverityInfo
+		infoResponse, err := service.Analyze(ctx, infoRequest)
+		require.NoError(t, err)
+
+		criticalRequest := newDefaultDeadCodeRequest(filePath)
+		criticalRequest.MinSeverity = domain.DeadCodeSeverityCritical
+		criticalResponse, err := service.Analyze(ctx, criticalRequest)
+		require.NoError(t, err)
+
+		assert.Equal(t, infoResponse.ModuleRollups, criticalResponse.ModuleRollups)
+		assert.Greater(t, infoResponse.ModuleRollups[filePath].DeadCodeFindingCount, 0)
+	})
+
 	t.Run("analyze multiple files", func(t *testing.T) {
 		req := newDefaultDeadCodeRequest(
 			"../testdata/python/simple/functions.py",
