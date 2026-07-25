@@ -135,11 +135,12 @@ func TestCanonicalAnalysisPaths_ResolvesRelativeInputsOnce(t *testing.T) {
 	projectRoot := t.TempDir()
 	t.Chdir(projectRoot)
 
-	paths, err := canonicalAnalysisPaths([]string{"pkg/../pkg/hot.py"})
+	absPath := filepath.Join(projectRoot, "pkg", "hot.py")
+	paths, err := canonicalAnalysisPaths([]string{"pkg/hot.py", "pkg/../pkg/hot.py", absPath})
 	if err != nil {
 		t.Fatalf("canonicalize analysis paths: %v", err)
 	}
-	want := filepath.Join(projectRoot, "pkg", "hot.py")
+	want := absPath
 	if len(paths) != 1 || paths[0] != want {
 		t.Fatalf("expected canonical path %q, got %v", want, paths)
 	}

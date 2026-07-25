@@ -666,13 +666,19 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 }
 
 func canonicalAnalysisPaths(paths []string) ([]string, error) {
-	canonical := make([]string, len(paths))
-	for index, path := range paths {
+	canonical := make([]string, 0, len(paths))
+	seen := make(map[string]struct{}, len(paths))
+	for _, path := range paths {
 		absolute, err := filepath.Abs(path)
 		if err != nil {
 			return nil, fmt.Errorf("resolve analysis path %q: %w", path, err)
 		}
-		canonical[index] = filepath.Clean(absolute)
+		cleaned := filepath.Clean(absolute)
+		if _, duplicate := seen[cleaned]; duplicate {
+			continue
+		}
+		seen[cleaned] = struct{}{}
+		canonical = append(canonical, cleaned)
 	}
 	return canonical, nil
 }
