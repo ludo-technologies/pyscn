@@ -20,7 +20,7 @@ Cursor、Claude、ChatGPT で開発していますか？pyscn は構造解析に
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
-*JavaScript/TypeScript を扱っていますか？[jscan](https://github.com/ludo-technologies/jscan) をご覧ください*
+*他の言語も扱っていますか？pyscn は [polyscan](https://github.com/ludo-technologies/polyscan) の一部です — JavaScript/TypeScript ほかの言語向けのアナライザーもあります*
 
 </div>
 
