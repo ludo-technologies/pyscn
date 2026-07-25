@@ -648,6 +648,8 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 		}
 	}
 
+	response.ModuleQuality = domain.AggregateModuleQuality(response)
+
 	// Calculate summary statistics
 	uc.calculateSummary(&response.Summary, response)
 

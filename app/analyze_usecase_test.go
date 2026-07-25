@@ -75,6 +75,62 @@ func TestAnalyzeUseCase_Execute(t *testing.T) {
 	}
 }
 
+func TestAnalyzeUseCase_Execute_PublishesModuleQuality(t *testing.T) {
+	tempDir := t.TempDir()
+	sourcePath := filepath.Join(tempDir, "hotspot.py")
+	source := `def hotspot(value):
+	if value > 10:
+		return value
+	return 0
+`
+	if err := os.WriteFile(sourcePath, []byte(source), 0o644); err != nil {
+		t.Fatalf("write Python source: %v", err)
+	}
+
+	builder := NewAnalyzeUseCaseBuilder().
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(service.NewAnalyzeFormatter()).
+		WithProgressManager(service.NewProgressManager()).
+		WithParallelExecutor(service.NewParallelExecutor()).
+		WithErrorCategorizer(service.NewErrorCategorizer()).
+		WithComplexityUseCase(NewComplexityUseCase(
+			service.NewComplexityService(),
+			service.NewFileReader(),
+			service.NewOutputFormatter(),
+			service.NewConfigurationLoader(),
+		))
+
+	useCase, err := builder.Build()
+	if err != nil {
+		t.Fatalf("build analyze use case: %v", err)
+	}
+
+	response, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipDeadCode:    true,
+		SkipClones:      true,
+		SkipCBO:         true,
+		SkipLCOM:        true,
+		SkipSystem:      true,
+		SkipCommunities: true,
+		MinComplexity:   1,
+	}, []string{sourcePath})
+	if err != nil {
+		t.Fatalf("execute analysis: %v", err)
+	}
+
+	if len(response.ModuleQuality) != 1 {
+		t.Fatalf("expected 1 module-quality entry, got %d", len(response.ModuleQuality))
+	}
+	module := response.ModuleQuality[0]
+	if module.FilePath != sourcePath {
+		t.Errorf("expected module path %q, got %q", sourcePath, module.FilePath)
+	}
+	if module.AnalyzedFunctionCount != len(response.Complexity.Functions) {
+		t.Errorf("expected module function count to match complexity results: got %d, want %d",
+			module.AnalyzedFunctionCount, len(response.Complexity.Functions))
+	}
+}
+
 func TestAnalyzeUseCaseBuilder(t *testing.T) {
 	builder := NewAnalyzeUseCaseBuilder()
 
