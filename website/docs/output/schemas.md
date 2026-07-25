@@ -172,14 +172,14 @@ Each entry joins module identity and size from dependency analysis with analyzer
 | `file_path` | string | Canonical absolute source path used by every unified-analysis task. |
 | `lines_of_code` | integer | Physical module line count from dependency analysis, or `0` when unavailable. |
 | `function_count` | integer | Total module function count from dependency analysis, or `0` when unavailable. |
-| `analyzed_function_count` | integer | Complexity records before `min_complexity` and `report_unchanged` filters, including the `<module>` record for top-level code. |
-| `average_complexity` | number | Mean cyclomatic complexity across all complexity records. |
-| `average_cognitive_complexity` | number | Mean cognitive complexity across all complexity records. |
+| `analyzed_function_count` | integer | Function complexity records before `min_complexity` and `report_unchanged` filters. The `<module>` pseudo-record is excluded. |
+| `average_complexity` | number | Mean cyclomatic complexity across all function records. |
+| `average_cognitive_complexity` | number | Mean cognitive complexity across all function records. |
 | `max_complexity` | integer | Maximum cyclomatic complexity before presentation filters. |
 | `high_risk_function_count` | integer | Complexity records classified as high risk before presentation filters. |
-| `exception_handler_count` | integer | Sum of exception handlers across all complexity records. |
+| `exception_handler_count` | integer | Sum of exception handlers across all function records. |
 | `dead_code_finding_count` | integer | Detector findings before `min_severity` filtering. |
-| `dead_code_block_count` | integer | Unreachable CFG blocks before `min_severity` filtering. |
+| `dead_code_block_count` | integer | Distinct unreachable CFG blocks represented by detector findings before `min_severity` filtering. |
 
 Entries are ordered by high-risk function count, maximum complexity, average complexity, dead-code findings, then file path. This places the most actionable modules first while retaining deterministic ties.
 

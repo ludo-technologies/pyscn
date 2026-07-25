@@ -6,8 +6,8 @@ import (
 )
 
 // ModuleComplexityMetrics is the canonical module-level complexity contract.
-// AnalyzedFunctionCount includes every complexity record, including the <module>
-// pseudo-function used for top-level code.
+// AnalyzedFunctionCount includes every function-level complexity record before
+// presentation filters. The <module> pseudo-function is intentionally excluded.
 type ModuleComplexityMetrics struct {
 	AnalyzedFunctionCount      int     `json:"analyzed_function_count" yaml:"analyzed_function_count"`
 	AverageComplexity          float64 `json:"average_complexity" yaml:"average_complexity"`
@@ -18,7 +18,7 @@ type ModuleComplexityMetrics struct {
 }
 
 // ModuleDeadCodeMetrics is the canonical module-level dead-code contract.
-// Both counts describe the complete detector result before severity filtering.
+// Both counts describe findings enabled by detector options before severity filtering.
 type ModuleDeadCodeMetrics struct {
 	DeadCodeFindingCount int `json:"dead_code_finding_count" yaml:"dead_code_finding_count"`
 	DeadCodeBlockCount   int `json:"dead_code_block_count" yaml:"dead_code_block_count"`
@@ -52,6 +52,9 @@ func AggregateComplexityByModule(functions []FunctionComplexity) map[string]Modu
 			module = &moduleComplexityAccumulator{}
 			modules[key] = module
 		}
+		if function.Name == ModuleFunctionName {
+			continue
+		}
 
 		module.metrics.AnalyzedFunctionCount++
 		module.totalComplexity += function.Metrics.Complexity
@@ -67,9 +70,11 @@ func AggregateComplexityByModule(functions []FunctionComplexity) map[string]Modu
 
 	result := make(map[string]ModuleComplexityMetrics, len(modules))
 	for path, module := range modules {
-		count := float64(module.metrics.AnalyzedFunctionCount)
-		module.metrics.AverageComplexity = float64(module.totalComplexity) / count
-		module.metrics.AverageCognitiveComplexity = float64(module.totalCognitiveComplexity) / count
+		if module.metrics.AnalyzedFunctionCount > 0 {
+			count := float64(module.metrics.AnalyzedFunctionCount)
+			module.metrics.AverageComplexity = float64(module.totalComplexity) / count
+			module.metrics.AverageCognitiveComplexity = float64(module.totalCognitiveComplexity) / count
+		}
 		result[path] = module.metrics
 	}
 	return result
@@ -84,7 +89,13 @@ func AggregateDeadCodeByModule(files []FileDeadCode) map[string]ModuleDeadCodeMe
 		module := modules[key]
 		module.DeadCodeFindingCount += file.TotalFindings
 		for _, function := range file.Functions {
-			module.DeadCodeBlockCount += function.DeadBlocks
+			blockIDs := make(map[string]struct{}, len(function.Findings))
+			for _, finding := range function.Findings {
+				if finding.BlockID != "" {
+					blockIDs[finding.BlockID] = struct{}{}
+				}
+			}
+			module.DeadCodeBlockCount += len(blockIDs)
 		}
 		modules[key] = module
 	}

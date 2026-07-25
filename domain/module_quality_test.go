@@ -61,14 +61,36 @@ func TestAggregateComplexityByModule_GroupsUnfilteredFunctions(t *testing.T) {
 	}
 }
 
+func TestAggregateComplexityByModule_ExcludesModuleScopeFromFunctionAverages(t *testing.T) {
+	modules := AggregateComplexityByModule([]FunctionComplexity{
+		{
+			Name:      ModuleFunctionName,
+			FilePath:  "pkg/module.py",
+			Metrics:   ComplexityMetrics{Complexity: 1},
+			RiskLevel: RiskLevelLow,
+		},
+		{
+			Name:      "onlyFunction",
+			FilePath:  "pkg/module.py",
+			Metrics:   ComplexityMetrics{Complexity: 5, CognitiveComplexity: 7},
+			RiskLevel: RiskLevelMedium,
+		},
+	})
+
+	module := modules["pkg/module.py"]
+	if module.AnalyzedFunctionCount != 1 || module.AverageComplexity != 5 || module.AverageCognitiveComplexity != 7 {
+		t.Fatalf("expected function-only rollup, got %+v", module)
+	}
+}
+
 func TestAggregateDeadCodeByModule_UsesOneUnfilteredPopulation(t *testing.T) {
 	modules := AggregateDeadCodeByModule([]FileDeadCode{
 		{
 			FilePath:      "pkg/hot.py",
-			TotalFindings: 3,
+			TotalFindings: 4,
 			Functions: []FunctionDeadCode{
-				{DeadBlocks: 2},
-				{DeadBlocks: 1},
+				{Findings: []DeadCodeFinding{{BlockID: "a"}, {BlockID: "a"}}},
+				{Findings: []DeadCodeFinding{{BlockID: "b"}, {BlockID: "c"}}},
 			},
 		},
 	})
@@ -77,8 +99,8 @@ func TestAggregateDeadCodeByModule_UsesOneUnfilteredPopulation(t *testing.T) {
 		t.Fatalf("expected 1 module-quality entry, got %d", len(modules))
 	}
 	hot := modules["pkg/hot.py"]
-	if hot.DeadCodeFindingCount != 3 {
-		t.Errorf("expected 3 dead-code findings, got %d", hot.DeadCodeFindingCount)
+	if hot.DeadCodeFindingCount != 4 {
+		t.Errorf("expected 4 dead-code findings, got %d", hot.DeadCodeFindingCount)
 	}
 	if hot.DeadCodeBlockCount != 3 {
 		t.Errorf("expected 3 dead-code blocks, got %d", hot.DeadCodeBlockCount)
