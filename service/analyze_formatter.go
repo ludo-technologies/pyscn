@@ -392,6 +392,25 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             background: #f8f9fa;
             font-weight: 600;
         }
+        .table-sort {
+            all: unset;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font: inherit;
+        }
+        .table-sort::after {
+            content: "↕";
+            color: #64748b;
+            font-size: 12px;
+        }
+        .table-sort:focus-visible {
+            outline: 2px solid #2563eb;
+            outline-offset: 3px;
+        }
+        .table th[aria-sort="ascending"] .table-sort::after { content: "↑"; }
+        .table th[aria-sort="descending"] .table-sort::after { content: "↓"; }
         .code-preview-card {
             margin: 12px 0 0;
             padding: 12px 14px;
@@ -527,6 +546,9 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         <div class="tabs">
             <div class="tab-buttons">
                 <button class="tab-button active" onclick="showTab('summary', this)">Summary</button>
+                {{if .ModuleQuality}}
+                <button class="tab-button" onclick="showTab('module-quality', this)">Modules</button>
+                {{end}}
                 {{if .Suggestions}}
                 <button class="tab-button" onclick="showTab('suggestions', this)">Suggestions</button>
                 {{end}}
@@ -795,6 +817,45 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 </div>
                 {{end}}
             </div>
+
+            {{if .ModuleQuality}}
+            <div id="module-quality" class="tab-content">
+                <h2>Module Quality Hotspots</h2>
+                <p style="color: #666; margin-bottom: 20px;">Per-module metrics ranked by high-risk functions, maximum complexity, average complexity, and dead-code findings</p>
+                <div style="overflow-x: auto;">
+                    <table id="module-quality-table" class="table">
+                        <thead>
+                            <tr>
+                                <th><button type="button" class="table-sort" aria-label="Sort by module name" onclick="sortModuleQuality(0, false, this)">Module</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by file path" onclick="sortModuleQuality(1, false, this)">File</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by lines of code" onclick="sortModuleQuality(2, true, this)">LOC</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by function count" onclick="sortModuleQuality(3, true, this)">Functions</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by average complexity" onclick="sortModuleQuality(4, true, this)">Avg CC</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by average cognitive complexity" onclick="sortModuleQuality(5, true, this)">Avg Cognitive</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by maximum complexity" onclick="sortModuleQuality(6, true, this)">Max CC</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk function count" onclick="sortModuleQuality(7, true, this)">High Risk</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by dead-code findings" onclick="sortModuleQuality(8, true, this)">Dead Code</button></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range .ModuleQuality}}
+                            <tr>
+                                <td data-sort-value="{{.ModuleName}}">{{if .ModuleName}}{{.ModuleName}}{{else}}—{{end}}</td>
+                                <td data-sort-value="{{.FilePath}}">{{.FilePath}}</td>
+                                <td data-sort-value="{{.LinesOfCode}}">{{.LinesOfCode}}</td>
+                                <td data-sort-value="{{if gt .FunctionCount 0}}{{.FunctionCount}}{{else}}{{.AnalyzedFunctionCount}}{{end}}">{{if gt .FunctionCount 0}}{{.FunctionCount}}{{else}}{{.AnalyzedFunctionCount}}{{end}}</td>
+                                <td data-sort-value="{{.AverageComplexity}}">{{printf "%.2f" .AverageComplexity}}</td>
+                                <td data-sort-value="{{.AverageCognitiveComplexity}}">{{printf "%.2f" .AverageCognitiveComplexity}}</td>
+                                <td data-sort-value="{{.MaxComplexity}}">{{.MaxComplexity}}</td>
+                                <td data-sort-value="{{.HighRiskFunctionCount}}">{{.HighRiskFunctionCount}}</td>
+                                <td data-sort-value="{{.DeadCodeFindingCount}}">{{.DeadCodeFindingCount}}</td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {{end}}
 
             {{if .Suggestions}}
             <div id="suggestions" class="tab-content">
@@ -1454,6 +1515,31 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
     </div>
 
     <script>
+        function sortModuleQuality(columnIndex, numeric, button) {
+            const table = document.getElementById('module-quality-table');
+            if (!table) { return; }
+
+            const body = table.tBodies[0];
+            const rows = Array.from(body.rows);
+            const direction = button.dataset.direction === 'asc' ? 'desc' : 'asc';
+            const multiplier = direction === 'asc' ? 1 : -1;
+
+            rows.sort((left, right) => {
+                const leftValue = left.cells[columnIndex].dataset.sortValue || '';
+                const rightValue = right.cells[columnIndex].dataset.sortValue || '';
+                const comparison = numeric
+                    ? Number(leftValue) - Number(rightValue)
+                    : leftValue.localeCompare(rightValue);
+                return comparison * multiplier;
+            });
+            rows.forEach(row => body.appendChild(row));
+
+            table.querySelectorAll('th[aria-sort]').forEach(header => header.removeAttribute('aria-sort'));
+            table.querySelectorAll('.table-sort').forEach(control => delete control.dataset.direction);
+            button.dataset.direction = direction;
+            button.parentElement.setAttribute('aria-sort', direction === 'asc' ? 'ascending' : 'descending');
+        }
+
         function showTab(tabName, el) {
             // Hide all tabs
             const tabs = document.querySelectorAll('.tab-content');

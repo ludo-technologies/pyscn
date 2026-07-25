@@ -381,6 +381,35 @@ func TestAnalyzeFormatter_Write_HTML(t *testing.T) {
 	assert.Contains(t, output, "Coupling")
 }
 
+func TestAnalyzeFormatter_Write_HTMLShowsSortableModuleQuality(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.ModuleQuality = []domain.ModuleQualityMetrics{
+		{
+			ModuleName:                 "pkg.hotspot",
+			FilePath:                   "pkg/hotspot.py",
+			LinesOfCode:                120,
+			FunctionCount:              4,
+			AnalyzedFunctionCount:      2,
+			AverageComplexity:          6.5,
+			AverageCognitiveComplexity: 8,
+			MaxComplexity:              9,
+			HighRiskFunctionCount:      1,
+			DeadCodeFindingCount:       2,
+		},
+	}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatHTML, &output))
+
+	html := output.String()
+	assert.Contains(t, html, "showTab('module-quality'")
+	assert.Contains(t, html, `id="module-quality-table"`)
+	assert.Contains(t, html, "pkg.hotspot")
+	assert.Contains(t, html, "pkg/hotspot.py")
+	assert.Contains(t, html, "sortModuleQuality")
+	assert.Contains(t, html, `aria-label="Sort by average complexity"`)
+}
+
 func TestAnalyzeFormatter_WriteHTML_ShowsCloneGroupContentWhenEnabled(t *testing.T) {
 	formatter := NewAnalyzeFormatter()
 	response := createTestAnalyzeResponse()
