@@ -306,6 +306,15 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
 
+    # The registry's GitHub OIDC auth checks only the repository owner, so the
+    # token this job mints can publish or overwrite ANY server under
+    # io.github.ludo-technologies/*. Anyone able to push a v* tag could point it
+    # at a modified server.json. The protected environment gates that behind a
+    # manual approval; do not remove it without adding a tag ruleset instead.
+    environment:
+      name: mcp-registry
+      url: https://registry.modelcontextprotocol.io/v0/servers?search=pyscn
+
     permissions:
       contents: read
       id-token: write  # OIDC token for registry authentication
@@ -320,6 +329,25 @@ jobs:
         jq --arg v "$VERSION" '.version = $v | .packages[0].version = $v' server.json > server.tmp
         mv server.tmp server.json
         cat server.json
+
+    # publish-mcp-pypi only guarantees the upload returned. The registry
+    # verifies ownership against the PyPI JSON API, which lags behind by up to
+    # a few minutes, and a 404 or a stale description there fails the publish.
+    - name: Wait for PyPI to serve the new version
+      run: |
+        VERSION="${GITHUB_REF#refs/tags/v}"
+        MARKER="mcp-name: $(jq -r .name server.json)"
+        for attempt in $(seq 1 30); do
+          body=$(curl -fsSL "https://pypi.org/pypi/pyscn-mcp/${VERSION}/json" || true)
+          if [ -n "$body" ] && printf '%s' "$body" | jq -e --arg m "$MARKER" '.info.description | contains($m)' >/dev/null 2>&1; then
+            echo "PyPI is serving pyscn-mcp ${VERSION} with the ownership marker (attempt ${attempt})"
+            exit 0
+          fi
+          echo "attempt ${attempt}/30: version or marker not visible yet, retrying in 20s"
+          sleep 20
+        done
+        echo "::error::PyPI did not serve pyscn-mcp ${VERSION} with '${MARKER}' within 10 minutes"
+        exit 1
 
     - name: Install mcp-publisher
       run: |
