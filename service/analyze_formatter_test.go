@@ -242,6 +242,33 @@ func TestAnalyzeFormatter_Write_YAML(t *testing.T) {
 	assert.Contains(t, decoded, "generated_at")
 }
 
+func TestAnalyzeFormatter_Write_SerializesModuleQuality(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.ModuleQuality = []domain.ModuleQualityMetrics{
+		{
+			ModuleName:                 "pkg.hotspot",
+			FilePath:                   "pkg/hotspot.py",
+			AnalyzedFunctionCount:      2,
+			AverageComplexity:          6.5,
+			AverageCognitiveComplexity: 8,
+			MaxComplexity:              9,
+			HighRiskFunctionCount:      1,
+			DeadCodeFindingCount:       2,
+		},
+	}
+
+	for _, format := range []domain.OutputFormat{domain.OutputFormatJSON, domain.OutputFormatYAML} {
+		t.Run(string(format), func(t *testing.T) {
+			var output bytes.Buffer
+			require.NoError(t, NewAnalyzeFormatter().Write(response, format, &output))
+
+			assert.Contains(t, output.String(), "module_quality")
+			assert.Contains(t, output.String(), "pkg/hotspot.py")
+			assert.Contains(t, output.String(), "average_cognitive_complexity")
+		})
+	}
+}
+
 func TestAnalyzeFormatter_Write_CSV(t *testing.T) {
 	formatter := NewAnalyzeFormatter()
 	response := createTestAnalyzeResponse()
