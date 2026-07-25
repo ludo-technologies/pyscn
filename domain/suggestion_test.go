@@ -601,17 +601,24 @@ func TestGenerateSuggestions_SystemArchViolation_DistinctIdentityFields(t *testi
 		violations []ArchitectureViolation
 	}{
 		{
-			name: "target only differs",
-			violations: []ArchitectureViolation{
-				{Module: "service.users", Target: "database.primary", Severity: ViolationSeverityWarning, Suggestion: "Use an adapter"},
-				{Module: "service.users", Target: "database.replica", Severity: ViolationSeverityWarning, Suggestion: "Use an adapter"},
-			},
-		},
-		{
 			name: "severity only differs",
 			violations: []ArchitectureViolation{
 				{Module: "service.users", Target: "database.primary", Severity: ViolationSeverityWarning, Suggestion: "Use an adapter"},
 				{Module: "service.users", Target: "database.primary", Severity: ViolationSeverityCritical, Suggestion: "Use an adapter"},
+			},
+		},
+		{
+			name: "rule only differs",
+			violations: []ArchitectureViolation{
+				{Module: "service.users", Target: "database.primary", Rule: "strict_mode", Severity: ViolationSeverityWarning, Suggestion: "Use an adapter"},
+				{Module: "service.users", Target: "database.primary", Rule: "no_rule", Severity: ViolationSeverityWarning, Suggestion: "Use an adapter"},
+			},
+		},
+		{
+			name: "module only differs",
+			violations: []ArchitectureViolation{
+				{Module: "service.users", Target: "database.primary", Severity: ViolationSeverityWarning, Suggestion: "Use an adapter"},
+				{Module: "service.orders", Target: "database.primary", Severity: ViolationSeverityWarning, Suggestion: "Use an adapter"},
 			},
 		},
 	}
@@ -627,6 +634,69 @@ func TestGenerateSuggestions_SystemArchViolation_DistinctIdentityFields(t *testi
 			suggestions := GenerateSuggestions(resp)
 			if len(suggestions) != 2 {
 				t.Fatalf("expected both distinct violations, got %d suggestions", len(suggestions))
+			}
+		})
+	}
+}
+
+// One violation is emitted per offending dependency edge, so the same problem is
+// reported once per target. Those collapse into a single suggestion that names them.
+func TestGenerateSuggestions_SystemArchViolation_TargetsMerged(t *testing.T) {
+	violation := func(target string) ArchitectureViolation {
+		return ArchitectureViolation{
+			Module:     "service.users",
+			Target:     target,
+			Rule:       "strict_mode",
+			Severity:   ViolationSeverityWarning,
+			Suggestion: "Assign modules to defined layers",
+		}
+	}
+
+	tests := []struct {
+		name        string
+		targets     []string
+		description string
+	}{
+		{
+			name:        "single target",
+			targets:     []string{"database.primary"},
+			description: "Assign modules to defined layers (target: database.primary)",
+		},
+		{
+			name:        "repeated target",
+			targets:     []string{"database.primary", "database.primary"},
+			description: "Assign modules to defined layers (target: database.primary)",
+		},
+		{
+			name:        "few targets are all listed",
+			targets:     []string{"database.primary", "database.replica", "events.publisher"},
+			description: "Assign modules to defined layers (targets: database.primary, database.replica, events.publisher)",
+		},
+		{
+			name:        "many targets fall back to a count",
+			targets:     []string{"a", "b", "c", "d", "e"},
+			description: "Assign modules to defined layers (targets: a, b, c and 2 more)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			violations := make([]ArchitectureViolation, 0, len(tt.targets))
+			for _, target := range tt.targets {
+				violations = append(violations, violation(target))
+			}
+			resp := &AnalyzeResponse{
+				System: &SystemAnalysisResponse{
+					ArchitectureAnalysis: &ArchitectureAnalysisResult{Violations: violations},
+				},
+			}
+
+			suggestions := GenerateSuggestions(resp)
+			if len(suggestions) != 1 {
+				t.Fatalf("expected the targets to merge into 1 suggestion, got %d", len(suggestions))
+			}
+			if suggestions[0].Description != tt.description {
+				t.Errorf("expected description %q, got %q", tt.description, suggestions[0].Description)
 			}
 		})
 	}
