@@ -17,14 +17,15 @@ flowchart LR
     C --> D["Internal AST"]
     D --> E["CFG Builder"]
     E --> F["Control Flow Graph"]
-    F --> G["Complexity Visitor"]
-    G --> H["ComplexityResult"]
+    F --> G["polyscan core/cfg Metrics"]
+    G --> H["Python AST Projection"]
+    H --> I["ComplexityResult"]
 ```
 
 1. **Parse** -- tree-sitter produces a concrete syntax tree (CST) from raw Python source.
 2. **AST Build** -- `ASTBuilder` converts the CST into an internal `parser.Node` tree.
 3. **CFG Build** -- `CFGBuilder` walks the AST and emits a per-function control flow graph.
-4. **Calculate** -- `CalculateComplexity` traverses the CFG, counts decision points, and derives the final metric.
+4. **Calculate** -- `CalculateComplexity` uses `polyscan/core/cfg` for structural metrics, then applies Python AST counters and risk scoring.
 
 ## Phase 1: Tree-sitter Python Parsing
 
@@ -65,9 +66,9 @@ Every node records its source position (`Location` struct with `StartLine`, `Sta
 
 ### Core Data Structures
 
-The CFG (`internal/analyzer/cfg.go`) consists of:
+The CFG types are owned by [`polyscan/core/cfg`](https://github.com/ludo-technologies/polyscan/tree/main/core/cfg) and re-exported as aliases from `internal/analyzer/cfg.go`:
 
-- **BasicBlock** -- A sequence of statements with no internal branching. Each block has a unique ID, a list of `parser.Node` statements, and predecessor/successor edge lists.
+- **BasicBlock** -- A sequence of statements with no internal branching. Each block has a unique ID, opaque Python AST statements, and predecessor/successor edge lists.
 - **Edge** -- A directed connection between two blocks. Each edge carries a type that describes the kind of control transfer.
 - **CFG** -- Holds a map of all blocks, plus distinguished `Entry` and `Exit` blocks. Also stores the `FunctionNode` pointer for nesting depth calculation.
 
@@ -193,16 +194,15 @@ Complexity = (number of decision points) + 1
 
 A decision point is any CFG node that produces a branching choice. This is equivalent to the classic graph-theoretic formula `E - N + 2P` for a single connected component, but is more robust for CFGs with synthetic entry/exit nodes.
 
-### Complexity Visitor
+### Core Complexity Kernel
 
-`CalculateComplexity` (`internal/analyzer/complexity.go`) traverses the CFG using a depth-first walk and counts:
+`CalculateComplexity` (`internal/analyzer/complexity.go`) passes the structurally reachable CFG blocks to `core/cfg.ComputeComplexity`. The shared kernel provides deterministic edge breakdowns and decision metrics. pyscn projects those metrics into its existing Python result model:
 
 | Counter | What it tracks |
 |---|---|
-| `decisionPoints` map | Unique blocks with `EdgeCondTrue`/`EdgeCondFalse` outgoing edges |
-| `loopStatements` | Edges of type `EdgeLoop` for CFG-only callers |
-| `exceptionHandlers` | Edges of type `EdgeException` for CFG-only callers |
-| `switchCases` | Match/switch case edges for CFG-only callers |
+| Conditional decisions | Unique reachable blocks with `EdgeCondTrue`/`EdgeCondFalse` outgoing edges |
+| Loop statements | Core `EdgeLoop` breakdown for CFG-only callers |
+| Exception handlers | Core `EdgeException` breakdown for CFG-only callers |
 
 When the CFG has its original AST node, user-facing statement counters are derived from the AST instead of CFG edge types:
 
@@ -213,22 +213,7 @@ When the CFG has its original AST node, user-facing statement counters are deriv
 | `ExceptionHandlers` | `except` clauses |
 | `SwitchCases` | `match` cases |
 
-The total decision points are computed by `countDecisionPoints`:
-
-```go
-func countDecisionPoints(visitor *complexityVisitor, metrics astComplexityMetrics, hasASTMetrics bool) int {
-    conditionalDecisions := len(visitor.decisionPoints)
-    if hasASTMetrics && metrics.MatchStatements > 0 {
-        conditionalDecisions -= metrics.MatchStatements
-        if conditionalDecisions < 0 {
-            conditionalDecisions = 0
-        }
-    }
-    return conditionalDecisions + metrics.ExceptionHandlers + metrics.SwitchCases
-}
-```
-
-For parser-backed CFGs, `metrics` replaces the synthetic single match decision with the actual number of `case` clauses. CFG-only callers keep the older edge-based fallback.
+For parser-backed CFGs, Python AST metrics replace the synthetic single match decision with the actual number of `case` clauses and retain per-`except` counting. CFG-only callers use the core edge breakdown. This preserves pyscn's established output while sharing the language-neutral graph computation.
 
 The final complexity is then:
 
@@ -352,7 +337,7 @@ The `ComplexityAnalyzer` (`internal/analyzer/complexity_analyzer.go`) coordinate
 ## Performance Considerations
 
 - **Per-function CFGs**: Each function gets its own CFG built by an independent `CFGBuilder`. Nested functions are built with separate builder instances, avoiding interference with the parent scope.
-- **Depth-first walk**: The CFG traversal uses a visited-set to prevent infinite loops on back-edges while counting all edges exactly once.
+- **Shared graph kernel**: `polyscan/core/cfg` performs structural reachability and edge accounting with visited sets that prevent loops on back-edges.
 - **Parallel file analysis**: Multiple files are analyzed concurrently (default: 4 goroutines), with each file independently parsed, CFG-built, and scored.
 - **Filtering**: `ShouldReport` filters out trivial functions (complexity = 1) when `report_unchanged` is false, reducing noise in reports for large codebases.
 

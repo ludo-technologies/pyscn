@@ -77,7 +77,9 @@ func TestDFABuilder(t *testing.T) {
 		info, err := builder.Build(nil)
 
 		assert.NoError(t, err)
-		assert.Nil(t, info)
+		require.NotNil(t, info)
+		assert.Equal(t, 0, info.TotalDefs())
+		assert.Equal(t, 0, info.TotalUses())
 	})
 
 	t.Run("Build_SimpleAssignment", func(t *testing.T) {
@@ -174,7 +176,7 @@ x += 5
 		// Find the augmented def
 		hasAugmented := false
 		for _, def := range chainX.Defs {
-			if def.Kind == DefKindAugmented {
+			if def.Kind == DefKindAugAssign {
 				hasAugmented = true
 				break
 			}
@@ -201,7 +203,7 @@ for i in range(10):
 
 		// i should be defined as for target
 		assert.Len(t, chainI.Defs, 1)
-		assert.Equal(t, DefKindForTarget, chainI.Defs[0].Kind)
+		assert.Equal(t, DefKindFor, chainI.Defs[0].Kind)
 
 		// i should be used in print(i)
 		assert.GreaterOrEqual(t, len(chainI.Uses), 1)
@@ -229,11 +231,11 @@ def add(a, b):
 
 		require.NotNil(t, chainA)
 		assert.Len(t, chainA.Defs, 1)
-		assert.Equal(t, DefKindParameter, chainA.Defs[0].Kind)
+		assert.Equal(t, DefKindParam, chainA.Defs[0].Kind)
 
 		require.NotNil(t, chainB)
 		assert.Len(t, chainB.Defs, 1)
-		assert.Equal(t, DefKindParameter, chainB.Defs[0].Kind)
+		assert.Equal(t, DefKindParam, chainB.Defs[0].Kind)
 	})
 
 	t.Run("Build_Import", func(t *testing.T) {
@@ -306,7 +308,7 @@ value = items[idx]
 
 		chainIdx := info.Chains["idx"]
 		require.NotNil(t, chainIdx)
-		assertChainHasUseKind(t, chainIdx, UseKindRead)
+		assertChainHasUseKind(t, chainIdx, UseKindLoad)
 	})
 
 	t.Run("Build_ControlFlowCrossBlock", func(t *testing.T) {
@@ -347,11 +349,11 @@ with open(path) as f:
 
 		require.NoError(t, err)
 
-		// 'f' should be extracted as a DefKindWithTarget definition
+		// 'f' should be extracted as a DefKindWith definition
 		chainF := info.Chains["f"]
 		require.NotNil(t, chainF, "'f' should be in variable chains")
 		assert.Len(t, chainF.Defs, 1)
-		assert.Equal(t, DefKindWithTarget, chainF.Defs[0].Kind)
+		assert.Equal(t, DefKindWith, chainF.Defs[0].Kind)
 
 		// Note: attribute access like f.read() may not link the base identifier
 		// due to how extractUsesFromExpression handles identifiers in attribute chains.
@@ -369,16 +371,16 @@ with open(src) as inp, open(dst) as out:
 
 		require.NoError(t, err)
 
-		// Both 'inp' and 'out' should be extracted as DefKindWithTarget
+		// Both 'inp' and 'out' should be extracted as DefKindWith
 		chainInp := info.Chains["inp"]
 		require.NotNil(t, chainInp, "'inp' should be in variable chains")
 		assert.Len(t, chainInp.Defs, 1)
-		assert.Equal(t, DefKindWithTarget, chainInp.Defs[0].Kind)
+		assert.Equal(t, DefKindWith, chainInp.Defs[0].Kind)
 
 		chainOut := info.Chains["out"]
 		require.NotNil(t, chainOut, "'out' should be in variable chains")
 		assert.Len(t, chainOut.Defs, 1)
-		assert.Equal(t, DefKindWithTarget, chainOut.Defs[0].Kind)
+		assert.Equal(t, DefKindWith, chainOut.Defs[0].Kind)
 	})
 
 	t.Run("Build_AsyncWithStatement_ExtractsAliasTarget", func(t *testing.T) {
@@ -400,7 +402,7 @@ async def fetch(session, url):
 		chainResponse := info.Chains["response"]
 		require.NotNil(t, chainResponse, "'response' should be in variable chains")
 		assert.Len(t, chainResponse.Defs, 1)
-		assert.Equal(t, DefKindWithTarget, chainResponse.Defs[0].Kind)
+		assert.Equal(t, DefKindWith, chainResponse.Defs[0].Kind)
 	})
 
 	t.Run("Build_WithStatement_TupleAliasUnpacks", func(t *testing.T) {
@@ -418,7 +420,7 @@ with cm() as (a, b):
 			chain := info.Chains[name]
 			require.NotNil(t, chain, "%q should be in variable chains", name)
 			assert.Len(t, chain.Defs, 1)
-			assert.Equal(t, DefKindWithTarget, chain.Defs[0].Kind)
+			assert.Equal(t, DefKindWith, chain.Defs[0].Kind)
 		}
 	})
 
@@ -437,7 +439,7 @@ with cm() as [a, *rest]:
 			chain := info.Chains[name]
 			require.NotNil(t, chain, "%q should be in variable chains", name)
 			assert.Len(t, chain.Defs, 1)
-			assert.Equal(t, DefKindWithTarget, chain.Defs[0].Kind)
+			assert.Equal(t, DefKindWith, chain.Defs[0].Kind)
 		}
 	})
 
@@ -467,7 +469,7 @@ for item in items:
 
 		item := requireDFAChain(t, info, "item")
 		require.Len(t, item.Defs, 1)
-		assert.Equal(t, DefKindForTarget, item.Defs[0].Kind)
+		assert.Equal(t, DefKindFor, item.Defs[0].Kind)
 		assert.Empty(t, item.Uses, "loop targets should not be phantom reads")
 
 		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, info, "items"), 1, LabelLoopHeader)
@@ -504,7 +506,7 @@ with open(path) as handle:
 
 		handle := requireDFAChain(t, info, "handle")
 		require.Len(t, handle.Defs, 1)
-		assert.Equal(t, DefKindWithTarget, handle.Defs[0].Kind)
+		assert.Equal(t, DefKindWith, handle.Defs[0].Kind)
 		assert.Empty(t, handle.Uses, "with targets should not be phantom reads")
 	})
 
@@ -731,8 +733,8 @@ func TestDFAFeatureComparison(t *testing.T) {
 			AvgChainLength:  2.0,
 			CrossBlockPairs: 2,
 			IntraBlockPairs: 6,
-			DefKindCounts:   map[DefUseKind]int{DefKindAssign: 4, DefKindParameter: 1},
-			UseKindCounts:   map[DefUseKind]int{UseKindRead: 8, UseKindCall: 2},
+			DefKindCounts:   map[DefUseKind]int{DefKindAssign: 4, DefKindParam: 1},
+			UseKindCounts:   map[DefUseKind]int{UseKindLoad: 8, UseKindCall: 2},
 		}
 		f2 := &DFAFeatures{
 			TotalDefs:       5,
@@ -742,8 +744,8 @@ func TestDFAFeatureComparison(t *testing.T) {
 			AvgChainLength:  2.0,
 			CrossBlockPairs: 2,
 			IntraBlockPairs: 6,
-			DefKindCounts:   map[DefUseKind]int{DefKindAssign: 4, DefKindParameter: 1},
-			UseKindCounts:   map[DefUseKind]int{UseKindRead: 8, UseKindCall: 2},
+			DefKindCounts:   map[DefUseKind]int{DefKindAssign: 4, DefKindParam: 1},
+			UseKindCounts:   map[DefUseKind]int{UseKindLoad: 8, UseKindCall: 2},
 		}
 
 		similarity := analyzer.compareDFAFeatures(f1, f2)
@@ -761,8 +763,8 @@ func TestDFAFeatureComparison(t *testing.T) {
 			AvgChainLength:  2.0,
 			CrossBlockPairs: 2,
 			IntraBlockPairs: 6,
-			DefKindCounts:   map[DefUseKind]int{DefKindAssign: 4, DefKindParameter: 1},
-			UseKindCounts:   map[DefUseKind]int{UseKindRead: 8, UseKindCall: 2},
+			DefKindCounts:   map[DefUseKind]int{DefKindAssign: 4, DefKindParam: 1},
+			UseKindCounts:   map[DefUseKind]int{UseKindLoad: 8, UseKindCall: 2},
 		}
 		f2 := &DFAFeatures{
 			TotalDefs:       10,
@@ -772,8 +774,8 @@ func TestDFAFeatureComparison(t *testing.T) {
 			AvgChainLength:  1.5,
 			CrossBlockPairs: 5,
 			IntraBlockPairs: 10,
-			DefKindCounts:   map[DefUseKind]int{DefKindAssign: 8, DefKindForTarget: 2},
-			UseKindCounts:   map[DefUseKind]int{UseKindRead: 15, UseKindAttribute: 5},
+			DefKindCounts:   map[DefUseKind]int{DefKindAssign: 8, DefKindFor: 2},
+			UseKindCounts:   map[DefUseKind]int{UseKindLoad: 15, UseKindAttribute: 5},
 		}
 
 		similarity := analyzer.compareDFAFeatures(f1, f2)

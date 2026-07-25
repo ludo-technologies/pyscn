@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	corelcom "github.com/ludo-technologies/polyscan/core/lcom"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -402,10 +403,10 @@ func TestLCOMAnalyzer_NilAST(t *testing.T) {
 }
 
 func TestLCOMAnalyzer_RiskLevels(t *testing.T) {
-	analyzer := NewLCOMAnalyzer(&LCOMOptions{
+	config := corelcom.Config{
 		LowThreshold:    2,
 		MediumThreshold: 5,
-	})
+	}
 
 	tests := []struct {
 		lcom4    int
@@ -421,7 +422,7 @@ func TestLCOMAnalyzer_RiskLevels(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("LCOM4=%d", tt.lcom4), func(t *testing.T) {
-			assert.Equal(t, tt.expected, analyzer.assessRiskLevel(tt.lcom4))
+			assert.Equal(t, tt.expected, string(corelcom.AssessRisk(tt.lcom4, config)))
 		})
 	}
 }

@@ -377,7 +377,6 @@ func (s *LCOMServiceImpl) buildLCOMOptions(req domain.LCOMRequest) *analyzer.LCO
 	return &analyzer.LCOMOptions{
 		LowThreshold:    req.LowThreshold,
 		MediumThreshold: req.MediumThreshold,
-		ExcludePatterns: req.ExcludePatterns,
 	}
 }
 

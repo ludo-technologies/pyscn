@@ -210,7 +210,7 @@ def function_with_mixed_code(x):
 
 			// Each block contains AST nodes that represent dead code
 			for i, stmt := range block.Statements {
-				t.Logf("  Statement %d: %s", i, stmt.Type)
+				t.Logf("  Statement %d: %s", i, requirePythonNode(t, stmt).Type)
 				// In the actual Dead Code Detection implementation, this would:
 				// 1. Extract line numbers from stmt
 				// 2. Create Finding structs

@@ -50,9 +50,19 @@ pyscn/
 │   │   ├── python.go  # Python-specific parsing
 │   │   └── ast.go     # AST definitions
 │   ├── analyzer/      # Analysis algorithms
-│   │   ├── cfg.go     # Control Flow Graph
-│   │   ├── dead.go    # Dead code detection
-│   │   └── apted.go   # Clone detection
+│   │   ├── cfg.go     # Aliases for core/cfg data structures
+│   │   ├── python_cfg.go # Python classifiers for core/cfg analyses
+│   │   ├── dead_code.go # Python dead-code result enrichment
+│   │   ├── dependency_graph.go # Python module graph adapter for core/graph
+│   │   ├── circular_detector.go # Python cycle result enrichment
+│   │   ├── coupling_metrics.go # Python system metric aggregation
+│   │   ├── dfa.go       # Aliases for core/dfa data structures
+│   │   ├── dfa_builder.go # Python def/use extraction for core/dfa
+│   │   ├── lsh_index.go # Candidate-index adapter for core/lsh
+│   │   ├── lcom.go      # Python method extraction over core/lcom
+│   │   ├── semantic_similarity.go # Python signal extraction for core/semantic
+│   │   ├── apted_tree.go # Python adapter for core/apted
+│   │   └── apted_cost.go # Python APTED cost model
 │   └── config/        # Configuration
 ├── pkg/               # Public packages
 │   └── api/           # Public API

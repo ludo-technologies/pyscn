@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	coredomain "github.com/ludo-technologies/polyscan/core/domain"
+
 	"github.com/ludo-technologies/pyscn/domain"
 )
 
@@ -399,6 +401,21 @@ func TestAnalyzeSummary_CalculateHealthScore(t *testing.T) {
 			expectedDependencyScore: 0, // Normalized: (16/16)*20 = 20, Score: 100 - (20/20)*100 = 0
 		},
 		{
+			// Core DependencyPenalty applies a log2 floor to the cycles penalty so
+			// a few cyclic modules still register in a large codebase (previously
+			// proportion-only: round(10*3/200) = 0).
+			name: "dependency cycles log floor in large codebase",
+			summary: domain.AnalyzeSummary{
+				DepsEnabled:         true,
+				DepsTotalModules:    200,
+				DepsModulesInCycles: 3, // max(log2(4), 10*3/200) = 2 penalty
+			},
+			expectedScore:           98,
+			expectedGrade:           "A",
+			expectError:             false,
+			expectedDependencyScore: 85, // Normalized: (2/16)*20 = 2.5 → 3, Score: 100 - (3/20)*100 = 85
+		},
+		{
 			name: "edge case - worst architecture score (score should be 0)",
 			summary: domain.AnalyzeSummary{
 				ArchEnabled:    true,
@@ -655,6 +672,16 @@ func TestGetGradeFromScore(t *testing.T) {
 				t.Errorf("GetGradeFromScore(%d) = %v, want %v", tt.score, got, tt.want)
 			}
 		})
+	}
+}
+
+// TestGradeParityWithCore guards the issue-12 invariant that grade mapping is
+// identical across all polyscan language analyzers.
+func TestGradeParityWithCore(t *testing.T) {
+	for score := 0; score <= 100; score++ {
+		if got, want := domain.GetGradeFromScore(score), coredomain.GradeFromScore(score); got != want {
+			t.Errorf("GetGradeFromScore(%d) = %s, core GradeFromScore = %s", score, got, want)
+		}
 	}
 }
 

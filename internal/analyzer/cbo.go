@@ -883,6 +883,12 @@ func (a *CBOAnalyzer) callDependencyName(className string, allClasses map[string
 		if binding := parts[0]; a.isImportedDependency(binding) && a.looksLikeClassReference(binding) {
 			return binding
 		}
+		if suppressUppercaseLeaf && len(parts) > 2 {
+			owner := strings.Join(parts[:len(parts)-1], ".")
+			if a.looksLikeClassReference(owner) {
+				return owner
+			}
+		}
 		if suppressUppercaseLeaf && isUppercaseConstant(parts[len(parts)-1]) {
 			return ""
 		}
@@ -1397,6 +1403,9 @@ func (a *CBOAnalyzer) initializeBuiltinTypes() {
 		"Exception", "BaseException", "ValueError", "TypeError", "KeyError",
 		"IndexError", "AttributeError", "NameError", "RuntimeError",
 		"memoryview", "slice",
+		// Cython primitive type qualifiers
+		"cython.int", "cython.float", "cython.long", "cython.uint",
+		"cython.ulong", "cython.ulonglong", "cython.ushort", "cython.double",
 	}
 
 	// Built-in functions (never counted as dependencies)

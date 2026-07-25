@@ -1,6 +1,6 @@
 # Dead Code Detection Algorithm
 
-This document describes the design and implementation of the dead code detection algorithm in pyscn. The core implementation resides in `internal/analyzer/dead_code.go` and `internal/analyzer/reachability.go`, with domain definitions in `domain/dead_code.go` and the service layer in `service/dead_code_service.go`.
+This document describes the design and implementation of the dead code detection algorithm in pyscn. Language-neutral reachability, dead-block selection, and line-range merging come from `polyscan/core/cfg`; Python classification and result enrichment reside in `internal/analyzer`.
 
 ## Overview
 
@@ -23,11 +23,9 @@ graph TD
     B --> C[AST]
     C --> D[CFGBuilder]
     D --> E[CFG per Function]
-    E --> F[ReachabilityAnalyzer]
-    F --> G1[Standard DFS Reachability]
-    F --> G2[All-Paths-Return Detection]
-    G1 --> H[Reachable / Unreachable Block Sets]
-    G2 --> H
+    E --> F[polyscan core/cfg]
+    F --> G[Terminator-aware DFS]
+    G --> H[Reachable / Unreachable Block Sets]
     H --> I[DeadCodeDetector]
     I --> J[Reason & Severity Classification]
     J --> K[DeadCodeFinding Results]
@@ -37,8 +35,8 @@ The analysis executes in four stages:
 
 1. **Parsing**: The Python source file is parsed into an AST using tree-sitter (`internal/parser`).
 2. **CFG Construction**: `CFGBuilder` (`internal/analyzer/cfg_builder.go`) converts each function's AST into a Control Flow Graph (CFG) composed of `BasicBlock` nodes connected by typed edges.
-3. **Reachability Analysis**: `ReachabilityAnalyzer` (`internal/analyzer/reachability.go`) determines which blocks are reachable from the entry point using DFS traversal, augmented by all-paths-return detection.
-4. **Dead Code Classification**: `DeadCodeDetector` (`internal/analyzer/dead_code.go`) examines each unreachable block, determines the reason it is dead, and assigns a severity level.
+3. **Reachability Analysis**: `core/cfg.AnalyzeReachability` performs DFS and prunes normal fallthrough after Python terminators while preserving explicit return, break, continue, and exception edges.
+4. **Dead Code Classification**: `core/cfg.DetectDeadCode` selects candidate blocks; `DeadCodeDetector` adds Python reasons, source locations, snippets, and severities.
 
 ## Control Flow Graph Construction
 
@@ -46,7 +44,7 @@ The CFG is the foundation of dead code detection. Each function is represented a
 
 ### Basic Block Structure
 
-A `BasicBlock` (`internal/analyzer/cfg.go:63-84`) contains:
+A core `BasicBlock`, aliased by `internal/analyzer/cfg.go`, contains:
 - A unique ID
 - A list of AST statement nodes
 - Predecessor and successor edge lists
@@ -54,7 +52,7 @@ A `BasicBlock` (`internal/analyzer/cfg.go:63-84`) contains:
 
 ### Edge Types
 
-The CFG uses typed edges to model different control flow paths (`internal/analyzer/cfg.go:10-29`):
+The CFG uses core typed edges, re-exported by `internal/analyzer/cfg.go`, to model different control flow paths:
 
 | Edge Type | Meaning |
 |---|---|
@@ -199,51 +197,25 @@ The `ReachabilityAnalyzer` (`internal/analyzer/reachability.go`) determines whic
 
 ### Algorithm
 
-The analysis uses a two-phase approach (`internal/analyzer/reachability.go:188-205`):
+The shared analysis uses terminator-aware DFS:
 
 ```mermaid
 graph TD
-    A[Start] --> B[Phase 1: Standard DFS from Entry]
-    B --> C[Mark all DFS-reachable blocks]
-    C --> D[Phase 2: All-Paths-Return Detection]
-    D --> E[Find blocks where ALL successors lead to return]
-    E --> F[Remove fall-through successors of those blocks from reachable set]
-    F --> G[Compute unreachable = all blocks - reachable blocks]
+    A[Start] --> B[DFS from Entry]
+    B --> C{Block has Python terminator?}
+    C -->|No| D[Follow all edges]
+    C -->|Yes| E[Prune EdgeNormal fallthrough]
+    E --> F[Preserve explicit control-transfer edges]
+    D --> G[Compute unreachable = all blocks - reachable blocks]
+    F --> G
     G --> H[Filter to blocks with statements]
 ```
 
-#### Phase 1: Standard DFS Reachability
-
-A depth-first traversal starting from the CFG entry block. Each visited block is marked as reachable. The traversal follows all successor edges.
-
-```go
-// Walk performs a depth-first traversal of the CFG (cfg.go:268-276)
-func (cfg *CFG) Walk(visitor CFGVisitor) {
-    visited := make(map[string]bool)
-    cfg.walkBlock(cfg.Entry, visitor, visited)
-}
-```
-
-#### Phase 2: All-Paths-Return Detection
-
-This phase handles a subtle case: when all branches of a conditional return, the code after the conditional is unreachable even though the CFG may have structural edges connecting it.
-
-The `allSuccessorsReturn()` method (`internal/analyzer/reachability.go:228-283`) recursively checks whether every execution path from a given block leads to a `return` statement. It uses:
-- **Memoization** (`allPathsReturnCache`): Caches results to avoid redundant computation.
-- **Cycle detection** (`visited` map): Prevents infinite recursion on loops.
-
-```go
-func (ra *ReachabilityAnalyzer) allSuccessorsReturn(block *BasicBlock, visited map[string]bool) bool {
-    // Base cases: contains return -> true; exit block -> false; no successors -> false
-    // Recursive: ALL successors must lead to returns
-}
-```
-
-When a block is identified as an all-paths-return block, its normal-edge successors are removed from the reachable set (`internal/analyzer/reachability.go:286-305`).
+The Python adapter classifies `return`, `break`, `continue`, and `raise`; `raise` maps to core's generic throw classification. Pruning only `EdgeNormal` is important: exception handlers and finally/control-transfer targets remain reachable through their explicit edges.
 
 ### Unreachable Block Filtering
 
-After reachability analysis, only unreachable blocks that contain statements are reported (`internal/analyzer/reachability.go:140-150`). Empty blocks (structural nodes like merge points) are excluded to avoid false positives.
+After reachability analysis, only candidate blocks with actionable statements are reported. Empty blocks and blocks containing only `pass` or bare `;` separators are excluded to avoid false positives.
 
 ## Dead Code Reason Classification
 
@@ -488,7 +460,7 @@ For each finding, the following information is included:
 
 - CFG construction is linear in the number of AST nodes.
 - DFS reachability is O(V + E) where V = blocks and E = edges.
-- All-paths-return detection uses memoization to avoid exponential traversal of branching structures.
+- Shared reachability and dead-block selection are O(V + E).
 - The `findTerminatorInPredecessors` method has O(B) complexity per unreachable block, where B is the total number of blocks in the CFG.
 
 ### Parallel File Processing
