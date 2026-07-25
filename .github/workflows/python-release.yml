@@ -298,6 +298,39 @@ jobs:
         packages-dir: dist/
         verbose: true
 
+  publish-mcp-registry:
+    name: Publish to MCP Registry
+    # Must run after the PyPI upload: the registry verifies ownership by reading
+    # the mcp-name marker out of the published pyscn-mcp description.
+    needs: publish-mcp-pypi
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    permissions:
+      contents: read
+      id-token: write  # OIDC token for registry authentication
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set version in server.json from the release tag
+      run: |
+        VERSION="${GITHUB_REF#refs/tags/v}"
+        jq --arg v "$VERSION" '.version = $v | .packages[0].version = $v' server.json > server.tmp
+        mv server.tmp server.json
+        cat server.json
+
+    - name: Install mcp-publisher
+      run: |
+        curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+    - name: Authenticate to MCP Registry
+      run: ./mcp-publisher login github-oidc
+
+    - name: Publish server to MCP Registry
+      run: ./mcp-publisher publish
+
   publish-mcp-test-pypi:
     name: Publish pyscn-mcp to Test PyPI
     needs: [build-wheels, test-wheels]
