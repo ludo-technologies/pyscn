@@ -627,14 +627,14 @@ Mirrors `domain.SystemAnalysisResponse`. Nested field names are Go PascalCase.
 | `Maintainability`        | number  | Maintainability index, `0`–`100`.                        |
 | `TechnicalDebt`          | number  | Estimated technical debt in hours.                       |
 | `RiskLevel`              | string  | One of: `low`, `medium`, `high`.                         |
-| `AnalyzedFunctionCount`  | integer | Complexity records before presentation filters.          |
-| `AverageComplexity`      | number  | Mean cyclomatic complexity for the module.                |
-| `AverageCognitiveComplexity` | number | Mean cognitive complexity for the module.             |
-| `MaxComplexity`          | integer | Highest cyclomatic complexity in the module.              |
-| `HighRiskFunctionCount`  | integer | Complexity records assessed as high risk.                 |
-| `ExceptionHandlerCount`  | integer | Exception handlers across all complexity records.         |
-| `DeadCodeFindingCount`   | integer | Findings before severity filtering.                       |
-| `DeadCodeBlockCount`     | integer | Dead CFG blocks before severity filtering.                |
+| `analyzed_function_count`  | integer | Complexity records before presentation filters.        |
+| `average_complexity`       | number  | Mean cyclomatic complexity for the module.              |
+| `average_cognitive_complexity` | number | Mean cognitive complexity for the module.           |
+| `max_complexity`           | integer | Highest cyclomatic complexity in the module.            |
+| `high_risk_function_count` | integer | Complexity records assessed as high risk.               |
+| `exception_handler_count`  | integer | Exception handlers across all complexity records.       |
+| `dead_code_finding_count`   | integer | Findings before severity filtering.                     |
+| `dead_code_block_count`     | integer | Dead CFG blocks before severity filtering.              |
 | `DirectDependencies`     | array of string | Direct dependencies.                             |
 | `TransitiveDependencies` | array of string | All transitive dependencies.                     |
 | `Dependents`             | array of string | Modules depending on this one.                   |

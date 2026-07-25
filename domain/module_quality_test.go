@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"path/filepath"
 	"testing"
 )
@@ -197,5 +198,17 @@ func TestApplyModuleQualityToSystem_PublishesQualityOnDependencyMetrics(t *testi
 	}
 	if metric.ExceptionHandlerCount != 3 || metric.DeadCodeFindingCount != 2 || metric.DeadCodeBlockCount != 4 {
 		t.Fatalf("expected exception and dead-code fields to be published, got %+v", metric)
+	}
+
+	payload, err := json.Marshal(metric)
+	if err != nil {
+		t.Fatalf("marshal dependency metric: %v", err)
+	}
+	var contract map[string]any
+	if err := json.Unmarshal(payload, &contract); err != nil {
+		t.Fatalf("decode dependency metric: %v", err)
+	}
+	if contract["average_complexity"] != 6.5 || contract["dead_code_block_count"] != float64(4) {
+		t.Fatalf("expected shared metric field names in system output, got %s", payload)
 	}
 }
