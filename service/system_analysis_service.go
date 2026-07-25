@@ -378,8 +378,6 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 	// Calculate coupling metrics
 	metricsOptions := analyzer.DefaultCouplingMetricsOptions()
 	metricsOptions.ComplexityData = req.ComplexityData
-	metricsOptions.ClonesData = req.ClonesData
-	metricsOptions.DeadCodeData = req.DeadCodeData
 	metricsCalculator := analyzer.NewCouplingMetricsCalculator(graph, metricsOptions)
 	if err := metricsCalculator.CalculateMetrics(); err != nil {
 		return nil, err

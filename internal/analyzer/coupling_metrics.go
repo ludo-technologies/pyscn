@@ -24,16 +24,12 @@ type CouplingMetricsCalculator struct {
 	// Analysis options
 	includeAbstractness bool
 	complexityData      map[string]float64 // Module name -> average complexity
-	clonesData          map[string]float64 // Module name -> duplication ratio
-	deadCodeData        map[string]int     // Module name -> dead code lines
 }
 
 // CouplingMetricsOptions configures metrics calculation
 type CouplingMetricsOptions struct {
 	IncludeAbstractness bool               // Calculate abstractness metrics
 	ComplexityData      map[string]float64 // Complexity data from complexity analysis
-	ClonesData          map[string]float64 // Clone data from clone analysis
-	DeadCodeData        map[string]int     // Dead code data from dead code analysis
 }
 
 // DefaultCouplingMetricsOptions returns default options
@@ -41,8 +37,6 @@ func DefaultCouplingMetricsOptions() *CouplingMetricsOptions {
 	return &CouplingMetricsOptions{
 		IncludeAbstractness: true,
 		ComplexityData:      make(map[string]float64),
-		ClonesData:          make(map[string]float64),
-		DeadCodeData:        make(map[string]int),
 	}
 }
 
@@ -56,8 +50,6 @@ func NewCouplingMetricsCalculator(graph *DependencyGraph, options *CouplingMetri
 		graph:               graph,
 		includeAbstractness: options.IncludeAbstractness,
 		complexityData:      options.ComplexityData,
-		clonesData:          options.ClonesData,
-		deadCodeData:        options.DeadCodeData,
 	}
 }
 

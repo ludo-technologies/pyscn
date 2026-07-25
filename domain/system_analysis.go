@@ -46,7 +46,6 @@ type SystemAnalysisRequest struct {
 
 	// Integration with other analyses
 	ComplexityData map[string]float64 // Module -> average complexity
-	ClonesData     map[string]float64 // Module -> duplication ratio
 	DeadCodeData   map[string]int     // Module -> dead CFG block count
 }
 
@@ -528,7 +527,6 @@ func DefaultSystemAnalysisRequest() *SystemAnalysisRequest {
 		IncludePatterns:                 DefaultPythonModuleIncludePatterns(),
 		ExcludePatterns:                 DefaultAnalysisExcludePatterns(),
 		ComplexityData:                  make(map[string]float64),
-		ClonesData:                      make(map[string]float64),
 		DeadCodeData:                    make(map[string]int),
 	}
 }
