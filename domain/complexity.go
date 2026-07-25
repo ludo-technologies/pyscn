@@ -174,6 +174,9 @@ type ComplexityResponse struct {
 	// Analysis results
 	Functions []FunctionComplexity
 	Summary   ComplexitySummary
+	// ModuleRollups are derived before report filters are applied. They are consumed
+	// by the unified analyze command and are not part of standalone complexity output.
+	ModuleRollups map[string]ModuleComplexityMetrics `json:"-" yaml:"-"`
 
 	// File-level raw code metrics
 	RawMetrics        []RawMetrics       `json:"raw_metrics,omitempty" yaml:"raw_metrics,omitempty"`

@@ -112,7 +112,7 @@ func TestAnalyzeUseCase_Execute_PublishesModuleQuality(t *testing.T) {
 		SkipLCOM:        true,
 		SkipSystem:      true,
 		SkipCommunities: true,
-		MinComplexity:   1,
+		MinComplexity:   5,
 	}, []string{sourcePath})
 	if err != nil {
 		t.Fatalf("execute analysis: %v", err)
@@ -125,9 +125,23 @@ func TestAnalyzeUseCase_Execute_PublishesModuleQuality(t *testing.T) {
 	if module.FilePath != sourcePath {
 		t.Errorf("expected module path %q, got %q", sourcePath, module.FilePath)
 	}
-	if module.AnalyzedFunctionCount != len(response.Complexity.Functions) {
-		t.Errorf("expected module function count to match complexity results: got %d, want %d",
+	if module.AnalyzedFunctionCount <= len(response.Complexity.Functions) {
+		t.Errorf("expected module rollup to retain filtered complexity records: got %d records and %d visible results",
 			module.AnalyzedFunctionCount, len(response.Complexity.Functions))
+	}
+}
+
+func TestCanonicalAnalysisPaths_ResolvesRelativeInputsOnce(t *testing.T) {
+	projectRoot := t.TempDir()
+	t.Chdir(projectRoot)
+
+	paths, err := canonicalAnalysisPaths([]string{"pkg/../pkg/hot.py"})
+	if err != nil {
+		t.Fatalf("canonicalize analysis paths: %v", err)
+	}
+	want := filepath.Join(projectRoot, "pkg", "hot.py")
+	if len(paths) != 1 || paths[0] != want {
+		t.Fatalf("expected canonical path %q, got %v", want, paths)
 	}
 }
 

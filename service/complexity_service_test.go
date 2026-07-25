@@ -129,6 +129,29 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.Equal(t, "branch", response.Functions[0].Name)
 	})
 
+	t.Run("module rollups ignore presentation filters", func(t *testing.T) {
+		tempDir := t.TempDir()
+		filePath := tempDir + "/mixed.py"
+		content := []byte("def unchanged():\n    return 1\n\n\ndef branch(x):\n    if x:\n        return 1\n    return 0\n")
+		require.NoError(t, os.WriteFile(filePath, content, 0644))
+
+		baselineRequest := newDefaultComplexityRequest(filePath)
+		baselineRequest.MinComplexity = 1
+		baselineRequest.ReportUnchanged = domain.BoolPtr(true)
+		baseline, err := service.Analyze(ctx, baselineRequest)
+		require.NoError(t, err)
+
+		filteredRequest := newDefaultComplexityRequest(filePath)
+		filteredRequest.MinComplexity = 5
+		filteredRequest.ReportUnchanged = domain.BoolPtr(false)
+		filtered, err := service.Analyze(ctx, filteredRequest)
+		require.NoError(t, err)
+
+		assert.NotEqual(t, baseline.Functions, filtered.Functions)
+		assert.Equal(t, baseline.ModuleRollups, filtered.ModuleRollups)
+		assert.Greater(t, baseline.ModuleRollups[filePath].AnalyzedFunctionCount, len(filtered.Functions))
+	})
+
 	t.Run("public metrics use literal statement counts", func(t *testing.T) {
 		tempDir := t.TempDir()
 		filePath := tempDir + "/literal_counts.py"

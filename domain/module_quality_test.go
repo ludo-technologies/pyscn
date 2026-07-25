@@ -5,52 +5,41 @@ import (
 	"testing"
 )
 
-func TestAggregateModuleQuality_GroupsComplexityByFile(t *testing.T) {
-	response := &AnalyzeResponse{
-		Complexity: &ComplexityResponse{
-			Functions: []FunctionComplexity{
-				{
-					Name:     "hotPath",
-					FilePath: "pkg/hot.py",
-					Metrics: ComplexityMetrics{
-						Complexity:          7,
-						CognitiveComplexity: 9,
-						ExceptionHandlers:   1,
-					},
-					RiskLevel: RiskLevelHigh,
-				},
-				{
-					Name:     "warmPath",
-					FilePath: "pkg/hot.py",
-					Metrics: ComplexityMetrics{
-						Complexity:          3,
-						CognitiveComplexity: 5,
-						ExceptionHandlers:   2,
-					},
-					RiskLevel: RiskLevelMedium,
-				},
-				{
-					Name:     "simplePath",
-					FilePath: "pkg/simple.py",
-					Metrics: ComplexityMetrics{
-						Complexity:          1,
-						CognitiveComplexity: 0,
-					},
-					RiskLevel: RiskLevelLow,
-				},
+func TestAggregateComplexityByModule_GroupsUnfilteredFunctions(t *testing.T) {
+	modules := AggregateComplexityByModule([]FunctionComplexity{
+		{
+			Name:     "hotPath",
+			FilePath: "pkg/hot.py",
+			Metrics: ComplexityMetrics{
+				Complexity:          7,
+				CognitiveComplexity: 9,
+				ExceptionHandlers:   1,
 			},
+			RiskLevel: RiskLevelHigh,
 		},
-	}
+		{
+			Name:     "warmPath",
+			FilePath: "pkg/hot.py",
+			Metrics: ComplexityMetrics{
+				Complexity:          3,
+				CognitiveComplexity: 5,
+				ExceptionHandlers:   2,
+			},
+			RiskLevel: RiskLevelMedium,
+		},
+		{
+			Name:      "simplePath",
+			FilePath:  "pkg/simple.py",
+			Metrics:   ComplexityMetrics{Complexity: 1},
+			RiskLevel: RiskLevelLow,
+		},
+	})
 
-	modules := AggregateModuleQuality(response)
 	if len(modules) != 2 {
 		t.Fatalf("expected 2 module-quality entries, got %d", len(modules))
 	}
 
-	hot := modules[0]
-	if hot.FilePath != "pkg/hot.py" {
-		t.Fatalf("expected hottest module first, got %q", hot.FilePath)
-	}
+	hot := modules["pkg/hot.py"]
 	if hot.AnalyzedFunctionCount != 2 {
 		t.Errorf("expected 2 analyzed functions, got %d", hot.AnalyzedFunctionCount)
 	}
@@ -71,40 +60,56 @@ func TestAggregateModuleQuality_GroupsComplexityByFile(t *testing.T) {
 	}
 }
 
-func TestAggregateModuleQuality_JoinsModuleIdentityAndDeadCode(t *testing.T) {
-	absoluteHotPath, err := filepath.Abs("pkg/hot.py")
-	if err != nil {
-		t.Fatalf("resolve test path: %v", err)
+func TestAggregateDeadCodeByModule_UsesOneUnfilteredPopulation(t *testing.T) {
+	modules := AggregateDeadCodeByModule([]FileDeadCode{
+		{
+			FilePath:      "pkg/hot.py",
+			TotalFindings: 3,
+			Functions: []FunctionDeadCode{
+				{DeadBlocks: 2},
+				{DeadBlocks: 1},
+			},
+		},
+	})
+
+	if len(modules) != 1 {
+		t.Fatalf("expected 1 module-quality entry, got %d", len(modules))
 	}
-	absoluteQuietPath, err := filepath.Abs("pkg/quiet.py")
-	if err != nil {
-		t.Fatalf("resolve test path: %v", err)
+	hot := modules["pkg/hot.py"]
+	if hot.DeadCodeFindingCount != 3 {
+		t.Errorf("expected 3 dead-code findings, got %d", hot.DeadCodeFindingCount)
 	}
+	if hot.DeadCodeBlockCount != 3 {
+		t.Errorf("expected 3 dead-code blocks, got %d", hot.DeadCodeBlockCount)
+	}
+}
+
+func TestAggregateModuleQuality_JoinsRootedModuleIdentity(t *testing.T) {
+	projectRoot := t.TempDir()
+	absoluteHotPath := filepath.Join(projectRoot, "pkg", "hot.py")
+	absoluteQuietPath := filepath.Join(projectRoot, "pkg", "quiet.py")
 
 	response := &AnalyzeResponse{
 		Complexity: &ComplexityResponse{
-			Functions: []FunctionComplexity{
-				{
-					Name:      "hotPath",
-					FilePath:  "pkg/hot.py",
-					Metrics:   ComplexityMetrics{Complexity: 8},
-					RiskLevel: RiskLevelHigh,
+			ModuleRollups: map[string]ModuleComplexityMetrics{
+				absoluteHotPath: {
+					AnalyzedFunctionCount: 1,
+					AverageComplexity:     8,
+					MaxComplexity:         8,
+					HighRiskFunctionCount: 1,
 				},
 			},
 		},
 		DeadCode: &DeadCodeResponse{
-			Files: []FileDeadCode{
-				{
-					FilePath:      "pkg/hot.py",
-					TotalFindings: 3,
-					Functions: []FunctionDeadCode{
-						{DeadBlocks: 2},
-						{DeadBlocks: 1},
-					},
+			ModuleRollups: map[string]ModuleDeadCodeMetrics{
+				absoluteHotPath: {
+					DeadCodeFindingCount: 3,
+					DeadCodeBlockCount:   3,
 				},
 			},
 		},
 		System: &SystemAnalysisResponse{
+			Summary: SystemAnalysisSummary{ProjectRoot: projectRoot},
 			DependencyAnalysis: &DependencyAnalysisResult{
 				ModuleMetrics: map[string]*ModuleDependencyMetrics{
 					"pkg.hot": {
@@ -133,8 +138,8 @@ func TestAggregateModuleQuality_JoinsModuleIdentityAndDeadCode(t *testing.T) {
 	if hot.ModuleName != "pkg.hot" {
 		t.Errorf("expected module identity pkg.hot, got %q", hot.ModuleName)
 	}
-	if hot.FilePath != "pkg/hot.py" {
-		t.Errorf("expected analysis path to remain user-facing, got %q", hot.FilePath)
+	if hot.FilePath != absoluteHotPath {
+		t.Errorf("expected canonical analysis path, got %q", hot.FilePath)
 	}
 	if hot.LinesOfCode != 120 {
 		t.Errorf("expected 120 lines of code, got %d", hot.LinesOfCode)
@@ -152,5 +157,45 @@ func TestAggregateModuleQuality_JoinsModuleIdentityAndDeadCode(t *testing.T) {
 	quiet := modules[1]
 	if quiet.ModuleName != "pkg.quiet" {
 		t.Errorf("expected zero-finding module to remain visible, got %q", quiet.ModuleName)
+	}
+}
+
+func TestApplyModuleQualityToSystem_PublishesQualityOnDependencyMetrics(t *testing.T) {
+	projectRoot := t.TempDir()
+	metric := &ModuleDependencyMetrics{FilePath: filepath.Join(projectRoot, "pkg", "hot.py")}
+	system := &SystemAnalysisResponse{
+		Summary: SystemAnalysisSummary{ProjectRoot: projectRoot},
+		DependencyAnalysis: &DependencyAnalysisResult{
+			ModuleMetrics: map[string]*ModuleDependencyMetrics{"pkg.hot": metric},
+		},
+	}
+	quality := []ModuleQualityMetrics{
+		{
+			FilePath: filepath.Join(projectRoot, "pkg", "hot.py"),
+			ModuleComplexityMetrics: ModuleComplexityMetrics{
+				AnalyzedFunctionCount:      2,
+				AverageComplexity:          6.5,
+				AverageCognitiveComplexity: 8,
+				MaxComplexity:              9,
+				HighRiskFunctionCount:      1,
+				ExceptionHandlerCount:      3,
+			},
+			ModuleDeadCodeMetrics: ModuleDeadCodeMetrics{
+				DeadCodeFindingCount: 2,
+				DeadCodeBlockCount:   4,
+			},
+		},
+	}
+
+	ApplyModuleQualityToSystem(system, quality)
+
+	if metric.AverageComplexity != 6.5 || metric.AverageCognitiveComplexity != 8 {
+		t.Fatalf("expected complexity averages to be published, got %+v", metric)
+	}
+	if metric.MaxComplexity != 9 || metric.HighRiskFunctionCount != 1 {
+		t.Fatalf("expected complexity hotspot fields to be published, got %+v", metric)
+	}
+	if metric.ExceptionHandlerCount != 3 || metric.DeadCodeFindingCount != 2 || metric.DeadCodeBlockCount != 4 {
+		t.Fatalf("expected exception and dead-code fields to be published, got %+v", metric)
 	}
 }

@@ -149,6 +149,8 @@ type ModuleDependencyMetrics struct {
 	Maintainability float64   // Maintainability index (0-100)
 	TechnicalDebt   float64   // Estimated technical debt in hours
 	RiskLevel       RiskLevel // Overall risk assessment
+	ModuleComplexityMetrics
+	ModuleDeadCodeMetrics
 
 	// Dependencies
 	DirectDependencies     []string // Modules this directly depends on

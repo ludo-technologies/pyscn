@@ -69,6 +69,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 
 	// Filter and sort results
 	functionsParsed := len(allFunctions)
+	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
 	filteredFunctions := s.filterFunctions(allFunctions, req)
 	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
 
@@ -79,6 +80,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 	return &domain.ComplexityResponse{
 		Functions:         sortedFunctions,
 		Summary:           summary,
+		ModuleRollups:     moduleRollups,
 		RawMetrics:        allRawMetrics,
 		RawMetricsSummary: rawMetricsSummary,
 		Warnings:          warnings,
@@ -131,6 +133,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 	}
 
 	functionsParsed := len(allFunctions)
+	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
 	filteredFunctions := s.filterFunctions(allFunctions, req)
 	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
 	summary := s.generateSummary(sortedFunctions, filesProcessed, req, functionsParsed)
@@ -139,6 +142,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 	return &domain.ComplexityResponse{
 		Functions:         sortedFunctions,
 		Summary:           summary,
+		ModuleRollups:     moduleRollups,
 		RawMetrics:        allRawMetrics,
 		RawMetricsSummary: rawMetricsSummary,
 		Warnings:          warnings,
@@ -243,12 +247,10 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 			warnings = append(warnings, fmt.Sprintf("[%s:%s] Failed to calculate complexity for function", filePath, functionName))
 			continue
 		}
-		if !complexityConfig.ShouldReport(result.Complexity) {
-			continue
-		}
-
 		riskLevel := s.calculateRiskLevel(result.Complexity, result.CognitiveComplexity, result.NestingDepth, req)
-		warnings = append(warnings, s.metricThresholdWarnings(filePath, functionName, result, req)...)
+		if complexityConfig.ShouldReport(result.Complexity) {
+			warnings = append(warnings, s.metricThresholdWarnings(filePath, functionName, result, req)...)
+		}
 
 		function := domain.FunctionComplexity{
 			Name:        functionName,
@@ -279,8 +281,12 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 // filterFunctions filters functions based on complexity thresholds
 func (s *ComplexityServiceImpl) filterFunctions(functions []domain.FunctionComplexity, req domain.ComplexityRequest) []domain.FunctionComplexity {
 	var filtered []domain.FunctionComplexity
+	complexityConfig := s.buildComplexityConfig(req)
 
 	for _, function := range functions {
+		if !complexityConfig.ShouldReport(function.Metrics.Complexity) {
+			continue
+		}
 		// Apply minimum complexity filter
 		if function.Metrics.Complexity < req.MinComplexity {
 			continue

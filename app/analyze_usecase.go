@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -282,6 +283,10 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no Python files found in the specified paths")
+	}
+	files, err = canonicalAnalysisPaths(files)
+	if err != nil {
+		return nil, err
 	}
 
 	// Estimate per-task durations from file count, then calibrate with actual
@@ -649,6 +654,7 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 	}
 
 	response.ModuleQuality = domain.AggregateModuleQuality(response)
+	domain.ApplyModuleQualityToSystem(response.System, response.ModuleQuality)
 
 	// Calculate summary statistics
 	uc.calculateSummary(&response.Summary, response)
@@ -657,6 +663,18 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 	response.Suggestions = domain.GenerateSuggestions(response)
 
 	return response
+}
+
+func canonicalAnalysisPaths(paths []string) ([]string, error) {
+	canonical := make([]string, len(paths))
+	for index, path := range paths {
+		absolute, err := filepath.Abs(path)
+		if err != nil {
+			return nil, fmt.Errorf("resolve analysis path %q: %w", path, err)
+		}
+		canonical[index] = filepath.Clean(absolute)
+	}
+	return canonical, nil
 }
 
 // markSummaryForTask ensures the summary reflects analyses that attempted to run

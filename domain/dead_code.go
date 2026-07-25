@@ -151,6 +151,9 @@ type DeadCodeResponse struct {
 	// Analysis results
 	Files   []FileDeadCode  `json:"files"`
 	Summary DeadCodeSummary `json:"summary"`
+	// ModuleRollups are derived before severity filters are applied. They are consumed
+	// by the unified analyze command and are not part of standalone dead-code output.
+	ModuleRollups map[string]ModuleDeadCodeMetrics `json:"-" yaml:"-"`
 
 	// Warnings and issues
 	Warnings []string `json:"warnings"`
