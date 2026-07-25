@@ -34,7 +34,7 @@ Only one of these may be set per invocation. If none is set, HTML is generated.
 | `--html`    | Generate HTML report (default). |
 | `--json`    | Generate JSON report. |
 | `--yaml`    | Generate YAML report. |
-| `--csv`     | Generate CSV summary (metrics only, no per-finding detail). |
+| `--csv`     | Generate CSV summary and per-module quality rollups (no per-finding detail). |
 | `--no-open` | Do not open the HTML report in a browser. |
 
 Output files land in `.pyscn/reports/` by default, named `analyze_YYYYMMDD_HHMMSS.{ext}`. Configure the directory with `[output] directory = "..."`.
