@@ -165,16 +165,20 @@ func TestAnalyzeFormatter_Write_TextIncludesModuleQuality(t *testing.T) {
 	response := createMinimalAnalyzeResponse()
 	response.ModuleQuality = []domain.ModuleQualityMetrics{
 		{
-			ModuleName:                 "pkg.hotspot",
-			FilePath:                   "pkg/hotspot.py",
-			FunctionCount:              4,
-			AnalyzedFunctionCount:      2,
-			AverageComplexity:          6.5,
-			AverageCognitiveComplexity: 8,
-			MaxComplexity:              9,
-			HighRiskFunctionCount:      1,
-			DeadCodeFindingCount:       2,
-			DeadCodeBlockCount:         3,
+			ModuleName:    "pkg.hotspot",
+			FilePath:      "pkg/hotspot.py",
+			FunctionCount: 4,
+			ModuleComplexityMetrics: domain.ModuleComplexityMetrics{
+				AnalyzedFunctionCount:      2,
+				AverageComplexity:          6.5,
+				AverageCognitiveComplexity: 8,
+				MaxComplexity:              9,
+				HighRiskFunctionCount:      1,
+			},
+			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{
+				DeadCodeFindingCount: 2,
+				DeadCodeBlockCount:   3,
+			},
 		},
 	}
 
@@ -275,14 +279,16 @@ func TestAnalyzeFormatter_Write_SerializesModuleQuality(t *testing.T) {
 	response := createMinimalAnalyzeResponse()
 	response.ModuleQuality = []domain.ModuleQualityMetrics{
 		{
-			ModuleName:                 "pkg.hotspot",
-			FilePath:                   "pkg/hotspot.py",
-			AnalyzedFunctionCount:      2,
-			AverageComplexity:          6.5,
-			AverageCognitiveComplexity: 8,
-			MaxComplexity:              9,
-			HighRiskFunctionCount:      1,
-			DeadCodeFindingCount:       2,
+			ModuleName: "pkg.hotspot",
+			FilePath:   "pkg/hotspot.py",
+			ModuleComplexityMetrics: domain.ModuleComplexityMetrics{
+				AnalyzedFunctionCount:      2,
+				AverageComplexity:          6.5,
+				AverageCognitiveComplexity: 8,
+				MaxComplexity:              9,
+				HighRiskFunctionCount:      1,
+			},
+			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{DeadCodeFindingCount: 2},
 		},
 	}
 
@@ -291,9 +297,22 @@ func TestAnalyzeFormatter_Write_SerializesModuleQuality(t *testing.T) {
 			var output bytes.Buffer
 			require.NoError(t, NewAnalyzeFormatter().Write(response, format, &output))
 
-			assert.Contains(t, output.String(), "module_quality")
-			assert.Contains(t, output.String(), "pkg/hotspot.py")
-			assert.Contains(t, output.String(), "average_cognitive_complexity")
+			var decoded domain.AnalyzeResponse
+			switch format {
+			case domain.OutputFormatJSON:
+				require.NoError(t, json.Unmarshal(output.Bytes(), &decoded))
+				var contract map[string]json.RawMessage
+				require.NoError(t, json.Unmarshal(output.Bytes(), &contract))
+				assert.Contains(t, contract, "module_quality")
+			case domain.OutputFormatYAML:
+				require.NoError(t, yaml.Unmarshal(output.Bytes(), &decoded))
+				var contract map[string]any
+				require.NoError(t, yaml.Unmarshal(output.Bytes(), &contract))
+				assert.Contains(t, contract, "module_quality")
+			default:
+				t.Fatalf("unsupported test format %q", format)
+			}
+			assert.Equal(t, response.ModuleQuality, decoded.ModuleQuality)
 		})
 	}
 }
@@ -323,18 +342,22 @@ func TestAnalyzeFormatter_Write_CSVIncludesModuleQuality(t *testing.T) {
 	response := createMinimalAnalyzeResponse()
 	response.ModuleQuality = []domain.ModuleQualityMetrics{
 		{
-			ModuleName:                 "pkg.hotspot",
-			FilePath:                   "pkg/hot,spot.py",
-			LinesOfCode:                120,
-			FunctionCount:              4,
-			AnalyzedFunctionCount:      2,
-			AverageComplexity:          6.5,
-			AverageCognitiveComplexity: 8,
-			MaxComplexity:              9,
-			HighRiskFunctionCount:      1,
-			ExceptionHandlerCount:      3,
-			DeadCodeFindingCount:       2,
-			DeadCodeBlockCount:         3,
+			ModuleName:    "pkg.hotspot",
+			FilePath:      "pkg/hot,spot.py",
+			LinesOfCode:   120,
+			FunctionCount: 4,
+			ModuleComplexityMetrics: domain.ModuleComplexityMetrics{
+				AnalyzedFunctionCount:      2,
+				AverageComplexity:          6.5,
+				AverageCognitiveComplexity: 8,
+				MaxComplexity:              9,
+				HighRiskFunctionCount:      1,
+				ExceptionHandlerCount:      3,
+			},
+			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{
+				DeadCodeFindingCount: 2,
+				DeadCodeBlockCount:   3,
+			},
 		},
 	}
 
@@ -385,16 +408,18 @@ func TestAnalyzeFormatter_Write_HTMLShowsSortableModuleQuality(t *testing.T) {
 	response := createMinimalAnalyzeResponse()
 	response.ModuleQuality = []domain.ModuleQualityMetrics{
 		{
-			ModuleName:                 "pkg.hotspot",
-			FilePath:                   "pkg/hotspot.py",
-			LinesOfCode:                120,
-			FunctionCount:              4,
-			AnalyzedFunctionCount:      2,
-			AverageComplexity:          6.5,
-			AverageCognitiveComplexity: 8,
-			MaxComplexity:              9,
-			HighRiskFunctionCount:      1,
-			DeadCodeFindingCount:       2,
+			ModuleName:    "pkg.hotspot",
+			FilePath:      "pkg/hotspot.py",
+			LinesOfCode:   120,
+			FunctionCount: 4,
+			ModuleComplexityMetrics: domain.ModuleComplexityMetrics{
+				AnalyzedFunctionCount:      2,
+				AverageComplexity:          6.5,
+				AverageCognitiveComplexity: 8,
+				MaxComplexity:              9,
+				HighRiskFunctionCount:      1,
+			},
+			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{DeadCodeFindingCount: 2},
 		},
 	}
 
@@ -408,6 +433,9 @@ func TestAnalyzeFormatter_Write_HTMLShowsSortableModuleQuality(t *testing.T) {
 	assert.Contains(t, html, "pkg/hotspot.py")
 	assert.Contains(t, html, "sortModuleQuality")
 	assert.Contains(t, html, `aria-label="Sort by average complexity"`)
+	assert.Contains(t, html, `aria-label="Sort by analyzed function count"`)
+	assert.Contains(t, html, `aria-label="Sort by exception handler count"`)
+	assert.Contains(t, html, `aria-label="Sort by dead-code blocks"`)
 }
 
 func TestAnalyzeFormatter_WriteHTML_ShowsCloneGroupContentWhenEnabled(t *testing.T) {

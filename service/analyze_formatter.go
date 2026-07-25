@@ -135,26 +135,31 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 }
 
 // writeJSON formats the response as JSON
-// writeCSV formats the response as CSV (summary only)
+// writeCSV formats summary and module-quality metrics as CSV.
 func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.Writer) error {
-	rows := [][]string{
-		{"Metric", "Value"},
-		{"Health Score", fmt.Sprint(response.Summary.HealthScore)},
-		{"Grade", response.Summary.Grade},
-		{"Total Files", fmt.Sprint(response.Summary.TotalFiles)},
-		{"Analyzed Files", fmt.Sprint(response.Summary.AnalyzedFiles)},
-		{"Average Complexity", fmt.Sprintf("%.2f", response.Summary.AverageComplexity)},
-		{"High Complexity Count", fmt.Sprint(response.Summary.HighComplexityCount)},
-		{"Dead Code Count", fmt.Sprint(response.Summary.DeadCodeCount)},
-		{"Critical Dead Code", fmt.Sprint(response.Summary.CriticalDeadCode)},
-		{"Unique Fragments", fmt.Sprint(response.Summary.TotalClones)},
-		{"Clone Groups", fmt.Sprint(response.Summary.CloneGroups)},
-		{"Code Duplication", fmt.Sprintf("%.2f", response.Summary.CodeDuplication)},
-		{"Total Classes Analyzed", fmt.Sprint(response.Summary.CBOClasses)},
-		{"High Coupling (CBO) Classes", fmt.Sprint(response.Summary.HighCouplingClasses)},
-		{"Average CBO", fmt.Sprintf("%.2f", response.Summary.AverageCoupling)},
-		{"Module Quality Count", fmt.Sprint(len(response.ModuleQuality))},
+	rowCapacity := 16 + (12 * len(response.ModuleQuality))
+	if response.Summary.CommunitiesEnabled && response.Communities != nil {
+		rowCapacity += 6
 	}
+	rows := make([][]string, 0, rowCapacity)
+	rows = append(rows,
+		[]string{"Metric", "Value"},
+		[]string{"Health Score", fmt.Sprint(response.Summary.HealthScore)},
+		[]string{"Grade", response.Summary.Grade},
+		[]string{"Total Files", fmt.Sprint(response.Summary.TotalFiles)},
+		[]string{"Analyzed Files", fmt.Sprint(response.Summary.AnalyzedFiles)},
+		[]string{"Average Complexity", fmt.Sprintf("%.2f", response.Summary.AverageComplexity)},
+		[]string{"High Complexity Count", fmt.Sprint(response.Summary.HighComplexityCount)},
+		[]string{"Dead Code Count", fmt.Sprint(response.Summary.DeadCodeCount)},
+		[]string{"Critical Dead Code", fmt.Sprint(response.Summary.CriticalDeadCode)},
+		[]string{"Unique Fragments", fmt.Sprint(response.Summary.TotalClones)},
+		[]string{"Clone Groups", fmt.Sprint(response.Summary.CloneGroups)},
+		[]string{"Code Duplication", fmt.Sprintf("%.2f", response.Summary.CodeDuplication)},
+		[]string{"Total Classes Analyzed", fmt.Sprint(response.Summary.CBOClasses)},
+		[]string{"High Coupling (CBO) Classes", fmt.Sprint(response.Summary.HighCouplingClasses)},
+		[]string{"Average CBO", fmt.Sprintf("%.2f", response.Summary.AverageCoupling)},
+		[]string{"Module Quality Count", fmt.Sprint(len(response.ModuleQuality))},
+	)
 
 	for index, module := range response.ModuleQuality {
 		prefix := fmt.Sprintf("Module %d ", index+1)
@@ -830,11 +835,14 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                                 <th><button type="button" class="table-sort" aria-label="Sort by file path" onclick="sortModuleQuality(1, false, this)">File</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by lines of code" onclick="sortModuleQuality(2, true, this)">LOC</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by function count" onclick="sortModuleQuality(3, true, this)">Functions</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by average complexity" onclick="sortModuleQuality(4, true, this)">Avg CC</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by average cognitive complexity" onclick="sortModuleQuality(5, true, this)">Avg Cognitive</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by maximum complexity" onclick="sortModuleQuality(6, true, this)">Max CC</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk function count" onclick="sortModuleQuality(7, true, this)">High Risk</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by dead-code findings" onclick="sortModuleQuality(8, true, this)">Dead Code</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by analyzed function count" onclick="sortModuleQuality(4, true, this)">Analyzed</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by average complexity" onclick="sortModuleQuality(5, true, this)">Avg CC</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by average cognitive complexity" onclick="sortModuleQuality(6, true, this)">Avg Cognitive</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by maximum complexity" onclick="sortModuleQuality(7, true, this)">Max CC</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk function count" onclick="sortModuleQuality(8, true, this)">High Risk</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by exception handler count" onclick="sortModuleQuality(9, true, this)">Handlers</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by dead-code findings" onclick="sortModuleQuality(10, true, this)">Dead Findings</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by dead-code blocks" onclick="sortModuleQuality(11, true, this)">Dead Blocks</button></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -843,12 +851,15 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                                 <td data-sort-value="{{.ModuleName}}">{{if .ModuleName}}{{.ModuleName}}{{else}}—{{end}}</td>
                                 <td data-sort-value="{{.FilePath}}">{{.FilePath}}</td>
                                 <td data-sort-value="{{.LinesOfCode}}">{{.LinesOfCode}}</td>
-                                <td data-sort-value="{{if gt .FunctionCount 0}}{{.FunctionCount}}{{else}}{{.AnalyzedFunctionCount}}{{end}}">{{if gt .FunctionCount 0}}{{.FunctionCount}}{{else}}{{.AnalyzedFunctionCount}}{{end}}</td>
+								<td data-sort-value="{{.FunctionCount}}">{{.FunctionCount}}</td>
+								<td data-sort-value="{{.AnalyzedFunctionCount}}">{{.AnalyzedFunctionCount}}</td>
                                 <td data-sort-value="{{.AverageComplexity}}">{{printf "%.2f" .AverageComplexity}}</td>
                                 <td data-sort-value="{{.AverageCognitiveComplexity}}">{{printf "%.2f" .AverageCognitiveComplexity}}</td>
                                 <td data-sort-value="{{.MaxComplexity}}">{{.MaxComplexity}}</td>
                                 <td data-sort-value="{{.HighRiskFunctionCount}}">{{.HighRiskFunctionCount}}</td>
+								<td data-sort-value="{{.ExceptionHandlerCount}}">{{.ExceptionHandlerCount}}</td>
                                 <td data-sort-value="{{.DeadCodeFindingCount}}">{{.DeadCodeFindingCount}}</td>
+								<td data-sort-value="{{.DeadCodeBlockCount}}">{{.DeadCodeBlockCount}}</td>
                             </tr>
                             {{end}}
                         </tbody>
