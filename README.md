@@ -20,7 +20,7 @@ Building with Cursor, Claude, or ChatGPT? pyscn performs structural analysis to 
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
-*Working with JavaScript/TypeScript? Check out [jscan](https://github.com/ludo-technologies/jscan)*
+*Working with other languages? pyscn is part of [polyscan](https://github.com/ludo-technologies/polyscan) — code quality analyzers for JavaScript/TypeScript and more*
 
 </div>
 
