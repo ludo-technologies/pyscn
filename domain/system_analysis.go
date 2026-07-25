@@ -146,11 +146,11 @@ type ModuleDependencyMetrics struct {
 	Distance         float64 // D - distance from main sequence
 
 	// Quality metrics
-	Maintainability float64   // Maintainability index (0-100)
-	TechnicalDebt   float64   // Estimated technical debt in hours
-	RiskLevel       RiskLevel // Overall risk assessment
-	ModuleComplexityMetrics
-	ModuleDeadCodeMetrics
+	Maintainability         float64   // Maintainability index (0-100)
+	TechnicalDebt           float64   // Estimated technical debt in hours
+	RiskLevel               RiskLevel // Overall risk assessment
+	ModuleComplexityMetrics `yaml:",inline"`
+	ModuleDeadCodeMetrics   `yaml:",inline"`
 
 	// Dependencies
 	DirectDependencies     []string // Modules this directly depends on

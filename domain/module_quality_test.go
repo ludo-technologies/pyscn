@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 func TestAggregateComplexityByModule_GroupsUnfilteredFunctions(t *testing.T) {
@@ -232,5 +234,20 @@ func TestApplyModuleQualityToSystem_PublishesQualityOnDependencyMetrics(t *testi
 	}
 	if contract["average_complexity"] != 6.5 || contract["dead_code_block_count"] != float64(4) {
 		t.Fatalf("expected shared metric field names in system output, got %s", payload)
+	}
+
+	yamlPayload, err := yaml.Marshal(metric)
+	if err != nil {
+		t.Fatalf("marshal dependency metric as YAML: %v", err)
+	}
+	var yamlContract map[string]any
+	if err := yaml.Unmarshal(yamlPayload, &yamlContract); err != nil {
+		t.Fatalf("decode dependency metric YAML: %v", err)
+	}
+	if yamlContract["average_complexity"] != 6.5 || yamlContract["dead_code_block_count"] != 4 {
+		t.Fatalf("expected inline shared metrics in system YAML, got %s", yamlPayload)
+	}
+	if _, nested := yamlContract["modulecomplexitymetrics"]; nested {
+		t.Fatalf("unexpected nested complexity contract in system YAML: %s", yamlPayload)
 	}
 }
