@@ -97,6 +97,35 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
 
+	if len(response.ModuleQuality) > 0 {
+		fmt.Fprint(writer, utils.FormatSectionHeader("MODULE QUALITY HOTSPOTS"))
+		for index, module := range response.ModuleQuality {
+			if index >= 10 {
+				break
+			}
+
+			label := module.FilePath
+			if module.ModuleName != "" {
+				label = fmt.Sprintf("%s (%s)", module.ModuleName, module.FilePath)
+			}
+			fmt.Fprintf(writer, "  %s\n", label)
+			if module.FunctionCount > 0 {
+				fmt.Fprintf(writer, "    Functions: %d total / %d analyzed\n", module.FunctionCount, module.AnalyzedFunctionCount)
+			} else {
+				fmt.Fprintf(writer, "    Functions: %d analyzed\n", module.AnalyzedFunctionCount)
+			}
+			fmt.Fprintf(writer, "    Complexity: avg %.2f, max %d, high-risk %d\n",
+				module.AverageComplexity, module.MaxComplexity, module.HighRiskFunctionCount)
+			fmt.Fprintf(writer, "    Cognitive: avg %.2f\n", module.AverageCognitiveComplexity)
+			fmt.Fprintf(writer, "    Dead code: %d findings, %d blocks\n",
+				module.DeadCodeFindingCount, module.DeadCodeBlockCount)
+		}
+		if len(response.ModuleQuality) > 10 {
+			fmt.Fprintf(writer, "  Showing top 10 of %d modules\n", len(response.ModuleQuality))
+		}
+		fmt.Fprint(writer, utils.FormatSectionSeparator())
+	}
+
 	if response.Summary.CommunitiesEnabled && response.Communities != nil {
 		WriteCommunityTextSummary(writer, response.Communities)
 	}

@@ -160,6 +160,34 @@ func TestAnalyzeFormatter_Write_Text(t *testing.T) {
 	}
 }
 
+func TestAnalyzeFormatter_Write_TextIncludesModuleQuality(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.ModuleQuality = []domain.ModuleQualityMetrics{
+		{
+			ModuleName:                 "pkg.hotspot",
+			FilePath:                   "pkg/hotspot.py",
+			FunctionCount:              4,
+			AnalyzedFunctionCount:      2,
+			AverageComplexity:          6.5,
+			AverageCognitiveComplexity: 8,
+			MaxComplexity:              9,
+			HighRiskFunctionCount:      1,
+			DeadCodeFindingCount:       2,
+			DeadCodeBlockCount:         3,
+		},
+	}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatText, &output))
+
+	assert.Contains(t, output.String(), "MODULE QUALITY HOTSPOTS")
+	assert.Contains(t, output.String(), "pkg.hotspot (pkg/hotspot.py)")
+	assert.Contains(t, output.String(), "Functions: 4 total / 2 analyzed")
+	assert.Contains(t, output.String(), "Complexity: avg 6.50, max 9, high-risk 1")
+	assert.Contains(t, output.String(), "Cognitive: avg 8.00")
+	assert.Contains(t, output.String(), "Dead code: 2 findings, 3 blocks")
+}
+
 func TestAnalyzeFormatter_Write_JSON(t *testing.T) {
 	formatter := NewAnalyzeFormatter()
 	response := createTestAnalyzeResponse()
