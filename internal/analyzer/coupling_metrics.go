@@ -23,7 +23,7 @@ type CouplingMetricsCalculator struct {
 
 	// Analysis options
 	includeAbstractness bool
-	complexityData      map[string]int     // Module name -> average complexity
+	complexityData      map[string]float64 // Module name -> average complexity
 	clonesData          map[string]float64 // Module name -> duplication ratio
 	deadCodeData        map[string]int     // Module name -> dead code lines
 }
@@ -31,7 +31,7 @@ type CouplingMetricsCalculator struct {
 // CouplingMetricsOptions configures metrics calculation
 type CouplingMetricsOptions struct {
 	IncludeAbstractness bool               // Calculate abstractness metrics
-	ComplexityData      map[string]int     // Complexity data from complexity analysis
+	ComplexityData      map[string]float64 // Complexity data from complexity analysis
 	ClonesData          map[string]float64 // Clone data from clone analysis
 	DeadCodeData        map[string]int     // Dead code data from dead code analysis
 }
@@ -40,7 +40,7 @@ type CouplingMetricsOptions struct {
 func DefaultCouplingMetricsOptions() *CouplingMetricsOptions {
 	return &CouplingMetricsOptions{
 		IncludeAbstractness: true,
-		ComplexityData:      make(map[string]int),
+		ComplexityData:      make(map[string]float64),
 		ClonesData:          make(map[string]float64),
 		DeadCodeData:        make(map[string]int),
 	}
@@ -97,7 +97,7 @@ func (calc *CouplingMetricsCalculator) CalculateMetrics() error {
 			PublicInterface:    len(node.PublicNames),
 		}
 		if complexity, exists := calc.complexityData[moduleName]; exists {
-			metrics.CyclomaticComplexity = complexity
+			metrics.AverageComplexity = complexity
 		}
 		calc.graph.ModuleMetrics[moduleName] = metrics
 	}
@@ -363,8 +363,8 @@ func (calc *CouplingMetricsCalculator) identifyRefactoringPriorities() []string 
 		}
 
 		// High priority for excessive complexity
-		if metrics.CyclomaticComplexity > 20 {
-			priority += float64(metrics.CyclomaticComplexity-20) * 2
+		if metrics.AverageComplexity > 20 {
+			priority += (metrics.AverageComplexity - 20) * 2
 		}
 
 		if priority > 10 { // Threshold for inclusion

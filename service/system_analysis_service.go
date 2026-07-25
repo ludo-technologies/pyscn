@@ -53,7 +53,7 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 	// Analyze dependencies if requested
 	var dependencyResult *domain.DependencyAnalysisResult
 	if analyzeDependencies && graph != nil {
-		result, err := s.buildDependencyAnalysisResult(ctx, graph)
+		result, err := s.buildDependencyAnalysisResult(ctx, graph, req)
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("Dependency analysis failed: %v", err))
 		} else {
@@ -349,10 +349,10 @@ func (s *SystemAnalysisServiceImpl) AnalyzeDependencies(ctx context.Context, req
 	if err != nil {
 		return nil, err
 	}
-	return s.buildDependencyAnalysisResult(ctx, graph)
+	return s.buildDependencyAnalysisResult(ctx, graph, req)
 }
 
-func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Context, graph *analyzer.DependencyGraph) (*domain.DependencyAnalysisResult, error) {
+func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Context, graph *analyzer.DependencyGraph, req domain.SystemAnalysisRequest) (*domain.DependencyAnalysisResult, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
@@ -376,7 +376,11 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 	}
 
 	// Calculate coupling metrics
-	metricsCalculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
+	metricsOptions := analyzer.DefaultCouplingMetricsOptions()
+	metricsOptions.ComplexityData = req.ComplexityData
+	metricsOptions.ClonesData = req.ClonesData
+	metricsOptions.DeadCodeData = req.DeadCodeData
+	metricsCalculator := analyzer.NewCouplingMetricsCalculator(graph, metricsOptions)
 	if err := metricsCalculator.CalculateMetrics(); err != nil {
 		return nil, err
 	}
@@ -399,6 +403,11 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 
 	// Extract module metrics
 	moduleMetrics := s.extractModuleMetrics(graph)
+	for moduleName, deadCodeBlocks := range req.DeadCodeData {
+		if module := moduleMetrics[moduleName]; module != nil {
+			module.DeadCodeBlockCount = deadCodeBlocks
+		}
+	}
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
@@ -1664,6 +1673,7 @@ func (s *SystemAnalysisServiceImpl) extractModuleMetrics(graph *analyzer.Depende
 			metrics.Abstractness = analyzerMetrics.Abstractness
 			metrics.Distance = analyzerMetrics.Distance
 			metrics.AbstractClassCount = analyzerMetrics.AbstractClassCount
+			metrics.AverageComplexity = analyzerMetrics.AverageComplexity
 
 			// Determine risk level based on distance
 			if analyzerMetrics.Distance > 0.7 {

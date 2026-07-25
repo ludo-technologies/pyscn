@@ -362,15 +362,15 @@ func TestExtractModuleMetrics(t *testing.T) {
 				// Add analyzer metrics
 				graph.ModuleMetrics = make(map[string]*analyzer.ModuleMetrics)
 				graph.ModuleMetrics["analyzed.module"] = &analyzer.ModuleMetrics{
-					AfferentCoupling:     3,
-					EfferentCoupling:     2,
-					Instability:          0.4,
-					Abstractness:         0.3,
-					Distance:             0.5, // Medium risk threshold
-					LinesOfCode:          200,
-					AbstractClassCount:   2,
-					PublicInterface:      3,
-					CyclomaticComplexity: 10,
+					AfferentCoupling:   3,
+					EfferentCoupling:   2,
+					Instability:        0.4,
+					Abstractness:       0.3,
+					Distance:           0.5, // Medium risk threshold
+					LinesOfCode:        200,
+					AbstractClassCount: 2,
+					PublicInterface:    3,
+					AverageComplexity:  10,
 				}
 
 				return service, graph
@@ -393,6 +393,7 @@ func TestExtractModuleMetrics(t *testing.T) {
 				assert.InDelta(t, 0.4, metrics.Instability, 0.01)
 				assert.InDelta(t, 0.3, metrics.Abstractness, 0.01)
 				assert.InDelta(t, 0.5, metrics.Distance, 0.01)
+				assert.Equal(t, 10.0, metrics.AverageComplexity)
 				assert.Equal(t, domain.RiskLevelMedium, metrics.RiskLevel) // Distance=0.5 triggers medium risk
 			},
 		},
@@ -500,6 +501,23 @@ func TestExtractModuleMetrics(t *testing.T) {
 			tt.validate(t, result)
 		})
 	}
+}
+
+func TestBuildDependencyAnalysisResult_WiresQualityInputs(t *testing.T) {
+	service := &SystemAnalysisServiceImpl{}
+	graph := analyzer.NewDependencyGraph("/test/project")
+	graph.AddModule("pkg.module", "/test/project/pkg/module.py")
+	req := domain.SystemAnalysisRequest{
+		ComplexityData: map[string]float64{"pkg.module": 6.5},
+		DeadCodeData:   map[string]int{"pkg.module": 3},
+	}
+
+	result, err := service.buildDependencyAnalysisResult(context.Background(), graph, req)
+	require.NoError(t, err)
+	metrics := result.ModuleMetrics["pkg.module"]
+	require.NotNil(t, metrics)
+	assert.Equal(t, 6.5, metrics.AverageComplexity)
+	assert.Equal(t, 3, metrics.DeadCodeBlockCount)
 }
 
 func TestExtractModuleMetrics_MultipleModules(t *testing.T) {

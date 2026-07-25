@@ -45,9 +45,9 @@ type SystemAnalysisRequest struct {
 	ArchitectureRules *ArchitectureRules
 
 	// Integration with other analyses
-	ComplexityData map[string]int     // Module -> average complexity
+	ComplexityData map[string]float64 // Module -> average complexity
 	ClonesData     map[string]float64 // Module -> duplication ratio
-	DeadCodeData   map[string]int     // Module -> dead code lines
+	DeadCodeData   map[string]int     // Module -> dead CFG block count
 }
 
 // SystemAnalysisResponse represents the complete system analysis result
@@ -527,7 +527,7 @@ func DefaultSystemAnalysisRequest() *SystemAnalysisRequest {
 		ResponsibilityViolationSeverity: ViolationSeverityWarning,
 		IncludePatterns:                 DefaultPythonModuleIncludePatterns(),
 		ExcludePatterns:                 DefaultAnalysisExcludePatterns(),
-		ComplexityData:                  make(map[string]int),
+		ComplexityData:                  make(map[string]float64),
 		ClonesData:                      make(map[string]float64),
 		DeadCodeData:                    make(map[string]int),
 	}
