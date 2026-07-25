@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -188,7 +189,7 @@ func TestAnalyzeFormatter_Write_TextIncludesModuleQuality(t *testing.T) {
 	assert.Contains(t, output.String(), "MODULE QUALITY HOTSPOTS")
 	assert.Contains(t, output.String(), "pkg.hotspot (pkg/hotspot.py)")
 	assert.Contains(t, output.String(), "Functions: 4 total / 2 analyzed")
-	assert.Contains(t, output.String(), "Complexity: avg 6.50, max 9, high-risk 1")
+	assert.Contains(t, output.String(), "Complexity: avg 6.50, max 9, high-risk 1, handlers 0")
 	assert.Contains(t, output.String(), "Cognitive: avg 8.00")
 	assert.Contains(t, output.String(), "Dead code: 2 findings, 3 blocks")
 }
@@ -287,8 +288,12 @@ func TestAnalyzeFormatter_Write_SerializesModuleQuality(t *testing.T) {
 				AverageCognitiveComplexity: 8,
 				MaxComplexity:              9,
 				HighRiskFunctionCount:      1,
+				ExceptionHandlerCount:      3,
 			},
-			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{DeadCodeFindingCount: 2},
+			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{
+				DeadCodeFindingCount: 2,
+				DeadCodeBlockCount:   4,
+			},
 		},
 	}
 
@@ -298,21 +303,37 @@ func TestAnalyzeFormatter_Write_SerializesModuleQuality(t *testing.T) {
 			require.NoError(t, NewAnalyzeFormatter().Write(response, format, &output))
 
 			var decoded domain.AnalyzeResponse
+			var contract map[string]any
 			switch format {
 			case domain.OutputFormatJSON:
 				require.NoError(t, json.Unmarshal(output.Bytes(), &decoded))
-				var contract map[string]json.RawMessage
 				require.NoError(t, json.Unmarshal(output.Bytes(), &contract))
-				assert.Contains(t, contract, "module_quality")
 			case domain.OutputFormatYAML:
 				require.NoError(t, yaml.Unmarshal(output.Bytes(), &decoded))
-				var contract map[string]any
 				require.NoError(t, yaml.Unmarshal(output.Bytes(), &contract))
-				assert.Contains(t, contract, "module_quality")
 			default:
 				t.Fatalf("unsupported test format %q", format)
 			}
 			assert.Equal(t, response.ModuleQuality, decoded.ModuleQuality)
+
+			qualityEntries, ok := contract["module_quality"].([]any)
+			require.True(t, ok)
+			require.Len(t, qualityEntries, 1)
+			quality, ok := qualityEntries[0].(map[string]any)
+			require.True(t, ok)
+			require.Len(t, quality, 12)
+			assert.Equal(t, "pkg.hotspot", quality["module_name"])
+			assert.Equal(t, "pkg/hotspot.py", quality["file_path"])
+			assert.EqualValues(t, 0, quality["lines_of_code"])
+			assert.EqualValues(t, 0, quality["function_count"])
+			assert.EqualValues(t, 2, quality["analyzed_function_count"])
+			assert.EqualValues(t, 6.5, quality["average_complexity"])
+			assert.EqualValues(t, 8, quality["average_cognitive_complexity"])
+			assert.EqualValues(t, 9, quality["max_complexity"])
+			assert.EqualValues(t, 1, quality["high_risk_function_count"])
+			assert.EqualValues(t, 3, quality["exception_handler_count"])
+			assert.EqualValues(t, 2, quality["dead_code_finding_count"])
+			assert.EqualValues(t, 4, quality["dead_code_block_count"])
 		})
 	}
 }
@@ -376,9 +397,29 @@ func TestAnalyzeFormatter_Write_CSVIncludesModuleQuality(t *testing.T) {
 	assert.Equal(t, "1", metrics["Module Quality Count"])
 	assert.Equal(t, "pkg.hotspot", metrics["Module 1 Name"])
 	assert.Equal(t, "pkg/hot,spot.py", metrics["Module 1 File Path"])
+	assert.Equal(t, "120", metrics["Module 1 Lines of Code"])
+	assert.Equal(t, "4", metrics["Module 1 Function Count"])
+	assert.Equal(t, "2", metrics["Module 1 Analyzed Function Count"])
 	assert.Equal(t, "6.50", metrics["Module 1 Average Complexity"])
 	assert.Equal(t, "8.00", metrics["Module 1 Average Cognitive Complexity"])
+	assert.Equal(t, "9", metrics["Module 1 Max Complexity"])
+	assert.Equal(t, "1", metrics["Module 1 High Risk Function Count"])
+	assert.Equal(t, "3", metrics["Module 1 Exception Handler Count"])
 	assert.Equal(t, "2", metrics["Module 1 Dead Code Findings"])
+	assert.Equal(t, "3", metrics["Module 1 Dead Code Blocks"])
+}
+
+type failingAnalyzeWriter struct{}
+
+func (failingAnalyzeWriter) Write([]byte) (int, error) {
+	return 0, errors.New("write failed")
+}
+
+func TestAnalyzeFormatter_Write_CSVPropagatesWriterErrors(t *testing.T) {
+	err := NewAnalyzeFormatter().Write(createMinimalAnalyzeResponse(), domain.OutputFormatCSV, failingAnalyzeWriter{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to write CSV output")
+	assert.ErrorContains(t, err, "write failed")
 }
 
 func TestAnalyzeFormatter_Write_HTML(t *testing.T) {

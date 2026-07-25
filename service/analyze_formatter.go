@@ -115,8 +115,8 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 			} else {
 				fmt.Fprintf(writer, "    Functions: %d analyzed\n", module.AnalyzedFunctionCount)
 			}
-			fmt.Fprintf(writer, "    Complexity: avg %.2f, max %d, high-risk %d\n",
-				module.AverageComplexity, module.MaxComplexity, module.HighRiskFunctionCount)
+			fmt.Fprintf(writer, "    Complexity: avg %.2f, max %d, high-risk %d, handlers %d\n",
+				module.AverageComplexity, module.MaxComplexity, module.HighRiskFunctionCount, module.ExceptionHandlerCount)
 			fmt.Fprintf(writer, "    Cognitive: avg %.2f\n", module.AverageCognitiveComplexity)
 			fmt.Fprintf(writer, "    Dead code: %d findings, %d blocks\n",
 				module.DeadCodeFindingCount, module.DeadCodeBlockCount)
