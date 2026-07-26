@@ -33,6 +33,20 @@ type ModuleQualityMetrics struct {
 	ModuleDeadCodeMetrics   `yaml:",inline"`
 }
 
+// DirectoryQualityMetrics is a recursive directory rollup assembled from
+// ModuleQualityMetrics. DirectoryPath is relative to the analyzed project root;
+// the root directory is represented by ".". ModuleCount includes descendants,
+// while DirectModuleCount includes only modules whose file is in this directory.
+type DirectoryQualityMetrics struct {
+	DirectoryPath           string `json:"directory_path" yaml:"directory_path"`
+	ModuleCount             int    `json:"module_count" yaml:"module_count"`
+	DirectModuleCount       int    `json:"direct_module_count" yaml:"direct_module_count"`
+	LinesOfCode             int    `json:"lines_of_code" yaml:"lines_of_code"`
+	FunctionCount           int    `json:"function_count" yaml:"function_count"`
+	ModuleComplexityMetrics `yaml:",inline"`
+	ModuleDeadCodeMetrics   `yaml:",inline"`
+}
+
 type moduleComplexityAccumulator struct {
 	metrics                  ModuleComplexityMetrics
 	totalComplexity          int
