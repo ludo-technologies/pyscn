@@ -143,20 +143,42 @@ func TestAnalyzeUseCase_Execute_PublishesModuleQuality(t *testing.T) {
 		t.Errorf("expected module rollup to retain filtered complexity records: got %d records and %d visible results",
 			module.AnalyzedFunctionCount, len(response.Complexity.Functions))
 	}
+
+	systemOnly, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipComplexity:  true,
+		SkipDeadCode:    true,
+		SkipClones:      true,
+		SkipCBO:         true,
+		SkipLCOM:        true,
+		SkipCommunities: true,
+	}, []string{sourcePath})
+	if err != nil {
+		t.Fatalf("execute system-only analysis: %v", err)
+	}
+	if len(systemOnly.ModuleQuality) != 1 || systemOnly.ModuleQuality[0].FilePath != sourcePath {
+		t.Fatalf("expected system-only module path %q, got %+v", sourcePath, systemOnly.ModuleQuality)
+	}
 }
 
-func TestDeduplicateAnalysisPaths_PreservesFirstReportedPath(t *testing.T) {
+func TestPrepareAnalysisPaths_PreservesFirstReportedPath(t *testing.T) {
 	projectRoot := t.TempDir()
 	t.Chdir(projectRoot)
 
 	absPath := filepath.Join(projectRoot, "pkg", "hot.py")
-	paths, err := deduplicateAnalysisPaths([]string{"pkg/hot.py", "pkg/../pkg/hot.py", absPath})
+	paths, pathIndex, err := prepareAnalysisPaths([]string{"pkg/hot.py", "pkg/../pkg/hot.py", absPath})
 	if err != nil {
-		t.Fatalf("deduplicate analysis paths: %v", err)
+		t.Fatalf("prepare analysis paths: %v", err)
 	}
 	want := "pkg/hot.py"
 	if len(paths) != 1 || paths[0] != want {
 		t.Fatalf("expected first reported path %q, got %v", want, paths)
+	}
+	reported, err := pathIndex.reportedPath(absPath)
+	if err != nil {
+		t.Fatalf("resolve reported path: %v", err)
+	}
+	if reported != want {
+		t.Fatalf("expected indexed path %q, got %q", want, reported)
 	}
 }
 

@@ -2,16 +2,15 @@ package app
 
 import (
 	"fmt"
-	"path/filepath"
 	"sort"
 
 	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // aggregateModuleQuality joins analyzer-owned rollups at the use-case seam.
-// Canonical paths are used only as internal identities; the first analyzer path
-// remains the reported path so unified output preserves the user's path style.
-func aggregateModuleQuality(response *domain.AnalyzeResponse) ([]domain.ModuleQualityMetrics, error) {
+// Canonical paths are used only as internal identities; the first caller-facing
+// path remains reported so unified output preserves the user's path style.
+func aggregateModuleQuality(response *domain.AnalyzeResponse, pathIndex analysisPathIndex) ([]domain.ModuleQualityMetrics, error) {
 	if response == nil {
 		return nil, nil
 	}
@@ -19,7 +18,7 @@ func aggregateModuleQuality(response *domain.AnalyzeResponse) ([]domain.ModuleQu
 	modules := make(map[string]*domain.ModuleQualityMetrics)
 	if response.Complexity != nil {
 		for filePath, complexity := range response.Complexity.ModuleRollups {
-			module, err := moduleQualityEntry(modules, filePath)
+			module, err := moduleQualityEntry(modules, pathIndex, filePath)
 			if err != nil {
 				return nil, err
 			}
@@ -29,7 +28,7 @@ func aggregateModuleQuality(response *domain.AnalyzeResponse) ([]domain.ModuleQu
 
 	if response.DeadCode != nil {
 		for filePath, deadCode := range response.DeadCode.ModuleRollups {
-			module, err := moduleQualityEntry(modules, filePath)
+			module, err := moduleQualityEntry(modules, pathIndex, filePath)
 			if err != nil {
 				return nil, err
 			}
@@ -43,7 +42,7 @@ func aggregateModuleQuality(response *domain.AnalyzeResponse) ([]domain.ModuleQu
 				continue
 			}
 
-			module, err := moduleQualityEntry(modules, metadata.FilePath)
+			module, err := moduleQualityEntry(modules, pathIndex, metadata.FilePath)
 			if err != nil {
 				return nil, err
 			}
@@ -64,14 +63,18 @@ func aggregateModuleQuality(response *domain.AnalyzeResponse) ([]domain.ModuleQu
 	return result, nil
 }
 
-func moduleQualityEntry(modules map[string]*domain.ModuleQualityMetrics, path string) (*domain.ModuleQualityMetrics, error) {
+func moduleQualityEntry(modules map[string]*domain.ModuleQualityMetrics, pathIndex analysisPathIndex, path string) (*domain.ModuleQualityMetrics, error) {
 	identity, err := analysisPathIdentity(path)
 	if err != nil {
 		return nil, fmt.Errorf("resolve module path %q: %w", path, err)
 	}
 	module := modules[identity]
 	if module == nil {
-		module = &domain.ModuleQualityMetrics{FilePath: path}
+		reportedPath, err := pathIndex.reportedPath(path)
+		if err != nil {
+			return nil, fmt.Errorf("resolve reported module path %q: %w", path, err)
+		}
+		module = &domain.ModuleQualityMetrics{FilePath: reportedPath}
 		modules[identity] = module
 	}
 	return module, nil
@@ -94,12 +97,4 @@ func sortModuleQuality(modules []domain.ModuleQualityMetrics) {
 		}
 		return left.FilePath < right.FilePath
 	})
-}
-
-func analysisPathIdentity(path string) (string, error) {
-	absolute, err := filepath.Abs(path)
-	if err != nil {
-		return "", err
-	}
-	return filepath.Clean(absolute), nil
 }

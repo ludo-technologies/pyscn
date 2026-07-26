@@ -283,9 +283,9 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no Python files found in the specified paths")
 	}
-	files, err = deduplicateAnalysisPaths(files)
+	files, pathIndex, err := prepareAnalysisPaths(files)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("prepare analysis paths: %w", err)
 	}
 
 	// Estimate per-task durations from file count, then calibrate with actual
@@ -355,7 +355,7 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 
 	// Build response
-	response, err := uc.buildResponse(tasks, startTime)
+	response, err := uc.buildResponse(tasks, startTime, pathIndex)
 	if err != nil {
 		return response, err
 	}
@@ -597,7 +597,7 @@ func (uc *AnalyzeUseCase) buildCloneTaskRequest(config AnalyzeUseCaseConfig, fil
 }
 
 // buildResponse builds the analyze response from task results
-func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Time) (*domain.AnalyzeResponse, error) {
+func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Time, pathIndex analysisPathIndex) (*domain.AnalyzeResponse, error) {
 	response := &domain.AnalyzeResponse{
 		GeneratedAt: time.Now(),
 		Duration:    time.Since(startTime).Milliseconds(),
@@ -655,7 +655,7 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 		}
 	}
 
-	moduleQuality, err := aggregateModuleQuality(response)
+	moduleQuality, err := aggregateModuleQuality(response, pathIndex)
 	if err != nil {
 		return response, fmt.Errorf("assemble module quality: %w", err)
 	}
@@ -668,23 +668,6 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 	response.Suggestions = domain.GenerateSuggestions(response)
 
 	return response, nil
-}
-
-func deduplicateAnalysisPaths(paths []string) ([]string, error) {
-	unique := make([]string, 0, len(paths))
-	seen := make(map[string]struct{}, len(paths))
-	for _, path := range paths {
-		identity, err := analysisPathIdentity(path)
-		if err != nil {
-			return nil, fmt.Errorf("resolve analysis path %q: %w", path, err)
-		}
-		if _, duplicate := seen[identity]; duplicate {
-			continue
-		}
-		seen[identity] = struct{}{}
-		unique = append(unique, path)
-	}
-	return unique, nil
 }
 
 // markSummaryForTask ensures the summary reflects analyses that attempted to run
