@@ -287,6 +287,10 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	if err != nil {
 		return nil, fmt.Errorf("prepare analysis paths: %w", err)
 	}
+	qualityRoot, err := directoryQualityRoot(paths)
+	if err != nil {
+		return nil, fmt.Errorf("resolve directory quality root: %w", err)
+	}
 
 	// Estimate per-task durations from file count, then calibrate with actual
 	// timings recorded by previous runs on this project (if any)
@@ -355,7 +359,7 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 
 	// Build response
-	response, err := uc.buildResponse(tasks, startTime, pathIndex)
+	response, err := uc.buildResponse(tasks, startTime, pathIndex, qualityRoot)
 	if err != nil {
 		return response, err
 	}
@@ -597,7 +601,7 @@ func (uc *AnalyzeUseCase) buildCloneTaskRequest(config AnalyzeUseCaseConfig, fil
 }
 
 // buildResponse builds the analyze response from task results
-func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Time, pathIndex analysisPathIndex) (*domain.AnalyzeResponse, error) {
+func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Time, pathIndex analysisPathIndex, projectRoot string) (*domain.AnalyzeResponse, error) {
 	response := &domain.AnalyzeResponse{
 		GeneratedAt: time.Now(),
 		Duration:    time.Since(startTime).Milliseconds(),
@@ -660,6 +664,11 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 		return response, fmt.Errorf("assemble module quality: %w", err)
 	}
 	response.ModuleQuality = moduleQuality
+	directoryQuality, err := aggregateDirectoryQuality(moduleQuality, projectRoot)
+	if err != nil {
+		return response, fmt.Errorf("assemble directory quality: %w", err)
+	}
+	response.DirectoryQuality = directoryQuality
 
 	// Calculate summary statistics
 	uc.calculateSummary(&response.Summary, response)
