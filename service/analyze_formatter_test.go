@@ -338,6 +338,72 @@ func TestAnalyzeFormatter_Write_SerializesModuleQuality(t *testing.T) {
 	}
 }
 
+func TestAnalyzeFormatter_Write_SerializesDirectoryQuality(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.DirectoryQuality = []domain.DirectoryQualityMetrics{
+		{
+			DirectoryPath:     "pkg",
+			ModuleCount:       3,
+			DirectModuleCount: 2,
+			LinesOfCode:       180,
+			FunctionCount:     7,
+			ModuleComplexityMetrics: domain.ModuleComplexityMetrics{
+				AnalyzedFunctionCount:      5,
+				AverageComplexity:          6.5,
+				AverageCognitiveComplexity: 8,
+				MaxComplexity:              11,
+				HighRiskFunctionCount:      2,
+				ExceptionHandlerCount:      3,
+			},
+			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{
+				DeadCodeFindingCount: 4,
+				DeadCodeBlockCount:   6,
+			},
+		},
+	}
+
+	for _, format := range []domain.OutputFormat{domain.OutputFormatJSON, domain.OutputFormatYAML} {
+		t.Run(string(format), func(t *testing.T) {
+			var output bytes.Buffer
+			require.NoError(t, NewAnalyzeFormatter().Write(response, format, &output))
+
+			var decoded domain.AnalyzeResponse
+			var contract map[string]any
+			switch format {
+			case domain.OutputFormatJSON:
+				require.NoError(t, json.Unmarshal(output.Bytes(), &decoded))
+				require.NoError(t, json.Unmarshal(output.Bytes(), &contract))
+			case domain.OutputFormatYAML:
+				require.NoError(t, yaml.Unmarshal(output.Bytes(), &decoded))
+				require.NoError(t, yaml.Unmarshal(output.Bytes(), &contract))
+			default:
+				t.Fatalf("unsupported test format %q", format)
+			}
+			assert.Equal(t, response.DirectoryQuality, decoded.DirectoryQuality)
+
+			qualityEntries, ok := contract["directory_quality"].([]any)
+			require.True(t, ok)
+			require.Len(t, qualityEntries, 1)
+			quality, ok := qualityEntries[0].(map[string]any)
+			require.True(t, ok)
+			require.Len(t, quality, 13)
+			assert.Equal(t, "pkg", quality["directory_path"])
+			assert.EqualValues(t, 3, quality["module_count"])
+			assert.EqualValues(t, 2, quality["direct_module_count"])
+			assert.EqualValues(t, 180, quality["lines_of_code"])
+			assert.EqualValues(t, 7, quality["function_count"])
+			assert.EqualValues(t, 5, quality["analyzed_function_count"])
+			assert.EqualValues(t, 6.5, quality["average_complexity"])
+			assert.EqualValues(t, 8, quality["average_cognitive_complexity"])
+			assert.EqualValues(t, 11, quality["max_complexity"])
+			assert.EqualValues(t, 2, quality["high_risk_function_count"])
+			assert.EqualValues(t, 3, quality["exception_handler_count"])
+			assert.EqualValues(t, 4, quality["dead_code_finding_count"])
+			assert.EqualValues(t, 6, quality["dead_code_block_count"])
+		})
+	}
+}
+
 func TestAnalyzeFormatter_Write_CSV(t *testing.T) {
 	formatter := NewAnalyzeFormatter()
 	response := createTestAnalyzeResponse()
