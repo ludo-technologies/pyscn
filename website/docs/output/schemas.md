@@ -218,7 +218,7 @@ Mirrors `domain.ComplexityResponse`. Nested field names are Go PascalCase.
 }
 ```
 
-Standalone `pyscn complexity` JSON and YAML use `by_directory` at the report root beside `results`, `summary`, and `metadata`. The entries and semantics are identical to unified output.
+The standalone complexity formatter uses `by_directory` at the report root beside `results`, `summary`, and `metadata`. Its entries and semantics are identical to unified output.
 
 ### `Functions[]` element (`FunctionComplexity`)
 
@@ -778,7 +778,7 @@ Directory 1 Max Nesting Depth,<integer>
 
 The numbered module and directory row groups repeat once per corresponding entry in the same order. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
 
-Standalone complexity CSV retains the original ten function columns first, then adds `Record Type`, `Directory`, `Function Count`, `Average Complexity`, `Max Complexity`, `High Risk Function Count`, `Average Nesting Depth`, and `Max Nesting Depth`. Function records set `Record Type` to `function`; directory records set it to `directory` and populate only the aggregate columns.
+The standalone complexity formatter's CSV retains the original ten function columns first, then adds `Record Type`, `Directory`, `Function Count`, `Average Complexity`, `Max Complexity`, `High Risk Function Count`, `Average Nesting Depth`, and `Max Nesting Depth`. Function records set `Record Type` to `function`; directory records set it to `directory` and populate only the aggregate columns.
 
 ## `community_analysis` object { #community-analysis-object }
 
