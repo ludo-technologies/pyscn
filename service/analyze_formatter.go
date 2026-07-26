@@ -48,6 +48,9 @@ func (f *AnalyzeFormatter) Write(response *domain.AnalyzeResponse, format domain
 // writeText formats the response as plain text
 func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io.Writer) error {
 	utils := NewFormatUtils()
+	target := writer
+	var report strings.Builder
+	writer = &report
 
 	// Header
 	fmt.Fprint(writer, utils.FormatMainHeader("Comprehensive Analysis Report"))
@@ -128,15 +131,16 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 	}
 
 	if response.Complexity != nil && len(response.Complexity.ByDirectory) > 0 {
-		if _, err := io.WriteString(writer, formatDirectoryComplexityText(response.Complexity.ByDirectory, 10)); err != nil {
-			return domain.NewOutputError("failed to write directory complexity text", err)
-		}
+		fmt.Fprint(writer, formatDirectoryComplexityText(response.Complexity.ByDirectory, 10))
 	}
 
 	if response.Summary.CommunitiesEnabled && response.Communities != nil {
 		WriteCommunityTextSummary(writer, response.Communities)
 	}
 
+	if _, err := io.WriteString(target, report.String()); err != nil {
+		return domain.NewOutputError("failed to write analysis text", err)
+	}
 	return nil
 }
 

@@ -537,7 +537,17 @@ func TestAnalyzeFormatter_Write_TextDirectoryComplexityPropagatesWriterErrors(t 
 
 	err := NewAnalyzeFormatter().Write(response, domain.OutputFormatText, failingAnalyzeWriter{})
 	require.Error(t, err)
-	assert.ErrorContains(t, err, "failed to write directory complexity text")
+	assert.ErrorContains(t, err, "failed to write analysis text")
+	assert.ErrorContains(t, err, "write failed")
+}
+
+func TestAnalyzeFormatter_Write_TextModuleQualityPropagatesWriterErrors(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.ModuleQuality = []domain.ModuleQualityMetrics{{FilePath: "pkg/module.py"}}
+
+	err := NewAnalyzeFormatter().Write(response, domain.OutputFormatText, failingAnalyzeWriter{})
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "failed to write analysis text")
 	assert.ErrorContains(t, err, "write failed")
 }
 
