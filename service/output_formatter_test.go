@@ -196,11 +196,11 @@ func TestOutputFormatter_Format(t *testing.T) {
 				records, err := reader.ReadAll()
 				assert.NoError(t, err, "Output should be valid CSV")
 
-				// Should have header + 2 data rows
-				assert.Len(t, records, 3, "Should have header plus 2 function rows")
+				// Header + 2 function rows + 1 directory row.
+				assert.Len(t, records, 4)
 
 				// Check header
-				expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
+				expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers", "Record Type", "Directory", "Function Count", "Average Complexity", "Max Complexity", "High Risk Function Count", "Average Nesting Depth", "Max Nesting Depth"}
 				assert.Equal(t, expectedHeaders, records[0])
 
 				// Check first data row
@@ -214,6 +214,11 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Equal(t, "8", records[2][1])
 				assert.Equal(t, "0", records[2][2]) // Cognitive Complexity
 				assert.Equal(t, "high", records[2][3])
+
+				assert.Equal(t, "directory", records[3][10])
+				assert.Equal(t, ".", records[3][11])
+				assert.Equal(t, "2", records[3][12])
+				assert.Equal(t, "1.50", records[3][16])
 			},
 			expectError: false,
 		},
@@ -648,15 +653,16 @@ func TestOutputFormatter_formatCSV(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify structure
-	assert.Len(t, records, 3) // Header + 2 functions
+	assert.Len(t, records, 4) // Header + 2 functions + 1 directory
 
 	// Check header
-	expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
+	expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers", "Record Type", "Directory", "Function Count", "Average Complexity", "Max Complexity", "High Risk Function Count", "Average Nesting Depth", "Max Nesting Depth"}
 	assert.Equal(t, expectedHeaders, records[0])
 
 	// Check data rows (risk levels are lowercase in actual implementation)
-	assert.Equal(t, []string{"simple_function", "2", "0", "low", "5", "4", "0", "1", "0", "0"}, records[1])
-	assert.Equal(t, []string{"complex_function", "8", "0", "high", "20", "18", "0", "3", "2", "1"}, records[2])
+	assert.Equal(t, []string{"simple_function", "2", "0", "low", "5", "4", "0", "1", "0", "0", "function", "", "", "", "", "", "", ""}, records[1])
+	assert.Equal(t, []string{"complex_function", "8", "0", "high", "20", "18", "0", "3", "2", "1", "function", "", "", "", "", "", "", ""}, records[2])
+	assert.Equal(t, []string{"", "", "", "", "", "", "", "", "", "", "directory", ".", "2", "5.00", "8", "1", "1.50", "2"}, records[3])
 }
 
 // TestOutputFormatter_NewOutputFormatter tests service creation

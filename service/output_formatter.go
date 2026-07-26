@@ -179,7 +179,7 @@ func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (st
 	writer := csv.NewWriter(&builder)
 
 	// Write header
-	header := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
+	header := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers", "Record Type", "Directory", "Function Count", "Average Complexity", "Max Complexity", "High Risk Function Count", "Average Nesting Depth", "Max Nesting Depth"}
 	if err := writer.Write(header); err != nil {
 		return "", domain.NewOutputError("failed to write CSV header", err)
 	}
@@ -197,9 +197,34 @@ func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (st
 			fmt.Sprintf("%d", function.Metrics.IfStatements),
 			fmt.Sprintf("%d", function.Metrics.LoopStatements),
 			fmt.Sprintf("%d", function.Metrics.ExceptionHandlers),
+			"function",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
 		}
 		if err := writer.Write(row); err != nil {
 			return "", domain.NewOutputError("failed to write CSV row", err)
+		}
+	}
+
+	for _, directory := range response.ByDirectory {
+		row := []string{
+			"", "", "", "", "", "", "", "", "", "",
+			"directory",
+			directory.DirectoryPath,
+			fmt.Sprintf("%d", directory.FunctionCount),
+			fmt.Sprintf("%.2f", directory.AverageComplexity),
+			fmt.Sprintf("%d", directory.MaxComplexity),
+			fmt.Sprintf("%d", directory.HighRiskFunctionCount),
+			fmt.Sprintf("%.2f", directory.AverageNestingDepth),
+			fmt.Sprintf("%d", directory.MaxNestingDepth),
+		}
+		if err := writer.Write(row); err != nil {
+			return "", domain.NewOutputError("failed to write directory CSV row", err)
 		}
 	}
 
