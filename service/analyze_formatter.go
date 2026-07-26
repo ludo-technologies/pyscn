@@ -110,19 +110,28 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 				label = fmt.Sprintf("%s (%s)", module.ModuleName, module.FilePath)
 			}
 			fmt.Fprintf(writer, "  %s\n", label)
-			if module.FunctionCount > 0 {
-				fmt.Fprintf(writer, "    Functions: %d total / %d analyzed\n", module.FunctionCount, module.AnalyzedFunctionCount)
-			} else {
-				fmt.Fprintf(writer, "    Functions: %d analyzed\n", module.AnalyzedFunctionCount)
-			}
-			fmt.Fprintf(writer, "    Complexity: avg %.2f, max %d, high-risk %d, handlers %d\n",
-				module.AverageComplexity, module.MaxComplexity, module.HighRiskFunctionCount, module.ExceptionHandlerCount)
-			fmt.Fprintf(writer, "    Cognitive: avg %.2f\n", module.AverageCognitiveComplexity)
-			fmt.Fprintf(writer, "    Dead code: %d findings, %d blocks\n",
-				module.DeadCodeFindingCount, module.DeadCodeBlockCount)
+			writeQualityTextMetrics(writer, module.FunctionCount, module.ModuleComplexityMetrics, module.ModuleDeadCodeMetrics)
 		}
 		if len(response.ModuleQuality) > 10 {
 			fmt.Fprintf(writer, "  Showing top 10 of %d modules\n", len(response.ModuleQuality))
+		}
+		fmt.Fprint(writer, utils.FormatSectionSeparator())
+	}
+
+	if len(response.DirectoryQuality) > 0 {
+		fmt.Fprint(writer, utils.FormatSectionHeader("DIRECTORY QUALITY HOTSPOTS"))
+		for index, directory := range response.DirectoryQuality {
+			if index >= 10 {
+				break
+			}
+
+			fmt.Fprintf(writer, "  %s\n", directory.DirectoryPath)
+			fmt.Fprintf(writer, "    Modules: %d recursive / %d direct\n", directory.ModuleCount, directory.DirectModuleCount)
+			fmt.Fprintf(writer, "    Lines of code: %d\n", directory.LinesOfCode)
+			writeQualityTextMetrics(writer, directory.FunctionCount, directory.ModuleComplexityMetrics, directory.ModuleDeadCodeMetrics)
+		}
+		if len(response.DirectoryQuality) > 10 {
+			fmt.Fprintf(writer, "  Showing top 10 of %d directories\n", len(response.DirectoryQuality))
 		}
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
@@ -134,8 +143,20 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 	return nil
 }
 
-// writeJSON formats the response as JSON
-// writeCSV formats summary and module-quality metrics as CSV.
+func writeQualityTextMetrics(writer io.Writer, functionCount int, complexity domain.ModuleComplexityMetrics, deadCode domain.ModuleDeadCodeMetrics) {
+	if functionCount > 0 {
+		fmt.Fprintf(writer, "    Functions: %d total / %d analyzed\n", functionCount, complexity.AnalyzedFunctionCount)
+	} else {
+		fmt.Fprintf(writer, "    Functions: %d analyzed\n", complexity.AnalyzedFunctionCount)
+	}
+	fmt.Fprintf(writer, "    Complexity: avg %.2f, max %d, high-risk %d, handlers %d\n",
+		complexity.AverageComplexity, complexity.MaxComplexity, complexity.HighRiskFunctionCount, complexity.ExceptionHandlerCount)
+	fmt.Fprintf(writer, "    Cognitive: avg %.2f\n", complexity.AverageCognitiveComplexity)
+	fmt.Fprintf(writer, "    Dead code: %d findings, %d blocks\n",
+		deadCode.DeadCodeFindingCount, deadCode.DeadCodeBlockCount)
+}
+
+// writeCSV formats summary and quality metrics as CSV.
 func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.Writer) error {
 	rowCapacity := 16 + (12 * len(response.ModuleQuality))
 	if response.Summary.CommunitiesEnabled && response.Communities != nil {

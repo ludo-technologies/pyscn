@@ -194,6 +194,43 @@ func TestAnalyzeFormatter_Write_TextIncludesModuleQuality(t *testing.T) {
 	assert.Contains(t, output.String(), "Dead code: 2 findings, 3 blocks")
 }
 
+func TestAnalyzeFormatter_Write_TextIncludesDirectoryQuality(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.DirectoryQuality = []domain.DirectoryQualityMetrics{
+		{
+			DirectoryPath:     "pkg",
+			ModuleCount:       3,
+			DirectModuleCount: 2,
+			LinesOfCode:       180,
+			FunctionCount:     7,
+			ModuleComplexityMetrics: domain.ModuleComplexityMetrics{
+				AnalyzedFunctionCount:      5,
+				AverageComplexity:          6.5,
+				AverageCognitiveComplexity: 8,
+				MaxComplexity:              11,
+				HighRiskFunctionCount:      2,
+				ExceptionHandlerCount:      3,
+			},
+			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{
+				DeadCodeFindingCount: 4,
+				DeadCodeBlockCount:   6,
+			},
+		},
+	}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatText, &output))
+
+	assert.Contains(t, output.String(), "DIRECTORY QUALITY HOTSPOTS")
+	assert.Contains(t, output.String(), "pkg")
+	assert.Contains(t, output.String(), "Modules: 3 recursive / 2 direct")
+	assert.Contains(t, output.String(), "Lines of code: 180")
+	assert.Contains(t, output.String(), "Functions: 7 total / 5 analyzed")
+	assert.Contains(t, output.String(), "Complexity: avg 6.50, max 11, high-risk 2, handlers 3")
+	assert.Contains(t, output.String(), "Cognitive: avg 8.00")
+	assert.Contains(t, output.String(), "Dead code: 4 findings, 6 blocks")
+}
+
 func TestAnalyzeFormatter_Write_JSON(t *testing.T) {
 	formatter := NewAnalyzeFormatter()
 	response := createTestAnalyzeResponse()
