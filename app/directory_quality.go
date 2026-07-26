@@ -10,10 +10,10 @@ import (
 	"github.com/ludo-technologies/pyscn/domain"
 )
 
-// directoryQualityRoot returns the common directory explicitly selected by the
-// caller. Directory inputs participate directly; file inputs participate via
-// their parent directory. It does not widen the scope by searching ancestors.
-func directoryQualityRoot(paths []string) (string, error) {
+// complexityDirectoryRoot returns the common directory explicitly selected by
+// the caller. Directory inputs participate directly; file inputs participate
+// through their parent directory. It never widens scope via project markers.
+func complexityDirectoryRoot(paths []string) (string, error) {
 	if len(paths) == 0 {
 		return "", fmt.Errorf("at least one analysis path is required")
 	}
@@ -36,6 +36,9 @@ func directoryQualityRoot(paths []string) (string, error) {
 			root = identity
 			continue
 		}
+		if filepath.VolumeName(root) != filepath.VolumeName(identity) {
+			return "", fmt.Errorf("analysis paths do not share a filesystem volume")
+		}
 		root = commonDirectory(root, identity)
 	}
 	return root, nil
@@ -55,115 +58,85 @@ func commonDirectory(left, right string) string {
 	}
 }
 
-type directoryQualityAccumulator struct {
-	metrics                  domain.DirectoryQualityMetrics
-	totalComplexity          float64
-	totalCognitiveComplexity float64
+type directoryComplexityAccumulator struct {
+	metrics           domain.DirectoryComplexityMetrics
+	totalComplexity   int
+	totalNestingDepth int
 }
 
-// aggregateDirectoryQuality folds the canonical per-module quality contract
-// into recursive, project-root-relative directory rollups. It is the only
-// owner of directory grouping and weighted directory metrics.
-func aggregateDirectoryQuality(modules []domain.ModuleQualityMetrics, projectRoot string) ([]domain.DirectoryQualityMetrics, error) {
-	if len(modules) == 0 {
+// aggregateComplexityByDirectory groups the reported function population by
+// its direct project-root-relative directory. This is the only owner of
+// directory grouping and directory-level complexity arithmetic.
+func aggregateComplexityByDirectory(functions []domain.FunctionComplexity, projectRoot string) ([]domain.DirectoryComplexityMetrics, error) {
+	if len(functions) == 0 {
 		return nil, nil
 	}
 
 	rootIdentity, err := analysisPathIdentity(projectRoot)
 	if err != nil {
-		return nil, fmt.Errorf("resolve project root %q: %w", projectRoot, err)
+		return nil, fmt.Errorf("resolve complexity directory root %q: %w", projectRoot, err)
 	}
 
-	directories := make(map[string]*directoryQualityAccumulator)
-	for _, module := range modules {
-		moduleIdentity, err := analysisPathIdentity(module.FilePath)
+	directories := make(map[string]*directoryComplexityAccumulator)
+	for _, function := range functions {
+		fileIdentity, err := analysisPathIdentity(function.FilePath)
 		if err != nil {
-			return nil, fmt.Errorf("resolve module path %q: %w", module.FilePath, err)
+			return nil, fmt.Errorf("resolve function file path %q: %w", function.FilePath, err)
 		}
-		relativePath, err := filepath.Rel(rootIdentity, moduleIdentity)
+		relativePath, err := filepath.Rel(rootIdentity, fileIdentity)
 		if err != nil {
-			return nil, fmt.Errorf("make module path %q relative to project root %q: %w", module.FilePath, projectRoot, err)
+			return nil, fmt.Errorf("make function file path %q relative to root %q: %w", function.FilePath, projectRoot, err)
 		}
 		if pathEscapesRoot(relativePath) {
-			return nil, fmt.Errorf("module path %q is outside project root %q", module.FilePath, projectRoot)
+			return nil, fmt.Errorf("function file path %q is outside complexity directory root %q", function.FilePath, projectRoot)
 		}
 
-		directDirectory := filepath.Dir(relativePath)
-		for _, directoryPath := range directoryAncestors(directDirectory) {
-			accumulator := directories[directoryPath]
-			if accumulator == nil {
-				accumulator = &directoryQualityAccumulator{
-					metrics: domain.DirectoryQualityMetrics{DirectoryPath: directoryPath},
-				}
-				directories[directoryPath] = accumulator
+		directoryPath := filepath.Dir(relativePath)
+		accumulator := directories[directoryPath]
+		if accumulator == nil {
+			accumulator = &directoryComplexityAccumulator{
+				metrics: domain.DirectoryComplexityMetrics{DirectoryPath: directoryPath},
 			}
-			accumulator.addModule(module, directoryPath == directDirectory)
+			directories[directoryPath] = accumulator
 		}
+		accumulator.addFunction(function)
 	}
 
-	result := make([]domain.DirectoryQualityMetrics, 0, len(directories))
+	result := make([]domain.DirectoryComplexityMetrics, 0, len(directories))
 	for _, directory := range directories {
 		directory.finishAverages()
 		result = append(result, directory.metrics)
 	}
-	sortDirectoryQuality(result)
+	sortDirectoryComplexity(result)
 	return result, nil
 }
 
-func (a *directoryQualityAccumulator) addModule(module domain.ModuleQualityMetrics, direct bool) {
-	a.metrics.ModuleCount++
-	if direct {
-		a.metrics.DirectModuleCount++
+func (a *directoryComplexityAccumulator) addFunction(function domain.FunctionComplexity) {
+	a.metrics.FunctionCount++
+	a.totalComplexity += function.Metrics.Complexity
+	a.totalNestingDepth += function.Metrics.NestingDepth
+	if function.Metrics.Complexity > a.metrics.MaxComplexity {
+		a.metrics.MaxComplexity = function.Metrics.Complexity
 	}
-	a.metrics.LinesOfCode += module.LinesOfCode
-	a.metrics.FunctionCount += module.FunctionCount
-	a.metrics.AnalyzedFunctionCount += module.AnalyzedFunctionCount
-	a.totalComplexity += module.AverageComplexity * float64(module.AnalyzedFunctionCount)
-	a.totalCognitiveComplexity += module.AverageCognitiveComplexity * float64(module.AnalyzedFunctionCount)
-	if module.MaxComplexity > a.metrics.MaxComplexity {
-		a.metrics.MaxComplexity = module.MaxComplexity
+	if function.Metrics.NestingDepth > a.metrics.MaxNestingDepth {
+		a.metrics.MaxNestingDepth = function.Metrics.NestingDepth
 	}
-	a.metrics.HighRiskFunctionCount += module.HighRiskFunctionCount
-	a.metrics.ExceptionHandlerCount += module.ExceptionHandlerCount
-	a.metrics.DeadCodeFindingCount += module.DeadCodeFindingCount
-	a.metrics.DeadCodeBlockCount += module.DeadCodeBlockCount
+	if function.RiskLevel == domain.RiskLevelHigh {
+		a.metrics.HighRiskFunctionCount++
+	}
 }
 
-func (a *directoryQualityAccumulator) finishAverages() {
-	if a.metrics.AnalyzedFunctionCount == 0 {
-		return
-	}
-	count := float64(a.metrics.AnalyzedFunctionCount)
-	a.metrics.AverageComplexity = a.totalComplexity / count
-	a.metrics.AverageCognitiveComplexity = a.totalCognitiveComplexity / count
-}
-
-func directoryAncestors(path string) []string {
-	cleaned := filepath.Clean(path)
-	if cleaned == "." {
-		return []string{"."}
-	}
-
-	parts := strings.Split(cleaned, string(filepath.Separator))
-	ancestors := make([]string, 1, len(parts)+1)
-	ancestors[0] = "."
-	current := ""
-	for _, part := range parts {
-		if current == "" {
-			current = part
-		} else {
-			current = filepath.Join(current, part)
-		}
-		ancestors = append(ancestors, current)
-	}
-	return ancestors
+func (a *directoryComplexityAccumulator) finishAverages() {
+	count := float64(a.metrics.FunctionCount)
+	a.metrics.AverageComplexity = float64(a.totalComplexity) / count
+	a.metrics.AverageNestingDepth = float64(a.totalNestingDepth) / count
 }
 
 func pathEscapesRoot(relativePath string) bool {
 	return relativePath == ".." || strings.HasPrefix(relativePath, ".."+string(filepath.Separator))
 }
 
-func sortDirectoryQuality(directories []domain.DirectoryQualityMetrics) {
+func sortDirectoryComplexity(directories []domain.DirectoryComplexityMetrics) {
 	sort.Slice(directories, func(i, j int) bool {
 		left, right := directories[i], directories[j]
 		if left.HighRiskFunctionCount != right.HighRiskFunctionCount {
@@ -174,9 +147,6 @@ func sortDirectoryQuality(directories []domain.DirectoryQualityMetrics) {
 		}
 		if left.AverageComplexity != right.AverageComplexity {
 			return left.AverageComplexity > right.AverageComplexity
-		}
-		if left.DeadCodeFindingCount != right.DeadCodeFindingCount {
-			return left.DeadCodeFindingCount > right.DeadCodeFindingCount
 		}
 		return left.DirectoryPath < right.DirectoryPath
 	})

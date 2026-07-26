@@ -110,7 +110,16 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 				label = fmt.Sprintf("%s (%s)", module.ModuleName, module.FilePath)
 			}
 			fmt.Fprintf(writer, "  %s\n", label)
-			writeQualityTextMetrics(writer, module.FunctionCount, module.ModuleComplexityMetrics, module.ModuleDeadCodeMetrics)
+			if module.FunctionCount > 0 {
+				fmt.Fprintf(writer, "    Functions: %d total / %d analyzed\n", module.FunctionCount, module.AnalyzedFunctionCount)
+			} else {
+				fmt.Fprintf(writer, "    Functions: %d analyzed\n", module.AnalyzedFunctionCount)
+			}
+			fmt.Fprintf(writer, "    Complexity: avg %.2f, max %d, high-risk %d, handlers %d\n",
+				module.AverageComplexity, module.MaxComplexity, module.HighRiskFunctionCount, module.ExceptionHandlerCount)
+			fmt.Fprintf(writer, "    Cognitive: avg %.2f\n", module.AverageCognitiveComplexity)
+			fmt.Fprintf(writer, "    Dead code: %d findings, %d blocks\n",
+				module.DeadCodeFindingCount, module.DeadCodeBlockCount)
 		}
 		if len(response.ModuleQuality) > 10 {
 			fmt.Fprintf(writer, "  Showing top 10 of %d modules\n", len(response.ModuleQuality))
@@ -118,22 +127,28 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
 
-	if len(response.DirectoryQuality) > 0 {
-		fmt.Fprint(writer, utils.FormatSectionHeader("DIRECTORY QUALITY HOTSPOTS"))
-		for index, directory := range response.DirectoryQuality {
+	if response.Complexity != nil && len(response.Complexity.ByDirectory) > 0 {
+		var section strings.Builder
+		section.WriteString(utils.FormatSectionHeader("DIRECTORY COMPLEXITY"))
+		for index, directory := range response.Complexity.ByDirectory {
 			if index >= 10 {
 				break
 			}
 
-			fmt.Fprintf(writer, "  %s\n", directory.DirectoryPath)
-			fmt.Fprintf(writer, "    Modules: %d recursive / %d direct\n", directory.ModuleCount, directory.DirectModuleCount)
-			fmt.Fprintf(writer, "    Lines of code: %d\n", directory.LinesOfCode)
-			writeQualityTextMetrics(writer, directory.FunctionCount, directory.ModuleComplexityMetrics, directory.ModuleDeadCodeMetrics)
+			fmt.Fprintf(&section, "  %s\n", directory.DirectoryPath)
+			fmt.Fprintf(&section, "    Functions: %d\n", directory.FunctionCount)
+			fmt.Fprintf(&section, "    Complexity: avg %.2f, max %d, high-risk %d\n",
+				directory.AverageComplexity, directory.MaxComplexity, directory.HighRiskFunctionCount)
+			fmt.Fprintf(&section, "    Nesting: avg %.2f, max %d\n",
+				directory.AverageNestingDepth, directory.MaxNestingDepth)
 		}
-		if len(response.DirectoryQuality) > 10 {
-			fmt.Fprintf(writer, "  Showing top 10 of %d directories\n", len(response.DirectoryQuality))
+		if len(response.Complexity.ByDirectory) > 10 {
+			fmt.Fprintf(&section, "  Showing top 10 of %d directories\n", len(response.Complexity.ByDirectory))
 		}
-		fmt.Fprint(writer, utils.FormatSectionSeparator())
+		section.WriteString(utils.FormatSectionSeparator())
+		if _, err := io.WriteString(writer, section.String()); err != nil {
+			return domain.NewOutputError("failed to write directory complexity text", err)
+		}
 	}
 
 	if response.Summary.CommunitiesEnabled && response.Communities != nil {
@@ -143,22 +158,13 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 	return nil
 }
 
-func writeQualityTextMetrics(writer io.Writer, functionCount int, complexity domain.ModuleComplexityMetrics, deadCode domain.ModuleDeadCodeMetrics) {
-	if functionCount > 0 {
-		fmt.Fprintf(writer, "    Functions: %d total / %d analyzed\n", functionCount, complexity.AnalyzedFunctionCount)
-	} else {
-		fmt.Fprintf(writer, "    Functions: %d analyzed\n", complexity.AnalyzedFunctionCount)
-	}
-	fmt.Fprintf(writer, "    Complexity: avg %.2f, max %d, high-risk %d, handlers %d\n",
-		complexity.AverageComplexity, complexity.MaxComplexity, complexity.HighRiskFunctionCount, complexity.ExceptionHandlerCount)
-	fmt.Fprintf(writer, "    Cognitive: avg %.2f\n", complexity.AverageCognitiveComplexity)
-	fmt.Fprintf(writer, "    Dead code: %d findings, %d blocks\n",
-		deadCode.DeadCodeFindingCount, deadCode.DeadCodeBlockCount)
-}
-
 // writeCSV formats summary and quality metrics as CSV.
 func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.Writer) error {
-	rowCapacity := 17 + (12 * len(response.ModuleQuality)) + (13 * len(response.DirectoryQuality))
+	directories := []domain.DirectoryComplexityMetrics(nil)
+	if response.Complexity != nil {
+		directories = response.Complexity.ByDirectory
+	}
+	rowCapacity := 17 + (12 * len(response.ModuleQuality)) + (7 * len(directories))
 	if response.Summary.CommunitiesEnabled && response.Communities != nil {
 		rowCapacity += 6
 	}
@@ -180,7 +186,7 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 		[]string{"High Coupling (CBO) Classes", fmt.Sprint(response.Summary.HighCouplingClasses)},
 		[]string{"Average CBO", fmt.Sprintf("%.2f", response.Summary.AverageCoupling)},
 		[]string{"Module Quality Count", fmt.Sprint(len(response.ModuleQuality))},
-		[]string{"Directory Quality Count", fmt.Sprint(len(response.DirectoryQuality))},
+		[]string{"Directory Complexity Count", fmt.Sprint(len(directories))},
 	)
 
 	for index, module := range response.ModuleQuality {
@@ -190,20 +196,28 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 			[]string{prefix + "File Path", module.FilePath},
 			[]string{prefix + "Lines of Code", fmt.Sprint(module.LinesOfCode)},
 			[]string{prefix + "Function Count", fmt.Sprint(module.FunctionCount)},
+			[]string{prefix + "Analyzed Function Count", fmt.Sprint(module.AnalyzedFunctionCount)},
+			[]string{prefix + "Average Complexity", fmt.Sprintf("%.2f", module.AverageComplexity)},
+			[]string{prefix + "Average Cognitive Complexity", fmt.Sprintf("%.2f", module.AverageCognitiveComplexity)},
+			[]string{prefix + "Max Complexity", fmt.Sprint(module.MaxComplexity)},
+			[]string{prefix + "High Risk Function Count", fmt.Sprint(module.HighRiskFunctionCount)},
+			[]string{prefix + "Exception Handler Count", fmt.Sprint(module.ExceptionHandlerCount)},
+			[]string{prefix + "Dead Code Findings", fmt.Sprint(module.DeadCodeFindingCount)},
+			[]string{prefix + "Dead Code Blocks", fmt.Sprint(module.DeadCodeBlockCount)},
 		)
-		rows = append(rows, qualityMetricCSVRows(prefix, module.ModuleComplexityMetrics, module.ModuleDeadCodeMetrics)...)
 	}
 
-	for index, directory := range response.DirectoryQuality {
+	for index, directory := range directories {
 		prefix := fmt.Sprintf("Directory %d ", index+1)
 		rows = append(rows,
 			[]string{prefix + "Path", directory.DirectoryPath},
-			[]string{prefix + "Module Count", fmt.Sprint(directory.ModuleCount)},
-			[]string{prefix + "Direct Module Count", fmt.Sprint(directory.DirectModuleCount)},
-			[]string{prefix + "Lines of Code", fmt.Sprint(directory.LinesOfCode)},
 			[]string{prefix + "Function Count", fmt.Sprint(directory.FunctionCount)},
+			[]string{prefix + "Average Complexity", fmt.Sprintf("%.2f", directory.AverageComplexity)},
+			[]string{prefix + "Max Complexity", fmt.Sprint(directory.MaxComplexity)},
+			[]string{prefix + "High Risk Function Count", fmt.Sprint(directory.HighRiskFunctionCount)},
+			[]string{prefix + "Average Nesting Depth", fmt.Sprintf("%.2f", directory.AverageNestingDepth)},
+			[]string{prefix + "Max Nesting Depth", fmt.Sprint(directory.MaxNestingDepth)},
 		)
-		rows = append(rows, qualityMetricCSVRows(prefix, directory.ModuleComplexityMetrics, directory.ModuleDeadCodeMetrics)...)
 	}
 
 	if response.Summary.CommunitiesEnabled && response.Communities != nil {
@@ -230,19 +244,6 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	}
 
 	return nil
-}
-
-func qualityMetricCSVRows(prefix string, complexity domain.ModuleComplexityMetrics, deadCode domain.ModuleDeadCodeMetrics) [][]string {
-	return [][]string{
-		{prefix + "Analyzed Function Count", fmt.Sprint(complexity.AnalyzedFunctionCount)},
-		{prefix + "Average Complexity", fmt.Sprintf("%.2f", complexity.AverageComplexity)},
-		{prefix + "Average Cognitive Complexity", fmt.Sprintf("%.2f", complexity.AverageCognitiveComplexity)},
-		{prefix + "Max Complexity", fmt.Sprint(complexity.MaxComplexity)},
-		{prefix + "High Risk Function Count", fmt.Sprint(complexity.HighRiskFunctionCount)},
-		{prefix + "Exception Handler Count", fmt.Sprint(complexity.ExceptionHandlerCount)},
-		{prefix + "Dead Code Findings", fmt.Sprint(deadCode.DeadCodeFindingCount)},
-		{prefix + "Dead Code Blocks", fmt.Sprint(deadCode.DeadCodeBlockCount)},
-	}
 }
 
 // writeHTML formats the response as HTML
@@ -594,8 +595,8 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{if .ModuleQuality}}
                 <button class="tab-button" onclick="showTab('module-quality', this)">Modules</button>
                 {{end}}
-                {{if .DirectoryQuality}}
-                <button class="tab-button" onclick="showTab('directory-quality', this)">Directories</button>
+                {{if and .Complexity .Complexity.ByDirectory}}
+                <button class="tab-button" onclick="showTab('directory-complexity', this)">Directories</button>
                 {{end}}
                 {{if .Suggestions}}
                 <button class="tab-button" onclick="showTab('suggestions', this)">Suggestions</button>
@@ -911,45 +912,33 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             </div>
             {{end}}
 
-            {{if .DirectoryQuality}}
-            <div id="directory-quality" class="tab-content">
-                <h2>Directory Quality Hotspots</h2>
-                <p style="color: #666; margin-bottom: 20px;">Recursive project-root-relative rollups assembled from the complete module-quality population</p>
+            {{if and .Complexity .Complexity.ByDirectory}}
+            <div id="directory-complexity" class="tab-content">
+                <h2>Directory Complexity</h2>
+                <p style="color: #666; margin-bottom: 20px;">Project-root-relative rollups of the reported function population</p>
                 <div style="overflow-x: auto;">
-                    <table id="directory-quality-table" class="table">
+                    <table id="directory-complexity-table" class="table">
                         <thead>
                             <tr>
-                                <th><button type="button" class="table-sort" aria-label="Sort by directory path" onclick="sortDirectoryQuality(0, false, this)">Directory</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by recursive module count" onclick="sortDirectoryQuality(1, true, this)">Modules</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by direct module count" onclick="sortDirectoryQuality(2, true, this)">Direct</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by lines of code" onclick="sortDirectoryQuality(3, true, this)">LOC</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by function count" onclick="sortDirectoryQuality(4, true, this)">Functions</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by analyzed function count" onclick="sortDirectoryQuality(5, true, this)">Analyzed</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by average complexity" onclick="sortDirectoryQuality(6, true, this)">Avg CC</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by average cognitive complexity" onclick="sortDirectoryQuality(7, true, this)">Avg Cognitive</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by maximum complexity" onclick="sortDirectoryQuality(8, true, this)">Max CC</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk function count" onclick="sortDirectoryQuality(9, true, this)">High Risk</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by exception handler count" onclick="sortDirectoryQuality(10, true, this)">Handlers</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by dead-code findings" onclick="sortDirectoryQuality(11, true, this)">Dead Findings</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by dead-code blocks" onclick="sortDirectoryQuality(12, true, this)">Dead Blocks</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by directory path" onclick="sortDirectoryComplexity(0, false, this)">Directory</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by function count" onclick="sortDirectoryComplexity(1, true, this)">Functions</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by average complexity" onclick="sortDirectoryComplexity(2, true, this)">Avg CC</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by maximum complexity" onclick="sortDirectoryComplexity(3, true, this)">Max CC</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk function count" onclick="sortDirectoryComplexity(4, true, this)">High Risk</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by average nesting depth" onclick="sortDirectoryComplexity(5, true, this)">Avg Nesting</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by maximum nesting depth" onclick="sortDirectoryComplexity(6, true, this)">Max Nesting</button></th>
                             </tr>
                         </thead>
                         <tbody>
-                            {{range .DirectoryQuality}}
+                            {{range .Complexity.ByDirectory}}
                             <tr>
                                 <td data-sort-value="{{.DirectoryPath}}">{{.DirectoryPath}}</td>
-                                <td data-sort-value="{{.ModuleCount}}">{{.ModuleCount}}</td>
-                                <td data-sort-value="{{.DirectModuleCount}}">{{.DirectModuleCount}}</td>
-                                <td data-sort-value="{{.LinesOfCode}}">{{.LinesOfCode}}</td>
                                 <td data-sort-value="{{.FunctionCount}}">{{.FunctionCount}}</td>
-                                <td data-sort-value="{{.AnalyzedFunctionCount}}">{{.AnalyzedFunctionCount}}</td>
                                 <td data-sort-value="{{.AverageComplexity}}">{{printf "%.2f" .AverageComplexity}}</td>
-                                <td data-sort-value="{{.AverageCognitiveComplexity}}">{{printf "%.2f" .AverageCognitiveComplexity}}</td>
                                 <td data-sort-value="{{.MaxComplexity}}">{{.MaxComplexity}}</td>
                                 <td data-sort-value="{{.HighRiskFunctionCount}}">{{.HighRiskFunctionCount}}</td>
-                                <td data-sort-value="{{.ExceptionHandlerCount}}">{{.ExceptionHandlerCount}}</td>
-                                <td data-sort-value="{{.DeadCodeFindingCount}}">{{.DeadCodeFindingCount}}</td>
-                                <td data-sort-value="{{.DeadCodeBlockCount}}">{{.DeadCodeBlockCount}}</td>
+                                <td data-sort-value="{{.AverageNestingDepth}}">{{printf "%.2f" .AverageNestingDepth}}</td>
+                                <td data-sort-value="{{.MaxNestingDepth}}">{{.MaxNestingDepth}}</td>
                             </tr>
                             {{end}}
                         </tbody>
@@ -1645,8 +1634,8 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             sortQualityTable('module-quality-table', columnIndex, numeric, button);
         }
 
-        function sortDirectoryQuality(columnIndex, numeric, button) {
-            sortQualityTable('directory-quality-table', columnIndex, numeric, button);
+        function sortDirectoryComplexity(columnIndex, numeric, button) {
+            sortQualityTable('directory-complexity-table', columnIndex, numeric, button);
         }
 
         function showTab(tabName, el) {

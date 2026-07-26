@@ -9,75 +9,54 @@ import (
 	"github.com/ludo-technologies/pyscn/domain"
 )
 
-func TestAggregateDirectoryQuality_UsesRecursiveWeightedRollups(t *testing.T) {
+func TestAggregateComplexityByDirectory_UsesReportedFunctions(t *testing.T) {
 	root := t.TempDir()
-	modules := []domain.ModuleQualityMetrics{
+	functions := []domain.FunctionComplexity{
 		{
-			FilePath:      filepath.Join(root, "pkg", "hot.py"),
-			LinesOfCode:   100,
-			FunctionCount: 4,
-			ModuleComplexityMetrics: domain.ModuleComplexityMetrics{
-				AnalyzedFunctionCount:      2,
-				AverageComplexity:          8,
-				AverageCognitiveComplexity: 6,
-				MaxComplexity:              12,
-				HighRiskFunctionCount:      1,
-				ExceptionHandlerCount:      3,
-			},
-			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{
-				DeadCodeFindingCount: 2,
-				DeadCodeBlockCount:   1,
-			},
+			Name:      "hotspot",
+			FilePath:  filepath.Join(root, "pkg", "hot.py"),
+			Metrics:   domain.ComplexityMetrics{Complexity: 10, NestingDepth: 4},
+			RiskLevel: domain.RiskLevelHigh,
 		},
 		{
-			FilePath:      filepath.Join(root, "pkg", "sub", "helper.py"),
-			LinesOfCode:   30,
-			FunctionCount: 2,
-			ModuleComplexityMetrics: domain.ModuleComplexityMetrics{
-				AnalyzedFunctionCount:      1,
-				AverageComplexity:          2,
-				AverageCognitiveComplexity: 3,
-				MaxComplexity:              2,
-				ExceptionHandlerCount:      1,
-			},
-			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{
-				DeadCodeFindingCount: 1,
-				DeadCodeBlockCount:   2,
-			},
+			Name:      "helper",
+			FilePath:  filepath.Join(root, "pkg", "helper.py"),
+			Metrics:   domain.ComplexityMetrics{Complexity: 2, NestingDepth: 2},
+			RiskLevel: domain.RiskLevelLow,
+		},
+		{
+			Name:      "nested",
+			FilePath:  filepath.Join(root, "pkg", "sub", "nested.py"),
+			Metrics:   domain.ComplexityMetrics{Complexity: 3, NestingDepth: 1},
+			RiskLevel: domain.RiskLevelLow,
 		},
 	}
 
-	rollups, err := aggregateDirectoryQuality(modules, root)
+	rollups, err := aggregateComplexityByDirectory(functions, root)
 	if err != nil {
-		t.Fatalf("aggregate directory quality: %v", err)
+		t.Fatalf("aggregate complexity by directory: %v", err)
 	}
-	byPath := make(map[string]domain.DirectoryQualityMetrics, len(rollups))
+	byPath := make(map[string]domain.DirectoryComplexityMetrics, len(rollups))
 	for _, rollup := range rollups {
 		byPath[rollup.DirectoryPath] = rollup
 	}
 
 	pkg := byPath["pkg"]
-	if pkg.ModuleCount != 2 || pkg.DirectModuleCount != 1 {
-		t.Fatalf("expected recursive and direct module counts, got %+v", pkg)
-	}
-	if pkg.LinesOfCode != 130 || pkg.FunctionCount != 6 || pkg.AnalyzedFunctionCount != 3 {
-		t.Fatalf("expected additive directory metrics, got %+v", pkg)
+	if pkg.FunctionCount != 2 || pkg.HighRiskFunctionCount != 1 || pkg.MaxComplexity != 10 {
+		t.Fatalf("expected direct directory metrics, got %+v", pkg)
 	}
 	if math.Abs(pkg.AverageComplexity-6) > 0.0001 {
-		t.Fatalf("expected function-weighted average complexity 6, got %f", pkg.AverageComplexity)
+		t.Fatalf("expected average complexity 6, got %f", pkg.AverageComplexity)
 	}
-	if math.Abs(pkg.AverageCognitiveComplexity-5) > 0.0001 {
-		t.Fatalf("expected function-weighted average cognitive complexity 5, got %f", pkg.AverageCognitiveComplexity)
+	if math.Abs(pkg.AverageNestingDepth-3) > 0.0001 || pkg.MaxNestingDepth != 4 {
+		t.Fatalf("expected average/max nesting 3/4, got %+v", pkg)
 	}
-	if pkg.MaxComplexity != 12 || pkg.HighRiskFunctionCount != 1 || pkg.ExceptionHandlerCount != 4 {
-		t.Fatalf("expected recursive complexity totals, got %+v", pkg)
-	}
-	if pkg.DeadCodeFindingCount != 3 || pkg.DeadCodeBlockCount != 3 {
-		t.Fatalf("expected recursive dead-code totals, got %+v", pkg)
+	if byPath[filepath.Join("pkg", "sub")].FunctionCount != 1 {
+		t.Fatalf("expected nested directory to remain distinct, got %+v", byPath)
 	}
 }
 
-func TestDirectoryQualityRoot_UsesExplicitAnalysisScope(t *testing.T) {
+func TestComplexityDirectoryRoot_UsesExplicitAnalysisScope(t *testing.T) {
 	root := t.TempDir()
 	left := filepath.Join(root, "left")
 	right := filepath.Join(root, "right")
@@ -92,20 +71,20 @@ func TestDirectoryQualityRoot_UsesExplicitAnalysisScope(t *testing.T) {
 		t.Fatalf("write source file: %v", err)
 	}
 
-	got, err := directoryQualityRoot([]string{file, right})
+	got, err := complexityDirectoryRoot([]string{file, right})
 	if err != nil {
-		t.Fatalf("resolve directory quality root: %v", err)
+		t.Fatalf("resolve complexity directory root: %v", err)
 	}
 	if got != root {
 		t.Fatalf("expected common explicit root %q, got %q", root, got)
 	}
 }
 
-func TestAggregateDirectoryQuality_RejectsModulesOutsideRoot(t *testing.T) {
+func TestAggregateComplexityByDirectory_RejectsFunctionsOutsideRoot(t *testing.T) {
 	root := t.TempDir()
 	outside := filepath.Join(filepath.Dir(root), "outside.py")
-	_, err := aggregateDirectoryQuality([]domain.ModuleQualityMetrics{{FilePath: outside}}, root)
+	_, err := aggregateComplexityByDirectory([]domain.FunctionComplexity{{FilePath: outside}}, root)
 	if err == nil {
-		t.Fatal("expected module outside the analysis root to be rejected")
+		t.Fatal("expected function outside the analysis root to be rejected")
 	}
 }

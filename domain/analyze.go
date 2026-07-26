@@ -149,9 +149,8 @@ type AnalyzeResponse struct {
 	Communities *CommunityAnalysisResult `json:"community_analysis,omitempty" yaml:"community_analysis,omitempty"`
 	MockData    *MockDataResponse        `json:"mock_data,omitempty" yaml:"mock_data,omitempty"`
 
-	// Cross-analysis quality rollups
-	ModuleQuality    []ModuleQualityMetrics    `json:"module_quality,omitempty" yaml:"module_quality,omitempty"`
-	DirectoryQuality []DirectoryQualityMetrics `json:"directory_quality,omitempty" yaml:"directory_quality,omitempty"`
+	// Cross-analysis module quality rollups
+	ModuleQuality []ModuleQualityMetrics `json:"module_quality,omitempty" yaml:"module_quality,omitempty"`
 
 	// Actionable suggestions derived from analysis results
 	Suggestions []Suggestion `json:"suggestions,omitempty" yaml:"suggestions,omitempty"`
