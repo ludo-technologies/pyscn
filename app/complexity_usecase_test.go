@@ -5,12 +5,15 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	svc "github.com/ludo-technologies/pyscn/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // Mock implementations
@@ -479,6 +482,68 @@ func TestComplexityUseCase_AnalyzeAndReturn(t *testing.T) {
 			fileReader.AssertExpectations(t)
 			formatter.AssertExpectations(t)
 			configLoader.AssertExpectations(t)
+		})
+	}
+}
+
+func TestComplexityUseCase_AnalyzeAndReturn_DirectoryRollupsFollowReportFilters(t *testing.T) {
+	projectRoot := t.TempDir()
+	pkgDir := filepath.Join(projectRoot, "pkg")
+	require.NoError(t, os.MkdirAll(pkgDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(pkgDir, "mixed.py"), []byte(`def unchanged():
+	return 1
+
+def branch(value):
+	if value:
+		return 1
+	return 0
+
+def nested(left, right):
+	if left:
+		if right:
+			return 1
+	return 0
+`), 0o644))
+
+	useCase := NewComplexityUseCase(
+		svc.NewComplexityService(),
+		svc.NewFileReader(),
+		svc.NewOutputFormatter(),
+		nil,
+	)
+	tests := []struct {
+		name            string
+		minComplexity   int
+		reportUnchanged bool
+		wantNames       []string
+	}{
+		{name: "minimum complexity", minComplexity: 3, reportUnchanged: true, wantNames: []string{"nested"}},
+		{name: "unchanged functions", minComplexity: 1, reportUnchanged: false, wantNames: []string{"nested", "branch"}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			response, err := useCase.AnalyzeAndReturn(context.Background(), domain.ComplexityRequest{
+				Paths:           []string{projectRoot},
+				OutputFormat:    domain.OutputFormatJSON,
+				OutputWriter:    io.Discard,
+				MinComplexity:   test.minComplexity,
+				SortBy:          domain.SortByComplexity,
+				LowThreshold:    5,
+				MediumThreshold: 10,
+				ReportUnchanged: domain.BoolPtr(test.reportUnchanged),
+				Recursive:       domain.BoolPtr(true),
+			})
+			require.NoError(t, err)
+			require.Len(t, response.ByDirectory, 1)
+			assert.Equal(t, "pkg", response.ByDirectory[0].DirectoryPath)
+			assert.Equal(t, len(response.Functions), response.ByDirectory[0].FunctionCount)
+
+			names := make([]string, 0, len(response.Functions))
+			for _, function := range response.Functions {
+				names = append(names, function.Name)
+			}
+			assert.ElementsMatch(t, test.wantNames, names)
 		})
 	}
 }
