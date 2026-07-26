@@ -68,9 +68,8 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 	}
 
 	// Filter and sort results
-	functionsParsed := len(allFunctions)
 	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
-	filteredFunctions := s.filterFunctions(allFunctions, req)
+	filteredFunctions, functionsParsed := s.filterFunctions(allFunctions, req)
 	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
 
 	// Generate summary
@@ -132,9 +131,8 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 		return nil, domain.NewAnalysisError("no functions found to analyze", nil)
 	}
 
-	functionsParsed := len(allFunctions)
 	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
-	filteredFunctions := s.filterFunctions(allFunctions, req)
+	filteredFunctions, functionsParsed := s.filterFunctions(allFunctions, req)
 	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
 	summary := s.generateSummary(sortedFunctions, filesProcessed, req, functionsParsed)
 	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
@@ -278,15 +276,19 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 	return functions, warnings
 }
 
-// filterFunctions filters functions based on complexity thresholds
-func (s *ComplexityServiceImpl) filterFunctions(functions []domain.FunctionComplexity, req domain.ComplexityRequest) []domain.FunctionComplexity {
+// filterFunctions returns visible functions and the count before min_complexity.
+// report_unchanged remains part of the reporting contract, while module rollups
+// consume the complete analyzer population before either presentation filter.
+func (s *ComplexityServiceImpl) filterFunctions(functions []domain.FunctionComplexity, req domain.ComplexityRequest) ([]domain.FunctionComplexity, int) {
 	var filtered []domain.FunctionComplexity
 	complexityConfig := s.buildComplexityConfig(req)
+	functionsParsed := 0
 
 	for _, function := range functions {
 		if !complexityConfig.ShouldReport(function.Metrics.Complexity) {
 			continue
 		}
+		functionsParsed++
 		// Apply minimum complexity filter
 		if function.Metrics.Complexity < req.MinComplexity {
 			continue
@@ -297,7 +299,7 @@ func (s *ComplexityServiceImpl) filterFunctions(functions []domain.FunctionCompl
 		filtered = append(filtered, function)
 	}
 
-	return filtered
+	return filtered, functionsParsed
 }
 
 // sortFunctions sorts functions based on the specified criteria

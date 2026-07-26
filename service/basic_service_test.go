@@ -74,8 +74,9 @@ func TestComplexityService_Basic(t *testing.T) {
 	t.Run("filterFunctions handles empty slice", func(t *testing.T) {
 		var functions []domain.FunctionComplexity
 		req := domain.ComplexityRequest{MinComplexity: 1, MaxComplexity: 10}
-		result := service.filterFunctions(functions, req)
+		result, functionsParsed := service.filterFunctions(functions, req)
 		assert.Equal(t, 0, len(result))
+		assert.Equal(t, 0, functionsParsed)
 	})
 
 	// Test summary generation

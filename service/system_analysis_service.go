@@ -1664,6 +1664,7 @@ func (s *SystemAnalysisServiceImpl) extractModuleMetrics(graph *analyzer.Depende
 			metrics.Abstractness = analyzerMetrics.Abstractness
 			metrics.Distance = analyzerMetrics.Distance
 			metrics.AbstractClassCount = analyzerMetrics.AbstractClassCount
+
 			// Determine risk level based on distance
 			if analyzerMetrics.Distance > 0.7 {
 				metrics.RiskLevel = domain.RiskLevelHigh
