@@ -385,7 +385,11 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 			Enabled: !config.SkipComplexity,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := uc.buildComplexityTaskRequest(config, files, executionCfg)
-				return uc.complexityUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
+				projectRoot, err := complexityDirectoryRoot(sourcePaths, files)
+				if err != nil {
+					return nil, domain.NewInvalidInputError("invalid complexity analysis scope", err)
+				}
+				return uc.complexityUseCase.analyzeSnapshotRequest(ctx, snapshot, request, projectRoot)
 			},
 		})
 	}

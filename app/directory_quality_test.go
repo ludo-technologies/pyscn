@@ -71,7 +71,7 @@ func TestComplexityDirectoryRoot_UsesExplicitAnalysisScope(t *testing.T) {
 		t.Fatalf("write source file: %v", err)
 	}
 
-	got, err := complexityDirectoryRoot([]string{file, right})
+	got, err := complexityDirectoryRoot([]string{file, right}, []string{file})
 	if err != nil {
 		t.Fatalf("resolve complexity directory root: %v", err)
 	}

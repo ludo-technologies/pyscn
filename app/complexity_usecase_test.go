@@ -149,7 +149,9 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 					Return([]string{"/test/file.py"}, nil)
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return(createMockComplexityResponse(), nil)
-				formatter.On("Write", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
+				formatter.On("Write", mock.MatchedBy(func(response *domain.ComplexityResponse) bool {
+					return len(response.ByDirectory) == 1 && response.ByDirectory[0].DirectoryPath == "."
+				}), domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
 			},
 			request:     createValidComplexityRequest(),
 			expectError: false,
@@ -385,6 +387,10 @@ func TestComplexityUseCase_analyzeResolvedRequest(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, response, result)
+	if assert.Len(t, result.ByDirectory, 1) {
+		assert.Equal(t, ".", result.ByDirectory[0].DirectoryPath)
+		assert.Equal(t, 1, result.ByDirectory[0].FunctionCount)
+	}
 	if assert.NotNil(t, result.Request) {
 		assert.Equal(t, req.Paths, result.Request.Paths)
 		assert.Equal(t, req.MinComplexity, result.Request.MinComplexity)
@@ -621,7 +627,9 @@ func TestComplexityUseCase_AnalyzeFile(t *testing.T) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 				service.On("AnalyzeFile", mock.Anything, "/test/file.py", mock.AnythingOfType("domain.ComplexityRequest")).
 					Return(createMockComplexityResponse(), nil)
-				formatter.On("Write", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
+				formatter.On("Write", mock.MatchedBy(func(response *domain.ComplexityResponse) bool {
+					return len(response.ByDirectory) == 1 && response.ByDirectory[0].DirectoryPath == "."
+				}), domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
 			},
 			expectError: false,
 		},

@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -13,9 +12,18 @@ import (
 // complexityDirectoryRoot returns the common directory explicitly selected by
 // the caller. Directory inputs participate directly; file inputs participate
 // through their parent directory. It never widens scope via project markers.
-func complexityDirectoryRoot(paths []string) (string, error) {
+func complexityDirectoryRoot(paths, collectedFiles []string) (string, error) {
 	if len(paths) == 0 {
 		return "", fmt.Errorf("at least one analysis path is required")
+	}
+
+	fileIdentities := make(map[string]struct{}, len(collectedFiles))
+	for _, file := range collectedFiles {
+		identity, err := analysisPathIdentity(file)
+		if err != nil {
+			return "", fmt.Errorf("resolve collected file %q: %w", file, err)
+		}
+		fileIdentities[identity] = struct{}{}
 	}
 
 	var root string
@@ -24,11 +32,7 @@ func complexityDirectoryRoot(paths []string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("resolve analysis path %q: %w", path, err)
 		}
-		info, err := os.Stat(identity)
-		if err != nil {
-			return "", fmt.Errorf("inspect analysis path %q: %w", path, err)
-		}
-		if !info.IsDir() {
+		if _, selectedFile := fileIdentities[identity]; selectedFile {
 			identity = filepath.Dir(identity)
 		}
 

@@ -167,6 +167,46 @@ func TestAnalyzeUseCase_Execute_PublishesModuleQuality(t *testing.T) {
 	}
 }
 
+func TestAnalyzeUseCase_Execute_PublishesDirectoryComplexity(t *testing.T) {
+	projectRoot := t.TempDir()
+	pkgDir := filepath.Join(projectRoot, "pkg")
+	if err := os.MkdirAll(pkgDir, 0o755); err != nil {
+		t.Fatalf("create package directory: %v", err)
+	}
+	sourcePath := filepath.Join(pkgDir, "hotspot.py")
+	source := `def hotspot(value):
+	if value > 10:
+		return value
+	return 0
+`
+	if err := os.WriteFile(sourcePath, []byte(source), 0o644); err != nil {
+		t.Fatalf("write Python source: %v", err)
+	}
+
+	response, err := newModuleQualityAnalyzeUseCase(t).Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipDeadCode:    true,
+		SkipClones:      true,
+		SkipCBO:         true,
+		SkipLCOM:        true,
+		SkipSystem:      true,
+		SkipCommunities: true,
+		MinComplexity:   1,
+	}, []string{projectRoot})
+	if err != nil {
+		t.Fatalf("execute analysis: %v", err)
+	}
+	if response.Complexity == nil {
+		t.Fatal("expected complexity response")
+	}
+	if len(response.Complexity.ByDirectory) != 1 {
+		t.Fatalf("expected one directory rollup, got %+v", response.Complexity.ByDirectory)
+	}
+	rollup := response.Complexity.ByDirectory[0]
+	if rollup.DirectoryPath != "pkg" || rollup.FunctionCount != len(response.Complexity.Functions) {
+		t.Fatalf("expected rollup to reconcile with reported functions, got %+v", rollup)
+	}
+}
+
 func TestPrepareAnalysisPaths_PreservesFirstReportedPath(t *testing.T) {
 	projectRoot := t.TempDir()
 	t.Chdir(projectRoot)

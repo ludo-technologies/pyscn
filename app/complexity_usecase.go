@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -72,6 +73,10 @@ func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityR
 	if len(files) == 0 {
 		return domain.NewInvalidInputError("no Python files found in the specified paths", nil)
 	}
+	projectRoot, err := complexityDirectoryRoot(finalReq.Paths, files)
+	if err != nil {
+		return domain.NewInvalidInputError("invalid complexity analysis scope", err)
+	}
 
 	// Update request with collected files
 	finalReq.Paths = files
@@ -80,6 +85,9 @@ func (uc *ComplexityUseCase) Execute(ctx context.Context, req domain.ComplexityR
 	response, err := uc.service.Analyze(ctx, finalReq)
 	if err != nil {
 		return domain.NewAnalysisError("complexity analysis failed", err)
+	}
+	if err := attachDirectoryComplexity(response, projectRoot); err != nil {
+		return domain.NewAnalysisError("failed to aggregate directory complexity", err)
 	}
 
 	// Delegate output handling to ReportWriter
@@ -139,6 +147,10 @@ func (uc *ComplexityUseCase) analyzeResolvedRequest(ctx context.Context, req dom
 	if len(files) == 0 {
 		return nil, domain.NewInvalidInputError("no Python files found in the specified paths", nil)
 	}
+	projectRoot, err := complexityDirectoryRoot(req.Paths, files)
+	if err != nil {
+		return nil, domain.NewInvalidInputError("invalid complexity analysis scope", err)
+	}
 
 	// Update request with collected files
 	req.Paths = files
@@ -147,6 +159,9 @@ func (uc *ComplexityUseCase) analyzeResolvedRequest(ctx context.Context, req dom
 	response, err := uc.service.Analyze(ctx, req)
 	if err != nil {
 		return nil, domain.NewAnalysisError("complexity analysis failed", err)
+	}
+	if err := attachDirectoryComplexity(response, projectRoot); err != nil {
+		return nil, domain.NewAnalysisError("failed to aggregate directory complexity", err)
 	}
 
 	// Store merged configuration in response for caller access
@@ -160,7 +175,7 @@ type snapshotComplexityService interface {
 	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.ComplexityRequest) (*domain.ComplexityResponse, error)
 }
 
-func (uc *ComplexityUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
+func (uc *ComplexityUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.ComplexityRequest, projectRoot string) (*domain.ComplexityResponse, error) {
 	if snapshot == nil {
 		return nil, domain.NewAnalysisError("complexity analysis failed", fmt.Errorf("project snapshot is required"))
 	}
@@ -177,6 +192,9 @@ func (uc *ComplexityUseCase) analyzeSnapshotRequest(ctx context.Context, snapsho
 	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, req)
 	if err != nil {
 		return nil, domain.NewAnalysisError("complexity analysis failed", err)
+	}
+	if err := attachDirectoryComplexity(response, projectRoot); err != nil {
+		return nil, domain.NewAnalysisError("failed to aggregate directory complexity", err)
 	}
 
 	resolveComplexityRequestForResponse(&req)
@@ -218,6 +236,13 @@ func (uc *ComplexityUseCase) AnalyzeFile(ctx context.Context, filePath string, r
 	if err != nil {
 		return domain.NewAnalysisError("file analysis failed", err)
 	}
+	fileIdentity, err := analysisPathIdentity(filePath)
+	if err != nil {
+		return domain.NewInvalidInputError("invalid complexity analysis scope", err)
+	}
+	if err := attachDirectoryComplexity(response, filepath.Dir(fileIdentity)); err != nil {
+		return domain.NewAnalysisError("failed to aggregate directory complexity", err)
+	}
 
 	// Delegate output handling to ReportWriter
 	var out2 io.Writer
@@ -230,6 +255,15 @@ func (uc *ComplexityUseCase) AnalyzeFile(ctx context.Context, filePath string, r
 		return domain.NewOutputError("failed to write output", err)
 	}
 
+	return nil
+}
+
+func attachDirectoryComplexity(response *domain.ComplexityResponse, projectRoot string) error {
+	byDirectory, err := aggregateComplexityByDirectory(response.Functions, projectRoot)
+	if err != nil {
+		return err
+	}
+	response.ByDirectory = byDirectory
 	return nil
 }
 
