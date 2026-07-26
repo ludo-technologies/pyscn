@@ -28,6 +28,7 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
   "system":             { /* SystemAnalysisResponse, present when deps/arch enabled */ },
   "community_analysis": { /* CommunityAnalysisResult, present when communities enabled */ },
   "mock_data":          { /* MockDataResponse, present when enabled */ },
+  "module_quality":     [ /* ModuleQualityMetrics array, omitted when empty */ ],
   "suggestions":   [ /* Suggestion array, omitted when empty */ ],
   "summary":       { /* AnalyzeSummary, always present */ },
   "generated_at":  "2026-04-14T10:18:23Z",
@@ -46,6 +47,7 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
 | `system`             | object \| absent | Present when dependency or architecture analysis ran. | stable |
 | `community_analysis` | object \| absent | Present when module community detection ran.          | stable |
 | `mock_data`          | object \| absent | Present when mock data detection ran.                 | stable |
+| `module_quality`     | array \| absent  | Per-module quality rollups. Omitted when no analyzer produced module data. | stable |
 | `suggestions` | array \| absent   | Derived suggestions. Omitted when empty.               | stable    |
 | `summary`     | object            | Always present. See [`summary`](#summary-object).      | stable    |
 | `generated_at`| string (RFC 3339) | Analysis completion time.                              | stable    |
@@ -159,6 +161,27 @@ Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the co
 | `cohesion_score`     | integer | Per-category score, `0`–`100`.                                     |
 | `dependency_score`   | integer | Per-category score, `0`–`100`.                                     |
 | `architecture_score` | integer | Per-category score, `0`–`100`.                                     |
+
+## `module_quality` array
+
+Each entry joins module identity and size from dependency analysis with analyzer-owned complexity and dead-code rollups. The rollups are calculated before presentation filters, do not run another source-analysis pass, and do not contribute a new health-score category.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `module_name` | string \| absent | Importable Python module name when dependency analysis resolved it. |
+| `file_path` | string | Source path as reported by the analyzer. Relative input paths remain relative. |
+| `lines_of_code` | integer | Physical module line count from dependency analysis, or `0` when unavailable. |
+| `function_count` | integer | Total module function count from dependency analysis, or `0` when unavailable. |
+| `analyzed_function_count` | integer | Function complexity records before `min_complexity` and `report_unchanged` filters. The `<module>` pseudo-record is excluded. |
+| `average_complexity` | number | Mean cyclomatic complexity across all function records. |
+| `average_cognitive_complexity` | number | Mean cognitive complexity across all function records. |
+| `max_complexity` | integer | Maximum cyclomatic complexity before presentation filters. |
+| `high_risk_function_count` | integer | Complexity records classified as high risk before presentation filters. |
+| `exception_handler_count` | integer | Sum of exception handlers across all function records. |
+| `dead_code_finding_count` | integer | Detector findings before `min_severity` filtering. |
+| `dead_code_block_count` | integer | Distinct unreachable CFG blocks represented by detector findings before `min_severity` filtering. |
+
+Entries are ordered by high-risk function count, maximum complexity, average complexity, dead-code findings, then file path. This places the most actionable modules first while retaining deterministic ties.
 
 ## `complexity` object
 
@@ -686,7 +709,7 @@ CSV outputs are written with RFC 4180 quoting via the Go `encoding/csv` package.
 
 ### `pyscn analyze --csv`
 
-Summary only. Two columns. Literal UTF-8 strings, no type annotations.
+Summary and module-quality metrics. Two columns. Literal UTF-8 strings, no type annotations.
 
 | Column   | Type   | Description              |
 | -------- | ------ | ------------------------ |
@@ -711,9 +734,22 @@ Code Duplication,<float with 2 decimals>
 Total Classes Analyzed,<integer>
 High Coupling (CBO) Classes,<integer>
 Average CBO,<float with 2 decimals>
+Module Quality Count,<integer>
+Module 1 Name,<string>
+Module 1 File Path,<string>
+Module 1 Lines of Code,<integer>
+Module 1 Function Count,<integer>
+Module 1 Analyzed Function Count,<integer>
+Module 1 Average Complexity,<float with 2 decimals>
+Module 1 Average Cognitive Complexity,<float with 2 decimals>
+Module 1 Max Complexity,<integer>
+Module 1 High Risk Function Count,<integer>
+Module 1 Exception Handler Count,<integer>
+Module 1 Dead Code Findings,<integer>
+Module 1 Dead Code Blocks,<integer>
 ```
 
-pyscn does not currently expose per-analyzer CSV schemas through the CLI — `--csv` produces only the summary above. For per-finding detail, use `--json` or `--yaml`.
+The numbered module row group repeats once per `module_quality` entry in the same order. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
 
 ## `community_analysis` object { #community-analysis-object }
 

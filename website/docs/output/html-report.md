@@ -21,7 +21,7 @@ The file is self-contained and safe to archive, email, or serve from any static 
 | Header | Project name, generation timestamp, pyscn version, duration. |
 | Overall score card | Health Score (0–100), grade badge (A–F). |
 | Category score cards | One per enabled analyzer with its 0–100 score. |
-| Tabs | Summary, Complexity, Dead Code, Clones, Coupling, Cohesion, Dependencies, Architecture. |
+| Tabs | Summary, Modules, Complexity, Dead Code, Clones, Coupling, Cohesion, Dependencies, Architecture. |
 | Footer | Link to pyscn repository and version string. |
 
 Category score cards and tabs only appear for analyzers that ran. Architecture appears only if `[architecture]` layers are configured.
@@ -31,6 +31,7 @@ Category score cards and tabs only appear for analyzers that ran. Architecture a
 | Tab | Contents |
 | --- | --- |
 | Summary | High-level numbers and grade. |
+| Modules | Sortable per-module size, analyzed-record count, complexity, cognitive complexity, high-risk count, exception handlers, dead-code findings, and dead CFG blocks. |
 | Complexity | Sortable table of functions with McCabe / cognitive complexity, nesting depth, risk. |
 | Dead Code | Findings grouped by severity with file:line and reason. |
 | Clones | Clone groups with similarity and clone type. |
@@ -41,7 +42,9 @@ Category score cards and tabs only appear for analyzers that ran. Architecture a
 
 ## JavaScript
 
-One inline function, `showTab(id)`, switches between tabs. No other scripts execute. No network requests.
+Two inline functions execute: `showTab(id)` switches between tabs and `sortModuleQuality(...)` sorts the module table. No network requests are made.
+
+Module rollups use the full analyzer population before `min_complexity`, `report_unchanged`, or `min_severity` presentation filters. Changing those filters changes the detail tabs, not the hotspot totals.
 
 ## CSS
 

@@ -75,6 +75,113 @@ func TestAnalyzeUseCase_Execute(t *testing.T) {
 	}
 }
 
+func TestAnalyzeUseCase_Execute_PublishesModuleQuality(t *testing.T) {
+	tempDir := t.TempDir()
+	t.Chdir(tempDir)
+	sourcePath := "hotspot.py"
+	source := `def hotspot(value):
+	if value > 10:
+		return value
+	return 0
+`
+	if err := os.WriteFile(sourcePath, []byte(source), 0o644); err != nil {
+		t.Fatalf("write Python source: %v", err)
+	}
+	systemUseCase, err := NewSystemAnalysisUseCaseBuilder().
+		WithService(service.NewSystemAnalysisService()).
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(service.NewSystemAnalysisFormatter()).
+		WithConfigLoader(service.NewSystemAnalysisConfigurationLoader()).
+		Build()
+	if err != nil {
+		t.Fatalf("build system analysis use case: %v", err)
+	}
+
+	builder := NewAnalyzeUseCaseBuilder().
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(service.NewAnalyzeFormatter()).
+		WithProgressManager(service.NewProgressManager()).
+		WithParallelExecutor(service.NewParallelExecutor()).
+		WithErrorCategorizer(service.NewErrorCategorizer()).
+		WithSystemUseCase(systemUseCase).
+		WithComplexityUseCase(NewComplexityUseCase(
+			service.NewComplexityService(),
+			service.NewFileReader(),
+			service.NewOutputFormatter(),
+			service.NewConfigurationLoader(),
+		))
+
+	useCase, err := builder.Build()
+	if err != nil {
+		t.Fatalf("build analyze use case: %v", err)
+	}
+
+	response, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipDeadCode:    true,
+		SkipClones:      true,
+		SkipCBO:         true,
+		SkipLCOM:        true,
+		SkipSystem:      false,
+		SkipCommunities: true,
+		MinComplexity:   5,
+	}, []string{sourcePath, "./hotspot.py"})
+	if err != nil {
+		t.Fatalf("execute analysis: %v", err)
+	}
+
+	if len(response.ModuleQuality) != 1 {
+		t.Fatalf("expected 1 module-quality entry, got %d", len(response.ModuleQuality))
+	}
+	module := response.ModuleQuality[0]
+	if module.FilePath != sourcePath {
+		t.Errorf("expected module path %q, got %q", sourcePath, module.FilePath)
+	}
+	if module.ModuleName == "" || module.LinesOfCode == 0 || module.FunctionCount == 0 {
+		t.Errorf("expected system metadata to join the relative module path, got %+v", module)
+	}
+	if module.AnalyzedFunctionCount <= len(response.Complexity.Functions) {
+		t.Errorf("expected module rollup to retain filtered complexity records: got %d records and %d visible results",
+			module.AnalyzedFunctionCount, len(response.Complexity.Functions))
+	}
+
+	systemOnly, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipComplexity:  true,
+		SkipDeadCode:    true,
+		SkipClones:      true,
+		SkipCBO:         true,
+		SkipLCOM:        true,
+		SkipCommunities: true,
+	}, []string{sourcePath})
+	if err != nil {
+		t.Fatalf("execute system-only analysis: %v", err)
+	}
+	if len(systemOnly.ModuleQuality) != 1 || systemOnly.ModuleQuality[0].FilePath != sourcePath {
+		t.Fatalf("expected system-only module path %q, got %+v", sourcePath, systemOnly.ModuleQuality)
+	}
+}
+
+func TestPrepareAnalysisPaths_PreservesFirstReportedPath(t *testing.T) {
+	projectRoot := t.TempDir()
+	t.Chdir(projectRoot)
+
+	absPath := filepath.Join(projectRoot, "pkg", "hot.py")
+	paths, pathIndex, err := prepareAnalysisPaths([]string{"pkg/hot.py", "pkg/../pkg/hot.py", absPath})
+	if err != nil {
+		t.Fatalf("prepare analysis paths: %v", err)
+	}
+	want := "pkg/hot.py"
+	if len(paths) != 1 || paths[0] != want {
+		t.Fatalf("expected first reported path %q, got %v", want, paths)
+	}
+	reported, err := pathIndex.reportedPath(absPath)
+	if err != nil {
+		t.Fatalf("resolve reported path: %v", err)
+	}
+	if reported != want {
+		t.Fatalf("expected indexed path %q, got %q", want, reported)
+	}
+}
+
 func TestAnalyzeUseCaseBuilder(t *testing.T) {
 	builder := NewAnalyzeUseCaseBuilder()
 

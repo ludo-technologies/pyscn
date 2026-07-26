@@ -127,6 +127,30 @@ func TestComplexityService_Analyze(t *testing.T) {
 		require.NotNil(t, response)
 		require.Len(t, response.Functions, 1)
 		assert.Equal(t, "branch", response.Functions[0].Name)
+		assert.Equal(t, 1, response.Summary.FunctionsParsed)
+	})
+
+	t.Run("module rollups ignore presentation filters", func(t *testing.T) {
+		tempDir := t.TempDir()
+		filePath := tempDir + "/mixed.py"
+		content := []byte("def unchanged():\n    return 1\n\n\ndef branch(x):\n    if x:\n        return 1\n    return 0\n")
+		require.NoError(t, os.WriteFile(filePath, content, 0644))
+
+		baselineRequest := newDefaultComplexityRequest(filePath)
+		baselineRequest.MinComplexity = 1
+		baselineRequest.ReportUnchanged = domain.BoolPtr(true)
+		baseline, err := service.Analyze(ctx, baselineRequest)
+		require.NoError(t, err)
+
+		filteredRequest := newDefaultComplexityRequest(filePath)
+		filteredRequest.MinComplexity = 5
+		filteredRequest.ReportUnchanged = domain.BoolPtr(false)
+		filtered, err := service.Analyze(ctx, filteredRequest)
+		require.NoError(t, err)
+
+		assert.NotEqual(t, baseline.Functions, filtered.Functions)
+		assert.Equal(t, baseline.ModuleRollups, filtered.ModuleRollups)
+		assert.Greater(t, baseline.ModuleRollups[filePath].AnalyzedFunctionCount, len(filtered.Functions))
 	})
 
 	t.Run("public metrics use literal statement counts", func(t *testing.T) {
@@ -385,7 +409,7 @@ func TestComplexityService_FilterFunctions(t *testing.T) {
 			MaxComplexity: 0,
 		}
 
-		filtered := service.filterFunctions(functions, req)
+		filtered, _ := service.filterFunctions(functions, req)
 
 		require.Len(t, filtered, 3)
 		assert.Equal(t, "func2", filtered[0].Name)
@@ -400,7 +424,7 @@ func TestComplexityService_FilterFunctions(t *testing.T) {
 			MaxComplexity: 8, // This should NOT filter out functions
 		}
 
-		filtered := service.filterFunctions(functions, req)
+		filtered, _ := service.filterFunctions(functions, req)
 
 		// All 4 functions should be returned (MaxComplexity doesn't filter)
 		require.Len(t, filtered, 4)
@@ -534,8 +558,8 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 		}
 
 		req := domain.ComplexityRequest{MinComplexity: 5}
-		filtered := service.filterFunctions(allFunctions, req)
-		summary := service.generateSummary(filtered, 1, req, len(allFunctions))
+		filtered, functionsParsed := service.filterFunctions(allFunctions, req)
+		summary := service.generateSummary(filtered, 1, req, functionsParsed)
 
 		assert.Equal(t, 1, summary.TotalFunctions, "post-filter count is 1")
 		assert.Equal(t, 3, summary.FunctionsParsed, "pre-filter total is 3 (2 dropped by min_complexity=5)")
