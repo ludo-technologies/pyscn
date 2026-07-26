@@ -77,7 +77,8 @@ func TestAnalyzeUseCase_Execute(t *testing.T) {
 
 func TestAnalyzeUseCase_Execute_PublishesModuleQuality(t *testing.T) {
 	tempDir := t.TempDir()
-	sourcePath := filepath.Join(tempDir, "hotspot.py")
+	t.Chdir(tempDir)
+	sourcePath := "hotspot.py"
 	source := `def hotspot(value):
 	if value > 10:
 		return value
@@ -113,7 +114,7 @@ func TestAnalyzeUseCase_Execute_PublishesModuleQuality(t *testing.T) {
 		SkipSystem:      true,
 		SkipCommunities: true,
 		MinComplexity:   5,
-	}, []string{sourcePath})
+	}, []string{sourcePath, "./hotspot.py"})
 	if err != nil {
 		t.Fatalf("execute analysis: %v", err)
 	}
@@ -131,18 +132,18 @@ func TestAnalyzeUseCase_Execute_PublishesModuleQuality(t *testing.T) {
 	}
 }
 
-func TestCanonicalAnalysisPaths_ResolvesRelativeInputsOnce(t *testing.T) {
+func TestDeduplicateAnalysisPaths_PreservesFirstReportedPath(t *testing.T) {
 	projectRoot := t.TempDir()
 	t.Chdir(projectRoot)
 
 	absPath := filepath.Join(projectRoot, "pkg", "hot.py")
-	paths, err := canonicalAnalysisPaths([]string{"pkg/hot.py", "pkg/../pkg/hot.py", absPath})
+	paths, err := deduplicateAnalysisPaths([]string{"pkg/hot.py", "pkg/../pkg/hot.py", absPath})
 	if err != nil {
-		t.Fatalf("canonicalize analysis paths: %v", err)
+		t.Fatalf("deduplicate analysis paths: %v", err)
 	}
-	want := absPath
+	want := "pkg/hot.py"
 	if len(paths) != 1 || paths[0] != want {
-		t.Fatalf("expected canonical path %q, got %v", want, paths)
+		t.Fatalf("expected first reported path %q, got %v", want, paths)
 	}
 }
 

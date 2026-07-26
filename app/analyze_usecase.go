@@ -284,7 +284,7 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no Python files found in the specified paths")
 	}
-	files, err = canonicalAnalysisPaths(files)
+	files, err = deduplicateAnalysisPaths(files)
 	if err != nil {
 		return nil, err
 	}
@@ -665,8 +665,8 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 	return response
 }
 
-func canonicalAnalysisPaths(paths []string) ([]string, error) {
-	canonical := make([]string, 0, len(paths))
+func deduplicateAnalysisPaths(paths []string) ([]string, error) {
+	unique := make([]string, 0, len(paths))
 	seen := make(map[string]struct{}, len(paths))
 	for _, path := range paths {
 		absolute, err := filepath.Abs(path)
@@ -678,9 +678,9 @@ func canonicalAnalysisPaths(paths []string) ([]string, error) {
 			continue
 		}
 		seen[cleaned] = struct{}{}
-		canonical = append(canonical, cleaned)
+		unique = append(unique, path)
 	}
-	return canonical, nil
+	return unique, nil
 }
 
 // markSummaryForTask ensures the summary reflects analyses that attempted to run
