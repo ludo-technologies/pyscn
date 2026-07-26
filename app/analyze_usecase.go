@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"math"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -356,7 +355,10 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 
 	// Build response
-	response := uc.buildResponse(tasks, startTime)
+	response, err := uc.buildResponse(tasks, startTime)
+	if err != nil {
+		return response, err
+	}
 
 	// Return aggregated error if any tasks failed
 	if len(errors) > 0 {
@@ -595,7 +597,7 @@ func (uc *AnalyzeUseCase) buildCloneTaskRequest(config AnalyzeUseCaseConfig, fil
 }
 
 // buildResponse builds the analyze response from task results
-func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Time) *domain.AnalyzeResponse {
+func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Time) (*domain.AnalyzeResponse, error) {
 	response := &domain.AnalyzeResponse{
 		GeneratedAt: time.Now(),
 		Duration:    time.Since(startTime).Milliseconds(),
@@ -653,8 +655,11 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 		}
 	}
 
-	response.ModuleQuality = domain.AggregateModuleQuality(response)
-	domain.ApplyModuleQualityToSystem(response.System, response.ModuleQuality)
+	moduleQuality, err := aggregateModuleQuality(response)
+	if err != nil {
+		return response, fmt.Errorf("assemble module quality: %w", err)
+	}
+	response.ModuleQuality = moduleQuality
 
 	// Calculate summary statistics
 	uc.calculateSummary(&response.Summary, response)
@@ -662,22 +667,21 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 	// Generate actionable suggestions from analysis results
 	response.Suggestions = domain.GenerateSuggestions(response)
 
-	return response
+	return response, nil
 }
 
 func deduplicateAnalysisPaths(paths []string) ([]string, error) {
 	unique := make([]string, 0, len(paths))
 	seen := make(map[string]struct{}, len(paths))
 	for _, path := range paths {
-		absolute, err := filepath.Abs(path)
+		identity, err := analysisPathIdentity(path)
 		if err != nil {
 			return nil, fmt.Errorf("resolve analysis path %q: %w", path, err)
 		}
-		cleaned := filepath.Clean(absolute)
-		if _, duplicate := seen[cleaned]; duplicate {
+		if _, duplicate := seen[identity]; duplicate {
 			continue
 		}
-		seen[cleaned] = struct{}{}
+		seen[identity] = struct{}{}
 		unique = append(unique, path)
 	}
 	return unique, nil

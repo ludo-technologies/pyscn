@@ -2,7 +2,6 @@ package domain
 
 import (
 	"path/filepath"
-	"sort"
 )
 
 // ModuleComplexityMetrics is the canonical module-level complexity contract.
@@ -25,7 +24,6 @@ type ModuleDeadCodeMetrics struct {
 }
 
 // ModuleQualityMetrics is the public per-file view assembled by unified analysis.
-// Metric values are embedded from the same contracts stored on dependency metrics.
 type ModuleQualityMetrics struct {
 	ModuleName              string `json:"module_name,omitempty" yaml:"module_name,omitempty"`
 	FilePath                string `json:"file_path" yaml:"file_path"`
@@ -100,105 +98,4 @@ func AggregateDeadCodeByModule(files []FileDeadCode) map[string]ModuleDeadCodeMe
 		modules[key] = module
 	}
 	return modules
-}
-
-// AggregateModuleQuality combines analyzer-owned, pre-filter rollups with
-// structural module metadata. Unified analysis gives every task the same
-// canonical absolute paths, so joins use exact cleaned identities.
-func AggregateModuleQuality(response *AnalyzeResponse) []ModuleQualityMetrics {
-	if response == nil {
-		return nil
-	}
-
-	modules := make(map[string]*ModuleQualityMetrics)
-	if response.System != nil && response.System.DependencyAnalysis != nil {
-		for moduleName, metadata := range response.System.DependencyAnalysis.ModuleMetrics {
-			if metadata == nil {
-				continue
-			}
-
-			module := getModuleQualityMetrics(modules, metadata.FilePath)
-			module.ModuleName = metadata.ModuleName
-			if module.ModuleName == "" {
-				module.ModuleName = moduleName
-			}
-			module.LinesOfCode = metadata.LinesOfCode
-			module.FunctionCount = metadata.FunctionCount
-		}
-	}
-
-	if response.Complexity != nil {
-		for filePath, complexity := range response.Complexity.ModuleRollups {
-			module := getModuleQualityMetrics(modules, filePath)
-			module.ModuleComplexityMetrics = complexity
-		}
-	}
-
-	if response.DeadCode != nil {
-		for filePath, deadCode := range response.DeadCode.ModuleRollups {
-			module := getModuleQualityMetrics(modules, filePath)
-			module.ModuleDeadCodeMetrics = deadCode
-		}
-	}
-
-	result := make([]ModuleQualityMetrics, 0, len(modules))
-	for _, module := range modules {
-		result = append(result, *module)
-	}
-	sortModuleQuality(result)
-	return result
-}
-
-// ApplyModuleQualityToSystem publishes the unified rollup on the existing
-// dependency metrics without coupling the parallel analyzer tasks together.
-func ApplyModuleQualityToSystem(system *SystemAnalysisResponse, quality []ModuleQualityMetrics) {
-	if system == nil || system.DependencyAnalysis == nil {
-		return
-	}
-
-	byPath := make(map[string]ModuleQualityMetrics, len(quality))
-	for _, module := range quality {
-		byPath[filepath.Clean(module.FilePath)] = module
-	}
-
-	for _, module := range system.DependencyAnalysis.ModuleMetrics {
-		if module == nil {
-			continue
-		}
-		qualityMetric, ok := byPath[filepath.Clean(module.FilePath)]
-		if !ok {
-			continue
-		}
-		module.ModuleComplexityMetrics = qualityMetric.ModuleComplexityMetrics
-		module.ModuleDeadCodeMetrics = qualityMetric.ModuleDeadCodeMetrics
-	}
-}
-
-func getModuleQualityMetrics(modules map[string]*ModuleQualityMetrics, path string) *ModuleQualityMetrics {
-	key := filepath.Clean(path)
-	module := modules[key]
-	if module == nil {
-		module = &ModuleQualityMetrics{FilePath: path}
-		modules[key] = module
-	}
-	return module
-}
-
-func sortModuleQuality(modules []ModuleQualityMetrics) {
-	sort.Slice(modules, func(i, j int) bool {
-		left, right := modules[i], modules[j]
-		if left.HighRiskFunctionCount != right.HighRiskFunctionCount {
-			return left.HighRiskFunctionCount > right.HighRiskFunctionCount
-		}
-		if left.MaxComplexity != right.MaxComplexity {
-			return left.MaxComplexity > right.MaxComplexity
-		}
-		if left.AverageComplexity != right.AverageComplexity {
-			return left.AverageComplexity > right.AverageComplexity
-		}
-		if left.DeadCodeFindingCount != right.DeadCodeFindingCount {
-			return left.DeadCodeFindingCount > right.DeadCodeFindingCount
-		}
-		return left.FilePath < right.FilePath
-	})
 }

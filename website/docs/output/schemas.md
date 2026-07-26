@@ -169,7 +169,7 @@ Each entry joins module identity and size from dependency analysis with analyzer
 | Field | Type | Description |
 | --- | --- | --- |
 | `module_name` | string \| absent | Importable Python module name when dependency analysis resolved it. |
-| `file_path` | string | Canonical absolute source path used by every unified-analysis task. |
+| `file_path` | string | Source path as reported by the analyzer. Relative input paths remain relative. |
 | `lines_of_code` | integer | Physical module line count from dependency analysis, or `0` when unavailable. |
 | `function_count` | integer | Total module function count from dependency analysis, or `0` when unavailable. |
 | `analyzed_function_count` | integer | Function complexity records before `min_complexity` and `report_unchanged` filters. The `<module>` pseudo-record is excluded. |
@@ -627,14 +627,6 @@ Mirrors `domain.SystemAnalysisResponse`. Nested field names are Go PascalCase.
 | `Maintainability`        | number  | Maintainability index, `0`–`100`.                        |
 | `TechnicalDebt`          | number  | Estimated technical debt in hours.                       |
 | `RiskLevel`              | string  | One of: `low`, `medium`, `high`.                         |
-| `analyzed_function_count`  | integer | Complexity records before presentation filters.        |
-| `average_complexity`       | number  | Mean cyclomatic complexity for the module.              |
-| `average_cognitive_complexity` | number | Mean cognitive complexity for the module.           |
-| `max_complexity`           | integer | Highest cyclomatic complexity in the module.            |
-| `high_risk_function_count` | integer | Complexity records assessed as high risk.               |
-| `exception_handler_count`  | integer | Exception handlers across all complexity records.       |
-| `dead_code_finding_count`   | integer | Findings before severity filtering.                     |
-| `dead_code_block_count`     | integer | Dead CFG blocks before severity filtering.              |
 | `DirectDependencies`     | array of string | Direct dependencies.                             |
 | `TransitiveDependencies` | array of string | All transitive dependencies.                     |
 | `Dependents`             | array of string | Modules depending on this one.                   |

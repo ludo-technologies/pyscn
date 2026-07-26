@@ -45,8 +45,9 @@ type SystemAnalysisRequest struct {
 	ArchitectureRules *ArchitectureRules
 
 	// Integration with other analyses
-	ComplexityData map[string]float64 // Module -> average complexity
-	DeadCodeData   map[string]int     // Module -> dead CFG block count
+	ComplexityData map[string]int     // Module -> average complexity
+	ClonesData     map[string]float64 // Module -> duplication ratio
+	DeadCodeData   map[string]int     // Module -> dead code lines
 }
 
 // SystemAnalysisResponse represents the complete system analysis result
@@ -145,11 +146,9 @@ type ModuleDependencyMetrics struct {
 	Distance         float64 // D - distance from main sequence
 
 	// Quality metrics
-	Maintainability         float64   // Maintainability index (0-100)
-	TechnicalDebt           float64   // Estimated technical debt in hours
-	RiskLevel               RiskLevel // Overall risk assessment
-	ModuleComplexityMetrics `yaml:",inline"`
-	ModuleDeadCodeMetrics   `yaml:",inline"`
+	Maintainability float64   // Maintainability index (0-100)
+	TechnicalDebt   float64   // Estimated technical debt in hours
+	RiskLevel       RiskLevel // Overall risk assessment
 
 	// Dependencies
 	DirectDependencies     []string // Modules this directly depends on
@@ -526,7 +525,8 @@ func DefaultSystemAnalysisRequest() *SystemAnalysisRequest {
 		ResponsibilityViolationSeverity: ViolationSeverityWarning,
 		IncludePatterns:                 DefaultPythonModuleIncludePatterns(),
 		ExcludePatterns:                 DefaultAnalysisExcludePatterns(),
-		ComplexityData:                  make(map[string]float64),
+		ComplexityData:                  make(map[string]int),
+		ClonesData:                      make(map[string]float64),
 		DeadCodeData:                    make(map[string]int),
 	}
 }

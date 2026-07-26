@@ -112,7 +112,7 @@ type ModuleMetrics struct {
 	PublicInterface    int // Number of public functions/classes
 
 	// Quality metrics
-	AverageComplexity float64 // Average complexity of functions
+	CyclomaticComplexity int // Average complexity of functions
 }
 
 // SystemMetrics contains system-wide quality metrics

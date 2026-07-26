@@ -87,6 +87,15 @@ func TestAnalyzeUseCase_Execute_PublishesModuleQuality(t *testing.T) {
 	if err := os.WriteFile(sourcePath, []byte(source), 0o644); err != nil {
 		t.Fatalf("write Python source: %v", err)
 	}
+	systemUseCase, err := NewSystemAnalysisUseCaseBuilder().
+		WithService(service.NewSystemAnalysisService()).
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(service.NewSystemAnalysisFormatter()).
+		WithConfigLoader(service.NewSystemAnalysisConfigurationLoader()).
+		Build()
+	if err != nil {
+		t.Fatalf("build system analysis use case: %v", err)
+	}
 
 	builder := NewAnalyzeUseCaseBuilder().
 		WithFileReader(service.NewFileReader()).
@@ -94,6 +103,7 @@ func TestAnalyzeUseCase_Execute_PublishesModuleQuality(t *testing.T) {
 		WithProgressManager(service.NewProgressManager()).
 		WithParallelExecutor(service.NewParallelExecutor()).
 		WithErrorCategorizer(service.NewErrorCategorizer()).
+		WithSystemUseCase(systemUseCase).
 		WithComplexityUseCase(NewComplexityUseCase(
 			service.NewComplexityService(),
 			service.NewFileReader(),
@@ -111,7 +121,7 @@ func TestAnalyzeUseCase_Execute_PublishesModuleQuality(t *testing.T) {
 		SkipClones:      true,
 		SkipCBO:         true,
 		SkipLCOM:        true,
-		SkipSystem:      true,
+		SkipSystem:      false,
 		SkipCommunities: true,
 		MinComplexity:   5,
 	}, []string{sourcePath, "./hotspot.py"})
@@ -125,6 +135,9 @@ func TestAnalyzeUseCase_Execute_PublishesModuleQuality(t *testing.T) {
 	module := response.ModuleQuality[0]
 	if module.FilePath != sourcePath {
 		t.Errorf("expected module path %q, got %q", sourcePath, module.FilePath)
+	}
+	if module.ModuleName == "" || module.LinesOfCode == 0 || module.FunctionCount == 0 {
+		t.Errorf("expected system metadata to join the relative module path, got %+v", module)
 	}
 	if module.AnalyzedFunctionCount <= len(response.Complexity.Functions) {
 		t.Errorf("expected module rollup to retain filtered complexity records: got %d records and %d visible results",
