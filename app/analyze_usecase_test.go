@@ -75,6 +75,40 @@ func TestAnalyzeUseCase_Execute(t *testing.T) {
 	}
 }
 
+func newModuleQualityAnalyzeUseCase(t *testing.T) *AnalyzeUseCase {
+	t.Helper()
+
+	systemUseCase, err := NewSystemAnalysisUseCaseBuilder().
+		WithService(service.NewSystemAnalysisService()).
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(service.NewSystemAnalysisFormatter()).
+		WithConfigLoader(service.NewSystemAnalysisConfigurationLoader()).
+		Build()
+	if err != nil {
+		t.Fatalf("build system analysis use case: %v", err)
+	}
+
+	useCase, err := NewAnalyzeUseCaseBuilder().
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(service.NewAnalyzeFormatter()).
+		WithProgressManager(service.NewProgressManager()).
+		WithParallelExecutor(service.NewParallelExecutor()).
+		WithErrorCategorizer(service.NewErrorCategorizer()).
+		WithSystemUseCase(systemUseCase).
+		WithComplexityUseCase(NewComplexityUseCase(
+			service.NewComplexityService(),
+			service.NewFileReader(),
+			service.NewOutputFormatter(),
+			service.NewConfigurationLoader(),
+		)).
+		Build()
+	if err != nil {
+		t.Fatalf("build analyze use case: %v", err)
+	}
+
+	return useCase
+}
+
 func TestAnalyzeUseCase_Execute_PublishesModuleQuality(t *testing.T) {
 	tempDir := t.TempDir()
 	t.Chdir(tempDir)
@@ -87,34 +121,7 @@ func TestAnalyzeUseCase_Execute_PublishesModuleQuality(t *testing.T) {
 	if err := os.WriteFile(sourcePath, []byte(source), 0o644); err != nil {
 		t.Fatalf("write Python source: %v", err)
 	}
-	systemUseCase, err := NewSystemAnalysisUseCaseBuilder().
-		WithService(service.NewSystemAnalysisService()).
-		WithFileReader(service.NewFileReader()).
-		WithFormatter(service.NewSystemAnalysisFormatter()).
-		WithConfigLoader(service.NewSystemAnalysisConfigurationLoader()).
-		Build()
-	if err != nil {
-		t.Fatalf("build system analysis use case: %v", err)
-	}
-
-	builder := NewAnalyzeUseCaseBuilder().
-		WithFileReader(service.NewFileReader()).
-		WithFormatter(service.NewAnalyzeFormatter()).
-		WithProgressManager(service.NewProgressManager()).
-		WithParallelExecutor(service.NewParallelExecutor()).
-		WithErrorCategorizer(service.NewErrorCategorizer()).
-		WithSystemUseCase(systemUseCase).
-		WithComplexityUseCase(NewComplexityUseCase(
-			service.NewComplexityService(),
-			service.NewFileReader(),
-			service.NewOutputFormatter(),
-			service.NewConfigurationLoader(),
-		))
-
-	useCase, err := builder.Build()
-	if err != nil {
-		t.Fatalf("build analyze use case: %v", err)
-	}
+	useCase := newModuleQualityAnalyzeUseCase(t)
 
 	response, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
 		SkipDeadCode:    true,
