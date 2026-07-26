@@ -594,6 +594,9 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 {{if .ModuleQuality}}
                 <button class="tab-button" onclick="showTab('module-quality', this)">Modules</button>
                 {{end}}
+                {{if .DirectoryQuality}}
+                <button class="tab-button" onclick="showTab('directory-quality', this)">Directories</button>
+                {{end}}
                 {{if .Suggestions}}
                 <button class="tab-button" onclick="showTab('suggestions', this)">Suggestions</button>
                 {{end}}
@@ -900,6 +903,53 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
 								<td data-sort-value="{{.ExceptionHandlerCount}}">{{.ExceptionHandlerCount}}</td>
                                 <td data-sort-value="{{.DeadCodeFindingCount}}">{{.DeadCodeFindingCount}}</td>
 								<td data-sort-value="{{.DeadCodeBlockCount}}">{{.DeadCodeBlockCount}}</td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {{end}}
+
+            {{if .DirectoryQuality}}
+            <div id="directory-quality" class="tab-content">
+                <h2>Directory Quality Hotspots</h2>
+                <p style="color: #666; margin-bottom: 20px;">Recursive project-root-relative rollups assembled from the complete module-quality population</p>
+                <div style="overflow-x: auto;">
+                    <table id="directory-quality-table" class="table">
+                        <thead>
+                            <tr>
+                                <th><button type="button" class="table-sort" aria-label="Sort by directory path" onclick="sortDirectoryQuality(0, false, this)">Directory</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by recursive module count" onclick="sortDirectoryQuality(1, true, this)">Modules</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by direct module count" onclick="sortDirectoryQuality(2, true, this)">Direct</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by lines of code" onclick="sortDirectoryQuality(3, true, this)">LOC</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by function count" onclick="sortDirectoryQuality(4, true, this)">Functions</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by analyzed function count" onclick="sortDirectoryQuality(5, true, this)">Analyzed</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by average complexity" onclick="sortDirectoryQuality(6, true, this)">Avg CC</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by average cognitive complexity" onclick="sortDirectoryQuality(7, true, this)">Avg Cognitive</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by maximum complexity" onclick="sortDirectoryQuality(8, true, this)">Max CC</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk function count" onclick="sortDirectoryQuality(9, true, this)">High Risk</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by exception handler count" onclick="sortDirectoryQuality(10, true, this)">Handlers</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by dead-code findings" onclick="sortDirectoryQuality(11, true, this)">Dead Findings</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by dead-code blocks" onclick="sortDirectoryQuality(12, true, this)">Dead Blocks</button></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range .DirectoryQuality}}
+                            <tr>
+                                <td data-sort-value="{{.DirectoryPath}}">{{.DirectoryPath}}</td>
+                                <td data-sort-value="{{.ModuleCount}}">{{.ModuleCount}}</td>
+                                <td data-sort-value="{{.DirectModuleCount}}">{{.DirectModuleCount}}</td>
+                                <td data-sort-value="{{.LinesOfCode}}">{{.LinesOfCode}}</td>
+                                <td data-sort-value="{{.FunctionCount}}">{{.FunctionCount}}</td>
+                                <td data-sort-value="{{.AnalyzedFunctionCount}}">{{.AnalyzedFunctionCount}}</td>
+                                <td data-sort-value="{{.AverageComplexity}}">{{printf "%.2f" .AverageComplexity}}</td>
+                                <td data-sort-value="{{.AverageCognitiveComplexity}}">{{printf "%.2f" .AverageCognitiveComplexity}}</td>
+                                <td data-sort-value="{{.MaxComplexity}}">{{.MaxComplexity}}</td>
+                                <td data-sort-value="{{.HighRiskFunctionCount}}">{{.HighRiskFunctionCount}}</td>
+                                <td data-sort-value="{{.ExceptionHandlerCount}}">{{.ExceptionHandlerCount}}</td>
+                                <td data-sort-value="{{.DeadCodeFindingCount}}">{{.DeadCodeFindingCount}}</td>
+                                <td data-sort-value="{{.DeadCodeBlockCount}}">{{.DeadCodeBlockCount}}</td>
                             </tr>
                             {{end}}
                         </tbody>
@@ -1566,8 +1616,8 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
     </div>
 
     <script>
-        function sortModuleQuality(columnIndex, numeric, button) {
-            const table = document.getElementById('module-quality-table');
+        function sortQualityTable(tableID, columnIndex, numeric, button) {
+            const table = document.getElementById(tableID);
             if (!table) { return; }
 
             const body = table.tBodies[0];
@@ -1589,6 +1639,14 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             table.querySelectorAll('.table-sort').forEach(control => delete control.dataset.direction);
             button.dataset.direction = direction;
             button.parentElement.setAttribute('aria-sort', direction === 'asc' ? 'ascending' : 'descending');
+        }
+
+        function sortModuleQuality(columnIndex, numeric, button) {
+            sortQualityTable('module-quality-table', columnIndex, numeric, button);
+        }
+
+        function sortDirectoryQuality(columnIndex, numeric, button) {
+            sortQualityTable('directory-quality-table', columnIndex, numeric, button);
         }
 
         function showTab(tabName, el) {

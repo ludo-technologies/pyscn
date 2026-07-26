@@ -634,6 +634,44 @@ func TestAnalyzeFormatter_Write_HTMLShowsSortableModuleQuality(t *testing.T) {
 	assert.Contains(t, html, `aria-label="Sort by dead-code blocks"`)
 }
 
+func TestAnalyzeFormatter_Write_HTMLShowsSortableDirectoryQuality(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.DirectoryQuality = []domain.DirectoryQualityMetrics{
+		{
+			DirectoryPath:     "pkg/core",
+			ModuleCount:       3,
+			DirectModuleCount: 2,
+			LinesOfCode:       180,
+			FunctionCount:     7,
+			ModuleComplexityMetrics: domain.ModuleComplexityMetrics{
+				AnalyzedFunctionCount:      5,
+				AverageComplexity:          6.5,
+				AverageCognitiveComplexity: 8,
+				MaxComplexity:              11,
+				HighRiskFunctionCount:      2,
+				ExceptionHandlerCount:      3,
+			},
+			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{
+				DeadCodeFindingCount: 4,
+				DeadCodeBlockCount:   6,
+			},
+		},
+	}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatHTML, &output))
+
+	html := output.String()
+	assert.Contains(t, html, "showTab('directory-quality'")
+	assert.Contains(t, html, `id="directory-quality-table"`)
+	assert.Contains(t, html, "pkg/core")
+	assert.Contains(t, html, "sortDirectoryQuality")
+	assert.Contains(t, html, `aria-label="Sort by recursive module count"`)
+	assert.Contains(t, html, `aria-label="Sort by direct module count"`)
+	assert.Contains(t, html, `aria-label="Sort by average complexity"`)
+	assert.Contains(t, html, `aria-label="Sort by dead-code blocks"`)
+}
+
 func TestAnalyzeFormatter_WriteHTML_ShowsCloneGroupContentWhenEnabled(t *testing.T) {
 	formatter := NewAnalyzeFormatter()
 	response := createTestAnalyzeResponse()
