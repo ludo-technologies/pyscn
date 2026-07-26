@@ -158,7 +158,7 @@ func writeQualityTextMetrics(writer io.Writer, functionCount int, complexity dom
 
 // writeCSV formats summary and quality metrics as CSV.
 func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.Writer) error {
-	rowCapacity := 16 + (12 * len(response.ModuleQuality))
+	rowCapacity := 17 + (12 * len(response.ModuleQuality)) + (13 * len(response.DirectoryQuality))
 	if response.Summary.CommunitiesEnabled && response.Communities != nil {
 		rowCapacity += 6
 	}
@@ -180,6 +180,7 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 		[]string{"High Coupling (CBO) Classes", fmt.Sprint(response.Summary.HighCouplingClasses)},
 		[]string{"Average CBO", fmt.Sprintf("%.2f", response.Summary.AverageCoupling)},
 		[]string{"Module Quality Count", fmt.Sprint(len(response.ModuleQuality))},
+		[]string{"Directory Quality Count", fmt.Sprint(len(response.DirectoryQuality))},
 	)
 
 	for index, module := range response.ModuleQuality {
@@ -189,15 +190,20 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 			[]string{prefix + "File Path", module.FilePath},
 			[]string{prefix + "Lines of Code", fmt.Sprint(module.LinesOfCode)},
 			[]string{prefix + "Function Count", fmt.Sprint(module.FunctionCount)},
-			[]string{prefix + "Analyzed Function Count", fmt.Sprint(module.AnalyzedFunctionCount)},
-			[]string{prefix + "Average Complexity", fmt.Sprintf("%.2f", module.AverageComplexity)},
-			[]string{prefix + "Average Cognitive Complexity", fmt.Sprintf("%.2f", module.AverageCognitiveComplexity)},
-			[]string{prefix + "Max Complexity", fmt.Sprint(module.MaxComplexity)},
-			[]string{prefix + "High Risk Function Count", fmt.Sprint(module.HighRiskFunctionCount)},
-			[]string{prefix + "Exception Handler Count", fmt.Sprint(module.ExceptionHandlerCount)},
-			[]string{prefix + "Dead Code Findings", fmt.Sprint(module.DeadCodeFindingCount)},
-			[]string{prefix + "Dead Code Blocks", fmt.Sprint(module.DeadCodeBlockCount)},
 		)
+		rows = append(rows, qualityMetricCSVRows(prefix, module.ModuleComplexityMetrics, module.ModuleDeadCodeMetrics)...)
+	}
+
+	for index, directory := range response.DirectoryQuality {
+		prefix := fmt.Sprintf("Directory %d ", index+1)
+		rows = append(rows,
+			[]string{prefix + "Path", directory.DirectoryPath},
+			[]string{prefix + "Module Count", fmt.Sprint(directory.ModuleCount)},
+			[]string{prefix + "Direct Module Count", fmt.Sprint(directory.DirectModuleCount)},
+			[]string{prefix + "Lines of Code", fmt.Sprint(directory.LinesOfCode)},
+			[]string{prefix + "Function Count", fmt.Sprint(directory.FunctionCount)},
+		)
+		rows = append(rows, qualityMetricCSVRows(prefix, directory.ModuleComplexityMetrics, directory.ModuleDeadCodeMetrics)...)
 	}
 
 	if response.Summary.CommunitiesEnabled && response.Communities != nil {
@@ -224,6 +230,19 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	}
 
 	return nil
+}
+
+func qualityMetricCSVRows(prefix string, complexity domain.ModuleComplexityMetrics, deadCode domain.ModuleDeadCodeMetrics) [][]string {
+	return [][]string{
+		{prefix + "Analyzed Function Count", fmt.Sprint(complexity.AnalyzedFunctionCount)},
+		{prefix + "Average Complexity", fmt.Sprintf("%.2f", complexity.AverageComplexity)},
+		{prefix + "Average Cognitive Complexity", fmt.Sprintf("%.2f", complexity.AverageCognitiveComplexity)},
+		{prefix + "Max Complexity", fmt.Sprint(complexity.MaxComplexity)},
+		{prefix + "High Risk Function Count", fmt.Sprint(complexity.HighRiskFunctionCount)},
+		{prefix + "Exception Handler Count", fmt.Sprint(complexity.ExceptionHandlerCount)},
+		{prefix + "Dead Code Findings", fmt.Sprint(deadCode.DeadCodeFindingCount)},
+		{prefix + "Dead Code Blocks", fmt.Sprint(deadCode.DeadCodeBlockCount)},
+	}
 }
 
 // writeHTML formats the response as HTML

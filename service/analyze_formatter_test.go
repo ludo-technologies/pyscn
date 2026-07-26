@@ -512,6 +512,58 @@ func TestAnalyzeFormatter_Write_CSVIncludesModuleQuality(t *testing.T) {
 	assert.Equal(t, "3", metrics["Module 1 Dead Code Blocks"])
 }
 
+func TestAnalyzeFormatter_Write_CSVIncludesDirectoryQuality(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.DirectoryQuality = []domain.DirectoryQualityMetrics{
+		{
+			DirectoryPath:     "pkg,core",
+			ModuleCount:       3,
+			DirectModuleCount: 2,
+			LinesOfCode:       180,
+			FunctionCount:     7,
+			ModuleComplexityMetrics: domain.ModuleComplexityMetrics{
+				AnalyzedFunctionCount:      5,
+				AverageComplexity:          6.5,
+				AverageCognitiveComplexity: 8,
+				MaxComplexity:              11,
+				HighRiskFunctionCount:      2,
+				ExceptionHandlerCount:      3,
+			},
+			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{
+				DeadCodeFindingCount: 4,
+				DeadCodeBlockCount:   6,
+			},
+		},
+	}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatCSV, &output))
+
+	records, err := csv.NewReader(strings.NewReader(output.String())).ReadAll()
+	require.NoError(t, err)
+
+	metrics := make(map[string]string, len(records))
+	for _, record := range records[1:] {
+		require.Len(t, record, 2)
+		metrics[record[0]] = record[1]
+	}
+
+	assert.Equal(t, "1", metrics["Directory Quality Count"])
+	assert.Equal(t, "pkg,core", metrics["Directory 1 Path"])
+	assert.Equal(t, "3", metrics["Directory 1 Module Count"])
+	assert.Equal(t, "2", metrics["Directory 1 Direct Module Count"])
+	assert.Equal(t, "180", metrics["Directory 1 Lines of Code"])
+	assert.Equal(t, "7", metrics["Directory 1 Function Count"])
+	assert.Equal(t, "5", metrics["Directory 1 Analyzed Function Count"])
+	assert.Equal(t, "6.50", metrics["Directory 1 Average Complexity"])
+	assert.Equal(t, "8.00", metrics["Directory 1 Average Cognitive Complexity"])
+	assert.Equal(t, "11", metrics["Directory 1 Max Complexity"])
+	assert.Equal(t, "2", metrics["Directory 1 High Risk Function Count"])
+	assert.Equal(t, "3", metrics["Directory 1 Exception Handler Count"])
+	assert.Equal(t, "4", metrics["Directory 1 Dead Code Findings"])
+	assert.Equal(t, "6", metrics["Directory 1 Dead Code Blocks"])
+}
+
 type failingAnalyzeWriter struct{}
 
 func (failingAnalyzeWriter) Write([]byte) (int, error) {
