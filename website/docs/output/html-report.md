@@ -32,7 +32,7 @@ Category score cards and tabs only appear for analyzers that ran. Architecture a
 | --- | --- |
 | Summary | High-level numbers and grade. |
 | Modules | Sortable per-module size, analyzed-record count, complexity, cognitive complexity, high-risk count, exception handlers, dead-code findings, and dead CFG blocks. |
-| Directories | Sortable recursive directory rollups with direct/recursive module counts and the same quality metrics as the module table. |
+| Directories | Sortable direct-directory rollups of reported function count, complexity, risk, and nesting depth. |
 | Complexity | Sortable table of functions with McCabe / cognitive complexity, nesting depth, risk. |
 | Dead Code | Findings grouped by severity with file:line and reason. |
 | Clones | Clone groups with similarity and clone type. |
@@ -43,9 +43,9 @@ Category score cards and tabs only appear for analyzers that ran. Architecture a
 
 ## JavaScript
 
-Inline functions switch tabs and route the module and directory tables through one shared sorter. No network requests are made.
+Inline functions switch tabs and route the module and directory tables through one shared sorter. No network requests are made. Standalone `pyscn complexity --html` reports render the same directory metrics above the function table.
 
-Module rollups use the full analyzer population before `min_complexity`, `report_unchanged`, or `min_severity` presentation filters. Directory rollups fold those module records without rerunning analyzers. Changing presentation filters changes the detail tabs, not either hotspot table.
+Module rollups use the full analyzer population before `min_complexity`, `report_unchanged`, or `min_severity` presentation filters. Directory complexity uses the reported function population after complexity filters, so its counts and averages reconcile with the Complexity tab.
 
 ## CSS
 
