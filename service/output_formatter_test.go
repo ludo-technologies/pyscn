@@ -45,6 +45,17 @@ func createTestComplexityResponse() *domain.ComplexityResponse {
 				RiskLevel: domain.RiskLevelHigh,
 			},
 		},
+		ByDirectory: []domain.DirectoryComplexityMetrics{
+			{
+				DirectoryPath:         ".",
+				FunctionCount:         2,
+				AverageComplexity:     5,
+				MaxComplexity:         8,
+				HighRiskFunctionCount: 1,
+				AverageNestingDepth:   1.5,
+				MaxNestingDepth:       2,
+			},
+		},
 		Summary: domain.ComplexitySummary{
 			TotalFunctions:      2,
 			FunctionsParsed:     2,
@@ -140,6 +151,7 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Contains(t, result, "metadata") // contains generated_at and version
 				assert.Contains(t, result, "raw_metrics")
 				assert.Contains(t, result, "raw_metrics_summary")
+				assert.Contains(t, result, "by_directory")
 
 				// Verify results array (contains functions)
 				functions, ok := result["results"].([]interface{})
@@ -163,6 +175,14 @@ func TestOutputFormatter_Format(t *testing.T) {
 				rawMetrics, ok := result["raw_metrics"].([]interface{})
 				assert.True(t, ok)
 				assert.Len(t, rawMetrics, 1)
+
+				directories, ok := result["by_directory"].([]interface{})
+				require.True(t, ok)
+				require.Len(t, directories, 1)
+				directory := directories[0].(map[string]interface{})
+				assert.Equal(t, ".", directory["directory_path"])
+				assert.Equal(t, float64(2), directory["function_count"])
+				assert.Equal(t, 1.5, directory["average_nesting_depth"])
 			},
 			expectError: false,
 		},
@@ -213,6 +233,7 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Contains(t, result, "metadata") // contains generated_at and version
 				assert.Contains(t, result, "raw_metrics")
 				assert.Contains(t, result, "raw_metrics_summary")
+				assert.Contains(t, result, "by_directory")
 
 				// Verify results array (contains functions)
 				functions, ok := result["results"].([]interface{})
@@ -228,6 +249,14 @@ func TestOutputFormatter_Format(t *testing.T) {
 				rawMetrics, ok := result["raw_metrics"].([]interface{})
 				assert.True(t, ok)
 				assert.Len(t, rawMetrics, 1)
+
+				directories, ok := result["by_directory"].([]interface{})
+				require.True(t, ok)
+				require.Len(t, directories, 1)
+				directory := directories[0].(map[string]interface{})
+				assert.Equal(t, ".", directory["directory_path"])
+				assert.Equal(t, 2, directory["function_count"])
+				assert.Equal(t, 1.5, directory["average_nesting_depth"])
 			},
 			expectError: false,
 		},
