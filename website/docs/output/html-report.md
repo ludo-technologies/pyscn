@@ -21,7 +21,7 @@ The file is self-contained and safe to archive, email, or serve from any static 
 | Header | Project name, generation timestamp, pyscn version, duration. |
 | Overall score card | Health Score (0–100), grade badge (A–F). |
 | Category score cards | One per enabled analyzer with its 0–100 score. |
-| Tabs | Summary, Modules, Complexity, Dead Code, Clones, Coupling, Cohesion, Dependencies, Architecture. |
+| Tabs | Summary, Modules, Directories, Complexity, Dead Code, Clones, Coupling, Cohesion, Dependencies, Architecture. |
 | Footer | Link to pyscn repository and version string. |
 
 Category score cards and tabs only appear for analyzers that ran. Architecture appears only if `[architecture]` layers are configured.
@@ -32,6 +32,7 @@ Category score cards and tabs only appear for analyzers that ran. Architecture a
 | --- | --- |
 | Summary | High-level numbers and grade. |
 | Modules | Sortable per-module size, analyzed-record count, complexity, cognitive complexity, high-risk count, exception handlers, dead-code findings, and dead CFG blocks. |
+| Directories | Sortable recursive directory rollups with direct/recursive module counts and the same quality metrics as the module table. |
 | Complexity | Sortable table of functions with McCabe / cognitive complexity, nesting depth, risk. |
 | Dead Code | Findings grouped by severity with file:line and reason. |
 | Clones | Clone groups with similarity and clone type. |
@@ -42,9 +43,9 @@ Category score cards and tabs only appear for analyzers that ran. Architecture a
 
 ## JavaScript
 
-Two inline functions execute: `showTab(id)` switches between tabs and `sortModuleQuality(...)` sorts the module table. No network requests are made.
+Inline functions switch tabs and route the module and directory tables through one shared sorter. No network requests are made.
 
-Module rollups use the full analyzer population before `min_complexity`, `report_unchanged`, or `min_severity` presentation filters. Changing those filters changes the detail tabs, not the hotspot totals.
+Module rollups use the full analyzer population before `min_complexity`, `report_unchanged`, or `min_severity` presentation filters. Directory rollups fold those module records without rerunning analyzers. Changing presentation filters changes the detail tabs, not either hotspot table.
 
 ## CSS
 

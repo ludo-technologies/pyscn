@@ -29,6 +29,7 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
   "community_analysis": { /* CommunityAnalysisResult, present when communities enabled */ },
   "mock_data":          { /* MockDataResponse, present when enabled */ },
   "module_quality":     [ /* ModuleQualityMetrics array, omitted when empty */ ],
+  "directory_quality":  [ /* DirectoryQualityMetrics array, omitted when empty */ ],
   "suggestions":   [ /* Suggestion array, omitted when empty */ ],
   "summary":       { /* AnalyzeSummary, always present */ },
   "generated_at":  "2026-04-14T10:18:23Z",
@@ -48,6 +49,7 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
 | `community_analysis` | object \| absent | Present when module community detection ran.          | stable |
 | `mock_data`          | object \| absent | Present when mock data detection ran.                 | stable |
 | `module_quality`     | array \| absent  | Per-module quality rollups. Omitted when no analyzer produced module data. | stable |
+| `directory_quality`  | array \| absent  | Recursive directory quality rollups. Omitted when no module quality data was produced. | stable |
 | `suggestions` | array \| absent   | Derived suggestions. Omitted when empty.               | stable    |
 | `summary`     | object            | Always present. See [`summary`](#summary-object).      | stable    |
 | `generated_at`| string (RFC 3339) | Analysis completion time.                              | stable    |
@@ -182,6 +184,28 @@ Each entry joins module identity and size from dependency analysis with analyzer
 | `dead_code_block_count` | integer | Distinct unreachable CFG blocks represented by detector findings before `min_severity` filtering. |
 
 Entries are ordered by high-risk function count, maximum complexity, average complexity, dead-code findings, then file path. This places the most actionable modules first while retaining deterministic ties.
+
+## `directory_quality` array
+
+Each entry recursively folds the canonical `module_quality` population into a directory relative to the common directory explicitly selected for analysis. The root is `.`. Directory discovery never searches parent directories for project markers, and the aggregation performs no source reads or analyzer passes.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `directory_path` | string | Directory relative to the analyzed root. The root entry is `.`. |
+| `module_count` | integer | Modules in this directory and all descendant directories. |
+| `direct_module_count` | integer | Modules whose files are directly in this directory. |
+| `lines_of_code` | integer | Recursive sum of module physical line counts. |
+| `function_count` | integer | Recursive sum of module function counts. |
+| `analyzed_function_count` | integer | Recursive sum of pre-filter function complexity records. |
+| `average_complexity` | number | Function-weighted mean cyclomatic complexity for the directory subtree. |
+| `average_cognitive_complexity` | number | Function-weighted mean cognitive complexity for the directory subtree. |
+| `max_complexity` | integer | Maximum cyclomatic complexity in the directory subtree. |
+| `high_risk_function_count` | integer | Recursive sum of high-risk function records. |
+| `exception_handler_count` | integer | Recursive sum of exception handlers. |
+| `dead_code_finding_count` | integer | Recursive sum of pre-filter dead-code findings. |
+| `dead_code_block_count` | integer | Recursive sum of distinct unreachable CFG blocks within modules. |
+
+When multiple input paths are supplied, their common directory is the analyzed root. File inputs participate through their parent directories. Entries use the same hotspot ordering as `module_quality`, with directory path as the deterministic tie-breaker.
 
 ## `complexity` object
 
@@ -735,6 +759,7 @@ Total Classes Analyzed,<integer>
 High Coupling (CBO) Classes,<integer>
 Average CBO,<float with 2 decimals>
 Module Quality Count,<integer>
+Directory Quality Count,<integer>
 Module 1 Name,<string>
 Module 1 File Path,<string>
 Module 1 Lines of Code,<integer>
@@ -747,9 +772,22 @@ Module 1 High Risk Function Count,<integer>
 Module 1 Exception Handler Count,<integer>
 Module 1 Dead Code Findings,<integer>
 Module 1 Dead Code Blocks,<integer>
+Directory 1 Path,<string>
+Directory 1 Module Count,<integer>
+Directory 1 Direct Module Count,<integer>
+Directory 1 Lines of Code,<integer>
+Directory 1 Function Count,<integer>
+Directory 1 Analyzed Function Count,<integer>
+Directory 1 Average Complexity,<float with 2 decimals>
+Directory 1 Average Cognitive Complexity,<float with 2 decimals>
+Directory 1 Max Complexity,<integer>
+Directory 1 High Risk Function Count,<integer>
+Directory 1 Exception Handler Count,<integer>
+Directory 1 Dead Code Findings,<integer>
+Directory 1 Dead Code Blocks,<integer>
 ```
 
-The numbered module row group repeats once per `module_quality` entry in the same order. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
+The numbered module and directory row groups repeat once per corresponding entry in the same order. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
 
 ## `community_analysis` object { #community-analysis-object }
 
