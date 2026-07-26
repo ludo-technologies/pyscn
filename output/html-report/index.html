@@ -3489,7 +3489,7 @@
 </tr>
 <tr>
 <td>Tabs</td>
-<td>Summary, Complexity, Dead Code, Clones, Coupling, Cohesion, Dependencies, Architecture.</td>
+<td>Summary, Modules, Complexity, Dead Code, Clones, Coupling, Cohesion, Dependencies, Architecture.</td>
 </tr>
 <tr>
 <td>Footer</td>
@@ -3510,6 +3510,10 @@
 <tr>
 <td>Summary</td>
 <td>High-level numbers and grade.</td>
+</tr>
+<tr>
+<td>Modules</td>
+<td>Sortable per-module size, analyzed-record count, complexity, cognitive complexity, high-risk count, exception handlers, dead-code findings, and dead CFG blocks.</td>
 </tr>
 <tr>
 <td>Complexity</td>
@@ -3542,7 +3546,8 @@
 </tbody>
 </table>
 <h2 id="javascript">JavaScript<a class="headerlink" href="#javascript" title="Permanent link">&para;</a></h2>
-<p>One inline function, <code>showTab(id)</code>, switches between tabs. No other scripts execute. No network requests.</p>
+<p>Two inline functions execute: <code>showTab(id)</code> switches between tabs and <code>sortModuleQuality(...)</code> sorts the module table. No network requests are made.</p>
+<p>Module rollups use the full analyzer population before <code>min_complexity</code>, <code>report_unchanged</code>, or <code>min_severity</code> presentation filters. Changing those filters changes the detail tabs, not the hotspot totals.</p>
 <h2 id="css">CSS<a class="headerlink" href="#css" title="Permanent link">&para;</a></h2>
 <p>Styles use CSS custom properties with these names:</p>
 <table>

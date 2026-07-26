@@ -3484,6 +3484,7 @@
 <li>Module community detection</li>
 </ul>
 <p>Results are combined into a single report with a <a href="../../output/health-score/">Health Score</a>.</p>
+<p>Module hotspot rollups use the complete analyzer results before <code>--min-complexity</code>, <code>report_unchanged</code>, and <code>--min-severity</code> presentation filters. This keeps file-to-file comparisons stable when detail thresholds change.</p>
 <h2 id="flags">Flags<a class="headerlink" href="#flags" title="Permanent link">&para;</a></h2>
 <h3 id="output-format">Output format<a class="headerlink" href="#output-format" title="Permanent link">&para;</a></h3>
 <p>Only one of these may be set per invocation. If none is set, HTML is generated.</p>
@@ -3509,7 +3510,7 @@
 </tr>
 <tr>
 <td><code>--csv</code></td>
-<td>Generate CSV summary (metrics only, no per-finding detail).</td>
+<td>Generate CSV summary and per-module quality rollups (no per-finding detail).</td>
 </tr>
 <tr>
 <td><code>--no-open</code></td>
