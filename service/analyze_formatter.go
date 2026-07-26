@@ -128,25 +128,7 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 	}
 
 	if response.Complexity != nil && len(response.Complexity.ByDirectory) > 0 {
-		var section strings.Builder
-		section.WriteString(utils.FormatSectionHeader("DIRECTORY COMPLEXITY"))
-		for index, directory := range response.Complexity.ByDirectory {
-			if index >= 10 {
-				break
-			}
-
-			fmt.Fprintf(&section, "  %s\n", directory.DirectoryPath)
-			fmt.Fprintf(&section, "    Functions: %d\n", directory.FunctionCount)
-			fmt.Fprintf(&section, "    Complexity: avg %.2f, max %d, high-risk %d\n",
-				directory.AverageComplexity, directory.MaxComplexity, directory.HighRiskFunctionCount)
-			fmt.Fprintf(&section, "    Nesting: avg %.2f, max %d\n",
-				directory.AverageNestingDepth, directory.MaxNestingDepth)
-		}
-		if len(response.Complexity.ByDirectory) > 10 {
-			fmt.Fprintf(&section, "  Showing top 10 of %d directories\n", len(response.Complexity.ByDirectory))
-		}
-		section.WriteString(utils.FormatSectionSeparator())
-		if _, err := io.WriteString(writer, section.String()); err != nil {
+		if _, err := io.WriteString(writer, formatDirectoryComplexityText(response.Complexity.ByDirectory, 10)); err != nil {
 			return domain.NewOutputError("failed to write directory complexity text", err)
 		}
 	}

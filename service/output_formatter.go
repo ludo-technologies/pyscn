@@ -77,6 +77,7 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 		response.Summary.HighRiskFunctions,
 		response.Summary.MediumRiskFunctions,
 		response.Summary.LowRiskFunctions))
+	builder.WriteString(formatDirectoryComplexityText(response.ByDirectory, 0))
 
 	if response.RawMetricsSummary != nil {
 		builder.WriteString(utils.FormatSectionHeader("RAW CODE METRICS"))
