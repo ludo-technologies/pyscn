@@ -36,7 +36,7 @@ Only one of these may be set per invocation. If none is set, HTML is generated.
 | `--html`    | Generate HTML report (default). |
 | `--json`    | Generate JSON report. |
 | `--yaml`    | Generate YAML report. |
-| `--csv`     | Generate CSV summary and per-module quality rollups (no per-finding detail). |
+| `--csv`     | Generate CSV summary, module-quality, community, and directory-complexity rollups (no per-finding detail). |
 | `--text`    | Generate a human-readable plain-text report. |
 | `--no-open` | Do not open the HTML report in a browser. |
 

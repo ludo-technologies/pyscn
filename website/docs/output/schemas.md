@@ -199,6 +199,8 @@ Each entry groups the reported `complexity.Functions` population by its direct d
 
 When multiple input paths are supplied, their common directory is the analyzed root. File inputs participate through their parent directories. The root entry is `.`. Entries are ordered by high-risk count, maximum complexity, average complexity, then directory path.
 
+When complexity analysis completes with no reported functions, `by_directory` is present as an empty array in JSON and YAML.
+
 ## `complexity` object
 
 Mirrors `domain.ComplexityResponse`. Nested field names are Go PascalCase.
