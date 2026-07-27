@@ -728,7 +728,7 @@ CSV outputs are written with RFC 4180 quoting via the Go `encoding/csv` package.
 
 ### `pyscn analyze --csv`
 
-Summary and module-quality metrics. Two columns. Literal UTF-8 strings, no type annotations.
+Summary, module-quality, optional community, and directory-complexity metrics. Two columns. Literal UTF-8 strings, no type annotations.
 
 | Column   | Type   | Description              |
 | -------- | ------ | ------------------------ |
