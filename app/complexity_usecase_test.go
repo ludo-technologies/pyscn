@@ -548,6 +548,64 @@ def nested(left, right):
 	}
 }
 
+func TestComplexityUseCase_AnalyzeAndReturn_GroupsMultipleAnalysisRoots(t *testing.T) {
+	projectRoot := t.TempDir()
+	rootFile := filepath.Join(projectRoot, "root.py")
+	leftDir := filepath.Join(projectRoot, "left")
+	rightDir := filepath.Join(projectRoot, "right")
+	require.NoError(t, os.MkdirAll(leftDir, 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(rightDir, "sub"), 0o755))
+	require.NoError(t, os.WriteFile(rootFile, []byte("def root_function():\n\treturn 1\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(leftDir, "branch.py"), []byte(`def branch(value):
+	if value:
+		return 1
+	return 0
+`), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(rightDir, "sub", "hotspot.py"), []byte(`def hotspot(a, b, c, d):
+	if a:
+		if b:
+			if c:
+				if d:
+					return 1
+	return 0
+`), 0o644))
+
+	useCase := NewComplexityUseCase(
+		svc.NewComplexityService(),
+		svc.NewFileReader(),
+		svc.NewOutputFormatter(),
+		nil,
+	)
+	response, err := useCase.AnalyzeAndReturn(context.Background(), domain.ComplexityRequest{
+		Paths:           []string{rootFile, leftDir, rightDir},
+		OutputFormat:    domain.OutputFormatJSON,
+		OutputWriter:    io.Discard,
+		MinComplexity:   1,
+		SortBy:          domain.SortByComplexity,
+		LowThreshold:    1,
+		MediumThreshold: 3,
+		ReportUnchanged: domain.BoolPtr(true),
+		Recursive:       domain.BoolPtr(true),
+	})
+	require.NoError(t, err)
+	require.Len(t, response.Functions, 6)
+	require.Len(t, response.ByDirectory, 3)
+
+	assert.Equal(t, filepath.Join("right", "sub"), response.ByDirectory[0].DirectoryPath)
+	assert.Equal(t, 1, response.ByDirectory[0].HighRiskFunctionCount)
+	assert.Equal(t, 2, response.ByDirectory[0].FunctionCount)
+	assert.Equal(t, "left", response.ByDirectory[1].DirectoryPath)
+	assert.Equal(t, 2, response.ByDirectory[1].FunctionCount)
+	assert.Equal(t, ".", response.ByDirectory[2].DirectoryPath)
+	assert.Equal(t, 2, response.ByDirectory[2].FunctionCount)
+
+	rolledUpFunctions := 0
+	for _, directory := range response.ByDirectory {
+		rolledUpFunctions += directory.FunctionCount
+	}
+	assert.Equal(t, len(response.Functions), rolledUpFunctions)
+}
+
 func TestComplexityUseCase_validateRequest(t *testing.T) {
 	useCase := &ComplexityUseCase{}
 

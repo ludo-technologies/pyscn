@@ -122,9 +122,9 @@ type FunctionComplexity struct {
 	RiskLevel RiskLevel
 }
 
-// DirectoryComplexityMetrics aggregates the reported function population for
-// one project-root-relative directory. Its counts and averages reconcile with
-// ComplexityResponse.Functions after presentation filters are applied.
+// DirectoryComplexityMetrics aggregates reported ComplexityResponse.Functions
+// entries for one project-root-relative directory. This includes a <module>
+// pseudo-entry when it survives presentation filters, matching summary counts.
 type DirectoryComplexityMetrics struct {
 	DirectoryPath         string  `json:"directory_path" yaml:"directory_path"`
 	FunctionCount         int     `json:"function_count" yaml:"function_count"`

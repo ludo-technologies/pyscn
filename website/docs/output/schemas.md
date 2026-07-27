@@ -190,7 +190,7 @@ Each entry groups the reported `complexity.Functions` population by its direct d
 | Field | Type | Description |
 | --- | --- | --- |
 | `directory_path` | string | Directory relative to the analyzed root. The root entry is `.`. |
-| `function_count` | integer | Reported functions whose files are directly in this directory. |
+| `function_count` | integer | Reported `complexity.Functions` entries whose files are directly in this directory, including a `<module>` pseudo-entry when it survives presentation filters. |
 | `average_complexity` | number | Mean cyclomatic complexity of those functions. |
 | `max_complexity` | integer | Maximum cyclomatic complexity of those functions. |
 | `high_risk_function_count` | integer | Reported functions classified as high risk. |
