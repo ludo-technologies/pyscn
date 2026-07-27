@@ -187,6 +187,19 @@ func TestOutputFormatter_Format(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name:     "format empty directory collection as JSON",
+			response: &domain.ComplexityResponse{},
+			format:   domain.OutputFormatJSON,
+			validateOutput: func(t *testing.T, output string) {
+				var result map[string]interface{}
+				require.NoError(t, json.Unmarshal([]byte(output), &result))
+				directories, ok := result["by_directory"].([]interface{})
+				require.True(t, ok)
+				assert.Empty(t, directories)
+			},
+			expectError: false,
+		},
+		{
 			name:     "format as CSV",
 			response: createTestComplexityResponse(),
 			format:   domain.OutputFormatCSV,

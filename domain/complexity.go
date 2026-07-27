@@ -186,7 +186,7 @@ type ComplexitySummary struct {
 type ComplexityResponse struct {
 	// Analysis results
 	Functions   []FunctionComplexity
-	ByDirectory []DirectoryComplexityMetrics `json:"by_directory,omitempty" yaml:"by_directory,omitempty"`
+	ByDirectory []DirectoryComplexityMetrics `json:"by_directory" yaml:"by_directory"`
 	Summary     ComplexitySummary
 	// ModuleRollups are derived before report filters are applied. They are consumed
 	// by the unified analyze command and are not part of standalone complexity output.

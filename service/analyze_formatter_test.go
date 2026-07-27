@@ -415,6 +415,35 @@ func TestAnalyzeFormatter_Write_SerializesDirectoryComplexity(t *testing.T) {
 	}
 }
 
+func TestAnalyzeFormatter_Write_SerializesEmptyDirectoryComplexity(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.Complexity = &domain.ComplexityResponse{
+		ByDirectory: []domain.DirectoryComplexityMetrics{},
+	}
+
+	for _, format := range []domain.OutputFormat{domain.OutputFormatJSON, domain.OutputFormatYAML} {
+		t.Run(string(format), func(t *testing.T) {
+			var output bytes.Buffer
+			require.NoError(t, NewAnalyzeFormatter().Write(response, format, &output))
+
+			var contract map[string]any
+			switch format {
+			case domain.OutputFormatJSON:
+				require.NoError(t, json.Unmarshal(output.Bytes(), &contract))
+			case domain.OutputFormatYAML:
+				require.NoError(t, yaml.Unmarshal(output.Bytes(), &contract))
+			default:
+				t.Fatalf("unsupported test format %q", format)
+			}
+			complexityContract, ok := contract["complexity"].(map[string]any)
+			require.True(t, ok)
+			directories, ok := complexityContract["by_directory"].([]any)
+			require.True(t, ok)
+			assert.Empty(t, directories)
+		})
+	}
+}
+
 func TestAnalyzeFormatter_Write_CSV(t *testing.T) {
 	formatter := NewAnalyzeFormatter()
 	response := createTestAnalyzeResponse()

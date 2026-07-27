@@ -267,12 +267,13 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 	}
 
 	result := map[string]interface{}{
-		"summary":  summary,
-		"results":  functions,
-		"metadata": metadata,
+		"summary":      summary,
+		"results":      functions,
+		"by_directory": response.ByDirectory,
+		"metadata":     metadata,
 	}
-	if len(response.ByDirectory) > 0 {
-		result["by_directory"] = response.ByDirectory
+	if response.ByDirectory == nil {
+		result["by_directory"] = []domain.DirectoryComplexityMetrics{}
 	}
 
 	if response.RawMetricsSummary != nil {

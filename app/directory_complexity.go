@@ -73,7 +73,7 @@ type directoryComplexityAccumulator struct {
 // directory grouping and directory-level complexity arithmetic.
 func aggregateComplexityByDirectory(functions []domain.FunctionComplexity, projectRoot string) ([]domain.DirectoryComplexityMetrics, error) {
 	if len(functions) == 0 {
-		return nil, nil
+		return []domain.DirectoryComplexityMetrics{}, nil
 	}
 
 	rootIdentity, err := analysisPathIdentity(projectRoot)

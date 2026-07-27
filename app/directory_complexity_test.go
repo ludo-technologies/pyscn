@@ -56,6 +56,19 @@ func TestAggregateComplexityByDirectory_UsesReportedFunctions(t *testing.T) {
 	}
 }
 
+func TestAggregateComplexityByDirectory_ReturnsEmptyCollection(t *testing.T) {
+	rollups, err := aggregateComplexityByDirectory(nil, t.TempDir())
+	if err != nil {
+		t.Fatalf("aggregate empty complexity result: %v", err)
+	}
+	if rollups == nil {
+		t.Fatal("expected an empty collection, got nil")
+	}
+	if len(rollups) != 0 {
+		t.Fatalf("expected no directory rollups, got %+v", rollups)
+	}
+}
+
 func TestComplexityDirectoryRoot_UsesExplicitAnalysisScope(t *testing.T) {
 	root := t.TempDir()
 	left := filepath.Join(root, "left")
