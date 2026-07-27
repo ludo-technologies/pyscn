@@ -20,6 +20,7 @@ Writes an HTML report to `.pyscn/reports/analyze_YYYYMMDD_HHMMSS.html` and opens
 pyscn analyze --json .
 pyscn analyze --yaml .
 pyscn analyze --csv .
+pyscn analyze --text .
 pyscn analyze --no-open .       # suppress browser open
 ```
 

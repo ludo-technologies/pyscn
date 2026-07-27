@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 )
 
@@ -122,6 +123,41 @@ type FunctionComplexity struct {
 	RiskLevel RiskLevel
 }
 
+// DirectoryComplexityMetrics aggregates reported ComplexityResponse.Functions
+// entries for one project-root-relative directory. This includes a <module>
+// pseudo-entry when it survives presentation filters, matching summary counts.
+type DirectoryComplexityMetrics struct {
+	DirectoryPath         string  `json:"directory_path" yaml:"directory_path"`
+	FunctionCount         int     `json:"function_count" yaml:"function_count"`
+	AverageComplexity     float64 `json:"average_complexity" yaml:"average_complexity"`
+	MaxComplexity         int     `json:"max_complexity" yaml:"max_complexity"`
+	HighRiskFunctionCount int     `json:"high_risk_function_count" yaml:"high_risk_function_count"`
+	AverageNestingDepth   float64 `json:"average_nesting_depth" yaml:"average_nesting_depth"`
+	MaxNestingDepth       int     `json:"max_nesting_depth" yaml:"max_nesting_depth"`
+}
+
+// DirectoryComplexityMetricsList is the stable serialized collection contract.
+// A zero value is encoded as an empty array so callers never need to distinguish
+// an uninitialized collection from a completed analysis with no reported rows.
+type DirectoryComplexityMetricsList []DirectoryComplexityMetrics
+
+// MarshalJSON encodes an uninitialized collection as an empty JSON array.
+func (metrics DirectoryComplexityMetricsList) MarshalJSON() ([]byte, error) {
+	if metrics == nil {
+		return []byte("[]"), nil
+	}
+	type plainDirectoryComplexityMetricsList DirectoryComplexityMetricsList
+	return json.Marshal(plainDirectoryComplexityMetricsList(metrics))
+}
+
+// MarshalYAML encodes an uninitialized collection as an empty YAML array.
+func (metrics DirectoryComplexityMetricsList) MarshalYAML() (interface{}, error) {
+	if metrics == nil {
+		return []DirectoryComplexityMetrics{}, nil
+	}
+	return []DirectoryComplexityMetrics(metrics), nil
+}
+
 // RawMetrics represents file-level raw code metrics.
 type RawMetrics struct {
 	FilePath       string  `json:"file_path" yaml:"file_path"`
@@ -172,8 +208,9 @@ type ComplexitySummary struct {
 // ComplexityResponse represents the complete analysis result
 type ComplexityResponse struct {
 	// Analysis results
-	Functions []FunctionComplexity
-	Summary   ComplexitySummary
+	Functions   []FunctionComplexity
+	ByDirectory DirectoryComplexityMetricsList `json:"by_directory" yaml:"by_directory"`
+	Summary     ComplexitySummary
 	// ModuleRollups are derived before report filters are applied. They are consumed
 	// by the unified analyze command and are not part of standalone complexity output.
 	ModuleRollups map[string]ModuleComplexityMetrics `json:"-" yaml:"-"`

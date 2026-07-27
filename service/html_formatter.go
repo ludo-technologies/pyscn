@@ -491,8 +491,8 @@ func (f *HTMLFormatterImpl) getHTMLTemplate() string {
 
 // renderComplexityTemplate renders the HTML template with complexity-specific function table
 func (f *HTMLFormatterImpl) renderComplexityTemplate(data ComplexityHTMLData) (string, error) {
-	// Reuse base template but inject function table content
-	tmplStr := f.getHTMLTemplateWithContent(f.getFunctionTableHTML())
+	// Reuse the base template and inject complexity-specific tables.
+	tmplStr := f.getHTMLTemplateWithContent(f.getComplexityDetailsHTML())
 
 	// Add custom template functions
 	funcMap := template.FuncMap{
@@ -517,9 +517,41 @@ func (f *HTMLFormatterImpl) renderComplexityTemplate(data ComplexityHTMLData) (s
 	return buf.String(), nil
 }
 
-// getFunctionTableHTML returns the HTML for the function details table
-func (f *HTMLFormatterImpl) getFunctionTableHTML() string {
+// getComplexityDetailsHTML returns the directory and function detail tables.
+func (f *HTMLFormatterImpl) getComplexityDetailsHTML() string {
 	return `
+            {{if .Response.ByDirectory}}
+            <h3 style="margin-top: 30px; margin-bottom: 15px; color: #1a1a1a;">Directory Complexity</h3>
+            <div style="overflow-x: auto;">
+                <table id="directory-complexity-table" style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                    <thead>
+                        <tr style="background: #f8f9fa;">
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Directory</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Functions</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Avg CC</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Max CC</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">High Risk</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Avg Nesting</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Max Nesting</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Response.ByDirectory}}
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <td style="padding: 12px;">{{.DirectoryPath}}</td>
+                            <td style="padding: 12px; text-align: center;">{{.FunctionCount}}</td>
+                            <td style="padding: 12px; text-align: center;">{{printf "%.2f" .AverageComplexity}}</td>
+                            <td style="padding: 12px; text-align: center;">{{.MaxComplexity}}</td>
+                            <td style="padding: 12px; text-align: center;">{{.HighRiskFunctionCount}}</td>
+                            <td style="padding: 12px; text-align: center;">{{printf "%.2f" .AverageNestingDepth}}</td>
+                            <td style="padding: 12px; text-align: center;">{{.MaxNestingDepth}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{end}}
+
             {{if .Response.Functions}}
             <h3 style="margin-top: 30px; margin-bottom: 15px; color: #1a1a1a;">Function Details</h3>
             <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">

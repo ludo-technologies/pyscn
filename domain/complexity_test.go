@@ -1,8 +1,31 @@
 package domain
 
 import (
+	"encoding/json"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
+
+func TestDirectoryComplexityMetricsList_ZeroValueSerializesAsEmptyArray(t *testing.T) {
+	var metrics DirectoryComplexityMetricsList
+
+	jsonOutput, err := json.Marshal(metrics)
+	if err != nil {
+		t.Fatalf("marshal JSON: %v", err)
+	}
+	if string(jsonOutput) != "[]" {
+		t.Fatalf("expected empty JSON array, got %s", jsonOutput)
+	}
+
+	yamlOutput, err := yaml.Marshal(metrics)
+	if err != nil {
+		t.Fatalf("marshal YAML: %v", err)
+	}
+	if string(yamlOutput) != "[]\n" {
+		t.Fatalf("expected empty YAML array, got %q", yamlOutput)
+	}
+}
 
 func TestOutputFormat(t *testing.T) {
 	tests := []struct {

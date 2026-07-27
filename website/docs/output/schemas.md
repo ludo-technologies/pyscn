@@ -183,6 +183,24 @@ Each entry joins module identity and size from dependency analysis with analyzer
 
 Entries are ordered by high-risk function count, maximum complexity, average complexity, dead-code findings, then file path. This places the most actionable modules first while retaining deterministic ties.
 
+## `complexity.by_directory` array
+
+Each entry groups the reported `complexity.Functions` population by its direct directory relative to the analysis root. Counts and averages therefore reconcile with the function list after `min_complexity` and `report_unchanged` filters. The aggregation performs no source reads or analyzer passes.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `directory_path` | string | Directory relative to the analyzed root. The root entry is `.`. |
+| `function_count` | integer | Reported `complexity.Functions` entries whose files are directly in this directory, including a `<module>` pseudo-entry when it survives presentation filters. |
+| `average_complexity` | number | Mean cyclomatic complexity of those functions. |
+| `max_complexity` | integer | Maximum cyclomatic complexity of those functions. |
+| `high_risk_function_count` | integer | Reported functions classified as high risk. |
+| `average_nesting_depth` | number | Mean maximum nesting depth of the reported functions. |
+| `max_nesting_depth` | integer | Maximum nesting depth in the directory. |
+
+When multiple input paths are supplied, their common directory is the analyzed root. File inputs participate through their parent directories. The root entry is `.`. Entries are ordered by high-risk count, maximum complexity, average complexity, then directory path.
+
+When complexity analysis completes with no reported functions, `by_directory` is present as an empty array in JSON and YAML.
+
 ## `complexity` object
 
 Mirrors `domain.ComplexityResponse`. Nested field names are Go PascalCase.
@@ -190,6 +208,7 @@ Mirrors `domain.ComplexityResponse`. Nested field names are Go PascalCase.
 ```json
 {
   "Functions": [ /* FunctionComplexity array */ ],
+  "by_directory": [ /* DirectoryComplexityMetrics array; empty when no functions are reported */ ],
   "Summary": { /* ComplexitySummary */ },
   "raw_metrics": [ /* RawMetrics array, present when computed */ ],
   "raw_metrics_summary": { /* RawMetricsSummary, present when computed */ },
@@ -200,6 +219,8 @@ Mirrors `domain.ComplexityResponse`. Nested field names are Go PascalCase.
   "Config": null
 }
 ```
+
+The standalone complexity formatter uses `by_directory` at the report root beside `results`, `summary`, and `metadata`. Its entries and semantics are identical to unified output.
 
 ### `Functions[]` element (`FunctionComplexity`)
 
@@ -709,7 +730,7 @@ CSV outputs are written with RFC 4180 quoting via the Go `encoding/csv` package.
 
 ### `pyscn analyze --csv`
 
-Summary and module-quality metrics. Two columns. Literal UTF-8 strings, no type annotations.
+Summary, module-quality, optional community, and directory-complexity metrics. Two columns. Literal UTF-8 strings, no type annotations.
 
 | Column   | Type   | Description              |
 | -------- | ------ | ------------------------ |
@@ -747,9 +768,17 @@ Module 1 High Risk Function Count,<integer>
 Module 1 Exception Handler Count,<integer>
 Module 1 Dead Code Findings,<integer>
 Module 1 Dead Code Blocks,<integer>
+Directory Complexity Count,<integer>
+Directory 1 Path,<string>
+Directory 1 Function Count,<integer>
+Directory 1 Average Complexity,<float with 2 decimals>
+Directory 1 Max Complexity,<integer>
+Directory 1 High Risk Function Count,<integer>
+Directory 1 Average Nesting Depth,<float with 2 decimals>
+Directory 1 Max Nesting Depth,<integer>
 ```
 
-The numbered module row group repeats once per `module_quality` entry in the same order. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
+The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all legacy summary, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
 
 ## `community_analysis` object { #community-analysis-object }
 
@@ -853,12 +882,13 @@ Community detection is deterministic for a fixed codebase snapshot and configura
 
 ## Invoking each format
 
-`pyscn analyze` takes one of `--json`, `--yaml`, `--csv`, `--html` (default). There is no `--format` flag, and there are no standalone `complexity` / `deadcode` / `clone` / `deps` subcommands. Run a single analyzer via `--select`.
+`pyscn analyze` takes one of `--json`, `--yaml`, `--csv`, `--text`, or `--html` (default). There is no `--format` flag, and there are no standalone `complexity` / `deadcode` / `clone` / `deps` subcommands. Run a single analyzer via `--select`.
 
 ```bash
 pyscn analyze --json src/
 pyscn analyze --yaml src/
 pyscn analyze --csv  src/
+pyscn analyze --text src/
 pyscn analyze --html src/    # default
 pyscn analyze --json --select complexity src/
 pyscn analyze --csv  --select deadcode   src/

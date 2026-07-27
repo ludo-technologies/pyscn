@@ -24,6 +24,7 @@ type AnalyzeCommand struct {
 	json   bool
 	csv    bool
 	yaml   bool
+	text   bool
 	noOpen bool
 
 	// Configuration
@@ -67,6 +68,7 @@ func NewAnalyzeCommand() *AnalyzeCommand {
 		json:            false,
 		csv:             false,
 		yaml:            false,
+		text:            false,
 		noOpen:          false,
 		configFile:      "",
 		verbose:         false,
@@ -128,6 +130,7 @@ Examples:
 	cmd.Flags().BoolVar(&c.json, "json", false, "Generate JSON report file")
 	cmd.Flags().BoolVar(&c.csv, "csv", false, "Generate CSV report file")
 	cmd.Flags().BoolVar(&c.yaml, "yaml", false, "Generate YAML report file")
+	cmd.Flags().BoolVar(&c.text, "text", false, "Generate plain-text report file")
 	cmd.Flags().BoolVar(&c.noOpen, "no-open", false, "Don't auto-open HTML in browser")
 	cmd.Flags().StringVarP(&c.configFile, "config", "c", "", "Configuration file path")
 
@@ -597,42 +600,14 @@ func gradeBadgeColor(grade string) string {
 
 // determineOutputFormat determines the output format based on flags
 func (c *AnalyzeCommand) determineOutputFormat() (string, string, error) {
-	formatCount := 0
-	var format string
-	var extension string
-
-	if c.html {
-		formatCount++
-		format = "html"
-		extension = "html"
-	}
-	if c.json {
-		formatCount++
-		format = "json"
-		extension = "json"
-	}
-	if c.csv {
-		formatCount++
-		format = "csv"
-		extension = "csv"
-	}
-	if c.yaml {
-		formatCount++
-		format = "yaml"
-		extension = "yaml"
-	}
-
-	// Check for conflicting flags
-	if formatCount > 1 {
-		return "", "", fmt.Errorf("only one output format flag can be specified")
-	}
-
-	// Default to HTML if no format specified
-	if formatCount == 0 {
-		return "html", "html", nil
-	}
-
-	return format, extension, nil
+	format, extension, err := service.NewOutputFormatResolver().DetermineAnalyzeReport(
+		c.html,
+		c.json,
+		c.csv,
+		c.yaml,
+		c.text,
+	)
+	return string(format), extension, err
 }
 
 // shouldUseProgressBars returns true when the session appears to be interactive
