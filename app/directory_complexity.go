@@ -71,9 +71,9 @@ type directoryComplexityAccumulator struct {
 // aggregateComplexityByDirectory groups the reported function population by
 // its direct project-root-relative directory. This is the only owner of
 // directory grouping and directory-level complexity arithmetic.
-func aggregateComplexityByDirectory(functions []domain.FunctionComplexity, projectRoot string) ([]domain.DirectoryComplexityMetrics, error) {
+func aggregateComplexityByDirectory(functions []domain.FunctionComplexity, projectRoot string) (domain.DirectoryComplexityMetricsList, error) {
 	if len(functions) == 0 {
-		return []domain.DirectoryComplexityMetrics{}, nil
+		return domain.DirectoryComplexityMetricsList{}, nil
 	}
 
 	rootIdentity, err := analysisPathIdentity(projectRoot)
@@ -106,7 +106,7 @@ func aggregateComplexityByDirectory(functions []domain.FunctionComplexity, proje
 		accumulator.addFunction(function)
 	}
 
-	result := make([]domain.DirectoryComplexityMetrics, 0, len(directories))
+	result := make(domain.DirectoryComplexityMetricsList, 0, len(directories))
 	for _, directory := range directories {
 		directory.finishAverages()
 		result = append(result, directory.metrics)

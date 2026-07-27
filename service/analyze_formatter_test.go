@@ -417,9 +417,7 @@ func TestAnalyzeFormatter_Write_SerializesDirectoryComplexity(t *testing.T) {
 
 func TestAnalyzeFormatter_Write_SerializesEmptyDirectoryComplexity(t *testing.T) {
 	response := createMinimalAnalyzeResponse()
-	response.Complexity = &domain.ComplexityResponse{
-		ByDirectory: []domain.DirectoryComplexityMetrics{},
-	}
+	response.Complexity = &domain.ComplexityResponse{}
 
 	for _, format := range []domain.OutputFormat{domain.OutputFormatJSON, domain.OutputFormatYAML} {
 		t.Run(string(format), func(t *testing.T) {

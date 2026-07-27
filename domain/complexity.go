@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 )
 
@@ -135,6 +136,26 @@ type DirectoryComplexityMetrics struct {
 	MaxNestingDepth       int     `json:"max_nesting_depth" yaml:"max_nesting_depth"`
 }
 
+// DirectoryComplexityMetricsList is the stable serialized collection contract.
+// A zero value is encoded as an empty array so callers never need to distinguish
+// an uninitialized collection from a completed analysis with no reported rows.
+type DirectoryComplexityMetricsList []DirectoryComplexityMetrics
+
+func (metrics DirectoryComplexityMetricsList) MarshalJSON() ([]byte, error) {
+	if metrics == nil {
+		return []byte("[]"), nil
+	}
+	type plainDirectoryComplexityMetricsList DirectoryComplexityMetricsList
+	return json.Marshal(plainDirectoryComplexityMetricsList(metrics))
+}
+
+func (metrics DirectoryComplexityMetricsList) MarshalYAML() (interface{}, error) {
+	if metrics == nil {
+		return []DirectoryComplexityMetrics{}, nil
+	}
+	return []DirectoryComplexityMetrics(metrics), nil
+}
+
 // RawMetrics represents file-level raw code metrics.
 type RawMetrics struct {
 	FilePath       string  `json:"file_path" yaml:"file_path"`
@@ -186,7 +207,7 @@ type ComplexitySummary struct {
 type ComplexityResponse struct {
 	// Analysis results
 	Functions   []FunctionComplexity
-	ByDirectory []DirectoryComplexityMetrics `json:"by_directory" yaml:"by_directory"`
+	ByDirectory DirectoryComplexityMetricsList `json:"by_directory" yaml:"by_directory"`
 	Summary     ComplexitySummary
 	// ModuleRollups are derived before report filters are applied. They are consumed
 	// by the unified analyze command and are not part of standalone complexity output.

@@ -272,9 +272,6 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 		"by_directory": response.ByDirectory,
 		"metadata":     metadata,
 	}
-	if response.ByDirectory == nil {
-		result["by_directory"] = []domain.DirectoryComplexityMetrics{}
-	}
 
 	if response.RawMetricsSummary != nil {
 		result["raw_metrics_summary"] = map[string]interface{}{
