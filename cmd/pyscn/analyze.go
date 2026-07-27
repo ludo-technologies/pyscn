@@ -600,47 +600,14 @@ func gradeBadgeColor(grade string) string {
 
 // determineOutputFormat determines the output format based on flags
 func (c *AnalyzeCommand) determineOutputFormat() (string, string, error) {
-	formatCount := 0
-	var format string
-	var extension string
-
-	if c.html {
-		formatCount++
-		format = "html"
-		extension = "html"
-	}
-	if c.json {
-		formatCount++
-		format = "json"
-		extension = "json"
-	}
-	if c.csv {
-		formatCount++
-		format = "csv"
-		extension = "csv"
-	}
-	if c.yaml {
-		formatCount++
-		format = "yaml"
-		extension = "yaml"
-	}
-	if c.text {
-		formatCount++
-		format = "text"
-		extension = "txt"
-	}
-
-	// Check for conflicting flags
-	if formatCount > 1 {
-		return "", "", fmt.Errorf("only one output format flag can be specified")
-	}
-
-	// Default to HTML if no format specified
-	if formatCount == 0 {
-		return "html", "html", nil
-	}
-
-	return format, extension, nil
+	format, extension, err := service.NewOutputFormatResolver().DetermineAnalyzeReport(
+		c.html,
+		c.json,
+		c.csv,
+		c.yaml,
+		c.text,
+	)
+	return string(format), extension, err
 }
 
 // shouldUseProgressBars returns true when the session appears to be interactive

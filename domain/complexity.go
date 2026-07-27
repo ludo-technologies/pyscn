@@ -141,6 +141,7 @@ type DirectoryComplexityMetrics struct {
 // an uninitialized collection from a completed analysis with no reported rows.
 type DirectoryComplexityMetricsList []DirectoryComplexityMetrics
 
+// MarshalJSON encodes an uninitialized collection as an empty JSON array.
 func (metrics DirectoryComplexityMetricsList) MarshalJSON() ([]byte, error) {
 	if metrics == nil {
 		return []byte("[]"), nil
@@ -149,6 +150,7 @@ func (metrics DirectoryComplexityMetricsList) MarshalJSON() ([]byte, error) {
 	return json.Marshal(plainDirectoryComplexityMetricsList(metrics))
 }
 
+// MarshalYAML encodes an uninitialized collection as an empty YAML array.
 func (metrics DirectoryComplexityMetricsList) MarshalYAML() (interface{}, error) {
 	if metrics == nil {
 		return []DirectoryComplexityMetrics{}, nil
