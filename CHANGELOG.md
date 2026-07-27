@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.29.0] - 2026-07-28
+
+### Added
+- Per-module quality hotspot metrics in analyze reports (#686)
+- Per-directory complexity rollups in analyze reports (#687)
+
+### Changed
+- Serve documentation at docs.codescan.dev (#685)
+
+### Fixed
+- Dedupe architecture suggestions and add `file_path`/`start_line` (#648)
+
 ## [1.28.0] - 2026-07-25
 
 ### Added
