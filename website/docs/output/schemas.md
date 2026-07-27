@@ -754,7 +754,6 @@ Total Classes Analyzed,<integer>
 High Coupling (CBO) Classes,<integer>
 Average CBO,<float with 2 decimals>
 Module Quality Count,<integer>
-Directory Complexity Count,<integer>
 Module 1 Name,<string>
 Module 1 File Path,<string>
 Module 1 Lines of Code,<integer>
@@ -767,6 +766,7 @@ Module 1 High Risk Function Count,<integer>
 Module 1 Exception Handler Count,<integer>
 Module 1 Dead Code Findings,<integer>
 Module 1 Dead Code Blocks,<integer>
+Directory Complexity Count,<integer>
 Directory 1 Path,<string>
 Directory 1 Function Count,<integer>
 Directory 1 Average Complexity,<float with 2 decimals>
@@ -776,7 +776,7 @@ Directory 1 Average Nesting Depth,<float with 2 decimals>
 Directory 1 Max Nesting Depth,<integer>
 ```
 
-The numbered module and directory row groups repeat once per corresponding entry in the same order. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
+The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all legacy summary, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
 
 ## `community_analysis` object { #community-analysis-object }
 

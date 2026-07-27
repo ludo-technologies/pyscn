@@ -150,7 +150,10 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	if response.Complexity != nil {
 		directories = response.Complexity.ByDirectory
 	}
-	rowCapacity := 17 + (12 * len(response.ModuleQuality)) + (7 * len(directories))
+	rowCapacity := 16 + (12 * len(response.ModuleQuality))
+	if response.Complexity != nil {
+		rowCapacity += 1 + (7 * len(directories))
+	}
 	if response.Summary.CommunitiesEnabled && response.Communities != nil {
 		rowCapacity += 6
 	}
@@ -172,7 +175,6 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 		[]string{"High Coupling (CBO) Classes", fmt.Sprint(response.Summary.HighCouplingClasses)},
 		[]string{"Average CBO", fmt.Sprintf("%.2f", response.Summary.AverageCoupling)},
 		[]string{"Module Quality Count", fmt.Sprint(len(response.ModuleQuality))},
-		[]string{"Directory Complexity Count", fmt.Sprint(len(directories))},
 	)
 
 	for index, module := range response.ModuleQuality {
@@ -193,19 +195,6 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 		)
 	}
 
-	for index, directory := range directories {
-		prefix := fmt.Sprintf("Directory %d ", index+1)
-		rows = append(rows,
-			[]string{prefix + "Path", directory.DirectoryPath},
-			[]string{prefix + "Function Count", fmt.Sprint(directory.FunctionCount)},
-			[]string{prefix + "Average Complexity", fmt.Sprintf("%.2f", directory.AverageComplexity)},
-			[]string{prefix + "Max Complexity", fmt.Sprint(directory.MaxComplexity)},
-			[]string{prefix + "High Risk Function Count", fmt.Sprint(directory.HighRiskFunctionCount)},
-			[]string{prefix + "Average Nesting Depth", fmt.Sprintf("%.2f", directory.AverageNestingDepth)},
-			[]string{prefix + "Max Nesting Depth", fmt.Sprint(directory.MaxNestingDepth)},
-		)
-	}
-
 	if response.Summary.CommunitiesEnabled && response.Communities != nil {
 		communities := response.Communities
 		rows = append(rows,
@@ -216,6 +205,22 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 			[]string{"Community Score", fmt.Sprint(response.Summary.CommunityScore)},
 			[]string{"Community Risk Score", fmt.Sprint(response.Summary.CommunityRiskScore)},
 		)
+	}
+
+	if response.Complexity != nil {
+		rows = append(rows, []string{"Directory Complexity Count", fmt.Sprint(len(directories))})
+		for index, directory := range directories {
+			prefix := fmt.Sprintf("Directory %d ", index+1)
+			rows = append(rows,
+				[]string{prefix + "Path", directory.DirectoryPath},
+				[]string{prefix + "Function Count", fmt.Sprint(directory.FunctionCount)},
+				[]string{prefix + "Average Complexity", fmt.Sprintf("%.2f", directory.AverageComplexity)},
+				[]string{prefix + "Max Complexity", fmt.Sprint(directory.MaxComplexity)},
+				[]string{prefix + "High Risk Function Count", fmt.Sprint(directory.HighRiskFunctionCount)},
+				[]string{prefix + "Average Nesting Depth", fmt.Sprintf("%.2f", directory.AverageNestingDepth)},
+				[]string{prefix + "Max Nesting Depth", fmt.Sprint(directory.MaxNestingDepth)},
+			)
+		}
 	}
 
 	csvWriter := csv.NewWriter(writer)

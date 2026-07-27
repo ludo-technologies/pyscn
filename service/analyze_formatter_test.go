@@ -522,6 +522,37 @@ func TestAnalyzeFormatter_Write_CSVIncludesDirectoryComplexity(t *testing.T) {
 	assert.Equal(t, "5", metrics["Directory 1 Max Nesting Depth"])
 }
 
+func TestAnalyzeFormatter_Write_CSVAppendsDirectoryRowsAfterLegacyRows(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.ModuleQuality = []domain.ModuleQualityMetrics{{ModuleName: "pkg.module"}}
+	response.Summary.CommunitiesEnabled = true
+	response.Communities = &domain.CommunityAnalysisResult{TotalCommunities: 1}
+	response.Complexity = &domain.ComplexityResponse{ByDirectory: []domain.DirectoryComplexityMetrics{{
+		DirectoryPath: "pkg",
+		FunctionCount: 1,
+	}}}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatCSV, &output))
+	records, err := csv.NewReader(strings.NewReader(output.String())).ReadAll()
+	require.NoError(t, err)
+
+	indices := make(map[string]int, len(records))
+	for index, record := range records {
+		require.Len(t, record, 2)
+		indices[record[0]] = index
+	}
+	assert.Less(t, indices["Module 1 Dead Code Blocks"], indices["Communities Enabled"])
+	assert.Less(t, indices["Community Risk Score"], indices["Directory Complexity Count"])
+	assert.Less(t, indices["Directory Complexity Count"], indices["Directory 1 Path"])
+}
+
+func TestAnalyzeFormatter_Write_CSVOmitsDirectoryRowsWhenComplexityDisabled(t *testing.T) {
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(createMinimalAnalyzeResponse(), domain.OutputFormatCSV, &output))
+	assert.NotContains(t, output.String(), "Directory Complexity Count")
+}
+
 type failingAnalyzeWriter struct{}
 
 func (failingAnalyzeWriter) Write([]byte) (int, error) {
