@@ -3,6 +3,7 @@ package domain
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -154,12 +155,7 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 		})
 	}
 
-	// Sort by priority first, then truncate — so the most important suggestions survive the cap
-	sortSuggestions(suggestions)
-	if len(suggestions) > maxSuggestionsPerCategory {
-		suggestions = suggestions[:maxSuggestionsPerCategory]
-	}
-	return suggestions
+	return capSuggestions(suggestions)
 }
 
 // generateDeadCodeSuggestions generates suggestions from dead code detection results
@@ -217,12 +213,7 @@ func generateDeadCodeSuggestions(resp *DeadCodeResponse) []Suggestion {
 		}
 	}
 
-	// Sort by priority first, then truncate — so the most important findings survive the cap
-	sortSuggestions(suggestions)
-	if len(suggestions) > maxSuggestionsPerCategory {
-		suggestions = suggestions[:maxSuggestionsPerCategory]
-	}
-	return suggestions
+	return capSuggestions(suggestions)
 }
 
 // generateCloneSuggestions generates suggestions from clone detection results
@@ -262,12 +253,7 @@ func generateCloneSuggestions(resp *CloneResponse) []Suggestion {
 		suggestions = append(suggestions, s)
 	}
 
-	// Sort by priority first, then truncate — so the most important groups survive the cap
-	sortSuggestions(suggestions)
-	if len(suggestions) > maxSuggestionsPerCategory {
-		suggestions = suggestions[:maxSuggestionsPerCategory]
-	}
-	return suggestions
+	return capSuggestions(suggestions)
 }
 
 // generateCBOSuggestions generates suggestions from CBO analysis results
@@ -323,12 +309,7 @@ func generateCBOSuggestions(resp *CBOResponse) []Suggestion {
 		})
 	}
 
-	// Sort by priority first, then truncate — so the most important suggestions survive the cap
-	sortSuggestions(suggestions)
-	if len(suggestions) > maxSuggestionsPerCategory {
-		suggestions = suggestions[:maxSuggestionsPerCategory]
-	}
-	return suggestions
+	return capSuggestions(suggestions)
 }
 
 // generateLCOMSuggestions generates suggestions from LCOM analysis results
@@ -392,12 +373,7 @@ func generateLCOMSuggestions(resp *LCOMResponse) []Suggestion {
 		})
 	}
 
-	// Sort by priority first, then truncate — so the most important suggestions survive the cap
-	sortSuggestions(suggestions)
-	if len(suggestions) > maxSuggestionsPerCategory {
-		suggestions = suggestions[:maxSuggestionsPerCategory]
-	}
-	return suggestions
+	return capSuggestions(suggestions)
 }
 
 // generateSystemSuggestions generates suggestions from system-level analysis results
@@ -429,33 +405,149 @@ func generateSystemSuggestions(resp *SystemAnalysisResponse) []Suggestion {
 
 	// Architecture violations (own limit, independent of dependency count)
 	if resp.ArchitectureAnalysis != nil {
-		archCount := 0
-		for _, v := range resp.ArchitectureAnalysis.Violations {
-			if archCount >= maxSuggestionsPerCategory {
-				break
-			}
-			if v.Suggestion == "" {
-				continue
-			}
-
-			sev := mapViolationSeverity(v.Severity)
+		groups := groupArchitectureViolations(resp.ArchitectureAnalysis.Violations)
+		architectureSuggestions := make([]Suggestion, 0, len(groups))
+		for _, g := range groups {
+			sev := mapViolationSeverity(g.violation.Severity)
 			effort := SuggestionEffortModerate
 			if sev == SuggestionSeverityCritical {
 				effort = SuggestionEffortHard
 			}
 
-			suggestions = append(suggestions, Suggestion{
+			filePath, startLine := architectureViolationLocation(g.violation, resp.DependencyAnalysis)
+
+			architectureSuggestions = append(architectureSuggestions, Suggestion{
 				Category:    SuggestionCategoryArchitecture,
 				Severity:    sev,
 				Effort:      effort,
-				Title:       fmt.Sprintf("Fix architecture violation in '%s'", v.Module),
-				Description: v.Suggestion,
+				Title:       fmt.Sprintf("Fix architecture violation in '%s'", g.violation.Module),
+				Description: describeArchitectureViolation(g.violation.Suggestion, g.targets),
+				FilePath:    filePath,
+				StartLine:   startLine,
 			})
-			archCount++
 		}
+
+		suggestions = append(suggestions, capSuggestions(architectureSuggestions)...)
 	}
 
 	return suggestions
+}
+
+// architectureViolationKey identifies the underlying problem a violation reports.
+// One dependency edge produces one violation, so the same problem is reported once
+// per offending target; grouping on this key collapses those into a single suggestion.
+type architectureViolationKey struct {
+	module     string
+	rule       string
+	severity   ViolationSeverity
+	suggestion string
+}
+
+// architectureViolationGroup holds the first violation of a group and every
+// distinct target that triggered it.
+type architectureViolationGroup struct {
+	violation ArchitectureViolation
+	targets   []string
+}
+
+// maxArchitectureTargetsListed limits how many offending targets are named in a
+// suggestion description before it falls back to a count.
+const maxArchitectureTargetsListed = 3
+
+// groupArchitectureViolations collapses violations reporting the same problem for the
+// same module, preserving input order.
+func groupArchitectureViolations(violations []ArchitectureViolation) []architectureViolationGroup {
+	groups := make([]architectureViolationGroup, 0, len(violations))
+	indexByKey := make(map[architectureViolationKey]int, len(violations))
+
+	for _, v := range violations {
+		if v.Suggestion == "" {
+			continue
+		}
+		key := architectureViolationKey{
+			module:     v.Module,
+			rule:       v.Rule,
+			severity:   v.Severity,
+			suggestion: v.Suggestion,
+		}
+		idx, ok := indexByKey[key]
+		if !ok {
+			indexByKey[key] = len(groups)
+			groups = append(groups, architectureViolationGroup{violation: v})
+			idx = len(groups) - 1
+		}
+		if v.Target != "" && !slices.Contains(groups[idx].targets, v.Target) {
+			groups[idx].targets = append(groups[idx].targets, v.Target)
+		}
+	}
+
+	return groups
+}
+
+// architectureViolationLocation resolves where a violation should point. The
+// violation's own location wins; otherwise the module's entry point is used.
+func architectureViolationLocation(v ArchitectureViolation, dependencies *DependencyAnalysisResult) (string, int) {
+	if v.Location != nil && v.Location.FilePath != "" {
+		return v.Location.FilePath, v.Location.StartLine
+	}
+	if dependencies != nil {
+		if metrics, ok := dependencies.ModuleMetrics[v.Module]; ok && metrics != nil && metrics.FilePath != "" {
+			return metrics.FilePath, 1
+		}
+	}
+	return "", 0
+}
+
+// describeArchitectureViolation appends the offending targets to the remediation text.
+func describeArchitectureViolation(suggestion string, targets []string) string {
+	switch {
+	case len(targets) == 0:
+		return suggestion
+	case len(targets) == 1:
+		return fmt.Sprintf("%s (target: %s)", suggestion, targets[0])
+	case len(targets) <= maxArchitectureTargetsListed:
+		return fmt.Sprintf("%s (targets: %s)", suggestion, strings.Join(targets, ", "))
+	default:
+		return fmt.Sprintf("%s (targets: %s and %d more)",
+			suggestion,
+			strings.Join(targets[:maxArchitectureTargetsListed], ", "),
+			len(targets)-maxArchitectureTargetsListed)
+	}
+}
+
+// capSuggestions trims one category down to maxSuggestionsPerCategory.
+//
+// Admission is decided by severity first, then by the presentation priority.
+// The presentation order deliberately pushes hard work below moderate work of any
+// severity, which is fine for display but wrong as a selection rule: it would let a
+// full page of moderate warnings evict a critical finding entirely. Callers append
+// the retained suggestions and GenerateSuggestions applies the presentation order at
+// the end.
+func capSuggestions(suggestions []Suggestion) []Suggestion {
+	sort.SliceStable(suggestions, func(i, j int) bool {
+		iSeverity := severityRank(suggestions[i].Severity)
+		jSeverity := severityRank(suggestions[j].Severity)
+		if iSeverity != jSeverity {
+			return iSeverity < jSeverity
+		}
+		return suggestionPriority(suggestions[i]) < suggestionPriority(suggestions[j])
+	})
+	if len(suggestions) > maxSuggestionsPerCategory {
+		return suggestions[:maxSuggestionsPerCategory]
+	}
+	return suggestions
+}
+
+// severityRank orders severities on their own, ignoring effort (lower = more severe)
+func severityRank(severity SuggestionSeverity) int {
+	switch severity {
+	case SuggestionSeverityCritical:
+		return 0
+	case SuggestionSeverityWarning:
+		return 1
+	default:
+		return 2
+	}
 }
 
 // sortSuggestions sorts suggestions by priority:
