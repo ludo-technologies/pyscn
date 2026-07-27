@@ -345,7 +345,7 @@ Flags that don't map directly to a config key (`--select`, `--skip-*`, `--no-ope
 | CLI flag                | Config key                        |
 | ----------------------- | --------------------------------- |
 | `--config <path>`       | — (overrides discovery)           |
-| `--json/--yaml/--csv/--html` | `[output] format`            |
+| `--json/--yaml/--csv/--html/--text` | `[output] format`     |
 | `--min-complexity`      | `[complexity] min_complexity`     |
 | `--max-complexity`      | `[complexity] max_complexity`     |
 | `--min-severity`        | `[dead_code] min_severity`        |

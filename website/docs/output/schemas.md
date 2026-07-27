@@ -206,7 +206,7 @@ Mirrors `domain.ComplexityResponse`. Nested field names are Go PascalCase.
 ```json
 {
   "Functions": [ /* FunctionComplexity array */ ],
-  "by_directory": [ /* DirectoryComplexityMetrics array, omitted when empty */ ],
+  "by_directory": [ /* DirectoryComplexityMetrics array; empty when no functions are reported */ ],
   "Summary": { /* ComplexitySummary */ },
   "raw_metrics": [ /* RawMetrics array, present when computed */ ],
   "raw_metrics_summary": { /* RawMetricsSummary, present when computed */ },
@@ -880,12 +880,13 @@ Community detection is deterministic for a fixed codebase snapshot and configura
 
 ## Invoking each format
 
-`pyscn analyze` takes one of `--json`, `--yaml`, `--csv`, `--html` (default). There is no `--format` flag, and there are no standalone `complexity` / `deadcode` / `clone` / `deps` subcommands. Run a single analyzer via `--select`.
+`pyscn analyze` takes one of `--json`, `--yaml`, `--csv`, `--text`, or `--html` (default). There is no `--format` flag, and there are no standalone `complexity` / `deadcode` / `clone` / `deps` subcommands. Run a single analyzer via `--select`.
 
 ```bash
 pyscn analyze --json src/
 pyscn analyze --yaml src/
 pyscn analyze --csv  src/
+pyscn analyze --text src/
 pyscn analyze --html src/    # default
 pyscn analyze --json --select complexity src/
 pyscn analyze --csv  --select deadcode   src/
