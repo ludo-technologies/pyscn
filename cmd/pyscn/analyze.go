@@ -24,6 +24,7 @@ type AnalyzeCommand struct {
 	json   bool
 	csv    bool
 	yaml   bool
+	text   bool
 	noOpen bool
 
 	// Configuration
@@ -67,6 +68,7 @@ func NewAnalyzeCommand() *AnalyzeCommand {
 		json:            false,
 		csv:             false,
 		yaml:            false,
+		text:            false,
 		noOpen:          false,
 		configFile:      "",
 		verbose:         false,
@@ -128,6 +130,7 @@ Examples:
 	cmd.Flags().BoolVar(&c.json, "json", false, "Generate JSON report file")
 	cmd.Flags().BoolVar(&c.csv, "csv", false, "Generate CSV report file")
 	cmd.Flags().BoolVar(&c.yaml, "yaml", false, "Generate YAML report file")
+	cmd.Flags().BoolVar(&c.text, "text", false, "Generate plain-text report file")
 	cmd.Flags().BoolVar(&c.noOpen, "no-open", false, "Don't auto-open HTML in browser")
 	cmd.Flags().StringVarP(&c.configFile, "config", "c", "", "Configuration file path")
 
@@ -620,6 +623,11 @@ func (c *AnalyzeCommand) determineOutputFormat() (string, string, error) {
 		formatCount++
 		format = "yaml"
 		extension = "yaml"
+	}
+	if c.text {
+		formatCount++
+		format = "text"
+		extension = "txt"
 	}
 
 	// Check for conflicting flags
