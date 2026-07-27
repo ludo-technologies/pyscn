@@ -3040,6 +3040,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#complexityby_directory-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        complexity.by_directory array
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#complexity-object" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4018,6 +4029,17 @@
     <span class="md-ellipsis">
       
         module_quality array
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#complexityby_directory-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        complexity.by_directory array
       
     </span>
   </a>
@@ -5214,20 +5236,72 @@
 </tbody>
 </table>
 <p>Entries are ordered by high-risk function count, maximum complexity, average complexity, dead-code findings, then file path. This places the most actionable modules first while retaining deterministic ties.</p>
+<h2 id="complexityby_directory-array"><code>complexity.by_directory</code> array<a class="headerlink" href="#complexityby_directory-array" title="Permanent link">&para;</a></h2>
+<p>Each entry groups the reported <code>complexity.Functions</code> population by its direct directory relative to the analysis root. Counts and averages therefore reconcile with the function list after <code>min_complexity</code> and <code>report_unchanged</code> filters. The aggregation performs no source reads or analyzer passes.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>directory_path</code></td>
+<td>string</td>
+<td>Directory relative to the analyzed root. The root entry is <code>.</code>.</td>
+</tr>
+<tr>
+<td><code>function_count</code></td>
+<td>integer</td>
+<td>Reported <code>complexity.Functions</code> entries whose files are directly in this directory, including a <code>&lt;module&gt;</code> pseudo-entry when it survives presentation filters.</td>
+</tr>
+<tr>
+<td><code>average_complexity</code></td>
+<td>number</td>
+<td>Mean cyclomatic complexity of those functions.</td>
+</tr>
+<tr>
+<td><code>max_complexity</code></td>
+<td>integer</td>
+<td>Maximum cyclomatic complexity of those functions.</td>
+</tr>
+<tr>
+<td><code>high_risk_function_count</code></td>
+<td>integer</td>
+<td>Reported functions classified as high risk.</td>
+</tr>
+<tr>
+<td><code>average_nesting_depth</code></td>
+<td>number</td>
+<td>Mean maximum nesting depth of the reported functions.</td>
+</tr>
+<tr>
+<td><code>max_nesting_depth</code></td>
+<td>integer</td>
+<td>Maximum nesting depth in the directory.</td>
+</tr>
+</tbody>
+</table>
+<p>When multiple input paths are supplied, their common directory is the analyzed root. File inputs participate through their parent directories. The root entry is <code>.</code>. Entries are ordered by high-risk count, maximum complexity, average complexity, then directory path.</p>
+<p>When complexity analysis completes with no reported functions, <code>by_directory</code> is present as an empty array in JSON and YAML.</p>
 <h2 id="complexity-object"><code>complexity</code> object<a class="headerlink" href="#complexity-object" title="Permanent link">&para;</a></h2>
 <p>Mirrors <code>domain.ComplexityResponse</code>. Nested field names are Go PascalCase.</p>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;Functions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* FunctionComplexity array */</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">&quot;Summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ComplexitySummary */</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">&quot;raw_metrics&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* RawMetrics array, present when computed */</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">&quot;raw_metrics_summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* RawMetricsSummary, present when computed */</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">&quot;Warnings&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">&quot;Errors&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">&quot;GeneratedAt&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-04-14T10:18:23Z&quot;</span><span class="p">,</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0.14.0&quot;</span><span class="p">,</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">&quot;Config&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">}</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">&quot;by_directory&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* DirectoryComplexityMetrics array; empty when no functions are reported */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">&quot;Summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ComplexitySummary */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">&quot;raw_metrics&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* RawMetrics array, present when computed */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">&quot;raw_metrics_summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* RawMetricsSummary, present when computed */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">&quot;Warnings&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">&quot;Errors&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">&quot;GeneratedAt&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-04-14T10:18:23Z&quot;</span><span class="p">,</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0.14.0&quot;</span><span class="p">,</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="nt">&quot;Config&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">}</span>
 </span></code></pre></div>
+<p>The standalone complexity formatter uses <code>by_directory</code> at the report root beside <code>results</code>, <code>summary</code>, and <code>metadata</code>. Its entries and semantics are identical to unified output.</p>
 <h3 id="functions-element-functioncomplexity"><code>Functions[]</code> element (<code>FunctionComplexity</code>)<a class="headerlink" href="#functions-element-functioncomplexity" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -6938,7 +7012,7 @@
 <h2 id="csv-schemas">CSV schemas<a class="headerlink" href="#csv-schemas" title="Permanent link">&para;</a></h2>
 <p>CSV outputs are written with RFC 4180 quoting via the Go <code>encoding/csv</code> package.</p>
 <h3 id="pyscn-analyze-csv"><code>pyscn analyze --csv</code><a class="headerlink" href="#pyscn-analyze-csv" title="Permanent link">&para;</a></h3>
-<p>Summary and module-quality metrics. Two columns. Literal UTF-8 strings, no type annotations.</p>
+<p>Summary, module-quality, optional community, and directory-complexity metrics. Two columns. Literal UTF-8 strings, no type annotations.</p>
 <table>
 <thead>
 <tr>
@@ -6989,8 +7063,16 @@
 </span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>Module 1 Exception Handler Count,&lt;integer&gt;
 </span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a>Module 1 Dead Code Findings,&lt;integer&gt;
 </span><span id="__span-7-28"><a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>Module 1 Dead Code Blocks,&lt;integer&gt;
+</span><span id="__span-7-29"><a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a>Directory Complexity Count,&lt;integer&gt;
+</span><span id="__span-7-30"><a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>Directory 1 Path,&lt;string&gt;
+</span><span id="__span-7-31"><a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a>Directory 1 Function Count,&lt;integer&gt;
+</span><span id="__span-7-32"><a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a>Directory 1 Average Complexity,&lt;float with 2 decimals&gt;
+</span><span id="__span-7-33"><a id="__codelineno-7-33" name="__codelineno-7-33" href="#__codelineno-7-33"></a>Directory 1 Max Complexity,&lt;integer&gt;
+</span><span id="__span-7-34"><a id="__codelineno-7-34" name="__codelineno-7-34" href="#__codelineno-7-34"></a>Directory 1 High Risk Function Count,&lt;integer&gt;
+</span><span id="__span-7-35"><a id="__codelineno-7-35" name="__codelineno-7-35" href="#__codelineno-7-35"></a>Directory 1 Average Nesting Depth,&lt;float with 2 decimals&gt;
+</span><span id="__span-7-36"><a id="__codelineno-7-36" name="__codelineno-7-36" href="#__codelineno-7-36"></a>Directory 1 Max Nesting Depth,&lt;integer&gt;
 </span></code></pre></div>
-<p>The numbered module row group repeats once per <code>module_quality</code> entry in the same order. CSV remains a summary format; use <code>--json</code> or <code>--yaml</code> for per-function and per-finding detail.</p>
+<p>The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all legacy summary, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use <code>--json</code> or <code>--yaml</code> for per-function and per-finding detail.</p>
 <h2 id="community-analysis-object"><code>community_analysis</code> object<a class="headerlink" href="#community-analysis-object" title="Permanent link">&para;</a></h2>
 <p>Mirrors <code>domain.CommunityAnalysisResult</code>. Emitted as a top-level field in unified <code>pyscn analyze</code> JSON/YAML when community detection runs. When <code>pyscn analyze --json --select communities</code> is used, the report file contains only this object (standalone JSON).</p>
 <table>
@@ -7365,15 +7447,16 @@
 </tbody>
 </table>
 <h2 id="invoking-each-format">Invoking each format<a class="headerlink" href="#invoking-each-format" title="Permanent link">&para;</a></h2>
-<p><code>pyscn analyze</code> takes one of <code>--json</code>, <code>--yaml</code>, <code>--csv</code>, <code>--html</code> (default). There is no <code>--format</code> flag, and there are no standalone <code>complexity</code> / <code>deadcode</code> / <code>clone</code> / <code>deps</code> subcommands. Run a single analyzer via <code>--select</code>.</p>
+<p><code>pyscn analyze</code> takes one of <code>--json</code>, <code>--yaml</code>, <code>--csv</code>, <code>--text</code>, or <code>--html</code> (default). There is no <code>--format</code> flag, and there are no standalone <code>complexity</code> / <code>deadcode</code> / <code>clone</code> / <code>deps</code> subcommands. Run a single analyzer via <code>--select</code>.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>src/
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--yaml<span class="w"> </span>src/
 </span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--csv<span class="w">  </span>src/
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--html<span class="w"> </span>src/<span class="w">    </span><span class="c1"># default</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>complexity<span class="w"> </span>src/
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--csv<span class="w">  </span>--select<span class="w"> </span>deadcode<span class="w">   </span>src/
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--yaml<span class="w"> </span>--select<span class="w"> </span>clones<span class="w">        </span>src/
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>communities<span class="w">   </span>src/
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--text<span class="w"> </span>src/
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--html<span class="w"> </span>src/<span class="w">    </span><span class="c1"># default</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>complexity<span class="w"> </span>src/
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--csv<span class="w">  </span>--select<span class="w"> </span>deadcode<span class="w">   </span>src/
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--yaml<span class="w"> </span>--select<span class="w"> </span>clones<span class="w">        </span>src/
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>communities<span class="w">   </span>src/
 </span></code></pre></div>
 <p><code>--select communities</code> with <code>--json</code> writes standalone community JSON (not the unified <code>AnalyzeResponse</code> wrapper). YAML standalone output is not supported yet; use unified <code>pyscn analyze --yaml</code> or <code>--json --select communities</code>.</p>
 <p>Output files land in <code>.pyscn/reports/</code>; see <a href="../">Output Formats</a> for path and filename details.</p>

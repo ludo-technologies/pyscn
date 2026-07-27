@@ -3827,7 +3827,7 @@
 <td><code>format</code></td>
 <td>string</td>
 <td><code>"text"</code></td>
-<td><code>text</code>, <code>json</code>, <code>yaml</code>, <code>csv</code>, or <code>html</code>. CLI flags like <code>--json</code> override this.</td>
+<td>Default for configuration-backed analyzer requests. <code>pyscn analyze</code> uses its format flags and defaults to HTML.</td>
 </tr>
 <tr>
 <td><code>directory</code></td>
@@ -4810,7 +4810,7 @@
 </table>
 <hr />
 <h2 id="cli-flag-config-key-map">CLI flag → config key map<a class="headerlink" href="#cli-flag-config-key-map" title="Permanent link">&para;</a></h2>
-<p>Flags that don't map directly to a config key (<code>--select</code>, <code>--skip-*</code>, <code>--no-open</code>) work on top of whatever config you have loaded.</p>
+<p>Flags that don't map directly to a config key (<code>--select</code>, <code>--skip-*</code>, <code>--no-open</code>, and output-format flags) work on top of whatever config you have loaded.</p>
 <table>
 <thead>
 <tr>
@@ -4824,8 +4824,8 @@
 <td>— (overrides discovery)</td>
 </tr>
 <tr>
-<td><code>--json/--yaml/--csv/--html</code></td>
-<td><code>[output] format</code></td>
+<td><code>--json/--yaml/--csv/--html/--text</code></td>
+<td>— (selects the analyze report format)</td>
 </tr>
 <tr>
 <td><code>--min-complexity</code></td>
