@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/csv"
 	"fmt"
 	"html/template"
 	"io"
@@ -47,6 +48,9 @@ func (f *AnalyzeFormatter) Write(response *domain.AnalyzeResponse, format domain
 // writeText formats the response as plain text
 func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io.Writer) error {
 	utils := NewFormatUtils()
+	target := writer
+	var report strings.Builder
+	writer = &report
 
 	// Header
 	fmt.Fprint(writer, utils.FormatMainHeader("Comprehensive Analysis Report"))
@@ -97,43 +101,137 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
 
+	if len(response.ModuleQuality) > 0 {
+		fmt.Fprint(writer, utils.FormatSectionHeader("MODULE QUALITY HOTSPOTS"))
+		for index, module := range response.ModuleQuality {
+			if index >= 10 {
+				break
+			}
+
+			label := module.FilePath
+			if module.ModuleName != "" {
+				label = fmt.Sprintf("%s (%s)", module.ModuleName, module.FilePath)
+			}
+			fmt.Fprintf(writer, "  %s\n", label)
+			if module.FunctionCount > 0 {
+				fmt.Fprintf(writer, "    Functions: %d total / %d analyzed\n", module.FunctionCount, module.AnalyzedFunctionCount)
+			} else {
+				fmt.Fprintf(writer, "    Functions: %d analyzed\n", module.AnalyzedFunctionCount)
+			}
+			fmt.Fprintf(writer, "    Complexity: avg %.2f, max %d, high-risk %d, handlers %d\n",
+				module.AverageComplexity, module.MaxComplexity, module.HighRiskFunctionCount, module.ExceptionHandlerCount)
+			fmt.Fprintf(writer, "    Cognitive: avg %.2f\n", module.AverageCognitiveComplexity)
+			fmt.Fprintf(writer, "    Dead code: %d findings, %d blocks\n",
+				module.DeadCodeFindingCount, module.DeadCodeBlockCount)
+		}
+		if len(response.ModuleQuality) > 10 {
+			fmt.Fprintf(writer, "  Showing top 10 of %d modules\n", len(response.ModuleQuality))
+		}
+		fmt.Fprint(writer, utils.FormatSectionSeparator())
+	}
+
+	if response.Complexity != nil && len(response.Complexity.ByDirectory) > 0 {
+		fmt.Fprint(writer, formatDirectoryComplexityText(response.Complexity.ByDirectory, 10))
+	}
+
 	if response.Summary.CommunitiesEnabled && response.Communities != nil {
 		WriteCommunityTextSummary(writer, response.Communities)
 	}
 
+	if _, err := io.WriteString(target, report.String()); err != nil {
+		return domain.NewOutputError("failed to write analysis text", err)
+	}
 	return nil
 }
 
-// writeJSON formats the response as JSON
-// writeCSV formats the response as CSV (summary only)
+// writeCSV formats summary and quality metrics as CSV.
 func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.Writer) error {
-	// Write header
-	fmt.Fprintf(writer, "Metric,Value\n")
+	directories := []domain.DirectoryComplexityMetrics(nil)
+	if response.Complexity != nil {
+		directories = response.Complexity.ByDirectory
+	}
+	rowCapacity := 16 + (12 * len(response.ModuleQuality))
+	if response.Complexity != nil {
+		rowCapacity += 1 + (7 * len(directories))
+	}
+	if response.Summary.CommunitiesEnabled && response.Communities != nil {
+		rowCapacity += 6
+	}
+	rows := make([][]string, 0, rowCapacity)
+	rows = append(rows,
+		[]string{"Metric", "Value"},
+		[]string{"Health Score", fmt.Sprint(response.Summary.HealthScore)},
+		[]string{"Grade", response.Summary.Grade},
+		[]string{"Total Files", fmt.Sprint(response.Summary.TotalFiles)},
+		[]string{"Analyzed Files", fmt.Sprint(response.Summary.AnalyzedFiles)},
+		[]string{"Average Complexity", fmt.Sprintf("%.2f", response.Summary.AverageComplexity)},
+		[]string{"High Complexity Count", fmt.Sprint(response.Summary.HighComplexityCount)},
+		[]string{"Dead Code Count", fmt.Sprint(response.Summary.DeadCodeCount)},
+		[]string{"Critical Dead Code", fmt.Sprint(response.Summary.CriticalDeadCode)},
+		[]string{"Unique Fragments", fmt.Sprint(response.Summary.TotalClones)},
+		[]string{"Clone Groups", fmt.Sprint(response.Summary.CloneGroups)},
+		[]string{"Code Duplication", fmt.Sprintf("%.2f", response.Summary.CodeDuplication)},
+		[]string{"Total Classes Analyzed", fmt.Sprint(response.Summary.CBOClasses)},
+		[]string{"High Coupling (CBO) Classes", fmt.Sprint(response.Summary.HighCouplingClasses)},
+		[]string{"Average CBO", fmt.Sprintf("%.2f", response.Summary.AverageCoupling)},
+		[]string{"Module Quality Count", fmt.Sprint(len(response.ModuleQuality))},
+	)
 
-	// Write summary metrics
-	fmt.Fprintf(writer, "Health Score,%d\n", response.Summary.HealthScore)
-	fmt.Fprintf(writer, "Grade,%s\n", response.Summary.Grade)
-	fmt.Fprintf(writer, "Total Files,%d\n", response.Summary.TotalFiles)
-	fmt.Fprintf(writer, "Analyzed Files,%d\n", response.Summary.AnalyzedFiles)
-	fmt.Fprintf(writer, "Average Complexity,%.2f\n", response.Summary.AverageComplexity)
-	fmt.Fprintf(writer, "High Complexity Count,%d\n", response.Summary.HighComplexityCount)
-	fmt.Fprintf(writer, "Dead Code Count,%d\n", response.Summary.DeadCodeCount)
-	fmt.Fprintf(writer, "Critical Dead Code,%d\n", response.Summary.CriticalDeadCode)
-	fmt.Fprintf(writer, "Unique Fragments,%d\n", response.Summary.TotalClones)
-	fmt.Fprintf(writer, "Clone Groups,%d\n", response.Summary.CloneGroups)
-	fmt.Fprintf(writer, "Code Duplication,%.2f\n", response.Summary.CodeDuplication)
-	fmt.Fprintf(writer, "Total Classes Analyzed,%d\n", response.Summary.CBOClasses)
-	fmt.Fprintf(writer, "High Coupling (CBO) Classes,%d\n", response.Summary.HighCouplingClasses)
-	fmt.Fprintf(writer, "Average CBO,%.2f\n", response.Summary.AverageCoupling)
+	for index, module := range response.ModuleQuality {
+		prefix := fmt.Sprintf("Module %d ", index+1)
+		rows = append(rows,
+			[]string{prefix + "Name", module.ModuleName},
+			[]string{prefix + "File Path", module.FilePath},
+			[]string{prefix + "Lines of Code", fmt.Sprint(module.LinesOfCode)},
+			[]string{prefix + "Function Count", fmt.Sprint(module.FunctionCount)},
+			[]string{prefix + "Analyzed Function Count", fmt.Sprint(module.AnalyzedFunctionCount)},
+			[]string{prefix + "Average Complexity", fmt.Sprintf("%.2f", module.AverageComplexity)},
+			[]string{prefix + "Average Cognitive Complexity", fmt.Sprintf("%.2f", module.AverageCognitiveComplexity)},
+			[]string{prefix + "Max Complexity", fmt.Sprint(module.MaxComplexity)},
+			[]string{prefix + "High Risk Function Count", fmt.Sprint(module.HighRiskFunctionCount)},
+			[]string{prefix + "Exception Handler Count", fmt.Sprint(module.ExceptionHandlerCount)},
+			[]string{prefix + "Dead Code Findings", fmt.Sprint(module.DeadCodeFindingCount)},
+			[]string{prefix + "Dead Code Blocks", fmt.Sprint(module.DeadCodeBlockCount)},
+		)
+	}
 
 	if response.Summary.CommunitiesEnabled && response.Communities != nil {
 		communities := response.Communities
-		fmt.Fprintf(writer, "Communities Enabled,true\n")
-		fmt.Fprintf(writer, "Total Communities,%d\n", communities.TotalCommunities)
-		fmt.Fprintf(writer, "Community Modularity,%.4f\n", communities.Modularity)
-		fmt.Fprintf(writer, "Bridge Modules,%d\n", len(communities.BridgeModules))
-		fmt.Fprintf(writer, "Community Score,%d\n", response.Summary.CommunityScore)
-		fmt.Fprintf(writer, "Community Risk Score,%d\n", response.Summary.CommunityRiskScore)
+		rows = append(rows,
+			[]string{"Communities Enabled", "true"},
+			[]string{"Total Communities", fmt.Sprint(communities.TotalCommunities)},
+			[]string{"Community Modularity", fmt.Sprintf("%.4f", communities.Modularity)},
+			[]string{"Bridge Modules", fmt.Sprint(len(communities.BridgeModules))},
+			[]string{"Community Score", fmt.Sprint(response.Summary.CommunityScore)},
+			[]string{"Community Risk Score", fmt.Sprint(response.Summary.CommunityRiskScore)},
+		)
+	}
+
+	if response.Complexity != nil {
+		rows = append(rows, []string{"Directory Complexity Count", fmt.Sprint(len(directories))})
+		for index, directory := range directories {
+			prefix := fmt.Sprintf("Directory %d ", index+1)
+			rows = append(rows,
+				[]string{prefix + "Path", directory.DirectoryPath},
+				[]string{prefix + "Function Count", fmt.Sprint(directory.FunctionCount)},
+				[]string{prefix + "Average Complexity", fmt.Sprintf("%.2f", directory.AverageComplexity)},
+				[]string{prefix + "Max Complexity", fmt.Sprint(directory.MaxComplexity)},
+				[]string{prefix + "High Risk Function Count", fmt.Sprint(directory.HighRiskFunctionCount)},
+				[]string{prefix + "Average Nesting Depth", fmt.Sprintf("%.2f", directory.AverageNestingDepth)},
+				[]string{prefix + "Max Nesting Depth", fmt.Sprint(directory.MaxNestingDepth)},
+			)
+		}
+	}
+
+	csvWriter := csv.NewWriter(writer)
+	for _, row := range rows {
+		if err := csvWriter.Write(row); err != nil {
+			return domain.NewOutputError("failed to write CSV output", err)
+		}
+	}
+	csvWriter.Flush()
+	if err := csvWriter.Error(); err != nil {
+		return domain.NewOutputError("failed to write CSV output", err)
 	}
 
 	return nil
@@ -331,6 +429,25 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             background: #f8f9fa;
             font-weight: 600;
         }
+        .table-sort {
+            all: unset;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font: inherit;
+        }
+        .table-sort::after {
+            content: "↕";
+            color: #64748b;
+            font-size: 12px;
+        }
+        .table-sort:focus-visible {
+            outline: 2px solid #2563eb;
+            outline-offset: 3px;
+        }
+        .table th[aria-sort="ascending"] .table-sort::after { content: "↑"; }
+        .table th[aria-sort="descending"] .table-sort::after { content: "↓"; }
         .code-preview-card {
             margin: 12px 0 0;
             padding: 12px 14px;
@@ -466,6 +583,12 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
         <div class="tabs">
             <div class="tab-buttons">
                 <button class="tab-button active" onclick="showTab('summary', this)">Summary</button>
+                {{if .ModuleQuality}}
+                <button class="tab-button" onclick="showTab('module-quality', this)">Modules</button>
+                {{end}}
+                {{if and .Complexity .Complexity.ByDirectory}}
+                <button class="tab-button" onclick="showTab('directory-complexity', this)">Directories</button>
+                {{end}}
                 {{if .Suggestions}}
                 <button class="tab-button" onclick="showTab('suggestions', this)">Suggestions</button>
                 {{end}}
@@ -734,6 +857,86 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 </div>
                 {{end}}
             </div>
+
+            {{if .ModuleQuality}}
+            <div id="module-quality" class="tab-content">
+                <h2>Module Quality Hotspots</h2>
+                <p style="color: #666; margin-bottom: 20px;">Per-module metrics ranked by high-risk functions, maximum complexity, average complexity, and dead-code findings</p>
+                <div style="overflow-x: auto;">
+                    <table id="module-quality-table" class="table">
+                        <thead>
+                            <tr>
+                                <th><button type="button" class="table-sort" aria-label="Sort by module name" onclick="sortModuleQuality(0, false, this)">Module</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by file path" onclick="sortModuleQuality(1, false, this)">File</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by lines of code" onclick="sortModuleQuality(2, true, this)">LOC</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by function count" onclick="sortModuleQuality(3, true, this)">Functions</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by analyzed function count" onclick="sortModuleQuality(4, true, this)">Analyzed</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by average complexity" onclick="sortModuleQuality(5, true, this)">Avg CC</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by average cognitive complexity" onclick="sortModuleQuality(6, true, this)">Avg Cognitive</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by maximum complexity" onclick="sortModuleQuality(7, true, this)">Max CC</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk function count" onclick="sortModuleQuality(8, true, this)">High Risk</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by exception handler count" onclick="sortModuleQuality(9, true, this)">Handlers</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by dead-code findings" onclick="sortModuleQuality(10, true, this)">Dead Findings</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by dead-code blocks" onclick="sortModuleQuality(11, true, this)">Dead Blocks</button></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range .ModuleQuality}}
+                            <tr>
+                                <td data-sort-value="{{.ModuleName}}">{{if .ModuleName}}{{.ModuleName}}{{else}}—{{end}}</td>
+                                <td data-sort-value="{{.FilePath}}">{{.FilePath}}</td>
+                                <td data-sort-value="{{.LinesOfCode}}">{{.LinesOfCode}}</td>
+								<td data-sort-value="{{.FunctionCount}}">{{.FunctionCount}}</td>
+								<td data-sort-value="{{.AnalyzedFunctionCount}}">{{.AnalyzedFunctionCount}}</td>
+                                <td data-sort-value="{{.AverageComplexity}}">{{printf "%.2f" .AverageComplexity}}</td>
+                                <td data-sort-value="{{.AverageCognitiveComplexity}}">{{printf "%.2f" .AverageCognitiveComplexity}}</td>
+                                <td data-sort-value="{{.MaxComplexity}}">{{.MaxComplexity}}</td>
+                                <td data-sort-value="{{.HighRiskFunctionCount}}">{{.HighRiskFunctionCount}}</td>
+								<td data-sort-value="{{.ExceptionHandlerCount}}">{{.ExceptionHandlerCount}}</td>
+                                <td data-sort-value="{{.DeadCodeFindingCount}}">{{.DeadCodeFindingCount}}</td>
+								<td data-sort-value="{{.DeadCodeBlockCount}}">{{.DeadCodeBlockCount}}</td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {{end}}
+
+            {{if and .Complexity .Complexity.ByDirectory}}
+            <div id="directory-complexity" class="tab-content">
+                <h2>Directory Complexity</h2>
+                <p style="color: #666; margin-bottom: 20px;">Project-root-relative rollups of the reported function population</p>
+                <div style="overflow-x: auto;">
+                    <table id="directory-complexity-table" class="table">
+                        <thead>
+                            <tr>
+                                <th><button type="button" class="table-sort" aria-label="Sort by directory path" onclick="sortDirectoryComplexity(0, false, this)">Directory</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by function count" onclick="sortDirectoryComplexity(1, true, this)">Functions</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by average complexity" onclick="sortDirectoryComplexity(2, true, this)">Avg CC</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by maximum complexity" onclick="sortDirectoryComplexity(3, true, this)">Max CC</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk function count" onclick="sortDirectoryComplexity(4, true, this)">High Risk</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by average nesting depth" onclick="sortDirectoryComplexity(5, true, this)">Avg Nesting</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by maximum nesting depth" onclick="sortDirectoryComplexity(6, true, this)">Max Nesting</button></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range .Complexity.ByDirectory}}
+                            <tr>
+                                <td data-sort-value="{{.DirectoryPath}}">{{.DirectoryPath}}</td>
+                                <td data-sort-value="{{.FunctionCount}}">{{.FunctionCount}}</td>
+                                <td data-sort-value="{{.AverageComplexity}}">{{printf "%.2f" .AverageComplexity}}</td>
+                                <td data-sort-value="{{.MaxComplexity}}">{{.MaxComplexity}}</td>
+                                <td data-sort-value="{{.HighRiskFunctionCount}}">{{.HighRiskFunctionCount}}</td>
+                                <td data-sort-value="{{.AverageNestingDepth}}">{{printf "%.2f" .AverageNestingDepth}}</td>
+                                <td data-sort-value="{{.MaxNestingDepth}}">{{.MaxNestingDepth}}</td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {{end}}
 
             {{if .Suggestions}}
             <div id="suggestions" class="tab-content">
@@ -1393,6 +1596,39 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
     </div>
 
     <script>
+        function sortQualityTable(tableID, columnIndex, numeric, button) {
+            const table = document.getElementById(tableID);
+            if (!table) { return; }
+
+            const body = table.tBodies[0];
+            const rows = Array.from(body.rows);
+            const direction = button.dataset.direction === 'asc' ? 'desc' : 'asc';
+            const multiplier = direction === 'asc' ? 1 : -1;
+
+            rows.sort((left, right) => {
+                const leftValue = left.cells[columnIndex].dataset.sortValue || '';
+                const rightValue = right.cells[columnIndex].dataset.sortValue || '';
+                const comparison = numeric
+                    ? Number(leftValue) - Number(rightValue)
+                    : leftValue.localeCompare(rightValue);
+                return comparison * multiplier;
+            });
+            rows.forEach(row => body.appendChild(row));
+
+            table.querySelectorAll('th[aria-sort]').forEach(header => header.removeAttribute('aria-sort'));
+            table.querySelectorAll('.table-sort').forEach(control => delete control.dataset.direction);
+            button.dataset.direction = direction;
+            button.parentElement.setAttribute('aria-sort', direction === 'asc' ? 'ascending' : 'descending');
+        }
+
+        function sortModuleQuality(columnIndex, numeric, button) {
+            sortQualityTable('module-quality-table', columnIndex, numeric, button);
+        }
+
+        function sortDirectoryComplexity(columnIndex, numeric, button) {
+            sortQualityTable('directory-complexity-table', columnIndex, numeric, button);
+        }
+
         function showTab(tabName, el) {
             // Hide all tabs
             const tabs = document.querySelectorAll('.tab-content');

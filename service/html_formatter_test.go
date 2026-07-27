@@ -297,6 +297,17 @@ func TestHTMLFormatter_FormatComplexityAsHTML(t *testing.T) {
 				RiskLevel: domain.RiskLevelMedium,
 			},
 		},
+		ByDirectory: []domain.DirectoryComplexityMetrics{
+			{
+				DirectoryPath:         "pkg",
+				FunctionCount:         1,
+				AverageComplexity:     5,
+				MaxComplexity:         5,
+				HighRiskFunctionCount: 0,
+				AverageNestingDepth:   3,
+				MaxNestingDepth:       3,
+			},
+		},
 	}
 
 	html, err := formatter.FormatComplexityAsHTML(response, "Test Project")
@@ -322,6 +333,11 @@ func TestHTMLFormatter_FormatComplexityAsHTML(t *testing.T) {
 	assert.Contains(t, html, "Function Details")
 	assert.Contains(t, html, "Nesting Depth")
 	assert.Contains(t, html, "test_function")
+
+	// Check directory rollups are rendered from the public complexity contract.
+	assert.Contains(t, html, "Directory Complexity")
+	assert.Contains(t, html, "pkg")
+	assert.Contains(t, html, "Avg Nesting")
 }
 
 func TestHTMLFormatter_FormatComplexityAsHTML_WithNestingDepth(t *testing.T) {

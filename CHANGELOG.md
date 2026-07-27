@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.28.0] - 2026-07-25
+
+### Added
+- List the pyscn MCP server in the official MCP Registry and Glama (#682)
+
+### Changed
+- Point the cross-language link to polyscan instead of the archived jscan (#681)
+
 ## [1.27.0] - 2026-07-25
 
 ### Added

@@ -77,6 +77,7 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 		response.Summary.HighRiskFunctions,
 		response.Summary.MediumRiskFunctions,
 		response.Summary.LowRiskFunctions))
+	builder.WriteString(formatDirectoryComplexityText(response.ByDirectory, 0))
 
 	if response.RawMetricsSummary != nil {
 		builder.WriteString(utils.FormatSectionHeader("RAW CODE METRICS"))
@@ -266,9 +267,10 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 	}
 
 	result := map[string]interface{}{
-		"summary":  summary,
-		"results":  functions,
-		"metadata": metadata,
+		"summary":      summary,
+		"results":      functions,
+		"by_directory": response.ByDirectory,
+		"metadata":     metadata,
 	}
 
 	if response.RawMetricsSummary != nil {

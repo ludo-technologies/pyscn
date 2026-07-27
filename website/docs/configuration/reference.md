@@ -10,7 +10,7 @@ Controls how results are reported.
 
 | Key              | Type    | Default       | Description |
 | ---------------- | ------- | ------------- | --- |
-| `format`         | string  | `"text"`      | `text`, `json`, `yaml`, `csv`, or `html`. CLI flags like `--json` override this. |
+| `format`         | string  | `"text"`      | Default for configuration-backed analyzer requests. `pyscn analyze` uses its format flags and defaults to HTML. |
 | `directory`      | string  | `""`          | Output directory. Empty = `.pyscn/reports/` under CWD. |
 | `show_details`   | bool    | `false`       | Include per-finding detail in the summary. |
 | `sort_by`        | string  | `"complexity"`| `name`, `complexity`, or `risk`. |
@@ -340,12 +340,12 @@ Dependency Injection anti-pattern detection. **Opt-in**.
 
 ## CLI flag → config key map
 
-Flags that don't map directly to a config key (`--select`, `--skip-*`, `--no-open`) work on top of whatever config you have loaded.
+Flags that don't map directly to a config key (`--select`, `--skip-*`, `--no-open`, and output-format flags) work on top of whatever config you have loaded.
 
 | CLI flag                | Config key                        |
 | ----------------------- | --------------------------------- |
 | `--config <path>`       | — (overrides discovery)           |
-| `--json/--yaml/--csv/--html` | `[output] format`            |
+| `--json/--yaml/--csv/--html/--text` | — (selects the analyze report format) |
 | `--min-complexity`      | `[complexity] min_complexity`     |
 | `--max-complexity`      | `[complexity] max_complexity`     |
 | `--min-severity`        | `[dead_code] min_severity`        |

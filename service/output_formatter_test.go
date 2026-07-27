@@ -45,6 +45,17 @@ func createTestComplexityResponse() *domain.ComplexityResponse {
 				RiskLevel: domain.RiskLevelHigh,
 			},
 		},
+		ByDirectory: []domain.DirectoryComplexityMetrics{
+			{
+				DirectoryPath:         ".",
+				FunctionCount:         2,
+				AverageComplexity:     5,
+				MaxComplexity:         8,
+				HighRiskFunctionCount: 1,
+				AverageNestingDepth:   1.5,
+				MaxNestingDepth:       2,
+			},
+		},
 		Summary: domain.ComplexitySummary{
 			TotalFunctions:      2,
 			FunctionsParsed:     2,
@@ -140,6 +151,7 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Contains(t, result, "metadata") // contains generated_at and version
 				assert.Contains(t, result, "raw_metrics")
 				assert.Contains(t, result, "raw_metrics_summary")
+				assert.Contains(t, result, "by_directory")
 
 				// Verify results array (contains functions)
 				functions, ok := result["results"].([]interface{})
@@ -163,6 +175,27 @@ func TestOutputFormatter_Format(t *testing.T) {
 				rawMetrics, ok := result["raw_metrics"].([]interface{})
 				assert.True(t, ok)
 				assert.Len(t, rawMetrics, 1)
+
+				directories, ok := result["by_directory"].([]interface{})
+				require.True(t, ok)
+				require.Len(t, directories, 1)
+				directory := directories[0].(map[string]interface{})
+				assert.Equal(t, ".", directory["directory_path"])
+				assert.Equal(t, float64(2), directory["function_count"])
+				assert.Equal(t, 1.5, directory["average_nesting_depth"])
+			},
+			expectError: false,
+		},
+		{
+			name:     "format empty directory collection as JSON",
+			response: &domain.ComplexityResponse{},
+			format:   domain.OutputFormatJSON,
+			validateOutput: func(t *testing.T, output string) {
+				var result map[string]interface{}
+				require.NoError(t, json.Unmarshal([]byte(output), &result))
+				directories, ok := result["by_directory"].([]interface{})
+				require.True(t, ok)
+				assert.Empty(t, directories)
 			},
 			expectError: false,
 		},
@@ -176,7 +209,6 @@ func TestOutputFormatter_Format(t *testing.T) {
 				records, err := reader.ReadAll()
 				assert.NoError(t, err, "Output should be valid CSV")
 
-				// Should have header + 2 data rows
 				assert.Len(t, records, 3, "Should have header plus 2 function rows")
 
 				// Check header
@@ -213,6 +245,7 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Contains(t, result, "metadata") // contains generated_at and version
 				assert.Contains(t, result, "raw_metrics")
 				assert.Contains(t, result, "raw_metrics_summary")
+				assert.Contains(t, result, "by_directory")
 
 				// Verify results array (contains functions)
 				functions, ok := result["results"].([]interface{})
@@ -228,6 +261,14 @@ func TestOutputFormatter_Format(t *testing.T) {
 				rawMetrics, ok := result["raw_metrics"].([]interface{})
 				assert.True(t, ok)
 				assert.Len(t, rawMetrics, 1)
+
+				directories, ok := result["by_directory"].([]interface{})
+				require.True(t, ok)
+				require.Len(t, directories, 1)
+				directory := directories[0].(map[string]interface{})
+				assert.Equal(t, ".", directory["directory_path"])
+				assert.Equal(t, 2, directory["function_count"])
+				assert.Equal(t, 1.5, directory["average_nesting_depth"])
 			},
 			expectError: false,
 		},
@@ -244,6 +285,9 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Contains(t, output, "RISK DISTRIBUTION")
 				assert.Contains(t, output, "High: 1")
 				assert.Contains(t, output, "Low: 1")
+				assert.Contains(t, output, "DIRECTORY COMPLEXITY")
+				assert.Contains(t, output, "Functions: 2")
+				assert.Contains(t, output, "Nesting: avg 1.50, max 2")
 				assert.Contains(t, output, "RAW CODE METRICS")
 				assert.Contains(t, output, "SLOC: 10")
 				assert.Contains(t, output, "Comment Ratio: 16.7%")
