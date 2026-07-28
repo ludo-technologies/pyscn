@@ -1,3 +1,5 @@
+[![MCP Toplist](https://mcptoplist.com/badge/io.github.ludo-technologies%2Fpyscn.svg)](https://mcptoplist.com/server/io.github.ludo-technologies%2Fpyscn)
+
 <div align="center">
 
 [English](README.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [Français](README.fr.md)
