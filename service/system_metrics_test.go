@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -30,7 +31,7 @@ func TestExtractCouplingResult_VariesWithGraphs(t *testing.T) {
 
 				// Calculate metrics
 				calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-				err := calculator.CalculateMetrics()
+				err := calculator.CalculateMetrics(context.Background())
 				require.NoError(t, err)
 
 				return graph
@@ -71,7 +72,7 @@ func TestExtractCouplingResult_VariesWithGraphs(t *testing.T) {
 
 				// Calculate metrics
 				calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-				err := calculator.CalculateMetrics()
+				err := calculator.CalculateMetrics(context.Background())
 				require.NoError(t, err)
 
 				return graph
@@ -110,7 +111,7 @@ func TestExtractCouplingResult_VariesWithGraphs(t *testing.T) {
 
 				// Calculate metrics
 				calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-				err := calculator.CalculateMetrics()
+				err := calculator.CalculateMetrics(context.Background())
 				require.NoError(t, err)
 
 				return graph
@@ -156,7 +157,7 @@ func TestExtractCouplingResult_UsesCalculatedMetrics(t *testing.T) {
 
 	// Calculate metrics using CouplingMetricsCalculator
 	calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-	err := calculator.CalculateMetrics()
+	err := calculator.CalculateMetrics(context.Background())
 	require.NoError(t, err)
 
 	// Extract results
@@ -206,7 +207,7 @@ func TestExtractCouplingResult_ClassifiesMainSequenceZones(t *testing.T) {
 	graph.AddDependency("balanced.service", "balanced.dep", analyzer.DependencyEdgeImport, nil)
 
 	calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-	err := calculator.CalculateMetrics()
+	err := calculator.CalculateMetrics(context.Background())
 	require.NoError(t, err)
 
 	result := service.convertCouplingResults(graph.SystemMetrics)
@@ -228,7 +229,7 @@ func TestExtractCouplingResult_DifferentGraphsProduceDifferentMetrics(t *testing
 	graph1 := analyzer.NewDependencyGraph("/test/project1")
 	graph1.AddModule("simple", "/test/simple.py")
 	calculator1 := analyzer.NewCouplingMetricsCalculator(graph1, analyzer.DefaultCouplingMetricsOptions())
-	err := calculator1.CalculateMetrics()
+	err := calculator1.CalculateMetrics(context.Background())
 	require.NoError(t, err)
 	metrics1 := service.extractCouplingResult(graph1)
 
@@ -243,7 +244,7 @@ func TestExtractCouplingResult_DifferentGraphsProduceDifferentMetrics(t *testing
 		}
 	}
 	calculator2 := analyzer.NewCouplingMetricsCalculator(graph2, analyzer.DefaultCouplingMetricsOptions())
-	err = calculator2.CalculateMetrics()
+	err = calculator2.CalculateMetrics(context.Background())
 	require.NoError(t, err)
 	metrics2 := service.extractCouplingResult(graph2)
 

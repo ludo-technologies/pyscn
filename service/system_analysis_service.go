@@ -377,7 +377,7 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 
 	// Calculate coupling metrics
 	metricsCalculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-	if err := metricsCalculator.CalculateMetrics(); err != nil {
+	if err := metricsCalculator.CalculateMetrics(ctx); err != nil {
 		return nil, err
 	}
 	couplingResults := s.extractCouplingResult(graph)
@@ -402,10 +402,6 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
-	maxDepth, err := analyzer.CalculateMaxDependencyDepth(ctx, graph)
-	if err != nil {
-		return nil, fmt.Errorf("calculate dependency depth: %w", err)
-	}
 
 	// Create dependency analysis result
 	result := &domain.DependencyAnalysisResult{
@@ -418,7 +414,7 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 		CircularDependencies: s.convertCircularResults(circularResult),
 		CouplingAnalysis:     s.convertCouplingResults(couplingResults),
 		LongestChains:        longestChains,
-		MaxDepth:             maxDepth,
+		MaxDepth:             couplingResults.MaxDependencyDepth,
 	}
 
 	return result, nil
