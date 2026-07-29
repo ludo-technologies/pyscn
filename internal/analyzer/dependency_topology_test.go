@@ -55,6 +55,17 @@ func TestCouplingMetricsUsesDependencyTopologyDepth(t *testing.T) {
 	assert.Equal(t, 2, graph.SystemMetrics.MaxDependencyDepth)
 }
 
+func TestCouplingMetricsHonorsCancellation(t *testing.T) {
+	graph := dependencyGraphWithModules("module")
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	calculator := NewCouplingMetricsCalculator(graph, DefaultCouplingMetricsOptions())
+	err := calculator.CalculateMetrics(ctx)
+
+	require.ErrorIs(t, err, context.Canceled)
+}
+
 func dependencyGraphWithModules(moduleNames ...string) *DependencyGraph {
 	graph := NewDependencyGraph("/project")
 	for _, moduleName := range moduleNames {

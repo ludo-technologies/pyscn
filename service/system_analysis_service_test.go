@@ -16,7 +16,7 @@ import (
 )
 
 func TestAnalyzeDependencies_CompletesBranchingGraphBeforeDeadline(t *testing.T) {
-	const moduleCount = 36
+	const moduleCount = 44
 
 	dir := t.TempDir()
 	paths := make([]string, 0, moduleCount+1)
