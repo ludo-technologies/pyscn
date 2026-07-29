@@ -380,7 +380,7 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 	if err := metricsCalculator.CalculateMetrics(ctx); err != nil {
 		return nil, err
 	}
-	couplingResults := s.extractCouplingResult(graph)
+	couplingResults := graph.SystemMetrics
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
@@ -1432,42 +1432,6 @@ func (s *SystemAnalysisServiceImpl) findPathsFromModule(graph *analyzer.Dependen
 	return paths
 }
 
-func (s *SystemAnalysisServiceImpl) calculateMaxDepth(graph *analyzer.DependencyGraph) int {
-	maxDepth := 0
-
-	for moduleName := range graph.Nodes {
-		depth := s.calculateDepthFromModule(graph, moduleName, make(map[string]bool), 0)
-		if depth > maxDepth {
-			maxDepth = depth
-		}
-	}
-
-	return maxDepth
-}
-
-func (s *SystemAnalysisServiceImpl) calculateDepthFromModule(graph *analyzer.DependencyGraph, current string, visited map[string]bool, currentDepth int) int {
-	if visited[current] {
-		return currentDepth
-	}
-
-	visited[current] = true
-	defer delete(visited, current)
-
-	maxSubDepth := currentDepth
-	node := graph.Nodes[current]
-
-	if node != nil {
-		for dep := range node.Dependencies {
-			depth := s.calculateDepthFromModule(graph, dep, visited, currentDepth+1)
-			if depth > maxSubDepth {
-				maxSubDepth = depth
-			}
-		}
-	}
-
-	return maxSubDepth
-}
-
 func (s *SystemAnalysisServiceImpl) convertCouplingResults(results *analyzer.SystemMetrics) *domain.CouplingAnalysis {
 	if results == nil {
 		return nil
@@ -1560,62 +1524,6 @@ func (s *SystemAnalysisServiceImpl) convertDependencyChains(chains []analyzer.De
 	}
 
 	return deps
-}
-
-// extractCouplingResult extracts coupling analysis from the dependency graph
-func (s *SystemAnalysisServiceImpl) extractCouplingResult(graph *analyzer.DependencyGraph) *analyzer.SystemMetrics {
-	// If SystemMetrics is already calculated in the graph, use it
-	if graph.SystemMetrics != nil && graph.SystemMetrics.RefactoringPriority != nil {
-		return graph.SystemMetrics
-	}
-
-	// Otherwise, calculate basic metrics
-	metrics := &analyzer.SystemMetrics{
-		TotalModules:      graph.TotalModules,
-		TotalDependencies: graph.TotalEdges,
-	}
-
-	if graph.TotalModules > 0 {
-		// Calculate averages from module metrics
-		var totalFanIn, totalFanOut float64
-		var totalInstability, totalAbstractness, totalDistance float64
-		var refactoringCandidates []string
-
-		if graph.ModuleMetrics != nil {
-			for moduleName, moduleMetrics := range graph.ModuleMetrics {
-				totalFanIn += float64(moduleMetrics.AfferentCoupling)
-				totalFanOut += float64(moduleMetrics.EfferentCoupling)
-				totalInstability += moduleMetrics.Instability
-				totalAbstractness += moduleMetrics.Abstractness
-				totalDistance += moduleMetrics.Distance
-
-				// Identify refactoring priorities based on distance
-				if moduleMetrics.Distance > 0.5 {
-					refactoringCandidates = append(refactoringCandidates, moduleName)
-				}
-			}
-		}
-
-		moduleCount := float64(graph.TotalModules)
-		metrics.AverageFanIn = totalFanIn / moduleCount
-		metrics.AverageFanOut = totalFanOut / moduleCount
-		metrics.AverageInstability = totalInstability / moduleCount
-		metrics.AverageAbstractness = totalAbstractness / moduleCount
-		metrics.MainSequenceDeviation = totalDistance / moduleCount
-		metrics.SystemComplexity = float64(graph.TotalModules * 2)
-		metrics.MaxDependencyDepth = s.calculateMaxDepth(graph)
-		metrics.RefactoringPriority = refactoringCandidates
-
-		// Modularity index approximation
-		if graph.TotalEdges > 0 {
-			metrics.ModularityIndex = 1.0 - (float64(graph.TotalEdges) / float64(graph.TotalModules*graph.TotalModules))
-			if metrics.ModularityIndex < 0 {
-				metrics.ModularityIndex = 0
-			}
-		}
-	}
-
-	return metrics
 }
 
 func minSystemAnalysis(a, b int) int {

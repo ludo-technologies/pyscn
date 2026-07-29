@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestExtractCouplingResult_VariesWithGraphs(t *testing.T) {
+func TestCouplingMetricsVaryWithGraphs(t *testing.T) {
 	tests := []struct {
 		name          string
 		setupGraph    func() *analyzer.DependencyGraph
@@ -128,22 +128,16 @@ func TestExtractCouplingResult_VariesWithGraphs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup
-			service := &SystemAnalysisServiceImpl{}
 			graph := tt.setupGraph()
 
-			// Extract metrics
-			result := service.extractCouplingResult(graph)
-
-			// Verify metrics
+			result := graph.SystemMetrics
 			require.NotNil(t, result)
 			tt.expectedCheck(t, result)
 		})
 	}
 }
 
-func TestExtractCouplingResult_UsesCalculatedMetrics(t *testing.T) {
-	service := &SystemAnalysisServiceImpl{}
+func TestCouplingMetricsPopulatesGraphMetrics(t *testing.T) {
 	graph := analyzer.NewDependencyGraph("/test/project")
 
 	// Add some modules
@@ -160,11 +154,7 @@ func TestExtractCouplingResult_UsesCalculatedMetrics(t *testing.T) {
 	err := calculator.CalculateMetrics(context.Background())
 	require.NoError(t, err)
 
-	// Extract results
-	result := service.extractCouplingResult(graph)
-
-	// Verify it uses the calculated SystemMetrics
-	assert.Equal(t, graph.SystemMetrics, result)
+	result := graph.SystemMetrics
 	assert.NotNil(t, result)
 	assert.Equal(t, 3, result.TotalModules)
 	assert.Equal(t, 2, result.TotalDependencies)
@@ -222,16 +212,14 @@ func TestExtractCouplingResult_ClassifiesMainSequenceZones(t *testing.T) {
 	assert.NotContains(t, result.ZoneOfPain, "balanced.dep")
 }
 
-func TestExtractCouplingResult_DifferentGraphsProduceDifferentMetrics(t *testing.T) {
-	service := &SystemAnalysisServiceImpl{}
-
+func TestCouplingMetricsDifferBetweenGraphs(t *testing.T) {
 	// Graph 1: Low complexity
 	graph1 := analyzer.NewDependencyGraph("/test/project1")
 	graph1.AddModule("simple", "/test/simple.py")
 	calculator1 := analyzer.NewCouplingMetricsCalculator(graph1, analyzer.DefaultCouplingMetricsOptions())
 	err := calculator1.CalculateMetrics(context.Background())
 	require.NoError(t, err)
-	metrics1 := service.extractCouplingResult(graph1)
+	metrics1 := graph1.SystemMetrics
 
 	// Graph 2: Higher complexity
 	graph2 := analyzer.NewDependencyGraph("/test/project2")
@@ -246,7 +234,7 @@ func TestExtractCouplingResult_DifferentGraphsProduceDifferentMetrics(t *testing
 	calculator2 := analyzer.NewCouplingMetricsCalculator(graph2, analyzer.DefaultCouplingMetricsOptions())
 	err = calculator2.CalculateMetrics(context.Background())
 	require.NoError(t, err)
-	metrics2 := service.extractCouplingResult(graph2)
+	metrics2 := graph2.SystemMetrics
 
 	// Verify metrics are different
 	assert.NotEqual(t, metrics1.TotalModules, metrics2.TotalModules)
