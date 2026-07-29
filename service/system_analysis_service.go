@@ -1392,15 +1392,12 @@ func (s *SystemAnalysisServiceImpl) findLongestChains(ctx context.Context, graph
 			moduleName,
 			make(map[string]bool),
 			[]string{moduleName},
-			limit-len(chains),
+			limit,
 		)
 		if err != nil {
 			return nil, err
 		}
 		chains = append(chains, paths...)
-		if len(chains) >= limit {
-			break
-		}
 	}
 
 	// Sort by length (descending), then by first module name for deterministic results

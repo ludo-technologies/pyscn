@@ -268,6 +268,24 @@ func TestFindLongestChainsHonorsCancellation(t *testing.T) {
 	require.ErrorIs(t, err, context.Canceled)
 }
 
+func TestFindLongestChainsConsidersLaterDeepRoots(t *testing.T) {
+	service := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+	for _, moduleName := range []string{"a_shallow", "b_leaf", "z_deep", "z_middle", "z_lower", "z_leaf"} {
+		graph.AddModule(moduleName, "/project/"+moduleName+".py")
+	}
+	graph.AddDependency("a_shallow", "b_leaf", analyzer.DependencyEdgeImport, nil)
+	graph.AddDependency("z_deep", "z_middle", analyzer.DependencyEdgeImport, nil)
+	graph.AddDependency("z_middle", "z_lower", analyzer.DependencyEdgeImport, nil)
+	graph.AddDependency("z_lower", "z_leaf", analyzer.DependencyEdgeImport, nil)
+
+	chains, err := service.findLongestChains(context.Background(), graph, 3)
+
+	require.NoError(t, err)
+	require.NotEmpty(t, chains)
+	assert.Equal(t, []string{"z_deep", "z_middle", "z_lower", "z_leaf"}, chains[0].Path)
+}
+
 func TestConvertCouplingResults(t *testing.T) {
 	service := NewSystemAnalysisService()
 
