@@ -42,7 +42,7 @@ type DeadCodeRequest struct {
 	SortBy      DeadCodeSortCriteria
 
 	// Analysis options
-	Recursive       bool
+	Recursive       *bool // nil = unset, non-nil = explicitly set
 	IncludePatterns []string
 	ExcludePatterns []string
 	IgnorePatterns  []string // Patterns for code to ignore (e.g., comments, debug code)
@@ -151,6 +151,9 @@ type DeadCodeResponse struct {
 	// Analysis results
 	Files   []FileDeadCode  `json:"files"`
 	Summary DeadCodeSummary `json:"summary"`
+	// ModuleRollups are derived before severity filters are applied. They are consumed
+	// by the unified analyze command and are not part of standalone dead-code output.
+	ModuleRollups map[string]ModuleDeadCodeMetrics `json:"-" yaml:"-"`
 
 	// Warnings and issues
 	Warnings []string `json:"warnings"`
@@ -229,7 +232,7 @@ func DefaultDeadCodeRequest() *DeadCodeRequest {
 		ContextLines:    3,
 		MinSeverity:     DeadCodeSeverityWarning,
 		SortBy:          DeadCodeSortBySeverity,
-		Recursive:       true,
+		Recursive:       BoolPtr(true),
 		IncludePatterns: DefaultAnalysisIncludePatterns(),
 		ExcludePatterns: DefaultAnalysisExcludePatterns(),
 		IgnorePatterns:  []string{},

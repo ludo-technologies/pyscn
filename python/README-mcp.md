@@ -2,6 +2,12 @@
 
 MCP (Model Context Protocol) server for pyscn Python code analyzer.
 
+<!-- The MCP Registry reads this marker off the published PyPI description to
+     verify that we own the pyscn-mcp package. It must stay identical to the
+     "name" field in server.json, or publishing to the registry fails. -->
+
+mcp-name: io.github.ludo-technologies/pyscn
+
 ## Installation
 
 ```bash

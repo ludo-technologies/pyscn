@@ -337,7 +337,8 @@ func (f *MockDataFormatterImpl) formatHTML(response *domain.MockDataResponse) (s
 
 	output.WriteString(`
         <footer style="margin-top: 40px; color: #666; font-size: 12px;">
-            Generated at: ` + EscapeHTML(response.GeneratedAt) + ` | Version: ` + EscapeHTML(response.Version) + `
+            Generated at: ` + EscapeHTML(response.GeneratedAt) + ` | Version: ` + EscapeHTML(response.Version) + `<br>
+            ` + GenerateStarLink() + `
         </footer>
     </div>
 </body>

@@ -1,5 +1,9 @@
 package analyzer
 
+import (
+	coreclone "github.com/ludo-technologies/polyscan/core/clone"
+)
+
 // SimilarityAnalyzer defines the interface for computing similarity between code fragments.
 // Each clone type should have its own analyzer implementation.
 type SimilarityAnalyzer interface {
@@ -9,6 +13,44 @@ type SimilarityAnalyzer interface {
 	// GetName returns the name of this analyzer
 	GetName() string
 }
+
+// coreTextualAnalyzer adapts the core/clone textual similarity analyzer
+// (with Python comment stripping) to the SimilarityAnalyzer interface.
+type coreTextualAnalyzer struct {
+	inner *coreclone.TextualSimilarityAnalyzer
+}
+
+// NewTextualSimilarityAnalyzer returns the Type-1 textual similarity analyzer
+// backed by core/clone with Python comment stripping.
+func NewTextualSimilarityAnalyzer() SimilarityAnalyzer {
+	return &coreTextualAnalyzer{inner: coreclone.NewTextualSimilarityAnalyzer(removePythonComments)}
+}
+
+func (a *coreTextualAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) float64 {
+	return a.inner.ComputeSimilarity(f1.coreFragment(), f2.coreFragment())
+}
+
+func (a *coreTextualAnalyzer) GetName() string { return a.inner.Name() }
+
+// coreSyntacticAnalyzer adapts the core/clone syntactic similarity analyzer
+// to the SimilarityAnalyzer interface.
+type coreSyntacticAnalyzer struct {
+	inner *coreclone.SyntacticSimilarityAnalyzer
+}
+
+// NewSyntacticSimilarityAnalyzer returns the Type-2 syntactic similarity
+// analyzer backed by core/clone (normalized AST hash comparison) with Python
+// pattern and literal-like label configuration.
+func NewSyntacticSimilarityAnalyzer() SimilarityAnalyzer {
+	return &coreSyntacticAnalyzer{inner: coreclone.NewSyntacticSimilarityAnalyzerWithExtractor(
+		newPythonCloneFeatureExtractor().WithOptions(3, 4, true, false))}
+}
+
+func (a *coreSyntacticAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) float64 {
+	return a.inner.ComputeSimilarity(f1.coreFragment(), f2.coreFragment())
+}
+
+func (a *coreSyntacticAnalyzer) GetName() string { return a.inner.Name() }
 
 // CloneClassifier orchestrates multi-dimensional clone classification.
 // It uses different analyzers for each clone type and applies a cascading

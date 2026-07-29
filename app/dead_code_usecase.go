@@ -62,7 +62,7 @@ func (uc *DeadCodeUseCase) Execute(ctx context.Context, req domain.DeadCodeReque
 	// Collect Python files
 	files, err := uc.fileReader.CollectPythonFiles(
 		finalReq.Paths,
-		finalReq.Recursive,
+		domain.BoolValue(finalReq.Recursive, true),
 		finalReq.IncludePatterns,
 		finalReq.ExcludePatterns,
 	)
@@ -123,7 +123,7 @@ func (uc *DeadCodeUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Dead
 	files, err := ResolveFilePaths(
 		uc.fileReader,
 		finalReq.Paths,
-		finalReq.Recursive,
+		domain.BoolValue(finalReq.Recursive, true),
 		finalReq.IncludePatterns,
 		finalReq.ExcludePatterns,
 		false, // validatePythonFile: dead code doesn't need strict Python validation
@@ -146,6 +146,7 @@ func (uc *DeadCodeUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Dead
 	}
 
 	// Store merged configuration in response for caller access
+	resolveDeadCodeRequestForResponse(&finalReq)
 	response.Request = &finalReq
 
 	return response, nil
@@ -180,8 +181,15 @@ func (uc *DeadCodeUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot 
 		return nil, domain.NewAnalysisError("dead code analysis failed", err)
 	}
 
+	resolveDeadCodeRequestForResponse(&finalReq)
 	response.Request = &finalReq
 	return response, nil
+}
+
+// resolveDeadCodeRequestForResponse keeps fields that were concrete booleans
+// before the sparse-override migration concrete in public response metadata.
+func resolveDeadCodeRequestForResponse(req *domain.DeadCodeRequest) {
+	req.Recursive = domain.BoolPtr(domain.BoolValue(req.Recursive, true))
 }
 
 // AnalyzeFile analyzes a single file for dead code
@@ -498,7 +506,7 @@ func (uc *DeadCodeUseCase) QuickAnalysis(ctx context.Context, filePaths []string
 		SortBy:          domain.DeadCodeSortBySeverity,
 		ShowContext:     domain.BoolPtr(false),
 		ContextLines:    0,
-		Recursive:       false,
+		Recursive:       domain.BoolPtr(false),
 		IncludePatterns: domain.DefaultAnalysisIncludePatterns(),
 		ExcludePatterns: []string{},
 		IgnorePatterns:  []string{},

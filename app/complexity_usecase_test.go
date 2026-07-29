@@ -5,12 +5,15 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	svc "github.com/ludo-technologies/pyscn/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // Mock implementations
@@ -94,7 +97,7 @@ func createValidComplexityRequest() domain.ComplexityRequest {
 		MaxComplexity:   10,
 		LowThreshold:    3,
 		MediumThreshold: 7,
-		Recursive:       true,
+		Recursive:       domain.BoolPtr(true),
 		IncludePatterns: []string{"**/*.py"},
 		ExcludePatterns: []string{},
 	}
@@ -149,7 +152,9 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 					Return([]string{"/test/file.py"}, nil)
 				service.On("Analyze", mock.Anything, mock.AnythingOfType("domain.ComplexityRequest")).
 					Return(createMockComplexityResponse(), nil)
-				formatter.On("Write", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
+				formatter.On("Write", mock.MatchedBy(func(response *domain.ComplexityResponse) bool {
+					return len(response.ByDirectory) == 1 && response.ByDirectory[0].DirectoryPath == "."
+				}), domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
 			},
 			request:     createValidComplexityRequest(),
 			expectError: false,
@@ -250,7 +255,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 				SortBy:          domain.SortByComplexity,
 				LowThreshold:    3,
 				MediumThreshold: 7,
-				Recursive:       true,
+				Recursive:       domain.BoolPtr(true),
 				IncludePatterns: []string{"**/*.py"},
 				ExcludePatterns: []string{},
 			},
@@ -272,7 +277,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 				SortBy:          domain.SortByComplexity,
 				LowThreshold:    3,
 				MediumThreshold: 7,
-				Recursive:       true,
+				Recursive:       domain.BoolPtr(true),
 				IncludePatterns: []string{"**/*.py"},
 				ExcludePatterns: []string{},
 			},
@@ -374,6 +379,7 @@ func TestComplexityUseCase_Execute(t *testing.T) {
 func TestComplexityUseCase_analyzeResolvedRequest(t *testing.T) {
 	useCase, service, fileReader, _, configLoader := setupComplexityUseCaseMocks()
 	req := createValidComplexityRequest()
+	req.Recursive = nil
 	response := createMockComplexityResponse()
 
 	fileReader.On("FileExists", "/test/file.py").Return(true, nil)
@@ -384,9 +390,19 @@ func TestComplexityUseCase_analyzeResolvedRequest(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, response, result)
+	if assert.Len(t, result.ByDirectory, 1) {
+		assert.Equal(t, ".", result.ByDirectory[0].DirectoryPath)
+		assert.Equal(t, 1, result.ByDirectory[0].FunctionCount)
+	}
 	if assert.NotNil(t, result.Request) {
 		assert.Equal(t, req.Paths, result.Request.Paths)
 		assert.Equal(t, req.MinComplexity, result.Request.MinComplexity)
+		if assert.NotNil(t, result.Request.ShowDetails) {
+			assert.False(t, *result.Request.ShowDetails)
+		}
+		if assert.NotNil(t, result.Request.Recursive) {
+			assert.True(t, *result.Request.Recursive)
+		}
 	}
 	configLoader.AssertNotCalled(t, "LoadDefaultConfig")
 	configLoader.AssertNotCalled(t, "LoadConfig", mock.Anything)
@@ -468,6 +484,126 @@ func TestComplexityUseCase_AnalyzeAndReturn(t *testing.T) {
 			configLoader.AssertExpectations(t)
 		})
 	}
+}
+
+func TestComplexityUseCase_AnalyzeAndReturn_DirectoryRollupsFollowReportFilters(t *testing.T) {
+	projectRoot := t.TempDir()
+	pkgDir := filepath.Join(projectRoot, "pkg")
+	require.NoError(t, os.MkdirAll(pkgDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(pkgDir, "mixed.py"), []byte(`def unchanged():
+	return 1
+
+def branch(value):
+	if value:
+		return 1
+	return 0
+
+def nested(left, right):
+	if left:
+		if right:
+			return 1
+	return 0
+`), 0o644))
+
+	useCase := NewComplexityUseCase(
+		svc.NewComplexityService(),
+		svc.NewFileReader(),
+		svc.NewOutputFormatter(),
+		nil,
+	)
+	tests := []struct {
+		name            string
+		minComplexity   int
+		reportUnchanged bool
+		wantNames       []string
+	}{
+		{name: "minimum complexity", minComplexity: 3, reportUnchanged: true, wantNames: []string{"nested"}},
+		{name: "unchanged functions", minComplexity: 1, reportUnchanged: false, wantNames: []string{"nested", "branch"}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			response, err := useCase.AnalyzeAndReturn(context.Background(), domain.ComplexityRequest{
+				Paths:           []string{projectRoot},
+				OutputFormat:    domain.OutputFormatJSON,
+				OutputWriter:    io.Discard,
+				MinComplexity:   test.minComplexity,
+				SortBy:          domain.SortByComplexity,
+				LowThreshold:    5,
+				MediumThreshold: 10,
+				ReportUnchanged: domain.BoolPtr(test.reportUnchanged),
+				Recursive:       domain.BoolPtr(true),
+			})
+			require.NoError(t, err)
+			require.Len(t, response.ByDirectory, 1)
+			assert.Equal(t, "pkg", response.ByDirectory[0].DirectoryPath)
+			assert.Equal(t, len(response.Functions), response.ByDirectory[0].FunctionCount)
+
+			names := make([]string, 0, len(response.Functions))
+			for _, function := range response.Functions {
+				names = append(names, function.Name)
+			}
+			assert.ElementsMatch(t, test.wantNames, names)
+		})
+	}
+}
+
+func TestComplexityUseCase_AnalyzeAndReturn_GroupsMultipleAnalysisRoots(t *testing.T) {
+	projectRoot := t.TempDir()
+	rootFile := filepath.Join(projectRoot, "root.py")
+	leftDir := filepath.Join(projectRoot, "left")
+	rightDir := filepath.Join(projectRoot, "right")
+	require.NoError(t, os.MkdirAll(leftDir, 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(rightDir, "sub"), 0o755))
+	require.NoError(t, os.WriteFile(rootFile, []byte("def root_function():\n\treturn 1\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(leftDir, "branch.py"), []byte(`def branch(value):
+	if value:
+		return 1
+	return 0
+`), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(rightDir, "sub", "hotspot.py"), []byte(`def hotspot(a, b, c, d):
+	if a:
+		if b:
+			if c:
+				if d:
+					return 1
+	return 0
+`), 0o644))
+
+	useCase := NewComplexityUseCase(
+		svc.NewComplexityService(),
+		svc.NewFileReader(),
+		svc.NewOutputFormatter(),
+		nil,
+	)
+	response, err := useCase.AnalyzeAndReturn(context.Background(), domain.ComplexityRequest{
+		Paths:           []string{rootFile, leftDir, rightDir},
+		OutputFormat:    domain.OutputFormatJSON,
+		OutputWriter:    io.Discard,
+		MinComplexity:   1,
+		SortBy:          domain.SortByComplexity,
+		LowThreshold:    1,
+		MediumThreshold: 3,
+		ReportUnchanged: domain.BoolPtr(true),
+		Recursive:       domain.BoolPtr(true),
+	})
+	require.NoError(t, err)
+	require.Len(t, response.Functions, 6)
+	require.Len(t, response.ByDirectory, 3)
+
+	assert.Equal(t, filepath.Join("right", "sub"), response.ByDirectory[0].DirectoryPath)
+	assert.Equal(t, 1, response.ByDirectory[0].HighRiskFunctionCount)
+	assert.Equal(t, 2, response.ByDirectory[0].FunctionCount)
+	assert.Equal(t, "left", response.ByDirectory[1].DirectoryPath)
+	assert.Equal(t, 2, response.ByDirectory[1].FunctionCount)
+	assert.Equal(t, ".", response.ByDirectory[2].DirectoryPath)
+	assert.Equal(t, 2, response.ByDirectory[2].FunctionCount)
+
+	rolledUpFunctions := 0
+	for _, directory := range response.ByDirectory {
+		rolledUpFunctions += directory.FunctionCount
+	}
+	assert.Equal(t, len(response.Functions), rolledUpFunctions)
 }
 
 func TestComplexityUseCase_validateRequest(t *testing.T) {
@@ -581,6 +717,35 @@ func TestComplexityUseCase_validateRequest(t *testing.T) {
 			},
 			wantErr: "unsupported sort criteria: invalid",
 		},
+		{
+			// Without this the warn tier would silently become unreachable.
+			name: "inverted function SLOC thresholds",
+			request: domain.ComplexityRequest{
+				Paths:                         []string{"/test/file.py"},
+				OutputWriter:                  os.Stdout,
+				LowThreshold:                  3,
+				MediumThreshold:               7,
+				OutputFormat:                  domain.OutputFormatText,
+				SortBy:                        domain.SortByComplexity,
+				FunctionSLOCWarnThreshold:     50,
+				FunctionSLOCCriticalThreshold: 30,
+			},
+			wantErr: "function_sloc_critical_threshold (30) must be > function_sloc_warn_threshold (50)",
+		},
+		{
+			name: "function SLOC thresholds in order",
+			request: domain.ComplexityRequest{
+				Paths:                         []string{"/test/file.py"},
+				OutputWriter:                  os.Stdout,
+				LowThreshold:                  3,
+				MediumThreshold:               7,
+				OutputFormat:                  domain.OutputFormatText,
+				SortBy:                        domain.SortByComplexity,
+				FunctionSLOCWarnThreshold:     50,
+				FunctionSLOCCriticalThreshold: 100,
+			},
+			wantErr: "",
+		},
 	}
 
 	for _, tt := range tests {
@@ -614,7 +779,9 @@ func TestComplexityUseCase_AnalyzeFile(t *testing.T) {
 				configLoader.On("LoadDefaultConfig").Return((*domain.ComplexityRequest)(nil))
 				service.On("AnalyzeFile", mock.Anything, "/test/file.py", mock.AnythingOfType("domain.ComplexityRequest")).
 					Return(createMockComplexityResponse(), nil)
-				formatter.On("Write", mock.Anything, domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
+				formatter.On("Write", mock.MatchedBy(func(response *domain.ComplexityResponse) bool {
+					return len(response.ByDirectory) == 1 && response.ByDirectory[0].DirectoryPath == "."
+				}), domain.OutputFormatText, mock.AnythingOfType("*os.File")).Return(nil)
 			},
 			expectError: false,
 		},

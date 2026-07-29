@@ -21,6 +21,8 @@ func TestLCOMConfigurationLoader_LoadDefaultConfig(t *testing.T) {
 	assert.Greater(t, config.LowThreshold, 0)
 	assert.Greater(t, config.MediumThreshold, config.LowThreshold)
 	assert.Equal(t, domain.SortByCohesion, config.SortBy)
+	require.NotNil(t, config.ShowDetails)
+	assert.False(t, *config.ShowDetails)
 }
 
 func TestLCOMConfigurationLoader_MergeConfig(t *testing.T) {
@@ -98,11 +100,20 @@ func TestLCOMConfigurationLoader_MergeConfig(t *testing.T) {
 			SortBy:          domain.SortByName,
 			LowThreshold:    5,
 			MediumThreshold: 9,
+			ShowDetails:     domain.BoolPtr(true),
 		}
 		override := &domain.LCOMRequest{}
 		result := loader.MergeConfig(base, override)
 		assert.Equal(t, domain.SortByName, result.SortBy)
 		assert.Equal(t, 5, result.LowThreshold)
 		assert.Equal(t, 9, result.MediumThreshold)
+		assert.True(t, domain.BoolValue(result.ShowDetails, false))
+	})
+
+	t.Run("explicit false show details wins", func(t *testing.T) {
+		base := &domain.LCOMRequest{ShowDetails: domain.BoolPtr(true)}
+		override := &domain.LCOMRequest{ShowDetails: domain.BoolPtr(false)}
+		result := loader.MergeConfig(base, override)
+		assert.False(t, domain.BoolValue(result.ShowDetails, true))
 	})
 }

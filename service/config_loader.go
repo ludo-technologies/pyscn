@@ -61,11 +61,10 @@ func (c *ConfigurationLoaderImpl) MergeConfig(base *domain.ComplexityRequest, ov
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
+	// NoOpen is a caller-only execution flag, not a persisted configuration.
+	merged.NoOpen = override.NoOpen
 
-	// Plain bool: only a true override flips the value on.
-	if override.ShowDetails {
-		merged.ShowDetails = override.ShowDetails
-	}
+	merged.ShowDetails = config.MergePtr(merged.ShowDetails, override.ShowDetails)
 
 	// Filtering and sorting
 	merged.MinComplexity = config.Merge(merged.MinComplexity, override.MinComplexity)
@@ -77,6 +76,8 @@ func (c *ConfigurationLoaderImpl) MergeConfig(base *domain.ComplexityRequest, ov
 	merged.MediumThreshold = config.Merge(merged.MediumThreshold, override.MediumThreshold)
 	merged.CognitiveComplexityThreshold = config.Merge(merged.CognitiveComplexityThreshold, override.CognitiveComplexityThreshold)
 	merged.NestingDepthThreshold = config.Merge(merged.NestingDepthThreshold, override.NestingDepthThreshold)
+	merged.FunctionSLOCWarnThreshold = config.Merge(merged.FunctionSLOCWarnThreshold, override.FunctionSLOCWarnThreshold)
+	merged.FunctionSLOCCriticalThreshold = config.Merge(merged.FunctionSLOCCriticalThreshold, override.FunctionSLOCCriticalThreshold)
 
 	merged.Enabled = config.MergePtr(merged.Enabled, override.Enabled)
 	merged.ReportUnchanged = config.MergePtr(merged.ReportUnchanged, override.ReportUnchanged)
@@ -84,8 +85,7 @@ func (c *ConfigurationLoaderImpl) MergeConfig(base *domain.ComplexityRequest, ov
 	// Config path is always from override if provided
 	merged.ConfigPath = config.Merge(merged.ConfigPath, override.ConfigPath)
 
-	// For recursive, preserve the override value
-	merged.Recursive = override.Recursive
+	merged.Recursive = config.MergePtr(merged.Recursive, override.Recursive)
 
 	// Patterns
 	merged.IncludePatterns = config.MergeSlice(merged.IncludePatterns, override.IncludePatterns)
@@ -125,7 +125,7 @@ func (c *ConfigurationLoaderImpl) convertToComplexityRequest(cfg *config.Config)
 	return &domain.ComplexityRequest{
 		OutputFormat:                 outputFormat,
 		OutputWriter:                 os.Stdout, // Default to stdout
-		ShowDetails:                  cfg.Output.ShowDetails,
+		ShowDetails:                  domain.BoolPtr(cfg.Output.ShowDetails),
 		MinComplexity:                cfg.Output.MinComplexity,
 		MaxComplexity:                cfg.Complexity.MaxComplexity,
 		SortBy:                       sortBy,
@@ -133,11 +133,15 @@ func (c *ConfigurationLoaderImpl) convertToComplexityRequest(cfg *config.Config)
 		MediumThreshold:              cfg.Complexity.MediumThreshold,
 		CognitiveComplexityThreshold: cfg.Complexity.CognitiveComplexityThreshold,
 		NestingDepthThreshold:        cfg.Complexity.NestingDepthThreshold,
-		Enabled:                      domain.BoolPtr(cfg.Complexity.Enabled),
-		ReportUnchanged:              domain.BoolPtr(cfg.Complexity.ReportUnchanged),
-		Recursive:                    cfg.Analysis.Recursive,
-		IncludePatterns:              cfg.Analysis.IncludePatterns,
-		ExcludePatterns:              cfg.Analysis.ExcludePatterns,
+
+		FunctionSLOCWarnThreshold:     cfg.Complexity.FunctionSLOCWarnThreshold,
+		FunctionSLOCCriticalThreshold: cfg.Complexity.FunctionSLOCCriticalThreshold,
+
+		Enabled:         domain.BoolPtr(cfg.Complexity.Enabled),
+		ReportUnchanged: domain.BoolPtr(cfg.Complexity.ReportUnchanged),
+		Recursive:       domain.BoolPtr(cfg.Analysis.Recursive),
+		IncludePatterns: cfg.Analysis.IncludePatterns,
+		ExcludePatterns: cfg.Analysis.ExcludePatterns,
 	}
 }
 
@@ -157,6 +161,10 @@ func (c *ConfigurationLoaderImpl) ValidateConfig(req *domain.ComplexityRequest) 
 
 	if req.NestingDepthThreshold < 0 {
 		return domain.NewConfigError("nesting depth threshold cannot be negative", nil)
+	}
+
+	if err := domain.ValidateFunctionSLOCThresholds(req.FunctionSLOCWarnThreshold, req.FunctionSLOCCriticalThreshold); err != nil {
+		return domain.NewConfigError(err.Error(), err)
 	}
 
 	if req.MaxComplexity > 0 && req.MaxComplexity <= req.MediumThreshold {
@@ -212,6 +220,7 @@ func (c *ConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.Py
 	cfg.Complexity.CognitiveComplexityThreshold = pyscnCfg.CognitiveComplexityThreshold
 	cfg.Complexity.NestingDepthThreshold = pyscnCfg.NestingDepthThreshold
 	cfg.Complexity.MaxComplexity = pyscnCfg.ComplexityMaxComplexity
+	cfg.Complexity.FunctionSLOCWarnThreshold, cfg.Complexity.FunctionSLOCCriticalThreshold = pyscnCfg.EffectiveFunctionSLOCThresholds()
 	cfg.Output.MinComplexity = pyscnCfg.EffectiveOutputMinComplexity()
 
 	// Map dead code settings from [dead_code] section

@@ -1,8 +1,11 @@
 package analyzer
 
 import (
+	"fmt"
 	"math"
 	"sort"
+
+	coregraph "github.com/ludo-technologies/polyscan/core/graph"
 )
 
 const (
@@ -60,9 +63,42 @@ func NewCouplingMetricsCalculator(graph *DependencyGraph, options *CouplingMetri
 
 // CalculateMetrics calculates all metrics for the dependency graph
 func (calc *CouplingMetricsCalculator) CalculateMetrics() error {
-	// Calculate module-level metrics
-	for moduleName, node := range calc.graph.Nodes {
-		metrics := calc.calculateModuleMetrics(moduleName, node)
+	config := coregraph.CouplingConfig{}
+	if calc.includeAbstractness {
+		config.AbstractnessFunc = func(moduleName string) (float64, error) {
+			node := calc.graph.Nodes[moduleName]
+			if node == nil {
+				return 0, fmt.Errorf("calculate abstractness: module %q not found", moduleName)
+			}
+			return calc.calculateAbstractness(node), nil
+		}
+	}
+
+	coreMetrics, err := coregraph.ComputeCouplingMetrics(calc.graph, config)
+	if err != nil {
+		return fmt.Errorf("calculate coupling metrics: %w", err)
+	}
+
+	for moduleName, coupling := range coreMetrics {
+		node := calc.graph.Nodes[moduleName]
+		if node == nil {
+			return fmt.Errorf("calculate module metrics: module %q not found", moduleName)
+		}
+
+		metrics := &ModuleMetrics{
+			AfferentCoupling:   coupling.Ca,
+			EfferentCoupling:   coupling.Ce,
+			Instability:        coupling.Instability,
+			Abstractness:       coupling.Abstractness,
+			Distance:           coupling.Distance,
+			LinesOfCode:        node.LineCount,
+			ClassCount:         node.ClassCount,
+			AbstractClassCount: node.AbstractClassCount,
+			PublicInterface:    len(node.PublicNames),
+		}
+		if complexity, exists := calc.complexityData[moduleName]; exists {
+			metrics.CyclomaticComplexity = complexity
+		}
 		calc.graph.ModuleMetrics[moduleName] = metrics
 	}
 
@@ -70,44 +106,6 @@ func (calc *CouplingMetricsCalculator) CalculateMetrics() error {
 	calc.calculateSystemMetrics()
 
 	return nil
-}
-
-// calculateModuleMetrics calculates metrics for a single module
-func (calc *CouplingMetricsCalculator) calculateModuleMetrics(moduleName string, node *ModuleNode) *ModuleMetrics {
-	metrics := &ModuleMetrics{}
-
-	// Basic coupling metrics (Robert Martin's metrics)
-	metrics.AfferentCoupling = node.InDegree  // Ca - modules that depend on this one
-	metrics.EfferentCoupling = node.OutDegree // Ce - modules this one depends on
-
-	// Calculate Instability (I = Ce / (Ca + Ce))
-	totalCoupling := metrics.AfferentCoupling + metrics.EfferentCoupling
-	if totalCoupling > 0 {
-		metrics.Instability = float64(metrics.EfferentCoupling) / float64(totalCoupling)
-	} else {
-		metrics.Instability = 0.0
-	}
-
-	// Calculate Abstractness if enabled
-	if calc.includeAbstractness {
-		metrics.Abstractness = calc.calculateAbstractness(node)
-	}
-
-	// Calculate Distance from Main Sequence (D = |A + I - 1|)
-	metrics.Distance = math.Abs(metrics.Abstractness + metrics.Instability - 1.0)
-
-	// Size metrics
-	metrics.LinesOfCode = node.LineCount
-	metrics.ClassCount = node.ClassCount
-	metrics.AbstractClassCount = node.AbstractClassCount
-	metrics.PublicInterface = len(node.PublicNames)
-
-	// Quality metrics from external data
-	if complexity, exists := calc.complexityData[moduleName]; exists {
-		metrics.CyclomaticComplexity = complexity
-	}
-
-	return metrics
 }
 
 // calculateAbstractness calculates the abstractness of a module

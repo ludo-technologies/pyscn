@@ -46,11 +46,14 @@ func (uc *MockDataUseCase) Execute(ctx context.Context, req domain.MockDataReque
 	if err != nil {
 		return domain.NewConfigError("failed to load configuration", err)
 	}
+	if err := finalReq.Validate(); err != nil {
+		return domain.NewInvalidInputError("invalid request", err)
+	}
 
 	// Collect Python files
 	files, err := uc.fileReader.CollectPythonFiles(
 		finalReq.Paths,
-		finalReq.Recursive,
+		domain.BoolValue(finalReq.Recursive, true),
 		finalReq.IncludePatterns,
 		finalReq.ExcludePatterns,
 	)
@@ -97,12 +100,15 @@ func (uc *MockDataUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Mock
 	if err != nil {
 		return nil, domain.NewConfigError("failed to load configuration", err)
 	}
+	if err := finalReq.Validate(); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
 
 	// Resolve file paths
 	files, err := ResolveFilePaths(
 		uc.fileReader,
 		finalReq.Paths,
-		finalReq.Recursive,
+		domain.BoolValue(finalReq.Recursive, true),
 		finalReq.IncludePatterns,
 		finalReq.ExcludePatterns,
 		false, // validatePythonFile: mock data doesn't need strict Python validation

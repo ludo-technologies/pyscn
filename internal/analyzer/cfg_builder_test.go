@@ -528,8 +528,9 @@ func assertFunctionCFG(t *testing.T, cfgs map[string]*CFG, key, functionName str
 	if cfg.FunctionNode == nil {
 		t.Fatalf("CFG %q has nil function node", key)
 	}
-	if cfg.FunctionNode.Name != functionName {
-		t.Fatalf("CFG %q function node name = %q, want %q", key, cfg.FunctionNode.Name, functionName)
+	functionNode := requirePythonNode(t, cfg.FunctionNode)
+	if functionNode.Name != functionName {
+		t.Fatalf("CFG %q function node name = %q, want %q", key, functionNode.Name, functionName)
 	}
 }
 

@@ -28,8 +28,56 @@ func TestConfigurationLoader_LoadDefaultConfig(t *testing.T) {
 	assert.Equal(t, domain.DefaultComplexityMediumThreshold, req.MediumThreshold)
 	require.NotNil(t, req.Enabled)
 	require.NotNil(t, req.ReportUnchanged)
+	require.NotNil(t, req.ShowDetails)
+	require.NotNil(t, req.Recursive)
 	assert.True(t, *req.Enabled)
 	assert.True(t, *req.ReportUnchanged)
+	assert.False(t, *req.ShowDetails)
+	assert.True(t, *req.Recursive)
+}
+
+// The complexity request is built by its own conversion, not by
+// config.PyscnConfigToConfig, so the long-function tiers have to be carried
+// across here too or a configured threshold never reaches the analysis.
+func TestConfigurationLoader_LoadConfig_FunctionSLOCThresholds(t *testing.T) {
+	tests := []struct {
+		name             string
+		section          string
+		expectedWarn     int
+		expectedCritical int
+	}{
+		{
+			name:             "both tiers configured",
+			section:          "function_sloc_warn_threshold = 30\nfunction_sloc_critical_threshold = 80\n",
+			expectedWarn:     30,
+			expectedCritical: 80,
+		},
+		{
+			name:             "warn only carries critical with it",
+			section:          "function_sloc_warn_threshold = 150\n",
+			expectedWarn:     150,
+			expectedCritical: 300,
+		},
+		{
+			name:             "unset falls back to defaults",
+			section:          "low_threshold = 4\n",
+			expectedWarn:     domain.DefaultFunctionSLOCWarnThreshold,
+			expectedCritical: domain.DefaultFunctionSLOCCriticalThreshold,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			configPath := filepath.Join(t.TempDir(), ".pyscn.toml")
+			require.NoError(t, os.WriteFile(configPath, []byte("[complexity]\n"+tt.section), 0o644))
+
+			req, err := NewConfigurationLoader().LoadConfig(configPath)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.expectedWarn, req.FunctionSLOCWarnThreshold)
+			assert.Equal(t, tt.expectedCritical, req.FunctionSLOCCriticalThreshold)
+		})
+	}
 }
 
 func TestConfigurationLoader_MergeConfig(t *testing.T) {
@@ -41,15 +89,16 @@ func TestConfigurationLoader_MergeConfig(t *testing.T) {
 		MaxComplexity:   0,
 		LowThreshold:    10,
 		MediumThreshold: 20,
-		ShowDetails:     false,
-		Recursive:       true,
+		ShowDetails:     domain.BoolPtr(false),
+		Recursive:       domain.BoolPtr(true),
 	}
 
 	override := &domain.ComplexityRequest{
 		Paths:         []string{"override/path"},
 		MinComplexity: 5,
 		MaxComplexity: 15,
-		ShowDetails:   true,
+		NoOpen:        true,
+		ShowDetails:   domain.BoolPtr(true),
 	}
 
 	merged := loader.MergeConfig(base, override)
@@ -57,7 +106,8 @@ func TestConfigurationLoader_MergeConfig(t *testing.T) {
 	assert.Equal(t, []string{"override/path"}, merged.Paths)
 	assert.Equal(t, 5, merged.MinComplexity)
 	assert.Equal(t, 15, merged.MaxComplexity)
-	assert.True(t, merged.ShowDetails)
+	assert.True(t, merged.NoOpen)
+	assert.True(t, domain.BoolValue(merged.ShowDetails, false))
 	// Base values should be preserved when not overridden
 	assert.Equal(t, 10, merged.LowThreshold)
 	assert.Equal(t, 20, merged.MediumThreshold)
@@ -198,12 +248,32 @@ func TestConfigurationLoader_MergeConfig_ZeroOverridePreservesBase(t *testing.T)
 	base := &domain.ComplexityRequest{
 		MinComplexity: 5,
 		SortBy:        domain.SortByName,
+		ShowDetails:   domain.BoolPtr(true),
+		Recursive:     domain.BoolPtr(false),
 	}
 	override := &domain.ComplexityRequest{}
 
 	merged := loader.MergeConfig(base, override)
 	assert.Equal(t, 5, merged.MinComplexity)
 	assert.Equal(t, domain.SortByName, merged.SortBy)
+	assert.True(t, domain.BoolValue(merged.ShowDetails, false))
+	assert.False(t, domain.BoolValue(merged.Recursive, true))
+}
+
+func TestConfigurationLoader_MergeConfig_ExplicitFalseBoolWins(t *testing.T) {
+	loader := NewConfigurationLoader()
+	base := &domain.ComplexityRequest{
+		ShowDetails: domain.BoolPtr(true),
+		Recursive:   domain.BoolPtr(true),
+	}
+	override := &domain.ComplexityRequest{
+		ShowDetails: domain.BoolPtr(false),
+		Recursive:   domain.BoolPtr(false),
+	}
+
+	merged := loader.MergeConfig(base, override)
+	assert.False(t, domain.BoolValue(merged.ShowDetails, true))
+	assert.False(t, domain.BoolValue(merged.Recursive, true))
 }
 
 func TestConfigurationLoader_MergeConfig_Patterns(t *testing.T) {

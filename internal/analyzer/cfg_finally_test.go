@@ -377,7 +377,7 @@ def test():
 					finallyBlock = b
 				}
 				for _, stmt := range b.Statements {
-					if stmt.Type == "Break" {
+					if requirePythonNode(t, stmt).Type == "Break" {
 						breakBlock = b
 					}
 				}
@@ -437,7 +437,7 @@ def test():
 					finallyBlock = b
 				}
 				for _, stmt := range b.Statements {
-					if stmt.Type == "Continue" {
+					if requirePythonNode(t, stmt).Type == "Continue" {
 						continueBlock = b
 					}
 				}
@@ -494,7 +494,7 @@ def test():
 					finallyBlock = b
 				}
 				for _, stmt := range b.Statements {
-					if stmt.Type == "Raise" {
+					if requirePythonNode(t, stmt).Type == "Raise" {
 						raiseBlock = b
 					}
 				}
@@ -558,7 +558,7 @@ def test():
 					finallyBlocks = append(finallyBlocks, b)
 				}
 				for _, stmt := range b.Statements {
-					if stmt.Type == "Break" {
+					if requirePythonNode(t, stmt).Type == "Break" {
 						breakBlock = b
 					}
 				}
@@ -669,7 +669,7 @@ def test():
 					loopExitBlock = b
 				}
 				for _, stmt := range b.Statements {
-					if stmt.Type == "Break" {
+					if requirePythonNode(t, stmt).Type == "Break" {
 						breakBlock = b
 					}
 				}
@@ -748,7 +748,7 @@ def test():
 					loopHeaderBlock = b
 				}
 				for _, stmt := range b.Statements {
-					if stmt.Type == "Continue" {
+					if requirePythonNode(t, stmt).Type == "Continue" {
 						continueBlock = b
 					}
 				}
@@ -816,7 +816,7 @@ def test():
 					finallyBlock = b
 				}
 				for _, stmt := range b.Statements {
-					if stmt.Type == "Raise" {
+					if requirePythonNode(t, stmt).Type == "Raise" {
 						raiseBlock = b
 					}
 				}

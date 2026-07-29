@@ -40,6 +40,7 @@ func TestMockDataConfigurationLoader_MergeConfigZeroValueKeepsBase(t *testing.T)
 	base.MinSeverity = domain.MockDataSeverityError
 	base.SortBy = domain.MockDataSortByLine
 	base.IgnoreTests = domain.BoolPtr(true)
+	base.Recursive = domain.BoolPtr(false)
 	base.Keywords = []string{"mock", "stub"}
 
 	override := &domain.MockDataRequest{}
@@ -55,7 +56,21 @@ func TestMockDataConfigurationLoader_MergeConfigZeroValueKeepsBase(t *testing.T)
 	if !domain.BoolValue(merged.IgnoreTests, false) {
 		t.Errorf("expected ignore_tests true preserved, got %v", merged.IgnoreTests)
 	}
+	if domain.BoolValue(merged.Recursive, true) {
+		t.Errorf("expected recursive false preserved, got %v", merged.Recursive)
+	}
 	if len(merged.Keywords) != 2 {
 		t.Errorf("expected keywords preserved, got %v", merged.Keywords)
+	}
+}
+
+func TestMockDataConfigurationLoader_MergeConfigExplicitFalseRecursiveWins(t *testing.T) {
+	loader := NewMockDataConfigurationLoader()
+	base := &domain.MockDataRequest{Recursive: domain.BoolPtr(true)}
+	override := &domain.MockDataRequest{Recursive: domain.BoolPtr(false)}
+
+	merged := loader.MergeConfig(base, override)
+	if domain.BoolValue(merged.Recursive, true) {
+		t.Errorf("expected explicit recursive=false override, got %v", merged.Recursive)
 	}
 }

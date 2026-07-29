@@ -57,6 +57,7 @@ func TestDeadCodeConfigurationLoader_MergeConfig_ZeroOverridePreservesBase(t *te
 		SortBy:       domain.DeadCodeSortByFile,
 		ContextLines: 5,
 		ShowContext:  domain.BoolPtr(true),
+		Recursive:    domain.BoolPtr(false),
 	}
 	override := &domain.DeadCodeRequest{}
 
@@ -65,6 +66,7 @@ func TestDeadCodeConfigurationLoader_MergeConfig_ZeroOverridePreservesBase(t *te
 	assert.Equal(t, domain.DeadCodeSortByFile, merged.SortBy)
 	assert.Equal(t, 5, merged.ContextLines)
 	assert.True(t, domain.BoolValue(merged.ShowContext, false))
+	assert.False(t, domain.BoolValue(merged.Recursive, true))
 }
 
 // TestDeadCodeConfigurationLoader_MergeConfig_ExplicitFalseBoolWins verifies
@@ -75,12 +77,27 @@ func TestDeadCodeConfigurationLoader_MergeConfig_ExplicitFalseBoolWins(t *testin
 
 	base := &domain.DeadCodeRequest{
 		DetectAfterReturn: domain.BoolPtr(true),
+		Recursive:         domain.BoolPtr(true),
 	}
 	override := &domain.DeadCodeRequest{
 		DetectAfterReturn: domain.BoolPtr(false),
+		Recursive:         domain.BoolPtr(false),
 	}
 
 	merged := loader.MergeConfig(base, override)
 	assert.False(t, domain.BoolValue(merged.DetectAfterReturn, true),
 		"explicit false *bool override should win over base")
+	assert.False(t, domain.BoolValue(merged.Recursive, true),
+		"explicit false recursive override should win over base")
+}
+
+func TestDeadCodeConfigurationLoader_MergeConfig_NoOpenIsCallerOnly(t *testing.T) {
+	loader := NewDeadCodeConfigurationLoader()
+	base := &domain.DeadCodeRequest{NoOpen: true}
+
+	merged := loader.MergeConfig(base, &domain.DeadCodeRequest{})
+	assert.False(t, merged.NoOpen, "NoOpen must come from the caller, not configuration")
+
+	merged = loader.MergeConfig(&domain.DeadCodeRequest{}, &domain.DeadCodeRequest{NoOpen: true})
+	assert.True(t, merged.NoOpen, "explicit caller NoOpen must be preserved")
 }

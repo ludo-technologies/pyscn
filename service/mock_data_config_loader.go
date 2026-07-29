@@ -79,7 +79,7 @@ func (cl *MockDataConfigurationLoaderImpl) MergeConfig(base *domain.MockDataRequ
 	merged.IgnoreTests = config.MergePtr(merged.IgnoreTests, override.IgnoreTests)
 
 	// Analysis options
-	merged.Recursive = override.Recursive
+	merged.Recursive = config.MergePtr(merged.Recursive, override.Recursive)
 
 	// Array values
 	merged.IncludePatterns = config.MergeSlice(merged.IncludePatterns, override.IncludePatterns)
@@ -127,7 +127,7 @@ func (cl *MockDataConfigurationLoaderImpl) configToRequest(pyscnCfg *config.Pysc
 		Keywords:        keywords,
 		Domains:         domains,
 		IgnorePatterns:  pyscnCfg.MockDataIgnorePatterns,
-		Recursive:       domain.BoolValue(pyscnCfg.AnalysisRecursive, true),
+		Recursive:       domain.BoolPtr(domain.BoolValue(pyscnCfg.AnalysisRecursive, true)),
 		IncludePatterns: pyscnCfg.AnalysisIncludePatterns,
 		ExcludePatterns: pyscnCfg.AnalysisExcludePatterns,
 	}

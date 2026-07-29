@@ -156,11 +156,6 @@ func TestSyntacticSimilarityAnalyzer(t *testing.T) {
 		assert.Equal(t, "syntactic", analyzer.GetName())
 	})
 
-	t.Run("WithOptions", func(t *testing.T) {
-		analyzer := NewSyntacticSimilarityAnalyzerWithOptions(true, false)
-		require.NotNil(t, analyzer)
-	})
-
 	t.Run("NilFragments", func(t *testing.T) {
 		analyzer := NewSyntacticSimilarityAnalyzer()
 
@@ -170,14 +165,6 @@ func TestSyntacticSimilarityAnalyzer(t *testing.T) {
 		fragment := &CodeFragment{}
 		similarity = analyzer.ComputeSimilarity(fragment, nil)
 		assert.Equal(t, 0.0, similarity)
-	})
-
-	t.Run("ComputeDistance", func(t *testing.T) {
-		analyzer := NewSyntacticSimilarityAnalyzer()
-
-		// Test with nil
-		distance := analyzer.ComputeDistance(nil, nil)
-		assert.Equal(t, 0.0, distance)
 	})
 
 	t.Run("JaccardSimilarity_Type2Clones", func(t *testing.T) {
@@ -208,6 +195,22 @@ func TestSyntacticSimilarityAnalyzer(t *testing.T) {
 		// Type-2 clones should have high similarity (>= 0.80)
 		assert.GreaterOrEqual(t, similarity, 0.80,
 			"Type-2 clones (renamed identifiers/literals) should have high similarity")
+	})
+
+	t.Run("ASTOnlyFragments", func(t *testing.T) {
+		p := parser.New()
+		ctx := context.Background()
+		result1, err := p.Parse(ctx, []byte("def foo(x):\n    return x + 1"))
+		require.NoError(t, err)
+		result2, err := p.Parse(ctx, []byte("def bar(y):\n    return y + 2"))
+		require.NoError(t, err)
+
+		f1 := &CodeFragment{ASTNode: result1.AST}
+		f2 := &CodeFragment{ASTNode: result2.AST}
+		similarity := NewSyntacticSimilarityAnalyzer().ComputeSimilarity(f1, f2)
+
+		assert.GreaterOrEqual(t, similarity, 0.80,
+			"AST-only fragments should retain Type-2 syntactic analysis")
 	})
 
 	// True positive test: Type-2 clones SHOULD be detected via CloneClassifier
@@ -289,12 +292,6 @@ func TestSyntacticSimilarityAnalyzer(t *testing.T) {
 		// Different structures should have low similarity (< 0.50)
 		assert.Less(t, similarity, 0.50,
 			"Structurally different code should have low similarity")
-	})
-
-	t.Run("GetExtractor", func(t *testing.T) {
-		analyzer := NewSyntacticSimilarityAnalyzer()
-		extractor := analyzer.GetExtractor()
-		assert.NotNil(t, extractor)
 	})
 
 	// Issue #292: False positives for structurally different dataclasses

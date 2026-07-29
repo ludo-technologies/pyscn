@@ -20,7 +20,7 @@ Vous développez avec Cursor, Claude ou ChatGPT ? pyscn effectue une analyse str
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
-*Vous travaillez avec JavaScript/TypeScript ? Découvrez [jscan](https://github.com/ludo-technologies/jscan)*
+*Vous travaillez avec d'autres langages ? pyscn fait partie de [polyscan](https://github.com/ludo-technologies/polyscan) — des analyseurs de qualité de code pour JavaScript/TypeScript et plus encore*
 
 </div>
 
@@ -196,7 +196,7 @@ directory = "reports"
 
 ## Documentation
 
-📖 **[Site de documentation pyscn](https://ludo-technologies.github.io/pyscn/fr/)** — installation, catalogue de règles, référence CLI, configuration, spécification des sorties
+📖 **[Site de documentation pyscn](https://docs.codescan.dev/fr/)** — installation, catalogue de règles, référence CLI, configuration, spécification des sorties
 
 Pour les contributeurs : **[Guide de développement](docs/DEVELOPMENT.md)** • **[Architecture](docs/ARCHITECTURE.md)** • **[Tests](docs/TESTING.md)**
 

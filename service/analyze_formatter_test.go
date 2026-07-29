@@ -2,7 +2,10 @@ package service
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -160,9 +163,69 @@ func TestAnalyzeFormatter_Write_Text(t *testing.T) {
 	}
 }
 
+func TestAnalyzeFormatter_Write_TextIncludesModuleQuality(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.ModuleQuality = []domain.ModuleQualityMetrics{
+		{
+			ModuleName:    "pkg.hotspot",
+			FilePath:      "pkg/hotspot.py",
+			FunctionCount: 4,
+			ModuleComplexityMetrics: domain.ModuleComplexityMetrics{
+				AnalyzedFunctionCount:      2,
+				AverageComplexity:          6.5,
+				AverageCognitiveComplexity: 8,
+				MaxComplexity:              9,
+				HighRiskFunctionCount:      1,
+			},
+			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{
+				DeadCodeFindingCount: 2,
+				DeadCodeBlockCount:   3,
+			},
+		},
+	}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatText, &output))
+
+	assert.Contains(t, output.String(), "MODULE QUALITY HOTSPOTS")
+	assert.Contains(t, output.String(), "pkg.hotspot (pkg/hotspot.py)")
+	assert.Contains(t, output.String(), "Functions: 4 total / 2 analyzed")
+	assert.Contains(t, output.String(), "Complexity: avg 6.50, max 9, high-risk 1, handlers 0")
+	assert.Contains(t, output.String(), "Cognitive: avg 8.00")
+	assert.Contains(t, output.String(), "Dead code: 2 findings, 3 blocks")
+}
+
+func TestAnalyzeFormatter_Write_TextIncludesDirectoryComplexity(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.Complexity = &domain.ComplexityResponse{ByDirectory: []domain.DirectoryComplexityMetrics{
+		{
+			DirectoryPath:         "pkg",
+			FunctionCount:         5,
+			AverageComplexity:     6.5,
+			MaxComplexity:         11,
+			HighRiskFunctionCount: 2,
+			AverageNestingDepth:   3.25,
+			MaxNestingDepth:       5,
+		},
+	}}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatText, &output))
+
+	assert.Contains(t, output.String(), "DIRECTORY COMPLEXITY")
+	assert.Contains(t, output.String(), "pkg")
+	assert.Contains(t, output.String(), "Functions: 5")
+	assert.Contains(t, output.String(), "Complexity: avg 6.50, max 11, high-risk 2")
+	assert.Contains(t, output.String(), "Nesting: avg 3.25, max 5")
+}
+
 func TestAnalyzeFormatter_Write_JSON(t *testing.T) {
 	formatter := NewAnalyzeFormatter()
 	response := createTestAnalyzeResponse()
+	response.Complexity.Request = &domain.ComplexityRequest{
+		ShowDetails: domain.BoolPtr(false),
+		Recursive:   domain.BoolPtr(true),
+	}
 	var buf bytes.Buffer
 
 	err := formatter.Write(response, domain.OutputFormatJSON, &buf)
@@ -176,6 +239,14 @@ func TestAnalyzeFormatter_Write_JSON(t *testing.T) {
 	assert.Equal(t, response.Summary.HealthScore, decoded.Summary.HealthScore)
 	assert.Equal(t, response.Summary.Grade, decoded.Summary.Grade)
 	assert.Equal(t, response.Summary.TotalFiles, decoded.Summary.TotalFiles)
+	require.NotNil(t, decoded.Complexity)
+	require.NotNil(t, decoded.Complexity.Request)
+	if assert.NotNil(t, decoded.Complexity.Request.ShowDetails) {
+		assert.False(t, *decoded.Complexity.Request.ShowDetails)
+	}
+	if assert.NotNil(t, decoded.Complexity.Request.Recursive) {
+		assert.True(t, *decoded.Complexity.Request.Recursive)
+	}
 }
 
 func TestAnalyzeFormatter_Write_JSON_IncludesCommunityAnalysis(t *testing.T) {
@@ -230,6 +301,148 @@ func TestAnalyzeFormatter_Write_YAML(t *testing.T) {
 	assert.Contains(t, decoded, "generated_at")
 }
 
+func TestAnalyzeFormatter_Write_SerializesModuleQuality(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.ModuleQuality = []domain.ModuleQualityMetrics{
+		{
+			ModuleName: "pkg.hotspot",
+			FilePath:   "pkg/hotspot.py",
+			ModuleComplexityMetrics: domain.ModuleComplexityMetrics{
+				AnalyzedFunctionCount:      2,
+				AverageComplexity:          6.5,
+				AverageCognitiveComplexity: 8,
+				MaxComplexity:              9,
+				HighRiskFunctionCount:      1,
+				ExceptionHandlerCount:      3,
+			},
+			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{
+				DeadCodeFindingCount: 2,
+				DeadCodeBlockCount:   4,
+			},
+		},
+	}
+
+	for _, format := range []domain.OutputFormat{domain.OutputFormatJSON, domain.OutputFormatYAML} {
+		t.Run(string(format), func(t *testing.T) {
+			var output bytes.Buffer
+			require.NoError(t, NewAnalyzeFormatter().Write(response, format, &output))
+
+			var decoded domain.AnalyzeResponse
+			var contract map[string]any
+			switch format {
+			case domain.OutputFormatJSON:
+				require.NoError(t, json.Unmarshal(output.Bytes(), &decoded))
+				require.NoError(t, json.Unmarshal(output.Bytes(), &contract))
+			case domain.OutputFormatYAML:
+				require.NoError(t, yaml.Unmarshal(output.Bytes(), &decoded))
+				require.NoError(t, yaml.Unmarshal(output.Bytes(), &contract))
+			default:
+				t.Fatalf("unsupported test format %q", format)
+			}
+			assert.Equal(t, response.ModuleQuality, decoded.ModuleQuality)
+
+			qualityEntries, ok := contract["module_quality"].([]any)
+			require.True(t, ok)
+			require.Len(t, qualityEntries, 1)
+			quality, ok := qualityEntries[0].(map[string]any)
+			require.True(t, ok)
+			require.Len(t, quality, 12)
+			assert.Equal(t, "pkg.hotspot", quality["module_name"])
+			assert.Equal(t, "pkg/hotspot.py", quality["file_path"])
+			assert.EqualValues(t, 0, quality["lines_of_code"])
+			assert.EqualValues(t, 0, quality["function_count"])
+			assert.EqualValues(t, 2, quality["analyzed_function_count"])
+			assert.EqualValues(t, 6.5, quality["average_complexity"])
+			assert.EqualValues(t, 8, quality["average_cognitive_complexity"])
+			assert.EqualValues(t, 9, quality["max_complexity"])
+			assert.EqualValues(t, 1, quality["high_risk_function_count"])
+			assert.EqualValues(t, 3, quality["exception_handler_count"])
+			assert.EqualValues(t, 2, quality["dead_code_finding_count"])
+			assert.EqualValues(t, 4, quality["dead_code_block_count"])
+		})
+	}
+}
+
+func TestAnalyzeFormatter_Write_SerializesDirectoryComplexity(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.Complexity = &domain.ComplexityResponse{ByDirectory: []domain.DirectoryComplexityMetrics{
+		{
+			DirectoryPath:         "pkg",
+			FunctionCount:         5,
+			AverageComplexity:     6.5,
+			MaxComplexity:         11,
+			HighRiskFunctionCount: 2,
+			AverageNestingDepth:   3.25,
+			MaxNestingDepth:       5,
+		},
+	}}
+
+	for _, format := range []domain.OutputFormat{domain.OutputFormatJSON, domain.OutputFormatYAML} {
+		t.Run(string(format), func(t *testing.T) {
+			var output bytes.Buffer
+			require.NoError(t, NewAnalyzeFormatter().Write(response, format, &output))
+
+			var decoded domain.AnalyzeResponse
+			var contract map[string]any
+			switch format {
+			case domain.OutputFormatJSON:
+				require.NoError(t, json.Unmarshal(output.Bytes(), &decoded))
+				require.NoError(t, json.Unmarshal(output.Bytes(), &contract))
+			case domain.OutputFormatYAML:
+				require.NoError(t, yaml.Unmarshal(output.Bytes(), &decoded))
+				require.NoError(t, yaml.Unmarshal(output.Bytes(), &contract))
+			default:
+				t.Fatalf("unsupported test format %q", format)
+			}
+			require.NotNil(t, decoded.Complexity)
+			assert.Equal(t, response.Complexity.ByDirectory, decoded.Complexity.ByDirectory)
+
+			complexityContract, ok := contract["complexity"].(map[string]any)
+			require.True(t, ok)
+			qualityEntries, ok := complexityContract["by_directory"].([]any)
+			require.True(t, ok)
+			require.Len(t, qualityEntries, 1)
+			quality, ok := qualityEntries[0].(map[string]any)
+			require.True(t, ok)
+			require.Len(t, quality, 7)
+			assert.Equal(t, "pkg", quality["directory_path"])
+			assert.EqualValues(t, 5, quality["function_count"])
+			assert.EqualValues(t, 6.5, quality["average_complexity"])
+			assert.EqualValues(t, 11, quality["max_complexity"])
+			assert.EqualValues(t, 2, quality["high_risk_function_count"])
+			assert.EqualValues(t, 3.25, quality["average_nesting_depth"])
+			assert.EqualValues(t, 5, quality["max_nesting_depth"])
+		})
+	}
+}
+
+func TestAnalyzeFormatter_Write_SerializesEmptyDirectoryComplexity(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.Complexity = &domain.ComplexityResponse{}
+
+	for _, format := range []domain.OutputFormat{domain.OutputFormatJSON, domain.OutputFormatYAML} {
+		t.Run(string(format), func(t *testing.T) {
+			var output bytes.Buffer
+			require.NoError(t, NewAnalyzeFormatter().Write(response, format, &output))
+
+			var contract map[string]any
+			switch format {
+			case domain.OutputFormatJSON:
+				require.NoError(t, json.Unmarshal(output.Bytes(), &contract))
+			case domain.OutputFormatYAML:
+				require.NoError(t, yaml.Unmarshal(output.Bytes(), &contract))
+			default:
+				t.Fatalf("unsupported test format %q", format)
+			}
+			complexityContract, ok := contract["complexity"].(map[string]any)
+			require.True(t, ok)
+			directories, ok := complexityContract["by_directory"].([]any)
+			require.True(t, ok)
+			assert.Empty(t, directories)
+		})
+	}
+}
+
 func TestAnalyzeFormatter_Write_CSV(t *testing.T) {
 	formatter := NewAnalyzeFormatter()
 	response := createTestAnalyzeResponse()
@@ -249,6 +462,159 @@ func TestAnalyzeFormatter_Write_CSV(t *testing.T) {
 	assert.Contains(t, output, "Grade,B")
 	assert.Contains(t, output, "Total Files,10")
 	assert.Contains(t, output, "Analyzed Files,10")
+}
+
+func TestAnalyzeFormatter_Write_CSVIncludesModuleQuality(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.ModuleQuality = []domain.ModuleQualityMetrics{
+		{
+			ModuleName:    "pkg.hotspot",
+			FilePath:      "pkg/hot,spot.py",
+			LinesOfCode:   120,
+			FunctionCount: 4,
+			ModuleComplexityMetrics: domain.ModuleComplexityMetrics{
+				AnalyzedFunctionCount:      2,
+				AverageComplexity:          6.5,
+				AverageCognitiveComplexity: 8,
+				MaxComplexity:              9,
+				HighRiskFunctionCount:      1,
+				ExceptionHandlerCount:      3,
+			},
+			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{
+				DeadCodeFindingCount: 2,
+				DeadCodeBlockCount:   3,
+			},
+		},
+	}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatCSV, &output))
+
+	records, err := csv.NewReader(strings.NewReader(output.String())).ReadAll()
+	require.NoError(t, err)
+
+	metrics := make(map[string]string, len(records))
+	for _, record := range records[1:] {
+		require.Len(t, record, 2)
+		metrics[record[0]] = record[1]
+	}
+
+	assert.Equal(t, "1", metrics["Module Quality Count"])
+	assert.Equal(t, "pkg.hotspot", metrics["Module 1 Name"])
+	assert.Equal(t, "pkg/hot,spot.py", metrics["Module 1 File Path"])
+	assert.Equal(t, "120", metrics["Module 1 Lines of Code"])
+	assert.Equal(t, "4", metrics["Module 1 Function Count"])
+	assert.Equal(t, "2", metrics["Module 1 Analyzed Function Count"])
+	assert.Equal(t, "6.50", metrics["Module 1 Average Complexity"])
+	assert.Equal(t, "8.00", metrics["Module 1 Average Cognitive Complexity"])
+	assert.Equal(t, "9", metrics["Module 1 Max Complexity"])
+	assert.Equal(t, "1", metrics["Module 1 High Risk Function Count"])
+	assert.Equal(t, "3", metrics["Module 1 Exception Handler Count"])
+	assert.Equal(t, "2", metrics["Module 1 Dead Code Findings"])
+	assert.Equal(t, "3", metrics["Module 1 Dead Code Blocks"])
+}
+
+func TestAnalyzeFormatter_Write_CSVIncludesDirectoryComplexity(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.Complexity = &domain.ComplexityResponse{ByDirectory: []domain.DirectoryComplexityMetrics{
+		{
+			DirectoryPath:         "pkg,core",
+			FunctionCount:         5,
+			AverageComplexity:     6.5,
+			MaxComplexity:         11,
+			HighRiskFunctionCount: 2,
+			AverageNestingDepth:   3.25,
+			MaxNestingDepth:       5,
+		},
+	}}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatCSV, &output))
+
+	records, err := csv.NewReader(strings.NewReader(output.String())).ReadAll()
+	require.NoError(t, err)
+
+	metrics := make(map[string]string, len(records))
+	for _, record := range records[1:] {
+		require.Len(t, record, 2)
+		metrics[record[0]] = record[1]
+	}
+
+	assert.Equal(t, "1", metrics["Directory Complexity Count"])
+	assert.Equal(t, "pkg,core", metrics["Directory 1 Path"])
+	assert.Equal(t, "5", metrics["Directory 1 Function Count"])
+	assert.Equal(t, "6.50", metrics["Directory 1 Average Complexity"])
+	assert.Equal(t, "11", metrics["Directory 1 Max Complexity"])
+	assert.Equal(t, "2", metrics["Directory 1 High Risk Function Count"])
+	assert.Equal(t, "3.25", metrics["Directory 1 Average Nesting Depth"])
+	assert.Equal(t, "5", metrics["Directory 1 Max Nesting Depth"])
+}
+
+func TestAnalyzeFormatter_Write_CSVAppendsDirectoryRowsAfterLegacyRows(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.ModuleQuality = []domain.ModuleQualityMetrics{{ModuleName: "pkg.module"}}
+	response.Summary.CommunitiesEnabled = true
+	response.Communities = &domain.CommunityAnalysisResult{TotalCommunities: 1}
+	response.Complexity = &domain.ComplexityResponse{ByDirectory: []domain.DirectoryComplexityMetrics{{
+		DirectoryPath: "pkg",
+		FunctionCount: 1,
+	}}}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatCSV, &output))
+	records, err := csv.NewReader(strings.NewReader(output.String())).ReadAll()
+	require.NoError(t, err)
+
+	indices := make(map[string]int, len(records))
+	for index, record := range records {
+		require.Len(t, record, 2)
+		indices[record[0]] = index
+	}
+	assert.Less(t, indices["Module 1 Dead Code Blocks"], indices["Communities Enabled"])
+	assert.Less(t, indices["Community Risk Score"], indices["Directory Complexity Count"])
+	assert.Less(t, indices["Directory Complexity Count"], indices["Directory 1 Path"])
+}
+
+func TestAnalyzeFormatter_Write_CSVOmitsDirectoryRowsWhenComplexityDisabled(t *testing.T) {
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(createMinimalAnalyzeResponse(), domain.OutputFormatCSV, &output))
+	assert.NotContains(t, output.String(), "Directory Complexity Count")
+}
+
+type failingAnalyzeWriter struct{}
+
+func (failingAnalyzeWriter) Write([]byte) (int, error) {
+	return 0, errors.New("write failed")
+}
+
+func TestAnalyzeFormatter_Write_TextDirectoryComplexityPropagatesWriterErrors(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.Complexity = &domain.ComplexityResponse{ByDirectory: []domain.DirectoryComplexityMetrics{{
+		DirectoryPath: "pkg",
+		FunctionCount: 1,
+	}}}
+
+	err := NewAnalyzeFormatter().Write(response, domain.OutputFormatText, failingAnalyzeWriter{})
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "failed to write analysis text")
+	assert.ErrorContains(t, err, "write failed")
+}
+
+func TestAnalyzeFormatter_Write_TextModuleQualityPropagatesWriterErrors(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.ModuleQuality = []domain.ModuleQualityMetrics{{FilePath: "pkg/module.py"}}
+
+	err := NewAnalyzeFormatter().Write(response, domain.OutputFormatText, failingAnalyzeWriter{})
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "failed to write analysis text")
+	assert.ErrorContains(t, err, "write failed")
+}
+
+func TestAnalyzeFormatter_Write_CSVPropagatesWriterErrors(t *testing.T) {
+	err := NewAnalyzeFormatter().Write(createMinimalAnalyzeResponse(), domain.OutputFormatCSV, failingAnalyzeWriter{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to write CSV output")
+	assert.ErrorContains(t, err, "write failed")
 }
 
 func TestAnalyzeFormatter_Write_HTML(t *testing.T) {
@@ -272,6 +638,151 @@ func TestAnalyzeFormatter_Write_HTML(t *testing.T) {
 	assert.Contains(t, output, "Dead Code")
 	assert.Contains(t, output, "Clone")
 	assert.Contains(t, output, "Coupling")
+}
+
+func TestAnalyzeFormatter_Write_HTMLShowsLongestFunctions(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.Summary.ComplexityEnabled = true
+	response.Complexity = &domain.ComplexityResponse{
+		Functions: []domain.FunctionComplexity{
+			{
+				Name:      "find_datatable_locale",
+				FilePath:  "i18n/main.py",
+				StartLine: 22,
+				EndLine:   131,
+				Metrics:   domain.ComplexityMetrics{Complexity: 1, SLOC: 104},
+				RiskLevel: domain.RiskLevelLow,
+			},
+			{
+				Name:      "tight_but_complex",
+				FilePath:  "core/dispatch.py",
+				StartLine: 5,
+				EndLine:   30,
+				Metrics:   domain.ComplexityMetrics{Complexity: 22, SLOC: 24},
+				RiskLevel: domain.RiskLevelHigh,
+			},
+			{
+				Name:      domain.ModuleFunctionName,
+				FilePath:  "i18n/main.py",
+				StartLine: 1,
+				EndLine:   400,
+				Metrics:   domain.ComplexityMetrics{Complexity: 1, SLOC: 380},
+				RiskLevel: domain.RiskLevelLow,
+			},
+		},
+		Request: &domain.ComplexityRequest{FunctionSLOCWarnThreshold: 50},
+	}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatHTML, &output))
+
+	html := output.String()
+	require.Contains(t, html, "Longest Functions")
+
+	// Scope the assertions to the length table: the complexity-ranked table
+	// above it lists every function, long or not.
+	section := html[strings.Index(html, "Longest Functions"):]
+	section = section[:strings.Index(section, "</table>")]
+
+	assert.Contains(t, section, "Functions longer than 50 source lines")
+	// A McCabe-1 long function has no reason to appear in the ranked table.
+	assert.Contains(t, section, "find_datatable_locale")
+	assert.Contains(t, section, "22-131")
+	// Short functions and module scope stay out of the length table.
+	assert.NotContains(t, section, "tight_but_complex")
+	assert.NotContains(t, section, "&lt;module&gt;")
+}
+
+func TestAnalyzeFormatter_CollectLongFunctions(t *testing.T) {
+	t.Run("nil response falls back to the default threshold", func(t *testing.T) {
+		view := collectLongFunctions(nil)
+
+		assert.Equal(t, domain.DefaultFunctionSLOCWarnThreshold, view.Threshold)
+		assert.Empty(t, view.Functions)
+		assert.Equal(t, 0, view.Total)
+	})
+
+	t.Run("ranks longest first and caps the rows", func(t *testing.T) {
+		complexity := &domain.ComplexityResponse{
+			Request: &domain.ComplexityRequest{FunctionSLOCWarnThreshold: 50},
+		}
+		for i := 0; i < longFunctionsDisplayLimit+3; i++ {
+			complexity.Functions = append(complexity.Functions, domain.FunctionComplexity{
+				Name:    fmt.Sprintf("f%d", i),
+				Metrics: domain.ComplexityMetrics{SLOC: 51 + i},
+			})
+		}
+
+		view := collectLongFunctions(complexity)
+
+		require.Len(t, view.Functions, longFunctionsDisplayLimit)
+		assert.Equal(t, longFunctionsDisplayLimit+3, view.Total)
+		assert.Equal(t, "f12", view.Functions[0].Name)
+		for i := 1; i < len(view.Functions); i++ {
+			assert.GreaterOrEqual(t, view.Functions[i-1].Metrics.SLOC, view.Functions[i].Metrics.SLOC)
+		}
+	})
+}
+
+func TestAnalyzeFormatter_Write_HTMLShowsSortableModuleQuality(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.ModuleQuality = []domain.ModuleQualityMetrics{
+		{
+			ModuleName:    "pkg.hotspot",
+			FilePath:      "pkg/hotspot.py",
+			LinesOfCode:   120,
+			FunctionCount: 4,
+			ModuleComplexityMetrics: domain.ModuleComplexityMetrics{
+				AnalyzedFunctionCount:      2,
+				AverageComplexity:          6.5,
+				AverageCognitiveComplexity: 8,
+				MaxComplexity:              9,
+				HighRiskFunctionCount:      1,
+			},
+			ModuleDeadCodeMetrics: domain.ModuleDeadCodeMetrics{DeadCodeFindingCount: 2},
+		},
+	}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatHTML, &output))
+
+	html := output.String()
+	assert.Contains(t, html, "showTab('module-quality'")
+	assert.Contains(t, html, `id="module-quality-table"`)
+	assert.Contains(t, html, "pkg.hotspot")
+	assert.Contains(t, html, "pkg/hotspot.py")
+	assert.Contains(t, html, "sortModuleQuality")
+	assert.Contains(t, html, `aria-label="Sort by average complexity"`)
+	assert.Contains(t, html, `aria-label="Sort by analyzed function count"`)
+	assert.Contains(t, html, `aria-label="Sort by exception handler count"`)
+	assert.Contains(t, html, `aria-label="Sort by dead-code blocks"`)
+}
+
+func TestAnalyzeFormatter_Write_HTMLShowsSortableDirectoryComplexity(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.Complexity = &domain.ComplexityResponse{ByDirectory: []domain.DirectoryComplexityMetrics{
+		{
+			DirectoryPath:         "pkg/core",
+			FunctionCount:         5,
+			AverageComplexity:     6.5,
+			MaxComplexity:         11,
+			HighRiskFunctionCount: 2,
+			AverageNestingDepth:   3.25,
+			MaxNestingDepth:       5,
+		},
+	}}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatHTML, &output))
+
+	html := output.String()
+	assert.Contains(t, html, "showTab('directory-complexity'")
+	assert.Contains(t, html, `id="directory-complexity-table"`)
+	assert.Contains(t, html, "pkg/core")
+	assert.Contains(t, html, "sortDirectoryComplexity")
+	assert.Contains(t, html, `aria-label="Sort by average complexity"`)
+	assert.Contains(t, html, `aria-label="Sort by average nesting depth"`)
+	assert.Contains(t, html, `aria-label="Sort by maximum nesting depth"`)
 }
 
 func TestAnalyzeFormatter_WriteHTML_ShowsCloneGroupContentWhenEnabled(t *testing.T) {

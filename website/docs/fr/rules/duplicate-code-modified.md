@@ -70,5 +70,5 @@ def export_orders_csv(orders, path):
 
 ## Références
 
-- Implémentation de la détection de clones (`internal/analyzer/clone_detector.go`, `internal/analyzer/apted.go`).
+- Implémentation de la détection de clones (`internal/analyzer/clone_detector.go`, `internal/analyzer/apted_tree.go`, `internal/analyzer/apted_cost.go`, `polyscan/core/apted`).
 - [Catalogue des règles](index.md) · [Clones identiques](duplicate-code-identical.md) · [Clones renommés](duplicate-code-renamed.md) · [Clones sémantiques](duplicate-code-semantic.md)

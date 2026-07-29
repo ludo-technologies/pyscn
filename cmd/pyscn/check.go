@@ -8,6 +8,7 @@ import (
 
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
+	internalconfig "github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/service"
 	"github.com/spf13/cobra"
 )
@@ -127,6 +128,20 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
 		args = []string{"."}
 	}
+
+	// Resolve the current configuration discovery result once and load it
+	// explicitly. This preserves check's existing cwd-based discovery while
+	// ensuring a discovered but malformed config fails the quality gate instead
+	// of being silently replaced with defaults by individual loaders.
+	originalConfigFile := c.configFile
+	resolvedConfigFile, err := resolveCheckConfig(c.configFile)
+	if err != nil {
+		return err
+	}
+	c.configFile = resolvedConfigFile
+	defer func() {
+		c.configFile = originalConfigFile
+	}()
 
 	// Validate selected analyses before creating config
 	if len(c.selectAnalyses) > 0 {
@@ -248,6 +263,23 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func resolveCheckConfig(configPath string) (string, error) {
+	loader := internalconfig.NewTomlConfigLoader()
+	resolvedPath, err := loader.ResolveConfigPath(configPath, "")
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve configuration: %w", err)
+	}
+	if resolvedPath == "" {
+		return "", nil
+	}
+
+	if _, err := loader.LoadConfig(resolvedPath); err != nil {
+		return "", fmt.Errorf("failed to load configuration from %s: %w", resolvedPath, err)
+	}
+
+	return resolvedPath, nil
+}
+
 // determineEnabledAnalyses determines which analyses should run based on flags
 func (c *CheckCommand) determineEnabledAnalyses() (skipComplexity bool, skipDeadCode bool, skipClones bool, skipDeps bool, skipMockdata bool, skipDI bool) {
 	if len(c.selectAnalyses) > 0 {
@@ -338,14 +370,10 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 	// Sparse request: zero values mean "not set" and are filled from the
 	// config file (or defaults) during MergeConfig inside the use case.
 	request := &domain.ComplexityRequest{
-		Paths:           args,
-		OutputFormat:    domain.OutputFormatText,
-		OutputWriter:    io.Discard,
-		SortBy:          domain.SortByComplexity,
-		Recursive:       true,
-		IncludePatterns: domain.DefaultAnalysisIncludePatterns(),
-		ExcludePatterns: domain.DefaultAnalysisExcludePatterns(),
-		ConfigPath:      c.configFile,
+		Paths:        args,
+		OutputFormat: domain.OutputFormatText,
+		OutputWriter: io.Discard,
+		ConfigPath:   c.configFile,
 	}
 
 	// Create use case with services
@@ -379,7 +407,16 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 		maxComplexity = response.Request.MaxComplexity
 	}
 
-	// Count functions that exceed the maximum complexity threshold
+	// Determine the function length gate: config file > default. The critical
+	// tier is the gate so that the warn tier stays a report-only signal.
+	slocThreshold := domain.DefaultFunctionSLOCCriticalThreshold
+	if response.Request != nil && response.Request.FunctionSLOCCriticalThreshold > 0 {
+		slocThreshold = response.Request.FunctionSLOCCriticalThreshold
+	}
+
+	// Count functions that exceed the maximum complexity threshold, plus
+	// functions that are too long. Length is orthogonal to McCabe, so a flat
+	// 200-line function is an issue on its own and both can fire at once.
 	issueCount := 0
 	for _, function := range response.Functions {
 		if function.Metrics.Complexity > maxComplexity {
@@ -387,6 +424,13 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 			if !c.quiet {
 				fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s is too complex (%d > %d)\n",
 					function.FilePath, function.StartLine, function.StartColumn+1, function.Name, function.Metrics.Complexity, maxComplexity)
+			}
+		}
+		if function.ExceedsSLOC(slocThreshold) {
+			issueCount++
+			if !c.quiet {
+				fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s is too long (%d SLOC > %d)\n",
+					function.FilePath, function.StartLine, function.StartColumn+1, function.Name, function.Metrics.SLOC, slocThreshold)
 			}
 		}
 	}
@@ -398,23 +442,13 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, error) {
 	// Create request with check-specific settings
 	request := &domain.DeadCodeRequest{
-		Paths:                     args,
-		OutputFormat:              domain.OutputFormatText,
-		OutputWriter:              io.Discard,
-		ShowContext:               domain.BoolPtr(false),
-		ContextLines:              0,
-		MinSeverity:               domain.DeadCodeSeverityCritical,
-		SortBy:                    domain.DeadCodeSortBySeverity,
-		Recursive:                 true,
-		IncludePatterns:           domain.DefaultAnalysisIncludePatterns(),
-		ExcludePatterns:           domain.DefaultAnalysisExcludePatterns(),
-		IgnorePatterns:            []string{},
-		DetectAfterReturn:         domain.BoolPtr(true),
-		DetectAfterBreak:          domain.BoolPtr(true),
-		DetectAfterContinue:       domain.BoolPtr(true),
-		DetectAfterRaise:          domain.BoolPtr(true),
-		DetectUnreachableBranches: domain.BoolPtr(true),
-		ConfigPath:                c.configFile,
+		Paths:        args,
+		OutputFormat: domain.OutputFormatText,
+		OutputWriter: io.Discard,
+		// Critical severity is the check command's quality-gate policy.
+		// All analyzer behavior remains sparse so project config can override defaults.
+		MinSeverity: domain.DeadCodeSeverityCritical,
+		ConfigPath:  c.configFile,
 	}
 
 	// Create use case with services
@@ -590,22 +624,10 @@ func (c *CheckCommand) checkCircularDependencies(cmd *cobra.Command, args []stri
 func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, error) {
 	// Create request with check-specific settings
 	request := &domain.MockDataRequest{
-		Paths:           args,
-		OutputFormat:    domain.OutputFormatText,
-		OutputWriter:    io.Discard,
-		MinSeverity:     domain.MockDataSeverityWarning,
-		SortBy:          domain.MockDataSortBySeverity,
-		Recursive:       true,
-		IncludePatterns: domain.DefaultAnalysisIncludePatterns(),
-		ExcludePatterns: domain.DefaultAnalysisExcludePatterns(),
-		IgnoreTests:     domain.BoolPtr(true),
-		Keywords:        domain.DefaultMockDataKeywords(),
-		Domains:         domain.DefaultMockDataDomains(),
-	}
-
-	// Validate request
-	if err := request.Validate(); err != nil {
-		return 0, fmt.Errorf("invalid mock data request: %w", err)
+		Paths:        args,
+		OutputFormat: domain.OutputFormatText,
+		OutputWriter: io.Discard,
+		ConfigPath:   c.configFile,
 	}
 
 	// Create service components

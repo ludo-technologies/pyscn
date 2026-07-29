@@ -1,5 +1,57 @@
 # Changelog
 
+## [1.29.0] - 2026-07-28
+
+### Added
+- Per-module quality hotspot metrics in analyze reports (#686)
+- Per-directory complexity rollups in analyze reports (#687)
+
+### Changed
+- Serve documentation at docs.codescan.dev (#685)
+
+### Fixed
+- Dedupe architecture suggestions and add `file_path`/`start_line` (#648)
+
+## [1.28.0] - 2026-07-25
+
+### Added
+- List the pyscn MCP server in the official MCP Registry and Glama (#682)
+
+### Changed
+- Point the cross-language link to polyscan instead of the archived jscan (#681)
+
+## [1.27.0] - 2026-07-25
+
+### Added
+- Link HTML reports and CLI output back to the pyscn GitHub repository (#679)
+
+### Changed
+- Adopt polyscan core clone grouping, dedup, similarity gates, and classification (#664)
+- Adopt polyscan core APTED tree edit distance (#669)
+- Adopt polyscan core CFG analyses (#670)
+- Adopt polyscan core graph analyses (#672)
+- Adopt polyscan core LSH, LCOM, DFA, and semantic evidence (#673)
+- Adopt polyscan core scoring and grade mapping (#674)
+- Redesign the website homepage with a CFG diagram hero (#671)
+- Document Agent Skills as a recommended AI integration on the website (#668)
+
+### Fixed
+- Exclude Cython primitive types from CBO dependent classes (#646)
+- Fix module-qualified enum coupling in CBO (#675)
+
+## [1.26.4] - 2026-07-17
+
+### Changed
+- Unify request bool override semantics with sparse optional fields (#649)
+- Correct MCP configuration discovery documentation (#650)
+
+### Fixed
+- Default architecture strict mode to false when auto-detecting layers without user config (#662)
+- Propagate `recursive` override in MCP analyze tool (#656)
+- Fail `check` command on malformed discovered `.pyscn.toml` (#654)
+- Publish only implemented output controls in MCP tool schemas (#651)
+- Exclude same-file top-level peer classes from CBO coupling (#639)
+
 ## [1.26.3] - 2026-07-11
 
 ### Added

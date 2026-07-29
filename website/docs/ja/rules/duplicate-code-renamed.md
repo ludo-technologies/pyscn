@@ -60,5 +60,5 @@ def total_for_invoices(invoices):
 
 ## 参照
 
-- クローン検出の実装 (`internal/analyzer/clone_detector.go`, `internal/analyzer/apted.go`)。
+- クローン検出の実装 (`internal/analyzer/clone_detector.go`, `internal/analyzer/apted_tree.go`, `internal/analyzer/apted_cost.go`, `polyscan/core/apted`)。
 - [ルールカタログ](index.md) · [同一クローン](duplicate-code-identical.md) · [変更されたクローン](duplicate-code-modified.md) · [意味的クローン](duplicate-code-semantic.md)

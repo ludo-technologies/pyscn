@@ -77,6 +77,7 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 		response.Summary.HighRiskFunctions,
 		response.Summary.MediumRiskFunctions,
 		response.Summary.LowRiskFunctions))
+	builder.WriteString(formatDirectoryComplexityText(response.ByDirectory, 0))
 
 	if response.RawMetricsSummary != nil {
 		builder.WriteString(utils.FormatSectionHeader("RAW CODE METRICS"))
@@ -109,7 +110,7 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 	// Function Details
 	if len(response.Functions) > 0 {
 		builder.WriteString(utils.FormatSectionHeader("FUNCTION DETAILS"))
-		builder.WriteString(utils.FormatTableHeader("Function", "Complexity", "Cognitive", "Risk"))
+		builder.WriteString(utils.FormatTableHeader("Function", "Complexity", "Cognitive", "SLOC", "Risk"))
 
 		for _, function := range response.Functions {
 			// Convert domain risk level to standard risk level
@@ -126,10 +127,11 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 			}
 
 			coloredRisk := utils.FormatRiskWithColor(standardRisk)
-			builder.WriteString(fmt.Sprintf("%-30s %10d %10d  %s\n",
+			builder.WriteString(fmt.Sprintf("%-30s %10d %10d %10d  %s\n",
 				function.Name,
 				function.Metrics.Complexity,
 				function.Metrics.CognitiveComplexity,
+				function.Metrics.SLOC,
 				coloredRisk))
 		}
 		builder.WriteString(utils.FormatSectionSeparator())
@@ -177,8 +179,9 @@ func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (st
 	var builder strings.Builder
 	writer := csv.NewWriter(&builder)
 
-	// Write header
-	header := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
+	// Write header. SLOC is appended last so the existing column positions
+	// stay valid for anything already parsing this output.
+	header := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers", "SLOC"}
 	if err := writer.Write(header); err != nil {
 		return "", domain.NewOutputError("failed to write CSV header", err)
 	}
@@ -196,6 +199,7 @@ func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (st
 			fmt.Sprintf("%d", function.Metrics.IfStatements),
 			fmt.Sprintf("%d", function.Metrics.LoopStatements),
 			fmt.Sprintf("%d", function.Metrics.ExceptionHandlers),
+			fmt.Sprintf("%d", function.Metrics.SLOC),
 		}
 		if err := writer.Write(row); err != nil {
 			return "", domain.NewOutputError("failed to write CSV row", err)
@@ -221,6 +225,7 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 			"function_name":        function.Name,
 			"file_path":            function.FilePath,
 			"risk_level":           string(function.RiskLevel),
+			"sloc":                 function.Metrics.SLOC,
 			"nodes":                function.Metrics.Nodes,
 			"edges":                function.Metrics.Edges,
 			"nesting_depth":        function.Metrics.NestingDepth,
@@ -266,9 +271,10 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 	}
 
 	result := map[string]interface{}{
-		"summary":  summary,
-		"results":  functions,
-		"metadata": metadata,
+		"summary":      summary,
+		"results":      functions,
+		"by_directory": response.ByDirectory,
+		"metadata":     metadata,
 	}
 
 	if response.RawMetricsSummary != nil {

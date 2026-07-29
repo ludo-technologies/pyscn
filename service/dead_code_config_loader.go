@@ -67,6 +67,8 @@ func (cl *DeadCodeConfigurationLoaderImpl) MergeConfig(base *domain.DeadCodeRequ
 	if override.OutputWriter != nil {
 		merged.OutputWriter = override.OutputWriter
 	}
+	// NoOpen is a caller-only execution flag, not a persisted configuration.
+	merged.NoOpen = override.NoOpen
 
 	merged.MinSeverity = config.Merge(merged.MinSeverity, override.MinSeverity)
 	merged.SortBy = config.Merge(merged.SortBy, override.SortBy)
@@ -84,8 +86,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) MergeConfig(base *domain.DeadCodeRequ
 
 	merged.ContextLines = config.Merge(merged.ContextLines, override.ContextLines)
 
-	// Recursive - preserve override value
-	merged.Recursive = override.Recursive
+	merged.Recursive = config.MergePtr(merged.Recursive, override.Recursive)
 
 	// Array values
 	merged.IncludePatterns = config.MergeSlice(merged.IncludePatterns, override.IncludePatterns)
@@ -146,7 +147,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) configToRequest(cfg *config.Config) *
 		ContextLines:              cfg.DeadCode.ContextLines,
 		MinSeverity:               minSeverity,
 		SortBy:                    sortBy,
-		Recursive:                 cfg.Analysis.Recursive,
+		Recursive:                 domain.BoolPtr(cfg.Analysis.Recursive),
 		IncludePatterns:           cfg.Analysis.IncludePatterns,
 		ExcludePatterns:           cfg.Analysis.ExcludePatterns,
 		IgnorePatterns:            cfg.DeadCode.IgnorePatterns,
@@ -235,7 +236,7 @@ func (cl *DeadCodeConfigurationLoaderImpl) requestToConfig(req *domain.DeadCodeR
 	cfg.DeadCode.IgnorePatterns = req.IgnorePatterns
 
 	// Set analysis config
-	cfg.Analysis.Recursive = req.Recursive
+	cfg.Analysis.Recursive = domain.BoolValue(req.Recursive, true)
 	cfg.Analysis.IncludePatterns = req.IncludePatterns
 	cfg.Analysis.ExcludePatterns = req.ExcludePatterns
 

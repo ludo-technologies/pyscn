@@ -64,5 +64,5 @@ def send_reset_email(user):
 
 ## References
 
-- Clone detection implementation (`internal/analyzer/clone_detector.go`, `internal/analyzer/apted.go`).
+- Clone detection implementation (`internal/analyzer/clone_detector.go`, `internal/analyzer/apted_tree.go`, `internal/analyzer/apted_cost.go`, `polyscan/core/apted`).
 - [Rule catalog](index.md) · [Renamed clones](duplicate-code-renamed.md) · [Modified clones](duplicate-code-modified.md) · [Semantic clones](duplicate-code-semantic.md)

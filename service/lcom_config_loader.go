@@ -67,10 +67,7 @@ func (cl *LCOMConfigurationLoaderImpl) MergeConfig(base *domain.LCOMRequest, ove
 	merged.LowThreshold = config.Merge(merged.LowThreshold, override.LowThreshold)
 	merged.MediumThreshold = config.Merge(merged.MediumThreshold, override.MediumThreshold)
 	merged.ConfigPath = config.Merge(merged.ConfigPath, override.ConfigPath)
-	// ShowDetails: plain bool, only a true override flips it on.
-	if override.ShowDetails {
-		merged.ShowDetails = true
-	}
+	merged.ShowDetails = config.MergePtr(merged.ShowDetails, override.ShowDetails)
 	merged.Recursive = config.MergePtr(merged.Recursive, override.Recursive)
 	merged.IncludePatterns = config.MergeSlice(merged.IncludePatterns, override.IncludePatterns)
 	merged.ExcludePatterns = config.MergeSlice(merged.ExcludePatterns, override.ExcludePatterns)
@@ -92,7 +89,7 @@ func (cl *LCOMConfigurationLoaderImpl) configToRequest(pyscnCfg *config.PyscnCon
 
 	return &domain.LCOMRequest{
 		OutputFormat:    domain.OutputFormat(pyscnCfg.Output.Format),
-		ShowDetails:     domain.BoolValue(pyscnCfg.Output.ShowDetails, false),
+		ShowDetails:     domain.BoolPtr(domain.BoolValue(pyscnCfg.Output.ShowDetails, false)),
 		LowThreshold:    pyscnCfg.LcomLowThreshold,
 		MediumThreshold: pyscnCfg.LcomMediumThreshold,
 		MinLCOM:         0,

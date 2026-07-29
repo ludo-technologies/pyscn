@@ -1,9 +1,13 @@
 package analyzer
 
-import "testing"
+import (
+	"testing"
+
+	corelsh "github.com/ludo-technologies/polyscan/core/lsh"
+)
 
 func BenchmarkMinHasher_Signature(b *testing.B) {
-	mh := NewMinHasher(128)
+	mh := corelsh.NewMinHasher(128)
 	feats := make([]string, 0, 200)
 	for i := 0; i < 200; i++ {
 		feats = append(feats, string(rune('a')+rune(i%26))+"_feat_"+string(rune('A')+rune(i%26)))
@@ -15,8 +19,8 @@ func BenchmarkMinHasher_Signature(b *testing.B) {
 }
 
 func BenchmarkLSHIndex_Candidates(b *testing.B) {
-	mh := NewMinHasher(128)
-	idx := NewLSHIndex(32, 4)
+	mh := corelsh.NewMinHasher(128)
+	idx := newLSHCandidateIndex(32, 4, 0)
 	// build 1000 signatures with small random overlap
 	for i := 0; i < 1000; i++ {
 		feats := []string{}
@@ -25,7 +29,6 @@ func BenchmarkLSHIndex_Candidates(b *testing.B) {
 		}
 		_ = idx.AddFragment(i, mh.ComputeSignature(feats))
 	}
-	_ = idx.BuildIndex()
 	// Query signature similar to mid entries
 	qfeats := []string{}
 	for j := 0; j < 30; j++ {

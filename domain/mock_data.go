@@ -54,7 +54,7 @@ type MockDataRequest struct {
 	SortBy      MockDataSortCriteria
 
 	// Analysis options
-	Recursive       bool
+	Recursive       *bool // nil = unset, non-nil = explicitly set
 	IncludePatterns []string
 	ExcludePatterns []string
 	IgnoreTests     *bool // nil = use default (true), non-nil = explicitly set
@@ -178,7 +178,7 @@ func DefaultMockDataRequest() *MockDataRequest {
 		OutputFormat:    OutputFormatText,
 		MinSeverity:     MockDataSeverityWarning,
 		SortBy:          MockDataSortBySeverity,
-		Recursive:       true,
+		Recursive:       BoolPtr(true),
 		IncludePatterns: DefaultAnalysisIncludePatterns(),
 		ExcludePatterns: []string{},
 		IgnoreTests:     BoolPtr(true),

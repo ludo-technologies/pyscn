@@ -24,6 +24,7 @@ type AnalyzeCommand struct {
 	json   bool
 	csv    bool
 	yaml   bool
+	text   bool
 	noOpen bool
 
 	// Configuration
@@ -52,6 +53,9 @@ type AnalyzeCommand struct {
 	cognitiveComplexityThreshold int
 	nestingDepthThreshold        int
 
+	functionSLOCWarnThreshold     int
+	functionSLOCCriticalThreshold int
+
 	// Clone detection options
 	enableDFA bool // Enable Data Flow Analysis for enhanced Type-4 detection
 
@@ -67,6 +71,7 @@ func NewAnalyzeCommand() *AnalyzeCommand {
 		json:            false,
 		csv:             false,
 		yaml:            false,
+		text:            false,
 		noOpen:          false,
 		configFile:      "",
 		verbose:         false,
@@ -128,6 +133,7 @@ Examples:
 	cmd.Flags().BoolVar(&c.json, "json", false, "Generate JSON report file")
 	cmd.Flags().BoolVar(&c.csv, "csv", false, "Generate CSV report file")
 	cmd.Flags().BoolVar(&c.yaml, "yaml", false, "Generate YAML report file")
+	cmd.Flags().BoolVar(&c.text, "text", false, "Generate plain-text report file")
 	cmd.Flags().BoolVar(&c.noOpen, "no-open", false, "Don't auto-open HTML in browser")
 	cmd.Flags().StringVarP(&c.configFile, "config", "c", "", "Configuration file path")
 
@@ -152,6 +158,8 @@ Examples:
 	cmd.Flags().IntVar(&c.mediumThreshold, "medium-threshold", 0, "Upper bound for medium-risk complexity (default: 19)")
 	cmd.Flags().IntVar(&c.cognitiveComplexityThreshold, "cognitive-complexity-threshold", 0, "High-risk threshold for cognitive complexity (default: 25)")
 	cmd.Flags().IntVar(&c.nestingDepthThreshold, "nesting-depth-threshold", 0, "High-risk threshold for maximum nesting depth (default: 7)")
+	cmd.Flags().IntVar(&c.functionSLOCWarnThreshold, "function-sloc-warn-threshold", 0, "Function length in source lines reported as long (default: 50)")
+	cmd.Flags().IntVar(&c.functionSLOCCriticalThreshold, "function-sloc-critical-threshold", 0, "Function length in source lines reported as too long (default: 100)")
 
 	return cmd
 }
@@ -230,6 +238,9 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		MediumThreshold:              c.mediumThreshold,
 		CognitiveComplexityThreshold: c.cognitiveComplexityThreshold,
 		NestingDepthThreshold:        c.nestingDepthThreshold,
+
+		FunctionSLOCWarnThreshold:     c.functionSLOCWarnThreshold,
+		FunctionSLOCCriticalThreshold: c.functionSLOCCriticalThreshold,
 	}
 	config = app.ApplyAnalyzeSelection(config, c.selectAnalyses)
 
@@ -558,7 +569,9 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 	c.printBadge(cmd, response.Summary.Grade)
 }
 
-const badgeLandingURL = "https://pyscn.ludo-tech.org"
+// badgeLandingURL is where the README badge points. It targets the repository
+// so that a click from someone else's README lands on the project itself.
+const badgeLandingURL = service.RepositoryURL
 
 // printBadge prints a Markdown badge snippet for the user's README
 func (c *AnalyzeCommand) printBadge(cmd *cobra.Command, grade string) {
@@ -569,6 +582,7 @@ func (c *AnalyzeCommand) printBadge(cmd *cobra.Command, grade string) {
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n--------------------------------------------------\n")
 	fmt.Fprintf(cmd.ErrOrStderr(), "[Badge] Add this to your README to show off your score:\n")
 	fmt.Fprintf(cmd.ErrOrStderr(), "%s\n", badge)
+	fmt.Fprintf(cmd.ErrOrStderr(), "\n[Star] Finding pyscn useful? %s\n", service.RepositoryURL)
 	fmt.Fprintf(cmd.ErrOrStderr(), "--------------------------------------------------\n")
 }
 
@@ -594,42 +608,14 @@ func gradeBadgeColor(grade string) string {
 
 // determineOutputFormat determines the output format based on flags
 func (c *AnalyzeCommand) determineOutputFormat() (string, string, error) {
-	formatCount := 0
-	var format string
-	var extension string
-
-	if c.html {
-		formatCount++
-		format = "html"
-		extension = "html"
-	}
-	if c.json {
-		formatCount++
-		format = "json"
-		extension = "json"
-	}
-	if c.csv {
-		formatCount++
-		format = "csv"
-		extension = "csv"
-	}
-	if c.yaml {
-		formatCount++
-		format = "yaml"
-		extension = "yaml"
-	}
-
-	// Check for conflicting flags
-	if formatCount > 1 {
-		return "", "", fmt.Errorf("only one output format flag can be specified")
-	}
-
-	// Default to HTML if no format specified
-	if formatCount == 0 {
-		return "html", "html", nil
-	}
-
-	return format, extension, nil
+	format, extension, err := service.NewOutputFormatResolver().DetermineAnalyzeReport(
+		c.html,
+		c.json,
+		c.csv,
+		c.yaml,
+		c.text,
+	)
+	return string(format), extension, err
 }
 
 // shouldUseProgressBars returns true when the session appears to be interactive

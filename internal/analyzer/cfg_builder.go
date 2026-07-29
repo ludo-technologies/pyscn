@@ -135,12 +135,8 @@ func (b *CFGBuilder) Build(node *parser.Node) (*CFG, error) {
 	b.cfg = NewCFG(cfgName)
 	b.currentBlock = b.cfg.Entry
 
-	// Store the function node for later use (nesting depth calculation)
-	if node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef {
-		b.cfg.FunctionNode = node
-	} else if node.Type == parser.NodeModule {
-		b.cfg.ModuleNode = node
-	}
+	// Store the source root opaquely for complexity and DFA enrichment.
+	b.cfg.FunctionNode = node
 
 	// Build CFG based on node type
 	switch node.Type {
@@ -1454,7 +1450,7 @@ func (b *CFGBuilder) blockTerminates(block *BasicBlock) bool {
 	}
 
 	// Check only the last statement in the block
-	lastStmt := block.Statements[len(block.Statements)-1]
+	lastStmt := mustPythonNode(block.Statements[len(block.Statements)-1])
 	return lastStmt.Type == parser.NodeReturn ||
 		lastStmt.Type == parser.NodeRaise ||
 		lastStmt.Type == parser.NodeBreak ||

@@ -23,6 +23,7 @@ func createTestComplexityResponse() *domain.ComplexityResponse {
 				FilePath: "test.py",
 				Metrics: domain.ComplexityMetrics{
 					Complexity:        2,
+					SLOC:              6,
 					Nodes:             5,
 					Edges:             4,
 					IfStatements:      1,
@@ -36,6 +37,7 @@ func createTestComplexityResponse() *domain.ComplexityResponse {
 				FilePath: "test.py",
 				Metrics: domain.ComplexityMetrics{
 					Complexity:        8,
+					SLOC:              120,
 					Nodes:             20,
 					Edges:             18,
 					IfStatements:      3,
@@ -43,6 +45,17 @@ func createTestComplexityResponse() *domain.ComplexityResponse {
 					ExceptionHandlers: 1,
 				},
 				RiskLevel: domain.RiskLevelHigh,
+			},
+		},
+		ByDirectory: []domain.DirectoryComplexityMetrics{
+			{
+				DirectoryPath:         ".",
+				FunctionCount:         2,
+				AverageComplexity:     5,
+				MaxComplexity:         8,
+				HighRiskFunctionCount: 1,
+				AverageNestingDepth:   1.5,
+				MaxNestingDepth:       2,
 			},
 		},
 		Summary: domain.ComplexitySummary{
@@ -140,6 +153,7 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Contains(t, result, "metadata") // contains generated_at and version
 				assert.Contains(t, result, "raw_metrics")
 				assert.Contains(t, result, "raw_metrics_summary")
+				assert.Contains(t, result, "by_directory")
 
 				// Verify results array (contains functions)
 				functions, ok := result["results"].([]interface{})
@@ -163,6 +177,27 @@ func TestOutputFormatter_Format(t *testing.T) {
 				rawMetrics, ok := result["raw_metrics"].([]interface{})
 				assert.True(t, ok)
 				assert.Len(t, rawMetrics, 1)
+
+				directories, ok := result["by_directory"].([]interface{})
+				require.True(t, ok)
+				require.Len(t, directories, 1)
+				directory := directories[0].(map[string]interface{})
+				assert.Equal(t, ".", directory["directory_path"])
+				assert.Equal(t, float64(2), directory["function_count"])
+				assert.Equal(t, 1.5, directory["average_nesting_depth"])
+			},
+			expectError: false,
+		},
+		{
+			name:     "format empty directory collection as JSON",
+			response: &domain.ComplexityResponse{},
+			format:   domain.OutputFormatJSON,
+			validateOutput: func(t *testing.T, output string) {
+				var result map[string]interface{}
+				require.NoError(t, json.Unmarshal([]byte(output), &result))
+				directories, ok := result["by_directory"].([]interface{})
+				require.True(t, ok)
+				assert.Empty(t, directories)
 			},
 			expectError: false,
 		},
@@ -176,11 +211,10 @@ func TestOutputFormatter_Format(t *testing.T) {
 				records, err := reader.ReadAll()
 				assert.NoError(t, err, "Output should be valid CSV")
 
-				// Should have header + 2 data rows
 				assert.Len(t, records, 3, "Should have header plus 2 function rows")
 
 				// Check header
-				expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
+				expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers", "SLOC"}
 				assert.Equal(t, expectedHeaders, records[0])
 
 				// Check first data row
@@ -213,6 +247,7 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Contains(t, result, "metadata") // contains generated_at and version
 				assert.Contains(t, result, "raw_metrics")
 				assert.Contains(t, result, "raw_metrics_summary")
+				assert.Contains(t, result, "by_directory")
 
 				// Verify results array (contains functions)
 				functions, ok := result["results"].([]interface{})
@@ -228,6 +263,14 @@ func TestOutputFormatter_Format(t *testing.T) {
 				rawMetrics, ok := result["raw_metrics"].([]interface{})
 				assert.True(t, ok)
 				assert.Len(t, rawMetrics, 1)
+
+				directories, ok := result["by_directory"].([]interface{})
+				require.True(t, ok)
+				require.Len(t, directories, 1)
+				directory := directories[0].(map[string]interface{})
+				assert.Equal(t, ".", directory["directory_path"])
+				assert.Equal(t, 2, directory["function_count"])
+				assert.Equal(t, 1.5, directory["average_nesting_depth"])
 			},
 			expectError: false,
 		},
@@ -244,6 +287,9 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Contains(t, output, "RISK DISTRIBUTION")
 				assert.Contains(t, output, "High: 1")
 				assert.Contains(t, output, "Low: 1")
+				assert.Contains(t, output, "DIRECTORY COMPLEXITY")
+				assert.Contains(t, output, "Functions: 2")
+				assert.Contains(t, output, "Nesting: avg 1.50, max 2")
 				assert.Contains(t, output, "RAW CODE METRICS")
 				assert.Contains(t, output, "SLOC: 10")
 				assert.Contains(t, output, "Comment Ratio: 16.7%")
@@ -484,7 +530,7 @@ func TestOutputFormatter_formatText(t *testing.T) {
 
 				// Check function details (new unified format)
 				assert.Contains(t, output, "FUNCTION DETAILS")
-				assert.Contains(t, output, "Function  Complexity  Cognitive  Risk")
+				assert.Contains(t, output, "Function  Complexity  Cognitive  SLOC  Risk")
 				assert.Contains(t, output, "simple_function")
 				assert.Contains(t, output, "complex_function")
 
@@ -619,12 +665,12 @@ func TestOutputFormatter_formatCSV(t *testing.T) {
 	assert.Len(t, records, 3) // Header + 2 functions
 
 	// Check header
-	expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
+	expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers", "SLOC"}
 	assert.Equal(t, expectedHeaders, records[0])
 
 	// Check data rows (risk levels are lowercase in actual implementation)
-	assert.Equal(t, []string{"simple_function", "2", "0", "low", "5", "4", "0", "1", "0", "0"}, records[1])
-	assert.Equal(t, []string{"complex_function", "8", "0", "high", "20", "18", "0", "3", "2", "1"}, records[2])
+	assert.Equal(t, []string{"simple_function", "2", "0", "low", "5", "4", "0", "1", "0", "0", "6"}, records[1])
+	assert.Equal(t, []string{"complex_function", "8", "0", "high", "20", "18", "0", "3", "2", "1", "120"}, records[2])
 }
 
 // TestOutputFormatter_NewOutputFormatter tests service creation

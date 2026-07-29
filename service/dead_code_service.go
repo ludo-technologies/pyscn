@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -30,6 +31,7 @@ func (s *DeadCodeServiceImpl) Analyze(ctx context.Context, req domain.DeadCodeRe
 	var allFiles []domain.FileDeadCode
 	var warnings []string
 	var errors []string
+	moduleRollups := make(map[string]domain.ModuleDeadCodeMetrics)
 	filesProcessed := 0
 
 	for _, filePath := range req.Paths {
@@ -43,12 +45,13 @@ func (s *DeadCodeServiceImpl) Analyze(ctx context.Context, req domain.DeadCodeRe
 		// Progress reporting removed - file parsing is fast
 
 		// Analyze single file
-		fileResult, fileWarnings, fileErrors := s.analyzeFile(ctx, filePath, req)
+		fileResult, moduleRollup, fileWarnings, fileErrors := s.analyzeFile(ctx, filePath, req)
 
 		if len(fileErrors) > 0 {
 			errors = append(errors, fileErrors...)
 			continue // Skip this file but continue with others
 		}
+		moduleRollups[filepath.Clean(filePath)] = moduleRollup
 
 		// Only include files that have dead code findings
 		if fileResult != nil && (len(fileResult.Functions) > 0 || fileResult.TotalFindings > 0) {
@@ -67,13 +70,14 @@ func (s *DeadCodeServiceImpl) Analyze(ctx context.Context, req domain.DeadCodeRe
 	summary := s.generateSummary(sortedFiles, filesProcessed, req)
 
 	return &domain.DeadCodeResponse{
-		Files:       sortedFiles,
-		Summary:     summary,
-		Warnings:    warnings,
-		Errors:      errors,
-		GeneratedAt: time.Now().Format(time.RFC3339),
-		Version:     version.Version,
-		Config:      s.buildConfigForResponse(req),
+		Files:         sortedFiles,
+		Summary:       summary,
+		ModuleRollups: moduleRollups,
+		Warnings:      warnings,
+		Errors:        errors,
+		GeneratedAt:   time.Now().Format(time.RFC3339),
+		Version:       version.Version,
+		Config:        s.buildConfigForResponse(req),
 	}, nil
 }
 
@@ -86,6 +90,7 @@ func (s *DeadCodeServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Pro
 	var allFiles []domain.FileDeadCode
 	var warnings []string
 	var errors []string
+	moduleRollups := make(map[string]domain.ModuleDeadCodeMetrics)
 	filesProcessed := 0
 
 	for _, file := range snapshot.Files {
@@ -95,12 +100,13 @@ func (s *DeadCodeServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Pro
 		default:
 		}
 
-		fileResult, fileWarnings, fileErrors := s.analyzeProjectFile(file, req)
+		fileResult, moduleRollup, fileWarnings, fileErrors := s.analyzeProjectFile(file, req)
 
 		if len(fileErrors) > 0 {
 			errors = append(errors, fileErrors...)
 			continue
 		}
+		moduleRollups[filepath.Clean(file.Path)] = moduleRollup
 
 		if fileResult != nil && (len(fileResult.Functions) > 0 || fileResult.TotalFindings > 0) {
 			allFiles = append(allFiles, *fileResult)
@@ -115,19 +121,20 @@ func (s *DeadCodeServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Pro
 	summary := s.generateSummary(sortedFiles, filesProcessed, req)
 
 	return &domain.DeadCodeResponse{
-		Files:       sortedFiles,
-		Summary:     summary,
-		Warnings:    warnings,
-		Errors:      errors,
-		GeneratedAt: time.Now().Format(time.RFC3339),
-		Version:     version.Version,
-		Config:      s.buildConfigForResponse(req),
+		Files:         sortedFiles,
+		Summary:       summary,
+		ModuleRollups: moduleRollups,
+		Warnings:      warnings,
+		Errors:        errors,
+		GeneratedAt:   time.Now().Format(time.RFC3339),
+		Version:       version.Version,
+		Config:        s.buildConfigForResponse(req),
 	}, nil
 }
 
 // AnalyzeFile analyzes a single Python file for dead code
 func (s *DeadCodeServiceImpl) AnalyzeFile(ctx context.Context, filePath string, req domain.DeadCodeRequest) (*domain.FileDeadCode, error) {
-	fileResult, _, fileErrors := s.analyzeFile(ctx, filePath, req)
+	fileResult, _, _, fileErrors := s.analyzeFile(ctx, filePath, req)
 
 	if len(fileErrors) > 0 {
 		return nil, domain.NewAnalysisError(fmt.Sprintf("failed to analyze file %s", filePath), fmt.Errorf("%v", fileErrors))
@@ -153,7 +160,7 @@ func (s *DeadCodeServiceImpl) AnalyzeFunction(ctx context.Context, functionCFG i
 }
 
 // analyzeFile performs dead code analysis on a single file
-func (s *DeadCodeServiceImpl) analyzeFile(ctx context.Context, filePath string, req domain.DeadCodeRequest) (*domain.FileDeadCode, []string, []string) {
+func (s *DeadCodeServiceImpl) analyzeFile(ctx context.Context, filePath string, req domain.DeadCodeRequest) (*domain.FileDeadCode, domain.ModuleDeadCodeMetrics, []string, []string) {
 	var warnings []string
 	var errors []string
 
@@ -161,13 +168,13 @@ func (s *DeadCodeServiceImpl) analyzeFile(ctx context.Context, filePath string, 
 	content, err := s.readFile(filePath)
 	if err != nil {
 		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
-		return nil, warnings, errors
+		return nil, domain.ModuleDeadCodeMetrics{}, warnings, errors
 	}
 
 	result, err := s.parser.Parse(ctx, content)
 	if err != nil {
 		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", filePath, err))
-		return nil, warnings, errors
+		return nil, domain.ModuleDeadCodeMetrics{}, warnings, errors
 	}
 
 	// Build CFGs for all functions
@@ -175,7 +182,7 @@ func (s *DeadCodeServiceImpl) analyzeFile(ctx context.Context, filePath string, 
 	cfgs, err := builder.BuildAll(result.AST)
 	if err != nil {
 		errors = append(errors, fmt.Sprintf("[%s] CFG construction failed: %v", filePath, err))
-		return nil, warnings, errors
+		return nil, domain.ModuleDeadCodeMetrics{}, warnings, errors
 	}
 
 	if len(cfgs) == 0 {
@@ -187,36 +194,36 @@ func (s *DeadCodeServiceImpl) analyzeFile(ctx context.Context, filePath string, 
 			TotalFunctions:    0,
 			AffectedFunctions: 0,
 			DeadCodeRatio:     0.0,
-		}, warnings, errors
+		}, domain.ModuleDeadCodeMetrics{}, warnings, errors
 	}
 
-	fileResult, fileWarnings := s.analyzeCFGs(filePath, cfgs, req)
+	fileResult, moduleRollup, fileWarnings := s.analyzeCFGs(filePath, cfgs, req)
 	warnings = append(warnings, fileWarnings...)
 
-	return fileResult, warnings, errors
+	return fileResult, moduleRollup, warnings, errors
 }
 
-func (s *DeadCodeServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.DeadCodeRequest) (*domain.FileDeadCode, []string, []string) {
+func (s *DeadCodeServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.DeadCodeRequest) (*domain.FileDeadCode, domain.ModuleDeadCodeMetrics, []string, []string) {
 	var warnings []string
 	var errors []string
 
 	if file == nil {
 		errors = append(errors, "[unknown] Invalid project file")
-		return nil, warnings, errors
+		return nil, domain.ModuleDeadCodeMetrics{}, warnings, errors
 	}
 	if file.ReadErr != nil {
 		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", file.Path, file.ReadErr))
-		return nil, warnings, errors
+		return nil, domain.ModuleDeadCodeMetrics{}, warnings, errors
 	}
 	if file.ParseErr != nil {
 		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", file.Path, file.ParseErr))
-		return nil, warnings, errors
+		return nil, domain.ModuleDeadCodeMetrics{}, warnings, errors
 	}
 
 	cfgs, err := file.CFGs()
 	if err != nil {
 		errors = append(errors, fmt.Sprintf("[%s] CFG construction failed: %v", file.Path, err))
-		return nil, warnings, errors
+		return nil, domain.ModuleDeadCodeMetrics{}, warnings, errors
 	}
 
 	if len(cfgs) == 0 {
@@ -228,18 +235,20 @@ func (s *DeadCodeServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.D
 			TotalFunctions:    0,
 			AffectedFunctions: 0,
 			DeadCodeRatio:     0.0,
-		}, warnings, errors
+		}, domain.ModuleDeadCodeMetrics{}, warnings, errors
 	}
 
-	fileResult, fileWarnings := s.analyzeCFGs(file.Path, cfgs, req)
+	fileResult, moduleRollup, fileWarnings := s.analyzeCFGs(file.Path, cfgs, req)
 	warnings = append(warnings, fileWarnings...)
-	return fileResult, warnings, errors
+	return fileResult, moduleRollup, warnings, errors
 }
 
-func (s *DeadCodeServiceImpl) analyzeCFGs(filePath string, cfgs map[string]*analyzer.CFG, req domain.DeadCodeRequest) (*domain.FileDeadCode, []string) {
+func (s *DeadCodeServiceImpl) analyzeCFGs(filePath string, cfgs map[string]*analyzer.CFG, req domain.DeadCodeRequest) (*domain.FileDeadCode, domain.ModuleDeadCodeMetrics, []string) {
 	var warnings []string
 	var functions []domain.FunctionDeadCode
+	var unfilteredFunctions []domain.FunctionDeadCode
 	totalFindings := 0
+	unfilteredFindings := 0
 	affectedFunctions := 0
 
 	for functionName, cfg := range cfgs {
@@ -257,6 +266,8 @@ func (s *DeadCodeServiceImpl) analyzeCFGs(filePath string, cfgs map[string]*anal
 		functionResult := s.convertToFunctionDeadCode(deadCodeResults, req)
 		functionResult.Name = functionName
 		functionResult.FilePath = filePath
+		unfilteredFunctions = append(unfilteredFunctions, functionResult)
+		unfilteredFindings += len(functionResult.Findings)
 
 		// Apply severity filtering
 		filteredFindings := s.filterFindingsBySeverity(functionResult.Findings, req.MinSeverity)
@@ -291,8 +302,14 @@ func (s *DeadCodeServiceImpl) analyzeCFGs(filePath string, cfgs map[string]*anal
 		AffectedFunctions: affectedFunctions,
 		DeadCodeRatio:     deadCodeRatio,
 	}
+	unfilteredFile := domain.FileDeadCode{
+		FilePath:      filePath,
+		Functions:     unfilteredFunctions,
+		TotalFindings: unfilteredFindings,
+	}
+	moduleRollup := domain.AggregateDeadCodeByModule([]domain.FileDeadCode{unfilteredFile})[filepath.Clean(filePath)]
 
-	return fileResult, warnings
+	return fileResult, moduleRollup, warnings
 }
 
 // convertToFunctionDeadCode converts analyzer results to domain model
@@ -300,6 +317,9 @@ func (s *DeadCodeServiceImpl) convertToFunctionDeadCode(result *analyzer.DeadCod
 	var findings []domain.DeadCodeFinding
 
 	for _, analyzerFinding := range result.Findings {
+		if !shouldIncludeDeadCodeFinding(analyzerFinding.Reason, req) {
+			continue
+		}
 		finding := domain.DeadCodeFinding{
 			Location: domain.DeadCodeLocation{
 				FilePath:  analyzerFinding.FilePath,
@@ -330,6 +350,23 @@ func (s *DeadCodeServiceImpl) convertToFunctionDeadCode(result *analyzer.DeadCod
 	functionResult.CalculateSeverityCounts()
 
 	return functionResult
+}
+
+func shouldIncludeDeadCodeFinding(reason analyzer.DeadCodeReason, req domain.DeadCodeRequest) bool {
+	switch reason {
+	case analyzer.ReasonUnreachableAfterReturn:
+		return domain.BoolValue(req.DetectAfterReturn, true)
+	case analyzer.ReasonUnreachableAfterBreak:
+		return domain.BoolValue(req.DetectAfterBreak, true)
+	case analyzer.ReasonUnreachableAfterContinue:
+		return domain.BoolValue(req.DetectAfterContinue, true)
+	case analyzer.ReasonUnreachableAfterRaise:
+		return domain.BoolValue(req.DetectAfterRaise, true)
+	case analyzer.ReasonUnreachableBranch:
+		return domain.BoolValue(req.DetectUnreachableBranches, true)
+	default:
+		return true
+	}
 }
 
 // convertSeverity converts analyzer severity to domain severity

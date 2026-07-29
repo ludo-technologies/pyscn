@@ -20,7 +20,7 @@
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
-*使用 JavaScript/TypeScript？请查看 [jscan](https://github.com/ludo-technologies/jscan)*
+*使用其他语言？pyscn 是 [polyscan](https://github.com/ludo-technologies/polyscan) 的一部分 — 提供 JavaScript/TypeScript 等语言的代码质量分析器*
 
 </div>
 
@@ -196,7 +196,7 @@ directory = "reports"
 
 ## 文档
 
-📖 **[pyscn 文档站点](https://ludo-technologies.github.io/pyscn/zh/)** — 安装、规则目录、CLI 参考、配置、输出规范
+📖 **[pyscn 文档站点](https://docs.codescan.dev/zh/)** — 安装、规则目录、CLI 参考、配置、输出规范
 
 贡献者请参阅：**[开发指南](docs/DEVELOPMENT.md)** • **[架构](docs/ARCHITECTURE.md)** • **[测试](docs/TESTING.md)**
 

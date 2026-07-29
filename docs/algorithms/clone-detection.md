@@ -65,7 +65,7 @@ Fragments that fail either threshold are discarded before any comparison.
 
 ### Stage 2: Tree Conversion
 
-AST nodes from the parser are converted into ordered labeled trees (`TreeNode`) suitable for the APTED algorithm. The conversion:
+AST nodes from the parser are converted into ordered labeled trees (`apted.TreeNode`) suitable for the APTED algorithm. The conversion:
 
 1. Creates a `TreeNode` for each AST node with a label encoding the node type and, for some node types, the associated value (e.g., `FunctionDef(my_func)`, `Name(x)`, `Constant(42)`).
 2. Recursively converts children, body, orelse, finalbody, and handler nodes.
@@ -91,11 +91,11 @@ Detected clone pairs are assembled into clone groups using a configurable strate
 
 ### Type-1: Textual Comparison with FNV Hash
 
-**Implementation:** `textual_similarity.go` (`TextualSimilarityAnalyzer`)
+**Implementation:** `core/clone` (`TextualSimilarityAnalyzer`, from [polyscan](https://github.com/ludo-technologies/polyscan)) with pyscn's Python comment stripper (`python_comments.go`)
 
 Type-1 detection identifies code fragments that are textually identical after normalization. The algorithm:
 
-1. **Normalize content**: Remove Python comments (single-line `#` and multi-line `'''`/`"""`) and collapse whitespace to single spaces using a precompiled regex.
+1. **Normalize content**: Remove Python comments (single-line `#` and multi-line `'''`/`"""`) and collapse whitespace, keeping a single separator only between word-token boundaries.
 2. **FNV-64a hash comparison**: Compute a 64-bit FNV hash of each normalized string. If the hashes match, the fragments are identical (similarity = 1.0).
 3. **Levenshtein fallback**: If hashes differ, compute Levenshtein edit distance between the normalized strings and convert to similarity: `1.0 - distance / max(len(s1), len(s2))`. This uses a space-optimized O(min(m,n)) dynamic programming implementation.
 
@@ -103,7 +103,7 @@ Type-1 analysis is opt-in (`EnableTextualAnalysis`) because it requires storing 
 
 ### Type-2: Normalized AST Hash with Jaccard Coefficient
 
-**Implementation:** `syntactic_similarity.go` (`SyntacticSimilarityAnalyzer`)
+**Implementation:** `core/clone` (`SyntacticSimilarityAnalyzer`, configured with Python pattern and literal-like label names)
 
 Type-2 detection identifies fragments that share the same syntactic structure but differ in identifier names and literal values. Instead of tree edit distance, it compares **sets of normalized AST features** using the Jaccard coefficient.
 
@@ -120,7 +120,7 @@ This approach eliminates false positives from the APTED-based approach, since on
 
 ### Type-3: APTED Tree Edit Distance
 
-**Implementation:** `structural_similarity.go` (`StructuralSimilarityAnalyzer`), `apted.go` (`APTEDAnalyzer`), `apted_tree.go`, `apted_cost.go`
+**Implementation:** [`polyscan/core/apted`](https://github.com/ludo-technologies/polyscan/tree/main/core/apted) provides the generic tree and algorithm; `apted_tree.go` provides Python AST conversion and `apted_cost.go` provides `PythonCostModel`.
 
 Type-3 detection is the core algorithm, using APTED (All Path Tree Edit Distance) based on Pawlik & Augsten's O(n^2 log n) algorithm to compute the minimum-cost sequence of edit operations that transforms one tree into another.
 
@@ -177,7 +177,7 @@ flowchart TD
 
 1. **Preparation**: Assign post-order IDs to every node, compute left-most leaf descendants, and identify key roots (nodes whose left-most leaf has not yet been visited during traversal).
 2. **Forest distance**: For each pair of key roots, compute the forest distance using dynamic programming. The recurrence considers three operations (insert, delete, rename) and selects the minimum cost.
-3. **Optimization**: Trees larger than 500 nodes use an optimized path with early termination. Trees larger than 2000 nodes use an approximate distance based on structural properties (height difference and size difference).
+3. **Optimization**: Trees larger than 500 nodes use a bounded path with label and shape profile floors. Trees larger than 2000 nodes use the profile distance directly.
 4. **Normalization**: Distance is converted to similarity: `similarity = 1.0 - min(distance, maxSize) / maxSize`, where `maxSize = max(size1, size2)`. This normalization is stricter than the common `(size1 + size2)` divisor and reduces false positives.
 
 #### Batch Processing
@@ -193,7 +193,7 @@ For large codebases, pairwise comparison uses batch processing to limit memory:
 
 ### Type-4: CFG-based Semantic Analysis
 
-**Implementation:** `semantic_similarity.go` (`SemanticSimilarityAnalyzer`), `dfa.go`, `dfa_builder.go`
+**Implementation:** `semantic_similarity.go` (`SemanticSimilarityAnalyzer`), `dfa_builder.go` (Python def/use extraction), `core/dfa` (def-use chain construction), `core/semantic` (evidence penalties)
 
 Type-4 detection identifies functionally similar code that uses different syntax. It builds Control Flow Graphs (CFGs) and optionally performs Data Flow Analysis (DFA) for each fragment.
 
@@ -287,7 +287,7 @@ When multi-dimensional analysis is disabled (the default), only the APTED struct
 
 ## LSH Acceleration
 
-**Implementation:** `lsh_index.go` (`LSHIndex`), `minhash.go` (`MinHasher`), `ast_features.go` (`ASTFeatureExtractor`)
+**Implementation:** `core/lsh` (`MinHasher`, `LSHIndex`), `lsh_index.go` (candidate-index adapter), `core/clone` (`ASTFeatureExtractor`)
 
 For large codebases, exhaustive O(n^2) pairwise comparison becomes prohibitive. LSH (Locality-Sensitive Hashing) reduces the number of pairs that need expensive APTED verification.
 
@@ -361,7 +361,7 @@ After detecting clone pairs, the detector groups related fragments into clone gr
 
 ### Connected Components (default)
 
-**Implementation:** `connected_grouping.go` (`ConnectedGrouping`)
+**Implementation:** `core/clone` (`ConnectedGrouping`)
 
 Uses Union-Find to build connected components from all pairs whose similarity meets the grouping threshold. This has the highest recall -- any transitive chain of similarities connects fragments into the same group.
 
@@ -370,7 +370,7 @@ Uses Union-Find to build connected components from all pairs whose similarity me
 
 ### Star/Medoid
 
-**Implementation:** `star_medoid_grouping.go` (`StarMedoidGrouping`)
+**Implementation:** `core/clone` (`StarMedoidGrouping`)
 
 Iteratively selects medoids (the member with highest average similarity to others) and reassigns fragments to their most similar medoid. Runs up to 10 iterations with early stopping after 3 consecutive no-change iterations.
 
@@ -385,7 +385,7 @@ Iteratively selects medoids (the member with highest average similarity to other
 
 ### Complete Linkage
 
-**Implementation:** `complete_linkage_grouping.go` (`CompleteLinkageGrouping`)
+**Implementation:** `core/clone` (`CompleteLinkageGrouping`)
 
 Agglomerative hierarchical clustering that only merges two clusters when the *minimum* pairwise similarity between any member of cluster A and any member of cluster B meets the threshold.
 
@@ -394,7 +394,7 @@ Agglomerative hierarchical clustering that only merges two clusters when the *mi
 
 ### k-Core
 
-**Implementation:** `k_core_grouping.go` (`KCoreGrouping`)
+**Implementation:** `core/clone` (`KCoreGrouping`)
 
 Builds a similarity graph where edges connect pairs meeting the threshold, then iteratively removes vertices with fewer than k neighbors (default k=2). The remaining vertices form the k-core subgraph. Connected components within the k-core become groups.
 
@@ -403,7 +403,7 @@ Builds a similarity graph where edges connect pairs meeting the threshold, then 
 
 ### Centroid
 
-**Implementation:** `centroid_grouping.go` (`CentroidGrouping`)
+**Implementation:** `core/clone` (`CentroidGrouping`)
 
 BFS-based grouping that grows groups from a seed fragment by adding neighbors that meet the similarity threshold. Avoids the transitivity problem by directly comparing candidates to existing members.
 

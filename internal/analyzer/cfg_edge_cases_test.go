@@ -551,7 +551,7 @@ func TestSimpleWalrusStatement(t *testing.T) {
 	for _, block := range cfg.Blocks {
 		for _, stmt := range block.Statements {
 			// First verification, is it a NodeExpr (the container) ?
-			stmt.Walk(func(n *parser.Node) bool {
+			requirePythonNode(t, stmt).Walk(func(n *parser.Node) bool {
 				if n.Type == parser.NodeNamedExpr {
 					foundWalrus = true
 					return false
@@ -617,7 +617,7 @@ func TestWalrusOperatorInConditional(t *testing.T) {
 	// Verify the walrus operator is processed
 	foundWalrus := false
 	for _, stmt := range ifBlock.Statements {
-		stmt.Walk(func(n *parser.Node) bool {
+		requirePythonNode(t, stmt).Walk(func(n *parser.Node) bool {
 			if n.Type == parser.NodeNamedExpr {
 				foundWalrus = true
 				return false
@@ -672,7 +672,7 @@ func TestWalrusOperatorInWhile(t *testing.T) {
 	// It should be present in the loop header block statements.
 	foundWalrus := false
 	for _, stmt := range loopHeader.Statements {
-		stmt.Walk(func(n *parser.Node) bool {
+		requirePythonNode(t, stmt).Walk(func(n *parser.Node) bool {
 			if n.Type == parser.NodeNamedExpr {
 				foundWalrus = true
 				return false
@@ -729,7 +729,7 @@ func TestWalrusOperatorInComprehension(t *testing.T) {
 				hasCompFilter = true
 				// The walrus operator (y := x * 2) is in the filter condition
 				for _, stmt := range b.Statements {
-					stmt.Walk(func(n *parser.Node) bool {
+					requirePythonNode(t, stmt).Walk(func(n *parser.Node) bool {
 						if n.Type == parser.NodeNamedExpr {
 							foundWalrusInFilter = true
 							return false
@@ -830,7 +830,7 @@ func TestWalrusOperatorWithComprehension(t *testing.T) {
 	foundWalrus := false
 	for _, block := range cfg.Blocks {
 		for _, stmt := range block.Statements {
-			stmt.Walk(func(n *parser.Node) bool {
+			requirePythonNode(t, stmt).Walk(func(n *parser.Node) bool {
 				if n.Type == parser.NodeNamedExpr {
 					foundWalrus = true
 					return false

@@ -87,10 +87,7 @@ func (cl *CBOConfigurationLoaderImpl) MergeConfig(base *domain.CBORequest, overr
 	// Boolean flags - pointer type distinguishes "not set" (nil) from an
 	// explicit value (including false).
 	merged.ShowZeros = config.MergePtr(merged.ShowZeros, override.ShowZeros)
-	// ShowDetails: plain bool, only a true override flips it on.
-	if override.ShowDetails {
-		merged.ShowDetails = true
-	}
+	merged.ShowDetails = config.MergePtr(merged.ShowDetails, override.ShowDetails)
 	merged.IncludeBuiltins = config.MergePtr(merged.IncludeBuiltins, override.IncludeBuiltins)
 	merged.IncludeImports = config.MergePtr(merged.IncludeImports, override.IncludeImports)
 	merged.GroupNamespaceImports = config.MergePtr(merged.GroupNamespaceImports, override.GroupNamespaceImports)
@@ -114,7 +111,7 @@ func (cl *CBOConfigurationLoaderImpl) configToRequest(pyscnCfg *config.PyscnConf
 			MinCBO:                0,
 			MaxCBO:                0,
 			ShowZeros:             domain.BoolPtr(false),
-			ShowDetails:           false,
+			ShowDetails:           domain.BoolPtr(false),
 			IncludeBuiltins:       domain.BoolPtr(false),
 			IncludeImports:        domain.BoolPtr(true),
 			GroupNamespaceImports: domain.BoolPtr(true),
@@ -128,7 +125,7 @@ func (cl *CBOConfigurationLoaderImpl) configToRequest(pyscnCfg *config.PyscnConf
 
 	return &domain.CBORequest{
 		OutputFormat:          domain.OutputFormat(pyscnCfg.Output.Format),
-		ShowDetails:           domain.BoolValue(pyscnCfg.Output.ShowDetails, false),
+		ShowDetails:           domain.BoolPtr(domain.BoolValue(pyscnCfg.Output.ShowDetails, false)),
 		LowThreshold:          pyscnCfg.CboLowThreshold,
 		MediumThreshold:       pyscnCfg.CboMediumThreshold,
 		MinCBO:                pyscnCfg.CboMinCbo,

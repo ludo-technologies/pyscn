@@ -25,13 +25,13 @@ directory = "build/reports"
 
 | Format | Extension | Flag          | Specification                    |
 | ------ | --------- | ------------- | -------------------------------- |
-| text   | —         | (terminal)    | human-readable, not stable       |
+| text   | `.txt`    | `--text`      | human-readable, not stable       |
 | json   | `.json`   | `--json`      | [schemas.md](schemas.md)         |
 | yaml   | `.yaml`   | `--yaml`      | [schemas.md](schemas.md)         |
 | csv    | `.csv`    | `--csv`       | [schemas.md](schemas.md)         |
 | html   | `.html`   | `--html` (default) | [html-report.md](html-report.md) |
 
-The `text` format is intended for terminal display and has no stability contract; its layout may change between any releases.
+The `text` format is intended for human review and has no stability contract; its layout may change between any releases.
 
 ## Stability contract
 
