@@ -35,11 +35,11 @@ func FindLongestDependencyChains(
 
 	condensed, err := buildCondensedDependencyGraph(ctx, graph)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("build condensed dependency graph: %w", err)
 	}
 	order, err := condensed.topologicalOrder(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("order condensed dependency graph: %w", err)
 	}
 
 	bestByComponent := make([][]*componentPath, len(condensed.dependencies))
@@ -92,7 +92,7 @@ func FindLongestDependencyChains(
 	for _, candidate := range candidates {
 		path, err := expandComponentPath(ctx, graph, condensed, candidate)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("expand dependency chain: %w", err)
 		}
 		chains = append(chains, DependencyChain{
 			From:   path[0],
