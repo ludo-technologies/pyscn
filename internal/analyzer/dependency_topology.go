@@ -3,8 +3,6 @@ package analyzer
 import (
 	"context"
 	"fmt"
-
-	coregraph "github.com/ludo-technologies/polyscan/core/graph"
 )
 
 // CalculateMaxDependencyDepth returns the maximum number of edges between
@@ -24,12 +22,11 @@ func CalculateMaxDependencyDepth(ctx context.Context, graph *DependencyGraph) (i
 		return 0, nil
 	}
 
-	cycles := coregraph.NewCycleDetector().DetectCycles(graph).Cycles
-	if err := ctx.Err(); err != nil {
-		return 0, err
+	componentByModule, componentCount, err := dependencyComponents(ctx, graph)
+	if err != nil {
+		return 0, fmt.Errorf("calculate dependency components: %w", err)
 	}
 
-	componentByModule, componentCount := dependencyComponents(graph, cycles)
 	dependencies := make([]map[int]struct{}, componentCount)
 	inDegree := make([]int, componentCount)
 	for index := range dependencies {
@@ -94,24 +91,85 @@ func CalculateMaxDependencyDepth(ctx context.Context, graph *DependencyGraph) (i
 	return maxDepth, nil
 }
 
-func dependencyComponents(graph *DependencyGraph, cycles [][]string) (map[string]int, int) {
+func dependencyComponents(
+	ctx context.Context,
+	graph *DependencyGraph,
+) (map[string]int, int, error) {
 	componentByModule := make(map[string]int, len(graph.Nodes))
+	indexByModule := make(map[string]int, len(graph.Nodes))
+	lowLinkByModule := make(map[string]int, len(graph.Nodes))
+	onStack := make(map[string]bool, len(graph.Nodes))
+	stack := make([]string, 0, len(graph.Nodes))
+	nextIndex := 0
 	componentCount := 0
 
-	for _, cycle := range cycles {
-		for _, moduleName := range cycle {
-			componentByModule[moduleName] = componentCount
+	var visit func(string) error
+	visit = func(moduleName string) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		node := graph.Nodes[moduleName]
+		if node == nil {
+			return fmt.Errorf("module %q has no graph node", moduleName)
+		}
+
+		indexByModule[moduleName] = nextIndex
+		lowLinkByModule[moduleName] = nextIndex
+		nextIndex++
+		stack = append(stack, moduleName)
+		onStack[moduleName] = true
+
+		for dependency := range node.Dependencies {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			if _, exists := graph.Nodes[dependency]; !exists {
+				return fmt.Errorf(
+					"module %q depends on unknown module %q",
+					moduleName,
+					dependency,
+				)
+			}
+
+			dependencyIndex, visited := indexByModule[dependency]
+			if !visited {
+				if err := visit(dependency); err != nil {
+					return err
+				}
+				if lowLinkByModule[dependency] < lowLinkByModule[moduleName] {
+					lowLinkByModule[moduleName] = lowLinkByModule[dependency]
+				}
+			} else if onStack[dependency] && dependencyIndex < lowLinkByModule[moduleName] {
+				lowLinkByModule[moduleName] = dependencyIndex
+			}
+		}
+
+		if lowLinkByModule[moduleName] != indexByModule[moduleName] {
+			return nil
+		}
+
+		for {
+			stackIndex := len(stack) - 1
+			member := stack[stackIndex]
+			stack = stack[:stackIndex]
+			onStack[member] = false
+			componentByModule[member] = componentCount
+			if member == moduleName {
+				break
+			}
 		}
 		componentCount++
+		return nil
 	}
 
 	for moduleName := range graph.Nodes {
-		if _, assigned := componentByModule[moduleName]; assigned {
+		if _, visited := indexByModule[moduleName]; visited {
 			continue
 		}
-		componentByModule[moduleName] = componentCount
-		componentCount++
+		if err := visit(moduleName); err != nil {
+			return nil, 0, err
+		}
 	}
 
-	return componentByModule, componentCount
+	return componentByModule, componentCount, nil
 }
