@@ -255,6 +255,23 @@ In addition to cyclomatic complexity, pyscn calculates the maximum nesting depth
 
 The `else` clause does not add nesting depth (it is at the same level as the corresponding `if`/`for`/`while`).
 
+### Function Length (SLOC)
+
+Function length is a maintainability signal orthogonal to cyclomatic complexity: a flat 200-line function has a McCabe value of 1 but is still hard to maintain. Each function therefore also carries a source-lines-of-code count.
+
+`CalculateRawMetrics` (`internal/analyzer/raw_metrics.go`) classifies every line of a file once and stores a prefix sum of source lines. `RawMetricsResult.FunctionSLOC(startLine, endLine)` then answers any line range in constant time, so per-function length uses exactly the same classification as the file-level `sloc` metric: comments, blank lines, and docstrings are excluded.
+
+The range is measured verbatim, so lines belonging to nested definitions count toward the enclosing function as well — the value reflects the physical length of the definition.
+
+Both tiers are evaluated independently of the McCabe value, and both skip module-scope code, whose line span covers the whole file and would merely restate the file-level `sloc` metric (`FunctionComplexity.ExceedsSLOC`, `domain/complexity.go`):
+
+- **Warn tier** (`function_sloc_warn_threshold`, default 50): the HTML report's complexity tab lists these under **Longest Functions**. The neighbouring *Top Complex Functions* table is ranked by McCabe, where a flat 200-line function never surfaces, so length gets its own ranking.
+- **Critical tier** (`function_sloc_critical_threshold`, default 100): `pyscn check` reports these as issues (`file:line:col: name is too long (N SLOC > M)`) and counts them toward its exit code, alongside `--max-complexity` violations. A single function can trip both gates; they are separate issues.
+
+Configuring one tier moves the other with it, at the 2x ratio of the defaults: `function_sloc_warn_threshold = 150` alone yields a critical tier of 300, and `function_sloc_critical_threshold = 60` alone yields a warn tier of 30. Setting a single knob therefore cannot collide with the other tier's default. Setting both is taken verbatim, and an inverted pair (`critical <= warn`, which would make the warn tier unreachable) is rejected when the configuration or the request is validated.
+
+Functions are subject to the report's `min_complexity` filter before the length check runs, so raising `min_complexity` above 1 can hide long functions with a low McCabe value.
+
 ## Risk Level Classification
 
 Each function receives a risk level based on configurable thresholds (`internal/config/config.go`):
@@ -277,6 +294,8 @@ low_threshold = 9       # Upper bound for "low" risk (inclusive)
 medium_threshold = 19   # Upper bound for "medium" risk (inclusive)
 cognitive_complexity_threshold = 25 # High-risk cognitive complexity threshold
 nesting_depth_threshold = 7         # High-risk nesting depth threshold
+function_sloc_warn_threshold = 50      # Function length listed as long in the report
+function_sloc_critical_threshold = 100 # Function length failing `pyscn check` (defaults to 2x the warn tier)
 enabled = true          # Enable/disable complexity analysis
 report_unchanged = true # Report functions with complexity 1
 max_complexity = 0      # Maximum allowed complexity (0 = no limit)
@@ -320,6 +339,7 @@ Each analyzed function produces a `ComplexityResult` (`internal/analyzer/complex
 | `LoopStatements` | Count of `for`, `async for`, and `while` syntax nodes |
 | `ExceptionHandlers` | Count of `except` clauses |
 | `SwitchCases` | Count of `match` cases |
+| `SLOC` | Source lines of code within `StartLine`..`EndLine` |
 | `RiskLevel` | `"low"`, `"medium"`, or `"high"` |
 
 ### Aggregate Metrics

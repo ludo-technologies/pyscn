@@ -39,6 +39,9 @@ type AnalyzeUseCaseConfig struct {
 	CognitiveComplexityThreshold int
 	NestingDepthThreshold        int
 
+	FunctionSLOCWarnThreshold     int
+	FunctionSLOCCriticalThreshold int
+
 	// Clone detection options
 	EnableDFA bool // Enable Data Flow Analysis for enhanced Type-4 detection
 
@@ -283,7 +286,10 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no Python files found in the specified paths")
 	}
-
+	files, pathIndex, err := prepareAnalysisPaths(files)
+	if err != nil {
+		return nil, fmt.Errorf("prepare analysis paths: %w", err)
+	}
 	// Estimate per-task durations from file count, then calibrate with actual
 	// timings recorded by previous runs on this project (if any)
 	estimatedSeconds := uc.estimateTaskSeconds(len(files), useCaseCfg, executionCfg)
@@ -351,7 +357,10 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 
 	// Build response
-	response := uc.buildResponse(tasks, startTime)
+	response, err := uc.buildResponse(tasks, startTime, pathIndex)
+	if err != nil {
+		return response, err
+	}
 
 	// Return aggregated error if any tasks failed
 	if len(errors) > 0 {
@@ -379,7 +388,11 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 			Enabled: !config.SkipComplexity,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := uc.buildComplexityTaskRequest(config, files, executionCfg)
-				return uc.complexityUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
+				projectRoot, err := complexityDirectoryRoot(sourcePaths, files)
+				if err != nil {
+					return nil, domain.NewInvalidInputError("invalid complexity analysis scope", err)
+				}
+				return uc.complexityUseCase.analyzeSnapshotRequest(ctx, snapshot, request, projectRoot)
 			},
 		})
 	}
@@ -554,6 +567,14 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 	if config.NestingDepthThreshold > 0 {
 		nestingThreshold = config.NestingDepthThreshold
 	}
+	slocWarnThreshold := executionCfg.FunctionSLOCWarnThreshold
+	if config.FunctionSLOCWarnThreshold > 0 {
+		slocWarnThreshold = config.FunctionSLOCWarnThreshold
+	}
+	slocCriticalThreshold := executionCfg.FunctionSLOCCriticalThreshold
+	if config.FunctionSLOCCriticalThreshold > 0 {
+		slocCriticalThreshold = config.FunctionSLOCCriticalThreshold
+	}
 
 	return domain.ComplexityRequest{
 		Paths:                        files,
@@ -570,9 +591,13 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 		MediumThreshold:              mediumThreshold,
 		CognitiveComplexityThreshold: cognitiveThreshold,
 		NestingDepthThreshold:        nestingThreshold,
-		Enabled:                      domain.BoolPtr(executionCfg.ComplexityEnabled),
-		ReportUnchanged:              domain.BoolPtr(executionCfg.ComplexityReportUnchanged),
-		ConfigPath:                   config.ConfigFile,
+
+		FunctionSLOCWarnThreshold:     slocWarnThreshold,
+		FunctionSLOCCriticalThreshold: slocCriticalThreshold,
+
+		Enabled:         domain.BoolPtr(executionCfg.ComplexityEnabled),
+		ReportUnchanged: domain.BoolPtr(executionCfg.ComplexityReportUnchanged),
+		ConfigPath:      config.ConfigFile,
 	}
 }
 
@@ -590,7 +615,7 @@ func (uc *AnalyzeUseCase) buildCloneTaskRequest(config AnalyzeUseCaseConfig, fil
 }
 
 // buildResponse builds the analyze response from task results
-func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Time) *domain.AnalyzeResponse {
+func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Time, pathIndex analysisPathIndex) (*domain.AnalyzeResponse, error) {
 	response := &domain.AnalyzeResponse{
 		GeneratedAt: time.Now(),
 		Duration:    time.Since(startTime).Milliseconds(),
@@ -648,13 +673,19 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 		}
 	}
 
+	moduleQuality, err := aggregateModuleQuality(response, pathIndex)
+	if err != nil {
+		return response, fmt.Errorf("assemble module quality: %w", err)
+	}
+	response.ModuleQuality = moduleQuality
+
 	// Calculate summary statistics
 	uc.calculateSummary(&response.Summary, response)
 
 	// Generate actionable suggestions from analysis results
 	response.Suggestions = domain.GenerateSuggestions(response)
 
-	return response
+	return response, nil
 }
 
 // markSummaryForTask ensures the summary reflects analyses that attempted to run

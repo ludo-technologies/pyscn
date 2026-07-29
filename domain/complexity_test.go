@@ -1,8 +1,31 @@
 package domain
 
 import (
+	"encoding/json"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
+
+func TestDirectoryComplexityMetricsList_ZeroValueSerializesAsEmptyArray(t *testing.T) {
+	var metrics DirectoryComplexityMetricsList
+
+	jsonOutput, err := json.Marshal(metrics)
+	if err != nil {
+		t.Fatalf("marshal JSON: %v", err)
+	}
+	if string(jsonOutput) != "[]" {
+		t.Fatalf("expected empty JSON array, got %s", jsonOutput)
+	}
+
+	yamlOutput, err := yaml.Marshal(metrics)
+	if err != nil {
+		t.Fatalf("marshal YAML: %v", err)
+	}
+	if string(yamlOutput) != "[]\n" {
+		t.Fatalf("expected empty YAML array, got %q", yamlOutput)
+	}
+}
 
 func TestOutputFormat(t *testing.T) {
 	tests := []struct {
@@ -113,6 +136,65 @@ func TestComplexityMetrics(t *testing.T) {
 
 	if metrics.Edges != 12 {
 		t.Errorf("Expected edges 12, got %d", metrics.Edges)
+	}
+}
+
+func TestValidateFunctionSLOCThresholds(t *testing.T) {
+	tests := []struct {
+		name      string
+		warn      int
+		critical  int
+		wantError bool
+	}{
+		{name: "defaults", warn: DefaultFunctionSLOCWarnThreshold, critical: DefaultFunctionSLOCCriticalThreshold},
+		{name: "both unset", warn: 0, critical: 0},
+		{name: "only warn set", warn: 150, critical: 0},
+		{name: "only critical set", warn: 0, critical: 30},
+		{name: "inverted pair", warn: 100, critical: 40, wantError: true},
+		{name: "equal tiers", warn: 50, critical: 50, wantError: true},
+		{name: "negative warn", warn: -1, critical: 100, wantError: true},
+		{name: "negative critical", warn: 50, critical: -1, wantError: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateFunctionSLOCThresholds(tt.warn, tt.critical)
+			if tt.wantError && err == nil {
+				t.Errorf("ValidateFunctionSLOCThresholds(%d, %d) = nil, want error", tt.warn, tt.critical)
+			}
+			if !tt.wantError && err != nil {
+				t.Errorf("ValidateFunctionSLOCThresholds(%d, %d) = %v, want nil", tt.warn, tt.critical, err)
+			}
+		})
+	}
+}
+
+func TestFunctionComplexityExceedsSLOC(t *testing.T) {
+	tests := []struct {
+		name      string
+		function  string
+		sloc      int
+		threshold int
+		want      bool
+	}{
+		{name: "below threshold", function: "build_table", sloc: 50, threshold: 50, want: false},
+		{name: "above threshold", function: "build_table", sloc: 51, threshold: 50, want: true},
+		{name: "module scope never qualifies", function: ModuleFunctionName, sloc: 500, threshold: 50, want: false},
+		{name: "zero threshold disables the check", function: "build_table", sloc: 500, threshold: 0, want: false},
+		{name: "negative threshold disables the check", function: "build_table", sloc: 500, threshold: -1, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			function := FunctionComplexity{
+				Name:    tt.function,
+				Metrics: ComplexityMetrics{SLOC: tt.sloc},
+			}
+
+			if got := function.ExceedsSLOC(tt.threshold); got != tt.want {
+				t.Errorf("ExceedsSLOC(%d) with SLOC %d = %v, want %v", tt.threshold, tt.sloc, got, tt.want)
+			}
+		})
 	}
 }
 

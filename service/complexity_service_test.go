@@ -127,6 +127,30 @@ func TestComplexityService_Analyze(t *testing.T) {
 		require.NotNil(t, response)
 		require.Len(t, response.Functions, 1)
 		assert.Equal(t, "branch", response.Functions[0].Name)
+		assert.Equal(t, 1, response.Summary.FunctionsParsed)
+	})
+
+	t.Run("module rollups ignore presentation filters", func(t *testing.T) {
+		tempDir := t.TempDir()
+		filePath := tempDir + "/mixed.py"
+		content := []byte("def unchanged():\n    return 1\n\n\ndef branch(x):\n    if x:\n        return 1\n    return 0\n")
+		require.NoError(t, os.WriteFile(filePath, content, 0644))
+
+		baselineRequest := newDefaultComplexityRequest(filePath)
+		baselineRequest.MinComplexity = 1
+		baselineRequest.ReportUnchanged = domain.BoolPtr(true)
+		baseline, err := service.Analyze(ctx, baselineRequest)
+		require.NoError(t, err)
+
+		filteredRequest := newDefaultComplexityRequest(filePath)
+		filteredRequest.MinComplexity = 5
+		filteredRequest.ReportUnchanged = domain.BoolPtr(false)
+		filtered, err := service.Analyze(ctx, filteredRequest)
+		require.NoError(t, err)
+
+		assert.NotEqual(t, baseline.Functions, filtered.Functions)
+		assert.Equal(t, baseline.ModuleRollups, filtered.ModuleRollups)
+		assert.Greater(t, baseline.ModuleRollups[filePath].AnalyzedFunctionCount, len(filtered.Functions))
 	})
 
 	t.Run("public metrics use literal statement counts", func(t *testing.T) {
@@ -385,7 +409,7 @@ func TestComplexityService_FilterFunctions(t *testing.T) {
 			MaxComplexity: 0,
 		}
 
-		filtered := service.filterFunctions(functions, req)
+		filtered, _ := service.filterFunctions(functions, req)
 
 		require.Len(t, filtered, 3)
 		assert.Equal(t, "func2", filtered[0].Name)
@@ -400,7 +424,7 @@ func TestComplexityService_FilterFunctions(t *testing.T) {
 			MaxComplexity: 8, // This should NOT filter out functions
 		}
 
-		filtered := service.filterFunctions(functions, req)
+		filtered, _ := service.filterFunctions(functions, req)
 
 		// All 4 functions should be returned (MaxComplexity doesn't filter)
 		require.Len(t, filtered, 4)
@@ -534,8 +558,8 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 		}
 
 		req := domain.ComplexityRequest{MinComplexity: 5}
-		filtered := service.filterFunctions(allFunctions, req)
-		summary := service.generateSummary(filtered, 1, req, len(allFunctions))
+		filtered, functionsParsed := service.filterFunctions(allFunctions, req)
+		summary := service.generateSummary(filtered, 1, req, functionsParsed)
 
 		assert.Equal(t, 1, summary.TotalFunctions, "post-filter count is 1")
 		assert.Equal(t, 3, summary.FunctionsParsed, "pre-filter total is 3 (2 dropped by min_complexity=5)")
@@ -640,6 +664,55 @@ func TestComplexityService_MetricThresholdWarnings(t *testing.T) {
 	assert.Contains(t, warnings[0], "sample.py:12:5")
 	assert.Contains(t, warnings[0], "dense cognitive complexity too high (30 > 25)")
 	assert.Contains(t, warnings[1], "dense nesting depth too high (8 > 7)")
+}
+
+func TestComplexityService_FunctionSLOC(t *testing.T) {
+	service := NewComplexityService()
+	ctx := context.Background()
+
+	source := `"""Module docstring."""
+
+
+def build_table():
+    """Build a table."""
+    rows = []
+`
+	for i := 0; i < 60; i++ {
+		source += fmt.Sprintf("    rows.append(%d)\n", i)
+	}
+	source += `    return rows
+
+
+def short():
+    return 1
+`
+
+	path := fmt.Sprintf("%s/long_function.py", t.TempDir())
+	require.NoError(t, os.WriteFile(path, []byte(source), 0o644))
+
+	req := newDefaultComplexityRequest(path)
+	response, err := service.Analyze(ctx, req)
+	require.NoError(t, err)
+
+	longFunction := findFunctionComplexity(response.Functions, "build_table")
+	require.NotNil(t, longFunction)
+	// def + docstring is excluded + rows = [] + 60 appends + return
+	assert.Equal(t, 63, longFunction.Metrics.SLOC)
+
+	shortFunction := findFunctionComplexity(response.Functions, "short")
+	require.NotNil(t, shortFunction)
+	assert.Equal(t, 2, shortFunction.Metrics.SLOC)
+
+	// The function stays visible as long even though its complexity is 1.
+	assert.Equal(t, 1, longFunction.Metrics.Complexity)
+	assert.True(t, longFunction.ExceedsSLOC(domain.DefaultFunctionSLOCWarnThreshold))
+	assert.False(t, shortFunction.ExceedsSLOC(domain.DefaultFunctionSLOCWarnThreshold))
+
+	// Module scope spans the whole file but must never count as a long function.
+	moduleScope := findFunctionComplexity(response.Functions, domain.ModuleFunctionName)
+	require.NotNil(t, moduleScope)
+	assert.Greater(t, moduleScope.Metrics.SLOC, 63)
+	assert.False(t, moduleScope.ExceedsSLOC(domain.DefaultFunctionSLOCWarnThreshold))
 }
 
 func TestComplexityService_GetComplexityDistributionKey(t *testing.T) {

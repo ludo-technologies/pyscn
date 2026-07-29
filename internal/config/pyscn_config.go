@@ -41,8 +41,12 @@ type PyscnConfig struct {
 	ComplexityMediumThreshold    int   `mapstructure:"complexity_medium_threshold" yaml:"complexity_medium_threshold" json:"complexity_medium_threshold"`
 	CognitiveComplexityThreshold int   `mapstructure:"cognitive_complexity_threshold" yaml:"cognitive_complexity_threshold" json:"cognitive_complexity_threshold"`
 	NestingDepthThreshold        int   `mapstructure:"nesting_depth_threshold" yaml:"nesting_depth_threshold" json:"nesting_depth_threshold"`
-	ComplexityMaxComplexity      int   `mapstructure:"complexity_max_complexity" yaml:"complexity_max_complexity" json:"complexity_max_complexity"`
-	ComplexityMinComplexity      int   `mapstructure:"complexity_min_complexity" yaml:"complexity_min_complexity" json:"complexity_min_complexity"`
+
+	FunctionSLOCWarnThreshold     int `mapstructure:"function_sloc_warn_threshold" yaml:"function_sloc_warn_threshold" json:"function_sloc_warn_threshold"`
+	FunctionSLOCCriticalThreshold int `mapstructure:"function_sloc_critical_threshold" yaml:"function_sloc_critical_threshold" json:"function_sloc_critical_threshold"`
+
+	ComplexityMaxComplexity int `mapstructure:"complexity_max_complexity" yaml:"complexity_max_complexity" json:"complexity_max_complexity"`
+	ComplexityMinComplexity int `mapstructure:"complexity_min_complexity" yaml:"complexity_min_complexity" json:"complexity_min_complexity"`
 
 	// DeadCode Configuration (from [dead_code] section in TOML)
 	DeadCodeEnabled                   *bool    `mapstructure:"dead_code_enabled" yaml:"dead_code_enabled" json:"dead_code_enabled"`
@@ -166,6 +170,11 @@ type PyscnConfig struct {
 	// Track whether [output].min_complexity was explicitly set so it can
 	// override [complexity].min_complexity even when both resolve to defaults.
 	outputMinComplexityExplicit bool `mapstructure:"-" yaml:"-" json:"-"`
+
+	// Track which long-function tiers were explicitly set so the untouched one
+	// can follow the other instead of colliding with its default.
+	functionSLOCWarnExplicit     bool `mapstructure:"-" yaml:"-" json:"-"`
+	functionSLOCCriticalExplicit bool `mapstructure:"-" yaml:"-" json:"-"`
 }
 
 func (c *PyscnConfig) HasExplicitAnalysisIncludePatterns() bool {
@@ -355,8 +364,12 @@ func DefaultPyscnConfig() *PyscnConfig {
 		ComplexityMediumThreshold:    DefaultMediumComplexityThreshold,
 		CognitiveComplexityThreshold: DefaultCognitiveComplexityThreshold,
 		NestingDepthThreshold:        DefaultNestingDepthThreshold,
-		ComplexityMaxComplexity:      DefaultMaxComplexityLimit,
-		ComplexityMinComplexity:      DefaultMinComplexityFilter,
+
+		FunctionSLOCWarnThreshold:     DefaultFunctionSLOCWarnThreshold,
+		FunctionSLOCCriticalThreshold: DefaultFunctionSLOCCriticalThreshold,
+
+		ComplexityMaxComplexity: DefaultMaxComplexityLimit,
+		ComplexityMinComplexity: DefaultMinComplexityFilter,
 
 		// DeadCode defaults (from [dead_code] section)
 		DeadCodeEnabled:                   domain.BoolPtr(true),
@@ -491,6 +504,39 @@ func (c *PyscnConfig) hasExplicitOutputMinComplexity() bool {
 	}
 
 	return c.OutputMinComplexity > 0 && c.OutputMinComplexity != DefaultMinComplexityFilter
+}
+
+func (c *PyscnConfig) setFunctionSLOCWarnThreshold(threshold int) {
+	c.FunctionSLOCWarnThreshold = threshold
+	c.functionSLOCWarnExplicit = true
+}
+
+func (c *PyscnConfig) setFunctionSLOCCriticalThreshold(threshold int) {
+	c.FunctionSLOCCriticalThreshold = threshold
+	c.functionSLOCCriticalExplicit = true
+}
+
+// EffectiveFunctionSLOCThresholds resolves the long-function tiers. Setting one
+// tier moves the other with it, so raising just the warn threshold past the
+// default critical threshold (or lowering just the critical threshold below the
+// default warn threshold) cannot produce an inverted pair. Setting both keeps
+// the values verbatim, leaving an inverted pair for validation to reject.
+func (c *PyscnConfig) EffectiveFunctionSLOCThresholds() (warn int, critical int) {
+	if c == nil {
+		return DefaultFunctionSLOCWarnThreshold, DefaultFunctionSLOCCriticalThreshold
+	}
+
+	warn = c.FunctionSLOCWarnThreshold
+	critical = c.FunctionSLOCCriticalThreshold
+
+	switch {
+	case c.functionSLOCWarnExplicit && !c.functionSLOCCriticalExplicit:
+		critical = warn * domain.FunctionSLOCCriticalMultiplier
+	case c.functionSLOCCriticalExplicit && !c.functionSLOCWarnExplicit:
+		warn = critical / domain.FunctionSLOCCriticalMultiplier
+	}
+
+	return warn, critical
 }
 
 // EffectiveOutputMinComplexity resolves the output filter precedence.

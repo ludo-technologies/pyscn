@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -529,6 +530,288 @@ func TestGenerateSuggestions_SystemArchViolation(t *testing.T) {
 		if len(s.Steps) != 0 {
 			t.Errorf("expected 0 steps for architecture violation (avoid duplication), got %d", len(s.Steps))
 		}
+	}
+}
+
+func TestGenerateSuggestions_SystemArchViolation_Deduplication(t *testing.T) {
+	resp := &AnalyzeResponse{
+		System: &SystemAnalysisResponse{
+			ArchitectureAnalysis: &ArchitectureAnalysisResult{
+				Violations: []ArchitectureViolation{
+					{
+						Module:     "service.users",
+						Target:     "database.primary",
+						Severity:   ViolationSeverityCritical,
+						Suggestion: "Fix A",
+					},
+					{
+						Module:     "service.users",
+						Target:     "database.primary",
+						Severity:   ViolationSeverityCritical,
+						Suggestion: "Fix A",
+					},
+					{
+						Module:     "service.users",
+						Target:     "events.publisher",
+						Severity:   ViolationSeverityWarning,
+						Suggestion: "Fix B",
+					},
+					{
+						Module:     "utils.helpers",
+						Severity:   ViolationSeverityWarning,
+						Suggestion: "Fix C",
+					},
+				},
+			},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != 3 {
+		t.Fatalf("expected only the exact duplicate to be removed, got %d suggestions", len(suggestions))
+	}
+	serviceSuggestions := make(map[string]Suggestion)
+	for _, s := range suggestions {
+		if strings.Contains(s.Title, "service.users") {
+			serviceSuggestions[s.Description] = s
+		}
+	}
+	if len(serviceSuggestions) != 2 {
+		t.Fatalf("expected both distinct service.users violations, got %#v", serviceSuggestions)
+	}
+	critical, ok := serviceSuggestions["Fix A (target: database.primary)"]
+	if !ok {
+		t.Fatal("expected database.primary violation to be retained")
+	}
+	if critical.Severity != SuggestionSeverityCritical {
+		t.Errorf("expected critical severity, got %s", critical.Severity)
+	}
+	warning, ok := serviceSuggestions["Fix B (target: events.publisher)"]
+	if !ok {
+		t.Fatal("expected events.publisher violation to be retained")
+	}
+	if warning.Severity != SuggestionSeverityWarning {
+		t.Errorf("expected warning severity, got %s", warning.Severity)
+	}
+}
+
+func TestGenerateSuggestions_SystemArchViolation_DistinctIdentityFields(t *testing.T) {
+	tests := []struct {
+		name       string
+		violations []ArchitectureViolation
+	}{
+		{
+			name: "severity only differs",
+			violations: []ArchitectureViolation{
+				{Module: "service.users", Target: "database.primary", Severity: ViolationSeverityWarning, Suggestion: "Use an adapter"},
+				{Module: "service.users", Target: "database.primary", Severity: ViolationSeverityCritical, Suggestion: "Use an adapter"},
+			},
+		},
+		{
+			name: "rule only differs",
+			violations: []ArchitectureViolation{
+				{Module: "service.users", Target: "database.primary", Rule: "strict_mode", Severity: ViolationSeverityWarning, Suggestion: "Use an adapter"},
+				{Module: "service.users", Target: "database.primary", Rule: "no_rule", Severity: ViolationSeverityWarning, Suggestion: "Use an adapter"},
+			},
+		},
+		{
+			name: "module only differs",
+			violations: []ArchitectureViolation{
+				{Module: "service.users", Target: "database.primary", Severity: ViolationSeverityWarning, Suggestion: "Use an adapter"},
+				{Module: "service.orders", Target: "database.primary", Severity: ViolationSeverityWarning, Suggestion: "Use an adapter"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := &AnalyzeResponse{
+				System: &SystemAnalysisResponse{
+					ArchitectureAnalysis: &ArchitectureAnalysisResult{Violations: tt.violations},
+				},
+			}
+
+			suggestions := GenerateSuggestions(resp)
+			if len(suggestions) != 2 {
+				t.Fatalf("expected both distinct violations, got %d suggestions", len(suggestions))
+			}
+		})
+	}
+}
+
+// One violation is emitted per offending dependency edge, so the same problem is
+// reported once per target. Those collapse into a single suggestion that names them.
+func TestGenerateSuggestions_SystemArchViolation_TargetsMerged(t *testing.T) {
+	violation := func(target string) ArchitectureViolation {
+		return ArchitectureViolation{
+			Module:     "service.users",
+			Target:     target,
+			Rule:       "strict_mode",
+			Severity:   ViolationSeverityWarning,
+			Suggestion: "Assign modules to defined layers",
+		}
+	}
+
+	tests := []struct {
+		name        string
+		targets     []string
+		description string
+	}{
+		{
+			name:        "single target",
+			targets:     []string{"database.primary"},
+			description: "Assign modules to defined layers (target: database.primary)",
+		},
+		{
+			name:        "repeated target",
+			targets:     []string{"database.primary", "database.primary"},
+			description: "Assign modules to defined layers (target: database.primary)",
+		},
+		{
+			name:        "few targets are all listed",
+			targets:     []string{"database.primary", "database.replica", "events.publisher"},
+			description: "Assign modules to defined layers (targets: database.primary, database.replica, events.publisher)",
+		},
+		{
+			name:        "many targets fall back to a count",
+			targets:     []string{"a", "b", "c", "d", "e"},
+			description: "Assign modules to defined layers (targets: a, b, c and 2 more)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			violations := make([]ArchitectureViolation, 0, len(tt.targets))
+			for _, target := range tt.targets {
+				violations = append(violations, violation(target))
+			}
+			resp := &AnalyzeResponse{
+				System: &SystemAnalysisResponse{
+					ArchitectureAnalysis: &ArchitectureAnalysisResult{Violations: violations},
+				},
+			}
+
+			suggestions := GenerateSuggestions(resp)
+			if len(suggestions) != 1 {
+				t.Fatalf("expected the targets to merge into 1 suggestion, got %d", len(suggestions))
+			}
+			if suggestions[0].Description != tt.description {
+				t.Errorf("expected description %q, got %q", tt.description, suggestions[0].Description)
+			}
+		})
+	}
+}
+
+func TestGenerateSuggestions_SystemArchViolation_CriticalSurvivesLimit(t *testing.T) {
+	violations := make([]ArchitectureViolation, 0, maxSuggestionsPerCategory+1)
+	for i := 0; i < maxSuggestionsPerCategory; i++ {
+		violations = append(violations, ArchitectureViolation{
+			Module:     fmt.Sprintf("warning_%d", i),
+			Severity:   ViolationSeverityWarning,
+			Suggestion: "Fix warning",
+		})
+	}
+	violations = append(violations, ArchitectureViolation{
+		Module:     "critical_last",
+		Severity:   ViolationSeverityCritical,
+		Suggestion: "Fix critical violation",
+	})
+
+	resp := &AnalyzeResponse{
+		System: &SystemAnalysisResponse{
+			ArchitectureAnalysis: &ArchitectureAnalysisResult{Violations: violations},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != maxSuggestionsPerCategory {
+		t.Fatalf("expected %d architecture suggestions, got %d", maxSuggestionsPerCategory, len(suggestions))
+	}
+	for _, suggestion := range suggestions {
+		if suggestion.Title == "Fix architecture violation in 'critical_last'" {
+			return
+		}
+	}
+	t.Fatal("critical architecture suggestion was dropped by the category limit")
+}
+
+func TestGenerateSuggestions_SystemArchViolation_FilePathFromMetrics(t *testing.T) {
+	resp := &AnalyzeResponse{
+		System: &SystemAnalysisResponse{
+			DependencyAnalysis: &DependencyAnalysisResult{
+				ModuleMetrics: map[string]*ModuleDependencyMetrics{
+					"service.users": {FilePath: "service/users.py"},
+					"utils.helpers": {FilePath: "utils/helpers.py"},
+				},
+			},
+			ArchitectureAnalysis: &ArchitectureAnalysisResult{
+				Violations: []ArchitectureViolation{
+					{
+						Module:     "service.users",
+						Severity:   ViolationSeverityCritical,
+						Suggestion: "Fix A",
+					},
+					{
+						Module:     "utils.helpers",
+						Severity:   ViolationSeverityWarning,
+						Suggestion: "Fix B",
+					},
+					{
+						Module:     "core.model",
+						Severity:   ViolationSeverityInfo,
+						Suggestion: "Fix C",
+					},
+				},
+			},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != 3 {
+		t.Fatalf("expected 3 suggestions, got %d", len(suggestions))
+	}
+
+	found := make(map[string]Suggestion)
+	for _, s := range suggestions {
+		if s.Category != SuggestionCategoryArchitecture {
+			continue
+		}
+		found[s.Title] = s
+	}
+
+	// Module with metrics → FilePath + StartLine populated
+	if s, ok := found["Fix architecture violation in 'service.users'"]; ok {
+		if s.FilePath != "service/users.py" {
+			t.Errorf("expected FilePath 'service/users.py', got '%s'", s.FilePath)
+		}
+		if s.StartLine != 1 {
+			t.Errorf("expected StartLine 1, got %d", s.StartLine)
+		}
+	} else {
+		t.Error("missing suggestion for service.users")
+	}
+
+	if s, ok := found["Fix architecture violation in 'utils.helpers'"]; ok {
+		if s.FilePath != "utils/helpers.py" {
+			t.Errorf("expected FilePath 'utils/helpers.py', got '%s'", s.FilePath)
+		}
+		if s.StartLine != 1 {
+			t.Errorf("expected StartLine 1, got %d", s.StartLine)
+		}
+	} else {
+		t.Error("missing suggestion for utils.helpers")
+	}
+
+	// Module without metrics → FilePath and StartLine remain zero
+	if s, ok := found["Fix architecture violation in 'core.model'"]; ok {
+		if s.FilePath != "" {
+			t.Errorf("expected empty FilePath for module without metrics, got '%s'", s.FilePath)
+		}
+		if s.StartLine != 0 {
+			t.Errorf("expected StartLine 0 for module without metrics, got %d", s.StartLine)
+		}
+	} else {
+		t.Error("missing suggestion for core.model")
 	}
 }
 

@@ -2,6 +2,8 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 )
 
@@ -70,6 +72,10 @@ type ComplexityRequest struct {
 	CognitiveComplexityThreshold int
 	NestingDepthThreshold        int
 
+	// Function SLOC thresholds
+	FunctionSLOCWarnThreshold     int
+	FunctionSLOCCriticalThreshold int
+
 	// Analysis toggles loaded from configuration when present.
 	// Nil means "use the default enabled behavior".
 	Enabled         *bool
@@ -104,6 +110,10 @@ type ComplexityMetrics struct {
 	LoopStatements    int
 	ExceptionHandlers int
 	SwitchCases       int
+
+	// SLOC is the source lines of code within this function's line range.
+	// Computed using the same line-classification logic as raw_metrics.
+	SLOC int
 }
 
 // FunctionComplexity represents complexity analysis result for a single function
@@ -120,6 +130,70 @@ type FunctionComplexity struct {
 
 	// Risk assessment
 	RiskLevel RiskLevel
+}
+
+// ValidateFunctionSLOCThresholds checks the long-function tiers against each
+// other. A non-positive value means "not configured" and is left to the layer's
+// own defaulting; only a fully specified, inverted pair is an error. Messages
+// name the configuration keys, which match the CLI flags.
+func ValidateFunctionSLOCThresholds(warn, critical int) error {
+	if warn < 0 {
+		return fmt.Errorf("function_sloc_warn_threshold must be >= 0, got %d", warn)
+	}
+	if critical < 0 {
+		return fmt.Errorf("function_sloc_critical_threshold must be >= 0, got %d", critical)
+	}
+	if warn > 0 && critical > 0 && critical <= warn {
+		return fmt.Errorf("function_sloc_critical_threshold (%d) must be > function_sloc_warn_threshold (%d)", critical, warn)
+	}
+
+	return nil
+}
+
+// ExceedsSLOC reports whether this function is longer than the given SLOC
+// threshold. Module-scope code never qualifies: its line span covers the whole
+// file, so a length verdict there would merely restate the file-level SLOC
+// metric. A non-positive threshold disables the check.
+func (f FunctionComplexity) ExceedsSLOC(threshold int) bool {
+	if threshold <= 0 || f.Name == ModuleFunctionName {
+		return false
+	}
+	return f.Metrics.SLOC > threshold
+}
+
+// DirectoryComplexityMetrics aggregates reported ComplexityResponse.Functions
+// entries for one project-root-relative directory. This includes a <module>
+// pseudo-entry when it survives presentation filters, matching summary counts.
+type DirectoryComplexityMetrics struct {
+	DirectoryPath         string  `json:"directory_path" yaml:"directory_path"`
+	FunctionCount         int     `json:"function_count" yaml:"function_count"`
+	AverageComplexity     float64 `json:"average_complexity" yaml:"average_complexity"`
+	MaxComplexity         int     `json:"max_complexity" yaml:"max_complexity"`
+	HighRiskFunctionCount int     `json:"high_risk_function_count" yaml:"high_risk_function_count"`
+	AverageNestingDepth   float64 `json:"average_nesting_depth" yaml:"average_nesting_depth"`
+	MaxNestingDepth       int     `json:"max_nesting_depth" yaml:"max_nesting_depth"`
+}
+
+// DirectoryComplexityMetricsList is the stable serialized collection contract.
+// A zero value is encoded as an empty array so callers never need to distinguish
+// an uninitialized collection from a completed analysis with no reported rows.
+type DirectoryComplexityMetricsList []DirectoryComplexityMetrics
+
+// MarshalJSON encodes an uninitialized collection as an empty JSON array.
+func (metrics DirectoryComplexityMetricsList) MarshalJSON() ([]byte, error) {
+	if metrics == nil {
+		return []byte("[]"), nil
+	}
+	type plainDirectoryComplexityMetricsList DirectoryComplexityMetricsList
+	return json.Marshal(plainDirectoryComplexityMetricsList(metrics))
+}
+
+// MarshalYAML encodes an uninitialized collection as an empty YAML array.
+func (metrics DirectoryComplexityMetricsList) MarshalYAML() (interface{}, error) {
+	if metrics == nil {
+		return []DirectoryComplexityMetrics{}, nil
+	}
+	return []DirectoryComplexityMetrics(metrics), nil
 }
 
 // RawMetrics represents file-level raw code metrics.
@@ -172,8 +246,12 @@ type ComplexitySummary struct {
 // ComplexityResponse represents the complete analysis result
 type ComplexityResponse struct {
 	// Analysis results
-	Functions []FunctionComplexity
-	Summary   ComplexitySummary
+	Functions   []FunctionComplexity
+	ByDirectory DirectoryComplexityMetricsList `json:"by_directory" yaml:"by_directory"`
+	Summary     ComplexitySummary
+	// ModuleRollups are derived before report filters are applied. They are consumed
+	// by the unified analyze command and are not part of standalone complexity output.
+	ModuleRollups map[string]ModuleComplexityMetrics `json:"-" yaml:"-"`
 
 	// File-level raw code metrics
 	RawMetrics        []RawMetrics       `json:"raw_metrics,omitempty" yaml:"raw_metrics,omitempty"`
