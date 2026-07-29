@@ -624,7 +624,7 @@ Mirrors `domain.SystemAnalysisResponse`. Nested field names are Go PascalCase.
 | `DependencyMatrix`     | object  | Map from module to map of module to boolean.                         |
 | `CircularDependencies` | object  | Cycle detection results; contains `Cycles` (array) and `TotalCycles` (integer). |
 | `CouplingAnalysis`     | object  | Per-module coupling metrics: `Ca`, `Ce`, `Instability`, `Abstractness`, `Distance`. |
-| `LongestChains`        | array   | Array of `DependencyPath` objects.                                   |
+| `LongestChains`        | array   | Top SCC-condensed paths, expanded to real module dependency paths.    |
 | `MaxDepth`             | integer | Maximum SCC-condensed dependency depth, counted in edges.             |
 
 ### `ModuleDependencyMetrics` object

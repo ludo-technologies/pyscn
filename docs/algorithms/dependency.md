@@ -223,6 +223,13 @@ zero; `A -> B -> C` has depth two. Modules in a cycle form one component
 because the circular dependency is reported separately. The calculation is
 `O(V + E)` in the number of modules and dependencies.
 
+Longest-chain reporting uses the same condensed DAG. A bounded dynamic program
+keeps the top paths from each component, so the reported top 10 are ranked
+globally rather than selected by traversal order. Component transitions are
+expanded back into real module-to-module dependency paths. When a path crosses
+a cyclic component, the analyzer uses a deterministic internal path between
+the incoming and outgoing modules.
+
 ### Expected Depth
 
 The expected maximum depth for a well-structured project of N modules is approximately:
