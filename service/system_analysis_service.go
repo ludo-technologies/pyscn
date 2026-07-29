@@ -392,7 +392,10 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 	}
 
 	// Find longest dependency chains
-	longestChains := s.findLongestChains(graph, 10) // Top 10 chains
+	longestChains, err := s.findLongestChains(ctx, graph, 10) // Top 10 chains
+	if err != nil {
+		return nil, fmt.Errorf("find dependency chains: %w", err)
+	}
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
@@ -1363,13 +1366,41 @@ func (s *SystemAnalysisServiceImpl) buildDependencyMatrix(graph *analyzer.Depend
 	return matrix
 }
 
-func (s *SystemAnalysisServiceImpl) findLongestChains(graph *analyzer.DependencyGraph, limit int) []domain.DependencyPath {
+func (s *SystemAnalysisServiceImpl) findLongestChains(ctx context.Context, graph *analyzer.DependencyGraph, limit int) ([]domain.DependencyPath, error) {
 	var chains []domain.DependencyPath
 
-	// Find all paths using simple DFS
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if limit <= 0 {
+		return chains, nil
+	}
+
+	moduleNames := make([]string, 0, len(graph.Nodes))
 	for moduleName := range graph.Nodes {
-		paths := s.findPathsFromModule(graph, moduleName, make(map[string]bool), []string{moduleName}, limit)
+		moduleNames = append(moduleNames, moduleName)
+	}
+	sort.Strings(moduleNames)
+
+	for _, moduleName := range moduleNames {
+		paths, err := s.findPathsFromModule(
+			ctx,
+			graph,
+			moduleName,
+			make(map[string]bool),
+			[]string{moduleName},
+			limit-len(chains),
+		)
+		if err != nil {
+			return nil, err
+		}
 		chains = append(chains, paths...)
+		if len(chains) >= limit {
+			break
+		}
 	}
 
 	// Sort by length (descending), then by first module name for deterministic results
@@ -1386,14 +1417,24 @@ func (s *SystemAnalysisServiceImpl) findLongestChains(graph *analyzer.Dependency
 		chains = chains[:limit]
 	}
 
-	return chains
+	return chains, nil
 }
 
-func (s *SystemAnalysisServiceImpl) findPathsFromModule(graph *analyzer.DependencyGraph, current string, visited map[string]bool, path []string, maxPaths int) []domain.DependencyPath {
+func (s *SystemAnalysisServiceImpl) findPathsFromModule(
+	ctx context.Context,
+	graph *analyzer.DependencyGraph,
+	current string,
+	visited map[string]bool,
+	path []string,
+	maxPaths int,
+) ([]domain.DependencyPath, error) {
 	var paths []domain.DependencyPath
 
-	if len(paths) >= maxPaths {
-		return paths
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if maxPaths <= 0 {
+		return paths, nil
 	}
 
 	visited[current] = true
@@ -1401,12 +1442,21 @@ func (s *SystemAnalysisServiceImpl) findPathsFromModule(graph *analyzer.Dependen
 
 	node := graph.Nodes[current]
 	if node == nil {
-		return paths
+		return paths, nil
 	}
 
-	for dep := range node.Dependencies {
+	dependencies := make([]string, 0, len(node.Dependencies))
+	for dependency := range node.Dependencies {
+		dependencies = append(dependencies, dependency)
+	}
+	sort.Strings(dependencies)
+
+	for _, dep := range dependencies {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if !visited[dep] {
-			newPath := append([]string{}, path...)
+			newPath := append([]string(nil), path...)
 			newPath = append(newPath, dep)
 
 			// Add this path
@@ -1418,9 +1468,15 @@ func (s *SystemAnalysisServiceImpl) findPathsFromModule(graph *analyzer.Dependen
 					Length: len(newPath),
 				})
 			}
+			if len(paths) >= maxPaths {
+				break
+			}
 
 			// Continue searching
-			subPaths := s.findPathsFromModule(graph, dep, visited, newPath, maxPaths-len(paths))
+			subPaths, err := s.findPathsFromModule(ctx, graph, dep, visited, newPath, maxPaths-len(paths))
+			if err != nil {
+				return nil, err
+			}
 			paths = append(paths, subPaths...)
 
 			if len(paths) >= maxPaths {
@@ -1429,7 +1485,7 @@ func (s *SystemAnalysisServiceImpl) findPathsFromModule(graph *analyzer.Dependen
 		}
 	}
 
-	return paths
+	return paths, nil
 }
 
 func (s *SystemAnalysisServiceImpl) convertCouplingResults(results *analyzer.SystemMetrics) *domain.CouplingAnalysis {

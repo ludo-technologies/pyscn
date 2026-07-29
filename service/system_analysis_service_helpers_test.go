@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -246,11 +247,25 @@ func TestDependencyMatrixAndLongestChains(t *testing.T) {
 	require.True(t, matrix["moduleA"]["moduleD"])
 	require.False(t, matrix["moduleB"]["moduleA"])
 
-	chains := service.findLongestChains(graph, 5)
+	chains, err := service.findLongestChains(context.Background(), graph, 5)
+	require.NoError(t, err)
 	require.NotEmpty(t, chains)
 	assert.Equal(t, 4, chains[0].Length)
 	assert.Equal(t, []string{"moduleA", "moduleB", "moduleC", "moduleD"}, chains[0].Path)
 	assert.LessOrEqual(t, len(chains), 5)
+}
+
+func TestFindLongestChainsHonorsCancellation(t *testing.T) {
+	service := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+	graph.AddModule("moduleA", "/project/moduleA.py")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := service.findLongestChains(ctx, graph, 5)
+
+	require.ErrorIs(t, err, context.Canceled)
 }
 
 func TestConvertCouplingResults(t *testing.T) {
