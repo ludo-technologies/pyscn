@@ -45,6 +45,15 @@ func TestCalculateMaxDependencyDepthHonorsCancellation(t *testing.T) {
 	require.ErrorIs(t, err, context.Canceled)
 }
 
+func TestCalculateMaxDependencyDepthRejectsUnknownDependencies(t *testing.T) {
+	graph := dependencyGraphWithModules("entry")
+	graph.Nodes["entry"].Dependencies["missing"] = true
+
+	_, err := CalculateMaxDependencyDepth(context.Background(), graph)
+
+	require.ErrorContains(t, err, `module "entry" depends on unknown module "missing"`)
+}
+
 func TestCouplingMetricsUsesDependencyTopologyDepth(t *testing.T) {
 	graph := dependencyGraphWithModules("entry", "middle", "leaf")
 	graph.AddDependency("entry", "middle", DependencyEdgeImport, nil)
