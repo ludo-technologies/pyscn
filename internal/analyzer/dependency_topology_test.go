@@ -98,6 +98,19 @@ func TestCouplingMetricsRejectsTopologyFromAnotherGraph(t *testing.T) {
 	assert.Empty(t, metricsGraph.ModuleMetrics)
 }
 
+func TestCouplingMetricsRejectsStaleTopology(t *testing.T) {
+	graph := dependencyGraphWithModules("entry", "leaf")
+	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 0)
+	require.NoError(t, err)
+	graph.AddDependency("entry", "leaf", DependencyEdgeImport, nil)
+
+	calculator := NewCouplingMetricsCalculator(graph, DefaultCouplingMetricsOptions())
+	err = calculator.CalculateMetrics(context.Background(), topology)
+
+	require.ErrorContains(t, err, "dependency graph changed after topology analysis")
+	assert.Empty(t, graph.ModuleMetrics)
+}
+
 func TestCouplingMetricsCanDisableAbstractness(t *testing.T) {
 	graph := dependencyGraphWithModules("abstract")
 	graph.Nodes["abstract"].ClassCount = 1

@@ -19,12 +19,15 @@ type condensedDependencyGraph struct {
 
 // DependencyTopology is the canonical structural analysis of one dependency
 // graph. MaxDepth and LongestChains share the same SCC condensation. A result
-// belongs to the exact graph instance passed to AnalyzeDependencyTopology.
+// belongs to the exact graph state passed to AnalyzeDependencyTopology and is
+// invalidated by subsequent structural mutations.
 type DependencyTopology struct {
 	MaxDepth      int
 	LongestChains []DependencyChain
 
-	graph *DependencyGraph
+	graph        *DependencyGraph
+	totalModules int
+	totalEdges   int
 }
 
 // AnalyzeDependencyTopology condenses a dependency graph and calculates its
@@ -71,6 +74,8 @@ func AnalyzeDependencyTopology(
 		MaxDepth:      maxDepth,
 		LongestChains: longestChains,
 		graph:         graph,
+		totalModules:  graph.TotalModules,
+		totalEdges:    graph.TotalEdges,
 	}, nil
 }
 
