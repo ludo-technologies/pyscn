@@ -717,6 +717,35 @@ func TestComplexityUseCase_validateRequest(t *testing.T) {
 			},
 			wantErr: "unsupported sort criteria: invalid",
 		},
+		{
+			// Without this the warn tier would silently become unreachable.
+			name: "inverted function SLOC thresholds",
+			request: domain.ComplexityRequest{
+				Paths:                         []string{"/test/file.py"},
+				OutputWriter:                  os.Stdout,
+				LowThreshold:                  3,
+				MediumThreshold:               7,
+				OutputFormat:                  domain.OutputFormatText,
+				SortBy:                        domain.SortByComplexity,
+				FunctionSLOCWarnThreshold:     50,
+				FunctionSLOCCriticalThreshold: 30,
+			},
+			wantErr: "function_sloc_critical_threshold (30) must be > function_sloc_warn_threshold (50)",
+		},
+		{
+			name: "function SLOC thresholds in order",
+			request: domain.ComplexityRequest{
+				Paths:                         []string{"/test/file.py"},
+				OutputWriter:                  os.Stdout,
+				LowThreshold:                  3,
+				MediumThreshold:               7,
+				OutputFormat:                  domain.OutputFormatText,
+				SortBy:                        domain.SortByComplexity,
+				FunctionSLOCWarnThreshold:     50,
+				FunctionSLOCCriticalThreshold: 100,
+			},
+			wantErr: "",
+		},
 	}
 
 	for _, tt := range tests {

@@ -305,6 +305,13 @@ func (uc *ComplexityUseCase) validateRequest(req domain.ComplexityRequest) error
 		return fmt.Errorf("nesting depth threshold cannot be negative")
 	}
 
+	// The long-function tiers reach the request from both the config file and
+	// the CLI flags, so an inverted pair has to be rejected here: it would
+	// otherwise make the warn tier unreachable instead of failing.
+	if err := domain.ValidateFunctionSLOCThresholds(req.FunctionSLOCWarnThreshold, req.FunctionSLOCCriticalThreshold); err != nil {
+		return err
+	}
+
 	// Validate output format
 	switch req.OutputFormat {
 	case domain.OutputFormatText, domain.OutputFormatJSON, domain.OutputFormatYAML, domain.OutputFormatCSV, domain.OutputFormatHTML:

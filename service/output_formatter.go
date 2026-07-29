@@ -179,8 +179,9 @@ func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (st
 	var builder strings.Builder
 	writer := csv.NewWriter(&builder)
 
-	// Write header
-	header := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "SLOC", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
+	// Write header. SLOC is appended last so the existing column positions
+	// stay valid for anything already parsing this output.
+	header := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers", "SLOC"}
 	if err := writer.Write(header); err != nil {
 		return "", domain.NewOutputError("failed to write CSV header", err)
 	}
@@ -192,13 +193,13 @@ func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (st
 			fmt.Sprintf("%d", function.Metrics.Complexity),
 			fmt.Sprintf("%d", function.Metrics.CognitiveComplexity),
 			string(function.RiskLevel),
-			fmt.Sprintf("%d", function.Metrics.SLOC),
 			fmt.Sprintf("%d", function.Metrics.Nodes),
 			fmt.Sprintf("%d", function.Metrics.Edges),
 			fmt.Sprintf("%d", function.Metrics.NestingDepth),
 			fmt.Sprintf("%d", function.Metrics.IfStatements),
 			fmt.Sprintf("%d", function.Metrics.LoopStatements),
 			fmt.Sprintf("%d", function.Metrics.ExceptionHandlers),
+			fmt.Sprintf("%d", function.Metrics.SLOC),
 		}
 		if err := writer.Write(row); err != nil {
 			return "", domain.NewOutputError("failed to write CSV row", err)

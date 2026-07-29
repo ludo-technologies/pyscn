@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 )
 
@@ -129,6 +130,24 @@ type FunctionComplexity struct {
 
 	// Risk assessment
 	RiskLevel RiskLevel
+}
+
+// ValidateFunctionSLOCThresholds checks the long-function tiers against each
+// other. A non-positive value means "not configured" and is left to the layer's
+// own defaulting; only a fully specified, inverted pair is an error. Messages
+// name the configuration keys, which match the CLI flags.
+func ValidateFunctionSLOCThresholds(warn, critical int) error {
+	if warn < 0 {
+		return fmt.Errorf("function_sloc_warn_threshold must be >= 0, got %d", warn)
+	}
+	if critical < 0 {
+		return fmt.Errorf("function_sloc_critical_threshold must be >= 0, got %d", critical)
+	}
+	if warn > 0 && critical > 0 && critical <= warn {
+		return fmt.Errorf("function_sloc_critical_threshold (%d) must be > function_sloc_warn_threshold (%d)", critical, warn)
+	}
+
+	return nil
 }
 
 // ExceedsSLOC reports whether this function is longer than the given SLOC

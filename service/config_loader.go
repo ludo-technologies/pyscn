@@ -163,17 +163,8 @@ func (c *ConfigurationLoaderImpl) ValidateConfig(req *domain.ComplexityRequest) 
 		return domain.NewConfigError("nesting depth threshold cannot be negative", nil)
 	}
 
-	if req.FunctionSLOCWarnThreshold < 0 {
-		return domain.NewConfigError("function SLOC warn threshold cannot be negative", nil)
-	}
-
-	if req.FunctionSLOCCriticalThreshold < 0 {
-		return domain.NewConfigError("function SLOC critical threshold cannot be negative", nil)
-	}
-
-	if req.FunctionSLOCWarnThreshold > 0 && req.FunctionSLOCCriticalThreshold > 0 &&
-		req.FunctionSLOCCriticalThreshold <= req.FunctionSLOCWarnThreshold {
-		return domain.NewConfigError("function SLOC critical threshold must be greater than warn threshold", nil)
+	if err := domain.ValidateFunctionSLOCThresholds(req.FunctionSLOCWarnThreshold, req.FunctionSLOCCriticalThreshold); err != nil {
+		return domain.NewConfigError(err.Error(), err)
 	}
 
 	if req.MaxComplexity > 0 && req.MaxComplexity <= req.MediumThreshold {
@@ -229,6 +220,7 @@ func (c *ConfigurationLoaderImpl) pyscnConfigToUnifiedConfig(pyscnCfg *config.Py
 	cfg.Complexity.CognitiveComplexityThreshold = pyscnCfg.CognitiveComplexityThreshold
 	cfg.Complexity.NestingDepthThreshold = pyscnCfg.NestingDepthThreshold
 	cfg.Complexity.MaxComplexity = pyscnCfg.ComplexityMaxComplexity
+	cfg.Complexity.FunctionSLOCWarnThreshold, cfg.Complexity.FunctionSLOCCriticalThreshold = pyscnCfg.EffectiveFunctionSLOCThresholds()
 	cfg.Output.MinComplexity = pyscnCfg.EffectiveOutputMinComplexity()
 
 	// Map dead code settings from [dead_code] section

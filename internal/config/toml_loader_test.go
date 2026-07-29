@@ -149,6 +149,87 @@ func TestFunctionSLOCThresholdsDefaultWhenUnset(t *testing.T) {
 	}
 }
 
+func TestFunctionSLOCThresholdsFollowTheTierThatWasSet(t *testing.T) {
+	tests := []struct {
+		name             string
+		section          string
+		expectedWarn     int
+		expectedCritical int
+	}{
+		{
+			name:             "warn only pulls critical up with it",
+			section:          "function_sloc_warn_threshold = 150\n",
+			expectedWarn:     150,
+			expectedCritical: 300,
+		},
+		{
+			name:             "critical only pulls warn down with it",
+			section:          "function_sloc_critical_threshold = 30\n",
+			expectedWarn:     15,
+			expectedCritical: 30,
+		},
+		{
+			name:             "both set are kept verbatim",
+			section:          "function_sloc_warn_threshold = 20\nfunction_sloc_critical_threshold = 200\n",
+			expectedWarn:     20,
+			expectedCritical: 200,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tempDir := t.TempDir()
+			configPath := filepath.Join(tempDir, ".pyscn.toml")
+			if err := os.WriteFile(configPath, []byte("[complexity]\n"+tt.section), 0644); err != nil {
+				t.Fatalf("Failed to write config file: %v", err)
+			}
+
+			pyscnCfg, err := NewTomlConfigLoader().LoadConfig(tempDir)
+			if err != nil {
+				t.Fatalf("Failed to load config: %v", err)
+			}
+
+			cfg := PyscnConfigToConfig(pyscnCfg)
+			if cfg.Complexity.FunctionSLOCWarnThreshold != tt.expectedWarn {
+				t.Errorf("Expected warn threshold %d, got %d", tt.expectedWarn, cfg.Complexity.FunctionSLOCWarnThreshold)
+			}
+			if cfg.Complexity.FunctionSLOCCriticalThreshold != tt.expectedCritical {
+				t.Errorf("Expected critical threshold %d, got %d", tt.expectedCritical, cfg.Complexity.FunctionSLOCCriticalThreshold)
+			}
+			// Raising or lowering a single tier must never produce a config
+			// the user then has to repair.
+			if err := cfg.Validate(); err != nil {
+				t.Errorf("Expected the derived config to validate, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestInvertedFunctionSLOCThresholdsAreRejected(t *testing.T) {
+	tempDir := t.TempDir()
+	configContent := `[complexity]
+function_sloc_warn_threshold = 100
+function_sloc_critical_threshold = 40
+`
+	configPath := filepath.Join(tempDir, ".pyscn.toml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	pyscnCfg, err := NewTomlConfigLoader().LoadConfig(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	err = PyscnConfigToConfig(pyscnCfg).Validate()
+	if err == nil {
+		t.Fatal("Expected an explicitly inverted threshold pair to be rejected")
+	}
+	if !strings.Contains(err.Error(), "function_sloc_critical_threshold (40)") {
+		t.Errorf("Expected the error to name both tiers, got: %v", err)
+	}
+}
+
 func TestMergeComplexitySection(t *testing.T) {
 	// Create a default config
 	config := DefaultPyscnConfig()

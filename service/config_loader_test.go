@@ -36,6 +36,50 @@ func TestConfigurationLoader_LoadDefaultConfig(t *testing.T) {
 	assert.True(t, *req.Recursive)
 }
 
+// The complexity request is built by its own conversion, not by
+// config.PyscnConfigToConfig, so the long-function tiers have to be carried
+// across here too or a configured threshold never reaches the analysis.
+func TestConfigurationLoader_LoadConfig_FunctionSLOCThresholds(t *testing.T) {
+	tests := []struct {
+		name             string
+		section          string
+		expectedWarn     int
+		expectedCritical int
+	}{
+		{
+			name:             "both tiers configured",
+			section:          "function_sloc_warn_threshold = 30\nfunction_sloc_critical_threshold = 80\n",
+			expectedWarn:     30,
+			expectedCritical: 80,
+		},
+		{
+			name:             "warn only carries critical with it",
+			section:          "function_sloc_warn_threshold = 150\n",
+			expectedWarn:     150,
+			expectedCritical: 300,
+		},
+		{
+			name:             "unset falls back to defaults",
+			section:          "low_threshold = 4\n",
+			expectedWarn:     domain.DefaultFunctionSLOCWarnThreshold,
+			expectedCritical: domain.DefaultFunctionSLOCCriticalThreshold,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			configPath := filepath.Join(t.TempDir(), ".pyscn.toml")
+			require.NoError(t, os.WriteFile(configPath, []byte("[complexity]\n"+tt.section), 0o644))
+
+			req, err := NewConfigurationLoader().LoadConfig(configPath)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.expectedWarn, req.FunctionSLOCWarnThreshold)
+			assert.Equal(t, tt.expectedCritical, req.FunctionSLOCCriticalThreshold)
+		})
+	}
+}
+
 func TestConfigurationLoader_MergeConfig(t *testing.T) {
 	loader := NewConfigurationLoader()
 

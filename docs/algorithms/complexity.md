@@ -268,6 +268,8 @@ Both tiers are evaluated independently of the McCabe value, and both skip module
 - **Warn tier** (`function_sloc_warn_threshold`, default 50): the HTML report's complexity tab lists these under **Longest Functions**. The neighbouring *Top Complex Functions* table is ranked by McCabe, where a flat 200-line function never surfaces, so length gets its own ranking.
 - **Critical tier** (`function_sloc_critical_threshold`, default 100): `pyscn check` reports these as issues (`file:line:col: name is too long (N SLOC > M)`) and counts them toward its exit code, alongside `--max-complexity` violations. A single function can trip both gates; they are separate issues.
 
+Configuring one tier moves the other with it, at the 2x ratio of the defaults: `function_sloc_warn_threshold = 150` alone yields a critical tier of 300, and `function_sloc_critical_threshold = 60` alone yields a warn tier of 30. Setting a single knob therefore cannot collide with the other tier's default. Setting both is taken verbatim, and an inverted pair (`critical <= warn`, which would make the warn tier unreachable) is rejected when the configuration or the request is validated.
+
 Functions are subject to the report's `min_complexity` filter before the length check runs, so raising `min_complexity` above 1 can hide long functions with a low McCabe value.
 
 ## Risk Level Classification
@@ -292,8 +294,8 @@ low_threshold = 9       # Upper bound for "low" risk (inclusive)
 medium_threshold = 19   # Upper bound for "medium" risk (inclusive)
 cognitive_complexity_threshold = 25 # High-risk cognitive complexity threshold
 nesting_depth_threshold = 7         # High-risk nesting depth threshold
-function_sloc_warn_threshold = 50     # Function length reported as long
-function_sloc_critical_threshold = 100 # Function length reported as too long
+function_sloc_warn_threshold = 50      # Function length listed as long in the report
+function_sloc_critical_threshold = 100 # Function length failing `pyscn check` (defaults to 2x the warn tier)
 enabled = true          # Enable/disable complexity analysis
 report_unchanged = true # Report functions with complexity 1
 max_complexity = 0      # Maximum allowed complexity (0 = no limit)

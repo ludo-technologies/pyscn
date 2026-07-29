@@ -355,11 +355,9 @@ func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
 	if pyscn.NestingDepthThreshold > 0 {
 		cfg.Complexity.NestingDepthThreshold = pyscn.NestingDepthThreshold
 	}
-	if pyscn.FunctionSLOCWarnThreshold > 0 {
-		cfg.Complexity.FunctionSLOCWarnThreshold = pyscn.FunctionSLOCWarnThreshold
-	}
-	if pyscn.FunctionSLOCCriticalThreshold > 0 {
-		cfg.Complexity.FunctionSLOCCriticalThreshold = pyscn.FunctionSLOCCriticalThreshold
+	if warn, critical := pyscn.EffectiveFunctionSLOCThresholds(); warn > 0 && critical > 0 {
+		cfg.Complexity.FunctionSLOCWarnThreshold = warn
+		cfg.Complexity.FunctionSLOCCriticalThreshold = critical
 	}
 	if pyscn.ComplexityMaxComplexity > 0 {
 		cfg.Complexity.MaxComplexity = pyscn.ComplexityMaxComplexity
@@ -647,9 +645,14 @@ func (c *Config) Validate() error {
 			c.Complexity.FunctionSLOCWarnThreshold)
 	}
 
-	if c.Complexity.FunctionSLOCCriticalThreshold <= c.Complexity.FunctionSLOCWarnThreshold {
-		return fmt.Errorf("complexity.function_sloc_critical_threshold (%d) must be > function_sloc_warn_threshold (%d)",
-			c.Complexity.FunctionSLOCCriticalThreshold, c.Complexity.FunctionSLOCWarnThreshold)
+	if c.Complexity.FunctionSLOCCriticalThreshold < 1 {
+		return fmt.Errorf("complexity.function_sloc_critical_threshold must be >= 1, got %d",
+			c.Complexity.FunctionSLOCCriticalThreshold)
+	}
+
+	if err := domain.ValidateFunctionSLOCThresholds(c.Complexity.FunctionSLOCWarnThreshold,
+		c.Complexity.FunctionSLOCCriticalThreshold); err != nil {
+		return fmt.Errorf("complexity.%w", err)
 	}
 
 	// Validate output format

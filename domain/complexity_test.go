@@ -139,6 +139,36 @@ func TestComplexityMetrics(t *testing.T) {
 	}
 }
 
+func TestValidateFunctionSLOCThresholds(t *testing.T) {
+	tests := []struct {
+		name      string
+		warn      int
+		critical  int
+		wantError bool
+	}{
+		{name: "defaults", warn: DefaultFunctionSLOCWarnThreshold, critical: DefaultFunctionSLOCCriticalThreshold},
+		{name: "both unset", warn: 0, critical: 0},
+		{name: "only warn set", warn: 150, critical: 0},
+		{name: "only critical set", warn: 0, critical: 30},
+		{name: "inverted pair", warn: 100, critical: 40, wantError: true},
+		{name: "equal tiers", warn: 50, critical: 50, wantError: true},
+		{name: "negative warn", warn: -1, critical: 100, wantError: true},
+		{name: "negative critical", warn: 50, critical: -1, wantError: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateFunctionSLOCThresholds(tt.warn, tt.critical)
+			if tt.wantError && err == nil {
+				t.Errorf("ValidateFunctionSLOCThresholds(%d, %d) = nil, want error", tt.warn, tt.critical)
+			}
+			if !tt.wantError && err != nil {
+				t.Errorf("ValidateFunctionSLOCThresholds(%d, %d) = %v, want nil", tt.warn, tt.critical, err)
+			}
+		})
+	}
+}
+
 func TestFunctionComplexityExceedsSLOC(t *testing.T) {
 	tests := []struct {
 		name      string
