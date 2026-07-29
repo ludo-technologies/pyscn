@@ -132,6 +132,34 @@ func TestFindLongestDependencyChainsExpandsCycleComponents(t *testing.T) {
 	assert.Equal(t, []string{"entry", "cycle_a", "cycle_b", "leaf"}, chains[0].Path)
 }
 
+func TestFindLongestDependencyChainsExpandsMultipleCycleComponents(t *testing.T) {
+	graph := dependencyGraphWithModules(
+		"entry",
+		"first_a",
+		"first_b",
+		"second_a",
+		"second_b",
+		"leaf",
+	)
+	graph.AddDependency("entry", "first_a", DependencyEdgeImport, nil)
+	graph.AddDependency("first_a", "first_b", DependencyEdgeImport, nil)
+	graph.AddDependency("first_b", "first_a", DependencyEdgeImport, nil)
+	graph.AddDependency("first_b", "second_a", DependencyEdgeImport, nil)
+	graph.AddDependency("second_a", "second_b", DependencyEdgeImport, nil)
+	graph.AddDependency("second_b", "second_a", DependencyEdgeImport, nil)
+	graph.AddDependency("second_b", "leaf", DependencyEdgeImport, nil)
+
+	chains, err := FindLongestDependencyChains(context.Background(), graph, 1)
+
+	require.NoError(t, err)
+	require.Len(t, chains, 1)
+	assert.Equal(
+		t,
+		[]string{"entry", "first_a", "first_b", "second_a", "second_b", "leaf"},
+		chains[0].Path,
+	)
+}
+
 func TestFindLongestDependencyChainsHonorsCancellation(t *testing.T) {
 	graph := dependencyGraphWithModules("module")
 	ctx, cancel := context.WithCancel(context.Background())
