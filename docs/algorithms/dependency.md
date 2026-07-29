@@ -228,7 +228,8 @@ keeps the top paths from each component, so the reported top 10 are ranked
 globally rather than selected by traversal order. Component transitions are
 expanded back into real module-to-module dependency paths. When a path crosses
 a cyclic component, the analyzer uses a deterministic internal path between
-the incoming and outgoing modules.
+the incoming and outgoing modules. Coupling metrics consume the same topology
+result instead of rebuilding or traversing the dependency graph again.
 
 ### Expected Depth
 

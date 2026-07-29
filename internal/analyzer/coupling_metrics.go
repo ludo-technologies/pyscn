@@ -62,7 +62,7 @@ func NewCouplingMetricsCalculator(graph *DependencyGraph, options *CouplingMetri
 	}
 }
 
-// CalculateMetrics calculates all metrics for the dependency graph.
+// CalculateMetrics calculates all metrics using topology from the same graph.
 func (calc *CouplingMetricsCalculator) CalculateMetrics(
 	ctx context.Context,
 	topology *DependencyTopology,
