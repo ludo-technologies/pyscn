@@ -397,7 +397,7 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
 
-	longestChains := s.convertDependencyChains(topology.LongestChains)
+	longestChains := s.convertDependencyChains(topology.LongestChains())
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
@@ -419,7 +419,7 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 		CircularDependencies: s.convertCircularResults(circularResult),
 		CouplingAnalysis:     s.convertCouplingResults(couplingResults),
 		LongestChains:        longestChains,
-		MaxDepth:             topology.MaxDepth,
+		MaxDepth:             topology.MaxDepth(),
 	}
 
 	return result, nil

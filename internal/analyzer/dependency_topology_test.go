@@ -19,10 +19,14 @@ func TestAnalyzeDependencyTopologyReportsDepthAndChains(t *testing.T) {
 	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 2)
 
 	require.NoError(t, err)
-	assert.Equal(t, 2, topology.MaxDepth)
-	require.Len(t, topology.LongestChains, 2)
-	assert.Equal(t, []string{"entry", "left", "leaf"}, topology.LongestChains[0].Path)
-	assert.Equal(t, []string{"entry", "right", "leaf"}, topology.LongestChains[1].Path)
+	assert.Equal(t, 2, topology.MaxDepth())
+	chains := topology.LongestChains()
+	require.Len(t, chains, 2)
+	assert.Equal(t, []string{"entry", "left", "leaf"}, chains[0].Path)
+	assert.Equal(t, []string{"entry", "right", "leaf"}, chains[1].Path)
+
+	chains[0].Path[0] = "changed"
+	assert.Equal(t, "entry", topology.LongestChains()[0].Path[0])
 }
 
 func TestAnalyzeDependencyTopologyCollapsesCycles(t *testing.T) {
@@ -35,7 +39,7 @@ func TestAnalyzeDependencyTopologyCollapsesCycles(t *testing.T) {
 	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 0)
 
 	require.NoError(t, err)
-	assert.Equal(t, 2, topology.MaxDepth)
+	assert.Equal(t, 2, topology.MaxDepth())
 }
 
 func TestAnalyzeDependencyTopologyHonorsCancellation(t *testing.T) {
@@ -147,11 +151,12 @@ func TestAnalyzeDependencyTopologyRanksDeepBranchAfterShallowBranches(t *testing
 	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 10)
 
 	require.NoError(t, err)
-	require.NotEmpty(t, topology.LongestChains)
+	chains := topology.LongestChains()
+	require.NotEmpty(t, chains)
 	assert.Equal(
 		t,
 		[]string{"root", "z_deep", "z_middle", "z_leaf"},
-		topology.LongestChains[0].Path,
+		chains[0].Path,
 	)
 }
 
@@ -165,11 +170,12 @@ func TestAnalyzeDependencyTopologyExpandsCycleComponents(t *testing.T) {
 	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 1)
 
 	require.NoError(t, err)
-	require.Len(t, topology.LongestChains, 1)
+	chains := topology.LongestChains()
+	require.Len(t, chains, 1)
 	assert.Equal(
 		t,
 		[]string{"entry", "cycle_a", "cycle_b", "leaf"},
-		topology.LongestChains[0].Path,
+		chains[0].Path,
 	)
 }
 
@@ -193,11 +199,12 @@ func TestAnalyzeDependencyTopologyExpandsMultipleCycleComponents(t *testing.T) {
 	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 1)
 
 	require.NoError(t, err)
-	require.Len(t, topology.LongestChains, 1)
+	chains := topology.LongestChains()
+	require.Len(t, chains, 1)
 	assert.Equal(
 		t,
 		[]string{"entry", "first_a", "first_b", "second_a", "second_b", "leaf"},
-		topology.LongestChains[0].Path,
+		chains[0].Path,
 	)
 }
 

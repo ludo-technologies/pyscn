@@ -210,7 +210,7 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics(
 		systemMetrics.AverageInstability,
 	)
 
-	systemMetrics.MaxDependencyDepth = topology.MaxDepth
+	systemMetrics.MaxDependencyDepth = topology.maxDepth
 
 	// Identify refactoring priorities
 	systemMetrics.RefactoringPriority = calc.identifyRefactoringPriorities(moduleMetrics)

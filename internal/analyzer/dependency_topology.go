@@ -22,12 +22,26 @@ type condensedDependencyGraph struct {
 // belongs to the exact graph state passed to AnalyzeDependencyTopology and is
 // invalidated by subsequent structural mutations.
 type DependencyTopology struct {
-	MaxDepth      int
-	LongestChains []DependencyChain
+	maxDepth      int
+	longestChains []DependencyChain
+	graph         *DependencyGraph
+	totalModules  int
+	totalEdges    int
+}
 
-	graph        *DependencyGraph
-	totalModules int
-	totalEdges   int
+// MaxDepth returns the maximum number of edges between SCCs.
+func (topology *DependencyTopology) MaxDepth() int {
+	return topology.maxDepth
+}
+
+// LongestChains returns a defensive copy of the ranked dependency chains.
+func (topology *DependencyTopology) LongestChains() []DependencyChain {
+	chains := make([]DependencyChain, len(topology.longestChains))
+	copy(chains, topology.longestChains)
+	for index := range chains {
+		chains[index].Path = append([]string(nil), chains[index].Path...)
+	}
+	return chains
 }
 
 // AnalyzeDependencyTopology condenses a dependency graph and calculates its
@@ -71,8 +85,8 @@ func AnalyzeDependencyTopology(
 	}
 
 	return &DependencyTopology{
-		MaxDepth:      maxDepth,
-		LongestChains: longestChains,
+		maxDepth:      maxDepth,
+		longestChains: longestChains,
 		graph:         graph,
 		totalModules:  graph.TotalModules,
 		totalEdges:    graph.TotalEdges,

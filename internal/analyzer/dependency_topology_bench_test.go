@@ -39,11 +39,11 @@ func BenchmarkAnalyzeDependencyTopologyBranchingGraph(b *testing.B) {
 				if err != nil {
 					b.Fatal(err)
 				}
-				if topology.MaxDepth != moduleCount-1 {
+				if topology.MaxDepth() != moduleCount-1 {
 					b.Fatalf(
 						"expected depth %d, got %d",
 						moduleCount-1,
-						topology.MaxDepth,
+						topology.MaxDepth(),
 					)
 				}
 			}
