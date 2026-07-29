@@ -19,8 +19,9 @@ type condensedDependencyGraph struct {
 
 // DependencyTopology is the canonical structural analysis of one dependency
 // graph. MaxDepth and LongestChains share the same SCC condensation. A result
-// belongs to the exact graph state passed to AnalyzeDependencyTopology and is
-// invalidated by subsequent structural mutations.
+// belongs to the exact graph instance passed to AnalyzeDependencyTopology.
+// Structural mutations through AddModule or AddDependency invalidate it;
+// directly mutating DependencyGraph storage is unsupported.
 type DependencyTopology struct {
 	maxDepth      int
 	longestChains []DependencyChain
