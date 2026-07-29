@@ -263,7 +263,12 @@ Function length is a maintainability signal orthogonal to cyclomatic complexity:
 
 The range is measured verbatim, so lines belonging to nested definitions count toward the enclosing function as well — the value reflects the physical length of the definition.
 
-Functions longer than the configured thresholds are reported as warnings, independent of their McCabe value. Module-scope code is excluded, since its line span covers the whole file and would merely restate the file-level `sloc` metric.
+Both tiers are evaluated independently of the McCabe value, and both skip module-scope code, whose line span covers the whole file and would merely restate the file-level `sloc` metric (`FunctionComplexity.ExceedsSLOC`, `domain/complexity.go`):
+
+- **Warn tier** (`function_sloc_warn_threshold`, default 50): the HTML report's complexity tab lists these under **Longest Functions**. The neighbouring *Top Complex Functions* table is ranked by McCabe, where a flat 200-line function never surfaces, so length gets its own ranking.
+- **Critical tier** (`function_sloc_critical_threshold`, default 100): `pyscn check` reports these as issues (`file:line:col: name is too long (N SLOC > M)`) and counts them toward its exit code, alongside `--max-complexity` violations. A single function can trip both gates; they are separate issues.
+
+Functions are subject to the report's `min_complexity` filter before the length check runs, so raising `min_complexity` above 1 can hide long functions with a low McCabe value.
 
 ## Risk Level Classification
 

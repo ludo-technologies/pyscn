@@ -139,6 +139,35 @@ func TestComplexityMetrics(t *testing.T) {
 	}
 }
 
+func TestFunctionComplexityExceedsSLOC(t *testing.T) {
+	tests := []struct {
+		name      string
+		function  string
+		sloc      int
+		threshold int
+		want      bool
+	}{
+		{name: "below threshold", function: "build_table", sloc: 50, threshold: 50, want: false},
+		{name: "above threshold", function: "build_table", sloc: 51, threshold: 50, want: true},
+		{name: "module scope never qualifies", function: ModuleFunctionName, sloc: 500, threshold: 50, want: false},
+		{name: "zero threshold disables the check", function: "build_table", sloc: 500, threshold: 0, want: false},
+		{name: "negative threshold disables the check", function: "build_table", sloc: 500, threshold: -1, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			function := FunctionComplexity{
+				Name:    tt.function,
+				Metrics: ComplexityMetrics{SLOC: tt.sloc},
+			}
+
+			if got := function.ExceedsSLOC(tt.threshold); got != tt.want {
+				t.Errorf("ExceedsSLOC(%d) with SLOC %d = %v, want %v", tt.threshold, tt.sloc, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestFunctionComplexity(t *testing.T) {
 	function := FunctionComplexity{
 		Name:     "testFunction",

@@ -407,7 +407,16 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 		maxComplexity = response.Request.MaxComplexity
 	}
 
-	// Count functions that exceed the maximum complexity threshold
+	// Determine the function length gate: config file > default. The critical
+	// tier is the gate so that the warn tier stays a report-only signal.
+	slocThreshold := domain.DefaultFunctionSLOCCriticalThreshold
+	if response.Request != nil && response.Request.FunctionSLOCCriticalThreshold > 0 {
+		slocThreshold = response.Request.FunctionSLOCCriticalThreshold
+	}
+
+	// Count functions that exceed the maximum complexity threshold, plus
+	// functions that are too long. Length is orthogonal to McCabe, so a flat
+	// 200-line function is an issue on its own and both can fire at once.
 	issueCount := 0
 	for _, function := range response.Functions {
 		if function.Metrics.Complexity > maxComplexity {
@@ -415,6 +424,13 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 			if !c.quiet {
 				fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s is too complex (%d > %d)\n",
 					function.FilePath, function.StartLine, function.StartColumn+1, function.Name, function.Metrics.Complexity, maxComplexity)
+			}
+		}
+		if function.ExceedsSLOC(slocThreshold) {
+			issueCount++
+			if !c.quiet {
+				fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s is too long (%d SLOC > %d)\n",
+					function.FilePath, function.StartLine, function.StartColumn+1, function.Name, function.Metrics.SLOC, slocThreshold)
 			}
 		}
 	}

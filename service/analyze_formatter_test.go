@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -637,6 +638,90 @@ func TestAnalyzeFormatter_Write_HTML(t *testing.T) {
 	assert.Contains(t, output, "Dead Code")
 	assert.Contains(t, output, "Clone")
 	assert.Contains(t, output, "Coupling")
+}
+
+func TestAnalyzeFormatter_Write_HTMLShowsLongestFunctions(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.Summary.ComplexityEnabled = true
+	response.Complexity = &domain.ComplexityResponse{
+		Functions: []domain.FunctionComplexity{
+			{
+				Name:      "find_datatable_locale",
+				FilePath:  "i18n/main.py",
+				StartLine: 22,
+				EndLine:   131,
+				Metrics:   domain.ComplexityMetrics{Complexity: 1, SLOC: 104},
+				RiskLevel: domain.RiskLevelLow,
+			},
+			{
+				Name:      "tight_but_complex",
+				FilePath:  "core/dispatch.py",
+				StartLine: 5,
+				EndLine:   30,
+				Metrics:   domain.ComplexityMetrics{Complexity: 22, SLOC: 24},
+				RiskLevel: domain.RiskLevelHigh,
+			},
+			{
+				Name:      domain.ModuleFunctionName,
+				FilePath:  "i18n/main.py",
+				StartLine: 1,
+				EndLine:   400,
+				Metrics:   domain.ComplexityMetrics{Complexity: 1, SLOC: 380},
+				RiskLevel: domain.RiskLevelLow,
+			},
+		},
+		Request: &domain.ComplexityRequest{FunctionSLOCWarnThreshold: 50},
+	}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatHTML, &output))
+
+	html := output.String()
+	require.Contains(t, html, "Longest Functions")
+
+	// Scope the assertions to the length table: the complexity-ranked table
+	// above it lists every function, long or not.
+	section := html[strings.Index(html, "Longest Functions"):]
+	section = section[:strings.Index(section, "</table>")]
+
+	assert.Contains(t, section, "Functions longer than 50 source lines")
+	// A McCabe-1 long function has no reason to appear in the ranked table.
+	assert.Contains(t, section, "find_datatable_locale")
+	assert.Contains(t, section, "22-131")
+	// Short functions and module scope stay out of the length table.
+	assert.NotContains(t, section, "tight_but_complex")
+	assert.NotContains(t, section, "&lt;module&gt;")
+}
+
+func TestAnalyzeFormatter_CollectLongFunctions(t *testing.T) {
+	t.Run("nil response falls back to the default threshold", func(t *testing.T) {
+		view := collectLongFunctions(nil)
+
+		assert.Equal(t, domain.DefaultFunctionSLOCWarnThreshold, view.Threshold)
+		assert.Empty(t, view.Functions)
+		assert.Equal(t, 0, view.Total)
+	})
+
+	t.Run("ranks longest first and caps the rows", func(t *testing.T) {
+		complexity := &domain.ComplexityResponse{
+			Request: &domain.ComplexityRequest{FunctionSLOCWarnThreshold: 50},
+		}
+		for i := 0; i < longFunctionsDisplayLimit+3; i++ {
+			complexity.Functions = append(complexity.Functions, domain.FunctionComplexity{
+				Name:    fmt.Sprintf("f%d", i),
+				Metrics: domain.ComplexityMetrics{SLOC: 51 + i},
+			})
+		}
+
+		view := collectLongFunctions(complexity)
+
+		require.Len(t, view.Functions, longFunctionsDisplayLimit)
+		assert.Equal(t, longFunctionsDisplayLimit+3, view.Total)
+		assert.Equal(t, "f12", view.Functions[0].Name)
+		for i := 1; i < len(view.Functions); i++ {
+			assert.GreaterOrEqual(t, view.Functions[i-1].Metrics.SLOC, view.Functions[i].Metrics.SLOC)
+		}
+	})
 }
 
 func TestAnalyzeFormatter_Write_HTMLShowsSortableModuleQuality(t *testing.T) {

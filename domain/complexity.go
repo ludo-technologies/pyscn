@@ -131,6 +131,17 @@ type FunctionComplexity struct {
 	RiskLevel RiskLevel
 }
 
+// ExceedsSLOC reports whether this function is longer than the given SLOC
+// threshold. Module-scope code never qualifies: its line span covers the whole
+// file, so a length verdict there would merely restate the file-level SLOC
+// metric. A non-positive threshold disables the check.
+func (f FunctionComplexity) ExceedsSLOC(threshold int) bool {
+	if threshold <= 0 || f.Name == ModuleFunctionName {
+		return false
+	}
+	return f.Metrics.SLOC > threshold
+}
+
 // DirectoryComplexityMetrics aggregates reported ComplexityResponse.Functions
 // entries for one project-root-relative directory. This includes a <module>
 // pseudo-entry when it survives presentation filters, matching summary counts.

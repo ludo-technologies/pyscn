@@ -252,9 +252,6 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 		if complexityConfig.ShouldReport(result.Complexity) {
 			warnings = append(warnings, s.metricThresholdWarnings(filePath, functionName, result, req)...)
 		}
-		// Long-function warnings are independent of McCabe: a flat 200-line
-		// function must be reported even when its complexity is 1.
-		warnings = append(warnings, s.longFunctionWarnings(filePath, functionName, result, complexityConfig)...)
 
 		function := domain.FunctionComplexity{
 			Name:        functionName,
@@ -446,26 +443,6 @@ func (s *ComplexityServiceImpl) metricThresholdWarnings(filePath string, functio
 	}
 
 	return warnings
-}
-
-// longFunctionWarnings reports functions whose SLOC exceeds the configured
-// thresholds. Module-scope code is skipped: its line span covers the whole
-// file, so a length warning there would restate the file-level SLOC metric.
-func (s *ComplexityServiceImpl) longFunctionWarnings(filePath string, functionName string, result *analyzer.ComplexityResult, complexityConfig *config.ComplexityConfig) []string {
-	if functionName == domain.ModuleFunctionName {
-		return nil
-	}
-
-	switch {
-	case result.SLOC > complexityConfig.FunctionSLOCCriticalThreshold:
-		return []string{fmt.Sprintf("[%s:%d:%d] %s function is too long (%d SLOC > %d)",
-			filePath, result.StartLine, result.StartCol+1, functionName, result.SLOC, complexityConfig.FunctionSLOCCriticalThreshold)}
-	case result.SLOC > complexityConfig.FunctionSLOCWarnThreshold:
-		return []string{fmt.Sprintf("[%s:%d:%d] %s function is long (%d SLOC > %d)",
-			filePath, result.StartLine, result.StartCol+1, functionName, result.SLOC, complexityConfig.FunctionSLOCWarnThreshold)}
-	}
-
-	return nil
 }
 
 func (s *ComplexityServiceImpl) getComplexityDistributionKey(complexity int) string {
