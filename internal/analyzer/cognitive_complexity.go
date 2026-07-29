@@ -16,15 +16,25 @@ type CognitiveComplexityResult struct {
 }
 
 // CalculateCognitiveComplexity computes the cognitive complexity for a function node
-// following the SonarSource specification.
+// following the SonarSource specification, with one deliberate deviation for
+// nested scopes (see below).
 //
 // Rules:
 //   - +1 (base increment) for: if, elif, else, for, while, except, break, continue, goto,
 //     ternary (IfExp), and each boolean operator sequence change
 //   - +nesting level (nesting increment) for: if, ternary (IfExp), for, while, except,
-//     match/case, nested functions/lambdas (structures that increase nesting)
+//     match/case, and lambdas (structures that increase nesting)
 //   - Nesting level increases inside: if, elif, else, for, while, except, with,
-//     match/case, lambda, nested function/class definitions
+//     match/case, and lambda
+//
+// Deviation from the SonarSource specification: nested function and class
+// definitions are scope boundaries, so their control flow is NOT aggregated
+// into the enclosing scope's score. The specification folds a nested function's
+// complexity into its parent, but pyscn builds a separate CFG per nested
+// function (see CFGBuilder.buildNestedFunction) and reports it as its own
+// scope, so aggregating here would double-count it and inflate parents that
+// contain no control flow of their own. Lambdas have no separate scope, so they
+// still contribute to the enclosing function.
 func CalculateCognitiveComplexity(funcNode *parser.Node) *CognitiveComplexityResult {
 	if funcNode == nil {
 		return &CognitiveComplexityResult{
@@ -210,18 +220,10 @@ func traverseForCognitive(node *parser.Node, nestingLevel int, result *Cognitive
 		}
 		return
 
-	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
-		// Nested function definition: increases nesting (no base increment)
-		for _, bodyNode := range node.Body {
-			traverseForCognitive(bodyNode, nestingLevel+1, result)
-		}
-		return
-
-	case parser.NodeClassDef:
-		// Nested class definition: increases nesting (no base increment)
-		for _, bodyNode := range node.Body {
-			traverseForCognitive(bodyNode, nestingLevel+1, result)
-		}
+	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef, parser.NodeClassDef:
+		// Nested function/class definition is a scope boundary.
+		// Control flow inside nested scopes is computed independently
+		// and must not be aggregated into the parent scope's score.
 		return
 	}
 
