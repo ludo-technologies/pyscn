@@ -63,12 +63,21 @@ func NewCouplingMetricsCalculator(graph *DependencyGraph, options *CouplingMetri
 }
 
 // CalculateMetrics calculates all metrics for the dependency graph.
-func (calc *CouplingMetricsCalculator) CalculateMetrics(ctx context.Context) error {
+func (calc *CouplingMetricsCalculator) CalculateMetrics(
+	ctx context.Context,
+	topology *DependencyTopology,
+) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("calculate coupling metrics: %w", err)
+	}
+	if topology == nil {
+		return fmt.Errorf("calculate coupling metrics: dependency topology is required")
+	}
+	if topology.graph != calc.graph {
+		return fmt.Errorf("calculate coupling metrics: dependency topology belongs to another graph")
 	}
 
 	config := coregraph.CouplingConfig{}
@@ -117,7 +126,7 @@ func (calc *CouplingMetricsCalculator) CalculateMetrics(ctx context.Context) err
 		moduleMetrics[moduleName] = metrics
 	}
 
-	systemMetrics, err := calc.calculateSystemMetrics(ctx, moduleMetrics)
+	systemMetrics, err := calc.calculateSystemMetrics(ctx, moduleMetrics, topology)
 	if err != nil {
 		return fmt.Errorf("calculate system metrics: %w", err)
 	}
@@ -143,6 +152,7 @@ func (calc *CouplingMetricsCalculator) calculateAbstractness(node *ModuleNode) f
 func (calc *CouplingMetricsCalculator) calculateSystemMetrics(
 	ctx context.Context,
 	moduleMetrics map[string]*ModuleMetrics,
+	topology *DependencyTopology,
 ) (*SystemMetrics, error) {
 	systemMetrics := &SystemMetrics{
 		TotalModules:      calc.graph.TotalModules,
@@ -191,12 +201,7 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics(
 		systemMetrics.AverageInstability,
 	)
 
-	// Calculate max dependency depth
-	maxDependencyDepth, err := CalculateMaxDependencyDepth(ctx, calc.graph)
-	if err != nil {
-		return nil, fmt.Errorf("calculate dependency depth: %w", err)
-	}
-	systemMetrics.MaxDependencyDepth = maxDependencyDepth
+	systemMetrics.MaxDependencyDepth = topology.MaxDepth
 
 	// Identify refactoring priorities
 	systemMetrics.RefactoringPriority = calc.identifyRefactoringPriorities(moduleMetrics)
@@ -408,7 +413,12 @@ func (calc *CouplingMetricsCalculator) isModuleInCycle(moduleName string) bool {
 }
 
 // CalculateCouplingMetrics is a convenience function for calculating metrics.
-func CalculateCouplingMetrics(ctx context.Context, graph *DependencyGraph, options *CouplingMetricsOptions) error {
+func CalculateCouplingMetrics(
+	ctx context.Context,
+	graph *DependencyGraph,
+	topology *DependencyTopology,
+	options *CouplingMetricsOptions,
+) error {
 	calculator := NewCouplingMetricsCalculator(graph, options)
-	return calculator.CalculateMetrics(ctx)
+	return calculator.CalculateMetrics(ctx, topology)
 }

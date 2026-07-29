@@ -20,26 +20,22 @@ func FindLongestDependencyChains(
 	graph *DependencyGraph,
 	limit int,
 ) ([]DependencyChain, error) {
-	if graph == nil {
-		return nil, fmt.Errorf("dependency graph is required")
+	topology, err := AnalyzeDependencyTopology(ctx, graph, limit)
+	if err != nil {
+		return nil, fmt.Errorf("analyze dependency topology: %w", err)
 	}
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
+	return topology.LongestChains, nil
+}
+
+func findLongestDependencyChains(
+	ctx context.Context,
+	graph *DependencyGraph,
+	condensed *condensedDependencyGraph,
+	order []int,
+	limit int,
+) ([]DependencyChain, error) {
 	if limit <= 0 || len(graph.Nodes) == 0 {
 		return nil, nil
-	}
-
-	condensed, err := buildCondensedDependencyGraph(ctx, graph)
-	if err != nil {
-		return nil, fmt.Errorf("build condensed dependency graph: %w", err)
-	}
-	order, err := condensed.topologicalOrder(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("order condensed dependency graph: %w", err)
 	}
 
 	bestByComponent := make([][]*componentPath, len(condensed.dependencies))

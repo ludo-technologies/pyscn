@@ -375,9 +375,14 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
 
+	topology, err := analyzer.AnalyzeDependencyTopology(ctx, graph, 10)
+	if err != nil {
+		return nil, fmt.Errorf("analyze dependency topology: %w", err)
+	}
+
 	// Calculate coupling metrics
 	metricsCalculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-	if err := metricsCalculator.CalculateMetrics(ctx); err != nil {
+	if err := metricsCalculator.CalculateMetrics(ctx, topology); err != nil {
 		return nil, err
 	}
 	couplingResults := graph.SystemMetrics
@@ -391,12 +396,7 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
 
-	// Find longest dependency chains
-	dependencyChains, err := analyzer.FindLongestDependencyChains(ctx, graph, 10)
-	if err != nil {
-		return nil, fmt.Errorf("find dependency chains: %w", err)
-	}
-	longestChains := s.convertDependencyChains(dependencyChains)
+	longestChains := s.convertDependencyChains(topology.LongestChains)
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
@@ -418,7 +418,7 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 		CircularDependencies: s.convertCircularResults(circularResult),
 		CouplingAnalysis:     s.convertCouplingResults(couplingResults),
 		LongestChains:        longestChains,
-		MaxDepth:             couplingResults.MaxDependencyDepth,
+		MaxDepth:             topology.MaxDepth,
 	}
 
 	return result, nil

@@ -9,6 +9,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestAnalyzeDependencyTopologyReportsDepthAndChains(t *testing.T) {
+	graph := dependencyGraphWithModules("entry", "left", "right", "leaf")
+	graph.AddDependency("entry", "left", DependencyEdgeImport, nil)
+	graph.AddDependency("entry", "right", DependencyEdgeImport, nil)
+	graph.AddDependency("left", "leaf", DependencyEdgeImport, nil)
+	graph.AddDependency("right", "leaf", DependencyEdgeImport, nil)
+
+	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 2)
+
+	require.NoError(t, err)
+	assert.Equal(t, 2, topology.MaxDepth)
+	require.Len(t, topology.LongestChains, 2)
+	assert.Equal(t, []string{"entry", "left", "leaf"}, topology.LongestChains[0].Path)
+	assert.Equal(t, []string{"entry", "right", "leaf"}, topology.LongestChains[1].Path)
+}
+
 func TestCalculateMaxDependencyDepthCountsDAGEdges(t *testing.T) {
 	graph := dependencyGraphWithModules("entry", "left", "right", "leaf")
 	graph.AddDependency("entry", "left", DependencyEdgeImport, nil)
@@ -59,19 +75,23 @@ func TestCouplingMetricsUsesDependencyTopologyDepth(t *testing.T) {
 	graph.AddDependency("entry", "middle", DependencyEdgeImport, nil)
 	graph.AddDependency("middle", "leaf", DependencyEdgeImport, nil)
 
+	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 0)
+	require.NoError(t, err)
 	calculator := NewCouplingMetricsCalculator(graph, DefaultCouplingMetricsOptions())
-	require.NoError(t, calculator.CalculateMetrics(context.Background()))
+	require.NoError(t, calculator.CalculateMetrics(context.Background(), topology))
 
 	assert.Equal(t, 2, graph.SystemMetrics.MaxDependencyDepth)
 }
 
 func TestCouplingMetricsHonorsCancellation(t *testing.T) {
 	graph := dependencyGraphWithModules("module")
+	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 0)
+	require.NoError(t, err)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
 	calculator := NewCouplingMetricsCalculator(graph, DefaultCouplingMetricsOptions())
-	err := calculator.CalculateMetrics(ctx)
+	err = calculator.CalculateMetrics(ctx, topology)
 
 	require.ErrorIs(t, err, context.Canceled)
 	assert.Empty(t, graph.ModuleMetrics)

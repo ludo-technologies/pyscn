@@ -17,33 +17,78 @@ type condensedDependencyGraph struct {
 	inDegree          []int
 }
 
-// CalculateMaxDependencyDepth returns the maximum number of edges between
-// strongly connected components in the dependency graph. Modules in a cycle
-// form one component because circular dependencies are reported separately.
-func CalculateMaxDependencyDepth(ctx context.Context, graph *DependencyGraph) (int, error) {
+// DependencyTopology is the canonical structural analysis of one dependency
+// graph. MaxDepth and LongestChains share the same SCC condensation.
+type DependencyTopology struct {
+	MaxDepth      int
+	LongestChains []DependencyChain
+
+	graph *DependencyGraph
+}
+
+// AnalyzeDependencyTopology condenses a dependency graph and calculates its
+// maximum depth and globally ranked dependency chains in one pass.
+func AnalyzeDependencyTopology(
+	ctx context.Context,
+	graph *DependencyGraph,
+	chainLimit int,
+) (*DependencyTopology, error) {
 	if graph == nil {
-		return 0, fmt.Errorf("dependency graph is required")
+		return nil, fmt.Errorf("dependency graph is required")
 	}
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	if err := ctx.Err(); err != nil {
-		return 0, err
-	}
-	if len(graph.Nodes) == 0 {
-		return 0, nil
+		return nil, fmt.Errorf("analyze dependency topology: %w", err)
 	}
 
 	condensed, err := buildCondensedDependencyGraph(ctx, graph)
 	if err != nil {
-		return 0, err
+		return nil, fmt.Errorf("build condensed dependency graph: %w", err)
 	}
-
 	order, err := condensed.topologicalOrder(ctx)
 	if err != nil {
-		return 0, err
+		return nil, fmt.Errorf("order condensed dependency graph: %w", err)
+	}
+	maxDepth, err := calculateMaxDependencyDepth(ctx, condensed, order)
+	if err != nil {
+		return nil, fmt.Errorf("calculate dependency depth: %w", err)
+	}
+	longestChains, err := findLongestDependencyChains(
+		ctx,
+		graph,
+		condensed,
+		order,
+		chainLimit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("find dependency chains: %w", err)
 	}
 
+	return &DependencyTopology{
+		MaxDepth:      maxDepth,
+		LongestChains: longestChains,
+		graph:         graph,
+	}, nil
+}
+
+// CalculateMaxDependencyDepth returns the maximum number of edges between
+// strongly connected components in the dependency graph. Modules in a cycle
+// form one component because circular dependencies are reported separately.
+func CalculateMaxDependencyDepth(ctx context.Context, graph *DependencyGraph) (int, error) {
+	topology, err := AnalyzeDependencyTopology(ctx, graph, 0)
+	if err != nil {
+		return 0, fmt.Errorf("analyze dependency topology: %w", err)
+	}
+	return topology.MaxDepth, nil
+}
+
+func calculateMaxDependencyDepth(
+	ctx context.Context,
+	condensed *condensedDependencyGraph,
+	order []int,
+) (int, error) {
 	depth := make([]int, len(condensed.dependencies))
 	maxDepth := 0
 	for _, component := range order {

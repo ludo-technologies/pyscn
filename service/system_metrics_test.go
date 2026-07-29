@@ -29,10 +29,7 @@ func TestCouplingMetricsVaryWithGraphs(t *testing.T) {
 				graph.AddDependency("moduleA", "moduleB", analyzer.DependencyEdgeImport, nil)
 				graph.AddDependency("moduleB", "moduleC", analyzer.DependencyEdgeImport, nil)
 
-				// Calculate metrics
-				calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-				err := calculator.CalculateMetrics(context.Background())
-				require.NoError(t, err)
+				calculateCouplingMetrics(t, graph)
 
 				return graph
 			},
@@ -70,10 +67,7 @@ func TestCouplingMetricsVaryWithGraphs(t *testing.T) {
 				detector := analyzer.NewCircularDependencyDetector(graph)
 				detector.DetectCircularDependencies()
 
-				// Calculate metrics
-				calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-				err := calculator.CalculateMetrics(context.Background())
-				require.NoError(t, err)
+				calculateCouplingMetrics(t, graph)
 
 				return graph
 			},
@@ -109,10 +103,7 @@ func TestCouplingMetricsVaryWithGraphs(t *testing.T) {
 				// Inter-package dependency (less good)
 				graph.AddDependency("packageA.module1", "packageB.module1", analyzer.DependencyEdgeImport, nil)
 
-				// Calculate metrics
-				calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-				err := calculator.CalculateMetrics(context.Background())
-				require.NoError(t, err)
+				calculateCouplingMetrics(t, graph)
 
 				return graph
 			},
@@ -149,10 +140,7 @@ func TestCouplingMetricsPopulatesGraphMetrics(t *testing.T) {
 	graph.AddDependency("module1", "module2", analyzer.DependencyEdgeImport, nil)
 	graph.AddDependency("module2", "module3", analyzer.DependencyEdgeImport, nil)
 
-	// Calculate metrics using CouplingMetricsCalculator
-	calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-	err := calculator.CalculateMetrics(context.Background())
-	require.NoError(t, err)
+	calculateCouplingMetrics(t, graph)
 
 	result := graph.SystemMetrics
 	assert.NotNil(t, result)
@@ -196,9 +184,7 @@ func TestExtractCouplingResult_ClassifiesMainSequenceZones(t *testing.T) {
 	graph.AddDependency("balanced.client", "balanced.service", analyzer.DependencyEdgeImport, nil)
 	graph.AddDependency("balanced.service", "balanced.dep", analyzer.DependencyEdgeImport, nil)
 
-	calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-	err := calculator.CalculateMetrics(context.Background())
-	require.NoError(t, err)
+	calculateCouplingMetrics(t, graph)
 
 	result := service.convertCouplingResults(graph.SystemMetrics)
 	require.NotNil(t, result)
@@ -216,9 +202,7 @@ func TestCouplingMetricsDifferBetweenGraphs(t *testing.T) {
 	// Graph 1: Low complexity
 	graph1 := analyzer.NewDependencyGraph("/test/project1")
 	graph1.AddModule("simple", "/test/simple.py")
-	calculator1 := analyzer.NewCouplingMetricsCalculator(graph1, analyzer.DefaultCouplingMetricsOptions())
-	err := calculator1.CalculateMetrics(context.Background())
-	require.NoError(t, err)
+	calculateCouplingMetrics(t, graph1)
 	metrics1 := graph1.SystemMetrics
 
 	// Graph 2: Higher complexity
@@ -231,9 +215,7 @@ func TestCouplingMetricsDifferBetweenGraphs(t *testing.T) {
 			graph2.AddDependency(fmt.Sprintf("module%d", i-1), moduleName, analyzer.DependencyEdgeImport, nil)
 		}
 	}
-	calculator2 := analyzer.NewCouplingMetricsCalculator(graph2, analyzer.DefaultCouplingMetricsOptions())
-	err = calculator2.CalculateMetrics(context.Background())
-	require.NoError(t, err)
+	calculateCouplingMetrics(t, graph2)
 	metrics2 := graph2.SystemMetrics
 
 	// Verify metrics are different
@@ -247,4 +229,16 @@ func TestCouplingMetricsDifferBetweenGraphs(t *testing.T) {
 	assert.Greater(t, metrics2.TotalDependencies, metrics1.TotalDependencies)
 	assert.Greater(t, metrics2.SystemComplexity, metrics1.SystemComplexity)
 	assert.GreaterOrEqual(t, metrics2.MaxDependencyDepth, metrics1.MaxDependencyDepth)
+}
+
+func calculateCouplingMetrics(t *testing.T, graph *analyzer.DependencyGraph) {
+	t.Helper()
+
+	topology, err := analyzer.AnalyzeDependencyTopology(context.Background(), graph, 0)
+	require.NoError(t, err)
+	calculator := analyzer.NewCouplingMetricsCalculator(
+		graph,
+		analyzer.DefaultCouplingMetricsOptions(),
+	)
+	require.NoError(t, calculator.CalculateMetrics(context.Background(), topology))
 }
