@@ -41,8 +41,12 @@ type PyscnConfig struct {
 	ComplexityMediumThreshold    int   `mapstructure:"complexity_medium_threshold" yaml:"complexity_medium_threshold" json:"complexity_medium_threshold"`
 	CognitiveComplexityThreshold int   `mapstructure:"cognitive_complexity_threshold" yaml:"cognitive_complexity_threshold" json:"cognitive_complexity_threshold"`
 	NestingDepthThreshold        int   `mapstructure:"nesting_depth_threshold" yaml:"nesting_depth_threshold" json:"nesting_depth_threshold"`
-	ComplexityMaxComplexity      int   `mapstructure:"complexity_max_complexity" yaml:"complexity_max_complexity" json:"complexity_max_complexity"`
-	ComplexityMinComplexity      int   `mapstructure:"complexity_min_complexity" yaml:"complexity_min_complexity" json:"complexity_min_complexity"`
+
+	FunctionSLOCWarnThreshold     int `mapstructure:"function_sloc_warn_threshold" yaml:"function_sloc_warn_threshold" json:"function_sloc_warn_threshold"`
+	FunctionSLOCCriticalThreshold int `mapstructure:"function_sloc_critical_threshold" yaml:"function_sloc_critical_threshold" json:"function_sloc_critical_threshold"`
+
+	ComplexityMaxComplexity int `mapstructure:"complexity_max_complexity" yaml:"complexity_max_complexity" json:"complexity_max_complexity"`
+	ComplexityMinComplexity int `mapstructure:"complexity_min_complexity" yaml:"complexity_min_complexity" json:"complexity_min_complexity"`
 
 	// DeadCode Configuration (from [dead_code] section in TOML)
 	DeadCodeEnabled                   *bool    `mapstructure:"dead_code_enabled" yaml:"dead_code_enabled" json:"dead_code_enabled"`
@@ -355,8 +359,12 @@ func DefaultPyscnConfig() *PyscnConfig {
 		ComplexityMediumThreshold:    DefaultMediumComplexityThreshold,
 		CognitiveComplexityThreshold: DefaultCognitiveComplexityThreshold,
 		NestingDepthThreshold:        DefaultNestingDepthThreshold,
-		ComplexityMaxComplexity:      DefaultMaxComplexityLimit,
-		ComplexityMinComplexity:      DefaultMinComplexityFilter,
+
+		FunctionSLOCWarnThreshold:     DefaultFunctionSLOCWarnThreshold,
+		FunctionSLOCCriticalThreshold: DefaultFunctionSLOCCriticalThreshold,
+
+		ComplexityMaxComplexity: DefaultMaxComplexityLimit,
+		ComplexityMinComplexity: DefaultMinComplexityFilter,
 
 		// DeadCode defaults (from [dead_code] section)
 		DeadCodeEnabled:                   domain.BoolPtr(true),

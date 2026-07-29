@@ -1005,6 +1005,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <th>Complexity</th>
                             <th>Cognitive</th>
                             <th>Nesting Depth</th>
+                            <th>SLOC</th>
                             <th>Risk</th>
                         </tr>
                     </thead>
@@ -1017,6 +1018,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <td>{{$f.Metrics.Complexity}}</td>
                             <td>{{$f.Metrics.CognitiveComplexity}}</td>
                             <td>{{$f.Metrics.NestingDepth}}</td>
+                            <td>{{$f.Metrics.SLOC}}</td>
                             <td class="risk-{{$f.RiskLevel}}">{{$f.RiskLevel}}</td>
                         </tr>
                         {{end}}

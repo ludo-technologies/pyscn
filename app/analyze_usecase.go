@@ -39,6 +39,9 @@ type AnalyzeUseCaseConfig struct {
 	CognitiveComplexityThreshold int
 	NestingDepthThreshold        int
 
+	FunctionSLOCWarnThreshold     int
+	FunctionSLOCCriticalThreshold int
+
 	// Clone detection options
 	EnableDFA bool // Enable Data Flow Analysis for enhanced Type-4 detection
 
@@ -564,6 +567,14 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 	if config.NestingDepthThreshold > 0 {
 		nestingThreshold = config.NestingDepthThreshold
 	}
+	slocWarnThreshold := executionCfg.FunctionSLOCWarnThreshold
+	if config.FunctionSLOCWarnThreshold > 0 {
+		slocWarnThreshold = config.FunctionSLOCWarnThreshold
+	}
+	slocCriticalThreshold := executionCfg.FunctionSLOCCriticalThreshold
+	if config.FunctionSLOCCriticalThreshold > 0 {
+		slocCriticalThreshold = config.FunctionSLOCCriticalThreshold
+	}
 
 	return domain.ComplexityRequest{
 		Paths:                        files,
@@ -580,9 +591,13 @@ func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig
 		MediumThreshold:              mediumThreshold,
 		CognitiveComplexityThreshold: cognitiveThreshold,
 		NestingDepthThreshold:        nestingThreshold,
-		Enabled:                      domain.BoolPtr(executionCfg.ComplexityEnabled),
-		ReportUnchanged:              domain.BoolPtr(executionCfg.ComplexityReportUnchanged),
-		ConfigPath:                   config.ConfigFile,
+
+		FunctionSLOCWarnThreshold:     slocWarnThreshold,
+		FunctionSLOCCriticalThreshold: slocCriticalThreshold,
+
+		Enabled:         domain.BoolPtr(executionCfg.ComplexityEnabled),
+		ReportUnchanged: domain.BoolPtr(executionCfg.ComplexityReportUnchanged),
+		ConfigPath:      config.ConfigFile,
 	}
 }
 

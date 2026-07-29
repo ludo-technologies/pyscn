@@ -19,6 +19,10 @@ type RawMetricsResult struct {
 	CommentRatio   float64
 
 	docstringLines map[int]bool
+
+	// slocPrefix[i] holds the number of source lines among the first i lines of
+	// the file, so any line range can be measured without re-scanning content.
+	slocPrefix []int
 }
 
 // AggregateRawMetrics contains aggregated raw code metrics across files.
@@ -62,11 +66,14 @@ func CalculateRawMetrics(content []byte, filePath string) *RawMetricsResult {
 
 	state := rawMetricsState{moduleDocstringReady: true}
 	docstringLines := make(map[int]bool, len(lines))
+	slocPrefix := make([]int, len(lines)+1)
 
 	for i, line := range lines {
 		state.classifyLine(line, i, docstringLines, result)
+		slocPrefix[i+1] = result.SLOC
 	}
 	result.docstringLines = docstringLines
+	result.slocPrefix = slocPrefix
 
 	denominator := result.SLOC + result.CommentLines
 	if denominator > 0 {
@@ -364,4 +371,28 @@ func isDocstringNode(node *parser.Node, docstringLines map[int]bool) bool {
 
 func isLogicalSeparator(node *parser.Node) bool {
 	return node != nil && string(node.Type) == ";"
+}
+
+// FunctionSLOC returns the source lines of code within the 1-indexed, inclusive
+// line range [startLine, endLine], using the classification computed for the
+// whole file. Comments, blank lines and docstrings are excluded, exactly as in
+// the file-level SLOC metric.
+//
+// The range is measured verbatim, so lines belonging to definitions nested
+// inside it (inner functions, classes) count toward the enclosing range as
+// well: the value reflects the physical length of the definition.
+func (r *RawMetricsResult) FunctionSLOC(startLine, endLine int) int {
+	if r == nil || len(r.slocPrefix) == 0 || startLine <= 0 || startLine > endLine {
+		return 0
+	}
+
+	lastLine := len(r.slocPrefix) - 1
+	if startLine > lastLine {
+		return 0
+	}
+	if endLine > lastLine {
+		endLine = lastLine
+	}
+
+	return r.slocPrefix[endLine] - r.slocPrefix[startLine-1]
 }

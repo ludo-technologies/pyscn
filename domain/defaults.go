@@ -126,6 +126,14 @@ const (
 	// DefaultNestingDepthThreshold is the high-risk threshold for maximum
 	// nesting depth.
 	DefaultNestingDepthThreshold = 7
+
+	// DefaultFunctionSLOCWarnThreshold is the upper bound for function SLOC
+	// before triggering a warning (analogous to LowThreshold for McCabe).
+	DefaultFunctionSLOCWarnThreshold = 50
+
+	// DefaultFunctionSLOCCriticalThreshold is the upper bound for function SLOC
+	// before triggering a critical finding (analogous to MediumThreshold for McCabe).
+	DefaultFunctionSLOCCriticalThreshold = 100
 )
 
 // ============================================================================

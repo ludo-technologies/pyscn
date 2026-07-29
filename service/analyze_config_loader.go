@@ -74,14 +74,18 @@ func defaultAnalyzeExecutionConfig() domain.AnalyzeExecutionConfig {
 		ComplexityMaxComplexity:      defaultCfg.Complexity.MaxComplexity,
 		CognitiveComplexityThreshold: defaultCfg.Complexity.CognitiveComplexityThreshold,
 		NestingDepthThreshold:        defaultCfg.Complexity.NestingDepthThreshold,
-		DeadCodeEnabled:              defaultCfg.DeadCode.Enabled,
-		CloneLSHEnabled:              defaultCloneReq.LSHEnabled,
-		CloneLSHAutoThreshold:        defaultCloneReq.LSHAutoThreshold,
-		SystemEnabled:                true,
-		SystemAnalyzeDependencies:    true,
-		SystemAnalyzeArchitecture:    true,
-		CommunitiesEnabled:           false,
-		CommunitiesEnabledExplicit:   false,
+
+		FunctionSLOCWarnThreshold:     defaultCfg.Complexity.FunctionSLOCWarnThreshold,
+		FunctionSLOCCriticalThreshold: defaultCfg.Complexity.FunctionSLOCCriticalThreshold,
+
+		DeadCodeEnabled:            defaultCfg.DeadCode.Enabled,
+		CloneLSHEnabled:            defaultCloneReq.LSHEnabled,
+		CloneLSHAutoThreshold:      defaultCloneReq.LSHAutoThreshold,
+		SystemEnabled:              true,
+		SystemAnalyzeDependencies:  true,
+		SystemAnalyzeArchitecture:  true,
+		CommunitiesEnabled:         false,
+		CommunitiesEnabledExplicit: false,
 	}
 }
 
@@ -108,6 +112,8 @@ func analyzeExecutionConfigFromConfig(cfg *config.Config, overrides analyzeEnabl
 	executionCfg.ComplexityMaxComplexity = cfg.Complexity.MaxComplexity
 	executionCfg.CognitiveComplexityThreshold = cfg.Complexity.CognitiveComplexityThreshold
 	executionCfg.NestingDepthThreshold = cfg.Complexity.NestingDepthThreshold
+	executionCfg.FunctionSLOCWarnThreshold = cfg.Complexity.FunctionSLOCWarnThreshold
+	executionCfg.FunctionSLOCCriticalThreshold = cfg.Complexity.FunctionSLOCCriticalThreshold
 	executionCfg.DeadCodeEnabled = cfg.DeadCode.Enabled
 
 	if cfg.Clones != nil {

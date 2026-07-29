@@ -23,6 +23,7 @@ func createTestComplexityResponse() *domain.ComplexityResponse {
 				FilePath: "test.py",
 				Metrics: domain.ComplexityMetrics{
 					Complexity:        2,
+					SLOC:              6,
 					Nodes:             5,
 					Edges:             4,
 					IfStatements:      1,
@@ -36,6 +37,7 @@ func createTestComplexityResponse() *domain.ComplexityResponse {
 				FilePath: "test.py",
 				Metrics: domain.ComplexityMetrics{
 					Complexity:        8,
+					SLOC:              120,
 					Nodes:             20,
 					Edges:             18,
 					IfStatements:      3,
@@ -212,7 +214,7 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Len(t, records, 3, "Should have header plus 2 function rows")
 
 				// Check header
-				expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
+				expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "SLOC", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
 				assert.Equal(t, expectedHeaders, records[0])
 
 				// Check first data row
@@ -528,7 +530,7 @@ func TestOutputFormatter_formatText(t *testing.T) {
 
 				// Check function details (new unified format)
 				assert.Contains(t, output, "FUNCTION DETAILS")
-				assert.Contains(t, output, "Function  Complexity  Cognitive  Risk")
+				assert.Contains(t, output, "Function  Complexity  Cognitive  SLOC  Risk")
 				assert.Contains(t, output, "simple_function")
 				assert.Contains(t, output, "complex_function")
 
@@ -663,12 +665,12 @@ func TestOutputFormatter_formatCSV(t *testing.T) {
 	assert.Len(t, records, 3) // Header + 2 functions
 
 	// Check header
-	expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
+	expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "SLOC", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
 	assert.Equal(t, expectedHeaders, records[0])
 
 	// Check data rows (risk levels are lowercase in actual implementation)
-	assert.Equal(t, []string{"simple_function", "2", "0", "low", "5", "4", "0", "1", "0", "0"}, records[1])
-	assert.Equal(t, []string{"complex_function", "8", "0", "high", "20", "18", "0", "3", "2", "1"}, records[2])
+	assert.Equal(t, []string{"simple_function", "2", "0", "low", "6", "5", "4", "0", "1", "0", "0"}, records[1])
+	assert.Equal(t, []string{"complex_function", "8", "0", "high", "120", "20", "18", "0", "3", "2", "1"}, records[2])
 }
 
 // TestOutputFormatter_NewOutputFormatter tests service creation

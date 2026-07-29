@@ -34,6 +34,9 @@ type ComplexityResult struct {
 	ExceptionHandlers int
 	SwitchCases       int
 
+	// SLOC is the source lines of code for this function.
+	SLOC int
+
 	// Risk assessment based on complexity thresholds
 	RiskLevel string // "low", "medium", "high"
 }

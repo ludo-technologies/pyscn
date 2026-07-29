@@ -107,6 +107,12 @@ func mergeComplexitySection(defaults *PyscnConfig, complexity *ComplexityTomlCon
 	if complexity.NestingDepthThreshold != nil {
 		defaults.NestingDepthThreshold = *complexity.NestingDepthThreshold
 	}
+	if complexity.FunctionSLOCWarnThreshold != nil {
+		defaults.FunctionSLOCWarnThreshold = *complexity.FunctionSLOCWarnThreshold
+	}
+	if complexity.FunctionSLOCCriticalThreshold != nil {
+		defaults.FunctionSLOCCriticalThreshold = *complexity.FunctionSLOCCriticalThreshold
+	}
 	if complexity.MaxComplexity != nil {
 		defaults.ComplexityMaxComplexity = *complexity.MaxComplexity
 	}

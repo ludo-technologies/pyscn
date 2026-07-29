@@ -34,8 +34,12 @@ type ComplexityTomlConfig struct {
 	MediumThreshold              *int  `toml:"medium_threshold"`               // pointer to detect unset
 	CognitiveComplexityThreshold *int  `toml:"cognitive_complexity_threshold"` // pointer to detect unset
 	NestingDepthThreshold        *int  `toml:"nesting_depth_threshold"`        // pointer to detect unset
-	MaxComplexity                *int  `toml:"max_complexity"`                 // pointer to detect unset
-	MinComplexity                *int  `toml:"min_complexity"`                 // pointer to detect unset
+
+	FunctionSLOCWarnThreshold     *int `toml:"function_sloc_warn_threshold"`     // pointer to detect unset
+	FunctionSLOCCriticalThreshold *int `toml:"function_sloc_critical_threshold"` // pointer to detect unset
+
+	MaxComplexity *int `toml:"max_complexity"` // pointer to detect unset
+	MinComplexity *int `toml:"min_complexity"` // pointer to detect unset
 }
 
 // DeadCodeTomlConfig represents the [dead_code] section

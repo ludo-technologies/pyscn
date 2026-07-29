@@ -33,6 +33,9 @@ type AnalyzeExecutionConfig struct {
 	CognitiveComplexityThreshold int
 	NestingDepthThreshold        int
 
+	FunctionSLOCWarnThreshold     int
+	FunctionSLOCCriticalThreshold int
+
 	DeadCodeEnabled bool
 
 	CloneLSHEnabled       string

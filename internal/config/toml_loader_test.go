@@ -93,6 +93,62 @@ medium_threshold = 6
 	}
 }
 
+func TestLoadFunctionSLOCThresholdsFromPyscnToml(t *testing.T) {
+	tempDir := t.TempDir()
+
+	configContent := `[complexity]
+function_sloc_warn_threshold = 30
+function_sloc_critical_threshold = 80
+`
+	configPath := filepath.Join(tempDir, ".pyscn.toml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	loader := NewTomlConfigLoader()
+	pyscnCfg, err := loader.LoadConfig(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if pyscnCfg.FunctionSLOCWarnThreshold != 30 {
+		t.Errorf("Expected function_sloc_warn_threshold 30, got %d", pyscnCfg.FunctionSLOCWarnThreshold)
+	}
+	if pyscnCfg.FunctionSLOCCriticalThreshold != 80 {
+		t.Errorf("Expected function_sloc_critical_threshold 80, got %d", pyscnCfg.FunctionSLOCCriticalThreshold)
+	}
+
+	cfg := PyscnConfigToConfig(pyscnCfg)
+	if cfg.Complexity.FunctionSLOCWarnThreshold != 30 {
+		t.Errorf("Expected merged warn threshold 30, got %d", cfg.Complexity.FunctionSLOCWarnThreshold)
+	}
+	if cfg.Complexity.FunctionSLOCCriticalThreshold != 80 {
+		t.Errorf("Expected merged critical threshold 80, got %d", cfg.Complexity.FunctionSLOCCriticalThreshold)
+	}
+}
+
+func TestFunctionSLOCThresholdsDefaultWhenUnset(t *testing.T) {
+	tempDir := t.TempDir()
+
+	configPath := filepath.Join(tempDir, ".pyscn.toml")
+	if err := os.WriteFile(configPath, []byte("[complexity]\nlow_threshold = 4\n"), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	loader := NewTomlConfigLoader()
+	pyscnCfg, err := loader.LoadConfig(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if pyscnCfg.FunctionSLOCWarnThreshold != DefaultFunctionSLOCWarnThreshold {
+		t.Errorf("Expected default warn threshold %d, got %d", DefaultFunctionSLOCWarnThreshold, pyscnCfg.FunctionSLOCWarnThreshold)
+	}
+	if pyscnCfg.FunctionSLOCCriticalThreshold != DefaultFunctionSLOCCriticalThreshold {
+		t.Errorf("Expected default critical threshold %d, got %d", DefaultFunctionSLOCCriticalThreshold, pyscnCfg.FunctionSLOCCriticalThreshold)
+	}
+}
+
 func TestMergeComplexitySection(t *testing.T) {
 	// Create a default config
 	config := DefaultPyscnConfig()

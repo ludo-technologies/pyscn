@@ -110,7 +110,7 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 	// Function Details
 	if len(response.Functions) > 0 {
 		builder.WriteString(utils.FormatSectionHeader("FUNCTION DETAILS"))
-		builder.WriteString(utils.FormatTableHeader("Function", "Complexity", "Cognitive", "Risk"))
+		builder.WriteString(utils.FormatTableHeader("Function", "Complexity", "Cognitive", "SLOC", "Risk"))
 
 		for _, function := range response.Functions {
 			// Convert domain risk level to standard risk level
@@ -127,10 +127,11 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 			}
 
 			coloredRisk := utils.FormatRiskWithColor(standardRisk)
-			builder.WriteString(fmt.Sprintf("%-30s %10d %10d  %s\n",
+			builder.WriteString(fmt.Sprintf("%-30s %10d %10d %10d  %s\n",
 				function.Name,
 				function.Metrics.Complexity,
 				function.Metrics.CognitiveComplexity,
+				function.Metrics.SLOC,
 				coloredRisk))
 		}
 		builder.WriteString(utils.FormatSectionSeparator())
@@ -179,7 +180,7 @@ func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (st
 	writer := csv.NewWriter(&builder)
 
 	// Write header
-	header := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
+	header := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "SLOC", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers"}
 	if err := writer.Write(header); err != nil {
 		return "", domain.NewOutputError("failed to write CSV header", err)
 	}
@@ -191,6 +192,7 @@ func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (st
 			fmt.Sprintf("%d", function.Metrics.Complexity),
 			fmt.Sprintf("%d", function.Metrics.CognitiveComplexity),
 			string(function.RiskLevel),
+			fmt.Sprintf("%d", function.Metrics.SLOC),
 			fmt.Sprintf("%d", function.Metrics.Nodes),
 			fmt.Sprintf("%d", function.Metrics.Edges),
 			fmt.Sprintf("%d", function.Metrics.NestingDepth),
@@ -222,6 +224,7 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 			"function_name":        function.Name,
 			"file_path":            function.FilePath,
 			"risk_level":           string(function.RiskLevel),
+			"sloc":                 function.Metrics.SLOC,
 			"nodes":                function.Metrics.Nodes,
 			"edges":                function.Metrics.Edges,
 			"nesting_depth":        function.Metrics.NestingDepth,

@@ -666,6 +666,97 @@ func TestComplexityService_MetricThresholdWarnings(t *testing.T) {
 	assert.Contains(t, warnings[1], "dense nesting depth too high (8 > 7)")
 }
 
+func TestComplexityService_LongFunctionWarnings(t *testing.T) {
+	service := NewComplexityService()
+	complexityConfig := service.buildComplexityConfig(domain.ComplexityRequest{
+		FunctionSLOCWarnThreshold:     50,
+		FunctionSLOCCriticalThreshold: 100,
+	})
+
+	newResult := func(sloc int) *analyzer.ComplexityResult {
+		return &analyzer.ComplexityResult{
+			FunctionName: "build_table",
+			StartLine:    12,
+			StartCol:     4,
+			SLOC:         sloc,
+		}
+	}
+
+	t.Run("below warn threshold stays silent", func(t *testing.T) {
+		assert.Empty(t, service.longFunctionWarnings("sample.py", "build_table", newResult(50), complexityConfig))
+	})
+
+	t.Run("above warn threshold reports a long function", func(t *testing.T) {
+		warnings := service.longFunctionWarnings("sample.py", "build_table", newResult(51), complexityConfig)
+
+		require.Len(t, warnings, 1)
+		assert.Contains(t, warnings[0], "sample.py:12:5")
+		assert.Contains(t, warnings[0], "build_table function is long (51 SLOC > 50)")
+	})
+
+	t.Run("above critical threshold reports once", func(t *testing.T) {
+		warnings := service.longFunctionWarnings("sample.py", "build_table", newResult(101), complexityConfig)
+
+		require.Len(t, warnings, 1)
+		assert.Contains(t, warnings[0], "build_table function is too long (101 SLOC > 100)")
+	})
+
+	t.Run("module scope is never reported", func(t *testing.T) {
+		result := newResult(500)
+		result.FunctionName = domain.ModuleFunctionName
+
+		assert.Empty(t, service.longFunctionWarnings("sample.py", domain.ModuleFunctionName, result, complexityConfig))
+	})
+}
+
+func TestComplexityService_FunctionSLOC(t *testing.T) {
+	service := NewComplexityService()
+	ctx := context.Background()
+
+	source := `"""Module docstring."""
+
+
+def build_table():
+    """Build a table."""
+    rows = []
+`
+	for i := 0; i < 60; i++ {
+		source += fmt.Sprintf("    rows.append(%d)\n", i)
+	}
+	source += `    return rows
+
+
+def short():
+    return 1
+`
+
+	path := fmt.Sprintf("%s/long_function.py", t.TempDir())
+	require.NoError(t, os.WriteFile(path, []byte(source), 0o644))
+
+	req := newDefaultComplexityRequest(path)
+	response, err := service.Analyze(ctx, req)
+	require.NoError(t, err)
+
+	longFunction := findFunctionComplexity(response.Functions, "build_table")
+	require.NotNil(t, longFunction)
+	// def + docstring is excluded + rows = [] + 60 appends + return
+	assert.Equal(t, 63, longFunction.Metrics.SLOC)
+
+	shortFunction := findFunctionComplexity(response.Functions, "short")
+	require.NotNil(t, shortFunction)
+	assert.Equal(t, 2, shortFunction.Metrics.SLOC)
+
+	// A long function is reported even though its complexity is 1.
+	assert.Equal(t, 1, longFunction.Metrics.Complexity)
+	require.Len(t, response.Warnings, 1)
+	assert.Contains(t, response.Warnings[0], "build_table function is long (63 SLOC > 50)")
+
+	// Module scope spans the whole file but must not be reported as a long function.
+	moduleScope := findFunctionComplexity(response.Functions, domain.ModuleFunctionName)
+	require.NotNil(t, moduleScope)
+	assert.Greater(t, moduleScope.Metrics.SLOC, 63)
+}
+
 func TestComplexityService_GetComplexityDistributionKey(t *testing.T) {
 	service := NewComplexityService()
 

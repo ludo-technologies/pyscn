@@ -76,6 +76,8 @@ func (c *ConfigurationLoaderImpl) MergeConfig(base *domain.ComplexityRequest, ov
 	merged.MediumThreshold = config.Merge(merged.MediumThreshold, override.MediumThreshold)
 	merged.CognitiveComplexityThreshold = config.Merge(merged.CognitiveComplexityThreshold, override.CognitiveComplexityThreshold)
 	merged.NestingDepthThreshold = config.Merge(merged.NestingDepthThreshold, override.NestingDepthThreshold)
+	merged.FunctionSLOCWarnThreshold = config.Merge(merged.FunctionSLOCWarnThreshold, override.FunctionSLOCWarnThreshold)
+	merged.FunctionSLOCCriticalThreshold = config.Merge(merged.FunctionSLOCCriticalThreshold, override.FunctionSLOCCriticalThreshold)
 
 	merged.Enabled = config.MergePtr(merged.Enabled, override.Enabled)
 	merged.ReportUnchanged = config.MergePtr(merged.ReportUnchanged, override.ReportUnchanged)
@@ -131,11 +133,15 @@ func (c *ConfigurationLoaderImpl) convertToComplexityRequest(cfg *config.Config)
 		MediumThreshold:              cfg.Complexity.MediumThreshold,
 		CognitiveComplexityThreshold: cfg.Complexity.CognitiveComplexityThreshold,
 		NestingDepthThreshold:        cfg.Complexity.NestingDepthThreshold,
-		Enabled:                      domain.BoolPtr(cfg.Complexity.Enabled),
-		ReportUnchanged:              domain.BoolPtr(cfg.Complexity.ReportUnchanged),
-		Recursive:                    domain.BoolPtr(cfg.Analysis.Recursive),
-		IncludePatterns:              cfg.Analysis.IncludePatterns,
-		ExcludePatterns:              cfg.Analysis.ExcludePatterns,
+
+		FunctionSLOCWarnThreshold:     cfg.Complexity.FunctionSLOCWarnThreshold,
+		FunctionSLOCCriticalThreshold: cfg.Complexity.FunctionSLOCCriticalThreshold,
+
+		Enabled:         domain.BoolPtr(cfg.Complexity.Enabled),
+		ReportUnchanged: domain.BoolPtr(cfg.Complexity.ReportUnchanged),
+		Recursive:       domain.BoolPtr(cfg.Analysis.Recursive),
+		IncludePatterns: cfg.Analysis.IncludePatterns,
+		ExcludePatterns: cfg.Analysis.ExcludePatterns,
 	}
 }
 
@@ -155,6 +161,19 @@ func (c *ConfigurationLoaderImpl) ValidateConfig(req *domain.ComplexityRequest) 
 
 	if req.NestingDepthThreshold < 0 {
 		return domain.NewConfigError("nesting depth threshold cannot be negative", nil)
+	}
+
+	if req.FunctionSLOCWarnThreshold < 0 {
+		return domain.NewConfigError("function SLOC warn threshold cannot be negative", nil)
+	}
+
+	if req.FunctionSLOCCriticalThreshold < 0 {
+		return domain.NewConfigError("function SLOC critical threshold cannot be negative", nil)
+	}
+
+	if req.FunctionSLOCWarnThreshold > 0 && req.FunctionSLOCCriticalThreshold > 0 &&
+		req.FunctionSLOCCriticalThreshold <= req.FunctionSLOCWarnThreshold {
+		return domain.NewConfigError("function SLOC critical threshold must be greater than warn threshold", nil)
 	}
 
 	if req.MaxComplexity > 0 && req.MaxComplexity <= req.MediumThreshold {

@@ -255,6 +255,16 @@ In addition to cyclomatic complexity, pyscn calculates the maximum nesting depth
 
 The `else` clause does not add nesting depth (it is at the same level as the corresponding `if`/`for`/`while`).
 
+### Function Length (SLOC)
+
+Function length is a maintainability signal orthogonal to cyclomatic complexity: a flat 200-line function has a McCabe value of 1 but is still hard to maintain. Each function therefore also carries a source-lines-of-code count.
+
+`CalculateRawMetrics` (`internal/analyzer/raw_metrics.go`) classifies every line of a file once and stores a prefix sum of source lines. `RawMetricsResult.FunctionSLOC(startLine, endLine)` then answers any line range in constant time, so per-function length uses exactly the same classification as the file-level `sloc` metric: comments, blank lines, and docstrings are excluded.
+
+The range is measured verbatim, so lines belonging to nested definitions count toward the enclosing function as well — the value reflects the physical length of the definition.
+
+Functions longer than the configured thresholds are reported as warnings, independent of their McCabe value. Module-scope code is excluded, since its line span covers the whole file and would merely restate the file-level `sloc` metric.
+
 ## Risk Level Classification
 
 Each function receives a risk level based on configurable thresholds (`internal/config/config.go`):
@@ -277,6 +287,8 @@ low_threshold = 9       # Upper bound for "low" risk (inclusive)
 medium_threshold = 19   # Upper bound for "medium" risk (inclusive)
 cognitive_complexity_threshold = 25 # High-risk cognitive complexity threshold
 nesting_depth_threshold = 7         # High-risk nesting depth threshold
+function_sloc_warn_threshold = 50     # Function length reported as long
+function_sloc_critical_threshold = 100 # Function length reported as too long
 enabled = true          # Enable/disable complexity analysis
 report_unchanged = true # Report functions with complexity 1
 max_complexity = 0      # Maximum allowed complexity (0 = no limit)
@@ -320,6 +332,7 @@ Each analyzed function produces a `ComplexityResult` (`internal/analyzer/complex
 | `LoopStatements` | Count of `for`, `async for`, and `while` syntax nodes |
 | `ExceptionHandlers` | Count of `except` clauses |
 | `SwitchCases` | Count of `match` cases |
+| `SLOC` | Source lines of code within `StartLine`..`EndLine` |
 | `RiskLevel` | `"low"`, `"medium"`, or `"high"` |
 
 ### Aggregate Metrics
