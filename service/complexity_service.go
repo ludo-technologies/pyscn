@@ -195,7 +195,7 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 
 	// Calculate complexity for each function
 	complexityConfig := s.buildComplexityConfig(req)
-	functions, warnings = s.calculateFunctionComplexities(filePath, cfgs, complexityConfig, req)
+	functions, warnings = s.calculateFunctionComplexities(filePath, cfgs, complexityConfig, req, rawMetrics)
 
 	return functions, rawMetrics, warnings, errors
 }
@@ -231,11 +231,11 @@ func (s *ComplexityServiceImpl) analyzeProjectFile(file *ProjectFile, req domain
 	}
 
 	complexityConfig := s.buildComplexityConfig(req)
-	functions, warnings = s.calculateFunctionComplexities(file.Path, cfgs, complexityConfig, req)
+	functions, warnings = s.calculateFunctionComplexities(file.Path, cfgs, complexityConfig, req, rawMetrics)
 	return functions, rawMetrics, warnings, errors
 }
 
-func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, cfgs map[string]*analyzer.CFG, complexityConfig *config.ComplexityConfig, req domain.ComplexityRequest) ([]domain.FunctionComplexity, []string) {
+func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, cfgs map[string]*analyzer.CFG, complexityConfig *config.ComplexityConfig, req domain.ComplexityRequest, rawMetrics *analyzer.RawMetricsResult) ([]domain.FunctionComplexity, []string) {
 	var functions []domain.FunctionComplexity
 	var warnings []string
 
@@ -245,6 +245,9 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 			warnings = append(warnings, fmt.Sprintf("[%s:%s] Failed to calculate complexity for function", filePath, functionName))
 			continue
 		}
+
+		result.SLOC = rawMetrics.FunctionSLOC(result.StartLine, result.EndLine)
+
 		riskLevel := s.calculateRiskLevel(result.Complexity, result.CognitiveComplexity, result.NestingDepth, req)
 		if complexityConfig.ShouldReport(result.Complexity) {
 			warnings = append(warnings, s.metricThresholdWarnings(filePath, functionName, result, req)...)
@@ -266,6 +269,7 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 				LoopStatements:      result.LoopStatements,
 				ExceptionHandlers:   result.ExceptionHandlers,
 				SwitchCases:         result.SwitchCases,
+				SLOC:                result.SLOC,
 			},
 			RiskLevel: riskLevel,
 		}
@@ -465,34 +469,46 @@ func (s *ComplexityServiceImpl) buildComplexityConfig(req domain.ComplexityReque
 	if nestingThreshold <= 0 {
 		nestingThreshold = domain.DefaultNestingDepthThreshold
 	}
+	slocWarnThreshold := req.FunctionSLOCWarnThreshold
+	if slocWarnThreshold <= 0 {
+		slocWarnThreshold = domain.DefaultFunctionSLOCWarnThreshold
+	}
+	slocCriticalThreshold := req.FunctionSLOCCriticalThreshold
+	if slocCriticalThreshold <= 0 {
+		slocCriticalThreshold = domain.DefaultFunctionSLOCCriticalThreshold
+	}
 
 	return &config.ComplexityConfig{
-		LowThreshold:                 req.LowThreshold,
-		MediumThreshold:              req.MediumThreshold,
-		CognitiveComplexityThreshold: cognitiveThreshold,
-		NestingDepthThreshold:        nestingThreshold,
-		Enabled:                      domain.BoolValue(req.Enabled, true),
-		ReportUnchanged:              domain.BoolValue(req.ReportUnchanged, true),
-		MaxComplexity:                req.MaxComplexity,
+		LowThreshold:                  req.LowThreshold,
+		MediumThreshold:               req.MediumThreshold,
+		CognitiveComplexityThreshold:  cognitiveThreshold,
+		NestingDepthThreshold:         nestingThreshold,
+		FunctionSLOCWarnThreshold:     slocWarnThreshold,
+		FunctionSLOCCriticalThreshold: slocCriticalThreshold,
+		Enabled:                       domain.BoolValue(req.Enabled, true),
+		ReportUnchanged:               domain.BoolValue(req.ReportUnchanged, true),
+		MaxComplexity:                 req.MaxComplexity,
 	}
 }
 
 func (s *ComplexityServiceImpl) buildConfigForResponse(req domain.ComplexityRequest) interface{} {
 	return map[string]interface{}{
-		"output_format":                  string(req.OutputFormat),
-		"min_complexity":                 req.MinComplexity,
-		"max_complexity":                 req.MaxComplexity,
-		"low_threshold":                  req.LowThreshold,
-		"medium_threshold":               req.MediumThreshold,
-		"cognitive_complexity_threshold": req.CognitiveComplexityThreshold,
-		"nesting_depth_threshold":        req.NestingDepthThreshold,
-		"enabled":                        domain.BoolValue(req.Enabled, true),
-		"report_unchanged":               domain.BoolValue(req.ReportUnchanged, true),
-		"sort_by":                        string(req.SortBy),
-		"show_details":                   domain.BoolValue(req.ShowDetails, false),
-		"recursive":                      domain.BoolValue(req.Recursive, true),
-		"include_patterns":               req.IncludePatterns,
-		"exclude_patterns":               req.ExcludePatterns,
+		"output_format":                    string(req.OutputFormat),
+		"min_complexity":                   req.MinComplexity,
+		"max_complexity":                   req.MaxComplexity,
+		"low_threshold":                    req.LowThreshold,
+		"medium_threshold":                 req.MediumThreshold,
+		"cognitive_complexity_threshold":   req.CognitiveComplexityThreshold,
+		"nesting_depth_threshold":          req.NestingDepthThreshold,
+		"function_sloc_warn_threshold":     req.FunctionSLOCWarnThreshold,
+		"function_sloc_critical_threshold": req.FunctionSLOCCriticalThreshold,
+		"enabled":                          domain.BoolValue(req.Enabled, true),
+		"report_unchanged":                 domain.BoolValue(req.ReportUnchanged, true),
+		"sort_by":                          string(req.SortBy),
+		"show_details":                     domain.BoolValue(req.ShowDetails, false),
+		"recursive":                        domain.BoolValue(req.Recursive, true),
+		"include_patterns":                 req.IncludePatterns,
+		"exclude_patterns":                 req.ExcludePatterns,
 	}
 }
 

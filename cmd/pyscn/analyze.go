@@ -53,6 +53,9 @@ type AnalyzeCommand struct {
 	cognitiveComplexityThreshold int
 	nestingDepthThreshold        int
 
+	functionSLOCWarnThreshold     int
+	functionSLOCCriticalThreshold int
+
 	// Clone detection options
 	enableDFA bool // Enable Data Flow Analysis for enhanced Type-4 detection
 
@@ -155,6 +158,8 @@ Examples:
 	cmd.Flags().IntVar(&c.mediumThreshold, "medium-threshold", 0, "Upper bound for medium-risk complexity (default: 19)")
 	cmd.Flags().IntVar(&c.cognitiveComplexityThreshold, "cognitive-complexity-threshold", 0, "High-risk threshold for cognitive complexity (default: 25)")
 	cmd.Flags().IntVar(&c.nestingDepthThreshold, "nesting-depth-threshold", 0, "High-risk threshold for maximum nesting depth (default: 7)")
+	cmd.Flags().IntVar(&c.functionSLOCWarnThreshold, "function-sloc-warn-threshold", 0, "Function length in source lines reported as long (default: 50)")
+	cmd.Flags().IntVar(&c.functionSLOCCriticalThreshold, "function-sloc-critical-threshold", 0, "Function length in source lines reported as too long (default: 100)")
 
 	return cmd
 }
@@ -233,6 +238,9 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		MediumThreshold:              c.mediumThreshold,
 		CognitiveComplexityThreshold: c.cognitiveComplexityThreshold,
 		NestingDepthThreshold:        c.nestingDepthThreshold,
+
+		FunctionSLOCWarnThreshold:     c.functionSLOCWarnThreshold,
+		FunctionSLOCCriticalThreshold: c.functionSLOCCriticalThreshold,
 	}
 	config = app.ApplyAnalyzeSelection(config, c.selectAnalyses)
 

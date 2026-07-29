@@ -666,6 +666,55 @@ func TestComplexityService_MetricThresholdWarnings(t *testing.T) {
 	assert.Contains(t, warnings[1], "dense nesting depth too high (8 > 7)")
 }
 
+func TestComplexityService_FunctionSLOC(t *testing.T) {
+	service := NewComplexityService()
+	ctx := context.Background()
+
+	source := `"""Module docstring."""
+
+
+def build_table():
+    """Build a table."""
+    rows = []
+`
+	for i := 0; i < 60; i++ {
+		source += fmt.Sprintf("    rows.append(%d)\n", i)
+	}
+	source += `    return rows
+
+
+def short():
+    return 1
+`
+
+	path := fmt.Sprintf("%s/long_function.py", t.TempDir())
+	require.NoError(t, os.WriteFile(path, []byte(source), 0o644))
+
+	req := newDefaultComplexityRequest(path)
+	response, err := service.Analyze(ctx, req)
+	require.NoError(t, err)
+
+	longFunction := findFunctionComplexity(response.Functions, "build_table")
+	require.NotNil(t, longFunction)
+	// def + docstring is excluded + rows = [] + 60 appends + return
+	assert.Equal(t, 63, longFunction.Metrics.SLOC)
+
+	shortFunction := findFunctionComplexity(response.Functions, "short")
+	require.NotNil(t, shortFunction)
+	assert.Equal(t, 2, shortFunction.Metrics.SLOC)
+
+	// The function stays visible as long even though its complexity is 1.
+	assert.Equal(t, 1, longFunction.Metrics.Complexity)
+	assert.True(t, longFunction.ExceedsSLOC(domain.DefaultFunctionSLOCWarnThreshold))
+	assert.False(t, shortFunction.ExceedsSLOC(domain.DefaultFunctionSLOCWarnThreshold))
+
+	// Module scope spans the whole file but must never count as a long function.
+	moduleScope := findFunctionComplexity(response.Functions, domain.ModuleFunctionName)
+	require.NotNil(t, moduleScope)
+	assert.Greater(t, moduleScope.Metrics.SLOC, 63)
+	assert.False(t, moduleScope.ExceedsSLOC(domain.DefaultFunctionSLOCWarnThreshold))
+}
+
 func TestComplexityService_GetComplexityDistributionKey(t *testing.T) {
 	service := NewComplexityService()
 

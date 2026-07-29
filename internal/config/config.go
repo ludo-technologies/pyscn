@@ -29,6 +29,12 @@ const (
 
 	// DefaultNestingDepthThreshold defines the high-risk threshold for nesting depth
 	DefaultNestingDepthThreshold = domain.DefaultNestingDepthThreshold
+
+	// DefaultFunctionSLOCWarnThreshold defines the function length above which a function is long
+	DefaultFunctionSLOCWarnThreshold = domain.DefaultFunctionSLOCWarnThreshold
+
+	// DefaultFunctionSLOCCriticalThreshold defines the function length above which a function is too long
+	DefaultFunctionSLOCCriticalThreshold = domain.DefaultFunctionSLOCCriticalThreshold
 )
 
 // Default dead code detection settings - re-exported from domain for backward compatibility
@@ -87,6 +93,14 @@ type ComplexityConfig struct {
 
 	// NestingDepthThreshold is the high-risk threshold for maximum nesting depth.
 	NestingDepthThreshold int `mapstructure:"nesting_depth_threshold" yaml:"nesting_depth_threshold"`
+
+	// FunctionSLOCWarnThreshold is the function length (in source lines) above
+	// which a function is reported as long.
+	FunctionSLOCWarnThreshold int `mapstructure:"function_sloc_warn_threshold" yaml:"function_sloc_warn_threshold"`
+
+	// FunctionSLOCCriticalThreshold is the function length (in source lines)
+	// above which a function is reported as too long.
+	FunctionSLOCCriticalThreshold int `mapstructure:"function_sloc_critical_threshold" yaml:"function_sloc_critical_threshold"`
 
 	// Enabled controls whether complexity analysis is performed
 	Enabled bool `mapstructure:"enabled" yaml:"enabled"`
@@ -168,9 +182,13 @@ func DefaultConfig() *Config {
 			MediumThreshold:              DefaultMediumComplexityThreshold,
 			CognitiveComplexityThreshold: DefaultCognitiveComplexityThreshold,
 			NestingDepthThreshold:        DefaultNestingDepthThreshold,
-			Enabled:                      true,
-			ReportUnchanged:              true,
-			MaxComplexity:                DefaultMaxComplexityLimit,
+
+			FunctionSLOCWarnThreshold:     DefaultFunctionSLOCWarnThreshold,
+			FunctionSLOCCriticalThreshold: DefaultFunctionSLOCCriticalThreshold,
+
+			Enabled:         true,
+			ReportUnchanged: true,
+			MaxComplexity:   DefaultMaxComplexityLimit,
 		},
 		DeadCode: DeadCodeConfig{
 			Enabled:                   true,
@@ -336,6 +354,10 @@ func PyscnConfigToConfig(pyscn *PyscnConfig) *Config {
 	}
 	if pyscn.NestingDepthThreshold > 0 {
 		cfg.Complexity.NestingDepthThreshold = pyscn.NestingDepthThreshold
+	}
+	if warn, critical := pyscn.EffectiveFunctionSLOCThresholds(); warn > 0 && critical > 0 {
+		cfg.Complexity.FunctionSLOCWarnThreshold = warn
+		cfg.Complexity.FunctionSLOCCriticalThreshold = critical
 	}
 	if pyscn.ComplexityMaxComplexity > 0 {
 		cfg.Complexity.MaxComplexity = pyscn.ComplexityMaxComplexity
@@ -618,6 +640,21 @@ func (c *Config) Validate() error {
 			c.Complexity.NestingDepthThreshold)
 	}
 
+	if c.Complexity.FunctionSLOCWarnThreshold < 1 {
+		return fmt.Errorf("complexity.function_sloc_warn_threshold must be >= 1, got %d",
+			c.Complexity.FunctionSLOCWarnThreshold)
+	}
+
+	if c.Complexity.FunctionSLOCCriticalThreshold < 1 {
+		return fmt.Errorf("complexity.function_sloc_critical_threshold must be >= 1, got %d",
+			c.Complexity.FunctionSLOCCriticalThreshold)
+	}
+
+	if err := domain.ValidateFunctionSLOCThresholds(c.Complexity.FunctionSLOCWarnThreshold,
+		c.Complexity.FunctionSLOCCriticalThreshold); err != nil {
+		return fmt.Errorf("complexity.%w", err)
+	}
+
 	// Validate output format
 	validFormats := map[string]bool{
 		"text": true,
@@ -730,7 +767,11 @@ func ConfigToPyscnTomlConfig(cfg *Config) *PyscnTomlConfig {
 			MediumThreshold:              &cfg.Complexity.MediumThreshold,
 			CognitiveComplexityThreshold: &cfg.Complexity.CognitiveComplexityThreshold,
 			NestingDepthThreshold:        &cfg.Complexity.NestingDepthThreshold,
-			MaxComplexity:                &cfg.Complexity.MaxComplexity,
+
+			FunctionSLOCWarnThreshold:     &cfg.Complexity.FunctionSLOCWarnThreshold,
+			FunctionSLOCCriticalThreshold: &cfg.Complexity.FunctionSLOCCriticalThreshold,
+
+			MaxComplexity: &cfg.Complexity.MaxComplexity,
 		},
 		DeadCode: DeadCodeTomlConfig{
 			Enabled:                   &cfg.DeadCode.Enabled,

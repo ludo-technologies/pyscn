@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 )
 
@@ -71,6 +72,10 @@ type ComplexityRequest struct {
 	CognitiveComplexityThreshold int
 	NestingDepthThreshold        int
 
+	// Function SLOC thresholds
+	FunctionSLOCWarnThreshold     int
+	FunctionSLOCCriticalThreshold int
+
 	// Analysis toggles loaded from configuration when present.
 	// Nil means "use the default enabled behavior".
 	Enabled         *bool
@@ -105,6 +110,10 @@ type ComplexityMetrics struct {
 	LoopStatements    int
 	ExceptionHandlers int
 	SwitchCases       int
+
+	// SLOC is the source lines of code within this function's line range.
+	// Computed using the same line-classification logic as raw_metrics.
+	SLOC int
 }
 
 // FunctionComplexity represents complexity analysis result for a single function
@@ -121,6 +130,35 @@ type FunctionComplexity struct {
 
 	// Risk assessment
 	RiskLevel RiskLevel
+}
+
+// ValidateFunctionSLOCThresholds checks the long-function tiers against each
+// other. A non-positive value means "not configured" and is left to the layer's
+// own defaulting; only a fully specified, inverted pair is an error. Messages
+// name the configuration keys, which match the CLI flags.
+func ValidateFunctionSLOCThresholds(warn, critical int) error {
+	if warn < 0 {
+		return fmt.Errorf("function_sloc_warn_threshold must be >= 0, got %d", warn)
+	}
+	if critical < 0 {
+		return fmt.Errorf("function_sloc_critical_threshold must be >= 0, got %d", critical)
+	}
+	if warn > 0 && critical > 0 && critical <= warn {
+		return fmt.Errorf("function_sloc_critical_threshold (%d) must be > function_sloc_warn_threshold (%d)", critical, warn)
+	}
+
+	return nil
+}
+
+// ExceedsSLOC reports whether this function is longer than the given SLOC
+// threshold. Module-scope code never qualifies: its line span covers the whole
+// file, so a length verdict there would merely restate the file-level SLOC
+// metric. A non-positive threshold disables the check.
+func (f FunctionComplexity) ExceedsSLOC(threshold int) bool {
+	if threshold <= 0 || f.Name == ModuleFunctionName {
+		return false
+	}
+	return f.Metrics.SLOC > threshold
 }
 
 // DirectoryComplexityMetrics aggregates reported ComplexityResponse.Functions

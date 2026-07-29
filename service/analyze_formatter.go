@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"sort"
 	"strings"
 	"time"
 
@@ -237,6 +238,47 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	return nil
 }
 
+// longFunctionsView carries the report's long-function section. The threshold
+// travels with the rows so the section can name the bar the functions cleared.
+type longFunctionsView struct {
+	Threshold int
+	Total     int
+	Functions []domain.FunctionComplexity
+}
+
+// longFunctionsDisplayLimit caps the rows rendered in the long-function table,
+// matching the top-N convention of the other report tables.
+const longFunctionsDisplayLimit = 10
+
+// collectLongFunctions returns the longest functions above the configured warn
+// threshold, longest first. The complexity tab's other table is ranked by
+// McCabe, where a flat 200-line function never surfaces.
+func collectLongFunctions(complexity *domain.ComplexityResponse) longFunctionsView {
+	view := longFunctionsView{Threshold: domain.DefaultFunctionSLOCWarnThreshold}
+	if complexity == nil {
+		return view
+	}
+	if complexity.Request != nil && complexity.Request.FunctionSLOCWarnThreshold > 0 {
+		view.Threshold = complexity.Request.FunctionSLOCWarnThreshold
+	}
+
+	for _, function := range complexity.Functions {
+		if function.ExceedsSLOC(view.Threshold) {
+			view.Functions = append(view.Functions, function)
+		}
+	}
+	view.Total = len(view.Functions)
+
+	sort.SliceStable(view.Functions, func(i, j int) bool {
+		return view.Functions[i].Metrics.SLOC > view.Functions[j].Metrics.SLOC
+	})
+	if len(view.Functions) > longFunctionsDisplayLimit {
+		view.Functions = view.Functions[:longFunctionsDisplayLimit]
+	}
+
+	return view
+}
+
 // writeHTML formats the response as HTML
 func (f *AnalyzeFormatter) writeHTML(response *domain.AnalyzeResponse, writer io.Writer) error {
 	funcMap := template.FuncMap{
@@ -279,6 +321,7 @@ func (f *AnalyzeFormatter) writeHTML(response *domain.AnalyzeResponse, writer io
 				return "poor"
 			}
 		},
+		"longFunctions": collectLongFunctions,
 		"communitySummaryHTML": func(result *domain.CommunityAnalysisResult) template.HTML {
 			if result == nil {
 				return ""
@@ -1005,6 +1048,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <th>Complexity</th>
                             <th>Cognitive</th>
                             <th>Nesting Depth</th>
+                            <th>SLOC</th>
                             <th>Risk</th>
                         </tr>
                     </thead>
@@ -1017,6 +1061,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                             <td>{{$f.Metrics.Complexity}}</td>
                             <td>{{$f.Metrics.CognitiveComplexity}}</td>
                             <td>{{$f.Metrics.NestingDepth}}</td>
+                            <td>{{$f.Metrics.SLOC}}</td>
                             <td class="risk-{{$f.RiskLevel}}">{{$f.RiskLevel}}</td>
                         </tr>
                         {{end}}
@@ -1025,6 +1070,37 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 </table>
                 {{if gt (len .Complexity.Functions) 10}}
                 <p style="color: #666; margin-top: 10px;">Showing top 10 of {{len .Complexity.Functions}} functions</p>
+                {{end}}
+
+                {{$long := longFunctions .Complexity}}
+                {{if $long.Functions}}
+                <h3>Longest Functions</h3>
+                <p style="color: #666; margin-bottom: 10px;">Functions longer than {{$long.Threshold}} source lines. Length is independent of cyclomatic complexity, so these may be absent from the table above.</p>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Function</th>
+                            <th>File</th>
+                            <th>SLOC</th>
+                            <th>Lines</th>
+                            <th>Complexity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $long.Functions}}
+                        <tr>
+                            <td>{{.Name}}</td>
+                            <td>{{.FilePath}}</td>
+                            <td>{{.Metrics.SLOC}}</td>
+                            <td>{{.StartLine}}-{{.EndLine}}</td>
+                            <td>{{.Metrics.Complexity}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+                {{if gt $long.Total (len $long.Functions)}}
+                <p style="color: #666; margin-top: 10px;">Showing longest {{len $long.Functions}} of {{$long.Total}} long functions</p>
+                {{end}}
                 {{end}}
                 {{end}}
             </div>
