@@ -2,16 +2,54 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestAnalyzeDependencies_CompletesBranchingGraphBeforeDeadline(t *testing.T) {
+	const moduleCount = 36
+
+	dir := t.TempDir()
+	paths := make([]string, 0, moduleCount+1)
+	initPath := filepath.Join(dir, "__init__.py")
+	require.NoError(t, os.WriteFile(initPath, nil, 0o644))
+	paths = append(paths, initPath)
+
+	for index := 0; index < moduleCount; index++ {
+		var source strings.Builder
+		if index+1 < moduleCount {
+			fmt.Fprintf(&source, "from . import m%d\n", index+1)
+		}
+		if index+2 < moduleCount {
+			fmt.Fprintf(&source, "from . import m%d\n", index+2)
+		}
+		fmt.Fprintf(&source, "def f%d(): return %d\n", index, index)
+
+		path := filepath.Join(dir, fmt.Sprintf("m%d.py", index))
+		require.NoError(t, os.WriteFile(path, []byte(source.String()), 0o644))
+		paths = append(paths, path)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	response, err := NewSystemAnalysisService().AnalyzeDependencies(ctx, domain.SystemAnalysisRequest{
+		Paths:             paths,
+		IncludeThirdParty: domain.BoolPtr(false),
+	})
+	require.NoError(t, err)
+	require.NoError(t, ctx.Err(), "branching dependency analysis exceeded its deadline")
+	assert.Equal(t, moduleCount-1, response.MaxDepth)
+}
 
 func TestAnalyzeDependenciesReportsMainSequenceMetricsFromPythonProject(t *testing.T) {
 	dir := t.TempDir()

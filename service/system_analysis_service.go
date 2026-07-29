@@ -402,6 +402,10 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
+	maxDepth, err := analyzer.CalculateMaxDependencyDepth(ctx, graph)
+	if err != nil {
+		return nil, fmt.Errorf("calculate dependency depth: %w", err)
+	}
 
 	// Create dependency analysis result
 	result := &domain.DependencyAnalysisResult{
@@ -414,7 +418,7 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 		CircularDependencies: s.convertCircularResults(circularResult),
 		CouplingAnalysis:     s.convertCouplingResults(couplingResults),
 		LongestChains:        longestChains,
-		MaxDepth:             s.calculateMaxDepth(graph),
+		MaxDepth:             maxDepth,
 	}
 
 	return result, nil
