@@ -80,15 +80,20 @@ func (calc *CouplingMetricsCalculator) CalculateMetrics(
 		return fmt.Errorf("calculate coupling metrics: dependency topology belongs to another graph")
 	}
 
-	config := coregraph.CouplingConfig{}
-	if calc.includeAbstractness {
-		config.AbstractnessFunc = func(moduleName string) (float64, error) {
+	config := coregraph.CouplingConfig{
+		AbstractnessFunc: func(moduleName string) (float64, error) {
+			if err := ctx.Err(); err != nil {
+				return 0, err
+			}
+			if !calc.includeAbstractness {
+				return 0, nil
+			}
 			node := calc.graph.Nodes[moduleName]
 			if node == nil {
 				return 0, fmt.Errorf("calculate abstractness: module %q not found", moduleName)
 			}
 			return calc.calculateAbstractness(node), nil
-		}
+		},
 	}
 
 	coreMetrics, err := coregraph.ComputeCouplingMetrics(calc.graph, config)

@@ -85,6 +85,34 @@ func TestCouplingMetricsHonorsCancellation(t *testing.T) {
 	assert.Zero(t, graph.SystemMetrics.TotalModules)
 }
 
+func TestCouplingMetricsRejectsTopologyFromAnotherGraph(t *testing.T) {
+	topologyGraph := dependencyGraphWithModules("topology")
+	topology, err := AnalyzeDependencyTopology(context.Background(), topologyGraph, 0)
+	require.NoError(t, err)
+
+	metricsGraph := dependencyGraphWithModules("metrics")
+	calculator := NewCouplingMetricsCalculator(metricsGraph, DefaultCouplingMetricsOptions())
+	err = calculator.CalculateMetrics(context.Background(), topology)
+
+	require.ErrorContains(t, err, "dependency topology belongs to another graph")
+	assert.Empty(t, metricsGraph.ModuleMetrics)
+}
+
+func TestCouplingMetricsCanDisableAbstractness(t *testing.T) {
+	graph := dependencyGraphWithModules("abstract")
+	graph.Nodes["abstract"].ClassCount = 1
+	graph.Nodes["abstract"].AbstractClassCount = 1
+	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 0)
+	require.NoError(t, err)
+
+	options := DefaultCouplingMetricsOptions()
+	options.IncludeAbstractness = false
+	calculator := NewCouplingMetricsCalculator(graph, options)
+	require.NoError(t, calculator.CalculateMetrics(context.Background(), topology))
+
+	assert.Zero(t, graph.ModuleMetrics["abstract"].Abstractness)
+}
+
 func TestAnalyzeDependencyTopologyRanksDeepBranchAfterShallowBranches(t *testing.T) {
 	moduleNames := []string{"root", "z_deep", "z_middle", "z_leaf"}
 	for index := 0; index < 10; index++ {

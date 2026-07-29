@@ -27,7 +27,7 @@ type DependencyTopology struct {
 }
 
 // AnalyzeDependencyTopology condenses a dependency graph and calculates its
-// maximum depth and globally ranked dependency chains in one pass.
+// maximum depth and globally ranked chains from one shared SCC condensation.
 func AnalyzeDependencyTopology(
 	ctx context.Context,
 	graph *DependencyGraph,
@@ -192,6 +192,9 @@ func dependencyEdgeLess(left, right componentDependency) bool {
 	return left.toModule < right.toModule
 }
 
+// dependencyComponents owns topology SCC construction because the core cycle
+// detector reports only non-singleton cycles and cannot observe cancellation.
+// Topology requires a complete, cancellable partition including singletons.
 func dependencyComponents(
 	ctx context.Context,
 	graph *DependencyGraph,
