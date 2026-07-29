@@ -49,6 +49,8 @@ func TestAnalyzeDependencies_CompletesBranchingGraphBeforeDeadline(t *testing.T)
 	require.NoError(t, err)
 	require.NoError(t, ctx.Err(), "branching dependency analysis exceeded its deadline")
 	assert.Equal(t, moduleCount-1, response.MaxDepth)
+	require.NotEmpty(t, response.LongestChains)
+	assert.Equal(t, moduleCount, response.LongestChains[0].Length)
 }
 
 func TestAnalyzeDependenciesReportsMainSequenceMetricsFromPythonProject(t *testing.T) {

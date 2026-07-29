@@ -392,10 +392,11 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 	}
 
 	// Find longest dependency chains
-	longestChains, err := s.findLongestChains(ctx, graph, 10) // Top 10 chains
+	dependencyChains, err := analyzer.FindLongestDependencyChains(ctx, graph, 10)
 	if err != nil {
 		return nil, fmt.Errorf("find dependency chains: %w", err)
 	}
+	longestChains := s.convertDependencyChains(dependencyChains)
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
@@ -1364,125 +1365,6 @@ func (s *SystemAnalysisServiceImpl) buildDependencyMatrix(graph *analyzer.Depend
 	}
 
 	return matrix
-}
-
-func (s *SystemAnalysisServiceImpl) findLongestChains(ctx context.Context, graph *analyzer.DependencyGraph, limit int) ([]domain.DependencyPath, error) {
-	var chains []domain.DependencyPath
-
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	if limit <= 0 {
-		return chains, nil
-	}
-
-	moduleNames := make([]string, 0, len(graph.Nodes))
-	for moduleName := range graph.Nodes {
-		moduleNames = append(moduleNames, moduleName)
-	}
-	sort.Strings(moduleNames)
-
-	for _, moduleName := range moduleNames {
-		paths, err := s.findPathsFromModule(
-			ctx,
-			graph,
-			moduleName,
-			make(map[string]bool),
-			[]string{moduleName},
-			limit,
-		)
-		if err != nil {
-			return nil, err
-		}
-		chains = append(chains, paths...)
-	}
-
-	// Sort by length (descending), then by first module name for deterministic results
-	sort.Slice(chains, func(i, j int) bool {
-		if chains[i].Length != chains[j].Length {
-			return chains[i].Length > chains[j].Length
-		}
-		// Tie-breaker: compare first module name for deterministic results
-		return chains[i].Path[0] < chains[j].Path[0]
-	})
-
-	// Return top chains
-	if len(chains) > limit {
-		chains = chains[:limit]
-	}
-
-	return chains, nil
-}
-
-func (s *SystemAnalysisServiceImpl) findPathsFromModule(
-	ctx context.Context,
-	graph *analyzer.DependencyGraph,
-	current string,
-	visited map[string]bool,
-	path []string,
-	maxPaths int,
-) ([]domain.DependencyPath, error) {
-	var paths []domain.DependencyPath
-
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	if maxPaths <= 0 {
-		return paths, nil
-	}
-
-	visited[current] = true
-	defer delete(visited, current)
-
-	node := graph.Nodes[current]
-	if node == nil {
-		return paths, nil
-	}
-
-	dependencies := make([]string, 0, len(node.Dependencies))
-	for dependency := range node.Dependencies {
-		dependencies = append(dependencies, dependency)
-	}
-	sort.Strings(dependencies)
-
-	for _, dep := range dependencies {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
-		if !visited[dep] {
-			newPath := append([]string(nil), path...)
-			newPath = append(newPath, dep)
-
-			// Add this path
-			if len(newPath) >= 2 {
-				paths = append(paths, domain.DependencyPath{
-					From:   newPath[0],
-					To:     dep,
-					Path:   newPath,
-					Length: len(newPath),
-				})
-			}
-			if len(paths) >= maxPaths {
-				break
-			}
-
-			// Continue searching
-			subPaths, err := s.findPathsFromModule(ctx, graph, dep, visited, newPath, maxPaths-len(paths))
-			if err != nil {
-				return nil, err
-			}
-			paths = append(paths, subPaths...)
-
-			if len(paths) >= maxPaths {
-				break
-			}
-		}
-	}
-
-	return paths, nil
 }
 
 func (s *SystemAnalysisServiceImpl) convertCouplingResults(results *analyzer.SystemMetrics) *domain.CouplingAnalysis {

@@ -5,6 +5,18 @@ import (
 	"fmt"
 )
 
+type componentDependency struct {
+	fromModule string
+	toModule   string
+}
+
+type condensedDependencyGraph struct {
+	componentByModule map[string]int
+	componentNames    []string
+	dependencies      []map[int]componentDependency
+	inDegree          []int
+}
+
 // CalculateMaxDependencyDepth returns the maximum number of edges between
 // strongly connected components in the dependency graph. Modules in a cycle
 // form one component because circular dependencies are reported separately.
@@ -22,55 +34,23 @@ func CalculateMaxDependencyDepth(ctx context.Context, graph *DependencyGraph) (i
 		return 0, nil
 	}
 
-	componentByModule, componentCount, err := dependencyComponents(ctx, graph)
+	condensed, err := buildCondensedDependencyGraph(ctx, graph)
 	if err != nil {
-		return 0, fmt.Errorf("calculate dependency components: %w", err)
+		return 0, err
 	}
 
-	dependencies := make([]map[int]struct{}, componentCount)
-	inDegree := make([]int, componentCount)
-	for index := range dependencies {
-		dependencies[index] = make(map[int]struct{})
+	order, err := condensed.topologicalOrder(ctx)
+	if err != nil {
+		return 0, err
 	}
 
-	for moduleName, node := range graph.Nodes {
-		if err := ctx.Err(); err != nil {
-			return 0, err
-		}
-		fromComponent := componentByModule[moduleName]
-		for dependency := range node.Dependencies {
-			toComponent := componentByModule[dependency]
-			if fromComponent == toComponent {
-				continue
-			}
-			if _, exists := dependencies[fromComponent][toComponent]; exists {
-				continue
-			}
-			dependencies[fromComponent][toComponent] = struct{}{}
-			inDegree[toComponent]++
-		}
-	}
-
-	queue := make([]int, 0, componentCount)
-	for component, degree := range inDegree {
-		if degree == 0 {
-			queue = append(queue, component)
-		}
-	}
-
-	depth := make([]int, componentCount)
+	depth := make([]int, len(condensed.dependencies))
 	maxDepth := 0
-	processed := 0
-	for len(queue) > 0 {
+	for _, component := range order {
 		if err := ctx.Err(); err != nil {
 			return 0, err
 		}
-
-		component := queue[0]
-		queue = queue[1:]
-		processed++
-
-		for dependency := range dependencies[component] {
+		for dependency := range condensed.dependencies[component] {
 			candidateDepth := depth[component] + 1
 			if candidateDepth > depth[dependency] {
 				depth[dependency] = candidateDepth
@@ -78,6 +58,86 @@ func CalculateMaxDependencyDepth(ctx context.Context, graph *DependencyGraph) (i
 					maxDepth = candidateDepth
 				}
 			}
+		}
+	}
+
+	return maxDepth, nil
+}
+
+func buildCondensedDependencyGraph(
+	ctx context.Context,
+	graph *DependencyGraph,
+) (*condensedDependencyGraph, error) {
+	componentByModule, componentCount, err := dependencyComponents(ctx, graph)
+	if err != nil {
+		return nil, fmt.Errorf("calculate dependency components: %w", err)
+	}
+
+	condensed := &condensedDependencyGraph{
+		componentByModule: componentByModule,
+		componentNames:    make([]string, componentCount),
+		dependencies:      make([]map[int]componentDependency, componentCount),
+		inDegree:          make([]int, componentCount),
+	}
+	for component := range condensed.dependencies {
+		condensed.dependencies[component] = make(map[int]componentDependency)
+	}
+	for moduleName, component := range componentByModule {
+		if condensed.componentNames[component] == "" ||
+			moduleName < condensed.componentNames[component] {
+			condensed.componentNames[component] = moduleName
+		}
+	}
+
+	for moduleName, node := range graph.Nodes {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		fromComponent := componentByModule[moduleName]
+		for dependency := range node.Dependencies {
+			toComponent := componentByModule[dependency]
+			if fromComponent == toComponent {
+				continue
+			}
+
+			candidate := componentDependency{
+				fromModule: moduleName,
+				toModule:   dependency,
+			}
+			existing, exists := condensed.dependencies[fromComponent][toComponent]
+			if exists {
+				if dependencyEdgeLess(candidate, existing) {
+					condensed.dependencies[fromComponent][toComponent] = candidate
+				}
+				continue
+			}
+			condensed.dependencies[fromComponent][toComponent] = candidate
+			condensed.inDegree[toComponent]++
+		}
+	}
+
+	return condensed, nil
+}
+
+func (graph *condensedDependencyGraph) topologicalOrder(ctx context.Context) ([]int, error) {
+	inDegree := append([]int(nil), graph.inDegree...)
+	queue := make([]int, 0, len(inDegree))
+	for component, degree := range inDegree {
+		if degree == 0 {
+			queue = append(queue, component)
+		}
+	}
+
+	order := make([]int, 0, len(inDegree))
+	for len(queue) > 0 {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		component := queue[0]
+		queue = queue[1:]
+		order = append(order, component)
+
+		for dependency := range graph.dependencies[component] {
 			inDegree[dependency]--
 			if inDegree[dependency] == 0 {
 				queue = append(queue, dependency)
@@ -85,10 +145,17 @@ func CalculateMaxDependencyDepth(ctx context.Context, graph *DependencyGraph) (i
 		}
 	}
 
-	if processed != componentCount {
-		return 0, fmt.Errorf("condensed dependency graph contains a cycle")
+	if len(order) != len(inDegree) {
+		return nil, fmt.Errorf("condensed dependency graph contains a cycle")
 	}
-	return maxDepth, nil
+	return order, nil
+}
+
+func dependencyEdgeLess(left, right componentDependency) bool {
+	if left.fromModule != right.fromModule {
+		return left.fromModule < right.fromModule
+	}
+	return left.toModule < right.toModule
 }
 
 func dependencyComponents(
