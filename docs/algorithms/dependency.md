@@ -202,21 +202,26 @@ Dependency depth measures the length of the longest chain of transitive dependen
 
 ### Calculation
 
-The algorithm performs a recursive DFS from each root module (modules with `OutDegree == 0`), tracking the maximum depth reached. Cycles are handled by maintaining a visited set to prevent infinite recursion.
+The analyzer first condenses every strongly connected component (SCC) into one
+node. It then calculates the longest path through the resulting directed
+acyclic graph in a single topological pass.
 
 ```
-function findMaxDepthFrom(module, visited):
-    if module in visited: return 0
-    visited.add(module)
+components = stronglyConnectedComponents(dependencyGraph)
+dag = condense(dependencyGraph, components)
+depth = zeroes(len(components))
 
-    maxChildDepth = 0
-    for each dependency of module:
-        childDepth = findMaxDepthFrom(dependency, visited)
-        maxChildDepth = max(maxChildDepth, childDepth)
+for component in topologicalOrder(dag):
+    for dependency in dag.dependencies(component):
+        depth[dependency] = max(depth[dependency], depth[component] + 1)
 
-    visited.remove(module)
-    return maxChildDepth + 1
+maxDepth = max(depth)
 ```
+
+Depth counts edges between components. A project with one module has depth
+zero; `A -> B -> C` has depth two. Modules in a cycle form one component
+because the circular dependency is reported separately. The calculation is
+`O(V + E)` in the number of modules and dependencies.
 
 ### Expected Depth
 
@@ -329,7 +334,7 @@ The `SystemMetrics` struct aggregates module-level metrics into project-wide ind
 | Average Abstractness | sum(A) / N | System-wide average abstractness |
 | Main Sequence Deviation | sum(D) / N | Average distance from main sequence |
 | Cyclic Dependencies | count of modules in SCCs | Number of modules involved in cycles |
-| Max Dependency Depth | longest chain length | Maximum transitive dependency depth |
+| Max Dependency Depth | longest SCC-DAG path in edges | Maximum transitive dependency depth |
 
 ### Modularity Index
 
