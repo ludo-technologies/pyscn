@@ -64,6 +64,8 @@ func TestCouplingMetricsHonorsCancellation(t *testing.T) {
 	err := calculator.CalculateMetrics(ctx)
 
 	require.ErrorIs(t, err, context.Canceled)
+	assert.Empty(t, graph.ModuleMetrics)
+	assert.Zero(t, graph.SystemMetrics.TotalModules)
 }
 
 func dependencyGraphWithModules(moduleNames ...string) *DependencyGraph {
