@@ -1040,3 +1040,150 @@ func TestCalculateCognitiveComplexity_BoolOpWithNestedIfExp(t *testing.T) {
 		t.Errorf("Expected cognitive complexity 3 for BoolOp with nested IfExp, got %d", result.Total)
 	}
 }
+
+func TestCalculateCognitiveComplexity_ModuleScopeBoundary(t *testing.T) {
+	// This is the symptom reported in #658: a module whose own body has no
+	// control flow reported a large cognitive complexity because it aggregated
+	// every nested function and class.
+	//
+	// import os                      # module body has no control flow
+	// def helper():
+	//     for i in items:            # NOT counted against <module>
+	//         if i > 0:              # NOT counted against <module>
+	//             pass
+	// class Service:
+	//     def run(self):
+	//         while True:            # NOT counted against <module>
+	//             break
+	// Cognitive complexity: 0
+	moduleNode := &parser.Node{
+		Type: parser.NodeModule,
+		Location: parser.Location{
+			StartLine: 1,
+			EndLine:   10,
+		},
+		Body: []*parser.Node{
+			{
+				Type:     parser.NodeImport,
+				Location: parser.Location{StartLine: 1},
+			},
+			{
+				Type: parser.NodeFunctionDef,
+				Name: "helper",
+				Location: parser.Location{
+					StartLine: 3,
+					EndLine:   6,
+				},
+				Body: []*parser.Node{
+					{
+						Type:     parser.NodeFor,
+						Location: parser.Location{StartLine: 4},
+						Iter:     &parser.Node{Type: parser.NodeName},
+						Body: []*parser.Node{
+							{
+								Type:     parser.NodeIf,
+								Location: parser.Location{StartLine: 5},
+								Test:     &parser.Node{Type: parser.NodeCompare},
+								Body: []*parser.Node{
+									{Type: parser.NodePass},
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				Type: parser.NodeClassDef,
+				Name: "Service",
+				Location: parser.Location{
+					StartLine: 8,
+					EndLine:   11,
+				},
+				Body: []*parser.Node{
+					{
+						Type: parser.NodeFunctionDef,
+						Name: "run",
+						Location: parser.Location{
+							StartLine: 9,
+							EndLine:   11,
+						},
+						Body: []*parser.Node{
+							{
+								Type:     parser.NodeWhile,
+								Location: parser.Location{StartLine: 10},
+								Test:     &parser.Node{Type: parser.NodeConstant},
+								Body: []*parser.Node{
+									{
+										Type:     parser.NodeBreak,
+										Location: parser.Location{StartLine: 11},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	result := CalculateCognitiveComplexity(moduleNode)
+
+	if result.Total != 0 {
+		t.Errorf("Expected cognitive complexity 0 for module (nested scopes are boundaries), got %d", result.Total)
+	}
+}
+
+func TestCalculateCognitiveComplexity_ModuleOwnControlFlowIsCounted(t *testing.T) {
+	// Scope boundaries must not suppress the module's own control flow.
+	//
+	// if sys.version_info >= (3, 8):   # +1
+	//     import fast as impl
+	// def helper():
+	//     if flag:                     # NOT counted against <module>
+	//         pass
+	// Cognitive complexity: 1
+	moduleNode := &parser.Node{
+		Type: parser.NodeModule,
+		Location: parser.Location{
+			StartLine: 1,
+			EndLine:   6,
+		},
+		Body: []*parser.Node{
+			{
+				Type:     parser.NodeIf,
+				Location: parser.Location{StartLine: 1},
+				Test:     &parser.Node{Type: parser.NodeCompare},
+				Body: []*parser.Node{
+					{
+						Type:     parser.NodeImport,
+						Location: parser.Location{StartLine: 2},
+					},
+				},
+			},
+			{
+				Type: parser.NodeFunctionDef,
+				Name: "helper",
+				Location: parser.Location{
+					StartLine: 4,
+					EndLine:   6,
+				},
+				Body: []*parser.Node{
+					{
+						Type:     parser.NodeIf,
+						Location: parser.Location{StartLine: 5},
+						Test:     &parser.Node{Type: parser.NodeName},
+						Body: []*parser.Node{
+							{Type: parser.NodePass},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	result := CalculateCognitiveComplexity(moduleNode)
+
+	if result.Total != 1 {
+		t.Errorf("Expected cognitive complexity 1 for module (its own if counts, nested function does not), got %d", result.Total)
+	}
+}
