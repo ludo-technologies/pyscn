@@ -25,47 +25,34 @@ func TestAnalyzeDependencyTopologyReportsDepthAndChains(t *testing.T) {
 	assert.Equal(t, []string{"entry", "right", "leaf"}, topology.LongestChains[1].Path)
 }
 
-func TestCalculateMaxDependencyDepthCountsDAGEdges(t *testing.T) {
-	graph := dependencyGraphWithModules("entry", "left", "right", "leaf")
-	graph.AddDependency("entry", "left", DependencyEdgeImport, nil)
-	graph.AddDependency("entry", "right", DependencyEdgeImport, nil)
-	graph.AddDependency("left", "leaf", DependencyEdgeImport, nil)
-	graph.AddDependency("right", "leaf", DependencyEdgeImport, nil)
-
-	depth, err := CalculateMaxDependencyDepth(context.Background(), graph)
-
-	require.NoError(t, err)
-	assert.Equal(t, 2, depth)
-}
-
-func TestCalculateMaxDependencyDepthCollapsesCycles(t *testing.T) {
+func TestAnalyzeDependencyTopologyCollapsesCycles(t *testing.T) {
 	graph := dependencyGraphWithModules("entry", "cycle_a", "cycle_b", "leaf")
 	graph.AddDependency("entry", "cycle_a", DependencyEdgeImport, nil)
 	graph.AddDependency("cycle_a", "cycle_b", DependencyEdgeImport, nil)
 	graph.AddDependency("cycle_b", "cycle_a", DependencyEdgeImport, nil)
 	graph.AddDependency("cycle_b", "leaf", DependencyEdgeImport, nil)
 
-	depth, err := CalculateMaxDependencyDepth(context.Background(), graph)
+	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 0)
 
 	require.NoError(t, err)
-	assert.Equal(t, 2, depth)
+	assert.Equal(t, 2, topology.MaxDepth)
 }
 
-func TestCalculateMaxDependencyDepthHonorsCancellation(t *testing.T) {
+func TestAnalyzeDependencyTopologyHonorsCancellation(t *testing.T) {
 	graph := dependencyGraphWithModules("module")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := CalculateMaxDependencyDepth(ctx, graph)
+	_, err := AnalyzeDependencyTopology(ctx, graph, 0)
 
 	require.ErrorIs(t, err, context.Canceled)
 }
 
-func TestCalculateMaxDependencyDepthRejectsUnknownDependencies(t *testing.T) {
+func TestAnalyzeDependencyTopologyRejectsUnknownDependencies(t *testing.T) {
 	graph := dependencyGraphWithModules("entry")
 	graph.Nodes["entry"].Dependencies["missing"] = true
 
-	_, err := CalculateMaxDependencyDepth(context.Background(), graph)
+	_, err := AnalyzeDependencyTopology(context.Background(), graph, 0)
 
 	require.ErrorContains(t, err, `module "entry" depends on unknown module "missing"`)
 }
@@ -98,22 +85,7 @@ func TestCouplingMetricsHonorsCancellation(t *testing.T) {
 	assert.Zero(t, graph.SystemMetrics.TotalModules)
 }
 
-func TestFindLongestDependencyChainsReturnsActualLongestPath(t *testing.T) {
-	graph := dependencyGraphWithModules("entry", "left", "right", "leaf")
-	graph.AddDependency("entry", "left", DependencyEdgeImport, nil)
-	graph.AddDependency("entry", "right", DependencyEdgeImport, nil)
-	graph.AddDependency("left", "leaf", DependencyEdgeImport, nil)
-	graph.AddDependency("right", "leaf", DependencyEdgeImport, nil)
-
-	chains, err := FindLongestDependencyChains(context.Background(), graph, 2)
-
-	require.NoError(t, err)
-	require.Len(t, chains, 2)
-	assert.Equal(t, []string{"entry", "left", "leaf"}, chains[0].Path)
-	assert.Equal(t, []string{"entry", "right", "leaf"}, chains[1].Path)
-}
-
-func TestFindLongestDependencyChainsRanksDeepBranchAfterShallowBranches(t *testing.T) {
+func TestAnalyzeDependencyTopologyRanksDeepBranchAfterShallowBranches(t *testing.T) {
 	moduleNames := []string{"root", "z_deep", "z_middle", "z_leaf"}
 	for index := 0; index < 10; index++ {
 		moduleNames = append(moduleNames, fmt.Sprintf("a_shallow_%02d", index))
@@ -131,28 +103,36 @@ func TestFindLongestDependencyChainsRanksDeepBranchAfterShallowBranches(t *testi
 	graph.AddDependency("z_deep", "z_middle", DependencyEdgeImport, nil)
 	graph.AddDependency("z_middle", "z_leaf", DependencyEdgeImport, nil)
 
-	chains, err := FindLongestDependencyChains(context.Background(), graph, 10)
+	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 10)
 
 	require.NoError(t, err)
-	require.NotEmpty(t, chains)
-	assert.Equal(t, []string{"root", "z_deep", "z_middle", "z_leaf"}, chains[0].Path)
+	require.NotEmpty(t, topology.LongestChains)
+	assert.Equal(
+		t,
+		[]string{"root", "z_deep", "z_middle", "z_leaf"},
+		topology.LongestChains[0].Path,
+	)
 }
 
-func TestFindLongestDependencyChainsExpandsCycleComponents(t *testing.T) {
+func TestAnalyzeDependencyTopologyExpandsCycleComponents(t *testing.T) {
 	graph := dependencyGraphWithModules("entry", "cycle_a", "cycle_b", "leaf")
 	graph.AddDependency("entry", "cycle_a", DependencyEdgeImport, nil)
 	graph.AddDependency("cycle_a", "cycle_b", DependencyEdgeImport, nil)
 	graph.AddDependency("cycle_b", "cycle_a", DependencyEdgeImport, nil)
 	graph.AddDependency("cycle_b", "leaf", DependencyEdgeImport, nil)
 
-	chains, err := FindLongestDependencyChains(context.Background(), graph, 1)
+	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 1)
 
 	require.NoError(t, err)
-	require.Len(t, chains, 1)
-	assert.Equal(t, []string{"entry", "cycle_a", "cycle_b", "leaf"}, chains[0].Path)
+	require.Len(t, topology.LongestChains, 1)
+	assert.Equal(
+		t,
+		[]string{"entry", "cycle_a", "cycle_b", "leaf"},
+		topology.LongestChains[0].Path,
+	)
 }
 
-func TestFindLongestDependencyChainsExpandsMultipleCycleComponents(t *testing.T) {
+func TestAnalyzeDependencyTopologyExpandsMultipleCycleComponents(t *testing.T) {
 	graph := dependencyGraphWithModules(
 		"entry",
 		"first_a",
@@ -169,23 +149,23 @@ func TestFindLongestDependencyChainsExpandsMultipleCycleComponents(t *testing.T)
 	graph.AddDependency("second_b", "second_a", DependencyEdgeImport, nil)
 	graph.AddDependency("second_b", "leaf", DependencyEdgeImport, nil)
 
-	chains, err := FindLongestDependencyChains(context.Background(), graph, 1)
+	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 1)
 
 	require.NoError(t, err)
-	require.Len(t, chains, 1)
+	require.Len(t, topology.LongestChains, 1)
 	assert.Equal(
 		t,
 		[]string{"entry", "first_a", "first_b", "second_a", "second_b", "leaf"},
-		chains[0].Path,
+		topology.LongestChains[0].Path,
 	)
 }
 
-func TestFindLongestDependencyChainsHonorsCancellation(t *testing.T) {
+func TestAnalyzeDependencyTopologyChainSearchHonorsCancellation(t *testing.T) {
 	graph := dependencyGraphWithModules("module")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := FindLongestDependencyChains(ctx, graph, 1)
+	_, err := AnalyzeDependencyTopology(ctx, graph, 1)
 
 	require.ErrorIs(t, err, context.Canceled)
 }

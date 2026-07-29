@@ -73,17 +73,6 @@ func AnalyzeDependencyTopology(
 	}, nil
 }
 
-// CalculateMaxDependencyDepth returns the maximum number of edges between
-// strongly connected components in the dependency graph. Modules in a cycle
-// form one component because circular dependencies are reported separately.
-func CalculateMaxDependencyDepth(ctx context.Context, graph *DependencyGraph) (int, error) {
-	topology, err := AnalyzeDependencyTopology(ctx, graph, 0)
-	if err != nil {
-		return 0, fmt.Errorf("analyze dependency topology: %w", err)
-	}
-	return topology.MaxDepth, nil
-}
-
 func calculateMaxDependencyDepth(
 	ctx context.Context,
 	condensed *condensedDependencyGraph,

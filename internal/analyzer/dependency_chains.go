@@ -12,21 +12,6 @@ type componentPath struct {
 	length    int
 }
 
-// FindLongestDependencyChains returns the longest paths through the
-// SCC-condensed dependency graph. The result is bounded by limit and ordered
-// by component depth, then lexicographically for deterministic ties.
-func FindLongestDependencyChains(
-	ctx context.Context,
-	graph *DependencyGraph,
-	limit int,
-) ([]DependencyChain, error) {
-	topology, err := AnalyzeDependencyTopology(ctx, graph, limit)
-	if err != nil {
-		return nil, fmt.Errorf("analyze dependency topology: %w", err)
-	}
-	return topology.LongestChains, nil
-}
-
 func findLongestDependencyChains(
 	ctx context.Context,
 	graph *DependencyGraph,
