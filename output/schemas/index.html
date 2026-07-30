@@ -5047,7 +5047,7 @@
 <tr>
 <td><code>deps_max_depth</code></td>
 <td>integer</td>
-<td>Longest dependency chain length.</td>
+<td>Longest load-time SCC-condensed dependency path, counted in edges.</td>
 </tr>
 <tr>
 <td><code>deps_main_sequence_deviation</code></td>
@@ -6621,12 +6621,12 @@
 <tr>
 <td><code>LongestChains</code></td>
 <td>array</td>
-<td>Array of <code>DependencyPath</code> objects.</td>
+<td>Top load-time SCC-condensed paths, expanded to real module dependency paths.</td>
 </tr>
 <tr>
 <td><code>MaxDepth</code></td>
 <td>integer</td>
-<td>Maximum dependency depth.</td>
+<td>Maximum load-time SCC-condensed dependency depth, counted in edges.</td>
 </tr>
 </tbody>
 </table>
