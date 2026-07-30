@@ -368,8 +368,8 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 		}, nil
 	}
 
-	// Circular-import reporting excludes lazy imports, while structural
-	// topology intentionally includes every dependency edge.
+	// Circular-import reporting and structural topology share the same
+	// load-time dependency contract. Other analyses retain lazy runtime edges.
 	circularDetector := analyzer.NewCircularDependencyDetector(graph)
 	circularResult := circularDetector.DetectCircularDependencies()
 	if err := ctx.Err(); err != nil {

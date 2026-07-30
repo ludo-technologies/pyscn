@@ -42,6 +42,33 @@ func TestAnalyzeDependencyTopologyCollapsesCycles(t *testing.T) {
 	assert.Equal(t, 2, topology.MaxDepth())
 }
 
+func TestAnalyzeDependencyTopologyExcludesLazyImports(t *testing.T) {
+	graph := dependencyGraphWithModules("entry", "dependency")
+	graph.AddDependency("entry", "dependency", DependencyEdgeImport, nil)
+	graph.AddDependency(
+		"dependency",
+		"entry",
+		DependencyEdgeFromImport,
+		&ImportInfo{IsLazy: true},
+	)
+
+	cycles := NewCircularDependencyDetector(graph).DetectCircularDependencies()
+	require.False(t, cycles.HasCircularDependencies)
+
+	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 1)
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, topology.MaxDepth())
+	chains := topology.LongestChains()
+	require.Len(t, chains, 1)
+	assert.Equal(t, []string{"entry", "dependency"}, chains[0].Path)
+
+	calculator := NewCouplingMetricsCalculator(graph, DefaultCouplingMetricsOptions())
+	require.NoError(t, calculator.CalculateMetrics(context.Background(), topology))
+	assert.Equal(t, 2, graph.SystemMetrics.TotalDependencies)
+	assert.Equal(t, 1, graph.SystemMetrics.MaxDependencyDepth)
+}
+
 func TestAnalyzeDependencyTopologyHonorsCancellation(t *testing.T) {
 	graph := dependencyGraphWithModules("module")
 	ctx, cancel := context.WithCancel(context.Background())
@@ -107,6 +134,26 @@ func TestCouplingMetricsRejectsStaleTopology(t *testing.T) {
 	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 0)
 	require.NoError(t, err)
 	graph.AddDependency("entry", "leaf", DependencyEdgeImport, nil)
+
+	calculator := NewCouplingMetricsCalculator(graph, DefaultCouplingMetricsOptions())
+	err = calculator.CalculateMetrics(context.Background(), topology)
+
+	require.ErrorContains(t, err, "dependency graph changed after topology analysis")
+	assert.Empty(t, graph.ModuleMetrics)
+}
+
+func TestCouplingMetricsRejectsTopologyAfterLazyImportPromotion(t *testing.T) {
+	graph := dependencyGraphWithModules("entry", "dependency")
+	graph.AddDependency(
+		"entry",
+		"dependency",
+		DependencyEdgeImport,
+		&ImportInfo{IsLazy: true},
+	)
+	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 0)
+	require.NoError(t, err)
+
+	graph.AddDependency("entry", "dependency", DependencyEdgeImport, nil)
 
 	calculator := NewCouplingMetricsCalculator(graph, DefaultCouplingMetricsOptions())
 	err = calculator.CalculateMetrics(context.Background(), topology)

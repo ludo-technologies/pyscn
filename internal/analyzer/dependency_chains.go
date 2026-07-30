@@ -163,7 +163,8 @@ func findComponentPath(
 
 		dependencies := make([]string, 0, len(graph.Nodes[current].Dependencies))
 		for dependency := range graph.Nodes[current].Dependencies {
-			if componentByModule[dependency] == component {
+			if graph.Nodes[current].hasLoadTimeDependency(dependency) &&
+				componentByModule[dependency] == component {
 				dependencies = append(dependencies, dependency)
 			}
 		}

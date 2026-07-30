@@ -17,17 +17,17 @@ type condensedDependencyGraph struct {
 	inDegree          []int
 }
 
-// DependencyTopology is the canonical structural analysis of one dependency
-// graph. MaxDepth and LongestChains share the same SCC condensation. A result
-// belongs to the exact graph instance passed to AnalyzeDependencyTopology.
-// Structural mutations through AddModule or AddDependency invalidate it;
-// directly mutating DependencyGraph storage is unsupported.
+// DependencyTopology is the canonical load-time structural analysis of one
+// dependency graph. MaxDepth and LongestChains share the same SCC condensation.
+// A result belongs to the exact graph instance passed to
+// AnalyzeDependencyTopology. Structural mutations through AddModule or
+// AddDependency invalidate it; directly mutating DependencyGraph storage is
+// unsupported.
 type DependencyTopology struct {
 	maxDepth      int
 	longestChains []DependencyChain
 	graph         *DependencyGraph
-	totalModules  int
-	totalEdges    int
+	graphRevision uint64
 }
 
 // MaxDepth returns the maximum number of edges between SCCs.
@@ -45,8 +45,9 @@ func (topology *DependencyTopology) LongestChains() []DependencyChain {
 	return chains
 }
 
-// AnalyzeDependencyTopology condenses a dependency graph and calculates its
-// maximum depth and globally ranked chains from one shared SCC condensation.
+// AnalyzeDependencyTopology condenses the graph's load-time dependencies and
+// calculates maximum depth and globally ranked chains from one shared SCC
+// condensation. Lazy-only imports remain available to other graph analyses.
 func AnalyzeDependencyTopology(
 	ctx context.Context,
 	graph *DependencyGraph,
@@ -89,8 +90,7 @@ func AnalyzeDependencyTopology(
 		maxDepth:      maxDepth,
 		longestChains: longestChains,
 		graph:         graph,
-		totalModules:  graph.TotalModules,
-		totalEdges:    graph.TotalEdges,
+		graphRevision: graph.topologyRevision,
 	}, nil
 }
 
@@ -150,6 +150,9 @@ func buildCondensedDependencyGraph(
 		}
 		fromComponent := componentByModule[moduleName]
 		for dependency := range node.Dependencies {
+			if !node.hasLoadTimeDependency(dependency) {
+				continue
+			}
 			toComponent := componentByModule[dependency]
 			if fromComponent == toComponent {
 				continue
@@ -254,6 +257,9 @@ func dependencyComponents(
 					moduleName,
 					dependency,
 				)
+			}
+			if !node.hasLoadTimeDependency(dependency) {
+				continue
 			}
 
 			dependencyIndex, visited := indexByModule[dependency]

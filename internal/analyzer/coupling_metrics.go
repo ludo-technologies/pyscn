@@ -79,8 +79,7 @@ func (calc *CouplingMetricsCalculator) CalculateMetrics(
 	if topology.graph != calc.graph {
 		return fmt.Errorf("calculate coupling metrics: dependency topology belongs to another graph")
 	}
-	if topology.totalModules != calc.graph.TotalModules ||
-		topology.totalEdges != calc.graph.TotalEdges {
+	if topology.graphRevision != calc.graph.topologyRevision {
 		return fmt.Errorf("calculate coupling metrics: dependency graph changed after topology analysis")
 	}
 
