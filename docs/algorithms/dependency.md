@@ -198,13 +198,16 @@ The system generates actionable refactoring suggestions:
 
 ## Dependency Depth Analysis
 
-Dependency depth measures the length of the longest chain of transitive dependencies starting from any module.
+Dependency depth measures the length of the longest chain of load-time
+dependencies starting from any module. Lazy function and method imports remain
+part of coupling, dependency-matrix, and architecture analysis, but are excluded
+from topology because they cannot form module-load cycles.
 
 ### Calculation
 
-The analyzer first condenses every strongly connected component (SCC) into one
-node. It then calculates the longest path through the resulting directed
-acyclic graph in a single topological pass.
+The analyzer first condenses every strongly connected component (SCC) in the
+load-time dependency graph into one node. It then calculates the longest path
+through the resulting directed acyclic graph in a single topological pass.
 
 ```
 components = stronglyConnectedComponents(dependencyGraph)
@@ -342,7 +345,7 @@ The `SystemMetrics` struct aggregates module-level metrics into project-wide ind
 | Average Abstractness | sum(A) / N | System-wide average abstractness |
 | Main Sequence Deviation | sum(D) / N | Average distance from main sequence |
 | Cyclic Dependencies | count of modules in SCCs | Number of modules involved in cycles |
-| Max Dependency Depth | longest SCC-DAG path in edges | Maximum transitive dependency depth |
+| Max Dependency Depth | longest load-time SCC-DAG path in edges | Maximum transitive dependency depth |
 
 ### Modularity Index
 

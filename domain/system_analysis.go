@@ -119,8 +119,8 @@ type DependencyAnalysisResult struct {
 	CouplingAnalysis *CouplingAnalysis // Detailed coupling analysis
 
 	// Dependency chains
-	LongestChains []DependencyPath // Longest paths through the SCC-condensed dependency graph
-	MaxDepth      int              // Maximum SCC-condensed dependency depth in edges
+	LongestChains []DependencyPath // Longest paths through the load-time SCC-condensed dependency graph
+	MaxDepth      int              // Maximum load-time SCC-condensed dependency depth in edges
 }
 
 // ModuleDependencyMetrics contains dependency metrics for a single module
