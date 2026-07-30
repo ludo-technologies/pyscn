@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestExtractCouplingResult_VariesWithGraphs(t *testing.T) {
+func TestCouplingMetricsVaryWithGraphs(t *testing.T) {
 	tests := []struct {
 		name          string
 		setupGraph    func() *analyzer.DependencyGraph
@@ -28,10 +29,7 @@ func TestExtractCouplingResult_VariesWithGraphs(t *testing.T) {
 				graph.AddDependency("moduleA", "moduleB", analyzer.DependencyEdgeImport, nil)
 				graph.AddDependency("moduleB", "moduleC", analyzer.DependencyEdgeImport, nil)
 
-				// Calculate metrics
-				calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-				err := calculator.CalculateMetrics()
-				require.NoError(t, err)
+				calculateCouplingMetrics(t, graph)
 
 				return graph
 			},
@@ -69,10 +67,7 @@ func TestExtractCouplingResult_VariesWithGraphs(t *testing.T) {
 				detector := analyzer.NewCircularDependencyDetector(graph)
 				detector.DetectCircularDependencies()
 
-				// Calculate metrics
-				calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-				err := calculator.CalculateMetrics()
-				require.NoError(t, err)
+				calculateCouplingMetrics(t, graph)
 
 				return graph
 			},
@@ -108,10 +103,7 @@ func TestExtractCouplingResult_VariesWithGraphs(t *testing.T) {
 				// Inter-package dependency (less good)
 				graph.AddDependency("packageA.module1", "packageB.module1", analyzer.DependencyEdgeImport, nil)
 
-				// Calculate metrics
-				calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-				err := calculator.CalculateMetrics()
-				require.NoError(t, err)
+				calculateCouplingMetrics(t, graph)
 
 				return graph
 			},
@@ -127,22 +119,16 @@ func TestExtractCouplingResult_VariesWithGraphs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup
-			service := &SystemAnalysisServiceImpl{}
 			graph := tt.setupGraph()
 
-			// Extract metrics
-			result := service.extractCouplingResult(graph)
-
-			// Verify metrics
+			result := graph.SystemMetrics
 			require.NotNil(t, result)
 			tt.expectedCheck(t, result)
 		})
 	}
 }
 
-func TestExtractCouplingResult_UsesCalculatedMetrics(t *testing.T) {
-	service := &SystemAnalysisServiceImpl{}
+func TestCouplingMetricsPopulatesGraphMetrics(t *testing.T) {
 	graph := analyzer.NewDependencyGraph("/test/project")
 
 	// Add some modules
@@ -154,16 +140,9 @@ func TestExtractCouplingResult_UsesCalculatedMetrics(t *testing.T) {
 	graph.AddDependency("module1", "module2", analyzer.DependencyEdgeImport, nil)
 	graph.AddDependency("module2", "module3", analyzer.DependencyEdgeImport, nil)
 
-	// Calculate metrics using CouplingMetricsCalculator
-	calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-	err := calculator.CalculateMetrics()
-	require.NoError(t, err)
+	calculateCouplingMetrics(t, graph)
 
-	// Extract results
-	result := service.extractCouplingResult(graph)
-
-	// Verify it uses the calculated SystemMetrics
-	assert.Equal(t, graph.SystemMetrics, result)
+	result := graph.SystemMetrics
 	assert.NotNil(t, result)
 	assert.Equal(t, 3, result.TotalModules)
 	assert.Equal(t, 2, result.TotalDependencies)
@@ -205,9 +184,7 @@ func TestExtractCouplingResult_ClassifiesMainSequenceZones(t *testing.T) {
 	graph.AddDependency("balanced.client", "balanced.service", analyzer.DependencyEdgeImport, nil)
 	graph.AddDependency("balanced.service", "balanced.dep", analyzer.DependencyEdgeImport, nil)
 
-	calculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-	err := calculator.CalculateMetrics()
-	require.NoError(t, err)
+	calculateCouplingMetrics(t, graph)
 
 	result := service.convertCouplingResults(graph.SystemMetrics)
 	require.NotNil(t, result)
@@ -221,16 +198,12 @@ func TestExtractCouplingResult_ClassifiesMainSequenceZones(t *testing.T) {
 	assert.NotContains(t, result.ZoneOfPain, "balanced.dep")
 }
 
-func TestExtractCouplingResult_DifferentGraphsProduceDifferentMetrics(t *testing.T) {
-	service := &SystemAnalysisServiceImpl{}
-
+func TestCouplingMetricsDifferBetweenGraphs(t *testing.T) {
 	// Graph 1: Low complexity
 	graph1 := analyzer.NewDependencyGraph("/test/project1")
 	graph1.AddModule("simple", "/test/simple.py")
-	calculator1 := analyzer.NewCouplingMetricsCalculator(graph1, analyzer.DefaultCouplingMetricsOptions())
-	err := calculator1.CalculateMetrics()
-	require.NoError(t, err)
-	metrics1 := service.extractCouplingResult(graph1)
+	calculateCouplingMetrics(t, graph1)
+	metrics1 := graph1.SystemMetrics
 
 	// Graph 2: Higher complexity
 	graph2 := analyzer.NewDependencyGraph("/test/project2")
@@ -242,10 +215,8 @@ func TestExtractCouplingResult_DifferentGraphsProduceDifferentMetrics(t *testing
 			graph2.AddDependency(fmt.Sprintf("module%d", i-1), moduleName, analyzer.DependencyEdgeImport, nil)
 		}
 	}
-	calculator2 := analyzer.NewCouplingMetricsCalculator(graph2, analyzer.DefaultCouplingMetricsOptions())
-	err = calculator2.CalculateMetrics()
-	require.NoError(t, err)
-	metrics2 := service.extractCouplingResult(graph2)
+	calculateCouplingMetrics(t, graph2)
+	metrics2 := graph2.SystemMetrics
 
 	// Verify metrics are different
 	assert.NotEqual(t, metrics1.TotalModules, metrics2.TotalModules)
@@ -258,4 +229,16 @@ func TestExtractCouplingResult_DifferentGraphsProduceDifferentMetrics(t *testing
 	assert.Greater(t, metrics2.TotalDependencies, metrics1.TotalDependencies)
 	assert.Greater(t, metrics2.SystemComplexity, metrics1.SystemComplexity)
 	assert.GreaterOrEqual(t, metrics2.MaxDependencyDepth, metrics1.MaxDependencyDepth)
+}
+
+func calculateCouplingMetrics(t *testing.T, graph *analyzer.DependencyGraph) {
+	t.Helper()
+
+	topology, err := analyzer.AnalyzeDependencyTopology(context.Background(), graph, 0)
+	require.NoError(t, err)
+	calculator := analyzer.NewCouplingMetricsCalculator(
+		graph,
+		analyzer.DefaultCouplingMetricsOptions(),
+	)
+	require.NoError(t, calculator.CalculateMetrics(context.Background(), topology))
 }

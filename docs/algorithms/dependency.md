@@ -198,25 +198,41 @@ The system generates actionable refactoring suggestions:
 
 ## Dependency Depth Analysis
 
-Dependency depth measures the length of the longest chain of transitive dependencies starting from any module.
+Dependency depth measures the length of the longest chain of load-time
+dependencies starting from any module. Lazy function and method imports remain
+part of coupling, dependency-matrix, and architecture analysis, but are excluded
+from topology because they cannot form module-load cycles.
 
 ### Calculation
 
-The algorithm performs a recursive DFS from each root module (modules with `OutDegree == 0`), tracking the maximum depth reached. Cycles are handled by maintaining a visited set to prevent infinite recursion.
+The analyzer first condenses every strongly connected component (SCC) in the
+load-time dependency graph into one node. It then calculates the longest path
+through the resulting directed acyclic graph in a single topological pass.
 
 ```
-function findMaxDepthFrom(module, visited):
-    if module in visited: return 0
-    visited.add(module)
+components = stronglyConnectedComponents(dependencyGraph)
+dag = condense(dependencyGraph, components)
+depth = zeroes(len(components))
 
-    maxChildDepth = 0
-    for each dependency of module:
-        childDepth = findMaxDepthFrom(dependency, visited)
-        maxChildDepth = max(maxChildDepth, childDepth)
+for component in topologicalOrder(dag):
+    for dependency in dag.dependencies(component):
+        depth[dependency] = max(depth[dependency], depth[component] + 1)
 
-    visited.remove(module)
-    return maxChildDepth + 1
+maxDepth = max(depth)
 ```
+
+Depth counts edges between components. A project with one module has depth
+zero; `A -> B -> C` has depth two. Modules in a cycle form one component
+because the circular dependency is reported separately. The calculation is
+`O(V + E)` in the number of modules and dependencies.
+
+Longest-chain reporting uses the same condensed DAG. A bounded dynamic program
+keeps the top paths from each component, so the reported top 10 are ranked
+globally rather than selected by traversal order. Component transitions are
+expanded back into real module-to-module dependency paths. When a path crosses
+a cyclic component, the analyzer uses a deterministic internal path between
+the incoming and outgoing modules. Coupling metrics consume the same topology
+result instead of rebuilding or traversing the dependency graph again.
 
 ### Expected Depth
 
@@ -329,7 +345,7 @@ The `SystemMetrics` struct aggregates module-level metrics into project-wide ind
 | Average Abstractness | sum(A) / N | System-wide average abstractness |
 | Main Sequence Deviation | sum(D) / N | Average distance from main sequence |
 | Cyclic Dependencies | count of modules in SCCs | Number of modules involved in cycles |
-| Max Dependency Depth | longest chain length | Maximum transitive dependency depth |
+| Max Dependency Depth | longest load-time SCC-DAG path in edges | Maximum transitive dependency depth |
 
 ### Modularity Index
 
