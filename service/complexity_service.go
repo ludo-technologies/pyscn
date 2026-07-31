@@ -74,7 +74,11 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 
 	// Generate summary over the complete population so min_complexity only
 	// affects which functions are displayed, not the aggregate metrics.
-	summary := s.generateSummary(allFunctions, len(sortedFunctions), filesProcessed, req, functionsParsed)
+	summary := s.generateSummary(allFunctions, complexitySummaryCounts{
+		reportedFunctions: len(sortedFunctions),
+		filesAnalyzed:     filesProcessed,
+		functionsParsed:   functionsParsed,
+	})
 	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
 
 	return &domain.ComplexityResponse{
@@ -135,7 +139,11 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
 	filteredFunctions, functionsParsed := s.filterFunctions(allFunctions, req)
 	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
-	summary := s.generateSummary(allFunctions, len(sortedFunctions), filesProcessed, req, functionsParsed)
+	summary := s.generateSummary(allFunctions, complexitySummaryCounts{
+		reportedFunctions: len(sortedFunctions),
+		filesAnalyzed:     filesProcessed,
+		functionsParsed:   functionsParsed,
+	})
 	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
 
 	return &domain.ComplexityResponse{
@@ -358,18 +366,24 @@ func (s *ComplexityServiceImpl) sortByRisk(functions []domain.FunctionComplexity
 	})
 }
 
+// complexitySummaryCounts carries the labeled counts for generateSummary so
+// call sites cannot transpose them.
+type complexitySummaryCounts struct {
+	reportedFunctions int // post-filter count of functions included in the output
+	filesAnalyzed     int
+	functionsParsed   int // pre-filter count (all functions parsed before min_complexity filtering)
+}
+
 // generateSummary creates summary statistics.
 // functions must be the complete analyzer population: min_complexity and
 // report_unchanged are presentation filters, so averages, distribution, and
 // risk counts stay stable regardless of what is displayed.
-// reportedFunctions is the post-filter count of functions included in the output.
-// functionsParsed is the pre-filter function count (all functions parsed before min_complexity filtering).
-func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionComplexity, reportedFunctions int, filesAnalyzed int, req domain.ComplexityRequest, functionsParsed int) domain.ComplexitySummary {
+func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionComplexity, counts complexitySummaryCounts) domain.ComplexitySummary {
 	if len(functions) == 0 {
 		return domain.ComplexitySummary{
-			TotalFunctions:  reportedFunctions,
-			FilesAnalyzed:   filesAnalyzed,
-			FunctionsParsed: functionsParsed,
+			TotalFunctions:  counts.reportedFunctions,
+			FilesAnalyzed:   counts.filesAnalyzed,
+			FunctionsParsed: counts.functionsParsed,
 		}
 	}
 
@@ -414,14 +428,14 @@ func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionCompl
 	avgNestingDepth := float64(totalNestingDepth) / float64(len(functions))
 
 	return domain.ComplexitySummary{
-		TotalFunctions:             reportedFunctions,
-		FunctionsParsed:            functionsParsed,
+		TotalFunctions:             counts.reportedFunctions,
+		FunctionsParsed:            counts.functionsParsed,
 		AverageComplexity:          avgComplexity,
 		AverageCognitiveComplexity: avgCognitiveComplexity,
 		AverageNestingDepth:        avgNestingDepth,
 		MaxComplexity:              maxComplexity,
 		MinComplexity:              minComplexity,
-		FilesAnalyzed:              filesAnalyzed,
+		FilesAnalyzed:              counts.filesAnalyzed,
 		LowRiskFunctions:           lowCount,
 		MediumRiskFunctions:        mediumCount,
 		HighRiskFunctions:          highCount,
