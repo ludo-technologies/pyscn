@@ -522,7 +522,7 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 
 	t.Run("generate summary with functions", func(t *testing.T) {
 		req := domain.ComplexityRequest{}
-		summary := service.generateSummary(functions, 2, req, 3)
+		summary := service.generateSummary(functions, 3, 2, req, 3)
 
 		assert.Equal(t, 3, summary.TotalFunctions)
 		assert.Equal(t, 3, summary.FunctionsParsed)
@@ -540,7 +540,7 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 
 	t.Run("generate summary with no functions", func(t *testing.T) {
 		req := domain.ComplexityRequest{}
-		summary := service.generateSummary([]domain.FunctionComplexity{}, 5, req, 0)
+		summary := service.generateSummary([]domain.FunctionComplexity{}, 0, 5, req, 0)
 
 		assert.Equal(t, 0, summary.TotalFunctions)
 		assert.Equal(t, 0, summary.FunctionsParsed)
@@ -559,10 +559,12 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 
 		req := domain.ComplexityRequest{MinComplexity: 5}
 		filtered, functionsParsed := service.filterFunctions(allFunctions, req)
-		summary := service.generateSummary(filtered, 1, req, functionsParsed)
+		summary := service.generateSummary(allFunctions, len(filtered), 1, req, functionsParsed)
 
 		assert.Equal(t, 1, summary.TotalFunctions, "post-filter count is 1")
 		assert.Equal(t, 3, summary.FunctionsParsed, "pre-filter total is 3 (2 dropped by min_complexity=5)")
+		assert.InDelta(t, 11.0/3.0, summary.AverageComplexity, 1e-9, "average is over all parsed functions, not the filtered set")
+		assert.Equal(t, 1, summary.MinComplexity, "min reflects the complete population")
 	})
 }
 

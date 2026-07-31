@@ -220,7 +220,9 @@ type RawMetricsSummary struct {
 	CommentRatio   float64 `json:"comment_ratio" yaml:"comment_ratio"`
 }
 
-// ComplexitySummary represents aggregate statistics
+// ComplexitySummary represents aggregate statistics.
+// Averages, min/max, risk counts, and the distribution are computed over every
+// analyzed function; min_complexity only limits which functions are reported.
 type ComplexitySummary struct {
 	// TotalFunctions is the post-filter count (functions included in results after min_complexity filtering).
 	TotalFunctions int
