@@ -153,6 +153,67 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.Greater(t, baseline.ModuleRollups[filePath].AnalyzedFunctionCount, len(filtered.Functions))
 	})
 
+	t.Run("summary aggregates ignore min_complexity across entrypoints", func(t *testing.T) {
+		tempDir := t.TempDir()
+		filePath := tempDir + "/mixed.py"
+		content := []byte(`def trivial():
+    return 1
+
+
+def small(flag):
+    if flag:
+        return 1
+    return 0
+
+
+def branchy(x):
+    if x > 3:
+        return 4
+    elif x > 2:
+        return 3
+    elif x > 1:
+        return 2
+    elif x > 0:
+        return 1
+    return 0
+`)
+		require.NoError(t, os.WriteFile(filePath, content, 0644))
+
+		baselineReq := newDefaultComplexityRequest(filePath)
+		baselineReq.MinComplexity = 1
+		baselineReq.ReportUnchanged = domain.BoolPtr(true)
+		filteredReq := newDefaultComplexityRequest(filePath)
+		filteredReq.MinComplexity = 5
+		filteredReq.ReportUnchanged = domain.BoolPtr(true)
+
+		baseline, err := service.Analyze(ctx, baselineReq)
+		require.NoError(t, err)
+		filtered, err := service.Analyze(ctx, filteredReq)
+		require.NoError(t, err)
+
+		require.NotEmpty(t, filtered.Functions, "at least one function must survive min_complexity=5")
+		require.Less(t, len(filtered.Functions), len(baseline.Functions), "min_complexity=5 must drop the trivial functions")
+		assert.Equal(t, len(baseline.Functions), baseline.Summary.TotalFunctions)
+		assert.Equal(t, len(filtered.Functions), filtered.Summary.TotalFunctions)
+
+		// Only the reported function count may react to min_complexity; every
+		// aggregate metric must be computed over the complete population.
+		normalized := filtered.Summary
+		normalized.TotalFunctions = baseline.Summary.TotalFunctions
+		assert.Equal(t, baseline.Summary, normalized, "raising min_complexity must not change summary aggregates")
+
+		snapshot := BuildProjectSnapshot(ctx, []string{filePath})
+		baselineSnap, err := service.AnalyzeSnapshot(ctx, snapshot, baselineReq)
+		require.NoError(t, err)
+		filteredSnap, err := service.AnalyzeSnapshot(ctx, snapshot, filteredReq)
+		require.NoError(t, err)
+
+		assert.Equal(t, baseline.Summary, baselineSnap.Summary, "snapshot path must produce the same summary as Analyze")
+		normalizedSnap := filteredSnap.Summary
+		normalizedSnap.TotalFunctions = baselineSnap.Summary.TotalFunctions
+		assert.Equal(t, baselineSnap.Summary, normalizedSnap, "raising min_complexity must not change snapshot summary aggregates")
+	})
+
 	t.Run("public metrics use literal statement counts", func(t *testing.T) {
 		tempDir := t.TempDir()
 		filePath := tempDir + "/literal_counts.py"
