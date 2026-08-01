@@ -236,15 +236,13 @@ func couplingStdDev(graph *analyzer.DependencyGraph, mean float64, fanIn bool) f
 	return math.Sqrt(sum / float64(len(graph.Nodes)))
 }
 
+// inferResponsibilities derives a module's dependency concerns from its
+// outgoing dependencies only. Incoming edges (dependents) measure reuse, not
+// responsibility: counting them would penalize widely imported leaf modules (#693).
 func inferResponsibilities(module string, node *analyzer.ModuleNode) []string {
 	labels := make(map[string]bool)
 	for dependency := range node.Dependencies {
 		if label := concernLabel(module, dependency); label != "" {
-			labels[label] = true
-		}
-	}
-	for dependent := range node.Dependents {
-		if label := concernLabel(module, dependent); label != "" {
 			labels[label] = true
 		}
 	}

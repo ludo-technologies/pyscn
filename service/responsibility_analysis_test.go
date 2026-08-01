@@ -45,6 +45,34 @@ func TestAnalyzeResponsibilityDetectsHubModule(t *testing.T) {
 	assert.Equal(t, domain.ViolationSeverityError, violations[0].Severity)
 }
 
+// Regression for #693: a dependency-free leaf module must not be flagged as
+// mixing concerns just because many modules import it (fan-in is reuse, not
+// responsibility).
+func TestAnalyzeResponsibilityIgnoresFanInForLeafModules(t *testing.T) {
+	service := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/test/project")
+
+	importers := []string{
+		"app.api.views",
+		"app.auth.policy",
+		"app.billing.invoice",
+		"app.reporting.export",
+	}
+	graph.AddModule("app.errors", "/test/project/app/errors.py")
+	for _, module := range importers {
+		graph.AddModule(module, "/test/project/"+module+".py")
+		graph.AddDependency(module, "app.errors", analyzer.DependencyEdgeImport, nil)
+	}
+
+	responsibility, _, violations := service.analyzeResponsibility(graph, defaultResponsibilityOptions())
+
+	require.NotNil(t, responsibility)
+	assert.Empty(t, responsibility.SRPViolations)
+	assert.Empty(t, responsibility.OverloadedModules)
+	assert.Empty(t, violations)
+	assert.Empty(t, responsibility.ModuleResponsibilities["app.errors"])
+}
+
 func TestAnalyzeResponsibilityKeepsCohesivePackageClean(t *testing.T) {
 	service := NewSystemAnalysisService()
 	graph := analyzer.NewDependencyGraph("/test/project")
