@@ -129,12 +129,14 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		args = []string{"."}
 	}
 
-	// Resolve the current configuration discovery result once and load it
-	// explicitly. This preserves check's existing cwd-based discovery while
-	// ensuring a discovered but malformed config fails the quality gate instead
-	// of being silently replaced with defaults by individual loaders.
+	// Resolve the configuration discovery result once and load it explicitly.
+	// Discovery starts at the analyzed target - not the working directory - so
+	// checking a repository nested in another working tree cannot pick up the
+	// outer project's config (issue #666). Loading here also ensures a
+	// discovered but malformed config fails the quality gate instead of being
+	// silently replaced with defaults by individual loaders.
 	originalConfigFile := c.configFile
-	resolvedConfigFile, err := resolveCheckConfig(c.configFile)
+	resolvedConfigFile, err := resolveCheckConfig(c.configFile, getTargetPathFromArgs(args))
 	if err != nil {
 		return err
 	}
@@ -263,9 +265,9 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func resolveCheckConfig(configPath string) (string, error) {
+func resolveCheckConfig(configPath string, targetPath string) (string, error) {
 	loader := internalconfig.NewTomlConfigLoader()
-	resolvedPath, err := loader.ResolveConfigPath(configPath, "")
+	resolvedPath, err := loader.ResolveConfigPath(configPath, targetPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve configuration: %w", err)
 	}

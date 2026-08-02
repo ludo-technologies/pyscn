@@ -19,7 +19,7 @@ func TestNewConfigurationLoader(t *testing.T) {
 func TestConfigurationLoader_LoadDefaultConfig(t *testing.T) {
 	loader := NewConfigurationLoader()
 
-	req := loader.LoadDefaultConfig()
+	req := loader.LoadDefaultConfig("")
 	require.NotNil(t, req)
 
 	// Verify default values are set
@@ -344,7 +344,7 @@ func TestConfigurationLoader_FindDefaultConfigFile(t *testing.T) {
 	loader := NewConfigurationLoader()
 
 	// In a directory without config file
-	result := loader.FindDefaultConfigFile()
+	result := loader.FindDefaultConfigFile("")
 	// Result depends on current working directory
 	// Just verify it returns a string (empty or path)
 	assert.IsType(t, "", result)
@@ -410,4 +410,35 @@ func TestConfigurationLoader_CreateConfigTemplate(t *testing.T) {
 	// Verify file was created
 	_, err = os.Stat(configPath)
 	assert.NoError(t, err)
+}
+
+// leakedMaxComplexity is a value no built-in default uses, so seeing it in a
+// loaded request proves the ancestor config was applied.
+const leakedMaxComplexity = 3
+
+// TestConfigurationLoader_LoadDefaultConfigDiscoversFromTarget pins discovery to
+// the analyzed path. Running from a project that has its own config must not
+// apply that config to a repository nested inside it (issue #666).
+func TestConfigurationLoader_LoadDefaultConfigDiscoversFromTarget(t *testing.T) {
+	outerDir := t.TempDir()
+	innerDir := filepath.Join(outerDir, "inner")
+	require.NoError(t, os.MkdirAll(filepath.Join(innerDir, ".git"), 0o755))
+	require.NoError(t, os.WriteFile(
+		filepath.Join(outerDir, ".pyscn.toml"),
+		[]byte("[complexity]\nmax_complexity = 3\n"),
+		0o644,
+	))
+
+	t.Chdir(outerDir)
+	loader := NewConfigurationLoader()
+
+	nested := loader.LoadDefaultConfig(innerDir)
+	require.NotNil(t, nested)
+	assert.NotEqual(t, leakedMaxComplexity, nested.MaxComplexity,
+		"nested checkout must not inherit the outer project's config")
+
+	own := loader.LoadDefaultConfig(outerDir)
+	require.NotNil(t, own)
+	assert.Equal(t, leakedMaxComplexity, own.MaxComplexity,
+		"a project's own config must still be discovered")
 }

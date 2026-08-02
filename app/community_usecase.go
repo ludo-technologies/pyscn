@@ -142,7 +142,7 @@ func (uc *CommunityUseCase) loadAndMergeConfig(req domain.CommunityAnalysisReque
 			return req, fmt.Errorf("failed to load config from %s: %w", req.ConfigPath, err)
 		}
 	} else {
-		configReq = uc.configLoader.LoadDefaultConfig()
+		configReq = uc.configLoader.LoadDefaultConfig(configDiscoveryTarget(req.Paths))
 	}
 
 	if configReq != nil {

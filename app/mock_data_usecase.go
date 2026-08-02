@@ -217,7 +217,7 @@ func (uc *MockDataUseCase) loadAndMergeConfig(req domain.MockDataRequest) (domai
 		}
 	} else {
 		// Try to load default config
-		configReq = uc.configLoader.LoadDefaultConfig()
+		configReq = uc.configLoader.LoadDefaultConfig(configDiscoveryTarget(req.Paths))
 	}
 
 	if configReq != nil {

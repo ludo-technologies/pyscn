@@ -130,8 +130,9 @@ type CBOConfigurationLoader interface {
 	// LoadConfig loads configuration from the specified path
 	LoadConfig(path string) (*CBORequest, error)
 
-	// LoadDefaultConfig loads the default configuration
-	LoadDefaultConfig() *CBORequest
+	// LoadDefaultConfig discovers configuration from targetPath (the analyzed
+	// path) and falls back to built-in defaults when none is found
+	LoadDefaultConfig(targetPath string) *CBORequest
 
 	// MergeConfig merges CLI flags with configuration file
 	MergeConfig(base *CBORequest, override *CBORequest) *CBORequest

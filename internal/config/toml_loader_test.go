@@ -426,6 +426,107 @@ include_patterns = ["quoted"]
 	}
 }
 
+// writeNestedRepo creates <root>/outer/.pyscn.toml plus a nested checkout at
+// <root>/outer/inner marked as its own repository, and returns the inner path.
+func writeNestedRepo(t *testing.T, gitEntryIsDir bool) (root string, ancestorConfig string, inner string) {
+	t.Helper()
+
+	root = t.TempDir()
+	outer := filepath.Join(root, "outer")
+	inner = filepath.Join(outer, "inner")
+	if err := os.MkdirAll(inner, 0o755); err != nil {
+		t.Fatalf("Failed to create nested directories: %v", err)
+	}
+
+	ancestorConfig = filepath.Join(outer, ".pyscn.toml")
+	if err := os.WriteFile(ancestorConfig, []byte("[architecture]\nstrict_mode = true\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write ancestor .pyscn.toml: %v", err)
+	}
+
+	gitEntry := filepath.Join(inner, ".git")
+	if gitEntryIsDir {
+		if err := os.Mkdir(gitEntry, 0o755); err != nil {
+			t.Fatalf("Failed to create .git directory: %v", err)
+		}
+	} else if err := os.WriteFile(gitEntry, []byte("gitdir: /elsewhere/.git/worktrees/inner\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write .git file: %v", err)
+	}
+
+	return root, ancestorConfig, inner
+}
+
+func TestFindConfigFileFromPath_StopsAtNestedRepositoryRoot(t *testing.T) {
+	_, _, inner := writeNestedRepo(t, true)
+
+	found := NewTomlConfigLoader().FindConfigFileFromPath(inner)
+	if found != "" {
+		t.Fatalf("Expected no config for nested checkout, got %s", found)
+	}
+}
+
+func TestFindConfigFileFromPath_StopsAtWorktreeGitFile(t *testing.T) {
+	_, _, inner := writeNestedRepo(t, false)
+
+	found := NewTomlConfigLoader().FindConfigFileFromPath(inner)
+	if found != "" {
+		t.Fatalf("Expected no config for nested worktree, got %s", found)
+	}
+}
+
+func TestFindConfigFileFromPath_UsesNestedRepositoryOwnConfig(t *testing.T) {
+	_, _, inner := writeNestedRepo(t, true)
+
+	ownConfig := filepath.Join(inner, ".pyscn.toml")
+	if err := os.WriteFile(ownConfig, []byte("[architecture]\nstrict_mode = false\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write nested .pyscn.toml: %v", err)
+	}
+
+	found := NewTomlConfigLoader().FindConfigFileFromPath(inner)
+	if found != ownConfig {
+		t.Fatalf("Expected %s, got %s", ownConfig, found)
+	}
+}
+
+func TestFindConfigFileFromPath_StopsAtRepositoryRootForPyproject(t *testing.T) {
+	root := t.TempDir()
+	outer := filepath.Join(root, "outer")
+	inner := filepath.Join(outer, "inner")
+	if err := os.MkdirAll(filepath.Join(inner, ".git"), 0o755); err != nil {
+		t.Fatalf("Failed to create nested directories: %v", err)
+	}
+
+	ancestorConfig := filepath.Join(outer, "pyproject.toml")
+	if err := os.WriteFile(ancestorConfig, []byte("[tool.pyscn.analysis]\ninclude_patterns = [\"ancestor\"]\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write ancestor pyproject.toml: %v", err)
+	}
+
+	found := NewTomlConfigLoader().FindConfigFileFromPath(inner)
+	if found != "" {
+		t.Fatalf("Expected no config for nested checkout, got %s", found)
+	}
+}
+
+func TestFindConfigFileFromPath_FindsConfigAtOwnRepositoryRoot(t *testing.T) {
+	repoRoot := t.TempDir()
+	packageDir := filepath.Join(repoRoot, "src", "package")
+	if err := os.MkdirAll(packageDir, 0o755); err != nil {
+		t.Fatalf("Failed to create package directory: %v", err)
+	}
+	if err := os.Mkdir(filepath.Join(repoRoot, ".git"), 0o755); err != nil {
+		t.Fatalf("Failed to create .git directory: %v", err)
+	}
+
+	repoConfig := filepath.Join(repoRoot, ".pyscn.toml")
+	if err := os.WriteFile(repoConfig, []byte("[architecture]\nstrict_mode = true\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write repository .pyscn.toml: %v", err)
+	}
+
+	found := NewTomlConfigLoader().FindConfigFileFromPath(packageDir)
+	if found != repoConfig {
+		t.Fatalf("Expected %s, got %s", repoConfig, found)
+	}
+}
+
 func TestTomlLoaderPreservesExplicitEmptyAnalysisIncludes(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, ".pyscn.toml")

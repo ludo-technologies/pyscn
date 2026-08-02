@@ -30,9 +30,9 @@ func (c *ConfigurationLoaderImpl) LoadConfig(path string) (*domain.ComplexityReq
 }
 
 // LoadDefaultConfig loads the default configuration, first checking for .pyscn.toml
-func (c *ConfigurationLoaderImpl) LoadDefaultConfig() *domain.ComplexityRequest {
+func (c *ConfigurationLoaderImpl) LoadDefaultConfig(targetPath string) *domain.ComplexityRequest {
 	// First, try to find and load a config file in the current directory
-	configFile := c.FindDefaultConfigFile()
+	configFile := c.FindDefaultConfigFile(targetPath)
 	if configFile != "" {
 		if configReq, err := c.LoadConfig(configFile); err == nil {
 			return configReq
@@ -193,10 +193,9 @@ func (c *ConfigurationLoaderImpl) CreateConfigTemplate(path string) error {
 	return config.SaveConfig(cfg, path)
 }
 
-// FindDefaultConfigFile looks for TOML config files from the current directory upward.
-func (c *ConfigurationLoaderImpl) FindDefaultConfigFile() string {
-	tomlLoader := config.NewTomlConfigLoader()
-	return tomlLoader.FindConfigFileFromPath("")
+// FindDefaultConfigFile discovers the config file governing targetPath.
+func (c *ConfigurationLoaderImpl) FindDefaultConfigFile(targetPath string) string {
+	return discoverConfigFile(targetPath)
 }
 
 // pyscnConfigToUnifiedConfig converts PyscnConfig to unified Config format

@@ -1127,3 +1127,92 @@ func TestAnalyzeCommandThresholdFlags(t *testing.T) {
 		}
 	})
 }
+
+// branchyFunction has cyclomatic complexity 5: above the ancestor config's gate
+// below, and below the built-in default gate.
+const branchyFunction = `def classify(n):
+    if n < 0:
+        return "neg"
+    if n == 0:
+        return "zero"
+    if n < 10:
+        return "small"
+    if n < 100:
+        return "medium"
+    return "large"
+`
+
+// strictAncestorConfig fails any function more complex than 3.
+const strictAncestorConfig = `[complexity]
+max_complexity = 3
+`
+
+// TestCheckIgnoresAncestorConfigAcrossRepositoryBoundary covers issue #666:
+// checking a repository nested inside another working tree must not be gated by
+// the outer project's config, no matter where the command is run from.
+func TestCheckIgnoresAncestorConfigAcrossRepositoryBoundary(t *testing.T) {
+	outerDir := t.TempDir()
+	innerDir := filepath.Join(outerDir, "inner")
+	if err := os.MkdirAll(filepath.Join(innerDir, ".git"), 0o755); err != nil {
+		t.Fatalf("failed to create nested repository: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(outerDir, ".pyscn.toml"), []byte(strictAncestorConfig), 0o644); err != nil {
+		t.Fatalf("failed to write ancestor config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(innerDir, "branchy.py"), []byte(branchyFunction), 0o644); err != nil {
+		t.Fatalf("failed to write source file: %v", err)
+	}
+
+	t.Chdir(outerDir)
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+
+	var stdout, stderr bytes.Buffer
+	cobraCmd.SetOut(&stdout)
+	cobraCmd.SetErr(&stderr)
+	cobraCmd.SetArgs([]string{"--select", "complexity", innerDir})
+
+	if err := cobraCmd.Execute(); err != nil {
+		t.Fatalf("nested checkout was gated by the outer project's config: %v, output: %s",
+			err, stdout.String()+stderr.String())
+	}
+}
+
+// TestCheckUsesRepositoryRootConfigForSubdirectory is the counterpart: the
+// repository boundary must not block a project's own root config.
+func TestCheckUsesRepositoryRootConfigForSubdirectory(t *testing.T) {
+	repoRoot := t.TempDir()
+	packageDir := filepath.Join(repoRoot, "src", "package")
+	if err := os.MkdirAll(packageDir, 0o755); err != nil {
+		t.Fatalf("failed to create package directory: %v", err)
+	}
+	if err := os.Mkdir(filepath.Join(repoRoot, ".git"), 0o755); err != nil {
+		t.Fatalf("failed to create .git directory: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoRoot, ".pyscn.toml"), []byte(strictAncestorConfig), 0o644); err != nil {
+		t.Fatalf("failed to write repository config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(packageDir, "branchy.py"), []byte(branchyFunction), 0o644); err != nil {
+		t.Fatalf("failed to write source file: %v", err)
+	}
+
+	t.Chdir(repoRoot)
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+
+	var stdout, stderr bytes.Buffer
+	cobraCmd.SetOut(&stdout)
+	cobraCmd.SetErr(&stderr)
+	cobraCmd.SetArgs([]string{"--select", "complexity", packageDir})
+
+	err := cobraCmd.Execute()
+	output := stdout.String() + stderr.String()
+	if err == nil {
+		t.Fatalf("expected the repository root config to gate the subdirectory, output: %s", output)
+	}
+	if !strings.Contains(output, "too complex") {
+		t.Fatalf("expected a complexity violation from the repository root config, output: %s", output)
+	}
+}

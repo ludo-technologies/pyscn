@@ -186,7 +186,7 @@ func (uc *LCOMUseCase) loadAndMergeConfig(req domain.LCOMRequest) (domain.LCOMRe
 			return req, fmt.Errorf("failed to load config from %s: %w", req.ConfigPath, err)
 		}
 	} else {
-		configReq = uc.configLoader.LoadDefaultConfig()
+		configReq = uc.configLoader.LoadDefaultConfig(configDiscoveryTarget(req.Paths))
 	}
 
 	if configReq != nil {
