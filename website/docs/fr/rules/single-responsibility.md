@@ -8,7 +8,7 @@
 
 Signale un module qui mélange plus de `architecture.max_responsibilities` (par défaut `3`) préoccupations de dépendance distinctes, ou qui agit comme un hub fan-in/fan-out pour plus de préoccupations que la moyenne du reste du projet.
 
-Une « préoccupation » est déduite des noms des voisins du module : pour chaque module que celui-ci importe ou qui l'importe, l'analyseur prend le premier segment du chemin du voisin qui ne fait pas partie du chemin du module courant et qui n'est pas un terme générique fourre-tout (`base`, `common`, `helpers`, `node`, `shared`, `util`, `utils`). Ces segments sont dédupliqués ; le compte donne le nombre de responsabilités que pyscn attribue au module.
+Une « préoccupation » est déduite des noms des dépendances du module : pour chaque module qu'il importe, l'analyseur prend le premier segment du chemin de la dépendance qui ne fait pas partie du chemin du module courant et qui n'est pas un terme générique fourre-tout (`base`, `common`, `helpers`, `node`, `shared`, `util`, `utils`). Ces segments sont dédupliqués ; le compte donne le nombre de responsabilités que pyscn attribue au module. Les modules qui l'importent (fan-in) ne contribuent aucune préoccupation — être largement réutilisé n'est pas une responsabilité.
 
 Un module est signalé lorsqu'au moins une des conditions suivantes est remplie :
 
