@@ -9,6 +9,15 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
+const (
+	// pyscnTomlFileName is the dedicated config file discovered during search.
+	pyscnTomlFileName = ".pyscn.toml"
+	// pyprojectTomlFileName may carry config in its [tool.pyscn] section.
+	pyprojectTomlFileName = "pyproject.toml"
+	// gitEntryName marks a repository root and bounds the upward config search.
+	gitEntryName = ".git"
+)
+
 // PyscnTomlConfig represents the structure of .pyscn.toml
 type PyscnTomlConfig struct {
 	Complexity     ComplexityTomlConfig     `toml:"complexity"`      // [complexity] section
@@ -314,7 +323,7 @@ func (l *TomlConfigLoader) LoadConfig(path string) (*PyscnConfig, error) {
 }
 
 func (l *TomlConfigLoader) loadFromFile(filePath string) (*PyscnConfig, error) {
-	if filepath.Base(filePath) == "pyproject.toml" {
+	if filepath.Base(filePath) == pyprojectTomlFileName {
 		return LoadPyprojectConfigFromFile(filePath)
 	}
 
@@ -383,18 +392,8 @@ func (l *TomlConfigLoader) findPyscnToml(startDir string) (string, error) {
 		return "", err
 	}
 
-	for {
-		configPath := filepath.Join(dir, ".pyscn.toml")
-		if _, err := os.Stat(configPath); err == nil {
-			return configPath, nil
-		}
-
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			// Reached root directory
-			break
-		}
-		dir = parent
+	if configPath := findUpward(dir, matchPyscnToml); configPath != "" {
+		return configPath, nil
 	}
 
 	return "", os.ErrNotExist
@@ -436,41 +435,68 @@ func (l *TomlConfigLoader) FindConfigFileFromPath(startPath string) string {
 	}
 
 	// Dedicated file takes precedence across the entire search tree.
-	current := dir
-	for {
-		pyscnPath := filepath.Join(current, ".pyscn.toml")
-		if _, err := os.Stat(pyscnPath); err == nil {
-			return pyscnPath
-		}
-
-		parent := filepath.Dir(current)
-		if parent == current {
-			break
-		}
-		current = parent
+	if pyscnPath := findUpward(dir, matchPyscnToml); pyscnPath != "" {
+		return pyscnPath
 	}
 
 	// Fallback to pyproject.toml if it has [tool.pyscn].
-	current = dir
+	return findUpward(dir, matchPyprojectToml)
+}
+
+// findUpward walks from dir toward the filesystem root and returns the first
+// path accepted by match, or "" if none matches.
+//
+// The walk stops at the repository root containing dir (inclusive). Without
+// that boundary a nested checkout - a target repository cloned inside another
+// project's working tree, or a repository under a monorepo - would silently be
+// scored against the ancestor project's configuration.
+func findUpward(dir string, match func(dir string) (string, bool)) string {
+	current := dir
 	for {
-		pyprojectPath := filepath.Join(current, "pyproject.toml")
-		if _, err := os.Stat(pyprojectPath); err == nil && hasPyscnSection(pyprojectPath) {
-			return pyprojectPath
+		if path, ok := match(current); ok {
+			return path
+		}
+
+		if isRepositoryRoot(current) {
+			return ""
 		}
 
 		parent := filepath.Dir(current)
 		if parent == current {
-			break
+			// Reached root directory
+			return ""
 		}
 		current = parent
 	}
+}
 
-	return ""
+// isRepositoryRoot reports whether dir holds a .git entry: a directory for a
+// regular clone, a file for a worktree or submodule.
+func isRepositoryRoot(dir string) bool {
+	_, err := os.Stat(filepath.Join(dir, gitEntryName))
+	return err == nil
+}
+
+func matchPyscnToml(dir string) (string, bool) {
+	pyscnPath := filepath.Join(dir, pyscnTomlFileName)
+	if _, err := os.Stat(pyscnPath); err != nil {
+		return "", false
+	}
+	return pyscnPath, true
+}
+
+// matchPyprojectToml accepts pyproject.toml only when it configures pyscn.
+func matchPyprojectToml(dir string) (string, bool) {
+	pyprojectPath := filepath.Join(dir, pyprojectTomlFileName)
+	if _, err := os.Stat(pyprojectPath); err != nil || !hasPyscnSection(pyprojectPath) {
+		return "", false
+	}
+	return pyprojectPath, true
 }
 
 func isLikelyConfigFilePath(path string) bool {
 	base := filepath.Base(path)
-	if base == ".pyscn.toml" || base == "pyproject.toml" {
+	if base == pyscnTomlFileName || base == pyprojectTomlFileName {
 		return true
 	}
 	return strings.HasSuffix(base, ".toml")
@@ -570,7 +596,7 @@ func tomlPathExists(data []byte, path ...string) bool {
 // in order of precedence
 func (l *TomlConfigLoader) GetSupportedConfigFiles() []string {
 	return []string{
-		".pyscn.toml",    // dedicated config file (highest priority)
-		"pyproject.toml", // with [tool.pyscn] section
+		pyscnTomlFileName,     // dedicated config file (highest priority)
+		pyprojectTomlFileName, // with [tool.pyscn] section
 	}
 }
