@@ -45,6 +45,42 @@ func TestAnalyzeResponsibilityDetectsHubModule(t *testing.T) {
 	assert.Equal(t, domain.ViolationSeverityError, violations[0].Severity)
 }
 
+// A hub whose imports all belong to a single concern is a facade over one
+// responsibility and must not be flagged, even when fan-in and fan-out both
+// exceed the project's coupling limits.
+func TestAnalyzeResponsibilitySkipsSingleConcernHub(t *testing.T) {
+	service := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/test/project")
+
+	modules := []string{
+		"app.core.hub",
+		"app.services.billing",
+		"app.services.orders",
+		"app.api.views",
+		"app.api.admin",
+	}
+	for _, module := range modules {
+		graph.AddModule(module, "/test/project/"+module+".py")
+	}
+
+	graph.AddDependency("app.core.hub", "app.services.billing", analyzer.DependencyEdgeImport, nil)
+	graph.AddDependency("app.core.hub", "app.services.orders", analyzer.DependencyEdgeImport, nil)
+	graph.AddDependency("app.api.views", "app.core.hub", analyzer.DependencyEdgeImport, nil)
+	graph.AddDependency("app.api.admin", "app.core.hub", analyzer.DependencyEdgeImport, nil)
+
+	fanInLimit, fanOutLimit := responsibilityCouplingLimits(graph)
+	hub := graph.Nodes["app.core.hub"]
+	require.GreaterOrEqual(t, hub.InDegree, fanInLimit)
+	require.GreaterOrEqual(t, hub.OutDegree, fanOutLimit)
+
+	responsibility, _, violations := service.analyzeResponsibility(graph, defaultResponsibilityOptions())
+
+	require.NotNil(t, responsibility)
+	assert.Equal(t, []string{"services"}, responsibility.ModuleResponsibilities["app.core.hub"])
+	assert.Empty(t, responsibility.SRPViolations)
+	assert.Empty(t, violations)
+}
+
 // Regression for #693: a dependency-free leaf module must not be flagged as
 // mixing concerns just because many modules import it (fan-in is reuse, not
 // responsibility).

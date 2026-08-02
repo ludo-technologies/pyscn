@@ -15,6 +15,9 @@ const (
 	defaultMaxResponsibilities = domain.DefaultArchitectureMaxResponsibilities
 	minLowCohesionModules      = 3
 	minLowCohesionEdges        = 2
+	// A hub must span at least this many concerns to violate SRP; a
+	// single-concern hub is a legitimate facade over one responsibility.
+	minHubResponsibilities = 2
 )
 
 var genericResponsibilitySegments = map[string]bool{
@@ -162,7 +165,8 @@ func (s *SystemAnalysisServiceImpl) analyzeResponsibility(
 		responsibilities := inferResponsibilities(module, node)
 		moduleResponsibilities[module] = responsibilities
 
-		isHub := node.InDegree >= fanInLimit && node.OutDegree >= fanOutLimit && node.InDegree > 0 && node.OutDegree > 0
+		isHub := node.InDegree >= fanInLimit && node.OutDegree >= fanOutLimit && node.InDegree > 0 && node.OutDegree > 0 &&
+			len(responsibilities) >= minHubResponsibilities
 		isOverloaded := len(responsibilities) > options.maxResponsibilities
 		if !isHub && !isOverloaded {
 			continue
