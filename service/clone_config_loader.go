@@ -53,10 +53,10 @@ func (c *CloneConfigurationLoader) SaveCloneConfig(cloneConfig *domain.CloneRequ
 	return config.SaveConfig(cfg, configPath)
 }
 
-// GetDefaultCloneConfig returns default clone detection configuration
-func (c *CloneConfigurationLoader) GetDefaultCloneConfig() *domain.CloneRequest {
-	// First, try to find and load a config file in the current directory
-	configFile := c.FindDefaultConfigFile()
+// GetDefaultCloneConfig returns clone detection configuration discovered from
+// targetPath, or built-in defaults when no config file applies.
+func (c *CloneConfigurationLoader) GetDefaultCloneConfig(targetPath string) *domain.CloneRequest {
+	configFile := c.FindDefaultConfigFile(targetPath)
 	if configFile != "" {
 		if configReq, err := c.LoadCloneConfig(configFile); err == nil {
 			return configReq
@@ -268,8 +268,7 @@ func (c *CloneConfigurationLoader) updateConfigFromCloneRequest(cfg *config.Conf
 	cfg.Analysis.Recursive = domain.BoolValue(req.Recursive, true)
 }
 
-// FindDefaultConfigFile looks for TOML config files from the current directory upward.
-func (c *CloneConfigurationLoader) FindDefaultConfigFile() string {
-	tomlLoader := config.NewTomlConfigLoader()
-	return tomlLoader.FindConfigFileFromPath("")
+// FindDefaultConfigFile discovers the config file governing targetPath.
+func (c *CloneConfigurationLoader) FindDefaultConfigFile(targetPath string) string {
+	return discoverConfigFile(targetPath)
 }

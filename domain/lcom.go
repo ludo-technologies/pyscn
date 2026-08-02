@@ -117,8 +117,9 @@ type LCOMConfigurationLoader interface {
 	// LoadConfig loads configuration from the specified path
 	LoadConfig(path string) (*LCOMRequest, error)
 
-	// LoadDefaultConfig loads the default configuration
-	LoadDefaultConfig() *LCOMRequest
+	// LoadDefaultConfig discovers configuration from targetPath (the analyzed
+	// path) and falls back to built-in defaults when none is found
+	LoadDefaultConfig(targetPath string) *LCOMRequest
 
 	// MergeConfig merges CLI flags with configuration file
 	MergeConfig(base *LCOMRequest, override *LCOMRequest) *LCOMRequest

@@ -15,7 +15,7 @@ func TestNewLCOMConfigurationLoader(t *testing.T) {
 
 func TestLCOMConfigurationLoader_LoadDefaultConfig(t *testing.T) {
 	loader := NewLCOMConfigurationLoader()
-	config := loader.LoadDefaultConfig()
+	config := loader.LoadDefaultConfig("")
 
 	require.NotNil(t, config)
 	assert.Greater(t, config.LowThreshold, 0)

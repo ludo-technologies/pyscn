@@ -30,9 +30,9 @@ func (cl *DeadCodeConfigurationLoaderImpl) LoadConfig(path string) (*domain.Dead
 }
 
 // LoadDefaultConfig loads the default dead code configuration, first checking for .pyscn.toml
-func (cl *DeadCodeConfigurationLoaderImpl) LoadDefaultConfig() *domain.DeadCodeRequest {
+func (cl *DeadCodeConfigurationLoaderImpl) LoadDefaultConfig(targetPath string) *domain.DeadCodeRequest {
 	// First, try to find and load a config file in the current directory
-	configFile := cl.FindDefaultConfigFile()
+	configFile := cl.FindDefaultConfigFile(targetPath)
 	if configFile != "" {
 		if configReq, err := cl.LoadConfig(configFile); err == nil {
 			return configReq
@@ -159,10 +159,9 @@ func (cl *DeadCodeConfigurationLoaderImpl) configToRequest(cfg *config.Config) *
 	}
 }
 
-// FindDefaultConfigFile looks for TOML config files from the current directory upward.
-func (cl *DeadCodeConfigurationLoaderImpl) FindDefaultConfigFile() string {
-	tomlLoader := config.NewTomlConfigLoader()
-	return tomlLoader.FindConfigFileFromPath("")
+// FindDefaultConfigFile discovers the config file governing targetPath.
+func (cl *DeadCodeConfigurationLoaderImpl) FindDefaultConfigFile(targetPath string) string {
+	return discoverConfigFile(targetPath)
 }
 
 // ValidateConfig validates a dead code configuration

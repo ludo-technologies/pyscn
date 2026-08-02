@@ -237,7 +237,7 @@ func (uc *SystemAnalysisUseCase) loadAndMergeConfig(req domain.SystemAnalysisReq
 		}
 	} else {
 		// Load default configuration
-		baseConfig = uc.configLoader.LoadDefaultConfig()
+		baseConfig = uc.configLoader.LoadDefaultConfig(configDiscoveryTarget(req.Paths))
 	}
 
 	// Merge with request (request takes precedence)
@@ -356,7 +356,7 @@ func (n *noOpSystemAnalysisConfigLoader) LoadConfig(path string) (*domain.System
 	return domain.DefaultSystemAnalysisRequest(), nil
 }
 
-func (n *noOpSystemAnalysisConfigLoader) LoadDefaultConfig() *domain.SystemAnalysisRequest {
+func (n *noOpSystemAnalysisConfigLoader) LoadDefaultConfig(targetPath string) *domain.SystemAnalysisRequest {
 	return domain.DefaultSystemAnalysisRequest()
 }
 

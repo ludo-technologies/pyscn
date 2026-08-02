@@ -156,8 +156,9 @@ type MockDataConfigurationLoader interface {
 	// LoadConfig loads mock data configuration from the specified path
 	LoadConfig(path string) (*MockDataRequest, error)
 
-	// LoadDefaultConfig loads the default mock data configuration
-	LoadDefaultConfig() *MockDataRequest
+	// LoadDefaultConfig discovers configuration from targetPath (the analyzed
+	// path) and falls back to built-in defaults when none is found
+	LoadDefaultConfig(targetPath string) *MockDataRequest
 
 	// MergeConfig merges CLI flags with configuration file
 	MergeConfig(base *MockDataRequest, override *MockDataRequest) *MockDataRequest

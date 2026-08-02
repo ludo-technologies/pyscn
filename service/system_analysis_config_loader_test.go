@@ -13,7 +13,7 @@ import (
 func TestSystemAnalysisConfigurationLoader_MergeConfigOverrideEqualsDefault(t *testing.T) {
 	loader := NewSystemAnalysisConfigurationLoader()
 
-	base := loader.LoadDefaultConfig()
+	base := loader.LoadDefaultConfig("")
 	base.OutputFormat = domain.OutputFormatJSON
 
 	override := &domain.SystemAnalysisRequest{
@@ -32,7 +32,7 @@ func TestSystemAnalysisConfigurationLoader_MergeConfigOverrideEqualsDefault(t *t
 func TestSystemAnalysisConfigurationLoader_MergeConfigZeroValueKeepsBase(t *testing.T) {
 	loader := NewSystemAnalysisConfigurationLoader()
 
-	base := loader.LoadDefaultConfig()
+	base := loader.LoadDefaultConfig("")
 	base.OutputFormat = domain.OutputFormatJSON
 	base.MinCohesion = 0.9
 	base.MaxResponsibilities = 7

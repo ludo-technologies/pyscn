@@ -98,7 +98,7 @@ func (m *mockLCOMConfigurationLoader) LoadConfig(path string) (*domain.LCOMReque
 	return args.Get(0).(*domain.LCOMRequest), args.Error(1)
 }
 
-func (m *mockLCOMConfigurationLoader) LoadDefaultConfig() *domain.LCOMRequest {
+func (m *mockLCOMConfigurationLoader) LoadDefaultConfig(targetPath string) *domain.LCOMRequest {
 	args := m.Called()
 	if args.Get(0) == nil {
 		return nil

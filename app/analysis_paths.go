@@ -43,3 +43,14 @@ func analysisPathIdentity(path string) (string, error) {
 	}
 	return filepath.Clean(absolute), nil
 }
+
+// configDiscoveryTarget returns the path config discovery starts from for a
+// request. The first analyzed path stands for the whole request: discovery has
+// to begin inside the analyzed tree rather than at the working directory, which
+// may belong to an entirely different project (issue #666).
+func configDiscoveryTarget(paths []string) string {
+	if len(paths) == 0 {
+		return ""
+	}
+	return paths[0]
+}

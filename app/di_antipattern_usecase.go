@@ -145,7 +145,7 @@ func (uc *DIAntipatternUseCase) loadAndMergeConfig(req domain.DIAntipatternReque
 			return req, fmt.Errorf("failed to load config from %s: %w", req.ConfigPath, err)
 		}
 	} else {
-		configReq = uc.configLoader.LoadDefaultConfig()
+		configReq = uc.configLoader.LoadDefaultConfig(configDiscoveryTarget(req.Paths))
 	}
 
 	if configReq != nil {
@@ -236,7 +236,7 @@ func (n *noOpDIAntipatternConfigLoader) LoadConfig(path string) (*domain.DIAntip
 	return nil, nil
 }
 
-func (n *noOpDIAntipatternConfigLoader) LoadDefaultConfig() *domain.DIAntipatternRequest {
+func (n *noOpDIAntipatternConfigLoader) LoadDefaultConfig(targetPath string) *domain.DIAntipatternRequest {
 	return nil
 }
 

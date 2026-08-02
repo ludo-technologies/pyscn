@@ -306,8 +306,9 @@ type ConfigurationLoader interface {
 	// LoadConfig loads configuration from the specified path
 	LoadConfig(path string) (*ComplexityRequest, error)
 
-	// LoadDefaultConfig loads the default configuration
-	LoadDefaultConfig() *ComplexityRequest
+	// LoadDefaultConfig discovers configuration from targetPath (the analyzed
+	// path) and falls back to built-in defaults when none is found
+	LoadDefaultConfig(targetPath string) *ComplexityRequest
 
 	// MergeConfig merges CLI flags with configuration file
 	MergeConfig(base *ComplexityRequest, override *ComplexityRequest) *ComplexityRequest

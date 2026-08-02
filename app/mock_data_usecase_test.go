@@ -59,7 +59,7 @@ func (m *mockMockDataConfigLoader) LoadConfig(path string) (*domain.MockDataRequ
 	return args.Get(0).(*domain.MockDataRequest), args.Error(1)
 }
 
-func (m *mockMockDataConfigLoader) LoadDefaultConfig() *domain.MockDataRequest {
+func (m *mockMockDataConfigLoader) LoadDefaultConfig(targetPath string) *domain.MockDataRequest {
 	args := m.Called()
 	if args.Get(0) == nil {
 		return nil
