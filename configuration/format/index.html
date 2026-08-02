@@ -3396,7 +3396,8 @@
 <li><code>.pyscn.toml</code> (highest priority)</li>
 <li><code>pyproject.toml</code> with a <code>[tool.pyscn]</code> section</li>
 </ol>
-<p>The first file found is used. Parent directories are searched until one matches or the filesystem root is reached. If neither file is found, built-in defaults are used.</p>
+<p>The first file found is used. Parent directories are searched until one matches, the repository root of the target is reached (a directory containing <code>.git</code>), or the filesystem root is reached. If neither file is found, built-in defaults are used.</p>
+<p>The repository boundary keeps an unrelated project's settings from being applied to a repository checked out inside another working tree: analyzing <code>vendor/other-repo/</code> uses <code>vendor/other-repo/.pyscn.toml</code> or the built-in defaults, never the outer repository's config. A repository without a <code>.git</code> directory has no boundary to stop at, so the search continues to the filesystem root.</p>
 <p>You can also pass an explicit path:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--config<span class="w"> </span>./configs/strict.toml<span class="w"> </span>src/
 </span></code></pre></div>

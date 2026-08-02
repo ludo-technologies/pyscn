@@ -3396,7 +3396,8 @@
 <li><code>.pyscn.toml</code>（最優先）</li>
 <li><code>[tool.pyscn]</code> セクションを含む <code>pyproject.toml</code></li>
 </ol>
-<p>最初に見つかったファイルが使用されます。一致するファイルが見つかるか、ファイルシステムのルートに到達するまで親ディレクトリが検索されます。どちらのファイルも見つからない場合は、組み込みデフォルトが使用されます。</p>
+<p>最初に見つかったファイルが使用されます。一致するファイルが見つかるか、ターゲットのリポジトリルート（<code>.git</code> を含むディレクトリ）に到達するか、ファイルシステムのルートに到達するまで親ディレクトリが検索されます。どちらのファイルも見つからない場合は、組み込みデフォルトが使用されます。</p>
+<p>このリポジトリ境界により、別のワーキングツリー内にチェックアウトされたリポジトリへ無関係な設定が適用されるのを防ぎます。<code>vendor/other-repo/</code> を解析する場合、使用されるのは <code>vendor/other-repo/.pyscn.toml</code> か組み込みデフォルトであり、外側のリポジトリの設定は使用されません。<code>.git</code> ディレクトリを持たないリポジトリには停止すべき境界がないため、探索はファイルシステムのルートまで続きます。</p>
 <p>明示的にパスを指定することもできます:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--config<span class="w"> </span>./configs/strict.toml<span class="w"> </span>src/
 </span></code></pre></div>
