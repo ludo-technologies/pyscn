@@ -3411,7 +3411,7 @@
 <strong>トリガー</strong>: <code>pyscn analyze</code>, <code>pyscn check --select deps</code></p>
 <h2 id="_1">検出内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
 <p><code>architecture.max_responsibilities</code>（デフォルト <code>3</code>）を超える数の異なる依存関心事を抱えているモジュール、またはプロジェクト平均と比較してファンイン/ファンアウトが両方とも高いハブモジュールを検出します。</p>
-<p>「関心事」は隣接モジュールの名前から推定されます。当該モジュールがインポートする先・される先のそれぞれについて、現在のモジュールのパスと一致しない最初のセグメントを取り出し、汎用的すぎる接尾辞（<code>base</code>, <code>common</code>, <code>helpers</code>, <code>node</code>, <code>shared</code>, <code>util</code>, <code>utils</code>）を除外します。残ったセグメントを重複排除した個数が、このモジュールに割り当てられた関心事の数になります。</p>
+<p>「関心事」は依存先モジュールの名前から推定されます。当該モジュールがインポートする先のそれぞれについて、現在のモジュールのパスと一致しない最初のセグメントを取り出し、汎用的すぎる接尾辞（<code>base</code>, <code>common</code>, <code>helpers</code>, <code>node</code>, <code>shared</code>, <code>util</code>, <code>utils</code>）を除外します。残ったセグメントを重複排除した個数が、このモジュールに割り当てられた関心事の数になります。当該モジュールをインポートしてくる側（ファンイン）は関心事に数えません。広く再利用されていること自体は責務ではないためです。</p>
 <p>次のいずれかに該当するとレポートされます:</p>
 <ul>
 <li>異なる関心事の数が <code>max_responsibilities</code> を超える。</li>

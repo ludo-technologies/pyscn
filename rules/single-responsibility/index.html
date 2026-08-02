@@ -3411,7 +3411,7 @@
 <strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check --select deps</code></p>
 <h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
 <p>Flags a module that mixes more than <code>architecture.max_responsibilities</code> (default <code>3</code>) distinct dependency concerns, or that acts as a fan-in/fan-out hub for more concerns than the rest of the project does on average.</p>
-<p>A "concern" is inferred from the names of the module's neighbors: for each module the analyzer imports or that imports it, it takes the first segment of the neighbor's path that is not part of the current module's path and not a generic catch-all (<code>base</code>, <code>common</code>, <code>helpers</code>, <code>node</code>, <code>shared</code>, <code>util</code>, <code>utils</code>). Those segments are deduplicated; the count is the number of responsibilities pyscn attributes to the module.</p>
+<p>A "concern" is inferred from the names of the module's dependencies: for each module it imports, the analyzer takes the first segment of the dependency's path that is not part of the current module's path and not a generic catch-all (<code>base</code>, <code>common</code>, <code>helpers</code>, <code>node</code>, <code>shared</code>, <code>util</code>, <code>utils</code>). Those segments are deduplicated; the count is the number of responsibilities pyscn attributes to the module. Modules that import it (fan-in) do not contribute concerns — being widely reused is not a responsibility.</p>
 <p>A module is reported when either condition holds:</p>
 <ul>
 <li>It owns more than <code>max_responsibilities</code> distinct concerns.</li>
