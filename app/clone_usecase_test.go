@@ -89,7 +89,7 @@ func (m *mockCloneConfigurationLoader) LoadCloneConfig(path string) (*domain.Clo
 	return args.Get(0).(*domain.CloneRequest), args.Error(1)
 }
 
-func (m *mockCloneConfigurationLoader) GetDefaultCloneConfig() *domain.CloneRequest {
+func (m *mockCloneConfigurationLoader) GetDefaultCloneConfig(targetPath string) *domain.CloneRequest {
 	args := m.Called()
 	if args.Get(0) == nil {
 		return nil

@@ -61,7 +61,7 @@ func (m *mockDIAntipatternConfigurationLoader) LoadConfig(path string) (*domain.
 	return args.Get(0).(*domain.DIAntipatternRequest), args.Error(1)
 }
 
-func (m *mockDIAntipatternConfigurationLoader) LoadDefaultConfig() *domain.DIAntipatternRequest {
+func (m *mockDIAntipatternConfigurationLoader) LoadDefaultConfig(targetPath string) *domain.DIAntipatternRequest {
 	args := m.Called()
 	if args.Get(0) == nil {
 		return nil
@@ -665,7 +665,7 @@ func TestNoOpDIAntipatternConfigLoader(t *testing.T) {
 	})
 
 	t.Run("LoadDefaultConfig returns nil", func(t *testing.T) {
-		result := loader.LoadDefaultConfig()
+		result := loader.LoadDefaultConfig("")
 
 		assert.Nil(t, result)
 	})

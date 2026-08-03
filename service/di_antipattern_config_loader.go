@@ -29,9 +29,9 @@ func (cl *DIAntipatternConfigurationLoaderImpl) LoadConfig(path string) (*domain
 }
 
 // LoadDefaultConfig loads the default DI anti-pattern configuration, first checking for .pyscn.toml
-func (cl *DIAntipatternConfigurationLoaderImpl) LoadDefaultConfig() *domain.DIAntipatternRequest {
+func (cl *DIAntipatternConfigurationLoaderImpl) LoadDefaultConfig(targetPath string) *domain.DIAntipatternRequest {
 	// First, try to find and load a config file in the current directory
-	configFile := cl.FindDefaultConfigFile()
+	configFile := cl.FindDefaultConfigFile(targetPath)
 	if configFile != "" {
 		if configReq, err := cl.LoadConfig(configFile); err == nil {
 			return configReq
@@ -115,8 +115,7 @@ func (cl *DIAntipatternConfigurationLoaderImpl) configToRequest(pyscnCfg *config
 	}
 }
 
-// FindDefaultConfigFile looks for TOML config files from the current directory upward.
-func (cl *DIAntipatternConfigurationLoaderImpl) FindDefaultConfigFile() string {
-	tomlLoader := config.NewTomlConfigLoader()
-	return tomlLoader.FindConfigFileFromPath("")
+// FindDefaultConfigFile discovers the config file governing targetPath.
+func (cl *DIAntipatternConfigurationLoaderImpl) FindDefaultConfigFile(targetPath string) string {
+	return discoverConfigFile(targetPath)
 }

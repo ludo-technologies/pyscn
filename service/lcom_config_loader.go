@@ -26,8 +26,8 @@ func (cl *LCOMConfigurationLoaderImpl) LoadConfig(path string) (*domain.LCOMRequ
 }
 
 // LoadDefaultConfig loads the default LCOM configuration, first checking for .pyscn.toml
-func (cl *LCOMConfigurationLoaderImpl) LoadDefaultConfig() *domain.LCOMRequest {
-	configFile := cl.FindDefaultConfigFile()
+func (cl *LCOMConfigurationLoaderImpl) LoadDefaultConfig(targetPath string) *domain.LCOMRequest {
+	configFile := cl.FindDefaultConfigFile(targetPath)
 	if configFile != "" {
 		if configReq, err := cl.LoadConfig(configFile); err == nil {
 			return configReq
@@ -75,10 +75,9 @@ func (cl *LCOMConfigurationLoaderImpl) MergeConfig(base *domain.LCOMRequest, ove
 	return &merged
 }
 
-// FindDefaultConfigFile searches for a config file in the current directory
-func (cl *LCOMConfigurationLoaderImpl) FindDefaultConfigFile() string {
-	tomlLoader := config.NewTomlConfigLoader()
-	return tomlLoader.FindConfigFileFromPath("")
+// FindDefaultConfigFile discovers the config file governing targetPath.
+func (cl *LCOMConfigurationLoaderImpl) FindDefaultConfigFile(targetPath string) string {
+	return discoverConfigFile(targetPath)
 }
 
 // configToRequest converts a PyscnConfig to domain.LCOMRequest

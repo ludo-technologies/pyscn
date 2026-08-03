@@ -28,7 +28,7 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) LoadConfig(path string) (*domai
 
 // pyscnConfigToSystemAnalysisRequest converts PyscnConfig to SystemAnalysisRequest
 func (cl *SystemAnalysisConfigurationLoaderImpl) pyscnConfigToSystemAnalysisRequest(cfg *config.PyscnConfig) *domain.SystemAnalysisRequest {
-	request := cl.LoadDefaultConfig()
+	request := cl.LoadDefaultConfig("")
 
 	// System analysis settings
 	if cfg.SystemAnalysisEnableDependencies != nil {
@@ -89,8 +89,9 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) pyscnConfigToSystemAnalysisRequ
 	return request
 }
 
-// LoadDefaultConfig loads the default configuration
-func (cl *SystemAnalysisConfigurationLoaderImpl) LoadDefaultConfig() *domain.SystemAnalysisRequest {
+// LoadDefaultConfig returns the built-in defaults. System analysis config is
+// resolved by the caller, so there is nothing to discover from targetPath.
+func (cl *SystemAnalysisConfigurationLoaderImpl) LoadDefaultConfig(targetPath string) *domain.SystemAnalysisRequest {
 	return &domain.SystemAnalysisRequest{
 		OutputFormat:                    domain.OutputFormatText,
 		AnalyzeDependencies:             domain.BoolPtr(true),

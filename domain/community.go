@@ -419,7 +419,7 @@ type CommunityAnalysisService interface {
 // CommunityConfigurationLoader defines the interface for loading community configuration.
 type CommunityConfigurationLoader interface {
 	LoadConfig(path string) (*CommunityAnalysisRequest, error)
-	LoadDefaultConfig() *CommunityAnalysisRequest
+	LoadDefaultConfig(targetPath string) *CommunityAnalysisRequest
 	MergeConfig(base *CommunityAnalysisRequest, override *CommunityAnalysisRequest) *CommunityAnalysisRequest
 }
 

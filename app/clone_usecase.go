@@ -237,7 +237,7 @@ func (uc *CloneUseCase) loadAndMergeConfig(req domain.CloneRequest) (domain.Clon
 			return req, fmt.Errorf("failed to load configuration: %w", err)
 		}
 	} else {
-		configReq = uc.configLoader.GetDefaultCloneConfig()
+		configReq = uc.configLoader.GetDefaultCloneConfig(configDiscoveryTarget(req.Paths))
 	}
 
 	if configReq != nil {

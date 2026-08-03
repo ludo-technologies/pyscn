@@ -268,7 +268,7 @@ func TestCloneConfigurationLoaderIntegration(t *testing.T) {
 	configLoader := service.NewCloneConfigurationLoader()
 
 	// Test getting default configuration
-	defaultConfig := configLoader.GetDefaultCloneConfig()
+	defaultConfig := configLoader.GetDefaultCloneConfig("")
 	assert.NotNil(t, defaultConfig, "Should return default configuration")
 	assert.Equal(t, 10, defaultConfig.MinLines, "Default min lines should be 10")
 	assert.Equal(t, 20, defaultConfig.MinNodes, "Default min nodes should be 20")

@@ -64,7 +64,7 @@ group_namespace_imports = false
 
 func TestCBOConfigurationLoader_LoadDefaultConfig(t *testing.T) {
 	loader := NewCBOConfigurationLoader()
-	req := loader.LoadDefaultConfig()
+	req := loader.LoadDefaultConfig("")
 
 	if req == nil {
 		t.Fatal("Expected non-nil default config")
@@ -277,7 +277,7 @@ func TestCBOConfigurationLoader_FindDefaultConfigFile(t *testing.T) {
 	loader := NewCBOConfigurationLoader()
 
 	// Test: No config file
-	result := loader.FindDefaultConfigFile()
+	result := loader.FindDefaultConfigFile("")
 	// Should return empty string if no config found in current directory
 	// (This is expected behavior, not an error)
 	t.Logf("No config file found (expected): %s", result)
@@ -302,7 +302,7 @@ func TestCBOConfigurationLoader_FindDefaultConfigFile(t *testing.T) {
 		t.Fatalf("Failed to change to temp directory: %v", err)
 	}
 
-	result = loader.FindDefaultConfigFile()
+	result = loader.FindDefaultConfigFile("")
 	if result == "" {
 		t.Error("Expected to find .pyscn.toml")
 	}

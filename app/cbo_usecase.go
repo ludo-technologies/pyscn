@@ -302,7 +302,7 @@ func (uc *CBOUseCase) loadAndMergeConfig(req domain.CBORequest) (domain.CBOReque
 		}
 	} else {
 		// Try to load default config
-		configReq = uc.configLoader.LoadDefaultConfig()
+		configReq = uc.configLoader.LoadDefaultConfig(configDiscoveryTarget(req.Paths))
 	}
 
 	if configReq != nil {
@@ -425,7 +425,7 @@ func (n *noOpCBOConfigLoader) LoadConfig(path string) (*domain.CBORequest, error
 	return nil, nil
 }
 
-func (n *noOpCBOConfigLoader) LoadDefaultConfig() *domain.CBORequest {
+func (n *noOpCBOConfigLoader) LoadDefaultConfig(targetPath string) *domain.CBORequest {
 	return nil
 }
 

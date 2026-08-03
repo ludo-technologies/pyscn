@@ -27,8 +27,8 @@ func (cl *CommunityConfigurationLoaderImpl) LoadConfig(path string) (*domain.Com
 }
 
 // LoadDefaultConfig loads the default community configuration, checking for project config first.
-func (cl *CommunityConfigurationLoaderImpl) LoadDefaultConfig() *domain.CommunityAnalysisRequest {
-	configFile := cl.FindDefaultConfigFile()
+func (cl *CommunityConfigurationLoaderImpl) LoadDefaultConfig(targetPath string) *domain.CommunityAnalysisRequest {
+	configFile := cl.FindDefaultConfigFile(targetPath)
 	if configFile != "" {
 		if configReq, err := cl.LoadConfig(configFile); err == nil {
 			return configReq
@@ -113,8 +113,7 @@ func (cl *CommunityConfigurationLoaderImpl) configToRequest(pyscnCfg *config.Pys
 	return req
 }
 
-// FindDefaultConfigFile looks for TOML config files from the current directory upward.
-func (cl *CommunityConfigurationLoaderImpl) FindDefaultConfigFile() string {
-	tomlLoader := config.NewTomlConfigLoader()
-	return tomlLoader.FindConfigFileFromPath("")
+// FindDefaultConfigFile discovers the config file governing targetPath.
+func (cl *CommunityConfigurationLoaderImpl) FindDefaultConfigFile(targetPath string) string {
+	return discoverConfigFile(targetPath)
 }

@@ -63,7 +63,7 @@ func (m *mockComplexityConfigurationLoader) LoadConfig(path string) (*domain.Com
 	return args.Get(0).(*domain.ComplexityRequest), args.Error(1)
 }
 
-func (m *mockComplexityConfigurationLoader) LoadDefaultConfig() *domain.ComplexityRequest {
+func (m *mockComplexityConfigurationLoader) LoadDefaultConfig(targetPath string) *domain.ComplexityRequest {
 	args := m.Called()
 	if args.Get(0) == nil {
 		return nil

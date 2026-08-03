@@ -74,7 +74,7 @@ func (m *mockDeadCodeConfigurationLoader) LoadConfig(path string) (*domain.DeadC
 	return args.Get(0).(*domain.DeadCodeRequest), args.Error(1)
 }
 
-func (m *mockDeadCodeConfigurationLoader) LoadDefaultConfig() *domain.DeadCodeRequest {
+func (m *mockDeadCodeConfigurationLoader) LoadDefaultConfig(targetPath string) *domain.DeadCodeRequest {
 	args := m.Called()
 	if args.Get(0) == nil {
 		return nil
