@@ -9,7 +9,7 @@ import (
 	"github.com/ludo-technologies/pyscn/domain"
 )
 
-func TestAggregateComplexityByDirectory_UsesReportedFunctions(t *testing.T) {
+func TestAggregateComplexityByDirectory_UsesAnalyzedFunctions(t *testing.T) {
 	root := t.TempDir()
 	functions := []domain.FunctionComplexity{
 		{

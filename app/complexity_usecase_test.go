@@ -486,7 +486,7 @@ func TestComplexityUseCase_AnalyzeAndReturn(t *testing.T) {
 	}
 }
 
-func TestComplexityUseCase_AnalyzeAndReturn_DirectoryRollupsFollowReportFilters(t *testing.T) {
+func TestComplexityUseCase_AnalyzeAndReturn_DirectoryRollupsIgnoreReportFilters(t *testing.T) {
 	projectRoot := t.TempDir()
 	pkgDir := filepath.Join(projectRoot, "pkg")
 	require.NoError(t, os.MkdirAll(pkgDir, 0o755))
@@ -511,6 +511,31 @@ def nested(left, right):
 		svc.NewOutputFormatter(),
 		nil,
 	)
+	request := func(minComplexity int, reportUnchanged bool) domain.ComplexityRequest {
+		return domain.ComplexityRequest{
+			Paths:           []string{projectRoot},
+			OutputFormat:    domain.OutputFormatJSON,
+			OutputWriter:    io.Discard,
+			MinComplexity:   minComplexity,
+			SortBy:          domain.SortByComplexity,
+			LowThreshold:    5,
+			MediumThreshold: 10,
+			ReportUnchanged: domain.BoolPtr(reportUnchanged),
+			Recursive:       domain.BoolPtr(true),
+		}
+	}
+
+	baseline, err := useCase.AnalyzeAndReturn(context.Background(), request(1, true))
+	require.NoError(t, err)
+	require.Len(t, baseline.ByDirectory, 1)
+	require.Greater(t, len(baseline.Functions), 1)
+	baselineRollup := baseline.ByDirectory[0]
+	assert.Equal(t, len(baseline.AnalyzedFunctions), baselineRollup.FunctionCount)
+	assert.Equal(t, baseline.Summary.AverageComplexity, baselineRollup.AverageComplexity)
+	assert.Equal(t, baseline.Summary.MaxComplexity, baselineRollup.MaxComplexity)
+	assert.Equal(t, baseline.Summary.HighRiskFunctions, baselineRollup.HighRiskFunctionCount)
+	assert.Equal(t, baseline.Summary.AverageNestingDepth, baselineRollup.AverageNestingDepth)
+
 	tests := []struct {
 		name            string
 		minComplexity   int
@@ -523,21 +548,11 @@ def nested(left, right):
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			response, err := useCase.AnalyzeAndReturn(context.Background(), domain.ComplexityRequest{
-				Paths:           []string{projectRoot},
-				OutputFormat:    domain.OutputFormatJSON,
-				OutputWriter:    io.Discard,
-				MinComplexity:   test.minComplexity,
-				SortBy:          domain.SortByComplexity,
-				LowThreshold:    5,
-				MediumThreshold: 10,
-				ReportUnchanged: domain.BoolPtr(test.reportUnchanged),
-				Recursive:       domain.BoolPtr(true),
-			})
+			response, err := useCase.AnalyzeAndReturn(context.Background(), request(test.minComplexity, test.reportUnchanged))
 			require.NoError(t, err)
 			require.Len(t, response.ByDirectory, 1)
-			assert.Equal(t, "pkg", response.ByDirectory[0].DirectoryPath)
-			assert.Equal(t, len(response.Functions), response.ByDirectory[0].FunctionCount)
+			assert.Equal(t, baselineRollup, response.ByDirectory[0], "directory metrics must use the same complete population as the project summary")
+			assert.Less(t, len(response.Functions), baselineRollup.FunctionCount, "presentation filters must still limit the reported function list")
 
 			names := make([]string, 0, len(response.Functions))
 			for _, function := range response.Functions {

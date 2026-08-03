@@ -83,6 +83,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 
 	return &domain.ComplexityResponse{
 		Functions:         sortedFunctions,
+		AnalyzedFunctions: allFunctions,
 		Summary:           summary,
 		ModuleRollups:     moduleRollups,
 		RawMetrics:        allRawMetrics,
@@ -148,6 +149,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 
 	return &domain.ComplexityResponse{
 		Functions:         sortedFunctions,
+		AnalyzedFunctions: allFunctions,
 		Summary:           summary,
 		ModuleRollups:     moduleRollups,
 		RawMetrics:        allRawMetrics,
