@@ -15,6 +15,9 @@ const (
 	defaultMaxResponsibilities = domain.DefaultArchitectureMaxResponsibilities
 	minLowCohesionModules      = 3
 	minLowCohesionEdges        = 2
+	// A hub must span at least this many concerns to violate SRP; a
+	// single-concern hub is a legitimate facade over one responsibility.
+	minHubResponsibilities = 2
 )
 
 var genericResponsibilitySegments = map[string]bool{
@@ -162,7 +165,8 @@ func (s *SystemAnalysisServiceImpl) analyzeResponsibility(
 		responsibilities := inferResponsibilities(module, node)
 		moduleResponsibilities[module] = responsibilities
 
-		isHub := node.InDegree >= fanInLimit && node.OutDegree >= fanOutLimit && node.InDegree > 0 && node.OutDegree > 0
+		isHub := node.InDegree >= fanInLimit && node.OutDegree >= fanOutLimit && node.InDegree > 0 && node.OutDegree > 0 &&
+			len(responsibilities) >= minHubResponsibilities
 		isOverloaded := len(responsibilities) > options.maxResponsibilities
 		if !isHub && !isOverloaded {
 			continue
@@ -236,15 +240,13 @@ func couplingStdDev(graph *analyzer.DependencyGraph, mean float64, fanIn bool) f
 	return math.Sqrt(sum / float64(len(graph.Nodes)))
 }
 
+// inferResponsibilities derives a module's dependency concerns from its
+// outgoing dependencies only. Incoming edges (dependents) measure reuse, not
+// responsibility: counting them would penalize widely imported leaf modules (#693).
 func inferResponsibilities(module string, node *analyzer.ModuleNode) []string {
 	labels := make(map[string]bool)
 	for dependency := range node.Dependencies {
 		if label := concernLabel(module, dependency); label != "" {
-			labels[label] = true
-		}
-	}
-	for dependent := range node.Dependents {
-		if label := concernLabel(module, dependent); label != "" {
 			labels[label] = true
 		}
 	}

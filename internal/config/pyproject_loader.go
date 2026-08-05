@@ -2,7 +2,6 @@ package config
 
 import (
 	"os"
-	"path/filepath"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -616,20 +615,8 @@ func findPyprojectToml(startDir string) (string, error) {
 		return "", err
 	}
 
-	for {
-		configPath := filepath.Join(dir, "pyproject.toml")
-		if _, err := os.Stat(configPath); err == nil {
-			if hasPyscnSection(configPath) {
-				return configPath, nil
-			}
-		}
-
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			// Reached root directory
-			break
-		}
-		dir = parent
+	if configPath := findUpward(dir, matchPyprojectToml); configPath != "" {
+		return configPath, nil
 	}
 
 	return "", os.ErrNotExist

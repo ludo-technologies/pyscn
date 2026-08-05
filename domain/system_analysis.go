@@ -489,8 +489,9 @@ type SystemAnalysisConfigurationLoader interface {
 	// LoadConfig loads configuration from the specified path
 	LoadConfig(path string) (*SystemAnalysisRequest, error)
 
-	// LoadDefaultConfig loads the default configuration
-	LoadDefaultConfig() *SystemAnalysisRequest
+	// LoadDefaultConfig discovers configuration from targetPath (the analyzed
+	// path) and falls back to built-in defaults when none is found
+	LoadDefaultConfig(targetPath string) *SystemAnalysisRequest
 
 	// MergeConfig merges CLI flags with configuration file
 	MergeConfig(base *SystemAnalysisRequest, override *SystemAnalysisRequest) *SystemAnalysisRequest

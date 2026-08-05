@@ -327,7 +327,7 @@ func (uc *DeadCodeUseCase) loadAndMergeConfig(req domain.DeadCodeRequest) (domai
 		}
 	} else {
 		// Try to load default config
-		configReq = uc.configLoader.LoadDefaultConfig()
+		configReq = uc.configLoader.LoadDefaultConfig(configDiscoveryTarget(req.Paths))
 	}
 
 	if configReq != nil {
@@ -450,7 +450,7 @@ func (n *noOpDeadCodeConfigLoader) LoadConfig(path string) (*domain.DeadCodeRequ
 	return nil, nil
 }
 
-func (n *noOpDeadCodeConfigLoader) LoadDefaultConfig() *domain.DeadCodeRequest {
+func (n *noOpDeadCodeConfigLoader) LoadDefaultConfig(targetPath string) *domain.DeadCodeRequest {
 	return nil
 }
 

@@ -52,7 +52,7 @@ resolution = 1.25
 
 func TestCommunityConfigurationLoader_LoadDefaultConfigUsesDefaults(t *testing.T) {
 	loader := NewCommunityConfigurationLoader()
-	req := loader.LoadDefaultConfig()
+	req := loader.LoadDefaultConfig("")
 
 	if req.Algorithm != domain.DefaultCommunityAlgorithm {
 		t.Errorf("expected algorithm %q, got %q", domain.DefaultCommunityAlgorithm, req.Algorithm)

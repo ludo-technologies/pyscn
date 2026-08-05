@@ -60,7 +60,7 @@ func (m *mockCBOConfigurationLoader) LoadConfig(path string) (*domain.CBORequest
 	return args.Get(0).(*domain.CBORequest), args.Error(1)
 }
 
-func (m *mockCBOConfigurationLoader) LoadDefaultConfig() *domain.CBORequest {
+func (m *mockCBOConfigurationLoader) LoadDefaultConfig(targetPath string) *domain.CBORequest {
 	args := m.Called()
 	if args.Get(0) == nil {
 		return nil

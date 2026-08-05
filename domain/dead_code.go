@@ -183,8 +183,9 @@ type DeadCodeConfigurationLoader interface {
 	// LoadConfig loads dead code configuration from the specified path
 	LoadConfig(path string) (*DeadCodeRequest, error)
 
-	// LoadDefaultConfig loads the default dead code configuration
-	LoadDefaultConfig() *DeadCodeRequest
+	// LoadDefaultConfig discovers configuration from targetPath (the analyzed
+	// path) and falls back to built-in defaults when none is found
+	LoadDefaultConfig(targetPath string) *DeadCodeRequest
 
 	// MergeConfig merges CLI flags with configuration file
 	MergeConfig(base *DeadCodeRequest, override *DeadCodeRequest) *DeadCodeRequest

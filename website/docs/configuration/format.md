@@ -9,7 +9,9 @@ When you run `pyscn analyze` or `pyscn check`, pyscn walks up from the target pa
 1. `.pyscn.toml` (highest priority)
 2. `pyproject.toml` with a `[tool.pyscn]` section
 
-The first file found is used. Parent directories are searched until one matches or the filesystem root is reached. If neither file is found, built-in defaults are used.
+The first file found is used. Parent directories are searched until one matches, the repository root of the target is reached (a directory containing `.git`), or the filesystem root is reached. If neither file is found, built-in defaults are used.
+
+The repository boundary keeps an unrelated project's settings from being applied to a repository checked out inside another working tree: analyzing `vendor/other-repo/` uses `vendor/other-repo/.pyscn.toml` or the built-in defaults, never the outer repository's config. A repository without a `.git` directory has no boundary to stop at, so the search continues to the filesystem root.
 
 You can also pass an explicit path:
 

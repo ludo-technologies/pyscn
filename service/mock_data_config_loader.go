@@ -29,9 +29,9 @@ func (cl *MockDataConfigurationLoaderImpl) LoadConfig(path string) (*domain.Mock
 }
 
 // LoadDefaultConfig loads the default mock data configuration, first checking for .pyscn.toml
-func (cl *MockDataConfigurationLoaderImpl) LoadDefaultConfig() *domain.MockDataRequest {
+func (cl *MockDataConfigurationLoaderImpl) LoadDefaultConfig(targetPath string) *domain.MockDataRequest {
 	// First, try to find and load a config file in the current directory
-	configFile := cl.FindDefaultConfigFile()
+	configFile := cl.FindDefaultConfigFile(targetPath)
 	if configFile != "" {
 		if configReq, err := cl.LoadConfig(configFile); err == nil {
 			return configReq
@@ -133,8 +133,7 @@ func (cl *MockDataConfigurationLoaderImpl) configToRequest(pyscnCfg *config.Pysc
 	}
 }
 
-// FindDefaultConfigFile looks for TOML config files from the current directory upward.
-func (cl *MockDataConfigurationLoaderImpl) FindDefaultConfigFile() string {
-	tomlLoader := config.NewTomlConfigLoader()
-	return tomlLoader.FindConfigFileFromPath("")
+// FindDefaultConfigFile discovers the config file governing targetPath.
+func (cl *MockDataConfigurationLoaderImpl) FindDefaultConfigFile(targetPath string) string {
+	return discoverConfigFile(targetPath)
 }
