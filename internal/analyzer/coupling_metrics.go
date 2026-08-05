@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"sort"
@@ -61,25 +62,56 @@ func NewCouplingMetricsCalculator(graph *DependencyGraph, options *CouplingMetri
 	}
 }
 
-// CalculateMetrics calculates all metrics for the dependency graph
-func (calc *CouplingMetricsCalculator) CalculateMetrics() error {
-	config := coregraph.CouplingConfig{}
-	if calc.includeAbstractness {
-		config.AbstractnessFunc = func(moduleName string) (float64, error) {
+// CalculateMetrics calculates all metrics using topology from the same graph.
+func (calc *CouplingMetricsCalculator) CalculateMetrics(
+	ctx context.Context,
+	topology *DependencyTopology,
+) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("calculate coupling metrics: %w", err)
+	}
+	if topology == nil {
+		return fmt.Errorf("calculate coupling metrics: dependency topology is required")
+	}
+	if topology.graph != calc.graph {
+		return fmt.Errorf("calculate coupling metrics: dependency topology belongs to another graph")
+	}
+	if topology.graphRevision != calc.graph.topologyRevision {
+		return fmt.Errorf("calculate coupling metrics: dependency graph changed after topology analysis")
+	}
+
+	config := coregraph.CouplingConfig{
+		AbstractnessFunc: func(moduleName string) (float64, error) {
+			if err := ctx.Err(); err != nil {
+				return 0, err
+			}
+			if !calc.includeAbstractness {
+				return 0, nil
+			}
 			node := calc.graph.Nodes[moduleName]
 			if node == nil {
 				return 0, fmt.Errorf("calculate abstractness: module %q not found", moduleName)
 			}
 			return calc.calculateAbstractness(node), nil
-		}
+		},
 	}
 
 	coreMetrics, err := coregraph.ComputeCouplingMetrics(calc.graph, config)
 	if err != nil {
 		return fmt.Errorf("calculate coupling metrics: %w", err)
 	}
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("calculate coupling metrics: %w", err)
+	}
 
+	moduleMetrics := make(map[string]*ModuleMetrics, len(coreMetrics))
 	for moduleName, coupling := range coreMetrics {
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("calculate coupling metrics: %w", err)
+		}
 		node := calc.graph.Nodes[moduleName]
 		if node == nil {
 			return fmt.Errorf("calculate module metrics: module %q not found", moduleName)
@@ -99,12 +131,19 @@ func (calc *CouplingMetricsCalculator) CalculateMetrics() error {
 		if complexity, exists := calc.complexityData[moduleName]; exists {
 			metrics.CyclomaticComplexity = complexity
 		}
-		calc.graph.ModuleMetrics[moduleName] = metrics
+		moduleMetrics[moduleName] = metrics
 	}
 
-	// Calculate system-level metrics
-	calc.calculateSystemMetrics()
+	systemMetrics, err := calc.calculateSystemMetrics(ctx, moduleMetrics, topology)
+	if err != nil {
+		return fmt.Errorf("calculate system metrics: %w", err)
+	}
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("calculate coupling metrics: %w", err)
+	}
 
+	calc.graph.ModuleMetrics = moduleMetrics
+	calc.graph.SystemMetrics = systemMetrics
 	return nil
 }
 
@@ -117,24 +156,30 @@ func (calc *CouplingMetricsCalculator) calculateAbstractness(node *ModuleNode) f
 	return float64(node.AbstractClassCount) / float64(node.ClassCount)
 }
 
-// calculateSystemMetrics calculates system-wide metrics
-func (calc *CouplingMetricsCalculator) calculateSystemMetrics() {
-	systemMetrics := calc.graph.SystemMetrics
-
-	// Basic counts
-	systemMetrics.TotalModules = calc.graph.TotalModules
-	systemMetrics.TotalDependencies = calc.graph.TotalEdges
-	systemMetrics.PackageCount = len(calc.graph.GetPackages())
+// calculateSystemMetrics calculates system-wide metrics without mutating the graph.
+func (calc *CouplingMetricsCalculator) calculateSystemMetrics(
+	ctx context.Context,
+	moduleMetrics map[string]*ModuleMetrics,
+	topology *DependencyTopology,
+) (*SystemMetrics, error) {
+	systemMetrics := &SystemMetrics{
+		TotalModules:      calc.graph.TotalModules,
+		TotalDependencies: calc.graph.TotalEdges,
+		PackageCount:      len(calc.graph.GetPackages()),
+	}
 
 	if systemMetrics.TotalModules == 0 {
-		return
+		return systemMetrics, nil
 	}
 
 	// Aggregate metrics
 	var totalFanIn, totalFanOut float64
 	var totalInstability, totalAbstractness, totalDistance float64
 
-	for _, metrics := range calc.graph.ModuleMetrics {
+	for _, metrics := range moduleMetrics {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		totalFanIn += float64(metrics.AfferentCoupling)
 		totalFanOut += float64(metrics.EfferentCoupling)
 		totalInstability += metrics.Instability
@@ -159,18 +204,22 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics() {
 	systemMetrics.CyclicDependencies = len(calc.graph.GetModulesInCycles())
 
 	// Calculate system complexity
-	systemMetrics.SystemComplexity = calc.calculateSystemComplexity()
+	systemMetrics.SystemComplexity = calc.calculateSystemComplexity(
+		moduleMetrics,
+		systemMetrics.AverageInstability,
+	)
 
-	// Calculate max dependency depth
-	systemMetrics.MaxDependencyDepth = calc.calculateMaxDependencyDepth()
+	systemMetrics.MaxDependencyDepth = topology.maxDepth
 
 	// Identify refactoring priorities
-	systemMetrics.RefactoringPriority = calc.identifyRefactoringPriorities()
-	systemMetrics.StableModules = calc.modulesMatching(isStableModule)
-	systemMetrics.InstableModules = calc.modulesMatching(isInstableModule)
-	systemMetrics.ZoneOfPain = calc.modulesMatching(isZoneOfPain)
-	systemMetrics.ZoneOfUselessness = calc.modulesMatching(isZoneOfUselessness)
-	systemMetrics.MainSequence = calc.modulesMatching(isOnMainSequence)
+	systemMetrics.RefactoringPriority = calc.identifyRefactoringPriorities(moduleMetrics)
+	systemMetrics.StableModules = modulesMatching(moduleMetrics, isStableModule)
+	systemMetrics.InstableModules = modulesMatching(moduleMetrics, isInstableModule)
+	systemMetrics.ZoneOfPain = modulesMatching(moduleMetrics, isZoneOfPain)
+	systemMetrics.ZoneOfUselessness = modulesMatching(moduleMetrics, isZoneOfUselessness)
+	systemMetrics.MainSequence = modulesMatching(moduleMetrics, isOnMainSequence)
+
+	return systemMetrics, nil
 }
 
 func isStableModule(metrics *ModuleMetrics) bool {
@@ -198,9 +247,9 @@ func isOnMainSequence(metrics *ModuleMetrics) bool {
 	return metrics.Distance <= mainSequenceMaxDistance
 }
 
-func (calc *CouplingMetricsCalculator) modulesMatching(match func(*ModuleMetrics) bool) []string {
+func modulesMatching(moduleMetrics map[string]*ModuleMetrics, match func(*ModuleMetrics) bool) []string {
 	modules := make([]string, 0)
-	for moduleName, metrics := range calc.graph.ModuleMetrics {
+	for moduleName, metrics := range moduleMetrics {
 		if metrics != nil && match(metrics) {
 			modules = append(modules, moduleName)
 		}
@@ -260,8 +309,11 @@ func (calc *CouplingMetricsCalculator) calculateModularityIndex() float64 {
 	return cohesionRatio * cyclePenalty
 }
 
-// calculateSystemComplexity calculates overall system complexity
-func (calc *CouplingMetricsCalculator) calculateSystemComplexity() float64 {
+// calculateSystemComplexity calculates overall system complexity.
+func (calc *CouplingMetricsCalculator) calculateSystemComplexity(
+	moduleMetrics map[string]*ModuleMetrics,
+	averageInstability float64,
+) float64 {
 	if calc.graph.TotalModules == 0 {
 		return 0.0
 	}
@@ -280,16 +332,15 @@ func (calc *CouplingMetricsCalculator) calculateSystemComplexity() float64 {
 
 	// Coupling complexity (variance in instability)
 	var instabilityVariance float64
-	if len(calc.graph.ModuleMetrics) > 1 {
-		mean := calc.graph.SystemMetrics.AverageInstability
+	if len(moduleMetrics) > 1 {
 		var sumSquaredDiffs float64
 
-		for _, metrics := range calc.graph.ModuleMetrics {
-			diff := metrics.Instability - mean
+		for _, metrics := range moduleMetrics {
+			diff := metrics.Instability - averageInstability
 			sumSquaredDiffs += diff * diff
 		}
 
-		instabilityVariance = sumSquaredDiffs / float64(len(calc.graph.ModuleMetrics))
+		instabilityVariance = sumSquaredDiffs / float64(len(moduleMetrics))
 	}
 
 	couplingComplexity := math.Sqrt(instabilityVariance) * 10 // Scale to reasonable range
@@ -298,50 +349,10 @@ func (calc *CouplingMetricsCalculator) calculateSystemComplexity() float64 {
 	return structuralComplexity*0.4 + sizeComplexity*0.3 + couplingComplexity*0.3
 }
 
-// calculateMaxDependencyDepth calculates the maximum depth of dependency chains
-func (calc *CouplingMetricsCalculator) calculateMaxDependencyDepth() int {
-	maxDepth := 0
-
-	// Start from root modules (no dependencies) and find longest paths
-	rootModules := calc.graph.GetRootModules()
-
-	for _, root := range rootModules {
-		depth := calc.findMaxDepthFrom(root, make(map[string]bool))
-		if depth > maxDepth {
-			maxDepth = depth
-		}
-	}
-
-	return maxDepth
-}
-
-// findMaxDepthFrom finds the maximum depth from a given module
-func (calc *CouplingMetricsCalculator) findMaxDepthFrom(module string, visited map[string]bool) int {
-	if visited[module] {
-		return 0 // Avoid infinite recursion in cycles
-	}
-
-	visited[module] = true
-	defer func() { visited[module] = false }()
-
-	node := calc.graph.Nodes[module]
-	if node == nil {
-		return 0
-	}
-
-	maxChildDepth := 0
-	for dependency := range node.Dependencies {
-		childDepth := calc.findMaxDepthFrom(dependency, visited)
-		if childDepth > maxChildDepth {
-			maxChildDepth = childDepth
-		}
-	}
-
-	return maxChildDepth + 1
-}
-
-// identifyRefactoringPriorities identifies modules that need refactoring most urgently
-func (calc *CouplingMetricsCalculator) identifyRefactoringPriorities() []string {
+// identifyRefactoringPriorities identifies modules that need refactoring most urgently.
+func (calc *CouplingMetricsCalculator) identifyRefactoringPriorities(
+	moduleMetrics map[string]*ModuleMetrics,
+) []string {
 	type refactoringCandidate struct {
 		module   string
 		priority float64
@@ -349,7 +360,7 @@ func (calc *CouplingMetricsCalculator) identifyRefactoringPriorities() []string 
 
 	var candidates []refactoringCandidate
 
-	for moduleName, metrics := range calc.graph.ModuleMetrics {
+	for moduleName, metrics := range moduleMetrics {
 		priority := 0.0
 
 		// High priority for poor architectural position
@@ -377,6 +388,9 @@ func (calc *CouplingMetricsCalculator) identifyRefactoringPriorities() []string 
 
 	// Sort by priority (highest first)
 	sort.Slice(candidates, func(i, j int) bool {
+		if candidates[i].priority == candidates[j].priority {
+			return candidates[i].module < candidates[j].module
+		}
 		return candidates[i].priority > candidates[j].priority
 	})
 
@@ -406,8 +420,13 @@ func (calc *CouplingMetricsCalculator) isModuleInCycle(moduleName string) bool {
 	return false
 }
 
-// CalculateCouplingMetrics is a convenience function for calculating metrics
-func CalculateCouplingMetrics(graph *DependencyGraph, options *CouplingMetricsOptions) error {
+// CalculateCouplingMetrics is a convenience function for calculating metrics.
+func CalculateCouplingMetrics(
+	ctx context.Context,
+	graph *DependencyGraph,
+	topology *DependencyTopology,
+	options *CouplingMetricsOptions,
+) error {
 	calculator := NewCouplingMetricsCalculator(graph, options)
-	return calculator.CalculateMetrics()
+	return calculator.CalculateMetrics(ctx, topology)
 }

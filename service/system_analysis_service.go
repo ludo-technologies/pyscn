@@ -368,19 +368,25 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 		}, nil
 	}
 
-	// Detect circular dependencies
+	// Circular-import reporting and structural topology share the same
+	// load-time dependency contract. Other analyses retain lazy runtime edges.
 	circularDetector := analyzer.NewCircularDependencyDetector(graph)
 	circularResult := circularDetector.DetectCircularDependencies()
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
 
+	topology, err := analyzer.AnalyzeDependencyTopology(ctx, graph, 10)
+	if err != nil {
+		return nil, fmt.Errorf("analyze dependency topology: %w", err)
+	}
+
 	// Calculate coupling metrics
 	metricsCalculator := analyzer.NewCouplingMetricsCalculator(graph, analyzer.DefaultCouplingMetricsOptions())
-	if err := metricsCalculator.CalculateMetrics(); err != nil {
+	if err := metricsCalculator.CalculateMetrics(ctx, topology); err != nil {
 		return nil, err
 	}
-	couplingResults := s.extractCouplingResult(graph)
+	couplingResults := graph.SystemMetrics
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
@@ -391,8 +397,7 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
 
-	// Find longest dependency chains
-	longestChains := s.findLongestChains(graph, 10) // Top 10 chains
+	longestChains := s.convertDependencyChains(topology.LongestChains())
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("dependency analysis cancelled: %w", err)
 	}
@@ -414,7 +419,7 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 		CircularDependencies: s.convertCircularResults(circularResult),
 		CouplingAnalysis:     s.convertCouplingResults(couplingResults),
 		LongestChains:        longestChains,
-		MaxDepth:             s.calculateMaxDepth(graph),
+		MaxDepth:             topology.MaxDepth(),
 	}
 
 	return result, nil
@@ -1363,111 +1368,6 @@ func (s *SystemAnalysisServiceImpl) buildDependencyMatrix(graph *analyzer.Depend
 	return matrix
 }
 
-func (s *SystemAnalysisServiceImpl) findLongestChains(graph *analyzer.DependencyGraph, limit int) []domain.DependencyPath {
-	var chains []domain.DependencyPath
-
-	// Find all paths using simple DFS
-	for moduleName := range graph.Nodes {
-		paths := s.findPathsFromModule(graph, moduleName, make(map[string]bool), []string{moduleName}, limit)
-		chains = append(chains, paths...)
-	}
-
-	// Sort by length (descending), then by first module name for deterministic results
-	sort.Slice(chains, func(i, j int) bool {
-		if chains[i].Length != chains[j].Length {
-			return chains[i].Length > chains[j].Length
-		}
-		// Tie-breaker: compare first module name for deterministic results
-		return chains[i].Path[0] < chains[j].Path[0]
-	})
-
-	// Return top chains
-	if len(chains) > limit {
-		chains = chains[:limit]
-	}
-
-	return chains
-}
-
-func (s *SystemAnalysisServiceImpl) findPathsFromModule(graph *analyzer.DependencyGraph, current string, visited map[string]bool, path []string, maxPaths int) []domain.DependencyPath {
-	var paths []domain.DependencyPath
-
-	if len(paths) >= maxPaths {
-		return paths
-	}
-
-	visited[current] = true
-	defer delete(visited, current)
-
-	node := graph.Nodes[current]
-	if node == nil {
-		return paths
-	}
-
-	for dep := range node.Dependencies {
-		if !visited[dep] {
-			newPath := append([]string{}, path...)
-			newPath = append(newPath, dep)
-
-			// Add this path
-			if len(newPath) >= 2 {
-				paths = append(paths, domain.DependencyPath{
-					From:   newPath[0],
-					To:     dep,
-					Path:   newPath,
-					Length: len(newPath),
-				})
-			}
-
-			// Continue searching
-			subPaths := s.findPathsFromModule(graph, dep, visited, newPath, maxPaths-len(paths))
-			paths = append(paths, subPaths...)
-
-			if len(paths) >= maxPaths {
-				break
-			}
-		}
-	}
-
-	return paths
-}
-
-func (s *SystemAnalysisServiceImpl) calculateMaxDepth(graph *analyzer.DependencyGraph) int {
-	maxDepth := 0
-
-	for moduleName := range graph.Nodes {
-		depth := s.calculateDepthFromModule(graph, moduleName, make(map[string]bool), 0)
-		if depth > maxDepth {
-			maxDepth = depth
-		}
-	}
-
-	return maxDepth
-}
-
-func (s *SystemAnalysisServiceImpl) calculateDepthFromModule(graph *analyzer.DependencyGraph, current string, visited map[string]bool, currentDepth int) int {
-	if visited[current] {
-		return currentDepth
-	}
-
-	visited[current] = true
-	defer delete(visited, current)
-
-	maxSubDepth := currentDepth
-	node := graph.Nodes[current]
-
-	if node != nil {
-		for dep := range node.Dependencies {
-			depth := s.calculateDepthFromModule(graph, dep, visited, currentDepth+1)
-			if depth > maxSubDepth {
-				maxSubDepth = depth
-			}
-		}
-	}
-
-	return maxSubDepth
-}
-
 func (s *SystemAnalysisServiceImpl) convertCouplingResults(results *analyzer.SystemMetrics) *domain.CouplingAnalysis {
 	if results == nil {
 		return nil
@@ -1560,62 +1460,6 @@ func (s *SystemAnalysisServiceImpl) convertDependencyChains(chains []analyzer.De
 	}
 
 	return deps
-}
-
-// extractCouplingResult extracts coupling analysis from the dependency graph
-func (s *SystemAnalysisServiceImpl) extractCouplingResult(graph *analyzer.DependencyGraph) *analyzer.SystemMetrics {
-	// If SystemMetrics is already calculated in the graph, use it
-	if graph.SystemMetrics != nil && graph.SystemMetrics.RefactoringPriority != nil {
-		return graph.SystemMetrics
-	}
-
-	// Otherwise, calculate basic metrics
-	metrics := &analyzer.SystemMetrics{
-		TotalModules:      graph.TotalModules,
-		TotalDependencies: graph.TotalEdges,
-	}
-
-	if graph.TotalModules > 0 {
-		// Calculate averages from module metrics
-		var totalFanIn, totalFanOut float64
-		var totalInstability, totalAbstractness, totalDistance float64
-		var refactoringCandidates []string
-
-		if graph.ModuleMetrics != nil {
-			for moduleName, moduleMetrics := range graph.ModuleMetrics {
-				totalFanIn += float64(moduleMetrics.AfferentCoupling)
-				totalFanOut += float64(moduleMetrics.EfferentCoupling)
-				totalInstability += moduleMetrics.Instability
-				totalAbstractness += moduleMetrics.Abstractness
-				totalDistance += moduleMetrics.Distance
-
-				// Identify refactoring priorities based on distance
-				if moduleMetrics.Distance > 0.5 {
-					refactoringCandidates = append(refactoringCandidates, moduleName)
-				}
-			}
-		}
-
-		moduleCount := float64(graph.TotalModules)
-		metrics.AverageFanIn = totalFanIn / moduleCount
-		metrics.AverageFanOut = totalFanOut / moduleCount
-		metrics.AverageInstability = totalInstability / moduleCount
-		metrics.AverageAbstractness = totalAbstractness / moduleCount
-		metrics.MainSequenceDeviation = totalDistance / moduleCount
-		metrics.SystemComplexity = float64(graph.TotalModules * 2)
-		metrics.MaxDependencyDepth = s.calculateMaxDepth(graph)
-		metrics.RefactoringPriority = refactoringCandidates
-
-		// Modularity index approximation
-		if graph.TotalEdges > 0 {
-			metrics.ModularityIndex = 1.0 - (float64(graph.TotalEdges) / float64(graph.TotalModules*graph.TotalModules))
-			if metrics.ModularityIndex < 0 {
-				metrics.ModularityIndex = 0
-			}
-		}
-	}
-
-	return metrics
 }
 
 func minSystemAnalysis(a, b int) int {

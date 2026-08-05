@@ -348,7 +348,7 @@ func (uc *ComplexityUseCase) loadAndMergeConfig(req domain.ComplexityRequest) (d
 		}
 	} else {
 		// Try to load default config
-		configReq = uc.configLoader.LoadDefaultConfig()
+		configReq = uc.configLoader.LoadDefaultConfig(configDiscoveryTarget(req.Paths))
 	}
 
 	if configReq != nil {
@@ -471,7 +471,7 @@ func (n *noOpConfigLoader) LoadConfig(path string) (*domain.ComplexityRequest, e
 	return nil, nil
 }
 
-func (n *noOpConfigLoader) LoadDefaultConfig() *domain.ComplexityRequest {
+func (n *noOpConfigLoader) LoadDefaultConfig(targetPath string) *domain.ComplexityRequest {
 	return nil
 }
 

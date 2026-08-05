@@ -46,6 +46,16 @@ type ModuleNode struct {
 	PublicNames        []string // Public names exported by this module
 }
 
+// hasLoadTimeDependency reports whether dependency executes while the module
+// is loading. Lazy-only function and method imports remain runtime dependencies
+// for coupling and architecture analysis, but do not participate in load-time
+// topology.
+func (node *ModuleNode) hasLoadTimeDependency(dependency string) bool {
+	return node != nil &&
+		node.Dependencies[dependency] &&
+		!node.LazyDependencies[dependency]
+}
+
 // DependencyEdge represents a dependency relationship between modules
 type DependencyEdge struct {
 	From       string             // Source module name
@@ -94,6 +104,8 @@ type DependencyGraph struct {
 	CyclicGroups  [][]string                // Strongly connected components (cycles)
 	ModuleMetrics map[string]*ModuleMetrics // Module-level metrics
 	SystemMetrics *SystemMetrics            // System-wide metrics
+
+	topologyRevision uint64
 }
 
 // ModuleMetrics contains metrics for a single module
@@ -192,6 +204,7 @@ func (g *DependencyGraph) AddModule(moduleName, filePath string) *ModuleNode {
 
 	g.Nodes[moduleName] = node
 	g.TotalModules++
+	g.topologyRevision++
 	return node
 }
 
@@ -222,6 +235,7 @@ func (g *DependencyGraph) AddDependency(from, to string, edgeType DependencyEdge
 			if edge := g.findEdge(from, to); edge != nil {
 				edge.IsLazy = false
 			}
+			g.topologyRevision++
 		}
 		return
 	}
@@ -236,6 +250,7 @@ func (g *DependencyGraph) AddDependency(from, to string, edgeType DependencyEdge
 	}
 	g.Edges = append(g.Edges, edge)
 	g.TotalEdges++
+	g.topologyRevision++
 
 	// Update node relationships
 	fromNode.Dependencies[to] = true
@@ -549,6 +564,7 @@ func (g *DependencyGraph) Clone() *DependencyGraph {
 
 	clone.TotalModules = g.TotalModules
 	clone.TotalEdges = g.TotalEdges
+	clone.topologyRevision = g.topologyRevision
 
 	return clone
 }

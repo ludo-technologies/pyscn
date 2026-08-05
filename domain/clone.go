@@ -252,8 +252,9 @@ type CloneConfigurationLoader interface {
 	// SaveCloneConfig saves clone detection configuration to file
 	SaveCloneConfig(config *CloneRequest, configPath string) error
 
-	// GetDefaultCloneConfig returns default clone detection configuration
-	GetDefaultCloneConfig() *CloneRequest
+	// GetDefaultCloneConfig discovers clone configuration from targetPath (the
+	// analyzed path) and falls back to built-in defaults when none is found
+	GetDefaultCloneConfig(targetPath string) *CloneRequest
 
 	// MergeConfig merges request values over loaded configuration.
 	MergeConfig(base *CloneRequest, override *CloneRequest) *CloneRequest

@@ -27,7 +27,7 @@ func (g loadTimeDependencyGraph) Successors(moduleName string) []string {
 
 	dependencies := make([]string, 0, len(node.Dependencies))
 	for dependency := range node.Dependencies {
-		if !node.LazyDependencies[dependency] {
+		if node.hasLoadTimeDependency(dependency) {
 			dependencies = append(dependencies, dependency)
 		}
 	}
@@ -45,7 +45,7 @@ func (g loadTimeDependencyGraph) Predecessors(moduleName string) []string {
 	dependents := make([]string, 0, len(node.Dependents))
 	for dependent := range node.Dependents {
 		dependentNode := g.Nodes[dependent]
-		if dependentNode != nil && !dependentNode.LazyDependencies[moduleName] {
+		if dependentNode.hasLoadTimeDependency(moduleName) {
 			dependents = append(dependents, dependent)
 		}
 	}
@@ -185,8 +185,8 @@ func (cdd *CircularDependencyDetector) findDependencyChains(modules []string) []
 	for _, from := range modules {
 		if node := cdd.graph.Nodes[from]; node != nil {
 			for to := range node.Dependencies {
-				if node.LazyDependencies[to] {
-					continue // lazy edges are not load-time dependencies (#460)
+				if !node.hasLoadTimeDependency(to) {
+					continue
 				}
 				if moduleSet[to] {
 					// Find the shortest path from 'from' to 'to' within the component
@@ -226,8 +226,8 @@ func (cdd *CircularDependencyDetector) findPathInComponent(from, to string, modu
 
 		if node := cdd.graph.Nodes[current]; node != nil {
 			for dependency := range node.Dependencies {
-				if node.LazyDependencies[dependency] {
-					continue // lazy edges are not load-time dependencies (#460)
+				if !node.hasLoadTimeDependency(dependency) {
+					continue
 				}
 				if !moduleSet[dependency] {
 					continue // Skip modules outside the component
@@ -414,8 +414,8 @@ func FindSimpleCycles(graph *DependencyGraph) []*CircularDependency {
 			// Check if A depends on B and B depends on A at load time.
 			// Lazy (function-body) imports are excluded: they cannot form a
 			// load-time cycle. See issue #460.
-			aToB := nodeA.Dependencies[moduleB] && !nodeA.LazyDependencies[moduleB]
-			bToA := nodeB.Dependencies[moduleA] && !nodeB.LazyDependencies[moduleA]
+			aToB := nodeA.hasLoadTimeDependency(moduleB)
+			bToA := nodeB.hasLoadTimeDependency(moduleA)
 			if aToB && bToA {
 				cycle := &CircularDependency{
 					Modules:     []string{moduleA, moduleB},

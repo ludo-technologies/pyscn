@@ -119,8 +119,8 @@ type DependencyAnalysisResult struct {
 	CouplingAnalysis *CouplingAnalysis // Detailed coupling analysis
 
 	// Dependency chains
-	LongestChains []DependencyPath // Longest dependency chains
-	MaxDepth      int              // Maximum dependency depth
+	LongestChains []DependencyPath // Longest paths through the load-time SCC-condensed dependency graph
+	MaxDepth      int              // Maximum load-time SCC-condensed dependency depth in edges
 }
 
 // ModuleDependencyMetrics contains dependency metrics for a single module
@@ -489,8 +489,9 @@ type SystemAnalysisConfigurationLoader interface {
 	// LoadConfig loads configuration from the specified path
 	LoadConfig(path string) (*SystemAnalysisRequest, error)
 
-	// LoadDefaultConfig loads the default configuration
-	LoadDefaultConfig() *SystemAnalysisRequest
+	// LoadDefaultConfig discovers configuration from targetPath (the analyzed
+	// path) and falls back to built-in defaults when none is found
+	LoadDefaultConfig(targetPath string) *SystemAnalysisRequest
 
 	// MergeConfig merges CLI flags with configuration file
 	MergeConfig(base *SystemAnalysisRequest, override *SystemAnalysisRequest) *SystemAnalysisRequest

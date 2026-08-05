@@ -8,7 +8,7 @@
 
 Flags a module that mixes more than `architecture.max_responsibilities` (default `3`) distinct dependency concerns, or that acts as a fan-in/fan-out hub for more concerns than the rest of the project does on average.
 
-A "concern" is inferred from the names of the module's neighbors: for each module the analyzer imports or that imports it, it takes the first segment of the neighbor's path that is not part of the current module's path and not a generic catch-all (`base`, `common`, `helpers`, `node`, `shared`, `util`, `utils`). Those segments are deduplicated; the count is the number of responsibilities pyscn attributes to the module.
+A "concern" is inferred from the names of the module's dependencies: for each module it imports, the analyzer takes the first segment of the dependency's path that is not part of the current module's path and not a generic catch-all (`base`, `common`, `helpers`, `node`, `shared`, `util`, `utils`). Those segments are deduplicated; the count is the number of responsibilities pyscn attributes to the module. Modules that import it (fan-in) do not contribute concerns — being widely reused is not a responsibility.
 
 A module is reported when either condition holds:
 
