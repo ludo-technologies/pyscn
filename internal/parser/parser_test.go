@@ -276,7 +276,7 @@ class MyClass:
 	}
 }
 
-func TestHasSyntaxErrors(t *testing.T) {
+func TestCheckSyntax(t *testing.T) {
 	parser := New()
 	ctx := context.Background()
 
@@ -307,9 +307,116 @@ func TestHasSyntaxErrors(t *testing.T) {
 			tree, _ := parser.parser.ParseCtx(ctx, nil, []byte(tt.source))
 			rootNode := tree.RootNode()
 
-			hasErrors := parser.HasSyntaxErrors(rootNode)
-			if hasErrors != tt.hasErrors {
-				t.Errorf("HasSyntaxErrors() = %v, want %v", hasErrors, tt.hasErrors)
+			err := parser.CheckSyntax(rootNode, []byte(tt.source))
+			if (err != nil) != tt.hasErrors {
+				t.Errorf("CheckSyntax() error = %v, want error = %v", err, tt.hasErrors)
+			}
+		})
+	}
+}
+
+// The tree-sitter Python grammar accepts these legacy constructs without
+// producing an ERROR node, so they used to be analyzed as if they were valid.
+// Every case here is a SyntaxError on both Python 3.13 and 3.14.
+func TestParseRejectsSyntaxInvalidInEveryPython3(t *testing.T) {
+	parser := New()
+	ctx := context.Background()
+
+	tests := []struct {
+		name   string
+		source string
+	}{
+		{"print statement", "print 'hello'\n"},
+		{"print statement with a name", "x = 1\nprint x\n"},
+		{"print statement with a tuple", "print 1, 2\n"},
+		{"exec statement", "exec 'code'\n"},
+		{"exec statement with in", "exec 'code' in {}\n"},
+		{
+			name:   "exception list bound with as",
+			source: "try:\n    pass\nexcept OSError, TypeError as e:\n    pass\n",
+		},
+		{"raise with argument list", "raise ValueError, 'msg'\n"},
+		{"raise with traceback", "raise ValueError, 'msg', tb\n"},
+		{"backtick repr", "x = `y`\n"},
+		{"tuple parameter unpacking", "def f((a, b)):\n    return a\n"},
+		{"tuple parameter among normal ones", "def f(x, (a, b), y=1):\n    return a\n"},
+		{"nested tuple parameter", "def f(((a, b), c)):\n    return a\n"},
+		{"defaulted tuple parameter", "def f((a, b)=(1, 2)):\n    return a\n"},
+		{"lambda tuple parameter", "g = lambda (x, y): x\n"},
+		{"lambda tuple parameter among normal ones", "g = lambda a, (x, y): x\n"},
+		{"bare octal literal", "mode = 0777\n"},
+		{"leading zero decimal", "n = 08\n"},
+		{"long literal", "n = 10L\n"},
+		{"<> operator", "if a <> b:\n    pass\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := parser.Parse(ctx, []byte(tt.source))
+			if err == nil {
+				t.Fatalf("Parse() succeeded for invalid source, want error (got %d AST children)", len(result.AST.Body))
+			}
+			if !strings.Contains(err.Error(), "not valid Python 3") {
+				t.Errorf("Parse() error = %q, want it to mention it is not valid Python 3", err)
+			}
+		})
+	}
+}
+
+// Every case here compiles on Python 3.13 and/or 3.14, so pyscn must analyze it
+// rather than reject it. The unparenthesized `except A, B:` list became valid in
+// Python 3.14 (PEP 758), and `print >>f, x` parses as a shift plus a tuple.
+func TestParseAcceptsValidPython3(t *testing.T) {
+	parser := New()
+	ctx := context.Background()
+
+	tests := []struct {
+		name   string
+		source string
+	}{
+		{"print function", "print('hello')\n"},
+		{"print function with keywords", "import sys\nprint('a', file=sys.stderr, sep='')\n"},
+		{"print as an identifier", "print = 5\nvalue = print\n"},
+		{"print shifted into a stream", "import sys\nprint >>sys.stderr, 'oops'\n"},
+		{"print subscripted", "print [1]\n"},
+		{"print negated", "print -1\n"},
+		{"exec function", "exec('code')\n"},
+		{"exec subscripted", "exec [1]\n"},
+		{
+			name:   "unparenthesized exception list is valid since PEP 758",
+			source: "def f(x):\n    try:\n        return x\n    except OSError, TypeError:\n        return None\n",
+		},
+		{"parenthesized exception list", "try:\n    pass\nexcept (OSError, TypeError):\n    pass\n"},
+		{"parenthesized exception list with as", "try:\n    pass\nexcept (OSError, TypeError) as e:\n    pass\n"},
+		{"except with as", "try:\n    pass\nexcept OSError as e:\n    pass\n"},
+		{"except group", "try:\n    pass\nexcept* OSError:\n    pass\n"},
+		{"raise from", "raise ValueError('x') from err\n"},
+		{"raise with call arguments", "raise SomeExc(1, 2)\n"},
+		{"bare raise", "try:\n    pass\nexcept OSError:\n    raise\n"},
+		{"zero literals", "x = 0\ny = 00\nz = 0_0\n"},
+		{"prefixed literals", "o = 0o777\nb = 0b1010\nh = 0xFF\n"},
+		{"complex and float literals", "c = 10j\nz = 0j\nf = 1e10\n"},
+		{"not equal operator", "if a != b:\n    pass\n"},
+		// tuple_pattern is only a syntax error in a parameter list; these are
+		// the legal positions for the same node.
+		{"tuple for target", "for (a, b) in items:\n    pass\n"},
+		{"list for target", "for [a, b] in items:\n    pass\n"},
+		{"tuple assignment target", "(a, b) = t\n"},
+		{"nested tuple assignment target", "(a, (b, c)) = t\n"},
+		{"starred tuple assignment target", "(a, *rest) = t\n"},
+		{"list assignment target", "[a, b] = t\n"},
+		{"tuple comprehension target", "z = [a for (a, b) in items]\n"},
+		{"tuple with-as target", "with ctx() as (a, b):\n    pass\n"},
+		{"tuple default value", "def f(x=(1, 2)):\n    return x\n"},
+		{"normal parameters", "def f(x, y=1, *args, **kw):\n    return x\n"},
+		{"typed parameters", "def f(x: int, *, y: str = 'a') -> int:\n    return x\n"},
+		{"normal lambda parameters", "g = lambda x, y=1: x\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := parser.Parse(ctx, []byte(tt.source)); err != nil {
+				t.Errorf("Parse() error = %v, want valid Python 3 to parse", err)
 			}
 		})
 	}
