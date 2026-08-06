@@ -49,6 +49,13 @@ func invalidInPython3(tsNode *sitter.Node, source []byte) string {
 		if start := tsNode.Child(0); start != nil && start.Content(source) == "`" {
 			return "backtick repr (Python 3 requires repr(...))"
 		}
+	case "tuple_pattern":
+		// `def f((a, b))` / `lambda (x, y): ...`, removed by PEP 3113. The same
+		// node is legal as a for target, an assignment target or a nested
+		// pattern, so only a parameter position is a syntax error.
+		if isParameterPosition(tsNode.Parent()) {
+			return "tuple parameter unpacking (removed in Python 3 by PEP 3113)"
+		}
 	case "integer":
 		return invalidPython3Integer(tsNode.Content(source))
 	}
@@ -84,6 +91,20 @@ func isLegacyOctal(text string) bool {
 			// 0x/0b/0o prefixes and the j complex suffix are valid Python 3.
 			return false
 		}
+	}
+	return false
+}
+
+// isParameterPosition reports whether tsNode is a function or lambda parameter
+// list. A defaulted parameter (`def f((a, b)=(1, 2))`) nests the pattern one
+// level deeper, and default_parameter only ever occurs inside such a list.
+func isParameterPosition(tsNode *sitter.Node) bool {
+	if tsNode == nil {
+		return false
+	}
+	switch tsNode.Type() {
+	case "parameters", "lambda_parameters", "default_parameter":
+		return true
 	}
 	return false
 }

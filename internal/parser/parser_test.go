@@ -338,6 +338,12 @@ func TestParseRejectsSyntaxInvalidInEveryPython3(t *testing.T) {
 		{"raise with argument list", "raise ValueError, 'msg'\n"},
 		{"raise with traceback", "raise ValueError, 'msg', tb\n"},
 		{"backtick repr", "x = `y`\n"},
+		{"tuple parameter unpacking", "def f((a, b)):\n    return a\n"},
+		{"tuple parameter among normal ones", "def f(x, (a, b), y=1):\n    return a\n"},
+		{"nested tuple parameter", "def f(((a, b), c)):\n    return a\n"},
+		{"defaulted tuple parameter", "def f((a, b)=(1, 2)):\n    return a\n"},
+		{"lambda tuple parameter", "g = lambda (x, y): x\n"},
+		{"lambda tuple parameter among normal ones", "g = lambda a, (x, y): x\n"},
 		{"bare octal literal", "mode = 0777\n"},
 		{"leading zero decimal", "n = 08\n"},
 		{"long literal", "n = 10L\n"},
@@ -391,6 +397,20 @@ func TestParseAcceptsValidPython3(t *testing.T) {
 		{"prefixed literals", "o = 0o777\nb = 0b1010\nh = 0xFF\n"},
 		{"complex and float literals", "c = 10j\nz = 0j\nf = 1e10\n"},
 		{"not equal operator", "if a != b:\n    pass\n"},
+		// tuple_pattern is only a syntax error in a parameter list; these are
+		// the legal positions for the same node.
+		{"tuple for target", "for (a, b) in items:\n    pass\n"},
+		{"list for target", "for [a, b] in items:\n    pass\n"},
+		{"tuple assignment target", "(a, b) = t\n"},
+		{"nested tuple assignment target", "(a, (b, c)) = t\n"},
+		{"starred tuple assignment target", "(a, *rest) = t\n"},
+		{"list assignment target", "[a, b] = t\n"},
+		{"tuple comprehension target", "z = [a for (a, b) in items]\n"},
+		{"tuple with-as target", "with ctx() as (a, b):\n    pass\n"},
+		{"tuple default value", "def f(x=(1, 2)):\n    return x\n"},
+		{"normal parameters", "def f(x, y=1, *args, **kw):\n    return x\n"},
+		{"typed parameters", "def f(x: int, *, y: str = 'a') -> int:\n    return x\n"},
+		{"normal lambda parameters", "g = lambda x, y=1: x\n"},
 	}
 
 	for _, tt := range tests {
