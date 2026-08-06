@@ -29,6 +29,7 @@ score = 100
       - cohesionPenalty         (0–20)
       - dependencyPenalty       (0–16)
       - architecturePenalty     (0–12)
+      - parseErrorPenalty       (0–56)
 
 HealthScore = max(0, score)
 ```
@@ -44,6 +45,7 @@ Chaque pénalité est plafonnée à son propre maximum :
 | Cohésion     | 20           | littéral `20.0` dans la formule |
 | Dépendances  | 16           | `MaxDependencyPenalty = 10+3+3` |
 | Architecture | 12           | `MaxArchitecturePenalty = 12`   |
+| Erreurs d'analyse | 56      | `MaxParseErrorPenalty = 100 - GradeDThreshold + 1` |
 
 Le plancher du score est `MinimumScore = 0` (`domain/analyze.go:102`), appliqué après la sommation des pénalités.
 
@@ -282,6 +284,36 @@ else:
 **Cas limites.** `ArchEnabled = false` → pénalité 0. `Validate()` impose `ArchCompliance ∈ [0, 1]` lorsqu'activé.
 
 Source : `domain/analyze.go:409-422`.
+
+### Erreurs d'analyse syntaxique
+
+**Entrées.** `TotalFiles` (int), `SkippedFiles` (int).
+
+Un fichier impossible à lire ou à analyser est exclu de toutes les analyses ci-dessus : il ne produit ni fonction, ni code mort, ni clone, ni couplage. Sans cette pénalité, il obtiendrait un meilleur score qu'un fichier valide, et corrompre un module se lirait comme une amélioration de la qualité.
+
+**Formule.**
+
+```
+if SkippedFiles <= 0 or TotalFiles <= 0:
+    penalty = 0
+else:
+    penalty = max(11, round(SkippedFiles / TotalFiles * 56))
+```
+
+**Constantes.**
+
+| Nom                    | Valeur | Signification                                     |
+| ---------------------- | ------ | ------------------------------------------------- |
+| `MinParseErrorPenalty` | 11     | `100 - GradeAThreshold + 1` — un seul fichier ignoré fait perdre le A |
+| `MaxParseErrorPenalty` | 56     | `100 - GradeDThreshold + 1` — une cible entièrement non analysable ne peut dépasser F |
+
+**Saturation.** Atteint 56 lorsqu'aucun fichier de la cible n'a pu être analysé.
+
+**Cas limites.** Le plancher s'applique dès qu'un fichier est ignoré : un seul fichier cassé sur mille fait donc perdre la meilleure note. `Validate()` rejette un `SkippedFiles` négatif ou supérieur à `TotalFiles`.
+
+Cette pénalité n'a pas de score de catégorie propre — elle n'appartient à aucune analyse en particulier. `SkippedFiles` et `TotalFiles` figurent dans le résumé pour rendre le déficit visible à côté du score.
+
+Source : `domain/analyze.go`, `calculateParseErrorPenalty`.
 
 ## Scores par catégorie
 

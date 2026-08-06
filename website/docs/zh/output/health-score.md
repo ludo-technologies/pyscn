@@ -29,6 +29,7 @@ score = 100
       - cohesionPenalty         (0–20)
       - dependencyPenalty       (0–16)
       - architecturePenalty     (0–12)
+      - parseErrorPenalty       (0–56)
 
 HealthScore = max(0, score)
 ```
@@ -44,6 +45,7 @@ HealthScore = max(0, score)
 | 内聚度       | 20       | 公式中的字面量 `20.0`             |
 | 依赖         | 16       | `MaxDependencyPenalty = 10+3+3`   |
 | 架构         | 12       | `MaxArchitecturePenalty = 12`     |
+| 解析错误     | 56       | `MaxParseErrorPenalty = 100 - GradeDThreshold + 1` |
 
 评分下限为 `MinimumScore = 0`（`domain/analyze.go:102`），在惩罚求和后应用。
 
@@ -282,6 +284,36 @@ else:
 **边界情况。** `ArchEnabled = false` → 惩罚 0。`Validate()` 在启用时强制 `ArchCompliance ∈ [0, 1]`。
 
 来源：`domain/analyze.go:409-422`。
+
+### 解析错误
+
+**输入。** `TotalFiles` (int)、`SkippedFiles` (int)。
+
+无法读取或解析的文件会被排除在上述所有分析之外：它不产生函数、死代码、克隆或耦合数据。若没有此项惩罚，它的得分反而高于正常文件，破坏一个模块会被读作质量改进。
+
+**公式。**
+
+```
+if SkippedFiles <= 0 or TotalFiles <= 0:
+    penalty = 0
+else:
+    penalty = max(11, round(SkippedFiles / TotalFiles * 56))
+```
+
+**常量。**
+
+| 名称                   | 值 | 含义                                              |
+| ---------------------- | ----- | ---------------------------------------------------- |
+| `MinParseErrorPenalty` | 11    | `100 - GradeAThreshold + 1` —— 只要有一个文件被跳过就无法拿到 A |
+| `MaxParseErrorPenalty` | 56    | `100 - GradeDThreshold + 1` —— 全部无法解析时不能高于 F |
+
+**饱和。** 当目标中没有任何文件解析成功时达到 56。
+
+**边界情况。** 只要有一个文件被跳过就会应用下限，因此一千个文件中的一个损坏文件仍会失去最高等级。`Validate()` 会拒绝负的 `SkippedFiles` 以及超过 `TotalFiles` 的值。
+
+该惩罚不属于任何单一分析，因此没有自己的分类评分。`SkippedFiles` 和 `TotalFiles` 会输出在摘要中，使缺口在评分旁边可见。
+
+来源：`domain/analyze.go`、`calculateParseErrorPenalty`。
 
 ## 分类评分
 

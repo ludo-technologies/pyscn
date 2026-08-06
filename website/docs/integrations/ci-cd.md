@@ -161,9 +161,10 @@ pipelines:
 | Code | Meaning | Action |
 | --- | --- | --- |
 | `0` | No issues | Pass |
-| `1` | Issues found or execution error | Fail |
+| `1` | Issues exceeded thresholds | Fail |
+| `2` | Analysis could not complete (invalid input, missing or unparseable files) | Fail |
 
-`check` returns exit `1` for both "issues exceeded thresholds" and "analysis could not complete" — the two cases are not distinguishable by exit code. Inspect stderr to tell them apart.
+Exit `2` means the gate never got a full look at your code — for example a file with a syntax error, which is excluded from every analysis and would otherwise pass by contributing no findings. Pass `--allow-parse-errors` to downgrade unparseable files to warnings.
 
 ## Strategies
 

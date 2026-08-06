@@ -331,6 +331,9 @@ def handle(value):
 		require.NotNil(t, response.RawMetricsSummary)
 		assert.Equal(t, 0, response.RawMetrics[0].LLOC)
 		assert.NotEmpty(t, response.Errors)
+		assert.Equal(t, 0, response.Summary.FilesAnalyzed)
+		assert.Equal(t, 1, response.Summary.TotalFiles)
+		assert.Equal(t, 1, response.Summary.SkippedFiles)
 	})
 
 	t.Run("raw metrics include parse failures without inflating analyzed file count", func(t *testing.T) {
@@ -350,6 +353,11 @@ def handle(value):
 		assert.NotEmpty(t, response.Functions)
 		assert.NotEmpty(t, response.Errors)
 		assert.Equal(t, 1, response.Summary.FilesAnalyzed)
+		// The shortfall must be visible from the summary alone: a consumer
+		// should not have to cross-reference Errors against its own input
+		// list to notice that half the request was dropped (issue #690).
+		assert.Equal(t, 2, response.Summary.TotalFiles)
+		assert.Equal(t, 1, response.Summary.SkippedFiles)
 		assert.Equal(t, 2, response.RawMetricsSummary.FilesAnalyzed)
 		assert.Len(t, response.RawMetrics, 2)
 
@@ -522,7 +530,7 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 
 	t.Run("generate summary with functions", func(t *testing.T) {
 		req := domain.ComplexityRequest{}
-		summary := service.generateSummary(functions, 2, req, 3)
+		summary := service.generateSummary(functions, 2, 0, req, 3)
 
 		assert.Equal(t, 3, summary.TotalFunctions)
 		assert.Equal(t, 3, summary.FunctionsParsed)
@@ -540,7 +548,7 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 
 	t.Run("generate summary with no functions", func(t *testing.T) {
 		req := domain.ComplexityRequest{}
-		summary := service.generateSummary([]domain.FunctionComplexity{}, 5, req, 0)
+		summary := service.generateSummary([]domain.FunctionComplexity{}, 5, 0, req, 0)
 
 		assert.Equal(t, 0, summary.TotalFunctions)
 		assert.Equal(t, 0, summary.FunctionsParsed)
@@ -559,7 +567,7 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 
 		req := domain.ComplexityRequest{MinComplexity: 5}
 		filtered, functionsParsed := service.filterFunctions(allFunctions, req)
-		summary := service.generateSummary(filtered, 1, req, functionsParsed)
+		summary := service.generateSummary(filtered, 1, 0, req, functionsParsed)
 
 		assert.Equal(t, 1, summary.TotalFunctions, "post-filter count is 1")
 		assert.Equal(t, 3, summary.FunctionsParsed, "pre-filter total is 3 (2 dropped by min_complexity=5)")

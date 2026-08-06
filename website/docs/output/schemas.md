@@ -64,7 +64,7 @@ Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the co
 | ---------------- | ------- | ------------------------------------------------ |
 | `total_files`    | integer | Number of Python files discovered.               |
 | `analyzed_files` | integer | Number of files successfully analyzed.           |
-| `skipped_files`  | integer | Files skipped due to parse errors or filters.    |
+| `skipped_files`  | integer | Files dropped because they could not be read or parsed. A non-zero value means every score below covers less than `total_files`. |
 
 ### Analyzer status flags
 
@@ -256,7 +256,9 @@ The standalone complexity formatter uses `by_directory` at the report root besid
 | `AverageComplexity`      | number  | Arithmetic mean of `Complexity` across all functions.                  |
 | `MaxComplexity`          | integer | Highest observed complexity.                                           |
 | `MinComplexity`          | integer | Lowest observed complexity.                                            |
-| `FilesAnalyzed`          | integer | Files contributing at least one function.                              |
+| `FilesAnalyzed`          | integer | Files that were parsed and contributed to the metrics above.           |
+| `TotalFiles`             | integer | Files the request covered, parsed or not.                              |
+| `SkippedFiles`           | integer | Files dropped because they could not be read or parsed. Their contents are absent from every metric above. |
 | `LowRiskFunctions`       | integer | Functions with `RiskLevel = low`.                                      |
 | `MediumRiskFunctions`    | integer | Functions with `RiskLevel = medium`.                                   |
 | `HighRiskFunctions`      | integer | Functions with `RiskLevel = high`.                                     |

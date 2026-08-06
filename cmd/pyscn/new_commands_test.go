@@ -1060,8 +1060,24 @@ func TestCountDIAntipatternIssuesFailsOnAnalysisErrors(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected DI analysis errors to fail the check")
 	}
-	if !strings.Contains(err.Error(), "Parse error") {
-		t.Fatalf("expected parse error to be preserved, got: %v", err)
+	if !strings.Contains(stderr.String(), "Parse error") {
+		t.Fatalf("expected the parse error to be reported, got: %q", stderr.String())
+	}
+}
+
+func TestCountDIAntipatternIssuesAllowsParseErrorsWhenWaived(t *testing.T) {
+	checkCmd := NewCheckCommand()
+	checkCmd.allowParseErrors = true
+	response := &domain.DIAntipatternResponse{
+		Errors: []string{"[broken.py] Parse error: syntax errors found in source code"},
+	}
+
+	var stderr bytes.Buffer
+	if _, err := checkCmd.countDIAntipatternIssues(&stderr, response); err != nil {
+		t.Fatalf("--allow-parse-errors should waive the failure, got: %v", err)
+	}
+	if !strings.Contains(stderr.String(), "Parse error") {
+		t.Fatalf("waived parse errors must still be reported, got: %q", stderr.String())
 	}
 }
 

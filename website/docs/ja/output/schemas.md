@@ -60,7 +60,7 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | ---------------- | ------- | ------------------------------------------------ |
 | `total_files`    | integer | 検出された Python ファイルの数。                 |
 | `analyzed_files` | integer | 正常に分析されたファイルの数。                   |
-| `skipped_files`  | integer | パースエラーまたはフィルタによりスキップされたファイル。 |
+| `skipped_files`  | integer | 読み込みまたはパースに失敗して除外されたファイル。0 でない場合、以下のスコアは `total_files` の一部しかカバーしていません。 |
 
 ### アナライザステータスフラグ
 
@@ -209,7 +209,9 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | `AverageComplexity`      | number  | すべての関数の `Complexity` の算術平均。                                |
 | `MaxComplexity`          | integer | 観測された最大複雑度。                                                 |
 | `MinComplexity`          | integer | 観測された最小複雑度。                                                 |
-| `FilesAnalyzed`          | integer | 少なくとも1つの関数を含むファイル。                                    |
+| `FilesAnalyzed`          | integer | パースに成功し、上記のメトリクスに寄与したファイル。                   |
+| `TotalFiles`             | integer | パース成否によらず、リクエストが対象としたファイル。                   |
+| `SkippedFiles`           | integer | 読み込みまたはパースに失敗して除外されたファイル。その内容は上記すべてのメトリクスに含まれません。 |
 | `LowRiskFunctions`       | integer | `RiskLevel = low` の関数。                                             |
 | `MediumRiskFunctions`    | integer | `RiskLevel = medium` の関数。                                          |
 | `HighRiskFunctions`      | integer | `RiskLevel = high` の関数。                                            |

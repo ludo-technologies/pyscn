@@ -13,8 +13,8 @@ Paths default to the current directory.
 `check` is the CI companion to [`analyze`](analyze.md):
 
 - **Findings go to stderr** in linter format (`file:line:col: message`).
-- **Exit 0** on pass, **exit 1** on any failure (issues found *or* execution error).
-- **Strict defaults** — any function over complexity 10 fails; any circular dependency fails (when `--select deps` is set).
+- **Exit 0** on pass, **exit 1** on issues found, **exit 2** when the analysis could not complete.
+- **Strict defaults** — any function over complexity 10 fails; any circular dependency fails (when `--select deps` is set); any file that cannot be parsed fails.
 - **Fast** — only runs the analyses you select; skips report generation.
 
 ## Flags
@@ -36,6 +36,9 @@ Default (no `--select`): runs `complexity`, `deadcode`, **and `clones`**. `deps`
 | `--max-cycles <N>`       | `0`  | Maximum number of circular dependency cycles before failing. |
 | `--allow-dead-code`      | off  | Treat dead code as warnings only; don't fail the check. |
 | `--allow-circular-deps`  | off  | Treat cycles as warnings only; don't fail the check. |
+| `--allow-parse-errors`   | off  | Treat unreadable or unparseable files as warnings only; don't fail the check. |
+
+By default, a file that cannot be parsed fails the check. Such a file is excluded from every analysis, so it contributes no findings and would otherwise pass every threshold — a syntax error in your source would be reported as a clean run.
 
 ### Output
 
@@ -50,9 +53,10 @@ Default (no `--select`): runs `complexity`, `deadcode`, **and `clones`**. `deps`
 | Code | Meaning |
 | --- | --- |
 | `0` | All checks passed. |
-| `1` | One or more checks failed, or an execution error occurred. |
+| `1` | One or more quality thresholds were exceeded. |
+| `2` | The analysis could not complete over the requested targets — invalid input, missing files, or files that could not be parsed. |
 
-`check` does not distinguish "issues found" from "tool failure" with different exit codes. In CI, rely on stderr output and pyscn's non-zero exit for pass/fail semantics only.
+Exit `1` is a verdict about your code; exit `2` means the verdict itself is incomplete and should not be read as a pass.
 
 ## Examples
 

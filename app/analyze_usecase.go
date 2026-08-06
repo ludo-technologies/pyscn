@@ -712,8 +712,12 @@ func (uc *AnalyzeUseCase) markSummaryForTask(summary *domain.AnalyzeSummary, tas
 func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, response *domain.AnalyzeResponse) {
 	// Complexity statistics
 	if response.Complexity != nil {
-		summary.TotalFiles = response.Complexity.Summary.FilesAnalyzed
+		// TotalFiles must count files that failed to parse too, otherwise the
+		// shortfall is invisible and the health score is computed as if the
+		// unanalyzable half of the project did not exist (issue #690).
+		summary.TotalFiles = response.Complexity.Summary.TotalFiles
 		summary.AnalyzedFiles = response.Complexity.Summary.FilesAnalyzed
+		summary.SkippedFiles = response.Complexity.Summary.SkippedFiles
 		summary.TotalFunctions = response.Complexity.Summary.TotalFunctions
 		summary.FunctionsParsed = response.Complexity.Summary.FunctionsParsed
 		summary.AverageComplexity = response.Complexity.Summary.AverageComplexity

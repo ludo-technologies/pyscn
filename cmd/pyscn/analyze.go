@@ -505,6 +505,13 @@ func getScoreIcon(score int) string {
 func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.AnalyzeResponse) {
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n📊 Analysis Summary:\n")
 	fmt.Fprintf(cmd.ErrOrStderr(), "Health Score: %d/100 (Grade: %s)\n", response.Summary.HealthScore, response.Summary.Grade)
+	// Restate the shortfall next to the score. The per-file warnings are
+	// printed before the analysis runs and scroll away, which is how an
+	// unparseable file used to reach a Grade A unnoticed (issue #690).
+	if response.Summary.SkippedFiles > 0 {
+		fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  %d of %d files skipped (parse errors) - excluded from every score below\n",
+			response.Summary.SkippedFiles, response.Summary.TotalFiles)
+	}
 	fmt.Fprintf(cmd.ErrOrStderr(), "Total time: %dms\n\n", response.Duration)
 
 	// Print detailed scores section
