@@ -114,6 +114,8 @@ else:
 
 **Edge cases.** Zero findings yields penalty 0. The truncation is `int()` (toward zero), not `math.Round` — so a computed value of `1.99` becomes `1`.
 
+`TotalFiles` counts files that failed to parse as well as those that were analyzed, so on a target with parse errors the normalization factor is slightly larger and the dead-code penalty slightly smaller than it would be over the analyzed files alone. The effect is logarithmic and is dwarfed by the [parse-error penalty](#parse-errors), which charges at least 11 points for the same condition.
+
 Source: `domain/analyze.go:283-296`. Normalization factor derived in `CalculateHealthScore()` at `domain/analyze.go:474-477`.
 
 ### Duplication

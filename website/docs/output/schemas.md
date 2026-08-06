@@ -460,6 +460,7 @@ Other `CloneResponse` fields:
 | `duration_ms` | integer | Clone detection duration in milliseconds.          |
 | `success`     | boolean | `true` on normal completion.                       |
 | `error`       | string \| absent | Error message if `success=false`.         |
+| `errors`      | array \| absent  | Per-file failures. A file listed here was skipped while the run itself succeeded, so its contents are absent from `statistics`. |
 
 ## `cbo` object
 

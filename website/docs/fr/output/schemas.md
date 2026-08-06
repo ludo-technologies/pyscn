@@ -413,6 +413,7 @@ Autres champs de `CloneResponse` :
 | `duration_ms` | integer | Durée de détection de clones en millisecondes.     |
 | `success`     | boolean | `true` en cas d'achèvement normal.                 |
 | `error`       | string \| absent | Message d'erreur si `success=false`.        |
+| `errors`      | array \| absent  | Échecs par fichier. Un fichier listé ici a été ignoré alors que l'exécution a réussi : son contenu est absent de `statistics`. |
 
 ## Objet `cbo`
 

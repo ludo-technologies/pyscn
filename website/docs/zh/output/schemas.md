@@ -413,6 +413,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | `duration_ms` | integer | 克隆检测耗时（毫秒）。                    |
 | `success`     | boolean | 正常完成时为 `true`。                      |
 | `error`       | string \| absent | `success=false` 时的错误信息。    |
+| `errors`      | array \| absent  | 单个文件的失败。此处列出的文件在运行本身成功的情况下被跳过，其内容不包含在 `statistics` 中。 |
 
 ## `cbo` 对象
 

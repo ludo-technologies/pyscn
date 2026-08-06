@@ -17,6 +17,9 @@ Paths default to the current directory.
 - **Strict defaults** — any function over complexity 10 fails; any circular dependency fails (when `--select deps` is set); any file that cannot be parsed fails.
 - **Fast** — only runs the analyses you select; skips report generation.
 
+!!! note "Parse-error coverage"
+    The `complexity`, `deadcode`, `clones`, `mockdata` and `di` analyses each report the files they could not read or parse, and any one of them failing to do so fails the check. `deps` does not: the dependency graph builder skips unreadable modules without recording them, so `pyscn check --select deps` alone will not catch a syntax error. Default runs are covered, because `complexity` always runs.
+
 ## Flags
 
 ### Analysis selection
@@ -38,7 +41,7 @@ Default (no `--select`): runs `complexity`, `deadcode`, **and `clones`**. `deps`
 | `--allow-circular-deps`  | off  | Treat cycles as warnings only; don't fail the check. |
 | `--allow-parse-errors`   | off  | Treat unreadable or unparseable files as warnings only; don't fail the check. |
 
-By default, a file that cannot be parsed fails the check. Such a file is excluded from every analysis, so it contributes no findings and would otherwise pass every threshold — a syntax error in your source would be reported as a clean run.
+By default, a file that cannot be parsed fails the check. Such a file is excluded from every analysis, so it contributes no findings and would otherwise pass every threshold — a syntax error in your source would be reported as a clean run. See the coverage note above for the one analysis this does not reach.
 
 ### Output
 

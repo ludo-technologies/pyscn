@@ -17,6 +17,9 @@ Les chemins sont par défaut le répertoire courant.
 - **Valeurs par défaut strictes** — toute fonction de complexité supérieure à 10 échoue ; toute dépendance circulaire échoue (lorsque `--select deps` est défini) ; tout fichier impossible à analyser syntaxiquement échoue.
 - **Rapide** — n'exécute que les analyses sélectionnées ; pas de génération de rapport.
 
+!!! note "Portée des erreurs d'analyse syntaxique"
+    Les analyses `complexity`, `deadcode`, `clones`, `mockdata` et `di` signalent chacune les fichiers qu'elles n'ont pas pu lire ou analyser, et il suffit qu'une seule le fasse pour faire échouer la vérification. `deps` fait exception : le constructeur du graphe de dépendances ignore les modules illisibles sans les enregistrer, donc `pyscn check --select deps` seul ne détectera pas une erreur de syntaxe. Les exécutions par défaut sont couvertes, car `complexity` s'exécute toujours.
+
 ## Options
 
 ### Sélection des analyses
@@ -38,7 +41,7 @@ Par défaut (sans `--select`) : exécute `complexity`, `deadcode`, **et `clones`
 | `--allow-circular-deps`  | off  | Traite les cycles comme de simples avertissements ; ne fait pas échouer la vérification. |
 | `--allow-parse-errors`   | off  | Traite les fichiers illisibles ou non analysables comme de simples avertissements ; ne fait pas échouer la vérification. |
 
-Par défaut, un fichier impossible à analyser syntaxiquement fait échouer la vérification. Un tel fichier est exclu de toutes les analyses : il ne produit aucune constatation et franchirait donc tous les seuils — une erreur de syntaxe dans vos sources serait rapportée comme une exécution propre.
+Par défaut, un fichier impossible à analyser syntaxiquement fait échouer la vérification. Un tel fichier est exclu de toutes les analyses : il ne produit aucune constatation et franchirait donc tous les seuils — une erreur de syntaxe dans vos sources serait rapportée comme une exécution propre. Voir la note ci-dessus pour la seule analyse que ce mécanisme n'atteint pas.
 
 ### Sortie
 

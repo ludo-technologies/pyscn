@@ -114,6 +114,8 @@ else:
 
 **Cas limites.** Zéro constat donne une pénalité de 0. La troncature utilise `int()` (vers zéro), pas `math.Round` — ainsi une valeur calculée de `1.99` devient `1`.
 
+`TotalFiles` compte aussi les fichiers dont l'analyse syntaxique a échoué : sur une cible comportant des erreurs de syntaxe, le facteur de normalisation est donc légèrement plus grand et la pénalité de code mort légèrement plus faible qu'elle ne le serait sur les seuls fichiers analysés. L'effet est logarithmique et reste négligeable face à la pénalité « Erreurs d'analyse syntaxique », qui facture au moins 11 points pour la même situation.
+
 Source : `domain/analyze.go:283-296`. Facteur de normalisation dérivé dans `CalculateHealthScore()` à `domain/analyze.go:474-477`.
 
 ### Duplication

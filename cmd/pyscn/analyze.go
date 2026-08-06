@@ -511,6 +511,13 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 	if response.Summary.SkippedFiles > 0 {
 		fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  %d of %d files skipped (parse errors) - excluded from every score below\n",
 			response.Summary.SkippedFiles, response.Summary.TotalFiles)
+		// Name them. The count alone tells you the report is incomplete but
+		// not what to fix, and Errors was previously collected and never read.
+		if response.Complexity != nil {
+			for _, e := range response.Complexity.Errors {
+				fmt.Fprintf(cmd.ErrOrStderr(), "    %s\n", e)
+			}
+		}
 	}
 	fmt.Fprintf(cmd.ErrOrStderr(), "Total time: %dms\n\n", response.Duration)
 

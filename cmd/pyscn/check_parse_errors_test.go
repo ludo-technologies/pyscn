@@ -92,3 +92,56 @@ func TestExitCodeForQualityIssues(t *testing.T) {
 		t.Errorf("expected exit code %d for a quality verdict, got %d", exitCodeQualityIssues, got)
 	}
 }
+
+// Clone detection failing on its own stays informational, but an unparseable
+// file is a problem with the input and must fail the gate like everywhere else.
+func TestCheckSelectClonesFailsOnUnparseableFile(t *testing.T) {
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	var stderr bytes.Buffer
+	cobraCmd.SetErr(&stderr)
+	cobraCmd.SetArgs([]string{"--select", "clones", writeMixedSyntaxPackage(t)})
+
+	err := cobraCmd.Execute()
+	if err == nil {
+		t.Fatal("expected --select clones to fail on a file that cannot be parsed")
+	}
+	if got := exitCodeFor(err); got != exitCodeAnalysisError {
+		t.Errorf("expected exit code %d (analysis error), got %d", exitCodeAnalysisError, got)
+	}
+	if !strings.Contains(stderr.String(), "broken.py") {
+		t.Errorf("expected the unparseable file to be named, got: %q", stderr.String())
+	}
+}
+
+// An unusable invocation is invalid input, which the documented contract puts
+// at exit 2 — not exit 1, which would read as a quality failure.
+func TestCheckInvalidInvocationExitsAsAnalysisError(t *testing.T) {
+	dir := t.TempDir()
+
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{name: "unknown flag", args: []string{"--no-such-flag", dir}},
+		{name: "invalid select value", args: []string{"--select", "nonsense", dir}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checkCmd := NewCheckCommand()
+			cobraCmd := checkCmd.CreateCobraCommand()
+			cobraCmd.SetErr(&bytes.Buffer{})
+			cobraCmd.SetOut(&bytes.Buffer{})
+			cobraCmd.SetArgs(tt.args)
+
+			err := cobraCmd.Execute()
+			if err == nil {
+				t.Fatal("expected an unusable invocation to fail")
+			}
+			if got := exitCodeFor(err); got != exitCodeAnalysisError {
+				t.Errorf("expected exit code %d (analysis error), got %d", exitCodeAnalysisError, got)
+			}
+		})
+	}
+}

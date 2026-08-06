@@ -413,6 +413,7 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | `duration_ms` | integer | クローン検出の所要時間（ミリ秒）。                 |
 | `success`     | boolean | 正常完了時に `true`。                              |
 | `error`       | string \| absent | `success=false` の場合のエラーメッセージ。 |
+| `errors`      | array \| absent  | ファイル単位の失敗。ここに列挙されたファイルは実行自体は成功した上でスキップされたもので、その内容は `statistics` に含まれません。 |
 
 ## `cbo` オブジェクト
 

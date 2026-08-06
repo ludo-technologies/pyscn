@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -113,6 +114,13 @@ Examples:
 		SilenceUsage: true,
 	}
 
+	// An unusable invocation is "invalid input", which the exit-code contract
+	// above assigns to 2. Without this, an unknown flag would exit 1 and read
+	// as a quality failure.
+	cmd.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
+		return newAnalysisError(err)
+	})
+
 	// Configuration flags
 	cmd.Flags().StringVarP(&c.configFile, "config", "c", "", "Configuration file path")
 	cmd.Flags().BoolVarP(&c.quiet, "quiet", "q", false, "Suppress output unless issues found")
@@ -148,7 +156,7 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	originalConfigFile := c.configFile
 	resolvedConfigFile, err := resolveCheckConfig(c.configFile, getTargetPathFromArgs(args))
 	if err != nil {
-		return err
+		return newAnalysisError(err)
 	}
 	c.configFile = resolvedConfigFile
 	defer func() {
@@ -158,7 +166,7 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	// Validate selected analyses before creating config
 	if len(c.selectAnalyses) > 0 {
 		if err := c.validateSelectedAnalyses(); err != nil {
-			return fmt.Errorf("invalid --select flag: %w", err)
+			return newAnalysisError(fmt.Errorf("invalid --select flag: %w", err))
 		}
 	}
 
@@ -204,8 +212,17 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	if !skipClones {
 		cloneIssues, err := c.checkClones(cmd, args)
 		if err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Clone detection failed: %v\n", err)
-			// Don't treat clone detection failures as hard errors
+			// Clone detection failing on its own is informational, but a file
+			// that could not be read or parsed is a problem with the input,
+			// not with the detector, and must fail the gate like everywhere
+			// else. Only the latter arrives as an analysisError.
+			var analysisErr *analysisError
+			if errors.As(err, &analysisErr) {
+				fmt.Fprintf(cmd.ErrOrStderr(), "❌ Clone detection failed: %v\n", err)
+				hasErrors = true
+			} else {
+				fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Clone detection failed: %v\n", err)
+			}
 		} else if cloneIssues > 0 {
 			if !c.quiet {
 				fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Found %d code clone(s) (informational)\n", cloneIssues)
@@ -297,7 +314,9 @@ func (c *CheckCommand) reportUnanalyzedFiles(writer io.Writer, analysis string, 
 		return nil
 	}
 
-	return fmt.Errorf("%d file(s) could not be analyzed (use --allow-parse-errors to ignore)", len(errs))
+	// Counted as errors, not files: a service is free to report more than one
+	// problem per file, and the listing above is what identifies them.
+	return newAnalysisError(fmt.Errorf("%d analysis error(s), listed above (use --allow-parse-errors to ignore)", len(errs)))
 }
 
 func resolveCheckConfig(configPath string, targetPath string) (string, error) {
@@ -584,6 +603,10 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 	// Run analysis
 	response, err := useCase.ExecuteAndReturn(ctx, *request)
 	if err != nil {
+		return 0, err
+	}
+
+	if err := c.reportUnanalyzedFiles(cmd.ErrOrStderr(), "clones", response.Errors); err != nil {
 		return 0, err
 	}
 
