@@ -34,6 +34,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 	var warnings []string
 	var errors []string
 	filesProcessed := 0
+	filesSkipped := 0
 
 	for _, filePath := range req.Paths {
 		// Check context cancellation
@@ -55,6 +56,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 
 		if len(fileErrors) > 0 {
 			errors = append(errors, fileErrors...)
+			filesSkipped++
 			continue // Skip this file but continue with others
 		}
 
@@ -73,7 +75,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
 
 	// Generate summary
-	summary := s.generateSummary(sortedFunctions, filesProcessed, req, functionsParsed)
+	summary := s.generateSummary(sortedFunctions, filesProcessed, filesSkipped, req, functionsParsed)
 	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
 
 	return &domain.ComplexityResponse{
@@ -102,6 +104,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 	var warnings []string
 	var errors []string
 	filesProcessed := 0
+	filesSkipped := 0
 
 	for _, file := range snapshot.Files {
 		select {
@@ -119,6 +122,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 
 		if len(fileErrors) > 0 {
 			errors = append(errors, fileErrors...)
+			filesSkipped++
 			continue
 		}
 
@@ -134,7 +138,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
 	filteredFunctions, functionsParsed := s.filterFunctions(allFunctions, req)
 	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
-	summary := s.generateSummary(sortedFunctions, filesProcessed, req, functionsParsed)
+	summary := s.generateSummary(sortedFunctions, filesProcessed, filesSkipped, req, functionsParsed)
 	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
 
 	return &domain.ComplexityResponse{
@@ -359,10 +363,15 @@ func (s *ComplexityServiceImpl) sortByRisk(functions []domain.FunctionComplexity
 
 // generateSummary creates summary statistics.
 // functionsParsed is the pre-filter function count (all functions parsed before min_complexity filtering).
-func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionComplexity, filesAnalyzed int, req domain.ComplexityRequest, functionsParsed int) domain.ComplexitySummary {
+// filesSkipped counts the files that produced no metrics because they could not
+// be read or parsed; reporting it lets consumers see that the aggregates below
+// cover less than the request asked for.
+func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionComplexity, filesAnalyzed int, filesSkipped int, req domain.ComplexityRequest, functionsParsed int) domain.ComplexitySummary {
 	if len(functions) == 0 {
 		return domain.ComplexitySummary{
 			FilesAnalyzed:   filesAnalyzed,
+			TotalFiles:      filesAnalyzed + filesSkipped,
+			SkippedFiles:    filesSkipped,
 			FunctionsParsed: functionsParsed,
 		}
 	}
@@ -416,6 +425,8 @@ func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionCompl
 		MaxComplexity:              maxComplexity,
 		MinComplexity:              minComplexity,
 		FilesAnalyzed:              filesAnalyzed,
+		TotalFiles:                 filesAnalyzed + filesSkipped,
+		SkippedFiles:               filesSkipped,
 		LowRiskFunctions:           lowCount,
 		MediumRiskFunctions:        mediumCount,
 		HighRiskFunctions:          highCount,

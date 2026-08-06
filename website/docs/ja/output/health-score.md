@@ -29,6 +29,7 @@ score = 100
       - cohesionPenalty         (0–20)
       - dependencyPenalty       (0–16)
       - architecturePenalty     (0–12)
+      - parseErrorPenalty       (0–56)
 
 HealthScore = max(0, score)
 ```
@@ -44,6 +45,7 @@ HealthScore = max(0, score)
 | 凝集度     | 20          | 計算式内のリテラル `20.0`         |
 | 依存関係 | 16          | `MaxDependencyPenalty = 10+3+3`   |
 | アーキテクチャ | 12          | `MaxArchitecturePenalty = 12`     |
+| パースエラー | 56          | `MaxParseErrorPenalty = 100 - GradeDThreshold + 1` |
 
 スコアの下限は `MinimumScore = 0`（`domain/analyze.go:102`）で、ペナルティ合算後に適用されます。
 
@@ -111,6 +113,8 @@ else:
 **飽和.** `weighted / normalization >= 20.0` のとき 20 に到達します。
 
 **エッジケース.** 検出結果がゼロの場合、ペナルティは 0 です。切り捨ては `int()`（ゼロ方向）であり、`math.Round` ではありません。計算値 `1.99` は `1` になります。
+
+`TotalFiles` はパースに失敗したファイルも含めて数えるため、パースエラーがある対象では正規化係数がわずかに大きくなり、デッドコードのペナルティは解析できたファイルだけで計算した場合よりわずかに小さくなります。影響は対数的で、同じ状況に対して最低 11 点を課す「パースエラー」ペナルティに比べれば無視できる大きさです。
 
 ソース: `domain/analyze.go:283-296`。正規化係数は `CalculateHealthScore()` の `domain/analyze.go:474-477` で導出されます。
 
@@ -282,6 +286,36 @@ else:
 **エッジケース.** `ArchEnabled = false` → ペナルティ 0。`Validate()` は有効時に `ArchCompliance ∈ [0, 1]` を保証します。
 
 ソース: `domain/analyze.go:409-422`。
+
+### パースエラー
+
+**入力.** `TotalFiles` (int)、`SkippedFiles` (int)。
+
+読み込めない、またはパースできないファイルは上記すべての解析から除外されます。関数もデッドコードもクローンも結合度も生成しないため、このペナルティがなければ正常なファイルより高いスコアになり、モジュールを壊すことが品質改善として現れてしまいます。
+
+**計算式.**
+
+```
+if SkippedFiles <= 0 or TotalFiles <= 0:
+    penalty = 0
+else:
+    penalty = max(11, round(SkippedFiles / TotalFiles * 56))
+```
+
+**定数.**
+
+| 名前                   | 値 | 意味                                              |
+| ---------------------- | ----- | ---------------------------------------------------- |
+| `MinParseErrorPenalty` | 11    | `100 - GradeAThreshold + 1` — スキップが 1 件でもあれば A を失う |
+| `MaxParseErrorPenalty` | 56    | `100 - GradeDThreshold + 1` — 全ファイルがパース不能なら F を超えられない |
+
+**飽和.** 対象のどのファイルもパースできなかった場合に 56 に達します。
+
+**エッジケース.** スキップが 1 件でもあれば下限が適用されるため、1000 ファイル中の 1 件でも最高グレードを失います。`Validate()` は負の `SkippedFiles` と `TotalFiles` を超える値を拒否します。
+
+このペナルティは特定の解析に属さないため、専用のカテゴリスコアを持ちません。不足はスコアの隣で確認できるよう、`SkippedFiles` と `TotalFiles` がサマリに出力されます。
+
+ソース: `domain/analyze.go`、`calculateParseErrorPenalty`。
 
 ## カテゴリスコア
 

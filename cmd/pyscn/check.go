@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -22,6 +23,7 @@ type CheckCommand struct {
 	// Quick override flags
 	maxComplexity     int
 	allowDeadCode     bool
+	allowParseErrors  bool
 	skipClones        bool
 	allowCircularDeps bool
 	maxCycles         int
@@ -37,6 +39,7 @@ func NewCheckCommand() *CheckCommand {
 		quiet:             false,
 		maxComplexity:     10,    // Fail if complexity > 10
 		allowDeadCode:     false, // Fail on any dead code
+		allowParseErrors:  false, // Fail on any file that cannot be analyzed
 		skipClones:        false,
 		allowCircularDeps: false, // Fail on any circular dependencies
 		maxCycles:         0,     // Fail if more than 0 cycles found
@@ -57,12 +60,13 @@ This command performs a fast analysis with predefined thresholds:
 • Clones: Reports clones with similarity > 0.8 (warning only)
 • Circular Dependencies: Fails if any cycles are detected
 • DI Anti-patterns: Detects dependency injection anti-patterns
+• Parse Errors: Fails if any target file cannot be read or parsed
 By default, complexity, dead code, and clones analyses are run. Use --select to choose specific analyses.
 
 Exit codes:
 • 0: No issues found
 • 1: Quality issues found (see output for details)
-• 2: Analysis failed (invalid input, missing files, etc.)
+• 2: Analysis failed (invalid input, missing files, unparseable files, etc.)
 
 The check command is designed to be fast and CI-friendly with minimal output
 unless issues are found.
@@ -92,6 +96,9 @@ Examples:
   # Allow dead code, only check complexity
   pyscn check --allow-dead-code src/
 
+  # Report unparseable files without failing the gate
+  pyscn check --allow-parse-errors src/
+
   # Allow circular dependencies (warning only)
   pyscn check --allow-circular-deps src/
   
@@ -102,7 +109,17 @@ Examples:
   pyscn check --skip-clones src/`,
 		Args: cobra.ArbitraryArgs,
 		RunE: c.runCheck,
+		// A failing gate is a verdict, not a usage mistake: dumping the flag
+		// list after every failed CI run buries the findings above it.
+		SilenceUsage: true,
 	}
+
+	// An unusable invocation is "invalid input", which the exit-code contract
+	// above assigns to 2. Without this, an unknown flag would exit 1 and read
+	// as a quality failure.
+	cmd.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
+		return newAnalysisError(err)
+	})
 
 	// Configuration flags
 	cmd.Flags().StringVarP(&c.configFile, "config", "c", "", "Configuration file path")
@@ -111,6 +128,7 @@ Examples:
 	// Override flags for quick adjustments
 	cmd.Flags().IntVar(&c.maxComplexity, "max-complexity", 10, "Maximum allowed complexity")
 	cmd.Flags().BoolVar(&c.allowDeadCode, "allow-dead-code", false, "Allow dead code (don't fail)")
+	cmd.Flags().BoolVar(&c.allowParseErrors, "allow-parse-errors", false, "Allow files that cannot be parsed (report them but don't fail)")
 	cmd.Flags().BoolVar(&c.skipClones, "skip-clones", false, "Skip clone detection")
 	cmd.Flags().BoolVar(&c.allowCircularDeps, "allow-circular-deps", false, "Allow circular dependencies (warnings only)")
 	cmd.Flags().IntVar(&c.maxCycles, "max-cycles", 0, "Maximum allowed circular dependency cycles before failing")
@@ -138,7 +156,7 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	originalConfigFile := c.configFile
 	resolvedConfigFile, err := resolveCheckConfig(c.configFile, getTargetPathFromArgs(args))
 	if err != nil {
-		return err
+		return newAnalysisError(err)
 	}
 	c.configFile = resolvedConfigFile
 	defer func() {
@@ -148,7 +166,7 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	// Validate selected analyses before creating config
 	if len(c.selectAnalyses) > 0 {
 		if err := c.validateSelectedAnalyses(); err != nil {
-			return fmt.Errorf("invalid --select flag: %w", err)
+			return newAnalysisError(fmt.Errorf("invalid --select flag: %w", err))
 		}
 	}
 
@@ -194,8 +212,17 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	if !skipClones {
 		cloneIssues, err := c.checkClones(cmd, args)
 		if err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Clone detection failed: %v\n", err)
-			// Don't treat clone detection failures as hard errors
+			// Clone detection failing on its own is informational, but a file
+			// that could not be read or parsed is a problem with the input,
+			// not with the detector, and must fail the gate like everywhere
+			// else. Only the latter arrives as an analysisError.
+			var analysisErr *analysisError
+			if errors.As(err, &analysisErr) {
+				fmt.Fprintf(cmd.ErrOrStderr(), "❌ Clone detection failed: %v\n", err)
+				hasErrors = true
+			} else {
+				fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Clone detection failed: %v\n", err)
+			}
 		} else if cloneIssues > 0 {
 			if !c.quiet {
 				fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Found %d code clone(s) (informational)\n", cloneIssues)
@@ -248,7 +275,7 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 
 	// Handle results
 	if hasErrors {
-		return fmt.Errorf("analysis failed with errors")
+		return newAnalysisError(fmt.Errorf("analysis failed with errors"))
 	}
 
 	// Generic issue handling
@@ -263,6 +290,33 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// reportUnanalyzedFiles turns per-file analysis errors into a hard failure.
+//
+// A file that fails to parse contributes no functions, no dead code and no
+// clones, so it passes every threshold below by contributing nothing at all.
+// Left as a warning, the gate would wave through code that does not even
+// import (issue #690). --allow-parse-errors keeps the old reporting-only
+// behaviour for callers that knowingly analyze a mixed-syntax tree.
+func (c *CheckCommand) reportUnanalyzedFiles(writer io.Writer, analysis string, errs []string) error {
+	if len(errs) == 0 {
+		return nil
+	}
+
+	if !c.quiet || !c.allowParseErrors {
+		for _, e := range errs {
+			fmt.Fprintf(writer, "%s: %s\n", analysis, e)
+		}
+	}
+
+	if c.allowParseErrors {
+		return nil
+	}
+
+	// Counted as errors, not files: a service is free to report more than one
+	// problem per file, and the listing above is what identifies them.
+	return newAnalysisError(fmt.Errorf("%d analysis error(s), listed above (use --allow-parse-errors to ignore)", len(errs)))
 }
 
 func resolveCheckConfig(configPath string, targetPath string) (string, error) {
@@ -402,6 +456,10 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 		return 0, err
 	}
 
+	if err := c.reportUnanalyzedFiles(cmd.ErrOrStderr(), "complexity", response.Errors); err != nil {
+		return 0, err
+	}
+
 	// Determine max complexity threshold: CLI flag > config file > default
 	maxComplexity := c.maxComplexity
 	if !cmd.Flags().Changed("max-complexity") && response.Request != nil && response.Request.MaxComplexity > 0 {
@@ -477,6 +535,10 @@ func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, er
 		return 0, err
 	}
 
+	if err := c.reportUnanalyzedFiles(cmd.ErrOrStderr(), "deadcode", response.Errors); err != nil {
+		return 0, err
+	}
+
 	// Determine min severity threshold from merged config or default
 	minSeverity := domain.DeadCodeSeverityCritical
 	if response.Request != nil && response.Request.MinSeverity != "" {
@@ -541,6 +603,10 @@ func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, erro
 	// Run analysis
 	response, err := useCase.ExecuteAndReturn(ctx, *request)
 	if err != nil {
+		return 0, err
+	}
+
+	if err := c.reportUnanalyzedFiles(cmd.ErrOrStderr(), "clones", response.Errors); err != nil {
 		return 0, err
 	}
 
@@ -653,8 +719,8 @@ func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, er
 	if err != nil {
 		return 0, err
 	}
-	if len(response.Errors) > 0 {
-		return 0, fmt.Errorf("analysis errors: %s", strings.Join(response.Errors, "; "))
+	if err := c.reportUnanalyzedFiles(cmd.ErrOrStderr(), "mockdata", response.Errors); err != nil {
+		return 0, err
 	}
 
 	// Count and output issues
@@ -720,8 +786,8 @@ func (c *CheckCommand) checkDIAntipatterns(cmd *cobra.Command, args []string) (i
 }
 
 func (c *CheckCommand) countDIAntipatternIssues(writer io.Writer, response *domain.DIAntipatternResponse) (int, error) {
-	if len(response.Errors) > 0 {
-		return 0, fmt.Errorf("analysis errors: %s", strings.Join(response.Errors, "; "))
+	if err := c.reportUnanalyzedFiles(writer, "di", response.Errors); err != nil {
+		return 0, err
 	}
 
 	issueCount := 0

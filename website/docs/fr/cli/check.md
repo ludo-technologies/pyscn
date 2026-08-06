@@ -13,9 +13,12 @@ Les chemins sont par défaut le répertoire courant.
 `check` est le compagnon CI de [`analyze`](analyze.md) :
 
 - **Les constatations vont sur stderr** au format linter (`file:line:col: message`).
-- **Sortie 0** en cas de succès, **sortie 1** en cas d'échec (problèmes détectés *ou* erreur d'exécution).
-- **Valeurs par défaut strictes** — toute fonction de complexité supérieure à 10 échoue ; toute dépendance circulaire échoue (lorsque `--select deps` est défini).
+- **Sortie 0** en cas de succès, **sortie 1** si des problèmes sont détectés, **sortie 2** si l'analyse n'a pas pu aboutir.
+- **Valeurs par défaut strictes** — toute fonction de complexité supérieure à 10 échoue ; toute dépendance circulaire échoue (lorsque `--select deps` est défini) ; tout fichier impossible à analyser syntaxiquement échoue.
 - **Rapide** — n'exécute que les analyses sélectionnées ; pas de génération de rapport.
+
+!!! note "Portée des erreurs d'analyse syntaxique"
+    Les analyses `complexity`, `deadcode`, `clones`, `mockdata` et `di` signalent chacune les fichiers qu'elles n'ont pas pu lire ou analyser, et il suffit qu'une seule le fasse pour faire échouer la vérification. `deps` fait exception : le constructeur du graphe de dépendances ignore les modules illisibles sans les enregistrer, donc `pyscn check --select deps` seul ne détectera pas une erreur de syntaxe. Les exécutions par défaut sont couvertes, car `complexity` s'exécute toujours.
 
 ## Options
 
@@ -36,6 +39,9 @@ Par défaut (sans `--select`) : exécute `complexity`, `deadcode`, **et `clones`
 | `--max-cycles <N>`       | `0`  | Nombre maximal de cycles de dépendance circulaire avant échec. |
 | `--allow-dead-code`      | off  | Traite le code mort comme un simple avertissement ; ne fait pas échouer la vérification. |
 | `--allow-circular-deps`  | off  | Traite les cycles comme de simples avertissements ; ne fait pas échouer la vérification. |
+| `--allow-parse-errors`   | off  | Traite les fichiers illisibles ou non analysables comme de simples avertissements ; ne fait pas échouer la vérification. |
+
+Par défaut, un fichier impossible à analyser syntaxiquement fait échouer la vérification. Un tel fichier est exclu de toutes les analyses : il ne produit aucune constatation et franchirait donc tous les seuils — une erreur de syntaxe dans vos sources serait rapportée comme une exécution propre. Voir la note ci-dessus pour la seule analyse que ce mécanisme n'atteint pas.
 
 ### Sortie
 
@@ -50,9 +56,10 @@ Par défaut (sans `--select`) : exécute `complexity`, `deadcode`, **et `clones`
 | Code | Signification |
 | --- | --- |
 | `0` | Toutes les vérifications ont réussi. |
-| `1` | Une ou plusieurs vérifications ont échoué, ou une erreur d'exécution s'est produite. |
+| `1` | Un ou plusieurs seuils de qualité ont été dépassés. |
+| `2` | L'analyse n'a pas pu aboutir sur les cibles demandées — entrée invalide, fichiers manquants ou impossibles à analyser. |
 
-`check` ne distingue pas « problèmes détectés » de « échec de l'outil » avec des codes de sortie différents. En CI, fiez-vous à la sortie stderr et au code non nul de pyscn pour la sémantique succès/échec uniquement.
+La sortie `1` est un verdict sur votre code ; la sortie `2` signifie que le verdict lui-même est incomplet et ne doit pas être interprété comme un succès.
 
 ## Exemples
 

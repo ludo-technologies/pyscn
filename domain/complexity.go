@@ -232,7 +232,15 @@ type ComplexitySummary struct {
 	AverageNestingDepth        float64
 	MaxComplexity              int
 	MinComplexity              int
-	FilesAnalyzed              int
+	// FilesAnalyzed is the number of files that were successfully parsed and
+	// contributed to the metrics above.
+	FilesAnalyzed int
+	// TotalFiles is the number of files the request covered, parsed or not.
+	TotalFiles int
+	// SkippedFiles is the number of files dropped because they could not be
+	// read or parsed. Their contents are absent from every metric, so a
+	// consumer must read this before trusting the aggregates.
+	SkippedFiles int
 
 	// Risk distribution
 	LowRiskFunctions    int

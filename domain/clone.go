@@ -210,6 +210,10 @@ type CloneResponse struct {
 	Duration int64         `json:"duration_ms" yaml:"duration_ms" csv:"duration_ms"`
 	Success  bool          `json:"success" yaml:"success" csv:"success"`
 	Error    string        `json:"error,omitempty" yaml:"error,omitempty" csv:"error"`
+	// Errors holds per-file failures. Error above reports why the whole run
+	// failed; a file listed here was skipped while the run itself succeeded,
+	// so its contents are absent from every statistic in this response.
+	Errors []string `json:"errors,omitempty" yaml:"errors,omitempty" csv:"-"`
 }
 
 // CloneSortCriteria defines how to sort clone results

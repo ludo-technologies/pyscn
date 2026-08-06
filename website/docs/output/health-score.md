@@ -29,6 +29,7 @@ score = 100
       - cohesionPenalty         (0–20)
       - dependencyPenalty       (0–16)
       - architecturePenalty     (0–12)
+      - parseErrorPenalty       (0–56)
 
 HealthScore = max(0, score)
 ```
@@ -44,6 +45,7 @@ Each penalty is capped at its individual maximum:
 | Cohesion     | 20          | literal `20.0` in formula         |
 | Dependencies | 16          | `MaxDependencyPenalty = 10+3+3`   |
 | Architecture | 12          | `MaxArchitecturePenalty = 12`     |
+| Parse errors | 56          | `MaxParseErrorPenalty = 100 - GradeDThreshold + 1` |
 
 The score floor is `MinimumScore = 0` (`domain/analyze.go:102`), applied after penalty summation.
 
@@ -111,6 +113,8 @@ else:
 **Saturation.** Reaches 20 when `weighted / normalization >= 20.0`.
 
 **Edge cases.** Zero findings yields penalty 0. The truncation is `int()` (toward zero), not `math.Round` — so a computed value of `1.99` becomes `1`.
+
+`TotalFiles` counts files that failed to parse as well as those that were analyzed, so on a target with parse errors the normalization factor is slightly larger and the dead-code penalty slightly smaller than it would be over the analyzed files alone. The effect is logarithmic and is dwarfed by the [parse-error penalty](#parse-errors), which charges at least 11 points for the same condition.
 
 Source: `domain/analyze.go:283-296`. Normalization factor derived in `CalculateHealthScore()` at `domain/analyze.go:474-477`.
 
@@ -282,6 +286,36 @@ else:
 **Edge cases.** `ArchEnabled = false` → penalty 0. `Validate()` enforces `ArchCompliance ∈ [0, 1]` when enabled.
 
 Source: `domain/analyze.go:409-422`.
+
+### Parse errors
+
+**Inputs.** `TotalFiles` (int), `SkippedFiles` (int).
+
+A file that could not be read or parsed is excluded from every analysis above: it yields no functions, no dead code, no clones and no coupling. Without this penalty it would score better than a working file, and corrupting a module would read as a quality improvement.
+
+**Formula.**
+
+```
+if SkippedFiles <= 0 or TotalFiles <= 0:
+    penalty = 0
+else:
+    penalty = max(11, round(SkippedFiles / TotalFiles * 56))
+```
+
+**Constants.**
+
+| Name                   | Value | Meaning                                              |
+| ---------------------- | ----- | ---------------------------------------------------- |
+| `MinParseErrorPenalty` | 11    | `100 - GradeAThreshold + 1` — any skipped file forfeits an A |
+| `MaxParseErrorPenalty` | 56    | `100 - GradeDThreshold + 1` — an entirely unparseable target cannot rank above F |
+
+**Saturation.** Reaches 56 when no file in the target parsed.
+
+**Edge cases.** The floor applies whenever at least one file was skipped, so a single broken file in a thousand-file tree still costs the top grade. `Validate()` rejects a negative `SkippedFiles` and one that exceeds `TotalFiles`.
+
+This penalty has no category score of its own — it is not a property of any one analysis. `SkippedFiles` and `TotalFiles` are reported in the summary so the shortfall is visible next to the score.
+
+Source: `domain/analyze.go`, `calculateParseErrorPenalty`.
 
 ## Category scores
 
