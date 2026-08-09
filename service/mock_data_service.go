@@ -46,7 +46,7 @@ func (s *MockDataServiceImpl) Analyze(ctx context.Context, req domain.MockDataRe
 	detector := s.detectorForRequest(req)
 	ignorePatterns, err := compileMockDataIgnorePatterns(req.IgnorePatterns)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("compile mock-data ignore patterns: %w", err)
 	}
 
 	for _, filePath := range req.Paths {
@@ -112,7 +112,7 @@ func (s *MockDataServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Pro
 	}
 	ignorePatterns, err := compileMockDataIgnorePatterns(req.IgnorePatterns)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("compile mock-data ignore patterns: %w", err)
 	}
 	detector := s.detectorForRequest(req)
 	var files []domain.FileMockData
@@ -150,7 +150,7 @@ func (s *MockDataServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Pro
 func (s *MockDataServiceImpl) AnalyzeFile(ctx context.Context, filePath string, req domain.MockDataRequest) (*domain.FileMockData, error) {
 	ignorePatterns, err := compileMockDataIgnorePatterns(req.IgnorePatterns)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("compile mock-data ignore patterns: %w", err)
 	}
 	if matchesMockDataIgnorePattern(filePath, ignorePatterns) ||
 		(domain.BoolValue(req.IgnoreTests, domain.DefaultMockDataIgnoreTests) && s.isTestFile(filePath)) {

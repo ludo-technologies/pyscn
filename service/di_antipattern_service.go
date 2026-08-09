@@ -88,7 +88,7 @@ func (s *DIAntipatternServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot
 	filesProcessed := 0
 	for _, file := range snapshot.files {
 		if err := ctx.Err(); err != nil {
-			return nil, fmt.Errorf("DI anti-pattern analysis cancelled: %w", err)
+			return nil, fmt.Errorf("di anti-pattern analysis cancelled: %w", err)
 		}
 		if !file.Parsed() || s.isTestFile(file.Path) {
 			continue

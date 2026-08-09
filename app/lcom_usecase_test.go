@@ -499,7 +499,7 @@ func TestLCOMUseCase_analyzeSnapshotRequest(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Nil(t, response)
-		assertDomainError(t, err, domain.ErrCodeAnalysisError, "LCOM analysis failed")
+		assertDomainError(t, err, domain.ErrCodeAnalysisError, "lcom analysis failed")
 		assert.ErrorIs(t, err, analysisErr)
 		service.AssertExpectations(t)
 		configLoader.AssertExpectations(t)

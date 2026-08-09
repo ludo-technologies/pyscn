@@ -42,7 +42,7 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 		var err error
 		graph, err = s.buildDependencyGraph(ctx, req)
 		if err != nil {
-			return nil, fmt.Errorf("all requested analyses failed: Module graph failed: %v", err)
+			return nil, fmt.Errorf("all requested analyses failed: module graph failed: %w", err)
 		}
 	}
 	return s.analyzeGraph(ctx, graph, req, startTime)

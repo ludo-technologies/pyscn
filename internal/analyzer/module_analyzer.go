@@ -308,7 +308,7 @@ func (ma *ModuleAnalyzer) AnalyzeParsedModules(ctx context.Context, parsedModule
 		}
 		parsedModule := modulesByPath[path]
 		if err := ma.analyzeParsedModuleDependencies(graph, parsedModule, true); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("analyze captured module %s: %w", path, err)
 		}
 	}
 

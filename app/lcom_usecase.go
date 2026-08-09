@@ -137,11 +137,11 @@ func (uc *LCOMUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc
 	finalReq.Paths = snapshot.Paths()
 
 	if uc.snapshot == nil {
-		return nil, domain.NewAnalysisError("LCOM analysis failed", fmt.Errorf("snapshot collaborator is required"))
+		return nil, domain.NewAnalysisError("lcom analysis failed", fmt.Errorf("snapshot collaborator is required"))
 	}
 	response, err := uc.snapshot.AnalyzeSnapshot(ctx, snapshot, finalReq)
 	if err != nil {
-		return nil, domain.NewAnalysisError("LCOM analysis failed", err)
+		return nil, domain.NewAnalysisError("lcom analysis failed", err)
 	}
 
 	return response, nil

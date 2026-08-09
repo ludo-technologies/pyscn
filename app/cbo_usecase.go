@@ -155,11 +155,11 @@ func (uc *CBOUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.
 	}
 
 	if uc.snapshot == nil {
-		return nil, domain.NewAnalysisError("CBO analysis failed", fmt.Errorf("snapshot collaborator is required"))
+		return nil, domain.NewAnalysisError("cbo analysis failed", fmt.Errorf("snapshot collaborator is required"))
 	}
 	response, err := uc.snapshot.AnalyzeSnapshot(ctx, snapshot, finalReq)
 	if err != nil {
-		return nil, domain.NewAnalysisError("CBO analysis failed", err)
+		return nil, domain.NewAnalysisError("cbo analysis failed", err)
 	}
 
 	return response, nil

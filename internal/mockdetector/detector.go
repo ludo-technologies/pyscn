@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	sitter "github.com/smacker/go-tree-sitter"
-
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
+
+	sitter "github.com/smacker/go-tree-sitter"
 )
 
 // Detector analyzes Python code for mock data patterns.
@@ -42,7 +42,7 @@ func (d *Detector) Detect(ctx context.Context, source []byte, filePath string) (
 // DetectParsed analyzes source using a previously parsed tree.
 func (d *Detector) DetectParsed(ctx context.Context, root *sitter.Node, source []byte, filePath string) (*DetectResult, error) {
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("mock detection cancelled: %w", err)
 	}
 	if root == nil {
 		return nil, fmt.Errorf("parsed root is required")

@@ -120,7 +120,7 @@ func (uc *CloneUseCase) ExecuteAndReturn(ctx context.Context, req domain.CloneRe
 	// Step 1: Load configuration if specified or try default config
 	finalReq, err := uc.loadAndMergeConfig(req)
 	if err != nil {
-		return nil, err
+		return nil, domain.NewConfigError("failed to load configuration", err)
 	}
 	req = finalReq
 

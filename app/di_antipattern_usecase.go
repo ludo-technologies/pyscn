@@ -130,7 +130,7 @@ func (uc *DIAntipatternUseCase) AnalyzeAndReturn(ctx context.Context, req domain
 // AnalyzeSnapshotAndReturn analyzes DI anti-patterns from a canonical project snapshot.
 func (uc *DIAntipatternUseCase) AnalyzeSnapshotAndReturn(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.DIAntipatternRequest) (*domain.DIAntipatternResponse, error) {
 	if snapshot == nil || uc.snapshot == nil {
-		return nil, domain.NewAnalysisError("DI anti-pattern analysis failed", fmt.Errorf("snapshot collaborator is required"))
+		return nil, domain.NewAnalysisError("di anti-pattern analysis failed", fmt.Errorf("snapshot collaborator is required"))
 	}
 	if err := uc.validateRequest(req); err != nil {
 		return nil, domain.NewInvalidInputError("invalid request", err)
@@ -142,7 +142,7 @@ func (uc *DIAntipatternUseCase) AnalyzeSnapshotAndReturn(ctx context.Context, sn
 	finalReq.Paths = snapshot.Paths()
 	response, err := uc.snapshot.AnalyzeSnapshot(ctx, snapshot, finalReq)
 	if err != nil {
-		return nil, domain.NewAnalysisError("DI anti-pattern analysis failed", err)
+		return nil, domain.NewAnalysisError("di anti-pattern analysis failed", err)
 	}
 	return response, nil
 }

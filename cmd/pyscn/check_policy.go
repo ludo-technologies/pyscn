@@ -9,6 +9,7 @@ import (
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/service"
+
 	"github.com/spf13/cobra"
 )
 
