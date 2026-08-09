@@ -106,6 +106,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 	var errors []string
 	filesProcessed := 0
 	filesSkipped := 0
+	parsedFiles := 0
 
 	for _, file := range snapshot.analysisProjectFiles() {
 		select {
@@ -116,6 +117,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 		if !file.Parsed() {
 			continue
 		}
+		parsedFiles++
 
 		functions, rawMetrics, fileWarnings, fileErrors := s.analyzeProjectFile(file, req)
 
@@ -133,6 +135,9 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 		allFunctions = append(allFunctions, functions...)
 		warnings = append(warnings, fileWarnings...)
 		filesProcessed++
+	}
+	if parsedFiles > 0 && len(allFunctions) == 0 && len(allRawMetrics) == 0 {
+		return nil, domain.NewAnalysisError("no functions found to analyze", nil)
 	}
 
 	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
