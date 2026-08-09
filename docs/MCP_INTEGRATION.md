@@ -238,6 +238,7 @@ Reasons:
   "is_healthy": true,
   "partial": false,
   "diagnostics": [],
+  "failures": [],
   "summary": {
     "total_files": 42,
     "analyzed_files": 42,

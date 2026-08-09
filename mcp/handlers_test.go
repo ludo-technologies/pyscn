@@ -167,7 +167,8 @@ func TestHandleAnalyzeCode(t *testing.T) {
 					var result map[string]interface{}
 					require.NoError(t, json.Unmarshal([]byte(text), &result))
 					assert.Contains(t, result, "health_score")
-
+					assert.Equal(t, []interface{}{}, result["diagnostics"])
+					assert.Equal(t, []interface{}{}, result["failures"])
 				},
 			},
 		},

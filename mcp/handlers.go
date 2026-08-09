@@ -111,7 +111,15 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 	}
 
 	// Format output based on mode
-	incomplete := result.Summary.SkippedFiles > 0 || len(result.Failures) > 0
+	diagnostics := result.Diagnostics
+	if diagnostics == nil {
+		diagnostics = []domain.AnalysisDiagnostic{}
+	}
+	failures := result.Failures
+	if failures == nil {
+		failures = []domain.AnalysisFailure{}
+	}
+	incomplete := result.Summary.SkippedFiles > 0 || len(failures) > 0
 	var responseData interface{}
 	switch outputMode {
 	case "full":
@@ -122,8 +130,8 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 			"grade":        result.Summary.Grade,
 			"is_healthy":   result.Summary.IsHealthy() && !incomplete,
 			"partial":      incomplete,
-			"diagnostics":  result.Diagnostics,
-			"failures":     result.Failures,
+			"diagnostics":  diagnostics,
+			"failures":     failures,
 			"summary": map[string]interface{}{
 				"total_files":           result.Summary.TotalFiles,
 				"analyzed_files":        result.Summary.AnalyzedFiles,
