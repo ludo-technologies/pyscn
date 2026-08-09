@@ -238,6 +238,20 @@ type AnalysisTask struct {
 	Error   error
 }
 
+type analysisRunError struct {
+	failureCount int
+	firstFailure string
+	causes       []error
+}
+
+func (e *analysisRunError) Error() string {
+	return fmt.Sprintf("analysis completed with %d failure(s): %s", e.failureCount, e.firstFailure)
+}
+
+func (e *analysisRunError) Unwrap() []error {
+	return e.causes
+}
+
 // ProjectAnalysisResult owns the canonical snapshot and the analyses derived
 // from it for callers that need to run additional snapshot-aware policies.
 type ProjectAnalysisResult struct {
@@ -406,10 +420,24 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 	}
 
 	if len(response.Failures) > 0 {
-		return result, fmt.Errorf("analysis completed with %d failure(s): %s", len(response.Failures), response.Failures[0].Message)
+		return result, newAnalysisRunError(tasks, response.Failures)
 	}
 
 	return result, nil
+}
+
+func newAnalysisRunError(tasks []*AnalysisTask, failures []domain.AnalysisFailure) error {
+	causes := make([]error, 0, len(tasks))
+	for _, task := range tasks {
+		if task.Enabled && task.Error != nil {
+			causes = append(causes, fmt.Errorf("%s: %w", task.Name, task.Error))
+		}
+	}
+	return &analysisRunError{
+		failureCount: len(failures),
+		firstFailure: failures[0].Message,
+		causes:       causes,
+	}
 }
 
 // createAnalysisTasks creates the analysis tasks based on configuration
