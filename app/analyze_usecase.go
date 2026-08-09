@@ -323,12 +323,10 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	var moduleGraphErr error
 	if uc.needsModuleGraph(useCaseCfg) {
 		moduleGraph, moduleGraphErr = snapshot.BuildDependencyGraph(ctx, &service.ModuleGraphOptions{
-			ProjectRoot:       service.FindProjectRoot(paths),
-			IncludeStdLib:     domain.BoolPtr(executionCfg.ModuleGraphIncludeStdLib),
-			IncludeThirdParty: domain.BoolPtr(executionCfg.ModuleGraphIncludeThirdParty),
-			FollowRelative:    domain.BoolPtr(executionCfg.ModuleGraphFollowRelative),
-			IncludePatterns:   executionCfg.IncludePatterns,
-			ExcludePatterns:   executionCfg.ExcludePatterns,
+			ProjectRoot:     service.FindProjectRoot(paths),
+			Graph:           executionCfg.ModuleGraph,
+			IncludePatterns: executionCfg.IncludePatterns,
+			ExcludePatterns: executionCfg.ExcludePatterns,
 		})
 	}
 
@@ -557,9 +555,9 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					ConfigPath:           config.ConfigFile,
 					AnalyzeDependencies:  domain.BoolPtr(executionCfg.SystemAnalyzeDependencies),
 					AnalyzeArchitecture:  domain.BoolPtr(executionCfg.SystemAnalyzeArchitecture),
-					IncludeStdLib:        nil,
-					IncludeThirdParty:    nil,
-					FollowRelative:       nil,
+					IncludeStdLib:        domain.BoolPtr(executionCfg.ModuleGraph.IncludeStdLib),
+					IncludeThirdParty:    domain.BoolPtr(executionCfg.ModuleGraph.IncludeThirdParty),
+					FollowRelative:       domain.BoolPtr(executionCfg.ModuleGraph.FollowRelative),
 					DetectCycles:         nil,
 					ValidateArchitecture: nil,
 				}
@@ -580,14 +578,17 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					return nil, err
 				}
 				request := domain.CommunityAnalysisRequest{
-					Paths:           files,
-					SourcePaths:     append([]string(nil), sourcePaths...),
-					Recursive:       domain.BoolPtr(executionCfg.Recursive),
-					IncludePatterns: []string{},
-					ExcludePatterns: []string{},
-					OutputFormat:    domain.OutputFormatJSON,
-					OutputWriter:    io.Discard,
-					ConfigPath:      config.ConfigFile,
+					Paths:             files,
+					SourcePaths:       append([]string(nil), sourcePaths...),
+					Recursive:         domain.BoolPtr(executionCfg.Recursive),
+					IncludePatterns:   []string{},
+					ExcludePatterns:   []string{},
+					OutputFormat:      domain.OutputFormatJSON,
+					OutputWriter:      io.Discard,
+					ConfigPath:        config.ConfigFile,
+					IncludeStdLib:     domain.BoolPtr(executionCfg.ModuleGraph.IncludeStdLib),
+					IncludeThirdParty: domain.BoolPtr(executionCfg.ModuleGraph.IncludeThirdParty),
+					FollowRelative:    domain.BoolPtr(executionCfg.ModuleGraph.FollowRelative),
 				}
 				return uc.communityUseCase.analyzeGraphRequest(ctx, ownedGraph, request)
 			},

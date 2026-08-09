@@ -155,13 +155,13 @@ lsh_auto_threshold = 123
 		if !cfg.SystemAnalyzeArchitecture {
 			t.Error("expected architecture enabled through system analysis section")
 		}
-		if !cfg.ModuleGraphIncludeStdLib {
+		if !cfg.ModuleGraph.IncludeStdLib {
 			t.Error("expected standard library dependencies enabled")
 		}
-		if cfg.ModuleGraphIncludeThirdParty {
+		if cfg.ModuleGraph.IncludeThirdParty {
 			t.Error("expected third-party dependencies disabled")
 		}
-		if cfg.ModuleGraphFollowRelative {
+		if cfg.ModuleGraph.FollowRelative {
 			t.Error("expected relative imports disabled")
 		}
 		if cfg.CloneLSHEnabled != "true" {

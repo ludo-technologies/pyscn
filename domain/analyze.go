@@ -41,15 +41,21 @@ type AnalyzeExecutionConfig struct {
 	CloneLSHEnabled       string
 	CloneLSHAutoThreshold int
 
-	SystemEnabled                bool
-	SystemAnalyzeDependencies    bool
-	SystemAnalyzeArchitecture    bool
-	ModuleGraphIncludeStdLib     bool
-	ModuleGraphIncludeThirdParty bool
-	ModuleGraphFollowRelative    bool
+	SystemEnabled             bool
+	SystemAnalyzeDependencies bool
+	SystemAnalyzeArchitecture bool
+	ModuleGraph               ModuleGraphOptions
 
 	CommunitiesEnabled         bool
 	CommunitiesEnabledExplicit bool
+}
+
+// ModuleGraphOptions is the resolved module graph policy shared by graph
+// consumers during one analysis execution.
+type ModuleGraphOptions struct {
+	IncludeStdLib     bool
+	IncludeThirdParty bool
+	FollowRelative    bool
 }
 
 // AnalyzeConfigurationLoader resolves and loads configuration for AnalyzeUseCase.

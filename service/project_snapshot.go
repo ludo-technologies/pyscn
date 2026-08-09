@@ -28,12 +28,10 @@ type ProjectSnapshotOptions struct {
 // ModuleGraphOptions controls how a project snapshot is projected into a
 // module graph.
 type ModuleGraphOptions struct {
-	ProjectRoot       string
-	IncludeStdLib     *bool
-	IncludeThirdParty *bool
-	FollowRelative    *bool
-	IncludePatterns   []string
-	ExcludePatterns   []string
+	ProjectRoot     string
+	Graph           domain.ModuleGraphOptions
+	IncludePatterns []string
+	ExcludePatterns []string
 }
 
 // ProjectModuleGraph is an owned graph projection of a project snapshot. Its
@@ -215,9 +213,9 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 	if options != nil {
 		analyzerOptions = &analyzer.ModuleAnalysisOptions{
 			ProjectRoot:       options.ProjectRoot,
-			IncludeStdLib:     options.IncludeStdLib,
-			IncludeThirdParty: options.IncludeThirdParty,
-			FollowRelative:    options.FollowRelative,
+			IncludeStdLib:     domain.BoolPtr(options.Graph.IncludeStdLib),
+			IncludeThirdParty: domain.BoolPtr(options.Graph.IncludeThirdParty),
+			FollowRelative:    domain.BoolPtr(options.Graph.FollowRelative),
 			IncludePatterns:   options.IncludePatterns,
 			ExcludePatterns:   options.ExcludePatterns,
 		}
