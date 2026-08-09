@@ -33,10 +33,6 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 	if ctx == nil {
 		ctx = context.Background()
 	}
-
-	var allResults []interface{}
-	var warnings []string
-	var errors []string
 	startTime := time.Now()
 	analyzeDependencies := domain.BoolValue(req.AnalyzeDependencies, true)
 	analyzeArchitecture := domain.BoolValue(req.AnalyzeArchitecture, true)
@@ -46,9 +42,30 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 		var err error
 		graph, err = s.buildDependencyGraph(ctx, req)
 		if err != nil {
-			errors = append(errors, fmt.Sprintf("Module graph failed: %v", err))
+			return nil, fmt.Errorf("all requested analyses failed: Module graph failed: %v", err)
 		}
 	}
+	return s.analyzeGraph(ctx, graph, req, startTime)
+}
+
+// AnalyzeGraph performs system analysis over a caller-owned dependency graph.
+func (s *SystemAnalysisServiceImpl) AnalyzeGraph(ctx context.Context, graph *analyzer.DependencyGraph, req domain.SystemAnalysisRequest) (*domain.SystemAnalysisResponse, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if graph == nil && (domain.BoolValue(req.AnalyzeDependencies, true) || domain.BoolValue(req.AnalyzeArchitecture, true)) {
+		return nil, fmt.Errorf("dependency graph is required")
+	}
+	return s.analyzeGraph(ctx, graph, req, time.Now())
+}
+
+func (s *SystemAnalysisServiceImpl) analyzeGraph(ctx context.Context, graph *analyzer.DependencyGraph, req domain.SystemAnalysisRequest, startTime time.Time) (*domain.SystemAnalysisResponse, error) {
+
+	var allResults []interface{}
+	var warnings []string
+	var errors []string
+	analyzeDependencies := domain.BoolValue(req.AnalyzeDependencies, true)
+	analyzeArchitecture := domain.BoolValue(req.AnalyzeArchitecture, true)
 
 	// Analyze dependencies if requested
 	var dependencyResult *domain.DependencyAnalysisResult

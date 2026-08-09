@@ -22,6 +22,9 @@ func NewCommunityAnalysisService() *CommunityAnalysisServiceImpl {
 
 // Analyze performs community detection over the module dependency graph.
 func (s *CommunityAnalysisServiceImpl) Analyze(ctx context.Context, req domain.CommunityAnalysisRequest) (*domain.CommunityAnalysisResult, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("community analysis cancelled: %w", err)
 	}
@@ -29,6 +32,20 @@ func (s *CommunityAnalysisServiceImpl) Analyze(ctx context.Context, req domain.C
 	graph, err := s.buildDependencyGraph(ctx, req)
 	if err != nil {
 		return nil, err
+	}
+	return s.AnalyzeGraph(ctx, graph, req)
+}
+
+// AnalyzeGraph performs community detection over a caller-owned dependency graph.
+func (s *CommunityAnalysisServiceImpl) AnalyzeGraph(ctx context.Context, graph *analyzer.DependencyGraph, req domain.CommunityAnalysisRequest) (*domain.CommunityAnalysisResult, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("community analysis cancelled: %w", err)
+	}
+	if graph == nil {
+		return nil, fmt.Errorf("dependency graph is required")
 	}
 
 	graphOpts := &analyzer.CommunityGraphBuildOptions{
