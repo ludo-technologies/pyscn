@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/analyzer"
 )
 
 func TestProjectSnapshotCachesParsedFileState(t *testing.T) {
@@ -60,6 +61,43 @@ func TestProjectSnapshotOptionsSkipRawMetrics(t *testing.T) {
 	}
 	if _, err := file.CFGs(); err != nil {
 		t.Fatalf("expected CFGs without raw metrics: %v", err)
+	}
+}
+
+func TestProjectSnapshotBuildDependencyGraphUsesOnlyCapturedParsedFiles(t *testing.T) {
+	ctx := context.Background()
+	projectRoot := t.TempDir()
+	sourcePath := filepath.Join(projectRoot, "source.py")
+	targetPath := filepath.Join(projectRoot, "target.py")
+	brokenPath := filepath.Join(projectRoot, "broken.py")
+
+	if err := os.WriteFile(sourcePath, []byte("import target\n"), 0o644); err != nil {
+		t.Fatalf("write source module: %v", err)
+	}
+	if err := os.WriteFile(targetPath, []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatalf("write target module: %v", err)
+	}
+	if err := os.WriteFile(brokenPath, []byte("def broken(:\n"), 0o644); err != nil {
+		t.Fatalf("write broken source: %v", err)
+	}
+
+	snapshot := BuildProjectSnapshotWithOptions(ctx, []string{sourcePath, targetPath, brokenPath}, ProjectSnapshotOptions{})
+	if err := os.WriteFile(sourcePath, []byte("VALUE = 2\n"), 0o644); err != nil {
+		t.Fatalf("replace captured source: %v", err)
+	}
+
+	graph, err := snapshot.BuildDependencyGraph(ctx, &analyzer.ModuleAnalysisOptions{ProjectRoot: projectRoot})
+	if err != nil {
+		t.Fatalf("build dependency graph: %v", err)
+	}
+	if graph.TotalModules != 2 {
+		t.Fatalf("expected only the two parsed modules, got %d", graph.TotalModules)
+	}
+	if graph.Nodes["source"] == nil || !graph.Nodes["source"].Dependencies["target"] {
+		t.Fatalf("expected dependency from captured syntax, got %+v", graph.Nodes)
+	}
+	if graph.Nodes["broken"] != nil {
+		t.Fatal("broken module must not be added to the graph")
 	}
 }
 

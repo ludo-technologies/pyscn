@@ -159,6 +159,42 @@ func (s *ProjectSnapshot) Coverage() domain.AnalysisCoverage {
 	return coverage
 }
 
+// BuildDependencyGraph projects the snapshot's successfully parsed files into
+// a new dependency graph. The returned graph is owned by the caller.
+func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *analyzer.ModuleAnalysisOptions) (*analyzer.DependencyGraph, error) {
+	if s == nil {
+		return nil, fmt.Errorf("project snapshot is required")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("build dependency graph: %w", err)
+	}
+
+	parsedModules := make([]analyzer.ParsedModule, 0, len(s.Files))
+	for _, file := range s.Files {
+		if !file.Parsed() {
+			continue
+		}
+		parsedModule, err := analyzer.NewParsedModule(file.Path, file.source, file.AST)
+		if err != nil {
+			return nil, fmt.Errorf("project file %s: %w", file.Path, err)
+		}
+		parsedModules = append(parsedModules, parsedModule)
+	}
+
+	moduleAnalyzer, err := analyzer.NewModuleAnalyzer(options)
+	if err != nil {
+		return nil, fmt.Errorf("create module analyzer: %w", err)
+	}
+	graph, err := moduleAnalyzer.AnalyzeParsedModules(ctx, parsedModules)
+	if err != nil {
+		return nil, fmt.Errorf("analyze parsed modules: %w", err)
+	}
+	return graph, nil
+}
+
 // Parsed reports whether the file has a valid parsed AST.
 func (f *ProjectFile) Parsed() bool {
 	return f != nil && f.ReadErr == nil && f.ParseErr == nil && f.AST != nil
