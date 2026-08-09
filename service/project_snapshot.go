@@ -15,7 +15,9 @@ import (
 
 // ProjectSnapshot stores the parsed source needed by multiple analyzers.
 type ProjectSnapshot struct {
-	files []*ProjectFile
+	// Files contains captured project state. Callers must treat the slice and
+	// its entries as read-only after construction.
+	Files []*ProjectFile
 }
 
 // ProjectSnapshotOptions controls which optional per-file analysis caches are built.
@@ -48,7 +50,7 @@ func BuildProjectSnapshotWithOptions(ctx context.Context, paths []string, option
 		ctx = context.Background()
 	}
 
-	snapshot := &ProjectSnapshot{files: make([]*ProjectFile, len(paths))}
+	snapshot := &ProjectSnapshot{Files: make([]*ProjectFile, len(paths))}
 	if len(paths) == 0 {
 		return snapshot
 	}
@@ -69,7 +71,7 @@ func BuildProjectSnapshotWithOptions(ctx context.Context, paths []string, option
 			pyParser := parser.New()
 			for idx := range jobs {
 				path := paths[idx]
-				snapshot.files[idx] = buildProjectFile(ctx, pyParser, path, options)
+				snapshot.Files[idx] = buildProjectFile(ctx, pyParser, path, options)
 			}
 		}()
 	}
@@ -77,13 +79,13 @@ func BuildProjectSnapshotWithOptions(ctx context.Context, paths []string, option
 	cancelled := false
 	for idx := range paths {
 		if cancelled {
-			snapshot.files[idx] = cancelledProjectFile(paths[idx], ctx.Err())
+			snapshot.Files[idx] = cancelledProjectFile(paths[idx], ctx.Err())
 			continue
 		}
 
 		select {
 		case <-ctx.Done():
-			snapshot.files[idx] = cancelledProjectFile(paths[idx], ctx.Err())
+			snapshot.Files[idx] = cancelledProjectFile(paths[idx], ctx.Err())
 			cancelled = true
 		case jobs <- idx:
 		}
@@ -93,8 +95,8 @@ func BuildProjectSnapshotWithOptions(ctx context.Context, paths []string, option
 	wg.Wait()
 
 	for idx, path := range paths {
-		if snapshot.files[idx] == nil {
-			snapshot.files[idx] = cancelledProjectFile(path, ctx.Err())
+		if snapshot.Files[idx] == nil {
+			snapshot.Files[idx] = cancelledProjectFile(path, ctx.Err())
 		}
 	}
 
@@ -107,8 +109,8 @@ func (s *ProjectSnapshot) Paths() []string {
 		return nil
 	}
 
-	paths := make([]string, 0, len(s.files))
-	for _, file := range s.files {
+	paths := make([]string, 0, len(s.Files))
+	for _, file := range s.Files {
 		if file != nil {
 			paths = append(paths, file.Path)
 		}
@@ -123,10 +125,10 @@ func (s *ProjectSnapshot) Coverage() domain.AnalysisCoverage {
 	}
 
 	coverage := domain.AnalysisCoverage{
-		TotalFiles:  len(s.files),
+		TotalFiles:  len(s.Files),
 		Diagnostics: make([]domain.AnalysisDiagnostic, 0),
 	}
-	for _, file := range s.files {
+	for _, file := range s.Files {
 		if file == nil {
 			coverage.SkippedFiles++
 			continue
@@ -172,8 +174,8 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *ana
 		return nil, fmt.Errorf("build dependency graph: %w", err)
 	}
 
-	parsedModules := make([]analyzer.ParsedModule, 0, len(s.files))
-	for _, file := range s.files {
+	parsedModules := make([]analyzer.ParsedModule, 0, len(s.Files))
+	for _, file := range s.Files {
 		if !file.Parsed() {
 			continue
 		}

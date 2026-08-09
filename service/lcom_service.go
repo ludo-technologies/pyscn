@@ -90,7 +90,7 @@ func (s *LCOMServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Project
 	var errors []string
 	filesProcessed := 0
 
-	for _, file := range snapshot.files {
+	for _, file := range snapshot.Files {
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("LCOM analysis cancelled: %w", ctx.Err())
