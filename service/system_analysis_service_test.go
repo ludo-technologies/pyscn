@@ -59,7 +59,7 @@ func TestSystemAnalysisService_AnalyzeGraphDoesNotReadSourceFiles(t *testing.T) 
 	graph.AddModule("package.target", filepath.Join(graph.ProjectRoot, "missing", "target.py"))
 	graph.AddDependency("package.source", "package.target", analyzer.DependencyEdgeImport, nil)
 
-	response, err := NewSystemAnalysisService().AnalyzeGraph(context.Background(), graph, domain.SystemAnalysisRequest{
+	response, err := NewSystemAnalysisService().AnalyzeGraph(context.Background(), &ProjectModuleGraph{graph: graph}, domain.SystemAnalysisRequest{
 		AnalyzeDependencies: domain.BoolPtr(true),
 		AnalyzeArchitecture: domain.BoolPtr(false),
 	})

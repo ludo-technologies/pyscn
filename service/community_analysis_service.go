@@ -33,11 +33,18 @@ func (s *CommunityAnalysisServiceImpl) Analyze(ctx context.Context, req domain.C
 	if err != nil {
 		return nil, err
 	}
-	return s.AnalyzeGraph(ctx, graph, req)
+	return s.analyzeGraph(ctx, graph, req)
 }
 
 // AnalyzeGraph performs community detection over a caller-owned dependency graph.
-func (s *CommunityAnalysisServiceImpl) AnalyzeGraph(ctx context.Context, graph *analyzer.DependencyGraph, req domain.CommunityAnalysisRequest) (*domain.CommunityAnalysisResult, error) {
+func (s *CommunityAnalysisServiceImpl) AnalyzeGraph(ctx context.Context, projectGraph *ProjectModuleGraph, req domain.CommunityAnalysisRequest) (*domain.CommunityAnalysisResult, error) {
+	if projectGraph == nil {
+		return nil, fmt.Errorf("dependency graph is required")
+	}
+	return s.analyzeGraph(ctx, projectGraph.graph, req)
+}
+
+func (s *CommunityAnalysisServiceImpl) analyzeGraph(ctx context.Context, graph *analyzer.DependencyGraph, req domain.CommunityAnalysisRequest) (*domain.CommunityAnalysisResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}

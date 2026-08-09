@@ -64,7 +64,7 @@ func TestCommunityAnalysisService_AnalyzeGraphDoesNotReadSourceFiles(t *testing.
 	graph.AddModule("package.target", filepath.Join(graph.ProjectRoot, "missing", "target.py"))
 	graph.AddDependency("package.source", "package.target", analyzer.DependencyEdgeImport, nil)
 
-	result, err := NewCommunityAnalysisService().AnalyzeGraph(context.Background(), graph, domain.CommunityAnalysisRequest{})
+	result, err := NewCommunityAnalysisService().AnalyzeGraph(context.Background(), &ProjectModuleGraph{graph: graph}, domain.CommunityAnalysisRequest{})
 	require.NoError(t, err)
 	assert.Len(t, result.ModuleDependencies, 1)
 }

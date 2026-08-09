@@ -6,13 +6,19 @@ import (
 	"io"
 
 	"github.com/ludo-technologies/pyscn/domain"
-	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+// CommunityAnalysisService is the complete service contract required by the
+// community use case, including snapshot-backed graph analysis.
+type CommunityAnalysisService interface {
+	domain.CommunityAnalysisService
+	AnalyzeGraph(context.Context, *svc.ProjectModuleGraph, domain.CommunityAnalysisRequest) (*domain.CommunityAnalysisResult, error)
+}
+
 // CommunityUseCase orchestrates the community analysis workflow.
 type CommunityUseCase struct {
-	service      domain.CommunityAnalysisService
+	service      CommunityAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CommunityAnalysisOutputFormatter
 	configLoader domain.CommunityConfigurationLoader
@@ -21,7 +27,7 @@ type CommunityUseCase struct {
 
 // NewCommunityUseCase creates a new community use case.
 func NewCommunityUseCase(
-	service domain.CommunityAnalysisService,
+	service CommunityAnalysisService,
 	fileReader domain.FileReader,
 	formatter domain.CommunityAnalysisOutputFormatter,
 	configLoader domain.CommunityConfigurationLoader,
@@ -108,11 +114,7 @@ func (uc *CommunityUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Com
 	return response, nil
 }
 
-type graphCommunityAnalysisService interface {
-	AnalyzeGraph(context.Context, *analyzer.DependencyGraph, domain.CommunityAnalysisRequest) (*domain.CommunityAnalysisResult, error)
-}
-
-func (uc *CommunityUseCase) analyzeGraphRequest(ctx context.Context, graph *analyzer.DependencyGraph, req domain.CommunityAnalysisRequest) (*domain.CommunityAnalysisResult, error) {
+func (uc *CommunityUseCase) analyzeGraphRequest(ctx context.Context, graph *svc.ProjectModuleGraph, req domain.CommunityAnalysisRequest) (*domain.CommunityAnalysisResult, error) {
 	if graph == nil {
 		return nil, domain.NewAnalysisError("community analysis failed", fmt.Errorf("dependency graph is required"))
 	}
@@ -125,11 +127,7 @@ func (uc *CommunityUseCase) analyzeGraphRequest(ctx context.Context, graph *anal
 		return nil, domain.NewInvalidInputError("invalid request", err)
 	}
 
-	graphService, ok := uc.service.(graphCommunityAnalysisService)
-	if !ok {
-		return nil, domain.NewAnalysisError("community analysis failed", fmt.Errorf("community service does not support dependency graphs"))
-	}
-	response, err := graphService.AnalyzeGraph(ctx, graph, finalReq)
+	response, err := uc.service.AnalyzeGraph(ctx, graph, finalReq)
 	if err != nil {
 		return nil, domain.NewAnalysisError("community analysis failed", err)
 	}
@@ -184,7 +182,7 @@ func (uc *CommunityUseCase) loadAndMergeConfig(req domain.CommunityAnalysisReque
 
 // CommunityUseCaseBuilder provides a builder pattern for creating CommunityUseCase.
 type CommunityUseCaseBuilder struct {
-	service      domain.CommunityAnalysisService
+	service      CommunityAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CommunityAnalysisOutputFormatter
 	configLoader domain.CommunityConfigurationLoader
@@ -196,7 +194,7 @@ func NewCommunityUseCaseBuilder() *CommunityUseCaseBuilder {
 	return &CommunityUseCaseBuilder{}
 }
 
-func (b *CommunityUseCaseBuilder) WithService(service domain.CommunityAnalysisService) *CommunityUseCaseBuilder {
+func (b *CommunityUseCaseBuilder) WithService(service CommunityAnalysisService) *CommunityUseCaseBuilder {
 	b.service = service
 	return b
 }

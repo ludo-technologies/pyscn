@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
-	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	"github.com/ludo-technologies/pyscn/service"
 )
 
@@ -320,10 +319,10 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 		IncludeRawMetrics: uc.complexityUseCase != nil && !useCaseCfg.SkipComplexity,
 	})
 
-	var moduleGraph *analyzer.DependencyGraph
+	var moduleGraph *service.ProjectModuleGraph
 	var moduleGraphErr error
 	if uc.needsModuleGraph(useCaseCfg) {
-		moduleGraph, moduleGraphErr = snapshot.BuildDependencyGraph(ctx, &analyzer.ModuleAnalysisOptions{
+		moduleGraph, moduleGraphErr = snapshot.BuildDependencyGraph(ctx, &service.ModuleGraphOptions{
 			ProjectRoot:       service.FindProjectRoot(paths),
 			IncludeStdLib:     domain.BoolPtr(executionCfg.ModuleGraphIncludeStdLib),
 			IncludeThirdParty: domain.BoolPtr(executionCfg.ModuleGraphIncludeThirdParty),
@@ -408,7 +407,7 @@ func (uc *AnalyzeUseCase) needsModuleGraph(config AnalyzeUseCaseConfig) bool {
 		(uc.communityUseCase != nil && !config.SkipCommunities)
 }
 
-func cloneModuleGraph(graph *analyzer.DependencyGraph, buildErr error) (*analyzer.DependencyGraph, error) {
+func cloneModuleGraph(graph *service.ProjectModuleGraph, buildErr error) (*service.ProjectModuleGraph, error) {
 	if buildErr != nil {
 		return nil, fmt.Errorf("build module graph: %w", buildErr)
 	}
@@ -418,7 +417,7 @@ func cloneModuleGraph(graph *analyzer.DependencyGraph, buildErr error) (*analyze
 	return graph.Clone(), nil
 }
 
-func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourcePaths []string, files []string, snapshot *service.ProjectSnapshot, moduleGraph *analyzer.DependencyGraph, moduleGraphErr error, executionCfg domain.AnalyzeExecutionConfig) []*AnalysisTask {
+func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourcePaths []string, files []string, snapshot *service.ProjectSnapshot, moduleGraph *service.ProjectModuleGraph, moduleGraphErr error, executionCfg domain.AnalyzeExecutionConfig) []*AnalysisTask {
 	tasks := []*AnalysisTask{}
 
 	// Complexity analysis task

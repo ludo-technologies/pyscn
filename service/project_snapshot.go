@@ -25,6 +25,31 @@ type ProjectSnapshotOptions struct {
 	IncludeRawMetrics bool
 }
 
+// ModuleGraphOptions controls how a project snapshot is projected into a
+// module graph.
+type ModuleGraphOptions struct {
+	ProjectRoot       string
+	IncludeStdLib     *bool
+	IncludeThirdParty *bool
+	FollowRelative    *bool
+	IncludePatterns   []string
+	ExcludePatterns   []string
+}
+
+// ProjectModuleGraph is an owned graph projection of a project snapshot. Its
+// analyzer representation remains private to the service layer.
+type ProjectModuleGraph struct {
+	graph *analyzer.DependencyGraph
+}
+
+// Clone returns an independent graph for one analyzer to consume.
+func (g *ProjectModuleGraph) Clone() *ProjectModuleGraph {
+	if g == nil || g.graph == nil {
+		return nil
+	}
+	return &ProjectModuleGraph{graph: g.graph.Clone()}
+}
+
 // ProjectFile stores one Python file after read and parse.
 type ProjectFile struct {
 	Path       string
@@ -163,7 +188,7 @@ func (s *ProjectSnapshot) Coverage() domain.AnalysisCoverage {
 
 // BuildDependencyGraph projects the snapshot's successfully parsed files into
 // a new dependency graph. The returned graph is owned by the caller.
-func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *analyzer.ModuleAnalysisOptions) (*analyzer.DependencyGraph, error) {
+func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *ModuleGraphOptions) (*ProjectModuleGraph, error) {
 	if s == nil {
 		return nil, fmt.Errorf("project snapshot is required")
 	}
@@ -186,7 +211,18 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *ana
 		parsedModules = append(parsedModules, parsedModule)
 	}
 
-	moduleAnalyzer, err := analyzer.NewModuleAnalyzer(options)
+	var analyzerOptions *analyzer.ModuleAnalysisOptions
+	if options != nil {
+		analyzerOptions = &analyzer.ModuleAnalysisOptions{
+			ProjectRoot:       options.ProjectRoot,
+			IncludeStdLib:     options.IncludeStdLib,
+			IncludeThirdParty: options.IncludeThirdParty,
+			FollowRelative:    options.FollowRelative,
+			IncludePatterns:   options.IncludePatterns,
+			ExcludePatterns:   options.ExcludePatterns,
+		}
+	}
+	moduleAnalyzer, err := analyzer.NewModuleAnalyzer(analyzerOptions)
 	if err != nil {
 		return nil, fmt.Errorf("create module analyzer: %w", err)
 	}
@@ -194,7 +230,7 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *ana
 	if err != nil {
 		return nil, fmt.Errorf("analyze parsed modules: %w", err)
 	}
-	return graph, nil
+	return &ProjectModuleGraph{graph: graph}, nil
 }
 
 // Parsed reports whether the file has a valid parsed AST.

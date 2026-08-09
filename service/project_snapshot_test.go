@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
-	"github.com/ludo-technologies/pyscn/internal/analyzer"
 )
 
 func TestProjectSnapshotCachesParsedFileState(t *testing.T) {
@@ -86,17 +85,17 @@ func TestProjectSnapshotBuildDependencyGraphUsesOnlyCapturedParsedFiles(t *testi
 		t.Fatalf("replace captured source: %v", err)
 	}
 
-	graph, err := snapshot.BuildDependencyGraph(ctx, &analyzer.ModuleAnalysisOptions{ProjectRoot: projectRoot})
+	graph, err := snapshot.BuildDependencyGraph(ctx, &ModuleGraphOptions{ProjectRoot: projectRoot})
 	if err != nil {
 		t.Fatalf("build dependency graph: %v", err)
 	}
-	if graph.TotalModules != 2 {
-		t.Fatalf("expected only the two parsed modules, got %d", graph.TotalModules)
+	if graph.graph.TotalModules != 2 {
+		t.Fatalf("expected only the two parsed modules, got %d", graph.graph.TotalModules)
 	}
-	if graph.Nodes["source"] == nil || !graph.Nodes["source"].Dependencies["target"] {
-		t.Fatalf("expected dependency from captured syntax, got %+v", graph.Nodes)
+	if graph.graph.Nodes["source"] == nil || !graph.graph.Nodes["source"].Dependencies["target"] {
+		t.Fatalf("expected dependency from captured syntax, got %+v", graph.graph.Nodes)
 	}
-	if graph.Nodes["broken"] != nil {
+	if graph.graph.Nodes["broken"] != nil {
 		t.Fatal("broken module must not be added to the graph")
 	}
 }

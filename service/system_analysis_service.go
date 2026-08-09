@@ -49,12 +49,16 @@ func (s *SystemAnalysisServiceImpl) Analyze(ctx context.Context, req domain.Syst
 }
 
 // AnalyzeGraph performs system analysis over a caller-owned dependency graph.
-func (s *SystemAnalysisServiceImpl) AnalyzeGraph(ctx context.Context, graph *analyzer.DependencyGraph, req domain.SystemAnalysisRequest) (*domain.SystemAnalysisResponse, error) {
+func (s *SystemAnalysisServiceImpl) AnalyzeGraph(ctx context.Context, projectGraph *ProjectModuleGraph, req domain.SystemAnalysisRequest) (*domain.SystemAnalysisResponse, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	if graph == nil && (domain.BoolValue(req.AnalyzeDependencies, true) || domain.BoolValue(req.AnalyzeArchitecture, true)) {
+	if projectGraph == nil && (domain.BoolValue(req.AnalyzeDependencies, true) || domain.BoolValue(req.AnalyzeArchitecture, true)) {
 		return nil, fmt.Errorf("dependency graph is required")
+	}
+	var graph *analyzer.DependencyGraph
+	if projectGraph != nil {
+		graph = projectGraph.graph
 	}
 	return s.analyzeGraph(ctx, graph, req, time.Now())
 }
