@@ -3,6 +3,7 @@ package mcp_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -189,7 +190,10 @@ func TestHandleAnalyzeCode(t *testing.T) {
 			args: args{
 				setupFS: func(t *testing.T) string {
 					projectDir := t.TempDir()
-					require.NoError(t, os.WriteFile(filepath.Join(projectDir, "valid.py"), []byte("VALUE = 1\n"), 0o644))
+					for index := range 20 {
+						fileName := fmt.Sprintf("valid_%02d.py", index)
+						require.NoError(t, os.WriteFile(filepath.Join(projectDir, fileName), []byte("VALUE = 1\n"), 0o644))
+					}
 					require.NoError(t, os.WriteFile(filepath.Join(projectDir, "broken.py"), []byte("def broken(:\n"), 0o644))
 					return projectDir
 				},
@@ -198,11 +202,12 @@ func TestHandleAnalyzeCode(t *testing.T) {
 				},
 			},
 			want: want{
-				isError: &errFalse,
+				isError: &errTrue,
 				check: func(t *testing.T, res *mcplib.CallToolResult) {
 					text := mcplib.GetTextFromContent(res.Content[0])
 					var result struct {
 						Partial     bool                        `json:"partial"`
+						IsHealthy   bool                        `json:"is_healthy"`
 						Diagnostics []domain.AnalysisDiagnostic `json:"diagnostics"`
 						Summary     struct {
 							TotalFiles    int `json:"total_files"`
@@ -212,8 +217,9 @@ func TestHandleAnalyzeCode(t *testing.T) {
 					}
 					require.NoError(t, json.Unmarshal([]byte(text), &result))
 					assert.True(t, result.Partial)
-					assert.Equal(t, 2, result.Summary.TotalFiles)
-					assert.Equal(t, 1, result.Summary.AnalyzedFiles)
+					assert.False(t, result.IsHealthy)
+					assert.Equal(t, 21, result.Summary.TotalFiles)
+					assert.Equal(t, 20, result.Summary.AnalyzedFiles)
 					assert.Equal(t, 1, result.Summary.SkippedFiles)
 					require.Len(t, result.Diagnostics, 1)
 					assert.Equal(t, domain.DiagnosticCodeParse, result.Diagnostics[0].Code)
