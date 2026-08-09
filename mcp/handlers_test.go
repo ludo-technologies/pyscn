@@ -500,6 +500,7 @@ func TestHandleCheckComplexity(t *testing.T) {
 	tests := map[string]struct {
 		args    args
 		isError *bool
+		check   func(t *testing.T, res *mcplib.CallToolResult)
 	}{
 		"invalid_arguments": {
 			args:    args{arguments: "not-a-map"},
@@ -524,6 +525,56 @@ func TestHandleCheckComplexity(t *testing.T) {
 				},
 				arguments: map[string]interface{}{},
 			},
+			check: func(t *testing.T, res *mcplib.CallToolResult) {
+				text := mcplib.GetTextFromContent(res.Content[0])
+				var result struct {
+					Partial     bool                        `json:"partial"`
+					Diagnostics []domain.AnalysisDiagnostic `json:"diagnostics"`
+					Failures    []domain.AnalysisFailure    `json:"failures"`
+					Categories  struct {
+						Architecture int `json:"architecture_score"`
+					} `json:"category_scores"`
+					Summary struct {
+						TotalFiles    int `json:"total_files"`
+						AnalyzedFiles int `json:"analyzed_files"`
+						SkippedFiles  int `json:"skipped_files"`
+					} `json:"summary"`
+				}
+				require.NoError(t, json.Unmarshal([]byte(text), &result))
+				assert.False(t, result.Partial)
+				assert.Empty(t, result.Diagnostics)
+				assert.Empty(t, result.Failures)
+				assert.Equal(t, 1, result.Summary.TotalFiles)
+				assert.Equal(t, 1, result.Summary.AnalyzedFiles)
+				assert.Zero(t, result.Summary.SkippedFiles)
+				assert.GreaterOrEqual(t, result.Categories.Architecture, 0)
+			},
+		},
+		"partial_result_preserves_diagnostics": {
+			args: args{
+				setupFS: func(t *testing.T) string {
+					projectDir := t.TempDir()
+					require.NoError(t, os.WriteFile(filepath.Join(projectDir, "broken.py"), []byte("def broken(:\n"), 0o644))
+					return projectDir
+				},
+				arguments: map[string]interface{}{},
+			},
+			isError: &errTrue,
+			check: func(t *testing.T, res *mcplib.CallToolResult) {
+				text := mcplib.GetTextFromContent(res.Content[0])
+				var result struct {
+					Partial     bool                        `json:"partial"`
+					IsHealthy   bool                        `json:"is_healthy"`
+					Diagnostics []domain.AnalysisDiagnostic `json:"diagnostics"`
+					Failures    []domain.AnalysisFailure    `json:"failures"`
+				}
+				require.NoError(t, json.Unmarshal([]byte(text), &result))
+				assert.True(t, result.Partial)
+				assert.False(t, result.IsHealthy)
+				require.Len(t, result.Diagnostics, 1)
+				assert.Equal(t, domain.DiagnosticCodeParse, result.Diagnostics[0].Code)
+				assert.NotEmpty(t, result.Failures)
+			},
 		},
 	}
 
@@ -541,6 +592,11 @@ func TestHandleCheckComplexity(t *testing.T) {
 
 			if tc.isError != nil {
 				require.Equal(t, *tc.isError, res.IsError)
+			}
+			if tc.check != nil && len(res.Content) > 0 {
+				tc.check(t, res)
+			}
+			if tc.isError != nil {
 				return
 			}
 

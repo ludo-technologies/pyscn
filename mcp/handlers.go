@@ -18,6 +18,41 @@ type HandlerSet struct {
 	deps *Dependencies
 }
 
+type healthScorePayload struct {
+	HealthScore    int                         `json:"health_score"`
+	Grade          string                      `json:"grade"`
+	IsHealthy      bool                        `json:"is_healthy"`
+	Partial        bool                        `json:"partial"`
+	Diagnostics    []domain.AnalysisDiagnostic `json:"diagnostics"`
+	Failures       []domain.AnalysisFailure    `json:"failures"`
+	CategoryScores healthCategoryScores        `json:"category_scores"`
+	Summary        healthScoreSummary          `json:"summary"`
+}
+
+type healthCategoryScores struct {
+	Complexity   int  `json:"complexity_score"`
+	DeadCode     int  `json:"dead_code_score"`
+	Duplication  int  `json:"duplication_score"`
+	Coupling     int  `json:"coupling_score"`
+	Cohesion     int  `json:"cohesion_score"`
+	Dependency   int  `json:"dependency_score"`
+	Architecture int  `json:"architecture_score"`
+	Community    *int `json:"community_score,omitempty"`
+}
+
+type healthScoreSummary struct {
+	TotalFiles          int     `json:"total_files"`
+	AnalyzedFiles       int     `json:"analyzed_files"`
+	SkippedFiles        int     `json:"skipped_files"`
+	AverageComplexity   float64 `json:"average_complexity"`
+	HighComplexityCount int     `json:"high_complexity_count"`
+	DeadCodeCount       int     `json:"dead_code_count"`
+	ClonePairs          int     `json:"clone_pairs"`
+	HighCouplingClasses int     `json:"high_coupling_classes"`
+	HighLCOMClasses     int     `json:"high_lcom_classes"`
+	CommunityRiskScore  *int    `json:"community_risk_score,omitempty"`
+}
+
 // NewHandlerSet constructs a handler set.
 func NewHandlerSet(deps *Dependencies) *HandlerSet {
 	if deps == nil {
@@ -111,15 +146,7 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 	}
 
 	// Format output based on mode
-	diagnostics := result.Diagnostics
-	if diagnostics == nil {
-		diagnostics = []domain.AnalysisDiagnostic{}
-	}
-	failures := result.Failures
-	if failures == nil {
-		failures = []domain.AnalysisFailure{}
-	}
-	incomplete := result.Summary.SkippedFiles > 0 || len(failures) > 0
+	diagnostics, failures, incomplete := analysisResultState(result, err)
 	var responseData interface{}
 	switch outputMode {
 	case "full":
@@ -739,44 +766,11 @@ func (h *HandlerSet) HandleGetHealthScore(ctx context.Context, request mcp.CallT
 	}
 
 	result, err := analyzeUC.Execute(ctx, config, []string{path})
-	if err != nil {
+	if err != nil && result == nil {
 		return mcp.NewToolResultError(fmt.Sprintf("analysis failed: %v", err)), nil
 	}
 
-	// Extract health score summary
-	healthScoreResult := map[string]interface{}{
-		"health_score": result.Summary.HealthScore,
-		"grade":        result.Summary.Grade,
-		"is_healthy":   result.Summary.IsHealthy(),
-		"category_scores": map[string]int{
-			"complexity_score":   result.Summary.ComplexityScore,
-			"dead_code_score":    result.Summary.DeadCodeScore,
-			"duplication_score":  result.Summary.DuplicationScore,
-			"coupling_score":     result.Summary.CouplingScore,
-			"cohesion_score":     result.Summary.CohesionScore,
-			"dependency_score":   result.Summary.DependencyScore,
-			"architecture_score": result.Summary.ArchitectureScore,
-		},
-		"summary": map[string]interface{}{
-			"total_files":           result.Summary.TotalFiles,
-			"average_complexity":    result.Summary.AverageComplexity,
-			"high_complexity_count": result.Summary.HighComplexityCount,
-			"dead_code_count":       result.Summary.DeadCodeCount,
-			"clone_pairs":           result.Summary.ClonePairs,
-			"high_coupling_classes": result.Summary.HighCouplingClasses,
-			"high_lcom_classes":     result.Summary.HighLCOMClasses,
-		},
-	}
-
-	// Include the community score only when community detection ran.
-	if result.Summary.CommunitiesEnabled {
-		if cs, ok := healthScoreResult["category_scores"].(map[string]int); ok {
-			cs["community_score"] = result.Summary.CommunityScore
-		}
-		if sum, ok := healthScoreResult["summary"].(map[string]interface{}); ok {
-			sum["community_risk_score"] = result.Summary.CommunityRiskScore
-		}
-	}
+	healthScoreResult, incomplete := newHealthScorePayload(result, err)
 
 	// Convert to JSON
 	jsonData, err := json.Marshal(healthScoreResult)
@@ -784,7 +778,59 @@ func (h *HandlerSet) HandleGetHealthScore(ctx context.Context, request mcp.CallT
 		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal result: %v", err)), nil
 	}
 
-	return mcp.NewToolResultText(string(jsonData)), nil
+	toolResult := mcp.NewToolResultText(string(jsonData))
+	toolResult.IsError = incomplete
+	return toolResult, nil
+}
+
+func analysisResultState(result *domain.AnalyzeResponse, executionErr error) ([]domain.AnalysisDiagnostic, []domain.AnalysisFailure, bool) {
+	diagnostics := result.Diagnostics
+	if diagnostics == nil {
+		diagnostics = []domain.AnalysisDiagnostic{}
+	}
+	failures := result.Failures
+	if failures == nil {
+		failures = []domain.AnalysisFailure{}
+	}
+	incomplete := executionErr != nil || result.Summary.SkippedFiles > 0 || len(failures) > 0
+	return diagnostics, failures, incomplete
+}
+
+func newHealthScorePayload(result *domain.AnalyzeResponse, executionErr error) (healthScorePayload, bool) {
+	diagnostics, failures, incomplete := analysisResultState(result, executionErr)
+	payload := healthScorePayload{
+		HealthScore: result.Summary.HealthScore,
+		Grade:       result.Summary.Grade,
+		IsHealthy:   result.Summary.IsHealthy() && !incomplete,
+		Partial:     incomplete,
+		Diagnostics: diagnostics,
+		Failures:    failures,
+		CategoryScores: healthCategoryScores{
+			Complexity:   result.Summary.ComplexityScore,
+			DeadCode:     result.Summary.DeadCodeScore,
+			Duplication:  result.Summary.DuplicationScore,
+			Coupling:     result.Summary.CouplingScore,
+			Cohesion:     result.Summary.CohesionScore,
+			Dependency:   result.Summary.DependencyScore,
+			Architecture: result.Summary.ArchitectureScore,
+		},
+		Summary: healthScoreSummary{
+			TotalFiles:          result.Summary.TotalFiles,
+			AnalyzedFiles:       result.Summary.AnalyzedFiles,
+			SkippedFiles:        result.Summary.SkippedFiles,
+			AverageComplexity:   result.Summary.AverageComplexity,
+			HighComplexityCount: result.Summary.HighComplexityCount,
+			DeadCodeCount:       result.Summary.DeadCodeCount,
+			ClonePairs:          result.Summary.ClonePairs,
+			HighCouplingClasses: result.Summary.HighCouplingClasses,
+			HighLCOMClasses:     result.Summary.HighLCOMClasses,
+		},
+	}
+	if result.Summary.CommunitiesEnabled {
+		payload.CategoryScores.Community = &result.Summary.CommunityScore
+		payload.Summary.CommunityRiskScore = &result.Summary.CommunityRiskScore
+	}
+	return payload, incomplete
 }
 
 // Helper functions
