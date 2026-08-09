@@ -73,7 +73,7 @@ func (s *CloneService) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectSna
 	}
 
 	return s.detectClones(ctx, req, func(ctx context.Context, detector *analyzer.CloneDetector) (*fragmentExtraction, error) {
-		return s.extractFragmentsFromSnapshot(ctx, snapshot, detector)
+		return s.extractFragmentsFromSnapshot(ctx, snapshot, detector, req)
 	})
 }
 
@@ -142,10 +142,10 @@ func (s *CloneService) extractFragmentsFromFiles(ctx context.Context, filePaths 
 	return extraction, nil
 }
 
-func (s *CloneService) extractFragmentsFromSnapshot(ctx context.Context, snapshot *ProjectSnapshot, detector *analyzer.CloneDetector) (*fragmentExtraction, error) {
+func (s *CloneService) extractFragmentsFromSnapshot(ctx context.Context, snapshot *ProjectSnapshot, detector *analyzer.CloneDetector, req *domain.CloneRequest) (*fragmentExtraction, error) {
 	extraction := &fragmentExtraction{}
 
-	for _, file := range snapshot.analysisProjectFiles() {
+	for _, file := range snapshot.analysisProjectFilesMatching(req.IncludePatterns, req.ExcludePatterns) {
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("clone analysis cancelled: %w", ctx.Err())

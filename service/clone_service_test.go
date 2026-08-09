@@ -74,6 +74,28 @@ func TestCloneService_AnalyzeSnapshotUsesCapturedSource(t *testing.T) {
 	}
 }
 
+func TestCloneService_AnalyzeSnapshotHonorsFileFilters(t *testing.T) {
+	projectRoot := t.TempDir()
+	includedPath := filepath.Join(projectRoot, "included.py")
+	excludedPath := filepath.Join(projectRoot, "excluded.py")
+	for _, path := range []string{includedPath, excludedPath} {
+		if err := os.WriteFile(path, []byte("def value():\n    return 1\n"), 0o644); err != nil {
+			t.Fatalf("write fixture: %v", err)
+		}
+	}
+	snapshot := BuildProjectSnapshot(context.Background(), []string{includedPath, excludedPath})
+	req := newDefaultCloneRequest(projectRoot)
+	req.ExcludePatterns = []string{"excluded.py"}
+
+	response, err := NewCloneService().AnalyzeSnapshot(context.Background(), snapshot, req)
+	if err != nil {
+		t.Fatalf("analyze filtered snapshot: %v", err)
+	}
+	if response.Statistics.FilesAnalyzed != 1 {
+		t.Fatalf("expected one filtered snapshot file, got %+v", response.Statistics)
+	}
+}
+
 func TestCloneService_DetectClones(t *testing.T) {
 	service := NewCloneService()
 	ctx := context.Background()
