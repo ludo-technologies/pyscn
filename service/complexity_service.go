@@ -86,6 +86,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 		RawMetricsSummary: rawMetricsSummary,
 		Warnings:          warnings,
 		Errors:            errors,
+		Failures:          analyzerFailures(domain.AnalysisKindComplexity, errors),
 		GeneratedAt:       time.Now().Format(time.RFC3339),
 		Version:           version.Version, // Get version from version package
 		Config:            s.buildConfigForResponse(req),
@@ -106,7 +107,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 	filesProcessed := 0
 	filesSkipped := 0
 
-	for _, file := range snapshot.Files {
+	for _, file := range snapshot.files {
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("complexity analysis cancelled: %w", ctx.Err())
@@ -152,6 +153,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 		RawMetricsSummary: rawMetricsSummary,
 		Warnings:          warnings,
 		Errors:            errors,
+		Failures:          analyzerFailures(domain.AnalysisKindComplexity, errors),
 		GeneratedAt:       time.Now().Format(time.RFC3339),
 		Version:           version.Version,
 		Config:            s.buildConfigForResponse(req),

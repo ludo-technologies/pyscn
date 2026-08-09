@@ -213,7 +213,8 @@ type CloneResponse struct {
 	// Errors holds per-file failures. Error above reports why the whole run
 	// failed; a file listed here was skipped while the run itself succeeded,
 	// so its contents are absent from every statistic in this response.
-	Errors []string `json:"errors,omitempty" yaml:"errors,omitempty" csv:"-"`
+	Errors   []string          `json:"errors,omitempty" yaml:"errors,omitempty" csv:"-"`
+	Failures []AnalysisFailure `json:"failures,omitempty" yaml:"failures,omitempty" csv:"-"`
 }
 
 // CloneSortCriteria defines how to sort clone results

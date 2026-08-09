@@ -21,3 +21,15 @@ func failureMessages(failures []domain.AnalysisFailure) []string {
 	}
 	return messages
 }
+
+func analyzerFailures(kind domain.AnalysisKind, messages []string) []domain.AnalysisFailure {
+	failures := make([]domain.AnalysisFailure, 0, len(messages))
+	for _, message := range messages {
+		failures = append(failures, domain.AnalysisFailure{
+			Analysis: kind,
+			Code:     domain.AnalysisFailureCodeExecution,
+			Message:  message,
+		})
+	}
+	return failures
+}

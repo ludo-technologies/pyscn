@@ -46,59 +46,59 @@ type AnalysisFailure struct {
 	FilePath string              `json:"file_path,omitempty" yaml:"file_path,omitempty"`
 }
 
-// AnalysisErrorReporter is implemented by analyzer responses that can carry
-// partial results alongside execution errors.
-type AnalysisErrorReporter interface {
-	AnalysisErrors() []string
+// AnalysisFailureReporter is implemented by analyzer responses that can carry
+// partial results alongside typed execution failures.
+type AnalysisFailureReporter interface {
+	AnalysisFailures() []AnalysisFailure
 }
 
-func (r *ComplexityResponse) AnalysisErrors() []string {
+func (r *ComplexityResponse) AnalysisFailures() []AnalysisFailure {
 	if r == nil {
 		return nil
 	}
-	return r.Errors
+	return r.Failures
 }
 
-func (r *DeadCodeResponse) AnalysisErrors() []string {
+func (r *DeadCodeResponse) AnalysisFailures() []AnalysisFailure {
 	if r == nil {
 		return nil
 	}
-	return r.Errors
+	return r.Failures
 }
 
-func (r *CloneResponse) AnalysisErrors() []string {
+func (r *CloneResponse) AnalysisFailures() []AnalysisFailure {
 	if r == nil {
 		return nil
 	}
-	return r.Errors
+	return r.Failures
 }
 
-func (r *CBOResponse) AnalysisErrors() []string {
+func (r *CBOResponse) AnalysisFailures() []AnalysisFailure {
 	if r == nil {
 		return nil
 	}
-	return r.Errors
+	return r.Failures
 }
 
-func (r *LCOMResponse) AnalysisErrors() []string {
+func (r *LCOMResponse) AnalysisFailures() []AnalysisFailure {
 	if r == nil {
 		return nil
 	}
-	return r.Errors
+	return r.Failures
 }
 
-func (r *SystemAnalysisResponse) AnalysisErrors() []string {
+func (r *SystemAnalysisResponse) AnalysisFailures() []AnalysisFailure {
 	if r == nil {
 		return nil
 	}
-	return r.Errors
+	return r.Failures
 }
 
-func (r *CommunityAnalysisResult) AnalysisErrors() []string {
+func (r *CommunityAnalysisResult) AnalysisFailures() []AnalysisFailure {
 	if r == nil {
 		return nil
 	}
-	return r.Errors
+	return r.Failures
 }
 
 // AnalysisCoverage records how much of the discovered project was analyzed.

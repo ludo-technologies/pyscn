@@ -31,6 +31,7 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
   "module_quality":     [ /* ModuleQualityMetrics array, omitted when empty */ ],
   "suggestions":   [ /* Suggestion array, omitted when empty */ ],
   "diagnostics":   [ /* AnalysisDiagnostic array, omitted when complete */ ],
+	"failures":      [ /* AnalysisFailure array, omitted when analyzers complete */ ],
   "summary":       { /* AnalyzeSummary, always present */ },
   "generated_at":  "2026-04-14T10:18:23Z",
   "duration_ms":   2347,
@@ -51,6 +52,7 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
 | `module_quality`     | array \| absent  | Per-module quality rollups. Omitted when no analyzer produced module data. | stable |
 | `suggestions` | array \| absent   | Derived suggestions. Omitted when empty.               | stable    |
 | `diagnostics` | array \| absent   | Project read/parse failures, independent of analyzer selection. | stable |
+| `failures`    | array \| absent   | Analyzer execution failures retained with partial results.      | stable |
 | `summary`     | object            | Always present. See [`summary`](#summary-object).      | stable    |
 | `generated_at`| string (RFC 3339) | Analysis completion time.                              | stable    |
 | `duration_ms` | integer           | Total analysis duration in milliseconds.               | stable    |
@@ -65,6 +67,18 @@ Each entry identifies a discovered file excluded from every metric. The array is
 | `file_path` | string | Discovered Python source path. |
 | `code`      | string | Stable category: `read_error` or `parse_error`. |
 | `message`   | string | Human-readable failure detail. |
+
+## `failures` array
+
+Each entry identifies an analyzer that could not complete. Partial results may
+still be present, but a response with failures is not healthy.
+
+| Field       | Type             | Description |
+| ----------- | ---------------- | ----------- |
+| `analysis`  | string           | Stable analyzer identifier such as `complexity`, `deadcode`, `clones`, `cbo`, `lcom`, `system`, or `communities`. |
+| `code`      | string           | Stable category. Currently `execution_error`. |
+| `message`   | string           | Human-readable failure detail. |
+| `file_path` | string or absent | Source file associated with the failure, when known. |
 
 ## `summary` object { #summary-object }
 

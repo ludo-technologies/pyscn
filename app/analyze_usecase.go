@@ -377,23 +377,14 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 		service.UpdateAnalysisTimingFactors(estimatedSeconds, tracker.CompletedDurations())
 	}
 
-	// Check for errors
-	var errors []error
-	for _, task := range tasks {
-		if task.Enabled && task.Error != nil {
-			errors = append(errors, fmt.Errorf("%s: %w", task.Name, task.Error))
-		}
-	}
-
 	// Build response
 	response, err := uc.buildResponse(tasks, startTime, pathIndex, snapshot.Coverage())
 	if err != nil {
 		return response, err
 	}
 
-	// Return aggregated error if any tasks failed
-	if len(errors) > 0 {
-		return response, fmt.Errorf("analysis completed with %d error(s): %w", len(errors), errors[0])
+	if len(response.Failures) > 0 {
+		return response, fmt.Errorf("analysis completed with %d failure(s): %s", len(response.Failures), response.Failures[0].Message)
 	}
 
 	return response, nil
@@ -430,8 +421,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 				if err != nil {
 					return nil, domain.NewInvalidInputError("invalid complexity analysis scope", err)
 				}
-				response, err := uc.complexityUseCase.analyzeSnapshotRequest(ctx, snapshot, request, projectRoot)
-				return response, analysisResponseError(err, responseErrors(response))
+				return uc.complexityUseCase.analyzeSnapshotRequest(ctx, snapshot, request, projectRoot)
 			},
 		})
 	}
@@ -463,8 +453,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					DetectAfterRaise:          nil,
 					DetectUnreachableBranches: nil,
 				}
-				response, err := uc.deadCodeUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
-				return response, analysisResponseError(err, responseErrors(response))
+				return uc.deadCodeUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
 			},
 		})
 	}
@@ -477,8 +466,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 			Enabled: !config.SkipClones,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := uc.buildCloneTaskRequest(config, files, executionCfg)
-				response, err := uc.cloneUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
-				return response, analysisResponseError(err, responseErrors(response))
+				return uc.cloneUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
 			},
 		})
 	}
@@ -508,8 +496,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					IncludeImports:        nil,
 					GroupNamespaceImports: nil,
 				}
-				response, err := uc.cboUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
-				return response, analysisResponseError(err, responseErrors(response))
+				return uc.cboUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
 			},
 		})
 	}
@@ -533,8 +520,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					SortBy:          domain.SortByCohesion,
 					ConfigPath:      config.ConfigFile,
 				}
-				response, err := uc.lcomUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
-				return response, analysisResponseError(err, responseErrors(response))
+				return uc.lcomUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
 			},
 		})
 	}
@@ -566,8 +552,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					DetectCycles:         nil,
 					ValidateArchitecture: nil,
 				}
-				response, err := uc.systemUseCase.analyzeGraphRequest(ctx, ownedGraph, request)
-				return response, analysisResponseError(err, responseErrors(response))
+				return uc.systemUseCase.analyzeGraphRequest(ctx, ownedGraph, request)
 			},
 		})
 	}
@@ -596,24 +581,12 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					IncludeThirdParty: domain.BoolPtr(executionCfg.ModuleGraph.IncludeThirdParty),
 					FollowRelative:    domain.BoolPtr(executionCfg.ModuleGraph.FollowRelative),
 				}
-				response, err := uc.communityUseCase.analyzeGraphRequest(ctx, ownedGraph, request)
-				return response, analysisResponseError(err, responseErrors(response))
+				return uc.communityUseCase.analyzeGraphRequest(ctx, ownedGraph, request)
 			},
 		})
 	}
 
 	return tasks
-}
-
-func analysisResponseError(err error, messages []string) error {
-	if err != nil || len(messages) == 0 {
-		return err
-	}
-	return fmt.Errorf("%d analyzer error(s): %s", len(messages), messages[0])
-}
-
-func responseErrors[T domain.AnalysisErrorReporter](response T) []string {
-	return response.AnalysisErrors()
 }
 
 func (uc *AnalyzeUseCase) buildComplexityTaskRequest(config AnalyzeUseCaseConfig, files []string, executionCfg domain.AnalyzeExecutionConfig) domain.ComplexityRequest {
@@ -709,6 +682,9 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 				Code:     domain.AnalysisFailureCodeExecution,
 				Message:  task.Error.Error(),
 			})
+		}
+		if reporter, ok := task.Result.(domain.AnalysisFailureReporter); ok {
+			response.Failures = append(response.Failures, reporter.AnalysisFailures()...)
 		}
 
 		switch result := task.Result.(type) {

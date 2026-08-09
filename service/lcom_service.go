@@ -58,6 +58,7 @@ func (s *LCOMServiceImpl) Analyze(ctx context.Context, req domain.LCOMRequest) (
 			Summary:     s.generateSummary([]domain.ClassCohesion{}, filesProcessed, req),
 			Warnings:    warnings,
 			Errors:      errors,
+			Failures:    analyzerFailures(domain.AnalysisKindLCOM, errors),
 			GeneratedAt: time.Now().Format(time.RFC3339),
 			Version:     version.Version,
 			Config:      s.buildConfigForResponse(req),
@@ -73,6 +74,7 @@ func (s *LCOMServiceImpl) Analyze(ctx context.Context, req domain.LCOMRequest) (
 		Summary:     summary,
 		Warnings:    warnings,
 		Errors:      errors,
+		Failures:    analyzerFailures(domain.AnalysisKindLCOM, errors),
 		GeneratedAt: time.Now().Format(time.RFC3339),
 		Version:     version.Version,
 		Config:      s.buildConfigForResponse(req),
@@ -90,7 +92,7 @@ func (s *LCOMServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Project
 	var errors []string
 	filesProcessed := 0
 
-	for _, file := range snapshot.Files {
+	for _, file := range snapshot.files {
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("LCOM analysis cancelled: %w", ctx.Err())
@@ -119,6 +121,7 @@ func (s *LCOMServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Project
 			Summary:     s.generateSummary([]domain.ClassCohesion{}, filesProcessed, req),
 			Warnings:    warnings,
 			Errors:      errors,
+			Failures:    analyzerFailures(domain.AnalysisKindLCOM, errors),
 			GeneratedAt: time.Now().Format(time.RFC3339),
 			Version:     version.Version,
 			Config:      s.buildConfigForResponse(req),
@@ -134,6 +137,7 @@ func (s *LCOMServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Project
 		Summary:     summary,
 		Warnings:    warnings,
 		Errors:      errors,
+		Failures:    analyzerFailures(domain.AnalysisKindLCOM, errors),
 		GeneratedAt: time.Now().Format(time.RFC3339),
 		Version:     version.Version,
 		Config:      s.buildConfigForResponse(req),

@@ -4,7 +4,9 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
+	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/service"
@@ -125,6 +127,27 @@ func TestAnalyzeUseCase_Execute_ReportsProjectCoverageWithoutComplexity(t *testi
 	diagnostic := response.Diagnostics[0]
 	if diagnostic.Code != domain.DiagnosticCodeParse || filepath.Base(diagnostic.FilePath) != "broken.py" {
 		t.Fatalf("expected typed parse diagnostic for broken.py, got %+v", diagnostic)
+	}
+}
+
+func TestAnalyzeUseCaseBuildResponsePreservesEveryTypedFailure(t *testing.T) {
+	failures := []domain.AnalysisFailure{
+		{Analysis: domain.AnalysisKindDeadCode, Code: domain.AnalysisFailureCodeExecution, FilePath: "a.py", Message: "first"},
+		{Analysis: domain.AnalysisKindDeadCode, Code: domain.AnalysisFailureCodeExecution, FilePath: "b.py", Message: "second"},
+	}
+	tasks := []*AnalysisTask{{
+		Name:    taskNameDeadCode,
+		Kind:    domain.AnalysisKindDeadCode,
+		Enabled: true,
+		Result:  &domain.DeadCodeResponse{Failures: failures},
+	}}
+
+	response, err := (&AnalyzeUseCase{}).buildResponse(tasks, time.Now(), analysisPathIndex{reportedByIdentity: map[string]string{}}, domain.AnalysisCoverage{})
+	if err != nil {
+		t.Fatalf("build response: %v", err)
+	}
+	if !reflect.DeepEqual(response.Failures, failures) {
+		t.Fatalf("expected lossless typed failures, got %+v", response.Failures)
 	}
 }
 

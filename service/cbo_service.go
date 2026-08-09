@@ -63,6 +63,7 @@ func (s *CBOServiceImpl) Analyze(ctx context.Context, req domain.CBORequest) (*d
 			Summary:     s.generateSummary([]domain.ClassCoupling{}, filesProcessed, req),
 			Warnings:    warnings,
 			Errors:      errors,
+			Failures:    analyzerFailures(domain.AnalysisKindCBO, errors),
 			GeneratedAt: time.Now().Format(time.RFC3339),
 			Version:     version.Version,
 			Config:      s.buildConfigForResponse(req),
@@ -81,6 +82,7 @@ func (s *CBOServiceImpl) Analyze(ctx context.Context, req domain.CBORequest) (*d
 		Summary:     summary,
 		Warnings:    warnings,
 		Errors:      errors,
+		Failures:    analyzerFailures(domain.AnalysisKindCBO, errors),
 		GeneratedAt: time.Now().Format(time.RFC3339),
 		Version:     version.Version,
 		Config:      s.buildConfigForResponse(req),
@@ -98,7 +100,7 @@ func (s *CBOServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectS
 	var errors []string
 	filesProcessed := 0
 
-	for _, file := range snapshot.Files {
+	for _, file := range snapshot.files {
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("CBO analysis cancelled: %w", ctx.Err())
@@ -127,6 +129,7 @@ func (s *CBOServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectS
 			Summary:     s.generateSummary([]domain.ClassCoupling{}, filesProcessed, req),
 			Warnings:    warnings,
 			Errors:      errors,
+			Failures:    analyzerFailures(domain.AnalysisKindCBO, errors),
 			GeneratedAt: time.Now().Format(time.RFC3339),
 			Version:     version.Version,
 			Config:      s.buildConfigForResponse(req),
@@ -142,6 +145,7 @@ func (s *CBOServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectS
 		Summary:     summary,
 		Warnings:    warnings,
 		Errors:      errors,
+		Failures:    analyzerFailures(domain.AnalysisKindCBO, errors),
 		GeneratedAt: time.Now().Format(time.RFC3339),
 		Version:     version.Version,
 		Config:      s.buildConfigForResponse(req),

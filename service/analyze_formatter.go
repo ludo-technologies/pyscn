@@ -77,6 +77,17 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 		}
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
+	if len(response.Failures) > 0 {
+		fmt.Fprint(writer, utils.FormatSectionHeader("ANALYSIS FAILURES"))
+		for _, failure := range response.Failures {
+			fmt.Fprintf(writer, "  %s [%s]", failure.Analysis, failure.Code)
+			if failure.FilePath != "" {
+				fmt.Fprintf(writer, " %s", failure.FilePath)
+			}
+			fmt.Fprintf(writer, ": %s\n", failure.Message)
+		}
+		fmt.Fprint(writer, utils.FormatSectionSeparator())
+	}
 
 	// Analysis modules results
 	if response.Summary.ComplexityEnabled {
@@ -159,7 +170,7 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	if response.Complexity != nil {
 		directories = response.Complexity.ByDirectory
 	}
-	rowCapacity := 17 + len(response.Diagnostics) + (12 * len(response.ModuleQuality))
+	rowCapacity := 17 + len(response.Diagnostics) + len(response.Failures) + (12 * len(response.ModuleQuality))
 	if response.Complexity != nil {
 		rowCapacity += 1 + (7 * len(directories))
 	}
@@ -188,6 +199,9 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	)
 	for _, diagnostic := range response.Diagnostics {
 		rows = append(rows, []string{"Diagnostic", fmt.Sprintf("%s [%s]: %s", diagnostic.FilePath, diagnostic.Code, diagnostic.Message)})
+	}
+	for _, failure := range response.Failures {
+		rows = append(rows, []string{"Analysis Failure", fmt.Sprintf("%s %s [%s]: %s", failure.Analysis, failure.FilePath, failure.Code, failure.Message)})
 	}
 
 	for index, module := range response.ModuleQuality {
@@ -858,6 +872,20 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </tbody>
                 </table>
                 {{end}}
+
+				{{if .Failures}}
+				<h3 style="margin-top: 24px; margin-bottom: 16px; color: var(--color-text);">Analysis Failures</h3>
+				<table class="table">
+					<thead>
+						<tr><th>Analysis</th><th>File</th><th>Code</th><th>Message</th></tr>
+					</thead>
+					<tbody>
+						{{range .Failures}}
+						<tr><td>{{.Analysis}}</td><td>{{.FilePath}}</td><td>{{.Code}}</td><td>{{.Message}}</td></tr>
+						{{end}}
+					</tbody>
+				</table>
+				{{end}}
 
                 {{/* System-level quick glance */}}
                 {{if .System}}

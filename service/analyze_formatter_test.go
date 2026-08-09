@@ -110,6 +110,12 @@ func TestAnalyzeFormatterWritesCoverageDiagnosticsAcrossFormats(t *testing.T) {
 		Code:     domain.DiagnosticCodeParse,
 		Message:  "syntax error",
 	}}
+	response.Failures = []domain.AnalysisFailure{{
+		Analysis: domain.AnalysisKindSystem,
+		Code:     domain.AnalysisFailureCodeExecution,
+		Message:  "dependency calculation failed",
+		FilePath: "valid.py",
+	}}
 
 	for _, format := range []domain.OutputFormat{domain.OutputFormatText, domain.OutputFormatCSV, domain.OutputFormatHTML} {
 		t.Run(string(format), func(t *testing.T) {
@@ -118,6 +124,9 @@ func TestAnalyzeFormatterWritesCoverageDiagnosticsAcrossFormats(t *testing.T) {
 			assert.Contains(t, output.String(), "broken.py")
 			assert.Contains(t, output.String(), string(domain.DiagnosticCodeParse))
 			assert.Contains(t, output.String(), "syntax error")
+			assert.Contains(t, output.String(), "valid.py")
+			assert.Contains(t, output.String(), string(domain.AnalysisFailureCodeExecution))
+			assert.Contains(t, output.String(), "dependency calculation failed")
 		})
 	}
 

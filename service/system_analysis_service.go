@@ -59,6 +59,9 @@ func (s *SystemAnalysisServiceImpl) AnalyzeGraph(ctx context.Context, projectGra
 	var graph *analyzer.DependencyGraph
 	if projectGraph != nil {
 		graph = projectGraph.graph
+		req.IncludeStdLib = domain.BoolPtr(projectGraph.policy.IncludeStdLib)
+		req.IncludeThirdParty = domain.BoolPtr(projectGraph.policy.IncludeThirdParty)
+		req.FollowRelative = domain.BoolPtr(projectGraph.policy.FollowRelative)
 	}
 	return s.analyzeGraph(ctx, graph, req, time.Now())
 }
@@ -110,6 +113,7 @@ func (s *SystemAnalysisServiceImpl) analyzeGraph(ctx context.Context, graph *ana
 		Version:              version.Version,
 		Warnings:             warnings,
 		Errors:               errors,
+		Failures:             analyzerFailures(domain.AnalysisKindSystem, errors),
 	}
 
 	return response, nil

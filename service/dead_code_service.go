@@ -75,6 +75,7 @@ func (s *DeadCodeServiceImpl) Analyze(ctx context.Context, req domain.DeadCodeRe
 		ModuleRollups: moduleRollups,
 		Warnings:      warnings,
 		Errors:        errors,
+		Failures:      analyzerFailures(domain.AnalysisKindDeadCode, errors),
 		GeneratedAt:   time.Now().Format(time.RFC3339),
 		Version:       version.Version,
 		Config:        s.buildConfigForResponse(req),
@@ -93,7 +94,7 @@ func (s *DeadCodeServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Pro
 	moduleRollups := make(map[string]domain.ModuleDeadCodeMetrics)
 	filesProcessed := 0
 
-	for _, file := range snapshot.Files {
+	for _, file := range snapshot.files {
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("dead code analysis cancelled: %w", ctx.Err())
@@ -129,6 +130,7 @@ func (s *DeadCodeServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Pro
 		ModuleRollups: moduleRollups,
 		Warnings:      warnings,
 		Errors:        errors,
+		Failures:      analyzerFailures(domain.AnalysisKindDeadCode, errors),
 		GeneratedAt:   time.Now().Format(time.RFC3339),
 		Version:       version.Version,
 		Config:        s.buildConfigForResponse(req),
