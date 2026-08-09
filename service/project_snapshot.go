@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -17,8 +18,9 @@ import (
 type ProjectSnapshot struct {
 	// Files is a compatibility projection. Mutating it does not affect the
 	// sealed snapshot state consumed by analyzers.
-	Files []*ProjectFile
-	files []*ProjectFile
+	Files              []*ProjectFile
+	files              []*ProjectFile
+	defaultProjectRoot string
 }
 
 // ProjectSnapshotOptions controls which optional per-file analysis caches are built.
@@ -76,7 +78,8 @@ func BuildProjectSnapshotWithOptions(ctx context.Context, paths []string, option
 		ctx = context.Background()
 	}
 
-	snapshot := &ProjectSnapshot{files: make([]*ProjectFile, len(paths))}
+	defaultProjectRoot, _ := os.Getwd()
+	snapshot := &ProjectSnapshot{files: make([]*ProjectFile, len(paths)), defaultProjectRoot: defaultProjectRoot}
 	if len(paths) == 0 {
 		snapshot.Files = []*ProjectFile{}
 		return snapshot
@@ -214,16 +217,24 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 		parsedModules = append(parsedModules, parsedModule)
 	}
 
-	var analyzerOptions *analyzer.ModuleAnalysisOptions
+	projectRoot := s.defaultProjectRoot
+	graphOptions := domain.ModuleGraphOptions{}
+	includePatterns := []string(nil)
+	excludePatterns := []string(nil)
 	if options != nil {
-		analyzerOptions = &analyzer.ModuleAnalysisOptions{
-			ProjectRoot:       options.ProjectRoot,
-			IncludeStdLib:     domain.BoolPtr(options.Graph.IncludeStdLib),
-			IncludeThirdParty: domain.BoolPtr(options.Graph.IncludeThirdParty),
-			FollowRelative:    domain.BoolPtr(options.Graph.FollowRelative),
-			IncludePatterns:   options.IncludePatterns,
-			ExcludePatterns:   options.ExcludePatterns,
-		}
+		projectRoot = options.ProjectRoot
+		graphOptions = options.Graph
+		includePatterns = options.IncludePatterns
+		excludePatterns = options.ExcludePatterns
+	}
+	analyzerOptions := &analyzer.ModuleAnalysisOptions{
+		ProjectRoot:       projectRoot,
+		ModuleRoots:       capturedModuleRoots(projectRoot, s.files),
+		IncludeStdLib:     domain.BoolPtr(graphOptions.IncludeStdLib),
+		IncludeThirdParty: domain.BoolPtr(graphOptions.IncludeThirdParty),
+		FollowRelative:    domain.BoolPtr(graphOptions.FollowRelative),
+		IncludePatterns:   includePatterns,
+		ExcludePatterns:   excludePatterns,
 	}
 	moduleAnalyzer, err := analyzer.NewModuleAnalyzer(analyzerOptions)
 	if err != nil {
@@ -238,6 +249,37 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 		policy = options.Graph
 	}
 	return &ProjectModuleGraph{graph: graph, policy: policy}, nil
+}
+
+func capturedModuleRoots(projectRoot string, files []*ProjectFile) []string {
+	absoluteRoot, err := filepath.Abs(projectRoot)
+	if err != nil {
+		return []string{projectRoot}
+	}
+	srcRoot := filepath.Join(absoluteRoot, "src")
+	hasSrcModule := false
+	hasSrcPackageInit := false
+	for _, file := range files {
+		if file == nil {
+			continue
+		}
+		absolutePath, err := filepath.Abs(file.Path)
+		if err != nil {
+			continue
+		}
+		relative, err := filepath.Rel(srcRoot, absolutePath)
+		if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+			continue
+		}
+		hasSrcModule = true
+		if relative == "__init__.py" || relative == "__init__.pyi" {
+			hasSrcPackageInit = true
+		}
+	}
+	if hasSrcModule && !hasSrcPackageInit {
+		return []string{srcRoot, absoluteRoot}
+	}
+	return []string{absoluteRoot}
 }
 
 func projectFileProjections(files []*ProjectFile) []*ProjectFile {

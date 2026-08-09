@@ -121,6 +121,36 @@ func TestComplexitySnapshotRequiresRawMetrics(t *testing.T) {
 	}
 }
 
+func TestProjectSnapshotCapturesSrcModuleRoot(t *testing.T) {
+	projectRoot := t.TempDir()
+	packageDir := filepath.Join(projectRoot, "src", "pkg")
+	if err := os.MkdirAll(packageDir, 0o755); err != nil {
+		t.Fatalf("create src package: %v", err)
+	}
+	sourcePath := filepath.Join(packageDir, "source.py")
+	targetPath := filepath.Join(packageDir, "target.py")
+	if err := os.WriteFile(sourcePath, []byte("import pkg.target\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	if err := os.WriteFile(targetPath, []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatalf("write target: %v", err)
+	}
+	snapshot := BuildProjectSnapshot(context.Background(), []string{sourcePath, targetPath})
+	for _, path := range []string{sourcePath, targetPath, packageDir, filepath.Join(projectRoot, "src")} {
+		if err := os.Remove(path); err != nil {
+			t.Fatalf("remove captured path %s: %v", path, err)
+		}
+	}
+
+	graph, err := snapshot.BuildDependencyGraph(context.Background(), &ModuleGraphOptions{ProjectRoot: projectRoot})
+	if err != nil {
+		t.Fatalf("build captured src graph: %v", err)
+	}
+	if graph.graph.Nodes["pkg.source"] == nil || !graph.graph.Nodes["pkg.source"].Dependencies["pkg.target"] {
+		t.Fatalf("expected src-rooted captured modules, got %+v", graph.graph.Nodes)
+	}
+}
+
 func TestSnapshotServicesMatchFileServices(t *testing.T) {
 	ctx := context.Background()
 	sourcePath := writeSnapshotFixture(t)

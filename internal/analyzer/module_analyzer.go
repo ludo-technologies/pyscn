@@ -40,6 +40,7 @@ var pythonPackageInitFiles = [...]string{"__init__.py", "__init__.pyi"}
 type ModuleAnalysisOptions struct {
 	ProjectRoot       string   // Project root directory
 	PythonPath        []string // Additional Python path entries
+	ModuleRoots       []string // Explicit captured module roots; nil discovers from disk
 	ExcludePatterns   []string // Module patterns to exclude; nil uses defaults, empty disables excludes
 	IncludePatterns   []string // Module patterns to include; nil uses defaults, empty includes all files
 	IncludeStdLib     *bool    // Include standard library dependencies
@@ -81,9 +82,15 @@ func NewModuleAnalyzer(options *ModuleAnalysisOptions) (*ModuleAnalyzer, error) 
 		return nil, fmt.Errorf("failed to resolve project root: %w", err)
 	}
 
+	resolvedRoots := options.ModuleRoots
+	if resolvedRoots == nil {
+		resolvedRoots = moduleRoots(absRoot, options.PythonPath)
+	} else {
+		resolvedRoots = normalizeModuleRoots(resolvedRoots)
+	}
 	analyzer := &ModuleAnalyzer{
 		projectRoot:       absRoot,
-		moduleRoots:       moduleRoots(absRoot, options.PythonPath),
+		moduleRoots:       resolvedRoots,
 		resolvedModules:   make(map[string]string),
 		includeStdLib:     domain.BoolValue(options.IncludeStdLib, domain.BoolValue(defaults.IncludeStdLib, false)),
 		includeThirdParty: domain.BoolValue(options.IncludeThirdParty, domain.BoolValue(defaults.IncludeThirdParty, true)),
@@ -105,6 +112,31 @@ func NewModuleAnalyzer(options *ModuleAnalysisOptions) (*ModuleAnalyzer, error) 
 	}
 
 	return analyzer, nil
+}
+
+func normalizeModuleRoots(paths []string) []string {
+	roots := make([]string, 0, len(paths))
+	for _, path := range paths {
+		if path == "" {
+			continue
+		}
+		absolute, err := filepath.Abs(path)
+		if err != nil {
+			continue
+		}
+		duplicate := false
+		for _, existing := range roots {
+			if existing == absolute {
+				duplicate = true
+				break
+			}
+		}
+		if !duplicate {
+			roots = append(roots, absolute)
+		}
+	}
+	sort.SliceStable(roots, func(i, j int) bool { return len(roots[i]) > len(roots[j]) })
+	return roots
 }
 
 func moduleRoots(projectRoot string, pythonPath []string) []string {
