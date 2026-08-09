@@ -259,12 +259,17 @@ func (ma *ModuleAnalyzer) AnalyzeParsedModules(ctx context.Context, parsedModule
 	}
 
 	graph := NewDependencyGraph(ma.projectRoot)
+	parsedPackages := make(map[string]*parser.Node)
 	for _, path := range paths {
 		moduleName := ma.filePathToModuleName(path)
 		if moduleName != "" {
 			graph.AddModule(moduleName, path)
+			if isPythonPackageInit(path) {
+				parsedPackages[moduleName] = modulesByPath[path].ast
+			}
 		}
 	}
+	ma.reExportResolver.UseParsedPackages(parsedPackages)
 	for _, path := range paths {
 		if err := ctx.Err(); err != nil {
 			return nil, fmt.Errorf("module analysis cancelled: %w", err)
