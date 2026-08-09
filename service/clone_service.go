@@ -52,22 +52,44 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 		return nil, fmt.Errorf("file paths cannot be empty")
 	}
 
-	startTime := time.Now()
+	return s.detectClones(ctx, req, func(ctx context.Context, detector *analyzer.CloneDetector) (*fragmentExtraction, error) {
+		return s.extractFragmentsFromFiles(ctx, filePaths, detector)
+	})
+}
 
-	// Apply timeout if specified
+// AnalyzeSnapshot performs clone detection from source captured by a project snapshot.
+func (s *CloneService) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectSnapshot, req *domain.CloneRequest) (*domain.CloneResponse, error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("context cannot be nil")
+	}
+	if snapshot == nil {
+		return nil, fmt.Errorf("project snapshot cannot be nil")
+	}
+	if req == nil {
+		return nil, fmt.Errorf("clone request cannot be nil")
+	}
+	if len(snapshot.Files) == 0 {
+		return nil, fmt.Errorf("project snapshot cannot be empty")
+	}
+
+	return s.detectClones(ctx, req, func(ctx context.Context, detector *analyzer.CloneDetector) (*fragmentExtraction, error) {
+		return s.extractFragmentsFromSnapshot(ctx, snapshot, detector)
+	})
+}
+
+type fragmentExtractor func(context.Context, *analyzer.CloneDetector) (*fragmentExtraction, error)
+
+func (s *CloneService) detectClones(ctx context.Context, req *domain.CloneRequest, extract fragmentExtractor) (*domain.CloneResponse, error) {
+	startTime := time.Now()
 	if req.Timeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, req.Timeout)
 		defer cancel()
 	}
 
-	// Progress reporting removed - file parsing is not the bottleneck
-
-	// Create clone detector with configuration
 	detectorConfig := s.createDetectorConfig(req)
 	detector := analyzer.NewCloneDetector(detectorConfig)
-
-	extraction, err := s.extractFragmentsFromFiles(ctx, filePaths, detector)
+	extraction, err := extract(ctx, detector)
 	if err != nil {
 		return nil, err
 	}
@@ -114,19 +136,61 @@ func (s *CloneService) extractFragmentsFromFiles(ctx context.Context, filePaths 
 			continue
 		}
 
-		extraction.filesAnalyzed++
-		extraction.linesAnalyzed += countSourceLines(content)
-
-		statsVisitor := parser.NewStatisticsVisitor()
-		parseResult.AST.Accept(statsVisitor)
-		extraction.nodesAnalyzed += statsVisitor.TotalNodes
-
-		astNodes := []*parser.Node{parseResult.AST}
-		fragments := detector.ExtractFragmentsWithSource(astNodes, filePath, content)
-		extraction.fragments = append(extraction.fragments, fragments...)
+		extractCloneFragments(filePath, content, parseResult.AST, detector, extraction)
 	}
 
 	return extraction, nil
+}
+
+func (s *CloneService) extractFragmentsFromSnapshot(ctx context.Context, snapshot *ProjectSnapshot, detector *analyzer.CloneDetector) (*fragmentExtraction, error) {
+	extraction := &fragmentExtraction{}
+
+	for _, file := range snapshot.Files {
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("clone analysis cancelled: %w", ctx.Err())
+		default:
+		}
+
+		if file == nil {
+			extraction.errors = append(extraction.errors, "[unknown] Invalid project file")
+			continue
+		}
+		if file.ReadErr != nil {
+			extraction.errors = append(extraction.errors, fmt.Sprintf("[%s] Failed to read file: %v", file.Path, file.ReadErr))
+			continue
+		}
+		if file.ParseErr != nil {
+			extraction.errors = append(extraction.errors, fmt.Sprintf("[%s] Parse error: %v", file.Path, file.ParseErr))
+			continue
+		}
+		if file.AST == nil {
+			extraction.errors = append(extraction.errors, fmt.Sprintf("[%s] Parse error: parser returned no syntax tree", file.Path))
+			continue
+		}
+
+		extractCloneFragments(file.Path, file.source, file.AST, detector, extraction)
+	}
+
+	return extraction, nil
+}
+
+func extractCloneFragments(
+	filePath string,
+	source []byte,
+	ast *parser.Node,
+	detector *analyzer.CloneDetector,
+	extraction *fragmentExtraction,
+) {
+	extraction.filesAnalyzed++
+	extraction.linesAnalyzed += countSourceLines(source)
+
+	statsVisitor := parser.NewStatisticsVisitor()
+	ast.Accept(statsVisitor)
+	extraction.nodesAnalyzed += statsVisitor.TotalNodes
+
+	fragments := detector.ExtractFragmentsWithSource([]*parser.Node{ast}, filePath, source)
+	extraction.fragments = append(extraction.fragments, fragments...)
 }
 
 func (s *CloneService) buildCloneResponse(

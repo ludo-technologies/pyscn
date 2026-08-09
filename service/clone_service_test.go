@@ -51,6 +51,29 @@ func TestNewCloneService(t *testing.T) {
 	assert.NotNil(t, service)
 }
 
+func TestCloneService_AnalyzeSnapshotUsesCapturedSource(t *testing.T) {
+	sourcePath := writeSnapshotFixture(t)
+	snapshot := BuildProjectSnapshot(context.Background(), []string{sourcePath})
+	if err := os.Remove(sourcePath); err != nil {
+		t.Fatalf("remove source after snapshot: %v", err)
+	}
+
+	response, err := NewCloneService().AnalyzeSnapshot(
+		context.Background(),
+		snapshot,
+		newDefaultCloneRequest(sourcePath),
+	)
+	if err != nil {
+		t.Fatalf("analyze captured project snapshot: %v", err)
+	}
+	if response.Statistics.FilesAnalyzed != 1 {
+		t.Fatalf("expected snapshot source to remain analyzable, got %+v", response.Statistics)
+	}
+	if len(response.Errors) != 0 {
+		t.Fatalf("expected no file-system errors after capture, got %v", response.Errors)
+	}
+}
+
 func TestCloneService_DetectClones(t *testing.T) {
 	service := NewCloneService()
 	ctx := context.Background()

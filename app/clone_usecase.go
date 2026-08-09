@@ -152,6 +152,36 @@ func (uc *CloneUseCase) ExecuteAndReturn(ctx context.Context, req domain.CloneRe
 	return response, nil
 }
 
+type snapshotCloneService interface {
+	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, *domain.CloneRequest) (*domain.CloneResponse, error)
+}
+
+func (uc *CloneUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.CloneRequest) (*domain.CloneResponse, error) {
+	if snapshot == nil {
+		return nil, fmt.Errorf("project snapshot is required")
+	}
+
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return nil, err
+	}
+	finalReq.Paths = snapshot.Paths()
+	if err := finalReq.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid request: %w", err)
+	}
+
+	snapshotService, ok := uc.service.(snapshotCloneService)
+	if !ok {
+		return nil, fmt.Errorf("clone service does not support project snapshots")
+	}
+
+	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, &finalReq)
+	if err != nil {
+		return nil, fmt.Errorf("clone detection failed: %w", err)
+	}
+	return response, nil
+}
+
 // ExecuteWithFiles executes clone detection on specific files
 func (uc *CloneUseCase) ExecuteWithFiles(ctx context.Context, filePaths []string, req domain.CloneRequest) error {
 	startTime := time.Now()

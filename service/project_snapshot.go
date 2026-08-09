@@ -30,6 +30,7 @@ type ProjectFile struct {
 	RawMetrics *analyzer.RawMetricsResult
 	ReadErr    error
 	ParseErr   error
+	source     []byte
 
 	cfgOnce sync.Once
 	cfgs    map[string]*analyzer.CFG
@@ -205,6 +206,7 @@ func buildProjectFile(ctx context.Context, pyParser *parser.Parser, path string,
 	if options.IncludeRawMetrics {
 		file.RawMetrics = analyzer.CalculateRawMetrics(content, path)
 	}
+	file.source = content
 
 	result, err := pyParser.Parse(ctx, content)
 	if err != nil {

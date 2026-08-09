@@ -425,7 +425,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 			Enabled: !config.SkipClones,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := uc.buildCloneTaskRequest(config, files, executionCfg)
-				return uc.cloneUseCase.ExecuteAndReturn(ctx, request)
+				return uc.cloneUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
 			},
 		})
 	}
