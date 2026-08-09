@@ -119,7 +119,7 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 		responseData = map[string]interface{}{
 			"health_score": result.Summary.HealthScore,
 			"grade":        result.Summary.Grade,
-			"is_healthy":   result.Summary.IsHealthy(),
+			"is_healthy":   result.Summary.IsHealthy() && len(result.Failures) == 0,
 			"partial":      result.Summary.SkippedFiles > 0 || len(result.Failures) > 0,
 			"diagnostics":  result.Diagnostics,
 			"failures":     result.Failures,
@@ -158,7 +158,9 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal result: %v", err)), nil
 	}
 
-	return mcp.NewToolResultText(string(jsonData)), nil
+	toolResult := mcp.NewToolResultText(string(jsonData))
+	toolResult.IsError = len(result.Failures) > 0
+	return toolResult, nil
 }
 
 // HandleCheckComplexity handles the check_complexity tool

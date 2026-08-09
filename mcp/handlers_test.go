@@ -232,13 +232,14 @@ func TestHandleAnalyzeCode(t *testing.T) {
 				},
 			},
 			want: want{
-				isError: &errFalse,
+				isError: &errTrue,
 				check: func(t *testing.T, res *mcplib.CallToolResult) {
 					text := mcplib.GetTextFromContent(res.Content[0])
 					var result struct {
-						Partial  bool                     `json:"partial"`
-						Failures []domain.AnalysisFailure `json:"failures"`
-						Summary  struct {
+						Partial   bool                     `json:"partial"`
+						IsHealthy bool                     `json:"is_healthy"`
+						Failures  []domain.AnalysisFailure `json:"failures"`
+						Summary   struct {
 							TotalFiles    int `json:"total_files"`
 							AnalyzedFiles int `json:"analyzed_files"`
 							SkippedFiles  int `json:"skipped_files"`
@@ -246,6 +247,7 @@ func TestHandleAnalyzeCode(t *testing.T) {
 					}
 					require.NoError(t, json.Unmarshal([]byte(text), &result))
 					assert.True(t, result.Partial)
+					assert.False(t, result.IsHealthy)
 					assert.Equal(t, 1, result.Summary.TotalFiles)
 					assert.Zero(t, result.Summary.AnalyzedFiles)
 					assert.Equal(t, 1, result.Summary.SkippedFiles)
