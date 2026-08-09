@@ -152,20 +152,7 @@ func (s *CloneService) extractFragmentsFromSnapshot(ctx context.Context, snapsho
 		default:
 		}
 
-		if file == nil {
-			extraction.errors = append(extraction.errors, "[unknown] Invalid project file")
-			continue
-		}
-		if file.ReadErr != nil {
-			extraction.errors = append(extraction.errors, fmt.Sprintf("[%s] Failed to read file: %v", file.Path, file.ReadErr))
-			continue
-		}
-		if file.ParseErr != nil {
-			extraction.errors = append(extraction.errors, fmt.Sprintf("[%s] Parse error: %v", file.Path, file.ParseErr))
-			continue
-		}
-		if file.AST == nil {
-			extraction.errors = append(extraction.errors, fmt.Sprintf("[%s] Parse error: parser returned no syntax tree", file.Path))
+		if !file.Parsed() {
 			continue
 		}
 

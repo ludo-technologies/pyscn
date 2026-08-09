@@ -96,6 +96,9 @@ func (s *LCOMServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Project
 			return nil, fmt.Errorf("LCOM analysis cancelled: %w", ctx.Err())
 		default:
 		}
+		if !file.Parsed() {
+			continue
+		}
 
 		classes, fileWarnings, fileErrors := s.analyzeProjectFile(file, req)
 

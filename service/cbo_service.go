@@ -104,6 +104,9 @@ func (s *CBOServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectS
 			return nil, fmt.Errorf("CBO analysis cancelled: %w", ctx.Err())
 		default:
 		}
+		if !file.Parsed() {
+			continue
+		}
 
 		classes, fileWarnings, fileErrors := s.analyzeProjectFile(file, req)
 

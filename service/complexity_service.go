@@ -112,6 +112,9 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 			return nil, fmt.Errorf("complexity analysis cancelled: %w", ctx.Err())
 		default:
 		}
+		if !file.Parsed() {
+			continue
+		}
 
 		functions, rawMetrics, fileWarnings, fileErrors := s.analyzeProjectFile(file, req)
 

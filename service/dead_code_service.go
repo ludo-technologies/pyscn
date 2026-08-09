@@ -99,6 +99,9 @@ func (s *DeadCodeServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Pro
 			return nil, fmt.Errorf("dead code analysis cancelled: %w", ctx.Err())
 		default:
 		}
+		if !file.Parsed() {
+			continue
+		}
 
 		fileResult, moduleRollup, fileWarnings, fileErrors := s.analyzeProjectFile(file, req)
 
