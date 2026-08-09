@@ -28,7 +28,7 @@ func (c *CheckCommand) runCoreAnalysis(
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return useCase.Execute(ctx, app.AnalyzeUseCaseConfig{
+	return useCase.ExecuteWithOverrides(ctx, app.AnalyzeUseCaseConfig{
 		ConfigFile:              c.configFile,
 		SkipComplexity:          skipComplexity,
 		SkipDeadCode:            skipDeadCode,
@@ -40,7 +40,13 @@ func (c *CheckCommand) runCoreAnalysis(
 		SkipCommunitiesExplicit: true,
 		SelectAnalysesUsed:      true,
 		MinSeverity:             domain.DeadCodeSeverityCritical,
-	}, paths)
+	}, paths, app.AnalyzeRequestOverrides{
+		ComplexityEnabled:         domain.BoolPtr(!skipComplexity),
+		DeadCodeEnabled:           domain.BoolPtr(!skipDeadCode),
+		SystemEnabled:             domain.BoolPtr(!skipDependencies),
+		SystemAnalyzeDependencies: domain.BoolPtr(!skipDependencies),
+		SystemAnalyzeArchitecture: domain.BoolPtr(false),
+	})
 }
 
 func (c *CheckCommand) reportProjectDiagnostics(writer io.Writer, diagnostics []domain.AnalysisDiagnostic) error {

@@ -177,6 +177,46 @@ func TestAnalyzeUseCase_Execute_SystemGraphExcludesUnparsedFiles(t *testing.T) {
 	}
 }
 
+func TestAnalyzeUseCase_ExecuteWithOverridesHonorsExplicitDependencyGate(t *testing.T) {
+	projectDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(projectDir, "a.py"), []byte("import b\n"), 0o644); err != nil {
+		t.Fatalf("write a.py: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, "b.py"), []byte("import a\n"), 0o644); err != nil {
+		t.Fatalf("write b.py: %v", err)
+	}
+	configPath := filepath.Join(projectDir, ".pyscn.toml")
+	if err := os.WriteFile(configPath, []byte("[system_analysis]\nenabled = false\n\n[dependencies]\nenabled = false\n"), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	useCase := newModuleQualityAnalyzeUseCase(t)
+	response, err := useCase.ExecuteWithOverrides(context.Background(), AnalyzeUseCaseConfig{
+		ConfigFile:              configPath,
+		SkipComplexity:          true,
+		SkipDeadCode:            true,
+		SkipClones:              true,
+		SkipCBO:                 true,
+		SkipLCOM:                true,
+		SkipCommunities:         true,
+		SkipCommunitiesExplicit: true,
+		SelectAnalysesUsed:      true,
+	}, []string{projectDir}, AnalyzeRequestOverrides{
+		SystemEnabled:             domain.BoolPtr(true),
+		SystemAnalyzeDependencies: domain.BoolPtr(true),
+		SystemAnalyzeArchitecture: domain.BoolPtr(false),
+	})
+	if err != nil {
+		t.Fatalf("execute dependency gate: %v", err)
+	}
+	if response.System == nil || response.System.DependencyAnalysis == nil || response.System.DependencyAnalysis.CircularDependencies == nil || !response.System.DependencyAnalysis.CircularDependencies.HasCircularDependencies {
+		t.Fatalf("expected circular dependency result, got %+v", response.System)
+	}
+	if response.System.ArchitectureAnalysis != nil || response.Summary.ArchEnabled {
+		t.Fatalf("dependency-only execution must not run architecture analysis: %+v", response.Summary)
+	}
+}
+
 func newModuleQualityAnalyzeUseCase(t *testing.T) *AnalyzeUseCase {
 	t.Helper()
 

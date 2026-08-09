@@ -152,6 +152,35 @@ func TestCheckSelectDIFailsOnUnparseableFile(t *testing.T) {
 	}
 }
 
+func TestCheckSelectDependenciesOverridesDisabledConfig(t *testing.T) {
+	fixtureRoot, err := filepath.Abs(filepath.Join("..", "..", "testdata", "python", "circular_deps_test"))
+	if err != nil {
+		t.Fatalf("resolve circular dependency fixture: %v", err)
+	}
+	configPath := filepath.Join(t.TempDir(), ".pyscn.toml")
+	config := "[system_analysis]\nenabled = false\n\n[dependencies]\nenabled = false\n"
+	if err := os.WriteFile(configPath, []byte(config), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	var stderr bytes.Buffer
+	cobraCmd.SetErr(&stderr)
+	cobraCmd.SetArgs([]string{"--config", configPath, "--select", "deps", fixtureRoot})
+
+	err = cobraCmd.Execute()
+	if err == nil {
+		t.Fatal("expected the explicitly selected dependency gate to report the fixture cycle")
+	}
+	if got := exitCodeFor(err); got != exitCodeQualityIssues {
+		t.Fatalf("expected quality exit code %d, got %d: %s", exitCodeQualityIssues, got, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "circular dependency detected") {
+		t.Fatalf("expected circular dependency diagnostic, got: %s", stderr.String())
+	}
+}
+
 // An unusable invocation is invalid input, which the documented contract puts
 // at exit 2 — not exit 1, which would read as a quality failure.
 func TestCheckInvalidInvocationExitsAsAnalysisError(t *testing.T) {

@@ -53,7 +53,12 @@ type AnalyzeUseCaseConfig struct {
 // AnalyzeRequestOverrides contains request-scoped values that take precedence
 // over the resolved project configuration.
 type AnalyzeRequestOverrides struct {
-	Recursive *bool
+	Recursive                 *bool
+	ComplexityEnabled         *bool
+	DeadCodeEnabled           *bool
+	SystemEnabled             *bool
+	SystemAnalyzeDependencies *bool
+	SystemAnalyzeArchitecture *bool
 }
 
 // AnalyzeUseCase orchestrates comprehensive analysis
@@ -253,6 +258,21 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 	if overrides.Recursive != nil {
 		executionCfg.Recursive = *overrides.Recursive
+	}
+	if overrides.ComplexityEnabled != nil {
+		executionCfg.ComplexityEnabled = *overrides.ComplexityEnabled
+	}
+	if overrides.DeadCodeEnabled != nil {
+		executionCfg.DeadCodeEnabled = *overrides.DeadCodeEnabled
+	}
+	if overrides.SystemEnabled != nil {
+		executionCfg.SystemEnabled = *overrides.SystemEnabled
+	}
+	if overrides.SystemAnalyzeDependencies != nil {
+		executionCfg.SystemAnalyzeDependencies = *overrides.SystemAnalyzeDependencies
+	}
+	if overrides.SystemAnalyzeArchitecture != nil {
+		executionCfg.SystemAnalyzeArchitecture = *overrides.SystemAnalyzeArchitecture
 	}
 	useCaseCfg.ConfigFile = executionCfg.ConfigPath
 
