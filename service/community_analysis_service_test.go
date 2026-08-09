@@ -69,6 +69,28 @@ func TestCommunityAnalysisService_AnalyzeGraphDoesNotReadSourceFiles(t *testing.
 	assert.Len(t, result.ModuleDependencies, 1)
 }
 
+func TestCommunityAnalysisService_AnalyzeGraphReportsCapturedPolicy(t *testing.T) {
+	graph := analyzer.NewDependencyGraph(t.TempDir())
+	graph.AddModule("source", filepath.Join(graph.ProjectRoot, "source.py"))
+	projectGraph := &ProjectModuleGraph{graph: graph, policy: domain.ModuleGraphOptions{
+		IncludeStdLib:     true,
+		IncludeThirdParty: false,
+		FollowRelative:    false,
+	}}
+
+	result, err := NewCommunityAnalysisService().AnalyzeGraph(context.Background(), projectGraph, domain.CommunityAnalysisRequest{
+		IncludeStdLib:     domain.BoolPtr(false),
+		IncludeThirdParty: domain.BoolPtr(true),
+		FollowRelative:    domain.BoolPtr(true),
+	})
+	require.NoError(t, err)
+	config, ok := result.Config.(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, true, config["includeStdLib"])
+	assert.Equal(t, false, config["includeThirdParty"])
+	assert.Equal(t, false, config["followRelative"])
+}
+
 func TestCommunityAnalysisService_Analyze_IsolatedModulesNoEdges(t *testing.T) {
 	fixtureRoot, err := filepath.Abs(filepath.Join("..", "testdata", "python", "community_isolated"))
 	require.NoError(t, err)
