@@ -15,11 +15,11 @@ func TestProjectSnapshotCachesParsedFileState(t *testing.T) {
 	sourcePath := writeSnapshotFixture(t)
 
 	snapshot := BuildProjectSnapshot(ctx, []string{sourcePath})
-	if len(snapshot.Files) != 1 {
-		t.Fatalf("expected 1 snapshot file, got %d", len(snapshot.Files))
+	if len(snapshot.files) != 1 {
+		t.Fatalf("expected 1 snapshot file, got %d", len(snapshot.files))
 	}
 
-	file := snapshot.Files[0]
+	file := snapshot.files[0]
 	if !file.Parsed() {
 		t.Fatalf("expected parsed file, read err: %v, parse err: %v", file.ReadErr, file.ParseErr)
 	}
@@ -48,11 +48,11 @@ func TestProjectSnapshotOptionsSkipRawMetrics(t *testing.T) {
 	sourcePath := writeSnapshotFixture(t)
 
 	snapshot := BuildProjectSnapshotWithOptions(ctx, []string{sourcePath}, ProjectSnapshotOptions{})
-	if len(snapshot.Files) != 1 {
-		t.Fatalf("expected 1 snapshot file, got %d", len(snapshot.Files))
+	if len(snapshot.files) != 1 {
+		t.Fatalf("expected 1 snapshot file, got %d", len(snapshot.files))
 	}
 
-	file := snapshot.Files[0]
+	file := snapshot.files[0]
 	if !file.Parsed() {
 		t.Fatalf("expected parsed file, read err: %v, parse err: %v", file.ReadErr, file.ParseErr)
 	}

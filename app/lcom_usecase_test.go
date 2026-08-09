@@ -195,12 +195,7 @@ func createMockLCOMResponse() *domain.LCOMResponse {
 }
 
 func createLCOMSnapshot() *svc.ProjectSnapshot {
-	return &svc.ProjectSnapshot{
-		Files: []*svc.ProjectFile{
-			{Path: "/snapshot/one.py"},
-			{Path: "/snapshot/two.py"},
-		},
-	}
+	return svc.BuildProjectSnapshot(context.Background(), []string{"/snapshot/one.py", "/snapshot/two.py"})
 }
 
 func assertDomainError(t *testing.T, err error, code string, contains string) {

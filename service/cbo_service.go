@@ -98,7 +98,7 @@ func (s *CBOServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectS
 	var errors []string
 	filesProcessed := 0
 
-	for _, file := range snapshot.Files {
+	for _, file := range snapshot.files {
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("CBO analysis cancelled: %w", ctx.Err())

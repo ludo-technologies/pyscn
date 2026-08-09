@@ -68,7 +68,7 @@ func (s *CloneService) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectSna
 	if req == nil {
 		return nil, fmt.Errorf("clone request cannot be nil")
 	}
-	if len(snapshot.Files) == 0 {
+	if len(snapshot.files) == 0 {
 		return nil, fmt.Errorf("project snapshot cannot be empty")
 	}
 
@@ -145,7 +145,7 @@ func (s *CloneService) extractFragmentsFromFiles(ctx context.Context, filePaths 
 func (s *CloneService) extractFragmentsFromSnapshot(ctx context.Context, snapshot *ProjectSnapshot, detector *analyzer.CloneDetector) (*fragmentExtraction, error) {
 	extraction := &fragmentExtraction{}
 
-	for _, file := range snapshot.Files {
+	for _, file := range snapshot.files {
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("clone analysis cancelled: %w", ctx.Err())
