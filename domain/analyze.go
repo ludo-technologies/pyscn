@@ -41,9 +41,12 @@ type AnalyzeExecutionConfig struct {
 	CloneLSHEnabled       string
 	CloneLSHAutoThreshold int
 
-	SystemEnabled             bool
-	SystemAnalyzeDependencies bool
-	SystemAnalyzeArchitecture bool
+	SystemEnabled                bool
+	SystemAnalyzeDependencies    bool
+	SystemAnalyzeArchitecture    bool
+	ModuleGraphIncludeStdLib     bool
+	ModuleGraphIncludeThirdParty bool
+	ModuleGraphFollowRelative    bool
 
 	CommunitiesEnabled         bool
 	CommunitiesEnabledExplicit bool

@@ -89,6 +89,9 @@ enable_architecture = true
 
 [dependencies]
 enabled = true
+include_stdlib = true
+include_third_party = false
+follow_relative = false
 
 [output]
 min_complexity = 9
@@ -151,6 +154,15 @@ lsh_auto_threshold = 123
 		}
 		if !cfg.SystemAnalyzeArchitecture {
 			t.Error("expected architecture enabled through system analysis section")
+		}
+		if !cfg.ModuleGraphIncludeStdLib {
+			t.Error("expected standard library dependencies enabled")
+		}
+		if cfg.ModuleGraphIncludeThirdParty {
+			t.Error("expected third-party dependencies disabled")
+		}
+		if cfg.ModuleGraphFollowRelative {
+			t.Error("expected relative imports disabled")
 		}
 		if cfg.CloneLSHEnabled != "true" {
 			t.Errorf("expected LSH enabled true, got %q", cfg.CloneLSHEnabled)

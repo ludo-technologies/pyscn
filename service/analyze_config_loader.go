@@ -78,14 +78,17 @@ func defaultAnalyzeExecutionConfig() domain.AnalyzeExecutionConfig {
 		FunctionSLOCWarnThreshold:     defaultCfg.Complexity.FunctionSLOCWarnThreshold,
 		FunctionSLOCCriticalThreshold: defaultCfg.Complexity.FunctionSLOCCriticalThreshold,
 
-		DeadCodeEnabled:            defaultCfg.DeadCode.Enabled,
-		CloneLSHEnabled:            defaultCloneReq.LSHEnabled,
-		CloneLSHAutoThreshold:      defaultCloneReq.LSHAutoThreshold,
-		SystemEnabled:              true,
-		SystemAnalyzeDependencies:  true,
-		SystemAnalyzeArchitecture:  true,
-		CommunitiesEnabled:         false,
-		CommunitiesEnabledExplicit: false,
+		DeadCodeEnabled:              defaultCfg.DeadCode.Enabled,
+		CloneLSHEnabled:              defaultCloneReq.LSHEnabled,
+		CloneLSHAutoThreshold:        defaultCloneReq.LSHAutoThreshold,
+		SystemEnabled:                true,
+		SystemAnalyzeDependencies:    true,
+		SystemAnalyzeArchitecture:    true,
+		ModuleGraphIncludeStdLib:     defaultCfg.Dependencies.IncludeStdLib,
+		ModuleGraphIncludeThirdParty: defaultCfg.Dependencies.IncludeThirdParty,
+		ModuleGraphFollowRelative:    defaultCfg.Dependencies.FollowRelative,
+		CommunitiesEnabled:           false,
+		CommunitiesEnabledExplicit:   false,
 	}
 }
 
@@ -115,6 +118,9 @@ func analyzeExecutionConfigFromConfig(cfg *config.Config, overrides analyzeEnabl
 	executionCfg.FunctionSLOCWarnThreshold = cfg.Complexity.FunctionSLOCWarnThreshold
 	executionCfg.FunctionSLOCCriticalThreshold = cfg.Complexity.FunctionSLOCCriticalThreshold
 	executionCfg.DeadCodeEnabled = cfg.DeadCode.Enabled
+	executionCfg.ModuleGraphIncludeStdLib = cfg.Dependencies.IncludeStdLib
+	executionCfg.ModuleGraphIncludeThirdParty = cfg.Dependencies.IncludeThirdParty
+	executionCfg.ModuleGraphFollowRelative = cfg.Dependencies.FollowRelative
 
 	if cfg.Clones != nil {
 		if cfg.Clones.LSH.Enabled != "" {
