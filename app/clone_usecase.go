@@ -173,7 +173,7 @@ func (uc *CloneUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *sv
 
 	finalReq, err := uc.loadAndMergeConfig(req)
 	if err != nil {
-		return nil, err
+		return nil, domain.NewConfigError("failed to load configuration", err)
 	}
 	finalReq.Paths = snapshot.Paths()
 	if err := finalReq.Validate(); err != nil {
