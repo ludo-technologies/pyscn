@@ -38,13 +38,9 @@ func TestCheckComplexityReportsLongFunctions(t *testing.T) {
 	// while McCabe stays at 1 and never trips the complexity gate.
 	path := writeLongFunctionFile(t, 120)
 
-	issueCount, err := checkCmd.checkComplexity(cobraCmd, []string{path})
-	if err != nil {
-		t.Fatalf("checkComplexity failed: %v", err)
-	}
-
-	if issueCount != 1 {
-		t.Errorf("expected 1 issue for the long function, got %d", issueCount)
+	cobraCmd.SetArgs([]string{"--select", "complexity", path})
+	if err := cobraCmd.Execute(); err == nil {
+		t.Fatal("expected the long function to fail the quality gate")
 	}
 
 	output := stderr.String()
@@ -72,13 +68,9 @@ func TestCheckComplexityStaysSilentBelowThreshold(t *testing.T) {
 	// 60 statements: long enough to warn in the report, below the check gate.
 	path := writeLongFunctionFile(t, 60)
 
-	issueCount, err := checkCmd.checkComplexity(cobraCmd, []string{path})
-	if err != nil {
-		t.Fatalf("checkComplexity failed: %v", err)
-	}
-
-	if issueCount != 0 {
-		t.Errorf("expected no issues below the critical threshold, got %d", issueCount)
+	cobraCmd.SetArgs([]string{"--select", "complexity", "--quiet", path})
+	if err := cobraCmd.Execute(); err != nil {
+		t.Fatalf("expected no issues below the critical threshold, got %v", err)
 	}
 	if output := stderr.String(); output != "" {
 		t.Errorf("expected no diagnostics, got: %s", output)

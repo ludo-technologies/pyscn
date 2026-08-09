@@ -281,6 +281,10 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 
 // buildAnalyzeUseCase builds the analyze use case with all dependencies
 func (c *AnalyzeCommand) buildAnalyzeUseCase(cmd *cobra.Command) (*app.AnalyzeUseCase, error) {
+	return buildAnalyzeUseCase(cmd, c.shouldUseProgressBars(cmd))
+}
+
+func buildAnalyzeUseCase(cmd *cobra.Command, showProgress bool) (*app.AnalyzeUseCase, error) {
 	builder := app.NewAnalyzeUseCaseBuilder()
 
 	// Set up file reader
@@ -294,7 +298,7 @@ func (c *AnalyzeCommand) buildAnalyzeUseCase(cmd *cobra.Command) (*app.AnalyzeUs
 
 	// Set up progress manager
 	progressManager := service.NewProgressManager()
-	if c.shouldUseProgressBars(cmd) {
+	if showProgress {
 		progressManager.SetWriter(cmd.ErrOrStderr())
 	} else {
 		progressManager.SetWriter(io.Discard)
@@ -310,7 +314,7 @@ func (c *AnalyzeCommand) buildAnalyzeUseCase(cmd *cobra.Command) (*app.AnalyzeUs
 	builder.WithErrorCategorizer(errorCategorizer)
 
 	// Build individual use cases
-	if err := c.buildIndividualUseCases(builder, cmd); err != nil {
+	if err := buildIndividualUseCases(builder); err != nil {
 		return nil, err
 	}
 
@@ -318,7 +322,7 @@ func (c *AnalyzeCommand) buildAnalyzeUseCase(cmd *cobra.Command) (*app.AnalyzeUs
 }
 
 // buildIndividualUseCases builds and sets individual analysis use cases
-func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuilder, cmd *cobra.Command) error {
+func buildIndividualUseCases(builder *app.AnalyzeUseCaseBuilder) error {
 	// Complexity use case
 	complexityService := service.NewComplexityService()
 	complexityFormatter := service.NewOutputFormatter()

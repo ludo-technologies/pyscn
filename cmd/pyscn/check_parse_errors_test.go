@@ -114,6 +114,44 @@ func TestCheckSelectClonesFailsOnUnparseableFile(t *testing.T) {
 	}
 }
 
+func TestCheckSelectDependenciesFailsOnUnparseableFile(t *testing.T) {
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	var stderr bytes.Buffer
+	cobraCmd.SetErr(&stderr)
+	cobraCmd.SetArgs([]string{"--select", "deps", writeMixedSyntaxPackage(t)})
+
+	err := cobraCmd.Execute()
+	if err == nil {
+		t.Fatal("expected --select deps to fail on a file that cannot be parsed")
+	}
+	if got := exitCodeFor(err); got != exitCodeAnalysisError {
+		t.Errorf("expected exit code %d (analysis error), got %d", exitCodeAnalysisError, got)
+	}
+	if !strings.Contains(stderr.String(), "broken.py") {
+		t.Errorf("expected the unparseable file to be named, got: %q", stderr.String())
+	}
+}
+
+func TestCheckSelectDIFailsOnUnparseableFile(t *testing.T) {
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	var stderr bytes.Buffer
+	cobraCmd.SetErr(&stderr)
+	cobraCmd.SetArgs([]string{"--select", "di", writeMixedSyntaxPackage(t)})
+
+	err := cobraCmd.Execute()
+	if err == nil {
+		t.Fatal("expected --select di to fail on a file that cannot be parsed")
+	}
+	if got := exitCodeFor(err); got != exitCodeAnalysisError {
+		t.Errorf("expected exit code %d (analysis error), got %d", exitCodeAnalysisError, got)
+	}
+	if !strings.Contains(stderr.String(), "broken.py") {
+		t.Errorf("expected the unparseable file to be named, got: %q", stderr.String())
+	}
+}
+
 // An unusable invocation is invalid input, which the documented contract puts
 // at exit 2 — not exit 1, which would read as a quality failure.
 func TestCheckInvalidInvocationExitsAsAnalysisError(t *testing.T) {
