@@ -230,6 +230,54 @@ func (ma *ModuleAnalyzer) AnalyzeFiles(filePaths []string) (*DependencyGraph, er
 	return graph, nil
 }
 
+// AnalyzeParsedModules builds a dependency graph from previously parsed source.
+func (ma *ModuleAnalyzer) AnalyzeParsedModules(ctx context.Context, parsedModules []ParsedModule) (*DependencyGraph, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	modulesByPath := make(map[string]ParsedModule, len(parsedModules))
+	paths := make([]string, 0, len(parsedModules))
+	for _, parsedModule := range parsedModules {
+		if parsedModule.path == "" || parsedModule.ast == nil {
+			return nil, fmt.Errorf("invalid parsed module")
+		}
+		if !ma.isValidPythonFile(parsedModule.path) {
+			return nil, fmt.Errorf("unsupported Python module path: %s", parsedModule.path)
+		}
+		absolutePath, err := filepath.Abs(parsedModule.path)
+		if err != nil {
+			return nil, fmt.Errorf("resolve parsed module path %s: %w", parsedModule.path, err)
+		}
+		parsedModule.path = absolutePath
+		modulesByPath[absolutePath] = parsedModule
+		paths = append(paths, absolutePath)
+	}
+	paths = ma.canonicalModuleFiles(paths)
+	if len(paths) == 0 {
+		return nil, fmt.Errorf("no parsed Python modules provided")
+	}
+
+	graph := NewDependencyGraph(ma.projectRoot)
+	for _, path := range paths {
+		moduleName := ma.filePathToModuleName(path)
+		if moduleName != "" {
+			graph.AddModule(moduleName, path)
+		}
+	}
+	for _, path := range paths {
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("module analysis cancelled: %w", err)
+		}
+		parsedModule := modulesByPath[path]
+		if err := ma.analyzeParsedModuleDependencies(graph, parsedModule); err != nil {
+			return nil, err
+		}
+	}
+
+	return graph, nil
+}
+
 // analyzeModuleDependencies analyzes imports in a single module and adds dependencies to graph
 func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, filePath string) error {
 	// Read file content
@@ -246,9 +294,17 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 		return fmt.Errorf("failed to parse file %s: %w", filePath, err)
 	}
 
-	moduleName := ma.filePathToModuleName(filePath)
+	parsedModule, err := NewParsedModule(filePath, content, result.AST)
+	if err != nil {
+		return fmt.Errorf("invalid parsed module %s: %w", filePath, err)
+	}
+	return ma.analyzeParsedModuleDependencies(graph, parsedModule)
+}
+
+func (ma *ModuleAnalyzer) analyzeParsedModuleDependencies(graph *DependencyGraph, parsedModule ParsedModule) error {
+	moduleName := ma.filePathToModuleName(parsedModule.path)
 	if moduleName == "" {
-		return fmt.Errorf("could not determine module name for %s", filePath)
+		return fmt.Errorf("could not determine module name for %s", parsedModule.path)
 	}
 
 	// Get module node
@@ -257,12 +313,12 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 		return fmt.Errorf("module not found in graph: %s", moduleName)
 	}
 
-	facts := ma.collectModuleFacts(result.AST)
+	facts := ma.collectModuleFacts(parsedModule.ast)
 	module.FunctionCount = facts.functionCount
 	module.ClassCount = facts.classCount
 	module.AbstractClassCount = facts.abstractClassCount
 	module.PublicNames = facts.publicNames
-	module.LineCount = countSourceLines(content)
+	module.LineCount = countSourceLines(parsedModule.source)
 
 	// Process each import
 	for _, imp := range facts.imports {
@@ -278,14 +334,14 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 		// flagged via ImportInfo.IsLazy and excluded only from load-time
 		// circular-dependency detection. See issue #460.
 
-		targetModule := ma.resolveImport(imp, filePath)
+		targetModule := ma.resolveImport(imp, parsedModule.path)
 		if targetModule == "" {
 			continue
 		}
 
 		edgeType := ma.dependencyEdgeType(imp)
 		for _, resolvedModule := range ma.importDependencyTargets(graph, imp, targetModule) {
-			if ma.shouldSkipPackageInitDependency(filePath, moduleName, resolvedModule) {
+			if ma.shouldSkipPackageInitDependency(parsedModule.path, moduleName, resolvedModule) {
 				continue
 			}
 			if ma.shouldIncludeDependency(resolvedModule) {
