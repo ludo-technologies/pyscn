@@ -72,6 +72,45 @@ func TestModuleAnalyzer_AnalyzeParsedModulesUsesCapturedReExports(t *testing.T) 
 	}
 }
 
+func TestModuleAnalyzer_AbsoluteThirdPartyImportDoesNotBindByLocalSuffix(t *testing.T) {
+	projectRoot := t.TempDir()
+	localModule := filepath.Join(projectRoot, "piccolo_api", "fastapi.py")
+	consumer := filepath.Join(projectRoot, "piccolo_api", "routers", "admin", "api.py")
+	if err := os.MkdirAll(filepath.Dir(consumer), 0o755); err != nil {
+		t.Fatalf("create package directories: %v", err)
+	}
+	sources := map[string]string{
+		localModule: "class LocalFastAPI:\n    pass\n",
+		consumer:    "from fastapi import FastAPI\n",
+	}
+	parsedModules := parseModuleSources(t, sources)
+
+	tests := map[string]func(*ModuleAnalyzer) (*DependencyGraph, error){
+		"captured": func(moduleAnalyzer *ModuleAnalyzer) (*DependencyGraph, error) {
+			return moduleAnalyzer.AnalyzeParsedModules(context.Background(), parsedModules)
+		},
+		"standalone": func(moduleAnalyzer *ModuleAnalyzer) (*DependencyGraph, error) {
+			return moduleAnalyzer.AnalyzeFiles([]string{localModule, consumer})
+		},
+	}
+	for name, analyze := range tests {
+		t.Run(name, func(t *testing.T) {
+			moduleAnalyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{ProjectRoot: projectRoot})
+			if err != nil {
+				t.Fatalf("create module analyzer: %v", err)
+			}
+			graph, err := analyze(moduleAnalyzer)
+			if err != nil {
+				t.Fatalf("analyze modules: %v", err)
+			}
+			consumerName := moduleAnalyzer.filePathToModuleName(consumer)
+			if dependencies := graph.Nodes[consumerName].Dependencies; len(dependencies) != 0 {
+				t.Fatalf("expected third-party import to remain external, got %v", dependencies)
+			}
+		})
+	}
+}
+
 func parseModuleSources(t *testing.T, sources map[string]string) []ParsedModule {
 	t.Helper()
 

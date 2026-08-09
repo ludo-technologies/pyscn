@@ -594,7 +594,7 @@ func (ma *ModuleAnalyzer) resolveImport(graph *DependencyGraph, imp *ImportInfo,
 	if imp.IsRelative {
 		return ma.resolveRelativeImport(imp, fromFile)
 	}
-	if resolved := ma.resolveAbsoluteImportFromGraph(graph, imp, fromFile); resolved != "" {
+	if resolved := ma.resolveAbsoluteImportFromGraph(graph, imp); resolved != "" {
 		return resolved
 	}
 	if capturedOnly {
@@ -610,7 +610,7 @@ func (ma *ModuleAnalyzer) resolveImport(graph *DependencyGraph, imp *ImportInfo,
 	return ma.resolveAbsoluteImportWithProject(imp, fromFile)
 }
 
-func (ma *ModuleAnalyzer) resolveAbsoluteImportFromGraph(graph *DependencyGraph, imp *ImportInfo, fromFile string) string {
+func (ma *ModuleAnalyzer) resolveAbsoluteImportFromGraph(graph *DependencyGraph, imp *ImportInfo) string {
 	if graph == nil {
 		return ""
 	}
@@ -619,24 +619,8 @@ func (ma *ModuleAnalyzer) resolveAbsoluteImportFromGraph(graph *DependencyGraph,
 		return ""
 	}
 
-	fromModule := ma.filePathToModuleName(fromFile)
-	parts := strings.Split(fromModule, ".")
-	if len(parts) > 1 {
-		packageParts := parts[:len(parts)-1]
-		for depth := len(packageParts); depth > 0; depth-- {
-			candidate := strings.Join(append(append([]string(nil), packageParts[:depth]...), moduleName), ".")
-			if graph.GetModule(candidate) != nil && ma.importMatchesResolvedModule(moduleName, candidate) {
-				return candidate
-			}
-		}
-	}
 	if graph.GetModule(moduleName) != nil {
 		return moduleName
-	}
-	for _, candidate := range graph.GetModuleNames() {
-		if ma.importMatchesResolvedModule(moduleName, candidate) {
-			return candidate
-		}
 	}
 	return ""
 }
