@@ -21,20 +21,30 @@ type AnalysisDiagnostic struct {
 type AnalysisKind string
 
 const (
-	AnalysisKindComplexity  AnalysisKind = "complexity"
-	AnalysisKindDeadCode    AnalysisKind = "deadcode"
-	AnalysisKindClones      AnalysisKind = "clones"
-	AnalysisKindCBO         AnalysisKind = "cbo"
-	AnalysisKindLCOM        AnalysisKind = "lcom"
-	AnalysisKindSystem      AnalysisKind = "system"
+	// AnalysisKindComplexity identifies complexity analysis.
+	AnalysisKindComplexity AnalysisKind = "complexity"
+	// AnalysisKindDeadCode identifies dead-code analysis.
+	AnalysisKindDeadCode AnalysisKind = "deadcode"
+	// AnalysisKindClones identifies clone analysis.
+	AnalysisKindClones AnalysisKind = "clones"
+	// AnalysisKindCBO identifies class-coupling analysis.
+	AnalysisKindCBO AnalysisKind = "cbo"
+	// AnalysisKindLCOM identifies class-cohesion analysis.
+	AnalysisKindLCOM AnalysisKind = "lcom"
+	// AnalysisKindSystem identifies dependency and architecture analysis.
+	AnalysisKindSystem AnalysisKind = "system"
+	// AnalysisKindCommunities identifies module-community analysis.
 	AnalysisKindCommunities AnalysisKind = "communities"
-	AnalysisKindMockData    AnalysisKind = "mockdata"
-	AnalysisKindDI          AnalysisKind = "di"
+	// AnalysisKindMockData identifies mock-data analysis.
+	AnalysisKindMockData AnalysisKind = "mockdata"
+	// AnalysisKindDI identifies dependency-injection anti-pattern analysis.
+	AnalysisKindDI AnalysisKind = "di"
 )
 
 // AnalysisFailureCode identifies a failure produced while an analyzer runs.
 type AnalysisFailureCode string
 
+// AnalysisFailureCodeExecution identifies an analyzer execution failure.
 const AnalysisFailureCodeExecution AnalysisFailureCode = "execution_error"
 
 // AnalysisFailure records an analyzer failure independently of project

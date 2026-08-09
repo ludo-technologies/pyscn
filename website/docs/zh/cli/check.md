@@ -18,7 +18,7 @@ pyscn check [flags] [paths...]
 - **速度快** -- 仅运行你选择的分析；跳过报告生成。
 
 !!! note "解析错误的覆盖范围"
-    `complexity`、`deadcode`、`clones`、`mockdata` 和 `di` 分析都会报告无法读取或解析的文件，其中任意一个报告了此类文件，检查即失败。`deps` 除外：依赖图构建过程会跳过无法读取的模块且不做记录，因此单独使用 `pyscn check --select deps` 无法发现语法错误。默认运行会覆盖此情况，因为 `complexity` 始终会运行。
+    所有选定的分析都使用同一份项目发现记录。除非设置 `--allow-parse-errors`，任何无法读取或解析的文件都会使检查失败，包括 `pyscn check --select deps`。
 
 ## 选项
 

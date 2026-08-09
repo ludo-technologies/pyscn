@@ -80,6 +80,8 @@ still be present, but a response with failures is not healthy.
 | `message`   | string           | Human-readable failure detail. |
 | `file_path` | string or absent | Source file associated with the failure, when known. |
 
+The same `failures` array is available on the nested `complexity`, `dead_code`, `clone`, `cbo`, `lcom`, `system`, `community_analysis`, `mock_data`, and DI anti-pattern responses. The field name is `failures` even on legacy response objects whose other fields use Go PascalCase. Mock-data and DI responses also expose a nested `diagnostics` array with the schema above when used outside the canonical aggregate snapshot path.
+
 ## `summary` object { #summary-object }
 
 Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the corresponding analyzer is disabled. All fields are always present.
@@ -240,6 +242,7 @@ Mirrors `domain.ComplexityResponse`. Nested field names are Go PascalCase.
   "raw_metrics_summary": { /* RawMetricsSummary, present when computed */ },
   "Warnings": [ "..." ],
   "Errors": [ "..." ],
+  "failures": [ /* AnalysisFailure array, absent when empty */ ],
   "GeneratedAt": "2026-04-14T10:18:23Z",
   "Version": "0.14.0",
   "Config": null
@@ -314,6 +317,7 @@ Mirrors `domain.DeadCodeResponse`. Uses snake_case field names throughout.
   "summary": { /* DeadCodeSummary */ },
   "warnings": null,
   "errors": null,
+  "failures": [ /* AnalysisFailure array, absent when empty */ ],
   "generated_at": "",
   "version": "",
   "config": null
@@ -407,7 +411,8 @@ Mirrors `domain.CloneResponse`. Uses snake_case field names throughout.
   "statistics": { /* CloneStatistics */ },
   "duration_ms": 123,
   "success": true,
-  "error": ""
+  "error": "",
+  "failures": [ /* AnalysisFailure array, absent when empty */ ]
 }
 ```
 
@@ -487,6 +492,7 @@ Other `CloneResponse` fields:
 | `success`     | boolean | `true` on normal completion.                       |
 | `error`       | string \| absent | Error message if `success=false`.         |
 | `errors`      | array \| absent  | Per-file failures. A file listed here was skipped while the run itself succeeded, so its contents are absent from `statistics`. |
+| `failures`    | array \| absent  | Typed analyzer failures. See [`failures`](#failures-array). |
 
 ## `cbo` object
 
@@ -498,6 +504,7 @@ Mirrors `domain.CBOResponse`. Nested field names are Go PascalCase.
   "Summary": { /* CBOSummary */ },
   "Warnings": null,
   "Errors": null,
+  "failures": [ /* AnalysisFailure array, absent when empty */ ],
   "GeneratedAt": "",
   "Version": "",
   "Config": null
@@ -556,6 +563,7 @@ Mirrors `domain.LCOMResponse`. Nested field names are Go PascalCase.
   "Summary": { /* LCOMSummary */ },
   "Warnings": null,
   "Errors": null,
+  "failures": [ /* AnalysisFailure array, absent when empty */ ],
   "GeneratedAt": "",
   "Version": "",
   "Config": null
@@ -612,6 +620,7 @@ Mirrors `domain.SystemAnalysisResponse`. Nested field names are Go PascalCase.
   "Recommendations":      [ /* SystemRecommendation array */ ],
   "Warnings":             [ ],
   "Errors":               [ ],
+  "failures":             [ /* AnalysisFailure array, absent when empty */ ],
   "GeneratedAt":          "0001-01-01T00:00:00Z",
   "Duration":             0,
   "Version":              "",
@@ -834,6 +843,7 @@ Mirrors `domain.CommunityAnalysisResult`. Emitted as a top-level field in unifie
 | `community_context_map` | object \| absent | Compact, agent-optimized map of which modules to inspect together. See [`community_context_map`](#community-context-map-object). Absent when no communities were detected. |
 | `warnings`          | array \| absent | Non-fatal analysis warnings.                              |
 | `errors`            | array \| absent | Fatal analysis errors.                                    |
+| `failures`          | array \| absent | Typed analyzer failures. See [`failures`](#failures-array). |
 | `generated_at`      | string (RFC 3339) | Community analysis completion time.                 |
 | `version`           | string  | pyscn semantic version.                                           |
 | `config`            | object \| absent | Effective community-detection settings.                    |
