@@ -41,6 +41,14 @@ graph TB
     N --> S[Complexity Metrics]
 ```
 
+## Canonical Project Analysis
+
+The aggregate `analyze` workflow discovers files once and builds one `ProjectSnapshot`. The snapshot owns captured source, parsed syntax, read/parse diagnostics, and project coverage. Snapshot-capable analyzers consume that captured state instead of reopening files.
+
+System and community analysis share one dependency graph projected from successfully parsed snapshot files. Each consumer receives a deep clone, so metrics and topology caches cannot race or leak between analyzers. Files with read or parse failures never become graph modules.
+
+`AnalyzeResponse.Diagnostics` and the `total_files`, `analyzed_files`, and `skipped_files` summary fields are selection-independent. CLI `check` evaluates its policy over the same response, while MCP summary and full modes preserve the same coverage contract. `--allow-parse-errors` changes the check exit policy only; it does not erase diagnostics or make an incomplete analysis complete.
+
 ## Clean Architecture Layers
 
 ### 1. **Domain Layer** (`domain/`)

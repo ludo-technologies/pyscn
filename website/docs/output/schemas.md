@@ -30,6 +30,7 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
   "mock_data":          { /* MockDataResponse, present when enabled */ },
   "module_quality":     [ /* ModuleQualityMetrics array, omitted when empty */ ],
   "suggestions":   [ /* Suggestion array, omitted when empty */ ],
+  "diagnostics":   [ /* AnalysisDiagnostic array, omitted when complete */ ],
   "summary":       { /* AnalyzeSummary, always present */ },
   "generated_at":  "2026-04-14T10:18:23Z",
   "duration_ms":   2347,
@@ -49,10 +50,21 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
 | `mock_data`          | object \| absent | Present when mock data detection ran.                 | stable |
 | `module_quality`     | array \| absent  | Per-module quality rollups. Omitted when no analyzer produced module data. | stable |
 | `suggestions` | array \| absent   | Derived suggestions. Omitted when empty.               | stable    |
+| `diagnostics` | array \| absent   | Project read/parse failures, independent of analyzer selection. | stable |
 | `summary`     | object            | Always present. See [`summary`](#summary-object).      | stable    |
 | `generated_at`| string (RFC 3339) | Analysis completion time.                              | stable    |
 | `duration_ms` | integer           | Total analysis duration in milliseconds.               | stable    |
 | `version`     | string            | pyscn semantic version.                                | stable    |
+
+## `diagnostics` array
+
+Each entry identifies a discovered file excluded from every metric. The array is omitted when all discovered files were analyzed.
+
+| Field       | Type   | Description |
+| ----------- | ------ | ----------- |
+| `file_path` | string | Discovered Python source path. |
+| `code`      | string | Stable category: `read_error` or `parse_error`. |
+| `message`   | string | Human-readable failure detail. |
 
 ## `summary` object { #summary-object }
 
@@ -748,6 +760,7 @@ Health Score,<integer>
 Grade,<A|B|C|D|F|N/A>
 Total Files,<integer>
 Analyzed Files,<integer>
+Skipped Files,<integer>
 Average Complexity,<float with 2 decimals>
 High Complexity Count,<integer>
 Dead Code Count,<integer>
@@ -759,6 +772,7 @@ Total Classes Analyzed,<integer>
 High Coupling (CBO) Classes,<integer>
 Average CBO,<float with 2 decimals>
 Module Quality Count,<integer>
+Diagnostic,<file path [code]: message>
 Module 1 Name,<string>
 Module 1 File Path,<string>
 Module 1 Lines of Code,<integer>
@@ -781,7 +795,7 @@ Directory 1 Average Nesting Depth,<float with 2 decimals>
 Directory 1 Max Nesting Depth,<integer>
 ```
 
-The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all legacy summary, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
+The `Diagnostic` row repeats once per skipped file. The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all summary, diagnostic, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
 
 ## `community_analysis` object { #community-analysis-object }
 
