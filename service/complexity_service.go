@@ -135,10 +135,6 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 		filesProcessed++
 	}
 
-	if len(allFunctions) == 0 && len(allRawMetrics) == 0 {
-		return nil, domain.NewAnalysisError("no functions found to analyze", nil)
-	}
-
 	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
 	filteredFunctions, functionsParsed := s.filterFunctions(allFunctions, req)
 	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)

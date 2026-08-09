@@ -71,6 +71,27 @@ func TestCheckAllowParseErrorsWaivesTheGate(t *testing.T) {
 	}
 }
 
+func TestCheckAllowParseErrorsWaivesAllUnparseableInput(t *testing.T) {
+	dir := t.TempDir()
+	brokenPath := filepath.Join(dir, "broken.py")
+	if err := os.WriteFile(brokenPath, []byte("def broken(:\n    pass\n"), 0o644); err != nil {
+		t.Fatalf("write broken source: %v", err)
+	}
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	var stderr bytes.Buffer
+	cobraCmd.SetErr(&stderr)
+	cobraCmd.SetArgs([]string{"--select", "complexity", "--allow-parse-errors", dir})
+
+	if err := cobraCmd.Execute(); err != nil {
+		t.Fatalf("--allow-parse-errors should waive an entirely unparseable scope, got: %v", err)
+	}
+	if !strings.Contains(stderr.String(), "broken.py") {
+		t.Fatalf("waived parse error must still be reported, got: %q", stderr.String())
+	}
+}
+
 func TestCheckPassesOnFullyParseablePackage(t *testing.T) {
 	dir := t.TempDir()
 	source := "def tidy(n):\n    if n > 0:\n        return n\n    return -n\n"
