@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	"github.com/ludo-technologies/pyscn/service"
 )
 
@@ -298,6 +299,19 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 		IncludeRawMetrics: uc.complexityUseCase != nil && !useCaseCfg.SkipComplexity,
 	})
 
+	var moduleGraph *analyzer.DependencyGraph
+	var moduleGraphErr error
+	if uc.needsModuleGraph(useCaseCfg) {
+		moduleGraph, moduleGraphErr = snapshot.BuildDependencyGraph(ctx, &analyzer.ModuleAnalysisOptions{
+			ProjectRoot:       service.FindProjectRoot(paths),
+			IncludeStdLib:     domain.BoolPtr(executionCfg.ModuleGraphIncludeStdLib),
+			IncludeThirdParty: domain.BoolPtr(executionCfg.ModuleGraphIncludeThirdParty),
+			FollowRelative:    domain.BoolPtr(executionCfg.ModuleGraphFollowRelative),
+			IncludePatterns:   executionCfg.IncludePatterns,
+			ExcludePatterns:   executionCfg.ExcludePatterns,
+		})
+	}
+
 	// Start unified progress tracking; task completions feed back into the
 	// estimate so the bar recalibrates to actual machine/codebase speed
 	var tracker *analysisProgressTracker
@@ -309,7 +323,7 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 
 	// Create analysis tasks
-	tasks := uc.createAnalysisTasks(useCaseCfg, paths, files, snapshot, executionCfg)
+	tasks := uc.createAnalysisTasks(useCaseCfg, paths, files, snapshot, moduleGraph, moduleGraphErr, executionCfg)
 
 	// Execute tasks in parallel
 	var wg sync.WaitGroup
@@ -368,7 +382,22 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 }
 
 // createAnalysisTasks creates the analysis tasks based on configuration
-func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourcePaths []string, files []string, snapshot *service.ProjectSnapshot, executionCfg domain.AnalyzeExecutionConfig) []*AnalysisTask {
+func (uc *AnalyzeUseCase) needsModuleGraph(config AnalyzeUseCaseConfig) bool {
+	return (uc.systemUseCase != nil && !config.SkipSystem) ||
+		(uc.communityUseCase != nil && !config.SkipCommunities)
+}
+
+func cloneModuleGraph(graph *analyzer.DependencyGraph, buildErr error) (*analyzer.DependencyGraph, error) {
+	if buildErr != nil {
+		return nil, fmt.Errorf("build module graph: %w", buildErr)
+	}
+	if graph == nil {
+		return nil, fmt.Errorf("module graph is required")
+	}
+	return graph.Clone(), nil
+}
+
+func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourcePaths []string, files []string, snapshot *service.ProjectSnapshot, moduleGraph *analyzer.DependencyGraph, moduleGraphErr error, executionCfg domain.AnalyzeExecutionConfig) []*AnalysisTask {
 	tasks := []*AnalysisTask{}
 
 	// Complexity analysis task
@@ -488,6 +517,10 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 			Name:    taskNameSystem,
 			Enabled: !config.SkipSystem,
 			Execute: func(ctx context.Context) (interface{}, error) {
+				ownedGraph, err := cloneModuleGraph(moduleGraph, moduleGraphErr)
+				if err != nil {
+					return nil, err
+				}
 				request := domain.SystemAnalysisRequest{
 					Paths:                files,
 					Recursive:            domain.BoolPtr(executionCfg.Recursive),
@@ -504,7 +537,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					DetectCycles:         nil,
 					ValidateArchitecture: nil,
 				}
-				return uc.systemUseCase.AnalyzeAndReturn(ctx, request)
+				return uc.systemUseCase.analyzeGraphRequest(ctx, ownedGraph, request)
 			},
 		})
 	}
@@ -515,6 +548,10 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 			Name:    taskNameCommunities,
 			Enabled: !config.SkipCommunities,
 			Execute: func(ctx context.Context) (interface{}, error) {
+				ownedGraph, err := cloneModuleGraph(moduleGraph, moduleGraphErr)
+				if err != nil {
+					return nil, err
+				}
 				request := domain.CommunityAnalysisRequest{
 					Paths:           files,
 					SourcePaths:     append([]string(nil), sourcePaths...),
@@ -525,7 +562,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					OutputWriter:    io.Discard,
 					ConfigPath:      config.ConfigFile,
 				}
-				return uc.communityUseCase.AnalyzeAndReturn(ctx, request)
+				return uc.communityUseCase.analyzeGraphRequest(ctx, ownedGraph, request)
 			},
 		})
 	}

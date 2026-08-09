@@ -128,6 +128,55 @@ func TestAnalyzeUseCase_Execute_ReportsProjectCoverageWithoutComplexity(t *testi
 	}
 }
 
+func TestAnalyzeUseCase_Execute_SystemGraphExcludesUnparsedFiles(t *testing.T) {
+	projectDir := t.TempDir()
+	validPath := filepath.Join(projectDir, "valid.py")
+	brokenPath := filepath.Join(projectDir, "broken.py")
+	if err := os.WriteFile(validPath, []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatalf("write valid Python source: %v", err)
+	}
+	if err := os.WriteFile(brokenPath, []byte("def broken(:\n"), 0o644); err != nil {
+		t.Fatalf("write broken Python source: %v", err)
+	}
+
+	systemUseCase, err := NewSystemAnalysisUseCaseBuilder().
+		WithService(service.NewSystemAnalysisService()).
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(service.NewSystemAnalysisFormatter()).
+		WithConfigLoader(service.NewSystemAnalysisConfigurationLoader()).
+		Build()
+	if err != nil {
+		t.Fatalf("build system analysis use case: %v", err)
+	}
+	useCase, err := NewAnalyzeUseCaseBuilder().
+		WithFileReader(service.NewFileReader()).
+		WithConfigLoader(service.NewAnalyzeConfigurationLoader()).
+		WithSystemUseCase(systemUseCase).
+		Build()
+	if err != nil {
+		t.Fatalf("build analyze use case: %v", err)
+	}
+
+	response, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipComplexity:  true,
+		SkipDeadCode:    true,
+		SkipClones:      true,
+		SkipCBO:         true,
+		SkipLCOM:        true,
+		SkipSystem:      false,
+		SkipCommunities: true,
+	}, []string{projectDir})
+	if err != nil {
+		t.Fatalf("execute system-only analysis: %v", err)
+	}
+	if response.System == nil {
+		t.Fatal("expected system analysis response")
+	}
+	if response.System.Summary.TotalModules != 1 {
+		t.Fatalf("expected only parsed modules in system graph, got %d", response.System.Summary.TotalModules)
+	}
+}
+
 func newModuleQualityAnalyzeUseCase(t *testing.T) *AnalyzeUseCase {
 	t.Helper()
 

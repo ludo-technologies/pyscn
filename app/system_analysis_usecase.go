@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
@@ -111,6 +112,34 @@ func (uc *SystemAnalysisUseCase) AnalyzeAndReturn(ctx context.Context, req domai
 		return nil, domain.NewAnalysisError("system analysis failed", err)
 	}
 
+	return response, nil
+}
+
+type graphSystemAnalysisService interface {
+	AnalyzeGraph(context.Context, *analyzer.DependencyGraph, domain.SystemAnalysisRequest) (*domain.SystemAnalysisResponse, error)
+}
+
+func (uc *SystemAnalysisUseCase) analyzeGraphRequest(ctx context.Context, graph *analyzer.DependencyGraph, req domain.SystemAnalysisRequest) (*domain.SystemAnalysisResponse, error) {
+	if graph == nil {
+		return nil, domain.NewAnalysisError("system analysis failed", fmt.Errorf("dependency graph is required"))
+	}
+
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return nil, domain.NewConfigError("failed to load configuration", err)
+	}
+	if err := uc.validateRequest(finalReq); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
+
+	graphService, ok := uc.service.(graphSystemAnalysisService)
+	if !ok {
+		return nil, domain.NewAnalysisError("system analysis failed", fmt.Errorf("system service does not support dependency graphs"))
+	}
+	response, err := graphService.AnalyzeGraph(ctx, graph, finalReq)
+	if err != nil {
+		return nil, domain.NewAnalysisError("system analysis failed", err)
+	}
 	return response, nil
 }
 

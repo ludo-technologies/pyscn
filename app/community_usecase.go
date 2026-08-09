@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
@@ -104,6 +105,34 @@ func (uc *CommunityUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Com
 		return nil, domain.NewAnalysisError("community analysis failed", err)
 	}
 
+	return response, nil
+}
+
+type graphCommunityAnalysisService interface {
+	AnalyzeGraph(context.Context, *analyzer.DependencyGraph, domain.CommunityAnalysisRequest) (*domain.CommunityAnalysisResult, error)
+}
+
+func (uc *CommunityUseCase) analyzeGraphRequest(ctx context.Context, graph *analyzer.DependencyGraph, req domain.CommunityAnalysisRequest) (*domain.CommunityAnalysisResult, error) {
+	if graph == nil {
+		return nil, domain.NewAnalysisError("community analysis failed", fmt.Errorf("dependency graph is required"))
+	}
+
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return nil, domain.NewConfigError("failed to load configuration", err)
+	}
+	if err := uc.validateRequest(finalReq); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
+
+	graphService, ok := uc.service.(graphCommunityAnalysisService)
+	if !ok {
+		return nil, domain.NewAnalysisError("community analysis failed", fmt.Errorf("community service does not support dependency graphs"))
+	}
+	response, err := graphService.AnalyzeGraph(ctx, graph, finalReq)
+	if err != nil {
+		return nil, domain.NewAnalysisError("community analysis failed", err)
+	}
 	return response, nil
 }
 
