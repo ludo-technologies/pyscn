@@ -9,6 +9,7 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+// MockDataSnapshotService adds canonical snapshot analysis to the standalone mock-data contract.
 type MockDataSnapshotService interface {
 	domain.MockDataService
 	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.MockDataRequest) (*domain.MockDataResponse, error)
@@ -24,6 +25,7 @@ type MockDataUseCase struct {
 	output       domain.ReportWriter
 }
 
+// NewSnapshotMockDataUseCase constructs a mock-data use case for snapshot analysis.
 func NewSnapshotMockDataUseCase(service MockDataSnapshotService, fileReader domain.FileReader, formatter domain.MockDataFormatter, configLoader domain.MockDataConfigurationLoader) *MockDataUseCase {
 	uc := NewMockDataUseCase(service, fileReader, formatter, configLoader)
 	uc.snapshot = service
@@ -145,6 +147,7 @@ func (uc *MockDataUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Mock
 	return response, nil
 }
 
+// AnalyzeSnapshotAndReturn analyzes mock data from a canonical project snapshot.
 func (uc *MockDataUseCase) AnalyzeSnapshotAndReturn(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.MockDataRequest) (*domain.MockDataResponse, error) {
 	if snapshot == nil || uc.snapshot == nil {
 		return nil, domain.NewAnalysisError("mock data analysis failed", fmt.Errorf("snapshot collaborator is required"))

@@ -42,6 +42,7 @@ func NewSystemAnalysisUseCase(
 	}
 }
 
+// NewGraphSystemAnalysisUseCase constructs a system use case for aggregate graph analysis.
 func NewGraphSystemAnalysisUseCase(service SystemAnalysisService, fileReader domain.FileReader, formatter domain.SystemAnalysisOutputFormatter, configLoader domain.SystemAnalysisConfigurationLoader) *SystemAnalysisUseCase {
 	uc := NewSystemAnalysisUseCase(service, fileReader, formatter, configLoader)
 	uc.graphService = service
@@ -303,6 +304,7 @@ func (b *SystemAnalysisUseCaseBuilder) WithService(service domain.SystemAnalysis
 	return b
 }
 
+// WithGraphService sets the system collaborator used by aggregate graph analysis.
 func (b *SystemAnalysisUseCaseBuilder) WithGraphService(service SystemAnalysisService) *SystemAnalysisUseCaseBuilder {
 	b.service = service
 	b.graphService = service

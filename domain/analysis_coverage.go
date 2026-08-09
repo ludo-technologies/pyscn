@@ -52,6 +52,7 @@ type AnalysisFailureReporter interface {
 	AnalysisFailures() []AnalysisFailure
 }
 
+// AnalysisFailures returns complexity failures for aggregate analysis.
 func (r *ComplexityResponse) AnalysisFailures() []AnalysisFailure {
 	if r == nil {
 		return nil
@@ -59,6 +60,7 @@ func (r *ComplexityResponse) AnalysisFailures() []AnalysisFailure {
 	return r.Failures
 }
 
+// AnalysisFailures returns dead-code failures for aggregate analysis.
 func (r *DeadCodeResponse) AnalysisFailures() []AnalysisFailure {
 	if r == nil {
 		return nil
@@ -66,6 +68,7 @@ func (r *DeadCodeResponse) AnalysisFailures() []AnalysisFailure {
 	return r.Failures
 }
 
+// AnalysisFailures returns clone failures for aggregate analysis.
 func (r *CloneResponse) AnalysisFailures() []AnalysisFailure {
 	if r == nil {
 		return nil
@@ -73,6 +76,7 @@ func (r *CloneResponse) AnalysisFailures() []AnalysisFailure {
 	return r.Failures
 }
 
+// AnalysisFailures returns CBO failures for aggregate analysis.
 func (r *CBOResponse) AnalysisFailures() []AnalysisFailure {
 	if r == nil {
 		return nil
@@ -80,6 +84,7 @@ func (r *CBOResponse) AnalysisFailures() []AnalysisFailure {
 	return r.Failures
 }
 
+// AnalysisFailures returns LCOM failures for aggregate analysis.
 func (r *LCOMResponse) AnalysisFailures() []AnalysisFailure {
 	if r == nil {
 		return nil
@@ -87,6 +92,7 @@ func (r *LCOMResponse) AnalysisFailures() []AnalysisFailure {
 	return r.Failures
 }
 
+// AnalysisFailures returns system-analysis failures for aggregate analysis.
 func (r *SystemAnalysisResponse) AnalysisFailures() []AnalysisFailure {
 	if r == nil {
 		return nil
@@ -94,6 +100,7 @@ func (r *SystemAnalysisResponse) AnalysisFailures() []AnalysisFailure {
 	return r.Failures
 }
 
+// AnalysisFailures returns community-analysis failures for aggregate analysis.
 func (r *CommunityAnalysisResult) AnalysisFailures() []AnalysisFailure {
 	if r == nil {
 		return nil

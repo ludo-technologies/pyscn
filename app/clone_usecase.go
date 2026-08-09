@@ -10,6 +10,7 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+// CloneAnalysisService adds canonical snapshot analysis to the standalone clone contract.
 type CloneAnalysisService interface {
 	domain.CloneService
 	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, *domain.CloneRequest) (*domain.CloneResponse, error)
@@ -42,6 +43,7 @@ func NewCloneUseCase(
 	}
 }
 
+// NewSnapshotCloneUseCase constructs a clone use case for aggregate snapshot analysis.
 func NewSnapshotCloneUseCase(service CloneAnalysisService, fileReader domain.FileReader, formatter domain.CloneOutputFormatter, configLoader domain.CloneConfigurationLoader) *CloneUseCase {
 	uc := NewCloneUseCase(service, fileReader, formatter, configLoader)
 	uc.snapshot = service
@@ -334,6 +336,7 @@ func (b *CloneUseCaseBuilder) WithService(service domain.CloneService) *CloneUse
 	return b
 }
 
+// WithSnapshotService sets the clone collaborator used by aggregate snapshot analysis.
 func (b *CloneUseCaseBuilder) WithSnapshotService(service CloneAnalysisService) *CloneUseCaseBuilder {
 	b.service = service
 	b.snapshot = service

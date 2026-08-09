@@ -9,6 +9,7 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+// LCOMAnalysisService adds canonical snapshot analysis to the standalone LCOM contract.
 type LCOMAnalysisService interface {
 	domain.LCOMService
 	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.LCOMRequest) (*domain.LCOMResponse, error)
@@ -40,6 +41,7 @@ func NewLCOMUseCase(
 	}
 }
 
+// NewSnapshotLCOMUseCase constructs an LCOM use case for aggregate snapshot analysis.
 func NewSnapshotLCOMUseCase(service LCOMAnalysisService, fileReader domain.FileReader, formatter domain.LCOMOutputFormatter, configLoader domain.LCOMConfigurationLoader) *LCOMUseCase {
 	uc := NewLCOMUseCase(service, fileReader, formatter, configLoader)
 	uc.snapshot = service
@@ -224,6 +226,7 @@ func (b *LCOMUseCaseBuilder) WithService(service domain.LCOMService) *LCOMUseCas
 	return b
 }
 
+// WithSnapshotService sets the LCOM collaborator used by aggregate snapshot analysis.
 func (b *LCOMUseCaseBuilder) WithSnapshotService(service LCOMAnalysisService) *LCOMUseCaseBuilder {
 	b.service = service
 	b.snapshot = service

@@ -9,6 +9,7 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+// CBOAnalysisService adds canonical snapshot analysis to the standalone CBO contract.
 type CBOAnalysisService interface {
 	domain.CBOService
 	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.CBORequest) (*domain.CBOResponse, error)
@@ -40,6 +41,7 @@ func NewCBOUseCase(
 	}
 }
 
+// NewSnapshotCBOUseCase constructs a CBO use case for aggregate snapshot analysis.
 func NewSnapshotCBOUseCase(service CBOAnalysisService, fileReader domain.FileReader, formatter domain.CBOOutputFormatter, configLoader domain.CBOConfigurationLoader) *CBOUseCase {
 	uc := NewCBOUseCase(service, fileReader, formatter, configLoader)
 	uc.snapshot = service
@@ -341,6 +343,7 @@ func (b *CBOUseCaseBuilder) WithService(service domain.CBOService) *CBOUseCaseBu
 	return b
 }
 
+// WithSnapshotService sets the CBO collaborator used by aggregate snapshot analysis.
 func (b *CBOUseCaseBuilder) WithSnapshotService(service CBOAnalysisService) *CBOUseCaseBuilder {
 	b.service = service
 	b.snapshot = service

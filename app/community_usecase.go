@@ -42,6 +42,7 @@ func NewCommunityUseCase(
 	}
 }
 
+// NewGraphCommunityUseCase constructs a community use case for aggregate graph analysis.
 func NewGraphCommunityUseCase(service CommunityAnalysisService, fileReader domain.FileReader, formatter domain.CommunityAnalysisOutputFormatter, configLoader domain.CommunityConfigurationLoader) *CommunityUseCase {
 	uc := NewCommunityUseCase(service, fileReader, formatter, configLoader)
 	uc.graphService = service
@@ -210,6 +211,7 @@ func (b *CommunityUseCaseBuilder) WithService(service domain.CommunityAnalysisSe
 	return b
 }
 
+// WithGraphService sets the community collaborator used by aggregate graph analysis.
 func (b *CommunityUseCaseBuilder) WithGraphService(service CommunityAnalysisService) *CommunityUseCaseBuilder {
 	b.service = service
 	b.graphService = service

@@ -11,6 +11,7 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+// DeadCodeAnalysisService adds canonical snapshot analysis to the standalone dead-code contract.
 type DeadCodeAnalysisService interface {
 	domain.DeadCodeService
 	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.DeadCodeRequest) (*domain.DeadCodeResponse, error)
@@ -42,6 +43,7 @@ func NewDeadCodeUseCase(
 	}
 }
 
+// NewSnapshotDeadCodeUseCase constructs a dead-code use case for aggregate snapshot analysis.
 func NewSnapshotDeadCodeUseCase(service DeadCodeAnalysisService, fileReader domain.FileReader, formatter domain.DeadCodeFormatter, configLoader domain.DeadCodeConfigurationLoader) *DeadCodeUseCase {
 	uc := NewDeadCodeUseCase(service, fileReader, formatter, configLoader)
 	uc.snapshot = service
@@ -366,6 +368,7 @@ func (b *DeadCodeUseCaseBuilder) WithService(service domain.DeadCodeService) *De
 	return b
 }
 
+// WithSnapshotService sets the dead-code collaborator used by aggregate snapshot analysis.
 func (b *DeadCodeUseCaseBuilder) WithSnapshotService(service DeadCodeAnalysisService) *DeadCodeUseCaseBuilder {
 	b.service = service
 	b.snapshot = service

@@ -9,6 +9,7 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+// DIAntipatternSnapshotService adds canonical snapshot analysis to the standalone DI contract.
 type DIAntipatternSnapshotService interface {
 	domain.DIAntipatternService
 	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.DIAntipatternRequest) (*domain.DIAntipatternResponse, error)
@@ -24,6 +25,7 @@ type DIAntipatternUseCase struct {
 	output       domain.ReportWriter
 }
 
+// NewSnapshotDIAntipatternUseCase constructs a DI use case for snapshot analysis.
 func NewSnapshotDIAntipatternUseCase(service DIAntipatternSnapshotService, fileReader domain.FileReader, formatter domain.DIAntipatternOutputFormatter, configLoader domain.DIAntipatternConfigurationLoader) *DIAntipatternUseCase {
 	uc := NewDIAntipatternUseCase(service, fileReader, formatter, configLoader)
 	uc.snapshot = service
@@ -125,6 +127,7 @@ func (uc *DIAntipatternUseCase) AnalyzeAndReturn(ctx context.Context, req domain
 	return response, nil
 }
 
+// AnalyzeSnapshotAndReturn analyzes DI anti-patterns from a canonical project snapshot.
 func (uc *DIAntipatternUseCase) AnalyzeSnapshotAndReturn(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.DIAntipatternRequest) (*domain.DIAntipatternResponse, error) {
 	if snapshot == nil || uc.snapshot == nil {
 		return nil, domain.NewAnalysisError("DI anti-pattern analysis failed", fmt.Errorf("snapshot collaborator is required"))

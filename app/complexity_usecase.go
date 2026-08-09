@@ -11,6 +11,7 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+// ComplexityAnalysisService adds canonical snapshot analysis to the standalone complexity contract.
 type ComplexityAnalysisService interface {
 	domain.ComplexityService
 	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.ComplexityRequest) (*domain.ComplexityResponse, error)
@@ -389,6 +390,7 @@ func (b *ComplexityUseCaseBuilder) WithService(service domain.ComplexityService)
 	return b
 }
 
+// WithSnapshotService sets the complexity collaborator used by aggregate snapshot analysis.
 func (b *ComplexityUseCaseBuilder) WithSnapshotService(service ComplexityAnalysisService) *ComplexityUseCaseBuilder {
 	b.service = service
 	b.snapshot = service
