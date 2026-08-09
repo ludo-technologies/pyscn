@@ -120,6 +120,10 @@ func TestAnalyzeFormatterWritesCoverageDiagnosticsAcrossFormats(t *testing.T) {
 			assert.Contains(t, output.String(), "syntax error")
 		})
 	}
+
+	var textOutput bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatText, &textOutput))
+	assert.Contains(t, textOutput.String(), "Skipped: 1")
 }
 
 func TestNewAnalyzeFormatter(t *testing.T) {
