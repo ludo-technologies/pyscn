@@ -28,6 +28,14 @@ func (m *mockLCOMService) Analyze(ctx context.Context, req domain.LCOMRequest) (
 	return args.Get(0).(*domain.LCOMResponse), args.Error(1)
 }
 
+func (m *mockLCOMService) AnalyzeSnapshot(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.LCOMRequest) (*domain.LCOMResponse, error) {
+	args := m.Called(ctx, snapshot, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.LCOMResponse), args.Error(1)
+}
+
 func (m *mockLCOMService) AnalyzeFile(ctx context.Context, filePath string, req domain.LCOMRequest) (*domain.LCOMResponse, error) {
 	args := m.Called(ctx, filePath, req)
 	if args.Get(0) == nil {
@@ -475,21 +483,6 @@ func TestLCOMUseCase_analyzeSnapshotRequest(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, response)
 		assertDomainError(t, err, domain.ErrCodeInvalidInput, "no input paths specified")
-		configLoader.AssertExpectations(t)
-	})
-
-	t.Run("service without snapshot support returns analysis error", func(t *testing.T) {
-		service := &mockLCOMService{}
-		configLoader := &mockLCOMConfigurationLoader{}
-		configLoader.On("LoadDefaultConfig").Return((*domain.LCOMRequest)(nil))
-		useCase := &LCOMUseCase{service: service, configLoader: configLoader}
-
-		response, err := useCase.analyzeSnapshotRequest(context.Background(), createLCOMSnapshot(), createValidLCOMRequest())
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assertDomainError(t, err, domain.ErrCodeAnalysisError, "LCOM service does not support project snapshots")
-		service.AssertExpectations(t)
 		configLoader.AssertExpectations(t)
 	})
 

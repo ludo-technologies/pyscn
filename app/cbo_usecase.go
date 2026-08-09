@@ -9,9 +9,14 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+type CBOAnalysisService interface {
+	domain.CBOService
+	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.CBORequest) (*domain.CBOResponse, error)
+}
+
 // CBOUseCase orchestrates the CBO analysis workflow
 type CBOUseCase struct {
-	service      domain.CBOService
+	service      CBOAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CBOOutputFormatter
 	configLoader domain.CBOConfigurationLoader
@@ -20,7 +25,7 @@ type CBOUseCase struct {
 
 // NewCBOUseCase creates a new CBO use case
 func NewCBOUseCase(
-	service domain.CBOService,
+	service CBOAnalysisService,
 	fileReader domain.FileReader,
 	formatter domain.CBOOutputFormatter,
 	configLoader domain.CBOConfigurationLoader,
@@ -124,10 +129,6 @@ func (uc *CBOUseCase) AnalyzeAndReturn(ctx context.Context, req domain.CBOReques
 	return response, nil
 }
 
-type snapshotCBOService interface {
-	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.CBORequest) (*domain.CBOResponse, error)
-}
-
 func (uc *CBOUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.CBORequest) (*domain.CBOResponse, error) {
 	if snapshot == nil {
 		return nil, domain.NewAnalysisError("CBO analysis failed", fmt.Errorf("project snapshot is required"))
@@ -144,12 +145,7 @@ func (uc *CBOUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.
 		return nil, domain.NewInvalidInputError("invalid request", err)
 	}
 
-	snapshotService, ok := uc.service.(snapshotCBOService)
-	if !ok {
-		return nil, domain.NewAnalysisError("CBO analysis failed", fmt.Errorf("CBO service does not support project snapshots"))
-	}
-
-	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, finalReq)
+	response, err := uc.service.AnalyzeSnapshot(ctx, snapshot, finalReq)
 	if err != nil {
 		return nil, domain.NewAnalysisError("CBO analysis failed", err)
 	}
@@ -316,7 +312,7 @@ func (uc *CBOUseCase) loadAndMergeConfig(req domain.CBORequest) (domain.CBOReque
 
 // CBOUseCaseBuilder provides a builder pattern for creating CBOUseCase
 type CBOUseCaseBuilder struct {
-	service      domain.CBOService
+	service      CBOAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CBOOutputFormatter
 	configLoader domain.CBOConfigurationLoader
@@ -329,7 +325,7 @@ func NewCBOUseCaseBuilder() *CBOUseCaseBuilder {
 }
 
 // WithService sets the CBO service
-func (b *CBOUseCaseBuilder) WithService(service domain.CBOService) *CBOUseCaseBuilder {
+func (b *CBOUseCaseBuilder) WithService(service CBOAnalysisService) *CBOUseCaseBuilder {
 	b.service = service
 	return b
 }

@@ -9,9 +9,14 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+type LCOMAnalysisService interface {
+	domain.LCOMService
+	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.LCOMRequest) (*domain.LCOMResponse, error)
+}
+
 // LCOMUseCase orchestrates the LCOM analysis workflow
 type LCOMUseCase struct {
-	service      domain.LCOMService
+	service      LCOMAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.LCOMOutputFormatter
 	configLoader domain.LCOMConfigurationLoader
@@ -20,7 +25,7 @@ type LCOMUseCase struct {
 
 // NewLCOMUseCase creates a new LCOM use case
 func NewLCOMUseCase(
-	service domain.LCOMService,
+	service LCOMAnalysisService,
 	fileReader domain.FileReader,
 	formatter domain.LCOMOutputFormatter,
 	configLoader domain.LCOMConfigurationLoader,
@@ -108,10 +113,6 @@ func (uc *LCOMUseCase) AnalyzeAndReturn(ctx context.Context, req domain.LCOMRequ
 	return response, nil
 }
 
-type snapshotLCOMService interface {
-	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.LCOMRequest) (*domain.LCOMResponse, error)
-}
-
 func (uc *LCOMUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.LCOMRequest) (*domain.LCOMResponse, error) {
 	if snapshot == nil {
 		return nil, domain.NewAnalysisError("LCOM analysis failed", fmt.Errorf("project snapshot is required"))
@@ -126,12 +127,7 @@ func (uc *LCOMUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc
 	}
 	finalReq.Paths = snapshot.Paths()
 
-	snapshotService, ok := uc.service.(snapshotLCOMService)
-	if !ok {
-		return nil, domain.NewAnalysisError("LCOM analysis failed", fmt.Errorf("LCOM service does not support project snapshots"))
-	}
-
-	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, finalReq)
+	response, err := uc.service.AnalyzeSnapshot(ctx, snapshot, finalReq)
 	if err != nil {
 		return nil, domain.NewAnalysisError("LCOM analysis failed", err)
 	}
@@ -199,7 +195,7 @@ func (uc *LCOMUseCase) loadAndMergeConfig(req domain.LCOMRequest) (domain.LCOMRe
 
 // LCOMUseCaseBuilder provides a builder pattern for creating LCOMUseCase
 type LCOMUseCaseBuilder struct {
-	service      domain.LCOMService
+	service      LCOMAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.LCOMOutputFormatter
 	configLoader domain.LCOMConfigurationLoader
@@ -212,7 +208,7 @@ func NewLCOMUseCaseBuilder() *LCOMUseCaseBuilder {
 }
 
 // WithService sets the LCOM service
-func (b *LCOMUseCaseBuilder) WithService(service domain.LCOMService) *LCOMUseCaseBuilder {
+func (b *LCOMUseCaseBuilder) WithService(service LCOMAnalysisService) *LCOMUseCaseBuilder {
 	b.service = service
 	return b
 }

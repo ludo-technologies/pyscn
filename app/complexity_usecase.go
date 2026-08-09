@@ -11,9 +11,14 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+type ComplexityAnalysisService interface {
+	domain.ComplexityService
+	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.ComplexityRequest) (*domain.ComplexityResponse, error)
+}
+
 // ComplexityUseCase orchestrates the complexity analysis workflow
 type ComplexityUseCase struct {
-	service      domain.ComplexityService
+	service      ComplexityAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.OutputFormatter
 	configLoader domain.ConfigurationLoader
@@ -22,7 +27,7 @@ type ComplexityUseCase struct {
 
 // NewComplexityUseCase creates a new complexity use case
 func NewComplexityUseCase(
-	service domain.ComplexityService,
+	service ComplexityAnalysisService,
 	fileReader domain.FileReader,
 	formatter domain.OutputFormatter,
 	configLoader domain.ConfigurationLoader,
@@ -171,10 +176,6 @@ func (uc *ComplexityUseCase) analyzeResolvedRequest(ctx context.Context, req dom
 	return response, nil
 }
 
-type snapshotComplexityService interface {
-	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.ComplexityRequest) (*domain.ComplexityResponse, error)
-}
-
 func (uc *ComplexityUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.ComplexityRequest, projectRoot string) (*domain.ComplexityResponse, error) {
 	if snapshot == nil {
 		return nil, domain.NewAnalysisError("complexity analysis failed", fmt.Errorf("project snapshot is required"))
@@ -184,12 +185,7 @@ func (uc *ComplexityUseCase) analyzeSnapshotRequest(ctx context.Context, snapsho
 	}
 
 	req.Paths = snapshot.Paths()
-	snapshotService, ok := uc.service.(snapshotComplexityService)
-	if !ok {
-		return nil, domain.NewAnalysisError("complexity analysis failed", fmt.Errorf("complexity service does not support project snapshots"))
-	}
-
-	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, req)
+	response, err := uc.service.AnalyzeSnapshot(ctx, snapshot, req)
 	if err != nil {
 		return nil, domain.NewAnalysisError("complexity analysis failed", err)
 	}
@@ -362,7 +358,7 @@ func (uc *ComplexityUseCase) loadAndMergeConfig(req domain.ComplexityRequest) (d
 
 // ComplexityUseCaseBuilder provides a builder pattern for creating ComplexityUseCase
 type ComplexityUseCaseBuilder struct {
-	service      domain.ComplexityService
+	service      ComplexityAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.OutputFormatter
 	configLoader domain.ConfigurationLoader
@@ -375,7 +371,7 @@ func NewComplexityUseCaseBuilder() *ComplexityUseCaseBuilder {
 }
 
 // WithService sets the complexity service
-func (b *ComplexityUseCaseBuilder) WithService(service domain.ComplexityService) *ComplexityUseCaseBuilder {
+func (b *ComplexityUseCaseBuilder) WithService(service ComplexityAnalysisService) *ComplexityUseCaseBuilder {
 	b.service = service
 	return b
 }

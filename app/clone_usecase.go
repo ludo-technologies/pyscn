@@ -10,9 +10,14 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+type CloneAnalysisService interface {
+	domain.CloneService
+	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, *domain.CloneRequest) (*domain.CloneResponse, error)
+}
+
 // CloneUseCase orchestrates clone detection operations
 type CloneUseCase struct {
-	service      domain.CloneService
+	service      CloneAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CloneOutputFormatter
 	configLoader domain.CloneConfigurationLoader
@@ -21,7 +26,7 @@ type CloneUseCase struct {
 
 // NewCloneUseCase creates a new clone use case with the given dependencies
 func NewCloneUseCase(
-	service domain.CloneService,
+	service CloneAnalysisService,
 	fileReader domain.FileReader,
 	formatter domain.CloneOutputFormatter,
 	configLoader domain.CloneConfigurationLoader,
@@ -152,10 +157,6 @@ func (uc *CloneUseCase) ExecuteAndReturn(ctx context.Context, req domain.CloneRe
 	return response, nil
 }
 
-type snapshotCloneService interface {
-	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, *domain.CloneRequest) (*domain.CloneResponse, error)
-}
-
 func (uc *CloneUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.CloneRequest) (*domain.CloneResponse, error) {
 	if snapshot == nil {
 		return nil, fmt.Errorf("project snapshot is required")
@@ -170,12 +171,7 @@ func (uc *CloneUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *sv
 		return nil, fmt.Errorf("invalid request: %w", err)
 	}
 
-	snapshotService, ok := uc.service.(snapshotCloneService)
-	if !ok {
-		return nil, fmt.Errorf("clone service does not support project snapshots")
-	}
-
-	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, &finalReq)
+	response, err := uc.service.AnalyzeSnapshot(ctx, snapshot, &finalReq)
 	if err != nil {
 		return nil, fmt.Errorf("clone detection failed: %w", err)
 	}
@@ -309,7 +305,7 @@ func (uc *CloneUseCase) outputEmptyResults(req domain.CloneRequest) error {
 
 // CloneUseCaseBuilder helps build CloneUseCase with dependencies
 type CloneUseCaseBuilder struct {
-	service      domain.CloneService
+	service      CloneAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CloneOutputFormatter
 	configLoader domain.CloneConfigurationLoader
@@ -322,7 +318,7 @@ func NewCloneUseCaseBuilder() *CloneUseCaseBuilder {
 }
 
 // WithService sets the clone service
-func (b *CloneUseCaseBuilder) WithService(service domain.CloneService) *CloneUseCaseBuilder {
+func (b *CloneUseCaseBuilder) WithService(service CloneAnalysisService) *CloneUseCaseBuilder {
 	b.service = service
 	return b
 }
