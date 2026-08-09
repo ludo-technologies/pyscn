@@ -58,6 +58,7 @@ type AnalyzeRequestOverrides struct {
 	SystemEnabled             *bool
 	SystemAnalyzeDependencies *bool
 	SystemAnalyzeArchitecture *bool
+	ModuleGraph               *domain.ModuleGraphOptions
 }
 
 // AnalyzeUseCase orchestrates comprehensive analysis
@@ -336,6 +337,9 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 	}
 	if overrides.SystemAnalyzeArchitecture != nil {
 		executionCfg.SystemAnalyzeArchitecture = *overrides.SystemAnalyzeArchitecture
+	}
+	if overrides.ModuleGraph != nil {
+		executionCfg.ModuleGraph = *overrides.ModuleGraph
 	}
 	useCaseCfg.ConfigFile = executionCfg.ConfigPath
 

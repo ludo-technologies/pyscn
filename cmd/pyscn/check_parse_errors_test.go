@@ -183,6 +183,45 @@ func TestCheckSelectDependenciesOverridesDisabledConfig(t *testing.T) {
 	}
 }
 
+func TestCheckSelectDependenciesPinsGraphPolicy(t *testing.T) {
+	projectDir := t.TempDir()
+	packageDir := filepath.Join(projectDir, "pkg")
+	if err := os.Mkdir(packageDir, 0o755); err != nil {
+		t.Fatalf("create package: %v", err)
+	}
+	files := map[string]string{
+		"__init__.py": "",
+		"a.py":        "from . import b\n",
+		"b.py":        "from . import a\n",
+	}
+	for name, source := range files {
+		if err := os.WriteFile(filepath.Join(packageDir, name), []byte(source), 0o644); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
+	}
+	configPath := filepath.Join(projectDir, ".pyscn.toml")
+	if err := os.WriteFile(configPath, []byte("[dependencies]\nfollow_relative = false\ninclude_third_party = true\n"), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	var stderr bytes.Buffer
+	cobraCmd.SetErr(&stderr)
+	cobraCmd.SetArgs([]string{"--select", "deps", projectDir})
+
+	err := cobraCmd.Execute()
+	if err == nil {
+		t.Fatal("expected the dependency gate to detect the relative cycle")
+	}
+	if got := exitCodeFor(err); got != exitCodeQualityIssues {
+		t.Fatalf("expected quality exit code %d, got %d: %s", exitCodeQualityIssues, got, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "circular dependency detected") {
+		t.Fatalf("expected circular dependency diagnostic, got: %s", stderr.String())
+	}
+}
+
 func TestCheckReportsTypedAnalyzerFailures(t *testing.T) {
 	checkCmd := NewCheckCommand()
 	var output bytes.Buffer

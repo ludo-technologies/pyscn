@@ -48,6 +48,11 @@ func (c *CheckCommand) runCoreAnalysis(
 		SystemEnabled:             domain.BoolPtr(!skipDependencies),
 		SystemAnalyzeDependencies: domain.BoolPtr(!skipDependencies),
 		SystemAnalyzeArchitecture: domain.BoolPtr(false),
+		ModuleGraph: &domain.ModuleGraphOptions{
+			IncludeStdLib:     false,
+			IncludeThirdParty: false,
+			FollowRelative:    true,
+		},
 	})
 	if result == nil {
 		return nil, nil, err
