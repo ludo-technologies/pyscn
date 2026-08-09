@@ -37,7 +37,9 @@ func BenchmarkAggregateModuleGraphReuse(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			if graph.Clone() == nil || graph.Clone() == nil {
+			firstConsumer := graph.Clone()
+			secondConsumer := graph.Clone()
+			if firstConsumer == nil || secondConsumer == nil {
 				b.Fatal("expected independent graph projections")
 			}
 		}
