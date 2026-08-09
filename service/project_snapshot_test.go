@@ -151,6 +151,49 @@ func TestProjectSnapshotCapturesSrcModuleRoot(t *testing.T) {
 	}
 }
 
+func TestProjectSnapshotResolvesRelativeModulePathsAtCaptureTime(t *testing.T) {
+	originalWorkingDirectory, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("get working directory: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(originalWorkingDirectory); err != nil {
+			t.Errorf("restore working directory: %v", err)
+		}
+	})
+
+	projectRoot := t.TempDir()
+	packageDir := filepath.Join(projectRoot, "src", "pkg")
+	if err := os.MkdirAll(packageDir, 0o755); err != nil {
+		t.Fatalf("create src package: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(packageDir, "source.py"), []byte("import pkg.target\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(packageDir, "target.py"), []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatalf("write target: %v", err)
+	}
+	if err := os.Chdir(projectRoot); err != nil {
+		t.Fatalf("enter project root: %v", err)
+	}
+	relativePaths := []string{filepath.Join("src", "pkg", "source.py"), filepath.Join("src", "pkg", "target.py")}
+	snapshot := BuildProjectSnapshot(context.Background(), relativePaths)
+
+	if err := os.Chdir(t.TempDir()); err != nil {
+		t.Fatalf("leave captured project: %v", err)
+	}
+	graph, err := snapshot.BuildDependencyGraph(context.Background(), &ModuleGraphOptions{})
+	if err != nil {
+		t.Fatalf("build graph after working directory changed: %v", err)
+	}
+	if graph.graph.Nodes["pkg.source"] == nil || !graph.graph.Nodes["pkg.source"].Dependencies["pkg.target"] {
+		t.Fatalf("expected capture-rooted modules, got %+v", graph.graph.Nodes)
+	}
+	if got := snapshot.Paths(); len(got) != len(relativePaths) || got[0] != relativePaths[0] || got[1] != relativePaths[1] {
+		t.Fatalf("expected public paths to preserve caller spelling, got %v", got)
+	}
+}
+
 func TestSnapshotServicesMatchFileServices(t *testing.T) {
 	ctx := context.Background()
 	sourcePath := writeSnapshotFixture(t)

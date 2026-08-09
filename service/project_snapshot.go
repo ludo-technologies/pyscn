@@ -54,13 +54,14 @@ func (g *ProjectModuleGraph) Clone() *ProjectModuleGraph {
 
 // ProjectFile stores one Python file after read and parse.
 type ProjectFile struct {
-	Path        string
-	AST         *parser.Node
-	RawMetrics  *analyzer.RawMetricsResult
-	ReadErr     error
-	ParseErr    error
-	source      []byte
-	parseResult *parser.ParseResult
+	Path         string
+	AST          *parser.Node
+	RawMetrics   *analyzer.RawMetricsResult
+	ReadErr      error
+	ParseErr     error
+	identityPath string
+	source       []byte
+	parseResult  *parser.ParseResult
 
 	cfgOnce sync.Once
 	cfgs    map[string]*analyzer.CFG
@@ -101,7 +102,8 @@ func BuildProjectSnapshotWithOptions(ctx context.Context, paths []string, option
 			pyParser := parser.New()
 			for idx := range jobs {
 				path := paths[idx]
-				snapshot.files[idx] = buildProjectFile(ctx, pyParser, path, options)
+				identityPath := snapshotPath(defaultProjectRoot, path)
+				snapshot.files[idx] = buildProjectFile(ctx, pyParser, path, identityPath, options)
 			}
 		}()
 	}
@@ -210,7 +212,7 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 		if !file.Parsed() {
 			continue
 		}
-		parsedModule, err := analyzer.NewParsedModule(file.Path, file.source, file.AST)
+		parsedModule, err := analyzer.NewParsedModule(file.identityPath, file.source, file.AST)
 		if err != nil {
 			return nil, fmt.Errorf("project file %s: %w", file.Path, err)
 		}
@@ -222,7 +224,9 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 	includePatterns := []string(nil)
 	excludePatterns := []string(nil)
 	if options != nil {
-		projectRoot = options.ProjectRoot
+		if options.ProjectRoot != "" {
+			projectRoot = snapshotPath(s.defaultProjectRoot, options.ProjectRoot)
+		}
 		graphOptions = options.Graph
 		includePatterns = options.IncludePatterns
 		excludePatterns = options.ExcludePatterns
@@ -252,10 +256,7 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 }
 
 func capturedModuleRoots(projectRoot string, files []*ProjectFile) []string {
-	absoluteRoot, err := filepath.Abs(projectRoot)
-	if err != nil {
-		return []string{projectRoot}
-	}
+	absoluteRoot := filepath.Clean(projectRoot)
 	srcRoot := filepath.Join(absoluteRoot, "src")
 	hasSrcModule := false
 	hasSrcPackageInit := false
@@ -263,10 +264,7 @@ func capturedModuleRoots(projectRoot string, files []*ProjectFile) []string {
 		if file == nil {
 			continue
 		}
-		absolutePath, err := filepath.Abs(file.Path)
-		if err != nil {
-			continue
-		}
+		absolutePath := file.identityPath
 		relative, err := filepath.Rel(srcRoot, absolutePath)
 		if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
 			continue
@@ -329,8 +327,8 @@ func (f *ProjectFile) CFGs() (map[string]*analyzer.CFG, error) {
 	return f.cfgs, f.cfgErr
 }
 
-func buildProjectFile(ctx context.Context, pyParser *parser.Parser, path string, options ProjectSnapshotOptions) *ProjectFile {
-	file := &ProjectFile{Path: path}
+func buildProjectFile(ctx context.Context, pyParser *parser.Parser, path, identityPath string, options ProjectSnapshotOptions) *ProjectFile {
+	file := &ProjectFile{Path: path, identityPath: identityPath}
 
 	select {
 	case <-ctx.Done():
@@ -339,7 +337,7 @@ func buildProjectFile(ctx context.Context, pyParser *parser.Parser, path string,
 	default:
 	}
 
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(identityPath)
 	if err != nil {
 		file.ReadErr = err
 		return file
@@ -367,6 +365,13 @@ func buildProjectFile(ctx context.Context, pyParser *parser.Parser, path string,
 	}
 
 	return file
+}
+
+func snapshotPath(captureRoot, path string) string {
+	if filepath.IsAbs(path) {
+		return filepath.Clean(path)
+	}
+	return filepath.Clean(filepath.Join(captureRoot, path))
 }
 
 func cancelledProjectFile(path string, err error) *ProjectFile {
