@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
@@ -112,6 +113,49 @@ func (s *ProjectSnapshot) Paths() []string {
 		}
 	}
 	return paths
+}
+
+// Coverage reports project-wide read and parse coverage from the snapshot.
+func (s *ProjectSnapshot) Coverage() domain.AnalysisCoverage {
+	if s == nil {
+		return domain.AnalysisCoverage{}
+	}
+
+	coverage := domain.AnalysisCoverage{
+		TotalFiles:  len(s.Files),
+		Diagnostics: make([]domain.AnalysisDiagnostic, 0),
+	}
+	for _, file := range s.Files {
+		if file == nil {
+			coverage.SkippedFiles++
+			continue
+		}
+		if file.ReadErr != nil {
+			coverage.SkippedFiles++
+			coverage.Diagnostics = append(coverage.Diagnostics, domain.AnalysisDiagnostic{
+				FilePath: file.Path,
+				Code:     domain.DiagnosticCodeRead,
+				Message:  file.ReadErr.Error(),
+			})
+			continue
+		}
+		if file.ParseErr != nil || file.AST == nil {
+			coverage.SkippedFiles++
+			message := "invalid parse result"
+			if file.ParseErr != nil {
+				message = file.ParseErr.Error()
+			}
+			coverage.Diagnostics = append(coverage.Diagnostics, domain.AnalysisDiagnostic{
+				FilePath: file.Path,
+				Code:     domain.DiagnosticCodeParse,
+				Message:  message,
+			})
+			continue
+		}
+		coverage.AnalyzedFiles++
+	}
+
+	return coverage
 }
 
 // Parsed reports whether the file has a valid parsed AST.

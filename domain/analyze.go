@@ -164,6 +164,8 @@ type AnalyzeResponse struct {
 
 	// Actionable suggestions derived from analysis results
 	Suggestions []Suggestion `json:"suggestions,omitempty" yaml:"suggestions,omitempty"`
+	// Project-level read and parse failures, independent of selected analyzers.
+	Diagnostics []AnalysisDiagnostic `json:"diagnostics,omitempty" yaml:"diagnostics,omitempty"`
 
 	// Overall summary
 	Summary AnalyzeSummary `json:"summary" yaml:"summary"`

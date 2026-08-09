@@ -75,6 +75,59 @@ func TestAnalyzeUseCase_Execute(t *testing.T) {
 	}
 }
 
+func TestAnalyzeUseCase_Execute_ReportsProjectCoverageWithoutComplexity(t *testing.T) {
+	projectDir := t.TempDir()
+	validPath := filepath.Join(projectDir, "valid.py")
+	brokenPath := filepath.Join(projectDir, "broken.py")
+	if err := os.WriteFile(validPath, []byte("def valid():\n    return 1\n"), 0o644); err != nil {
+		t.Fatalf("write valid Python source: %v", err)
+	}
+	if err := os.WriteFile(brokenPath, []byte("def broken(:\n    pass\n"), 0o644); err != nil {
+		t.Fatalf("write broken Python source: %v", err)
+	}
+
+	deadCodeUseCase := NewDeadCodeUseCase(
+		service.NewDeadCodeService(),
+		service.NewFileReader(),
+		service.NewDeadCodeFormatter(),
+		service.NewDeadCodeConfigurationLoader(),
+	)
+	useCase, err := NewAnalyzeUseCaseBuilder().
+		WithFileReader(service.NewFileReader()).
+		WithDeadCodeUseCase(deadCodeUseCase).
+		Build()
+	if err != nil {
+		t.Fatalf("build analyze use case: %v", err)
+	}
+
+	response, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipComplexity:  true,
+		SkipDeadCode:    false,
+		SkipClones:      true,
+		SkipCBO:         true,
+		SkipLCOM:        true,
+		SkipSystem:      true,
+		SkipCommunities: true,
+	}, []string{projectDir})
+	if err != nil {
+		t.Fatalf("execute dead-code-only analysis: %v", err)
+	}
+
+	if response.Summary.TotalFiles != 2 || response.Summary.AnalyzedFiles != 1 || response.Summary.SkippedFiles != 1 {
+		t.Fatalf("expected coverage 2 total / 1 analyzed / 1 skipped, got %+v", response.Summary)
+	}
+	if response.Summary.HealthScore >= 100 || response.Summary.Grade == "A" {
+		t.Fatalf("incomplete analysis must not receive a perfect grade, got %d/%s", response.Summary.HealthScore, response.Summary.Grade)
+	}
+	if len(response.Diagnostics) != 1 {
+		t.Fatalf("expected one project diagnostic, got %+v", response.Diagnostics)
+	}
+	diagnostic := response.Diagnostics[0]
+	if diagnostic.Code != domain.DiagnosticCodeParse || filepath.Base(diagnostic.FilePath) != "broken.py" {
+		t.Fatalf("expected typed parse diagnostic for broken.py, got %+v", diagnostic)
+	}
+}
+
 func newModuleQualityAnalyzeUseCase(t *testing.T) *AnalyzeUseCase {
 	t.Helper()
 

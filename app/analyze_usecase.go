@@ -294,12 +294,9 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	// timings recorded by previous runs on this project (if any)
 	estimatedSeconds := uc.estimateTaskSeconds(len(files), useCaseCfg, executionCfg)
 
-	var snapshot *service.ProjectSnapshot
-	if uc.needsProjectSnapshot(useCaseCfg) {
-		snapshot = service.BuildProjectSnapshotWithOptions(ctx, files, service.ProjectSnapshotOptions{
-			IncludeRawMetrics: uc.complexityUseCase != nil && !useCaseCfg.SkipComplexity,
-		})
-	}
+	snapshot := service.BuildProjectSnapshotWithOptions(ctx, files, service.ProjectSnapshotOptions{
+		IncludeRawMetrics: uc.complexityUseCase != nil && !useCaseCfg.SkipComplexity,
+	})
 
 	// Start unified progress tracking; task completions feed back into the
 	// estimate so the bar recalibrates to actual machine/codebase speed
@@ -357,7 +354,7 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 
 	// Build response
-	response, err := uc.buildResponse(tasks, startTime, pathIndex)
+	response, err := uc.buildResponse(tasks, startTime, pathIndex, snapshot.Coverage())
 	if err != nil {
 		return response, err
 	}
@@ -368,13 +365,6 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 
 	return response, nil
-}
-
-func (uc *AnalyzeUseCase) needsProjectSnapshot(config AnalyzeUseCaseConfig) bool {
-	return (uc.complexityUseCase != nil && !config.SkipComplexity) ||
-		(uc.deadCodeUseCase != nil && !config.SkipDeadCode) ||
-		(uc.cboUseCase != nil && !config.SkipCBO) ||
-		(uc.lcomUseCase != nil && !config.SkipLCOM)
 }
 
 // createAnalysisTasks creates the analysis tasks based on configuration
@@ -615,11 +605,15 @@ func (uc *AnalyzeUseCase) buildCloneTaskRequest(config AnalyzeUseCaseConfig, fil
 }
 
 // buildResponse builds the analyze response from task results
-func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Time, pathIndex analysisPathIndex) (*domain.AnalyzeResponse, error) {
+func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Time, pathIndex analysisPathIndex, coverage domain.AnalysisCoverage) (*domain.AnalyzeResponse, error) {
 	response := &domain.AnalyzeResponse{
 		GeneratedAt: time.Now(),
 		Duration:    time.Since(startTime).Milliseconds(),
+		Diagnostics: coverage.Diagnostics,
 	}
+	response.Summary.TotalFiles = coverage.TotalFiles
+	response.Summary.AnalyzedFiles = coverage.AnalyzedFiles
+	response.Summary.SkippedFiles = coverage.SkippedFiles
 
 	// Collect results from tasks
 	for _, task := range tasks {
@@ -712,12 +706,6 @@ func (uc *AnalyzeUseCase) markSummaryForTask(summary *domain.AnalyzeSummary, tas
 func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, response *domain.AnalyzeResponse) {
 	// Complexity statistics
 	if response.Complexity != nil {
-		// TotalFiles must count files that failed to parse too, otherwise the
-		// shortfall is invisible and the health score is computed as if the
-		// unanalyzable half of the project did not exist (issue #690).
-		summary.TotalFiles = response.Complexity.Summary.TotalFiles
-		summary.AnalyzedFiles = response.Complexity.Summary.FilesAnalyzed
-		summary.SkippedFiles = response.Complexity.Summary.SkippedFiles
 		summary.TotalFunctions = response.Complexity.Summary.TotalFunctions
 		summary.FunctionsParsed = response.Complexity.Summary.FunctionsParsed
 		summary.AverageComplexity = response.Complexity.Summary.AverageComplexity
