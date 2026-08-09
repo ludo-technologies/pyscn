@@ -81,6 +81,12 @@ func TestAnalysisProjectSnapshotKeepsSourceAndModuleScopesDistinct(t *testing.T)
 		[]string{sourcePath, stubPath},
 		ProjectSnapshotOptions{},
 	)
+	if snapshot.Files != nil {
+		t.Fatal("aggregate snapshots must not eagerly allocate compatibility projections")
+	}
+	if projections := snapshot.FileProjections(); len(projections) != 2 {
+		t.Fatalf("expected two on-demand file projections, got %d", len(projections))
+	}
 	if got := snapshot.Paths(); len(got) != 1 || got[0] != sourcePath {
 		t.Fatalf("expected only the implementation path, got %v", got)
 	}

@@ -18,6 +18,7 @@ import (
 type ProjectSnapshot struct {
 	// Files is a compatibility projection. Mutating it does not affect the
 	// sealed snapshot state consumed by analyzers.
+	// Deprecated: use FileProjections to materialize a copy on demand.
 	Files              []*ProjectFile
 	files              []*ProjectFile
 	analysisFiles      map[string]struct{}
@@ -77,17 +78,17 @@ func BuildProjectSnapshot(ctx context.Context, paths []string) *ProjectSnapshot 
 
 // BuildProjectSnapshotWithOptions reads and parses each file once with analyzer-scoped caches.
 func BuildProjectSnapshotWithOptions(ctx context.Context, paths []string, options ProjectSnapshotOptions) *ProjectSnapshot {
-	return buildProjectSnapshot(ctx, paths, paths, paths, options)
+	return buildProjectSnapshot(ctx, paths, paths, paths, options, true)
 }
 
 // BuildAnalysisProjectSnapshot captures the implementation and importable
 // module surfaces once while retaining their distinct analyzer scopes.
 func BuildAnalysisProjectSnapshot(ctx context.Context, analysisPaths, modulePaths []string, options ProjectSnapshotOptions) *ProjectSnapshot {
 	paths := mergeSnapshotPaths(analysisPaths, modulePaths)
-	return buildProjectSnapshot(ctx, paths, analysisPaths, modulePaths, options)
+	return buildProjectSnapshot(ctx, paths, analysisPaths, modulePaths, options, false)
 }
 
-func buildProjectSnapshot(ctx context.Context, paths, analysisPaths, modulePaths []string, options ProjectSnapshotOptions) *ProjectSnapshot {
+func buildProjectSnapshot(ctx context.Context, paths, analysisPaths, modulePaths []string, options ProjectSnapshotOptions, exposeCompatibilityFiles bool) *ProjectSnapshot {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -100,7 +101,9 @@ func buildProjectSnapshot(ctx context.Context, paths, analysisPaths, modulePaths
 		defaultProjectRoot: defaultProjectRoot,
 	}
 	if len(paths) == 0 {
-		snapshot.Files = []*ProjectFile{}
+		if exposeCompatibilityFiles {
+			snapshot.Files = []*ProjectFile{}
+		}
 		return snapshot
 	}
 
@@ -149,9 +152,19 @@ func buildProjectSnapshot(ctx context.Context, paths, analysisPaths, modulePaths
 			snapshot.files[idx] = cancelledProjectFile(path, ctx.Err())
 		}
 	}
-	snapshot.Files = projectFileProjections(snapshot.files)
+	if exposeCompatibilityFiles {
+		snapshot.Files = snapshot.FileProjections()
+	}
 
 	return snapshot
+}
+
+// FileProjections returns independent copies of the captured project files.
+func (s *ProjectSnapshot) FileProjections() []*ProjectFile {
+	if s == nil {
+		return nil
+	}
+	return projectFileProjections(s.files)
 }
 
 // Paths returns the file paths represented by the snapshot.
