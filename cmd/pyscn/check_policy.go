@@ -8,6 +8,7 @@ import (
 
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/service"
 	"github.com/spf13/cobra"
 )
 
@@ -18,17 +19,17 @@ func (c *CheckCommand) runCoreAnalysis(
 	skipDeadCode bool,
 	skipClones bool,
 	skipDependencies bool,
-) (*domain.AnalyzeResponse, error) {
+) (*domain.AnalyzeResponse, *service.ProjectSnapshot, error) {
 	useCase, err := buildAnalyzeUseCase(cmd, false)
 	if err != nil {
-		return nil, fmt.Errorf("build analyzer: %w", err)
+		return nil, nil, fmt.Errorf("build analyzer: %w", err)
 	}
 
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return useCase.ExecuteWithOverrides(ctx, app.AnalyzeUseCaseConfig{
+	result, err := useCase.ExecuteProjectWithOverrides(ctx, app.AnalyzeUseCaseConfig{
 		ConfigFile:              c.configFile,
 		SkipComplexity:          skipComplexity,
 		SkipDeadCode:            skipDeadCode,
@@ -47,6 +48,10 @@ func (c *CheckCommand) runCoreAnalysis(
 		SystemAnalyzeDependencies: domain.BoolPtr(!skipDependencies),
 		SystemAnalyzeArchitecture: domain.BoolPtr(false),
 	})
+	if result == nil {
+		return nil, nil, err
+	}
+	return result.Response, result.Snapshot, err
 }
 
 func (c *CheckCommand) reportProjectDiagnostics(writer io.Writer, diagnostics []domain.AnalysisDiagnostic) error {

@@ -52,12 +52,13 @@ func (g *ProjectModuleGraph) Clone() *ProjectModuleGraph {
 
 // ProjectFile stores one Python file after read and parse.
 type ProjectFile struct {
-	Path       string
-	AST        *parser.Node
-	RawMetrics *analyzer.RawMetricsResult
-	ReadErr    error
-	ParseErr   error
-	source     []byte
+	Path        string
+	AST         *parser.Node
+	RawMetrics  *analyzer.RawMetricsResult
+	ReadErr     error
+	ParseErr    error
+	source      []byte
+	parseResult *parser.ParseResult
 
 	cfgOnce sync.Once
 	cfgs    map[string]*analyzer.CFG
@@ -318,6 +319,7 @@ func buildProjectFile(ctx context.Context, pyParser *parser.Parser, path string,
 	}
 
 	file.AST = result.AST
+	file.parseResult = result
 	if file.RawMetrics != nil {
 		analyzer.PopulateLogicalLines(file.RawMetrics, file.AST)
 	}

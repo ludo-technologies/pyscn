@@ -9,13 +9,25 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+type MockDataSnapshotService interface {
+	domain.MockDataService
+	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.MockDataRequest) (*domain.MockDataResponse, error)
+}
+
 // MockDataUseCase orchestrates the mock data analysis workflow
 type MockDataUseCase struct {
 	service      domain.MockDataService
+	snapshot     MockDataSnapshotService
 	fileReader   domain.FileReader
 	formatter    domain.MockDataFormatter
 	configLoader domain.MockDataConfigurationLoader
 	output       domain.ReportWriter
+}
+
+func NewSnapshotMockDataUseCase(service MockDataSnapshotService, fileReader domain.FileReader, formatter domain.MockDataFormatter, configLoader domain.MockDataConfigurationLoader) *MockDataUseCase {
+	uc := NewMockDataUseCase(service, fileReader, formatter, configLoader)
+	uc.snapshot = service
+	return uc
 }
 
 // NewMockDataUseCase creates a new mock data use case
@@ -130,6 +142,28 @@ func (uc *MockDataUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Mock
 		return nil, domain.NewAnalysisError("mock data analysis failed", err)
 	}
 
+	return response, nil
+}
+
+func (uc *MockDataUseCase) AnalyzeSnapshotAndReturn(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.MockDataRequest) (*domain.MockDataResponse, error) {
+	if snapshot == nil || uc.snapshot == nil {
+		return nil, domain.NewAnalysisError("mock data analysis failed", fmt.Errorf("snapshot collaborator is required"))
+	}
+	if err := uc.validateRequest(req); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return nil, domain.NewConfigError("failed to load configuration", err)
+	}
+	if err := finalReq.Validate(); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
+	finalReq.Paths = snapshot.Paths()
+	response, err := uc.snapshot.AnalyzeSnapshot(ctx, snapshot, finalReq)
+	if err != nil {
+		return nil, domain.NewAnalysisError("mock data analysis failed", err)
+	}
 	return response, nil
 }
 

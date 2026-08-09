@@ -179,7 +179,7 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check (%s)...\n", strings.Join(c.getEnabledAnalyses(skipComplexity, skipDeadCode, skipClones, skipDeps, skipMockdata, skipDI), ", "))
 	}
 
-	response, analysisErr := c.runCoreAnalysis(cmd, args, skipComplexity, skipDeadCode, skipClones, skipDeps)
+	response, snapshot, analysisErr := c.runCoreAnalysis(cmd, args, skipComplexity, skipDeadCode, skipClones, skipDeps)
 	if response != nil {
 		if err := c.reportProjectDiagnostics(cmd.ErrOrStderr(), response.Diagnostics); err != nil {
 			hasErrors = true
@@ -222,7 +222,7 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 
 	// Run mock data check if enabled
 	if !skipMockdata {
-		mockdataIssues, err := c.checkMockdata(cmd, args)
+		mockdataIssues, err := c.checkMockdata(cmd, args, snapshot)
 		if err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Mock data check failed: %v\n", err)
 			hasErrors = true
@@ -233,7 +233,7 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 
 	// Run DI anti-pattern check if enabled
 	if !skipDI {
-		diIssues, err := c.checkDIAntipatterns(cmd, args)
+		diIssues, err := c.checkDIAntipatterns(cmd, args, snapshot)
 		if err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "❌ DI anti-pattern check failed: %v\n", err)
 			hasErrors = true
@@ -363,7 +363,7 @@ func (c *CheckCommand) validateSelectedAnalyses() error {
 }
 
 // checkMockdata runs mock data analysis and returns issue count
-func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, error) {
+func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string, snapshot *service.ProjectSnapshot) (int, error) {
 	// Create request with check-specific settings
 	request := &domain.MockDataRequest{
 		Paths:        args,
@@ -377,19 +377,10 @@ func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, er
 	mockDataFormatter := service.NewMockDataFormatter()
 	mockDataConfigLoader := service.NewMockDataConfigurationLoader()
 
-	// Build use case with defaults
-	useCase, err := app.NewMockDataUseCaseBuilder().
-		WithService(mockDataService).
-		WithFileReader(service.NewFileReader()).
-		WithFormatter(mockDataFormatter).
-		WithConfigLoader(mockDataConfigLoader).
-		Build()
-	if err != nil {
-		return 0, fmt.Errorf("failed to create mock data use case: %w", err)
-	}
+	useCase := app.NewSnapshotMockDataUseCase(mockDataService, service.NewFileReader(), mockDataFormatter, mockDataConfigLoader)
 
 	// Run analysis
-	response, err := useCase.AnalyzeAndReturn(cmd.Context(), *request)
+	response, err := useCase.AnalyzeSnapshotAndReturn(cmd.Context(), snapshot, *request)
 	if err != nil {
 		return 0, err
 	}
@@ -420,7 +411,7 @@ func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, er
 }
 
 // checkDIAntipatterns runs DI anti-pattern detection and returns issue count
-func (c *CheckCommand) checkDIAntipatterns(cmd *cobra.Command, args []string) (int, error) {
+func (c *CheckCommand) checkDIAntipatterns(cmd *cobra.Command, args []string, snapshot *service.ProjectSnapshot) (int, error) {
 	// Create request with check-specific settings
 	request := &domain.DIAntipatternRequest{
 		Paths:        args,
@@ -439,19 +430,10 @@ func (c *CheckCommand) checkDIAntipatterns(cmd *cobra.Command, args []string) (i
 	diFormatter := service.NewDIAntipatternFormatter()
 	diConfigLoader := service.NewDIAntipatternConfigurationLoader()
 
-	// Build use case with defaults
-	useCase, err := app.NewDIAntipatternUseCaseBuilder().
-		WithService(diService).
-		WithFileReader(service.NewFileReader()).
-		WithFormatter(diFormatter).
-		WithConfigLoader(diConfigLoader).
-		Build()
-	if err != nil {
-		return 0, fmt.Errorf("failed to create DI anti-pattern use case: %w", err)
-	}
+	useCase := app.NewSnapshotDIAntipatternUseCase(diService, service.NewFileReader(), diFormatter, diConfigLoader)
 
 	// Run analysis
-	response, err := useCase.AnalyzeAndReturn(cmd.Context(), *request)
+	response, err := useCase.AnalyzeSnapshotAndReturn(cmd.Context(), snapshot, *request)
 	if err != nil {
 		return 0, err
 	}

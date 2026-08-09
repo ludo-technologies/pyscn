@@ -36,8 +36,18 @@ func (d *Detector) Detect(ctx context.Context, source []byte, filePath string) (
 	if err != nil {
 		return nil, err
 	}
+	return d.DetectParsed(ctx, result.RootNode, source, filePath)
+}
 
-	findings := d.analyzeTree(result.RootNode, source)
+// DetectParsed analyzes source using a previously parsed tree.
+func (d *Detector) DetectParsed(ctx context.Context, root *sitter.Node, source []byte, filePath string) (*DetectResult, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if root == nil {
+		return nil, fmt.Errorf("parsed root is required")
+	}
+	findings := d.analyzeTree(root, source)
 
 	return &DetectResult{
 		FilePath: filePath,

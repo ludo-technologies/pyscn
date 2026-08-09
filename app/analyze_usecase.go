@@ -238,18 +238,39 @@ type AnalysisTask struct {
 	Error   error
 }
 
+// ProjectAnalysisResult owns the canonical snapshot and the analyses derived
+// from it for callers that need to run additional snapshot-aware policies.
+type ProjectAnalysisResult struct {
+	Response *domain.AnalyzeResponse
+	Snapshot *service.ProjectSnapshot
+}
+
 // Execute performs comprehensive analysis
 func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string) (*domain.AnalyzeResponse, error) {
-	return uc.execute(ctx, useCaseCfg, paths, AnalyzeRequestOverrides{})
+	result, err := uc.executeProject(ctx, useCaseCfg, paths, AnalyzeRequestOverrides{})
+	if result == nil {
+		return nil, err
+	}
+	return result.Response, err
 }
 
 // ExecuteWithOverrides performs comprehensive analysis with request-scoped
 // overrides applied after project configuration is resolved.
 func (uc *AnalyzeUseCase) ExecuteWithOverrides(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string, overrides AnalyzeRequestOverrides) (*domain.AnalyzeResponse, error) {
-	return uc.execute(ctx, useCaseCfg, paths, overrides)
+	result, err := uc.executeProject(ctx, useCaseCfg, paths, overrides)
+	if result == nil {
+		return nil, err
+	}
+	return result.Response, err
 }
 
-func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string, overrides AnalyzeRequestOverrides) (*domain.AnalyzeResponse, error) {
+// ExecuteProjectWithOverrides returns the response and the sealed snapshot
+// that produced it.
+func (uc *AnalyzeUseCase) ExecuteProjectWithOverrides(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string, overrides AnalyzeRequestOverrides) (*ProjectAnalysisResult, error) {
+	return uc.executeProject(ctx, useCaseCfg, paths, overrides)
+}
+
+func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string, overrides AnalyzeRequestOverrides) (*ProjectAnalysisResult, error) {
 	startTime := time.Now()
 
 	executionCfg, err := uc.loadExecutionConfig(useCaseCfg.ConfigFile, paths)
@@ -379,15 +400,16 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 
 	// Build response
 	response, err := uc.buildResponse(tasks, startTime, pathIndex, snapshot.Coverage())
+	result := &ProjectAnalysisResult{Response: response, Snapshot: snapshot}
 	if err != nil {
-		return response, err
+		return result, err
 	}
 
 	if len(response.Failures) > 0 {
-		return response, fmt.Errorf("analysis completed with %d failure(s): %s", len(response.Failures), response.Failures[0].Message)
+		return result, fmt.Errorf("analysis completed with %d failure(s): %s", len(response.Failures), response.Failures[0].Message)
 	}
 
-	return response, nil
+	return result, nil
 }
 
 // createAnalysisTasks creates the analysis tasks based on configuration

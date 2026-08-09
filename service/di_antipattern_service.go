@@ -78,6 +78,41 @@ func (s *DIAntipatternServiceImpl) Analyze(ctx context.Context, req domain.DIAnt
 	}, nil
 }
 
+// AnalyzeSnapshot performs DI analysis from the canonical parsed project.
+func (s *DIAntipatternServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectSnapshot, req domain.DIAntipatternRequest) (*domain.DIAntipatternResponse, error) {
+	if snapshot == nil {
+		return nil, fmt.Errorf("project snapshot is required")
+	}
+	var findings []domain.DIAntipatternFinding
+	var failures []domain.AnalysisFailure
+	filesProcessed := 0
+	for _, file := range snapshot.files {
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("DI anti-pattern analysis cancelled: %w", err)
+		}
+		if !file.Parsed() || s.isTestFile(file.Path) {
+			continue
+		}
+		fileFindings, err := s.calculateFindings(file.AST, file.Path, req)
+		if err != nil {
+			failures = append(failures, domain.AnalysisFailure{Analysis: domain.AnalysisKindDI, Code: domain.AnalysisFailureCodeExecution, FilePath: file.Path, Message: err.Error()})
+			continue
+		}
+		findings = append(findings, fileFindings...)
+		filesProcessed++
+	}
+	findings = analyzer.SortFindings(findings, req.SortBy)
+	return &domain.DIAntipatternResponse{
+		Findings:    findings,
+		Summary:     analyzer.GenerateSummary(findings, filesProcessed),
+		Errors:      failureMessages(failures),
+		Failures:    failures,
+		GeneratedAt: time.Now().Format(time.RFC3339),
+		Version:     version.Version,
+		Config:      s.buildConfigForResponse(req),
+	}, nil
+}
+
 // AnalyzeFile analyzes a single Python file
 func (s *DIAntipatternServiceImpl) AnalyzeFile(ctx context.Context, filePath string, req domain.DIAntipatternRequest) (*domain.DIAntipatternResponse, error) {
 	singleFileReq := req
@@ -111,11 +146,7 @@ func (s *DIAntipatternServiceImpl) analyzeFile(ctx context.Context, filePath str
 		return findings, warnings, diagnostics, failures
 	}
 
-	// Configure DI anti-pattern detection options
-	options := s.buildOptions(req)
-
-	// Perform analysis
-	fileFindings, err := analyzer.CalculateDIAntipatternsWithConfig(result.AST, filePath, options)
+	fileFindings, err := s.calculateFindings(result.AST, filePath, req)
 	if err != nil {
 		failures = append(failures, domain.AnalysisFailure{
 			Analysis: domain.AnalysisKindDI,
@@ -129,6 +160,10 @@ func (s *DIAntipatternServiceImpl) analyzeFile(ctx context.Context, filePath str
 	findings = append(findings, fileFindings...)
 
 	return findings, warnings, diagnostics, failures
+}
+
+func (s *DIAntipatternServiceImpl) calculateFindings(ast *parser.Node, filePath string, req domain.DIAntipatternRequest) ([]domain.DIAntipatternFinding, error) {
+	return analyzer.CalculateDIAntipatternsWithConfig(ast, filePath, s.buildOptions(req))
 }
 
 // buildOptions converts domain request to analyzer options

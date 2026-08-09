@@ -9,13 +9,25 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+type DIAntipatternSnapshotService interface {
+	domain.DIAntipatternService
+	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.DIAntipatternRequest) (*domain.DIAntipatternResponse, error)
+}
+
 // DIAntipatternUseCase orchestrates the DI anti-pattern analysis workflow
 type DIAntipatternUseCase struct {
 	service      domain.DIAntipatternService
+	snapshot     DIAntipatternSnapshotService
 	fileReader   domain.FileReader
 	formatter    domain.DIAntipatternOutputFormatter
 	configLoader domain.DIAntipatternConfigurationLoader
 	output       domain.ReportWriter
+}
+
+func NewSnapshotDIAntipatternUseCase(service DIAntipatternSnapshotService, fileReader domain.FileReader, formatter domain.DIAntipatternOutputFormatter, configLoader domain.DIAntipatternConfigurationLoader) *DIAntipatternUseCase {
+	uc := NewDIAntipatternUseCase(service, fileReader, formatter, configLoader)
+	uc.snapshot = service
+	return uc
 }
 
 // NewDIAntipatternUseCase creates a new DI anti-pattern use case
@@ -110,6 +122,25 @@ func (uc *DIAntipatternUseCase) AnalyzeAndReturn(ctx context.Context, req domain
 		return nil, domain.NewAnalysisError("DI anti-pattern analysis failed", err)
 	}
 
+	return response, nil
+}
+
+func (uc *DIAntipatternUseCase) AnalyzeSnapshotAndReturn(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.DIAntipatternRequest) (*domain.DIAntipatternResponse, error) {
+	if snapshot == nil || uc.snapshot == nil {
+		return nil, domain.NewAnalysisError("DI anti-pattern analysis failed", fmt.Errorf("snapshot collaborator is required"))
+	}
+	if err := uc.validateRequest(req); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return nil, domain.NewConfigError("failed to load configuration", err)
+	}
+	finalReq.Paths = snapshot.Paths()
+	response, err := uc.snapshot.AnalyzeSnapshot(ctx, snapshot, finalReq)
+	if err != nil {
+		return nil, domain.NewAnalysisError("DI anti-pattern analysis failed", err)
+	}
 	return response, nil
 }
 
