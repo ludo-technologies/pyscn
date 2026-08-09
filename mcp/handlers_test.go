@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/mcp"
 	"github.com/ludo-technologies/pyscn/service"
 	mcplib "github.com/mark3labs/mcp-go/mcp"
@@ -181,6 +182,41 @@ func TestHandleAnalyzeCode(t *testing.T) {
 				check: func(t *testing.T, res *mcplib.CallToolResult) {
 					text := mcplib.GetTextFromContent(res.Content[0])
 					require.NotEmpty(t, text)
+				},
+			},
+		},
+		"summary_reports_partial_coverage": {
+			args: args{
+				setupFS: func(t *testing.T) string {
+					projectDir := t.TempDir()
+					require.NoError(t, os.WriteFile(filepath.Join(projectDir, "valid.py"), []byte("VALUE = 1\n"), 0o644))
+					require.NoError(t, os.WriteFile(filepath.Join(projectDir, "broken.py"), []byte("def broken(:\n"), 0o644))
+					return projectDir
+				},
+				arguments: map[string]interface{}{
+					"analyses": []interface{}{"deadcode"},
+				},
+			},
+			want: want{
+				isError: &errFalse,
+				check: func(t *testing.T, res *mcplib.CallToolResult) {
+					text := mcplib.GetTextFromContent(res.Content[0])
+					var result struct {
+						Partial     bool                        `json:"partial"`
+						Diagnostics []domain.AnalysisDiagnostic `json:"diagnostics"`
+						Summary     struct {
+							TotalFiles    int `json:"total_files"`
+							AnalyzedFiles int `json:"analyzed_files"`
+							SkippedFiles  int `json:"skipped_files"`
+						} `json:"summary"`
+					}
+					require.NoError(t, json.Unmarshal([]byte(text), &result))
+					assert.True(t, result.Partial)
+					assert.Equal(t, 2, result.Summary.TotalFiles)
+					assert.Equal(t, 1, result.Summary.AnalyzedFiles)
+					assert.Equal(t, 1, result.Summary.SkippedFiles)
+					require.Len(t, result.Diagnostics, 1)
+					assert.Equal(t, domain.DiagnosticCodeParse, result.Diagnostics[0].Code)
 				},
 			},
 		},

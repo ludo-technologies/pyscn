@@ -120,8 +120,12 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 			"health_score": result.Summary.HealthScore,
 			"grade":        result.Summary.Grade,
 			"is_healthy":   result.Summary.IsHealthy(),
+			"partial":      result.Summary.SkippedFiles > 0,
+			"diagnostics":  result.Diagnostics,
 			"summary": map[string]interface{}{
 				"total_files":           result.Summary.TotalFiles,
+				"analyzed_files":        result.Summary.AnalyzedFiles,
+				"skipped_files":         result.Summary.SkippedFiles,
 				"total_functions":       result.Summary.TotalFunctions,
 				"functions_parsed":      result.Summary.FunctionsParsed,
 				"complexity_score":      result.Summary.ComplexityScore,
