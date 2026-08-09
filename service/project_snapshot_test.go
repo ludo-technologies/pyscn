@@ -64,6 +64,35 @@ func TestProjectSnapshotOptionsSkipRawMetrics(t *testing.T) {
 	}
 }
 
+func TestAnalysisProjectSnapshotKeepsSourceAndModuleScopesDistinct(t *testing.T) {
+	projectRoot := t.TempDir()
+	sourcePath := filepath.Join(projectRoot, "runtime.py")
+	stubPath := filepath.Join(projectRoot, "contract.pyi")
+	if err := os.WriteFile(sourcePath, []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	if err := os.WriteFile(stubPath, []byte("VALUE: int\n"), 0o644); err != nil {
+		t.Fatalf("write stub: %v", err)
+	}
+
+	snapshot := BuildAnalysisProjectSnapshot(
+		context.Background(),
+		[]string{sourcePath},
+		[]string{sourcePath, stubPath},
+		ProjectSnapshotOptions{},
+	)
+	if got := snapshot.Paths(); len(got) != 1 || got[0] != sourcePath {
+		t.Fatalf("expected only the implementation path, got %v", got)
+	}
+	if got := snapshot.analysisProjectFiles(); len(got) != 1 || got[0].Path != sourcePath {
+		t.Fatalf("expected only the implementation file, got %v", got)
+	}
+	modules := snapshot.selectedModuleFiles(&ModuleGraphOptions{IncludePatterns: domain.DefaultPythonModuleIncludePatterns()})
+	if len(modules) != 2 {
+		t.Fatalf("expected source and stub module files, got %d", len(modules))
+	}
+}
+
 func TestProjectSnapshotProjectionDoesNotShareValueNodes(t *testing.T) {
 	sourcePath := filepath.Join(t.TempDir(), "source.py")
 	if err := os.WriteFile(sourcePath, []byte("def call():\n    return target()\n"), 0o644); err != nil {

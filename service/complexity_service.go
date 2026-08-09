@@ -107,7 +107,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 	filesProcessed := 0
 	filesSkipped := 0
 
-	for _, file := range snapshot.files {
+	for _, file := range snapshot.analysisProjectFiles() {
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("complexity analysis cancelled: %w", ctx.Err())

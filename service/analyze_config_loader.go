@@ -64,6 +64,7 @@ func defaultAnalyzeExecutionConfig() domain.AnalyzeExecutionConfig {
 		ConfigPath:                   "",
 		IncludePatterns:              domain.DefaultAnalysisIncludePatterns(),
 		ExcludePatterns:              append([]string(nil), defaultCfg.Analysis.ExcludePatterns...),
+		ModulePatterns:               domain.DefaultPythonModuleIncludePatterns(),
 		Recursive:                    defaultCfg.Analysis.Recursive,
 		ShowDetails:                  defaultCfg.Output.ShowDetails,
 		ComplexityEnabled:            defaultCfg.Complexity.Enabled,

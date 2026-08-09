@@ -94,7 +94,7 @@ func (s *DeadCodeServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Pro
 	moduleRollups := make(map[string]domain.ModuleDeadCodeMetrics)
 	filesProcessed := 0
 
-	for _, file := range snapshot.files {
+	for _, file := range snapshot.analysisProjectFiles() {
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("dead code analysis cancelled: %w", ctx.Err())

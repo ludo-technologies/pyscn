@@ -361,7 +361,7 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 	}
 
 	// Validate and collect files using configured patterns
-	files, err := uc.fileReader.CollectPythonFiles(
+	analysisFiles, err := uc.fileReader.CollectPythonFiles(
 		paths,
 		executionCfg.Recursive,
 		executionCfg.IncludePatterns,
@@ -371,18 +371,39 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 		return nil, fmt.Errorf("failed to collect Python files: %w", err)
 	}
 
-	if len(files) == 0 {
+	moduleFiles := analysisFiles
+	if uc.needsModuleGraph(useCaseCfg) {
+		moduleFiles, err = uc.fileReader.CollectPythonFiles(
+			paths,
+			executionCfg.Recursive,
+			executionCfg.ModulePatterns,
+			executionCfg.ExcludePatterns,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to collect Python modules: %w", err)
+		}
+	}
+
+	if len(analysisFiles) == 0 && len(moduleFiles) == 0 {
 		return nil, fmt.Errorf("no Python files found in the specified paths")
 	}
-	files, pathIndex, err := prepareAnalysisPaths(files)
+	analysisFiles, _, err = prepareAnalysisPaths(analysisFiles)
+	if err != nil {
+		return nil, fmt.Errorf("prepare analysis paths: %w", err)
+	}
+	moduleFiles, _, err = prepareAnalysisPaths(moduleFiles)
+	if err != nil {
+		return nil, fmt.Errorf("prepare module paths: %w", err)
+	}
+	allFiles, pathIndex, err := prepareAnalysisPaths(append(append([]string(nil), analysisFiles...), moduleFiles...))
 	if err != nil {
 		return nil, fmt.Errorf("prepare analysis paths: %w", err)
 	}
 	// Estimate per-task durations from file count, then calibrate with actual
 	// timings recorded by previous runs on this project (if any)
-	estimatedSeconds := uc.estimateTaskSeconds(len(files), useCaseCfg, executionCfg)
+	estimatedSeconds := uc.estimateTaskSeconds(len(allFiles), useCaseCfg, executionCfg)
 
-	snapshot := service.BuildProjectSnapshotWithOptions(ctx, files, service.ProjectSnapshotOptions{
+	snapshot := service.BuildAnalysisProjectSnapshot(ctx, analysisFiles, moduleFiles, service.ProjectSnapshotOptions{
 		IncludeRawMetrics: uc.complexityUseCase != nil && !useCaseCfg.SkipComplexity,
 	})
 
@@ -392,7 +413,7 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 		moduleGraph, moduleGraphErr = snapshot.BuildDependencyGraph(ctx, &service.ModuleGraphOptions{
 			ProjectRoot:     service.FindProjectRoot(paths),
 			Graph:           executionCfg.ModuleGraph,
-			IncludePatterns: executionCfg.IncludePatterns,
+			IncludePatterns: executionCfg.ModulePatterns,
 			ExcludePatterns: executionCfg.ExcludePatterns,
 		})
 	}
@@ -408,7 +429,7 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 	}
 
 	// Create analysis tasks
-	tasks := uc.createAnalysisTasks(useCaseCfg, paths, files, snapshot, moduleGraph, moduleGraphErr, executionCfg)
+	tasks := uc.createAnalysisTasks(useCaseCfg, paths, analysisFiles, snapshot, moduleGraph, moduleGraphErr, executionCfg)
 
 	// Execute tasks in parallel
 	var wg sync.WaitGroup

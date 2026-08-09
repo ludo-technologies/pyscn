@@ -86,7 +86,7 @@ func (s *DIAntipatternServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot
 	var findings []domain.DIAntipatternFinding
 	var failures []domain.AnalysisFailure
 	filesProcessed := 0
-	for _, file := range snapshot.files {
+	for _, file := range snapshot.analysisProjectFiles() {
 		if err := ctx.Err(); err != nil {
 			return nil, fmt.Errorf("di anti-pattern analysis cancelled: %w", err)
 		}

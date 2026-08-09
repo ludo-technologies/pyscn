@@ -20,6 +20,8 @@ type ProjectSnapshot struct {
 	// sealed snapshot state consumed by analyzers.
 	Files              []*ProjectFile
 	files              []*ProjectFile
+	analysisFiles      map[string]struct{}
+	moduleFiles        map[string]struct{}
 	defaultProjectRoot string
 }
 
@@ -75,12 +77,28 @@ func BuildProjectSnapshot(ctx context.Context, paths []string) *ProjectSnapshot 
 
 // BuildProjectSnapshotWithOptions reads and parses each file once with analyzer-scoped caches.
 func BuildProjectSnapshotWithOptions(ctx context.Context, paths []string, options ProjectSnapshotOptions) *ProjectSnapshot {
+	return buildProjectSnapshot(ctx, paths, paths, paths, options)
+}
+
+// BuildAnalysisProjectSnapshot captures the implementation and importable
+// module surfaces once while retaining their distinct analyzer scopes.
+func BuildAnalysisProjectSnapshot(ctx context.Context, analysisPaths, modulePaths []string, options ProjectSnapshotOptions) *ProjectSnapshot {
+	paths := mergeSnapshotPaths(analysisPaths, modulePaths)
+	return buildProjectSnapshot(ctx, paths, analysisPaths, modulePaths, options)
+}
+
+func buildProjectSnapshot(ctx context.Context, paths, analysisPaths, modulePaths []string, options ProjectSnapshotOptions) *ProjectSnapshot {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	defaultProjectRoot, _ := os.Getwd()
-	snapshot := &ProjectSnapshot{files: make([]*ProjectFile, len(paths)), defaultProjectRoot: defaultProjectRoot}
+	snapshot := &ProjectSnapshot{
+		files:              make([]*ProjectFile, len(paths)),
+		analysisFiles:      snapshotPathSet(defaultProjectRoot, analysisPaths),
+		moduleFiles:        snapshotPathSet(defaultProjectRoot, modulePaths),
+		defaultProjectRoot: defaultProjectRoot,
+	}
 	if len(paths) == 0 {
 		snapshot.Files = []*ProjectFile{}
 		return snapshot
@@ -144,7 +162,7 @@ func (s *ProjectSnapshot) Paths() []string {
 
 	paths := make([]string, 0, len(s.files))
 	for _, file := range s.files {
-		if file != nil {
+		if file != nil && s.hasAnalysisFile(file) {
 			paths = append(paths, file.Path)
 		}
 	}
@@ -207,8 +225,9 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 		return nil, fmt.Errorf("build dependency graph: %w", err)
 	}
 
-	parsedModules := make([]analyzer.ParsedModule, 0, len(s.files))
-	for _, file := range s.files {
+	moduleFiles := s.selectedModuleFiles(options)
+	parsedModules := make([]analyzer.ParsedModule, 0, len(moduleFiles))
+	for _, file := range moduleFiles {
 		if !file.Parsed() {
 			continue
 		}
@@ -233,7 +252,7 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 	}
 	analyzerOptions := &analyzer.ModuleAnalysisOptions{
 		ProjectRoot:       projectRoot,
-		ModuleRoots:       capturedModuleRoots(projectRoot, s.files),
+		ModuleRoots:       capturedModuleRoots(projectRoot, moduleFiles),
 		IncludeStdLib:     domain.BoolPtr(graphOptions.IncludeStdLib),
 		IncludeThirdParty: domain.BoolPtr(graphOptions.IncludeThirdParty),
 		FollowRelative:    domain.BoolPtr(graphOptions.FollowRelative),
@@ -253,6 +272,97 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 		policy = options.Graph
 	}
 	return &ProjectModuleGraph{graph: graph, policy: policy}, nil
+}
+
+func (s *ProjectSnapshot) analysisProjectFiles() []*ProjectFile {
+	if s == nil {
+		return nil
+	}
+	files := make([]*ProjectFile, 0, len(s.analysisFiles))
+	for _, file := range s.files {
+		if file != nil && s.hasAnalysisFile(file) {
+			files = append(files, file)
+		}
+	}
+	return files
+}
+
+func (s *ProjectSnapshot) hasAnalysisFile(file *ProjectFile) bool {
+	if s == nil || file == nil {
+		return false
+	}
+	_, ok := s.analysisFiles[file.identityPath]
+	return ok
+}
+
+func (s *ProjectSnapshot) selectedModuleFiles(options *ModuleGraphOptions) []*ProjectFile {
+	if s == nil {
+		return nil
+	}
+	var includePatterns, excludePatterns []string
+	if options != nil {
+		includePatterns = options.IncludePatterns
+		excludePatterns = options.ExcludePatterns
+	}
+	files := make([]*ProjectFile, 0, len(s.moduleFiles))
+	for _, file := range s.files {
+		if file == nil {
+			continue
+		}
+		if _, ok := s.moduleFiles[file.identityPath]; !ok {
+			continue
+		}
+		if !matchesFileSelection(file.identityPath, includePatterns, excludePatterns) {
+			continue
+		}
+		files = append(files, file)
+	}
+	return files
+}
+
+func matchesFileSelection(path string, includePatterns, excludePatterns []string) bool {
+	for _, pattern := range excludePatterns {
+		if patternMatches(pattern, path, true) {
+			return false
+		}
+	}
+	if len(includePatterns) == 0 {
+		return true
+	}
+	for _, pattern := range includePatterns {
+		if patternMatches(pattern, path, false) {
+			return true
+		}
+	}
+	return false
+}
+
+func mergeSnapshotPaths(pathSets ...[]string) []string {
+	paths := make([]string, 0)
+	seen := make(map[string]struct{})
+	for _, pathSet := range pathSets {
+		for _, path := range pathSet {
+			identity, err := filepath.Abs(path)
+			if err != nil {
+				continue
+			}
+			identity = filepath.Clean(identity)
+			if _, duplicate := seen[identity]; duplicate {
+				continue
+			}
+			seen[identity] = struct{}{}
+			paths = append(paths, path)
+		}
+	}
+	return paths
+}
+
+func snapshotPathSet(captureRoot string, paths []string) map[string]struct{} {
+	set := make(map[string]struct{}, len(paths))
+	for _, path := range paths {
+		set[snapshotPath(captureRoot, path)] = struct{}{}
+	}
+	return set
 }
 
 func capturedModuleRoots(projectRoot string, files []*ProjectFile) []string {

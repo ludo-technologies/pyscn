@@ -21,6 +21,7 @@ type AnalyzeExecutionConfig struct {
 
 	IncludePatterns []string
 	ExcludePatterns []string
+	ModulePatterns  []string
 	Recursive       bool
 	ShowDetails     bool
 

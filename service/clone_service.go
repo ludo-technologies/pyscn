@@ -145,7 +145,7 @@ func (s *CloneService) extractFragmentsFromFiles(ctx context.Context, filePaths 
 func (s *CloneService) extractFragmentsFromSnapshot(ctx context.Context, snapshot *ProjectSnapshot, detector *analyzer.CloneDetector) (*fragmentExtraction, error) {
 	extraction := &fragmentExtraction{}
 
-	for _, file := range snapshot.files {
+	for _, file := range snapshot.analysisProjectFiles() {
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("clone analysis cancelled: %w", ctx.Err())
