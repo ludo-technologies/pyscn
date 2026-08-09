@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -75,6 +76,23 @@ func TestAnalyzeUseCase_Execute(t *testing.T) {
 		if response.Summary.DeadCodeEnabled != false {
 			t.Errorf("Expected dead code to be disabled, got %v", response.Summary.DeadCodeEnabled)
 		}
+	}
+}
+
+func TestAnalyzeUseCaseBuilderRejectsStandaloneAnalyzerCollaborator(t *testing.T) {
+	standaloneComplexity := NewComplexityUseCase(
+		service.NewComplexityService(),
+		service.NewFileReader(),
+		service.NewOutputFormatter(),
+		service.NewConfigurationLoader(),
+	)
+
+	_, err := NewAnalyzeUseCaseBuilder().
+		WithFileReader(service.NewFileReader()).
+		WithComplexityUseCase(standaloneComplexity).
+		Build()
+	if err == nil || !strings.Contains(err.Error(), "complexity use case requires a snapshot collaborator") {
+		t.Fatalf("expected aggregate collaborator validation, got %v", err)
 	}
 }
 

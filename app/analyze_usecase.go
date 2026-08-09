@@ -184,6 +184,9 @@ func (b *AnalyzeUseCaseBuilder) Build() (*AnalyzeUseCase, error) {
 	if b.fileReader == nil {
 		return nil, fmt.Errorf("file reader is required")
 	}
+	if err := b.validateAggregateCollaborators(); err != nil {
+		return nil, err
+	}
 	if b.configLoader == nil {
 		b.configLoader = service.NewAnalyzeConfigurationLoader()
 	}
@@ -215,6 +218,31 @@ func (b *AnalyzeUseCaseBuilder) Build() (*AnalyzeUseCase, error) {
 		parallelExecutor:  b.parallelExecutor,
 		errorCategorizer:  b.errorCategorizer,
 	}, nil
+}
+
+func (b *AnalyzeUseCaseBuilder) validateAggregateCollaborators() error {
+	if b.complexityUseCase != nil && b.complexityUseCase.snapshot == nil {
+		return fmt.Errorf("complexity use case requires a snapshot collaborator")
+	}
+	if b.deadCodeUseCase != nil && b.deadCodeUseCase.snapshot == nil {
+		return fmt.Errorf("dead-code use case requires a snapshot collaborator")
+	}
+	if b.cloneUseCase != nil && b.cloneUseCase.snapshot == nil {
+		return fmt.Errorf("clone use case requires a snapshot collaborator")
+	}
+	if b.cboUseCase != nil && b.cboUseCase.snapshot == nil {
+		return fmt.Errorf("cbo use case requires a snapshot collaborator")
+	}
+	if b.lcomUseCase != nil && b.lcomUseCase.snapshot == nil {
+		return fmt.Errorf("lcom use case requires a snapshot collaborator")
+	}
+	if b.systemUseCase != nil && b.systemUseCase.graphService == nil {
+		return fmt.Errorf("system use case requires a graph collaborator")
+	}
+	if b.communityUseCase != nil && b.communityUseCase.graphService == nil {
+		return fmt.Errorf("community use case requires a graph collaborator")
+	}
+	return nil
 }
 
 // Task names used both for display and as keys for progress estimation
