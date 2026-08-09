@@ -35,6 +35,7 @@ type ProjectSnapshotOptions struct {
 // module graph.
 type ModuleGraphOptions struct {
 	ProjectRoot     string
+	ModuleRoots     []string
 	Graph           domain.ModuleGraphOptions
 	IncludePatterns []string
 	ExcludePatterns []string
@@ -265,7 +266,7 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 	}
 	analyzerOptions := &analyzer.ModuleAnalysisOptions{
 		ProjectRoot:       projectRoot,
-		ModuleRoots:       capturedModuleRoots(projectRoot, moduleFiles),
+		ModuleRoots:       capturedModuleRoots(projectRoot, moduleFiles, moduleRootOptions(options)),
 		IncludeStdLib:     domain.BoolPtr(graphOptions.IncludeStdLib),
 		IncludeThirdParty: domain.BoolPtr(graphOptions.IncludeThirdParty),
 		FollowRelative:    domain.BoolPtr(graphOptions.FollowRelative),
@@ -382,7 +383,14 @@ func snapshotPathSet(captureRoot string, paths []string) map[string]struct{} {
 	return set
 }
 
-func capturedModuleRoots(projectRoot string, files []*ProjectFile) []string {
+func moduleRootOptions(options *ModuleGraphOptions) []string {
+	if options == nil {
+		return nil
+	}
+	return options.ModuleRoots
+}
+
+func capturedModuleRoots(projectRoot string, files []*ProjectFile, preferredRoots []string) []string {
 	absoluteRoot := filepath.Clean(projectRoot)
 	srcRoot := filepath.Join(absoluteRoot, "src")
 	hasSrcModule := false
@@ -401,10 +409,40 @@ func capturedModuleRoots(projectRoot string, files []*ProjectFile) []string {
 			hasSrcPackageInit = true
 		}
 	}
-	if hasSrcModule && !hasSrcPackageInit {
-		return []string{srcRoot, absoluteRoot}
+	roots := make([]string, 0, len(preferredRoots)+2)
+	for _, root := range preferredRoots {
+		root = filepath.Clean(root)
+		if capturedPackageInit(root, files) {
+			root = filepath.Dir(root)
+		}
+		roots = appendUniquePath(roots, root)
 	}
-	return []string{absoluteRoot}
+	if hasSrcModule && !hasSrcPackageInit {
+		roots = appendUniquePath(roots, srcRoot)
+	}
+	return appendUniquePath(roots, absoluteRoot)
+}
+
+func capturedPackageInit(root string, files []*ProjectFile) bool {
+	for _, file := range files {
+		if file == nil || filepath.Dir(file.identityPath) != root {
+			continue
+		}
+		base := filepath.Base(file.identityPath)
+		if base == "__init__.py" || base == "__init__.pyi" {
+			return true
+		}
+	}
+	return false
+}
+
+func appendUniquePath(paths []string, path string) []string {
+	for _, existing := range paths {
+		if existing == path {
+			return paths
+		}
+	}
+	return append(paths, path)
 }
 
 func projectFileProjections(files []*ProjectFile) []*ProjectFile {

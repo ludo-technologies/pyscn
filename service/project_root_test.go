@@ -40,3 +40,13 @@ func TestFindProjectRoot_FromSiblingPackages(t *testing.T) {
 	})
 	assert.Equal(t, root, got)
 }
+
+func TestFindAnalysisRootDoesNotWidenToProjectMarker(t *testing.T) {
+	root := t.TempDir()
+	selected := filepath.Join(root, "fixtures", "cycles")
+	require.NoError(t, os.MkdirAll(selected, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "pyproject.toml"), []byte("[project]\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(selected, "a.py"), []byte("pass\n"), 0o644))
+
+	assert.Equal(t, selected, FindAnalysisRoot([]string{selected}))
+}
