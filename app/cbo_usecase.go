@@ -16,7 +16,8 @@ type CBOAnalysisService interface {
 
 // CBOUseCase orchestrates the CBO analysis workflow
 type CBOUseCase struct {
-	service      CBOAnalysisService
+	service      domain.CBOService
+	snapshot     CBOAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CBOOutputFormatter
 	configLoader domain.CBOConfigurationLoader
@@ -25,7 +26,7 @@ type CBOUseCase struct {
 
 // NewCBOUseCase creates a new CBO use case
 func NewCBOUseCase(
-	service CBOAnalysisService,
+	service domain.CBOService,
 	fileReader domain.FileReader,
 	formatter domain.CBOOutputFormatter,
 	configLoader domain.CBOConfigurationLoader,
@@ -37,6 +38,12 @@ func NewCBOUseCase(
 		configLoader: configLoader,
 		output:       svc.NewFileOutputWriter(nil),
 	}
+}
+
+func NewSnapshotCBOUseCase(service CBOAnalysisService, fileReader domain.FileReader, formatter domain.CBOOutputFormatter, configLoader domain.CBOConfigurationLoader) *CBOUseCase {
+	uc := NewCBOUseCase(service, fileReader, formatter, configLoader)
+	uc.snapshot = service
+	return uc
 }
 
 // prepareAnalysis handles common preparation steps for analysis
@@ -145,7 +152,10 @@ func (uc *CBOUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.
 		return nil, domain.NewInvalidInputError("invalid request", err)
 	}
 
-	response, err := uc.service.AnalyzeSnapshot(ctx, snapshot, finalReq)
+	if uc.snapshot == nil {
+		return nil, domain.NewAnalysisError("CBO analysis failed", fmt.Errorf("snapshot collaborator is required"))
+	}
+	response, err := uc.snapshot.AnalyzeSnapshot(ctx, snapshot, finalReq)
 	if err != nil {
 		return nil, domain.NewAnalysisError("CBO analysis failed", err)
 	}
@@ -312,7 +322,8 @@ func (uc *CBOUseCase) loadAndMergeConfig(req domain.CBORequest) (domain.CBOReque
 
 // CBOUseCaseBuilder provides a builder pattern for creating CBOUseCase
 type CBOUseCaseBuilder struct {
-	service      CBOAnalysisService
+	service      domain.CBOService
+	snapshot     CBOAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CBOOutputFormatter
 	configLoader domain.CBOConfigurationLoader
@@ -325,8 +336,14 @@ func NewCBOUseCaseBuilder() *CBOUseCaseBuilder {
 }
 
 // WithService sets the CBO service
-func (b *CBOUseCaseBuilder) WithService(service CBOAnalysisService) *CBOUseCaseBuilder {
+func (b *CBOUseCaseBuilder) WithService(service domain.CBOService) *CBOUseCaseBuilder {
 	b.service = service
+	return b
+}
+
+func (b *CBOUseCaseBuilder) WithSnapshotService(service CBOAnalysisService) *CBOUseCaseBuilder {
+	b.service = service
+	b.snapshot = service
 	return b
 }
 
@@ -378,6 +395,7 @@ func (b *CBOUseCaseBuilder) Build() (*CBOUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}
@@ -408,6 +426,7 @@ func (b *CBOUseCaseBuilder) BuildWithDefaults() (*CBOUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}

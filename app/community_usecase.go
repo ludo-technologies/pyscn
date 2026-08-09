@@ -18,7 +18,8 @@ type CommunityAnalysisService interface {
 
 // CommunityUseCase orchestrates the community analysis workflow.
 type CommunityUseCase struct {
-	service      CommunityAnalysisService
+	service      domain.CommunityAnalysisService
+	graphService CommunityAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CommunityAnalysisOutputFormatter
 	configLoader domain.CommunityConfigurationLoader
@@ -27,7 +28,7 @@ type CommunityUseCase struct {
 
 // NewCommunityUseCase creates a new community use case.
 func NewCommunityUseCase(
-	service CommunityAnalysisService,
+	service domain.CommunityAnalysisService,
 	fileReader domain.FileReader,
 	formatter domain.CommunityAnalysisOutputFormatter,
 	configLoader domain.CommunityConfigurationLoader,
@@ -39,6 +40,12 @@ func NewCommunityUseCase(
 		configLoader: configLoader,
 		output:       svc.NewFileOutputWriter(nil),
 	}
+}
+
+func NewGraphCommunityUseCase(service CommunityAnalysisService, fileReader domain.FileReader, formatter domain.CommunityAnalysisOutputFormatter, configLoader domain.CommunityConfigurationLoader) *CommunityUseCase {
+	uc := NewCommunityUseCase(service, fileReader, formatter, configLoader)
+	uc.graphService = service
+	return uc
 }
 
 func (uc *CommunityUseCase) prepareAnalysis(ctx context.Context, req domain.CommunityAnalysisRequest) (domain.CommunityAnalysisRequest, error) {
@@ -127,7 +134,10 @@ func (uc *CommunityUseCase) analyzeGraphRequest(ctx context.Context, graph *svc.
 		return nil, domain.NewInvalidInputError("invalid request", err)
 	}
 
-	response, err := uc.service.AnalyzeGraph(ctx, graph, finalReq)
+	if uc.graphService == nil {
+		return nil, domain.NewAnalysisError("community analysis failed", fmt.Errorf("graph collaborator is required"))
+	}
+	response, err := uc.graphService.AnalyzeGraph(ctx, graph, finalReq)
 	if err != nil {
 		return nil, domain.NewAnalysisError("community analysis failed", err)
 	}
@@ -182,7 +192,8 @@ func (uc *CommunityUseCase) loadAndMergeConfig(req domain.CommunityAnalysisReque
 
 // CommunityUseCaseBuilder provides a builder pattern for creating CommunityUseCase.
 type CommunityUseCaseBuilder struct {
-	service      CommunityAnalysisService
+	service      domain.CommunityAnalysisService
+	graphService CommunityAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CommunityAnalysisOutputFormatter
 	configLoader domain.CommunityConfigurationLoader
@@ -194,8 +205,14 @@ func NewCommunityUseCaseBuilder() *CommunityUseCaseBuilder {
 	return &CommunityUseCaseBuilder{}
 }
 
-func (b *CommunityUseCaseBuilder) WithService(service CommunityAnalysisService) *CommunityUseCaseBuilder {
+func (b *CommunityUseCaseBuilder) WithService(service domain.CommunityAnalysisService) *CommunityUseCaseBuilder {
 	b.service = service
+	return b
+}
+
+func (b *CommunityUseCaseBuilder) WithGraphService(service CommunityAnalysisService) *CommunityUseCaseBuilder {
+	b.service = service
+	b.graphService = service
 	return b
 }
 
@@ -236,6 +253,7 @@ func (b *CommunityUseCaseBuilder) Build() (*CommunityUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.graphService = b.graphService
 	if b.output != nil {
 		uc.output = b.output
 	}

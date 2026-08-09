@@ -16,7 +16,8 @@ type LCOMAnalysisService interface {
 
 // LCOMUseCase orchestrates the LCOM analysis workflow
 type LCOMUseCase struct {
-	service      LCOMAnalysisService
+	service      domain.LCOMService
+	snapshot     LCOMAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.LCOMOutputFormatter
 	configLoader domain.LCOMConfigurationLoader
@@ -25,7 +26,7 @@ type LCOMUseCase struct {
 
 // NewLCOMUseCase creates a new LCOM use case
 func NewLCOMUseCase(
-	service LCOMAnalysisService,
+	service domain.LCOMService,
 	fileReader domain.FileReader,
 	formatter domain.LCOMOutputFormatter,
 	configLoader domain.LCOMConfigurationLoader,
@@ -37,6 +38,12 @@ func NewLCOMUseCase(
 		configLoader: configLoader,
 		output:       svc.NewFileOutputWriter(nil),
 	}
+}
+
+func NewSnapshotLCOMUseCase(service LCOMAnalysisService, fileReader domain.FileReader, formatter domain.LCOMOutputFormatter, configLoader domain.LCOMConfigurationLoader) *LCOMUseCase {
+	uc := NewLCOMUseCase(service, fileReader, formatter, configLoader)
+	uc.snapshot = service
+	return uc
 }
 
 // prepareAnalysis handles common preparation steps for analysis.
@@ -127,7 +134,10 @@ func (uc *LCOMUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc
 	}
 	finalReq.Paths = snapshot.Paths()
 
-	response, err := uc.service.AnalyzeSnapshot(ctx, snapshot, finalReq)
+	if uc.snapshot == nil {
+		return nil, domain.NewAnalysisError("LCOM analysis failed", fmt.Errorf("snapshot collaborator is required"))
+	}
+	response, err := uc.snapshot.AnalyzeSnapshot(ctx, snapshot, finalReq)
 	if err != nil {
 		return nil, domain.NewAnalysisError("LCOM analysis failed", err)
 	}
@@ -195,7 +205,8 @@ func (uc *LCOMUseCase) loadAndMergeConfig(req domain.LCOMRequest) (domain.LCOMRe
 
 // LCOMUseCaseBuilder provides a builder pattern for creating LCOMUseCase
 type LCOMUseCaseBuilder struct {
-	service      LCOMAnalysisService
+	service      domain.LCOMService
+	snapshot     LCOMAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.LCOMOutputFormatter
 	configLoader domain.LCOMConfigurationLoader
@@ -208,8 +219,14 @@ func NewLCOMUseCaseBuilder() *LCOMUseCaseBuilder {
 }
 
 // WithService sets the LCOM service
-func (b *LCOMUseCaseBuilder) WithService(service LCOMAnalysisService) *LCOMUseCaseBuilder {
+func (b *LCOMUseCaseBuilder) WithService(service domain.LCOMService) *LCOMUseCaseBuilder {
 	b.service = service
+	return b
+}
+
+func (b *LCOMUseCaseBuilder) WithSnapshotService(service LCOMAnalysisService) *LCOMUseCaseBuilder {
+	b.service = service
+	b.snapshot = service
 	return b
 }
 
@@ -255,6 +272,7 @@ func (b *LCOMUseCaseBuilder) Build() (*LCOMUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}

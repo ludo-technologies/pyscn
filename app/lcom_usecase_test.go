@@ -493,7 +493,7 @@ func TestLCOMUseCase_analyzeSnapshotRequest(t *testing.T) {
 		analysisErr := errors.New("snapshot analysis failed")
 		configLoader.On("LoadDefaultConfig").Return((*domain.LCOMRequest)(nil))
 		service.On("AnalyzeSnapshot", mock.Anything, snapshot, mock.AnythingOfType("domain.LCOMRequest")).Return((*domain.LCOMResponse)(nil), analysisErr)
-		useCase := &LCOMUseCase{service: service, configLoader: configLoader}
+		useCase := &LCOMUseCase{service: service, snapshot: service, configLoader: configLoader}
 
 		response, err := useCase.analyzeSnapshotRequest(context.Background(), snapshot, createValidLCOMRequest())
 
@@ -514,7 +514,7 @@ func TestLCOMUseCase_analyzeSnapshotRequest(t *testing.T) {
 		service.On("AnalyzeSnapshot", mock.Anything, snapshot, mock.MatchedBy(func(req domain.LCOMRequest) bool {
 			return reflect.DeepEqual(req.Paths, snapshot.Paths())
 		})).Return(response, nil)
-		useCase := &LCOMUseCase{service: service, configLoader: configLoader}
+		useCase := &LCOMUseCase{service: service, snapshot: service, configLoader: configLoader}
 
 		result, err := useCase.analyzeSnapshotRequest(context.Background(), snapshot, createValidLCOMRequest())
 

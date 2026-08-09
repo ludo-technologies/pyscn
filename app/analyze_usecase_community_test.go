@@ -18,7 +18,7 @@ func TestAnalyzeUseCase_CommunityTask(t *testing.T) {
 	require.NoError(t, err)
 
 	communityUC, err := NewCommunityUseCaseBuilder().
-		WithService(service.NewCommunityAnalysisService()).
+		WithGraphService(service.NewCommunityAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(noopCommunityFormatter{}).
 		Build()
@@ -63,7 +63,7 @@ enabled = true
 	require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0644))
 
 	communityUC, err := NewCommunityUseCaseBuilder().
-		WithService(service.NewCommunityAnalysisService()).
+		WithGraphService(service.NewCommunityAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(noopCommunityFormatter{}).
 		WithConfigLoader(service.NewCommunityConfigurationLoader()).
@@ -109,7 +109,7 @@ enabled = false
 	require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0644))
 
 	communityUC, err := NewCommunityUseCaseBuilder().
-		WithService(service.NewCommunityAnalysisService()).
+		WithGraphService(service.NewCommunityAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(noopCommunityFormatter{}).
 		WithConfigLoader(service.NewCommunityConfigurationLoader()).
@@ -155,7 +155,7 @@ enabled = true
 	require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0644))
 
 	communityUC, err := NewCommunityUseCaseBuilder().
-		WithService(service.NewCommunityAnalysisService()).
+		WithGraphService(service.NewCommunityAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(noopCommunityFormatter{}).
 		Build()
@@ -191,7 +191,7 @@ enabled = true
 
 func TestAnalyzeUseCase_CommunityTaskSkippedByDefault(t *testing.T) {
 	communityUC, err := NewCommunityUseCaseBuilder().
-		WithService(service.NewCommunityAnalysisService()).
+		WithGraphService(service.NewCommunityAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(noopCommunityFormatter{}).
 		Build()
@@ -227,7 +227,7 @@ func TestAnalyzeUseCase_CommunityTaskSkippedByDefault(t *testing.T) {
 
 func TestAnalyzeUseCase_CommunityTaskRequestUsesDiscardWriter(t *testing.T) {
 	communityUC, err := NewCommunityUseCaseBuilder().
-		WithService(service.NewCommunityAnalysisService()).
+		WithGraphService(service.NewCommunityAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(noopCommunityFormatter{}).
 		Build()

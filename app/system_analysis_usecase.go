@@ -18,7 +18,8 @@ type SystemAnalysisService interface {
 
 // SystemAnalysisUseCase orchestrates the system analysis workflow
 type SystemAnalysisUseCase struct {
-	service      SystemAnalysisService
+	service      domain.SystemAnalysisService
+	graphService SystemAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.SystemAnalysisOutputFormatter
 	configLoader domain.SystemAnalysisConfigurationLoader
@@ -27,7 +28,7 @@ type SystemAnalysisUseCase struct {
 
 // NewSystemAnalysisUseCase creates a new system analysis use case
 func NewSystemAnalysisUseCase(
-	service SystemAnalysisService,
+	service domain.SystemAnalysisService,
 	fileReader domain.FileReader,
 	formatter domain.SystemAnalysisOutputFormatter,
 	configLoader domain.SystemAnalysisConfigurationLoader,
@@ -39,6 +40,12 @@ func NewSystemAnalysisUseCase(
 		configLoader: configLoader,
 		output:       svc.NewFileOutputWriter(nil),
 	}
+}
+
+func NewGraphSystemAnalysisUseCase(service SystemAnalysisService, fileReader domain.FileReader, formatter domain.SystemAnalysisOutputFormatter, configLoader domain.SystemAnalysisConfigurationLoader) *SystemAnalysisUseCase {
+	uc := NewSystemAnalysisUseCase(service, fileReader, formatter, configLoader)
+	uc.graphService = service
+	return uc
 }
 
 // prepareAnalysis handles common preparation steps for analysis
@@ -134,7 +141,10 @@ func (uc *SystemAnalysisUseCase) analyzeGraphRequest(ctx context.Context, graph 
 		return nil, domain.NewInvalidInputError("invalid request", err)
 	}
 
-	response, err := uc.service.AnalyzeGraph(ctx, graph, finalReq)
+	if uc.graphService == nil {
+		return nil, domain.NewAnalysisError("system analysis failed", fmt.Errorf("graph collaborator is required"))
+	}
+	response, err := uc.graphService.AnalyzeGraph(ctx, graph, finalReq)
 	if err != nil {
 		return nil, domain.NewAnalysisError("system analysis failed", err)
 	}
@@ -274,7 +284,8 @@ func (uc *SystemAnalysisUseCase) loadAndMergeConfig(req domain.SystemAnalysisReq
 
 // SystemAnalysisUseCaseBuilder provides a builder pattern for creating SystemAnalysisUseCase
 type SystemAnalysisUseCaseBuilder struct {
-	service      SystemAnalysisService
+	service      domain.SystemAnalysisService
+	graphService SystemAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.SystemAnalysisOutputFormatter
 	configLoader domain.SystemAnalysisConfigurationLoader
@@ -287,8 +298,14 @@ func NewSystemAnalysisUseCaseBuilder() *SystemAnalysisUseCaseBuilder {
 }
 
 // WithService sets the system analysis service
-func (b *SystemAnalysisUseCaseBuilder) WithService(service SystemAnalysisService) *SystemAnalysisUseCaseBuilder {
+func (b *SystemAnalysisUseCaseBuilder) WithService(service domain.SystemAnalysisService) *SystemAnalysisUseCaseBuilder {
 	b.service = service
+	return b
+}
+
+func (b *SystemAnalysisUseCaseBuilder) WithGraphService(service SystemAnalysisService) *SystemAnalysisUseCaseBuilder {
+	b.service = service
+	b.graphService = service
 	return b
 }
 
@@ -340,6 +357,7 @@ func (b *SystemAnalysisUseCaseBuilder) Build() (*SystemAnalysisUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.graphService = b.graphService
 	if b.output != nil {
 		uc.output = b.output
 	}
@@ -370,6 +388,7 @@ func (b *SystemAnalysisUseCaseBuilder) BuildWithDefaults() (*SystemAnalysisUseCa
 		b.formatter,
 		b.configLoader,
 	)
+	uc.graphService = b.graphService
 	if b.output != nil {
 		uc.output = b.output
 	}

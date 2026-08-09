@@ -38,7 +38,7 @@ func TestAnalyzeUseCase_Execute(t *testing.T) {
 	complexityService := service.NewComplexityService()
 	complexityFormatter := service.NewOutputFormatter()
 	complexityConfigLoader := service.NewConfigurationLoader()
-	complexityUseCase := NewComplexityUseCase(
+	complexityUseCase := NewSnapshotComplexityUseCase(
 		complexityService,
 		service.NewFileReader(),
 		complexityFormatter,
@@ -86,7 +86,7 @@ func TestAnalyzeUseCase_Execute_ReportsProjectCoverageWithoutComplexity(t *testi
 		t.Fatalf("write broken Python source: %v", err)
 	}
 
-	deadCodeUseCase := NewDeadCodeUseCase(
+	deadCodeUseCase := NewSnapshotDeadCodeUseCase(
 		service.NewDeadCodeService(),
 		service.NewFileReader(),
 		service.NewDeadCodeFormatter(),
@@ -140,7 +140,7 @@ func TestAnalyzeUseCase_Execute_SystemGraphExcludesUnparsedFiles(t *testing.T) {
 	}
 
 	systemUseCase, err := NewSystemAnalysisUseCaseBuilder().
-		WithService(service.NewSystemAnalysisService()).
+		WithGraphService(service.NewSystemAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(service.NewSystemAnalysisFormatter()).
 		WithConfigLoader(service.NewSystemAnalysisConfigurationLoader()).
@@ -221,7 +221,7 @@ func newModuleQualityAnalyzeUseCase(t *testing.T) *AnalyzeUseCase {
 	t.Helper()
 
 	systemUseCase, err := NewSystemAnalysisUseCaseBuilder().
-		WithService(service.NewSystemAnalysisService()).
+		WithGraphService(service.NewSystemAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(service.NewSystemAnalysisFormatter()).
 		WithConfigLoader(service.NewSystemAnalysisConfigurationLoader()).
@@ -237,7 +237,7 @@ func newModuleQualityAnalyzeUseCase(t *testing.T) *AnalyzeUseCase {
 		WithParallelExecutor(service.NewParallelExecutor()).
 		WithErrorCategorizer(service.NewErrorCategorizer()).
 		WithSystemUseCase(systemUseCase).
-		WithComplexityUseCase(NewComplexityUseCase(
+		WithComplexityUseCase(NewSnapshotComplexityUseCase(
 			service.NewComplexityService(),
 			service.NewFileReader(),
 			service.NewOutputFormatter(),
@@ -427,7 +427,7 @@ enabled = false
 	builder.WithProgressManager(service.NewProgressManager())
 	builder.WithParallelExecutor(service.NewParallelExecutor())
 	builder.WithErrorCategorizer(service.NewErrorCategorizer())
-	builder.WithComplexityUseCase(NewComplexityUseCase(
+	builder.WithComplexityUseCase(NewSnapshotComplexityUseCase(
 		service.NewComplexityService(),
 		service.NewFileReader(),
 		service.NewOutputFormatter(),
@@ -738,7 +738,7 @@ show_content = true
 	builder.WithErrorCategorizer(service.NewErrorCategorizer())
 
 	cloneUseCase, err := NewCloneUseCaseBuilder().
-		WithService(service.NewCloneService()).
+		WithSnapshotService(service.NewCloneService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(service.NewCloneOutputFormatter()).
 		WithConfigLoader(service.NewCloneConfigurationLoader()).

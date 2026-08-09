@@ -18,7 +18,8 @@ type ComplexityAnalysisService interface {
 
 // ComplexityUseCase orchestrates the complexity analysis workflow
 type ComplexityUseCase struct {
-	service      ComplexityAnalysisService
+	service      domain.ComplexityService
+	snapshot     ComplexityAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.OutputFormatter
 	configLoader domain.ConfigurationLoader
@@ -27,7 +28,7 @@ type ComplexityUseCase struct {
 
 // NewComplexityUseCase creates a new complexity use case
 func NewComplexityUseCase(
-	service ComplexityAnalysisService,
+	service domain.ComplexityService,
 	fileReader domain.FileReader,
 	formatter domain.OutputFormatter,
 	configLoader domain.ConfigurationLoader,
@@ -39,6 +40,14 @@ func NewComplexityUseCase(
 		configLoader: configLoader,
 		output:       svc.NewFileOutputWriter(nil),
 	}
+}
+
+// NewSnapshotComplexityUseCase constructs the aggregate-analysis variant with
+// an explicit snapshot collaborator.
+func NewSnapshotComplexityUseCase(service ComplexityAnalysisService, fileReader domain.FileReader, formatter domain.OutputFormatter, configLoader domain.ConfigurationLoader) *ComplexityUseCase {
+	uc := NewComplexityUseCase(service, fileReader, formatter, configLoader)
+	uc.snapshot = service
+	return uc
 }
 
 // Execute performs the complete complexity analysis workflow
@@ -185,7 +194,10 @@ func (uc *ComplexityUseCase) analyzeSnapshotRequest(ctx context.Context, snapsho
 	}
 
 	req.Paths = snapshot.Paths()
-	response, err := uc.service.AnalyzeSnapshot(ctx, snapshot, req)
+	if uc.snapshot == nil {
+		return nil, domain.NewAnalysisError("complexity analysis failed", fmt.Errorf("snapshot collaborator is required"))
+	}
+	response, err := uc.snapshot.AnalyzeSnapshot(ctx, snapshot, req)
 	if err != nil {
 		return nil, domain.NewAnalysisError("complexity analysis failed", err)
 	}
@@ -358,7 +370,8 @@ func (uc *ComplexityUseCase) loadAndMergeConfig(req domain.ComplexityRequest) (d
 
 // ComplexityUseCaseBuilder provides a builder pattern for creating ComplexityUseCase
 type ComplexityUseCaseBuilder struct {
-	service      ComplexityAnalysisService
+	service      domain.ComplexityService
+	snapshot     ComplexityAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.OutputFormatter
 	configLoader domain.ConfigurationLoader
@@ -371,8 +384,14 @@ func NewComplexityUseCaseBuilder() *ComplexityUseCaseBuilder {
 }
 
 // WithService sets the complexity service
-func (b *ComplexityUseCaseBuilder) WithService(service ComplexityAnalysisService) *ComplexityUseCaseBuilder {
+func (b *ComplexityUseCaseBuilder) WithService(service domain.ComplexityService) *ComplexityUseCaseBuilder {
 	b.service = service
+	return b
+}
+
+func (b *ComplexityUseCaseBuilder) WithSnapshotService(service ComplexityAnalysisService) *ComplexityUseCaseBuilder {
+	b.service = service
+	b.snapshot = service
 	return b
 }
 
@@ -424,6 +443,7 @@ func (b *ComplexityUseCaseBuilder) Build() (*ComplexityUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}
@@ -454,6 +474,7 @@ func (b *ComplexityUseCaseBuilder) BuildWithDefaults() (*ComplexityUseCase, erro
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}

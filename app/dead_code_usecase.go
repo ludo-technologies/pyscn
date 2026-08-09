@@ -18,7 +18,8 @@ type DeadCodeAnalysisService interface {
 
 // DeadCodeUseCase orchestrates the dead code analysis workflow
 type DeadCodeUseCase struct {
-	service      DeadCodeAnalysisService
+	service      domain.DeadCodeService
+	snapshot     DeadCodeAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.DeadCodeFormatter
 	configLoader domain.DeadCodeConfigurationLoader
@@ -27,7 +28,7 @@ type DeadCodeUseCase struct {
 
 // NewDeadCodeUseCase creates a new dead code use case
 func NewDeadCodeUseCase(
-	service DeadCodeAnalysisService,
+	service domain.DeadCodeService,
 	fileReader domain.FileReader,
 	formatter domain.DeadCodeFormatter,
 	configLoader domain.DeadCodeConfigurationLoader,
@@ -39,6 +40,12 @@ func NewDeadCodeUseCase(
 		configLoader: configLoader,
 		output:       svc.NewFileOutputWriter(nil),
 	}
+}
+
+func NewSnapshotDeadCodeUseCase(service DeadCodeAnalysisService, fileReader domain.FileReader, formatter domain.DeadCodeFormatter, configLoader domain.DeadCodeConfigurationLoader) *DeadCodeUseCase {
+	uc := NewDeadCodeUseCase(service, fileReader, formatter, configLoader)
+	uc.snapshot = service
+	return uc
 }
 
 // Execute performs the complete dead code analysis workflow
@@ -172,7 +179,10 @@ func (uc *DeadCodeUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot 
 		return nil, domain.NewInvalidInputError("invalid request", err)
 	}
 
-	response, err := uc.service.AnalyzeSnapshot(ctx, snapshot, finalReq)
+	if uc.snapshot == nil {
+		return nil, domain.NewAnalysisError("dead code analysis failed", fmt.Errorf("snapshot collaborator is required"))
+	}
+	response, err := uc.snapshot.AnalyzeSnapshot(ctx, snapshot, finalReq)
 	if err != nil {
 		return nil, domain.NewAnalysisError("dead code analysis failed", err)
 	}
@@ -337,7 +347,8 @@ func (uc *DeadCodeUseCase) loadAndMergeConfig(req domain.DeadCodeRequest) (domai
 
 // DeadCodeUseCaseBuilder provides a builder pattern for creating DeadCodeUseCase
 type DeadCodeUseCaseBuilder struct {
-	service      DeadCodeAnalysisService
+	service      domain.DeadCodeService
+	snapshot     DeadCodeAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.DeadCodeFormatter
 	configLoader domain.DeadCodeConfigurationLoader
@@ -350,8 +361,14 @@ func NewDeadCodeUseCaseBuilder() *DeadCodeUseCaseBuilder {
 }
 
 // WithService sets the dead code service
-func (b *DeadCodeUseCaseBuilder) WithService(service DeadCodeAnalysisService) *DeadCodeUseCaseBuilder {
+func (b *DeadCodeUseCaseBuilder) WithService(service domain.DeadCodeService) *DeadCodeUseCaseBuilder {
 	b.service = service
+	return b
+}
+
+func (b *DeadCodeUseCaseBuilder) WithSnapshotService(service DeadCodeAnalysisService) *DeadCodeUseCaseBuilder {
+	b.service = service
+	b.snapshot = service
 	return b
 }
 
@@ -403,6 +420,7 @@ func (b *DeadCodeUseCaseBuilder) Build() (*DeadCodeUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}
@@ -433,6 +451,7 @@ func (b *DeadCodeUseCaseBuilder) BuildWithDefaults() (*DeadCodeUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}

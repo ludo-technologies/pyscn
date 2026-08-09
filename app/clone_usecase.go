@@ -17,7 +17,8 @@ type CloneAnalysisService interface {
 
 // CloneUseCase orchestrates clone detection operations
 type CloneUseCase struct {
-	service      CloneAnalysisService
+	service      domain.CloneService
+	snapshot     CloneAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CloneOutputFormatter
 	configLoader domain.CloneConfigurationLoader
@@ -26,7 +27,7 @@ type CloneUseCase struct {
 
 // NewCloneUseCase creates a new clone use case with the given dependencies
 func NewCloneUseCase(
-	service CloneAnalysisService,
+	service domain.CloneService,
 	fileReader domain.FileReader,
 	formatter domain.CloneOutputFormatter,
 	configLoader domain.CloneConfigurationLoader,
@@ -39,6 +40,12 @@ func NewCloneUseCase(
 		// Default implementation; CLI may override via builder
 		output: svc.NewFileOutputWriter(nil),
 	}
+}
+
+func NewSnapshotCloneUseCase(service CloneAnalysisService, fileReader domain.FileReader, formatter domain.CloneOutputFormatter, configLoader domain.CloneConfigurationLoader) *CloneUseCase {
+	uc := NewCloneUseCase(service, fileReader, formatter, configLoader)
+	uc.snapshot = service
+	return uc
 }
 
 // Execute executes the clone detection use case
@@ -171,7 +178,10 @@ func (uc *CloneUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *sv
 		return nil, fmt.Errorf("invalid request: %w", err)
 	}
 
-	response, err := uc.service.AnalyzeSnapshot(ctx, snapshot, &finalReq)
+	if uc.snapshot == nil {
+		return nil, fmt.Errorf("snapshot collaborator is required")
+	}
+	response, err := uc.snapshot.AnalyzeSnapshot(ctx, snapshot, &finalReq)
 	if err != nil {
 		return nil, fmt.Errorf("clone detection failed: %w", err)
 	}
@@ -305,7 +315,8 @@ func (uc *CloneUseCase) outputEmptyResults(req domain.CloneRequest) error {
 
 // CloneUseCaseBuilder helps build CloneUseCase with dependencies
 type CloneUseCaseBuilder struct {
-	service      CloneAnalysisService
+	service      domain.CloneService
+	snapshot     CloneAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CloneOutputFormatter
 	configLoader domain.CloneConfigurationLoader
@@ -318,8 +329,14 @@ func NewCloneUseCaseBuilder() *CloneUseCaseBuilder {
 }
 
 // WithService sets the clone service
-func (b *CloneUseCaseBuilder) WithService(service CloneAnalysisService) *CloneUseCaseBuilder {
+func (b *CloneUseCaseBuilder) WithService(service domain.CloneService) *CloneUseCaseBuilder {
 	b.service = service
+	return b
+}
+
+func (b *CloneUseCaseBuilder) WithSnapshotService(service CloneAnalysisService) *CloneUseCaseBuilder {
+	b.service = service
+	b.snapshot = service
 	return b
 }
 
@@ -368,6 +385,7 @@ func (b *CloneUseCaseBuilder) Build() (*CloneUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}

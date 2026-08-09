@@ -327,7 +327,7 @@ func buildIndividualUseCases(builder *app.AnalyzeUseCaseBuilder) error {
 	complexityService := service.NewComplexityService()
 	complexityFormatter := service.NewOutputFormatter()
 	complexityConfigLoader := service.NewConfigurationLoader()
-	complexityUseCase := app.NewComplexityUseCase(
+	complexityUseCase := app.NewSnapshotComplexityUseCase(
 		complexityService,
 		service.NewFileReader(),
 		complexityFormatter,
@@ -339,7 +339,7 @@ func buildIndividualUseCases(builder *app.AnalyzeUseCaseBuilder) error {
 	deadCodeService := service.NewDeadCodeService()
 	deadCodeFormatter := service.NewDeadCodeFormatter()
 	deadCodeConfigLoader := service.NewDeadCodeConfigurationLoader()
-	deadCodeUseCase := app.NewDeadCodeUseCase(
+	deadCodeUseCase := app.NewSnapshotDeadCodeUseCase(
 		deadCodeService,
 		service.NewFileReader(),
 		deadCodeFormatter,
@@ -352,7 +352,7 @@ func buildIndividualUseCases(builder *app.AnalyzeUseCaseBuilder) error {
 	cloneFormatter := service.NewCloneOutputFormatter()
 	cloneConfigLoader := service.NewCloneConfigurationLoader()
 	cloneUseCase, err := app.NewCloneUseCaseBuilder().
-		WithService(cloneService).
+		WithSnapshotService(cloneService).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(cloneFormatter).
 		WithConfigLoader(cloneConfigLoader).
@@ -367,7 +367,7 @@ func buildIndividualUseCases(builder *app.AnalyzeUseCaseBuilder) error {
 	cboFormatter := service.NewCBOFormatter()
 	cboConfigLoader := service.NewCBOConfigurationLoader()
 	cboUseCase, err := app.NewCBOUseCaseBuilder().
-		WithService(cboService).
+		WithSnapshotService(cboService).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(cboFormatter).
 		WithConfigLoader(cboConfigLoader).
@@ -382,7 +382,7 @@ func buildIndividualUseCases(builder *app.AnalyzeUseCaseBuilder) error {
 	lcomFormatter := service.NewLCOMFormatter()
 	lcomConfigLoader := service.NewLCOMConfigurationLoader()
 	lcomUseCase, err := app.NewLCOMUseCaseBuilder().
-		WithService(lcomService).
+		WithSnapshotService(lcomService).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(lcomFormatter).
 		WithConfigLoader(lcomConfigLoader).
@@ -397,7 +397,7 @@ func buildIndividualUseCases(builder *app.AnalyzeUseCaseBuilder) error {
 	systemFormatter := service.NewSystemAnalysisFormatter()
 	systemConfigLoader := service.NewSystemAnalysisConfigurationLoader()
 	systemUseCase, err := app.NewSystemAnalysisUseCaseBuilder().
-		WithService(systemService).
+		WithGraphService(systemService).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(systemFormatter).
 		WithConfigLoader(systemConfigLoader).
@@ -412,7 +412,7 @@ func buildIndividualUseCases(builder *app.AnalyzeUseCaseBuilder) error {
 	communityFormatter := service.NewCommunityFormatter()
 	communityConfigLoader := service.NewCommunityConfigurationLoader()
 	communityUseCase, err := app.NewCommunityUseCaseBuilder().
-		WithService(communityService).
+		WithGraphService(communityService).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(communityFormatter).
 		WithConfigLoader(communityConfigLoader).

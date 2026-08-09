@@ -1356,39 +1356,39 @@ func buildAnalyzeUseCase(fileReader domain.FileReader) (*app.AnalyzeUseCase, err
 	// Build complexity use case
 	complexityService := service.NewComplexityService()
 	complexityFormatter := service.NewOutputFormatter()
-	complexityUC := app.NewComplexityUseCase(complexityService, fileReader, complexityFormatter, complexityConfigLoader)
+	complexityUC := app.NewSnapshotComplexityUseCase(complexityService, fileReader, complexityFormatter, complexityConfigLoader)
 
 	// Build dead code use case
 	deadCodeService := service.NewDeadCodeService()
 	deadCodeFormatter := service.NewDeadCodeFormatter()
-	deadCodeUC := app.NewDeadCodeUseCase(deadCodeService, fileReader, deadCodeFormatter, deadCodeConfigLoader)
+	deadCodeUC := app.NewSnapshotDeadCodeUseCase(deadCodeService, fileReader, deadCodeFormatter, deadCodeConfigLoader)
 
 	// Build clone use case
 	cloneService := service.NewCloneService()
 	cloneFormatter := service.NewCloneOutputFormatter()
-	cloneUC := app.NewCloneUseCase(cloneService, fileReader, cloneFormatter, cloneConfigLoader)
+	cloneUC := app.NewSnapshotCloneUseCase(cloneService, fileReader, cloneFormatter, cloneConfigLoader)
 
 	// Build CBO use case
 	cboService := service.NewCBOService()
 	cboFormatter := service.NewCBOFormatter()
-	cboUC := app.NewCBOUseCase(cboService, fileReader, cboFormatter, service.NewCBOConfigurationLoader())
+	cboUC := app.NewSnapshotCBOUseCase(cboService, fileReader, cboFormatter, service.NewCBOConfigurationLoader())
 
 	// Build LCOM use case
 	lcomService := service.NewLCOMService()
 	lcomFormatter := service.NewLCOMFormatter()
 	lcomConfigLoader := service.NewLCOMConfigurationLoader()
-	lcomUC := app.NewLCOMUseCase(lcomService, fileReader, lcomFormatter, lcomConfigLoader)
+	lcomUC := app.NewSnapshotLCOMUseCase(lcomService, fileReader, lcomFormatter, lcomConfigLoader)
 
 	// Build system analysis use case
 	systemService := service.NewSystemAnalysisService()
 	systemFormatter := service.NewSystemAnalysisFormatter()
-	systemUC := app.NewSystemAnalysisUseCase(systemService, fileReader, systemFormatter, systemConfigLoader)
+	systemUC := app.NewGraphSystemAnalysisUseCase(systemService, fileReader, systemFormatter, systemConfigLoader)
 
 	// Build community analysis use case
 	communityService := service.NewCommunityAnalysisService()
 	communityFormatter := service.NewCommunityFormatter()
 	communityUC, err := app.NewCommunityUseCaseBuilder().
-		WithService(communityService).
+		WithGraphService(communityService).
 		WithFileReader(fileReader).
 		WithFormatter(communityFormatter).
 		Build()
