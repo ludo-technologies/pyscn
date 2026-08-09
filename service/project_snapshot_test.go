@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 func TestProjectSnapshotCachesParsedFileState(t *testing.T) {
@@ -60,6 +61,29 @@ func TestProjectSnapshotOptionsSkipRawMetrics(t *testing.T) {
 	}
 	if _, err := file.CFGs(); err != nil {
 		t.Fatalf("expected CFGs without raw metrics: %v", err)
+	}
+}
+
+func TestProjectSnapshotProjectionDoesNotShareValueNodes(t *testing.T) {
+	sourcePath := filepath.Join(t.TempDir(), "source.py")
+	if err := os.WriteFile(sourcePath, []byte("def call():\n    return target()\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	snapshot := BuildProjectSnapshot(context.Background(), []string{sourcePath})
+
+	projectedCalls := snapshot.Files[0].AST.FindByType(parser.NodeCall)
+	internalCalls := snapshot.files[0].AST.FindByType(parser.NodeCall)
+	if len(projectedCalls) != 1 || len(internalCalls) != 1 {
+		t.Fatalf("expected one call in each AST, got projected=%d internal=%d", len(projectedCalls), len(internalCalls))
+	}
+	projectedCallee, projectedOK := projectedCalls[0].Value.(*parser.Node)
+	internalCallee, internalOK := internalCalls[0].Value.(*parser.Node)
+	if !projectedOK || !internalOK {
+		t.Fatal("expected node-valued call targets")
+	}
+	projectedCallee.Name = "mutated"
+	if internalCallee.Name != "target" {
+		t.Fatalf("public projection mutated sealed syntax to %q", internalCallee.Name)
 	}
 }
 

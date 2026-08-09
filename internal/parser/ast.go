@@ -155,6 +155,9 @@ func CloneNode(root *Node) *Node {
 		copied := *node
 		clones[node] = &copied
 		copied.Names = append([]string(nil), node.Names...)
+		if valueNode, ok := node.Value.(*Node); ok {
+			copied.Value = clone(valueNode)
+		}
 		copied.Parent = clone(node.Parent)
 		copied.Target = clone(node.Target)
 		copied.Left = clone(node.Left)
