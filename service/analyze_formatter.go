@@ -68,7 +68,15 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 	fmt.Fprint(writer, utils.FormatFileStats(
 		response.Summary.AnalyzedFiles,
 		response.Summary.TotalFiles,
-		response.Summary.TotalFiles-response.Summary.AnalyzedFiles))
+		response.Summary.SkippedFiles))
+
+	if len(response.Diagnostics) > 0 {
+		fmt.Fprint(writer, utils.FormatSectionHeader("ANALYSIS DIAGNOSTICS"))
+		for _, diagnostic := range response.Diagnostics {
+			fmt.Fprintf(writer, "  %s [%s]: %s\n", diagnostic.FilePath, diagnostic.Code, diagnostic.Message)
+		}
+		fmt.Fprint(writer, utils.FormatSectionSeparator())
+	}
 
 	// Analysis modules results
 	if response.Summary.ComplexityEnabled {
@@ -151,7 +159,7 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	if response.Complexity != nil {
 		directories = response.Complexity.ByDirectory
 	}
-	rowCapacity := 16 + (12 * len(response.ModuleQuality))
+	rowCapacity := 17 + len(response.Diagnostics) + (12 * len(response.ModuleQuality))
 	if response.Complexity != nil {
 		rowCapacity += 1 + (7 * len(directories))
 	}
@@ -165,6 +173,7 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 		[]string{"Grade", response.Summary.Grade},
 		[]string{"Total Files", fmt.Sprint(response.Summary.TotalFiles)},
 		[]string{"Analyzed Files", fmt.Sprint(response.Summary.AnalyzedFiles)},
+		[]string{"Skipped Files", fmt.Sprint(response.Summary.SkippedFiles)},
 		[]string{"Average Complexity", fmt.Sprintf("%.2f", response.Summary.AverageComplexity)},
 		[]string{"High Complexity Count", fmt.Sprint(response.Summary.HighComplexityCount)},
 		[]string{"Dead Code Count", fmt.Sprint(response.Summary.DeadCodeCount)},
@@ -177,6 +186,9 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 		[]string{"Average CBO", fmt.Sprintf("%.2f", response.Summary.AverageCoupling)},
 		[]string{"Module Quality Count", fmt.Sprint(len(response.ModuleQuality))},
 	)
+	for _, diagnostic := range response.Diagnostics {
+		rows = append(rows, []string{"Diagnostic", fmt.Sprintf("%s [%s]: %s", diagnostic.FilePath, diagnostic.Code, diagnostic.Message)})
+	}
 
 	for index, module := range response.ModuleQuality {
 		prefix := fmt.Sprintf("Module %d ", index+1)
@@ -784,6 +796,10 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         <div class="metric-label">Analyzed Files</div>
                     </div>
                     <div class="metric-card">
+                        <div class="metric-value">{{.Summary.SkippedFiles}}</div>
+                        <div class="metric-label">Skipped Files</div>
+                    </div>
+                    <div class="metric-card">
                         <div class="metric-value">{{printf "%.2f" .Summary.AverageComplexity}}</div>
                         <div class="metric-label">Avg Complexity</div>
                     </div>
@@ -828,6 +844,20 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </div>
                     {{end}}
                 </div>
+
+                {{if .Diagnostics}}
+                <h3 style="margin-top: 24px; margin-bottom: 16px; color: var(--color-text);">Analysis Diagnostics</h3>
+                <table class="table">
+                    <thead>
+                        <tr><th>File</th><th>Code</th><th>Message</th></tr>
+                    </thead>
+                    <tbody>
+                        {{range .Diagnostics}}
+                        <tr><td>{{.FilePath}}</td><td>{{.Code}}</td><td>{{.Message}}</td></tr>
+                        {{end}}
+                    </tbody>
+                </table>
+                {{end}}
 
                 {{/* System-level quick glance */}}
                 {{if .System}}
