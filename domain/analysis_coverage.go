@@ -43,6 +43,61 @@ type AnalysisFailure struct {
 	Message  string              `json:"message" yaml:"message"`
 }
 
+// AnalysisErrorReporter is implemented by analyzer responses that can carry
+// partial results alongside execution errors.
+type AnalysisErrorReporter interface {
+	AnalysisErrors() []string
+}
+
+func (r *ComplexityResponse) AnalysisErrors() []string {
+	if r == nil {
+		return nil
+	}
+	return r.Errors
+}
+
+func (r *DeadCodeResponse) AnalysisErrors() []string {
+	if r == nil {
+		return nil
+	}
+	return r.Errors
+}
+
+func (r *CloneResponse) AnalysisErrors() []string {
+	if r == nil {
+		return nil
+	}
+	return r.Errors
+}
+
+func (r *CBOResponse) AnalysisErrors() []string {
+	if r == nil {
+		return nil
+	}
+	return r.Errors
+}
+
+func (r *LCOMResponse) AnalysisErrors() []string {
+	if r == nil {
+		return nil
+	}
+	return r.Errors
+}
+
+func (r *SystemAnalysisResponse) AnalysisErrors() []string {
+	if r == nil {
+		return nil
+	}
+	return r.Errors
+}
+
+func (r *CommunityAnalysisResult) AnalysisErrors() []string {
+	if r == nil {
+		return nil
+	}
+	return r.Errors
+}
+
 // AnalysisCoverage records how much of the discovered project was analyzed.
 type AnalysisCoverage struct {
 	TotalFiles    int
