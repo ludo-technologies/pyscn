@@ -393,6 +393,9 @@ func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, er
 	if err != nil {
 		return 0, err
 	}
+	if err := c.reportAnalysisFailures(cmd.ErrOrStderr(), response.Failures); err != nil {
+		return 0, err
+	}
 
 	// Count and output issues
 	issueCount := 0
@@ -452,8 +455,23 @@ func (c *CheckCommand) checkDIAntipatterns(cmd *cobra.Command, args []string) (i
 	if err != nil {
 		return 0, err
 	}
+	if err := c.reportAnalysisFailures(cmd.ErrOrStderr(), response.Failures); err != nil {
+		return 0, err
+	}
 
 	return c.countDIAntipatternIssues(cmd.ErrOrStderr(), response)
+}
+
+func (c *CheckCommand) reportAnalysisFailures(writer io.Writer, failures []domain.AnalysisFailure) error {
+	if len(failures) == 0 {
+		return nil
+	}
+	if !c.quiet {
+		for _, failure := range failures {
+			fmt.Fprintf(writer, "%s: %s: %s\n", failure.FilePath, failure.Code, failure.Message)
+		}
+	}
+	return fmt.Errorf("%d analyzer execution failure(s)", len(failures))
 }
 
 func (c *CheckCommand) countDIAntipatternIssues(writer io.Writer, response *domain.DIAntipatternResponse) (int, error) {

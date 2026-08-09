@@ -144,6 +144,10 @@ type DIAntipatternResponse struct {
 
 	// Errors contains errors encountered during analysis
 	Errors []string `json:"errors,omitempty"`
+	// Diagnostics contains typed file read and parse failures.
+	Diagnostics []AnalysisDiagnostic `json:"diagnostics,omitempty"`
+	// Failures contains DI calculation failures.
+	Failures []AnalysisFailure `json:"failures,omitempty"`
 
 	// Metadata
 	GeneratedAt string      `json:"generated_at"`

@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 var errQualityIssuesFixture = errors.New("found 3 quality issue(s)")
@@ -178,6 +180,25 @@ func TestCheckSelectDependenciesOverridesDisabledConfig(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "circular dependency detected") {
 		t.Fatalf("expected circular dependency diagnostic, got: %s", stderr.String())
+	}
+}
+
+func TestCheckReportsTypedAnalyzerFailures(t *testing.T) {
+	checkCmd := NewCheckCommand()
+	var output bytes.Buffer
+	failure := domain.AnalysisFailure{
+		Analysis: domain.AnalysisKindDI,
+		Code:     domain.AnalysisFailureCodeExecution,
+		Message:  "calculation failed",
+		FilePath: "service.py",
+	}
+
+	err := checkCmd.reportAnalysisFailures(&output, []domain.AnalysisFailure{failure})
+	if err == nil {
+		t.Fatal("expected analyzer failure to fail the check")
+	}
+	if !strings.Contains(output.String(), "service.py: execution_error: calculation failed") {
+		t.Fatalf("expected typed analyzer failure output, got %q", output.String())
 	}
 }
 

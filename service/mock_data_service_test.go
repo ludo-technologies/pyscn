@@ -98,3 +98,24 @@ func TestMockDataServiceRejectsInvalidIgnorePattern(t *testing.T) {
 		t.Fatal("expected invalid ignore pattern to return an error")
 	}
 }
+
+func TestMockDataServiceReportsParseDiagnostics(t *testing.T) {
+	sourcePath := filepath.Join(t.TempDir(), "broken.py")
+	if err := os.WriteFile(sourcePath, []byte("def broken(:\n"), 0o644); err != nil {
+		t.Fatalf("write broken source: %v", err)
+	}
+	req := *domain.DefaultMockDataRequest()
+	req.Paths = []string{sourcePath}
+	req.IgnoreTests = domain.BoolPtr(false)
+
+	response, err := NewMockDataService().Analyze(context.Background(), req)
+	if err != nil {
+		t.Fatalf("analyze broken source: %v", err)
+	}
+	if len(response.Diagnostics) != 1 || response.Diagnostics[0].Code != domain.DiagnosticCodeParse {
+		t.Fatalf("expected typed parse diagnostic, got %+v", response.Diagnostics)
+	}
+	if len(response.Failures) != 0 {
+		t.Fatalf("parse diagnostics must not be execution failures: %+v", response.Failures)
+	}
+}

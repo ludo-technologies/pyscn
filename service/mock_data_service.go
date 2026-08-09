@@ -41,6 +41,7 @@ func (s *MockDataServiceImpl) Analyze(ctx context.Context, req domain.MockDataRe
 	var allFiles []domain.FileMockData
 	var warnings []string
 	var errors []string
+	var diagnostics []domain.AnalysisDiagnostic
 	filesProcessed := 0
 	detector := s.detectorForRequest(req)
 	ignorePatterns, err := compileMockDataIgnorePatterns(req.IgnorePatterns)
@@ -67,10 +68,11 @@ func (s *MockDataServiceImpl) Analyze(ctx context.Context, req domain.MockDataRe
 		}
 
 		// Analyze single file
-		fileResult, fileWarnings, fileErrors := s.analyzeFile(ctx, filePath, req, detector)
+		fileResult, fileWarnings, fileDiagnostics := s.analyzeFile(ctx, filePath, req, detector)
 
-		if len(fileErrors) > 0 {
-			errors = append(errors, fileErrors...)
+		if len(fileDiagnostics) > 0 {
+			diagnostics = append(diagnostics, fileDiagnostics...)
+			errors = append(errors, diagnosticMessages(fileDiagnostics)...)
 			continue // Skip this file but continue with others
 		}
 
@@ -95,6 +97,7 @@ func (s *MockDataServiceImpl) Analyze(ctx context.Context, req domain.MockDataRe
 		Summary:     summary,
 		Warnings:    warnings,
 		Errors:      errors,
+		Diagnostics: diagnostics,
 		GeneratedAt: time.Now().Format(time.RFC3339),
 		Version:     version.Version,
 		Config:      s.buildConfigForResponse(req),
@@ -112,32 +115,32 @@ func (s *MockDataServiceImpl) AnalyzeFile(ctx context.Context, filePath string, 
 		return &domain.FileMockData{FilePath: filePath}, nil
 	}
 
-	fileResult, _, fileErrors := s.analyzeFile(ctx, filePath, req, s.detectorForRequest(req))
+	fileResult, _, diagnostics := s.analyzeFile(ctx, filePath, req, s.detectorForRequest(req))
 
-	if len(fileErrors) > 0 {
-		return nil, domain.NewAnalysisError(fmt.Sprintf("failed to analyze file %s", filePath), fmt.Errorf("%v", fileErrors))
+	if len(diagnostics) > 0 {
+		return nil, domain.NewAnalysisError(fmt.Sprintf("failed to analyze file %s", filePath), fmt.Errorf("%v", diagnosticMessages(diagnostics)))
 	}
 
 	return fileResult, nil
 }
 
 // analyzeFile performs mock data analysis on a single file
-func (s *MockDataServiceImpl) analyzeFile(ctx context.Context, filePath string, req domain.MockDataRequest, detector *mockdetector.Detector) (*domain.FileMockData, []string, []string) {
+func (s *MockDataServiceImpl) analyzeFile(ctx context.Context, filePath string, req domain.MockDataRequest, detector *mockdetector.Detector) (*domain.FileMockData, []string, []domain.AnalysisDiagnostic) {
 	var warnings []string
-	var errors []string
+	var diagnostics []domain.AnalysisDiagnostic
 
 	// Read the file
 	content, err := s.readFile(filePath)
 	if err != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
-		return nil, warnings, errors
+		diagnostics = append(diagnostics, domain.AnalysisDiagnostic{FilePath: filePath, Code: domain.DiagnosticCodeRead, Message: err.Error()})
+		return nil, warnings, diagnostics
 	}
 
 	// Detect mock data
 	result, err := detector.Detect(ctx, content, filePath)
 	if err != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Detection error: %v", filePath, err))
-		return nil, warnings, errors
+		diagnostics = append(diagnostics, domain.AnalysisDiagnostic{FilePath: filePath, Code: domain.DiagnosticCodeParse, Message: err.Error()})
+		return nil, warnings, diagnostics
 	}
 
 	// Update file path in findings
@@ -155,7 +158,7 @@ func (s *MockDataServiceImpl) analyzeFile(ctx context.Context, filePath string, 
 	}
 	fileResult.CalculateSeverityCounts()
 
-	return fileResult, warnings, errors
+	return fileResult, warnings, diagnostics
 }
 
 func (s *MockDataServiceImpl) detectorForRequest(req domain.MockDataRequest) *mockdetector.Detector {

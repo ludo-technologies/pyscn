@@ -28,6 +28,8 @@ const (
 	AnalysisKindLCOM        AnalysisKind = "lcom"
 	AnalysisKindSystem      AnalysisKind = "system"
 	AnalysisKindCommunities AnalysisKind = "communities"
+	AnalysisKindMockData    AnalysisKind = "mockdata"
+	AnalysisKindDI          AnalysisKind = "di"
 )
 
 // AnalysisFailureCode identifies a failure produced while an analyzer runs.
@@ -41,6 +43,7 @@ type AnalysisFailure struct {
 	Analysis AnalysisKind        `json:"analysis" yaml:"analysis"`
 	Code     AnalysisFailureCode `json:"code" yaml:"code"`
 	Message  string              `json:"message" yaml:"message"`
+	FilePath string              `json:"file_path,omitempty" yaml:"file_path,omitempty"`
 }
 
 // AnalysisErrorReporter is implemented by analyzer responses that can carry
