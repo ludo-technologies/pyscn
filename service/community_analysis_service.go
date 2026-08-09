@@ -41,6 +41,9 @@ func (s *CommunityAnalysisServiceImpl) AnalyzeGraph(ctx context.Context, project
 	if projectGraph == nil {
 		return nil, fmt.Errorf("dependency graph is required")
 	}
+	req.IncludeStdLib = domain.BoolPtr(projectGraph.policy.IncludeStdLib)
+	req.IncludeThirdParty = domain.BoolPtr(projectGraph.policy.IncludeThirdParty)
+	req.FollowRelative = domain.BoolPtr(projectGraph.policy.FollowRelative)
 	return s.analyzeGraph(ctx, projectGraph.graph, req)
 }
 

@@ -81,6 +81,8 @@ func TestProjectSnapshotBuildDependencyGraphUsesOnlyCapturedParsedFiles(t *testi
 	}
 
 	snapshot := BuildProjectSnapshotWithOptions(ctx, []string{sourcePath, targetPath, brokenPath}, ProjectSnapshotOptions{})
+	snapshot.Files[0].Path = filepath.Join(projectRoot, "mutated.py")
+	snapshot.Files[0].AST = nil
 	if err := os.WriteFile(sourcePath, []byte("VALUE = 2\n"), 0o644); err != nil {
 		t.Fatalf("replace captured source: %v", err)
 	}

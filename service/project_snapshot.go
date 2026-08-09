@@ -15,9 +15,10 @@ import (
 
 // ProjectSnapshot stores the parsed source needed by multiple analyzers.
 type ProjectSnapshot struct {
-	// Files contains captured project state. Callers must treat the slice and
-	// its entries as read-only after construction.
+	// Files is a compatibility projection. Mutating it does not affect the
+	// sealed snapshot state consumed by analyzers.
 	Files []*ProjectFile
+	files []*ProjectFile
 }
 
 // ProjectSnapshotOptions controls which optional per-file analysis caches are built.
@@ -37,7 +38,8 @@ type ModuleGraphOptions struct {
 // ProjectModuleGraph is an owned graph projection of a project snapshot. Its
 // analyzer representation remains private to the service layer.
 type ProjectModuleGraph struct {
-	graph *analyzer.DependencyGraph
+	graph  *analyzer.DependencyGraph
+	policy domain.ModuleGraphOptions
 }
 
 // Clone returns an independent graph for one analyzer to consume.
@@ -45,7 +47,7 @@ func (g *ProjectModuleGraph) Clone() *ProjectModuleGraph {
 	if g == nil || g.graph == nil {
 		return nil
 	}
-	return &ProjectModuleGraph{graph: g.graph.Clone()}
+	return &ProjectModuleGraph{graph: g.graph.Clone(), policy: g.policy}
 }
 
 // ProjectFile stores one Python file after read and parse.
@@ -73,8 +75,9 @@ func BuildProjectSnapshotWithOptions(ctx context.Context, paths []string, option
 		ctx = context.Background()
 	}
 
-	snapshot := &ProjectSnapshot{Files: make([]*ProjectFile, len(paths))}
+	snapshot := &ProjectSnapshot{files: make([]*ProjectFile, len(paths))}
 	if len(paths) == 0 {
+		snapshot.Files = []*ProjectFile{}
 		return snapshot
 	}
 
@@ -94,7 +97,7 @@ func BuildProjectSnapshotWithOptions(ctx context.Context, paths []string, option
 			pyParser := parser.New()
 			for idx := range jobs {
 				path := paths[idx]
-				snapshot.Files[idx] = buildProjectFile(ctx, pyParser, path, options)
+				snapshot.files[idx] = buildProjectFile(ctx, pyParser, path, options)
 			}
 		}()
 	}
@@ -102,13 +105,13 @@ func BuildProjectSnapshotWithOptions(ctx context.Context, paths []string, option
 	cancelled := false
 	for idx := range paths {
 		if cancelled {
-			snapshot.Files[idx] = cancelledProjectFile(paths[idx], ctx.Err())
+			snapshot.files[idx] = cancelledProjectFile(paths[idx], ctx.Err())
 			continue
 		}
 
 		select {
 		case <-ctx.Done():
-			snapshot.Files[idx] = cancelledProjectFile(paths[idx], ctx.Err())
+			snapshot.files[idx] = cancelledProjectFile(paths[idx], ctx.Err())
 			cancelled = true
 		case jobs <- idx:
 		}
@@ -118,10 +121,11 @@ func BuildProjectSnapshotWithOptions(ctx context.Context, paths []string, option
 	wg.Wait()
 
 	for idx, path := range paths {
-		if snapshot.Files[idx] == nil {
-			snapshot.Files[idx] = cancelledProjectFile(path, ctx.Err())
+		if snapshot.files[idx] == nil {
+			snapshot.files[idx] = cancelledProjectFile(path, ctx.Err())
 		}
 	}
+	snapshot.Files = projectFileProjections(snapshot.files)
 
 	return snapshot
 }
@@ -132,8 +136,8 @@ func (s *ProjectSnapshot) Paths() []string {
 		return nil
 	}
 
-	paths := make([]string, 0, len(s.Files))
-	for _, file := range s.Files {
+	paths := make([]string, 0, len(s.files))
+	for _, file := range s.files {
 		if file != nil {
 			paths = append(paths, file.Path)
 		}
@@ -148,10 +152,10 @@ func (s *ProjectSnapshot) Coverage() domain.AnalysisCoverage {
 	}
 
 	coverage := domain.AnalysisCoverage{
-		TotalFiles:  len(s.Files),
+		TotalFiles:  len(s.files),
 		Diagnostics: make([]domain.AnalysisDiagnostic, 0),
 	}
-	for _, file := range s.Files {
+	for _, file := range s.files {
 		if file == nil {
 			coverage.SkippedFiles++
 			continue
@@ -197,8 +201,8 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 		return nil, fmt.Errorf("build dependency graph: %w", err)
 	}
 
-	parsedModules := make([]analyzer.ParsedModule, 0, len(s.Files))
-	for _, file := range s.Files {
+	parsedModules := make([]analyzer.ParsedModule, 0, len(s.files))
+	for _, file := range s.files {
 		if !file.Parsed() {
 			continue
 		}
@@ -228,7 +232,30 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 	if err != nil {
 		return nil, fmt.Errorf("analyze parsed modules: %w", err)
 	}
-	return &ProjectModuleGraph{graph: graph}, nil
+	policy := domain.ModuleGraphOptions{}
+	if options != nil {
+		policy = options.Graph
+	}
+	return &ProjectModuleGraph{graph: graph, policy: policy}, nil
+}
+
+func projectFileProjections(files []*ProjectFile) []*ProjectFile {
+	projections := make([]*ProjectFile, len(files))
+	for index, file := range files {
+		if file == nil {
+			continue
+		}
+		projection := &ProjectFile{
+			Path:       file.Path,
+			AST:        parser.CloneNode(file.AST),
+			RawMetrics: file.RawMetrics.Clone(),
+			ReadErr:    file.ReadErr,
+			ParseErr:   file.ParseErr,
+			source:     append([]byte(nil), file.source...),
+		}
+		projections[index] = projection
+	}
+	return projections
 }
 
 // Parsed reports whether the file has a valid parsed AST.
