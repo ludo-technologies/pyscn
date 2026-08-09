@@ -220,6 +220,41 @@ func TestHandleAnalyzeCode(t *testing.T) {
 				},
 			},
 		},
+		"summary_preserves_failed_dependency_analysis": {
+			args: args{
+				setupFS: func(t *testing.T) string {
+					projectDir := t.TempDir()
+					require.NoError(t, os.WriteFile(filepath.Join(projectDir, "broken.py"), []byte("def broken(:\n"), 0o644))
+					return projectDir
+				},
+				arguments: map[string]interface{}{
+					"analyses": []interface{}{"deps"},
+				},
+			},
+			want: want{
+				isError: &errFalse,
+				check: func(t *testing.T, res *mcplib.CallToolResult) {
+					text := mcplib.GetTextFromContent(res.Content[0])
+					var result struct {
+						Partial  bool                     `json:"partial"`
+						Failures []domain.AnalysisFailure `json:"failures"`
+						Summary  struct {
+							TotalFiles    int `json:"total_files"`
+							AnalyzedFiles int `json:"analyzed_files"`
+							SkippedFiles  int `json:"skipped_files"`
+						} `json:"summary"`
+					}
+					require.NoError(t, json.Unmarshal([]byte(text), &result))
+					assert.True(t, result.Partial)
+					assert.Equal(t, 1, result.Summary.TotalFiles)
+					assert.Zero(t, result.Summary.AnalyzedFiles)
+					assert.Equal(t, 1, result.Summary.SkippedFiles)
+					require.Len(t, result.Failures, 1)
+					assert.Equal(t, domain.AnalysisKindSystem, result.Failures[0].Analysis)
+					assert.Equal(t, domain.AnalysisFailureCodeExecution, result.Failures[0].Code)
+				},
+			},
+		},
 		"recursive_false_limits_directory_to_root": {
 			args: args{
 				setupFS: setupNestedTestProject,

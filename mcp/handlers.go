@@ -100,7 +100,7 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 	result, err := analyzeUC.ExecuteWithOverrides(ctx, config, paths, app.AnalyzeRequestOverrides{
 		Recursive: recursiveOverride,
 	})
-	if err != nil {
+	if err != nil && result == nil {
 		return mcp.NewToolResultError(fmt.Sprintf("analysis failed: %v", err)), nil
 	}
 
@@ -120,8 +120,9 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 			"health_score": result.Summary.HealthScore,
 			"grade":        result.Summary.Grade,
 			"is_healthy":   result.Summary.IsHealthy(),
-			"partial":      result.Summary.SkippedFiles > 0,
+			"partial":      result.Summary.SkippedFiles > 0 || len(result.Failures) > 0,
 			"diagnostics":  result.Diagnostics,
+			"failures":     result.Failures,
 			"summary": map[string]interface{}{
 				"total_files":           result.Summary.TotalFiles,
 				"analyzed_files":        result.Summary.AnalyzedFiles,

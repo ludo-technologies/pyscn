@@ -232,6 +232,7 @@ const (
 // AnalysisTask represents a single analysis task
 type AnalysisTask struct {
 	Name    string
+	Kind    domain.AnalysisKind
 	Enabled bool
 	Execute func(context.Context) (interface{}, error)
 	Result  interface{}
@@ -424,6 +425,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 	if uc.complexityUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
 			Name:    taskNameComplexity,
+			Kind:    domain.AnalysisKindComplexity,
 			Enabled: !config.SkipComplexity,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := uc.buildComplexityTaskRequest(config, files, executionCfg)
@@ -440,6 +442,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 	if uc.deadCodeUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
 			Name:    taskNameDeadCode,
+			Kind:    domain.AnalysisKindDeadCode,
 			Enabled: !config.SkipDeadCode,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.DeadCodeRequest{
@@ -471,6 +474,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 	if uc.cloneUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
 			Name:    taskNameClones,
+			Kind:    domain.AnalysisKindClones,
 			Enabled: !config.SkipClones,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := uc.buildCloneTaskRequest(config, files, executionCfg)
@@ -483,6 +487,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 	if uc.cboUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
 			Name:    taskNameCBO,
+			Kind:    domain.AnalysisKindCBO,
 			Enabled: !config.SkipCBO,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.CBORequest{
@@ -512,6 +517,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 	if uc.lcomUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
 			Name:    taskNameLCOM,
+			Kind:    domain.AnalysisKindLCOM,
 			Enabled: !config.SkipLCOM,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				request := domain.LCOMRequest{
@@ -535,6 +541,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 	if uc.systemUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
 			Name:    taskNameSystem,
+			Kind:    domain.AnalysisKindSystem,
 			Enabled: !config.SkipSystem,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				ownedGraph, err := cloneModuleGraph(moduleGraph, moduleGraphErr)
@@ -566,6 +573,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 	if uc.communityUseCase != nil {
 		tasks = append(tasks, &AnalysisTask{
 			Name:    taskNameCommunities,
+			Kind:    domain.AnalysisKindCommunities,
 			Enabled: !config.SkipCommunities,
 			Execute: func(ctx context.Context) (interface{}, error) {
 				ownedGraph, err := cloneModuleGraph(moduleGraph, moduleGraphErr)
@@ -676,6 +684,13 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 	for _, task := range tasks {
 		if !task.Enabled {
 			continue
+		}
+		if task.Error != nil {
+			response.Failures = append(response.Failures, domain.AnalysisFailure{
+				Analysis: task.Kind,
+				Code:     domain.AnalysisFailureCodeExecution,
+				Message:  task.Error.Error(),
+			})
 		}
 
 		switch result := task.Result.(type) {
