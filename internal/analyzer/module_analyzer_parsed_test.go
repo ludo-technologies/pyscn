@@ -52,8 +52,11 @@ func TestModuleAnalyzer_AnalyzeParsedModulesUsesCapturedReExports(t *testing.T) 
 		filepath.Join(packageDir, "target.py"):    "class Target:\n    pass\n",
 	}
 	parsedModules := parseModuleSources(t, sources)
-	if err := os.WriteFile(filepath.Join(packageDir, "__init__.py"), []byte("VALUE = 1\n"), 0o644); err != nil {
-		t.Fatalf("replace captured package source: %v", err)
+	if err := os.Remove(filepath.Join(packageDir, "__init__.py")); err != nil {
+		t.Fatalf("remove captured package source: %v", err)
+	}
+	if err := os.Remove(filepath.Join(packageDir, "target.py")); err != nil {
+		t.Fatalf("remove captured target source: %v", err)
 	}
 
 	moduleAnalyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{ProjectRoot: projectRoot})

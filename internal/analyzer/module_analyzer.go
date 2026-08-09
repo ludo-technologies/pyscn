@@ -275,7 +275,7 @@ func (ma *ModuleAnalyzer) AnalyzeParsedModules(ctx context.Context, parsedModule
 			return nil, fmt.Errorf("module analysis cancelled: %w", err)
 		}
 		parsedModule := modulesByPath[path]
-		if err := ma.analyzeParsedModuleDependencies(graph, parsedModule); err != nil {
+		if err := ma.analyzeParsedModuleDependencies(graph, parsedModule, true); err != nil {
 			return nil, err
 		}
 	}
@@ -303,10 +303,10 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 	if err != nil {
 		return fmt.Errorf("invalid parsed module %s: %w", filePath, err)
 	}
-	return ma.analyzeParsedModuleDependencies(graph, parsedModule)
+	return ma.analyzeParsedModuleDependencies(graph, parsedModule, false)
 }
 
-func (ma *ModuleAnalyzer) analyzeParsedModuleDependencies(graph *DependencyGraph, parsedModule ParsedModule) error {
+func (ma *ModuleAnalyzer) analyzeParsedModuleDependencies(graph *DependencyGraph, parsedModule ParsedModule, capturedOnly bool) error {
 	moduleName := ma.filePathToModuleName(parsedModule.path)
 	if moduleName == "" {
 		return fmt.Errorf("could not determine module name for %s", parsedModule.path)
@@ -339,7 +339,7 @@ func (ma *ModuleAnalyzer) analyzeParsedModuleDependencies(graph *DependencyGraph
 		// flagged via ImportInfo.IsLazy and excluded only from load-time
 		// circular-dependency detection. See issue #460.
 
-		targetModule := ma.resolveImport(imp, parsedModule.path)
+		targetModule := ma.resolveImport(graph, imp, parsedModule.path, capturedOnly)
 		if targetModule == "" {
 			continue
 		}
@@ -558,12 +558,55 @@ func (ma *ModuleAnalyzer) importsFromNode(node *parser.Node) []*ImportInfo {
 }
 
 // resolveImport resolves an import to a module name
-func (ma *ModuleAnalyzer) resolveImport(imp *ImportInfo, fromFile string) string {
+func (ma *ModuleAnalyzer) resolveImport(graph *DependencyGraph, imp *ImportInfo, fromFile string, capturedOnly bool) string {
 	if imp.IsRelative {
 		return ma.resolveRelativeImport(imp, fromFile)
 	}
+	if resolved := ma.resolveAbsoluteImportFromGraph(graph, imp, fromFile); resolved != "" {
+		return resolved
+	}
+	if capturedOnly {
+		if ma.includeStdLib && ma.isStandardLibrary(ma.moduleNameFromImport(imp)) {
+			return ma.moduleNameFromImport(imp)
+		}
+		if ma.includeThirdParty {
+			return ma.moduleNameFromImport(imp)
+		}
+		return ""
+	}
 	// For absolute imports, try to resolve within the project first
 	return ma.resolveAbsoluteImportWithProject(imp, fromFile)
+}
+
+func (ma *ModuleAnalyzer) resolveAbsoluteImportFromGraph(graph *DependencyGraph, imp *ImportInfo, fromFile string) string {
+	if graph == nil {
+		return ""
+	}
+	moduleName := ma.moduleNameFromImport(imp)
+	if moduleName == "" {
+		return ""
+	}
+
+	fromModule := ma.filePathToModuleName(fromFile)
+	parts := strings.Split(fromModule, ".")
+	if len(parts) > 1 {
+		packageParts := parts[:len(parts)-1]
+		for depth := len(packageParts); depth > 0; depth-- {
+			candidate := strings.Join(append(append([]string(nil), packageParts[:depth]...), moduleName), ".")
+			if graph.GetModule(candidate) != nil && ma.importMatchesResolvedModule(moduleName, candidate) {
+				return candidate
+			}
+		}
+	}
+	if graph.GetModule(moduleName) != nil {
+		return moduleName
+	}
+	for _, candidate := range graph.GetModuleNames() {
+		if ma.importMatchesResolvedModule(moduleName, candidate) {
+			return candidate
+		}
+	}
+	return ""
 }
 
 // resolveRelativeImport resolves relative imports like "from .module import name"
