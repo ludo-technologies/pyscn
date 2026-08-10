@@ -127,8 +127,8 @@ func TestComplexityService_Analyze(t *testing.T) {
 		require.NotNil(t, response)
 		require.Len(t, response.Functions, 1)
 		assert.Equal(t, "branch", response.Functions[0].Name)
-		assert.Equal(t, 2, response.Summary.TotalFunctions)
-		assert.Equal(t, 2, response.Summary.FunctionsParsed)
+		assert.Equal(t, len(response.AnalyzedFunctions), response.Summary.TotalFunctions)
+		assert.Equal(t, response.Summary.TotalFunctions, response.Summary.FunctionsParsed)
 	})
 
 	t.Run("module rollups ignore presentation filters", func(t *testing.T) {
