@@ -104,22 +104,24 @@ func createValidComplexityRequest() domain.ComplexityRequest {
 }
 
 func createMockComplexityResponse() *domain.ComplexityResponse {
-	return &domain.ComplexityResponse{
-		Functions: []domain.FunctionComplexity{
-			{
-				Name:      "test_function",
-				FilePath:  "/test/file.py",
-				RiskLevel: domain.RiskLevelMedium,
-				Metrics: domain.ComplexityMetrics{
-					Complexity:        5,
-					Nodes:             10,
-					Edges:             12,
-					IfStatements:      2,
-					LoopStatements:    1,
-					ExceptionHandlers: 1,
-				},
+	functions := []domain.FunctionComplexity{
+		{
+			Name:      "test_function",
+			FilePath:  "/test/file.py",
+			RiskLevel: domain.RiskLevelMedium,
+			Metrics: domain.ComplexityMetrics{
+				Complexity:        5,
+				Nodes:             10,
+				Edges:             12,
+				IfStatements:      2,
+				LoopStatements:    1,
+				ExceptionHandlers: 1,
 			},
 		},
+	}
+	return &domain.ComplexityResponse{
+		Functions:         functions,
+		AnalyzedFunctions: functions,
 		Summary: domain.ComplexitySummary{
 			FilesAnalyzed:          1,
 			TotalFunctions:         1,
@@ -531,6 +533,7 @@ def nested(left, right):
 	require.Greater(t, len(baseline.Functions), 1)
 	baselineRollup := baseline.ByDirectory[0]
 	assert.Equal(t, len(baseline.AnalyzedFunctions), baselineRollup.FunctionCount)
+	assert.Equal(t, baseline.Summary.TotalFunctions, baselineRollup.FunctionCount)
 	assert.Equal(t, baseline.Summary.AverageComplexity, baselineRollup.AverageComplexity)
 	assert.Equal(t, baseline.Summary.MaxComplexity, baselineRollup.MaxComplexity)
 	assert.Equal(t, baseline.Summary.HighRiskFunctions, baselineRollup.HighRiskFunctionCount)
@@ -551,6 +554,7 @@ def nested(left, right):
 			response, err := useCase.AnalyzeAndReturn(context.Background(), request(test.minComplexity, test.reportUnchanged))
 			require.NoError(t, err)
 			require.Len(t, response.ByDirectory, 1)
+			assert.Equal(t, baseline.Summary, response.Summary, "presentation filters must not change summary counts or aggregates")
 			assert.Equal(t, baselineRollup, response.ByDirectory[0], "directory metrics must use the same complete population as the project summary")
 			assert.Less(t, len(response.Functions), baselineRollup.FunctionCount, "presentation filters must still limit the reported function list")
 

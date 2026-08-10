@@ -308,9 +308,12 @@ jobs:
 
     # The registry's GitHub OIDC auth checks only the repository owner, so the
     # token this job mints can publish or overwrite ANY server under
-    # io.github.ludo-technologies/*. Anyone able to push a v* tag could point it
-    # at a modified server.json. The protected environment gates that behind a
-    # manual approval; do not remove it without adding a tag ruleset instead.
+    # io.github.ludo-technologies/*, not just this one. What keeps that from
+    # being reachable by everyone with write access is the release-tag-protection
+    # ruleset, which lets only DaisukeYoda create, update, or delete a v* tag.
+    # The environment adds a second condition: this job only runs off a v* tag.
+    # If that ruleset is ever relaxed, put required reviewers back on the
+    # mcp-registry environment.
     environment:
       name: mcp-registry
       url: https://registry.modelcontextprotocol.io/v0/servers?search=pyscn

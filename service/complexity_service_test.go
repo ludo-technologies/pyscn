@@ -127,7 +127,8 @@ func TestComplexityService_Analyze(t *testing.T) {
 		require.NotNil(t, response)
 		require.Len(t, response.Functions, 1)
 		assert.Equal(t, "branch", response.Functions[0].Name)
-		assert.Equal(t, 1, response.Summary.FunctionsParsed)
+		assert.Equal(t, 2, response.Summary.TotalFunctions)
+		assert.Equal(t, 2, response.Summary.FunctionsParsed)
 	})
 
 	t.Run("module rollups ignore presentation filters", func(t *testing.T) {
@@ -193,14 +194,9 @@ def branchy(x):
 
 		require.NotEmpty(t, filtered.Functions, "at least one function must survive min_complexity=5")
 		require.Less(t, len(filtered.Functions), len(baseline.Functions), "min_complexity=5 must drop the trivial functions")
-		assert.Equal(t, len(baseline.Functions), baseline.Summary.TotalFunctions)
-		assert.Equal(t, len(filtered.Functions), filtered.Summary.TotalFunctions)
-
-		// Only the reported function count may react to min_complexity; every
-		// aggregate metric must be computed over the complete population.
-		normalized := filtered.Summary
-		normalized.TotalFunctions = baseline.Summary.TotalFunctions
-		assert.Equal(t, baseline.Summary, normalized, "raising min_complexity must not change summary aggregates")
+		assert.Equal(t, len(baseline.AnalyzedFunctions), baseline.Summary.TotalFunctions)
+		assert.Equal(t, baseline.Summary.TotalFunctions, baseline.Summary.FunctionsParsed)
+		assert.Equal(t, baseline.Summary, filtered.Summary, "raising min_complexity must not change summary counts or aggregates")
 
 		snapshot := BuildProjectSnapshot(ctx, []string{filePath})
 		baselineSnap, err := service.AnalyzeSnapshot(ctx, snapshot, baselineReq)
@@ -209,9 +205,7 @@ def branchy(x):
 		require.NoError(t, err)
 
 		assert.Equal(t, baseline.Summary, baselineSnap.Summary, "snapshot path must produce the same summary as Analyze")
-		normalizedSnap := filteredSnap.Summary
-		normalizedSnap.TotalFunctions = baselineSnap.Summary.TotalFunctions
-		assert.Equal(t, baselineSnap.Summary, normalizedSnap, "raising min_complexity must not change snapshot summary aggregates")
+		assert.Equal(t, baselineSnap.Summary, filteredSnap.Summary, "raising min_complexity must not change snapshot summary counts or aggregates")
 	})
 
 	t.Run("public metrics use literal statement counts", func(t *testing.T) {
@@ -392,6 +386,9 @@ def handle(value):
 		require.NotNil(t, response.RawMetricsSummary)
 		assert.Equal(t, 0, response.RawMetrics[0].LLOC)
 		assert.NotEmpty(t, response.Errors)
+		assert.Equal(t, 0, response.Summary.FilesAnalyzed)
+		assert.Equal(t, 1, response.Summary.TotalFiles)
+		assert.Equal(t, 1, response.Summary.SkippedFiles)
 	})
 
 	t.Run("raw metrics include parse failures without inflating analyzed file count", func(t *testing.T) {
@@ -411,6 +408,11 @@ def handle(value):
 		assert.NotEmpty(t, response.Functions)
 		assert.NotEmpty(t, response.Errors)
 		assert.Equal(t, 1, response.Summary.FilesAnalyzed)
+		// The shortfall must be visible from the summary alone: a consumer
+		// should not have to cross-reference Errors against its own input
+		// list to notice that half the request was dropped (issue #690).
+		assert.Equal(t, 2, response.Summary.TotalFiles)
+		assert.Equal(t, 1, response.Summary.SkippedFiles)
 		assert.Equal(t, 2, response.RawMetricsSummary.FilesAnalyzed)
 		assert.Len(t, response.RawMetrics, 2)
 
@@ -583,9 +585,7 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 
 	t.Run("generate summary with functions", func(t *testing.T) {
 		summary := service.generateSummary(functions, complexitySummaryCounts{
-			reportedFunctions: 3,
-			filesAnalyzed:     2,
-			functionsParsed:   3,
+			filesAnalyzed: 2,
 		})
 
 		assert.Equal(t, 3, summary.TotalFunctions)
@@ -615,7 +615,7 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 		assert.Equal(t, 0, summary.MinComplexity)
 	})
 
-	t.Run("FunctionsParsed tracks pre-filter count when min_complexity drops functions", func(t *testing.T) {
+	t.Run("summary counts use complete population when min_complexity drops functions", func(t *testing.T) {
 		allFunctions := []domain.FunctionComplexity{
 			{Name: "trivial", Metrics: domain.ComplexityMetrics{Complexity: 1}},
 			{Name: "trivial2", Metrics: domain.ComplexityMetrics{Complexity: 2}},
@@ -623,15 +623,14 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 		}
 
 		req := domain.ComplexityRequest{MinComplexity: 5}
-		filtered, functionsParsed := service.filterFunctions(allFunctions, req)
+		filtered, _ := service.filterFunctions(allFunctions, req)
 		summary := service.generateSummary(allFunctions, complexitySummaryCounts{
-			reportedFunctions: len(filtered),
-			filesAnalyzed:     1,
-			functionsParsed:   functionsParsed,
+			filesAnalyzed: 1,
 		})
 
-		assert.Equal(t, 1, summary.TotalFunctions, "post-filter count is 1")
-		assert.Equal(t, 3, summary.FunctionsParsed, "pre-filter total is 3 (2 dropped by min_complexity=5)")
+		assert.Len(t, filtered, 1, "the presentation filter still limits the reported list")
+		assert.Equal(t, 3, summary.TotalFunctions, "summary count describes the population used for its aggregates")
+		assert.Equal(t, 3, summary.FunctionsParsed, "all parsed functions contribute to summary aggregates")
 		assert.InDelta(t, 11.0/3.0, summary.AverageComplexity, 1e-9, "average is over all parsed functions, not the filtered set")
 		assert.Equal(t, 1, summary.MinComplexity, "min reflects the complete population")
 	})

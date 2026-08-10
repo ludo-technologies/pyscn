@@ -259,13 +259,7 @@ func (uc *ComplexityUseCase) AnalyzeFile(ctx context.Context, filePath string, r
 }
 
 func attachDirectoryComplexity(response *domain.ComplexityResponse, projectRoot string) error {
-	functions := response.AnalyzedFunctions
-	if functions == nil {
-		// Preserve compatibility with alternate service implementations that only
-		// populate the public, filtered Functions field.
-		functions = response.Functions
-	}
-	byDirectory, err := aggregateComplexityByDirectory(functions, projectRoot)
+	byDirectory, err := aggregateComplexityByDirectory(response.AnalyzedFunctions, projectRoot)
 	if err != nil {
 		return err
 	}

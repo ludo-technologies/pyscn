@@ -67,57 +67,66 @@ func (s *CloneService) DetectClonesInFiles(ctx context.Context, filePaths []stri
 	detectorConfig := s.createDetectorConfig(req)
 	detector := analyzer.NewCloneDetector(detectorConfig)
 
-	allFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed, err := s.extractFragmentsFromFiles(ctx, filePaths, detector)
+	extraction, err := s.extractFragmentsFromFiles(ctx, filePaths, detector)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.buildCloneResponse(ctx, startTime, detectorConfig, detector, allFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed, req)
+	return s.buildCloneResponse(ctx, startTime, detectorConfig, detector, extraction, req)
 }
 
-func (s *CloneService) extractFragmentsFromFiles(ctx context.Context, filePaths []string, detector *analyzer.CloneDetector) ([]*analyzer.CodeFragment, int, int, int, error) {
+// fragmentExtraction is what a pass over the target files yielded, including
+// the files it could not use. Skipped files are reported rather than written
+// straight to os.Stderr so that callers - the check gate above all - can act
+// on them instead of only the user noticing a warning scroll past.
+type fragmentExtraction struct {
+	fragments     []*analyzer.CodeFragment
+	filesAnalyzed int
+	linesAnalyzed int
+	nodesAnalyzed int
+	errors        []string
+}
+
+func (s *CloneService) extractFragmentsFromFiles(ctx context.Context, filePaths []string, detector *analyzer.CloneDetector) (*fragmentExtraction, error) {
 	pyParser := parser.New()
-	var allFragments []*analyzer.CodeFragment
-	linesAnalyzed := 0
-	nodesAnalyzed := 0
-	filesAnalyzed := 0
+	extraction := &fragmentExtraction{}
 
 	for _, filePath := range filePaths {
 		select {
 		case <-ctx.Done():
-			return nil, 0, 0, 0, fmt.Errorf("clone analysis cancelled: %w", ctx.Err())
+			return nil, fmt.Errorf("clone analysis cancelled: %w", ctx.Err())
 		default:
 		}
 
 		content, err := readFileContent(filePath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to read file %s: %v\n", filePath, err)
+			extraction.errors = append(extraction.errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
 			continue
 		}
 
 		parseResult, err := pyParser.Parse(ctx, content)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to parse file %s: %v\n", filePath, err)
+			extraction.errors = append(extraction.errors, fmt.Sprintf("[%s] Parse error: %v", filePath, err))
 			continue
 		}
 		if parseResult == nil || parseResult.AST == nil {
-			fmt.Fprintf(os.Stderr, "Warning: Invalid parse result for file %s\n", filePath)
+			extraction.errors = append(extraction.errors, fmt.Sprintf("[%s] Parse error: parser returned no syntax tree", filePath))
 			continue
 		}
 
-		filesAnalyzed++
-		linesAnalyzed += countSourceLines(content)
+		extraction.filesAnalyzed++
+		extraction.linesAnalyzed += countSourceLines(content)
 
 		statsVisitor := parser.NewStatisticsVisitor()
 		parseResult.AST.Accept(statsVisitor)
-		nodesAnalyzed += statsVisitor.TotalNodes
+		extraction.nodesAnalyzed += statsVisitor.TotalNodes
 
 		astNodes := []*parser.Node{parseResult.AST}
 		fragments := detector.ExtractFragmentsWithSource(astNodes, filePath, content)
-		allFragments = append(allFragments, fragments...)
+		extraction.fragments = append(extraction.fragments, fragments...)
 	}
 
-	return allFragments, filesAnalyzed, linesAnalyzed, nodesAnalyzed, nil
+	return extraction, nil
 }
 
 func (s *CloneService) buildCloneResponse(
@@ -125,12 +134,10 @@ func (s *CloneService) buildCloneResponse(
 	startTime time.Time,
 	detectorConfig *analyzer.CloneDetectorConfig,
 	detector *analyzer.CloneDetector,
-	allFragments []*analyzer.CodeFragment,
-	filesAnalyzed int,
-	linesAnalyzed int,
-	nodesAnalyzed int,
+	extraction *fragmentExtraction,
 	req *domain.CloneRequest,
 ) (*domain.CloneResponse, error) {
+	allFragments := extraction.fragments
 	if len(allFragments) == 0 {
 		return &domain.CloneResponse{
 			Clones:      []*domain.Clone{},
@@ -138,13 +145,14 @@ func (s *CloneService) buildCloneResponse(
 			CloneGroups: []*domain.CloneGroup{},
 			Statistics: &domain.CloneStatistics{
 				TotalFragments: 0,
-				FilesAnalyzed:  filesAnalyzed,
-				LinesAnalyzed:  linesAnalyzed,
-				NodesAnalyzed:  nodesAnalyzed,
+				FilesAnalyzed:  extraction.filesAnalyzed,
+				LinesAnalyzed:  extraction.linesAnalyzed,
+				NodesAnalyzed:  extraction.nodesAnalyzed,
 			},
 			Request:  req,
 			Duration: time.Since(startTime).Milliseconds(),
 			Success:  true,
+			Errors:   extraction.errors,
 		}, nil
 	}
 
@@ -179,7 +187,7 @@ func (s *CloneService) buildCloneResponse(
 	// returned clone pairs and groups. The detector's result already separates
 	// raw candidates from detected items; we derive final numbers only from the
 	// detected items exposed in the response.
-	statistics := s.buildCloneStatistics(detectionResult, domainClonePairs, domainCloneGroups, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
+	statistics := s.buildCloneStatistics(detectionResult, domainClonePairs, domainCloneGroups, extraction.filesAnalyzed, extraction.linesAnalyzed, extraction.nodesAnalyzed)
 
 	duration := time.Since(startTime).Milliseconds()
 	// s.progress.Complete(fmt.Sprintf("Clone detection completed in %dms. Found %d clone pairs in %d groups.",
@@ -193,6 +201,7 @@ func (s *CloneService) buildCloneResponse(
 		Request:     req,
 		Duration:    duration,
 		Success:     true,
+		Errors:      extraction.errors,
 	}, nil
 }
 

@@ -224,17 +224,26 @@ type RawMetricsSummary struct {
 // Averages, min/max, risk counts, and the distribution are computed over every
 // analyzed function; min_complexity only limits which functions are reported.
 type ComplexitySummary struct {
-	// TotalFunctions is the post-filter count (functions included in results after min_complexity filtering).
+	// TotalFunctions is the complete analyzed population used by all aggregate metrics.
+	// Presentation filters only limit ComplexityResponse.Functions.
 	TotalFunctions int
-	// FunctionsParsed is the pre-filter count of all functions parsed before min_complexity filtering.
-	// When min_complexity drops trivial functions, FunctionsParsed > TotalFunctions.
+	// FunctionsParsed is retained for output compatibility and describes the same
+	// complete analyzed population as TotalFunctions.
 	FunctionsParsed            int
 	AverageComplexity          float64
 	AverageCognitiveComplexity float64
 	AverageNestingDepth        float64
 	MaxComplexity              int
 	MinComplexity              int
-	FilesAnalyzed              int
+	// FilesAnalyzed is the number of files that were successfully parsed and
+	// contributed to the metrics above.
+	FilesAnalyzed int
+	// TotalFiles is the number of files the request covered, parsed or not.
+	TotalFiles int
+	// SkippedFiles is the number of files dropped because they could not be
+	// read or parsed. Their contents are absent from every metric, so a
+	// consumer must read this before trusting the aggregates.
+	SkippedFiles int
 
 	// Risk distribution
 	LowRiskFunctions    int

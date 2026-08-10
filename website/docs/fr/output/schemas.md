@@ -60,7 +60,7 @@ Reflet de `domain.AnalyzeSummary`. Tous les compteurs numériques valent `0` par
 | ---------------- | ------- | ------------------------------------------------- |
 | `total_files`    | integer | Nombre de fichiers Python découverts.             |
 | `analyzed_files` | integer | Nombre de fichiers analysés avec succès.          |
-| `skipped_files`  | integer | Fichiers ignorés à cause d'erreurs de parsing ou de filtres. |
+| `skipped_files`  | integer | Fichiers écartés faute de pouvoir être lus ou analysés. Une valeur non nulle signifie que les scores ci-dessous couvrent moins que `total_files`. |
 
 ### Indicateurs d'état des analyseurs
 
@@ -209,7 +209,9 @@ Reflet de `domain.ComplexityResponse`. Les noms de champs imbriqués sont en Pas
 | `AverageComplexity`      | number  | Moyenne arithmétique de `Complexity` sur toutes les fonctions.               |
 | `MaxComplexity`          | integer | Complexité maximale observée.                                                |
 | `MinComplexity`          | integer | Complexité minimale observée.                                                |
-| `FilesAnalyzed`          | integer | Fichiers contribuant au moins une fonction.                                  |
+| `FilesAnalyzed`          | integer | Fichiers analysés avec succès et pris en compte dans les métriques ci-dessus. |
+| `TotalFiles`             | integer | Fichiers couverts par la requête, analysables ou non.                        |
+| `SkippedFiles`           | integer | Fichiers écartés faute de pouvoir être lus ou analysés. Leur contenu est absent de toutes les métriques ci-dessus. |
 | `LowRiskFunctions`       | integer | Fonctions avec `RiskLevel = low`.                                            |
 | `MediumRiskFunctions`    | integer | Fonctions avec `RiskLevel = medium`.                                         |
 | `HighRiskFunctions`      | integer | Fonctions avec `RiskLevel = high`.                                           |
@@ -411,6 +413,7 @@ Autres champs de `CloneResponse` :
 | `duration_ms` | integer | Durée de détection de clones en millisecondes.     |
 | `success`     | boolean | `true` en cas d'achèvement normal.                 |
 | `error`       | string \| absent | Message d'erreur si `success=false`.        |
+| `errors`      | array \| absent  | Échecs par fichier. Un fichier listé ici a été ignoré alors que l'exécution a réussi : son contenu est absent de `statistics`. |
 
 ## Objet `cbo`
 

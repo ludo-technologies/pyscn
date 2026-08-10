@@ -161,9 +161,10 @@ pipelines:
 | Code | Signification                        | Action |
 | ---- | ------------------------------------ | ------ |
 | `0`  | Aucun problème                       | Réussi |
-| `1`  | Problèmes trouvés ou erreur d'exécution | Échec |
+| `1`  | Seuils de qualité dépassés            | Échec |
+| `2`  | Analyse impossible à terminer (entrée invalide, fichiers manquants ou non analysables) | Échec |
 
-`check` renvoie le code `1` à la fois pour « problèmes ayant dépassé les seuils » et « l'analyse n'a pas pu se terminer » — les deux cas ne sont pas distinguables par le code de sortie. Inspectez stderr pour les différencier.
+Le code `2` signifie que la barrière n'a jamais vu l'intégralité de votre code — par exemple un fichier comportant une erreur de syntaxe, exclu de toutes les analyses et qui passerait sinon sans produire la moindre constatation. Passez `--allow-parse-errors` pour rétrograder ces fichiers en avertissements.
 
 ## Stratégies
 

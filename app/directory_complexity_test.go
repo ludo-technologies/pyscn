@@ -56,6 +56,26 @@ func TestAggregateComplexityByDirectory_UsesAnalyzedFunctions(t *testing.T) {
 	}
 }
 
+func TestAttachDirectoryComplexity_DoesNotFallbackToReportedFunctions(t *testing.T) {
+	root := t.TempDir()
+	response := &domain.ComplexityResponse{
+		Functions: []domain.FunctionComplexity{
+			{
+				Name:     "reported-only",
+				FilePath: filepath.Join(root, "pkg", "reported.py"),
+				Metrics:  domain.ComplexityMetrics{Complexity: 8},
+			},
+		},
+	}
+
+	if err := attachDirectoryComplexity(response, root); err != nil {
+		t.Fatalf("attach directory complexity: %v", err)
+	}
+	if len(response.ByDirectory) != 0 {
+		t.Fatalf("expected no rollups without the complete analyzed population, got %+v", response.ByDirectory)
+	}
+}
+
 func TestAggregateComplexityByDirectory_ReturnsEmptyCollection(t *testing.T) {
 	rollups, err := aggregateComplexityByDirectory(nil, t.TempDir())
 	if err != nil {

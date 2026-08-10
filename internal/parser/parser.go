@@ -39,8 +39,8 @@ func (p *Parser) Parse(ctx context.Context, source []byte) (*ParseResult, error)
 	}
 
 	rootNode := tree.RootNode()
-	if p.HasSyntaxErrors(rootNode) {
-		return nil, fmt.Errorf("syntax errors found in source code")
+	if err := p.CheckSyntax(rootNode, source); err != nil {
+		return nil, err
 	}
 
 	// Build internal AST representation
@@ -104,16 +104,18 @@ func (p *Parser) FindNodes(node *sitter.Node, nodeType string) []*sitter.Node {
 	return nodes
 }
 
-// HasSyntaxErrors checks if the parsed tree contains any syntax errors
-func (p *Parser) HasSyntaxErrors(node *sitter.Node) bool {
-	hasError := false
-
-	_ = p.WalkTree(node, func(n *sitter.Node) error {
+// CheckSyntax returns an error describing the first syntax problem in the parsed
+// tree, or nil when the source is valid Python 3. Beyond the ERROR and MISSING
+// nodes tree-sitter reports, it also rejects legacy constructs that the grammar
+// still accepts but no Python 3 release compiles (see python3_syntax.go).
+func (p *Parser) CheckSyntax(node *sitter.Node, source []byte) error {
+	return p.WalkTree(node, func(n *sitter.Node) error {
 		if n.IsError() || n.IsMissing() {
-			hasError = true
+			return fmt.Errorf("syntax errors found in source code")
+		}
+		if reason := invalidInPython3(n, source); reason != "" {
+			return fmt.Errorf("line %d: %s is not valid Python 3", int(n.StartPoint().Row)+1, reason)
 		}
 		return nil
 	})
-
-	return hasError
 }

@@ -60,7 +60,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | ---------------- | ------- | ---------------------------------------- |
 | `total_files`    | integer | 发现的 Python 文件数。                   |
 | `analyzed_files` | integer | 成功分析的文件数。                       |
-| `skipped_files`  | integer | 因解析错误或过滤器跳过的文件数。         |
+| `skipped_files`  | integer | 因无法读取或解析而被丢弃的文件数。非零表示下面的所有评分覆盖的文件少于 `total_files`。 |
 
 ### 分析器状态标志
 
@@ -209,7 +209,9 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | `AverageComplexity`      | number  | 所有函数 `Complexity` 的算术平均值。                           |
 | `MaxComplexity`          | integer | 观测到的最高复杂度。                                           |
 | `MinComplexity`          | integer | 观测到的最低复杂度。                                           |
-| `FilesAnalyzed`          | integer | 贡献了至少一个函数的文件数。                                   |
+| `FilesAnalyzed`          | integer | 成功解析并计入上述指标的文件数。                               |
+| `TotalFiles`             | integer | 本次请求覆盖的文件数，无论是否解析成功。                       |
+| `SkippedFiles`           | integer | 因无法读取或解析而被丢弃的文件数。其内容不包含在上述任何指标中。 |
 | `LowRiskFunctions`       | integer | `RiskLevel = low` 的函数数。                                   |
 | `MediumRiskFunctions`    | integer | `RiskLevel = medium` 的函数数。                                |
 | `HighRiskFunctions`      | integer | `RiskLevel = high` 的函数数。                                  |
@@ -411,6 +413,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | `duration_ms` | integer | 克隆检测耗时（毫秒）。                    |
 | `success`     | boolean | 正常完成时为 `true`。                      |
 | `error`       | string \| absent | `success=false` 时的错误信息。    |
+| `errors`      | array \| absent  | 单个文件的失败。此处列出的文件在运行本身成功的情况下被跳过，其内容不包含在 `statistics` 中。 |
 
 ## `cbo` 对象
 
