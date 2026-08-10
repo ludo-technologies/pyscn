@@ -106,7 +106,7 @@ type fragmentExtraction struct {
 	filesAnalyzed int
 	linesAnalyzed int
 	nodesAnalyzed int
-	errors        []string
+	issues        []analysisIssue
 }
 
 func (s *CloneService) extractFragmentsFromFiles(ctx context.Context, filePaths []string, detector *analyzer.CloneDetector) (*fragmentExtraction, error) {
@@ -122,17 +122,17 @@ func (s *CloneService) extractFragmentsFromFiles(ctx context.Context, filePaths 
 
 		content, err := readFileContent(filePath)
 		if err != nil {
-			extraction.errors = append(extraction.errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
+			extraction.issues = append(extraction.issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Failed to read file: %v", err)})
 			continue
 		}
 
 		parseResult, err := pyParser.Parse(ctx, content)
 		if err != nil {
-			extraction.errors = append(extraction.errors, fmt.Sprintf("[%s] Parse error: %v", filePath, err))
+			extraction.issues = append(extraction.issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Parse error: %v", err)})
 			continue
 		}
 		if parseResult == nil || parseResult.AST == nil {
-			extraction.errors = append(extraction.errors, fmt.Sprintf("[%s] Parse error: parser returned no syntax tree", filePath))
+			extraction.issues = append(extraction.issues, analysisIssue{filePath: filePath, message: "Parse error: parser returned no syntax tree"})
 			continue
 		}
 
@@ -203,8 +203,8 @@ func (s *CloneService) buildCloneResponse(
 			Request:  req,
 			Duration: time.Since(startTime).Milliseconds(),
 			Success:  true,
-			Errors:   extraction.errors,
-			Failures: analyzerFailures(domain.AnalysisKindClones, extraction.errors),
+			Errors:   analysisIssueMessages(extraction.issues),
+			Failures: analyzerFailures(domain.AnalysisKindClones, extraction.issues),
 		}, nil
 	}
 
@@ -253,8 +253,8 @@ func (s *CloneService) buildCloneResponse(
 		Request:     req,
 		Duration:    duration,
 		Success:     true,
-		Errors:      extraction.errors,
-		Failures:    analyzerFailures(domain.AnalysisKindClones, extraction.errors),
+		Errors:      analysisIssueMessages(extraction.issues),
+		Failures:    analyzerFailures(domain.AnalysisKindClones, extraction.issues),
 	}, nil
 }
 

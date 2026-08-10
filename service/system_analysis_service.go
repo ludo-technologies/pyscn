@@ -70,7 +70,7 @@ func (s *SystemAnalysisServiceImpl) analyzeGraph(ctx context.Context, graph *ana
 
 	var allResults []interface{}
 	var warnings []string
-	var errors []string
+	var issues []analysisIssue
 	analyzeDependencies := domain.BoolValue(req.AnalyzeDependencies, true)
 	analyzeArchitecture := domain.BoolValue(req.AnalyzeArchitecture, true)
 
@@ -79,7 +79,7 @@ func (s *SystemAnalysisServiceImpl) analyzeGraph(ctx context.Context, graph *ana
 	if analyzeDependencies && graph != nil {
 		result, err := s.buildDependencyAnalysisResult(ctx, graph)
 		if err != nil {
-			errors = append(errors, fmt.Sprintf("Dependency analysis failed: %v", err))
+			issues = append(issues, analysisIssue{message: fmt.Sprintf("Dependency analysis failed: %v", err)})
 		} else {
 			dependencyResult = result
 			allResults = append(allResults, result)
@@ -91,7 +91,7 @@ func (s *SystemAnalysisServiceImpl) analyzeGraph(ctx context.Context, graph *ana
 	if analyzeArchitecture && graph != nil {
 		result, err := s.analyzeArchitectureGraph(ctx, graph, req)
 		if err != nil {
-			errors = append(errors, fmt.Sprintf("Architecture analysis failed: %v", err))
+			issues = append(issues, analysisIssue{message: fmt.Sprintf("Architecture analysis failed: %v", err)})
 		} else {
 			architectureResult = result
 			allResults = append(allResults, result)
@@ -100,7 +100,7 @@ func (s *SystemAnalysisServiceImpl) analyzeGraph(ctx context.Context, graph *ana
 
 	// If all analyses failed, return an error
 	if len(allResults) == 0 {
-		return nil, fmt.Errorf("all requested analyses failed: %v", strings.Join(errors, "; "))
+		return nil, fmt.Errorf("all requested analyses failed: %v", strings.Join(analysisIssueMessages(issues), "; "))
 	}
 
 	// Build comprehensive response
@@ -112,8 +112,8 @@ func (s *SystemAnalysisServiceImpl) analyzeGraph(ctx context.Context, graph *ana
 		Duration:             time.Since(startTime).Milliseconds(),
 		Version:              version.Version,
 		Warnings:             warnings,
-		Errors:               errors,
-		Failures:             analyzerFailures(domain.AnalysisKindSystem, errors),
+		Errors:               analysisIssueMessages(issues),
+		Failures:             analyzerFailures(domain.AnalysisKindSystem, issues),
 	}
 
 	return response, nil
