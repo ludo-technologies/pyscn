@@ -599,8 +599,11 @@ func (ma *ModuleAnalyzer) resolveImport(graph *DependencyGraph, imp *ImportInfo,
 	}
 	if capturedOnly {
 		moduleName := ma.moduleNameFromImport(imp)
-		if ma.includeStdLib && ma.isStandardLibrary(moduleName) {
-			return moduleName
+		if ma.isStandardLibrary(moduleName) {
+			if ma.includeStdLib {
+				return moduleName
+			}
+			return ""
 		}
 		if resolved := ma.resolveScopedAbsoluteImportFromGraph(graph, moduleName, fromFile); resolved != "" {
 			return resolved

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -136,6 +137,22 @@ func TestModuleAnalyzer_AnalyzeParsedModulesResolvesSiblingScriptImports(t *test
 	}
 	if !graph.Nodes["sub.mb"].Dependencies["sub.ma"] {
 		t.Fatalf("expected sub.mb to depend on sub.ma, got %v", graph.Nodes["sub.mb"].Dependencies)
+	}
+}
+
+func TestModuleAnalyzer_CapturedImportDoesNotClassifyExcludedStdlibAsThirdParty(t *testing.T) {
+	moduleAnalyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{
+		IncludeStdLib:     domain.BoolPtr(false),
+		IncludeThirdParty: domain.BoolPtr(true),
+	})
+	if err != nil {
+		t.Fatalf("create module analyzer: %v", err)
+	}
+	graph := NewDependencyGraph(t.TempDir())
+	stdlibImport := &ImportInfo{Statement: "os"}
+
+	if resolved := moduleAnalyzer.resolveImport(graph, stdlibImport, "consumer.py", true); resolved != "" {
+		t.Fatalf("expected excluded standard-library import to be omitted, got %q", resolved)
 	}
 }
 
