@@ -190,14 +190,13 @@ func (s *ProjectSnapshot) Coverage() domain.AnalysisCoverage {
 	}
 
 	coverage := domain.AnalysisCoverage{
-		TotalFiles:  len(s.files),
 		Diagnostics: make([]domain.AnalysisDiagnostic, 0),
 	}
 	for _, file := range s.files {
-		if file == nil {
-			coverage.SkippedFiles++
+		if file == nil || !s.hasAnalysisFile(file) {
 			continue
 		}
+		coverage.TotalFiles++
 		if file.ReadErr != nil {
 			coverage.SkippedFiles++
 			coverage.Diagnostics = append(coverage.Diagnostics, domain.AnalysisDiagnostic{

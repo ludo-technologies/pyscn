@@ -274,6 +274,53 @@ func TestAnalyzeUseCase_Execute_SystemGraphExcludesUnparsedFiles(t *testing.T) {
 	}
 }
 
+func TestAnalyzeUseCase_Execute_CoverageIsIndependentOfModuleSelection(t *testing.T) {
+	projectDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(projectDir, "runtime.py"), []byte("def runtime():\n    return 1\n"), 0o644); err != nil {
+		t.Fatalf("write runtime source: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, "broken.pyi"), []byte("def broken(:\n"), 0o644); err != nil {
+		t.Fatalf("write broken stub: %v", err)
+	}
+
+	useCase := newModuleQualityAnalyzeUseCase(t)
+	complexityOnly, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipDeadCode:       true,
+		SkipClones:         true,
+		SkipCBO:            true,
+		SkipLCOM:           true,
+		SkipSystem:         true,
+		SkipCommunities:    true,
+		SelectAnalysesUsed: true,
+	}, []string{projectDir})
+	if err != nil {
+		t.Fatalf("execute complexity-only analysis: %v", err)
+	}
+
+	dependenciesOnly, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipComplexity:     true,
+		SkipDeadCode:       true,
+		SkipClones:         true,
+		SkipCBO:            true,
+		SkipLCOM:           true,
+		SkipSystem:         false,
+		SkipCommunities:    true,
+		SelectAnalysesUsed: true,
+	}, []string{projectDir})
+	if err != nil {
+		t.Fatalf("execute dependency analysis: %v", err)
+	}
+
+	if !reflect.DeepEqual(complexityOnly.Diagnostics, dependenciesOnly.Diagnostics) {
+		t.Fatalf("expected selection-independent diagnostics, complexity=%+v dependencies=%+v", complexityOnly.Diagnostics, dependenciesOnly.Diagnostics)
+	}
+	complexityCoverage := []int{complexityOnly.Summary.TotalFiles, complexityOnly.Summary.AnalyzedFiles, complexityOnly.Summary.SkippedFiles}
+	dependencyCoverage := []int{dependenciesOnly.Summary.TotalFiles, dependenciesOnly.Summary.AnalyzedFiles, dependenciesOnly.Summary.SkippedFiles}
+	if !reflect.DeepEqual(complexityCoverage, dependencyCoverage) {
+		t.Fatalf("expected selection-independent coverage, complexity=%v dependencies=%v", complexityCoverage, dependencyCoverage)
+	}
+}
+
 func TestAnalyzeUseCase_ExecuteWithOverridesHonorsExplicitDependencyGate(t *testing.T) {
 	projectDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(projectDir, "a.py"), []byte("import b\n"), 0o644); err != nil {
