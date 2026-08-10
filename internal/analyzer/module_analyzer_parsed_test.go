@@ -111,6 +111,34 @@ func TestModuleAnalyzer_AbsoluteThirdPartyImportDoesNotBindByLocalSuffix(t *test
 	}
 }
 
+func TestModuleAnalyzer_AnalyzeParsedModulesResolvesSiblingScriptImports(t *testing.T) {
+	projectRoot := t.TempDir()
+	moduleDir := filepath.Join(projectRoot, "sub")
+	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
+		t.Fatalf("create module directory: %v", err)
+	}
+
+	parsedModules := parseModuleSources(t, map[string]string{
+		filepath.Join(moduleDir, "ma.py"): "import mb\n",
+		filepath.Join(moduleDir, "mb.py"): "import ma\n",
+	})
+	moduleAnalyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{ProjectRoot: projectRoot})
+	if err != nil {
+		t.Fatalf("create module analyzer: %v", err)
+	}
+
+	graph, err := moduleAnalyzer.AnalyzeParsedModules(context.Background(), parsedModules)
+	if err != nil {
+		t.Fatalf("analyze parsed modules: %v", err)
+	}
+	if !graph.Nodes["sub.ma"].Dependencies["sub.mb"] {
+		t.Fatalf("expected sub.ma to depend on sub.mb, got %v", graph.Nodes["sub.ma"].Dependencies)
+	}
+	if !graph.Nodes["sub.mb"].Dependencies["sub.ma"] {
+		t.Fatalf("expected sub.mb to depend on sub.ma, got %v", graph.Nodes["sub.mb"].Dependencies)
+	}
+}
+
 func parseModuleSources(t *testing.T, sources map[string]string) []ParsedModule {
 	t.Helper()
 

@@ -598,11 +598,15 @@ func (ma *ModuleAnalyzer) resolveImport(graph *DependencyGraph, imp *ImportInfo,
 		return resolved
 	}
 	if capturedOnly {
-		if ma.includeStdLib && ma.isStandardLibrary(ma.moduleNameFromImport(imp)) {
-			return ma.moduleNameFromImport(imp)
+		moduleName := ma.moduleNameFromImport(imp)
+		if ma.includeStdLib && ma.isStandardLibrary(moduleName) {
+			return moduleName
+		}
+		if resolved := ma.resolveScopedAbsoluteImportFromGraph(graph, moduleName, fromFile); resolved != "" {
+			return resolved
 		}
 		if ma.includeThirdParty {
-			return ma.moduleNameFromImport(imp)
+			return moduleName
 		}
 		return ""
 	}
@@ -622,6 +626,36 @@ func (ma *ModuleAnalyzer) resolveAbsoluteImportFromGraph(graph *DependencyGraph,
 	if graph.GetModule(moduleName) != nil {
 		return moduleName
 	}
+	return ""
+}
+
+// resolveScopedAbsoluteImportFromGraph supports script-style imports using the
+// same two directories searched by the filesystem-backed resolver: the
+// importing module's directory and its parent. All candidates come from the
+// captured graph, so resolution remains independent of later filesystem state.
+func (ma *ModuleAnalyzer) resolveScopedAbsoluteImportFromGraph(
+	graph *DependencyGraph,
+	moduleName string,
+	fromFile string,
+) string {
+	if graph == nil || moduleName == "" {
+		return ""
+	}
+
+	packageName := strings.Trim(ma.pathToModuleName(filepath.Dir(fromFile)), ".")
+	for depth := 0; depth < 2 && packageName != ""; depth++ {
+		candidate := packageName + "." + moduleName
+		if graph.GetModule(candidate) != nil {
+			return candidate
+		}
+
+		separator := strings.LastIndex(packageName, ".")
+		if separator == -1 {
+			break
+		}
+		packageName = packageName[:separator]
+	}
+
 	return ""
 }
 
