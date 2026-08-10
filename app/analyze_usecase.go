@@ -186,7 +186,7 @@ func (b *AnalyzeUseCaseBuilder) Build() (*AnalyzeUseCase, error) {
 		return nil, fmt.Errorf("file reader is required")
 	}
 	if err := b.validateAggregateCollaborators(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("validate aggregate collaborators: %w", err)
 	}
 	if b.configLoader == nil {
 		b.configLoader = service.NewAnalyzeConfigurationLoader()
@@ -292,9 +292,15 @@ type ProjectAnalysisResult struct {
 func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string) (*domain.AnalyzeResponse, error) {
 	result, err := uc.executeProject(ctx, useCaseCfg, paths, AnalyzeRequestOverrides{})
 	if result == nil {
-		return nil, err
+		if err != nil {
+			return nil, fmt.Errorf("execute project analysis: %w", err)
+		}
+		return nil, nil
 	}
-	return result.Response, err
+	if err != nil {
+		return result.Response, fmt.Errorf("execute project analysis: %w", err)
+	}
+	return result.Response, nil
 }
 
 // ExecuteWithOverrides performs comprehensive analysis with request-scoped
@@ -302,9 +308,15 @@ func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 func (uc *AnalyzeUseCase) ExecuteWithOverrides(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string, overrides AnalyzeRequestOverrides) (*domain.AnalyzeResponse, error) {
 	result, err := uc.executeProject(ctx, useCaseCfg, paths, overrides)
 	if result == nil {
-		return nil, err
+		if err != nil {
+			return nil, fmt.Errorf("execute project analysis with overrides: %w", err)
+		}
+		return nil, nil
 	}
-	return result.Response, err
+	if err != nil {
+		return result.Response, fmt.Errorf("execute project analysis with overrides: %w", err)
+	}
+	return result.Response, nil
 }
 
 // ExecuteProjectWithOverrides returns the response and the sealed snapshot
@@ -470,7 +482,7 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 	response, err := uc.buildResponse(tasks, startTime, pathIndex, snapshot.Coverage())
 	result := &ProjectAnalysisResult{Response: response, Snapshot: snapshot}
 	if err != nil {
-		return result, err
+		return result, fmt.Errorf("build analysis response: %w", err)
 	}
 
 	if len(response.Failures) > 0 {
@@ -638,7 +650,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 			Execute: func(ctx context.Context) (interface{}, error) {
 				ownedGraph, err := cloneModuleGraph(moduleGraph, moduleGraphErr)
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("prepare system analysis graph: %w", err)
 				}
 				request := domain.SystemAnalysisRequest{
 					Paths:                files,
@@ -670,7 +682,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 			Execute: func(ctx context.Context) (interface{}, error) {
 				ownedGraph, err := cloneModuleGraph(moduleGraph, moduleGraphErr)
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("prepare community analysis graph: %w", err)
 				}
 				request := domain.CommunityAnalysisRequest{
 					Paths:             files,
