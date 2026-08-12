@@ -249,7 +249,7 @@ func (b *CFGBuilder) buildNestedScope(node *parser.Node) error {
 	})
 	b.scopedCFGs = append(b.scopedCFGs, nestedBuilder.scopedCFGs...)
 
-	// Add function definition to current block
+	// Keep the definition statement in the enclosing execution scope.
 	b.currentBlock.AddStatement(node)
 	return nil
 }
