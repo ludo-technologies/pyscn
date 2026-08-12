@@ -68,9 +68,9 @@ type directoryComplexityAccumulator struct {
 	totalNestingDepth int
 }
 
-// aggregateComplexityByDirectory groups the reported function population by
-// its direct project-root-relative directory. This is the only owner of
-// directory grouping and directory-level complexity arithmetic.
+// aggregateComplexityByDirectory groups the complete analyzed function
+// population by its direct project-root-relative directory. This is the only
+// owner of directory grouping and directory-level complexity arithmetic.
 func aggregateComplexityByDirectory(functions []domain.FunctionComplexity, projectRoot string) (domain.DirectoryComplexityMetricsList, error) {
 	if len(functions) == 0 {
 		return domain.DirectoryComplexityMetricsList{}, nil

@@ -9,7 +9,7 @@ import (
 	"github.com/ludo-technologies/pyscn/domain"
 )
 
-func TestAggregateComplexityByDirectory_UsesReportedFunctions(t *testing.T) {
+func TestAggregateComplexityByDirectory_UsesAnalyzedFunctions(t *testing.T) {
 	root := t.TempDir()
 	functions := []domain.FunctionComplexity{
 		{
@@ -53,6 +53,26 @@ func TestAggregateComplexityByDirectory_UsesReportedFunctions(t *testing.T) {
 	}
 	if byPath[filepath.Join("pkg", "sub")].FunctionCount != 1 {
 		t.Fatalf("expected nested directory to remain distinct, got %+v", byPath)
+	}
+}
+
+func TestAttachDirectoryComplexity_DoesNotFallbackToReportedFunctions(t *testing.T) {
+	root := t.TempDir()
+	response := &domain.ComplexityResponse{
+		Functions: []domain.FunctionComplexity{
+			{
+				Name:     "reported-only",
+				FilePath: filepath.Join(root, "pkg", "reported.py"),
+				Metrics:  domain.ComplexityMetrics{Complexity: 8},
+			},
+		},
+	}
+
+	if err := attachDirectoryComplexity(response, root); err != nil {
+		t.Fatalf("attach directory complexity: %v", err)
+	}
+	if len(response.ByDirectory) != 0 {
+		t.Fatalf("expected no rollups without the complete analyzed population, got %+v", response.ByDirectory)
 	}
 }
 

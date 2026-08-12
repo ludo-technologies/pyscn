@@ -161,9 +161,9 @@ func (f FunctionComplexity) ExceedsSLOC(threshold int) bool {
 	return f.Metrics.SLOC > threshold
 }
 
-// DirectoryComplexityMetrics aggregates reported ComplexityResponse.Functions
-// entries for one project-root-relative directory. This includes a <module>
-// pseudo-entry when it survives presentation filters, matching summary counts.
+// DirectoryComplexityMetrics aggregates the complete analyzed function
+// population for one project-root-relative directory. Presentation filters do
+// not change these metrics, matching the project-wide summary contract.
 type DirectoryComplexityMetrics struct {
 	DirectoryPath         string  `json:"directory_path" yaml:"directory_path"`
 	FunctionCount         int     `json:"function_count" yaml:"function_count"`
@@ -220,12 +220,15 @@ type RawMetricsSummary struct {
 	CommentRatio   float64 `json:"comment_ratio" yaml:"comment_ratio"`
 }
 
-// ComplexitySummary represents aggregate statistics
+// ComplexitySummary represents aggregate statistics.
+// Averages, min/max, risk counts, and the distribution are computed over every
+// analyzed function; min_complexity only limits which functions are reported.
 type ComplexitySummary struct {
-	// TotalFunctions is the post-filter count (functions included in results after min_complexity filtering).
+	// TotalFunctions is the complete analyzed population used by all aggregate metrics.
+	// Presentation filters only limit ComplexityResponse.Functions.
 	TotalFunctions int
-	// FunctionsParsed is the pre-filter count of all functions parsed before min_complexity filtering.
-	// When min_complexity drops trivial functions, FunctionsParsed > TotalFunctions.
+	// FunctionsParsed is retained for output compatibility and describes the same
+	// complete analyzed population as TotalFunctions.
 	FunctionsParsed            int
 	AverageComplexity          float64
 	AverageCognitiveComplexity float64
@@ -257,6 +260,9 @@ type ComplexityResponse struct {
 	Functions   []FunctionComplexity
 	ByDirectory DirectoryComplexityMetricsList `json:"by_directory" yaml:"by_directory"`
 	Summary     ComplexitySummary
+	// AnalyzedFunctions is the complete population before presentation filters.
+	// It is consumed by app-level aggregations and is not part of public output.
+	AnalyzedFunctions []FunctionComplexity `json:"-" yaml:"-"`
 	// ModuleRollups are derived before report filters are applied. They are consumed
 	// by the unified analyze command and are not part of standalone complexity output.
 	ModuleRollups map[string]ModuleComplexityMetrics `json:"-" yaml:"-"`

@@ -259,7 +259,7 @@ func (uc *ComplexityUseCase) AnalyzeFile(ctx context.Context, filePath string, r
 }
 
 func attachDirectoryComplexity(response *domain.ComplexityResponse, projectRoot string) error {
-	byDirectory, err := aggregateComplexityByDirectory(response.Functions, projectRoot)
+	byDirectory, err := aggregateComplexityByDirectory(response.AnalyzedFunctions, projectRoot)
 	if err != nil {
 		return err
 	}

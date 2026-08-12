@@ -71,15 +71,20 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 
 	// Filter and sort results
 	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
-	filteredFunctions, functionsParsed := s.filterFunctions(allFunctions, req)
+	filteredFunctions, _ := s.filterFunctions(allFunctions, req)
 	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
 
-	// Generate summary
-	summary := s.generateSummary(sortedFunctions, filesProcessed, filesSkipped, req, functionsParsed)
+	// Generate summary over the complete population so min_complexity only
+	// affects which functions are displayed, not the aggregate metrics.
+	summary := s.generateSummary(allFunctions, complexitySummaryCounts{
+		filesAnalyzed: filesProcessed,
+		filesSkipped:  filesSkipped,
+	})
 	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
 
 	return &domain.ComplexityResponse{
 		Functions:         sortedFunctions,
+		AnalyzedFunctions: allFunctions,
 		Summary:           summary,
 		ModuleRollups:     moduleRollups,
 		RawMetrics:        allRawMetrics,
@@ -136,13 +141,17 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 	}
 
 	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
-	filteredFunctions, functionsParsed := s.filterFunctions(allFunctions, req)
+	filteredFunctions, _ := s.filterFunctions(allFunctions, req)
 	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
-	summary := s.generateSummary(sortedFunctions, filesProcessed, filesSkipped, req, functionsParsed)
+	summary := s.generateSummary(allFunctions, complexitySummaryCounts{
+		filesAnalyzed: filesProcessed,
+		filesSkipped:  filesSkipped,
+	})
 	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
 
 	return &domain.ComplexityResponse{
 		Functions:         sortedFunctions,
+		AnalyzedFunctions: allFunctions,
 		Summary:           summary,
 		ModuleRollups:     moduleRollups,
 		RawMetrics:        allRawMetrics,
@@ -361,18 +370,26 @@ func (s *ComplexityServiceImpl) sortByRisk(functions []domain.FunctionComplexity
 	})
 }
 
+// complexitySummaryCounts carries the labeled counts for generateSummary so
+// call sites cannot transpose them.
+type complexitySummaryCounts struct {
+	filesAnalyzed int
+	filesSkipped  int
+}
+
 // generateSummary creates summary statistics.
-// functionsParsed is the pre-filter function count (all functions parsed before min_complexity filtering).
-// filesSkipped counts the files that produced no metrics because they could not
-// be read or parsed; reporting it lets consumers see that the aggregates below
-// cover less than the request asked for.
-func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionComplexity, filesAnalyzed int, filesSkipped int, req domain.ComplexityRequest, functionsParsed int) domain.ComplexitySummary {
+// functions must be the complete analyzer population: min_complexity and
+// report_unchanged are presentation filters, so averages, distribution, and
+// all function counts stay stable regardless of what is displayed.
+// filesSkipped counts files that produced no metrics because they could not be
+// read or parsed, so consumers can see when aggregates cover only part of the
+// requested files.
+func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionComplexity, counts complexitySummaryCounts) domain.ComplexitySummary {
 	if len(functions) == 0 {
 		return domain.ComplexitySummary{
-			FilesAnalyzed:   filesAnalyzed,
-			TotalFiles:      filesAnalyzed + filesSkipped,
-			SkippedFiles:    filesSkipped,
-			FunctionsParsed: functionsParsed,
+			FilesAnalyzed: counts.filesAnalyzed,
+			TotalFiles:    counts.filesAnalyzed + counts.filesSkipped,
+			SkippedFiles:  counts.filesSkipped,
 		}
 	}
 
@@ -418,15 +435,15 @@ func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionCompl
 
 	return domain.ComplexitySummary{
 		TotalFunctions:             len(functions),
-		FunctionsParsed:            functionsParsed,
+		FunctionsParsed:            len(functions),
 		AverageComplexity:          avgComplexity,
 		AverageCognitiveComplexity: avgCognitiveComplexity,
 		AverageNestingDepth:        avgNestingDepth,
 		MaxComplexity:              maxComplexity,
 		MinComplexity:              minComplexity,
-		FilesAnalyzed:              filesAnalyzed,
-		TotalFiles:                 filesAnalyzed + filesSkipped,
-		SkippedFiles:               filesSkipped,
+		FilesAnalyzed:              counts.filesAnalyzed,
+		TotalFiles:                 counts.filesAnalyzed + counts.filesSkipped,
+		SkippedFiles:               counts.filesSkipped,
 		LowRiskFunctions:           lowCount,
 		MediumRiskFunctions:        mediumCount,
 		HighRiskFunctions:          highCount,
