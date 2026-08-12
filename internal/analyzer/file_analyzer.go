@@ -69,10 +69,10 @@ func (fca *FileComplexityAnalyzer) AnalyzeFile(filename string) error {
 		return fmt.Errorf("no functions found in %s", filename)
 	}
 
-	// Convert map to slice for the complexity analyzer
+	// Project the typed scoped collection to the graph-only analyzer API.
 	cfgList := make([]*CFG, 0, len(cfgs))
-	for _, cfg := range cfgs {
-		cfgList = append(cfgList, cfg)
+	for _, scopedCFG := range cfgs {
+		cfgList = append(cfgList, scopedCFG.Graph)
 	}
 
 	// Calculate complexity results
@@ -113,10 +113,10 @@ func (fca *FileComplexityAnalyzer) AnalyzeFiles(filenames []string) error {
 			return fmt.Errorf("failed to build control flow graphs for %s: %w", filename, err)
 		}
 
-		// Convert map to slice
+		// Project the typed scoped collection to the graph-only analyzer API.
 		cfgList := make([]*CFG, 0, len(cfgs))
-		for _, cfg := range cfgs {
-			cfgList = append(cfgList, cfg)
+		for _, scopedCFG := range cfgs {
+			cfgList = append(cfgList, scopedCFG.Graph)
 		}
 
 		// Calculate complexity for this file

@@ -71,8 +71,8 @@ type CFGBuilder struct {
 	// scopeStack tracks nested scopes (functions, classes, etc.)
 	scopeStack []string
 
-	// functionCFGs stores CFGs for nested functions
-	functionCFGs map[string]*CFG
+	// scopedCFGs stores CFGs for nested execution scopes in source order.
+	scopedCFGs ControlFlowGraphs
 
 	// blockCounter for generating unique block names
 	blockCounter uint
@@ -91,7 +91,7 @@ type CFGBuilder struct {
 func NewCFGBuilder() *CFGBuilder {
 	return &CFGBuilder{
 		scopeStack:     []string{},
-		functionCFGs:   make(map[string]*CFG),
+		scopedCFGs:     make(ControlFlowGraphs, 0),
 		blockCounter:   0,
 		logger:         nil, // Can be set via SetLogger if needed
 		loopStack:      []*loopContext{},
@@ -118,7 +118,7 @@ func (b *CFGBuilder) Build(node *parser.Node) (*CFG, error) {
 	}
 
 	if len(b.scopeStack) == 0 {
-		b.functionCFGs = make(map[string]*CFG)
+		b.scopedCFGs = b.scopedCFGs[:0]
 	}
 	b.blockCounter = 0
 	b.loopStack = b.loopStack[:0]
@@ -159,26 +159,22 @@ func (b *CFGBuilder) Build(node *parser.Node) (*CFG, error) {
 	return b.cfg, nil
 }
 
-// BuildAll builds CFGs for all functions in the AST
-func (b *CFGBuilder) BuildAll(node *parser.Node) (map[string]*CFG, error) {
+// BuildAll builds CFGs for every supported execution scope in source order.
+func (b *CFGBuilder) BuildAll(node *parser.Node) (ControlFlowGraphs, error) {
 	if node == nil {
 		return nil, fmt.Errorf("cannot build CFGs from nil node")
 	}
 
-	allCFGs := make(map[string]*CFG)
-
-	// Build main CFG
+	// Build the root CFG.
 	mainCFG, err := b.Build(node)
 	if err != nil {
 		return nil, err
 	}
-	allCFGs[domain.ModuleFunctionName] = mainCFG
 
-	// Add all function CFGs (including nested ones)
-	for name, cfg := range b.functionCFGs {
-		allCFGs[name] = cfg
-	}
-
+	rootScope := cfgScope(node, mainCFG.Name)
+	allCFGs := make(ControlFlowGraphs, 0, 1+len(b.scopedCFGs))
+	allCFGs = append(allCFGs, ScopedCFG{Scope: rootScope, Graph: mainCFG})
+	allCFGs = append(allCFGs, b.scopedCFGs...)
 	return allCFGs, nil
 }
 
@@ -257,19 +253,36 @@ func (b *CFGBuilder) buildNestedFunction(node *parser.Node) error {
 		return fmt.Errorf("failed to build nested function %s: %w", node.Name, err)
 	}
 
-	// Store descendant CFGs produced while building this function before the
-	// function itself. Their names are already fully scoped by nestedBuilder.
-	for nestedName, nestedCFG := range nestedBuilder.functionCFGs {
-		b.functionCFGs[nestedName] = nestedCFG
-	}
-
-	// Store the function CFG.
+	// Store the function CFG, followed by descendants produced in source order.
 	fullName := b.getFullScopeName(node.Name)
-	b.functionCFGs[fullName] = funcCFG
+	b.scopedCFGs = append(b.scopedCFGs, ScopedCFG{
+		Scope: cfgScope(node, fullName),
+		Graph: funcCFG,
+	})
+	b.scopedCFGs = append(b.scopedCFGs, nestedBuilder.scopedCFGs...)
 
 	// Add function definition to current block
 	b.currentBlock.AddStatement(node)
 	return nil
+}
+
+func cfgScope(node *parser.Node, name string) CFGScope {
+	scope := CFGScope{Name: name}
+	if node == nil {
+		return scope
+	}
+
+	scope.StartLine = node.Location.StartLine
+	scope.StartColumn = node.Location.StartCol
+	switch node.Type {
+	case parser.NodeModule:
+		scope.Kind = domain.AnalysisScopeModule
+	case parser.NodeClassDef:
+		scope.Kind = domain.AnalysisScopeClass
+	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
+		scope.Kind = domain.AnalysisScopeFunction
+	}
+	return scope
 }
 
 // processStatement processes a single statement

@@ -272,7 +272,7 @@ print(count)
 		t.Fatalf("Failed to build CFGs: %v", err)
 	}
 
-	mainCFG, ok := cfgs[domain.ModuleFunctionName]
+	mainCFG, ok := findCFG(cfgs, domain.ModuleFunctionName)
 	if !ok {
 		t.Fatalf("Expected %q CFG to be present", domain.ModuleFunctionName)
 	}
@@ -310,10 +310,10 @@ for path in os.listdir("."):
 		t.Fatalf("Failed to build CFGs: %v", err)
 	}
 
-	if _, ok := cfgs["__main__"]; ok {
+	if _, ok := findCFG(cfgs, "__main__"); ok {
 		t.Errorf("Module CFG must not be keyed as %q (user-facing leak); expected %q", "__main__", domain.ModuleFunctionName)
 	}
-	mainCFG, ok := cfgs[domain.ModuleFunctionName]
+	mainCFG, ok := findCFG(cfgs, domain.ModuleFunctionName)
 	if !ok {
 		t.Fatalf("Expected module CFG keyed as %q", domain.ModuleFunctionName)
 	}
@@ -465,7 +465,7 @@ func calculateFunctionComplexityForSource(t *testing.T, source, functionName str
 		t.Fatalf("Failed to build CFGs: %v", err)
 	}
 
-	cfg, ok := cfgs[functionName]
+	cfg, ok := findCFG(cfgs, functionName)
 	if !ok {
 		t.Fatalf("Expected CFG for %q", functionName)
 	}

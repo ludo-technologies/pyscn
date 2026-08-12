@@ -114,7 +114,7 @@ func TestCFGIntegrationWithRealFiles(t *testing.T) {
 			}
 
 			// Get the main module CFG for validation
-			cfg := cfgs[domain.ModuleFunctionName]
+			cfg, _ := findCFG(cfgs, domain.ModuleFunctionName)
 			require.NotNil(t, cfg, "Failed to find main CFG for %s", tc.file)
 
 			// Validate basic CFG properties
@@ -366,16 +366,16 @@ def exception_handler():
 			var cfg *CFG
 			if tc.name == "SimpleFunction" || tc.name == "IfElseStatement" || tc.name == "ForLoop" || tc.name == "TryExcept" {
 				// These are function definitions, get the function CFG
-				for name, c := range cfgs {
-					if name != domain.ModuleFunctionName {
-						cfg = c
+				for _, scopedCFG := range cfgs {
+					if scopedCFG.Scope.Kind == domain.AnalysisScopeFunction {
+						cfg = scopedCFG.Graph
 						break
 					}
 				}
 				require.NotNil(t, cfg, "Failed to find function CFG")
 			} else {
 				// Module-level code
-				cfg = cfgs[domain.ModuleFunctionName]
+				cfg, _ = findCFG(cfgs, domain.ModuleFunctionName)
 				require.NotNil(t, cfg, "Failed to find module CFG")
 			}
 

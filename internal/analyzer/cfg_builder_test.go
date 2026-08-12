@@ -202,7 +202,7 @@ def outer():
 		assertFunctionCFG(t, allCFGs, "outer", "outer")
 		assertFunctionCFG(t, allCFGs, "outer.middle", "middle")
 		assertFunctionCFG(t, allCFGs, "outer.middle.inner", "inner")
-		assertHasReturnEdge(t, allCFGs["outer.middle.inner"])
+		assertHasReturnEdge(t, requireCFG(t, allCFGs, "outer.middle.inner"))
 	})
 
 	t.Run("BuildNestedMethodFunctions", func(t *testing.T) {
@@ -228,7 +228,7 @@ class Factory:
 
 		assertFunctionCFG(t, allCFGs, "Factory.build", "build")
 		assertFunctionCFG(t, allCFGs, "Factory.build.make_value", "make_value")
-		assertHasReturnEdge(t, allCFGs["Factory.build.make_value"])
+		assertHasReturnEdge(t, requireCFG(t, allCFGs, "Factory.build.make_value"))
 	})
 
 	t.Run("BuildTopLevelFunctions", func(t *testing.T) {
@@ -253,7 +253,7 @@ def outer():
 		}
 
 		// Check for main CFG
-		if _, ok := allCFGs[domain.ModuleFunctionName]; !ok {
+		if _, ok := findCFG(allCFGs, domain.ModuleFunctionName); !ok {
 			t.Errorf("Missing %q CFG", domain.ModuleFunctionName)
 		}
 
@@ -286,8 +286,40 @@ def second():
 		}
 
 		requireCFG(t, secondCFGs, "second")
-		if _, ok := secondCFGs["first.stale"]; ok {
+		if _, ok := findCFG(secondCFGs, "first.stale"); ok {
 			t.Fatalf("BuildAll leaked stale CFGs across builds; got %v", mapKeys(secondCFGs))
+		}
+	})
+
+	t.Run("BuildAllPreservesDuplicateFunctionScopes", func(t *testing.T) {
+		ast := parseSource(t, `
+def configure():
+    return "first"
+
+def configure():
+    return "second"
+`)
+
+		cfgs, err := NewCFGBuilder().BuildAll(ast)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		var configureScopes []CFGScope
+		for _, scopedCFG := range cfgs {
+			if scopedCFG.Scope.Name == "configure" {
+				configureScopes = append(configureScopes, scopedCFG.Scope)
+			}
+		}
+
+		if len(configureScopes) != 2 {
+			t.Fatalf("configure scope count = %d, want 2", len(configureScopes))
+		}
+		if configureScopes[0].Kind != domain.AnalysisScopeFunction || configureScopes[1].Kind != domain.AnalysisScopeFunction {
+			t.Fatalf("configure scope kinds = %q, %q; want function", configureScopes[0].Kind, configureScopes[1].Kind)
+		}
+		if configureScopes[0].StartLine >= configureScopes[1].StartLine {
+			t.Fatalf("configure scopes are not in source order: %+v", configureScopes)
 		}
 	})
 
@@ -440,7 +472,7 @@ if __name__ == "__main__":
 	}
 
 	// Check main CFG exists
-	mainCFG, ok := allCFGs[domain.ModuleFunctionName]
+	mainCFG, ok := findCFG(allCFGs, domain.ModuleFunctionName)
 	if !ok {
 		t.Fatal("Main CFG not found")
 	}
@@ -450,7 +482,9 @@ if __name__ == "__main__":
 	}
 
 	// Verify all CFGs have proper structure
-	for name, cfg := range allCFGs {
+	for _, scopedCFG := range allCFGs {
+		name := scopedCFG.Scope.Name
+		cfg := scopedCFG.Graph
 		if cfg.Entry == nil {
 			t.Errorf("CFG %s has no entry block", name)
 		}
@@ -505,10 +539,10 @@ func countStatements(cfg *CFG) int {
 	return count
 }
 
-func requireCFG(t *testing.T, cfgs map[string]*CFG, name string) *CFG {
+func requireCFG(t *testing.T, cfgs ControlFlowGraphs, name string) *CFG {
 	t.Helper()
 
-	cfg, ok := cfgs[name]
+	cfg, ok := findCFG(cfgs, name)
 	if !ok {
 		t.Fatalf("Missing %q CFG; got %v", name, mapKeys(cfgs))
 	}
@@ -518,7 +552,7 @@ func requireCFG(t *testing.T, cfgs map[string]*CFG, name string) *CFG {
 	return cfg
 }
 
-func assertFunctionCFG(t *testing.T, cfgs map[string]*CFG, key, functionName string) {
+func assertFunctionCFG(t *testing.T, cfgs ControlFlowGraphs, key, functionName string) {
 	t.Helper()
 
 	cfg := requireCFG(t, cfgs, key)
@@ -552,13 +586,22 @@ func assertHasReturnEdge(t *testing.T, cfg *CFG) {
 	}
 }
 
-func mapKeys(cfgs map[string]*CFG) []string {
+func mapKeys(cfgs ControlFlowGraphs) []string {
 	keys := make([]string, 0, len(cfgs))
-	for key := range cfgs {
-		keys = append(keys, key)
+	for _, scopedCFG := range cfgs {
+		keys = append(keys, scopedCFG.Scope.Name)
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+func findCFG(cfgs ControlFlowGraphs, name string) (*CFG, bool) {
+	for _, scopedCFG := range cfgs {
+		if scopedCFG.Scope.Name == name {
+			return scopedCFG.Graph, true
+		}
+	}
+	return nil, false
 }
 
 // Removed custom contains function - now using strings.Contains from stdlib
@@ -642,7 +685,7 @@ def test_elif():
 	}
 
 	// Get the test_elif function CFG
-	cfg, exists := cfgs["test_elif"]
+	cfg, exists := findCFG(cfgs, "test_elif")
 	if !exists {
 		t.Fatalf("Failed to find test_elif function CFG")
 	}
@@ -789,9 +832,9 @@ def elif_with_return(x):
 
 			// Get the function CFG (not the module CFG)
 			var cfg *CFG
-			for name, c := range cfgs {
-				if name != domain.ModuleFunctionName {
-					cfg = c
+			for _, scopedCFG := range cfgs {
+				if scopedCFG.Scope.Kind == domain.AnalysisScopeFunction {
+					cfg = scopedCFG.Graph
 					break
 				}
 			}

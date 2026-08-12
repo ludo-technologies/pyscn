@@ -49,6 +49,18 @@ const (
 // function defined in the source.
 const ModuleFunctionName = "<module>"
 
+// AnalysisScopeKind identifies the Python execution scope that owns a
+// complexity result. Methods and nested functions are function scopes; class
+// suites are class scopes because Python executes their statements separately
+// while constructing the class object.
+type AnalysisScopeKind string
+
+const (
+	AnalysisScopeModule   AnalysisScopeKind = "module"
+	AnalysisScopeFunction AnalysisScopeKind = "function"
+	AnalysisScopeClass    AnalysisScopeKind = "class"
+)
+
 // ComplexityRequest represents a request for complexity analysis
 type ComplexityRequest struct {
 	// Input files or directories to analyze

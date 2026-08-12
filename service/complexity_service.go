@@ -248,11 +248,13 @@ func (s *ComplexityServiceImpl) analyzeProjectFile(file *ProjectFile, req domain
 	return functions, rawMetrics, warnings, errors
 }
 
-func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, cfgs map[string]*analyzer.CFG, complexityConfig *config.ComplexityConfig, req domain.ComplexityRequest, rawMetrics *analyzer.RawMetricsResult) ([]domain.FunctionComplexity, []string) {
+func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, cfgs analyzer.ControlFlowGraphs, complexityConfig *config.ComplexityConfig, req domain.ComplexityRequest, rawMetrics *analyzer.RawMetricsResult) ([]domain.FunctionComplexity, []string) {
 	var functions []domain.FunctionComplexity
 	var warnings []string
 
-	for functionName, cfg := range cfgs {
+	for _, scopedCFG := range cfgs {
+		functionName := scopedCFG.Scope.Name
+		cfg := scopedCFG.Graph
 		result := analyzer.CalculateComplexityWithConfig(cfg, complexityConfig)
 		if result == nil {
 			warnings = append(warnings, fmt.Sprintf("[%s:%s] Failed to calculate complexity for function", filePath, functionName))

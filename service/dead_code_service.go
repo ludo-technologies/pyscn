@@ -243,7 +243,7 @@ func (s *DeadCodeServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.D
 	return fileResult, moduleRollup, warnings, errors
 }
 
-func (s *DeadCodeServiceImpl) analyzeCFGs(filePath string, cfgs map[string]*analyzer.CFG, req domain.DeadCodeRequest) (*domain.FileDeadCode, domain.ModuleDeadCodeMetrics, []string) {
+func (s *DeadCodeServiceImpl) analyzeCFGs(filePath string, cfgs analyzer.ControlFlowGraphs, req domain.DeadCodeRequest) (*domain.FileDeadCode, domain.ModuleDeadCodeMetrics, []string) {
 	var warnings []string
 	var functions []domain.FunctionDeadCode
 	var unfilteredFunctions []domain.FunctionDeadCode
@@ -251,11 +251,15 @@ func (s *DeadCodeServiceImpl) analyzeCFGs(filePath string, cfgs map[string]*anal
 	unfilteredFindings := 0
 	affectedFunctions := 0
 
-	for functionName, cfg := range cfgs {
+	functionCount := 0
+	for _, scopedCFG := range cfgs {
 		// Skip the main module CFG for now, focus on functions
-		if functionName == domain.ModuleFunctionName {
+		if scopedCFG.Scope.Kind != domain.AnalysisScopeFunction {
 			continue
 		}
+		functionCount++
+		functionName := scopedCFG.Scope.Name
+		cfg := scopedCFG.Graph
 
 		deadCodeResults := analyzer.DetectInFunctionWithFilePath(cfg, filePath)
 		if deadCodeResults == nil {
@@ -298,7 +302,7 @@ func (s *DeadCodeServiceImpl) analyzeCFGs(filePath string, cfgs map[string]*anal
 		FilePath:          filePath,
 		Functions:         functions,
 		TotalFindings:     totalFindings,
-		TotalFunctions:    len(cfgs) - 1, // Exclude __main__
+		TotalFunctions:    functionCount,
 		AffectedFunctions: affectedFunctions,
 		DeadCodeRatio:     deadCodeRatio,
 	}

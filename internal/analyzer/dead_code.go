@@ -170,14 +170,16 @@ func DetectInFunctionWithFilePath(cfg *CFG, filePath string) *DeadCodeResult {
 }
 
 // DetectInFile analyzes multiple CFGs from a file and returns combined findings
-func DetectInFile(cfgs map[string]*CFG, filePath string) []*DeadCodeResult {
+func DetectInFile(cfgs ControlFlowGraphs, filePath string) []*DeadCodeResult {
 	var results []*DeadCodeResult
 
-	for functionName, cfg := range cfgs {
+	for _, scopedCFG := range cfgs {
 		// Skip the main module CFG for now, focus on functions
-		if functionName == domain.ModuleFunctionName {
+		if scopedCFG.Scope.Kind != domain.AnalysisScopeFunction {
 			continue
 		}
+		functionName := scopedCFG.Scope.Name
+		cfg := scopedCFG.Graph
 
 		// Use the file path-aware constructor for accurate reporting
 		detector := NewDeadCodeDetectorWithFilePath(cfg, filePath)

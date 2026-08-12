@@ -393,7 +393,7 @@ async def fetch(session, url):
 		cfgs, err := NewCFGBuilder().BuildAll(ast)
 		require.NoError(t, err)
 
-		cfg, ok := cfgs["fetch"]
+		cfg, ok := findCFG(cfgs, "fetch")
 		require.True(t, ok, "expected CFG for async function 'fetch'")
 
 		info, err := NewDFABuilder().Build(cfg)
@@ -622,7 +622,7 @@ def nested():
 		cfgs, err := NewCFGBuilder().BuildAll(ast)
 		require.NoError(t, err)
 
-		nestedCFG, ok := cfgs["nested"]
+		nestedCFG, ok := findCFG(cfgs, "nested")
 		require.True(t, ok, "expected nested function CFG")
 
 		info, err := NewDFABuilder().Build(nestedCFG)
