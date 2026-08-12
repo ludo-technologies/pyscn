@@ -84,3 +84,32 @@ func TestCheckComplexityStaysSilentBelowThreshold(t *testing.T) {
 		t.Errorf("expected no diagnostics, got: %s", output)
 	}
 }
+
+func TestCheckComplexityReportsClassExecutionScope(t *testing.T) {
+	var source strings.Builder
+	source.WriteString("class Config:\n")
+	for i := 0; i < 11; i++ {
+		fmt.Fprintf(&source, "    if flag_%d:\n        value = %d\n", i, i)
+	}
+
+	path := filepath.Join(t.TempDir(), "config.py")
+	if err := os.WriteFile(path, []byte(source.String()), 0o644); err != nil {
+		t.Fatalf("failed to write fixture: %v", err)
+	}
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	var stderr bytes.Buffer
+	cobraCmd.SetErr(&stderr)
+
+	issueCount, err := checkCmd.checkComplexity(cobraCmd, []string{path})
+	if err != nil {
+		t.Fatalf("checkComplexity failed: %v", err)
+	}
+	if issueCount != 1 {
+		t.Fatalf("expected one class-scope issue, got %d: %s", issueCount, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "class scope Config is too complex (12 > 10)") {
+		t.Fatalf("expected a class-scope diagnostic, got: %s", stderr.String())
+	}
+}

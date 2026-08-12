@@ -471,6 +471,53 @@ func TestHandleCheckComplexity(t *testing.T) {
 	}
 }
 
+func TestHandleCheckComplexityReportsClassExecutionScope(t *testing.T) {
+	res := runToolTest(
+		t,
+		func(t *testing.T) string {
+			t.Helper()
+			var source strings.Builder
+			source.WriteString("class Config:\n")
+			for i := 0; i < 11; i++ {
+				source.WriteString("    if enabled:\n        value = 1\n")
+			}
+			source.WriteString("\ndef resolve(value):\n")
+			for i := 0; i < 10; i++ {
+				source.WriteString("    if value:\n        value -= 1\n")
+			}
+			source.WriteString("    return value\n")
+			path := filepath.Join(t.TempDir(), "config.py")
+			require.NoError(t, os.WriteFile(path, []byte(source.String()), 0o644))
+			return path
+		},
+		map[string]interface{}{
+			"max_complexity": float64(10),
+			"max_results":    float64(1),
+			"output_mode":    "summary",
+		},
+		(*mcp.HandlerSet).HandleCheckComplexity,
+	)
+
+	require.False(t, res.IsError)
+	require.NotEmpty(t, res.Content)
+	var result struct {
+		Issues  []string `json:"issues"`
+		Summary struct {
+			TotalFunctions    int     `json:"total_functions"`
+			TotalClassScopes  int     `json:"total_class_scopes"`
+			MaxComplexity     int     `json:"max_complexity"`
+			AverageComplexity float64 `json:"average_complexity"`
+		} `json:"summary"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(mcplib.GetTextFromContent(res.Content[0])), &result))
+	require.Len(t, result.Issues, 1)
+	assert.Contains(t, result.Issues[0], "class scope Config is too complex (12 > 10)")
+	assert.Equal(t, 2, result.Summary.TotalFunctions)
+	assert.Equal(t, 1, result.Summary.TotalClassScopes)
+	assert.Equal(t, 12, result.Summary.MaxComplexity)
+	assert.InDelta(t, 8, result.Summary.AverageComplexity, 1e-9)
+}
+
 func TestHandleCheckCoupling(t *testing.T) {
 	errTrue := true
 

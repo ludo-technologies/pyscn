@@ -55,7 +55,7 @@ func (c *CheckCommand) CreateCobraCommand() *cobra.Command {
 		Long: `Quick code quality check optimized for CI/CD pipelines.
 
 This command performs a fast analysis with predefined thresholds:
-• Complexity: Fails if any function has complexity > 10
+• Complexity: Fails if any module, class suite, or function has complexity > 10
 • Dead Code: Fails if any critical dead code is found
 • Clones: Reports clones with similarity > 0.8 (warning only)
 • Circular Dependencies: Fails if any cycles are detected
@@ -478,12 +478,16 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 	// functions that are too long. Length is orthogonal to McCabe, so a flat
 	// 200-line function is an issue on its own and both can fire at once.
 	issueCount := 0
-	for _, function := range response.Functions {
+	for _, function := range response.ReportedScopesByComplexity() {
+		name := function.Name
+		if function.ResolvedScopeKind() == domain.AnalysisScopeClass {
+			name = "class scope " + name
+		}
 		if function.Metrics.Complexity > maxComplexity {
 			issueCount++
 			if !c.quiet {
 				fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s is too complex (%d > %d)\n",
-					function.FilePath, function.StartLine, function.StartColumn+1, function.Name, function.Metrics.Complexity, maxComplexity)
+					function.FilePath, function.StartLine, function.StartColumn+1, name, function.Metrics.Complexity, maxComplexity)
 			}
 		}
 		if function.ExceedsSLOC(slocThreshold) {

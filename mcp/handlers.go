@@ -123,6 +123,7 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 			"summary": map[string]interface{}{
 				"total_files":           result.Summary.TotalFiles,
 				"total_functions":       result.Summary.TotalFunctions,
+				"total_class_scopes":    result.Summary.TotalClassScopes,
 				"functions_parsed":      result.Summary.FunctionsParsed,
 				"complexity_score":      result.Summary.ComplexityScore,
 				"dead_code_score":       result.Summary.DeadCodeScore,
@@ -783,8 +784,10 @@ func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, m
 		threshold = 10
 	}
 
-	// Filter functions that exceed threshold
-	for _, fn := range result.Functions {
+	// Filter all executable scopes that exceed the function complexity gate.
+	scopes := result.ReportedScopesByComplexity()
+	maxComplexity, averageComplexity := summarizeScopeComplexity(result.AnalyzedScopesByComplexity())
+	for _, fn := range scopes {
 		if fn.Metrics.Complexity > threshold {
 			totalIssues++
 
@@ -792,7 +795,7 @@ func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, m
 			if maxResults == 0 || len(issues) < maxResults {
 				// Format: "file:line:col: function is too complex (X > threshold)"
 				issue := fmt.Sprintf("%s:%d:%d: %s is too complex (%d > %d)",
-					fn.FilePath, fn.StartLine, fn.StartColumn+1, fn.Name,
+					fn.FilePath, fn.StartLine, fn.StartColumn+1, complexityScopeLabel(fn),
 					fn.Metrics.Complexity, threshold)
 				issues = append(issues, issue)
 			}
@@ -802,12 +805,14 @@ func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, m
 	return map[string]interface{}{
 		"issues": issues,
 		"summary": map[string]interface{}{
-			"total_issues":       totalIssues,
-			"total_functions":    result.Summary.TotalFunctions,
-			"functions_parsed":   result.Summary.FunctionsParsed,
-			"max_complexity":     result.Summary.MaxComplexity,
-			"average_complexity": result.Summary.AverageComplexity,
-			"threshold":          threshold,
+			"total_issues":                totalIssues,
+			"total_functions":             result.Summary.TotalFunctions,
+			"total_class_scopes":          result.Summary.TotalClassScopes,
+			"functions_parsed":            result.Summary.FunctionsParsed,
+			"max_complexity":              maxComplexity,
+			"average_complexity":          averageComplexity,
+			"average_function_complexity": result.Summary.AverageComplexity,
+			"threshold":                   threshold,
 		},
 	}
 }
@@ -832,7 +837,9 @@ func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, 
 		threshold = 10
 	}
 
-	for _, fn := range result.Functions {
+	scopes := result.ReportedScopesByComplexity()
+	maxComplexity, averageComplexity := summarizeScopeComplexity(result.AnalyzedScopesByComplexity())
+	for _, fn := range scopes {
 		if fn.Metrics.Complexity > threshold {
 			totalIssues++
 
@@ -843,7 +850,7 @@ func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, 
 					Line:       fn.StartLine,
 					Column:     fn.StartColumn + 1,
 					Function:   fn.Name,
-					ScopeKind:  fn.ScopeKind,
+					ScopeKind:  fn.ResolvedScopeKind(),
 					Complexity: fn.Metrics.Complexity,
 					Threshold:  threshold,
 					Message:    fmt.Sprintf("is too complex (%d > %d)", fn.Metrics.Complexity, threshold),
@@ -856,14 +863,37 @@ func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, 
 	return map[string]interface{}{
 		"issues": issues,
 		"summary": map[string]interface{}{
-			"total_issues":       totalIssues,
-			"total_functions":    result.Summary.TotalFunctions,
-			"functions_parsed":   result.Summary.FunctionsParsed,
-			"max_complexity":     result.Summary.MaxComplexity,
-			"average_complexity": result.Summary.AverageComplexity,
-			"threshold":          threshold,
+			"total_issues":                totalIssues,
+			"total_functions":             result.Summary.TotalFunctions,
+			"total_class_scopes":          result.Summary.TotalClassScopes,
+			"functions_parsed":            result.Summary.FunctionsParsed,
+			"max_complexity":              maxComplexity,
+			"average_complexity":          averageComplexity,
+			"average_function_complexity": result.Summary.AverageComplexity,
+			"threshold":                   threshold,
 		},
 	}
+}
+
+func complexityScopeLabel(scope domain.FunctionComplexity) string {
+	if scope.ResolvedScopeKind() == domain.AnalysisScopeClass {
+		return "class scope " + scope.Name
+	}
+	return scope.Name
+}
+
+func summarizeScopeComplexity(scopes []domain.FunctionComplexity) (int, float64) {
+	if len(scopes) == 0 {
+		return 0, 0
+	}
+	total, maximum := 0, 0
+	for _, scope := range scopes {
+		total += scope.Metrics.Complexity
+		if scope.Metrics.Complexity > maximum {
+			maximum = scope.Metrics.Complexity
+		}
+	}
+	return maximum, float64(total) / float64(len(scopes))
 }
 
 // formatDeadCodeSummary formats dead code results in compact summary mode
