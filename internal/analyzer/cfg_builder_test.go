@@ -268,6 +268,31 @@ class Config:
 		}
 	})
 
+	t.Run("LegacyReporterDoesNotMislabelClassScopes", func(t *testing.T) {
+		ast := parseSource(t, `
+class Config:
+    enabled = True
+
+    def resolve(self):
+        return self.enabled
+`)
+		cfgs, err := NewCFGBuilder().BuildAll(ast)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		graphs := legacyReporterCFGs(cfgs)
+		if len(graphs) != 2 {
+			t.Fatalf("legacy reporter graph count = %d, want module and method", len(graphs))
+		}
+		classGraph := requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Config")
+		for _, graph := range graphs {
+			if graph == classGraph {
+				t.Fatal("function-only legacy reporter must not receive a class graph")
+			}
+		}
+	})
+
 	t.Run("BuildNestedDjangoMetaScope", func(t *testing.T) {
 		ast := parseSource(t, `
 class Event(models.Model):

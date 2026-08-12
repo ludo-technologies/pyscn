@@ -631,6 +631,41 @@ class Thing:
 		assertUsesOnlyInBlockLabel(t, value, 1, LabelClassBody)
 	})
 
+	t.Run("Build_ClassAndMethodHeadersStayWithTheirExecutionScopes", func(t *testing.T) {
+		ast := parseSourceForDFA(t, `
+base = object
+class_decorator = decorate
+method_decorator = decorate
+default_value = 1
+
+@class_decorator
+class Config(base):
+    @method_decorator
+    def resolve(self, arg=default_value):
+        return arg
+`)
+		cfgs, err := NewCFGBuilder().BuildAll(ast)
+		require.NoError(t, err)
+
+		moduleInfo, err := NewDFABuilder().Build(requireScopedCFG(t, cfgs, domain.AnalysisScopeModule, domain.ModuleFunctionName))
+		require.NoError(t, err)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, moduleInfo, "base"), 1, LabelEntry)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, moduleInfo, "class_decorator"), 1, LabelEntry)
+		assert.Empty(t, requireDFAChain(t, moduleInfo, "method_decorator").Uses)
+		assert.Empty(t, requireDFAChain(t, moduleInfo, "default_value").Uses)
+
+		classInfo, err := NewDFABuilder().Build(requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Config"))
+		require.NoError(t, err)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, classInfo, "method_decorator"), 1, LabelClassBody)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, classInfo, "default_value"), 1, LabelClassBody)
+
+		methodInfo, err := NewDFABuilder().Build(requireScopedCFG(t, cfgs, domain.AnalysisScopeFunction, "Config.resolve"))
+		require.NoError(t, err)
+		arg := requireDFAChain(t, methodInfo, "arg")
+		assertSingleDefKind(t, arg, DefKindParam)
+		assertUsesOnlyInBlockLabel(t, arg, 1, LabelFunctionBody)
+	})
+
 	t.Run("Build_NestedFunctionCFG_RetainsBodyUses", func(t *testing.T) {
 		source := `
 outer_value = 1

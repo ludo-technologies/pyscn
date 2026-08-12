@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/ludo-technologies/pyscn/internal/reporter"
@@ -69,11 +70,10 @@ func (fca *FileComplexityAnalyzer) AnalyzeFile(filename string) error {
 		return fmt.Errorf("no execution scopes found in %s", filename)
 	}
 
-	// Project the typed scoped collection to the graph-only analyzer API.
-	cfgList := make([]*CFG, 0, len(cfgs))
-	for _, scopedCFG := range cfgs {
-		cfgList = append(cfgList, scopedCFG.Graph)
-	}
+	// This legacy reporter's schema is explicitly function-only. Keep class
+	// suites out rather than discarding their kind and mislabeling them as
+	// functions; the service reporting path publishes class scopes.
+	cfgList := legacyReporterCFGs(cfgs)
 
 	// Calculate complexity results
 	results := CalculateFileComplexityWithConfig(cfgList, &fca.config.Complexity)
@@ -113,11 +113,7 @@ func (fca *FileComplexityAnalyzer) AnalyzeFiles(filenames []string) error {
 			return fmt.Errorf("failed to build control flow graphs for %s: %w", filename, err)
 		}
 
-		// Project the typed scoped collection to the graph-only analyzer API.
-		cfgList := make([]*CFG, 0, len(cfgs))
-		for _, scopedCFG := range cfgs {
-			cfgList = append(cfgList, scopedCFG.Graph)
-		}
+		cfgList := legacyReporterCFGs(cfgs)
 
 		// Calculate complexity for this file
 		fileResults := CalculateFileComplexityWithConfig(cfgList, &fca.config.Complexity)
@@ -136,4 +132,14 @@ func (fca *FileComplexityAnalyzer) AnalyzeFiles(filenames []string) error {
 
 	// Generate and output report
 	return fca.reporter.ReportComplexityWithFileCount(interfaceResults, len(filenames))
+}
+
+func legacyReporterCFGs(cfgs ControlFlowGraphs) []*CFG {
+	graphs := make([]*CFG, 0, len(cfgs))
+	for _, scopedCFG := range cfgs {
+		if scopedCFG.Scope.Kind != domain.AnalysisScopeClass {
+			graphs = append(graphs, scopedCFG.Graph)
+		}
+	}
+	return graphs
 }
