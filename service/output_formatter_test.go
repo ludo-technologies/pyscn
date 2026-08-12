@@ -129,6 +129,76 @@ func createMinimalComplexityResponse() *domain.ComplexityResponse {
 	}
 }
 
+func createClassScopeComplexityResponse() *domain.ComplexityResponse {
+	response := createTestComplexityResponse()
+	response.ClassScopes = []domain.FunctionComplexity{{
+		Name:      "Config",
+		ScopeKind: domain.AnalysisScopeClass,
+		FilePath:  "test.py",
+		StartLine: 20,
+		Metrics: domain.ComplexityMetrics{
+			Complexity: 4,
+		},
+		RiskLevel: domain.RiskLevelLow,
+	}}
+	response.Summary.TotalClassScopes = 1
+	return response
+}
+
+func TestOutputFormatterPublishesClassScopesAdditively(t *testing.T) {
+	formatter := NewOutputFormatter()
+	response := createClassScopeComplexityResponse()
+
+	for _, format := range []domain.OutputFormat{domain.OutputFormatJSON, domain.OutputFormatYAML} {
+		t.Run(string(format), func(t *testing.T) {
+			output, err := formatter.Format(response, format)
+			require.NoError(t, err)
+
+			var payload map[string]interface{}
+			if format == domain.OutputFormatJSON {
+				require.NoError(t, json.Unmarshal([]byte(output), &payload))
+			} else {
+				require.NoError(t, yaml.Unmarshal([]byte(output), &payload))
+			}
+
+			assert.Len(t, payload["results"], 2, "the established function collection must stay unchanged")
+			classScopes, ok := payload["class_scopes"].([]interface{})
+			require.True(t, ok)
+			require.Len(t, classScopes, 1)
+			assert.Equal(t, "class", classScopes[0].(map[string]interface{})["scope_kind"])
+			summary := payload["summary"].(map[string]interface{})
+			assert.EqualValues(t, 2, summary["total_functions"])
+			assert.EqualValues(t, 1, summary["total_class_scopes"])
+		})
+	}
+
+	textOutput, err := formatter.Format(response, domain.OutputFormatText)
+	require.NoError(t, err)
+	assert.Contains(t, textOutput, "CLASS SCOPE DETAILS")
+	assert.Contains(t, textOutput, "Config (class)")
+
+	htmlOutput, err := formatter.Format(response, domain.OutputFormatHTML)
+	require.NoError(t, err)
+	assert.Contains(t, htmlOutput, "Class Scope Details")
+	assert.Contains(t, htmlOutput, ">class<")
+
+	csvOutput, err := formatter.Format(response, domain.OutputFormatCSV)
+	require.NoError(t, err)
+	records, err := csv.NewReader(strings.NewReader(csvOutput)).ReadAll()
+	require.NoError(t, err)
+	assert.Len(t, records, 4)
+	assert.Equal(t, "Config", records[3][0])
+	assert.Equal(t, "class", records[3][11])
+}
+
+func TestOutputFormatterHTMLResolvesLegacyScopeKind(t *testing.T) {
+	response := createTestComplexityResponse()
+	response.Functions[0].ScopeKind = domain.AnalysisScopeUnknown
+	output, err := NewOutputFormatter().Format(response, domain.OutputFormatHTML)
+	require.NoError(t, err)
+	assert.Contains(t, output, ">function<")
+}
+
 // TestOutputFormatter_Format tests the main Format method with different formats
 func TestOutputFormatter_Format(t *testing.T) {
 	tests := []struct {
@@ -285,18 +355,18 @@ func TestOutputFormatter_Format(t *testing.T) {
 				// Verify text format contains expected sections
 				assert.Contains(t, output, "Complexity Analysis Report")
 				assert.Contains(t, output, "SUMMARY")
-				assert.Contains(t, output, "Total Scopes: 2")
+				assert.Contains(t, output, "Total Functions: 2")
 				assert.Contains(t, output, "Average Complexity: 5.0")
 				assert.Contains(t, output, "RISK DISTRIBUTION")
 				assert.Contains(t, output, "High: 1")
 				assert.Contains(t, output, "Low: 1")
 				assert.Contains(t, output, "DIRECTORY COMPLEXITY")
-				assert.Contains(t, output, "Scopes: 2")
+				assert.Contains(t, output, "Functions: 2")
 				assert.Contains(t, output, "Nesting: avg 1.50, max 2")
 				assert.Contains(t, output, "RAW CODE METRICS")
 				assert.Contains(t, output, "SLOC: 10")
 				assert.Contains(t, output, "Comment Ratio: 16.7%")
-				assert.Contains(t, output, "SCOPE DETAILS")
+				assert.Contains(t, output, "FUNCTION DETAILS")
 				assert.Contains(t, output, "simple_function")
 				assert.Contains(t, output, "complex_function")
 				assert.Contains(t, output, "WARNINGS")
@@ -425,7 +495,7 @@ func TestOutputFormatter_Write(t *testing.T) {
 			validateWriter: func(t *testing.T, writer *strings.Builder) {
 				output := writer.String()
 				assert.Contains(t, output, "Complexity Analysis Report")
-				assert.Contains(t, output, "Total Scopes: 2")
+				assert.Contains(t, output, "Total Functions: 2")
 			},
 			expectError: false,
 		},
@@ -513,7 +583,7 @@ func TestOutputFormatter_formatText(t *testing.T) {
 
 				// Check summary section (new unified format)
 				assert.Contains(t, output, "SUMMARY")
-				assert.Contains(t, output, "Total Scopes: 2")
+				assert.Contains(t, output, "Total Functions: 2")
 				assert.Contains(t, output, "Average Complexity: 5.0")
 				assert.Contains(t, output, "Max Complexity: 8")
 				assert.Contains(t, output, "Min Complexity: 2")
@@ -532,7 +602,7 @@ func TestOutputFormatter_formatText(t *testing.T) {
 				assert.Contains(t, output, "File: test.py")
 
 				// Check function details (new unified format)
-				assert.Contains(t, output, "SCOPE DETAILS")
+				assert.Contains(t, output, "FUNCTION DETAILS")
 				assert.Contains(t, output, "Scope  Complexity  Cognitive  SLOC  Risk")
 				assert.Contains(t, output, "simple_function")
 				assert.Contains(t, output, "complex_function")
@@ -555,11 +625,11 @@ func TestOutputFormatter_formatText(t *testing.T) {
 			response: createMinimalComplexityResponse(),
 			validate: func(t *testing.T, output string) {
 				assert.Contains(t, output, "Complexity Analysis Report")
-				assert.Contains(t, output, "Total Scopes: 0")
+				assert.Contains(t, output, "Total Functions: 0")
 
 				// Should not contain function details section
 				assert.NotContains(t, output, "RAW CODE METRICS")
-				assert.NotContains(t, output, "SCOPE DETAILS")
+				assert.NotContains(t, output, "FUNCTION DETAILS")
 				assert.NotContains(t, output, "WARNINGS")
 				assert.NotContains(t, output, "ERRORS")
 			},
@@ -738,7 +808,7 @@ func TestOutputFormatter_FunctionCoverageDisclosure(t *testing.T) {
 	t.Run("text shows reported vs parsed", func(t *testing.T) {
 		output, err := formatter.Format(response, domain.OutputFormatText)
 		assert.NoError(t, err)
-		assert.Contains(t, output, "Total Scopes: 1 reported / 3 parsed")
+		assert.Contains(t, output, "Total Functions: 1 reported / 3 parsed")
 		assert.NotContains(t, output, "Functions Total")
 	})
 

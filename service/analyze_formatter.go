@@ -73,7 +73,11 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 	// Analysis modules results
 	if response.Summary.ComplexityEnabled {
 		fmt.Fprint(writer, utils.FormatSectionHeader("COMPLEXITY ANALYSIS"))
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Total Scopes", formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed)))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Total Functions", formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed)))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Class Scopes", response.Summary.TotalClassScopes))
+		if response.Summary.TotalClassScopes > 0 {
+			fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Max Class Complexity", response.Summary.MaxClassComplexity))
+		}
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Average Complexity", fmt.Sprintf("%.1f", response.Summary.AverageComplexity)))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "High Complexity Count", response.Summary.HighComplexityCount))
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
@@ -117,7 +121,7 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 			if module.FunctionCount > 0 {
 				fmt.Fprintf(writer, "    Definitions: %d functions\n", module.FunctionCount)
 			}
-			fmt.Fprintf(writer, "    Complexity scopes: %d analyzed, avg %.2f, max %d, high-risk %d, handlers %d\n",
+			fmt.Fprintf(writer, "    Function complexity: %d analyzed, avg %.2f, max %d, high-risk %d, handlers %d\n",
 				module.AnalyzedFunctionCount,
 				module.AverageComplexity, module.MaxComplexity, module.HighRiskFunctionCount, module.ExceptionHandlerCount)
 			fmt.Fprintf(writer, "    Cognitive: avg %.2f\n", module.AverageCognitiveComplexity)
@@ -164,6 +168,8 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 		[]string{"Grade", response.Summary.Grade},
 		[]string{"Total Files", fmt.Sprint(response.Summary.TotalFiles)},
 		[]string{"Analyzed Files", fmt.Sprint(response.Summary.AnalyzedFiles)},
+		[]string{"Total Functions", fmt.Sprint(response.Summary.TotalFunctions)},
+		[]string{"Class Scopes", fmt.Sprint(response.Summary.TotalClassScopes)},
 		[]string{"Average Complexity", fmt.Sprintf("%.2f", response.Summary.AverageComplexity)},
 		[]string{"High Complexity Count", fmt.Sprint(response.Summary.HighComplexityCount)},
 		[]string{"Dead Code Count", fmt.Sprint(response.Summary.DeadCodeCount)},
@@ -321,6 +327,9 @@ func (f *AnalyzeFormatter) writeHTML(response *domain.AnalyzeResponse, writer io
 			}
 		},
 		"longFunctions": collectLongFunctions,
+		"complexityScopes": func(complexity *domain.ComplexityResponse) []domain.FunctionComplexity {
+			return complexity.ReportedScopesByComplexity()
+		},
 		"communitySummaryHTML": func(result *domain.CommunityAnalysisResult) template.HTML {
 			if result == nil {
 				return ""
@@ -903,7 +912,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             {{if .ModuleQuality}}
             <div id="module-quality" class="tab-content">
                 <h2>Module Quality Hotspots</h2>
-                <p style="color: #666; margin-bottom: 20px;">Per-module metrics ranked by high-risk scopes, maximum complexity, average complexity, and dead-code findings</p>
+                <p style="color: #666; margin-bottom: 20px;">Per-module metrics ranked by high-risk functions, maximum complexity, average complexity, and dead-code findings</p>
                 <div style="overflow-x: auto;">
                     <table id="module-quality-table" class="table">
                         <thead>
@@ -912,11 +921,11 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                                 <th><button type="button" class="table-sort" aria-label="Sort by file path" onclick="sortModuleQuality(1, false, this)">File</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by lines of code" onclick="sortModuleQuality(2, true, this)">LOC</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by function definition count" onclick="sortModuleQuality(3, true, this)">Function Definitions</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by analyzed scope count" onclick="sortModuleQuality(4, true, this)">Analyzed Scopes</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by analyzed function count" onclick="sortModuleQuality(4, true, this)">Analyzed Functions</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by average complexity" onclick="sortModuleQuality(5, true, this)">Avg CC</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by average cognitive complexity" onclick="sortModuleQuality(6, true, this)">Avg Cognitive</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by maximum complexity" onclick="sortModuleQuality(7, true, this)">Max CC</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk scope count" onclick="sortModuleQuality(8, true, this)">High Risk Scopes</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk function count" onclick="sortModuleQuality(8, true, this)">High Risk Functions</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by exception handler count" onclick="sortModuleQuality(9, true, this)">Handlers</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by dead-code findings" onclick="sortModuleQuality(10, true, this)">Dead Findings</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by dead-code blocks" onclick="sortModuleQuality(11, true, this)">Dead Blocks</button></th>
@@ -948,16 +957,16 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             {{if and .Complexity .Complexity.ByDirectory}}
             <div id="directory-complexity" class="tab-content">
                 <h2>Directory Complexity</h2>
-                <p style="color: #666; margin-bottom: 20px;">Project-root-relative rollups of the complete analyzed scope population</p>
+                <p style="color: #666; margin-bottom: 20px;">Project-root-relative rollups of the complete analyzed function population</p>
                 <div style="overflow-x: auto;">
                     <table id="directory-complexity-table" class="table">
                         <thead>
                             <tr>
                                 <th><button type="button" class="table-sort" aria-label="Sort by directory path" onclick="sortDirectoryComplexity(0, false, this)">Directory</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by scope count" onclick="sortDirectoryComplexity(1, true, this)">Scopes</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by function count" onclick="sortDirectoryComplexity(1, true, this)">Functions</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by average complexity" onclick="sortDirectoryComplexity(2, true, this)">Avg CC</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by maximum complexity" onclick="sortDirectoryComplexity(3, true, this)">Max CC</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk scope count" onclick="sortDirectoryComplexity(4, true, this)">High Risk Scopes</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk function count" onclick="sortDirectoryComplexity(4, true, this)">High Risk Functions</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by average nesting depth" onclick="sortDirectoryComplexity(5, true, this)">Avg Nesting</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by maximum nesting depth" onclick="sortDirectoryComplexity(6, true, this)">Max Nesting</button></th>
                             </tr>
@@ -1026,7 +1035,11 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-value">{{if and (gt .Complexity.Summary.FunctionsParsed 0) (ne .Complexity.Summary.FunctionsParsed .Complexity.Summary.TotalFunctions)}}{{.Complexity.Summary.TotalFunctions}} / {{.Complexity.Summary.FunctionsParsed}}{{else}}{{.Complexity.Summary.TotalFunctions}}{{end}}</div>
-						<div class="metric-label">{{if and (gt .Complexity.Summary.FunctionsParsed 0) (ne .Complexity.Summary.FunctionsParsed .Complexity.Summary.TotalFunctions)}}Reported / Parsed{{else}}Total Scopes{{end}}</div>
+						<div class="metric-label">{{if and (gt .Complexity.Summary.FunctionsParsed 0) (ne .Complexity.Summary.FunctionsParsed .Complexity.Summary.TotalFunctions)}}Reported / Parsed{{else}}Total Functions{{end}}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{.Complexity.Summary.TotalClassScopes}}</div>
+						<div class="metric-label">Class Scopes</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{printf "%.2f" .Complexity.Summary.AverageComplexity}}</div>
@@ -1038,6 +1051,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </div>
                 </div>
                 
+				{{$scopes := complexityScopes .Complexity}}
                 <h3>Top Complex Scopes</h3>
                 <table class="table">
                     <thead>
@@ -1053,10 +1067,10 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         </tr>
                     </thead>
                     <tbody>
-                        {{range $i, $f := .Complexity.Functions}}
+						{{range $i, $f := $scopes}}
                         {{if lt $i 10}}
                         <tr>
-							<td>{{$f.ScopeKind}}</td>
+							<td>{{$f.ResolvedScopeKind}}</td>
                             <td>{{$f.Name}}</td>
                             <td>{{$f.FilePath}}</td>
                             <td>{{$f.Metrics.Complexity}}</td>
@@ -1069,8 +1083,8 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         {{end}}
                     </tbody>
                 </table>
-                {{if gt (len .Complexity.Functions) 10}}
-				<p style="color: #666; margin-top: 10px;">Showing top 10 of {{len .Complexity.Functions}} scopes</p>
+				{{if gt (len $scopes) 10}}
+				<p style="color: #666; margin-top: 10px;">Showing top 10 of {{len $scopes}} scopes</p>
                 {{end}}
 
                 {{$long := longFunctions .Complexity}}

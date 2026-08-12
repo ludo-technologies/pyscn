@@ -330,7 +330,7 @@ func TestHTMLFormatter_FormatComplexityAsHTML(t *testing.T) {
 	assert.Contains(t, html, "@media")
 
 	// Check function table is present with nesting depth column
-	assert.Contains(t, html, "Scope Details")
+	assert.Contains(t, html, "Function Details")
 	assert.Contains(t, html, "Nesting Depth")
 	assert.Contains(t, html, "test_function")
 
@@ -381,7 +381,7 @@ func TestHTMLFormatter_FormatComplexityAsHTML_WithNestingDepth(t *testing.T) {
 	assert.NotEmpty(t, html)
 
 	// Verify function table is present
-	assert.Contains(t, html, "Scope Details")
+	assert.Contains(t, html, "Function Details")
 	assert.Contains(t, html, "Nesting Depth")
 
 	// Verify both functions are listed
@@ -411,7 +411,7 @@ func TestHTMLFormatter_FormatComplexityAsHTML_EmptyFunctions(t *testing.T) {
 	assert.NotEmpty(t, html)
 
 	// Function table should NOT be present when there are no functions
-	assert.NotContains(t, html, "Scope Details")
+	assert.NotContains(t, html, "Function Details")
 	assert.NotContains(t, html, "<table")
 
 	// But the report structure should still be present

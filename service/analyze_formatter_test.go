@@ -190,8 +190,8 @@ func TestAnalyzeFormatter_Write_TextIncludesModuleQuality(t *testing.T) {
 	assert.Contains(t, output.String(), "MODULE QUALITY HOTSPOTS")
 	assert.Contains(t, output.String(), "pkg.hotspot (pkg/hotspot.py)")
 	assert.Contains(t, output.String(), "Definitions: 4 functions")
-	assert.Contains(t, output.String(), "Complexity scopes: 2 analyzed")
-	assert.Contains(t, output.String(), "Complexity scopes: 2 analyzed, avg 6.50, max 9, high-risk 1, handlers 0")
+	assert.Contains(t, output.String(), "Function complexity: 2 analyzed")
+	assert.Contains(t, output.String(), "Function complexity: 2 analyzed, avg 6.50, max 9, high-risk 1, handlers 0")
 	assert.Contains(t, output.String(), "Cognitive: avg 8.00")
 	assert.Contains(t, output.String(), "Dead code: 2 findings, 3 blocks")
 }
@@ -215,7 +215,7 @@ func TestAnalyzeFormatter_Write_TextIncludesDirectoryComplexity(t *testing.T) {
 
 	assert.Contains(t, output.String(), "DIRECTORY COMPLEXITY")
 	assert.Contains(t, output.String(), "pkg")
-	assert.Contains(t, output.String(), "Scopes: 5")
+	assert.Contains(t, output.String(), "Functions: 5")
 	assert.Contains(t, output.String(), "Complexity: avg 6.50, max 11, high-risk 2")
 	assert.Contains(t, output.String(), "Nesting: avg 3.25, max 5")
 }
@@ -248,6 +248,51 @@ func TestAnalyzeFormatter_Write_JSON(t *testing.T) {
 	if assert.NotNil(t, decoded.Complexity.Request.Recursive) {
 		assert.True(t, *decoded.Complexity.Request.Recursive)
 	}
+}
+
+func TestAnalyzeFormatter_PublishesClassScopesAcrossFormats(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.Summary.ComplexityEnabled = true
+	response.Summary.TotalFunctions = 1
+	response.Summary.TotalClassScopes = 1
+	response.Summary.MaxClassComplexity = 12
+	response.Complexity = &domain.ComplexityResponse{
+		Functions: []domain.FunctionComplexity{{Name: domain.ModuleFunctionName, FilePath: "config.py", Metrics: domain.ComplexityMetrics{Complexity: 1}}},
+		ClassScopes: []domain.FunctionComplexity{{
+			Name:      "Config",
+			ScopeKind: domain.AnalysisScopeClass,
+			FilePath:  "config.py",
+			Metrics:   domain.ComplexityMetrics{Complexity: 12},
+		}},
+		Summary: domain.ComplexitySummary{TotalFunctions: 1, TotalClassScopes: 1, MaxClassComplexity: 12},
+	}
+
+	for _, format := range []domain.OutputFormat{domain.OutputFormatJSON, domain.OutputFormatYAML} {
+		t.Run(string(format), func(t *testing.T) {
+			var output bytes.Buffer
+			require.NoError(t, NewAnalyzeFormatter().Write(response, format, &output))
+			var decoded domain.AnalyzeResponse
+			if format == domain.OutputFormatJSON {
+				require.NoError(t, json.Unmarshal(output.Bytes(), &decoded))
+			} else {
+				require.NoError(t, yaml.Unmarshal(output.Bytes(), &decoded))
+			}
+			require.NotNil(t, decoded.Complexity)
+			require.Len(t, decoded.Complexity.ClassScopes, 1)
+			assert.Equal(t, domain.AnalysisScopeClass, decoded.Complexity.ClassScopes[0].ScopeKind)
+			assert.Equal(t, 1, decoded.Summary.TotalClassScopes)
+			assert.Equal(t, 12, decoded.Summary.MaxClassComplexity)
+		})
+	}
+
+	var csvOutput bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatCSV, &csvOutput))
+	assert.Contains(t, csvOutput.String(), "Class Scopes,1")
+
+	var htmlOutput bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatHTML, &htmlOutput))
+	assert.Contains(t, htmlOutput.String(), "Config")
+	assert.Contains(t, htmlOutput.String(), ">class<")
 }
 
 func TestAnalyzeFormatter_Write_JSON_IncludesCommunityAnalysis(t *testing.T) {
@@ -758,7 +803,7 @@ func TestAnalyzeFormatter_Write_HTMLShowsSortableModuleQuality(t *testing.T) {
 	assert.Contains(t, html, "pkg/hotspot.py")
 	assert.Contains(t, html, "sortModuleQuality")
 	assert.Contains(t, html, `aria-label="Sort by average complexity"`)
-	assert.Contains(t, html, `aria-label="Sort by analyzed scope count"`)
+	assert.Contains(t, html, `aria-label="Sort by analyzed function count"`)
 	assert.Contains(t, html, `aria-label="Sort by exception handler count"`)
 	assert.Contains(t, html, `aria-label="Sort by dead-code blocks"`)
 }

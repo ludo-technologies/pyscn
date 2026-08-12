@@ -20,7 +20,7 @@ func formatDirectoryComplexityText(directories []domain.DirectoryComplexityMetri
 			break
 		}
 		fmt.Fprintf(&section, "  %s\n", directory.DirectoryPath)
-		fmt.Fprintf(&section, "    Scopes: %d\n", directory.FunctionCount)
+		fmt.Fprintf(&section, "    Functions: %d\n", directory.FunctionCount)
 		fmt.Fprintf(&section, "    Complexity: avg %.2f, max %d, high-risk %d\n",
 			directory.AverageComplexity, directory.MaxComplexity, directory.HighRiskFunctionCount)
 		fmt.Fprintf(&section, "    Nesting: avg %.2f, max %d\n",
