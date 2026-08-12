@@ -66,7 +66,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 	}
 
 	if len(allScopes) == 0 && len(allRawMetrics) == 0 {
-		return nil, domain.NewAnalysisError("no functions found to analyze", nil)
+		return nil, domain.NewAnalysisError("no execution scopes found to analyze", nil)
 	}
 
 	// Filter and sort results
@@ -142,7 +142,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 	}
 
 	if len(allScopes) == 0 && len(allRawMetrics) == 0 {
-		return nil, domain.NewAnalysisError("no functions found to analyze", nil)
+		return nil, domain.NewAnalysisError("no execution scopes found to analyze", nil)
 	}
 
 	allFunctions, allClassScopes := partitionComplexityScopes(allScopes)

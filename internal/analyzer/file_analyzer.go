@@ -112,7 +112,7 @@ func (fca *FileComplexityAnalyzer) AnalyzeFiles(filenames []string) error {
 	}
 
 	if len(allResults) == 0 {
-		return fmt.Errorf("no functions found in any of the files")
+		return fmt.Errorf("no execution scopes found in any of the files")
 	}
 
 	// Convert to reporter interface
