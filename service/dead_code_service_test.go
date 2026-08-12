@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -123,6 +124,29 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 
 		assert.Equal(t, infoResponse.ModuleRollups, criticalResponse.ModuleRollups)
 		assert.Greater(t, infoResponse.ModuleRollups[filePath].DeadCodeFindingCount, 0)
+	})
+
+	t.Run("class scopes do not change the function-only contract", func(t *testing.T) {
+		filePath := t.TempDir() + "/class_scope.py"
+		source := `class Config:
+    if enabled:
+        mode = "fast"
+    else:
+        mode = "safe"
+
+    def resolve(self):
+        return self.mode
+        print("unreachable")
+`
+		require.NoError(t, os.WriteFile(filePath, []byte(source), 0o644))
+
+		response, err := service.Analyze(ctx, newDefaultDeadCodeRequest(filePath))
+		require.NoError(t, err)
+		require.Len(t, response.Files, 1)
+		assert.Equal(t, 1, response.Files[0].TotalFunctions)
+		require.Len(t, response.Files[0].Functions, 1)
+		assert.Equal(t, "Config.resolve", response.Files[0].Functions[0].Name)
+		assert.NotEmpty(t, response.Files[0].Functions[0].Findings)
 	})
 
 	t.Run("analyze multiple files", func(t *testing.T) {
