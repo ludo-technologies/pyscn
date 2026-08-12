@@ -257,7 +257,7 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 		cfg := scopedCFG.Graph
 		result := analyzer.CalculateComplexityWithConfig(cfg, complexityConfig)
 		if result == nil {
-			warnings = append(warnings, fmt.Sprintf("[%s:%s] Failed to calculate complexity for function", filePath, functionName))
+			warnings = append(warnings, fmt.Sprintf("[%s:%s] Failed to calculate complexity for scope", filePath, functionName))
 			continue
 		}
 

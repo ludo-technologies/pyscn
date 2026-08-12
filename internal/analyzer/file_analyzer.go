@@ -66,7 +66,7 @@ func (fca *FileComplexityAnalyzer) AnalyzeFile(filename string) error {
 	}
 
 	if len(cfgs) == 0 {
-		return fmt.Errorf("no functions found in %s", filename)
+		return fmt.Errorf("no execution scopes found in %s", filename)
 	}
 
 	// Project the typed scoped collection to the graph-only analyzer API.

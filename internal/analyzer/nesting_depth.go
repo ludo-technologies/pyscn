@@ -4,12 +4,12 @@ import (
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
-// NestingDepthResult holds the maximum nesting depth and related metadata for a function
+// NestingDepthResult holds maximum nesting depth and metadata for an execution scope.
 type NestingDepthResult struct {
 	// Maximum nesting depth found in the function
 	MaxDepth int
 
-	// Function/method information
+	// Historical function/method metadata fields.
 	FunctionName string
 	StartLine    int
 	EndLine      int
@@ -18,23 +18,24 @@ type NestingDepthResult struct {
 	DeepestNestingLine int
 }
 
-// CalculateMaxNestingDepth computes the maximum nesting depth for a function node by traversing its AST and tracking depth through nested control structures
-func CalculateMaxNestingDepth(funcNode *parser.Node) *NestingDepthResult {
-	if funcNode == nil {
+// CalculateMaxNestingDepth traverses one owned execution scope and tracks depth
+// through its nested control structures.
+func CalculateMaxNestingDepth(scopeNode *parser.Node) *NestingDepthResult {
+	if scopeNode == nil {
 		return &NestingDepthResult{
 			MaxDepth: 0,
 		}
 	}
 
 	result := &NestingDepthResult{
-		FunctionName: funcNode.Name,
-		StartLine:    funcNode.Location.StartLine,
-		EndLine:      funcNode.Location.EndLine,
+		FunctionName: scopeNode.Name,
+		StartLine:    scopeNode.Location.StartLine,
+		EndLine:      scopeNode.Location.EndLine,
 		MaxDepth:     0,
 	}
 
-	// Start traversal from function body statements with initial depth of 0 We traverse the body directly to avoid counting the function itself as nesting
-	for _, stmt := range funcNode.Body {
+	// Traverse the body directly so the owning scope is not counted as nesting.
+	for _, stmt := range scopeNode.Body {
 		traverseForNesting(stmt, 0, result)
 	}
 
