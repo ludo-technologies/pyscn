@@ -394,6 +394,26 @@ func TestCalculateMaxNestingDepth_LambdaExpression(t *testing.T) {
 	}
 }
 
+func TestCalculateMaxNestingDepth_StopsAtNestedScopes(t *testing.T) {
+	functionNode := &parser.Node{
+		Type: parser.NodeFunctionDef,
+		Name: "outer",
+		Body: []*parser.Node{{
+			Type: parser.NodeClassDef,
+			Name: "Config",
+			Body: []*parser.Node{{
+				Type: parser.NodeIf,
+				Body: []*parser.Node{{Type: parser.NodeWhile}},
+			}},
+		}},
+	}
+
+	result := CalculateMaxNestingDepth(functionNode)
+	if result.MaxDepth != 0 {
+		t.Fatalf("outer nesting depth = %d, want 0", result.MaxDepth)
+	}
+}
+
 func TestIsNestingNode(t *testing.T) {
 	tests := []struct {
 		name     string

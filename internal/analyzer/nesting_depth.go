@@ -46,6 +46,9 @@ func traverseForNesting(node *parser.Node, currentDepth int, result *NestingDept
 	if node == nil {
 		return
 	}
+	if node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef || node.Type == parser.NodeClassDef {
+		return
+	}
 
 	// Check if current node increases nesting level
 	newDepth := currentDepth

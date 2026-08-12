@@ -327,6 +327,79 @@ for path in os.listdir("."):
 	}
 }
 
+func TestCalculateComplexity_ClassSuiteOwnsControlFlow(t *testing.T) {
+	source := `
+class Config:
+    if sys.version_info >= (3, 11):
+        BACKEND = "fast"
+    elif sys.version_info >= (3, 9):
+        BACKEND = "medium"
+    else:
+        BACKEND = "slow"
+
+    for name in ("a", "b", "c"):
+        locals()[name.upper()] = name
+`
+
+	ast := parseSource(t, source)
+	cfgs, err := NewCFGBuilder().BuildAll(ast)
+	if err != nil {
+		t.Fatalf("Failed to build CFGs: %v", err)
+	}
+
+	moduleResult := CalculateComplexity(requireScopedCFG(t, cfgs, domain.AnalysisScopeModule, domain.ModuleFunctionName))
+	if moduleResult.Complexity != 1 || moduleResult.CognitiveComplexity != 0 {
+		t.Fatalf("module complexity = %d/%d, want 1/0", moduleResult.Complexity, moduleResult.CognitiveComplexity)
+	}
+	if moduleResult.IfStatements != 0 || moduleResult.LoopStatements != 0 || moduleResult.NestingDepth != 0 {
+		t.Fatalf("module retained class-suite metrics: %+v", moduleResult)
+	}
+
+	classResult := CalculateComplexity(requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Config"))
+	if classResult.ScopeKind != domain.AnalysisScopeClass {
+		t.Fatalf("scope kind = %q, want class", classResult.ScopeKind)
+	}
+	if classResult.Complexity != 4 {
+		t.Fatalf("class cyclomatic complexity = %d, want 4", classResult.Complexity)
+	}
+	if classResult.CognitiveComplexity != 4 {
+		t.Fatalf("class cognitive complexity = %d, want 4", classResult.CognitiveComplexity)
+	}
+	if classResult.IfStatements != 2 || classResult.LoopStatements != 1 {
+		t.Fatalf("class statement metrics = if:%d loop:%d, want 2/1", classResult.IfStatements, classResult.LoopStatements)
+	}
+	if classResult.NestingDepth != 2 {
+		t.Fatalf("class nesting depth = %d, want 2", classResult.NestingDepth)
+	}
+}
+
+func TestCalculateComplexity_NestedClassScopesDoNotLeak(t *testing.T) {
+	source := `
+class Event:
+    class Meta:
+        if enabled:
+            indexes = ["created_at"]
+        else:
+            indexes = []
+`
+
+	ast := parseSource(t, source)
+	cfgs, err := NewCFGBuilder().BuildAll(ast)
+	if err != nil {
+		t.Fatalf("Failed to build CFGs: %v", err)
+	}
+
+	event := CalculateComplexity(requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Event"))
+	if event.Complexity != 1 || event.CognitiveComplexity != 0 || event.NestingDepth != 0 {
+		t.Fatalf("outer class retained nested Meta metrics: %+v", event)
+	}
+
+	meta := CalculateComplexity(requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Event.Meta"))
+	if meta.Complexity != 2 || meta.CognitiveComplexity != 2 || meta.IfStatements != 1 || meta.NestingDepth != 1 {
+		t.Fatalf("Meta metrics = %+v, want cyclomatic=2 cognitive=2 if=1 nesting=1", meta)
+	}
+}
+
 func TestCalculateComplexity_StatementMetricsUseASTCounts(t *testing.T) {
 	source := `def debug_no_ifs():
     values = []
