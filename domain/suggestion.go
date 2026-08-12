@@ -94,7 +94,8 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 
 		var title, desc string
 		var steps []string
-		isTopLevel := f.Name == ModuleFunctionName
+		isTopLevel := f.ScopeKind == AnalysisScopeModule
+		isClassSuite := f.ScopeKind == AnalysisScopeClass
 		basename := filepath.Base(f.FilePath)
 
 		if isTopLevel {
@@ -104,6 +105,15 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 			steps = []string{
 				"Extract top-level logic into well-named functions",
 				"Keep module-level code to imports, constants, and a main() call",
+				fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
+			}
+		} else if isClassSuite {
+			title = fmt.Sprintf("Simplify executable class scope '%s'", f.Name)
+			desc = fmt.Sprintf("Class scope '%s' has cyclomatic complexity of %d.", f.Name, complexity)
+			desc += " Move conditional class construction into explicit functions or simpler declarations."
+			steps = []string{
+				"Review conditional and iterative statements executed while the class is created",
+				"Extract runtime decisions into named functions where class-level execution is unnecessary",
 				fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
 			}
 		} else {

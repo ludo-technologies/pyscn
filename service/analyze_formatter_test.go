@@ -647,6 +647,7 @@ func TestAnalyzeFormatter_Write_HTMLShowsLongestFunctions(t *testing.T) {
 		Functions: []domain.FunctionComplexity{
 			{
 				Name:      "find_datatable_locale",
+				ScopeKind: domain.AnalysisScopeFunction,
 				FilePath:  "i18n/main.py",
 				StartLine: 22,
 				EndLine:   131,
@@ -655,6 +656,7 @@ func TestAnalyzeFormatter_Write_HTMLShowsLongestFunctions(t *testing.T) {
 			},
 			{
 				Name:      "tight_but_complex",
+				ScopeKind: domain.AnalysisScopeFunction,
 				FilePath:  "core/dispatch.py",
 				StartLine: 5,
 				EndLine:   30,
@@ -663,6 +665,7 @@ func TestAnalyzeFormatter_Write_HTMLShowsLongestFunctions(t *testing.T) {
 			},
 			{
 				Name:      domain.ModuleFunctionName,
+				ScopeKind: domain.AnalysisScopeModule,
 				FilePath:  "i18n/main.py",
 				StartLine: 1,
 				EndLine:   400,
@@ -708,8 +711,9 @@ func TestAnalyzeFormatter_CollectLongFunctions(t *testing.T) {
 		}
 		for i := 0; i < longFunctionsDisplayLimit+3; i++ {
 			complexity.Functions = append(complexity.Functions, domain.FunctionComplexity{
-				Name:    fmt.Sprintf("f%d", i),
-				Metrics: domain.ComplexityMetrics{SLOC: 51 + i},
+				Name:      fmt.Sprintf("f%d", i),
+				ScopeKind: domain.AnalysisScopeFunction,
+				Metrics:   domain.ComplexityMetrics{SLOC: 51 + i},
 			})
 		}
 

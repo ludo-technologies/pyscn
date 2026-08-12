@@ -270,6 +270,7 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 
 		function := domain.FunctionComplexity{
 			Name:        functionName,
+			ScopeKind:   scopedCFG.Scope.Kind,
 			FilePath:    filePath,
 			StartLine:   result.StartLine,
 			StartColumn: result.StartCol,

@@ -815,13 +815,14 @@ func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, m
 // formatComplexityDetailed formats complexity results with structured details
 func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, maxResults int) map[string]interface{} {
 	type Issue struct {
-		File       string `json:"file"`
-		Line       int    `json:"line"`
-		Column     int    `json:"column"`
-		Function   string `json:"function"`
-		Complexity int    `json:"complexity"`
-		Threshold  int    `json:"threshold"`
-		Message    string `json:"message"`
+		File       string                   `json:"file"`
+		Line       int                      `json:"line"`
+		Column     int                      `json:"column"`
+		Function   string                   `json:"function"`
+		ScopeKind  domain.AnalysisScopeKind `json:"scope_kind"`
+		Complexity int                      `json:"complexity"`
+		Threshold  int                      `json:"threshold"`
+		Message    string                   `json:"message"`
 	}
 
 	issues := []Issue{}
@@ -842,6 +843,7 @@ func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, 
 					Line:       fn.StartLine,
 					Column:     fn.StartColumn + 1,
 					Function:   fn.Name,
+					ScopeKind:  fn.ScopeKind,
 					Complexity: fn.Metrics.Complexity,
 					Threshold:  threshold,
 					Message:    fmt.Sprintf("is too complex (%d > %d)", fn.Metrics.Complexity, threshold),

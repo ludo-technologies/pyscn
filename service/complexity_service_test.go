@@ -40,6 +40,15 @@ func findFunctionComplexity(functions []domain.FunctionComplexity, name string) 
 	return nil
 }
 
+func findScopeComplexity(functions []domain.FunctionComplexity, kind domain.AnalysisScopeKind, name string) *domain.FunctionComplexity {
+	for i := range functions {
+		if functions[i].ScopeKind == kind && functions[i].Name == name {
+			return &functions[i]
+		}
+	}
+	return nil
+}
+
 func TestNewComplexityService(t *testing.T) {
 	service := NewComplexityService()
 
@@ -95,6 +104,31 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.Greater(t, response.Summary.AverageComplexity, 0.0)
 		assert.Greater(t, response.Summary.MaxComplexity, 0)
 		assert.Greater(t, response.Summary.MinComplexity, 0)
+	})
+
+	t.Run("report executable class suites as typed scopes", func(t *testing.T) {
+		filePath := t.TempDir() + "/config.py"
+		source := `class Config:
+    if enabled:
+        mode = "fast"
+    else:
+        mode = "safe"
+`
+		require.NoError(t, os.WriteFile(filePath, []byte(source), 0o644))
+
+		response, err := service.Analyze(ctx, newDefaultComplexityRequest(filePath))
+		require.NoError(t, err)
+
+		module := findScopeComplexity(response.AnalyzedFunctions, domain.AnalysisScopeModule, domain.ModuleFunctionName)
+		require.NotNil(t, module)
+		assert.Equal(t, 1, module.Metrics.Complexity)
+		assert.Equal(t, 0, module.Metrics.CognitiveComplexity)
+
+		classSuite := findScopeComplexity(response.AnalyzedFunctions, domain.AnalysisScopeClass, "Config")
+		require.NotNil(t, classSuite)
+		assert.Equal(t, 2, classSuite.Metrics.Complexity)
+		assert.Equal(t, 2, classSuite.Metrics.CognitiveComplexity)
+		assert.False(t, classSuite.ExceedsSLOC(1), "class extent must not trigger the function-length rule")
 	})
 
 	t.Run("analyze with filtering by complexity", func(t *testing.T) {

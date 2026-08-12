@@ -167,9 +167,10 @@ func TestGenerateSuggestions_ComplexityTopLevel(t *testing.T) {
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
 				{
-					Name:     ModuleFunctionName,
-					FilePath: "src/comprehensions.py",
-					Metrics:  ComplexityMetrics{Complexity: 15},
+					Name:      ModuleFunctionName,
+					ScopeKind: AnalysisScopeModule,
+					FilePath:  "src/comprehensions.py",
+					Metrics:   ComplexityMetrics{Complexity: 15},
 				},
 			},
 		},
@@ -194,6 +195,30 @@ func TestGenerateSuggestions_ComplexityTopLevel(t *testing.T) {
 	}
 	if !strings.Contains(s.Steps[0], "Extract top-level logic") {
 		t.Errorf("expected top-level specific steps, got: %v", s.Steps)
+	}
+}
+
+func TestGenerateSuggestions_ComplexityClassScope(t *testing.T) {
+	resp := &AnalyzeResponse{
+		Complexity: &ComplexityResponse{
+			Functions: []FunctionComplexity{{
+				Name:      "Settings",
+				ScopeKind: AnalysisScopeClass,
+				FilePath:  "settings.py",
+				Metrics:   ComplexityMetrics{Complexity: 15},
+			}},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != 1 {
+		t.Fatalf("expected 1 suggestion, got %d", len(suggestions))
+	}
+	if !strings.Contains(suggestions[0].Title, "class scope") {
+		t.Fatalf("expected class-scope title, got %q", suggestions[0].Title)
+	}
+	if strings.Contains(suggestions[0].Title, "function") {
+		t.Fatalf("class suggestion must not call the scope a function: %q", suggestions[0].Title)
 	}
 }
 

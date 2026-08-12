@@ -128,10 +128,13 @@ type ComplexityMetrics struct {
 	SLOC int
 }
 
-// FunctionComplexity represents complexity analysis result for a single function
+// FunctionComplexity represents one executable Python scope. The historical
+// type and field names remain part of the public API; ScopeKind distinguishes
+// modules, functions, and class suites without duplicating the result model.
 type FunctionComplexity struct {
 	// Function identification
 	Name        string
+	ScopeKind   AnalysisScopeKind `json:"scope_kind" yaml:"scope_kind"`
 	FilePath    string
 	StartLine   int
 	StartColumn int
@@ -163,11 +166,10 @@ func ValidateFunctionSLOCThresholds(warn, critical int) error {
 }
 
 // ExceedsSLOC reports whether this function is longer than the given SLOC
-// threshold. Module-scope code never qualifies: its line span covers the whole
-// file, so a length verdict there would merely restate the file-level SLOC
-// metric. A non-positive threshold disables the check.
+// threshold. Module and class scopes never qualify because this is explicitly
+// a long-function rule. A non-positive threshold disables the check.
 func (f FunctionComplexity) ExceedsSLOC(threshold int) bool {
-	if threshold <= 0 || f.Name == ModuleFunctionName {
+	if threshold <= 0 || f.ScopeKind != AnalysisScopeFunction {
 		return false
 	}
 	return f.Metrics.SLOC > threshold
@@ -232,15 +234,18 @@ type RawMetricsSummary struct {
 	CommentRatio   float64 `json:"comment_ratio" yaml:"comment_ratio"`
 }
 
-// ComplexitySummary represents aggregate statistics.
+// ComplexitySummary represents aggregate statistics. Historical public field
+// names refer to functions, but the population contains every executable scope
+// and each record exposes its ScopeKind.
 // Averages, min/max, risk counts, and the distribution are computed over every
-// analyzed function; min_complexity only limits which functions are reported.
+// analyzed scope; min_complexity only limits which scopes are reported.
 type ComplexitySummary struct {
-	// TotalFunctions is the complete analyzed population used by all aggregate metrics.
+	// TotalFunctions is the complete analyzed scope population used by all
+	// aggregate metrics. Its historical name is retained for output compatibility.
 	// Presentation filters only limit ComplexityResponse.Functions.
 	TotalFunctions int
 	// FunctionsParsed is retained for output compatibility and describes the same
-	// complete analyzed population as TotalFunctions.
+	// complete analyzed scope population as TotalFunctions.
 	FunctionsParsed            int
 	AverageComplexity          float64
 	AverageCognitiveComplexity float64
@@ -268,7 +273,9 @@ type ComplexitySummary struct {
 
 // ComplexityResponse represents the complete analysis result
 type ComplexityResponse struct {
-	// Analysis results
+	// Analysis results. Functions is the historical public field name for typed
+	// execution scopes; inspect FunctionComplexity.ScopeKind before applying
+	// function-only rules.
 	Functions   []FunctionComplexity
 	ByDirectory DirectoryComplexityMetricsList `json:"by_directory" yaml:"by_directory"`
 	Summary     ComplexitySummary

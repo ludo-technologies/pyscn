@@ -73,7 +73,7 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 	// Analysis modules results
 	if response.Summary.ComplexityEnabled {
 		fmt.Fprint(writer, utils.FormatSectionHeader("COMPLEXITY ANALYSIS"))
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Total Functions", formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed)))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Total Scopes", formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed)))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Average Complexity", fmt.Sprintf("%.1f", response.Summary.AverageComplexity)))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "High Complexity Count", response.Summary.HighComplexityCount))
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
@@ -1039,11 +1039,12 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </div>
                 </div>
                 
-                <h3>Top Complex Functions</h3>
+                <h3>Top Complex Scopes</h3>
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>Function</th>
+							<th>Kind</th>
+							<th>Scope</th>
                             <th>File</th>
                             <th>Complexity</th>
                             <th>Cognitive</th>
@@ -1056,6 +1057,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                         {{range $i, $f := .Complexity.Functions}}
                         {{if lt $i 10}}
                         <tr>
+							<td>{{$f.ScopeKind}}</td>
                             <td>{{$f.Name}}</td>
                             <td>{{$f.FilePath}}</td>
                             <td>{{$f.Metrics.Complexity}}</td>
@@ -1069,7 +1071,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </tbody>
                 </table>
                 {{if gt (len .Complexity.Functions) 10}}
-                <p style="color: #666; margin-top: 10px;">Showing top 10 of {{len .Complexity.Functions}} functions</p>
+				<p style="color: #666; margin-top: 10px;">Showing top 10 of {{len .Complexity.Functions}} scopes</p>
                 {{end}}
 
                 {{$long := longFunctions .Complexity}}

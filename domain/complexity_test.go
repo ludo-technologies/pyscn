@@ -173,22 +173,25 @@ func TestFunctionComplexityExceedsSLOC(t *testing.T) {
 	tests := []struct {
 		name      string
 		function  string
+		scopeKind AnalysisScopeKind
 		sloc      int
 		threshold int
 		want      bool
 	}{
-		{name: "below threshold", function: "build_table", sloc: 50, threshold: 50, want: false},
-		{name: "above threshold", function: "build_table", sloc: 51, threshold: 50, want: true},
-		{name: "module scope never qualifies", function: ModuleFunctionName, sloc: 500, threshold: 50, want: false},
-		{name: "zero threshold disables the check", function: "build_table", sloc: 500, threshold: 0, want: false},
-		{name: "negative threshold disables the check", function: "build_table", sloc: 500, threshold: -1, want: false},
+		{name: "below threshold", function: "build_table", scopeKind: AnalysisScopeFunction, sloc: 50, threshold: 50, want: false},
+		{name: "above threshold", function: "build_table", scopeKind: AnalysisScopeFunction, sloc: 51, threshold: 50, want: true},
+		{name: "module scope never qualifies", function: ModuleFunctionName, scopeKind: AnalysisScopeModule, sloc: 500, threshold: 50, want: false},
+		{name: "class scope never qualifies", function: "Config", scopeKind: AnalysisScopeClass, sloc: 500, threshold: 50, want: false},
+		{name: "zero threshold disables the check", function: "build_table", scopeKind: AnalysisScopeFunction, sloc: 500, threshold: 0, want: false},
+		{name: "negative threshold disables the check", function: "build_table", scopeKind: AnalysisScopeFunction, sloc: 500, threshold: -1, want: false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			function := FunctionComplexity{
-				Name:    tt.function,
-				Metrics: ComplexityMetrics{SLOC: tt.sloc},
+				Name:      tt.function,
+				ScopeKind: tt.scopeKind,
+				Metrics:   ComplexityMetrics{SLOC: tt.sloc},
 			}
 
 			if got := function.ExceedsSLOC(tt.threshold); got != tt.want {
