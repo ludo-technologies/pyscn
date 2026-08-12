@@ -81,7 +81,7 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 	}
 
 	var suggestions []Suggestion
-	for _, f := range resp.Functions {
+	for _, f := range resp.ReportedScopes() {
 		complexity := f.Metrics.Complexity
 		if complexity <= ComplexityThresholdMedium {
 			continue
@@ -94,8 +94,9 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 
 		var title, desc string
 		var steps []string
-		isTopLevel := f.ScopeKind == AnalysisScopeModule
-		isClassSuite := f.ScopeKind == AnalysisScopeClass
+		scopeKind := f.ResolvedScopeKind()
+		isTopLevel := scopeKind == AnalysisScopeModule
+		isClassSuite := scopeKind == AnalysisScopeClass
 		basename := filepath.Base(f.FilePath)
 
 		if isTopLevel {

@@ -130,6 +130,10 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.Equal(t, 2, classSuite.Metrics.CognitiveComplexity)
 		assert.False(t, classSuite.ExceedsSLOC(1), "class extent must not trigger the function-length rule")
 		assert.Equal(t, 1, response.Summary.TotalFunctions, "class scopes must not redefine the stable function count")
+		assert.Equal(t, 1, response.Summary.TotalClassScopes)
+		assert.Equal(t, 2, response.Summary.MaxClassComplexity)
+		assert.Equal(t, 2, response.Summary.MaxClassCognitiveComplexity)
+		assert.Equal(t, 1, response.Summary.MaxClassNestingDepth)
 		require.Len(t, response.ClassScopes, 1)
 		assert.Equal(t, "Config", response.ClassScopes[0].Name)
 	})
@@ -172,7 +176,13 @@ def resolve(value):
     return "no"
 `)
 
-		assert.Equal(t, base.Summary, withTrivialClasses.Summary)
+		assert.Equal(t, 1, base.Summary.TotalClassScopes)
+		assert.Equal(t, 3, withTrivialClasses.Summary.TotalClassScopes)
+		baseSummary := base.Summary
+		withTrivialClassesSummary := withTrivialClasses.Summary
+		baseSummary.TotalClassScopes = 0
+		withTrivialClassesSummary.TotalClassScopes = 0
+		assert.Equal(t, baseSummary, withTrivialClassesSummary)
 		assert.Equal(t, len(base.AnalyzedFunctions), len(withTrivialClasses.AnalyzedFunctions))
 		assert.Len(t, base.AnalyzedClassScopes, 1)
 		assert.Len(t, withTrivialClasses.AnalyzedClassScopes, 3)
@@ -553,7 +563,7 @@ func TestComplexityService_FilterFunctions(t *testing.T) {
 			MaxComplexity: 0,
 		}
 
-		filtered, _ := service.filterFunctions(functions, req)
+		filtered, _ := service.filterScopes(functions, req)
 
 		require.Len(t, filtered, 3)
 		assert.Equal(t, "func2", filtered[0].Name)
@@ -568,7 +578,7 @@ func TestComplexityService_FilterFunctions(t *testing.T) {
 			MaxComplexity: 8, // This should NOT filter out functions
 		}
 
-		filtered, _ := service.filterFunctions(functions, req)
+		filtered, _ := service.filterScopes(functions, req)
 
 		// All 4 functions should be returned (MaxComplexity doesn't filter)
 		require.Len(t, filtered, 4)
@@ -604,7 +614,7 @@ func TestComplexityService_SortFunctions(t *testing.T) {
 	}
 
 	t.Run("sort by complexity", func(t *testing.T) {
-		sorted := service.sortFunctions(functions, domain.SortByComplexity)
+		sorted := service.sortScopes(functions, domain.SortByComplexity)
 
 		require.Len(t, sorted, 3)
 		assert.Equal(t, "func_a", sorted[0].Name) // Complexity 10
@@ -613,7 +623,7 @@ func TestComplexityService_SortFunctions(t *testing.T) {
 	})
 
 	t.Run("sort by name", func(t *testing.T) {
-		sorted := service.sortFunctions(functions, domain.SortByName)
+		sorted := service.sortScopes(functions, domain.SortByName)
 
 		require.Len(t, sorted, 3)
 		assert.Equal(t, "func_a", sorted[0].Name)
@@ -622,7 +632,7 @@ func TestComplexityService_SortFunctions(t *testing.T) {
 	})
 
 	t.Run("sort by risk", func(t *testing.T) {
-		sorted := service.sortFunctions(functions, domain.SortByRisk)
+		sorted := service.sortScopes(functions, domain.SortByRisk)
 
 		require.Len(t, sorted, 3)
 		assert.Equal(t, "func_a", sorted[0].Name) // High risk
@@ -665,7 +675,7 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 	}
 
 	t.Run("generate summary with functions", func(t *testing.T) {
-		summary := service.generateSummary(functions, complexitySummaryCounts{
+		summary := service.generateSummary(functions, nil, complexitySummaryCounts{
 			filesAnalyzed: 2,
 		})
 
@@ -684,7 +694,7 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 	})
 
 	t.Run("generate summary with no functions", func(t *testing.T) {
-		summary := service.generateSummary([]domain.FunctionComplexity{}, complexitySummaryCounts{
+		summary := service.generateSummary([]domain.FunctionComplexity{}, nil, complexitySummaryCounts{
 			filesAnalyzed: 5,
 		})
 
@@ -696,6 +706,22 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 		assert.Equal(t, 0, summary.MinComplexity)
 	})
 
+	t.Run("class maxima stay separate from function averages", func(t *testing.T) {
+		classScopes := []domain.FunctionComplexity{
+			{Metrics: domain.ComplexityMetrics{Complexity: 12, CognitiveComplexity: 20, NestingDepth: 5}, RiskLevel: domain.RiskLevelHigh},
+			{Metrics: domain.ComplexityMetrics{Complexity: 1}, RiskLevel: domain.RiskLevelLow},
+		}
+		summary := service.generateSummary(functions, classScopes, complexitySummaryCounts{filesAnalyzed: 2})
+
+		assert.Equal(t, 8.333333333333334, summary.AverageComplexity)
+		assert.Equal(t, 15, summary.MaxComplexity)
+		assert.Equal(t, 2, summary.TotalClassScopes)
+		assert.Equal(t, 12, summary.MaxClassComplexity)
+		assert.Equal(t, 20, summary.MaxClassCognitiveComplexity)
+		assert.Equal(t, 5, summary.MaxClassNestingDepth)
+		assert.Equal(t, 1, summary.HighRiskClassScopes)
+	})
+
 	t.Run("summary counts use complete population when min_complexity drops functions", func(t *testing.T) {
 		allFunctions := []domain.FunctionComplexity{
 			{Name: "trivial", Metrics: domain.ComplexityMetrics{Complexity: 1}},
@@ -704,8 +730,8 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 		}
 
 		req := domain.ComplexityRequest{MinComplexity: 5}
-		filtered, _ := service.filterFunctions(allFunctions, req)
-		summary := service.generateSummary(allFunctions, complexitySummaryCounts{
+		filtered, _ := service.filterScopes(allFunctions, req)
+		summary := service.generateSummary(allFunctions, nil, complexitySummaryCounts{
 			filesAnalyzed: 1,
 		})
 

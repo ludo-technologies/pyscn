@@ -340,3 +340,34 @@ func TestComplexityResponse(t *testing.T) {
 		t.Errorf("Expected summary total functions 2, got %d", response.Summary.TotalFunctions)
 	}
 }
+
+func TestComplexityResponse_AnalyzedScopesByComplexity(t *testing.T) {
+	response := ComplexityResponse{
+		Functions: []FunctionComplexity{{Name: "visible", Metrics: ComplexityMetrics{Complexity: 20}}},
+		AnalyzedFunctions: []FunctionComplexity{
+			{Name: ModuleFunctionName, ScopeKind: AnalysisScopeModule, FilePath: "b.py", Metrics: ComplexityMetrics{Complexity: 1}},
+			{Name: "resolve", ScopeKind: AnalysisScopeFunction, FilePath: "a.py", StartLine: 5, Metrics: ComplexityMetrics{Complexity: 11}},
+		},
+		AnalyzedClassScopes: []FunctionComplexity{
+			{Name: "Config", ScopeKind: AnalysisScopeClass, FilePath: "a.py", StartLine: 2, Metrics: ComplexityMetrics{Complexity: 12}},
+		},
+	}
+
+	ordered := response.AnalyzedScopesByComplexity()
+	if len(ordered) != 3 || ordered[0].Name != "Config" || ordered[1].Name != "resolve" || ordered[2].Name != ModuleFunctionName {
+		t.Fatalf("unexpected scope order: %+v", ordered)
+	}
+	ordered[0].Name = "changed"
+	if response.AnalyzedClassScopes[0].Name != "Config" {
+		t.Fatal("sorting result must not alias response storage")
+	}
+
+	legacy := ComplexityResponse{Functions: []FunctionComplexity{
+		{Name: "low", Metrics: ComplexityMetrics{Complexity: 2}},
+		{Name: "high", Metrics: ComplexityMetrics{Complexity: 8}},
+	}}
+	legacyOrder := legacy.AnalyzedScopesByComplexity()
+	if len(legacyOrder) != 2 || legacyOrder[0].Name != "high" {
+		t.Fatalf("legacy fallback order = %+v", legacyOrder)
+	}
+}

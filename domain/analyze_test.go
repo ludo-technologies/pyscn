@@ -765,6 +765,13 @@ func TestAnalyzeSummary_HasIssues(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "has high complexity class scope",
+			summary: domain.AnalyzeSummary{
+				HighComplexityClassScopeCount: 1,
+			},
+			want: true,
+		},
+		{
 			name: "has dead code",
 			summary: domain.AnalyzeSummary{
 				DeadCodeCount: 10,
@@ -803,5 +810,42 @@ func TestAnalyzeSummary_HasIssues(t *testing.T) {
 				t.Errorf("HasIssues() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestAnalyzeSummary_ClassScopeHotspotAffectsComplexityScore(t *testing.T) {
+	baseline := domain.AnalyzeSummary{
+		ComplexityEnabled: true,
+		TotalFunctions:    1,
+		AverageComplexity: 1,
+	}
+	if err := baseline.CalculateHealthScore(); err != nil {
+		t.Fatalf("baseline health score: %v", err)
+	}
+
+	withClassHotspot := baseline
+	withClassHotspot.TotalClassScopes = 1
+	withClassHotspot.MaxClassComplexity = 15
+	if err := withClassHotspot.CalculateHealthScore(); err != nil {
+		t.Fatalf("class hotspot health score: %v", err)
+	}
+
+	withTrivialClasses := withClassHotspot
+	withTrivialClasses.TotalClassScopes = 50
+	if err := withTrivialClasses.CalculateHealthScore(); err != nil {
+		t.Fatalf("trivial class health score: %v", err)
+	}
+
+	if baseline.ComplexityScore != 100 {
+		t.Fatalf("baseline complexity score = %d, want 100", baseline.ComplexityScore)
+	}
+	if withClassHotspot.ComplexityScore != 0 {
+		t.Fatalf("class hotspot complexity score = %d, want 0", withClassHotspot.ComplexityScore)
+	}
+	if withTrivialClasses.ComplexityScore != withClassHotspot.ComplexityScore {
+		t.Fatal("trivial class scopes must not dilute a class hotspot")
+	}
+	if withClassHotspot.AverageComplexity != baseline.AverageComplexity {
+		t.Fatal("class hotspot must not alter the function average")
 	}
 }

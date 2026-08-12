@@ -72,14 +72,14 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 	// Filter and sort results
 	allFunctions, allClassScopes := partitionComplexityScopes(allScopes)
 	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
-	filteredFunctions, _ := s.filterFunctions(allFunctions, req)
-	filteredClassScopes, _ := s.filterFunctions(allClassScopes, req)
-	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
-	sortedClassScopes := s.sortFunctions(filteredClassScopes, req.SortBy)
+	filteredFunctions, _ := s.filterScopes(allFunctions, req)
+	filteredClassScopes, _ := s.filterScopes(allClassScopes, req)
+	sortedFunctions := s.sortScopes(filteredFunctions, req.SortBy)
+	sortedClassScopes := s.sortScopes(filteredClassScopes, req.SortBy)
 
 	// Generate summary over the complete population so min_complexity only
 	// affects which functions are displayed, not the aggregate metrics.
-	summary := s.generateSummary(allFunctions, complexitySummaryCounts{
+	summary := s.generateSummary(allFunctions, allClassScopes, complexitySummaryCounts{
 		filesAnalyzed: filesProcessed,
 		filesSkipped:  filesSkipped,
 	})
@@ -147,11 +147,11 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 
 	allFunctions, allClassScopes := partitionComplexityScopes(allScopes)
 	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
-	filteredFunctions, _ := s.filterFunctions(allFunctions, req)
-	filteredClassScopes, _ := s.filterFunctions(allClassScopes, req)
-	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
-	sortedClassScopes := s.sortFunctions(filteredClassScopes, req.SortBy)
-	summary := s.generateSummary(allFunctions, complexitySummaryCounts{
+	filteredFunctions, _ := s.filterScopes(allFunctions, req)
+	filteredClassScopes, _ := s.filterScopes(allClassScopes, req)
+	sortedFunctions := s.sortScopes(filteredFunctions, req.SortBy)
+	sortedClassScopes := s.sortScopes(filteredClassScopes, req.SortBy)
+	summary := s.generateSummary(allFunctions, allClassScopes, complexitySummaryCounts{
 		filesAnalyzed: filesProcessed,
 		filesSkipped:  filesSkipped,
 	})
@@ -317,10 +317,10 @@ func partitionComplexityScopes(scopes []domain.FunctionComplexity) (functions, c
 	return functions, classScopes
 }
 
-// filterFunctions returns visible functions and the count before min_complexity.
+// filterScopes returns visible execution scopes and the count before min_complexity.
 // report_unchanged remains part of the reporting contract, while module rollups
 // consume the complete analyzer population before either presentation filter.
-func (s *ComplexityServiceImpl) filterFunctions(functions []domain.FunctionComplexity, req domain.ComplexityRequest) ([]domain.FunctionComplexity, int) {
+func (s *ComplexityServiceImpl) filterScopes(functions []domain.FunctionComplexity, req domain.ComplexityRequest) ([]domain.FunctionComplexity, int) {
 	var filtered []domain.FunctionComplexity
 	complexityConfig := s.buildComplexityConfig(req)
 	functionsParsed := 0
@@ -343,8 +343,8 @@ func (s *ComplexityServiceImpl) filterFunctions(functions []domain.FunctionCompl
 	return filtered, functionsParsed
 }
 
-// sortFunctions sorts functions based on the specified criteria
-func (s *ComplexityServiceImpl) sortFunctions(functions []domain.FunctionComplexity, sortBy domain.SortCriteria) []domain.FunctionComplexity {
+// sortScopes sorts execution scopes based on the specified criteria.
+func (s *ComplexityServiceImpl) sortScopes(functions []domain.FunctionComplexity, sortBy domain.SortCriteria) []domain.FunctionComplexity {
 	// Create a copy to avoid modifying the original slice
 	sorted := make([]domain.FunctionComplexity, len(functions))
 	copy(sorted, functions)
@@ -408,12 +408,27 @@ type complexitySummaryCounts struct {
 // filesSkipped counts files that produced no metrics because they could not be
 // read or parsed, so consumers can see when aggregates cover only part of the
 // requested files.
-func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionComplexity, counts complexitySummaryCounts) domain.ComplexitySummary {
+func (s *ComplexityServiceImpl) generateSummary(functions, classScopes []domain.FunctionComplexity, counts complexitySummaryCounts) domain.ComplexitySummary {
+	var maxClassComplexity, maxClassCognitiveComplexity, maxClassNestingDepth, highRiskClassScopes int
+	for _, classScope := range classScopes {
+		maxClassComplexity = max(maxClassComplexity, classScope.Metrics.Complexity)
+		maxClassCognitiveComplexity = max(maxClassCognitiveComplexity, classScope.Metrics.CognitiveComplexity)
+		maxClassNestingDepth = max(maxClassNestingDepth, classScope.Metrics.NestingDepth)
+		if classScope.RiskLevel == domain.RiskLevelHigh {
+			highRiskClassScopes++
+		}
+	}
+
 	if len(functions) == 0 {
 		return domain.ComplexitySummary{
-			FilesAnalyzed: counts.filesAnalyzed,
-			TotalFiles:    counts.filesAnalyzed + counts.filesSkipped,
-			SkippedFiles:  counts.filesSkipped,
+			TotalClassScopes:            len(classScopes),
+			MaxClassComplexity:          maxClassComplexity,
+			MaxClassCognitiveComplexity: maxClassCognitiveComplexity,
+			MaxClassNestingDepth:        maxClassNestingDepth,
+			HighRiskClassScopes:         highRiskClassScopes,
+			FilesAnalyzed:               counts.filesAnalyzed,
+			TotalFiles:                  counts.filesAnalyzed + counts.filesSkipped,
+			SkippedFiles:                counts.filesSkipped,
 		}
 	}
 
@@ -452,26 +467,30 @@ func (s *ComplexityServiceImpl) generateSummary(functions []domain.FunctionCompl
 		distKey := s.getComplexityDistributionKey(complexity)
 		complexityDist[distKey]++
 	}
-
 	avgComplexity := float64(totalComplexity) / float64(len(functions))
 	avgCognitiveComplexity := float64(totalCognitiveComplexity) / float64(len(functions))
 	avgNestingDepth := float64(totalNestingDepth) / float64(len(functions))
 
 	return domain.ComplexitySummary{
-		TotalFunctions:             len(functions),
-		FunctionsParsed:            len(functions),
-		AverageComplexity:          avgComplexity,
-		AverageCognitiveComplexity: avgCognitiveComplexity,
-		AverageNestingDepth:        avgNestingDepth,
-		MaxComplexity:              maxComplexity,
-		MinComplexity:              minComplexity,
-		FilesAnalyzed:              counts.filesAnalyzed,
-		TotalFiles:                 counts.filesAnalyzed + counts.filesSkipped,
-		SkippedFiles:               counts.filesSkipped,
-		LowRiskFunctions:           lowCount,
-		MediumRiskFunctions:        mediumCount,
-		HighRiskFunctions:          highCount,
-		ComplexityDistribution:     complexityDist,
+		TotalFunctions:              len(functions),
+		TotalClassScopes:            len(classScopes),
+		MaxClassComplexity:          maxClassComplexity,
+		MaxClassCognitiveComplexity: maxClassCognitiveComplexity,
+		MaxClassNestingDepth:        maxClassNestingDepth,
+		HighRiskClassScopes:         highRiskClassScopes,
+		FunctionsParsed:             len(functions),
+		AverageComplexity:           avgComplexity,
+		AverageCognitiveComplexity:  avgCognitiveComplexity,
+		AverageNestingDepth:         avgNestingDepth,
+		MaxComplexity:               maxComplexity,
+		MinComplexity:               minComplexity,
+		FilesAnalyzed:               counts.filesAnalyzed,
+		TotalFiles:                  counts.filesAnalyzed + counts.filesSkipped,
+		SkippedFiles:                counts.filesSkipped,
+		LowRiskFunctions:            lowCount,
+		MediumRiskFunctions:         mediumCount,
+		HighRiskFunctions:           highCount,
+		ComplexityDistribution:      complexityDist,
 	}
 }
 

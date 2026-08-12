@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 )
 
 // OutputFormat represents the supported output formats
@@ -251,12 +252,19 @@ type RawMetricsSummary struct {
 
 // ComplexitySummary represents aggregate function statistics. The established
 // module pseudo-record remains in this population; executable class suites are
-// reported separately and do not alter function counts, averages, or health.
+// reported separately and do not alter function counts or averages.
 type ComplexitySummary struct {
 	// TotalFunctions is the complete analyzed function population used by all
 	// aggregate metrics, including the established module pseudo-record.
 	// Presentation filters only limit ComplexityResponse.Functions.
 	TotalFunctions int
+	// TotalClassScopes is the complete executable class-suite population.
+	// Class maxima provide a non-dilutable hotspot signal for health scoring.
+	TotalClassScopes            int
+	MaxClassComplexity          int
+	MaxClassCognitiveComplexity int
+	MaxClassNestingDepth        int
+	HighRiskClassScopes         int
 	// FunctionsParsed is retained for output compatibility and describes the same
 	// complete analyzed function population as TotalFunctions.
 	FunctionsParsed            int
@@ -327,6 +335,51 @@ func (r *ComplexityResponse) ReportedScopes() []FunctionComplexity {
 	scopes := make([]FunctionComplexity, 0, len(r.Functions)+len(r.ClassScopes))
 	scopes = append(scopes, r.Functions...)
 	scopes = append(scopes, r.ClassScopes...)
+	return scopes
+}
+
+// ReportedScopesByComplexity returns all visible scopes in a stable severity
+// order for gates and bounded issue lists. It never mutates response storage.
+func (r *ComplexityResponse) ReportedScopesByComplexity() []FunctionComplexity {
+	return sortComplexityScopes(r.ReportedScopes())
+}
+
+// AnalyzedScopesByComplexity returns the complete pre-filter population in a
+// stable severity order. Legacy externally constructed responses fall back to
+// their reported collections.
+func (r *ComplexityResponse) AnalyzedScopesByComplexity() []FunctionComplexity {
+	if r == nil {
+		return nil
+	}
+	if r.AnalyzedFunctions == nil && r.AnalyzedClassScopes == nil {
+		return r.ReportedScopesByComplexity()
+	}
+	scopes := make([]FunctionComplexity, 0, len(r.AnalyzedFunctions)+len(r.AnalyzedClassScopes))
+	scopes = append(scopes, r.AnalyzedFunctions...)
+	scopes = append(scopes, r.AnalyzedClassScopes...)
+	return sortComplexityScopes(scopes)
+}
+
+func sortComplexityScopes(scopes []FunctionComplexity) []FunctionComplexity {
+	sort.SliceStable(scopes, func(i, j int) bool {
+		left, right := scopes[i], scopes[j]
+		if left.Metrics.Complexity != right.Metrics.Complexity {
+			return left.Metrics.Complexity > right.Metrics.Complexity
+		}
+		if left.FilePath != right.FilePath {
+			return left.FilePath < right.FilePath
+		}
+		if left.StartLine != right.StartLine {
+			return left.StartLine < right.StartLine
+		}
+		if left.StartColumn != right.StartColumn {
+			return left.StartColumn < right.StartColumn
+		}
+		if left.ResolvedScopeKind() != right.ResolvedScopeKind() {
+			return left.ResolvedScopeKind() < right.ResolvedScopeKind()
+		}
+		return left.Name < right.Name
+	})
 	return scopes
 }
 

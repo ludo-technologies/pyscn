@@ -167,10 +167,9 @@ func TestGenerateSuggestions_ComplexityTopLevel(t *testing.T) {
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
 				{
-					Name:      ModuleFunctionName,
-					ScopeKind: AnalysisScopeModule,
-					FilePath:  "src/comprehensions.py",
-					Metrics:   ComplexityMetrics{Complexity: 15},
+					Name:     ModuleFunctionName,
+					FilePath: "src/comprehensions.py",
+					Metrics:  ComplexityMetrics{Complexity: 15},
 				},
 			},
 		},
@@ -201,7 +200,7 @@ func TestGenerateSuggestions_ComplexityTopLevel(t *testing.T) {
 func TestGenerateSuggestions_ComplexityClassScope(t *testing.T) {
 	resp := &AnalyzeResponse{
 		Complexity: &ComplexityResponse{
-			Functions: []FunctionComplexity{{
+			ClassScopes: []FunctionComplexity{{
 				Name:      "Settings",
 				ScopeKind: AnalysisScopeClass,
 				FilePath:  "settings.py",
