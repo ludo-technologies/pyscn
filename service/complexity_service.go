@@ -207,7 +207,7 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 
 	analyzer.PopulateLogicalLines(rawMetrics, result.AST)
 
-	// Build CFGs for all functions
+	// Build a typed CFG for each Python execution scope.
 	builder := analyzer.NewCFGBuilder()
 	cfgs, err := builder.BuildAll(result.AST)
 	if err != nil {
@@ -267,7 +267,7 @@ func (s *ComplexityServiceImpl) calculateScopeComplexities(filePath string, cfgs
 		cfg := scopedCFG.Graph
 		result := analyzer.CalculateComplexityWithConfig(cfg, complexityConfig)
 		if result == nil {
-			warnings = append(warnings, fmt.Sprintf("[%s:%s] Failed to calculate complexity for scope", filePath, functionName))
+			warnings = append(warnings, fmt.Sprintf("[%s:%s] failed to calculate complexity for scope", filePath, functionName))
 			continue
 		}
 

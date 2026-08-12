@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
@@ -268,7 +269,7 @@ class Config:
 		}
 	})
 
-	t.Run("LegacyReporterDoesNotMislabelClassScopes", func(t *testing.T) {
+	t.Run("FileReporterRetainsClassScopeKind", func(t *testing.T) {
 		ast := parseSource(t, `
 class Config:
     enabled = True
@@ -281,16 +282,20 @@ class Config:
 			t.Fatalf("Unexpected error: %v", err)
 		}
 
-		graphs := legacyReporterCFGs(cfgs)
-		if len(graphs) != 2 {
-			t.Fatalf("legacy reporter graph count = %d, want module and method", len(graphs))
+		config := config.DefaultConfig()
+		results := calculateScopedReporterResults(cfgs, &config.Complexity)
+		if len(results) != 3 {
+			t.Fatalf("file reporter result count = %d, want module, class, and method", len(results))
 		}
-		classGraph := requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Config")
-		for _, graph := range graphs {
-			if graph == classGraph {
-				t.Fatal("function-only legacy reporter must not receive a class graph")
+		for _, result := range results {
+			if result.GetFunctionName() == "Config" {
+				if result.GetScopeKind() != domain.AnalysisScopeClass {
+					t.Fatalf("Config kind = %q, want class", result.GetScopeKind())
+				}
+				return
 			}
 		}
+		t.Fatal("file reporter omitted Config class scope")
 	})
 
 	t.Run("BuildNestedDjangoMetaScope", func(t *testing.T) {

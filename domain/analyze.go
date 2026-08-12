@@ -665,7 +665,7 @@ func (s *AnalyzeSummary) CalculateFallbackScore() int {
 	score := 100
 
 	// Complexity penalty
-	if s.AverageComplexity > float64(FallbackComplexityThreshold) {
+	if s.AverageComplexity > float64(FallbackComplexityThreshold) || s.MaxClassComplexity > FallbackComplexityThreshold {
 		score -= FallbackComplexityThreshold
 	}
 
@@ -675,7 +675,7 @@ func (s *AnalyzeSummary) CalculateFallbackScore() int {
 	}
 
 	// High complexity penalty
-	if s.HighComplexityCount > 0 {
+	if s.HighComplexityCount > 0 || s.HighComplexityClassScopeCount > 0 {
 		score -= FallbackPenalty
 	}
 

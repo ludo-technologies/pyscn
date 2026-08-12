@@ -474,8 +474,8 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 		slocThreshold = response.Request.FunctionSLOCCriticalThreshold
 	}
 
-	// Count functions that exceed the maximum complexity threshold, plus
-	// functions that are too long. Length is orthogonal to McCabe, so a flat
+	// Count scopes that exceed the maximum complexity threshold, plus functions
+	// that are too long. Length is orthogonal to McCabe, so a flat
 	// 200-line function is an issue on its own and both can fire at once.
 	issueCount := 0
 	for _, function := range response.ReportedScopesByComplexity() {

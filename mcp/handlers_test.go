@@ -846,3 +846,39 @@ func TestHandleGetHealthScore(t *testing.T) {
 		})
 	}
 }
+
+func TestHandleGetHealthScoreExplainsClassScopePenalty(t *testing.T) {
+	configFile := filepath.Join(t.TempDir(), ".pyscn.toml")
+	require.NoError(t, os.WriteFile(configFile, []byte("[complexity]\nreport_unchanged = true\n"), 0o644))
+	res := runToolTestWithConfig(
+		t,
+		func(t *testing.T) string {
+			t.Helper()
+			path := filepath.Join(t.TempDir(), "config.py")
+			var source strings.Builder
+			source.WriteString("class Config:\n")
+			for i := 0; i < 20; i++ {
+				source.WriteString("    if enabled:\n        value = 1\n")
+			}
+			require.NoError(t, os.WriteFile(path, []byte(source.String()), 0o644))
+			return path
+		},
+		map[string]interface{}{},
+		configFile,
+		(*mcp.HandlerSet).HandleGetHealthScore,
+	)
+
+	require.False(t, res.IsError)
+	rawOutput := mcplib.GetTextFromContent(res.Content[0])
+	var output struct {
+		Summary struct {
+			TotalClassScopes              int `json:"total_class_scopes"`
+			MaxClassComplexity            int `json:"max_class_complexity"`
+			HighComplexityClassScopeCount int `json:"high_complexity_class_scope_count"`
+		} `json:"summary"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(rawOutput), &output))
+	assert.Equal(t, 1, output.Summary.TotalClassScopes, rawOutput)
+	assert.Equal(t, 21, output.Summary.MaxClassComplexity)
+	assert.Equal(t, 1, output.Summary.HighComplexityClassScopeCount)
+}

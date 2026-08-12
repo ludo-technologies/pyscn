@@ -1,8 +1,9 @@
 package analyzer
 
 import (
-	corecfg "github.com/ludo-technologies/polyscan/core/cfg"
 	"github.com/ludo-technologies/pyscn/domain"
+
+	corecfg "github.com/ludo-technologies/polyscan/core/cfg"
 )
 
 // CFG data structures and traversal are owned by polyscan core. Aliases keep

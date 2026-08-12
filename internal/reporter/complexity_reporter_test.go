@@ -454,7 +454,7 @@ func TestOutputCSV(t *testing.T) {
 	// Verify header
 	expectedHeader := []string{
 		"Function", "Complexity", "Risk", "Nodes", "Edges",
-		"If Statements", "Loop Statements", "Exception Handlers",
+		"If Statements", "Loop Statements", "Exception Handlers", "Scope Kind",
 	}
 	for i, field := range records[0] {
 		if field != expectedHeader[i] {

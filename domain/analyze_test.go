@@ -718,6 +718,14 @@ func TestAnalyzeSummary_CalculateFallbackScore(t *testing.T) {
 			want: 95,
 		},
 		{
+			name: "with class complexity",
+			summary: domain.AnalyzeSummary{
+				MaxClassComplexity:            15,
+				HighComplexityClassScopeCount: 1,
+			},
+			want: 85,
+		},
+		{
 			name: "with all issues",
 			summary: domain.AnalyzeSummary{
 				AverageComplexity:   15.0,
