@@ -267,7 +267,7 @@ Field notes:
 
 ### check_complexity
 
-**Description**: Analyze cyclomatic complexity of Python functions
+**Description**: Analyze cyclomatic complexity of Python execution scopes
 
 **Parameters**:
 - `path` (required): Path to Python code

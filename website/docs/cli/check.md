@@ -35,7 +35,7 @@ Default (no `--select`): runs `complexity`, `deadcode`, **and `clones`**. `deps`
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `--max-complexity <N>`   | `10` | Fail if any function exceeds this cyclomatic complexity. |
+| `--max-complexity <N>`   | `10` | Fail if any module, executable class suite, or function exceeds this cyclomatic complexity. |
 | `--max-cycles <N>`       | `0`  | Maximum number of circular dependency cycles before failing. |
 | `--allow-dead-code`      | off  | Treat dead code as warnings only; don't fail the check. |
 | `--allow-circular-deps`  | off  | Treat cycles as warnings only; don't fail the check. |

@@ -85,8 +85,13 @@ Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the co
 | Field                   | Type    | Description                                      |
 | ----------------------- | ------- | ------------------------------------------------ |
 | `total_functions`       | integer | Total functions analyzed.                        |
+| `total_class_scopes`    | integer | Executable class suites analyzed.                |
 | `average_complexity`    | number  | Mean cyclomatic complexity. `0` when no functions. |
 | `high_complexity_count` | integer | Functions with complexity > 10 (medium threshold). |
+| `max_class_complexity` | integer | Highest class-suite cyclomatic complexity. |
+| `max_class_cognitive_complexity` | integer | Highest class-suite cognitive complexity. |
+| `max_class_nesting_depth` | integer | Highest class-suite nesting depth. |
+| `high_complexity_class_scope_count` | integer | Class scopes classified as high risk. |
 
 ### Dead code metrics
 
@@ -208,6 +213,7 @@ Mirrors `domain.ComplexityResponse`. Nested field names are Go PascalCase.
 ```json
 {
   "Functions": [ /* FunctionComplexity array */ ],
+  "ClassScopes": [ /* FunctionComplexity array; omitted when empty */ ],
   "by_directory": [ /* DirectoryComplexityMetrics array; empty when no functions are reported */ ],
   "Summary": { /* ComplexitySummary */ },
   "raw_metrics": [ /* RawMetrics array, present when computed */ ],
@@ -220,13 +226,14 @@ Mirrors `domain.ComplexityResponse`. Nested field names are Go PascalCase.
 }
 ```
 
-The standalone complexity formatter uses `by_directory` at the report root beside `results`, `summary`, and `metadata`. Its entries and semantics are identical to unified output.
+The standalone complexity formatter uses `by_directory` at the report root beside `results`, optional `class_scopes`, `summary`, and `metadata`. `results` retains the established module/function collection; `class_scopes` contains executable class suites. Directory entries remain function-only and their semantics are identical to unified output.
 
-### `Functions[]` element (`FunctionComplexity`)
+### `Functions[]` and `ClassScopes[]` element (`FunctionComplexity`)
 
 | Field         | Type    | Description                                                  |
 | ------------- | ------- | ------------------------------------------------------------ |
-| `Name`        | string  | Function name. `__main__` for module-level code.             |
+| `Name`        | string  | Qualified scope name. `<module>` for module-level code.       |
+| `scope_kind`  | string  | `module`, `function`, or `class`. Omitted only on legacy zero-value records. |
 | `FilePath`    | string  | Path to source file.                                         |
 | `StartLine`   | integer | 1-based start line.                                          |
 | `StartColumn` | integer | 0-based start column.                                        |
@@ -253,9 +260,15 @@ The standalone complexity formatter uses `by_directory` at the report root besid
 | Field                    | Type    | Description                                                            |
 | ------------------------ | ------- | ---------------------------------------------------------------------- |
 | `TotalFunctions`         | integer | Total functions analyzed.                                              |
+| `TotalClassScopes`       | integer | Total executable class suites analyzed.                                |
+| `FunctionsParsed`        | integer | Compatibility count matching the complete `TotalFunctions` population. |
 | `AverageComplexity`      | number  | Arithmetic mean of `Complexity` across all functions.                  |
 | `MaxComplexity`          | integer | Highest observed complexity.                                           |
 | `MinComplexity`          | integer | Lowest observed complexity.                                            |
+| `MaxClassComplexity`     | integer | Highest class-suite cyclomatic complexity.                             |
+| `MaxClassCognitiveComplexity` | integer | Highest class-suite cognitive complexity.                         |
+| `MaxClassNestingDepth`   | integer | Highest class-suite nesting depth.                                     |
+| `HighRiskClassScopes`    | integer | Class suites classified as high risk.                                  |
 | `FilesAnalyzed`          | integer | Files that were parsed and contributed to the metrics above.           |
 | `TotalFiles`             | integer | Files the request covered, parsed or not.                              |
 | `SkippedFiles`           | integer | Files dropped because they could not be read or parsed. Their contents are absent from every metric above. |
@@ -748,6 +761,8 @@ Health Score,<integer>
 Grade,<A|B|C|D|F|N/A>
 Total Files,<integer>
 Analyzed Files,<integer>
+Total Functions,<integer>
+Class Scopes,<integer>
 Average Complexity,<float with 2 decimals>
 High Complexity Count,<integer>
 Dead Code Count,<integer>
@@ -781,7 +796,13 @@ Directory 1 Average Nesting Depth,<float with 2 decimals>
 Directory 1 Max Nesting Depth,<integer>
 ```
 
-The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all legacy summary, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
+The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all summary, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use `--json` or `--yaml` for per-scope and per-finding detail.
+
+The standalone complexity formatter emits one row per reported module, function, or class scope. Existing columns remain in place and `Scope Kind` is appended:
+
+```csv
+Function,Complexity,Cognitive Complexity,Risk,Nodes,Edges,Nesting Depth,If Statements,Loop Statements,Exception Handlers,SLOC,Scope Kind
+```
 
 ## `community_analysis` object { #community-analysis-object }
 

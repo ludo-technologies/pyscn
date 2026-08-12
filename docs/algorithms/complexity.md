@@ -317,7 +317,7 @@ func (c *ComplexityConfig) AssessRiskLevel(complexity, cognitiveComplexity, nest
 }
 ```
 
-When `max_complexity` is set to a positive value, `ExceedsMaxComplexity` can be used as a quality gate to fail CI checks for functions exceeding the limit.
+When `max_complexity` is set to a positive value, complexity checks fail for any reported module, function, or executable class suite that exceeds the limit.
 
 ## Output
 
@@ -332,7 +332,6 @@ Each analyzed scope produces a `ComplexityResult` (`internal/analyzer/complexity
 | `Nodes` | Number of non-entry/exit blocks in the CFG |
 | `ConnectedComponents` | Always 1 (single execution scope) |
 | `FunctionName` | Fully qualified scope name (historical field name) |
-| `ScopeKind` | `module`, `function`, or `class` |
 | `StartLine`, `StartCol`, `EndLine` | Source location |
 | `NestingDepth` | Maximum nesting depth |
 | `CognitiveComplexity` | SonarQube-style cognitive complexity |
@@ -343,13 +342,16 @@ Each analyzed scope produces a `ComplexityResult` (`internal/analyzer/complexity
 | `SLOC` | Source lines of code within `StartLine`..`EndLine` |
 | `RiskLevel` | `"low"`, `"medium"`, or `"high"` |
 
+Scope ownership is canonical on the `ScopedCFG` that accompanies this result. The service projects that typed owner into `FunctionComplexity.ScopeKind`; `ComplexityResult` remains metric-only.
+
 ### Aggregate Metrics
 
-`CalculateAggregateComplexity` computes summary statistics across all execution scopes in a file or project. Historical serialized field names such as `total_functions` remain stable; each result's `scope_kind` identifies its actual owner.
+Function aggregates retain their established contract: the module pseudo-record and function scopes determine `total_functions`, averages, minima, maxima, risk distribution, module rollups, and directory rollups. Executable class suites are published in a separate `class_scopes` collection with their own count and hotspot maxima.
 
-- Total scope count (serialized as the historical `total_functions` field)
-- Average, minimum, and maximum complexity
-- Count of high/medium/low risk scopes
+- Total function population (including the module pseudo-record)
+- Function average, minimum, and maximum complexity
+- Function risk distribution
+- Class-scope count and maximum cyclomatic, cognitive, and nesting values
 
 ### Report Formats
 
@@ -360,7 +362,7 @@ The `ComplexityAnalyzer` (`internal/analyzer/complexity_analyzer.go`) coordinate
 - **Per-scope CFGs**: Each function, method, and executable class suite gets its own CFG built by an independent `CFGBuilder`, avoiding interference with the parent scope.
 - **Shared graph kernel**: `polyscan/core/cfg` performs structural reachability and edge accounting with visited sets that prevent loops on back-edges.
 - **Parallel file analysis**: Multiple files are analyzed concurrently (default: 4 goroutines), with each file independently parsed, CFG-built, and scored.
-- **Filtering**: `ShouldReport` filters out trivial functions (complexity = 1) when `report_unchanged` is false, reducing noise in reports for large codebases.
+- **Filtering**: presentation filters are applied independently to function and class-scope collections. Complete pre-filter populations remain available for summaries and gates.
 
 ## Related Metrics
 
@@ -374,12 +376,15 @@ Cognitive complexity and nesting depth participate in risk classification. A sco
 
 ## Integration with Health Score
 
-The overall project health score (`docs/ANALYZE_SCORING.md`) uses the strongest complexity penalty from average cyclomatic complexity, average cognitive complexity, and average nesting depth:
+The overall project health score (`docs/ANALYZE_SCORING.md`) uses the strongest penalty across function averages and class-scope hotspot maxima. Separate class maxima prevent trivial classes from diluting a complex executable suite:
 
 ```
 penalty = max(
   linear(avg_complexity, start=2, max=15),
   linear(avg_cognitive_complexity, start=15, max=25),
   linear(avg_nesting_depth, start=3, max=7),
+  linear(max_class_complexity, start=2, max=15),
+  linear(max_class_cognitive_complexity, start=15, max=25),
+  linear(max_class_nesting_depth, start=3, max=7),
 )
 ```

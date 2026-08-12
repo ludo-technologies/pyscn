@@ -43,7 +43,7 @@ Category score cards and tabs only appear for analyzers that ran. Architecture a
 
 ## JavaScript
 
-Inline functions switch tabs and route the module and directory tables through one shared sorter. No network requests are made. The standalone complexity formatter renders the same directory metrics above the function table.
+Inline functions switch tabs and route the module and directory tables through one shared sorter. No network requests are made. The standalone complexity formatter renders the same directory metrics above separate function and class-scope tables.
 
 Module rollups use the full analyzer population before `min_complexity`, `report_unchanged`, or `min_severity` presentation filters. Directory complexity uses the reported function population after complexity filters, so its counts and averages reconcile with the Complexity tab.
 
