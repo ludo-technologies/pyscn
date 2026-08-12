@@ -42,7 +42,7 @@ func TestCFGIntegrationWithRealFiles(t *testing.T) {
 		{
 			file:        "simple/classes.py",
 			description: "Class definitions should be handled correctly",
-			minBlocks:   3,
+			minBlocks:   2, // Class suites own separate CFGs.
 			shouldPass:  true,
 		},
 		{

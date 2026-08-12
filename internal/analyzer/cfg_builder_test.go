@@ -231,6 +231,83 @@ class Factory:
 		assertHasReturnEdge(t, requireCFG(t, allCFGs, "Factory.build.make_value"))
 	})
 
+	t.Run("BuildClassExecutionScopes", func(t *testing.T) {
+		ast := parseSource(t, `
+class Config:
+    if enabled:
+        mode = "fast"
+    else:
+        mode = "safe"
+
+    def resolve(self):
+        return self.mode
+`)
+
+		cfgs, err := NewCFGBuilder().BuildAll(ast)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		if len(cfgs) != 3 {
+			t.Fatalf("scope count = %d, want module, class, and method", len(cfgs))
+		}
+		if cfgs[0].Scope.Kind != domain.AnalysisScopeModule || cfgs[0].Scope.Name != domain.ModuleFunctionName {
+			t.Fatalf("root scope = %+v, want module", cfgs[0].Scope)
+		}
+		classCFG := requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Config")
+		requireScopedCFG(t, cfgs, domain.AnalysisScopeFunction, "Config.resolve")
+
+		if sourceNode := requirePythonNode(t, classCFG.FunctionNode); sourceNode.Type != parser.NodeClassDef {
+			t.Fatalf("class CFG source type = %q, want %q", sourceNode.Type, parser.NodeClassDef)
+		}
+		if countStatementType(cfgs[0].Graph, parser.NodeClassDef) != 1 {
+			t.Fatal("module CFG must retain the class definition binding")
+		}
+		if countStatementType(classCFG, parser.NodeClassDef) != 0 {
+			t.Fatal("class CFG must not contain its own definition statement")
+		}
+	})
+
+	t.Run("BuildNestedDjangoMetaScope", func(t *testing.T) {
+		ast := parseSource(t, `
+class Event(models.Model):
+    class Meta:
+        if settings.USE_PARTIAL_INDEX:
+            indexes = [models.Index(fields=["created_at"])]
+        else:
+            indexes = []
+`)
+
+		cfgs, err := NewCFGBuilder().BuildAll(ast)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Event")
+		requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Event.Meta")
+	})
+
+	t.Run("BuildSameNamedClassAndFunctionScopes", func(t *testing.T) {
+		ast := parseSource(t, `
+class Config:
+    enabled = True
+
+def Config():
+    return {}
+`)
+
+		cfgs, err := NewCFGBuilder().BuildAll(ast)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		classCFG := requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Config")
+		functionCFG := requireScopedCFG(t, cfgs, domain.AnalysisScopeFunction, "Config")
+		if classCFG == functionCFG {
+			t.Fatal("same-named class and function must own distinct CFGs")
+		}
+	})
+
 	t.Run("BuildTopLevelFunctions", func(t *testing.T) {
 		source := `
 def outer():
@@ -602,6 +679,29 @@ func findCFG(cfgs ControlFlowGraphs, name string) (*CFG, bool) {
 		}
 	}
 	return nil, false
+}
+
+func requireScopedCFG(t *testing.T, cfgs ControlFlowGraphs, kind domain.AnalysisScopeKind, name string) *CFG {
+	t.Helper()
+	for _, scopedCFG := range cfgs {
+		if scopedCFG.Scope.Kind == kind && scopedCFG.Scope.Name == name {
+			return scopedCFG.Graph
+		}
+	}
+	t.Fatalf("Missing %s scope %q; got %v", kind, name, mapKeys(cfgs))
+	return nil
+}
+
+func countStatementType(cfg *CFG, nodeType parser.NodeType) int {
+	count := 0
+	for _, block := range cfg.Blocks {
+		for _, statement := range block.Statements {
+			if node, ok := pythonNode(statement); ok && node.Type == nodeType {
+				count++
+			}
+		}
+	}
+	return count
 }
 
 // Removed custom contains function - now using strings.Contains from stdlib

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -609,7 +610,25 @@ alias = Thing
 		thing := requireDFAChain(t, info, "Thing")
 		require.Len(t, thing.Defs, 1)
 		assert.Equal(t, DefKindAssign, thing.Defs[0].Kind)
-		assertUsesOnlyInBlockLabel(t, thing, 1, LabelClassBody)
+		assertUsesOnlyInBlockLabel(t, thing, 1, LabelEntry)
+	})
+
+	t.Run("Build_ClassSuiteRetainsBodyDefinitions", func(t *testing.T) {
+		ast := parseSourceForDFA(t, `
+class Thing:
+    value = 1
+    alias = value
+`)
+		cfgs, err := NewCFGBuilder().BuildAll(ast)
+		require.NoError(t, err)
+
+		classCFG := requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Thing")
+		info, err := NewDFABuilder().Build(classCFG)
+		require.NoError(t, err)
+
+		value := requireDFAChain(t, info, "value")
+		require.Len(t, value.Defs, 1)
+		assertUsesOnlyInBlockLabel(t, value, 1, LabelClassBody)
 	})
 
 	t.Run("Build_NestedFunctionCFG_RetainsBodyUses", func(t *testing.T) {
