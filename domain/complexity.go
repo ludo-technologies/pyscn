@@ -175,9 +175,10 @@ func (f FunctionComplexity) ExceedsSLOC(threshold int) bool {
 	return f.Metrics.SLOC > threshold
 }
 
-// DirectoryComplexityMetrics aggregates the complete analyzed function
-// population for one project-root-relative directory. Presentation filters do
-// not change these metrics, matching the project-wide summary contract.
+// DirectoryComplexityMetrics aggregates the complete analyzed scope population
+// for one project-root-relative directory. FunctionCount and
+// HighRiskFunctionCount retain their historical serialized names. Presentation
+// filters do not change these metrics, matching the project-wide summary contract.
 type DirectoryComplexityMetrics struct {
 	DirectoryPath         string  `json:"directory_path" yaml:"directory_path"`
 	FunctionCount         int     `json:"function_count" yaml:"function_count"`

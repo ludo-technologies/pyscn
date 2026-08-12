@@ -70,7 +70,7 @@ func (f *HTMLFormatterImpl) CalculateComplexityScore(response *domain.Complexity
 	if response == nil || response.Summary.TotalFunctions == 0 {
 		return ScoreData{
 			Score:    100,
-			Label:    "No Functions",
+			Label:    "No Scopes",
 			Color:    colorSuccess,
 			Status:   "pass",
 			Category: "complexity",
@@ -527,7 +527,7 @@ func (f *HTMLFormatterImpl) getComplexityDetailsHTML() string {
                     <thead>
                         <tr style="background: #f8f9fa;">
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Directory</th>
-                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Functions</th>
+							<th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Scopes</th>
                             <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Avg CC</th>
                             <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Max CC</th>
                             <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">High Risk</th>
@@ -553,11 +553,12 @@ func (f *HTMLFormatterImpl) getComplexityDetailsHTML() string {
             {{end}}
 
             {{if .Response.Functions}}
-            <h3 style="margin-top: 30px; margin-bottom: 15px; color: #1a1a1a;">Function Details</h3>
+			<h3 style="margin-top: 30px; margin-bottom: 15px; color: #1a1a1a;">Scope Details</h3>
             <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
                 <thead>
                     <tr style="background: #f8f9fa;">
-                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Function</th>
+						<th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Kind</th>
+						<th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Scope</th>
                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">File</th>
                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Complexity</th>
                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Cognitive</th>
@@ -569,6 +570,7 @@ func (f *HTMLFormatterImpl) getComplexityDetailsHTML() string {
                 <tbody>
                     {{range .Response.Functions}}
                     <tr style="border-bottom: 1px solid #e0e0e0;">
+						<td style="padding: 12px;">{{.ScopeKind}}</td>
                         <td style="padding: 12px;">{{.Name}}</td>
                         <td style="padding: 12px; color: #666;">{{.FilePath}}</td>
                         <td style="padding: 12px; text-align: center;">{{.Metrics.Complexity}}</td>

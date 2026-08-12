@@ -189,8 +189,9 @@ func TestAnalyzeFormatter_Write_TextIncludesModuleQuality(t *testing.T) {
 
 	assert.Contains(t, output.String(), "MODULE QUALITY HOTSPOTS")
 	assert.Contains(t, output.String(), "pkg.hotspot (pkg/hotspot.py)")
-	assert.Contains(t, output.String(), "Functions: 4 total / 2 analyzed")
-	assert.Contains(t, output.String(), "Complexity: avg 6.50, max 9, high-risk 1, handlers 0")
+	assert.Contains(t, output.String(), "Definitions: 4 functions")
+	assert.Contains(t, output.String(), "Complexity scopes: 2 analyzed")
+	assert.Contains(t, output.String(), "Complexity scopes: 2 analyzed, avg 6.50, max 9, high-risk 1, handlers 0")
 	assert.Contains(t, output.String(), "Cognitive: avg 8.00")
 	assert.Contains(t, output.String(), "Dead code: 2 findings, 3 blocks")
 }
@@ -214,7 +215,7 @@ func TestAnalyzeFormatter_Write_TextIncludesDirectoryComplexity(t *testing.T) {
 
 	assert.Contains(t, output.String(), "DIRECTORY COMPLEXITY")
 	assert.Contains(t, output.String(), "pkg")
-	assert.Contains(t, output.String(), "Functions: 5")
+	assert.Contains(t, output.String(), "Scopes: 5")
 	assert.Contains(t, output.String(), "Complexity: avg 6.50, max 11, high-risk 2")
 	assert.Contains(t, output.String(), "Nesting: avg 3.25, max 5")
 }
@@ -757,7 +758,7 @@ func TestAnalyzeFormatter_Write_HTMLShowsSortableModuleQuality(t *testing.T) {
 	assert.Contains(t, html, "pkg/hotspot.py")
 	assert.Contains(t, html, "sortModuleQuality")
 	assert.Contains(t, html, `aria-label="Sort by average complexity"`)
-	assert.Contains(t, html, `aria-label="Sort by analyzed function count"`)
+	assert.Contains(t, html, `aria-label="Sort by analyzed scope count"`)
 	assert.Contains(t, html, `aria-label="Sort by exception handler count"`)
 	assert.Contains(t, html, `aria-label="Sort by dead-code blocks"`)
 }

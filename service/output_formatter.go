@@ -62,8 +62,8 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 
 	// Summary counts describe the complete population used by aggregate metrics.
 	stats := map[string]interface{}{
-		"Total Functions": formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed),
-		"Files Analyzed":  response.Summary.FilesAnalyzed,
+		"Total Scopes":   formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed),
+		"Files Analyzed": response.Summary.FilesAnalyzed,
 	}
 	if response.Summary.TotalFunctions > 0 {
 		stats["Average Complexity"] = fmt.Sprintf("%.1f", response.Summary.AverageComplexity)
@@ -340,7 +340,7 @@ func (f *OutputFormatterImpl) formatSummaryText(response *domain.ComplexityRespo
 	var builder strings.Builder
 
 	builder.WriteString("Summary:\n")
-	builder.WriteString(fmt.Sprintf("  Total Functions: %s\n", formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed)))
+	builder.WriteString(fmt.Sprintf("  Total Scopes: %s\n", formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed)))
 	if response.Summary.TotalFunctions > 0 {
 		builder.WriteString(fmt.Sprintf("  Average Complexity: %.2f\n", response.Summary.AverageComplexity))
 		builder.WriteString(fmt.Sprintf("  Max Complexity: %d\n", response.Summary.MaxComplexity))

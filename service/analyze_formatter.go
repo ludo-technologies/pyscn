@@ -115,11 +115,10 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 			}
 			fmt.Fprintf(writer, "  %s\n", label)
 			if module.FunctionCount > 0 {
-				fmt.Fprintf(writer, "    Functions: %d total / %d analyzed\n", module.FunctionCount, module.AnalyzedFunctionCount)
-			} else {
-				fmt.Fprintf(writer, "    Functions: %d analyzed\n", module.AnalyzedFunctionCount)
+				fmt.Fprintf(writer, "    Definitions: %d functions\n", module.FunctionCount)
 			}
-			fmt.Fprintf(writer, "    Complexity: avg %.2f, max %d, high-risk %d, handlers %d\n",
+			fmt.Fprintf(writer, "    Complexity scopes: %d analyzed, avg %.2f, max %d, high-risk %d, handlers %d\n",
+				module.AnalyzedFunctionCount,
 				module.AverageComplexity, module.MaxComplexity, module.HighRiskFunctionCount, module.ExceptionHandlerCount)
 			fmt.Fprintf(writer, "    Cognitive: avg %.2f\n", module.AverageCognitiveComplexity)
 			fmt.Fprintf(writer, "    Dead code: %d findings, %d blocks\n",
@@ -904,7 +903,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             {{if .ModuleQuality}}
             <div id="module-quality" class="tab-content">
                 <h2>Module Quality Hotspots</h2>
-                <p style="color: #666; margin-bottom: 20px;">Per-module metrics ranked by high-risk functions, maximum complexity, average complexity, and dead-code findings</p>
+                <p style="color: #666; margin-bottom: 20px;">Per-module metrics ranked by high-risk scopes, maximum complexity, average complexity, and dead-code findings</p>
                 <div style="overflow-x: auto;">
                     <table id="module-quality-table" class="table">
                         <thead>
@@ -912,12 +911,12 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                                 <th><button type="button" class="table-sort" aria-label="Sort by module name" onclick="sortModuleQuality(0, false, this)">Module</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by file path" onclick="sortModuleQuality(1, false, this)">File</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by lines of code" onclick="sortModuleQuality(2, true, this)">LOC</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by function count" onclick="sortModuleQuality(3, true, this)">Functions</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by analyzed function count" onclick="sortModuleQuality(4, true, this)">Analyzed</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by function definition count" onclick="sortModuleQuality(3, true, this)">Function Definitions</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by analyzed scope count" onclick="sortModuleQuality(4, true, this)">Analyzed Scopes</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by average complexity" onclick="sortModuleQuality(5, true, this)">Avg CC</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by average cognitive complexity" onclick="sortModuleQuality(6, true, this)">Avg Cognitive</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by maximum complexity" onclick="sortModuleQuality(7, true, this)">Max CC</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk function count" onclick="sortModuleQuality(8, true, this)">High Risk</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk scope count" onclick="sortModuleQuality(8, true, this)">High Risk Scopes</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by exception handler count" onclick="sortModuleQuality(9, true, this)">Handlers</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by dead-code findings" onclick="sortModuleQuality(10, true, this)">Dead Findings</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by dead-code blocks" onclick="sortModuleQuality(11, true, this)">Dead Blocks</button></th>
@@ -949,16 +948,16 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             {{if and .Complexity .Complexity.ByDirectory}}
             <div id="directory-complexity" class="tab-content">
                 <h2>Directory Complexity</h2>
-                <p style="color: #666; margin-bottom: 20px;">Project-root-relative rollups of the complete analyzed function population</p>
+                <p style="color: #666; margin-bottom: 20px;">Project-root-relative rollups of the complete analyzed scope population</p>
                 <div style="overflow-x: auto;">
                     <table id="directory-complexity-table" class="table">
                         <thead>
                             <tr>
                                 <th><button type="button" class="table-sort" aria-label="Sort by directory path" onclick="sortDirectoryComplexity(0, false, this)">Directory</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by function count" onclick="sortDirectoryComplexity(1, true, this)">Functions</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by scope count" onclick="sortDirectoryComplexity(1, true, this)">Scopes</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by average complexity" onclick="sortDirectoryComplexity(2, true, this)">Avg CC</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by maximum complexity" onclick="sortDirectoryComplexity(3, true, this)">Max CC</button></th>
-                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk function count" onclick="sortDirectoryComplexity(4, true, this)">High Risk</button></th>
+                                <th><button type="button" class="table-sort" aria-label="Sort by high-risk scope count" onclick="sortDirectoryComplexity(4, true, this)">High Risk Scopes</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by average nesting depth" onclick="sortDirectoryComplexity(5, true, this)">Avg Nesting</button></th>
                                 <th><button type="button" class="table-sort" aria-label="Sort by maximum nesting depth" onclick="sortDirectoryComplexity(6, true, this)">Max Nesting</button></th>
                             </tr>
@@ -1027,7 +1026,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-value">{{if and (gt .Complexity.Summary.FunctionsParsed 0) (ne .Complexity.Summary.FunctionsParsed .Complexity.Summary.TotalFunctions)}}{{.Complexity.Summary.TotalFunctions}} / {{.Complexity.Summary.FunctionsParsed}}{{else}}{{.Complexity.Summary.TotalFunctions}}{{end}}</div>
-                        <div class="metric-label">{{if and (gt .Complexity.Summary.FunctionsParsed 0) (ne .Complexity.Summary.FunctionsParsed .Complexity.Summary.TotalFunctions)}}Reported / Parsed{{else}}Total Functions{{end}}</div>
+						<div class="metric-label">{{if and (gt .Complexity.Summary.FunctionsParsed 0) (ne .Complexity.Summary.FunctionsParsed .Complexity.Summary.TotalFunctions)}}Reported / Parsed{{else}}Total Scopes{{end}}</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{printf "%.2f" .Complexity.Summary.AverageComplexity}}</div>

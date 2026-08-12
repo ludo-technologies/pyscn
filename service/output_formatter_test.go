@@ -285,13 +285,13 @@ func TestOutputFormatter_Format(t *testing.T) {
 				// Verify text format contains expected sections
 				assert.Contains(t, output, "Complexity Analysis Report")
 				assert.Contains(t, output, "SUMMARY")
-				assert.Contains(t, output, "Total Functions: 2")
+				assert.Contains(t, output, "Total Scopes: 2")
 				assert.Contains(t, output, "Average Complexity: 5.0")
 				assert.Contains(t, output, "RISK DISTRIBUTION")
 				assert.Contains(t, output, "High: 1")
 				assert.Contains(t, output, "Low: 1")
 				assert.Contains(t, output, "DIRECTORY COMPLEXITY")
-				assert.Contains(t, output, "Functions: 2")
+				assert.Contains(t, output, "Scopes: 2")
 				assert.Contains(t, output, "Nesting: avg 1.50, max 2")
 				assert.Contains(t, output, "RAW CODE METRICS")
 				assert.Contains(t, output, "SLOC: 10")
@@ -425,7 +425,7 @@ func TestOutputFormatter_Write(t *testing.T) {
 			validateWriter: func(t *testing.T, writer *strings.Builder) {
 				output := writer.String()
 				assert.Contains(t, output, "Complexity Analysis Report")
-				assert.Contains(t, output, "Total Functions: 2")
+				assert.Contains(t, output, "Total Scopes: 2")
 			},
 			expectError: false,
 		},
@@ -513,7 +513,7 @@ func TestOutputFormatter_formatText(t *testing.T) {
 
 				// Check summary section (new unified format)
 				assert.Contains(t, output, "SUMMARY")
-				assert.Contains(t, output, "Total Functions: 2")
+				assert.Contains(t, output, "Total Scopes: 2")
 				assert.Contains(t, output, "Average Complexity: 5.0")
 				assert.Contains(t, output, "Max Complexity: 8")
 				assert.Contains(t, output, "Min Complexity: 2")
@@ -555,7 +555,7 @@ func TestOutputFormatter_formatText(t *testing.T) {
 			response: createMinimalComplexityResponse(),
 			validate: func(t *testing.T, output string) {
 				assert.Contains(t, output, "Complexity Analysis Report")
-				assert.Contains(t, output, "Total Functions: 0")
+				assert.Contains(t, output, "Total Scopes: 0")
 
 				// Should not contain function details section
 				assert.NotContains(t, output, "RAW CODE METRICS")
@@ -738,7 +738,7 @@ func TestOutputFormatter_FunctionCoverageDisclosure(t *testing.T) {
 	t.Run("text shows reported vs parsed", func(t *testing.T) {
 		output, err := formatter.Format(response, domain.OutputFormatText)
 		assert.NoError(t, err)
-		assert.Contains(t, output, "Total Functions: 1 reported / 3 parsed")
+		assert.Contains(t, output, "Total Scopes: 1 reported / 3 parsed")
 		assert.NotContains(t, output, "Functions Total")
 	})
 
