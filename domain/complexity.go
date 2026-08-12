@@ -56,6 +56,7 @@ const ModuleFunctionName = "<module>"
 type AnalysisScopeKind string
 
 const (
+	AnalysisScopeUnknown  AnalysisScopeKind = ""
 	AnalysisScopeModule   AnalysisScopeKind = "module"
 	AnalysisScopeFunction AnalysisScopeKind = "function"
 	AnalysisScopeClass    AnalysisScopeKind = "class"
@@ -134,7 +135,7 @@ type ComplexityMetrics struct {
 type FunctionComplexity struct {
 	// Function identification
 	Name        string
-	ScopeKind   AnalysisScopeKind `json:"scope_kind" yaml:"scope_kind"`
+	ScopeKind   AnalysisScopeKind `json:"scope_kind,omitempty" yaml:"scope_kind,omitempty"`
 	FilePath    string
 	StartLine   int
 	StartColumn int
@@ -145,6 +146,20 @@ type FunctionComplexity struct {
 
 	// Risk assessment
 	RiskLevel RiskLevel
+}
+
+// ResolvedScopeKind preserves the public struct's historical zero-value
+// behavior. Results produced by the analyzer always carry an explicit kind;
+// externally constructed legacy records remain functions except for the
+// established module pseudo-record.
+func (f FunctionComplexity) ResolvedScopeKind() AnalysisScopeKind {
+	if f.ScopeKind != AnalysisScopeUnknown {
+		return f.ScopeKind
+	}
+	if f.Name == ModuleFunctionName {
+		return AnalysisScopeModule
+	}
+	return AnalysisScopeFunction
 }
 
 // ValidateFunctionSLOCThresholds checks the long-function tiers against each
@@ -169,16 +184,15 @@ func ValidateFunctionSLOCThresholds(warn, critical int) error {
 // threshold. Module and class scopes never qualify because this is explicitly
 // a long-function rule. A non-positive threshold disables the check.
 func (f FunctionComplexity) ExceedsSLOC(threshold int) bool {
-	if threshold <= 0 || f.ScopeKind != AnalysisScopeFunction {
+	if threshold <= 0 || f.ResolvedScopeKind() != AnalysisScopeFunction {
 		return false
 	}
 	return f.Metrics.SLOC > threshold
 }
 
-// DirectoryComplexityMetrics aggregates the complete analyzed scope population
-// for one project-root-relative directory. FunctionCount and
-// HighRiskFunctionCount retain their historical serialized names. Presentation
-// filters do not change these metrics, matching the project-wide summary contract.
+// DirectoryComplexityMetrics aggregates the complete analyzed function
+// population for one project-root-relative directory. Presentation filters do
+// not change these metrics, matching the project-wide summary contract.
 type DirectoryComplexityMetrics struct {
 	DirectoryPath         string  `json:"directory_path" yaml:"directory_path"`
 	FunctionCount         int     `json:"function_count" yaml:"function_count"`
@@ -235,18 +249,16 @@ type RawMetricsSummary struct {
 	CommentRatio   float64 `json:"comment_ratio" yaml:"comment_ratio"`
 }
 
-// ComplexitySummary represents aggregate statistics. Historical public field
-// names refer to functions, but the population contains every executable scope
-// and each record exposes its ScopeKind.
-// Averages, min/max, risk counts, and the distribution are computed over every
-// analyzed scope; min_complexity only limits which scopes are reported.
+// ComplexitySummary represents aggregate function statistics. The established
+// module pseudo-record remains in this population; executable class suites are
+// reported separately and do not alter function counts, averages, or health.
 type ComplexitySummary struct {
-	// TotalFunctions is the complete analyzed scope population used by all
-	// aggregate metrics. Its historical name is retained for output compatibility.
+	// TotalFunctions is the complete analyzed function population used by all
+	// aggregate metrics, including the established module pseudo-record.
 	// Presentation filters only limit ComplexityResponse.Functions.
 	TotalFunctions int
 	// FunctionsParsed is retained for output compatibility and describes the same
-	// complete analyzed scope population as TotalFunctions.
+	// complete analyzed function population as TotalFunctions.
 	FunctionsParsed            int
 	AverageComplexity          float64
 	AverageCognitiveComplexity float64
@@ -274,15 +286,19 @@ type ComplexitySummary struct {
 
 // ComplexityResponse represents the complete analysis result
 type ComplexityResponse struct {
-	// Analysis results. Functions is the historical public field name for typed
-	// execution scopes; inspect FunctionComplexity.ScopeKind before applying
-	// function-only rules.
-	Functions   []FunctionComplexity
+	// Functions retains the established module and function population.
+	Functions []FunctionComplexity
+	// ClassScopes is an additive collection of executable class-suite results.
+	// It uses the same typed metric record without changing function summaries.
+	ClassScopes []FunctionComplexity           `json:"ClassScopes,omitempty" yaml:"ClassScopes,omitempty"`
 	ByDirectory DirectoryComplexityMetricsList `json:"by_directory" yaml:"by_directory"`
 	Summary     ComplexitySummary
 	// AnalyzedFunctions is the complete population before presentation filters.
 	// It is consumed by app-level aggregations and is not part of public output.
 	AnalyzedFunctions []FunctionComplexity `json:"-" yaml:"-"`
+	// AnalyzedClassScopes is the complete class-suite population before
+	// presentation filters and is not part of public output.
+	AnalyzedClassScopes []FunctionComplexity `json:"-" yaml:"-"`
 	// ModuleRollups are derived before report filters are applied. They are consumed
 	// by the unified analyze command and are not part of standalone complexity output.
 	ModuleRollups map[string]ModuleComplexityMetrics `json:"-" yaml:"-"`
@@ -300,6 +316,18 @@ type ComplexityResponse struct {
 	Version     string
 	Config      interface{}        // Configuration used for analysis
 	Request     *ComplexityRequest `json:"request,omitempty"` // Merged configuration request
+}
+
+// ReportedScopes returns the complete visible execution-scope population.
+// The returned slice is independently owned so callers may sort it safely.
+func (r *ComplexityResponse) ReportedScopes() []FunctionComplexity {
+	if r == nil {
+		return nil
+	}
+	scopes := make([]FunctionComplexity, 0, len(r.Functions)+len(r.ClassScopes))
+	scopes = append(scopes, r.Functions...)
+	scopes = append(scopes, r.ClassScopes...)
+	return scopes
 }
 
 // ComplexityService defines the core business logic for complexity analysis

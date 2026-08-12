@@ -4,10 +4,8 @@ import (
 	"path/filepath"
 )
 
-// ModuleComplexityMetrics is the canonical module-level complexity contract.
-// AnalyzedFunctionCount retains its historical serialized name, but counts every
-// non-module executable scope before presentation filters. HighRiskFunctionCount
-// follows the same scope population.
+// ModuleComplexityMetrics is the canonical module-level function-complexity
+// contract. The <module> pseudo-record and executable class suites are excluded.
 type ModuleComplexityMetrics struct {
 	AnalyzedFunctionCount      int     `json:"analyzed_function_count" yaml:"analyzed_function_count"`
 	AverageComplexity          float64 `json:"average_complexity" yaml:"average_complexity"`
@@ -29,7 +27,7 @@ type ModuleQualityMetrics struct {
 	ModuleName              string `json:"module_name,omitempty" yaml:"module_name,omitempty"`
 	FilePath                string `json:"file_path" yaml:"file_path"`
 	LinesOfCode             int    `json:"lines_of_code" yaml:"lines_of_code"`
-	FunctionCount           int    `json:"function_count" yaml:"function_count"` // Python function definitions from module metadata.
+	FunctionCount           int    `json:"function_count" yaml:"function_count"`
 	ModuleComplexityMetrics `yaml:",inline"`
 	ModuleDeadCodeMetrics   `yaml:",inline"`
 }
@@ -51,7 +49,7 @@ func AggregateComplexityByModule(functions []FunctionComplexity) map[string]Modu
 			module = &moduleComplexityAccumulator{}
 			modules[key] = module
 		}
-		if function.Name == ModuleFunctionName {
+		if function.ResolvedScopeKind() != AnalysisScopeFunction {
 			continue
 		}
 

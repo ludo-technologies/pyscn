@@ -182,6 +182,8 @@ func TestFunctionComplexityExceedsSLOC(t *testing.T) {
 		{name: "above threshold", function: "build_table", scopeKind: AnalysisScopeFunction, sloc: 51, threshold: 50, want: true},
 		{name: "module scope never qualifies", function: ModuleFunctionName, scopeKind: AnalysisScopeModule, sloc: 500, threshold: 50, want: false},
 		{name: "class scope never qualifies", function: "Config", scopeKind: AnalysisScopeClass, sloc: 500, threshold: 50, want: false},
+		{name: "legacy zero-value kind remains a function", function: "build_table", scopeKind: AnalysisScopeUnknown, sloc: 51, threshold: 50, want: true},
+		{name: "legacy module name remains module scope", function: ModuleFunctionName, scopeKind: AnalysisScopeUnknown, sloc: 500, threshold: 50, want: false},
 		{name: "zero threshold disables the check", function: "build_table", scopeKind: AnalysisScopeFunction, sloc: 500, threshold: 0, want: false},
 		{name: "negative threshold disables the check", function: "build_table", scopeKind: AnalysisScopeFunction, sloc: 500, threshold: -1, want: false},
 	}
@@ -198,6 +200,42 @@ func TestFunctionComplexityExceedsSLOC(t *testing.T) {
 				t.Errorf("ExceedsSLOC(%d) with SLOC %d = %v, want %v", tt.threshold, tt.sloc, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestFunctionComplexityResolvedScopeKind(t *testing.T) {
+	tests := []struct {
+		name string
+		row  FunctionComplexity
+		want AnalysisScopeKind
+	}{
+		{name: "explicit class", row: FunctionComplexity{Name: "Config", ScopeKind: AnalysisScopeClass}, want: AnalysisScopeClass},
+		{name: "legacy module", row: FunctionComplexity{Name: ModuleFunctionName}, want: AnalysisScopeModule},
+		{name: "legacy function", row: FunctionComplexity{Name: "build_table"}, want: AnalysisScopeFunction},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := test.row.ResolvedScopeKind(); got != test.want {
+				t.Fatalf("ResolvedScopeKind() = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+func TestComplexityResponseReportedScopesReturnsOwnedPopulation(t *testing.T) {
+	response := &ComplexityResponse{
+		Functions:   []FunctionComplexity{{Name: "work", ScopeKind: AnalysisScopeFunction}},
+		ClassScopes: []FunctionComplexity{{Name: "Config", ScopeKind: AnalysisScopeClass}},
+	}
+
+	scopes := response.ReportedScopes()
+	if len(scopes) != 2 || scopes[0].Name != "work" || scopes[1].Name != "Config" {
+		t.Fatalf("ReportedScopes() = %+v", scopes)
+	}
+	scopes[0].Name = "changed"
+	if response.Functions[0].Name != "work" {
+		t.Fatal("ReportedScopes returned storage owned by the response")
 	}
 }
 

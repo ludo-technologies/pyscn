@@ -28,7 +28,7 @@ func NewComplexityService() *ComplexityServiceImpl {
 
 // Analyze performs complexity analysis on multiple files
 func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
-	var allFunctions []domain.FunctionComplexity
+	var allScopes []domain.FunctionComplexity
 	var allRawMetrics []domain.RawMetrics
 	var rawMetricResults []*analyzer.RawMetricsResult
 	var warnings []string
@@ -60,19 +60,22 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 			continue // Skip this file but continue with others
 		}
 
-		allFunctions = append(allFunctions, functions...)
+		allScopes = append(allScopes, functions...)
 		warnings = append(warnings, fileWarnings...)
 		filesProcessed++
 	}
 
-	if len(allFunctions) == 0 && len(allRawMetrics) == 0 {
+	if len(allScopes) == 0 && len(allRawMetrics) == 0 {
 		return nil, domain.NewAnalysisError("no functions found to analyze", nil)
 	}
 
 	// Filter and sort results
+	allFunctions, allClassScopes := partitionComplexityScopes(allScopes)
 	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
 	filteredFunctions, _ := s.filterFunctions(allFunctions, req)
+	filteredClassScopes, _ := s.filterFunctions(allClassScopes, req)
 	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
+	sortedClassScopes := s.sortFunctions(filteredClassScopes, req.SortBy)
 
 	// Generate summary over the complete population so min_complexity only
 	// affects which functions are displayed, not the aggregate metrics.
@@ -83,17 +86,19 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
 
 	return &domain.ComplexityResponse{
-		Functions:         sortedFunctions,
-		AnalyzedFunctions: allFunctions,
-		Summary:           summary,
-		ModuleRollups:     moduleRollups,
-		RawMetrics:        allRawMetrics,
-		RawMetricsSummary: rawMetricsSummary,
-		Warnings:          warnings,
-		Errors:            errors,
-		GeneratedAt:       time.Now().Format(time.RFC3339),
-		Version:           version.Version, // Get version from version package
-		Config:            s.buildConfigForResponse(req),
+		Functions:           sortedFunctions,
+		ClassScopes:         sortedClassScopes,
+		AnalyzedFunctions:   allFunctions,
+		AnalyzedClassScopes: allClassScopes,
+		Summary:             summary,
+		ModuleRollups:       moduleRollups,
+		RawMetrics:          allRawMetrics,
+		RawMetricsSummary:   rawMetricsSummary,
+		Warnings:            warnings,
+		Errors:              errors,
+		GeneratedAt:         time.Now().Format(time.RFC3339),
+		Version:             version.Version, // Get version from version package
+		Config:              s.buildConfigForResponse(req),
 	}, nil
 }
 
@@ -103,7 +108,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 		return nil, fmt.Errorf("project snapshot cannot be nil")
 	}
 
-	var allFunctions []domain.FunctionComplexity
+	var allScopes []domain.FunctionComplexity
 	var allRawMetrics []domain.RawMetrics
 	var rawMetricResults []*analyzer.RawMetricsResult
 	var warnings []string
@@ -131,18 +136,21 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 			continue
 		}
 
-		allFunctions = append(allFunctions, functions...)
+		allScopes = append(allScopes, functions...)
 		warnings = append(warnings, fileWarnings...)
 		filesProcessed++
 	}
 
-	if len(allFunctions) == 0 && len(allRawMetrics) == 0 {
+	if len(allScopes) == 0 && len(allRawMetrics) == 0 {
 		return nil, domain.NewAnalysisError("no functions found to analyze", nil)
 	}
 
+	allFunctions, allClassScopes := partitionComplexityScopes(allScopes)
 	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
 	filteredFunctions, _ := s.filterFunctions(allFunctions, req)
+	filteredClassScopes, _ := s.filterFunctions(allClassScopes, req)
 	sortedFunctions := s.sortFunctions(filteredFunctions, req.SortBy)
+	sortedClassScopes := s.sortFunctions(filteredClassScopes, req.SortBy)
 	summary := s.generateSummary(allFunctions, complexitySummaryCounts{
 		filesAnalyzed: filesProcessed,
 		filesSkipped:  filesSkipped,
@@ -150,17 +158,19 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
 
 	return &domain.ComplexityResponse{
-		Functions:         sortedFunctions,
-		AnalyzedFunctions: allFunctions,
-		Summary:           summary,
-		ModuleRollups:     moduleRollups,
-		RawMetrics:        allRawMetrics,
-		RawMetricsSummary: rawMetricsSummary,
-		Warnings:          warnings,
-		Errors:            errors,
-		GeneratedAt:       time.Now().Format(time.RFC3339),
-		Version:           version.Version,
-		Config:            s.buildConfigForResponse(req),
+		Functions:           sortedFunctions,
+		ClassScopes:         sortedClassScopes,
+		AnalyzedFunctions:   allFunctions,
+		AnalyzedClassScopes: allClassScopes,
+		Summary:             summary,
+		ModuleRollups:       moduleRollups,
+		RawMetrics:          allRawMetrics,
+		RawMetricsSummary:   rawMetricsSummary,
+		Warnings:            warnings,
+		Errors:              errors,
+		GeneratedAt:         time.Now().Format(time.RFC3339),
+		Version:             version.Version,
+		Config:              s.buildConfigForResponse(req),
 	}, nil
 }
 
@@ -175,7 +185,7 @@ func (s *ComplexityServiceImpl) AnalyzeFile(ctx context.Context, filePath string
 
 // analyzeFile performs complexity analysis on a single file
 func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string, req domain.ComplexityRequest) ([]domain.FunctionComplexity, *analyzer.RawMetricsResult, []string, []string) {
-	var functions []domain.FunctionComplexity
+	var scopes []domain.FunctionComplexity
 	var warnings []string
 	var errors []string
 
@@ -183,7 +193,7 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 	content, err := s.readFile(filePath)
 	if err != nil {
 		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
-		return functions, nil, warnings, errors
+		return scopes, nil, warnings, errors
 	}
 
 	rawMetrics := analyzer.CalculateRawMetrics(content, filePath)
@@ -192,7 +202,7 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 	if err != nil {
 		// Enhanced error context with file path
 		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", filePath, err))
-		return functions, rawMetrics, warnings, errors
+		return scopes, rawMetrics, warnings, errors
 	}
 
 	analyzer.PopulateLogicalLines(rawMetrics, result.AST)
@@ -203,53 +213,53 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 	if err != nil {
 		// Enhanced error context with file path
 		errors = append(errors, fmt.Sprintf("[%s] CFG construction failed: %v", filePath, err))
-		return functions, rawMetrics, warnings, errors
+		return scopes, rawMetrics, warnings, errors
 	}
 
-	// Calculate complexity for each function
+	// Calculate complexity for each execution scope.
 	complexityConfig := s.buildComplexityConfig(req)
-	functions, warnings = s.calculateFunctionComplexities(filePath, cfgs, complexityConfig, req, rawMetrics)
+	scopes, warnings = s.calculateScopeComplexities(filePath, cfgs, complexityConfig, req, rawMetrics)
 
-	return functions, rawMetrics, warnings, errors
+	return scopes, rawMetrics, warnings, errors
 }
 
 func (s *ComplexityServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.ComplexityRequest) ([]domain.FunctionComplexity, *analyzer.RawMetricsResult, []string, []string) {
-	var functions []domain.FunctionComplexity
+	var scopes []domain.FunctionComplexity
 	var warnings []string
 	var errors []string
 
 	if file == nil {
 		errors = append(errors, "[unknown] Invalid project file")
-		return functions, nil, warnings, errors
+		return scopes, nil, warnings, errors
 	}
 	if file.ReadErr != nil {
 		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", file.Path, file.ReadErr))
-		return functions, nil, warnings, errors
+		return scopes, nil, warnings, errors
 	}
 
 	rawMetrics := file.RawMetrics
 	if rawMetrics == nil {
 		errors = append(errors, fmt.Sprintf("[%s] Project snapshot is missing raw metrics", file.Path))
-		return functions, nil, warnings, errors
+		return scopes, nil, warnings, errors
 	}
 	if file.ParseErr != nil {
 		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", file.Path, file.ParseErr))
-		return functions, rawMetrics, warnings, errors
+		return scopes, rawMetrics, warnings, errors
 	}
 
 	cfgs, err := file.CFGs()
 	if err != nil {
 		errors = append(errors, fmt.Sprintf("[%s] CFG construction failed: %v", file.Path, err))
-		return functions, rawMetrics, warnings, errors
+		return scopes, rawMetrics, warnings, errors
 	}
 
 	complexityConfig := s.buildComplexityConfig(req)
-	functions, warnings = s.calculateFunctionComplexities(file.Path, cfgs, complexityConfig, req, rawMetrics)
-	return functions, rawMetrics, warnings, errors
+	scopes, warnings = s.calculateScopeComplexities(file.Path, cfgs, complexityConfig, req, rawMetrics)
+	return scopes, rawMetrics, warnings, errors
 }
 
-func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, cfgs analyzer.ControlFlowGraphs, complexityConfig *config.ComplexityConfig, req domain.ComplexityRequest, rawMetrics *analyzer.RawMetricsResult) ([]domain.FunctionComplexity, []string) {
-	var functions []domain.FunctionComplexity
+func (s *ComplexityServiceImpl) calculateScopeComplexities(filePath string, cfgs analyzer.ControlFlowGraphs, complexityConfig *config.ComplexityConfig, req domain.ComplexityRequest, rawMetrics *analyzer.RawMetricsResult) ([]domain.FunctionComplexity, []string) {
+	var scopes []domain.FunctionComplexity
 	var warnings []string
 
 	for _, scopedCFG := range cfgs {
@@ -268,7 +278,7 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 			warnings = append(warnings, s.metricThresholdWarnings(filePath, functionName, result, req)...)
 		}
 
-		function := domain.FunctionComplexity{
+		scope := domain.FunctionComplexity{
 			Name:        functionName,
 			ScopeKind:   scopedCFG.Scope.Kind,
 			FilePath:    filePath,
@@ -290,10 +300,21 @@ func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, c
 			RiskLevel: riskLevel,
 		}
 
-		functions = append(functions, function)
+		scopes = append(scopes, scope)
 	}
 
-	return functions, warnings
+	return scopes, warnings
+}
+
+func partitionComplexityScopes(scopes []domain.FunctionComplexity) (functions, classScopes []domain.FunctionComplexity) {
+	for _, scope := range scopes {
+		if scope.ResolvedScopeKind() == domain.AnalysisScopeClass {
+			classScopes = append(classScopes, scope)
+			continue
+		}
+		functions = append(functions, scope)
+	}
+	return functions, classScopes
 }
 
 // filterFunctions returns visible functions and the count before min_complexity.

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	corecfg "github.com/ludo-technologies/polyscan/core/cfg"
-	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
@@ -21,7 +20,6 @@ type ComplexityResult struct {
 
 	// Function/method information
 	FunctionName string
-	ScopeKind    domain.AnalysisScopeKind
 	StartLine    int
 	StartCol     int
 	EndLine      int
@@ -126,7 +124,6 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 		Nodes:               countCoreNodes(reachableBlocks),
 		ConnectedComponents: 1,
 		FunctionName:        cfg.Name,
-		ScopeKind:           cfgScope(sourceNode, cfg.Name).Kind,
 		StartLine:           startLine,
 		StartCol:            startCol,
 		EndLine:             endLine,

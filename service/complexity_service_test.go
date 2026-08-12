@@ -124,11 +124,58 @@ func TestComplexityService_Analyze(t *testing.T) {
 		assert.Equal(t, 1, module.Metrics.Complexity)
 		assert.Equal(t, 0, module.Metrics.CognitiveComplexity)
 
-		classSuite := findScopeComplexity(response.AnalyzedFunctions, domain.AnalysisScopeClass, "Config")
+		classSuite := findScopeComplexity(response.AnalyzedClassScopes, domain.AnalysisScopeClass, "Config")
 		require.NotNil(t, classSuite)
 		assert.Equal(t, 2, classSuite.Metrics.Complexity)
 		assert.Equal(t, 2, classSuite.Metrics.CognitiveComplexity)
 		assert.False(t, classSuite.ExceedsSLOC(1), "class extent must not trigger the function-length rule")
+		assert.Equal(t, 1, response.Summary.TotalFunctions, "class scopes must not redefine the stable function count")
+		require.Len(t, response.ClassScopes, 1)
+		assert.Equal(t, "Config", response.ClassScopes[0].Name)
+	})
+
+	t.Run("trivial classes do not dilute function summaries", func(t *testing.T) {
+		analyze := func(source string) *domain.ComplexityResponse {
+			filePath := t.TempDir() + "/summary.py"
+			require.NoError(t, os.WriteFile(filePath, []byte(source), 0o644))
+			response, err := service.Analyze(ctx, newDefaultComplexityRequest(filePath))
+			require.NoError(t, err)
+			return response
+		}
+
+		base := analyze(`class Config:
+    if enabled:
+        mode = "fast"
+    else:
+        mode = "safe"
+
+def resolve(value):
+    if value:
+        return "yes"
+    return "no"
+`)
+		withTrivialClasses := analyze(`class PlainOne:
+    value = 1
+
+class PlainTwo:
+    value = 2
+
+class Config:
+    if enabled:
+        mode = "fast"
+    else:
+        mode = "safe"
+
+def resolve(value):
+    if value:
+        return "yes"
+    return "no"
+`)
+
+		assert.Equal(t, base.Summary, withTrivialClasses.Summary)
+		assert.Equal(t, len(base.AnalyzedFunctions), len(withTrivialClasses.AnalyzedFunctions))
+		assert.Len(t, base.AnalyzedClassScopes, 1)
+		assert.Len(t, withTrivialClasses.AnalyzedClassScopes, 3)
 	})
 
 	t.Run("analyze with filtering by complexity", func(t *testing.T) {

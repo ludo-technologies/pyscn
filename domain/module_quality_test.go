@@ -81,6 +81,18 @@ func TestAggregateComplexityByModule_ExcludesModuleScopeFromFunctionAverages(t *
 	}
 }
 
+func TestAggregateComplexityByModule_ExcludesClassScopes(t *testing.T) {
+	modules := AggregateComplexityByModule([]FunctionComplexity{
+		{Name: "work", ScopeKind: AnalysisScopeFunction, FilePath: "pkg/a.py", Metrics: ComplexityMetrics{Complexity: 5}},
+		{Name: "Config", ScopeKind: AnalysisScopeClass, FilePath: "pkg/a.py", Metrics: ComplexityMetrics{Complexity: 20}},
+	})
+
+	metrics := modules["pkg/a.py"]
+	if metrics.AnalyzedFunctionCount != 1 || metrics.AverageComplexity != 5 || metrics.MaxComplexity != 5 {
+		t.Fatalf("class scope changed function rollup: %+v", metrics)
+	}
+}
+
 func TestAggregateDeadCodeByModule_UsesOneUnfilteredPopulation(t *testing.T) {
 	modules := AggregateDeadCodeByModule([]FileDeadCode{
 		{

@@ -356,9 +356,6 @@ class Config:
 	}
 
 	classResult := CalculateComplexity(requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Config"))
-	if classResult.ScopeKind != domain.AnalysisScopeClass {
-		t.Fatalf("scope kind = %q, want class", classResult.ScopeKind)
-	}
 	if classResult.Complexity != 4 {
 		t.Fatalf("class cyclomatic complexity = %d, want 4", classResult.Complexity)
 	}
