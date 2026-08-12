@@ -503,10 +503,11 @@ func TestHandleCheckComplexityReportsClassExecutionScope(t *testing.T) {
 	var result struct {
 		Issues  []string `json:"issues"`
 		Summary struct {
-			TotalFunctions    int     `json:"total_functions"`
-			TotalClassScopes  int     `json:"total_class_scopes"`
-			MaxComplexity     int     `json:"max_complexity"`
-			AverageComplexity float64 `json:"average_complexity"`
+			TotalFunctions         int     `json:"total_functions"`
+			TotalClassScopes       int     `json:"total_class_scopes"`
+			MaxComplexity          int     `json:"max_complexity"`
+			AverageComplexity      float64 `json:"average_complexity"`
+			AverageScopeComplexity float64 `json:"average_scope_complexity"`
 		} `json:"summary"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(mcplib.GetTextFromContent(res.Content[0])), &result))
@@ -515,7 +516,8 @@ func TestHandleCheckComplexityReportsClassExecutionScope(t *testing.T) {
 	assert.Equal(t, 2, result.Summary.TotalFunctions)
 	assert.Equal(t, 1, result.Summary.TotalClassScopes)
 	assert.Equal(t, 12, result.Summary.MaxComplexity)
-	assert.InDelta(t, 8, result.Summary.AverageComplexity, 1e-9)
+	assert.InDelta(t, 6, result.Summary.AverageComplexity, 1e-9)
+	assert.InDelta(t, 8, result.Summary.AverageScopeComplexity, 1e-9)
 }
 
 func TestHandleCheckCoupling(t *testing.T) {

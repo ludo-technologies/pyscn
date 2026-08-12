@@ -786,7 +786,7 @@ func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, m
 
 	// Filter all executable scopes that exceed the function complexity gate.
 	scopes := result.ReportedScopesByComplexity()
-	maxComplexity, averageComplexity := summarizeScopeComplexity(result.AnalyzedScopesByComplexity())
+	maxComplexity, averageScopeComplexity := summarizeScopeComplexity(result.AnalyzedScopesByComplexity())
 	for _, fn := range scopes {
 		if fn.Metrics.Complexity > threshold {
 			totalIssues++
@@ -805,14 +805,15 @@ func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, m
 	return map[string]interface{}{
 		"issues": issues,
 		"summary": map[string]interface{}{
-			"total_issues":                totalIssues,
-			"total_functions":             result.Summary.TotalFunctions,
-			"total_class_scopes":          result.Summary.TotalClassScopes,
-			"functions_parsed":            result.Summary.FunctionsParsed,
-			"max_complexity":              maxComplexity,
-			"average_complexity":          averageComplexity,
-			"average_function_complexity": result.Summary.AverageComplexity,
-			"threshold":                   threshold,
+			"total_issues":             totalIssues,
+			"total_functions":          result.Summary.TotalFunctions,
+			"total_class_scopes":       result.Summary.TotalClassScopes,
+			"functions_parsed":         result.Summary.FunctionsParsed,
+			"max_complexity":           maxComplexity,
+			"max_function_complexity":  result.Summary.MaxComplexity,
+			"average_complexity":       result.Summary.AverageComplexity,
+			"average_scope_complexity": averageScopeComplexity,
+			"threshold":                threshold,
 		},
 	}
 }
@@ -838,7 +839,7 @@ func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, 
 	}
 
 	scopes := result.ReportedScopesByComplexity()
-	maxComplexity, averageComplexity := summarizeScopeComplexity(result.AnalyzedScopesByComplexity())
+	maxComplexity, averageScopeComplexity := summarizeScopeComplexity(result.AnalyzedScopesByComplexity())
 	for _, fn := range scopes {
 		if fn.Metrics.Complexity > threshold {
 			totalIssues++
@@ -863,14 +864,15 @@ func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, 
 	return map[string]interface{}{
 		"issues": issues,
 		"summary": map[string]interface{}{
-			"total_issues":                totalIssues,
-			"total_functions":             result.Summary.TotalFunctions,
-			"total_class_scopes":          result.Summary.TotalClassScopes,
-			"functions_parsed":            result.Summary.FunctionsParsed,
-			"max_complexity":              maxComplexity,
-			"average_complexity":          averageComplexity,
-			"average_function_complexity": result.Summary.AverageComplexity,
-			"threshold":                   threshold,
+			"total_issues":             totalIssues,
+			"total_functions":          result.Summary.TotalFunctions,
+			"total_class_scopes":       result.Summary.TotalClassScopes,
+			"functions_parsed":         result.Summary.FunctionsParsed,
+			"max_complexity":           maxComplexity,
+			"max_function_complexity":  result.Summary.MaxComplexity,
+			"average_complexity":       result.Summary.AverageComplexity,
+			"average_scope_complexity": averageScopeComplexity,
+			"threshold":                threshold,
 		},
 	}
 }
