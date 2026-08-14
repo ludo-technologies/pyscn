@@ -272,7 +272,7 @@ Field notes:
 **Parameters**:
 - `path` (required): Path to Python code
 - `min_complexity` (optional): Minimum complexity to report (default: `1`)
-- `max_complexity` (optional): Maximum allowed complexity, 0 = no limit (default: `0`)
+- `max_complexity` (optional): Maximum allowed complexity; `0` uses the default of `10` (default: `0`)
 - `show_details` (optional): Include detailed metrics (default: `true`)
 - `output_mode` (optional): `"summary"`, `"detailed"`, or `"full"` (default: `"summary"`)
 - `max_results` (optional): Maximum findings in summary or detailed output; `0` means unlimited (default: `0`)
@@ -283,6 +283,9 @@ Check complexity of functions with complexity > 10 in src/
 ```
 
 **Output**: Complexity analysis with risk levels
+
+Summary and detailed modes apply this gate before `min_complexity` and `report_unchanged` presentation filters. `max_complexity` in the returned summary remains the function-population maximum; `max_scope_complexity` reports the maximum across functions, modules, and executable class suites.
+
 ```json
 {
   "functions": [

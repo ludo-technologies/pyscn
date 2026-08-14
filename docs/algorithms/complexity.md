@@ -317,7 +317,7 @@ func (c *ComplexityConfig) AssessRiskLevel(complexity, cognitiveComplexity, nest
 }
 ```
 
-When `max_complexity` is set to a positive value, complexity checks fail for any reported module, function, or executable class suite that exceeds the limit.
+When `max_complexity` is set to a positive value, complexity checks fail for any analyzed module, function, or executable class suite that exceeds the limit. Presentation filters such as `min_complexity` and `report_unchanged` do not hide gate violations.
 
 ## Output
 
@@ -376,15 +376,14 @@ Cognitive complexity and nesting depth participate in risk classification. A sco
 
 ## Integration with Health Score
 
-The overall project health score (`docs/ANALYZE_SCORING.md`) uses the strongest penalty across function averages and class-scope hotspot maxima. Separate class maxima prevent trivial classes from diluting a complex executable suite:
+The overall project health score (`docs/ANALYZE_SCORING.md`) retains its established function-average inputs:
 
 ```
 penalty = max(
   linear(avg_complexity, start=2, max=15),
   linear(avg_cognitive_complexity, start=15, max=25),
   linear(avg_nesting_depth, start=3, max=7),
-  linear(max_class_complexity, start=2, max=15),
-  linear(max_class_cognitive_complexity, start=15, max=25),
-  linear(max_class_nesting_depth, start=3, max=7),
 )
 ```
+
+Class-scope maxima and high-risk counts are reported as separate metrics for hotspot discovery. They do not change the health score until a separately calibrated scoring policy is defined.

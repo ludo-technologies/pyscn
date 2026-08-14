@@ -233,7 +233,7 @@ The standalone complexity formatter uses `by_directory` at the report root besid
 | Field         | Type    | Description                                                  |
 | ------------- | ------- | ------------------------------------------------------------ |
 | `Name`        | string  | Qualified scope name. `<module>` for module-level code.       |
-| `scope_kind`  | string  | `module`, `function`, or `class`. Omitted only on legacy zero-value records. |
+| `scope_kind`  | string  | Required execution owner: `module`, `function`, or `class`.              |
 | `FilePath`    | string  | Path to source file.                                         |
 | `StartLine`   | integer | 1-based start line.                                          |
 | `StartColumn` | integer | 0-based start column.                                        |
@@ -277,6 +277,8 @@ The standalone complexity formatter uses `by_directory` at the report root besid
 | `HighRiskFunctions`      | integer | Functions with `RiskLevel = high`.                                     |
 | `ComplexityDistribution` | object  | Histogram keyed by complexity bucket (string) to count (integer), or `null`. |
 
+Class-scope counts and maxima are separate hotspot metrics. They do not change the function aggregates or the health score.
+
 ### `raw_metrics[]` element (`RawMetrics`)
 
 | Field             | Type    | Description                                         |
@@ -312,20 +314,21 @@ Mirrors `domain.DeadCodeResponse`. Uses snake_case field names throughout.
 | Field               | Type    | Description                                    |
 | ------------------- | ------- | ---------------------------------------------- |
 | `file_path`         | string  | Path to source file.                           |
-| `functions`         | array   | Per-function results (see below).              |
-| `total_findings`    | integer | Sum of findings across functions in this file. |
-| `total_functions`   | integer | Functions analyzed in this file.               |
-| `affected_functions`| integer | Functions with at least one finding.           |
+| `functions`         | array   | Per-execution-scope results (historical field name; see below). |
+| `total_findings`    | integer | Sum of findings across execution scopes in this file. |
+| `total_functions`   | integer | Execution scopes analyzed in this file (historical field name). |
+| `affected_functions`| integer | Execution scopes with at least one finding (historical field name). |
 | `dead_code_ratio`   | number  | Dead blocks / total blocks, `0`–`1`.           |
 
 ### `files[].functions[]` element (`FunctionDeadCode`)
 
 | Field             | Type    | Description                                  |
 | ----------------- | ------- | -------------------------------------------- |
-| `name`            | string  | Function name.                               |
+| `name`            | string  | Execution-scope name.                        |
+| `scope_kind`      | string  | Required execution owner: `function` or `class`. |
 | `file_path`       | string  | Path to source file.                         |
-| `findings`        | array   | Findings in this function (see below).       |
-| `total_blocks`    | integer | Total CFG blocks in the function.            |
+| `findings`        | array   | Findings in this execution scope (see below). |
+| `total_blocks`    | integer | Total CFG blocks in the execution scope.     |
 | `dead_blocks`     | integer | Unreachable CFG blocks.                      |
 | `reachable_ratio` | number  | `(total_blocks - dead_blocks) / total_blocks`, `0`–`1`. |
 | `critical_count`  | integer | Findings of severity `critical`.             |
@@ -337,7 +340,8 @@ Mirrors `domain.DeadCodeResponse`. Uses snake_case field names throughout.
 | Field           | Type    | Description                                                   |
 | --------------- | ------- | ------------------------------------------------------------- |
 | `location`      | object  | See [`DeadCodeLocation`](#deadcodelocation-object).           |
-| `function_name` | string  | Enclosing function name.                                      |
+| `function_name` | string  | Enclosing execution-scope name (historical field name).       |
+| `scope_kind`    | string  | Required execution owner: `function` or `class`.              |
 | `code`          | string  | The dead source code snippet.                                 |
 | `reason`        | string  | Classification — see enumeration below.                       |
 | `severity`      | string  | One of: `critical`, `warning`, `info`.                        |
