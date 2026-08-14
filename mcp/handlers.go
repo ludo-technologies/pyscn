@@ -286,9 +286,12 @@ func (h *HandlerSet) HandleCheckComplexity(ctx context.Context, request mcp.Call
 	case "full":
 		responseData = result
 	case "detailed":
-		responseData = formatComplexityDetailed(result, maxComplexity, maxResults)
+		responseData, err = formatComplexityDetailed(result, maxComplexity, maxResults)
 	default: // "summary"
-		responseData = formatComplexitySummary(result, maxComplexity, maxResults)
+		responseData, err = formatComplexitySummary(result, maxComplexity, maxResults)
+	}
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("invalid complexity result: %v", err)), nil
 	}
 
 	// Convert to JSON
@@ -780,51 +783,43 @@ func (h *HandlerSet) HandleGetHealthScore(ctx context.Context, request mcp.CallT
 // Helper functions
 
 // formatComplexitySummary formats complexity results in compact summary mode
-func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, maxResults int) map[string]interface{} {
+func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, maxResults int) (map[string]interface{}, error) {
 	issues := []string{}
-	totalIssues := 0
 
 	// Default threshold to 10 if not specified
 	if threshold == 0 {
 		threshold = 10
 	}
 
-	// Filter all executable scopes that exceed the function complexity gate.
-	scopes := result.ReportedScopesByComplexity()
-	maxComplexity, averageScopeComplexity := summarizeScopeComplexity(result.AnalyzedScopesByComplexity())
-	for _, fn := range scopes {
-		if fn.Metrics.Complexity > threshold {
-			totalIssues++
-
-			// Only add to issues array if within max_results limit
-			if maxResults == 0 || len(issues) < maxResults {
-				// Format: "file:line:col: function is too complex (X > threshold)"
-				issue := fmt.Sprintf("%s:%d:%d: %s is too complex (%d > %d)",
-					fn.FilePath, fn.StartLine, fn.StartColumn+1, complexityScopeLabel(fn),
-					fn.Metrics.Complexity, threshold)
-				issues = append(issues, issue)
-			}
-		}
+	analysis, err := analyzeComplexityGate(result, threshold, maxResults)
+	if err != nil {
+		return nil, err
+	}
+	for _, scope := range analysis.Issues {
+		issue := fmt.Sprintf("%s:%d:%d: %s is too complex (%d > %d)",
+			scope.FilePath, scope.StartLine, scope.StartColumn+1, scope.ScopeLabel(),
+			scope.Metrics.Complexity, threshold)
+		issues = append(issues, issue)
 	}
 
 	return map[string]interface{}{
 		"issues": issues,
 		"summary": map[string]interface{}{
-			"total_issues":             totalIssues,
+			"total_issues":             analysis.TotalIssues,
 			"total_functions":          result.Summary.TotalFunctions,
 			"total_class_scopes":       result.Summary.TotalClassScopes,
 			"functions_parsed":         result.Summary.FunctionsParsed,
-			"max_complexity":           maxComplexity,
-			"max_function_complexity":  result.Summary.MaxComplexity,
+			"max_complexity":           result.Summary.MaxComplexity,
+			"max_scope_complexity":     analysis.MaxComplexity,
 			"average_complexity":       result.Summary.AverageComplexity,
-			"average_scope_complexity": averageScopeComplexity,
+			"average_scope_complexity": analysis.AverageComplexity,
 			"threshold":                threshold,
 		},
-	}
+	}, nil
 }
 
 // formatComplexityDetailed formats complexity results with structured details
-func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, maxResults int) map[string]interface{} {
+func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, maxResults int) (map[string]interface{}, error) {
 	type Issue struct {
 		File       string                   `json:"file"`
 		Line       int                      `json:"line"`
@@ -837,70 +832,79 @@ func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, 
 	}
 
 	issues := []Issue{}
-	totalIssues := 0
 
 	if threshold == 0 {
 		threshold = 10
 	}
 
-	scopes := result.ReportedScopesByComplexity()
-	maxComplexity, averageScopeComplexity := summarizeScopeComplexity(result.AnalyzedScopesByComplexity())
-	for _, fn := range scopes {
-		if fn.Metrics.Complexity > threshold {
-			totalIssues++
-
-			// Only add to issues array if within max_results limit
-			if maxResults == 0 || len(issues) < maxResults {
-				issue := Issue{
-					File:       fn.FilePath,
-					Line:       fn.StartLine,
-					Column:     fn.StartColumn + 1,
-					Function:   fn.Name,
-					ScopeKind:  fn.ResolvedScopeKind(),
-					Complexity: fn.Metrics.Complexity,
-					Threshold:  threshold,
-					Message:    fmt.Sprintf("is too complex (%d > %d)", fn.Metrics.Complexity, threshold),
-				}
-				issues = append(issues, issue)
-			}
+	analysis, err := analyzeComplexityGate(result, threshold, maxResults)
+	if err != nil {
+		return nil, err
+	}
+	for _, scope := range analysis.Issues {
+		issue := Issue{
+			File:       scope.FilePath,
+			Line:       scope.StartLine,
+			Column:     scope.StartColumn + 1,
+			Function:   scope.Name,
+			ScopeKind:  scope.ScopeKind,
+			Complexity: scope.Metrics.Complexity,
+			Threshold:  threshold,
+			Message:    fmt.Sprintf("is too complex (%d > %d)", scope.Metrics.Complexity, threshold),
 		}
+		issues = append(issues, issue)
 	}
 
 	return map[string]interface{}{
 		"issues": issues,
 		"summary": map[string]interface{}{
-			"total_issues":             totalIssues,
+			"total_issues":             analysis.TotalIssues,
 			"total_functions":          result.Summary.TotalFunctions,
 			"total_class_scopes":       result.Summary.TotalClassScopes,
 			"functions_parsed":         result.Summary.FunctionsParsed,
-			"max_complexity":           maxComplexity,
-			"max_function_complexity":  result.Summary.MaxComplexity,
+			"max_complexity":           result.Summary.MaxComplexity,
+			"max_scope_complexity":     analysis.MaxComplexity,
 			"average_complexity":       result.Summary.AverageComplexity,
-			"average_scope_complexity": averageScopeComplexity,
+			"average_scope_complexity": analysis.AverageComplexity,
 			"threshold":                threshold,
 		},
-	}
+	}, nil
 }
 
-func complexityScopeLabel(scope domain.FunctionComplexity) string {
-	if scope.ResolvedScopeKind() == domain.AnalysisScopeClass {
-		return "class scope " + scope.Name
-	}
-	return scope.Name
+type complexityGateAnalysis struct {
+	Issues            []domain.FunctionComplexity
+	TotalIssues       int
+	MaxComplexity     int
+	AverageComplexity float64
 }
 
-func summarizeScopeComplexity(scopes []domain.FunctionComplexity) (int, float64) {
-	if len(scopes) == 0 {
-		return 0, 0
+func analyzeComplexityGate(result *domain.ComplexityResponse, threshold int, maxResults int) (complexityGateAnalysis, error) {
+	scopes, err := result.AnalyzedScopes()
+	if err != nil {
+		return complexityGateAnalysis{}, err
 	}
-	total, maximum := 0, 0
+
+	analysis := complexityGateAnalysis{}
+	total := 0
 	for _, scope := range scopes {
 		total += scope.Metrics.Complexity
-		if scope.Metrics.Complexity > maximum {
-			maximum = scope.Metrics.Complexity
+		if scope.Metrics.Complexity > analysis.MaxComplexity {
+			analysis.MaxComplexity = scope.Metrics.Complexity
+		}
+		if scope.Metrics.Complexity > threshold {
+			analysis.TotalIssues++
+			analysis.Issues = append(analysis.Issues, scope)
 		}
 	}
-	return maximum, float64(total) / float64(len(scopes))
+	if len(scopes) > 0 {
+		analysis.AverageComplexity = float64(total) / float64(len(scopes))
+	}
+
+	analysis.Issues = domain.SortComplexityScopes(analysis.Issues)
+	if maxResults > 0 && len(analysis.Issues) > maxResults {
+		analysis.Issues = analysis.Issues[:maxResults]
+	}
+	return analysis, nil
 }
 
 // formatDeadCodeSummary formats dead code results in compact summary mode

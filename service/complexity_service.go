@@ -307,6 +307,8 @@ func (s *ComplexityServiceImpl) calculateScopeComplexities(filePath string, cfgs
 }
 
 func partitionComplexityScopes(scopes []domain.FunctionComplexity) (functions, classScopes []domain.FunctionComplexity) {
+	functions = make([]domain.FunctionComplexity, 0, len(scopes))
+	classScopes = make([]domain.FunctionComplexity, 0)
 	for _, scope := range scopes {
 		if scope.ResolvedScopeKind() == domain.AnalysisScopeClass {
 			classScopes = append(classScopes, scope)

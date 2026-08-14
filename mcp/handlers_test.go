@@ -491,7 +491,8 @@ func TestHandleCheckComplexityReportsClassExecutionScope(t *testing.T) {
 			return path
 		},
 		map[string]interface{}{
-			"max_complexity": float64(10),
+			"max_complexity": float64(0),
+			"min_complexity": float64(12),
 			"max_results":    float64(1),
 			"output_mode":    "summary",
 		},
@@ -505,7 +506,9 @@ func TestHandleCheckComplexityReportsClassExecutionScope(t *testing.T) {
 		Summary struct {
 			TotalFunctions         int     `json:"total_functions"`
 			TotalClassScopes       int     `json:"total_class_scopes"`
+			TotalIssues            int     `json:"total_issues"`
 			MaxComplexity          int     `json:"max_complexity"`
+			MaxScopeComplexity     int     `json:"max_scope_complexity"`
 			AverageComplexity      float64 `json:"average_complexity"`
 			AverageScopeComplexity float64 `json:"average_scope_complexity"`
 		} `json:"summary"`
@@ -515,7 +518,9 @@ func TestHandleCheckComplexityReportsClassExecutionScope(t *testing.T) {
 	assert.Contains(t, result.Issues[0], "class scope Config is too complex (12 > 10)")
 	assert.Equal(t, 2, result.Summary.TotalFunctions)
 	assert.Equal(t, 1, result.Summary.TotalClassScopes)
-	assert.Equal(t, 12, result.Summary.MaxComplexity)
+	assert.Equal(t, 2, result.Summary.TotalIssues)
+	assert.Equal(t, 11, result.Summary.MaxComplexity)
+	assert.Equal(t, 12, result.Summary.MaxScopeComplexity)
 	assert.InDelta(t, 6, result.Summary.AverageComplexity, 1e-9)
 	assert.InDelta(t, 8, result.Summary.AverageScopeComplexity, 1e-9)
 }

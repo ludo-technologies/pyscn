@@ -359,9 +359,9 @@ func (r *ComplexityResponse) ReportedScopes() []FunctionComplexity {
 }
 
 // ReportedScopesByComplexity returns all visible scopes in a stable severity
-// order for gates and bounded issue lists. It never mutates response storage.
+// order for presentation. It never mutates response storage.
 func (r *ComplexityResponse) ReportedScopesByComplexity() []FunctionComplexity {
-	return sortComplexityScopes(r.ReportedScopes())
+	return SortComplexityScopes(r.ReportedScopes())
 }
 
 // AnalyzedScopes returns an independently owned copy of the complete,
@@ -413,10 +413,13 @@ func (r *ComplexityResponse) AnalyzedScopesByComplexity() []FunctionComplexity {
 	scopes := make([]FunctionComplexity, 0, len(r.AnalyzedFunctions)+len(r.AnalyzedClassScopes))
 	scopes = append(scopes, r.AnalyzedFunctions...)
 	scopes = append(scopes, r.AnalyzedClassScopes...)
-	return sortComplexityScopes(scopes)
+	return SortComplexityScopes(scopes)
 }
 
-func sortComplexityScopes(scopes []FunctionComplexity) []FunctionComplexity {
+// SortComplexityScopes returns an independently owned severity-ranked copy.
+// Ties use source location, scope kind, and name for deterministic output.
+func SortComplexityScopes(scopes []FunctionComplexity) []FunctionComplexity {
+	scopes = append([]FunctionComplexity(nil), scopes...)
 	sort.SliceStable(scopes, func(i, j int) bool {
 		left, right := scopes[i], scopes[j]
 		if left.Metrics.Complexity != right.Metrics.Complexity {
