@@ -146,14 +146,13 @@ func writeComplexityScopeDetails(builder *strings.Builder, utils *FormatUtils, t
 	builder.WriteString(utils.FormatTableHeader("Scope", "Complexity", "Cognitive", "SLOC", "Risk"))
 
 	for _, scope := range scopes {
-		// Convert domain risk level to standard risk level
 		var standardRisk RiskLevel
 		switch scope.RiskLevel {
-		case "High":
+		case domain.RiskLevelHigh:
 			standardRisk = RiskHigh
-		case "Medium":
+		case domain.RiskLevelMedium:
 			standardRisk = RiskMedium
-		case "Low":
+		case domain.RiskLevelLow:
 			standardRisk = RiskLow
 		default:
 			standardRisk = RiskLow

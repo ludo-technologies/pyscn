@@ -191,6 +191,17 @@ func TestOutputFormatterPublishesClassScopesAdditively(t *testing.T) {
 	assert.Equal(t, "class", records[3][11])
 }
 
+func TestOutputFormatterTextPreservesScopeRiskLevels(t *testing.T) {
+	response := createClassScopeComplexityResponse()
+	response.Functions[1].RiskLevel = domain.RiskLevelHigh
+	response.ClassScopes[0].RiskLevel = domain.RiskLevelMedium
+
+	output, err := NewOutputFormatter().Format(response, domain.OutputFormatText)
+	require.NoError(t, err)
+	assert.Contains(t, output, ColorRed+string(RiskHigh)+ColorReset)
+	assert.Contains(t, output, ColorYellow+string(RiskMedium)+ColorReset)
+}
+
 func TestOutputFormatterHTMLResolvesLegacyScopeKind(t *testing.T) {
 	response := createTestComplexityResponse()
 	response.Functions[0].ScopeKind = domain.AnalysisScopeUnknown
