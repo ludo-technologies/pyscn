@@ -278,7 +278,8 @@ type ComplexitySummary struct {
 	// Presentation filters only limit ComplexityResponse.Functions.
 	TotalFunctions int
 	// TotalClassScopes is the complete executable class-suite population.
-	// Class maxima provide a non-dilutable hotspot signal for health scoring.
+	// Class maxima are published separately and do not alter function aggregates
+	// or health-score semantics.
 	TotalClassScopes            int
 	MaxClassComplexity          int
 	MaxClassCognitiveComplexity int

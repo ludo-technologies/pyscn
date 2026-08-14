@@ -210,8 +210,8 @@ type AnalyzeSummary struct {
 	// Key metrics
 	// TotalFunctions is the complete analyzed population used for aggregate metrics.
 	TotalFunctions int `json:"total_functions" yaml:"total_functions"`
-	// Class-scope fields are separate from function averages. Their maxima feed
-	// health scoring so adding trivial classes cannot dilute a real hotspot.
+	// Class-scope fields are reported separately from the established function
+	// aggregates and do not change health-score semantics.
 	TotalClassScopes              int `json:"total_class_scopes" yaml:"total_class_scopes"`
 	MaxClassComplexity            int `json:"max_class_complexity" yaml:"max_class_complexity"`
 	MaxClassCognitiveComplexity   int `json:"max_class_cognitive_complexity" yaml:"max_class_cognitive_complexity"`
@@ -387,11 +387,8 @@ func (s *AnalyzeSummary) calculateComplexityPenalty() int {
 	mccabePenalty := coredomain.LinearPenalty(s.AverageComplexity, 2.0, 15.0)
 	cognitivePenalty := coredomain.LinearPenalty(s.AverageCognitiveComplexity, 15.0, float64(DefaultCognitiveComplexityThreshold))
 	nestingPenalty := coredomain.LinearPenalty(s.AverageNestingDepth, 3.0, float64(DefaultNestingDepthThreshold))
-	classMcCabePenalty := coredomain.LinearPenalty(float64(s.MaxClassComplexity), 2.0, 15.0)
-	classCognitivePenalty := coredomain.LinearPenalty(float64(s.MaxClassCognitiveComplexity), 15.0, float64(DefaultCognitiveComplexityThreshold))
-	classNestingPenalty := coredomain.LinearPenalty(float64(s.MaxClassNestingDepth), 3.0, float64(DefaultNestingDepthThreshold))
 
-	return max(mccabePenalty, cognitivePenalty, nestingPenalty, classMcCabePenalty, classCognitivePenalty, classNestingPenalty)
+	return max(mccabePenalty, cognitivePenalty, nestingPenalty)
 }
 
 // calculateDeadCodePenalty calculates the penalty for dead code (max 20)
@@ -665,7 +662,7 @@ func (s *AnalyzeSummary) CalculateFallbackScore() int {
 	score := 100
 
 	// Complexity penalty
-	if s.AverageComplexity > float64(FallbackComplexityThreshold) || s.MaxClassComplexity > FallbackComplexityThreshold {
+	if s.AverageComplexity > float64(FallbackComplexityThreshold) {
 		score -= FallbackComplexityThreshold
 	}
 
@@ -675,7 +672,7 @@ func (s *AnalyzeSummary) CalculateFallbackScore() int {
 	}
 
 	// High complexity penalty
-	if s.HighComplexityCount > 0 || s.HighComplexityClassScopeCount > 0 {
+	if s.HighComplexityCount > 0 {
 		score -= FallbackPenalty
 	}
 
