@@ -212,7 +212,7 @@ Summary and detailed modes apply the gate to the complete analyzed scope populat
 }
 ```
 
-**Output**: `DeadCodeResponse` JSON
+**Output**: Summary mode returns compact issue strings. Detailed mode returns structured issues from functions and executable class suites; each issue includes the compatibility `function` name, required `scope_kind`, and canonical `scope_label`. Full mode returns `DeadCodeResponse` JSON, where the existing function collection and counters remain function-only and class-suite collections and counters are additive. Aggregate finding, health, and module metrics include both populations.
 
 ### 6. get_health_score
 

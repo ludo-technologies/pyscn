@@ -314,18 +314,21 @@ Mirrors `domain.DeadCodeResponse`. Uses snake_case field names throughout.
 | Field               | Type    | Description                                    |
 | ------------------- | ------- | ---------------------------------------------- |
 | `file_path`         | string  | Path to source file.                           |
-| `functions`         | array   | Per-execution-scope results (historical field name; see below). |
-| `total_findings`    | integer | Sum of findings across execution scopes in this file. |
-| `total_functions`   | integer | Execution scopes analyzed in this file (historical field name). |
-| `affected_functions`| integer | Execution scopes with at least one finding (historical field name). |
-| `dead_code_ratio`   | number  | Dead blocks / total blocks, `0`–`1`.           |
+| `functions`             | array   | Per-function results. Existing field; remains function-only. |
+| `class_scopes`          | array \| absent | Executable class-suite results. Uses the same row model as `functions`. |
+| `total_findings`        | integer | Sum of findings across functions and class scopes in this file. |
+| `total_functions`       | integer | Functions analyzed in this file. Existing field; remains function-only. |
+| `affected_functions`    | integer | Functions with at least one finding. Existing field; remains function-only. |
+| `total_class_scopes`    | integer | Executable class suites analyzed in this file. |
+| `affected_class_scopes` | integer | Executable class suites with at least one finding. |
+| `dead_code_ratio`       | number  | Dead blocks / total blocks across both scope collections, `0`–`1`. |
 
-### `files[].functions[]` element (`FunctionDeadCode`)
+### `files[].functions[]` and `files[].class_scopes[]` element (`FunctionDeadCode`)
 
 | Field             | Type    | Description                                  |
 | ----------------- | ------- | -------------------------------------------- |
-| `name`            | string  | Execution-scope name.                        |
-| `scope_kind`      | string  | Required execution owner: `function` or `class`. |
+| `name`            | string  | Function or class name.                      |
+| `scope_kind`      | string  | Required execution owner: `function` in `functions`; `class` in `class_scopes`. |
 | `file_path`       | string  | Path to source file.                         |
 | `findings`        | array   | Findings in this execution scope (see below). |
 | `total_blocks`    | integer | Total CFG blocks in the execution scope.     |
@@ -335,7 +338,7 @@ Mirrors `domain.DeadCodeResponse`. Uses snake_case field names throughout.
 | `warning_count`   | integer | Findings of severity `warning`.              |
 | `info_count`      | integer | Findings of severity `info`.                 |
 
-### `files[].functions[].findings[]` element (`DeadCodeFinding`)
+### `findings[]` element (`DeadCodeFinding`)
 
 | Field           | Type    | Description                                                   |
 | --------------- | ------- | ------------------------------------------------------------- |
@@ -375,15 +378,17 @@ Mirrors `domain.DeadCodeResponse`. Uses snake_case field names throughout.
 | -------------------------- | ------- | ------------------------------------------------ |
 | `total_files`              | integer | Files analyzed.                                  |
 | `total_functions`          | integer | Functions analyzed.                              |
-| `total_findings`           | integer | Total findings across all files.                 |
+| `total_findings`           | integer | Total findings across functions and class scopes. |
 | `files_with_dead_code`     | integer | Files with at least one finding.                 |
 | `functions_with_dead_code` | integer | Functions with at least one finding.             |
+| `total_class_scopes`       | integer | Executable class suites analyzed.                |
+| `class_scopes_with_dead_code` | integer | Executable class suites with at least one finding. |
 | `critical_findings`        | integer | Findings with severity `critical`.               |
 | `warning_findings`         | integer | Findings with severity `warning`.                |
 | `info_findings`            | integer | Findings with severity `info`.                   |
 | `findings_by_reason`       | object \| null | Histogram keyed by `reason` value.         |
-| `total_blocks`             | integer | CFG blocks across all functions.                 |
-| `dead_blocks`              | integer | Unreachable CFG blocks across all functions.     |
+| `total_blocks`             | integer | CFG blocks across functions and class scopes.    |
+| `dead_blocks`              | integer | Unreachable CFG blocks across functions and class scopes. |
 | `overall_dead_ratio`       | number  | `dead_blocks / total_blocks`, `0`–`1`.           |
 
 ## `clone` object
