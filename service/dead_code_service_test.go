@@ -142,11 +142,21 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 		response, err := service.Analyze(ctx, newDefaultDeadCodeRequest(filePath))
 		require.NoError(t, err)
 		require.Len(t, response.Files, 1)
-		assert.Equal(t, 2, response.Files[0].TotalFunctions)
-		require.Len(t, response.Files[0].Functions, 2)
+		file := response.Files[0]
+		assert.Equal(t, 1, file.TotalFunctions)
+		assert.Equal(t, 1, file.AffectedFunctions)
+		assert.Equal(t, 1, file.TotalClassScopes)
+		assert.Equal(t, 1, file.AffectedClassScopes)
+		require.Len(t, file.Functions, 1)
+		require.Len(t, file.ClassScopes, 1)
+		assert.Equal(t, 1, response.Summary.TotalFunctions)
+		assert.Equal(t, 1, response.Summary.FunctionsWithDeadCode)
+		assert.Equal(t, 1, response.Summary.TotalClassScopes)
+		assert.Equal(t, 1, response.Summary.ClassScopesWithDeadCode)
+		assert.Equal(t, 2, response.Summary.TotalFindings)
 
 		scopesByKind := make(map[domain.AnalysisScopeKind]domain.FunctionDeadCode)
-		for _, scope := range response.Files[0].Functions {
+		for _, scope := range file.ExecutionScopes() {
 			scopesByKind[scope.ScopeKind] = scope
 			for _, finding := range scope.Findings {
 				assert.Equal(t, scope.ScopeKind, finding.ScopeKind)
@@ -162,11 +172,10 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 		var decoded domain.DeadCodeResponse
 		require.NoError(t, json.Unmarshal([]byte(output), &decoded))
 		require.Len(t, decoded.Files, 1)
-		require.Len(t, decoded.Files[0].Functions, 2)
-		assert.ElementsMatch(t,
-			[]domain.AnalysisScopeKind{domain.AnalysisScopeClass, domain.AnalysisScopeFunction},
-			[]domain.AnalysisScopeKind{decoded.Files[0].Functions[0].ScopeKind, decoded.Files[0].Functions[1].ScopeKind},
-		)
+		require.Len(t, decoded.Files[0].Functions, 1)
+		require.Len(t, decoded.Files[0].ClassScopes, 1)
+		assert.Equal(t, domain.AnalysisScopeFunction, decoded.Files[0].Functions[0].ScopeKind)
+		assert.Equal(t, domain.AnalysisScopeClass, decoded.Files[0].ClassScopes[0].ScopeKind)
 	})
 
 	t.Run("analyze multiple files", func(t *testing.T) {
@@ -300,6 +309,17 @@ func TestDeadCodeService_FilterFiles(t *testing.T) {
 				},
 			},
 		},
+		{
+			FilePath: "class.py",
+			ClassScopes: []domain.FunctionDeadCode{{
+				Name:      "Config",
+				ScopeKind: domain.AnalysisScopeClass,
+				Findings: []domain.DeadCodeFinding{{
+					Severity: domain.DeadCodeSeverityCritical,
+				}},
+				CriticalCount: 1,
+			}},
+		},
 	}
 
 	t.Run("filter by warning severity", func(t *testing.T) {
@@ -310,9 +330,13 @@ func TestDeadCodeService_FilterFiles(t *testing.T) {
 		filtered := service.filterFiles(files, req)
 
 		// Should include files with warning or critical findings
-		assert.Len(t, filtered, 2)
+		assert.Len(t, filtered, 3)
 		assert.Equal(t, "file1.py", filtered[0].FilePath)
 		assert.Equal(t, "file2.py", filtered[1].FilePath)
+		assert.Equal(t, "class.py", filtered[2].FilePath)
+		assert.Empty(t, filtered[2].Functions)
+		require.Len(t, filtered[2].ClassScopes, 1)
+		assert.Equal(t, 1, filtered[2].AffectedClassScopes)
 	})
 
 	t.Run("filter by critical severity", func(t *testing.T) {
@@ -323,8 +347,9 @@ func TestDeadCodeService_FilterFiles(t *testing.T) {
 		filtered := service.filterFiles(files, req)
 
 		// Should include only files with critical findings
-		assert.Len(t, filtered, 1)
+		assert.Len(t, filtered, 2)
 		assert.Equal(t, "file2.py", filtered[0].FilePath)
+		assert.Equal(t, "class.py", filtered[1].FilePath)
 	})
 
 	t.Run("filter by info severity includes all", func(t *testing.T) {
@@ -335,7 +360,7 @@ func TestDeadCodeService_FilterFiles(t *testing.T) {
 		filtered := service.filterFiles(files, req)
 
 		// Should include all files
-		assert.Len(t, filtered, 3)
+		assert.Len(t, filtered, 4)
 	})
 }
 
@@ -494,9 +519,11 @@ func TestDeadCodeService_GenerateSummary(t *testing.T) {
 
 	files := []domain.FileDeadCode{
 		{
-			FilePath:          "file1.py",
-			TotalFunctions:    2,
-			AffectedFunctions: 1,
+			FilePath:            "file1.py",
+			TotalFunctions:      2,
+			AffectedFunctions:   1,
+			TotalClassScopes:    1,
+			AffectedClassScopes: 1,
 			Functions: []domain.FunctionDeadCode{
 				{
 					Name:          "func1",
@@ -511,6 +538,16 @@ func TestDeadCodeService_GenerateSummary(t *testing.T) {
 					},
 				},
 			},
+			ClassScopes: []domain.FunctionDeadCode{{
+				Name:          "Config",
+				ScopeKind:     domain.AnalysisScopeClass,
+				TotalBlocks:   4,
+				DeadBlocks:    1,
+				CriticalCount: 1,
+				Findings: []domain.DeadCodeFinding{{
+					Reason: "unreachable_after_raise",
+				}},
+			}},
 		},
 		{
 			FilePath:          "file2.py",
@@ -541,18 +578,21 @@ func TestDeadCodeService_GenerateSummary(t *testing.T) {
 		assert.Equal(t, 2, summary.FilesWithDeadCode)
 		assert.Equal(t, 3, summary.TotalFunctions)        // 2 + 1
 		assert.Equal(t, 2, summary.FunctionsWithDeadCode) // 1 + 1
-		assert.Equal(t, 4, summary.TotalFindings)         // 2 + 2
-		assert.Equal(t, 1, summary.CriticalFindings)
+		assert.Equal(t, 1, summary.TotalClassScopes)
+		assert.Equal(t, 1, summary.ClassScopesWithDeadCode)
+		assert.Equal(t, 5, summary.TotalFindings) // 2 + 1 + 2
+		assert.Equal(t, 2, summary.CriticalFindings)
 		assert.Equal(t, 1, summary.WarningFindings)
 		assert.Equal(t, 2, summary.InfoFindings)
-		assert.Equal(t, 15, summary.TotalBlocks)       // 10 + 5
-		assert.Equal(t, 3, summary.DeadBlocks)         // 2 + 1
-		assert.Equal(t, 0.2, summary.OverallDeadRatio) // 3/15
+		assert.Equal(t, 19, summary.TotalBlocks) // 10 + 4 + 5
+		assert.Equal(t, 4, summary.DeadBlocks)   // 2 + 1 + 1
+		assert.InDelta(t, 4.0/19.0, summary.OverallDeadRatio, 1e-9)
 
 		// Check findings by reason
 		assert.Equal(t, 2, summary.FindingsByReason["unreachable_after_return"])
 		assert.Equal(t, 1, summary.FindingsByReason["dead_branch"])
 		assert.Equal(t, 1, summary.FindingsByReason["unused_variable"])
+		assert.Equal(t, 1, summary.FindingsByReason["unreachable_after_raise"])
 	})
 
 	t.Run("generate summary with no files", func(t *testing.T) {
