@@ -85,7 +85,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 	})
 	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
 
-	return &domain.ComplexityResponse{
+	response := &domain.ComplexityResponse{
 		Functions:           sortedFunctions,
 		ClassScopes:         sortedClassScopes,
 		AnalyzedFunctions:   allFunctions,
@@ -99,7 +99,11 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 		GeneratedAt:         time.Now().Format(time.RFC3339),
 		Version:             version.Version, // Get version from version package
 		Config:              s.buildConfigForResponse(req),
-	}, nil
+	}
+	if err := response.ValidateAnalyzedScopes(); err != nil {
+		return nil, domain.NewAnalysisError("invalid complexity analysis result", err)
+	}
+	return response, nil
 }
 
 // AnalyzeSnapshot performs complexity analysis using already parsed project files.
@@ -157,7 +161,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 	})
 	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
 
-	return &domain.ComplexityResponse{
+	response := &domain.ComplexityResponse{
 		Functions:           sortedFunctions,
 		ClassScopes:         sortedClassScopes,
 		AnalyzedFunctions:   allFunctions,
@@ -171,7 +175,11 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 		GeneratedAt:         time.Now().Format(time.RFC3339),
 		Version:             version.Version,
 		Config:              s.buildConfigForResponse(req),
-	}, nil
+	}
+	if err := response.ValidateAnalyzedScopes(); err != nil {
+		return nil, domain.NewAnalysisError("invalid complexity analysis result", err)
+	}
+	return response, nil
 }
 
 // AnalyzeFile analyzes a single Python file
@@ -310,7 +318,7 @@ func partitionComplexityScopes(scopes []domain.FunctionComplexity) (functions, c
 	functions = make([]domain.FunctionComplexity, 0, len(scopes))
 	classScopes = make([]domain.FunctionComplexity, 0)
 	for _, scope := range scopes {
-		if scope.ResolvedScopeKind() == domain.AnalysisScopeClass {
+		if scope.ScopeKind == domain.AnalysisScopeClass {
 			classScopes = append(classScopes, scope)
 			continue
 		}

@@ -147,7 +147,7 @@ type ComplexityMetrics struct {
 type FunctionComplexity struct {
 	// Function identification
 	Name        string
-	ScopeKind   AnalysisScopeKind `json:"scope_kind,omitempty" yaml:"scope_kind,omitempty"`
+	ScopeKind   AnalysisScopeKind `json:"scope_kind" yaml:"scope_kind"`
 	FilePath    string
 	StartLine   int
 	StartColumn int
@@ -160,26 +160,16 @@ type FunctionComplexity struct {
 	RiskLevel RiskLevel
 }
 
-// ResolvedScopeKind preserves the public struct's historical zero-value
-// behavior. Results produced by the analyzer always carry an explicit kind;
-// externally constructed legacy records remain functions except for the
-// established module pseudo-record.
-func (f FunctionComplexity) ResolvedScopeKind() AnalysisScopeKind {
-	if f.ScopeKind != AnalysisScopeUnknown {
-		return f.ScopeKind
-	}
-	if f.Name == ModuleFunctionName {
-		return AnalysisScopeModule
-	}
-	return AnalysisScopeFunction
-}
-
 // ScopeLabel returns the canonical user-facing name for an executable scope.
 func (f FunctionComplexity) ScopeLabel() string {
-	if f.ScopeKind == AnalysisScopeClass {
-		return "class scope " + f.Name
+	return executionScopeLabel(f.ScopeKind, f.Name)
+}
+
+func executionScopeLabel(kind AnalysisScopeKind, name string) string {
+	if kind == AnalysisScopeClass {
+		return "class scope " + name
 	}
-	return f.Name
+	return name
 }
 
 // ValidateFunctionSLOCThresholds checks the long-function tiers against each
@@ -204,7 +194,7 @@ func ValidateFunctionSLOCThresholds(warn, critical int) error {
 // threshold. Module and class scopes never qualify because this is explicitly
 // a long-function rule. A non-positive threshold disables the check.
 func (f FunctionComplexity) ExceedsSLOC(threshold int) bool {
-	if threshold <= 0 || f.ResolvedScopeKind() != AnalysisScopeFunction {
+	if threshold <= 0 || f.ScopeKind != AnalysisScopeFunction {
 		return false
 	}
 	return f.Metrics.SLOC > threshold
@@ -368,52 +358,46 @@ func (r *ComplexityResponse) ReportedScopesByComplexity() []FunctionComplexity {
 // pre-filter population. Both collections must be initialized by the analysis
 // producer, including when either population is empty.
 func (r *ComplexityResponse) AnalyzedScopes() ([]FunctionComplexity, error) {
-	if r == nil {
-		return nil, fmt.Errorf("complexity response is nil")
-	}
-	if r.AnalyzedFunctions == nil {
-		return nil, fmt.Errorf("analyzed function population is not initialized")
-	}
-	if r.AnalyzedClassScopes == nil {
-		return nil, fmt.Errorf("analyzed class-scope population is not initialized")
+	if err := r.ValidateAnalyzedScopes(); err != nil {
+		return nil, err
 	}
 
-	scopes := make([]FunctionComplexity, 0, len(r.AnalyzedFunctions)+len(r.AnalyzedClassScopes))
-	for i, scope := range r.AnalyzedFunctions {
-		if err := scope.ScopeKind.Validate(); err != nil {
-			return nil, fmt.Errorf("analyzed function %d: %w", i, err)
-		}
-		if scope.ScopeKind == AnalysisScopeClass {
-			return nil, fmt.Errorf("analyzed function %d has class scope kind", i)
-		}
-		scopes = append(scopes, scope)
-	}
-	for i, scope := range r.AnalyzedClassScopes {
-		if err := scope.ScopeKind.Validate(); err != nil {
-			return nil, fmt.Errorf("analyzed class scope %d: %w", i, err)
-		}
-		if scope.ScopeKind != AnalysisScopeClass {
-			return nil, fmt.Errorf("analyzed class scope %d has %q scope kind", i, scope.ScopeKind)
-		}
-		scopes = append(scopes, scope)
-	}
-	return scopes, nil
-}
-
-// AnalyzedScopesByComplexity returns the complete pre-filter population in a
-// stable severity order. Legacy externally constructed responses fall back to
-// their reported collections.
-func (r *ComplexityResponse) AnalyzedScopesByComplexity() []FunctionComplexity {
-	if r == nil {
-		return nil
-	}
-	if r.AnalyzedFunctions == nil && r.AnalyzedClassScopes == nil {
-		return r.ReportedScopesByComplexity()
-	}
 	scopes := make([]FunctionComplexity, 0, len(r.AnalyzedFunctions)+len(r.AnalyzedClassScopes))
 	scopes = append(scopes, r.AnalyzedFunctions...)
 	scopes = append(scopes, r.AnalyzedClassScopes...)
-	return SortComplexityScopes(scopes)
+	return scopes, nil
+}
+
+// ValidateAnalyzedScopes enforces the producer-owned population contract
+// without allocating a combined result slice.
+func (r *ComplexityResponse) ValidateAnalyzedScopes() error {
+	if r == nil {
+		return fmt.Errorf("complexity response is nil")
+	}
+	if r.AnalyzedFunctions == nil {
+		return fmt.Errorf("analyzed function population is not initialized")
+	}
+	if r.AnalyzedClassScopes == nil {
+		return fmt.Errorf("analyzed class-scope population is not initialized")
+	}
+
+	for i, scope := range r.AnalyzedFunctions {
+		if err := scope.ScopeKind.Validate(); err != nil {
+			return fmt.Errorf("analyzed function %d: %w", i, err)
+		}
+		if scope.ScopeKind == AnalysisScopeClass {
+			return fmt.Errorf("analyzed function %d has class scope kind", i)
+		}
+	}
+	for i, scope := range r.AnalyzedClassScopes {
+		if err := scope.ScopeKind.Validate(); err != nil {
+			return fmt.Errorf("analyzed class scope %d: %w", i, err)
+		}
+		if scope.ScopeKind != AnalysisScopeClass {
+			return fmt.Errorf("analyzed class scope %d has %q scope kind", i, scope.ScopeKind)
+		}
+	}
+	return nil
 }
 
 // SortComplexityScopes returns an independently owned severity-ranked copy.
@@ -434,8 +418,8 @@ func SortComplexityScopes(scopes []FunctionComplexity) []FunctionComplexity {
 		if left.StartColumn != right.StartColumn {
 			return left.StartColumn < right.StartColumn
 		}
-		if left.ResolvedScopeKind() != right.ResolvedScopeKind() {
-			return left.ResolvedScopeKind() < right.ResolvedScopeKind()
+		if left.ScopeKind != right.ScopeKind {
+			return left.ScopeKind < right.ScopeKind
 		}
 		return left.Name < right.Name
 	})

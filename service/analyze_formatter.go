@@ -1070,7 +1070,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
 						{{range $i, $f := $scopes}}
                         {{if lt $i 10}}
                         <tr>
-							<td>{{$f.ResolvedScopeKind}}</td>
+							<td>{{$f.ScopeKind}}</td>
                             <td>{{$f.Name}}</td>
                             <td>{{$f.FilePath}}</td>
                             <td>{{$f.Metrics.Complexity}}</td>

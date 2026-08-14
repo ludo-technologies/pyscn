@@ -49,7 +49,7 @@ func AggregateComplexityByModule(functions []FunctionComplexity) map[string]Modu
 			module = &moduleComplexityAccumulator{}
 			modules[key] = module
 		}
-		if function.ResolvedScopeKind() != AnalysisScopeFunction {
+		if function.ScopeKind != AnalysisScopeFunction {
 			continue
 		}
 

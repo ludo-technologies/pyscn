@@ -19,19 +19,22 @@ func TestGenerateSuggestions_ComplexityOnly(t *testing.T) {
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
 				{
-					Name:     "high_func",
-					FilePath: "a.py",
-					Metrics:  ComplexityMetrics{Complexity: 25, NestingDepth: 6},
+					Name:      "high_func",
+					ScopeKind: AnalysisScopeFunction,
+					FilePath:  "a.py",
+					Metrics:   ComplexityMetrics{Complexity: 25, NestingDepth: 6},
 				},
 				{
-					Name:     "medium_func",
-					FilePath: "b.py",
-					Metrics:  ComplexityMetrics{Complexity: 15, NestingDepth: 2},
+					Name:      "medium_func",
+					ScopeKind: AnalysisScopeFunction,
+					FilePath:  "b.py",
+					Metrics:   ComplexityMetrics{Complexity: 15, NestingDepth: 2},
 				},
 				{
-					Name:     "low_func",
-					FilePath: "c.py",
-					Metrics:  ComplexityMetrics{Complexity: 5},
+					Name:      "low_func",
+					ScopeKind: AnalysisScopeFunction,
+					FilePath:  "c.py",
+					Metrics:   ComplexityMetrics{Complexity: 5},
 				},
 			},
 		},
@@ -65,6 +68,7 @@ func TestGenerateSuggestions_ComplexityNestingDepth(t *testing.T) {
 			Functions: []FunctionComplexity{
 				{
 					Name:      "deep_func",
+					ScopeKind: AnalysisScopeFunction,
 					FilePath:  "a.py",
 					StartLine: 42,
 					Metrics:   ComplexityMetrics{Complexity: 25, NestingDepth: 5},
@@ -98,9 +102,10 @@ func TestGenerateSuggestions_ComplexityDefault(t *testing.T) {
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
 				{
-					Name:     "wide_func",
-					FilePath: "a.py",
-					Metrics:  ComplexityMetrics{Complexity: 15, NestingDepth: 2},
+					Name:      "wide_func",
+					ScopeKind: AnalysisScopeFunction,
+					FilePath:  "a.py",
+					Metrics:   ComplexityMetrics{Complexity: 15, NestingDepth: 2},
 				},
 			},
 		},
@@ -123,9 +128,10 @@ func TestGenerateSuggestions_ComplexityLoopStatements(t *testing.T) {
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
 				{
-					Name:     "loopy_func",
-					FilePath: "a.py",
-					Metrics:  ComplexityMetrics{Complexity: 15, NestingDepth: 2, LoopStatements: 4},
+					Name:      "loopy_func",
+					ScopeKind: AnalysisScopeFunction,
+					FilePath:  "a.py",
+					Metrics:   ComplexityMetrics{Complexity: 15, NestingDepth: 2, LoopStatements: 4},
 				},
 			},
 		},
@@ -145,9 +151,10 @@ func TestGenerateSuggestions_ComplexityExceptionHandlers(t *testing.T) {
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
 				{
-					Name:     "error_func",
-					FilePath: "a.py",
-					Metrics:  ComplexityMetrics{Complexity: 15, NestingDepth: 2, ExceptionHandlers: 4},
+					Name:      "error_func",
+					ScopeKind: AnalysisScopeFunction,
+					FilePath:  "a.py",
+					Metrics:   ComplexityMetrics{Complexity: 15, NestingDepth: 2, ExceptionHandlers: 4},
 				},
 			},
 		},
@@ -167,9 +174,10 @@ func TestGenerateSuggestions_ComplexityTopLevel(t *testing.T) {
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
 				{
-					Name:     ModuleFunctionName,
-					FilePath: "src/comprehensions.py",
-					Metrics:  ComplexityMetrics{Complexity: 15},
+					Name:      ModuleFunctionName,
+					ScopeKind: AnalysisScopeModule,
+					FilePath:  "src/comprehensions.py",
+					Metrics:   ComplexityMetrics{Complexity: 15},
 				},
 			},
 		},
@@ -843,7 +851,7 @@ func TestGenerateSuggestions_AllAnalysesEnabled_SortOrder(t *testing.T) {
 	resp := &AnalyzeResponse{
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
-				{Name: "complex_func", Metrics: ComplexityMetrics{Complexity: 25}},
+				{Name: "complex_func", ScopeKind: AnalysisScopeFunction, Metrics: ComplexityMetrics{Complexity: 25}},
 			},
 		},
 		DeadCode: &DeadCodeResponse{
@@ -904,8 +912,9 @@ func TestGenerateSuggestions_CategoryLimit(t *testing.T) {
 	funcs := make([]FunctionComplexity, 20)
 	for i := range funcs {
 		funcs[i] = FunctionComplexity{
-			Name:    "func_" + string(rune('a'+i)),
-			Metrics: ComplexityMetrics{Complexity: 25},
+			Name:      "func_" + string(rune('a'+i)),
+			ScopeKind: AnalysisScopeFunction,
+			Metrics:   ComplexityMetrics{Complexity: 25},
 		}
 	}
 

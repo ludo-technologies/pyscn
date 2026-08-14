@@ -834,6 +834,9 @@ func TestAnalyzeSummary_ClassMetricsPreserveComplexityScore(t *testing.T) {
 	withClassHotspot := baseline
 	withClassHotspot.TotalClassScopes = 1
 	withClassHotspot.MaxClassComplexity = 15
+	withClassHotspot.MaxClassCognitiveComplexity = 50
+	withClassHotspot.MaxClassNestingDepth = 20
+	withClassHotspot.HighComplexityClassScopeCount = 1
 	if err := withClassHotspot.CalculateHealthScore(); err != nil {
 		t.Fatalf("class hotspot health score: %v", err)
 	}
@@ -843,6 +846,9 @@ func TestAnalyzeSummary_ClassMetricsPreserveComplexityScore(t *testing.T) {
 	}
 	if withClassHotspot.ComplexityScore != baseline.ComplexityScore {
 		t.Fatalf("class metrics changed complexity score from %d to %d", baseline.ComplexityScore, withClassHotspot.ComplexityScore)
+	}
+	if withClassHotspot.HealthScore != baseline.HealthScore {
+		t.Fatalf("class metrics changed health score from %d to %d", baseline.HealthScore, withClassHotspot.HealthScore)
 	}
 	if withClassHotspot.AverageComplexity != baseline.AverageComplexity {
 		t.Fatal("class hotspot must not alter the function average")

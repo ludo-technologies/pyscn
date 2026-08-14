@@ -7,8 +7,9 @@ import (
 func TestAggregateComplexityByModule_GroupsUnfilteredFunctions(t *testing.T) {
 	modules := AggregateComplexityByModule([]FunctionComplexity{
 		{
-			Name:     "hotPath",
-			FilePath: "pkg/hot.py",
+			Name:      "hotPath",
+			ScopeKind: AnalysisScopeFunction,
+			FilePath:  "pkg/hot.py",
 			Metrics: ComplexityMetrics{
 				Complexity:          7,
 				CognitiveComplexity: 9,
@@ -17,8 +18,9 @@ func TestAggregateComplexityByModule_GroupsUnfilteredFunctions(t *testing.T) {
 			RiskLevel: RiskLevelHigh,
 		},
 		{
-			Name:     "warmPath",
-			FilePath: "pkg/hot.py",
+			Name:      "warmPath",
+			ScopeKind: AnalysisScopeFunction,
+			FilePath:  "pkg/hot.py",
 			Metrics: ComplexityMetrics{
 				Complexity:          3,
 				CognitiveComplexity: 5,
@@ -28,6 +30,7 @@ func TestAggregateComplexityByModule_GroupsUnfilteredFunctions(t *testing.T) {
 		},
 		{
 			Name:      "simplePath",
+			ScopeKind: AnalysisScopeFunction,
 			FilePath:  "pkg/simple.py",
 			Metrics:   ComplexityMetrics{Complexity: 1},
 			RiskLevel: RiskLevelLow,
@@ -63,12 +66,14 @@ func TestAggregateComplexityByModule_ExcludesModuleScopeFromFunctionAverages(t *
 	modules := AggregateComplexityByModule([]FunctionComplexity{
 		{
 			Name:      ModuleFunctionName,
+			ScopeKind: AnalysisScopeModule,
 			FilePath:  "pkg/module.py",
 			Metrics:   ComplexityMetrics{Complexity: 1},
 			RiskLevel: RiskLevelLow,
 		},
 		{
 			Name:      "onlyFunction",
+			ScopeKind: AnalysisScopeFunction,
 			FilePath:  "pkg/module.py",
 			Metrics:   ComplexityMetrics{Complexity: 5, CognitiveComplexity: 7},
 			RiskLevel: RiskLevelMedium,

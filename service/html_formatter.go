@@ -537,7 +537,7 @@ func (f *HTMLFormatterImpl) getComplexityDetailsHTML() string {
 				<tbody>
 					{{range .}}
 					<tr style="border-bottom: 1px solid #e0e0e0;">
-						<td style="padding: 12px;">{{.ResolvedScopeKind}}</td>
+						<td style="padding: 12px;">{{.ScopeKind}}</td>
 						<td style="padding: 12px;">{{.Name}}</td>
 						<td style="padding: 12px; color: #666;">{{.FilePath}}</td>
 						<td style="padding: 12px; text-align: center;">{{.Metrics.Complexity}}</td>

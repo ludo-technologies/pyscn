@@ -182,8 +182,7 @@ func TestFunctionComplexityExceedsSLOC(t *testing.T) {
 		{name: "above threshold", function: "build_table", scopeKind: AnalysisScopeFunction, sloc: 51, threshold: 50, want: true},
 		{name: "module scope never qualifies", function: ModuleFunctionName, scopeKind: AnalysisScopeModule, sloc: 500, threshold: 50, want: false},
 		{name: "class scope never qualifies", function: "Config", scopeKind: AnalysisScopeClass, sloc: 500, threshold: 50, want: false},
-		{name: "legacy zero-value kind remains a function", function: "build_table", scopeKind: AnalysisScopeUnknown, sloc: 51, threshold: 50, want: true},
-		{name: "legacy module name remains module scope", function: ModuleFunctionName, scopeKind: AnalysisScopeUnknown, sloc: 500, threshold: 50, want: false},
+		{name: "unknown scope never qualifies", function: "build_table", scopeKind: AnalysisScopeUnknown, sloc: 51, threshold: 50, want: false},
 		{name: "zero threshold disables the check", function: "build_table", scopeKind: AnalysisScopeFunction, sloc: 500, threshold: 0, want: false},
 		{name: "negative threshold disables the check", function: "build_table", scopeKind: AnalysisScopeFunction, sloc: 500, threshold: -1, want: false},
 	}
@@ -198,26 +197,6 @@ func TestFunctionComplexityExceedsSLOC(t *testing.T) {
 
 			if got := function.ExceedsSLOC(tt.threshold); got != tt.want {
 				t.Errorf("ExceedsSLOC(%d) with SLOC %d = %v, want %v", tt.threshold, tt.sloc, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestFunctionComplexityResolvedScopeKind(t *testing.T) {
-	tests := []struct {
-		name string
-		row  FunctionComplexity
-		want AnalysisScopeKind
-	}{
-		{name: "explicit class", row: FunctionComplexity{Name: "Config", ScopeKind: AnalysisScopeClass}, want: AnalysisScopeClass},
-		{name: "legacy module", row: FunctionComplexity{Name: ModuleFunctionName}, want: AnalysisScopeModule},
-		{name: "legacy function", row: FunctionComplexity{Name: "build_table"}, want: AnalysisScopeFunction},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if got := test.row.ResolvedScopeKind(); got != test.want {
-				t.Fatalf("ResolvedScopeKind() = %q, want %q", got, test.want)
 			}
 		})
 	}
@@ -261,8 +240,9 @@ func TestComplexityResponseReportedScopesReturnsOwnedPopulation(t *testing.T) {
 
 func TestFunctionComplexity(t *testing.T) {
 	function := FunctionComplexity{
-		Name:     "testFunction",
-		FilePath: "/path/to/test.py",
+		Name:      "testFunction",
+		ScopeKind: AnalysisScopeFunction,
+		FilePath:  "/path/to/test.py",
 		Metrics: ComplexityMetrics{
 			Complexity: 3,
 			Nodes:      5,
@@ -361,34 +341,20 @@ func TestComplexityResponse(t *testing.T) {
 	}
 }
 
-func TestComplexityResponse_AnalyzedScopesByComplexity(t *testing.T) {
-	response := ComplexityResponse{
-		Functions: []FunctionComplexity{{Name: "visible", Metrics: ComplexityMetrics{Complexity: 20}}},
-		AnalyzedFunctions: []FunctionComplexity{
-			{Name: ModuleFunctionName, ScopeKind: AnalysisScopeModule, FilePath: "b.py", Metrics: ComplexityMetrics{Complexity: 1}},
-			{Name: "resolve", ScopeKind: AnalysisScopeFunction, FilePath: "a.py", StartLine: 5, Metrics: ComplexityMetrics{Complexity: 11}},
-		},
-		AnalyzedClassScopes: []FunctionComplexity{
-			{Name: "Config", ScopeKind: AnalysisScopeClass, FilePath: "a.py", StartLine: 2, Metrics: ComplexityMetrics{Complexity: 12}},
-		},
+func TestSortComplexityScopes(t *testing.T) {
+	scopes := []FunctionComplexity{
+		{Name: ModuleFunctionName, ScopeKind: AnalysisScopeModule, FilePath: "b.py", Metrics: ComplexityMetrics{Complexity: 1}},
+		{Name: "resolve", ScopeKind: AnalysisScopeFunction, FilePath: "a.py", StartLine: 5, Metrics: ComplexityMetrics{Complexity: 11}},
+		{Name: "Config", ScopeKind: AnalysisScopeClass, FilePath: "a.py", StartLine: 2, Metrics: ComplexityMetrics{Complexity: 12}},
 	}
 
-	ordered := response.AnalyzedScopesByComplexity()
+	ordered := SortComplexityScopes(scopes)
 	if len(ordered) != 3 || ordered[0].Name != "Config" || ordered[1].Name != "resolve" || ordered[2].Name != ModuleFunctionName {
 		t.Fatalf("unexpected scope order: %+v", ordered)
 	}
 	ordered[0].Name = "changed"
-	if response.AnalyzedClassScopes[0].Name != "Config" {
+	if scopes[2].Name != "Config" {
 		t.Fatal("sorting result must not alias response storage")
-	}
-
-	legacy := ComplexityResponse{Functions: []FunctionComplexity{
-		{Name: "low", Metrics: ComplexityMetrics{Complexity: 2}},
-		{Name: "high", Metrics: ComplexityMetrics{Complexity: 8}},
-	}}
-	legacyOrder := legacy.AnalyzedScopesByComplexity()
-	if len(legacyOrder) != 2 || legacyOrder[0].Name != "high" {
-		t.Fatalf("legacy fallback order = %+v", legacyOrder)
 	}
 }
 
