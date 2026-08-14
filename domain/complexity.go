@@ -63,6 +63,17 @@ const (
 	AnalysisScopeClass    AnalysisScopeKind = "class"
 )
 
+// Validate reports whether the kind names a supported Python execution scope.
+// Analyzer-owned records must never use AnalysisScopeUnknown.
+func (k AnalysisScopeKind) Validate() error {
+	switch k {
+	case AnalysisScopeModule, AnalysisScopeFunction, AnalysisScopeClass:
+		return nil
+	default:
+		return fmt.Errorf("invalid analysis scope kind %q", k)
+	}
+}
+
 // ComplexityRequest represents a request for complexity analysis
 type ComplexityRequest struct {
 	// Input files or directories to analyze
@@ -161,6 +172,14 @@ func (f FunctionComplexity) ResolvedScopeKind() AnalysisScopeKind {
 		return AnalysisScopeModule
 	}
 	return AnalysisScopeFunction
+}
+
+// ScopeLabel returns the canonical user-facing name for an executable scope.
+func (f FunctionComplexity) ScopeLabel() string {
+	if f.ScopeKind == AnalysisScopeClass {
+		return "class scope " + f.Name
+	}
+	return f.Name
 }
 
 // ValidateFunctionSLOCThresholds checks the long-function tiers against each
@@ -342,6 +361,42 @@ func (r *ComplexityResponse) ReportedScopes() []FunctionComplexity {
 // order for gates and bounded issue lists. It never mutates response storage.
 func (r *ComplexityResponse) ReportedScopesByComplexity() []FunctionComplexity {
 	return sortComplexityScopes(r.ReportedScopes())
+}
+
+// AnalyzedScopes returns an independently owned copy of the complete,
+// pre-filter population. Both collections must be initialized by the analysis
+// producer, including when either population is empty.
+func (r *ComplexityResponse) AnalyzedScopes() ([]FunctionComplexity, error) {
+	if r == nil {
+		return nil, fmt.Errorf("complexity response is nil")
+	}
+	if r.AnalyzedFunctions == nil {
+		return nil, fmt.Errorf("analyzed function population is not initialized")
+	}
+	if r.AnalyzedClassScopes == nil {
+		return nil, fmt.Errorf("analyzed class-scope population is not initialized")
+	}
+
+	scopes := make([]FunctionComplexity, 0, len(r.AnalyzedFunctions)+len(r.AnalyzedClassScopes))
+	for i, scope := range r.AnalyzedFunctions {
+		if err := scope.ScopeKind.Validate(); err != nil {
+			return nil, fmt.Errorf("analyzed function %d: %w", i, err)
+		}
+		if scope.ScopeKind == AnalysisScopeClass {
+			return nil, fmt.Errorf("analyzed function %d has class scope kind", i)
+		}
+		scopes = append(scopes, scope)
+	}
+	for i, scope := range r.AnalyzedClassScopes {
+		if err := scope.ScopeKind.Validate(); err != nil {
+			return nil, fmt.Errorf("analyzed class scope %d: %w", i, err)
+		}
+		if scope.ScopeKind != AnalysisScopeClass {
+			return nil, fmt.Errorf("analyzed class scope %d has %q scope kind", i, scope.ScopeKind)
+		}
+		scopes = append(scopes, scope)
+	}
+	return scopes, nil
 }
 
 // AnalyzedScopesByComplexity returns the complete pre-filter population in a

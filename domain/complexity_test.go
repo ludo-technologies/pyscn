@@ -223,6 +223,26 @@ func TestFunctionComplexityResolvedScopeKind(t *testing.T) {
 	}
 }
 
+func TestFunctionComplexityScopeLabel(t *testing.T) {
+	tests := []struct {
+		name string
+		row  FunctionComplexity
+		want string
+	}{
+		{name: "module", row: FunctionComplexity{Name: ModuleFunctionName, ScopeKind: AnalysisScopeModule}, want: ModuleFunctionName},
+		{name: "function", row: FunctionComplexity{Name: "build", ScopeKind: AnalysisScopeFunction}, want: "build"},
+		{name: "class", row: FunctionComplexity{Name: "Config", ScopeKind: AnalysisScopeClass}, want: "class scope Config"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := test.row.ScopeLabel(); got != test.want {
+				t.Fatalf("ScopeLabel() = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
 func TestComplexityResponseReportedScopesReturnsOwnedPopulation(t *testing.T) {
 	response := &ComplexityResponse{
 		Functions:   []FunctionComplexity{{Name: "work", ScopeKind: AnalysisScopeFunction}},
@@ -369,5 +389,77 @@ func TestComplexityResponse_AnalyzedScopesByComplexity(t *testing.T) {
 	legacyOrder := legacy.AnalyzedScopesByComplexity()
 	if len(legacyOrder) != 2 || legacyOrder[0].Name != "high" {
 		t.Fatalf("legacy fallback order = %+v", legacyOrder)
+	}
+}
+
+func TestComplexityResponse_AnalyzedScopesRequiresExplicitPopulation(t *testing.T) {
+	tests := []struct {
+		name     string
+		response *ComplexityResponse
+		wantErr  string
+	}{
+		{name: "nil response", wantErr: "complexity response is nil"},
+		{
+			name:     "missing functions",
+			response: &ComplexityResponse{AnalyzedClassScopes: []FunctionComplexity{}},
+			wantErr:  "analyzed function population is not initialized",
+		},
+		{
+			name:     "missing classes",
+			response: &ComplexityResponse{AnalyzedFunctions: []FunctionComplexity{}},
+			wantErr:  "analyzed class-scope population is not initialized",
+		},
+		{
+			name: "missing kind",
+			response: &ComplexityResponse{
+				AnalyzedFunctions:   []FunctionComplexity{{Name: "work"}},
+				AnalyzedClassScopes: []FunctionComplexity{},
+			},
+			wantErr: `analyzed function 0: invalid analysis scope kind ""`,
+		},
+		{
+			name: "class in function population",
+			response: &ComplexityResponse{
+				AnalyzedFunctions:   []FunctionComplexity{{Name: "Config", ScopeKind: AnalysisScopeClass}},
+				AnalyzedClassScopes: []FunctionComplexity{},
+			},
+			wantErr: "analyzed function 0 has class scope kind",
+		},
+		{
+			name: "function in class population",
+			response: &ComplexityResponse{
+				AnalyzedFunctions:   []FunctionComplexity{},
+				AnalyzedClassScopes: []FunctionComplexity{{Name: "work", ScopeKind: AnalysisScopeFunction}},
+			},
+			wantErr: `analyzed class scope 0 has "function" scope kind`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := test.response.AnalyzedScopes()
+			if err == nil || err.Error() != test.wantErr {
+				t.Fatalf("AnalyzedScopes() error = %v, want %q", err, test.wantErr)
+			}
+		})
+	}
+
+	valid := &ComplexityResponse{
+		AnalyzedFunctions: []FunctionComplexity{
+			{Name: ModuleFunctionName, ScopeKind: AnalysisScopeModule},
+			{Name: "work", ScopeKind: AnalysisScopeFunction},
+		},
+		AnalyzedClassScopes: []FunctionComplexity{{Name: "Config", ScopeKind: AnalysisScopeClass}},
+	}
+	scopes, err := valid.AnalyzedScopes()
+	if err != nil {
+		t.Fatalf("AnalyzedScopes() error = %v", err)
+	}
+	if len(scopes) != 3 {
+		t.Fatalf("AnalyzedScopes() returned %d scopes, want 3", len(scopes))
+	}
+	scopes[0].Name = "changed"
+	if valid.AnalyzedFunctions[0].Name != ModuleFunctionName {
+		t.Fatal("AnalyzedScopes() must not alias response storage")
 	}
 }

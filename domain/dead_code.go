@@ -67,13 +67,15 @@ type DeadCodeLocation struct {
 	EndColumn   int    `json:"end_column"`
 }
 
-// DeadCodeFinding represents a single dead code detection result
+// DeadCodeFinding represents a single dead code detection result owned by an
+// explicit Python execution scope.
 type DeadCodeFinding struct {
 	// Location information
 	Location DeadCodeLocation `json:"location"`
 
-	// Function context
-	FunctionName string `json:"function_name"`
+	// Execution-scope context. FunctionName is retained for public compatibility.
+	FunctionName string            `json:"function_name"`
+	ScopeKind    AnalysisScopeKind `json:"scope_kind"`
 
 	// Dead code details
 	Code        string           `json:"code"`
@@ -88,11 +90,13 @@ type DeadCodeFinding struct {
 	BlockID string `json:"block_id,omitempty"`
 }
 
-// FunctionDeadCode represents dead code analysis result for a single function
+// FunctionDeadCode represents dead code analysis for one execution scope. The
+// historical type and collection names are retained for public compatibility.
 type FunctionDeadCode struct {
-	// Function identification
-	Name     string `json:"name"`
-	FilePath string `json:"file_path"`
+	// Execution-scope identification
+	Name      string            `json:"name"`
+	ScopeKind AnalysisScopeKind `json:"scope_kind"`
+	FilePath  string            `json:"file_path"`
 
 	// Dead code findings
 	Findings []DeadCodeFinding `json:"findings"`
