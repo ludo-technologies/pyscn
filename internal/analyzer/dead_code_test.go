@@ -759,6 +759,26 @@ def do_flip(self, show_widgets=True):
 	assert.Len(t, result.Findings, 1, "contiguous dead region should be one finding")
 }
 
+func TestDetectInFileIncludesClassExecutionScopes(t *testing.T) {
+	parseResult, err := parser.New().Parse(context.Background(), []byte(`class Config:
+    raise RuntimeError("stop")
+    mode = "unreachable"
+`))
+	require.NoError(t, err)
+	cfgs, err := NewCFGBuilder().BuildAll(parseResult.AST)
+	require.NoError(t, err)
+
+	results := DetectInFile(cfgs, "config.py")
+	require.Len(t, results, 1)
+	assert.Equal(t, "Config", results[0].FunctionName)
+	assert.Equal(t, domain.AnalysisScopeClass, results[0].ScopeKind)
+	require.NotEmpty(t, results[0].Findings)
+	for _, finding := range results[0].Findings {
+		assert.Equal(t, domain.AnalysisScopeClass, finding.ScopeKind)
+		assert.Equal(t, "Config", finding.FunctionName)
+	}
+}
+
 func TestMergeContiguousFindings(t *testing.T) {
 	mk := func(start, end int, reason DeadCodeReason, sev SeverityLevel) *DeadCodeFinding {
 		return &DeadCodeFinding{StartLine: start, EndLine: end, Reason: reason, Severity: sev, Code: "x"}

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -126,13 +127,11 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 		assert.Greater(t, infoResponse.ModuleRollups[filePath].DeadCodeFindingCount, 0)
 	})
 
-	t.Run("class scopes do not change the function-only contract", func(t *testing.T) {
+	t.Run("class scopes carry explicit ownership", func(t *testing.T) {
 		filePath := t.TempDir() + "/class_scope.py"
 		source := `class Config:
-    if enabled:
-        mode = "fast"
-    else:
-        mode = "safe"
+    raise RuntimeError("stop")
+    mode = "unreachable"
 
     def resolve(self):
         return self.mode
@@ -143,10 +142,31 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 		response, err := service.Analyze(ctx, newDefaultDeadCodeRequest(filePath))
 		require.NoError(t, err)
 		require.Len(t, response.Files, 1)
-		assert.Equal(t, 1, response.Files[0].TotalFunctions)
-		require.Len(t, response.Files[0].Functions, 1)
-		assert.Equal(t, "Config.resolve", response.Files[0].Functions[0].Name)
-		assert.NotEmpty(t, response.Files[0].Functions[0].Findings)
+		assert.Equal(t, 2, response.Files[0].TotalFunctions)
+		require.Len(t, response.Files[0].Functions, 2)
+
+		scopesByKind := make(map[domain.AnalysisScopeKind]domain.FunctionDeadCode)
+		for _, scope := range response.Files[0].Functions {
+			scopesByKind[scope.ScopeKind] = scope
+			for _, finding := range scope.Findings {
+				assert.Equal(t, scope.ScopeKind, finding.ScopeKind)
+			}
+		}
+		assert.Equal(t, "Config", scopesByKind[domain.AnalysisScopeClass].Name)
+		assert.Equal(t, "Config.resolve", scopesByKind[domain.AnalysisScopeFunction].Name)
+		assert.NotEmpty(t, scopesByKind[domain.AnalysisScopeClass].Findings)
+		assert.NotEmpty(t, scopesByKind[domain.AnalysisScopeFunction].Findings)
+
+		output, err := NewDeadCodeFormatter().Format(response, domain.OutputFormatJSON)
+		require.NoError(t, err)
+		var decoded domain.DeadCodeResponse
+		require.NoError(t, json.Unmarshal([]byte(output), &decoded))
+		require.Len(t, decoded.Files, 1)
+		require.Len(t, decoded.Files[0].Functions, 2)
+		assert.ElementsMatch(t,
+			[]domain.AnalysisScopeKind{domain.AnalysisScopeClass, domain.AnalysisScopeFunction},
+			[]domain.AnalysisScopeKind{decoded.Files[0].Functions[0].ScopeKind, decoded.Files[0].Functions[1].ScopeKind},
+		)
 	})
 
 	t.Run("analyze multiple files", func(t *testing.T) {

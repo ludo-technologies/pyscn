@@ -186,7 +186,7 @@ func (s *DeadCodeServiceImpl) analyzeFile(ctx context.Context, filePath string, 
 	}
 
 	if len(cfgs) == 0 {
-		warnings = append(warnings, fmt.Sprintf("[%s] No functions found in file", filePath))
+		warnings = append(warnings, fmt.Sprintf("[%s] No executable scopes found in file", filePath))
 		return &domain.FileDeadCode{
 			FilePath:          filePath,
 			Functions:         []domain.FunctionDeadCode{},
@@ -227,7 +227,7 @@ func (s *DeadCodeServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.D
 	}
 
 	if len(cfgs) == 0 {
-		warnings = append(warnings, fmt.Sprintf("[%s] No functions found in file", file.Path))
+		warnings = append(warnings, fmt.Sprintf("[%s] No executable scopes found in file", file.Path))
 		return &domain.FileDeadCode{
 			FilePath:          file.Path,
 			Functions:         []domain.FunctionDeadCode{},
@@ -245,43 +245,41 @@ func (s *DeadCodeServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.D
 
 func (s *DeadCodeServiceImpl) analyzeCFGs(filePath string, cfgs analyzer.ControlFlowGraphs, req domain.DeadCodeRequest) (*domain.FileDeadCode, domain.ModuleDeadCodeMetrics, []string) {
 	var warnings []string
-	var functions []domain.FunctionDeadCode
-	var unfilteredFunctions []domain.FunctionDeadCode
+	var scopes []domain.FunctionDeadCode
+	var unfilteredScopes []domain.FunctionDeadCode
 	totalFindings := 0
 	unfilteredFindings := 0
-	affectedFunctions := 0
+	affectedScopes := 0
 
-	functionCount := 0
+	scopeCount := 0
 	for _, scopedCFG := range cfgs {
-		// Skip the main module CFG for now, focus on functions
-		if scopedCFG.Scope.Kind != domain.AnalysisScopeFunction {
+		if scopedCFG.Scope.Kind != domain.AnalysisScopeFunction && scopedCFG.Scope.Kind != domain.AnalysisScopeClass {
 			continue
 		}
-		functionCount++
-		functionName := scopedCFG.Scope.Name
-		cfg := scopedCFG.Graph
+		scopeCount++
+		scopeName := scopedCFG.Scope.Name
 
-		deadCodeResults := analyzer.DetectInFunctionWithFilePath(cfg, filePath)
+		deadCodeResults := analyzer.DetectInScopeWithFilePath(scopedCFG, filePath)
 		if deadCodeResults == nil {
-			warnings = append(warnings, fmt.Sprintf("[%s:%s] Failed to analyze dead code for function", filePath, functionName))
+			warnings = append(warnings, fmt.Sprintf("[%s:%s] Failed to analyze dead code for scope", filePath, scopeName))
 			continue
 		}
 
-		functionResult := s.convertToFunctionDeadCode(deadCodeResults, req)
-		functionResult.Name = functionName
-		functionResult.FilePath = filePath
-		unfilteredFunctions = append(unfilteredFunctions, functionResult)
-		unfilteredFindings += len(functionResult.Findings)
+		scopeResult := s.convertToFunctionDeadCode(deadCodeResults, req)
+		scopeResult.Name = scopeName
+		scopeResult.FilePath = filePath
+		unfilteredScopes = append(unfilteredScopes, scopeResult)
+		unfilteredFindings += len(scopeResult.Findings)
 
 		// Apply severity filtering
-		filteredFindings := s.filterFindingsBySeverity(functionResult.Findings, req.MinSeverity)
-		functionResult.Findings = filteredFindings
+		filteredFindings := s.filterFindingsBySeverity(scopeResult.Findings, req.MinSeverity)
+		scopeResult.Findings = filteredFindings
 
-		// Only include functions that have findings after filtering
-		if len(functionResult.Findings) > 0 {
-			functions = append(functions, functionResult)
-			totalFindings += len(functionResult.Findings)
-			affectedFunctions++
+		// Only include scopes that have findings after filtering.
+		if len(scopeResult.Findings) > 0 {
+			scopes = append(scopes, scopeResult)
+			totalFindings += len(scopeResult.Findings)
+			affectedScopes++
 		}
 	}
 
@@ -289,9 +287,9 @@ func (s *DeadCodeServiceImpl) analyzeCFGs(filePath string, cfgs analyzer.Control
 	if len(cfgs) > 0 {
 		totalDeadBlocks := 0
 		totalBlocks := 0
-		for _, function := range functions {
-			totalDeadBlocks += function.DeadBlocks
-			totalBlocks += function.TotalBlocks
+		for _, scope := range scopes {
+			totalDeadBlocks += scope.DeadBlocks
+			totalBlocks += scope.TotalBlocks
 		}
 		if totalBlocks > 0 {
 			deadCodeRatio = float64(totalDeadBlocks) / float64(totalBlocks)
@@ -300,15 +298,15 @@ func (s *DeadCodeServiceImpl) analyzeCFGs(filePath string, cfgs analyzer.Control
 
 	fileResult := &domain.FileDeadCode{
 		FilePath:          filePath,
-		Functions:         functions,
+		Functions:         scopes,
 		TotalFindings:     totalFindings,
-		TotalFunctions:    functionCount,
-		AffectedFunctions: affectedFunctions,
+		TotalFunctions:    scopeCount,
+		AffectedFunctions: affectedScopes,
 		DeadCodeRatio:     deadCodeRatio,
 	}
 	unfilteredFile := domain.FileDeadCode{
 		FilePath:      filePath,
-		Functions:     unfilteredFunctions,
+		Functions:     unfilteredScopes,
 		TotalFindings: unfilteredFindings,
 	}
 	moduleRollup := domain.AggregateDeadCodeByModule([]domain.FileDeadCode{unfilteredFile})[filepath.Clean(filePath)]
@@ -331,6 +329,7 @@ func (s *DeadCodeServiceImpl) convertToFunctionDeadCode(result *analyzer.DeadCod
 				EndLine:   analyzerFinding.EndLine,
 			},
 			FunctionName: analyzerFinding.FunctionName,
+			ScopeKind:    analyzerFinding.ScopeKind,
 			Code:         analyzerFinding.Code,
 			Reason:       string(analyzerFinding.Reason),
 			Severity:     s.convertSeverity(analyzerFinding.Severity),
@@ -343,6 +342,7 @@ func (s *DeadCodeServiceImpl) convertToFunctionDeadCode(result *analyzer.DeadCod
 
 	functionResult := domain.FunctionDeadCode{
 		Name:           result.FunctionName,
+		ScopeKind:      result.ScopeKind,
 		FilePath:       result.FilePath,
 		Findings:       findings,
 		TotalBlocks:    result.TotalBlocks,
