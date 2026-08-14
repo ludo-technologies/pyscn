@@ -170,13 +170,13 @@ func (s *CBOServiceImpl) analyzeFile(ctx context.Context, filePath string, req d
 	// Parse the file
 	content, err := s.readFile(filePath)
 	if err != nil {
-		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Failed to read file: %v", err)})
+		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Failed to read file: %v", err), cause: err})
 		return classes, warnings, issues
 	}
 
 	result, err := s.parser.Parse(ctx, content)
 	if err != nil {
-		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Parse error: %v", err)})
+		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Parse error: %v", err), cause: err})
 		return classes, warnings, issues
 	}
 
@@ -186,7 +186,7 @@ func (s *CBOServiceImpl) analyzeFile(ctx context.Context, filePath string, req d
 	// Perform CBO analysis
 	cboResults, err := analyzer.CalculateCBOWithConfig(result.AST, filePath, options)
 	if err != nil {
-		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("CBO analysis failed: %v", err)})
+		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("CBO analysis failed: %v", err), cause: err})
 		return classes, warnings, issues
 	}
 
@@ -209,18 +209,18 @@ func (s *CBOServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.CBOReq
 		return classes, warnings, issues
 	}
 	if file.ReadErr != nil {
-		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Failed to read file: %v", file.ReadErr)})
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Failed to read file: %v", file.ReadErr), cause: file.ReadErr})
 		return classes, warnings, issues
 	}
 	if file.ParseErr != nil {
-		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Parse error: %v", file.ParseErr)})
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Parse error: %v", file.ParseErr), cause: file.ParseErr})
 		return classes, warnings, issues
 	}
 
 	options := s.buildCBOOptions(req)
 	cboResults, err := analyzer.CalculateCBOWithConfig(file.AST, file.Path, options)
 	if err != nil {
-		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("CBO analysis failed: %v", err)})
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("CBO analysis failed: %v", err), cause: err})
 		return classes, warnings, issues
 	}
 

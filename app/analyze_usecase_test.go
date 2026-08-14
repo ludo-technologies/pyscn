@@ -209,20 +209,80 @@ func TestAnalyzeUseCaseExecutePreservesAnalyzerErrorIdentity(t *testing.T) {
 	}
 }
 
+func TestAnalyzeUseCaseExecutePreservesPartialFailureCause(t *testing.T) {
+	sourcePath := filepath.Join(t.TempDir(), "source.py")
+	if err := os.WriteFile(sourcePath, []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	cause := &testAnalyzerError{operation: "build cfg"}
+	complexityUseCase := NewSnapshotComplexityUseCase(
+		failingComplexityService{response: &domain.ComplexityResponse{Failures: []domain.AnalysisFailure{
+			domain.NewAnalysisFailure(
+				domain.AnalysisKindComplexity,
+				domain.AnalysisFailureCodeExecution,
+				"source.py",
+				"CFG construction failed: "+cause.Error(),
+				cause,
+			),
+		}}},
+		service.NewFileReader(),
+		service.NewOutputFormatter(),
+		service.NewConfigurationLoader(),
+	)
+	useCase, err := NewAnalyzeUseCaseBuilder().
+		WithFileReader(service.NewFileReader()).
+		WithComplexityUseCase(complexityUseCase).
+		Build()
+	if err != nil {
+		t.Fatalf("build analyze use case: %v", err)
+	}
+
+	response, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipDeadCode:    true,
+		SkipClones:      true,
+		SkipCBO:         true,
+		SkipLCOM:        true,
+		SkipSystem:      true,
+		SkipCommunities: true,
+	}, []string{sourcePath})
+	if err == nil {
+		t.Fatal("expected aggregate analysis error")
+	}
+	if response == nil || len(response.Failures) != 1 {
+		t.Fatalf("expected typed partial response, got %+v", response)
+	}
+	if !errors.Is(err, cause) {
+		t.Fatalf("expected aggregate error to retain partial failure cause, got %v", err)
+	}
+	var analyzerErr *testAnalyzerError
+	if !errors.As(err, &analyzerErr) || analyzerErr.operation != cause.operation {
+		t.Fatalf("expected typed analyzer cause, got %v", err)
+	}
+}
+
 type failingComplexityService struct {
-	err error
+	response *domain.ComplexityResponse
+	err      error
 }
 
 func (s failingComplexityService) Analyze(context.Context, domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
-	return nil, s.err
+	return s.response, s.err
 }
 
 func (s failingComplexityService) AnalyzeFile(context.Context, string, domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
-	return nil, s.err
+	return s.response, s.err
 }
 
 func (s failingComplexityService) AnalyzeSnapshot(context.Context, *service.ProjectSnapshot, domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
-	return nil, s.err
+	return s.response, s.err
+}
+
+type testAnalyzerError struct {
+	operation string
+}
+
+func (e *testAnalyzerError) Error() string {
+	return e.operation
 }
 
 func TestAnalyzeUseCase_Execute_SystemGraphExcludesUnparsedFiles(t *testing.T) {

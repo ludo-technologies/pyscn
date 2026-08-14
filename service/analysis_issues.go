@@ -9,6 +9,7 @@ import (
 type analysisIssue struct {
 	filePath string
 	message  string
+	cause    error
 }
 
 func diagnosticMessages(diagnostics []domain.AnalysisDiagnostic) []string {
@@ -42,12 +43,13 @@ func analysisIssueMessages(issues []analysisIssue) []string {
 func analyzerFailures(kind domain.AnalysisKind, issues []analysisIssue) []domain.AnalysisFailure {
 	failures := make([]domain.AnalysisFailure, 0, len(issues))
 	for _, issue := range issues {
-		failures = append(failures, domain.AnalysisFailure{
-			Analysis: kind,
-			Code:     domain.AnalysisFailureCodeExecution,
-			Message:  issue.message,
-			FilePath: issue.filePath,
-		})
+		failures = append(failures, domain.NewAnalysisFailure(
+			kind,
+			domain.AnalysisFailureCodeExecution,
+			issue.filePath,
+			issue.message,
+			issue.cause,
+		))
 	}
 	return failures
 }

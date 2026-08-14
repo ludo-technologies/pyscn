@@ -188,7 +188,7 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 	// Parse the file
 	content, err := s.readFile(filePath)
 	if err != nil {
-		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Failed to read file: %v", err)})
+		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Failed to read file: %v", err), cause: err})
 		return functions, nil, warnings, issues
 	}
 
@@ -197,7 +197,7 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 	result, err := s.parser.Parse(ctx, content)
 	if err != nil {
 		// Enhanced error context with file path
-		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Parse error: %v", err)})
+		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Parse error: %v", err), cause: err})
 		return functions, rawMetrics, warnings, issues
 	}
 
@@ -208,7 +208,7 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 	cfgs, err := builder.BuildAll(result.AST)
 	if err != nil {
 		// Enhanced error context with file path
-		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("CFG construction failed: %v", err)})
+		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("CFG construction failed: %v", err), cause: err})
 		return functions, rawMetrics, warnings, issues
 	}
 
@@ -229,7 +229,7 @@ func (s *ComplexityServiceImpl) analyzeProjectFile(file *ProjectFile, req domain
 		return functions, nil, warnings, issues
 	}
 	if file.ReadErr != nil {
-		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Failed to read file: %v", file.ReadErr)})
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Failed to read file: %v", file.ReadErr), cause: file.ReadErr})
 		return functions, nil, warnings, issues
 	}
 
@@ -239,13 +239,13 @@ func (s *ComplexityServiceImpl) analyzeProjectFile(file *ProjectFile, req domain
 		return functions, nil, warnings, issues
 	}
 	if file.ParseErr != nil {
-		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Parse error: %v", file.ParseErr)})
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Parse error: %v", file.ParseErr), cause: file.ParseErr})
 		return functions, rawMetrics, warnings, issues
 	}
 
 	cfgs, err := file.CFGs()
 	if err != nil {
-		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("CFG construction failed: %v", err)})
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("CFG construction failed: %v", err), cause: err})
 		return functions, rawMetrics, warnings, issues
 	}
 

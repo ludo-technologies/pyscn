@@ -79,7 +79,7 @@ func (s *SystemAnalysisServiceImpl) analyzeGraph(ctx context.Context, graph *ana
 	if analyzeDependencies && graph != nil {
 		result, err := s.buildDependencyAnalysisResult(ctx, graph)
 		if err != nil {
-			issues = append(issues, analysisIssue{message: fmt.Sprintf("Dependency analysis failed: %v", err)})
+			issues = append(issues, analysisIssue{message: fmt.Sprintf("Dependency analysis failed: %v", err), cause: err})
 		} else {
 			dependencyResult = result
 			allResults = append(allResults, result)
@@ -91,7 +91,7 @@ func (s *SystemAnalysisServiceImpl) analyzeGraph(ctx context.Context, graph *ana
 	if analyzeArchitecture && graph != nil {
 		result, err := s.analyzeArchitectureGraph(ctx, graph, req)
 		if err != nil {
-			issues = append(issues, analysisIssue{message: fmt.Sprintf("Architecture analysis failed: %v", err)})
+			issues = append(issues, analysisIssue{message: fmt.Sprintf("Architecture analysis failed: %v", err), cause: err})
 		} else {
 			architectureResult = result
 			allResults = append(allResults, result)

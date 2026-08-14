@@ -159,20 +159,20 @@ func (s *LCOMServiceImpl) analyzeFile(ctx context.Context, filePath string, req 
 
 	content, err := os.ReadFile(filePath)
 	if err != nil {
-		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Failed to read file: %v", err)})
+		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Failed to read file: %v", err), cause: err})
 		return classes, warnings, issues
 	}
 
 	result, err := s.parser.Parse(ctx, content)
 	if err != nil {
-		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Parse error: %v", err)})
+		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Parse error: %v", err), cause: err})
 		return classes, warnings, issues
 	}
 
 	options := s.buildLCOMOptions(req)
 	lcomResults, err := analyzer.CalculateLCOMWithConfig(result.AST, filePath, options)
 	if err != nil {
-		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("LCOM analysis failed: %v", err)})
+		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("LCOM analysis failed: %v", err), cause: err})
 		return classes, warnings, issues
 	}
 
@@ -195,18 +195,18 @@ func (s *LCOMServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.LCOMR
 		return classes, warnings, issues
 	}
 	if file.ReadErr != nil {
-		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Failed to read file: %v", file.ReadErr)})
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Failed to read file: %v", file.ReadErr), cause: file.ReadErr})
 		return classes, warnings, issues
 	}
 	if file.ParseErr != nil {
-		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Parse error: %v", file.ParseErr)})
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Parse error: %v", file.ParseErr), cause: file.ParseErr})
 		return classes, warnings, issues
 	}
 
 	options := s.buildLCOMOptions(req)
 	lcomResults, err := analyzer.CalculateLCOMWithConfig(file.AST, file.Path, options)
 	if err != nil {
-		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("LCOM analysis failed: %v", err)})
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("LCOM analysis failed: %v", err), cause: err})
 		return classes, warnings, issues
 	}
 

@@ -54,6 +54,29 @@ type AnalysisFailure struct {
 	Code     AnalysisFailureCode `json:"code" yaml:"code"`
 	Message  string              `json:"message" yaml:"message"`
 	FilePath string              `json:"file_path,omitempty" yaml:"file_path,omitempty"`
+	cause    error
+}
+
+// NewAnalysisFailure creates a public typed failure while retaining its
+// underlying cause for in-process error inspection.
+func NewAnalysisFailure(analysis AnalysisKind, code AnalysisFailureCode, filePath, message string, cause error) AnalysisFailure {
+	return AnalysisFailure{
+		Analysis: analysis,
+		Code:     code,
+		Message:  message,
+		FilePath: filePath,
+		cause:    cause,
+	}
+}
+
+// Error implements error without changing the serialized failure contract.
+func (f AnalysisFailure) Error() string {
+	return f.Message
+}
+
+// Unwrap exposes the retained analyzer cause to errors.Is and errors.As.
+func (f AnalysisFailure) Unwrap() error {
+	return f.cause
 }
 
 // AnalysisFailureReporter is implemented by analyzer responses that can carry

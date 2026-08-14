@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -499,11 +500,27 @@ func newAnalysisRunError(tasks []*AnalysisTask, failures []domain.AnalysisFailur
 			causes = append(causes, fmt.Errorf("%s: %w", task.Name, task.Error))
 		}
 	}
+	for _, failure := range failures {
+		cause := errors.Unwrap(failure)
+		if cause == nil || errorListContains(causes, cause) {
+			continue
+		}
+		causes = append(causes, failure)
+	}
 	return &analysisRunError{
 		failureCount: len(failures),
 		firstFailure: failures[0].Message,
 		causes:       causes,
 	}
+}
+
+func errorListContains(errorsToCheck []error, target error) bool {
+	for _, candidate := range errorsToCheck {
+		if errors.Is(candidate, target) {
+			return true
+		}
+	}
+	return false
 }
 
 // createAnalysisTasks creates the analysis tasks based on configuration

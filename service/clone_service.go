@@ -122,13 +122,13 @@ func (s *CloneService) extractFragmentsFromFiles(ctx context.Context, filePaths 
 
 		content, err := readFileContent(filePath)
 		if err != nil {
-			extraction.issues = append(extraction.issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Failed to read file: %v", err)})
+			extraction.issues = append(extraction.issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Failed to read file: %v", err), cause: err})
 			continue
 		}
 
 		parseResult, err := pyParser.Parse(ctx, content)
 		if err != nil {
-			extraction.issues = append(extraction.issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Parse error: %v", err)})
+			extraction.issues = append(extraction.issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Parse error: %v", err), cause: err})
 			continue
 		}
 		if parseResult == nil || parseResult.AST == nil {
