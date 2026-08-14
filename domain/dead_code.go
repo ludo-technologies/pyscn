@@ -112,6 +112,11 @@ type FunctionDeadCode struct {
 	InfoCount     int `json:"info_count"`
 }
 
+// ScopeLabel returns the canonical user-facing name for this execution scope.
+func (f FunctionDeadCode) ScopeLabel() string {
+	return executionScopeLabel(f.ScopeKind, f.Name)
+}
+
 // FileDeadCode represents dead code analysis result for a single file
 type FileDeadCode struct {
 	// File identification
