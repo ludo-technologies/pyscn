@@ -36,7 +36,7 @@ func FindProjectRoot(paths []string) string {
 
 	commonParent := absPaths[0]
 	for _, path := range absPaths[1:] {
-		for !strings.HasPrefix(path, commonParent) {
+		for !pathWithinDirectory(path, commonParent) {
 			commonParent = filepath.Dir(commonParent)
 			if commonParent == "/" || commonParent == "." {
 				break
@@ -57,7 +57,7 @@ func FindProjectRoot(paths []string) string {
 			break
 		}
 
-		if !strings.HasPrefix(absPaths[0], parent) {
+		if !pathWithinDirectory(absPaths[0], parent) {
 			break
 		}
 
