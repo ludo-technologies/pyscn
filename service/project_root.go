@@ -36,7 +36,7 @@ func FindProjectRoot(paths []string) string {
 
 	commonParent := absPaths[0]
 	for _, path := range absPaths[1:] {
-		for !strings.HasPrefix(path, commonParent) {
+		for !pathWithinDirectory(path, commonParent) {
 			commonParent = filepath.Dir(commonParent)
 			if commonParent == "/" || commonParent == "." {
 				break
@@ -57,7 +57,7 @@ func FindProjectRoot(paths []string) string {
 			break
 		}
 
-		if !strings.HasPrefix(absPaths[0], parent) {
+		if !pathWithinDirectory(absPaths[0], parent) {
 			break
 		}
 
@@ -65,4 +65,46 @@ func FindProjectRoot(paths []string) string {
 	}
 
 	return commonParent
+}
+
+// FindAnalysisRoot returns the narrowest common directory explicitly selected
+// by the caller, without widening the scope through project markers.
+func FindAnalysisRoot(paths []string) string {
+	if len(paths) == 0 {
+		cwd, _ := os.Getwd()
+		return cwd
+	}
+
+	directories := make([]string, 0, len(paths))
+	for _, path := range paths {
+		absolute, err := filepath.Abs(path)
+		if err != nil {
+			continue
+		}
+		if info, err := os.Stat(absolute); err == nil && !info.IsDir() {
+			absolute = filepath.Dir(absolute)
+		}
+		directories = append(directories, filepath.Clean(absolute))
+	}
+	if len(directories) == 0 {
+		cwd, _ := os.Getwd()
+		return cwd
+	}
+
+	root := directories[0]
+	for _, directory := range directories[1:] {
+		for !pathWithinDirectory(directory, root) {
+			parent := filepath.Dir(root)
+			if parent == root {
+				break
+			}
+			root = parent
+		}
+	}
+	return root
+}
+
+func pathWithinDirectory(path, root string) bool {
+	relative, err := filepath.Rel(root, path)
+	return err == nil && relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator))
 }

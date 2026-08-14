@@ -30,6 +30,8 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
   "mock_data":          { /* MockDataResponse, present when enabled */ },
   "module_quality":     [ /* ModuleQualityMetrics array, omitted when empty */ ],
   "suggestions":   [ /* Suggestion array, omitted when empty */ ],
+  "diagnostics":   [ /* AnalysisDiagnostic array, omitted when complete */ ],
+	"failures":      [ /* AnalysisFailure array, omitted when analyzers complete */ ],
   "summary":       { /* AnalyzeSummary, always present */ },
   "generated_at":  "2026-04-14T10:18:23Z",
   "duration_ms":   2347,
@@ -49,10 +51,36 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
 | `mock_data`          | object \| absent | Present when mock data detection ran.                 | stable |
 | `module_quality`     | array \| absent  | Per-module quality rollups. Omitted when no analyzer produced module data. | stable |
 | `suggestions` | array \| absent   | Derived suggestions. Omitted when empty.               | stable    |
+| `diagnostics` | array \| absent   | Project read/parse failures, independent of analyzer selection. | stable |
+| `failures`    | array \| absent   | Analyzer execution failures retained with partial results.      | stable |
 | `summary`     | object            | Always present. See [`summary`](#summary-object).      | stable    |
 | `generated_at`| string (RFC 3339) | Analysis completion time.                              | stable    |
 | `duration_ms` | integer           | Total analysis duration in milliseconds.               | stable    |
 | `version`     | string            | pyscn semantic version.                                | stable    |
+
+## `diagnostics` array
+
+Each entry identifies a discovered file excluded from every metric. The array is omitted when all discovered files were analyzed.
+
+| Field       | Type   | Description |
+| ----------- | ------ | ----------- |
+| `file_path` | string | Discovered Python source path. |
+| `code`      | string | Stable category: `read_error` or `parse_error`. |
+| `message`   | string | Human-readable failure detail. |
+
+## `failures` array
+
+Each entry identifies an analyzer that could not complete. Partial results may
+still be present, but a response with failures is not healthy.
+
+| Field       | Type             | Description |
+| ----------- | ---------------- | ----------- |
+| `analysis`  | string           | Stable analyzer identifier such as `complexity`, `deadcode`, `clones`, `cbo`, `lcom`, `system`, or `communities`. |
+| `code`      | string           | Stable category. Currently `execution_error`. |
+| `message`   | string           | Human-readable failure detail. |
+| `file_path` | string or absent | Source file associated with the failure, when known. |
+
+The same `failures` array is available on the nested `complexity`, `dead_code`, `clone`, `cbo`, `lcom`, `system`, `community_analysis`, `mock_data`, and DI anti-pattern responses. The field name is `failures` even on legacy response objects whose other fields use Go PascalCase. Mock-data and DI responses also expose a nested `diagnostics` array with the schema above when used outside the canonical aggregate snapshot path.
 
 ## `summary` object { #summary-object }
 
@@ -214,6 +242,7 @@ Mirrors `domain.ComplexityResponse`. Nested field names are Go PascalCase.
   "raw_metrics_summary": { /* RawMetricsSummary, present when computed */ },
   "Warnings": [ "..." ],
   "Errors": [ "..." ],
+  "failures": [ /* AnalysisFailure array, absent when empty */ ],
   "GeneratedAt": "2026-04-14T10:18:23Z",
   "Version": "0.14.0",
   "Config": null
@@ -288,6 +317,7 @@ Mirrors `domain.DeadCodeResponse`. Uses snake_case field names throughout.
   "summary": { /* DeadCodeSummary */ },
   "warnings": null,
   "errors": null,
+  "failures": [ /* AnalysisFailure array, absent when empty */ ],
   "generated_at": "",
   "version": "",
   "config": null
@@ -381,7 +411,8 @@ Mirrors `domain.CloneResponse`. Uses snake_case field names throughout.
   "statistics": { /* CloneStatistics */ },
   "duration_ms": 123,
   "success": true,
-  "error": ""
+  "error": "",
+  "failures": [ /* AnalysisFailure array, absent when empty */ ]
 }
 ```
 
@@ -461,6 +492,7 @@ Other `CloneResponse` fields:
 | `success`     | boolean | `true` on normal completion.                       |
 | `error`       | string \| absent | Error message if `success=false`.         |
 | `errors`      | array \| absent  | Per-file failures. A file listed here was skipped while the run itself succeeded, so its contents are absent from `statistics`. |
+| `failures`    | array \| absent  | Typed analyzer failures. See [`failures`](#failures-array). |
 
 ## `cbo` object
 
@@ -472,6 +504,7 @@ Mirrors `domain.CBOResponse`. Nested field names are Go PascalCase.
   "Summary": { /* CBOSummary */ },
   "Warnings": null,
   "Errors": null,
+  "failures": [ /* AnalysisFailure array, absent when empty */ ],
   "GeneratedAt": "",
   "Version": "",
   "Config": null
@@ -530,6 +563,7 @@ Mirrors `domain.LCOMResponse`. Nested field names are Go PascalCase.
   "Summary": { /* LCOMSummary */ },
   "Warnings": null,
   "Errors": null,
+  "failures": [ /* AnalysisFailure array, absent when empty */ ],
   "GeneratedAt": "",
   "Version": "",
   "Config": null
@@ -586,6 +620,7 @@ Mirrors `domain.SystemAnalysisResponse`. Nested field names are Go PascalCase.
   "Recommendations":      [ /* SystemRecommendation array */ ],
   "Warnings":             [ ],
   "Errors":               [ ],
+  "failures":             [ /* AnalysisFailure array, absent when empty */ ],
   "GeneratedAt":          "0001-01-01T00:00:00Z",
   "Duration":             0,
   "Version":              "",
@@ -748,6 +783,7 @@ Health Score,<integer>
 Grade,<A|B|C|D|F|N/A>
 Total Files,<integer>
 Analyzed Files,<integer>
+Skipped Files,<integer>
 Average Complexity,<float with 2 decimals>
 High Complexity Count,<integer>
 Dead Code Count,<integer>
@@ -759,6 +795,8 @@ Total Classes Analyzed,<integer>
 High Coupling (CBO) Classes,<integer>
 Average CBO,<float with 2 decimals>
 Module Quality Count,<integer>
+Diagnostic,<file path [code]: message>
+Analysis Failure,<analysis file path [code]: message>
 Module 1 Name,<string>
 Module 1 File Path,<string>
 Module 1 Lines of Code,<integer>
@@ -781,7 +819,7 @@ Directory 1 Average Nesting Depth,<float with 2 decimals>
 Directory 1 Max Nesting Depth,<integer>
 ```
 
-The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all legacy summary, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
+The `Diagnostic` row repeats once per skipped file, and `Analysis Failure` repeats once per analyzer execution failure. The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all summary, diagnostic, failure, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
 
 ## `community_analysis` object { #community-analysis-object }
 
@@ -805,6 +843,7 @@ Mirrors `domain.CommunityAnalysisResult`. Emitted as a top-level field in unifie
 | `community_context_map` | object \| absent | Compact, agent-optimized map of which modules to inspect together. See [`community_context_map`](#community-context-map-object). Absent when no communities were detected. |
 | `warnings`          | array \| absent | Non-fatal analysis warnings.                              |
 | `errors`            | array \| absent | Fatal analysis errors.                                    |
+| `failures`          | array \| absent | Typed analyzer failures. See [`failures`](#failures-array). |
 | `generated_at`      | string (RFC 3339) | Community analysis completion time.                 |
 | `version`           | string  | pyscn semantic version.                                           |
 | `config`            | object \| absent | Effective community-detection settings.                    |

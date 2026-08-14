@@ -21,6 +21,7 @@ type AnalyzeExecutionConfig struct {
 
 	IncludePatterns []string
 	ExcludePatterns []string
+	ModulePatterns  []string
 	Recursive       bool
 	ShowDetails     bool
 
@@ -44,9 +45,18 @@ type AnalyzeExecutionConfig struct {
 	SystemEnabled             bool
 	SystemAnalyzeDependencies bool
 	SystemAnalyzeArchitecture bool
+	ModuleGraph               ModuleGraphOptions
 
 	CommunitiesEnabled         bool
 	CommunitiesEnabledExplicit bool
+}
+
+// ModuleGraphOptions is the resolved module graph policy shared by graph
+// consumers during one analysis execution.
+type ModuleGraphOptions struct {
+	IncludeStdLib     bool
+	IncludeThirdParty bool
+	FollowRelative    bool
 }
 
 // AnalyzeConfigurationLoader resolves and loads configuration for AnalyzeUseCase.
@@ -164,6 +174,10 @@ type AnalyzeResponse struct {
 
 	// Actionable suggestions derived from analysis results
 	Suggestions []Suggestion `json:"suggestions,omitempty" yaml:"suggestions,omitempty"`
+	// Project-level read and parse failures, independent of selected analyzers.
+	Diagnostics []AnalysisDiagnostic `json:"diagnostics,omitempty" yaml:"diagnostics,omitempty"`
+	// Analyzer execution failures. Partial results remain available when set.
+	Failures []AnalysisFailure `json:"failures,omitempty" yaml:"failures,omitempty"`
 
 	// Overall summary
 	Summary AnalyzeSummary `json:"summary" yaml:"summary"`

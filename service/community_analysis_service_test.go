@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/analyzer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -55,6 +56,39 @@ func TestCommunityAnalysisService_Analyze_MinimalSingleModule(t *testing.T) {
 	assert.Len(t, result.Communities, 1)
 	assert.Equal(t, []string{"solo"}, result.Communities[0].Modules)
 	assert.Empty(t, result.BridgeModules)
+}
+
+func TestCommunityAnalysisService_AnalyzeGraphDoesNotReadSourceFiles(t *testing.T) {
+	graph := analyzer.NewDependencyGraph(t.TempDir())
+	graph.AddModule("package.source", filepath.Join(graph.ProjectRoot, "missing", "source.py"))
+	graph.AddModule("package.target", filepath.Join(graph.ProjectRoot, "missing", "target.py"))
+	graph.AddDependency("package.source", "package.target", analyzer.DependencyEdgeImport, nil)
+
+	result, err := NewCommunityAnalysisService().AnalyzeGraph(context.Background(), &ProjectModuleGraph{graph: graph}, domain.CommunityAnalysisRequest{})
+	require.NoError(t, err)
+	assert.Len(t, result.ModuleDependencies, 1)
+}
+
+func TestCommunityAnalysisService_AnalyzeGraphReportsCapturedPolicy(t *testing.T) {
+	graph := analyzer.NewDependencyGraph(t.TempDir())
+	graph.AddModule("source", filepath.Join(graph.ProjectRoot, "source.py"))
+	projectGraph := &ProjectModuleGraph{graph: graph, policy: domain.ModuleGraphOptions{
+		IncludeStdLib:     true,
+		IncludeThirdParty: false,
+		FollowRelative:    false,
+	}}
+
+	result, err := NewCommunityAnalysisService().AnalyzeGraph(context.Background(), projectGraph, domain.CommunityAnalysisRequest{
+		IncludeStdLib:     domain.BoolPtr(false),
+		IncludeThirdParty: domain.BoolPtr(true),
+		FollowRelative:    domain.BoolPtr(true),
+	})
+	require.NoError(t, err)
+	config, ok := result.Config.(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, true, config["includeStdLib"])
+	assert.Equal(t, false, config["includeThirdParty"])
+	assert.Equal(t, false, config["followRelative"])
 }
 
 func TestCommunityAnalysisService_Analyze_IsolatedModulesNoEdges(t *testing.T) {

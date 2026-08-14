@@ -281,6 +281,10 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 
 // buildAnalyzeUseCase builds the analyze use case with all dependencies
 func (c *AnalyzeCommand) buildAnalyzeUseCase(cmd *cobra.Command) (*app.AnalyzeUseCase, error) {
+	return buildAnalyzeUseCase(cmd, c.shouldUseProgressBars(cmd))
+}
+
+func buildAnalyzeUseCase(cmd *cobra.Command, showProgress bool) (*app.AnalyzeUseCase, error) {
 	builder := app.NewAnalyzeUseCaseBuilder()
 
 	// Set up file reader
@@ -294,7 +298,7 @@ func (c *AnalyzeCommand) buildAnalyzeUseCase(cmd *cobra.Command) (*app.AnalyzeUs
 
 	// Set up progress manager
 	progressManager := service.NewProgressManager()
-	if c.shouldUseProgressBars(cmd) {
+	if showProgress {
 		progressManager.SetWriter(cmd.ErrOrStderr())
 	} else {
 		progressManager.SetWriter(io.Discard)
@@ -310,7 +314,7 @@ func (c *AnalyzeCommand) buildAnalyzeUseCase(cmd *cobra.Command) (*app.AnalyzeUs
 	builder.WithErrorCategorizer(errorCategorizer)
 
 	// Build individual use cases
-	if err := c.buildIndividualUseCases(builder, cmd); err != nil {
+	if err := buildIndividualUseCases(builder); err != nil {
 		return nil, err
 	}
 
@@ -318,12 +322,12 @@ func (c *AnalyzeCommand) buildAnalyzeUseCase(cmd *cobra.Command) (*app.AnalyzeUs
 }
 
 // buildIndividualUseCases builds and sets individual analysis use cases
-func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuilder, cmd *cobra.Command) error {
+func buildIndividualUseCases(builder *app.AnalyzeUseCaseBuilder) error {
 	// Complexity use case
 	complexityService := service.NewComplexityService()
 	complexityFormatter := service.NewOutputFormatter()
 	complexityConfigLoader := service.NewConfigurationLoader()
-	complexityUseCase := app.NewComplexityUseCase(
+	complexityUseCase := app.NewSnapshotComplexityUseCase(
 		complexityService,
 		service.NewFileReader(),
 		complexityFormatter,
@@ -335,7 +339,7 @@ func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuil
 	deadCodeService := service.NewDeadCodeService()
 	deadCodeFormatter := service.NewDeadCodeFormatter()
 	deadCodeConfigLoader := service.NewDeadCodeConfigurationLoader()
-	deadCodeUseCase := app.NewDeadCodeUseCase(
+	deadCodeUseCase := app.NewSnapshotDeadCodeUseCase(
 		deadCodeService,
 		service.NewFileReader(),
 		deadCodeFormatter,
@@ -348,7 +352,7 @@ func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuil
 	cloneFormatter := service.NewCloneOutputFormatter()
 	cloneConfigLoader := service.NewCloneConfigurationLoader()
 	cloneUseCase, err := app.NewCloneUseCaseBuilder().
-		WithService(cloneService).
+		WithSnapshotService(cloneService).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(cloneFormatter).
 		WithConfigLoader(cloneConfigLoader).
@@ -363,7 +367,7 @@ func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuil
 	cboFormatter := service.NewCBOFormatter()
 	cboConfigLoader := service.NewCBOConfigurationLoader()
 	cboUseCase, err := app.NewCBOUseCaseBuilder().
-		WithService(cboService).
+		WithSnapshotService(cboService).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(cboFormatter).
 		WithConfigLoader(cboConfigLoader).
@@ -378,7 +382,7 @@ func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuil
 	lcomFormatter := service.NewLCOMFormatter()
 	lcomConfigLoader := service.NewLCOMConfigurationLoader()
 	lcomUseCase, err := app.NewLCOMUseCaseBuilder().
-		WithService(lcomService).
+		WithSnapshotService(lcomService).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(lcomFormatter).
 		WithConfigLoader(lcomConfigLoader).
@@ -393,7 +397,7 @@ func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuil
 	systemFormatter := service.NewSystemAnalysisFormatter()
 	systemConfigLoader := service.NewSystemAnalysisConfigurationLoader()
 	systemUseCase, err := app.NewSystemAnalysisUseCaseBuilder().
-		WithService(systemService).
+		WithGraphService(systemService).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(systemFormatter).
 		WithConfigLoader(systemConfigLoader).
@@ -408,7 +412,7 @@ func (c *AnalyzeCommand) buildIndividualUseCases(builder *app.AnalyzeUseCaseBuil
 	communityFormatter := service.NewCommunityFormatter()
 	communityConfigLoader := service.NewCommunityConfigurationLoader()
 	communityUseCase, err := app.NewCommunityUseCaseBuilder().
-		WithService(communityService).
+		WithGraphService(communityService).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(communityFormatter).
 		WithConfigLoader(communityConfigLoader).

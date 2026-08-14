@@ -237,7 +237,7 @@ func TestCommunity_AnalyzeUseCase_SelectCommunities(t *testing.T) {
 	require.NoError(t, err)
 
 	communityUC, err := app.NewCommunityUseCaseBuilder().
-		WithService(service.NewCommunityAnalysisService()).
+		WithGraphService(service.NewCommunityAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(service.NewCommunityFormatter()).
 		Build()

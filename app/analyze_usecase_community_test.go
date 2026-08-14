@@ -18,7 +18,7 @@ func TestAnalyzeUseCase_CommunityTask(t *testing.T) {
 	require.NoError(t, err)
 
 	communityUC, err := NewCommunityUseCaseBuilder().
-		WithService(service.NewCommunityAnalysisService()).
+		WithGraphService(service.NewCommunityAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(noopCommunityFormatter{}).
 		Build()
@@ -63,7 +63,7 @@ enabled = true
 	require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0644))
 
 	communityUC, err := NewCommunityUseCaseBuilder().
-		WithService(service.NewCommunityAnalysisService()).
+		WithGraphService(service.NewCommunityAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(noopCommunityFormatter{}).
 		WithConfigLoader(service.NewCommunityConfigurationLoader()).
@@ -109,7 +109,7 @@ enabled = false
 	require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0644))
 
 	communityUC, err := NewCommunityUseCaseBuilder().
-		WithService(service.NewCommunityAnalysisService()).
+		WithGraphService(service.NewCommunityAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(noopCommunityFormatter{}).
 		WithConfigLoader(service.NewCommunityConfigurationLoader()).
@@ -155,7 +155,7 @@ enabled = true
 	require.NoError(t, os.WriteFile(configPath, []byte(configContent), 0644))
 
 	communityUC, err := NewCommunityUseCaseBuilder().
-		WithService(service.NewCommunityAnalysisService()).
+		WithGraphService(service.NewCommunityAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(noopCommunityFormatter{}).
 		Build()
@@ -191,7 +191,7 @@ enabled = true
 
 func TestAnalyzeUseCase_CommunityTaskSkippedByDefault(t *testing.T) {
 	communityUC, err := NewCommunityUseCaseBuilder().
-		WithService(service.NewCommunityAnalysisService()).
+		WithGraphService(service.NewCommunityAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(noopCommunityFormatter{}).
 		Build()
@@ -212,7 +212,7 @@ func TestAnalyzeUseCase_CommunityTaskSkippedByDefault(t *testing.T) {
 		SkipLCOM:        true,
 		SkipSystem:      true,
 		SkipCommunities: true,
-	}, []string{"."}, []string{"."}, nil, domain.AnalyzeExecutionConfig{})
+	}, []string{"."}, []string{"."}, nil, nil, nil, domain.AnalyzeExecutionConfig{})
 
 	var communityTask *AnalysisTask
 	for _, task := range tasks {
@@ -227,7 +227,7 @@ func TestAnalyzeUseCase_CommunityTaskSkippedByDefault(t *testing.T) {
 
 func TestAnalyzeUseCase_CommunityTaskRequestUsesDiscardWriter(t *testing.T) {
 	communityUC, err := NewCommunityUseCaseBuilder().
-		WithService(service.NewCommunityAnalysisService()).
+		WithGraphService(service.NewCommunityAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(noopCommunityFormatter{}).
 		Build()
@@ -240,6 +240,13 @@ func TestAnalyzeUseCase_CommunityTaskRequestUsesDiscardWriter(t *testing.T) {
 		Build()
 	require.NoError(t, err)
 
+	sourcePath := filepath.Join("..", "testdata", "python", "mvc_app")
+	files, err := service.NewFileReader().CollectPythonFiles([]string{sourcePath}, true, nil, nil)
+	require.NoError(t, err)
+	snapshot := service.BuildProjectSnapshot(context.Background(), files)
+	graph, err := snapshot.BuildDependencyGraph(context.Background(), nil)
+	require.NoError(t, err)
+
 	tasks := useCase.createAnalysisTasks(AnalyzeUseCaseConfig{
 		SkipComplexity:  true,
 		SkipDeadCode:    true,
@@ -248,7 +255,7 @@ func TestAnalyzeUseCase_CommunityTaskRequestUsesDiscardWriter(t *testing.T) {
 		SkipLCOM:        true,
 		SkipSystem:      true,
 		SkipCommunities: false,
-	}, []string{filepath.Join("..", "testdata", "python", "mvc_app")}, []string{filepath.Join("..", "testdata", "python", "mvc_app")}, nil, domain.AnalyzeExecutionConfig{Recursive: true})
+	}, []string{sourcePath}, files, snapshot, graph, nil, domain.AnalyzeExecutionConfig{Recursive: true})
 
 	var communityTask *AnalysisTask
 	for _, task := range tasks {

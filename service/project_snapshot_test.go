@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
 func TestProjectSnapshotCachesParsedFileState(t *testing.T) {
@@ -63,6 +64,107 @@ func TestProjectSnapshotOptionsSkipRawMetrics(t *testing.T) {
 	}
 }
 
+func TestAnalysisProjectSnapshotKeepsSourceAndModuleScopesDistinct(t *testing.T) {
+	projectRoot := t.TempDir()
+	sourcePath := filepath.Join(projectRoot, "runtime.py")
+	stubPath := filepath.Join(projectRoot, "contract.pyi")
+	if err := os.WriteFile(sourcePath, []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	if err := os.WriteFile(stubPath, []byte("VALUE: int\n"), 0o644); err != nil {
+		t.Fatalf("write stub: %v", err)
+	}
+
+	snapshot := BuildAnalysisProjectSnapshot(
+		context.Background(),
+		[]string{sourcePath},
+		[]string{sourcePath, stubPath},
+		ProjectSnapshotOptions{},
+	)
+	if snapshot.Files != nil {
+		t.Fatal("aggregate snapshots must not eagerly allocate compatibility projections")
+	}
+	if projections := snapshot.FileProjections(); len(projections) != 2 {
+		t.Fatalf("expected two on-demand file projections, got %d", len(projections))
+	}
+	if got := snapshot.Paths(); len(got) != 1 || got[0] != sourcePath {
+		t.Fatalf("expected only the implementation path, got %v", got)
+	}
+	if got := snapshot.analysisProjectFiles(); len(got) != 1 || got[0].Path != sourcePath {
+		t.Fatalf("expected only the implementation file, got %v", got)
+	}
+	coverage := snapshot.Coverage()
+	if coverage.TotalFiles != 1 || coverage.AnalyzedFiles != 1 || coverage.SkippedFiles != 0 {
+		t.Fatalf("expected coverage to use the implementation scope, got %+v", coverage)
+	}
+	modules := snapshot.selectedModuleFiles(&ModuleGraphOptions{IncludePatterns: domain.DefaultPythonModuleIncludePatterns()})
+	if len(modules) != 2 {
+		t.Fatalf("expected source and stub module files, got %d", len(modules))
+	}
+}
+
+func TestProjectSnapshotProjectionDoesNotShareValueNodes(t *testing.T) {
+	sourcePath := filepath.Join(t.TempDir(), "source.py")
+	if err := os.WriteFile(sourcePath, []byte("def call():\n    return target()\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	snapshot := BuildProjectSnapshot(context.Background(), []string{sourcePath})
+
+	projectedCalls := snapshot.Files[0].AST.FindByType(parser.NodeCall)
+	internalCalls := snapshot.files[0].AST.FindByType(parser.NodeCall)
+	if len(projectedCalls) != 1 || len(internalCalls) != 1 {
+		t.Fatalf("expected one call in each AST, got projected=%d internal=%d", len(projectedCalls), len(internalCalls))
+	}
+	projectedCallee, projectedOK := projectedCalls[0].Value.(*parser.Node)
+	internalCallee, internalOK := internalCalls[0].Value.(*parser.Node)
+	if !projectedOK || !internalOK {
+		t.Fatal("expected node-valued call targets")
+	}
+	projectedCallee.Name = "mutated"
+	if internalCallee.Name != "target" {
+		t.Fatalf("public projection mutated sealed syntax to %q", internalCallee.Name)
+	}
+}
+
+func TestProjectSnapshotBuildDependencyGraphUsesOnlyCapturedParsedFiles(t *testing.T) {
+	ctx := context.Background()
+	projectRoot := t.TempDir()
+	sourcePath := filepath.Join(projectRoot, "source.py")
+	targetPath := filepath.Join(projectRoot, "target.py")
+	brokenPath := filepath.Join(projectRoot, "broken.py")
+
+	if err := os.WriteFile(sourcePath, []byte("import target\n"), 0o644); err != nil {
+		t.Fatalf("write source module: %v", err)
+	}
+	if err := os.WriteFile(targetPath, []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatalf("write target module: %v", err)
+	}
+	if err := os.WriteFile(brokenPath, []byte("def broken(:\n"), 0o644); err != nil {
+		t.Fatalf("write broken source: %v", err)
+	}
+
+	snapshot := BuildProjectSnapshotWithOptions(ctx, []string{sourcePath, targetPath, brokenPath}, ProjectSnapshotOptions{})
+	snapshot.Files[0].Path = filepath.Join(projectRoot, "mutated.py")
+	snapshot.Files[0].AST = nil
+	if err := os.WriteFile(sourcePath, []byte("VALUE = 2\n"), 0o644); err != nil {
+		t.Fatalf("replace captured source: %v", err)
+	}
+
+	graph, err := snapshot.BuildDependencyGraph(ctx, &ModuleGraphOptions{ProjectRoot: projectRoot})
+	if err != nil {
+		t.Fatalf("build dependency graph: %v", err)
+	}
+	if graph.graph.TotalModules != 2 {
+		t.Fatalf("expected only the two parsed modules, got %d", graph.graph.TotalModules)
+	}
+	if graph.graph.Nodes["source"] == nil || !graph.graph.Nodes["source"].Dependencies["target"] {
+		t.Fatalf("expected dependency from captured syntax, got %+v", graph.graph.Nodes)
+	}
+	if graph.graph.Nodes["broken"] != nil {
+		t.Fatal("broken module must not be added to the graph")
+	}
+}
+
 func TestComplexitySnapshotRequiresRawMetrics(t *testing.T) {
 	ctx := context.Background()
 	sourcePath := writeSnapshotFixture(t)
@@ -79,6 +181,79 @@ func TestComplexitySnapshotRequiresRawMetrics(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected complexity snapshot without raw metrics to fail")
+	}
+}
+
+func TestProjectSnapshotCapturesSrcModuleRoot(t *testing.T) {
+	projectRoot := t.TempDir()
+	packageDir := filepath.Join(projectRoot, "src", "pkg")
+	if err := os.MkdirAll(packageDir, 0o755); err != nil {
+		t.Fatalf("create src package: %v", err)
+	}
+	sourcePath := filepath.Join(packageDir, "source.py")
+	targetPath := filepath.Join(packageDir, "target.py")
+	if err := os.WriteFile(sourcePath, []byte("import pkg.target\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	if err := os.WriteFile(targetPath, []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatalf("write target: %v", err)
+	}
+	snapshot := BuildProjectSnapshot(context.Background(), []string{sourcePath, targetPath})
+	for _, path := range []string{sourcePath, targetPath, packageDir, filepath.Join(projectRoot, "src")} {
+		if err := os.Remove(path); err != nil {
+			t.Fatalf("remove captured path %s: %v", path, err)
+		}
+	}
+
+	graph, err := snapshot.BuildDependencyGraph(context.Background(), &ModuleGraphOptions{ProjectRoot: projectRoot})
+	if err != nil {
+		t.Fatalf("build captured src graph: %v", err)
+	}
+	if graph.graph.Nodes["pkg.source"] == nil || !graph.graph.Nodes["pkg.source"].Dependencies["pkg.target"] {
+		t.Fatalf("expected src-rooted captured modules, got %+v", graph.graph.Nodes)
+	}
+}
+
+func TestProjectSnapshotResolvesRelativeModulePathsAtCaptureTime(t *testing.T) {
+	originalWorkingDirectory, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("get working directory: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(originalWorkingDirectory); err != nil {
+			t.Errorf("restore working directory: %v", err)
+		}
+	})
+
+	projectRoot := t.TempDir()
+	packageDir := filepath.Join(projectRoot, "src", "pkg")
+	if err := os.MkdirAll(packageDir, 0o755); err != nil {
+		t.Fatalf("create src package: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(packageDir, "source.py"), []byte("import pkg.target\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(packageDir, "target.py"), []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatalf("write target: %v", err)
+	}
+	if err := os.Chdir(projectRoot); err != nil {
+		t.Fatalf("enter project root: %v", err)
+	}
+	relativePaths := []string{filepath.Join("src", "pkg", "source.py"), filepath.Join("src", "pkg", "target.py")}
+	snapshot := BuildProjectSnapshot(context.Background(), relativePaths)
+
+	if err := os.Chdir(t.TempDir()); err != nil {
+		t.Fatalf("leave captured project: %v", err)
+	}
+	graph, err := snapshot.BuildDependencyGraph(context.Background(), &ModuleGraphOptions{})
+	if err != nil {
+		t.Fatalf("build graph after working directory changed: %v", err)
+	}
+	if graph.graph.Nodes["pkg.source"] == nil || !graph.graph.Nodes["pkg.source"].Dependencies["pkg.target"] {
+		t.Fatalf("expected capture-rooted modules, got %+v", graph.graph.Nodes)
+	}
+	if got := snapshot.Paths(); len(got) != len(relativePaths) || got[0] != relativePaths[0] || got[1] != relativePaths[1] {
+		t.Fatalf("expected public paths to preserve caller spelling, got %v", got)
 	}
 }
 

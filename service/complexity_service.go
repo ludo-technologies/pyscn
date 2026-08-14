@@ -32,7 +32,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 	var allRawMetrics []domain.RawMetrics
 	var rawMetricResults []*analyzer.RawMetricsResult
 	var warnings []string
-	var errors []string
+	var issues []analysisIssue
 	filesProcessed := 0
 	filesSkipped := 0
 
@@ -47,15 +47,15 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 		// Progress reporting removed - file parsing is fast
 
 		// Analyze single file
-		functions, rawMetrics, fileWarnings, fileErrors := s.analyzeFile(ctx, filePath, req)
+		functions, rawMetrics, fileWarnings, fileIssues := s.analyzeFile(ctx, filePath, req)
 
 		if rawMetrics != nil {
 			allRawMetrics = append(allRawMetrics, *s.convertRawMetrics(rawMetrics))
 			rawMetricResults = append(rawMetricResults, rawMetrics)
 		}
 
-		if len(fileErrors) > 0 {
-			errors = append(errors, fileErrors...)
+		if len(fileIssues) > 0 {
+			issues = append(issues, fileIssues...)
 			filesSkipped++
 			continue // Skip this file but continue with others
 		}
@@ -90,7 +90,8 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 		RawMetrics:        allRawMetrics,
 		RawMetricsSummary: rawMetricsSummary,
 		Warnings:          warnings,
-		Errors:            errors,
+		Errors:            analysisIssueMessages(issues),
+		Failures:          analyzerFailures(domain.AnalysisKindComplexity, issues),
 		GeneratedAt:       time.Now().Format(time.RFC3339),
 		Version:           version.Version, // Get version from version package
 		Config:            s.buildConfigForResponse(req),
@@ -107,26 +108,31 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 	var allRawMetrics []domain.RawMetrics
 	var rawMetricResults []*analyzer.RawMetricsResult
 	var warnings []string
-	var errors []string
+	var issues []analysisIssue
 	filesProcessed := 0
 	filesSkipped := 0
+	parsedFiles := 0
 
-	for _, file := range snapshot.Files {
+	for _, file := range snapshot.analysisProjectFiles() {
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("complexity analysis cancelled: %w", ctx.Err())
 		default:
 		}
+		if !file.Parsed() {
+			continue
+		}
+		parsedFiles++
 
-		functions, rawMetrics, fileWarnings, fileErrors := s.analyzeProjectFile(file, req)
+		functions, rawMetrics, fileWarnings, fileIssues := s.analyzeProjectFile(file, req)
 
 		if rawMetrics != nil {
 			allRawMetrics = append(allRawMetrics, *s.convertRawMetrics(rawMetrics))
 			rawMetricResults = append(rawMetricResults, rawMetrics)
 		}
 
-		if len(fileErrors) > 0 {
-			errors = append(errors, fileErrors...)
+		if len(fileIssues) > 0 {
+			issues = append(issues, fileIssues...)
 			filesSkipped++
 			continue
 		}
@@ -135,8 +141,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 		warnings = append(warnings, fileWarnings...)
 		filesProcessed++
 	}
-
-	if len(allFunctions) == 0 && len(allRawMetrics) == 0 {
+	if parsedFiles > 0 && len(allFunctions) == 0 && len(allRawMetrics) == 0 {
 		return nil, domain.NewAnalysisError("no functions found to analyze", nil)
 	}
 
@@ -157,7 +162,8 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 		RawMetrics:        allRawMetrics,
 		RawMetricsSummary: rawMetricsSummary,
 		Warnings:          warnings,
-		Errors:            errors,
+		Errors:            analysisIssueMessages(issues),
+		Failures:          analyzerFailures(domain.AnalysisKindComplexity, issues),
 		GeneratedAt:       time.Now().Format(time.RFC3339),
 		Version:           version.Version,
 		Config:            s.buildConfigForResponse(req),
@@ -174,16 +180,16 @@ func (s *ComplexityServiceImpl) AnalyzeFile(ctx context.Context, filePath string
 }
 
 // analyzeFile performs complexity analysis on a single file
-func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string, req domain.ComplexityRequest) ([]domain.FunctionComplexity, *analyzer.RawMetricsResult, []string, []string) {
+func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string, req domain.ComplexityRequest) ([]domain.FunctionComplexity, *analyzer.RawMetricsResult, []string, []analysisIssue) {
 	var functions []domain.FunctionComplexity
 	var warnings []string
-	var errors []string
+	var issues []analysisIssue
 
 	// Parse the file
 	content, err := s.readFile(filePath)
 	if err != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
-		return functions, nil, warnings, errors
+		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Failed to read file: %v", err), cause: err})
+		return functions, nil, warnings, issues
 	}
 
 	rawMetrics := analyzer.CalculateRawMetrics(content, filePath)
@@ -191,8 +197,8 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 	result, err := s.parser.Parse(ctx, content)
 	if err != nil {
 		// Enhanced error context with file path
-		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", filePath, err))
-		return functions, rawMetrics, warnings, errors
+		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Parse error: %v", err), cause: err})
+		return functions, rawMetrics, warnings, issues
 	}
 
 	analyzer.PopulateLogicalLines(rawMetrics, result.AST)
@@ -202,50 +208,50 @@ func (s *ComplexityServiceImpl) analyzeFile(ctx context.Context, filePath string
 	cfgs, err := builder.BuildAll(result.AST)
 	if err != nil {
 		// Enhanced error context with file path
-		errors = append(errors, fmt.Sprintf("[%s] CFG construction failed: %v", filePath, err))
-		return functions, rawMetrics, warnings, errors
+		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("CFG construction failed: %v", err), cause: err})
+		return functions, rawMetrics, warnings, issues
 	}
 
 	// Calculate complexity for each function
 	complexityConfig := s.buildComplexityConfig(req)
 	functions, warnings = s.calculateFunctionComplexities(filePath, cfgs, complexityConfig, req, rawMetrics)
 
-	return functions, rawMetrics, warnings, errors
+	return functions, rawMetrics, warnings, issues
 }
 
-func (s *ComplexityServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.ComplexityRequest) ([]domain.FunctionComplexity, *analyzer.RawMetricsResult, []string, []string) {
+func (s *ComplexityServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.ComplexityRequest) ([]domain.FunctionComplexity, *analyzer.RawMetricsResult, []string, []analysisIssue) {
 	var functions []domain.FunctionComplexity
 	var warnings []string
-	var errors []string
+	var issues []analysisIssue
 
 	if file == nil {
-		errors = append(errors, "[unknown] Invalid project file")
-		return functions, nil, warnings, errors
+		issues = append(issues, analysisIssue{filePath: "unknown", message: "Invalid project file"})
+		return functions, nil, warnings, issues
 	}
 	if file.ReadErr != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", file.Path, file.ReadErr))
-		return functions, nil, warnings, errors
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Failed to read file: %v", file.ReadErr), cause: file.ReadErr})
+		return functions, nil, warnings, issues
 	}
 
 	rawMetrics := file.RawMetrics
 	if rawMetrics == nil {
-		errors = append(errors, fmt.Sprintf("[%s] Project snapshot is missing raw metrics", file.Path))
-		return functions, nil, warnings, errors
+		issues = append(issues, analysisIssue{filePath: file.Path, message: "Project snapshot is missing raw metrics"})
+		return functions, nil, warnings, issues
 	}
 	if file.ParseErr != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", file.Path, file.ParseErr))
-		return functions, rawMetrics, warnings, errors
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Parse error: %v", file.ParseErr), cause: file.ParseErr})
+		return functions, rawMetrics, warnings, issues
 	}
 
 	cfgs, err := file.CFGs()
 	if err != nil {
-		errors = append(errors, fmt.Sprintf("[%s] CFG construction failed: %v", file.Path, err))
-		return functions, rawMetrics, warnings, errors
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("CFG construction failed: %v", err), cause: err})
+		return functions, rawMetrics, warnings, issues
 	}
 
 	complexityConfig := s.buildComplexityConfig(req)
 	functions, warnings = s.calculateFunctionComplexities(file.Path, cfgs, complexityConfig, req, rawMetrics)
-	return functions, rawMetrics, warnings, errors
+	return functions, rawMetrics, warnings, issues
 }
 
 func (s *ComplexityServiceImpl) calculateFunctionComplexities(filePath string, cfgs map[string]*analyzer.CFG, complexityConfig *config.ComplexityConfig, req domain.ComplexityRequest, rawMetrics *analyzer.RawMetricsResult) ([]domain.FunctionComplexity, []string) {

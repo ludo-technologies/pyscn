@@ -18,7 +18,7 @@ Les chemins sont par défaut le répertoire courant.
 - **Rapide** — n'exécute que les analyses sélectionnées ; pas de génération de rapport.
 
 !!! note "Portée des erreurs d'analyse syntaxique"
-    Les analyses `complexity`, `deadcode`, `clones`, `mockdata` et `di` signalent chacune les fichiers qu'elles n'ont pas pu lire ou analyser, et il suffit qu'une seule le fasse pour faire échouer la vérification. `deps` fait exception : le constructeur du graphe de dépendances ignore les modules illisibles sans les enregistrer, donc `pyscn check --select deps` seul ne détectera pas une erreur de syntaxe. Les exécutions par défaut sont couvertes, car `complexity` s'exécute toujours.
+    Toutes les analyses sélectionnées utilisent le même registre de découverte du projet. Un fichier illisible ou impossible à analyser fait échouer la vérification, y compris avec `pyscn check --select deps`, sauf si `--allow-parse-errors` est défini.
 
 ## Options
 

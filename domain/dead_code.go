@@ -156,8 +156,9 @@ type DeadCodeResponse struct {
 	ModuleRollups map[string]ModuleDeadCodeMetrics `json:"-" yaml:"-"`
 
 	// Warnings and issues
-	Warnings []string `json:"warnings"`
-	Errors   []string `json:"errors"`
+	Warnings []string          `json:"warnings"`
+	Errors   []string          `json:"errors"`
+	Failures []AnalysisFailure `json:"failures,omitempty" yaml:"failures,omitempty"`
 
 	// Metadata
 	GeneratedAt string           `json:"generated_at"`

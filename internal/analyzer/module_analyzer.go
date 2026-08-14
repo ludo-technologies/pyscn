@@ -40,6 +40,7 @@ var pythonPackageInitFiles = [...]string{"__init__.py", "__init__.pyi"}
 type ModuleAnalysisOptions struct {
 	ProjectRoot       string   // Project root directory
 	PythonPath        []string // Additional Python path entries
+	ModuleRoots       []string // Explicit captured module roots; nil discovers from disk
 	ExcludePatterns   []string // Module patterns to exclude; nil uses defaults, empty disables excludes
 	IncludePatterns   []string // Module patterns to include; nil uses defaults, empty includes all files
 	IncludeStdLib     *bool    // Include standard library dependencies
@@ -81,9 +82,15 @@ func NewModuleAnalyzer(options *ModuleAnalysisOptions) (*ModuleAnalyzer, error) 
 		return nil, fmt.Errorf("failed to resolve project root: %w", err)
 	}
 
+	resolvedRoots := options.ModuleRoots
+	if resolvedRoots == nil {
+		resolvedRoots = moduleRoots(absRoot, options.PythonPath)
+	} else {
+		resolvedRoots = normalizeModuleRoots(resolvedRoots)
+	}
 	analyzer := &ModuleAnalyzer{
 		projectRoot:       absRoot,
-		moduleRoots:       moduleRoots(absRoot, options.PythonPath),
+		moduleRoots:       resolvedRoots,
 		resolvedModules:   make(map[string]string),
 		includeStdLib:     domain.BoolValue(options.IncludeStdLib, domain.BoolValue(defaults.IncludeStdLib, false)),
 		includeThirdParty: domain.BoolValue(options.IncludeThirdParty, domain.BoolValue(defaults.IncludeThirdParty, true)),
@@ -105,6 +112,31 @@ func NewModuleAnalyzer(options *ModuleAnalysisOptions) (*ModuleAnalyzer, error) 
 	}
 
 	return analyzer, nil
+}
+
+func normalizeModuleRoots(paths []string) []string {
+	roots := make([]string, 0, len(paths))
+	for _, path := range paths {
+		if path == "" {
+			continue
+		}
+		absolute, err := filepath.Abs(path)
+		if err != nil {
+			continue
+		}
+		duplicate := false
+		for _, existing := range roots {
+			if existing == absolute {
+				duplicate = true
+				break
+			}
+		}
+		if !duplicate {
+			roots = append(roots, absolute)
+		}
+	}
+	sort.SliceStable(roots, func(i, j int) bool { return len(roots[i]) > len(roots[j]) })
+	return roots
 }
 
 func moduleRoots(projectRoot string, pythonPath []string) []string {
@@ -230,6 +262,59 @@ func (ma *ModuleAnalyzer) AnalyzeFiles(filePaths []string) (*DependencyGraph, er
 	return graph, nil
 }
 
+// AnalyzeParsedModules builds a dependency graph from previously parsed source.
+func (ma *ModuleAnalyzer) AnalyzeParsedModules(ctx context.Context, parsedModules []ParsedModule) (*DependencyGraph, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	modulesByPath := make(map[string]ParsedModule, len(parsedModules))
+	paths := make([]string, 0, len(parsedModules))
+	for _, parsedModule := range parsedModules {
+		if parsedModule.path == "" || parsedModule.ast == nil {
+			return nil, fmt.Errorf("invalid parsed module")
+		}
+		if !ma.isValidPythonFile(parsedModule.path) {
+			return nil, fmt.Errorf("unsupported Python module path: %s", parsedModule.path)
+		}
+		absolutePath, err := filepath.Abs(parsedModule.path)
+		if err != nil {
+			return nil, fmt.Errorf("resolve parsed module path %s: %w", parsedModule.path, err)
+		}
+		parsedModule.path = absolutePath
+		modulesByPath[absolutePath] = parsedModule
+		paths = append(paths, absolutePath)
+	}
+	paths = ma.canonicalModuleFiles(paths)
+	if len(paths) == 0 {
+		return nil, fmt.Errorf("no parsed Python modules provided")
+	}
+
+	graph := NewDependencyGraph(ma.projectRoot)
+	parsedPackages := make(map[string]*parser.Node)
+	for _, path := range paths {
+		moduleName := ma.filePathToModuleName(path)
+		if moduleName != "" {
+			graph.AddModule(moduleName, path)
+			if isPythonPackageInit(path) {
+				parsedPackages[moduleName] = modulesByPath[path].ast
+			}
+		}
+	}
+	ma.reExportResolver.UseParsedPackages(parsedPackages)
+	for _, path := range paths {
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("module analysis cancelled: %w", err)
+		}
+		parsedModule := modulesByPath[path]
+		if err := ma.analyzeParsedModuleDependencies(graph, parsedModule, true); err != nil {
+			return nil, fmt.Errorf("analyze captured module %s: %w", path, err)
+		}
+	}
+
+	return graph, nil
+}
+
 // analyzeModuleDependencies analyzes imports in a single module and adds dependencies to graph
 func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, filePath string) error {
 	// Read file content
@@ -246,9 +331,17 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 		return fmt.Errorf("failed to parse file %s: %w", filePath, err)
 	}
 
-	moduleName := ma.filePathToModuleName(filePath)
+	parsedModule, err := NewParsedModule(filePath, content, result.AST)
+	if err != nil {
+		return fmt.Errorf("invalid parsed module %s: %w", filePath, err)
+	}
+	return ma.analyzeParsedModuleDependencies(graph, parsedModule, false)
+}
+
+func (ma *ModuleAnalyzer) analyzeParsedModuleDependencies(graph *DependencyGraph, parsedModule ParsedModule, capturedOnly bool) error {
+	moduleName := ma.filePathToModuleName(parsedModule.path)
 	if moduleName == "" {
-		return fmt.Errorf("could not determine module name for %s", filePath)
+		return fmt.Errorf("could not determine module name for %s", parsedModule.path)
 	}
 
 	// Get module node
@@ -257,12 +350,12 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 		return fmt.Errorf("module not found in graph: %s", moduleName)
 	}
 
-	facts := ma.collectModuleFacts(result.AST)
+	facts := ma.collectModuleFacts(parsedModule.ast)
 	module.FunctionCount = facts.functionCount
 	module.ClassCount = facts.classCount
 	module.AbstractClassCount = facts.abstractClassCount
 	module.PublicNames = facts.publicNames
-	module.LineCount = countSourceLines(content)
+	module.LineCount = countSourceLines(parsedModule.source)
 
 	// Process each import
 	for _, imp := range facts.imports {
@@ -278,14 +371,14 @@ func (ma *ModuleAnalyzer) analyzeModuleDependencies(graph *DependencyGraph, file
 		// flagged via ImportInfo.IsLazy and excluded only from load-time
 		// circular-dependency detection. See issue #460.
 
-		targetModule := ma.resolveImport(imp, filePath)
+		targetModule := ma.resolveImport(graph, imp, parsedModule.path, capturedOnly)
 		if targetModule == "" {
 			continue
 		}
 
 		edgeType := ma.dependencyEdgeType(imp)
 		for _, resolvedModule := range ma.importDependencyTargets(graph, imp, targetModule) {
-			if ma.shouldSkipPackageInitDependency(filePath, moduleName, resolvedModule) {
+			if ma.shouldSkipPackageInitDependency(parsedModule.path, moduleName, resolvedModule) {
 				continue
 			}
 			if ma.shouldIncludeDependency(resolvedModule) {
@@ -497,12 +590,76 @@ func (ma *ModuleAnalyzer) importsFromNode(node *parser.Node) []*ImportInfo {
 }
 
 // resolveImport resolves an import to a module name
-func (ma *ModuleAnalyzer) resolveImport(imp *ImportInfo, fromFile string) string {
+func (ma *ModuleAnalyzer) resolveImport(graph *DependencyGraph, imp *ImportInfo, fromFile string, capturedOnly bool) string {
 	if imp.IsRelative {
 		return ma.resolveRelativeImport(imp, fromFile)
 	}
+	if resolved := ma.resolveAbsoluteImportFromGraph(graph, imp); resolved != "" {
+		return resolved
+	}
+	if capturedOnly {
+		moduleName := ma.moduleNameFromImport(imp)
+		if ma.isStandardLibrary(moduleName) {
+			if ma.includeStdLib {
+				return moduleName
+			}
+			return ""
+		}
+		if resolved := ma.resolveScopedAbsoluteImportFromGraph(graph, moduleName, fromFile); resolved != "" {
+			return resolved
+		}
+		if ma.includeThirdParty {
+			return moduleName
+		}
+		return ""
+	}
 	// For absolute imports, try to resolve within the project first
 	return ma.resolveAbsoluteImportWithProject(imp, fromFile)
+}
+
+func (ma *ModuleAnalyzer) resolveAbsoluteImportFromGraph(graph *DependencyGraph, imp *ImportInfo) string {
+	if graph == nil {
+		return ""
+	}
+	moduleName := ma.moduleNameFromImport(imp)
+	if moduleName == "" {
+		return ""
+	}
+
+	if graph.GetModule(moduleName) != nil {
+		return moduleName
+	}
+	return ""
+}
+
+// resolveScopedAbsoluteImportFromGraph supports script-style imports using the
+// same two directories searched by the filesystem-backed resolver: the
+// importing module's directory and its parent. All candidates come from the
+// captured graph, so resolution remains independent of later filesystem state.
+func (ma *ModuleAnalyzer) resolveScopedAbsoluteImportFromGraph(
+	graph *DependencyGraph,
+	moduleName string,
+	fromFile string,
+) string {
+	if graph == nil || moduleName == "" {
+		return ""
+	}
+
+	packageName := strings.Trim(ma.pathToModuleName(filepath.Dir(fromFile)), ".")
+	for depth := 0; depth < 2 && packageName != ""; depth++ {
+		candidate := packageName + "." + moduleName
+		if graph.GetModule(candidate) != nil {
+			return candidate
+		}
+
+		separator := strings.LastIndex(packageName, ".")
+		if separator == -1 {
+			break
+		}
+		packageName = packageName[:separator]
+	}
+
+	return ""
 }
 
 // resolveRelativeImport resolves relative imports like "from .module import name"

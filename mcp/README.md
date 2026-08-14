@@ -442,20 +442,28 @@ What's the health score of my codebase?
   "health_score": 85,
   "grade": "A",
   "is_healthy": true,
+  "partial": false,
+  "diagnostics": [],
+  "failures": [],
   "category_scores": {
     "complexity_score": 90,
     "dead_code_score": 95,
     "duplication_score": 80,
     "coupling_score": 85,
+    "cohesion_score": 92,
     "dependency_score": 88,
     "architecture_score": 82
   },
   "summary": {
     "total_files": 42,
+    "analyzed_files": 42,
+    "skipped_files": 0,
     "average_complexity": 5.2,
+    "high_complexity_count": 1,
     "dead_code_count": 2,
     "clone_pairs": 5,
-    "high_coupling_classes": 3
+    "high_coupling_classes": 3,
+    "high_lcom_classes": 1
   }
 }
 ```

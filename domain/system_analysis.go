@@ -64,6 +64,7 @@ type SystemAnalysisResponse struct {
 	Recommendations []SystemRecommendation // Improvement recommendations
 	Warnings        []string               // Analysis warnings
 	Errors          []string               // Analysis errors
+	Failures        []AnalysisFailure      `json:"failures,omitempty" yaml:"failures,omitempty"`
 
 	// Metadata
 	GeneratedAt time.Time   // When the analysis was generated

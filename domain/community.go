@@ -328,8 +328,9 @@ type CommunityAnalysisResult struct {
 	// depend on a presentation option. Omitted from JSON/YAML.
 	BridgeModuleCount int `json:"-" yaml:"-"`
 
-	Warnings []string `json:"warnings,omitempty" yaml:"warnings,omitempty"`
-	Errors   []string `json:"errors,omitempty" yaml:"errors,omitempty"`
+	Warnings []string          `json:"warnings,omitempty" yaml:"warnings,omitempty"`
+	Errors   []string          `json:"errors,omitempty" yaml:"errors,omitempty"`
+	Failures []AnalysisFailure `json:"failures,omitempty" yaml:"failures,omitempty"`
 
 	GeneratedAt string      `json:"generated_at" yaml:"generated_at"`
 	Version     string      `json:"version" yaml:"version"`

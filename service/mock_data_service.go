@@ -41,11 +41,12 @@ func (s *MockDataServiceImpl) Analyze(ctx context.Context, req domain.MockDataRe
 	var allFiles []domain.FileMockData
 	var warnings []string
 	var errors []string
+	var diagnostics []domain.AnalysisDiagnostic
 	filesProcessed := 0
 	detector := s.detectorForRequest(req)
 	ignorePatterns, err := compileMockDataIgnorePatterns(req.IgnorePatterns)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("compile mock-data ignore patterns: %w", err)
 	}
 
 	for _, filePath := range req.Paths {
@@ -67,10 +68,11 @@ func (s *MockDataServiceImpl) Analyze(ctx context.Context, req domain.MockDataRe
 		}
 
 		// Analyze single file
-		fileResult, fileWarnings, fileErrors := s.analyzeFile(ctx, filePath, req, detector)
+		fileResult, fileWarnings, fileDiagnostics := s.analyzeFile(ctx, filePath, req, detector)
 
-		if len(fileErrors) > 0 {
-			errors = append(errors, fileErrors...)
+		if len(fileDiagnostics) > 0 {
+			diagnostics = append(diagnostics, fileDiagnostics...)
+			errors = append(errors, diagnosticMessages(fileDiagnostics)...)
 			continue // Skip this file but continue with others
 		}
 
@@ -95,6 +97,49 @@ func (s *MockDataServiceImpl) Analyze(ctx context.Context, req domain.MockDataRe
 		Summary:     summary,
 		Warnings:    warnings,
 		Errors:      errors,
+		Diagnostics: diagnostics,
+		GeneratedAt: time.Now().Format(time.RFC3339),
+		Version:     version.Version,
+		Config:      s.buildConfigForResponse(req),
+	}, nil
+}
+
+// AnalyzeSnapshot performs mock-data detection from the canonical parsed
+// project without rereading or reparsing source files.
+func (s *MockDataServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectSnapshot, req domain.MockDataRequest) (*domain.MockDataResponse, error) {
+	if snapshot == nil {
+		return nil, fmt.Errorf("project snapshot is required")
+	}
+	ignorePatterns, err := compileMockDataIgnorePatterns(req.IgnorePatterns)
+	if err != nil {
+		return nil, fmt.Errorf("compile mock-data ignore patterns: %w", err)
+	}
+	detector := s.detectorForRequest(req)
+	var files []domain.FileMockData
+	var failures []domain.AnalysisFailure
+	filesProcessed := 0
+	for _, file := range snapshot.analysisProjectFiles() {
+		if !file.Parsed() || matchesMockDataIgnorePattern(file.Path, ignorePatterns) ||
+			(domain.BoolValue(req.IgnoreTests, domain.DefaultMockDataIgnoreTests) && s.isTestFile(file.Path)) {
+			continue
+		}
+		result, err := detector.DetectParsed(ctx, file.parseResult.RootNode, file.source, file.Path)
+		if err != nil {
+			failures = append(failures, domain.AnalysisFailure{Analysis: domain.AnalysisKindMockData, Code: domain.AnalysisFailureCodeExecution, FilePath: file.Path, Message: err.Error()})
+			continue
+		}
+		fileResult := s.mockDataFileResult(file.Path, result.Findings, req)
+		if fileResult.HasFindings() {
+			files = append(files, *fileResult)
+		}
+		filesProcessed++
+	}
+	files = s.sortFiles(s.filterFiles(files, req), req.SortBy)
+	return &domain.MockDataResponse{
+		Files:       files,
+		Summary:     s.generateSummary(files, filesProcessed),
+		Errors:      failureMessages(failures),
+		Failures:    failures,
 		GeneratedAt: time.Now().Format(time.RFC3339),
 		Version:     version.Version,
 		Config:      s.buildConfigForResponse(req),
@@ -105,57 +150,51 @@ func (s *MockDataServiceImpl) Analyze(ctx context.Context, req domain.MockDataRe
 func (s *MockDataServiceImpl) AnalyzeFile(ctx context.Context, filePath string, req domain.MockDataRequest) (*domain.FileMockData, error) {
 	ignorePatterns, err := compileMockDataIgnorePatterns(req.IgnorePatterns)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("compile mock-data ignore patterns: %w", err)
 	}
 	if matchesMockDataIgnorePattern(filePath, ignorePatterns) ||
 		(domain.BoolValue(req.IgnoreTests, domain.DefaultMockDataIgnoreTests) && s.isTestFile(filePath)) {
 		return &domain.FileMockData{FilePath: filePath}, nil
 	}
 
-	fileResult, _, fileErrors := s.analyzeFile(ctx, filePath, req, s.detectorForRequest(req))
+	fileResult, _, diagnostics := s.analyzeFile(ctx, filePath, req, s.detectorForRequest(req))
 
-	if len(fileErrors) > 0 {
-		return nil, domain.NewAnalysisError(fmt.Sprintf("failed to analyze file %s", filePath), fmt.Errorf("%v", fileErrors))
+	if len(diagnostics) > 0 {
+		return nil, domain.NewAnalysisError(fmt.Sprintf("failed to analyze file %s", filePath), fmt.Errorf("%v", diagnosticMessages(diagnostics)))
 	}
 
 	return fileResult, nil
 }
 
 // analyzeFile performs mock data analysis on a single file
-func (s *MockDataServiceImpl) analyzeFile(ctx context.Context, filePath string, req domain.MockDataRequest, detector *mockdetector.Detector) (*domain.FileMockData, []string, []string) {
+func (s *MockDataServiceImpl) analyzeFile(ctx context.Context, filePath string, req domain.MockDataRequest, detector *mockdetector.Detector) (*domain.FileMockData, []string, []domain.AnalysisDiagnostic) {
 	var warnings []string
-	var errors []string
+	var diagnostics []domain.AnalysisDiagnostic
 
 	// Read the file
 	content, err := s.readFile(filePath)
 	if err != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
-		return nil, warnings, errors
+		diagnostics = append(diagnostics, domain.AnalysisDiagnostic{FilePath: filePath, Code: domain.DiagnosticCodeRead, Message: err.Error()})
+		return nil, warnings, diagnostics
 	}
 
 	// Detect mock data
 	result, err := detector.Detect(ctx, content, filePath)
 	if err != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Detection error: %v", filePath, err))
-		return nil, warnings, errors
+		diagnostics = append(diagnostics, domain.AnalysisDiagnostic{FilePath: filePath, Code: domain.DiagnosticCodeParse, Message: err.Error()})
+		return nil, warnings, diagnostics
 	}
 
-	// Update file path in findings
-	for i := range result.Findings {
-		result.Findings[i].Location.FilePath = filePath
-	}
+	return s.mockDataFileResult(filePath, result.Findings, req), warnings, diagnostics
+}
 
-	// Filter findings by enabled types
-	filteredFindings := s.filterByType(result.Findings, req.EnabledTypes)
-
-	// Create file result
-	fileResult := &domain.FileMockData{
-		FilePath: filePath,
-		Findings: filteredFindings,
+func (s *MockDataServiceImpl) mockDataFileResult(filePath string, findings []domain.MockDataFinding, req domain.MockDataRequest) *domain.FileMockData {
+	for index := range findings {
+		findings[index].Location.FilePath = filePath
 	}
+	fileResult := &domain.FileMockData{FilePath: filePath, Findings: s.filterByType(findings, req.EnabledTypes)}
 	fileResult.CalculateSeverityCounts()
-
-	return fileResult, warnings, errors
+	return fileResult
 }
 
 func (s *MockDataServiceImpl) detectorForRequest(req domain.MockDataRequest) *mockdetector.Detector {

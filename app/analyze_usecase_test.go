@@ -2,9 +2,13 @@ package app
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/service"
@@ -38,7 +42,7 @@ func TestAnalyzeUseCase_Execute(t *testing.T) {
 	complexityService := service.NewComplexityService()
 	complexityFormatter := service.NewOutputFormatter()
 	complexityConfigLoader := service.NewConfigurationLoader()
-	complexityUseCase := NewComplexityUseCase(
+	complexityUseCase := NewSnapshotComplexityUseCase(
 		complexityService,
 		service.NewFileReader(),
 		complexityFormatter,
@@ -75,11 +79,353 @@ func TestAnalyzeUseCase_Execute(t *testing.T) {
 	}
 }
 
+func TestAnalyzeUseCaseBuilderRejectsStandaloneAnalyzerCollaborator(t *testing.T) {
+	standaloneComplexity := NewComplexityUseCase(
+		service.NewComplexityService(),
+		service.NewFileReader(),
+		service.NewOutputFormatter(),
+		service.NewConfigurationLoader(),
+	)
+
+	_, err := NewAnalyzeUseCaseBuilder().
+		WithFileReader(service.NewFileReader()).
+		WithComplexityUseCase(standaloneComplexity).
+		Build()
+	if err == nil || !strings.Contains(err.Error(), "complexity use case requires a snapshot collaborator") {
+		t.Fatalf("expected aggregate collaborator validation, got %v", err)
+	}
+}
+
+func TestAnalyzeUseCase_Execute_ReportsProjectCoverageWithoutComplexity(t *testing.T) {
+	projectDir := t.TempDir()
+	validPath := filepath.Join(projectDir, "valid.py")
+	brokenPath := filepath.Join(projectDir, "broken.py")
+	if err := os.WriteFile(validPath, []byte("def valid():\n    return 1\n"), 0o644); err != nil {
+		t.Fatalf("write valid Python source: %v", err)
+	}
+	if err := os.WriteFile(brokenPath, []byte("def broken(:\n    pass\n"), 0o644); err != nil {
+		t.Fatalf("write broken Python source: %v", err)
+	}
+
+	deadCodeUseCase := NewSnapshotDeadCodeUseCase(
+		service.NewDeadCodeService(),
+		service.NewFileReader(),
+		service.NewDeadCodeFormatter(),
+		service.NewDeadCodeConfigurationLoader(),
+	)
+	useCase, err := NewAnalyzeUseCaseBuilder().
+		WithFileReader(service.NewFileReader()).
+		WithDeadCodeUseCase(deadCodeUseCase).
+		Build()
+	if err != nil {
+		t.Fatalf("build analyze use case: %v", err)
+	}
+
+	response, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipComplexity:  true,
+		SkipDeadCode:    false,
+		SkipClones:      true,
+		SkipCBO:         true,
+		SkipLCOM:        true,
+		SkipSystem:      true,
+		SkipCommunities: true,
+	}, []string{projectDir})
+	if err != nil {
+		t.Fatalf("execute dead-code-only analysis: %v", err)
+	}
+
+	if response.Summary.TotalFiles != 2 || response.Summary.AnalyzedFiles != 1 || response.Summary.SkippedFiles != 1 {
+		t.Fatalf("expected coverage 2 total / 1 analyzed / 1 skipped, got %+v", response.Summary)
+	}
+	if response.Summary.HealthScore >= 100 || response.Summary.Grade == "A" {
+		t.Fatalf("incomplete analysis must not receive a perfect grade, got %d/%s", response.Summary.HealthScore, response.Summary.Grade)
+	}
+	if len(response.Diagnostics) != 1 {
+		t.Fatalf("expected one project diagnostic, got %+v", response.Diagnostics)
+	}
+	diagnostic := response.Diagnostics[0]
+	if diagnostic.Code != domain.DiagnosticCodeParse || filepath.Base(diagnostic.FilePath) != "broken.py" {
+		t.Fatalf("expected typed parse diagnostic for broken.py, got %+v", diagnostic)
+	}
+}
+
+func TestAnalyzeUseCaseBuildResponsePreservesEveryTypedFailure(t *testing.T) {
+	failures := []domain.AnalysisFailure{
+		{Analysis: domain.AnalysisKindDeadCode, Code: domain.AnalysisFailureCodeExecution, FilePath: "a.py", Message: "first"},
+		{Analysis: domain.AnalysisKindDeadCode, Code: domain.AnalysisFailureCodeExecution, FilePath: "b.py", Message: "second"},
+	}
+	tasks := []*AnalysisTask{{
+		Name:    taskNameDeadCode,
+		Kind:    domain.AnalysisKindDeadCode,
+		Enabled: true,
+		Result:  &domain.DeadCodeResponse{Failures: failures},
+	}}
+
+	response, err := (&AnalyzeUseCase{}).buildResponse(tasks, time.Now(), analysisPathIndex{reportedByIdentity: map[string]string{}}, domain.AnalysisCoverage{})
+	if err != nil {
+		t.Fatalf("build response: %v", err)
+	}
+	if !reflect.DeepEqual(response.Failures, failures) {
+		t.Fatalf("expected lossless typed failures, got %+v", response.Failures)
+	}
+}
+
+func TestAnalyzeUseCaseExecutePreservesAnalyzerErrorIdentity(t *testing.T) {
+	sourcePath := filepath.Join(t.TempDir(), "source.py")
+	if err := os.WriteFile(sourcePath, []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	sentinel := errors.New("complexity backend unavailable")
+	complexityUseCase := NewSnapshotComplexityUseCase(
+		failingComplexityService{err: sentinel},
+		service.NewFileReader(),
+		service.NewOutputFormatter(),
+		service.NewConfigurationLoader(),
+	)
+	useCase, err := NewAnalyzeUseCaseBuilder().
+		WithFileReader(service.NewFileReader()).
+		WithComplexityUseCase(complexityUseCase).
+		Build()
+	if err != nil {
+		t.Fatalf("build analyze use case: %v", err)
+	}
+
+	response, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipDeadCode:    true,
+		SkipClones:      true,
+		SkipCBO:         true,
+		SkipLCOM:        true,
+		SkipSystem:      true,
+		SkipCommunities: true,
+	}, []string{sourcePath})
+	if err == nil {
+		t.Fatal("expected aggregate analysis error")
+	}
+	if response == nil || len(response.Failures) != 1 {
+		t.Fatalf("expected typed partial response, got %+v", response)
+	}
+	if !errors.Is(err, sentinel) {
+		t.Fatalf("expected aggregate error to preserve analyzer identity, got %v", err)
+	}
+}
+
+func TestAnalyzeUseCaseExecutePreservesPartialFailureCause(t *testing.T) {
+	sourcePath := filepath.Join(t.TempDir(), "source.py")
+	if err := os.WriteFile(sourcePath, []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	cause := &testAnalyzerError{operation: "build cfg"}
+	complexityUseCase := NewSnapshotComplexityUseCase(
+		failingComplexityService{response: &domain.ComplexityResponse{Failures: []domain.AnalysisFailure{
+			domain.NewAnalysisFailure(
+				domain.AnalysisKindComplexity,
+				domain.AnalysisFailureCodeExecution,
+				"source.py",
+				"CFG construction failed: "+cause.Error(),
+				cause,
+			),
+		}}},
+		service.NewFileReader(),
+		service.NewOutputFormatter(),
+		service.NewConfigurationLoader(),
+	)
+	useCase, err := NewAnalyzeUseCaseBuilder().
+		WithFileReader(service.NewFileReader()).
+		WithComplexityUseCase(complexityUseCase).
+		Build()
+	if err != nil {
+		t.Fatalf("build analyze use case: %v", err)
+	}
+
+	response, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipDeadCode:    true,
+		SkipClones:      true,
+		SkipCBO:         true,
+		SkipLCOM:        true,
+		SkipSystem:      true,
+		SkipCommunities: true,
+	}, []string{sourcePath})
+	if err == nil {
+		t.Fatal("expected aggregate analysis error")
+	}
+	if response == nil || len(response.Failures) != 1 {
+		t.Fatalf("expected typed partial response, got %+v", response)
+	}
+	if !errors.Is(err, cause) {
+		t.Fatalf("expected aggregate error to retain partial failure cause, got %v", err)
+	}
+	var analyzerErr *testAnalyzerError
+	if !errors.As(err, &analyzerErr) || analyzerErr.operation != cause.operation {
+		t.Fatalf("expected typed analyzer cause, got %v", err)
+	}
+}
+
+type failingComplexityService struct {
+	response *domain.ComplexityResponse
+	err      error
+}
+
+func (s failingComplexityService) Analyze(context.Context, domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
+	return s.response, s.err
+}
+
+func (s failingComplexityService) AnalyzeFile(context.Context, string, domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
+	return s.response, s.err
+}
+
+func (s failingComplexityService) AnalyzeSnapshot(context.Context, *service.ProjectSnapshot, domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
+	return s.response, s.err
+}
+
+type testAnalyzerError struct {
+	operation string
+}
+
+func (e *testAnalyzerError) Error() string {
+	return e.operation
+}
+
+func TestAnalyzeUseCase_Execute_SystemGraphExcludesUnparsedFiles(t *testing.T) {
+	projectDir := t.TempDir()
+	validPath := filepath.Join(projectDir, "valid.py")
+	brokenPath := filepath.Join(projectDir, "broken.py")
+	if err := os.WriteFile(validPath, []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatalf("write valid Python source: %v", err)
+	}
+	if err := os.WriteFile(brokenPath, []byte("def broken(:\n"), 0o644); err != nil {
+		t.Fatalf("write broken Python source: %v", err)
+	}
+
+	systemUseCase, err := NewSystemAnalysisUseCaseBuilder().
+		WithGraphService(service.NewSystemAnalysisService()).
+		WithFileReader(service.NewFileReader()).
+		WithFormatter(service.NewSystemAnalysisFormatter()).
+		WithConfigLoader(service.NewSystemAnalysisConfigurationLoader()).
+		Build()
+	if err != nil {
+		t.Fatalf("build system analysis use case: %v", err)
+	}
+	useCase, err := NewAnalyzeUseCaseBuilder().
+		WithFileReader(service.NewFileReader()).
+		WithConfigLoader(service.NewAnalyzeConfigurationLoader()).
+		WithSystemUseCase(systemUseCase).
+		Build()
+	if err != nil {
+		t.Fatalf("build analyze use case: %v", err)
+	}
+
+	response, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipComplexity:  true,
+		SkipDeadCode:    true,
+		SkipClones:      true,
+		SkipCBO:         true,
+		SkipLCOM:        true,
+		SkipSystem:      false,
+		SkipCommunities: true,
+	}, []string{projectDir})
+	if err != nil {
+		t.Fatalf("execute system-only analysis: %v", err)
+	}
+	if response.System == nil {
+		t.Fatal("expected system analysis response")
+	}
+	if response.System.Summary.TotalModules != 1 {
+		t.Fatalf("expected only parsed modules in system graph, got %d", response.System.Summary.TotalModules)
+	}
+}
+
+func TestAnalyzeUseCase_Execute_CoverageIsIndependentOfModuleSelection(t *testing.T) {
+	projectDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(projectDir, "runtime.py"), []byte("def runtime():\n    return 1\n"), 0o644); err != nil {
+		t.Fatalf("write runtime source: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, "broken.pyi"), []byte("def broken(:\n"), 0o644); err != nil {
+		t.Fatalf("write broken stub: %v", err)
+	}
+
+	useCase := newModuleQualityAnalyzeUseCase(t)
+	complexityOnly, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipDeadCode:       true,
+		SkipClones:         true,
+		SkipCBO:            true,
+		SkipLCOM:           true,
+		SkipSystem:         true,
+		SkipCommunities:    true,
+		SelectAnalysesUsed: true,
+	}, []string{projectDir})
+	if err != nil {
+		t.Fatalf("execute complexity-only analysis: %v", err)
+	}
+
+	dependenciesOnly, err := useCase.Execute(context.Background(), AnalyzeUseCaseConfig{
+		SkipComplexity:     true,
+		SkipDeadCode:       true,
+		SkipClones:         true,
+		SkipCBO:            true,
+		SkipLCOM:           true,
+		SkipSystem:         false,
+		SkipCommunities:    true,
+		SelectAnalysesUsed: true,
+	}, []string{projectDir})
+	if err != nil {
+		t.Fatalf("execute dependency analysis: %v", err)
+	}
+
+	if !reflect.DeepEqual(complexityOnly.Diagnostics, dependenciesOnly.Diagnostics) {
+		t.Fatalf("expected selection-independent diagnostics, complexity=%+v dependencies=%+v", complexityOnly.Diagnostics, dependenciesOnly.Diagnostics)
+	}
+	complexityCoverage := []int{complexityOnly.Summary.TotalFiles, complexityOnly.Summary.AnalyzedFiles, complexityOnly.Summary.SkippedFiles}
+	dependencyCoverage := []int{dependenciesOnly.Summary.TotalFiles, dependenciesOnly.Summary.AnalyzedFiles, dependenciesOnly.Summary.SkippedFiles}
+	if !reflect.DeepEqual(complexityCoverage, dependencyCoverage) {
+		t.Fatalf("expected selection-independent coverage, complexity=%v dependencies=%v", complexityCoverage, dependencyCoverage)
+	}
+}
+
+func TestAnalyzeUseCase_ExecuteWithOverridesHonorsExplicitDependencyGate(t *testing.T) {
+	projectDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(projectDir, "a.py"), []byte("import b\n"), 0o644); err != nil {
+		t.Fatalf("write a.py: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, "b.py"), []byte("import a\n"), 0o644); err != nil {
+		t.Fatalf("write b.py: %v", err)
+	}
+	configPath := filepath.Join(projectDir, ".pyscn.toml")
+	if err := os.WriteFile(configPath, []byte("[system_analysis]\nenabled = false\n\n[dependencies]\nenabled = false\n"), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	useCase := newModuleQualityAnalyzeUseCase(t)
+	response, err := useCase.ExecuteWithOverrides(context.Background(), AnalyzeUseCaseConfig{
+		ConfigFile:              configPath,
+		SkipComplexity:          true,
+		SkipDeadCode:            true,
+		SkipClones:              true,
+		SkipCBO:                 true,
+		SkipLCOM:                true,
+		SkipCommunities:         true,
+		SkipCommunitiesExplicit: true,
+		SelectAnalysesUsed:      true,
+	}, []string{projectDir}, AnalyzeRequestOverrides{
+		SystemEnabled:             domain.BoolPtr(true),
+		SystemAnalyzeDependencies: domain.BoolPtr(true),
+		SystemAnalyzeArchitecture: domain.BoolPtr(false),
+	})
+	if err != nil {
+		t.Fatalf("execute dependency gate: %v", err)
+	}
+	if response.System == nil || response.System.DependencyAnalysis == nil || response.System.DependencyAnalysis.CircularDependencies == nil || !response.System.DependencyAnalysis.CircularDependencies.HasCircularDependencies {
+		t.Fatalf("expected circular dependency result, got %+v", response.System)
+	}
+	if response.System.ArchitectureAnalysis != nil || response.Summary.ArchEnabled {
+		t.Fatalf("dependency-only execution must not run architecture analysis: %+v", response.Summary)
+	}
+}
+
 func newModuleQualityAnalyzeUseCase(t *testing.T) *AnalyzeUseCase {
 	t.Helper()
 
 	systemUseCase, err := NewSystemAnalysisUseCaseBuilder().
-		WithService(service.NewSystemAnalysisService()).
+		WithGraphService(service.NewSystemAnalysisService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(service.NewSystemAnalysisFormatter()).
 		WithConfigLoader(service.NewSystemAnalysisConfigurationLoader()).
@@ -95,7 +441,7 @@ func newModuleQualityAnalyzeUseCase(t *testing.T) *AnalyzeUseCase {
 		WithParallelExecutor(service.NewParallelExecutor()).
 		WithErrorCategorizer(service.NewErrorCategorizer()).
 		WithSystemUseCase(systemUseCase).
-		WithComplexityUseCase(NewComplexityUseCase(
+		WithComplexityUseCase(NewSnapshotComplexityUseCase(
 			service.NewComplexityService(),
 			service.NewFileReader(),
 			service.NewOutputFormatter(),
@@ -285,7 +631,7 @@ enabled = false
 	builder.WithProgressManager(service.NewProgressManager())
 	builder.WithParallelExecutor(service.NewParallelExecutor())
 	builder.WithErrorCategorizer(service.NewErrorCategorizer())
-	builder.WithComplexityUseCase(NewComplexityUseCase(
+	builder.WithComplexityUseCase(NewSnapshotComplexityUseCase(
 		service.NewComplexityService(),
 		service.NewFileReader(),
 		service.NewOutputFormatter(),
@@ -596,7 +942,7 @@ show_content = true
 	builder.WithErrorCategorizer(service.NewErrorCategorizer())
 
 	cloneUseCase, err := NewCloneUseCaseBuilder().
-		WithService(service.NewCloneService()).
+		WithSnapshotService(service.NewCloneService()).
 		WithFileReader(service.NewFileReader()).
 		WithFormatter(service.NewCloneOutputFormatter()).
 		WithConfigLoader(service.NewCloneConfigurationLoader()).

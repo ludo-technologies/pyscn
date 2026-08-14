@@ -274,6 +274,7 @@ type ComplexityResponse struct {
 	// Warnings and issues
 	Warnings []string
 	Errors   []string
+	Failures []AnalysisFailure `json:"failures,omitempty" yaml:"failures,omitempty"`
 
 	// Metadata
 	GeneratedAt string
