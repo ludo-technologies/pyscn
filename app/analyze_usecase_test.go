@@ -488,8 +488,8 @@ func TestAnalyzeUseCase_Execute_PublishesDirectoryComplexity(t *testing.T) {
 		t.Fatalf("expected one directory rollup, got %+v", response.Complexity.ByDirectory)
 	}
 	rollup := response.Complexity.ByDirectory[0]
-	if rollup.DirectoryPath != "pkg" || rollup.FunctionCount != len(response.Complexity.Functions) {
-		t.Fatalf("expected rollup to reconcile with reported functions, got %+v", rollup)
+	if rollup.DirectoryPath != "pkg" || rollup.FunctionCount != len(response.Complexity.AnalyzedFunctions) {
+		t.Fatalf("expected rollup to reconcile with the complete analyzed population, got %+v", rollup)
 	}
 }
 
