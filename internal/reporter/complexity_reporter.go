@@ -16,28 +16,24 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// ComplexityResult represents essential complexity metrics for a function (interface to avoid import cycle)
+// ComplexityResult represents essential complexity metrics for an execution scope
+// (interface to avoid an import cycle).
 type ComplexityResult interface {
 	// Core metrics needed for filtering and warnings
 	GetComplexity() int
 	GetFunctionName() string
+	GetScopeKind() domain.AnalysisScopeKind
 	GetRiskLevel() string
 
 	// Detailed metrics for comprehensive reporting
 	GetDetailedMetrics() map[string]int
 }
 
-// scopedComplexityResult is an optional extension implemented by analyzers
-// that retain typed execution-scope ownership. Older callers remain valid.
-type scopedComplexityResult interface {
-	GetScopeKind() domain.AnalysisScopeKind
-}
-
 // SerializableComplexityResult is a concrete type for JSON/YAML serialization
 type SerializableComplexityResult struct {
 	Complexity        int                      `json:"complexity" yaml:"complexity"`
 	FunctionName      string                   `json:"function_name" yaml:"function_name"`
-	ScopeKind         domain.AnalysisScopeKind `json:"scope_kind,omitempty" yaml:"scope_kind,omitempty"`
+	ScopeKind         domain.AnalysisScopeKind `json:"scope_kind" yaml:"scope_kind"`
 	RiskLevel         string                   `json:"risk_level" yaml:"risk_level"`
 	Nodes             int                      `json:"nodes" yaml:"nodes"`
 	Edges             int                      `json:"edges" yaml:"edges"`
@@ -160,14 +156,10 @@ func (r *ComplexityReporter) GenerateReport(results []ComplexityResult, filesAna
 	serializableResults := make([]SerializableComplexityResult, len(filtered))
 	for i, result := range filtered {
 		detailed := result.GetDetailedMetrics()
-		var scopeKind domain.AnalysisScopeKind
-		if scoped, ok := result.(scopedComplexityResult); ok {
-			scopeKind = scoped.GetScopeKind()
-		}
 		serializableResults[i] = SerializableComplexityResult{
 			Complexity:        result.GetComplexity(),
 			FunctionName:      result.GetFunctionName(),
-			ScopeKind:         scopeKind,
+			ScopeKind:         result.GetScopeKind(),
 			RiskLevel:         result.GetRiskLevel(),
 			Nodes:             detailed["nodes"],
 			Edges:             detailed["edges"],

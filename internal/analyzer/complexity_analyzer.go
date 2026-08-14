@@ -47,19 +47,9 @@ func NewComplexityAnalyzerWithDefaults(output io.Writer) (*ComplexityAnalyzer, e
 	return NewComplexityAnalyzer(cfg, output)
 }
 
-// AnalyzeAndReport performs complexity analysis and generates a formatted report
-func (ca *ComplexityAnalyzer) AnalyzeAndReport(cfgs []*CFG) error {
-	// Calculate complexity with configuration
-	results := CalculateFileComplexityWithConfig(cfgs, &ca.config.Complexity)
-
-	// Convert to interface slice for reporter
-	interfaceResults := make([]reporter.ComplexityResult, len(results))
-	for i, result := range results {
-		interfaceResults[i] = result
-	}
-
-	// Generate and output report
-	return ca.reporter.ReportComplexity(interfaceResults)
+// AnalyzeAndReport performs complexity analysis and generates a formatted report.
+func (ca *ComplexityAnalyzer) AnalyzeAndReport(cfgs ControlFlowGraphs) error {
+	return ca.reporter.ReportComplexity(ca.reporterResults(cfgs))
 }
 
 // AnalyzeFunction analyzes a single function and returns the result
@@ -129,15 +119,16 @@ func (ca *ComplexityAnalyzer) SetOutput(output io.Writer) error {
 	return nil
 }
 
-// GenerateReport creates a comprehensive report without outputting it
-func (ca *ComplexityAnalyzer) GenerateReport(cfgs []*CFG) *reporter.ComplexityReport {
-	results := CalculateFileComplexityWithConfig(cfgs, &ca.config.Complexity)
+// GenerateReport creates a comprehensive report without outputting it.
+func (ca *ComplexityAnalyzer) GenerateReport(cfgs ControlFlowGraphs) *reporter.ComplexityReport {
+	return ca.reporter.GenerateReport(ca.reporterResults(cfgs), 1) // Default to 1 file when count unknown
+}
 
-	// Convert to interface slice for reporter
+func (ca *ComplexityAnalyzer) reporterResults(cfgs ControlFlowGraphs) []reporter.ComplexityResult {
+	results := calculateScopedReporterResults(cfgs, &ca.config.Complexity)
 	interfaceResults := make([]reporter.ComplexityResult, len(results))
 	for i, result := range results {
 		interfaceResults[i] = result
 	}
-
-	return ca.reporter.GenerateReport(interfaceResults, 1) // Default to 1 file when count unknown
+	return interfaceResults
 }

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
 )
 
@@ -44,6 +45,15 @@ func createTestCFGs() []*CFG {
 	cfgs[2].ConnectBlocks(current, cfgs[2].Exit, EdgeNormal)
 
 	return cfgs
+}
+
+func createTestScopedCFGs() ControlFlowGraphs {
+	cfgs := createTestCFGs()
+	return ControlFlowGraphs{
+		{Scope: CFGScope{Kind: domain.AnalysisScopeModule, Name: "simple_function"}, Graph: cfgs[0]},
+		{Scope: CFGScope{Kind: domain.AnalysisScopeFunction, Name: "medium_function"}, Graph: cfgs[1]},
+		{Scope: CFGScope{Kind: domain.AnalysisScopeClass, Name: "complex_function"}, Graph: cfgs[2]},
+	}
 }
 
 func TestNewComplexityAnalyzer(t *testing.T) {
@@ -201,7 +211,7 @@ func TestAnalyzeAndReport(t *testing.T) {
 			t.Fatalf("Failed to create analyzer: %v", err)
 		}
 
-		cfgs := createTestCFGs()
+		cfgs := createTestScopedCFGs()
 		err = analyzer.AnalyzeAndReport(cfgs)
 
 		if err != nil {
@@ -237,7 +247,7 @@ func TestAnalyzeAndReport(t *testing.T) {
 			t.Fatalf("Failed to create analyzer: %v", err)
 		}
 
-		cfgs := createTestCFGs()
+		cfgs := createTestScopedCFGs()
 		err = analyzer.AnalyzeAndReport(cfgs)
 
 		if err != nil {
@@ -252,6 +262,15 @@ func TestAnalyzeAndReport(t *testing.T) {
 		}
 		if !strings.Contains(output, `"simple_function"`) {
 			t.Error("JSON output missing function name")
+		}
+		for _, scopeKind := range []domain.AnalysisScopeKind{
+			domain.AnalysisScopeModule,
+			domain.AnalysisScopeFunction,
+			domain.AnalysisScopeClass,
+		} {
+			if !strings.Contains(output, `"scope_kind": "`+string(scopeKind)+`"`) {
+				t.Errorf("JSON output missing %s scope ownership", scopeKind)
+			}
 		}
 	})
 }
@@ -437,7 +456,7 @@ func TestSetOutput(t *testing.T) {
 		}
 
 		// Test that output goes to new buffer
-		cfgs := createTestCFGs()[:1] // Just one function for simplicity
+		cfgs := createTestScopedCFGs()[:1] // Just one scope for simplicity
 		err = analyzer.AnalyzeAndReport(cfgs)
 
 		if err != nil {
@@ -479,7 +498,7 @@ func TestGenerateReport(t *testing.T) {
 		t.Fatalf("Failed to create analyzer: %v", err)
 	}
 
-	cfgs := createTestCFGs()
+	cfgs := createTestScopedCFGs()
 	report := analyzer.GenerateReport(cfgs)
 
 	if report == nil {
@@ -492,6 +511,19 @@ func TestGenerateReport(t *testing.T) {
 	}
 	if len(report.Results) != 3 {
 		t.Errorf("Expected 3 results, got %d", len(report.Results))
+	}
+	expectedKinds := map[string]domain.AnalysisScopeKind{
+		"simple_function":  domain.AnalysisScopeModule,
+		"medium_function":  domain.AnalysisScopeFunction,
+		"complex_function": domain.AnalysisScopeClass,
+	}
+	for _, result := range report.Results {
+		if result.ScopeKind == domain.AnalysisScopeUnknown {
+			t.Errorf("Result %q has no scope kind", result.FunctionName)
+		}
+		if result.ScopeKind != expectedKinds[result.FunctionName] {
+			t.Errorf("Expected %q scope kind %q, got %q", result.FunctionName, expectedKinds[result.FunctionName], result.ScopeKind)
+		}
 	}
 
 	// Verify summary calculations
@@ -542,7 +574,7 @@ func TestComplexityAnalyzerErrorHandling(t *testing.T) {
 			t.Fatalf("Failed to create analyzer: %v", err)
 		}
 
-		err = analyzer.AnalyzeAndReport([]*CFG{})
+		err = analyzer.AnalyzeAndReport(ControlFlowGraphs{})
 
 		if err != nil {
 			t.Errorf("Should handle empty CFG list gracefully, got error: %v", err)
