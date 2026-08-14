@@ -477,12 +477,14 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 	// Count scopes that exceed the maximum complexity threshold, plus functions
 	// that are too long. Length is orthogonal to McCabe, so a flat
 	// 200-line function is an issue on its own and both can fire at once.
+	analyzedScopes, err := response.AnalyzedScopes()
+	if err != nil {
+		return 0, fmt.Errorf("invalid complexity analysis result: %w", err)
+	}
+
 	issueCount := 0
-	for _, function := range response.ReportedScopesByComplexity() {
-		name := function.Name
-		if function.ResolvedScopeKind() == domain.AnalysisScopeClass {
-			name = "class scope " + name
-		}
+	for _, function := range domain.SortComplexityScopes(analyzedScopes) {
+		name := function.ScopeLabel()
 		if function.Metrics.Complexity > maxComplexity {
 			issueCount++
 			if !c.quiet {
