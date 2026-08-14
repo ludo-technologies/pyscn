@@ -916,8 +916,8 @@ func formatDeadCodeSummary(result *domain.DeadCodeResponse, maxResults int) map[
 	infoCount := 0
 
 	for _, file := range result.Files {
-		for _, function := range file.Functions {
-			for _, finding := range function.Findings {
+		for _, scope := range file.ExecutionScopes() {
+			for _, finding := range scope.Findings {
 				totalIssues++
 
 				switch finding.Severity {
@@ -958,12 +958,14 @@ func formatDeadCodeSummary(result *domain.DeadCodeResponse, maxResults int) map[
 // formatDeadCodeDetailed formats dead code results with structured details
 func formatDeadCodeDetailed(result *domain.DeadCodeResponse, maxResults int) map[string]interface{} {
 	type Issue struct {
-		File     string `json:"file"`
-		Line     int    `json:"line"`
-		Column   int    `json:"column"`
-		Function string `json:"function"`
-		Reason   string `json:"reason"`
-		Severity string `json:"severity"`
+		File       string                   `json:"file"`
+		Line       int                      `json:"line"`
+		Column     int                      `json:"column"`
+		Function   string                   `json:"function"`
+		ScopeKind  domain.AnalysisScopeKind `json:"scope_kind"`
+		ScopeLabel string                   `json:"scope_label"`
+		Reason     string                   `json:"reason"`
+		Severity   string                   `json:"severity"`
 	}
 
 	issues := []Issue{}
@@ -973,8 +975,8 @@ func formatDeadCodeDetailed(result *domain.DeadCodeResponse, maxResults int) map
 	infoCount := 0
 
 	for _, file := range result.Files {
-		for _, function := range file.Functions {
-			for _, finding := range function.Findings {
+		for _, scope := range file.ExecutionScopes() {
+			for _, finding := range scope.Findings {
 				totalIssues++
 
 				switch finding.Severity {
@@ -988,12 +990,14 @@ func formatDeadCodeDetailed(result *domain.DeadCodeResponse, maxResults int) map
 
 				if maxResults == 0 || len(issues) < maxResults {
 					issue := Issue{
-						File:     finding.Location.FilePath,
-						Line:     finding.Location.StartLine,
-						Column:   finding.Location.StartColumn + 1,
-						Function: function.Name,
-						Reason:   finding.Reason,
-						Severity: string(finding.Severity),
+						File:       finding.Location.FilePath,
+						Line:       finding.Location.StartLine,
+						Column:     finding.Location.StartColumn + 1,
+						Function:   scope.Name,
+						ScopeKind:  scope.ScopeKind,
+						ScopeLabel: scope.ScopeLabel(),
+						Reason:     finding.Reason,
+						Severity:   string(finding.Severity),
 					}
 					issues = append(issues, issue)
 				}

@@ -686,6 +686,39 @@ func TestAnalyzeFormatter_Write_HTML(t *testing.T) {
 	assert.Contains(t, output, "Coupling")
 }
 
+func TestAnalyzeFormatter_Write_HTMLLabelsDeadCodeClassScope(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.Summary.DeadCodeEnabled = true
+	response.Summary.DeadCodeCount = 1
+	response.DeadCode = &domain.DeadCodeResponse{
+		Files: []domain.FileDeadCode{{
+			FilePath: "config.py",
+			ClassScopes: []domain.FunctionDeadCode{{
+				Name:      "Config",
+				ScopeKind: domain.AnalysisScopeClass,
+				Findings: []domain.DeadCodeFinding{{
+					Location:  domain.DeadCodeLocation{FilePath: "config.py", StartLine: 3, EndLine: 3},
+					ScopeKind: domain.AnalysisScopeClass,
+					Severity:  domain.DeadCodeSeverityCritical,
+					Reason:    "unreachable_after_raise",
+				}},
+			}},
+		}},
+		Summary: domain.DeadCodeSummary{TotalFindings: 1, CriticalFindings: 1},
+	}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatHTML, &output))
+
+	html := output.String()
+	require.Contains(t, html, "Top Dead Code Issues")
+	section := html[strings.Index(html, "Top Dead Code Issues"):]
+	section = section[:strings.Index(section, "</table>")]
+	assert.Contains(t, section, "<th>Scope</th>")
+	assert.NotContains(t, section, "<th>Function</th>")
+	assert.Contains(t, section, "class scope Config")
+}
+
 func TestAnalyzeFormatter_Write_HTMLShowsLongestFunctions(t *testing.T) {
 	response := createMinimalAnalyzeResponse()
 	response.Summary.ComplexityEnabled = true
@@ -733,6 +766,8 @@ func TestAnalyzeFormatter_Write_HTMLShowsLongestFunctions(t *testing.T) {
 	section := html[strings.Index(html, "Longest Functions"):]
 	section = section[:strings.Index(section, "</table>")]
 
+	assert.Contains(t, section, "<th>Function</th>")
+	assert.NotContains(t, section, "<th>Scope</th>")
 	assert.Contains(t, section, "Functions longer than 50 source lines")
 	// A McCabe-1 long function has no reason to appear in the ranked table.
 	assert.Contains(t, section, "find_datatable_locale")

@@ -17,7 +17,11 @@ func createTestDeadCodeResponse() *domain.DeadCodeResponse {
 	return &domain.DeadCodeResponse{
 		Files: []domain.FileDeadCode{
 			{
-				FilePath: "test.py",
+				FilePath:            "test.py",
+				TotalFunctions:      1,
+				AffectedFunctions:   1,
+				TotalClassScopes:    1,
+				AffectedClassScopes: 1,
 				Functions: []domain.FunctionDeadCode{
 					{
 						Name:      "test_func",
@@ -48,15 +52,33 @@ func createTestDeadCodeResponse() *domain.DeadCodeResponse {
 						},
 					},
 				},
+				ClassScopes: []domain.FunctionDeadCode{{
+					Name:      "Config",
+					ScopeKind: domain.AnalysisScopeClass,
+					Findings: []domain.DeadCodeFinding{{
+						Location: domain.DeadCodeLocation{
+							FilePath:  "test.py",
+							StartLine: 30,
+							EndLine:   31,
+						},
+						FunctionName: "Config",
+						ScopeKind:    domain.AnalysisScopeClass,
+						Reason:       "code after raise",
+						Severity:     domain.DeadCodeSeverityCritical,
+					}},
+				}},
 			},
 		},
 		Summary: domain.DeadCodeSummary{
-			TotalFiles:       1,
-			TotalFunctions:   1,
-			TotalFindings:    2,
-			CriticalFindings: 1,
-			WarningFindings:  1,
-			InfoFindings:     0,
+			TotalFiles:              1,
+			TotalFunctions:          1,
+			FunctionsWithDeadCode:   1,
+			TotalClassScopes:        1,
+			ClassScopesWithDeadCode: 1,
+			TotalFindings:           3,
+			CriticalFindings:        2,
+			WarningFindings:         1,
+			InfoFindings:            0,
 		},
 	}
 }
@@ -134,6 +156,11 @@ func TestDeadCodeFormatter_Format_JSON(t *testing.T) {
 
 	assert.Equal(t, response.Summary.TotalFindings, decoded.Summary.TotalFindings)
 	assert.Equal(t, response.Summary.CriticalFindings, decoded.Summary.CriticalFindings)
+	require.Len(t, decoded.Files[0].Functions, 1)
+	require.Len(t, decoded.Files[0].ClassScopes, 1)
+	assert.Equal(t, domain.AnalysisScopeClass, decoded.Files[0].ClassScopes[0].ScopeKind)
+	assert.Equal(t, 1, decoded.Summary.TotalFunctions)
+	assert.Equal(t, 1, decoded.Summary.TotalClassScopes)
 }
 
 func TestDeadCodeFormatter_Format_YAML(t *testing.T) {
@@ -143,12 +170,14 @@ func TestDeadCodeFormatter_Format_YAML(t *testing.T) {
 	result, err := formatter.Format(response, domain.OutputFormatYAML)
 	require.NoError(t, err)
 
-	var decoded map[string]interface{}
+	var decoded domain.DeadCodeResponse
 	err = yaml.Unmarshal([]byte(result), &decoded)
 	require.NoError(t, err)
 
-	assert.Contains(t, decoded, "files")
-	assert.Contains(t, decoded, "summary")
+	require.Len(t, decoded.Files, 1)
+	require.Len(t, decoded.Files[0].Functions, 1)
+	require.Len(t, decoded.Files[0].ClassScopes, 1)
+	assert.Equal(t, domain.AnalysisScopeClass, decoded.Files[0].ClassScopes[0].ScopeKind)
 }
 
 func TestDeadCodeFormatter_Format_CSV(t *testing.T) {
@@ -169,13 +198,6 @@ func TestDeadCodeFormatter_Format_CSV(t *testing.T) {
 
 func TestDeadCodeFormatterLabelsClassScopes(t *testing.T) {
 	response := createTestDeadCodeResponse()
-	scope := &response.Files[0].Functions[0]
-	scope.Name = "Config"
-	scope.ScopeKind = domain.AnalysisScopeClass
-	for i := range scope.Findings {
-		scope.Findings[i].FunctionName = scope.Name
-		scope.Findings[i].ScopeKind = scope.ScopeKind
-	}
 
 	textOutput, err := NewDeadCodeFormatter().Format(response, domain.OutputFormatText)
 	require.NoError(t, err)
@@ -186,9 +208,11 @@ func TestDeadCodeFormatterLabelsClassScopes(t *testing.T) {
 	require.NoError(t, err)
 	records, err := csv.NewReader(strings.NewReader(csvOutput)).ReadAll()
 	require.NoError(t, err)
-	require.GreaterOrEqual(t, len(records), 2)
-	assert.Equal(t, "Scope Kind", records[0][len(records[0])-1])
-	assert.Equal(t, "class", records[1][len(records[1])-1])
+	require.Len(t, records, 4)
+	assert.Equal(t, "Scope Kind", records[0][len(records[0])-2])
+	assert.Equal(t, "Scope Label", records[0][len(records[0])-1])
+	assert.Equal(t, "class", records[3][len(records[3])-2])
+	assert.Equal(t, "class scope Config", records[3][len(records[3])-1])
 }
 
 func TestDeadCodeFormatter_Format_HTML(t *testing.T) {

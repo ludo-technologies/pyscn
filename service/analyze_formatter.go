@@ -1151,7 +1151,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     <thead>
                         <tr>
                             <th>File</th>
-                            <th>Function</th>
+                            <th>Scope</th>
                             <th>Lines</th>
                             <th>Severity</th>
                             <th>Reason</th>
@@ -1159,12 +1159,12 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
                     </thead>
                     <tbody>
                         {{range $file := .DeadCode.Files}}
-                        {{range $func := $file.Functions}}
+						{{range $func := $file.ExecutionScopes}}
                         {{range $i, $finding := $func.Findings}}
                         {{if lt $i 10}}
                         <tr>
                             <td>{{$finding.Location.FilePath}}</td>
-                            <td>{{$finding.FunctionName}}</td>
+							<td>{{$func.ScopeLabel}}</td>
                             <td>{{$finding.Location.StartLine}}-{{$finding.Location.EndLine}}</td>
                             <td class="severity-{{$finding.Severity}}">{{$finding.Severity}}</td>
                             <td>{{$finding.Reason}}</td>

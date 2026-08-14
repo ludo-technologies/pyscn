@@ -182,17 +182,23 @@ func generateDeadCodeSuggestions(resp *DeadCodeResponse) []Suggestion {
 
 	var suggestions []Suggestion
 	for _, file := range resp.Files {
-		for _, fn := range file.Functions {
+		for _, fn := range file.ExecutionScopes() {
 			for _, finding := range fn.Findings {
 				sev := mapDeadCodeSeverity(finding.Severity)
 				effort := deadCodeEffort(finding.Reason)
 
+				scopeLabel := fn.ScopeLabel()
 				title := fmt.Sprintf("Remove dead code after %s in '%s'",
-					humanizeReason(finding.Reason), finding.FunctionName)
+					humanizeReason(finding.Reason), scopeLabel)
 				desc := finding.Description
 				if desc == "" {
-					desc = fmt.Sprintf("Dead code detected at lines %d-%d in function '%s'.",
-						finding.Location.StartLine, finding.Location.EndLine, finding.FunctionName)
+					if fn.ScopeKind == AnalysisScopeClass {
+						desc = fmt.Sprintf("Dead code detected at lines %d-%d in class scope '%s'.",
+							finding.Location.StartLine, finding.Location.EndLine, fn.Name)
+					} else {
+						desc = fmt.Sprintf("Dead code detected at lines %d-%d in function '%s'.",
+							finding.Location.StartLine, finding.Location.EndLine, fn.Name)
+					}
 				}
 				if effort == SuggestionEffortEasy {
 					desc += " This code is safely removable."
@@ -214,7 +220,7 @@ func generateDeadCodeSuggestions(resp *DeadCodeResponse) []Suggestion {
 					}
 				}
 
-				suggestions = append(suggestions, Suggestion{
+				suggestion := Suggestion{
 					Category:    SuggestionCategoryDeadCode,
 					Severity:    sev,
 					Effort:      effort,
@@ -222,9 +228,14 @@ func generateDeadCodeSuggestions(resp *DeadCodeResponse) []Suggestion {
 					Description: desc,
 					Steps:       steps,
 					FilePath:    finding.Location.FilePath,
-					Function:    finding.FunctionName,
 					StartLine:   finding.Location.StartLine,
-				})
+				}
+				if fn.ScopeKind == AnalysisScopeClass {
+					suggestion.ClassName = fn.Name
+				} else {
+					suggestion.Function = finding.FunctionName
+				}
+				suggestions = append(suggestions, suggestion)
 			}
 		}
 	}

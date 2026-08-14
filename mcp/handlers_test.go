@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/mcp"
 	"github.com/ludo-technologies/pyscn/service"
 	mcplib "github.com/mark3labs/mcp-go/mcp"
@@ -780,6 +781,60 @@ func TestHandleFindDeadCode(t *testing.T) {
 		})
 	}
 }
+
+func TestHandleFindDeadCodeDetailedLabelsClassScope(t *testing.T) {
+	res := runToolTest(
+		t,
+		func(t *testing.T) string {
+			path := filepath.Join(t.TempDir(), "class_scope.py")
+			source := `class Config:
+    raise RuntimeError("stop")
+    mode = "unreachable"
+
+    def resolve(self):
+        return self.mode
+        print("unreachable")
+`
+			require.NoError(t, os.WriteFile(path, []byte(source), 0o644))
+			return path
+		},
+		map[string]interface{}{
+			"min_severity": "info",
+			"output_mode":  "detailed",
+		},
+		(*mcp.HandlerSet).HandleFindDeadCode,
+	)
+
+	require.False(t, res.IsError)
+	var output struct {
+		Issues []struct {
+			Function   string                   `json:"function"`
+			ScopeKind  domain.AnalysisScopeKind `json:"scope_kind"`
+			ScopeLabel string                   `json:"scope_label"`
+		} `json:"issues"`
+		Summary struct {
+			TotalIssues int `json:"total_issues"`
+		} `json:"summary"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(mcplib.GetTextFromContent(res.Content[0])), &output))
+	assert.Equal(t, 2, output.Summary.TotalIssues)
+
+	var classIssue *struct {
+		Function   string                   `json:"function"`
+		ScopeKind  domain.AnalysisScopeKind `json:"scope_kind"`
+		ScopeLabel string                   `json:"scope_label"`
+	}
+	for i := range output.Issues {
+		if output.Issues[i].ScopeKind == domain.AnalysisScopeClass {
+			classIssue = &output.Issues[i]
+			break
+		}
+	}
+	require.NotNil(t, classIssue)
+	assert.Equal(t, "Config", classIssue.Function)
+	assert.Equal(t, "class scope Config", classIssue.ScopeLabel)
+}
+
 func TestHandleGetHealthScore(t *testing.T) {
 
 	errTrue := true

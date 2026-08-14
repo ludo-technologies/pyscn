@@ -300,6 +300,38 @@ func TestGenerateSuggestions_DeadCodeOnly(t *testing.T) {
 	}
 }
 
+func TestGenerateSuggestions_DeadCodeClassScope(t *testing.T) {
+	response := &AnalyzeResponse{
+		DeadCode: &DeadCodeResponse{Files: []FileDeadCode{{
+			FilePath: "config.py",
+			ClassScopes: []FunctionDeadCode{{
+				Name:      "Config",
+				ScopeKind: AnalysisScopeClass,
+				Findings: []DeadCodeFinding{{
+					Location:  DeadCodeLocation{FilePath: "config.py", StartLine: 3, EndLine: 3},
+					ScopeKind: AnalysisScopeClass,
+					Reason:    "unreachable_after_raise",
+					Severity:  DeadCodeSeverityCritical,
+				}},
+			}},
+		}}},
+	}
+
+	suggestions := GenerateSuggestions(response)
+	if len(suggestions) != 1 {
+		t.Fatalf("suggestions = %d, want 1", len(suggestions))
+	}
+	if !strings.Contains(suggestions[0].Title, "class scope Config") {
+		t.Fatalf("class-scope title = %q", suggestions[0].Title)
+	}
+	if strings.Contains(suggestions[0].Description, "in function") {
+		t.Fatalf("class-scope description mislabeled as function: %q", suggestions[0].Description)
+	}
+	if suggestions[0].ClassName != "Config" || suggestions[0].Function != "" {
+		t.Fatalf("class-scope ownership = class %q, function %q", suggestions[0].ClassName, suggestions[0].Function)
+	}
+}
+
 func TestGenerateSuggestions_CloneGroups(t *testing.T) {
 	resp := &AnalyzeResponse{
 		Clone: &CloneResponse{
