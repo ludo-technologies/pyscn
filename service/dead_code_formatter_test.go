@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -19,7 +20,8 @@ func createTestDeadCodeResponse() *domain.DeadCodeResponse {
 				FilePath: "test.py",
 				Functions: []domain.FunctionDeadCode{
 					{
-						Name: "test_func",
+						Name:      "test_func",
+						ScopeKind: domain.AnalysisScopeFunction,
 						Findings: []domain.DeadCodeFinding{
 							{
 								Location: domain.DeadCodeLocation{
@@ -28,6 +30,7 @@ func createTestDeadCodeResponse() *domain.DeadCodeResponse {
 									EndLine:   15,
 								},
 								FunctionName: "test_func",
+								ScopeKind:    domain.AnalysisScopeFunction,
 								Reason:       "code after return",
 								Severity:     domain.DeadCodeSeverityCritical,
 							},
@@ -38,6 +41,7 @@ func createTestDeadCodeResponse() *domain.DeadCodeResponse {
 									EndLine:   22,
 								},
 								FunctionName: "test_func",
+								ScopeKind:    domain.AnalysisScopeFunction,
 								Reason:       "condition always false",
 								Severity:     domain.DeadCodeSeverityWarning,
 							},
@@ -163,6 +167,30 @@ func TestDeadCodeFormatter_Format_CSV(t *testing.T) {
 	assert.Contains(t, lines[0], "Severity")
 }
 
+func TestDeadCodeFormatterLabelsClassScopes(t *testing.T) {
+	response := createTestDeadCodeResponse()
+	scope := &response.Files[0].Functions[0]
+	scope.Name = "Config"
+	scope.ScopeKind = domain.AnalysisScopeClass
+	for i := range scope.Findings {
+		scope.Findings[i].FunctionName = scope.Name
+		scope.Findings[i].ScopeKind = scope.ScopeKind
+	}
+
+	textOutput, err := NewDeadCodeFormatter().Format(response, domain.OutputFormatText)
+	require.NoError(t, err)
+	assert.Contains(t, textOutput, "Scope: class scope Config")
+	assert.NotContains(t, textOutput, "Function: Config")
+
+	csvOutput, err := NewDeadCodeFormatter().Format(response, domain.OutputFormatCSV)
+	require.NoError(t, err)
+	records, err := csv.NewReader(strings.NewReader(csvOutput)).ReadAll()
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(records), 2)
+	assert.Equal(t, "Scope Kind", records[0][len(records[0])-1])
+	assert.Equal(t, "class", records[1][len(records[1])-1])
+}
+
 func TestDeadCodeFormatter_Format_HTML(t *testing.T) {
 	formatter := NewDeadCodeFormatter()
 	response := createTestDeadCodeResponse()
@@ -208,6 +236,7 @@ func TestDeadCodeFormatter_FormatFinding(t *testing.T) {
 			EndLine:   15,
 		},
 		FunctionName: "my_func",
+		ScopeKind:    domain.AnalysisScopeFunction,
 		Reason:       "code after return",
 		Severity:     domain.DeadCodeSeverityCritical,
 	}
