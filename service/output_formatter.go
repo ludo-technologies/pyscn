@@ -60,7 +60,7 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 	// Header
 	builder.WriteString(utils.FormatMainHeader("Complexity Analysis Report"))
 
-	// Summary — single "reported vs parsed" line when min_complexity filtering dropped functions
+	// Summary counts describe the complete population used by aggregate metrics.
 	stats := map[string]interface{}{
 		"Total Functions": formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed),
 		"Files Analyzed":  response.Summary.FilesAnalyzed,
@@ -244,7 +244,8 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 	}
 
 	// Create summary
-	// total_functions = post-filter (reported); functions_parsed = pre-filter (all parsed)
+	// Both function counts describe the complete population used by aggregate metrics;
+	// presentation filters only limit the top-level functions list.
 	summary := map[string]interface{}{
 		"total_functions":         response.Summary.TotalFunctions,
 		"functions_parsed":        response.Summary.FunctionsParsed,
@@ -375,9 +376,9 @@ func (f *OutputFormatterImpl) formatHTML(response *domain.ComplexityResponse) (s
 	return htmlFormatter.FormatComplexityAsHTML(response, projectName)
 }
 
-// formatFunctionCoverage returns a single "reported vs parsed" display string.
-// When min_complexity filtering dropped functions, shows "N reported / M parsed";
-// otherwise returns just the reported count.
+// formatFunctionCoverage preserves the legacy "reported / parsed" display for
+// externally constructed responses whose counts differ. Service-produced
+// responses use one complete-population count for both values.
 func formatFunctionCoverage(reported, parsed int) string {
 	if parsed > 0 && parsed != reported {
 		return fmt.Sprintf("%d reported / %d parsed", reported, parsed)

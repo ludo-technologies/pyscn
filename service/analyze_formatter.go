@@ -1007,7 +1007,7 @@ const analyzeHTMLTemplate = `<!DOCTYPE html>
             {{if and .Complexity .Complexity.ByDirectory}}
             <div id="directory-complexity" class="tab-content">
                 <h2>Directory Complexity</h2>
-                <p style="color: #666; margin-bottom: 20px;">Project-root-relative rollups of the reported function population</p>
+                <p style="color: #666; margin-bottom: 20px;">Project-root-relative rollups of the complete analyzed function population</p>
                 <div style="overflow-x: auto;">
                     <table id="directory-complexity-table" class="table">
                         <thead>
