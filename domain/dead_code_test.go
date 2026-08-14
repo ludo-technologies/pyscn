@@ -20,3 +20,19 @@ func TestFunctionDeadCodeScopeLabel(t *testing.T) {
 		})
 	}
 }
+
+func TestFileDeadCodeExecutionScopes(t *testing.T) {
+	file := FileDeadCode{
+		Functions:   []FunctionDeadCode{{Name: "build", ScopeKind: AnalysisScopeFunction}},
+		ClassScopes: []FunctionDeadCode{{Name: "Config", ScopeKind: AnalysisScopeClass}},
+	}
+
+	scopes := file.ExecutionScopes()
+	if len(scopes) != 2 || scopes[0].Name != "build" || scopes[1].Name != "Config" {
+		t.Fatalf("ExecutionScopes() = %+v", scopes)
+	}
+	scopes[0].Name = "changed"
+	if file.Functions[0].Name != "build" {
+		t.Fatal("ExecutionScopes() must not alias file storage")
+	}
+}

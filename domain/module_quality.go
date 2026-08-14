@@ -85,9 +85,9 @@ func AggregateDeadCodeByModule(files []FileDeadCode) map[string]ModuleDeadCodeMe
 		key := filepath.Clean(file.FilePath)
 		module := modules[key]
 		module.DeadCodeFindingCount += file.TotalFindings
-		for _, function := range file.Functions {
-			blockIDs := make(map[string]struct{}, len(function.Findings))
-			for _, finding := range function.Findings {
+		for _, scope := range file.ExecutionScopes() {
+			blockIDs := make(map[string]struct{}, len(scope.Findings))
+			for _, finding := range scope.Findings {
 				if finding.BlockID != "" {
 					blockIDs[finding.BlockID] = struct{}{}
 				}

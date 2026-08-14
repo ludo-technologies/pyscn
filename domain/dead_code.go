@@ -117,29 +117,46 @@ func (f FunctionDeadCode) ScopeLabel() string {
 	return executionScopeLabel(f.ScopeKind, f.Name)
 }
 
-// FileDeadCode represents dead code analysis result for a single file
+// FileDeadCode represents dead code analysis results for a single file. The
+// historical function collection and counters remain function-only; executable
+// class suites are reported additively with the same typed row model.
 type FileDeadCode struct {
 	// File identification
 	FilePath string `json:"file_path"`
 
 	// Functions analyzed
 	Functions []FunctionDeadCode `json:"functions"`
+	// ClassScopes contains executable class-suite results.
+	ClassScopes []FunctionDeadCode `json:"class_scopes,omitempty"`
 
 	// File-level summary
-	TotalFindings     int     `json:"total_findings"`
-	TotalFunctions    int     `json:"total_functions"`
-	AffectedFunctions int     `json:"affected_functions"`
-	DeadCodeRatio     float64 `json:"dead_code_ratio"`
+	TotalFindings       int     `json:"total_findings"`
+	TotalFunctions      int     `json:"total_functions"`
+	AffectedFunctions   int     `json:"affected_functions"`
+	TotalClassScopes    int     `json:"total_class_scopes"`
+	AffectedClassScopes int     `json:"affected_class_scopes"`
+	DeadCodeRatio       float64 `json:"dead_code_ratio"`
+}
+
+// ExecutionScopes returns an independently owned combined view of the
+// function and executable class-suite results.
+func (f FileDeadCode) ExecutionScopes() []FunctionDeadCode {
+	scopes := make([]FunctionDeadCode, 0, len(f.Functions)+len(f.ClassScopes))
+	scopes = append(scopes, f.Functions...)
+	scopes = append(scopes, f.ClassScopes...)
+	return scopes
 }
 
 // DeadCodeSummary represents aggregate statistics for dead code analysis
 type DeadCodeSummary struct {
 	// Overall metrics
-	TotalFiles            int `json:"total_files"`
-	TotalFunctions        int `json:"total_functions"`
-	TotalFindings         int `json:"total_findings"`
-	FilesWithDeadCode     int `json:"files_with_dead_code"`
-	FunctionsWithDeadCode int `json:"functions_with_dead_code"`
+	TotalFiles              int `json:"total_files"`
+	TotalFunctions          int `json:"total_functions"`
+	TotalFindings           int `json:"total_findings"`
+	FilesWithDeadCode       int `json:"files_with_dead_code"`
+	FunctionsWithDeadCode   int `json:"functions_with_dead_code"`
+	TotalClassScopes        int `json:"total_class_scopes"`
+	ClassScopesWithDeadCode int `json:"class_scopes_with_dead_code"`
 
 	// Severity distribution
 	CriticalFindings int `json:"critical_findings"`

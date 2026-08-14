@@ -121,3 +121,23 @@ func TestAggregateDeadCodeByModule_UsesOneUnfilteredPopulation(t *testing.T) {
 		t.Errorf("expected 3 dead-code blocks, got %d", hot.DeadCodeBlockCount)
 	}
 }
+
+func TestAggregateDeadCodeByModule_IncludesClassScopes(t *testing.T) {
+	modules := AggregateDeadCodeByModule([]FileDeadCode{{
+		FilePath:      "pkg/config.py",
+		TotalFindings: 2,
+		Functions: []FunctionDeadCode{{
+			ScopeKind: AnalysisScopeFunction,
+			Findings:  []DeadCodeFinding{{BlockID: "function-block"}},
+		}},
+		ClassScopes: []FunctionDeadCode{{
+			ScopeKind: AnalysisScopeClass,
+			Findings:  []DeadCodeFinding{{BlockID: "class-block"}},
+		}},
+	}})
+
+	metrics := modules["pkg/config.py"]
+	if metrics.DeadCodeFindingCount != 2 || metrics.DeadCodeBlockCount != 2 {
+		t.Fatalf("class-scope findings missing from module rollup: %+v", metrics)
+	}
+}
