@@ -73,17 +73,19 @@ func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) flo
 		return 0.0
 	}
 
-	// Build CFGs for both fragments
-	cfg1, err1 := s.buildCFGFromFragment(f1)
-	cfg2, err2 := s.buildCFGFromFragment(f2)
+	// Build the execution profiles for both fragments. A class suite executes
+	// when its definition is reached, so directly nested class CFGs contribute
+	// even though BuildAll keeps their ownership separate from the function CFG.
+	cfgs1, err1 := s.buildExecutionCFGsFromFragment(f1)
+	cfgs2, err2 := s.buildExecutionCFGsFromFragment(f2)
 
-	if err1 != nil || err2 != nil || cfg1 == nil || cfg2 == nil {
+	if err1 != nil || err2 != nil || len(cfgs1) == 0 || len(cfgs2) == 0 {
 		return 0.0
 	}
 
-	// Extract CFG features from both CFGs
-	cfgFeatures1 := s.extractCFGFeatures(cfg1)
-	cfgFeatures2 := s.extractCFGFeatures(cfg2)
+	// Extract CFG features from the complete execution profiles.
+	cfgFeatures1 := s.extractExecutionCFGFeatures(cfgs1)
+	cfgFeatures2 := s.extractExecutionCFGFeatures(cfgs2)
 
 	// Control-flow gate; see domain.DefaultSemanticMinCyclomaticComplexity for
 	// rationale. Rejected fragments remain eligible for Type-1/2/3 upstream.
@@ -99,14 +101,11 @@ func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) flo
 		return s.applySemanticEvidence(cfgSimilarity, f1, f2)
 	}
 
-	// Build DFA info for both CFGs
-	dfaBuilder := NewDFABuilder()
-	dfaInfo1, _ := dfaBuilder.Build(cfg1)
-	dfaInfo2, _ := dfaBuilder.Build(cfg2)
-
-	// Extract DFA features
-	dfaFeatures1 := ExtractDFAFeatures(dfaInfo1)
-	dfaFeatures2 := ExtractDFAFeatures(dfaInfo2)
+	// Class suites own separate namespaces, so aggregate their independently
+	// computed DFA features instead of flattening their statements into the
+	// enclosing function's graph.
+	dfaFeatures1 := s.extractExecutionDFAFeatures(cfgs1)
+	dfaFeatures2 := s.extractExecutionDFAFeatures(cfgs2)
 
 	// Compare DFA features
 	dfaSimilarity := s.compareDFAFeatures(dfaFeatures1, dfaFeatures2)
@@ -236,15 +235,101 @@ func returnCategory(node *parser.Node) string {
 	return "scalar"
 }
 
-// buildCFGFromFragment builds a CFG from a code fragment
-func (s *SemanticSimilarityAnalyzer) buildCFGFromFragment(f *CodeFragment) (*CFG, error) {
+// buildExecutionCFGsFromFragment returns the fragment's root graph followed by
+// class-suite graphs that execute directly within it. Function descendants are
+// excluded because defining a nested function does not execute its body.
+func (s *SemanticSimilarityAnalyzer) buildExecutionCFGsFromFragment(f *CodeFragment) ([]*CFG, error) {
 	if f.ASTNode == nil {
 		return nil, nil
 	}
 
-	// Create a fresh builder for each fragment to avoid state issues
-	builder := NewCFGBuilder()
-	return builder.Build(f.ASTNode)
+	scopedCFGs, err := NewCFGBuilder().BuildAll(f.ASTNode)
+	if err != nil || len(scopedCFGs) == 0 {
+		return nil, err
+	}
+
+	executedClasses := executedClassScopePositions(f.ASTNode)
+	graphs := make([]*CFG, 0, 1+len(executedClasses))
+	graphs = append(graphs, scopedCFGs[0].Graph)
+	for _, scopedCFG := range scopedCFGs[1:] {
+		if scopedCFG.Scope.Kind != domain.AnalysisScopeClass {
+			continue
+		}
+		position := semanticScopePosition{line: scopedCFG.Scope.StartLine, column: scopedCFG.Scope.StartColumn}
+		if _, ok := executedClasses[position]; ok {
+			graphs = append(graphs, scopedCFG.Graph)
+		}
+	}
+	return graphs, nil
+}
+
+type semanticScopePosition struct {
+	line   int
+	column int
+}
+
+func executedClassScopePositions(root *parser.Node) map[semanticScopePosition]struct{} {
+	positions := make(map[semanticScopePosition]struct{})
+	root.Walk(func(node *parser.Node) bool {
+		if node != root && (node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef) {
+			return false
+		}
+		if node.Type == parser.NodeClassDef {
+			positions[semanticScopePosition{line: node.Location.StartLine, column: node.Location.StartCol}] = struct{}{}
+		}
+		return true
+	})
+	return positions
+}
+
+func (s *SemanticSimilarityAnalyzer) extractExecutionCFGFeatures(cfgs []*CFG) *CFGFeatures {
+	aggregate := &CFGFeatures{EdgeTypeCounts: make(map[EdgeType]int)}
+	decisionComplexity := 1
+	for _, cfg := range cfgs {
+		features := s.extractCFGFeatures(cfg)
+		aggregate.BlockCount += features.BlockCount
+		aggregate.EdgeCount += features.EdgeCount
+		aggregate.LoopEdgeCount += features.LoopEdgeCount
+		aggregate.ConditionalCount += features.ConditionalCount
+		for edgeType, count := range features.EdgeTypeCounts {
+			aggregate.EdgeTypeCounts[edgeType] += count
+		}
+		if features.CyclomaticNumber > 1 {
+			decisionComplexity += features.CyclomaticNumber - 1
+		}
+	}
+	aggregate.CyclomaticNumber = decisionComplexity
+	if aggregate.BlockCount > 0 {
+		aggregate.BranchingFactor = float64(aggregate.EdgeCount) / float64(aggregate.BlockCount)
+	}
+	return aggregate
+}
+
+func (s *SemanticSimilarityAnalyzer) extractExecutionDFAFeatures(cfgs []*CFG) *DFAFeatures {
+	aggregate := NewDFAFeatures()
+	for _, cfg := range cfgs {
+		dfaInfo, _ := NewDFABuilder().Build(cfg)
+		features := ExtractDFAFeatures(dfaInfo)
+		aggregate.TotalDefs += features.TotalDefs
+		aggregate.TotalUses += features.TotalUses
+		aggregate.TotalPairs += features.TotalPairs
+		aggregate.UniqueVariables += features.UniqueVariables
+		aggregate.CrossBlockPairs += features.CrossBlockPairs
+		aggregate.IntraBlockPairs += features.IntraBlockPairs
+		if features.MaxChainLength > aggregate.MaxChainLength {
+			aggregate.MaxChainLength = features.MaxChainLength
+		}
+		for kind, count := range features.DefKindCounts {
+			aggregate.DefKindCounts[kind] += count
+		}
+		for kind, count := range features.UseKindCounts {
+			aggregate.UseKindCounts[kind] += count
+		}
+	}
+	if aggregate.TotalDefs > 0 {
+		aggregate.AvgChainLength = float64(aggregate.TotalPairs) / float64(aggregate.TotalDefs)
+	}
+	return aggregate
 }
 
 // extractCFGFeatures extracts structural features from a CFG
