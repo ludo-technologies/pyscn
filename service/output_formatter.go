@@ -160,7 +160,7 @@ func writeComplexityScopeDetails(builder *strings.Builder, utils *FormatUtils, t
 
 		coloredRisk := utils.FormatRiskWithColor(standardRisk)
 		builder.WriteString(fmt.Sprintf("%-30s %10d %10d %10d  %s\n",
-			fmt.Sprintf("%s (%s)", scope.Name, scope.ResolvedScopeKind()),
+			fmt.Sprintf("%s (%s)", scope.Name, scope.ScopeKind),
 			scope.Metrics.Complexity,
 			scope.Metrics.CognitiveComplexity,
 			scope.Metrics.SLOC,
@@ -209,7 +209,7 @@ func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (st
 			fmt.Sprintf("%d", function.Metrics.LoopStatements),
 			fmt.Sprintf("%d", function.Metrics.ExceptionHandlers),
 			fmt.Sprintf("%d", function.Metrics.SLOC),
-			string(function.ResolvedScopeKind()),
+			string(function.ScopeKind),
 		}
 		if err := writer.Write(row); err != nil {
 			return "", domain.NewOutputError("failed to write CSV row", err)
@@ -326,7 +326,7 @@ func serializeComplexityScopes(scopes []domain.FunctionComplexity) []map[string]
 			"complexity":           scope.Metrics.Complexity,
 			"cognitive_complexity": scope.Metrics.CognitiveComplexity,
 			"function_name":        scope.Name,
-			"scope_kind":           string(scope.ResolvedScopeKind()),
+			"scope_kind":           string(scope.ScopeKind),
 			"file_path":            scope.FilePath,
 			"risk_level":           string(scope.RiskLevel),
 			"sloc":                 scope.Metrics.SLOC,
