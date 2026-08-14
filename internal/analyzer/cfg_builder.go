@@ -85,6 +85,10 @@ type CFGBuilder struct {
 
 	// exceptionStack tracks nested try blocks for exception handling
 	exceptionStack []*exceptionContext
+
+	// inlineClassSuites is enabled only by BuildExecutionFragment. Standard
+	// analysis keeps each class suite in its own typed CFG via BuildAll.
+	inlineClassSuites bool
 }
 
 // NewCFGBuilder creates a new CFG builder
@@ -113,9 +117,22 @@ func (b *CFGBuilder) logError(format string, args ...interface{}) {
 
 // Build constructs a CFG from an AST node
 func (b *CFGBuilder) Build(node *parser.Node) (*CFG, error) {
+	return b.build(node, false)
+}
+
+// BuildExecutionFragment constructs the single graph used for semantic clone
+// comparison. Class suites reached while executing the fragment are inlined,
+// matching Python's class-definition execution; nested function bodies remain
+// separate because defining a function does not execute its body.
+func (b *CFGBuilder) BuildExecutionFragment(node *parser.Node) (*CFG, error) {
+	return b.build(node, true)
+}
+
+func (b *CFGBuilder) build(node *parser.Node, inlineClassSuites bool) (*CFG, error) {
 	if node == nil {
 		return nil, fmt.Errorf("cannot build CFG from nil node")
 	}
+	b.inlineClassSuites = inlineClassSuites
 
 	if len(b.scopeStack) == 0 {
 		b.scopedCFGs = b.scopedCFGs[:0]
@@ -145,7 +162,11 @@ func (b *CFGBuilder) Build(node *parser.Node) (*CFG, error) {
 	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
 		b.buildFunction(node)
 	case parser.NodeClassDef:
-		b.buildClass(node)
+		if b.inlineClassSuites {
+			b.buildInlineClass(node)
+		} else {
+			b.buildClass(node)
+		}
 	default:
 		// For single statements, process directly
 		b.processStatement(node)
@@ -217,6 +238,22 @@ func (b *CFGBuilder) buildClass(node *parser.Node) {
 	// Process the executable class suite. The class definition itself belongs
 	// to the enclosing scope, where it evaluates decorators and bases before
 	// binding the completed class object.
+	for _, stmt := range node.Body {
+		b.processStatement(stmt)
+	}
+}
+
+// buildInlineClass preserves the execution profile used by fragment analysis:
+// the definition and its suite execute as part of the enclosing fragment.
+func (b *CFGBuilder) buildInlineClass(node *parser.Node) {
+	b.enterScope(node.Name)
+	defer b.exitScope()
+
+	bodyBlock := b.createBlock(LabelClassBody)
+	b.cfg.ConnectBlocks(b.currentBlock, bodyBlock, EdgeNormal)
+	b.currentBlock = bodyBlock
+	b.currentBlock.AddStatement(node)
+
 	for _, stmt := range node.Body {
 		b.processStatement(stmt)
 	}
@@ -313,10 +350,14 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 		}
 
 	case parser.NodeClassDef:
-		// A class suite is its own execution scope. Keep only the definition
-		// binding and header evaluation in the enclosing graph.
-		if err := b.buildNestedScope(stmt); err != nil {
-			b.logError("error in nested class: %v", err)
+		if b.inlineClassSuites {
+			b.buildInlineClass(stmt)
+		} else {
+			// A class suite is its own execution scope. Keep only the definition
+			// binding and header evaluation in the enclosing graph.
+			if err := b.buildNestedScope(stmt); err != nil {
+				b.logError("error in nested class: %v", err)
+			}
 		}
 
 	case parser.NodeReturn:
