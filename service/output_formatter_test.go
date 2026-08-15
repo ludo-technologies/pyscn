@@ -19,8 +19,9 @@ func createTestComplexityResponse() *domain.ComplexityResponse {
 	return &domain.ComplexityResponse{
 		Functions: []domain.FunctionComplexity{
 			{
-				Name:     "simple_function",
-				FilePath: "test.py",
+				Name:      "simple_function",
+				ScopeKind: domain.AnalysisScopeFunction,
+				FilePath:  "test.py",
 				Metrics: domain.ComplexityMetrics{
 					Complexity:        2,
 					SLOC:              6,
@@ -33,8 +34,9 @@ func createTestComplexityResponse() *domain.ComplexityResponse {
 				RiskLevel: domain.RiskLevelLow,
 			},
 			{
-				Name:     "complex_function",
-				FilePath: "test.py",
+				Name:      "complex_function",
+				ScopeKind: domain.AnalysisScopeFunction,
+				FilePath:  "test.py",
 				Metrics: domain.ComplexityMetrics{
 					Complexity:        8,
 					SLOC:              120,
@@ -127,6 +129,87 @@ func createMinimalComplexityResponse() *domain.ComplexityResponse {
 	}
 }
 
+func createClassScopeComplexityResponse() *domain.ComplexityResponse {
+	response := createTestComplexityResponse()
+	response.ClassScopes = []domain.FunctionComplexity{{
+		Name:      "Config",
+		ScopeKind: domain.AnalysisScopeClass,
+		FilePath:  "test.py",
+		StartLine: 20,
+		Metrics: domain.ComplexityMetrics{
+			Complexity: 4,
+		},
+		RiskLevel: domain.RiskLevelLow,
+	}}
+	response.Summary.TotalClassScopes = 1
+	return response
+}
+
+func TestOutputFormatterPublishesClassScopesAdditively(t *testing.T) {
+	formatter := NewOutputFormatter()
+	response := createClassScopeComplexityResponse()
+
+	for _, format := range []domain.OutputFormat{domain.OutputFormatJSON, domain.OutputFormatYAML} {
+		t.Run(string(format), func(t *testing.T) {
+			output, err := formatter.Format(response, format)
+			require.NoError(t, err)
+
+			var payload map[string]interface{}
+			if format == domain.OutputFormatJSON {
+				require.NoError(t, json.Unmarshal([]byte(output), &payload))
+			} else {
+				require.NoError(t, yaml.Unmarshal([]byte(output), &payload))
+			}
+
+			assert.Len(t, payload["results"], 2, "the established function collection must stay unchanged")
+			classScopes, ok := payload["class_scopes"].([]interface{})
+			require.True(t, ok)
+			require.Len(t, classScopes, 1)
+			assert.Equal(t, "class", classScopes[0].(map[string]interface{})["scope_kind"])
+			summary := payload["summary"].(map[string]interface{})
+			assert.EqualValues(t, 2, summary["total_functions"])
+			assert.EqualValues(t, 1, summary["total_class_scopes"])
+		})
+	}
+
+	textOutput, err := formatter.Format(response, domain.OutputFormatText)
+	require.NoError(t, err)
+	assert.Contains(t, textOutput, "CLASS SCOPE DETAILS")
+	assert.Contains(t, textOutput, "Config (class)")
+
+	htmlOutput, err := formatter.Format(response, domain.OutputFormatHTML)
+	require.NoError(t, err)
+	assert.Contains(t, htmlOutput, "Class Scope Details")
+	assert.Contains(t, htmlOutput, ">class<")
+
+	csvOutput, err := formatter.Format(response, domain.OutputFormatCSV)
+	require.NoError(t, err)
+	records, err := csv.NewReader(strings.NewReader(csvOutput)).ReadAll()
+	require.NoError(t, err)
+	assert.Len(t, records, 4)
+	assert.Equal(t, "Config", records[3][0])
+	assert.Equal(t, "class", records[3][11])
+}
+
+func TestOutputFormatterTextPreservesScopeRiskLevels(t *testing.T) {
+	response := createClassScopeComplexityResponse()
+	response.Functions[1].RiskLevel = domain.RiskLevelHigh
+	response.ClassScopes[0].RiskLevel = domain.RiskLevelMedium
+
+	output, err := NewOutputFormatter().Format(response, domain.OutputFormatText)
+	require.NoError(t, err)
+	assert.Contains(t, output, ColorRed+string(RiskHigh)+ColorReset)
+	assert.Contains(t, output, ColorYellow+string(RiskMedium)+ColorReset)
+}
+
+func TestOutputFormatterHTMLResolvesLegacyScopeKind(t *testing.T) {
+	response := createTestComplexityResponse()
+	response.Functions[0].ScopeKind = domain.AnalysisScopeUnknown
+	output, err := NewOutputFormatter().Format(response, domain.OutputFormatHTML)
+	require.NoError(t, err)
+	assert.Contains(t, output, ">function<")
+}
+
 // TestOutputFormatter_Format tests the main Format method with different formats
 func TestOutputFormatter_Format(t *testing.T) {
 	tests := []struct {
@@ -164,6 +247,7 @@ func TestOutputFormatter_Format(t *testing.T) {
 				if len(functions) > 0 {
 					function := functions[0].(map[string]interface{})
 					assert.Contains(t, function, "function_name")
+					assert.Equal(t, "function", function["scope_kind"])
 					assert.Contains(t, function, "complexity")
 					assert.Contains(t, function, "risk_level")
 				}
@@ -214,7 +298,7 @@ func TestOutputFormatter_Format(t *testing.T) {
 				assert.Len(t, records, 3, "Should have header plus 2 function rows")
 
 				// Check header
-				expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers", "SLOC"}
+				expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers", "SLOC", "Scope Kind"}
 				assert.Equal(t, expectedHeaders, records[0])
 
 				// Check first data row
@@ -530,7 +614,7 @@ func TestOutputFormatter_formatText(t *testing.T) {
 
 				// Check function details (new unified format)
 				assert.Contains(t, output, "FUNCTION DETAILS")
-				assert.Contains(t, output, "Function  Complexity  Cognitive  SLOC  Risk")
+				assert.Contains(t, output, "Scope  Complexity  Cognitive  SLOC  Risk")
 				assert.Contains(t, output, "simple_function")
 				assert.Contains(t, output, "complex_function")
 
@@ -603,6 +687,7 @@ func TestOutputFormatter_formatJSON(t *testing.T) {
 
 	firstFunction := functions[0].(map[string]interface{})
 	assert.Equal(t, "simple_function", firstFunction["function_name"]) // not "name"
+	assert.Equal(t, "function", firstFunction["scope_kind"])
 	assert.Equal(t, float64(2), firstFunction["complexity"])
 	assert.Equal(t, "low", firstFunction["risk_level"])
 
@@ -665,12 +750,12 @@ func TestOutputFormatter_formatCSV(t *testing.T) {
 	assert.Len(t, records, 3) // Header + 2 functions
 
 	// Check header
-	expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers", "SLOC"}
+	expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers", "SLOC", "Scope Kind"}
 	assert.Equal(t, expectedHeaders, records[0])
 
 	// Check data rows (risk levels are lowercase in actual implementation)
-	assert.Equal(t, []string{"simple_function", "2", "0", "low", "5", "4", "0", "1", "0", "0", "6"}, records[1])
-	assert.Equal(t, []string{"complex_function", "8", "0", "high", "20", "18", "0", "3", "2", "1", "120"}, records[2])
+	assert.Equal(t, []string{"simple_function", "2", "0", "low", "5", "4", "0", "1", "0", "0", "6", "function"}, records[1])
+	assert.Equal(t, []string{"complex_function", "8", "0", "high", "20", "18", "0", "3", "2", "1", "120", "function"}, records[2])
 }
 
 // TestOutputFormatter_NewOutputFormatter tests service creation

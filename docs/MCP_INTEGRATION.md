@@ -114,7 +114,7 @@ Reasons:
     },
     "max_complexity": {
       "type": "integer",
-      "description": "Maximum allowed complexity (0 = no limit)",
+      "description": "Maximum allowed complexity (0 uses the default of 10)",
       "default": 0
     },
     "show_details": {
@@ -128,6 +128,8 @@ Reasons:
 ```
 
 **Output**: `ComplexityResponse` JSON
+
+Summary and detailed modes apply the gate to the complete analyzed scope population before presentation filters. In their summary, `max_complexity` remains the maximum across the established function population; `max_scope_complexity` is the maximum across functions, modules, and executable class suites.
 
 ### 3. detect_clones
 
@@ -210,7 +212,7 @@ Reasons:
 }
 ```
 
-**Output**: `DeadCodeResponse` JSON
+**Output**: Summary mode returns compact issue strings. Detailed mode returns structured issues from functions and executable class suites; each issue includes the compatibility `function` name, required `scope_kind`, and canonical `scope_label`. Full mode returns `DeadCodeResponse` JSON, where the existing function collection and counters remain function-only and class-suite collections and counters are additive. Aggregate finding, health, and module metrics include both populations.
 
 ### 6. get_health_score
 

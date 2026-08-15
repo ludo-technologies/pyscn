@@ -19,19 +19,22 @@ func TestGenerateSuggestions_ComplexityOnly(t *testing.T) {
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
 				{
-					Name:     "high_func",
-					FilePath: "a.py",
-					Metrics:  ComplexityMetrics{Complexity: 25, NestingDepth: 6},
+					Name:      "high_func",
+					ScopeKind: AnalysisScopeFunction,
+					FilePath:  "a.py",
+					Metrics:   ComplexityMetrics{Complexity: 25, NestingDepth: 6},
 				},
 				{
-					Name:     "medium_func",
-					FilePath: "b.py",
-					Metrics:  ComplexityMetrics{Complexity: 15, NestingDepth: 2},
+					Name:      "medium_func",
+					ScopeKind: AnalysisScopeFunction,
+					FilePath:  "b.py",
+					Metrics:   ComplexityMetrics{Complexity: 15, NestingDepth: 2},
 				},
 				{
-					Name:     "low_func",
-					FilePath: "c.py",
-					Metrics:  ComplexityMetrics{Complexity: 5},
+					Name:      "low_func",
+					ScopeKind: AnalysisScopeFunction,
+					FilePath:  "c.py",
+					Metrics:   ComplexityMetrics{Complexity: 5},
 				},
 			},
 		},
@@ -65,6 +68,7 @@ func TestGenerateSuggestions_ComplexityNestingDepth(t *testing.T) {
 			Functions: []FunctionComplexity{
 				{
 					Name:      "deep_func",
+					ScopeKind: AnalysisScopeFunction,
 					FilePath:  "a.py",
 					StartLine: 42,
 					Metrics:   ComplexityMetrics{Complexity: 25, NestingDepth: 5},
@@ -98,9 +102,10 @@ func TestGenerateSuggestions_ComplexityDefault(t *testing.T) {
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
 				{
-					Name:     "wide_func",
-					FilePath: "a.py",
-					Metrics:  ComplexityMetrics{Complexity: 15, NestingDepth: 2},
+					Name:      "wide_func",
+					ScopeKind: AnalysisScopeFunction,
+					FilePath:  "a.py",
+					Metrics:   ComplexityMetrics{Complexity: 15, NestingDepth: 2},
 				},
 			},
 		},
@@ -123,9 +128,10 @@ func TestGenerateSuggestions_ComplexityLoopStatements(t *testing.T) {
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
 				{
-					Name:     "loopy_func",
-					FilePath: "a.py",
-					Metrics:  ComplexityMetrics{Complexity: 15, NestingDepth: 2, LoopStatements: 4},
+					Name:      "loopy_func",
+					ScopeKind: AnalysisScopeFunction,
+					FilePath:  "a.py",
+					Metrics:   ComplexityMetrics{Complexity: 15, NestingDepth: 2, LoopStatements: 4},
 				},
 			},
 		},
@@ -145,9 +151,10 @@ func TestGenerateSuggestions_ComplexityExceptionHandlers(t *testing.T) {
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
 				{
-					Name:     "error_func",
-					FilePath: "a.py",
-					Metrics:  ComplexityMetrics{Complexity: 15, NestingDepth: 2, ExceptionHandlers: 4},
+					Name:      "error_func",
+					ScopeKind: AnalysisScopeFunction,
+					FilePath:  "a.py",
+					Metrics:   ComplexityMetrics{Complexity: 15, NestingDepth: 2, ExceptionHandlers: 4},
 				},
 			},
 		},
@@ -167,9 +174,10 @@ func TestGenerateSuggestions_ComplexityTopLevel(t *testing.T) {
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
 				{
-					Name:     ModuleFunctionName,
-					FilePath: "src/comprehensions.py",
-					Metrics:  ComplexityMetrics{Complexity: 15},
+					Name:      ModuleFunctionName,
+					ScopeKind: AnalysisScopeModule,
+					FilePath:  "src/comprehensions.py",
+					Metrics:   ComplexityMetrics{Complexity: 15},
 				},
 			},
 		},
@@ -194,6 +202,30 @@ func TestGenerateSuggestions_ComplexityTopLevel(t *testing.T) {
 	}
 	if !strings.Contains(s.Steps[0], "Extract top-level logic") {
 		t.Errorf("expected top-level specific steps, got: %v", s.Steps)
+	}
+}
+
+func TestGenerateSuggestions_ComplexityClassScope(t *testing.T) {
+	resp := &AnalyzeResponse{
+		Complexity: &ComplexityResponse{
+			ClassScopes: []FunctionComplexity{{
+				Name:      "Settings",
+				ScopeKind: AnalysisScopeClass,
+				FilePath:  "settings.py",
+				Metrics:   ComplexityMetrics{Complexity: 15},
+			}},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != 1 {
+		t.Fatalf("expected 1 suggestion, got %d", len(suggestions))
+	}
+	if !strings.Contains(suggestions[0].Title, "class scope") {
+		t.Fatalf("expected class-scope title, got %q", suggestions[0].Title)
+	}
+	if strings.Contains(suggestions[0].Title, "function") {
+		t.Fatalf("class suggestion must not call the scope a function: %q", suggestions[0].Title)
 	}
 }
 
@@ -265,6 +297,38 @@ func TestGenerateSuggestions_DeadCodeOnly(t *testing.T) {
 	}
 	if !strings.Contains(branch.Steps[0], "condition") {
 		t.Errorf("expected 'condition' in steps for unreachable_branch, got: %v", branch.Steps)
+	}
+}
+
+func TestGenerateSuggestions_DeadCodeClassScope(t *testing.T) {
+	response := &AnalyzeResponse{
+		DeadCode: &DeadCodeResponse{Files: []FileDeadCode{{
+			FilePath: "config.py",
+			ClassScopes: []FunctionDeadCode{{
+				Name:      "Config",
+				ScopeKind: AnalysisScopeClass,
+				Findings: []DeadCodeFinding{{
+					Location:  DeadCodeLocation{FilePath: "config.py", StartLine: 3, EndLine: 3},
+					ScopeKind: AnalysisScopeClass,
+					Reason:    "unreachable_after_raise",
+					Severity:  DeadCodeSeverityCritical,
+				}},
+			}},
+		}}},
+	}
+
+	suggestions := GenerateSuggestions(response)
+	if len(suggestions) != 1 {
+		t.Fatalf("suggestions = %d, want 1", len(suggestions))
+	}
+	if !strings.Contains(suggestions[0].Title, "class scope Config") {
+		t.Fatalf("class-scope title = %q", suggestions[0].Title)
+	}
+	if strings.Contains(suggestions[0].Description, "in function") {
+		t.Fatalf("class-scope description mislabeled as function: %q", suggestions[0].Description)
+	}
+	if suggestions[0].ClassName != "Config" || suggestions[0].Function != "" {
+		t.Fatalf("class-scope ownership = class %q, function %q", suggestions[0].ClassName, suggestions[0].Function)
 	}
 }
 
@@ -819,7 +883,7 @@ func TestGenerateSuggestions_AllAnalysesEnabled_SortOrder(t *testing.T) {
 	resp := &AnalyzeResponse{
 		Complexity: &ComplexityResponse{
 			Functions: []FunctionComplexity{
-				{Name: "complex_func", Metrics: ComplexityMetrics{Complexity: 25}},
+				{Name: "complex_func", ScopeKind: AnalysisScopeFunction, Metrics: ComplexityMetrics{Complexity: 25}},
 			},
 		},
 		DeadCode: &DeadCodeResponse{
@@ -880,8 +944,9 @@ func TestGenerateSuggestions_CategoryLimit(t *testing.T) {
 	funcs := make([]FunctionComplexity, 20)
 	for i := range funcs {
 		funcs[i] = FunctionComplexity{
-			Name:    "func_" + string(rune('a'+i)),
-			Metrics: ComplexityMetrics{Complexity: 25},
+			Name:      "func_" + string(rune('a'+i)),
+			ScopeKind: AnalysisScopeFunction,
+			Metrics:   ComplexityMetrics{Complexity: 25},
 		}
 	}
 

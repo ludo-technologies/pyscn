@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/ludo-technologies/pyscn/internal/reporter"
@@ -58,7 +59,7 @@ func (fca *FileComplexityAnalyzer) AnalyzeFile(filename string) error {
 		return fmt.Errorf("failed to parse Python code in %s: %w", filename, err)
 	}
 
-	// Build CFGs for all functions
+	// Build a typed CFG for each Python execution scope.
 	builder := NewCFGBuilder()
 	cfgs, err := builder.BuildAll(result.AST)
 	if err != nil {
@@ -66,17 +67,10 @@ func (fca *FileComplexityAnalyzer) AnalyzeFile(filename string) error {
 	}
 
 	if len(cfgs) == 0 {
-		return fmt.Errorf("no functions found in %s", filename)
+		return fmt.Errorf("no execution scopes found in %s", filename)
 	}
 
-	// Convert map to slice for the complexity analyzer
-	cfgList := make([]*CFG, 0, len(cfgs))
-	for _, cfg := range cfgs {
-		cfgList = append(cfgList, cfg)
-	}
-
-	// Calculate complexity results
-	results := CalculateFileComplexityWithConfig(cfgList, &fca.config.Complexity)
+	results := calculateScopedReporterResults(cfgs, &fca.config.Complexity)
 
 	// Convert to reporter interface
 	interfaceResults := make([]reporter.ComplexityResult, len(results))
@@ -90,7 +84,7 @@ func (fca *FileComplexityAnalyzer) AnalyzeFile(filename string) error {
 
 // AnalyzeFiles analyzes multiple Python files and outputs combined complexity results
 func (fca *FileComplexityAnalyzer) AnalyzeFiles(filenames []string) error {
-	var allResults []*ComplexityResult
+	var allResults []scopedReporterResult
 
 	for _, filename := range filenames {
 		// Read and parse file
@@ -106,26 +100,19 @@ func (fca *FileComplexityAnalyzer) AnalyzeFiles(filenames []string) error {
 			return fmt.Errorf("failed to parse Python code in %s: %w", filename, err)
 		}
 
-		// Build CFGs
+		// Build typed CFGs for all execution scopes.
 		builder := NewCFGBuilder()
 		cfgs, err := builder.BuildAll(result.AST)
 		if err != nil {
 			return fmt.Errorf("failed to build control flow graphs for %s: %w", filename, err)
 		}
 
-		// Convert map to slice
-		cfgList := make([]*CFG, 0, len(cfgs))
-		for _, cfg := range cfgs {
-			cfgList = append(cfgList, cfg)
-		}
-
-		// Calculate complexity for this file
-		fileResults := CalculateFileComplexityWithConfig(cfgList, &fca.config.Complexity)
+		fileResults := calculateScopedReporterResults(cfgs, &fca.config.Complexity)
 		allResults = append(allResults, fileResults...)
 	}
 
 	if len(allResults) == 0 {
-		return fmt.Errorf("no functions found in any of the files")
+		return fmt.Errorf("no execution scopes found in any of the files")
 	}
 
 	// Convert to reporter interface
@@ -136,4 +123,24 @@ func (fca *FileComplexityAnalyzer) AnalyzeFiles(filenames []string) error {
 
 	// Generate and output report
 	return fca.reporter.ReportComplexityWithFileCount(interfaceResults, len(filenames))
+}
+
+type scopedReporterResult struct {
+	*ComplexityResult
+	scopeKind domain.AnalysisScopeKind
+}
+
+func (r scopedReporterResult) GetScopeKind() domain.AnalysisScopeKind {
+	return r.scopeKind
+}
+
+func calculateScopedReporterResults(cfgs ControlFlowGraphs, complexityConfig *config.ComplexityConfig) []scopedReporterResult {
+	results := make([]scopedReporterResult, 0, len(cfgs))
+	for _, scopedCFG := range cfgs {
+		result := CalculateComplexityWithConfig(scopedCFG.Graph, complexityConfig)
+		if complexityConfig.ShouldReport(result.Complexity) {
+			results = append(results, scopedReporterResult{ComplexityResult: result, scopeKind: scopedCFG.Scope.Kind})
+		}
+	}
+	return results
 }

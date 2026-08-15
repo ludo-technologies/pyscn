@@ -210,6 +210,13 @@ type AnalyzeSummary struct {
 	// Key metrics
 	// TotalFunctions is the complete analyzed population used for aggregate metrics.
 	TotalFunctions int `json:"total_functions" yaml:"total_functions"`
+	// Class-scope fields are reported separately from the established function
+	// aggregates and do not change health-score semantics.
+	TotalClassScopes              int `json:"total_class_scopes" yaml:"total_class_scopes"`
+	MaxClassComplexity            int `json:"max_class_complexity" yaml:"max_class_complexity"`
+	MaxClassCognitiveComplexity   int `json:"max_class_cognitive_complexity" yaml:"max_class_cognitive_complexity"`
+	MaxClassNestingDepth          int `json:"max_class_nesting_depth" yaml:"max_class_nesting_depth"`
+	HighComplexityClassScopeCount int `json:"high_complexity_class_scope_count" yaml:"high_complexity_class_scope_count"`
 	// FunctionsParsed is retained for output compatibility and matches TotalFunctions.
 	FunctionsParsed            int     `json:"functions_parsed" yaml:"functions_parsed"`
 	AverageComplexity          float64 `json:"average_complexity" yaml:"average_complexity"`
@@ -693,5 +700,5 @@ func (s *AnalyzeSummary) IsHealthy() bool {
 
 // HasIssues returns true if any issues were found
 func (s *AnalyzeSummary) HasIssues() bool {
-	return s.HighComplexityCount > 0 || s.DeadCodeCount > 0 || s.ClonePairs > 0 || s.HighCouplingClasses > 0
+	return s.HighComplexityCount > 0 || s.HighComplexityClassScopeCount > 0 || s.DeadCodeCount > 0 || s.ClonePairs > 0 || s.HighCouplingClasses > 0
 }

@@ -93,12 +93,13 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 
 	// Primary method: count decision points + 1
 	// This is more reliable for CFGs with entry/exit nodes
-	astMetrics, hasASTMetrics := calculateASTComplexityMetrics(complexitySourceNode(cfg))
+	sourceNode := complexitySourceNode(cfg)
+	astMetrics, hasASTMetrics := calculateASTComplexityMetrics(sourceNode)
 	reportedMetrics := resolveCoreComplexityMetrics(coreResult, conditionalDecisions, astMetrics, hasASTMetrics)
 	decisionPoints := countCoreDecisionPoints(conditionalDecisions, reportedMetrics, hasASTMetrics)
 	complexity := decisionPoints + 1
 
-	// Ensure minimum complexity of 1 for any function
+	// Ensure minimum complexity of 1 for any execution scope.
 	if complexity < 1 {
 		complexity = 1
 	}
@@ -109,7 +110,7 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 	startLine := 0
 	startCol := 0
 	endLine := 0
-	if sourceNode := complexitySourceNode(cfg); sourceNode != nil {
+	if sourceNode != nil {
 		nestingDepth = CalculateMaxNestingDepth(sourceNode).MaxDepth
 
 		startLine = sourceNode.Location.StartLine
@@ -265,13 +266,13 @@ func collectASTStatementMetrics(node *parser.Node, metrics *astComplexityMetrics
 	}
 }
 
-// CalculateFileComplexity calculates complexity for all functions in a collection of CFGs
+// CalculateFileComplexity calculates complexity for all execution scopes in a collection of CFGs.
 func CalculateFileComplexity(cfgs []*CFG) []*ComplexityResult {
 	defaultConfig := config.DefaultConfig()
 	return CalculateFileComplexityWithConfig(cfgs, &defaultConfig.Complexity)
 }
 
-// CalculateFileComplexityWithConfig calculates complexity using provided configuration
+// CalculateFileComplexityWithConfig calculates execution-scope complexity using the provided configuration.
 func CalculateFileComplexityWithConfig(cfgs []*CFG, complexityConfig *config.ComplexityConfig) []*ComplexityResult {
 	results := make([]*ComplexityResult, 0, len(cfgs))
 

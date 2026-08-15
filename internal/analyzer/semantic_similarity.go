@@ -73,7 +73,7 @@ func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) flo
 		return 0.0
 	}
 
-	// Build CFGs for both fragments
+	// Build CFGs for both fragments.
 	cfg1, err1 := s.buildCFGFromFragment(f1)
 	cfg2, err2 := s.buildCFGFromFragment(f2)
 
@@ -81,7 +81,7 @@ func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) flo
 		return 0.0
 	}
 
-	// Extract CFG features from both CFGs
+	// Extract CFG features from both CFGs.
 	cfgFeatures1 := s.extractCFGFeatures(cfg1)
 	cfgFeatures2 := s.extractCFGFeatures(cfg2)
 
@@ -99,12 +99,12 @@ func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) flo
 		return s.applySemanticEvidence(cfgSimilarity, f1, f2)
 	}
 
-	// Build DFA info for both CFGs
+	// Build DFA info for both CFGs.
 	dfaBuilder := NewDFABuilder()
 	dfaInfo1, _ := dfaBuilder.Build(cfg1)
 	dfaInfo2, _ := dfaBuilder.Build(cfg2)
 
-	// Extract DFA features
+	// Extract DFA features.
 	dfaFeatures1 := ExtractDFAFeatures(dfaInfo1)
 	dfaFeatures2 := ExtractDFAFeatures(dfaInfo2)
 
@@ -236,15 +236,13 @@ func returnCategory(node *parser.Node) string {
 	return "scalar"
 }
 
-// buildCFGFromFragment builds a CFG from a code fragment
+// buildCFGFromFragment builds the execution CFG used for semantic comparison.
 func (s *SemanticSimilarityAnalyzer) buildCFGFromFragment(f *CodeFragment) (*CFG, error) {
 	if f.ASTNode == nil {
 		return nil, nil
 	}
 
-	// Create a fresh builder for each fragment to avoid state issues
-	builder := NewCFGBuilder()
-	return builder.Build(f.ASTNode)
+	return NewCFGBuilder().BuildExecutionFragment(f.ASTNode)
 }
 
 // extractCFGFeatures extracts structural features from a CFG

@@ -6,7 +6,7 @@
 
 ## What it does
 
-Flags functions whose McCabe cyclomatic complexity exceeds the configured threshold. Each `if`, `elif`, `for`, `while`, `except`, `match case`, and boolean clause inside a comprehension adds one to the count. A straight-line function starts at 1.
+Flags execution scopes whose McCabe cyclomatic complexity exceeds the configured threshold. Modules, functions, methods, and executable class suites own independent control flow. Each `if`, `elif`, `for`, `while`, `except`, `match case`, and boolean clause inside a comprehension adds one to the count. A straight-line scope starts at 1.
 
 pyscn does not count `and` / `or` short-circuit operators as separate branches.
 
@@ -94,7 +94,7 @@ Each helper now has complexity 1–3 and a single responsibility. Guard clauses 
 | --- | --- | --- |
 | [`complexity.max_complexity`](../configuration/reference.md#complexity) | `0` | Hard limit enforced by `pyscn check`. `0` means no enforcement in `analyze`; `pyscn check --max-complexity` uses `10` if unset. |
 | [`complexity.low_threshold`](../configuration/reference.md#complexity) | `9` | Functions at or below this are reported as low risk. |
-| [`complexity.medium_threshold`](../configuration/reference.md#complexity) | `19` | Above this, a function is high risk. |
+| [`complexity.medium_threshold`](../configuration/reference.md#complexity) | `19` | Above this, an execution scope is high risk. |
 | [`complexity.min_complexity`](../configuration/reference.md#complexity) | `1` | Functions below this value are omitted from the report. |
 
 ## Related metrics

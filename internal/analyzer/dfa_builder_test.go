@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -393,7 +394,7 @@ async def fetch(session, url):
 		cfgs, err := NewCFGBuilder().BuildAll(ast)
 		require.NoError(t, err)
 
-		cfg, ok := cfgs["fetch"]
+		cfg, ok := findCFG(cfgs, "fetch")
 		require.True(t, ok, "expected CFG for async function 'fetch'")
 
 		info, err := NewDFABuilder().Build(cfg)
@@ -609,7 +610,60 @@ alias = Thing
 		thing := requireDFAChain(t, info, "Thing")
 		require.Len(t, thing.Defs, 1)
 		assert.Equal(t, DefKindAssign, thing.Defs[0].Kind)
-		assertUsesOnlyInBlockLabel(t, thing, 1, LabelClassBody)
+		assertUsesOnlyInBlockLabel(t, thing, 1, LabelEntry)
+	})
+
+	t.Run("Build_ClassSuiteRetainsBodyDefinitions", func(t *testing.T) {
+		ast := parseSourceForDFA(t, `
+class Thing:
+    value = 1
+    alias = value
+`)
+		cfgs, err := NewCFGBuilder().BuildAll(ast)
+		require.NoError(t, err)
+
+		classCFG := requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Thing")
+		info, err := NewDFABuilder().Build(classCFG)
+		require.NoError(t, err)
+
+		value := requireDFAChain(t, info, "value")
+		require.Len(t, value.Defs, 1)
+		assertUsesOnlyInBlockLabel(t, value, 1, LabelClassBody)
+	})
+
+	t.Run("Build_ClassAndMethodHeadersStayWithTheirExecutionScopes", func(t *testing.T) {
+		ast := parseSourceForDFA(t, `
+base = object
+class_decorator = decorate
+method_decorator = decorate
+default_value = 1
+
+@class_decorator
+class Config(base):
+    @method_decorator
+    def resolve(self, arg=default_value):
+        return arg
+`)
+		cfgs, err := NewCFGBuilder().BuildAll(ast)
+		require.NoError(t, err)
+
+		moduleInfo, err := NewDFABuilder().Build(requireScopedCFG(t, cfgs, domain.AnalysisScopeModule, domain.ModuleFunctionName))
+		require.NoError(t, err)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, moduleInfo, "base"), 1, LabelEntry)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, moduleInfo, "class_decorator"), 1, LabelEntry)
+		assert.Empty(t, requireDFAChain(t, moduleInfo, "method_decorator").Uses)
+		assert.Empty(t, requireDFAChain(t, moduleInfo, "default_value").Uses)
+
+		classInfo, err := NewDFABuilder().Build(requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Config"))
+		require.NoError(t, err)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, classInfo, "method_decorator"), 1, LabelClassBody)
+		assertUsesOnlyInBlockLabel(t, requireDFAChain(t, classInfo, "default_value"), 1, LabelClassBody)
+
+		methodInfo, err := NewDFABuilder().Build(requireScopedCFG(t, cfgs, domain.AnalysisScopeFunction, "Config.resolve"))
+		require.NoError(t, err)
+		arg := requireDFAChain(t, methodInfo, "arg")
+		assertSingleDefKind(t, arg, DefKindParam)
+		assertUsesOnlyInBlockLabel(t, arg, 1, LabelFunctionBody)
 	})
 
 	t.Run("Build_NestedFunctionCFG_RetainsBodyUses", func(t *testing.T) {
@@ -622,7 +676,7 @@ def nested():
 		cfgs, err := NewCFGBuilder().BuildAll(ast)
 		require.NoError(t, err)
 
-		nestedCFG, ok := cfgs["nested"]
+		nestedCFG, ok := findCFG(cfgs, "nested")
 		require.True(t, ok, "expected nested function CFG")
 
 		info, err := NewDFABuilder().Build(nestedCFG)

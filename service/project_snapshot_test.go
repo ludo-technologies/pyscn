@@ -37,7 +37,7 @@ func TestProjectSnapshotCachesParsedFileState(t *testing.T) {
 	if len(firstCFGs) == 0 {
 		t.Fatal("expected CFGs")
 	}
-	if firstCFGs[domain.ModuleFunctionName] != secondCFGs[domain.ModuleFunctionName] {
+	if firstCFGs[0].Scope.Kind != domain.AnalysisScopeModule || firstCFGs[0].Graph != secondCFGs[0].Graph {
 		t.Fatal("expected cached CFG objects to be reused")
 	}
 }

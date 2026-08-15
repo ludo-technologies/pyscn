@@ -8,7 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -16,6 +18,7 @@ import (
 type mockComplexityResult struct {
 	complexity        int
 	functionName      string
+	scopeKind         domain.AnalysisScopeKind
 	riskLevel         string
 	nodes             int
 	edges             int
@@ -27,7 +30,10 @@ type mockComplexityResult struct {
 
 func (m *mockComplexityResult) GetComplexity() int      { return m.complexity }
 func (m *mockComplexityResult) GetFunctionName() string { return m.functionName }
-func (m *mockComplexityResult) GetRiskLevel() string    { return m.riskLevel }
+func (m *mockComplexityResult) GetScopeKind() domain.AnalysisScopeKind {
+	return m.scopeKind
+}
+func (m *mockComplexityResult) GetRiskLevel() string { return m.riskLevel }
 
 func (m *mockComplexityResult) GetDetailedMetrics() map[string]int {
 	return map[string]int{
@@ -45,6 +51,7 @@ func createTestResults() []ComplexityResult {
 		&mockComplexityResult{
 			complexity:        1,
 			functionName:      "simple_function",
+			scopeKind:         domain.AnalysisScopeModule,
 			riskLevel:         "low",
 			nodes:             1,
 			edges:             2,
@@ -55,6 +62,7 @@ func createTestResults() []ComplexityResult {
 		&mockComplexityResult{
 			complexity:        5,
 			functionName:      "medium_function",
+			scopeKind:         domain.AnalysisScopeFunction,
 			riskLevel:         "low",
 			nodes:             5,
 			edges:             8,
@@ -65,6 +73,7 @@ func createTestResults() []ComplexityResult {
 		&mockComplexityResult{
 			complexity:        15,
 			functionName:      "complex_function",
+			scopeKind:         domain.AnalysisScopeClass,
 			riskLevel:         "medium",
 			nodes:             15,
 			edges:             28,
@@ -75,6 +84,7 @@ func createTestResults() []ComplexityResult {
 		&mockComplexityResult{
 			complexity:        25,
 			functionName:      "very_complex_function",
+			scopeKind:         domain.AnalysisScopeFunction,
 			riskLevel:         "high",
 			nodes:             25,
 			edges:             48,
@@ -156,6 +166,11 @@ func TestGenerateReport(t *testing.T) {
 	}
 	if len(report.Results) != 4 {
 		t.Errorf("Expected 4 results, got %d", len(report.Results))
+	}
+	for _, result := range report.Results {
+		if result.ScopeKind == domain.AnalysisScopeUnknown {
+			t.Errorf("Result %q has no scope kind", result.FunctionName)
+		}
 	}
 
 	// Test summary
@@ -387,6 +402,11 @@ func TestOutputJSON(t *testing.T) {
 	if report.Summary.TotalFunctions != 4 {
 		t.Errorf("Expected 4 total functions in JSON, got %d", report.Summary.TotalFunctions)
 	}
+	for _, result := range report.Results {
+		if result.ScopeKind == domain.AnalysisScopeUnknown {
+			t.Errorf("JSON result %q has no scope kind", result.FunctionName)
+		}
+	}
 }
 
 func TestOutputYAML(t *testing.T) {
@@ -419,6 +439,11 @@ func TestOutputYAML(t *testing.T) {
 	}
 	if report.Summary.TotalFunctions != 4 {
 		t.Errorf("Expected 4 total functions in YAML, got %d", report.Summary.TotalFunctions)
+	}
+	for _, result := range report.Results {
+		if result.ScopeKind == domain.AnalysisScopeUnknown {
+			t.Errorf("YAML result %q has no scope kind", result.FunctionName)
+		}
 	}
 }
 
@@ -454,7 +479,7 @@ func TestOutputCSV(t *testing.T) {
 	// Verify header
 	expectedHeader := []string{
 		"Function", "Complexity", "Risk", "Nodes", "Edges",
-		"If Statements", "Loop Statements", "Exception Handlers",
+		"If Statements", "Loop Statements", "Exception Handlers", "Scope Kind",
 	}
 	for i, field := range records[0] {
 		if field != expectedHeader[i] {
@@ -469,6 +494,11 @@ func TestOutputCSV(t *testing.T) {
 	}
 	if firstRow[1] != "25" {
 		t.Errorf("Expected complexity 25, got %s", firstRow[1])
+	}
+	for _, record := range records[1:] {
+		if record[8] == "" {
+			t.Errorf("CSV result %q has no scope kind", record[0])
+		}
 	}
 	if firstRow[2] != "high" {
 		t.Errorf("Expected risk high, got %s", firstRow[2])
@@ -643,6 +673,7 @@ func TestComplexityReporterEdgeCases(t *testing.T) {
 			&mockComplexityResult{
 				complexity:   10,
 				functionName: "single_function",
+				scopeKind:    domain.AnalysisScopeFunction,
 				riskLevel:    "medium",
 			},
 		}

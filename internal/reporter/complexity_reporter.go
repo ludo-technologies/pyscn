@@ -9,16 +9,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
 	"github.com/ludo-technologies/pyscn/internal/version"
+
 	"gopkg.in/yaml.v3"
 )
 
-// ComplexityResult represents essential complexity metrics for a function (interface to avoid import cycle)
+// ComplexityResult represents essential complexity metrics for an execution scope
+// (interface to avoid an import cycle).
 type ComplexityResult interface {
 	// Core metrics needed for filtering and warnings
 	GetComplexity() int
 	GetFunctionName() string
+	GetScopeKind() domain.AnalysisScopeKind
 	GetRiskLevel() string
 
 	// Detailed metrics for comprehensive reporting
@@ -27,15 +31,16 @@ type ComplexityResult interface {
 
 // SerializableComplexityResult is a concrete type for JSON/YAML serialization
 type SerializableComplexityResult struct {
-	Complexity        int    `json:"complexity" yaml:"complexity"`
-	FunctionName      string `json:"function_name" yaml:"function_name"`
-	RiskLevel         string `json:"risk_level" yaml:"risk_level"`
-	Nodes             int    `json:"nodes" yaml:"nodes"`
-	Edges             int    `json:"edges" yaml:"edges"`
-	IfStatements      int    `json:"if_statements" yaml:"if_statements"`
-	LoopStatements    int    `json:"loop_statements" yaml:"loop_statements"`
-	ExceptionHandlers int    `json:"exception_handlers" yaml:"exception_handlers"`
-	SwitchCases       int    `json:"switch_cases" yaml:"switch_cases"`
+	Complexity        int                      `json:"complexity" yaml:"complexity"`
+	FunctionName      string                   `json:"function_name" yaml:"function_name"`
+	ScopeKind         domain.AnalysisScopeKind `json:"scope_kind" yaml:"scope_kind"`
+	RiskLevel         string                   `json:"risk_level" yaml:"risk_level"`
+	Nodes             int                      `json:"nodes" yaml:"nodes"`
+	Edges             int                      `json:"edges" yaml:"edges"`
+	IfStatements      int                      `json:"if_statements" yaml:"if_statements"`
+	LoopStatements    int                      `json:"loop_statements" yaml:"loop_statements"`
+	ExceptionHandlers int                      `json:"exception_handlers" yaml:"exception_handlers"`
+	SwitchCases       int                      `json:"switch_cases" yaml:"switch_cases"`
 }
 
 // ComplexityReport represents a complete complexity analysis report
@@ -154,6 +159,7 @@ func (r *ComplexityReporter) GenerateReport(results []ComplexityResult, filesAna
 		serializableResults[i] = SerializableComplexityResult{
 			Complexity:        result.GetComplexity(),
 			FunctionName:      result.GetFunctionName(),
+			ScopeKind:         result.GetScopeKind(),
 			RiskLevel:         result.GetRiskLevel(),
 			Nodes:             detailed["nodes"],
 			Edges:             detailed["edges"],
@@ -391,7 +397,7 @@ func (r *ComplexityReporter) outputCSV(report *ComplexityReport) error {
 	// Write header
 	header := []string{
 		"Function", "Complexity", "Risk", "Nodes", "Edges",
-		"If Statements", "Loop Statements", "Exception Handlers",
+		"If Statements", "Loop Statements", "Exception Handlers", "Scope Kind",
 	}
 	if err := writer.Write(header); err != nil {
 		return fmt.Errorf("failed to write CSV header: %w", err)
@@ -408,6 +414,7 @@ func (r *ComplexityReporter) outputCSV(report *ComplexityReport) error {
 			fmt.Sprintf("%d", result.IfStatements),
 			fmt.Sprintf("%d", result.LoopStatements),
 			fmt.Sprintf("%d", result.ExceptionHandlers),
+			string(result.ScopeKind),
 		}
 		if err := writer.Write(row); err != nil {
 			return fmt.Errorf("failed to write CSV row: %w", err)

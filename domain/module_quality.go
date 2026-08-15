@@ -4,9 +4,8 @@ import (
 	"path/filepath"
 )
 
-// ModuleComplexityMetrics is the canonical module-level complexity contract.
-// AnalyzedFunctionCount includes every function-level complexity record before
-// presentation filters. The <module> pseudo-function is intentionally excluded.
+// ModuleComplexityMetrics is the canonical module-level function-complexity
+// contract. The <module> pseudo-record and executable class suites are excluded.
 type ModuleComplexityMetrics struct {
 	AnalyzedFunctionCount      int     `json:"analyzed_function_count" yaml:"analyzed_function_count"`
 	AverageComplexity          float64 `json:"average_complexity" yaml:"average_complexity"`
@@ -50,7 +49,7 @@ func AggregateComplexityByModule(functions []FunctionComplexity) map[string]Modu
 			module = &moduleComplexityAccumulator{}
 			modules[key] = module
 		}
-		if function.Name == ModuleFunctionName {
+		if function.ScopeKind != AnalysisScopeFunction {
 			continue
 		}
 
@@ -86,9 +85,9 @@ func AggregateDeadCodeByModule(files []FileDeadCode) map[string]ModuleDeadCodeMe
 		key := filepath.Clean(file.FilePath)
 		module := modules[key]
 		module.DeadCodeFindingCount += file.TotalFindings
-		for _, function := range file.Functions {
-			blockIDs := make(map[string]struct{}, len(function.Findings))
-			for _, finding := range function.Findings {
+		for _, scope := range file.ExecutionScopes() {
+			blockIDs := make(map[string]struct{}, len(scope.Findings))
+			for _, finding := range scope.Findings {
 				if finding.BlockID != "" {
 					blockIDs[finding.BlockID] = struct{}{}
 				}

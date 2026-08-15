@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/mcp"
 	"github.com/ludo-technologies/pyscn/service"
 	mcplib "github.com/mark3labs/mcp-go/mcp"
@@ -471,6 +472,60 @@ func TestHandleCheckComplexity(t *testing.T) {
 	}
 }
 
+func TestHandleCheckComplexityReportsClassExecutionScope(t *testing.T) {
+	res := runToolTest(
+		t,
+		func(t *testing.T) string {
+			t.Helper()
+			var source strings.Builder
+			source.WriteString("class Config:\n")
+			for i := 0; i < 11; i++ {
+				source.WriteString("    if enabled:\n        value = 1\n")
+			}
+			source.WriteString("\ndef resolve(value):\n")
+			for i := 0; i < 10; i++ {
+				source.WriteString("    if value:\n        value -= 1\n")
+			}
+			source.WriteString("    return value\n")
+			path := filepath.Join(t.TempDir(), "config.py")
+			require.NoError(t, os.WriteFile(path, []byte(source.String()), 0o644))
+			return path
+		},
+		map[string]interface{}{
+			"max_complexity": float64(0),
+			"min_complexity": float64(12),
+			"max_results":    float64(1),
+			"output_mode":    "summary",
+		},
+		(*mcp.HandlerSet).HandleCheckComplexity,
+	)
+
+	require.False(t, res.IsError)
+	require.NotEmpty(t, res.Content)
+	var result struct {
+		Issues  []string `json:"issues"`
+		Summary struct {
+			TotalFunctions         int     `json:"total_functions"`
+			TotalClassScopes       int     `json:"total_class_scopes"`
+			TotalIssues            int     `json:"total_issues"`
+			MaxComplexity          int     `json:"max_complexity"`
+			MaxScopeComplexity     int     `json:"max_scope_complexity"`
+			AverageComplexity      float64 `json:"average_complexity"`
+			AverageScopeComplexity float64 `json:"average_scope_complexity"`
+		} `json:"summary"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(mcplib.GetTextFromContent(res.Content[0])), &result))
+	require.Len(t, result.Issues, 1)
+	assert.Contains(t, result.Issues[0], "class scope Config is too complex (12 > 10)")
+	assert.Equal(t, 2, result.Summary.TotalFunctions)
+	assert.Equal(t, 1, result.Summary.TotalClassScopes)
+	assert.Equal(t, 2, result.Summary.TotalIssues)
+	assert.Equal(t, 11, result.Summary.MaxComplexity)
+	assert.Equal(t, 12, result.Summary.MaxScopeComplexity)
+	assert.InDelta(t, 6, result.Summary.AverageComplexity, 1e-9)
+	assert.InDelta(t, 8, result.Summary.AverageScopeComplexity, 1e-9)
+}
+
 func TestHandleCheckCoupling(t *testing.T) {
 	errTrue := true
 
@@ -726,6 +781,60 @@ func TestHandleFindDeadCode(t *testing.T) {
 		})
 	}
 }
+
+func TestHandleFindDeadCodeDetailedLabelsClassScope(t *testing.T) {
+	res := runToolTest(
+		t,
+		func(t *testing.T) string {
+			path := filepath.Join(t.TempDir(), "class_scope.py")
+			source := `class Config:
+    raise RuntimeError("stop")
+    mode = "unreachable"
+
+    def resolve(self):
+        return self.mode
+        print("unreachable")
+`
+			require.NoError(t, os.WriteFile(path, []byte(source), 0o644))
+			return path
+		},
+		map[string]interface{}{
+			"min_severity": "info",
+			"output_mode":  "detailed",
+		},
+		(*mcp.HandlerSet).HandleFindDeadCode,
+	)
+
+	require.False(t, res.IsError)
+	var output struct {
+		Issues []struct {
+			Function   string                   `json:"function"`
+			ScopeKind  domain.AnalysisScopeKind `json:"scope_kind"`
+			ScopeLabel string                   `json:"scope_label"`
+		} `json:"issues"`
+		Summary struct {
+			TotalIssues int `json:"total_issues"`
+		} `json:"summary"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(mcplib.GetTextFromContent(res.Content[0])), &output))
+	assert.Equal(t, 2, output.Summary.TotalIssues)
+
+	var classIssue *struct {
+		Function   string                   `json:"function"`
+		ScopeKind  domain.AnalysisScopeKind `json:"scope_kind"`
+		ScopeLabel string                   `json:"scope_label"`
+	}
+	for i := range output.Issues {
+		if output.Issues[i].ScopeKind == domain.AnalysisScopeClass {
+			classIssue = &output.Issues[i]
+			break
+		}
+	}
+	require.NotNil(t, classIssue)
+	assert.Equal(t, "Config", classIssue.Function)
+	assert.Equal(t, "class scope Config", classIssue.ScopeLabel)
+}
+
 func TestHandleGetHealthScore(t *testing.T) {
 
 	errTrue := true
@@ -796,4 +905,40 @@ func TestHandleGetHealthScore(t *testing.T) {
 			assert.Contains(t, out, "category_scores")
 		})
 	}
+}
+
+func TestHandleGetHealthScoreExplainsClassScopePenalty(t *testing.T) {
+	configFile := filepath.Join(t.TempDir(), ".pyscn.toml")
+	require.NoError(t, os.WriteFile(configFile, []byte("[complexity]\nreport_unchanged = true\n"), 0o644))
+	res := runToolTestWithConfig(
+		t,
+		func(t *testing.T) string {
+			t.Helper()
+			path := filepath.Join(t.TempDir(), "config.py")
+			var source strings.Builder
+			source.WriteString("class Config:\n")
+			for i := 0; i < 20; i++ {
+				source.WriteString("    if enabled:\n        value = 1\n")
+			}
+			require.NoError(t, os.WriteFile(path, []byte(source.String()), 0o644))
+			return path
+		},
+		map[string]interface{}{},
+		configFile,
+		(*mcp.HandlerSet).HandleGetHealthScore,
+	)
+
+	require.False(t, res.IsError)
+	rawOutput := mcplib.GetTextFromContent(res.Content[0])
+	var output struct {
+		Summary struct {
+			TotalClassScopes              int `json:"total_class_scopes"`
+			MaxClassComplexity            int `json:"max_class_complexity"`
+			HighComplexityClassScopeCount int `json:"high_complexity_class_scope_count"`
+		} `json:"summary"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(rawOutput), &output))
+	assert.Equal(t, 1, output.Summary.TotalClassScopes, rawOutput)
+	assert.Equal(t, 21, output.Summary.MaxClassComplexity)
+	assert.Equal(t, 1, output.Summary.HighComplexityClassScopeCount)
 }
