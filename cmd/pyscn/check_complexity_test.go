@@ -84,3 +84,29 @@ func TestCheckComplexityStaysSilentBelowThreshold(t *testing.T) {
 		t.Errorf("expected no diagnostics, got: %s", output)
 	}
 }
+
+func TestCheckComplexityGatesFunctionsHiddenByDisplayFilters(t *testing.T) {
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	var stderr bytes.Buffer
+	cobraCmd.SetErr(&stderr)
+
+	path := writeLongFunctionFile(t, 120)
+	configPath := filepath.Join(t.TempDir(), ".pyscn.toml")
+	if err := os.WriteFile(configPath, []byte("[complexity]\nreport_unchanged = false\n"), 0o644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+	checkCmd.configFile = configPath
+
+	issueCount, err := checkCmd.checkComplexity(cobraCmd, []string{path})
+	if err != nil {
+		t.Fatalf("checkComplexity failed: %v", err)
+	}
+
+	if issueCount != 1 {
+		t.Errorf("expected the hidden long function to fail the gate, got %d issues", issueCount)
+	}
+	if output := stderr.String(); !strings.Contains(output, "build_table is too long (123 SLOC > 100)") {
+		t.Errorf("expected a long-function diagnostic, got: %s", output)
+	}
+}

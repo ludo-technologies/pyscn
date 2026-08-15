@@ -273,9 +273,9 @@ type CloneDetectorConfig struct {
 	MaxGoroutines      int // Goroutines for parallel pair comparison (0 = all CPUs)
 
 	// Grouping configuration
-	GroupingMode      GroupingMode // デフォルト: GroupingModeConnected
-	GroupingThreshold float64      // デフォルト: Type3Threshold
-	KCoreK            int          // デフォルト: 2
+	GroupingMode      GroupingMode // Default: GroupingModeConnected
+	GroupingThreshold float64      // Default: Type3Threshold
+	KCoreK            int          // Default: 2
 
 	// LSH Configuration (optional, opt-in)
 	UseLSH                 bool    // Enable LSH acceleration
