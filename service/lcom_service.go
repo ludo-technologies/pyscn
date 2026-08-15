@@ -261,11 +261,17 @@ func (s *LCOMServiceImpl) sortClasses(classes []domain.ClassCohesion, sortBy dom
 	switch sortBy {
 	case domain.SortByCohesion:
 		sort.Slice(sorted, func(i, j int) bool {
-			return sorted[i].Metrics.LCOM4 > sorted[j].Metrics.LCOM4
+			if sorted[i].Metrics.LCOM4 != sorted[j].Metrics.LCOM4 {
+				return sorted[i].Metrics.LCOM4 > sorted[j].Metrics.LCOM4
+			}
+			return lcomClassLocationLess(sorted[i], sorted[j])
 		})
 	case domain.SortByName:
 		sort.Slice(sorted, func(i, j int) bool {
-			return sorted[i].Name < sorted[j].Name
+			if sorted[i].Name != sorted[j].Name {
+				return sorted[i].Name < sorted[j].Name
+			}
+			return lcomClassLocationLess(sorted[i], sorted[j])
 		})
 	case domain.SortByRisk:
 		sort.Slice(sorted, func(i, j int) bool {
@@ -274,22 +280,41 @@ func (s *LCOMServiceImpl) sortClasses(classes []domain.ClassCohesion, sortBy dom
 				domain.RiskLevelMedium: 2,
 				domain.RiskLevelLow:    1,
 			}
-			return riskOrder[sorted[i].RiskLevel] > riskOrder[sorted[j].RiskLevel]
+			if riskOrder[sorted[i].RiskLevel] != riskOrder[sorted[j].RiskLevel] {
+				return riskOrder[sorted[i].RiskLevel] > riskOrder[sorted[j].RiskLevel]
+			}
+			return lcomClassLocationLess(sorted[i], sorted[j])
 		})
 	case domain.SortByLocation:
 		sort.Slice(sorted, func(i, j int) bool {
 			if sorted[i].FilePath != sorted[j].FilePath {
 				return sorted[i].FilePath < sorted[j].FilePath
 			}
-			return sorted[i].StartLine < sorted[j].StartLine
+			if sorted[i].StartLine != sorted[j].StartLine {
+				return sorted[i].StartLine < sorted[j].StartLine
+			}
+			return sorted[i].Name < sorted[j].Name
 		})
 	default:
 		sort.Slice(sorted, func(i, j int) bool {
-			return sorted[i].Metrics.LCOM4 > sorted[j].Metrics.LCOM4
+			if sorted[i].Metrics.LCOM4 != sorted[j].Metrics.LCOM4 {
+				return sorted[i].Metrics.LCOM4 > sorted[j].Metrics.LCOM4
+			}
+			return lcomClassLocationLess(sorted[i], sorted[j])
 		})
 	}
 
 	return sorted
+}
+
+func lcomClassLocationLess(a, b domain.ClassCohesion) bool {
+	if a.FilePath != b.FilePath {
+		return a.FilePath < b.FilePath
+	}
+	if a.StartLine != b.StartLine {
+		return a.StartLine < b.StartLine
+	}
+	return a.Name < b.Name
 }
 
 // generateSummary creates aggregate LCOM statistics
@@ -344,7 +369,10 @@ func (s *LCOMServiceImpl) generateSummary(classes []domain.ClassCohesion, filesA
 	sortedByLCOM := make([]domain.ClassCohesion, len(classes))
 	copy(sortedByLCOM, classes)
 	sort.Slice(sortedByLCOM, func(i, j int) bool {
-		return sortedByLCOM[i].Metrics.LCOM4 > sortedByLCOM[j].Metrics.LCOM4
+		if sortedByLCOM[i].Metrics.LCOM4 != sortedByLCOM[j].Metrics.LCOM4 {
+			return sortedByLCOM[i].Metrics.LCOM4 > sortedByLCOM[j].Metrics.LCOM4
+		}
+		return lcomClassLocationLess(sortedByLCOM[i], sortedByLCOM[j])
 	})
 
 	maxTopClasses := 10
