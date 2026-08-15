@@ -10,11 +10,11 @@ import (
 type GroupingMode string
 
 const (
-	GroupingModeConnected       GroupingMode = "connected"        // 現在のデフォルト（高再現率）
-	GroupingModeStar            GroupingMode = "star"             // Star/Medoid（バランス型）
-	GroupingModeCompleteLinkage GroupingMode = "complete_linkage" // 完全連結（高精度）
-	GroupingModeKCore           GroupingMode = "k_core"           // k-core制約（スケーラブル）
-	GroupingModeCentroid        GroupingMode = "centroid"         // 重心ベース（推移的問題を回避）
+	GroupingModeConnected       GroupingMode = "connected"        // Current default (high recall)
+	GroupingModeStar            GroupingMode = "star"             // Star/medoid (balanced)
+	GroupingModeCompleteLinkage GroupingMode = "complete_linkage" // Complete linkage (high precision)
+	GroupingModeKCore           GroupingMode = "k_core"           // k-core constrained (scalable)
+	GroupingModeCentroid        GroupingMode = "centroid"         // Centroid based (avoids transitivity issues)
 )
 
 // coreMode translates a pyscn grouping mode to the core/clone grouping mode.
