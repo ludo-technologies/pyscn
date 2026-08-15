@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -30,6 +31,39 @@ func TestNewLCOMService(t *testing.T) {
 	svc := NewLCOMService()
 	assert.NotNil(t, svc)
 	assert.NotNil(t, svc.parser)
+}
+
+func TestLCOMService_DeterministicTieOrdering(t *testing.T) {
+	svc := NewLCOMService()
+	classes := make([]domain.ClassCohesion, 12)
+	for i := range classes {
+		classes[i] = domain.ClassCohesion{
+			Name:      fmt.Sprintf("Class%02d", i),
+			FilePath:  fmt.Sprintf("pkg/%02d.py", 11-i),
+			StartLine: 1,
+			Metrics:   domain.LCOMMetrics{LCOM4: 5},
+			RiskLevel: domain.RiskLevelMedium,
+		}
+	}
+
+	want := make([]string, 10)
+	for i := range want {
+		want[i] = fmt.Sprintf("pkg/%02d.py", i)
+	}
+
+	sorted := svc.sortClasses(classes, domain.SortByCohesion)
+	assert.Equal(t, want, lcomFilePaths(sorted[:10]))
+
+	summary := svc.generateSummary(classes, 12, domain.LCOMRequest{})
+	assert.Equal(t, want, lcomFilePaths(summary.LeastCohesiveClasses))
+}
+
+func lcomFilePaths(classes []domain.ClassCohesion) []string {
+	paths := make([]string, len(classes))
+	for i, class := range classes {
+		paths[i] = class.FilePath
+	}
+	return paths
 }
 
 func TestLCOMService_Analyze(t *testing.T) {
