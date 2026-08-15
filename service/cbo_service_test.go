@@ -40,6 +40,39 @@ func TestNewCBOService(t *testing.T) {
 	assert.NotNil(t, service.parser)
 }
 
+func TestCBOService_DeterministicTieOrdering(t *testing.T) {
+	svc := NewCBOService()
+	classes := make([]domain.ClassCoupling, 12)
+	for i := range classes {
+		classes[i] = domain.ClassCoupling{
+			Name:      fmt.Sprintf("Class%02d", i),
+			FilePath:  fmt.Sprintf("pkg/%02d.py", 11-i),
+			StartLine: 1,
+			Metrics:   domain.CBOMetrics{CouplingCount: 5},
+			RiskLevel: domain.RiskLevelMedium,
+		}
+	}
+
+	want := make([]string, 10)
+	for i := range want {
+		want[i] = fmt.Sprintf("pkg/%02d.py", i)
+	}
+
+	sorted := svc.sortClasses(classes, domain.SortByCoupling)
+	assert.Equal(t, want, cboFilePaths(sorted[:10]))
+
+	summary := svc.generateSummary(classes, 12, domain.CBORequest{})
+	assert.Equal(t, want, cboFilePaths(summary.MostCoupledClasses))
+}
+
+func cboFilePaths(classes []domain.ClassCoupling) []string {
+	paths := make([]string, len(classes))
+	for i, class := range classes {
+		paths[i] = class.FilePath
+	}
+	return paths
+}
+
 func TestCBOService_Analyze(t *testing.T) {
 	service := NewCBOService()
 	ctx := context.Background()
