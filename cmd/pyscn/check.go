@@ -478,7 +478,7 @@ func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, 
 	// functions that are too long. Length is orthogonal to McCabe, so a flat
 	// 200-line function is an issue on its own and both can fire at once.
 	issueCount := 0
-	for _, function := range response.Functions {
+	for _, function := range response.AnalyzedFunctions {
 		if function.Metrics.Complexity > maxComplexity {
 			issueCount++
 			if !c.quiet {
