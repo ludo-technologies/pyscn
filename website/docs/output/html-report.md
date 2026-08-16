@@ -18,48 +18,52 @@ The file is self-contained and safe to archive, email, or serve from any static 
 
 | Element | Contents |
 | --- | --- |
-| Header | Project name, generation timestamp, pyscn version, duration. |
-| Overall score card | Health Score (0–100), grade badge (A–F). |
-| Category score cards | One per enabled analyzer with its 0–100 score. |
-| Tabs | Summary, Modules, Directories, Complexity, Dead Code, Clones, Coupling, Cohesion, Dependencies, Architecture. |
+| Top bar | pyscn version, project name and root, generation timestamp, file count, duration. |
+| Tab bar | Overview plus one tab per area that ran, each with a finding count badge. |
+| Overview | Health Score ring and grade, a one-paragraph verdict, size facts, per-dimension score cards, top suggestions, hotspot files, complexity histogram, and summary cards for duplication, classes, and structure. |
+| Detail tabs | Functions, Duplication, Classes, Architecture. |
 | Footer | Link to pyscn repository and version string. |
 
-Category score cards and tabs only appear for analyzers that ran. Architecture appears only if `[architecture]` layers are configured.
+Score cards, summary cards, and tabs only appear for analyzers that ran. Architecture appears when dependency, architecture, or community analysis ran; layer rules need `[architecture]` layers configured.
 
-## Tabs
+## Overview
+
+| Block | Contents |
+| --- | --- |
+| Verdict | Health Score (0–100) drawn as a ring, grade badge (A–F), a headline for the grade, and a sentence naming the clean dimensions and the two or three weakest ones with their key numbers. |
+| Score breakdown | One card per enabled dimension (Complexity, Dead code, Duplication, Coupling, Cohesion, Dependencies, Architecture, Communities) with its 0–100 score, a bar colored by band, and two supporting numbers. Cards link to the matching detail tab. |
+| Fix first | The five highest-priority suggestions with severity, effort, location, and rationale. |
+| Hotspot files | Up to eight modules ranked by high-risk functions, then max complexity, then dead code, then clone fragments. |
+| Complexity distribution | Histogram of function complexity binned on the configured risk thresholds, with median, deepest nesting, and longest function. |
+| Duplication / Classes / Structure | Compact summary cards linking to their detail tabs. |
+
+## Detail tabs
 
 | Tab | Contents |
 | --- | --- |
-| Summary | High-level numbers and grade. |
-| Modules | Sortable per-module size, analyzed-record count, complexity, cognitive complexity, high-risk count, exception handlers, dead-code findings, and dead CFG blocks. |
-| Directories | Sortable direct-directory rollups of reported function count, complexity, risk, and nesting depth. |
-| Complexity | Sortable table of functions with McCabe / cognitive complexity, nesting depth, risk. |
-| Dead Code | Findings grouped by severity with file:line and reason. |
-| Clones | Clone groups with similarity and clone type. |
-| Coupling | Classes by CBO with dependency-type breakdown. |
-| Cohesion | Classes by LCOM4 with method grouping. |
-| Dependencies | Module graph, Ca/Ce/I/A/D metrics, cycles. |
-| Architecture | Layer rule violations. |
+| Functions | Complexity metrics strip, most complex functions (top 20), longest functions, dead code findings (top 20), and two collapsed sortable tables: all modules and directory complexity rollups. |
+| Duplication | Clone statistics strip, clone groups (top 10) with fragments and optional code previews, or clone pairs when no groups formed. |
+| Classes | Coupling (CBO) and cohesion (LCOM4) strips with the most coupled and least cohesive classes (top 15 each). |
+| Architecture | Module dependency metrics, main sequence zones, circular dependencies, longest chains, layer rule violations, and community detection with the macro-architecture graph. |
 
 ## JavaScript
 
-Inline functions switch tabs and route the module and directory tables through one shared sorter. No network requests are made. The standalone complexity formatter renders the same directory metrics above the function table.
+Inline scripts switch tabs (the tab is mirrored into the URL hash so a link can open a specific tab), and route the module and directory tables through one shared sorter. No network requests are made.
 
-Module rollups use the full analyzer population before `min_complexity`, `report_unchanged`, or `min_severity` presentation filters. Directory complexity uses the reported function population after complexity filters, so its counts and averages reconcile with the Complexity tab.
+Module rollups use the full analyzer population before `min_complexity`, `report_unchanged`, or `min_severity` presentation filters. Directory complexity uses the reported function population after complexity filters, so its counts and averages reconcile with the Functions tab.
 
 ## CSS
 
-Styles use CSS custom properties with these names:
+Styles are inlined from `service/templates/analyze/report.css` and use CSS custom properties. The main tokens:
 
 | Variable | Semantic role |
 | --- | --- |
-| `--color-success` | Low-risk findings, grade A. |
-| `--color-warning` | Medium-risk findings, grade B/C. |
-| `--color-danger` | High-risk findings, grade D/F. |
-| `--color-text` | Body text. |
-| `--color-muted` | Secondary text. |
+| `--good` / `--warn` / `--bad` | Score bands (75+, 60–74, below 60), risk levels, severities. |
+| `--accent` | Navigation, links, neutral chart bars. |
+| `--ink` / `--ink-2` / `--muted` | Body, secondary, and caption text. |
+| `--surface` / `--page` / `--line` | Card, page background, and hairlines. |
 
-Dark mode follows the `prefers-color-scheme` media query; no toggle.
+Dark mode follows the `prefers-color-scheme` media query, and a `data-theme="light"` or `data-theme="dark"` attribute on the root element overrides it. No toggle is rendered.
 
 ## Auto-open behavior
 
@@ -87,13 +91,13 @@ Or export `CI=true` in the environment.
 
 ## Grade badge mapping
 
-| Grade | Score | Badge background |
+| Grade | Score | Badge color |
 | ----- | ----- | --- |
-| A | 90–100 | Green (`--color-success`) |
-| B | 75–89  | Green-tinted |
-| C | 60–74  | Orange (`--color-warning`) |
-| D | 45–59  | Red-tinted (`--color-danger`) |
-| F | 0–44   | Red (`--color-danger`) |
+| A | 90–100 | Green (`--good`) |
+| B | 75–89  | Green (`--good`) |
+| C | 60–74  | Amber (`--warn`) |
+| D | 45–59  | Red (`--bad`) |
+| F | 0–44   | Red (`--bad`) |
 
 ## Cross-references
 
