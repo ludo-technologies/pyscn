@@ -4628,7 +4628,7 @@
 <tr>
 <td><code>skipped_files</code></td>
 <td>integer</td>
-<td>因解析错误或过滤器跳过的文件数。</td>
+<td>因无法读取或解析而被丢弃的文件数。非零表示下面的所有评分覆盖的文件少于 <code>total_files</code>。</td>
 </tr>
 </tbody>
 </table>
@@ -5128,7 +5128,17 @@
 <tr>
 <td><code>FilesAnalyzed</code></td>
 <td>integer</td>
-<td>贡献了至少一个函数的文件数。</td>
+<td>成功解析并计入上述指标的文件数。</td>
+</tr>
+<tr>
+<td><code>TotalFiles</code></td>
+<td>integer</td>
+<td>本次请求覆盖的文件数，无论是否解析成功。</td>
+</tr>
+<tr>
+<td><code>SkippedFiles</code></td>
+<td>integer</td>
+<td>因无法读取或解析而被丢弃的文件数。其内容不包含在上述任何指标中。</td>
 </tr>
 <tr>
 <td><code>LowRiskFunctions</code></td>
@@ -5800,6 +5810,11 @@
 <td><code>error</code></td>
 <td>string | absent</td>
 <td><code>success=false</code> 时的错误信息。</td>
+</tr>
+<tr>
+<td><code>errors</code></td>
+<td>array | absent</td>
+<td>单个文件的失败。此处列出的文件在运行本身成功的情况下被跳过，其内容不包含在 <code>statistics</code> 中。</td>
 </tr>
 </tbody>
 </table>

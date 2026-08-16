@@ -3574,12 +3574,17 @@
 </tr>
 <tr>
 <td><code>1</code></td>
-<td>Issues found or execution error</td>
+<td>Issues exceeded thresholds</td>
+<td>Fail</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>Analysis could not complete (invalid input, missing or unparseable files)</td>
 <td>Fail</td>
 </tr>
 </tbody>
 </table>
-<p><code>check</code> returns exit <code>1</code> for both "issues exceeded thresholds" and "analysis could not complete" — the two cases are not distinguishable by exit code. Inspect stderr to tell them apart.</p>
+<p>Exit <code>2</code> means the gate never got a full look at your code — for example a file with a syntax error, which is excluded from every analysis and would otherwise pass by contributing no findings. Pass <code>--allow-parse-errors</code> to downgrade unparseable files to warnings.</p>
 <h2 id="strategies">Strategies<a class="headerlink" href="#strategies" title="Permanent link">&para;</a></h2>
 <p>Green-field:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--max-complexity<span class="w"> </span><span class="m">10</span><span class="w"> </span>--max-cycles<span class="w"> </span><span class="m">0</span><span class="w"> </span>.

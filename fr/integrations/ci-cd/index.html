@@ -3574,12 +3574,17 @@
 </tr>
 <tr>
 <td><code>1</code></td>
-<td>Problèmes trouvés ou erreur d'exécution</td>
+<td>Seuils de qualité dépassés</td>
+<td>Échec</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>Analyse impossible à terminer (entrée invalide, fichiers manquants ou non analysables)</td>
 <td>Échec</td>
 </tr>
 </tbody>
 </table>
-<p><code>check</code> renvoie le code <code>1</code> à la fois pour « problèmes ayant dépassé les seuils » et « l'analyse n'a pas pu se terminer » — les deux cas ne sont pas distinguables par le code de sortie. Inspectez stderr pour les différencier.</p>
+<p>Le code <code>2</code> signifie que la barrière n'a jamais vu l'intégralité de votre code — par exemple un fichier comportant une erreur de syntaxe, exclu de toutes les analyses et qui passerait sinon sans produire la moindre constatation. Passez <code>--allow-parse-errors</code> pour rétrograder ces fichiers en avertissements.</p>
 <h2 id="strategies">Stratégies<a class="headerlink" href="#strategies" title="Permanent link">&para;</a></h2>
 <p>Projet neuf :</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--max-complexity<span class="w"> </span><span class="m">10</span><span class="w"> </span>--max-cycles<span class="w"> </span><span class="m">0</span><span class="w"> </span>.

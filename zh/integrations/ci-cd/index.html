@@ -3574,12 +3574,17 @@
 </tr>
 <tr>
 <td><code>1</code></td>
-<td>发现问题或执行错误</td>
+<td>问题超出阈值</td>
+<td>失败</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>分析无法完成（无效输入、文件缺失或无法解析的文件）</td>
 <td>失败</td>
 </tr>
 </tbody>
 </table>
-<p><code>check</code> 对"问题超出阈值"和"分析无法完成"都返回退出码 <code>1</code> — 两种情况无法通过退出码区分。检查 stderr 以区分它们。</p>
+<p>退出码 <code>2</code> 意味着门禁没有完整地检查你的代码 —— 例如含有语法错误的文件会被排除在所有分析之外，不产生任何检查结果，因此会顺利通过。使用 <code>--allow-parse-errors</code> 可将无法解析的文件降级为警告。</p>
 <h2 id="_2">策略<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p>全新项目：</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--max-complexity<span class="w"> </span><span class="m">10</span><span class="w"> </span>--max-cycles<span class="w"> </span><span class="m">0</span><span class="w"> </span>.

@@ -4628,7 +4628,7 @@
 <tr>
 <td><code>skipped_files</code></td>
 <td>integer</td>
-<td>Fichiers ignorés à cause d'erreurs de parsing ou de filtres.</td>
+<td>Fichiers écartés faute de pouvoir être lus ou analysés. Une valeur non nulle signifie que les scores ci-dessous couvrent moins que <code>total_files</code>.</td>
 </tr>
 </tbody>
 </table>
@@ -5128,7 +5128,17 @@
 <tr>
 <td><code>FilesAnalyzed</code></td>
 <td>integer</td>
-<td>Fichiers contribuant au moins une fonction.</td>
+<td>Fichiers analysés avec succès et pris en compte dans les métriques ci-dessus.</td>
+</tr>
+<tr>
+<td><code>TotalFiles</code></td>
+<td>integer</td>
+<td>Fichiers couverts par la requête, analysables ou non.</td>
+</tr>
+<tr>
+<td><code>SkippedFiles</code></td>
+<td>integer</td>
+<td>Fichiers écartés faute de pouvoir être lus ou analysés. Leur contenu est absent de toutes les métriques ci-dessus.</td>
 </tr>
 <tr>
 <td><code>LowRiskFunctions</code></td>
@@ -5800,6 +5810,11 @@
 <td><code>error</code></td>
 <td>string | absent</td>
 <td>Message d'erreur si <code>success=false</code>.</td>
+</tr>
+<tr>
+<td><code>errors</code></td>
+<td>array | absent</td>
+<td>Échecs par fichier. Un fichier listé ici a été ignoré alors que l'exécution a réussi : son contenu est absent de <code>statistics</code>.</td>
 </tr>
 </tbody>
 </table>

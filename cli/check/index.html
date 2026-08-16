@@ -3453,10 +3453,14 @@
 <p><code>check</code> is the CI companion to <a href="../analyze/"><code>analyze</code></a>:</p>
 <ul>
 <li><strong>Findings go to stderr</strong> in linter format (<code>file:line:col: message</code>).</li>
-<li><strong>Exit 0</strong> on pass, <strong>exit 1</strong> on any failure (issues found <em>or</em> execution error).</li>
-<li><strong>Strict defaults</strong> — any function over complexity 10 fails; any circular dependency fails (when <code>--select deps</code> is set).</li>
+<li><strong>Exit 0</strong> on pass, <strong>exit 1</strong> on issues found, <strong>exit 2</strong> when the analysis could not complete.</li>
+<li><strong>Strict defaults</strong> — any function over complexity 10 fails; any circular dependency fails (when <code>--select deps</code> is set); any file that cannot be parsed fails.</li>
 <li><strong>Fast</strong> — only runs the analyses you select; skips report generation.</li>
 </ul>
+<div class="admonition note">
+<p class="admonition-title">Parse-error coverage</p>
+<p>The <code>complexity</code>, <code>deadcode</code>, <code>clones</code>, <code>mockdata</code> and <code>di</code> analyses each report the files they could not read or parse, and any one of them failing to do so fails the check. <code>deps</code> does not: the dependency graph builder skips unreadable modules without recording them, so <code>pyscn check --select deps</code> alone will not catch a syntax error. Default runs are covered, because <code>complexity</code> always runs.</p>
+</div>
 <h2 id="flags">Flags<a class="headerlink" href="#flags" title="Permanent link">&para;</a></h2>
 <h3 id="analysis-selection">Analysis selection<a class="headerlink" href="#analysis-selection" title="Permanent link">&para;</a></h3>
 <table>
@@ -3508,8 +3512,14 @@
 <td>off</td>
 <td>Treat cycles as warnings only; don't fail the check.</td>
 </tr>
+<tr>
+<td><code>--allow-parse-errors</code></td>
+<td>off</td>
+<td>Treat unreadable or unparseable files as warnings only; don't fail the check.</td>
+</tr>
 </tbody>
 </table>
+<p>By default, a file that cannot be parsed fails the check. Such a file is excluded from every analysis, so it contributes no findings and would otherwise pass every threshold — a syntax error in your source would be reported as a clean run. See the coverage note above for the one analysis this does not reach.</p>
 <h3 id="output">Output<a class="headerlink" href="#output" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -3548,11 +3558,15 @@
 </tr>
 <tr>
 <td><code>1</code></td>
-<td>One or more checks failed, or an execution error occurred.</td>
+<td>One or more quality thresholds were exceeded.</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>The analysis could not complete over the requested targets — invalid input, missing files, or files that could not be parsed.</td>
 </tr>
 </tbody>
 </table>
-<p><code>check</code> does not distinguish "issues found" from "tool failure" with different exit codes. In CI, rely on stderr output and pyscn's non-zero exit for pass/fail semantics only.</p>
+<p>Exit <code>1</code> is a verdict about your code; exit <code>2</code> means the verdict itself is incomplete and should not be read as a pass.</p>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Standard CI gate (runs complexity, deadcode, clones)</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pyscn<span class="w"> </span>check<span class="w"> </span>.

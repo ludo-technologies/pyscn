@@ -3453,10 +3453,14 @@
 <p><code>check</code> est le compagnon CI de <a href="../analyze/"><code>analyze</code></a> :</p>
 <ul>
 <li><strong>Les constatations vont sur stderr</strong> au format linter (<code>file:line:col: message</code>).</li>
-<li><strong>Sortie 0</strong> en cas de succès, <strong>sortie 1</strong> en cas d'échec (problèmes détectés <em>ou</em> erreur d'exécution).</li>
-<li><strong>Valeurs par défaut strictes</strong> — toute fonction de complexité supérieure à 10 échoue ; toute dépendance circulaire échoue (lorsque <code>--select deps</code> est défini).</li>
+<li><strong>Sortie 0</strong> en cas de succès, <strong>sortie 1</strong> si des problèmes sont détectés, <strong>sortie 2</strong> si l'analyse n'a pas pu aboutir.</li>
+<li><strong>Valeurs par défaut strictes</strong> — toute fonction de complexité supérieure à 10 échoue ; toute dépendance circulaire échoue (lorsque <code>--select deps</code> est défini) ; tout fichier impossible à analyser syntaxiquement échoue.</li>
 <li><strong>Rapide</strong> — n'exécute que les analyses sélectionnées ; pas de génération de rapport.</li>
 </ul>
+<div class="admonition note">
+<p class="admonition-title">Portée des erreurs d'analyse syntaxique</p>
+<p>Les analyses <code>complexity</code>, <code>deadcode</code>, <code>clones</code>, <code>mockdata</code> et <code>di</code> signalent chacune les fichiers qu'elles n'ont pas pu lire ou analyser, et il suffit qu'une seule le fasse pour faire échouer la vérification. <code>deps</code> fait exception : le constructeur du graphe de dépendances ignore les modules illisibles sans les enregistrer, donc <code>pyscn check --select deps</code> seul ne détectera pas une erreur de syntaxe. Les exécutions par défaut sont couvertes, car <code>complexity</code> s'exécute toujours.</p>
+</div>
 <h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
 <h3 id="selection-des-analyses">Sélection des analyses<a class="headerlink" href="#selection-des-analyses" title="Permanent link">&para;</a></h3>
 <table>
@@ -3508,8 +3512,14 @@
 <td>off</td>
 <td>Traite les cycles comme de simples avertissements ; ne fait pas échouer la vérification.</td>
 </tr>
+<tr>
+<td><code>--allow-parse-errors</code></td>
+<td>off</td>
+<td>Traite les fichiers illisibles ou non analysables comme de simples avertissements ; ne fait pas échouer la vérification.</td>
+</tr>
 </tbody>
 </table>
+<p>Par défaut, un fichier impossible à analyser syntaxiquement fait échouer la vérification. Un tel fichier est exclu de toutes les analyses : il ne produit aucune constatation et franchirait donc tous les seuils — une erreur de syntaxe dans vos sources serait rapportée comme une exécution propre. Voir la note ci-dessus pour la seule analyse que ce mécanisme n'atteint pas.</p>
 <h3 id="sortie">Sortie<a class="headerlink" href="#sortie" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -3548,11 +3558,15 @@
 </tr>
 <tr>
 <td><code>1</code></td>
-<td>Une ou plusieurs vérifications ont échoué, ou une erreur d'exécution s'est produite.</td>
+<td>Un ou plusieurs seuils de qualité ont été dépassés.</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>L'analyse n'a pas pu aboutir sur les cibles demandées — entrée invalide, fichiers manquants ou impossibles à analyser.</td>
 </tr>
 </tbody>
 </table>
-<p><code>check</code> ne distingue pas « problèmes détectés » de « échec de l'outil » avec des codes de sortie différents. En CI, fiez-vous à la sortie stderr et au code non nul de pyscn pour la sémantique succès/échec uniquement.</p>
+<p>La sortie <code>1</code> est un verdict sur votre code ; la sortie <code>2</code> signifie que le verdict lui-même est incomplet et ne doit pas être interprété comme un succès.</p>
 <h2 id="exemples">Exemples<a class="headerlink" href="#exemples" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Garde-fou CI standard (exécute complexity, deadcode, clones)</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pyscn<span class="w"> </span>check<span class="w"> </span>.

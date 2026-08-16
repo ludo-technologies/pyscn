@@ -4808,7 +4808,7 @@
 <tr>
 <td><code>skipped_files</code></td>
 <td>integer</td>
-<td>Files skipped due to parse errors or filters.</td>
+<td>Files dropped because they could not be read or parsed. A non-zero value means every score below covers less than <code>total_files</code>.</td>
 </tr>
 </tbody>
 </table>
@@ -5047,7 +5047,7 @@
 <tr>
 <td><code>deps_max_depth</code></td>
 <td>integer</td>
-<td>Longest load-time SCC-condensed dependency path, counted in edges.</td>
+<td>Edges along the longest load-time dependency chain, the first entry of <code>LongestChains</code>.</td>
 </tr>
 <tr>
 <td><code>deps_main_sequence_deviation</code></td>
@@ -5439,7 +5439,17 @@
 <tr>
 <td><code>FilesAnalyzed</code></td>
 <td>integer</td>
-<td>Files contributing at least one function.</td>
+<td>Files that were parsed and contributed to the metrics above.</td>
+</tr>
+<tr>
+<td><code>TotalFiles</code></td>
+<td>integer</td>
+<td>Files the request covered, parsed or not.</td>
+</tr>
+<tr>
+<td><code>SkippedFiles</code></td>
+<td>integer</td>
+<td>Files dropped because they could not be read or parsed. Their contents are absent from every metric above.</td>
 </tr>
 <tr>
 <td><code>LowRiskFunctions</code></td>
@@ -6112,6 +6122,11 @@
 <td>string | absent</td>
 <td>Error message if <code>success=false</code>.</td>
 </tr>
+<tr>
+<td><code>errors</code></td>
+<td>array | absent</td>
+<td>Per-file failures. A file listed here was skipped while the run itself succeeded, so its contents are absent from <code>statistics</code>.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="cbo-object"><code>cbo</code> object<a class="headerlink" href="#cbo-object" title="Permanent link">&para;</a></h2>
@@ -6626,7 +6641,7 @@
 <tr>
 <td><code>MaxDepth</code></td>
 <td>integer</td>
-<td>Maximum load-time SCC-condensed dependency depth, counted in edges.</td>
+<td>Edges along the longest load-time dependency chain, the first entry of <code>LongestChains</code>.</td>
 </tr>
 </tbody>
 </table>

@@ -3018,13 +3018,24 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        解析错误
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#_11" class="md-nav__link">
+  <a href="#_12" class="md-nav__link">
     <span class="md-ellipsis">
       
         分类评分
@@ -3035,7 +3046,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_12" class="md-nav__link">
+  <a href="#_13" class="md-nav__link">
     <span class="md-ellipsis">
       
         计算示例
@@ -3046,7 +3057,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_13" class="md-nav__link">
+  <a href="#_14" class="md-nav__link">
     <span class="md-ellipsis">
       
         降级评分
@@ -3057,7 +3068,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_14" class="md-nav__link">
+  <a href="#_15" class="md-nav__link">
     <span class="md-ellipsis">
       
         舍入
@@ -3068,7 +3079,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_15" class="md-nav__link">
+  <a href="#_16" class="md-nav__link">
     <span class="md-ellipsis">
       
         随时间追踪
@@ -3079,7 +3090,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_16" class="md-nav__link">
+  <a href="#_17" class="md-nav__link">
     <span class="md-ellipsis">
       
         参考
@@ -3476,13 +3487,24 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        解析错误
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#_11" class="md-nav__link">
+  <a href="#_12" class="md-nav__link">
     <span class="md-ellipsis">
       
         分类评分
@@ -3493,7 +3515,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_12" class="md-nav__link">
+  <a href="#_13" class="md-nav__link">
     <span class="md-ellipsis">
       
         计算示例
@@ -3504,7 +3526,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_13" class="md-nav__link">
+  <a href="#_14" class="md-nav__link">
     <span class="md-ellipsis">
       
         降级评分
@@ -3515,7 +3537,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_14" class="md-nav__link">
+  <a href="#_15" class="md-nav__link">
     <span class="md-ellipsis">
       
         舍入
@@ -3526,7 +3548,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_15" class="md-nav__link">
+  <a href="#_16" class="md-nav__link">
     <span class="md-ellipsis">
       
         随时间追踪
@@ -3537,7 +3559,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_16" class="md-nav__link">
+  <a href="#_17" class="md-nav__link">
     <span class="md-ellipsis">
       
         参考
@@ -3671,8 +3693,9 @@
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>      - cohesionPenalty         (0–20)
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>      - dependencyPenalty       (0–16)
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>      - architecturePenalty     (0–12)
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>HealthScore = max(0, score)
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>      - parseErrorPenalty       (0–56)
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>HealthScore = max(0, score)
 </span></code></pre></div>
 <p>每个惩罚值有各自的上限：</p>
 <table>
@@ -3718,6 +3741,11 @@
 <td>架构</td>
 <td>12</td>
 <td><code>MaxArchitecturePenalty = 12</code></td>
+</tr>
+<tr>
+<td>解析错误</td>
+<td>56</td>
+<td><code>MaxParseErrorPenalty = 100 - GradeDThreshold + 1</code></td>
 </tr>
 </tbody>
 </table>
@@ -3817,6 +3845,7 @@
 </table>
 <p><strong>饱和。</strong> 当 <code>weighted / normalization &gt;= 20.0</code> 时达到 20。</p>
 <p><strong>边界情况。</strong> 零发现时惩罚为 0。截断使用 <code>int()</code>（向零截断），而非 <code>math.Round</code> — 因此计算值 <code>1.99</code> 变为 <code>1</code>。</p>
+<p><code>TotalFiles</code> 也会计入解析失败的文件，因此在存在解析错误的目标上，归一化因子会略大，死代码惩罚会略小于仅按已分析文件计算的结果。该影响是对数级的，与针对同一情况至少扣除 11 分的「解析错误」惩罚相比可以忽略。</p>
 <p>来源：<code>domain/analyze.go:283-296</code>。归一化因子在 <code>CalculateHealthScore()</code> 的 <code>domain/analyze.go:474-477</code> 中计算。</p>
 <h3 id="_8">代码重复<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
 <p><strong>输入。</strong> <code>CodeDuplication</code>（float64）。此字段是片段比率：所有提取出的代码片段中，参与克隆对或克隆组的唯一片段所占百分比，上游计算限制为 30。</p>
@@ -4046,22 +4075,57 @@
 <p><strong>饱和。</strong> 在 <code>ArchCompliance = 0.0</code> 时达到 12。</p>
 <p><strong>边界情况。</strong> <code>ArchEnabled = false</code> → 惩罚 0。<code>Validate()</code> 在启用时强制 <code>ArchCompliance ∈ [0, 1]</code>。</p>
 <p>来源：<code>domain/analyze.go:409-422</code>。</p>
-<h2 id="_11">分类评分<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h2>
+<h3 id="_11">解析错误<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
+<p><strong>输入。</strong> <code>TotalFiles</code> (int)、<code>SkippedFiles</code> (int)。</p>
+<p>无法读取或解析的文件会被排除在上述所有分析之外：它不产生函数、死代码、克隆或耦合数据。若没有此项惩罚，它的得分反而高于正常文件，破坏一个模块会被读作质量改进。</p>
+<p><strong>公式。</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>if SkippedFiles &lt;= 0 or TotalFiles &lt;= 0:
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    penalty = 0
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>else:
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    penalty = max(11, round(SkippedFiles / TotalFiles * 56))
+</span></code></pre></div>
+<p><strong>常量。</strong></p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MinParseErrorPenalty</code></td>
+<td>11</td>
+<td><code>100 - GradeAThreshold + 1</code> —— 只要有一个文件被跳过就无法拿到 A</td>
+</tr>
+<tr>
+<td><code>MaxParseErrorPenalty</code></td>
+<td>56</td>
+<td><code>100 - GradeDThreshold + 1</code> —— 全部无法解析时不能高于 F</td>
+</tr>
+</tbody>
+</table>
+<p><strong>饱和。</strong> 当目标中没有任何文件解析成功时达到 56。</p>
+<p><strong>边界情况。</strong> 只要有一个文件被跳过就会应用下限，因此一千个文件中的一个损坏文件仍会失去最高等级。<code>Validate()</code> 会拒绝负的 <code>SkippedFiles</code> 以及超过 <code>TotalFiles</code> 的值。</p>
+<p>该惩罚不属于任何单一分析，因此没有自己的分类评分。<code>SkippedFiles</code> 和 <code>TotalFiles</code> 会输出在摘要中，使缺口在评分旁边可见。</p>
+<p>来源：<code>domain/analyze.go</code>、<code>calculateParseErrorPenalty</code>。</p>
+<h2 id="_12">分类评分<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
 <p>每个分类在报告中展示一个 0–100 的评分。转换方式取决于该分类的惩罚尺度。</p>
 <p><strong>大多数分类（复杂度、死代码、代码重复、耦合度、内聚度）。</strong> 它们的惩罚上限均为 20（<code>MaxScoreBase = 20</code>）。评分通过 <code>penaltyToScore(penalty, 20)</code> 计算：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>score = 100 - round(penalty * 100 / 20) = 100 - penalty * 5
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>score = 100 - round(penalty * 100 / 20) = 100 - penalty * 5
 </span></code></pre></div>
 <p>即每单位惩罚扣 5 分。惩罚为 0 时评分为 100；惩罚为 20 时评分为 0。</p>
 <p><strong>依赖。</strong> 惩罚上限为 16，因此评分需先通过 <code>normalizeToScoreBase</code> 归一化到 20 分制：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>normalized = round(dependencyPenalty / 16 * 20)
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>DependencyScore = 100 - round(normalized * 100 / 20) = 100 - normalized * 5
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>normalized = round(dependencyPenalty / 16 * 20)
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>DependencyScore = 100 - round(normalized * 100 / 20) = 100 - normalized * 5
 </span></code></pre></div>
 <p><strong>架构。</strong> 特殊情况 — 评分直接取自合规度：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>ArchitectureScore = round(ArchCompliance * 100)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>ArchitectureScore = round(ArchCompliance * 100)
 </span></code></pre></div>
 <p>因此 <code>ArchCompliance = 0.98</code> 产生 <code>ArchitectureScore = 98</code>，无论计入总体评分的惩罚如何舍入。</p>
 <p>来源：<code>domain/analyze.go:426-453</code>、<code>domain/analyze.go:483-510</code>。</p>
-<h2 id="_12">计算示例<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
+<h2 id="_13">计算示例<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h2>
 <p>输入：</p>
 <table>
 <thead>
@@ -4209,14 +4273,14 @@
 </tr>
 </tbody>
 </table>
-<h2 id="_13">降级评分<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h2>
+<h2 id="_14">降级评分<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h2>
 <p><code>CalculateHealthScore()</code> 首先对摘要调用 <code>Validate()</code>。如果验证失败 — 例如 <code>AverageComplexity &lt; 0</code>、<code>CodeDuplication</code> 超出 <code>[0, 100]</code> 范围、启用时 <code>ArchCompliance</code> 超出 <code>[0, 1]</code> 范围、启用时 <code>DepsMainSequenceDeviation</code> 超出 <code>[0, 1]</code> 范围、或 LCOM 或 CBO 的 high + medium 类数之和超过总数 — 摘要的评分将被置零，等级设为 <code>"N/A"</code>，并返回错误。调用方可以随后调用 <code>CalculateFallbackScore()</code> 作为降级路径：从 100 开始，如果 <code>AverageComplexity &gt; 10</code> 则减去 <code>FallbackComplexityThreshold = 10</code>，对 <code>DeadCodeCount &gt; 0</code>、<code>HighComplexityCount &gt; 0</code> 和 <code>HighLCOMClasses &gt; 0</code> 各减去 <code>FallbackPenalty = 5</code>，下限为 <code>MinimumScore = 0</code>。</p>
 <p>来源：<code>domain/analyze.go:200-262</code>（<code>Validate</code>）、<code>domain/analyze.go:456-470</code>（<code>CalculateHealthScore</code> 中的验证分支）、<code>domain/analyze.go:538-566</code>（<code>CalculateFallbackScore</code>）。</p>
-<h2 id="_14">舍入<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h2>
+<h2 id="_15">舍入<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h2>
 <p>所有非整数中间值使用 Go 的 <code>math.Round</code> 归约为整数，对于精确的 <code>.5</code> 值使用银行家舍入（Go 实现中正数使用四舍五入）。最终健康评分通过 <code>MinimumScore</code> 限制在 <code>[0, 100]</code> 范围内。分类评分在 <code>penaltyToScore</code> 中限制在 <code>[0, 100]</code>（<code>domain/analyze.go:441-453</code>）。<code>math.Round</code> 的唯一例外是死代码惩罚，它在 <code>math.Min</code> 之后使用 <code>int()</code> 截断（<code>domain/analyze.go:294</code>）。</p>
-<h2 id="_15">随时间追踪<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h2>
+<h2 id="_16">随时间追踪<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h2>
 <p>公式是确定性的 — 相同的输入在不同运行和平台上始终产生相同的评分。要追踪健康状况随时间的变化，请在每次提交时从 JSON 输出中持久化 <code>summary.health_score</code> 并在 CI 中进行比较。分类评分（<code>complexity_score</code>、<code>dead_code_score</code> 等）同样稳定，可以单独追踪。</p>
-<h2 id="_16">参考<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h2>
+<h2 id="_17">参考<a class="headerlink" href="#_17" title="Permanent link">&para;</a></h2>
 <p>所有行号引用 <code>domain/analyze.go</code>：</p>
 <ul>
 <li><code>CalculateHealthScore()</code> — 第 456–534 行</li>

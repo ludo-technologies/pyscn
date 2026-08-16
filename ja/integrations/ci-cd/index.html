@@ -3574,12 +3574,17 @@
 </tr>
 <tr>
 <td><code>1</code></td>
-<td>問題が見つかった、または実行エラー</td>
+<td>閾値を超える問題が見つかった</td>
+<td>失敗</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>分析を完了できなかった（不正な入力、存在しないファイル、パースできないファイル）</td>
 <td>失敗</td>
 </tr>
 </tbody>
 </table>
-<p><code>check</code> は「閾値を超える問題が見つかった」場合と「分析を完了できなかった」場合の両方で終了コード <code>1</code> を返します。2つのケースは終了コードでは区別できません。stderr を確認して判別してください。</p>
+<p>終了コード <code>2</code> は、ゲートがコード全体を見られなかったことを意味します。たとえば構文エラーを含むファイルはすべての分析から除外されるため、検出結果を一切生成せず、放置すると合格してしまいます。パースできないファイルを警告として扱うには <code>--allow-parse-errors</code> を指定してください。</p>
 <h2 id="_2">戦略<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p>グリーンフィールド:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--max-complexity<span class="w"> </span><span class="m">10</span><span class="w"> </span>--max-cycles<span class="w"> </span><span class="m">0</span><span class="w"> </span>.

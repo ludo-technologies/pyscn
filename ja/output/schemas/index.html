@@ -4628,7 +4628,7 @@
 <tr>
 <td><code>skipped_files</code></td>
 <td>integer</td>
-<td>パースエラーまたはフィルタによりスキップされたファイル。</td>
+<td>読み込みまたはパースに失敗して除外されたファイル。0 でない場合、以下のスコアは <code>total_files</code> の一部しかカバーしていません。</td>
 </tr>
 </tbody>
 </table>
@@ -5128,7 +5128,17 @@
 <tr>
 <td><code>FilesAnalyzed</code></td>
 <td>integer</td>
-<td>少なくとも1つの関数を含むファイル。</td>
+<td>パースに成功し、上記のメトリクスに寄与したファイル。</td>
+</tr>
+<tr>
+<td><code>TotalFiles</code></td>
+<td>integer</td>
+<td>パース成否によらず、リクエストが対象としたファイル。</td>
+</tr>
+<tr>
+<td><code>SkippedFiles</code></td>
+<td>integer</td>
+<td>読み込みまたはパースに失敗して除外されたファイル。その内容は上記すべてのメトリクスに含まれません。</td>
 </tr>
 <tr>
 <td><code>LowRiskFunctions</code></td>
@@ -5800,6 +5810,11 @@
 <td><code>error</code></td>
 <td>string | absent</td>
 <td><code>success=false</code> の場合のエラーメッセージ。</td>
+</tr>
+<tr>
+<td><code>errors</code></td>
+<td>array | absent</td>
+<td>ファイル単位の失敗。ここに列挙されたファイルは実行自体は成功した上でスキップされたもので、その内容は <code>statistics</code> に含まれません。</td>
 </tr>
 </tbody>
 </table>

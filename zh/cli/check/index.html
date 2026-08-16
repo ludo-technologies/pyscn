@@ -3453,10 +3453,14 @@
 <p><code>check</code> 是 <a href="../analyze/"><code>analyze</code></a> 的 CI 版本：</p>
 <ul>
 <li><strong>检查结果输出到 stderr</strong>，使用 linter 格式（<code>file:line:col: message</code>）。</li>
-<li>通过时<strong>退出码 0</strong>，任何失败（发现问题<em>或</em>执行错误）时<strong>退出码 1</strong>。</li>
-<li><strong>严格的默认值</strong> -- 复杂度超过 10 的函数即为失败；任何循环依赖即为失败（当设置了 <code>--select deps</code> 时）。</li>
+<li>通过时<strong>退出码 0</strong>，发现问题时<strong>退出码 1</strong>，分析无法完成时<strong>退出码 2</strong>。</li>
+<li><strong>严格的默认值</strong> -- 复杂度超过 10 的函数即为失败；任何循环依赖即为失败（当设置了 <code>--select deps</code> 时）；任何无法解析的文件即为失败。</li>
 <li><strong>速度快</strong> -- 仅运行你选择的分析；跳过报告生成。</li>
 </ul>
+<div class="admonition note">
+<p class="admonition-title">解析错误的覆盖范围</p>
+<p><code>complexity</code>、<code>deadcode</code>、<code>clones</code>、<code>mockdata</code> 和 <code>di</code> 分析都会报告无法读取或解析的文件，其中任意一个报告了此类文件，检查即失败。<code>deps</code> 除外：依赖图构建过程会跳过无法读取的模块且不做记录，因此单独使用 <code>pyscn check --select deps</code> 无法发现语法错误。默认运行会覆盖此情况，因为 <code>complexity</code> 始终会运行。</p>
+</div>
 <h2 id="_2">选项<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <h3 id="_3">分析选择<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
 <table>
@@ -3508,8 +3512,14 @@
 <td>关闭</td>
 <td>将循环依赖视为警告，不触发检查失败。</td>
 </tr>
+<tr>
+<td><code>--allow-parse-errors</code></td>
+<td>关闭</td>
+<td>将无法读取或解析的文件视为警告，不触发检查失败。</td>
+</tr>
 </tbody>
 </table>
+<p>默认情况下，无法解析的文件会导致检查失败。这类文件被排除在所有分析之外，不会产生任何检查结果，因此会顺利通过所有阈值 —— 含有语法错误的源码反而会被报告为通过。关于此机制未覆盖的唯一一项分析，请参阅上面的说明。</p>
 <h3 id="_5">输出<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -3548,11 +3558,15 @@
 </tr>
 <tr>
 <td><code>1</code></td>
-<td>一项或多项检查失败，或出现执行错误。</td>
+<td>一项或多项质量阈值被超出。</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>无法对指定目标完成分析（无效输入、文件缺失或无法解析的文件）。</td>
 </tr>
 </tbody>
 </table>
-<p><code>check</code> 不使用不同的退出码区分"发现问题"和"工具故障"。在 CI 中，依据 stderr 输出和 pyscn 的非零退出码来判断通过/失败即可。</p>
+<p>退出码 <code>1</code> 是对代码的判定；退出码 <code>2</code> 意味着判定本身并不完整，不应视为通过。</p>
 <h2 id="_7">示例<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># 标准 CI 门禁（运行 complexity、deadcode、clones）</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pyscn<span class="w"> </span>check<span class="w"> </span>.

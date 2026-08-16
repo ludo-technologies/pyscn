@@ -3018,13 +3018,24 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        パースエラー
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#_11" class="md-nav__link">
+  <a href="#_12" class="md-nav__link">
     <span class="md-ellipsis">
       
         カテゴリスコア
@@ -3035,7 +3046,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_12" class="md-nav__link">
+  <a href="#_13" class="md-nav__link">
     <span class="md-ellipsis">
       
         計算例
@@ -3046,7 +3057,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_13" class="md-nav__link">
+  <a href="#_14" class="md-nav__link">
     <span class="md-ellipsis">
       
         フォールバックスコア
@@ -3057,7 +3068,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_14" class="md-nav__link">
+  <a href="#_15" class="md-nav__link">
     <span class="md-ellipsis">
       
         丸め処理
@@ -3068,7 +3079,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_15" class="md-nav__link">
+  <a href="#_16" class="md-nav__link">
     <span class="md-ellipsis">
       
         経時的な追跡
@@ -3079,7 +3090,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_16" class="md-nav__link">
+  <a href="#_17" class="md-nav__link">
     <span class="md-ellipsis">
       
         リファレンス
@@ -3476,13 +3487,24 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        パースエラー
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#_11" class="md-nav__link">
+  <a href="#_12" class="md-nav__link">
     <span class="md-ellipsis">
       
         カテゴリスコア
@@ -3493,7 +3515,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_12" class="md-nav__link">
+  <a href="#_13" class="md-nav__link">
     <span class="md-ellipsis">
       
         計算例
@@ -3504,7 +3526,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_13" class="md-nav__link">
+  <a href="#_14" class="md-nav__link">
     <span class="md-ellipsis">
       
         フォールバックスコア
@@ -3515,7 +3537,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_14" class="md-nav__link">
+  <a href="#_15" class="md-nav__link">
     <span class="md-ellipsis">
       
         丸め処理
@@ -3526,7 +3548,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_15" class="md-nav__link">
+  <a href="#_16" class="md-nav__link">
     <span class="md-ellipsis">
       
         経時的な追跡
@@ -3537,7 +3559,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_16" class="md-nav__link">
+  <a href="#_17" class="md-nav__link">
     <span class="md-ellipsis">
       
         リファレンス
@@ -3671,8 +3693,9 @@
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>      - cohesionPenalty         (0–20)
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>      - dependencyPenalty       (0–16)
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>      - architecturePenalty     (0–12)
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>HealthScore = max(0, score)
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>      - parseErrorPenalty       (0–56)
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>HealthScore = max(0, score)
 </span></code></pre></div>
 <p>各ペナルティには個別の上限があります:</p>
 <table>
@@ -3718,6 +3741,11 @@
 <td>アーキテクチャ</td>
 <td>12</td>
 <td><code>MaxArchitecturePenalty = 12</code></td>
+</tr>
+<tr>
+<td>パースエラー</td>
+<td>56</td>
+<td><code>MaxParseErrorPenalty = 100 - GradeDThreshold + 1</code></td>
 </tr>
 </tbody>
 </table>
@@ -3817,6 +3845,7 @@
 </table>
 <p><strong>飽和.</strong> <code>weighted / normalization &gt;= 20.0</code> のとき 20 に到達します。</p>
 <p><strong>エッジケース.</strong> 検出結果がゼロの場合、ペナルティは 0 です。切り捨ては <code>int()</code>（ゼロ方向）であり、<code>math.Round</code> ではありません。計算値 <code>1.99</code> は <code>1</code> になります。</p>
+<p><code>TotalFiles</code> はパースに失敗したファイルも含めて数えるため、パースエラーがある対象では正規化係数がわずかに大きくなり、デッドコードのペナルティは解析できたファイルだけで計算した場合よりわずかに小さくなります。影響は対数的で、同じ状況に対して最低 11 点を課す「パースエラー」ペナルティに比べれば無視できる大きさです。</p>
 <p>ソース: <code>domain/analyze.go:283-296</code>。正規化係数は <code>CalculateHealthScore()</code> の <code>domain/analyze.go:474-477</code> で導出されます。</p>
 <h3 id="_8">重複<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
 <p><strong>入力.</strong> <code>CodeDuplication</code> (float64)。このフィールドはフラグメント比率で、抽出されたコードフラグメントのうちクローンペアまたはグループに含まれるユニークなフラグメントの割合を表します。上流の計算で 30 に上限が設定されています。</p>
@@ -4046,22 +4075,57 @@
 <p><strong>飽和.</strong> <code>ArchCompliance = 0.0</code> で 12 に到達します。</p>
 <p><strong>エッジケース.</strong> <code>ArchEnabled = false</code> → ペナルティ 0。<code>Validate()</code> は有効時に <code>ArchCompliance ∈ [0, 1]</code> を保証します。</p>
 <p>ソース: <code>domain/analyze.go:409-422</code>。</p>
-<h2 id="_11">カテゴリスコア<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h2>
+<h3 id="_11">パースエラー<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
+<p><strong>入力.</strong> <code>TotalFiles</code> (int)、<code>SkippedFiles</code> (int)。</p>
+<p>読み込めない、またはパースできないファイルは上記すべての解析から除外されます。関数もデッドコードもクローンも結合度も生成しないため、このペナルティがなければ正常なファイルより高いスコアになり、モジュールを壊すことが品質改善として現れてしまいます。</p>
+<p><strong>計算式.</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>if SkippedFiles &lt;= 0 or TotalFiles &lt;= 0:
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    penalty = 0
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>else:
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    penalty = max(11, round(SkippedFiles / TotalFiles * 56))
+</span></code></pre></div>
+<p><strong>定数.</strong></p>
+<table>
+<thead>
+<tr>
+<th>名前</th>
+<th>値</th>
+<th>意味</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MinParseErrorPenalty</code></td>
+<td>11</td>
+<td><code>100 - GradeAThreshold + 1</code> — スキップが 1 件でもあれば A を失う</td>
+</tr>
+<tr>
+<td><code>MaxParseErrorPenalty</code></td>
+<td>56</td>
+<td><code>100 - GradeDThreshold + 1</code> — 全ファイルがパース不能なら F を超えられない</td>
+</tr>
+</tbody>
+</table>
+<p><strong>飽和.</strong> 対象のどのファイルもパースできなかった場合に 56 に達します。</p>
+<p><strong>エッジケース.</strong> スキップが 1 件でもあれば下限が適用されるため、1000 ファイル中の 1 件でも最高グレードを失います。<code>Validate()</code> は負の <code>SkippedFiles</code> と <code>TotalFiles</code> を超える値を拒否します。</p>
+<p>このペナルティは特定の解析に属さないため、専用のカテゴリスコアを持ちません。不足はスコアの隣で確認できるよう、<code>SkippedFiles</code> と <code>TotalFiles</code> がサマリに出力されます。</p>
+<p>ソース: <code>domain/analyze.go</code>、<code>calculateParseErrorPenalty</code>。</p>
+<h2 id="_12">カテゴリスコア<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
 <p>各カテゴリはレポートで 0〜100 のスコアを公開します。変換はカテゴリのペナルティスケールに依存します。</p>
 <p><strong>ほとんどのカテゴリ（複雑度、デッドコード、重複、結合度、凝集度）.</strong> これらはすべてペナルティ上限 20（<code>MaxScoreBase = 20</code>）を持ちます。スコアは <code>penaltyToScore(penalty, 20)</code> で計算されます:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>score = 100 - round(penalty * 100 / 20) = 100 - penalty * 5
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>score = 100 - round(penalty * 100 / 20) = 100 - penalty * 5
 </span></code></pre></div>
 <p>ペナルティ 1 単位あたり 5 スコアポイントが差し引かれます。ペナルティ 0 はスコア 100、ペナルティ 20 はスコア 0 になります。</p>
 <p><strong>依存関係.</strong> ペナルティ上限は 16 なので、<code>normalizeToScoreBase</code> で 20 ポイントスケールに正規化されます:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>normalized = round(dependencyPenalty / 16 * 20)
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>DependencyScore = 100 - round(normalized * 100 / 20) = 100 - normalized * 5
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>normalized = round(dependencyPenalty / 16 * 20)
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>DependencyScore = 100 - round(normalized * 100 / 20) = 100 - normalized * 5
 </span></code></pre></div>
 <p><strong>アーキテクチャ.</strong> 特殊ケース — スコアはコンプライアンスから直接取得されます:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>ArchitectureScore = round(ArchCompliance * 100)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>ArchitectureScore = round(ArchCompliance * 100)
 </span></code></pre></div>
 <p><code>ArchCompliance = 0.98</code> は <code>ArchitectureScore = 98</code> になり、全体スコアに影響するペナルティの丸めとは無関係です。</p>
 <p>ソース: <code>domain/analyze.go:426-453</code>, <code>domain/analyze.go:483-510</code>。</p>
-<h2 id="_12">計算例<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
+<h2 id="_13">計算例<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h2>
 <p>入力:</p>
 <table>
 <thead>
@@ -4209,14 +4273,14 @@
 </tr>
 </tbody>
 </table>
-<h2 id="_13">フォールバックスコア<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h2>
+<h2 id="_14">フォールバックスコア<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h2>
 <p><code>CalculateHealthScore()</code> はまず summary に対して <code>Validate()</code> を呼び出します。バリデーションが失敗した場合（例: <code>AverageComplexity &lt; 0</code>、<code>CodeDuplication</code> が <code>[0, 100]</code> の範囲外、有効時に <code>ArchCompliance</code> が <code>[0, 1]</code> の範囲外、有効時に <code>DepsMainSequenceDeviation</code> が <code>[0, 1]</code> の範囲外、LCOM または CBO で high + medium クラスの合計が total を超過）、summary のスコアはゼロにリセットされ、グレードは <code>"N/A"</code> に設定され、エラーが返されます。呼び出し元はその後、劣化パスとして <code>CalculateFallbackScore()</code> を呼び出すことができます。100 から開始し、<code>AverageComplexity &gt; 10</code> の場合に <code>FallbackComplexityThreshold = 10</code> を減算し、<code>DeadCodeCount &gt; 0</code>、<code>HighComplexityCount &gt; 0</code>、<code>HighLCOMClasses &gt; 0</code> それぞれに対して <code>FallbackPenalty = 5</code> を減算し、<code>MinimumScore = 0</code> で下限を設定します。</p>
 <p>ソース: <code>domain/analyze.go:200-262</code>（<code>Validate</code>）, <code>domain/analyze.go:456-470</code>（<code>CalculateHealthScore</code> 内のバリデーション分岐）, <code>domain/analyze.go:538-566</code>（<code>CalculateFallbackScore</code>）。</p>
-<h2 id="_14">丸め処理<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h2>
+<h2 id="_15">丸め処理<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h2>
 <p>すべての非整数中間値は Go の <code>math.Round</code> を使用して整数に変換されます。これは正の値に対して四捨五入（正確な <code>.5</code> 値では最近接偶数丸め）を適用します。最終的なヘルススコアは <code>MinimumScore</code> により <code>[0, 100]</code> にクランプされます。カテゴリスコアは <code>penaltyToScore</code>（<code>domain/analyze.go:441-453</code>）内で <code>[0, 100]</code> にクランプされます。<code>math.Round</code> の唯一の例外はデッドコードペナルティで、<code>math.Min</code> の後に <code>int()</code> による切り捨てを使用します（<code>domain/analyze.go:294</code>）。</p>
-<h2 id="_15">経時的な追跡<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h2>
+<h2 id="_16">経時的な追跡<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h2>
 <p>計算式は決定論的であり、同一の入力は実行やプラットフォームにかかわらず常に同一のスコアを生成します。ヘルスを経時的に追跡するには、JSON 出力の <code>summary.health_score</code> をコミットごとに保存し、CI で比較してください。カテゴリごとのスコア（<code>complexity_score</code>, <code>dead_code_score</code> など）も同様に安定しており、個別に追跡できます。</p>
-<h2 id="_16">リファレンス<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h2>
+<h2 id="_17">リファレンス<a class="headerlink" href="#_17" title="Permanent link">&para;</a></h2>
 <p>すべての行番号は <code>domain/analyze.go</code> を参照しています:</p>
 <ul>
 <li><code>CalculateHealthScore()</code> — lines 456–534</li>

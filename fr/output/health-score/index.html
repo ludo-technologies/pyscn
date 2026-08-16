@@ -3018,6 +3018,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#erreurs-danalyse-syntaxique" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Erreurs d'analyse syntaxique
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3476,6 +3487,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#erreurs-danalyse-syntaxique" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Erreurs d'analyse syntaxique
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3671,8 +3693,9 @@
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>      - cohesionPenalty         (0–20)
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>      - dependencyPenalty       (0–16)
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>      - architecturePenalty     (0–12)
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>HealthScore = max(0, score)
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>      - parseErrorPenalty       (0–56)
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>HealthScore = max(0, score)
 </span></code></pre></div>
 <p>Chaque pénalité est plafonnée à son propre maximum :</p>
 <table>
@@ -3718,6 +3741,11 @@
 <td>Architecture</td>
 <td>12</td>
 <td><code>MaxArchitecturePenalty = 12</code></td>
+</tr>
+<tr>
+<td>Erreurs d'analyse</td>
+<td>56</td>
+<td><code>MaxParseErrorPenalty = 100 - GradeDThreshold + 1</code></td>
 </tr>
 </tbody>
 </table>
@@ -3817,6 +3845,7 @@
 </table>
 <p><strong>Saturation.</strong> Atteint 20 lorsque <code>weighted / normalization &gt;= 20.0</code>.</p>
 <p><strong>Cas limites.</strong> Zéro constat donne une pénalité de 0. La troncature utilise <code>int()</code> (vers zéro), pas <code>math.Round</code> — ainsi une valeur calculée de <code>1.99</code> devient <code>1</code>.</p>
+<p><code>TotalFiles</code> compte aussi les fichiers dont l'analyse syntaxique a échoué : sur une cible comportant des erreurs de syntaxe, le facteur de normalisation est donc légèrement plus grand et la pénalité de code mort légèrement plus faible qu'elle ne le serait sur les seuls fichiers analysés. L'effet est logarithmique et reste négligeable face à la pénalité « Erreurs d'analyse syntaxique », qui facture au moins 11 points pour la même situation.</p>
 <p>Source : <code>domain/analyze.go:283-296</code>. Facteur de normalisation dérivé dans <code>CalculateHealthScore()</code> à <code>domain/analyze.go:474-477</code>.</p>
 <h3 id="duplication">Duplication<a class="headerlink" href="#duplication" title="Permanent link">&para;</a></h3>
 <p><strong>Entrées.</strong> <code>CodeDuplication</code> (float64). Ce champ est le ratio de fragments : le pourcentage de tous les fragments de code extraits qui participent à une paire ou un groupe de clones, plafonné à 30 par le calcul en amont.</p>
@@ -4046,18 +4075,53 @@
 <p><strong>Saturation.</strong> Atteint 12 à <code>ArchCompliance = 0.0</code>.</p>
 <p><strong>Cas limites.</strong> <code>ArchEnabled = false</code> → pénalité 0. <code>Validate()</code> impose <code>ArchCompliance ∈ [0, 1]</code> lorsqu'activé.</p>
 <p>Source : <code>domain/analyze.go:409-422</code>.</p>
+<h3 id="erreurs-danalyse-syntaxique">Erreurs d'analyse syntaxique<a class="headerlink" href="#erreurs-danalyse-syntaxique" title="Permanent link">&para;</a></h3>
+<p><strong>Entrées.</strong> <code>TotalFiles</code> (int), <code>SkippedFiles</code> (int).</p>
+<p>Un fichier impossible à lire ou à analyser est exclu de toutes les analyses ci-dessus : il ne produit ni fonction, ni code mort, ni clone, ni couplage. Sans cette pénalité, il obtiendrait un meilleur score qu'un fichier valide, et corrompre un module se lirait comme une amélioration de la qualité.</p>
+<p><strong>Formule.</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>if SkippedFiles &lt;= 0 or TotalFiles &lt;= 0:
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    penalty = 0
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>else:
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    penalty = max(11, round(SkippedFiles / TotalFiles * 56))
+</span></code></pre></div>
+<p><strong>Constantes.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom</th>
+<th>Valeur</th>
+<th>Signification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MinParseErrorPenalty</code></td>
+<td>11</td>
+<td><code>100 - GradeAThreshold + 1</code> — un seul fichier ignoré fait perdre le A</td>
+</tr>
+<tr>
+<td><code>MaxParseErrorPenalty</code></td>
+<td>56</td>
+<td><code>100 - GradeDThreshold + 1</code> — une cible entièrement non analysable ne peut dépasser F</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Saturation.</strong> Atteint 56 lorsqu'aucun fichier de la cible n'a pu être analysé.</p>
+<p><strong>Cas limites.</strong> Le plancher s'applique dès qu'un fichier est ignoré : un seul fichier cassé sur mille fait donc perdre la meilleure note. <code>Validate()</code> rejette un <code>SkippedFiles</code> négatif ou supérieur à <code>TotalFiles</code>.</p>
+<p>Cette pénalité n'a pas de score de catégorie propre — elle n'appartient à aucune analyse en particulier. <code>SkippedFiles</code> et <code>TotalFiles</code> figurent dans le résumé pour rendre le déficit visible à côté du score.</p>
+<p>Source : <code>domain/analyze.go</code>, <code>calculateParseErrorPenalty</code>.</p>
 <h2 id="scores-par-categorie">Scores par catégorie<a class="headerlink" href="#scores-par-categorie" title="Permanent link">&para;</a></h2>
 <p>Chaque catégorie expose un score sur 0–100 dans le rapport. La conversion dépend de l'échelle de pénalité de la catégorie.</p>
 <p><strong>La plupart des catégories (Complexité, Code mort, Duplication, Couplage, Cohésion).</strong> Toutes ont une pénalité plafonnée à 20 (<code>MaxScoreBase = 20</code>). Le score est calculé par <code>penaltyToScore(penalty, 20)</code> :</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>score = 100 - round(penalty * 100 / 20) = 100 - penalty * 5
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>score = 100 - round(penalty * 100 / 20) = 100 - penalty * 5
 </span></code></pre></div>
 <p>Effectivement, chaque unité de pénalité coûte 5 points de score. Une pénalité de 0 donne 100 ; une pénalité de 20 donne 0.</p>
 <p><strong>Dépendances.</strong> Le plafond de pénalité est 16, donc le score est d'abord normalisé sur l'échelle 20 points via <code>normalizeToScoreBase</code> :</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>normalized = round(dependencyPenalty / 16 * 20)
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>DependencyScore = 100 - round(normalized * 100 / 20) = 100 - normalized * 5
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>normalized = round(dependencyPenalty / 16 * 20)
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>DependencyScore = 100 - round(normalized * 100 / 20) = 100 - normalized * 5
 </span></code></pre></div>
 <p><strong>Architecture.</strong> Cas particulier — le score est pris directement à partir de la conformité :</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>ArchitectureScore = round(ArchCompliance * 100)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>ArchitectureScore = round(ArchCompliance * 100)
 </span></code></pre></div>
 <p>Ainsi <code>ArchCompliance = 0.98</code> donne <code>ArchitectureScore = 98</code>, indépendamment des arrondis de pénalité qui alimentent le score global.</p>
 <p>Source : <code>domain/analyze.go:426-453</code>, <code>domain/analyze.go:483-510</code>.</p>

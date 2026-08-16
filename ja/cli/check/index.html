@@ -3453,10 +3453,14 @@
 <p><code>check</code> は <a href="../analyze/"><code>analyze</code></a> の CI 向けコンパニオンです:</p>
 <ul>
 <li><strong>検出結果は stderr</strong> にリンター形式（<code>file:line:col: message</code>）で出力されます。</li>
-<li>パスすれば <strong>exit 0</strong>、問題が見つかるか実行エラーが発生すれば <strong>exit 1</strong>。</li>
-<li><strong>厳格なデフォルト</strong> — 複雑度 10 を超える関数があれば失敗、循環依存があれば失敗（<code>--select deps</code> 指定時）。</li>
+<li>パスすれば <strong>exit 0</strong>、問題が見つかれば <strong>exit 1</strong>、解析を完了できなければ <strong>exit 2</strong>。</li>
+<li><strong>厳格なデフォルト</strong> — 複雑度 10 を超える関数があれば失敗、循環依存があれば失敗（<code>--select deps</code> 指定時）、パースできないファイルがあれば失敗。</li>
 <li><strong>高速</strong> — 選択した解析のみ実行し、レポート生成をスキップします。</li>
 </ul>
+<div class="admonition note">
+<p class="admonition-title">パースエラーのカバー範囲</p>
+<p><code>complexity</code>、<code>deadcode</code>、<code>clones</code>、<code>mockdata</code>、<code>di</code> の各解析は読み込み・パースできなかったファイルを報告し、いずれか 1 つでも発生すればチェックは失敗します。<code>deps</code> は例外です: 依存グラフの構築処理は読めないモジュールを記録せずにスキップするため、<code>pyscn check --select deps</code> 単独では構文エラーを検出できません。デフォルト実行では <code>complexity</code> が常に走るためカバーされます。</p>
+</div>
 <h2 id="_2">フラグ<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <h3 id="_3">解析の選択<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
 <table>
@@ -3508,8 +3512,14 @@
 <td>off</td>
 <td>循環依存を警告のみとし、チェックを失敗させません。</td>
 </tr>
+<tr>
+<td><code>--allow-parse-errors</code></td>
+<td>off</td>
+<td>読み込めない・パースできないファイルを警告のみとし、チェックを失敗させません。</td>
+</tr>
 </tbody>
 </table>
+<p>デフォルトでは、パースできないファイルがあるとチェックは失敗します。そのようなファイルはすべての解析から除外されるため検出結果を一切生成せず、放置するとすべてのしきい値を通過してしまいます。つまり構文エラーを含むソースが「問題なし」と報告されることになります。この仕組みが届かない唯一の解析については上記の注記を参照してください。</p>
 <h3 id="_5">出力<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -3548,11 +3558,15 @@
 </tr>
 <tr>
 <td><code>1</code></td>
-<td>1 つ以上のチェックが失敗したか、実行エラーが発生しました。</td>
+<td>1 つ以上の品質しきい値を超過しました。</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>対象に対して解析を完了できませんでした（不正な入力、存在しないファイル、パースできないファイルなど）。</td>
 </tr>
 </tbody>
 </table>
-<p><code>check</code> コマンドは「問題が見つかった」と「ツールの実行エラー」を異なる終了コードで区別しません。CI では stderr の出力と pyscn のゼロ以外の終了コードを合否判定にのみ利用してください。</p>
+<p>exit <code>1</code> はコードに対する判定であり、exit <code>2</code> は判定そのものが不完全であることを意味します。合格として扱わないでください。</p>
 <h2 id="_7">使用例<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Standard CI gate (runs complexity, deadcode, clones)</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pyscn<span class="w"> </span>check<span class="w"> </span>.
