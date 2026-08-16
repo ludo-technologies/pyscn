@@ -2863,10 +2863,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tabs" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tabs
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#detail-tabs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detail tabs
       
     </span>
   </a>
@@ -3283,10 +3294,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tabs" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tabs
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#detail-tabs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detail tabs
       
     </span>
   </a>
@@ -3476,20 +3498,20 @@
 </thead>
 <tbody>
 <tr>
-<td>Header</td>
-<td>Project name, generation timestamp, pyscn version, duration.</td>
+<td>Top bar</td>
+<td>pyscn version, project name and root, generation timestamp, file count, duration.</td>
 </tr>
 <tr>
-<td>Overall score card</td>
-<td>Health Score (0–100), grade badge (A–F).</td>
+<td>Tab bar</td>
+<td>Overview plus one tab per area that ran, each with a finding count badge.</td>
 </tr>
 <tr>
-<td>Category score cards</td>
-<td>One per enabled analyzer with its 0–100 score.</td>
+<td>Overview</td>
+<td>Health Score ring and grade, a one-paragraph verdict, size facts, per-dimension score cards, top suggestions, hotspot files, complexity histogram, and summary cards for duplication, classes, and structure.</td>
 </tr>
 <tr>
-<td>Tabs</td>
-<td>Summary, Modules, Directories, Complexity, Dead Code, Clones, Coupling, Cohesion, Dependencies, Architecture.</td>
+<td>Detail tabs</td>
+<td>Functions, Duplication, Classes, Architecture.</td>
 </tr>
 <tr>
 <td>Footer</td>
@@ -3497,8 +3519,43 @@
 </tr>
 </tbody>
 </table>
-<p>Category score cards and tabs only appear for analyzers that ran. Architecture appears only if <code>[architecture]</code> layers are configured.</p>
-<h2 id="tabs">Tabs<a class="headerlink" href="#tabs" title="Permanent link">&para;</a></h2>
+<p>Score cards, summary cards, and tabs only appear for analyzers that ran. Architecture appears when dependency, architecture, or community analysis ran; layer rules need <code>[architecture]</code> layers configured.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Block</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Verdict</td>
+<td>Health Score (0–100) drawn as a ring, grade badge (A–F), a headline for the grade, and a sentence naming the clean dimensions and the two or three weakest ones with their key numbers.</td>
+</tr>
+<tr>
+<td>Score breakdown</td>
+<td>One card per enabled dimension (Complexity, Dead code, Duplication, Coupling, Cohesion, Dependencies, Architecture, Communities) with its 0–100 score, a bar colored by band, and two supporting numbers. Cards link to the matching detail tab.</td>
+</tr>
+<tr>
+<td>Fix first</td>
+<td>The five highest-priority suggestions with severity, effort, location, and rationale.</td>
+</tr>
+<tr>
+<td>Hotspot files</td>
+<td>Up to eight modules ranked by high-risk functions, then max complexity, then dead code, then clone fragments.</td>
+</tr>
+<tr>
+<td>Complexity distribution</td>
+<td>Histogram of function complexity binned on the configured risk thresholds, with median, deepest nesting, and longest function.</td>
+</tr>
+<tr>
+<td>Duplication / Classes / Structure</td>
+<td>Compact summary cards linking to their detail tabs.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="detail-tabs">Detail tabs<a class="headerlink" href="#detail-tabs" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -3508,52 +3565,28 @@
 </thead>
 <tbody>
 <tr>
-<td>Summary</td>
-<td>High-level numbers and grade.</td>
+<td>Functions</td>
+<td>Complexity metrics strip, most complex functions (top 20), longest functions, dead code findings (top 20), and two collapsed sortable tables: all modules and directory complexity rollups.</td>
 </tr>
 <tr>
-<td>Modules</td>
-<td>Sortable per-module size, analyzed-record count, complexity, cognitive complexity, high-risk count, exception handlers, dead-code findings, and dead CFG blocks.</td>
+<td>Duplication</td>
+<td>Clone statistics strip, clone groups (top 10) with fragments and optional code previews, or clone pairs when no groups formed.</td>
 </tr>
 <tr>
-<td>Directories</td>
-<td>Sortable direct-directory rollups of reported function count, complexity, risk, and nesting depth.</td>
-</tr>
-<tr>
-<td>Complexity</td>
-<td>Sortable table of functions with McCabe / cognitive complexity, nesting depth, risk.</td>
-</tr>
-<tr>
-<td>Dead Code</td>
-<td>Findings grouped by severity with file:line and reason.</td>
-</tr>
-<tr>
-<td>Clones</td>
-<td>Clone groups with similarity and clone type.</td>
-</tr>
-<tr>
-<td>Coupling</td>
-<td>Classes by CBO with dependency-type breakdown.</td>
-</tr>
-<tr>
-<td>Cohesion</td>
-<td>Classes by LCOM4 with method grouping.</td>
-</tr>
-<tr>
-<td>Dependencies</td>
-<td>Module graph, Ca/Ce/I/A/D metrics, cycles.</td>
+<td>Classes</td>
+<td>Coupling (CBO) and cohesion (LCOM4) strips with the most coupled and least cohesive classes (top 15 each).</td>
 </tr>
 <tr>
 <td>Architecture</td>
-<td>Layer rule violations.</td>
+<td>Module dependency metrics, main sequence zones, circular dependencies, longest chains, layer rule violations, and community detection with the macro-architecture graph.</td>
 </tr>
 </tbody>
 </table>
 <h2 id="javascript">JavaScript<a class="headerlink" href="#javascript" title="Permanent link">&para;</a></h2>
-<p>Inline functions switch tabs and route the module and directory tables through one shared sorter. No network requests are made. The standalone complexity formatter renders the same directory metrics above the function table.</p>
-<p>Module rollups use the full analyzer population before <code>min_complexity</code>, <code>report_unchanged</code>, or <code>min_severity</code> presentation filters. Directory complexity uses the reported function population after complexity filters, so its counts and averages reconcile with the Complexity tab.</p>
+<p>Inline scripts switch tabs (the tab is mirrored into the URL hash so a link can open a specific tab), and route the module and directory tables through one shared sorter. No network requests are made.</p>
+<p>Module rollups use the full analyzer population before <code>min_complexity</code>, <code>report_unchanged</code>, or <code>min_severity</code> presentation filters. Directory complexity uses the reported function population after complexity filters, so its counts and averages reconcile with the Functions tab.</p>
 <h2 id="css">CSS<a class="headerlink" href="#css" title="Permanent link">&para;</a></h2>
-<p>Styles use CSS custom properties with these names:</p>
+<p>Styles are inlined from <code>service/templates/analyze/report.css</code> and use CSS custom properties. The main tokens:</p>
 <table>
 <thead>
 <tr>
@@ -3563,28 +3596,24 @@
 </thead>
 <tbody>
 <tr>
-<td><code>--color-success</code></td>
-<td>Low-risk findings, grade A.</td>
+<td><code>--good</code> / <code>--warn</code> / <code>--bad</code></td>
+<td>Score bands (75+, 60–74, below 60), risk levels, severities.</td>
 </tr>
 <tr>
-<td><code>--color-warning</code></td>
-<td>Medium-risk findings, grade B/C.</td>
+<td><code>--accent</code></td>
+<td>Navigation, links, neutral chart bars.</td>
 </tr>
 <tr>
-<td><code>--color-danger</code></td>
-<td>High-risk findings, grade D/F.</td>
+<td><code>--ink</code> / <code>--ink-2</code> / <code>--muted</code></td>
+<td>Body, secondary, and caption text.</td>
 </tr>
 <tr>
-<td><code>--color-text</code></td>
-<td>Body text.</td>
-</tr>
-<tr>
-<td><code>--color-muted</code></td>
-<td>Secondary text.</td>
+<td><code>--surface</code> / <code>--page</code> / <code>--line</code></td>
+<td>Card, page background, and hairlines.</td>
 </tr>
 </tbody>
 </table>
-<p>Dark mode follows the <code>prefers-color-scheme</code> media query; no toggle.</p>
+<p>Dark mode follows the <code>prefers-color-scheme</code> media query, and a <code>data-theme="light"</code> or <code>data-theme="dark"</code> attribute on the root element overrides it. No toggle is rendered.</p>
 <h2 id="auto-open-behavior">Auto-open behavior<a class="headerlink" href="#auto-open-behavior" title="Permanent link">&para;</a></h2>
 <p>The report opens in the default browser when <strong>all</strong> of the following are true:</p>
 <ul>
@@ -3607,34 +3636,34 @@
 <tr>
 <th>Grade</th>
 <th>Score</th>
-<th>Badge background</th>
+<th>Badge color</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>A</td>
 <td>90–100</td>
-<td>Green (<code>--color-success</code>)</td>
+<td>Green (<code>--good</code>)</td>
 </tr>
 <tr>
 <td>B</td>
 <td>75–89</td>
-<td>Green-tinted</td>
+<td>Green (<code>--good</code>)</td>
 </tr>
 <tr>
 <td>C</td>
 <td>60–74</td>
-<td>Orange (<code>--color-warning</code>)</td>
+<td>Amber (<code>--warn</code>)</td>
 </tr>
 <tr>
 <td>D</td>
 <td>45–59</td>
-<td>Red-tinted (<code>--color-danger</code>)</td>
+<td>Red (<code>--bad</code>)</td>
 </tr>
 <tr>
 <td>F</td>
 <td>0–44</td>
-<td>Red (<code>--color-danger</code>)</td>
+<td>Red (<code>--bad</code>)</td>
 </tr>
 </tbody>
 </table>

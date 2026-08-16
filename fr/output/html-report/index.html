@@ -2863,10 +2863,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#onglets" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Onglets
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#onglets-de-detail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Onglets de détail
       
     </span>
   </a>
@@ -3283,10 +3294,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#onglets" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Onglets
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#onglets-de-detail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Onglets de détail
       
     </span>
   </a>
@@ -3476,20 +3498,20 @@
 </thead>
 <tbody>
 <tr>
-<td>En-tête</td>
-<td>Nom du projet, horodatage de génération, version de pyscn, durée.</td>
+<td>Barre supérieure</td>
+<td>Version de pyscn, nom et racine du projet, horodatage de génération, nombre de fichiers, durée.</td>
 </tr>
 <tr>
-<td>Carte du score global</td>
-<td>Score de santé (0–100), badge de note (A–F).</td>
+<td>Barre d'onglets</td>
+<td>Overview plus un onglet par domaine exécuté, chacun avec un badge de comptage.</td>
 </tr>
 <tr>
-<td>Cartes de score par catégorie</td>
-<td>Une par analyseur activé avec son score sur 0–100.</td>
+<td>Overview</td>
+<td>Anneau du Health Score et note, un paragraphe de verdict, chiffres de taille, cartes de score par dimension, suggestions prioritaires, fichiers sensibles, histogramme de complexité, et cartes de synthèse pour la duplication, les classes et la structure.</td>
 </tr>
 <tr>
-<td>Onglets</td>
-<td>Résumé, Complexité, Code mort, Clones, Couplage, Cohésion, Dépendances, Architecture.</td>
+<td>Onglets de détail</td>
+<td>Functions, Duplication, Classes, Architecture.</td>
 </tr>
 <tr>
 <td>Pied de page</td>
@@ -3497,8 +3519,43 @@
 </tr>
 </tbody>
 </table>
-<p>Les cartes de score par catégorie et les onglets n'apparaissent que pour les analyseurs qui ont été exécutés. L'onglet Architecture n'apparaît que si des couches <code>[architecture]</code> sont configurées.</p>
-<h2 id="onglets">Onglets<a class="headerlink" href="#onglets" title="Permanent link">&para;</a></h2>
+<p>Les cartes de score, cartes de synthèse et onglets n'apparaissent que pour les analyseurs exécutés. Architecture apparaît si l'analyse des dépendances, de l'architecture ou des communautés a été exécutée ; les règles de couches nécessitent des couches <code>[architecture]</code> configurées.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Bloc</th>
+<th>Contenu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Verdict</td>
+<td>Health Score (0–100) dessiné en anneau, badge de note (A–F), un titre selon la note, et une phrase nommant les dimensions saines et les deux ou trois plus faibles avec leurs chiffres clés.</td>
+</tr>
+<tr>
+<td>Score breakdown</td>
+<td>Une carte par dimension activée (Complexity, Dead code, Duplication, Coupling, Cohesion, Dependencies, Architecture, Communities) avec son score 0–100, une barre colorée par bande et deux chiffres complémentaires. Les cartes renvoient vers l'onglet de détail correspondant.</td>
+</tr>
+<tr>
+<td>Fix first</td>
+<td>Les cinq suggestions les plus prioritaires avec sévérité, effort, emplacement et justification.</td>
+</tr>
+<tr>
+<td>Hotspot files</td>
+<td>Jusqu'à huit modules classés par fonctions à haut risque, puis complexité maximale, puis code mort, puis fragments clonés.</td>
+</tr>
+<tr>
+<td>Complexity distribution</td>
+<td>Histogramme de la complexité des fonctions découpé selon les seuils de risque configurés, avec médiane, imbrication la plus profonde et fonction la plus longue.</td>
+</tr>
+<tr>
+<td>Duplication / Classes / Structure</td>
+<td>Cartes de synthèse compactes renvoyant vers leurs onglets de détail.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="onglets-de-detail">Onglets de détail<a class="headerlink" href="#onglets-de-detail" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -3508,43 +3565,28 @@
 </thead>
 <tbody>
 <tr>
-<td>Résumé</td>
-<td>Chiffres globaux et note.</td>
+<td>Functions</td>
+<td>Bandeau de métriques de complexité, fonctions les plus complexes (top 20), fonctions les plus longues, constats de code mort (top 20), et deux tableaux triables repliés : tous les modules et les agrégats de complexité par répertoire.</td>
 </tr>
 <tr>
-<td>Complexité</td>
-<td>Tableau triable des fonctions avec complexité McCabe / cognitive, profondeur d'imbrication, risque.</td>
+<td>Duplication</td>
+<td>Bandeau de statistiques de clones, groupes de clones (top 10) avec fragments et aperçus de code optionnels, ou paires de clones si aucun groupe ne s'est formé.</td>
 </tr>
 <tr>
-<td>Code mort</td>
-<td>Constats regroupés par sévérité avec fichier:ligne et motif.</td>
-</tr>
-<tr>
-<td>Clones</td>
-<td>Groupes de clones avec similarité et type de clone.</td>
-</tr>
-<tr>
-<td>Couplage</td>
-<td>Classes par CBO avec ventilation par type de dépendance.</td>
-</tr>
-<tr>
-<td>Cohésion</td>
-<td>Classes par LCOM4 avec regroupement des méthodes.</td>
-</tr>
-<tr>
-<td>Dépendances</td>
-<td>Graphe de modules, métriques Ca/Ce/I/A/D, cycles.</td>
+<td>Classes</td>
+<td>Bandeaux de couplage (CBO) et de cohésion (LCOM4) avec les classes les plus couplées et les moins cohésives (top 15 chacune).</td>
 </tr>
 <tr>
 <td>Architecture</td>
-<td>Violations des règles entre couches.</td>
+<td>Métriques de dépendances entre modules, zones de la séquence principale, dépendances circulaires, chaînes les plus longues, violations des règles de couches, et détection de communautés avec le graphe de macro-architecture.</td>
 </tr>
 </tbody>
 </table>
 <h2 id="javascript">JavaScript<a class="headerlink" href="#javascript" title="Permanent link">&para;</a></h2>
-<p>Une seule fonction intégrée, <code>showTab(id)</code>, permet de basculer entre les onglets. Aucun autre script ne s'exécute. Aucune requête réseau.</p>
+<p>Des scripts inline changent d'onglet (l'onglet est reflété dans le hash de l'URL, un lien peut donc ouvrir un onglet précis) et font passer les tableaux de modules et de répertoires par un trieur commun. Aucune requête réseau n'est effectuée.</p>
+<p>Les agrégats de modules utilisent la population complète de l'analyseur avant les filtres d'affichage <code>min_complexity</code>, <code>report_unchanged</code> ou <code>min_severity</code>. La complexité par répertoire utilise la population de fonctions rapportées après les filtres de complexité, de sorte que ses comptes et moyennes concordent avec l'onglet Functions.</p>
 <h2 id="css">CSS<a class="headerlink" href="#css" title="Permanent link">&para;</a></h2>
-<p>Les styles utilisent des propriétés personnalisées CSS portant ces noms :</p>
+<p>Les styles sont inlinés depuis <code>service/templates/analyze/report.css</code> et utilisent des propriétés CSS personnalisées. Principaux jetons :</p>
 <table>
 <thead>
 <tr>
@@ -3554,28 +3596,24 @@
 </thead>
 <tbody>
 <tr>
-<td><code>--color-success</code></td>
-<td>Constats à faible risque, note A.</td>
+<td><code>--good</code> / <code>--warn</code> / <code>--bad</code></td>
+<td>Bandes de score (75 et plus, 60–74, moins de 60), niveaux de risque, sévérités.</td>
 </tr>
 <tr>
-<td><code>--color-warning</code></td>
-<td>Constats à risque moyen, notes B/C.</td>
+<td><code>--accent</code></td>
+<td>Navigation, liens, barres de graphique neutres.</td>
 </tr>
 <tr>
-<td><code>--color-danger</code></td>
-<td>Constats à risque élevé, notes D/F.</td>
+<td><code>--ink</code> / <code>--ink-2</code> / <code>--muted</code></td>
+<td>Texte principal, secondaire et légendes.</td>
 </tr>
 <tr>
-<td><code>--color-text</code></td>
-<td>Texte courant.</td>
-</tr>
-<tr>
-<td><code>--color-muted</code></td>
-<td>Texte secondaire.</td>
+<td><code>--surface</code> / <code>--page</code> / <code>--line</code></td>
+<td>Cartes, fond de page et filets.</td>
 </tr>
 </tbody>
 </table>
-<p>Le mode sombre suit la requête média <code>prefers-color-scheme</code> ; aucun interrupteur n'est fourni.</p>
+<p>Le mode sombre suit la media query <code>prefers-color-scheme</code>, et un attribut <code>data-theme="light"</code> ou <code>data-theme="dark"</code> sur l'élément racine le force. Aucun bouton de bascule n'est rendu.</p>
 <h2 id="ouverture-automatique">Ouverture automatique<a class="headerlink" href="#ouverture-automatique" title="Permanent link">&para;</a></h2>
 <p>Le rapport s'ouvre dans le navigateur par défaut lorsque <strong>toutes</strong> les conditions suivantes sont remplies :</p>
 <ul>
@@ -3598,34 +3636,34 @@
 <tr>
 <th>Note</th>
 <th>Score</th>
-<th>Couleur de fond du badge</th>
+<th>Couleur du badge</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>A</td>
 <td>90–100</td>
-<td>Vert (<code>--color-success</code>)</td>
+<td>Vert (<code>--good</code>)</td>
 </tr>
 <tr>
 <td>B</td>
 <td>75–89</td>
-<td>Teinté vert</td>
+<td>Vert (<code>--good</code>)</td>
 </tr>
 <tr>
 <td>C</td>
 <td>60–74</td>
-<td>Orange (<code>--color-warning</code>)</td>
+<td>Ambre (<code>--warn</code>)</td>
 </tr>
 <tr>
 <td>D</td>
 <td>45–59</td>
-<td>Teinté rouge (<code>--color-danger</code>)</td>
+<td>Rouge (<code>--bad</code>)</td>
 </tr>
 <tr>
 <td>F</td>
 <td>0–44</td>
-<td>Rouge (<code>--color-danger</code>)</td>
+<td>Rouge (<code>--bad</code>)</td>
 </tr>
 </tbody>
 </table>
