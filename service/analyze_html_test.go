@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -176,4 +177,97 @@ func TestReportProject_FallsBackToCommonDirectory(t *testing.T) {
 	name, root = reportProject(&domain.AnalyzeResponse{ModuleQuality: []domain.ModuleQualityMetrics{{FilePath: "a.py"}}})
 	assert.Equal(t, "", name)
 	assert.Equal(t, "", root)
+}
+
+func TestBuildReportFixes_SplitsTopAndRemainderWithSteps(t *testing.T) {
+	response := &domain.AnalyzeResponse{}
+	for i := 0; i < reportSuggestionLimit+5; i++ {
+		response.Suggestions = append(response.Suggestions, domain.Suggestion{
+			Category: domain.SuggestionCategoryDeadCode,
+			Severity: domain.SuggestionSeverityWarning,
+			Effort:   domain.SuggestionEffortEasy,
+			Title:    fmt.Sprintf("s%d", i),
+			Steps:    []string{"first", "second"},
+		})
+	}
+
+	top, more, total := buildReportFixes(response)
+	require.Len(t, top, reportFixLimit)
+	assert.Len(t, more, reportSuggestionLimit-reportFixLimit)
+	assert.Equal(t, reportSuggestionLimit+5, total)
+	assert.Equal(t, "dead code", top[0].Category)
+	assert.Equal(t, []string{"first", "second"}, top[0].Steps)
+	assert.Equal(t, fmt.Sprintf("s%d", reportFixLimit), more[0].Title)
+
+	var buf bytes.Buffer
+	require.NoError(t, writeAnalyzeHTML(response, &buf))
+	html := buf.String()
+	assert.Contains(t, html, fmt.Sprintf("Show %d more suggestions", reportSuggestionLimit-reportFixLimit))
+	assert.Contains(t, html, fmt.Sprintf("Showing %d of %d suggestions", reportSuggestionLimit, reportSuggestionLimit+5))
+	assert.Contains(t, html, `<details class="steps"><summary>2 steps</summary><ol><li>first</li><li>second</li></ol></details>`)
+}
+
+func TestWriteAnalyzeHTML_SurfacesSkippedFiles(t *testing.T) {
+	response := &domain.AnalyzeResponse{Summary: domain.AnalyzeSummary{
+		TotalFiles: 100, AnalyzedFiles: 60, SkippedFiles: 40,
+		ComplexityEnabled: true, ComplexityScore: 100, Grade: "C", HealthScore: 70,
+	}}
+	var buf bytes.Buffer
+	require.NoError(t, writeAnalyzeHTML(response, &buf))
+	html := buf.String()
+	assert.Contains(t, html, "60 of 100 files analyzed, 40 skipped")
+	assert.Contains(t, html, "<strong>40 files of 100 could not be parsed</strong>")
+}
+
+func TestBuildReportDimensions_UnlinkedWhenTabMissing(t *testing.T) {
+	// Dependency scoring ran but the system payload is absent, so there is no
+	// Architecture tab for the card to point at.
+	response := &domain.AnalyzeResponse{Summary: domain.AnalyzeSummary{DepsEnabled: true, DependencyScore: 80, ComplexityEnabled: true}}
+	dims := buildReportDimensions(response)
+	require.Len(t, dims, 2)
+	assert.Equal(t, "functions", dims[0].Tab)
+	assert.Equal(t, "Dependencies", dims[1].Name)
+	assert.Equal(t, "", dims[1].Tab)
+
+	var buf bytes.Buffer
+	require.NoError(t, writeAnalyzeHTML(response, &buf))
+	assert.NotContains(t, buf.String(), `data-goto="architecture"`)
+	assert.Contains(t, buf.String(), `class="dim static ok"`)
+}
+
+func TestCountClonesByFile_PairsDedupeFragments(t *testing.T) {
+	frag := func(file string, start int) *domain.Clone {
+		return &domain.Clone{Location: &domain.CloneLocation{FilePath: file, StartLine: start, EndLine: start + 5}}
+	}
+	// a.py:1 pairs with both b.py:1 and c.py:1 but is one fragment.
+	pairs := &domain.CloneResponse{ClonePairs: []*domain.ClonePair{
+		{Clone1: frag("a.py", 1), Clone2: frag("b.py", 1)},
+		{Clone1: frag("a.py", 1), Clone2: frag("c.py", 1)},
+	}}
+	assert.Equal(t, map[string]int{"a.py": 1, "b.py": 1, "c.py": 1}, countClonesByFile(pairs))
+}
+
+func TestHistogramBins_CollapseForLowThresholds(t *testing.T) {
+	labels := func(bins []histogramBin) []string {
+		out := make([]string, 0, len(bins))
+		for _, bin := range bins {
+			out = append(out, bin.label)
+		}
+		return out
+	}
+	assert.Equal(t, []string{"1", "2–5", "6–9", "10–19", "20+"}, labels(histogramBins(9, 19)))
+	assert.Equal(t, []string{"1", "2–3", "4+"}, labels(histogramBins(1, 3)))
+	assert.Equal(t, []string{"1", "2–5", "6–20", "21+"}, labels(histogramBins(5, 20)))
+	// A degenerate medium <= low still yields increasing bins.
+	assert.Equal(t, []string{"1", "2–5", "6–9", "10", "11+"}, labels(histogramBins(9, 9)))
+	assert.Equal(t, "warn", histogramBins(1, 3)[1].band)
+	assert.Equal(t, "bad", histogramBins(1, 3)[2].band)
+}
+
+func TestMedian(t *testing.T) {
+	assert.Equal(t, 0.0, median(nil))
+	assert.Equal(t, 5.0, median([]int{9, 1}))
+	assert.Equal(t, 2.0, median([]int{3, 1, 2}))
+	assert.Equal(t, "5", formatMedian(5))
+	assert.Equal(t, "2.5", formatMedian(2.5))
 }

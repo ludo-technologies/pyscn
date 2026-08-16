@@ -1,3 +1,15 @@
+{{define "fix"}}
+          <li class="fix {{.Severity}}">
+            <span class="stripe"></span>
+            <div>
+              <div class="t">{{.Title}}</div>
+              {{if .Location}}<div class="where">{{.Location}}</div>{{end}}
+              {{if .Why}}<div class="why">{{.Why}}</div>{{end}}
+              {{if .Steps}}<details class="steps"><summary>{{len .Steps}} steps</summary><ol>{{range .Steps}}<li>{{.}}</li>{{end}}</ol></details>{{end}}
+            </div>
+            <div class="chips"><span class="chip sev-{{.Severity}}">{{.Severity}}</span><span class="chip effort-{{.Effort}}">{{.Effort}}</span>{{if .Category}}<span class="chip">{{.Category}}</span>{{end}}</div>
+          </li>
+{{end -}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,7 +37,7 @@
     {{end}}
     <div class="meta">
       <span>{{.GeneratedAt.Format "2006-01-02 15:04"}}</span>
-      <span>{{.Summary.TotalFiles}} files in {{.Duration}}ms</span>
+      <span>{{if .SkippedFiles}}<span class="bad">{{.Summary.AnalyzedFiles}} of {{.Summary.TotalFiles}} files analyzed, {{.SkippedFiles}} skipped</span>{{else}}{{.Summary.TotalFiles}} files{{end}} in {{.Duration}}ms</span>
     </div>
   </div>
 </header>
@@ -70,11 +82,11 @@
         <div class="card-h"><h2>Score breakdown</h2><span class="muted small">weighted into the health score</span></div>
         <div class="dims">
           {{range .Dimensions}}
-          <a class="dim {{.Band}}" href="#{{.Tab}}" data-goto="{{.Tab}}">
+          {{if .Tab}}<a class="dim {{.Band}}" href="#{{.Tab}}" data-goto="{{.Tab}}">{{else}}<div class="dim static {{.Band}}">{{end}}
             <div class="dim-top"><span class="dim-name">{{.Name}}</span><span class="dim-score num">{{.Score}}<small>/100</small></span></div>
             <div class="bar"><i style="width:{{.Score}}%"></i></div>
             <div class="dim-sub"><span>{{.Left}}</span><span>{{.Right}}</span></div>
-          </a>
+          {{if .Tab}}</a>{{else}}</div>{{end}}
           {{end}}
         </div>
       </div>
@@ -113,18 +125,17 @@
       <div class="card">
         <div class="card-h"><h2>Fix first</h2><span class="muted small">{{.FixTotal}} suggestions</span></div>
         <ol class="fixes">
-          {{range .Fixes}}
-          <li class="fix {{.Severity}}">
-            <span class="stripe"></span>
-            <div>
-              <div class="t">{{.Title}}</div>
-              {{if .Location}}<div class="where">{{.Location}}</div>{{end}}
-              {{if .Why}}<div class="why">{{.Why}}</div>{{end}}
-            </div>
-            <div class="chips"><span class="chip sev-{{.Severity}}">{{.Severity}}</span><span class="chip effort-{{.Effort}}">{{.Effort}}</span></div>
-          </li>
-          {{end}}
+          {{range .Fixes}}{{template "fix" .}}{{end}}
         </ol>
+        {{if .MoreFixes}}
+        <details class="more-fixes">
+          <summary>Show {{len .MoreFixes}} more suggestions</summary>
+          <ol class="fixes" start="{{add (len .Fixes) 1}}">
+            {{range .MoreFixes}}{{template "fix" .}}{{end}}
+          </ol>
+          {{if gt .FixTotal (add (len .Fixes) (len .MoreFixes))}}<p class="muted small note">Showing {{add (len .Fixes) (len .MoreFixes)}} of {{.FixTotal}} suggestions. The JSON report lists them all.</p>{{end}}
+        </details>
+        {{end}}
       </div>
       {{end}}
 

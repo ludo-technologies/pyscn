@@ -3,13 +3,10 @@
   var panels = document.querySelectorAll('.panel');
 
   function show(id) {
-    var found = false;
-    panels.forEach(function (p) {
-      var active = p.id === id;
-      p.classList.toggle('active', active);
-      found = found || active;
-    });
-    if (!found) { return; }
+    var target = null;
+    panels.forEach(function (p) { if (p.id === id) { target = p; } });
+    if (!target) { return; }
+    panels.forEach(function (p) { p.classList.toggle('active', p === target); });
     tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.tab === id); });
     window.scrollTo({ top: 0 });
     try { history.replaceState(null, '', '#' + id); } catch (e) { /* sandboxed viewers may forbid this */ }
@@ -21,7 +18,7 @@
   document.querySelectorAll('[data-goto]').forEach(function (a) {
     a.addEventListener('click', function (e) { e.preventDefault(); show(a.dataset.goto); });
   });
-  if (location.hash.length > 1) { show(location.hash.slice(1)); }
+  if (location.hash.length > 1) { show(location.hash.slice(1)); } // unknown hashes leave the overview active
 })();
 
 function sortQualityTable(tableID, columnIndex, numeric, button) {

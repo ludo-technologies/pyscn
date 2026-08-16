@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -80,6 +81,7 @@ func writeAnalyzeHTML(response *domain.AnalyzeResponse, writer io.Writer) error 
 
 const (
 	reportFixLimit         = 5
+	reportSuggestionLimit  = 30
 	reportHotspotLimit     = 8
 	reportScoreRingCircumf = 351.86 // 2 * pi * r for r=56
 )
@@ -103,7 +105,8 @@ type analyzeReportView struct {
 	Verdict     reportVerdict
 	Facts       []reportFact
 	Dimensions  []reportDimension
-	Fixes       []reportFix
+	Fixes       []reportFix // shown inline on the overview
+	MoreFixes   []reportFix // remaining suggestions, collapsed
 	FixTotal    int
 	Hotspots    []reportHotspot
 	Histogram   *reportHistogram
@@ -111,6 +114,7 @@ type analyzeReportView struct {
 	Classes     *reportClasses
 	Structure   *reportStructure
 
+	SkippedFiles    int
 	ShowFunctions   bool
 	ShowDeadColumn  bool
 	ShowCloneColumn bool
@@ -151,9 +155,11 @@ type reportDimension struct {
 type reportFix struct {
 	Severity string
 	Effort   string
+	Category string
 	Title    string
 	Location string
 	Why      string
+	Steps    []string
 }
 
 type reportHotspot struct {
@@ -243,6 +249,7 @@ func buildAnalyzeReportView(response *domain.AnalyzeResponse) *analyzeReportView
 		GradeClass:      "grade-" + SafeHTMLID(strings.ToLower(response.Summary.Grade)),
 		ScoreBand:       scoreBand(response.Summary.HealthScore),
 		RingOffset:      reportScoreRingCircumf * (1 - float64(clampScore(response.Summary.HealthScore))/100),
+		SkippedFiles:    response.Summary.SkippedFiles,
 		ShowFunctions:   reportHasFunctions(response),
 		ShowDeadColumn:  response.Summary.DeadCodeEnabled,
 		ShowCloneColumn: response.Summary.CloneEnabled,
@@ -252,7 +259,7 @@ func buildAnalyzeReportView(response *domain.AnalyzeResponse) *analyzeReportView
 	view.Dimensions = buildReportDimensions(response)
 	view.Verdict = buildReportVerdict(response, view.Dimensions)
 	view.Facts = buildReportFacts(response)
-	view.Fixes, view.FixTotal = buildReportFixes(response)
+	view.Fixes, view.MoreFixes, view.FixTotal = buildReportFixes(response)
 	view.Hotspots = buildReportHotspots(response)
 	view.Histogram = buildReportHistogram(response.Complexity)
 	view.Duplication = buildReportDuplication(response)
@@ -397,7 +404,17 @@ func reportHasArchitecture(response *domain.AnalyzeResponse) bool {
 func buildReportDimensions(response *domain.AnalyzeResponse) []reportDimension {
 	s := response.Summary
 	var dims []reportDimension
+	tabs := make(map[string]bool)
+	for _, tab := range buildReportTabs(response) {
+		tabs[tab.ID] = true
+	}
+	// A dimension can be enabled while its detail tab is absent (for example
+	// dependency scoring ran but the system analysis payload is missing), so
+	// only link cards whose target tab is actually rendered.
 	add := func(name string, score int, left, right, tab string) {
+		if !tabs[tab] {
+			tab = ""
+		}
 		dims = append(dims, reportDimension{Name: name, Score: score, Band: scoreBand(score), Left: left, Right: right, Tab: tab})
 	}
 	if s.ComplexityEnabled {
@@ -472,6 +489,11 @@ func buildReportVerdict(response *domain.AnalyzeResponse, dims []reportDimension
 
 	text := func(s string) { verdict.Body = append(verdict.Body, reportSegment{Text: s}) }
 	strong := func(s string) { verdict.Body = append(verdict.Body, reportSegment{Text: s, Strong: true}) }
+
+	if skipped := response.Summary.SkippedFiles; skipped > 0 {
+		strong(fmt.Sprintf("%s of %d could not be parsed", pluralize(skipped, "file", "files"), response.Summary.TotalFiles))
+		text(" and were skipped; the health score is penalized for them. ")
+	}
 
 	switch {
 	case len(dims) == 0:
@@ -605,17 +627,21 @@ func formatThousands(n int) string {
 	return builder.String()
 }
 
-func buildReportFixes(response *domain.AnalyzeResponse) ([]reportFix, int) {
-	fixes := make([]reportFix, 0, reportFixLimit)
-	for _, suggestion := range response.Suggestions {
-		if len(fixes) == reportFixLimit {
+// buildReportFixes splits suggestions into the inline top list and the
+// collapsed remainder. The remainder is capped so huge runs do not bloat the
+// report; the cap matches the previous report's suggestion table.
+func buildReportFixes(response *domain.AnalyzeResponse) (top, more []reportFix, total int) {
+	for i, suggestion := range response.Suggestions {
+		if i == reportSuggestionLimit {
 			break
 		}
 		fix := reportFix{
 			Severity: string(suggestion.Severity),
 			Effort:   string(suggestion.Effort),
+			Category: strings.ReplaceAll(string(suggestion.Category), "_", " "),
 			Title:    suggestion.Title,
 			Why:      suggestion.Description,
+			Steps:    suggestion.Steps,
 		}
 		if suggestion.FilePath != "" {
 			fix.Location = suggestion.FilePath
@@ -623,9 +649,13 @@ func buildReportFixes(response *domain.AnalyzeResponse) ([]reportFix, int) {
 				fix.Location = fmt.Sprintf("%s:%d", suggestion.FilePath, suggestion.StartLine)
 			}
 		}
-		fixes = append(fixes, fix)
+		if i < reportFixLimit {
+			top = append(top, fix)
+		} else {
+			more = append(more, fix)
+		}
 	}
-	return fixes, len(response.Suggestions)
+	return top, more, len(response.Suggestions)
 }
 
 func buildReportHotspots(response *domain.AnalyzeResponse) []reportHotspot {
@@ -698,11 +728,20 @@ func countClonesByFile(clone *domain.CloneResponse) map[string]int {
 		}
 		return counts
 	}
+	// A fragment can sit in several pairs; count it once, keyed by its span,
+	// to match how CloneStatistics.TotalClones deduplicates.
+	seen := make(map[string]struct{})
 	for _, pair := range clone.ClonePairs {
 		for _, fragment := range []*domain.Clone{pair.Clone1, pair.Clone2} {
-			if fragment != nil && fragment.Location != nil {
-				counts[fragment.Location.FilePath]++
+			if fragment == nil || fragment.Location == nil {
+				continue
 			}
+			key := fmt.Sprintf("%s:%d-%d", fragment.Location.FilePath, fragment.Location.StartLine, fragment.Location.EndLine)
+			if _, dup := seen[key]; dup {
+				continue
+			}
+			seen[key] = struct{}{}
+			counts[fragment.Location.FilePath]++
 		}
 	}
 	return counts
@@ -749,27 +788,7 @@ func buildReportHistogram(complexity *domain.ComplexityResponse) *reportHistogra
 	}
 	low, medium := complexityThresholds(complexity)
 
-	type binDef struct {
-		label string
-		upper int // inclusive; 0 means open-ended
-		band  string
-	}
-	defs := []binDef{
-		{label: "1", upper: 1},
-		{label: "2–5", upper: 5},
-		{label: fmt.Sprintf("6–%d", low), upper: low},
-		{label: fmt.Sprintf("%d–%d", low+1, medium), upper: medium, band: "warn"},
-		{label: fmt.Sprintf("%d+", medium+1), band: "bad"},
-	}
-	if low <= 5 {
-		// Custom thresholds may collapse the middle bin; drop it and relabel.
-		defs = []binDef{
-			{label: "1", upper: 1},
-			{label: fmt.Sprintf("2–%d", low), upper: low},
-			{label: fmt.Sprintf("%d–%d", low+1, medium), upper: medium, band: "warn"},
-			{label: fmt.Sprintf("%d+", medium+1), band: "bad"},
-		}
-	}
+	defs := histogramBins(low, medium)
 
 	counts := make([]int, len(defs))
 	ccs := make([]int, 0, len(complexity.Functions))
@@ -835,7 +854,7 @@ func buildReportHistogram(complexity *domain.ComplexityResponse) *reportHistogra
 		})
 	}
 
-	hist.Facts = append(hist.Facts, reportKV{Key: "Median function", Value: fmt.Sprintf("CC %d, %d SLOC", median(ccs), median(slocs))})
+	hist.Facts = append(hist.Facts, reportKV{Key: "Median function", Value: fmt.Sprintf("CC %s, %s SLOC", formatMedian(median(ccs)), formatMedian(median(slocs)))})
 	if deepest != nil {
 		hist.Facts = append(hist.Facts, reportKV{Key: "Deepest nesting", Value: fmt.Sprintf("%d levels (%s)", deepest.Metrics.NestingDepth, deepest.Name)})
 	}
@@ -843,6 +862,44 @@ func buildReportHistogram(complexity *domain.ComplexityResponse) *reportHistogra
 		hist.Facts = append(hist.Facts, reportKV{Key: "Longest function", Value: fmt.Sprintf("%d SLOC (%s)", longest.Metrics.SLOC, longest.Name)})
 	}
 	return hist
+}
+
+type histogramBin struct {
+	label string
+	upper int    // inclusive; 0 means open-ended
+	band  string // "", "warn", "bad"
+}
+
+// histogramBins builds bins that follow the configured risk thresholds:
+// 1 | 2–5 | 6–low | low+1–medium | medium+1+, collapsing bins that the
+// thresholds make empty (for example low_threshold = 1 removes 2–5 and 6–low).
+func histogramBins(low, medium int) []histogramBin {
+	if medium <= low {
+		medium = low + 1
+	}
+	candidates := []int{1, low, medium}
+	if low > 5 {
+		candidates = []int{1, 5, low, medium}
+	}
+	uppers := []int{}
+	for _, upper := range candidates {
+		if len(uppers) == 0 || upper > uppers[len(uppers)-1] {
+			uppers = append(uppers, upper)
+		}
+	}
+	bins := make([]histogramBin, 0, len(uppers)+1)
+	prev := 0
+	for _, upper := range uppers {
+		bin := histogramBin{upper: upper, band: complexityBand(upper, low, medium)}
+		if upper == prev+1 {
+			bin.label = fmt.Sprintf("%d", upper)
+		} else {
+			bin.label = fmt.Sprintf("%d–%d", prev+1, upper)
+		}
+		bins = append(bins, bin)
+		prev = upper
+	}
+	return append(bins, histogramBin{label: fmt.Sprintf("%d+", prev+1), band: "bad"})
 }
 
 // niceCeiling rounds n up to a tidy axis maximum (1, 2, 5 × 10^k) so ticks
@@ -867,14 +924,23 @@ func round1(v float64) float64 {
 	return float64(int(v*10+0.5)) / 10
 }
 
-func median(values []int) int {
+func median(values []int) float64 {
 	if len(values) == 0 {
 		return 0
 	}
 	sorted := make([]int, len(values))
 	copy(sorted, values)
 	sort.Ints(sorted)
-	return sorted[len(sorted)/2]
+	mid := len(sorted) / 2
+	if len(sorted)%2 == 1 {
+		return float64(sorted[mid])
+	}
+	return float64(sorted[mid-1]+sorted[mid]) / 2
+}
+
+// formatMedian prints whole medians without a decimal and half values with one.
+func formatMedian(v float64) string {
+	return strconv.FormatFloat(v, 'f', -1, 64)
 }
 
 func buildReportDuplication(response *domain.AnalyzeResponse) *reportDuplication {
