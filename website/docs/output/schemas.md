@@ -130,7 +130,7 @@ Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the co
 | ------------------------------ | ------- | -------------------------------------------------------------- |
 | `deps_total_modules`           | integer | Total modules analyzed.                                        |
 | `deps_modules_in_cycles`       | integer | Modules participating in at least one circular dependency.     |
-| `deps_max_depth`               | integer | Longest load-time SCC-condensed dependency path, counted in edges. |
+| `deps_max_depth`               | integer | Edges along the longest load-time dependency chain, the first entry of `LongestChains`. |
 | `deps_main_sequence_deviation` | number  | Average distance from Martin's main sequence, `0`–`1`.         |
 
 ### Architecture metrics
@@ -628,7 +628,7 @@ Mirrors `domain.SystemAnalysisResponse`. Nested field names are Go PascalCase.
 | `CircularDependencies` | object  | Cycle detection results; contains `Cycles` (array) and `TotalCycles` (integer). |
 | `CouplingAnalysis`     | object  | Per-module coupling metrics: `Ca`, `Ce`, `Instability`, `Abstractness`, `Distance`. |
 | `LongestChains`        | array   | Top load-time SCC-condensed paths, expanded to real module dependency paths. |
-| `MaxDepth`             | integer | Maximum load-time SCC-condensed dependency depth, counted in edges.   |
+| `MaxDepth`             | integer | Edges along the longest load-time dependency chain, the first entry of `LongestChains`. |
 
 ### `ModuleDependencyMetrics` object
 
