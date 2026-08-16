@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.29.1] - 2026-08-16
+
+### Added
+- Per-function SLOC metric and long-function warnings in check and the HTML report (#660)
+
+### Changed
+- Adopt polyscan core parse-error penalty (#714)
+- Bump polyscan core to v0.2.2 with APTED/LSH optimizations (#707)
+- Make dependency analysis scale on large graphs (#695)
+- Translate remaining Japanese code comments to English (#713)
+
+### Fixed
+- Stop cognitive complexity from crossing scope boundaries (#661)
+- Gate all analyzed functions in `check`, not just the reported ones (#712)
+- Make class ranking ties deterministic (#710)
+- Fail the `check` gate on files that cannot be parsed and gate clone detection (#703)
+- Reject legacy Python 2 syntax that no Python 3 release accepts (#702)
+- Discover config from the analyzed target and stop at its repository root (#701)
+- Derive single-responsibility concerns from fan-out only (#700)
+- Keep `--min-complexity` from shrinking the analyzed function set and health score (#697)
+
 ## [1.29.0] - 2026-07-28
 
 ### Added
