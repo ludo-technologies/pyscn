@@ -37,8 +37,6 @@ pipx run pyscn analyze .
 
 <img alt="pyscn analysis report" src="https://raw.githubusercontent.com/ludo-technologies/pyscn/main/assets/demo-report.png" width="720">
 
-[&#9654; Watch the 15-second demo](https://github.com/user-attachments/assets/71d7a126-9c5e-4254-99f4-f2cdedd526ad)
-
 ## Features
 
 One command scores your whole codebase (0-100 with an A-F grade) and generates an HTML report that shows what to fix first.
