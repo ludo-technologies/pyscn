@@ -120,7 +120,7 @@ type DependencyAnalysisResult struct {
 
 	// Dependency chains
 	LongestChains []DependencyPath // Longest paths through the load-time SCC-condensed dependency graph
-	MaxDepth      int              // Maximum load-time SCC-condensed dependency depth in edges
+	MaxDepth      int              // Edges along the chain LongestChains ranks first
 }
 
 // ModuleDependencyMetrics contains dependency metrics for a single module

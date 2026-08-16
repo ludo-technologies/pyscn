@@ -35,7 +35,7 @@ pipx run pyscn analyze .
 
 ## Demo
 
-https://github.com/user-attachments/assets/71d7a126-9c5e-4254-99f4-f2cdedd526ad
+<img alt="pyscn analysis report" src="https://raw.githubusercontent.com/ludo-technologies/pyscn/main/assets/demo-report.png" width="720">
 
 ## Features
 
