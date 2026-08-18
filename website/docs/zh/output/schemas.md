@@ -12,7 +12,7 @@
 
 破坏性变更仅限于主版本升级。使用方必须忽略未知字段。
 
-<!-- Field naming note: in `pyscn analyze` JSON/YAML, nested analyzer objects (`complexity`, `cbo`, `lcom`, `system`) use Go-style PascalCase field names because their response structs do not carry JSON tags. Top-level keys, `dead_code`, `clone`, `suggestions`, and `summary` use snake_case. -->
+<!-- Field naming note: every object key in `pyscn analyze` JSON/YAML is snake_case. Releases up to 1.29.1 emitted Go-style PascalCase inside `complexity`, `cbo`, `lcom`, and `system`, and lowerCamelCase inside the `config` objects of `cbo`, `lcom`, and `community_analysis`; both were renamed to snake_case. -->
 
 ## 顶层结构（`pyscn analyze`）
 
@@ -159,63 +159,63 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 
 ## `complexity` 对象
 
-对应 `domain.ComplexityResponse`。嵌套字段名为 Go PascalCase。
+对应 `domain.ComplexityResponse`。
 
 ```json
 {
-  "Functions": [ /* FunctionComplexity array */ ],
-  "Summary": { /* ComplexitySummary */ },
+  "functions": [ /* FunctionComplexity array */ ],
+  "summary": { /* ComplexitySummary */ },
   "raw_metrics": [ /* RawMetrics array, present when computed */ ],
   "raw_metrics_summary": { /* RawMetricsSummary, present when computed */ },
-  "Warnings": [ "..." ],
-  "Errors": [ "..." ],
-  "GeneratedAt": "2026-04-14T10:18:23Z",
-  "Version": "0.14.0",
-  "Config": null
+  "warnings": [ "..." ],
+  "errors": [ "..." ],
+  "generated_at": "2026-04-14T10:18:23Z",
+  "version": "0.14.0",
+  "config": null
 }
 ```
 
-### `Functions[]` 元素（`FunctionComplexity`）
+### `functions[]` 元素（`FunctionComplexity`）
 
-| 字段          | 类型    | 说明                                                 |
-| ------------- | ------- | ---------------------------------------------------- |
-| `Name`        | string  | 函数名。模块级代码为 `__main__`。                    |
-| `FilePath`    | string  | 源文件路径。                                         |
-| `StartLine`   | integer | 从 1 开始的起始行。                                  |
-| `StartColumn` | integer | 从 0 开始的起始列。                                  |
-| `EndLine`     | integer | 从 1 开始的结束行。                                  |
-| `Metrics`     | object  | 见 [`ComplexityMetrics`](#complexitymetrics-object)。|
-| `RiskLevel`   | string  | 取值：`low`、`medium`、`high`。                      |
+| 字段             | 类型      | 说明                                                  |
+| -------------- | ------- | --------------------------------------------------- |
+| `name`         | string  | 函数名。模块级代码为 `__main__`。                              |
+| `file_path`    | string  | 源文件路径。                                              |
+| `start_line`   | integer | 从 1 开始的起始行。                                         |
+| `start_column` | integer | 从 0 开始的起始列。                                         |
+| `end_line`     | integer | 从 1 开始的结束行。                                         |
+| `metrics`      | object  | 见 [`ComplexityMetrics`](#complexitymetrics-object)。 |
+| `risk_level`   | string  | 取值：`low`、`medium`、`high`。                           |
 
 ### `ComplexityMetrics` 对象 { #complexitymetrics-object }
 
-| 字段                  | 类型    | 说明                                       |
-| --------------------- | ------- | ------------------------------------------ |
-| `Complexity`          | integer | McCabe 圈复杂度。                          |
-| `CognitiveComplexity` | integer | 认知复杂度（SonarQube 风格）。             |
-| `Nodes`               | integer | CFG 节点数。                               |
-| `Edges`               | integer | CFG 边数。                                 |
-| `NestingDepth`        | integer | 最大嵌套深度。                             |
-| `IfStatements`        | integer | `if` 语句数。                              |
-| `LoopStatements`      | integer | `for`/`while` 循环数。                     |
-| `ExceptionHandlers`   | integer | `except` 子句数。                          |
-| `SwitchCases`         | integer | `match` 分支数（Python 3.10+）。           |
+| 字段                     | 类型      | 说明                         |
+| ---------------------- | ------- | -------------------------- |
+| `complexity`           | integer | McCabe 圈复杂度。               |
+| `cognitive_complexity` | integer | 认知复杂度（SonarQube 风格）。       |
+| `nodes`                | integer | CFG 节点数。                   |
+| `edges`                | integer | CFG 边数。                    |
+| `nesting_depth`        | integer | 最大嵌套深度。                    |
+| `if_statements`        | integer | `if` 语句数。                  |
+| `loop_statements`      | integer | `for`/`while` 循环数。         |
+| `exception_handlers`   | integer | `except` 子句数。              |
+| `switch_cases`         | integer | `match` 分支数（Python 3.10+）。 |
 
-### `Summary` 对象（`ComplexitySummary`）
+### `summary` 对象（`ComplexitySummary`）
 
-| 字段                     | 类型    | 说明                                                           |
-| ------------------------ | ------- | -------------------------------------------------------------- |
-| `TotalFunctions`         | integer | 分析的函数总数。                                               |
-| `AverageComplexity`      | number  | 所有函数 `Complexity` 的算术平均值。                           |
-| `MaxComplexity`          | integer | 观测到的最高复杂度。                                           |
-| `MinComplexity`          | integer | 观测到的最低复杂度。                                           |
-| `FilesAnalyzed`          | integer | 成功解析并计入上述指标的文件数。                               |
-| `TotalFiles`             | integer | 本次请求覆盖的文件数，无论是否解析成功。                       |
-| `SkippedFiles`           | integer | 因无法读取或解析而被丢弃的文件数。其内容不包含在上述任何指标中。 |
-| `LowRiskFunctions`       | integer | `RiskLevel = low` 的函数数。                                   |
-| `MediumRiskFunctions`    | integer | `RiskLevel = medium` 的函数数。                                |
-| `HighRiskFunctions`      | integer | `RiskLevel = high` 的函数数。                                  |
-| `ComplexityDistribution` | object  | 按复杂度区间（字符串）到数量（整数）的直方图，或 `null`。      |
+| 字段                        | 类型      | 说明                               |
+| ------------------------- | ------- | -------------------------------- |
+| `total_functions`         | integer | 分析的函数总数。                         |
+| `average_complexity`      | number  | 所有函数 `Complexity` 的算术平均值。        |
+| `max_complexity`          | integer | 观测到的最高复杂度。                       |
+| `min_complexity`          | integer | 观测到的最低复杂度。                       |
+| `files_analyzed`          | integer | 成功解析并计入上述指标的文件数。                 |
+| `total_files`             | integer | 本次请求覆盖的文件数，无论是否解析成功。             |
+| `skipped_files`           | integer | 因无法读取或解析而被丢弃的文件数。其内容不包含在上述任何指标中。 |
+| `low_risk_functions`      | integer | `RiskLevel = low` 的函数数。          |
+| `medium_risk_functions`   | integer | `RiskLevel = medium` 的函数数。       |
+| `high_risk_functions`     | integer | `RiskLevel = high` 的函数数。         |
+| `complexity_distribution` | object  | 按复杂度区间（字符串）到数量（整数）的直方图，或 `null`。 |
 
 ### `raw_metrics[]` 元素（`RawMetrics`）
 
@@ -417,241 +417,241 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 
 ## `cbo` 对象
 
-对应 `domain.CBOResponse`。嵌套字段名为 Go PascalCase。
+对应 `domain.CBOResponse`。
 
 ```json
 {
-  "Classes": [ /* ClassCoupling array */ ],
-  "Summary": { /* CBOSummary */ },
-  "Warnings": null,
-  "Errors": null,
-  "GeneratedAt": "",
-  "Version": "",
-  "Config": null
+  "classes": [ /* ClassCoupling array */ ],
+  "summary": { /* CBOSummary */ },
+  "warnings": null,
+  "errors": null,
+  "generated_at": "",
+  "version": "",
+  "config": null
 }
 ```
 
-### `Classes[]` 元素（`ClassCoupling`）
+### `classes[]` 元素（`ClassCoupling`）
 
-| 字段          | 类型    | 说明                                |
-| ------------- | ------- | ----------------------------------- |
-| `Name`        | string  | 类名。                              |
-| `FilePath`    | string  | 源文件路径。                        |
-| `StartLine`   | integer | 从 1 开始的起始行。                 |
-| `EndLine`     | integer | 从 1 开始的结束行。                 |
-| `Metrics`     | object  | 见 [`CBOMetrics`](#cbometrics-object)。 |
-| `RiskLevel`   | string  | 取值：`low`、`medium`、`high`。     |
-| `IsAbstract`  | boolean | 抽象类时为 `true`。                 |
-| `BaseClasses` | array of string \| null | 直接基类。          |
+| 字段             | 类型                      | 说明                                    |
+| -------------- | ----------------------- | ------------------------------------- |
+| `name`         | string                  | 类名。                                   |
+| `file_path`    | string                  | 源文件路径。                                |
+| `start_line`   | integer                 | 从 1 开始的起始行。                           |
+| `end_line`     | integer                 | 从 1 开始的结束行。                           |
+| `metrics`      | object                  | 见 [`CBOMetrics`](#cbometrics-object)。 |
+| `risk_level`   | string                  | 取值：`low`、`medium`、`high`。             |
+| `is_abstract`  | boolean                 | 抽象类时为 `true`。                         |
+| `base_classes` | array of string \| null | 直接基类。                                 |
 
 ### `CBOMetrics` 对象 { #cbometrics-object }
 
-| 字段                          | 类型    | 说明                                              |
-| ----------------------------- | ------- | ------------------------------------------------- |
-| `CouplingCount`               | integer | CBO 值：此类依赖的不同类数。                      |
-| `InheritanceDependencies`     | integer | 来自基类的依赖数。                                |
-| `TypeHintDependencies`        | integer | 来自类型注解的依赖数。                            |
-| `InstantiationDependencies`   | integer | 来自对象实例化的依赖数。                          |
-| `AttributeAccessDependencies` | integer | 来自方法调用和属性访问的依赖数。                  |
-| `ImportDependencies`          | integer | 来自显式导入的依赖数。                            |
-| `DependentClasses`            | array of string \| null | 耦合类的名称。            |
+| 字段                              | 类型                      | 说明               |
+| ------------------------------- | ----------------------- | ---------------- |
+| `coupling_count`                | integer                 | CBO 值：此类依赖的不同类数。 |
+| `inheritance_dependencies`      | integer                 | 来自基类的依赖数。        |
+| `type_hint_dependencies`        | integer                 | 来自类型注解的依赖数。      |
+| `instantiation_dependencies`    | integer                 | 来自对象实例化的依赖数。     |
+| `attribute_access_dependencies` | integer                 | 来自方法调用和属性访问的依赖数。 |
+| `import_dependencies`           | integer                 | 来自显式导入的依赖数。      |
+| `dependent_classes`             | array of string \| null | 耦合类的名称。          |
 
-### `Summary` 对象（`CBOSummary`）
+### `summary` 对象（`CBOSummary`）
 
-| 字段                       | 类型    | 说明                                      |
-| -------------------------- | ------- | ----------------------------------------- |
-| `TotalClasses`             | integer | 分析的类总数。                            |
-| `AverageCBO`               | number  | 平均 CBO。                                |
-| `MaxCBO`                   | integer | 观测到的最大 CBO。                        |
-| `MinCBO`                   | integer | 观测到的最小 CBO。                        |
-| `ClassesAnalyzed`          | integer | 具有有效指标的类数。                      |
-| `FilesAnalyzed`            | integer | 贡献了至少一个类的文件数。                |
-| `LowRiskClasses`           | integer | CBO ≤ 低阈值（默认 `3`）的类数。          |
-| `MediumRiskClasses`        | integer | 低 < CBO ≤ 中等阈值的类数。               |
-| `HighRiskClasses`          | integer | CBO > 中等阈值（默认 `7`）的类数。        |
-| `CBODistribution`          | object \| null | 按区间标签到数量的直方图。         |
-| `MostCoupledClasses`       | array \| null | 按 CBO 排名的前 10 个类（`ClassCoupling`）。 |
-| `MostDependedUponClasses`  | array of string \| null | 入度最高的类。        |
+| 字段                           | 类型                      | 说明                                 |
+| ---------------------------- | ----------------------- | ---------------------------------- |
+| `total_classes`              | integer                 | 分析的类总数。                            |
+| `average_cbo`                | number                  | 平均 CBO。                            |
+| `max_cbo`                    | integer                 | 观测到的最大 CBO。                        |
+| `min_cbo`                    | integer                 | 观测到的最小 CBO。                        |
+| `classes_analyzed`           | integer                 | 具有有效指标的类数。                         |
+| `files_analyzed`             | integer                 | 贡献了至少一个类的文件数。                      |
+| `low_risk_classes`           | integer                 | CBO ≤ 低阈值（默认 `3`）的类数。              |
+| `medium_risk_classes`        | integer                 | 低 < CBO ≤ 中等阈值的类数。                 |
+| `high_risk_classes`          | integer                 | CBO > 中等阈值（默认 `7`）的类数。             |
+| `cbo_distribution`           | object \| null          | 按区间标签到数量的直方图。                      |
+| `most_coupled_classes`       | array \| null           | 按 CBO 排名的前 10 个类（`ClassCoupling`）。 |
+| `most_depended_upon_classes` | array of string \| null | 入度最高的类。                            |
 
 ## `lcom` 对象
 
-对应 `domain.LCOMResponse`。嵌套字段名为 Go PascalCase。
+对应 `domain.LCOMResponse`。
 
 ```json
 {
-  "Classes": [ /* ClassCohesion array */ ],
-  "Summary": { /* LCOMSummary */ },
-  "Warnings": null,
-  "Errors": null,
-  "GeneratedAt": "",
-  "Version": "",
-  "Config": null
+  "classes": [ /* ClassCohesion array */ ],
+  "summary": { /* LCOMSummary */ },
+  "warnings": null,
+  "errors": null,
+  "generated_at": "",
+  "version": "",
+  "config": null
 }
 ```
 
-### `Classes[]` 元素（`ClassCohesion`）
+### `classes[]` 元素（`ClassCohesion`）
 
-| 字段        | 类型    | 说明                                     |
-| ----------- | ------- | ---------------------------------------- |
-| `Name`      | string  | 类名。                                   |
-| `FilePath`  | string  | 源文件路径。                             |
-| `StartLine` | integer | 从 1 开始的起始行。                      |
-| `EndLine`   | integer | 从 1 开始的结束行。                      |
-| `Metrics`   | object  | 见 [`LCOMMetrics`](#lcommetrics-object)。|
-| `RiskLevel` | string  | 取值：`low`、`medium`、`high`。          |
+| 字段           | 类型      | 说明                                      |
+| ------------ | ------- | --------------------------------------- |
+| `name`       | string  | 类名。                                     |
+| `file_path`  | string  | 源文件路径。                                  |
+| `start_line` | integer | 从 1 开始的起始行。                             |
+| `end_line`   | integer | 从 1 开始的结束行。                             |
+| `metrics`    | object  | 见 [`LCOMMetrics`](#lcommetrics-object)。 |
+| `risk_level` | string  | 取值：`low`、`medium`、`high`。               |
 
 ### `LCOMMetrics` 对象 { #lcommetrics-object }
 
-| 字段                | 类型    | 说明                                                |
-| ------------------- | ------- | --------------------------------------------------- |
-| `LCOM4`             | integer | 方法-变量图中的连通分量数。                         |
-| `TotalMethods`      | integer | 类中的所有方法数。                                  |
-| `ExcludedMethods`   | integer | 从 LCOM4 中排除的方法（`@classmethod`、`@staticmethod`）。 |
-| `InstanceVariables` | integer | 访问的不同 `self.x` 变量数。                        |
-| `MethodGroups`      | array of array of string \| null | 按连通分量分组的方法名。 |
+| 字段                   | 类型                               | 说明                                                                                                             |
+| -------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `lcom4`              | integer                          | 方法-变量图中的连通分量数。                                                                                                 |
+| `total_methods`      | integer                          | 类中的所有方法数。                                                                                                      |
+| `excluded_methods`   | integer                          | 从 LCOM4 图中排除的方法（`@classmethod`、`@staticmethod`、`@abstractmethod`，以及构造函数 `__init__`、`__new__`、`__post_init__`）。 |
+| `instance_variables` | integer                          | 访问的不同 `self.x` 变量数。                                                                                            |
+| `method_groups`      | array of array of string \| null | 按连通分量分组的方法名。                                                                                                   |
 
-### `Summary` 对象（`LCOMSummary`）
+### `summary` 对象（`LCOMSummary`）
 
-| 字段                   | 类型    | 说明                                    |
-| ---------------------- | ------- | --------------------------------------- |
-| `TotalClasses`         | integer | 分析的类数。                            |
-| `AverageLCOM`          | number  | 平均 LCOM4。                            |
-| `MaxLCOM`              | integer | 观测到的最大 LCOM4。                    |
-| `MinLCOM`              | integer | 观测到的最小 LCOM4。                    |
-| `ClassesAnalyzed`      | integer | 具有有效指标的类数。                    |
-| `FilesAnalyzed`        | integer | 贡献了至少一个类的文件数。              |
-| `LowRiskClasses`       | integer | LCOM4 ≤ 低阈值（默认 `2`）的类数。      |
-| `MediumRiskClasses`    | integer | 低 < LCOM4 ≤ 中等阈值的类数。           |
-| `HighRiskClasses`      | integer | LCOM4 > 中等阈值（默认 `5`）的类数。    |
-| `LCOMDistribution`     | object \| null | 按区间标签到数量的直方图。       |
-| `LeastCohesiveClasses` | array \| null | 按 LCOM4 排名的前 10 个类（`ClassCohesion`）。 |
+| 字段                       | 类型             | 说明                                   |
+| ------------------------ | -------------- | ------------------------------------ |
+| `total_classes`          | integer        | 分析的类数。                               |
+| `average_lcom`           | number         | 平均 LCOM4。                            |
+| `max_lcom`               | integer        | 观测到的最大 LCOM4。                        |
+| `min_lcom`               | integer        | 观测到的最小 LCOM4。                        |
+| `classes_analyzed`       | integer        | 具有有效指标的类数。                           |
+| `files_analyzed`         | integer        | 贡献了至少一个类的文件数。                        |
+| `low_risk_classes`       | integer        | LCOM4 ≤ 低阈值（默认 `2`）的类数。              |
+| `medium_risk_classes`    | integer        | 低 < LCOM4 ≤ 中等阈值的类数。                 |
+| `high_risk_classes`      | integer        | LCOM4 > 中等阈值（默认 `5`）的类数。             |
+| `lcom_distribution`      | object \| null | 按区间标签到数量的直方图。                        |
+| `least_cohesive_classes` | array \| null  | 按 LCOM4 排名的前 10 个类（`ClassCohesion`）。 |
 
 ## `system` 对象
 
-对应 `domain.SystemAnalysisResponse`。嵌套字段名为 Go PascalCase。
+对应 `domain.SystemAnalysisResponse`。
 
 ```json
 {
-  "DependencyAnalysis":   { /* DependencyAnalysisResult, or null */ },
-  "ArchitectureAnalysis": { /* ArchitectureAnalysisResult, or null */ },
-  "Summary":              { /* SystemAnalysisSummary */ },
-  "Issues":               [ /* SystemIssue array */ ],
-  "Recommendations":      [ /* SystemRecommendation array */ ],
-  "Warnings":             [ ],
-  "Errors":               [ ],
-  "GeneratedAt":          "0001-01-01T00:00:00Z",
-  "Duration":             0,
-  "Version":              "",
-  "Config":               null
+  "dependency_analysis":   { /* DependencyAnalysisResult, or null */ },
+  "architecture_analysis": { /* ArchitectureAnalysisResult, or null */ },
+  "summary":              { /* SystemAnalysisSummary */ },
+  "issues":               [ /* SystemIssue array */ ],
+  "recommendations":      [ /* SystemRecommendation array */ ],
+  "warnings":             [ ],
+  "errors":               [ ],
+  "generated_at":          "0001-01-01T00:00:00Z",
+  "duration":             0,
+  "version":              "",
+  "config":               null
 }
 ```
 
-### `Summary` 对象（`SystemAnalysisSummary`）
+### `summary` 对象（`SystemAnalysisSummary`）
 
-| 字段                       | 类型    | 说明                                    |
-| -------------------------- | ------- | --------------------------------------- |
-| `TotalModules`             | integer | 分析的模块总数。                        |
-| `TotalPackages`            | integer | 包总数。                                |
-| `TotalDependencies`        | integer | 依赖边总数。                            |
-| `ProjectRoot`              | string  | 项目根目录。                            |
-| `OverallQualityScore`      | number  | 综合质量评分，`0`–`100`。               |
-| `MaintainabilityScore`     | number  | 平均可维护性指数。                      |
-| `ArchitectureScore`        | number  | 架构合规评分。                          |
-| `ModularityScore`          | number  | 系统模块化评分。                        |
-| `TechnicalDebtHours`       | number  | 估计的技术债务总时长（小时）。          |
-| `AverageCoupling`          | number  | 平均模块耦合度。                        |
-| `AverageInstability`       | number  | 平均不稳定性（I）。                     |
-| `CyclicDependencies`       | integer | 参与循环的模块数。                      |
-| `ArchitectureViolations`   | integer | 架构规则违规数。                        |
-| `HighRiskModules`          | integer | 标记为高风险的模块数。                  |
-| `CriticalIssues`           | integer | 严重问题数。                            |
-| `RefactoringCandidates`    | integer | 需要重构的模块数。                      |
-| `ArchitectureImprovements` | integer | 建议的架构改进数。                      |
+| 字段                          | 类型      | 说明                |
+| --------------------------- | ------- | ----------------- |
+| `total_modules`             | integer | 分析的模块总数。          |
+| `total_packages`            | integer | 包总数。              |
+| `total_dependencies`        | integer | 依赖边总数。            |
+| `project_root`              | string  | 项目根目录。            |
+| `overall_quality_score`     | number  | 综合质量评分，`0`–`100`。 |
+| `maintainability_score`     | number  | 平均可维护性指数。         |
+| `architecture_score`        | number  | 架构合规评分。           |
+| `modularity_score`          | number  | 系统模块化评分。          |
+| `technical_debt_hours`      | number  | 估计的技术债务总时长（小时）。   |
+| `average_coupling`          | number  | 平均模块耦合度。          |
+| `average_instability`       | number  | 平均不稳定性（I）。        |
+| `cyclic_dependencies`       | integer | 参与循环的模块数。         |
+| `architecture_violations`   | integer | 架构规则违规数。          |
+| `high_risk_modules`         | integer | 标记为高风险的模块数。       |
+| `critical_issues`           | integer | 严重问题数。            |
+| `refactoring_candidates`    | integer | 需要重构的模块数。         |
+| `architecture_improvements` | integer | 建议的架构改进数。         |
 
-### `DependencyAnalysis` 对象
+### `dependency_analysis` 对象
 
-| 字段                   | 类型    | 说明                                                         |
-| ---------------------- | ------- | ------------------------------------------------------------ |
-| `TotalModules`         | integer | 依赖图中的模块总数。                                         |
-| `TotalDependencies`    | integer | 边总数。                                                     |
-| `RootModules`          | array of string | 没有出向依赖的模块。                                 |
-| `LeafModules`          | array of string | 没有入向依赖的模块。                                 |
-| `ModuleMetrics`        | object  | 模块名到 `ModuleDependencyMetrics` 的映射。                  |
-| `DependencyMatrix`     | object  | 模块到模块到布尔值的映射。                                   |
-| `CircularDependencies` | object  | 循环检测结果；包含 `Cycles`（数组）和 `TotalCycles`（整数）。|
-| `CouplingAnalysis`     | object  | 每模块耦合指标：`Ca`、`Ce`、`Instability`、`Abstractness`、`Distance`。 |
-| `LongestChains`        | array   | `DependencyPath` 对象数组。                                  |
-| `MaxDepth`             | integer | 最大依赖深度。                                               |
+| 字段                      | 类型              | 说明                                                         |
+| ----------------------- | --------------- | ---------------------------------------------------------- |
+| `total_modules`         | integer         | 依赖图中的模块总数。                                                 |
+| `total_dependencies`    | integer         | 边总数。                                                       |
+| `root_modules`          | array of string | 没有出向依赖的模块。                                                 |
+| `leaf_modules`          | array of string | 没有入向依赖的模块。                                                 |
+| `module_metrics`        | object          | 模块名到 `ModuleDependencyMetrics` 的映射。                        |
+| `dependency_matrix`     | object          | 模块到模块到布尔值的映射。                                              |
+| `circular_dependencies` | object          | 循环检测结果；包含 `Cycles`（数组）和 `TotalCycles`（整数）。                 |
+| `coupling_analysis`     | object          | 每模块耦合指标：`Ca`、`Ce`、`Instability`、`Abstractness`、`Distance`。 |
+| `longest_chains`        | array           | `DependencyPath` 对象数组。                                     |
+| `max_depth`             | integer         | 最大依赖深度。                                                    |
 
 ### `ModuleDependencyMetrics` 对象
 
-| 字段                     | 类型    | 说明                                             |
-| ------------------------ | ------- | ------------------------------------------------ |
-| `ModuleName`             | string  | 完全限定模块名。                                 |
-| `Package`                | string  | 父包。                                           |
-| `FilePath`               | string  | 源文件路径。                                     |
-| `IsPackage`              | boolean | 如果是包（有 `__init__.py`）则为 `true`。        |
-| `LinesOfCode`            | integer | 代码总行数。                                     |
-| `FunctionCount`          | integer | 函数数量。                                       |
-| `ClassCount`             | integer | 类数量。                                         |
-| `AbstractClassCount`     | integer | 抽象类数量。                                     |
-| `PublicInterface`        | array of string | `__all__` 中或顶级公共名称。             |
-| `AfferentCoupling`       | integer | Ca — 依赖此模块的模块数。                        |
-| `EfferentCoupling`       | integer | Ce — 此模块依赖的模块数。                        |
-| `Instability`            | number  | `I = Ce / (Ca + Ce)`，`0`–`1`。                  |
-| `Abstractness`           | number  | A — 抽象类 / 总类数，`0`–`1`。                   |
-| `Distance`               | number  | `D = |A + I - 1|`，`0`–`1`。与主序列的距离。     |
-| `Maintainability`        | number  | 可维护性指数，`0`–`100`。                        |
-| `TechnicalDebt`          | number  | 估计的技术债务（小时）。                         |
-| `RiskLevel`              | string  | 取值：`low`、`medium`、`high`。                  |
-| `DirectDependencies`     | array of string | 直接依赖。                               |
-| `TransitiveDependencies` | array of string | 所有传递依赖。                           |
-| `Dependents`             | array of string | 依赖此模块的模块。                       |
+| 字段                        | 类型              | 说明                              |           |                    |
+| ------------------------- | --------------- | ------------------------------- | --------- | ------------------ |
+| `module_name`             | string          | 完全限定模块名。                        |           |                    |
+| `package`                 | string          | 父包。                             |           |                    |
+| `file_path`               | string          | 源文件路径。                          |           |                    |
+| `is_package`              | boolean         | 如果是包（有 `__init__.py`）则为 `true`。 |           |                    |
+| `lines_of_code`           | integer         | 代码总行数。                          |           |                    |
+| `function_count`          | integer         | 函数数量。                           |           |                    |
+| `class_count`             | integer         | 类数量。                            |           |                    |
+| `abstract_class_count`    | integer         | 抽象类数量。                          |           |                    |
+| `public_interface`        | array of string | `__all__` 中或顶级公共名称。             |           |                    |
+| `afferent_coupling`       | integer         | Ca — 依赖此模块的模块数。                 |           |                    |
+| `efferent_coupling`       | integer         | Ce — 此模块依赖的模块数。                 |           |                    |
+| `instability`             | number          | `I = Ce / (Ca + Ce)`，`0`–`1`。   |           |                    |
+| `abstractness`            | number          | A — 抽象类 / 总类数，`0`–`1`。          |           |                    |
+| `distance`                | number          | `D =                            | A + I - 1 | `，`0`–`1`。与主序列的距离。 |
+| `maintainability`         | number          | 可维护性指数，`0`–`100`。               |           |                    |
+| `technical_debt`          | number          | 估计的技术债务（小时）。                    |           |                    |
+| `risk_level`              | string          | 取值：`low`、`medium`、`high`。       |           |                    |
+| `direct_dependencies`     | array of string | 直接依赖。                           |           |                    |
+| `transitive_dependencies` | array of string | 所有传递依赖。                         |           |                    |
+| `dependents`              | array of string | 依赖此模块的模块。                       |           |                    |
 
 ### `CircularDependencyAnalysis` 对象
 
-| 字段                       | 类型    | 说明                                          |
-| -------------------------- | ------- | --------------------------------------------- |
-| `HasCircularDependencies`  | boolean | 存在循环时为 `true`。                         |
-| `TotalCycles`              | integer | 循环数量。                                    |
-| `TotalModulesInCycles`     | integer | 涉及循环的模块数。                            |
-| `CircularDependencies`     | array   | `CircularDependency` 对象数组。               |
-| `CycleBreakingSuggestions` | array of string | 打破循环的建议。                      |
-| `CoreInfrastructure`       | array of string | 出现在多个循环中的模块。              |
+| 字段                           | 类型              | 说明                         |
+| ---------------------------- | --------------- | -------------------------- |
+| `has_circular_dependencies`  | boolean         | 存在循环时为 `true`。             |
+| `total_cycles`               | integer         | 循环数量。                      |
+| `total_modules_in_cycles`    | integer         | 涉及循环的模块数。                  |
+| `circular_dependencies`      | array           | `CircularDependency` 对象数组。 |
+| `cycle_breaking_suggestions` | array of string | 打破循环的建议。                   |
+| `core_infrastructure`        | array of string | 出现在多个循环中的模块。               |
 
 `CircularDependency.Severity` 枚举值：`low`、`medium`、`high`、`critical`。
 
-### `CouplingAnalysis` 对象
+### `coupling_analysis` 对象
 
-| 字段                    | 类型    | 说明                                       |
-| ----------------------- | ------- | ------------------------------------------ |
-| `AverageCoupling`       | number  | 跨模块的平均耦合度。                       |
-| `CouplingDistribution`  | object  | 耦合值（整数键）到数量的映射。             |
-| `HighlyCoupledModules`  | array of string | 高耦合模块。                       |
-| `LooselyCoupledModules` | array of string | 低耦合模块。                       |
-| `AverageInstability`    | number  | 平均不稳定性。                             |
-| `StableModules`         | array of string | 低不稳定性模块。                   |
-| `InstableModules`       | array of string | 高不稳定性模块。                   |
-| `MainSequenceDeviation` | number  | 与主序列的平均距离，`0`–`1`。              |
-| `ZoneOfPain`            | array of string | 稳定 + 具体的模块。               |
-| `ZoneOfUselessness`     | array of string | 不稳定 + 抽象的模块。             |
-| `MainSequence`          | array of string | 位置良好的模块。                   |
+| 字段                        | 类型              | 说明                 |
+| ------------------------- | --------------- | ------------------ |
+| `average_coupling`        | number          | 跨模块的平均耦合度。         |
+| `coupling_distribution`   | object          | 耦合值（整数键）到数量的映射。    |
+| `highly_coupled_modules`  | array of string | 高耦合模块。             |
+| `loosely_coupled_modules` | array of string | 低耦合模块。             |
+| `average_instability`     | number          | 平均不稳定性。            |
+| `stable_modules`          | array of string | 低不稳定性模块。           |
+| `instable_modules`        | array of string | 高不稳定性模块。           |
+| `main_sequence_deviation` | number          | 与主序列的平均距离，`0`–`1`。 |
+| `zone_of_pain`            | array of string | 稳定 + 具体的模块。        |
+| `zone_of_uselessness`     | array of string | 不稳定 + 抽象的模块。       |
+| `main_sequence`           | array of string | 位置良好的模块。           |
 
-### `ArchitectureAnalysis` 对象
+### `architecture_analysis` 对象
 
-| 字段                  | 类型    | 说明                                                |
-| --------------------- | ------- | --------------------------------------------------- |
-| `ComplianceScore`     | number  | 合规评分，`0`–`1`。按 `max(0, 1 - WeightedViolations / TotalRules)` 计算；无规则评估时为 `1.0`。 |
-| `TotalViolations`     | integer | 原始违规计数（与 `Violations` 数组长度一致）。      |
-| `WeightedViolations`  | integer | 用作 `ComplianceScore` 分子的加权违规数：`error × 5 + warning × 1`。 |
-| `TotalRules`          | integer | 评估的规则调用总数（`ComplianceScore` 的分母）。    |
-| `LayerAnalysis`       | object \| null | 分层分析结果。                               |
-| `CohesionAnalysis`    | object \| null | 包内聚性分析。                               |
-| `ResponsibilityAnalysis` | object \| null | 单一职责原则违规分析。                    |
-| `Violations`          | array   | `ArchitectureViolation` 对象数组。                  |
-| `SeverityBreakdown`   | object  | 严重性到数量的映射。                                |
-| `Recommendations`     | array   | `ArchitectureRecommendation` 对象数组。             |
-| `RefactoringTargets`  | array of string | 需要重构的模块。                            |
+| 字段                        | 类型              | 说明                                                                             |
+| ------------------------- | --------------- | ------------------------------------------------------------------------------ |
+| `compliance_score`        | number          | 合规评分，`0`–`1`。按 `max(0, 1 - WeightedViolations / TotalRules)` 计算；无规则评估时为 `1.0`。 |
+| `total_violations`        | integer         | 原始违规计数（与 `Violations` 数组长度一致）。                                                 |
+| `weighted_violations`     | integer         | 用作 `ComplianceScore` 分子的加权违规数：`error × 5 + warning × 1`。                       |
+| `total_rules`             | integer         | 评估的规则调用总数（`ComplianceScore` 的分母）。                                              |
+| `layer_analysis`          | object \| null  | 分层分析结果。                                                                        |
+| `cohesion_analysis`       | object \| null  | 包内聚性分析。                                                                        |
+| `responsibility_analysis` | object \| null  | 单一职责原则违规分析。                                                                    |
+| `violations`              | array           | `ArchitectureViolation` 对象数组。                                                  |
+| `severity_breakdown`      | object          | 严重性到数量的映射。                                                                     |
+| `recommendations`         | array           | `ArchitectureRecommendation` 对象数组。                                             |
+| `refactoring_targets`     | array of string | 需要重构的模块。                                                                       |
 
 `ArchitectureViolation.Type` 枚举值：`layer`、`cycle`、`coupling`、`responsibility`、`cohesion`。
 

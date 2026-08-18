@@ -450,16 +450,16 @@ func (s *CBOServiceImpl) buildCBOOptions(req domain.CBORequest) *analyzer.CBOOpt
 // buildConfigForResponse creates config info for response
 func (s *CBOServiceImpl) buildConfigForResponse(req domain.CBORequest) interface{} {
 	return map[string]interface{}{
-		"minCBO":                req.MinCBO,
-		"maxCBO":                req.MaxCBO,
-		"showZeros":             domain.BoolValue(req.ShowZeros, false),
-		"lowThreshold":          req.LowThreshold,
-		"mediumThreshold":       req.MediumThreshold,
-		"includeBuiltins":       domain.BoolValue(req.IncludeBuiltins, false),
-		"includeImports":        domain.BoolValue(req.IncludeImports, true),
-		"groupNamespaceImports": domain.BoolValue(req.GroupNamespaceImports, true),
-		"outputFormat":          req.OutputFormat,
-		"sortBy":                req.SortBy,
+		"min_cbo":                 req.MinCBO,
+		"max_cbo":                 req.MaxCBO,
+		"show_zeros":              domain.BoolValue(req.ShowZeros, false),
+		"low_threshold":           req.LowThreshold,
+		"medium_threshold":        req.MediumThreshold,
+		"include_builtins":        domain.BoolValue(req.IncludeBuiltins, false),
+		"include_imports":         domain.BoolValue(req.IncludeImports, true),
+		"group_namespace_imports": domain.BoolValue(req.GroupNamespaceImports, true),
+		"output_format":           req.OutputFormat,
+		"sort_by":                 req.SortBy,
 	}
 }
 

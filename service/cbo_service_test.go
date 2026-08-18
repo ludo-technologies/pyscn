@@ -617,16 +617,16 @@ func TestCBOService_BuildConfigForResponse(t *testing.T) {
 	configMap, ok := config.(map[string]interface{})
 	require.True(t, ok)
 
-	assert.Equal(t, 1, configMap["minCBO"])
-	assert.Equal(t, 20, configMap["maxCBO"])
-	assert.Equal(t, false, configMap["showZeros"])
-	assert.Equal(t, 5, configMap["lowThreshold"])
-	assert.Equal(t, 10, configMap["mediumThreshold"])
-	assert.Equal(t, true, configMap["includeBuiltins"])
-	assert.Equal(t, false, configMap["includeImports"])
-	assert.Equal(t, false, configMap["groupNamespaceImports"])
-	assert.Equal(t, domain.OutputFormatJSON, configMap["outputFormat"])
-	assert.Equal(t, domain.SortByCoupling, configMap["sortBy"])
+	assert.Equal(t, 1, configMap["min_cbo"])
+	assert.Equal(t, 20, configMap["max_cbo"])
+	assert.Equal(t, false, configMap["show_zeros"])
+	assert.Equal(t, 5, configMap["low_threshold"])
+	assert.Equal(t, 10, configMap["medium_threshold"])
+	assert.Equal(t, true, configMap["include_builtins"])
+	assert.Equal(t, false, configMap["include_imports"])
+	assert.Equal(t, false, configMap["group_namespace_imports"])
+	assert.Equal(t, domain.OutputFormatJSON, configMap["output_format"])
+	assert.Equal(t, domain.SortByCoupling, configMap["sort_by"])
 }
 
 func TestCBOService_ResponseMetadata(t *testing.T) {
