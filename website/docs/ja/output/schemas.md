@@ -12,7 +12,7 @@
 
 破壊的変更はメジャーバージョンアップ時のみ行われます。利用者は未知のフィールドを無視しなければなりません（MUST）。
 
-<!-- Field naming note: in `pyscn analyze` JSON/YAML, nested analyzer objects (`complexity`, `cbo`, `lcom`, `system`) use Go-style PascalCase field names because their response structs do not carry JSON tags. Top-level keys, `dead_code`, `clone`, `suggestions`, and `summary` use snake_case. -->
+<!-- Field naming note: every object key in `pyscn analyze` JSON/YAML is snake_case. Releases up to 1.29.1 emitted Go-style PascalCase inside `complexity`, `cbo`, `lcom`, and `system`, and lowerCamelCase inside the `config` objects of `cbo`, `lcom`, and `community_analysis`; both were renamed to snake_case. -->
 
 ## トップレベル構造 (`pyscn analyze`)
 
@@ -159,63 +159,63 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 
 ## `complexity` オブジェクト
 
-`domain.ComplexityResponse` に対応します。ネストされたフィールド名は Go の PascalCase です。
+`domain.ComplexityResponse` に対応します。
 
 ```json
 {
-  "Functions": [ /* FunctionComplexity array */ ],
-  "Summary": { /* ComplexitySummary */ },
+  "functions": [ /* FunctionComplexity array */ ],
+  "summary": { /* ComplexitySummary */ },
   "raw_metrics": [ /* RawMetrics array, present when computed */ ],
   "raw_metrics_summary": { /* RawMetricsSummary, present when computed */ },
-  "Warnings": [ "..." ],
-  "Errors": [ "..." ],
-  "GeneratedAt": "2026-04-14T10:18:23Z",
-  "Version": "0.14.0",
-  "Config": null
+  "warnings": [ "..." ],
+  "errors": [ "..." ],
+  "generated_at": "2026-04-14T10:18:23Z",
+  "version": "0.14.0",
+  "config": null
 }
 ```
 
-### `Functions[]` 要素 (`FunctionComplexity`)
+### `functions[]` 要素 (`FunctionComplexity`)
 
-| フィールド     | 型      | 説明                                                         |
-| ------------- | ------- | ------------------------------------------------------------ |
-| `Name`        | string  | 関数名。モジュールレベルのコードの場合は `__main__`。        |
-| `FilePath`    | string  | ソースファイルのパス。                                       |
-| `StartLine`   | integer | 1始まりの開始行。                                            |
-| `StartColumn` | integer | 0始まりの開始列。                                            |
-| `EndLine`     | integer | 1始まりの終了行。                                            |
-| `Metrics`     | object  | [`ComplexityMetrics`](#complexitymetrics-object) を参照。 |
-| `RiskLevel`   | string  | `low`、`medium`、`high` のいずれか。                         |
+| フィールド          | 型       | 説明                                                    |
+| -------------- | ------- | ----------------------------------------------------- |
+| `name`         | string  | 関数名。モジュールレベルのコードの場合は `__main__`。                      |
+| `file_path`    | string  | ソースファイルのパス。                                           |
+| `start_line`   | integer | 1始まりの開始行。                                             |
+| `start_column` | integer | 0始まりの開始列。                                             |
+| `end_line`     | integer | 1始まりの終了行。                                             |
+| `metrics`      | object  | [`ComplexityMetrics`](#complexitymetrics-object) を参照。 |
+| `risk_level`   | string  | `low`、`medium`、`high` のいずれか。                          |
 
 ### `ComplexityMetrics` オブジェクト { #complexitymetrics-object }
 
-| フィールド             | 型      | 説明                                               |
-| --------------------- | ------- | -------------------------------------------------- |
-| `Complexity`          | integer | McCabe サイクロマティック複雑度。                  |
-| `CognitiveComplexity` | integer | 認知的複雑度（SonarQube スタイル）。               |
-| `Nodes`               | integer | CFG ノード数。                                     |
-| `Edges`               | integer | CFG エッジ数。                                     |
-| `NestingDepth`        | integer | 最大ネスト深度。                                   |
-| `IfStatements`        | integer | `if` 文の数。                                      |
-| `LoopStatements`      | integer | `for`/`while` ループの数。                         |
-| `ExceptionHandlers`   | integer | `except` 節の数。                                  |
-| `SwitchCases`         | integer | `match` ケースの数（Python 3.10+）。               |
+| フィールド                  | 型       | 説明                           |
+| ---------------------- | ------- | ---------------------------- |
+| `complexity`           | integer | McCabe サイクロマティック複雑度。         |
+| `cognitive_complexity` | integer | 認知的複雑度（SonarQube スタイル）。      |
+| `nodes`                | integer | CFG ノード数。                    |
+| `edges`                | integer | CFG エッジ数。                    |
+| `nesting_depth`        | integer | 最大ネスト深度。                     |
+| `if_statements`        | integer | `if` 文の数。                    |
+| `loop_statements`      | integer | `for`/`while` ループの数。         |
+| `exception_handlers`   | integer | `except` 節の数。                |
+| `switch_cases`         | integer | `match` ケースの数（Python 3.10+）。 |
 
-### `Summary` オブジェクト (`ComplexitySummary`)
+### `summary` オブジェクト (`ComplexitySummary`)
 
-| フィールド                | 型      | 説明                                                                   |
-| ------------------------ | ------- | ---------------------------------------------------------------------- |
-| `TotalFunctions`         | integer | 分析された関数の合計数。                                               |
-| `AverageComplexity`      | number  | すべての関数の `Complexity` の算術平均。                                |
-| `MaxComplexity`          | integer | 観測された最大複雑度。                                                 |
-| `MinComplexity`          | integer | 観測された最小複雑度。                                                 |
-| `FilesAnalyzed`          | integer | パースに成功し、上記のメトリクスに寄与したファイル。                   |
-| `TotalFiles`             | integer | パース成否によらず、リクエストが対象としたファイル。                   |
-| `SkippedFiles`           | integer | 読み込みまたはパースに失敗して除外されたファイル。その内容は上記すべてのメトリクスに含まれません。 |
-| `LowRiskFunctions`       | integer | `RiskLevel = low` の関数。                                             |
-| `MediumRiskFunctions`    | integer | `RiskLevel = medium` の関数。                                          |
-| `HighRiskFunctions`      | integer | `RiskLevel = high` の関数。                                            |
-| `ComplexityDistribution` | object  | 複雑度バケット（string）からカウント（integer）へのヒストグラム、または `null`。 |
+| フィールド                     | 型       | 説明                                                 |
+| ------------------------- | ------- | -------------------------------------------------- |
+| `total_functions`         | integer | 分析された関数の合計数。                                       |
+| `average_complexity`      | number  | すべての関数の `Complexity` の算術平均。                        |
+| `max_complexity`          | integer | 観測された最大複雑度。                                        |
+| `min_complexity`          | integer | 観測された最小複雑度。                                        |
+| `files_analyzed`          | integer | パースに成功し、上記のメトリクスに寄与したファイル。                         |
+| `total_files`             | integer | パース成否によらず、リクエストが対象としたファイル。                         |
+| `skipped_files`           | integer | 読み込みまたはパースに失敗して除外されたファイル。その内容は上記すべてのメトリクスに含まれません。  |
+| `low_risk_functions`      | integer | `RiskLevel = low` の関数。                             |
+| `medium_risk_functions`   | integer | `RiskLevel = medium` の関数。                          |
+| `high_risk_functions`     | integer | `RiskLevel = high` の関数。                            |
+| `complexity_distribution` | object  | 複雑度バケット（string）からカウント（integer）へのヒストグラム、または `null`。 |
 
 ### `raw_metrics[]` 要素 (`RawMetrics`)
 
@@ -417,241 +417,241 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 
 ## `cbo` オブジェクト
 
-`domain.CBOResponse` に対応します。ネストされたフィールド名は Go の PascalCase です。
+`domain.CBOResponse` に対応します。
 
 ```json
 {
-  "Classes": [ /* ClassCoupling array */ ],
-  "Summary": { /* CBOSummary */ },
-  "Warnings": null,
-  "Errors": null,
-  "GeneratedAt": "",
-  "Version": "",
-  "Config": null
+  "classes": [ /* ClassCoupling array */ ],
+  "summary": { /* CBOSummary */ },
+  "warnings": null,
+  "errors": null,
+  "generated_at": "",
+  "version": "",
+  "config": null
 }
 ```
 
-### `Classes[]` 要素 (`ClassCoupling`)
+### `classes[]` 要素 (`ClassCoupling`)
 
-| フィールド     | 型      | 説明                                        |
-| ------------- | ------- | ------------------------------------------- |
-| `Name`        | string  | クラス名。                                  |
-| `FilePath`    | string  | ソースファイルのパス。                      |
-| `StartLine`   | integer | 1始まりの開始行。                           |
-| `EndLine`     | integer | 1始まりの終了行。                           |
-| `Metrics`     | object  | [`CBOMetrics`](#cbometrics-object) を参照。 |
-| `RiskLevel`   | string  | `low`、`medium`、`high` のいずれか。        |
-| `IsAbstract`  | boolean | クラスが抽象クラスの場合に `true`。         |
-| `BaseClasses` | array of string \| null | 直接の基底クラス。          |
+| フィールド          | 型                       | 説明                                      |
+| -------------- | ----------------------- | --------------------------------------- |
+| `name`         | string                  | クラス名。                                   |
+| `file_path`    | string                  | ソースファイルのパス。                             |
+| `start_line`   | integer                 | 1始まりの開始行。                               |
+| `end_line`     | integer                 | 1始まりの終了行。                               |
+| `metrics`      | object                  | [`CBOMetrics`](#cbometrics-object) を参照。 |
+| `risk_level`   | string                  | `low`、`medium`、`high` のいずれか。            |
+| `is_abstract`  | boolean                 | クラスが抽象クラスの場合に `true`。                   |
+| `base_classes` | array of string \| null | 直接の基底クラス。                               |
 
 ### `CBOMetrics` オブジェクト { #cbometrics-object }
 
-| フィールド                     | 型      | 説明                                                      |
-| ----------------------------- | ------- | --------------------------------------------------------- |
-| `CouplingCount`               | integer | CBO 値: このクラスが依存する個別クラスの数。              |
-| `InheritanceDependencies`     | integer | 基底クラスからの依存。                                    |
-| `TypeHintDependencies`        | integer | 型アノテーションからの依存。                              |
-| `InstantiationDependencies`   | integer | オブジェクト生成からの依存。                              |
-| `AttributeAccessDependencies` | integer | メソッド呼び出しおよび属性アクセスからの依存。            |
-| `ImportDependencies`          | integer | 明示的インポートからの依存。                              |
-| `DependentClasses`            | array of string \| null | 結合しているクラスの名前。            |
+| フィールド                           | 型                       | 説明                        |
+| ------------------------------- | ----------------------- | ------------------------- |
+| `coupling_count`                | integer                 | CBO 値: このクラスが依存する個別クラスの数。 |
+| `inheritance_dependencies`      | integer                 | 基底クラスからの依存。               |
+| `type_hint_dependencies`        | integer                 | 型アノテーションからの依存。            |
+| `instantiation_dependencies`    | integer                 | オブジェクト生成からの依存。            |
+| `attribute_access_dependencies` | integer                 | メソッド呼び出しおよび属性アクセスからの依存。   |
+| `import_dependencies`           | integer                 | 明示的インポートからの依存。            |
+| `dependent_classes`             | array of string \| null | 結合しているクラスの名前。             |
 
-### `Summary` オブジェクト (`CBOSummary`)
+### `summary` オブジェクト (`CBOSummary`)
 
-| フィールド                  | 型      | 説明                                              |
-| -------------------------- | ------- | ------------------------------------------------- |
-| `TotalClasses`             | integer | 分析されたクラスの合計数。                        |
-| `AverageCBO`               | number  | CBO の平均値。                                    |
-| `MaxCBO`                   | integer | 観測された最大 CBO。                              |
-| `MinCBO`                   | integer | 観測された最小 CBO。                              |
-| `ClassesAnalyzed`          | integer | 有効なメトリクスを持つクラス。                    |
-| `FilesAnalyzed`            | integer | 少なくとも1つのクラスを含むファイル。              |
-| `LowRiskClasses`           | integer | CBO ≤ 低閾値（デフォルト `3`）のクラス。          |
-| `MediumRiskClasses`        | integer | 低 < CBO ≤ 中閾値のクラス。                       |
-| `HighRiskClasses`          | integer | CBO > 中閾値（デフォルト `7`）のクラス。          |
-| `CBODistribution`          | object \| null | バケットラベルからカウントへのヒストグラム。 |
-| `MostCoupledClasses`       | array \| null | CBO 上位10クラス（`ClassCoupling`）。       |
-| `MostDependedUponClasses`  | array of string \| null | 被依存度が最も高いクラス。    |
+| フィールド                        | 型                       | 説明                            |
+| ---------------------------- | ----------------------- | ----------------------------- |
+| `total_classes`              | integer                 | 分析されたクラスの合計数。                 |
+| `average_cbo`                | number                  | CBO の平均値。                     |
+| `max_cbo`                    | integer                 | 観測された最大 CBO。                  |
+| `min_cbo`                    | integer                 | 観測された最小 CBO。                  |
+| `classes_analyzed`           | integer                 | 有効なメトリクスを持つクラス。               |
+| `files_analyzed`             | integer                 | 少なくとも1つのクラスを含むファイル。           |
+| `low_risk_classes`           | integer                 | CBO ≤ 低閾値（デフォルト `3`）のクラス。     |
+| `medium_risk_classes`        | integer                 | 低 < CBO ≤ 中閾値のクラス。            |
+| `high_risk_classes`          | integer                 | CBO > 中閾値（デフォルト `7`）のクラス。     |
+| `cbo_distribution`           | object \| null          | バケットラベルからカウントへのヒストグラム。        |
+| `most_coupled_classes`       | array \| null           | CBO 上位10クラス（`ClassCoupling`）。 |
+| `most_depended_upon_classes` | array of string \| null | 被依存度が最も高いクラス。                 |
 
 ## `lcom` オブジェクト
 
-`domain.LCOMResponse` に対応します。ネストされたフィールド名は Go の PascalCase です。
+`domain.LCOMResponse` に対応します。
 
 ```json
 {
-  "Classes": [ /* ClassCohesion array */ ],
-  "Summary": { /* LCOMSummary */ },
-  "Warnings": null,
-  "Errors": null,
-  "GeneratedAt": "",
-  "Version": "",
-  "Config": null
+  "classes": [ /* ClassCohesion array */ ],
+  "summary": { /* LCOMSummary */ },
+  "warnings": null,
+  "errors": null,
+  "generated_at": "",
+  "version": "",
+  "config": null
 }
 ```
 
-### `Classes[]` 要素 (`ClassCohesion`)
+### `classes[]` 要素 (`ClassCohesion`)
 
-| フィールド   | 型      | 説明                                             |
-| ----------- | ------- | ------------------------------------------------ |
-| `Name`      | string  | クラス名。                                       |
-| `FilePath`  | string  | ソースファイルのパス。                           |
-| `StartLine` | integer | 1始まりの開始行。                                |
-| `EndLine`   | integer | 1始まりの終了行。                                |
-| `Metrics`   | object  | [`LCOMMetrics`](#lcommetrics-object) を参照。 |
-| `RiskLevel` | string  | `low`、`medium`、`high` のいずれか。             |
+| フィールド        | 型       | 説明                                        |
+| ------------ | ------- | ----------------------------------------- |
+| `name`       | string  | クラス名。                                     |
+| `file_path`  | string  | ソースファイルのパス。                               |
+| `start_line` | integer | 1始まりの開始行。                                 |
+| `end_line`   | integer | 1始まりの終了行。                                 |
+| `metrics`    | object  | [`LCOMMetrics`](#lcommetrics-object) を参照。 |
+| `risk_level` | string  | `low`、`medium`、`high` のいずれか。              |
 
 ### `LCOMMetrics` オブジェクト { #lcommetrics-object }
 
-| フィールド           | 型      | 説明                                                        |
-| ------------------- | ------- | ----------------------------------------------------------- |
-| `LCOM4`             | integer | メソッド-変数グラフの連結成分数。                           |
-| `TotalMethods`      | integer | クラス内の全メソッド数。                                    |
-| `ExcludedMethods`   | integer | LCOM4 から除外されたメソッド（`@classmethod`、`@staticmethod`）。 |
-| `InstanceVariables` | integer | アクセスされた個別の `self.x` 変数の数。                    |
-| `MethodGroups`      | array of array of string \| null | 連結成分ごとにグループ化されたメソッド名。 |
+| フィールド                | 型                                | 説明                                                                                                                       |
+| -------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `lcom4`              | integer                          | メソッド-変数グラフの連結成分数。                                                                                                        |
+| `total_methods`      | integer                          | クラス内の全メソッド数。                                                                                                             |
+| `excluded_methods`   | integer                          | LCOM4 のグラフから除外されたメソッド（`@classmethod`、`@staticmethod`、`@abstractmethod`、およびコンストラクタ `__init__`、`__new__`、`__post_init__`）。 |
+| `instance_variables` | integer                          | アクセスされた個別の `self.x` 変数の数。                                                                                                |
+| `method_groups`      | array of array of string \| null | 連結成分ごとにグループ化されたメソッド名。                                                                                                    |
 
-### `Summary` オブジェクト (`LCOMSummary`)
+### `summary` オブジェクト (`LCOMSummary`)
 
-| フィールド              | 型      | 説明                                            |
-| ---------------------- | ------- | ----------------------------------------------- |
-| `TotalClasses`         | integer | 分析されたクラス数。                            |
-| `AverageLCOM`          | number  | LCOM4 の平均値。                                |
-| `MaxLCOM`              | integer | 観測された最大 LCOM4。                          |
-| `MinLCOM`              | integer | 観測された最小 LCOM4。                          |
-| `ClassesAnalyzed`      | integer | 有効なメトリクスを持つクラス。                  |
-| `FilesAnalyzed`        | integer | 少なくとも1つのクラスを含むファイル。            |
-| `LowRiskClasses`       | integer | LCOM4 ≤ 低閾値（デフォルト `2`）のクラス。      |
-| `MediumRiskClasses`    | integer | 低 < LCOM4 ≤ 中閾値のクラス。                   |
-| `HighRiskClasses`      | integer | LCOM4 > 中閾値（デフォルト `5`）のクラス。      |
-| `LCOMDistribution`     | object \| null | バケットラベルからカウントへのヒストグラム。 |
-| `LeastCohesiveClasses` | array \| null | LCOM4 上位10クラス（`ClassCohesion`）。    |
+| フィールド                    | 型              | 説明                              |
+| ------------------------ | -------------- | ------------------------------- |
+| `total_classes`          | integer        | 分析されたクラス数。                      |
+| `average_lcom`           | number         | LCOM4 の平均値。                     |
+| `max_lcom`               | integer        | 観測された最大 LCOM4。                  |
+| `min_lcom`               | integer        | 観測された最小 LCOM4。                  |
+| `classes_analyzed`       | integer        | 有効なメトリクスを持つクラス。                 |
+| `files_analyzed`         | integer        | 少なくとも1つのクラスを含むファイル。             |
+| `low_risk_classes`       | integer        | LCOM4 ≤ 低閾値（デフォルト `2`）のクラス。     |
+| `medium_risk_classes`    | integer        | 低 < LCOM4 ≤ 中閾値のクラス。            |
+| `high_risk_classes`      | integer        | LCOM4 > 中閾値（デフォルト `5`）のクラス。     |
+| `lcom_distribution`      | object \| null | バケットラベルからカウントへのヒストグラム。          |
+| `least_cohesive_classes` | array \| null  | LCOM4 上位10クラス（`ClassCohesion`）。 |
 
 ## `system` オブジェクト
 
-`domain.SystemAnalysisResponse` に対応します。ネストされたフィールド名は Go の PascalCase です。
+`domain.SystemAnalysisResponse` に対応します。
 
 ```json
 {
-  "DependencyAnalysis":   { /* DependencyAnalysisResult, or null */ },
-  "ArchitectureAnalysis": { /* ArchitectureAnalysisResult, or null */ },
-  "Summary":              { /* SystemAnalysisSummary */ },
-  "Issues":               [ /* SystemIssue array */ ],
-  "Recommendations":      [ /* SystemRecommendation array */ ],
-  "Warnings":             [ ],
-  "Errors":               [ ],
-  "GeneratedAt":          "0001-01-01T00:00:00Z",
-  "Duration":             0,
-  "Version":              "",
-  "Config":               null
+  "dependency_analysis":   { /* DependencyAnalysisResult, or null */ },
+  "architecture_analysis": { /* ArchitectureAnalysisResult, or null */ },
+  "summary":              { /* SystemAnalysisSummary */ },
+  "issues":               [ /* SystemIssue array */ ],
+  "recommendations":      [ /* SystemRecommendation array */ ],
+  "warnings":             [ ],
+  "errors":               [ ],
+  "generated_at":          "0001-01-01T00:00:00Z",
+  "duration":             0,
+  "version":              "",
+  "config":               null
 }
 ```
 
-### `Summary` オブジェクト (`SystemAnalysisSummary`)
+### `summary` オブジェクト (`SystemAnalysisSummary`)
 
-| フィールド                  | 型      | 説明                                            |
-| -------------------------- | ------- | ----------------------------------------------- |
-| `TotalModules`             | integer | 分析されたモジュールの合計数。                  |
-| `TotalPackages`            | integer | パッケージの合計数。                            |
-| `TotalDependencies`        | integer | 依存関係エッジの合計数。                        |
-| `ProjectRoot`              | string  | プロジェクトのルートディレクトリ。              |
-| `OverallQualityScore`      | number  | 総合品質スコア、`0`–`100`。                     |
-| `MaintainabilityScore`     | number  | 保守性インデックスの平均値。                    |
-| `ArchitectureScore`        | number  | アーキテクチャ準拠スコア。                      |
-| `ModularityScore`          | number  | システムのモジュール性スコア。                  |
-| `TechnicalDebtHours`       | number  | 推定技術的負債の合計（時間単位）。              |
-| `AverageCoupling`          | number  | モジュール結合度の平均値。                      |
-| `AverageInstability`       | number  | 不安定性 (I) の平均値。                         |
-| `CyclicDependencies`       | integer | 循環依存に関与するモジュール。                  |
-| `ArchitectureViolations`   | integer | アーキテクチャルール違反の数。                  |
-| `HighRiskModules`          | integer | 高リスクとフラグされたモジュール。              |
-| `CriticalIssues`           | integer | 重大な問題の数。                                |
-| `RefactoringCandidates`    | integer | リファクタリングが必要なモジュール。            |
-| `ArchitectureImprovements` | integer | 提案されたアーキテクチャ改善。                  |
+| フィールド                       | 型       | 説明                 |
+| --------------------------- | ------- | ------------------ |
+| `total_modules`             | integer | 分析されたモジュールの合計数。    |
+| `total_packages`            | integer | パッケージの合計数。         |
+| `total_dependencies`        | integer | 依存関係エッジの合計数。       |
+| `project_root`              | string  | プロジェクトのルートディレクトリ。  |
+| `overall_quality_score`     | number  | 総合品質スコア、`0`–`100`。 |
+| `maintainability_score`     | number  | 保守性インデックスの平均値。     |
+| `architecture_score`        | number  | アーキテクチャ準拠スコア。      |
+| `modularity_score`          | number  | システムのモジュール性スコア。    |
+| `technical_debt_hours`      | number  | 推定技術的負債の合計（時間単位）。  |
+| `average_coupling`          | number  | モジュール結合度の平均値。      |
+| `average_instability`       | number  | 不安定性 (I) の平均値。     |
+| `cyclic_dependencies`       | integer | 循環依存に関与するモジュール。    |
+| `architecture_violations`   | integer | アーキテクチャルール違反の数。    |
+| `high_risk_modules`         | integer | 高リスクとフラグされたモジュール。  |
+| `critical_issues`           | integer | 重大な問題の数。           |
+| `refactoring_candidates`    | integer | リファクタリングが必要なモジュール。 |
+| `architecture_improvements` | integer | 提案されたアーキテクチャ改善。    |
 
-### `DependencyAnalysis` オブジェクト
+### `dependency_analysis` オブジェクト
 
-| フィールド              | 型      | 説明                                                                 |
-| ---------------------- | ------- | -------------------------------------------------------------------- |
-| `TotalModules`         | integer | 依存関係グラフ内のモジュールの合計数。                               |
-| `TotalDependencies`    | integer | エッジの合計数。                                                     |
-| `RootModules`          | array of string | 外向き依存のないモジュール。                                 |
-| `LeafModules`          | array of string | 内向き依存のないモジュール。                                 |
-| `ModuleMetrics`        | object  | モジュール名から `ModuleDependencyMetrics` へのマップ。              |
-| `DependencyMatrix`     | object  | モジュールからモジュールから boolean へのマップ。                    |
-| `CircularDependencies` | object  | 循環検出結果。`Cycles`（array）と `TotalCycles`（integer）を含む。   |
-| `CouplingAnalysis`     | object  | モジュールごとの結合度メトリクス: `Ca`、`Ce`、`Instability`、`Abstractness`、`Distance`。 |
-| `LongestChains`        | array   | `DependencyPath` オブジェクトの配列。                                |
-| `MaxDepth`             | integer | 最大依存深度。                                                       |
+| フィールド                   | 型               | 説明                                                                   |
+| ----------------------- | --------------- | -------------------------------------------------------------------- |
+| `total_modules`         | integer         | 依存関係グラフ内のモジュールの合計数。                                                  |
+| `total_dependencies`    | integer         | エッジの合計数。                                                             |
+| `root_modules`          | array of string | 外向き依存のないモジュール。                                                       |
+| `leaf_modules`          | array of string | 内向き依存のないモジュール。                                                       |
+| `module_metrics`        | object          | モジュール名から `ModuleDependencyMetrics` へのマップ。                            |
+| `dependency_matrix`     | object          | モジュールからモジュールから boolean へのマップ。                                        |
+| `circular_dependencies` | object          | 循環検出結果。`Cycles`（array）と `TotalCycles`（integer）を含む。                   |
+| `coupling_analysis`     | object          | モジュールごとの結合度メトリクス: `Ca`、`Ce`、`Instability`、`Abstractness`、`Distance`。 |
+| `longest_chains`        | array           | `DependencyPath` オブジェクトの配列。                                          |
+| `max_depth`             | integer         | 最大依存深度。                                                              |
 
 ### `ModuleDependencyMetrics` オブジェクト
 
-| フィールド                | 型      | 説明                                                     |
-| ------------------------ | ------- | -------------------------------------------------------- |
-| `ModuleName`             | string  | 完全修飾モジュール名。                                   |
-| `Package`                | string  | 親パッケージ。                                           |
-| `FilePath`               | string  | ソースファイルのパス。                                   |
-| `IsPackage`              | boolean | パッケージ（`__init__.py` あり）の場合に `true`。        |
-| `LinesOfCode`            | integer | コードの合計行数。                                       |
-| `FunctionCount`          | integer | 関数の数。                                               |
-| `ClassCount`             | integer | クラスの数。                                             |
-| `AbstractClassCount`     | integer | 抽象クラスの数。                                         |
-| `PublicInterface`        | array of string | `__all__` またはトップレベルのパブリック名。      |
-| `AfferentCoupling`       | integer | Ca — このモジュールに依存するモジュール。                |
-| `EfferentCoupling`       | integer | Ce — このモジュールが依存するモジュール。                |
-| `Instability`            | number  | `I = Ce / (Ca + Ce)`、`0`–`1`。                          |
-| `Abstractness`           | number  | A — 抽象クラス / 全クラス、`0`–`1`。                     |
-| `Distance`               | number  | `D = |A + I - 1|`、`0`–`1`。メインシーケンスからの距離。 |
-| `Maintainability`        | number  | 保守性インデックス、`0`–`100`。                          |
-| `TechnicalDebt`          | number  | 推定技術的負債（時間単位）。                             |
-| `RiskLevel`              | string  | `low`、`medium`、`high` のいずれか。                     |
-| `DirectDependencies`     | array of string | 直接依存。                                       |
-| `TransitiveDependencies` | array of string | すべての推移的依存。                             |
-| `Dependents`             | array of string | このモジュールに依存するモジュール。             |
+| フィールド                     | 型               | 説明                                  |           |                          |
+| ------------------------- | --------------- | ----------------------------------- | --------- | ------------------------ |
+| `module_name`             | string          | 完全修飾モジュール名。                         |           |                          |
+| `package`                 | string          | 親パッケージ。                             |           |                          |
+| `file_path`               | string          | ソースファイルのパス。                         |           |                          |
+| `is_package`              | boolean         | パッケージ（`__init__.py` あり）の場合に `true`。 |           |                          |
+| `lines_of_code`           | integer         | コードの合計行数。                           |           |                          |
+| `function_count`          | integer         | 関数の数。                               |           |                          |
+| `class_count`             | integer         | クラスの数。                              |           |                          |
+| `abstract_class_count`    | integer         | 抽象クラスの数。                            |           |                          |
+| `public_interface`        | array of string | `__all__` またはトップレベルのパブリック名。         |           |                          |
+| `afferent_coupling`       | integer         | Ca — このモジュールに依存するモジュール。             |           |                          |
+| `efferent_coupling`       | integer         | Ce — このモジュールが依存するモジュール。             |           |                          |
+| `instability`             | number          | `I = Ce / (Ca + Ce)`、`0`–`1`。       |           |                          |
+| `abstractness`            | number          | A — 抽象クラス / 全クラス、`0`–`1`。           |           |                          |
+| `distance`                | number          | `D =                                | A + I - 1 | `、`0`–`1`。メインシーケンスからの距離。 |
+| `maintainability`         | number          | 保守性インデックス、`0`–`100`。                |           |                          |
+| `technical_debt`          | number          | 推定技術的負債（時間単位）。                      |           |                          |
+| `risk_level`              | string          | `low`、`medium`、`high` のいずれか。        |           |                          |
+| `direct_dependencies`     | array of string | 直接依存。                               |           |                          |
+| `transitive_dependencies` | array of string | すべての推移的依存。                          |           |                          |
+| `dependents`              | array of string | このモジュールに依存するモジュール。                  |           |                          |
 
 ### `CircularDependencyAnalysis` オブジェクト
 
-| フィールド                  | 型      | 説明                                                  |
-| -------------------------- | ------- | ----------------------------------------------------- |
-| `HasCircularDependencies`  | boolean | 循環が存在する場合に `true`。                         |
-| `TotalCycles`              | integer | 循環の数。                                            |
-| `TotalModulesInCycles`     | integer | 循環に関与するモジュール。                            |
-| `CircularDependencies`     | array   | `CircularDependency` オブジェクトの配列。             |
-| `CycleBreakingSuggestions` | array of string | 循環を解消するための提案。                    |
-| `CoreInfrastructure`       | array of string | 複数の循環に出現するモジュール。              |
+| フィールド                        | 型               | 説明                              |
+| ---------------------------- | --------------- | ------------------------------- |
+| `has_circular_dependencies`  | boolean         | 循環が存在する場合に `true`。              |
+| `total_cycles`               | integer         | 循環の数。                           |
+| `total_modules_in_cycles`    | integer         | 循環に関与するモジュール。                   |
+| `circular_dependencies`      | array           | `CircularDependency` オブジェクトの配列。 |
+| `cycle_breaking_suggestions` | array of string | 循環を解消するための提案。                   |
+| `core_infrastructure`        | array of string | 複数の循環に出現するモジュール。                |
 
 `CircularDependency.Severity` 列挙: `low`、`medium`、`high`、`critical`。
 
-### `CouplingAnalysis` オブジェクト
+### `coupling_analysis` オブジェクト
 
-| フィールド               | 型      | 説明                                               |
-| ----------------------- | ------- | -------------------------------------------------- |
-| `AverageCoupling`       | number  | モジュール全体の平均結合度。                       |
-| `CouplingDistribution`  | object  | 結合度値（integer キー）からカウントへのマップ。   |
-| `HighlyCoupledModules`  | array of string | 高結合度のモジュール。                     |
-| `LooselyCoupledModules` | array of string | 低結合度のモジュール。                     |
-| `AverageInstability`    | number  | 平均不安定性。                                     |
-| `StableModules`         | array of string | 低不安定性のモジュール。                   |
-| `InstableModules`       | array of string | 高不安定性のモジュール。                   |
-| `MainSequenceDeviation` | number  | メインシーケンスからの平均距離、`0`–`1`。          |
-| `ZoneOfPain`            | array of string | 安定かつ具象のモジュール。                 |
-| `ZoneOfUselessness`     | array of string | 不安定かつ抽象のモジュール。               |
-| `MainSequence`          | array of string | 適切に配置されたモジュール。               |
+| フィールド                     | 型               | 説明                           |
+| ------------------------- | --------------- | ---------------------------- |
+| `average_coupling`        | number          | モジュール全体の平均結合度。               |
+| `coupling_distribution`   | object          | 結合度値（integer キー）からカウントへのマップ。 |
+| `highly_coupled_modules`  | array of string | 高結合度のモジュール。                  |
+| `loosely_coupled_modules` | array of string | 低結合度のモジュール。                  |
+| `average_instability`     | number          | 平均不安定性。                      |
+| `stable_modules`          | array of string | 低不安定性のモジュール。                 |
+| `instable_modules`        | array of string | 高不安定性のモジュール。                 |
+| `main_sequence_deviation` | number          | メインシーケンスからの平均距離、`0`–`1`。     |
+| `zone_of_pain`            | array of string | 安定かつ具象のモジュール。                |
+| `zone_of_uselessness`     | array of string | 不安定かつ抽象のモジュール。               |
+| `main_sequence`           | array of string | 適切に配置されたモジュール。               |
 
-### `ArchitectureAnalysis` オブジェクト
+### `architecture_analysis` オブジェクト
 
-| フィールド                 | 型      | 説明                                                        |
-| ------------------------- | ------- | ----------------------------------------------------------- |
-| `ComplianceScore`         | number  | 準拠スコア、`0`–`1`。`max(0, 1 - WeightedViolations / TotalRules)` で計算。ルール未評価時は `1.0`。 |
-| `TotalViolations`         | integer | 違反の生カウント（`Violations` 配列の要素数と一致）。       |
-| `WeightedViolations`      | integer | `ComplianceScore` の分子に用いる重み付き違反数：`error × 5 + warning × 1`。 |
-| `TotalRules`              | integer | 評価されたルール呼び出しの合計数（`ComplianceScore` の分母）。 |
-| `LayerAnalysis`           | object \| null | レイヤー分析結果。                                   |
-| `CohesionAnalysis`        | object \| null | パッケージ凝集度分析。                               |
-| `ResponsibilityAnalysis`  | object \| null | SRP 違反分析。                                       |
-| `Violations`              | array   | `ArchitectureViolation` オブジェクトの配列。                |
-| `SeverityBreakdown`       | object  | 重大度からカウントへのマップ。                              |
-| `Recommendations`         | array   | `ArchitectureRecommendation` オブジェクトの配列。           |
-| `RefactoringTargets`      | array of string | リファクタリングが必要なモジュール。                |
+| フィールド                     | 型               | 説明                                                                              |
+| ------------------------- | --------------- | ------------------------------------------------------------------------------- |
+| `compliance_score`        | number          | 準拠スコア、`0`–`1`。`max(0, 1 - WeightedViolations / TotalRules)` で計算。ルール未評価時は `1.0`。 |
+| `total_violations`        | integer         | 違反の生カウント（`Violations` 配列の要素数と一致）。                                               |
+| `weighted_violations`     | integer         | `ComplianceScore` の分子に用いる重み付き違反数：`error × 5 + warning × 1`。                     |
+| `total_rules`             | integer         | 評価されたルール呼び出しの合計数（`ComplianceScore` の分母）。                                        |
+| `layer_analysis`          | object \| null  | レイヤー分析結果。                                                                       |
+| `cohesion_analysis`       | object \| null  | パッケージ凝集度分析。                                                                     |
+| `responsibility_analysis` | object \| null  | SRP 違反分析。                                                                       |
+| `violations`              | array           | `ArchitectureViolation` オブジェクトの配列。                                              |
+| `severity_breakdown`      | object          | 重大度からカウントへのマップ。                                                                 |
+| `recommendations`         | array           | `ArchitectureRecommendation` オブジェクトの配列。                                         |
+| `refactoring_targets`     | array of string | リファクタリングが必要なモジュール。                                                              |
 
 `ArchitectureViolation.Type` 列挙: `layer`、`cycle`、`coupling`、`responsibility`、`cohesion`。
 

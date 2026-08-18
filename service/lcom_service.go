@@ -411,11 +411,11 @@ func (s *LCOMServiceImpl) buildLCOMOptions(req domain.LCOMRequest) *analyzer.LCO
 // buildConfigForResponse creates config info for response
 func (s *LCOMServiceImpl) buildConfigForResponse(req domain.LCOMRequest) any {
 	return map[string]any{
-		"minLCOM":         req.MinLCOM,
-		"maxLCOM":         req.MaxLCOM,
-		"lowThreshold":    req.LowThreshold,
-		"mediumThreshold": req.MediumThreshold,
-		"outputFormat":    req.OutputFormat,
-		"sortBy":          req.SortBy,
+		"min_lcom":         req.MinLCOM,
+		"max_lcom":         req.MaxLCOM,
+		"low_threshold":    req.LowThreshold,
+		"medium_threshold": req.MediumThreshold,
+		"output_format":    req.OutputFormat,
+		"sort_by":          req.SortBy,
 	}
 }
