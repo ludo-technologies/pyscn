@@ -3424,7 +3424,7 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="n">users</span><span class="p">:</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">target_id</span><span class="p">:</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="k">break</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="n">user</span><span class="o">.</span><span class="n">last_seen</span> <span class="o">=</span> <span class="n">now</span><span class="p">()</span>   <span class="c1"># ← ne s&#39;exécute jamais</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="n">user</span><span class="o">.</span><span class="n">last_seen</span> <span class="o">=</span> <span class="n">now</span><span class="p">()</span>   <span class="c1"># ← ne s'exécute jamais</span>
 </span></code></pre></div>
 <h2 id="a-utiliser-a-la-place">À utiliser à la place<a class="headerlink" href="#a-utiliser-a-la-place" title="Permanent link">&para;</a></h2>
 <p>Effectuez le travail avant le <code>break</code>, ou supprimez l'instruction morte.</p>

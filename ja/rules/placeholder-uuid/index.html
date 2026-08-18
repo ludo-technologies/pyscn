@@ -3414,7 +3414,7 @@
 <h2 id="_2">なぜ問題なのか<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p>nil UUID はいくつかのコンテキストでは正当な値ですが、ほとんどのアプリケーションコードでは、置き換えられるべきだったスタブ <code>DEFAULT_USER_ID = "00..."</code> の残りです。他の UUID と同様にパースおよびシリアライズされるため、外部キーの検索、ログ行、監査証跡のすべてがそれを受け入れ、エラーが発生することなく行が同じ「ユーザー」に集約されていきます。</p>
 <h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DEFAULT_USER_ID</span> <span class="o">=</span> <span class="s2">&quot;00000000-0000-0000-0000-000000000000&quot;</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DEFAULT_USER_ID</span> <span class="o">=</span> <span class="s2">"00000000-0000-0000-0000-000000000000"</span>
 </span></code></pre></div>
 <h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>使用時に実際の UUID を生成するか、呼び出し元に提供を要求します。データに見えるセンチネル値を持ち歩かないでください。</p>

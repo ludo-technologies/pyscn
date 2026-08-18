@@ -3416,7 +3416,7 @@
 <p><strong>識別子</strong>内の一致は、束縛された名前（<code>foo = get_user()</code>）が動作を変えるため、警告として扱われます。<strong>文字列リテラル</strong>内の一致は、残された <code>"fake_user"</code> が壊れているというよりは見た目の問題であることが多いため、情報レベルですが、リリース前にレビューする価値はあります。</p>
 <h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">create_user</span><span class="p">():</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;fake_user&quot;</span>    <span class="c1"># 文字列リテラルが一致</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">name</span> <span class="o">=</span> <span class="s2">"fake_user"</span>    <span class="c1"># 文字列リテラルが一致</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">foo</span> <span class="o">=</span> <span class="n">get_user</span><span class="p">()</span>      <span class="c1"># 識別子 `foo` が一致</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="k">return</span> <span class="n">foo</span>
 </span></code></pre></div>

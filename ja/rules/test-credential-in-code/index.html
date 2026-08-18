@@ -3419,13 +3419,13 @@
 </ul>
 <p>pyscn はセキュリティスキャナーではなく、高エントロピーのシークレットの検出は試みません。このルールは逆のケースを捕捉します: そもそもソースに含まれるべきではなかった、低エントロピーの明らかに偽の認証情報です。</p>
 <h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DEFAULT_PASSWORD</span> <span class="o">=</span> <span class="s2">&quot;password123&quot;</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DEFAULT_PASSWORD</span> <span class="o">=</span> <span class="s2">"password123"</span>
 </span></code></pre></div>
 <h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>認証情報は環境変数またはシークレットマネージャーから読み取ります。ローカル開発用にデフォルト値が本当に必要な場合は、本番では読み込まれない別の設定ファイルに保管します。</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">DEFAULT_PASSWORD</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;APP_DEFAULT_PASSWORD&quot;</span><span class="p">]</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">DEFAULT_PASSWORD</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"APP_DEFAULT_PASSWORD"</span><span class="p">]</span>
 </span></code></pre></div>
 <h2 id="_5">オプション<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <table>

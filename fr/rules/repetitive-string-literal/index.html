@@ -3415,13 +3415,13 @@
 <p>Une chaîne comme <code>"aaaaaaaaaaaaaaaa"</code> n'est presque jamais une vraie valeur — c'est la forme que prend quelque chose tapé pour passer un validateur pendant que le développeur câblait autre chose. Laissé en production, elle devient une clé d'API, une entrée de hash, ou un token qui ressemble à de la donnée et passe les vérifications de longueur sans avoir aucun sens.</p>
 <p>La règle est bornée en longueur (4–20 caractères) afin d'éviter de signaler des remplissages intentionnels comme des constantes de padding ou des vecteurs de test qui nécessitent légitimement des caractères répétés.</p>
 <h2 id="exemple">Exemple<a class="headerlink" href="#exemple" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">api_key</span> <span class="o">=</span> <span class="s2">&quot;aaaaaaaaaaaaaaaa&quot;</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">api_key</span> <span class="o">=</span> <span class="s2">"aaaaaaaaaaaaaaaa"</span>
 </span></code></pre></div>
 <h2 id="a-utiliser-a-la-place">À utiliser à la place<a class="headerlink" href="#a-utiliser-a-la-place" title="Permanent link">&para;</a></h2>
 <p>Lisez les secrets et les tokens depuis la configuration ou un coffre-fort de secrets. Ne mettez pas de valeurs placeholder en dur dans le code source.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">api_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;SERVICE_API_KEY&quot;</span><span class="p">]</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">api_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"SERVICE_API_KEY"</span><span class="p">]</span>
 </span></code></pre></div>
 <h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
 <table>

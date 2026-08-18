@@ -3415,7 +3415,7 @@
 <p>应用程序代码中的测试域名电子邮件几乎总是测试夹具、教程或"稍后填写"桩代码的残留。与格式错误的地址不同，它能顺利通过验证和序列化，因此会悄悄地出现在数据库行、通知队列和"发件人"标头中。通常的发现路径是一张询问为什么没有人收到重置链接的工单。</p>
 <p>此规则是 <a href="../mock-domain-in-string/">mock-domain-in-string</a> 的补充，但专门处理电子邮件形式，以便保持域名列表精简且匹配精确。</p>
 <h2 id="_3">示例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">admin_email</span> <span class="o">=</span> <span class="s2">&quot;admin@example.com&quot;</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">admin_email</span> <span class="o">=</span> <span class="s2">"admin@example.com"</span>
 </span></code></pre></div>
 <h2 id="_4">修正示例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>从配置中读取地址，或将其作为参数接受。</p>

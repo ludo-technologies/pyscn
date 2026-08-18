@@ -3415,7 +3415,7 @@
 <p>A test-domain email in application code is almost always a leftover from a fixture, a tutorial, or a "fill this in later" stub. Unlike a malformed address, it passes validation and serialisation cleanly, so it silently ends up in database rows, notification queues, and "from" headers. The usual discovery path is a support ticket asking why no one received a reset link.</p>
 <p>This rule complements <a href="../mock-domain-in-string/">mock-domain-in-string</a> but treats the email form specifically so it can keep the domain list tight and the match precise.</p>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">admin_email</span> <span class="o">=</span> <span class="s2">&quot;admin@example.com&quot;</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">admin_email</span> <span class="o">=</span> <span class="s2">"admin@example.com"</span>
 </span></code></pre></div>
 <h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
 <p>Read the address from configuration, or accept it as a parameter.</p>

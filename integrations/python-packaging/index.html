@@ -3526,7 +3526,7 @@
 <h2 id="containers">Containers<a class="headerlink" href="#containers" title="Permanent link">&para;</a></h2>
 <div class="language-dockerfile highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">FROM</span><span class="w"> </span><span class="s">python:3.12-slim</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">RUN</span><span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-cache-dir<span class="w"> </span>pyscn
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">ENTRYPOINT</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;pyscn&quot;</span><span class="p">]</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">ENTRYPOINT</span><span class="w"> </span><span class="p">[</span><span class="s2">"pyscn"</span><span class="p">]</span>
 </span></code></pre></div>
 <h2 id="wheel-contents">Wheel contents<a class="headerlink" href="#wheel-contents" title="Permanent link">&para;</a></h2>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pyscn-0.2.0-py3-none-manylinux_2_17_x86_64.whl
@@ -3540,7 +3540,7 @@
 <p>The launcher detects OS + architecture and <code>exec</code>s the matching binary.</p>
 <h2 id="releases">Releases<a class="headerlink" href="#releases" title="Permanent link">&para;</a></h2>
 <p>Versions publish on Git tags starting with <code>v</code>:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>git<span class="w"> </span>tag<span class="w"> </span>-a<span class="w"> </span>v0.2.0<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;Release v0.2.0&quot;</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>git<span class="w"> </span>tag<span class="w"> </span>-a<span class="w"> </span>v0.2.0<span class="w"> </span>-m<span class="w"> </span><span class="s2">"Release v0.2.0"</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>v0.2.0
 </span></code></pre></div>
 <p>GitHub Actions cross-compiles, packages platform-specific wheels, runs <code>twine check</code>, smoke-tests across OS × Python, publishes to PyPI, and creates a GitHub release. See the <a href="https://github.com/ludo-technologies/pyscn/releases">Releases page</a>.</p>

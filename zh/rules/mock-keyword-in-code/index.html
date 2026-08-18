@@ -3416,7 +3416,7 @@
 <p><strong>标识符</strong>中的匹配被视为警告，因为绑定名称（<code>foo = get_user()</code>）会改变行为。<strong>字符串字面量</strong>中的匹配为信息级别，因为残留的 <code>"fake_user"</code> 更多是外观问题而非功能故障——但在发布前仍值得审查。</p>
 <h2 id="_3">示例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">create_user</span><span class="p">():</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;fake_user&quot;</span>    <span class="c1"># string literal matches</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">name</span> <span class="o">=</span> <span class="s2">"fake_user"</span>    <span class="c1"># string literal matches</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">foo</span> <span class="o">=</span> <span class="n">get_user</span><span class="p">()</span>      <span class="c1"># identifier `foo` matches</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="k">return</span> <span class="n">foo</span>
 </span></code></pre></div>

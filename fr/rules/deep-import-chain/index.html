@@ -3435,7 +3435,7 @@
 <p>Introduisez une façade à la frontière pour que les couches supérieures parlent à un seul module, pas à une chaîne :</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>myapp.cli
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  → myapp.commands
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    → myapp.services        # point d&#39;entrée unique
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    → myapp.services        # point d'entrée unique
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        (câble en interne orchestrator / workers / adapters / drivers)
 </span></code></pre></div>
 <p>Ou aplatissez : si <code>services</code>, <code>orchestrator</code> et <code>workers</code> font tous de la coordination, fusionnez-les en une seule couche et laissez-la dépendre directement de <code>adapters</code>.</p>

@@ -3414,7 +3414,7 @@
 <h2 id="pourquoi-est-ce-un-probleme">Pourquoi est-ce un problème ?<a class="headerlink" href="#pourquoi-est-ce-un-probleme" title="Permanent link">&para;</a></h2>
 <p>Le UUID nul est une valeur légitime dans quelques contextes, mais dans la plupart du code applicatif c'est un reliquat d'un stub <code>DEFAULT_USER_ID = "00..."</code> qui devait être remplacé. Comme il parse et se sérialise comme n'importe quel autre UUID, les lookups de clés étrangères, les lignes de logs et les pistes d'audit l'acceptent tous — et des lignes commencent à fusionner sur le même « utilisateur » sans qu'aucune erreur ne soit levée.</p>
 <h2 id="exemple">Exemple<a class="headerlink" href="#exemple" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DEFAULT_USER_ID</span> <span class="o">=</span> <span class="s2">&quot;00000000-0000-0000-0000-000000000000&quot;</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DEFAULT_USER_ID</span> <span class="o">=</span> <span class="s2">"00000000-0000-0000-0000-000000000000"</span>
 </span></code></pre></div>
 <h2 id="a-utiliser-a-la-place">À utiliser à la place<a class="headerlink" href="#a-utiliser-a-la-place" title="Permanent link">&para;</a></h2>
 <p>Générez un vrai UUID au point d'utilisation, ou exigez de l'appelant qu'il en fournisse un. Ne transportez pas une valeur sentinelle qui ressemble à de la donnée.</p>

@@ -3415,7 +3415,7 @@
 <p>アプリケーションコード内のテストドメインのメールアドレスは、ほぼ確実にフィクスチャ、チュートリアル、または「後で記入する」スタブの残りです。不正なアドレスとは異なり、バリデーションとシリアライゼーションを正常に通過するため、データベースの行、通知キュー、「from」ヘッダーに静かに紛れ込みます。通常、パスワードリセットリンクが届かない理由を尋ねるサポートチケットで発見されます。</p>
 <p>このルールは <a href="../mock-domain-in-string/">mock-domain-in-string</a> を補完しますが、ドメインリストを絞り込みマッチを正確にするため、メール形式を特別に扱います。</p>
 <h2 id="_3">例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">admin_email</span> <span class="o">=</span> <span class="s2">&quot;admin@example.com&quot;</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">admin_email</span> <span class="o">=</span> <span class="s2">"admin@example.com"</span>
 </span></code></pre></div>
 <h2 id="_4">修正例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>アドレスを設定から読み取るか、パラメータとして受け取ります。</p>

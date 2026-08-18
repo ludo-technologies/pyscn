@@ -3414,7 +3414,7 @@
 <h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
 <p>The nil UUID is a legitimate value in a few contexts, but in most application code it's a leftover from a stub <code>DEFAULT_USER_ID = "00..."</code> that was meant to be replaced. Because it parses and serialises like any other UUID, foreign-key lookups, log lines, and audit trails all accept it — and rows start collapsing onto the same "user" without anything raising an error.</p>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DEFAULT_USER_ID</span> <span class="o">=</span> <span class="s2">&quot;00000000-0000-0000-0000-000000000000&quot;</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DEFAULT_USER_ID</span> <span class="o">=</span> <span class="s2">"00000000-0000-0000-0000-000000000000"</span>
 </span></code></pre></div>
 <h2 id="use-instead">Use instead<a class="headerlink" href="#use-instead" title="Permanent link">&para;</a></h2>
 <p>Generate a real UUID at the point of use, or require the caller to supply one. Don't carry a sentinel value that looks like data.</p>

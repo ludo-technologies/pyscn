@@ -3414,7 +3414,7 @@
 <h2 id="_2">为什么这是一个问题<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p>全零 UUID 在少数场景中是合法值，但在大多数应用程序代码中，它是桩代码 <code>DEFAULT_USER_ID = "00..."</code> 的残留，本应被替换。因为它像其他 UUID 一样能被解析和序列化，外键查找、日志行和审计记录都会接受它——于是行记录开始汇聚到同一个"用户"上，而不会有任何错误被抛出。</p>
 <h2 id="_3">示例<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DEFAULT_USER_ID</span> <span class="o">=</span> <span class="s2">&quot;00000000-0000-0000-0000-000000000000&quot;</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">DEFAULT_USER_ID</span> <span class="o">=</span> <span class="s2">"00000000-0000-0000-0000-000000000000"</span>
 </span></code></pre></div>
 <h2 id="_4">修正示例<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>在使用时生成真实的 UUID，或要求调用者提供。不要携带一个看起来像数据的哨兵值。</p>
