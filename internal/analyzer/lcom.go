@@ -201,7 +201,18 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 		// the InstanceVariables count, but keep the method out of the graph.
 		if isConstructor(node.Name) {
 			excluded++
-			a.extractInstanceVars(node, excludedVars)
+			ctorVars := make(map[string]bool)
+			a.extractInstanceVars(node, ctorVars)
+			for name := range ctorVars {
+				// Same reclassification the participating methods below get: a
+				// bare `self.<prop>` read invokes the getter, so it is not an
+				// instance variable. The constructor is out of the graph, so
+				// there is no call edge left to record for it.
+				if propertyNames[name] {
+					continue
+				}
+				excludedVars[name] = true
+			}
 			continue
 		}
 

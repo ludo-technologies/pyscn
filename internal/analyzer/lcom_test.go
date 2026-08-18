@@ -1065,3 +1065,60 @@ class OnlyCtor:
 	assert.Equal(t, 1, r.InstanceVariables)
 	assert.Equal(t, "low", r.RiskLevel)
 }
+
+// TestLCOMAnalyzer_ConstructorPropertyReadsAreNotVariables guards the property
+// reclassification on the constructor path. A bare `self.<prop>` read invokes
+// the getter through the descriptor protocol, so it must not reach
+// InstanceVariables just because the read happens inside a constructor.
+func TestLCOMAnalyzer_ConstructorPropertyReadsAreNotVariables(t *testing.T) {
+	p := parser.New()
+	code := `
+class Cached:
+    def __init__(self):
+        self._width = 1
+        self.cached = self.doubled
+    @property
+    def doubled(self):
+        return self._width * 2
+    def show(self):
+        return self._width
+`
+	result, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	analyzer := NewLCOMAnalyzer(nil)
+	results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	r := results[0]
+	assert.Equal(t, 2, r.InstanceVariables, "self._width and self.cached; self.doubled is a getter call")
+	assert.Equal(t, 1, r.LCOM4)
+	assert.Equal(t, [][]string{{"doubled", "show"}}, r.MethodGroups)
+}
+
+// TestLCOMAnalyzer_ConstructorOnlyPropertyReadAddsNoVariable pins the narrow
+// case where a property is the only thing the constructor reads, so a leak
+// would be visible as a variable no method actually stores.
+func TestLCOMAnalyzer_ConstructorOnlyPropertyReadAddsNoVariable(t *testing.T) {
+	p := parser.New()
+	code := `
+class Probe:
+    def __init__(self):
+        print(self.ready)
+    @property
+    def ready(self):
+        return True
+`
+	result, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	analyzer := NewLCOMAnalyzer(nil)
+	results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	r := results[0]
+	assert.Equal(t, 0, r.InstanceVariables, "the class stores no instance state")
+	assert.Equal(t, 1, r.ExcludedMethods, "__init__")
+}
