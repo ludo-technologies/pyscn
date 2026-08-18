@@ -8,7 +8,9 @@
 
 Flags classes whose methods don't share instance state (the LCOM4 metric — Lack of Cohesion of Methods, version 4). pyscn builds a graph where two methods are connected if they touch a common `self.` attribute, then counts the connected components. `LCOM4 = 1` means every method is related to every other; `LCOM4 = N` means the class is really `N` unrelated sub-classes glued together.
 
-Methods decorated with `@staticmethod` or `@classmethod` do not reference `self` and are excluded from the graph.
+Methods decorated with `@staticmethod`, `@classmethod`, or `@abstractmethod` do not reference instance state and are excluded from the graph.
+
+Constructors (`__init__`, `__new__`, and the dataclass `__post_init__` hook) are excluded too. A constructor typically initializes every attribute of the class, so keeping it in the graph links all of the responsibility clusters it sets up and collapses `LCOM4` to `1` for almost any class. The attributes it introduces still count toward `instance_variables`.
 
 In plain terms: *this class is doing unrelated jobs — split it, or make it a module of functions.*
 

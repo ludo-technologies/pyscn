@@ -132,7 +132,7 @@ class ClassWithDecorators:
 			expectedCount:    1,
 			expectedLCOM:     map[string]int{"ClassWithDecorators": 1},
 			expectedRisk:     map[string]string{"ClassWithDecorators": "low"},
-			expectedExcluded: map[string]int{"ClassWithDecorators": 2},
+			expectedExcluded: map[string]int{"ClassWithDecorators": 3},
 		},
 		{
 			name: "abstract methods excluded from LCOM4 grouping",
@@ -512,18 +512,24 @@ class A:
         self._sep = '/'
     def render(self):
         return f"x{self._sep}y"
+    def peer(self):
+        return self._sep
 
 class B:
     def __init__(self):
         self._sep = '/'
     def render(self):
         return f"x{1:{self._sep}>5}y"
+    def peer(self):
+        return self._sep
 
 class C:
     def __init__(self):
         self._sep = '/'
     def render(self):
         return "x" + self._sep + "y"
+    def peer(self):
+        return self._sep
 
 class D:
     def __init__(self):
@@ -538,6 +544,8 @@ class E:
         self._x = 1
     def render(self):
         return f"{f'{self._x}'}"
+    def peer(self):
+        return self._x
 `
 	result, err := p.Parse(context.Background(), []byte(code))
 	require.NoError(t, err)
@@ -553,11 +561,11 @@ class E:
 	}
 
 	expectedGroups := map[string][][]string{
-		"A": {{"__init__", "render"}},
-		"B": {{"__init__", "render"}},
-		"C": {{"__init__", "render"}},
-		"D": {{"__init__", "m1", "m2"}},
-		"E": {{"__init__", "render"}},
+		"A": {{"peer", "render"}},
+		"B": {{"peer", "render"}},
+		"C": {{"peer", "render"}},
+		"D": {{"m1", "m2"}},
+		"E": {{"peer", "render"}},
 	}
 
 	for className, groups := range expectedGroups {
@@ -628,10 +636,10 @@ class MultipleItems:
 	}
 
 	expectedGroups := map[string][][]string{
-		"B":             {{"__del__", "__init__", "write"}},
-		"K":             {{"__init__", "m1", "m2"}},
-		"AsyncContext":  {{"__init__", "acquire", "current"}},
-		"MultipleItems": {{"__init__", "copy", "read_a", "read_b"}},
+		"B":             {{"__del__", "write"}},
+		"K":             {{"m1", "m2"}},
+		"AsyncContext":  {{"acquire", "current"}},
+		"MultipleItems": {{"copy", "read_a", "read_b"}},
 	}
 
 	for className, groups := range expectedGroups {
@@ -689,7 +697,7 @@ Image._fields_ = [
 	assert.Equal(t, "Image", r.ClassName)
 	assert.Equal(t, 1, r.LCOM4)
 	assert.Equal(t, 5, r.InstanceVariables)
-	assert.Equal(t, [][]string{{"__init__", "export", "is_ready", "resize"}}, r.MethodGroups)
+	assert.Equal(t, [][]string{{"export", "is_ready", "resize"}}, r.MethodGroups)
 }
 
 func TestLCOMAnalyzer_CtypesFieldsDoNotTreatSelfParameterAsFieldAccess(t *testing.T) {
@@ -884,7 +892,7 @@ class Point:
 		r := results[0]
 		assert.Equal(t, "Point", r.ClassName)
 		assert.Equal(t, 14, r.TotalMethods)
-		assert.Equal(t, 6, r.ExcludedMethods)
+		assert.Equal(t, 7, r.ExcludedMethods)
 		assert.Equal(t, 3, r.InstanceVariables, "self.x, self.y, self.foo")
 		assert.Equal(t, 3, r.LCOM4)
 	})
@@ -917,6 +925,143 @@ class HammettRunner(TestRunner):
 		r, ok := byName["HammettRunner"]
 		require.True(t, ok, "missing class HammettRunner")
 		assert.Equal(t, 1, r.InstanceVariables, "self.hammett_kwargs")
-		assert.Equal(t, [][]string{{"__init__", "other_method"}}, r.MethodGroups)
+		assert.Equal(t, [][]string{{"other_method"}}, r.MethodGroups)
 	})
+}
+
+// TestLCOMAnalyzer_ConstructorsExcludedFromGraph pins the repro from
+// https://github.com/ludo-technologies/pyscn/issues/698. A constructor that
+// initializes every attribute unions all of the class's responsibility
+// clusters, so leaving it in the graph reported LCOM4=1 for a class with two
+// plainly separate concerns.
+func TestLCOMAnalyzer_ConstructorsExcludedFromGraph(t *testing.T) {
+	p := parser.New()
+	code := `
+class Incohesive:
+    def __init__(self):
+        self.a = 1
+        self.b = 2
+    def uses_a(self):
+        return self.a + 1
+    def also_a(self):
+        return self.a * 2
+    def uses_b(self):
+        return self.b - 1
+    def also_b(self):
+        return self.b / 2
+`
+	result, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	analyzer := NewLCOMAnalyzer(nil)
+	results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	r := results[0]
+	assert.Equal(t, 2, r.LCOM4, "the two concerns must stay separate")
+	assert.Equal(t, [][]string{{"also_a", "uses_a"}, {"also_b", "uses_b"}}, r.MethodGroups)
+	assert.Equal(t, 5, r.TotalMethods)
+	assert.Equal(t, 1, r.ExcludedMethods, "__init__")
+	assert.Equal(t, 2, r.InstanceVariables, "self.a, self.b stay counted")
+}
+
+// TestLCOMAnalyzer_ConstructorVariantsExcluded covers the other two shapes that
+// initialize an instance: __new__ and the dataclass __post_init__ hook.
+func TestLCOMAnalyzer_ConstructorVariantsExcluded(t *testing.T) {
+	p := parser.New()
+	code := `
+class ViaNew:
+    def __new__(cls):
+        self = super().__new__(cls)
+        self.a = 1
+        self.b = 2
+        return self
+    def uses_a(self):
+        return self.a
+    def uses_b(self):
+        return self.b
+
+class ViaPostInit:
+    def __post_init__(self):
+        self.a = 1
+        self.b = 2
+    def uses_a(self):
+        return self.a
+    def uses_b(self):
+        return self.b
+`
+	result, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	analyzer := NewLCOMAnalyzer(nil)
+	results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+	require.NoError(t, err)
+
+	byName := make(map[string]*LCOMResult, len(results))
+	for _, res := range results {
+		byName[res.ClassName] = res
+	}
+
+	for _, className := range []string{"ViaNew", "ViaPostInit"} {
+		t.Run(className, func(t *testing.T) {
+			r, ok := byName[className]
+			require.True(t, ok, "missing class %s", className)
+			assert.Equal(t, 2, r.LCOM4)
+			assert.Equal(t, [][]string{{"uses_a"}, {"uses_b"}}, r.MethodGroups)
+			assert.Equal(t, 1, r.ExcludedMethods)
+		})
+	}
+}
+
+// TestLCOMAnalyzer_ConstructorOnlyVariablesStillCounted guards the
+// InstanceVariables statistic: an attribute that only the constructor touches
+// must survive the constructor leaving the graph.
+func TestLCOMAnalyzer_ConstructorOnlyVariablesStillCounted(t *testing.T) {
+	p := parser.New()
+	code := `
+class Holder:
+    def __init__(self):
+        self.used = 1
+        self.only_here = 2
+    def read(self):
+        return self.used
+`
+	result, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	analyzer := NewLCOMAnalyzer(nil)
+	results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	r := results[0]
+	assert.Equal(t, 2, r.InstanceVariables, "self.used and self.only_here")
+	assert.Equal(t, 1, r.LCOM4)
+	assert.Equal(t, [][]string{{"read"}}, r.MethodGroups)
+}
+
+// TestLCOMAnalyzer_ConstructorOnlyClass keeps a class whose only method is a
+// constructor trivially cohesive rather than reporting an empty graph.
+func TestLCOMAnalyzer_ConstructorOnlyClass(t *testing.T) {
+	p := parser.New()
+	code := `
+class OnlyCtor:
+    def __init__(self):
+        self.a = 1
+`
+	result, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	analyzer := NewLCOMAnalyzer(nil)
+	results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	r := results[0]
+	assert.Equal(t, 1, r.LCOM4)
+	assert.Equal(t, 1, r.TotalMethods)
+	assert.Equal(t, 1, r.ExcludedMethods)
+	assert.Equal(t, 1, r.InstanceVariables)
+	assert.Equal(t, "low", r.RiskLevel)
 }

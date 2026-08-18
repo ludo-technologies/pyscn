@@ -8,7 +8,9 @@
 
 Signale les classes dont les méthodes ne partagent pas d'état d'instance (la métrique LCOM4 — Lack of Cohesion of Methods, version 4). pyscn construit un graphe dans lequel deux méthodes sont connectées si elles touchent un attribut `self.` commun, puis compte les composantes connexes. `LCOM4 = 1` signifie que chaque méthode est liée à toutes les autres ; `LCOM4 = N` signifie que la classe est en réalité `N` sous-classes indépendantes collées ensemble.
 
-Les méthodes décorées avec `@staticmethod` ou `@classmethod` ne référencent pas `self` et sont exclues du graphe.
+Les méthodes décorées avec `@staticmethod`, `@classmethod` ou `@abstractmethod` ne référencent pas l'état de l'instance et sont exclues du graphe.
+
+Les constructeurs (`__init__`, `__new__` et le hook `__post_init__` des dataclasses) sont également exclus. Un constructeur initialise généralement tous les attributs de la classe : le conserver dans le graphe relie donc toutes les grappes de responsabilités qu'il met en place et ramène `LCOM4` à `1` pour presque n'importe quelle classe. Les attributs qu'il introduit restent comptabilisés dans `instance_variables`.
 
 En clair : *cette classe accomplit des tâches sans rapport — scindez-la, ou faites-en un module de fonctions.*
 

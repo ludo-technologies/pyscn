@@ -21,7 +21,7 @@ type LCOMResult struct {
 
 	// Method statistics
 	TotalMethods    int // All methods found in class
-	ExcludedMethods int // @staticmethod, @classmethod, and @abstractmethod excluded
+	ExcludedMethods int // @staticmethod/@classmethod/@abstractmethod and constructors excluded
 
 	// Instance variable count
 	InstanceVariables int // Distinct self.xxx variables
@@ -99,17 +99,21 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string, dec
 	}
 
 	// Step 1: Collect methods, their instance variable accesses, and intra-class calls
-	methods, excluded, methodCalls := a.collectMethods(classNode, declaredFields)
-	result.TotalMethods = len(methods) + excluded
-	result.ExcludedMethods = excluded
+	collected := a.collectMethods(classNode, declaredFields)
+	methods, methodCalls := collected.methods, collected.calls
+	result.TotalMethods = len(methods) + collected.excluded
+	result.ExcludedMethods = collected.excluded
 
-	// Step 2: Collect all distinct instance variables, including ctypes-declared
-	// fields that no method accesses
+	// Step 2: Collect all distinct instance variables, including the ones only a
+	// constructor touches and ctypes-declared fields that no method accesses
 	allVars := make(map[string]bool)
 	for _, vars := range methods {
 		for v := range vars {
 			allVars[v] = true
 		}
+	}
+	for v := range collected.excludedVars {
+		allVars[v] = true
 	}
 	for v := range declaredFields {
 		allVars[v] = true
@@ -145,14 +149,30 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string, dec
 	return result, nil
 }
 
+// classMethods holds the method-level facts LCOM4 is computed from.
+type classMethods struct {
+	// methods maps a participating method name to the set of instance
+	// variables it accesses.
+	methods map[string]map[string]bool
+
+	// calls maps a participating method name to the sibling methods it calls
+	// (self.xxx() intra-class calls).
+	calls map[string]map[string]bool
+
+	// excludedVars holds instance variables reached only by excluded methods,
+	// so the reported InstanceVariables count still covers attributes that a
+	// constructor introduces.
+	excludedVars map[string]bool
+
+	// excluded counts the methods kept out of the graph.
+	excluded int
+}
+
 // collectMethods extracts instance methods and their self.xxx variable accesses from a class.
-// Returns:
-//   - methods: methodName -> set of instance variable names
-//   - excluded: count of excluded methods (@classmethod/@staticmethod)
-//   - calls: methodName -> set of called method names (self.xxx() intra-class calls)
-func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map[string]bool) (map[string]map[string]bool, int, map[string]map[string]bool) {
+func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map[string]bool) classMethods {
 	methods := make(map[string]map[string]bool)
 	calls := make(map[string]map[string]bool)
+	excludedVars := make(map[string]bool)
 	excluded := 0
 
 	// A bare `self.<name>` read of a @property is a method invocation via the
@@ -172,6 +192,16 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 		// Check decorators to exclude @classmethod and @staticmethod
 		if a.isClassOrStaticMethod(node) {
 			excluded++
+			continue
+		}
+
+		// Constructors initialize every attribute of the class, so leaving them
+		// in the graph unions all the responsibility clusters they set up and
+		// collapses LCOM4 to 1 for almost any class. Keep their variables for
+		// the InstanceVariables count, but keep the method out of the graph.
+		if isConstructor(node.Name) {
+			excluded++
+			a.extractInstanceVars(node, excludedVars)
 			continue
 		}
 
@@ -203,7 +233,24 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 		calls[node.Name] = methodCalls
 	}
 
-	return methods, excluded, calls
+	return classMethods{
+		methods:      methods,
+		calls:        calls,
+		excludedVars: excludedVars,
+		excluded:     excluded,
+	}
+}
+
+// isConstructor reports whether a method builds the instance rather than using
+// it. `__init__` and `__new__` are Python's constructors; `__post_init__` is the
+// dataclass equivalent and initializes attributes the same way.
+func isConstructor(name string) bool {
+	switch name {
+	case "__init__", "__new__", "__post_init__":
+		return true
+	default:
+		return false
+	}
 }
 
 // isClassOrStaticMethod checks if a method has a @classmethod, @staticmethod, or
