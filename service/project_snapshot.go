@@ -132,13 +132,13 @@ func buildProjectSnapshot(ctx context.Context, paths, analysisPaths, modulePaths
 	cancelled := false
 	for idx := range paths {
 		if cancelled {
-			snapshot.files[idx] = cancelledProjectFile(paths[idx], ctx.Err())
+			snapshot.files[idx] = cancelledProjectFile(paths[idx], snapshotPath(defaultProjectRoot, paths[idx]), ctx.Err())
 			continue
 		}
 
 		select {
 		case <-ctx.Done():
-			snapshot.files[idx] = cancelledProjectFile(paths[idx], ctx.Err())
+			snapshot.files[idx] = cancelledProjectFile(paths[idx], snapshotPath(defaultProjectRoot, paths[idx]), ctx.Err())
 			cancelled = true
 		case jobs <- idx:
 		}
@@ -149,7 +149,7 @@ func buildProjectSnapshot(ctx context.Context, paths, analysisPaths, modulePaths
 
 	for idx, path := range paths {
 		if snapshot.files[idx] == nil {
-			snapshot.files[idx] = cancelledProjectFile(path, ctx.Err())
+			snapshot.files[idx] = cancelledProjectFile(path, snapshotPath(defaultProjectRoot, path), ctx.Err())
 		}
 	}
 	if exposeCompatibilityFiles {
@@ -510,13 +510,14 @@ func snapshotPath(captureRoot, path string) string {
 	return filepath.Clean(filepath.Join(captureRoot, path))
 }
 
-func cancelledProjectFile(path string, err error) *ProjectFile {
+func cancelledProjectFile(path, identityPath string, err error) *ProjectFile {
 	if err == nil {
 		err = context.Canceled
 	}
 	return &ProjectFile{
-		Path:    path,
-		ReadErr: fmt.Errorf("analysis cancelled: %w", err),
+		Path:         path,
+		identityPath: identityPath,
+		ReadErr:      fmt.Errorf("analysis cancelled: %w", err),
 	}
 }
 

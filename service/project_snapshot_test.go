@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -100,6 +101,29 @@ func TestAnalysisProjectSnapshotKeepsSourceAndModuleScopesDistinct(t *testing.T)
 	modules := snapshot.selectedModuleFiles(&ModuleGraphOptions{IncludePatterns: domain.DefaultPythonModuleIncludePatterns()})
 	if len(modules) != 2 {
 		t.Fatalf("expected source and stub module files, got %d", len(modules))
+	}
+}
+
+func TestAnalysisProjectSnapshotRetainsCancelledFilesInCoverage(t *testing.T) {
+	projectRoot := t.TempDir()
+	paths := make([]string, 100)
+	for index := range paths {
+		paths[index] = filepath.Join(projectRoot, fmt.Sprintf("module_%d.py", index))
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	snapshot := BuildAnalysisProjectSnapshot(ctx, paths, paths, ProjectSnapshotOptions{})
+
+	if got := snapshot.Paths(); len(got) != len(paths) {
+		t.Fatalf("expected %d cancelled paths, got %d", len(paths), len(got))
+	}
+	coverage := snapshot.Coverage()
+	if coverage.TotalFiles != len(paths) || coverage.AnalyzedFiles != 0 || coverage.SkippedFiles != len(paths) {
+		t.Fatalf("expected all cancelled files in coverage, got %+v", coverage)
+	}
+	if len(coverage.Diagnostics) != len(paths) {
+		t.Fatalf("expected one cancellation diagnostic per file, got %d", len(coverage.Diagnostics))
 	}
 }
 
