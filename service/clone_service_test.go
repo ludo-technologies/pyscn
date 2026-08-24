@@ -74,7 +74,7 @@ func TestCloneService_AnalyzeSnapshotUsesCapturedSource(t *testing.T) {
 	}
 }
 
-func TestCloneService_AnalyzeSnapshotUsesCapturedAnalysisScope(t *testing.T) {
+func TestCloneService_AnalyzeSnapshotHonorsRequestSelection(t *testing.T) {
 	projectRoot := t.TempDir()
 	includedPath := filepath.Join(projectRoot, "pkg", "included.py")
 	excludedPath := filepath.Join(projectRoot, "vendor", "excluded.py")
@@ -88,9 +88,9 @@ func TestCloneService_AnalyzeSnapshotUsesCapturedAnalysisScope(t *testing.T) {
 	}
 	snapshot := BuildAnalysisProjectSnapshot(
 		context.Background(),
-		[]string{includedPath},
 		[]string{includedPath, excludedPath},
-		ProjectSnapshotOptions{},
+		[]string{includedPath, excludedPath},
+		ProjectSnapshotOptions{ProjectRoot: projectRoot},
 	)
 	req := newDefaultCloneRequest(projectRoot)
 	req.IncludePatterns = []string{"pkg/**/*.py"}
