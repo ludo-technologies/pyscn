@@ -339,7 +339,7 @@ func (s *ProjectSnapshot) selectedModuleFiles(options *ModuleGraphOptions) []*Pr
 
 func matchesFileSelection(path string, includePatterns, excludePatterns []string) bool {
 	for _, pattern := range excludePatterns {
-		if patternMatches(pattern, path, true) {
+		if patternMatches(pattern, path) {
 			return false
 		}
 	}
@@ -347,7 +347,7 @@ func matchesFileSelection(path string, includePatterns, excludePatterns []string
 		return true
 	}
 	for _, pattern := range includePatterns {
-		if patternMatches(pattern, path, false) {
+		if patternMatches(pattern, path) {
 			return true
 		}
 	}
