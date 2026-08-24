@@ -496,15 +496,13 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 
 	snapshot := service.BuildAnalysisProjectSnapshot(ctx, analysisFiles, moduleFiles, service.ProjectSnapshotOptions{
 		IncludeRawMetrics: uc.complexityUseCase != nil && !useCaseCfg.SkipComplexity,
+		ProjectRoot:       service.FindProjectRoot(paths),
 	})
 
 	var moduleGraph *service.ProjectModuleGraph
 	var moduleGraphErr error
 	if uc.needsModuleGraph(useCaseCfg) {
-		moduleGraph, moduleGraphErr = snapshot.BuildDependencyGraph(ctx, &service.ModuleGraphOptions{
-			ProjectRoot: service.FindProjectRoot(paths),
-			Graph:       executionCfg.ModuleGraph,
-		})
+		moduleGraph, moduleGraphErr = snapshot.BuildDependencyGraph(ctx, &executionCfg.ModuleGraph)
 	}
 
 	// Start unified progress tracking; task completions feed back into the

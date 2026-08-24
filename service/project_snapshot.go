@@ -20,18 +20,14 @@ type ProjectSnapshot struct {
 	analysisFiles      map[string]struct{}
 	moduleFiles        map[string]struct{}
 	defaultProjectRoot string
+	projectRoot        string
+	moduleRoots        []string
 }
 
 // ProjectSnapshotOptions controls which optional per-file analysis caches are built.
 type ProjectSnapshotOptions struct {
 	IncludeRawMetrics bool
-}
-
-// ModuleGraphOptions controls how a project snapshot is projected into a
-// module graph.
-type ModuleGraphOptions struct {
-	ProjectRoot string
-	Graph       domain.ModuleGraphOptions
+	ProjectRoot       string
 }
 
 // ProjectModuleGraph is an owned graph projection of a project snapshot. Its
@@ -88,11 +84,18 @@ func buildProjectSnapshot(ctx context.Context, paths, analysisPaths, modulePaths
 	}
 
 	defaultProjectRoot, _ := os.Getwd()
+	projectRoot := options.ProjectRoot
+	if projectRoot == "" {
+		projectRoot = FindProjectRoot(paths)
+	}
+	projectRoot = snapshotPath(defaultProjectRoot, projectRoot)
 	snapshot := &ProjectSnapshot{
 		files:              make([]*ProjectFile, len(paths)),
 		analysisFiles:      snapshotPathSet(defaultProjectRoot, analysisPaths),
 		moduleFiles:        snapshotPathSet(defaultProjectRoot, modulePaths),
 		defaultProjectRoot: defaultProjectRoot,
+		projectRoot:        projectRoot,
+		moduleRoots:        captureModuleRoots(projectRoot),
 	}
 	if len(paths) == 0 {
 		return snapshot
@@ -213,7 +216,7 @@ func (s *ProjectSnapshot) Coverage() domain.AnalysisCoverage {
 
 // BuildDependencyGraph projects the snapshot's successfully parsed files into
 // a new dependency graph. The returned graph is owned by the caller.
-func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *ModuleGraphOptions) (*ProjectModuleGraph, error) {
+func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, graphOptions *domain.ModuleGraphOptions) (*ProjectModuleGraph, error) {
 	if s == nil {
 		return nil, fmt.Errorf("project snapshot is required")
 	}
@@ -237,20 +240,16 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 		parsedModules = append(parsedModules, parsedModule)
 	}
 
-	projectRoot := s.defaultProjectRoot
-	graphOptions := domain.ModuleGraphOptions{}
-	if options != nil {
-		if options.ProjectRoot != "" {
-			projectRoot = snapshotPath(s.defaultProjectRoot, options.ProjectRoot)
-		}
-		graphOptions = options.Graph
+	policy := domain.ModuleGraphOptions{}
+	if graphOptions != nil {
+		policy = *graphOptions
 	}
 	analyzerOptions := &analyzer.ModuleAnalysisOptions{
-		ProjectRoot:       projectRoot,
-		ModuleRoots:       capturedModuleRoots(projectRoot, moduleFiles),
-		IncludeStdLib:     domain.BoolPtr(graphOptions.IncludeStdLib),
-		IncludeThirdParty: domain.BoolPtr(graphOptions.IncludeThirdParty),
-		FollowRelative:    domain.BoolPtr(graphOptions.FollowRelative),
+		ProjectRoot:       s.projectRoot,
+		ModuleRoots:       append([]string(nil), s.moduleRoots...),
+		IncludeStdLib:     domain.BoolPtr(policy.IncludeStdLib),
+		IncludeThirdParty: domain.BoolPtr(policy.IncludeThirdParty),
+		FollowRelative:    domain.BoolPtr(policy.FollowRelative),
 		IncludePatterns:   []string{},
 		ExcludePatterns:   []string{},
 	}
@@ -261,10 +260,6 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 	graph, err := moduleAnalyzer.AnalyzeParsedModules(ctx, parsedModules)
 	if err != nil {
 		return nil, fmt.Errorf("analyze parsed modules: %w", err)
-	}
-	policy := domain.ModuleGraphOptions{}
-	if options != nil {
-		policy = options.Graph
 	}
 	return &ProjectModuleGraph{graph: graph, policy: policy}, nil
 }
@@ -352,30 +347,23 @@ func snapshotPathSet(captureRoot string, paths []string) map[string]struct{} {
 	return set
 }
 
-func capturedModuleRoots(projectRoot string, files []*ProjectFile) []string {
+func captureModuleRoots(projectRoot string) []string {
 	absoluteRoot := filepath.Clean(projectRoot)
 	srcRoot := filepath.Join(absoluteRoot, "src")
-	hasSrcModule := false
-	hasSrcPackageInit := false
-	for _, file := range files {
-		if file == nil {
-			continue
-		}
-		absolutePath := file.identityPath
-		relative, err := filepath.Rel(srcRoot, absolutePath)
-		if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
-			continue
-		}
-		hasSrcModule = true
-		if relative == "__init__.py" || relative == "__init__.pyi" {
-			hasSrcPackageInit = true
-		}
-	}
 	roots := make([]string, 0, 2)
-	if hasSrcModule && !hasSrcPackageInit {
+	if info, err := os.Stat(srcRoot); err == nil && info.IsDir() && !hasPythonPackageInit(srcRoot) {
 		roots = appendUniquePath(roots, srcRoot)
 	}
 	return appendUniquePath(roots, absoluteRoot)
+}
+
+func hasPythonPackageInit(directory string) bool {
+	for _, name := range []string{"__init__.py", "__init__.pyi"} {
+		if _, err := os.Stat(filepath.Join(directory, name)); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func appendUniquePath(paths []string, path string) []string {

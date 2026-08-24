@@ -166,7 +166,7 @@ func TestProjectSnapshotBuildDependencyGraphUsesOnlyCapturedParsedFiles(t *testi
 		t.Fatalf("write broken source: %v", err)
 	}
 
-	snapshot := BuildProjectSnapshotWithOptions(ctx, []string{sourcePath, targetPath, brokenPath}, ProjectSnapshotOptions{})
+	snapshot := BuildProjectSnapshotWithOptions(ctx, []string{sourcePath, targetPath, brokenPath}, ProjectSnapshotOptions{ProjectRoot: projectRoot})
 	projection := snapshot.FileProjections()[0]
 	projection.Path = filepath.Join(projectRoot, "mutated.py")
 	projection.AST = nil
@@ -174,7 +174,7 @@ func TestProjectSnapshotBuildDependencyGraphUsesOnlyCapturedParsedFiles(t *testi
 		t.Fatalf("replace captured source: %v", err)
 	}
 
-	graph, err := snapshot.BuildDependencyGraph(ctx, &ModuleGraphOptions{ProjectRoot: projectRoot})
+	graph, err := snapshot.BuildDependencyGraph(ctx, nil)
 	if err != nil {
 		t.Fatalf("build dependency graph: %v", err)
 	}
@@ -222,14 +222,17 @@ func TestProjectSnapshotCapturesSrcModuleRoot(t *testing.T) {
 	if err := os.WriteFile(targetPath, []byte("VALUE = 1\n"), 0o644); err != nil {
 		t.Fatalf("write target: %v", err)
 	}
-	snapshot := BuildProjectSnapshot(context.Background(), []string{sourcePath, targetPath})
+	snapshot := BuildProjectSnapshotWithOptions(context.Background(), []string{sourcePath, targetPath}, ProjectSnapshotOptions{
+		IncludeRawMetrics: true,
+		ProjectRoot:       projectRoot,
+	})
 	for _, path := range []string{sourcePath, targetPath, packageDir, filepath.Join(projectRoot, "src")} {
 		if err := os.Remove(path); err != nil {
 			t.Fatalf("remove captured path %s: %v", path, err)
 		}
 	}
 
-	graph, err := snapshot.BuildDependencyGraph(context.Background(), &ModuleGraphOptions{ProjectRoot: projectRoot})
+	graph, err := snapshot.BuildDependencyGraph(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("build captured src graph: %v", err)
 	}
@@ -260,9 +263,9 @@ func TestProjectSnapshotPreservesNamespacePackageFromSelectedSubtree(t *testing.
 		context.Background(),
 		[]string{alphaPath, betaPath},
 		[]string{alphaPath, betaPath},
-		ProjectSnapshotOptions{},
+		ProjectSnapshotOptions{ProjectRoot: projectRoot},
 	)
-	graph, err := snapshot.BuildDependencyGraph(context.Background(), &ModuleGraphOptions{ProjectRoot: projectRoot})
+	graph, err := snapshot.BuildDependencyGraph(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("build namespace graph: %v", err)
 	}
@@ -271,6 +274,45 @@ func TestProjectSnapshotPreservesNamespacePackageFromSelectedSubtree(t *testing.
 	}
 	if !graph.graph.Nodes["acme.alpha"].Dependencies["acme.beta"] {
 		t.Fatalf("expected namespace import edge, got %+v", graph.graph.Nodes["acme.alpha"].Dependencies)
+	}
+}
+
+func TestProjectSnapshotCapturesSrcPackageRootOutsideSelectedSubtree(t *testing.T) {
+	projectRoot := t.TempDir()
+	packageDir := filepath.Join(projectRoot, "src", "pkg")
+	if err := os.MkdirAll(packageDir, 0o755); err != nil {
+		t.Fatalf("create package: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectRoot, "src", "__init__.py"), []byte(""), 0o644); err != nil {
+		t.Fatalf("write src package marker: %v", err)
+	}
+	alphaPath := filepath.Join(packageDir, "alpha.py")
+	betaPath := filepath.Join(packageDir, "beta.py")
+	if err := os.WriteFile(alphaPath, []byte("from src.pkg import beta\n"), 0o644); err != nil {
+		t.Fatalf("write alpha: %v", err)
+	}
+	if err := os.WriteFile(betaPath, []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatalf("write beta: %v", err)
+	}
+
+	snapshot := BuildAnalysisProjectSnapshot(
+		context.Background(),
+		[]string{alphaPath, betaPath},
+		[]string{alphaPath, betaPath},
+		ProjectSnapshotOptions{ProjectRoot: projectRoot},
+	)
+	if err := os.RemoveAll(filepath.Join(projectRoot, "src")); err != nil {
+		t.Fatalf("remove captured source tree: %v", err)
+	}
+	graph, err := snapshot.BuildDependencyGraph(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("build src package graph: %v", err)
+	}
+	if graph.graph.Nodes["src.pkg.alpha"] == nil || graph.graph.Nodes["src.pkg.beta"] == nil {
+		t.Fatalf("expected src-qualified modules, got %+v", graph.graph.Nodes)
+	}
+	if !graph.graph.Nodes["src.pkg.alpha"].Dependencies["src.pkg.beta"] {
+		t.Fatalf("expected src package import edge, got %+v", graph.graph.Nodes["src.pkg.alpha"].Dependencies)
 	}
 }
 
@@ -296,6 +338,9 @@ func TestProjectSnapshotResolvesRelativeModulePathsAtCaptureTime(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(packageDir, "target.py"), []byte("VALUE = 1\n"), 0o644); err != nil {
 		t.Fatalf("write target: %v", err)
 	}
+	if err := os.WriteFile(filepath.Join(projectRoot, "pyproject.toml"), []byte("[project]\nname = 'snapshot-fixture'\n"), 0o644); err != nil {
+		t.Fatalf("write project marker: %v", err)
+	}
 	if err := os.Chdir(projectRoot); err != nil {
 		t.Fatalf("enter project root: %v", err)
 	}
@@ -305,7 +350,7 @@ func TestProjectSnapshotResolvesRelativeModulePathsAtCaptureTime(t *testing.T) {
 	if err := os.Chdir(t.TempDir()); err != nil {
 		t.Fatalf("leave captured project: %v", err)
 	}
-	graph, err := snapshot.BuildDependencyGraph(context.Background(), &ModuleGraphOptions{})
+	graph, err := snapshot.BuildDependencyGraph(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("build graph after working directory changed: %v", err)
 	}

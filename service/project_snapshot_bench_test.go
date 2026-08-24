@@ -32,8 +32,8 @@ func BenchmarkAggregateModuleGraphReuse(b *testing.B) {
 	b.Run("capture_once_and_clone", func(b *testing.B) {
 		b.ReportAllocs()
 		for range b.N {
-			snapshot := BuildAnalysisProjectSnapshot(ctx, paths, paths, ProjectSnapshotOptions{IncludeRawMetrics: true})
-			graph, err := snapshot.BuildDependencyGraph(ctx, &ModuleGraphOptions{ProjectRoot: projectRoot})
+			snapshot := BuildAnalysisProjectSnapshot(ctx, paths, paths, ProjectSnapshotOptions{IncludeRawMetrics: true, ProjectRoot: projectRoot})
+			graph, err := snapshot.BuildDependencyGraph(ctx, nil)
 			if err != nil {
 				b.Fatal(err)
 			}
