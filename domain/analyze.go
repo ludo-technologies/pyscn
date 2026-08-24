@@ -19,9 +19,10 @@ type AnalyzeOutputFormatter interface {
 type AnalyzeExecutionConfig struct {
 	ConfigPath string
 
-	FileSelection PythonFileSelection
-	Recursive     bool
-	ShowDetails   bool
+	IncludePatterns []string
+	ExcludePatterns []string
+	Recursive       bool
+	ShowDetails     bool
 
 	ComplexityEnabled            bool
 	ComplexityReportUnchanged    bool
@@ -54,6 +55,15 @@ type AnalyzeExecutionConfig struct {
 type PythonFileSelection struct {
 	IncludePatterns []string
 	ExcludePatterns []string
+}
+
+// PythonFileSelection returns an owned value for passing the configured source
+// scope across aggregate-analysis boundaries.
+func (c AnalyzeExecutionConfig) PythonFileSelection() PythonFileSelection {
+	return PythonFileSelection{
+		IncludePatterns: append([]string(nil), c.IncludePatterns...),
+		ExcludePatterns: append([]string(nil), c.ExcludePatterns...),
+	}
 }
 
 // ModuleGraphOptions is the resolved module graph policy shared by graph

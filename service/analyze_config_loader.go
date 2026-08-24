@@ -61,11 +61,9 @@ func defaultAnalyzeExecutionConfig() domain.AnalyzeExecutionConfig {
 	defaultCloneReq := domain.DefaultCloneRequest()
 
 	return domain.AnalyzeExecutionConfig{
-		ConfigPath: "",
-		FileSelection: domain.PythonFileSelection{
-			IncludePatterns: domain.DefaultAnalysisIncludePatterns(),
-			ExcludePatterns: append([]string(nil), defaultCfg.Analysis.ExcludePatterns...),
-		},
+		ConfigPath:                   "",
+		IncludePatterns:              domain.DefaultAnalysisIncludePatterns(),
+		ExcludePatterns:              append([]string(nil), defaultCfg.Analysis.ExcludePatterns...),
 		Recursive:                    defaultCfg.Analysis.Recursive,
 		ShowDetails:                  defaultCfg.Output.ShowDetails,
 		ComplexityEnabled:            defaultCfg.Complexity.Enabled,
@@ -103,10 +101,10 @@ func analyzeExecutionConfigFromConfig(cfg *config.Config, overrides analyzeEnabl
 	}
 
 	if len(cfg.Analysis.IncludePatterns) > 0 {
-		executionCfg.FileSelection.IncludePatterns = append([]string(nil), cfg.Analysis.IncludePatterns...)
+		executionCfg.IncludePatterns = append([]string(nil), cfg.Analysis.IncludePatterns...)
 	}
 	if len(cfg.Analysis.ExcludePatterns) > 0 {
-		executionCfg.FileSelection.ExcludePatterns = append([]string(nil), cfg.Analysis.ExcludePatterns...)
+		executionCfg.ExcludePatterns = append([]string(nil), cfg.Analysis.ExcludePatterns...)
 	}
 
 	executionCfg.Recursive = cfg.Analysis.Recursive

@@ -844,8 +844,8 @@ func TestAnalyzeUseCase_LoadExecutionConfig(t *testing.T) {
 		if executionCfg.ComplexityMinComplexity != domain.DefaultComplexityMinFilter {
 			t.Errorf("Expected min complexity %d, got %d", domain.DefaultComplexityMinFilter, executionCfg.ComplexityMinComplexity)
 		}
-		if len(executionCfg.FileSelection.IncludePatterns) != 1 || executionCfg.FileSelection.IncludePatterns[0] != "**/*.py" {
-			t.Errorf("Expected default include patterns to include runtime Python files, got %v", executionCfg.FileSelection.IncludePatterns)
+		if len(executionCfg.IncludePatterns) != 1 || executionCfg.IncludePatterns[0] != "**/*.py" {
+			t.Errorf("Expected default include patterns to include runtime Python files, got %v", executionCfg.IncludePatterns)
 		}
 		defaultCloneReq := domain.DefaultCloneRequest()
 		if executionCfg.CloneLSHEnabled != defaultCloneReq.LSHEnabled {
@@ -931,11 +931,11 @@ lsh_auto_threshold = 123
 		if executionCfg.Recursive {
 			t.Error("Expected recursive to be false")
 		}
-		if len(executionCfg.FileSelection.IncludePatterns) != 1 || executionCfg.FileSelection.IncludePatterns[0] != "pkg/**/*.py" {
-			t.Errorf("Expected custom include patterns, got %v", executionCfg.FileSelection.IncludePatterns)
+		if len(executionCfg.IncludePatterns) != 1 || executionCfg.IncludePatterns[0] != "pkg/**/*.py" {
+			t.Errorf("Expected custom include patterns, got %v", executionCfg.IncludePatterns)
 		}
-		if len(executionCfg.FileSelection.ExcludePatterns) != 1 || executionCfg.FileSelection.ExcludePatterns[0] != "tests/**/*.py" {
-			t.Errorf("Expected custom exclude patterns, got %v", executionCfg.FileSelection.ExcludePatterns)
+		if len(executionCfg.ExcludePatterns) != 1 || executionCfg.ExcludePatterns[0] != "tests/**/*.py" {
+			t.Errorf("Expected custom exclude patterns, got %v", executionCfg.ExcludePatterns)
 		}
 		if executionCfg.CloneLSHEnabled != "true" {
 			t.Errorf("Expected LSH enabled to be %q, got %q", "true", executionCfg.CloneLSHEnabled)

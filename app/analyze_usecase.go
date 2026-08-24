@@ -454,8 +454,8 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 	analysisFiles, err := uc.fileReader.CollectPythonFiles(
 		paths,
 		executionCfg.Recursive,
-		executionCfg.FileSelection.IncludePatterns,
-		executionCfg.FileSelection.ExcludePatterns,
+		executionCfg.IncludePatterns,
+		executionCfg.ExcludePatterns,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to collect Python files: %w", err)
@@ -463,7 +463,7 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 
 	moduleFiles := analysisFiles
 	if uc.needsModuleGraph(useCaseCfg) {
-		moduleSelection := executionCfg.FileSelection.ForModules()
+		moduleSelection := executionCfg.PythonFileSelection().ForModules()
 		moduleFiles, err = uc.fileReader.CollectPythonFiles(
 			paths,
 			executionCfg.Recursive,
