@@ -28,7 +28,7 @@ func NewComplexityService() *ComplexityServiceImpl {
 
 // Analyze performs complexity analysis on multiple files
 func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
-	var allFunctions []domain.FunctionComplexity
+	allFunctions := make([]domain.FunctionComplexity, 0)
 	var allRawMetrics []domain.RawMetrics
 	var rawMetricResults []*analyzer.RawMetricsResult
 	var warnings []string
@@ -103,7 +103,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 		return nil, fmt.Errorf("project snapshot cannot be nil")
 	}
 
-	var allFunctions []domain.FunctionComplexity
+	allFunctions := make([]domain.FunctionComplexity, 0)
 	var allRawMetrics []domain.RawMetrics
 	var rawMetricResults []*analyzer.RawMetricsResult
 	var warnings []string

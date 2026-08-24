@@ -259,6 +259,12 @@ func (uc *ComplexityUseCase) AnalyzeFile(ctx context.Context, filePath string, r
 }
 
 func attachDirectoryComplexity(response *domain.ComplexityResponse, projectRoot string) error {
+	if response == nil {
+		return fmt.Errorf("complexity response is required")
+	}
+	if response.AnalyzedFunctions == nil {
+		return fmt.Errorf("complete analyzed function population is required")
+	}
 	byDirectory, err := aggregateComplexityByDirectory(response.AnalyzedFunctions, projectRoot)
 	if err != nil {
 		return err
