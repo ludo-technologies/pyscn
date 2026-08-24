@@ -296,11 +296,17 @@ func (s *CBOServiceImpl) sortClasses(classes []domain.ClassCoupling, sortBy doma
 	switch sortBy {
 	case domain.SortByCoupling:
 		sort.Slice(sorted, func(i, j int) bool {
-			return sorted[i].Metrics.CouplingCount > sorted[j].Metrics.CouplingCount
+			if sorted[i].Metrics.CouplingCount != sorted[j].Metrics.CouplingCount {
+				return sorted[i].Metrics.CouplingCount > sorted[j].Metrics.CouplingCount
+			}
+			return cboClassLocationLess(sorted[i], sorted[j])
 		})
 	case domain.SortByName:
 		sort.Slice(sorted, func(i, j int) bool {
-			return sorted[i].Name < sorted[j].Name
+			if sorted[i].Name != sorted[j].Name {
+				return sorted[i].Name < sorted[j].Name
+			}
+			return cboClassLocationLess(sorted[i], sorted[j])
 		})
 	case domain.SortByRisk:
 		sort.Slice(sorted, func(i, j int) bool {
@@ -309,23 +315,42 @@ func (s *CBOServiceImpl) sortClasses(classes []domain.ClassCoupling, sortBy doma
 				domain.RiskLevelMedium: 2,
 				domain.RiskLevelLow:    1,
 			}
-			return riskOrder[sorted[i].RiskLevel] > riskOrder[sorted[j].RiskLevel]
+			if riskOrder[sorted[i].RiskLevel] != riskOrder[sorted[j].RiskLevel] {
+				return riskOrder[sorted[i].RiskLevel] > riskOrder[sorted[j].RiskLevel]
+			}
+			return cboClassLocationLess(sorted[i], sorted[j])
 		})
 	case domain.SortByLocation:
 		sort.Slice(sorted, func(i, j int) bool {
 			if sorted[i].FilePath != sorted[j].FilePath {
 				return sorted[i].FilePath < sorted[j].FilePath
 			}
-			return sorted[i].StartLine < sorted[j].StartLine
+			if sorted[i].StartLine != sorted[j].StartLine {
+				return sorted[i].StartLine < sorted[j].StartLine
+			}
+			return sorted[i].Name < sorted[j].Name
 		})
 	default:
 		// Default to sorting by coupling count (descending)
 		sort.Slice(sorted, func(i, j int) bool {
-			return sorted[i].Metrics.CouplingCount > sorted[j].Metrics.CouplingCount
+			if sorted[i].Metrics.CouplingCount != sorted[j].Metrics.CouplingCount {
+				return sorted[i].Metrics.CouplingCount > sorted[j].Metrics.CouplingCount
+			}
+			return cboClassLocationLess(sorted[i], sorted[j])
 		})
 	}
 
 	return sorted
+}
+
+func cboClassLocationLess(a, b domain.ClassCoupling) bool {
+	if a.FilePath != b.FilePath {
+		return a.FilePath < b.FilePath
+	}
+	if a.StartLine != b.StartLine {
+		return a.StartLine < b.StartLine
+	}
+	return a.Name < b.Name
 }
 
 // generateSummary creates aggregate statistics
@@ -383,7 +408,10 @@ func (s *CBOServiceImpl) generateSummary(classes []domain.ClassCoupling, filesAn
 	sortedByCount := make([]domain.ClassCoupling, len(classes))
 	copy(sortedByCount, classes)
 	sort.Slice(sortedByCount, func(i, j int) bool {
-		return sortedByCount[i].Metrics.CouplingCount > sortedByCount[j].Metrics.CouplingCount
+		if sortedByCount[i].Metrics.CouplingCount != sortedByCount[j].Metrics.CouplingCount {
+			return sortedByCount[i].Metrics.CouplingCount > sortedByCount[j].Metrics.CouplingCount
+		}
+		return cboClassLocationLess(sortedByCount[i], sortedByCount[j])
 	})
 
 	maxTopClasses := 10
@@ -429,16 +457,16 @@ func (s *CBOServiceImpl) buildCBOOptions(req domain.CBORequest) *analyzer.CBOOpt
 // buildConfigForResponse creates config info for response
 func (s *CBOServiceImpl) buildConfigForResponse(req domain.CBORequest) interface{} {
 	return map[string]interface{}{
-		"minCBO":                req.MinCBO,
-		"maxCBO":                req.MaxCBO,
-		"showZeros":             domain.BoolValue(req.ShowZeros, false),
-		"lowThreshold":          req.LowThreshold,
-		"mediumThreshold":       req.MediumThreshold,
-		"includeBuiltins":       domain.BoolValue(req.IncludeBuiltins, false),
-		"includeImports":        domain.BoolValue(req.IncludeImports, true),
-		"groupNamespaceImports": domain.BoolValue(req.GroupNamespaceImports, true),
-		"outputFormat":          req.OutputFormat,
-		"sortBy":                req.SortBy,
+		"min_cbo":                 req.MinCBO,
+		"max_cbo":                 req.MaxCBO,
+		"show_zeros":              domain.BoolValue(req.ShowZeros, false),
+		"low_threshold":           req.LowThreshold,
+		"medium_threshold":        req.MediumThreshold,
+		"include_builtins":        domain.BoolValue(req.IncludeBuiltins, false),
+		"include_imports":         domain.BoolValue(req.IncludeImports, true),
+		"group_namespace_imports": domain.BoolValue(req.GroupNamespaceImports, true),
+		"output_format":           req.OutputFormat,
+		"sort_by":                 req.SortBy,
 	}
 }
 

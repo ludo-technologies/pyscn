@@ -86,9 +86,9 @@ func TestCommunityAnalysisService_AnalyzeGraphReportsCapturedPolicy(t *testing.T
 	require.NoError(t, err)
 	config, ok := result.Config.(map[string]any)
 	require.True(t, ok)
-	assert.Equal(t, true, config["includeStdLib"])
-	assert.Equal(t, false, config["includeThirdParty"])
-	assert.Equal(t, false, config["followRelative"])
+	assert.Equal(t, true, config["include_std_lib"])
+	assert.Equal(t, false, config["include_third_party"])
+	assert.Equal(t, false, config["follow_relative"])
 }
 
 func TestCommunityAnalysisService_Analyze_IsolatedModulesNoEdges(t *testing.T) {

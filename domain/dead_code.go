@@ -27,35 +27,35 @@ const (
 // DeadCodeRequest represents a request for dead code analysis
 type DeadCodeRequest struct {
 	// Input files or directories to analyze
-	Paths []string
+	Paths []string `json:"paths" yaml:"paths"`
 
 	// Output configuration
-	OutputFormat OutputFormat
-	OutputWriter io.Writer
-	OutputPath   string // Path to save output file (for HTML format)
-	NoOpen       bool   // Don't auto-open HTML in browser
-	ShowContext  *bool  // nil = use default (false), non-nil = explicitly set
-	ContextLines int    // Number of lines to show around dead code
+	OutputFormat OutputFormat `json:"output_format" yaml:"output_format"`
+	OutputWriter io.Writer    `json:"-" yaml:"-"`
+	OutputPath   string       `json:"output_path" yaml:"output_path"`     // Path to save output file (for HTML format)
+	NoOpen       bool         `json:"no_open" yaml:"no_open"`             // Don't auto-open HTML in browser
+	ShowContext  *bool        `json:"show_context" yaml:"show_context"`   // nil = use default (false), non-nil = explicitly set
+	ContextLines int          `json:"context_lines" yaml:"context_lines"` // Number of lines to show around dead code
 
 	// Filtering and sorting
-	MinSeverity DeadCodeSeverity
-	SortBy      DeadCodeSortCriteria
+	MinSeverity DeadCodeSeverity     `json:"min_severity" yaml:"min_severity"`
+	SortBy      DeadCodeSortCriteria `json:"sort_by" yaml:"sort_by"`
 
 	// Analysis options
-	Recursive       *bool // nil = unset, non-nil = explicitly set
-	IncludePatterns []string
-	ExcludePatterns []string
-	IgnorePatterns  []string // Patterns for code to ignore (e.g., comments, debug code)
+	Recursive       *bool    `json:"recursive" yaml:"recursive"` // nil = unset, non-nil = explicitly set
+	IncludePatterns []string `json:"include_patterns" yaml:"include_patterns"`
+	ExcludePatterns []string `json:"exclude_patterns" yaml:"exclude_patterns"`
+	IgnorePatterns  []string `json:"ignore_patterns" yaml:"ignore_patterns"` // Patterns for code to ignore (e.g., comments, debug code)
 
 	// Configuration
-	ConfigPath string
+	ConfigPath string `json:"config_path" yaml:"config_path"`
 
 	// Dead code specific options
-	DetectAfterReturn         *bool // nil = use default (true), non-nil = explicitly set
-	DetectAfterBreak          *bool // nil = use default (true), non-nil = explicitly set
-	DetectAfterContinue       *bool // nil = use default (true), non-nil = explicitly set
-	DetectAfterRaise          *bool // nil = use default (true), non-nil = explicitly set
-	DetectUnreachableBranches *bool // nil = use default (true), non-nil = explicitly set
+	DetectAfterReturn         *bool `json:"detect_after_return" yaml:"detect_after_return"`                 // nil = use default (true), non-nil = explicitly set
+	DetectAfterBreak          *bool `json:"detect_after_break" yaml:"detect_after_break"`                   // nil = use default (true), non-nil = explicitly set
+	DetectAfterContinue       *bool `json:"detect_after_continue" yaml:"detect_after_continue"`             // nil = use default (true), non-nil = explicitly set
+	DetectAfterRaise          *bool `json:"detect_after_raise" yaml:"detect_after_raise"`                   // nil = use default (true), non-nil = explicitly set
+	DetectUnreachableBranches *bool `json:"detect_unreachable_branches" yaml:"detect_unreachable_branches"` // nil = use default (true), non-nil = explicitly set
 }
 
 // DeadCodeLocation represents the location of dead code

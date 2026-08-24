@@ -124,12 +124,9 @@ const (
 	CommunityRiskHighRatio   = 0.60 // >= high
 	CommunityRiskMediumRatio = 0.30 // >= medium, otherwise low
 
-	// Files that fail to parse are absent from every metric, so without a
-	// penalty they score better than working code. The bounds are anchored to
-	// the grade thresholds: a single unanalyzable file forfeits an A, and a
-	// target where nothing parses cannot rank above F.
-	MinParseErrorPenalty = 100 - coredomain.GradeAThreshold + 1
-	MaxParseErrorPenalty = 100 - coredomain.GradeDThreshold + 1
+	// Parse-error penalty bounds
+	MinParseErrorPenalty = coredomain.MinParseErrorPenalty
+	MaxParseErrorPenalty = coredomain.MaxParseErrorPenalty
 
 	// Score display scale - all categories normalized to this base
 	MaxScoreBase = coredomain.MaxScoreBase
@@ -373,17 +370,9 @@ func (s *AnalyzeSummary) Validate() error {
 }
 
 // calculateParseErrorPenalty charges the health score for files that could not
-// be analyzed at all. Such a file yields no functions, no dead code, no clones
-// and no coupling, so without this term corrupting a file raises the score.
-// The penalty grows with the unanalyzed fraction and never drops below
-// MinParseErrorPenalty, so one broken file in a large tree still costs a grade.
+// be analyzed at all (max MaxParseErrorPenalty)
 func (s *AnalyzeSummary) calculateParseErrorPenalty() int {
-	if s.SkippedFiles <= 0 || s.TotalFiles <= 0 {
-		return 0
-	}
-
-	ratio := float64(s.SkippedFiles) / float64(s.TotalFiles)
-	return max(int(math.Round(ratio*float64(MaxParseErrorPenalty))), MinParseErrorPenalty)
+	return coredomain.ParseErrorPenalty(s.SkippedFiles, s.TotalFiles)
 }
 
 // calculateComplexityPenalty calculates the penalty for complexity (max 20)

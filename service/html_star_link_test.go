@@ -1,8 +1,11 @@
 package service
 
 import (
+	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // The GitHub call-to-action in report footers is the only path from a generated
@@ -43,10 +46,14 @@ func TestGenerateHTMLFooterIncludesStarLink(t *testing.T) {
 // The analyze report is the one every `pyscn analyze` user sees, so it matters
 // most. It builds its own markup instead of calling GenerateHTMLFooter.
 func TestAnalyzeHTMLTemplateIncludesStarLink(t *testing.T) {
-	if !strings.Contains(analyzeHTMLTemplate, RepositoryURL) {
+	var buf bytes.Buffer
+	if err := writeAnalyzeHTML(&domain.AnalyzeResponse{}, &buf); err != nil {
+		t.Fatalf("render analyze report: %v", err)
+	}
+	if !strings.Contains(buf.String(), RepositoryURL) {
 		t.Error("analyze HTML report has no link back to the repository")
 	}
-	if !strings.Contains(analyzeHTMLTemplate, "report-footer") {
+	if !strings.Contains(buf.String(), "<footer>") {
 		t.Error("analyze HTML report is missing its footer block")
 	}
 }

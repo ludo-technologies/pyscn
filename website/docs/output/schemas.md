@@ -12,7 +12,7 @@ This specification defines the exact shape of JSON, YAML, and CSV output produce
 
 Breaking changes are restricted to major version bumps. Consumers MUST ignore unknown fields.
 
-<!-- Field naming note: in `pyscn analyze` JSON/YAML, nested analyzer objects (`complexity`, `cbo`, `lcom`, `system`) use Go-style PascalCase field names because their response structs do not carry JSON tags. Top-level keys, `dead_code`, `clone`, `suggestions`, and `summary` use snake_case. -->
+<!-- Field naming note: every object key in `pyscn analyze` JSON/YAML is snake_case. Releases up to 1.29.1 emitted Go-style PascalCase inside `complexity`, `cbo`, `lcom`, and `system`, and lowerCamelCase inside the `config` objects of `cbo`, `lcom`, and `community_analysis`; both were renamed to snake_case. -->
 
 ## Top-level structure (`pyscn analyze`)
 
@@ -30,8 +30,6 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
   "mock_data":          { /* MockDataResponse, present when enabled */ },
   "module_quality":     [ /* ModuleQualityMetrics array, omitted when empty */ ],
   "suggestions":   [ /* Suggestion array, omitted when empty */ ],
-  "diagnostics":   [ /* AnalysisDiagnostic array, omitted when complete */ ],
-	"failures":      [ /* AnalysisFailure array, omitted when analyzers complete */ ],
   "summary":       { /* AnalyzeSummary, always present */ },
   "generated_at":  "2026-04-14T10:18:23Z",
   "duration_ms":   2347,
@@ -51,36 +49,10 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
 | `mock_data`          | object \| absent | Present when mock data detection ran.                 | stable |
 | `module_quality`     | array \| absent  | Per-module quality rollups. Omitted when no analyzer produced module data. | stable |
 | `suggestions` | array \| absent   | Derived suggestions. Omitted when empty.               | stable    |
-| `diagnostics` | array \| absent   | Project read/parse failures, independent of analyzer selection. | stable |
-| `failures`    | array \| absent   | Analyzer execution failures retained with partial results.      | stable |
 | `summary`     | object            | Always present. See [`summary`](#summary-object).      | stable    |
 | `generated_at`| string (RFC 3339) | Analysis completion time.                              | stable    |
 | `duration_ms` | integer           | Total analysis duration in milliseconds.               | stable    |
 | `version`     | string            | pyscn semantic version.                                | stable    |
-
-## `diagnostics` array
-
-Each entry identifies a discovered file excluded from every metric. The array is omitted when all discovered files were analyzed.
-
-| Field       | Type   | Description |
-| ----------- | ------ | ----------- |
-| `file_path` | string | Discovered Python source path. |
-| `code`      | string | Stable category: `read_error` or `parse_error`. |
-| `message`   | string | Human-readable failure detail. |
-
-## `failures` array
-
-Each entry identifies an analyzer that could not complete. Partial results may
-still be present, but a response with failures is not healthy.
-
-| Field       | Type             | Description |
-| ----------- | ---------------- | ----------- |
-| `analysis`  | string           | Stable analyzer identifier such as `complexity`, `deadcode`, `clones`, `cbo`, `lcom`, `system`, or `communities`. |
-| `code`      | string           | Stable category. Currently `execution_error`. |
-| `message`   | string           | Human-readable failure detail. |
-| `file_path` | string or absent | Source file associated with the failure, when known. |
-
-The same `failures` array is available on the nested `complexity`, `dead_code`, `clone`, `cbo`, `lcom`, `system`, `community_analysis`, `mock_data`, and DI anti-pattern responses. The field name is `failures` even on legacy response objects whose other fields use Go PascalCase. Mock-data and DI responses also expose a nested `diagnostics` array with the schema above when used outside the canonical aggregate snapshot path.
 
 ## `summary` object { #summary-object }
 
@@ -158,7 +130,7 @@ Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the co
 | ------------------------------ | ------- | -------------------------------------------------------------- |
 | `deps_total_modules`           | integer | Total modules analyzed.                                        |
 | `deps_modules_in_cycles`       | integer | Modules participating in at least one circular dependency.     |
-| `deps_max_depth`               | integer | Longest load-time SCC-condensed dependency path, counted in edges. |
+| `deps_max_depth`               | integer | Edges along the longest load-time dependency chain, the first entry of `LongestChains`. |
 | `deps_main_sequence_deviation` | number  | Average distance from Martin's main sequence, `0`–`1`.         |
 
 ### Architecture metrics
@@ -231,67 +203,67 @@ When complexity analysis completes with no reported functions, `by_directory` is
 
 ## `complexity` object
 
-Mirrors `domain.ComplexityResponse`. Nested field names are Go PascalCase.
+Mirrors `domain.ComplexityResponse`.
 
 ```json
 {
-  "Functions": [ /* FunctionComplexity array */ ],
+  "functions": [ /* FunctionComplexity array */ ],
   "by_directory": [ /* DirectoryComplexityMetrics array; empty when no functions are reported */ ],
-  "Summary": { /* ComplexitySummary */ },
+  "summary": { /* ComplexitySummary */ },
   "raw_metrics": [ /* RawMetrics array, present when computed */ ],
   "raw_metrics_summary": { /* RawMetricsSummary, present when computed */ },
-  "Warnings": [ "..." ],
-  "Errors": [ "..." ],
-  "failures": [ /* AnalysisFailure array, absent when empty */ ],
-  "GeneratedAt": "2026-04-14T10:18:23Z",
-  "Version": "0.14.0",
-  "Config": null
+   "warnings": [ "..." ],
+   "errors": [ "..." ],
+   "failures": [ /* AnalysisFailure array, absent when empty */ ],
+   "generated_at": "2026-04-14T10:18:23Z",
+  "version": "0.14.0",
+  "config": null
 }
 ```
 
 The standalone complexity formatter uses `by_directory` at the report root beside `results`, `summary`, and `metadata`. Its entries and semantics are identical to unified output.
 
-### `Functions[]` element (`FunctionComplexity`)
+### `functions[]` element (`FunctionComplexity`)
 
-| Field         | Type    | Description                                                  |
-| ------------- | ------- | ------------------------------------------------------------ |
-| `Name`        | string  | Function name. `__main__` for module-level code.             |
-| `FilePath`    | string  | Path to source file.                                         |
-| `StartLine`   | integer | 1-based start line.                                          |
-| `StartColumn` | integer | 0-based start column.                                        |
-| `EndLine`     | integer | 1-based end line.                                            |
-| `Metrics`     | object  | See [`ComplexityMetrics`](#complexitymetrics-object).        |
-| `RiskLevel`   | string  | One of: `low`, `medium`, `high`.                             |
+| Field          | Type    | Description                                           |
+| -------------- | ------- | ----------------------------------------------------- |
+| `name`         | string  | Function name. `__main__` for module-level code.      |
+| `file_path`    | string  | Path to source file.                                  |
+| `start_line`   | integer | 1-based start line.                                   |
+| `start_column` | integer | 0-based start column.                                 |
+| `end_line`     | integer | 1-based end line.                                     |
+| `metrics`      | object  | See [`ComplexityMetrics`](#complexitymetrics-object). |
+| `risk_level`   | string  | One of: `low`, `medium`, `high`.                      |
 
 ### `ComplexityMetrics` object { #complexitymetrics-object }
 
-| Field                 | Type    | Description                                        |
-| --------------------- | ------- | -------------------------------------------------- |
-| `Complexity`          | integer | McCabe cyclomatic complexity.                      |
-| `CognitiveComplexity` | integer | Cognitive complexity (SonarQube-style).            |
-| `Nodes`               | integer | CFG node count.                                    |
-| `Edges`               | integer | CFG edge count.                                    |
-| `NestingDepth`        | integer | Maximum nesting depth.                             |
-| `IfStatements`        | integer | Count of `if` statements.                          |
-| `LoopStatements`      | integer | Count of `for`/`while` loops.                      |
-| `ExceptionHandlers`   | integer | Count of `except` clauses.                         |
-| `SwitchCases`         | integer | Count of `match` cases (Python 3.10+).             |
+| Field                  | Type    | Description                             |
+| ---------------------- | ------- | --------------------------------------- |
+| `complexity`           | integer | McCabe cyclomatic complexity.           |
+| `cognitive_complexity` | integer | Cognitive complexity (SonarQube-style). |
+| `nodes`                | integer | CFG node count.                         |
+| `edges`                | integer | CFG edge count.                         |
+| `nesting_depth`        | integer | Maximum nesting depth.                  |
+| `if_statements`        | integer | Count of `if` statements.               |
+| `loop_statements`      | integer | Count of `for`/`while` loops.           |
+| `exception_handlers`   | integer | Count of `except` clauses.              |
+| `switch_cases`         | integer | Count of `match` cases (Python 3.10+).  |
 
-### `Summary` object (`ComplexitySummary`)
+### `summary` object (`ComplexitySummary`)
 
-| Field                    | Type    | Description                                                            |
-| ------------------------ | ------- | ---------------------------------------------------------------------- |
-| `TotalFunctions`         | integer | Total functions analyzed.                                              |
-| `AverageComplexity`      | number  | Arithmetic mean of `Complexity` across all functions.                  |
-| `MaxComplexity`          | integer | Highest observed complexity.                                           |
-| `MinComplexity`          | integer | Lowest observed complexity.                                            |
-| `FilesAnalyzed`          | integer | Files that were parsed and contributed to the metrics above.           |
-| `TotalFiles`             | integer | Files the request covered, parsed or not.                              |
-| `SkippedFiles`           | integer | Files dropped because they could not be read or parsed. Their contents are absent from every metric above. |
-| `LowRiskFunctions`       | integer | Functions with `RiskLevel = low`.                                      |
-| `MediumRiskFunctions`    | integer | Functions with `RiskLevel = medium`.                                   |
-| `HighRiskFunctions`      | integer | Functions with `RiskLevel = high`.                                     |
-| `ComplexityDistribution` | object  | Histogram keyed by complexity bucket (string) to count (integer), or `null`. |
+| Field                     | Type    | Description                                                                                                |
+| ------------------------- | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `total_functions`         | integer | Total functions analyzed.                                                                                  |
+| `average_complexity`      | number  | Arithmetic mean of `Complexity` across all functions.                                                      |
+| `max_complexity`          | integer | Highest observed complexity.                                                                               |
+| `min_complexity`          | integer | Lowest observed complexity.                                                                                |
+| `files_analyzed`          | integer | Files that were parsed and contributed to the metrics above.                                               |
+| `total_files`             | integer | Files the request covered, parsed or not.                                                                  |
+| `skipped_files`           | integer | Files dropped because they could not be read or parsed. Their contents are absent from every metric above. |
+| `low_risk_functions`      | integer | Functions with `RiskLevel = low`.                                                                          |
+| `medium_risk_functions`   | integer | Functions with `RiskLevel = medium`.                                                                       |
+| `high_risk_functions`     | integer | Functions with `RiskLevel = high`.                                                                         |
+| `complexity_distribution` | object  | Histogram keyed by complexity bucket (string) to count (integer), or `null`.                               |
 
 ### `raw_metrics[]` element (`RawMetrics`)
 
@@ -315,10 +287,10 @@ Mirrors `domain.DeadCodeResponse`. Uses snake_case field names throughout.
 {
   "files": [ /* FileDeadCode array */ ],
   "summary": { /* DeadCodeSummary */ },
-  "warnings": null,
-  "errors": null,
-  "failures": [ /* AnalysisFailure array, absent when empty */ ],
-  "generated_at": "",
+   "warnings": null,
+   "errors": null,
+   "failures": [ /* AnalysisFailure array, absent when empty */ ],
+   "generated_at": "",
   "version": "",
   "config": null
 }
@@ -411,8 +383,7 @@ Mirrors `domain.CloneResponse`. Uses snake_case field names throughout.
   "statistics": { /* CloneStatistics */ },
   "duration_ms": 123,
   "success": true,
-  "error": "",
-  "failures": [ /* AnalysisFailure array, absent when empty */ ]
+  "error": ""
 }
 ```
 
@@ -492,248 +463,246 @@ Other `CloneResponse` fields:
 | `success`     | boolean | `true` on normal completion.                       |
 | `error`       | string \| absent | Error message if `success=false`.         |
 | `errors`      | array \| absent  | Per-file failures. A file listed here was skipped while the run itself succeeded, so its contents are absent from `statistics`. |
-| `failures`    | array \| absent  | Typed analyzer failures. See [`failures`](#failures-array). |
 
 ## `cbo` object
 
-Mirrors `domain.CBOResponse`. Nested field names are Go PascalCase.
+Mirrors `domain.CBOResponse`.
 
 ```json
 {
-  "Classes": [ /* ClassCoupling array */ ],
-  "Summary": { /* CBOSummary */ },
-  "Warnings": null,
-  "Errors": null,
-  "failures": [ /* AnalysisFailure array, absent when empty */ ],
-  "GeneratedAt": "",
-  "Version": "",
-  "Config": null
+  "classes": [ /* ClassCoupling array */ ],
+  "summary": { /* CBOSummary */ },
+   "warnings": null,
+   "errors": null,
+   "failures": [ /* AnalysisFailure array, absent when empty */ ],
+   "generated_at": "",
+  "version": "",
+  "config": null
 }
 ```
 
-### `Classes[]` element (`ClassCoupling`)
+### `classes[]` element (`ClassCoupling`)
 
-| Field         | Type    | Description                                 |
-| ------------- | ------- | ------------------------------------------- |
-| `Name`        | string  | Class name.                                 |
-| `FilePath`    | string  | Path to source file.                        |
-| `StartLine`   | integer | 1-based start line.                         |
-| `EndLine`     | integer | 1-based end line.                           |
-| `Metrics`     | object  | See [`CBOMetrics`](#cbometrics-object).     |
-| `RiskLevel`   | string  | One of: `low`, `medium`, `high`.            |
-| `IsAbstract`  | boolean | `true` if the class is abstract.            |
-| `BaseClasses` | array of string \| null | Direct base classes.        |
+| Field          | Type                    | Description                             |
+| -------------- | ----------------------- | --------------------------------------- |
+| `name`         | string                  | Class name.                             |
+| `file_path`    | string                  | Path to source file.                    |
+| `start_line`   | integer                 | 1-based start line.                     |
+| `end_line`     | integer                 | 1-based end line.                       |
+| `metrics`      | object                  | See [`CBOMetrics`](#cbometrics-object). |
+| `risk_level`   | string                  | One of: `low`, `medium`, `high`.        |
+| `is_abstract`  | boolean                 | `true` if the class is abstract.        |
+| `base_classes` | array of string \| null | Direct base classes.                    |
 
 ### `CBOMetrics` object { #cbometrics-object }
 
-| Field                         | Type    | Description                                               |
-| ----------------------------- | ------- | --------------------------------------------------------- |
-| `CouplingCount`               | integer | CBO value: distinct classes this class depends on.        |
-| `InheritanceDependencies`     | integer | Dependencies from base classes.                           |
-| `TypeHintDependencies`        | integer | Dependencies from type annotations.                       |
-| `InstantiationDependencies`   | integer | Dependencies from object instantiation.                   |
-| `AttributeAccessDependencies` | integer | Dependencies from method calls and attribute access.      |
-| `ImportDependencies`          | integer | Dependencies from explicit imports.                       |
-| `DependentClasses`            | array of string \| null | Names of coupled classes.                 |
+| Field                           | Type                    | Description                                          |
+| ------------------------------- | ----------------------- | ---------------------------------------------------- |
+| `coupling_count`                | integer                 | CBO value: distinct classes this class depends on.   |
+| `inheritance_dependencies`      | integer                 | Dependencies from base classes.                      |
+| `type_hint_dependencies`        | integer                 | Dependencies from type annotations.                  |
+| `instantiation_dependencies`    | integer                 | Dependencies from object instantiation.              |
+| `attribute_access_dependencies` | integer                 | Dependencies from method calls and attribute access. |
+| `import_dependencies`           | integer                 | Dependencies from explicit imports.                  |
+| `dependent_classes`             | array of string \| null | Names of coupled classes.                            |
 
-### `Summary` object (`CBOSummary`)
+### `summary` object (`CBOSummary`)
 
-| Field                      | Type    | Description                                       |
-| -------------------------- | ------- | ------------------------------------------------- |
-| `TotalClasses`             | integer | Total classes analyzed.                           |
-| `AverageCBO`               | number  | Mean CBO.                                         |
-| `MaxCBO`                   | integer | Maximum observed CBO.                             |
-| `MinCBO`                   | integer | Minimum observed CBO.                             |
-| `ClassesAnalyzed`          | integer | Classes with valid metrics.                       |
-| `FilesAnalyzed`            | integer | Files contributing at least one class.            |
-| `LowRiskClasses`           | integer | Classes with CBO ≤ low threshold (default `3`).   |
-| `MediumRiskClasses`        | integer | Classes with low < CBO ≤ medium threshold.        |
-| `HighRiskClasses`          | integer | Classes with CBO > medium threshold (default `7`).|
-| `CBODistribution`          | object \| null | Histogram keyed by bucket label to count.  |
-| `MostCoupledClasses`       | array \| null | Top 10 classes by CBO (`ClassCoupling`).    |
-| `MostDependedUponClasses`  | array of string \| null | Classes with highest in-degree.   |
+| Field                        | Type                    | Description                                        |
+| ---------------------------- | ----------------------- | -------------------------------------------------- |
+| `total_classes`              | integer                 | Total classes analyzed.                            |
+| `average_cbo`                | number                  | Mean CBO.                                          |
+| `max_cbo`                    | integer                 | Maximum observed CBO.                              |
+| `min_cbo`                    | integer                 | Minimum observed CBO.                              |
+| `classes_analyzed`           | integer                 | Classes with valid metrics.                        |
+| `files_analyzed`             | integer                 | Files contributing at least one class.             |
+| `low_risk_classes`           | integer                 | Classes with CBO ≤ low threshold (default `3`).    |
+| `medium_risk_classes`        | integer                 | Classes with low < CBO ≤ medium threshold.         |
+| `high_risk_classes`          | integer                 | Classes with CBO > medium threshold (default `7`). |
+| `cbo_distribution`           | object \| null          | Histogram keyed by bucket label to count.          |
+| `most_coupled_classes`       | array \| null           | Top 10 classes by CBO (`ClassCoupling`).           |
+| `most_depended_upon_classes` | array of string \| null | Classes with highest in-degree.                    |
 
 ## `lcom` object
 
-Mirrors `domain.LCOMResponse`. Nested field names are Go PascalCase.
+Mirrors `domain.LCOMResponse`.
 
 ```json
 {
-  "Classes": [ /* ClassCohesion array */ ],
-  "Summary": { /* LCOMSummary */ },
-  "Warnings": null,
-  "Errors": null,
-  "failures": [ /* AnalysisFailure array, absent when empty */ ],
-  "GeneratedAt": "",
-  "Version": "",
-  "Config": null
+  "classes": [ /* ClassCohesion array */ ],
+  "summary": { /* LCOMSummary */ },
+  "warnings": null,
+  "errors": null,
+  "generated_at": "",
+  "version": "",
+  "config": null
 }
 ```
 
-### `Classes[]` element (`ClassCohesion`)
+### `classes[]` element (`ClassCohesion`)
 
-| Field       | Type    | Description                                      |
-| ----------- | ------- | ------------------------------------------------ |
-| `Name`      | string  | Class name.                                      |
-| `FilePath`  | string  | Path to source file.                             |
-| `StartLine` | integer | 1-based start line.                              |
-| `EndLine`   | integer | 1-based end line.                                |
-| `Metrics`   | object  | See [`LCOMMetrics`](#lcommetrics-object).        |
-| `RiskLevel` | string  | One of: `low`, `medium`, `high`.                 |
+| Field        | Type    | Description                               |
+| ------------ | ------- | ----------------------------------------- |
+| `name`       | string  | Class name.                               |
+| `file_path`  | string  | Path to source file.                      |
+| `start_line` | integer | 1-based start line.                       |
+| `end_line`   | integer | 1-based end line.                         |
+| `metrics`    | object  | See [`LCOMMetrics`](#lcommetrics-object). |
+| `risk_level` | string  | One of: `low`, `medium`, `high`.          |
 
 ### `LCOMMetrics` object { #lcommetrics-object }
 
-| Field               | Type    | Description                                                 |
-| ------------------- | ------- | ----------------------------------------------------------- |
-| `LCOM4`             | integer | Connected components in the method-variable graph.          |
-| `TotalMethods`      | integer | All methods in the class.                                   |
-| `ExcludedMethods`   | integer | Methods excluded from LCOM4 (`@classmethod`, `@staticmethod`). |
-| `InstanceVariables` | integer | Distinct `self.x` variables accessed.                       |
-| `MethodGroups`      | array of array of string \| null | Method names grouped by connected component. |
+| Field                | Type                             | Description                                                                                                                                           |
+| -------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lcom4`              | integer                          | Connected components in the method-variable graph.                                                                                                    |
+| `total_methods`      | integer                          | All methods in the class.                                                                                                                             |
+| `excluded_methods`   | integer                          | Methods excluded from the LCOM4 graph (`@classmethod`, `@staticmethod`, `@abstractmethod`, and constructors: `__init__`, `__new__`, `__post_init__`). |
+| `instance_variables` | integer                          | Distinct `self.x` variables accessed.                                                                                                                 |
+| `method_groups`      | array of array of string \| null | Method names grouped by connected component.                                                                                                          |
 
-### `Summary` object (`LCOMSummary`)
+### `summary` object (`LCOMSummary`)
 
-| Field                  | Type    | Description                                     |
-| ---------------------- | ------- | ----------------------------------------------- |
-| `TotalClasses`         | integer | Classes analyzed.                               |
-| `AverageLCOM`          | number  | Mean LCOM4.                                     |
-| `MaxLCOM`              | integer | Maximum observed LCOM4.                         |
-| `MinLCOM`              | integer | Minimum observed LCOM4.                         |
-| `ClassesAnalyzed`      | integer | Classes with valid metrics.                     |
-| `FilesAnalyzed`        | integer | Files contributing at least one class.          |
-| `LowRiskClasses`       | integer | Classes with LCOM4 ≤ low threshold (default `2`). |
-| `MediumRiskClasses`    | integer | Classes with low < LCOM4 ≤ medium threshold.    |
-| `HighRiskClasses`      | integer | Classes with LCOM4 > medium threshold (default `5`). |
-| `LCOMDistribution`     | object \| null | Histogram keyed by bucket label to count. |
-| `LeastCohesiveClasses` | array \| null | Top 10 classes by LCOM4 (`ClassCohesion`). |
+| Field                    | Type           | Description                                          |
+| ------------------------ | -------------- | ---------------------------------------------------- |
+| `total_classes`          | integer        | Classes analyzed.                                    |
+| `average_lcom`           | number         | Mean LCOM4.                                          |
+| `max_lcom`               | integer        | Maximum observed LCOM4.                              |
+| `min_lcom`               | integer        | Minimum observed LCOM4.                              |
+| `classes_analyzed`       | integer        | Classes with valid metrics.                          |
+| `files_analyzed`         | integer        | Files contributing at least one class.               |
+| `low_risk_classes`       | integer        | Classes with LCOM4 ≤ low threshold (default `2`).    |
+| `medium_risk_classes`    | integer        | Classes with low < LCOM4 ≤ medium threshold.         |
+| `high_risk_classes`      | integer        | Classes with LCOM4 > medium threshold (default `5`). |
+| `lcom_distribution`      | object \| null | Histogram keyed by bucket label to count.            |
+| `least_cohesive_classes` | array \| null  | Top 10 classes by LCOM4 (`ClassCohesion`).           |
 
 ## `system` object
 
-Mirrors `domain.SystemAnalysisResponse`. Nested field names are Go PascalCase.
+Mirrors `domain.SystemAnalysisResponse`.
 
 ```json
 {
-  "DependencyAnalysis":   { /* DependencyAnalysisResult, or null */ },
-  "ArchitectureAnalysis": { /* ArchitectureAnalysisResult, or null */ },
-  "Summary":              { /* SystemAnalysisSummary */ },
-  "Issues":               [ /* SystemIssue array */ ],
-  "Recommendations":      [ /* SystemRecommendation array */ ],
-  "Warnings":             [ ],
-  "Errors":               [ ],
-  "failures":             [ /* AnalysisFailure array, absent when empty */ ],
-  "GeneratedAt":          "0001-01-01T00:00:00Z",
-  "Duration":             0,
-  "Version":              "",
-  "Config":               null
+  "dependency_analysis":   { /* DependencyAnalysisResult, or null */ },
+  "architecture_analysis": { /* ArchitectureAnalysisResult, or null */ },
+  "summary":              { /* SystemAnalysisSummary */ },
+  "issues":               [ /* SystemIssue array */ ],
+  "recommendations":      [ /* SystemRecommendation array */ ],
+   "warnings":             [ ],
+   "errors":               [ ],
+   "failures":             [ /* AnalysisFailure array, absent when empty */ ],
+   "generated_at":          "0001-01-01T00:00:00Z",
+  "duration":             0,
+  "version":              "",
+  "config":               null
 }
 ```
 
-### `Summary` object (`SystemAnalysisSummary`)
+### `summary` object (`SystemAnalysisSummary`)
 
-| Field                      | Type    | Description                                     |
-| -------------------------- | ------- | ----------------------------------------------- |
-| `TotalModules`             | integer | Total modules analyzed.                         |
-| `TotalPackages`            | integer | Total packages.                                 |
-| `TotalDependencies`        | integer | Total dependency edges.                         |
-| `ProjectRoot`              | string  | Project root directory.                         |
-| `OverallQualityScore`      | number  | Composite quality score, `0`–`100`.             |
-| `MaintainabilityScore`     | number  | Average maintainability index.                  |
-| `ArchitectureScore`        | number  | Architecture compliance score.                  |
-| `ModularityScore`          | number  | System modularity score.                        |
-| `TechnicalDebtHours`       | number  | Total estimated technical debt in hours.        |
-| `AverageCoupling`          | number  | Average module coupling.                        |
-| `AverageInstability`       | number  | Average instability (I).                        |
-| `CyclicDependencies`       | integer | Modules participating in cycles.                |
-| `ArchitectureViolations`   | integer | Count of architecture rule violations.          |
-| `HighRiskModules`          | integer | Modules flagged high risk.                      |
-| `CriticalIssues`           | integer | Critical issue count.                           |
-| `RefactoringCandidates`    | integer | Modules needing refactoring.                    |
-| `ArchitectureImprovements` | integer | Suggested architecture improvements.            |
+| Field                       | Type    | Description                              |
+| --------------------------- | ------- | ---------------------------------------- |
+| `total_modules`             | integer | Total modules analyzed.                  |
+| `total_packages`            | integer | Total packages.                          |
+| `total_dependencies`        | integer | Total dependency edges.                  |
+| `project_root`              | string  | Project root directory.                  |
+| `overall_quality_score`     | number  | Composite quality score, `0`–`100`.      |
+| `maintainability_score`     | number  | Average maintainability index.           |
+| `architecture_score`        | number  | Architecture compliance score.           |
+| `modularity_score`          | number  | System modularity score.                 |
+| `technical_debt_hours`      | number  | Total estimated technical debt in hours. |
+| `average_coupling`          | number  | Average module coupling.                 |
+| `average_instability`       | number  | Average instability (I).                 |
+| `cyclic_dependencies`       | integer | Modules participating in cycles.         |
+| `architecture_violations`   | integer | Count of architecture rule violations.   |
+| `high_risk_modules`         | integer | Modules flagged high risk.               |
+| `critical_issues`           | integer | Critical issue count.                    |
+| `refactoring_candidates`    | integer | Modules needing refactoring.             |
+| `architecture_improvements` | integer | Suggested architecture improvements.     |
 
-### `DependencyAnalysis` object
+### `dependency_analysis` object
 
-| Field                  | Type    | Description                                                          |
-| ---------------------- | ------- | -------------------------------------------------------------------- |
-| `TotalModules`         | integer | Total modules in the dependency graph.                               |
-| `TotalDependencies`    | integer | Total edges.                                                         |
-| `RootModules`          | array of string | Modules with no outgoing dependencies.                       |
-| `LeafModules`          | array of string | Modules with no incoming dependencies.                       |
-| `ModuleMetrics`        | object  | Map from module name to `ModuleDependencyMetrics`.                   |
-| `DependencyMatrix`     | object  | Map from module to map of module to boolean.                         |
-| `CircularDependencies` | object  | Cycle detection results; contains `Cycles` (array) and `TotalCycles` (integer). |
-| `CouplingAnalysis`     | object  | Per-module coupling metrics: `Ca`, `Ce`, `Instability`, `Abstractness`, `Distance`. |
-| `LongestChains`        | array   | Top load-time SCC-condensed paths, expanded to real module dependency paths. |
-| `MaxDepth`             | integer | Maximum load-time SCC-condensed dependency depth, counted in edges.   |
+| Field                   | Type            | Description                                                                             |
+| ----------------------- | --------------- | --------------------------------------------------------------------------------------- |
+| `total_modules`         | integer         | Total modules in the dependency graph.                                                  |
+| `total_dependencies`    | integer         | Total edges.                                                                            |
+| `root_modules`          | array of string | Modules with no outgoing dependencies.                                                  |
+| `leaf_modules`          | array of string | Modules with no incoming dependencies.                                                  |
+| `module_metrics`        | object          | Map from module name to `ModuleDependencyMetrics`.                                      |
+| `dependency_matrix`     | object          | Map from module to map of module to boolean.                                            |
+| `circular_dependencies` | object          | Cycle detection results; contains `Cycles` (array) and `TotalCycles` (integer).         |
+| `coupling_analysis`     | object          | Per-module coupling metrics: `Ca`, `Ce`, `Instability`, `Abstractness`, `Distance`.     |
+| `longest_chains`        | array           | Top load-time SCC-condensed paths, expanded to real module dependency paths.            |
+| `max_depth`             | integer         | Edges along the longest load-time dependency chain, the first entry of `LongestChains`. |
 
 ### `ModuleDependencyMetrics` object
 
-| Field                    | Type    | Description                                              |
-| ------------------------ | ------- | -------------------------------------------------------- |
-| `ModuleName`             | string  | Fully qualified module name.                             |
-| `Package`                | string  | Parent package.                                          |
-| `FilePath`               | string  | Path to source file.                                     |
-| `IsPackage`              | boolean | `true` if this is a package (has `__init__.py`).         |
-| `LinesOfCode`            | integer | Total lines of code.                                     |
-| `FunctionCount`          | integer | Number of functions.                                     |
-| `ClassCount`             | integer | Number of classes.                                       |
-| `AbstractClassCount`     | integer | Number of abstract classes.                              |
-| `PublicInterface`        | array of string | Names in `__all__` or top-level public names.    |
-| `AfferentCoupling`       | integer | Ca — modules depending on this one.                      |
-| `EfferentCoupling`       | integer | Ce — modules this one depends on.                        |
-| `Instability`            | number  | `I = Ce / (Ca + Ce)`, `0`–`1`.                           |
-| `Abstractness`           | number  | A — abstract classes / total classes, `0`–`1`.           |
-| `Distance`               | number  | `D = |A + I - 1|`, `0`–`1`. Distance from main sequence. |
-| `Maintainability`        | number  | Maintainability index, `0`–`100`.                        |
-| `TechnicalDebt`          | number  | Estimated technical debt in hours.                       |
-| `RiskLevel`              | string  | One of: `low`, `medium`, `high`.                         |
-| `DirectDependencies`     | array of string | Direct dependencies.                             |
-| `TransitiveDependencies` | array of string | All transitive dependencies.                     |
-| `Dependents`             | array of string | Modules depending on this one.                   |
+| Field                     | Type            | Description                                      |           |                                          |
+| ------------------------- | --------------- | ------------------------------------------------ | --------- | ---------------------------------------- |
+| `module_name`             | string          | Fully qualified module name.                     |           |                                          |
+| `package`                 | string          | Parent package.                                  |           |                                          |
+| `file_path`               | string          | Path to source file.                             |           |                                          |
+| `is_package`              | boolean         | `true` if this is a package (has `__init__.py`). |           |                                          |
+| `lines_of_code`           | integer         | Total lines of code.                             |           |                                          |
+| `function_count`          | integer         | Number of functions.                             |           |                                          |
+| `class_count`             | integer         | Number of classes.                               |           |                                          |
+| `abstract_class_count`    | integer         | Number of abstract classes.                      |           |                                          |
+| `public_interface`        | array of string | Names in `__all__` or top-level public names.    |           |                                          |
+| `afferent_coupling`       | integer         | Ca — modules depending on this one.              |           |                                          |
+| `efferent_coupling`       | integer         | Ce — modules this one depends on.                |           |                                          |
+| `instability`             | number          | `I = Ce / (Ca + Ce)`, `0`–`1`.                   |           |                                          |
+| `abstractness`            | number          | A — abstract classes / total classes, `0`–`1`.   |           |                                          |
+| `distance`                | number          | `D =                                             | A + I - 1 | `, `0`–`1`. Distance from main sequence. |
+| `maintainability`         | number          | Maintainability index, `0`–`100`.                |           |                                          |
+| `technical_debt`          | number          | Estimated technical debt in hours.               |           |                                          |
+| `risk_level`              | string          | One of: `low`, `medium`, `high`.                 |           |                                          |
+| `direct_dependencies`     | array of string | Direct dependencies.                             |           |                                          |
+| `transitive_dependencies` | array of string | All transitive dependencies.                     |           |                                          |
+| `dependents`              | array of string | Modules depending on this one.                   |           |                                          |
 
 ### `CircularDependencyAnalysis` object
 
-| Field                      | Type    | Description                                           |
-| -------------------------- | ------- | ----------------------------------------------------- |
-| `HasCircularDependencies`  | boolean | `true` if any cycles exist.                           |
-| `TotalCycles`              | integer | Number of cycles.                                     |
-| `TotalModulesInCycles`     | integer | Modules involved in cycles.                           |
-| `CircularDependencies`     | array   | Array of `CircularDependency` objects.                |
-| `CycleBreakingSuggestions` | array of string | Suggestions for breaking cycles.              |
-| `CoreInfrastructure`       | array of string | Modules appearing in multiple cycles.         |
+| Field                        | Type            | Description                            |
+| ---------------------------- | --------------- | -------------------------------------- |
+| `has_circular_dependencies`  | boolean         | `true` if any cycles exist.            |
+| `total_cycles`               | integer         | Number of cycles.                      |
+| `total_modules_in_cycles`    | integer         | Modules involved in cycles.            |
+| `circular_dependencies`      | array           | Array of `CircularDependency` objects. |
+| `cycle_breaking_suggestions` | array of string | Suggestions for breaking cycles.       |
+| `core_infrastructure`        | array of string | Modules appearing in multiple cycles.  |
 
 `CircularDependency.Severity` enumeration: `low`, `medium`, `high`, `critical`.
 
-### `CouplingAnalysis` object
+### `coupling_analysis` object
 
-| Field                   | Type    | Description                                        |
-| ----------------------- | ------- | -------------------------------------------------- |
-| `AverageCoupling`       | number  | Average coupling across modules.                   |
-| `CouplingDistribution`  | object  | Map from coupling value (integer key) to count.    |
-| `HighlyCoupledModules`  | array of string | Modules with high coupling.                |
-| `LooselyCoupledModules` | array of string | Modules with low coupling.                 |
-| `AverageInstability`    | number  | Average instability.                               |
-| `StableModules`         | array of string | Low-instability modules.                   |
-| `InstableModules`       | array of string | High-instability modules.                  |
-| `MainSequenceDeviation` | number  | Average distance from main sequence, `0`–`1`.      |
-| `ZoneOfPain`            | array of string | Stable + concrete modules.                 |
-| `ZoneOfUselessness`     | array of string | Unstable + abstract modules.               |
-| `MainSequence`          | array of string | Well-positioned modules.                   |
+| Field                     | Type            | Description                                     |
+| ------------------------- | --------------- | ----------------------------------------------- |
+| `average_coupling`        | number          | Average coupling across modules.                |
+| `coupling_distribution`   | object          | Map from coupling value (integer key) to count. |
+| `highly_coupled_modules`  | array of string | Modules with high coupling.                     |
+| `loosely_coupled_modules` | array of string | Modules with low coupling.                      |
+| `average_instability`     | number          | Average instability.                            |
+| `stable_modules`          | array of string | Low-instability modules.                        |
+| `instable_modules`        | array of string | High-instability modules.                       |
+| `main_sequence_deviation` | number          | Average distance from main sequence, `0`–`1`.   |
+| `zone_of_pain`            | array of string | Stable + concrete modules.                      |
+| `zone_of_uselessness`     | array of string | Unstable + abstract modules.                    |
+| `main_sequence`           | array of string | Well-positioned modules.                        |
 
-### `ArchitectureAnalysis` object
+### `architecture_analysis` object
 
-| Field                 | Type    | Description                                                 |
-| --------------------- | ------- | ----------------------------------------------------------- |
-| `ComplianceScore`     | number  | Compliance score, `0`–`1`. Computed as `max(0, 1 - WeightedViolations / TotalRules)`; `1.0` when no rules were evaluated. |
-| `TotalViolations`     | integer | Raw count of violations (one per entry in `Violations`).    |
-| `WeightedViolations`  | integer | Severity-weighted violation count used as the `ComplianceScore` numerator: `error × 5 + warning × 1`. |
-| `TotalRules`          | integer | Total rule invocations evaluated (the `ComplianceScore` denominator). |
-| `LayerAnalysis`       | object \| null | Layer analysis results.                              |
-| `CohesionAnalysis`    | object \| null | Package cohesion analysis.                           |
-| `ResponsibilityAnalysis` | object \| null | SRP violation analysis.                           |
-| `Violations`          | array   | Array of `ArchitectureViolation` objects.                   |
-| `SeverityBreakdown`   | object  | Map from severity to count.                                 |
-| `Recommendations`     | array   | Array of `ArchitectureRecommendation` objects.              |
-| `RefactoringTargets`  | array of string | Modules needing refactoring.                        |
+| Field                     | Type            | Description                                                                                                               |
+| ------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `compliance_score`        | number          | Compliance score, `0`–`1`. Computed as `max(0, 1 - WeightedViolations / TotalRules)`; `1.0` when no rules were evaluated. |
+| `total_violations`        | integer         | Raw count of violations (one per entry in `Violations`).                                                                  |
+| `weighted_violations`     | integer         | Severity-weighted violation count used as the `ComplianceScore` numerator: `error × 5 + warning × 1`.                     |
+| `total_rules`             | integer         | Total rule invocations evaluated (the `ComplianceScore` denominator).                                                     |
+| `layer_analysis`          | object \| null  | Layer analysis results.                                                                                                   |
+| `cohesion_analysis`       | object \| null  | Package cohesion analysis.                                                                                                |
+| `responsibility_analysis` | object \| null  | SRP violation analysis.                                                                                                   |
+| `violations`              | array           | Array of `ArchitectureViolation` objects.                                                                                 |
+| `severity_breakdown`      | object          | Map from severity to count.                                                                                               |
+| `recommendations`         | array           | Array of `ArchitectureRecommendation` objects.                                                                            |
+| `refactoring_targets`     | array of string | Modules needing refactoring.                                                                                              |
 
 `ArchitectureViolation.Type` enumeration: `layer`, `cycle`, `coupling`, `responsibility`, `cohesion`.
 
@@ -783,7 +752,6 @@ Health Score,<integer>
 Grade,<A|B|C|D|F|N/A>
 Total Files,<integer>
 Analyzed Files,<integer>
-Skipped Files,<integer>
 Average Complexity,<float with 2 decimals>
 High Complexity Count,<integer>
 Dead Code Count,<integer>
@@ -795,8 +763,6 @@ Total Classes Analyzed,<integer>
 High Coupling (CBO) Classes,<integer>
 Average CBO,<float with 2 decimals>
 Module Quality Count,<integer>
-Diagnostic,<file path [code]: message>
-Analysis Failure,<analysis file path [code]: message>
 Module 1 Name,<string>
 Module 1 File Path,<string>
 Module 1 Lines of Code,<integer>
@@ -819,7 +785,7 @@ Directory 1 Average Nesting Depth,<float with 2 decimals>
 Directory 1 Max Nesting Depth,<integer>
 ```
 
-The `Diagnostic` row repeats once per skipped file, and `Analysis Failure` repeats once per analyzer execution failure. The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all summary, diagnostic, failure, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
+The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all legacy summary, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
 
 ## `community_analysis` object { #community-analysis-object }
 
@@ -843,7 +809,6 @@ Mirrors `domain.CommunityAnalysisResult`. Emitted as a top-level field in unifie
 | `community_context_map` | object \| absent | Compact, agent-optimized map of which modules to inspect together. See [`community_context_map`](#community-context-map-object). Absent when no communities were detected. |
 | `warnings`          | array \| absent | Non-fatal analysis warnings.                              |
 | `errors`            | array \| absent | Fatal analysis errors.                                    |
-| `failures`          | array \| absent | Typed analyzer failures. See [`failures`](#failures-array). |
 | `generated_at`      | string (RFC 3339) | Community analysis completion time.                 |
 | `version`           | string  | pyscn semantic version.                                           |
 | `config`            | object \| absent | Effective community-detection settings.                    |

@@ -1,0 +1,703 @@
+{{define "fix"}}
+          <li class="fix {{.Severity}}">
+            <span class="stripe"></span>
+            <div>
+              <div class="t">{{.Title}}</div>
+              {{if .Location}}<div class="where">{{.Location}}</div>{{end}}
+              {{if .Why}}<div class="why">{{.Why}}</div>{{end}}
+              {{if .Steps}}<details class="steps"><summary>{{len .Steps}} steps</summary><ol>{{range .Steps}}<li>{{.}}</li>{{end}}</ol></details>{{end}}
+            </div>
+            <div class="chips"><span class="chip sev-{{.Severity}}">{{.Severity}}</span><span class="chip effort-{{.Effort}}">{{.Effort}}</span>{{if .Category}}<span class="chip">{{.Category}}</span>{{end}}</div>
+          </li>
+{{end -}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pyscn Analysis Report{{if .ProjectName}} · {{.ProjectName}}{{end}}</title>
+<style>{{.CSS}}</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M7 9C7 7.34 8.34 6 10 6H14C15.66 6 17 7.34 17 9V13C17 14.66 15.66 16 14 16H10C8.34 16 7 17.34 7 19V20" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="17" cy="19" r="2" fill="#8b5cf6"/>
+      </svg>
+      pyscn{{if .Version}} <span class="ver">{{.Version}}</span>{{end}}
+    </div>
+    {{if .ProjectName}}
+    <div class="project">
+      <span class="name">{{.ProjectName}}</span>
+      <span class="path" title="{{.ProjectPath}}">{{.ProjectPath}}</span>
+    </div>
+    {{end}}
+    <div class="meta">
+      <span>{{.GeneratedAt.Format "2006-01-02 15:04"}}</span>
+      <span>{{if .SkippedFiles}}<span class="bad">{{.Summary.AnalyzedFiles}} of {{.Summary.TotalFiles}} files analyzed, {{.SkippedFiles}} skipped</span>{{else}}{{.Summary.TotalFiles}} files{{end}} in {{.Duration}}ms</span>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs" aria-label="Report sections">
+  <div class="tabs-inner" role="tablist">
+    {{range $i, $tab := .Tabs}}
+    <button class="tab{{if eq $i 0}} active{{end}}" role="tab" data-tab="{{$tab.ID}}">{{$tab.Label}}{{if $tab.Count}} <span class="count {{$tab.CountBand}}">{{$tab.Count}}</span>{{end}}</button>
+    {{end}}
+  </div>
+</nav>
+
+<main>
+
+<!-- ================= OVERVIEW ================= -->
+<section id="overview" class="panel active">
+
+  <div class="verdict">
+    <div class="ring band-{{.ScoreBand}}" role="img" aria-label="Health score {{.Summary.HealthScore}} out of 100">
+      <svg viewBox="0 0 132 132">
+        <circle class="track" cx="66" cy="66" r="56" fill="none" stroke-width="10"/>
+        <circle class="fill" cx="66" cy="66" r="56" fill="none" stroke-width="10" stroke-dasharray="351.86" stroke-dashoffset="{{printf "%.1f" .RingOffset}}"/>
+      </svg>
+      <div class="center">
+        <div class="score num">{{.Summary.HealthScore}}</div>
+        <div class="of">HEALTH SCORE</div>
+      </div>
+    </div>
+    <div>
+      <h1><span class="grade {{.GradeClass}} band-{{.ScoreBand}}">{{.Summary.Grade}}</span> {{.Verdict.Headline}}</h1>
+      <p>{{range .Verdict.Body}}{{if .Strong}}<strong>{{.Text}}</strong>{{else}}{{.Text}}{{end}}{{end}}</p>
+    </div>
+    <div class="facts">
+      {{range .Facts}}<div class="fact"><div class="v num">{{.Value}}</div><div class="l">{{.Label}}</div></div>{{end}}
+    </div>
+  </div>
+
+  <div class="grid two">
+    <div class="col">
+      {{if .Dimensions}}
+      <div class="card">
+        <div class="card-h"><h2>Score breakdown</h2><span class="muted small">weighted into the health score</span></div>
+        <div class="dims">
+          {{range .Dimensions}}
+          {{if .Tab}}<a class="dim {{.Band}}" href="#{{.Tab}}" data-goto="{{.Tab}}">{{else}}<div class="dim static {{.Band}}">{{end}}
+            <div class="dim-top"><span class="dim-name">{{.Name}}</span><span class="dim-score num">{{.Score}}<small>/100</small></span></div>
+            <div class="bar"><i style="width:{{.Score}}%"></i></div>
+            <div class="dim-sub"><span>{{.Left}}</span><span>{{.Right}}</span></div>
+          {{if .Tab}}</a>{{else}}</div>{{end}}
+          {{end}}
+        </div>
+      </div>
+      {{end}}
+
+      {{if .Diagnostics}}
+      <div class="card">
+        <div class="card-h"><h2>Analysis diagnostics</h2><span class="pill warn">{{len .Diagnostics}}</span></div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>File</th><th>Code</th><th>Message</th></tr></thead>
+            <tbody>{{range .Diagnostics}}<tr><td class="mono">{{.FilePath}}</td><td class="mono">{{.Code}}</td><td>{{.Message}}</td></tr>{{end}}</tbody>
+          </table>
+        </div>
+      </div>
+      {{end}}
+
+      {{if .Failures}}
+      <div class="card">
+        <div class="card-h"><h2>Analysis failures</h2><span class="pill bad">{{len .Failures}}</span></div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Analysis</th><th>File</th><th>Code</th><th>Message</th></tr></thead>
+            <tbody>{{range .Failures}}<tr><td>{{.Analysis}}</td><td class="mono">{{.FilePath}}</td><td class="mono">{{.Code}}</td><td>{{.Message}}</td></tr>{{end}}</tbody>
+          </table>
+        </div>
+      </div>
+      {{end}}
+
+      {{if .Hotspots}}
+      <div class="card">
+        <div class="card-h"><h2>Hotspot files</h2><a href="#functions" data-goto="functions">All {{len .ModuleQuality}} modules</a></div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr><th>Module</th><th class="r">Lines</th><th class="r">Funcs</th><th class="r">Max CC</th><th class="r">High risk</th>{{if .ShowDeadColumn}}<th class="r">Dead</th>{{end}}{{if .ShowCloneColumn}}<th class="r">Clones</th>{{end}}</tr>
+            </thead>
+            <tbody>
+              {{range .Hotspots}}
+              <tr>
+                <td class="grow"><div class="path"><span>{{.Dir}}</span><b>{{.File}}</b></div></td>
+                <td class="r num">{{.Lines}}</td>
+                <td class="r num">{{.Functions}}</td>
+                <td class="r"><span class="cc {{.MaxCCBand}}"><span class="mini"><i style="width:{{.MaxCCPct}}%"></i></span><span class="num">{{.MaxCC}}</span></span></td>
+                <td class="r"><span class="pill{{if .HighRisk}} bad{{end}}">{{.HighRisk}}</span></td>
+                {{if $.ShowDeadColumn}}<td class="r"><span class="pill{{if .DeadCode}} warn{{end}}">{{.DeadCode}}</span></td>{{end}}
+                {{if $.ShowCloneColumn}}<td class="r"><span class="pill{{if .Clones}} warn{{end}}">{{.Clones}}</span></td>{{end}}
+              </tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+        <p class="muted small note">Ranked by high-risk functions, then max complexity.{{if .ShowCloneColumn}} Clones counts fragments that belong to a clone group.{{end}}</p>
+      </div>
+      {{end}}
+    </div>
+
+    <div class="col">
+      {{if .Fixes}}
+      <div class="card">
+        <div class="card-h"><h2>Fix first</h2><span class="muted small">{{.FixTotal}} suggestions</span></div>
+        <ol class="fixes">
+          {{range .Fixes}}{{template "fix" .}}{{end}}
+        </ol>
+        {{if .MoreFixes}}
+        <details class="more-fixes">
+          <summary>Show {{len .MoreFixes}} more suggestions</summary>
+          <ol class="fixes" start="{{add (len .Fixes) 1}}">
+            {{range .MoreFixes}}{{template "fix" .}}{{end}}
+          </ol>
+          {{if gt .FixTotal (add (len .Fixes) (len .MoreFixes))}}<p class="muted small note">Showing {{add (len .Fixes) (len .MoreFixes)}} of {{.FixTotal}} suggestions. The JSON report lists them all.</p>{{end}}
+        </details>
+        {{end}}
+      </div>
+      {{end}}
+
+      {{with .Histogram}}
+      <div class="card">
+        <div class="card-h"><h2>Complexity distribution</h2><span class="muted small">{{.Total}} functions</span></div>
+        <svg class="chart" viewBox="0 0 420 190" role="img" aria-label="Histogram of cyclomatic complexity">
+          <g class="grid">{{range .Ticks}}<line x1="44" y1="{{.Y}}" x2="412" y2="{{.Y}}"/>{{end}}</g>
+          {{range .Ticks}}<text x="38" y="{{printf "%.1f" (addf .Y 3.5)}}" text-anchor="end">{{.Label}}</text>{{end}}
+          {{range .Bins}}<rect class="b {{.Band}}" x="{{.X}}" y="{{.Y}}" width="{{.Width}}" height="{{.Height}}" rx="3"><title>CC {{.Label}}: {{.Count}} functions</title></rect>{{end}}
+          {{range .Bins}}<text class="lbl {{.Band}}" x="{{printf "%.1f" (addf .X (divf .Width 2))}}" y="{{printf "%.1f" (addf .Y -6)}}" text-anchor="middle">{{.Count}}</text>{{end}}
+          {{if .Threshold}}<line class="thresh" x1="{{.ThresholdX}}" y1="18" x2="{{.ThresholdX}}" y2="150"/><text class="thresh-t" x="{{printf "%.1f" (addf .ThresholdX 4)}}" y="14">{{.Threshold}}</text>{{end}}
+          {{range .Bins}}<text x="{{printf "%.1f" (addf .X (divf .Width 2))}}" y="170" text-anchor="middle">{{.Label}}</text>{{end}}
+          <text x="228" y="186" text-anchor="middle">cyclomatic complexity</text>
+        </svg>
+        <dl class="kv">{{range .Facts}}<dt>{{.Key}}</dt><dd class="num {{.Band}}">{{.Value}}</dd>{{end}}</dl>
+      </div>
+      {{end}}
+    </div>
+  </div>
+
+  {{if or .Duplication .Classes .Structure}}
+  <div class="grid three">
+    {{with .Duplication}}
+    <div class="card">
+      <div class="card-h"><h2>Duplication</h2><a href="#duplication" data-goto="duplication">Details</a></div>
+      <div class="big num">{{printf "%.1f" .Percent}}%<small>of {{.Fragments}} fragments</small></div>
+      {{if .Types}}
+      <div class="stack" role="img" aria-label="Clone fragments by type">{{range .Types}}<i class="{{.Class}}" style="width:{{printf "%.1f" .Percent}}%" title="{{.Label}}"></i>{{end}}</div>
+      <div class="legend">{{range .Types}}<span><i class="{{.Class}}"></i>{{.Label}}</span>{{end}}</div>
+      {{end}}
+      <dl class="kv">{{range .Facts}}<dt>{{.Key}}</dt><dd class="num {{.Band}}">{{.Value}}</dd>{{end}}</dl>
+    </div>
+    {{end}}
+    {{with .Classes}}
+    <div class="card">
+      <div class="card-h"><h2>Classes</h2><a href="#classes" data-goto="classes">Details</a></div>
+      <div class="big num">{{.Total}}<small>classes</small></div>
+      <dl class="kv">{{range .Facts}}<dt>{{.Key}}</dt><dd class="{{if .Mono}}mono{{else}}num{{end}} {{.Band}}">{{.Value}}</dd>{{end}}</dl>
+    </div>
+    {{end}}
+    {{with .Structure}}
+    <div class="card">
+      <div class="card-h"><h2>Structure</h2><a href="#architecture" data-goto="architecture">Details</a></div>
+      <div class="big num{{if .Cycles}} bad{{end}}">{{.Cycles}}<small>circular {{if eq .Cycles 1}}dependency{{else}}dependencies{{end}}</small></div>
+      <dl class="kv">{{range .Facts}}<dt>{{.Key}}</dt><dd class="num {{.Band}}">{{.Value}}</dd>{{end}}</dl>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+</section>
+
+<!-- ================= FUNCTIONS ================= -->
+{{if .ShowFunctions}}
+<section id="functions" class="panel">
+  <div class="panel-h">
+    <h2>Functions</h2>
+    <div class="scores">
+      {{if .Summary.ComplexityEnabled}}<span class="score-pill {{scoreBand .Summary.ComplexityScore}}">Complexity <b class="num">{{.Summary.ComplexityScore}}</b>/100</span>{{end}}
+      {{if .Summary.DeadCodeEnabled}}<span class="score-pill {{scoreBand .Summary.DeadCodeScore}}">Dead code <b class="num">{{.Summary.DeadCodeScore}}</b>/100</span>{{end}}
+    </div>
+  </div>
+
+  {{if and .Summary.ComplexityEnabled .Complexity}}
+  <div class="card">
+    <div class="card-h"><h2>Complexity</h2></div>
+    <div class="strip">
+      <div class="s"><div class="v num">{{if and (gt .Complexity.Summary.FunctionsParsed 0) (ne .Complexity.Summary.FunctionsParsed .Complexity.Summary.TotalFunctions)}}{{.Complexity.Summary.TotalFunctions}} / {{.Complexity.Summary.FunctionsParsed}}{{else}}{{.Complexity.Summary.TotalFunctions}}{{end}}</div><div class="l">{{if and (gt .Complexity.Summary.FunctionsParsed 0) (ne .Complexity.Summary.FunctionsParsed .Complexity.Summary.TotalFunctions)}}reported / parsed{{else}}functions{{end}}</div></div>
+      <div class="s"><div class="v num">{{printf "%.2f" .Complexity.Summary.AverageComplexity}}</div><div class="l">average CC</div></div>
+      <div class="s"><div class="v num">{{.Complexity.Summary.MaxComplexity}}</div><div class="l">max CC</div></div>
+      <div class="s"><div class="v num{{if .Complexity.Summary.HighRiskFunctions}} bad{{end}}">{{.Complexity.Summary.HighRiskFunctions}}</div><div class="l">high risk</div></div>
+      <div class="s"><div class="v num{{if .Complexity.Summary.MediumRiskFunctions}} warn{{end}}">{{.Complexity.Summary.MediumRiskFunctions}}</div><div class="l">medium risk</div></div>
+    </div>
+
+    <h3>Most complex functions</h3>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Function</th><th>File</th><th class="r">CC</th><th class="r">Cognitive</th><th class="r">Nesting</th><th class="r">SLOC</th><th>Risk</th></tr></thead>
+        <tbody>
+          {{range $i, $f := .Complexity.Functions}}{{if lt $i 20}}
+          <tr>
+            <td class="mono">{{$f.Name}}</td>
+            <td class="mono muted">{{$f.FilePath}}:{{$f.StartLine}}</td>
+            <td class="r num">{{$f.Metrics.Complexity}}</td>
+            <td class="r num">{{$f.Metrics.CognitiveComplexity}}</td>
+            <td class="r num">{{$f.Metrics.NestingDepth}}</td>
+            <td class="r num">{{$f.Metrics.SLOC}}</td>
+            <td><span class="pill risk-{{$f.RiskLevel}}">{{$f.RiskLevel}}</span></td>
+          </tr>
+          {{end}}{{end}}
+        </tbody>
+      </table>
+    </div>
+    {{if gt (len .Complexity.Functions) 20}}<p class="muted small note">Showing top 20 of {{len .Complexity.Functions}} functions</p>{{end}}
+
+    {{$long := longFunctions .Complexity}}
+    {{if $long.Functions}}
+    <h3>Longest Functions</h3>
+    <p class="muted small">Functions longer than {{$long.Threshold}} source lines. Length is independent of cyclomatic complexity, so these may be absent from the table above.</p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Function</th><th>File</th><th class="r">SLOC</th><th class="r">Lines</th><th class="r">CC</th></tr></thead>
+        <tbody>
+          {{range $long.Functions}}
+          <tr>
+            <td class="mono">{{.Name}}</td>
+            <td class="mono muted">{{.FilePath}}</td>
+            <td class="r num">{{.Metrics.SLOC}}</td>
+            <td class="r num">{{.StartLine}}-{{.EndLine}}</td>
+            <td class="r num">{{.Metrics.Complexity}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+    {{if gt $long.Total (len $long.Functions)}}<p class="muted small note">Showing longest {{len $long.Functions}} of {{$long.Total}} long functions</p>{{end}}
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if and .Summary.DeadCodeEnabled .DeadCode}}
+  <div class="card">
+    <div class="card-h"><h2>Dead code</h2></div>
+    <div class="strip">
+      <div class="s"><div class="v num">{{.DeadCode.Summary.TotalFindings}}</div><div class="l">findings</div></div>
+      <div class="s"><div class="v num{{if .DeadCode.Summary.CriticalFindings}} bad{{end}}">{{.DeadCode.Summary.CriticalFindings}}</div><div class="l">critical</div></div>
+      <div class="s"><div class="v num{{if .DeadCode.Summary.WarningFindings}} warn{{end}}">{{.DeadCode.Summary.WarningFindings}}</div><div class="l">warnings</div></div>
+      <div class="s"><div class="v num">{{.DeadCode.Summary.FilesWithDeadCode}}</div><div class="l">files affected</div></div>
+    </div>
+    {{if gt .DeadCode.Summary.TotalFindings 0}}
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>File</th><th>Function</th><th class="r">Lines</th><th>Severity</th><th>Reason</th></tr></thead>
+        <tbody>
+          {{$shown := 0}}
+          {{range $file := .DeadCode.Files}}{{range $func := $file.Functions}}{{range $finding := $func.Findings}}{{if lt $shown 20}}
+          <tr>
+            <td class="mono muted">{{$finding.Location.FilePath}}</td>
+            <td class="mono">{{$finding.FunctionName}}</td>
+            <td class="r num">{{$finding.Location.StartLine}}-{{$finding.Location.EndLine}}</td>
+            <td><span class="pill sev-{{$finding.Severity}}">{{$finding.Severity}}</span></td>
+            <td>{{$finding.Reason}}</td>
+          </tr>
+          {{$shown = add $shown 1}}
+          {{end}}{{end}}{{end}}{{end}}
+        </tbody>
+      </table>
+    </div>
+    {{if gt .DeadCode.Summary.TotalFindings 20}}<p class="muted small note">Showing top 20 of {{.DeadCode.Summary.TotalFindings}} findings</p>{{end}}
+    {{else}}
+    <p class="ok-msg">No dead code detected</p>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .ModuleQuality}}
+  <details class="card">
+    <summary><h2>All modules</h2><span class="muted small">{{len .ModuleQuality}} modules · click a column to sort</span></summary>
+    <div class="tbl-wrap">
+      <table id="module-quality-table" class="tbl">
+        <thead>
+          <tr>
+            <th><button type="button" class="table-sort" aria-label="Sort by module name" onclick="sortModuleQuality(0, false, this)">Module</button></th>
+            <th><button type="button" class="table-sort" aria-label="Sort by file path" onclick="sortModuleQuality(1, false, this)">File</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by lines of code" onclick="sortModuleQuality(2, true, this)">LOC</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by function count" onclick="sortModuleQuality(3, true, this)">Functions</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by analyzed function count" onclick="sortModuleQuality(4, true, this)">Analyzed</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by average complexity" onclick="sortModuleQuality(5, true, this)">Avg CC</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by average cognitive complexity" onclick="sortModuleQuality(6, true, this)">Avg Cognitive</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by maximum complexity" onclick="sortModuleQuality(7, true, this)">Max CC</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by high-risk function count" onclick="sortModuleQuality(8, true, this)">High Risk</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by exception handler count" onclick="sortModuleQuality(9, true, this)">Handlers</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by dead-code findings" onclick="sortModuleQuality(10, true, this)">Dead Findings</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by dead-code blocks" onclick="sortModuleQuality(11, true, this)">Dead Blocks</button></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .ModuleQuality}}
+          <tr>
+            <td class="mono" data-sort-value="{{.ModuleName}}">{{if .ModuleName}}{{.ModuleName}}{{else}}—{{end}}</td>
+            <td class="mono muted" data-sort-value="{{.FilePath}}">{{.FilePath}}</td>
+            <td class="r num" data-sort-value="{{.LinesOfCode}}">{{.LinesOfCode}}</td>
+            <td class="r num" data-sort-value="{{.FunctionCount}}">{{.FunctionCount}}</td>
+            <td class="r num" data-sort-value="{{.AnalyzedFunctionCount}}">{{.AnalyzedFunctionCount}}</td>
+            <td class="r num" data-sort-value="{{.AverageComplexity}}">{{printf "%.2f" .AverageComplexity}}</td>
+            <td class="r num" data-sort-value="{{.AverageCognitiveComplexity}}">{{printf "%.2f" .AverageCognitiveComplexity}}</td>
+            <td class="r num" data-sort-value="{{.MaxComplexity}}">{{.MaxComplexity}}</td>
+            <td class="r num" data-sort-value="{{.HighRiskFunctionCount}}">{{.HighRiskFunctionCount}}</td>
+            <td class="r num" data-sort-value="{{.ExceptionHandlerCount}}">{{.ExceptionHandlerCount}}</td>
+            <td class="r num" data-sort-value="{{.DeadCodeFindingCount}}">{{.DeadCodeFindingCount}}</td>
+            <td class="r num" data-sort-value="{{.DeadCodeBlockCount}}">{{.DeadCodeBlockCount}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </details>
+  {{end}}
+
+  {{if and .Complexity .Complexity.ByDirectory}}
+  <details class="card">
+    <summary><h2>Directory Complexity</h2><span class="muted small">{{len .Complexity.ByDirectory}} directories · click a column to sort</span></summary>
+    <div class="tbl-wrap">
+      <table id="directory-complexity-table" class="tbl">
+        <thead>
+          <tr>
+            <th><button type="button" class="table-sort" aria-label="Sort by directory path" onclick="sortDirectoryComplexity(0, false, this)">Directory</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by function count" onclick="sortDirectoryComplexity(1, true, this)">Functions</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by average complexity" onclick="sortDirectoryComplexity(2, true, this)">Avg CC</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by maximum complexity" onclick="sortDirectoryComplexity(3, true, this)">Max CC</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by high-risk function count" onclick="sortDirectoryComplexity(4, true, this)">High Risk</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by average nesting depth" onclick="sortDirectoryComplexity(5, true, this)">Avg Nesting</button></th>
+            <th class="r"><button type="button" class="table-sort" aria-label="Sort by maximum nesting depth" onclick="sortDirectoryComplexity(6, true, this)">Max Nesting</button></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Complexity.ByDirectory}}
+          <tr>
+            <td class="mono" data-sort-value="{{.DirectoryPath}}">{{.DirectoryPath}}</td>
+            <td class="r num" data-sort-value="{{.FunctionCount}}">{{.FunctionCount}}</td>
+            <td class="r num" data-sort-value="{{.AverageComplexity}}">{{printf "%.2f" .AverageComplexity}}</td>
+            <td class="r num" data-sort-value="{{.MaxComplexity}}">{{.MaxComplexity}}</td>
+            <td class="r num" data-sort-value="{{.HighRiskFunctionCount}}">{{.HighRiskFunctionCount}}</td>
+            <td class="r num" data-sort-value="{{.AverageNestingDepth}}">{{printf "%.2f" .AverageNestingDepth}}</td>
+            <td class="r num" data-sort-value="{{.MaxNestingDepth}}">{{.MaxNestingDepth}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </details>
+  {{end}}
+</section>
+{{end}}
+
+<!-- ================= DUPLICATION ================= -->
+{{if .Summary.CloneEnabled}}
+<section id="duplication" class="panel">
+  <div class="panel-h">
+    <h2>Duplication</h2>
+    <div class="scores"><span class="score-pill {{scoreBand .Summary.DuplicationScore}}">Duplication <b class="num">{{.Summary.DuplicationScore}}</b>/100</span></div>
+  </div>
+  {{if and .Clone .Clone.Statistics}}
+  <div class="card">
+    <div class="strip">
+      <div class="s"><div class="v num">{{.Clone.Statistics.TotalClones}}<small> / {{.Clone.Statistics.TotalFragments}}</small></div><div class="l">fragments cloned</div></div>
+      <div class="s"><div class="v num">{{.Clone.Statistics.TotalCloneGroups}}</div><div class="l">clone groups</div></div>
+      <div class="s"><div class="v num">{{.Clone.Statistics.TotalClonePairs}}</div><div class="l">clone pairs</div></div>
+      <div class="s"><div class="v num">{{printf "%.2f" .Clone.Statistics.AverageSimilarity}}</div><div class="l">avg similarity</div></div>
+      <div class="s"><div class="v num">{{.Clone.Statistics.FilesAnalyzed}}</div><div class="l">files scanned</div></div>
+    </div>
+  </div>
+
+  {{if gt .Clone.Statistics.TotalCloneGroups 0}}
+  <div class="card">
+    <div class="card-h"><h2>Clone groups</h2><span class="muted small">fragments grouped by similarity</span></div>
+    {{range $i, $group := .Clone.CloneGroups}}{{if lt $i 10}}
+    <div class="clone-group">
+      <div class="clone-group-h">
+        <span class="pill type {{printf "t%d" (int $group.Type)}}">{{$group.Type}}</span>
+        <b>Group {{$group.ID}}</b>
+        <span class="muted">{{len $group.Clones}} fragments · similarity {{printf "%.2f" $group.Similarity}}</span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl compact">
+          <thead><tr><th>File</th><th class="r">Lines</th><th class="r">Size</th></tr></thead>
+          <tbody>
+            {{range $j, $clone := $group.Clones}}{{if lt $j 10}}
+            <tr>
+              <td class="mono">{{$clone.Location.FilePath}}</td>
+              <td class="r num">{{$clone.Location.StartLine}}-{{$clone.Location.EndLine}}</td>
+              <td class="r num">{{$clone.LineCount}} lines</td>
+            </tr>
+            {{if and $.Clone.Request $.Clone.Request.ShouldShowContent $clone.Content}}
+            <tr class="preview-row"><td colspan="3">
+              <div class="code-preview-card"><div class="code-preview-title">Code Preview</div><pre class="code-preview">{{previewContent $clone.Content}}</pre></div>
+            </td></tr>
+            {{end}}
+            {{end}}{{end}}
+            {{if gt (len $group.Clones) 10}}<tr><td colspan="3" class="muted">... and {{sub (len $group.Clones) 10}} more fragments</td></tr>{{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {{end}}{{end}}
+    {{if gt .Clone.Statistics.TotalCloneGroups 10}}<p class="muted small note">Showing top 10 of {{.Clone.Statistics.TotalCloneGroups}} clone groups</p>{{end}}
+  </div>
+  {{else if gt .Clone.Statistics.TotalClonePairs 0}}
+  <div class="card">
+    <div class="card-h"><h2>Clone pairs</h2><span class="muted small">no groups formed, showing individual pairs</span></div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>File 1</th><th>File 2</th><th class="r">Lines 1</th><th class="r">Lines 2</th><th class="r">Similarity</th><th>Type</th></tr></thead>
+        <tbody>
+          {{range $i, $pair := .Clone.ClonePairs}}{{if lt $i 15}}
+          <tr>
+            <td class="mono">{{$pair.Clone1.Location.FilePath}}</td>
+            <td class="mono">{{$pair.Clone2.Location.FilePath}}</td>
+            <td class="r num">{{$pair.Clone1.Location.StartLine}}-{{$pair.Clone1.Location.EndLine}}</td>
+            <td class="r num">{{$pair.Clone2.Location.StartLine}}-{{$pair.Clone2.Location.EndLine}}</td>
+            <td class="r num">{{printf "%.3f" $pair.Similarity}}</td>
+            <td><span class="pill type {{printf "t%d" (int $pair.Type)}}">{{$pair.Type}}</span></td>
+          </tr>
+          {{if and $.Clone.Request $.Clone.Request.ShouldShowContent $pair.Clone1.Content}}
+          <tr class="preview-row"><td colspan="6"><div class="code-preview-card"><div class="code-preview-title">Clone 1 Preview</div><pre class="code-preview">{{previewContent $pair.Clone1.Content}}</pre></div></td></tr>
+          {{end}}
+          {{if and $.Clone.Request $.Clone.Request.ShouldShowContent $pair.Clone2.Content}}
+          <tr class="preview-row"><td colspan="6"><div class="code-preview-card"><div class="code-preview-title">Clone 2 Preview</div><pre class="code-preview">{{previewContent $pair.Clone2.Content}}</pre></div></td></tr>
+          {{end}}
+          {{end}}{{end}}
+        </tbody>
+      </table>
+    </div>
+    {{if gt .Clone.Statistics.TotalClonePairs 15}}<p class="muted small note">Showing top 15 of {{.Clone.Statistics.TotalClonePairs}} clone pairs</p>{{end}}
+  </div>
+  {{else}}
+  <div class="card"><p class="ok-msg">No clones detected</p></div>
+  {{end}}
+  {{end}}
+</section>
+{{end}}
+
+<!-- ================= CLASSES ================= -->
+{{if or .Summary.CBOEnabled .Summary.LCOMEnabled}}
+<section id="classes" class="panel">
+  <div class="panel-h">
+    <h2>Classes</h2>
+    <div class="scores">
+      {{if .Summary.CBOEnabled}}<span class="score-pill {{scoreBand .Summary.CouplingScore}}">Coupling <b class="num">{{.Summary.CouplingScore}}</b>/100</span>{{end}}
+      {{if .Summary.LCOMEnabled}}<span class="score-pill {{scoreBand .Summary.CohesionScore}}">Cohesion <b class="num">{{.Summary.CohesionScore}}</b>/100</span>{{end}}
+    </div>
+  </div>
+
+  {{if and .Summary.CBOEnabled .CBO}}
+  <div class="card">
+    <div class="card-h"><h2>Coupling</h2><span class="muted small">Coupling Between Objects (CBO)</span></div>
+    <div class="strip">
+      <div class="s"><div class="v num">{{.CBO.Summary.TotalClasses}}</div><div class="l">classes</div></div>
+      <div class="s"><div class="v num{{if .CBO.Summary.HighRiskClasses}} bad{{end}}">{{.CBO.Summary.HighRiskClasses}}</div><div class="l">high coupling</div></div>
+      <div class="s"><div class="v num{{if .CBO.Summary.MediumRiskClasses}} warn{{end}}">{{.CBO.Summary.MediumRiskClasses}}</div><div class="l">medium coupling</div></div>
+      <div class="s"><div class="v num">{{printf "%.2f" .CBO.Summary.AverageCBO}}</div><div class="l">average CBO</div></div>
+      <div class="s"><div class="v num">{{.CBO.Summary.MaxCBO}}</div><div class="l">max CBO</div></div>
+    </div>
+    <h3>Most coupled classes</h3>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Class</th><th>File</th><th class="r">CBO</th><th>Risk</th><th>Depends on</th></tr></thead>
+        <tbody>
+          {{range $i, $c := .CBO.Classes}}{{if lt $i 15}}
+          <tr>
+            <td class="mono">{{$c.Name}}</td>
+            <td class="mono muted">{{$c.FilePath}}:{{$c.StartLine}}</td>
+            <td class="r num">{{$c.Metrics.CouplingCount}}</td>
+            <td><span class="pill risk-{{$c.RiskLevel}}">{{$c.RiskLevel}}</span></td>
+            <td class="mono small wrap">{{join $c.Metrics.DependentClasses ", "}}</td>
+          </tr>
+          {{end}}{{end}}
+        </tbody>
+      </table>
+    </div>
+    {{if gt (len .CBO.Classes) 15}}<p class="muted small note">Showing top 15 of {{len .CBO.Classes}} classes</p>{{end}}
+  </div>
+  {{end}}
+
+  {{if and .Summary.LCOMEnabled .LCOM}}
+  <div class="card">
+    <div class="card-h"><h2>Cohesion</h2><span class="muted small">Lack of Cohesion of Methods (LCOM4)</span></div>
+    <div class="strip">
+      <div class="s"><div class="v num">{{.LCOM.Summary.TotalClasses}}</div><div class="l">classes</div></div>
+      <div class="s"><div class="v num{{if .LCOM.Summary.HighRiskClasses}} bad{{end}}">{{.LCOM.Summary.HighRiskClasses}}</div><div class="l">low cohesion</div></div>
+      <div class="s"><div class="v num{{if .LCOM.Summary.MediumRiskClasses}} warn{{end}}">{{.LCOM.Summary.MediumRiskClasses}}</div><div class="l">medium</div></div>
+      <div class="s"><div class="v num">{{printf "%.2f" .LCOM.Summary.AverageLCOM}}</div><div class="l">average LCOM4</div></div>
+      <div class="s"><div class="v num">{{.LCOM.Summary.MaxLCOM}}</div><div class="l">max LCOM4</div></div>
+    </div>
+    <h3>Least cohesive classes</h3>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Class</th><th>File</th><th class="r">LCOM4</th><th>Risk</th><th class="r">Methods</th><th class="r">Instance vars</th></tr></thead>
+        <tbody>
+          {{range $i, $c := .LCOM.Classes}}{{if lt $i 15}}
+          <tr>
+            <td class="mono">{{$c.Name}}</td>
+            <td class="mono muted">{{$c.FilePath}}:{{$c.StartLine}}</td>
+            <td class="r num">{{$c.Metrics.LCOM4}}</td>
+            <td><span class="pill risk-{{$c.RiskLevel}}">{{$c.RiskLevel}}</span></td>
+            <td class="r num">{{sub $c.Metrics.TotalMethods $c.Metrics.ExcludedMethods}}</td>
+            <td class="r num">{{$c.Metrics.InstanceVariables}}</td>
+          </tr>
+          {{end}}{{end}}
+        </tbody>
+      </table>
+    </div>
+    {{if gt (len .LCOM.Classes) 15}}<p class="muted small note">Showing top 15 of {{len .LCOM.Classes}} classes</p>{{end}}
+  </div>
+  {{end}}
+</section>
+{{end}}
+
+<!-- ================= ARCHITECTURE ================= -->
+{{if .Structure}}
+<section id="architecture" class="panel">
+  <div class="panel-h">
+    <h2>Architecture</h2>
+    <div class="scores">
+      {{if .Summary.DepsEnabled}}<span class="score-pill {{scoreBand .Summary.DependencyScore}}">Dependencies <b class="num">{{.Summary.DependencyScore}}</b>/100</span>{{end}}
+      {{if .Summary.ArchEnabled}}<span class="score-pill {{scoreBand .Summary.ArchitectureScore}}">Architecture <b class="num">{{.Summary.ArchitectureScore}}</b>/100</span>{{end}}
+      {{if and .Summary.CommunitiesEnabled .Communities}}<span class="score-pill {{scoreBand .Summary.CommunityScore}}">Communities <b class="num">{{.Summary.CommunityScore}}</b>/100</span>{{end}}
+    </div>
+  </div>
+
+  {{if .System}}
+  {{with .System.DependencyAnalysis}}
+  <div class="card">
+    <div class="card-h"><h2>Module dependencies</h2></div>
+    <div class="strip">
+      <div class="s"><div class="v num">{{.TotalModules}}</div><div class="l">modules</div></div>
+      <div class="s"><div class="v num">{{.TotalDependencies}}</div><div class="l">dependencies</div></div>
+      <div class="s"><div class="v num">{{.MaxDepth}}</div><div class="l">max depth</div></div>
+      {{if .CircularDependencies}}<div class="s"><div class="v num{{if .CircularDependencies.HasCircularDependencies}} bad{{else}} good{{end}}">{{.CircularDependencies.TotalCycles}}</div><div class="l">circular dependencies</div></div>{{end}}
+      {{if .CouplingAnalysis}}
+      <div class="s"><div class="v num">{{printf "%.2f" .CouplingAnalysis.AverageInstability}}</div><div class="l">avg instability</div></div>
+      <div class="s"><div class="v num">{{printf "%.2f" .CouplingAnalysis.MainSequenceDeviation}}</div><div class="l">main sequence deviation</div></div>
+      {{end}}
+    </div>
+
+    {{with .CouplingAnalysis}}
+    {{if or .ZoneOfPain .ZoneOfUselessness .MainSequence}}
+    <h3>Main sequence</h3>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Zone</th><th>Modules</th></tr></thead>
+        <tbody>
+          {{if .ZoneOfPain}}<tr><td><span class="pill bad">Zone of pain</span></td><td class="mono small wrap">{{join .ZoneOfPain ", "}}</td></tr>{{end}}
+          {{if .ZoneOfUselessness}}<tr><td><span class="pill warn">Zone of uselessness</span></td><td class="mono small wrap">{{join .ZoneOfUselessness ", "}}</td></tr>{{end}}
+          {{if .MainSequence}}<tr><td><span class="pill good">Main sequence</span></td><td class="mono small wrap">{{join .MainSequence ", "}}</td></tr>{{end}}
+        </tbody>
+      </table>
+    </div>
+    {{end}}
+    {{end}}
+
+    {{with .CircularDependencies}}
+    <h3>Circular dependencies</h3>
+    {{if not .HasCircularDependencies}}
+    <p class="ok-msg">No circular dependencies detected. All modules have acyclic dependency relationships.</p>
+    {{else}}
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Severity</th><th class="r">Size</th><th>Dependency paths</th></tr></thead>
+        <tbody>
+          {{range $i, $cycle := .CircularDependencies}}{{if lt $i 20}}
+          <tr>
+            <td><span class="pill sev-{{$cycle.Severity}}">{{$cycle.Severity}}</span></td>
+            <td class="r num">{{$cycle.Size}}</td>
+            <td class="mono small wrap">
+              {{range $j, $path := $cycle.Dependencies}}{{if lt $j 5}}{{if gt $j 0}}<br>{{end}}{{join $path.Path " → "}}{{end}}{{end}}
+              {{if gt (len $cycle.Dependencies) 5}}<br><em class="muted">... and {{sub (len $cycle.Dependencies) 5}} more paths</em>{{end}}
+            </td>
+          </tr>
+          {{end}}{{end}}
+          {{if gt (len .CircularDependencies) 20}}<tr><td colspan="3" class="muted">... and {{sub (len .CircularDependencies) 20}} more circular dependencies</td></tr>{{end}}
+        </tbody>
+      </table>
+    </div>
+    {{if .CoreInfrastructure}}
+    <div class="callout warn"><b>Core infrastructure modules (appear in multiple cycles):</b> <span class="mono">{{join .CoreInfrastructure ", "}}</span></div>
+    {{end}}
+    {{if .CycleBreakingSuggestions}}
+    <div class="callout info"><b>Suggestions for breaking cycles</b><ul>{{range .CycleBreakingSuggestions}}<li>{{.}}</li>{{end}}</ul></div>
+    {{end}}
+    {{end}}
+    {{end}}
+
+    {{if .LongestChains}}
+    <h3>Longest dependency chains</h3>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th class="r">#</th><th class="r">Depth</th><th>Path</th></tr></thead>
+        <tbody>
+          {{range $i, $chain := .LongestChains}}{{if lt $i 10}}
+          <tr><td class="r num">{{add $i 1}}</td><td class="r num">{{$chain.Length}}</td><td class="mono small wrap">{{join $chain.Path " → "}}</td></tr>
+          {{end}}{{end}}
+        </tbody>
+      </table>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{with .System.ArchitectureAnalysis}}
+  <div class="card">
+    <div class="card-h"><h2>Layer rules</h2></div>
+    <div class="strip">
+      <div class="s"><div class="v num">{{if .LayerAnalysis}}{{.LayerAnalysis.LayersAnalyzed}}{{else}}0{{end}}</div><div class="l">layers analyzed</div></div>
+      <div class="s"><div class="v num">{{.TotalRules}}</div><div class="l">rules checked</div></div>
+      <div class="s"><div class="v num{{if .TotalViolations}} warn{{end}}">{{.TotalViolations}}</div><div class="l">violations</div></div>
+      <div class="s"><div class="v num">{{printf "%.1f%%" (mul100 .ComplianceScore)}}</div><div class="l">compliance</div></div>
+    </div>
+    {{if and .LayerAnalysis (gt (len .LayerAnalysis.LayerViolations) 0)}}
+    <h3>Rule violations</h3>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Severity</th><th>Rule</th><th>From</th><th>To</th></tr></thead>
+        <tbody>
+          {{range $i, $v := .LayerAnalysis.LayerViolations}}{{if lt $i 20}}
+          <tr>
+            <td><span class="pill sev-{{$v.Severity}}">{{$v.Severity}}</span></td>
+            <td class="mono">{{$v.Rule}}</td>
+            <td class="mono small wrap">{{$v.FromModule}}{{if $v.FromLayer}} <span class="muted">({{$v.FromLayer}})</span>{{end}}</td>
+            <td class="mono small wrap">{{$v.ToModule}}{{if $v.ToLayer}} <span class="muted">({{$v.ToLayer}})</span>{{end}}</td>
+          </tr>
+          {{end}}{{end}}
+        </tbody>
+      </table>
+    </div>
+    {{if gt (len .LayerAnalysis.LayerViolations) 20}}<p class="muted small note">Showing top 20 of {{len .LayerAnalysis.LayerViolations}} violations</p>{{end}}
+    {{else}}
+    <p class="ok-msg">No architecture violations</p>
+    {{end}}
+  </div>
+  {{end}}
+  {{end}}
+
+  {{if and .Summary.CommunitiesEnabled .Communities}}
+  <div class="card community-card">
+    {{communitySummaryHTML .Communities}}
+  </div>
+  {{end}}
+</section>
+{{end}}
+
+</main>
+
+<footer>
+  <span>Generated by pyscn{{if .Version}} {{.Version}}{{end}} · {{.GeneratedAt.Format "2006-01-02 15:04:05"}}</span>
+  <a href="https://github.com/ludo-technologies/pyscn" target="_blank" rel="noopener noreferrer">&#9733; Star pyscn on GitHub</a>
+</footer>
+
+<script>{{.JS}}</script>
+</body>
+</html>

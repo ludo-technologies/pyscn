@@ -44,77 +44,77 @@ type CBORequest struct {
 // CBOMetrics represents detailed CBO metrics for a class
 type CBOMetrics struct {
 	// Core CBO metric - number of classes this class depends on
-	CouplingCount int
+	CouplingCount int `json:"coupling_count" yaml:"coupling_count"`
 
 	// Breakdown by dependency type
-	InheritanceDependencies     int // Base classes
-	TypeHintDependencies        int // Type annotations
-	InstantiationDependencies   int // Object creation
-	AttributeAccessDependencies int // Method calls and attribute access
-	ImportDependencies          int // Explicitly imported classes
+	InheritanceDependencies     int `json:"inheritance_dependencies" yaml:"inheritance_dependencies"`           // Base classes
+	TypeHintDependencies        int `json:"type_hint_dependencies" yaml:"type_hint_dependencies"`               // Type annotations
+	InstantiationDependencies   int `json:"instantiation_dependencies" yaml:"instantiation_dependencies"`       // Object creation
+	AttributeAccessDependencies int `json:"attribute_access_dependencies" yaml:"attribute_access_dependencies"` // Method calls and attribute access
+	ImportDependencies          int `json:"import_dependencies" yaml:"import_dependencies"`                     // Explicitly imported classes
 
 	// Dependency details
-	DependentClasses []string // List of class names this class depends on
+	DependentClasses []string `json:"dependent_classes" yaml:"dependent_classes"` // List of class names this class depends on
 }
 
 // ClassCoupling represents CBO analysis result for a single class
 type ClassCoupling struct {
 	// Class identification
-	Name      string
-	FilePath  string
-	StartLine int
-	EndLine   int
+	Name      string `json:"name" yaml:"name"`
+	FilePath  string `json:"file_path" yaml:"file_path"`
+	StartLine int    `json:"start_line" yaml:"start_line"`
+	EndLine   int    `json:"end_line" yaml:"end_line"`
 
 	// CBO metrics
-	Metrics CBOMetrics
+	Metrics CBOMetrics `json:"metrics" yaml:"metrics"`
 
 	// Risk assessment
-	RiskLevel RiskLevel
+	RiskLevel RiskLevel `json:"risk_level" yaml:"risk_level"`
 
 	// Additional context
-	IsAbstract  bool
-	BaseClasses []string
+	IsAbstract  bool     `json:"is_abstract" yaml:"is_abstract"`
+	BaseClasses []string `json:"base_classes" yaml:"base_classes"`
 }
 
 // CBOSummary represents aggregate CBO statistics
 type CBOSummary struct {
-	TotalClasses    int
-	AverageCBO      float64
-	MaxCBO          int
-	MinCBO          int
-	ClassesAnalyzed int
-	FilesAnalyzed   int
+	TotalClasses    int     `json:"total_classes" yaml:"total_classes"`
+	AverageCBO      float64 `json:"average_cbo" yaml:"average_cbo"`
+	MaxCBO          int     `json:"max_cbo" yaml:"max_cbo"`
+	MinCBO          int     `json:"min_cbo" yaml:"min_cbo"`
+	ClassesAnalyzed int     `json:"classes_analyzed" yaml:"classes_analyzed"`
+	FilesAnalyzed   int     `json:"files_analyzed" yaml:"files_analyzed"`
 
 	// Risk distribution
-	LowRiskClasses    int
-	MediumRiskClasses int
-	HighRiskClasses   int
+	LowRiskClasses    int `json:"low_risk_classes" yaml:"low_risk_classes"`
+	MediumRiskClasses int `json:"medium_risk_classes" yaml:"medium_risk_classes"`
+	HighRiskClasses   int `json:"high_risk_classes" yaml:"high_risk_classes"`
 
 	// CBO distribution
-	CBODistribution map[string]int
+	CBODistribution map[string]int `json:"cbo_distribution" yaml:"cbo_distribution"`
 
 	// Most coupled classes (top 10)
-	MostCoupledClasses []ClassCoupling
+	MostCoupledClasses []ClassCoupling `json:"most_coupled_classes" yaml:"most_coupled_classes"`
 
 	// Classes with highest impact (most depended upon)
-	MostDependedUponClasses []string
+	MostDependedUponClasses []string `json:"most_depended_upon_classes" yaml:"most_depended_upon_classes"`
 }
 
 // CBOResponse represents the complete CBO analysis result
 type CBOResponse struct {
 	// Analysis results
-	Classes []ClassCoupling
-	Summary CBOSummary
+	Classes []ClassCoupling `json:"classes" yaml:"classes"`
+	Summary CBOSummary      `json:"summary" yaml:"summary"`
 
 	// Warnings and issues
-	Warnings []string
-	Errors   []string
+	Warnings []string          `json:"warnings" yaml:"warnings"`
+	Errors   []string          `json:"errors" yaml:"errors"`
 	Failures []AnalysisFailure `json:"failures,omitempty" yaml:"failures,omitempty"`
 
 	// Metadata
-	GeneratedAt string
-	Version     string
-	Config      interface{} // Configuration used for analysis
+	GeneratedAt string      `json:"generated_at" yaml:"generated_at"`
+	Version     string      `json:"version" yaml:"version"`
+	Config      interface{} `json:"config" yaml:"config"` // Configuration used for analysis
 }
 
 // CBOService defines the core business logic for CBO analysis

@@ -52,84 +52,84 @@ const ModuleFunctionName = "<module>"
 // ComplexityRequest represents a request for complexity analysis
 type ComplexityRequest struct {
 	// Input files or directories to analyze
-	Paths []string
+	Paths []string `json:"paths" yaml:"paths"`
 
 	// Output configuration
-	OutputFormat OutputFormat
-	OutputWriter io.Writer
-	OutputPath   string // Path to save output file (for HTML format)
-	NoOpen       bool   // Don't auto-open HTML in browser
-	ShowDetails  *bool  // nil = unset, non-nil = explicitly set
+	OutputFormat OutputFormat `json:"output_format" yaml:"output_format"`
+	OutputWriter io.Writer    `json:"-" yaml:"-"`
+	OutputPath   string       `json:"output_path" yaml:"output_path"`   // Path to save output file (for HTML format)
+	NoOpen       bool         `json:"no_open" yaml:"no_open"`           // Don't auto-open HTML in browser
+	ShowDetails  *bool        `json:"show_details" yaml:"show_details"` // nil = unset, non-nil = explicitly set
 
 	// Filtering and sorting
-	MinComplexity int
-	MaxComplexity int // 0 means no limit
-	SortBy        SortCriteria
+	MinComplexity int          `json:"min_complexity" yaml:"min_complexity"`
+	MaxComplexity int          `json:"max_complexity" yaml:"max_complexity"` // 0 means no limit
+	SortBy        SortCriteria `json:"sort_by" yaml:"sort_by"`
 
 	// Complexity thresholds
-	LowThreshold                 int
-	MediumThreshold              int
-	CognitiveComplexityThreshold int
-	NestingDepthThreshold        int
+	LowThreshold                 int `json:"low_threshold" yaml:"low_threshold"`
+	MediumThreshold              int `json:"medium_threshold" yaml:"medium_threshold"`
+	CognitiveComplexityThreshold int `json:"cognitive_complexity_threshold" yaml:"cognitive_complexity_threshold"`
+	NestingDepthThreshold        int `json:"nesting_depth_threshold" yaml:"nesting_depth_threshold"`
 
 	// Function SLOC thresholds
-	FunctionSLOCWarnThreshold     int
-	FunctionSLOCCriticalThreshold int
+	FunctionSLOCWarnThreshold     int `json:"function_sloc_warn_threshold" yaml:"function_sloc_warn_threshold"`
+	FunctionSLOCCriticalThreshold int `json:"function_sloc_critical_threshold" yaml:"function_sloc_critical_threshold"`
 
 	// Analysis toggles loaded from configuration when present.
 	// Nil means "use the default enabled behavior".
-	Enabled         *bool
-	ReportUnchanged *bool
+	Enabled         *bool `json:"enabled" yaml:"enabled"`
+	ReportUnchanged *bool `json:"report_unchanged" yaml:"report_unchanged"`
 
 	// Configuration
-	ConfigPath string
+	ConfigPath string `json:"config_path" yaml:"config_path"`
 
 	// Analysis options
-	Recursive       *bool // nil = unset, non-nil = explicitly set
-	IncludePatterns []string
-	ExcludePatterns []string
+	Recursive       *bool    `json:"recursive" yaml:"recursive"` // nil = unset, non-nil = explicitly set
+	IncludePatterns []string `json:"include_patterns" yaml:"include_patterns"`
+	ExcludePatterns []string `json:"exclude_patterns" yaml:"exclude_patterns"`
 }
 
 // ComplexityMetrics represents detailed complexity metrics for a function
 type ComplexityMetrics struct {
 	// McCabe cyclomatic complexity
-	Complexity int
+	Complexity int `json:"complexity" yaml:"complexity"`
 
 	// Cognitive complexity (SonarQube-style)
-	CognitiveComplexity int
+	CognitiveComplexity int `json:"cognitive_complexity" yaml:"cognitive_complexity"`
 
 	// CFG metrics
-	Nodes int
-	Edges int
+	Nodes int `json:"nodes" yaml:"nodes"`
+	Edges int `json:"edges" yaml:"edges"`
 
 	// Nesting depth
-	NestingDepth int
+	NestingDepth int `json:"nesting_depth" yaml:"nesting_depth"`
 
 	// Statement counts
-	IfStatements      int
-	LoopStatements    int
-	ExceptionHandlers int
-	SwitchCases       int
+	IfStatements      int `json:"if_statements" yaml:"if_statements"`
+	LoopStatements    int `json:"loop_statements" yaml:"loop_statements"`
+	ExceptionHandlers int `json:"exception_handlers" yaml:"exception_handlers"`
+	SwitchCases       int `json:"switch_cases" yaml:"switch_cases"`
 
 	// SLOC is the source lines of code within this function's line range.
 	// Computed using the same line-classification logic as raw_metrics.
-	SLOC int
+	SLOC int `json:"sloc" yaml:"sloc"`
 }
 
 // FunctionComplexity represents complexity analysis result for a single function
 type FunctionComplexity struct {
 	// Function identification
-	Name        string
-	FilePath    string
-	StartLine   int
-	StartColumn int
-	EndLine     int
+	Name        string `json:"name" yaml:"name"`
+	FilePath    string `json:"file_path" yaml:"file_path"`
+	StartLine   int    `json:"start_line" yaml:"start_line"`
+	StartColumn int    `json:"start_column" yaml:"start_column"`
+	EndLine     int    `json:"end_line" yaml:"end_line"`
 
 	// Complexity metrics
-	Metrics ComplexityMetrics
+	Metrics ComplexityMetrics `json:"metrics" yaml:"metrics"`
 
 	// Risk assessment
-	RiskLevel RiskLevel
+	RiskLevel RiskLevel `json:"risk_level" yaml:"risk_level"`
 }
 
 // ValidateFunctionSLOCThresholds checks the long-function tiers against each
@@ -226,40 +226,40 @@ type RawMetricsSummary struct {
 type ComplexitySummary struct {
 	// TotalFunctions is the complete analyzed population used by all aggregate metrics.
 	// Presentation filters only limit ComplexityResponse.Functions.
-	TotalFunctions int
+	TotalFunctions int `json:"total_functions" yaml:"total_functions"`
 	// FunctionsParsed is retained for output compatibility and describes the same
 	// complete analyzed population as TotalFunctions.
-	FunctionsParsed            int
-	AverageComplexity          float64
-	AverageCognitiveComplexity float64
-	AverageNestingDepth        float64
-	MaxComplexity              int
-	MinComplexity              int
+	FunctionsParsed            int     `json:"functions_parsed" yaml:"functions_parsed"`
+	AverageComplexity          float64 `json:"average_complexity" yaml:"average_complexity"`
+	AverageCognitiveComplexity float64 `json:"average_cognitive_complexity" yaml:"average_cognitive_complexity"`
+	AverageNestingDepth        float64 `json:"average_nesting_depth" yaml:"average_nesting_depth"`
+	MaxComplexity              int     `json:"max_complexity" yaml:"max_complexity"`
+	MinComplexity              int     `json:"min_complexity" yaml:"min_complexity"`
 	// FilesAnalyzed is the number of files that were successfully parsed and
 	// contributed to the metrics above.
-	FilesAnalyzed int
+	FilesAnalyzed int `json:"files_analyzed" yaml:"files_analyzed"`
 	// TotalFiles is the number of files the request covered, parsed or not.
-	TotalFiles int
+	TotalFiles int `json:"total_files" yaml:"total_files"`
 	// SkippedFiles is the number of files dropped because they could not be
 	// read or parsed. Their contents are absent from every metric, so a
 	// consumer must read this before trusting the aggregates.
-	SkippedFiles int
+	SkippedFiles int `json:"skipped_files" yaml:"skipped_files"`
 
 	// Risk distribution
-	LowRiskFunctions    int
-	MediumRiskFunctions int
-	HighRiskFunctions   int
+	LowRiskFunctions    int `json:"low_risk_functions" yaml:"low_risk_functions"`
+	MediumRiskFunctions int `json:"medium_risk_functions" yaml:"medium_risk_functions"`
+	HighRiskFunctions   int `json:"high_risk_functions" yaml:"high_risk_functions"`
 
 	// Complexity distribution
-	ComplexityDistribution map[string]int
+	ComplexityDistribution map[string]int `json:"complexity_distribution" yaml:"complexity_distribution"`
 }
 
 // ComplexityResponse represents the complete analysis result
 type ComplexityResponse struct {
 	// Analysis results
-	Functions   []FunctionComplexity
+	Functions   []FunctionComplexity           `json:"functions" yaml:"functions"`
 	ByDirectory DirectoryComplexityMetricsList `json:"by_directory" yaml:"by_directory"`
-	Summary     ComplexitySummary
+	Summary     ComplexitySummary              `json:"summary" yaml:"summary"`
 	// AnalyzedFunctions is the complete population before presentation filters.
 	// It is consumed by app-level aggregations and is not part of public output.
 	AnalyzedFunctions []FunctionComplexity `json:"-" yaml:"-"`
@@ -272,15 +272,15 @@ type ComplexityResponse struct {
 	RawMetricsSummary *RawMetricsSummary `json:"raw_metrics_summary,omitempty" yaml:"raw_metrics_summary,omitempty"`
 
 	// Warnings and issues
-	Warnings []string
-	Errors   []string
+	Warnings []string          `json:"warnings" yaml:"warnings"`
+	Errors   []string          `json:"errors" yaml:"errors"`
 	Failures []AnalysisFailure `json:"failures,omitempty" yaml:"failures,omitempty"`
 
 	// Metadata
-	GeneratedAt string
-	Version     string
-	Config      interface{}        // Configuration used for analysis
-	Request     *ComplexityRequest `json:"request,omitempty"` // Merged configuration request
+	GeneratedAt string             `json:"generated_at" yaml:"generated_at"`
+	Version     string             `json:"version" yaml:"version"`
+	Config      interface{}        `json:"config" yaml:"config"` // Configuration used for analysis
+	Request     *ComplexityRequest `json:"request,omitempty"`    // Merged configuration request
 }
 
 // ComplexityService defines the core business logic for complexity analysis

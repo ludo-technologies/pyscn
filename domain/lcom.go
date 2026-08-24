@@ -8,100 +8,100 @@ import (
 // LCOMRequest represents a request for LCOM (Lack of Cohesion of Methods) analysis
 type LCOMRequest struct {
 	// Input files or directories to analyze
-	Paths []string
+	Paths []string `json:"paths" yaml:"paths"`
 
 	// Output configuration
-	OutputFormat OutputFormat
-	OutputWriter io.Writer
-	OutputPath   string // Path to save output file (for HTML format)
-	NoOpen       bool   // Don't auto-open HTML in browser
-	ShowDetails  *bool  // nil = unset, non-nil = explicitly set
+	OutputFormat OutputFormat `json:"output_format" yaml:"output_format"`
+	OutputWriter io.Writer    `json:"-" yaml:"-"`
+	OutputPath   string       `json:"output_path" yaml:"output_path"`   // Path to save output file (for HTML format)
+	NoOpen       bool         `json:"no_open" yaml:"no_open"`           // Don't auto-open HTML in browser
+	ShowDetails  *bool        `json:"show_details" yaml:"show_details"` // nil = unset, non-nil = explicitly set
 
 	// Filtering and sorting
-	MinLCOM int
-	MaxLCOM int // 0 means no limit
-	SortBy  SortCriteria
+	MinLCOM int          `json:"min_lcom" yaml:"min_lcom"`
+	MaxLCOM int          `json:"max_lcom" yaml:"max_lcom"` // 0 means no limit
+	SortBy  SortCriteria `json:"sort_by" yaml:"sort_by"`
 
 	// LCOM thresholds for risk assessment
-	LowThreshold    int // Default: 2 (LCOM4 <= 2 is low risk)
-	MediumThreshold int // Default: 5 (LCOM4 3-5 is medium risk)
+	LowThreshold    int `json:"low_threshold" yaml:"low_threshold"`       // Default: 2 (LCOM4 <= 2 is low risk)
+	MediumThreshold int `json:"medium_threshold" yaml:"medium_threshold"` // Default: 5 (LCOM4 3-5 is medium risk)
 
 	// Configuration
-	ConfigPath string
+	ConfigPath string `json:"config_path" yaml:"config_path"`
 
 	// Analysis options
-	Recursive       *bool
-	IncludePatterns []string
-	ExcludePatterns []string
+	Recursive       *bool    `json:"recursive" yaml:"recursive"`
+	IncludePatterns []string `json:"include_patterns" yaml:"include_patterns"`
+	ExcludePatterns []string `json:"exclude_patterns" yaml:"exclude_patterns"`
 }
 
 // LCOMMetrics represents detailed LCOM metrics for a class
 type LCOMMetrics struct {
 	// Core LCOM4 metric - number of connected components in method-variable graph
-	LCOM4 int
+	LCOM4 int `json:"lcom4" yaml:"lcom4"`
 
 	// Method statistics
-	TotalMethods    int // All methods in the class
-	ExcludedMethods int // Methods excluded (@classmethod, @staticmethod)
+	TotalMethods    int `json:"total_methods" yaml:"total_methods"`       // All methods in the class
+	ExcludedMethods int `json:"excluded_methods" yaml:"excluded_methods"` // Methods kept out of the graph (@classmethod, @staticmethod, @abstractmethod, constructors)
 
 	// Instance variable statistics
-	InstanceVariables int // Distinct self.xxx variables accessed
+	InstanceVariables int `json:"instance_variables" yaml:"instance_variables"` // Distinct self.xxx variables accessed
 
 	// Connected component details
-	MethodGroups [][]string // Method names grouped by connected component
+	MethodGroups [][]string `json:"method_groups" yaml:"method_groups"` // Method names grouped by connected component
 }
 
 // ClassCohesion represents LCOM analysis result for a single class
 type ClassCohesion struct {
 	// Class identification
-	Name      string
-	FilePath  string
-	StartLine int
-	EndLine   int
+	Name      string `json:"name" yaml:"name"`
+	FilePath  string `json:"file_path" yaml:"file_path"`
+	StartLine int    `json:"start_line" yaml:"start_line"`
+	EndLine   int    `json:"end_line" yaml:"end_line"`
 
 	// LCOM metrics
-	Metrics LCOMMetrics
+	Metrics LCOMMetrics `json:"metrics" yaml:"metrics"`
 
 	// Risk assessment
-	RiskLevel RiskLevel
+	RiskLevel RiskLevel `json:"risk_level" yaml:"risk_level"`
 }
 
 // LCOMSummary represents aggregate LCOM statistics
 type LCOMSummary struct {
-	TotalClasses    int
-	AverageLCOM     float64
-	MaxLCOM         int
-	MinLCOM         int
-	ClassesAnalyzed int
-	FilesAnalyzed   int
+	TotalClasses    int     `json:"total_classes" yaml:"total_classes"`
+	AverageLCOM     float64 `json:"average_lcom" yaml:"average_lcom"`
+	MaxLCOM         int     `json:"max_lcom" yaml:"max_lcom"`
+	MinLCOM         int     `json:"min_lcom" yaml:"min_lcom"`
+	ClassesAnalyzed int     `json:"classes_analyzed" yaml:"classes_analyzed"`
+	FilesAnalyzed   int     `json:"files_analyzed" yaml:"files_analyzed"`
 
 	// Risk distribution
-	LowRiskClasses    int
-	MediumRiskClasses int
-	HighRiskClasses   int
+	LowRiskClasses    int `json:"low_risk_classes" yaml:"low_risk_classes"`
+	MediumRiskClasses int `json:"medium_risk_classes" yaml:"medium_risk_classes"`
+	HighRiskClasses   int `json:"high_risk_classes" yaml:"high_risk_classes"`
 
 	// LCOM distribution
-	LCOMDistribution map[string]int
+	LCOMDistribution map[string]int `json:"lcom_distribution" yaml:"lcom_distribution"`
 
 	// Least cohesive classes (top 10)
-	LeastCohesiveClasses []ClassCohesion
+	LeastCohesiveClasses []ClassCohesion `json:"least_cohesive_classes" yaml:"least_cohesive_classes"`
 }
 
 // LCOMResponse represents the complete LCOM analysis result
 type LCOMResponse struct {
 	// Analysis results
-	Classes []ClassCohesion
-	Summary LCOMSummary
+	Classes []ClassCohesion `json:"classes" yaml:"classes"`
+	Summary LCOMSummary     `json:"summary" yaml:"summary"`
 
 	// Warnings and issues
-	Warnings []string
-	Errors   []string
+	Warnings []string          `json:"warnings" yaml:"warnings"`
+	Errors   []string          `json:"errors" yaml:"errors"`
 	Failures []AnalysisFailure `json:"failures,omitempty" yaml:"failures,omitempty"`
 
 	// Metadata
-	GeneratedAt string
-	Version     string
-	Config      interface{} // Configuration used for analysis
+	GeneratedAt string      `json:"generated_at" yaml:"generated_at"`
+	Version     string      `json:"version" yaml:"version"`
+	Config      interface{} `json:"config" yaml:"config"` // Configuration used for analysis
 }
 
 // LCOMService defines the core business logic for LCOM analysis

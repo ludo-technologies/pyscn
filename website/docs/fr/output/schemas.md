@@ -12,7 +12,7 @@ Cette spécification définit la forme exacte des sorties JSON, YAML et CSV prod
 
 Les changements incompatibles sont limités aux changements de version majeure. Les consommateurs DOIVENT ignorer les champs inconnus.
 
-<!-- Field naming note: in `pyscn analyze` JSON/YAML, nested analyzer objects (`complexity`, `cbo`, `lcom`, `system`) use Go-style PascalCase field names because their response structs do not carry JSON tags. Top-level keys, `dead_code`, `clone`, `suggestions`, and `summary` use snake_case. -->
+<!-- Field naming note: every object key in `pyscn analyze` JSON/YAML is snake_case. Releases up to 1.29.1 emitted Go-style PascalCase inside `complexity`, `cbo`, `lcom`, and `system`, and lowerCamelCase inside the `config` objects of `cbo`, `lcom`, and `community_analysis`; both were renamed to snake_case. -->
 
 ## Structure de premier niveau (`pyscn analyze`)
 
@@ -159,63 +159,63 @@ Reflet de `domain.AnalyzeSummary`. Tous les compteurs numériques valent `0` par
 
 ## Objet `complexity`
 
-Reflet de `domain.ComplexityResponse`. Les noms de champs imbriqués sont en PascalCase Go.
+Reflet de `domain.ComplexityResponse`.
 
 ```json
 {
-  "Functions": [ /* FunctionComplexity array */ ],
-  "Summary": { /* ComplexitySummary */ },
+  "functions": [ /* FunctionComplexity array */ ],
+  "summary": { /* ComplexitySummary */ },
   "raw_metrics": [ /* RawMetrics array, present when computed */ ],
   "raw_metrics_summary": { /* RawMetricsSummary, present when computed */ },
-  "Warnings": [ "..." ],
-  "Errors": [ "..." ],
-  "GeneratedAt": "2026-04-14T10:18:23Z",
-  "Version": "0.14.0",
-  "Config": null
+  "warnings": [ "..." ],
+  "errors": [ "..." ],
+  "generated_at": "2026-04-14T10:18:23Z",
+  "version": "0.14.0",
+  "config": null
 }
 ```
 
-### Élément de `Functions[]` (`FunctionComplexity`)
+### Élément de `functions[]` (`FunctionComplexity`)
 
-| Champ         | Type    | Description                                                  |
-| ------------- | ------- | ------------------------------------------------------------ |
-| `Name`        | string  | Nom de la fonction. `__main__` pour le code au niveau du module. |
-| `FilePath`    | string  | Chemin du fichier source.                                    |
-| `StartLine`   | integer | Ligne de début, base 1.                                      |
-| `StartColumn` | integer | Colonne de début, base 0.                                    |
-| `EndLine`     | integer | Ligne de fin, base 1.                                        |
-| `Metrics`     | object  | Voir [`ComplexityMetrics`](#complexitymetrics-object).        |
-| `RiskLevel`   | string  | L'une de : `low`, `medium`, `high`.                          |
+| Champ          | Type    | Description                                                      |
+| -------------- | ------- | ---------------------------------------------------------------- |
+| `name`         | string  | Nom de la fonction. `__main__` pour le code au niveau du module. |
+| `file_path`    | string  | Chemin du fichier source.                                        |
+| `start_line`   | integer | Ligne de début, base 1.                                          |
+| `start_column` | integer | Colonne de début, base 0.                                        |
+| `end_line`     | integer | Ligne de fin, base 1.                                            |
+| `metrics`      | object  | Voir [`ComplexityMetrics`](#complexitymetrics-object).           |
+| `risk_level`   | string  | L'une de : `low`, `medium`, `high`.                              |
 
 ### Objet `ComplexityMetrics` { #complexitymetrics-object }
 
-| Champ                 | Type    | Description                                        |
-| --------------------- | ------- | -------------------------------------------------- |
-| `Complexity`          | integer | Complexité cyclomatique de McCabe.                 |
-| `CognitiveComplexity` | integer | Complexité cognitive (style SonarQube).            |
-| `Nodes`               | integer | Nombre de nœuds du CFG.                            |
-| `Edges`               | integer | Nombre d'arêtes du CFG.                            |
-| `NestingDepth`        | integer | Profondeur d'imbrication maximale.                 |
-| `IfStatements`        | integer | Nombre d'instructions `if`.                        |
-| `LoopStatements`      | integer | Nombre de boucles `for`/`while`.                   |
-| `ExceptionHandlers`   | integer | Nombre de clauses `except`.                        |
-| `SwitchCases`         | integer | Nombre de cas `match` (Python 3.10+).              |
+| Champ                  | Type    | Description                             |
+| ---------------------- | ------- | --------------------------------------- |
+| `complexity`           | integer | Complexité cyclomatique de McCabe.      |
+| `cognitive_complexity` | integer | Complexité cognitive (style SonarQube). |
+| `nodes`                | integer | Nombre de nœuds du CFG.                 |
+| `edges`                | integer | Nombre d'arêtes du CFG.                 |
+| `nesting_depth`        | integer | Profondeur d'imbrication maximale.      |
+| `if_statements`        | integer | Nombre d'instructions `if`.             |
+| `loop_statements`      | integer | Nombre de boucles `for`/`while`.        |
+| `exception_handlers`   | integer | Nombre de clauses `except`.             |
+| `switch_cases`         | integer | Nombre de cas `match` (Python 3.10+).   |
 
-### Objet `Summary` (`ComplexitySummary`)
+### Objet `summary` (`ComplexitySummary`)
 
-| Champ                    | Type    | Description                                                                  |
-| ------------------------ | ------- | ---------------------------------------------------------------------------- |
-| `TotalFunctions`         | integer | Total des fonctions analysées.                                               |
-| `AverageComplexity`      | number  | Moyenne arithmétique de `Complexity` sur toutes les fonctions.               |
-| `MaxComplexity`          | integer | Complexité maximale observée.                                                |
-| `MinComplexity`          | integer | Complexité minimale observée.                                                |
-| `FilesAnalyzed`          | integer | Fichiers analysés avec succès et pris en compte dans les métriques ci-dessus. |
-| `TotalFiles`             | integer | Fichiers couverts par la requête, analysables ou non.                        |
-| `SkippedFiles`           | integer | Fichiers écartés faute de pouvoir être lus ou analysés. Leur contenu est absent de toutes les métriques ci-dessus. |
-| `LowRiskFunctions`       | integer | Fonctions avec `RiskLevel = low`.                                            |
-| `MediumRiskFunctions`    | integer | Fonctions avec `RiskLevel = medium`.                                         |
-| `HighRiskFunctions`      | integer | Fonctions avec `RiskLevel = high`.                                           |
-| `ComplexityDistribution` | object  | Histogramme indexé par tranche de complexité (string) vers compteur (integer), ou `null`. |
+| Champ                     | Type    | Description                                                                                                        |
+| ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------ |
+| `total_functions`         | integer | Total des fonctions analysées.                                                                                     |
+| `average_complexity`      | number  | Moyenne arithmétique de `Complexity` sur toutes les fonctions.                                                     |
+| `max_complexity`          | integer | Complexité maximale observée.                                                                                      |
+| `min_complexity`          | integer | Complexité minimale observée.                                                                                      |
+| `files_analyzed`          | integer | Fichiers analysés avec succès et pris en compte dans les métriques ci-dessus.                                      |
+| `total_files`             | integer | Fichiers couverts par la requête, analysables ou non.                                                              |
+| `skipped_files`           | integer | Fichiers écartés faute de pouvoir être lus ou analysés. Leur contenu est absent de toutes les métriques ci-dessus. |
+| `low_risk_functions`      | integer | Fonctions avec `RiskLevel = low`.                                                                                  |
+| `medium_risk_functions`   | integer | Fonctions avec `RiskLevel = medium`.                                                                               |
+| `high_risk_functions`     | integer | Fonctions avec `RiskLevel = high`.                                                                                 |
+| `complexity_distribution` | object  | Histogramme indexé par tranche de complexité (string) vers compteur (integer), ou `null`.                          |
 
 ### Élément de `raw_metrics[]` (`RawMetrics`)
 
@@ -417,241 +417,241 @@ Autres champs de `CloneResponse` :
 
 ## Objet `cbo`
 
-Reflet de `domain.CBOResponse`. Les noms de champs imbriqués sont en PascalCase Go.
+Reflet de `domain.CBOResponse`.
 
 ```json
 {
-  "Classes": [ /* ClassCoupling array */ ],
-  "Summary": { /* CBOSummary */ },
-  "Warnings": null,
-  "Errors": null,
-  "GeneratedAt": "",
-  "Version": "",
-  "Config": null
+  "classes": [ /* ClassCoupling array */ ],
+  "summary": { /* CBOSummary */ },
+  "warnings": null,
+  "errors": null,
+  "generated_at": "",
+  "version": "",
+  "config": null
 }
 ```
 
-### Élément de `Classes[]` (`ClassCoupling`)
+### Élément de `classes[]` (`ClassCoupling`)
 
-| Champ         | Type    | Description                                 |
-| ------------- | ------- | ------------------------------------------- |
-| `Name`        | string  | Nom de la classe.                           |
-| `FilePath`    | string  | Chemin du fichier source.                   |
-| `StartLine`   | integer | Ligne de début, base 1.                     |
-| `EndLine`     | integer | Ligne de fin, base 1.                       |
-| `Metrics`     | object  | Voir [`CBOMetrics`](#cbometrics-object).     |
-| `RiskLevel`   | string  | L'une de : `low`, `medium`, `high`.         |
-| `IsAbstract`  | boolean | `true` si la classe est abstraite.          |
-| `BaseClasses` | array of string \| null | Classes de base directes.   |
+| Champ          | Type                    | Description                              |
+| -------------- | ----------------------- | ---------------------------------------- |
+| `name`         | string                  | Nom de la classe.                        |
+| `file_path`    | string                  | Chemin du fichier source.                |
+| `start_line`   | integer                 | Ligne de début, base 1.                  |
+| `end_line`     | integer                 | Ligne de fin, base 1.                    |
+| `metrics`      | object                  | Voir [`CBOMetrics`](#cbometrics-object). |
+| `risk_level`   | string                  | L'une de : `low`, `medium`, `high`.      |
+| `is_abstract`  | boolean                 | `true` si la classe est abstraite.       |
+| `base_classes` | array of string \| null | Classes de base directes.                |
 
 ### Objet `CBOMetrics` { #cbometrics-object }
 
-| Champ                         | Type    | Description                                                |
-| ----------------------------- | ------- | ---------------------------------------------------------- |
-| `CouplingCount`               | integer | Valeur CBO : classes distinctes dont dépend cette classe.  |
-| `InheritanceDependencies`     | integer | Dépendances par classes de base.                           |
-| `TypeHintDependencies`        | integer | Dépendances par annotations de type.                       |
-| `InstantiationDependencies`   | integer | Dépendances par instanciation d'objets.                    |
-| `AttributeAccessDependencies` | integer | Dépendances par appels de méthodes et accès aux attributs. |
-| `ImportDependencies`          | integer | Dépendances par imports explicites.                        |
-| `DependentClasses`            | array of string \| null | Noms des classes couplées.                 |
+| Champ                           | Type                    | Description                                                |
+| ------------------------------- | ----------------------- | ---------------------------------------------------------- |
+| `coupling_count`                | integer                 | Valeur CBO : classes distinctes dont dépend cette classe.  |
+| `inheritance_dependencies`      | integer                 | Dépendances par classes de base.                           |
+| `type_hint_dependencies`        | integer                 | Dépendances par annotations de type.                       |
+| `instantiation_dependencies`    | integer                 | Dépendances par instanciation d'objets.                    |
+| `attribute_access_dependencies` | integer                 | Dépendances par appels de méthodes et accès aux attributs. |
+| `import_dependencies`           | integer                 | Dépendances par imports explicites.                        |
+| `dependent_classes`             | array of string \| null | Noms des classes couplées.                                 |
 
-### Objet `Summary` (`CBOSummary`)
+### Objet `summary` (`CBOSummary`)
 
-| Champ                      | Type    | Description                                       |
-| -------------------------- | ------- | ------------------------------------------------- |
-| `TotalClasses`             | integer | Total des classes analysées.                      |
-| `AverageCBO`               | number  | CBO moyen.                                        |
-| `MaxCBO`                   | integer | CBO maximal observé.                              |
-| `MinCBO`                   | integer | CBO minimal observé.                              |
-| `ClassesAnalyzed`          | integer | Classes avec des métriques valides.               |
-| `FilesAnalyzed`            | integer | Fichiers contribuant au moins une classe.         |
-| `LowRiskClasses`           | integer | Classes avec CBO ≤ seuil bas (par défaut `3`).    |
-| `MediumRiskClasses`        | integer | Classes avec seuil bas < CBO ≤ seuil moyen.       |
-| `HighRiskClasses`          | integer | Classes avec CBO > seuil moyen (par défaut `7`).  |
-| `CBODistribution`          | object \| null | Histogramme indexé par étiquette de tranche vers compteur. |
-| `MostCoupledClasses`       | array \| null | Top 10 des classes par CBO (`ClassCoupling`). |
-| `MostDependedUponClasses`  | array of string \| null | Classes avec le plus fort degré entrant. |
+| Champ                        | Type                    | Description                                                |
+| ---------------------------- | ----------------------- | ---------------------------------------------------------- |
+| `total_classes`              | integer                 | Total des classes analysées.                               |
+| `average_cbo`                | number                  | CBO moyen.                                                 |
+| `max_cbo`                    | integer                 | CBO maximal observé.                                       |
+| `min_cbo`                    | integer                 | CBO minimal observé.                                       |
+| `classes_analyzed`           | integer                 | Classes avec des métriques valides.                        |
+| `files_analyzed`             | integer                 | Fichiers contribuant au moins une classe.                  |
+| `low_risk_classes`           | integer                 | Classes avec CBO ≤ seuil bas (par défaut `3`).             |
+| `medium_risk_classes`        | integer                 | Classes avec seuil bas < CBO ≤ seuil moyen.                |
+| `high_risk_classes`          | integer                 | Classes avec CBO > seuil moyen (par défaut `7`).           |
+| `cbo_distribution`           | object \| null          | Histogramme indexé par étiquette de tranche vers compteur. |
+| `most_coupled_classes`       | array \| null           | Top 10 des classes par CBO (`ClassCoupling`).              |
+| `most_depended_upon_classes` | array of string \| null | Classes avec le plus fort degré entrant.                   |
 
 ## Objet `lcom`
 
-Reflet de `domain.LCOMResponse`. Les noms de champs imbriqués sont en PascalCase Go.
+Reflet de `domain.LCOMResponse`.
 
 ```json
 {
-  "Classes": [ /* ClassCohesion array */ ],
-  "Summary": { /* LCOMSummary */ },
-  "Warnings": null,
-  "Errors": null,
-  "GeneratedAt": "",
-  "Version": "",
-  "Config": null
+  "classes": [ /* ClassCohesion array */ ],
+  "summary": { /* LCOMSummary */ },
+  "warnings": null,
+  "errors": null,
+  "generated_at": "",
+  "version": "",
+  "config": null
 }
 ```
 
-### Élément de `Classes[]` (`ClassCohesion`)
+### Élément de `classes[]` (`ClassCohesion`)
 
-| Champ       | Type    | Description                                      |
-| ----------- | ------- | ------------------------------------------------ |
-| `Name`      | string  | Nom de la classe.                                |
-| `FilePath`  | string  | Chemin du fichier source.                        |
-| `StartLine` | integer | Ligne de début, base 1.                          |
-| `EndLine`   | integer | Ligne de fin, base 1.                            |
-| `Metrics`   | object  | Voir [`LCOMMetrics`](#lcommetrics-object).        |
-| `RiskLevel` | string  | L'une de : `low`, `medium`, `high`.              |
+| Champ        | Type    | Description                                |
+| ------------ | ------- | ------------------------------------------ |
+| `name`       | string  | Nom de la classe.                          |
+| `file_path`  | string  | Chemin du fichier source.                  |
+| `start_line` | integer | Ligne de début, base 1.                    |
+| `end_line`   | integer | Ligne de fin, base 1.                      |
+| `metrics`    | object  | Voir [`LCOMMetrics`](#lcommetrics-object). |
+| `risk_level` | string  | L'une de : `low`, `medium`, `high`.        |
 
 ### Objet `LCOMMetrics` { #lcommetrics-object }
 
-| Champ               | Type    | Description                                                  |
-| ------------------- | ------- | ------------------------------------------------------------ |
-| `LCOM4`             | integer | Composantes connexes dans le graphe méthodes-variables.      |
-| `TotalMethods`      | integer | Toutes les méthodes de la classe.                            |
-| `ExcludedMethods`   | integer | Méthodes exclues de LCOM4 (`@classmethod`, `@staticmethod`). |
-| `InstanceVariables` | integer | Variables `self.x` distinctes accédées.                      |
-| `MethodGroups`      | array of array of string \| null | Noms de méthodes groupés par composante connexe. |
+| Champ                | Type                             | Description                                                                                                                                        |
+| -------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lcom4`              | integer                          | Composantes connexes dans le graphe méthodes-variables.                                                                                            |
+| `total_methods`      | integer                          | Toutes les méthodes de la classe.                                                                                                                  |
+| `excluded_methods`   | integer                          | Méthodes exclues du graphe LCOM4 (`@classmethod`, `@staticmethod`, `@abstractmethod` et les constructeurs `__init__`, `__new__`, `__post_init__`). |
+| `instance_variables` | integer                          | Variables `self.x` distinctes accédées.                                                                                                            |
+| `method_groups`      | array of array of string \| null | Noms de méthodes groupés par composante connexe.                                                                                                   |
 
-### Objet `Summary` (`LCOMSummary`)
+### Objet `summary` (`LCOMSummary`)
 
-| Champ                  | Type    | Description                                          |
-| ---------------------- | ------- | ---------------------------------------------------- |
-| `TotalClasses`         | integer | Classes analysées.                                   |
-| `AverageLCOM`          | number  | LCOM4 moyen.                                         |
-| `MaxLCOM`              | integer | LCOM4 maximal observé.                               |
-| `MinLCOM`              | integer | LCOM4 minimal observé.                               |
-| `ClassesAnalyzed`      | integer | Classes avec des métriques valides.                  |
-| `FilesAnalyzed`        | integer | Fichiers contribuant au moins une classe.            |
-| `LowRiskClasses`       | integer | Classes avec LCOM4 ≤ seuil bas (par défaut `2`).     |
-| `MediumRiskClasses`    | integer | Classes avec seuil bas < LCOM4 ≤ seuil moyen.        |
-| `HighRiskClasses`      | integer | Classes avec LCOM4 > seuil moyen (par défaut `5`).   |
-| `LCOMDistribution`     | object \| null | Histogramme indexé par étiquette de tranche vers compteur. |
-| `LeastCohesiveClasses` | array \| null | Top 10 des classes par LCOM4 (`ClassCohesion`).|
+| Champ                    | Type           | Description                                                |
+| ------------------------ | -------------- | ---------------------------------------------------------- |
+| `total_classes`          | integer        | Classes analysées.                                         |
+| `average_lcom`           | number         | LCOM4 moyen.                                               |
+| `max_lcom`               | integer        | LCOM4 maximal observé.                                     |
+| `min_lcom`               | integer        | LCOM4 minimal observé.                                     |
+| `classes_analyzed`       | integer        | Classes avec des métriques valides.                        |
+| `files_analyzed`         | integer        | Fichiers contribuant au moins une classe.                  |
+| `low_risk_classes`       | integer        | Classes avec LCOM4 ≤ seuil bas (par défaut `2`).           |
+| `medium_risk_classes`    | integer        | Classes avec seuil bas < LCOM4 ≤ seuil moyen.              |
+| `high_risk_classes`      | integer        | Classes avec LCOM4 > seuil moyen (par défaut `5`).         |
+| `lcom_distribution`      | object \| null | Histogramme indexé par étiquette de tranche vers compteur. |
+| `least_cohesive_classes` | array \| null  | Top 10 des classes par LCOM4 (`ClassCohesion`).            |
 
 ## Objet `system`
 
-Reflet de `domain.SystemAnalysisResponse`. Les noms de champs imbriqués sont en PascalCase Go.
+Reflet de `domain.SystemAnalysisResponse`.
 
 ```json
 {
-  "DependencyAnalysis":   { /* DependencyAnalysisResult, or null */ },
-  "ArchitectureAnalysis": { /* ArchitectureAnalysisResult, or null */ },
-  "Summary":              { /* SystemAnalysisSummary */ },
-  "Issues":               [ /* SystemIssue array */ ],
-  "Recommendations":      [ /* SystemRecommendation array */ ],
-  "Warnings":             [ ],
-  "Errors":               [ ],
-  "GeneratedAt":          "0001-01-01T00:00:00Z",
-  "Duration":             0,
-  "Version":              "",
-  "Config":               null
+  "dependency_analysis":   { /* DependencyAnalysisResult, or null */ },
+  "architecture_analysis": { /* ArchitectureAnalysisResult, or null */ },
+  "summary":              { /* SystemAnalysisSummary */ },
+  "issues":               [ /* SystemIssue array */ ],
+  "recommendations":      [ /* SystemRecommendation array */ ],
+  "warnings":             [ ],
+  "errors":               [ ],
+  "generated_at":          "0001-01-01T00:00:00Z",
+  "duration":             0,
+  "version":              "",
+  "config":               null
 }
 ```
 
-### Objet `Summary` (`SystemAnalysisSummary`)
+### Objet `summary` (`SystemAnalysisSummary`)
 
-| Champ                      | Type    | Description                                       |
-| -------------------------- | ------- | ------------------------------------------------- |
-| `TotalModules`             | integer | Total des modules analysés.                       |
-| `TotalPackages`            | integer | Total des paquets.                                |
-| `TotalDependencies`        | integer | Total des arêtes de dépendances.                  |
-| `ProjectRoot`              | string  | Répertoire racine du projet.                      |
-| `OverallQualityScore`      | number  | Score de qualité composite, `0`–`100`.            |
-| `MaintainabilityScore`     | number  | Indice de maintenabilité moyen.                   |
-| `ArchitectureScore`        | number  | Score de conformité architecturale.               |
-| `ModularityScore`          | number  | Score de modularité du système.                   |
-| `TechnicalDebtHours`       | number  | Dette technique totale estimée en heures.         |
-| `AverageCoupling`          | number  | Couplage moyen entre modules.                     |
-| `AverageInstability`       | number  | Instabilité moyenne (I).                          |
-| `CyclicDependencies`       | integer | Modules participant à des cycles.                 |
-| `ArchitectureViolations`   | integer | Nombre de violations des règles architecturales.  |
-| `HighRiskModules`          | integer | Modules signalés à risque élevé.                  |
-| `CriticalIssues`           | integer | Nombre de problèmes critiques.                    |
-| `RefactoringCandidates`    | integer | Modules nécessitant un refactoring.               |
-| `ArchitectureImprovements` | integer | Améliorations architecturales suggérées.          |
+| Champ                       | Type    | Description                                      |
+| --------------------------- | ------- | ------------------------------------------------ |
+| `total_modules`             | integer | Total des modules analysés.                      |
+| `total_packages`            | integer | Total des paquets.                               |
+| `total_dependencies`        | integer | Total des arêtes de dépendances.                 |
+| `project_root`              | string  | Répertoire racine du projet.                     |
+| `overall_quality_score`     | number  | Score de qualité composite, `0`–`100`.           |
+| `maintainability_score`     | number  | Indice de maintenabilité moyen.                  |
+| `architecture_score`        | number  | Score de conformité architecturale.              |
+| `modularity_score`          | number  | Score de modularité du système.                  |
+| `technical_debt_hours`      | number  | Dette technique totale estimée en heures.        |
+| `average_coupling`          | number  | Couplage moyen entre modules.                    |
+| `average_instability`       | number  | Instabilité moyenne (I).                         |
+| `cyclic_dependencies`       | integer | Modules participant à des cycles.                |
+| `architecture_violations`   | integer | Nombre de violations des règles architecturales. |
+| `high_risk_modules`         | integer | Modules signalés à risque élevé.                 |
+| `critical_issues`           | integer | Nombre de problèmes critiques.                   |
+| `refactoring_candidates`    | integer | Modules nécessitant un refactoring.              |
+| `architecture_improvements` | integer | Améliorations architecturales suggérées.         |
 
-### Objet `DependencyAnalysis`
+### Objet `dependency_analysis`
 
-| Champ                  | Type    | Description                                                          |
-| ---------------------- | ------- | -------------------------------------------------------------------- |
-| `TotalModules`         | integer | Total des modules dans le graphe de dépendances.                     |
-| `TotalDependencies`    | integer | Total des arêtes.                                                    |
-| `RootModules`          | array of string | Modules sans dépendance sortante.                            |
-| `LeafModules`          | array of string | Modules sans dépendance entrante.                            |
-| `ModuleMetrics`        | object  | Map du nom de module vers `ModuleDependencyMetrics`.                 |
-| `DependencyMatrix`     | object  | Map de module vers map de module vers booléen.                       |
-| `CircularDependencies` | object  | Résultats de détection de cycles ; contient `Cycles` (array) et `TotalCycles` (integer). |
-| `CouplingAnalysis`     | object  | Métriques de couplage par module : `Ca`, `Ce`, `Instability`, `Abstractness`, `Distance`. |
-| `LongestChains`        | array   | Tableau d'objets `DependencyPath`.                                   |
-| `MaxDepth`             | integer | Profondeur de dépendance maximale.                                   |
+| Champ                   | Type            | Description                                                                               |
+| ----------------------- | --------------- | ----------------------------------------------------------------------------------------- |
+| `total_modules`         | integer         | Total des modules dans le graphe de dépendances.                                          |
+| `total_dependencies`    | integer         | Total des arêtes.                                                                         |
+| `root_modules`          | array of string | Modules sans dépendance sortante.                                                         |
+| `leaf_modules`          | array of string | Modules sans dépendance entrante.                                                         |
+| `module_metrics`        | object          | Map du nom de module vers `ModuleDependencyMetrics`.                                      |
+| `dependency_matrix`     | object          | Map de module vers map de module vers booléen.                                            |
+| `circular_dependencies` | object          | Résultats de détection de cycles ; contient `Cycles` (array) et `TotalCycles` (integer).  |
+| `coupling_analysis`     | object          | Métriques de couplage par module : `Ca`, `Ce`, `Instability`, `Abstractness`, `Distance`. |
+| `longest_chains`        | array           | Tableau d'objets `DependencyPath`.                                                        |
+| `max_depth`             | integer         | Profondeur de dépendance maximale.                                                        |
 
 ### Objet `ModuleDependencyMetrics`
 
-| Champ                    | Type    | Description                                              |
-| ------------------------ | ------- | -------------------------------------------------------- |
-| `ModuleName`             | string  | Nom complet du module.                                   |
-| `Package`                | string  | Paquet parent.                                           |
-| `FilePath`               | string  | Chemin du fichier source.                                |
-| `IsPackage`              | boolean | `true` s'il s'agit d'un paquet (possède `__init__.py`).  |
-| `LinesOfCode`            | integer | Total des lignes de code.                                |
-| `FunctionCount`          | integer | Nombre de fonctions.                                     |
-| `ClassCount`             | integer | Nombre de classes.                                       |
-| `AbstractClassCount`     | integer | Nombre de classes abstraites.                            |
-| `PublicInterface`        | array of string | Noms dans `__all__` ou noms publics de haut niveau. |
-| `AfferentCoupling`       | integer | Ca — modules dépendant de celui-ci.                      |
-| `EfferentCoupling`       | integer | Ce — modules dont celui-ci dépend.                       |
-| `Instability`            | number  | `I = Ce / (Ca + Ce)`, `0`–`1`.                           |
-| `Abstractness`           | number  | A — classes abstraites / classes totales, `0`–`1`.       |
-| `Distance`               | number  | `D = |A + I - 1|`, `0`–`1`. Distance à la séquence principale. |
-| `Maintainability`        | number  | Indice de maintenabilité, `0`–`100`.                     |
-| `TechnicalDebt`          | number  | Dette technique estimée en heures.                       |
-| `RiskLevel`              | string  | L'une de : `low`, `medium`, `high`.                      |
-| `DirectDependencies`     | array of string | Dépendances directes.                            |
-| `TransitiveDependencies` | array of string | Toutes les dépendances transitives.              |
-| `Dependents`             | array of string | Modules dépendant de celui-ci.                   |
+| Champ                     | Type            | Description                                             |           |                                                |
+| ------------------------- | --------------- | ------------------------------------------------------- | --------- | ---------------------------------------------- |
+| `module_name`             | string          | Nom complet du module.                                  |           |                                                |
+| `package`                 | string          | Paquet parent.                                          |           |                                                |
+| `file_path`               | string          | Chemin du fichier source.                               |           |                                                |
+| `is_package`              | boolean         | `true` s'il s'agit d'un paquet (possède `__init__.py`). |           |                                                |
+| `lines_of_code`           | integer         | Total des lignes de code.                               |           |                                                |
+| `function_count`          | integer         | Nombre de fonctions.                                    |           |                                                |
+| `class_count`             | integer         | Nombre de classes.                                      |           |                                                |
+| `abstract_class_count`    | integer         | Nombre de classes abstraites.                           |           |                                                |
+| `public_interface`        | array of string | Noms dans `__all__` ou noms publics de haut niveau.     |           |                                                |
+| `afferent_coupling`       | integer         | Ca — modules dépendant de celui-ci.                     |           |                                                |
+| `efferent_coupling`       | integer         | Ce — modules dont celui-ci dépend.                      |           |                                                |
+| `instability`             | number          | `I = Ce / (Ca + Ce)`, `0`–`1`.                          |           |                                                |
+| `abstractness`            | number          | A — classes abstraites / classes totales, `0`–`1`.      |           |                                                |
+| `distance`                | number          | `D =                                                    | A + I - 1 | `, `0`–`1`. Distance à la séquence principale. |
+| `maintainability`         | number          | Indice de maintenabilité, `0`–`100`.                    |           |                                                |
+| `technical_debt`          | number          | Dette technique estimée en heures.                      |           |                                                |
+| `risk_level`              | string          | L'une de : `low`, `medium`, `high`.                     |           |                                                |
+| `direct_dependencies`     | array of string | Dépendances directes.                                   |           |                                                |
+| `transitive_dependencies` | array of string | Toutes les dépendances transitives.                     |           |                                                |
+| `dependents`              | array of string | Modules dépendant de celui-ci.                          |           |                                                |
 
 ### Objet `CircularDependencyAnalysis`
 
-| Champ                      | Type    | Description                                           |
-| -------------------------- | ------- | ----------------------------------------------------- |
-| `HasCircularDependencies`  | boolean | `true` s'il existe au moins un cycle.                 |
-| `TotalCycles`              | integer | Nombre de cycles.                                     |
-| `TotalModulesInCycles`     | integer | Modules impliqués dans des cycles.                    |
-| `CircularDependencies`     | array   | Tableau d'objets `CircularDependency`.                |
-| `CycleBreakingSuggestions` | array of string | Suggestions pour briser les cycles.           |
-| `CoreInfrastructure`       | array of string | Modules apparaissant dans plusieurs cycles.   |
+| Champ                        | Type            | Description                                 |
+| ---------------------------- | --------------- | ------------------------------------------- |
+| `has_circular_dependencies`  | boolean         | `true` s'il existe au moins un cycle.       |
+| `total_cycles`               | integer         | Nombre de cycles.                           |
+| `total_modules_in_cycles`    | integer         | Modules impliqués dans des cycles.          |
+| `circular_dependencies`      | array           | Tableau d'objets `CircularDependency`.      |
+| `cycle_breaking_suggestions` | array of string | Suggestions pour briser les cycles.         |
+| `core_infrastructure`        | array of string | Modules apparaissant dans plusieurs cycles. |
 
 Énumération `CircularDependency.Severity` : `low`, `medium`, `high`, `critical`.
 
-### Objet `CouplingAnalysis`
+### Objet `coupling_analysis`
 
-| Champ                   | Type    | Description                                            |
-| ----------------------- | ------- | ------------------------------------------------------ |
-| `AverageCoupling`       | number  | Couplage moyen entre les modules.                      |
-| `CouplingDistribution`  | object  | Map de la valeur de couplage (clé entière) vers compteur. |
-| `HighlyCoupledModules`  | array of string | Modules à fort couplage.                       |
-| `LooselyCoupledModules` | array of string | Modules à faible couplage.                     |
-| `AverageInstability`    | number  | Instabilité moyenne.                                   |
-| `StableModules`         | array of string | Modules à faible instabilité.                  |
-| `InstableModules`       | array of string | Modules à forte instabilité.                   |
-| `MainSequenceDeviation` | number  | Distance moyenne à la séquence principale, `0`–`1`.    |
-| `ZoneOfPain`            | array of string | Modules stables + concrets.                    |
-| `ZoneOfUselessness`     | array of string | Modules instables + abstraits.                 |
-| `MainSequence`          | array of string | Modules bien positionnés.                      |
+| Champ                     | Type            | Description                                               |
+| ------------------------- | --------------- | --------------------------------------------------------- |
+| `average_coupling`        | number          | Couplage moyen entre les modules.                         |
+| `coupling_distribution`   | object          | Map de la valeur de couplage (clé entière) vers compteur. |
+| `highly_coupled_modules`  | array of string | Modules à fort couplage.                                  |
+| `loosely_coupled_modules` | array of string | Modules à faible couplage.                                |
+| `average_instability`     | number          | Instabilité moyenne.                                      |
+| `stable_modules`          | array of string | Modules à faible instabilité.                             |
+| `instable_modules`        | array of string | Modules à forte instabilité.                              |
+| `main_sequence_deviation` | number          | Distance moyenne à la séquence principale, `0`–`1`.       |
+| `zone_of_pain`            | array of string | Modules stables + concrets.                               |
+| `zone_of_uselessness`     | array of string | Modules instables + abstraits.                            |
+| `main_sequence`           | array of string | Modules bien positionnés.                                 |
 
-### Objet `ArchitectureAnalysis`
+### Objet `architecture_analysis`
 
-| Champ                 | Type    | Description                                                 |
-| --------------------- | ------- | ----------------------------------------------------------- |
-| `ComplianceScore`     | number  | Score de conformité, `0`–`1`. Calculé comme `max(0, 1 - WeightedViolations / TotalRules)` ; `1.0` si aucune règle évaluée. |
-| `TotalViolations`     | integer | Nombre brut de violations (une par entrée de `Violations`). |
-| `WeightedViolations`  | integer | Nombre de violations pondéré par sévérité, utilisé comme numérateur de `ComplianceScore` : `error × 5 + warning × 1`. |
-| `TotalRules`          | integer | Total des invocations de règles évaluées (dénominateur de `ComplianceScore`). |
-| `LayerAnalysis`       | object \| null | Résultats d'analyse par couches.                     |
-| `CohesionAnalysis`    | object \| null | Analyse de cohésion des paquets.                     |
-| `ResponsibilityAnalysis` | object \| null | Analyse des violations du principe SRP.           |
-| `Violations`          | array   | Tableau d'objets `ArchitectureViolation`.                   |
-| `SeverityBreakdown`   | object  | Map de la sévérité vers le compteur.                        |
-| `Recommendations`     | array   | Tableau d'objets `ArchitectureRecommendation`.              |
-| `RefactoringTargets`  | array of string | Modules nécessitant un refactoring.                 |
+| Champ                     | Type            | Description                                                                                                                |
+| ------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `compliance_score`        | number          | Score de conformité, `0`–`1`. Calculé comme `max(0, 1 - WeightedViolations / TotalRules)` ; `1.0` si aucune règle évaluée. |
+| `total_violations`        | integer         | Nombre brut de violations (une par entrée de `Violations`).                                                                |
+| `weighted_violations`     | integer         | Nombre de violations pondéré par sévérité, utilisé comme numérateur de `ComplianceScore` : `error × 5 + warning × 1`.      |
+| `total_rules`             | integer         | Total des invocations de règles évaluées (dénominateur de `ComplianceScore`).                                              |
+| `layer_analysis`          | object \| null  | Résultats d'analyse par couches.                                                                                           |
+| `cohesion_analysis`       | object \| null  | Analyse de cohésion des paquets.                                                                                           |
+| `responsibility_analysis` | object \| null  | Analyse des violations du principe SRP.                                                                                    |
+| `violations`              | array           | Tableau d'objets `ArchitectureViolation`.                                                                                  |
+| `severity_breakdown`      | object          | Map de la sévérité vers le compteur.                                                                                       |
+| `recommendations`         | array           | Tableau d'objets `ArchitectureRecommendation`.                                                                             |
+| `refactoring_targets`     | array of string | Modules nécessitant un refactoring.                                                                                        |
 
 Énumération `ArchitectureViolation.Type` : `layer`, `cycle`, `coupling`, `responsibility`, `cohesion`.
 

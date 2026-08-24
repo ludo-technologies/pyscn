@@ -130,12 +130,12 @@
   "version": "0.0.0-test",
   "config": {
     "algorithm": "leiden",
-    "followRelative": true,
-    "includeLazyEdges": true,
-    "includeStdLib": false,
-    "includeThirdParty": true,
-    "minCommunitySize": 2,
-    "reportBridgeModules": true,
+    "follow_relative": true,
+    "include_lazy_edges": true,
+    "include_std_lib": false,
+    "include_third_party": true,
+    "min_community_size": 2,
+    "report_bridge_modules": true,
     "resolution": 1,
     "scope": "module"
   }

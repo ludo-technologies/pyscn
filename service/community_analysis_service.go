@@ -319,14 +319,14 @@ func (s *CommunityAnalysisServiceImpl) loadArchitectureRules(req domain.Communit
 
 func (s *CommunityAnalysisServiceImpl) buildConfigForResponse(req domain.CommunityAnalysisRequest) any {
 	return map[string]any{
-		"algorithm":           s.resolveAlgorithm(req.Algorithm),
-		"scope":               s.resolveScope(req.Scope),
-		"minCommunitySize":    req.MinCommunitySize,
-		"includeLazyEdges":    domain.BoolValue(req.IncludeLazyEdges, true),
-		"reportBridgeModules": domain.BoolValue(req.ReportBridgeModules, true),
-		"resolution":          req.Resolution,
-		"includeStdLib":       domain.BoolValue(req.IncludeStdLib, false),
-		"includeThirdParty":   domain.BoolValue(req.IncludeThirdParty, true),
-		"followRelative":      domain.BoolValue(req.FollowRelative, true),
+		"algorithm":             s.resolveAlgorithm(req.Algorithm),
+		"scope":                 s.resolveScope(req.Scope),
+		"min_community_size":    req.MinCommunitySize,
+		"include_lazy_edges":    domain.BoolValue(req.IncludeLazyEdges, true),
+		"report_bridge_modules": domain.BoolValue(req.ReportBridgeModules, true),
+		"resolution":            req.Resolution,
+		"include_std_lib":       domain.BoolValue(req.IncludeStdLib, false),
+		"include_third_party":   domain.BoolValue(req.IncludeThirdParty, true),
+		"follow_relative":       domain.BoolValue(req.FollowRelative, true),
 	}
 }

@@ -91,7 +91,7 @@ func (c *CheckCommand) countComplexityIssues(cmd *cobra.Command, response *domai
 	}
 
 	issueCount := 0
-	for _, function := range response.Functions {
+	for _, function := range response.AnalyzedFunctions {
 		if function.Metrics.Complexity > maxComplexity {
 			issueCount++
 			if !c.quiet {
