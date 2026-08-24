@@ -491,7 +491,7 @@ func buildReportVerdict(response *domain.AnalyzeResponse, dims []reportDimension
 	strong := func(s string) { verdict.Body = append(verdict.Body, reportSegment{Text: s, Strong: true}) }
 
 	if skipped := response.Summary.SkippedFiles; skipped > 0 {
-		strong(fmt.Sprintf("%s of %d could not be parsed", pluralize(skipped, "file", "files"), response.Summary.TotalFiles))
+		strong(fmt.Sprintf("%s of %d could not be analyzed", pluralize(skipped, "file", "files"), response.Summary.TotalFiles))
 		text(" and were skipped; the health score is penalized for them. ")
 	}
 
