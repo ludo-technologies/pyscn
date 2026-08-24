@@ -456,8 +456,8 @@ enable_architecture = false
 	if err != nil {
 		t.Fatalf("execute configured system analysis: %v", err)
 	}
-	if response.Summary.TotalFiles != 1 || response.Summary.AnalyzedFiles != 1 || response.Summary.SkippedFiles != 0 {
-		t.Fatalf("expected implementation-only coverage, got %+v", response.Summary)
+	if response.Summary.TotalFiles != 2 || response.Summary.AnalyzedFiles != 2 || response.Summary.SkippedFiles != 0 {
+		t.Fatalf("expected coverage for the selected module surface, got %+v", response.Summary)
 	}
 	if response.System == nil || response.System.DependencyAnalysis == nil {
 		t.Fatalf("expected dependency analysis, got %+v", response.System)
