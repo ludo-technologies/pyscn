@@ -68,7 +68,7 @@ func (s *CloneService) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectSna
 	if req == nil {
 		return nil, fmt.Errorf("clone request cannot be nil")
 	}
-	if len(snapshot.files) == 0 {
+	if len(snapshot.Files) == 0 {
 		return nil, fmt.Errorf("project snapshot cannot be empty")
 	}
 

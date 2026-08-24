@@ -168,7 +168,7 @@ func TestProjectSnapshotProjectionDoesNotShareValueNodes(t *testing.T) {
 	snapshot := BuildProjectSnapshot(context.Background(), []string{sourcePath})
 
 	projectedCalls := snapshot.FileProjections()[0].AST.FindByType(parser.NodeCall)
-	internalCalls := snapshot.files[0].AST.FindByType(parser.NodeCall)
+	internalCalls := snapshot.Files[0].AST.FindByType(parser.NodeCall)
 	if len(projectedCalls) != 1 || len(internalCalls) != 1 {
 		t.Fatalf("expected one call in each AST, got projected=%d internal=%d", len(projectedCalls), len(internalCalls))
 	}

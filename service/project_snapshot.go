@@ -16,7 +16,7 @@ import (
 
 // ProjectSnapshot stores the parsed source needed by multiple analyzers.
 type ProjectSnapshot struct {
-	files              []*ProjectFile
+	Files              []*ProjectFile
 	analysisFiles      map[string]struct{}
 	moduleFiles        map[string]struct{}
 	defaultProjectRoot string
@@ -90,7 +90,7 @@ func buildProjectSnapshot(ctx context.Context, paths, analysisPaths, modulePaths
 	}
 	projectRoot = snapshotPath(defaultProjectRoot, projectRoot)
 	snapshot := &ProjectSnapshot{
-		files:              make([]*ProjectFile, len(paths)),
+		Files:              make([]*ProjectFile, len(paths)),
 		analysisFiles:      snapshotPathSet(defaultProjectRoot, analysisPaths),
 		moduleFiles:        snapshotPathSet(defaultProjectRoot, modulePaths),
 		defaultProjectRoot: defaultProjectRoot,
@@ -119,10 +119,10 @@ func buildProjectSnapshot(ctx context.Context, paths, analysisPaths, modulePaths
 				path := paths[idx]
 				identityPath, identityErr := capturedIdentityPath(defaultProjectRoot, captureRootErr, path)
 				if identityErr != nil {
-					snapshot.files[idx] = &ProjectFile{Path: path, identityPath: identityPath, ReadErr: identityErr}
+					snapshot.Files[idx] = &ProjectFile{Path: path, identityPath: identityPath, ReadErr: identityErr}
 					continue
 				}
-				snapshot.files[idx] = buildProjectFile(ctx, pyParser, path, identityPath, options)
+				snapshot.Files[idx] = buildProjectFile(ctx, pyParser, path, identityPath, options)
 			}
 		}()
 	}
@@ -130,13 +130,13 @@ func buildProjectSnapshot(ctx context.Context, paths, analysisPaths, modulePaths
 	cancelled := false
 	for idx := range paths {
 		if cancelled {
-			snapshot.files[idx] = cancelledProjectFile(paths[idx], snapshotPath(defaultProjectRoot, paths[idx]), ctx.Err())
+			snapshot.Files[idx] = cancelledProjectFile(paths[idx], snapshotPath(defaultProjectRoot, paths[idx]), ctx.Err())
 			continue
 		}
 
 		select {
 		case <-ctx.Done():
-			snapshot.files[idx] = cancelledProjectFile(paths[idx], snapshotPath(defaultProjectRoot, paths[idx]), ctx.Err())
+			snapshot.Files[idx] = cancelledProjectFile(paths[idx], snapshotPath(defaultProjectRoot, paths[idx]), ctx.Err())
 			cancelled = true
 		case jobs <- idx:
 		}
@@ -146,8 +146,8 @@ func buildProjectSnapshot(ctx context.Context, paths, analysisPaths, modulePaths
 	wg.Wait()
 
 	for idx, path := range paths {
-		if snapshot.files[idx] == nil {
-			snapshot.files[idx] = cancelledProjectFile(path, snapshotPath(defaultProjectRoot, path), ctx.Err())
+		if snapshot.Files[idx] == nil {
+			snapshot.Files[idx] = cancelledProjectFile(path, snapshotPath(defaultProjectRoot, path), ctx.Err())
 		}
 	}
 	return snapshot
@@ -158,7 +158,7 @@ func (s *ProjectSnapshot) FileProjections() []*ProjectFile {
 	if s == nil {
 		return nil
 	}
-	return projectFileProjections(s.files)
+	return projectFileProjections(s.Files)
 }
 
 // Paths returns the file paths represented by the snapshot.
@@ -167,8 +167,8 @@ func (s *ProjectSnapshot) Paths() []string {
 		return nil
 	}
 
-	paths := make([]string, 0, len(s.files))
-	for _, file := range s.files {
+	paths := make([]string, 0, len(s.Files))
+	for _, file := range s.Files {
 		if file != nil && s.hasAnalysisFile(file) {
 			paths = append(paths, file.Path)
 		}
@@ -185,7 +185,7 @@ func (s *ProjectSnapshot) Coverage() domain.AnalysisCoverage {
 	coverage := domain.AnalysisCoverage{
 		Diagnostics: make([]domain.AnalysisDiagnostic, 0),
 	}
-	for _, file := range s.files {
+	for _, file := range s.Files {
 		if file == nil || !s.hasAnalysisFile(file) {
 			continue
 		}
@@ -276,7 +276,7 @@ func (s *ProjectSnapshot) analysisProjectFiles() []*ProjectFile {
 		return nil
 	}
 	files := make([]*ProjectFile, 0, len(s.analysisFiles))
-	for _, file := range s.files {
+	for _, file := range s.Files {
 		if file != nil && s.hasAnalysisFile(file) {
 			files = append(files, file)
 		}
@@ -297,7 +297,7 @@ func (s *ProjectSnapshot) selectedModuleFiles() []*ProjectFile {
 		return nil
 	}
 	files := make([]*ProjectFile, 0, len(s.moduleFiles))
-	for _, file := range s.files {
+	for _, file := range s.Files {
 		if file == nil {
 			continue
 		}
