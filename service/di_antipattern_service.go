@@ -80,8 +80,14 @@ func (s *DIAntipatternServiceImpl) Analyze(ctx context.Context, req domain.DIAnt
 
 // AnalyzeSnapshot performs DI analysis from the canonical parsed project.
 func (s *DIAntipatternServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectSnapshot, req domain.DIAntipatternRequest) (*domain.DIAntipatternResponse, error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("context is required")
+	}
 	if snapshot == nil {
 		return nil, fmt.Errorf("project snapshot is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("di anti-pattern analysis cancelled: %w", err)
 	}
 	var findings []domain.DIAntipatternFinding
 	var failures []domain.AnalysisFailure

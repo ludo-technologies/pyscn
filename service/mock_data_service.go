@@ -107,8 +107,14 @@ func (s *MockDataServiceImpl) Analyze(ctx context.Context, req domain.MockDataRe
 // AnalyzeSnapshot performs mock-data detection from the canonical parsed
 // project without rereading or reparsing source files.
 func (s *MockDataServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectSnapshot, req domain.MockDataRequest) (*domain.MockDataResponse, error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("context is required")
+	}
 	if snapshot == nil {
 		return nil, fmt.Errorf("project snapshot is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("mock-data analysis cancelled: %w", err)
 	}
 	ignorePatterns, err := compileMockDataIgnorePatterns(req.IgnorePatterns)
 	if err != nil {

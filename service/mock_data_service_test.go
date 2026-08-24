@@ -2,12 +2,28 @@ package service
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
 )
+
+func TestMockDataServiceAnalyzeSnapshotHonorsCancellationWithoutParsedFiles(t *testing.T) {
+	brokenPath := filepath.Join(t.TempDir(), "broken.py")
+	if err := os.WriteFile(brokenPath, []byte("def broken(:\n"), 0o644); err != nil {
+		t.Fatalf("write broken source: %v", err)
+	}
+	snapshot := BuildProjectSnapshot(context.Background(), []string{brokenPath})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := NewMockDataService().AnalyzeSnapshot(ctx, snapshot, *domain.DefaultMockDataRequest())
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected cancellation, got %v", err)
+	}
+}
 
 func TestMockDataServiceUsesRequestDetectorConfig(t *testing.T) {
 	tempDir := t.TempDir()
