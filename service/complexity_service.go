@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"sort"
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -74,8 +73,14 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
 	filteredFunctions, _ := s.filterScopes(allFunctions, req)
 	filteredClassScopes, _ := s.filterScopes(allClassScopes, req)
-	sortedFunctions := s.sortScopes(filteredFunctions, req.SortBy)
-	sortedClassScopes := s.sortScopes(filteredClassScopes, req.SortBy)
+	sortedFunctions, err := domain.SortComplexityScopesBy(filteredFunctions, req.SortBy)
+	if err != nil {
+		return nil, domain.NewAnalysisError("invalid complexity sort", err)
+	}
+	sortedClassScopes, err := domain.SortComplexityScopesBy(filteredClassScopes, req.SortBy)
+	if err != nil {
+		return nil, domain.NewAnalysisError("invalid complexity sort", err)
+	}
 
 	// Generate summary over the complete population so min_complexity only
 	// affects which functions are displayed, not the aggregate metrics.
@@ -99,6 +104,7 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 		GeneratedAt:         time.Now().Format(time.RFC3339),
 		Version:             version.Version, // Get version from version package
 		Config:              s.buildConfigForResponse(req),
+		Request:             &req,
 	}
 	if err := response.ValidateAnalyzedScopes(); err != nil {
 		return nil, domain.NewAnalysisError("invalid complexity analysis result", err)
@@ -153,8 +159,14 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
 	filteredFunctions, _ := s.filterScopes(allFunctions, req)
 	filteredClassScopes, _ := s.filterScopes(allClassScopes, req)
-	sortedFunctions := s.sortScopes(filteredFunctions, req.SortBy)
-	sortedClassScopes := s.sortScopes(filteredClassScopes, req.SortBy)
+	sortedFunctions, err := domain.SortComplexityScopesBy(filteredFunctions, req.SortBy)
+	if err != nil {
+		return nil, domain.NewAnalysisError("invalid complexity sort", err)
+	}
+	sortedClassScopes, err := domain.SortComplexityScopesBy(filteredClassScopes, req.SortBy)
+	if err != nil {
+		return nil, domain.NewAnalysisError("invalid complexity sort", err)
+	}
 	summary := s.generateSummary(allFunctions, allClassScopes, complexitySummaryCounts{
 		filesAnalyzed: filesProcessed,
 		filesSkipped:  filesSkipped,
@@ -175,6 +187,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 		GeneratedAt:         time.Now().Format(time.RFC3339),
 		Version:             version.Version,
 		Config:              s.buildConfigForResponse(req),
+		Request:             &req,
 	}
 	if err := response.ValidateAnalyzedScopes(); err != nil {
 		return nil, domain.NewAnalysisError("invalid complexity analysis result", err)
@@ -351,57 +364,6 @@ func (s *ComplexityServiceImpl) filterScopes(functions []domain.FunctionComplexi
 	}
 
 	return filtered, functionsParsed
-}
-
-// sortScopes sorts execution scopes based on the specified criteria.
-func (s *ComplexityServiceImpl) sortScopes(functions []domain.FunctionComplexity, sortBy domain.SortCriteria) []domain.FunctionComplexity {
-	// Create a copy to avoid modifying the original slice
-	sorted := make([]domain.FunctionComplexity, len(functions))
-	copy(sorted, functions)
-
-	switch sortBy {
-	case domain.SortByComplexity:
-		s.sortByComplexity(sorted)
-	case domain.SortByName:
-		s.sortByName(sorted)
-	case domain.SortByRisk:
-		s.sortByRisk(sorted)
-	}
-
-	return sorted
-}
-
-// Helper methods for sorting - using efficient Go standard library sorting
-func (s *ComplexityServiceImpl) sortByComplexity(functions []domain.FunctionComplexity) {
-	// Sort by complexity (descending) - O(n log n) instead of O(n²)
-	sort.Slice(functions, func(i, j int) bool {
-		return functions[i].Metrics.Complexity > functions[j].Metrics.Complexity
-	})
-}
-
-func (s *ComplexityServiceImpl) sortByName(functions []domain.FunctionComplexity) {
-	// Sort by name (ascending) - O(n log n) instead of O(n²)
-	sort.Slice(functions, func(i, j int) bool {
-		return functions[i].Name < functions[j].Name
-	})
-}
-
-func (s *ComplexityServiceImpl) sortByRisk(functions []domain.FunctionComplexity) {
-	// Sort by risk level (high to low) - O(n log n) instead of O(n²)
-	riskOrder := map[domain.RiskLevel]int{
-		domain.RiskLevelHigh:   3,
-		domain.RiskLevelMedium: 2,
-		domain.RiskLevelLow:    1,
-	}
-
-	sort.Slice(functions, func(i, j int) bool {
-		// Primary sort by risk level (high to low)
-		if riskOrder[functions[i].RiskLevel] != riskOrder[functions[j].RiskLevel] {
-			return riskOrder[functions[i].RiskLevel] > riskOrder[functions[j].RiskLevel]
-		}
-		// Secondary sort by complexity within same risk level
-		return functions[i].Metrics.Complexity > functions[j].Metrics.Complexity
-	})
 }
 
 // complexitySummaryCounts carries the labeled counts for generateSummary so

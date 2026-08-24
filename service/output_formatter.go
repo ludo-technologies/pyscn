@@ -185,6 +185,14 @@ func (f *OutputFormatterImpl) formatYAML(response *domain.ComplexityResponse) (s
 
 // formatCSV formats the response as CSV
 func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (string, error) {
+	if response.Request == nil {
+		return "", domain.NewOutputError("complexity request is missing from response", nil)
+	}
+	scopes, err := response.ReportedScopes(response.Request.SortBy)
+	if err != nil {
+		return "", domain.NewOutputError("failed to order complexity scopes", err)
+	}
+
 	var builder strings.Builder
 	writer := csv.NewWriter(&builder)
 
@@ -196,7 +204,7 @@ func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (st
 
 	// Write all reported executable scopes. The appended kind column keeps the
 	// established function columns stable while making class rows unambiguous.
-	for _, function := range response.ReportedScopes() {
+	for _, function := range scopes {
 		row := []string{
 			function.Name,
 			fmt.Sprintf("%d", function.Metrics.Complexity),

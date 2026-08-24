@@ -503,24 +503,26 @@ func TestHandleCheckComplexity(t *testing.T) {
 }
 
 func TestHandleCheckComplexityReportsClassExecutionScope(t *testing.T) {
+	setup := func(t *testing.T) string {
+		t.Helper()
+		var source strings.Builder
+		source.WriteString("class Config:\n")
+		for i := 0; i < 11; i++ {
+			source.WriteString("    if enabled:\n        value = 1\n")
+		}
+		source.WriteString("\ndef resolve(value):\n")
+		for i := 0; i < 10; i++ {
+			source.WriteString("    if value:\n        value -= 1\n")
+		}
+		source.WriteString("    return value\n")
+		path := filepath.Join(t.TempDir(), "config.py")
+		require.NoError(t, os.WriteFile(path, []byte(source.String()), 0o644))
+		return path
+	}
+
 	res := runToolTest(
 		t,
-		func(t *testing.T) string {
-			t.Helper()
-			var source strings.Builder
-			source.WriteString("class Config:\n")
-			for i := 0; i < 11; i++ {
-				source.WriteString("    if enabled:\n        value = 1\n")
-			}
-			source.WriteString("\ndef resolve(value):\n")
-			for i := 0; i < 10; i++ {
-				source.WriteString("    if value:\n        value -= 1\n")
-			}
-			source.WriteString("    return value\n")
-			path := filepath.Join(t.TempDir(), "config.py")
-			require.NoError(t, os.WriteFile(path, []byte(source.String()), 0o644))
-			return path
-		},
+		setup,
 		map[string]interface{}{
 			"max_complexity": float64(0),
 			"min_complexity": float64(12),
@@ -549,11 +551,35 @@ func TestHandleCheckComplexityReportsClassExecutionScope(t *testing.T) {
 	assert.Contains(t, result.Issues[0], "class scope Config is too complex (12 > 10)")
 	assert.Equal(t, 2, result.Summary.TotalFunctions)
 	assert.Equal(t, 1, result.Summary.TotalClassScopes)
-	assert.Equal(t, 2, result.Summary.TotalIssues)
+	assert.Equal(t, 1, result.Summary.TotalIssues)
 	assert.Equal(t, 11, result.Summary.MaxComplexity)
 	assert.Equal(t, 12, result.Summary.MaxScopeComplexity)
 	assert.InDelta(t, 6, result.Summary.AverageComplexity, 1e-9)
 	assert.InDelta(t, 8, result.Summary.AverageScopeComplexity, 1e-9)
+
+	full := runToolTest(
+		t,
+		setup,
+		map[string]interface{}{
+			"max_complexity": float64(0),
+			"min_complexity": float64(12),
+			"output_mode":    "full",
+		},
+		(*mcp.HandlerSet).HandleCheckComplexity,
+	)
+	require.False(t, full.IsError)
+	var fullResult struct {
+		Functions   []domain.FunctionComplexity `json:"functions"`
+		ClassScopes []domain.FunctionComplexity `json:"class_scopes"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(mcplib.GetTextFromContent(full.Content[0])), &fullResult))
+	visibleIssues := 0
+	for _, scope := range append(fullResult.Functions, fullResult.ClassScopes...) {
+		if scope.Metrics.Complexity > 10 {
+			visibleIssues++
+		}
+	}
+	assert.Equal(t, visibleIssues, result.Summary.TotalIssues)
 }
 
 func TestHandleCheckCoupling(t *testing.T) {

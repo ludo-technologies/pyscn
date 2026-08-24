@@ -63,13 +63,6 @@ func TestComplexityService_Basic(t *testing.T) {
 		assert.NotNil(t, service.parser)
 	})
 
-	// Test sorting function
-	t.Run("sortFunctions handles empty slice", func(t *testing.T) {
-		var functions []domain.FunctionComplexity
-		result := service.sortScopes(functions, domain.SortByComplexity)
-		assert.Equal(t, 0, len(result))
-	})
-
 	// Test filtering function
 	t.Run("filterFunctions handles empty slice", func(t *testing.T) {
 		var functions []domain.FunctionComplexity

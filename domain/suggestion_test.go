@@ -939,8 +939,9 @@ func TestGenerateSuggestions_AllAnalysesEnabled_SortOrder(t *testing.T) {
 	}
 }
 
-func TestGenerateSuggestions_CategoryLimit(t *testing.T) {
-	// Create 20 high-complexity functions; only 10 should become suggestions
+func TestGenerateSuggestions_CategoryLimitKeepsHighestClassScope(t *testing.T) {
+	// Keep enough function findings ahead of the class collection to catch a
+	// concatenation that applies the category cap before global ranking.
 	funcs := make([]FunctionComplexity, 20)
 	for i := range funcs {
 		funcs[i] = FunctionComplexity{
@@ -951,12 +952,29 @@ func TestGenerateSuggestions_CategoryLimit(t *testing.T) {
 	}
 
 	resp := &AnalyzeResponse{
-		Complexity: &ComplexityResponse{Functions: funcs},
+		Complexity: &ComplexityResponse{
+			Functions: funcs,
+			ClassScopes: []FunctionComplexity{{
+				Name:      "CriticalConfig",
+				ScopeKind: AnalysisScopeClass,
+				Metrics:   ComplexityMetrics{Complexity: 30},
+			}},
+		},
 	}
 
 	suggestions := GenerateSuggestions(resp)
 	if len(suggestions) != maxSuggestionsPerCategory {
 		t.Errorf("expected %d suggestions (category limit), got %d", maxSuggestionsPerCategory, len(suggestions))
+	}
+	foundClassScope := false
+	for _, suggestion := range suggestions {
+		if strings.Contains(suggestion.Title, "class scope 'CriticalConfig'") {
+			foundClassScope = true
+			break
+		}
+	}
+	if !foundClassScope {
+		t.Fatal("highest-complexity class scope was dropped by the category limit")
 	}
 }
 

@@ -105,6 +105,7 @@ func createTestComplexityResponse() *domain.ComplexityResponse {
 			"min_complexity": 1,
 			"max_complexity": 20,
 		},
+		Request: &domain.ComplexityRequest{SortBy: domain.SortByComplexity},
 	}
 }
 
@@ -126,6 +127,7 @@ func createMinimalComplexityResponse() *domain.ComplexityResponse {
 		GeneratedAt: time.Now().Format(time.RFC3339),
 		Version:     "1.0.0",
 		Config:      map[string]interface{}{},
+		Request:     &domain.ComplexityRequest{SortBy: domain.SortByComplexity},
 	}
 }
 
@@ -187,8 +189,8 @@ func TestOutputFormatterPublishesClassScopesAdditively(t *testing.T) {
 	records, err := csv.NewReader(strings.NewReader(csvOutput)).ReadAll()
 	require.NoError(t, err)
 	assert.Len(t, records, 4)
-	assert.Equal(t, "Config", records[3][0])
-	assert.Equal(t, "class", records[3][11])
+	assert.Equal(t, []string{"complex_function", "Config", "simple_function"}, []string{records[1][0], records[2][0], records[3][0]})
+	assert.Equal(t, "class", records[2][11])
 }
 
 func TestOutputFormatterTextPreservesScopeRiskLevels(t *testing.T) {
@@ -301,17 +303,17 @@ func TestOutputFormatter_Format(t *testing.T) {
 				expectedHeaders := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers", "SLOC", "Scope Kind"}
 				assert.Equal(t, expectedHeaders, records[0])
 
-				// Check first data row
-				assert.Equal(t, "simple_function", records[1][0])
-				assert.Equal(t, "2", records[1][1])
+				// Rows follow the requested sort across every execution-scope kind.
+				assert.Equal(t, "complex_function", records[1][0])
+				assert.Equal(t, "8", records[1][1])
 				assert.Equal(t, "0", records[1][2]) // Cognitive Complexity
-				assert.Equal(t, "low", records[1][3])
+				assert.Equal(t, "high", records[1][3])
 
 				// Check second data row
-				assert.Equal(t, "complex_function", records[2][0])
-				assert.Equal(t, "8", records[2][1])
+				assert.Equal(t, "simple_function", records[2][0])
+				assert.Equal(t, "2", records[2][1])
 				assert.Equal(t, "0", records[2][2]) // Cognitive Complexity
-				assert.Equal(t, "high", records[2][3])
+				assert.Equal(t, "low", records[2][3])
 			},
 			expectError: false,
 		},
@@ -754,8 +756,8 @@ func TestOutputFormatter_formatCSV(t *testing.T) {
 	assert.Equal(t, expectedHeaders, records[0])
 
 	// Check data rows (risk levels are lowercase in actual implementation)
-	assert.Equal(t, []string{"simple_function", "2", "0", "low", "5", "4", "0", "1", "0", "0", "6", "function"}, records[1])
-	assert.Equal(t, []string{"complex_function", "8", "0", "high", "20", "18", "0", "3", "2", "1", "120", "function"}, records[2])
+	assert.Equal(t, []string{"complex_function", "8", "0", "high", "20", "18", "0", "3", "2", "1", "120", "function"}, records[1])
+	assert.Equal(t, []string{"simple_function", "2", "0", "low", "5", "4", "0", "1", "0", "0", "6", "function"}, records[2])
 }
 
 // TestOutputFormatter_NewOutputFormatter tests service creation
@@ -784,6 +786,13 @@ func TestOutputFormatter_ErrorHandling(t *testing.T) {
 			format:      domain.OutputFormat("unsupported"),
 			expectError: true,
 			errorMsg:    "unsupported format",
+		},
+		{
+			name:        "CSV requires resolved request metadata",
+			response:    &domain.ComplexityResponse{},
+			format:      domain.OutputFormatCSV,
+			expectError: true,
+			errorMsg:    "complexity request is missing from response",
 		},
 	}
 

@@ -81,7 +81,7 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 	}
 
 	var suggestions []Suggestion
-	for _, f := range resp.ReportedScopes() {
+	for _, f := range resp.ReportedScopesByComplexity() {
 		switch f.ScopeKind {
 		case AnalysisScopeModule, AnalysisScopeFunction, AnalysisScopeClass:
 		default:

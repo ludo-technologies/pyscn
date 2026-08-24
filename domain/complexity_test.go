@@ -222,19 +222,48 @@ func TestFunctionComplexityScopeLabel(t *testing.T) {
 	}
 }
 
-func TestComplexityResponseReportedScopesReturnsOwnedPopulation(t *testing.T) {
+func TestComplexityResponseReportedScopesUsesOneGlobalOrder(t *testing.T) {
 	response := &ComplexityResponse{
-		Functions:   []FunctionComplexity{{Name: "work", ScopeKind: AnalysisScopeFunction}},
-		ClassScopes: []FunctionComplexity{{Name: "Config", ScopeKind: AnalysisScopeClass}},
+		Functions: []FunctionComplexity{
+			{Name: "zeta", ScopeKind: AnalysisScopeFunction, FilePath: "b.py", Metrics: ComplexityMetrics{Complexity: 20}, RiskLevel: RiskLevelHigh},
+			{Name: "alpha", ScopeKind: AnalysisScopeFunction, FilePath: "a.py", Metrics: ComplexityMetrics{Complexity: 5}, RiskLevel: RiskLevelLow},
+		},
+		ClassScopes: []FunctionComplexity{
+			{Name: "beta", ScopeKind: AnalysisScopeClass, FilePath: "c.py", Metrics: ComplexityMetrics{Complexity: 30}, RiskLevel: RiskLevelMedium},
+			{Name: "gamma", ScopeKind: AnalysisScopeClass, FilePath: "d.py", Metrics: ComplexityMetrics{Complexity: 8}, RiskLevel: RiskLevelHigh},
+		},
 	}
 
-	scopes := response.ReportedScopes()
-	if len(scopes) != 2 || scopes[0].Name != "work" || scopes[1].Name != "Config" {
-		t.Fatalf("ReportedScopes() = %+v", scopes)
+	tests := []struct {
+		name   string
+		sortBy SortCriteria
+		want   []string
+	}{
+		{name: "complexity", sortBy: SortByComplexity, want: []string{"beta", "zeta", "gamma", "alpha"}},
+		{name: "name", sortBy: SortByName, want: []string{"alpha", "beta", "gamma", "zeta"}},
+		{name: "risk", sortBy: SortByRisk, want: []string{"zeta", "gamma", "beta", "alpha"}},
 	}
-	scopes[0].Name = "changed"
-	if response.Functions[0].Name != "work" {
-		t.Fatal("ReportedScopes returned storage owned by the response")
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			scopes, err := response.ReportedScopes(test.sortBy)
+			if err != nil {
+				t.Fatalf("ReportedScopes() error = %v", err)
+			}
+			for i, want := range test.want {
+				if scopes[i].Name != want {
+					t.Fatalf("ReportedScopes() order = %+v, want %v", scopes, test.want)
+				}
+			}
+			scopes[0].Name = "changed"
+			if response.Functions[0].Name != "zeta" || response.ClassScopes[0].Name != "beta" {
+				t.Fatal("ReportedScopes returned storage owned by the response")
+			}
+		})
+	}
+
+	if _, err := response.ReportedScopes(SortByLocation); err == nil {
+		t.Fatal("ReportedScopes() accepted an unsupported complexity sort criterion")
 	}
 }
 

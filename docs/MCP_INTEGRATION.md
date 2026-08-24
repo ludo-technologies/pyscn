@@ -129,7 +129,7 @@ Reasons:
 
 **Output**: `ComplexityResponse` JSON
 
-Summary and detailed modes apply the gate to the complete analyzed scope population before presentation filters. In their summary, `max_complexity` remains the maximum across the established function population; `max_scope_complexity` is the maximum across functions, modules, and executable class suites.
+Summary and detailed findings use the same `min_complexity` and `report_unchanged` filtered scope population returned by full mode. Their aggregate `max_scope_complexity` and `average_scope_complexity` fields still describe the complete analyzed population; `max_complexity` remains the maximum across the established function population.
 
 ### 3. detect_clones
 

@@ -589,58 +589,6 @@ func TestComplexityService_FilterFunctions(t *testing.T) {
 	})
 }
 
-func TestComplexityService_SortFunctions(t *testing.T) {
-	service := NewComplexityService()
-
-	functions := []domain.FunctionComplexity{
-		{
-			Name:      "func_c",
-			FilePath:  "test.py",
-			Metrics:   domain.ComplexityMetrics{Complexity: 5},
-			RiskLevel: domain.RiskLevelMedium,
-		},
-		{
-			Name:      "func_a",
-			FilePath:  "test.py",
-			Metrics:   domain.ComplexityMetrics{Complexity: 10},
-			RiskLevel: domain.RiskLevelHigh,
-		},
-		{
-			Name:      "func_b",
-			FilePath:  "test.py",
-			Metrics:   domain.ComplexityMetrics{Complexity: 2},
-			RiskLevel: domain.RiskLevelLow,
-		},
-	}
-
-	t.Run("sort by complexity", func(t *testing.T) {
-		sorted := service.sortScopes(functions, domain.SortByComplexity)
-
-		require.Len(t, sorted, 3)
-		assert.Equal(t, "func_a", sorted[0].Name) // Complexity 10
-		assert.Equal(t, "func_c", sorted[1].Name) // Complexity 5
-		assert.Equal(t, "func_b", sorted[2].Name) // Complexity 2
-	})
-
-	t.Run("sort by name", func(t *testing.T) {
-		sorted := service.sortScopes(functions, domain.SortByName)
-
-		require.Len(t, sorted, 3)
-		assert.Equal(t, "func_a", sorted[0].Name)
-		assert.Equal(t, "func_b", sorted[1].Name)
-		assert.Equal(t, "func_c", sorted[2].Name)
-	})
-
-	t.Run("sort by risk", func(t *testing.T) {
-		sorted := service.sortScopes(functions, domain.SortByRisk)
-
-		require.Len(t, sorted, 3)
-		assert.Equal(t, "func_a", sorted[0].Name) // High risk
-		assert.Equal(t, "func_c", sorted[1].Name) // Medium risk
-		assert.Equal(t, "func_b", sorted[2].Name) // Low risk
-	})
-}
-
 func TestComplexityService_GenerateSummary(t *testing.T) {
 	service := NewComplexityService()
 

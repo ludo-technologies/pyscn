@@ -336,12 +336,16 @@ type ComplexityResponse struct {
 	Request     *ComplexityRequest `json:"request,omitempty"`    // Merged configuration request
 }
 
-// ReportedScopes returns the complete visible execution-scope population.
-// The returned slice is independently owned so callers may sort it safely.
-func (r *ComplexityResponse) ReportedScopes() []FunctionComplexity {
+// ReportedScopes returns the complete visible execution-scope population in
+// the requested order. The returned slice never aliases response storage.
+func (r *ComplexityResponse) ReportedScopes(sortBy SortCriteria) ([]FunctionComplexity, error) {
 	if r == nil {
-		return nil
+		return nil, fmt.Errorf("complexity response is nil")
 	}
+	return SortComplexityScopesBy(r.reportedScopes(), sortBy)
+}
+
+func (r *ComplexityResponse) reportedScopes() []FunctionComplexity {
 	scopes := make([]FunctionComplexity, 0, len(r.Functions)+len(r.ClassScopes))
 	scopes = append(scopes, r.Functions...)
 	scopes = append(scopes, r.ClassScopes...)
@@ -351,7 +355,10 @@ func (r *ComplexityResponse) ReportedScopes() []FunctionComplexity {
 // ReportedScopesByComplexity returns all visible scopes in a stable severity
 // order for presentation. It never mutates response storage.
 func (r *ComplexityResponse) ReportedScopesByComplexity() []FunctionComplexity {
-	return SortComplexityScopes(r.ReportedScopes())
+	if r == nil {
+		return nil
+	}
+	return SortComplexityScopes(r.reportedScopes())
 }
 
 // AnalyzedScopes returns an independently owned copy of the complete,
@@ -401,13 +408,44 @@ func (r *ComplexityResponse) ValidateAnalyzedScopes() error {
 }
 
 // SortComplexityScopes returns an independently owned severity-ranked copy.
-// Ties use source location, scope kind, and name for deterministic output.
+// Ties use source identity so output is deterministic.
 func SortComplexityScopes(scopes []FunctionComplexity) []FunctionComplexity {
+	return sortComplexityScopes(scopes, SortByComplexity)
+}
+
+// SortComplexityScopesBy returns an independently owned copy ordered by one
+// of the complexity report's supported criteria. Ties use source identity so
+// independently collected scope kinds still produce deterministic output.
+func SortComplexityScopesBy(scopes []FunctionComplexity, sortBy SortCriteria) ([]FunctionComplexity, error) {
+	switch sortBy {
+	case SortByComplexity, SortByName, SortByRisk:
+		return sortComplexityScopes(scopes, sortBy), nil
+	default:
+		return nil, fmt.Errorf("unsupported complexity sort criteria: %s", sortBy)
+	}
+}
+
+func sortComplexityScopes(scopes []FunctionComplexity, sortBy SortCriteria) []FunctionComplexity {
 	scopes = append([]FunctionComplexity(nil), scopes...)
 	sort.SliceStable(scopes, func(i, j int) bool {
 		left, right := scopes[i], scopes[j]
-		if left.Metrics.Complexity != right.Metrics.Complexity {
-			return left.Metrics.Complexity > right.Metrics.Complexity
+		switch sortBy {
+		case SortByName:
+			if left.Name != right.Name {
+				return left.Name < right.Name
+			}
+		case SortByRisk:
+			leftRisk, rightRisk := complexityRiskRank(left.RiskLevel), complexityRiskRank(right.RiskLevel)
+			if leftRisk != rightRisk {
+				return leftRisk > rightRisk
+			}
+			if left.Metrics.Complexity != right.Metrics.Complexity {
+				return left.Metrics.Complexity > right.Metrics.Complexity
+			}
+		default:
+			if left.Metrics.Complexity != right.Metrics.Complexity {
+				return left.Metrics.Complexity > right.Metrics.Complexity
+			}
 		}
 		if left.FilePath != right.FilePath {
 			return left.FilePath < right.FilePath
@@ -424,6 +462,19 @@ func SortComplexityScopes(scopes []FunctionComplexity) []FunctionComplexity {
 		return left.Name < right.Name
 	})
 	return scopes
+}
+
+func complexityRiskRank(risk RiskLevel) int {
+	switch risk {
+	case RiskLevelHigh:
+		return 3
+	case RiskLevelMedium:
+		return 2
+	case RiskLevelLow:
+		return 1
+	default:
+		return 0
+	}
 }
 
 // ComplexityService defines the core business logic for complexity analysis

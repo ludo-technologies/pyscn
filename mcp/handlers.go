@@ -880,28 +880,32 @@ type complexityGateAnalysis struct {
 }
 
 func analyzeComplexityGate(result *domain.ComplexityResponse, threshold int, maxResults int) (complexityGateAnalysis, error) {
-	scopes, err := result.AnalyzedScopes()
+	analyzedScopes, err := result.AnalyzedScopes()
 	if err != nil {
 		return complexityGateAnalysis{}, err
 	}
 
 	analysis := complexityGateAnalysis{}
 	total := 0
-	for _, scope := range scopes {
+	for _, scope := range analyzedScopes {
 		total += scope.Metrics.Complexity
 		if scope.Metrics.Complexity > analysis.MaxComplexity {
 			analysis.MaxComplexity = scope.Metrics.Complexity
 		}
+	}
+	if len(analyzedScopes) > 0 {
+		analysis.AverageComplexity = float64(total) / float64(len(analyzedScopes))
+	}
+
+	// Gate findings use the same presentation-filtered population serialized by
+	// full mode. Aggregate scope statistics above intentionally remain complete.
+	for _, scope := range result.ReportedScopesByComplexity() {
 		if scope.Metrics.Complexity > threshold {
 			analysis.TotalIssues++
 			analysis.Issues = append(analysis.Issues, scope)
 		}
 	}
-	if len(scopes) > 0 {
-		analysis.AverageComplexity = float64(total) / float64(len(scopes))
-	}
 
-	analysis.Issues = domain.SortComplexityScopes(analysis.Issues)
 	if maxResults > 0 && len(analysis.Issues) > maxResults {
 		analysis.Issues = analysis.Issues[:maxResults]
 	}

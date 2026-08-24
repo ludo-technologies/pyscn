@@ -284,7 +284,7 @@ Check complexity of functions with complexity > 10 in src/
 
 **Output**: Complexity analysis with risk levels
 
-Summary and detailed modes apply this gate before `min_complexity` and `report_unchanged` presentation filters. `max_complexity` in the returned summary remains the function-population maximum; `max_scope_complexity` reports the maximum across functions, modules, and executable class suites.
+Summary and detailed findings use the same `min_complexity` and `report_unchanged` filtered scope population returned by full mode. Their aggregate `max_scope_complexity` and `average_scope_complexity` fields still describe the complete analyzed population; `max_complexity` remains the function-population maximum.
 
 ```json
 {
