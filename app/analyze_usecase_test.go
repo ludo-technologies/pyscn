@@ -154,11 +154,11 @@ func TestAnalyzeUseCaseBuildResponsePreservesEveryTypedFailure(t *testing.T) {
 		{Analysis: domain.AnalysisKindDeadCode, Code: domain.AnalysisFailureCodeExecution, FilePath: "a.py", Message: "first"},
 		{Analysis: domain.AnalysisKindDeadCode, Code: domain.AnalysisFailureCodeExecution, FilePath: "b.py", Message: "second"},
 	}
-	tasks := []*AnalysisTask{{
-		Name:    taskNameDeadCode,
+	tasks := []*analysisTask{{
+		Name:    "display label does not own routing",
 		Kind:    domain.AnalysisKindDeadCode,
 		Enabled: true,
-		Result:  &domain.DeadCodeResponse{Failures: failures},
+		Result:  deadCodeTaskResult{response: &domain.DeadCodeResponse{Failures: failures}},
 	}}
 
 	response, err := (&AnalyzeUseCase{}).buildResponse(tasks, time.Now(), analysisPathIndex{reportedByIdentity: map[string]string{}}, domain.AnalysisCoverage{})
@@ -167,6 +167,23 @@ func TestAnalyzeUseCaseBuildResponsePreservesEveryTypedFailure(t *testing.T) {
 	}
 	if !reflect.DeepEqual(response.Failures, failures) {
 		t.Fatalf("expected lossless typed failures, got %+v", response.Failures)
+	}
+	if !response.Summary.DeadCodeEnabled || response.DeadCode == nil {
+		t.Fatalf("expected typed kind to route dead-code result, got %+v", response)
+	}
+}
+
+func TestAnalyzeUseCaseBuildResponseRejectsMismatchedTaskResult(t *testing.T) {
+	tasks := []*analysisTask{{
+		Name:    taskNameDeadCode,
+		Kind:    domain.AnalysisKindDeadCode,
+		Enabled: true,
+		Result:  cloneTaskResult{response: &domain.CloneResponse{}},
+	}}
+
+	_, err := (&AnalyzeUseCase{}).buildResponse(tasks, time.Now(), analysisPathIndex{reportedByIdentity: map[string]string{}}, domain.AnalysisCoverage{})
+	if err == nil || !strings.Contains(err.Error(), "deadcode returned clones result") {
+		t.Fatalf("expected typed task-result mismatch, got %v", err)
 	}
 }
 

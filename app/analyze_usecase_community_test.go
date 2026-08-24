@@ -214,9 +214,9 @@ func TestAnalyzeUseCase_CommunityTaskSkippedByDefault(t *testing.T) {
 		SkipCommunities: true,
 	}, []string{"."}, []string{"."}, nil, nil, nil, domain.AnalyzeExecutionConfig{})
 
-	var communityTask *AnalysisTask
+	var communityTask *analysisTask
 	for _, task := range tasks {
-		if task.Name == taskNameCommunities {
+		if task.Kind == domain.AnalysisKindCommunities {
 			communityTask = task
 			break
 		}
@@ -257,9 +257,9 @@ func TestAnalyzeUseCase_CommunityTaskRequestUsesDiscardWriter(t *testing.T) {
 		SkipCommunities: false,
 	}, []string{sourcePath}, files, snapshot, graph, nil, domain.AnalyzeExecutionConfig{Recursive: true})
 
-	var communityTask *AnalysisTask
+	var communityTask *analysisTask
 	for _, task := range tasks {
-		if task.Name == taskNameCommunities {
+		if task.Kind == domain.AnalysisKindCommunities {
 			communityTask = task
 			break
 		}
