@@ -292,7 +292,7 @@ func TestAnalyzeFormatter_PublishesClassScopesAcrossFormats(t *testing.T) {
 	var htmlOutput bytes.Buffer
 	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatHTML, &htmlOutput))
 	assert.Contains(t, htmlOutput.String(), "Config")
-	assert.Contains(t, htmlOutput.String(), ">class<")
+	assert.Contains(t, htmlOutput.String(), "Class execution scopes")
 }
 
 func TestAnalyzeFormatter_Write_JSON_IncludesCommunityAnalysis(t *testing.T) {
