@@ -309,23 +309,6 @@ func (s *ProjectSnapshot) selectedModuleFiles() []*ProjectFile {
 	return files
 }
 
-func matchesFileSelection(path string, includePatterns, excludePatterns []string) bool {
-	for _, pattern := range excludePatterns {
-		if patternMatches(pattern, path) {
-			return false
-		}
-	}
-	if len(includePatterns) == 0 {
-		return true
-	}
-	for _, pattern := range includePatterns {
-		if patternMatches(pattern, path) {
-			return true
-		}
-	}
-	return false
-}
-
 func mergeSnapshotPaths(pathSets ...[]string) []string {
 	paths := make([]string, 0)
 	seen := make(map[string]struct{})
