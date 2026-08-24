@@ -339,7 +339,7 @@ func buildReportTabs(response *domain.AnalyzeResponse) []reportTab {
 	tabs := []reportTab{{ID: "overview", Label: "Overview"}}
 
 	if reportHasExecutionScopes(response) {
-		tab := reportTab{ID: "functions", Label: "Execution", Count: s.HighComplexityCount + s.HighComplexityClassScopeCount + s.DeadCodeCount}
+		tab := reportTab{ID: "functions", Label: "Functions", Count: s.HighComplexityCount + s.HighComplexityClassScopeCount + s.DeadCodeCount}
 		switch {
 		case s.HighComplexityCount > 0 || s.HighComplexityClassScopeCount > 0 || s.CriticalDeadCode > 0:
 			tab.CountBand = "bad"
