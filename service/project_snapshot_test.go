@@ -16,11 +16,12 @@ func TestProjectSnapshotCachesParsedFileState(t *testing.T) {
 	sourcePath := writeSnapshotFixture(t)
 
 	snapshot := BuildProjectSnapshot(ctx, []string{sourcePath})
-	if len(snapshot.Files) != 1 {
-		t.Fatalf("expected 1 snapshot file, got %d", len(snapshot.Files))
+	files := snapshot.FileProjections()
+	if len(files) != 1 {
+		t.Fatalf("expected 1 snapshot file, got %d", len(files))
 	}
 
-	file := snapshot.Files[0]
+	file := files[0]
 	if !file.Parsed() {
 		t.Fatalf("expected parsed file, read err: %v, parse err: %v", file.ReadErr, file.ParseErr)
 	}
@@ -49,11 +50,12 @@ func TestProjectSnapshotOptionsSkipRawMetrics(t *testing.T) {
 	sourcePath := writeSnapshotFixture(t)
 
 	snapshot := BuildProjectSnapshotWithOptions(ctx, []string{sourcePath}, ProjectSnapshotOptions{})
-	if len(snapshot.Files) != 1 {
-		t.Fatalf("expected 1 snapshot file, got %d", len(snapshot.Files))
+	files := snapshot.FileProjections()
+	if len(files) != 1 {
+		t.Fatalf("expected 1 snapshot file, got %d", len(files))
 	}
 
-	file := snapshot.Files[0]
+	file := files[0]
 	if !file.Parsed() {
 		t.Fatalf("expected parsed file, read err: %v, parse err: %v", file.ReadErr, file.ParseErr)
 	}
@@ -82,9 +84,6 @@ func TestAnalysisProjectSnapshotKeepsSourceAndModuleScopesDistinct(t *testing.T)
 		[]string{sourcePath, stubPath},
 		ProjectSnapshotOptions{},
 	)
-	if snapshot.Files != nil {
-		t.Fatal("aggregate snapshots must not eagerly allocate compatibility projections")
-	}
 	if projections := snapshot.FileProjections(); len(projections) != 2 {
 		t.Fatalf("expected two on-demand file projections, got %d", len(projections))
 	}
@@ -157,7 +156,7 @@ func TestProjectSnapshotProjectionDoesNotShareValueNodes(t *testing.T) {
 	}
 	snapshot := BuildProjectSnapshot(context.Background(), []string{sourcePath})
 
-	projectedCalls := snapshot.Files[0].AST.FindByType(parser.NodeCall)
+	projectedCalls := snapshot.FileProjections()[0].AST.FindByType(parser.NodeCall)
 	internalCalls := snapshot.files[0].AST.FindByType(parser.NodeCall)
 	if len(projectedCalls) != 1 || len(internalCalls) != 1 {
 		t.Fatalf("expected one call in each AST, got projected=%d internal=%d", len(projectedCalls), len(internalCalls))
@@ -191,8 +190,9 @@ func TestProjectSnapshotBuildDependencyGraphUsesOnlyCapturedParsedFiles(t *testi
 	}
 
 	snapshot := BuildProjectSnapshotWithOptions(ctx, []string{sourcePath, targetPath, brokenPath}, ProjectSnapshotOptions{})
-	snapshot.Files[0].Path = filepath.Join(projectRoot, "mutated.py")
-	snapshot.Files[0].AST = nil
+	projection := snapshot.FileProjections()[0]
+	projection.Path = filepath.Join(projectRoot, "mutated.py")
+	projection.AST = nil
 	if err := os.WriteFile(sourcePath, []byte("VALUE = 2\n"), 0o644); err != nil {
 		t.Fatalf("replace captured source: %v", err)
 	}
