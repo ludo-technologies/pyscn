@@ -332,6 +332,9 @@ func (s *ProjectSnapshot) hasAnalysisFile(file *ProjectFile) bool {
 	if s == nil || file == nil {
 		return false
 	}
+	if s.analysisFiles == nil {
+		return true
+	}
 	_, ok := s.analysisFiles[file.identityPath]
 	return ok
 }
@@ -343,6 +346,10 @@ func (s *ProjectSnapshot) selectedModuleFiles() []*ProjectFile {
 	files := make([]*ProjectFile, 0, len(s.moduleFiles))
 	for _, file := range s.Files {
 		if file == nil {
+			continue
+		}
+		if s.moduleFiles == nil {
+			files = append(files, file)
 			continue
 		}
 		if _, ok := s.moduleFiles[file.identityPath]; !ok {
