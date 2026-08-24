@@ -216,8 +216,12 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		}
 	}
 	if analysisErr != nil {
-		fmt.Fprintf(cmd.ErrOrStderr(), "❌ Analysis failed: %v\n", analysisErr)
-		hasErrors = true
+		if isInformationalCloneAnalysisError(response, analysisErr) {
+			fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Clone detection failed: %v\n", analysisErr)
+		} else {
+			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Analysis failed: %v\n", analysisErr)
+			hasErrors = true
+		}
 	}
 
 	// Run mock data check if enabled
@@ -259,6 +263,18 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func isInformationalCloneAnalysisError(response *domain.AnalyzeResponse, analysisErr error) bool {
+	if analysisErr == nil || response == nil || len(response.Failures) == 0 {
+		return false
+	}
+	for _, failure := range response.Failures {
+		if failure.Analysis != domain.AnalysisKindClones {
+			return false
+		}
+	}
+	return true
 }
 
 func resolveCheckConfig(configPath string, targetPath string) (string, error) {

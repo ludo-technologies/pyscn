@@ -116,6 +116,27 @@ func TestExitCodeForQualityIssues(t *testing.T) {
 	}
 }
 
+func TestCloneAnalysisFailuresRemainInformational(t *testing.T) {
+	analysisErr := errors.New("clone engine unavailable")
+	response := &domain.AnalyzeResponse{Failures: []domain.AnalysisFailure{{
+		Analysis: domain.AnalysisKindClones,
+		Code:     domain.AnalysisFailureCodeExecution,
+		Message:  analysisErr.Error(),
+	}}}
+	if !isInformationalCloneAnalysisError(response, analysisErr) {
+		t.Fatal("expected clone-only analyzer failure to remain informational")
+	}
+
+	response.Failures = append(response.Failures, domain.AnalysisFailure{
+		Analysis: domain.AnalysisKindComplexity,
+		Code:     domain.AnalysisFailureCodeExecution,
+		Message:  "complexity failed",
+	})
+	if isInformationalCloneAnalysisError(response, analysisErr) {
+		t.Fatal("mixed analyzer failures must fail the quality gate")
+	}
+}
+
 // Clone detection failing on its own stays informational, but an unparseable
 // file is a problem with the input and must fail the gate like everywhere else.
 func TestCheckSelectClonesFailsOnUnparseableFile(t *testing.T) {
