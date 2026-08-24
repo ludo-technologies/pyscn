@@ -63,7 +63,7 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
 | Field | Type | Description |
 | --- | --- | --- |
 | `file_path` | string | Source file that could not be analyzed. |
-| `code` | string | One of: `read_error`, `parse_error`. Cancellation is reported as `read_error` because no source was read. |
+| `code` | string | One of: `read_error`, `parse_error`. Cancellation uses the phase that observed it: `read_error` before parsing starts and `parse_error` during parsing. |
 | `message` | string | Human-readable cause. |
 
 ## `AnalysisFailure` object { #analysisfailure-object }
@@ -83,7 +83,7 @@ Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the co
 
 | Field            | Type    | Description                                      |
 | ---------------- | ------- | ------------------------------------------------ |
-| `total_files`    | integer | Number of Python files discovered.               |
+| `total_files`    | integer | Number of Python files required by the requested analysis set. Dependency and community analysis include matching `.pyi` modules. |
 | `analyzed_files` | integer | Number of files successfully analyzed.           |
 | `skipped_files`  | integer | Files dropped because they could not be read or parsed. A non-zero value means every score below covers less than `total_files`. |
 
