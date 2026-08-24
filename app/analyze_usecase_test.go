@@ -381,6 +381,81 @@ func TestAnalyzeUseCase_Execute_CoverageIsIndependentOfModuleSelection(t *testin
 	}
 }
 
+func TestAnalyzeUseCase_Execute_ModuleGraphKeepsConfiguredFileScope(t *testing.T) {
+	projectDir := t.TempDir()
+	t.Chdir(projectDir)
+	for _, directory := range []string{"pkg/generated", "vendor"} {
+		if err := os.MkdirAll(directory, 0o755); err != nil {
+			t.Fatalf("create %s: %v", directory, err)
+		}
+	}
+	files := map[string]string{
+		"pkg/app.py":                "from pkg import contract\n",
+		"pkg/contract.pyi":          "VALUE: int\n",
+		"pkg/generated/ignored.pyi": "IGNORED: int\n",
+		"vendor/a.py":               "import vendor.b\n",
+		"vendor/b.py":               "import vendor.a\n",
+	}
+	for path, source := range files {
+		if err := os.WriteFile(path, []byte(source), 0o644); err != nil {
+			t.Fatalf("write %s: %v", path, err)
+		}
+	}
+	configPath := ".pyscn.toml"
+	configSource := `[analysis]
+include_patterns = ["pkg/**/*.py"]
+exclude_patterns = ["pkg/generated/**/*.py"]
+recursive = true
+
+[system_analysis]
+enabled = true
+enable_dependencies = true
+enable_architecture = false
+`
+	if err := os.WriteFile(configPath, []byte(configSource), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	if err := os.WriteFile("pyproject.toml", []byte("[project]\nname = 'scope-fixture'\n"), 0o644); err != nil {
+		t.Fatalf("write project marker: %v", err)
+	}
+
+	response, err := newModuleQualityAnalyzeUseCase(t).Execute(context.Background(), AnalyzeUseCaseConfig{
+		ConfigFile:         configPath,
+		SkipComplexity:     true,
+		SkipDeadCode:       true,
+		SkipClones:         true,
+		SkipCBO:            true,
+		SkipLCOM:           true,
+		SkipSystem:         false,
+		SkipCommunities:    true,
+		SelectAnalysesUsed: true,
+	}, []string{"."})
+	if err != nil {
+		t.Fatalf("execute configured system analysis: %v", err)
+	}
+	if response.Summary.TotalFiles != 1 || response.Summary.AnalyzedFiles != 1 || response.Summary.SkippedFiles != 0 {
+		t.Fatalf("expected implementation-only coverage, got %+v", response.Summary)
+	}
+	if response.System == nil || response.System.DependencyAnalysis == nil {
+		t.Fatalf("expected dependency analysis, got %+v", response.System)
+	}
+	dependencies := response.System.DependencyAnalysis
+	if dependencies.TotalModules != 2 || len(dependencies.ModuleMetrics) != 2 {
+		t.Fatalf("expected pkg.app and pkg.contract only, got %+v", dependencies.ModuleMetrics)
+	}
+	for _, excluded := range []string{"vendor.a", "vendor.b", "pkg.generated.ignored"} {
+		if dependencies.ModuleMetrics[excluded] != nil {
+			t.Fatalf("excluded module %s leaked into graph", excluded)
+		}
+	}
+	if !dependencies.DependencyMatrix["pkg.app"]["pkg.contract"] {
+		t.Fatalf("expected pkg.app -> pkg.contract, got %+v", dependencies.DependencyMatrix)
+	}
+	if dependencies.CircularDependencies != nil && dependencies.CircularDependencies.HasCircularDependencies {
+		t.Fatalf("excluded vendor cycle leaked into analysis: %+v", dependencies.CircularDependencies)
+	}
+}
+
 func TestAnalyzeUseCase_ExecuteWithOverridesHonorsExplicitDependencyGate(t *testing.T) {
 	projectDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(projectDir, "a.py"), []byte("import b\n"), 0o644); err != nil {
@@ -752,8 +827,8 @@ func TestAnalyzeUseCase_LoadExecutionConfig(t *testing.T) {
 		if executionCfg.ComplexityMinComplexity != domain.DefaultComplexityMinFilter {
 			t.Errorf("Expected min complexity %d, got %d", domain.DefaultComplexityMinFilter, executionCfg.ComplexityMinComplexity)
 		}
-		if len(executionCfg.IncludePatterns) != 1 || executionCfg.IncludePatterns[0] != "**/*.py" {
-			t.Errorf("Expected default include patterns to include runtime Python files, got %v", executionCfg.IncludePatterns)
+		if len(executionCfg.FileSelection.IncludePatterns) != 1 || executionCfg.FileSelection.IncludePatterns[0] != "**/*.py" {
+			t.Errorf("Expected default include patterns to include runtime Python files, got %v", executionCfg.FileSelection.IncludePatterns)
 		}
 		defaultCloneReq := domain.DefaultCloneRequest()
 		if executionCfg.CloneLSHEnabled != defaultCloneReq.LSHEnabled {
@@ -839,11 +914,11 @@ lsh_auto_threshold = 123
 		if executionCfg.Recursive {
 			t.Error("Expected recursive to be false")
 		}
-		if len(executionCfg.IncludePatterns) != 1 || executionCfg.IncludePatterns[0] != "pkg/**/*.py" {
-			t.Errorf("Expected custom include patterns, got %v", executionCfg.IncludePatterns)
+		if len(executionCfg.FileSelection.IncludePatterns) != 1 || executionCfg.FileSelection.IncludePatterns[0] != "pkg/**/*.py" {
+			t.Errorf("Expected custom include patterns, got %v", executionCfg.FileSelection.IncludePatterns)
 		}
-		if len(executionCfg.ExcludePatterns) != 1 || executionCfg.ExcludePatterns[0] != "tests/**/*.py" {
-			t.Errorf("Expected custom exclude patterns, got %v", executionCfg.ExcludePatterns)
+		if len(executionCfg.FileSelection.ExcludePatterns) != 1 || executionCfg.FileSelection.ExcludePatterns[0] != "tests/**/*.py" {
+			t.Errorf("Expected custom exclude patterns, got %v", executionCfg.FileSelection.ExcludePatterns)
 		}
 		if executionCfg.CloneLSHEnabled != "true" {
 			t.Errorf("Expected LSH enabled to be %q, got %q", "true", executionCfg.CloneLSHEnabled)

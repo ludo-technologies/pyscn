@@ -5,11 +5,23 @@ import (
 	"testing"
 )
 
-func TestPythonModuleIncludePatternsPreservesConfiguredScope(t *testing.T) {
-	want := []string{"pkg/**/*.py", "pkg/**/*.pyi", "scripts/**"}
-	got := PythonModuleIncludePatterns([]string{"pkg/**/*.py", "pkg/**/*.pyi", "scripts/**"})
+func TestPythonFileSelectionForModulesPreservesConfiguredScope(t *testing.T) {
+	selection := PythonFileSelection{
+		IncludePatterns: []string{"pkg/**/*.py", "pkg/**/*.pyi", "scripts/**"},
+		ExcludePatterns: []string{"pkg/generated/**/*.py", "test_*.py"},
+	}
+	want := PythonFileSelection{
+		IncludePatterns: []string{"pkg/**/*.py", "pkg/**/*.pyi", "scripts/**"},
+		ExcludePatterns: []string{"pkg/generated/**/*.py", "pkg/generated/**/*.pyi", "test_*.py", "test_*.pyi"},
+	}
+	got := selection.ForModules()
 	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("expected scoped module patterns %v, got %v", want, got)
+		t.Fatalf("expected scoped module selection %+v, got %+v", want, got)
+	}
+	got.IncludePatterns[0] = "mutated"
+	got.ExcludePatterns[0] = "mutated"
+	if selection.IncludePatterns[0] != "pkg/**/*.py" || selection.ExcludePatterns[0] != "pkg/generated/**/*.py" {
+		t.Fatalf("module projection must not share configured pattern slices: %+v", selection)
 	}
 }
 

@@ -20,8 +20,8 @@ func TestAnalyzeConfigurationLoader_LoadAnalyzeExecutionConfig(t *testing.T) {
 		if cfg.ConfigPath != "" {
 			t.Errorf("expected empty config path, got %q", cfg.ConfigPath)
 		}
-		if len(cfg.IncludePatterns) != 1 || cfg.IncludePatterns[0] != "**/*.py" {
-			t.Errorf("expected default include patterns to include runtime Python files, got %v", cfg.IncludePatterns)
+		if len(cfg.FileSelection.IncludePatterns) != 1 || cfg.FileSelection.IncludePatterns[0] != "**/*.py" {
+			t.Errorf("expected default include patterns to include runtime Python files, got %v", cfg.FileSelection.IncludePatterns)
 		}
 		if !cfg.ComplexityEnabled {
 			t.Error("expected complexity enabled by default")
@@ -116,14 +116,15 @@ lsh_auto_threshold = 123
 		if cfg.Recursive {
 			t.Error("expected recursive false")
 		}
-		if len(cfg.IncludePatterns) != 1 || cfg.IncludePatterns[0] != "pkg/**/*.py" {
-			t.Errorf("expected custom include patterns, got %v", cfg.IncludePatterns)
+		if len(cfg.FileSelection.IncludePatterns) != 1 || cfg.FileSelection.IncludePatterns[0] != "pkg/**/*.py" {
+			t.Errorf("expected custom include patterns, got %v", cfg.FileSelection.IncludePatterns)
 		}
-		if len(cfg.ModulePatterns) != 2 || cfg.ModulePatterns[0] != "pkg/**/*.py" || cfg.ModulePatterns[1] != "pkg/**/*.pyi" {
-			t.Errorf("expected module patterns to preserve configured scope, got %v", cfg.ModulePatterns)
+		moduleSelection := cfg.FileSelection.ForModules()
+		if len(moduleSelection.IncludePatterns) != 2 || moduleSelection.IncludePatterns[0] != "pkg/**/*.py" || moduleSelection.IncludePatterns[1] != "pkg/**/*.pyi" {
+			t.Errorf("expected module patterns to preserve configured scope, got %v", moduleSelection.IncludePatterns)
 		}
-		if len(cfg.ExcludePatterns) != 1 || cfg.ExcludePatterns[0] != "tests/**/*.py" {
-			t.Errorf("expected custom exclude patterns, got %v", cfg.ExcludePatterns)
+		if len(cfg.FileSelection.ExcludePatterns) != 1 || cfg.FileSelection.ExcludePatterns[0] != "tests/**/*.py" {
+			t.Errorf("expected custom exclude patterns, got %v", cfg.FileSelection.ExcludePatterns)
 		}
 		if cfg.ComplexityEnabled {
 			t.Error("expected complexity disabled")

@@ -98,7 +98,7 @@ func TestAnalysisProjectSnapshotKeepsSourceAndModuleScopesDistinct(t *testing.T)
 	if coverage.TotalFiles != 1 || coverage.AnalyzedFiles != 1 || coverage.SkippedFiles != 0 {
 		t.Fatalf("expected coverage to use the implementation scope, got %+v", coverage)
 	}
-	modules := snapshot.selectedModuleFiles(&ModuleGraphOptions{IncludePatterns: domain.DefaultPythonModuleIncludePatterns()})
+	modules := snapshot.selectedModuleFiles()
 	if len(modules) != 2 {
 		t.Fatalf("expected source and stub module files, got %d", len(modules))
 	}

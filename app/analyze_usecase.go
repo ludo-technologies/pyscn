@@ -377,8 +377,8 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 	analysisFiles, err := uc.fileReader.CollectPythonFiles(
 		paths,
 		executionCfg.Recursive,
-		executionCfg.IncludePatterns,
-		executionCfg.ExcludePatterns,
+		executionCfg.FileSelection.IncludePatterns,
+		executionCfg.FileSelection.ExcludePatterns,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to collect Python files: %w", err)
@@ -386,11 +386,12 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 
 	moduleFiles := analysisFiles
 	if uc.needsModuleGraph(useCaseCfg) {
+		moduleSelection := executionCfg.FileSelection.ForModules()
 		moduleFiles, err = uc.fileReader.CollectPythonFiles(
 			paths,
 			executionCfg.Recursive,
-			executionCfg.ModulePatterns,
-			executionCfg.ExcludePatterns,
+			moduleSelection.IncludePatterns,
+			moduleSelection.ExcludePatterns,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to collect Python modules: %w", err)
@@ -424,10 +425,8 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 	var moduleGraphErr error
 	if uc.needsModuleGraph(useCaseCfg) {
 		moduleGraph, moduleGraphErr = snapshot.BuildDependencyGraph(ctx, &service.ModuleGraphOptions{
-			ProjectRoot:     service.FindProjectRoot(paths),
-			Graph:           executionCfg.ModuleGraph,
-			IncludePatterns: executionCfg.ModulePatterns,
-			ExcludePatterns: executionCfg.ExcludePatterns,
+			ProjectRoot: service.FindProjectRoot(paths),
+			Graph:       executionCfg.ModuleGraph,
 		})
 	}
 

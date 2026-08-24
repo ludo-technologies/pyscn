@@ -34,10 +34,8 @@ type ProjectSnapshotOptions struct {
 // ModuleGraphOptions controls how a project snapshot is projected into a
 // module graph.
 type ModuleGraphOptions struct {
-	ProjectRoot     string
-	Graph           domain.ModuleGraphOptions
-	IncludePatterns []string
-	ExcludePatterns []string
+	ProjectRoot string
+	Graph       domain.ModuleGraphOptions
 }
 
 // ProjectModuleGraph is an owned graph projection of a project snapshot. Its
@@ -237,7 +235,7 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 		return nil, fmt.Errorf("build dependency graph: %w", err)
 	}
 
-	moduleFiles := s.selectedModuleFiles(options)
+	moduleFiles := s.selectedModuleFiles()
 	parsedModules := make([]analyzer.ParsedModule, 0, len(moduleFiles))
 	for _, file := range moduleFiles {
 		if !file.Parsed() {
@@ -252,15 +250,11 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 
 	projectRoot := s.defaultProjectRoot
 	graphOptions := domain.ModuleGraphOptions{}
-	includePatterns := []string(nil)
-	excludePatterns := []string(nil)
 	if options != nil {
 		if options.ProjectRoot != "" {
 			projectRoot = snapshotPath(s.defaultProjectRoot, options.ProjectRoot)
 		}
 		graphOptions = options.Graph
-		includePatterns = options.IncludePatterns
-		excludePatterns = options.ExcludePatterns
 	}
 	analyzerOptions := &analyzer.ModuleAnalysisOptions{
 		ProjectRoot:       projectRoot,
@@ -268,8 +262,8 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 		IncludeStdLib:     domain.BoolPtr(graphOptions.IncludeStdLib),
 		IncludeThirdParty: domain.BoolPtr(graphOptions.IncludeThirdParty),
 		FollowRelative:    domain.BoolPtr(graphOptions.FollowRelative),
-		IncludePatterns:   includePatterns,
-		ExcludePatterns:   excludePatterns,
+		IncludePatterns:   []string{},
+		ExcludePatterns:   []string{},
 	}
 	moduleAnalyzer, err := analyzer.NewModuleAnalyzer(analyzerOptions)
 	if err != nil {
@@ -311,14 +305,9 @@ func (s *ProjectSnapshot) hasAnalysisFile(file *ProjectFile) bool {
 	return ok
 }
 
-func (s *ProjectSnapshot) selectedModuleFiles(options *ModuleGraphOptions) []*ProjectFile {
+func (s *ProjectSnapshot) selectedModuleFiles() []*ProjectFile {
 	if s == nil {
 		return nil
-	}
-	var includePatterns, excludePatterns []string
-	if options != nil {
-		includePatterns = options.IncludePatterns
-		excludePatterns = options.ExcludePatterns
 	}
 	files := make([]*ProjectFile, 0, len(s.moduleFiles))
 	for _, file := range s.files {
@@ -326,9 +315,6 @@ func (s *ProjectSnapshot) selectedModuleFiles(options *ModuleGraphOptions) []*Pr
 			continue
 		}
 		if _, ok := s.moduleFiles[file.identityPath]; !ok {
-			continue
-		}
-		if !matchesFileSelection(file.identityPath, includePatterns, excludePatterns) {
 			continue
 		}
 		files = append(files, file)

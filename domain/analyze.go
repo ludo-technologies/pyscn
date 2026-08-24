@@ -19,11 +19,9 @@ type AnalyzeOutputFormatter interface {
 type AnalyzeExecutionConfig struct {
 	ConfigPath string
 
-	IncludePatterns []string
-	ExcludePatterns []string
-	ModulePatterns  []string
-	Recursive       bool
-	ShowDetails     bool
+	FileSelection PythonFileSelection
+	Recursive     bool
+	ShowDetails   bool
 
 	ComplexityEnabled            bool
 	ComplexityReportUnchanged    bool
@@ -49,6 +47,13 @@ type AnalyzeExecutionConfig struct {
 
 	CommunitiesEnabled         bool
 	CommunitiesEnabledExplicit bool
+}
+
+// PythonFileSelection is the canonical configured source-file scope for one
+// aggregate analysis execution.
+type PythonFileSelection struct {
+	IncludePatterns []string
+	ExcludePatterns []string
 }
 
 // ModuleGraphOptions is the resolved module graph policy shared by graph
