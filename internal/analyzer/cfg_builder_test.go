@@ -283,7 +283,7 @@ class Config:
 		}
 
 		config := config.DefaultConfig()
-		results := calculateScopedReporterResults(cfgs, &config.Complexity)
+		results := calculateScopedReporterResults(cfgs, &config.Complexity, "")
 		if len(results) != 3 {
 			t.Fatalf("file reporter result count = %d, want module, class, and method", len(results))
 		}

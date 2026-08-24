@@ -125,7 +125,7 @@ func (ca *ComplexityAnalyzer) GenerateReport(cfgs ControlFlowGraphs) *reporter.C
 }
 
 func (ca *ComplexityAnalyzer) reporterResults(cfgs ControlFlowGraphs) []reporter.ComplexityResult {
-	results := calculateScopedReporterResults(cfgs, &ca.config.Complexity)
+	results := calculateScopedReporterResults(cfgs, &ca.config.Complexity, "")
 	interfaceResults := make([]reporter.ComplexityResult, len(results))
 	for i, result := range results {
 		interfaceResults[i] = result

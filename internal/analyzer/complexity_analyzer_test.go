@@ -224,7 +224,7 @@ func TestAnalyzeAndReport(t *testing.T) {
 		if !strings.Contains(output, "Complexity Analysis Report") {
 			t.Error("Missing report title")
 		}
-		if !strings.Contains(output, "Total Functions: 3") {
+		if !strings.Contains(output, "Total Functions: 2") {
 			t.Error("Missing total functions count")
 		}
 
@@ -257,7 +257,7 @@ func TestAnalyzeAndReport(t *testing.T) {
 		output := buffer.String()
 
 		// Should be valid JSON containing expected data
-		if !strings.Contains(output, `"total_functions": 3`) {
+		if !strings.Contains(output, `"total_functions": 2`) {
 			t.Error("JSON output missing total functions")
 		}
 		if !strings.Contains(output, `"simple_function"`) {
@@ -506,16 +506,18 @@ func TestGenerateReport(t *testing.T) {
 	}
 
 	// Verify report structure
-	if report.Summary.TotalFunctions != 3 {
-		t.Errorf("Expected 3 total functions, got %d", report.Summary.TotalFunctions)
+	if report.Summary.TotalFunctions != 2 {
+		t.Errorf("Expected 2 legacy function results, got %d", report.Summary.TotalFunctions)
 	}
-	if len(report.Results) != 3 {
-		t.Errorf("Expected 3 results, got %d", len(report.Results))
+	if len(report.Results) != 2 {
+		t.Errorf("Expected 2 legacy results, got %d", len(report.Results))
+	}
+	if len(report.ClassScopes) != 1 || report.ClassScopes[0].FunctionName != "complex_function" {
+		t.Fatalf("Expected one additive class scope, got %+v", report.ClassScopes)
 	}
 	expectedKinds := map[string]domain.AnalysisScopeKind{
-		"simple_function":  domain.AnalysisScopeModule,
-		"medium_function":  domain.AnalysisScopeFunction,
-		"complex_function": domain.AnalysisScopeClass,
+		"simple_function": domain.AnalysisScopeModule,
+		"medium_function": domain.AnalysisScopeFunction,
 	}
 	for _, result := range report.Results {
 		if result.ScopeKind == domain.AnalysisScopeUnknown {
@@ -525,14 +527,17 @@ func TestGenerateReport(t *testing.T) {
 			t.Errorf("Expected %q scope kind %q, got %q", result.FunctionName, expectedKinds[result.FunctionName], result.ScopeKind)
 		}
 	}
+	if report.ClassScopes[0].ScopeKind != domain.AnalysisScopeClass {
+		t.Errorf("Expected class scope ownership, got %q", report.ClassScopes[0].ScopeKind)
+	}
 
 	// Verify summary calculations
-	expectedAvg := (1.0 + 2.0 + 6.0) / 3.0 // 3.0
+	expectedAvg := (1.0 + 2.0) / 2.0
 	if report.Summary.AverageComplexity != expectedAvg {
 		t.Errorf("Expected average complexity %.1f, got %.1f", expectedAvg, report.Summary.AverageComplexity)
 	}
-	if report.Summary.MaxComplexity != 6 {
-		t.Errorf("Expected max complexity 6, got %d", report.Summary.MaxComplexity)
+	if report.Summary.MaxComplexity != 2 {
+		t.Errorf("Expected max function complexity 2, got %d", report.Summary.MaxComplexity)
 	}
 	if report.Summary.MinComplexity != 1 {
 		t.Errorf("Expected min complexity 1, got %d", report.Summary.MinComplexity)

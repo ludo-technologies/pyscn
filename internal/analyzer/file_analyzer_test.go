@@ -34,17 +34,23 @@ func TestFileComplexityAnalyzerReportsClassScopeKind(t *testing.T) {
 			FunctionName string                   `json:"function_name"`
 			ScopeKind    domain.AnalysisScopeKind `json:"scope_kind"`
 		} `json:"results"`
+		ClassScopes []struct {
+			FunctionName string                   `json:"function_name"`
+			ScopeKind    domain.AnalysisScopeKind `json:"scope_kind"`
+			FilePath     string                   `json:"file_path"`
+		} `json:"class_scopes"`
 	}
 	if err := json.Unmarshal(output.Bytes(), &report); err != nil {
 		t.Fatalf("decode report: %v", err)
 	}
-	for _, result := range report.Results {
-		if result.FunctionName == "Config" {
-			if result.ScopeKind != domain.AnalysisScopeClass {
-				t.Fatalf("Config kind = %q, want class", result.ScopeKind)
-			}
-			return
-		}
+	if len(report.ClassScopes) != 1 {
+		t.Fatalf("class_scopes = %+v", report.ClassScopes)
 	}
-	t.Fatal("class scope Config missing from file report")
+	classScope := report.ClassScopes[0]
+	if classScope.FunctionName != "Config" || classScope.ScopeKind != domain.AnalysisScopeClass {
+		t.Fatalf("class scope = %+v", classScope)
+	}
+	if classScope.FilePath != path {
+		t.Fatalf("class source path = %q, want %q", classScope.FilePath, path)
+	}
 }

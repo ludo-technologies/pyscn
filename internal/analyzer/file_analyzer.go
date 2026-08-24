@@ -70,7 +70,7 @@ func (fca *FileComplexityAnalyzer) AnalyzeFile(filename string) error {
 		return fmt.Errorf("no execution scopes found in %s", filename)
 	}
 
-	results := calculateScopedReporterResults(cfgs, &fca.config.Complexity)
+	results := calculateScopedReporterResults(cfgs, &fca.config.Complexity, filename)
 
 	// Convert to reporter interface
 	interfaceResults := make([]reporter.ComplexityResult, len(results))
@@ -107,7 +107,7 @@ func (fca *FileComplexityAnalyzer) AnalyzeFiles(filenames []string) error {
 			return fmt.Errorf("failed to build control flow graphs for %s: %w", filename, err)
 		}
 
-		fileResults := calculateScopedReporterResults(cfgs, &fca.config.Complexity)
+		fileResults := calculateScopedReporterResults(cfgs, &fca.config.Complexity, filename)
 		allResults = append(allResults, fileResults...)
 	}
 
@@ -128,18 +128,32 @@ func (fca *FileComplexityAnalyzer) AnalyzeFiles(filenames []string) error {
 type scopedReporterResult struct {
 	*ComplexityResult
 	scopeKind domain.AnalysisScopeKind
+	filePath  string
 }
 
 func (r scopedReporterResult) GetScopeKind() domain.AnalysisScopeKind {
 	return r.scopeKind
 }
 
-func calculateScopedReporterResults(cfgs ControlFlowGraphs, complexityConfig *config.ComplexityConfig) []scopedReporterResult {
+func (r scopedReporterResult) GetSourceLocation() reporter.ComplexitySourceLocation {
+	return reporter.ComplexitySourceLocation{
+		FilePath:    r.filePath,
+		StartLine:   r.StartLine,
+		StartColumn: r.StartCol,
+		EndLine:     r.EndLine,
+	}
+}
+
+func calculateScopedReporterResults(cfgs ControlFlowGraphs, complexityConfig *config.ComplexityConfig, filePath string) []scopedReporterResult {
 	results := make([]scopedReporterResult, 0, len(cfgs))
 	for _, scopedCFG := range cfgs {
 		result := CalculateComplexityWithConfig(scopedCFG.Graph, complexityConfig)
 		if complexityConfig.ShouldReport(result.Complexity) {
-			results = append(results, scopedReporterResult{ComplexityResult: result, scopeKind: scopedCFG.Scope.Kind})
+			results = append(results, scopedReporterResult{
+				ComplexityResult: result,
+				scopeKind:        scopedCFG.Scope.Kind,
+				filePath:         filePath,
+			})
 		}
 	}
 	return results
