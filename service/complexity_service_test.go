@@ -381,6 +381,8 @@ def handle(value):
 
 		require.NoError(t, err)
 		require.NotNil(t, response)
+		require.NotNil(t, response.AnalyzedFunctions)
+		assert.Empty(t, response.AnalyzedFunctions)
 		assert.Empty(t, response.Functions)
 		assert.Len(t, response.RawMetrics, 1)
 		require.NotNil(t, response.RawMetricsSummary)

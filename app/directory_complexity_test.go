@@ -4,6 +4,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -56,7 +57,7 @@ func TestAggregateComplexityByDirectory_UsesAnalyzedFunctions(t *testing.T) {
 	}
 }
 
-func TestAttachDirectoryComplexity_DoesNotFallbackToReportedFunctions(t *testing.T) {
+func TestAttachDirectoryComplexity_RejectsMissingAnalyzedFunctions(t *testing.T) {
 	root := t.TempDir()
 	response := &domain.ComplexityResponse{
 		Functions: []domain.FunctionComplexity{
@@ -68,11 +69,25 @@ func TestAttachDirectoryComplexity_DoesNotFallbackToReportedFunctions(t *testing
 		},
 	}
 
-	if err := attachDirectoryComplexity(response, root); err != nil {
-		t.Fatalf("attach directory complexity: %v", err)
+	err := attachDirectoryComplexity(response, root)
+	if err == nil {
+		t.Fatal("expected missing analyzed function population to be rejected")
 	}
-	if len(response.ByDirectory) != 0 {
-		t.Fatalf("expected no rollups without the complete analyzed population, got %+v", response.ByDirectory)
+	if !strings.Contains(err.Error(), "complete analyzed function population is required") {
+		t.Fatalf("expected analyzed function population error, got %v", err)
+	}
+}
+
+func TestAttachDirectoryComplexity_AcceptsInitializedEmptyAnalyzedFunctions(t *testing.T) {
+	response := &domain.ComplexityResponse{
+		AnalyzedFunctions: []domain.FunctionComplexity{},
+	}
+
+	if err := attachDirectoryComplexity(response, t.TempDir()); err != nil {
+		t.Fatalf("attach empty directory complexity: %v", err)
+	}
+	if response.ByDirectory == nil {
+		t.Fatal("expected an empty directory collection, got nil")
 	}
 }
 
