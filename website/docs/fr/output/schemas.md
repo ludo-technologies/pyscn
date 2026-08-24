@@ -77,11 +77,16 @@ Reflet de `domain.AnalyzeSummary`. Tous les compteurs numériques valent `0` par
 
 ### Métriques de complexité
 
-| Champ                   | Type    | Description                                       |
-| ----------------------- | ------- | ------------------------------------------------- |
-| `total_functions`       | integer | Total des fonctions analysées.                    |
-| `average_complexity`    | number  | Complexité cyclomatique moyenne. `0` quand il n'y a aucune fonction. |
-| `high_complexity_count` | integer | Fonctions avec complexité > 10 (seuil moyen).     |
+| Champ                                | Type    | Description                                                     |
+| ------------------------------------ | ------- | --------------------------------------------------------------- |
+| `total_functions`                    | integer | Total des fonctions analysées.                                  |
+| `total_class_scopes`                 | integer | Portées d'exécution de classe analysées.                        |
+| `average_complexity`                 | number  | Complexité cyclomatique moyenne. `0` quand il n'y a aucune fonction. |
+| `high_complexity_count`              | integer | Fonctions avec complexité > 10 (seuil moyen).                   |
+| `max_class_complexity`               | integer | Complexité cyclomatique maximale d'une portée de classe.        |
+| `max_class_cognitive_complexity`     | integer | Complexité cognitive maximale d'une portée de classe.           |
+| `max_class_nesting_depth`            | integer | Profondeur d'imbrication maximale d'une portée de classe.       |
+| `high_complexity_class_scope_count`  | integer | Portées de classe classées à haut risque.                       |
 
 ### Métriques de code mort
 
@@ -164,6 +169,7 @@ Reflet de `domain.ComplexityResponse`.
 ```json
 {
   "functions": [ /* FunctionComplexity array */ ],
+  "class_scopes": [ /* FunctionComplexity array; omitted when empty */ ],
   "summary": { /* ComplexitySummary */ },
   "raw_metrics": [ /* RawMetrics array, present when computed */ ],
   "raw_metrics_summary": { /* RawMetricsSummary, present when computed */ },
@@ -175,11 +181,12 @@ Reflet de `domain.ComplexityResponse`.
 }
 ```
 
-### Élément de `functions[]` (`FunctionComplexity`)
+### Élément de `functions[]` et `class_scopes[]` (`FunctionComplexity`)
 
 | Champ          | Type    | Description                                                      |
 | -------------- | ------- | ---------------------------------------------------------------- |
-| `name`         | string  | Nom de la fonction. `__main__` pour le code au niveau du module. |
+| `name`         | string  | Nom qualifié de la portée. `<module>` pour le code au niveau du module. |
+| `scope_kind`   | string  | Propriétaire d'exécution requis : `module`, `function` ou `class`. |
 | `file_path`    | string  | Chemin du fichier source.                                        |
 | `start_line`   | integer | Ligne de début, base 1.                                          |
 | `start_column` | integer | Colonne de début, base 0.                                        |
@@ -203,19 +210,29 @@ Reflet de `domain.ComplexityResponse`.
 
 ### Objet `summary` (`ComplexitySummary`)
 
-| Champ                     | Type    | Description                                                                                                        |
-| ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------ |
-| `total_functions`         | integer | Total des fonctions analysées.                                                                                     |
-| `average_complexity`      | number  | Moyenne arithmétique de `Complexity` sur toutes les fonctions.                                                     |
-| `max_complexity`          | integer | Complexité maximale observée.                                                                                      |
-| `min_complexity`          | integer | Complexité minimale observée.                                                                                      |
-| `files_analyzed`          | integer | Fichiers analysés avec succès et pris en compte dans les métriques ci-dessus.                                      |
-| `total_files`             | integer | Fichiers couverts par la requête, analysables ou non.                                                              |
-| `skipped_files`           | integer | Fichiers écartés faute de pouvoir être lus ou analysés. Leur contenu est absent de toutes les métriques ci-dessus. |
-| `low_risk_functions`      | integer | Fonctions avec `RiskLevel = low`.                                                                                  |
-| `medium_risk_functions`   | integer | Fonctions avec `RiskLevel = medium`.                                                                               |
-| `high_risk_functions`     | integer | Fonctions avec `RiskLevel = high`.                                                                                 |
-| `complexity_distribution` | object  | Histogramme indexé par tranche de complexité (string) vers compteur (integer), ou `null`.                          |
+| Champ                              | Type    | Description                                                                                                        |
+| ---------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------ |
+| `total_functions`                  | integer | Total des portées de module et de fonction analysées.                                                              |
+| `total_class_scopes`               | integer | Total des suites de classe exécutables analysées.                                                                 |
+| `functions_parsed`                 | integer | Compteur de compatibilité égal à la population complète de `total_functions`.                                     |
+| `average_complexity`               | number  | Moyenne arithmétique de `complexity` sur les portées de module et de fonction.                                     |
+| `average_cognitive_complexity`     | number  | Moyenne arithmétique de `cognitive_complexity` sur les portées de module et de fonction.                           |
+| `average_nesting_depth`            | number  | Moyenne arithmétique de `nesting_depth` sur les portées de module et de fonction.                                  |
+| `max_complexity`                   | integer | Complexité maximale des portées de module et de fonction.                                                         |
+| `min_complexity`                   | integer | Complexité minimale des portées de module et de fonction.                                                         |
+| `max_class_complexity`             | integer | Complexité cyclomatique maximale d'une suite de classe.                                                           |
+| `max_class_cognitive_complexity`   | integer | Complexité cognitive maximale d'une suite de classe.                                                              |
+| `max_class_nesting_depth`          | integer | Profondeur d'imbrication maximale d'une suite de classe.                                                          |
+| `high_risk_class_scopes`           | integer | Suites de classe classées à haut risque.                                                                          |
+| `files_analyzed`                   | integer | Fichiers analysés avec succès et pris en compte dans les métriques ci-dessus.                                      |
+| `total_files`                      | integer | Fichiers couverts par la requête, analysables ou non.                                                              |
+| `skipped_files`                    | integer | Fichiers écartés faute de pouvoir être lus ou analysés. Leur contenu est absent de toutes les métriques ci-dessus. |
+| `low_risk_functions`               | integer | Portées de module et de fonction avec `risk_level = low`.                                                         |
+| `medium_risk_functions`            | integer | Portées de module et de fonction avec `risk_level = medium`.                                                      |
+| `high_risk_functions`              | integer | Portées de module et de fonction avec `risk_level = high`.                                                        |
+| `complexity_distribution`          | object  | Histogramme limité aux fonctions, indexé par tranche de complexité (string) vers compteur (integer), ou `null`.    |
+
+Les métriques de portée de classe sont additives : elles ne modifient ni les collections, comptes, moyennes, extrema et distributions historiques des fonctions, ni les agrégats de modules/répertoires, ni le score de santé.
 
 ### Élément de `raw_metrics[]` (`RawMetrics`)
 
@@ -252,32 +269,37 @@ Reflet de `domain.DeadCodeResponse`. Utilise des noms de champs en snake_case pa
 | Champ               | Type    | Description                                          |
 | ------------------- | ------- | ---------------------------------------------------- |
 | `file_path`         | string  | Chemin du fichier source.                            |
-| `functions`         | array   | Résultats par fonction (voir ci-dessous).            |
-| `total_findings`    | integer | Somme des constats sur les fonctions de ce fichier.  |
-| `total_functions`   | integer | Fonctions analysées dans ce fichier.                 |
-| `affected_functions`| integer | Fonctions avec au moins un constat.                  |
-| `dead_code_ratio`   | number  | Blocs morts / blocs totaux, `0`–`1`.                 |
+| `functions`             | array          | Résultats par fonction. Champ existant, limité aux fonctions. |
+| `class_scopes`          | array \| absent | Résultats des suites de classe exécutables. Même modèle de ligne que `functions`. |
+| `total_findings`        | integer        | Somme des constats dans les fonctions et portées de classe de ce fichier. |
+| `total_functions`       | integer        | Fonctions analysées dans ce fichier. Champ existant, limité aux fonctions. |
+| `affected_functions`    | integer        | Fonctions avec au moins un constat. Champ existant, limité aux fonctions. |
+| `total_class_scopes`    | integer        | Suites de classe exécutables analysées dans ce fichier. |
+| `affected_class_scopes` | integer        | Suites de classe exécutables avec au moins un constat. |
+| `dead_code_ratio`       | number         | Blocs morts / blocs totaux dans les deux collections de portées, `0`–`1`. |
 
-### Élément de `files[].functions[]` (`FunctionDeadCode`)
+### Élément de `files[].functions[]` et `files[].class_scopes[]` (`FunctionDeadCode`)
 
 | Champ             | Type    | Description                                  |
 | ----------------- | ------- | -------------------------------------------- |
-| `name`            | string  | Nom de la fonction.                          |
+| `name`            | string  | Nom de la fonction ou de la classe.          |
+| `scope_kind`      | string  | Propriétaire d'exécution requis : `function` dans `functions`, `class` dans `class_scopes`. |
 | `file_path`       | string  | Chemin du fichier source.                    |
-| `findings`        | array   | Constats dans cette fonction (voir ci-dessous). |
-| `total_blocks`    | integer | Total des blocs CFG dans la fonction.        |
+| `findings`        | array   | Constats dans cette portée d'exécution (voir ci-dessous). |
+| `total_blocks`    | integer | Total des blocs CFG dans cette portée.       |
 | `dead_blocks`     | integer | Blocs CFG inatteignables.                    |
 | `reachable_ratio` | number  | `(total_blocks - dead_blocks) / total_blocks`, `0`–`1`. |
 | `critical_count`  | integer | Constats de sévérité `critical`.             |
 | `warning_count`   | integer | Constats de sévérité `warning`.              |
 | `info_count`      | integer | Constats de sévérité `info`.                 |
 
-### Élément de `files[].functions[].findings[]` (`DeadCodeFinding`)
+### Élément de `findings[]` (`DeadCodeFinding`)
 
 | Champ           | Type    | Description                                                   |
 | --------------- | ------- | ------------------------------------------------------------- |
 | `location`      | object  | Voir [`DeadCodeLocation`](#deadcodelocation-object).           |
-| `function_name` | string  | Nom de la fonction englobante.                                |
+| `function_name` | string  | Nom de la portée d'exécution englobante (nom de champ historique). |
+| `scope_kind`    | string  | Propriétaire d'exécution requis : `function` ou `class`.      |
 | `code`          | string  | Extrait du code source mort.                                  |
 | `reason`        | string  | Classification — voir l'énumération ci-dessous.               |
 | `severity`      | string  | L'une de : `critical`, `warning`, `info`.                     |
@@ -311,15 +333,17 @@ Reflet de `domain.DeadCodeResponse`. Utilise des noms de champs en snake_case pa
 | -------------------------- | ------- | ------------------------------------------------ |
 | `total_files`              | integer | Fichiers analysés.                               |
 | `total_functions`          | integer | Fonctions analysées.                             |
-| `total_findings`           | integer | Total des constats sur tous les fichiers.        |
+| `total_findings`           | integer | Total des constats sur les fonctions et portées de classe de tous les fichiers. |
 | `files_with_dead_code`     | integer | Fichiers avec au moins un constat.               |
 | `functions_with_dead_code` | integer | Fonctions avec au moins un constat.              |
+| `total_class_scopes`       | integer | Suites de classe exécutables analysées.          |
+| `class_scopes_with_dead_code` | integer | Suites de classe exécutables avec au moins un constat. |
 | `critical_findings`        | integer | Constats de sévérité `critical`.                 |
 | `warning_findings`         | integer | Constats de sévérité `warning`.                  |
 | `info_findings`            | integer | Constats de sévérité `info`.                     |
 | `findings_by_reason`       | object \| null | Histogramme indexé par valeur de `reason`. |
-| `total_blocks`             | integer | Blocs CFG sur toutes les fonctions.              |
-| `dead_blocks`              | integer | Blocs CFG inatteignables sur toutes les fonctions. |
+| `total_blocks`             | integer | Blocs CFG dans les fonctions et portées de classe. |
+| `dead_blocks`              | integer | Blocs CFG inatteignables dans les deux collections. |
 | `overall_dead_ratio`       | number  | `dead_blocks / total_blocks`, `0`–`1`.           |
 
 ## Objet `clone`

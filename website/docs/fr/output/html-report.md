@@ -41,14 +41,14 @@ Les cartes de score, cartes de synthèse et onglets n'apparaissent que pour les 
 
 | Onglet | Contenu |
 | --- | --- |
-| Functions | Bandeau de métriques de complexité, fonctions les plus complexes (top 20), fonctions les plus longues, constats de code mort (top 20), et deux tableaux triables repliés : tous les modules et les agrégats de complexité par répertoire. |
+| Functions | Métriques de complexité des fonctions, fonctions les plus complexes (top 20), complexité des portées d'exécution de classe, fonctions les plus longues, constats de code mort dans les fonctions et portées de classe (top 20), et deux tableaux triables repliés : tous les modules et les agrégats de complexité par répertoire. |
 | Duplication | Bandeau de statistiques de clones, groupes de clones (top 10) avec fragments et aperçus de code optionnels, ou paires de clones si aucun groupe ne s'est formé. |
 | Classes | Bandeaux de couplage (CBO) et de cohésion (LCOM4) avec les classes les plus couplées et les moins cohésives (top 15 chacune). |
 | Architecture | Métriques de dépendances entre modules, zones de la séquence principale, dépendances circulaires, chaînes les plus longues, violations des règles de couches, et détection de communautés avec le graphe de macro-architecture. |
 
 ## JavaScript
 
-Des scripts inline changent d'onglet (l'onglet est reflété dans le hash de l'URL, un lien peut donc ouvrir un onglet précis) et font passer les tableaux de modules et de répertoires par un trieur commun. Aucune requête réseau n'est effectuée.
+Des scripts inline changent d'onglet (l'onglet est reflété dans le hash de l'URL, un lien peut donc ouvrir un onglet précis) et font passer les tableaux de modules et de répertoires par un trieur commun. Aucune requête réseau n'est effectuée. Le formateur de complexité autonome affiche les mêmes métriques de répertoire au-dessus de tableaux séparés pour les fonctions et les portées de classe.
 
 Les agrégats de modules utilisent la population complète de l'analyseur avant les filtres d'affichage `min_complexity`, `report_unchanged` ou `min_severity`. La complexité par répertoire utilise la population de fonctions rapportées après les filtres de complexité, de sorte que ses comptes et moyennes concordent avec l'onglet Functions.
 
