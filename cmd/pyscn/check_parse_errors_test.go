@@ -109,6 +109,23 @@ func TestCheckDependenciesAllowAllUnparseableInput(t *testing.T) {
 	}
 }
 
+func TestAllowParseErrorsDoesNotWaiveReadFailures(t *testing.T) {
+	command := &CheckCommand{allowParseErrors: true, quiet: true}
+	var output bytes.Buffer
+	diagnostics := []domain.AnalysisDiagnostic{
+		{FilePath: "broken.py", Code: domain.DiagnosticCodeParse, Message: "invalid syntax"},
+		{FilePath: "missing.py", Code: domain.DiagnosticCodeRead, Message: "file disappeared"},
+	}
+
+	err := command.reportProjectDiagnostics(&output, diagnostics)
+	if err == nil {
+		t.Fatal("read failures must remain fatal when parse errors are waived")
+	}
+	if strings.Contains(output.String(), "broken.py") || !strings.Contains(output.String(), "missing.py") {
+		t.Fatalf("quiet output must retain only the blocking read failure, got %q", output.String())
+	}
+}
+
 func TestCheckPassesOnFullyParseablePackage(t *testing.T) {
 	dir := t.TempDir()
 	source := "def tidy(n):\n    if n > 0:\n        return n\n    return -n\n"

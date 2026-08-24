@@ -65,15 +65,23 @@ func (c *CheckCommand) reportProjectDiagnostics(writer io.Writer, diagnostics []
 		return nil
 	}
 
-	if !c.quiet || !c.allowParseErrors {
-		for _, diagnostic := range diagnostics {
+	blocking := make([]domain.AnalysisDiagnostic, 0, len(diagnostics))
+	for _, diagnostic := range diagnostics {
+		waived := c.allowParseErrors && diagnostic.Code == domain.DiagnosticCodeParse
+		if !c.quiet || !waived {
 			fmt.Fprintf(writer, "%s: %s: %s\n", diagnostic.FilePath, diagnostic.Code, diagnostic.Message)
 		}
+		if !waived {
+			blocking = append(blocking, diagnostic)
+		}
 	}
-	if c.allowParseErrors {
+	if len(blocking) == 0 {
 		return nil
 	}
-	return newAnalysisError(fmt.Errorf("%d file(s) could not be analyzed (use --allow-parse-errors to ignore)", len(diagnostics)))
+	if !c.allowParseErrors {
+		return newAnalysisError(fmt.Errorf("%d file(s) could not be analyzed (use --allow-parse-errors to ignore parse errors)", len(blocking)))
+	}
+	return newAnalysisError(fmt.Errorf("%d file(s) could not be read", len(blocking)))
 }
 
 func (c *CheckCommand) countComplexityIssues(cmd *cobra.Command, response *domain.ComplexityResponse) int {
