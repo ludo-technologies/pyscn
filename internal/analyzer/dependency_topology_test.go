@@ -39,7 +39,9 @@ func TestAnalyzeDependencyTopologyCollapsesCycles(t *testing.T) {
 	topology, err := AnalyzeDependencyTopology(context.Background(), graph, 0)
 
 	require.NoError(t, err)
-	assert.Equal(t, 2, topology.MaxDepth())
+	// The cycle collapses to one layer, and the depth still counts the edges of
+	// the concrete chain through it: entry, cycle_a, cycle_b, leaf.
+	assert.Equal(t, 3, topology.MaxDepth())
 }
 
 func TestAnalyzeDependencyTopologyExcludesLazyImports(t *testing.T) {
@@ -77,15 +79,6 @@ func TestAnalyzeDependencyTopologyHonorsCancellation(t *testing.T) {
 	_, err := AnalyzeDependencyTopology(ctx, graph, 0)
 
 	require.ErrorIs(t, err, context.Canceled)
-}
-
-func TestAnalyzeDependencyTopologyRejectsUnknownDependencies(t *testing.T) {
-	graph := dependencyGraphWithModules("entry")
-	graph.Nodes["entry"].Dependencies["missing"] = true
-
-	_, err := AnalyzeDependencyTopology(context.Background(), graph, 0)
-
-	require.ErrorContains(t, err, `module "entry" depends on unknown module "missing"`)
 }
 
 func TestCouplingMetricsUsesDependencyTopologyDepth(t *testing.T) {

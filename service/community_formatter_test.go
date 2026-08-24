@@ -21,15 +21,15 @@ func TestCommunityFormatter_Format_JSON_Golden(t *testing.T) {
 	result.GeneratedAt = "2026-01-15T12:00:00Z"
 	result.Version = "0.0.0-test"
 	result.Config = map[string]any{
-		"algorithm":           "leiden",
-		"scope":               "module",
-		"minCommunitySize":    2,
-		"includeLazyEdges":    true,
-		"reportBridgeModules": true,
-		"resolution":          1.0,
-		"includeStdLib":       false,
-		"includeThirdParty":   true,
-		"followRelative":      true,
+		"algorithm":             "leiden",
+		"scope":                 "module",
+		"min_community_size":    2,
+		"include_lazy_edges":    true,
+		"report_bridge_modules": true,
+		"resolution":            1.0,
+		"include_std_lib":       false,
+		"include_third_party":   true,
+		"follow_relative":       true,
 	}
 
 	formatter := NewCommunityFormatter()

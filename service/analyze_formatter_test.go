@@ -680,10 +680,10 @@ func TestAnalyzeFormatter_Write_HTML(t *testing.T) {
 	assert.Contains(t, output, "pyscn Analysis Report")
 
 	// Verify tabs are present for enabled analyses
-	assert.Contains(t, output, "Complexity")
-	assert.Contains(t, output, "Dead Code")
-	assert.Contains(t, output, "Clone")
-	assert.Contains(t, output, "Coupling")
+	assert.Contains(t, output, `data-tab="overview"`)
+	assert.Contains(t, output, `data-tab="functions"`)
+	assert.Contains(t, output, `data-tab="duplication"`)
+	assert.Contains(t, output, `data-tab="classes"`)
 }
 
 func TestAnalyzeFormatter_Write_HTMLLabelsDeadCodeClassScope(t *testing.T) {
@@ -832,7 +832,7 @@ func TestAnalyzeFormatter_Write_HTMLShowsSortableModuleQuality(t *testing.T) {
 	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatHTML, &output))
 
 	html := output.String()
-	assert.Contains(t, html, "showTab('module-quality'")
+	assert.Contains(t, html, `data-tab="functions"`)
 	assert.Contains(t, html, `id="module-quality-table"`)
 	assert.Contains(t, html, "pkg.hotspot")
 	assert.Contains(t, html, "pkg/hotspot.py")
@@ -861,7 +861,7 @@ func TestAnalyzeFormatter_Write_HTMLShowsSortableDirectoryComplexity(t *testing.
 	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatHTML, &output))
 
 	html := output.String()
-	assert.Contains(t, html, "showTab('directory-complexity'")
+	assert.Contains(t, html, `data-tab="functions"`)
 	assert.Contains(t, html, `id="directory-complexity-table"`)
 	assert.Contains(t, html, "pkg/core")
 	assert.Contains(t, html, "sortDirectoryComplexity")
