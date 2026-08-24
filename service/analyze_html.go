@@ -114,10 +114,10 @@ type analyzeReportView struct {
 	Classes     *reportClasses
 	Structure   *reportStructure
 
-	SkippedFiles    int
-	ShowFunctions   bool
-	ShowDeadColumn  bool
-	ShowCloneColumn bool
+	SkippedFiles        int
+	ShowExecutionScopes bool
+	ShowDeadColumn      bool
+	ShowCloneColumn     bool
 }
 
 type reportTab struct {
@@ -243,16 +243,16 @@ func scoreBand(score int) string {
 
 func buildAnalyzeReportView(response *domain.AnalyzeResponse) *analyzeReportView {
 	view := &analyzeReportView{
-		AnalyzeResponse: response,
-		CSS:             analyzeReportCSS,
-		JS:              analyzeReportJS,
-		GradeClass:      "grade-" + SafeHTMLID(strings.ToLower(response.Summary.Grade)),
-		ScoreBand:       scoreBand(response.Summary.HealthScore),
-		RingOffset:      reportScoreRingCircumf * (1 - float64(clampScore(response.Summary.HealthScore))/100),
-		SkippedFiles:    response.Summary.SkippedFiles,
-		ShowFunctions:   reportHasFunctions(response),
-		ShowDeadColumn:  response.Summary.DeadCodeEnabled,
-		ShowCloneColumn: response.Summary.CloneEnabled,
+		AnalyzeResponse:     response,
+		CSS:                 analyzeReportCSS,
+		JS:                  analyzeReportJS,
+		GradeClass:          "grade-" + SafeHTMLID(strings.ToLower(response.Summary.Grade)),
+		ScoreBand:           scoreBand(response.Summary.HealthScore),
+		RingOffset:          reportScoreRingCircumf * (1 - float64(clampScore(response.Summary.HealthScore))/100),
+		SkippedFiles:        response.Summary.SkippedFiles,
+		ShowExecutionScopes: reportHasExecutionScopes(response),
+		ShowDeadColumn:      response.Summary.DeadCodeEnabled,
+		ShowCloneColumn:     response.Summary.CloneEnabled,
 	}
 	view.ProjectName, view.ProjectPath = reportProject(response)
 	view.Tabs = buildReportTabs(response)
@@ -293,6 +293,9 @@ func reportProject(response *domain.AnalyzeResponse) (name, root string) {
 	if len(files) == 0 && response.Complexity != nil {
 		for _, function := range response.Complexity.Functions {
 			files = append(files, function.FilePath)
+		}
+		for _, classScope := range response.Complexity.ClassScopes {
+			files = append(files, classScope.FilePath)
 		}
 	}
 	root = commonDirectory(files)
@@ -335,10 +338,10 @@ func buildReportTabs(response *domain.AnalyzeResponse) []reportTab {
 	s := response.Summary
 	tabs := []reportTab{{ID: "overview", Label: "Overview"}}
 
-	if reportHasFunctions(response) {
-		tab := reportTab{ID: "functions", Label: "Functions", Count: s.HighComplexityCount + s.DeadCodeCount}
+	if reportHasExecutionScopes(response) {
+		tab := reportTab{ID: "functions", Label: "Execution", Count: s.HighComplexityCount + s.HighComplexityClassScopeCount + s.DeadCodeCount}
 		switch {
-		case s.HighComplexityCount > 0 || s.CriticalDeadCode > 0:
+		case s.HighComplexityCount > 0 || s.HighComplexityClassScopeCount > 0 || s.CriticalDeadCode > 0:
 			tab.CountBand = "bad"
 		case tab.Count > 0:
 			tab.CountBand = "warn"
@@ -385,13 +388,13 @@ func buildReportTabs(response *domain.AnalyzeResponse) []reportTab {
 	return tabs
 }
 
-// reportHasFunctions reports whether the Functions tab has anything to show:
-// function-level analyses or the per-module rollups derived from them.
-func reportHasFunctions(response *domain.AnalyzeResponse) bool {
+// reportHasExecutionScopes reports whether the execution-scope tab has
+// function or class-suite analysis, or function-derived rollups to show.
+func reportHasExecutionScopes(response *domain.AnalyzeResponse) bool {
 	if response.Summary.ComplexityEnabled || response.Summary.DeadCodeEnabled || len(response.ModuleQuality) > 0 {
 		return true
 	}
-	return response.Complexity != nil && len(response.Complexity.ByDirectory) > 0
+	return response.Complexity != nil && (len(response.Complexity.ClassScopes) > 0 || len(response.Complexity.ByDirectory) > 0)
 }
 
 func reportHasArchitecture(response *domain.AnalyzeResponse) bool {

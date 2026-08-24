@@ -188,11 +188,11 @@
   {{end}}
 </section>
 
-<!-- ================= FUNCTIONS ================= -->
-{{if .ShowFunctions}}
+<!-- ================= EXECUTION SCOPES ================= -->
+{{if .ShowExecutionScopes}}
 <section id="functions" class="panel">
   <div class="panel-h">
-    <h2>Functions</h2>
+    <h2>Execution scopes</h2>
     <div class="scores">
       {{if .Summary.ComplexityEnabled}}<span class="score-pill {{scoreBand .Summary.ComplexityScore}}">Complexity <b class="num">{{.Summary.ComplexityScore}}</b>/100</span>{{end}}
       {{if .Summary.DeadCodeEnabled}}<span class="score-pill {{scoreBand .Summary.DeadCodeScore}}">Dead code <b class="num">{{.Summary.DeadCodeScore}}</b>/100</span>{{end}}
@@ -256,6 +256,37 @@
   </div>
   {{end}}
 
+  {{if and .Summary.ComplexityEnabled .Complexity .Complexity.ClassScopes}}
+  <div class="card">
+    <div class="card-h"><h2>Class execution scopes</h2></div>
+    <div class="strip">
+      <div class="s"><div class="v num">{{.Complexity.Summary.TotalClassScopes}}</div><div class="l">class scopes</div></div>
+      <div class="s"><div class="v num">{{.Complexity.Summary.MaxClassComplexity}}</div><div class="l">max CC</div></div>
+      <div class="s"><div class="v num">{{.Complexity.Summary.MaxClassCognitiveComplexity}}</div><div class="l">max cognitive</div></div>
+      <div class="s"><div class="v num">{{.Complexity.Summary.MaxClassNestingDepth}}</div><div class="l">max nesting</div></div>
+      <div class="s"><div class="v num{{if .Complexity.Summary.HighRiskClassScopes}} bad{{end}}">{{.Complexity.Summary.HighRiskClassScopes}}</div><div class="l">high risk</div></div>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Class suite</th><th>File</th><th class="r">CC</th><th class="r">Cognitive</th><th class="r">Nesting</th><th>Risk</th></tr></thead>
+        <tbody>
+          {{range $i, $scope := .Complexity.ClassScopes}}{{if lt $i 20}}
+          <tr>
+            <td class="mono">{{$scope.Name}}</td>
+            <td class="mono muted">{{$scope.FilePath}}:{{$scope.StartLine}}</td>
+            <td class="r num">{{$scope.Metrics.Complexity}}</td>
+            <td class="r num">{{$scope.Metrics.CognitiveComplexity}}</td>
+            <td class="r num">{{$scope.Metrics.NestingDepth}}</td>
+            <td><span class="pill risk-{{$scope.RiskLevel}}">{{$scope.RiskLevel}}</span></td>
+          </tr>
+          {{end}}{{end}}
+        </tbody>
+      </table>
+    </div>
+    {{if gt (len .Complexity.ClassScopes) 20}}<p class="muted small note">Showing top 20 of {{len .Complexity.ClassScopes}} class execution scopes</p>{{end}}
+  </div>
+  {{end}}
+
   {{if and .Summary.DeadCodeEnabled .DeadCode}}
   <div class="card">
     <div class="card-h"><h2>Dead code</h2></div>
@@ -268,13 +299,13 @@
     {{if gt .DeadCode.Summary.TotalFindings 0}}
     <div class="tbl-wrap">
       <table class="tbl">
-        <thead><tr><th>File</th><th>Function</th><th class="r">Lines</th><th>Severity</th><th>Reason</th></tr></thead>
+        <thead><tr><th>File</th><th>Scope</th><th class="r">Lines</th><th>Severity</th><th>Reason</th></tr></thead>
         <tbody>
           {{$shown := 0}}
-          {{range $file := .DeadCode.Files}}{{range $func := $file.Functions}}{{range $finding := $func.Findings}}{{if lt $shown 20}}
+          {{range $file := .DeadCode.Files}}{{range $scope := $file.ExecutionScopes}}{{range $finding := $scope.Findings}}{{if lt $shown 20}}
           <tr>
             <td class="mono muted">{{$finding.Location.FilePath}}</td>
-            <td class="mono">{{$finding.FunctionName}}</td>
+            <td class="mono">{{$scope.ScopeLabel}}</td>
             <td class="r num">{{$finding.Location.StartLine}}-{{$finding.Location.EndLine}}</td>
             <td><span class="pill sev-{{$finding.Severity}}">{{$finding.Severity}}</span></td>
             <td>{{$finding.Reason}}</td>

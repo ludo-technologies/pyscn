@@ -711,8 +711,8 @@ func TestAnalyzeFormatter_Write_HTMLLabelsDeadCodeClassScope(t *testing.T) {
 	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatHTML, &output))
 
 	html := output.String()
-	require.Contains(t, html, "Top Dead Code Issues")
-	section := html[strings.Index(html, "Top Dead Code Issues"):]
+	require.Contains(t, html, ">Dead code</h2>")
+	section := html[strings.Index(html, ">Dead code</h2>"):]
 	section = section[:strings.Index(section, "</table>")]
 	assert.Contains(t, section, "<th>Scope</th>")
 	assert.NotContains(t, section, "<th>Function</th>")
