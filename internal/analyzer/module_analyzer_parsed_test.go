@@ -73,6 +73,35 @@ func TestModuleAnalyzer_AnalyzeParsedModulesUsesCapturedReExports(t *testing.T) 
 	}
 }
 
+func TestModuleAnalyzer_AnalyzeParsedModulesResolvesNamespacePackageImport(t *testing.T) {
+	projectRoot := t.TempDir()
+	srcRoot := filepath.Join(projectRoot, "src")
+	packageDir := filepath.Join(srcRoot, "acme")
+	if err := os.MkdirAll(packageDir, 0o755); err != nil {
+		t.Fatalf("create namespace package: %v", err)
+	}
+
+	parsedModules := parseModuleSources(t, map[string]string{
+		filepath.Join(packageDir, "alpha.py"): "from acme import beta\n",
+		filepath.Join(packageDir, "beta.py"):  "VALUE = 1\n",
+	})
+	moduleAnalyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{
+		ProjectRoot: projectRoot,
+		ModuleRoots: []string{srcRoot, projectRoot},
+	})
+	if err != nil {
+		t.Fatalf("create module analyzer: %v", err)
+	}
+
+	graph, err := moduleAnalyzer.AnalyzeParsedModules(context.Background(), parsedModules)
+	if err != nil {
+		t.Fatalf("analyze parsed modules: %v", err)
+	}
+	if !graph.Nodes["acme.alpha"].Dependencies["acme.beta"] {
+		t.Fatalf("expected namespace import edge, got %v", graph.Nodes["acme.alpha"].Dependencies)
+	}
+}
+
 func TestModuleAnalyzer_AbsoluteThirdPartyImportDoesNotBindByLocalSuffix(t *testing.T) {
 	projectRoot := t.TempDir()
 	localModule := filepath.Join(projectRoot, "piccolo_api", "fastapi.py")

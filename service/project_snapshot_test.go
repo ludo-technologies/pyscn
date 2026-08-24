@@ -261,10 +261,7 @@ func TestProjectSnapshotPreservesNamespacePackageFromSelectedSubtree(t *testing.
 		[]string{alphaPath, betaPath},
 		ProjectSnapshotOptions{},
 	)
-	graph, err := snapshot.BuildDependencyGraph(context.Background(), &ModuleGraphOptions{
-		ProjectRoot: projectRoot,
-		Graph:       domain.ModuleGraphOptions{IncludeThirdParty: true},
-	})
+	graph, err := snapshot.BuildDependencyGraph(context.Background(), &ModuleGraphOptions{ProjectRoot: projectRoot})
 	if err != nil {
 		t.Fatalf("build namespace graph: %v", err)
 	}

@@ -629,6 +629,14 @@ func (ma *ModuleAnalyzer) resolveAbsoluteImportFromGraph(graph *DependencyGraph,
 	if graph.GetModule(moduleName) != nil {
 		return moduleName
 	}
+	for _, importedName := range imp.ImportedNames {
+		if importedName == "" || importedName == "*" {
+			continue
+		}
+		if graph.GetModule(importedNameModule(moduleName, importedName)) != nil {
+			return moduleName
+		}
+	}
 	return ""
 }
 
