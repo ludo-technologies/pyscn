@@ -227,7 +227,7 @@ func TestHandleAnalyzeCode(t *testing.T) {
 				},
 			},
 		},
-		"summary_preserves_failed_dependency_analysis": {
+		"summary_preserves_all_parse_diagnostics": {
 			args: args{
 				setupFS: func(t *testing.T) string {
 					projectDir := t.TempDir()
@@ -243,10 +243,11 @@ func TestHandleAnalyzeCode(t *testing.T) {
 				check: func(t *testing.T, res *mcplib.CallToolResult) {
 					text := mcplib.GetTextFromContent(res.Content[0])
 					var result struct {
-						Partial   bool                     `json:"partial"`
-						IsHealthy bool                     `json:"is_healthy"`
-						Failures  []domain.AnalysisFailure `json:"failures"`
-						Summary   struct {
+						Partial     bool                        `json:"partial"`
+						IsHealthy   bool                        `json:"is_healthy"`
+						Diagnostics []domain.AnalysisDiagnostic `json:"diagnostics"`
+						Failures    []domain.AnalysisFailure    `json:"failures"`
+						Summary     struct {
 							TotalFiles    int `json:"total_files"`
 							AnalyzedFiles int `json:"analyzed_files"`
 							SkippedFiles  int `json:"skipped_files"`
@@ -258,9 +259,9 @@ func TestHandleAnalyzeCode(t *testing.T) {
 					assert.Equal(t, 1, result.Summary.TotalFiles)
 					assert.Zero(t, result.Summary.AnalyzedFiles)
 					assert.Equal(t, 1, result.Summary.SkippedFiles)
-					require.Len(t, result.Failures, 1)
-					assert.Equal(t, domain.AnalysisKindSystem, result.Failures[0].Analysis)
-					assert.Equal(t, domain.AnalysisFailureCodeExecution, result.Failures[0].Code)
+					require.Len(t, result.Diagnostics, 1)
+					assert.Equal(t, domain.DiagnosticCodeParse, result.Diagnostics[0].Code)
+					assert.Empty(t, result.Failures)
 				},
 			},
 		},
@@ -851,7 +852,7 @@ func TestHandleGetHealthScore(t *testing.T) {
 				require.Len(t, diagnostics, 1)
 				failures, ok := result["failures"].([]interface{})
 				require.True(t, ok)
-				assert.NotEmpty(t, failures)
+				assert.Empty(t, failures)
 			},
 		},
 		"invalid_arguments": {
