@@ -553,7 +553,11 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 	}
 
 	// Build response
-	response, err := uc.buildResponse(tasks, startTime, pathIndex, snapshot.Coverage())
+	coverage := snapshot.Coverage()
+	if uc.needsModuleGraph(useCaseCfg) {
+		coverage = snapshot.ModuleCoverage()
+	}
+	response, err := uc.buildResponse(tasks, startTime, pathIndex, coverage)
 	result := &ProjectAnalysisResult{Response: response, Snapshot: snapshot}
 	if err != nil {
 		return result, fmt.Errorf("build analysis response: %w", err)

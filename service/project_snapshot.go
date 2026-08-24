@@ -181,12 +181,24 @@ func (s *ProjectSnapshot) Coverage() domain.AnalysisCoverage {
 	if s == nil {
 		return domain.AnalysisCoverage{}
 	}
+	return projectFileCoverage(s.analysisProjectFiles())
+}
 
+// ModuleCoverage reports read and parse coverage for every file that defines
+// the captured dependency-graph surface, including stub-only modules.
+func (s *ProjectSnapshot) ModuleCoverage() domain.AnalysisCoverage {
+	if s == nil {
+		return domain.AnalysisCoverage{}
+	}
+	return projectFileCoverage(s.selectedModuleFiles())
+}
+
+func projectFileCoverage(files []*ProjectFile) domain.AnalysisCoverage {
 	coverage := domain.AnalysisCoverage{
 		Diagnostics: make([]domain.AnalysisDiagnostic, 0),
 	}
-	for _, file := range s.Files {
-		if file == nil || !s.hasAnalysisFile(file) {
+	for _, file := range files {
+		if file == nil {
 			continue
 		}
 		coverage.TotalFiles++

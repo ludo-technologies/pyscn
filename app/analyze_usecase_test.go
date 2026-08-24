@@ -351,7 +351,7 @@ func TestAnalyzeUseCase_Execute_SystemGraphExcludesUnparsedFiles(t *testing.T) {
 	}
 }
 
-func TestAnalyzeUseCase_Execute_CoverageIsIndependentOfModuleSelection(t *testing.T) {
+func TestAnalyzeUseCase_Execute_CoverageIncludesRequestedModuleSurface(t *testing.T) {
 	projectDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(projectDir, "runtime.py"), []byte("def runtime():\n    return 1\n"), 0o644); err != nil {
 		t.Fatalf("write runtime source: %v", err)
@@ -388,13 +388,19 @@ func TestAnalyzeUseCase_Execute_CoverageIsIndependentOfModuleSelection(t *testin
 		t.Fatalf("execute dependency analysis: %v", err)
 	}
 
-	if !reflect.DeepEqual(complexityOnly.Diagnostics, dependenciesOnly.Diagnostics) {
-		t.Fatalf("expected selection-independent diagnostics, complexity=%+v dependencies=%+v", complexityOnly.Diagnostics, dependenciesOnly.Diagnostics)
+	if len(complexityOnly.Diagnostics) != 0 {
+		t.Fatalf("implementation-only analysis must not include stub diagnostics, got %+v", complexityOnly.Diagnostics)
 	}
 	complexityCoverage := []int{complexityOnly.Summary.TotalFiles, complexityOnly.Summary.AnalyzedFiles, complexityOnly.Summary.SkippedFiles}
+	if !reflect.DeepEqual(complexityCoverage, []int{1, 1, 0}) {
+		t.Fatalf("expected implementation-only coverage, got %v", complexityCoverage)
+	}
+	if len(dependenciesOnly.Diagnostics) != 1 || dependenciesOnly.Diagnostics[0].Code != domain.DiagnosticCodeParse {
+		t.Fatalf("expected broken stub diagnostic, got %+v", dependenciesOnly.Diagnostics)
+	}
 	dependencyCoverage := []int{dependenciesOnly.Summary.TotalFiles, dependenciesOnly.Summary.AnalyzedFiles, dependenciesOnly.Summary.SkippedFiles}
-	if !reflect.DeepEqual(complexityCoverage, dependencyCoverage) {
-		t.Fatalf("expected selection-independent coverage, complexity=%v dependencies=%v", complexityCoverage, dependencyCoverage)
+	if !reflect.DeepEqual(dependencyCoverage, []int{2, 1, 1}) {
+		t.Fatalf("expected dependency coverage to include the stub surface, got %v", dependencyCoverage)
 	}
 }
 
