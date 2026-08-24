@@ -103,6 +103,7 @@ func analyzeExecutionConfigFromConfig(cfg *config.Config, overrides analyzeEnabl
 
 	if len(cfg.Analysis.IncludePatterns) > 0 {
 		executionCfg.IncludePatterns = append([]string(nil), cfg.Analysis.IncludePatterns...)
+		executionCfg.ModulePatterns = domain.PythonModuleIncludePatterns(executionCfg.IncludePatterns)
 	}
 	if len(cfg.Analysis.ExcludePatterns) > 0 {
 		executionCfg.ExcludePatterns = append([]string(nil), cfg.Analysis.ExcludePatterns...)

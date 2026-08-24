@@ -1,8 +1,17 @@
 package domain
 
 import (
+	"reflect"
 	"testing"
 )
+
+func TestPythonModuleIncludePatternsPreservesConfiguredScope(t *testing.T) {
+	want := []string{"pkg/**/*.py", "pkg/**/*.pyi", "scripts/**"}
+	got := PythonModuleIncludePatterns([]string{"pkg/**/*.py", "pkg/**/*.pyi", "scripts/**"})
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("expected scoped module patterns %v, got %v", want, got)
+	}
+}
 
 // TestDefaultValueConsistency ensures all default values are properly defined
 // and maintain expected relationships

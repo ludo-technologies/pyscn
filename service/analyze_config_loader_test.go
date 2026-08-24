@@ -119,6 +119,9 @@ lsh_auto_threshold = 123
 		if len(cfg.IncludePatterns) != 1 || cfg.IncludePatterns[0] != "pkg/**/*.py" {
 			t.Errorf("expected custom include patterns, got %v", cfg.IncludePatterns)
 		}
+		if len(cfg.ModulePatterns) != 2 || cfg.ModulePatterns[0] != "pkg/**/*.py" || cfg.ModulePatterns[1] != "pkg/**/*.pyi" {
+			t.Errorf("expected module patterns to preserve configured scope, got %v", cfg.ModulePatterns)
+		}
 		if len(cfg.ExcludePatterns) != 1 || cfg.ExcludePatterns[0] != "tests/**/*.py" {
 			t.Errorf("expected custom exclude patterns, got %v", cfg.ExcludePatterns)
 		}
