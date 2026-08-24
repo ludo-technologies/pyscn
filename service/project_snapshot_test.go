@@ -126,29 +126,6 @@ func TestAnalysisProjectSnapshotRetainsCancelledFilesInCoverage(t *testing.T) {
 	}
 }
 
-func TestAnalysisProjectSnapshotMatchesBareIncludePatternsByFilename(t *testing.T) {
-	projectRoot := t.TempDir()
-	nestedDir := filepath.Join(projectRoot, "pkg")
-	if err := os.MkdirAll(nestedDir, 0o755); err != nil {
-		t.Fatalf("create nested directory: %v", err)
-	}
-	sourcePath := filepath.Join(nestedDir, "source.py")
-	if err := os.WriteFile(sourcePath, []byte("VALUE = 1\n"), 0o644); err != nil {
-		t.Fatalf("write source: %v", err)
-	}
-
-	snapshot := BuildAnalysisProjectSnapshot(
-		context.Background(),
-		[]string{sourcePath},
-		[]string{sourcePath},
-		ProjectSnapshotOptions{},
-	)
-	files := snapshot.analysisProjectFilesMatching([]string{"*.py"}, nil)
-	if len(files) != 1 || files[0].Path != sourcePath {
-		t.Fatalf("expected bare include pattern to retain nested source, got %+v", files)
-	}
-}
-
 func TestProjectSnapshotProjectionDoesNotShareValueNodes(t *testing.T) {
 	sourcePath := filepath.Join(t.TempDir(), "source.py")
 	if err := os.WriteFile(sourcePath, []byte("def call():\n    return target()\n"), 0o644); err != nil {

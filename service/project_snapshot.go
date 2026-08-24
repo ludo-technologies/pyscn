@@ -270,16 +270,12 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, options *Mod
 }
 
 func (s *ProjectSnapshot) analysisProjectFiles() []*ProjectFile {
-	return s.analysisProjectFilesMatching(nil, nil)
-}
-
-func (s *ProjectSnapshot) analysisProjectFilesMatching(includePatterns, excludePatterns []string) []*ProjectFile {
 	if s == nil {
 		return nil
 	}
 	files := make([]*ProjectFile, 0, len(s.analysisFiles))
 	for _, file := range s.files {
-		if file != nil && s.hasAnalysisFile(file) && matchesFileSelection(file.identityPath, includePatterns, excludePatterns) {
+		if file != nil && s.hasAnalysisFile(file) {
 			files = append(files, file)
 		}
 	}

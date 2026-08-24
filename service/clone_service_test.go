@@ -74,25 +74,33 @@ func TestCloneService_AnalyzeSnapshotUsesCapturedSource(t *testing.T) {
 	}
 }
 
-func TestCloneService_AnalyzeSnapshotHonorsFileFilters(t *testing.T) {
+func TestCloneService_AnalyzeSnapshotUsesCapturedAnalysisScope(t *testing.T) {
 	projectRoot := t.TempDir()
-	includedPath := filepath.Join(projectRoot, "included.py")
-	excludedPath := filepath.Join(projectRoot, "excluded.py")
+	includedPath := filepath.Join(projectRoot, "pkg", "included.py")
+	excludedPath := filepath.Join(projectRoot, "vendor", "excluded.py")
 	for _, path := range []string{includedPath, excludedPath} {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("create fixture directory: %v", err)
+		}
 		if err := os.WriteFile(path, []byte("def value():\n    return 1\n"), 0o644); err != nil {
 			t.Fatalf("write fixture: %v", err)
 		}
 	}
-	snapshot := BuildProjectSnapshot(context.Background(), []string{includedPath, excludedPath})
+	snapshot := BuildAnalysisProjectSnapshot(
+		context.Background(),
+		[]string{includedPath},
+		[]string{includedPath, excludedPath},
+		ProjectSnapshotOptions{},
+	)
 	req := newDefaultCloneRequest(projectRoot)
-	req.ExcludePatterns = []string{"excluded.py"}
+	req.IncludePatterns = []string{"pkg/**/*.py"}
 
 	response, err := NewCloneService().AnalyzeSnapshot(context.Background(), snapshot, req)
 	if err != nil {
-		t.Fatalf("analyze filtered snapshot: %v", err)
+		t.Fatalf("analyze scoped snapshot: %v", err)
 	}
 	if response.Statistics.FilesAnalyzed != 1 {
-		t.Fatalf("expected one filtered snapshot file, got %+v", response.Statistics)
+		t.Fatalf("expected one captured analysis file, got %+v", response.Statistics)
 	}
 }
 
