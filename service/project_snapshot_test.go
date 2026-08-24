@@ -237,6 +237,45 @@ func TestProjectSnapshotCapturesSrcModuleRoot(t *testing.T) {
 	}
 }
 
+func TestProjectSnapshotPreservesNamespacePackageFromSelectedSubtree(t *testing.T) {
+	projectRoot := t.TempDir()
+	packageDir := filepath.Join(projectRoot, "src", "acme")
+	if err := os.MkdirAll(packageDir, 0o755); err != nil {
+		t.Fatalf("create namespace package: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectRoot, "pyproject.toml"), []byte("[project]\nname = 'sample'\n"), 0o644); err != nil {
+		t.Fatalf("write project marker: %v", err)
+	}
+	alphaPath := filepath.Join(packageDir, "alpha.py")
+	betaPath := filepath.Join(packageDir, "beta.py")
+	if err := os.WriteFile(alphaPath, []byte("from acme import beta\n"), 0o644); err != nil {
+		t.Fatalf("write alpha: %v", err)
+	}
+	if err := os.WriteFile(betaPath, []byte("VALUE = 1\n"), 0o644); err != nil {
+		t.Fatalf("write beta: %v", err)
+	}
+
+	snapshot := BuildAnalysisProjectSnapshot(
+		context.Background(),
+		[]string{alphaPath, betaPath},
+		[]string{alphaPath, betaPath},
+		ProjectSnapshotOptions{},
+	)
+	graph, err := snapshot.BuildDependencyGraph(context.Background(), &ModuleGraphOptions{
+		ProjectRoot: projectRoot,
+		Graph:       domain.ModuleGraphOptions{IncludeThirdParty: true},
+	})
+	if err != nil {
+		t.Fatalf("build namespace graph: %v", err)
+	}
+	if graph.graph.Nodes["acme.alpha"] == nil || graph.graph.Nodes["acme.beta"] == nil {
+		t.Fatalf("expected namespace-qualified modules, got %+v", graph.graph.Nodes)
+	}
+	if !graph.graph.Nodes["acme.alpha"].Dependencies["acme.beta"] {
+		t.Fatalf("expected namespace import edge, got %+v", graph.graph.Nodes["acme.alpha"].Dependencies)
+	}
+}
+
 func TestProjectSnapshotResolvesRelativeModulePathsAtCaptureTime(t *testing.T) {
 	originalWorkingDirectory, err := os.Getwd()
 	if err != nil {

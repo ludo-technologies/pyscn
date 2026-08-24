@@ -425,7 +425,6 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 	if uc.needsModuleGraph(useCaseCfg) {
 		moduleGraph, moduleGraphErr = snapshot.BuildDependencyGraph(ctx, &service.ModuleGraphOptions{
 			ProjectRoot:     service.FindProjectRoot(paths),
-			ModuleRoots:     []string{service.FindAnalysisRoot(paths)},
 			Graph:           executionCfg.ModuleGraph,
 			IncludePatterns: executionCfg.ModulePatterns,
 			ExcludePatterns: executionCfg.ExcludePatterns,
