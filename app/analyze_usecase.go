@@ -534,7 +534,7 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 			t.Result = result
 			t.Error = err
 			if tracker != nil {
-				tracker.TaskCompleted(t.Name)
+				tracker.TaskCompleted(t.Kind)
 			}
 		}(task)
 	}
@@ -1059,31 +1059,31 @@ func (uc *AnalyzeUseCase) loadExecutionConfig(configPath string, paths []string)
 }
 
 // estimateTaskSeconds estimates the duration of each enabled analysis task in
-// seconds, keyed by task name. The formulas capture how each analysis scales
+// seconds, keyed by typed analysis identity. The formulas capture how each analysis scales
 // with file count; absolute accuracy comes from calibration against actual
 // timings (see applyTimingFactors and UpdateAnalysisTimingFactors).
-func (uc *AnalyzeUseCase) estimateTaskSeconds(fileCount int, config AnalyzeUseCaseConfig, executionCfg domain.AnalyzeExecutionConfig) map[string]float64 {
+func (uc *AnalyzeUseCase) estimateTaskSeconds(fileCount int, config AnalyzeUseCaseConfig, executionCfg domain.AnalyzeExecutionConfig) map[domain.AnalysisKind]float64 {
 	n := float64(fileCount)
-	estimates := map[string]float64{}
+	estimates := map[domain.AnalysisKind]float64{}
 
 	// Linear analyses (fast)
 	if uc.complexityUseCase != nil && !config.SkipComplexity {
-		estimates[taskNameComplexity] = 0.01 * n // Complexity: ~0.01s per file
+		estimates[domain.AnalysisKindComplexity] = 0.01 * n // Complexity: ~0.01s per file
 	}
 	if uc.deadCodeUseCase != nil && !config.SkipDeadCode {
-		estimates[taskNameDeadCode] = 0.01 * n // Dead Code: ~0.01s per file
+		estimates[domain.AnalysisKindDeadCode] = 0.01 * n // Dead Code: ~0.01s per file
 	}
 	if uc.cboUseCase != nil && !config.SkipCBO {
-		estimates[taskNameCBO] = 0.01 * n // CBO: ~0.01s per file
+		estimates[domain.AnalysisKindCBO] = 0.01 * n // CBO: ~0.01s per file
 	}
 	if uc.lcomUseCase != nil && !config.SkipLCOM {
-		estimates[taskNameLCOM] = 0.01 * n // LCOM: ~0.01s per file
+		estimates[domain.AnalysisKindLCOM] = 0.01 * n // LCOM: ~0.01s per file
 	}
 	if uc.systemUseCase != nil && !config.SkipSystem {
-		estimates[taskNameSystem] = 0.02 * n // System: ~0.02s per file (slightly heavier)
+		estimates[domain.AnalysisKindSystem] = 0.02 * n // System: ~0.02s per file (slightly heavier)
 	}
 	if uc.communityUseCase != nil && !config.SkipCommunities {
-		estimates[taskNameCommunities] = 0.02 * n
+		estimates[domain.AnalysisKindCommunities] = 0.02 * n
 	}
 
 	// Clone detection - account for LSH configuration
@@ -1102,11 +1102,11 @@ func (uc *AnalyzeUseCase) estimateTaskSeconds(fileCount int, config AnalyzeUseCa
 		if useLSH {
 			// LSH enabled: Near-linear O(n^1.1) complexity
 			// LSH candidate filtering significantly reduces the number of APTED comparisons
-			estimates[taskNameClones] = 0.01 * math.Pow(estimatedFragments, 1.1)
+			estimates[domain.AnalysisKindClones] = 0.01 * math.Pow(estimatedFragments, 1.1)
 		} else {
 			// LSH disabled: Quadratic O(n²) complexity - full pairwise comparison
 			// All fragment pairs are compared via expensive APTED tree edit distance
-			estimates[taskNameClones] = 0.001 * estimatedFragments * estimatedFragments
+			estimates[domain.AnalysisKindClones] = 0.001 * estimatedFragments * estimatedFragments
 		}
 	}
 
