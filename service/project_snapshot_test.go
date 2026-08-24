@@ -126,6 +126,22 @@ func TestAnalysisProjectSnapshotRetainsCancelledFilesInCoverage(t *testing.T) {
 	}
 }
 
+func TestProjectSnapshotBuildsEmptyGraphWhenNoModuleParsed(t *testing.T) {
+	brokenPath := filepath.Join(t.TempDir(), "broken.py")
+	if err := os.WriteFile(brokenPath, []byte("def broken(:\n"), 0o644); err != nil {
+		t.Fatalf("write broken module: %v", err)
+	}
+	snapshot := BuildProjectSnapshot(context.Background(), []string{brokenPath})
+
+	graph, err := snapshot.BuildDependencyGraph(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("build empty graph: %v", err)
+	}
+	if graph.graph.TotalModules != 0 || len(graph.graph.Nodes) != 0 {
+		t.Fatalf("expected empty graph, got %+v", graph.graph)
+	}
+}
+
 func TestProjectSnapshotProjectionDoesNotShareValueNodes(t *testing.T) {
 	sourcePath := filepath.Join(t.TempDir(), "source.py")
 	if err := os.WriteFile(sourcePath, []byte("def call():\n    return target()\n"), 0o644); err != nil {

@@ -244,6 +244,9 @@ func (s *ProjectSnapshot) BuildDependencyGraph(ctx context.Context, graphOptions
 	if graphOptions != nil {
 		policy = *graphOptions
 	}
+	if len(parsedModules) == 0 {
+		return &ProjectModuleGraph{graph: analyzer.NewDependencyGraph(s.projectRoot), policy: policy}, nil
+	}
 	analyzerOptions := &analyzer.ModuleAnalysisOptions{
 		ProjectRoot:       s.projectRoot,
 		ModuleRoots:       append([]string(nil), s.moduleRoots...),

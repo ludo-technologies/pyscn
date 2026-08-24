@@ -92,6 +92,23 @@ func TestCheckAllowParseErrorsWaivesAllUnparseableInput(t *testing.T) {
 	}
 }
 
+func TestCheckDependenciesAllowAllUnparseableInput(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "broken.py"), []byte("def broken(:\n"), 0o644); err != nil {
+		t.Fatalf("write broken fixture: %v", err)
+	}
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	var stderr bytes.Buffer
+	cobraCmd.SetErr(&stderr)
+	cobraCmd.SetArgs([]string{"--select", "deps", "--allow-parse-errors", dir})
+
+	if err := cobraCmd.Execute(); err != nil {
+		t.Fatalf("dependency check should accept an explicitly waived empty graph, got: %v\n%s", err, stderr.String())
+	}
+}
+
 func TestCheckPassesOnFullyParseablePackage(t *testing.T) {
 	dir := t.TempDir()
 	source := "def tidy(n):\n    if n > 0:\n        return n\n    return -n\n"
