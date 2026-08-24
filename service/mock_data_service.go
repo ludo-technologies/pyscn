@@ -125,7 +125,7 @@ func (s *MockDataServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Pro
 		}
 		result, err := detector.DetectParsed(ctx, file.parseResult.RootNode, file.source, file.Path)
 		if err != nil {
-			failures = append(failures, domain.AnalysisFailure{Analysis: domain.AnalysisKindMockData, Code: domain.AnalysisFailureCodeExecution, FilePath: file.Path, Message: err.Error()})
+			failures = append(failures, domain.NewAnalysisFailure(domain.AnalysisKindMockData, domain.AnalysisFailureCodeExecution, file.Path, err.Error(), err))
 			continue
 		}
 		fileResult := s.mockDataFileResult(file.Path, result.Findings, req)

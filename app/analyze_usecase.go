@@ -893,11 +893,13 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*analysisTask, startTime time.Ti
 			return response, err
 		}
 		if task.Error != nil {
-			response.Failures = append(response.Failures, domain.AnalysisFailure{
-				Analysis: task.Kind,
-				Code:     domain.AnalysisFailureCodeExecution,
-				Message:  task.Error.Error(),
-			})
+			response.Failures = append(response.Failures, domain.NewAnalysisFailure(
+				task.Kind,
+				domain.AnalysisFailureCodeExecution,
+				"",
+				task.Error.Error(),
+				task.Error,
+			))
 		}
 		if task.Result != nil {
 			if resultKind := task.Result.analysisKind(); resultKind != task.Kind {

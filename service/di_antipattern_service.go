@@ -95,7 +95,7 @@ func (s *DIAntipatternServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot
 		}
 		fileFindings, err := s.calculateFindings(file.AST, file.Path, req)
 		if err != nil {
-			failures = append(failures, domain.AnalysisFailure{Analysis: domain.AnalysisKindDI, Code: domain.AnalysisFailureCodeExecution, FilePath: file.Path, Message: err.Error()})
+			failures = append(failures, domain.NewAnalysisFailure(domain.AnalysisKindDI, domain.AnalysisFailureCodeExecution, file.Path, err.Error(), err))
 			continue
 		}
 		findings = append(findings, fileFindings...)
@@ -148,12 +148,7 @@ func (s *DIAntipatternServiceImpl) analyzeFile(ctx context.Context, filePath str
 
 	fileFindings, err := s.calculateFindings(result.AST, filePath, req)
 	if err != nil {
-		failures = append(failures, domain.AnalysisFailure{
-			Analysis: domain.AnalysisKindDI,
-			Code:     domain.AnalysisFailureCodeExecution,
-			Message:  err.Error(),
-			FilePath: filePath,
-		})
+		failures = append(failures, domain.NewAnalysisFailure(domain.AnalysisKindDI, domain.AnalysisFailureCodeExecution, filePath, err.Error(), err))
 		return findings, warnings, diagnostics, failures
 	}
 
