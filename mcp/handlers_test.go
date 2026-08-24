@@ -322,6 +322,36 @@ func TestHandleAnalyzeCode(t *testing.T) {
 	}
 }
 
+func TestHandleAnalyzeCodeSummaryIncludesClassHotspots(t *testing.T) {
+	res := runToolTest(
+		t,
+		func(t *testing.T) string {
+			t.Helper()
+			path := filepath.Join(t.TempDir(), "config.py")
+			var source strings.Builder
+			source.WriteString("class Config:\n")
+			for i := 0; i < 20; i++ {
+				source.WriteString("    if enabled:\n        value = 1\n")
+			}
+			require.NoError(t, os.WriteFile(path, []byte(source.String()), 0o644))
+			return path
+		},
+		map[string]interface{}{"analyses": []interface{}{"complexity"}},
+		(*mcp.HandlerSet).HandleAnalyzeCode,
+	)
+
+	require.False(t, res.IsError)
+	var output struct {
+		Summary struct {
+			TotalClassScopes              int `json:"total_class_scopes"`
+			HighComplexityClassScopeCount int `json:"high_complexity_class_scope_count"`
+		} `json:"summary"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(mcplib.GetTextFromContent(res.Content[0])), &output))
+	assert.Equal(t, 1, output.Summary.TotalClassScopes)
+	assert.Equal(t, 1, output.Summary.HighComplexityClassScopeCount)
+}
+
 func TestHandleAnalyzeCode_RecursiveOmittedUsesProjectConfig(t *testing.T) {
 	configDir := t.TempDir()
 	configFile := filepath.Join(configDir, ".pyscn.toml")
