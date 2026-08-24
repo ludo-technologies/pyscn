@@ -83,7 +83,7 @@ func buildProjectSnapshot(ctx context.Context, paths, analysisPaths, modulePaths
 		ctx = context.Background()
 	}
 
-	defaultProjectRoot, _ := os.Getwd()
+	defaultProjectRoot, captureRootErr := os.Getwd()
 	projectRoot := options.ProjectRoot
 	if projectRoot == "" {
 		projectRoot = FindProjectRoot(paths)
@@ -117,7 +117,11 @@ func buildProjectSnapshot(ctx context.Context, paths, analysisPaths, modulePaths
 			pyParser := parser.New()
 			for idx := range jobs {
 				path := paths[idx]
-				identityPath := snapshotPath(defaultProjectRoot, path)
+				identityPath, identityErr := capturedIdentityPath(defaultProjectRoot, captureRootErr, path)
+				if identityErr != nil {
+					snapshot.files[idx] = &ProjectFile{Path: path, identityPath: identityPath, ReadErr: identityErr}
+					continue
+				}
 				snapshot.files[idx] = buildProjectFile(ctx, pyParser, path, identityPath, options)
 			}
 		}()
@@ -329,7 +333,7 @@ func mergeSnapshotPaths(pathSets ...[]string) []string {
 		for _, path := range pathSet {
 			identity, err := filepath.Abs(path)
 			if err != nil {
-				continue
+				identity = filepath.Clean(path)
 			}
 			identity = filepath.Clean(identity)
 			if _, duplicate := seen[identity]; duplicate {
@@ -470,6 +474,14 @@ func snapshotPath(captureRoot, path string) string {
 		return filepath.Clean(path)
 	}
 	return filepath.Clean(filepath.Join(captureRoot, path))
+}
+
+func capturedIdentityPath(captureRoot string, captureRootErr error, path string) (string, error) {
+	identityPath := snapshotPath(captureRoot, path)
+	if captureRootErr != nil && !filepath.IsAbs(path) {
+		return identityPath, fmt.Errorf("resolve relative snapshot path %s: %w", path, captureRootErr)
+	}
+	return identityPath, nil
 }
 
 func cancelledProjectFile(path, identityPath string, err error) *ProjectFile {

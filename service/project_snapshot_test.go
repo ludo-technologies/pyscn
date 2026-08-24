@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -64,6 +65,23 @@ func TestProjectSnapshotOptionsSkipRawMetrics(t *testing.T) {
 	}
 	if _, err := file.CFGs(); err != nil {
 		t.Fatalf("expected CFGs without raw metrics: %v", err)
+	}
+}
+
+func TestCapturedIdentityPathReportsRelativePathWithoutWorkingDirectory(t *testing.T) {
+	sentinel := errors.New("working directory unavailable")
+	identityPath, err := capturedIdentityPath("", sentinel, filepath.Join("pkg", "module.py"))
+	if !errors.Is(err, sentinel) {
+		t.Fatalf("expected working-directory failure, got %v", err)
+	}
+	if identityPath != filepath.Join("pkg", "module.py") {
+		t.Fatalf("expected relative identity to remain represented, got %q", identityPath)
+	}
+
+	absolutePath := filepath.Join(t.TempDir(), "module.py")
+	identityPath, err = capturedIdentityPath("", sentinel, absolutePath)
+	if err != nil || identityPath != absolutePath {
+		t.Fatalf("absolute paths must remain capturable, path=%q err=%v", identityPath, err)
 	}
 }
 
