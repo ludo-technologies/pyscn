@@ -300,11 +300,7 @@ func (s *ProjectSnapshot) selectedAnalysisProjectFiles(selection domain.PythonFi
 	files := s.analysisProjectFiles()
 	selected := make([]*ProjectFile, 0, len(files))
 	for _, file := range files {
-		selectionPath := file.identityPath
-		if relativePath, err := filepath.Rel(s.projectRoot, file.identityPath); err == nil {
-			selectionPath = relativePath
-		}
-		if matchesPythonFileSelection(selectionPath, selection) {
+		if matchesPythonFileSelection(file.Path, selection) {
 			selected = append(selected, file)
 		}
 	}

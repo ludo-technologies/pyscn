@@ -242,6 +242,26 @@ func TestComplexitySnapshotRequiresRawMetrics(t *testing.T) {
 	}
 }
 
+func TestProjectSnapshotSelectionUsesCollectionPathBase(t *testing.T) {
+	projectRoot := t.TempDir()
+	identityPath := filepath.Join(projectRoot, "subproject", "app", "main.py")
+	snapshot := &ProjectSnapshot{
+		Files: []*ProjectFile{{
+			Path:         filepath.Join("app", "main.py"),
+			identityPath: identityPath,
+		}},
+		analysisFiles: map[string]struct{}{identityPath: {}},
+		projectRoot:   projectRoot,
+	}
+
+	selected := snapshot.selectedAnalysisProjectFiles(domain.PythonFileSelection{
+		IncludePatterns: []string{"app/**/*.py"},
+	})
+	if len(selected) != 1 || selected[0].Path != filepath.Join("app", "main.py") {
+		t.Fatalf("expected selection to use the path matched during collection, got %+v", selected)
+	}
+}
+
 func TestProjectSnapshotCapturesSrcModuleRoot(t *testing.T) {
 	projectRoot := t.TempDir()
 	packageDir := filepath.Join(projectRoot, "src", "pkg")

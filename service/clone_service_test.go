@@ -93,7 +93,7 @@ func TestCloneService_AnalyzeSnapshotHonorsRequestSelection(t *testing.T) {
 		ProjectSnapshotOptions{ProjectRoot: projectRoot},
 	)
 	req := newDefaultCloneRequest(projectRoot)
-	req.IncludePatterns = []string{"pkg/**/*.py"}
+	req.IncludePatterns = []string{"**/pkg/**/*.py"}
 
 	response, err := NewCloneService().AnalyzeSnapshot(context.Background(), snapshot, req)
 	if err != nil {
