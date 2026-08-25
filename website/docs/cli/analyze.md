@@ -61,7 +61,7 @@ Output files land in `.pyscn/reports/` by default, named `analyze_YYYYMMDD_HHMMS
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `--min-complexity <N>`    | `5`        | Only report functions with complexity ≥ N. |
+| `--min-complexity <N>`    | `5`        | Only report execution scopes with complexity ≥ N. |
 | `--min-severity <level>`  | `warning`  | Dead-code minimum severity: `info`, `warning`, `critical`. |
 | `--clone-threshold <F>`   | `0.65`     | Minimum similarity (0.0–1.0) for clone detection. |
 | `--min-cbo <N>`           | `0`        | Only report classes with CBO ≥ N. |

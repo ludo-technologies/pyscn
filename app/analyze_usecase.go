@@ -957,6 +957,11 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 	// Complexity statistics
 	if response.Complexity != nil {
 		summary.TotalFunctions = response.Complexity.Summary.TotalFunctions
+		summary.TotalClassScopes = response.Complexity.Summary.TotalClassScopes
+		summary.MaxClassComplexity = response.Complexity.Summary.MaxClassComplexity
+		summary.MaxClassCognitiveComplexity = response.Complexity.Summary.MaxClassCognitiveComplexity
+		summary.MaxClassNestingDepth = response.Complexity.Summary.MaxClassNestingDepth
+		summary.HighComplexityClassScopeCount = response.Complexity.Summary.HighRiskClassScopes
 		summary.FunctionsParsed = response.Complexity.Summary.FunctionsParsed
 		summary.AverageComplexity = response.Complexity.Summary.AverageComplexity
 		summary.AverageCognitiveComplexity = response.Complexity.Summary.AverageCognitiveComplexity

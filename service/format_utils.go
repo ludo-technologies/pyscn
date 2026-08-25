@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -161,7 +162,13 @@ func (f *FormatUtils) FormatSummaryStats(stats map[string]interface{}) string {
 	var builder strings.Builder
 	builder.WriteString(f.FormatSectionHeader("SUMMARY"))
 
-	for label, value := range stats {
+	labels := make([]string, 0, len(stats))
+	for label := range stats {
+		labels = append(labels, label)
+	}
+	sort.Strings(labels)
+	for _, label := range labels {
+		value := stats[label]
 		builder.WriteString(f.FormatLabelWithIndent(SectionPadding, label, value))
 	}
 

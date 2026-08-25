@@ -57,7 +57,7 @@ type ProjectFile struct {
 	parseResult  *parser.ParseResult
 
 	cfgOnce sync.Once
-	cfgs    map[string]*analyzer.CFG
+	cfgs    analyzer.ControlFlowGraphs
 	cfgErr  error
 }
 
@@ -441,7 +441,7 @@ func (f *ProjectFile) Parsed() bool {
 }
 
 // CFGs builds CFGs once and shares them across CFG-backed analyzers.
-func (f *ProjectFile) CFGs() (map[string]*analyzer.CFG, error) {
+func (f *ProjectFile) CFGs() (analyzer.ControlFlowGraphs, error) {
 	if f == nil {
 		return nil, fmt.Errorf("project file cannot be nil")
 	}

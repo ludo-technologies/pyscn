@@ -53,7 +53,7 @@ func (c *CheckCommand) CreateCobraCommand() *cobra.Command {
 		Long: `Quick code quality check optimized for CI/CD pipelines.
 
 This command performs a fast analysis with predefined thresholds:
-• Complexity: Fails if any function has complexity > 10
+• Complexity: Fails if any module, class suite, or function has complexity > 10
 • Dead Code: Fails if any critical dead code is found
 • Clones: Reports clones with similarity > 0.8 (warning only)
 • Circular Dependencies: Fails if any cycles are detected
@@ -186,7 +186,13 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		}
 
 		if !skipComplexity {
-			issueCount += c.countComplexityIssues(cmd, response.Complexity)
+			complexityIssues, err := c.countComplexityIssues(cmd, response.Complexity)
+			if err != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "❌ Complexity check failed: %v\n", err)
+				hasErrors = true
+			} else {
+				issueCount += complexityIssues
+			}
 		}
 		if !skipDeadCode {
 			deadCodeIssues := c.countDeadCodeIssues(cmd, response.DeadCode)

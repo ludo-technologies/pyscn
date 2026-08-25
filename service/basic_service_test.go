@@ -63,18 +63,11 @@ func TestComplexityService_Basic(t *testing.T) {
 		assert.NotNil(t, service.parser)
 	})
 
-	// Test sorting function
-	t.Run("sortFunctions handles empty slice", func(t *testing.T) {
-		var functions []domain.FunctionComplexity
-		result := service.sortFunctions(functions, domain.SortByComplexity)
-		assert.Equal(t, 0, len(result))
-	})
-
 	// Test filtering function
 	t.Run("filterFunctions handles empty slice", func(t *testing.T) {
 		var functions []domain.FunctionComplexity
 		req := domain.ComplexityRequest{MinComplexity: 1, MaxComplexity: 10}
-		result, functionsParsed := service.filterFunctions(functions, req)
+		result, functionsParsed := service.filterScopes(functions, req)
 		assert.Equal(t, 0, len(result))
 		assert.Equal(t, 0, functionsParsed)
 	})
@@ -82,7 +75,7 @@ func TestComplexityService_Basic(t *testing.T) {
 	// Test summary generation
 	t.Run("generateSummary handles empty data", func(t *testing.T) {
 		var functions []domain.FunctionComplexity
-		summary := service.generateSummary(functions, complexitySummaryCounts{})
+		summary := service.generateSummary(functions, nil, complexitySummaryCounts{})
 
 		assert.Equal(t, 0, summary.TotalFunctions)
 		assert.Equal(t, 0.0, summary.AverageComplexity)

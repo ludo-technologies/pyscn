@@ -77,6 +77,71 @@ func TestCheckComplexityStaysSilentBelowThreshold(t *testing.T) {
 	}
 }
 
+func TestCheckComplexityReportsClassExecutionScope(t *testing.T) {
+	var source strings.Builder
+	source.WriteString("class Config:\n")
+	for i := 0; i < 11; i++ {
+		fmt.Fprintf(&source, "    if flag_%d:\n        value = %d\n", i, i)
+	}
+
+	path := filepath.Join(t.TempDir(), "config.py")
+	if err := os.WriteFile(path, []byte(source.String()), 0o644); err != nil {
+		t.Fatalf("failed to write fixture: %v", err)
+	}
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	var stderr bytes.Buffer
+	cobraCmd.SetErr(&stderr)
+
+	cobraCmd.SetArgs([]string{"--select", "complexity", path})
+	if err := cobraCmd.Execute(); err == nil {
+		t.Fatalf("expected the class-scope issue to fail the gate: %s", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "class scope Config is too complex (12 > 10)") {
+		t.Fatalf("expected a class-scope diagnostic, got: %s", stderr.String())
+	}
+}
+
+func TestCheckComplexityGateIgnoresReportFilters(t *testing.T) {
+	tempDir := t.TempDir()
+	path := filepath.Join(tempDir, "filtered.py")
+	source := `def filtered_from_report(value):
+    if value > 0: value += 1
+    if value > 1: value += 1
+    if value > 2: value += 1
+    if value > 3: value += 1
+    if value > 4: value += 1
+    if value > 5: value += 1
+    if value > 6: value += 1
+    if value > 7: value += 1
+    if value > 8: value += 1
+    if value > 9: value += 1
+    return value
+`
+	if err := os.WriteFile(path, []byte(source), 0o644); err != nil {
+		t.Fatalf("failed to write fixture: %v", err)
+	}
+
+	configPath := filepath.Join(tempDir, ".pyscn.toml")
+	if err := os.WriteFile(configPath, []byte("[complexity]\nmin_complexity = 12\n"), 0o644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	checkCmd := NewCheckCommand()
+	checkCmd.configFile = configPath
+	cobraCmd := checkCmd.CreateCobraCommand()
+	var stderr bytes.Buffer
+	cobraCmd.SetErr(&stderr)
+
+	cobraCmd.SetArgs([]string{"--select", "complexity", path})
+	if err := cobraCmd.Execute(); err == nil {
+		t.Fatalf("expected the filtered CC-11 scope to fail the CC-10 gate: %s", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "filtered_from_report is too complex (11 > 10)") {
+		t.Fatalf("expected the complete analyzed population to drive the gate, got: %s", stderr.String())
+	}
+}
+
 func TestCheckComplexityGatesFunctionsHiddenByDisplayFilters(t *testing.T) {
 	checkCmd := NewCheckCommand()
 	cobraCmd := checkCmd.CreateCobraCommand()

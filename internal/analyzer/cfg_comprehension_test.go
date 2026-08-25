@@ -410,7 +410,7 @@ data = process_data()
 		}
 
 		// Check the function CFG
-		funcCFG, exists := cfgs["process_data"]
+		funcCFG, exists := findCFG(cfgs, "process_data")
 		if !exists {
 			t.Fatal("Missing CFG for process_data function")
 		}

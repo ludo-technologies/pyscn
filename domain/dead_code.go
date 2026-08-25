@@ -60,111 +60,137 @@ type DeadCodeRequest struct {
 
 // DeadCodeLocation represents the location of dead code
 type DeadCodeLocation struct {
-	FilePath    string `json:"file_path"`
-	StartLine   int    `json:"start_line"`
-	EndLine     int    `json:"end_line"`
-	StartColumn int    `json:"start_column"`
-	EndColumn   int    `json:"end_column"`
+	FilePath    string `json:"file_path" yaml:"file_path"`
+	StartLine   int    `json:"start_line" yaml:"start_line"`
+	EndLine     int    `json:"end_line" yaml:"end_line"`
+	StartColumn int    `json:"start_column" yaml:"start_column"`
+	EndColumn   int    `json:"end_column" yaml:"end_column"`
 }
 
-// DeadCodeFinding represents a single dead code detection result
+// DeadCodeFinding represents a single dead code detection result owned by an
+// explicit Python execution scope.
 type DeadCodeFinding struct {
 	// Location information
-	Location DeadCodeLocation `json:"location"`
+	Location DeadCodeLocation `json:"location" yaml:"location"`
 
-	// Function context
-	FunctionName string `json:"function_name"`
+	// Execution-scope context. FunctionName is retained for public compatibility.
+	FunctionName string            `json:"function_name" yaml:"function_name"`
+	ScopeKind    AnalysisScopeKind `json:"scope_kind" yaml:"scope_kind"`
 
 	// Dead code details
-	Code        string           `json:"code"`
-	Reason      string           `json:"reason"`
-	Severity    DeadCodeSeverity `json:"severity"`
-	Description string           `json:"description"`
+	Code        string           `json:"code" yaml:"code"`
+	Reason      string           `json:"reason" yaml:"reason"`
+	Severity    DeadCodeSeverity `json:"severity" yaml:"severity"`
+	Description string           `json:"description" yaml:"description"`
 
 	// Context information (surrounding code)
-	Context []string `json:"context,omitempty"`
+	Context []string `json:"context,omitempty" yaml:"context,omitempty"`
 
 	// Metadata
-	BlockID string `json:"block_id,omitempty"`
+	BlockID string `json:"block_id,omitempty" yaml:"block_id,omitempty"`
 }
 
-// FunctionDeadCode represents dead code analysis result for a single function
+// FunctionDeadCode represents dead code analysis for one execution scope. The
+// historical type and collection names are retained for public compatibility.
 type FunctionDeadCode struct {
-	// Function identification
-	Name     string `json:"name"`
-	FilePath string `json:"file_path"`
+	// Execution-scope identification
+	Name      string            `json:"name" yaml:"name"`
+	ScopeKind AnalysisScopeKind `json:"scope_kind" yaml:"scope_kind"`
+	FilePath  string            `json:"file_path" yaml:"file_path"`
 
 	// Dead code findings
-	Findings []DeadCodeFinding `json:"findings"`
+	Findings []DeadCodeFinding `json:"findings" yaml:"findings"`
 
 	// Function metrics
-	TotalBlocks    int     `json:"total_blocks"`
-	DeadBlocks     int     `json:"dead_blocks"`
-	ReachableRatio float64 `json:"reachable_ratio"`
+	TotalBlocks    int     `json:"total_blocks" yaml:"total_blocks"`
+	DeadBlocks     int     `json:"dead_blocks" yaml:"dead_blocks"`
+	ReachableRatio float64 `json:"reachable_ratio" yaml:"reachable_ratio"`
 
 	// Summary by severity
-	CriticalCount int `json:"critical_count"`
-	WarningCount  int `json:"warning_count"`
-	InfoCount     int `json:"info_count"`
+	CriticalCount int `json:"critical_count" yaml:"critical_count"`
+	WarningCount  int `json:"warning_count" yaml:"warning_count"`
+	InfoCount     int `json:"info_count" yaml:"info_count"`
 }
 
-// FileDeadCode represents dead code analysis result for a single file
+// ScopeLabel returns the canonical user-facing name for this execution scope.
+func (f FunctionDeadCode) ScopeLabel() string {
+	return executionScopeLabel(f.ScopeKind, f.Name)
+}
+
+// FileDeadCode represents dead code analysis results for a single file. The
+// historical function collection and counters remain function-only; executable
+// class suites are reported additively with the same typed row model.
 type FileDeadCode struct {
 	// File identification
-	FilePath string `json:"file_path"`
+	FilePath string `json:"file_path" yaml:"file_path"`
 
 	// Functions analyzed
-	Functions []FunctionDeadCode `json:"functions"`
+	Functions []FunctionDeadCode `json:"functions" yaml:"functions"`
+	// ClassScopes contains executable class-suite results.
+	ClassScopes []FunctionDeadCode `json:"class_scopes,omitempty" yaml:"class_scopes,omitempty"`
 
 	// File-level summary
-	TotalFindings     int     `json:"total_findings"`
-	TotalFunctions    int     `json:"total_functions"`
-	AffectedFunctions int     `json:"affected_functions"`
-	DeadCodeRatio     float64 `json:"dead_code_ratio"`
+	TotalFindings       int     `json:"total_findings" yaml:"total_findings"`
+	TotalFunctions      int     `json:"total_functions" yaml:"total_functions"`
+	AffectedFunctions   int     `json:"affected_functions" yaml:"affected_functions"`
+	TotalClassScopes    int     `json:"total_class_scopes" yaml:"total_class_scopes"`
+	AffectedClassScopes int     `json:"affected_class_scopes" yaml:"affected_class_scopes"`
+	DeadCodeRatio       float64 `json:"dead_code_ratio" yaml:"dead_code_ratio"`
+}
+
+// ExecutionScopes returns an independently owned combined view of the
+// function and executable class-suite results.
+func (f FileDeadCode) ExecutionScopes() []FunctionDeadCode {
+	scopes := make([]FunctionDeadCode, 0, len(f.Functions)+len(f.ClassScopes))
+	scopes = append(scopes, f.Functions...)
+	scopes = append(scopes, f.ClassScopes...)
+	return scopes
 }
 
 // DeadCodeSummary represents aggregate statistics for dead code analysis
 type DeadCodeSummary struct {
 	// Overall metrics
-	TotalFiles            int `json:"total_files"`
-	TotalFunctions        int `json:"total_functions"`
-	TotalFindings         int `json:"total_findings"`
-	FilesWithDeadCode     int `json:"files_with_dead_code"`
-	FunctionsWithDeadCode int `json:"functions_with_dead_code"`
+	TotalFiles              int `json:"total_files" yaml:"total_files"`
+	TotalFunctions          int `json:"total_functions" yaml:"total_functions"`
+	TotalFindings           int `json:"total_findings" yaml:"total_findings"`
+	FilesWithDeadCode       int `json:"files_with_dead_code" yaml:"files_with_dead_code"`
+	FunctionsWithDeadCode   int `json:"functions_with_dead_code" yaml:"functions_with_dead_code"`
+	TotalClassScopes        int `json:"total_class_scopes" yaml:"total_class_scopes"`
+	ClassScopesWithDeadCode int `json:"class_scopes_with_dead_code" yaml:"class_scopes_with_dead_code"`
 
 	// Severity distribution
-	CriticalFindings int `json:"critical_findings"`
-	WarningFindings  int `json:"warning_findings"`
-	InfoFindings     int `json:"info_findings"`
+	CriticalFindings int `json:"critical_findings" yaml:"critical_findings"`
+	WarningFindings  int `json:"warning_findings" yaml:"warning_findings"`
+	InfoFindings     int `json:"info_findings" yaml:"info_findings"`
 
 	// Reason distribution
-	FindingsByReason map[string]int `json:"findings_by_reason"`
+	FindingsByReason map[string]int `json:"findings_by_reason" yaml:"findings_by_reason"`
 
 	// Coverage metrics
-	TotalBlocks      int     `json:"total_blocks"`
-	DeadBlocks       int     `json:"dead_blocks"`
-	OverallDeadRatio float64 `json:"overall_dead_ratio"`
+	TotalBlocks      int     `json:"total_blocks" yaml:"total_blocks"`
+	DeadBlocks       int     `json:"dead_blocks" yaml:"dead_blocks"`
+	OverallDeadRatio float64 `json:"overall_dead_ratio" yaml:"overall_dead_ratio"`
 }
 
 // DeadCodeResponse represents the complete dead code analysis result
 type DeadCodeResponse struct {
 	// Analysis results
-	Files   []FileDeadCode  `json:"files"`
-	Summary DeadCodeSummary `json:"summary"`
+	Files   []FileDeadCode  `json:"files" yaml:"files"`
+	Summary DeadCodeSummary `json:"summary" yaml:"summary"`
 	// ModuleRollups are derived before severity filters are applied. They are consumed
 	// by the unified analyze command and are not part of standalone dead-code output.
 	ModuleRollups map[string]ModuleDeadCodeMetrics `json:"-" yaml:"-"`
 
 	// Warnings and issues
-	Warnings []string          `json:"warnings"`
-	Errors   []string          `json:"errors"`
+	Warnings []string          `json:"warnings" yaml:"warnings"`
+	Errors   []string          `json:"errors" yaml:"errors"`
 	Failures []AnalysisFailure `json:"failures,omitempty" yaml:"failures,omitempty"`
 
 	// Metadata
-	GeneratedAt string           `json:"generated_at"`
-	Version     string           `json:"version"`
-	Config      interface{}      `json:"config"`            // Configuration used for analysis
-	Request     *DeadCodeRequest `json:"request,omitempty"` // Merged configuration request
+	GeneratedAt string           `json:"generated_at" yaml:"generated_at"`
+	Version     string           `json:"version" yaml:"version"`
+	Config      interface{}      `json:"config" yaml:"config"`                       // Configuration used for analysis
+	Request     *DeadCodeRequest `json:"request,omitempty" yaml:"request,omitempty"` // Merged configuration request
 }
 
 // DeadCodeService defines the core business logic for dead code analysis

@@ -25,14 +25,14 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 
 	// Tool 2: check_complexity - Cyclomatic complexity analysis
 	s.AddTool(mcp.NewTool("check_complexity",
-		mcp.WithDescription("Analyze cyclomatic complexity of Python functions"),
+		mcp.WithDescription("Analyze cyclomatic complexity of Python execution scopes"),
 		mcp.WithString("path",
 			mcp.Required(),
 			mcp.Description("Path to Python code to analyze")),
 		mcp.WithNumber("min_complexity",
 			mcp.Description("Minimum complexity to report (default: 1)")),
 		mcp.WithNumber("max_complexity",
-			mcp.Description("Maximum allowed complexity, 0 = no limit (default: 0)")),
+			mcp.Description("Maximum allowed complexity (default: 10; 0 uses the default)")),
 		mcp.WithBoolean("show_details",
 			mcp.Description("Include detailed metrics (default: true)")),
 		mcp.WithString("output_mode",

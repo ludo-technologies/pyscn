@@ -284,9 +284,9 @@ def foo():
 			// For these tests, we're testing function-level dead code
 			// Find the first function CFG (not the module CFG)
 			var cfg *CFG
-			for name, c := range cfgs {
-				if name != domain.ModuleFunctionName {
-					cfg = c
+			for _, scopedCFG := range cfgs {
+				if scopedCFG.Scope.Kind == domain.AnalysisScopeFunction {
+					cfg = scopedCFG.Graph
 					break
 				}
 			}
@@ -370,7 +370,7 @@ def function_with_dead_code():
 	require.NoError(t, err)
 
 	// Get the function CFG
-	cfg, exists := cfgs["function_with_dead_code"]
+	cfg, exists := findCFG(cfgs, "function_with_dead_code")
 	require.True(t, exists, "Failed to find function_with_dead_code CFG")
 
 	// Analyze reachability
@@ -483,9 +483,9 @@ def foo():
 			// For these tests, we're testing function-level dead code
 			// Find the first function CFG (not the module CFG)
 			var cfg *CFG
-			for name, c := range cfgs {
-				if name != domain.ModuleFunctionName {
-					cfg = c
+			for _, scopedCFG := range cfgs {
+				if scopedCFG.Scope.Kind == domain.AnalysisScopeFunction {
+					cfg = scopedCFG.Graph
 					break
 				}
 			}
@@ -597,16 +597,16 @@ class MyClass:
 			// For these tests, we're testing function-level dead code
 			// Find the first function CFG (not the module CFG)
 			var cfg *CFG
-			for name, c := range cfgs {
-				if name != domain.ModuleFunctionName {
-					cfg = c
+			for _, scopedCFG := range cfgs {
+				if scopedCFG.Scope.Kind == domain.AnalysisScopeFunction {
+					cfg = scopedCFG.Graph
 					break
 				}
 			}
 
 			// If no function CFG found, use the module CFG (for empty/comments-only tests)
 			if cfg == nil {
-				cfg = cfgs[domain.ModuleFunctionName]
+				cfg, _ = findCFG(cfgs, domain.ModuleFunctionName)
 				require.NotNil(t, cfg, "No CFG found at all")
 			}
 
@@ -652,7 +652,7 @@ def complex_function():
 	require.NoError(t, err)
 
 	// Get the complex_function CFG
-	cfg, exists := cfgs["complex_function"]
+	cfg, exists := findCFG(cfgs, "complex_function")
 	require.True(t, exists, "Failed to find complex_function CFG")
 
 	// Analyze reachability
@@ -701,7 +701,7 @@ def g(y):
 	require.NoError(t, err)
 
 	for _, fnName := range []string{"f", "g"} {
-		cfg, ok := cfgs[fnName]
+		cfg, ok := findCFG(cfgs, fnName)
 		require.True(t, ok, "expected CFG for %s", fnName)
 
 		result := DetectInFunction(cfg)
@@ -739,7 +739,7 @@ def do_flip(self, show_widgets=True):
 	cfgs, err := builder.BuildAll(parseResult.AST)
 	require.NoError(t, err)
 
-	cfg, ok := cfgs["do_flip"]
+	cfg, ok := findCFG(cfgs, "do_flip")
 	require.True(t, ok, "expected CFG for do_flip")
 
 	result := DetectInFunction(cfg)
@@ -757,6 +757,26 @@ def do_flip(self, show_widgets=True):
 
 	// The contiguous dead region collapses to a single finding.
 	assert.Len(t, result.Findings, 1, "contiguous dead region should be one finding")
+}
+
+func TestDetectInFileIncludesClassExecutionScopes(t *testing.T) {
+	parseResult, err := parser.New().Parse(context.Background(), []byte(`class Config:
+    raise RuntimeError("stop")
+    mode = "unreachable"
+`))
+	require.NoError(t, err)
+	cfgs, err := NewCFGBuilder().BuildAll(parseResult.AST)
+	require.NoError(t, err)
+
+	results := DetectInFile(cfgs, "config.py")
+	require.Len(t, results, 1)
+	assert.Equal(t, "Config", results[0].FunctionName)
+	assert.Equal(t, domain.AnalysisScopeClass, results[0].ScopeKind)
+	require.NotEmpty(t, results[0].Findings)
+	for _, finding := range results[0].Findings {
+		assert.Equal(t, domain.AnalysisScopeClass, finding.ScopeKind)
+		assert.Equal(t, "Config", finding.FunctionName)
+	}
 }
 
 func TestMergeContiguousFindings(t *testing.T) {

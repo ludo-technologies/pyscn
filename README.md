@@ -45,7 +45,7 @@ pyscn looks at your code from five angles:
 
 - 🧹 **Dead code** - unreachable code you can safely delete
 - 📋 **Duplicate code** - copy-pasted and structurally similar code worth merging (Type 1-4 clone detection)
-- 🌀 **Complexity** - functions that are hard to read and test (cyclomatic and cognitive complexity)
+- 🌀 **Complexity** - functions and executable class suites that are hard to read and test (cyclomatic and cognitive complexity)
 - 🔥 **Module and directory hotspots** - per-file quality and per-directory complexity rollups for prioritizing refactors
 - 🏗️ **Architecture** - circular imports, layer rule violations (clean / layered / hexagonal / MVC presets), and auto-detected module communities that reveal how your code is actually structured
 - 🧩 **Class design** - classes that do too much or depend on too much (CBO coupling, LCOM4 cohesion)

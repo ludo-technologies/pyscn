@@ -77,11 +77,16 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 
 ### 复杂度指标
 
-| 字段                    | 类型    | 说明                                     |
-| ----------------------- | ------- | ---------------------------------------- |
-| `total_functions`       | integer | 分析的函数总数。                         |
-| `average_complexity`    | number  | 平均圈复杂度。无函数时为 `0`。           |
-| `high_complexity_count` | integer | 复杂度 > 10（中等阈值）的函数数。       |
+| 字段                                  | 类型    | 说明                                     |
+| ------------------------------------- | ------- | ---------------------------------------- |
+| `total_functions`                     | integer | 分析的函数总数。                         |
+| `total_class_scopes`                  | integer | 分析的类执行作用域总数。                 |
+| `average_complexity`                  | number  | 平均圈复杂度。无函数时为 `0`。           |
+| `high_complexity_count`               | integer | 复杂度 > 10（中等阈值）的函数数。       |
+| `max_class_complexity`                | integer | 类作用域的最大圈复杂度。                 |
+| `max_class_cognitive_complexity`      | integer | 类作用域的最大认知复杂度。               |
+| `max_class_nesting_depth`             | integer | 类作用域的最大嵌套深度。                 |
+| `high_complexity_class_scope_count`   | integer | 被归为高风险的类作用域数。               |
 
 ### 死代码指标
 
@@ -164,6 +169,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 ```json
 {
   "functions": [ /* FunctionComplexity array */ ],
+  "class_scopes": [ /* FunctionComplexity array; omitted when empty */ ],
   "summary": { /* ComplexitySummary */ },
   "raw_metrics": [ /* RawMetrics array, present when computed */ ],
   "raw_metrics_summary": { /* RawMetricsSummary, present when computed */ },
@@ -175,11 +181,12 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 }
 ```
 
-### `functions[]` 元素（`FunctionComplexity`）
+### `functions[]` 和 `class_scopes[]` 元素（`FunctionComplexity`）
 
 | 字段             | 类型      | 说明                                                  |
 | -------------- | ------- | --------------------------------------------------- |
-| `name`         | string  | 函数名。模块级代码为 `__main__`。                              |
+| `name`         | string  | 限定作用域名。模块级代码为 `<module>`。                         |
+| `scope_kind`   | string  | 必需的执行所有者：`module`、`function` 或 `class`。             |
 | `file_path`    | string  | 源文件路径。                                              |
 | `start_line`   | integer | 从 1 开始的起始行。                                         |
 | `start_column` | integer | 从 0 开始的起始列。                                         |
@@ -203,19 +210,29 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 
 ### `summary` 对象（`ComplexitySummary`）
 
-| 字段                        | 类型      | 说明                               |
-| ------------------------- | ------- | -------------------------------- |
-| `total_functions`         | integer | 分析的函数总数。                         |
-| `average_complexity`      | number  | 所有函数 `Complexity` 的算术平均值。        |
-| `max_complexity`          | integer | 观测到的最高复杂度。                       |
-| `min_complexity`          | integer | 观测到的最低复杂度。                       |
-| `files_analyzed`          | integer | 成功解析并计入上述指标的文件数。                 |
-| `total_files`             | integer | 本次请求覆盖的文件数，无论是否解析成功。             |
-| `skipped_files`           | integer | 因无法读取或解析而被丢弃的文件数。其内容不包含在上述任何指标中。 |
-| `low_risk_functions`      | integer | `RiskLevel = low` 的函数数。          |
-| `medium_risk_functions`   | integer | `RiskLevel = medium` 的函数数。       |
-| `high_risk_functions`     | integer | `RiskLevel = high` 的函数数。         |
-| `complexity_distribution` | object  | 按复杂度区间（字符串）到数量（整数）的直方图，或 `null`。 |
+| 字段                               | 类型    | 说明                                                         |
+| ---------------------------------- | ------- | ------------------------------------------------------------ |
+| `total_functions`                  | integer | 分析的模块与函数作用域总数。                                 |
+| `total_class_scopes`               | integer | 分析的可执行类套件总数。                                     |
+| `functions_parsed`                 | integer | 与完整 `total_functions` 总体一致的兼容计数。                |
+| `average_complexity`               | number  | 模块与函数作用域 `complexity` 的算术平均值。                  |
+| `average_cognitive_complexity`     | number  | 模块与函数作用域 `cognitive_complexity` 的算术平均值。        |
+| `average_nesting_depth`            | number  | 模块与函数作用域 `nesting_depth` 的算术平均值。               |
+| `max_complexity`                   | integer | 模块与函数作用域中的最高复杂度。                             |
+| `min_complexity`                   | integer | 模块与函数作用域中的最低复杂度。                             |
+| `max_class_complexity`             | integer | 类套件的最大圈复杂度。                                       |
+| `max_class_cognitive_complexity`   | integer | 类套件的最大认知复杂度。                                     |
+| `max_class_nesting_depth`          | integer | 类套件的最大嵌套深度。                                       |
+| `high_risk_class_scopes`           | integer | 被归为高风险的类套件数。                                     |
+| `files_analyzed`                   | integer | 成功解析并计入上述指标的文件数。                             |
+| `total_files`                      | integer | 本次请求覆盖的文件数，无论是否解析成功。                     |
+| `skipped_files`                    | integer | 因无法读取或解析而被丢弃的文件数。其内容不包含在上述任何指标中。 |
+| `low_risk_functions`               | integer | `risk_level = low` 的模块与函数作用域数。                    |
+| `medium_risk_functions`            | integer | `risk_level = medium` 的模块与函数作用域数。                 |
+| `high_risk_functions`              | integer | `risk_level = high` 的模块与函数作用域数。                   |
+| `complexity_distribution`          | object  | 仅函数的复杂度区间（字符串）到数量（整数）的直方图，或 `null`。 |
+
+类作用域指标是增量指标：添加类作用域不会改变既有函数集合、计数、平均值、极值、分布、模块或目录汇总，也不会改变健康评分。
 
 ### `raw_metrics[]` 元素（`RawMetrics`）
 
@@ -252,32 +269,37 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | 字段                | 类型    | 说明                                   |
 | ------------------- | ------- | -------------------------------------- |
 | `file_path`         | string  | 源文件路径。                           |
-| `functions`         | array   | 每个函数的结果（见下文）。             |
-| `total_findings`    | integer | 此文件中所有函数的发现总数。           |
-| `total_functions`   | integer | 此文件中分析的函数数。                 |
-| `affected_functions`| integer | 至少有一个发现的函数数。               |
-| `dead_code_ratio`   | number  | 死代码块 / 总块数，`0`–`1`。           |
+| `functions`             | array          | 每个函数的结果。既有字段，仅限函数。 |
+| `class_scopes`          | array \| absent | 可执行类套件结果。使用与 `functions` 相同的行模型。 |
+| `total_findings`        | integer        | 此文件中函数和类作用域的发现总数。 |
+| `total_functions`       | integer        | 分析的函数数。既有字段，仅限函数。 |
+| `affected_functions`    | integer        | 至少有一个发现的函数数。既有字段，仅限函数。 |
+| `total_class_scopes`    | integer        | 分析的可执行类套件数。 |
+| `affected_class_scopes` | integer        | 至少有一个发现的可执行类套件数。 |
+| `dead_code_ratio`       | number         | 两个作用域集合中的死代码块 / 总块数，`0`–`1`。 |
 
-### `files[].functions[]` 元素（`FunctionDeadCode`）
+### `files[].functions[]` 和 `files[].class_scopes[]` 元素（`FunctionDeadCode`）
 
 | 字段              | 类型    | 说明                                 |
 | ----------------- | ------- | ------------------------------------ |
-| `name`            | string  | 函数名。                             |
+| `name`            | string  | 函数名或类名。                       |
+| `scope_kind`      | string  | 必需的执行所有者：`functions` 中为 `function`，`class_scopes` 中为 `class`。 |
 | `file_path`       | string  | 源文件路径。                         |
-| `findings`        | array   | 此函数中的发现（见下文）。           |
-| `total_blocks`    | integer | 函数中的 CFG 块总数。                |
+| `findings`        | array   | 此执行作用域中的发现（见下文）。     |
+| `total_blocks`    | integer | 此作用域中的 CFG 块总数。            |
 | `dead_blocks`     | integer | 不可达的 CFG 块数。                  |
 | `reachable_ratio` | number  | `(total_blocks - dead_blocks) / total_blocks`，`0`–`1`。 |
 | `critical_count`  | integer | 严重性为 `critical` 的发现数。       |
 | `warning_count`   | integer | 严重性为 `warning` 的发现数。        |
 | `info_count`      | integer | 严重性为 `info` 的发现数。           |
 
-### `files[].functions[].findings[]` 元素（`DeadCodeFinding`）
+### `findings[]` 元素（`DeadCodeFinding`）
 
 | 字段            | 类型    | 说明                                                  |
 | --------------- | ------- | ----------------------------------------------------- |
 | `location`      | object  | 见 [`DeadCodeLocation`](#deadcodelocation-object)。   |
-| `function_name` | string  | 所在函数名。                                          |
+| `function_name` | string  | 所在执行作用域名（历史字段名）。                      |
+| `scope_kind`    | string  | 必需的执行所有者：`function` 或 `class`。             |
 | `code`          | string  | 死代码片段。                                          |
 | `reason`        | string  | 分类 — 见下方枚举。                                   |
 | `severity`      | string  | 取值：`critical`、`warning`、`info`。                 |
@@ -311,15 +333,17 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | -------------------------- | ------- | ---------------------------------------- |
 | `total_files`              | integer | 分析的文件数。                           |
 | `total_functions`          | integer | 分析的函数数。                           |
-| `total_findings`           | integer | 所有文件的发现总数。                     |
+| `total_findings`           | integer | 所有文件中函数和类作用域的发现总数。     |
 | `files_with_dead_code`     | integer | 至少有一个发现的文件数。                 |
 | `functions_with_dead_code` | integer | 至少有一个发现的函数数。                 |
+| `total_class_scopes`       | integer | 分析的可执行类套件数。                   |
+| `class_scopes_with_dead_code` | integer | 至少有一个发现的可执行类套件数。      |
 | `critical_findings`        | integer | 严重性为 `critical` 的发现数。           |
 | `warning_findings`         | integer | 严重性为 `warning` 的发现数。            |
 | `info_findings`            | integer | 严重性为 `info` 的发现数。               |
 | `findings_by_reason`       | object \| null | 按 `reason` 值分组的直方图。       |
-| `total_blocks`             | integer | 所有函数的 CFG 块总数。                  |
-| `dead_blocks`              | integer | 所有函数中不可达的 CFG 块数。            |
+| `total_blocks`             | integer | 函数和类作用域的 CFG 块总数。            |
+| `dead_blocks`              | integer | 两个集合中不可达的 CFG 块总数。          |
 | `overall_dead_ratio`       | number  | `dead_blocks / total_blocks`，`0`–`1`。  |
 
 ## `clone` 对象

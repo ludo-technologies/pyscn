@@ -48,9 +48,10 @@ const (
 
 // DeadCodeFinding represents a single dead code detection result
 type DeadCodeFinding struct {
-	// Function information
-	FunctionName string `json:"function_name"`
-	FilePath     string `json:"file_path"`
+	// Execution-scope information
+	FunctionName string                   `json:"function_name"`
+	ScopeKind    domain.AnalysisScopeKind `json:"scope_kind"`
+	FilePath     string                   `json:"file_path"`
 
 	// Location information
 	StartLine int `json:"start_line"`
@@ -69,9 +70,10 @@ type DeadCodeFinding struct {
 
 // DeadCodeResult contains the results of dead code analysis for a single CFG
 type DeadCodeResult struct {
-	// Function information
-	FunctionName string `json:"function_name"`
-	FilePath     string `json:"file_path"`
+	// Execution-scope information
+	FunctionName string                   `json:"function_name"`
+	ScopeKind    domain.AnalysisScopeKind `json:"scope_kind"`
+	FilePath     string                   `json:"file_path"`
 
 	// Analysis results
 	Findings       []*DeadCodeFinding `json:"findings"`
@@ -87,21 +89,25 @@ type DeadCodeResult struct {
 type DeadCodeDetector struct {
 	cfg      *CFG
 	filePath string // File path for context in findings
+	scope    CFGScope
 }
 
-// NewDeadCodeDetector creates a new dead code detector for the given CFG
+// NewDeadCodeDetector creates a detector for a function CFG.
 func NewDeadCodeDetector(cfg *CFG) *DeadCodeDetector {
-	return &DeadCodeDetector{
-		cfg:      cfg,
-		filePath: "", // Will be set by caller if needed
-	}
+	return newDeadCodeDetectorForScope(cfg, "", functionCFGScope(cfg))
 }
 
-// NewDeadCodeDetectorWithFilePath creates a new dead code detector with file path context
+// NewDeadCodeDetectorWithFilePath creates a detector for a function CFG with
+// file path context.
 func NewDeadCodeDetectorWithFilePath(cfg *CFG, filePath string) *DeadCodeDetector {
+	return newDeadCodeDetectorForScope(cfg, filePath, functionCFGScope(cfg))
+}
+
+func newDeadCodeDetectorForScope(cfg *CFG, filePath string, scope CFGScope) *DeadCodeDetector {
 	return &DeadCodeDetector{
 		cfg:      cfg,
 		filePath: filePath,
+		scope:    scope,
 	}
 }
 
@@ -111,6 +117,7 @@ func (dcd *DeadCodeDetector) Detect() *DeadCodeResult {
 
 	result := &DeadCodeResult{
 		FunctionName: dcd.getFunctionName(),
+		ScopeKind:    dcd.scope.Kind,
 		FilePath:     dcd.getFilePath(),
 		Findings:     make([]*DeadCodeFinding, 0),
 		TotalBlocks:  0,
@@ -159,31 +166,40 @@ func (dcd *DeadCodeDetector) Detect() *DeadCodeResult {
 
 // DetectInFunction analyzes a single CFG and returns findings
 func DetectInFunction(cfg *CFG) *DeadCodeResult {
-	detector := NewDeadCodeDetector(cfg)
-	return detector.Detect()
+	return detectInScope(cfg, "", functionCFGScope(cfg))
 }
 
 // DetectInFunctionWithFilePath analyzes a single CFG with file path context
 func DetectInFunctionWithFilePath(cfg *CFG, filePath string) *DeadCodeResult {
-	detector := NewDeadCodeDetectorWithFilePath(cfg, filePath)
-	return detector.Detect()
+	return detectInScope(cfg, filePath, functionCFGScope(cfg))
+}
+
+func functionCFGScope(cfg *CFG) CFGScope {
+	name := "unknown"
+	if cfg != nil && cfg.Name != "" {
+		name = cfg.Name
+	}
+	return CFGScope{Kind: domain.AnalysisScopeFunction, Name: name}
+}
+
+// DetectInScopeWithFilePath analyzes one explicitly owned execution scope.
+func DetectInScopeWithFilePath(scopedCFG ScopedCFG, filePath string) *DeadCodeResult {
+	return detectInScope(scopedCFG.Graph, filePath, scopedCFG.Scope)
+}
+
+func detectInScope(cfg *CFG, filePath string, scope CFGScope) *DeadCodeResult {
+	return newDeadCodeDetectorForScope(cfg, filePath, scope).Detect()
 }
 
 // DetectInFile analyzes multiple CFGs from a file and returns combined findings
-func DetectInFile(cfgs map[string]*CFG, filePath string) []*DeadCodeResult {
+func DetectInFile(cfgs ControlFlowGraphs, filePath string) []*DeadCodeResult {
 	var results []*DeadCodeResult
 
-	for functionName, cfg := range cfgs {
-		// Skip the main module CFG for now, focus on functions
-		if functionName == domain.ModuleFunctionName {
+	for _, scopedCFG := range cfgs {
+		if scopedCFG.Scope.Kind != domain.AnalysisScopeFunction && scopedCFG.Scope.Kind != domain.AnalysisScopeClass {
 			continue
 		}
-
-		// Use the file path-aware constructor for accurate reporting
-		detector := NewDeadCodeDetectorWithFilePath(cfg, filePath)
-		result := detector.Detect()
-		result.FunctionName = functionName
-		// FilePath is already set by the detector
+		result := DetectInScopeWithFilePath(scopedCFG, filePath)
 
 		// Only include results that have findings
 		if len(result.Findings) > 0 || result.DeadBlocks > 0 {
@@ -226,6 +242,7 @@ func (dcd *DeadCodeDetector) analyzeCoreDeadBlock(block *BasicBlock, coreReason 
 	// Create a finding for this dead block
 	finding := &DeadCodeFinding{
 		FunctionName: dcd.getFunctionName(),
+		ScopeKind:    dcd.scope.Kind,
 		FilePath:     dcd.getFilePath(),
 		StartLine:    dcd.getBlockStartLine(block),
 		EndLine:      dcd.getBlockEndLine(block),
@@ -407,6 +424,9 @@ func (dcd *DeadCodeDetector) isSequentiallyAfter(predecessor, successor *BasicBl
 
 // getFunctionName extracts the function name from the CFG
 func (dcd *DeadCodeDetector) getFunctionName() string {
+	if dcd.scope.Name != "" {
+		return dcd.scope.Name
+	}
 	if dcd.cfg == nil || dcd.cfg.Name == "" {
 		return "unknown"
 	}

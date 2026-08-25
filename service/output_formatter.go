@@ -63,12 +63,16 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 	// Summary counts describe the complete population used by aggregate metrics.
 	stats := map[string]interface{}{
 		"Total Functions": formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed),
+		"Class Scopes":    response.Summary.TotalClassScopes,
 		"Files Analyzed":  response.Summary.FilesAnalyzed,
 	}
 	if response.Summary.TotalFunctions > 0 {
 		stats["Average Complexity"] = fmt.Sprintf("%.1f", response.Summary.AverageComplexity)
 		stats["Max Complexity"] = response.Summary.MaxComplexity
 		stats["Min Complexity"] = response.Summary.MinComplexity
+	}
+	if response.Summary.TotalClassScopes > 0 {
+		stats["Max Class Complexity"] = response.Summary.MaxClassComplexity
 	}
 	builder.WriteString(utils.FormatSummaryStats(stats))
 
@@ -107,35 +111,8 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 		}
 	}
 
-	// Function Details
-	if len(response.Functions) > 0 {
-		builder.WriteString(utils.FormatSectionHeader("FUNCTION DETAILS"))
-		builder.WriteString(utils.FormatTableHeader("Function", "Complexity", "Cognitive", "SLOC", "Risk"))
-
-		for _, function := range response.Functions {
-			// Convert domain risk level to standard risk level
-			var standardRisk RiskLevel
-			switch function.RiskLevel {
-			case "High":
-				standardRisk = RiskHigh
-			case "Medium":
-				standardRisk = RiskMedium
-			case "Low":
-				standardRisk = RiskLow
-			default:
-				standardRisk = RiskLow
-			}
-
-			coloredRisk := utils.FormatRiskWithColor(standardRisk)
-			builder.WriteString(fmt.Sprintf("%-30s %10d %10d %10d  %s\n",
-				function.Name,
-				function.Metrics.Complexity,
-				function.Metrics.CognitiveComplexity,
-				function.Metrics.SLOC,
-				coloredRisk))
-		}
-		builder.WriteString(utils.FormatSectionSeparator())
-	}
+	writeComplexityScopeDetails(&builder, utils, "FUNCTION DETAILS", response.Functions)
+	writeComplexityScopeDetails(&builder, utils, "CLASS SCOPE DETAILS", response.ClassScopes)
 
 	// Warnings
 	if len(response.Warnings) > 0 {
@@ -160,6 +137,38 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 	return builder.String(), nil
 }
 
+func writeComplexityScopeDetails(builder *strings.Builder, utils *FormatUtils, title string, scopes []domain.FunctionComplexity) {
+	if len(scopes) == 0 {
+		return
+	}
+
+	builder.WriteString(utils.FormatSectionHeader(title))
+	builder.WriteString(utils.FormatTableHeader("Scope", "Complexity", "Cognitive", "SLOC", "Risk"))
+
+	for _, scope := range scopes {
+		var standardRisk RiskLevel
+		switch scope.RiskLevel {
+		case domain.RiskLevelHigh:
+			standardRisk = RiskHigh
+		case domain.RiskLevelMedium:
+			standardRisk = RiskMedium
+		case domain.RiskLevelLow:
+			standardRisk = RiskLow
+		default:
+			standardRisk = RiskLow
+		}
+
+		coloredRisk := utils.FormatRiskWithColor(standardRisk)
+		builder.WriteString(fmt.Sprintf("%-30s %10d %10d %10d  %s\n",
+			fmt.Sprintf("%s (%s)", scope.Name, scope.ScopeKind),
+			scope.Metrics.Complexity,
+			scope.Metrics.CognitiveComplexity,
+			scope.Metrics.SLOC,
+			coloredRisk))
+	}
+	builder.WriteString(utils.FormatSectionSeparator())
+}
+
 // formatJSON formats the response as JSON
 func (f *OutputFormatterImpl) formatJSON(response *domain.ComplexityResponse) (string, error) {
 	// Create a JSON-friendly structure
@@ -176,18 +185,26 @@ func (f *OutputFormatterImpl) formatYAML(response *domain.ComplexityResponse) (s
 
 // formatCSV formats the response as CSV
 func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (string, error) {
+	if response.Request == nil {
+		return "", domain.NewOutputError("complexity request is missing from response", nil)
+	}
+	scopes, err := response.ReportedScopes(response.Request.SortBy)
+	if err != nil {
+		return "", domain.NewOutputError("failed to order complexity scopes", err)
+	}
+
 	var builder strings.Builder
 	writer := csv.NewWriter(&builder)
 
-	// Write header. SLOC is appended last so the existing column positions
-	// stay valid for anything already parsing this output.
-	header := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers", "SLOC"}
+	// Append new columns so existing positions remain stable for CSV consumers.
+	header := []string{"Function", "Complexity", "Cognitive Complexity", "Risk", "Nodes", "Edges", "Nesting Depth", "If Statements", "Loop Statements", "Exception Handlers", "SLOC", "Scope Kind"}
 	if err := writer.Write(header); err != nil {
 		return "", domain.NewOutputError("failed to write CSV header", err)
 	}
 
-	// Write data rows
-	for _, function := range response.Functions {
+	// Write all reported executable scopes. The appended kind column keeps the
+	// established function columns stable while making class rows unambiguous.
+	for _, function := range scopes {
 		row := []string{
 			function.Name,
 			fmt.Sprintf("%d", function.Metrics.Complexity),
@@ -200,6 +217,7 @@ func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (st
 			fmt.Sprintf("%d", function.Metrics.LoopStatements),
 			fmt.Sprintf("%d", function.Metrics.ExceptionHandlers),
 			fmt.Sprintf("%d", function.Metrics.SLOC),
+			string(function.ScopeKind),
 		}
 		if err := writer.Write(row); err != nil {
 			return "", domain.NewOutputError("failed to write CSV row", err)
@@ -216,25 +234,7 @@ func (f *OutputFormatterImpl) formatCSV(response *domain.ComplexityResponse) (st
 
 // createJSONResponse creates a JSON/YAML-friendly response structure
 func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResponse) map[string]interface{} {
-	// Convert domain types to serializable types
-	functions := make([]map[string]interface{}, len(response.Functions))
-	for i, function := range response.Functions {
-		functions[i] = map[string]interface{}{
-			"complexity":           function.Metrics.Complexity,
-			"cognitive_complexity": function.Metrics.CognitiveComplexity,
-			"function_name":        function.Name,
-			"file_path":            function.FilePath,
-			"risk_level":           string(function.RiskLevel),
-			"sloc":                 function.Metrics.SLOC,
-			"nodes":                function.Metrics.Nodes,
-			"edges":                function.Metrics.Edges,
-			"nesting_depth":        function.Metrics.NestingDepth,
-			"if_statements":        function.Metrics.IfStatements,
-			"loop_statements":      function.Metrics.LoopStatements,
-			"exception_handlers":   function.Metrics.ExceptionHandlers,
-			"switch_cases":         function.Metrics.SwitchCases,
-		}
-	}
+	functions := serializeComplexityScopes(response.Functions)
 
 	// Create risk distribution map
 	riskDistribution := map[string]int{
@@ -247,11 +247,16 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 	// Both function counts describe the complete population used by aggregate metrics;
 	// presentation filters only limit the top-level functions list.
 	summary := map[string]interface{}{
-		"total_functions":         response.Summary.TotalFunctions,
-		"functions_parsed":        response.Summary.FunctionsParsed,
-		"files_analyzed":          response.Summary.FilesAnalyzed,
-		"risk_distribution":       riskDistribution,
-		"complexity_distribution": response.Summary.ComplexityDistribution,
+		"total_functions":                response.Summary.TotalFunctions,
+		"total_class_scopes":             response.Summary.TotalClassScopes,
+		"max_class_complexity":           response.Summary.MaxClassComplexity,
+		"max_class_cognitive_complexity": response.Summary.MaxClassCognitiveComplexity,
+		"max_class_nesting_depth":        response.Summary.MaxClassNestingDepth,
+		"high_risk_class_scopes":         response.Summary.HighRiskClassScopes,
+		"functions_parsed":               response.Summary.FunctionsParsed,
+		"files_analyzed":                 response.Summary.FilesAnalyzed,
+		"risk_distribution":              riskDistribution,
+		"complexity_distribution":        response.Summary.ComplexityDistribution,
 	}
 
 	if response.Summary.TotalFunctions > 0 {
@@ -276,6 +281,9 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 		"results":      functions,
 		"by_directory": response.ByDirectory,
 		"metadata":     metadata,
+	}
+	if len(response.ClassScopes) > 0 {
+		result["class_scopes"] = serializeComplexityScopes(response.ClassScopes)
 	}
 
 	if response.RawMetricsSummary != nil {
@@ -319,6 +327,29 @@ func (f *OutputFormatterImpl) createJSONResponse(response *domain.ComplexityResp
 	return result
 }
 
+func serializeComplexityScopes(scopes []domain.FunctionComplexity) []map[string]interface{} {
+	rows := make([]map[string]interface{}, len(scopes))
+	for i, scope := range scopes {
+		rows[i] = map[string]interface{}{
+			"complexity":           scope.Metrics.Complexity,
+			"cognitive_complexity": scope.Metrics.CognitiveComplexity,
+			"function_name":        scope.Name,
+			"scope_kind":           string(scope.ScopeKind),
+			"file_path":            scope.FilePath,
+			"risk_level":           string(scope.RiskLevel),
+			"sloc":                 scope.Metrics.SLOC,
+			"nodes":                scope.Metrics.Nodes,
+			"edges":                scope.Metrics.Edges,
+			"nesting_depth":        scope.Metrics.NestingDepth,
+			"if_statements":        scope.Metrics.IfStatements,
+			"loop_statements":      scope.Metrics.LoopStatements,
+			"exception_handlers":   scope.Metrics.ExceptionHandlers,
+			"switch_cases":         scope.Metrics.SwitchCases,
+		}
+	}
+	return rows
+}
+
 // FormatSummaryOnly formats only the summary information
 func (f *OutputFormatterImpl) FormatSummaryOnly(response *domain.ComplexityResponse, format domain.OutputFormat) (string, error) {
 	switch format {
@@ -340,6 +371,7 @@ func (f *OutputFormatterImpl) formatSummaryText(response *domain.ComplexityRespo
 
 	builder.WriteString("Summary:\n")
 	builder.WriteString(fmt.Sprintf("  Total Functions: %s\n", formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed)))
+	builder.WriteString(fmt.Sprintf("  Class Scopes: %d\n", response.Summary.TotalClassScopes))
 	if response.Summary.TotalFunctions > 0 {
 		builder.WriteString(fmt.Sprintf("  Average Complexity: %.2f\n", response.Summary.AverageComplexity))
 		builder.WriteString(fmt.Sprintf("  Max Complexity: %d\n", response.Summary.MaxComplexity))

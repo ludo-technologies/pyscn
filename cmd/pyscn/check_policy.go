@@ -84,9 +84,13 @@ func (c *CheckCommand) reportProjectDiagnostics(writer io.Writer, diagnostics []
 	return newAnalysisError(fmt.Errorf("%d file(s) could not be read", len(blocking)))
 }
 
-func (c *CheckCommand) countComplexityIssues(cmd *cobra.Command, response *domain.ComplexityResponse) int {
+func (c *CheckCommand) countComplexityIssues(cmd *cobra.Command, response *domain.ComplexityResponse) (int, error) {
 	if response == nil {
-		return 0
+		return 0, nil
+	}
+	analyzedScopes, err := response.AnalyzedScopes()
+	if err != nil {
+		return 0, fmt.Errorf("invalid complexity analysis result: %w", err)
 	}
 
 	maxComplexity := c.maxComplexity
@@ -99,12 +103,12 @@ func (c *CheckCommand) countComplexityIssues(cmd *cobra.Command, response *domai
 	}
 
 	issueCount := 0
-	for _, function := range response.AnalyzedFunctions {
+	for _, function := range domain.SortComplexityScopes(analyzedScopes) {
 		if function.Metrics.Complexity > maxComplexity {
 			issueCount++
 			if !c.quiet {
 				fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s is too complex (%d > %d)\n",
-					function.FilePath, function.StartLine, function.StartColumn+1, function.Name, function.Metrics.Complexity, maxComplexity)
+					function.FilePath, function.StartLine, function.StartColumn+1, function.ScopeLabel(), function.Metrics.Complexity, maxComplexity)
 			}
 		}
 		if function.ExceedsSLOC(slocThreshold) {
@@ -115,7 +119,7 @@ func (c *CheckCommand) countComplexityIssues(cmd *cobra.Command, response *domai
 			}
 		}
 	}
-	return issueCount
+	return issueCount, nil
 }
 
 func (c *CheckCommand) countDeadCodeIssues(cmd *cobra.Command, response *domain.DeadCodeResponse) int {

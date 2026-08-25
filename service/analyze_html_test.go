@@ -60,6 +60,45 @@ func TestWriteAnalyzeHTML_ComplexityOnly(t *testing.T) {
 	assert.Contains(t, html, "Complexity scores 100/100 across 1 file.")
 }
 
+func TestWriteAnalyzeHTML_ClassExecutionScopesRemainAdditive(t *testing.T) {
+	response := &domain.AnalyzeResponse{
+		Summary: domain.AnalyzeSummary{
+			ComplexityEnabled:             true,
+			ComplexityScore:               100,
+			HealthScore:                   100,
+			Grade:                         "A",
+			TotalClassScopes:              1,
+			HighComplexityClassScopeCount: 1,
+		},
+		Complexity: &domain.ComplexityResponse{
+			ClassScopes: []domain.FunctionComplexity{{
+				Name:      "Config",
+				ScopeKind: domain.AnalysisScopeClass,
+				FilePath:  "/repo/app/config.py",
+				StartLine: 2,
+				RiskLevel: domain.RiskLevelHigh,
+				Metrics:   domain.ComplexityMetrics{Complexity: 12, CognitiveComplexity: 9, NestingDepth: 2},
+			}},
+			Summary: domain.ComplexitySummary{
+				TotalClassScopes:            1,
+				MaxClassComplexity:          12,
+				MaxClassCognitiveComplexity: 9,
+				MaxClassNestingDepth:        2,
+				HighRiskClassScopes:         1,
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	require.NoError(t, writeAnalyzeHTML(response, &buf))
+	html := buf.String()
+	assert.Contains(t, html, `data-tab="functions"`)
+	assert.Contains(t, html, "Class execution scopes")
+	assert.Contains(t, html, "Config")
+	assert.Contains(t, html, "/repo/app/config.py:2")
+	assert.Contains(t, html, "/repo/app")
+}
+
 func TestBuildReportVerdict_NamesWeakDimensions(t *testing.T) {
 	response := &domain.AnalyzeResponse{Summary: domain.AnalyzeSummary{
 		ComplexityEnabled: true, ComplexityScore: 100,

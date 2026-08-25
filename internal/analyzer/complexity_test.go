@@ -272,7 +272,7 @@ print(count)
 		t.Fatalf("Failed to build CFGs: %v", err)
 	}
 
-	mainCFG, ok := cfgs[domain.ModuleFunctionName]
+	mainCFG, ok := findCFG(cfgs, domain.ModuleFunctionName)
 	if !ok {
 		t.Fatalf("Expected %q CFG to be present", domain.ModuleFunctionName)
 	}
@@ -310,10 +310,10 @@ for path in os.listdir("."):
 		t.Fatalf("Failed to build CFGs: %v", err)
 	}
 
-	if _, ok := cfgs["__main__"]; ok {
+	if _, ok := findCFG(cfgs, "__main__"); ok {
 		t.Errorf("Module CFG must not be keyed as %q (user-facing leak); expected %q", "__main__", domain.ModuleFunctionName)
 	}
-	mainCFG, ok := cfgs[domain.ModuleFunctionName]
+	mainCFG, ok := findCFG(cfgs, domain.ModuleFunctionName)
 	if !ok {
 		t.Fatalf("Expected module CFG keyed as %q", domain.ModuleFunctionName)
 	}
@@ -324,6 +324,76 @@ for path in os.listdir("."):
 	res := CalculateComplexity(mainCFG)
 	if res.FunctionName != domain.ModuleFunctionName {
 		t.Errorf("ComplexityResult.FunctionName = %q, want %q", res.FunctionName, domain.ModuleFunctionName)
+	}
+}
+
+func TestCalculateComplexity_ClassSuiteOwnsControlFlow(t *testing.T) {
+	source := `
+class Config:
+    if sys.version_info >= (3, 11):
+        BACKEND = "fast"
+    elif sys.version_info >= (3, 9):
+        BACKEND = "medium"
+    else:
+        BACKEND = "slow"
+
+    for name in ("a", "b", "c"):
+        locals()[name.upper()] = name
+`
+
+	ast := parseSource(t, source)
+	cfgs, err := NewCFGBuilder().BuildAll(ast)
+	if err != nil {
+		t.Fatalf("Failed to build CFGs: %v", err)
+	}
+
+	moduleResult := CalculateComplexity(requireScopedCFG(t, cfgs, domain.AnalysisScopeModule, domain.ModuleFunctionName))
+	if moduleResult.Complexity != 1 || moduleResult.CognitiveComplexity != 0 {
+		t.Fatalf("module complexity = %d/%d, want 1/0", moduleResult.Complexity, moduleResult.CognitiveComplexity)
+	}
+	if moduleResult.IfStatements != 0 || moduleResult.LoopStatements != 0 || moduleResult.NestingDepth != 0 {
+		t.Fatalf("module retained class-suite metrics: %+v", moduleResult)
+	}
+
+	classResult := CalculateComplexity(requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Config"))
+	if classResult.Complexity != 4 {
+		t.Fatalf("class cyclomatic complexity = %d, want 4", classResult.Complexity)
+	}
+	if classResult.CognitiveComplexity != 4 {
+		t.Fatalf("class cognitive complexity = %d, want 4", classResult.CognitiveComplexity)
+	}
+	if classResult.IfStatements != 2 || classResult.LoopStatements != 1 {
+		t.Fatalf("class statement metrics = if:%d loop:%d, want 2/1", classResult.IfStatements, classResult.LoopStatements)
+	}
+	if classResult.NestingDepth != 2 {
+		t.Fatalf("class nesting depth = %d, want 2", classResult.NestingDepth)
+	}
+}
+
+func TestCalculateComplexity_NestedClassScopesDoNotLeak(t *testing.T) {
+	source := `
+class Event:
+    class Meta:
+        if enabled:
+            indexes = ["created_at"]
+        else:
+            indexes = []
+`
+
+	ast := parseSource(t, source)
+	cfgs, err := NewCFGBuilder().BuildAll(ast)
+	if err != nil {
+		t.Fatalf("Failed to build CFGs: %v", err)
+	}
+
+	event := CalculateComplexity(requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Event"))
+	if event.Complexity != 1 || event.CognitiveComplexity != 0 || event.NestingDepth != 0 {
+		t.Fatalf("outer class retained nested Meta metrics: %+v", event)
+	}
+
+	meta := CalculateComplexity(requireScopedCFG(t, cfgs, domain.AnalysisScopeClass, "Event.Meta"))
+	if meta.Complexity != 2 || meta.CognitiveComplexity != 2 || meta.IfStatements != 1 || meta.NestingDepth != 1 {
+		t.Fatalf("Meta metrics = %+v, want cyclomatic=2 cognitive=2 if=1 nesting=1", meta)
 	}
 }
 
@@ -465,7 +535,7 @@ func calculateFunctionComplexityForSource(t *testing.T, source, functionName str
 		t.Fatalf("Failed to build CFGs: %v", err)
 	}
 
-	cfg, ok := cfgs[functionName]
+	cfg, ok := findCFG(cfgs, functionName)
 	if !ok {
 		t.Fatalf("Expected CFG for %q", functionName)
 	}
