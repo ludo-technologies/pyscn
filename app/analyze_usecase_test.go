@@ -351,7 +351,7 @@ func TestAnalyzeUseCase_Execute_SystemGraphExcludesUnparsedFiles(t *testing.T) {
 	}
 }
 
-func TestAnalyzeUseCase_Execute_CoverageIncludesRequestedModuleSurface(t *testing.T) {
+func TestAnalyzeUseCase_Execute_CoverageExcludesStubOnlyModuleSurface(t *testing.T) {
 	projectDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(projectDir, "runtime.py"), []byte("def runtime():\n    return 1\n"), 0o644); err != nil {
 		t.Fatalf("write runtime source: %v", err)
@@ -395,12 +395,12 @@ func TestAnalyzeUseCase_Execute_CoverageIncludesRequestedModuleSurface(t *testin
 	if !reflect.DeepEqual(complexityCoverage, []int{1, 1, 0}) {
 		t.Fatalf("expected implementation-only coverage, got %v", complexityCoverage)
 	}
-	if len(dependenciesOnly.Diagnostics) != 1 || dependenciesOnly.Diagnostics[0].Code != domain.DiagnosticCodeParse {
-		t.Fatalf("expected broken stub diagnostic, got %+v", dependenciesOnly.Diagnostics)
+	if len(dependenciesOnly.Diagnostics) != 0 {
+		t.Fatalf("stub-only module diagnostics must not enter quality coverage, got %+v", dependenciesOnly.Diagnostics)
 	}
 	dependencyCoverage := []int{dependenciesOnly.Summary.TotalFiles, dependenciesOnly.Summary.AnalyzedFiles, dependenciesOnly.Summary.SkippedFiles}
-	if !reflect.DeepEqual(dependencyCoverage, []int{2, 1, 1}) {
-		t.Fatalf("expected dependency coverage to include the stub surface, got %v", dependencyCoverage)
+	if !reflect.DeepEqual(dependencyCoverage, []int{1, 1, 0}) {
+		t.Fatalf("expected dependency coverage to retain the implementation surface, got %v", dependencyCoverage)
 	}
 }
 
@@ -456,8 +456,8 @@ enable_architecture = false
 	if err != nil {
 		t.Fatalf("execute configured system analysis: %v", err)
 	}
-	if response.Summary.TotalFiles != 2 || response.Summary.AnalyzedFiles != 2 || response.Summary.SkippedFiles != 0 {
-		t.Fatalf("expected coverage for the selected module surface, got %+v", response.Summary)
+	if response.Summary.TotalFiles != 1 || response.Summary.AnalyzedFiles != 1 || response.Summary.SkippedFiles != 0 {
+		t.Fatalf("expected quality coverage for the implementation surface, got %+v", response.Summary)
 	}
 	if response.System == nil || response.System.DependencyAnalysis == nil {
 		t.Fatalf("expected dependency analysis, got %+v", response.System)

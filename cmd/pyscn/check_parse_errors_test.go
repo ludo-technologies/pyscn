@@ -343,6 +343,32 @@ func TestCheckSelectDependenciesIncludesStubModules(t *testing.T) {
 	}
 }
 
+func TestCheckSelectDependenciesIgnoresStubOnlyParseDiagnostics(t *testing.T) {
+	projectDir := t.TempDir()
+	files := map[string]string{
+		"runtime.py": "VALUE = 1\n",
+		"broken.pyi": "def broken(:\n",
+	}
+	for name, source := range files {
+		if err := os.WriteFile(filepath.Join(projectDir, name), []byte(source), 0o644); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
+	}
+
+	checkCmd := NewCheckCommand()
+	cobraCmd := checkCmd.CreateCobraCommand()
+	var stderr bytes.Buffer
+	cobraCmd.SetErr(&stderr)
+	cobraCmd.SetArgs([]string{"--select", "deps", projectDir})
+
+	if err := cobraCmd.Execute(); err != nil {
+		t.Fatalf("stub-only parse diagnostics must not fail the implementation gate: %v\n%s", err, stderr.String())
+	}
+	if strings.Contains(stderr.String(), "broken.pyi") {
+		t.Fatalf("stub-only diagnostics must not be reported by the quality gate: %s", stderr.String())
+	}
+}
+
 func TestCheckReportsTypedAnalyzerFailures(t *testing.T) {
 	checkCmd := NewCheckCommand()
 	var output bytes.Buffer
