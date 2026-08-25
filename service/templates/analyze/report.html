@@ -92,6 +92,30 @@
       </div>
       {{end}}
 
+      {{if .Diagnostics}}
+      <div class="card">
+        <div class="card-h"><h2>Analysis diagnostics</h2><span class="pill warn">{{len .Diagnostics}}</span></div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>File</th><th>Code</th><th>Message</th></tr></thead>
+            <tbody>{{range .Diagnostics}}<tr><td class="mono">{{.FilePath}}</td><td class="mono">{{.Code}}</td><td>{{.Message}}</td></tr>{{end}}</tbody>
+          </table>
+        </div>
+      </div>
+      {{end}}
+
+      {{if .Failures}}
+      <div class="card">
+        <div class="card-h"><h2>Analysis failures</h2><span class="pill bad">{{len .Failures}}</span></div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Analysis</th><th>File</th><th>Code</th><th>Message</th></tr></thead>
+            <tbody>{{range .Failures}}<tr><td>{{.Analysis}}</td><td class="mono">{{.FilePath}}</td><td class="mono">{{.Code}}</td><td>{{.Message}}</td></tr>{{end}}</tbody>
+          </table>
+        </div>
+      </div>
+      {{end}}
+
       {{if .Hotspots}}
       <div class="card">
         <div class="card-h"><h2>Hotspot files</h2><a href="#functions" data-goto="functions">All {{len .ModuleQuality}} modules</a></div>

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -128,7 +127,7 @@ Examples:
 	// Override flags for quick adjustments
 	cmd.Flags().IntVar(&c.maxComplexity, "max-complexity", 10, "Maximum allowed complexity")
 	cmd.Flags().BoolVar(&c.allowDeadCode, "allow-dead-code", false, "Allow dead code (don't fail)")
-	cmd.Flags().BoolVar(&c.allowParseErrors, "allow-parse-errors", false, "Allow files that cannot be parsed (report them but don't fail)")
+	cmd.Flags().BoolVar(&c.allowParseErrors, "allow-parse-errors", false, "Allow parse errors; file read errors still fail")
 	cmd.Flags().BoolVar(&c.skipClones, "skip-clones", false, "Skip clone detection")
 	cmd.Flags().BoolVar(&c.allowCircularDeps, "allow-circular-deps", false, "Allow circular dependencies (warnings only)")
 	cmd.Flags().IntVar(&c.maxCycles, "max-cycles", 0, "Maximum allowed circular dependency cycles before failing")
@@ -181,63 +180,37 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(cmd.ErrOrStderr(), "🔍 Running quality check (%s)...\n", strings.Join(c.getEnabledAnalyses(skipComplexity, skipDeadCode, skipClones, skipDeps, skipMockdata, skipDI), ", "))
 	}
 
-	// Run complexity check if enabled
-	if !skipComplexity {
-		complexityIssues, err := c.checkComplexity(cmd, args)
-		if err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Complexity analysis failed: %v\n", err)
+	response, snapshot, analysisErr := c.runCoreAnalysis(cmd, args, skipComplexity, skipDeadCode, skipClones, skipDeps)
+	if response != nil {
+		if err := c.reportProjectDiagnostics(cmd.ErrOrStderr(), response.Diagnostics); err != nil {
 			hasErrors = true
-		} else {
-			issueCount += complexityIssues
 		}
-	}
 
-	// Run dead code check if enabled
-	if !skipDeadCode {
-		deadCodeIssues, err := c.checkDeadCode(cmd, args)
-		if err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Dead code analysis failed: %v\n", err)
-			hasErrors = true
-		} else {
-			// Only count dead code issues if not explicitly allowed
+		if !skipComplexity {
+			complexityIssues, err := c.countComplexityIssues(cmd, response.Complexity)
+			if err != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "❌ Complexity check failed: %v\n", err)
+				hasErrors = true
+			} else {
+				issueCount += complexityIssues
+			}
+		}
+		if !skipDeadCode {
+			deadCodeIssues := c.countDeadCodeIssues(cmd, response.DeadCode)
 			if !c.allowDeadCode {
 				issueCount += deadCodeIssues
 			} else if deadCodeIssues > 0 && !c.quiet {
 				fmt.Fprintf(cmd.ErrOrStderr(), "Found %d dead code issue(s) (ignored due to --allow-dead-code)\n", deadCodeIssues)
 			}
 		}
-	}
-
-	// Run clone check if enabled
-	if !skipClones {
-		cloneIssues, err := c.checkClones(cmd, args)
-		if err != nil {
-			// Clone detection failing on its own is informational, but a file
-			// that could not be read or parsed is a problem with the input,
-			// not with the detector, and must fail the gate like everywhere
-			// else. Only the latter arrives as an analysisError.
-			var analysisErr *analysisError
-			if errors.As(err, &analysisErr) {
-				fmt.Fprintf(cmd.ErrOrStderr(), "❌ Clone detection failed: %v\n", err)
-				hasErrors = true
-			} else {
-				fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Clone detection failed: %v\n", err)
-			}
-		} else if cloneIssues > 0 {
-			if !c.quiet {
+		if !skipClones {
+			cloneIssues := c.countCloneIssues(cmd, response.Clone)
+			if cloneIssues > 0 && !c.quiet {
 				fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Found %d code clone(s) (informational)\n", cloneIssues)
 			}
 		}
-	}
-
-	// Run circular dependency check if enabled
-	if !skipDeps {
-		depsIssues, err := c.checkCircularDependencies(cmd, args)
-		if err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Circular dependency check failed: %v\n", err)
-			hasErrors = true
-		} else {
-			// Handle max-cycles threshold
+		if !skipDeps {
+			depsIssues := c.countCircularDependencyIssues(cmd, response.System)
 			if depsIssues > c.maxCycles {
 				if !c.allowCircularDeps {
 					issueCount += depsIssues
@@ -245,15 +218,22 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 					fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Found %d circular dependency cycle(s) (allowed by --allow-circular-deps)\n", depsIssues)
 				}
 			} else if depsIssues > 0 && !c.quiet {
-				// Within max-cycles threshold
 				fmt.Fprintf(cmd.ErrOrStderr(), "✓ Found %d circular dependency cycle(s) (within allowed limit of %d)\n", depsIssues, c.maxCycles)
 			}
+		}
+	}
+	if analysisErr != nil {
+		if isInformationalCloneAnalysisError(analysisErr) {
+			fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Clone detection failed: %v\n", analysisErr)
+		} else {
+			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Analysis failed: %v\n", analysisErr)
+			hasErrors = true
 		}
 	}
 
 	// Run mock data check if enabled
 	if !skipMockdata {
-		mockdataIssues, err := c.checkMockdata(cmd, args)
+		mockdataIssues, err := c.checkMockdata(cmd, args, snapshot)
 		if err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Mock data check failed: %v\n", err)
 			hasErrors = true
@@ -264,7 +244,7 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 
 	// Run DI anti-pattern check if enabled
 	if !skipDI {
-		diIssues, err := c.checkDIAntipatterns(cmd, args)
+		diIssues, err := c.checkDIAntipatterns(cmd, args, snapshot)
 		if err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "❌ DI anti-pattern check failed: %v\n", err)
 			hasErrors = true
@@ -292,31 +272,21 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// reportUnanalyzedFiles turns per-file analysis errors into a hard failure.
-//
-// A file that fails to parse contributes no functions, no dead code and no
-// clones, so it passes every threshold below by contributing nothing at all.
-// Left as a warning, the gate would wave through code that does not even
-// import (issue #690). --allow-parse-errors keeps the old reporting-only
-// behaviour for callers that knowingly analyze a mixed-syntax tree.
-func (c *CheckCommand) reportUnanalyzedFiles(writer io.Writer, analysis string, errs []string) error {
-	if len(errs) == 0 {
-		return nil
+func isInformationalCloneAnalysisError(analysisErr error) bool {
+	var failureReporter domain.AnalysisFailureReporter
+	if analysisErr == nil || !errors.As(analysisErr, &failureReporter) {
+		return false
 	}
-
-	if !c.quiet || !c.allowParseErrors {
-		for _, e := range errs {
-			fmt.Fprintf(writer, "%s: %s\n", analysis, e)
+	failures := failureReporter.AnalysisFailures()
+	if len(failures) == 0 {
+		return false
+	}
+	for _, failure := range failures {
+		if failure.Analysis != domain.AnalysisKindClones {
+			return false
 		}
 	}
-
-	if c.allowParseErrors {
-		return nil
-	}
-
-	// Counted as errors, not files: a service is free to report more than one
-	// problem per file, and the listing above is what identifies them.
-	return newAnalysisError(fmt.Errorf("%d analysis error(s), listed above (use --allow-parse-errors to ignore)", len(errs)))
+	return true
 }
 
 func resolveCheckConfig(configPath string, targetPath string) (string, error) {
@@ -420,282 +390,8 @@ func (c *CheckCommand) validateSelectedAnalyses() error {
 	return nil
 }
 
-// checkComplexity runs complexity analysis and returns issue count
-func (c *CheckCommand) checkComplexity(cmd *cobra.Command, args []string) (int, error) {
-	// Create request with check-specific settings
-	// Sparse request: zero values mean "not set" and are filled from the
-	// config file (or defaults) during MergeConfig inside the use case.
-	request := &domain.ComplexityRequest{
-		Paths:        args,
-		OutputFormat: domain.OutputFormatText,
-		OutputWriter: io.Discard,
-		ConfigPath:   c.configFile,
-	}
-
-	// Create use case with services
-	configLoader := service.NewConfigurationLoader()
-	fileReader := service.NewFileReader()
-	complexityService := service.NewComplexityService()
-	outputFormatter := service.NewOutputFormatter()
-
-	useCase := app.NewComplexityUseCase(
-		complexityService,
-		fileReader,
-		outputFormatter,
-		configLoader,
-	)
-
-	ctx := cmd.Context()
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	// Run analysis
-	response, err := useCase.AnalyzeAndReturn(ctx, *request)
-	if err != nil {
-		return 0, err
-	}
-
-	if err := c.reportUnanalyzedFiles(cmd.ErrOrStderr(), "complexity", response.Errors); err != nil {
-		return 0, err
-	}
-
-	// Determine max complexity threshold: CLI flag > config file > default
-	maxComplexity := c.maxComplexity
-	if !cmd.Flags().Changed("max-complexity") && response.Request != nil && response.Request.MaxComplexity > 0 {
-		// CLI flag not explicitly set, use config file value
-		maxComplexity = response.Request.MaxComplexity
-	}
-
-	// Determine the function length gate: config file > default. The critical
-	// tier is the gate so that the warn tier stays a report-only signal.
-	slocThreshold := domain.DefaultFunctionSLOCCriticalThreshold
-	if response.Request != nil && response.Request.FunctionSLOCCriticalThreshold > 0 {
-		slocThreshold = response.Request.FunctionSLOCCriticalThreshold
-	}
-
-	// Count scopes that exceed the maximum complexity threshold, plus functions
-	// that are too long. Length is orthogonal to McCabe, so a flat
-	// 200-line function is an issue on its own and both can fire at once.
-	analyzedScopes, err := response.AnalyzedScopes()
-	if err != nil {
-		return 0, fmt.Errorf("invalid complexity analysis result: %w", err)
-	}
-
-	issueCount := 0
-	for _, function := range domain.SortComplexityScopes(analyzedScopes) {
-		name := function.ScopeLabel()
-		if function.Metrics.Complexity > maxComplexity {
-			issueCount++
-			if !c.quiet {
-				fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s is too complex (%d > %d)\n",
-					function.FilePath, function.StartLine, function.StartColumn+1, name, function.Metrics.Complexity, maxComplexity)
-			}
-		}
-		if function.ExceedsSLOC(slocThreshold) {
-			issueCount++
-			if !c.quiet {
-				fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s is too long (%d SLOC > %d)\n",
-					function.FilePath, function.StartLine, function.StartColumn+1, function.Name, function.Metrics.SLOC, slocThreshold)
-			}
-		}
-	}
-
-	return issueCount, nil
-}
-
-// checkDeadCode runs dead code analysis and returns issue count
-func (c *CheckCommand) checkDeadCode(cmd *cobra.Command, args []string) (int, error) {
-	// Create request with check-specific settings
-	request := &domain.DeadCodeRequest{
-		Paths:        args,
-		OutputFormat: domain.OutputFormatText,
-		OutputWriter: io.Discard,
-		// Critical severity is the check command's quality-gate policy.
-		// All analyzer behavior remains sparse so project config can override defaults.
-		MinSeverity: domain.DeadCodeSeverityCritical,
-		ConfigPath:  c.configFile,
-	}
-
-	// Create use case with services
-	configLoader := service.NewDeadCodeConfigurationLoader()
-	fileReader := service.NewFileReader()
-	deadCodeService := service.NewDeadCodeService()
-	deadCodeFormatter := service.NewDeadCodeFormatter()
-
-	useCase := app.NewDeadCodeUseCase(
-		deadCodeService,
-		fileReader,
-		deadCodeFormatter,
-		configLoader,
-	)
-
-	ctx := cmd.Context()
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	// Run analysis
-	response, err := useCase.AnalyzeAndReturn(ctx, *request)
-	if err != nil {
-		return 0, err
-	}
-
-	if err := c.reportUnanalyzedFiles(cmd.ErrOrStderr(), "deadcode", response.Errors); err != nil {
-		return 0, err
-	}
-
-	// Determine min severity threshold from merged config or default
-	minSeverity := domain.DeadCodeSeverityCritical
-	if response.Request != nil && response.Request.MinSeverity != "" {
-		minSeverity = response.Request.MinSeverity
-	}
-
-	// Count and output dead code findings at or above min severity
-	issueCount := 0
-	for _, file := range response.Files {
-		for _, function := range file.Functions {
-			for _, finding := range function.Findings {
-				if finding.Severity.IsAtLeast(minSeverity) {
-					issueCount++
-					if !c.quiet {
-						fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s (%s)\n",
-							finding.Location.FilePath,
-							finding.Location.StartLine,
-							finding.Location.StartColumn+1,
-							finding.Reason,
-							finding.Severity)
-					}
-				}
-			}
-		}
-	}
-
-	return issueCount, nil
-}
-
-// checkClones runs clone detection and returns issue count
-func (c *CheckCommand) checkClones(cmd *cobra.Command, args []string) (int, error) {
-	// Create request with check-specific settings
-	// All threshold values are sourced from domain/defaults.go
-	// Sparse request: zero values mean "not set" and are filled from the
-	// config file (or defaults) during MergeConfig inside the use case.
-	request := &domain.CloneRequest{
-		Paths:        args,
-		OutputFormat: domain.OutputFormatText,
-		OutputWriter: io.Discard,
-		SortBy:       domain.SortBySimilarity,
-		ConfigPath:   c.configFile,
-	}
-
-	// Create use case with services
-	configLoader := service.NewCloneConfigurationLoader()
-	fileReader := service.NewFileReader()
-	cloneService := service.NewCloneService()
-	cloneFormatter := service.NewCloneOutputFormatter()
-
-	useCase := app.NewCloneUseCase(
-		cloneService,
-		fileReader,
-		cloneFormatter,
-		configLoader,
-	)
-
-	ctx := cmd.Context()
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	// Run analysis
-	response, err := useCase.ExecuteAndReturn(ctx, *request)
-	if err != nil {
-		return 0, err
-	}
-
-	if err := c.reportUnanalyzedFiles(cmd.ErrOrStderr(), "clones", response.Errors); err != nil {
-		return 0, err
-	}
-
-	// Output clone pairs above the similarity threshold
-	issueCount := 0
-	for _, pair := range response.ClonePairs {
-		issueCount++
-		if !c.quiet {
-			fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: clone of %s:%d:%d (similarity: %.1f%%)\n",
-				pair.Clone1.Location.FilePath,
-				pair.Clone1.Location.StartLine,
-				pair.Clone1.Location.StartCol+1,
-				pair.Clone2.Location.FilePath,
-				pair.Clone2.Location.StartLine,
-				pair.Clone2.Location.StartCol+1,
-				pair.Similarity*100)
-		}
-	}
-
-	return issueCount, nil
-}
-
-// checkCircularDependencies runs circular dependency detection and returns issue count
-func (c *CheckCommand) checkCircularDependencies(cmd *cobra.Command, args []string) (int, error) {
-	request := domain.SystemAnalysisRequest{
-		Paths:               args,
-		OutputFormat:        domain.OutputFormatText,
-		OutputWriter:        io.Discard,
-		AnalyzeDependencies: domain.BoolPtr(true),
-		AnalyzeArchitecture: domain.BoolPtr(false),
-		IncludeStdLib:       domain.BoolPtr(false),
-		IncludeThirdParty:   domain.BoolPtr(false),
-		FollowRelative:      domain.BoolPtr(true),
-		ConfigPath:          c.configFile,
-	}
-
-	useCase := app.NewSystemAnalysisUseCase(
-		service.NewSystemAnalysisService(),
-		service.NewFileReader(),
-		service.NewSystemAnalysisFormatter(),
-		service.NewSystemAnalysisConfigurationLoader(),
-	)
-
-	ctx := cmd.Context()
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	result, err := useCase.AnalyzeDependenciesOnly(ctx, request)
-	if err != nil {
-		return 0, err
-	}
-
-	cycles := result.CircularDependencies
-	if cycles == nil || !cycles.HasCircularDependencies {
-		return 0, nil
-	}
-
-	// Output circular dependencies in linter format
-	for _, cycle := range cycles.CircularDependencies {
-		if len(cycle.Modules) == 0 {
-			continue
-		}
-
-		firstModule := cycle.Modules[0]
-		filePath := firstModule
-		if metric, ok := result.ModuleMetrics[firstModule]; ok && metric != nil && metric.FilePath != "" {
-			filePath = metric.FilePath
-		}
-
-		// Format: file:line:col: message
-		cyclePath := strings.Join(cycle.Modules, " -> ")
-		if !c.quiet {
-			fmt.Fprintf(cmd.ErrOrStderr(), "%s:1:1: circular dependency detected: %s\n",
-				filePath, cyclePath)
-		}
-	}
-
-	return cycles.TotalCycles, nil
-}
-
 // checkMockdata runs mock data analysis and returns issue count
-func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, error) {
+func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string, snapshot *service.ProjectSnapshot) (int, error) {
 	// Create request with check-specific settings
 	request := &domain.MockDataRequest{
 		Paths:        args,
@@ -709,23 +405,14 @@ func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, er
 	mockDataFormatter := service.NewMockDataFormatter()
 	mockDataConfigLoader := service.NewMockDataConfigurationLoader()
 
-	// Build use case with defaults
-	useCase, err := app.NewMockDataUseCaseBuilder().
-		WithService(mockDataService).
-		WithFileReader(service.NewFileReader()).
-		WithFormatter(mockDataFormatter).
-		WithConfigLoader(mockDataConfigLoader).
-		Build()
-	if err != nil {
-		return 0, fmt.Errorf("failed to create mock data use case: %w", err)
-	}
+	useCase := app.NewSnapshotMockDataUseCase(mockDataService, service.NewFileReader(), mockDataFormatter, mockDataConfigLoader)
 
 	// Run analysis
-	response, err := useCase.AnalyzeAndReturn(cmd.Context(), *request)
+	response, err := useCase.AnalyzeSnapshotAndReturn(cmd.Context(), snapshot, *request)
 	if err != nil {
 		return 0, err
 	}
-	if err := c.reportUnanalyzedFiles(cmd.ErrOrStderr(), "mockdata", response.Errors); err != nil {
+	if err := c.reportAnalysisFailures(cmd.ErrOrStderr(), response.Failures); err != nil {
 		return 0, err
 	}
 
@@ -752,7 +439,7 @@ func (c *CheckCommand) checkMockdata(cmd *cobra.Command, args []string) (int, er
 }
 
 // checkDIAntipatterns runs DI anti-pattern detection and returns issue count
-func (c *CheckCommand) checkDIAntipatterns(cmd *cobra.Command, args []string) (int, error) {
+func (c *CheckCommand) checkDIAntipatterns(cmd *cobra.Command, args []string, snapshot *service.ProjectSnapshot) (int, error) {
 	// Create request with check-specific settings
 	request := &domain.DIAntipatternRequest{
 		Paths:        args,
@@ -771,31 +458,33 @@ func (c *CheckCommand) checkDIAntipatterns(cmd *cobra.Command, args []string) (i
 	diFormatter := service.NewDIAntipatternFormatter()
 	diConfigLoader := service.NewDIAntipatternConfigurationLoader()
 
-	// Build use case with defaults
-	useCase, err := app.NewDIAntipatternUseCaseBuilder().
-		WithService(diService).
-		WithFileReader(service.NewFileReader()).
-		WithFormatter(diFormatter).
-		WithConfigLoader(diConfigLoader).
-		Build()
-	if err != nil {
-		return 0, fmt.Errorf("failed to create DI anti-pattern use case: %w", err)
-	}
+	useCase := app.NewSnapshotDIAntipatternUseCase(diService, service.NewFileReader(), diFormatter, diConfigLoader)
 
 	// Run analysis
-	response, err := useCase.AnalyzeAndReturn(cmd.Context(), *request)
+	response, err := useCase.AnalyzeSnapshotAndReturn(cmd.Context(), snapshot, *request)
 	if err != nil {
+		return 0, err
+	}
+	if err := c.reportAnalysisFailures(cmd.ErrOrStderr(), response.Failures); err != nil {
 		return 0, err
 	}
 
 	return c.countDIAntipatternIssues(cmd.ErrOrStderr(), response)
 }
 
-func (c *CheckCommand) countDIAntipatternIssues(writer io.Writer, response *domain.DIAntipatternResponse) (int, error) {
-	if err := c.reportUnanalyzedFiles(writer, "di", response.Errors); err != nil {
-		return 0, err
+func (c *CheckCommand) reportAnalysisFailures(writer io.Writer, failures []domain.AnalysisFailure) error {
+	if len(failures) == 0 {
+		return nil
 	}
+	if !c.quiet {
+		for _, failure := range failures {
+			fmt.Fprintf(writer, "%s: %s: %s\n", failure.FilePath, failure.Code, failure.Message)
+		}
+	}
+	return fmt.Errorf("%d analyzer execution failure(s)", len(failures))
+}
 
+func (c *CheckCommand) countDIAntipatternIssues(writer io.Writer, response *domain.DIAntipatternResponse) (int, error) {
 	issueCount := 0
 	for _, finding := range response.Findings {
 		if finding.Severity.IsAtLeast(domain.DIAntipatternSeverityWarning) {

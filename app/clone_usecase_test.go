@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	svc "github.com/ludo-technologies/pyscn/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -20,6 +21,14 @@ type mockCloneService struct {
 
 func (m *mockCloneService) DetectClones(ctx context.Context, req *domain.CloneRequest) (*domain.CloneResponse, error) {
 	args := m.Called(ctx, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.CloneResponse), args.Error(1)
+}
+
+func (m *mockCloneService) AnalyzeSnapshot(ctx context.Context, snapshot *svc.ProjectSnapshot, req *domain.CloneRequest) (*domain.CloneResponse, error) {
+	args := m.Called(ctx, snapshot, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

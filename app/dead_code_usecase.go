@@ -11,9 +11,16 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+// DeadCodeAnalysisService adds canonical snapshot analysis to the standalone dead-code contract.
+type DeadCodeAnalysisService interface {
+	domain.DeadCodeService
+	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.DeadCodeRequest) (*domain.DeadCodeResponse, error)
+}
+
 // DeadCodeUseCase orchestrates the dead code analysis workflow
 type DeadCodeUseCase struct {
 	service      domain.DeadCodeService
+	snapshot     DeadCodeAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.DeadCodeFormatter
 	configLoader domain.DeadCodeConfigurationLoader
@@ -34,6 +41,13 @@ func NewDeadCodeUseCase(
 		configLoader: configLoader,
 		output:       svc.NewFileOutputWriter(nil),
 	}
+}
+
+// NewSnapshotDeadCodeUseCase constructs a dead-code use case for aggregate snapshot analysis.
+func NewSnapshotDeadCodeUseCase(service DeadCodeAnalysisService, fileReader domain.FileReader, formatter domain.DeadCodeFormatter, configLoader domain.DeadCodeConfigurationLoader) *DeadCodeUseCase {
+	uc := NewDeadCodeUseCase(service, fileReader, formatter, configLoader)
+	uc.snapshot = service
+	return uc
 }
 
 // Execute performs the complete dead code analysis workflow
@@ -152,10 +166,6 @@ func (uc *DeadCodeUseCase) AnalyzeAndReturn(ctx context.Context, req domain.Dead
 	return response, nil
 }
 
-type snapshotDeadCodeService interface {
-	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.DeadCodeRequest) (*domain.DeadCodeResponse, error)
-}
-
 func (uc *DeadCodeUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.DeadCodeRequest) (*domain.DeadCodeResponse, error) {
 	if snapshot == nil {
 		return nil, domain.NewAnalysisError("dead code analysis failed", fmt.Errorf("project snapshot is required"))
@@ -171,12 +181,10 @@ func (uc *DeadCodeUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot 
 		return nil, domain.NewInvalidInputError("invalid request", err)
 	}
 
-	snapshotService, ok := uc.service.(snapshotDeadCodeService)
-	if !ok {
-		return nil, domain.NewAnalysisError("dead code analysis failed", fmt.Errorf("dead code service does not support project snapshots"))
+	if uc.snapshot == nil {
+		return nil, domain.NewAnalysisError("dead code analysis failed", fmt.Errorf("snapshot collaborator is required"))
 	}
-
-	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, finalReq)
+	response, err := uc.snapshot.AnalyzeSnapshot(ctx, snapshot, finalReq)
 	if err != nil {
 		return nil, domain.NewAnalysisError("dead code analysis failed", err)
 	}
@@ -342,6 +350,7 @@ func (uc *DeadCodeUseCase) loadAndMergeConfig(req domain.DeadCodeRequest) (domai
 // DeadCodeUseCaseBuilder provides a builder pattern for creating DeadCodeUseCase
 type DeadCodeUseCaseBuilder struct {
 	service      domain.DeadCodeService
+	snapshot     DeadCodeAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.DeadCodeFormatter
 	configLoader domain.DeadCodeConfigurationLoader
@@ -356,6 +365,13 @@ func NewDeadCodeUseCaseBuilder() *DeadCodeUseCaseBuilder {
 // WithService sets the dead code service
 func (b *DeadCodeUseCaseBuilder) WithService(service domain.DeadCodeService) *DeadCodeUseCaseBuilder {
 	b.service = service
+	return b
+}
+
+// WithSnapshotService sets the dead-code collaborator used by aggregate snapshot analysis.
+func (b *DeadCodeUseCaseBuilder) WithSnapshotService(service DeadCodeAnalysisService) *DeadCodeUseCaseBuilder {
+	b.service = service
+	b.snapshot = service
 	return b
 }
 
@@ -407,6 +423,7 @@ func (b *DeadCodeUseCaseBuilder) Build() (*DeadCodeUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}
@@ -437,6 +454,7 @@ func (b *DeadCodeUseCaseBuilder) BuildWithDefaults() (*DeadCodeUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}

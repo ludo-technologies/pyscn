@@ -3,6 +3,7 @@ package mcp_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -166,7 +167,8 @@ func TestHandleAnalyzeCode(t *testing.T) {
 					var result map[string]interface{}
 					require.NoError(t, json.Unmarshal([]byte(text), &result))
 					assert.Contains(t, result, "health_score")
-
+					assert.Equal(t, []interface{}{}, result["diagnostics"])
+					assert.Equal(t, []interface{}{}, result["failures"])
 				},
 			},
 		},
@@ -182,6 +184,84 @@ func TestHandleAnalyzeCode(t *testing.T) {
 				check: func(t *testing.T, res *mcplib.CallToolResult) {
 					text := mcplib.GetTextFromContent(res.Content[0])
 					require.NotEmpty(t, text)
+				},
+			},
+		},
+		"summary_reports_partial_coverage": {
+			args: args{
+				setupFS: func(t *testing.T) string {
+					projectDir := t.TempDir()
+					for index := range 20 {
+						fileName := fmt.Sprintf("valid_%02d.py", index)
+						require.NoError(t, os.WriteFile(filepath.Join(projectDir, fileName), []byte("VALUE = 1\n"), 0o644))
+					}
+					require.NoError(t, os.WriteFile(filepath.Join(projectDir, "broken.py"), []byte("def broken(:\n"), 0o644))
+					return projectDir
+				},
+				arguments: map[string]interface{}{
+					"analyses": []interface{}{"deadcode"},
+				},
+			},
+			want: want{
+				isError: &errTrue,
+				check: func(t *testing.T, res *mcplib.CallToolResult) {
+					text := mcplib.GetTextFromContent(res.Content[0])
+					var result struct {
+						Partial     bool                        `json:"partial"`
+						IsHealthy   bool                        `json:"is_healthy"`
+						Diagnostics []domain.AnalysisDiagnostic `json:"diagnostics"`
+						Summary     struct {
+							TotalFiles    int `json:"total_files"`
+							AnalyzedFiles int `json:"analyzed_files"`
+							SkippedFiles  int `json:"skipped_files"`
+						} `json:"summary"`
+					}
+					require.NoError(t, json.Unmarshal([]byte(text), &result))
+					assert.True(t, result.Partial)
+					assert.False(t, result.IsHealthy)
+					assert.Equal(t, 21, result.Summary.TotalFiles)
+					assert.Equal(t, 20, result.Summary.AnalyzedFiles)
+					assert.Equal(t, 1, result.Summary.SkippedFiles)
+					require.Len(t, result.Diagnostics, 1)
+					assert.Equal(t, domain.DiagnosticCodeParse, result.Diagnostics[0].Code)
+				},
+			},
+		},
+		"summary_preserves_all_parse_diagnostics": {
+			args: args{
+				setupFS: func(t *testing.T) string {
+					projectDir := t.TempDir()
+					require.NoError(t, os.WriteFile(filepath.Join(projectDir, "broken.py"), []byte("def broken(:\n"), 0o644))
+					return projectDir
+				},
+				arguments: map[string]interface{}{
+					"analyses": []interface{}{"deps"},
+				},
+			},
+			want: want{
+				isError: &errTrue,
+				check: func(t *testing.T, res *mcplib.CallToolResult) {
+					text := mcplib.GetTextFromContent(res.Content[0])
+					var result struct {
+						Partial     bool                        `json:"partial"`
+						IsHealthy   bool                        `json:"is_healthy"`
+						Diagnostics []domain.AnalysisDiagnostic `json:"diagnostics"`
+						Failures    []domain.AnalysisFailure    `json:"failures"`
+						Summary     struct {
+							TotalFiles    int `json:"total_files"`
+							AnalyzedFiles int `json:"analyzed_files"`
+							SkippedFiles  int `json:"skipped_files"`
+						} `json:"summary"`
+					}
+					require.NoError(t, json.Unmarshal([]byte(text), &result))
+					assert.True(t, result.Partial)
+					assert.False(t, result.IsHealthy)
+					assert.Equal(t, 1, result.Summary.TotalFiles)
+					assert.Zero(t, result.Summary.AnalyzedFiles)
+					assert.Equal(t, 1, result.Summary.SkippedFiles)
+					require.Len(t, result.Diagnostics, 1)
+					assert.Equal(t, domain.DiagnosticCodeParse, result.Diagnostics[0].Code)
+					assert.Empty(t, result.Failures)
 				},
 			},
 		},
@@ -892,39 +972,65 @@ func TestHandleFindDeadCodeDetailedLabelsClassScope(t *testing.T) {
 }
 
 func TestHandleGetHealthScore(t *testing.T) {
-
 	errTrue := true
 
 	tests := map[string]struct {
 		args    args
 		isError *bool
+		check   func(t *testing.T, result map[string]interface{})
 	}{
 		"happy_path_single_file": {
 			args: args{
+				setupFS:   func(t *testing.T) string { return setupTestFile(t, "classes.py") },
+				arguments: map[string]interface{}{},
+			},
+			check: func(t *testing.T, result map[string]interface{}) {
+				assert.Equal(t, false, result["partial"])
+				assert.Equal(t, []interface{}{}, result["diagnostics"])
+				assert.Equal(t, []interface{}{}, result["failures"])
+				categories, ok := result["category_scores"].(map[string]interface{})
+				require.True(t, ok)
+				assert.Contains(t, categories, "architecture_score")
+				summary, ok := result["summary"].(map[string]interface{})
+				require.True(t, ok)
+				assert.Equal(t, float64(1), summary["total_files"])
+				assert.Equal(t, float64(1), summary["analyzed_files"])
+				assert.Equal(t, float64(0), summary["skipped_files"])
+			},
+		},
+		"partial_result_preserves_diagnostics": {
+			args: args{
 				setupFS: func(t *testing.T) string {
-					return setupTestFile(t, "classes.py")
+					projectDir := t.TempDir()
+					require.NoError(t, os.WriteFile(filepath.Join(projectDir, "broken.py"), []byte("def broken(:\n"), 0o644))
+					return projectDir
 				},
 				arguments: map[string]interface{}{},
+			},
+			isError: &errTrue,
+			check: func(t *testing.T, result map[string]interface{}) {
+				assert.Equal(t, true, result["partial"])
+				assert.Equal(t, false, result["is_healthy"])
+				diagnostics, ok := result["diagnostics"].([]interface{})
+				require.True(t, ok)
+				require.Len(t, diagnostics, 1)
+				failures, ok := result["failures"].([]interface{})
+				require.True(t, ok)
+				assert.Empty(t, failures)
 			},
 		},
 		"invalid_arguments": {
-			args: args{
-				arguments: "bad",
-			},
+			args:    args{arguments: "bad"},
 			isError: &errTrue,
 		},
 		"path_missing": {
-			args: args{
-				arguments: map[string]interface{}{},
-			},
+			args:    args{arguments: map[string]interface{}{}},
 			isError: &errTrue,
 		},
 		"path_not_exist": {
-			args: args{
-				arguments: map[string]interface{}{
-					"path": "/non/existing/file.py",
-				},
-			},
+			args: args{arguments: map[string]interface{}{
+				"path": "/non/existing/file.py",
+			}},
 			isError: &errTrue,
 		},
 	}
@@ -933,32 +1039,18 @@ func TestHandleGetHealthScore(t *testing.T) {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-
-			res := runToolTest(
-				t,
-				tc.args.setupFS,
-				tc.args.arguments,
-				(*mcp.HandlerSet).HandleGetHealthScore,
-			)
-
+			res := runToolTest(t, tc.args.setupFS, tc.args.arguments, (*mcp.HandlerSet).HandleGetHealthScore)
 			if tc.isError != nil {
 				require.Equal(t, *tc.isError, res.IsError)
+			}
+			if tc.check == nil {
 				return
 			}
-
-			if res.IsError && len(res.Content) > 0 {
-				t.Logf("unexpected error content: %s", mcplib.GetTextFromContent(res.Content[0]))
-			}
-			require.False(t, res.IsError)
 			require.NotEmpty(t, res.Content)
-
 			text := mcplib.GetTextFromContent(res.Content[0])
-			var out map[string]interface{}
-			require.NoError(t, json.Unmarshal([]byte(text), &out))
-
-			assert.Contains(t, out, "health_score")
-			assert.Contains(t, out, "grade")
-			assert.Contains(t, out, "category_scores")
+			var result map[string]interface{}
+			require.NoError(t, json.Unmarshal([]byte(text), &result))
+			tc.check(t, result)
 		})
 	}
 }

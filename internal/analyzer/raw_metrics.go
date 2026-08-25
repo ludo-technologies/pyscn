@@ -25,6 +25,20 @@ type RawMetricsResult struct {
 	slocPrefix []int
 }
 
+// Clone returns an independent raw-metrics result.
+func (r *RawMetricsResult) Clone() *RawMetricsResult {
+	if r == nil {
+		return nil
+	}
+	cloned := *r
+	cloned.docstringLines = make(map[int]bool, len(r.docstringLines))
+	for line, included := range r.docstringLines {
+		cloned.docstringLines[line] = included
+	}
+	cloned.slocPrefix = append([]int(nil), r.slocPrefix...)
+	return &cloned
+}
+
 // AggregateRawMetrics contains aggregated raw code metrics across files.
 type AggregateRawMetrics struct {
 	FilesAnalyzed  int

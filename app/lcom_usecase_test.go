@@ -28,6 +28,14 @@ func (m *mockLCOMService) Analyze(ctx context.Context, req domain.LCOMRequest) (
 	return args.Get(0).(*domain.LCOMResponse), args.Error(1)
 }
 
+func (m *mockLCOMService) AnalyzeSnapshot(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.LCOMRequest) (*domain.LCOMResponse, error) {
+	args := m.Called(ctx, snapshot, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.LCOMResponse), args.Error(1)
+}
+
 func (m *mockLCOMService) AnalyzeFile(ctx context.Context, filePath string, req domain.LCOMRequest) (*domain.LCOMResponse, error) {
 	args := m.Called(ctx, filePath, req)
 	if args.Get(0) == nil {
@@ -483,21 +491,6 @@ func TestLCOMUseCase_analyzeSnapshotRequest(t *testing.T) {
 		configLoader.AssertExpectations(t)
 	})
 
-	t.Run("service without snapshot support returns analysis error", func(t *testing.T) {
-		service := &mockLCOMService{}
-		configLoader := &mockLCOMConfigurationLoader{}
-		configLoader.On("LoadDefaultConfig").Return((*domain.LCOMRequest)(nil))
-		useCase := &LCOMUseCase{service: service, configLoader: configLoader}
-
-		response, err := useCase.analyzeSnapshotRequest(context.Background(), createLCOMSnapshot(), createValidLCOMRequest())
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assertDomainError(t, err, domain.ErrCodeAnalysisError, "LCOM service does not support project snapshots")
-		service.AssertExpectations(t)
-		configLoader.AssertExpectations(t)
-	})
-
 	t.Run("snapshot service error is wrapped", func(t *testing.T) {
 		snapshot := createLCOMSnapshot()
 		service := &mockSnapshotLCOMService{}
@@ -505,13 +498,13 @@ func TestLCOMUseCase_analyzeSnapshotRequest(t *testing.T) {
 		analysisErr := errors.New("snapshot analysis failed")
 		configLoader.On("LoadDefaultConfig").Return((*domain.LCOMRequest)(nil))
 		service.On("AnalyzeSnapshot", mock.Anything, snapshot, mock.AnythingOfType("domain.LCOMRequest")).Return((*domain.LCOMResponse)(nil), analysisErr)
-		useCase := &LCOMUseCase{service: service, configLoader: configLoader}
+		useCase := &LCOMUseCase{service: service, snapshot: service, configLoader: configLoader}
 
 		response, err := useCase.analyzeSnapshotRequest(context.Background(), snapshot, createValidLCOMRequest())
 
 		require.Error(t, err)
 		assert.Nil(t, response)
-		assertDomainError(t, err, domain.ErrCodeAnalysisError, "LCOM analysis failed")
+		assertDomainError(t, err, domain.ErrCodeAnalysisError, "lcom analysis failed")
 		assert.ErrorIs(t, err, analysisErr)
 		service.AssertExpectations(t)
 		configLoader.AssertExpectations(t)
@@ -526,7 +519,7 @@ func TestLCOMUseCase_analyzeSnapshotRequest(t *testing.T) {
 		service.On("AnalyzeSnapshot", mock.Anything, snapshot, mock.MatchedBy(func(req domain.LCOMRequest) bool {
 			return reflect.DeepEqual(req.Paths, snapshot.Paths())
 		})).Return(response, nil)
-		useCase := &LCOMUseCase{service: service, configLoader: configLoader}
+		useCase := &LCOMUseCase{service: service, snapshot: service, configLoader: configLoader}
 
 		result, err := useCase.analyzeSnapshotRequest(context.Background(), snapshot, createValidLCOMRequest())
 

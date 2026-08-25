@@ -30,6 +30,8 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
   "mock_data":          { /* MockDataResponse, present when enabled */ },
   "module_quality":     [ /* ModuleQualityMetrics array, omitted when empty */ ],
   "suggestions":   [ /* Suggestion array, omitted when empty */ ],
+  "diagnostics":   [ /* AnalysisDiagnostic array, omitted when empty */ ],
+  "failures":      [ /* AnalysisFailure array, omitted when empty */ ],
   "summary":       { /* AnalyzeSummary, always present */ },
   "generated_at":  "2026-04-14T10:18:23Z",
   "duration_ms":   2347,
@@ -49,10 +51,29 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
 | `mock_data`          | object \| absent | Present when mock data detection ran.                 | stable |
 | `module_quality`     | array \| absent  | Per-module quality rollups. Omitted when no analyzer produced module data. | stable |
 | `suggestions` | array \| absent   | Derived suggestions. Omitted when empty.               | stable    |
+| `diagnostics` | array \| absent   | Project files that could not be read or parsed. See [`AnalysisDiagnostic`](#analysisdiagnostic-object). | stable |
+| `failures`    | array \| absent   | Analyzer execution failures. Partial results may still be present. See [`AnalysisFailure`](#analysisfailure-object). | stable |
 | `summary`     | object            | Always present. See [`summary`](#summary-object).      | stable    |
 | `generated_at`| string (RFC 3339) | Analysis completion time.                              | stable    |
 | `duration_ms` | integer           | Total analysis duration in milliseconds.               | stable    |
 | `version`     | string            | pyscn semantic version.                                | stable    |
+
+## `AnalysisDiagnostic` object { #analysisdiagnostic-object }
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `file_path` | string | Source file that could not be analyzed. |
+| `code` | string | One of: `read_error`, `parse_error`. Cancellation uses the phase that observed it: `read_error` before parsing starts and `parse_error` during parsing. |
+| `message` | string | Human-readable cause. |
+
+## `AnalysisFailure` object { #analysisfailure-object }
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `analysis` | string | One of: `complexity`, `deadcode`, `clones`, `cbo`, `lcom`, `system`, `communities`, `mockdata`, `di`. |
+| `code` | string | Currently `execution_error`. |
+| `message` | string | Human-readable analyzer failure. |
+| `file_path` | string \| absent | Source file when the failure belongs to one file. |
 
 ## `summary` object { #summary-object }
 
@@ -62,7 +83,7 @@ Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the co
 
 | Field            | Type    | Description                                      |
 | ---------------- | ------- | ------------------------------------------------ |
-| `total_files`    | integer | Number of Python files discovered.               |
+| `total_files`    | integer | Number of Python files required by the requested analysis set. Dependency and community analysis include matching `.pyi` modules. |
 | `analyzed_files` | integer | Number of files successfully analyzed.           |
 | `skipped_files`  | integer | Files dropped because they could not be read or parsed. A non-zero value means every score below covers less than `total_files`. |
 
@@ -218,9 +239,10 @@ Mirrors `domain.ComplexityResponse`.
   "summary": { /* ComplexitySummary */ },
   "raw_metrics": [ /* RawMetrics array, present when computed */ ],
   "raw_metrics_summary": { /* RawMetricsSummary, present when computed */ },
-  "warnings": [ "..." ],
-  "errors": [ "..." ],
-  "generated_at": "2026-04-14T10:18:23Z",
+   "warnings": [ "..." ],
+   "errors": [ "..." ],
+   "failures": [ /* AnalysisFailure array, absent when empty */ ],
+   "generated_at": "2026-04-14T10:18:23Z",
   "version": "0.14.0",
   "config": null
 }
@@ -303,9 +325,10 @@ Mirrors `domain.DeadCodeResponse`. Uses snake_case field names throughout.
 {
   "files": [ /* FileDeadCode array */ ],
   "summary": { /* DeadCodeSummary */ },
-  "warnings": null,
-  "errors": null,
-  "generated_at": "",
+   "warnings": null,
+   "errors": null,
+   "failures": [ /* AnalysisFailure array, absent when empty */ ],
+   "generated_at": "",
   "version": "",
   "config": null
 }
@@ -405,7 +428,8 @@ Mirrors `domain.CloneResponse`. Uses snake_case field names throughout.
   "statistics": { /* CloneStatistics */ },
   "duration_ms": 123,
   "success": true,
-  "error": ""
+  "error": "",
+  "failures": [ /* AnalysisFailure array, absent when empty */ ]
 }
 ```
 
@@ -494,9 +518,10 @@ Mirrors `domain.CBOResponse`.
 {
   "classes": [ /* ClassCoupling array */ ],
   "summary": { /* CBOSummary */ },
-  "warnings": null,
-  "errors": null,
-  "generated_at": "",
+   "warnings": null,
+   "errors": null,
+   "failures": [ /* AnalysisFailure array, absent when empty */ ],
+   "generated_at": "",
   "version": "",
   "config": null
 }
@@ -554,6 +579,7 @@ Mirrors `domain.LCOMResponse`.
   "summary": { /* LCOMSummary */ },
   "warnings": null,
   "errors": null,
+  "failures": [ /* AnalysisFailure array, absent when empty */ ],
   "generated_at": "",
   "version": "",
   "config": null
@@ -608,9 +634,10 @@ Mirrors `domain.SystemAnalysisResponse`.
   "summary":              { /* SystemAnalysisSummary */ },
   "issues":               [ /* SystemIssue array */ ],
   "recommendations":      [ /* SystemRecommendation array */ ],
-  "warnings":             [ ],
-  "errors":               [ ],
-  "generated_at":          "0001-01-01T00:00:00Z",
+   "warnings":             [ ],
+   "errors":               [ ],
+   "failures":             [ /* AnalysisFailure array, absent when empty */ ],
+   "generated_at":          "0001-01-01T00:00:00Z",
   "duration":             0,
   "version":              "",
   "config":               null
@@ -772,6 +799,7 @@ Health Score,<integer>
 Grade,<A|B|C|D|F|N/A>
 Total Files,<integer>
 Analyzed Files,<integer>
+Skipped Files,<integer>
 Total Functions,<integer>
 Class Scopes,<integer>
 Average Complexity,<float with 2 decimals>
@@ -785,6 +813,8 @@ Total Classes Analyzed,<integer>
 High Coupling (CBO) Classes,<integer>
 Average CBO,<float with 2 decimals>
 Module Quality Count,<integer>
+Diagnostic,<file_path> [<code>]: <message>
+Analysis Failure,<analysis> <file_path> [<code>]: <message>
 Module 1 Name,<string>
 Module 1 File Path,<string>
 Module 1 Lines of Code,<integer>
@@ -807,7 +837,7 @@ Directory 1 Average Nesting Depth,<float with 2 decimals>
 Directory 1 Max Nesting Depth,<integer>
 ```
 
-The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all summary, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use `--json` or `--yaml` for per-scope and per-finding detail.
+The `Diagnostic` and `Analysis Failure` rows repeat once per corresponding entry and are omitted when empty. They appear before the numbered module rows. The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all summary, diagnostic, failure, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use `--json` or `--yaml` for per-scope and per-finding detail.
 
 The standalone complexity formatter emits one row per reported module, function, or class scope. Existing columns remain in place and `Scope Kind` is appended:
 
@@ -837,6 +867,7 @@ Mirrors `domain.CommunityAnalysisResult`. Emitted as a top-level field in unifie
 | `community_context_map` | object \| absent | Compact, agent-optimized map of which modules to inspect together. See [`community_context_map`](#community-context-map-object). Absent when no communities were detected. |
 | `warnings`          | array \| absent | Non-fatal analysis warnings.                              |
 | `errors`            | array \| absent | Fatal analysis errors.                                    |
+| `failures`          | array \| absent | Typed analyzer execution failures. See [`AnalysisFailure`](#analysisfailure-object). |
 | `generated_at`      | string (RFC 3339) | Community analysis completion time.                 |
 | `version`           | string  | pyscn semantic version.                                           |
 | `config`            | object \| absent | Effective community-detection settings.                    |
@@ -906,6 +937,22 @@ A compact, deterministic view of the communities optimized for AI coding/review 
 ### Determinism
 
 Community detection is deterministic for a fixed codebase snapshot and configuration: repeated runs yield identical `communities`, `bridge_modules`, and `modularity`. Module and community ordering in JSON is stable (sorted ids and module names). Numeric fields are rounded to four decimal places for diff-friendly output. Results may change across pyscn versions or when `min_community_size`, `resolution`, or `include_lazy_edges` change. See [Module Community Detection](../guides/module-community-detection.md#determinism) for details.
+
+## `mock_data` object
+
+Mirrors `domain.MockDataResponse`.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `files` | array | Per-file mock-data findings. |
+| `summary` | object | File, finding, severity, and type totals. |
+| `warnings` | array | Non-fatal detector warnings. |
+| `errors` | array | Fatal detector errors retained for output compatibility. |
+| `diagnostics` | array \| absent | Typed file read and parse failures. See [`AnalysisDiagnostic`](#analysisdiagnostic-object). |
+| `failures` | array \| absent | Typed detector execution failures. See [`AnalysisFailure`](#analysisfailure-object). |
+| `generated_at` | string | Analysis completion time. |
+| `version` | string | pyscn semantic version. |
+| `config` | object \| null | Effective mock-data settings. |
 
 ## Timestamps and versioning
 

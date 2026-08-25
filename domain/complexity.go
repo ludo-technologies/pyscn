@@ -326,8 +326,9 @@ type ComplexityResponse struct {
 	RawMetricsSummary *RawMetricsSummary `json:"raw_metrics_summary,omitempty" yaml:"raw_metrics_summary,omitempty"`
 
 	// Warnings and issues
-	Warnings []string `json:"warnings" yaml:"warnings"`
-	Errors   []string `json:"errors" yaml:"errors"`
+	Warnings []string          `json:"warnings" yaml:"warnings"`
+	Errors   []string          `json:"errors" yaml:"errors"`
+	Failures []AnalysisFailure `json:"failures,omitempty" yaml:"failures,omitempty"`
 
 	// Metadata
 	GeneratedAt string             `json:"generated_at" yaml:"generated_at"`

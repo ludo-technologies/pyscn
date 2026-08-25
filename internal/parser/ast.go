@@ -140,6 +140,56 @@ type Node struct {
 	Level     int      // For relative imports
 }
 
+// CloneNode returns an independent copy of an AST while preserving shared
+// references and parent links within the copied graph.
+func CloneNode(root *Node) *Node {
+	clones := make(map[*Node]*Node)
+	var clone func(*Node) *Node
+	clone = func(node *Node) *Node {
+		if node == nil {
+			return nil
+		}
+		if existing := clones[node]; existing != nil {
+			return existing
+		}
+		copied := *node
+		clones[node] = &copied
+		copied.Names = append([]string(nil), node.Names...)
+		if valueNode, ok := node.Value.(*Node); ok {
+			copied.Value = clone(valueNode)
+		}
+		copied.Parent = clone(node.Parent)
+		copied.Target = clone(node.Target)
+		copied.Left = clone(node.Left)
+		copied.Right = clone(node.Right)
+		copied.Children = cloneNodes(node.Children, clone)
+		copied.Targets = cloneNodes(node.Targets, clone)
+		copied.Body = cloneNodes(node.Body, clone)
+		copied.Orelse = cloneNodes(node.Orelse, clone)
+		copied.Finalbody = cloneNodes(node.Finalbody, clone)
+		copied.Handlers = cloneNodes(node.Handlers, clone)
+		copied.Test = clone(node.Test)
+		copied.Iter = clone(node.Iter)
+		copied.Args = cloneNodes(node.Args, clone)
+		copied.Keywords = cloneNodes(node.Keywords, clone)
+		copied.Decorator = cloneNodes(node.Decorator, clone)
+		copied.Bases = cloneNodes(node.Bases, clone)
+		return &copied
+	}
+	return clone(root)
+}
+
+func cloneNodes(nodes []*Node, clone func(*Node) *Node) []*Node {
+	if nodes == nil {
+		return nil
+	}
+	copied := make([]*Node, len(nodes))
+	for index, node := range nodes {
+		copied[index] = clone(node)
+	}
+	return copied
+}
+
 // NewNode creates a new AST node
 func NewNode(nodeType NodeType) *Node {
 	return &Node{

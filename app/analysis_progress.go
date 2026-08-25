@@ -5,6 +5,8 @@ import (
 	"math"
 	"sync"
 	"time"
+
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // analysisProgressTracker estimates overall progress for concurrently running
@@ -15,10 +17,10 @@ import (
 type analysisProgressTracker struct {
 	mu          sync.Mutex
 	start       time.Time
-	pending     map[string]float64 // task name -> calibrated estimated seconds
-	doneWall    float64            // sum of completion wall times of finished tasks
-	doneEst     float64            // sum of estimated seconds of finished tasks
-	durations   map[string]float64 // task name -> completion wall time in seconds
+	pending     map[domain.AnalysisKind]float64 // analysis kind -> calibrated estimated seconds
+	doneWall    float64                         // sum of completion wall times of finished tasks
+	doneEst     float64                         // sum of estimated seconds of finished tasks
+	durations   map[domain.AnalysisKind]float64 // analysis kind -> completion wall time in seconds
 	lastPercent int
 }
 
@@ -27,45 +29,45 @@ type analysisProgressTracker struct {
 // from near-instant tasks are too noisy to extrapolate from.
 const minTimingSignal = 0.3
 
-func newAnalysisProgressTracker(estimatedSeconds map[string]float64) *analysisProgressTracker {
-	pending := make(map[string]float64, len(estimatedSeconds))
-	for name, est := range estimatedSeconds {
+func newAnalysisProgressTracker(estimatedSeconds map[domain.AnalysisKind]float64) *analysisProgressTracker {
+	pending := make(map[domain.AnalysisKind]float64, len(estimatedSeconds))
+	for kind, est := range estimatedSeconds {
 		if est < 0.05 {
 			est = 0.05
 		}
-		pending[name] = est
+		pending[kind] = est
 	}
 	return &analysisProgressTracker{
 		start:     time.Now(),
 		pending:   pending,
-		durations: make(map[string]float64, len(estimatedSeconds)),
+		durations: make(map[domain.AnalysisKind]float64, len(estimatedSeconds)),
 	}
 }
 
-// TaskCompleted records that the named task finished, capturing its wall-clock
+// TaskCompleted records that the analysis finished, capturing its wall-clock
 // completion time as a calibration sample for the remaining tasks.
-func (t *analysisProgressTracker) TaskCompleted(name string) {
+func (t *analysisProgressTracker) TaskCompleted(kind domain.AnalysisKind) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	est, ok := t.pending[name]
+	est, ok := t.pending[kind]
 	if !ok {
 		return
 	}
-	delete(t.pending, name)
+	delete(t.pending, kind)
 
 	wall := time.Since(t.start).Seconds()
-	t.durations[name] = wall
+	t.durations[kind] = wall
 	t.doneWall += wall
 	t.doneEst += est
 }
 
 // CompletedDurations returns the observed wall-clock completion time per task.
-func (t *analysisProgressTracker) CompletedDurations() map[string]float64 {
+func (t *analysisProgressTracker) CompletedDurations() map[domain.AnalysisKind]float64 {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	out := make(map[string]float64, len(t.durations))
+	out := make(map[domain.AnalysisKind]float64, len(t.durations))
 	maps.Copy(out, t.durations)
 	return out
 }
@@ -124,13 +126,13 @@ func (t *analysisProgressTracker) Percent() int {
 // applyTimingFactors scales estimated task durations by per-task calibration
 // factors observed in previous runs. Tasks without a recorded factor keep
 // their formula-based estimate.
-func applyTimingFactors(estimatedSeconds, factors map[string]float64) map[string]float64 {
-	calibrated := make(map[string]float64, len(estimatedSeconds))
-	for name, est := range estimatedSeconds {
-		if f, ok := factors[name]; ok && f > 0 {
+func applyTimingFactors(estimatedSeconds, factors map[domain.AnalysisKind]float64) map[domain.AnalysisKind]float64 {
+	calibrated := make(map[domain.AnalysisKind]float64, len(estimatedSeconds))
+	for kind, est := range estimatedSeconds {
+		if f, ok := factors[kind]; ok && f > 0 {
 			est *= f
 		}
-		calibrated[name] = est
+		calibrated[kind] = est
 	}
 	return calibrated
 }

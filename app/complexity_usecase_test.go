@@ -29,6 +29,14 @@ func (m *mockComplexityService) Analyze(ctx context.Context, req domain.Complexi
 	return args.Get(0).(*domain.ComplexityResponse), args.Error(1)
 }
 
+func (m *mockComplexityService) AnalyzeSnapshot(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
+	args := m.Called(ctx, snapshot, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.ComplexityResponse), args.Error(1)
+}
+
 func (m *mockComplexityService) AnalyzeFile(ctx context.Context, filePath string, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
 	args := m.Called(ctx, filePath, req)
 	if args.Get(0) == nil {

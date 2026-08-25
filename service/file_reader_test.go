@@ -604,11 +604,11 @@ func TestFileReader_shouldIncludeFile(t *testing.T) {
 			expected:        false,
 		},
 		{
-			name:            "bare include pattern does not match nested basename",
+			name:            "bare include pattern matches nested basename",
 			path:            "pkg/main.py",
 			includePatterns: []string{"main*"},
 			excludePatterns: []string{},
-			expected:        false,
+			expected:        true,
 		},
 		{
 			name:            "testing directory excluded by default pattern",

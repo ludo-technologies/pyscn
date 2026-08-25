@@ -11,9 +11,16 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+// ComplexityAnalysisService adds canonical snapshot analysis to the standalone complexity contract.
+type ComplexityAnalysisService interface {
+	domain.ComplexityService
+	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.ComplexityRequest) (*domain.ComplexityResponse, error)
+}
+
 // ComplexityUseCase orchestrates the complexity analysis workflow
 type ComplexityUseCase struct {
 	service      domain.ComplexityService
+	snapshot     ComplexityAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.OutputFormatter
 	configLoader domain.ConfigurationLoader
@@ -34,6 +41,14 @@ func NewComplexityUseCase(
 		configLoader: configLoader,
 		output:       svc.NewFileOutputWriter(nil),
 	}
+}
+
+// NewSnapshotComplexityUseCase constructs the aggregate-analysis variant with
+// an explicit snapshot collaborator.
+func NewSnapshotComplexityUseCase(service ComplexityAnalysisService, fileReader domain.FileReader, formatter domain.OutputFormatter, configLoader domain.ConfigurationLoader) *ComplexityUseCase {
+	uc := NewComplexityUseCase(service, fileReader, formatter, configLoader)
+	uc.snapshot = service
+	return uc
 }
 
 // Execute performs the complete complexity analysis workflow
@@ -171,10 +186,6 @@ func (uc *ComplexityUseCase) analyzeResolvedRequest(ctx context.Context, req dom
 	return response, nil
 }
 
-type snapshotComplexityService interface {
-	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.ComplexityRequest) (*domain.ComplexityResponse, error)
-}
-
 func (uc *ComplexityUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.ComplexityRequest, projectRoot string) (*domain.ComplexityResponse, error) {
 	if snapshot == nil {
 		return nil, domain.NewAnalysisError("complexity analysis failed", fmt.Errorf("project snapshot is required"))
@@ -184,12 +195,10 @@ func (uc *ComplexityUseCase) analyzeSnapshotRequest(ctx context.Context, snapsho
 	}
 
 	req.Paths = snapshot.Paths()
-	snapshotService, ok := uc.service.(snapshotComplexityService)
-	if !ok {
-		return nil, domain.NewAnalysisError("complexity analysis failed", fmt.Errorf("complexity service does not support project snapshots"))
+	if uc.snapshot == nil {
+		return nil, domain.NewAnalysisError("complexity analysis failed", fmt.Errorf("snapshot collaborator is required"))
 	}
-
-	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, req)
+	response, err := uc.snapshot.AnalyzeSnapshot(ctx, snapshot, req)
 	if err != nil {
 		return nil, domain.NewAnalysisError("complexity analysis failed", err)
 	}
@@ -363,6 +372,7 @@ func (uc *ComplexityUseCase) loadAndMergeConfig(req domain.ComplexityRequest) (d
 // ComplexityUseCaseBuilder provides a builder pattern for creating ComplexityUseCase
 type ComplexityUseCaseBuilder struct {
 	service      domain.ComplexityService
+	snapshot     ComplexityAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.OutputFormatter
 	configLoader domain.ConfigurationLoader
@@ -377,6 +387,13 @@ func NewComplexityUseCaseBuilder() *ComplexityUseCaseBuilder {
 // WithService sets the complexity service
 func (b *ComplexityUseCaseBuilder) WithService(service domain.ComplexityService) *ComplexityUseCaseBuilder {
 	b.service = service
+	return b
+}
+
+// WithSnapshotService sets the complexity collaborator used by aggregate snapshot analysis.
+func (b *ComplexityUseCaseBuilder) WithSnapshotService(service ComplexityAnalysisService) *ComplexityUseCaseBuilder {
+	b.service = service
+	b.snapshot = service
 	return b
 }
 
@@ -428,6 +445,7 @@ func (b *ComplexityUseCaseBuilder) Build() (*ComplexityUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}
@@ -458,6 +476,7 @@ func (b *ComplexityUseCaseBuilder) BuildWithDefaults() (*ComplexityUseCase, erro
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}

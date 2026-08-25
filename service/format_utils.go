@@ -219,12 +219,12 @@ func (f *FormatUtils) ConvertToStandardRisk(risk string) RiskLevel {
 }
 
 // FormatFileStats creates standardized file statistics
-func (f *FormatUtils) FormatFileStats(analyzed, total, withIssues int) string {
+func (f *FormatUtils) FormatFileStats(analyzed, total, skipped int) string {
 	var builder strings.Builder
 	builder.WriteString(f.FormatSectionHeader("FILE STATISTICS"))
 	builder.WriteString(f.FormatLabelWithIndent(SectionPadding, "Total Files", total))
 	builder.WriteString(f.FormatLabelWithIndent(SectionPadding, "Analyzed", analyzed))
-	builder.WriteString(f.FormatLabelWithIndent(SectionPadding, "With Issues", withIssues))
+	builder.WriteString(f.FormatLabelWithIndent(SectionPadding, "Skipped", skipped))
 	builder.WriteString(f.FormatSectionSeparator())
 	return builder.String()
 }

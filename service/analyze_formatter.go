@@ -67,7 +67,26 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 	fmt.Fprint(writer, utils.FormatFileStats(
 		response.Summary.AnalyzedFiles,
 		response.Summary.TotalFiles,
-		response.Summary.TotalFiles-response.Summary.AnalyzedFiles))
+		response.Summary.SkippedFiles))
+
+	if len(response.Diagnostics) > 0 {
+		fmt.Fprint(writer, utils.FormatSectionHeader("ANALYSIS DIAGNOSTICS"))
+		for _, diagnostic := range response.Diagnostics {
+			fmt.Fprintf(writer, "  %s [%s]: %s\n", diagnostic.FilePath, diagnostic.Code, diagnostic.Message)
+		}
+		fmt.Fprint(writer, utils.FormatSectionSeparator())
+	}
+	if len(response.Failures) > 0 {
+		fmt.Fprint(writer, utils.FormatSectionHeader("ANALYSIS FAILURES"))
+		for _, failure := range response.Failures {
+			fmt.Fprintf(writer, "  %s [%s]", failure.Analysis, failure.Code)
+			if failure.FilePath != "" {
+				fmt.Fprintf(writer, " %s", failure.FilePath)
+			}
+			fmt.Fprintf(writer, ": %s\n", failure.Message)
+		}
+		fmt.Fprint(writer, utils.FormatSectionSeparator())
+	}
 
 	// Analysis modules results
 	if response.Summary.ComplexityEnabled {
@@ -153,7 +172,7 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	if response.Complexity != nil {
 		directories = response.Complexity.ByDirectory
 	}
-	rowCapacity := 16 + (12 * len(response.ModuleQuality))
+	rowCapacity := 17 + len(response.Diagnostics) + len(response.Failures) + (12 * len(response.ModuleQuality))
 	if response.Complexity != nil {
 		rowCapacity += 1 + (7 * len(directories))
 	}
@@ -167,6 +186,7 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 		[]string{"Grade", response.Summary.Grade},
 		[]string{"Total Files", fmt.Sprint(response.Summary.TotalFiles)},
 		[]string{"Analyzed Files", fmt.Sprint(response.Summary.AnalyzedFiles)},
+		[]string{"Skipped Files", fmt.Sprint(response.Summary.SkippedFiles)},
 		[]string{"Total Functions", fmt.Sprint(response.Summary.TotalFunctions)},
 		[]string{"Class Scopes", fmt.Sprint(response.Summary.TotalClassScopes)},
 		[]string{"Average Complexity", fmt.Sprintf("%.2f", response.Summary.AverageComplexity)},
@@ -181,6 +201,12 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 		[]string{"Average CBO", fmt.Sprintf("%.2f", response.Summary.AverageCoupling)},
 		[]string{"Module Quality Count", fmt.Sprint(len(response.ModuleQuality))},
 	)
+	for _, diagnostic := range response.Diagnostics {
+		rows = append(rows, []string{"Diagnostic", fmt.Sprintf("%s [%s]: %s", diagnostic.FilePath, diagnostic.Code, diagnostic.Message)})
+	}
+	for _, failure := range response.Failures {
+		rows = append(rows, []string{"Analysis Failure", fmt.Sprintf("%s %s [%s]: %s", failure.Analysis, failure.FilePath, failure.Code, failure.Message)})
+	}
 
 	for index, module := range response.ModuleQuality {
 		prefix := fmt.Sprintf("Module %d ", index+1)

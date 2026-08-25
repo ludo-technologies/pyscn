@@ -9,9 +9,17 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+// SystemAnalysisService is the complete service contract required by the
+// system use case, including snapshot-backed graph analysis.
+type SystemAnalysisService interface {
+	domain.SystemAnalysisService
+	AnalyzeGraph(context.Context, *svc.ProjectModuleGraph, domain.SystemAnalysisRequest) (*domain.SystemAnalysisResponse, error)
+}
+
 // SystemAnalysisUseCase orchestrates the system analysis workflow
 type SystemAnalysisUseCase struct {
 	service      domain.SystemAnalysisService
+	graphService SystemAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.SystemAnalysisOutputFormatter
 	configLoader domain.SystemAnalysisConfigurationLoader
@@ -32,6 +40,13 @@ func NewSystemAnalysisUseCase(
 		configLoader: configLoader,
 		output:       svc.NewFileOutputWriter(nil),
 	}
+}
+
+// NewGraphSystemAnalysisUseCase constructs a system use case for aggregate graph analysis.
+func NewGraphSystemAnalysisUseCase(service SystemAnalysisService, fileReader domain.FileReader, formatter domain.SystemAnalysisOutputFormatter, configLoader domain.SystemAnalysisConfigurationLoader) *SystemAnalysisUseCase {
+	uc := NewSystemAnalysisUseCase(service, fileReader, formatter, configLoader)
+	uc.graphService = service
+	return uc
 }
 
 // prepareAnalysis handles common preparation steps for analysis
@@ -111,6 +126,29 @@ func (uc *SystemAnalysisUseCase) AnalyzeAndReturn(ctx context.Context, req domai
 		return nil, domain.NewAnalysisError("system analysis failed", err)
 	}
 
+	return response, nil
+}
+
+func (uc *SystemAnalysisUseCase) analyzeGraphRequest(ctx context.Context, graph *svc.ProjectModuleGraph, req domain.SystemAnalysisRequest) (*domain.SystemAnalysisResponse, error) {
+	if graph == nil {
+		return nil, domain.NewAnalysisError("system analysis failed", fmt.Errorf("dependency graph is required"))
+	}
+
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return nil, domain.NewConfigError("failed to load configuration", err)
+	}
+	if err := uc.validateRequest(finalReq); err != nil {
+		return nil, domain.NewInvalidInputError("invalid request", err)
+	}
+
+	if uc.graphService == nil {
+		return nil, domain.NewAnalysisError("system analysis failed", fmt.Errorf("graph collaborator is required"))
+	}
+	response, err := uc.graphService.AnalyzeGraph(ctx, graph, finalReq)
+	if err != nil {
+		return nil, domain.NewAnalysisError("system analysis failed", err)
+	}
 	return response, nil
 }
 
@@ -248,6 +286,7 @@ func (uc *SystemAnalysisUseCase) loadAndMergeConfig(req domain.SystemAnalysisReq
 // SystemAnalysisUseCaseBuilder provides a builder pattern for creating SystemAnalysisUseCase
 type SystemAnalysisUseCaseBuilder struct {
 	service      domain.SystemAnalysisService
+	graphService SystemAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.SystemAnalysisOutputFormatter
 	configLoader domain.SystemAnalysisConfigurationLoader
@@ -262,6 +301,13 @@ func NewSystemAnalysisUseCaseBuilder() *SystemAnalysisUseCaseBuilder {
 // WithService sets the system analysis service
 func (b *SystemAnalysisUseCaseBuilder) WithService(service domain.SystemAnalysisService) *SystemAnalysisUseCaseBuilder {
 	b.service = service
+	return b
+}
+
+// WithGraphService sets the system collaborator used by aggregate graph analysis.
+func (b *SystemAnalysisUseCaseBuilder) WithGraphService(service SystemAnalysisService) *SystemAnalysisUseCaseBuilder {
+	b.service = service
+	b.graphService = service
 	return b
 }
 
@@ -313,6 +359,7 @@ func (b *SystemAnalysisUseCaseBuilder) Build() (*SystemAnalysisUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.graphService = b.graphService
 	if b.output != nil {
 		uc.output = b.output
 	}
@@ -343,6 +390,7 @@ func (b *SystemAnalysisUseCaseBuilder) BuildWithDefaults() (*SystemAnalysisUseCa
 		b.formatter,
 		b.configLoader,
 	)
+	uc.graphService = b.graphService
 	if b.output != nil {
 		uc.output = b.output
 	}

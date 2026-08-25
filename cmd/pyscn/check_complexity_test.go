@@ -38,13 +38,9 @@ func TestCheckComplexityReportsLongFunctions(t *testing.T) {
 	// while McCabe stays at 1 and never trips the complexity gate.
 	path := writeLongFunctionFile(t, 120)
 
-	issueCount, err := checkCmd.checkComplexity(cobraCmd, []string{path})
-	if err != nil {
-		t.Fatalf("checkComplexity failed: %v", err)
-	}
-
-	if issueCount != 1 {
-		t.Errorf("expected 1 issue for the long function, got %d", issueCount)
+	cobraCmd.SetArgs([]string{"--select", "complexity", path})
+	if err := cobraCmd.Execute(); err == nil {
+		t.Fatal("expected the long function to fail the quality gate")
 	}
 
 	output := stderr.String()
@@ -72,13 +68,9 @@ func TestCheckComplexityStaysSilentBelowThreshold(t *testing.T) {
 	// 60 statements: long enough to warn in the report, below the check gate.
 	path := writeLongFunctionFile(t, 60)
 
-	issueCount, err := checkCmd.checkComplexity(cobraCmd, []string{path})
-	if err != nil {
-		t.Fatalf("checkComplexity failed: %v", err)
-	}
-
-	if issueCount != 0 {
-		t.Errorf("expected no issues below the critical threshold, got %d", issueCount)
+	cobraCmd.SetArgs([]string{"--select", "complexity", "--quiet", path})
+	if err := cobraCmd.Execute(); err != nil {
+		t.Fatalf("expected no issues below the critical threshold, got %v", err)
 	}
 	if output := stderr.String(); output != "" {
 		t.Errorf("expected no diagnostics, got: %s", output)
@@ -101,12 +93,9 @@ func TestCheckComplexityReportsClassExecutionScope(t *testing.T) {
 	var stderr bytes.Buffer
 	cobraCmd.SetErr(&stderr)
 
-	issueCount, err := checkCmd.checkComplexity(cobraCmd, []string{path})
-	if err != nil {
-		t.Fatalf("checkComplexity failed: %v", err)
-	}
-	if issueCount != 1 {
-		t.Fatalf("expected one class-scope issue, got %d: %s", issueCount, stderr.String())
+	cobraCmd.SetArgs([]string{"--select", "complexity", path})
+	if err := cobraCmd.Execute(); err == nil {
+		t.Fatalf("expected the class-scope issue to fail the gate: %s", stderr.String())
 	}
 	if !strings.Contains(stderr.String(), "class scope Config is too complex (12 > 10)") {
 		t.Fatalf("expected a class-scope diagnostic, got: %s", stderr.String())
@@ -144,12 +133,9 @@ func TestCheckComplexityGateIgnoresReportFilters(t *testing.T) {
 	var stderr bytes.Buffer
 	cobraCmd.SetErr(&stderr)
 
-	issueCount, err := checkCmd.checkComplexity(cobraCmd, []string{path})
-	if err != nil {
-		t.Fatalf("checkComplexity failed: %v", err)
-	}
-	if issueCount != 1 {
-		t.Fatalf("expected the filtered CC-11 scope to fail the CC-10 gate, got %d: %s", issueCount, stderr.String())
+	cobraCmd.SetArgs([]string{"--select", "complexity", path})
+	if err := cobraCmd.Execute(); err == nil {
+		t.Fatalf("expected the filtered CC-11 scope to fail the CC-10 gate: %s", stderr.String())
 	}
 	if !strings.Contains(stderr.String(), "filtered_from_report is too complex (11 > 10)") {
 		t.Fatalf("expected the complete analyzed population to drive the gate, got: %s", stderr.String())
@@ -169,12 +155,9 @@ func TestCheckComplexityGatesFunctionsHiddenByDisplayFilters(t *testing.T) {
 	}
 	checkCmd.configFile = configPath
 
-	issueCount, err := checkCmd.checkComplexity(cobraCmd, []string{path})
-	if err != nil {
-		t.Fatalf("checkComplexity failed: %v", err)
-	}
-	if issueCount != 1 {
-		t.Errorf("expected the hidden long function to fail the gate, got %d issues", issueCount)
+	cobraCmd.SetArgs([]string{"--select", "complexity", path})
+	if err := cobraCmd.Execute(); err == nil {
+		t.Fatal("expected the hidden long function to fail the gate")
 	}
 	if output := stderr.String(); !strings.Contains(output, "build_table is too long (123 SLOC > 100)") {
 		t.Errorf("expected a long-function diagnostic, got: %s", output)

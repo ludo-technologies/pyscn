@@ -100,6 +100,41 @@ func createMinimalAnalyzeResponse() *domain.AnalyzeResponse {
 	}
 }
 
+func TestAnalyzeFormatterWritesCoverageDiagnosticsAcrossFormats(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.Summary.TotalFiles = 2
+	response.Summary.AnalyzedFiles = 1
+	response.Summary.SkippedFiles = 1
+	response.Diagnostics = []domain.AnalysisDiagnostic{{
+		FilePath: "broken.py",
+		Code:     domain.DiagnosticCodeParse,
+		Message:  "syntax error",
+	}}
+	response.Failures = []domain.AnalysisFailure{{
+		Analysis: domain.AnalysisKindSystem,
+		Code:     domain.AnalysisFailureCodeExecution,
+		Message:  "dependency calculation failed",
+		FilePath: "valid.py",
+	}}
+
+	for _, format := range []domain.OutputFormat{domain.OutputFormatText, domain.OutputFormatCSV, domain.OutputFormatHTML} {
+		t.Run(string(format), func(t *testing.T) {
+			var output bytes.Buffer
+			require.NoError(t, NewAnalyzeFormatter().Write(response, format, &output))
+			assert.Contains(t, output.String(), "broken.py")
+			assert.Contains(t, output.String(), string(domain.DiagnosticCodeParse))
+			assert.Contains(t, output.String(), "syntax error")
+			assert.Contains(t, output.String(), "valid.py")
+			assert.Contains(t, output.String(), string(domain.AnalysisFailureCodeExecution))
+			assert.Contains(t, output.String(), "dependency calculation failed")
+		})
+	}
+
+	var textOutput bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatText, &textOutput))
+	assert.Contains(t, textOutput.String(), "Skipped: 1")
+}
+
 func TestNewAnalyzeFormatter(t *testing.T) {
 	formatter := NewAnalyzeFormatter()
 

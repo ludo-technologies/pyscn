@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -52,7 +53,13 @@ type AnalyzeUseCaseConfig struct {
 // AnalyzeRequestOverrides contains request-scoped values that take precedence
 // over the resolved project configuration.
 type AnalyzeRequestOverrides struct {
-	Recursive *bool
+	Recursive                 *bool
+	ComplexityEnabled         *bool
+	DeadCodeEnabled           *bool
+	SystemEnabled             *bool
+	SystemAnalyzeDependencies *bool
+	SystemAnalyzeArchitecture *bool
+	ModuleGraph               *domain.ModuleGraphOptions
 }
 
 // AnalyzeUseCase orchestrates comprehensive analysis
@@ -179,6 +186,9 @@ func (b *AnalyzeUseCaseBuilder) Build() (*AnalyzeUseCase, error) {
 	if b.fileReader == nil {
 		return nil, fmt.Errorf("file reader is required")
 	}
+	if err := b.validateAggregateCollaborators(); err != nil {
+		return nil, fmt.Errorf("validate aggregate collaborators: %w", err)
+	}
 	if b.configLoader == nil {
 		b.configLoader = service.NewAnalyzeConfigurationLoader()
 	}
@@ -212,6 +222,31 @@ func (b *AnalyzeUseCaseBuilder) Build() (*AnalyzeUseCase, error) {
 	}, nil
 }
 
+func (b *AnalyzeUseCaseBuilder) validateAggregateCollaborators() error {
+	if b.complexityUseCase != nil && b.complexityUseCase.snapshot == nil {
+		return fmt.Errorf("complexity use case requires a snapshot collaborator")
+	}
+	if b.deadCodeUseCase != nil && b.deadCodeUseCase.snapshot == nil {
+		return fmt.Errorf("dead-code use case requires a snapshot collaborator")
+	}
+	if b.cloneUseCase != nil && b.cloneUseCase.snapshot == nil {
+		return fmt.Errorf("clone use case requires a snapshot collaborator")
+	}
+	if b.cboUseCase != nil && b.cboUseCase.snapshot == nil {
+		return fmt.Errorf("cbo use case requires a snapshot collaborator")
+	}
+	if b.lcomUseCase != nil && b.lcomUseCase.snapshot == nil {
+		return fmt.Errorf("lcom use case requires a snapshot collaborator")
+	}
+	if b.systemUseCase != nil && b.systemUseCase.graphService == nil {
+		return fmt.Errorf("system use case requires a graph collaborator")
+	}
+	if b.communityUseCase != nil && b.communityUseCase.graphService == nil {
+		return fmt.Errorf("community use case requires a graph collaborator")
+	}
+	return nil
+}
+
 // Task names used both for display and as keys for progress estimation
 const (
 	taskNameComplexity  = "Complexity Analysis"
@@ -223,27 +258,155 @@ const (
 	taskNameCommunities = "Community Detection"
 )
 
-// AnalysisTask represents a single analysis task
-type AnalysisTask struct {
+// analysisTask represents a single aggregate-owned analysis task.
+type analysisTask struct {
 	Name    string
+	Kind    domain.AnalysisKind
 	Enabled bool
-	Execute func(context.Context) (interface{}, error)
-	Result  interface{}
+	Execute func(context.Context) (analysisTaskResult, error)
+	Result  analysisTaskResult
 	Error   error
+}
+
+type analysisTaskResult interface {
+	analysisKind() domain.AnalysisKind
+	analysisFailures() []domain.AnalysisFailure
+	applyTo(*domain.AnalyzeResponse)
+}
+
+type complexityTaskResult struct{ response *domain.ComplexityResponse }
+
+func (complexityTaskResult) analysisKind() domain.AnalysisKind { return domain.AnalysisKindComplexity }
+func (r complexityTaskResult) analysisFailures() []domain.AnalysisFailure {
+	return r.response.AnalysisFailures()
+}
+func (r complexityTaskResult) applyTo(response *domain.AnalyzeResponse) {
+	response.Complexity = r.response
+}
+
+type deadCodeTaskResult struct{ response *domain.DeadCodeResponse }
+
+func (deadCodeTaskResult) analysisKind() domain.AnalysisKind { return domain.AnalysisKindDeadCode }
+func (r deadCodeTaskResult) analysisFailures() []domain.AnalysisFailure {
+	return r.response.AnalysisFailures()
+}
+func (r deadCodeTaskResult) applyTo(response *domain.AnalyzeResponse) { response.DeadCode = r.response }
+
+type cloneTaskResult struct{ response *domain.CloneResponse }
+
+func (cloneTaskResult) analysisKind() domain.AnalysisKind { return domain.AnalysisKindClones }
+func (r cloneTaskResult) analysisFailures() []domain.AnalysisFailure {
+	return r.response.AnalysisFailures()
+}
+func (r cloneTaskResult) applyTo(response *domain.AnalyzeResponse) { response.Clone = r.response }
+
+type cboTaskResult struct{ response *domain.CBOResponse }
+
+func (cboTaskResult) analysisKind() domain.AnalysisKind { return domain.AnalysisKindCBO }
+func (r cboTaskResult) analysisFailures() []domain.AnalysisFailure {
+	return r.response.AnalysisFailures()
+}
+func (r cboTaskResult) applyTo(response *domain.AnalyzeResponse) { response.CBO = r.response }
+
+type lcomTaskResult struct{ response *domain.LCOMResponse }
+
+func (lcomTaskResult) analysisKind() domain.AnalysisKind { return domain.AnalysisKindLCOM }
+func (r lcomTaskResult) analysisFailures() []domain.AnalysisFailure {
+	return r.response.AnalysisFailures()
+}
+func (r lcomTaskResult) applyTo(response *domain.AnalyzeResponse) { response.LCOM = r.response }
+
+type systemTaskResult struct {
+	response *domain.SystemAnalysisResponse
+}
+
+func (systemTaskResult) analysisKind() domain.AnalysisKind { return domain.AnalysisKindSystem }
+func (r systemTaskResult) analysisFailures() []domain.AnalysisFailure {
+	return r.response.AnalysisFailures()
+}
+func (r systemTaskResult) applyTo(response *domain.AnalyzeResponse) {
+	response.System = r.response
+	if r.response != nil && r.response.ArchitectureAnalysis != nil {
+		response.Summary.ArchEnabled = true
+	}
+}
+
+type communityTaskResult struct {
+	response *domain.CommunityAnalysisResult
+}
+
+func (communityTaskResult) analysisKind() domain.AnalysisKind {
+	return domain.AnalysisKindCommunities
+}
+func (r communityTaskResult) analysisFailures() []domain.AnalysisFailure {
+	return r.response.AnalysisFailures()
+}
+func (r communityTaskResult) applyTo(response *domain.AnalyzeResponse) {
+	response.Communities = r.response
+}
+
+type analysisRunError struct {
+	failures []domain.AnalysisFailure
+	causes   []error
+}
+
+func (e *analysisRunError) Error() string {
+	return fmt.Sprintf("analysis completed with %d failure(s): %s", len(e.failures), e.failures[0].Message)
+}
+
+func (e *analysisRunError) Unwrap() []error {
+	return e.causes
+}
+
+func (e *analysisRunError) AnalysisFailures() []domain.AnalysisFailure {
+	return append([]domain.AnalysisFailure(nil), e.failures...)
+}
+
+// ProjectAnalysisResult owns the canonical snapshot and the analyses derived
+// from it for callers that need to run additional snapshot-aware policies.
+type ProjectAnalysisResult struct {
+	Response *domain.AnalyzeResponse
+	Snapshot *service.ProjectSnapshot
 }
 
 // Execute performs comprehensive analysis
 func (uc *AnalyzeUseCase) Execute(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string) (*domain.AnalyzeResponse, error) {
-	return uc.execute(ctx, useCaseCfg, paths, AnalyzeRequestOverrides{})
+	result, err := uc.executeProject(ctx, useCaseCfg, paths, AnalyzeRequestOverrides{})
+	if result == nil {
+		if err != nil {
+			return nil, fmt.Errorf("execute project analysis: %w", err)
+		}
+		return nil, nil
+	}
+	if err != nil {
+		return result.Response, fmt.Errorf("execute project analysis: %w", err)
+	}
+	return result.Response, nil
 }
 
 // ExecuteWithOverrides performs comprehensive analysis with request-scoped
 // overrides applied after project configuration is resolved.
 func (uc *AnalyzeUseCase) ExecuteWithOverrides(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string, overrides AnalyzeRequestOverrides) (*domain.AnalyzeResponse, error) {
-	return uc.execute(ctx, useCaseCfg, paths, overrides)
+	result, err := uc.executeProject(ctx, useCaseCfg, paths, overrides)
+	if result == nil {
+		if err != nil {
+			return nil, fmt.Errorf("execute project analysis with overrides: %w", err)
+		}
+		return nil, nil
+	}
+	if err != nil {
+		return result.Response, fmt.Errorf("execute project analysis with overrides: %w", err)
+	}
+	return result.Response, nil
 }
 
-func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string, overrides AnalyzeRequestOverrides) (*domain.AnalyzeResponse, error) {
+// ExecuteProjectWithOverrides returns the response and the sealed snapshot
+// that produced it.
+func (uc *AnalyzeUseCase) ExecuteProjectWithOverrides(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string, overrides AnalyzeRequestOverrides) (*ProjectAnalysisResult, error) {
+	return uc.executeProject(ctx, useCaseCfg, paths, overrides)
+}
+
+func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg AnalyzeUseCaseConfig, paths []string, overrides AnalyzeRequestOverrides) (*ProjectAnalysisResult, error) {
 	startTime := time.Now()
 
 	executionCfg, err := uc.loadExecutionConfig(useCaseCfg.ConfigFile, paths)
@@ -252,6 +415,24 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 	if overrides.Recursive != nil {
 		executionCfg.Recursive = *overrides.Recursive
+	}
+	if overrides.ComplexityEnabled != nil {
+		executionCfg.ComplexityEnabled = *overrides.ComplexityEnabled
+	}
+	if overrides.DeadCodeEnabled != nil {
+		executionCfg.DeadCodeEnabled = *overrides.DeadCodeEnabled
+	}
+	if overrides.SystemEnabled != nil {
+		executionCfg.SystemEnabled = *overrides.SystemEnabled
+	}
+	if overrides.SystemAnalyzeDependencies != nil {
+		executionCfg.SystemAnalyzeDependencies = *overrides.SystemAnalyzeDependencies
+	}
+	if overrides.SystemAnalyzeArchitecture != nil {
+		executionCfg.SystemAnalyzeArchitecture = *overrides.SystemAnalyzeArchitecture
+	}
+	if overrides.ModuleGraph != nil {
+		executionCfg.ModuleGraph = *overrides.ModuleGraph
 	}
 	useCaseCfg.ConfigFile = executionCfg.ConfigPath
 
@@ -273,7 +454,7 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 
 	// Validate and collect files using configured patterns
-	files, err := uc.fileReader.CollectPythonFiles(
+	analysisFiles, err := uc.fileReader.CollectPythonFiles(
 		paths,
 		executionCfg.Recursive,
 		executionCfg.IncludePatterns,
@@ -283,22 +464,48 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 		return nil, fmt.Errorf("failed to collect Python files: %w", err)
 	}
 
-	if len(files) == 0 {
+	moduleFiles := analysisFiles
+	if uc.needsModuleGraph(useCaseCfg) {
+		moduleSelection := executionCfg.PythonFileSelection().ForModules()
+		moduleFiles, err = uc.fileReader.CollectPythonFiles(
+			paths,
+			executionCfg.Recursive,
+			moduleSelection.IncludePatterns,
+			moduleSelection.ExcludePatterns,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to collect Python modules: %w", err)
+		}
+	}
+
+	if len(analysisFiles) == 0 && len(moduleFiles) == 0 {
 		return nil, fmt.Errorf("no Python files found in the specified paths")
 	}
-	files, pathIndex, err := prepareAnalysisPaths(files)
+	analysisFiles, _, err = prepareAnalysisPaths(analysisFiles)
+	if err != nil {
+		return nil, fmt.Errorf("prepare analysis paths: %w", err)
+	}
+	moduleFiles, _, err = prepareAnalysisPaths(moduleFiles)
+	if err != nil {
+		return nil, fmt.Errorf("prepare module paths: %w", err)
+	}
+	allFiles, pathIndex, err := prepareAnalysisPaths(append(append([]string(nil), analysisFiles...), moduleFiles...))
 	if err != nil {
 		return nil, fmt.Errorf("prepare analysis paths: %w", err)
 	}
 	// Estimate per-task durations from file count, then calibrate with actual
 	// timings recorded by previous runs on this project (if any)
-	estimatedSeconds := uc.estimateTaskSeconds(len(files), useCaseCfg, executionCfg)
+	estimatedSeconds := uc.estimateTaskSeconds(len(allFiles), useCaseCfg, executionCfg)
 
-	var snapshot *service.ProjectSnapshot
-	if uc.needsProjectSnapshot(useCaseCfg) {
-		snapshot = service.BuildProjectSnapshotWithOptions(ctx, files, service.ProjectSnapshotOptions{
-			IncludeRawMetrics: uc.complexityUseCase != nil && !useCaseCfg.SkipComplexity,
-		})
+	snapshot := service.BuildAnalysisProjectSnapshot(ctx, analysisFiles, moduleFiles, service.ProjectSnapshotOptions{
+		IncludeRawMetrics: uc.complexityUseCase != nil && !useCaseCfg.SkipComplexity,
+		ProjectRoot:       service.FindProjectRoot(paths),
+	})
+
+	var moduleGraph *service.ProjectModuleGraph
+	var moduleGraphErr error
+	if uc.needsModuleGraph(useCaseCfg) {
+		moduleGraph, moduleGraphErr = snapshot.BuildDependencyGraph(ctx, &executionCfg.ModuleGraph)
 	}
 
 	// Start unified progress tracking; task completions feed back into the
@@ -312,7 +519,7 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 	}
 
 	// Create analysis tasks
-	tasks := uc.createAnalysisTasks(useCaseCfg, paths, files, snapshot, executionCfg)
+	tasks := uc.createAnalysisTasks(useCaseCfg, paths, analysisFiles, snapshot, moduleGraph, moduleGraphErr, executionCfg)
 
 	// Execute tasks in parallel
 	var wg sync.WaitGroup
@@ -322,13 +529,13 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 		}
 
 		wg.Add(1)
-		go func(t *AnalysisTask) {
+		go func(t *analysisTask) {
 			defer wg.Done()
 			result, err := t.Execute(ctx)
 			t.Result = result
 			t.Error = err
 			if tracker != nil {
-				tracker.TaskCompleted(t.Name)
+				tracker.TaskCompleted(t.Kind)
 			}
 		}(task)
 	}
@@ -348,61 +555,94 @@ func (uc *AnalyzeUseCase) execute(ctx context.Context, useCaseCfg AnalyzeUseCase
 		service.UpdateAnalysisTimingFactors(estimatedSeconds, tracker.CompletedDurations())
 	}
 
-	// Check for errors
-	var errors []error
-	for _, task := range tasks {
-		if task.Enabled && task.Error != nil {
-			errors = append(errors, fmt.Errorf("%s: %w", task.Name, task.Error))
-		}
-	}
-
 	// Build response
-	response, err := uc.buildResponse(tasks, startTime, pathIndex)
+	coverage := snapshot.Coverage()
+	response, err := uc.buildResponse(tasks, startTime, pathIndex, coverage)
+	result := &ProjectAnalysisResult{Response: response, Snapshot: snapshot}
 	if err != nil {
-		return response, err
+		return result, fmt.Errorf("build analysis response: %w", err)
 	}
 
-	// Return aggregated error if any tasks failed
-	if len(errors) > 0 {
-		return response, fmt.Errorf("analysis completed with %d error(s): %w", len(errors), errors[0])
+	if len(response.Failures) > 0 {
+		return result, newAnalysisRunError(tasks, response.Failures)
 	}
 
-	return response, nil
+	return result, nil
 }
 
-func (uc *AnalyzeUseCase) needsProjectSnapshot(config AnalyzeUseCaseConfig) bool {
-	return (uc.complexityUseCase != nil && !config.SkipComplexity) ||
-		(uc.deadCodeUseCase != nil && !config.SkipDeadCode) ||
-		(uc.cboUseCase != nil && !config.SkipCBO) ||
-		(uc.lcomUseCase != nil && !config.SkipLCOM)
+func newAnalysisRunError(tasks []*analysisTask, failures []domain.AnalysisFailure) error {
+	causes := make([]error, 0, len(tasks))
+	for _, task := range tasks {
+		if task.Enabled && task.Error != nil {
+			causes = append(causes, fmt.Errorf("%s: %w", task.Name, task.Error))
+		}
+	}
+	for _, failure := range failures {
+		cause := errors.Unwrap(failure)
+		if cause == nil || errorListContains(causes, cause) {
+			continue
+		}
+		causes = append(causes, failure)
+	}
+	return &analysisRunError{
+		failures: append([]domain.AnalysisFailure(nil), failures...),
+		causes:   causes,
+	}
+}
+
+func errorListContains(errorsToCheck []error, target error) bool {
+	for _, candidate := range errorsToCheck {
+		if errors.Is(candidate, target) {
+			return true
+		}
+	}
+	return false
 }
 
 // createAnalysisTasks creates the analysis tasks based on configuration
-func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourcePaths []string, files []string, snapshot *service.ProjectSnapshot, executionCfg domain.AnalyzeExecutionConfig) []*AnalysisTask {
-	tasks := []*AnalysisTask{}
+func (uc *AnalyzeUseCase) needsModuleGraph(config AnalyzeUseCaseConfig) bool {
+	return (uc.systemUseCase != nil && !config.SkipSystem) ||
+		(uc.communityUseCase != nil && !config.SkipCommunities)
+}
+
+func cloneModuleGraph(graph *service.ProjectModuleGraph, buildErr error) (*service.ProjectModuleGraph, error) {
+	if buildErr != nil {
+		return nil, fmt.Errorf("build module graph: %w", buildErr)
+	}
+	if graph == nil {
+		return nil, fmt.Errorf("module graph is required")
+	}
+	return graph.Clone(), nil
+}
+
+func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourcePaths []string, files []string, snapshot *service.ProjectSnapshot, moduleGraph *service.ProjectModuleGraph, moduleGraphErr error, executionCfg domain.AnalyzeExecutionConfig) []*analysisTask {
+	tasks := []*analysisTask{}
 
 	// Complexity analysis task
 	if uc.complexityUseCase != nil {
-		tasks = append(tasks, &AnalysisTask{
+		tasks = append(tasks, &analysisTask{
 			Name:    taskNameComplexity,
+			Kind:    domain.AnalysisKindComplexity,
 			Enabled: !config.SkipComplexity,
-			Execute: func(ctx context.Context) (interface{}, error) {
+			Execute: func(ctx context.Context) (analysisTaskResult, error) {
 				request := uc.buildComplexityTaskRequest(config, files, executionCfg)
 				projectRoot, err := complexityDirectoryRoot(sourcePaths, files)
 				if err != nil {
 					return nil, domain.NewInvalidInputError("invalid complexity analysis scope", err)
 				}
-				return uc.complexityUseCase.analyzeSnapshotRequest(ctx, snapshot, request, projectRoot)
+				response, err := uc.complexityUseCase.analyzeSnapshotRequest(ctx, snapshot, request, projectRoot)
+				return complexityTaskResult{response: response}, err
 			},
 		})
 	}
 
 	// Dead code analysis task
 	if uc.deadCodeUseCase != nil {
-		tasks = append(tasks, &AnalysisTask{
+		tasks = append(tasks, &analysisTask{
 			Name:    taskNameDeadCode,
+			Kind:    domain.AnalysisKindDeadCode,
 			Enabled: !config.SkipDeadCode,
-			Execute: func(ctx context.Context) (interface{}, error) {
+			Execute: func(ctx context.Context) (analysisTaskResult, error) {
 				request := domain.DeadCodeRequest{
 					Paths:           files,
 					Recursive:       domain.BoolPtr(executionCfg.Recursive),
@@ -423,29 +663,33 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					DetectAfterRaise:          nil,
 					DetectUnreachableBranches: nil,
 				}
-				return uc.deadCodeUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
+				response, err := uc.deadCodeUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
+				return deadCodeTaskResult{response: response}, err
 			},
 		})
 	}
 
 	// Clone detection task
 	if uc.cloneUseCase != nil {
-		tasks = append(tasks, &AnalysisTask{
+		tasks = append(tasks, &analysisTask{
 			Name:    taskNameClones,
+			Kind:    domain.AnalysisKindClones,
 			Enabled: !config.SkipClones,
-			Execute: func(ctx context.Context) (interface{}, error) {
+			Execute: func(ctx context.Context) (analysisTaskResult, error) {
 				request := uc.buildCloneTaskRequest(config, files, executionCfg)
-				return uc.cloneUseCase.ExecuteAndReturn(ctx, request)
+				response, err := uc.cloneUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
+				return cloneTaskResult{response: response}, err
 			},
 		})
 	}
 
 	// CBO analysis task
 	if uc.cboUseCase != nil {
-		tasks = append(tasks, &AnalysisTask{
+		tasks = append(tasks, &analysisTask{
 			Name:    taskNameCBO,
+			Kind:    domain.AnalysisKindCBO,
 			Enabled: !config.SkipCBO,
-			Execute: func(ctx context.Context) (interface{}, error) {
+			Execute: func(ctx context.Context) (analysisTaskResult, error) {
 				request := domain.CBORequest{
 					Paths:           files,
 					Recursive:       domain.BoolPtr(executionCfg.Recursive),
@@ -464,17 +708,19 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					IncludeImports:        nil,
 					GroupNamespaceImports: nil,
 				}
-				return uc.cboUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
+				response, err := uc.cboUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
+				return cboTaskResult{response: response}, err
 			},
 		})
 	}
 
 	// LCOM analysis task
 	if uc.lcomUseCase != nil {
-		tasks = append(tasks, &AnalysisTask{
+		tasks = append(tasks, &analysisTask{
 			Name:    taskNameLCOM,
+			Kind:    domain.AnalysisKindLCOM,
 			Enabled: !config.SkipLCOM,
-			Execute: func(ctx context.Context) (interface{}, error) {
+			Execute: func(ctx context.Context) (analysisTaskResult, error) {
 				request := domain.LCOMRequest{
 					Paths:           files,
 					Recursive:       domain.BoolPtr(executionCfg.Recursive),
@@ -487,17 +733,23 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					SortBy:          domain.SortByCohesion,
 					ConfigPath:      config.ConfigFile,
 				}
-				return uc.lcomUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
+				response, err := uc.lcomUseCase.analyzeSnapshotRequest(ctx, snapshot, request)
+				return lcomTaskResult{response: response}, err
 			},
 		})
 	}
 
 	// System analysis task
 	if uc.systemUseCase != nil {
-		tasks = append(tasks, &AnalysisTask{
+		tasks = append(tasks, &analysisTask{
 			Name:    taskNameSystem,
+			Kind:    domain.AnalysisKindSystem,
 			Enabled: !config.SkipSystem,
-			Execute: func(ctx context.Context) (interface{}, error) {
+			Execute: func(ctx context.Context) (analysisTaskResult, error) {
+				ownedGraph, err := cloneModuleGraph(moduleGraph, moduleGraphErr)
+				if err != nil {
+					return nil, fmt.Errorf("prepare system analysis graph: %w", err)
+				}
 				request := domain.SystemAnalysisRequest{
 					Paths:                files,
 					Recursive:            domain.BoolPtr(executionCfg.Recursive),
@@ -508,34 +760,44 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					ConfigPath:           config.ConfigFile,
 					AnalyzeDependencies:  domain.BoolPtr(executionCfg.SystemAnalyzeDependencies),
 					AnalyzeArchitecture:  domain.BoolPtr(executionCfg.SystemAnalyzeArchitecture),
-					IncludeStdLib:        nil,
-					IncludeThirdParty:    nil,
-					FollowRelative:       nil,
+					IncludeStdLib:        domain.BoolPtr(executionCfg.ModuleGraph.IncludeStdLib),
+					IncludeThirdParty:    domain.BoolPtr(executionCfg.ModuleGraph.IncludeThirdParty),
+					FollowRelative:       domain.BoolPtr(executionCfg.ModuleGraph.FollowRelative),
 					DetectCycles:         nil,
 					ValidateArchitecture: nil,
 				}
-				return uc.systemUseCase.AnalyzeAndReturn(ctx, request)
+				response, err := uc.systemUseCase.analyzeGraphRequest(ctx, ownedGraph, request)
+				return systemTaskResult{response: response}, err
 			},
 		})
 	}
 
 	// Community detection task.
 	if uc.communityUseCase != nil {
-		tasks = append(tasks, &AnalysisTask{
+		tasks = append(tasks, &analysisTask{
 			Name:    taskNameCommunities,
+			Kind:    domain.AnalysisKindCommunities,
 			Enabled: !config.SkipCommunities,
-			Execute: func(ctx context.Context) (interface{}, error) {
-				request := domain.CommunityAnalysisRequest{
-					Paths:           files,
-					SourcePaths:     append([]string(nil), sourcePaths...),
-					Recursive:       domain.BoolPtr(executionCfg.Recursive),
-					IncludePatterns: []string{},
-					ExcludePatterns: []string{},
-					OutputFormat:    domain.OutputFormatJSON,
-					OutputWriter:    io.Discard,
-					ConfigPath:      config.ConfigFile,
+			Execute: func(ctx context.Context) (analysisTaskResult, error) {
+				ownedGraph, err := cloneModuleGraph(moduleGraph, moduleGraphErr)
+				if err != nil {
+					return nil, fmt.Errorf("prepare community analysis graph: %w", err)
 				}
-				return uc.communityUseCase.AnalyzeAndReturn(ctx, request)
+				request := domain.CommunityAnalysisRequest{
+					Paths:             files,
+					SourcePaths:       append([]string(nil), sourcePaths...),
+					Recursive:         domain.BoolPtr(executionCfg.Recursive),
+					IncludePatterns:   []string{},
+					ExcludePatterns:   []string{},
+					OutputFormat:      domain.OutputFormatJSON,
+					OutputWriter:      io.Discard,
+					ConfigPath:        config.ConfigFile,
+					IncludeStdLib:     domain.BoolPtr(executionCfg.ModuleGraph.IncludeStdLib),
+					IncludeThirdParty: domain.BoolPtr(executionCfg.ModuleGraph.IncludeThirdParty),
+					FollowRelative:    domain.BoolPtr(executionCfg.ModuleGraph.FollowRelative),
+				}
+				response, err := uc.communityUseCase.analyzeGraphRequest(ctx, ownedGraph, request)
+				return communityTaskResult{response: response}, err
 			},
 		})
 	}
@@ -615,61 +877,39 @@ func (uc *AnalyzeUseCase) buildCloneTaskRequest(config AnalyzeUseCaseConfig, fil
 }
 
 // buildResponse builds the analyze response from task results
-func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Time, pathIndex analysisPathIndex) (*domain.AnalyzeResponse, error) {
+func (uc *AnalyzeUseCase) buildResponse(tasks []*analysisTask, startTime time.Time, pathIndex analysisPathIndex, coverage domain.AnalysisCoverage) (*domain.AnalyzeResponse, error) {
 	response := &domain.AnalyzeResponse{
 		GeneratedAt: time.Now(),
 		Duration:    time.Since(startTime).Milliseconds(),
+		Diagnostics: coverage.Diagnostics,
 	}
+	response.Summary.TotalFiles = coverage.TotalFiles
+	response.Summary.AnalyzedFiles = coverage.AnalyzedFiles
+	response.Summary.SkippedFiles = coverage.SkippedFiles
 
 	// Collect results from tasks
 	for _, task := range tasks {
 		if !task.Enabled {
 			continue
 		}
-
-		switch result := task.Result.(type) {
-		case *domain.ComplexityResponse:
-			response.Summary.ComplexityEnabled = true
-			if result != nil {
-				response.Complexity = result
+		if err := markAnalysisEnabled(&response.Summary, task.Kind); err != nil {
+			return response, err
+		}
+		if task.Error != nil {
+			response.Failures = append(response.Failures, domain.NewAnalysisFailure(
+				task.Kind,
+				domain.AnalysisFailureCodeExecution,
+				"",
+				task.Error.Error(),
+				task.Error,
+			))
+		}
+		if task.Result != nil {
+			if resultKind := task.Result.analysisKind(); resultKind != task.Kind {
+				return response, fmt.Errorf("analysis task %s returned %s result", task.Kind, resultKind)
 			}
-		case *domain.DeadCodeResponse:
-			response.Summary.DeadCodeEnabled = true
-			if result != nil {
-				response.DeadCode = result
-			}
-		case *domain.CloneResponse:
-			response.Summary.CloneEnabled = true
-			if result != nil {
-				response.Clone = result
-			}
-		case *domain.CBOResponse:
-			response.Summary.CBOEnabled = true
-			if result != nil {
-				response.CBO = result
-			}
-		case *domain.LCOMResponse:
-			response.Summary.LCOMEnabled = true
-			if result != nil {
-				response.LCOM = result
-			}
-		case *domain.SystemAnalysisResponse:
-			response.Summary.DepsEnabled = true
-			if result != nil {
-				response.System = result
-				if result.ArchitectureAnalysis != nil {
-					response.Summary.ArchEnabled = true
-				}
-			}
-		case *domain.CommunityAnalysisResult:
-			response.Summary.CommunitiesEnabled = true
-			if result != nil {
-				response.Communities = result
-			}
-		case nil:
-			uc.markSummaryForTask(&response.Summary, task.Name)
-		default:
-			uc.markSummaryForTask(&response.Summary, task.Name)
+			response.Failures = append(response.Failures, task.Result.analysisFailures()...)
+			task.Result.applyTo(response)
 		}
 	}
 
@@ -688,36 +928,33 @@ func (uc *AnalyzeUseCase) buildResponse(tasks []*AnalysisTask, startTime time.Ti
 	return response, nil
 }
 
-// markSummaryForTask ensures the summary reflects analyses that attempted to run
-func (uc *AnalyzeUseCase) markSummaryForTask(summary *domain.AnalyzeSummary, taskName string) {
-	switch taskName {
-	case "Complexity Analysis":
+// markAnalysisEnabled records an attempted analysis from its typed identity.
+func markAnalysisEnabled(summary *domain.AnalyzeSummary, kind domain.AnalysisKind) error {
+	switch kind {
+	case domain.AnalysisKindComplexity:
 		summary.ComplexityEnabled = true
-	case "Dead Code Detection":
+	case domain.AnalysisKindDeadCode:
 		summary.DeadCodeEnabled = true
-	case "Clone Detection":
+	case domain.AnalysisKindClones:
 		summary.CloneEnabled = true
-	case "Class Coupling (CBO)":
+	case domain.AnalysisKindCBO:
 		summary.CBOEnabled = true
-	case "Class Cohesion (LCOM)":
+	case domain.AnalysisKindLCOM:
 		summary.LCOMEnabled = true
-	case "System Analysis":
+	case domain.AnalysisKindSystem:
 		summary.DepsEnabled = true
-	case taskNameCommunities:
+	case domain.AnalysisKindCommunities:
 		summary.CommunitiesEnabled = true
+	default:
+		return fmt.Errorf("unsupported analysis kind %q", kind)
 	}
+	return nil
 }
 
 // calculateSummary calculates the summary statistics
 func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, response *domain.AnalyzeResponse) {
 	// Complexity statistics
 	if response.Complexity != nil {
-		// TotalFiles must count files that failed to parse too, otherwise the
-		// shortfall is invisible and the health score is computed as if the
-		// unanalyzable half of the project did not exist (issue #690).
-		summary.TotalFiles = response.Complexity.Summary.TotalFiles
-		summary.AnalyzedFiles = response.Complexity.Summary.FilesAnalyzed
-		summary.SkippedFiles = response.Complexity.Summary.SkippedFiles
 		summary.TotalFunctions = response.Complexity.Summary.TotalFunctions
 		summary.TotalClassScopes = response.Complexity.Summary.TotalClassScopes
 		summary.MaxClassComplexity = response.Complexity.Summary.MaxClassComplexity
@@ -830,31 +1067,31 @@ func (uc *AnalyzeUseCase) loadExecutionConfig(configPath string, paths []string)
 }
 
 // estimateTaskSeconds estimates the duration of each enabled analysis task in
-// seconds, keyed by task name. The formulas capture how each analysis scales
+// seconds, keyed by typed analysis identity. The formulas capture how each analysis scales
 // with file count; absolute accuracy comes from calibration against actual
 // timings (see applyTimingFactors and UpdateAnalysisTimingFactors).
-func (uc *AnalyzeUseCase) estimateTaskSeconds(fileCount int, config AnalyzeUseCaseConfig, executionCfg domain.AnalyzeExecutionConfig) map[string]float64 {
+func (uc *AnalyzeUseCase) estimateTaskSeconds(fileCount int, config AnalyzeUseCaseConfig, executionCfg domain.AnalyzeExecutionConfig) map[domain.AnalysisKind]float64 {
 	n := float64(fileCount)
-	estimates := map[string]float64{}
+	estimates := map[domain.AnalysisKind]float64{}
 
 	// Linear analyses (fast)
 	if uc.complexityUseCase != nil && !config.SkipComplexity {
-		estimates[taskNameComplexity] = 0.01 * n // Complexity: ~0.01s per file
+		estimates[domain.AnalysisKindComplexity] = 0.01 * n // Complexity: ~0.01s per file
 	}
 	if uc.deadCodeUseCase != nil && !config.SkipDeadCode {
-		estimates[taskNameDeadCode] = 0.01 * n // Dead Code: ~0.01s per file
+		estimates[domain.AnalysisKindDeadCode] = 0.01 * n // Dead Code: ~0.01s per file
 	}
 	if uc.cboUseCase != nil && !config.SkipCBO {
-		estimates[taskNameCBO] = 0.01 * n // CBO: ~0.01s per file
+		estimates[domain.AnalysisKindCBO] = 0.01 * n // CBO: ~0.01s per file
 	}
 	if uc.lcomUseCase != nil && !config.SkipLCOM {
-		estimates[taskNameLCOM] = 0.01 * n // LCOM: ~0.01s per file
+		estimates[domain.AnalysisKindLCOM] = 0.01 * n // LCOM: ~0.01s per file
 	}
 	if uc.systemUseCase != nil && !config.SkipSystem {
-		estimates[taskNameSystem] = 0.02 * n // System: ~0.02s per file (slightly heavier)
+		estimates[domain.AnalysisKindSystem] = 0.02 * n // System: ~0.02s per file (slightly heavier)
 	}
 	if uc.communityUseCase != nil && !config.SkipCommunities {
-		estimates[taskNameCommunities] = 0.02 * n
+		estimates[domain.AnalysisKindCommunities] = 0.02 * n
 	}
 
 	// Clone detection - account for LSH configuration
@@ -873,11 +1110,11 @@ func (uc *AnalyzeUseCase) estimateTaskSeconds(fileCount int, config AnalyzeUseCa
 		if useLSH {
 			// LSH enabled: Near-linear O(n^1.1) complexity
 			// LSH candidate filtering significantly reduces the number of APTED comparisons
-			estimates[taskNameClones] = 0.01 * math.Pow(estimatedFragments, 1.1)
+			estimates[domain.AnalysisKindClones] = 0.01 * math.Pow(estimatedFragments, 1.1)
 		} else {
 			// LSH disabled: Quadratic O(n²) complexity - full pairwise comparison
 			// All fragment pairs are compared via expensive APTED tree edit distance
-			estimates[taskNameClones] = 0.001 * estimatedFragments * estimatedFragments
+			estimates[domain.AnalysisKindClones] = 0.001 * estimatedFragments * estimatedFragments
 		}
 	}
 

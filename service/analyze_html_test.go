@@ -255,7 +255,7 @@ func TestWriteAnalyzeHTML_SurfacesSkippedFiles(t *testing.T) {
 	require.NoError(t, writeAnalyzeHTML(response, &buf))
 	html := buf.String()
 	assert.Contains(t, html, "60 of 100 files analyzed, 40 skipped")
-	assert.Contains(t, html, "<strong>40 files of 100 could not be parsed</strong>")
+	assert.Contains(t, html, "<strong>40 files of 100 could not be analyzed</strong>")
 }
 
 func TestBuildReportDimensions_UnlinkedWhenTabMissing(t *testing.T) {
