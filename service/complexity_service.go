@@ -134,11 +134,9 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 			return nil, fmt.Errorf("complexity analysis cancelled: %w", ctx.Err())
 		default:
 		}
-		if !file.Parsed() {
-			continue
+		if file.Parsed() {
+			parsedFiles++
 		}
-		parsedFiles++
-
 		scopes, rawMetrics, fileWarnings, fileIssues := s.analyzeProjectFile(file, req)
 
 		if rawMetrics != nil {
@@ -260,7 +258,7 @@ func (s *ComplexityServiceImpl) analyzeProjectFile(file *ProjectFile, req domain
 		return scopes, nil, warnings, issues
 	}
 	if file.ReadErr != nil {
-		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Failed to read file: %v", file.ReadErr), cause: file.ReadErr})
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Failed to read file: %v", file.ReadErr), cause: file.ReadErr, diagnosticCode: domain.DiagnosticCodeRead})
 		return scopes, nil, warnings, issues
 	}
 
@@ -270,7 +268,7 @@ func (s *ComplexityServiceImpl) analyzeProjectFile(file *ProjectFile, req domain
 		return scopes, nil, warnings, issues
 	}
 	if file.ParseErr != nil {
-		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Parse error: %v", file.ParseErr), cause: file.ParseErr})
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Parse error: %v", file.ParseErr), cause: file.ParseErr, diagnosticCode: domain.DiagnosticCodeParse})
 		return scopes, rawMetrics, warnings, issues
 	}
 

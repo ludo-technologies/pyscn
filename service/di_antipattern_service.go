@@ -90,6 +90,7 @@ func (s *DIAntipatternServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot
 		return nil, fmt.Errorf("di anti-pattern analysis cancelled: %w", err)
 	}
 	var findings []domain.DIAntipatternFinding
+	var diagnostics []domain.AnalysisDiagnostic
 	var failures []domain.AnalysisFailure
 	filesProcessed := 0
 	selection := domain.PythonFileSelection{
@@ -100,7 +101,11 @@ func (s *DIAntipatternServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot
 		if err := ctx.Err(); err != nil {
 			return nil, fmt.Errorf("di anti-pattern analysis cancelled: %w", err)
 		}
-		if !file.Parsed() || s.isTestFile(file.Path) {
+		if s.isTestFile(file.Path) {
+			continue
+		}
+		if diagnostic, invalid := projectFileDiagnostic(file); invalid {
+			diagnostics = append(diagnostics, diagnostic)
 			continue
 		}
 		fileFindings, err := s.calculateFindings(file.AST, file.Path, req)
@@ -116,6 +121,7 @@ func (s *DIAntipatternServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot
 		Findings:    findings,
 		Summary:     analyzer.GenerateSummary(findings, filesProcessed),
 		Errors:      failureMessages(failures),
+		Diagnostics: diagnostics,
 		Failures:    failures,
 		GeneratedAt: time.Now().Format(time.RFC3339),
 		Version:     version.Version,

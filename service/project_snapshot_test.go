@@ -262,6 +262,89 @@ func TestProjectSnapshotSelectionUsesCollectionPathBase(t *testing.T) {
 	}
 }
 
+func TestSnapshotAnalyzersReportCapturedParseFailures(t *testing.T) {
+	ctx := context.Background()
+	brokenPath := filepath.Join(t.TempDir(), "broken.py")
+	if err := os.WriteFile(brokenPath, []byte("def broken(:\n"), 0o644); err != nil {
+		t.Fatalf("write broken source: %v", err)
+	}
+	snapshot := BuildProjectSnapshot(ctx, []string{brokenPath})
+
+	complexityReq := domain.ComplexityRequest{
+		Paths:           []string{brokenPath},
+		OutputFormat:    domain.OutputFormatJSON,
+		MinComplexity:   1,
+		SortBy:          domain.SortByName,
+		LowThreshold:    domain.DefaultComplexityLowThreshold,
+		MediumThreshold: domain.DefaultComplexityMediumThreshold,
+	}
+	complexity, err := NewComplexityService().AnalyzeSnapshot(ctx, snapshot, complexityReq)
+	if err != nil {
+		t.Fatalf("complexity snapshot: %v", err)
+	}
+	assertSingleAnalyzerError(t, "complexity", complexity.Errors, complexity.Failures)
+
+	deadCodeReq := *domain.DefaultDeadCodeRequest()
+	deadCodeReq.Paths = []string{brokenPath}
+	deadCode, err := NewDeadCodeService().AnalyzeSnapshot(ctx, snapshot, deadCodeReq)
+	if err != nil {
+		t.Fatalf("dead-code snapshot: %v", err)
+	}
+	assertSingleAnalyzerError(t, "dead code", deadCode.Errors, deadCode.Failures)
+
+	cboReq := *domain.DefaultCBORequest()
+	cboReq.Paths = []string{brokenPath}
+	cbo, err := NewCBOService().AnalyzeSnapshot(ctx, snapshot, cboReq)
+	if err != nil {
+		t.Fatalf("CBO snapshot: %v", err)
+	}
+	assertSingleAnalyzerError(t, "CBO", cbo.Errors, cbo.Failures)
+
+	lcomReq := *domain.DefaultLCOMRequest()
+	lcomReq.Paths = []string{brokenPath}
+	lcom, err := NewLCOMService().AnalyzeSnapshot(ctx, snapshot, lcomReq)
+	if err != nil {
+		t.Fatalf("LCOM snapshot: %v", err)
+	}
+	assertSingleAnalyzerError(t, "LCOM", lcom.Errors, lcom.Failures)
+
+	cloneReq := newDefaultCloneRequest(brokenPath)
+	clones, err := NewCloneService().AnalyzeSnapshot(ctx, snapshot, cloneReq)
+	if err != nil {
+		t.Fatalf("clone snapshot: %v", err)
+	}
+	assertSingleAnalyzerError(t, "clones", clones.Errors, clones.Failures)
+
+	mockReq := *domain.DefaultMockDataRequest()
+	mockReq.IgnoreTests = domain.BoolPtr(false)
+	mockData, err := NewMockDataService().AnalyzeSnapshot(ctx, snapshot, mockReq)
+	if err != nil {
+		t.Fatalf("mock-data snapshot: %v", err)
+	}
+	assertSingleParseDiagnostic(t, "mock data", mockData.Diagnostics)
+
+	diReq := *domain.DefaultDIAntipatternRequest()
+	di, err := NewDIAntipatternService().AnalyzeSnapshot(ctx, snapshot, diReq)
+	if err != nil {
+		t.Fatalf("DI snapshot: %v", err)
+	}
+	assertSingleParseDiagnostic(t, "DI", di.Diagnostics)
+}
+
+func assertSingleAnalyzerError(t *testing.T, analyzerName string, messages []string, failures []domain.AnalysisFailure) {
+	t.Helper()
+	if len(messages) != 1 || len(failures) != 0 {
+		t.Fatalf("expected %s to report one captured file diagnostic and no execution failure, messages=%v failures=%+v", analyzerName, messages, failures)
+	}
+}
+
+func assertSingleParseDiagnostic(t *testing.T, analyzerName string, diagnostics []domain.AnalysisDiagnostic) {
+	t.Helper()
+	if len(diagnostics) != 1 || diagnostics[0].Code != domain.DiagnosticCodeParse {
+		t.Fatalf("expected %s to report one parse diagnostic, got %+v", analyzerName, diagnostics)
+	}
+}
+
 func TestProjectSnapshotCapturesSrcModuleRoot(t *testing.T) {
 	projectRoot := t.TempDir()
 	packageDir := filepath.Join(projectRoot, "src", "pkg")

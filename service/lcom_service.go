@@ -98,10 +98,6 @@ func (s *LCOMServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Project
 			return nil, fmt.Errorf("LCOM analysis cancelled: %w", ctx.Err())
 		default:
 		}
-		if !file.Parsed() {
-			continue
-		}
-
 		classes, fileWarnings, fileIssues := s.analyzeProjectFile(file, req)
 
 		if len(fileIssues) > 0 {
@@ -195,11 +191,11 @@ func (s *LCOMServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.LCOMR
 		return classes, warnings, issues
 	}
 	if file.ReadErr != nil {
-		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Failed to read file: %v", file.ReadErr), cause: file.ReadErr})
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Failed to read file: %v", file.ReadErr), cause: file.ReadErr, diagnosticCode: domain.DiagnosticCodeRead})
 		return classes, warnings, issues
 	}
 	if file.ParseErr != nil {
-		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Parse error: %v", file.ParseErr), cause: file.ParseErr})
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Parse error: %v", file.ParseErr), cause: file.ParseErr, diagnosticCode: domain.DiagnosticCodeParse})
 		return classes, warnings, issues
 	}
 

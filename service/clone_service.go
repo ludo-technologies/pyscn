@@ -155,7 +155,8 @@ func (s *CloneService) extractFragmentsFromSnapshot(ctx context.Context, snapsho
 		default:
 		}
 
-		if !file.Parsed() {
+		if issue, invalid := projectFileAnalysisIssue(file); invalid {
+			extraction.issues = append(extraction.issues, issue)
 			continue
 		}
 

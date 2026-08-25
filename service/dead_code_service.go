@@ -100,10 +100,6 @@ func (s *DeadCodeServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Pro
 			return nil, fmt.Errorf("dead code analysis cancelled: %w", ctx.Err())
 		default:
 		}
-		if !file.Parsed() {
-			continue
-		}
-
 		fileResult, moduleRollup, fileWarnings, fileIssues := s.analyzeProjectFile(file, req)
 
 		if len(fileIssues) > 0 {
@@ -218,11 +214,11 @@ func (s *DeadCodeServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.D
 		return nil, domain.ModuleDeadCodeMetrics{}, warnings, issues
 	}
 	if file.ReadErr != nil {
-		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Failed to read file: %v", file.ReadErr), cause: file.ReadErr})
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Failed to read file: %v", file.ReadErr), cause: file.ReadErr, diagnosticCode: domain.DiagnosticCodeRead})
 		return nil, domain.ModuleDeadCodeMetrics{}, warnings, issues
 	}
 	if file.ParseErr != nil {
-		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Parse error: %v", file.ParseErr), cause: file.ParseErr})
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Parse error: %v", file.ParseErr), cause: file.ParseErr, diagnosticCode: domain.DiagnosticCodeParse})
 		return nil, domain.ModuleDeadCodeMetrics{}, warnings, issues
 	}
 

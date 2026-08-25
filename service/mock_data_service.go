@@ -128,9 +128,14 @@ func (s *MockDataServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Pro
 		IncludePatterns: req.IncludePatterns,
 		ExcludePatterns: req.ExcludePatterns,
 	}
+	var diagnostics []domain.AnalysisDiagnostic
 	for _, file := range snapshot.selectedAnalysisProjectFiles(selection) {
-		if !file.Parsed() || matchesMockDataIgnorePattern(file.Path, ignorePatterns) ||
+		if matchesMockDataIgnorePattern(file.Path, ignorePatterns) ||
 			(domain.BoolValue(req.IgnoreTests, domain.DefaultMockDataIgnoreTests) && s.isTestFile(file.Path)) {
+			continue
+		}
+		if diagnostic, invalid := projectFileDiagnostic(file); invalid {
+			diagnostics = append(diagnostics, diagnostic)
 			continue
 		}
 		result, err := detector.DetectParsed(ctx, file.parseResult.RootNode, file.source, file.Path)
@@ -149,6 +154,7 @@ func (s *MockDataServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Pro
 		Files:       files,
 		Summary:     s.generateSummary(files, filesProcessed),
 		Errors:      failureMessages(failures),
+		Diagnostics: diagnostics,
 		Failures:    failures,
 		GeneratedAt: time.Now().Format(time.RFC3339),
 		Version:     version.Version,
