@@ -3041,10 +3041,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#functions-functioncomplexity" class="md-nav__link">
+  <a href="#functions-class_scopes-functioncomplexity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        functions[] 要素 (FunctionComplexity)
+        functions[] および class_scopes[] 要素 (FunctionComplexity)
       
     </span>
   </a>
@@ -3113,10 +3113,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filesfunctions-functiondeadcode" class="md-nav__link">
+  <a href="#filesfunctions-filesclass_scopes-functiondeadcode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        files[].functions[] 要素 (FunctionDeadCode)
+        files[].functions[] および files[].class_scopes[] 要素 (FunctionDeadCode)
       
     </span>
   </a>
@@ -3124,10 +3124,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filesfunctionsfindings-deadcodefinding" class="md-nav__link">
+  <a href="#findings-deadcodefinding" class="md-nav__link">
     <span class="md-ellipsis">
       
-        files[].functions[].findings[] 要素 (DeadCodeFinding)
+        findings[] 要素 (DeadCodeFinding)
       
     </span>
   </a>
@@ -3954,10 +3954,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#functions-functioncomplexity" class="md-nav__link">
+  <a href="#functions-class_scopes-functioncomplexity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        functions[] 要素 (FunctionComplexity)
+        functions[] および class_scopes[] 要素 (FunctionComplexity)
       
     </span>
   </a>
@@ -4026,10 +4026,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filesfunctions-functiondeadcode" class="md-nav__link">
+  <a href="#filesfunctions-filesclass_scopes-functiondeadcode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        files[].functions[] 要素 (FunctionDeadCode)
+        files[].functions[] および files[].class_scopes[] 要素 (FunctionDeadCode)
       
     </span>
   </a>
@@ -4037,10 +4037,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filesfunctionsfindings-deadcodefinding" class="md-nav__link">
+  <a href="#findings-deadcodefinding" class="md-nav__link">
     <span class="md-ellipsis">
       
-        files[].functions[].findings[] 要素 (DeadCodeFinding)
+        findings[] 要素 (DeadCodeFinding)
       
     </span>
   </a>
@@ -4700,6 +4700,11 @@
 <td>分析された関数の合計数。</td>
 </tr>
 <tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>分析されたクラス実行スコープ数。</td>
+</tr>
+<tr>
 <td><code>average_complexity</code></td>
 <td>number</td>
 <td>サイクロマティック複雑度の平均値。関数がない場合は <code>0</code>。</td>
@@ -4708,6 +4713,26 @@
 <td><code>high_complexity_count</code></td>
 <td>integer</td>
 <td>複雑度が 10 を超える関数の数（中閾値）。</td>
+</tr>
+<tr>
+<td><code>max_class_complexity</code></td>
+<td>integer</td>
+<td>クラススコープの最大サイクロマティック複雑度。</td>
+</tr>
+<tr>
+<td><code>max_class_cognitive_complexity</code></td>
+<td>integer</td>
+<td>クラススコープの最大認知的複雑度。</td>
+</tr>
+<tr>
+<td><code>max_class_nesting_depth</code></td>
+<td>integer</td>
+<td>クラススコープの最大ネスト深度。</td>
+</tr>
+<tr>
+<td><code>high_complexity_class_scope_count</code></td>
+<td>integer</td>
+<td>高リスクに分類されたクラススコープ数。</td>
 </tr>
 </tbody>
 </table>
@@ -4981,17 +5006,18 @@
 <p><code>domain.ComplexityResponse</code> に対応します。</p>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">"functions"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* FunctionComplexity array */</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">"summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ComplexitySummary */</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">"raw_metrics"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* RawMetrics array, present when computed */</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">"raw_metrics_summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* RawMetricsSummary, present when computed */</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">"warnings"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">"errors"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-04-14T10:18:23Z"</span><span class="p">,</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.14.0"</span><span class="p">,</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">"config"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">}</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">"class_scopes"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* FunctionComplexity array; omitted when empty */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">"summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ComplexitySummary */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">"raw_metrics"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* RawMetrics array, present when computed */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">"raw_metrics_summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* RawMetricsSummary, present when computed */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">"warnings"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">"errors"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-04-14T10:18:23Z"</span><span class="p">,</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.14.0"</span><span class="p">,</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="nt">"config"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">}</span>
 </span></code></pre></div>
-<h3 id="functions-functioncomplexity"><code>functions[]</code> 要素 (<code>FunctionComplexity</code>)<a class="headerlink" href="#functions-functioncomplexity" title="Permanent link">&para;</a></h3>
+<h3 id="functions-class_scopes-functioncomplexity"><code>functions[]</code> および <code>class_scopes[]</code> 要素 (<code>FunctionComplexity</code>)<a class="headerlink" href="#functions-class_scopes-functioncomplexity" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -5004,7 +5030,12 @@
 <tr>
 <td><code>name</code></td>
 <td>string</td>
-<td>関数名。モジュールレベルのコードの場合は <code>__main__</code>。</td>
+<td>修飾されたスコープ名。モジュールレベルのコードは <code>&lt;module&gt;</code>。</td>
+</tr>
+<tr>
+<td><code>scope_kind</code></td>
+<td>string</td>
+<td>必須の実行所有者：<code>module</code>、<code>function</code>、<code>class</code> のいずれか。</td>
 </tr>
 <tr>
 <td><code>file_path</code></td>
@@ -5108,22 +5139,62 @@
 <tr>
 <td><code>total_functions</code></td>
 <td>integer</td>
-<td>分析された関数の合計数。</td>
+<td>分析されたモジュールおよび関数スコープの合計数。</td>
+</tr>
+<tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>分析された実行可能なクラススイートの合計数。</td>
+</tr>
+<tr>
+<td><code>functions_parsed</code></td>
+<td>integer</td>
+<td><code>total_functions</code> の完全な母集団と一致する互換カウント。</td>
 </tr>
 <tr>
 <td><code>average_complexity</code></td>
 <td>number</td>
-<td>すべての関数の <code>Complexity</code> の算術平均。</td>
+<td>モジュールおよび関数スコープの <code>complexity</code> の算術平均。</td>
+</tr>
+<tr>
+<td><code>average_cognitive_complexity</code></td>
+<td>number</td>
+<td>モジュールおよび関数スコープの <code>cognitive_complexity</code> の算術平均。</td>
+</tr>
+<tr>
+<td><code>average_nesting_depth</code></td>
+<td>number</td>
+<td>モジュールおよび関数スコープの <code>nesting_depth</code> の算術平均。</td>
 </tr>
 <tr>
 <td><code>max_complexity</code></td>
 <td>integer</td>
-<td>観測された最大複雑度。</td>
+<td>モジュールおよび関数スコープの最大複雑度。</td>
 </tr>
 <tr>
 <td><code>min_complexity</code></td>
 <td>integer</td>
-<td>観測された最小複雑度。</td>
+<td>モジュールおよび関数スコープの最小複雑度。</td>
+</tr>
+<tr>
+<td><code>max_class_complexity</code></td>
+<td>integer</td>
+<td>クラススイートの最大サイクロマティック複雑度。</td>
+</tr>
+<tr>
+<td><code>max_class_cognitive_complexity</code></td>
+<td>integer</td>
+<td>クラススイートの最大認知的複雑度。</td>
+</tr>
+<tr>
+<td><code>max_class_nesting_depth</code></td>
+<td>integer</td>
+<td>クラススイートの最大ネスト深度。</td>
+</tr>
+<tr>
+<td><code>high_risk_class_scopes</code></td>
+<td>integer</td>
+<td>高リスクに分類されたクラススイート数。</td>
 </tr>
 <tr>
 <td><code>files_analyzed</code></td>
@@ -5143,25 +5214,26 @@
 <tr>
 <td><code>low_risk_functions</code></td>
 <td>integer</td>
-<td><code>RiskLevel = low</code> の関数。</td>
+<td><code>risk_level = low</code> のモジュールおよび関数スコープ。</td>
 </tr>
 <tr>
 <td><code>medium_risk_functions</code></td>
 <td>integer</td>
-<td><code>RiskLevel = medium</code> の関数。</td>
+<td><code>risk_level = medium</code> のモジュールおよび関数スコープ。</td>
 </tr>
 <tr>
 <td><code>high_risk_functions</code></td>
 <td>integer</td>
-<td><code>RiskLevel = high</code> の関数。</td>
+<td><code>risk_level = high</code> のモジュールおよび関数スコープ。</td>
 </tr>
 <tr>
 <td><code>complexity_distribution</code></td>
 <td>object</td>
-<td>複雑度バケット（string）からカウント（integer）へのヒストグラム、または <code>null</code>。</td>
+<td>関数のみを対象とし、複雑度バケット（string）からカウント（integer）へのヒストグラム、または <code>null</code>。</td>
 </tr>
 </tbody>
 </table>
+<p>クラススコープのメトリクスは加算的です。クラススコープを追加しても、従来の関数コレクション、件数、平均、極値、分布、モジュール・ディレクトリ集計、ヘルススコアは変わりません。</p>
 <h3 id="raw_metrics-rawmetrics"><code>raw_metrics[]</code> 要素 (<code>RawMetrics</code>)<a class="headerlink" href="#raw_metrics-rawmetrics" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -5244,31 +5316,46 @@
 <tr>
 <td><code>functions</code></td>
 <td>array</td>
-<td>関数ごとの結果（下記参照）。</td>
+<td>関数ごとの結果。既存フィールドで、関数のみ。</td>
+</tr>
+<tr>
+<td><code>class_scopes</code></td>
+<td>array | absent</td>
+<td>実行可能なクラススイートの結果。<code>functions</code> と同じ行モデル。</td>
 </tr>
 <tr>
 <td><code>total_findings</code></td>
 <td>integer</td>
-<td>このファイル内の関数全体の検出結果の合計。</td>
+<td>このファイルの関数とクラススコープの検出結果合計。</td>
 </tr>
 <tr>
 <td><code>total_functions</code></td>
 <td>integer</td>
-<td>このファイルで分析された関数の数。</td>
+<td>分析された関数数。既存フィールドで、関数のみ。</td>
 </tr>
 <tr>
 <td><code>affected_functions</code></td>
 <td>integer</td>
-<td>少なくとも1つの検出結果がある関数。</td>
+<td>検出結果がある関数数。既存フィールドで、関数のみ。</td>
+</tr>
+<tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>分析された実行可能なクラススイート数。</td>
+</tr>
+<tr>
+<td><code>affected_class_scopes</code></td>
+<td>integer</td>
+<td>検出結果がある実行可能なクラススイート数。</td>
 </tr>
 <tr>
 <td><code>dead_code_ratio</code></td>
 <td>number</td>
-<td>デッドブロック / 全ブロック、<code>0</code>–<code>1</code>。</td>
+<td>両スコープコレクションのデッドブロック / 全ブロック、<code>0</code>–<code>1</code>。</td>
 </tr>
 </tbody>
 </table>
-<h3 id="filesfunctions-functiondeadcode"><code>files[].functions[]</code> 要素 (<code>FunctionDeadCode</code>)<a class="headerlink" href="#filesfunctions-functiondeadcode" title="Permanent link">&para;</a></h3>
+<h3 id="filesfunctions-filesclass_scopes-functiondeadcode"><code>files[].functions[]</code> および <code>files[].class_scopes[]</code> 要素 (<code>FunctionDeadCode</code>)<a class="headerlink" href="#filesfunctions-filesclass_scopes-functiondeadcode" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -5281,7 +5368,12 @@
 <tr>
 <td><code>name</code></td>
 <td>string</td>
-<td>関数名。</td>
+<td>関数名またはクラス名。</td>
+</tr>
+<tr>
+<td><code>scope_kind</code></td>
+<td>string</td>
+<td>必須の実行所有者：<code>functions</code> では <code>function</code>、<code>class_scopes</code> では <code>class</code>。</td>
 </tr>
 <tr>
 <td><code>file_path</code></td>
@@ -5291,12 +5383,12 @@
 <tr>
 <td><code>findings</code></td>
 <td>array</td>
-<td>この関数内の検出結果（下記参照）。</td>
+<td>この実行スコープ内の検出結果（下記参照）。</td>
 </tr>
 <tr>
 <td><code>total_blocks</code></td>
 <td>integer</td>
-<td>関数内の CFG ブロックの合計数。</td>
+<td>このスコープ内の CFG ブロックの合計数。</td>
 </tr>
 <tr>
 <td><code>dead_blocks</code></td>
@@ -5325,7 +5417,7 @@
 </tr>
 </tbody>
 </table>
-<h3 id="filesfunctionsfindings-deadcodefinding"><code>files[].functions[].findings[]</code> 要素 (<code>DeadCodeFinding</code>)<a class="headerlink" href="#filesfunctionsfindings-deadcodefinding" title="Permanent link">&para;</a></h3>
+<h3 id="findings-deadcodefinding"><code>findings[]</code> 要素 (<code>DeadCodeFinding</code>)<a class="headerlink" href="#findings-deadcodefinding" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -5343,7 +5435,12 @@
 <tr>
 <td><code>function_name</code></td>
 <td>string</td>
-<td>包含する関数名。</td>
+<td>包含する実行スコープ名（従来のフィールド名）。</td>
+</tr>
+<tr>
+<td><code>scope_kind</code></td>
+<td>string</td>
+<td>必須の実行所有者：<code>function</code> または <code>class</code>。</td>
 </tr>
 <tr>
 <td><code>code</code></td>
@@ -5468,7 +5565,7 @@
 <tr>
 <td><code>total_findings</code></td>
 <td>integer</td>
-<td>全ファイルの検出結果の合計。</td>
+<td>全ファイルの関数とクラススコープの検出結果合計。</td>
 </tr>
 <tr>
 <td><code>files_with_dead_code</code></td>
@@ -5479,6 +5576,16 @@
 <td><code>functions_with_dead_code</code></td>
 <td>integer</td>
 <td>少なくとも1つの検出結果がある関数。</td>
+</tr>
+<tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>分析された実行可能なクラススイート数。</td>
+</tr>
+<tr>
+<td><code>class_scopes_with_dead_code</code></td>
+<td>integer</td>
+<td>少なくとも1つの検出結果があるクラススイート。</td>
 </tr>
 <tr>
 <td><code>critical_findings</code></td>
@@ -5503,12 +5610,12 @@
 <tr>
 <td><code>total_blocks</code></td>
 <td>integer</td>
-<td>全関数の CFG ブロック数。</td>
+<td>関数とクラススコープの CFG ブロック総数。</td>
 </tr>
 <tr>
 <td><code>dead_blocks</code></td>
 <td>integer</td>
-<td>全関数の到達不能な CFG ブロック数。</td>
+<td>両コレクションの到達不能 CFG ブロック総数。</td>
 </tr>
 <tr>
 <td><code>overall_dead_ratio</code></td>

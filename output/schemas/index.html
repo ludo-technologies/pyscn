@@ -3063,10 +3063,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#functions-element-functioncomplexity" class="md-nav__link">
+  <a href="#functions-and-class_scopes-element-functioncomplexity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        functions[] element (FunctionComplexity)
+        functions[] and class_scopes[] element (FunctionComplexity)
       
     </span>
   </a>
@@ -3135,10 +3135,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filesfunctions-element-functiondeadcode" class="md-nav__link">
+  <a href="#filesfunctions-and-filesclass_scopes-element-functiondeadcode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        files[].functions[] element (FunctionDeadCode)
+        files[].functions[] and files[].class_scopes[] element (FunctionDeadCode)
       
     </span>
   </a>
@@ -3146,10 +3146,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filesfunctionsfindings-element-deadcodefinding" class="md-nav__link">
+  <a href="#findings-element-deadcodefinding" class="md-nav__link">
     <span class="md-ellipsis">
       
-        files[].functions[].findings[] element (DeadCodeFinding)
+        findings[] element (DeadCodeFinding)
       
     </span>
   </a>
@@ -4059,10 +4059,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#functions-element-functioncomplexity" class="md-nav__link">
+  <a href="#functions-and-class_scopes-element-functioncomplexity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        functions[] element (FunctionComplexity)
+        functions[] and class_scopes[] element (FunctionComplexity)
       
     </span>
   </a>
@@ -4131,10 +4131,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filesfunctions-element-functiondeadcode" class="md-nav__link">
+  <a href="#filesfunctions-and-filesclass_scopes-element-functiondeadcode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        files[].functions[] element (FunctionDeadCode)
+        files[].functions[] and files[].class_scopes[] element (FunctionDeadCode)
       
     </span>
   </a>
@@ -4142,10 +4142,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filesfunctionsfindings-element-deadcodefinding" class="md-nav__link">
+  <a href="#findings-element-deadcodefinding" class="md-nav__link">
     <span class="md-ellipsis">
       
-        files[].functions[].findings[] element (DeadCodeFinding)
+        findings[] element (DeadCodeFinding)
       
     </span>
   </a>
@@ -4885,6 +4885,11 @@
 <td>Total functions analyzed.</td>
 </tr>
 <tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>Executable class suites analyzed.</td>
+</tr>
+<tr>
 <td><code>average_complexity</code></td>
 <td>number</td>
 <td>Mean cyclomatic complexity. <code>0</code> when no functions.</td>
@@ -4893,6 +4898,26 @@
 <td><code>high_complexity_count</code></td>
 <td>integer</td>
 <td>Functions with complexity &gt; 10 (medium threshold).</td>
+</tr>
+<tr>
+<td><code>max_class_complexity</code></td>
+<td>integer</td>
+<td>Highest class-suite cyclomatic complexity.</td>
+</tr>
+<tr>
+<td><code>max_class_cognitive_complexity</code></td>
+<td>integer</td>
+<td>Highest class-suite cognitive complexity.</td>
+</tr>
+<tr>
+<td><code>max_class_nesting_depth</code></td>
+<td>integer</td>
+<td>Highest class-suite nesting depth.</td>
+</tr>
+<tr>
+<td><code>high_complexity_class_scope_count</code></td>
+<td>integer</td>
+<td>Class scopes classified as high risk.</td>
 </tr>
 </tbody>
 </table>
@@ -5290,19 +5315,20 @@
 <p>Mirrors <code>domain.ComplexityResponse</code>.</p>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">"functions"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* FunctionComplexity array */</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">"by_directory"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* DirectoryComplexityMetrics array; empty when no functions are reported */</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">"summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ComplexitySummary */</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">"raw_metrics"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* RawMetrics array, present when computed */</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">"raw_metrics_summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* RawMetricsSummary, present when computed */</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">"warnings"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">"errors"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-04-14T10:18:23Z"</span><span class="p">,</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.14.0"</span><span class="p">,</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="nt">"config"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">}</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">"class_scopes"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* FunctionComplexity array; omitted when empty */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">"by_directory"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* DirectoryComplexityMetrics array; empty when no functions are reported */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">"summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ComplexitySummary */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">"raw_metrics"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* RawMetrics array, present when computed */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">"raw_metrics_summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* RawMetricsSummary, present when computed */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">"warnings"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">"errors"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-04-14T10:18:23Z"</span><span class="p">,</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.14.0"</span><span class="p">,</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="nt">"config"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="p">}</span>
 </span></code></pre></div>
-<p>The standalone complexity formatter uses <code>by_directory</code> at the report root beside <code>results</code>, <code>summary</code>, and <code>metadata</code>. Its entries and semantics are identical to unified output.</p>
-<h3 id="functions-element-functioncomplexity"><code>functions[]</code> element (<code>FunctionComplexity</code>)<a class="headerlink" href="#functions-element-functioncomplexity" title="Permanent link">&para;</a></h3>
+<p>The standalone complexity formatter uses <code>by_directory</code> at the report root beside <code>results</code>, optional <code>class_scopes</code>, <code>summary</code>, and <code>metadata</code>. <code>results</code> retains the established module/function collection; <code>class_scopes</code> contains executable class suites. Directory entries remain function-only and their semantics are identical to unified output.</p>
+<h3 id="functions-and-class_scopes-element-functioncomplexity"><code>functions[]</code> and <code>class_scopes[]</code> element (<code>FunctionComplexity</code>)<a class="headerlink" href="#functions-and-class_scopes-element-functioncomplexity" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -5315,7 +5341,12 @@
 <tr>
 <td><code>name</code></td>
 <td>string</td>
-<td>Function name. <code>__main__</code> for module-level code.</td>
+<td>Qualified scope name. <code>&lt;module&gt;</code> for module-level code.</td>
+</tr>
+<tr>
+<td><code>scope_kind</code></td>
+<td>string</td>
+<td>Required execution owner: <code>module</code>, <code>function</code>, or <code>class</code>.</td>
 </tr>
 <tr>
 <td><code>file_path</code></td>
@@ -5419,22 +5450,62 @@
 <tr>
 <td><code>total_functions</code></td>
 <td>integer</td>
-<td>Total functions analyzed.</td>
+<td>Total module and function scopes analyzed.</td>
+</tr>
+<tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>Total executable class suites analyzed.</td>
+</tr>
+<tr>
+<td><code>functions_parsed</code></td>
+<td>integer</td>
+<td>Compatibility count matching the complete <code>total_functions</code> population.</td>
 </tr>
 <tr>
 <td><code>average_complexity</code></td>
 <td>number</td>
-<td>Arithmetic mean of <code>Complexity</code> across all functions.</td>
+<td>Arithmetic mean of <code>complexity</code> across module and function scopes.</td>
+</tr>
+<tr>
+<td><code>average_cognitive_complexity</code></td>
+<td>number</td>
+<td>Arithmetic mean of <code>cognitive_complexity</code> across module and function scopes.</td>
+</tr>
+<tr>
+<td><code>average_nesting_depth</code></td>
+<td>number</td>
+<td>Arithmetic mean of <code>nesting_depth</code> across module and function scopes.</td>
 </tr>
 <tr>
 <td><code>max_complexity</code></td>
 <td>integer</td>
-<td>Highest observed complexity.</td>
+<td>Highest complexity among module and function scopes.</td>
 </tr>
 <tr>
 <td><code>min_complexity</code></td>
 <td>integer</td>
-<td>Lowest observed complexity.</td>
+<td>Lowest complexity among module and function scopes.</td>
+</tr>
+<tr>
+<td><code>max_class_complexity</code></td>
+<td>integer</td>
+<td>Highest class-suite cyclomatic complexity.</td>
+</tr>
+<tr>
+<td><code>max_class_cognitive_complexity</code></td>
+<td>integer</td>
+<td>Highest class-suite cognitive complexity.</td>
+</tr>
+<tr>
+<td><code>max_class_nesting_depth</code></td>
+<td>integer</td>
+<td>Highest class-suite nesting depth.</td>
+</tr>
+<tr>
+<td><code>high_risk_class_scopes</code></td>
+<td>integer</td>
+<td>Class suites classified as high risk.</td>
 </tr>
 <tr>
 <td><code>files_analyzed</code></td>
@@ -5454,25 +5525,26 @@
 <tr>
 <td><code>low_risk_functions</code></td>
 <td>integer</td>
-<td>Functions with <code>RiskLevel = low</code>.</td>
+<td>Module and function scopes with <code>risk_level = low</code>.</td>
 </tr>
 <tr>
 <td><code>medium_risk_functions</code></td>
 <td>integer</td>
-<td>Functions with <code>RiskLevel = medium</code>.</td>
+<td>Module and function scopes with <code>risk_level = medium</code>.</td>
 </tr>
 <tr>
 <td><code>high_risk_functions</code></td>
 <td>integer</td>
-<td>Functions with <code>RiskLevel = high</code>.</td>
+<td>Module and function scopes with <code>risk_level = high</code>.</td>
 </tr>
 <tr>
 <td><code>complexity_distribution</code></td>
 <td>object</td>
-<td>Histogram keyed by complexity bucket (string) to count (integer), or <code>null</code>.</td>
+<td>Function-only histogram keyed by complexity bucket (string) to count (integer), or <code>null</code>.</td>
 </tr>
 </tbody>
 </table>
+<p>Class-scope counts and maxima are additive hotspot metrics. Adding a class scope does not change the legacy function collections, counts, averages, extrema, risk distribution, complexity distribution, module or directory rollups, or health score.</p>
 <h3 id="raw_metrics-element-rawmetrics"><code>raw_metrics[]</code> element (<code>RawMetrics</code>)<a class="headerlink" href="#raw_metrics-element-rawmetrics" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -5555,31 +5627,46 @@
 <tr>
 <td><code>functions</code></td>
 <td>array</td>
-<td>Per-function results (see below).</td>
+<td>Per-function results. Existing field; remains function-only.</td>
+</tr>
+<tr>
+<td><code>class_scopes</code></td>
+<td>array | absent</td>
+<td>Executable class-suite results. Uses the same row model as <code>functions</code>.</td>
 </tr>
 <tr>
 <td><code>total_findings</code></td>
 <td>integer</td>
-<td>Sum of findings across functions in this file.</td>
+<td>Sum of findings across functions and class scopes in this file.</td>
 </tr>
 <tr>
 <td><code>total_functions</code></td>
 <td>integer</td>
-<td>Functions analyzed in this file.</td>
+<td>Functions analyzed in this file. Existing field; remains function-only.</td>
 </tr>
 <tr>
 <td><code>affected_functions</code></td>
 <td>integer</td>
-<td>Functions with at least one finding.</td>
+<td>Functions with at least one finding. Existing field; remains function-only.</td>
+</tr>
+<tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>Executable class suites analyzed in this file.</td>
+</tr>
+<tr>
+<td><code>affected_class_scopes</code></td>
+<td>integer</td>
+<td>Executable class suites with at least one finding.</td>
 </tr>
 <tr>
 <td><code>dead_code_ratio</code></td>
 <td>number</td>
-<td>Dead blocks / total blocks, <code>0</code>–<code>1</code>.</td>
+<td>Dead blocks / total blocks across both scope collections, <code>0</code>–<code>1</code>.</td>
 </tr>
 </tbody>
 </table>
-<h3 id="filesfunctions-element-functiondeadcode"><code>files[].functions[]</code> element (<code>FunctionDeadCode</code>)<a class="headerlink" href="#filesfunctions-element-functiondeadcode" title="Permanent link">&para;</a></h3>
+<h3 id="filesfunctions-and-filesclass_scopes-element-functiondeadcode"><code>files[].functions[]</code> and <code>files[].class_scopes[]</code> element (<code>FunctionDeadCode</code>)<a class="headerlink" href="#filesfunctions-and-filesclass_scopes-element-functiondeadcode" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -5592,7 +5679,12 @@
 <tr>
 <td><code>name</code></td>
 <td>string</td>
-<td>Function name.</td>
+<td>Function or class name.</td>
+</tr>
+<tr>
+<td><code>scope_kind</code></td>
+<td>string</td>
+<td>Required execution owner: <code>function</code> in <code>functions</code>; <code>class</code> in <code>class_scopes</code>.</td>
 </tr>
 <tr>
 <td><code>file_path</code></td>
@@ -5602,12 +5694,12 @@
 <tr>
 <td><code>findings</code></td>
 <td>array</td>
-<td>Findings in this function (see below).</td>
+<td>Findings in this execution scope (see below).</td>
 </tr>
 <tr>
 <td><code>total_blocks</code></td>
 <td>integer</td>
-<td>Total CFG blocks in the function.</td>
+<td>Total CFG blocks in the execution scope.</td>
 </tr>
 <tr>
 <td><code>dead_blocks</code></td>
@@ -5636,7 +5728,7 @@
 </tr>
 </tbody>
 </table>
-<h3 id="filesfunctionsfindings-element-deadcodefinding"><code>files[].functions[].findings[]</code> element (<code>DeadCodeFinding</code>)<a class="headerlink" href="#filesfunctionsfindings-element-deadcodefinding" title="Permanent link">&para;</a></h3>
+<h3 id="findings-element-deadcodefinding"><code>findings[]</code> element (<code>DeadCodeFinding</code>)<a class="headerlink" href="#findings-element-deadcodefinding" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -5654,7 +5746,12 @@
 <tr>
 <td><code>function_name</code></td>
 <td>string</td>
-<td>Enclosing function name.</td>
+<td>Enclosing execution-scope name (historical field name).</td>
+</tr>
+<tr>
+<td><code>scope_kind</code></td>
+<td>string</td>
+<td>Required execution owner: <code>function</code> or <code>class</code>.</td>
 </tr>
 <tr>
 <td><code>code</code></td>
@@ -5779,7 +5876,7 @@
 <tr>
 <td><code>total_findings</code></td>
 <td>integer</td>
-<td>Total findings across all files.</td>
+<td>Total findings across functions and class scopes.</td>
 </tr>
 <tr>
 <td><code>files_with_dead_code</code></td>
@@ -5790,6 +5887,16 @@
 <td><code>functions_with_dead_code</code></td>
 <td>integer</td>
 <td>Functions with at least one finding.</td>
+</tr>
+<tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>Executable class suites analyzed.</td>
+</tr>
+<tr>
+<td><code>class_scopes_with_dead_code</code></td>
+<td>integer</td>
+<td>Executable class suites with at least one finding.</td>
 </tr>
 <tr>
 <td><code>critical_findings</code></td>
@@ -5814,12 +5921,12 @@
 <tr>
 <td><code>total_blocks</code></td>
 <td>integer</td>
-<td>CFG blocks across all functions.</td>
+<td>CFG blocks across functions and class scopes.</td>
 </tr>
 <tr>
 <td><code>dead_blocks</code></td>
 <td>integer</td>
-<td>Unreachable CFG blocks across all functions.</td>
+<td>Unreachable CFG blocks across functions and class scopes.</td>
 </tr>
 <tr>
 <td><code>overall_dead_ratio</code></td>
@@ -7097,39 +7204,44 @@
 </span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>Grade,&lt;A|B|C|D|F|N/A&gt;
 </span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>Total Files,&lt;integer&gt;
 </span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>Analyzed Files,&lt;integer&gt;
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>Average Complexity,&lt;float with 2 decimals&gt;
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>High Complexity Count,&lt;integer&gt;
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>Dead Code Count,&lt;integer&gt;
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>Critical Dead Code,&lt;integer&gt;
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>Unique Fragments,&lt;integer&gt;
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>Clone Groups,&lt;integer&gt;
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>Code Duplication,&lt;float with 2 decimals&gt;
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>Total Classes Analyzed,&lt;integer&gt;
-</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>High Coupling (CBO) Classes,&lt;integer&gt;
-</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>Average CBO,&lt;float with 2 decimals&gt;
-</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>Module Quality Count,&lt;integer&gt;
-</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>Module 1 Name,&lt;string&gt;
-</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>Module 1 File Path,&lt;string&gt;
-</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>Module 1 Lines of Code,&lt;integer&gt;
-</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>Module 1 Function Count,&lt;integer&gt;
-</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>Module 1 Analyzed Function Count,&lt;integer&gt;
-</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>Module 1 Average Complexity,&lt;float with 2 decimals&gt;
-</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>Module 1 Average Cognitive Complexity,&lt;float with 2 decimals&gt;
-</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>Module 1 Max Complexity,&lt;integer&gt;
-</span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>Module 1 High Risk Function Count,&lt;integer&gt;
-</span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>Module 1 Exception Handler Count,&lt;integer&gt;
-</span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a>Module 1 Dead Code Findings,&lt;integer&gt;
-</span><span id="__span-7-28"><a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>Module 1 Dead Code Blocks,&lt;integer&gt;
-</span><span id="__span-7-29"><a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a>Directory Complexity Count,&lt;integer&gt;
-</span><span id="__span-7-30"><a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>Directory 1 Path,&lt;string&gt;
-</span><span id="__span-7-31"><a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a>Directory 1 Function Count,&lt;integer&gt;
-</span><span id="__span-7-32"><a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a>Directory 1 Average Complexity,&lt;float with 2 decimals&gt;
-</span><span id="__span-7-33"><a id="__codelineno-7-33" name="__codelineno-7-33" href="#__codelineno-7-33"></a>Directory 1 Max Complexity,&lt;integer&gt;
-</span><span id="__span-7-34"><a id="__codelineno-7-34" name="__codelineno-7-34" href="#__codelineno-7-34"></a>Directory 1 High Risk Function Count,&lt;integer&gt;
-</span><span id="__span-7-35"><a id="__codelineno-7-35" name="__codelineno-7-35" href="#__codelineno-7-35"></a>Directory 1 Average Nesting Depth,&lt;float with 2 decimals&gt;
-</span><span id="__span-7-36"><a id="__codelineno-7-36" name="__codelineno-7-36" href="#__codelineno-7-36"></a>Directory 1 Max Nesting Depth,&lt;integer&gt;
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>Total Functions,&lt;integer&gt;
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>Class Scopes,&lt;integer&gt;
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>Average Complexity,&lt;float with 2 decimals&gt;
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>High Complexity Count,&lt;integer&gt;
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>Dead Code Count,&lt;integer&gt;
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>Critical Dead Code,&lt;integer&gt;
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>Unique Fragments,&lt;integer&gt;
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>Clone Groups,&lt;integer&gt;
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>Code Duplication,&lt;float with 2 decimals&gt;
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>Total Classes Analyzed,&lt;integer&gt;
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>High Coupling (CBO) Classes,&lt;integer&gt;
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>Average CBO,&lt;float with 2 decimals&gt;
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>Module Quality Count,&lt;integer&gt;
+</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>Module 1 Name,&lt;string&gt;
+</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>Module 1 File Path,&lt;string&gt;
+</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>Module 1 Lines of Code,&lt;integer&gt;
+</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>Module 1 Function Count,&lt;integer&gt;
+</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>Module 1 Analyzed Function Count,&lt;integer&gt;
+</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>Module 1 Average Complexity,&lt;float with 2 decimals&gt;
+</span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>Module 1 Average Cognitive Complexity,&lt;float with 2 decimals&gt;
+</span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>Module 1 Max Complexity,&lt;integer&gt;
+</span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a>Module 1 High Risk Function Count,&lt;integer&gt;
+</span><span id="__span-7-28"><a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>Module 1 Exception Handler Count,&lt;integer&gt;
+</span><span id="__span-7-29"><a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a>Module 1 Dead Code Findings,&lt;integer&gt;
+</span><span id="__span-7-30"><a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>Module 1 Dead Code Blocks,&lt;integer&gt;
+</span><span id="__span-7-31"><a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a>Directory Complexity Count,&lt;integer&gt;
+</span><span id="__span-7-32"><a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a>Directory 1 Path,&lt;string&gt;
+</span><span id="__span-7-33"><a id="__codelineno-7-33" name="__codelineno-7-33" href="#__codelineno-7-33"></a>Directory 1 Function Count,&lt;integer&gt;
+</span><span id="__span-7-34"><a id="__codelineno-7-34" name="__codelineno-7-34" href="#__codelineno-7-34"></a>Directory 1 Average Complexity,&lt;float with 2 decimals&gt;
+</span><span id="__span-7-35"><a id="__codelineno-7-35" name="__codelineno-7-35" href="#__codelineno-7-35"></a>Directory 1 Max Complexity,&lt;integer&gt;
+</span><span id="__span-7-36"><a id="__codelineno-7-36" name="__codelineno-7-36" href="#__codelineno-7-36"></a>Directory 1 High Risk Function Count,&lt;integer&gt;
+</span><span id="__span-7-37"><a id="__codelineno-7-37" name="__codelineno-7-37" href="#__codelineno-7-37"></a>Directory 1 Average Nesting Depth,&lt;float with 2 decimals&gt;
+</span><span id="__span-7-38"><a id="__codelineno-7-38" name="__codelineno-7-38" href="#__codelineno-7-38"></a>Directory 1 Max Nesting Depth,&lt;integer&gt;
 </span></code></pre></div>
-<p>The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all legacy summary, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use <code>--json</code> or <code>--yaml</code> for per-function and per-finding detail.</p>
+<p>The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all summary, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use <code>--json</code> or <code>--yaml</code> for per-scope and per-finding detail.</p>
+<p>The standalone complexity formatter emits one row per reported module, function, or class scope. Existing columns remain in place and <code>Scope Kind</code> is appended:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>Function,Complexity,Cognitive Complexity,Risk,Nodes,Edges,Nesting Depth,If Statements,Loop Statements,Exception Handlers,SLOC,Scope Kind
+</span></code></pre></div>
 <h2 id="community-analysis-object"><code>community_analysis</code> object<a class="headerlink" href="#community-analysis-object" title="Permanent link">&para;</a></h2>
 <p>Mirrors <code>domain.CommunityAnalysisResult</code>. Emitted as a top-level field in unified <code>pyscn analyze</code> JSON/YAML when community detection runs. When <code>pyscn analyze --json --select communities</code> is used, the report file contains only this object (standalone JSON).</p>
 <table>
@@ -7505,15 +7617,15 @@
 </table>
 <h2 id="invoking-each-format">Invoking each format<a class="headerlink" href="#invoking-each-format" title="Permanent link">&para;</a></h2>
 <p><code>pyscn analyze</code> takes one of <code>--json</code>, <code>--yaml</code>, <code>--csv</code>, <code>--text</code>, or <code>--html</code> (default). There is no <code>--format</code> flag, and there are no standalone <code>complexity</code> / <code>deadcode</code> / <code>clone</code> / <code>deps</code> subcommands. Run a single analyzer via <code>--select</code>.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>src/
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--yaml<span class="w"> </span>src/
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--csv<span class="w">  </span>src/
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--text<span class="w"> </span>src/
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--html<span class="w"> </span>src/<span class="w">    </span><span class="c1"># default</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>complexity<span class="w"> </span>src/
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--csv<span class="w">  </span>--select<span class="w"> </span>deadcode<span class="w">   </span>src/
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--yaml<span class="w"> </span>--select<span class="w"> </span>clones<span class="w">        </span>src/
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>communities<span class="w">   </span>src/
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>src/
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--yaml<span class="w"> </span>src/
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--csv<span class="w">  </span>src/
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--text<span class="w"> </span>src/
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--html<span class="w"> </span>src/<span class="w">    </span><span class="c1"># default</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>complexity<span class="w"> </span>src/
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--csv<span class="w">  </span>--select<span class="w"> </span>deadcode<span class="w">   </span>src/
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--yaml<span class="w"> </span>--select<span class="w"> </span>clones<span class="w">        </span>src/
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>communities<span class="w">   </span>src/
 </span></code></pre></div>
 <p><code>--select communities</code> with <code>--json</code> writes standalone community JSON (not the unified <code>AnalyzeResponse</code> wrapper). YAML standalone output is not supported yet; use unified <code>pyscn analyze --yaml</code> or <code>--json --select communities</code>.</p>
 <p>Output files land in <code>.pyscn/reports/</code>; see <a href="../">Output Formats</a> for path and filename details.</p>

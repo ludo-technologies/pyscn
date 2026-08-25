@@ -3566,7 +3566,7 @@
 <tbody>
 <tr>
 <td>Functions</td>
-<td>Complexity metrics strip, most complex functions (top 20), longest functions, dead code findings (top 20), and two collapsed sortable tables: all modules and directory complexity rollups.</td>
+<td>Function complexity metrics, most complex functions (top 20), executable class-scope complexity, longest functions, dead code findings across functions and class scopes (top 20), and two collapsed sortable tables: all modules and directory complexity rollups.</td>
 </tr>
 <tr>
 <td>Duplication</td>
@@ -3583,7 +3583,7 @@
 </tbody>
 </table>
 <h2 id="javascript">JavaScript<a class="headerlink" href="#javascript" title="Permanent link">&para;</a></h2>
-<p>Inline scripts switch tabs (the tab is mirrored into the URL hash so a link can open a specific tab), and route the module and directory tables through one shared sorter. No network requests are made.</p>
+<p>Inline scripts switch tabs (the tab is mirrored into the URL hash so a link can open a specific tab), and route the module and directory tables through one shared sorter. No network requests are made. The standalone complexity formatter renders the same directory metrics above separate function and class-scope tables.</p>
 <p>Module rollups use the full analyzer population before <code>min_complexity</code>, <code>report_unchanged</code>, or <code>min_severity</code> presentation filters. Directory complexity uses the reported function population after complexity filters, so its counts and averages reconcile with the Functions tab.</p>
 <h2 id="css">CSS<a class="headerlink" href="#css" title="Permanent link">&para;</a></h2>
 <p>Styles are inlined from <code>service/templates/analyze/report.css</code> and use CSS custom properties. The main tokens:</p>

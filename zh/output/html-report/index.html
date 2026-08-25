@@ -3566,7 +3566,7 @@
 <tbody>
 <tr>
 <td>Functions</td>
-<td>复杂度指标条、最复杂函数（前 20）、最长函数、死代码发现（前 20），以及两个折叠的可排序表格：所有模块和目录复杂度汇总。</td>
+<td>函数复杂度指标、最复杂函数（前 20）、类执行作用域复杂度、最长函数、函数与类作用域中的死代码发现（前 20），以及两个折叠的可排序表格：所有模块和目录复杂度汇总。</td>
 </tr>
 <tr>
 <td>Duplication</td>
@@ -3583,7 +3583,7 @@
 </tbody>
 </table>
 <h2 id="javascript">JavaScript<a class="headerlink" href="#javascript" title="Permanent link">&para;</a></h2>
-<p>内联脚本负责切换标签页（当前标签页会写入 URL 哈希，链接可直接打开指定标签页），并通过一个共享排序器处理模块和目录表格。没有网络请求。</p>
+<p>内联脚本负责切换标签页（当前标签页会写入 URL 哈希，链接可直接打开指定标签页），并通过一个共享排序器处理模块和目录表格。没有网络请求。独立复杂度格式化器会在相同的目录指标下方，分别呈现函数和类作用域表格。</p>
 <p>模块汇总使用 <code>min_complexity</code>、<code>report_unchanged</code>、<code>min_severity</code> 展示过滤之前的完整分析总体。目录复杂度使用复杂度过滤之后的报告函数总体，因此其计数和平均值与 Functions 标签页一致。</p>
 <h2 id="css">CSS<a class="headerlink" href="#css" title="Permanent link">&para;</a></h2>
 <p>样式从 <code>service/templates/analyze/report.css</code> 内联，并使用 CSS 自定义属性。主要令牌：</p>

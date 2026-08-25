@@ -3432,7 +3432,7 @@
 <strong>Severity</strong>: Configurable by threshold<br />
 <strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
 <h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags functions whose McCabe cyclomatic complexity exceeds the configured threshold. Each <code>if</code>, <code>elif</code>, <code>for</code>, <code>while</code>, <code>except</code>, <code>match case</code>, and boolean clause inside a comprehension adds one to the count. A straight-line function starts at 1.</p>
+<p>Flags execution scopes whose McCabe cyclomatic complexity exceeds the configured threshold. Modules, functions, methods, and executable class suites own independent control flow. Each <code>if</code>, <code>elif</code>, <code>for</code>, <code>while</code>, <code>except</code>, <code>match case</code>, and boolean clause inside a comprehension adds one to the count. A straight-line scope starts at 1.</p>
 <p>pyscn does not count <code>and</code> / <code>or</code> short-circuit operators as separate branches.</p>
 <h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
 <p>A high branch count means:</p>
@@ -3524,7 +3524,7 @@
 <tr>
 <td><a href="../../configuration/reference/#complexity"><code>complexity.medium_threshold</code></a></td>
 <td><code>19</code></td>
-<td>Above this, a function is high risk.</td>
+<td>Above this, an execution scope is high risk.</td>
 </tr>
 <tr>
 <td><a href="../../configuration/reference/#complexity"><code>complexity.min_complexity</code></a></td>

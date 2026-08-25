@@ -3041,10 +3041,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#element-de-functions-functioncomplexity" class="md-nav__link">
+  <a href="#element-de-functions-et-class_scopes-functioncomplexity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Élément de functions[] (FunctionComplexity)
+        Élément de functions[] et class_scopes[] (FunctionComplexity)
       
     </span>
   </a>
@@ -3113,10 +3113,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#element-de-filesfunctions-functiondeadcode" class="md-nav__link">
+  <a href="#element-de-filesfunctions-et-filesclass_scopes-functiondeadcode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Élément de files[].functions[] (FunctionDeadCode)
+        Élément de files[].functions[] et files[].class_scopes[] (FunctionDeadCode)
       
     </span>
   </a>
@@ -3124,10 +3124,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#element-de-filesfunctionsfindings-deadcodefinding" class="md-nav__link">
+  <a href="#element-de-findings-deadcodefinding" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Élément de files[].functions[].findings[] (DeadCodeFinding)
+        Élément de findings[] (DeadCodeFinding)
       
     </span>
   </a>
@@ -3954,10 +3954,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#element-de-functions-functioncomplexity" class="md-nav__link">
+  <a href="#element-de-functions-et-class_scopes-functioncomplexity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Élément de functions[] (FunctionComplexity)
+        Élément de functions[] et class_scopes[] (FunctionComplexity)
       
     </span>
   </a>
@@ -4026,10 +4026,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#element-de-filesfunctions-functiondeadcode" class="md-nav__link">
+  <a href="#element-de-filesfunctions-et-filesclass_scopes-functiondeadcode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Élément de files[].functions[] (FunctionDeadCode)
+        Élément de files[].functions[] et files[].class_scopes[] (FunctionDeadCode)
       
     </span>
   </a>
@@ -4037,10 +4037,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#element-de-filesfunctionsfindings-deadcodefinding" class="md-nav__link">
+  <a href="#element-de-findings-deadcodefinding" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Élément de files[].functions[].findings[] (DeadCodeFinding)
+        Élément de findings[] (DeadCodeFinding)
       
     </span>
   </a>
@@ -4700,6 +4700,11 @@
 <td>Total des fonctions analysées.</td>
 </tr>
 <tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>Portées d'exécution de classe analysées.</td>
+</tr>
+<tr>
 <td><code>average_complexity</code></td>
 <td>number</td>
 <td>Complexité cyclomatique moyenne. <code>0</code> quand il n'y a aucune fonction.</td>
@@ -4708,6 +4713,26 @@
 <td><code>high_complexity_count</code></td>
 <td>integer</td>
 <td>Fonctions avec complexité &gt; 10 (seuil moyen).</td>
+</tr>
+<tr>
+<td><code>max_class_complexity</code></td>
+<td>integer</td>
+<td>Complexité cyclomatique maximale d'une portée de classe.</td>
+</tr>
+<tr>
+<td><code>max_class_cognitive_complexity</code></td>
+<td>integer</td>
+<td>Complexité cognitive maximale d'une portée de classe.</td>
+</tr>
+<tr>
+<td><code>max_class_nesting_depth</code></td>
+<td>integer</td>
+<td>Profondeur d'imbrication maximale d'une portée de classe.</td>
+</tr>
+<tr>
+<td><code>high_complexity_class_scope_count</code></td>
+<td>integer</td>
+<td>Portées de classe classées à haut risque.</td>
 </tr>
 </tbody>
 </table>
@@ -4981,17 +5006,18 @@
 <p>Reflet de <code>domain.ComplexityResponse</code>.</p>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">"functions"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* FunctionComplexity array */</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">"summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ComplexitySummary */</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">"raw_metrics"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* RawMetrics array, present when computed */</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">"raw_metrics_summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* RawMetricsSummary, present when computed */</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">"warnings"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">"errors"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-04-14T10:18:23Z"</span><span class="p">,</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.14.0"</span><span class="p">,</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">"config"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">}</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">"class_scopes"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* FunctionComplexity array; omitted when empty */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">"summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ComplexitySummary */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">"raw_metrics"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* RawMetrics array, present when computed */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">"raw_metrics_summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* RawMetricsSummary, present when computed */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">"warnings"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">"errors"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-04-14T10:18:23Z"</span><span class="p">,</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.14.0"</span><span class="p">,</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="nt">"config"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">}</span>
 </span></code></pre></div>
-<h3 id="element-de-functions-functioncomplexity">Élément de <code>functions[]</code> (<code>FunctionComplexity</code>)<a class="headerlink" href="#element-de-functions-functioncomplexity" title="Permanent link">&para;</a></h3>
+<h3 id="element-de-functions-et-class_scopes-functioncomplexity">Élément de <code>functions[]</code> et <code>class_scopes[]</code> (<code>FunctionComplexity</code>)<a class="headerlink" href="#element-de-functions-et-class_scopes-functioncomplexity" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -5004,7 +5030,12 @@
 <tr>
 <td><code>name</code></td>
 <td>string</td>
-<td>Nom de la fonction. <code>__main__</code> pour le code au niveau du module.</td>
+<td>Nom qualifié de la portée. <code>&lt;module&gt;</code> pour le code au niveau du module.</td>
+</tr>
+<tr>
+<td><code>scope_kind</code></td>
+<td>string</td>
+<td>Propriétaire d'exécution requis : <code>module</code>, <code>function</code> ou <code>class</code>.</td>
 </tr>
 <tr>
 <td><code>file_path</code></td>
@@ -5108,22 +5139,62 @@
 <tr>
 <td><code>total_functions</code></td>
 <td>integer</td>
-<td>Total des fonctions analysées.</td>
+<td>Total des portées de module et de fonction analysées.</td>
+</tr>
+<tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>Total des suites de classe exécutables analysées.</td>
+</tr>
+<tr>
+<td><code>functions_parsed</code></td>
+<td>integer</td>
+<td>Compteur de compatibilité égal à la population complète de <code>total_functions</code>.</td>
 </tr>
 <tr>
 <td><code>average_complexity</code></td>
 <td>number</td>
-<td>Moyenne arithmétique de <code>Complexity</code> sur toutes les fonctions.</td>
+<td>Moyenne arithmétique de <code>complexity</code> sur les portées de module et de fonction.</td>
+</tr>
+<tr>
+<td><code>average_cognitive_complexity</code></td>
+<td>number</td>
+<td>Moyenne arithmétique de <code>cognitive_complexity</code> sur les portées de module et de fonction.</td>
+</tr>
+<tr>
+<td><code>average_nesting_depth</code></td>
+<td>number</td>
+<td>Moyenne arithmétique de <code>nesting_depth</code> sur les portées de module et de fonction.</td>
 </tr>
 <tr>
 <td><code>max_complexity</code></td>
 <td>integer</td>
-<td>Complexité maximale observée.</td>
+<td>Complexité maximale des portées de module et de fonction.</td>
 </tr>
 <tr>
 <td><code>min_complexity</code></td>
 <td>integer</td>
-<td>Complexité minimale observée.</td>
+<td>Complexité minimale des portées de module et de fonction.</td>
+</tr>
+<tr>
+<td><code>max_class_complexity</code></td>
+<td>integer</td>
+<td>Complexité cyclomatique maximale d'une suite de classe.</td>
+</tr>
+<tr>
+<td><code>max_class_cognitive_complexity</code></td>
+<td>integer</td>
+<td>Complexité cognitive maximale d'une suite de classe.</td>
+</tr>
+<tr>
+<td><code>max_class_nesting_depth</code></td>
+<td>integer</td>
+<td>Profondeur d'imbrication maximale d'une suite de classe.</td>
+</tr>
+<tr>
+<td><code>high_risk_class_scopes</code></td>
+<td>integer</td>
+<td>Suites de classe classées à haut risque.</td>
 </tr>
 <tr>
 <td><code>files_analyzed</code></td>
@@ -5143,25 +5214,26 @@
 <tr>
 <td><code>low_risk_functions</code></td>
 <td>integer</td>
-<td>Fonctions avec <code>RiskLevel = low</code>.</td>
+<td>Portées de module et de fonction avec <code>risk_level = low</code>.</td>
 </tr>
 <tr>
 <td><code>medium_risk_functions</code></td>
 <td>integer</td>
-<td>Fonctions avec <code>RiskLevel = medium</code>.</td>
+<td>Portées de module et de fonction avec <code>risk_level = medium</code>.</td>
 </tr>
 <tr>
 <td><code>high_risk_functions</code></td>
 <td>integer</td>
-<td>Fonctions avec <code>RiskLevel = high</code>.</td>
+<td>Portées de module et de fonction avec <code>risk_level = high</code>.</td>
 </tr>
 <tr>
 <td><code>complexity_distribution</code></td>
 <td>object</td>
-<td>Histogramme indexé par tranche de complexité (string) vers compteur (integer), ou <code>null</code>.</td>
+<td>Histogramme limité aux fonctions, indexé par tranche de complexité (string) vers compteur (integer), ou <code>null</code>.</td>
 </tr>
 </tbody>
 </table>
+<p>Les métriques de portée de classe sont additives : elles ne modifient ni les collections, comptes, moyennes, extrema et distributions historiques des fonctions, ni les agrégats de modules/répertoires, ni le score de santé.</p>
 <h3 id="element-de-raw_metrics-rawmetrics">Élément de <code>raw_metrics[]</code> (<code>RawMetrics</code>)<a class="headerlink" href="#element-de-raw_metrics-rawmetrics" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -5244,31 +5316,46 @@
 <tr>
 <td><code>functions</code></td>
 <td>array</td>
-<td>Résultats par fonction (voir ci-dessous).</td>
+<td>Résultats par fonction. Champ existant, limité aux fonctions.</td>
+</tr>
+<tr>
+<td><code>class_scopes</code></td>
+<td>array | absent</td>
+<td>Résultats des suites de classe exécutables. Même modèle de ligne que <code>functions</code>.</td>
 </tr>
 <tr>
 <td><code>total_findings</code></td>
 <td>integer</td>
-<td>Somme des constats sur les fonctions de ce fichier.</td>
+<td>Somme des constats dans les fonctions et portées de classe de ce fichier.</td>
 </tr>
 <tr>
 <td><code>total_functions</code></td>
 <td>integer</td>
-<td>Fonctions analysées dans ce fichier.</td>
+<td>Fonctions analysées dans ce fichier. Champ existant, limité aux fonctions.</td>
 </tr>
 <tr>
 <td><code>affected_functions</code></td>
 <td>integer</td>
-<td>Fonctions avec au moins un constat.</td>
+<td>Fonctions avec au moins un constat. Champ existant, limité aux fonctions.</td>
+</tr>
+<tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>Suites de classe exécutables analysées dans ce fichier.</td>
+</tr>
+<tr>
+<td><code>affected_class_scopes</code></td>
+<td>integer</td>
+<td>Suites de classe exécutables avec au moins un constat.</td>
 </tr>
 <tr>
 <td><code>dead_code_ratio</code></td>
 <td>number</td>
-<td>Blocs morts / blocs totaux, <code>0</code>–<code>1</code>.</td>
+<td>Blocs morts / blocs totaux dans les deux collections de portées, <code>0</code>–<code>1</code>.</td>
 </tr>
 </tbody>
 </table>
-<h3 id="element-de-filesfunctions-functiondeadcode">Élément de <code>files[].functions[]</code> (<code>FunctionDeadCode</code>)<a class="headerlink" href="#element-de-filesfunctions-functiondeadcode" title="Permanent link">&para;</a></h3>
+<h3 id="element-de-filesfunctions-et-filesclass_scopes-functiondeadcode">Élément de <code>files[].functions[]</code> et <code>files[].class_scopes[]</code> (<code>FunctionDeadCode</code>)<a class="headerlink" href="#element-de-filesfunctions-et-filesclass_scopes-functiondeadcode" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -5281,7 +5368,12 @@
 <tr>
 <td><code>name</code></td>
 <td>string</td>
-<td>Nom de la fonction.</td>
+<td>Nom de la fonction ou de la classe.</td>
+</tr>
+<tr>
+<td><code>scope_kind</code></td>
+<td>string</td>
+<td>Propriétaire d'exécution requis : <code>function</code> dans <code>functions</code>, <code>class</code> dans <code>class_scopes</code>.</td>
 </tr>
 <tr>
 <td><code>file_path</code></td>
@@ -5291,12 +5383,12 @@
 <tr>
 <td><code>findings</code></td>
 <td>array</td>
-<td>Constats dans cette fonction (voir ci-dessous).</td>
+<td>Constats dans cette portée d'exécution (voir ci-dessous).</td>
 </tr>
 <tr>
 <td><code>total_blocks</code></td>
 <td>integer</td>
-<td>Total des blocs CFG dans la fonction.</td>
+<td>Total des blocs CFG dans cette portée.</td>
 </tr>
 <tr>
 <td><code>dead_blocks</code></td>
@@ -5325,7 +5417,7 @@
 </tr>
 </tbody>
 </table>
-<h3 id="element-de-filesfunctionsfindings-deadcodefinding">Élément de <code>files[].functions[].findings[]</code> (<code>DeadCodeFinding</code>)<a class="headerlink" href="#element-de-filesfunctionsfindings-deadcodefinding" title="Permanent link">&para;</a></h3>
+<h3 id="element-de-findings-deadcodefinding">Élément de <code>findings[]</code> (<code>DeadCodeFinding</code>)<a class="headerlink" href="#element-de-findings-deadcodefinding" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -5343,7 +5435,12 @@
 <tr>
 <td><code>function_name</code></td>
 <td>string</td>
-<td>Nom de la fonction englobante.</td>
+<td>Nom de la portée d'exécution englobante (nom de champ historique).</td>
+</tr>
+<tr>
+<td><code>scope_kind</code></td>
+<td>string</td>
+<td>Propriétaire d'exécution requis : <code>function</code> ou <code>class</code>.</td>
 </tr>
 <tr>
 <td><code>code</code></td>
@@ -5468,7 +5565,7 @@
 <tr>
 <td><code>total_findings</code></td>
 <td>integer</td>
-<td>Total des constats sur tous les fichiers.</td>
+<td>Total des constats sur les fonctions et portées de classe de tous les fichiers.</td>
 </tr>
 <tr>
 <td><code>files_with_dead_code</code></td>
@@ -5479,6 +5576,16 @@
 <td><code>functions_with_dead_code</code></td>
 <td>integer</td>
 <td>Fonctions avec au moins un constat.</td>
+</tr>
+<tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>Suites de classe exécutables analysées.</td>
+</tr>
+<tr>
+<td><code>class_scopes_with_dead_code</code></td>
+<td>integer</td>
+<td>Suites de classe exécutables avec au moins un constat.</td>
 </tr>
 <tr>
 <td><code>critical_findings</code></td>
@@ -5503,12 +5610,12 @@
 <tr>
 <td><code>total_blocks</code></td>
 <td>integer</td>
-<td>Blocs CFG sur toutes les fonctions.</td>
+<td>Blocs CFG dans les fonctions et portées de classe.</td>
 </tr>
 <tr>
 <td><code>dead_blocks</code></td>
 <td>integer</td>
-<td>Blocs CFG inatteignables sur toutes les fonctions.</td>
+<td>Blocs CFG inatteignables dans les deux collections.</td>
 </tr>
 <tr>
 <td><code>overall_dead_ratio</code></td>

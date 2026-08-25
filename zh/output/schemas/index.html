@@ -3041,10 +3041,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#functions-functioncomplexity" class="md-nav__link">
+  <a href="#functions-class_scopes-functioncomplexity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        functions[] 元素（FunctionComplexity）
+        functions[] 和 class_scopes[] 元素（FunctionComplexity）
       
     </span>
   </a>
@@ -3113,10 +3113,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filesfunctions-functiondeadcode" class="md-nav__link">
+  <a href="#filesfunctions-filesclass_scopes-functiondeadcode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        files[].functions[] 元素（FunctionDeadCode）
+        files[].functions[] 和 files[].class_scopes[] 元素（FunctionDeadCode）
       
     </span>
   </a>
@@ -3124,10 +3124,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filesfunctionsfindings-deadcodefinding" class="md-nav__link">
+  <a href="#findings-deadcodefinding" class="md-nav__link">
     <span class="md-ellipsis">
       
-        files[].functions[].findings[] 元素（DeadCodeFinding）
+        findings[] 元素（DeadCodeFinding）
       
     </span>
   </a>
@@ -3954,10 +3954,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#functions-functioncomplexity" class="md-nav__link">
+  <a href="#functions-class_scopes-functioncomplexity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        functions[] 元素（FunctionComplexity）
+        functions[] 和 class_scopes[] 元素（FunctionComplexity）
       
     </span>
   </a>
@@ -4026,10 +4026,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filesfunctions-functiondeadcode" class="md-nav__link">
+  <a href="#filesfunctions-filesclass_scopes-functiondeadcode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        files[].functions[] 元素（FunctionDeadCode）
+        files[].functions[] 和 files[].class_scopes[] 元素（FunctionDeadCode）
       
     </span>
   </a>
@@ -4037,10 +4037,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filesfunctionsfindings-deadcodefinding" class="md-nav__link">
+  <a href="#findings-deadcodefinding" class="md-nav__link">
     <span class="md-ellipsis">
       
-        files[].functions[].findings[] 元素（DeadCodeFinding）
+        findings[] 元素（DeadCodeFinding）
       
     </span>
   </a>
@@ -4700,6 +4700,11 @@
 <td>分析的函数总数。</td>
 </tr>
 <tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>分析的类执行作用域总数。</td>
+</tr>
+<tr>
 <td><code>average_complexity</code></td>
 <td>number</td>
 <td>平均圈复杂度。无函数时为 <code>0</code>。</td>
@@ -4708,6 +4713,26 @@
 <td><code>high_complexity_count</code></td>
 <td>integer</td>
 <td>复杂度 &gt; 10（中等阈值）的函数数。</td>
+</tr>
+<tr>
+<td><code>max_class_complexity</code></td>
+<td>integer</td>
+<td>类作用域的最大圈复杂度。</td>
+</tr>
+<tr>
+<td><code>max_class_cognitive_complexity</code></td>
+<td>integer</td>
+<td>类作用域的最大认知复杂度。</td>
+</tr>
+<tr>
+<td><code>max_class_nesting_depth</code></td>
+<td>integer</td>
+<td>类作用域的最大嵌套深度。</td>
+</tr>
+<tr>
+<td><code>high_complexity_class_scope_count</code></td>
+<td>integer</td>
+<td>被归为高风险的类作用域数。</td>
 </tr>
 </tbody>
 </table>
@@ -4981,17 +5006,18 @@
 <p>对应 <code>domain.ComplexityResponse</code>。</p>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">"functions"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* FunctionComplexity array */</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">"summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ComplexitySummary */</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">"raw_metrics"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* RawMetrics array, present when computed */</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">"raw_metrics_summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* RawMetricsSummary, present when computed */</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">"warnings"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">"errors"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-04-14T10:18:23Z"</span><span class="p">,</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.14.0"</span><span class="p">,</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">"config"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">}</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">"class_scopes"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* FunctionComplexity array; omitted when empty */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">"summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ComplexitySummary */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">"raw_metrics"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* RawMetrics array, present when computed */</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">"raw_metrics_summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* RawMetricsSummary, present when computed */</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">"warnings"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">"errors"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">],</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-04-14T10:18:23Z"</span><span class="p">,</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.14.0"</span><span class="p">,</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="nt">"config"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">}</span>
 </span></code></pre></div>
-<h3 id="functions-functioncomplexity"><code>functions[]</code> 元素（<code>FunctionComplexity</code>）<a class="headerlink" href="#functions-functioncomplexity" title="Permanent link">&para;</a></h3>
+<h3 id="functions-class_scopes-functioncomplexity"><code>functions[]</code> 和 <code>class_scopes[]</code> 元素（<code>FunctionComplexity</code>）<a class="headerlink" href="#functions-class_scopes-functioncomplexity" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -5004,7 +5030,12 @@
 <tr>
 <td><code>name</code></td>
 <td>string</td>
-<td>函数名。模块级代码为 <code>__main__</code>。</td>
+<td>限定作用域名。模块级代码为 <code>&lt;module&gt;</code>。</td>
+</tr>
+<tr>
+<td><code>scope_kind</code></td>
+<td>string</td>
+<td>必需的执行所有者：<code>module</code>、<code>function</code> 或 <code>class</code>。</td>
 </tr>
 <tr>
 <td><code>file_path</code></td>
@@ -5108,22 +5139,62 @@
 <tr>
 <td><code>total_functions</code></td>
 <td>integer</td>
-<td>分析的函数总数。</td>
+<td>分析的模块与函数作用域总数。</td>
+</tr>
+<tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>分析的可执行类套件总数。</td>
+</tr>
+<tr>
+<td><code>functions_parsed</code></td>
+<td>integer</td>
+<td>与完整 <code>total_functions</code> 总体一致的兼容计数。</td>
 </tr>
 <tr>
 <td><code>average_complexity</code></td>
 <td>number</td>
-<td>所有函数 <code>Complexity</code> 的算术平均值。</td>
+<td>模块与函数作用域 <code>complexity</code> 的算术平均值。</td>
+</tr>
+<tr>
+<td><code>average_cognitive_complexity</code></td>
+<td>number</td>
+<td>模块与函数作用域 <code>cognitive_complexity</code> 的算术平均值。</td>
+</tr>
+<tr>
+<td><code>average_nesting_depth</code></td>
+<td>number</td>
+<td>模块与函数作用域 <code>nesting_depth</code> 的算术平均值。</td>
 </tr>
 <tr>
 <td><code>max_complexity</code></td>
 <td>integer</td>
-<td>观测到的最高复杂度。</td>
+<td>模块与函数作用域中的最高复杂度。</td>
 </tr>
 <tr>
 <td><code>min_complexity</code></td>
 <td>integer</td>
-<td>观测到的最低复杂度。</td>
+<td>模块与函数作用域中的最低复杂度。</td>
+</tr>
+<tr>
+<td><code>max_class_complexity</code></td>
+<td>integer</td>
+<td>类套件的最大圈复杂度。</td>
+</tr>
+<tr>
+<td><code>max_class_cognitive_complexity</code></td>
+<td>integer</td>
+<td>类套件的最大认知复杂度。</td>
+</tr>
+<tr>
+<td><code>max_class_nesting_depth</code></td>
+<td>integer</td>
+<td>类套件的最大嵌套深度。</td>
+</tr>
+<tr>
+<td><code>high_risk_class_scopes</code></td>
+<td>integer</td>
+<td>被归为高风险的类套件数。</td>
 </tr>
 <tr>
 <td><code>files_analyzed</code></td>
@@ -5143,25 +5214,26 @@
 <tr>
 <td><code>low_risk_functions</code></td>
 <td>integer</td>
-<td><code>RiskLevel = low</code> 的函数数。</td>
+<td><code>risk_level = low</code> 的模块与函数作用域数。</td>
 </tr>
 <tr>
 <td><code>medium_risk_functions</code></td>
 <td>integer</td>
-<td><code>RiskLevel = medium</code> 的函数数。</td>
+<td><code>risk_level = medium</code> 的模块与函数作用域数。</td>
 </tr>
 <tr>
 <td><code>high_risk_functions</code></td>
 <td>integer</td>
-<td><code>RiskLevel = high</code> 的函数数。</td>
+<td><code>risk_level = high</code> 的模块与函数作用域数。</td>
 </tr>
 <tr>
 <td><code>complexity_distribution</code></td>
 <td>object</td>
-<td>按复杂度区间（字符串）到数量（整数）的直方图，或 <code>null</code>。</td>
+<td>仅函数的复杂度区间（字符串）到数量（整数）的直方图，或 <code>null</code>。</td>
 </tr>
 </tbody>
 </table>
+<p>类作用域指标是增量指标：添加类作用域不会改变既有函数集合、计数、平均值、极值、分布、模块或目录汇总，也不会改变健康评分。</p>
 <h3 id="raw_metrics-rawmetrics"><code>raw_metrics[]</code> 元素（<code>RawMetrics</code>）<a class="headerlink" href="#raw_metrics-rawmetrics" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -5244,31 +5316,46 @@
 <tr>
 <td><code>functions</code></td>
 <td>array</td>
-<td>每个函数的结果（见下文）。</td>
+<td>每个函数的结果。既有字段，仅限函数。</td>
+</tr>
+<tr>
+<td><code>class_scopes</code></td>
+<td>array | absent</td>
+<td>可执行类套件结果。使用与 <code>functions</code> 相同的行模型。</td>
 </tr>
 <tr>
 <td><code>total_findings</code></td>
 <td>integer</td>
-<td>此文件中所有函数的发现总数。</td>
+<td>此文件中函数和类作用域的发现总数。</td>
 </tr>
 <tr>
 <td><code>total_functions</code></td>
 <td>integer</td>
-<td>此文件中分析的函数数。</td>
+<td>分析的函数数。既有字段，仅限函数。</td>
 </tr>
 <tr>
 <td><code>affected_functions</code></td>
 <td>integer</td>
-<td>至少有一个发现的函数数。</td>
+<td>至少有一个发现的函数数。既有字段，仅限函数。</td>
+</tr>
+<tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>分析的可执行类套件数。</td>
+</tr>
+<tr>
+<td><code>affected_class_scopes</code></td>
+<td>integer</td>
+<td>至少有一个发现的可执行类套件数。</td>
 </tr>
 <tr>
 <td><code>dead_code_ratio</code></td>
 <td>number</td>
-<td>死代码块 / 总块数，<code>0</code>–<code>1</code>。</td>
+<td>两个作用域集合中的死代码块 / 总块数，<code>0</code>–<code>1</code>。</td>
 </tr>
 </tbody>
 </table>
-<h3 id="filesfunctions-functiondeadcode"><code>files[].functions[]</code> 元素（<code>FunctionDeadCode</code>）<a class="headerlink" href="#filesfunctions-functiondeadcode" title="Permanent link">&para;</a></h3>
+<h3 id="filesfunctions-filesclass_scopes-functiondeadcode"><code>files[].functions[]</code> 和 <code>files[].class_scopes[]</code> 元素（<code>FunctionDeadCode</code>）<a class="headerlink" href="#filesfunctions-filesclass_scopes-functiondeadcode" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -5281,7 +5368,12 @@
 <tr>
 <td><code>name</code></td>
 <td>string</td>
-<td>函数名。</td>
+<td>函数名或类名。</td>
+</tr>
+<tr>
+<td><code>scope_kind</code></td>
+<td>string</td>
+<td>必需的执行所有者：<code>functions</code> 中为 <code>function</code>，<code>class_scopes</code> 中为 <code>class</code>。</td>
 </tr>
 <tr>
 <td><code>file_path</code></td>
@@ -5291,12 +5383,12 @@
 <tr>
 <td><code>findings</code></td>
 <td>array</td>
-<td>此函数中的发现（见下文）。</td>
+<td>此执行作用域中的发现（见下文）。</td>
 </tr>
 <tr>
 <td><code>total_blocks</code></td>
 <td>integer</td>
-<td>函数中的 CFG 块总数。</td>
+<td>此作用域中的 CFG 块总数。</td>
 </tr>
 <tr>
 <td><code>dead_blocks</code></td>
@@ -5325,7 +5417,7 @@
 </tr>
 </tbody>
 </table>
-<h3 id="filesfunctionsfindings-deadcodefinding"><code>files[].functions[].findings[]</code> 元素（<code>DeadCodeFinding</code>）<a class="headerlink" href="#filesfunctionsfindings-deadcodefinding" title="Permanent link">&para;</a></h3>
+<h3 id="findings-deadcodefinding"><code>findings[]</code> 元素（<code>DeadCodeFinding</code>）<a class="headerlink" href="#findings-deadcodefinding" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -5343,7 +5435,12 @@
 <tr>
 <td><code>function_name</code></td>
 <td>string</td>
-<td>所在函数名。</td>
+<td>所在执行作用域名（历史字段名）。</td>
+</tr>
+<tr>
+<td><code>scope_kind</code></td>
+<td>string</td>
+<td>必需的执行所有者：<code>function</code> 或 <code>class</code>。</td>
 </tr>
 <tr>
 <td><code>code</code></td>
@@ -5468,7 +5565,7 @@
 <tr>
 <td><code>total_findings</code></td>
 <td>integer</td>
-<td>所有文件的发现总数。</td>
+<td>所有文件中函数和类作用域的发现总数。</td>
 </tr>
 <tr>
 <td><code>files_with_dead_code</code></td>
@@ -5479,6 +5576,16 @@
 <td><code>functions_with_dead_code</code></td>
 <td>integer</td>
 <td>至少有一个发现的函数数。</td>
+</tr>
+<tr>
+<td><code>total_class_scopes</code></td>
+<td>integer</td>
+<td>分析的可执行类套件数。</td>
+</tr>
+<tr>
+<td><code>class_scopes_with_dead_code</code></td>
+<td>integer</td>
+<td>至少有一个发现的可执行类套件数。</td>
 </tr>
 <tr>
 <td><code>critical_findings</code></td>
@@ -5503,12 +5610,12 @@
 <tr>
 <td><code>total_blocks</code></td>
 <td>integer</td>
-<td>所有函数的 CFG 块总数。</td>
+<td>函数和类作用域的 CFG 块总数。</td>
 </tr>
 <tr>
 <td><code>dead_blocks</code></td>
 <td>integer</td>
-<td>所有函数中不可达的 CFG 块数。</td>
+<td>两个集合中不可达的 CFG 块总数。</td>
 </tr>
 <tr>
 <td><code>overall_dead_ratio</code></td>
