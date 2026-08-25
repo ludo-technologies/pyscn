@@ -156,3 +156,30 @@ func TestMockDataServiceAnalyzeSnapshotDoesNotReadSourceFiles(t *testing.T) {
 		t.Fatalf("expected captured source findings, got %+v", response.Summary)
 	}
 }
+
+func TestMockDataServiceAnalyzeSnapshotHonorsFileSelection(t *testing.T) {
+	projectRoot := t.TempDir()
+	includedPath := filepath.Join(projectRoot, "included.py")
+	excludedPath := filepath.Join(projectRoot, "migrations", "excluded.py")
+	if err := os.MkdirAll(filepath.Dir(excludedPath), 0o755); err != nil {
+		t.Fatalf("create migrations directory: %v", err)
+	}
+	for _, path := range []string{includedPath, excludedPath} {
+		if err := os.WriteFile(path, []byte("email = \"test@example.com\"\n"), 0o644); err != nil {
+			t.Fatalf("write source %s: %v", path, err)
+		}
+	}
+	snapshot := BuildProjectSnapshotWithOptions(context.Background(), []string{includedPath, excludedPath}, ProjectSnapshotOptions{ProjectRoot: projectRoot})
+	req := *domain.DefaultMockDataRequest()
+	req.IgnoreTests = domain.BoolPtr(false)
+	req.IncludePatterns = []string{"included.py", "**/migrations/**"}
+	req.ExcludePatterns = []string{"**/migrations/**"}
+
+	response, err := NewMockDataService().AnalyzeSnapshot(context.Background(), snapshot, req)
+	if err != nil {
+		t.Fatalf("analyze snapshot: %v", err)
+	}
+	if response.Summary.TotalFiles != 1 || len(response.Files) != 1 || response.Files[0].FilePath != includedPath {
+		t.Fatalf("expected only the selected implementation file, got summary=%+v files=%+v", response.Summary, response.Files)
+	}
+}

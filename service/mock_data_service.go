@@ -124,7 +124,11 @@ func (s *MockDataServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Pro
 	var files []domain.FileMockData
 	var failures []domain.AnalysisFailure
 	filesProcessed := 0
-	for _, file := range snapshot.analysisProjectFiles() {
+	selection := domain.PythonFileSelection{
+		IncludePatterns: req.IncludePatterns,
+		ExcludePatterns: req.ExcludePatterns,
+	}
+	for _, file := range snapshot.selectedAnalysisProjectFiles(selection) {
 		if !file.Parsed() || matchesMockDataIgnorePattern(file.Path, ignorePatterns) ||
 			(domain.BoolValue(req.IgnoreTests, domain.DefaultMockDataIgnoreTests) && s.isTestFile(file.Path)) {
 			continue
