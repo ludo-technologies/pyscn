@@ -18,7 +18,7 @@ Les chemins sont par défaut le répertoire courant.
 - **Rapide** — n'exécute que les analyses sélectionnées ; pas de génération de rapport.
 
 !!! note "Portée des erreurs d'analyse syntaxique"
-    Toutes les analyses sélectionnées utilisent le même registre de découverte du projet. Un fichier illisible ou impossible à analyser fait échouer la vérification, y compris avec `pyscn check --select deps`, sauf si `--allow-parse-errors` est défini.
+    Toutes les analyses sélectionnées utilisent le même registre de découverte du projet. Une erreur d'analyse syntaxique fait échouer la vérification, y compris avec `pyscn check --select deps`, sauf si `--allow-parse-errors` est défini. Une erreur de lecture reste toujours bloquante.
 
 ## Options
 
@@ -39,9 +39,9 @@ Par défaut (sans `--select`) : exécute `complexity`, `deadcode`, **et `clones`
 | `--max-cycles <N>`       | `0`  | Nombre maximal de cycles de dépendance circulaire avant échec. |
 | `--allow-dead-code`      | off  | Traite le code mort comme un simple avertissement ; ne fait pas échouer la vérification. |
 | `--allow-circular-deps`  | off  | Traite les cycles comme de simples avertissements ; ne fait pas échouer la vérification. |
-| `--allow-parse-errors`   | off  | Traite les fichiers illisibles ou non analysables comme de simples avertissements ; ne fait pas échouer la vérification. |
+| `--allow-parse-errors`   | off  | Traite les erreurs d'analyse syntaxique comme de simples avertissements. Les erreurs de lecture restent bloquantes. |
 
-Par défaut, un fichier impossible à analyser syntaxiquement fait échouer la vérification. Un tel fichier est exclu de toutes les analyses : il ne produit aucune constatation et franchirait donc tous les seuils — une erreur de syntaxe dans vos sources serait rapportée comme une exécution propre. Voir la note ci-dessus pour la seule analyse que ce mécanisme n'atteint pas.
+Par défaut, un fichier impossible à analyser syntaxiquement fait échouer la vérification. Un tel fichier est exclu de toutes les analyses : il ne produit aucune constatation et franchirait donc tous les seuils — une erreur de syntaxe dans vos sources serait rapportée comme une exécution propre. L'option ne masque ni les fichiers absents, ni les erreurs d'autorisation, ni les autres erreurs de lecture.
 
 ### Sortie
 

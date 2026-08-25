@@ -127,7 +127,7 @@ Examples:
 	// Override flags for quick adjustments
 	cmd.Flags().IntVar(&c.maxComplexity, "max-complexity", 10, "Maximum allowed complexity")
 	cmd.Flags().BoolVar(&c.allowDeadCode, "allow-dead-code", false, "Allow dead code (don't fail)")
-	cmd.Flags().BoolVar(&c.allowParseErrors, "allow-parse-errors", false, "Allow files that cannot be parsed (report them but don't fail)")
+	cmd.Flags().BoolVar(&c.allowParseErrors, "allow-parse-errors", false, "Allow parse errors; file read errors still fail")
 	cmd.Flags().BoolVar(&c.skipClones, "skip-clones", false, "Skip clone detection")
 	cmd.Flags().BoolVar(&c.allowCircularDeps, "allow-circular-deps", false, "Allow circular dependencies (warnings only)")
 	cmd.Flags().IntVar(&c.maxCycles, "max-cycles", 0, "Maximum allowed circular dependency cycles before failing")

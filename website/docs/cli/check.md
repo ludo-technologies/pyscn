@@ -18,7 +18,7 @@ Paths default to the current directory.
 - **Fast** — only runs the analyses you select; skips report generation.
 
 !!! note "Parse-error coverage"
-    Every selected analysis uses the same project discovery ledger. A file that cannot be read or parsed fails the check, including `pyscn check --select deps`, unless `--allow-parse-errors` is set.
+    Every selected analysis uses the same project discovery ledger. Parse errors fail the check, including `pyscn check --select deps`, unless `--allow-parse-errors` is set. File read errors always fail.
 
 ## Flags
 
@@ -39,9 +39,9 @@ Default (no `--select`): runs `complexity`, `deadcode`, **and `clones`**. `deps`
 | `--max-cycles <N>`       | `0`  | Maximum number of circular dependency cycles before failing. |
 | `--allow-dead-code`      | off  | Treat dead code as warnings only; don't fail the check. |
 | `--allow-circular-deps`  | off  | Treat cycles as warnings only; don't fail the check. |
-| `--allow-parse-errors`   | off  | Treat unreadable or unparseable files as warnings only; don't fail the check. |
+| `--allow-parse-errors`   | off  | Treat parse errors as warnings only. File read errors still fail the check. |
 
-By default, a file that cannot be parsed fails the check. Such a file is excluded from every analysis, so it contributes no findings and would otherwise pass every threshold — a syntax error in your source would be reported as a clean run.
+By default, a file that cannot be parsed fails the check. Such a file is excluded from every analysis, so it contributes no findings and would otherwise pass every threshold — a syntax error in your source would be reported as a clean run. The flag does not waive missing files, permission failures, or other read errors.
 
 ### Output
 
